@@ -585,8 +585,6 @@ class ConnectOnboardingResponseDto:
     accountId: str
     onboardingUrl: str
 
-ContentRatingString = Literal["UNRATED", "G", "PG13", "R18", "EXPLICIT"]
-
 @dataclass(frozen=True)
 class CreateAssetDto:
     clonePolicy: Literal["ALLOW", "DENY", "INHERIT"]
@@ -662,18 +660,6 @@ class CreatePersonaCharacterCoreDto:
 @dataclass(frozen=True)
 class CreatePortalSessionDto:
     returnUrl: str
-
-@dataclass(frozen=True)
-class CreatePostAttachmentDto:
-    targetId: str
-    targetType: AttachmentTargetType
-
-@dataclass(frozen=True)
-class CreatePostDto:
-    attachments: tuple[CreatePostAttachmentDto, ...]
-    caption: str | None = None
-    sourceRef: CharacterSourceRefV3Dto | None = None
-    tags: tuple[str, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class CreateReportDto:
@@ -802,9 +788,8 @@ class CurrencyTransactionHistoryDto:
 
 @dataclass(frozen=True)
 class CursorPageMetaDto:
-    cursor: str | None = None
-    limit: float | None = None
-    nextCursor: str | None = None
+    hasNext: bool
+    nextCursor: str | None
 
 @dataclass(frozen=True)
 class EditMessageInputDto:
@@ -842,17 +827,6 @@ class FeedbackResponseDto:
     type: Literal["BUG", "SUGGESTION", "PAYMENT_ISSUE", "OTHER"]
     aiReason: str | None = None
     contactEmail: str | None = None
-
-@dataclass(frozen=True)
-class FeedPageMetaDto:
-    cursor: str | None = None
-    limit: float | None = None
-    nextCursor: str | None = None
-
-@dataclass(frozen=True)
-class FeedResponseDto:
-    items: tuple[PostDto, ...]
-    page: FeedPageMetaDto
 
 @dataclass(frozen=True)
 class FinalizeResourceDto:
@@ -1176,8 +1150,6 @@ class MessageViewDto:
     replyTo: MessageReplyViewDto | None = None
     text: str | None = None
 
-ModerationStatusString = Literal["ACTIVE", "UNDER_REVIEW", "FLAGGED", "BANNED"]
-
 @dataclass(frozen=True)
 class MutualFriendCountDto:
     count: float
@@ -1379,54 +1351,6 @@ class PersonaCharacterSourceRefV3Dto:
 @dataclass(frozen=True)
 class PortalSessionDto:
     url: str
-
-@dataclass(frozen=True)
-class PostAttachmentDto:
-    targetId: str
-    targetType: AttachmentTargetType
-    delivery: MediaDeliveryDto | None = None
-    displayKind: AttachmentDisplayKind | None = None
-    duration: float | None = None
-    externalUrl: str | None = None
-    height: float | None = None
-    preview: AttachmentEnvelopeDto | None = None
-    subtitle: str | None = None
-    title: str | None = None
-    unavailable: bool | None = None
-    width: float | None = None
-
-@dataclass(frozen=True)
-class PostDto:
-    attachments: tuple[PostAttachmentDto, ...]
-    author: UserLiteDto
-    authorId: str
-    authorKind: Literal["human", "worldCharacter", "personaCharacter"]
-    createdAt: str
-    id: str
-    visibility: Visibility
-    caption: str | None = None
-    contentRating: ContentRatingString | None = None
-    likedByCurrentUser: bool | None = None
-    moderationStatus: ModerationStatusString | None = None
-    runtimeSourceRef: str | None = None
-    sourceAuthor: PostSourceAuthorDto | None = None
-    sourceRef: CharacterSourceRefV3Dto | None = None
-    tags: tuple[str, ...] = field(default_factory=tuple)
-    updatedAt: str | None = None
-    worldId: str | None = None
-
-@dataclass(frozen=True)
-class PostSourceAuthorDto:
-    displayName: str
-    handle: str
-    id: str
-    kind: Literal["worldCharacter", "personaCharacter"]
-    runtimeSourceRef: str
-    sourceAuthorityAccountId: str
-    sourceRef: CharacterSourceRefV3Dto
-    worldId: str
-    avatarMedia: MediaDeliveryDto | None = None
-    avatarUrl: str | None = None
 
 @dataclass(frozen=True)
 class PPSlotConfigDto:
@@ -1677,8 +1601,8 @@ class RevenueSourceOriginRequestDto:
 @dataclass(frozen=True)
 class SendMessageInputDto:
     clientMessageId: str
+    payload: ChatTextPayloadDto | Mapping[str, object] | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatFriendRequestPayloadDto | ChatSystemPayloadDto
     type: MessageType
-    payload: ChatTextPayloadDto | Mapping[str, object] | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatFriendRequestPayloadDto | ChatSystemPayloadDto | None = None
     replyToMessageId: str | None = None
     text: str | None = None
 
@@ -1929,10 +1853,6 @@ class UpdatePasswordRequestDto:
     oldPassword: str | None = None
 
 @dataclass(frozen=True)
-class UpdatePostDto:
-    visibility: Visibility | None = None
-
-@dataclass(frozen=True)
 class UpdatePPSlotConfigDto:
     ppSlotConfig: PPSlotConfigDto
 
@@ -2104,11 +2024,6 @@ class UserProfileDto:
     status: AccountStatus | None = None
     tags: tuple[str, ...] = field(default_factory=tuple)
     tiers: UserTierSummaryDto | None = None
-
-@dataclass(frozen=True)
-class UserSearchResponseDto:
-    items: tuple[UserLiteDto, ...]
-    page: CursorPageMetaDto
 
 @dataclass(frozen=True)
 class UserSettingsDto:
@@ -3300,28 +3215,6 @@ class RealmCreateImageDirectUploadOperationRequest:
     body: CreateMediaDirectUploadDto | None = None
 
 @dataclass(frozen=True)
-class RealmCreatePostOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatePostOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatePostOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmCreatePostOperationRequest:
-    path: RealmCreatePostOperationPath
-    query: RealmCreatePostOperationQuery | None = None
-    headers: RealmCreatePostOperationHeaders | None = None
-    body: CreatePostDto | None = None
-
-@dataclass(frozen=True)
 class RealmCreateTextResourceOperationPath:
     pass
 
@@ -3364,28 +3257,6 @@ class RealmCreateVideoDirectUploadOperationRequest:
     query: RealmCreateVideoDirectUploadOperationQuery | None = None
     headers: RealmCreateVideoDirectUploadOperationHeaders | None = None
     body: CreateMediaDirectUploadDto | None = None
-
-@dataclass(frozen=True)
-class RealmDeletePostOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmDeletePostOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmDeletePostOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmDeletePostOperationRequest:
-    path: RealmDeletePostOperationPath
-    query: RealmDeletePostOperationQuery | None = None
-    headers: RealmDeletePostOperationHeaders | None = None
-    body: None | None = None
 
 @dataclass(frozen=True)
 class RealmDeleteResourceOperationPath:
@@ -3964,28 +3835,6 @@ class RealmEnable2FaOperationRequest:
     body: Me2faEnableDto | None = None
 
 @dataclass(frozen=True)
-class RealmExploreControllerCheckStatusOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmExploreControllerCheckStatusOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmExploreControllerCheckStatusOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmExploreControllerCheckStatusOperationRequest:
-    path: RealmExploreControllerCheckStatusOperationPath
-    query: RealmExploreControllerCheckStatusOperationQuery | None = None
-    headers: RealmExploreControllerCheckStatusOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
 class RealmFeedbackControllerGetMyFeedbacksOperationPath:
     pass
 
@@ -4138,58 +3987,6 @@ class RealmGetChatByIdOperationRequest:
     path: RealmGetChatByIdOperationPath
     query: RealmGetChatByIdOperationQuery | None = None
     headers: RealmGetChatByIdOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmGetExploreFeedOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetExploreFeedOperationQuery:
-    seed: str | None = None
-    tag: str | None = None
-    limit: float | None = None
-    cursor: str | None = None
-
-
-@dataclass(frozen=True)
-class RealmGetExploreFeedOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetExploreFeedOperationRequest:
-    path: RealmGetExploreFeedOperationPath
-    query: RealmGetExploreFeedOperationQuery | None = None
-    headers: RealmGetExploreFeedOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmGetHomeFeedOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetHomeFeedOperationQuery:
-    visibility: Literal["PUBLIC", "FRIENDS", "PRIVATE"] | None = None
-    worldId: str | None = None
-    authorId: str | None = None
-    limit: float | None = None
-    cursor: str | None = None
-    scope: Literal["personal", "friends", "persona_activity", "world_character_activity"] | None = None
-
-
-@dataclass(frozen=True)
-class RealmGetHomeFeedOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetHomeFeedOperationRequest:
-    path: RealmGetHomeFeedOperationPath
-    query: RealmGetHomeFeedOperationQuery | None = None
-    headers: RealmGetHomeFeedOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -4459,98 +4256,6 @@ class RealmGetMyWalletsOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
-class RealmGetPostOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmGetPostOperationQuery:
-    worldId: str | None = None
-
-
-@dataclass(frozen=True)
-class RealmGetPostOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetPostOperationRequest:
-    path: RealmGetPostOperationPath
-    query: RealmGetPostOperationQuery | None = None
-    headers: RealmGetPostOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmGetPostRecommendationsOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetPostRecommendationsOperationQuery:
-    seed: float | None = None
-    cursor: str | None = None
-    limit: float | None = None
-
-
-@dataclass(frozen=True)
-class RealmGetPostRecommendationsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetPostRecommendationsOperationRequest:
-    path: RealmGetPostRecommendationsOperationPath
-    query: RealmGetPostRecommendationsOperationQuery | None = None
-    headers: RealmGetPostRecommendationsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmGetPublicPostOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmGetPublicPostOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetPublicPostOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetPublicPostOperationRequest:
-    path: RealmGetPublicPostOperationPath
-    query: RealmGetPublicPostOperationQuery | None = None
-    headers: RealmGetPublicPostOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmGetRecommendationsOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetRecommendationsOperationQuery:
-    seed: float | None = None
-    cursor: str | None = None
-    limit: float | None = None
-
-
-@dataclass(frozen=True)
-class RealmGetRecommendationsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmGetRecommendationsOperationRequest:
-    path: RealmGetRecommendationsOperationPath
-    query: RealmGetRecommendationsOperationQuery | None = None
-    headers: RealmGetRecommendationsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
 class RealmGetResourceOperationPath:
     resourceId: str
 
@@ -4661,29 +4366,47 @@ class RealmGetUserFriendsOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
-class RealmGetWorldPostsOperationPath:
-    worldId: str
-
-
-@dataclass(frozen=True)
-class RealmGetWorldPostsOperationQuery:
-    visibility: Literal["PUBLIC", "FRIENDS", "PRIVATE"] | None = None
-    authorId: str | None = None
-    limit: float | None = None
-    cursor: str | None = None
-    scope: Literal["personal", "friends", "persona_activity", "world_character_activity"] | None = None
-
-
-@dataclass(frozen=True)
-class RealmGetWorldPostsOperationHeaders:
+class RealmHealthControllerLiveOperationPath:
     pass
 
 
 @dataclass(frozen=True)
-class RealmGetWorldPostsOperationRequest:
-    path: RealmGetWorldPostsOperationPath
-    query: RealmGetWorldPostsOperationQuery | None = None
-    headers: RealmGetWorldPostsOperationHeaders | None = None
+class RealmHealthControllerLiveOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmHealthControllerLiveOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmHealthControllerLiveOperationRequest:
+    path: RealmHealthControllerLiveOperationPath
+    query: RealmHealthControllerLiveOperationQuery | None = None
+    headers: RealmHealthControllerLiveOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmHealthControllerReadyOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmHealthControllerReadyOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmHealthControllerReadyOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmHealthControllerReadyOperationRequest:
+    path: RealmHealthControllerReadyOperationPath
+    query: RealmHealthControllerReadyOperationQuery | None = None
+    headers: RealmHealthControllerReadyOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -4707,28 +4430,6 @@ class RealmIntrospectSessionOperationRequest:
     query: RealmIntrospectSessionOperationQuery | None = None
     headers: RealmIntrospectSessionOperationHeaders | None = None
     body: IntrospectSessionRequestDto | None = None
-
-@dataclass(frozen=True)
-class RealmLikePostOperationPath:
-    postId: str
-
-
-@dataclass(frozen=True)
-class RealmLikePostOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmLikePostOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmLikePostOperationRequest:
-    path: RealmLikePostOperationPath
-    query: RealmLikePostOperationQuery | None = None
-    headers: RealmLikePostOperationHeaders | None = None
-    body: None | None = None
 
 @dataclass(frozen=True)
 class RealmLinkOauthOperationPath:
@@ -4820,31 +4521,6 @@ class RealmListChatsOperationRequest:
     path: RealmListChatsOperationPath
     query: RealmListChatsOperationQuery | None = None
     headers: RealmListChatsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmListLikedPostsOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmListLikedPostsOperationQuery:
-    worldId: str | None = None
-    limit: float | None = None
-    cursor: str | None = None
-    userId: str | None = None
-
-
-@dataclass(frozen=True)
-class RealmListLikedPostsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmListLikedPostsOperationRequest:
-    path: RealmListLikedPostsOperationPath
-    query: RealmListLikedPostsOperationQuery | None = None
-    headers: RealmListLikedPostsOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -5400,106 +5076,6 @@ class RealmRequestEmailOtpOperationRequest:
     body: EmailOtpRequestDto | None = None
 
 @dataclass(frozen=True)
-class RealmSearchHumanUsersOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmSearchHumanUsersOperationQuery:
-    limit: float | None = None
-    cursor: str | None = None
-    ageMax: float | None = None
-    ageMin: float | None = None
-    city: str | None = None
-    countryCode: str | None = None
-    gender: str | None = None
-    tag: str | None = None
-    minVitalityScore: float | None = None
-    minInteractionTier: float | None = None
-    minInfluenceTier: float | None = None
-    minAssetTier: float | None = None
-    q: str | None = None
-
-
-@dataclass(frozen=True)
-class RealmSearchHumanUsersOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmSearchHumanUsersOperationRequest:
-    path: RealmSearchHumanUsersOperationPath
-    query: RealmSearchHumanUsersOperationQuery | None = None
-    headers: RealmSearchHumanUsersOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmSearchIndexedUsersOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmSearchIndexedUsersOperationQuery:
-    limit: float | None = None
-    cursor: str | None = None
-    ageMax: float | None = None
-    ageMin: float | None = None
-    city: str | None = None
-    countryCode: str | None = None
-    gender: str | None = None
-    tag: str | None = None
-    minVitalityScore: float | None = None
-    minInteractionTier: float | None = None
-    minInfluenceTier: float | None = None
-    minAssetTier: float | None = None
-    q: str | None = None
-
-
-@dataclass(frozen=True)
-class RealmSearchIndexedUsersOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmSearchIndexedUsersOperationRequest:
-    path: RealmSearchIndexedUsersOperationPath
-    query: RealmSearchIndexedUsersOperationQuery | None = None
-    headers: RealmSearchIndexedUsersOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
-class RealmSearchPostsOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmSearchPostsOperationQuery:
-    limit: float | None = None
-    cursor: str | None = None
-    authorAgeMax: float | None = None
-    authorAgeMin: float | None = None
-    authorIsAi: bool | None = None
-    authorCity: str | None = None
-    authorCountryCode: str | None = None
-    authorGender: str | None = None
-    tag: str | None = None
-    minLikeCount: float | None = None
-    q: str | None = None
-
-
-@dataclass(frozen=True)
-class RealmSearchPostsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmSearchPostsOperationRequest:
-    path: RealmSearchPostsOperationPath
-    query: RealmSearchPostsOperationQuery | None = None
-    headers: RealmSearchPostsOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
 class RealmSendMessageOperationPath:
     chatId: str
 
@@ -5812,28 +5388,6 @@ class RealmUnblockUserOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
-class RealmUnlikePostOperationPath:
-    postId: str
-
-
-@dataclass(frozen=True)
-class RealmUnlikePostOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmUnlikePostOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmUnlikePostOperationRequest:
-    path: RealmUnlikePostOperationPath
-    query: RealmUnlikePostOperationQuery | None = None
-    headers: RealmUnlikePostOperationHeaders | None = None
-    body: None | None = None
-
-@dataclass(frozen=True)
 class RealmUnlinkOauthOperationPath:
     provider: str
 
@@ -6030,28 +5584,6 @@ class RealmUpdatePasswordOperationRequest:
     query: RealmUpdatePasswordOperationQuery | None = None
     headers: RealmUpdatePasswordOperationHeaders | None = None
     body: UpdatePasswordRequestDto | None = None
-
-@dataclass(frozen=True)
-class RealmUpdatePostOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmUpdatePostOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmUpdatePostOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmUpdatePostOperationRequest:
-    path: RealmUpdatePostOperationPath
-    query: RealmUpdatePostOperationQuery | None = None
-    headers: RealmUpdatePostOperationHeaders | None = None
-    body: UpdatePostDto | None = None
 
 @dataclass(frozen=True)
 class RealmUpdateResourceOperationPath:
@@ -7172,16 +6704,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="createImageDirectUpload", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResourceDirectUploadSessionDto, raw)
 
-    async def create_post(self, request: RealmCreatePostOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreatePostOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="createPost", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(PostDto, raw)
-
     async def create_text_resource(self, request: RealmCreateTextResourceOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreateTextResourceOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -7201,16 +6723,6 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="createVideoDirectUpload", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResourceDirectUploadSessionDto, raw)
-
-    async def delete_post(self, request: RealmDeletePostOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmDeletePostOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="deletePost", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(None, raw)
 
     async def delete_resource(self, request: RealmDeleteResourceOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmDeleteResourceOperationResponse:
         envelope: dict[str, object] = {
@@ -7472,16 +6984,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="enable2Fa", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(Me2faOperationResultDto, raw)
 
-    async def explore_controller_check_status(self, request: RealmExploreControllerCheckStatusOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmExploreControllerCheckStatusOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="ExploreController_checkStatus", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(None, raw)
-
     async def feedback_controller_get_my_feedbacks(self, request: RealmFeedbackControllerGetMyFeedbacksOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmFeedbackControllerGetMyFeedbacksOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -7551,26 +7053,6 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getChatById", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ChatViewDto, raw)
-
-    async def get_explore_feed(self, request: RealmGetExploreFeedOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetExploreFeedOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getExploreFeed", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(FeedResponseDto, raw)
-
-    async def get_home_feed(self, request: RealmGetHomeFeedOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetHomeFeedOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getHomeFeed", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(FeedResponseDto, raw)
 
     async def get_me(self, request: RealmGetMeOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMeOperationResponse:
         envelope: dict[str, object] = {
@@ -7692,46 +7174,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMyWallets", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UserWalletListResponseDto, raw)
 
-    async def get_post(self, request: RealmGetPostOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetPostOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getPost", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(PostDto, raw)
-
-    async def get_post_recommendations(self, request: RealmGetPostRecommendationsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetPostRecommendationsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getPostRecommendations", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(FeedResponseDto, raw)
-
-    async def get_public_post(self, request: RealmGetPublicPostOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetPublicPostOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getPublicPost", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(PostDto, raw)
-
-    async def get_recommendations(self, request: RealmGetRecommendationsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetRecommendationsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getRecommendations", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(UserSearchResponseDto, raw)
-
     async def get_resource(self, request: RealmGetResourceOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetResourceOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -7782,15 +7224,25 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getUserFriends", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(tuple[str, ...], raw)
 
-    async def get_world_posts(self, request: RealmGetWorldPostsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetWorldPostsOperationResponse:
+    async def health_controller_live(self, request: RealmHealthControllerLiveOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmHealthControllerLiveOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
             "query": _model_body(request.query),
             "headers": _model_body(request.headers),
             "body": _model_body(request.body),
         }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getWorldPosts", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(FeedResponseDto, raw)
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="HealthController_live", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(None, raw)
+
+    async def health_controller_ready(self, request: RealmHealthControllerReadyOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmHealthControllerReadyOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="HealthController_ready", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(None, raw)
 
     async def introspect_session(self, request: RealmIntrospectSessionOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmIntrospectSessionOperationResponse:
         envelope: dict[str, object] = {
@@ -7801,16 +7253,6 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="introspectSession", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(IntrospectSessionResponseDto, raw)
-
-    async def like_post(self, request: RealmLikePostOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmLikePostOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="likePost", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(None, raw)
 
     async def link_oauth(self, request: RealmLinkOauthOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmLinkOauthOperationResponse:
         envelope: dict[str, object] = {
@@ -7851,16 +7293,6 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="listChats", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListChatsResultDto, raw)
-
-    async def list_liked_posts(self, request: RealmListLikedPostsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListLikedPostsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="listLikedPosts", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(FeedResponseDto, raw)
 
     async def list_messages(self, request: RealmListMessagesOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListMessagesOperationResponse:
         envelope: dict[str, object] = {
@@ -8102,36 +7534,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="requestEmailOtp", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(EmailOtpResponseDto, raw)
 
-    async def search_human_users(self, request: RealmSearchHumanUsersOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmSearchHumanUsersOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="searchHumanUsers", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(UserSearchResponseDto, raw)
-
-    async def search_indexed_users(self, request: RealmSearchIndexedUsersOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmSearchIndexedUsersOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="searchIndexedUsers", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(UserSearchResponseDto, raw)
-
-    async def search_posts(self, request: RealmSearchPostsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmSearchPostsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="searchPosts", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(FeedResponseDto, raw)
-
     async def send_message(self, request: RealmSendMessageOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmSendMessageOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -8272,16 +7674,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="unblockUser", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
 
-    async def unlike_post(self, request: RealmUnlikePostOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUnlikePostOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="unlikePost", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(None, raw)
-
     async def unlink_oauth(self, request: RealmUnlinkOauthOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUnlinkOauthOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -8371,16 +7763,6 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="updatePassword", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
-
-    async def update_post(self, request: RealmUpdatePostOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdatePostOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="updatePost", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(PostDto, raw)
 
     async def update_resource(self, request: RealmUpdateResourceOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateResourceOperationResponse:
         envelope: dict[str, object] = {

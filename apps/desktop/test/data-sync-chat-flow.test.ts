@@ -48,6 +48,12 @@ describe('desktop human chat behavior', () => {
     assert.deepEqual(await offline.getChatOutboxEntries('chat-1'), []);
   });
 
+  test('attachment messages without a payload fail before dispatch', async () => {
+    await assert.rejects(() => sendChatMessage('chat-1', '', { type: 'ATTACHMENT' }, {
+      sendMessage: async () => assert.fail('Missing attachment must not reach Realm'),
+    } as never), /Chat message payload is required/);
+  });
+
   test('sendChatMessage writes canonical TEXT payload', async () => {
     let capturedBody: Record<string, unknown> | null = null;
     const offline = createTestOfflinePort();

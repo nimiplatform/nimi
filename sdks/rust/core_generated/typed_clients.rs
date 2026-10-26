@@ -17376,8 +17376,6 @@ pub struct ConnectOnboardingResponseDto {
     pub onboarding_url: String,
 }
 
-pub type ContentRatingString = String;
-
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreateAssetDto {
     pub author_id: String,
@@ -17459,20 +17457,6 @@ pub struct CreatePersonaCharacterCoreDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreatePortalSessionDto {
     pub return_url: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreatePostAttachmentDto {
-    pub target_id: String,
-    pub target_type: Box<AttachmentTargetType>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct CreatePostDto {
-    pub attachments: Vec<CreatePostAttachmentDto>,
-    pub caption: String,
-    pub source_ref: Box<CharacterSourceRefV3Dto>,
-    pub tags: Vec<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -17617,8 +17601,7 @@ pub struct CurrencyTransactionHistoryDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CursorPageMetaDto {
-    pub cursor: Option<String>,
-    pub limit: f64,
+    pub has_next: bool,
     pub next_cursor: Option<String>,
 }
 
@@ -17663,19 +17646,6 @@ pub struct FeedbackResponseDto {
     pub screenshot_urls: Vec<String>,
     pub status: String,
     pub r#type: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct FeedPageMetaDto {
-    pub cursor: Option<String>,
-    pub limit: f64,
-    pub next_cursor: Option<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct FeedResponseDto {
-    pub items: Vec<PostDto>,
-    pub page: Box<FeedPageMetaDto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -18062,8 +18032,6 @@ pub struct MessageViewDto {
     pub r#type: Box<MessageType>,
 }
 
-pub type ModerationStatusString = String;
-
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct MutualFriendCountDto {
     pub count: f64,
@@ -18289,57 +18257,6 @@ pub struct PersonaCharacterSourceRefV3Dto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PortalSessionDto {
     pub url: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PostAttachmentDto {
-    pub delivery: Option<Box<MediaDeliveryDto>>,
-    pub display_kind: Box<AttachmentDisplayKind>,
-    pub duration: f64,
-    pub external_url: Option<String>,
-    pub height: f64,
-    pub preview: Box<AttachmentEnvelopeDto>,
-    pub subtitle: String,
-    pub target_id: String,
-    pub target_type: Box<AttachmentTargetType>,
-    pub title: String,
-    pub unavailable: bool,
-    pub width: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PostDto {
-    pub attachments: Vec<PostAttachmentDto>,
-    pub author: Box<UserLiteDto>,
-    pub author_id: String,
-    pub author_kind: String,
-    pub caption: Option<String>,
-    pub content_rating: Box<ContentRatingString>,
-    pub created_at: String,
-    pub id: String,
-    pub liked_by_current_user: bool,
-    pub moderation_status: Box<ModerationStatusString>,
-    pub runtime_source_ref: Option<String>,
-    pub source_author: Option<Box<PostSourceAuthorDto>>,
-    pub source_ref: Option<Box<CharacterSourceRefV3Dto>>,
-    pub tags: Vec<String>,
-    pub updated_at: Option<String>,
-    pub visibility: Box<Visibility>,
-    pub world_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PostSourceAuthorDto {
-    pub avatar_media: Option<Box<MediaDeliveryDto>>,
-    pub avatar_url: Option<String>,
-    pub display_name: String,
-    pub handle: String,
-    pub id: String,
-    pub kind: String,
-    pub runtime_source_ref: String,
-    pub source_authority_account_id: String,
-    pub source_ref: Box<CharacterSourceRefV3Dto>,
-    pub world_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -18924,11 +18841,6 @@ pub struct UpdatePasswordRequestDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct UpdatePostDto {
-    pub visibility: Box<Visibility>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdatePPSlotConfigDto {
     pub pp_slot_config: Box<PPSlotConfigDto>,
 }
@@ -19111,12 +19023,6 @@ pub struct UserProfileDto {
     pub status: Box<AccountStatus>,
     pub tags: Vec<String>,
     pub tiers: Box<UserTierSummaryDto>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct UserSearchResponseDto {
-    pub items: Vec<UserLiteDto>,
-    pub page: Box<CursorPageMetaDto>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

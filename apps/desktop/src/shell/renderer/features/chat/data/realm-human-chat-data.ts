@@ -308,9 +308,19 @@ export async function sendChatMessage(
 ) {
   const clientMessageId = String(options.clientMessageId || '').trim() || createClientMessageId();
   try {
-    const input: RealmSendMessageInputDto = options.type && options.type !== 'TEXT'
-      ? { ...options, type: options.type, clientMessageId, ...(content ? { text: content } : {}) }
-      : buildRealmTextMessageInput(content, { ...options, clientMessageId });
+    let input: RealmSendMessageInputDto;
+    if (options.type && options.type !== 'TEXT') {
+      if (!options.payload) throw new Error('Chat message payload is required');
+      input = {
+        ...options,
+        type: options.type,
+        payload: options.payload,
+        clientMessageId,
+        ...(content ? { text: content } : {}),
+      };
+    } else {
+      input = buildRealmTextMessageInput(content, { ...options, clientMessageId });
+    }
     return await service.sendMessage(
       chatId,
       input,

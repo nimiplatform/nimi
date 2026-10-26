@@ -1685,14 +1685,6 @@ components:
         - accountId
         - onboardingUrl
       type: object
-    ContentRatingString:
-      enum:
-        - UNRATED
-        - G
-        - PG13
-        - R18
-        - EXPLICIT
-      type: string
     CreateAssetDto:
       properties:
         authorId:
@@ -1931,34 +1923,6 @@ components:
           type: string
       required:
         - returnUrl
-      type: object
-    CreatePostAttachmentDto:
-      properties:
-        targetId:
-          type: string
-        targetType:
-          allOf:
-            - $ref: '#/components/schemas/AttachmentTargetType'
-      required:
-        - targetType
-        - targetId
-      type: object
-    CreatePostDto:
-      properties:
-        attachments:
-          items:
-            $ref: '#/components/schemas/CreatePostAttachmentDto'
-          type: array
-        caption:
-          type: string
-        sourceRef:
-          $ref: '#/components/schemas/CharacterSourceRefV3Dto'
-        tags:
-          items:
-            type: string
-          type: array
-      required:
-        - attachments
       type: object
     CreateReportDto:
       properties:
@@ -2312,14 +2276,14 @@ components:
       type: object
     CursorPageMetaDto:
       properties:
-        cursor:
-          nullable: true
-          type: string
-        limit:
-          type: number
+        hasNext:
+          type: boolean
         nextCursor:
           nullable: true
           type: string
+      required:
+        - nextCursor
+        - hasNext
       type: object
     EditMessageInputDto:
       properties:
@@ -2376,29 +2340,6 @@ components:
       required:
         - email
         - code
-      type: object
-    FeedPageMetaDto:
-      properties:
-        cursor:
-          nullable: true
-          type: string
-        limit:
-          type: number
-        nextCursor:
-          nullable: true
-          type: string
-      type: object
-    FeedResponseDto:
-      properties:
-        items:
-          items:
-            $ref: '#/components/schemas/PostDto'
-          type: array
-        page:
-          $ref: '#/components/schemas/FeedPageMetaDto'
-      required:
-        - items
-        - page
       type: object
     FeedbackListResponseDto:
       properties:
@@ -3468,13 +3409,6 @@ components:
         - isRead
         - createdAt
       type: object
-    ModerationStatusString:
-      enum:
-        - ACTIVE
-        - UNDER_REVIEW
-        - FLAGGED
-        - BANNED
-      type: string
     MutualFriendCountDto:
       properties:
         count:
@@ -4138,148 +4072,6 @@ components:
           type: string
       required:
         - url
-      type: object
-    PostAttachmentDto:
-      properties:
-        delivery:
-          allOf:
-            - $ref: '#/components/schemas/MediaDeliveryDto'
-          nullable: true
-          type: object
-        displayKind:
-          allOf:
-            - $ref: '#/components/schemas/AttachmentDisplayKind'
-        duration:
-          type: number
-        externalUrl:
-          nullable: true
-          type: string
-        height:
-          type: number
-        preview:
-          $ref: '#/components/schemas/AttachmentEnvelopeDto'
-        subtitle:
-          type: string
-        targetId:
-          type: string
-        targetType:
-          allOf:
-            - $ref: '#/components/schemas/AttachmentTargetType'
-        title:
-          type: string
-        unavailable:
-          type: boolean
-        width:
-          type: number
-      required:
-        - targetType
-        - targetId
-      type: object
-    PostDto:
-      properties:
-        attachments:
-          items:
-            $ref: '#/components/schemas/PostAttachmentDto'
-          type: array
-        author:
-          $ref: '#/components/schemas/UserLiteDto'
-        authorId:
-          type: string
-        authorKind:
-          enum:
-            - human
-            - worldCharacter
-            - personaCharacter
-          type: string
-        caption:
-          nullable: true
-          type: string
-        contentRating:
-          allOf:
-            - $ref: '#/components/schemas/ContentRatingString'
-        createdAt:
-          format: date-time
-          type: string
-        id:
-          type: string
-        likedByCurrentUser:
-          type: boolean
-        moderationStatus:
-          allOf:
-            - $ref: '#/components/schemas/ModerationStatusString'
-        runtimeSourceRef:
-          nullable: true
-          type: string
-        sourceAuthor:
-          allOf:
-            - $ref: '#/components/schemas/PostSourceAuthorDto'
-          nullable: true
-          type: object
-        sourceRef:
-          allOf:
-            - $ref: '#/components/schemas/CharacterSourceRefV3Dto'
-          nullable: true
-          type: object
-        tags:
-          items:
-            type: string
-          type: array
-        updatedAt:
-          format: date-time
-          nullable: true
-          type: string
-        visibility:
-          allOf:
-            - $ref: '#/components/schemas/Visibility'
-        worldId:
-          type: string
-      required:
-        - id
-        - authorId
-        - author
-        - authorKind
-        - attachments
-        - visibility
-        - createdAt
-      type: object
-    PostSourceAuthorDto:
-      properties:
-        avatarMedia:
-          allOf:
-            - $ref: '#/components/schemas/MediaDeliveryDto'
-          nullable: true
-          type: object
-        avatarUrl:
-          nullable: true
-          type: string
-        displayName:
-          type: string
-        handle:
-          type: string
-        id:
-          type: string
-        kind:
-          enum:
-            - worldCharacter
-            - personaCharacter
-          type: string
-        runtimeSourceRef:
-          type: string
-        sourceAuthorityAccountId:
-          type: string
-        sourceRef:
-          $ref: '#/components/schemas/CharacterSourceRefV3Dto'
-        worldId:
-          type: string
-      required:
-        - kind
-        - id
-        - worldId
-        - displayName
-        - handle
-        - sourceAuthorityAccountId
-        - sourceRef
-        - runtimeSourceRef
       type: object
     PresenceStatus:
       enum:
@@ -4989,9 +4781,10 @@ components:
           type: string
         payload:
           description: >-
-            Canonical attachment writes use payload.attachment with targetType
-            and targetId. Provider-specific media keys are not allowed, and
-            targetType may be RESOURCE, ASSET, or BUNDLE.
+            Every message requires its type-specific payload; TEXT requires
+            payload.content. Canonical attachment writes use payload.attachment
+            with targetType and targetId. Provider-specific media keys are not
+            allowed, and targetType may be RESOURCE, ASSET, or BUNDLE.
           example:
             attachment:
               targetId: bundle_01hxyz
@@ -5020,6 +4813,7 @@ components:
       required:
         - clientMessageId
         - type
+        - payload
       type: object
     SocialProfileDto:
       properties:
@@ -5794,12 +5588,6 @@ components:
       required:
         - newPassword
       type: object
-    UpdatePostDto:
-      properties:
-        visibility:
-          allOf:
-            - $ref: '#/components/schemas/Visibility'
-      type: object
     UpdateResourceDto:
       properties:
         controllerId:
@@ -6284,18 +6072,6 @@ components:
         - handle
         - displayName
         - createdAt
-      type: object
-    UserSearchResponseDto:
-      properties:
-        items:
-          items:
-            $ref: '#/components/schemas/UserLiteDto'
-          type: array
-        page:
-          $ref: '#/components/schemas/CursorPageMetaDto'
-      required:
-        - items
-        - page
       type: object
     UserSettingsDto:
       properties:
@@ -10282,78 +10058,6 @@ paths:
       summary: Publish bundle
       tags:
         - Bundles
-  /api/discover/recommendations:
-    get:
-      description: >-
-        Returns personalized user recommendations based on the 4-layer
-        recommendation algorithm.
-      operationId: getRecommendations
-      parameters:
-        - in: query
-          name: seed
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: cursor
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: limit
-          required: false
-          schema:
-            type: number
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserSearchResponseDto'
-          description: ''
-        '503':
-          description: Discovery recommendation recall is unavailable
-      security:
-        - bearer: []
-      summary: Get personalized user recommendations
-      tags:
-        - Discover
-  /api/discover/recommendations/posts:
-    get:
-      description: >-
-        Returns personalized post recommendations based on the 4-layer
-        recommendation algorithm.
-      operationId: getPostRecommendations
-      parameters:
-        - in: query
-          name: seed
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: cursor
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: limit
-          required: false
-          schema:
-            type: number
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FeedResponseDto'
-          description: ''
-        '503':
-          description: Discovery recommendation recall is unavailable
-      security:
-        - bearer: []
-      summary: Get personalized post recommendations
-      tags:
-        - Discover
   /api/economy/balances:
     get:
       operationId: EconomyController_getBalances
@@ -10783,58 +10487,28 @@ paths:
       summary: Get withdrawal history
       tags:
         - Economy (Currency)
-  /api/explore:
+  /api/health/live:
     get:
-      description: Returns the explore feed for the current user.
-      operationId: getExploreFeed
-      parameters:
-        - in: query
-          name: seed
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: tag
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: limit
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: cursor
-          required: false
-          schema:
-            type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FeedResponseDto'
-          description: ''
-        '503':
-          description: Discovery engine is not ready
-      security:
-        - bearer: []
-      summary: Get explore feed
-      tags:
-        - Explore
-  /api/explore/status:
-    get:
-      operationId: ExploreController_checkStatus
+      operationId: HealthController_live
       parameters: []
       responses:
         '200':
-          description: Explore engine health status
-        '503':
-          description: Explore engine is not ready
-      security:
-        - bearer: []
+          description: API process is accepting requests
+      summary: Check API process liveness
       tags:
-        - Explore
+        - Health
+  /api/health/ready:
+    get:
+      operationId: HealthController_ready
+      parameters: []
+      responses:
+        '200':
+          description: Required data services are available
+        '503':
+          description: A required data service is unavailable
+      summary: Check PostgreSQL and Redis readiness
+      tags:
+        - Health
   /api/human/accounts/{id}:
     get:
       operationId: getUser
@@ -11929,89 +11603,6 @@ paths:
       security:
         - bearer: []
       summary: List online user ids
-      tags:
-        - User
-  /api/human/search:
-    get:
-      description: Search users by keyword with pagination and filtering options.
-      operationId: searchHumanUsers
-      parameters:
-        - in: query
-          name: limit
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: cursor
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: ageMax
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: ageMin
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: city
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: countryCode
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: gender
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: tag
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: minVitalityScore
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: minInteractionTier
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: minInfluenceTier
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: minAssetTier
-          required: false
-          schema:
-            type: number
-        - description: Search keyword
-          in: query
-          name: q
-          required: false
-          schema:
-            type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserSearchResponseDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Search users
       tags:
         - User
   /api/human/visibility/check/dm:
@@ -13152,158 +12743,6 @@ paths:
       summary: Submit immutable upload for verification and publication
       tags:
         - Resources
-  /api/search/posts:
-    get:
-      operationId: searchPosts
-      parameters:
-        - in: query
-          name: limit
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: cursor
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: authorAgeMax
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: authorAgeMin
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: authorIsAi
-          required: false
-          schema:
-            type: boolean
-        - in: query
-          name: authorCity
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: authorCountryCode
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: authorGender
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: tag
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: minLikeCount
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: q
-          required: false
-          schema:
-            type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FeedResponseDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Search posts
-      tags:
-        - Search
-  /api/search/users:
-    get:
-      operationId: searchIndexedUsers
-      parameters:
-        - in: query
-          name: limit
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: cursor
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: ageMax
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: ageMin
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: city
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: countryCode
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: gender
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: tag
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: minVitalityScore
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: minInteractionTier
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: minInfluenceTier
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: minAssetTier
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: q
-          required: false
-          schema:
-            type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/UserSearchResponseDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Search users
-      tags:
-        - Search
   /api/support/feedback:
     get:
       operationId: FeedbackController_getMyFeedbacks
@@ -13465,62 +12904,6 @@ paths:
       summary: Get a public world detail projection with source cards
       tags:
         - World
-  /api/world/by-id/{worldId}/posts:
-    get:
-      operationId: getWorldPosts
-      parameters:
-        - in: query
-          name: visibility
-          required: false
-          schema:
-            enum:
-              - PUBLIC
-              - FRIENDS
-              - PRIVATE
-            type: string
-        - in: query
-          name: authorId
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: limit
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: cursor
-          required: false
-          schema:
-            type: string
-        - description: Canonical feed scope (rule.realm.feed.r005). Defaults to personal.
-          in: query
-          name: scope
-          required: false
-          schema:
-            enum:
-              - personal
-              - friends
-              - persona_activity
-              - world_character_activity
-            type: string
-        - in: path
-          name: worldId
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FeedResponseDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Get posts scoped to a specific world
-      tags:
-        - WorldPost
   /api/world/catalog:
     get:
       operationId: WorldPublicController_listWorldCatalog
@@ -13653,243 +13036,6 @@ paths:
         search
       tags:
         - World
-  /api/world/posts:
-    get:
-      operationId: getHomeFeed
-      parameters:
-        - in: query
-          name: visibility
-          required: false
-          schema:
-            enum:
-              - PUBLIC
-              - FRIENDS
-              - PRIVATE
-            type: string
-        - in: query
-          name: worldId
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: authorId
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: limit
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: cursor
-          required: false
-          schema:
-            type: string
-        - description: Canonical feed scope (rule.realm.feed.r005). Defaults to personal.
-          in: query
-          name: scope
-          required: false
-          schema:
-            enum:
-              - personal
-              - friends
-              - persona_activity
-              - world_character_activity
-            type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FeedResponseDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Get home feed
-      tags:
-        - Posts
-    post:
-      operationId: createPost
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreatePostDto'
-        required: true
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PostDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Create post
-      tags:
-        - Posts
-  /api/world/posts/by-id/{id}:
-    delete:
-      operationId: deletePost
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: Post deleted
-      security:
-        - bearer: []
-      summary: Delete post
-      tags:
-        - Posts
-    get:
-      operationId: getPost
-      parameters:
-        - in: query
-          name: worldId
-          required: false
-          schema:
-            type: string
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PostDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Get post by id
-      tags:
-        - Posts
-    patch:
-      operationId: updatePost
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/UpdatePostDto'
-        required: true
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PostDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Update post
-      tags:
-        - Posts
-  /api/world/posts/by-id/{postId}/like:
-    delete:
-      operationId: unlikePost
-      parameters:
-        - in: path
-          name: postId
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: ''
-      security:
-        - bearer: []
-      summary: Unlike post
-      tags:
-        - Posts
-    post:
-      operationId: likePost
-      parameters:
-        - in: path
-          name: postId
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: ''
-      security:
-        - bearer: []
-      summary: Like post
-      tags:
-        - Posts
-  /api/world/posts/liked:
-    get:
-      operationId: listLikedPosts
-      parameters:
-        - in: query
-          name: worldId
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: limit
-          required: false
-          schema:
-            type: number
-        - in: query
-          name: cursor
-          required: false
-          schema:
-            type: string
-        - in: query
-          name: userId
-          required: false
-          schema:
-            type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FeedResponseDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: List liked posts
-      tags:
-        - Posts
-  /api/world/posts/public/{id}:
-    get:
-      operationId: getPublicPost
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-      responses:
-        '200':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PostDto'
-          description: ''
-        '404':
-          description: ''
-      security:
-        - bearer: []
-      summary: Get public post by ID (no auth required)
-      tags:
-        - Posts
   /api/world/topics:
     get:
       operationId: WorldPublicController_listWorldTopics
