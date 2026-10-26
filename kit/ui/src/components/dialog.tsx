@@ -202,6 +202,11 @@ type OverlayShellProps = {
   'data-testid'?: string;
 };
 
+function currentFocusTarget(): HTMLElement | null {
+  return typeof document !== 'undefined' && document.activeElement instanceof HTMLElement
+    ? document.activeElement : null;
+}
+
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-design-013a
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-design-013b
 export function OverlayShell({
@@ -223,7 +228,14 @@ export function OverlayShell({
   dataTestId,
   'data-testid': dataTestIdKebab,
 }: OverlayShellProps) {
-  const focusReturnTargetRef = React.useRef<HTMLElement | null>(null);
+  // Capture before descendants commit: a child's autoFocus runs before
+  // Radix's onOpenAutoFocus and would otherwise replace the external trigger.
+  const [focusReturn, setFocusReturn] = React.useState(() => ({
+    open, target: open ? currentFocusTarget() : null,
+  }));
+  if (focusReturn.open !== open) {
+    setFocusReturn({ open, target: open ? currentFocusTarget() : focusReturn.target });
+  }
   const [presenceMounted, setPresenceMounted] = React.useState(open);
   const openRef = React.useRef(open);
   openRef.current = open;
@@ -255,17 +267,17 @@ export function OverlayShell({
     if (!nextOpen && onClose) onClose();
   };
 
-  const handleOpenAutoFocus = () => {
-    const activeElement = document.activeElement;
-    focusReturnTargetRef.current = activeElement instanceof HTMLElement ? activeElement : null;
-  };
-
   const handleCloseAutoFocus = (event: Event) => {
-    const focusReturnTarget = focusReturnTargetRef.current;
-    focusReturnTargetRef.current = null;
-    if (!focusReturnTarget?.isConnected || focusReturnTarget.matches(':disabled')) return;
+    // A successful action may have moved focus to its destination while the
+    // old overlay exits. Neither our restoration nor Radix's fallback may
+    // take that focus back, even when the old trigger is still mounted.
     event.preventDefault();
-    focusReturnTarget.focus({ preventScroll: true });
+    const activeElement = document.activeElement;
+    const closingScope = event.target instanceof HTMLElement ? event.target : null;
+    if (activeElement && activeElement !== document.body && activeElement !== document.documentElement
+      && !closingScope?.contains(activeElement)) return;
+    const target = focusReturn.target;
+    if (target?.isConnected && !target.matches(':disabled')) target.focus({ preventScroll: true });
   };
 
   const backdropKindClass = kind === 'drawer'
@@ -356,7 +368,6 @@ export function OverlayShell({
               aria-modal="true"
               aria-hidden={!open}
               {...(description ? {} : { 'aria-describedby': undefined })}
-              onOpenAutoFocus={handleOpenAutoFocus}
               onCloseAutoFocus={handleCloseAutoFocus}
               onPointerDownOutside={closeOnBackdrop ? undefined : (e) => e.preventDefault()}
               onInteractOutside={closeOnBackdrop ? undefined : (e) => e.preventDefault()}
