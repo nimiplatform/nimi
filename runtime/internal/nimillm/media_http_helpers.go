@@ -257,10 +257,24 @@ func providerHTTPErrorFromResponse(response *http.Response, targetURL string) (m
 		if detail, ok := payload["error"].(map[string]any); ok {
 			code = ValueAsString(detail["code"])
 		}
-		// Bounded structured code only; never log the provider body or message.
-		slog.Warn("[provider-http-debug] error response", "status", response.StatusCode, "url", targetURL, "provider_code", providerDiagnosticID(code))
+		// Fixed diagnostic vocabulary only; never log the provider body or message.
+		slog.Warn("[provider-http-debug] error response", "status", response.StatusCode, "url", targetURL, "provider_code", providerDiagnosticID(code), "field_hints", providerErrorFieldHints(payload))
 	}
 	return payload, MapProviderHTTPError(response.StatusCode, payload)
+}
+
+// A 400 plus a numeric provider code does not identify the rejected field.
+// Keep diagnostics useful without publishing free-form provider text, which
+// can echo credentials or request content. Hints are not execution authority.
+func providerErrorFieldHints(payload map[string]any) []string {
+	message := strings.ToLower(ProviderErrorMessage(payload))
+	hints := make([]string, 0)
+	for _, field := range []string{"max_completion_tokens", "max_tokens", "temperature", "top_p", "top_k", "stream_options", "stream", "reasoning_content", "thinking", "tools", "tool_choice", "messages", "model", "balance", "quota", "token", "unsupported", "invalid", "limit"} {
+		if strings.Contains(message, field) {
+			hints = append(hints, field)
+		}
+	}
+	return hints
 }
 
 // DoJSONRequest performs an HTTP request expecting a JSON response. If body is

@@ -53,6 +53,24 @@ test('Nimi Chat explains a stale saved model instead of showing its raw reason c
   assert.doesNotMatch(projected.message, /AI_REMOTE_MODEL_CATALOG_STALE/u);
 });
 
+test('provider request and credential failures give localized recovery without raw payload', async () => {
+  try {
+    for (const locale of ['en', 'zh'] as const) {
+      await changeLocale(locale);
+      for (const reasonCode of ['AI_INPUT_INVALID', 'AI_PROVIDER_AUTH_FAILED']) {
+        const projected = toChatUserFacingRuntimeError(
+          { reasonCode, message: 'private provider payload secret=test' },
+          'Request failed',
+          i18n.t,
+        );
+        assert.equal(projected.code, reasonCode);
+        assert.doesNotMatch(projected.message, /AI_INPUT_INVALID|AI_PROVIDER_AUTH_FAILED|private provider|secret=/u);
+        assert.match(projected.message, locale === 'zh' ? /请/ : /Check|Update/u);
+      }
+    }
+  } finally { await changeLocale('en'); }
+});
+
 test('ChatGPT plan usage limit points to usage management instead of a generic rate limit', () => {
   // App carriers deliver only the reason code; the committed route names the plan.
   const carried = { reasonCode: 'AI_PROVIDER_RATE_LIMITED', actionHint: 'retry_later', message: 'rate limited' };

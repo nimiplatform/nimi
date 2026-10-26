@@ -420,6 +420,20 @@ func (providerCloudTextDriver) NormalizeReason(err error) error {
 	}
 	if metadata, ok := grpcerr.ExtractReasonMetadata(err); ok {
 		if statusCode, parseErr := strconv.Atoi(metadata["provider_http_status"]); parseErr == nil && statusCode > 0 {
+			// The transport has already classified a rejected request from its
+			// bounded provider response. Do not turn that actionable 4xx cause
+			// into a server fault merely because it also carries HTTP metadata.
+			if statusCode == http.StatusBadRequest || statusCode == http.StatusUnprocessableEntity {
+				if classified, ok := grpcerr.ExtractReasonCode(err); ok {
+					switch classified {
+					case runtimev1.ReasonCode_AI_INPUT_INVALID, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED,
+						runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED,
+						runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN,
+						runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED:
+						return err
+					}
+				}
+			}
 			reason := CloudTextReasonForHTTPStatus(statusCode)
 			grpcCode := codes.Internal
 			switch reason {

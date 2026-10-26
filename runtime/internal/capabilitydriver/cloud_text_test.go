@@ -75,6 +75,12 @@ func TestCloudTextDriverNormalizesTransportHTTPMetadata(t *testing.T) {
 	if got := driver.NormalizeReason(modelError); got != modelError {
 		t.Fatalf("model rejection lost: %v", got)
 	}
+	for _, code := range []runtimev1.ReasonCode{runtimev1.ReasonCode_AI_INPUT_INVALID, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED} {
+		rejected := grpcerr.WithReasonCodeOptions(codes.InvalidArgument, code, grpcerr.ReasonOptions{Metadata: map[string]string{"provider_http_status": "400"}})
+		if got := driver.NormalizeReason(rejected); got != rejected {
+			t.Fatalf("classified rejection lost: %v", got)
+		}
+	}
 }
 
 func TestCloudTextDriverSeparatesTargetAndRequestMapping(t *testing.T) {

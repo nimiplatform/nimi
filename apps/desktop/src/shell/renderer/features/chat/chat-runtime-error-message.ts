@@ -101,6 +101,9 @@ export function toChatUserFacingRuntimeError(
   const { reasonCode: reason, actionHint } = extractNimiErrorFields(error);
   const reportedReason = reason || extractNimiRuntimeReasonCodeFromError(error);
   const normalizedReason = reportedReason?.toUpperCase().replaceAll('-', '_');
+  if (normalizedReason && ['AI_INPUT_INVALID', 'AI_PROVIDER_AUTH_FAILED', 'AI_PROVIDER_ENDPOINT_FORBIDDEN'].includes(normalizedReason)) {
+    return { code: reportedReason!, message: chatRuntimeReasonCodeMessage(normalizedReason, t, context)! };
+  }
   if ((context?.localAgent && normalizedReason && localAgentConfigurationFailure(normalizedReason)) || normalizedReason === 'AI_LOCAL_CONFIGURATION_NOT_CONFIGURED' || normalizedReason === 'AI_TEXT_BEHAVIOR_UNSUPPORTED') {
     return { code: reportedReason!, message: chatRuntimeReasonCodeMessage(normalizedReason, t, context)! };
   }
