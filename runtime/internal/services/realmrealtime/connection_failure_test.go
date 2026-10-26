@@ -34,6 +34,18 @@ func (a *renewingRealmAccount) RefreshRealmRealtimeAccount(_ context.Context, ge
 	return a.lease, nil
 }
 
+func (a *renewingRealmAccount) CommitAuthenticatedRuntimeGeneration(ctx context.Context, accountID, realmID string, generation uint64, commit func() error) (bool, error) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
+	if a.lease.AccountID != accountID || a.lease.RealmEnvironmentID != realmID || a.lease.Generation != generation {
+		return false, nil
+	}
+	return true, commit()
+}
+
 func TestConnectionFailureProjectsReasonWithoutReconnectingRejectedCredentials(t *testing.T) {
 	for _, test := range []struct {
 		reason   string

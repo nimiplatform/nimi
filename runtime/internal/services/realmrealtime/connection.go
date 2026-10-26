@@ -52,45 +52,23 @@ func (s *Service) reconnect(remote *realmConnection, failure error) error {
 		}
 		remote.lease = lease
 	}
-	backoff := 250 * time.Millisecond
-	for attempt := 0; attempt < 6; attempt++ {
-		if attempt > 0 {
-			timer := time.NewTimer(backoff)
-			select {
-			case <-remote.ctx.Done():
-				timer.Stop()
-				return remote.ctx.Err()
-			case <-timer.C:
-			}
-			if backoff < 4*time.Second {
-				backoff *= 2
-			}
-		}
+	return retryRealmConnection(remote.ctx, func() error {
 		lease, err := s.accounts.BindRealmRealtimeAccount(remote.ctx)
 		if err != nil || lease.AccountID != remote.lease.AccountID || lease.Generation != remote.lease.Generation {
 			return errSocketAuth
 		}
 		driver, err := dialSocketIO(remote.ctx, lease.RealmRealtimeURL, lease.AccessToken)
 		if err != nil {
-			failure = err
-			if connectionCloseReason(err) != "unavailable" {
-				return err
-			}
-			continue
+			return err
 		}
 		remote.driver = driver
 		remote.lease = lease
 		if err := s.restoreRemoteSubscriptions(remote); err != nil {
 			driver.Close()
-			failure = err
-			if connectionCloseReason(err) != "unavailable" {
-				return err
-			}
-			continue
+			return err
 		}
 		return nil
-	}
-	return failure
+	})
 }
 
 func (s *Service) restoreRemoteSubscriptions(remote *realmConnection) error {
@@ -221,13 +199,13 @@ func (s *Service) failAccountGeneration(remote *realmConnection) {
 	if remote == nil {
 		return
 	}
-	remote.cancel()
-	remote.driver.Close()
 	s.mu.Lock()
 	if s.remote == remote {
 		s.remote = nil
 	}
 	s.mu.Unlock()
+	remote.cancel()
+	remote.driver.Close()
 	for _, binding := range s.remoteSubscriptions(remote) {
 		s.terminalizeSubscription(binding.channel, binding.subscription, realtimecore.TerminalStaleGeneration)
 	}

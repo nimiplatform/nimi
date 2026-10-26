@@ -152,3 +152,13 @@ func (provider realmListAccountProvider) BindRealmRealtimeAccount(context.Contex
 func (provider realmListAccountProvider) RefreshRealmRealtimeAccount(context.Context, uint64, string) (accountservice.RealmRealtimeAccountLease, error) {
 	return provider.lease, nil
 }
+
+func (provider realmListAccountProvider) CommitAuthenticatedRuntimeGeneration(ctx context.Context, accountID, realmID string, generation uint64, commit func() error) (bool, error) {
+	if err := ctx.Err(); err != nil {
+		return false, err
+	}
+	if provider.lease.AccountID != accountID || provider.lease.RealmEnvironmentID != realmID || provider.lease.Generation != generation {
+		return false, nil
+	}
+	return true, commit()
+}

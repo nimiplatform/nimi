@@ -607,7 +607,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	)
 	var protectedGRPCServer *grpc.Server
 	var localAppGRPCServer *grpc.Server
-	accountSvc := accountservice.New(logger)
+	var accountSvc *accountservice.Service
 	if protected != nil {
 		accountSvc = accountservice.NewProduction(logger, accountservice.ProductionConfig{
 			RealmBaseURL:     protected.AccountRealmBaseURL,
@@ -619,6 +619,8 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 			AppRegistry:      appRegistry,
 			AuditStore:       auditStore,
 		})
+	} else {
+		accountSvc = accountservice.New(logger)
 	}
 	authSvc.SetRuntimeAccountSecurityContextProvider(accountSvc)
 	realmRealtimeSvc := realmrealtimeservice.New(logger, accountSvc)

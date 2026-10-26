@@ -34,6 +34,7 @@ const (
 type AccountProvider interface {
 	BindRealmRealtimeAccount(context.Context) (accountservice.RealmRealtimeAccountLease, error)
 	RefreshRealmRealtimeAccount(context.Context, uint64, string) (accountservice.RealmRealtimeAccountLease, error)
+	CommitAuthenticatedRuntimeGeneration(context.Context, string, string, uint64, func() error) (bool, error)
 }
 
 type Service struct {
@@ -41,6 +42,9 @@ type Service struct {
 	logger     *slog.Logger
 	accounts   AccountProvider
 	httpClient *http.Client
+	lifetime   context.Context
+	cancel     context.CancelFunc
+	opening    chan struct{}
 
 	mu         sync.Mutex
 	closed     bool
@@ -102,10 +106,12 @@ func New(logger *slog.Logger, accounts AccountProvider) *Service {
 	if logger == nil {
 		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
 	}
+	lifetime, cancel := context.WithCancel(context.Background())
 	return &Service{
 		logger: logger, accounts: accounts,
 		httpClient: &http.Client{Timeout: 15 * time.Second},
 		channels:   make(map[string]*realmChannel),
+		lifetime:   lifetime, cancel: cancel, opening: make(chan struct{}, 1),
 	}
 }
 
@@ -193,16 +199,23 @@ func realmChatListHTTPError(statusCode int) error {
 }
 
 func (s *Service) OpenRealmRealtimeChannel(ctx context.Context, _ *runtimev1.OpenRealmRealtimeChannelRequest) (*runtimev1.OpenRealmRealtimeChannelResponse, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, realmOpeningError(err)
+	}
 	appID, appSessionID, err := realtimeCaller(ctx)
 	if err != nil {
 		return nil, err
 	}
 	lease, err := s.accounts.BindRealmRealtimeAccount(ctx)
 	if err != nil {
+		if ctx.Err() != nil {
+			return nil, realmOpeningError(ctx.Err())
+		}
 		return nil, grpcerr.WithReasonCode(codes.Unauthenticated, runtimev1.ReasonCode_AUTH_TOKEN_INVALID)
 	}
-	if err := s.ensureConnection(ctx, lease); err != nil {
-		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_REALM_UNAVAILABLE)
+	remote, err := s.ensureConnection(ctx, lease)
+	if err != nil {
+		return nil, realmOpeningError(err)
 	}
 	generation := s.generation.Add(1)
 	if generation == 0 {
@@ -214,13 +227,24 @@ func (s *Service) OpenRealmRealtimeChannel(ctx context.Context, _ *runtimev1.Ope
 		accountGeneration: lease.Generation, generation: generation,
 		subscriptions: make(map[string]*realmSubscription),
 	}
-	s.mu.Lock()
-	if s.closed {
-		s.mu.Unlock()
-		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_REALM_UNAVAILABLE)
+	committed, err := s.accounts.CommitAuthenticatedRuntimeGeneration(ctx, lease.AccountID, lease.RealmEnvironmentID, lease.Generation, func() error {
+		s.mu.Lock()
+		defer s.mu.Unlock()
+		if err := s.openingScopeError(ctx, lease); err != nil {
+			return err
+		}
+		if s.closed || s.remote != remote || remote.ctx.Err() != nil {
+			return errRealmConnectionClosed
+		}
+		s.channels[channel.channelID] = channel
+		return nil
+	})
+	if err != nil {
+		return nil, realmOpeningError(err)
 	}
-	s.channels[channel.channelID] = channel
-	s.mu.Unlock()
+	if !committed {
+		return nil, realmOpeningError(errSocketAuth)
+	}
 	status := channelControl(channel, "", runtimev1.RealtimeLifecycle_REALTIME_LIFECYCLE_READY, realtimecore.BackpressureNormal, 0, 0, runtimev1.RealtimeTerminalReason_REALTIME_TERMINAL_REASON_UNSPECIFIED, "")
 	return &runtimev1.OpenRealmRealtimeChannelResponse{
 		RealtimeSessionId: channel.realtimeSessionID,
@@ -400,6 +424,7 @@ func (s *Service) Close() {
 	}
 	s.channels = make(map[string]*realmChannel)
 	s.mu.Unlock()
+	s.cancel()
 	if remote != nil {
 		remote.cancel()
 		remote.driver.Close()
@@ -407,41 +432,6 @@ func (s *Service) Close() {
 	for _, channel := range channels {
 		s.closeChannel(channel, realtimecore.TerminalRuntimeShutdown)
 	}
-}
-
-func (s *Service) ensureConnection(ctx context.Context, lease accountservice.RealmRealtimeAccountLease) error {
-	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.closed {
-		return fmt.Errorf("Runtime realtime service is closed")
-	}
-	if s.remote != nil && s.remote.lease.AccountID == lease.AccountID && s.remote.lease.Generation == lease.Generation {
-		return nil
-	}
-	if s.remote != nil {
-		s.remote.cancel()
-		s.remote.driver.Close()
-	}
-	connectionCtx, cancel := context.WithCancel(context.Background())
-	driver, err := dialSocketIO(connectionCtx, lease.RealmRealtimeURL, lease.AccessToken)
-	if err != nil {
-		cancel()
-		return err
-	}
-	remote := &realmConnection{
-		lease: lease, driver: driver, ctx: connectionCtx, cancel: cancel,
-		presenceRevision: make(map[string]uint64),
-	}
-	s.remote = remote
-	go s.runConnection(remote)
-	go func() {
-		select {
-		case <-lease.Invalidated:
-			s.failAccountGeneration(remote)
-		case <-connectionCtx.Done():
-		}
-	}()
-	return nil
 }
 
 func (s *Service) openRemoteChatSubscription(ctx context.Context, channel *realmChannel, subscription *realmSubscription) error {

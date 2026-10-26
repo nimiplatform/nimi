@@ -42,25 +42,60 @@ type socketIOClient struct {
 
 // @nimi-authority: rule.nimi.runtime.realm-realtime.r001
 func dialSocketIO(ctx context.Context, origin string, accessToken string) (*socketIOClient, error) {
+	return dialSocketIOWithLifetime(ctx, ctx, origin, accessToken)
+}
+
+func dialSocketIOWithLifetime(openingCtx, lifetimeCtx context.Context, origin string, accessToken string) (*socketIOClient, error) {
+	ctx, cancel := context.WithTimeout(openingCtx, 10*time.Second)
+	defer cancel()
+	if err := ctx.Err(); err != nil {
+		return nil, err
+	}
 	target, websocketOrigin, err := socketIOWebsocketURL(origin)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("%w: invalid Realm realtime origin", errSocketProtocol)
 	}
 	config, err := websocket.NewConfig(target, websocketOrigin)
 	if err != nil {
-		return nil, fmt.Errorf("build Realm realtime websocket config: %w", err)
+		return nil, fmt.Errorf("%w: invalid Realm realtime websocket config", errSocketProtocol)
 	}
-	conn, err := websocket.DialConfig(config)
+	conn, err := config.DialContext(ctx)
 	if err != nil {
+		if ctx.Err() != nil {
+			return nil, ctx.Err()
+		}
+		// x/net's DialError does not unwrap its cause. ErrBadStatus discards the
+		// HTTP status of every non-101 response, so it remains upgrade unavailable;
+		// it cannot establish either protocol corruption or credential rejection.
+		var dialError *websocket.DialError
+		if errors.As(err, &dialError) {
+			err = dialError.Err
+		}
+		var protocolError *websocket.ProtocolError
+		if errors.As(err, &protocolError) && !errors.Is(err, websocket.ErrBadStatus) {
+			return nil, fmt.Errorf("%w: websocket handshake rejected", errSocketProtocol)
+		}
 		return nil, fmt.Errorf("connect Realm realtime websocket: %w", err)
 	}
 	conn.PayloadType = websocket.TextFrame
-	_ = conn.SetDeadline(time.Now().Add(10 * time.Second))
-	if err := socketIOHandshake(conn, accessToken); err != nil {
+	stopHandshake := context.AfterFunc(ctx, func() {
+		_ = conn.SetDeadline(time.Now())
 		_ = conn.Close()
+	})
+	err = socketIOHandshake(conn, accessToken)
+	stopHandshake()
+	if ctx.Err() != nil {
+		_ = conn.Close()
+		return nil, ctx.Err()
+	}
+	if err != nil {
+		_ = conn.Close()
+		var protocolError *websocket.ProtocolError
+		if errors.As(err, &protocolError) || errors.Is(err, websocket.ErrFrameTooLarge) {
+			return nil, fmt.Errorf("%w: websocket frame rejected", errSocketProtocol)
+		}
 		return nil, err
 	}
-	_ = conn.SetDeadline(time.Time{})
 	client := &socketIOClient{
 		conn:   conn,
 		acks:   make(map[uint64]chan json.RawMessage),
@@ -71,7 +106,7 @@ func dialSocketIO(ctx context.Context, origin string, accessToken string) (*sock
 	go client.readLoop()
 	go func() {
 		select {
-		case <-ctx.Done():
+		case <-lifetimeCtx.Done():
 			client.Close()
 		case <-client.closed:
 		}
