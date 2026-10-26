@@ -1,3 +1,5 @@
+[App introduction and usage](NIMI_APP.md)
+
 # @nimiplatform/avatar
 
 `@nimiplatform/avatar` is the desktop floating embodiment carrier for Nimi AI characters, supporting `live2d` and `vrm` rendering backends under a unified presentation model.

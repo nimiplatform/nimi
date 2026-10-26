@@ -411,7 +411,7 @@
     "appIdCopied": "已复制",
     "runCardTitle": "运行状态",
     "readmeTruncated": "内容较长，仅展示开头部分。",
-    "readmeError": "暂时无法加载使用说明。",
+    "readmeError": "无法读取应用介绍。",
     "runDiagnosticsDescription": "Desktop 宿主报告的最近一次受监督运行详情。",
     "runMessage": "消息",
     "runReasonCode": "原因码",

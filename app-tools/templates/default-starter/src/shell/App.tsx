@@ -18,10 +18,14 @@ export function App() {
 }
 function AppFrame() {
   const owner = useAppNavigation();
+  // Optional App-owned presentation choices keep product chrome with its owner.
+  const sidebarAvailable = 'sidebarAvailable' in owner ? owner.sidebarAvailable === true : hasGeneratedViews;
+  const locale = 'locale' in owner && (owner.locale === 'zh' || owner.locale === 'en')
+    ? owner.locale : navigator.language.toLowerCase().startsWith('zh') ? 'zh' : 'en';
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
-      <NimiAppChrome metadata={{ name: appTitle, version: appPackage.version, license: 'license' in appPackage && typeof appPackage.license === 'string' ? appPackage.license : undefined }} navigation={owner.navigation} navigationEnabled={owner.ready}
-        sidebar={hasGeneratedViews && owner.ready ? { visible: owner.sidebarVisible, onVisibleChange: owner.setSidebarVisible } : undefined} />
+      <NimiAppChrome metadata={{ name: appTitle, version: appPackage.version, license: 'license' in appPackage && typeof appPackage.license === 'string' ? appPackage.license : undefined }} locale={locale} navigation={owner.navigation} navigationEnabled={owner.ready}
+        sidebar={sidebarAvailable && owner.ready ? { visible: owner.sidebarVisible, onVisibleChange: owner.setSidebarVisible } : undefined} />
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
       <WorkbenchRuntimeGate
         appTitle={appTitle}

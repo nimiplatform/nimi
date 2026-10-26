@@ -72,3 +72,5 @@ directories (including the `dev` layout) are also excluded. A similarly named
 App source directory without those output markers remains checked.
 
 Separate development instructions from product-operation guides, including other host entry files actually used by the repository. Upstream supplier examples may remain as knowledge; check the active product/agent route instead of deleting by keyword. Keep unimplemented original workflows explicit rather than counting a visible menu or retained source as completion.
+
+Maintain the App-owned root `NIMI_APP.md` as the user introduction under the lifecycle guide. Remove `metadata.readme`; check and pack use only the fixed file, and sync never supplies missing product prose. Keep engineering setup and verification records in repository/developer documentation.

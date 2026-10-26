@@ -5,7 +5,7 @@ import { PNG } from 'pngjs';
 import { parse as parseYaml } from 'yaml';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
 import { watch, type FSWatcher } from 'node:fs';
-import { open, readFile, readdir } from 'node:fs/promises';
+import { lstat, open, readFile, readdir } from 'node:fs/promises';
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http';
 import path from 'node:path';
 import type { ChildProcessWithoutNullStreams } from 'node:child_process';
@@ -685,7 +685,7 @@ export class ElectronLocalDevelopmentHost {
     return projected.filter((registration): registration is RendererRegistration => registration !== null);
   }
 
-  // The project README is presentation content for the Apps detail surface,
+  // The App introduction is presentation content for the Apps detail surface,
   // never runnable truth; reads stay bounded and inside the registered root.
   private async projectMetadata(projectRoot: string): Promise<Record<string, unknown>> {
     const file = await open(path.join(projectRoot, 'nimi.app.yaml'), 'r');
@@ -704,6 +704,7 @@ export class ElectronLocalDevelopmentHost {
     return value;
   }
 
+  // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-042d
   private async readProjectReadme(payload: Readonly<Record<string, unknown>>): Promise<{
     readonly selector: string; readonly content: string | null; readonly fileName: string | null; readonly summary: string | null; readonly truncated: boolean;
   }> {
@@ -712,9 +713,10 @@ export class ElectronLocalDevelopmentHost {
     const projectRoot = await this.registeredProjectRoot(selectorValue);
     const metadata = await this.projectMetadata(projectRoot);
     const summary = typeof metadata.summary === 'string' && metadata.summary.trim() && [...metadata.summary].length <= 280 ? metadata.summary : null;
-    const fileName = this.projectResourceName(metadata.readme ?? 'README.md');
-    if (!fileName) return { selector: selectorValue, content: null, fileName: null, summary, truncated: false };
+    if (Object.hasOwn(metadata, 'readme')) throw new Error('metadata.readme is not supported; use root NIMI_APP.md');
+    const fileName = 'NIMI_APP.md';
     try {
+      if (!(await lstat(path.join(projectRoot, fileName))).isFile()) throw new Error('NIMI_APP.md must be a regular file');
       const handle = await open(path.join(projectRoot, fileName), 'r');
       try {
         const stat = await handle.stat();
@@ -725,11 +727,12 @@ export class ElectronLocalDevelopmentHost {
         const content = new TextDecoder('utf-8', { fatal: true }).decode(
           buffer.subarray(0, Math.min(bytesRead, PROJECT_README_MAX_BYTES)), { stream: truncated },
         );
+        if (!content.trim() || content.includes('\0')) throw new Error('NIMI_APP.md must contain a nonempty App introduction');
         return { selector: selectorValue, content, fileName, summary, truncated };
       } finally { await handle.close(); }
     } catch (error) {
       if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
-      return { selector: selectorValue, content: null, fileName: null, summary, truncated: false };
+      throw new Error('NIMI_APP.md is missing from the App project root', { cause: error });
     }
   }
 

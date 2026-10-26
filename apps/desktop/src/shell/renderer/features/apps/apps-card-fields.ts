@@ -2,7 +2,7 @@
  * Presentation derivations for Apps cards. The renderer never inspects
  * app-local files for artwork or icons: a project's real icon arrives as
  * bounded host-read presentation content projected onto the entry (like the
- * project README), and everything else is derived deterministically from
+ * root NIMI_APP.md), and everything else is derived deterministically from
  * Runtime-projected owner data (appId, displayName) as the stable fallback.
  */
 import { isLocalDevelopmentRunActive, type AppCardActionId } from './apps-card-actions.js';

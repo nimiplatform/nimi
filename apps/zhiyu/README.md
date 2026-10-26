@@ -1,3 +1,5 @@
+[App introduction and usage](NIMI_APP.md)
+
 # 织羽
 
 中文名：织羽。英文名：Zhiyu。

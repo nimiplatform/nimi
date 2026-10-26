@@ -7,7 +7,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url';
 import vm from 'node:vm';
 import test from 'node:test';
 import { PNG } from 'pngjs';
-import { encodeMacIcon, encodeWindowsIcon, prepareElectronIcons, readAppIcon } from '../lib/app-icons.mjs';
+import { createMacIconPng, encodeMacIcon, encodeWindowsIcon, prepareElectronIcons, readAppIcon } from '../lib/app-icons.mjs';
 import { buildAppScaffoldSnapshot } from '../lib/app-scaffold.mjs';
 
 const versions = JSON.parse(readFileSync(new URL('../package.json', import.meta.url))).nimiScaffoldVersions;
@@ -28,7 +28,7 @@ test('native icon containers carry decodable artwork at each declared resolution
   const ico = encodeWindowsIcon(bytes);
   assert.equal(ico.readUInt16LE(2), 1);
   const count = ico.readUInt16LE(4);
-  assert.equal(count, 9);
+  assert.equal(count, 15);
   let end = 6 + count * 16;
   for (let i = 0; i < count; i++) {
     const entry = 6 + i * 16;
@@ -48,12 +48,15 @@ test('native icon containers carry decodable artwork at each declared resolution
   assert.equal(icns.toString('ascii', 0, 4), 'icns');
   assert.equal(icns.readUInt32BE(4), icns.length);
   let offset = 8;
-  for (const [type, size] of [['ic07', 128], ['ic08', 256]]) {
+  for (const [type, size] of [['icp4', 16], ['ic11', 32], ['icp5', 32], ['ic12', 64],
+    ['ic07', 128], ['ic13', 256], ['ic08', 256], ['ic14', 512], ['ic09', 512], ['ic10', 1024]]) {
     assert.equal(icns.toString('ascii', offset, offset + 4), type);
     const length = icns.readUInt32BE(offset + 4);
     const png = PNG.sync.read(icns.subarray(offset + 8, offset + length), { checkCRC: true });
     assert.equal(png.width, size);
-    assert.deepEqual([...png.data.subarray(0, 4)], [240, 80, 60, 255]);
+    assert.equal(png.data[3], 0, 'macOS exports retain transparent outer margins');
+    const inside = ((size / 4) * size + size / 4) * 4;
+    assert.deepEqual([...png.data.subarray(inside, inside + 4)], [240, 80, 60, 255]);
     offset += length;
   }
   assert.equal(offset, icns.length);
@@ -68,6 +71,7 @@ test('custom metadata paths drive all outputs; removed and invalid artwork canno
     writeFileSync(file, artwork(200));
     const icons = prepareElectronIcons(root, { required: true });
     assert.deepEqual(readFileSync(icons.png), readFileSync(file));
+    assert.deepEqual(readFileSync(icons.macPng), createMacIconPng(readFileSync(file)));
     assert.ok(existsSync(icons.ico) && existsSync(icons.icns));
     writeFileSync(file, 'not PNG');
     assert.throws(() => prepareElectronIcons(root), /PNG/);
@@ -96,7 +100,7 @@ async function runGeneratedHost(appId, production, platform, hasIcon = true) {
   await vm.runInNewContext(`(async () => {${source}})()`, {
     __NIMI_ELECTRON_PRODUCTION__: production,
     path, pathToFileURL, fileURLToPath, existsSync: () => hasIcon,
-    app: { setName() {}, setAppUserModelId(id) { output.identities.push(id); }, whenReady: async () => {}, on() {},
+    app: { isPackaged: production, setName() {}, setAppUserModelId(id) { output.identities.push(id); }, whenReady: async () => {}, on() {},
       ...(platform === 'darwin' ? { dock: { setIcon(icon) { output.dock.push(icon); } } } : {}) },
     BrowserWindow: Window, ipcMain: {}, Menu: {}, protocol: {}, session: { defaultSession: { webRequest: {} } }, webContents: {},
     configureNimiElectronAppHostProfile() {}, process: { platform, argv: [] },
@@ -123,7 +127,7 @@ test('generated Hosts isolate App and development identities while selecting pac
   for (const production of [false, true]) {
     const mac = await runGeneratedHost('test.icon-one', production, 'darwin');
     assert.equal(mac.identities.length, 0);
-    assert.deepEqual(mac.dock, [path.join(os.tmpdir(), 'test.icon-one', 'dist-electron', 'app-icon.png')]);
+    assert.deepEqual(mac.dock, production ? [] : [path.join(os.tmpdir(), 'test.icon-one', 'dist-electron', 'app-icon-macos.png')]);
   }
   assert.equal((await runGeneratedHost('test.icon-one', false, 'win32', false)).windows[0].icon, undefined);
   await assert.rejects(runGeneratedHost('test.icon-one', true, 'win32', false), /Packaged App icon is missing/);
@@ -139,6 +143,18 @@ test('scaffold owns the icon pipeline and production packaging includes its reso
   const packager = snapshot.filesByPath.get('scripts/package-electron-production.mjs').content;
   assert.match(packager, /prepareElectronIcons\(appRoot, \{ required: true \}\)/);
   assert.match(packager, /copyFile\(icons.png, path.join\(productionSourceRoot, 'dist-electron', 'app-icon.png'\)\)/);
+  assert.match(packager, /copyFile\(icons.macPng, path.join\(productionSourceRoot, 'dist-electron', 'app-icon-macos.png'\)\)/);
   assert.match(packager, /copyFile\(icons.ico, path.join\(productionSourceRoot, 'dist-electron', 'app-icon.ico'\)\)/);
   assert.match(packager, /icon: MACOS_BUILD \? icons.icns : icons.ico/);
+});
+
+test('Windows keeps transparent artwork and includes 256px even for a smaller admitted source', () => {
+  const ico = encodeWindowsIcon(artwork(128));
+  const sizes = Array.from({ length: ico.readUInt16LE(4) }, (_, index) => ico[6 + index * 16] || 256);
+  for (const size of [16, 24, 32, 48, 256]) assert.ok(sizes.includes(size));
+  const entry = 6 + (sizes.length - 1) * 16;
+  const offset = ico.readUInt32LE(entry + 12);
+  const image = PNG.sync.read(ico.subarray(offset, offset + ico.readUInt32LE(entry + 8)));
+  assert.equal(image.width, 256);
+  assert.equal(image.data[(image.width - 1) * 4 + 3], 0, 'Windows does not acquire the macOS plate');
 });

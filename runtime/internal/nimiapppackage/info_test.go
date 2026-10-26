@@ -19,6 +19,7 @@ func TestAppInfoRejectsIncompleteDocumentsAndInvisibleArtwork(t *testing.T) {
 		"name":                    func(info *AppInfo) { info.DisplayName = "" },
 		"summary":                 func(info *AppInfo) { info.Summary = "" },
 		"blank readme":            func(info *AppInfo) { info.ReadmeMarkdown = "  " },
+		"missing introduction":    func(info *AppInfo) { info.ReadmeMarkdown = "" },
 		"blank notes":             func(info *AppInfo) { info.ReleaseNotesMarkdown = "\n" },
 		"license":                 func(info *AppInfo) { info.License.Identifier = "" },
 		"undeclared requirements": func(info *AppInfo) { info.CapabilityContractRefs = nil },

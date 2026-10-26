@@ -204,7 +204,7 @@ function writeExistingSubmittedApp(tempRoot, options = {}) {
     '',
   ].join('\n'));
   writeFileSync(path.join(target, 'icon.png'), PNG.sync.write({ width: 128, height: 128, data: Buffer.alloc(128 * 128 * 4, 255) }));
-  writeFileSync(path.join(target, 'README.md'), 'Use this test App.\n');
+  writeFileSync(path.join(target, 'NIMI_APP.md'), 'Use this test App.\n');
   writeFileSync(path.join(target, 'RELEASE_NOTES.md'), 'Initial release.\n');
   writeFileSync(path.join(target, 'LICENSE'), 'MIT\n');
   writeFileSync(path.join(target, 'nimi.app.yaml'), [
@@ -217,7 +217,7 @@ function writeExistingSubmittedApp(tempRoot, options = {}) {
     'capability_contract_refs: []',
     'required_standardized_feature_refs: []',
     'storage_policy: { kind: nimi-mediated-default }',
-    'metadata: { summary: A test application., icon: icon.png, readme: README.md, release_notes: RELEASE_NOTES.md }',
+    'metadata: { summary: A test application., icon: icon.png, release_notes: RELEASE_NOTES.md }',
     'local_development:',
     '  electron:',
     '    renderer_origin: http://127.0.0.1:1430',
@@ -654,7 +654,7 @@ test('raw adoption previews without writes, keeps product ownership and repeats 
     assert.equal(result.status, 0, result.stdout + result.stderr);
     assert.equal(existsSync(path.join(target, SCAFFOLD_INTENT_PATH)), false);
     assert.equal(existsSync(path.join(target, SCAFFOLD_LOCK_PATH)), false);
-    for (const file of ['README.md', 'LICENSE', 'src/product/title.mjs', 'scripts/owner-test.mjs', 'index.html']) {
+    for (const file of ['NIMI_APP.md', 'LICENSE', 'src/product/title.mjs', 'scripts/owner-test.mjs', 'index.html']) {
       assert.equal(snapshotTree(target)[file], before[file]);
     }
     assert.match(readFileSync(path.join(target, 'AGENTS.md'), 'utf8'), /Original development instructions/);

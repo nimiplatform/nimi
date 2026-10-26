@@ -460,8 +460,8 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
   try {
     await app.whenReady();
     systemEntryLocale = app.getLocale().startsWith('zh') ? 'zh' : 'en';
-    if (!app.isPackaged) {
-      app.dock?.setIcon(path.join(appRoot, 'assets', 'windows-icon.png'));
+    if (process.platform === 'darwin' && !app.isPackaged) {
+      app.dock?.setIcon(path.join(appRoot, 'assets', 'macos-icon.png'));
     }
     const updateCacheRoot = process.platform === 'darwin'
       ? path.join(app.getPath('home'), 'Library', 'Caches', 'ai.nimi.product-update')

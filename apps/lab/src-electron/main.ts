@@ -31,7 +31,7 @@ let worldTourLaunch: { manifestPath: string; token: string; senderId: number } |
 const currentFilePath = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFilePath);
 const appRoot = path.resolve(currentDir, '..');
-const appIconPath = path.join(appRoot, 'assets', process.platform === 'win32' ? 'app-icon.ico' : 'app-icon.png');
+const appIconPath = path.join(appRoot, 'assets', 'native', process.platform === 'win32' ? 'windows.ico' : process.platform === 'darwin' ? 'macos.png' : 'app.png');
 const preloadPath = path.join(currentDir, 'preload.cjs');
 const rendererDistIndex = path.join(appRoot, 'dist', 'index.html');
 const rendererDistUrl = pathToFileURL(rendererDistIndex).toString();
@@ -54,7 +54,7 @@ configureLabElectronChromiumRuntime();
 registerNimiElectronAppAssetProtocolScheme(protocol);
 
 void app.whenReady().then(async () => {
-  app.dock?.setIcon(appIconPath);
+  if (process.platform === 'darwin' && !app.isPackaged) app.dock?.setIcon(appIconPath);
   registerNimiElectronAppBridge({
     chromeHost,
     appId: APP_ID,

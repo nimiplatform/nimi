@@ -36,3 +36,5 @@ For existing Apps, sync preserves the exact `package.json` text when its managed
 Do not downgrade away required features, edit installed package code or disable checks to get a green result. A platform capability awaiting publication blocks public release reproducibility, not independent engineering work. Validate a representative actual old-to-new combination; do not build a general migration framework.
 
 README.md and SECURITY.md belong to the App after creation. If an earlier lock lists them as managed, explicit sync transfers ownership without rewriting their contents or recreating missing documents. Run sync and commit the updated lock; subsequent sync and check preserve the App-authored documents.
+
+Maintain the App-owned root `NIMI_APP.md` as the user introduction under the lifecycle guide. Remove `metadata.readme`; check and pack use only the fixed file, and sync never supplies missing product prose. Keep engineering setup and verification records in repository/developer documentation.

@@ -85,6 +85,7 @@ export async function buildSupervisedAppElectronProduction({ repoRoot, consumer 
     await assertContainedLinks(sourceRoot, sourceRoot);
     const packageOutput = path.join(staging, 'package');
     const packagePaths = await packager({
+      icon: path.join(appRoot, 'assets', 'native', 'macos.icns'),
       dir: sourceRoot, platform: 'darwin', arch: 'arm64',
       appBundleId: bundleId, name: executableName, executableName,
       appVersion: appManifest.version, buildVersion: appManifest.version,

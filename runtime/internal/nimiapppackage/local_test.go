@@ -87,12 +87,12 @@ func TestInspectLocalRejectsDevelopmentAndContradictoryDeclarations(t *testing.T
 	}
 }
 
-func TestLocalInfoAcceptsUnicodeNamesOptionalDocumentsAndExactLicense(t *testing.T) {
+func TestLocalInfoAcceptsUnicodeNamesOptionalReleaseNotesAndExactLicense(t *testing.T) {
 	for _, length := range []int{86, 120, 121} {
 		entries := validArchiveEntries(t)
 		info := testAppInfo(t)
 		info.DisplayName = strings.Repeat("名", length)
-		info.ReadmeMarkdown, info.ReleaseNotesMarkdown = "", ""
+		info.ReleaseNotesMarkdown = ""
 		info.License.Text = "\ufeff" + info.License.Text
 		entries[2].bytes = []byte(strings.ReplaceAll(string(entries[2].bytes), "Example App", info.DisplayName))
 		for i := range entries {

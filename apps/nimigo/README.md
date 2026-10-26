@@ -49,5 +49,5 @@ pnpm --filter @nimiplatform/nimigo build
 
 - `src/product/`：应用的核心业务逻辑、前端交互与成果管理界面
 - `src-electron/`：Electron 宿主进程实现，负责窗口生命周期与安全沙箱桥接
-- `USAGE.md`：面向最终用户的功能使用指南与操作说明
+- `NIMI_APP.md`：面向最终用户的功能使用指南与操作说明
 - `PRODUCT.md`：应用产品定位、核心机制与设计规范说明

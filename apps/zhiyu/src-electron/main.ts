@@ -37,7 +37,7 @@ const currentFilePath = fileURLToPath(import.meta.url);
 const currentDir = path.dirname(currentFilePath);
 const appRoot = path.resolve(currentDir, '..');
 const preloadPath = path.join(currentDir, 'preload.cjs');
-const windowIconPath = path.join(currentDir, 'app-icon.png');
+const windowIconPath = path.join(appRoot, 'assets', 'native', process.platform === 'win32' ? 'windows.ico' : process.platform === 'darwin' ? 'macos.png' : 'app.png');
 const rendererDistIndex = path.join(appRoot, 'dist', 'index.html');
 const rendererDistUrl = pathToFileURL(rendererDistIndex).toString();
 const rendererUrl = readArgument('--nimi-dev-renderer-url')
@@ -87,7 +87,7 @@ const openZhiyuAgentCenterFileDialog: NimiElectronAgentCenterOpenFileDialog = as
 };
 
 void app.whenReady().then(async () => {
-  app.dock?.setIcon(windowIconPath);
+  if (process.platform === 'darwin' && !app.isPackaged) app.dock?.setIcon(windowIconPath);
   registeredAppBridge = registerNimiElectronAppBridge({
     chromeHost,
     appId: APP_ID,

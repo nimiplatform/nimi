@@ -31,7 +31,7 @@ const APP_ID = 'nimi.go';
 const NATIVE_BUNDLE_IDENTIFIER = "ai.nimi.apps.nimi.go";
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.resolve(currentDir, '..');
-const appIconPath = path.join(appRoot, 'assets', process.platform === 'win32' ? 'app-icon.ico' : 'app-icon.png');
+const appIconPath = path.join(appRoot, 'assets', 'native', process.platform === 'win32' ? 'windows.ico' : process.platform === 'darwin' ? 'macos.png' : 'app.png');
 const preloadPath = path.join(currentDir, 'preload.cjs');
 const productionRendererUrl = pathToFileURL(path.join(appRoot, 'dist', 'index.html')).toString();
 const developmentRendererUrl = readDevelopmentRendererUrl();
@@ -54,7 +54,7 @@ Menu.setApplicationMenu(Menu.buildFromTemplate([
 registerNimiElectronAppAssetProtocolScheme(protocol);
 
 void app.whenReady().then(async () => {
-  app.dock?.setIcon(appIconPath);
+  if (process.platform === 'darwin' && !app.isPackaged) app.dock?.setIcon(appIconPath);
   const { createGoWorkspaceHost } = await import('./workspace-host.js');
   workspace = createGoWorkspaceHost({ windowOpen: () => BrowserWindow.getAllWindows().length > 0, openWork: () => { const window = BrowserWindow.getAllWindows()[0]; if (window) { window.show(); window.focus(); } else void createMainWindow(); } });
   registerNimiElectronAppBridge({

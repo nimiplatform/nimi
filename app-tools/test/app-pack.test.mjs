@@ -1,5 +1,5 @@
 import { PNG } from 'pngjs';
-import { readAppInfo, validateAppIcon, validateAppInfo } from '../lib/app-info.mjs';
+import { readAppInfo, readAppIntroduction, validateAppIcon, validateAppInfo } from '../lib/app-info.mjs';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
@@ -21,6 +21,26 @@ import { classifyMacOSNativeTrustObservation, inspectMacOSMachO, observeMacOSExe
 import { SYMBOLIC_LINK_MODE, validatePayloadLinks } from '../lib/payload-links.mjs';
 
 const WINDOWS_X86_64 = process.platform === 'win32' && process.arch === 'x64';
+
+test('App introduction has one fixed source and rejects invalid or redirected content', () => {
+  const root = fixture();
+  try {
+    const file = path.join(root, 'NIMI_APP.md');
+    const original = readFileSync(file, 'utf8');
+    writeFileSync(path.join(root, 'README.md'), 'Developer instructions must never be displayed.');
+    assert.equal(readAppInfo(root, 'windows-x86_64').readme_markdown, original);
+    assert.throws(() => readAppIntroduction(root, { metadata: { readme: 'README.md' } }), /metadata.readme/);
+    rmSync(file);
+    assert.throws(() => readAppInfo(root, 'windows-x86_64'), /NIMI_APP.md.*missing/);
+    for (const content of ['', ' \n', Buffer.from([0xff]), 'a'.repeat(96 * 1024 + 1)]) {
+      writeFileSync(file, content);
+      assert.throws(() => readAppInfo(root, 'windows-x86_64'), /NIMI_APP.md/);
+    }
+    rmSync(file);
+    mkdirSync(file);
+    assert.throws(() => readAppInfo(root, 'windows-x86_64'), /NIMI_APP.md/);
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
 
 test('macOS framework links retain their ZIP type and resolve within the immutable payload', () => {
   const entries = [
@@ -109,7 +129,7 @@ function fixture(options = {}) {
   writeFileSync(path.join(root, 'package.json'), `${JSON.stringify({ name: 'example-app', version: '0.1.0', license: 'LicenseRef-Example', private: true }, null, 2)}\n`);
   writeFileSync(path.join(root, 'LICENSE'), 'Example App License\n');
   writeFileSync(path.join(root, 'icon.png'), PNG.sync.write({ width: 128, height: 128, data: Buffer.alloc(128 * 128 * 4, 255) }));
-  writeFileSync(path.join(root, 'README.md'), '# Example App\nUse the app.\n');
+  writeFileSync(path.join(root, 'NIMI_APP.md'), '# Example App\nUse the app.\n');
   writeFileSync(path.join(root, 'RELEASE_NOTES.md'), 'Initial release.\n');
   writeFileSync(path.join(root, 'nimi.app.yaml'), [
     'app_id: example.app',
@@ -124,7 +144,6 @@ function fixture(options = {}) {
     'metadata:',
     '  summary: An example App for package verification.',
     '  icon: icon.png',
-    '  readme: README.md',
     '  release_notes: RELEASE_NOTES.md',
     '',
   ].join('\n'));
@@ -710,16 +729,16 @@ test('aggregate identifies a missing App info sidecar', () => {
   } finally { rmSync(root, { recursive: true, force: true }); }
 });
 
-test('local distribution omits optional documents and preserves exact UTF-8 license bytes', () => {
+test('local distribution requires the introduction but omits optional release notes and preserves exact UTF-8 license bytes', () => {
   const root = fixture();
   try {
     const manifest = path.join(root, 'nimi.app.yaml');
-    writeFileSync(manifest, readFileSync(manifest, 'utf8').replace('  readme: README.md\n', '').replace('  release_notes: RELEASE_NOTES.md\n', ''));
+    writeFileSync(manifest, readFileSync(manifest, 'utf8').replace('  release_notes: RELEASE_NOTES.md\n', ''));
     const license = Buffer.from('\uFEFFExample App License\n');
     writeFileSync(path.join(root, 'LICENSE'), license);
     const packed = packAppTarget(root, { target: 'windows-x86_64' });
     const info = JSON.parse(readFileSync(packed.appInfoPath, 'utf8'));
-    assert.equal(info.readme_markdown, '');
+    assert.equal(info.readme_markdown, readFileSync(path.join(root, 'NIMI_APP.md'), 'utf8'));
     assert.equal(info.release_notes_markdown, '');
     assert.deepEqual(Buffer.from(info.license.text), license);
     const archive = readNimiAppArchive(readFileSync(packed.artifactPath));

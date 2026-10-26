@@ -22,6 +22,7 @@ import (
 const MaxAppInfoBytes = 1024 * 1024
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-042a
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-042d
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-043c
 type AppInfo struct {
 	Format                          string               `json:"format"`
@@ -97,7 +98,7 @@ func ParseAppInfo(raw []byte) (AppInfo, error) {
 	if err := ValidateAppIcon(icon); err != nil {
 		return AppInfo{}, err
 	}
-	if (info.ReadmeMarkdown != "" && !infoDocument(info.ReadmeMarkdown, 96*1024)) || (info.ReleaseNotesMarkdown != "" && !infoDocument(info.ReleaseNotesMarkdown, 32*1024)) || !infoDocument(info.License.Text, 128*1024) || !infoText(info.License.Identifier, 200) {
+	if !infoDocument(info.ReadmeMarkdown, 96*1024) || (info.ReleaseNotesMarkdown != "" && !infoDocument(info.ReleaseNotesMarkdown, 32*1024)) || !infoDocument(info.License.Text, 128*1024) || !infoText(info.License.Identifier, 200) {
 		return invalid("documentation or license")
 	}
 	if !infoRefs(info.AppAccess) || !infoRefs(info.CapabilityContractRefs) || !infoRefs(info.RequiredStandardizedFeatureRefs) {

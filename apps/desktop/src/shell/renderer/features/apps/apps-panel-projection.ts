@@ -556,7 +556,7 @@ async function projectPackageInfo(entry: DesktopAppsEntry, previous: DesktopApps
 const APP_SUMMARY_MAX_LENGTH = 160;
 
 /**
- * Card intro derived from the host-read project README: the first prose
+ * Card intro derived from the host-read root NIMI_APP.md: the first prose
  * paragraph after skipping headings, badge/link rows, images, HTML blocks,
  * lists, quotes, tables, and fenced code. Presentation content only.
  */

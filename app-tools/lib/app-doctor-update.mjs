@@ -1,4 +1,5 @@
 import { APP_AUTHOR_DECLARATION_FIELDS, hashScaffoldManagedContent } from './app-scaffold.mjs';
+import { readAppIntroduction } from './app-info.mjs';
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { parse as parseYaml, stringify as stringifyYaml } from 'yaml';
@@ -485,6 +486,7 @@ function assertProjectConfiguration(targetDir, parsedManifest = null, managed = 
     }
   }
   const rendererOrigin = assertElectronLocalDevelopmentManifest(document);
+  readAppIntroduction(targetDir, document);
   assertDeclaredHostSourceDirectory(targetDir, document);
   assertOfficialDevelopmentEntrypoints(targetDir, rendererOrigin, undefined, managed || !usesAppOwnedRenderer(targetDir));
 }
@@ -591,6 +593,7 @@ function assertNimicodingProjectionCurrent(targetDir, runners) {
 
 export function validateAppProjectInputs(targetDir, manifest, packageJson, managed = false, plannedSources) {
   assertManifestAppAccessDeclaration(stringifyYaml(manifest), 'nimi.app.yaml');
+  readAppIntroduction(targetDir, manifest);
   const rendererOrigin = assertElectronLocalDevelopmentManifest(manifest);
   assertDeclaredHostSourceDirectory(targetDir, manifest);
   assertOfficialDevelopmentEntrypoints(targetDir, rendererOrigin, packageJson, managed || !usesAppOwnedRenderer(targetDir, plannedSources));

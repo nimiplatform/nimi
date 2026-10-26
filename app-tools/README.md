@@ -191,7 +191,6 @@ Configure your metadata, capability references, and storage policy in `nimi.app.
 metadata:
   summary: A short description of what your App helps people do.
   icon: assets/app-icon.png
-  readme: README.md
   release_notes: RELEASE_NOTES.md
   author: Your team
   homepage_url: https://example.com
@@ -204,7 +203,7 @@ storage_policy:
 
 Scaffold `sync` preserves your author-edited `metadata`, requirement, and storage fields while continuing to validate managed identity and carrier fields.
 
-The generated Electron build uses `metadata.icon` for the native window, macOS Dock, and packaged executable/application icon. `build:electron` validates the PNG and derives PNG, multi-size ICO and ICNS resources under `dist-electron/`; production packaging includes the runtime resources and embeds the platform icon before signing. Custom repository-relative paths are supported. Rebuild after changing the image or its declaration. Development without artwork remains available with an explicit warning; invalid artwork fails the build, and production requires valid artwork. Removing or invalidating an image clears its old derived icons.
+`metadata.icon` is portable App artwork for Nimi Home and distribution information, not a pre-rendered macOS Dock tile. Keep platform padding, outer bevels and shadows out of this source; a background that belongs to the App's brand can remain. The generated Electron build preserves that artwork in `app-icon.png`, derives a separate `app-icon-macos.png` with a light neutral rounded-square plate and transparent outer margin, and packages the same macOS composition as ICNS with 1×/2× representations from 16 through 1024 pixels. Windows ICO preserves the source silhouette and transparency, with 15 sizes from 16 through 256 pixels, including intermediate high-DPI taskbar sizes. Development uses the platform-specific window/Dock resource; production packaging includes those runtime resources and embeds ICNS or ICO before signing. Custom repository-relative source paths are supported. Rebuild after changing the image or its declaration. Development without artwork remains available with an explicit warning; invalid artwork fails the build, and production requires valid artwork. Removing or invalidating an image clears its old derived icons.
 
 Windows taskbar identity is `ai.nimi.dev.apps.<app_id>` for the generated development Host and `ai.nimi.apps.<app_id>` for a production bundle. Separate namespaces also avoid collisions with an App whose canonical ID ends in `.dev`. This does not change the canonical App ID or Runtime registration. Existing scaffold projects receive this managed Host/build logic through `sync`; adopted App-owned Hosts must implement the same behavior in their own code.
 
@@ -216,11 +215,22 @@ All `metadata` file paths are relative to the App repository root:
 | **Name & Summary** | Up to **120 characters** for the App name and **280 characters** for `metadata.summary`. |
 | **App Icon (`icon`)** | Required. Complete static PNG, square (`128–1024` pixels), max **512 KiB**, and not fully transparent. The scaffold does not supply finished artwork (the legacy `1×1` scaffold native icon is not valid distribution artwork). |
 | **Root `LICENSE` & `package.json.license`** | Required (`LICENSE` max **128 KiB**). `package.json.license` provides the explicit license identifier; setting an identifier does not turn a private license into an open-source Registry license. |
-| **Usage Guide (`readme`) & Version Notes (`release_notes`)** | Optional for local or private packages (omit their paths in `metadata` when not provided), but **both are required for Registry admission**. Size limits: `README` up to **96 KiB**, version notes up to **32 KiB**. |
+| **App introduction (`NIMI_APP.md`)** | Required at the repository root for every App, including local/private packages. Nonempty UTF-8 regular file, at most **96 KiB**. Home reads this file; `metadata.readme` and README fallback are not supported. |
+| **Version Notes (`release_notes`)** | Optional for local/private packages, required for Registry admission; at most **32 KiB**. |
 | **Author, Homepage & Support URLs** | Optional claims for local/private imports. Public Registry admission enforces its own independent public-source, open-source license, and support requirements. |
 | **Capability & Feature Refs** | Use the canonical requirement references your App needs; an explicitly empty list (`[]`) is valid. |
 | **Storage Policy (`storage_policy`)** | Declare `kind: nimi-mediated-default` for Nimi-mediated storage. Apps managing their own OS storage must declare `kind: app-owned-os-storage` along with `os_storage_disclosure` entries specifying `path_pattern`, `purpose`, and `expected_size_band` (these are disclosures only, not instructions for Nimi to delete files). |
 | **Safety Declaration (`safety_profile`)** | When declared in `nimi.app.yaml`, included in `app-info.json` (see the lifecycle skill's safety-declaration reference). An undeclared `safety_profile` stays absent and blocks nothing locally; the Registry's current admission policy determines whether public submissions require it (App Tools does not fetch Registry policy during local checks). |
+
+### Write the App introduction
+
+`NIMI_APP.md` is the single Home introduction source. Write for the App's actual users: what it helps them do, how to start the main task, required configuration, relevant data handling and current limitations, and where to get help. Developer tools may retain the technical precision their users need. Describe available behavior, not roadmap promises or inferred acceptance.
+
+Keep repository setup, architecture, build/release commands and engineering acceptance logs in `README.md` or developer documentation. Use self-contained Markdown: Home displays image alt text and only opens absolute HTTP(S) links; relative file links and anchors are not navigable. Keep necessary instructions in the introduction itself.
+
+`create` supplies an honest starter introduction. Replace its unfinished-product notice with the App's actual user content as the product develops. `NIMI_APP.md` is App-owned: `sync` neither overwrites nor recreates it. Existing Apps must author this file and remove `metadata.readme` before checking; there is no automatic document migration. `check` and `pack` validate the file, not the truth or quality of its prose. Review it alongside the real user journey.
+
+Packaging copies its exact text into the existing `app-info.json` `readme_markdown` field. Installed and Catalog entries display their exact release snapshot; changing source documentation does not rewrite an immutable release.
 
 ### Package v2 Output & Sidecar Verification
 `pack` writes the `nimi.app-package/v2` format and emits the exact embedded `app-info.json` bytes as a sidecar file named `<app_id>-<version>-<target_id>.app-info.json` alongside the `.nimiapp` bundle and `.target.json`. Aggregate verification checks both files and confirms they match the embedded document byte-for-byte.

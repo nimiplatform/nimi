@@ -1,3 +1,5 @@
+[App introduction and usage](NIMI_APP.md)
+
 # Nimi Lab
 
 Nimi Lab is a hand-authored, local-development-only workspace App.

@@ -31,6 +31,9 @@
 
 ## Verification Commands
 - Initial setup: after `pnpm install` and `pnpm run init`, run `pnpm run sync`, `pnpm run check`, the directly affected tests, and the affected build.
-- In an initialized project, app-owned changes use the directly affected tests and build. Rerun sync/check when scaffold inputs, managed glue, or dependencies change, and before packaging; do not repeat initialization for ordinary product edits.
+- In an initialized project, choose tests and builds for concrete risks or applicable project requirements; prose-only guidance edits do not require an application build. Rerun sync/check when scaffold inputs, managed glue, or dependencies change, and before packaging; do not repeat initialization for ordinary product edits.
 - Run the official Desktop-supervised App journey when product interaction is in scope; shell or native checks alone do not replace it.
-- Mark every product path not actually run as `NOT-VERIFIED`. Help text, focused tests, and CDP visibility do not establish implementation or release acceptance.
+- Mark unrun product paths affecting the current conclusion `NOT-VERIFIED` and explain the impact. Help text, focused tests, and CDP visibility do not establish implementation or release acceptance.
+
+## App introduction
+- Every App owns a root `NIMI_APP.md` for Home: current user tasks, first steps, required configuration, relevant data handling, limitations and help. Keep engineering setup and acceptance logs in README/developer documentation. `metadata.readme` and README fallback are not supported; sync must not overwrite or recreate the introduction.

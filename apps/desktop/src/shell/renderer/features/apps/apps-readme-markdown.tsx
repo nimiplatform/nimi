@@ -16,7 +16,7 @@ export function readmeExternalHref(href: string | undefined): string | null {
 }
 
 /**
- * Project README document surface. react-markdown emits no raw HTML, and
+ * App introduction document surface. react-markdown emits no raw HTML, and
  * images are reduced to their alt text because relative asset paths have no
  * trusted base inside the shell.
  */

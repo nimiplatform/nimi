@@ -27,3 +27,6 @@
 ## Verification Commands
 - Run the focused Node test while iterating. Run `pnpm --filter @nimiplatform/app-tools test` for generator, capability-closure, lifecycle, package, or shared template changes; prose-only guidance edits do not require the full suite.
 - Use `pnpm run sync:app-source -- --apply` only when explicitly materializing the derived admitted-slice snapshot for packaging inspection.
+
+## App introduction
+- Every App owns a root `NIMI_APP.md` for Home: current user tasks, first steps, required configuration, relevant data handling, limitations and help. Keep engineering setup and acceptance logs in README/developer documentation. `metadata.readme` and README fallback are not supported; sync must not overwrite or recreate the introduction.

@@ -17,3 +17,5 @@ An external publisher submits from its own fork; an authorized publisher sharing
 Real matching unsigned or unnotarized posture is not automatically a blocker. Do not require KYC, non-null SBOM or purchased signing as a generic prerequisite. State proof strength according to what the existing verifier actually checks.
 
 First publication and admission can precede installed acceptance. Verify first Catalog installation and business use afterward. Test an update only once a second, higher version is separately admitted; a future N+1 is not a prerequisite for the first release.
+
+Maintain the App-owned root `NIMI_APP.md` as the user introduction under the lifecycle guide. Remove `metadata.readme`; check and pack use only the fixed file, and sync never supplies missing product prose. Keep engineering setup and verification records in repository/developer documentation.

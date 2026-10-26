@@ -1,3 +1,5 @@
+[App introduction and usage](NIMI_APP.md)
+
 # Nimi Desktop
 
 Nimi Desktop is the Electron application hosting Nimi Home: the central workstation for chats, characters, worlds, settings, and Nimi Apps, as well as the process supervisor managing Nimi App hosts. AI model execution is powered by the Nimi Runtime, while account and ecosystem identity are managed by Realm.

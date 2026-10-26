@@ -16,7 +16,6 @@ storage_policy:
 metadata:
   summary: 让熟悉你的 Agent 把资料、想法与项目推进到可复用的成果。
   icon: assets/app-icon.png
-  readme: USAGE.md
   release_notes: RELEASE_NOTES.md
 local_development:
   electron:

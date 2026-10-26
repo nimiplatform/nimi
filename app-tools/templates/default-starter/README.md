@@ -4,6 +4,8 @@ This standalone App was generated from an identity-neutral base combined with th
 
 Profile: `standalone`.
 
+Home displays the App-owned root `NIMI_APP.md`. Maintain its purpose, first-use steps, configuration, data handling, limitations and help for actual App users. This README covers repository development. Do not declare `metadata.readme`; there is no README fallback.
+
 ## Code Ownership
 
 - **App-owned product code**: `src/workbench-core/**`, selected `src/capabilities/**`, `src/shell/routes/app-navigation.tsx`, and your subsequent product edits. Extend the App-owned destination catalog and use its single Kit controller for navigation position. Keep drafts, business records, and one-time actions within their respective business owners. If no feature was selected, the base starts without a sidebar or fold command.

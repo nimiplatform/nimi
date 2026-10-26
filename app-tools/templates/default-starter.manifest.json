@@ -40,6 +40,10 @@
       "class": "app-owned product code"
     },
     {
+      "path": "NIMI_APP.md",
+      "class": "app-owned product code"
+    },
+    {
       "path": "scripts/validate.mjs",
       "class": "scaffold-managed glue"
     },

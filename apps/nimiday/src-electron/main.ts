@@ -32,7 +32,7 @@ const APP_ID = 'nimi.day';
 const NATIVE_BUNDLE_IDENTIFIER = "ai.nimi.apps.nimi.day";
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
 const appRoot = path.resolve(currentDir, '..');
-const appIconPath = path.join(appRoot, 'assets', 'app-icon.png');
+const appIconPath = path.join(appRoot, 'assets', 'native', process.platform === 'win32' ? 'windows.ico' : process.platform === 'darwin' ? 'macos.png' : 'app.png');
 const preloadPath = path.join(currentDir, 'preload.cjs');
 const productionRendererUrl = pathToFileURL(path.join(appRoot, 'dist', 'index.html')).toString();
 const developmentRendererUrl = readDevelopmentRendererUrl();
@@ -70,7 +70,7 @@ Menu.setApplicationMenu(Menu.buildFromTemplate([
 registerNimiElectronAppAssetProtocolScheme(protocol);
 
 void app.whenReady().then(async () => {
-  app.dock?.setIcon(appIconPath);
+  if (process.platform === 'darwin' && !app.isPackaged) app.dock?.setIcon(appIconPath);
   const { createDayFollowUpHost } = await import('./followup-host.js');
   const { createDayStorageHost } = await import('./day-storage-host.js');
   dayStorage = createDayStorageHost();

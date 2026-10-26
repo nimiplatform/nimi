@@ -64,6 +64,23 @@ function resizedPng(source, size) {
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const sum = [0, 0, 0, 0];
+      if (scale < 1) {
+        const sx = Math.max(0, Math.min(source.width - 1, (x + 0.5) * scale - 0.5));
+        const sy = Math.max(0, Math.min(source.height - 1, (y + 0.5) * scale - 0.5));
+        const x0 = Math.floor(sx), y0 = Math.floor(sy);
+        for (const [px, wx] of [[x0, 1 - (sx - x0)], [Math.min(x0 + 1, source.width - 1), sx - x0]]) {
+          for (const [py, wy] of [[y0, 1 - (sy - y0)], [Math.min(y0 + 1, source.height - 1), sy - y0]]) {
+            const offset = (py * source.width + px) * 4;
+            const alpha = source.data[offset + 3] * wx * wy;
+            for (let channel = 0; channel < 3; channel++) sum[channel] += source.data[offset + channel] * alpha;
+            sum[3] += alpha;
+          }
+        }
+        const offset = (y * size + x) * 4;
+        for (let channel = 0; channel < 3; channel++) target.data[offset + channel] = sum[3] ? Math.round(sum[channel] / sum[3]) : 0;
+        target.data[offset + 3] = Math.round(sum[3]);
+        continue;
+      }
       for (let sy = Math.floor(y * scale); sy < Math.ceil((y + 1) * scale); sy++) {
         const wy = Math.min(sy + 1, (y + 1) * scale) - Math.max(sy, y * scale);
         for (let sx = Math.floor(x * scale); sx < Math.ceil((x + 1) * scale); sx++) {
@@ -82,9 +99,36 @@ function resizedPng(source, size) {
   return PNG.sync.write(target);
 }
 
+// metadata.icon is portable in-product artwork. Only the macOS native export
+// receives a platform tile and outer margin; never feed this back into app-info.
+export function createMacIconPng(bytes) {
+  const source = PNG.sync.read(validateAppIcon(bytes));
+  const artwork = PNG.sync.read(resizedPng(source, 824));
+  const target = new PNG({ width: 1024, height: 1024 });
+  for (let y = 0; y < 824; y++) for (let x = 0; x < 824; x++) {
+    // A continuous rounded-square silhouette with antialiased edge coverage.
+    let coverage = 0;
+    for (const dy of [0.125, 0.375, 0.625, 0.875]) for (const dx of [0.125, 0.375, 0.625, 0.875]) {
+      if (Math.pow(Math.abs((x + dx - 412) / 412), 5)
+        + Math.pow(Math.abs((y + dy - 412) / 412), 5) <= 1) coverage += 1 / 16;
+    }
+    if (!coverage) continue;
+    const from = (y * 824 + x) * 4;
+    const to = ((y + 100) * 1024 + x + 100) * 4;
+    const alpha = artwork.data[from + 3] / 255;
+    const fraction = y / 823;
+    const background = [248 - 13 * fraction, 250 - 12 * fraction, 252 - 9 * fraction];
+    for (let channel = 0; channel < 3; channel++) {
+      target.data[to + channel] = Math.round(artwork.data[from + channel] * alpha + background[channel] * (1 - alpha));
+    }
+    target.data[to + 3] = Math.round(255 * coverage);
+  }
+  return PNG.sync.write(target);
+}
+
 export function encodeWindowsIcon(bytes) {
   const source = PNG.sync.read(validateAppIcon(bytes));
-  const sizes = [16, 20, 24, 32, 40, 48, 64, 128, 256].filter(size => size <= source.width);
+  const sizes = [16, 20, 24, 30, 32, 36, 40, 48, 60, 64, 72, 80, 96, 128, 256];
   const images = sizes.map(size => resizedPng(source, size));
   const directory = Buffer.alloc(6 + sizes.length * 16);
   directory.writeUInt16LE(1, 2);
@@ -103,9 +147,10 @@ export function encodeWindowsIcon(bytes) {
 }
 
 export function encodeMacIcon(bytes) {
-  const source = PNG.sync.read(validateAppIcon(bytes));
-  const chunks = [[128, 'ic07'], [256, 'ic08'], [512, 'ic09'], [1024, 'ic10']]
-    .filter(([size]) => size <= source.width).map(([size, type]) => {
+  const source = PNG.sync.read(createMacIconPng(bytes));
+  const chunks = [[16, 'icp4'], [32, 'ic11'], [32, 'icp5'], [64, 'ic12'],
+    [128, 'ic07'], [256, 'ic13'], [256, 'ic08'], [512, 'ic14'], [512, 'ic09'], [1024, 'ic10']]
+    .map(([size, type]) => {
       const png = resizedPng(source, size);
       const header = Buffer.alloc(8);
       header.write(type);
@@ -121,7 +166,7 @@ export function encodeMacIcon(bytes) {
 export function prepareElectronIcons(root, { required = false } = {}) {
   const output = path.join(root, 'dist-electron');
   // Remove only our derived files, including when artwork was removed or became invalid.
-  const files = ['app-icon.png', 'app-icon.ico', 'app-icon.icns'];
+  const files = ['app-icon.png', 'app-icon.ico', 'app-icon.icns', 'app-icon-macos.png'];
   for (const file of files) rmSync(path.join(output, file), { force: true });
   const bytes = readAppIcon(root, { required });
   if (!bytes) {
@@ -131,6 +176,6 @@ export function prepareElectronIcons(root, { required = false } = {}) {
   const ico = encodeWindowsIcon(bytes);
   const icns = encodeMacIcon(bytes);
   mkdirSync(output, { recursive: true });
-  for (const [index, content] of [bytes, ico, icns].entries()) writeFileSync(path.join(output, files[index]), content);
-  return { png: path.join(output, files[0]), ico: path.join(output, files[1]), icns: path.join(output, files[2]) };
+  for (const [index, content] of [bytes, ico, icns, createMacIconPng(bytes)].entries()) writeFileSync(path.join(output, files[index]), content);
+  return { png: path.join(output, files[0]), ico: path.join(output, files[1]), icns: path.join(output, files[2]), macPng: path.join(output, files[3]) };
 }

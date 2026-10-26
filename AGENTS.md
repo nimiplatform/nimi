@@ -15,6 +15,7 @@
 - Keep implementation direct. Extract helpers or add layers for current reuse, a complex boundary, or a clear concept that improves readability. New fallback, retry, compatibility, concurrency, or recovery machinery must address a concrete failure mode in a supported path or an explicit contract. Supported uncommon cases remain in scope; hypothetical future needs alone do not justify complexity.
 - The external AI host owns workflow state; Nimi-coding must not own or mutate host task lifecycle. Use the relevant `package.json` guarded scripts for host workflows and the managed block below for project-local Nimi-coding execution.
 - Product composition serves the current module's audience and task. Facts, behavior, ownership, safety, and release boundaries remain binding; wording, grouping, hierarchy, and interaction are product decisions. Advanced controls and developer documentation retain necessary precision.
+- Every Nimi App owns a root `NIMI_APP.md` for its Home introduction: actual user tasks, first steps, required configuration, relevant data handling, limitations and help. Keep engineering setup and acceptance records in README/developer documentation. Follow `rule.nimi.platform.app-ecosystem.p-napp-042d`; `metadata.readme` and README fallback are not supported.
 
 ## UI composition
 

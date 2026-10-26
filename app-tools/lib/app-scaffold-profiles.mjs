@@ -258,6 +258,7 @@ function renderDefaultElectronProductionPackager(identity) {
     "  await copyFile(path.join(appRoot, 'dist-electron', 'main.js'), path.join(productionSourceRoot, 'dist-electron', 'main.js'));",
     "  await copyFile(path.join(appRoot, 'dist-electron', 'preload.cjs'), path.join(productionSourceRoot, 'dist-electron', 'preload.cjs'));",
     "  await copyFile(icons.png, path.join(productionSourceRoot, 'dist-electron', 'app-icon.png'));",
+    "  await copyFile(icons.macPng, path.join(productionSourceRoot, 'dist-electron', 'app-icon-macos.png'));",
     "  await copyFile(icons.ico, path.join(productionSourceRoot, 'dist-electron', 'app-icon.ico'));",
     '  await installProductionDependencies(productionSourceRoot);',
     '',
@@ -504,7 +505,9 @@ export function createAppNavigation() {
 }
 type NavigationOwner = {
   navigation: ReturnType<typeof createAppNavigation>;
+  locale: 'en' | 'zh';
   ready: boolean; setReady: (value: boolean) => void;
+  sidebarAvailable: boolean;
   sidebarVisible: boolean; setSidebarVisible: (value: boolean) => void;
 };
 const Context = createContext<NavigationOwner | null>(null);
@@ -514,6 +517,7 @@ export function useAppNavigation(): NavigationOwner {
   return owner;
 }
 export function AppNavigationProvider({ children }: { children: ReactNode }) {
+  const locale = navigator.language.toLowerCase().startsWith('zh') ? 'zh' : 'en';
   const [navigation] = useState(createAppNavigation);
   const [ready, updateReady] = useState(false);
   const [sidebarVisible, setSidebarVisible] = useState(true);
@@ -529,7 +533,7 @@ export function AppNavigationProvider({ children }: { children: ReactNode }) {
     if (!value) navigation.reset({ id: generatedInitialViewId ?? 'welcome' });
     updateReady(value);
   }, [navigation]);
-  return <Context.Provider value={{ navigation, ready, sidebarVisible, setSidebarVisible, setReady }}><NimiNavigationProvider controller={navigation}>{children}</NimiNavigationProvider></Context.Provider>;
+  return <Context.Provider value={{ navigation, locale, ready, sidebarAvailable: hasGeneratedViews, sidebarVisible, setSidebarVisible, setReady }}><NimiNavigationProvider controller={navigation}>{children}</NimiNavigationProvider></Context.Provider>;
 }
 `;
 }
@@ -1381,7 +1385,7 @@ function renderDefaultElectronMain(identity) {
     '  && __NIMI_ELECTRON_PRODUCTION__;',
     "const currentDir = path.dirname(fileURLToPath(import.meta.url));",
     "const appRoot = path.resolve(currentDir, '..');",
-    "const appIconPath = path.join(currentDir, process.platform === 'win32' ? 'app-icon.ico' : 'app-icon.png');",
+    "const appIconPath = path.join(currentDir, process.platform === 'win32' ? 'app-icon.ico' : process.platform === 'darwin' ? 'app-icon-macos.png' : 'app-icon.png');",
     "if (IS_PRODUCTION_BUNDLE && !existsSync(appIconPath)) throw new Error('Packaged App icon is missing.');",
     'const windowIcon = existsSync(appIconPath) ? appIconPath : undefined;',
     "const preloadPath = path.join(currentDir, 'preload.cjs');",
@@ -1404,7 +1408,7 @@ function renderDefaultElectronMain(identity) {
     'registerNimiElectronAppAssetProtocolScheme(protocol);',
     '',
     'void app.whenReady().then(async () => {',
-    '  if (windowIcon) app.dock?.setIcon(windowIcon);',
+    "  if (process.platform === 'darwin' && !IS_PRODUCTION_BUNDLE && windowIcon) app.dock?.setIcon(windowIcon);",
     '  registerNimiElectronAppBridge({',
     '    chromeHost,',
     '    appId: APP_ID,',

@@ -1802,12 +1802,12 @@ describe('Desktop Electron local-development registration host', () => {
   });
 });
 
-describe('Desktop local-development project README', () => {
-  it('returns the bounded README content for a registered project', async () => {
+describe('Desktop local-development App introduction', () => {
+  it('returns the bounded NIMI_APP.md content for a registered project', async () => {
     const projectRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-readme-test-'));
     try {
       await writeFile(path.join(projectRoot, 'nimi.app.yaml'), 'ai_config_ui:\n  allowed_routes:\n    - local\n', 'utf8');
-      await writeFile(path.join(projectRoot, 'README.md'), '# Example App\n\nHello from the project.\n', 'utf8');
+      await writeFile(path.join(projectRoot, 'NIMI_APP.md'), '# Example App\n\nHello from the project.\n', 'utf8');
       const appControl = control({
         listRegistrations: async () => [registration({
           project: {
@@ -1829,14 +1829,14 @@ describe('Desktop local-development project README', () => {
         payload: { selector: row!.selector },
       }) as { selector: string; content: string | null; fileName: string | null };
       assert.equal(result.selector, row!.selector);
-      assert.equal(result.fileName, 'README.md');
+      assert.equal(result.fileName, 'NIMI_APP.md');
       assert.ok(result.content?.includes('Hello from the project.'));
     } finally {
       await rm(projectRoot, { recursive: true, force: true });
     }
   });
 
-  it('returns null content when no conventional README exists', async () => {
+  it('reports a missing NIMI_APP.md without falling back to README.md', async () => {
     const projectRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-readme-test-'));
     try {
       await writeFile(path.join(projectRoot, 'nimi.app.yaml'), 'app_id: example.local-app\n', 'utf8');
@@ -1856,10 +1856,13 @@ describe('Desktop local-development project README', () => {
       });
       const host = new ElectronLocalDevelopmentHost(appControl, '/tmp');
       const [row] = await host.invoke('local_development_registrations_list', {}) as Array<{ selector: string }>;
-      const result = await host.invoke('local_development_project_readme', {
-        payload: { selector: row!.selector },
-      }) as { selector: string; content: string | null; fileName: string | null };
-      assert.deepEqual(result, { selector: row!.selector, content: null, fileName: null, summary: null, truncated: false });
+      await writeFile(path.join(projectRoot, 'README.md'), 'Developer setup only.');
+      await assert.rejects(host.invoke('local_development_project_readme', { payload: { selector: row!.selector } }), /NIMI_APP.md is missing/u);
+      await writeFile(path.join(projectRoot, 'NIMI_APP.md'), '  \n');
+      await assert.rejects(host.invoke('local_development_project_readme', { payload: { selector: row!.selector } }), /nonempty App introduction/u);
+      await writeFile(path.join(projectRoot, 'NIMI_APP.md'), 'Use this App.');
+      await writeFile(path.join(projectRoot, 'nimi.app.yaml'), 'metadata: {readme: README.md}');
+      await assert.rejects(host.invoke('local_development_project_readme', { payload: { selector: row!.selector } }), /metadata.readme is not supported/u);
     } finally {
       await rm(projectRoot, { recursive: true, force: true });
     }
@@ -1876,7 +1879,7 @@ describe('Desktop local-development project README', () => {
   it('truncates long development documentation without losing its summary or splitting UTF-8', async () => {
     const projectRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-readme-limit-'));
     try {
-      await writeFile(path.join(projectRoot, 'nimi.app.yaml'), 'metadata:\n  summary: Author summary\n  readme: README.md\n');
+      await writeFile(path.join(projectRoot, 'nimi.app.yaml'), 'metadata:\n  summary: Author summary\n');
       const appControl = control({ listRegistrations: async () => [registration({ project: {
         appId: 'example.local-app', displayName: 'Example Local App', canonicalProjectRoot: projectRoot,
         canonicalManifestPath: path.join(projectRoot, 'nimi.app.yaml'), shell: 'electron', appAccess: [], sourceGeneration: 3, declarationGeneration: 4,
@@ -1884,10 +1887,10 @@ describe('Desktop local-development project README', () => {
       const host = new ElectronLocalDevelopmentHost(appControl, '/tmp');
       const [row] = await host.invoke('local_development_registrations_list', {}) as Array<{ selector: string }>;
       const prefix = 'a'.repeat(96 * 1024 - 1);
-      await writeFile(path.join(projectRoot, 'README.md'), `${prefix}中文尾部`);
+      await writeFile(path.join(projectRoot, 'NIMI_APP.md'), `${prefix}中文尾部`);
       const result = await host.invoke('local_development_project_readme', { payload: { selector: row!.selector } });
-      assert.deepEqual(result, { selector: row!.selector, content: prefix, fileName: 'README.md', summary: 'Author summary', truncated: true });
-      await writeFile(path.join(projectRoot, 'README.md'), 'a'.repeat(96 * 1024));
+      assert.deepEqual(result, { selector: row!.selector, content: prefix, fileName: 'NIMI_APP.md', summary: 'Author summary', truncated: true });
+      await writeFile(path.join(projectRoot, 'NIMI_APP.md'), 'a'.repeat(96 * 1024));
       const exactLimit = await host.invoke('local_development_project_readme', { payload: { selector: row!.selector } }) as { truncated: boolean };
       assert.equal(exactLimit.truncated, false);
     } finally { await rm(projectRoot, { recursive: true, force: true }); }
@@ -2007,7 +2010,7 @@ describe('Desktop local-development project icon', () => {
     try {
       await writeFile(path.join(projectRoot, 'nimi.app.yaml'), 'ai_config_ui:\n  allowed_routes: [local]\nmetadata:\n  icon: icon.png\n');
       await writeFile(path.join(projectRoot, 'icon.png'), PNG_BYTES);
-      await writeFile(path.join(projectRoot, 'README.md'), 'App description.');
+      await writeFile(path.join(projectRoot, 'NIMI_APP.md'), 'App description.');
       const base = iconControl(projectRoot);
       let calls = 0;
       let revoked = false;

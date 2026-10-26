@@ -1,5 +1,6 @@
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-042a
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-043a
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-042d
 import { existsSync, lstatSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { readAppIcon, validateAppIcon } from './app-icons.mjs';
@@ -10,6 +11,7 @@ import { CANONICAL_CAPABILITY_IDS } from './canonical-capability-ids.generated.m
 import { SAFETY_PROFILE_FIELD, normalizeSafetyProfile } from './app-safety-profile.mjs';
 
 export const APP_INFO_MAX_BYTES = 1024 * 1024;
+export const APP_INTRODUCTION_FILE = 'NIMI_APP.md';
 export const APP_INFO_FIELDS = Object.freeze([
   'format', 'app_id', 'version', 'target_id', 'display_name', 'summary', 'icon', 'readme_markdown', 'release_notes_markdown',
   'license', 'app_access', 'capability_contract_refs', 'required_standardized_feature_refs', 'storage_policy', 'author',
@@ -87,7 +89,7 @@ export function validateAppInfo(info) {
   const icon = Buffer.from(info.icon.data_base64, 'base64');
   if (icon.toString('base64') !== info.icon.data_base64) throw new Error('App icon base64 is not canonical');
   validateAppIcon(icon);
-  if (info.readme_markdown !== undefined && info.readme_markdown !== '') text(info.readme_markdown, 'readme', 96 * 1024, true);
+  text(info.readme_markdown, 'App introduction', 96 * 1024, true);
   if (info.release_notes_markdown !== undefined && info.release_notes_markdown !== '') text(info.release_notes_markdown, 'release notes', 32 * 1024, true);
   text(info.license?.identifier, 'license identifier', 200);
   text(info.license?.text, 'license text', 128 * 1024, true);
@@ -108,7 +110,7 @@ function resource(root, relative, label, maxBytes) {
   if (typeof relative !== 'string' || path.isAbsolute(relative) || relative.includes('\\')
     || relative.split('/').some((part) => !part || part === '.' || part === '..')) throw new Error(`metadata.${label} must name an App-relative resource`);
   const file = path.join(root, relative);
-  const field = label === 'license' ? 'App license' : `metadata.${label}`;
+  const field = label === 'license' ? 'App license' : label === 'introduction' ? APP_INTRODUCTION_FILE : `metadata.${label}`;
   try {
     const stat = lstatSync(file);
     if (!stat.isFile() || stat.isSymbolicLink() || stat.size === 0 || stat.size > maxBytes) throw new Error(`must be a nonempty regular file of at most ${maxBytes} bytes`);
@@ -117,6 +119,19 @@ function resource(root, relative, label, maxBytes) {
     if (error?.code === 'ENOENT' || error?.code === 'ENOTDIR') throw new Error(`${field} resource is missing: ${relative}`);
     throw new Error(`${field} resource ${relative}: ${error.message}`, { cause: error });
   }
+}
+
+export function readAppIntroduction(root, manifest) {
+  if (manifest?.metadata && Object.hasOwn(manifest.metadata, 'readme')) {
+    throw new Error('metadata.readme is not supported; put the user introduction in root NIMI_APP.md and remove metadata.readme');
+  }
+  let content;
+  try {
+    content = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(resource(root, APP_INTRODUCTION_FILE, 'introduction', 96 * 1024));
+  } catch (error) {
+    throw new Error(`Invalid ${APP_INTRODUCTION_FILE}: ${error.message}`, { cause: error });
+  }
+  return text(content, APP_INTRODUCTION_FILE, 96 * 1024, true);
 }
 
 export function readAppInfo(root, targetId) {
@@ -130,7 +145,7 @@ export function readAppInfo(root, targetId) {
     format: 'nimi.app-info/v1', app_id: manifest.app_id, version: manifest.version, target_id: targetId,
     display_name: manifest.display_name, summary: metadata.summary,
     icon: { media_type: 'image/png', data_base64: readAppIcon(root).toString('base64') },
-    readme_markdown: metadata.readme === undefined ? '' : readText(metadata.readme, 'readme', 96 * 1024),
+    readme_markdown: readAppIntroduction(root, manifest),
     release_notes_markdown: metadata.release_notes === undefined ? '' : readText(metadata.release_notes, 'release_notes', 32 * 1024),
     license: { identifier: pkg.license, text: readText('LICENSE', 'license', 128 * 1024) },
     app_access: refs(manifest.app_access, 'app_access'),

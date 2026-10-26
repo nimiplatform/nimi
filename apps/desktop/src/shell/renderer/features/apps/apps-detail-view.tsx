@@ -1099,7 +1099,7 @@ function AppsAboutSection({ entry, developer, fact, fallbackSummary = null, link
 
 /**
  * README document band shared by every App source. Local-development Apps
- * read the project README through the host bridge; installed and Registry
+ * read the root NIMI_APP.md through the host bridge; installed and Registry
  * Apps read the portable README from the package info.
  */
 function AppsReadmeSection({ readme }: { readonly readme: ProjectReadmeState }): ReactElement | null {

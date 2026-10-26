@@ -49,5 +49,5 @@ pnpm --filter @nimiplatform/nimiday build
 
 - `src/nimiday/`：应用的核心业务逻辑、生活事件流与日程管理界面
 - `src-electron/`：Electron 宿主进程实现，负责窗口生命周期与安全沙箱桥接
-- `GUIDE.md`：面向最终用户的功能使用指南与操作说明
+- `NIMI_APP.md`：面向最终用户的功能使用指南与操作说明
 - `DEVELOPMENT.md`：针对开发者的调试指南与环境配置说明

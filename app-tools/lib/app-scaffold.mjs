@@ -899,7 +899,6 @@ function buildNimiAppManifest(identity) {
     metadata: {
       summary: '',
       icon: 'assets/app-icon.png',
-      readme: 'README.md',
       release_notes: 'RELEASE_NOTES.md',
     },
     local_development: {

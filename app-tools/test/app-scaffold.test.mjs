@@ -2451,7 +2451,7 @@ test('sync advances the App version while preserving immutable scaffold identity
     const packageJson = JSON.parse(readFileSync(packagePath, 'utf8'));
     const sourceManifest = parseYaml(generated.read('nimi.app.yaml'));
     sourceManifest.app_access = ['agent.local', 'app.activity', 'realm.data'];
-    sourceManifest.metadata = { summary: 'Author-maintained description.', icon: 'artwork/custom.png', readme: 'GUIDE.md', release_notes: 'NOTES.md' };
+    sourceManifest.metadata = { summary: 'Author-maintained description.', icon: 'artwork/custom.png', release_notes: 'NOTES.md' };
     sourceManifest.capability_contract_refs = ['text.generate'];
     sourceManifest.required_standardized_feature_refs = ['text.generate.text'];
     writeFileSync(path.join(generated.target, 'nimi.app.yaml'), stringifyYaml(sourceManifest));
@@ -2714,6 +2714,7 @@ test('sync adopts and check audits an existing submitted App without creating a 
     ].join('\n'));
     writeInstalledLock(target);
 
+    writeFileSync(path.join(target, 'NIMI_APP.md'), '# Existing App\n\nUse this App to create your work.\n');
     const vendorExample = 'fetch("/api/vendor-example");\nconst url = "https://vendor.example/v1/chat/completions";\n';
     for (const referencePath of [
       '.next/server/chunks/previous-build.js',
@@ -3464,3 +3465,27 @@ for (const documentPath of ['README.md', 'SECURITY.md']) {
     }
   });
 }
+
+
+test('NIMI_APP.md is authored by the App, required by check and never recreated by sync', () => {
+  const generated = cliScaffold('standalone');
+  try {
+    const file = path.join(generated.target, 'NIMI_APP.md');
+    const lock = JSON.parse(generated.read(SCAFFOLD_LOCK_PATH));
+    assert.equal(lock.appOwnedInitialHashes['NIMI_APP.md'].class, 'app-owned product code');
+    assert.equal(Object.hasOwn(lock.managedFileHashes, 'NIMI_APP.md'), false);
+    assert.equal(Object.hasOwn(parseYaml(generated.read('nimi.app.yaml')).metadata, 'readme'), false);
+    const authored = '# My App\n\nCreate and save your work.\n';
+    writeFileSync(file, authored);
+    let result = runNimiApp(['sync', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(generated.read('NIMI_APP.md'), authored);
+    rmSync(file);
+    result = runNimiApp(['check', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /NIMI_APP.md/);
+    result = runNimiApp(['sync', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    assert.notEqual(result.status, 0);
+    assert.equal(existsSync(file), false);
+  } finally { generated.cleanup(); }
+});

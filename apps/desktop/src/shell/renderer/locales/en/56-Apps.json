@@ -411,7 +411,7 @@
     "appIdCopied": "Copied",
     "runCardTitle": "Run status",
     "readmeTruncated": "This document is long. Only the beginning is shown.",
-    "readmeError": "The usage guide could not be loaded right now.",
+    "readmeError": "The App introduction could not be loaded.",
     "runDiagnosticsDescription": "Latest supervised run detail reported by the Desktop host.",
     "runMessage": "Message",
     "runReasonCode": "Reason code",
