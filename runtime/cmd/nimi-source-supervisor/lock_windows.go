@@ -77,7 +77,29 @@ func dialSourceRuntimeOwner(ctx context.Context, lockPath string) (net.Conn, err
 	return conn, err
 }
 
-func requestRuntimeStop(process *os.Process) error {
+func requestRuntimeStop(process *os.Process) (stopErr error) {
+	if process == nil || process.Pid <= 0 {
+		return errors.New("owned Runtime process identity is required")
+	}
+	stopErr = windows.GenerateConsoleCtrlEvent(windows.CTRL_BREAK_EVENT, uint32(process.Pid))
+	if !errors.Is(stopErr, windows.ERROR_INVALID_HANDLE) {
+		return stopErr
+	}
+	// The Desktop development launcher detaches this supervisor. The owned
+	// console child then has its own console, so targeted control delivery needs
+	// a temporary attachment. Never detach an existing console or broadcast to
+	// process group zero; normal terminal launches retain their original path.
+	kernel := windows.NewLazySystemDLL("kernel32.dll")
+	attached, _, err := kernel.NewProc("AttachConsole").Call(uintptr(process.Pid))
+	if attached == 0 {
+		return fmt.Errorf("attach owned Runtime console: %w", err)
+	}
+	defer func() {
+		freed, _, err := kernel.NewProc("FreeConsole").Call()
+		if freed == 0 {
+			stopErr = errors.Join(stopErr, fmt.Errorf("detach owned Runtime console: %w", err))
+		}
+	}()
 	return windows.GenerateConsoleCtrlEvent(windows.CTRL_BREAK_EVENT, uint32(process.Pid))
 }
 
