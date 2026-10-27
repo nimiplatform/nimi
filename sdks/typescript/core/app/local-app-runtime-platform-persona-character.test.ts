@@ -113,6 +113,44 @@ test('PersonaCharacter owner client rejects a malformed delete acknowledgement',
   );
 });
 
+test('PersonaCharacter preserves canonical identity descriptions and disposition through owner reads and edits', async () => {
+  const record = persona();
+  const identity = {
+    ...record.profile.identity,
+    ageDescription: 'Age is unknown.',
+    speciesDescription: 'An authored fictional bird.',
+    bodyDescription: 'Small wings with blue feathers.',
+    lifeStageDescription: 'An adult in the authored setting.',
+  };
+  const psychology = { disposition: 'Quiet, but curious about visitors.', drives: ['Explore'], boundaries: [] };
+  const described = { ...record, profile: { ...record.profile, identity, psychology } };
+  let submitted: unknown;
+  const client = createNimiLocalAppPersonaCharacterClient(shell({
+    listOwned: async () => [described],
+    getOwned: async () => described,
+    replace: async (input) => { submitted = input.profile; return described; },
+  }));
+  const page = await client.listOwned();
+  assert.deepEqual(page.items[0]?.profile.identity, identity);
+  const detail = await client.getOwned('persona-1');
+  assert.deepEqual(detail.profile.psychology, psychology);
+  const profile = client.toProfileInput(detail.profile);
+  await client.replace({ ...createInput(), personaCharacterId: 'persona-1', baseContentHash: hash('a'), profile });
+  assert.deepEqual(submitted, profile);
+  assert.deepEqual(profile.identity, identity);
+  assert.deepEqual(profile.psychology, psychology);
+});
+
+test('PersonaCharacter rejects malformed canonical description fields', async () => {
+  for (const profile of [
+    { ...persona().profile, identity: { ...persona().profile.identity, ageDescription: 17 } },
+    { ...persona().profile, psychology: { disposition: '' } },
+  ]) {
+    const client = createNimiLocalAppPersonaCharacterClient(shell({ getOwned: async () => ({ ...persona(), profile }) }));
+    await assert.rejects(() => client.getOwned('persona-1'), (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'contract-invalid');
+  }
+});
+
 test('PersonaCharacter owner client admits bounded pagination and rejects caller authority and stale write shape before transport', async () => {
   let calls = 0;
   let listedInput: unknown;

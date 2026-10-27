@@ -1,6 +1,6 @@
 # Platform upgrade
 
-App Tools 0.14 defaults to SDK/Kit/native 0.22.0, Tauri 0.11.0 and
+App Tools 0.14 defaults to SDK 0.22.1, Kit/native 0.22.0, Tauri 0.11.0 and
 protected-local 0.11.1. Upgrade this combination together with a matching Runtime. Existing
 0.21 SDK/Kit combinations remain explicit selections; sync does not upgrade
 business dependencies. Every App must own a root `NIMI_APP.md`; remove the

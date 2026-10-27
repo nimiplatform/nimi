@@ -63,6 +63,10 @@ type NimiLocalAppPersonaCharacterProfileBase = {
     readonly summary: string;
     readonly handle?: string;
     readonly aliases?: readonly string[];
+    readonly ageDescription?: string;
+    readonly speciesDescription?: string;
+    readonly bodyDescription?: string;
+    readonly lifeStageDescription?: string;
   };
   readonly presentation: {
     readonly displayName: string;
@@ -109,7 +113,7 @@ type NimiLocalAppPersonaCharacterProfileBase = {
     readonly tools?: readonly { readonly toolId: string; readonly name?: string; readonly summary?: string }[];
   };
   readonly knowledge?: { readonly topics?: readonly string[]; readonly constraints?: readonly string[] };
-  readonly psychology?: { readonly drives?: readonly string[]; readonly boundaries?: readonly string[] };
+  readonly psychology?: { readonly disposition?: string; readonly drives?: readonly string[]; readonly boundaries?: readonly string[] };
   readonly relationships?: readonly {
     readonly relationshipId: string;
     readonly relationType: string;
@@ -472,18 +476,30 @@ function validateProfile(value: unknown, output: boolean, input: boolean): void 
   validateProfileAuthoring(projected.authoring);
   if (projected.capabilities !== undefined) validateProfileCapabilities(projected.capabilities);
   if (projected.knowledge !== undefined) validateProfileStringLists(projected.knowledge, ['topics', 'constraints'], 'profile.knowledge');
-  if (projected.psychology !== undefined) validateProfileStringLists(projected.psychology, ['drives', 'boundaries'], 'profile.psychology');
+  if (projected.psychology !== undefined) validateProfilePsychology(projected.psychology);
   if (projected.relationships !== undefined) profileObjectArray(projected.relationships, 'profile.relationships', validateProfileRelationship);
   if (!hash(projected.profileHash)) projectionInvalid('profile.profileHash');
   validateProfileCoverage(projected.profileCoverage);
 }
 
 function validateProfileIdentity(value: unknown): void {
-  const object = closedAllowed(value, ['name', 'summary', 'handle', 'aliases'], ['name', 'summary'], 'profile.identity');
+  const object = closedAllowed(value, [
+    'name', 'summary', 'handle', 'aliases',
+    'ageDescription', 'speciesDescription', 'bodyDescription', 'lifeStageDescription',
+  ], ['name', 'summary'], 'profile.identity');
   realmOwnedText(object.name, 'profile.identity.name', true, false);
   realmOwnedText(object.summary, 'profile.identity.summary', true, false);
   optionalRealmOwnedText(object.handle, 'profile.identity.handle');
   optionalProfileTextArray(object.aliases, 'profile.identity.aliases');
+  for (const key of ['ageDescription', 'speciesDescription', 'bodyDescription', 'lifeStageDescription']) {
+    if (object[key] !== undefined) realmOwnedText(object[key], `profile.identity.${key}`, true, false);
+  }
+}
+
+function validateProfilePsychology(value: unknown): void {
+  const object = closedAllowed(value, ['disposition', 'drives', 'boundaries'], [], 'profile.psychology');
+  if (object.disposition !== undefined) realmOwnedText(object.disposition, 'profile.psychology.disposition', true, false);
+  for (const key of ['drives', 'boundaries']) optionalProfileTextArray(object[key], `profile.psychology.${key}`);
 }
 
 function validateProfilePresentation(value: unknown): void {

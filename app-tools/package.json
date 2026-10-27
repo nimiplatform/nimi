@@ -18,7 +18,7 @@
     "provenance": true
   },
   "nimiScaffoldVersions": {
-    "sdkVersion": "^0.22.0",
+    "sdkVersion": "^0.22.1",
     "appToolsVersion": "^0.14.0",
     "nimicodingVersion": "0.7.0",
     "aiSdkVersion": "^7.0.150",

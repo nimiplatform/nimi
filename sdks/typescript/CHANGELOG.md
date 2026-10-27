@@ -2,6 +2,14 @@
 
 # SDK migration notes
 
+## 0.22.1 — 2026-10-27
+
+Fix owner PersonaCharacter projection to preserve the existing Realm identity
+`ageDescription`, `speciesDescription`, `bodyDescription`, `lifeStageDescription`
+and `psychology.disposition` fields. Valid authored profiles no longer reject
+the whole owner list. `toProfileInput` preserves these fields for editing;
+malformed descriptions remain rejected. Compatible with Kit/native 0.22.0.
+
 ## 0.22.0 — 2026-10-27
 
 Use with Kit/native 0.22.0 and Rust carriers protected-local 0.11.1 and Tauri 0.11.0 against the matching
