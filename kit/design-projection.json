@@ -674,7 +674,7 @@
           "sourceRule": "P-DESIGN-003",
           "values": {
             "nimi-dark": "#94a3b8",
-            "nimi-light": "#9ca3af"
+            "nimi-light": "#4b5563"
           }
         },
         "field.text": {

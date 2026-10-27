@@ -144,6 +144,17 @@ const failures = [];
 const rows = [];
 const actionFailures = [];
 const actionRows = [];
+const fieldRows = [];
+const fieldFailures = [];
+// Empty enabled fields still communicate the next action. The existing
+// surface/action matrix did not cover their placeholder text.
+for (const themeId of THEMES) {
+  const foreground = resolvePackToken(themeId, 'field.placeholder');
+  const background = resolvePackToken(themeId, 'field.bg');
+  const ratio = foreground && background ? contrast(foreground, background) : 0;
+  fieldRows.push({ themeId, ratio });
+  if (ratio < TARGET_BODY) fieldFailures.push({ themeId, ratio });
+}
 
 for (const themeId of THEMES) {
   for (const tone of TONES) {
@@ -281,13 +292,15 @@ for (const row of badgeRows) {
 }
 console.log('');
 
-if (failures.length === 0 && actionFailures.length === 0 && focusFailures.length === 0 && badgeFailures.length === 0) {
-  console.log(`ui-contrast-matrix: OK (${rows.length} surface/glass, ${actionRows.length} action, ${focusRows.length} focus and ${badgeRows.length} badge combinations all ≥ target)`);
+for (const row of fieldRows) console.log(`${row.themeId} field.placeholder: ${fmt(row.ratio)}:1 (target ≥ ${TARGET_BODY}:1)`);
+if (failures.length === 0 && actionFailures.length === 0 && focusFailures.length === 0 && badgeFailures.length === 0 && fieldFailures.length === 0) {
+  console.log(`ui-contrast-matrix: OK (${rows.length} surface/glass, ${actionRows.length} action, ${focusRows.length} focus, ${badgeRows.length} badge and ${fieldRows.length} field combinations all ≥ target)`);
   process.exit(0);
 }
 
 console.error('');
-console.error(`FAIL: ${failures.length + actionFailures.length + focusFailures.length + badgeFailures.length} combination(s) below target:`);
+console.error(`FAIL: ${failures.length + actionFailures.length + focusFailures.length + badgeFailures.length + fieldFailures.length} combination(s) below target:`);
+for (const row of fieldFailures) console.error(`  ${row.themeId} × field.placeholder: ${fmt(row.ratio)}:1 (target ≥ ${TARGET_BODY}:1)`);
 for (const f of failures) {
   console.error(
     `  ${f.themeId} × tone=${f.tone} × tier=${f.tier} × ${f.kind}: ${fmt(f.ratio)}:1 (target ≥ ${f.target}:1)`,

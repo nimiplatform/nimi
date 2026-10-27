@@ -39,7 +39,7 @@ packs:
       field.bg: "#ffffff"
       field.border: rgba(226,232,240,0.9)
       field.text: "#111827"
-      field.placeholder: "#9ca3af"
+      field.placeholder: "#4b5563"
       status.neutral: "#4b5563"
       status.success: "#16a34a"
       status.warning: "#d97706"
