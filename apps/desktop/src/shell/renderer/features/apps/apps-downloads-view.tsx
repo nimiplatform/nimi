@@ -10,6 +10,7 @@ import { useAppsDownloads, type AppsDownloadsContextValue } from './apps-downloa
 import { packageJobIsTerminal, packageJobKey, timestampMilliseconds, type AppDownloadCommand } from './apps-downloads-observer.js';
 import { dismissDownloadsHint, readDownloadsHintDismissed } from './apps-downloads-hint-preferences.js';
 import { AppArtworkIcon } from './apps-card-visuals.js';
+import { appIconUrlsForEntries } from './apps-entry-groups.js';
 import type { DesktopAppsEntry } from './apps-panel-projection.js';
 
 export function isAppDownloadJob(job: AppPackageJob): boolean {
@@ -86,6 +87,7 @@ export function AppsDownloadsView({ downloads, entries, onViewApp, onRetry }: {
   const focusRevision = useRef(0);
   const previousPhases = useRef(new Map<string, AppPackageJobPhase>());
   const jobs = downloads.jobs.filter(isAppDownloadJob);
+  const iconUrls = appIconUrlsForEntries(entries);
   const selected = jobs.find((job) => packageJobKey(job) === downloads.selectedJobId);
   const active = jobs.filter((job) => job.phase === AppPackageJobPhase.DOWNLOADING);
   const queued = jobs.filter((job) => job.sourceClass === AppPackageSourceClass.VERIFIED && job.phase === AppPackageJobPhase.QUEUED).sort((a, b) => a.queuePosition - b.queuePosition);
@@ -192,7 +194,7 @@ export function AppsDownloadsView({ downloads, entries, onViewApp, onRetry }: {
       }}>
       <div className="flex items-center gap-3">
         {order ? <span className="flex items-center gap-1 text-xs tabular-nums text-[var(--nimi-text-muted)]" aria-label={t('Apps.downloads.position', { position: job.queuePosition || '—' })}><GripVertical className="h-4 w-4" aria-hidden="true" />{job.queuePosition || '—'}</span> : null}
-        <AppArtworkIcon appId={job.appId} displayName={jobName(job)} iconUrl={matchingEntry?.iconUrl} size="sm" />
+        <AppArtworkIcon appId={job.appId} displayName={jobName(job)} iconUrl={iconUrls.get(job.appId)} size="sm" />
         <div className="min-w-0 flex-1">
           <h3 id={`app-download-heading-${id}`} className="break-words text-sm font-semibold text-[var(--nimi-text-primary)]">{jobName(job)}</h3>
           {job.targetVersion || job.sourceClass === AppPackageSourceClass.USER_IMPORTED ? <p className="mt-1 break-words text-xs text-[var(--nimi-text-secondary)]">

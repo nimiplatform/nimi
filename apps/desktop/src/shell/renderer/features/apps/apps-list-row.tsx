@@ -161,6 +161,7 @@ function stopRowEvent(event: MouseEvent): void {
 
 export const AppListRow = memo(function AppListRow({
   entry,
+  iconUrl = entry.iconUrl,
   activeAction,
   actionsDisabled,
   showSourceBadge = false,
@@ -168,6 +169,7 @@ export const AppListRow = memo(function AppListRow({
   onAction,
 }: {
   readonly entry: DesktopAppsEntry;
+  readonly iconUrl?: string | null;
   readonly activeAction: AppCardActionId | null;
   readonly actionsDisabled: boolean;
   readonly showSourceBadge?: boolean;
@@ -198,7 +200,7 @@ export const AppListRow = memo(function AppListRow({
       <AppArtworkIcon
         appId={identity.appId}
         displayName={identity.displayName}
-        iconUrl={entry.iconUrl}
+        iconUrl={iconUrl}
         size={presentation === 'attention' ? 'md' : 'lg'}
         className="shadow-[var(--nimi-elevation-base)]"
       />

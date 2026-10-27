@@ -1,5 +1,7 @@
 import { AppsDistributionInfo } from './apps-distribution-info.js';
 import { AppArtworkIcon } from './apps-card-visuals.js';
+import { appIconUrlsForEntries } from './apps-entry-groups.js';
+import type { DesktopAppsEntry } from './apps-panel-projection.js';
 import { useCallback, useEffect, useRef, useState, type ReactElement } from 'react';
 import { useTranslation } from 'react-i18next';
 import { asNimiError } from '@nimiplatform/sdk';
@@ -120,10 +122,16 @@ export function useAppsLocalImport(getClient: () => NimiDesktopMachineProductRun
   return { phase, intent, error, choose, cancel, confirm };
 }
 
-export function AppsLocalImportFeedback({ state }: { readonly state: ReturnType<typeof useAppsLocalImport> }): ReactElement {
+export function AppsLocalImportFeedback({ state, entries }: {
+  readonly state: ReturnType<typeof useAppsLocalImport>;
+  readonly entries: readonly DesktopAppsEntry[];
+}): ReactElement {
   const { t } = useTranslation();
   const preview = state.intent?.preview;
   const pending = state.phase === 'starting';
+  // Prefer current project artwork when registered; otherwise show the chosen
+  // package's own artwork, which may be newer than the installed release.
+  const iconUrls = appIconUrlsForEntries(entries.filter((entry) => entry.localDevelopment));
   return <>
     {(state.phase === 'choosing' || state.phase === 'preparing') ? <InlineAlert tone="info" className="mx-4 mt-2" role="status">
       <span>{t(state.phase === 'choosing' ? 'Apps.localImport.choosing' : 'Apps.localImport.preparing')}</span>
@@ -141,7 +149,7 @@ export function AppsLocalImportFeedback({ state }: { readonly state: ReturnType<
       <ScrollShell className="px-6 py-2">
         {preview ? <div className="space-y-3 text-[length:var(--nimi-type-body-size)] text-[var(--nimi-text-secondary)]">
           {state.error ? <InlineAlert tone="danger" role="alert">{state.error}</InlineAlert> : null}
-          <div className="flex items-center gap-3"><AppArtworkIcon appId={preview.appId} displayName={preview.displayName} iconUrl={preview.info ? `data:image/png;base64,${preview.info.iconPngBase64}` : null} /><p className="font-semibold">{preview.displayName} · {preview.version}</p></div>
+          <div className="flex items-center gap-3"><AppArtworkIcon appId={preview.appId} displayName={preview.displayName} iconUrl={iconUrls.get(preview.appId) ?? (preview.info ? `data:image/png;base64,${preview.info.iconPngBase64}` : null)} /><p className="font-semibold">{preview.displayName} · {preview.version}</p></div>
           <AppsDistributionInfo info={preview.info} />
           <p>{t('Apps.localImport.sourceDisclosure')}</p>
           {state.intent?.installed ? <p>{t('Apps.update.confirmMessage', { from: state.intent.installed.version, to: preview.version })}</p> : null}

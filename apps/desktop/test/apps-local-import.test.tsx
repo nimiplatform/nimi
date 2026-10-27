@@ -40,7 +40,7 @@ test('local import releases invalid previews and keeps confirmation failures ins
   }) as unknown as NimiDesktopMachineProductRuntimeClient['apps'];
   let state!: ReturnType<typeof useAppsLocalImport>;
   const started = () => { throw new Error('failed install must not announce a started job'); };
-  function Harness() { state = useAppsLocalImport(getClient, started); return <AppsLocalImportFeedback state={state} />; }
+  function Harness() { state = useAppsLocalImport(getClient, started); return <AppsLocalImportFeedback state={state} entries={[]} />; }
   const root = createRoot(dom.window.document.getElementById('root')!);
   try {
     await act(async () => { root.render(<Harness />); });

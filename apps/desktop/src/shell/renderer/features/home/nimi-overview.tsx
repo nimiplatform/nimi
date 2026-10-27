@@ -12,6 +12,7 @@ import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { hasAvailableCatalogUpdate } from '../apps/apps-card-actions.js';
 import { AppArtworkIcon } from '../apps/apps-card-visuals.js';
+import { appIconUrlsForEntries } from '../apps/apps-entry-groups.js';
 import { useAppsOverview } from '../apps/use-apps-overview.js';
 import { useGlobalDownloads } from '../runtime-config/global-downloads-context.js';
 import { capabilityPreparationState, useCapabilityInventory } from '../runtime-config/runtime-capability-inventory.js';
@@ -119,6 +120,7 @@ export function NimiOverview() {
     staleTime: 15_000,
   });
   const entries = apps.data?.status === 'loaded' ? apps.data.entries : [];
+  const iconUrls = appIconUrlsForEntries(entries);
   const unique = [
     ...new Map(
       entries
@@ -214,16 +216,15 @@ export function NimiOverview() {
       detail: entry.catalogTarget?.version ? t('runtimeConfig.overview.messages.system.updateDetail', { version: entry.catalogTarget.version }) : '',
       progress: null,
       time: null,
-      app: { appId: entry.identity.appId, displayName: entry.identity.displayName, iconUrl: entry.iconUrl },
+      app: { appId: entry.identity.appId, displayName: entry.identity.displayName, iconUrl: iconUrls.get(entry.identity.appId) ?? null },
       open: () => openApp(entry.identity.appId, entry.identity.entryKey),
     })),
   ];
-  const iconUrls = new Map(entries.map((entry) => [entry.identity.appId, entry.iconUrl]));
   const appArtworkForNotice: ExecutionNoticeAppArtworkResolver = (noticeDisplayName) => {
     const matches = entries.filter((entry) => entry.identity.displayName === noticeDisplayName);
-    if (matches.length !== 1) return null;
+    if (new Set(matches.map((entry) => entry.identity.appId)).size !== 1) return null;
     const entry = matches[0]!;
-    return { appId: entry.identity.appId, iconUrl: entry.iconUrl };
+    return { appId: entry.identity.appId, iconUrl: iconUrls.get(entry.identity.appId) ?? null };
   };
   const cardContext = (messages: HomeMessages): HomeMessageCardContext => ({
     now,
@@ -350,7 +351,7 @@ export function NimiOverview() {
                         <AppArtworkIcon
                           appId={entry.identity.appId}
                           displayName={entry.identity.displayName}
-                          iconUrl={entry.iconUrl}
+                          iconUrl={iconUrls.get(entry.identity.appId)}
                           size="lg"
                         />
                         {update ? (

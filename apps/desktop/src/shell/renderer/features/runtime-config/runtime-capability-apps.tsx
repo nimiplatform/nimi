@@ -4,12 +4,14 @@ import { ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { AppArtworkIcon } from '../apps/apps-card-visuals.js';
+import { appIconUrlsForEntries } from '../apps/apps-entry-groups.js';
 import type { DesktopAppsEntry, DesktopAppsPanelProjection } from '../apps/apps-panel-projection.js';
 import { useAppsOverview } from '../apps/use-apps-overview.js';
 
 export type CapabilityAppsView = {
   /** One row per App on this device whose declaration names the capability. */
   readonly apps: readonly DesktopAppsEntry[];
+  readonly iconUrls: ReadonlyMap<string, string | null>;
   /** Some App facts could not be read, so an App may be missing from the rows. */
   readonly incomplete: boolean;
 };
@@ -40,6 +42,7 @@ export function capabilityApps(
   }
   return {
     apps: [...byApp.values()].sort((left, right) => left.identity.displayName.localeCompare(right.identity.displayName)),
+    iconUrls: appIconUrlsForEntries(projection.entries),
     incomplete,
   };
 }
@@ -106,7 +109,7 @@ export function RuntimeCapabilityAppsCard(props: {
                       <AppArtworkIcon
                         appId={entry.identity.appId}
                         displayName={entry.identity.displayName}
-                        iconUrl={entry.iconUrl}
+                        iconUrl={state.iconUrls.get(entry.identity.appId)}
                         size="sm"
                       />
                       <span className="min-w-0 flex-1 truncate text-sm text-[var(--nimi-text-primary)] transition-colors group-hover:text-[var(--nimi-action-primary-bg)] group-focus-visible:text-[var(--nimi-action-primary-bg)]">

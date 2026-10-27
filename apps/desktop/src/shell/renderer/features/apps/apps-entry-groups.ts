@@ -11,7 +11,7 @@ import { appRunVisualState, entryNeedsAttention, isEntryRunActive, type AppsSort
 export interface DesktopAppGroup {
   readonly appId: string;
   readonly displayName: string;
-  /** Artwork for the merged rail identity and detail header; source rows keep their own icon. */
+  /** Current artwork for the App identity across Desktop; entry metadata stays source-exact. */
   readonly iconUrl: string | null;
   /** The entry the row acts on: live run first, then installed, dev, catalog. */
   readonly primary: DesktopAppsEntry;
@@ -76,7 +76,7 @@ export function groupAppsEntries(entries: readonly DesktopAppsEntry[]): readonly
       appId: primary.identity.appId,
       displayName: realDisplayName(primary) ?? ordered.map(realDisplayName).find((name) => name !== null) ?? primary.identity.displayName,
       // A registered project's artwork can change independently of an installed
-      // release. Reflect it in the merged rail without changing the primary
+      // release. Reflect it throughout Desktop without changing the primary
       // launch target or the exact release information on source-specific rows.
       iconUrl: ordered.find((entry) => entry.localDevelopment && entry.iconUrl !== null)?.iconUrl
         ?? primary.iconUrl ?? ordered.find((entry) => entry.iconUrl !== null)?.iconUrl ?? null,
@@ -89,6 +89,11 @@ export function groupAppsEntries(entries: readonly DesktopAppsEntry[]): readonly
       starting: !visualStates.includes('running') && visualStates.includes('starting'),
     };
   });
+}
+
+/** Resolve identity artwork before filtering entries by task, source or capability. */
+export function appIconUrlsForEntries(entries: readonly DesktopAppsEntry[]): ReadonlyMap<string, string | null> {
+  return new Map(groupAppsEntries(entries).map((group) => [group.appId, group.iconUrl]));
 }
 
 export function filterAppGroups(

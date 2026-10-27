@@ -599,6 +599,43 @@ test('Apps home lists Apps with an available catalog update in their own section
   assert.equal(current.includes('data-testid="apps-home-updates"'), false, 'no updates section when everything is current');
 });
 
+test('App artwork stays current in updates, attention sources, recent rows and details without changing release targets', async () => {
+  const { JSDOM } = await import('jsdom');
+  await initI18n();
+  await changeLocale('en');
+  const catalog = catalogRuntimeEntry();
+  const installed: DesktopAppsEntry = {
+    ...installedRuntimeEntry({ phase: AppPackageJobPhase.FAILED, terminalResult: AppPackageTerminalResult.FAILED }),
+    catalogTarget: { ...catalog.catalogTarget!, version: '1.1.0' },
+    iconUrl: 'data:image/png;base64,installed',
+  };
+  const development: DesktopAppsEntry = {
+    ...entry({ appId: installed.identity.appId }, 'failed'),
+    iconUrl: 'data:image/png;base64,current',
+  };
+  // Also cover the latest artwork coming from a source that needs no attention.
+  for (const dev of [development, { ...development, run: null }]) {
+    const props = baseProps({ projection: {
+      status: 'loaded', entries: [installed, dev], catalogStatus: 'loaded', runtimeError: null,
+    } });
+    const document = new JSDOM(renderView(props)).window.document;
+    for (const section of ['attention', 'updates', 'recent']) {
+      const images = document.querySelectorAll(`[data-testid="apps-home-${section}"] img`);
+      assert.ok(images.length > 0, section);
+      for (const image of images) assert.equal(image.getAttribute('src'), development.iconUrl, section);
+    }
+    assert.ok(document.querySelector(`[data-testid="apps-home-updates"] [data-testid="apps-entry-${installed.identity.entryKey}-update"]`));
+    for (const source of [installed, dev]) {
+      const detail = new JSDOM(renderView({ ...props, selectedEntryKey: source.identity.entryKey })).window.document;
+      const images = detail.querySelectorAll('main img');
+      assert.ok(images.length > 0);
+      for (const image of images) assert.equal(image.getAttribute('src'), development.iconUrl);
+    }
+  }
+  assert.equal(installed.iconUrl, 'data:image/png;base64,installed');
+  assert.equal(installed.committedRelease?.version, '1.0.0');
+});
+
 test('Apps home renders the host-read project summary under the app title', async () => {
   await initI18n();
   await changeLocale('zh');

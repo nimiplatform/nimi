@@ -77,7 +77,7 @@ test('the capability lists the Apps on this device that declare it, one row per 
   ]), 'text.generate');
   assert.deepEqual(view.apps.map((item) => item.identity.displayName), ['Inscape', 'ParentOS', 'ShiJing']);
   assert.equal(view.incomplete, false);
-  assert.deepEqual(capabilityApps(loaded([]), 'text.generate'), { apps: [], incomplete: false });
+  assert.deepEqual(capabilityApps(loaded([]), 'text.generate'), { apps: [], iconUrls: new Map(), incomplete: false });
 });
 
 test('an App whose declaration cannot be read makes the list incomplete instead of absent', () => {
@@ -100,7 +100,7 @@ test('the Apps column is left out while loading and when no App on this device u
   assert.equal(capabilityAppsColumn({ isPending: false, isError: false, data: projection }, 'text.embed'), null);
   assert.deepEqual(
     capabilityAppsColumn({ isPending: false, isError: false, data: projection }, 'text.generate'),
-    { apps: [projection.entries[0]], incomplete: false },
+    { apps: [projection.entries[0]], iconUrls: new Map([['app.parentos', null], ['app.storybook', null]]), incomplete: false },
   );
   // Unknown keeps the column: it is never shown as "no App uses this".
   assert.deepEqual(
@@ -108,7 +108,7 @@ test('the Apps column is left out while loading and when no App on this device u
       { isPending: false, isError: false, data: loaded([], 'Runtime Apps lifecycle list failed: offline') },
       'text.embed',
     ),
-    { apps: [], incomplete: true },
+    { apps: [], iconUrls: new Map(), incomplete: true },
   );
   assert.equal(capabilityAppsColumn({ isPending: false, isError: true }, 'text.embed'), 'unavailable');
   assert.equal(
@@ -119,16 +119,33 @@ test('the Apps column is left out while loading and when no App on this device u
 
 test('the Apps column shows each App by icon and name, with explicit incomplete and unavailable states', () => {
   const apps = [entry({ appId: 'app.parentos', name: 'ParentOS', source: 'installed', refs: ['text.generate'] })];
-  const listed = render(<RuntimeCapabilityAppsCard state={{ apps, incomplete: false }} onOpen={() => {}} />);
+  const iconUrls = new Map<string, string | null>();
+  const listed = render(<RuntimeCapabilityAppsCard state={{ apps, iconUrls, incomplete: false }} onOpen={() => {}} />);
   assert.match(listed, /runtimeConfig\.capabilities\.apps\.title/);
   assert.match(listed, /data-testid="capability-app:app\.parentos"[^>]*>[\s\S]*ParentOS/);
   assert.doesNotMatch(listed, /apps\.(incomplete|unavailable)/);
 
-  const unknown = render(<RuntimeCapabilityAppsCard state={{ apps: [], incomplete: true }} onOpen={() => {}} />);
+  const unknown = render(<RuntimeCapabilityAppsCard state={{ apps: [], iconUrls, incomplete: true }} onOpen={() => {}} />);
   assert.match(unknown, /apps\.incomplete/);
   assert.doesNotMatch(unknown, /capability-app:/);
-  assert.match(render(<RuntimeCapabilityAppsCard state={{ apps, incomplete: true }} onOpen={() => {}} />), /ParentOS[\s\S]*apps\.incomplete/);
+  assert.match(render(<RuntimeCapabilityAppsCard state={{ apps, iconUrls, incomplete: true }} onOpen={() => {}} />), /ParentOS[\s\S]*apps\.incomplete/);
   assert.match(render(<RuntimeCapabilityAppsCard state="unavailable" onOpen={() => {}} />), /apps\.unavailable/);
+});
+
+test('capability artwork uses the current App identity even when that source does not declare the capability', () => {
+  const installed = {
+    ...entry({ appId: 'app.storybook', name: 'Storybook', source: 'installed', refs: ['text.generate'] }),
+    iconUrl: 'data:image/png;base64,installed',
+  };
+  const development = {
+    ...entry({ appId: 'app.storybook', name: 'Storybook', source: 'development', refs: [] }),
+    iconUrl: 'data:image/png;base64,current',
+  };
+  const state = capabilityApps(loaded([installed, development]), 'text.generate');
+  assert.deepEqual(state.apps, [installed], 'opening the App still targets the declaring installed release');
+  const markup = render(<RuntimeCapabilityAppsCard state={state} onOpen={() => {}} />);
+  assert.ok(markup.includes(`src="${development.iconUrl}"`));
+  assert.ok(!markup.includes(`src="${installed.iconUrl}"`));
 });
 
 test('the capability page places the Apps column beside the model list', () => {
@@ -154,7 +171,8 @@ test('the capability page places the Apps column beside the model list', () => {
           onSection={() => {}}
           busy={false}
           disabled={false}
-          navigationContext={null}          onStart={async () => {}}
+          navigationContext={null}
+          onStart={async () => {}}
           onEnable={async () => {}}
           onApplyCustomization={async () => {}}
           onTask={() => {}}

@@ -64,6 +64,7 @@ import { AppsInstallConfirmationDialog } from './apps-install-confirmation.js';
 import type { AppsInstallIntentSnapshot } from './apps-install-intent.js';
 import { useAppEntryMenu } from './apps-entry-menu.js';
 import {
+  appIconUrlsForEntries,
   filterAppGroups,
   filterAppGroupsByState,
   groupAppsEntries,
@@ -879,6 +880,8 @@ function AppsHomeBody({
     );
   }
 
+  const iconUrls = appIconUrlsForEntries(hideBlockedDiscoveryEntries(projection.entries));
+
   return (
     <div className="space-y-8 px-5 py-5 sm:px-7">
       {attentionEntries.length > 0 ? (
@@ -894,6 +897,7 @@ function AppsHomeBody({
               <AppListRow
                 key={group.appId}
                 entry={group.primary}
+                iconUrl={iconUrls.get(group.appId)}
                 showSourceBadge
                 presentation="attention"
                 activeAction={pendingActionForEntry(pendingActions, group.primary.identity.entryKey)}
@@ -903,7 +907,7 @@ function AppsHomeBody({
             ) : (
               <details key={group.appId} data-testid={`apps-attention-group:${group.appId}`} className="group/source min-w-0">
                 <summary className="flex min-h-[76px] cursor-pointer list-none items-center gap-4 rounded-2xl px-3 py-3 hover:bg-[var(--nimi-surface-active)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] [&::-webkit-details-marker]:hidden">
-                  <AppArtworkIcon appId={group.appId} displayName={group.displayName} iconUrl={group.primary.iconUrl} size="md" />
+                  <AppArtworkIcon appId={group.appId} displayName={group.displayName} iconUrl={iconUrls.get(group.appId)} size="md" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-semibold">{group.displayName}</span>
                     <span className="mt-1 block text-xs text-[var(--nimi-text-secondary)]">{t('Apps.home.attentionSources', { count: group.entries.length })}</span>
@@ -918,6 +922,7 @@ function AppsHomeBody({
                       </p> : null}
                       <AppListRow
                         entry={entry}
+                        iconUrl={iconUrls.get(entry.identity.appId)}
                         showSourceBadge
                         presentation="attention"
                         activeAction={pendingActionForEntry(pendingActions, entry.identity.entryKey)}
@@ -946,6 +951,7 @@ function AppsHomeBody({
               <AppListRow
                 key={entry.identity.entryKey}
                 entry={entry}
+                iconUrl={iconUrls.get(entry.identity.appId)}
                 showSourceBadge
                 presentation="update"
                 activeAction={pendingActionForEntry(pendingActions, entry.identity.entryKey)}
@@ -966,6 +972,7 @@ function AppsHomeBody({
             <AppListRow
               key={group.primary.identity.entryKey}
               entry={group.primary}
+              iconUrl={group.iconUrl}
               showSourceBadge={group.entries.length > 1}
               activeAction={pendingActionForEntry(pendingActions, group.primary.identity.entryKey)}
               actionsDisabled={appsActionsLocked(pendingActions, group.appId)}

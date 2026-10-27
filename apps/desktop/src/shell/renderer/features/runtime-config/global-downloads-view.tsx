@@ -10,6 +10,7 @@ import { useHomeDestination } from '../../app-shell/providers/app-store.js';
 import { useDesktopRendererCommands } from '../../renderer/binding-context.js';
 import { formatBytes } from '../../components/download-format.js';
 import { AppArtworkIcon } from '../apps/apps-card-visuals.js';
+import { appIconUrlsForEntries } from '../apps/apps-entry-groups.js';
 import { appPackageFailureReason } from '../apps/apps-card-fields.js';
 import { useAppsDownloads } from '../apps/apps-downloads-context.js';
 import { packageJobKey } from '../apps/apps-downloads-observer.js';
@@ -106,6 +107,7 @@ export function GlobalDownloadsView() {
   const apps = useAppsDownloads();
   const local = useRuntimeConfigLocalEnvironmentClient();
   const appInventory = useAppsOverview();
+  const appIconUrls = appIconUrlsForEntries(appInventory.data?.status === 'loaded' ? appInventory.data.entries : []);
   const appEntries = new Map(
     appInventory.data?.status === 'loaded'
       ? appInventory.data.entries.map((entry) => [entry.identity.appId, entry])
@@ -472,9 +474,10 @@ export function GlobalDownloadsView() {
             </Button>
           </header>
           {!appDetails ? (
-            <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 border-b border-[var(--nimi-border-subtle)] px-6">
+            <div className="flex shrink-0 flex-wrap items-center justify-between gap-x-4 px-6">
               <NimiTabs
                 ariaLabel={t('runtimeConfig.downloads.title')}
+                className="border-b-0"
                 value={lane}
                 onValueChange={(value) => setLane(value as DownloadsLane)}
                 items={lanes.map((value) => ({
@@ -566,7 +569,7 @@ export function GlobalDownloadsView() {
                     at={job.updatedAt ? new Date(Number(job.updatedAt.seconds) * 1000).toISOString() : undefined}
                     reason={stage === 'interrupted' ? t(interruptionReasonKey(failure ?? '')) : undefined}
                     technical={failure ?? undefined}
-                    leading={<AppArtworkIcon appId={job.appId} displayName={displayName} iconUrl={entry?.iconUrl ?? null} size="md" className="mt-0.5" />}
+                    leading={<AppArtworkIcon appId={job.appId} displayName={displayName} iconUrl={appIconUrls.get(job.appId)} size="md" className="mt-0.5" />}
                   >
                     <div className="flex flex-wrap gap-2">
                       {job.sourceClass === AppPackageSourceClass.VERIFIED &&

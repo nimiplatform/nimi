@@ -195,7 +195,7 @@ export function AppsPanel({
 
   return (
     <div data-testid="apps-panel" className="flex min-h-0 flex-1 flex-col">
-      <AppsLocalImportFeedback state={localImport} />
+      <AppsLocalImportFeedback state={localImport} entries={projection?.status === 'loaded' ? projection.entries : []} />
       <AppsPanelView
         downloadsOnly={downloadsOnly}
         downloads={downloads}
