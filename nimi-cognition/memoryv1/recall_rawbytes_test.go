@@ -20,7 +20,7 @@ func TestMemoryVectorDecodeConsumesReusedSQLRawBytesBeforeNext(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 	var priorAddress *byte
 	var reused bool
 	var scratch []float64
