@@ -42,6 +42,10 @@ function chunkName(id: string) {
   if (normalized.includes('/node_modules/fflate/')) {
     return 'vendor-fflate';
   }
+  if (normalized.includes('/node_modules/hls.js/')) {
+    // Video playback loads independently from the shared workbench UI.
+    return 'vendor-hls';
+  }
   if (isNimiSdk && normalized.includes('/dist/core-generated/runtime-protobuf/google/')) {
     return 'vendor-nimi-sdk-protobuf-google';
   }
