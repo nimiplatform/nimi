@@ -41,7 +41,7 @@ export function AuthViewEmailLogin(props: {
       <p className="mb-3 text-center text-sm text-[var(--nimi-text-muted)]">{email}</p>
 
       <form onSubmit={onSubmit}>
-        <div className={capsuleBar}>
+        <div className={`${capsuleBar} nimi-shell-auth-main-capsule`}>
           <button
             type="button"
             data-testid={testIds?.otpButton}

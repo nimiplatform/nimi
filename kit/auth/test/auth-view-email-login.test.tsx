@@ -33,6 +33,7 @@ describe('AuthViewEmailLogin password visibility', () => {
 
     const input = container.querySelector<HTMLInputElement>('[data-testid="pw-input"]');
     expect(input).toBeTruthy();
+    expect(input?.parentElement?.classList.contains('nimi-shell-auth-main-capsule')).toBe(true);
     expect(input?.type).toBe('password');
 
     const toggle = container.querySelector<HTMLButtonElement>('button[aria-pressed]');
