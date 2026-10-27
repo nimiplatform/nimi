@@ -17,7 +17,7 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		queryParameterKinds:    map[string]realmUnaryParameterKind{"take": realmUnaryParameterNumber, "visibility": realmUnaryParameterString},
 		requestBodyAllowed:     false,
 		requestBodyRequired:    false,
-		responseMaxBytes:       1048576,
+		responseMaxBytes:       33554432,
 		mediaUpload:            false,
 	},
 	"WorldCoreController_createWorldCore": {

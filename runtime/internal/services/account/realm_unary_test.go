@@ -5,10 +5,35 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
+
+func TestWorldListResponseBudgetPreservesLargePagesAndStillRejectsOverflow(t *testing.T) {
+	body := `[{"id":"world-1","core":{"narrative":{"setting":"` + strings.Repeat("x", 2*1024*1024) + `"}}}]`
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+		_, _ = w.Write([]byte(body))
+	}))
+	defer server.Close()
+	svc := &Service{}
+	list := realmBrokerOperations["WorldCoreController_listWorldCores"]
+	result := svc.doRealmUnaryHTTP(context.Background(), server.Client(), server.URL, list, realmUnaryRequestJSON{}, "test-access")
+	if result.failure != nil || result.err != nil || string(result.body) != body {
+		t.Fatal("complete world page was rejected or truncated")
+	}
+	single := realmBrokerOperations["WorldCoreController_getWorldCore"]
+	result = svc.doRealmUnaryHTTP(context.Background(), server.Client(), server.URL, single, realmUnaryRequestJSON{}, "test-access")
+	if result.failure == nil || result.failure.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE {
+		t.Fatal("single-world response budget was widened")
+	}
+	body = strings.Repeat("x", int(list.responseMaxBytes)+1)
+	result = svc.doRealmUnaryHTTP(context.Background(), server.Client(), server.URL, list, realmUnaryRequestJSON{}, "test-access")
+	if result.failure == nil || result.failure.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE {
+		t.Fatal("oversized world list was accepted")
+	}
+}
 
 func TestRealmBrokerOperationSetContainsExactDesktopProductVocabulary(t *testing.T) {
 	expectedSourceReadiness := map[string]struct {

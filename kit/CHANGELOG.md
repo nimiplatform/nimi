@@ -2,6 +2,14 @@
 
 # Changelog
 
+## 0.22.1 — 2026-10-27
+
+Fix protected `realm.worldCore.list` responses larger than 1 MiB by carrying
+complete bounded pages up to the existing 32 MiB Runtime message payload
+limit. Single-object and Persona response limits are unchanged. Use SDK
+0.22.1, matching Kit/native 0.22.1, protected-local 0.11.2 and Tauri 0.11.1,
+and rebuild Runtime with the matching operation policy. No response is truncated.
+
 ## 0.22.0 — 2026-10-27
 
 Use with SDK 0.22.0, the matching Kit 0.22.0 native npm package, and Rust

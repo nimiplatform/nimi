@@ -203,6 +203,7 @@ policy_templates:
 operations:
   - <<: *local_app_world_core
     operation_id: WorldCoreController_listWorldCores
+    response_max_bytes: 33554432
     authority_ref: .nimi/spec/sdks/realm-consumer.authority.yaml#rule.nimi.sdks.realm-consumer.r011
     http_method: GET
     path_template: /api/realm/core/worlds

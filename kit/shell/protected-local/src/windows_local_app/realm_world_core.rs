@@ -369,19 +369,26 @@ async fn invoke_exact(
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
-    project_response(response)
+    project_response(method_id, response)
 }
 
+// @nimi-authority: rule.nimi.platform.core-protocol.world-creator-app-operations
 fn project_response(
+    method_id: &str,
     response: InvokeRealmUnaryResponse,
 ) -> Result<JsonValue, LocalAppOperationError> {
+    let response_limit = if method_id == LIST_WORLD_CORES_METHOD_ID {
+        crate::grpc_limits::RUNTIME_MAX_INLINE_PAYLOAD_BYTES
+    } else {
+        MAX_RESPONSE_JSON_BYTES
+    };
     if response.accepted {
         if response.reason_code != ACTION_EXECUTED
             || response.account_reason_code != ACTION_EXECUTED
             || response.production_inert
             || !(200..300).contains(&response.http_status)
             || !response.error_message.is_empty()
-            || response.response_json.len() > MAX_RESPONSE_JSON_BYTES
+            || response.response_json.len() > response_limit
         {
             return Err(untrusted());
         }
@@ -418,6 +425,32 @@ mod tests {
     use super::*;
 
     #[test]
+    fn world_lists_preserve_complete_large_pages_without_widening_single_object_reads() {
+        let body = json!([{ "id": "world-1", "core": { "narrative": { "setting": "x".repeat(2 * 1024 * 1024) } } }]).to_string();
+        let response = InvokeRealmUnaryResponse {
+            accepted: true,
+            response_json: body,
+            reason_code: ACTION_EXECUTED,
+            account_reason_code: ACTION_EXECUTED,
+            http_status: 200,
+            ..Default::default()
+        };
+        let listed = project_response(LIST_WORLD_CORES_METHOD_ID, response.clone()).unwrap();
+        assert_eq!(listed[0]["core"]["narrative"]["setting"].as_str().unwrap().len(), 2 * 1024 * 1024);
+        assert!(project_response("WorldCoreController_getWorldCore", response).is_err());
+
+        let oversized = InvokeRealmUnaryResponse {
+            accepted: true,
+            response_json: serde_json::to_string(&"x".repeat(crate::grpc_limits::RUNTIME_MAX_INLINE_PAYLOAD_BYTES)).unwrap(),
+            reason_code: ACTION_EXECUTED,
+            account_reason_code: ACTION_EXECUTED,
+            http_status: 200,
+            ..Default::default()
+        };
+        assert!(project_response(LIST_WORLD_CORES_METHOD_ID, oversized).is_err());
+    }
+
+    #[test]
     fn world_creator_failures_preserve_realm_semantics() {
         use crate::generated::{AccountReasonCode, ReasonCode};
         for (code, account_code, http_status, expected, retryable) in [
@@ -450,7 +483,7 @@ mod tests {
                 false,
             ),
         ] {
-            let error = project_response(InvokeRealmUnaryResponse {
+            let error = project_response(LIST_WORLD_CORES_METHOD_ID, InvokeRealmUnaryResponse {
                 accepted: false,
                 reason_code: code as i32,
                 account_reason_code: account_code as i32,
@@ -465,7 +498,7 @@ mod tests {
 
     #[test]
     fn exact_world_core_response_projection_is_closed() {
-        let list = project_response(InvokeRealmUnaryResponse {
+        let list = project_response(LIST_WORLD_CORES_METHOD_ID, InvokeRealmUnaryResponse {
             accepted: true,
             response_json: "[{\"id\":\"world-1\"}]".to_string(),
             reason_code: ACTION_EXECUTED,
@@ -477,7 +510,7 @@ mod tests {
         .expect("valid list response");
         assert!(list.is_array());
 
-        let failure = project_response(InvokeRealmUnaryResponse {
+        let failure = project_response(LIST_WORLD_CORES_METHOD_ID, InvokeRealmUnaryResponse {
             accepted: false,
             response_json: String::new(),
             reason_code: 662,
