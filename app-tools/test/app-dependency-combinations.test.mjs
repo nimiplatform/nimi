@@ -37,3 +37,13 @@ test('Kit 0.20 defaults preserve existing production Apps until an explicit mino
   assert.equal(resolveDependencyCombination(app('^0.21.0','^0.18.1'),current).kitVersion,'^0.18.1');
   assert.throws(()=>resolveDependencyCombination(app('^0.20.0','^0.20.0'),current),/Unsupported SDK\/Kit combination/);
 });
+
+test('0.22 defaults retain the published 0.21 pair and reject a partial upgrade', () => {
+  const current = { sdkVersion: '^0.22.0', kitVersion: '^0.22.0', nimiShellTauriVersion: '0.11.0' };
+  assert.equal(resolveDependencyCombination({}, current).kitVersion, '^0.22.0');
+  assert.deepEqual(resolveDependencyCombination(app('^0.21.0', '^0.21.0'), current), {
+    sdkVersion: '^0.21.0', kitVersion: '^0.21.0', nimiShellTauriVersion: '0.10.0', source: 'existing',
+  });
+  assert.throws(() => resolveDependencyCombination(app('^0.22.0', '^0.21.0'), current), /Unsupported SDK\/Kit combination/);
+  assert.throws(() => resolveDependencyCombination(app('^0.21.0', '^0.22.0'), current), /Unsupported SDK\/Kit combination/);
+});

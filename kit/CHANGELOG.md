@@ -2,6 +2,15 @@
 
 # Changelog
 
+## 0.22.0 — 2026-10-27
+
+Use with SDK 0.22.0, the matching Kit 0.22.0 native npm package, and Rust
+carriers 0.11.0. This breaking 0.x minor includes the development changes
+recorded below: canonical Conversation quotations and playback, Realm media
+delivery, Desktop Open v2, Agent Center controls and Home product lifecycle.
+Update custom carriers and rebuild against the matching Runtime source.
+This component release does not publish a Nimi installer or any App.
+
 ## Unreleased — Home product lifecycle (breaking 0.x minor)
 
 Production Home starts the fixed Runtime on demand and its native lifecycle host adds `stop()`, which resolves only after process termination is observed. Native `NimiDesktopControl` implementations must implement `request_runtime_service_stop`; use matching Runtime and carrier builds with `RequestRuntimeStop`. This host-only operation is not a renderer command or App capability. Explicit product quit closes supervised Apps before Runtime; the terminal-owned D2 development topology remains separate. Rebuild the native carrier and packaged Home together. No package publication is implied.

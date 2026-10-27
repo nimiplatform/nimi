@@ -1,5 +1,12 @@
 # Platform upgrade
 
+App Tools 0.14 defaults to SDK/Kit/native 0.22.0 and the 0.11.0 Rust
+carriers. Upgrade this combination together with a matching Runtime. Existing
+0.21 SDK/Kit combinations remain explicit selections; sync does not upgrade
+business dependencies. Every App must own a root `NIMI_APP.md`; remove the
+retired `metadata.readme` field. Review the SDK and Kit 0.22 migration notes
+for Realm media delivery, Desktop Open v2 and LocalAgent Conversation changes.
+
 Fresh App Tools 0.13 scaffolds require Kit `^0.21.0` or a later admitted pair
 with the standard navigation contract. The combination list also contains
 existing-adoption pairs; those do not permit older Kit in a new scaffold.

@@ -775,9 +775,6 @@ importers:
 
   kit:
     dependencies:
-      hls.js:
-        specifier: 1.7.3
-        version: 1.7.3
       '@grpc/grpc-js':
         specifier: 1.14.6
         version: 1.14.6
@@ -823,6 +820,9 @@ importers:
       electron:
         specifier: ^45.0.0
         version: 45.0.0
+      hls.js:
+        specifier: 1.7.3
+        version: 1.7.3
       lucide-react:
         specifier: 1.61.0
         version: 1.61.0(@types/react@19.3.0)(react@19.3.1)

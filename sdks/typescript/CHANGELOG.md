@@ -2,6 +2,16 @@
 
 # SDK migration notes
 
+## 0.22.0 — 2026-10-27
+
+Use with Kit/native 0.22.0 and Rust carriers 0.11.0 against the matching
+Runtime source. This breaking 0.x minor includes the development changes
+recorded below: Realm media delivery and launch surfaces, Desktop Open v2,
+canonical Conversation quotations, recovery and context controls, LocalAgent
+life projections and Home AI observation. Update injected shells together;
+there is no old-carrier fallback. This component release does not publish a
+Runtime installer or any App.
+
 ## Unreleased — Worlds and My partners (0.x minor)
 
 Desktop Open envelopes require schema version 2 and an explicit Explore `productIntent`: `worlds` supports `discover-worlds` or `discover-characters`; `partners` supports `select-partner`. Version 1 and the retired Persona section reject. Upgrade SDK, Kit and native carriers together. The Realm World Public facade adds `worldPublicControllerListCharacterCatalog` for the server-paginated union of public Persona and World Character sources; rebuild Runtime with the matching broker policy. No package publication is implied.

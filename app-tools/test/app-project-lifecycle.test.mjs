@@ -1583,6 +1583,7 @@ test('an old managed scaffold refuses partial upgrades before writes and require
     const beforeOwnerCalls = ownerCalls;
     for (const [kit, tools] of [['^0.20.0','^0.12.3'], ['^0.20.0',versions.appToolsVersion], [versions.kitVersion,'^0.12.3'], [versions.kitVersion,versions.appToolsVersion]]) {
       const selected = structuredClone(currentPackage); selected.dependencies['@nimiplatform/kit'] = kit; selected.devDependencies['@nimiplatform/app-tools'] = tools;
+      if (kit === '^0.20.0') selected.dependencies['@nimiplatform/sdk'] = '^0.21.0';
       writeFileSync(packagePath, JSON.stringify(selected,null,2)+'\n');
       const before = snapshotTree(temp);
       for (const operation of [() => syncAppProject(temp,{dryRun:true,json:true},versions,runners), () => syncAppProject(temp,{json:true},versions,runners), () => checkAppProject(temp,{json:true},versions,runners)]) {
