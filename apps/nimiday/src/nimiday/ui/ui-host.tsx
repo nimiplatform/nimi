@@ -25,11 +25,12 @@ import { ItemEditor } from './item-editor.js';
 import { ItemRow } from './item-row.js';
 import { ParentOSChildren } from './parentos-children.js';
 import { RunCard } from './run-card.js';
-import { UiContext, useUi, type NoteTarget, type UiApi } from './ui-context.js';
+import { UiContext, useUi, type NewItemOptions, type NoteTarget, type UiApi } from './ui-context.js';
 import type { FollowUpDraft } from './followup-draft.js';
+import type { ItemComposerState } from './item-composer-state.js';
 
 type Overlay =
-  | { readonly kind: 'item'; readonly itemId: string | null; readonly draft?: Partial<ItemDraft> }
+  | { readonly kind: 'item'; readonly itemId: string | null; readonly draft?: Partial<ItemDraft>; readonly draftKey?: string; readonly onCreated?: NewItemOptions['onCreated'] }
   | { readonly kind: 'run'; readonly runId: string }
   | { readonly kind: 'circle'; readonly circleId: string | null }
   | { readonly kind: 'note'; readonly target: NoteTarget }
@@ -39,11 +40,15 @@ export function UiHost({ children }: { readonly children: ReactNode }) {
   const [overlay, setOverlay] = useState<Overlay | null>(null);
   // UI-session only: navigation keeps the draft; a new App/session starts clean.
   const followUpDraft = useRef<FollowUpDraft | null>(null);
+  // Different source arrangements keep their own draft; all Items-page filters
+  // use one stable key. Nothing is carried into a new App or account session.
+  const itemDrafts = useRef(new Map<string, ItemComposerState>());
   const close = () => setOverlay(null);
   const api = useMemo<UiApi>(() => ({
     followUpDraft,
     openItem: (itemId) => setOverlay({ kind: 'item', itemId }),
-    newItem: (draft) => setOverlay({ kind: 'item', itemId: null, draft }),
+    newItem: (draft, options) => setOverlay({ kind: 'item', itemId: null, draft,
+      draftKey: options?.draftKey ?? JSON.stringify(draft ?? {}), onCreated: options?.onCreated }),
     openRun: (runId) => setOverlay({ kind: 'run', runId }),
     editCircle: (circleId) => setOverlay({ kind: 'circle', circleId }),
     editNote: (target) => setOverlay({ kind: 'note', target }),
@@ -53,7 +58,13 @@ export function UiHost({ children }: { readonly children: ReactNode }) {
   return (
     <UiContext.Provider value={api}>
       {children}
-      {overlay?.kind === 'item' ? <ItemEditor key={overlay.itemId ?? 'new'} itemId={overlay.itemId} draft={overlay.draft} onClose={close} /> : null}
+      {overlay?.kind === 'item' ? <ItemEditor key={overlay.itemId ?? overlay.draftKey} itemId={overlay.itemId} draft={overlay.draft} onClose={close}
+        savedDraft={overlay.draftKey ? itemDrafts.current.get(overlay.draftKey) : undefined}
+        onDraftChange={value => {
+          if (!overlay.draftKey) return;
+          if (value) itemDrafts.current.set(overlay.draftKey, value);
+          else itemDrafts.current.delete(overlay.draftKey);
+        }} onCreated={overlay.onCreated} /> : null}
       {overlay?.kind === 'run' ? <RunDetail runId={overlay.runId} onClose={close} /> : null}
       {overlay?.kind === 'circle' ? <CircleEditor circleId={overlay.circleId} onClose={close} /> : null}
       {overlay?.kind === 'note' ? <NoteEditor target={overlay.target} onClose={close} /> : null}

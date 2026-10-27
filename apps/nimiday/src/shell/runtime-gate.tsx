@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { CalendarHeart, LoaderCircle, RefreshCw, ShieldAlert, Unplug } from 'lucide-react';
+import { LoaderCircle, RefreshCw, ShieldAlert, Unplug } from 'lucide-react';
 import { Button, Surface } from '@nimiplatform/kit/ui';
+import appIconUrl from '../../assets/app-icon.png';
 import type { Copy } from '../nimiday/i18n/index.js';
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-019c
@@ -92,7 +93,7 @@ export function RuntimeGate({ appTitle, copy, resolve, clear, toError, children 
     <main className="runtime-unavailable-screen" aria-labelledby="runtime-title">
       <Surface className="runtime-unavailable-panel" material="glass-thick" tone="panel" elevation="floating">
         <div className="runtime-brand">
-          <span className="nd-brand-mark"><CalendarHeart size={18} aria-hidden="true" /></span>
+          <img className="nd-brand-mark nd-brand-mark--image" src={appIconUrl} alt="" />
           <span>{appTitle}</span>
         </div>
         <div className="runtime-status" aria-live="polite" aria-atomic="true" aria-busy={checking}>

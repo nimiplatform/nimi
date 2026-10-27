@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button, ConfirmDialog, InlineAlert, SegmentedControl, Surface, Toggle } from '@nimiplatform/kit/ui';
-import { Bell, Blocks, Bot, Check, CircleAlert, Info, LoaderCircle, Settings2, type LucideIcon } from 'lucide-react';
+import { Check, CircleAlert, Info, LoaderCircle } from 'lucide-react';
 import { toLocalDate } from '../domain/time.js';
 import type { LanguagePreference, ThemePreference } from '../domain/types.js';
 import { formatInstant } from '../i18n/index.js';
@@ -29,11 +29,11 @@ export function SettingsPage() {
   const [confirmDismiss, setConfirmDismiss] = useState(false);
   const profile = state.profile;
   const today = toLocalDate(now);
-  const tabs: { id: SettingsSection; label: string; icon: LucideIcon }[] = [
-    { id: 'reminders', label: copy.settings.reminders, icon: Bell },
-    { id: 'sources', label: copy.settings.sourceTab, icon: Blocks },
-    { id: 'agent', label: copy.settings.agent, icon: Bot },
-    { id: 'general', label: copy.settings.general, icon: Settings2 },
+  const tabs: { id: SettingsSection; label: string }[] = [
+    { id: 'reminders', label: copy.settings.reminders },
+    { id: 'sources', label: copy.settings.sourceTab },
+    { id: 'agent', label: copy.settings.agent },
+    { id: 'general', label: copy.settings.general },
   ];
   const selectSection = (next: SettingsSection) => {
     setSection(next);
@@ -61,13 +61,12 @@ export function SettingsPage() {
       </header>
       <div className="nd-settings-tabs" role="tablist" aria-label={copy.settings.title}>
         {tabs.map((tab, index) => {
-          const TabIcon = tab.icon;
           return <button key={tab.id} type="button" role="tab" id={`nd-settings-tab-${tab.id}`} className="nd-settings-tab"
             aria-selected={section === tab.id} aria-controls={`nd-settings-panel-${tab.id}`} tabIndex={section === tab.id ? 0 : -1}
             onClick={() => selectSection(tab.id)} onKeyDown={event => {
               const next = event.key === 'ArrowRight' ? (index + 1) % tabs.length : event.key === 'ArrowLeft' ? (index + tabs.length - 1) % tabs.length : event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1 : null;
               if (next !== null) { event.preventDefault(); selectSection(tabs[next]!.id); document.getElementById(`nd-settings-tab-${tabs[next]!.id}`)?.focus(); }
-            }}><TabIcon size={15} strokeWidth={2} aria-hidden="true" />{tab.label}</button>;
+            }}>{tab.label}</button>;
         })}
       </div>
 

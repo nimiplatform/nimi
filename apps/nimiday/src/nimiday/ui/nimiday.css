@@ -842,12 +842,6 @@
   width: 100%;
 }
 
-/* Item editor: the title carries the item, so it reads slightly larger. */
-.nd-item-editor-title {
-  font-size: 15px;
-  font-weight: 600;
-}
-
 /* Share label and control rows so the all-day toggle cannot offset the time field. */
 .nd-field-row.nd-item-editor-schedule {
   row-gap: 6px;

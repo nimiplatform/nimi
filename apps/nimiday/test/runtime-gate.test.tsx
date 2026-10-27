@@ -29,6 +29,7 @@ it('checks again, prevents duplicate requests, retains the latest refusal, and o
   try {
     await act(async () => { render('zh'); });
     expect(container.textContent).toContain('正在连接 Nimi');
+    expect(container.querySelector('.runtime-brand img')?.getAttribute('src')).toContain('app-icon');
     expect(container.querySelector('button')!.disabled).toBe(true);
     expect(mounted).not.toHaveBeenCalled();
     // The carrier can mark a new status check retryable while trust is still refused.

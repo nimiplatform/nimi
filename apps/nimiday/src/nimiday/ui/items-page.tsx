@@ -8,7 +8,6 @@ import { formatDate } from '../i18n/index.js';
 import { useCopy, useDayStore, useEngine, useNimiDay } from '../app/context.js';
 import { PageHead } from './common.js';
 import { ItemRow } from './item-row.js';
-import { QuickCapture } from './quick-capture.js';
 import { useUi } from './ui-context.js';
 import { completedItemEntries, matchesItemSearch, pendingItemGroups } from './item-list-model.js';
 import './items-page.css';
@@ -21,6 +20,7 @@ function ItemGroup({ title, count, danger, children, newItemId }: { title: strin
   const [page, setPage] = useState(0);
   const heading = useRef<HTMLElement>(null);
   const revealedItem = useRef<string | null>(null);
+  const focusedItem = useRef<string | null>(null);
   const rows = Children.toArray(children);
   const newIndex = rows.findIndex(row => isValidElement<{ item?: LifeItem }>(row) && row.props.item?.id === newItemId);
   useEffect(() => {
@@ -31,6 +31,18 @@ function ItemGroup({ title, count, danger, children, newItemId }: { title: strin
   }, [newItemId, newIndex]);
   const current = Math.min(page, Math.max(0, Math.ceil(rows.length / 40) - 1));
   const start = current * 40;
+  useEffect(() => {
+    if (!newItemId || focusedItem.current === newItemId || !open || newIndex < start || newIndex >= start + 40) return;
+    const frame = requestAnimationFrame(() => {
+      const group = heading.current?.closest('details');
+      const row = Array.from(group?.querySelectorAll<HTMLElement>('[data-item-id]') ?? []).find(element => element.dataset.itemId === newItemId);
+      if (!row) return;
+      focusedItem.current = newItemId;
+      row?.querySelector<HTMLButtonElement>('.nd-row-body > button')?.focus({ preventScroll: true });
+      row?.scrollIntoView({ block: 'nearest' });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [newItemId, newIndex, open, start]);
   const changePage = (next: number) => {
     setPage(next);
     heading.current?.focus({ preventScroll: true });
@@ -106,7 +118,9 @@ export function ItemsPage({ focusItemId }: { readonly focusItemId?: string }) {
         <TextField type="search" aria-label={copy.items.search} placeholder={copy.items.searchShort} value={query}
           leading={<Search size={15} aria-hidden="true" />} onChange={event => setQuery(event.target.value)}
           onKeyDown={event => { if (event.key === 'Escape') setQuery(''); }} />
-        <Button tone="primary" size="sm" leadingIcon={<Plus size={15} aria-hidden="true" />} onClick={() => { switchTab('upcoming'); ui.newItem({ date: today, circleId: circleFilter === 'all' || circleFilter === 'none' ? null : circleFilter }); }}>{copy.item.new}</Button>
+        <Button tone="primary" size="sm" leadingIcon={<Plus size={15} aria-hidden="true" />} onClick={() => {
+          ui.newItem(circleFilter === 'all' ? undefined : { circleId: circleFilter === 'none' ? null : circleFilter }, { draftKey: 'items', onCreated: created });
+        }}>{copy.capture.new}</Button>
       </div>} />
     <div className="nd-items-workspace">
       <div className="nd-items-toolbar">
@@ -118,7 +132,6 @@ export function ItemsPage({ focusItemId }: { readonly focusItemId?: string }) {
         <div className="nd-items-person"><SelectField aria-label={copy.items.filterCircle} value={circleFilter} onValueChange={setCircleFilter}
           options={[{ value: 'all', label: copy.items.allCircles }, ...circles.map(circle => ({ value: circle.id, label: circle.status === 'ended' ? circle.name + ' · ' + copy.care.endedTag : circle.name })), { value: 'none', label: copy.common.unassigned }]} /></div>
       </div>
-      <div className="nd-items-capture"><QuickCapture circleId={circleFilter !== 'all' && circleFilter !== 'none' ? circleFilter : null} onCreated={created} /></div>
       {!searching && tab === 'upcoming' && previewCount > 0 ? <div className="nd-items-preview-control">
         <button type="button" className="nd-link" aria-pressed={showPreviews} onClick={() => setShowPreviews(value => !value)}>{showPreviews ? copy.items.hidePreviews : copy.items.showPreviews(previewCount)}</button>
       </div> : null}

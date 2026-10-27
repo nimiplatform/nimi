@@ -40,7 +40,6 @@
 .nd-settings-tab {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
   margin-bottom: -1px;
   padding: 11px 14px;
   border: 0;
@@ -53,10 +52,8 @@
   white-space: nowrap;
   transition: color var(--nimi-motion-fast) var(--nimi-motion-ease-standard), border-color var(--nimi-motion-fast) var(--nimi-motion-ease-standard);
 }
-.nd-settings-tab > svg { opacity: .7; flex-shrink: 0; }
 .nd-settings-tab:hover { color: var(--nimi-text-primary); }
 .nd-settings-tab[aria-selected="true"] { color: var(--nimi-text-primary); font-weight: 600; border-bottom-color: var(--nimi-action-primary-bg); }
-.nd-settings-tab[aria-selected="true"] > svg { opacity: 1; color: var(--nimi-action-primary-bg); }
 .nd-settings-tab:focus-visible, .nd-settings-page summary:focus-visible { outline: var(--nimi-focus-ring-width) solid var(--nimi-focus-ring-color); outline-offset: 4px; }
 
 .nd-settings-panel[hidden] { display: none; }

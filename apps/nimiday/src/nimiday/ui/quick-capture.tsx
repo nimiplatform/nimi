@@ -84,8 +84,7 @@ export function QuickCapture({ circleId = null, onCreated }: { readonly circleId
                 date: parsed.date,
                 time: parsed.time,
                 repeat: parsed.repeat,
-              });
-              setText('');
+              }, { onCreated: item => { setText(''); onCreated?.(item); } });
             }}
           >
             {copy.capture.more}
