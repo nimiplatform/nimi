@@ -5,13 +5,16 @@ import { createRequire } from 'node:module';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import test from 'node:test';
-import { build } from 'esbuild';
+import { build, stop } from 'esbuild';
 const root=path.resolve(import.meta.dirname,'..');const {JSDOM}=createRequire(path.resolve(root,'../../kit/package.json'))('jsdom');
 const dom=new JSDOM('<div id="root"></div>',{url:'http://localhost/'});for(const k of ['window','document','HTMLElement','Element','Node'])globalThis[k]=dom.window[k];
 globalThis.IS_REACT_ACT_ENVIRONMENT=true;
 const{createElement,act,useLayoutEffect}=await import('react');const{createRoot}=await import('react-dom/client');
 mkdirSync(path.join(root,'.tmp'),{recursive:true});const dir=mkdtempSync(path.join(root,'.tmp','music-source-'));
 await build({stdin:{contents:"export { MusicTranscriptionNotice } from './src/ai-studio-core/section-ai-testing-transcription-result.tsx';export { AIStudioHostProvider } from './src/ai-studio-core/host-context.tsx';",resolveDir:root,loader:'ts'},outfile:path.join(dir,'view.mjs'),bundle:true,packages:'external',platform:'node',format:'esm',jsx:'automatic',logLevel:'silent',plugins:[{name:'owned-media-test',setup(b){b.onResolve({filter:/section-ai-testing-output\.js$/},()=>({path:'preview',namespace:'test'}));b.onLoad({filter:/.*/,namespace:'test'},()=>({contents:'export function ArtifactMediaResult(){return null}',loader:'js'}));}}]});
+// Retire the build service before global decoder observation: its heartbeat
+// also decodes UTF-8 and is unrelated to the owned asset reader under test.
+stop();
 const{MusicTranscriptionNotice,AIStudioHostProvider}=await import(pathToFileURL(path.join(dir,'view.mjs')).href);
 test.after(async()=>{dom.window.close();await rm(dir,{recursive:true,force:true})});
 const button=key=>[...document.querySelectorAll('button')].find(x=>x.textContent===key);
