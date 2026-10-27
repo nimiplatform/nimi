@@ -14,7 +14,8 @@ test('detail identity retains its owning column when history changes', async () 
   assert.equal(homeNavigationColumn(store.navigation.getSnapshot().current.destination), 'downloads');
   await store.navigation.back();
   assert.equal(homeNavigationColumn(store.navigation.getSnapshot().current.destination), 'explore');
-  assert.equal(homeNavigationColumn(validateHomeDestination({ id: 'privacy-policy' })), 'settings');
+  assert.equal(homeNavigationColumn(validateHomeDestination({ id: 'settings', settingsSection: 'privacy' })), 'settings');
+  assert.throws(() => validateHomeDestination({ id: 'privacy-policy' }), /Unknown Home destination/);
   store.navigation.dispose();
 });
 

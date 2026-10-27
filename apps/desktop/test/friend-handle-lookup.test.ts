@@ -28,9 +28,11 @@ test('friend requests preserve denial/offline failures and reject unconfirmed ou
   await assert.rejects(requestFriendByHandle(callApi, 'alice'), /invalid friend request outcome/);
 });
 
-test('launch navigation retains source catalogs and rejects deferred feed destinations', () => {
+test('launch navigation retains Worlds and partners while rejecting retired catalogs and deferred feeds', () => {
   assert.equal(validateHomeDestination({ id: 'explore', exploreSection: 'worlds' }).exploreSection, 'worlds');
-  assert.equal(validateHomeDestination({ id: 'explore', exploreSection: 'personas' }).exploreSection, 'personas');
+  assert.equal(validateHomeDestination({ id: 'explore', exploreSection: 'partners' }).exploreSection, 'partners');
+  assert.equal(validateHomeDestination({ id: 'explore', exploreSection: 'worlds', exploreSearchKind: 'characters' }).exploreSearchKind, 'characters');
+  assert.throws(() => validateHomeDestination({ id: 'explore', exploreSection: 'personas' }), /Invalid Home exploreSection/);
   assert.throws(() => validateHomeDestination({ id: 'activity' }), /Unknown Home destination/);
   assert.throws(() => validateHomeDestination({ id: 'explore', exploreSection: 'activity' }), /Invalid Home exploreSection/);
 });

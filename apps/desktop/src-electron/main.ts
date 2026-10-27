@@ -1241,7 +1241,7 @@ function prepareDesktopQuit(): Promise<void> {
   return quitCleanup;
 }
 
-async function recoverDesktopAfterFailedQuit(_error: unknown): Promise<void> {
+async function recoverDesktopAfterFailedQuit(): Promise<void> {
   ownerQuitRequested = false;
   homeRelaunchRequested = false;
   maintenanceRelaunchRequested = false;

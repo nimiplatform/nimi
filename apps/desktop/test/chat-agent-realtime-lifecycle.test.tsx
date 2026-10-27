@@ -47,7 +47,9 @@ function installDevices() {
 
 function silentSubscription() {
   const done = deferred<void>();
-  return { cancel: async () => done.resolve(), async *[Symbol.asyncIterator]() { await done.promise; } };
+  return { cancel: async () => done.resolve(), [Symbol.asyncIterator]() {
+    return { async next() { await done.promise; return { done: true as const, value: undefined }; } };
+  } };
 }
 const callbacks = () => ({ onAmplitude() {}, onTranscript() {}, onOutputActive() {}, onClosed() {}, onError() {} });
 const flush = async () => { for (let n = 0; n < 5; n++) await new Promise(resolve => setImmediate(resolve)); };

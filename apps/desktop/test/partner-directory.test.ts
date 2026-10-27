@@ -25,7 +25,7 @@ test('partner membership depends on owner inventory, not optional source readine
 
 test('the management read uses the protected all-lifecycle owner page without app conversations', async () => {
   let seen: unknown;
-  const sdk = { withRuntimeProtectedScopes: async (scopes: string[], call: (options: {}) => unknown) => {
+  const sdk = { withRuntimeProtectedScopes: async (scopes: string[], call: (options: object) => unknown) => {
     assert.deepEqual(scopes, ['runtime.agent.read']); return call({});
   }, accountProduct: () => ({ agents: { listAgents: async (request: unknown) => { seen = request; return { agents: [record(), record(AgentLifecycleStatus.SUSPENDED)], nextPageToken: 'next' }; } } }) } as unknown as DesktopRendererSdkPort;
   const page = await readPartnerDirectoryPage(sdk, 'account-a');
@@ -46,7 +46,7 @@ test('only explicit chat opens the exact revalidated partner and a stale or paus
   let current = true;
   let ownerRecord = record();
   const sdk = {
-    withRuntimeProtectedScopes: async (_scopes: unknown, call: (options: {}) => unknown) => call({}),
+    withRuntimeProtectedScopes: async (_scopes: unknown, call: (options: object) => unknown) => call({}),
     accountProduct: () => ({ agents: { getAgent: async ({ agentId }: { agentId: string }) => { calls.push(agentId); return { agent: ownerRecord }; } } }),
     resolveDesktopAgentReference: async ({ localAgentRef }: { localAgentRef: string }) => { calls.push('resolve:' + localAgentRef); return { reference: { agentHandle: 'handle-a', displayName: 'Same name' } }; },
     conversation: () => ({ open: async ({ agentHandle }: { agentHandle: string }) => { calls.push('open:' + agentHandle); return { conversationAnchorId: 'anchor-a' }; } }),

@@ -8,7 +8,6 @@ import {
   parseSystemEntryProjection,
   type SystemEntryAction,
   type SystemEntryActionContext,
-  type SystemEntryActionRequest,
   type SystemEntryAdmission,
   type SystemEntryContext,
   type SystemEntryLocale,
@@ -183,8 +182,8 @@ export function createDesktopSystemEntryHost(input: CreateDesktopSystemEntryHost
     } catch (error) {
       // Teardown may remove the account observer while this read is pending.
       // Its result belongs to the stopped observation, not a new Runtime fault.
-      if (observationStopped) throw new Error('system-entry-observation-stopped');
-      if (disposed || capturedInvalidation !== invalidation) throw new Error('system-entry-view-stale');
+      if (observationStopped) throw new Error('system-entry-observation-stopped', { cause: error });
+      if (disposed || capturedInvalidation !== invalidation) throw new Error('system-entry-view-stale', { cause: error });
       if (request < settledAdmissionRequest) return admission;
       if (!disposed && capturedInvalidation === invalidation) {
         settledAdmissionRequest = request;

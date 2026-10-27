@@ -26,7 +26,9 @@ test('Home evicts revoked projection and media, then restores only from a new su
   const conversation = {
     subscribe: async () => {
       subscriptions++; let stop!: () => void; const stopped = new Promise<void>(resolve => { stop = resolve; });
-      return { cancel: async () => { cancellations++; stop(); }, async *[Symbol.asyncIterator]() { await stopped; } };
+      return { cancel: async () => { cancellations++; stop(); }, [Symbol.asyncIterator]() {
+        return { async next() { await stopped; return { done: true as const, value: undefined }; } };
+      } };
     },
     snapshot: () => ++reads === 1 ? Promise.resolve(snapshot('private old body')) : new Promise(resolve => { releaseFresh = resolve; }),
     readArtifact: () => new Promise(resolve => { releaseArtifact = resolve; }),

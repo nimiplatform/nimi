@@ -112,7 +112,7 @@ test('world character hero shows no era badge guessed from the archetype, no bot
   }
 });
 
-test('world character hero shows chat instead of join after the character is already in my roles', async () => {
+test('world character hero opens the existing partner without implying immediate chat or new materialization', async () => {
   await changeLocale('zh');
   try {
     const source = toSourceDetailData({
@@ -141,10 +141,9 @@ test('world character hero shows chat instead of join after the character is alr
       }),
     );
 
-    assert.match(markup, /立即对话/);
+    assert.doesNotMatch(markup, /立即对话/);
     assert.doesNotMatch(markup, /添加为伙伴/);
-    assert.doesNotMatch(markup, /打开伙伴/);
-    assert.doesNotMatch(markup, /data-primary-action="open_partner"/);
+    assert.match(markup, /打开伙伴/);
   } finally {
     await changeLocale('en');
   }

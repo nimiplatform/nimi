@@ -10,7 +10,7 @@ import { isDownloadTerminal } from '../runtime-config/runtime-config-model-cente
 
 export const emptySystemEntrySection = (status: 'loading' | 'unavailable' = 'loading'): SystemEntrySection => ({ status, observedAt: null, total: null, items: [] });
 export function systemEntryDisplayText(value: string | null | undefined, limit: number, fallback = ''): string {
-  const clean = (value ?? '').replace(/[\u0000-\u001f]/gu, ' ').trim();
+  const clean = Array.from(value ?? '', character => character.charCodeAt(0) < 32 ? ' ' : character).join('').trim();
   return (clean || fallback).slice(0, limit);
 }
 

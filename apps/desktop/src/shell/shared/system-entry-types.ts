@@ -119,7 +119,11 @@ function record(value: unknown, keys: readonly string[]): Record<string, unknown
   return item;
 }
 function text(value: unknown, max: number, allowEmpty = false): string {
-  if (typeof value !== 'string' || value.length > max || (!allowEmpty && !value.trim()) || /[\u0000-\u0008\u000b\u000c\u000e-\u001f]/u.test(value)) fail();
+  if (typeof value !== 'string' || value.length > max || (!allowEmpty && !value.trim())
+    || Array.from(value).some(character => {
+      const code = character.charCodeAt(0);
+      return code < 32 && code !== 9 && code !== 10 && code !== 13;
+    })) fail();
   return value;
 }
 function integer(value: unknown): number {

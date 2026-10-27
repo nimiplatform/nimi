@@ -1,7 +1,7 @@
 import { MediaAvatar } from '@nimiplatform/kit/features/media';
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 import type { CSSProperties, ReactNode } from 'react';
-import { Avatar, Button, IconButton, NimiText, StatusBadge, Surface, cn } from '@nimiplatform/kit/ui';
+import { Button, IconButton, NimiText, StatusBadge, Surface, cn } from '@nimiplatform/kit/ui';
 import type { LucideIcon } from 'lucide-react';
 import {
   ArrowRight,

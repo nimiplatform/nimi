@@ -20,7 +20,7 @@ class TestTray extends EventEmitter {
   currentMenu: TestMenu | undefined;
   bounds = { x: 1300, y: 850, width: 24, height: 24 };
   focused = 0;
-  constructor(_icon: unknown) { super(); }
+  constructor(readonly icon: unknown) { super(); }
   setContextMenu(): void { this.contextMenuCalls += 1; }
   setToolTip(value: string): void { this.tooltip = value; }
   setIgnoreDoubleClickEvents(): void {}
@@ -92,11 +92,13 @@ function fixture(platform: NodeJS.Platform = 'win32') {
     getDisplayNearestPoint: () => ({ workArea: { x: 0, y: 0, width: 1440, height: 850 } }),
     getCursorScreenPoint: () => ({ x: 1000, y: 700 }),
   });
+  const recordTray = (created: TestTray) => { tray = created; };
+  const recordWindow = (created: TestWindow) => { window = created; };
   const input: CreateDesktopSystemEntryHostInput = {
     electron: {
-      Tray: class extends TestTray { constructor(icon: unknown) { super(icon); tray = this; } },
+      Tray: class extends TestTray { constructor(icon: unknown) { super(icon); recordTray(this); } },
       Menu: { buildFromTemplate: (template: MenuItemConstructorOptions[]) => new TestMenu(template) },
-      BrowserWindow: class extends TestWindow { constructor(options: Record<string, unknown>) { super(options); window = this; } },
+      BrowserWindow: class extends TestWindow { constructor(options: Record<string, unknown>) { super(options); recordWindow(this); } },
       ipcMain: {
         handle(channel: string, handler: (event: unknown, ...args: unknown[]) => Promise<unknown>) {
           if (handlers.has(channel)) throw new Error('handler-already-installed');

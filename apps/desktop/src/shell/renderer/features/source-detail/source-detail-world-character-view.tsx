@@ -2,7 +2,7 @@ import { MediaImage } from '@nimiplatform/kit/features/media';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, ScrollArea } from '@nimiplatform/kit/ui';
-import { ArrowLeft, ChevronRight, CirclePlus, MessageCircle, Pause, Play, RefreshCw, ScrollText } from 'lucide-react';
+import { ArrowLeft, ChevronRight, CirclePlus, Pause, Play, RefreshCw, ScrollText } from 'lucide-react';
 import { EntityAvatar } from '../../components/entity-avatar.js';
 import { describeCharacterPrimaryAction } from '../explore/character-source-materialization';
 import type { SourceDetailData } from './source-detail-model.js';

@@ -532,7 +532,6 @@ export async function createDesktopElectronBundledAvatarHost(
     } else {
       windows.set(avatarInstanceId, windowRecord);
     }
-    const sender = window.webContents;
     let senderReleased = false;
     const beginSenderInvalidation = (): Promise<void> => beginWindowSenderInvalidation(windowRecord);
     const releaseWindow = (): void => {

@@ -10,7 +10,6 @@ export async function stopSystemEntryOwnedProcess(child: ChildProcess, timeoutMs
   if (!systemEntryOwnedProcessAlive(child)) return;
   await new Promise<void>((resolve, reject) => {
     let settled = false;
-    let timer: ReturnType<typeof setTimeout> | undefined;
     const finish = (error?: unknown): void => {
       if (settled) return;
       settled = true;
@@ -21,7 +20,7 @@ export async function stopSystemEntryOwnedProcess(child: ChildProcess, timeoutMs
     const onExit = (): void => finish();
     const onError = (error: Error): void => finish(new Error('desktop-owned-process-stop-failed', { cause: error }));
     child.once('exit', onExit); child.once('error', onError);
-    timer = setTimeout(() => finish(new Error('desktop-owned-process-stop-timeout')), timeoutMs);
+    const timer = setTimeout(() => finish(new Error('desktop-owned-process-stop-timeout')), timeoutMs);
     try {
       child.kill();
       if (!systemEntryOwnedProcessAlive(child)) finish();

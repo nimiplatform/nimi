@@ -1,6 +1,6 @@
 export type DesktopQuitPhase = 'idle' | 'confirming' | 'stopping' | 'committed' | 'system-ending';
 
-export type DesktopQuitCoordinator<TImpact> = {
+export type DesktopQuitCoordinator = {
   phase(): DesktopQuitPhase;
   isLaunchBlocked(): boolean;
   requestUserQuit(): Promise<boolean>;
@@ -22,7 +22,7 @@ export type CreateDesktopQuitCoordinatorInput<TImpact> = {
 // restart stopped Apps or weaken update/data-root cleanup requirements.
 export function createDesktopQuitCoordinator<TImpact>(
   input: CreateDesktopQuitCoordinatorInput<TImpact>,
-): DesktopQuitCoordinator<TImpact> {
+): DesktopQuitCoordinator {
   let phase: DesktopQuitPhase = 'idle';
   let intent = 0;
   let inFlight: Promise<boolean> | undefined;
@@ -62,7 +62,7 @@ export function createDesktopQuitCoordinator<TImpact>(
         try {
           await input.recoverAfterFailedQuit(error);
         } catch (recoveryError) {
-          throw new AggregateError([error, recoveryError], 'desktop-quit-recovery-failed');
+          throw new AggregateError([error, recoveryError], 'desktop-quit-recovery-failed', { cause: recoveryError });
         } finally {
           if (current()) setPhase('idle');
         }
