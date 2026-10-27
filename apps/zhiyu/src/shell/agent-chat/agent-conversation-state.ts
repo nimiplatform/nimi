@@ -4,10 +4,22 @@ import type {
   NimiLocalAppAgentHandle,
   NimiLocalAppConversationMessage,
   NimiLocalAppConversationSnapshot,
+  NimiLocalAppConversationQuoteInput,
 } from '@nimiplatform/sdk/app';
 import type { ZhiyuEvidence } from '../app/evidence';
 
 export type ZhiyuAgentChatStatus = ZhiyuEvidence['chat'];
+
+/** Frozen at the user submit action, before attachment decoding or uploads. */
+export type ZhiyuConversationSubmitIntent = {
+  readonly scopeKey: string;
+  readonly agentHandle: NimiLocalAppAgentHandle;
+  readonly conversationAnchorId: string;
+  readonly text: string;
+  readonly textRevision: number;
+  readonly quoteRevision: number;
+  readonly quote: NimiLocalAppConversationQuoteInput | null;
+};
 
 export type ZhiyuLocalAppConversationSnapshotInput = {
   readonly current: ZhiyuAgentChatStatus;
@@ -84,6 +96,7 @@ export function projectZhiyuConversation(input: {
   const outputText = [...messages].reverse().find(message => message.role === 'agent' && message.kind === 'text')?.text || null;
   return {
     transport: 'electron-ipc', ready: !projection.state.textTurnId, state,
+    canonicalProjection: projection,
     textTurnId: projection.state.textTurnId, controlState: projection.state,
     regenerateTurnId: projection.turns.find(turn => turn.canRegenerate)?.turnId ?? null,
     reasonCode: latestTurn?.reasonCode || 'runtime-agent-conversation-projected',
@@ -120,6 +133,8 @@ export function projectZhiyuLocalAppConversationMessage(input: {
     senderName: assistant ? 'Zhiyu Agent' : 'You',
     senderKind: assistant ? 'agent' : 'human',
     metadata: {
+      canonicalMessageCommitted: true,
+      canonicalQuote: input.message.quote ? { ...input.message.quote } : null,
       runtimeTurnId: input.message.turnId,
       ...(artifactPart ? {
         artifactProjection: 'runtime.agent.local-app.conversation.message',

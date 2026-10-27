@@ -22,6 +22,30 @@ afterEach(() => {
   delete (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__;
 });
 
+it('carries message reads and quote intent through the exact renderer commands', async () => {
+  const calls: unknown[] = [];
+  const message = { messageId: 'source', turnId: 'turn', role: 'assistant', parts: [{ kind: 'text', text: '中文' }], partial: false, quote: null };
+  const read = { conversationAnchorId: 'anchor', readWatermark: '7', message, quoteText: '中文', quoteFormat: 'nimi.quote-text.v1',
+    window: { messages: [message], turns: [{ turnId: 'turn', status: 'completed', phase: null, terminalReason: 'completed', reasonCode: null, message: null,
+      requestId: 'request', retryOfTurnId: null, inputTurnId: 'turn', canRegenerate: false, origin: 'user' }], actions: [], voices: [], truncatedBefore: false, truncatedAfter: false } };
+  (globalThis as { __NIMI_ELECTRON_TEST__?: unknown }).__NIMI_ELECTRON_TEST__ = {
+    invoke: async (command: string, payload: unknown) => { calls.push({ command, payload }); return command.endsWith('conversationMessageRead') ? read : { turnId: 'accepted' }; },
+    listen: () => () => {},
+  };
+  const client = createNimiLocalAppStandardShellSurface().conversation;
+  const scope = { agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', conversationAnchorId: 'anchor' };
+  const quote = { sourceMessageId: 'source', format: 'nimi.quote-text.v1' as const, startByte: 3, endByte: 6 };
+  await client.send({ ...scope, requestId: 'request', parts: [{ kind: 'text', text: '解释这句' }], quote });
+  await client.readMessage({ ...scope, messageId: 'source' });
+  expect(calls).toEqual([
+    { command: 'nimi.shell.localApp.conversationSendTurn', payload: { payload: { ...scope, requestId: 'request', parts: [{ kind: 'text', text: '解释这句' }], quote } } },
+    { command: 'nimi.shell.localApp.conversationMessageRead', payload: { payload: { ...scope, messageId: 'source' } } },
+  ]);
+  expect(() => client.send({ ...scope, requestId: 'retry', retryOfTurnId: 'turn', quote } as never)).toThrow();
+  expect(() => client.readMessage({ ...scope, messageId: 'source', afterId: 'foreign' } as never)).toThrow();
+  expect(calls).toHaveLength(2);
+});
+
 function managerActionAvailability() {
   return {
     getSharedAIConfig: { state: 'available', reason: null },
@@ -1578,15 +1602,15 @@ describe('renderer local-app standard-shell surface', () => {
           turnId: 'agent-turn-1',
           message: {
             messageId: 'message-1',
-            partial:false,
+            partial:false, quote:null,
             turnId: 'agent-turn-1',
             role: 'assistant',
-            parts: [{ kind: 'text', text: 'hello' }],
+            parts: [{ kind: 'text', text: '  hello\n' }],
           },
         },
       },
     });
-    await expect(next).resolves.toMatchObject({ done: false, value: { sequence: '1' } });
+    await expect(next).resolves.toMatchObject({ done: false, value: { sequence: '1', message: { parts: [{ kind: 'text', text: '  hello\n' }] } } });
     await subscription.cancel();
     await subscription.cancel();
     expect(unlistenCount).toBe(1);

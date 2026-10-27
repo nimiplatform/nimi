@@ -929,7 +929,7 @@ it('keeps the transcript scroll root inside the content column and reserves bott
     expect(container.querySelectorAll('ul').length).toBeGreaterThanOrEqual(2);
   });
 
-  it('normalizes inline markdown headings without rewriting fenced code blocks', async () => {
+  it('preserves inline heading syntax and fenced code under standard CommonMark semantics', async () => {
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -948,8 +948,8 @@ it('keeps the transcript scroll root inside the content column and reserves bott
     });
 
     const headings = container.querySelectorAll('h3');
-    expect(headings).toHaveLength(1);
-    expect(headings[0]?.textContent).toContain('3. 浪漫主义与文学情怀');
+    expect(headings).toHaveLength(0);
+    expect(container.textContent).toContain('残忍。 ### 3. 浪漫主义与文学情怀');
     expect(container.textContent).toContain('这是一段代码。 ### 不应变成标题');
   });
 

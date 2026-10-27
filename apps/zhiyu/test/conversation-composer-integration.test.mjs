@@ -30,6 +30,7 @@ test('Zhiyu keeps original input and scopes its shared conversation controls', a
   const globals = {
     window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
     HTMLElement: dom.window.HTMLElement, HTMLInputElement: dom.window.HTMLInputElement,
+    HTMLBRElement: dom.window.HTMLBRElement,
     HTMLTextAreaElement: dom.window.HTMLTextAreaElement, Element: dom.window.Element,
     Node: dom.window.Node, NodeFilter: dom.window.NodeFilter, DocumentFragment: dom.window.DocumentFragment,
     MutationObserver: dom.window.MutationObserver, Event: dom.window.Event, CustomEvent: dom.window.CustomEvent,
@@ -46,6 +47,8 @@ test('Zhiyu keeps original input and scopes its shared conversation controls', a
   const { ZhiyuCanonicalApp } = await import('../src/shell/app/App.tsx');
   const { ZhiyuNavigationOwner, useZhiyuNavigationOwner } = await import('../src/shell/app/navigation.tsx');
   const { createInitialZhiyuEvidence } = await import('../src/shell/app/evidence.ts');
+  const { seedCanonicalConversationProjection } = await import('@nimiplatform/kit/features/chat/headless');
+  const { projectZhiyuConversation } = await import('../src/shell/agent-chat/agent-conversation-state.ts');
   const { createZhiyuProductionBindings } = await import('../src/production/renderer-bindings.ts');
   const { createNimiRendererHostBinding, createNimiRendererThemeController } = await import('@nimiplatform/kit/shell/renderer/host');
   const productionLaunch = hostPort => {
@@ -92,13 +95,15 @@ test('Zhiyu keeps original input and scopes its shared conversation controls', a
     const initial = createInitialZhiyuEvidence();
     const inventory = { ...initial.inventory, ready: true, count: agents.length, localAgents: agents };
     const records = new Map([[draftPath(agents[0]), { version: 1, draft: options.draft ?? '原来的问题', submission: options.pending ?? null }]]);
-    const calls = { send: [], interrupt: [], avatar: [], openSettings: 0 };
+    const calls = { send: [], interrupt: [], avatar: [], accessInvalidations: [], openSettings: 0 };
     const currentAnchor = options.anchor ?? anchor;
     const conversation = {
       async send(request) { calls.send.push(request); return options.send ? options.send(request) : { turnId: 'accepted-turn' }; },
       async uploadAttachment() { return { artifactId: 'original-image' }; },
       async interruptTurn(request) { calls.interrupt.push(request); },
       async snapshot() { return { turns: [] }; },
+      async readMessage(request) { if (!options.readMessage) throw new Error('unused message read'); return options.readMessage(request); },
+      async readArtifact(request) { if (!options.readArtifact) throw new Error('unused artifact read'); return options.readArtifact(request); },
     };
     const bindings = { clock: { now: Date.now }, app: {
       projection: {
@@ -127,7 +132,8 @@ test('Zhiyu keeps original input and scopes its shared conversation controls', a
         subscribeConversation({ agentHandle, conversationAnchorId, onChat, onStatus }) {
           const chat = { ...initial.chat, agentHandle, conversationAnchorId, state: 'completed', ready: true, textTurnId: null, ...options.chat };
           onChat(chat); onStatus('ready');
-          return { async refresh() { options.onRefresh?.(); onChat(chat); onStatus('ready'); }, retryMedia() { options.onRetryMedia?.(); }, close() {} };
+          return { async refresh() { options.onRefresh?.(); onChat(chat); onStatus('ready'); }, retryMedia() { options.onRetryMedia?.(); },
+            invalidateAccess(error) { calls.accessInvalidations.push(error); }, close() {} };
         },
       },
     } };
@@ -403,6 +409,103 @@ test('Zhiyu keeps original input and scopes its shared conversation controls', a
         await clickText(view.node, '取回文字作为草稿');
         assert.equal(view.node.querySelector('textarea').value, '新的草稿\n\n尚未确认的问题');
       } finally { await view.close(); }
+    });
+
+    await t.test('denied historical image reads clear the conversation while preserving the unsent draft', async () => {
+      const artifactRead = deferred();
+      let artifactRequested = false;
+      const historicalText = 'Earlier private history';
+      const original = { messageId: 'old-answer', turnId: 'old-turn', role: 'assistant', partial: false, quote: null,
+        parts: [{ kind: 'text', text: historicalText }] };
+      const image = { messageId: 'old-image', turnId: 'old-turn', role: 'assistant', partial: false, quote: null,
+        parts: [{ kind: 'artifact-ref', artifactId: 'old-artifact', mediaKind: 'image', mimeType: 'image/png', displayName: null }] };
+      const quote = { sourceMessageId: original.messageId, sourceRole: 'assistant', sourcePartial: false,
+        format: 'nimi.quote-text.v1', startByte: 0, endByte: historicalText.length, text: historicalText };
+      const turn = turnId => ({ turnId, status: 'completed', phase: 'completed', terminalReason: null, reasonCode: null,
+        message: null, requestId: null, retryOfTurnId: null, inputTurnId: turnId, canRegenerate: false, origin: 'user' });
+      const live = seedCanonicalConversationProjection({ conversationAnchorId: 'anchor-A', throughSequence: '20', truncatedBefore: true,
+        state: { textTurnId: null, freeContactEnabled: false, maxFollowUpTurns: 8, pendingFollowUp: null },
+        messages: [{ messageId: 'later-input', turnId: 'later-turn', role: 'user', partial: false, quote,
+          parts: [{ kind: 'text', text: 'A later question' }] }], turns: [turn('later-turn')], actions: [], voices: [] });
+      const view = await mount({ draft: '保留这条未发送的草稿',
+        chat: projectZhiyuConversation({ agentHandle: agents[0].agentHandle, conversationAnchorId: 'anchor-A', projection: live }),
+        readMessage: ({ messageId }) => {
+          assert.equal(messageId, original.messageId);
+          return { conversationAnchorId: 'anchor-A', readWatermark: '20', message: original,
+            quoteText: historicalText, quoteFormat: 'nimi.quote-text.v1',
+            window: { messages: [original, image], turns: [turn('old-turn')], actions: [], voices: [], truncatedBefore: false, truncatedAfter: true } };
+        },
+        readArtifact: ({ artifactId }) => {
+          assert.equal(artifactId, 'old-artifact'); artifactRequested = true; return artifactRead.promise;
+        },
+      });
+      try {
+        await act(async () => view.node.querySelector('button[aria-label="定位被引用的消息"]').click());
+        await settle(() => artifactRequested && view.node.querySelector('[data-canonical-message-id="old-answer"]'));
+        const denial = Object.assign(new Error('access revoked'), { reasonCode: 'LOCAL_APP_ACCESS_DENIED' });
+        await act(async () => { artifactRead.reject(denial); await new Promise(resolve => setImmediate(resolve)); });
+        await settle(() => view.calls.accessInvalidations.length === 1);
+        assert.equal(view.calls.accessInvalidations[0], denial);
+        assert.equal(view.node.querySelector('[data-canonical-message-id]'), null);
+        assert.doesNotMatch(view.node.textContent, /Earlier private history/u);
+        assert.match(view.node.textContent, /当前无法访问这段对话/u);
+        assert.equal(view.node.querySelector('textarea').disabled, true);
+        assert.equal(view.node.querySelector('textarea').value, '保留这条未发送的草稿');
+        assert.equal(view.calls.send.length, 0);
+      } finally { await view.close(); }
+    });
+
+    await t.test('attachment decoding freezes the original quote and revisions before newer text and a reselected quote', async () => {
+      const decoding = deferred();
+      const admission = deferred();
+      const originalFetch = globalThis.fetch;
+      let decodingStarted = false;
+      globalThis.fetch = async (resource, ...rest) => {
+        if (String(resource).startsWith('data:image/') && !decodingStarted) {
+          decodingStarted = true;
+          return decoding.promise;
+        }
+        return originalFetch(resource, ...rest);
+      };
+      const messages = ['A', 'B'].map(suffix => ({ id: `source-${suffix}`, sessionId: 'anchor-A', targetId: agents[0].agentHandle,
+        source: 'agent', role: 'agent', kind: 'text', text: `引用 ${suffix}`, status: 'complete', createdAt: '',
+        metadata: { canonicalTurnId: `turn-${suffix}`, canonicalConversationAnchorId: 'anchor-A', canonicalPartial: false, canonicalMessageCommitted: true } }));
+      const view = await mount({ send: () => admission.promise, chat: { messageCount: 2, messages }, readMessage: ({ messageId }) => {
+        const source = messages.find(message => message.id === messageId);
+        assert.ok(source);
+        const message = { messageId, turnId: source.metadata.canonicalTurnId, role: 'assistant', partial: false, quote: null,
+          parts: [{ kind: 'text', text: source.text }] };
+        return { conversationAnchorId: 'anchor-A', readWatermark: '1', message, quoteText: source.text, quoteFormat: 'nimi.quote-text.v1',
+          window: { messages: [message], turns: [], actions: [], voices: [], truncatedBefore: false, truncatedAfter: false } };
+      } });
+      const chooseQuote = async index => {
+        const buttons = view.node.querySelectorAll('[data-message-toolbar] button[aria-label="引用回复"]');
+        assert.ok(buttons[index]);
+        assert.equal(buttons[index].disabled, false);
+        await act(async () => buttons[index].click());
+        await settle(() => view.node.querySelector('[data-canonical-quote-draft] summary')?.textContent === messages[index].text);
+      };
+      try {
+        await attachImage(view.node);
+        await chooseQuote(0);
+        await act(async () => view.node.querySelector('[data-chat-composer-send]').click());
+        await settle(() => decodingStarted);
+        assert.equal(view.calls.send.length, 0);
+        await type(view.node, '后写的新正文');
+        await chooseQuote(1);
+        await chooseQuote(0);
+        await act(async () => decoding.resolve({ arrayBuffer: async () => new Uint8Array([137, 80, 78, 71]).buffer }));
+        await settle(() => view.calls.send.length === 1);
+        assert.equal(view.calls.send[0].parts.find(part => part.kind === 'text').text, '原来的问题');
+        assert.equal(view.calls.send[0].quote.sourceMessageId, 'source-A');
+        assert.equal(view.node.querySelector('textarea').value, '后写的新正文');
+        await act(async () => admission.resolve({ turnId: 'accepted-turn' }));
+        await settle(() => !view.node.querySelector('textarea').disabled);
+        assert.equal(view.node.querySelector('textarea').value, '后写的新正文');
+        assert.equal(view.node.querySelector('[data-canonical-quote-draft] summary')?.textContent, '引用 A');
+        await settle(() => view.records.get(draftPath(agents[0])).quoteDraft?.input.sourceMessageId === 'source-A');
+        assert.equal(view.records.get(draftPath(agents[0])).draft, '后写的新正文');
+      } finally { globalThis.fetch = originalFetch; await view.close(); }
     });
 
     await t.test('late completion from a different partner cannot clear the current draft', async () => {

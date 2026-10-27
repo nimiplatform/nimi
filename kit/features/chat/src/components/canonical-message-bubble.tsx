@@ -11,6 +11,7 @@ import {
 } from '../bubble-styles.js';
 import { formatMessageTime } from '../utils/message-time.js';
 import { hasRpContent } from '../utils/rp-content-parser.js';
+import { CanonicalMessageActionToolbar, CanonicalMessageInlinePlayer, CanonicalMessageQuote, handleCanonicalMessageContextMenu, useCanonicalMessageActionContext } from './canonical-message-actions.js';
 
 export type CanonicalBubbleDisplayContext = 'transcript' | 'stage';
 
@@ -45,7 +46,7 @@ function createLazyImportError(label: string, error: unknown): Error {
 }
 
 function PlainTextMessageContent({ content }: { content: string }) {
-  return <p className="my-2 whitespace-pre-wrap text-sm leading-[1.7] text-[var(--nimi-text-primary)]">{content}</p>;
+  return <p data-chat-quote-pending className="my-2 whitespace-pre-wrap text-sm leading-[1.7] text-[var(--nimi-text-primary)]">{content}</p>;
 }
 
 type LazyMessageContentBoundaryProps = {
@@ -300,6 +301,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
   onVoiceContextMenu,
   onMessageContextMenu,
 }: CanonicalMessageBubbleProps) {
+  const messageActions = useCanonicalMessageActionContext();
   const copyResolved = resolveChatCopy(copy);
   const isUser = message.role === 'user' || message.role === 'human';
   const isVoice = message.kind === 'voice';
@@ -482,9 +484,12 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
       >
         {resolvedAvatar}
         <div
-          className={mediaContainerClassName}
-          onContextMenu={onMessageContextMenu ? (event) => onMessageContextMenu(message, event) : undefined}
+          className={cn('relative', mediaContainerClassName)}
+          onContextMenu={(event) => { if (!handleCanonicalMessageContextMenu(messageActions, message, event)) onMessageContextMenu?.(message, event); }}
         >
+          <CanonicalMessageActionToolbar message={message} />
+          <CanonicalMessageQuote message={message} />
+          <div data-canonical-message-content="true">
           {content === undefined ? (
             <div
               className={cn(
@@ -501,6 +506,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
               {defaultContent}
             </div>
           ) : content}
+          </div>
           {showTimestamp && time ? (
             <div
               data-canonical-message-timestamp="true"
@@ -513,6 +519,7 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
             </div>
           ) : null}
           {accessory === undefined ? null : accessory}
+          <CanonicalMessageInlinePlayer message={message} />
         </div>
       </div>
 

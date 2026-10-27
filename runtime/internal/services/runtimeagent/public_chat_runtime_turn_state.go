@@ -333,6 +333,12 @@ func (r publicChatRuntime) reserveTurn(
 			return publicChatAnchorState{}, publicChatTurnState{}, nil, commitErr
 		}
 		r.svc.agents[localAgentRef] = nextEntry
+		if session.messageLookup != nil {
+			if recovery := session.Recoveries[turnID]; recovery != nil {
+				indexConversationRecovery(session.messageLookup, turnID, recovery)
+			}
+			session.messageLookup.recoveryCount = len(session.Recoveries)
+		}
 		memoryReady = interactionHook != nil
 		// Only accepted work outlives the RPC. Preserve authority values for Job
 		// custody and the existing explicit Stop/provider timeout ownership.

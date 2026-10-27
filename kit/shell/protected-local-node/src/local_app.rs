@@ -1729,7 +1729,8 @@ pub async fn local_app_conversation_send_turn(input: JsonValue) -> NativeJsonOut
         return NativeJsonOutcome::error(native_invalid_payload());
     };
     let regenerate = record.contains_key("retryOfTurnId");
-    if record.len() != 4
+    let has_quote = !regenerate && record.contains_key("quote");
+    if record.len() != 4 + usize::from(has_quote)
         || ![
             "agentHandle",
             "conversationAnchorId",
@@ -1741,6 +1742,12 @@ pub async fn local_app_conversation_send_turn(input: JsonValue) -> NativeJsonOut
     {
         return NativeJsonOutcome::error(native_invalid_payload());
     }
+    let quote = if has_quote {
+        match native_conversation_quote(&record["quote"]) {
+            Ok(quote) => Some(quote),
+            Err(error) => return NativeJsonOutcome::error(error),
+        }
+    } else { None };
     let (Some(agent_handle), Some(conversation_anchor_id), Some(request_id)) = (
         record["agentHandle"].as_str(),
         record["conversationAnchorId"].as_str(),
@@ -1774,6 +1781,7 @@ pub async fn local_app_conversation_send_turn(input: JsonValue) -> NativeJsonOut
     invoke_agent(|session| async move {
         session
             .conversation_send_turn(LocalAppConversationSendRequest {
+                quote,
                 agent_handle: input.agent_handle,
                 conversation_anchor_id: input.conversation_anchor_id,
                 request_id: input.request_id,
@@ -1784,6 +1792,34 @@ pub async fn local_app_conversation_send_turn(input: JsonValue) -> NativeJsonOut
             .map(|result| json!({ "turnId": result.turn_id }))
     })
     .await
+}
+
+fn native_conversation_quote(value: &JsonValue) -> Result<LocalAppConversationQuoteInput, LocalAppOperationError> {
+    let record = value.as_object().ok_or_else(native_invalid_payload)?;
+    if record.len() != 4 || !["sourceMessageId", "format", "startByte", "endByte"].iter().all(|key| record.contains_key(*key)) {
+        return Err(native_invalid_payload());
+    }
+    let source_message_id = record["sourceMessageId"].as_str().ok_or_else(native_invalid_payload)?.to_string();
+    let format = record["format"].as_str().ok_or_else(native_invalid_payload)?.to_string();
+    let start_byte = record["startByte"].as_u64().and_then(|value| u32::try_from(value).ok()).ok_or_else(native_invalid_payload)?;
+    let end_byte = record["endByte"].as_u64().and_then(|value| u32::try_from(value).ok()).ok_or_else(native_invalid_payload)?;
+    Ok(LocalAppConversationQuoteInput { source_message_id, format, start_byte, end_byte })
+}
+
+#[cfg(test)]
+mod quotation_input_tests {
+    use super::*;
+    #[test]
+    fn quote_intent_is_closed_and_keeps_exact_unsigned_offsets() {
+        let value = json!({"sourceMessageId":"source","format":"nimi.quote-text.v1","startByte":3,"endByte":6});
+        let quote = native_conversation_quote(&value).unwrap();
+        assert_eq!((quote.start_byte, quote.end_byte), (3, 6));
+        for invalid in [
+            json!({"sourceMessageId":"source","format":"nimi.quote-text.v1","startByte":-1,"endByte":6}),
+            json!({"sourceMessageId":"source","format":"nimi.quote-text.v1","startByte":1.5,"endByte":6}),
+            json!({"sourceMessageId":"source","format":"nimi.quote-text.v1","startByte":3,"endByte":6,"text":"caller cannot supply source"}),
+        ] { assert!(native_conversation_quote(&invalid).is_err()); }
+    }
 }
 
 #[napi(js_name = "localAppConversationAttachmentUpload")]
@@ -2024,17 +2060,7 @@ pub async fn local_app_conversation_snapshot(
                     "throughSequence": snapshot.through_sequence.to_string(),
                     "state": snapshot.state,
                     "turns": snapshot.turns,
-                    "messages": snapshot.messages.into_iter().map(|message| json!({
-                        "messageId": message.message_id,
-                        "turnId": message.turn_id,
-                        "role": match message.role {
-                            LocalAppConversationMessageRole::App => "app",
-                        LocalAppConversationMessageRole::User => "user",
-                            LocalAppConversationMessageRole::Assistant => "assistant",
-                        },
-                        "parts": message.parts,
-                        "partial": message.partial,
-                    })).collect::<Vec<_>>(),
+                    "messages": snapshot.messages,
                     "actions": snapshot.actions,
                     "voices": snapshot.voices,
                     "truncatedBefore": snapshot.truncated_before,
@@ -2042,6 +2068,29 @@ pub async fn local_app_conversation_snapshot(
             })
     })
     .await
+}
+
+// @nimi-authority: rule.nimi.runtime.conversation-message-interaction.message-read
+#[napi(js_name = "localAppConversationMessageRead")]
+pub async fn local_app_conversation_message_read(input: JsonValue) -> NativeJsonOutcome {
+    let Some(record) = input.as_object() else { return NativeJsonOutcome::error(native_invalid_payload()); };
+    if record.len() != 3 || !["agentHandle", "conversationAnchorId", "messageId"].iter().all(|key| record.contains_key(*key)) {
+        return NativeJsonOutcome::error(native_invalid_payload());
+    }
+    let (Some(agent_handle), Some(conversation_anchor_id), Some(message_id)) = (
+        record["agentHandle"].as_str(), record["conversationAnchorId"].as_str(), record["messageId"].as_str(),
+    ) else { return NativeJsonOutcome::error(native_invalid_payload()); };
+    let request = LocalAppConversationMessageReadRequest { agent_handle: agent_handle.to_owned(), conversation_anchor_id: conversation_anchor_id.to_owned(), message_id: message_id.to_owned() };
+    invoke_agent(|session| async move {
+        session.conversation_message_read(request).await.map(|result| json!({
+            "conversationAnchorId": result.conversation_anchor_id,
+            "readWatermark": result.read_watermark.to_string(),
+            "message": result.message,
+            "quoteText": result.quote_text,
+            "quoteFormat": result.quote_format,
+            "window": result.window,
+        }))
+    }).await
 }
 
 #[napi(js_name = "localAppEmbodimentSnapshot")]

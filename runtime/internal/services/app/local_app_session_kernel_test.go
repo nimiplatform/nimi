@@ -771,6 +771,37 @@ func TestOrdinaryAppIntroductionAdmissionUsesAgentLocal(t *testing.T) {
 	}
 }
 
+func TestConversationMessageReadAuthorizesThroughProtectedSessionOwner(t *testing.T) {
+	for _, item := range []struct {
+		name         string
+		capabilities []string
+		allowed      bool
+	}{
+		{name: "agent.local grants the exact read", capabilities: []string{"agent.local"}, allowed: true},
+		{name: "model consume does not grant chat reads", capabilities: []string{"runtime.consume"}},
+		{name: "agent work does not grant chat reads", capabilities: []string{"agent.work"}},
+	} {
+		t.Run(item.name, func(t *testing.T) {
+			fixture := newLocalAppSessionFixture(t, item.capabilities)
+			if _, err := fixture.service.OpenLocalAppSessionProjection(fixture.context); err != nil {
+				t.Fatal(err)
+			}
+			ctx, err := fixture.service.AuthorizeLocalAppIngress(fixture.context, localappop.IngressConversationMessageRead)
+			if !item.allowed {
+				assertLocalAppReason(t, err, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+				return
+			}
+			if err != nil {
+				t.Fatal(err)
+			}
+			decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
+			if !ok || decision.Operation != localappop.OperationConversationMessageRead || decision.OperationCapability != "agent.local" || decision.AuthorityClass != localappop.AuthorityClassAppAccess {
+				t.Fatalf("incorrect message read owner handoff: %+v", decision)
+			}
+		})
+	}
+}
+
 func TestProactiveControlOperationsAreUnavailableToAIConsumeOnlyApp(t *testing.T) {
 	fixture := newLocalAppSessionFixture(t, []string{"runtime.consume"})
 	if _, err := fixture.service.OpenLocalAppSessionProjection(fixture.context); err != nil {

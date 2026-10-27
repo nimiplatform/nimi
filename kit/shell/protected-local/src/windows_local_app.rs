@@ -78,6 +78,7 @@ use crate::{
     LocalAppConversationAttachmentUploadResult, LocalAppConversationInterruptRequest,
     LocalAppConversationInterruptResult, LocalAppConversationOpenRequest,
     LocalAppConversationOpenResult, LocalAppConversationSendRequest,
+    LocalAppConversationMessageReadRequest, LocalAppConversationMessageReadResult,
     LocalAppConversationSendResult, LocalAppConversationSnapshot,
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
     LocalAppConversationSubscriptionReceiver, LocalAppConversationVoiceRenderRequest,
@@ -1322,6 +1323,16 @@ impl NimiLocalAppSession for PlatformLocalAppSession {
         Box::pin(async move {
             let _operation = self.operation_gate.read().await;
             conversation::conversation_snapshot(self.checked_channel()?, request).await
+        })
+    }
+
+    fn conversation_message_read(
+        &self,
+        request: LocalAppConversationMessageReadRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<LocalAppConversationMessageReadResult, LocalAppOperationError>> + Send + '_>> {
+        Box::pin(async move {
+            let _operation = self.operation_gate.read().await;
+            conversation::read_message(self.checked_channel()?, request).await
         })
     }
 

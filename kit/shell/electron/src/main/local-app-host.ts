@@ -1,4 +1,5 @@
 import { RuntimeReasonCode, type NimiLocalAppClient } from '@nimiplatform/kit/core/sdk-contract';
+import { projectNimiLocalAppConversationMessageReadResult, validateNimiLocalAppConversationQuoteInput } from '@nimiplatform/kit/core/sdk-contract';
 import { isIntegrationOwnerReasonMetadata } from './integration-owner-errors.js';
 import {
   NIMI_APP_ACTIVITY_LAUNCH_FAILURE_GRACE_MS,
@@ -133,6 +134,7 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppConversationStreamNext',
   'localAppConversationStreamClose',
   'localAppConversationSnapshot',
+  'localAppConversationMessageRead',
   'localAppEmbodimentSnapshot',
   'localAppEmbodimentSubscribe',
   'localAppActivityPut',
@@ -522,6 +524,7 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppConversationStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationStreamClose: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppConversationMessageRead: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppEmbodimentSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppEmbodimentSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppActivityPut: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -673,6 +676,7 @@ export type NimiElectronLocalAppHost = {
   readonly conversationStreamNext: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationStreamClose: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly conversationMessageRead: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly embodimentSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly embodimentSubscribe: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly activityPut: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -1411,6 +1415,17 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
     return invokeConversationSnapshot(() => this.binding.localAppConversationSnapshot(input));
   }
 
+  async conversationMessageRead(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    const value = await invoke(() => this.binding.localAppConversationMessageRead(input));
+    try {
+      const result = projectNimiLocalAppConversationMessageReadResult(value);
+      if (result.conversationAnchorId !== input.conversationAnchorId || result.message.messageId !== input.messageId) throw untrustedRuntimeError();
+      return result as unknown as NimiElectronLocalAppRecord;
+    } catch {
+      throw untrustedRuntimeError();
+    }
+  }
+
   embodimentSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return invokeRecord(() => this.binding.localAppEmbodimentSnapshot(input));
   }
@@ -1940,6 +1955,10 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   conversationSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().conversationSnapshot(input);
+  }
+
+  conversationMessageRead(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().conversationMessageRead(input);
   }
 
   embodimentSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
@@ -3315,6 +3334,7 @@ async function invokeConversationSnapshot(
   const conversationAnchorId = exactText(value.conversationAnchorId);
   const turns = value.turns.map(validateConversationTurn);
   const messages = value.messages.map(validateConversationMessage);
+  if (messages.reduce((size, message) => size + conversationMessageContentBytes(message), 0) > 1212416) throw untrustedRuntimeError();
   const actions = value.actions.map(validateConversationAction);
   const voices = value.voices.map(validateConversationVoice);
   return Object.freeze({
@@ -3330,7 +3350,7 @@ async function invokeConversationSnapshot(
 }
 
 function validateConversationMessage(value: unknown): NimiElectronLocalAppRecord {
-  if (!isPlainRecord(value) || !hasExactKeys(value, ['messageId', 'turnId', 'role', 'parts', 'partial'])
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['messageId', 'turnId', 'role', 'parts', 'partial', 'quote'])
     || typeof value.partial !== 'boolean' || (value.role !== 'user' && value.role !== 'assistant' && value.role !== 'app')
     || !Array.isArray(value.parts) || value.parts.length < 1 || value.parts.length > 2) {
     throw untrustedRuntimeError();
@@ -3368,7 +3388,29 @@ function validateConversationMessage(value: unknown): NimiElectronLocalAppRecord
   if ((value.partial && (value.role !== 'assistant' || textCount !== 1 || artifactCount !== 0)) || textCount > 1 || artifactCount > 1 || (value.role === 'assistant' && textCount === 1 && artifactCount === 1)) {
     throw untrustedRuntimeError();
   }
-  return Object.freeze({ messageId, turnId, role: value.role, parts: Object.freeze(parts), partial: value.partial });
+  const quote = value.quote === null ? null : validateConversationQuote(value.quote);
+  return Object.freeze({ messageId, turnId, role: value.role, parts: Object.freeze(parts), partial: value.partial, quote });
+}
+
+function validateConversationQuote(value: unknown): NimiElectronLocalAppRecord {
+  if (!isPlainRecord(value) || !hasExactKeys(value, ['sourceMessageId', 'sourceRole', 'sourcePartial', 'format', 'startByte', 'endByte', 'text'])
+    || !['user', 'assistant', 'app'].includes(String(value.sourceRole)) || typeof value.sourcePartial !== 'boolean'
+    || typeof value.text !== 'string' || !value.text || value.text.includes('\0') || Array.from(value.text).length > 4096) throw untrustedRuntimeError();
+  try {
+    const range = validateNimiLocalAppConversationQuoteInput({ sourceMessageId: value.sourceMessageId, format: value.format, startByte: value.startByte, endByte: value.endByte });
+    if (new TextEncoder().encode(value.text).byteLength !== range.endByte - range.startByte) throw untrustedRuntimeError();
+    return Object.freeze({ ...range, sourceRole: value.sourceRole as string, sourcePartial: value.sourcePartial, text: value.text });
+  } catch { throw untrustedRuntimeError(); }
+}
+
+function conversationMessageContentBytes(message: NimiElectronLocalAppRecord): number {
+  const parts = message.parts as readonly NimiElectronLocalAppRecord[];
+  let size = parts.reduce((sum, part) => sum + (part.kind === 'text' ? new TextEncoder().encode(part.text as string).byteLength : 0), 0);
+  if (message.quote !== null) {
+    const quote = message.quote as NimiElectronLocalAppRecord;
+    size += new TextEncoder().encode(String(quote.text)).byteLength + new TextEncoder().encode(String(quote.sourceMessageId)).byteLength + new TextEncoder().encode(String(quote.format)).byteLength;
+  }
+  return size;
 }
 
 function validateConversationTurn(value: unknown): NimiElectronLocalAppRecord {

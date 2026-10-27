@@ -19,6 +19,7 @@ export type UseChatComposerOptions<TAttachment = never> = {
   attachments?: readonly TAttachment[];
   onAttachmentsChange?: (attachments: readonly TAttachment[]) => void;
   disabled?: boolean;
+  submitDisabled?: boolean;
   initialText?: string;
   text?: string;
   maxTextareaHeight?: number;
@@ -43,6 +44,7 @@ export function useChatComposer<TAttachment = never>({
   attachments: controlledAttachments,
   onAttachmentsChange,
   disabled = false,
+  submitDisabled = false,
   initialText = '',
   text: controlledText,
   maxTextareaHeight = 200,
@@ -61,8 +63,11 @@ export function useChatComposer<TAttachment = never>({
   const [error, setError] = useState<string | null>(null);
   const text = controlledText ?? internalText;
   const attachments = controlledAttachments ?? internalAttachments;
+  const draftRevision = useRef(0);
+  const latestDraft = useRef({ text, attachments }); latestDraft.current = { text, attachments };
 
   const updateText = useCallback((nextText: string) => {
+    draftRevision.current += 1;
     if (controlledText === undefined) {
       setInternalText(nextText);
     }
@@ -70,6 +75,7 @@ export function useChatComposer<TAttachment = never>({
   }, [controlledText, onTextChange]);
 
   const updateAttachments = useCallback((nextAttachments: readonly TAttachment[]) => {
+    draftRevision.current += 1;
     if (controlledAttachments !== undefined) {
       onAttachmentsChange?.(nextAttachments);
       return;
@@ -119,10 +125,11 @@ export function useChatComposer<TAttachment = never>({
 
   const handleSubmit = useCallback(async () => {
     const trimmed = text.trim();
-    if (disabled || isSubmitting || (!trimmed && attachments.length === 0)) {
+    if (disabled || submitDisabled || isSubmitting || (!trimmed && attachments.length === 0)) {
       return;
     }
     setIsSubmitting(true);
+    const submittedRevision = draftRevision.current;
     setError(null);
     try {
       await adapter.submit({
@@ -131,8 +138,10 @@ export function useChatComposer<TAttachment = never>({
       });
       // A retired composer must not clear a new conversation's controlled draft.
       if (!mounted.current) return;
-      updateText('');
-      updateAttachments([]);
+      if (draftRevision.current === submittedRevision && latestDraft.current.text === text && latestDraft.current.attachments === attachments) {
+        updateText('');
+        updateAttachments([]);
+      }
     } catch (nextError) {
       if (!mounted.current) return;
       setError(nextError instanceof Error ? nextError.message : String(nextError));
@@ -140,7 +149,7 @@ export function useChatComposer<TAttachment = never>({
     } finally {
       if (mounted.current) setIsSubmitting(false);
     }
-  }, [adapter, attachments, disabled, isSubmitting, onError, text, updateAttachments, updateText]);
+  }, [adapter, attachments, disabled, submitDisabled, isSubmitting, onError, text, updateAttachments, updateText]);
 
   const handleKeyDown = useCallback((event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.nativeEvent.isComposing || event.keyCode === 229) {
@@ -156,7 +165,7 @@ export function useChatComposer<TAttachment = never>({
     textareaRef,
     text,
     attachments,
-    canSubmit: !disabled && !isSubmitting && (text.trim().length > 0 || attachments.length > 0),
+    canSubmit: !disabled && !submitDisabled && !isSubmitting && (text.trim().length > 0 || attachments.length > 0),
     isSubmitting,
     error,
     setText: updateText,

@@ -7,10 +7,12 @@ import type {
   CanonicalMessageContentSlot,
   ConversationCanonicalMessage,
 } from '../types.js';
-import { TranscriptMessageGroups } from './canonical-transcript-message-groups.js';
+import { TranscriptMessageGroups, type CanonicalTranscriptScrollMechanics } from './canonical-transcript-message-groups.js';
 import { CanonicalTypingBubble } from './canonical-typing-bubble.js';
 import { CANONICAL_STAGE_SURFACE_WIDTH_CLASS } from './canonical-conversation-pane.js';
 import type { CanonicalTranscriptDateLabelFormatter } from './canonical-transcript-virtual-items.js';
+import { CanonicalMessageActionsProvider, type CanonicalMessageActions } from './canonical-message-actions.js';
+import type { ConversationPositionRequest, ConversationReadPosition } from '../runtime/local-app-conversation-history.js';
 
 const TRANSCRIPT_SWITCH_DELTA_THRESHOLD = 300;
 const TRANSCRIPT_SWITCH_WINDOW_MS = 600;
@@ -80,6 +82,10 @@ export type CanonicalTranscriptViewProps = {
   onIntentReturnToStage?: () => void;
   /** Called when the user wants to stop generating (shown inline in the typing bubble). */
   onStopGenerating?: () => void;
+  messageActions?: CanonicalMessageActions;
+  positionRequest?: ConversationPositionRequest | null;
+  onPositionChange?: (position: ConversationReadPosition) => void;
+  onUserNavigate?: () => void;
 };
 
 export function CanonicalTranscriptView({
@@ -128,6 +134,10 @@ export function CanonicalTranscriptView({
   onMessageContextMenu,
   onIntentReturnToStage,
   onStopGenerating,
+  messageActions,
+  positionRequest,
+  onPositionChange,
+  onUserNavigate,
 }: CanonicalTranscriptViewProps) {
   const copyResolved = resolveChatCopy(copy);
   const resolvedPendingAgentRoleLabel = pendingAgentRoleLabel ?? copyResolved.typingAgentRoleLabel;
@@ -136,8 +146,10 @@ export function CanonicalTranscriptView({
   const resolvedAgentName = agentName ?? copyResolved.bubbleAssistantLabel;
   const scrollRootRef = useRef<HTMLDivElement | null>(null);
   const contentRootRef = useRef<HTMLDivElement | null>(null);
+  const scrollMechanicsRef = useRef<CanonicalTranscriptScrollMechanics | null>(null);
   const downwardIntentRef = useRef({ distance: 0, lastAt: 0 });
   const nearBottomRef = useRef(true);
+  const readingPositionRef = useRef<ConversationReadPosition | null>(null);
   const lastScrollHeightRef = useRef(0);
   const initialPinRef = useRef(false);
   const initialPinReleaseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -166,6 +178,7 @@ export function CanonicalTranscriptView({
   const footerVisible = Boolean(footerContent) && !pendingFirstBeat && !loading && !error;
 
   const cancelInitialPin = useCallback(() => {
+    scrollMechanicsRef.current?.cancel();
     initialPinRef.current = false;
     if (initialPinReleaseTimerRef.current) {
       clearTimeout(initialPinReleaseTimerRef.current);
@@ -183,9 +196,16 @@ export function CanonicalTranscriptView({
       || (contentResized ? nearBottomRef.current : isNearBottom(root));
     nearBottomRef.current = nextNearBottom;
     onNearBottomChange?.(nextNearBottom);
-  }, [onNearBottomChange]);
+    const viewport = root.getBoundingClientRect();
+    const row = Array.from(root.querySelectorAll<HTMLElement>('[data-canonical-message-id]')).find(item => { const bounds = item.getBoundingClientRect(); return bounds.bottom > viewport.top && bounds.top < viewport.bottom; });
+    if (row?.dataset.canonicalMessageId) {
+      const position = { messageId: row.dataset.canonicalMessageId, offset: viewport.top - row.getBoundingClientRect().top };
+      readingPositionRef.current = position; onPositionChange?.(position);
+    }
+  }, [onNearBottomChange, onPositionChange]);
 
   const handleWheelCapture = useCallback((event: React.WheelEvent<HTMLDivElement>) => {
+    onUserNavigate?.();
     cancelInitialPin();
     if (event.deltaY < 0) nearBottomRef.current = false;
     else if (scrollRootRef.current && isNearBottom(scrollRootRef.current)) nearBottomRef.current = true;
@@ -208,8 +228,7 @@ export function CanonicalTranscriptView({
       downwardIntentRef.current = { distance: 0, lastAt: now };
       onIntentReturnToStage();
     }
-  }, [cancelInitialPin, onIntentReturnToStage]);
-
+  }, [cancelInitialPin, onIntentReturnToStage, onUserNavigate]);
   // Auto-scroll to bottom on initial mount (e.g. switching from stage to history)
   const didInitialScrollRef = useRef(false);
   useLayoutEffect(() => {
@@ -226,6 +245,7 @@ export function CanonicalTranscriptView({
       footerVisible: false,
       bottomInsetPx: undefined,
     };
+    readingPositionRef.current = null;
     return cancelInitialPin;
   }, [activeConversationId, cancelInitialPin]);
   useLayoutEffect(() => {
@@ -278,6 +298,31 @@ export function CanonicalTranscriptView({
     onNearBottomChange?.(nextNearBottom);
   }, [activeConversationId, contentBottomInsetPx, footerVisible, lastMessage?.id, lastMessage?.updatedAt, loading, messages.length, onNearBottomChange, pendingFirstBeat, showEmptyState]);
 
+  // An explicit position is newer than automatic follow and any retained read
+  // anchor. Route tail navigation through the actual virtualizer too, replacing
+  // its previous indexed target before later measurements reconcile scrolling.
+  useLayoutEffect(() => {
+    if (!positionRequest || !scrollRootRef.current) return;
+    cancelInitialPin();
+    readingPositionRef.current = null;
+    if (positionRequest.messageId !== null) {
+      nearBottomRef.current = false;
+      return;
+    }
+    const root = scrollRootRef.current;
+    didInitialScrollRef.current = true;
+    nearBottomRef.current = true;
+    initialPinRef.current = true;
+    if (scrollMechanicsRef.current) scrollMechanicsRef.current.toEnd();
+    else root.scrollTop = root.scrollHeight;
+    lastScrollHeightRef.current = root.scrollHeight;
+    initialPinReleaseTimerRef.current = setTimeout(() => {
+      if (initialPinRef.current) root.scrollTop = root.scrollHeight;
+      initialPinRef.current = false;
+      initialPinReleaseTimerRef.current = null;
+    }, INITIAL_TRANSCRIPT_PIN_SETTLE_MS);
+  }, [activeConversationId, positionRequest?.requestKey, positionRequest?.messageId, cancelInitialPin]);
+
   useLayoutEffect(() => {
     const root = scrollRootRef.current;
     const contentRoot = contentRootRef.current;
@@ -287,6 +332,9 @@ export function CanonicalTranscriptView({
     const observer = new ResizeObserver(() => {
       const preservingInitialPin = initialPinRef.current;
       if (!preservingInitialPin && !nearBottomRef.current) {
+        const position = readingPositionRef.current;
+        const row = position ? Array.from(root.querySelectorAll<HTMLElement>('[data-canonical-message-id]')).find(item => item.dataset.canonicalMessageId === position.messageId) : null;
+        if (position && row) root.scrollTop += row.getBoundingClientRect().top - root.getBoundingClientRect().top + position.offset;
         return;
       }
       root.scrollTop = root.scrollHeight;
@@ -311,7 +359,7 @@ export function CanonicalTranscriptView({
     return () => observer.disconnect();
   }, [onNearBottomChange, showEmptyState]);
 
-  return (
+  const transcript = (
     <div className="min-h-0 flex flex-1 overflow-hidden pl-6 pr-2 pt-0">
       <div
         ref={scrollRootRef}
@@ -324,7 +372,13 @@ export function CanonicalTranscriptView({
         data-active-chat-id={String(activeConversationId || '')}
         data-canonical-transcript-root="true"
         onScroll={handleScroll}
-        onPointerDownCapture={cancelInitialPin}
+        onPointerDownCapture={event => { cancelInitialPin(); if (event.target === event.currentTarget) onUserNavigate?.(); }}
+        onTouchMove={() => { cancelInitialPin(); nearBottomRef.current = false; onUserNavigate?.(); }}
+        onKeyDownCapture={event => {
+          if (!['PageUp', 'PageDown', 'ArrowUp', 'ArrowDown', 'Home', 'End'].includes(event.key)) return;
+          if (event.target instanceof Element && event.target.closest('input, textarea, select, [contenteditable="true"]')) return;
+          cancelInitialPin(); nearBottomRef.current = false; onUserNavigate?.();
+        }}
         onWheelCapture={handleWheelCapture}
         style={{
           overflowAnchor: 'none',
@@ -449,7 +503,9 @@ export function CanonicalTranscriptView({
           <TranscriptMessageGroups
             messages={messages}
             scrollRef={scrollRootRef}
+            scrollMechanicsRef={scrollMechanicsRef}
             copy={copy}
+            messageFocusRequest={positionRequest ?? undefined}
             renderMessageContent={renderMessageContent}
             renderMessageAvatar={renderMessageAvatar}
             renderMessageAccessory={renderMessageAccessory}
@@ -480,4 +536,5 @@ export function CanonicalTranscriptView({
       </div>
     </div>
   );
+  return messageActions ? <CanonicalMessageActionsProvider actions={messageActions} messages={messages} copy={copy} positionRequest={positionRequest}>{transcript}</CanonicalMessageActionsProvider> : transcript;
 }

@@ -234,6 +234,7 @@ describe('standard shell capabilities', () => {
       'local-app.conversationInterruptTurn',
       'local-app.conversationSubscribe',
       'local-app.conversationSnapshot',
+      'local-app.conversationMessageRead',
       'local-app.embodimentSnapshot',
       'local-app.embodimentSubscribe',
       'local-app.aiRealtimeOpen',

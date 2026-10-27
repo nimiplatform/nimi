@@ -2,6 +2,12 @@
 
 # Changelog
 
+## Unreleased — Canonical desktop message actions (breaking 0.x minor)
+
+Home Agent Chat and Zhiyu share contextual message actions, exact text quotations, bounded source navigation and a renderer-owned playback controller. Consumers mount useLocalAppConversationPlayback and LocalAppConversationPlayer outside transient menus and virtual message rows, and supply CanonicalTranscriptView.messageActions. The former LocalAppConversationVoiceButton export and row-owned audio implementation are removed; update callers directly instead of retaining a compatibility wrapper.
+
+Use the matching Runtime, SDK and native carrier with canonical quote/readMessage support. Quotation selectors, pending submission ownership and read-window watermarks must survive the full typed path; a read window never hydrates the live tail. This is source-development work for the next coordinated SDK/Kit minor; it does not publish packages or certify product acceptance.
+
 ## 0.22.0 — Realm media delivery (development)
 
 Agent introduction now separates `voiceSampleUrl` (original reference audio), `voiceSampleContentHash` / `voiceSampleMimeType` (verified original facts), and `voicePreviewUrl` (playback). Agent Center's reference-voice view exposes `previewUrl`; cloning continues to use the original and keys managed input by content hash, so renewing its URL does not change input identity. Rebuild native carriers with the matching protocol. Private media capabilities are omitted from durable account identity; Home uses one fenced `getMe` query for live profile/media display.

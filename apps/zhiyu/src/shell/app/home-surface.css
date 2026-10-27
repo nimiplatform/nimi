@@ -308,7 +308,8 @@
    elevations (e.g. the empty-state card's --nimi-elevation-floating) are not
    hard-clipped into rectangular slabs when the column fills the viewport. */
 .zhiyu-chat-canvas__transcript [data-canonical-transcript-width],
-.zhiyu-chat-canvas__composer [data-canonical-composer-width] {
+.zhiyu-chat-canvas__composer [data-canonical-composer-width],
+.zhiyu-chat-canvas__composer .zhiyu-chat-canvas__message-player {
   width: min(720px, calc(100% - 48px));
   max-width: min(720px, calc(100% - 48px));
   margin-right: auto;
@@ -316,7 +317,8 @@
 }
 
 .zhiyu-agent-chat__layout.is-side-closed .zhiyu-chat-canvas__transcript [data-canonical-transcript-width],
-.zhiyu-agent-chat__layout.is-side-closed .zhiyu-chat-canvas__composer [data-canonical-composer-width] {
+.zhiyu-agent-chat__layout.is-side-closed .zhiyu-chat-canvas__composer [data-canonical-composer-width],
+.zhiyu-agent-chat__layout.is-side-closed .zhiyu-chat-canvas__composer .zhiyu-chat-canvas__message-player {
   width: min(720px, calc(100% - 48px));
   max-width: min(720px, calc(100% - 48px));
   margin-right: auto;
@@ -804,7 +806,8 @@
   }
 
   .zhiyu-chat-canvas__transcript [data-canonical-transcript-width],
-  .zhiyu-chat-canvas__composer [data-canonical-composer-width] {
+  .zhiyu-chat-canvas__composer [data-canonical-composer-width],
+  .zhiyu-chat-canvas__composer .zhiyu-chat-canvas__message-player {
     width: calc(100% - 48px);
   }
 }

@@ -681,3 +681,10 @@ function createAppAiChatSessionMessageId(): string {
 export { useAgentActivityReferences, type AgentActivityReferencesState } from './runtime/agent-activity-references.js';
 
 export { useAgentIntroduction } from './runtime/agent-introduction.js';
+export { useLocalAppConversationPlayback, createLocalAppConversationPlayback } from './runtime/local-app-conversation-playback.js';
+export type { LocalAppPlaybackOptions, LocalAppPlaybackState, LocalAppConversationPlayback } from './runtime/local-app-conversation-playback.js';
+export { useLocalAppConversationQuote, createLocalAppConversationQuote } from './runtime/local-app-conversation-quote.js';
+export type { LocalAppConversationQuote, LocalAppConversationQuoteState, AgentQuoteDraft, AgentQuoteDraftRef } from './runtime/local-app-conversation-quote.js';
+export { useLocalAppConversationHistory, createLocalAppConversationHistory, projectConversationHistoryWindow } from './runtime/local-app-conversation-history.js';
+export type { ConversationReadPosition, ConversationPositionRequest, LocalAppConversationHistoryOptions } from './runtime/local-app-conversation-history.js';
+export { isLocalAppConversationAccessDenied } from './headless/local-app-conversation-access.js';

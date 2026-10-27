@@ -1,5 +1,7 @@
 import { Button } from '@nimiplatform/kit/ui';
+import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
 import type { NimiAppActivityRecord } from '@nimiplatform/kit/core/sdk-contract';
+import { useLayoutEffect, useRef } from 'react';
 
 export type AgentActivityReferencesProps = {
   readonly records: readonly NimiAppActivityRecord[];
@@ -10,6 +12,8 @@ export type AgentActivityReferencesProps = {
   readonly openFailed: boolean;
   readonly open: (record: NimiAppActivityRecord) => void;
   readonly retry: () => void;
+  /** A changed, defined key denotes explicit message navigation or scope change. */
+  readonly navigationKey?: string | number;
   readonly copy: {
     readonly title: string; readonly loading: string; readonly unavailable: string;
     readonly incomplete: string; readonly open: string; readonly opening: string;
@@ -20,17 +24,28 @@ export type AgentActivityReferencesProps = {
 /** A display of published App content, separate from canonical chat messages. */
 // @nimi-authority: rule.nimi.platform.core-protocol.p-actv-003
 export function AgentActivityReferences(props: AgentActivityReferencesProps) {
+  const detailsRef = useRef<HTMLDetailsElement>(null);
+  useLayoutEffect(() => {
+    const details = detailsRef.current;
+    if (props.navigationKey === undefined || !details) return;
+    const summary = details.querySelector('summary');
+    const restoreSummaryFocus = document.activeElement !== summary && details.contains(document.activeElement);
+    details.open = false;
+    if (restoreSummaryFocus) summary?.focus({ preventScroll: true });
+  }, [props.navigationKey]);
   if (!props.loading && !props.unavailable && props.records.length === 0) return null;
   return (
-    <section aria-label={props.copy.title} data-nimi-app-activity-references className="my-4 space-y-2 text-sm text-[var(--nimi-text-primary)]">
-      <p className="text-xs font-medium text-[var(--nimi-text-muted)]">{props.copy.title}</p>
+    <details ref={detailsRef} data-nimi-app-activity-references className="my-4 text-sm text-[var(--nimi-text-primary)]">
+      <summary className={`min-h-8 cursor-pointer rounded-[var(--nimi-radius-sm)] py-2 text-xs font-medium text-[var(--nimi-text-secondary)] ${FOCUS_RING_CLASS_NAME}`}>{props.copy.title}</summary>
+      <div className="space-y-2 pt-1">
       {props.loading ? <p role="status" className="text-xs text-[var(--nimi-text-muted)]">{props.copy.loading}</p> : null}
       {props.unavailable ? <div role="status" className="flex items-center gap-2 text-xs"><span>{props.copy.unavailable}</span><Button size="sm" tone="ghost" onClick={props.retry}>{props.copy.retry}</Button></div> : null}
       {props.records.slice(0, 3).map(record => <Reference key={record.activityId} record={record} {...props} />)}
       {props.records.length > 3 ? <details className="space-y-2"><summary className="cursor-pointer py-2 text-xs text-[var(--nimi-text-muted)]">{props.copy.more}</summary>{props.records.slice(3).map(record => <Reference key={record.activityId} record={record} {...props} />)}</details> : null}
       {props.incomplete && !props.loading && props.records.length > 0 ? <p className="text-xs text-[var(--nimi-text-muted)]">{props.copy.incomplete}</p> : null}
       {props.openFailed ? <p role="status" className="text-xs text-[var(--nimi-status-danger)]">{props.copy.openFailed}</p> : null}
-    </section>
+      </div>
+    </details>
   );
 }
 

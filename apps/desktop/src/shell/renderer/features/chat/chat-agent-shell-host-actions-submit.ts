@@ -50,9 +50,13 @@ export async function submitAgentConversationTurn(input: {
       conversationAnchorId,
       text,
       artifactIds: attachments.map((item) => item.artifactId),
+      ...(input.payload.quote && !input.payload.retryOfTurnId ? { quote: input.payload.quote } : {}),
       ...(input.payload.retryOfTurnId ? { retryOfTurnId: input.payload.retryOfTurnId } : {}),
     };
-    await host.submissionPersistence.prepare(submission);
+    await host.submissionPersistence.prepare(submission, {
+      quoteRevision: input.payload.quoteRevision,
+      textRevision: input.payload.textRevision,
+    });
     preparedRequestId = requestId;
     host.bindAttachments?.(requestId, input.payload.attachments);
     if (input.payload.canUpdateDraft?.() !== false) host.currentComposerTextRef.current = '';

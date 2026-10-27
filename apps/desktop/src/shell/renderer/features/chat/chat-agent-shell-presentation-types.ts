@@ -23,6 +23,8 @@ import type {
 import type { NimiLocalAppAgentIntroduction } from '@nimiplatform/sdk/app';
 
 export type UseAgentConversationPresentationInput = {
+  quoteSlot?: import('react').ReactNode;
+  submitDisabled?: boolean;
   activeTarget: AgentLocalTargetSnapshot | null;
   accountId: string | null;
   activeThreadId: string | null;

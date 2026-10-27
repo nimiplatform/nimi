@@ -137,7 +137,7 @@ export function ChatAgentModeContent({
         ...host.transcriptProps,
         footerContent: <>
           {host.transcriptProps?.footerContent}
-          <ChatAgentActivityReferences agentHandle={agentConversationSelection.agentHandle} />
+          <ChatAgentActivityReferences agentHandle={agentConversationSelection.agentHandle} navigationKey={host.transcriptProps?.positionRequest?.requestKey} />
         </>,
       }}
     />

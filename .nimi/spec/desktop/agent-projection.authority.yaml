@@ -31,7 +31,7 @@ units:
     kind: rule
     title: LocalAgent Conversation accepts typed user intent only
     modality: must
-    statement: Desktop submits canonical typed current-user LocalAgent intent through the same standard SDK and Runtime seam as every formal App, uses a session-scoped agentHandle as the only Agent selector and a Runtime-issued Conversation anchor only as a revalidated continuity fence, contains zero or one bounded text part plus zero or one Runtime image artifact reference with at least one part for durable turn send, and never attaches raw media bytes to Conversation operations, prompts, provider choices, route or resource overrides, Memory, Knowledge, credentials, Runtime proof, or caller-composed execution context.
+    statement: Desktop submits canonical typed current-user LocalAgent intent through the same standard SDK and Runtime seam as every formal App, uses a session-scoped agentHandle as the only Agent selector and a Runtime-issued Conversation anchor only as a revalidated continuity fence, contains zero or one bounded text part plus zero or one Runtime image artifact reference with at least one part for durable turn send and optionally one canonical message quotation selector validated and resolved by Runtime, and never attaches raw media bytes to Conversation operations, prompts, provider choices, route or resource overrides, Memory, Knowledge, credentials, Runtime proof, or caller-composed execution context.
     condition: Whenever Desktop starts or continues a LocalAgent Conversation.
     failure: Reject untyped, unauthorized, or context-bearing input before execution.
     relations:

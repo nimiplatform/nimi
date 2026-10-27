@@ -71,7 +71,10 @@ export async function startDesktopAgentRealtimeVoice(input: {
   readonly target: AgentLocalTargetSnapshot;
   readonly conversationAnchorId: string;
   readonly callbacks: AgentRealtimeVoiceCallbacks;
+  readonly signal?: AbortSignal;
+  readonly onSession?: (session: DesktopAgentRealtimeVoiceSession) => void;
 }): Promise<DesktopAgentRealtimeVoiceSession> {
+  if (input.signal?.aborted) throw new DOMException('Realtime opening canceled.', 'AbortError');
   if (!navigator.mediaDevices?.getUserMedia || typeof AudioContext === 'undefined') {
     throw new Error('Realtime microphone capture is unavailable on this device.');
   }
@@ -85,11 +88,17 @@ export async function startDesktopAgentRealtimeVoice(input: {
       autoGainControl: true,
     },
   });
+  if (input.signal?.aborted) {
+    media.getTracks().forEach(track => track.stop());
+    throw new DOMException('Realtime opening canceled.', 'AbortError');
+  }
   let audioContext: AudioContext | null = null;
   let processor: ScriptProcessorNode | null = null;
   let microphone: MediaStreamAudioSourceNode | null = null;
   let silentGain: GainNode | null = null;
   let closed = false;
+  let closeConfirmed = false;
+  let closePromise: Promise<void> | null = null;
   let inputFinished = false;
 	let opened: Awaited<ReturnType<typeof client.open>> | null = null;
   const abortController = new AbortController();
@@ -158,7 +167,11 @@ export async function startDesktopAgentRealtimeVoice(input: {
   };
 
   const close = async (reason = 'owner-close', propagateRemoteError = false) => {
-    if (closed) return;
+    if (closeConfirmed) return;
+    if (closePromise) {
+      try { await closePromise; } catch (error) { if (propagateRemoteError) throw error; }
+      return;
+    }
     const abnormalClose = [
       'input-device-ended',
       'input-backpressure',
@@ -182,25 +195,36 @@ export async function startDesktopAgentRealtimeVoice(input: {
     });
     closed = true;
     abortController.abort();
-    await stopMedia();
-    const current = opened;
-    opened = null;
-    let remoteCloseError: unknown = null;
-    if (current) {
-	  await client.close({
-        realtimeSessionId: current.realtimeSessionId,
-        generation: current.generation,
-        agentHandle: resolveAgentHandle(input.target),
-      }).catch((error) => { remoteCloseError = error; });
-    }
-    input.callbacks.onAmplitude(0);
-    input.callbacks.onOutputActive(false);
-    input.callbacks.onClosed();
-    if (propagateRemoteError && remoteCloseError) throw remoteCloseError;
+    closePromise = (async () => {
+      await stopMedia();
+      const current = opened;
+      if (current) {
+        const result = await client.close({ realtimeSessionId: current.realtimeSessionId, generation: current.generation, agentHandle });
+        if (!result.ack.ok || result.control.lifecycle !== 'closed'
+          || result.control.realtimeSessionId !== current.realtimeSessionId || result.control.generation !== current.generation) {
+          throw new Error('Realtime session closure is not confirmed. End realtime voice again to retry.');
+        }
+      }
+      opened = null;
+      closeConfirmed = true;
+      input.signal?.removeEventListener('abort', abortOpening);
+      input.callbacks.onAmplitude(0);
+      input.callbacks.onOutputActive(false);
+      input.callbacks.onClosed();
+    })();
+    try { await closePromise; }
+    catch (error) {
+      // Keep the exact session selector for an explicit close retry. Local
+      // capture/playback is already stopped, but owner closure is unconfirmed.
+      if (propagateRemoteError) throw error;
+      input.callbacks.onError(error);
+    } finally { closePromise = null; }
   };
 
   const interruptCurrentOutputAndClose = async (reason: 'owner-stop' | 'barge-in' | 'event-stream-failed') => {
-    if (closed || outputTeardownPending) return;
+    if (closeConfirmed) return;
+    if (closed) return close(reason, true);
+    if (outputTeardownPending) return;
     outputTeardownPending = true;
     const current = opened;
     const outputTrackId = activeOutputTrackId;
@@ -208,7 +232,7 @@ export async function startDesktopAgentRealtimeVoice(input: {
     // output track can finish before the request terminal reaches this
     // consumer, so provider playback state alone cannot release the turn.
     const interruptAgentTurn = !turnTerminal;
-    await interruptAgentRealtimeOutputBeforeClose({
+    try { await interruptAgentRealtimeOutputBeforeClose({
       outputTrackId,
       outputTerminal: turnTerminal,
       interruptAgentTurn,
@@ -224,7 +248,7 @@ export async function startDesktopAgentRealtimeVoice(input: {
         });
       },
       close: () => close(reason, true),
-    });
+    }); } finally { outputTeardownPending = false; }
   };
 
   const queueAudioFrame = (frame: Uint8Array, trackId: string, currentUtteranceId: string, frameSequence: number) => {
@@ -273,6 +297,20 @@ export async function startDesktopAgentRealtimeVoice(input: {
 	}
   };
 
+  const session: DesktopAgentRealtimeVoiceSession = {
+    finishInput,
+    close: () => close('owner-close', true),
+    stop: () => interruptCurrentOutputAndClose('owner-stop'),
+  };
+  function abortOpening() {
+    if (opened) { void close('owner-close'); return; }
+    // An in-flight open must settle before it can be closed by its owner ID.
+    closed = true;
+    abortController.abort();
+    void stopMedia();
+  }
+  input.signal?.addEventListener('abort', abortOpening, { once: true });
+
   try {
 	opened = await client.open({
       agentHandle,
@@ -286,6 +324,8 @@ export async function startDesktopAgentRealtimeVoice(input: {
       },
 	  turnDetection: 'manual',
     });
+    input.onSession?.(session);
+    if (closed || input.signal?.aborted) { await close('owner-close', true); return session; }
     if (!opened.realtimeSessionId || !opened.generation
       || ![16_000, 24_000].includes(opened.negotiatedInputAudio?.sampleRateHz || 0)
       || opened.negotiatedInputAudio?.codec !== 'pcm-s16le'
@@ -298,6 +338,7 @@ export async function startDesktopAgentRealtimeVoice(input: {
 
     audioContext = new AudioContext({ latencyHint: 'interactive' });
     await audioContext.resume();
+    if (closed || input.signal?.aborted) { await close('owner-close', true); return session; }
     microphone = audioContext.createMediaStreamSource(media);
     const inputDevice = media.getAudioTracks()[0];
     if (!inputDevice) {
@@ -349,6 +390,7 @@ export async function startDesktopAgentRealtimeVoice(input: {
           generation: session.generation,
           agentHandle,
 		});
+        if (closed || abortController.signal.aborted) { await subscription.cancel().catch(() => undefined); return; }
 		const cancelSubscription = () => void subscription.cancel().catch(() => undefined);
 		abortController.signal.addEventListener('abort', cancelSubscription, { once: true });
 		try {
@@ -429,18 +471,14 @@ export async function startDesktopAgentRealtimeVoice(input: {
       }
     })();
   } catch (error) {
-    await close('open-failed');
+    if (!closed || !opened) await close('open-failed');
     throw error;
   }
 
-  return {
-    finishInput,
-    close: () => close('owner-close'),
-    stop: () => interruptCurrentOutputAndClose('owner-stop'),
-  };
+  return session;
 
   function schedulePcm16Playback(outputTrackId: string, bytes: Uint8Array, sampleRate: number) {
-    if (!audioContext || bytes.byteLength === 0 || bytes.byteLength % 2 !== 0 || sampleRate !== OUTPUT_SAMPLE_RATE) return;
+    if (closed || !audioContext || bytes.byteLength === 0 || bytes.byteLength % 2 !== 0 || sampleRate !== OUTPUT_SAMPLE_RATE) return;
     if (!activeOutputTrackId) {
       activeOutputTrackId = outputTrackId;
       input.callbacks.onOutputActive(true);

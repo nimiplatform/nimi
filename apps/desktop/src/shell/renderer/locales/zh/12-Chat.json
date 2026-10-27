@@ -724,7 +724,7 @@
   "agentSubmissionCheck": "只查看对话",
   "agentSubmissionRecover": "继续上次发送",
   "agentSubmissionKeepAsDraft": "把文字放回输入框",
-  "agentSubmissionDraftNotice": "把文字放回输入框或关闭此提示，都不能撤回已经开始的回复；之前的附件也不会带入新草稿。",
+  "agentSubmissionDraftNotice": "把文字放回输入框或关闭此提示，都不能撤回已经开始的回复；之前的附件和引用不会带入新草稿。",
   "followUpPending": "计划在 {{time}} 续聊",
   "followUpCancel": "取消这次续聊",
   "followUpUnavailable": "暂时无法确认续聊状态，仍可正常聊天。",
@@ -754,5 +754,11 @@
   "agentSubmissionSaveLimit": "消息尚未发出：草稿已超出存储限额。你写的内容仍保留在输入框中，请删减后再试，或先复制出来再调整。",
   "followUpManage": "管理生活与联系",
   "downloadOriginal": "下载原图",
-  "downloadFailed": "原图下载失败，请重试。"
+  "downloadFailed": "原图下载失败，请重试。",
+  "agentQuoteNotReady": "请等待引用准备完成，或取消引用后再发送。",
+  "agentSourceLoading": "正在定位原文…",
+  "agentSourceUnavailable": "暂时无法读取原文。",
+  "agentReturnReading": "返回刚才位置",
+  "agentReturnLatest": "回到最新消息",
+  "agentSubmissionQuoteRetained": "原请求包含一条引用。"
 }

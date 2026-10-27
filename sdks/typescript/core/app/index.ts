@@ -74,6 +74,8 @@ export {
 } from './runtime-account-realm.js';
 export {
   createNimiLocalAppClient,
+  validateNimiLocalAppConversationQuoteInput,
+  projectNimiLocalAppConversationMessageReadResult,
   createNimiLocalAppAIConsumptionRuntimeClient,
   createNimiLocalAppRuntimeScenarioJobClient,
   createNimiLocalAppVoiceAssetsRuntimeClient,
@@ -250,6 +252,11 @@ export type {
   NimiLocalAppRevision,
   NimiLocalAppTimestamp,
   NimiLocalAppConversationAction,
+  NimiLocalAppConversationQuoteInput,
+  NimiLocalAppConversationQuote,
+  NimiLocalAppConversationMessageReadInput,
+  NimiLocalAppConversationMessageReadResult,
+  NimiLocalAppConversationMessageReadWindow,
   NimiLocalAppConversationClient,
   NimiLocalAppConversationEvent,
   NimiLocalAppConversationMessage,

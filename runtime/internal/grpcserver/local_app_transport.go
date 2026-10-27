@@ -76,6 +76,7 @@ const (
 	protectedInterruptConversationTurnMethod      = "/nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn"
 	protectedSubscribeConversationMethod          = "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents"
 	protectedConversationSnapshotMethod           = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot"
+	protectedConversationMessageReadMethod        = "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationMessage"
 	protectedEmbodimentSnapshotMethod             = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppEmbodimentSnapshot"
 	protectedSubscribeEmbodimentEventsMethod      = "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents"
 	protectedGetSharedAIConfigMethod              = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig"
@@ -206,6 +207,7 @@ var protectedLocalAppUnaryMethodPolicies = map[string]protectedLocalAppMethodPol
 	protectedRenderConversationVoiceMethod:        localAppSessionMethodPolicy(),
 	protectedInterruptConversationTurnMethod:      localAppSessionMethodPolicy(),
 	protectedConversationSnapshotMethod:           localAppSessionMethodPolicy(),
+	protectedConversationMessageReadMethod:        localAppSessionMethodPolicy(),
 	protectedEmbodimentSnapshotMethod:             localAppSessionMethodPolicy(),
 	protectedGetSharedAIConfigMethod:              localAppSessionMethodPolicy(),
 	protectedOverwriteSharedAIConfigMethod:        localAppSessionMethodPolicy(),
@@ -720,6 +722,8 @@ func protectedLocalAppUnaryIngress(method string, request any) localappop.Ingres
 		return localappop.IngressConversationTurnInterrupt
 	case protectedConversationSnapshotMethod:
 		return localappop.IngressConversationSnapshotGet
+	case protectedConversationMessageReadMethod:
+		return localappop.IngressConversationMessageRead
 	case protectedEmbodimentSnapshotMethod:
 		return localappop.IngressAgentEmbodimentSnapshotGet
 	case protectedGetSharedAIConfigMethod:
@@ -787,7 +791,7 @@ func protectedLocalAppOwnerEnabled(method string, request any, ingress localappo
 		protectedAvatarHostTargetRevalidateMethod,
 		protectedOpenConversationMethod, protectedSendConversationTurnMethod,
 		protectedUploadConversationAttachmentMethod, protectedReadConversationArtifactMethod, protectedTranscribeConversationVoiceMethod, protectedRenderConversationVoiceMethod,
-		protectedInterruptConversationTurnMethod, protectedConversationSnapshotMethod,
+		protectedInterruptConversationTurnMethod, protectedConversationSnapshotMethod, protectedConversationMessageReadMethod,
 		protectedEmbodimentSnapshotMethod,
 		protectedGetSharedAIConfigMethod, protectedOverwriteSharedAIConfigMethod, protectedListSharedAIConfigOptionsMethod,
 		protectedAgentManagerSnapshotMethod,

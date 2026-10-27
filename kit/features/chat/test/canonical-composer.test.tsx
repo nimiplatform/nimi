@@ -2,6 +2,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { CanonicalComposer } from '../src/components/canonical-composer.js';
+import { getMessageInteractionCopy } from '../src/message-interaction-copy.js';
 
 (
   globalThis as typeof globalThis & {
@@ -42,6 +43,20 @@ async function renderComposer(props: Record<string, unknown> = {}) {
 }
 
 describe('CanonicalComposer', () => {
+  it.each([
+    ['idle', '录制语音消息', null],
+    ['recording', '发送录音', '取消录音'],
+    ['transcribing', '正在转写录音…', '取消转写'],
+    ['playing', '正在播放语音回复', '停止语音回复'],
+  ] as const)('localizes the %s voice controls through shared copy', async (status, primaryLabel, cancelLabel) => {
+    const target = await renderComposer({ copy: getMessageInteractionCopy('zh-CN'), voiceState: { status, onToggle: vi.fn(), onCancel: vi.fn() } });
+    const primary = target.querySelector<HTMLButtonElement>(`[aria-label="${primaryLabel}"]`);
+    expect(primary).toBeTruthy(); expect(primary?.title).toBe(primaryLabel);
+    if (cancelLabel) {
+      const cancel = target.querySelector<HTMLButtonElement>(`[aria-label="${cancelLabel}"]`);
+      expect(cancel?.textContent).toBe('取消'); expect(cancel?.title).toBe(cancelLabel);
+    }
+  });
   it('keeps the default English send label', async () => {
     const target = await renderComposer();
     const sendButton = target.querySelector('button[type="submit"]');

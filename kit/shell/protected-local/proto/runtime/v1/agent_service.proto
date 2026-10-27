@@ -655,6 +655,22 @@ message SendLocalAppConversationTurnRequest {
   optional string retry_of_turn_id = 7;
   reserved 8;
   reserved "timezone";
+  LocalAppConversationQuoteIntent quote = 9;
+}
+message LocalAppConversationQuoteIntent {
+  string source_message_id = 1;
+  string format = 2;
+  uint32 start_byte = 3;
+  uint32 end_byte = 4;
+}
+message LocalAppConversationQuote {
+  string source_message_id = 1;
+  LocalAppConversationMessageRole source_role = 2;
+  bool source_partial = 3;
+  string format = 4;
+  uint32 start_byte = 5;
+  uint32 end_byte = 6;
+  string text = 7;
 }
 message SendLocalAppConversationTurnResponse {
   string turn_id = 1;
@@ -726,6 +742,27 @@ message GetLocalAppConversationSnapshotRequest {
   string agent_handle = 1;
   string conversation_anchor_id = 2;
 }
+message ReadLocalAppConversationMessageRequest {
+  string agent_handle = 1;
+  string conversation_anchor_id = 2;
+  string message_id = 3;
+}
+message LocalAppConversationMessageWindow {
+  repeated LocalAppConversationMessage messages = 1;
+  repeated LocalAppConversationTurn turns = 2;
+  repeated LocalAppConversationAction actions = 3;
+  repeated LocalAppConversationVoice voices = 4;
+  bool truncated_before = 5;
+  bool truncated_after = 6;
+}
+message ReadLocalAppConversationMessageResponse {
+  string conversation_anchor_id = 1;
+  uint64 read_watermark = 2;
+  LocalAppConversationMessage message = 3;
+  optional string quote_text = 4;
+  optional string quote_format = 5;
+  LocalAppConversationMessageWindow window = 6;
+}
 
 enum LocalAppConversationMessageRole {
   LOCAL_APP_CONVERSATION_MESSAGE_ROLE_UNSPECIFIED = 0;
@@ -743,6 +780,7 @@ message LocalAppConversationMessage {
   // Only a saved assistant text prefix may be partial. User input admission
   // and complete replies are separate durable facts.
   bool partial = 6;
+  LocalAppConversationQuote quote = 7;
 }
 message LocalAppConversationTextPart { string text = 1; }
 enum LocalAppConversationMediaKind {
@@ -1236,6 +1274,7 @@ service RuntimeAgentService {
   rpc InterruptLocalAppConversationTurn(InterruptLocalAppConversationTurnRequest) returns (InterruptLocalAppConversationTurnResponse);
   rpc SubscribeLocalAppConversationEvents(SubscribeLocalAppConversationEventsRequest) returns (stream LocalAppConversationEvent);
   rpc GetLocalAppConversationSnapshot(GetLocalAppConversationSnapshotRequest) returns (GetLocalAppConversationSnapshotResponse);
+  rpc ReadLocalAppConversationMessage(ReadLocalAppConversationMessageRequest) returns (ReadLocalAppConversationMessageResponse);
   rpc CancelLocalAppConversationFollowUp(CancelLocalAppConversationFollowUpRequest) returns (CancelLocalAppConversationFollowUpResponse);
   rpc OpenLocalAppAgentRealtime(OpenLocalAppAgentRealtimeRequest) returns (OpenLocalAppAgentRealtimeResponse);
   rpc AppendLocalAppAgentRealtimeInput(AppendLocalAppAgentRealtimeInputRequest) returns (AppendLocalAppAgentRealtimeInputResponse);

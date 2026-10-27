@@ -395,6 +395,9 @@ func publicChatEligibleCommittedTranscript(committed []publicChatCommittedTransc
 
 func publicChatCommittedTranscriptInputText(turn publicChatCommittedTranscriptTurn) string {
 	inputText := turn.InputText
+	if turn.InputQuote != nil {
+		inputText = conversationQuoteContext(turn.InputQuote) + "\n\n" + inputText
+	}
 	if isProactiveOrigin(turn.Origin) {
 		inputText = "Runtime-admitted follow-up instruction: " + inputText
 	}
@@ -483,7 +486,7 @@ func publicChatAgentTurnCurrentInput(messages []publicChatMessagePayload, attach
 			ArtifactRef: attachment.ArtifactID,
 		})
 	}
-	return agentTurnCurrentUserInput{Text: text, Media: media}, nil
+	return agentTurnCurrentUserInput{Text: text, Media: media, Quote: clonePublicChatQuote(messages[0].quote)}, nil
 }
 
 func publicChatAgentTurnCapabilities(actions publicChatAvailableActions) []agentTurnCapabilityInput {

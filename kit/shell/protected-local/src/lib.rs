@@ -161,6 +161,8 @@ pub use carrier::{
     LocalAppConversationEvent, LocalAppConversationEventKind, LocalAppConversationInputPart,
     LocalAppConversationInterruptRequest, LocalAppConversationInterruptResult,
     LocalAppConversationMessage, LocalAppConversationMessageRole, LocalAppConversationOpenRequest,
+    LocalAppConversationQuoteInput, LocalAppConversationQuote,
+    LocalAppConversationMessageReadRequest, LocalAppConversationMessageReadResult, LocalAppConversationMessageWindow,
     LocalAppConversationOpenResult, LocalAppConversationSendRequest,
     LocalAppConversationSendResult, LocalAppConversationSnapshot,
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,

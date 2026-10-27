@@ -1,4 +1,5 @@
 import type { NimiLocalAppConversationFollowUpCancelInput, } from '@nimiplatform/kit/core/sdk-contract';
+import { validateNimiLocalAppConversationQuoteInput, projectNimiLocalAppConversationMessageReadResult, type NimiLocalAppConversationQuoteInput } from '@nimiplatform/kit/core/sdk-contract';
 import { createNimiContentRefusalObserver, createNimiScenarioJobRefusalObserver, getNimiContentRefusalPresentationEpoch, observeNimiSubmittedJob, rememberNimiScenarioJobSubmission, reportNimiContentRefusal } from './content-refusal.js';
 import { RuntimeReasonCode } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppSpeechAlignment } from '@nimiplatform/kit/core/sdk-contract';
@@ -391,8 +392,8 @@ export type NimiLocalAppPersonaCharacterListOwnedInput = {
 };
 
 type ConversationSendContent =
-  | { readonly parts: readonly ({ readonly kind: 'text'; readonly text: string } | { readonly kind: 'artifact-ref'; readonly artifactId: string })[]; readonly retryOfTurnId?: never }
-  | { readonly retryOfTurnId: string; readonly parts?: never };
+  | { readonly parts: readonly ({ readonly kind: 'text'; readonly text: string } | { readonly kind: 'artifact-ref'; readonly artifactId: string })[]; readonly quote?: NimiLocalAppConversationQuoteInput; readonly retryOfTurnId?: never }
+  | { readonly retryOfTurnId: string; readonly parts?: never; readonly quote?: never };
 type ConversationSendInput = NimiLocalAppConversationScopeInput & { readonly requestId: string } & ConversationSendContent;
 
 export type NimiLocalAppConversationScopeInput = {
@@ -589,6 +590,7 @@ export type NimiLocalAppStandardShellSurface = {
   readonly integration: NimiLocalAppIntegrationShell;
   readonly agentConfigure: NimiLocalAppAgentConfigureShellSurface;
   readonly conversation: {
+    readonly readMessage: (input: NimiLocalAppConversationScopeInput & { readonly messageId: string }) => Promise<JsonObject>;
     readonly cancelFollowUp:(input:NimiLocalAppConversationFollowUpCancelInput)=>Promise<JsonObject>;
     readonly open: (input: {
       readonly agentHandle: string;
@@ -788,6 +790,7 @@ export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardSh
       interruptTurn: interruptNimiLocalAppConversationTurn,
       subscribe: subscribeNimiLocalAppConversation,
       snapshot: getNimiLocalAppConversationSnapshot,
+      readMessage: readNimiLocalAppConversationMessage,
     },
     embodiment: {
       snapshot: getNimiLocalAppEmbodimentSnapshot,
@@ -1700,7 +1703,7 @@ export function openNimiLocalAppConversation(input: {
 export function sendNimiLocalAppConversationTurn(input: ConversationSendInput): Promise<JsonObject> {
   const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSendTurn'];
   const regenerate = input?.retryOfTurnId !== undefined;
-  assertExactInput(input, ['agentHandle', 'conversationAnchorId', 'requestId', regenerate ? 'retryOfTurnId' : 'parts'], command);
+  assertExactInput(input, ['agentHandle', 'conversationAnchorId', 'requestId', regenerate ? 'retryOfTurnId' : 'parts', ...(!regenerate && input.quote !== undefined ? ['quote' as const] : [])], command);
   const scope = {
     agentHandle: requiredText(input.agentHandle, 'agentHandle', command, MAX_IDENTIFIER_LENGTH),
     conversationAnchorId: requiredText(input.conversationAnchorId, 'conversationAnchorId', command, MAX_IDENTIFIER_LENGTH),
@@ -1708,7 +1711,18 @@ export function sendNimiLocalAppConversationTurn(input: ConversationSendInput): 
   };
   return invokeLocalAppRecord(command, regenerate
     ? { ...scope, retryOfTurnId: requiredText(input.retryOfTurnId, 'retryOfTurnId', command, MAX_IDENTIFIER_LENGTH) }
-    : { ...scope, parts: parseConversationInputParts(input.parts, command) });
+    : { ...scope, parts: parseConversationInputParts(input.parts, command), ...(input.quote !== undefined ? { quote: { ...validateNimiLocalAppConversationQuoteInput(input.quote) } } : {}) });
+}
+
+// @nimi-authority: rule.nimi.runtime.conversation-message-interaction.message-read
+export function readNimiLocalAppConversationMessage(input: NimiLocalAppConversationScopeInput & { readonly messageId: string }): Promise<JsonObject> {
+  const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationMessageRead'];
+  const scope = identifiers(input, ['agentHandle', 'conversationAnchorId', 'messageId'], command);
+  return invokeChecked(command, { payload: scope }, value => {
+    const result = projectNimiLocalAppConversationMessageReadResult(value);
+    if (result.conversationAnchorId !== scope.conversationAnchorId || result.message.messageId !== scope.messageId) throw new Error(`${command}: message read identity is invalid`);
+    return result as unknown as JsonObject;
+  });
 }
 
 export function uploadNimiLocalAppConversationAttachment(
@@ -2534,7 +2548,7 @@ function parseConversationSnapshot(value: unknown, command: string): JsonObject 
   const turns = record.turns.map((value) => parseConversationTurn(value, command));
   const messages = record.messages.map((value) => parseConversationMessage(value, command, (text) => {
     textBytes += new TextEncoder().encode(text).byteLength;
-    if (textBytes > 1024 * 1024 + 128 * 1024) throw new Error(`${command}: conversation snapshot is too large`);
+    if (textBytes > 1212416) throw new Error(`${command}: conversation snapshot is too large`);
   }));
   const actions = record.actions.map((value) => parseConversationAction(value, command));
   const voices = record.voices.map((value) => parseConversationVoice(value, command));
@@ -2563,7 +2577,7 @@ function parseConversationMessage(
   observeText: (text: string) => void = () => {},
 ): JsonObject {
   const message = assertRecord(value, `${command} returned invalid conversation message`);
-  assertProjectionKeys(message, ['messageId', 'turnId', 'role', 'parts', 'partial'], command, 'conversation message');
+  assertProjectionKeys(message, ['messageId', 'turnId', 'role', 'parts', 'partial', 'quote'], command, 'conversation message');
   if (typeof message.partial !== 'boolean' || (message.role !== 'user' && message.role !== 'assistant' && message.role !== 'app')
     || !Array.isArray(message.parts) || message.parts.length < 1 || message.parts.length > 2) {
     throw new Error(`${command}: conversation message is invalid`);
@@ -2574,7 +2588,11 @@ function parseConversationMessage(
     const part = assertRecord(value, `${command} returned invalid conversation message part`);
     if (part.kind === 'text') {
       assertProjectionKeys(part, ['kind', 'text'], command, 'conversation text part');
-      const text = message.partial === true && typeof part.text === 'string' && part.text.length>0 && !part.text.includes('\0') ? part.text : parseRequiredString(part.text, 'text', command);
+      if (typeof part.text !== 'string' || !part.text || part.text.includes('\0')
+        || (!message.partial && !part.text.trim()) || new TextEncoder().encode(part.text).byteLength > 65536) {
+        throw new Error(`${command}: conversation text part is invalid`);
+      }
+      const text = part.text;
       textCount += 1;
       observeText(text);
       return Object.freeze({ kind: 'text', text });
@@ -2607,13 +2625,28 @@ function parseConversationMessage(
     || (message.role === 'assistant' && textCount === 1 && artifactCount === 1)) {
     throw new Error(`${command}: conversation message cardinality is invalid`);
   }
+  const quote = message.quote === null ? null : parseConversationQuote(message.quote, command);
+  if (quote) { observeText(quote.text as string); observeText(quote.sourceMessageId as string); observeText(quote.format as string); }
   return Object.freeze({
     messageId: parseRequiredString(message.messageId, 'messageId', command),
     turnId: parseRequiredString(message.turnId, 'turnId', command),
     role: message.role,
     partial: message.partial,
     parts: Object.freeze(parts),
+    quote,
   }) as JsonObject;
+}
+
+function parseConversationQuote(value: unknown, command: string): JsonObject {
+  const record = assertRecord(value, `${command}: conversation quote is invalid`);
+  assertProjectionKeys(record, ['sourceMessageId', 'sourceRole', 'sourcePartial', 'format', 'startByte', 'endByte', 'text'], command, 'conversation quote');
+  const range = validateNimiLocalAppConversationQuoteInput({ sourceMessageId: record.sourceMessageId, format: record.format, startByte: record.startByte, endByte: record.endByte });
+  if (!['user', 'assistant', 'app'].includes(String(record.sourceRole)) || typeof record.sourcePartial !== 'boolean'
+    || typeof record.text !== 'string' || !record.text || record.text.includes('\0') || Array.from(record.text).length > 4096
+    || new TextEncoder().encode(record.text).byteLength !== range.endByte - range.startByte) {
+    throw new Error(`${command}: conversation quote is invalid`);
+  }
+  return Object.freeze({ ...range, sourceRole: record.sourceRole as string, sourcePartial: record.sourcePartial, text: record.text });
 }
 
 function parseConversationTurn(value: unknown, command: string): JsonObject {

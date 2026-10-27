@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type ClipboardEvent as ReactClipboardEvent, type ReactNode } from 'react';
-import { CanonicalComposer } from '@nimiplatform/kit/features/chat/components/canonical-composer';
+import { CanonicalComposer, getMessageInteractionCopy } from '@nimiplatform/kit/features/chat/ui';
 import type { ChatComposerVoiceState } from '@nimiplatform/kit/features/chat/types';
 import { useTranslation } from 'react-i18next';
 import type { InlineFeedbackState } from '../../ui/feedback/inline-feedback';
@@ -294,6 +294,8 @@ function AgentAttachmentStrip(props: {
 }
 
 export function AgentCanonicalComposer(props: {
+  quoteSlot?: ReactNode;
+  submitDisabled?: boolean;
   composerKey: string;
   initialText: string;
   disabled: boolean;
@@ -316,6 +318,8 @@ export function AgentCanonicalComposer(props: {
   widthPositionClassName?: string;
 }) {
   const { t } = useTranslation();
+  const { i18n } = useTranslation();
+  const messageCopy = useMemo(() => getMessageInteractionCopy(i18n.resolvedLanguage ?? i18n.language), [i18n.resolvedLanguage, i18n.language]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const pickerResolverRef = useRef<((attachments: readonly PendingAttachment[] | null) => void) | null>(null);
   const [composerText, setComposerText] = useState(props.initialText);
@@ -467,6 +471,7 @@ export function AgentCanonicalComposer(props: {
         disabled={props.disabled}
         placeholder={props.placeholder}
         sendLabel={t('Chat.send')}
+        copy={messageCopy}
         onTextChange={handleComposerTextChange}
         attachmentAdapter={attachmentAdapter}
         attachments={props.pendingAttachments}
@@ -501,6 +506,8 @@ export function AgentCanonicalComposer(props: {
           />
         ) : null}
         leadingSlot={props.leadingSlot}
+        quoteSlot={props.quoteSlot}
+        submitDisabled={props.submitDisabled}
       />
       <input
         ref={fileInputRef}

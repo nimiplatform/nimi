@@ -98,10 +98,68 @@ export type ChatCopy = {
   markdownCopyLabel?: string;
   /** ChatMarkdownRenderer code block copied confirmation label. */
   markdownCopiedLabel?: string;
+  composerRemoveAttachmentLabel?: (name: string | number) => string;
   /** ChatComposer voice recording/transcription cancel button label. */
   composerCancelLabel?: string;
+  composerVoiceInputLabel?: string;
+  composerRecordVoiceLabel?: string;
+  composerSendRecordingLabel?: string;
+  composerPlayingVoiceLabel?: string;
+  composerTranscribingLabel?: string;
+  composerStopVoiceLabel?: string;
+  composerCancelTranscriptionLabel?: string;
+  composerCancelRecordingLabel?: string;
   /** ConversationThreadList empty-state title. */
   threadListEmptyTitle?: string;
+  messageActionsLabel?: string;
+  messageMoreLabel?: string;
+  messageCopyLabel?: string;
+  messageCopySelectionLabel?: string;
+  messageCopiedLabel?: string;
+  messageCopyFailedLabel?: string;
+  messageQuoteLabel?: string;
+  messageQuotePendingLabel?: string;
+  messageSelectionChangedLabel?: string;
+  messageSelectionMultipleLabel?: string;
+  messageNavigationLabel?: string;
+  messageKeyboardHelpLabel?: string;
+  messageKeyboardHelp?: string;
+  voicePlayLabel?: string;
+  voiceReadLabel?: string;
+  voicePauseLabel?: string;
+  voiceResumeLabel?: string;
+  voiceStopLabel?: string;
+  voiceStopWaitingLabel?: string;
+  voiceCloseLabel?: string;
+  voicePreparingLabel?: string;
+  voiceProgressLabel?: string;
+  voicePlaybackFailedLabel?: string;
+  voiceReadFailedLabel?: string;
+  voiceGenerationFailedLabel?: string;
+  voiceResultUnknownLabel?: string;
+  voiceRetryPlaybackLabel?: string;
+  voiceRegenerateLabel?: string;
+  voiceRefreshLabel?: string;
+  voiceContinueRequestLabel?: string;
+  voiceContinueRequestHint?: string;
+  voiceRealtimeBlockedLabel?: string;
+  voiceLocateLabel?: string;
+  voiceSettingsLabel?: string;
+  quotePreparingLabel?: string;
+  quoteFailedLabel?: string;
+  quoteCancelLabel?: string;
+  quotePartialLabel?: string;
+  quoteSourceLabel?: string;
+  quoteReturnLabel?: string;
+  quoteTooLongLabel?: string;
+  quoteChangedLabel?: string;
+  quoteReadFailedLabel?: string;
+  quoteRetryLabel?: string;
+  quoteAppSourceLabel?: string;
+  historyLoadingLabel?: string;
+  historyFailedLabel?: string;
+  historyRetryLabel?: string;
+  historyLatestLabel?: string;
 };
 
 export const DEFAULT_CHAT_COPY: Required<ChatCopy> = Object.freeze({
@@ -151,8 +209,66 @@ export const DEFAULT_CHAT_COPY: Required<ChatCopy> = Object.freeze({
   streamInterruptedLabel: '[Interrupted]',
   markdownCopyLabel: 'Copy',
   markdownCopiedLabel: 'Copied!',
+  composerRemoveAttachmentLabel: (name) => `Remove attachment ${name}`,
   composerCancelLabel: 'Cancel',
+  composerVoiceInputLabel: 'Voice input',
+  composerRecordVoiceLabel: 'Record a voice message',
+  composerSendRecordingLabel: 'Send recording',
+  composerPlayingVoiceLabel: 'Playing voice reply',
+  composerTranscribingLabel: 'Transcribing recording…',
+  composerStopVoiceLabel: 'Stop voice response',
+  composerCancelTranscriptionLabel: 'Cancel transcription',
+  composerCancelRecordingLabel: 'Cancel recording',
   threadListEmptyTitle: 'No conversations yet.',
+  messageActionsLabel: 'Message actions',
+  messageMoreLabel: 'More actions',
+  messageCopyLabel: 'Copy text',
+  messageCopySelectionLabel: 'Copy selected text',
+  messageCopiedLabel: 'Copied',
+  messageCopyFailedLabel: 'Could not copy. Select the text and try again.',
+  messageQuoteLabel: 'Reply with quote',
+  messageQuotePendingLabel: 'Available when this reply has been saved.',
+  messageSelectionChangedLabel: 'The text selection changed. Select the passage again.',
+  messageSelectionMultipleLabel: 'Select text from one message to quote it.',
+  messageNavigationLabel: 'Conversation messages',
+  messageKeyboardHelpLabel: 'Message keyboard shortcuts',
+  messageKeyboardHelp: 'Page Up and Page Down move between messages. Enter opens actions. Escape returns to the composer. Tab moves through links and controls in the current message.',
+  voicePlayLabel: 'Play voice',
+  voiceReadLabel: 'Read aloud',
+  voicePauseLabel: 'Pause',
+  voiceResumeLabel: 'Resume',
+  voiceStopLabel: 'Stop playback',
+  voiceStopWaitingLabel: 'Stop waiting',
+  voiceCloseLabel: 'Close',
+  voicePreparingLabel: 'Preparing voice…',
+  voiceProgressLabel: 'Playback progress',
+  voicePlaybackFailedLabel: 'Voice playback failed. The text is still available.',
+  voiceReadFailedLabel: 'Could not load this audio. The text is still available.',
+  voiceGenerationFailedLabel: 'Voice generation did not complete. The text is still available.',
+  voiceResultUnknownLabel: 'The result of this voice request is not confirmed.',
+  voiceRetryPlaybackLabel: 'Retry playback',
+  voiceRegenerateLabel: 'Generate voice again',
+  voiceRefreshLabel: 'Refresh voice result',
+  voiceContinueRequestLabel: 'Continue this voice request',
+  voiceContinueRequestHint: 'This may start voice generation if the original request was not received.',
+  voiceRealtimeBlockedLabel: 'End realtime voice to play a message.',
+  voiceLocateLabel: 'Go to playing message',
+  voiceSettingsLabel: 'Voice settings',
+  quotePreparingLabel: 'Preparing quotation…',
+  quoteFailedLabel: 'This quotation is unavailable. Cancel it and select the passage again.',
+  quoteCancelLabel: 'Cancel quotation',
+  quotePartialLabel: 'Original reply incomplete',
+  quoteSourceLabel: 'Go to quoted message',
+  quoteReturnLabel: 'Return to previous position',
+  quoteTooLongLabel: 'This message is too long to quote in full. Select a shorter passage.',
+  quoteChangedLabel: 'The source text representation changed. Select the passage again.',
+  quoteReadFailedLabel: 'Could not read the source message. Your draft is kept.',
+  quoteRetryLabel: 'Retry quotation',
+  quoteAppSourceLabel: 'App',
+  historyLoadingLabel: 'Loading the source message…',
+  historyFailedLabel: 'The source message is currently unavailable.',
+  historyRetryLabel: 'Retry locating source',
+  historyLatestLabel: 'Back to latest messages',
 });
 
 export function resolveChatCopy(copy?: ChatCopy): Required<ChatCopy> {

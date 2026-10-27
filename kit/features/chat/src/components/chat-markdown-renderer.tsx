@@ -1,7 +1,7 @@
 import { createElement, useCallback, useMemo, useState, type ComponentPropsWithoutRef, type ReactNode } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import type { Components } from 'react-markdown';
+import type { Components, ExtraProps } from 'react-markdown';
 import { cn } from '@nimiplatform/kit/ui';
 import { resolveChatCopy, type ChatCopy } from '../copy.js';
 
@@ -106,30 +106,7 @@ function sanitizeLinkHref(href: string): string | null {
 }
 
 function normalizeMarkdownContent(content: string): string {
-  const rawLines = String(content || '').replace(/\r/g, '').split('\n');
-  const normalizedLines: string[] = [];
-  let inCodeFence = false;
-
-  for (const rawLine of rawLines) {
-    const line = rawLine || '';
-    const trimmed = line.trimStart();
-    if (trimmed.startsWith('```')) {
-      inCodeFence = !inCodeFence;
-      normalizedLines.push(line);
-      continue;
-    }
-    if (!inCodeFence) {
-      const inlineHeadingMatch = line.match(/^(.*?[。！？.!?])(\s+)(#{1,6}\s+.+)$/u);
-      if (inlineHeadingMatch) {
-        normalizedLines.push(inlineHeadingMatch[1] || '');
-        normalizedLines.push(inlineHeadingMatch[3] || '');
-        continue;
-      }
-    }
-    normalizedLines.push(line);
-  }
-
-  return normalizedLines.join('\n');
+  return String(content || '').replace(/\r\n?/g, '\n');
 }
 
 function Heading(props: {
@@ -150,7 +127,7 @@ function CodeBlock(props: {
 }) {
   const config = APPEARANCE_CONFIG[props.appearance];
   const [copied, setCopied] = useState(false);
-  const lines = props.children.trimEnd().split('\n');
+  const lines = props.children.split('\n');
   const [expanded, setExpanded] = useState(lines.length <= 20);
 
   const handleCopy = useCallback(() => {
@@ -169,8 +146,8 @@ function CodeBlock(props: {
   const visibleLines = expanded ? lines : lines.slice(0, 20);
 
   return (
-    <div className={config.codeBlockShellClassName}>
-      <div className={config.codeBlockHeaderClassName}>
+    <div className={config.codeBlockShellClassName} data-chat-native-context="code" data-chat-code-text={props.children}>
+      <div className={config.codeBlockHeaderClassName} data-chat-copy-ignore>
         <span className={config.codeBlockLanguageClassName}>
           {props.language || 'code'}
         </span>
@@ -185,8 +162,8 @@ function CodeBlock(props: {
           <tbody>
             {visibleLines.map((line, index) => (
               <tr key={`code-line-${index}`}>
-                <td className={config.codeBlockLineNumberClassName}>{index + 1}</td>
-                <td className={config.codeBlockLineClassName}>{line}</td>
+                <td className={config.codeBlockLineNumberClassName} data-chat-copy-ignore aria-hidden="true">{index + 1}</td>
+                <td className={config.codeBlockLineClassName} data-chat-code-offset={lines.slice(0, index).reduce((offset, value) => offset + value.length + 1, 0)}>{line}</td>
               </tr>
             ))}
           </tbody>
@@ -196,6 +173,7 @@ function CodeBlock(props: {
         <button
           type="button"
           onClick={() => setExpanded((current) => !current)}
+          data-chat-code-expand={!expanded ? 'true' : undefined}
           className={config.codeBlockFooterClassName}
         >
           {expanded ? 'Show less' : `Show more (${lines.length - 20} lines)`}
@@ -236,19 +214,22 @@ function createMarkdownComponents(appearance: ChatMarkdownAppearance, copy: Requ
     );
   }) as NonNullable<Components['a']>;
   const renderCode = ((props: MarkdownCodeProps) => {
-    const content = String(props.children || '').replace(/\n$/, '');
-    const languageMatch = /language-([a-z0-9_-]+)/i.exec(props.className || '');
-    if (languageMatch || content.includes('\n')) {
-      return (
-        <CodeBlock appearance={appearance} copy={copy} language={languageMatch?.[1]} children={content} />
-      );
-    }
     return (
       <code className={config.inlineCodeClassName}>
         {props.children}
       </code>
     );
   }) as NonNullable<Components['code']>;
+  const renderPre = ((props: ComponentPropsWithoutRef<'pre'> & ExtraProps) => {
+    // CommonMark represents block code as pre > code regardless of language
+    // annotations or line count. Inline code never passes through this owner.
+    const code = props.node?.children[0];
+    if (!code || code.type !== 'element' || code.tagName !== 'code') return <pre>{props.children}</pre>;
+    const content = code.children.map(child => child.type === 'text' ? child.value : '').join('').replace(/\n$/, '');
+    const className = Array.isArray(code.properties.className) ? code.properties.className.join(' ') : String(code.properties.className || '');
+    const languageMatch = /language-([a-z0-9_-]+)/i.exec(className);
+    return <CodeBlock appearance={appearance} copy={copy} language={languageMatch?.[1]} children={content} />;
+  }) as NonNullable<Components['pre']>;
   const renderBlockquote = ((props: MarkdownChildrenProps) => (
     <blockquote className={config.blockquoteClassName}>{props.children}</blockquote>
   )) as NonNullable<Components['blockquote']>;
@@ -286,7 +267,7 @@ function createMarkdownComponents(appearance: ChatMarkdownAppearance, copy: Requ
     em: renderEmphasis,
     a: renderLink,
     code: renderCode,
-    pre: (((props: MarkdownChildrenProps) => <>{props.children}</>) as NonNullable<Components['pre']>),
+    pre: renderPre,
     blockquote: renderBlockquote,
     ul: renderUnorderedList,
     ol: renderOrderedList,
@@ -318,7 +299,7 @@ export function ChatMarkdownRenderer(props: ChatMarkdownRendererProps) {
   );
 
   return (
-    <div className={cn(APPEARANCE_CONFIG[appearance].wrapperClassName)}>
+    <div className={cn(APPEARANCE_CONFIG[appearance].wrapperClassName)} data-chat-markdown="nimi.quote-text.v1">
       <ReactMarkdown remarkPlugins={[remarkGfm]} components={components}>
         {normalizedContent}
       </ReactMarkdown>

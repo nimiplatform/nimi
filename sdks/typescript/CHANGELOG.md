@@ -2,6 +2,12 @@
 
 # SDK migration notes
 
+## Unreleased — Canonical message quotations (0.x minor)
+
+Protected Conversation sends may carry one exact `quote` selector (`sourceMessageId`, `format`, `startByte`, `endByte`). `conversation.readMessage` reads one currently authorized canonical source with its on-demand quotation text and a bounded navigation window. Its `readWatermark` is independent of live snapshot continuity; never hydrate or reset the live reducer from this window. Runtime validates and commits quotation text and request identity together.
+
+This is a breaking source contract for injected shells: add the exact `readMessage` method, and include `quote: null` or the confirmed quote in every message projection. Rebuild matching Runtime, SDK, Kit and native carriers together; there is no old-shell fallback or implicit text-only substitution. No package publication or product acceptance is implied.
+
 ## 0.22.0 — Realm media delivery (development)
 
 Agent introduction now separates `voiceSampleUrl` (original reference audio), `voiceSampleContentHash` / `voiceSampleMimeType` (verified original facts), and `voicePreviewUrl` (playback). Agent Center's reference-voice view exposes `previewUrl`; cloning continues to use the original and keys managed input by content hash, so renewing its URL does not change input identity. Rebuild native carriers with the matching protocol. Private media capabilities are omitted from durable account identity; Home uses one fenced `getMe` query for live profile/media display.

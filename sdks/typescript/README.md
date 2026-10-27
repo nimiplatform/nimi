@@ -205,7 +205,13 @@ const { output } = await client.ai.scenario.execute({
 
 ---
 
-## 5. Async Job Observation & Cancellation
+## 5. Protected Conversation Quotation and Source Reads
+
+For LocalAgent chat, use `client.conversation.readMessage({ agentHandle, conversationAnchorId, messageId })` to prepare a quote or navigate to a canonical source in the current authorized Conversation. A readable stable text message returns `quoteText` and `quoteFormat`; other message kinds return both as `null`. The bounded `window` and its `readWatermark` are navigation data, not a replacement live snapshot.
+
+Send the user’s own text or attachment parts with an optional `quote` containing only `sourceMessageId`, the returned format, and a half-open UTF-8 byte range. Runtime supplies the confirmed author, partial state and excerpt. A quote does not replace required input parts, permit cross-Conversation access, or alter regeneration inputs. Preserve the entire original request envelope when reconciling an uncertain submission. See the current migration notes for the matching source carrier requirement.
+
+## 6. Async Job Observation & Cancellation
 
 Long-running generation tasks (audio transcription, separation, voice cloning) are managed as asynchronous scenario jobs:
 

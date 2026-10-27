@@ -58,6 +58,7 @@ const FINAL_LOCAL_APP_OPERATIONS = [
   'local-app.conversationInterruptTurn',
   'local-app.conversationSubscribe',
   'local-app.conversationSnapshot',
+  'local-app.conversationMessageRead',
   'local-app.embodimentSnapshot',
   'local-app.embodimentSubscribe',
   'local-app.aiRealtimeOpen',

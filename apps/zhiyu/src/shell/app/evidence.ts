@@ -40,6 +40,7 @@ export type ZhiyuConversationActionProjection = {
 };
 
 export type ZhiyuRuntimeAgentChatStatus = {
+  readonly canonicalProjection?: import('@nimiplatform/kit/features/chat/headless').CanonicalConversationProjection;
   readonly transport: 'electron-ipc';
   readonly ready: boolean;
   readonly state: 'idle' | 'streaming' | 'media-pending' | 'completed' | 'failed' | 'canceled';

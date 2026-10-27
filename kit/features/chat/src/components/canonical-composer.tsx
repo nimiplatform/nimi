@@ -18,6 +18,7 @@ export type CanonicalComposerProps<TAttachment = never> = {
   initialText?: string;
   text?: string;
   disabled?: boolean;
+  submitDisabled?: boolean;
   placeholder?: string;
   runtimeHint?: string | null;
   mode?: 'stage' | 'chat';
@@ -44,6 +45,7 @@ export type CanonicalComposerProps<TAttachment = never> = {
   leadingSlot?: ReactNode;
   /** When true, the composer shell keeps its resting border while focused. */
   disableFocusBorder?: boolean;
+  quoteSlot?: ReactNode;
 };
 
 export function CanonicalComposer<TAttachment = never>({
@@ -51,6 +53,7 @@ export function CanonicalComposer<TAttachment = never>({
   initialText,
   text,
   disabled,
+  submitDisabled,
   placeholder,
   runtimeHint,
   mode = 'chat',
@@ -74,6 +77,7 @@ export function CanonicalComposer<TAttachment = never>({
   widthPositionClassName = 'mx-auto',
   leadingSlot,
   disableFocusBorder = false,
+  quoteSlot,
 }: CanonicalComposerProps<TAttachment>) {
   return (
     <div className={cn('shrink-0 px-5 pb-5', mode === 'stage' ? 'pt-1' : 'pt-2', className)} data-canonical-composer-root="true">
@@ -93,12 +97,14 @@ export function CanonicalComposer<TAttachment = never>({
             mode === 'chat' ? 'rounded-[var(--nimi-radius-xl)] transition-[box-shadow,border-color] duration-[var(--nimi-motion-base)]' : '',
             mode === 'chat' && !disableFocusBorder ? 'focus-within:border-[var(--nimi-field-focus)]' : '',
           )}>
+            {quoteSlot ? <div className="px-3 pt-3">{quoteSlot}</div> : null}
             <ChatComposer
               adapter={adapter}
               initialText={initialText}
               text={text}
               onTextChange={onTextChange ?? onInputCaptureText}
               disabled={disabled}
+              submitDisabled={submitDisabled}
               placeholder={placeholder}
               toolbarSlot={toolbarSlot}
               trailingSlot={trailingSlot}

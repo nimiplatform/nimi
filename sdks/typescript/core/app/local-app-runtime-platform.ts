@@ -262,6 +262,11 @@ export {
 } from './local-app-runtime-platform-agent-references.js';
 export type {
   NimiLocalAppConversationAction,
+  NimiLocalAppConversationQuoteInput,
+  NimiLocalAppConversationQuote,
+  NimiLocalAppConversationMessageReadInput,
+  NimiLocalAppConversationMessageReadResult,
+  NimiLocalAppConversationMessageReadWindow,
   NimiLocalAppConversationClient,
   NimiLocalAppConversationEvent,
   NimiLocalAppConversationMessage,
@@ -290,6 +295,7 @@ export type {
   NimiLocalAppConversationVoice,
   NimiLocalAppAgentHandle,
 } from './local-app-runtime-platform-conversation.js';
+export { validateNimiLocalAppConversationQuoteInput, projectNimiLocalAppConversationMessageReadResult } from './local-app-runtime-platform-conversation.js';
 export type {
   NimiLocalAppAgentAutonomyConfig,
   NimiLocalAppAgentAutonomyIntent,
@@ -603,7 +609,7 @@ export function createNimiLocalAppClient(
   assertExactMethodNamespace(standardShell.integration, ['listCatalog', 'listConnections', 'invoke', 'getCall', 'listCalls', 'cancelCall', 'registerProvider', 'unregisterProvider', 'pollProvider', 'completeProvider', 'getManagement', 'putConnection', 'removeConnection', 'setPermission', 'startConnectionSetup', 'getConnectionSetup', 'submitConnectionSetup', 'cancelConnectionSetup'], 'integration');
   assertExactMethodNamespace(standardShell.agentWork, ['listReferences', 'start', 'get', 'status', 'listToolCalls', 'submitToolResult', 'cancel', 'subscribe'], 'agentWork');
   assertExactMethodNamespace(standardShell.agents, ['listReferences', 'getIntroduction'], 'agents');
-  assertExactMethodNamespace(standardShell.conversation, ['open', 'send', 'uploadAttachment', 'readArtifact', 'transcribeVoice', 'renderVoice', 'interruptTurn', 'subscribe', 'snapshot', 'cancelFollowUp'], 'conversation');
+  assertExactMethodNamespace(standardShell.conversation, ['open', 'send', 'uploadAttachment', 'readArtifact', 'transcribeVoice', 'renderVoice', 'interruptTurn', 'subscribe', 'snapshot', 'readMessage', 'cancelFollowUp'], 'conversation');
   assertExactMethodNamespace(standardShell.embodiment, ['snapshot', 'subscribe'], 'embodiment');
   assertExactMethodNamespace(standardShell.agentRealtime, ['open', 'appendInput', 'subscribe', 'status', 'interruptOutput', 'close'], 'agentRealtime');
   const agentConfigure = asRecord(standardShell.agentConfigure);

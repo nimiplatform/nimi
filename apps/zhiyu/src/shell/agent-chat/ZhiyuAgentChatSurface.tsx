@@ -1,7 +1,7 @@
 import { useNimiNavigationSnapshot } from '@nimiplatform/kit/ui/app-chrome';
 import { useZhiyuNavigationOwner, type ZhiyuDestination } from '../app/navigation.js';
 import { AgentIntroduction } from '@nimiplatform/kit/features/chat/ui';
-import { useAgentIntroduction } from '@nimiplatform/kit/features/chat/runtime';
+import { useAgentIntroduction, useLocalAppConversationPlayback, useLocalAppConversationHistory, type LocalAppConversationQuote } from '@nimiplatform/kit/features/chat/runtime';
 import type { NimiLocalAppAgentIntroductionClient } from '@nimiplatform/sdk/app';
 import { getZhiyuLocalAppClient } from '../auth/runtime-platform';
 import {
@@ -11,12 +11,15 @@ import {
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
   createBrowserDataUrlAttachmentAdapter,
+  createCanonicalConversationMediaReader,
   type BrowserDataUrlAttachment,
   type ChatComposerAdapter,
   type AgentDraftSaveStatus,
 } from '@nimiplatform/kit/features/chat/headless';
 import {
-  LocalAppConversationVoiceButton,
+  LocalAppConversationPlayer,
+  LocalAppConversationQuotePreview,
+  getMessageInteractionCopy,
   LocalAppConversationSubmissionRecovery,
   LocalAppConversationFollowUpControl,
   LocalAppConversationMediaStopButton,
@@ -36,7 +39,7 @@ import type { ZhiyuAvatarLaunchFeedback } from '../avatar/avatar-launch-feedback
 import type { ZhiyuDesktopOpenActionResult } from '../desktop-open/desktop-open-action';
 import type { AgentCenterSession } from '@nimiplatform/kit/features/agent-center';
 import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
-import type { ZhiyuRuntimeAgentChatAttachment } from './agent-conversation-state';
+import type { ZhiyuRuntimeAgentChatAttachment, ZhiyuConversationSubmitIntent } from './agent-conversation-state';
 import type {
   ZhiyuHomeProductState,
 } from '../app/home-product-state';
@@ -70,7 +73,7 @@ import {
 } from '../app/home-surface-sections';
 import { runZhiyuVoiceTranscriptionAttempt } from './voice-transcription-guard';
 import { isZhiyuAgentBusyReason, isZhiyuRecoverableTerminalTurn } from '../app/direct-local-app-submit-gate';
-import { zhiyuConversationActionKey } from './agent-conversation-state';
+import { zhiyuConversationActionKey, projectZhiyuConversation } from './agent-conversation-state';
 import { ZhiyuResourcePackSurface } from '../../resource-pack/ZhiyuResourcePackSurface';
 import { ZhiyuResourcePackStatusNotice } from '../../resource-pack/ZhiyuResourcePackStatusNotice';
 import type { ZhiyuResourcePackPresentationState } from '../../resource-pack/presentation-controller';
@@ -95,6 +98,9 @@ export type ZhiyuAgentChatSurfaceProps = {
   readonly onReloadImages: () => void;
   readonly onRegenerate: () => void;
   readonly conversation: () => import('@nimiplatform/sdk/app').NimiLocalAppConversationClient;
+  readonly quote: LocalAppConversationQuote;
+  readonly accessDenied: boolean;
+  readonly onInteractionError: (error: unknown) => void;
   readonly avatarLaunchAction: ZhiyuAvatarLaunchAction;
   readonly avatarLaunchFeedback?: ZhiyuAvatarLaunchFeedback | null;
   readonly onDismissAvatarLaunchFeedback?: () => void;
@@ -102,7 +108,8 @@ export type ZhiyuAgentChatSurfaceProps = {
   readonly resourcePackPresentation: ZhiyuResourcePackPresentationState;
   readonly resourcePackPlacementKey: string | null;
   readonly onDraftChange: (value: string) => void;
-  readonly onSubmit: (text: string, attachment?: ZhiyuRuntimeAgentChatAttachment) => Promise<void> | void;
+  readonly captureSubmitIntent: (text: string) => ZhiyuConversationSubmitIntent;
+  readonly onSubmit: (text: string, attachment?: ZhiyuRuntimeAgentChatAttachment, intent?: ZhiyuConversationSubmitIntent) => Promise<void> | void;
   readonly onTranscribeVoice?: (audioBytes: Uint8Array, mimeType: string, signal: AbortSignal) => Promise<string>;
   readonly onStopChat: () => void;
   readonly onSelectLocalAgent: (agentHandle: NimiLocalAppAgentHandle) => void;
@@ -122,7 +129,7 @@ export function ZhiyuAgentChatSurface({
   submitting,
   draftSaveStatus,
   onRetryDraftSave,
-  composerState, interactionNotice, connectionStatus, pendingSubmission, onAcknowledgeSubmission, onRestoreSubmission, onSubmissionResolved, onRefreshConversation, onReloadImages, onRegenerate, conversation,
+  composerState, interactionNotice, connectionStatus, pendingSubmission, onAcknowledgeSubmission, onRestoreSubmission, onSubmissionResolved, onRefreshConversation, onReloadImages, onRegenerate, conversation, quote, accessDenied, onInteractionError,
   avatarLaunchAction,
   avatarLaunchFeedback,
   onDismissAvatarLaunchFeedback,
@@ -131,6 +138,7 @@ export function ZhiyuAgentChatSurface({
   resourcePackPlacementKey,
   onDraftChange,
   onSubmit,
+  captureSubmitIntent,
   onTranscribeVoice,
   onStopChat,
   onSelectLocalAgent,
@@ -209,10 +217,44 @@ export function ZhiyuAgentChatSurface({
     </section>
   ) : null;
   const recoverableTerminalTurn = isZhiyuRecoverableTerminalTurn(evidence);
-  const chatDisabled = !evidence.conversation.ready
+  const chatDisabled = accessDenied || !evidence.conversation.ready
     || (!evidence.turn.ready && !recoverableTerminalTurn)
     || Boolean(evidence.chat.textTurnId) || connectionStatus !== 'ready' || submitting || Boolean(pendingSubmission);
   const composerKey = `${evidence.conversation.agentHandle ?? ''}|${evidence.conversation.conversationAnchorId ?? ''}`;
+  const interactionScope = `${evidence.auth.accountId ?? ''}:${evidence.auth.ready}:${composerKey}`;
+  const messageCopy = useMemo(() => getMessageInteractionCopy('zh-CN'), []);
+  const playback = useLocalAppConversationPlayback({
+    agentHandle: evidence.auth.ready && !accessDenied ? evidence.conversation.agentHandle : null,
+    conversationAnchorId: evidence.conversation.conversationAnchorId,
+    conversation,
+    accessKey: interactionScope,
+    onError: onInteractionError,
+  });
+  const readPosition = useRef<{ messageId: string; offset: number } | null>(null);
+  const historyView = useLocalAppConversationHistory({
+    scopeKey: interactionScope,
+    agentHandle: evidence.auth.ready ? evidence.conversation.agentHandle : null,
+    conversationAnchorId: evidence.conversation.conversationAnchorId,
+    conversation,
+    accessDenied,
+    onAccessDenied: onInteractionError,
+    liveProjection: evidence.chat.canonicalProjection ?? null,
+    capturePosition: () => readPosition.current,
+  });
+  const [historyMediaRevision, setHistoryMediaRevision] = useState(0);
+  const historyMedia = useMemo(() => {
+    const agentHandle = evidence.conversation.agentHandle;
+    const conversationAnchorId = evidence.conversation.conversationAnchorId;
+    if (accessDenied || !evidence.auth.ready || !agentHandle || !conversationAnchorId) return null;
+    return createCanonicalConversationMediaReader({ conversation: conversation(), scope: { agentHandle, conversationAnchorId },
+      onChange: () => setHistoryMediaRevision(value => value + 1), onAccessDenied: onInteractionError });
+  }, [interactionScope, conversation, accessDenied, onInteractionError]);
+  useEffect(() => () => historyMedia?.close(), [historyMedia]);
+  const displayMessages = useMemo(() => {
+    if (accessDenied || historyView.accessDenied) return [];
+    if (!historyView.projection || historyView.projection === evidence.chat.canonicalProjection || !evidence.conversation.agentHandle || !evidence.conversation.conversationAnchorId) return evidence.chat.messages;
+    return projectZhiyuConversation({ agentHandle: evidence.conversation.agentHandle, conversationAnchorId: evidence.conversation.conversationAnchorId, projection: historyView.projection, media: historyMedia ?? undefined }).messages;
+  }, [historyView.projection, evidence.chat, evidence.conversation, historyMedia, historyMediaRevision, accessDenied, historyView.accessDenied]);
   const [attachmentDrafts, setAttachmentDrafts] = useState(() => new Map<string, readonly BrowserDataUrlAttachment[]>());
   const attachments = attachmentDrafts.get(composerKey) ?? [];
   const setAttachments = (next: readonly BrowserDataUrlAttachment[]) => setAttachmentDrafts(current => {
@@ -228,10 +270,11 @@ export function ZhiyuAgentChatSurface({
   }), []);
   const chatComposerAdapter: ChatComposerAdapter<BrowserDataUrlAttachment> = {
     submit: async (input) => {
+      const intent = captureSubmitIntent(input.text);
       const attachment = input.attachments[0]
         ? await browserAttachmentPayload(input.attachments[0])
         : undefined;
-      await onSubmit(input.text, attachment);
+      await onSubmit(input.text, attachment, intent);
     },
   };
   const [voiceStatus, setVoiceStatus] = useState<'idle' | 'recording' | 'transcribing' | 'failed'>('idle');
@@ -439,6 +482,16 @@ export function ZhiyuAgentChatSurface({
     rightPanelMode,
   ]);
   const composerRootRef = useRef<HTMLDivElement>(null);
+  const [composerInset, setComposerInset] = useState<number>();
+  useLayoutEffect(() => {
+    const element = composerRootRef.current;
+    if (!element) return;
+    const measure = () => setComposerInset(Math.ceil(element.getBoundingClientRect().height) + 24);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, [composerKey]);
   const openAppearanceConfig = () => {
     openPanel('appearance');
   };
@@ -522,11 +575,29 @@ export function ZhiyuAgentChatSurface({
           >
             <div className="zhiyu-chat-canvas__transcript">
               <CanonicalTranscriptView
-                copy={{ bubbleVoiceMessageLabel: '语音消息', bubbleVoicePlayingLabel: '正在播放' }}
-                messages={conversationMessagesForDisplay(evidence.chat.messages, primaryPartnerName)}
+                copy={{ ...messageCopy, bubbleVoiceMessageLabel: '语音消息', bubbleVoicePlayingLabel: '正在播放' }}
+                messages={conversationMessagesForDisplay(displayMessages, primaryPartnerName)}
+                messageActions={{
+                  scopeKey: interactionScope, playback, onQuote: quote.prepare,
+                  onLocateMessage: historyView.locate,
+                  onReturnToComposer: () => composerRootRef.current?.querySelector('textarea')?.focus(),
+                  onOpenVoiceSettings: openAppearanceConfig,
+                }}
+                positionRequest={historyView.positionRequest}
+                onPositionChange={position => { readPosition.current = position; }}
+                onUserNavigate={historyView.cancelNavigation}
                 activeConversationId={evidence.conversation.conversationAnchorId}
+                error={accessDenied ? '当前无法访问这段对话，未发送的文字仍已保留。' : undefined}
+                errorAction={accessDenied ? <button type="button" className="underline" onClick={onRefreshConversation}>重新检查访问</button> : null}
                 agentName={primaryPartnerName}
-                bannerContent={avatarLaunchFeedback || evidence.chat.mediaReadError ? <div className="grid gap-2">
+                bannerContent={avatarLaunchFeedback || evidence.chat.mediaReadError || historyView.status !== 'live' || historyView.returnPosition || historyMedia?.getReadError() ? <div className="grid gap-2">
+                  {(historyView.status !== 'live' || historyView.returnPosition) ? <div role="status" className="flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
+                    {historyView.status === 'loading' ? '正在定位原文…' : historyView.status === 'error' ? '暂时无法读取原文。' : null}
+                    {historyView.status === 'error' ? <button type="button" className="rounded px-2 py-1 underline" onClick={historyView.retry}>{messageCopy.historyRetryLabel}</button> : null}
+                    <button type="button" className="rounded px-2 py-1 underline" onClick={historyView.returnToPrevious}>返回刚才位置</button>
+                    <button type="button" className="rounded px-2 py-1 underline" onClick={historyView.returnToLatest}>回到最新消息</button>
+                  </div> : null}
+                  {historyMedia?.getReadError() ? <div role="status" className="px-3 py-2 text-sm">图片暂时无法读取，文字已保留。 <button type="button" className="underline" onClick={() => historyMedia.retryFailed()}>重试读取图片</button></div> : null}
                   {avatarLaunchFeedback ? <AvatarLaunchNotice
                     feedback={avatarLaunchFeedback}
                     onRetry={avatarLaunchAction.state === 'ready' ? onAvatarLaunch : undefined}
@@ -554,7 +625,7 @@ export function ZhiyuAgentChatSurface({
                       agentHandle={evidence.conversation.agentHandle} conversationAnchorId={evidence.conversation.conversationAnchorId}
                       state={evidence.chat.controlState} conversation={conversation} refresh={onRefreshConversation} translate={followUpCopy} onOpenAgentCenter={openBehaviorConfig} /> : null}
                     {chatFooter}
-                    <ZhiyuAgentActivityReferences agentHandle={evidence.conversation.agentHandle} />
+                    <ZhiyuAgentActivityReferences agentHandle={evidence.conversation.agentHandle} navigationKey={historyView.positionRequest?.requestKey} />
                     <span
                       data-zhiyu-transcript-end="true"
                       aria-hidden="true"
@@ -566,9 +637,13 @@ export function ZhiyuAgentChatSurface({
                 widthPositionClassName="mx-0"
                 scrollViewportWidthClassName="w-full"
                 contentPaddingBottomClassName={hasCurrentPartner && evidence.chat.messageCount === 0 ? 'pb-[120px]' : 'pb-[clamp(160px,18vh,220px)]'}
+                contentBottomInsetPx={hasCurrentPartner ? composerInset : undefined}
                 disableRpContent
+                renderMessageContent={message => message.kind === 'text' && message.metadata?.canonicalPartial && !message.text.trim() && message.status !== 'streaming' && message.status !== 'pending'
+                  ? <p role="status" className="text-sm text-[var(--nimi-text-secondary)]">{message.status === 'canceled' ? '已停止。' : '这次未收到完整回复。'}</p>
+                  : undefined}
                 renderMessageAccessory={(message) => <>
-                  {message.metadata?.canonicalPartial && message.status !== 'streaming'
+                  {message.metadata?.canonicalPartial && message.text.trim() && message.status !== 'streaming'
                     ? <p className="text-xs text-neutral-500">{message.status === 'canceled' ? message.text.trim() ? '已停止，保留已收到的内容。' : '已停止。' : message.text.trim() ? '回复未完成，已收到的内容已保留。' : '这次未收到回复，可以重新回答原问题。'}</p>
                     : message.metadata?.canonicalMediaRunning ? <p className="text-xs text-neutral-500">文字已完成，媒体仍在处理。可以继续聊天。</p> : null}
                   {message.metadata?.canonicalMediaRunning && (message.role === 'agent' || message.role === 'assistant') && evidence.conversation.agentHandle && evidence.conversation.conversationAnchorId ? <LocalAppConversationMediaStopButton
@@ -577,11 +652,6 @@ export function ZhiyuAgentChatSurface({
                     label="停止生成媒体" errorLabel="尚未确认停止结果。文字回复已保留，可以继续聊天。" /> : null}
                   {Array.isArray(message.metadata?.canonicalImageFailures) && message.kind === 'text' && (message.role === 'agent' || message.role === 'assistant') ? message.metadata.canonicalImageFailures.map((failure: { actionId: string; reasonCode: string | null; message: string | null }) =>
                     <div key={failure.actionId} className="my-2 text-sm" role="status"><p>图片暂未生成，文字回复已保留，可以继续聊天。</p><details className="text-xs"><summary>技术详情</summary>{failure.reasonCode}{failure.message ? ` · ${failure.message}` : ''}</details></div>) : null}
-                  <LocalAppConversationVoiceButton message={message} agentHandle={evidence.conversation.agentHandle}
-                    activeConversationAnchorId={evidence.conversation.conversationAnchorId} conversation={conversation}
-                    playLabel="播放语音" stopLabel="停止播放" renderingLabel="正在准备语音" unavailableLabel="语音暂不可用，文字已保留。"
-                    errorLabel="语音播放失败，文字已保留。" retryLabel="重试语音" pauseLabel="暂停" resumeLabel="继续播放" progressLabel="播放进度"
-                    settingsLabel="语音设置" settingsHint="可在伙伴中心检查语音设置。" onOpenSettings={openAppearanceConfig} />
                 </>}
 
               />
@@ -595,6 +665,9 @@ export function ZhiyuAgentChatSurface({
                   data-zhiyu-composer-state={composerState}
                   data-zhiyu-submit-enabled={String(submitEnabled)}
                 >
+              <div className="px-5">
+                <LocalAppConversationPlayer className="zhiyu-chat-canvas__message-player mb-2" playback={playback} copy={messageCopy} onLocateMessage={historyView.locate} onOpenSettings={openAppearanceConfig} />
+              </div>
               <CanonicalComposer
                 key={composerKey}
                 adapter={chatComposerAdapter}
@@ -602,10 +675,14 @@ export function ZhiyuAgentChatSurface({
                 attachments={attachments}
                 onAttachmentsChange={setAttachments}
                 attachLabel="添加图片"
+                sendLabel="发送"
+                copy={messageCopy}
                 voiceState={voiceState}
                 text={draft}
                 onTextChange={onDraftChange}
                 disabled={chatDisabled}
+                submitDisabled={quote.state.status !== 'empty' && quote.state.status !== 'ready'}
+                quoteSlot={<LocalAppConversationQuotePreview quote={quote} copy={messageCopy} onReturnToComposer={() => composerRootRef.current?.querySelector('textarea')?.focus()} />}
                 placeholder={hasCurrentPartner ? '和这个伙伴聊点什么...' : hasLocalPartners ? '先选择本地伙伴...' : '添加本地伙伴后开始聊天...'}
                 runtimeHint={chatRuntimeHint}
                 sendHint={evidence.chat.state === 'streaming' ? '回复中' : isZhiyuAgentBusyReason(evidence.chat.reasonCode) ? '重试' : undefined}
@@ -715,8 +792,9 @@ function submissionCopy(key: string, values?: Record<string, string | number>): 
     'Chat.agentSubmissionAttachments': `已保留 ${values?.count ?? ''} 个附件。`, 'Chat.agentSubmissionUnknown': '目前还无法确认是否已受理，可按原请求继续查回或发送。',
     'Chat.agentSubmissionCheckFailed': '暂时无法确认，请稍后重试。', 'Feedback.technicalDetails': '技术详情',
     'Chat.agentSubmissionWorking': '正在确认…', 'Chat.agentSubmissionRetryRecover': '继续这次重新回答', 'Chat.agentSubmissionRecover': '继续这条消息',
+    'Chat.agentSubmissionQuoteRetained': '原请求包含一条引用。',
     'Chat.agentSubmissionOtherOptions': '其他选项', 'Chat.agentSubmissionCheck': '只查看对话', 'Chat.agentSubmissionKeepAsDraft': '取回文字作为草稿',
-    'Chat.agentSubmissionDismiss': '关闭提示', 'Chat.agentSubmissionDraftNotice': '取回文字不会撤回可能已受理的回复，也不会自动重新添加旧图片。再次发送会成为一条新消息。',
+    'Chat.agentSubmissionDismiss': '关闭提示', 'Chat.agentSubmissionDraftNotice': '取回文字不会撤回可能已受理的回复，也不会自动重新添加旧图片和引用。再次发送会成为一条新消息。',
   };
   return copy[key] ?? key;
 }

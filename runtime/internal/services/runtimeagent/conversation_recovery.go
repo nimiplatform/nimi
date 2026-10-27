@@ -30,6 +30,7 @@ type publicChatTurnRecovery struct {
 }
 
 type publicChatRecoveryInput struct {
+	Quote      *publicChatMessageQuote                  `json:"quote,omitempty"`
 	Role       string                                   `json:"role"`
 	Text       string                                   `json:"text"`
 	Attachment *publicChatCommittedTranscriptAttachment `json:"attachment,omitempty"`
@@ -40,6 +41,7 @@ func clonePublicChatRecoveryInput(input *publicChatRecoveryInput) *publicChatRec
 		return nil
 	}
 	out := *input
+	out.Quote = clonePublicChatQuote(input.Quote)
 	if input.Attachment != nil {
 		value := *input.Attachment
 		out.Attachment = &value
@@ -68,6 +70,7 @@ func publicChatRequestFingerprint(messages []publicChatMessagePayload, retryOf s
 	type normalizedMessage struct {
 		Role, Text string
 		Artifacts  []string
+		Quote      *publicChatQuoteSelector `json:",omitempty"`
 	}
 	value := struct {
 		RetryOf  string
@@ -76,6 +79,7 @@ func publicChatRequestFingerprint(messages []publicChatMessagePayload, retryOf s
 	if value.RetryOf == "" {
 		for _, message := range messages {
 			item := normalizedMessage{Role: strings.TrimSpace(message.Role), Text: strings.TrimSpace(message.Content)}
+			item.Quote = message.quoteSelector
 			for _, attachment := range message.Attachments {
 				item.Artifacts = append(item.Artifacts, strings.TrimSpace(attachment.ArtifactID))
 			}
@@ -117,7 +121,7 @@ func publicChatRecoveryInputForTurn(anchor *publicChatAnchorState, item *publicC
 		if isProactiveOrigin(turn.Origin) {
 			role = publicChatInternalFollowUpInstructionRole
 		}
-		return clonePublicChatRecoveryInput(&publicChatRecoveryInput{Role: role, Text: turn.InputText, Attachment: turn.InputAttachment})
+		return clonePublicChatRecoveryInput(&publicChatRecoveryInput{Role: role, Text: turn.InputText, Attachment: turn.InputAttachment, Quote: turn.InputQuote})
 	}
 	return nil
 }
@@ -148,6 +152,7 @@ func newPublicChatTurnRecovery(turn publicChatTurnState, req publicChatTurnReque
 	}
 	message := req.Messages[0]
 	item.Input = &publicChatRecoveryInput{Role: strings.TrimSpace(message.Role), Text: strings.TrimSpace(message.Content)}
+	item.Input.Quote = clonePublicChatQuote(message.quote)
 	if len(req.resolvedAttachments) == 1 {
 		attachment := req.resolvedAttachments[0]
 		item.Input.Attachment = &publicChatCommittedTranscriptAttachment{ArtifactID: attachment.ArtifactID, MimeType: attachment.MimeType, DisplayName: attachment.DisplayName}
@@ -222,7 +227,7 @@ func (s *Service) localAppAdmittedInputMessage(anchorID, turnID string) *runtime
 	if input == nil || input.Role != "user" {
 		return nil
 	}
-	return localAppConversationUserMessage(publicChatCommittedTranscriptTurn{TurnID: item.InputTurnID, Origin: publicChatTurnOriginUser, InputText: input.Text, InputAttachment: input.Attachment})
+	return localAppConversationUserMessage(publicChatCommittedTranscriptTurn{TurnID: item.InputTurnID, Origin: publicChatTurnOriginUser, InputText: input.Text, InputAttachment: input.Attachment, InputQuote: input.Quote})
 }
 
 func persistPublicChatRecoveryTx(tx *sql.Tx, anchorID string, version uint64, item *publicChatTurnRecovery) error {
@@ -263,6 +268,11 @@ func readPublicChatRecoveries(db *sql.DB, snapshot *persistedPublicChatSurfaceSt
 		}
 		if _, err := hex.DecodeString(item.Fingerprint); err != nil {
 			return fmt.Errorf("conversation recovery fingerprint invalid")
+		}
+		if item.Input != nil {
+			if err := validateStoredConversationQuote(item.Input.Quote); err != nil {
+				return err
+			}
 		}
 		anchor := &snapshot.Anchors[index]
 		if anchor.Recoveries == nil {

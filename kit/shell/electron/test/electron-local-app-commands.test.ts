@@ -1678,6 +1678,7 @@ function localAppHost(calls: unknown[]) {
     conversationInterruptTurn: unavailable('conversationInterruptTurn', calls),
     conversationSubscribe: unavailable('conversationSubscribe', calls),
     conversationSnapshot: unavailable('conversationSnapshot', calls),
+    conversationMessageRead: unavailable('conversationMessageRead', calls),
     embodimentSnapshot: unavailable('embodimentSnapshot', calls),
     embodimentSubscribe: unavailable('embodimentSubscribe', calls),
     conversationStreamNext: async () => ({ completed: true }),

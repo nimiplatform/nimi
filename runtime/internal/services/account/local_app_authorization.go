@@ -28,6 +28,7 @@ const (
 	LocalAppOperationInterruptConversation            = localappop.OperationConversationTurnInterrupt
 	LocalAppOperationSubscribeConversation            = localappop.OperationConversationEventsSubscribe
 	LocalAppOperationConversationSnapshot             = localappop.OperationConversationSnapshotGet
+	LocalAppOperationConversationMessageRead          = localappop.OperationConversationMessageRead
 	LocalAppOperationConversationAttachmentUpload     = localappop.OperationConversationAttachmentUpload
 	LocalAppOperationConversationArtifactRead         = localappop.OperationConversationArtifactRead
 	LocalAppOperationConversationVoiceTranscribe      = localappop.OperationConversationVoiceTranscribe

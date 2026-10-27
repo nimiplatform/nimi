@@ -288,7 +288,8 @@ export { observeLocalAppConversation, createCanonicalConversationMediaReader } f
 export type { LocalAppConversationScope, LocalAppConversationObservation } from './headless/local-app-conversation-session.js';
 
 export { createAgentComposerPersistence, useAgentComposerPersistence, AgentSubmissionSaveError } from './headless/local-app-conversation-draft.js';
-export type { AgentPendingSubmission, AgentDraftSaveStatus } from './headless/local-app-conversation-draft.js';
+export type { AgentPendingSubmission, AgentDraftSaveStatus, AgentComposerPrepareOptions } from './headless/local-app-conversation-draft.js';
 export { reconcileAgentSubmission } from './headless/local-app-conversation-submission.js';
+export { isLocalAppConversationAccessDenied } from './headless/local-app-conversation-access.js';
 
 export { resolveLocalAppConversationVoiceRequest } from './headless/local-app-conversation-voice.js';

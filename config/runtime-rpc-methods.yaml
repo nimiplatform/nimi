@@ -814,6 +814,9 @@ services:
       - name: GetLocalAppConversationSnapshot
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot
+      - name: ReadLocalAppConversationMessage
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationMessage
       - name: GetLocalAppEmbodimentSnapshot
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppEmbodimentSnapshot

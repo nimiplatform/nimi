@@ -724,7 +724,7 @@
   "agentSubmissionCheck": "View conversation only",
   "agentSubmissionRecover": "Continue last send",
   "agentSubmissionKeepAsDraft": "Return text to the input box",
-  "agentSubmissionDraftNotice": "Returning text to the input box or dismissing this notice will not cancel a reply that has already started, and earlier attachments will not be attached to your new draft.",
+  "agentSubmissionDraftNotice": "Returning text to the input box or dismissing this notice will not cancel a reply that has already started. Earlier attachments and quotations will not be added to the new draft.",
   "followUpPending": "Follow-up planned for {{time}}",
   "followUpCancel": "Cancel this follow-up",
   "followUpUnavailable": "Follow-up status is temporarily unavailable. You can still chat.",
@@ -754,5 +754,11 @@
   "agentSubmissionSaveLimit": "Message not sent because the draft reached its storage limit. Your text is still in the input box—shorten it or copy it out before editing.",
   "followUpManage": "Manage life and contact",
   "downloadOriginal": "Download original",
-  "downloadFailed": "Could not download the original. Try again."
+  "downloadFailed": "Could not download the original. Try again.",
+  "agentQuoteNotReady": "Wait for the quotation to load, or remove it before sending.",
+  "agentSourceLoading": "Locating the original message…",
+  "agentSourceUnavailable": "The original message could not be read.",
+  "agentReturnReading": "Return to reading",
+  "agentReturnLatest": "Back to latest messages",
+  "agentSubmissionQuoteRetained": "The original request includes a quotation."
 }

@@ -123,6 +123,7 @@ type publicChatCommittedTranscriptTurn struct {
 	// InputAttachment carries the Runtime-validated user attachment of this
 	// turn (artifact reference + store-trusted mime). Nil for text-only turns.
 	InputAttachment *publicChatCommittedTranscriptAttachment `json:"inputAttachment,omitempty"`
+	InputQuote      *publicChatMessageQuote                  `json:"inputQuote,omitempty"`
 	// OutputArtifacts carries Runtime-produced assistant media references after
 	// the action result has been validated against the Runtime artifact store.
 	// Artifact bytes remain owned exclusively by that store.
@@ -155,6 +156,7 @@ type publicChatVoiceSidecarState struct {
 type publicChatAnchorState struct {
 	LatestAcceptedTurnID     string
 	Recoveries               map[string]*publicChatTurnRecovery
+	messageLookup            *conversationMessageLookup
 	ConversationContext      publicChatConversationContextSelection
 	persistedTranscriptCount int
 	ConversationAnchorID     string
@@ -282,9 +284,11 @@ type publicChatTurnState struct {
 	TerminalProjection *publicChatTurnProjectionState
 }
 type publicChatMessagePayload struct {
-	Role    string `json:"role"`
-	Content string `json:"content"`
-	Name    string `json:"name,omitempty"`
+	quoteSelector *publicChatQuoteSelector
+	quote         *publicChatMessageQuote
+	Role          string `json:"role"`
+	Content       string `json:"content"`
+	Name          string `json:"name,omitempty"`
 	// Attachments carries at most one Runtime artifact reference uploaded
 	// through RuntimeArtifactService.PutArtifact
 	// (rule.nimi.runtime.agent-participation.r172). Bytes and mime truth never

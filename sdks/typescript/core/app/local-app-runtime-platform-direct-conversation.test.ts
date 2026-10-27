@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { LocalAppConversationVoiceState } from '../../core-generated/runtime-protobuf/runtime/v1/agent_service.js';
+import { LocalAppConversationVoiceState, LocalAppConversationMessageRole, LocalAppConversationTurnStatus, LocalAppConversationTurnPhase } from '../../core-generated/runtime-protobuf/runtime/v1/agent_service.js';
 import {
   createNimiLocalAppConversationRuntimeClient,
   type NimiLocalAppConversationRuntime,
@@ -49,4 +49,30 @@ test('direct Local App conversation voice render carries only the canonical comm
   assert.equal(JSON.stringify(calls).includes('ownerUserId'), false);
   assert.equal(JSON.stringify(calls).includes('runtimeSourceRef'), false);
   assert.equal(JSON.stringify(calls).includes('text'), false);
+});
+
+test('direct conversation carrier preserves quote intent, confirmed quote and independent read watermark', async () => {
+  const calls: unknown[] = [];
+  const quote = { sourceMessageId: 'source', format: 'nimi.quote-text.v1' as const, startByte: 3, endByte: 6 };
+  const message = { messageId: 'message', turnId: 'turn', role: LocalAppConversationMessageRole.USER, partial: false,
+    parts: [{ part: { oneofKind: 'text' as const, text: { text: '解释这句' } } }],
+    quote: { ...quote, sourceRole: LocalAppConversationMessageRole.ASSISTANT, sourcePartial: true, text: '文' } };
+  const runtime = {
+    async sendLocalAppConversationTurn(input: unknown) { calls.push(input); return { turnId: 'turn' }; },
+    async readLocalAppConversationMessage(input: unknown) {
+      calls.push(input);
+      return { conversationAnchorId: 'anchor', readWatermark: 7n, message, quoteText: '解释这句', quoteFormat: 'nimi.quote-text.v1',
+        window: { messages: [message], turns: [{ turnId: 'turn', status: LocalAppConversationTurnStatus.ACTIVE, phase: LocalAppConversationTurnPhase.STARTED,
+          canRegenerate: false, reasonCode: 0, origin: 'user', inputTurnId: 'turn' }], actions: [], voices: [], truncatedBefore: true, truncatedAfter: false } };
+    },
+  } as unknown as NimiLocalAppConversationRuntime;
+  const client = createNimiLocalAppConversationRuntimeClient(runtime);
+  const scope = { agentHandle: `agent_ref_${'a'.repeat(43)}` as NimiLocalAppAgentHandle, conversationAnchorId: 'anchor' };
+  await client.send({ ...scope, requestId: 'request', parts: [{ kind: 'text', text: '解释这句' }], quote });
+  assert.deepEqual((calls[0] as { quote: unknown }).quote, quote);
+  const read = await client.readMessage({ ...scope, messageId: 'message' });
+  assert.equal(read.readWatermark, '7');
+  assert.deepEqual(read.message.quote, { ...quote, sourceRole: 'assistant', sourcePartial: true, text: '文' });
+  assert.equal('throughSequence' in read, false);
+  assert.deepEqual(calls[1], { ...scope, messageId: 'message' });
 });

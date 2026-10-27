@@ -38,6 +38,7 @@ The addon exposes exact Local App operations:
 - Fixed Integration discovery, call, provider, and trusted-management operations
   (provider polls have a 25-second maximum and never become a workflow owner)
 - Typed Conversation open, send, attachments, interrupt, snapshot, and stream lifecycle
+- Source-contract message reads with a bounded navigation window, independent read watermark, and exact canonical quotation selectors and projections; these require matching Runtime, SDK, Kit and rebuilt native packages.
 - App-owned Artifact upload and reads
 - Bounded `agent.local` embodiment snapshot and ordered stream lifecycle
 - App activity put, list, change subscription, mark-read, source open, and the

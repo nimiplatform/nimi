@@ -1,6 +1,7 @@
 import { extractNimiErrorFields } from '@nimiplatform/kit/core/sdk-contract';
 import type { NimiLocalAppAgentHandle, NimiLocalAppConversationClient, NimiLocalAppConversationEvent } from '@nimiplatform/kit/core/sdk-contract';
 import { reduceCanonicalConversationEvent, seedCanonicalConversationProjection, type CanonicalConversationProjection } from './local-app-conversation-projection.js';
+import { isLocalAppConversationAccessDenied } from './local-app-conversation-access.js';
 
 export type LocalAppConversationScope = {
   agentHandle: NimiLocalAppAgentHandle;
@@ -8,6 +9,7 @@ export type LocalAppConversationScope = {
 };
 export type LocalAppConversationObservation = {
   refresh(): Promise<void>;
+  invalidateAccess(error: unknown): void;
   close(): void;
 };
 
@@ -26,8 +28,25 @@ export function observeLocalAppConversation(input: {
   let timer: ReturnType<typeof setTimeout> | undefined;
   let cancel: () => Promise<void> = async () => {};
   let refresh: (() => Promise<void>) | null = null;
+  let accessDenied = false;
+  let clearProjection = () => {};
 
-  const connect = async () => {
+  const invalidateAccess = (error: unknown): void => {
+    if (closed || accessDenied || !isLocalAppConversationAccessDenied(error)) return;
+    accessDenied = true;
+    epoch += 1;
+    clearTimeout(timer);
+    refresh = null;
+    clearProjection();
+    const retire = cancel;
+    cancel = async () => {};
+    void retire().catch(() => undefined);
+    input.onStatus?.('error', error);
+  };
+
+  const connect = async (explicitRefresh = false) => {
+    if (closed || (accessDenied && !explicitRefresh)) return;
+    if (explicitRefresh) accessDenied = false;
     const generation = ++epoch;
     const current = () => !closed && epoch === generation;
     await cancel().catch(() => undefined);
@@ -37,10 +56,11 @@ export function observeLocalAppConversation(input: {
     let hydrating: Promise<void> | null = null;
     let terminalRefreshRequested = false;
     const buffered: NimiLocalAppConversationEvent[] = [];
+    clearProjection = () => { projection = null; buffered.length = 0; terminalRefreshRequested = false; };
     const publish = () => {
       if (current() && projection) {
         input.onProjection(projection);
-        input.onStatus?.('ready');
+        if (current()) input.onStatus?.('ready');
       }
     };
     const applyEvent = (event: NimiLocalAppConversationEvent): boolean => {
@@ -55,7 +75,8 @@ export function observeLocalAppConversation(input: {
       if (!current() || hydrating || !terminalRefreshRequested) return;
       // Eligibility comes from the owner, but this read must not stop live
       // state/text events or tear down their healthy subscription on failure.
-      void hydrate().catch(() => {
+      void hydrate().catch((error) => {
+        if (current() && isLocalAppConversationAccessDenied(error)) invalidateAccess(error);
         // Keep the known projection without claiming the read succeeded or
         // changing connection health. Initial/explicit reads still report errors.
       });
@@ -79,7 +100,10 @@ export function observeLocalAppConversation(input: {
           for (const event of buffered.splice(0)) applyEvent(event);
         }
         publish();
-      })().finally(() => {
+      })().catch(error => {
+        if (current() && isLocalAppConversationAccessDenied(error)) invalidateAccess(error);
+        throw error;
+      }).finally(() => {
         buffered.length = 0;
         hydrating = null;
         // A terminal applied during this read needs one subsequent owner read.
@@ -112,6 +136,7 @@ export function observeLocalAppConversation(input: {
       await Promise.all([hydrate(), pump]);
     } catch (error) {
       if (!current()) return;
+      if (isLocalAppConversationAccessDenied(error)) { invalidateAccess(error); return; }
       const failedEpoch = ++epoch;
       refresh = null;
       await cancel().catch(() => undefined);
@@ -124,15 +149,21 @@ export function observeLocalAppConversation(input: {
   };
   void connect();
   return {
+    invalidateAccess,
     async refresh() {
       if (closed) return;
       if (refresh) {
         const generation = epoch;
-        try { await refresh(); } catch (error) { if (!closed && epoch === generation) input.onStatus?.('error', error); }
+        try { await refresh(); } catch (error) {
+          if (!closed && epoch === generation) {
+            if (isLocalAppConversationAccessDenied(error)) invalidateAccess(error);
+            else input.onStatus?.('error', error);
+          }
+        }
       } else {
         clearTimeout(timer);
         retries = 0;
-        void connect();
+        void connect(true);
       }
     },
     close() {
@@ -140,6 +171,7 @@ export function observeLocalAppConversation(input: {
       epoch++;
       clearTimeout(timer);
       refresh = null;
+      clearProjection();
       void cancel().catch(() => undefined);
     },
   };
@@ -150,6 +182,7 @@ export function createCanonicalConversationMediaReader(input: {
   conversation: Pick<NimiLocalAppConversationClient, 'readArtifact'>;
   scope: LocalAppConversationScope;
   onChange: () => void;
+  onAccessDenied?: (error: unknown) => void;
 }) {
   type Preview = { mediaUrl: string | null; mimeType: string | null };
   const resolved = new Map<string, Preview>();
@@ -158,6 +191,7 @@ export function createCanonicalConversationMediaReader(input: {
   let active = 0;
   let closed = false;
   const empty: Preview = { mediaUrl: null, mimeType: null };
+  const close = () => { closed = true; queued.length = 0; resolved.clear(); pending.clear(); };
   const read = async (artifactId: string): Promise<Preview> => {
     try {
       const artifact = await input.conversation.readArtifact({ ...input.scope, artifactId });
@@ -167,7 +201,10 @@ export function createCanonicalConversationMediaReader(input: {
         binary += String.fromCharCode(...artifact.bytes.subarray(i, i + 8192));
       }
       return { mediaUrl: `data:${artifact.mimeType};base64,${btoa(binary)}`, mimeType: artifact.mimeType };
-    } catch { return empty; }
+    } catch (error) {
+      if (!closed && isLocalAppConversationAccessDenied(error)) { close(); input.onAccessDenied?.(error); }
+      return empty;
+    }
   };
   const pump = () => {
     while (!closed && active < 4 && queued.length) {
@@ -206,6 +243,6 @@ export function createCanonicalConversationMediaReader(input: {
       }
       if (added) { pump(); input.onChange(); }
     },
-    close() { closed = true; queued.length = 0; resolved.clear(); pending.clear(); },
+    close,
   };
 }

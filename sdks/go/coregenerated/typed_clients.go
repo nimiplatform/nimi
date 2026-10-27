@@ -6488,6 +6488,7 @@ type LocalAppConversationMessage struct {
 	MessageId string                            `json:"message_id,omitempty"`
 	Parts     []LocalAppConversationMessagePart `json:"parts,omitempty"`
 	Partial   bool                              `json:"partial,omitempty"`
+	Quote     *LocalAppConversationQuote        `json:"quote,omitempty"`
 }
 
 type LocalAppConversationMessageCommitted struct {
@@ -6497,6 +6498,32 @@ type LocalAppConversationMessageCommitted struct {
 type LocalAppConversationMessagePart struct {
 	Text     *LocalAppConversationTextPart     `json:"text,omitempty"`
 	Artifact *LocalAppConversationArtifactPart `json:"artifact,omitempty"`
+}
+
+type LocalAppConversationMessageWindow struct {
+	Messages        []LocalAppConversationMessage `json:"messages,omitempty"`
+	Turns           []LocalAppConversationTurn    `json:"turns,omitempty"`
+	Actions         []LocalAppConversationAction  `json:"actions,omitempty"`
+	Voices          []LocalAppConversationVoice   `json:"voices,omitempty"`
+	TruncatedBefore bool                          `json:"truncated_before,omitempty"`
+	TruncatedAfter  bool                          `json:"truncated_after,omitempty"`
+}
+
+type LocalAppConversationQuote struct {
+	SourceMessageId string                          `json:"source_message_id,omitempty"`
+	SourceRole      LocalAppConversationMessageRole `json:"source_role,omitempty"`
+	SourcePartial   bool                            `json:"source_partial,omitempty"`
+	Format          string                          `json:"format,omitempty"`
+	StartByte       uint32                          `json:"start_byte,omitempty"`
+	EndByte         uint32                          `json:"end_byte,omitempty"`
+	Text            string                          `json:"text,omitempty"`
+}
+
+type LocalAppConversationQuoteIntent struct {
+	SourceMessageId string `json:"source_message_id,omitempty"`
+	Format          string `json:"format,omitempty"`
+	StartByte       uint32 `json:"start_byte,omitempty"`
+	EndByte         uint32 `json:"end_byte,omitempty"`
 }
 
 type LocalAppConversationReasoningStatus struct {
@@ -7919,6 +7946,21 @@ type ReadLocalAppConversationArtifactResponse struct {
 	ByteLength int64  `json:"byte_length,omitempty"`
 }
 
+type ReadLocalAppConversationMessageRequest struct {
+	AgentHandle          string `json:"agent_handle,omitempty"`
+	ConversationAnchorId string `json:"conversation_anchor_id,omitempty"`
+	MessageId            string `json:"message_id,omitempty"`
+}
+
+type ReadLocalAppConversationMessageResponse struct {
+	ConversationAnchorId string                             `json:"conversation_anchor_id,omitempty"`
+	ReadWatermark        uint64                             `json:"read_watermark,omitempty"`
+	Message              *LocalAppConversationMessage       `json:"message,omitempty"`
+	QuoteText            *string                            `json:"quote_text,omitempty"`
+	QuoteFormat          *string                            `json:"quote_format,omitempty"`
+	Window               *LocalAppConversationMessageWindow `json:"window,omitempty"`
+}
+
 type ReadLocalAppStorageJsonRequest struct {
 	RelativePath string `json:"relative_path,omitempty"`
 }
@@ -8735,11 +8777,12 @@ type SendAppMessageResponse struct {
 }
 
 type SendLocalAppConversationTurnRequest struct {
-	AgentHandle          string                          `json:"agent_handle,omitempty"`
-	ConversationAnchorId string                          `json:"conversation_anchor_id,omitempty"`
-	RequestId            string                          `json:"request_id,omitempty"`
-	Parts                []LocalAppConversationInputPart `json:"parts,omitempty"`
-	RetryOfTurnId        *string                         `json:"retry_of_turn_id,omitempty"`
+	AgentHandle          string                           `json:"agent_handle,omitempty"`
+	ConversationAnchorId string                           `json:"conversation_anchor_id,omitempty"`
+	RequestId            string                           `json:"request_id,omitempty"`
+	Parts                []LocalAppConversationInputPart  `json:"parts,omitempty"`
+	RetryOfTurnId        *string                          `json:"retry_of_turn_id,omitempty"`
+	Quote                *LocalAppConversationQuoteIntent `json:"quote,omitempty"`
 }
 
 type SendLocalAppConversationTurnResponse struct {
@@ -10601,6 +10644,14 @@ func (c RuntimeTypedClient) ReadLocalAppConversationArtifact(ctx context.Context
 		return ReadLocalAppConversationArtifactResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[ReadLocalAppConversationArtifactResponse](raw, "ReadLocalAppConversationArtifactResponse")
+}
+
+func (c RuntimeTypedClient) ReadLocalAppConversationMessage(ctx context.Context, request ReadLocalAppConversationMessageRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReadLocalAppConversationMessageResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationMessage", request, metadata, timeoutMS)
+	if err != nil {
+		return ReadLocalAppConversationMessageResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ReadLocalAppConversationMessageResponse](raw, "ReadLocalAppConversationMessageResponse")
 }
 
 func (c RuntimeTypedClient) RenderLocalAppConversationVoice(ctx context.Context, request RenderLocalAppConversationVoiceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RenderLocalAppConversationVoiceResponse, error) {

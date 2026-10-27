@@ -10,7 +10,7 @@ function snapshot(): NimiLocalAppConversationSnapshot {
     state: { textTurnId: 'turn', freeContactEnabled: false, pendingFollowUp: null, maxFollowUpTurns: 8 },
     turns: [{ turnId: 'turn', origin: 'user', requestId: 'request', retryOfTurnId: null, inputTurnId: 'turn', canRegenerate: false,
       status: 'active', phase: 'started', terminalReason: null, reasonCode: null, message: null }],
-    messages: [{ messageId: 'answer', turnId: 'turn', role: 'assistant', partial: true, parts: [{ kind: 'text', text: '已收到' }] }], actions: [], voices: [] };
+    messages: [{ messageId: 'answer', quote: null, turnId: 'turn', role: 'assistant', partial: true, parts: [{ kind: 'text', text: '已收到' }] }], actions: [], voices: [] };
 }
 function queue() {
   let wake: ((value: IteratorResult<NimiLocalAppConversationEvent>) => void) | null = null;

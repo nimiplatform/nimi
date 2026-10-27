@@ -148,7 +148,7 @@ export function ChatComposer<TAttachment = never>({
                 type="button"
                 onClick={() => state.removeAttachment(index)}
                 className="rounded-full p-1 text-[var(--nimi-text-muted)] transition-colors hover:text-[var(--nimi-text-secondary)]"
-                aria-label={`Remove attachment ${label || index + 1}`}
+                aria-label={copyResolved.composerRemoveAttachmentLabel(label || index + 1)}
               >
                 ×
               </button>
@@ -157,7 +157,7 @@ export function ChatComposer<TAttachment = never>({
         })}
       </div>
     );
-  }, [options.attachmentAdapter, state.attachments, state.removeAttachment]);
+  }, [copyResolved.composerRemoveAttachmentLabel, options.attachmentAdapter, state.attachments, state.removeAttachment]);
 
   // Close media actions on successful submit
   const originalHandleSubmit = state.handleSubmit;
@@ -198,7 +198,7 @@ export function ChatComposer<TAttachment = never>({
       onCompositionStart={handleCompositionStart}
       onCompositionEnd={handleCompositionEnd}
       onKeyDown={state.handleKeyDown}
-      disabled={options.disabled || state.isSubmitting}
+      disabled={options.disabled}
       style={{ height: `${lastHeightRef.current}px` }}
     />
   );
@@ -224,9 +224,9 @@ export function ChatComposer<TAttachment = never>({
   const voiceButtonNode = voiceState ? (
     <VoiceButton
       voiceState={voiceState}
-      disabled={options.disabled || state.isSubmitting}
+      disabled={options.disabled}
       compact={isStacked}
-      cancelLabel={copyResolved.composerCancelLabel}
+      copy={copyResolved}
     />
   ) : null;
   const hasStackedLeadingActions = Boolean(voiceButtonNode || toolbarSlot);
@@ -235,7 +235,7 @@ export function ChatComposer<TAttachment = never>({
     <button
       type="button"
       data-chat-composer-attach="true"
-      disabled={options.disabled || state.isSubmitting}
+      disabled={options.disabled}
       onClick={() => {
         if (options.attachmentAdapter) {
           void state.openAttachmentPicker();
@@ -374,7 +374,7 @@ export function ChatComposer<TAttachment = never>({
             <div className="flex items-end gap-2.5">
               {leadingSlot ? <div className="flex items-end">{leadingSlot}</div> : null}
               {voiceState ? (
-                <VoiceButton voiceState={voiceState} disabled={options.disabled || state.isSubmitting} cancelLabel={copyResolved.composerCancelLabel} />
+                <VoiceButton voiceState={voiceState} disabled={options.disabled || state.isSubmitting} copy={copyResolved} />
               ) : (
                 <button
                   type="button"
@@ -383,7 +383,8 @@ export function ChatComposer<TAttachment = never>({
                     'flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl',
                     'border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-muted)]',
                   )}
-                  title="Voice input"
+                  title={copyResolved.composerVoiceInputLabel}
+                  aria-label={copyResolved.composerVoiceInputLabel}
                 >
                   {ICON_MIC}
                 </button>
@@ -438,12 +439,12 @@ function VoiceButton({
   voiceState,
   disabled,
   compact = false,
-  cancelLabel = 'Cancel',
+  copy,
 }: {
   voiceState: ChatComposerVoiceState;
   disabled?: boolean;
   compact?: boolean;
-  cancelLabel?: string;
+  copy: Required<ChatCopy>;
 }) {
   const { status, onToggle, onCancel } = voiceState;
   const transcript = String(voiceState.transcript?.text || '').trim();
@@ -451,10 +452,11 @@ function VoiceButton({
   const isTranscribing = status === 'transcribing';
   const isPlaying = status === 'playing';
   const isFailed = status === 'failed';
-  const voiceLabel = isRecording ? 'Send recording'
-    : isPlaying ? 'Playing voice reply'
-      : isTranscribing ? 'Transcribing recording…'
-        : 'Record a voice message';
+  const voiceLabel = isRecording ? copy.composerSendRecordingLabel
+    : isPlaying ? copy.composerPlayingVoiceLabel
+      : isTranscribing ? copy.composerTranscribingLabel
+        : copy.composerRecordVoiceLabel;
+  const cancelActionLabel = isPlaying ? copy.composerStopVoiceLabel : isTranscribing ? copy.composerCancelTranscriptionLabel : copy.composerCancelRecordingLabel;
 
   return (
     <div className="flex shrink-0 items-center gap-1.5" data-chat-composer-voice="true">
@@ -493,10 +495,11 @@ function VoiceButton({
         <button
           type="button"
           onClick={onCancel}
-          aria-label={isPlaying ? 'Stop voice response' : isTranscribing ? 'Cancel transcription' : 'Cancel recording'}
+          aria-label={cancelActionLabel}
+          title={cancelActionLabel}
           className="rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-xs font-medium text-[var(--nimi-text-secondary)] transition-colors hover:bg-[var(--nimi-surface-panel)]"
         >
-          {cancelLabel}
+          {copy.composerCancelLabel}
         </button>
       ) : null}
     </div>

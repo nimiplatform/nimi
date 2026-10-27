@@ -4423,6 +4423,7 @@ class LocalAppConversationMessage:
     message_id: str | None = None
     parts: tuple[LocalAppConversationMessagePart, ...] = field(default_factory=tuple)
     partial: bool | None = None
+    quote: LocalAppConversationQuote | None = None
 
 @dataclass(frozen=True)
 class LocalAppConversationMessageCommitted:
@@ -4432,6 +4433,32 @@ class LocalAppConversationMessageCommitted:
 class LocalAppConversationMessagePart:
     text: LocalAppConversationTextPart | None = None
     artifact: LocalAppConversationArtifactPart | None = None
+
+@dataclass(frozen=True)
+class LocalAppConversationMessageWindow:
+    messages: tuple[LocalAppConversationMessage, ...] = field(default_factory=tuple)
+    turns: tuple[LocalAppConversationTurn, ...] = field(default_factory=tuple)
+    actions: tuple[LocalAppConversationAction, ...] = field(default_factory=tuple)
+    voices: tuple[LocalAppConversationVoice, ...] = field(default_factory=tuple)
+    truncated_before: bool | None = None
+    truncated_after: bool | None = None
+
+@dataclass(frozen=True)
+class LocalAppConversationQuote:
+    source_message_id: str | None = None
+    source_role: LocalAppConversationMessageRole | None = None
+    source_partial: bool | None = None
+    format: str | None = None
+    start_byte: int | None = None
+    end_byte: int | None = None
+    text: str | None = None
+
+@dataclass(frozen=True)
+class LocalAppConversationQuoteIntent:
+    source_message_id: str | None = None
+    format: str | None = None
+    start_byte: int | None = None
+    end_byte: int | None = None
 
 @dataclass(frozen=True)
 class LocalAppConversationReasoningStatus:
@@ -5857,6 +5884,21 @@ class ReadLocalAppConversationArtifactResponse:
     byte_length: int | None = None
 
 @dataclass(frozen=True)
+class ReadLocalAppConversationMessageRequest:
+    agent_handle: str | None = None
+    conversation_anchor_id: str | None = None
+    message_id: str | None = None
+
+@dataclass(frozen=True)
+class ReadLocalAppConversationMessageResponse:
+    conversation_anchor_id: str | None = None
+    read_watermark: int | None = None
+    message: LocalAppConversationMessage | None = None
+    quote_text: str | None = None
+    quote_format: str | None = None
+    window: LocalAppConversationMessageWindow | None = None
+
+@dataclass(frozen=True)
 class ReadLocalAppStorageJsonRequest:
     relative_path: str | None = None
 
@@ -6683,6 +6725,7 @@ class SendLocalAppConversationTurnRequest:
     request_id: str | None = None
     parts: tuple[LocalAppConversationInputPart, ...] = field(default_factory=tuple)
     retry_of_turn_id: str | None = None
+    quote: LocalAppConversationQuoteIntent | None = None
 
 @dataclass(frozen=True)
 class SendLocalAppConversationTurnResponse:
@@ -8241,6 +8284,10 @@ class RuntimeTypedClient:
     async def read_local_app_conversation_artifact(self, request: ReadLocalAppConversationArtifactRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ReadLocalAppConversationArtifactResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ReadLocalAppConversationArtifactResponse, raw)
+
+    async def read_local_app_conversation_message(self, request: ReadLocalAppConversationMessageRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ReadLocalAppConversationMessageResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationMessage", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ReadLocalAppConversationMessageResponse, raw)
 
     async def render_local_app_conversation_voice(self, request: RenderLocalAppConversationVoiceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RenderLocalAppConversationVoiceResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

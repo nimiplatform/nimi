@@ -1,0 +1,24 @@
+format: nimicoding.authority/v2
+owner: team.platform
+scope: platform.ui-design-system
+units:
+  - id: rule.nimi.platform.chat-message-interaction.shared-actions
+    kind: rule
+    title: Shared desktop message actions preserve reading and identity
+    modality: must
+    statement: Kit Chat owns reusable message-ID-addressed context-menu, explicit more-actions, keyboard access, selection-copy, quotation preparation, confirmed-quote presentation and bounded source-navigation mechanics for Home Agent Chat and Zhiyu. Hosts provide only public typed Conversation access and host navigation, clipboard and view placement. Text selection, links, code copying and image controls keep their existing semantics; unavailable actions do not fabricate success, ordinary text does not require an idle playback row, hover is not the sole discovery path, and active media or essential failure recovery remains reachable. Selection is anchored to source identity and the canonical quotation representation; remount or virtualization change preserves it or explicitly cancels without replacing a fragment action with a whole-message action. Quote preparation, navigation and scope lifetimes reject their own obsolete results without creating a second transcript or widening LocalAgent semantics to Human or Nimi Chat.
+    condition: Whenever Home or Zhiyu exposes desktop Conversation message actions.
+    failure: Reject inconsistent duplicate action shells, wrong-message execution, hidden essential recovery, lost input, mouse-only interaction or App-authored canonical quote or history truth.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.kit-module-surface
+  - id: rule.nimi.platform.chat-message-interaction.playback-lifetime
+    kind: rule
+    title: Message playback survives transient UI and preserves generation intent
+    modality: must
+    statement: One renderer-host message playback controller owns ephemeral audio, artifact identity, progress and generation fences independently of menus and virtual rows; menu closure and row unmount do not stop it, while scope or access loss and explicit stop invalidate late playback. A read or play failure retries only the confirmed artifact, sidecar refresh is read-only and absence remains unknown, and explicit continuation with the original render requestId may admit a not-yet-consumed request but never resynthesizes a consumed one. A genuinely new generation remains explicit. Message audio cannot start or resume while that renderer has connecting, active, closing or unconfirmed-closed Realtime; starting Realtime invalidates local playback and only confirmed closure restores availability without autoplay. Local playback never calls Runtime turn interruption, and separate Home and Zhiyu renderer processes retain independent playback without a new global Host lock.
+    condition: Whenever shared Conversation controls generate, read, play, retry or stop final voice.
+    failure: Reject menu-owned audio lifetime, late sound after cancellation, hidden regeneration, read-only labeling of a possible generation request, overlapping local Realtime audio or consumer playback reported as Runtime cancellation.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.kit-module-surface

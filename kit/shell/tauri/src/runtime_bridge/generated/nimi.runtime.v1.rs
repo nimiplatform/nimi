@@ -23141,6 +23141,36 @@ pub struct SendLocalAppConversationTurnRequest {
     pub parts: ::prost::alloc::vec::Vec<LocalAppConversationInputPart>,
     #[prost(string, optional, tag = "7")]
     pub retry_of_turn_id: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "9")]
+    pub quote: ::core::option::Option<LocalAppConversationQuoteIntent>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationQuoteIntent {
+    #[prost(string, tag = "1")]
+    pub source_message_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub format: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "3")]
+    pub start_byte: u32,
+    #[prost(uint32, tag = "4")]
+    pub end_byte: u32,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppConversationQuote {
+    #[prost(string, tag = "1")]
+    pub source_message_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "LocalAppConversationMessageRole", tag = "2")]
+    pub source_role: i32,
+    #[prost(bool, tag = "3")]
+    pub source_partial: bool,
+    #[prost(string, tag = "4")]
+    pub format: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "5")]
+    pub start_byte: u32,
+    #[prost(uint32, tag = "6")]
+    pub end_byte: u32,
+    #[prost(string, tag = "7")]
+    pub text: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct SendLocalAppConversationTurnResponse {
@@ -23270,6 +23300,45 @@ pub struct GetLocalAppConversationSnapshotRequest {
     #[prost(string, tag = "2")]
     pub conversation_anchor_id: ::prost::alloc::string::String,
 }
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReadLocalAppConversationMessageRequest {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub message_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct LocalAppConversationMessageWindow {
+    #[prost(message, repeated, tag = "1")]
+    pub messages: ::prost::alloc::vec::Vec<LocalAppConversationMessage>,
+    #[prost(message, repeated, tag = "2")]
+    pub turns: ::prost::alloc::vec::Vec<LocalAppConversationTurn>,
+    #[prost(message, repeated, tag = "3")]
+    pub actions: ::prost::alloc::vec::Vec<LocalAppConversationAction>,
+    #[prost(message, repeated, tag = "4")]
+    pub voices: ::prost::alloc::vec::Vec<LocalAppConversationVoice>,
+    #[prost(bool, tag = "5")]
+    pub truncated_before: bool,
+    #[prost(bool, tag = "6")]
+    pub truncated_after: bool,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ReadLocalAppConversationMessageResponse {
+    #[prost(string, tag = "1")]
+    pub conversation_anchor_id: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "2")]
+    pub read_watermark: u64,
+    #[prost(message, optional, tag = "3")]
+    pub message: ::core::option::Option<LocalAppConversationMessage>,
+    #[prost(string, optional, tag = "4")]
+    pub quote_text: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "5")]
+    pub quote_format: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(message, optional, tag = "6")]
+    pub window: ::core::option::Option<LocalAppConversationMessageWindow>,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct LocalAppConversationMessage {
     #[prost(string, tag = "1")]
@@ -23284,6 +23353,8 @@ pub struct LocalAppConversationMessage {
     /// and complete replies are separate durable facts.
     #[prost(bool, tag = "6")]
     pub partial: bool,
+    #[prost(message, optional, tag = "7")]
+    pub quote: ::core::option::Option<LocalAppConversationQuote>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppConversationTextPart {
@@ -26210,6 +26281,37 @@ pub mod runtime_agent_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
                         "GetLocalAppConversationSnapshot",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn read_local_app_conversation_message(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::ReadLocalAppConversationMessageRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::ReadLocalAppConversationMessageResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationMessage",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "ReadLocalAppConversationMessage",
                     ),
                 );
             self.inner.unary(req, path, codec).await

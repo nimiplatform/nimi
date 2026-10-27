@@ -511,6 +511,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "responseType": "ReadLocalAppConversationArtifactResponse"
   },
   {
+    "methodId": "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationMessage",
+    "service": "RuntimeAgentService",
+    "method": "ReadLocalAppConversationMessage",
+    "kind": "unary",
+    "requestType": "ReadLocalAppConversationMessageRequest",
+    "responseType": "ReadLocalAppConversationMessageResponse"
+  },
+  {
     "methodId": "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice",
     "service": "RuntimeAgentService",
     "method": "RenderLocalAppConversationVoice",

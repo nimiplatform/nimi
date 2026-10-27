@@ -97,7 +97,7 @@ export function resolveAgentCanonicalMessages(input: {
   return input.messages.map((message) => {
     const isUser = message.role === 'user' || message.role === 'human';
     const metadata = (message.metadata as Record<string, unknown> | undefined) || {};
-    const isApp = metadata.canonicalOrigin === 'app';
+    const isApp = message.role === 'system' && metadata.canonicalOrigin === 'app';
     const kind = String(metadata.kind || '').trim();
     const isImage = kind === 'image';
     const isVoice = kind === 'voice';

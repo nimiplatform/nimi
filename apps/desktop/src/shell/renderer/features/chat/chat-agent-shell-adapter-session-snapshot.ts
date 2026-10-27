@@ -14,6 +14,8 @@ import {
   createCanonicalConversationMediaReader,
   type CanonicalConversationProjection,
   observeLocalAppConversation,
+  isLocalAppConversationAccessDenied,
+  type LocalAppConversationObservation,
 } from '@nimiplatform/kit/features/chat/headless';
 import { materializeCanonicalConversationBundle } from './chat-agent-canonical-conversation-projection.js';
 
@@ -29,6 +31,7 @@ type UseAgentRuntimeSessionSnapshotHydrationInput = {
   authStatus: AuthStatus;
   buildHostErrorDetails: RuntimeHostErrorDetailsBuilder;
   onRuntimeError?: (error: unknown) => void;
+  onAccessRestored?: () => void;
   queryClient: QueryClient;
   selectedThreadRecord: AgentLocalThreadSummary | null;
 };
@@ -38,6 +41,7 @@ function normalizeText(value: unknown): string {
 }
 
 export type AgentRuntimeSessionHydrationState = {
+  readonly mediaReader: ReturnType<typeof createCanonicalConversationMediaReader> | null;
   readonly controlState: import('@nimiplatform/sdk/app').NimiLocalAppConversationState | null;
   /** The conversation has history that has not been read yet. */
   readonly loading: boolean;
@@ -45,6 +49,7 @@ export type AgentRuntimeSessionHydrationState = {
   readonly retry: () => void;
   readonly mediaReadError: 'failed' | 'retrying' | null;
   readonly retryMedia: () => void;
+  readonly invalidateAccess: (error: unknown) => void;
 };
 
 type HydrationOutcome = {
@@ -74,11 +79,18 @@ export function useAgentRuntimeSessionSnapshotHydration(
   const visibleProjections = useAgentVisibleProjectionStore();
   const activeKeyRef = useRef<string | null>(null);
   const mediaRef = useRef<{ key: string; reader: ReturnType<typeof createCanonicalConversationMediaReader> } | null>(null);
+  const observationRef = useRef<{ key: string; observation: LocalAppConversationObservation } | null>(null);
+  const deniedRef = useRef<{ key: string; error: unknown; attempt: number } | null>(null);
+  const callbacksRef = useRef(input);
+  callbacksRef.current = input;
   const [outcome, setOutcome] = useState<HydrationOutcome | null>(null);
   const [attempt, setAttempt] = useState(0);
   const [control, setControl] = useState<{key:string;value:import('@nimiplatform/sdk/app').NimiLocalAppConversationState}|null>(null);
   const retry = useCallback(() => { setAttempt(current=>current+1); }, []);
   const currentKey = hydrationKey(input);
+  const invalidateAccess = useCallback((error: unknown) => {
+    if (observationRef.current?.key === currentKey) observationRef.current.observation.invalidateAccess(error);
+  }, [currentKey]);
   const retryMedia = useCallback(() => {
     if (mediaRef.current?.key === currentKey) mediaRef.current.reader.retryFailed();
   }, [currentKey]);
@@ -92,6 +104,8 @@ export function useAgentRuntimeSessionSnapshotHydration(
     if (!key || !thread) {
       return () => { cancelled = true; };
     }
+    // A prop/callback rerender is not a user's request to reauthorize access.
+    if (deniedRef.current?.key === key && deniedRef.current.attempt === attempt) return;
 
     activeKeyRef.current = key;
     setOutcome((current) => (current?.key === key && current.status !== 'error'
@@ -99,10 +113,13 @@ export function useAgentRuntimeSessionSnapshotHydration(
       : { key, status: 'loading', error: null, mediaReadError: null }));
     const conversation = bindings.sdk.conversation();
     let projection: CanonicalConversationProjection | null = null;
+    let firstProjection = true;
+    let observation: LocalAppConversationObservation | null = null;
     const media = createCanonicalConversationMediaReader({
       conversation,
       scope: { agentHandle, conversationAnchorId },
       onChange: () => publish(),
+      onAccessDenied: (error) => observation?.invalidateAccess(error),
     });
     mediaRef.current = { key, reader: media };
     const publish = (connectionReady = false): void => {
@@ -128,12 +145,31 @@ export function useAgentRuntimeSessionSnapshotHydration(
       });
     };
 
-    const observation = observeLocalAppConversation({
+    observation = observeLocalAppConversation({
       conversation,
       scope: { agentHandle, conversationAnchorId },
-      onProjection: (value) => { projection = value; publish(true); },
+      onProjection: (value) => {
+        if (cancelled || activeKeyRef.current !== key) return;
+        projection = value;
+        publish(true);
+        if (firstProjection) {
+          firstProjection = false;
+          deniedRef.current = null;
+          callbacksRef.current.onAccessRestored?.();
+        }
+      },
       onStatus: (status, error) => {
         if (cancelled || activeKeyRef.current !== key || status !== 'error') return;
+        if (isLocalAppConversationAccessDenied(error)) {
+          deniedRef.current = { key, error, attempt };
+          projection = null;
+          media.close();
+          if (mediaRef.current?.reader === media) mediaRef.current = null;
+          setControl(current => current?.key === key ? null : current);
+          void input.queryClient.cancelQueries({ queryKey: bundleQueryKey(thread.id), exact: true }).catch(() => undefined);
+          input.queryClient.removeQueries({ queryKey: bundleQueryKey(thread.id), exact: true });
+          visibleProjections.set(thread.id, null);
+        }
         setOutcome({ key, status: 'error', error: error instanceof Error ? error : new Error(String(error)), mediaReadError: media.getReadError() });
         input.onRuntimeError?.(error);
         logRendererEvent({ level: 'warn', area: 'agent-chat-shell', message: 'action:host-error',
@@ -141,13 +177,15 @@ export function useAgentRuntimeSessionSnapshotHydration(
         });
       },
     });
+    observationRef.current = { key, observation };
 
     return () => {
       cancelled = true;
       media.close();
       if (mediaRef.current?.reader === media) mediaRef.current = null;
       if (activeKeyRef.current === key) activeKeyRef.current = null;
-      observation.close();
+      observation?.close();
+      if (observationRef.current?.observation === observation) observationRef.current = null;
     };
   }, [
     bindings.clock,
@@ -165,11 +203,13 @@ export function useAgentRuntimeSessionSnapshotHydration(
 
   const settled = outcome?.key === currentKey ? outcome : null;
   return {
+    mediaReader: mediaRef.current?.key === currentKey ? mediaRef.current.reader : null,
     controlState: control?.key === currentKey ? control.value : null,
     loading: currentKey !== null && settled?.status !== 'ready' && settled?.status !== 'error',
     error: currentKey !== null && settled?.status === 'error' ? settled.error : null,
     retry,
     mediaReadError: settled?.mediaReadError ?? null,
     retryMedia,
+    invalidateAccess,
   };
 }

@@ -10850,6 +10850,7 @@ pub struct LocalAppConversationMessage {
     pub message_id: Option<String>,
     pub parts: Vec<Box<LocalAppConversationMessagePart>>,
     pub partial: Option<bool>,
+    pub quote: Option<Box<LocalAppConversationQuote>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -10861,6 +10862,35 @@ pub struct LocalAppConversationMessageCommitted {
 pub struct LocalAppConversationMessagePart {
     pub text: Option<Box<LocalAppConversationTextPart>>,
     pub artifact: Option<Box<LocalAppConversationArtifactPart>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppConversationMessageWindow {
+    pub messages: Vec<Box<LocalAppConversationMessage>>,
+    pub turns: Vec<Box<LocalAppConversationTurn>>,
+    pub actions: Vec<Box<LocalAppConversationAction>>,
+    pub voices: Vec<Box<LocalAppConversationVoice>>,
+    pub truncated_before: Option<bool>,
+    pub truncated_after: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppConversationQuote {
+    pub source_message_id: Option<String>,
+    pub source_role: Option<LocalAppConversationMessageRole>,
+    pub source_partial: Option<bool>,
+    pub format: Option<String>,
+    pub start_byte: Option<u32>,
+    pub end_byte: Option<u32>,
+    pub text: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppConversationQuoteIntent {
+    pub source_message_id: Option<String>,
+    pub format: Option<String>,
+    pub start_byte: Option<u32>,
+    pub end_byte: Option<u32>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12735,6 +12765,23 @@ pub struct ReadLocalAppConversationArtifactResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReadLocalAppConversationMessageRequest {
+    pub agent_handle: Option<String>,
+    pub conversation_anchor_id: Option<String>,
+    pub message_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReadLocalAppConversationMessageResponse {
+    pub conversation_anchor_id: Option<String>,
+    pub read_watermark: Option<u64>,
+    pub message: Option<Box<LocalAppConversationMessage>>,
+    pub quote_text: Option<String>,
+    pub quote_format: Option<String>,
+    pub window: Option<Box<LocalAppConversationMessageWindow>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ReadLocalAppStorageJsonRequest {
     pub relative_path: Option<String>,
 }
@@ -14182,6 +14229,7 @@ pub struct SendLocalAppConversationTurnRequest {
     pub request_id: Option<String>,
     pub parts: Vec<Box<LocalAppConversationInputPart>>,
     pub retry_of_turn_id: Option<String>,
+    pub quote: Option<Box<LocalAppConversationQuoteIntent>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

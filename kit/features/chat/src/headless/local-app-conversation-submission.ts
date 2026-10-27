@@ -25,6 +25,7 @@ export async function reconcileAgentSubmission(input: {
       : {
           ...scope,
           requestId: submission.requestId,
+          ...(submission.quote ? { quote: submission.quote } : {}),
           parts: [
             ...(submission.text ? [{ kind: 'text' as const, text: submission.text }] : []),
             ...submission.artifactIds.map((artifactId) => ({

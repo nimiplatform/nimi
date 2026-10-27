@@ -133,7 +133,7 @@ func (s *Service) SendLocalAppConversationTurn(
 		return nil, err
 	}
 	retryOf := strings.TrimSpace(req.GetRetryOfTurnId())
-	if retryOf != "" && (!validLocalAppConversationSelector(retryOf) || len(req.GetParts()) != 0) {
+	if retryOf != "" && (!validLocalAppConversationSelector(retryOf) || len(req.GetParts()) != 0 || req.Quote != nil) {
 		return nil, localAppConversationInvalid("regeneration requires only retryOfTurnId and a fresh requestId")
 	}
 	text, artifactID := "", ""
@@ -144,6 +144,10 @@ func (s *Service) SendLocalAppConversationTurn(
 		}
 	}
 	message := publicChatMessagePayload{Role: "user", Content: text}
+	message.quoteSelector, err = parseConversationQuoteIntent(req.GetQuote())
+	if err != nil {
+		return nil, err
+	}
 	if artifactID != "" {
 		message.Attachments = []publicChatAttachmentPayload{{ArtifactID: artifactID}}
 	}
@@ -162,6 +166,13 @@ func (s *Service) SendLocalAppConversationTurn(
 		return &runtimev1.SendLocalAppConversationTurnResponse{TurnId: reused.TurnID}, nil
 	}
 	var original *publicChatRecoveryInput
+	if retryOf == "" && message.quoteSelector != nil {
+		message.quote, err = resolveConversationQuoteLocked(anchor, message.quoteSelector)
+		if err != nil {
+			s.chatSurfaceMu.Unlock()
+			return nil, err
+		}
+	}
 	if retryOf != "" {
 		if !publicChatCanRegenerate(anchor, retryOf) {
 			s.chatSurfaceMu.Unlock()
@@ -172,7 +183,7 @@ func (s *Service) SendLocalAppConversationTurn(
 	s.chatSurfaceMu.Unlock()
 	attachments := make([]publicChatResolvedAttachment, 0, 1)
 	if original != nil {
-		message = publicChatMessagePayload{Role: "user", Content: original.Text}
+		message = publicChatMessagePayload{Role: "user", Content: original.Text, quote: clonePublicChatQuote(original.Quote)}
 		if original.Attachment != nil {
 			value, readErr := s.readConversationArtifact(resolved.identity.LocalAgentRef, anchorID, original.Attachment.ArtifactID)
 			if readErr != nil {
@@ -931,7 +942,7 @@ func (s *Service) buildLocalAppConversationSnapshot(
 				return nil, localAppConversationOwnerUnavailable()
 			}
 			group.messages = append(group.messages, userMessage)
-			group.bytes += len(turn.InputText)
+			group.bytes += conversationMessageContentBytes(userMessage)
 		}
 		if item := owned.Recoveries[turn.TurnID]; item != nil && turn.AssistantText == "" && item.PublicText != "" {
 			group.messages = append(group.messages, localAppConversationPartialMessage(item))
@@ -1020,12 +1031,12 @@ func (s *Service) buildLocalAppConversationSnapshot(
 		if item := owned.Recoveries[turnID]; item != nil {
 			group.orderAt = item.AcceptedAt
 			if input := publicChatRecoveryInputForTurn(&owned, item); input != nil && input.Role == "user" {
-				message := localAppConversationUserMessage(publicChatCommittedTranscriptTurn{TurnID: item.InputTurnID, Origin: publicChatTurnOriginUser, InputText: input.Text, InputAttachment: input.Attachment})
+				message := localAppConversationUserMessage(publicChatCommittedTranscriptTurn{TurnID: item.InputTurnID, Origin: publicChatTurnOriginUser, InputText: input.Text, InputAttachment: input.Attachment, InputQuote: input.Quote})
 				if message == nil {
 					return nil, localAppConversationOwnerUnavailable()
 				}
 				group.messages = append(group.messages, message)
-				group.bytes += len(input.Text)
+				group.bytes += conversationMessageContentBytes(message)
 			}
 			if item.PublicText != "" {
 				group.messages = append(group.messages, localAppConversationPartialMessage(item))
@@ -1080,6 +1091,9 @@ func (s *Service) buildLocalAppConversationSnapshot(
 		actions = append(actions, group.actions...)
 	}
 	if activeGroup != nil {
+		if activeGroup.bytes > conversationSnapshotClosureMaxBytes || activeMessageCount > 3 {
+			return nil, localAppConversationOwnerUnavailable()
+		}
 		messages = append(messages, activeGroup.messages...)
 		if activeGroup.turn != nil {
 			turns = append(turns, activeGroup.turn)
@@ -1242,6 +1256,7 @@ func localAppConversationUserMessage(
 		Role:      role,
 		MessageId: localAppConversationMessageID(inputTurnID, "user", ""),
 		Parts:     parts,
+		Quote:     conversationQuoteProjection(turn.InputQuote),
 	}
 }
 

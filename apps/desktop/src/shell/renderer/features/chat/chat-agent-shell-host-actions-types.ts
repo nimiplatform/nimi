@@ -56,6 +56,9 @@ export type UseAgentConversationHostActionsInput = {
 };
 
 export type AgentConversationSubmitPayload = {
+  quote?: import('@nimiplatform/sdk/app').NimiLocalAppConversationQuoteInput;
+  quoteRevision?: number;
+  textRevision?: number;
   retryOfTurnId?: string;
   parentMessageId?: string;
   text: string;

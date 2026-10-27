@@ -437,6 +437,7 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
       interruptTurn: touched('conversation.interruptTurn'),
       subscribe: touched('conversation.subscribe'),
       snapshot: touched('conversation.snapshot'),
+      readMessage: touched('conversation.readMessage'),
     },
     embodiment: {
       snapshot: touched('embodiment.snapshot'),
@@ -1067,7 +1068,7 @@ test('Agent conversation projects only the exact typed union and bounded snapsho
               type: 'message-committed', conversationAnchorId: 'agent_anchor_01J',
               sequence: '9', turnId: 'agent_turn_01J',
               message: {
-                partial: false, messageId: 'message-user-1', turnId: 'agent_turn_01J', role: 'user',
+                partial: false, quote: null, messageId: 'message-user-1', turnId: 'agent_turn_01J', role: 'user',
                 parts: [{ kind: 'text', text: 'hello' }],
               },
             };
@@ -1075,7 +1076,7 @@ test('Agent conversation projects only the exact typed union and bounded snapsho
               type: 'message-committed', conversationAnchorId: 'agent_anchor_01J',
               sequence: '10', turnId: 'agent_turn_01J',
               message: {
-                partial: false, messageId: 'message-assistant-1', turnId: 'agent_turn_01J', role: 'assistant',
+                partial: false, quote: null, messageId: 'message-assistant-1', turnId: 'agent_turn_01J', role: 'assistant',
                 parts: [{ kind: 'text', text: 'hello back' }],
               },
             };
@@ -1097,11 +1098,11 @@ test('Agent conversation projects only the exact typed union and bounded snapsho
           }],
           messages: [
             {
-              partial: false, messageId: 'message-user-1', turnId: 'agent_turn_01J', role: 'user',
+              partial: false, quote: null, messageId: 'message-user-1', turnId: 'agent_turn_01J', role: 'user',
               parts: [{ kind: 'text', text: 'hello' }],
             },
             {
-              partial: false, messageId: 'message-assistant-1', turnId: 'agent_turn_01J', role: 'assistant',
+              partial: false, quote: null, messageId: 'message-assistant-1', turnId: 'agent_turn_01J', role: 'assistant',
               parts: [{ kind: 'text', text: 'hello back' }],
             },
           ],
@@ -1158,11 +1159,11 @@ test('Agent conversation projects only the exact typed union and bounded snapsho
     }],
     messages: [
       {
-        partial: false, messageId: 'message-user-1', turnId: 'agent_turn_01J', role: 'user',
+        partial: false, quote: null, messageId: 'message-user-1', turnId: 'agent_turn_01J', role: 'user',
         parts: [{ kind: 'text', text: 'hello' }],
       },
       {
-        partial: false, messageId: 'message-assistant-1', turnId: 'agent_turn_01J', role: 'assistant',
+        partial: false, quote: null, messageId: 'message-assistant-1', turnId: 'agent_turn_01J', role: 'assistant',
         parts: [{ kind: 'text', text: 'hello back' }],
       },
     ],

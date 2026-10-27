@@ -1,6 +1,9 @@
-import { LocalAppConversationMediaStopButton, } from '@nimiplatform/kit/features/chat/ui';
+import { LocalAppConversationMediaStopButton, LocalAppConversationPlayer, LocalAppConversationQuotePreview, getMessageInteractionCopy } from '@nimiplatform/kit/features/chat/ui';
+import { useLocalAppConversationPlayback, useLocalAppConversationQuote, useLocalAppConversationHistory } from '@nimiplatform/kit/features/chat/runtime';
+import { materializeCanonicalConversationBundle } from './chat-agent-canonical-conversation-projection';
+import { toConversationMessageViewModel } from './chat-agent-thread-model';
+import type { AgentConversationSubmitPayload } from './chat-agent-shell-host-actions-types';
 import { localAgentReplyFailureMessage } from './chat-agent-runtime';
-import { AgentManualVoicePlaybackButton } from './chat-agent-manual-voice-playback-button';
 import { useHomeChatPosition } from '../../app-shell/providers/home-chat-position.js';
 import { useActiveAgentConversationSourceRef } from '../agents/agent-conversation-source-resolution.js';
 import { characterSourceRefKey } from '../realm-source/realm-source-identity.js';
@@ -14,6 +17,7 @@ import {
 import { useQueryClient } from '@tanstack/react-query';
 import {
   createReadyConversationSetupState,
+  isLocalAppConversationAccessDenied,
 } from '@nimiplatform/kit/features/chat/headless';
 import {
   type CanonicalMessageAccessorySlot,
@@ -58,7 +62,7 @@ import {
 } from './chat-agent-thread-model';
 import { useAgentConversationRuntimeController } from './chat-agent-shell-adapter-runtime';
 import { useAgentRuntimeSessionSnapshotHydration } from './chat-agent-shell-adapter-session-snapshot';
-import { useAgentConversationHostFeedback } from './chat-agent-shell-adapter-host-feedback';
+import { createScopedAgentConversationHostError, useAgentConversationHostFeedback } from './chat-agent-shell-adapter-host-feedback';
 import { useAgentConversationPendingAttachments } from './chat-agent-shell-adapter-attachments';
 import { useStreamController } from '../turns/stream-controller-context.js';
 import { useAgentConversationVoiceInput } from './chat-agent-voice-input.js';
@@ -97,7 +101,7 @@ export function useAgentConversationModeHost(
   input: UseAgentConversationModeHostInput,
 ): DesktopConversationModeHost {
   const homeChat = useHomeChatPosition();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const streamController = useStreamController();
   const bindings = useDesktopRendererBindings();
   const queryClient = useQueryClient();
@@ -188,6 +192,32 @@ export function useAgentConversationModeHost(
   const shellActiveTargetRef = useRef(shellActiveTarget);
   shellActiveTargetRef.current = shellActiveTarget;
   const draftAgentHandle = normalizeText(shellActiveTarget?.agentHandle);
+  const conversation = useCallback(() => bindings.sdk.conversation(), [bindings.sdk]);
+  const interactionScope = [input.authStatus, authUserId, shellActiveTarget?.agentBinding || draftAgentHandle, activeConversationAnchorId].join(':');
+  const operationScope = `${interactionScope}:${draftAgentHandle}`;
+  const currentOperationScope = useRef(operationScope);
+  currentOperationScope.current = operationScope;
+  const [deniedScope, setDeniedScope] = useState<string | null>(null);
+  const accessDenied = deniedScope === interactionScope;
+  const playbackStop = useRef<(() => void) | null>(null);
+  const invalidateObservation = useRef<((error: unknown) => void) | null>(null);
+  const markAccessDenied = useMemo(() => createScopedAgentConversationHostError(operationScope, currentOperationScope, (error: unknown) => {
+    if (!isLocalAppConversationAccessDenied(error)) return;
+    setDeniedScope(interactionScope);
+    playbackStop.current?.();
+    invalidateObservation.current?.(error);
+  }), [interactionScope, operationScope]);
+  const restoreAccess = useCallback(() => setDeniedScope(current => current === interactionScope ? null : current), [interactionScope]);
+  const messageCopy = useMemo(() => getMessageInteractionCopy(i18n.resolvedLanguage ?? i18n.language), [i18n.resolvedLanguage, i18n.language]);
+  const quote = useLocalAppConversationQuote({
+    scopeKey: interactionScope,
+    agentHandle: input.authStatus === 'authenticated' ? draftAgentHandle : null,
+    conversationAnchorId: activeConversationAnchorId,
+    conversation,
+    accessDenied,
+    onAccessDenied: markAccessDenied,
+    onError: error => reportHostError(error, { inlineOnly: true }),
+  });
   const currentComposerTextRef = useMemo(
     () => createAgentComposerDraftRef(appStore, authUserId, draftAgentHandle),
     [appStore, authUserId, draftAgentHandle],
@@ -199,6 +229,8 @@ export function useAgentConversationModeHost(
     agentBinding: shellActiveTarget?.agentBinding,
     client: draftClient,
     draft: currentComposerTextRef,
+    quoteDraft: quote.draftRef,
+    subscribeQuote: quote.subscribe,
     isCurrent: () => appStore.getState().auth.status === 'authenticated'
       && normalizeText(appStore.getState().auth.user?.id) === authUserId
       && normalizeText(shellActiveTargetRef.current?.agentHandle) === draftAgentHandle,
@@ -261,10 +293,11 @@ export function useAgentConversationModeHost(
       }
     });
   }, [appStore, bindings.sdk, queryClient, setAgentConversationTargetSnapshot]);
-  const reportRuntimeProductError = useCallback<ReportAgentConversationHostError>((error, options) => {
+  const reportRuntimeProductError = useMemo<ReportAgentConversationHostError>(() => createScopedAgentConversationHostError(operationScope, currentOperationScope, (error, options) => {
+    markAccessDenied(error);
     reportHostError(error, options);
     recoverDesktopAgentSessionBinding(error);
-  }, [recoverDesktopAgentSessionBinding, reportHostError]);
+  }), [recoverDesktopAgentSessionBinding, reportHostError, markAccessDenied, operationScope]);
   const {
     runtimeAgentCenterAdapter,
     runtimeCommittedStatus,
@@ -332,9 +365,30 @@ export function useAgentConversationModeHost(
     authStatus: input.authStatus,
     buildHostErrorDetails,
     queryClient,
-    onRuntimeError: recoverDesktopAgentSessionBinding,
+    onRuntimeError: reportRuntimeProductError,
+    onAccessRestored: restoreAccess,
     selectedThreadRecord,
   });
+  invalidateObservation.current = history.invalidateAccess;
+  const readPosition = useRef<{ messageId: string; offset: number } | null>(null);
+  const historyView = useLocalAppConversationHistory({
+    scopeKey: interactionScope,
+    agentHandle: input.authStatus === 'authenticated' ? draftAgentHandle : null,
+    conversationAnchorId: activeConversationAnchorId,
+    conversation,
+    accessDenied,
+    onAccessDenied: markAccessDenied,
+    liveProjection: bundle?.canonicalProjection ?? null,
+    capturePosition: () => readPosition.current,
+  });
+  const displayMessages = useMemo(() => {
+    if (accessDenied || historyView.accessDenied) return [];
+    if (!bundle || !historyView.projection || historyView.projection === bundle.canonicalProjection) return messages;
+    return materializeCanonicalConversationBundle({
+      thread: bundle.thread, projection: historyView.projection,
+      media: history.mediaReader ?? undefined, nowMs: bindings.clock.now(),
+    }).messages.map(toConversationMessageViewModel);
+  }, [bundle, messages, historyView.projection, history.mediaReader, bindings.clock, accessDenied, historyView.accessDenied]);
   // Unread history is loading, not a first meeting; a visible projection may
   // show while the authoritative read catches up.
   const isBundleLoading = history.loading && !bundle;
@@ -431,24 +485,6 @@ export function useAgentConversationModeHost(
         {incomplete && reasonCode.startsWith('AI_REALTIME_') ? <p role="status" className="text-sm text-[var(--nimi-text-secondary)]">{t('Chat.agentRealtimeRestartHint')}</p> : null}
         {incomplete && localAgentConfigurationFailure(reasonCode) && input.onOpenAgentCenter ? <Button tone="ghost" size="sm" onClick={input.onOpenAgentCenter}>{t('Chat.agentOpenConfiguration')}</Button> : null}
         {metadata.canonicalCanRegenerate === true && !submittingThreadId ? <Button tone="ghost" size="sm" onClick={() => regenerateTurnRef.current(String(metadata.canonicalTurnId || ''), String(metadata.canonicalInputTurnId || ''))}>{t('Chat.agentRegenerateText')}</Button> : null}
-        <AgentManualVoicePlaybackButton
-          message={message}
-          activeTarget={activeTarget}
-          activeConversationAnchorId={activeConversationAnchorId}
-          playLabel={t('Chat.agentVoiceManualPlay')}
-          stopLabel={t('Chat.agentVoiceManualStop')}
-          renderingLabel={t('Chat.agentVoiceManualRendering')}
-          unavailableLabel={t('Chat.agentVoiceManualUnavailable')}
-          errorLabel={t('Chat.agentVoiceManualError')}
-          retryLabel={t('Chat.agentVoiceManualRetry')}
-          pauseLabel={t('Chat.agentVoiceManualPause')}
-          resumeLabel={t('Chat.agentVoiceManualResume')}
-          progressLabel={t('Chat.agentVoiceManualProgress')}
-          settingsLabel={t('Chat.agentVoiceOpenSettings')}
-          settingsHint={t('Chat.agentVoiceSettingsHint')}
-          onOpenSettings={input.onOpenAgentCenter}
-          reportHostError={reportRuntimeProductError}
-        />
         <RuntimeAgentDebugMessageAccessory
           message={message}
           debugVisible={developerModeEnabled}
@@ -468,7 +504,7 @@ export function useAgentConversationModeHost(
   const currentFooterHostState = activeThreadId ? footerHostStateByThreadId[activeThreadId] || null : null;
   const { activePendingAttachments, setPendingAttachmentsForThread, bindAttachments, acknowledgeAttachments } = useAgentConversationPendingAttachments(accountId, activeThreadId);
   const textMaxOutputTokensRequested = behaviorSettings.maxOutputTokensOverride;
-  const { ensureConversationAnchor, handleSelectAgent, handleSubmit } = useAgentConversationHostActions({
+  const { ensureConversationAnchor, handleSelectAgent, handleSubmit: submitConversation } = useAgentConversationHostActions({
     now: bindings.clock.now,
     sdk: bindings.sdk,
     subjectUserId: accountId,
@@ -504,10 +540,22 @@ export function useAgentConversationModeHost(
     textModelContextTokens: null,
     textMaxOutputTokensRequested,
   });
+  const handleSubmit = useCallback((payload: AgentConversationSubmitPayload) => {
+    if (accessDenied) return Promise.reject(new Error(t('Chat.agentSourceUnavailable')));
+    if (payload.retryOfTurnId) return submitConversation(payload);
+    if (quote.state.status !== 'empty' && quote.state.status !== 'ready') {
+      return Promise.reject(new Error(t('Chat.agentQuoteNotReady', { defaultValue: 'Wait for the quotation to load, or remove it before sending.' })));
+    }
+    return submitConversation({ ...payload,
+      quoteRevision: quote.draftRef.revision,
+      textRevision: currentComposerTextRef.revision,
+      ...(quote.state.input ? { quote: quote.state.input } : {}),
+    });
+  }, [submitConversation, quote.state.status, quote.state.input, quote.draftRef, currentComposerTextRef, t, accessDenied]);
   regenerateTurnRef.current = (turnId, inputTurnId) => {
     if (!turnId || submittingThreadId) return;
     const original = bundle?.messages.find(message => message.role === 'user' && message.metadataJson?.canonicalTurnId === inputTurnId);
-    void handleSubmit({ text: original?.contentText || '', attachments: [], retryOfTurnId: turnId, parentMessageId: original?.id, canUpdateDraft: () => false }).catch(reportRuntimeProductError);
+    void submitConversation({ text: original?.contentText || '', attachments: [], retryOfTurnId: turnId, parentMessageId: original?.id, canUpdateDraft: () => false }).catch(reportRuntimeProductError);
   };
   useEffect(() => {
     if (!pendingImageRetry || !activeTarget?.agentHandle || submittingThreadId) {
@@ -519,7 +567,7 @@ export function useAgentConversationModeHost(
     }
     const retry = pendingImageRetry;
     setPendingImageRetry(null);
-    void handleSubmit({ text: retry.prompt, attachments: [] }).catch(reportRuntimeProductError);
+    void submitConversation({ text: retry.prompt, attachments: [], canUpdateDraft: () => false }).catch(reportRuntimeProductError);
   }, [
     activeTarget?.agentHandle,
     currentComposerTextRef,
@@ -529,7 +577,7 @@ export function useAgentConversationModeHost(
     submittingThreadId,
   ]);
   const voiceInput = useAgentConversationVoiceInput({
-    enabled: composerReady && Boolean(activeTarget) && !submittingThreadId,
+    enabled: composerReady && !accessDenied && Boolean(activeTarget) && !submittingThreadId,
     target: activeTarget,
     voiceCapture: bindings.app.commands.voiceCapture,
     runtime: bindings.sdk,
@@ -541,23 +589,38 @@ export function useAgentConversationModeHost(
       defaultValue: 'Voice input failed. Check microphone access and the selected speech configuration.',
     }),
   });
+  const playback = useLocalAppConversationPlayback({
+    agentHandle: input.authStatus === 'authenticated' && !accessDenied ? draftAgentHandle : null,
+    conversationAnchorId: activeConversationAnchorId,
+    conversation,
+    accessKey: interactionScope,
+    realtimeBlocked: voiceInput.playbackBlocked,
+    onError: reportRuntimeProductError,
+  });
+  playbackStop.current = playback.stop;
+  const openVoiceSettings = useCallback(() => {
+    homeChat.setAgentCenterSection('appearance');
+    input.onOpenAgentCenter?.();
+  }, [homeChat.setAgentCenterSection, input.onOpenAgentCenter]);
   const presentation = useAgentConversationPresentation({
     activeTarget,
     accountId,
     activeThreadId,
     activeConversationAnchorId,
-    bundle,
+    bundle: accessDenied ? null : bundle,
     bundleError,
     onRetryBundle: history.retry,
     composerPrefillRequestId,
-    composerReady,
+    composerReady: composerReady && !accessDenied,
     currentComposerTextRef,
     currentFooterHostState,
     handleSubmit,
     hostFeedback,
     inputSelectionAgentHandle: input.selection.agentHandle,
     isBundleLoading,
-    messages,
+    messages: displayMessages,
+    quoteSlot: <LocalAppConversationQuotePreview quote={quote} copy={messageCopy} onReturnToComposer={() => composerRoot.current?.querySelector('textarea')?.focus()} />,
+    submitDisabled: quote.state.status !== 'empty' && quote.state.status !== 'ready',
     pendingAttachments: activePendingAttachments,
     onDismissHostFeedback: () => setHostFeedback(null),
     onAttachmentsChange: (nextAttachments) => setPendingAttachmentsForThread(activeThreadId, nextAttachments),
@@ -597,7 +660,9 @@ export function useAgentConversationModeHost(
   // Contextual notices and recovery can resize the floating input area.
   // Reserve its actual height so the last reply and its actions remain reachable.
   const [composerInset, setComposerInset] = useState<number>();
+  const composerRoot = useRef<HTMLDivElement | null>(null);
   const measureComposer = useCallback((element: HTMLDivElement | null) => {
+    composerRoot.current = element;
     if (!element) return;
     const update = () => setComposerInset(Math.ceil(element.getBoundingClientRect().height) + 16);
     update();
@@ -609,17 +674,39 @@ export function useAgentConversationModeHost(
   return useMemo<DesktopConversationModeHost>(() => ({
     ...presentation,
     transcriptProps: { ...presentation.transcriptProps, contentBottomInsetPx: composerInset,
-      bannerContent: history.mediaReadError ? <>{presentation.transcriptProps?.bannerContent}
+      copy: { ...presentation.transcriptProps?.copy, ...messageCopy },
+      messageActions: {
+        scopeKey: interactionScope, playback, onQuote: quote.prepare,
+        onLocateMessage: historyView.locate,
+        onReturnToComposer: () => composerRoot.current?.querySelector('textarea')?.focus(),
+        onOpenVoiceSettings: openVoiceSettings,
+      },
+      positionRequest: historyView.positionRequest,
+      onPositionChange: position => { readPosition.current = position; },
+      onUserNavigate: historyView.cancelNavigation,
+      bannerContent: <>
+      {presentation.transcriptProps?.bannerContent}
+      {(historyView.status !== 'live' || historyView.returnPosition) ? <div role="status" className="flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
+        {historyView.status === 'loading' ? t('Chat.agentSourceLoading') : historyView.status === 'error' ? t('Chat.agentSourceUnavailable') : null}
+        {historyView.status === 'error' ? <Button tone="ghost" size="sm" onClick={historyView.retry}>{messageCopy.historyRetryLabel}</Button> : null}
+        <Button tone="ghost" size="sm" onClick={historyView.returnToPrevious}>{t('Chat.agentReturnReading')}</Button>
+        <Button tone="ghost" size="sm" onClick={historyView.returnToLatest}>{t('Chat.agentReturnLatest')}</Button>
+      </div> : null}
+      {history.mediaReadError ? <>
         <div role="status" className="rounded-lg bg-[var(--nimi-surface-card)] px-3 py-2 text-sm">
           {t('Chat.agentImageLoadFailed')}{' '}
           <Button tone="ghost" size="sm" disabled={history.mediaReadError === 'retrying'} onClick={history.retryMedia}>
             {t(history.mediaReadError === 'retrying' ? 'Chat.agentImageReloading' : 'Chat.agentReloadImages')}
           </Button>
         </div>
-      </> : presentation.transcriptProps?.bannerContent,
+      </> : null}
+      </>,
     },
     onSelectTarget: handleSelectAgent,
     composerContent: <div ref={measureComposer}>
+      <div className={`${CHAT_CONTENT_POSITION_CLASS} ${CHAT_CONTENT_WIDTH_CLASS}`}>
+        <LocalAppConversationPlayer playback={playback} copy={messageCopy} onLocateMessage={historyView.locate} onOpenSettings={openVoiceSettings} />
+      </div>
       {activeTarget?.agentHandle && activeConversationAnchorId ? <div className="px-5">
         <div className={`${CHAT_CONTENT_POSITION_CLASS} ${CHAT_CONTENT_WIDTH_CLASS}`}>
           <AgentFollowUpControl key={`${authUserId}:${activeTarget.agentHandle}:${activeConversationAnchorId}`} agentHandle={activeTarget.agentHandle} conversationAnchorId={activeConversationAnchorId} state={history.controlState} conversation={() => bindings.sdk.conversation()} refresh={history.retry} onOpenAgentCenter={() => homeChat.setAgentCenterSection('behavior')} />
@@ -658,5 +745,5 @@ export function useAgentConversationModeHost(
       </div>
       </div>
     </div>,
-  }), [composerInset, measureComposer, handleSelectAgent, presentation, draftAgentHandle, input.authStatus, input.onOpenAgentCenter, homeChat.setAgentCenterSection, draftPersistence.status, draftPersistence.retry, draftPersistence.submission, draftPersistence.acknowledge, acknowledgeAttachments, currentComposerTextRef, submittingThreadId, authUserId, bindings.sdk, history.retry, history.retryMedia, history.mediaReadError, history.controlState, activeTarget?.agentHandle, activeConversationAnchorId, t]);
+  }), [composerInset, measureComposer, handleSelectAgent, presentation, draftAgentHandle, input.authStatus, input.onOpenAgentCenter, homeChat.setAgentCenterSection, draftPersistence.status, draftPersistence.retry, draftPersistence.submission, draftPersistence.acknowledge, acknowledgeAttachments, currentComposerTextRef, submittingThreadId, authUserId, bindings.sdk, history.retry, history.retryMedia, history.mediaReadError, history.controlState, activeTarget?.agentHandle, activeConversationAnchorId, t, messageCopy, interactionScope, playback, quote.prepare, historyView, openVoiceSettings]);
 }

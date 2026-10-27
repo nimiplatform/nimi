@@ -24,8 +24,22 @@ export type NimiLocalAppConversationOpenResult = {
 };
 
 type ConversationSendContent =
-  | { readonly parts: readonly NimiLocalAppConversationInputPart[]; readonly retryOfTurnId?: never }
-  | { readonly retryOfTurnId: string; readonly parts?: never };
+  | { readonly parts: readonly NimiLocalAppConversationInputPart[]; readonly quote?: NimiLocalAppConversationQuoteInput; readonly retryOfTurnId?: never }
+  | { readonly retryOfTurnId: string; readonly parts?: never; readonly quote?: never };
+
+// @nimi-authority: rule.nimi.runtime.conversation-message-interaction.quote-input
+export type NimiLocalAppConversationQuoteInput = {
+  readonly sourceMessageId: string;
+  readonly format: 'nimi.quote-text.v1';
+  readonly startByte: number;
+  readonly endByte: number;
+};
+
+export type NimiLocalAppConversationQuote = NimiLocalAppConversationQuoteInput & {
+  readonly sourceRole: 'user' | 'assistant' | 'app';
+  readonly sourcePartial: boolean;
+  readonly text: string;
+};
 
 export type NimiLocalAppConversationSendInput = {
   readonly agentHandle: NimiLocalAppAgentHandle;
@@ -189,6 +203,7 @@ export type NimiLocalAppConversationMessage = {
   readonly turnId: string;
   readonly role: 'user' | 'assistant' | 'app';
   readonly parts: readonly NimiLocalAppConversationMessagePart[];
+  readonly quote: NimiLocalAppConversationQuote | null;
 };
 
 export type NimiLocalAppConversationMessagePart =
@@ -259,6 +274,28 @@ export type NimiLocalAppConversationSnapshot = {
   readonly truncatedBefore: boolean;
 };
 
+export type NimiLocalAppConversationMessageReadInput = NimiLocalAppConversationScopeInput & {
+  readonly messageId: string;
+};
+
+export type NimiLocalAppConversationMessageReadWindow = {
+  readonly messages: readonly NimiLocalAppConversationMessage[];
+  readonly turns: readonly NimiLocalAppConversationTurn[];
+  readonly actions: readonly NimiLocalAppConversationAction[];
+  readonly voices: readonly NimiLocalAppConversationVoice[];
+  readonly truncatedBefore: boolean;
+  readonly truncatedAfter: boolean;
+};
+
+export type NimiLocalAppConversationMessageReadResult = {
+  readonly conversationAnchorId: string;
+  readonly readWatermark: string;
+  readonly message: NimiLocalAppConversationMessage;
+  readonly quoteText: string | null;
+  readonly quoteFormat: 'nimi.quote-text.v1' | null;
+  readonly window: NimiLocalAppConversationMessageReadWindow;
+};
+
 export type NimiLocalAppConversationSubscription = AsyncIterable<NimiLocalAppConversationEvent> & {
   readonly cancel: () => Promise<void>;
 };
@@ -269,6 +306,7 @@ export type NimiLocalAppConversationShellSubscription = {
 };
 
 export type NimiLocalAppConversationShell = {
+  readonly readMessage: (input: NimiLocalAppConversationMessageReadInput) => Promise<unknown>;
   readonly cancelFollowUp: (input: NimiLocalAppConversationFollowUpCancelInput) => Promise<unknown>;
   readonly open: (input: {
     readonly agentHandle: string;
@@ -320,6 +358,7 @@ export type NimiLocalAppConversationShell = {
 
 
 export type NimiLocalAppConversationClient = {
+  readonly readMessage: (input: NimiLocalAppConversationMessageReadInput) => Promise<NimiLocalAppConversationMessageReadResult>;
   readonly cancelFollowUp: (input: NimiLocalAppConversationFollowUpCancelInput) => Promise<NimiLocalAppConversationState>;
   readonly open: (input: NimiLocalAppConversationOpenInput) => Promise<NimiLocalAppConversationOpenResult>;
   readonly send: (input: NimiLocalAppConversationSendInput) => Promise<NimiLocalAppConversationSendResult>;
@@ -336,6 +375,19 @@ export function createNimiLocalAppConversationClient(
   shell: NimiLocalAppConversationShell,
 ): NimiLocalAppConversationClient {
   return Object.freeze({
+    readMessage: async (input) => {
+      assertExactKeys(input, ['agentHandle', 'conversationAnchorId', 'messageId'], 'local-app conversation message read input');
+      const scope = {
+        agentHandle: validateAgentHandle(input.agentHandle) as NimiLocalAppAgentHandle,
+        conversationAnchorId: boundedSelector(input.conversationAnchorId, 'conversationAnchorId'),
+        messageId: boundedSelector(input.messageId, 'messageId'),
+      };
+      const result = projectNimiLocalAppConversationMessageReadResult(await shell.readMessage(scope));
+      if (result.conversationAnchorId !== scope.conversationAnchorId || result.message.messageId !== scope.messageId) {
+        return localAppProjectionError('conversation message read identity');
+      }
+      return result;
+    },
     cancelFollowUp: async input => projectConversationState(await shell.cancelFollowUp(validateFollowUpCancelInput(input))),
     open: async (input) => {
       assertExactKeys(input, ['agentHandle'], 'local-app conversation open input');
@@ -346,7 +398,7 @@ export function createNimiLocalAppConversationClient(
     },
     send: async (input) => {
       const regenerate = input?.retryOfTurnId !== undefined;
-      assertExactKeys(input, ['agentHandle', 'conversationAnchorId', 'requestId', regenerate ? 'retryOfTurnId' : 'parts'], 'local-app conversation send input');
+      assertExactKeys(input, ['agentHandle', 'conversationAnchorId', 'requestId', regenerate ? 'retryOfTurnId' : 'parts', ...(!regenerate && input.quote !== undefined ? ['quote'] : [])], 'local-app conversation send input');
       assertNoAuthorityMaterial(input);
       const scope = {
         agentHandle: validateAgentHandle(input.agentHandle),
@@ -355,7 +407,7 @@ export function createNimiLocalAppConversationClient(
       };
       const value = await shell.send(regenerate
         ? { ...scope, retryOfTurnId: boundedSelector(input.retryOfTurnId, 'retryOfTurnId') }
-        : { ...scope, parts: conversationInputParts(input.parts) });
+        : { ...scope, parts: conversationInputParts(input.parts), ...(input.quote !== undefined ? { quote: validateNimiLocalAppConversationQuoteInput(input.quote) } : {}) });
       const record = asRecord(value);
       assertExactProjectionKeys(record, ['turnId'], 'conversation send');
       return Object.freeze({ turnId: boundedProjectionSelector(record.turnId, 'turnId') });
@@ -683,7 +735,7 @@ function projectSnapshot(value: unknown): NimiLocalAppConversationSnapshot {
   let textBytes = 0;
   const messages = record.messages.map((value) => projectMessage(value, (text) => {
     textBytes += new TextEncoder().encode(text).byteLength;
-    if (textBytes > 1024 * 1024 + 128 * 1024) return localAppProjectionError('conversation snapshot size');
+    if (textBytes > 1212416) return localAppProjectionError('conversation snapshot size');
   }));
   const turns = record.turns.map(projectTurn);
   const actions = record.actions.map(projectAction);
@@ -712,7 +764,7 @@ function projectMessage(
   observeText: (text: string) => void = () => {},
 ): NimiLocalAppConversationMessage {
   const message = asRecord(value);
-  assertExactProjectionKeys(message, ['messageId', 'turnId', 'role', 'parts', 'partial'], 'conversation message');
+  assertExactProjectionKeys(message, ['messageId', 'turnId', 'role', 'parts', 'partial', 'quote'], 'conversation message');
   if (typeof message.partial !== 'boolean' || (message.role !== 'user' && message.role !== 'assistant' && message.role !== 'app')
     || !Array.isArray(message.parts) || message.parts.length < 1 || message.parts.length > 2) {
     return localAppProjectionError('conversation message');
@@ -758,12 +810,117 @@ function projectMessage(
     || (message.role === 'assistant' && textCount === 1 && artifactCount === 1)) {
     return localAppProjectionError('conversation message cardinality');
   }
+  const quote = message.quote === null ? null : projectConversationQuote(message.quote);
+  if (quote) {
+    observeText(quote.text);
+    observeText(quote.sourceMessageId);
+    observeText(quote.format);
+  }
   return Object.freeze({
     messageId: boundedProjectionSelector(message.messageId, 'messageId'),
     turnId: boundedProjectionSelector(message.turnId, 'turnId'),
     role: message.role,
     parts: Object.freeze(parts),
     partial: message.partial,
+    quote,
+  });
+}
+
+// @nimi-authority: rule.nimi.runtime.conversation-message-interaction.quote-input
+export function validateNimiLocalAppConversationQuoteInput(value: unknown): NimiLocalAppConversationQuoteInput {
+  const record = asRecord(value);
+  assertExactKeys(record, ['sourceMessageId', 'format', 'startByte', 'endByte'], 'local-app conversation quote');
+  if (!validQuoteRange(record)) {
+    return localAppError('Local-app conversation quote is invalid.', 'SDK_LOCAL_APP_INPUT_INVALID', 'select_valid_conversation_quote');
+  }
+  return Object.freeze({
+    sourceMessageId: boundedSelector(record.sourceMessageId, 'sourceMessageId'),
+    format: 'nimi.quote-text.v1',
+    startByte: record.startByte as number,
+    endByte: record.endByte as number,
+  });
+}
+
+function validQuoteRange(record: Record<string, unknown>): boolean {
+  return record.format === 'nimi.quote-text.v1'
+    && typeof record.startByte === 'number' && Number.isInteger(record.startByte) && record.startByte >= 0
+    && typeof record.endByte === 'number' && Number.isInteger(record.endByte) && record.endByte > record.startByte
+    && record.endByte <= 65536 && record.endByte - record.startByte <= 16384;
+}
+
+function projectConversationQuote(value: unknown): NimiLocalAppConversationQuote {
+  const record = asRecord(value);
+  assertExactProjectionKeys(record, ['sourceMessageId', 'sourceRole', 'sourcePartial', 'format', 'startByte', 'endByte', 'text'], 'conversation quote');
+  if (!validQuoteRange(record) || !['user', 'assistant', 'app'].includes(String(record.sourceRole)) || typeof record.sourcePartial !== 'boolean') {
+    return localAppProjectionError('conversation quote');
+  }
+  const text = boundedProjectionText(record.text, 'quote text', 16384, true);
+  if (Array.from(text).length > 4096 || new TextEncoder().encode(text).byteLength !== (record.endByte as number) - (record.startByte as number)) {
+    return localAppProjectionError('conversation quote text range');
+  }
+  return Object.freeze({
+    sourceMessageId: boundedProjectionSelector(record.sourceMessageId, 'sourceMessageId'),
+    sourceRole: record.sourceRole as NimiLocalAppConversationQuote['sourceRole'],
+    sourcePartial: record.sourcePartial,
+    format: 'nimi.quote-text.v1',
+    startByte: record.startByte as number,
+    endByte: record.endByte as number,
+    text,
+  });
+}
+
+// @nimi-authority: rule.nimi.runtime.conversation-message-interaction.message-read
+// @nimi-authority: rule.nimi.runtime.conversation-message-interaction.projection-budget
+export function projectNimiLocalAppConversationMessageReadResult(value: unknown): NimiLocalAppConversationMessageReadResult {
+  const record = asRecord(value);
+  assertExactProjectionKeys(record, ['conversationAnchorId', 'readWatermark', 'message', 'quoteText', 'quoteFormat', 'window'], 'conversation message read');
+  if (typeof record.readWatermark !== 'string' || !/^(0|[1-9][0-9]*)$/u.test(record.readWatermark)) {
+    return localAppProjectionError('conversation message read watermark');
+  }
+  const window = asRecord(record.window);
+  assertExactProjectionKeys(window, ['messages', 'turns', 'actions', 'voices', 'truncatedBefore', 'truncatedAfter'], 'conversation message read window');
+  if (!Array.isArray(window.messages) || window.messages.length < 1 || window.messages.length > 15
+    || !Array.isArray(window.turns) || window.turns.length > 10
+    || !Array.isArray(window.actions) || window.actions.length > 5
+    || !Array.isArray(window.voices) || window.voices.length > 5
+    || typeof window.truncatedBefore !== 'boolean' || typeof window.truncatedAfter !== 'boolean') {
+    return localAppProjectionError('conversation message read window');
+  }
+  let contentBytes = 0;
+  const messages = window.messages.map(value => projectMessage(value, text => {
+    contentBytes += new TextEncoder().encode(text).byteLength;
+    if (contentBytes > 262144) return localAppProjectionError('conversation message read window size');
+  }));
+  const turns = window.turns.map(projectTurn);
+  const actions = window.actions.map(projectAction);
+  const voices = window.voices.map(projectVoice);
+  const message = projectMessage(record.message);
+  const turnIds = new Set(turns.map(turn => turn.turnId));
+  const messageIds = new Set(messages.map(item => item.messageId));
+  const target = messages.find(item => item.messageId === message.messageId);
+  if (!target || JSON.stringify(target) !== JSON.stringify(message)
+    || messageIds.size !== messages.length || turnIds.size !== turns.length
+    || messages.some(item => !turnIds.has(item.turnId)) || actions.some(item => !turnIds.has(item.turnId)) || voices.some(item => !turnIds.has(item.turnId))) {
+    return localAppProjectionError('conversation message read references');
+  }
+  let quoteText: string | null = null;
+  let quoteFormat: 'nimi.quote-text.v1' | null = null;
+  if (record.quoteText !== null || record.quoteFormat !== null) {
+    if (record.quoteFormat !== 'nimi.quote-text.v1' || !message.parts.some(part => part.kind === 'text')) {
+      return localAppProjectionError('conversation message read quote representation');
+    }
+    quoteText = boundedProjectionText(record.quoteText, 'quoteText', 65536, true);
+    quoteFormat = 'nimi.quote-text.v1';
+    contentBytes += new TextEncoder().encode(quoteText).byteLength;
+  }
+  if (contentBytes > 327680) return localAppProjectionError('conversation message read size');
+  return Object.freeze({
+    conversationAnchorId: boundedProjectionSelector(record.conversationAnchorId, 'conversationAnchorId'),
+    readWatermark: record.readWatermark,
+    message,
+    quoteText,
+    quoteFormat,
+    window: Object.freeze({ messages: Object.freeze(messages), turns: Object.freeze(turns), actions: Object.freeze(actions), voices: Object.freeze(voices), truncatedBefore: window.truncatedBefore, truncatedAfter: window.truncatedAfter }),
   });
 }
 

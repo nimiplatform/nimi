@@ -257,6 +257,7 @@ func (s *Service) commitPublicChatTranscriptTurn(
 	transcriptBefore := session.CommittedTranscript
 	recoveriesBefore := clonePublicChatRecoveries(session.Recoveries)
 	inputTurnID := ""
+	var inputQuote *publicChatMessageQuote
 	if recovery := session.Recoveries[trimmedTurnID]; recovery != nil {
 		original := publicChatRecoveryInputForTurn(session, recovery)
 		if original == nil || strings.TrimSpace(original.Text) != trimmedInput || !publicChatCommittedTranscriptAttachmentsEqual(original.Attachment, inputAttachment) {
@@ -265,6 +266,7 @@ func (s *Service) commitPublicChatTranscriptTurn(
 		if recovery.InputTurnID != trimmedTurnID {
 			inputTurnID = recovery.InputTurnID
 		}
+		inputQuote = clonePublicChatQuote(original.Quote)
 	}
 	activeBefore := clonePublicChatTurnProjectionState(session.ActiveTurnSnapshot)
 	lastBefore := clonePublicChatTurnProjectionState(session.LastTurnSnapshot)
@@ -320,6 +322,7 @@ func (s *Service) commitPublicChatTranscriptTurn(
 				InputText:       trimmedInput,
 				AssistantText:   trimmedAssistant,
 				InputAttachment: inputAttachment,
+				InputQuote:      inputQuote,
 			})
 		}
 	}
@@ -391,6 +394,9 @@ func (s *Service) commitPublicChatTranscriptTurn(
 func validatePublicChatCommittedTranscript(transcript []publicChatCommittedTranscriptTurn) error {
 	seen := make(map[string]struct{}, len(transcript))
 	for index, turn := range transcript {
+		if err := validateStoredConversationQuote(turn.InputQuote); err != nil {
+			return err
+		}
 		attachment := normalizePublicChatCommittedTranscriptAttachment(turn.InputAttachment)
 		userOnlyAttachmentFailure := turn.Origin == publicChatTurnOriginUser && attachment != nil && strings.TrimSpace(turn.AssistantText) == ""
 		if turn.Sequence != uint64(index) || strings.TrimSpace(turn.TurnID) == "" || turn.TurnID != strings.TrimSpace(turn.TurnID) ||
@@ -492,6 +498,10 @@ func (s *Service) commitPublicChatTurnOutputArtifact(anchorID string, turnID str
 			grpcerr.ReasonOptions{Message: "committed Runtime output artifact could not be persisted"},
 		)
 	}
+	if session.messageLookup != nil {
+		messageID := localAppConversationMessageID(turnID, "image", artifact.ArtifactID)
+		session.messageLookup.byMessage[messageID] = conversationMessageLocation{turnID, turnIndex}
+	}
 	return nil
 }
 
@@ -563,6 +573,7 @@ func clonePublicChatCommittedTranscript(input []publicChatCommittedTranscriptTur
 	}
 	out := append([]publicChatCommittedTranscriptTurn(nil), input...)
 	for index := range out {
+		out[index].InputQuote = clonePublicChatQuote(input[index].InputQuote)
 		if input[index].InputAttachment != nil {
 			attachment := *input[index].InputAttachment
 			out[index].InputAttachment = &attachment

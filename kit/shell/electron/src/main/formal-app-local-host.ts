@@ -723,6 +723,7 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     conversationStreamClose: closePullStream,
     conversationFollowUpCancel: (record) => conversation.cancelFollowUp(record as never) as Promise<NimiElectronLocalAppRecord>,
     conversationSnapshot: (record) => conversation.snapshot(record as never) as Promise<NimiElectronLocalAppRecord>,
+    conversationMessageRead: (record) => conversation.readMessage(record as never) as unknown as Promise<NimiElectronLocalAppRecord>,
     embodimentSnapshot: (record) => embodiment.snapshot(record as never) as Promise<NimiElectronLocalAppRecord>,
     embodimentSubscribe: async (record) => openPullStream(await embodiment.subscribe(record as never)),
     activityPut: (record) => activity.put(record as never) as Promise<NimiElectronLocalAppRecord>,

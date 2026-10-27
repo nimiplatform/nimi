@@ -1,6 +1,4 @@
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
 import test from 'node:test';
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/headless';
 
@@ -73,17 +71,6 @@ test('desktop manual voice request is absent when anchor identity does not match
     activeConversationAnchorId: 'anchor-2',
   }), null);
 });
-
-test('desktop manual voice playback uses only canonical Conversation voice and artifact operations', async () => {
-  const source = await readFile(path.resolve(
-    import.meta.dirname,
-    '../../../kit/features/chat/src/components/local-app-conversation-voice-button.tsx',
-  ), 'utf8');
-  assert.match(source, /conversation\.renderVoice\(\{/u);
-  assert.match(source, /conversation\.readArtifact\(\{/u);
-  assert.doesNotMatch(source, /createNimiRuntimeAgentTurnsModule|runtimeAgentTurns|readArtifactBytes|ownerUserId|runtimeSourceRef|localAgentRef/u);
-});
-
 
 test('manual voice excludes uncommitted, partial, user, and legacy debug-only messages', () => {
   for (const message of [

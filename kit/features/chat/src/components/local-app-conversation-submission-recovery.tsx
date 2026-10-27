@@ -75,6 +75,7 @@ export function LocalAppConversationSubmissionRecovery(props: {
           {t('Chat.agentSubmissionAttachments', { count: props.submission.artifactIds.length })}
         </p>
       ) : null}
+      {props.submission.quote ? <p>{t('Chat.agentSubmissionQuoteRetained')}</p> : null}
       {state === 'unknown' ? <p>{t('Chat.agentSubmissionUnknown')}</p> : null}
       {state === 'error' ? <p role="alert">{props.describeError?.(reasonCode) || t('Chat.agentSubmissionCheckFailed')}</p> : null}
       {state === 'error' && reasonCode ? <details className="text-xs"><summary>{t('Feedback.technicalDetails')}</summary><code>{reasonCode}</code></details> : null}

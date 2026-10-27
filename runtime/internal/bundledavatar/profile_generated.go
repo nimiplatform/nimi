@@ -137,6 +137,8 @@ func Method(methodID string) (MethodProfile, bool) {
 		return MethodProfile{Kind: MethodServerStream, Capability: "agent.local"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot":
 		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
+	case "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationMessage":
+		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppEmbodimentSnapshot":
 		return MethodProfile{Kind: MethodUnary, Capability: "agent.local"}, true
 	case "/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents":

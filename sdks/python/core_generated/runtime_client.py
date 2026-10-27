@@ -504,6 +504,14 @@ RUNTIME_METHODS = [
     "response_type": "ReadLocalAppConversationArtifactResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationMessage",
+    "service": "RuntimeAgentService",
+    "method": "ReadLocalAppConversationMessage",
+    "kind": "unary",
+    "request_type": "ReadLocalAppConversationMessageRequest",
+    "response_type": "ReadLocalAppConversationMessageResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice",
     "service": "RuntimeAgentService",
     "method": "RenderLocalAppConversationVoice",

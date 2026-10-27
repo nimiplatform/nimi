@@ -362,6 +362,15 @@
           "response_stream": false
         },
         {
+          "name": "ReadLocalAppConversationMessage",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationMessage",
+          "kind": "unary",
+          "request_type": "ReadLocalAppConversationMessageRequest",
+          "response_type": "ReadLocalAppConversationMessageResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "CancelLocalAppConversationFollowUp",
           "method_id": "/nimi.runtime.v1.RuntimeAgentService/CancelLocalAppConversationFollowUp",
           "kind": "unary",
@@ -2827,6 +2836,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/PreviewSharedLocalAgentAIProfile",
     "/nimi.runtime.v1.RuntimeAgentService/ReadConversationArtifact",
     "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact",
+    "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationMessage",
     "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice",
     "/nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference",
     "/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget",
@@ -3552,6 +3562,14 @@
       "kind": "unary",
       "request_type": "ReadLocalAppConversationArtifactRequest",
       "response_type": "ReadLocalAppConversationArtifactResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationMessage",
+      "service": "RuntimeAgentService",
+      "method": "ReadLocalAppConversationMessage",
+      "kind": "unary",
+      "request_type": "ReadLocalAppConversationMessageRequest",
+      "response_type": "ReadLocalAppConversationMessageResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice",
@@ -5874,6 +5892,14 @@
       "kind": "unary",
       "request_type": "ReadLocalAppConversationArtifactRequest",
       "response_type": "ReadLocalAppConversationArtifactResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationMessage",
+      "service": "RuntimeAgentService",
+      "method": "ReadLocalAppConversationMessage",
+      "kind": "unary",
+      "request_type": "ReadLocalAppConversationMessageRequest",
+      "response_type": "ReadLocalAppConversationMessageResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice",
@@ -8311,6 +8337,9 @@
       "LocalAppConversationMessage",
       "LocalAppConversationMessageCommitted",
       "LocalAppConversationMessagePart",
+      "LocalAppConversationMessageWindow",
+      "LocalAppConversationQuote",
+      "LocalAppConversationQuoteIntent",
       "LocalAppConversationReasoningStatus",
       "LocalAppConversationSnapshot",
       "LocalAppConversationState",
@@ -8478,6 +8507,8 @@
       "ReadLocalAppAssetResponse",
       "ReadLocalAppConversationArtifactRequest",
       "ReadLocalAppConversationArtifactResponse",
+      "ReadLocalAppConversationMessageRequest",
+      "ReadLocalAppConversationMessageResponse",
       "ReadLocalAppStorageJsonRequest",
       "ReadLocalAppStorageJsonResponse",
       "ReadRealtimeEventsRequest",
@@ -28979,6 +29010,13 @@
             "repeated": false,
             "optional": false,
             "number": 6
+          },
+          {
+            "name": "quote",
+            "type": "LocalAppConversationQuote",
+            "repeated": false,
+            "optional": false,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -29012,6 +29050,143 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppConversationMessageWindow",
+        "fields": [
+          {
+            "name": "messages",
+            "type": "LocalAppConversationMessage",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "turns",
+            "type": "LocalAppConversationTurn",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "actions",
+            "type": "LocalAppConversationAction",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "voices",
+            "type": "LocalAppConversationVoice",
+            "repeated": true,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "truncated_before",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "truncated_after",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppConversationQuote",
+        "fields": [
+          {
+            "name": "source_message_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "source_role",
+            "type": "LocalAppConversationMessageRole",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "source_partial",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "format",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "start_byte",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "end_byte",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "text",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "LocalAppConversationQuoteIntent",
+        "fields": [
+          {
+            "name": "source_message_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "format",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "start_byte",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "end_byte",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
@@ -36455,6 +36630,81 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "ReadLocalAppConversationMessageRequest",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "conversation_anchor_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "message_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "ReadLocalAppConversationMessageResponse",
+        "fields": [
+          {
+            "name": "conversation_anchor_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "read_watermark",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "message",
+            "type": "LocalAppConversationMessage",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "quote_text",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 4
+          },
+          {
+            "name": "quote_format",
+            "type": "string",
+            "repeated": false,
+            "optional": true,
+            "number": 5
+          },
+          {
+            "name": "window",
+            "type": "LocalAppConversationMessageWindow",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
         "name": "ReadLocalAppStorageJsonRequest",
         "fields": [
           {
@@ -40487,6 +40737,13 @@
             "repeated": false,
             "optional": true,
             "number": 7
+          },
+          {
+            "name": "quote",
+            "type": "LocalAppConversationQuoteIntent",
+            "repeated": false,
+            "optional": false,
+            "number": 9
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"

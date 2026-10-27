@@ -1,0 +1,19 @@
+{
+  "format": "nimi.quote-text.v1",
+  "cases": [
+    {"name":"paragraphs-and-crlf","markdown":"第一段\r\n继续。\r\n\r\n第二段","text":"第一段\n继续。\n\n第二段"},
+    {"name":"inline-marks-link","markdown":"# 标题\n\n**粗体**、*强调*、~~删除~~和[可见标签](https://example.invalid/private)","text":"标题\n\n粗体、强调、删除和可见标签"},
+    {"name":"task-list","markdown":"- [x] 已完成\n- [ ] 待完成","text":"已完成\n待完成"},
+    {"name":"table","markdown":"| 姓名 | 状态 |\n| --- | --- |\n| 甲 | 就绪 |\n| 乙 | |","text":"姓名\t状态\n甲\t就绪\n乙\t"},
+    {"name":"code-whitespace","markdown":"`a  &amp; \\*`\n\n```ts\n  const a = 1;\n\n  a++;\n```","text":"a  &amp; \\*\n\n  const a = 1;\n\n  a++;"},
+    {"name":"entities-escapes-once","markdown":"\\*字面星号\\* &amp; &amp;lt; &#x1F642; \\&amp;","text":"*字面星号* & &lt; 🙂 &amp;"},
+    {"name":"blockquote","markdown":"> 第一句\n> 第二句\n\n结尾","text":"第一句\n第二句\n\n结尾"},
+    {"name":"raw-html-is-text","markdown":"<b>文字</b>","text":"<b>文字</b>"},
+    {"name":"image-decoration","markdown":"看![替代文字](https://example.invalid/image.png)这里","text":"看这里"},
+    {"name":"unicode-repeat","markdown":"重复🙂，é，👩‍👩‍👧‍👦，重复🙂，مرحبا","text":"重复🙂，é，👩‍👩‍👧‍👦，重复🙂，مرحبا"},
+    {"name":"no-heading-heuristic","markdown":"一句话。 ## 仍在同段","text":"一句话。 ## 仍在同段"},
+    {"name":"inline-code-newline","markdown":"`a\nb`","text":"a b"},
+    {"name":"unlabelled-single-line-fence","markdown":"before\n\n```\nfoo\n```\n\nafter","text":"before\n\nfoo\n\nafter"},
+    {"name":"single-line-indented-code","markdown":"before\n\n    foo\n\nafter","text":"before\n\nfoo\n\nafter"}
+  ]
+}

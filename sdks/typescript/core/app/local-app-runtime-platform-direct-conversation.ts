@@ -14,6 +14,9 @@ import type {
   OpenLocalAppConversationResponse,
   ReadLocalAppConversationArtifactRequest,
   ReadLocalAppConversationArtifactResponse,
+  ReadLocalAppConversationMessageRequest,
+  ReadLocalAppConversationMessageResponse,
+  LocalAppConversationQuote,
   RenderLocalAppConversationVoiceRequest,
   RenderLocalAppConversationVoiceResponse,
   SendLocalAppConversationTurnRequest,
@@ -42,6 +45,7 @@ import {
 } from './local-app-runtime-platform-conversation.js';
 
 export type NimiLocalAppConversationRuntime = {
+  readonly readLocalAppConversationMessage: (request: ReadLocalAppConversationMessageRequest) => Promise<ReadLocalAppConversationMessageResponse>;
   readonly cancelLocalAppConversationFollowUp: (request: CancelLocalAppConversationFollowUpRequest) => Promise<CancelLocalAppConversationFollowUpResponse>;
   readonly openLocalAppConversation: (request: OpenLocalAppConversationRequest) => Promise<OpenLocalAppConversationResponse>;
   readonly sendLocalAppConversationTurn: (request: SendLocalAppConversationTurnRequest) => Promise<SendLocalAppConversationTurnResponse>;
@@ -58,14 +62,30 @@ export function createNimiLocalAppConversationRuntimeClient(
   runtime: NimiLocalAppConversationRuntime,
 ): NimiLocalAppConversationClient {
   const shell: NimiLocalAppConversationShell = {
+    readMessage: async input => {
+      const value = await runtime.readLocalAppConversationMessage(input);
+      if (!value.message || !value.window) throw new Error('Runtime LocalApp Conversation message read is missing');
+      return {
+        conversationAnchorId: value.conversationAnchorId,
+        readWatermark: String(value.readWatermark),
+        message: projectMessage(value.message),
+        quoteText: value.quoteText ?? null,
+        quoteFormat: value.quoteFormat ?? null,
+        window: {
+          messages: value.window.messages.map(projectMessage), turns: value.window.turns.map(projectTurn),
+          actions: value.window.actions.map(projectAction), voices: value.window.voices.map(projectVoice),
+          truncatedBefore: value.window.truncatedBefore, truncatedAfter: value.window.truncatedAfter,
+        },
+      };
+    },
     cancelFollowUp: async input => projectRuntimeConversationState((await runtime.cancelLocalAppConversationFollowUp(input)).state!),
     open: async ({ agentHandle }) => {
       const response = await runtime.openLocalAppConversation({ agentHandle });
       return { conversationAnchorId: response.conversationAnchorId, activeTurnId: response.activeTurnId ?? null };
     },
-    send: async ({ agentHandle, conversationAnchorId, requestId, parts, retryOfTurnId }) => {
+    send: async ({ agentHandle, conversationAnchorId, requestId, parts, retryOfTurnId, quote }) => {
       const response = await runtime.sendLocalAppConversationTurn({
-        agentHandle, conversationAnchorId, requestId, retryOfTurnId,
+        agentHandle, conversationAnchorId, requestId, retryOfTurnId, quote,
         parts: (parts || []).map((part) => part.kind === 'text'
           ? { part: { oneofKind: 'text', text: { text: part.text } } }
           : { part: { oneofKind: 'artifactRef', artifactRef: { artifactId: part.artifactId } } }),
@@ -171,11 +191,24 @@ function projectMessage(value: LocalAppConversationMessage): Record<string, unkn
     partial: value.partial,
     messageId: value.messageId, turnId: value.turnId,
     role: value.role === LocalAppConversationMessageRole.USER ? 'user' : value.role === LocalAppConversationMessageRole.ASSISTANT ? 'assistant' : value.role === LocalAppConversationMessageRole.APP ? 'app' : '',
+    quote: value.quote ? projectQuote(value.quote) : null,
     parts: value.parts.map((part) => part.part.oneofKind === 'text'
       ? { kind: 'text', text: part.part.text.text }
       : part.part.oneofKind === 'artifact'
         ? { kind: 'artifact-ref', artifactId: part.part.artifact.artifactId, mediaKind: mediaKind(part.part.artifact.mediaKind), mimeType: part.part.artifact.mimeType, displayName: part.part.artifact.displayName ?? null }
         : { kind: '' }),
+  };
+}
+
+function projectQuote(value: LocalAppConversationQuote): Record<string, unknown> {
+  return {
+    sourceMessageId: value.sourceMessageId,
+    sourceRole: value.sourceRole === LocalAppConversationMessageRole.USER ? 'user' : value.sourceRole === LocalAppConversationMessageRole.ASSISTANT ? 'assistant' : value.sourceRole === LocalAppConversationMessageRole.APP ? 'app' : '',
+    sourcePartial: value.sourcePartial,
+    format: value.format,
+    startByte: value.startByte,
+    endByte: value.endByte,
+    text: value.text,
   };
 }
 

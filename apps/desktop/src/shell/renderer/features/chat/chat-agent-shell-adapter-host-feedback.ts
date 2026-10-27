@@ -22,6 +22,17 @@ export type ReportAgentConversationHostError = (
   options?: { action?: string; extra?: Record<string, unknown>; inlineOnly?: boolean },
 ) => void;
 
+/** A captured operation may report only into the scope that started it. */
+export function createScopedAgentConversationHostError(
+  scope: string,
+  currentScope: { readonly current: string },
+  report: ReportAgentConversationHostError,
+): ReportAgentConversationHostError {
+  return (error, options) => {
+    if (currentScope.current === scope) report(error, options);
+  };
+}
+
 export function useAgentConversationHostFeedback() {
   const { t } = useTranslation();
 

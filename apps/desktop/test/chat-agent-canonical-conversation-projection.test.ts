@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import type {
   NimiLocalAppConversationClient,
+  NimiLocalAppConversationQuote,
   NimiLocalAppConversationSnapshot,
 } from '@nimiplatform/sdk/app';
 import {
@@ -28,7 +29,7 @@ function snapshot(): NimiLocalAppConversationSnapshot {
       terminalReason: null, reasonCode: null, message: null,
     }],
     messages: [{
-      partial: false, messageId: 'message-user-1', turnId: 'turn-1', role: 'user',
+      partial: false, quote: null, messageId: 'message-user-1', turnId: 'turn-1', role: 'user',
       parts: [{ kind: 'text', text: 'hello' }],
     }],
     actions: [{
@@ -128,7 +129,7 @@ test('canonical projection keeps stable turn, action, voice, and message identit
   projection = reduceCanonicalConversationEvent(projection, {
     type: 'message-committed', conversationAnchorId: 'anchor-1', sequence: '6', turnId: 'turn-1',
     message: {
-      partial: false, messageId: 'message-assistant-1', turnId: 'turn-1', role: 'assistant',
+      partial: false, quote: null, messageId: 'message-assistant-1', turnId: 'turn-1', role: 'assistant',
       parts: [{ kind: 'text', text: 'final' }],
     },
   }).projection;
@@ -194,11 +195,13 @@ test('a failed canonical image keeps Retry bound to its own plain user input', a
 });
 
 
-test('App routine input is a source-labelled system row, never user or Agent speech', async () => {
+test('App input stays source-labelled while its assistant reply retains the partner identity', async () => {
   const bundle = await materializeCanonicalConversationBundle({
     thread: thread(), nowMs: 100,
     projection: seedCanonicalConversationProjection({ ...snapshot(), turns:[{...snapshot().turns[0]!,turnId:'routine-turn',origin:'app'}], actions: [], voices: [], messages: [{
-      partial: false, messageId: 'app-input', turnId: 'routine-turn', role: 'app', parts: [{ kind: 'text', text: '[App: nimi.go · Routine: Brief]\nPrepare the brief' }],
+      partial: false, quote: null, messageId: 'app-input', turnId: 'routine-turn', role: 'app', parts: [{ kind: 'text', text: '[App: nimi.go · Routine: Brief]\nPrepare the brief' }],
+    }, {
+      partial: false, quote: null, messageId: 'app-reply', turnId: 'routine-turn', role: 'assistant', parts: [{ kind: 'text', text: 'The brief is ready.' }],
     }] }),
   });
   assert.equal(bundle.messages[0]?.role, 'system');
@@ -209,6 +212,8 @@ test('App routine input is a source-labelled system row, never user or Agent spe
   assert.equal(projected[0]?.senderName, 'App');
   assert.equal(projected[0]?.senderKind, undefined);
   assert.equal(projected[0]?.senderAvatarUrl, undefined);
+  assert.equal(projected[1]?.senderName, 'Agent');
+  assert.equal(projected[1]?.senderKind, 'agent');
 });
 
 test('repeated model action IDs preserve both turns and their Retry prompts across hydration and live completion', async () => {
@@ -273,7 +278,7 @@ test('pending and failed media reads never block text or repeat on every event',
   const state = snapshot();
   const projection = seedCanonicalConversationProjection({ ...state, actions: [], voices: [], messages: [
     ...state.messages,
-    { partial: false, messageId: 'old-image', turnId: 'old-turn', role: 'assistant', parts: [{ kind: 'artifact-ref', artifactId: 'old-artifact', mediaKind: 'image', mimeType: 'image/png', displayName: null }] },
+    { partial: false, quote: null, messageId: 'old-image', turnId: 'old-turn', role: 'assistant', parts: [{ kind: 'artifact-ref', artifactId: 'old-artifact', mediaKind: 'image', mimeType: 'image/png', displayName: null }] },
   ] });
   const project = () => materializeCanonicalConversationBundle({ media, thread: thread(), projection, nowMs: 100 });
   const initial = project();
@@ -320,7 +325,7 @@ test('retired media hydration cannot update the next account or target', async (
 test('late media failures remain beside their original reply when newer text exists', () => {
   const source = snapshot();
   const value: NimiLocalAppConversationSnapshot = { ...source, messages: [...source.messages, {
-    messageId: 'new-user', turnId: 'turn-2', role: 'user', partial: false, parts: [{ kind: 'text', text: 'new question' }],
+    messageId: 'new-user', turnId: 'turn-2', role: 'user', partial: false, quote: null, parts: [{ kind: 'text', text: 'new question' }],
   }], actions: source.actions.map(action => ({ ...action, status: 'failed', reasonCode: 'AI_PROVIDER_TIMEOUT' })) };
   const result = materializeCanonicalConversationBundle({ thread: thread(), projection: seedCanonicalConversationProjection(value), nowMs: 1 });
   const oldImage = result.messages.findIndex(message => message.kind === 'image');
@@ -339,7 +344,7 @@ test('empty failed attempts precede the successful regeneration of their origina
     turns: [original, { ...original, turnId: 'turn-2', retryOfTurnId: 'turn-1' },
       { ...original, turnId: 'turn-3', retryOfTurnId: 'turn-2', status: 'completed' }],
     messages: [...base.messages, {
-      messageId: 'successful-answer', turnId: 'turn-3', role: 'assistant', partial: false,
+      messageId: 'successful-answer', turnId: 'turn-3', role: 'assistant', partial: false, quote: null,
       parts: [{ kind: 'text', text: 'The original picture is blue and green.' }],
     }],
   };
@@ -354,7 +359,7 @@ test('an invalid image result does not falsely claim that the admitted operation
   const value: NimiLocalAppConversationSnapshot = {
     ...base, voices: [],
     turns: [{ ...base.turns[0]!, status: 'completed', phase: null, reasonCode: 'AI_OUTPUT_INVALID' }],
-    messages: [...base.messages, { messageId: 'answer', turnId: 'turn-1', role: 'assistant', partial: false, parts: [{ kind: 'text', text: 'The text is saved.' }] }],
+    messages: [...base.messages, { messageId: 'answer', turnId: 'turn-1', role: 'assistant', partial: false, quote: null, parts: [{ kind: 'text', text: 'The text is saved.' }] }],
     actions: [{ ...base.actions[0]!, status: 'failed', reasonCode: 'AI_OUTPUT_INVALID' }],
   };
   const build = (source: NimiLocalAppConversationSnapshot) => materializeCanonicalConversationBundle({ thread: thread(), projection: seedCanonicalConversationProjection(source), nowMs: 1 });
@@ -365,11 +370,11 @@ test('an invalid image result does not falsely claim that the admitted operation
 test('late committed images stay with the original reply both live and after reload', () => {
   const base = snapshot();
   const value: NimiLocalAppConversationSnapshot = { ...base, voices: [], messages: [...base.messages,
-    { messageId: 'original-answer', turnId: 'turn-1', role: 'assistant', partial: false, parts: [{ kind: 'text', text: 'Drawing the boat.' }] },
-    { messageId: 'new-user', turnId: 'turn-2', role: 'user', partial: false, parts: [{ kind: 'text', text: 'Only describe the wind.' }] },
-    { messageId: 'new-answer', turnId: 'turn-2', role: 'assistant', partial: false, parts: [{ kind: 'text', text: 'The wind is light.' }] },
+    { messageId: 'original-answer', turnId: 'turn-1', role: 'assistant', partial: false, quote: null, parts: [{ kind: 'text', text: 'Drawing the boat.' }] },
+    { messageId: 'new-user', turnId: 'turn-2', role: 'user', partial: false, quote: null, parts: [{ kind: 'text', text: 'Only describe the wind.' }] },
+    { messageId: 'new-answer', turnId: 'turn-2', role: 'assistant', partial: false, quote: null, parts: [{ kind: 'text', text: 'The wind is light.' }] },
   ] };
-  const image = { messageId: 'message-image-1', turnId: 'turn-1', role: 'assistant' as const, partial: false,
+  const image = { messageId: 'message-image-1', turnId: 'turn-1', role: 'assistant' as const, partial: false, quote: null,
     parts: [{ kind: 'artifact-ref' as const, artifactId: 'image-artifact', mediaKind: 'image' as const, mimeType: 'image/png', displayName: null }] };
   const live = reduceCanonicalConversationEvent(seedCanonicalConversationProjection(value), {
     type: 'message-committed', sequence: '5', conversationAnchorId: 'anchor-1', turnId: 'turn-1', message: image,
@@ -385,7 +390,7 @@ test('late committed images stay with the original reply both live and after rel
 
 test('voice failure and recovery share the original reply without a second player or eager audio read', () => {
   const initial = snapshot();
-  const base: NimiLocalAppConversationSnapshot = {...initial,messages:[...initial.messages, {messageId:'message-voice-1',turnId:'turn-1',role:'assistant',partial:false,parts:[{kind:'text',text:'Original saved reply'}]}]};
+  const base: NimiLocalAppConversationSnapshot = {...initial,messages:[...initial.messages, {messageId:'message-voice-1',turnId:'turn-1',role:'assistant',partial: false, quote: null,parts:[{kind:'text',text:'Original saved reply'}]}]};
   let reads = 0;
   const materialize = (value: NimiLocalAppConversationSnapshot) => materializeCanonicalConversationBundle({thread:thread(),projection:seedCanonicalConversationProjection(value),nowMs:1,media:{get(){reads++;return {mediaUrl:null,mimeType:null};}}});
   const failed = materialize(base).messages.find(message => message.id === 'message-voice-1')!;
@@ -403,7 +408,7 @@ test('user Stop keeps partial or empty reply and does not invent a stream fault'
     const value: NimiLocalAppConversationSnapshot = {
       ...base, actions: [], voices: [],
       turns: [{ ...base.turns[0]!, status: 'interrupted', terminalReason: 'user_cancel', inputTurnId: 'turn-1', canRegenerate: true }],
-      messages: [...base.messages, ...(hasText ? [{messageId:'partial', turnId:'turn-1', role:'assistant' as const, partial:true, parts:[{kind:'text' as const,text:'Already received'}]}] : [])],
+      messages: [...base.messages, ...(hasText ? [{messageId:'partial', turnId:'turn-1', role:'assistant' as const, partial: true, quote: null, parts:[{kind:'text' as const,text:'Already received'}]}] : [])],
     };
     const bundle = materializeCanonicalConversationBundle({thread:thread(),projection:seedCanonicalConversationProjection(value),nowMs:1});
     const reply=bundle.messages.find(message=>message.role==='assistant')!;
@@ -411,4 +416,70 @@ test('user Stop keeps partial or empty reply and does not invent a stream fault'
     assert.equal(reply.metadataJson?.canonicalTerminalReason, 'user_cancel');
     assert.equal(reply.contentText, hasText ? 'Already received' : '');
   }
+});
+
+test('Home preserves a confirmed quote without making media-active committed text pending', () => {
+  const base = snapshot();
+  const quote: NimiLocalAppConversationQuote = {
+    sourceMessageId: 'source-outside-tail', sourceRole: 'assistant', sourcePartial: true,
+    format: 'nimi.quote-text.v1', startByte: 3, endByte: 15, text: '早先的话',
+  };
+  const projection = seedCanonicalConversationProjection({
+    ...base, voices: [], state: { ...base.state, textTurnId: null },
+    messages: [
+      { ...base.messages[0]!, quote },
+      { messageId: 'saved-answer', turnId: 'turn-1', role: 'assistant', partial: false, quote: null,
+        parts: [{ kind: 'text', text: 'Text is complete while the image is still generating.' }] },
+    ],
+  });
+  const bundle = materializeCanonicalConversationBundle({ thread: thread(), projection, nowMs: 1 });
+  assert.equal(bundle.canonicalProjection, projection, 'message actions retain the same canonical projection');
+  const question = bundle.messages.find(message => message.id === 'message-user-1')!;
+  const answer = bundle.messages.find(message => message.id === 'saved-answer')!;
+  assert.deepEqual(question.metadataJson?.canonicalQuote, quote);
+  assert.deepEqual(toConversationMessageViewModel(question).metadata?.canonicalQuote, quote);
+  assert.equal(question.contentText, 'hello', 'the reference is not concatenated into the user body');
+  assert.equal(answer.status, 'complete');
+  assert.equal(answer.metadataJson?.canonicalMessageCommitted, true);
+  assert.equal(answer.metadataJson?.canonicalPartial, false);
+  assert.equal(answer.metadataJson?.canonicalMediaRunning, true);
+  assert.equal(answer.metadataJson?.canonicalTurnStatus, 'active');
+  assert.equal(answer.metadataJson?.canonicalQuote, null);
+});
+
+test('Home never promotes a transient failed placeholder into a committed quote source', () => {
+  const base = snapshot();
+  let projection = seedCanonicalConversationProjection({
+    ...base, messages: [], actions: [], voices: [],
+    state: { ...base.state, textTurnId: 'turn-1' },
+    turns: [{ ...base.turns[0]!, inputTurnId: 'turn-1' }],
+  });
+  projection = reduceCanonicalConversationEvent(projection, {
+    type: 'text-delta', conversationAnchorId: 'anchor-1', turnId: 'turn-1', sequence: '5', delta: 'Transient words',
+  }).projection;
+  const render = () => materializeCanonicalConversationBundle({ thread: thread(), projection, nowMs: 1 });
+  assert.equal(render().messages[0]?.contentText, 'Transient words');
+  assert.notEqual(render().messages[0]?.metadataJson?.canonicalMessageCommitted, true);
+  projection = reduceCanonicalConversationEvent(projection, {
+    type: 'turn-failed', conversationAnchorId: 'anchor-1', turnId: 'turn-1', sequence: '6',
+    reasonCode: 'AI_STREAM_BROKEN', message: 'The stream stopped.',
+  }).projection;
+  const failed = render();
+  assert.equal(failed.messages[0]?.id, 'canonical-turn:turn-1');
+  assert.equal(failed.messages[0]?.status, 'error');
+  assert.notEqual(failed.messages[0]?.metadataJson?.canonicalMessageCommitted, true);
+  assert.equal(failed.messages[0]?.metadataJson?.canonicalQuote, undefined);
+  assert.equal(failed.canonicalProjection?.messages.length, 0, 'UI placeholders do not fabricate owner messages');
+
+  const committed = seedCanonicalConversationProjection({
+    ...base, actions: [], voices: [],
+    turns: [{ ...base.turns[0]!, status: 'failed', inputTurnId: 'turn-1', reasonCode: 'AI_STREAM_BROKEN' }],
+    messages: [{ messageId: 'owner-partial', turnId: 'turn-1', role: 'assistant', partial: true, quote: null,
+      parts: [{ kind: 'text', text: 'The owner saved this prefix.' }] }],
+  });
+  const saved = materializeCanonicalConversationBundle({ thread: thread(), projection: committed, nowMs: 1 });
+  assert.equal(saved.messages[0]?.id, 'owner-partial');
+  assert.equal(saved.messages[0]?.metadataJson?.canonicalMessageCommitted, true);
+  assert.equal(saved.messages[0]?.metadataJson?.canonicalPartial, true);
+  assert.equal(saved.messages[0]?.metadataJson?.canonicalTurnStatus, 'failed');
 });

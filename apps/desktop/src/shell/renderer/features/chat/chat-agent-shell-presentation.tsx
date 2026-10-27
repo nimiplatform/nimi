@@ -341,6 +341,8 @@ export function useAgentConversationPresentation(
             {restoreNeedsEmptyDraft ? <p className="mt-1 text-[var(--nimi-text-secondary)]">{input.t('Chat.contentRefusalKeepNewDraft')}</p> : null}
           </div> : null}
           <AgentCanonicalComposer
+            quoteSlot={input.quoteSlot}
+            submitDisabled={input.submitDisabled}
             composerKey={`${input.activeTarget?.agentHandle || 'none'}:${input.composerPrefillRequestId ?? 0}`}
             initialText={input.currentComposerTextRef.current}
             disabled={Boolean(surfaceState.composer?.disabled) || input.voiceInput.opening === true}
@@ -412,6 +414,8 @@ export function useAgentConversationPresentation(
     setupTitle: input.t('Chat.agentSetupTitle', { defaultValue: 'Sign in to chat with partners' }),
     setupActionLabel: input.t('Chat.agentSetupAction', { defaultValue: 'Sign in' }),
   }), [
+    input.quoteSlot,
+    input.submitDisabled,
     adapter,
     hostFeedbackNode,
     refusedInput,

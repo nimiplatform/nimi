@@ -82,6 +82,7 @@ function snapshot(input: {
     }],
     messages: input.messages ?? [{
       messageId: 'message-1',
+      quote: null,
       partial: false,
       turnId: 'turn-1',
       role: 'assistant',
@@ -286,6 +287,7 @@ describe('App Conversation entry session', () => {
       turnId: 'turn-1',
       message: {
         messageId: 'stale-message',
+        quote: null,
         partial: false,
         turnId: 'turn-1',
         role: 'assistant',
@@ -299,6 +301,7 @@ describe('App Conversation entry session', () => {
       turnId: 'turn-1',
       message: {
         messageId: 'message-image',
+        quote: null,
         partial: false,
         turnId: 'turn-1',
         role: 'assistant',
@@ -419,6 +422,7 @@ describe('App Conversation entry session', () => {
           throughSequence: snapshotRead === 1 ? '2' : '5',
           messages: snapshotRead === 1 ? undefined : [{
             messageId: 'message-rehydrated',
+            quote: null,
             partial: false,
             turnId: 'turn-5',
             role: 'assistant',
@@ -614,6 +618,7 @@ describe('App Conversation entry session', () => {
         throughSequence: '1',
         messages: [{
           messageId: 'message-image',
+          quote: null,
           partial: false,
           turnId: 'turn-1',
           role: 'assistant',

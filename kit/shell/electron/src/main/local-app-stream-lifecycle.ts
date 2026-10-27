@@ -18,9 +18,10 @@ const terminalCommands = new Set<string>([
   NIMI_STANDARD_SHELL_COMMANDS['storage.assetWriteAbort'],
   NIMI_STANDARD_SHELL_COMMANDS['storage.assetReadClose'],
 ]);
-const activityCommands = new Set<string>([
+const subscriptionCommands = new Set<string>([
   NIMI_STANDARD_SHELL_COMMANDS['local-app.activitySubscribe'],
   NIMI_STANDARD_SHELL_COMMANDS['local-app.activityOpenRequestsSubscribe'],
+  NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSubscribe'],
 ]);
 
 /** Own only renderer-initiated transport streams; Node business services keep their own lifetime. */
@@ -72,7 +73,7 @@ export function createElectronLocalAppStreamLifecycle() {
       const action = payload && typeof payload === 'object' && 'action' in payload ? payload.action : undefined;
       if (command !== NIMI_STANDARD_SHELL_COMMANDS['storage.assetWriteOpen']
         && command !== NIMI_STANDARD_SHELL_COMMANDS['storage.assetReadOpen']
-        && !(activityCommands.has(command) && action !== 'cancel' && action !== 'next')) return undefined;
+        && !(subscriptionCommands.has(command) && action !== 'cancel' && action !== 'next')) return undefined;
       const scope = scopeFor(sender);
       return { scope, generation: scope.generation };
     },
@@ -85,18 +86,18 @@ export function createElectronLocalAppStreamLifecycle() {
     ): Promise<unknown> {
       const write = command === NIMI_STANDARD_SHELL_COMMANDS['storage.assetWriteOpen'];
       const read = command === NIMI_STANDARD_SHELL_COMMANDS['storage.assetReadOpen'];
-      const activity = activityCommands.has(command);
-      const activityOpen = activity && payload.action !== 'cancel' && payload.action !== 'next';
-      if (write || read || activityOpen) {
+      const subscription = subscriptionCommands.has(command);
+      const subscriptionOpen = subscription && payload.action !== 'cancel' && payload.action !== 'next';
+      if (write || read || subscriptionOpen) {
         if (!opening) throw new NimiElectronLocalAppHostError('electron-local-app-renderer-lifecycle-required', false);
         const { scope, generation } = opening;
         if (disposed || scope.closed || scope.generation !== generation) throw new NimiElectronLocalAppHostError('renderer-context-replaced', false);
         const result = await operation();
         const id = result && typeof result === 'object'
-          ? activityOpen && 'subscriptionId' in result ? result.subscriptionId
+          ? subscriptionOpen && 'subscriptionId' in result ? result.subscriptionId
             : 'streamId' in result ? result.streamId : undefined : undefined;
         if (typeof id !== 'string' || !id) throw new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
-        const entry: Entry = { host, id, close: () => activityOpen
+        const entry: Entry = { host, id, close: () => subscriptionOpen
           ? dispatchElectronLocalAppCommand({ host, command, payload: { action: 'cancel', subscriptionId: id } })
           : write ? host.assetWriteAbort({ streamId: id }) : host.assetReadClose({ streamId: id }) };
         if (disposed || scope.closed || scope.generation !== generation) {
@@ -111,10 +112,10 @@ export function createElectronLocalAppStreamLifecycle() {
         result = await operation();
         return result;
       } finally {
-        const activityEnded = activity && (payload.action === 'cancel'
+        const subscriptionEnded = subscription && (payload.action === 'cancel'
           || (result !== null && typeof result === 'object' && 'completed' in result && result.completed === true));
-        if (terminalCommands.has(command) || activityEnded) for (const scope of scopes.values()) for (const entry of scope.entries) {
-          if (entry.host === host && entry.id === (activity ? payload.subscriptionId : payload.streamId)) scope.entries.delete(entry);
+        if (terminalCommands.has(command) || subscriptionEnded) for (const scope of scopes.values()) for (const entry of scope.entries) {
+          if (entry.host === host && entry.id === (subscription ? payload.subscriptionId : payload.streamId)) scope.entries.delete(entry);
         }
       }
     },

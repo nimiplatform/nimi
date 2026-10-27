@@ -408,7 +408,12 @@ func appendAgentTurnRuntimeInputs(items map[agentTurnContextLaneID][]agentTurnCo
 	if err != nil {
 		return "", 0, err
 	}
-	currentItem, err := newAgentTurnContextItem(agentTurnContextLaneCurrentUserTurn, "caller.current-turn", "caller.currentUserTurn", currentRef, agentTurnContextAuthorityCallerTurn, agentTurnContextTrustCallerInput, 1000, 0, true, agentTurnContextTruncationNone, []agentTurnContextSegment{{Role: "user", Content: input.CurrentUserTurn.Text}}, input.CurrentUserTurn.Media)
+	currentSegments := []agentTurnContextSegment{}
+	if input.CurrentUserTurn.Quote != nil {
+		currentSegments = append(currentSegments, agentTurnContextSegment{Role: "user", Content: conversationQuoteContext(input.CurrentUserTurn.Quote)})
+	}
+	currentSegments = append(currentSegments, agentTurnContextSegment{Role: "user", Content: input.CurrentUserTurn.Text})
+	currentItem, err := newAgentTurnContextItem(agentTurnContextLaneCurrentUserTurn, "caller.current-turn", "caller.currentUserTurn", currentRef, agentTurnContextAuthorityCallerTurn, agentTurnContextTrustCallerInput, 1000, 0, true, agentTurnContextTruncationNone, currentSegments, input.CurrentUserTurn.Media)
 	if err != nil {
 		return "", 0, err
 	}

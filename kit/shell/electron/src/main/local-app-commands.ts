@@ -5,6 +5,7 @@ import { NIMI_STANDARD_SHELL_COMMANDS } from '@nimiplatform/kit/shell/capabiliti
 import { validateNimiLocalAppTextInput } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppArtifactUploadShellInput } from '@nimiplatform/kit/core/sdk-contract';
 import { isNimiLocalAppByteView } from '@nimiplatform/kit/core/sdk-contract';
+import { validateNimiLocalAppConversationQuoteInput } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppTextDecideShellSpec } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppSpeakerEmbedSpec } from '@nimiplatform/kit/core/sdk-contract';
 import {
@@ -160,6 +161,7 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationInterruptTurn'], 'conversationInterruptTurn'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSubscribe'], 'conversationSubscribe'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationSnapshot'], 'conversationSnapshot'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationMessageRead'], 'conversationMessageRead'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.embodimentSnapshot'], 'embodimentSnapshot'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.embodimentSubscribe'], 'embodimentSubscribe'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.activityPut'], 'activityPut'],
@@ -727,12 +729,12 @@ function validatePayload(
     case 'conversationSendTurn': {
       const regenerate = payload.retryOfTurnId !== undefined;
       const required = ['agentHandle', 'conversationAnchorId', 'requestId', regenerate ? 'retryOfTurnId' : 'parts'];
-      const keys = required;
+      const keys = !regenerate && payload.quote !== undefined ? [...required, 'quote'] : required;
       assertAllowedKeys(payload, keys, required, command);
       const scope = { ...identifiers(payload, ['agentHandle', 'conversationAnchorId', 'requestId'], command, new Set(), keys) };
       return regenerate
         ? { ...scope, retryOfTurnId: requiredText(payload.retryOfTurnId, 'retryOfTurnId', command, MAX_IDENTIFIER_LENGTH) }
-        : { ...scope, parts: conversationInputParts(payload.parts, command) };
+        : { ...scope, parts: conversationInputParts(payload.parts, command), ...(payload.quote !== undefined ? { quote: { ...validateNimiLocalAppConversationQuoteInput(payload.quote) } } : {}) };
     }
     case 'conversationAttachmentUpload': {
       assertAllowedKeys(payload, ['agentHandle', 'conversationAnchorId', 'mimeType', 'displayName', 'bytes'], ['agentHandle', 'conversationAnchorId', 'mimeType', 'bytes'], command);
@@ -791,6 +793,8 @@ function validatePayload(
       return identifiers(payload, ['agentHandle', 'conversationAnchorId'], command);
     case 'conversationSnapshot':
       return identifiers(payload, ['agentHandle', 'conversationAnchorId'], command);
+    case 'conversationMessageRead':
+      return identifiers(payload, ['agentHandle', 'conversationAnchorId', 'messageId'], command);
     case 'embodimentSnapshot':
       return identifiers(payload, ['agentHandle', 'conversationAnchorId'], command);
     case 'activityPut':

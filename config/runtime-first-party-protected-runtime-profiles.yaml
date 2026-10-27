@@ -223,6 +223,7 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppEmbodimentSnapshot
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationMessage
       - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents
       # Desktop App Product Plane consumes the same canonical app.activity
       # operations as every equally covered protected App.
@@ -381,6 +382,8 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents
         capability: agent.local
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot
+        capability: agent.local
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationMessage
         capability: agent.local
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppEmbodimentSnapshot
         capability: agent.local

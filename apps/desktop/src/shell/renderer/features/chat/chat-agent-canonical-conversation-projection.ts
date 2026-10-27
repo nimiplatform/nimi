@@ -73,6 +73,8 @@ export function materializeCanonicalConversationBundle(input: {
         status: message.partial ? presentation.textPending ? 'pending' : 'error' : 'complete',
         nowMs: input.nowMs,
         metadata: {
+          canonicalMessageCommitted: true,
+          canonicalQuote: message.quote ? { ...message.quote } : null,
           canonicalPartial: message.partial,
           canonicalTurnStatus: turn?.status ?? null,
           canonicalTerminalReason: turn?.terminalReason ?? null,
@@ -202,6 +204,7 @@ export function materializeCanonicalConversationBundle(input: {
       lastMessageAtMs: messages.length > 0 ? input.nowMs : input.thread.lastMessageAtMs,
     },
     messages,
+    canonicalProjection: input.projection,
     canonicalConversation: {
       state: input.projection.state,
       conversationAnchorId: input.projection.conversationAnchorId,

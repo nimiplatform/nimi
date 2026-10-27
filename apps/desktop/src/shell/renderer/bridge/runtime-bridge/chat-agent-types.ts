@@ -89,6 +89,8 @@ export type AgentLocalMessageRecord = {
 export type AgentLocalThreadBundle = {
   thread: AgentLocalThreadRecord;
   messages: AgentLocalMessageRecord[];
+  /** Read-only canonical projection for the shared history-window viewer. */
+  canonicalProjection?: import('@nimiplatform/kit/features/chat/headless').CanonicalConversationProjection;
   canonicalConversation?: {
     state: import('@nimiplatform/sdk/app').NimiLocalAppConversationState;
     conversationAnchorId: string;

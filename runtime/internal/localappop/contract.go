@@ -200,6 +200,7 @@ const (
 	IngressConversationTurnInterrupt
 	IngressConversationEventsSubscribe
 	IngressConversationSnapshotGet
+	IngressConversationMessageRead
 	IngressConversationFollowUpCancel
 	IngressConversationAttachmentUpload
 	IngressConversationArtifactRead
@@ -332,6 +333,7 @@ const (
 	OperationConversationTurnInterrupt
 	OperationConversationEventsSubscribe
 	OperationConversationSnapshotGet
+	OperationConversationMessageRead
 	OperationConversationFollowUpCancel
 	OperationConversationAttachmentUpload
 	OperationConversationArtifactRead
@@ -509,6 +511,7 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressConversationTurnInterrupt, OperationConversationTurnInterrupt, "runtime.agent.conversation.turn.interrupt", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationEventsSubscribe, OperationConversationEventsSubscribe, "runtime.agent.conversation.events.subscribe", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationSnapshotGet, OperationConversationSnapshotGet, "runtime.agent.conversation.snapshot.get", AuthorityClassAppAccess, "agent.local"},
+	{IngressConversationMessageRead, OperationConversationMessageRead, "runtime.agent.conversation.message.read", AuthorityClassAppAccess, "agent.local"},
 	{IngressConversationFollowUpCancel, OperationConversationFollowUpCancel, "runtime.agent.conversation.follow-up.cancel", AuthorityClassAppAccess, "agent.local"},
 
 	{IngressConversationAttachmentUpload, OperationConversationAttachmentUpload, AppOperationIDConversationAttachmentUpload, AuthorityClassAppAccess, "agent.local"},

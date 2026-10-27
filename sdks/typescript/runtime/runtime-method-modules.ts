@@ -69,6 +69,7 @@ export const RUNTIME_AGENT_METHODS = [
   'interruptLocalAppConversationTurn',
   'subscribeLocalAppConversationEvents',
   'getLocalAppConversationSnapshot',
+  'readLocalAppConversationMessage',
   'openLocalAppAgentRealtime',
   'appendLocalAppAgentRealtimeInput',
   'subscribeLocalAppAgentRealtimeEvents',

@@ -181,6 +181,7 @@ type agentTurnCapabilityInput struct {
 }
 
 type agentTurnCurrentUserInput struct {
+	Quote *publicChatMessageQuote `json:"quote,omitempty"`
 	Text  string                  `json:"text"`
 	Media []agentTurnContextMedia `json:"media"`
 }

@@ -5,7 +5,7 @@ import { AgentActivityReferences } from '@nimiplatform/kit/features/chat/ui';
 import type { NimiLocalAppActivityClient } from '@nimiplatform/sdk/app';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 
-export function ChatAgentActivityReferences({ agentHandle }: { readonly agentHandle: string | null | undefined }) {
+export function ChatAgentActivityReferences({ agentHandle, navigationKey }: { readonly agentHandle: string | null | undefined; readonly navigationKey?: number }) {
   const sdk = useDesktopRendererSdk();
   const { t } = useTranslation();
   const activity = useMemo<Pick<NimiLocalAppActivityClient, 'list' | 'subscribe' | 'open'>>(() => ({
@@ -15,7 +15,7 @@ export function ChatAgentActivityReferences({ agentHandle }: { readonly agentHan
   }), [sdk]);
   const listReferences = useCallback(() => sdk.appProduct().agents.listReferences(), [sdk]);
   const state = useAgentActivityReferences({ agentHandle, listReferences, activity });
-  return <AgentActivityReferences {...state} copy={{
+  return <AgentActivityReferences key={agentHandle ?? 'none'} {...state} navigationKey={navigationKey} copy={{
     title: t('Chat.appReferences.title'), loading: t('Chat.appReferences.loading'),
     unavailable: t('Chat.appReferences.unavailable'), incomplete: t('Chat.appReferences.incomplete'),
     open: t('Chat.appReferences.open'), opening: t('Chat.appReferences.opening'),

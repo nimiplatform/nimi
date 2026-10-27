@@ -6,6 +6,9 @@ use crate::generated::local_app_conversation_event::Event as ProtoConversationEv
 use crate::generated::local_app_conversation_input_part::Part as ProtoConversationInputPartValue;
 use crate::generated::local_app_conversation_message_part::Part as ProtoMessagePart;
 use crate::generated::{
+    ReadLocalAppConversationMessageRequest,
+    LocalAppConversationQuoteIntent as ProtoConversationQuoteIntent,
+    LocalAppConversationQuote as ProtoConversationQuote,
     GetLocalAppConversationSnapshotRequest, InterruptLocalAppConversationTurnRequest,
     LocalAppConversationAction as ProtoConversationAction,
     LocalAppConversationActionStatus as ProtoConversationActionStatus,
@@ -32,6 +35,8 @@ use crate::generated::{
 };
 use crate::grpc_status::local_app_error_from_status;
 use crate::{
+    LocalAppConversationQuoteInput, LocalAppConversationQuote,
+    LocalAppConversationMessageReadRequest, LocalAppConversationMessageReadResult, LocalAppConversationMessageWindow,
     LocalAppConversationArtifactReadRequest, LocalAppConversationArtifactReadResult,
     LocalAppConversationAttachmentUploadRequest, LocalAppConversationAttachmentUploadResult,
     LocalAppConversationEvent, LocalAppConversationEventKind, LocalAppConversationInputPart,
@@ -57,7 +62,8 @@ const MAX_UPLOAD_BYTES: usize = 4 * 1024 * 1024;
 const MAX_INLINE_BYTES: usize = crate::RUNTIME_MAX_INLINE_PAYLOAD_BYTES;
 const MAX_VOICE_INPUT_BYTES: usize = 6 * 1024 * 1024;
 const MAX_SNAPSHOT_MESSAGES: usize = 203;
-const MAX_SNAPSHOT_TEXT_BYTES: usize = 1024 * 1024 + 128 * 1024;
+const MAX_SNAPSHOT_TEXT_BYTES: usize = 1_212_416;
+const QUOTE_FORMAT: &str = "nimi.quote-text.v1";
 
 pub(super) async fn open_conversation(
     channel: Channel,
@@ -90,7 +96,7 @@ pub(super) async fn send_turn(
     require_bounded_text(&request.request_id, MAX_REQUEST_ID_BYTES, false)?;
     if let Some(ref retry_of) = request.retry_of_turn_id {
         require_selector(retry_of)?;
-        if !request.parts.is_empty() {
+        if !request.parts.is_empty() || request.quote.is_some() {
             return Err(invalid_payload());
         }
     } else if request.parts.is_empty() || request.parts.len() > 2 {
@@ -99,6 +105,7 @@ pub(super) async fn send_turn(
     let mut text_seen = false;
     let mut artifact_seen = false;
     let mut parts = Vec::with_capacity(request.parts.len());
+    let quote = request.quote.map(quote_input).transpose()?;
     for (index, part) in request.parts.into_iter().enumerate() {
         let part = match part {
             LocalAppConversationInputPart::Text(text) => {
@@ -130,6 +137,7 @@ pub(super) async fn send_turn(
     }
     let response = crate::grpc_limits::runtime_agent_client(channel)
         .send_local_app_conversation_turn(SendLocalAppConversationTurnRequest {
+            quote,
             agent_handle: request.agent_handle,
             conversation_anchor_id: request.conversation_anchor_id,
             request_id: request.request_id,
@@ -353,6 +361,89 @@ pub(super) async fn conversation_snapshot(
     })
 }
 
+// @nimi-authority: rule.nimi.runtime.conversation-message-interaction.message-read
+// @nimi-authority: rule.nimi.runtime.conversation-message-interaction.projection-budget
+pub(super) async fn read_message(
+    channel: Channel,
+    request: LocalAppConversationMessageReadRequest,
+) -> Result<LocalAppConversationMessageReadResult, LocalAppOperationError> {
+    require_agent_handle(&request.agent_handle)?;
+    require_selector(&request.conversation_anchor_id)?;
+    require_selector(&request.message_id)?;
+    let response = crate::grpc_limits::runtime_agent_client(channel)
+        .read_local_app_conversation_message(ReadLocalAppConversationMessageRequest {
+            agent_handle: request.agent_handle,
+            conversation_anchor_id: request.conversation_anchor_id.clone(),
+            message_id: request.message_id.clone(),
+        }).await.map_err(local_app_error_from_status)?.into_inner();
+    if response.conversation_anchor_id != request.conversation_anchor_id {
+        return Err(untrusted());
+    }
+    let window = response.window.ok_or_else(untrusted)?;
+    if window.messages.is_empty() || window.messages.len() > 15 || window.turns.len() > 10
+        || window.actions.len() > 5 || window.voices.len() > 5 {
+        return Err(untrusted());
+    }
+    let mut content_bytes = 0;
+    let messages = window.messages.into_iter().map(|value| project_message(value, &mut content_bytes)).collect::<Result<Vec<_>, _>>()?;
+    if content_bytes > 262_144 { return Err(untrusted()); }
+    let turns = window.turns.into_iter().map(project_turn).collect::<Result<Vec<_>, _>>()?;
+    let actions = window.actions.into_iter().map(project_action).collect::<Result<Vec<_>, _>>()?;
+    let voices = window.voices.into_iter().map(project_voice).collect::<Result<Vec<_>, _>>()?;
+    let message = project_message(response.message.ok_or_else(untrusted)?, &mut 0)?;
+    let turn_ids = turns.iter().map(|turn| json_selector(turn, "turnId")).collect::<Result<std::collections::HashSet<_>, _>>()?;
+    let message_ids = messages.iter().map(|value| value.message_id.as_str()).collect::<std::collections::HashSet<_>>();
+    if message.message_id != request.message_id
+        || messages.iter().find(|value| value.message_id == request.message_id) != Some(&message)
+        || message_ids.len() != messages.len() || turn_ids.len() != turns.len()
+        || messages.iter().any(|value| !turn_ids.contains(value.turn_id.as_str()))
+        || actions.iter().chain(voices.iter()).any(|value| value.get("turnId").and_then(JsonValue::as_str).is_none_or(|id| !turn_ids.contains(id))) {
+        return Err(untrusted());
+    }
+    if response.quote_text.is_some() != response.quote_format.is_some() { return Err(untrusted()); }
+    if let Some(text) = &response.quote_text {
+        if response.quote_format.as_deref() != Some(QUOTE_FORMAT) || text.is_empty() || text.len() > MAX_TEXT_BYTES || text.contains('\0')
+            || !message.parts.as_array().is_some_and(|parts| parts.iter().any(|part| part.get("kind").and_then(JsonValue::as_str) == Some("text"))) {
+            return Err(untrusted());
+        }
+        content_bytes += text.len();
+    }
+    if content_bytes > 327_680 { return Err(untrusted()); }
+    Ok(LocalAppConversationMessageReadResult {
+        conversation_anchor_id: response.conversation_anchor_id, read_watermark: response.read_watermark,
+        message, quote_text: response.quote_text, quote_format: response.quote_format,
+        window: LocalAppConversationMessageWindow { messages, turns, actions, voices, truncated_before: window.truncated_before, truncated_after: window.truncated_after },
+    })
+}
+
+fn quote_input(value: LocalAppConversationQuoteInput) -> Result<ProtoConversationQuoteIntent, LocalAppOperationError> {
+    require_selector(&value.source_message_id)?;
+    if !valid_quote_range(&value.format, value.start_byte, value.end_byte) { return Err(invalid_payload()); }
+    Ok(ProtoConversationQuoteIntent { source_message_id: value.source_message_id, format: value.format, start_byte: value.start_byte, end_byte: value.end_byte })
+}
+
+fn valid_quote_range(format: &str, start: u32, end: u32) -> bool {
+    format == QUOTE_FORMAT && start < end && end <= 65_536 && end - start <= 16_384
+}
+
+fn project_quote(value: ProtoConversationQuote, content_bytes: &mut usize) -> Result<LocalAppConversationQuote, LocalAppOperationError> {
+    require_runtime_selector(&value.source_message_id)?;
+    if !valid_quote_range(&value.format, value.start_byte, value.end_byte) || value.text.contains('\0')
+        || value.text.len() != (value.end_byte - value.start_byte) as usize || value.text.chars().count() > 4096 {
+        return Err(untrusted());
+    }
+    let source_role = match ProtoConversationMessageRole::try_from(value.source_role).map_err(|_| untrusted())? {
+        ProtoConversationMessageRole::User => LocalAppConversationMessageRole::User,
+        ProtoConversationMessageRole::Assistant => LocalAppConversationMessageRole::Assistant,
+        ProtoConversationMessageRole::App => LocalAppConversationMessageRole::App,
+        ProtoConversationMessageRole::Unspecified => return Err(untrusted()),
+    };
+    *content_bytes = content_bytes.checked_add(value.text.len() + value.source_message_id.len() + value.format.len())
+        .filter(|value| *value <= MAX_SNAPSHOT_TEXT_BYTES).ok_or_else(untrusted)?;
+    Ok(LocalAppConversationQuote { source_message_id: value.source_message_id, source_role, source_partial: value.source_partial,
+        format: value.format, start_byte: value.start_byte, end_byte: value.end_byte, text: value.text })
+}
+
 pub(super) async fn subscribe(
     channel: Channel,
     request: LocalAppConversationSubscribeRequest,
@@ -482,17 +573,7 @@ fn project_event(
             let message = project_message(value.message.ok_or_else(untrusted)?, &mut text_bytes)?;
             LocalAppConversationEventKind::MessageCommitted {
                 turn_id: message.turn_id.clone(),
-                message: json!({
-                    "messageId": message.message_id,
-                    "turnId": message.turn_id,
-                    "role": match message.role {
-                        LocalAppConversationMessageRole::App => "app",
-                        LocalAppConversationMessageRole::User => "user",
-                        LocalAppConversationMessageRole::Assistant => "assistant",
-                    },
-                    "parts": message.parts,
-                    "partial": message.partial,
-                }),
+                message: json!(message),
             }
         }
         ProtoConversationEvent::ActionPlanned(value) => {
@@ -650,6 +731,7 @@ fn project_message(
         return Err(untrusted());
     }
     Ok(LocalAppConversationMessage {
+        quote: message.quote.map(|value| project_quote(value, text_bytes)).transpose()?,
         partial: message.partial,
         message_id: message.message_id,
         turn_id: message.turn_id,
@@ -1076,4 +1158,38 @@ fn project_origin(value: String) -> Result<String, LocalAppOperationError> {
         return Err(untrusted());
     }
     Ok(value)
+}
+
+#[cfg(test)]
+mod quotation_tests {
+    use super::*;
+
+    #[test]
+    fn quotation_projection_retains_unicode_range_and_charges_metadata() {
+        let quote = ProtoConversationQuote {
+            source_message_id: "source".into(), source_role: ProtoConversationMessageRole::Assistant as i32,
+            source_partial: true, format: QUOTE_FORMAT.into(), start_byte: 3, end_byte: 6, text: "文".into(),
+        };
+        let mut bytes = 10;
+        let value = project_quote(quote.clone(), &mut bytes).expect("valid confirmed quote");
+        assert_eq!(value.text, "文");
+        assert_eq!(bytes, 10 + 3 + "source".len() + QUOTE_FORMAT.len());
+        assert_eq!(serde_json::to_value(value).unwrap()["sourcePartial"], true);
+        assert!(project_quote(ProtoConversationQuote { text: "不同".into(), ..quote.clone() }, &mut 0).is_err());
+        assert!(project_quote(ProtoConversationQuote { source_role: 0, ..quote }, &mut 0).is_err());
+    }
+
+    #[test]
+    fn quotation_boundary_rejects_invalid_format_range_and_budget() {
+        let input = LocalAppConversationQuoteInput { source_message_id: "source".into(), format: QUOTE_FORMAT.into(), start_byte: 0, end_byte: 16384 };
+        assert!(quote_input(input.clone()).is_ok());
+        assert!(quote_input(LocalAppConversationQuoteInput { end_byte: 16385, ..input.clone() }).is_err());
+        assert!(quote_input(LocalAppConversationQuoteInput { start_byte: 1, end_byte: 1, ..input.clone() }).is_err());
+        assert!(quote_input(LocalAppConversationQuoteInput { format: "unknown".into(), ..input }).is_err());
+        let quote = ProtoConversationQuote { source_message_id: "source".into(), source_role: ProtoConversationMessageRole::User as i32,
+            source_partial: false, format: QUOTE_FORMAT.into(), start_byte: 0, end_byte: 4097, text: "x".repeat(4097) };
+        assert!(project_quote(quote.clone(), &mut 0).is_err());
+        let mut full_snapshot = MAX_SNAPSHOT_TEXT_BYTES;
+        assert!(project_quote(ProtoConversationQuote { end_byte: 1, text: "x".into(), ..quote }, &mut full_snapshot).is_err());
+    }
 }

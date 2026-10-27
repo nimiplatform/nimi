@@ -114,6 +114,7 @@ export {
   getNimiLocalAppAgentPresentationSnapshot,
   readNimiLocalAppAgentPresentationAsset,
   getNimiLocalAppConversationSnapshot,
+  readNimiLocalAppConversationMessage,
   getNimiLocalAppSessionStatus,
   getNimiLocalAppSharedAgentAIConfig,
   listNimiLocalAppWorldCores,

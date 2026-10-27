@@ -1,6 +1,7 @@
 export { ChatComposer } from './components/chat-composer.js';
 export type { ChatComposerProps } from './components/chat-composer.js';
 export { DEFAULT_CHAT_COPY, resolveChatCopy } from './copy.js';
+export { getMessageInteractionCopy } from './message-interaction-copy.js';
 export type { ChatCopy } from './copy.js';
 export { ChatMarkdownRenderer } from './components/chat-markdown-renderer.js';
 export type { ChatMarkdownRendererProps } from './components/chat-markdown-renderer.js';
@@ -44,6 +45,11 @@ export { CanonicalTargetPane } from './components/canonical-target-pane.js';
 export type { CanonicalTargetPaneProps } from './components/canonical-target-pane.js';
 export { CanonicalTranscriptView } from './components/canonical-transcript-view.js';
 export type { CanonicalTranscriptViewProps } from './components/canonical-transcript-view.js';
+export type { CanonicalMessageActions } from './components/canonical-message-actions.js';
+export type { CanonicalMessageSelection } from './components/message-text-selection.js';
+export { LocalAppConversationPlayer } from './components/local-app-conversation-player.js';
+export type { LocalAppConversationPlayerProps } from './components/local-app-conversation-player.js';
+export { LocalAppConversationQuotePreview } from './components/local-app-conversation-quote-preview.js';
 export { CanonicalTypingBubble } from './components/canonical-typing-bubble.js';
 export type { CanonicalTypingBubbleProps } from './components/canonical-typing-bubble.js';
 export { ChatComposerResizeHandle } from './components/chat-composer-resize-handle.js';
@@ -102,7 +108,6 @@ export { AgentActivityReferences, type AgentActivityReferencesProps } from './co
 export { AgentIntroduction } from './components/agent-introduction.js';
 export type { AgentIntroductionProps } from './components/agent-introduction.js';
 
-export { LocalAppConversationVoiceButton } from './components/local-app-conversation-voice-button.js';
 
 export { LocalAppConversationFollowUpControl } from './components/local-app-conversation-follow-up-control.js';
 

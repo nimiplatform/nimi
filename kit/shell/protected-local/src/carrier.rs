@@ -774,6 +774,55 @@ pub struct LocalAppConversationSendRequest {
     pub conversation_anchor_id: String,
     pub request_id: String,
     pub parts: Vec<LocalAppConversationInputPart>,
+    pub quote: Option<LocalAppConversationQuoteInput>,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppConversationQuoteInput {
+    pub source_message_id: String,
+    pub format: String,
+    pub start_byte: u32,
+    pub end_byte: u32,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalAppConversationQuote {
+    pub source_message_id: String,
+    pub source_role: LocalAppConversationMessageRole,
+    pub source_partial: bool,
+    pub format: String,
+    pub start_byte: u32,
+    pub end_byte: u32,
+    pub text: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppConversationMessageReadRequest {
+    pub agent_handle: String,
+    pub conversation_anchor_id: String,
+    pub message_id: String,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LocalAppConversationMessageWindow {
+    pub messages: Vec<LocalAppConversationMessage>,
+    pub turns: Vec<JsonValue>,
+    pub actions: Vec<JsonValue>,
+    pub voices: Vec<JsonValue>,
+    pub truncated_before: bool,
+    pub truncated_after: bool,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct LocalAppConversationMessageReadResult {
+    pub conversation_anchor_id: String,
+    pub read_watermark: u64,
+    pub message: LocalAppConversationMessage,
+    pub quote_text: Option<String>,
+    pub quote_format: Option<String>,
+    pub window: LocalAppConversationMessageWindow,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -1058,20 +1107,23 @@ pub struct LocalAppAgentMemoryDeleteRequest {
     pub confirmed: bool,
 }
 
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "lowercase")]
 pub enum LocalAppConversationMessageRole {
     App,
     User,
     Assistant,
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
 pub struct LocalAppConversationMessage {
     pub partial: bool,
     pub message_id: String,
     pub turn_id: String,
     pub role: LocalAppConversationMessageRole,
     pub parts: JsonValue,
+    pub quote: Option<LocalAppConversationQuote>,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -2222,6 +2274,11 @@ pub trait NimiLocalAppSession: Send + Sync {
                 + '_,
         >,
     >;
+
+    fn conversation_message_read(
+        &self,
+        request: LocalAppConversationMessageReadRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<LocalAppConversationMessageReadResult, LocalAppOperationError>> + Send + '_>>;
 
     fn embodiment_snapshot(
         &self,

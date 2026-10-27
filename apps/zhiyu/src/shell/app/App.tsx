@@ -3,14 +3,15 @@ import { useNimiNavigationSnapshot } from '@nimiplatform/kit/ui/app-chrome';
 import { ConfirmDialog } from '@nimiplatform/kit/ui';
 import { useZhiyuNavigationOwner, type ZhiyuDestination } from './navigation.js';
 import { isZhiyuAgentBusyReason } from './direct-local-app-submit-gate';
-import { useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
+import { useLocalAppConversationQuote } from '@nimiplatform/kit/features/chat/runtime';
 import { createInitialZhiyuEvidence, type ZhiyuEvidence } from './evidence';
-import { useAgentComposerPersistence, reconcileAgentSubmission, AgentSubmissionSaveError, type AgentPendingSubmission } from '@nimiplatform/kit/features/chat/headless';
+import { useAgentComposerPersistence, reconcileAgentSubmission, AgentSubmissionSaveError, isLocalAppConversationAccessDenied, type AgentPendingSubmission } from '@nimiplatform/kit/features/chat/headless';
 import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
 import { turnStatusFromChat } from './app-evidence-transitions';
 import { zhiyuRuntimeChatApplyIdentity, type ZhiyuRuntimeChatApplyIdentity } from './chat-turn-apply-guard';
 import { ZhiyuAgentChatSurface } from '../agent-chat/ZhiyuAgentChatSurface';
-import type { ZhiyuRuntimeAgentChatAttachment } from '../agent-chat/agent-conversation-state';
+import type { ZhiyuRuntimeAgentChatAttachment, ZhiyuConversationSubmitIntent } from '../agent-chat/agent-conversation-state';
 import { projectZhiyuHomeProductState } from './home-product-state';
 import { projectZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
 import type { ZhiyuAvatarLaunchFeedback } from '../avatar/avatar-launch-feedback';
@@ -66,6 +67,14 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
   const scopeKey = `${evidence.auth.accountId ?? ''}|${selectedAgentHandle ?? ''}|${evidence.conversation.conversationAnchorId ?? ''}`;
   const currentScope = useRef(scopeKey);
   currentScope.current = scopeKey;
+  const [deniedScope, setDeniedScope] = useState<string | null>(null);
+  const accessDenied = deniedScope === scopeKey;
+  const markAccessDenied = useCallback((error: unknown) => {
+    if (!isLocalAppConversationAccessDenied(error)) return;
+    setDeniedScope(scopeKey);
+    setEvidence(current => ({ ...current, chat: createInitialZhiyuEvidence().chat }));
+    observationRef.current?.invalidateAccess(error);
+  }, [scopeKey]);
   useEffect(() => { setSubmitting(false); setSubmissionError(null); }, [scopeKey]);
   const avatarScope = JSON.stringify([evidence.auth.accountId, selectedAgentHandle,
     destination.conversationAnchorId, evidence.conversation.agentHandle, evidence.conversation.conversationAnchorId]);
@@ -98,8 +107,19 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     return { get current() { return text; }, set current(value: string) { if (text !== value) { text = value; revision++; listeners.forEach(listener => listener()); } },
       get revision() { return revision; }, subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; } };
   }, [selectedAgentHandle]);
+  const conversation = useCallback(() => bindings.app.commands.conversation(), [bindings]);
+  const quote = useLocalAppConversationQuote({
+    scopeKey: `${evidence.auth.accountId ?? ''}|${evidence.conversation.conversationAnchorId || selectedAgentHandle || ''}`,
+    agentHandle: evidence.auth.ready ? evidence.conversation.agentHandle : null,
+    conversationAnchorId: evidence.conversation.conversationAnchorId,
+    conversation,
+    accessDenied,
+    onAccessDenied: markAccessDenied,
+    onError: error => logRendererEvent({ level: 'warn', area: 'zhiyu-chat', message: 'quotation-failed', details: extractNimiErrorFields(error) }),
+  });
   const persistence = useAgentComposerPersistence({ scopeKey, agentHandle: evidence.conversation.agentHandle ?? '',
     client: bindings.app.commands.draftClient, draft: composerDraft, subscribe: composerDraft.subscribe,
+    quoteDraft: quote.draftRef, subscribeQuote: quote.subscribe,
     isCurrent: () => currentScope.current === scopeKey && evidence.conversation.ready,
     onRestored: () => setDraft(composerDraft.current),
   });
@@ -317,11 +337,15 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       agentHandle, conversationAnchorId,
       onChat: chat => setEvidence(current => current.conversation.agentHandle !== agentHandle || current.conversation.conversationAnchorId !== conversationAnchorId
         ? current : { ...current, chat, turn: turnStatusFromChat(chat) }),
-      onStatus: status => setConnectionStatus(status),
+      onStatus: (status, error) => {
+        setConnectionStatus(status);
+        if (status === 'ready') setDeniedScope(current => current === currentScope.current ? null : current);
+        else if (status === 'error') markAccessDenied(error);
+      },
     });
     observationRef.current = observation;
     return () => { observation.close(); if (observationRef.current === observation) observationRef.current = null; };
-  }, [bindings, renderEvidence.conversation.ready, renderEvidence.conversation.agentHandle, renderEvidence.conversation.conversationAnchorId]);
+  }, [bindings, renderEvidence.conversation.ready, renderEvidence.conversation.agentHandle, renderEvidence.conversation.conversationAnchorId, markAccessDenied]);
 
   const product = useMemo(() => projectZhiyuHomeProductState(renderEvidence), [renderEvidence]);
   const avatarLaunchAction = useMemo(() => projectZhiyuAvatarLaunchAction(renderEvidence), [renderEvidence]);
@@ -367,6 +391,7 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       if (admitted) await persistence.acknowledge(submission.requestId);
     } catch (error) {
       if (scope !== currentScope.current) return;
+      markAccessDenied(error);
       if (isZhiyuAgentBusyReason(extractNimiErrorFields(error).reasonCode)) {
         // Runtime explicitly rejected admission. The original input remains a draft.
         if (!submission.retryOfTurnId) {
@@ -382,13 +407,31 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     }
   }
 
-  async function handleSubmit(textInput: string, attachment?: ZhiyuRuntimeAgentChatAttachment, retryOfTurnId?: string) {
+  // @nimi-authority: rule.nimi.runtime.conversation-message-interaction.quote-input
+  function captureSubmitIntent(text: string): ZhiyuConversationSubmitIntent {
+    if (currentScope.current !== scopeKey || accessDenied || !evidence.conversation.agentHandle || !evidence.conversation.conversationAnchorId) {
+      throw new Error('当前会话已变化，请检查输入后重试。');
+    }
+    if (quote.state.status !== 'empty' && quote.state.status !== 'ready') {
+      throw new Error('请等待引用准备完成，或取消引用后再发送。');
+    }
+    return Object.freeze({ scopeKey, agentHandle: evidence.conversation.agentHandle, conversationAnchorId: evidence.conversation.conversationAnchorId,
+      text, textRevision: composerDraft.revision, quoteRevision: quote.draftRef.revision,
+      quote: quote.state.input ? Object.freeze({ ...quote.state.input }) : null });
+  }
+
+  async function handleSubmit(textInput: string, attachment?: ZhiyuRuntimeAgentChatAttachment, retryOfTurnId?: string, captured?: ZhiyuConversationSubmitIntent) {
+    const intent = retryOfTurnId ? null : captured ?? captureSubmitIntent(textInput);
+    if (intent && currentScope.current !== intent.scopeKey) throw new Error('当前会话已变化，原输入未发送。');
+    const quoteInput = intent?.quote ?? null;
+    const quoteRevision = intent?.quoteRevision ?? quote.draftRef.revision;
+    const textRevision = intent?.textRevision ?? composerDraft.revision;
     if (submissionBusy.current === currentScope.current || (!retryOfTurnId && persistence.submission)) return;
-    const agentHandle = evidence.conversation.agentHandle;
-    const conversationAnchorId = evidence.conversation.conversationAnchorId;
+    const agentHandle = intent?.agentHandle ?? evidence.conversation.agentHandle;
+    const conversationAnchorId = intent?.conversationAnchorId ?? evidence.conversation.conversationAnchorId;
     if (!agentHandle || !conversationAnchorId) return;
-    const scope = currentScope.current;
-    const text = textInput.trim();
+    const scope = intent?.scopeKey ?? currentScope.current;
+    const text = (intent?.text ?? textInput).trim();
     if (!text && !attachment && !retryOfTurnId) return;
     setSubmissionError(null);
     setSubmitting(true);
@@ -398,9 +441,9 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       const requestId = await bindings.app.commands.allocateTurnRequestId();
       const uploaded = attachment ? await bindings.app.commands.conversation().uploadAttachment({ agentHandle, conversationAnchorId, ...attachment }) : null;
       if (scope !== currentScope.current) return;
-      const submission: AgentPendingSubmission = { requestId, conversationAnchorId, text, artifactIds: uploaded ? [uploaded.artifactId] : [], ...(retryOfTurnId ? { retryOfTurnId } : {}) };
-      const revision = composerDraft.revision;
-      await persistence.prepare(submission);
+      const submission: AgentPendingSubmission = { requestId, conversationAnchorId, text, artifactIds: uploaded ? [uploaded.artifactId] : [], ...(quoteInput ? { quote: quoteInput } : {}), ...(retryOfTurnId ? { retryOfTurnId } : {}) };
+      const revision = textRevision;
+      await persistence.prepare(submission, { quoteRevision, textRevision });
       if (scope !== currentScope.current) return;
       prepared = true;
       if (!retryOfTurnId && composerDraft.revision === revision) { composerDraft.current = ''; setDraft(''); }
@@ -533,7 +576,10 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
           if (currentScope.current === scopeKey) setSubmissionError(error instanceof Error ? error.message : '暂时无法重新回答，请稍后重试。');
         });
       }}
-      conversation={bindings.app.commands.conversation}
+      conversation={conversation}
+      quote={quote}
+      accessDenied={accessDenied}
+      onInteractionError={markAccessDenied}
       avatarLaunchAction={avatarLaunchAction}
       avatarLaunchFeedback={visibleAvatarFeedback}
       onDismissAvatarLaunchFeedback={() => setAvatarFeedback(null)}
@@ -546,7 +592,8 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
         composerDraft.current = value;
         setDraft(value);
       }}
-      onSubmit={handleSubmit}
+      captureSubmitIntent={captureSubmitIntent}
+      onSubmit={(text, attachment, intent) => handleSubmit(text, attachment, undefined, intent)}
       onTranscribeVoice={async (audioBytes, mimeType, signal) => {
         const agentHandle = evidence.conversation.agentHandle;
         const conversationAnchorId = evidence.conversation.conversationAnchorId;

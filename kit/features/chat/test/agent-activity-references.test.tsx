@@ -9,6 +9,39 @@ import { AgentActivityReferences } from '../src/components/agent-activity-refere
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 describe('Agent chat published Activity references', () => {
+  it('starts collapsed, retains source actions, and collapses only for a new explicit navigation key', async () => {
+    const records = Array.from({ length: 3 }, (_, index) => ({ activityId: `activity-${index}`, source: { kind: 'app', appId: 'source.app', displayName: 'Source App' }, title: `Published result ${index}`, summary: 'Published summary', objectRef: `source-object-${index}`, occurredAt: '2026-10-27T00:00:00Z' })) as unknown as NimiAppActivityRecord[];
+    const open = vi.fn(); const retry = vi.fn();
+    const props = { records, loading: false, unavailable: false, incomplete: false, openingId: null, openFailed: false, open, retry,
+      copy: { title: 'App references', loading: 'Loading', unavailable: 'Read unavailable', incomplete: 'Partial records', open: 'View in App', opening: 'Opening', openFailed: 'Open failed', retry: 'Retry', more: 'More' } };
+    const container = document.createElement('div'); document.body.append(container); const root = createRoot(container);
+    const render = async (navigationKey?: string, unavailable = false) => { await act(async () => root.render(<AgentActivityReferences {...props} navigationKey={navigationKey} unavailable={unavailable} />)); };
+    try {
+      await render('agent:1');
+      const details = container.querySelector<HTMLDetailsElement>('[data-nimi-app-activity-references]')!;
+      const summary = details.querySelector('summary')!;
+      expect(details.open).toBe(false);
+      expect(summary.textContent).toBe('App references');
+      expect(container.textContent?.match(/App references/g)).toHaveLength(1);
+      summary.focus(); expect(document.activeElement).toBe(summary);
+      await act(async () => {
+        summary.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+        // JSDOM does not synthesize the native keyboard activation click.
+        summary.click();
+      });
+      expect(details.open).toBe(true);
+      const openButton = Array.from(details.querySelectorAll('button')).find(button => button.textContent === 'View in App')!;
+      await act(async () => openButton.click()); expect(open).toHaveBeenCalledWith(records[0]);
+      expect(container.textContent).toContain('Source App');
+      await render('agent:1', true); expect(details.open).toBe(true);
+      await act(async () => Array.from(details.querySelectorAll('button')).find(button => button.textContent === 'Retry')!.click());
+      expect(retry).toHaveBeenCalledOnce();
+      await render(undefined); expect(details.open).toBe(true);
+      openButton.focus();
+      await render('agent:2'); expect(details.open).toBe(false); expect(document.activeElement).toBe(summary);
+      await act(async () => summary.click()); expect(details.open).toBe(true);
+    } finally { await act(async () => root.unmount()); container.remove(); }
+  });
   it('shows a read failure without claiming that an empty view contains partial records', () => {
     const props = {
       records: [], loading: false, unavailable: true, incomplete: true,

@@ -203,12 +203,12 @@ export function conversationMessagesForDisplay(
     .map((message) => ({
       ...message,
       senderName: transcriptSenderName(message.senderName, currentPartnerName),
-      text: runtimeTextForDisplay(message.text),
+      text: message.text,
     }));
 }
 
 function isEmptyStreamingTranscriptPlaceholder(message: ZhiyuEvidence['chat']['messages'][number]): boolean {
-  const streaming = message.kind === 'streaming' || message.status === 'streaming' || message.status === 'error';
+  const streaming = message.kind === 'streaming' || message.status === 'streaming' || message.status === 'pending';
   return streaming && runtimeTextForDisplay(message.text).length === 0;
 }
 

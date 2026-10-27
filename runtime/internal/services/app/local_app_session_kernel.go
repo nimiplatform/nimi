@@ -608,6 +608,7 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 		localappop.OperationConversationTurnInterrupt,
 		localappop.OperationConversationEventsSubscribe,
 		localappop.OperationConversationSnapshotGet,
+		localappop.OperationConversationMessageRead,
 		localappop.OperationConversationFollowUpCancel,
 		localappop.OperationConversationAttachmentUpload,
 		localappop.OperationConversationArtifactRead,

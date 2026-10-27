@@ -74,6 +74,7 @@ const FINAL_LOCAL_APP_COMMANDS = [
   'nimi.shell.localApp.conversationInterruptTurn',
   'nimi.shell.localApp.conversationSubscribe',
   'nimi.shell.localApp.conversationSnapshot',
+  'nimi.shell.localApp.conversationMessageRead',
   'nimi.shell.localApp.embodimentSnapshot',
   'nimi.shell.localApp.embodimentSubscribe',
   'nimi.shell.localApp.agentManagerSnapshot',

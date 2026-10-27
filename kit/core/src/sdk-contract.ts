@@ -431,6 +431,14 @@ export type { NimiLocalAppAgentIntroduction, NimiLocalAppAgentIntroductionTopic,
 export type { NimiLocalAppAgentAutonomyConfig, NimiLocalAppConversationFollowUpCancelInput, NimiLocalAppAgentLife, NimiLocalAppAgentLifeFrame, } from '@nimiplatform/sdk/app';
 
 export type { NimiLocalAppConversationState, NimiLocalAppConversationAction, NimiLocalAppConversationLiveAction, NimiLocalAppConversationLiveTool, NimiLocalAppConversationTurn, NimiLocalAppConversationVoice } from '@nimiplatform/sdk/app';
+export type {
+  NimiLocalAppConversationQuoteInput,
+  NimiLocalAppConversationQuote,
+  NimiLocalAppConversationMessageReadInput,
+  NimiLocalAppConversationMessageReadResult,
+  NimiLocalAppConversationMessageReadWindow,
+} from '@nimiplatform/sdk/app';
+export { validateNimiLocalAppConversationQuoteInput, projectNimiLocalAppConversationMessageReadResult } from '@nimiplatform/sdk/app';
 
 // Realm remains the owner of rendition identity, policy and delivery URLs.
 export type MediaDeliveryDto = import('@nimiplatform/sdk/realm').RealmModel<'MediaDeliveryDto'>;

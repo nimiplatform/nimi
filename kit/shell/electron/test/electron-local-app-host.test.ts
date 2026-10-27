@@ -1617,6 +1617,7 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
     localAppIntegrationCancelConnectionSetup: record('localAppIntegrationCancelConnectionSetup', {}),
     localAppConversationOpen: record('localAppConversationOpen', { conversationAnchorId: 'anchor-1', activeTurnId: null }),
     localAppConversationSendTurn: record('localAppConversationSendTurn', { turnId: 'turn-1' }),
+    localAppConversationMessageRead: record('localAppConversationMessageRead', {}),
     localAppConversationToolCallsList: record('localAppConversationToolCallsList', { calls: [] }),
     localAppConversationToolResultSubmit: record('localAppConversationToolResultSubmit', { callId: 'call-1' }),
     localAppConversationAttachmentUpload: record('localAppConversationAttachmentUpload', {
@@ -2004,7 +2005,7 @@ describe('Electron App activity carrier', () => {
 
 
 it('preserves App-originated routine input through both native Conversation snapshot and event validation', async () => {
-  const message = { partial:false, messageId: 'message-app', turnId: 'turn-app', role: 'app', parts: [{ kind: 'text', text: '[App: nimi.day · Routine: Morning] Plan the day.' }] };
+  const message = { partial:false, quote:null, messageId: 'message-app', turnId: 'turn-app', role: 'app', parts: [{ kind: 'text', text: '[App: nimi.day · Routine: Morning] Plan the day.' }] };
   const candidate = { ...binding([]),
     localAppConversationSnapshot: async () => ({ status: 'ok', value: { conversationAnchorId: 'anchor-1', throughSequence: '1', state:{freeContactEnabled:false,maxFollowUpTurns:8,pendingFollowUp:null,textTurnId:null}, turns: [], messages: [message], actions: [], voices: [], truncatedBefore: false } }),
     localAppConversationStreamNext: async () => ({ status: 'ok', value: { completed: false, event: { type: 'message-committed', conversationAnchorId: 'anchor-1', sequence: '1', turnId: 'turn-app', message } } }),
@@ -2012,6 +2013,33 @@ it('preserves App-originated routine input through both native Conversation snap
   const host = createNimiElectronLocalAppHostForBinding(candidate);
   await expect(host.conversationSnapshot({ agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', conversationAnchorId: 'anchor-1' })).resolves.toMatchObject({ messages: [message] });
   await expect(host.conversationStreamNext({ streamId: 'stream-1' })).resolves.toMatchObject({ event: { message } });
+});
+
+it('carries exact quote intent and validates a bounded native message read without live-state leakage', async () => {
+  const quote = { sourceMessageId: 'source', format: 'nimi.quote-text.v1', startByte: 0, endByte: 3 };
+  const message = { messageId: 'message', turnId: 'turn', role: 'user', partial: false,
+    parts: [{ kind: 'text', text: '这句是什么意思？' }], quote: { ...quote, sourceRole: 'assistant', sourcePartial: false, text: '文' } };
+  const turn = { turnId: 'turn', origin: 'user', status: 'completed', phase: null, terminalReason: 'completed', reasonCode: null,
+    message: null, requestId: 'request', retryOfTurnId: null, inputTurnId: 'turn', canRegenerate: false };
+  let read: Record<string, unknown> = { conversationAnchorId: 'anchor', readWatermark: '9', message, quoteText: '这句是什么意思？', quoteFormat: 'nimi.quote-text.v1',
+    window: { messages: [message], turns: [turn], actions: [], voices: [], truncatedBefore: true, truncatedAfter: false } };
+  const calls: unknown[] = [];
+  const host = createNimiElectronLocalAppHostForBinding({ ...binding([]),
+    localAppConversationSendTurn: async input => { calls.push(input); return { status: 'ok' as const, value: { turnId: 'turn' } }; },
+    localAppConversationMessageRead: async input => { calls.push(input); return { status: 'ok' as const, value: read }; },
+  });
+  const scope = { agentHandle: 'agent_ref_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', conversationAnchorId: 'anchor' };
+  const input = { ...scope, requestId: 'request', parts: [{ kind: 'text', text: '这句是什么意思？' }], quote };
+  await dispatchElectronLocalAppCommand({ host, command: 'nimi.shell.localApp.conversationSendTurn', payload: input });
+  expect(calls[0]).toEqual(input);
+  const result = await dispatchElectronLocalAppCommand({ host, command: 'nimi.shell.localApp.conversationMessageRead', payload: { ...scope, messageId: 'message' } });
+  expect(result).toEqual(read);
+  expect(calls[1]).toEqual({ ...scope, messageId: 'message' });
+  await expect(dispatchElectronLocalAppCommand({ host, command: 'nimi.shell.localApp.conversationSendTurn', payload: { ...input, quote: { ...quote, text: 'forged' } } })).rejects.toBeDefined();
+  await expect(dispatchElectronLocalAppCommand({ host, command: 'nimi.shell.localApp.conversationMessageRead', payload: { ...scope, messageId: 'message', limit: 1000 } })).rejects.toBeDefined();
+  expect(calls).toHaveLength(2);
+  read = { ...read, throughSequence: '10' };
+  await expect(host.conversationMessageRead({ ...scope, messageId: 'message' })).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
 });
 
 it.each(['life','contact'])('preserves %s origins across snapshot and terminal events',async(origin)=>{
