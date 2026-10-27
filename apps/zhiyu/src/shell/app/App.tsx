@@ -86,8 +86,12 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
   const [avatarFeedback, setAvatarFeedback] = useState<{
     scope: string; bindings: ZhiyuCanonicalRendererBindings; value: ZhiyuAvatarLaunchFeedback;
   } | null>(null);
+  const [avatarSetupPrompt, setAvatarSetupPrompt] = useState<{
+    scope: string; bindings: ZhiyuCanonicalRendererBindings;
+  } | null>(null);
   useLayoutEffect(() => {
     setAvatarFeedback(null);
+    setAvatarSetupPrompt(null);
     setAvatarSwitchConfirmation(null);
     return () => {
       avatarAttempt.current = null;
@@ -100,6 +104,8 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     ? avatarFeedback.value : null;
   const visibleAvatarSwitchConfirmation = avatarSwitchConfirmation?.scope === avatarScope
     && avatarSwitchConfirmation.bindings === bindings;
+  const visibleAvatarSetupPrompt = avatarSetupPrompt?.scope === avatarScope
+    && avatarSetupPrompt.bindings === bindings;
   const composerDraft = useMemo(() => {
     let text = draftByPartner.current.get(draftKey) ?? '';
     let revision = 0;
@@ -501,8 +507,9 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     confirmation.resolve(confirmed && confirmation.isCurrent());
   }
 
+  // @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r012
   async function handleAvatarLaunch() {
-    if (avatarLaunchAction.state !== 'ready' || avatarAttempt.current) return;
+    if (avatarAttempt.current) return;
     const isScopeCurrent = () => {
       const current = navigation.getSnapshot().current.destination;
       return currentAvatarScope.current.key === avatarScope && currentAvatarScope.current.bindings === bindings
@@ -510,6 +517,13 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
         && current.conversationAnchorId === destination.conversationAnchorId;
     };
     if (!isScopeCurrent()) return;
+    const settings = agentCenterSession?.getSnapshot();
+    if (settings?.reads.presentation === 'loaded' && settings.state.appearance.status === 'not_configured') {
+      setAvatarFeedback(null);
+      setAvatarSetupPrompt({ scope: avatarScope, bindings });
+      return;
+    }
+    if (avatarLaunchAction.state !== 'ready') return;
     const attempt = {};
     avatarAttempt.current = attempt;
     setAvatarFeedback({ scope: avatarScope, bindings, value: { state: 'pending' } });
@@ -629,6 +643,19 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
       onAvatarLaunch={() => {
         void handleAvatarLaunch();
       }}
+    />
+    <ConfirmDialog
+      open={visibleAvatarSetupPrompt}
+      title="请先设置伙伴形象"
+      message="这位伙伴还没有设置形象。请先在外观设置中导入 Live2D 或 VRM 形象。"
+      confirmLabel="去设置"
+      cancelLabel="取消"
+      confirmTone="primary"
+      onConfirm={() => {
+        setAvatarSetupPrompt(null);
+        void navigation.push({ ...destination, panel: 'appearance' });
+      }}
+      onClose={() => setAvatarSetupPrompt(null)}
     />
     <ConfirmDialog
       open={visibleAvatarSwitchConfirmation}

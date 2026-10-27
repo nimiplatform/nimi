@@ -105,9 +105,18 @@ test('Zhiyu keeps original input and scopes its shared conversation controls', a
       async readMessage(request) { if (!options.readMessage) throw new Error('unused message read'); return options.readMessage(request); },
       async readArtifact(request) { if (!options.readArtifact) throw new Error('unused artifact read'); return options.readArtifact(request); },
     };
+    const unavailableSettings = async () => { throw new Error('Unrelated settings are unavailable in this test'); };
+    const configurationClient = options.presentation ? {
+      presentation: { snapshot: options.presentation },
+      sharedAIConfig: { get: unavailableSettings, listOptions: unavailableSettings },
+      autonomy: { snapshot: unavailableSettings },
+      memory: { inspect: unavailableSettings },
+      manager: { snapshot: unavailableSettings },
+    } : null;
     const bindings = { clock: { now: Date.now }, app: {
       projection: {
-        agentCenterBinding: () => null,
+        agentCenterBinding: agentHandle => agentHandle && configurationClient
+          ? { agentHandle, client: configurationClient, hostMechanics: null } : null,
         async loadHome({ selectedAgentHandle }) {
           const agentHandle = selectedAgentHandle ?? agents[0].agentHandle;
           return { ...initial, runtime: { ...initial.runtime, ready: true }, auth: { ...initial.auth, ready: true, accountId: options.accountId?.() ?? 'account' },
@@ -163,6 +172,54 @@ test('Zhiyu keeps original input and scopes its shared conversation controls', a
     const switched = { command: 'launch', state: 'present', avatarInstanceRef: 'avatar:switched',
       switchIntentRef: null, committedPresentationRef: null, temporaryCustodyRef: null };
     const activeSwitchDialog = () => document.querySelector('[role="dialog"][data-state="open"]');
+
+    await t.test('an unconfigured partner opens setup from the header without attempting a Host launch', async () => {
+      const view = await mount({ avatarReady: true, presentation: async () => ({
+        presentationRevision: '1', profile: null, previousProfile: null, resourcePackSelection: null,
+        defaultVoiceReference: null, avatarAutoplay: false,
+      }) });
+      try {
+        await act(async () => view.navigation.push({ ...view.navigation.getSnapshot().current.destination, panel: 'overview' }));
+        await settle(() => view.node.textContent.includes('请设置伙伴形象。'));
+        const launchFromHeader = () => act(async () => view.node.querySelector('[aria-label="启动伙伴形象"]').click());
+        await launchFromHeader();
+        await settle(() => activeSwitchDialog());
+        assert.match(activeSwitchDialog().textContent, /请先设置伙伴形象/u);
+        assert.equal(view.calls.avatar.length, 0);
+        assert.equal(view.node.querySelector('[data-zhiyu-avatar-feedback]'), null);
+        await clickText(activeSwitchDialog(), '取消');
+        assert.equal(activeSwitchDialog(), null);
+        assert.equal(view.navigation.getSnapshot().current.destination.panel, 'overview');
+        assert.equal(view.node.querySelector('textarea').value, '原来的问题');
+        await launchFromHeader();
+        await clickText(activeSwitchDialog(), '去设置');
+        await settle(() => view.navigation.getSnapshot().current.destination.panel === 'appearance');
+        assert.equal(activeSwitchDialog(), null);
+        assert.equal(view.navigation.getSnapshot().current.destination.agentHandle, agents[0].agentHandle);
+        assert.match(view.node.textContent, /导入 Live2D/u);
+        assert.match(view.node.textContent, /导入 VRM/u);
+        assert.equal(view.calls.avatar.length, 0);
+        assert.equal(view.node.querySelector('textarea').value, '原来的问题');
+        assert.equal(view.node.querySelector('textarea').disabled, false);
+      } finally { await view.close(); }
+    });
+
+    for (const configured of [true, false]) {
+      await t.test(`${configured ? 'a configured appearance' : 'a failed presentation read'} retains the Host launch result instead of claiming missing setup`, async () => {
+        const view = await mount({ avatarReady: true, presentation: async () => {
+          if (!configured) throw new Error('Presentation read unavailable');
+          return { presentationRevision: '1', profile: { backendKind: 'vrm', avatarAssetRef: 'asset:configured' },
+            previousProfile: null, resourcePackSelection: null, avatarAutoplay: false };
+        }, launchAvatar: () => configured ? avatarOpened : avatarFailure() });
+        try {
+          await clickAvatar(view);
+          await settle(() => view.node.querySelector(`[data-zhiyu-avatar-feedback="${configured ? 'opened' : 'failed'}"]`));
+          assert.equal(view.calls.avatar.length, 1);
+          assert.equal(activeSwitchDialog(), null);
+          assert.doesNotMatch(view.node.textContent, /请先设置伙伴形象/u);
+        } finally { await view.close(); }
+      });
+    }
 
     await t.test('the real production command awaits the source ConfirmDialog before submitting the one-time switch', async () => {
       const requests = [];

@@ -1,4 +1,4 @@
-import nimiLogoImage from '../assets/nimi-logo.png';
+import zhiyuLogoImage from '../assets/logo.png';
 import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 
 type DesktopPresenceRailProps = {
@@ -28,8 +28,8 @@ export function DesktopPresenceRail({
       className="zhiyu-agent-rail"
       data-zhiyu-region="presence"
     >
-      <div className="zhiyu-agent-rail__logo" aria-label="Nimi" data-zhiyu-desktop-logo-image="nimi">
-        <img src={nimiLogoImage} alt="" aria-hidden="true" />
+      <div className="zhiyu-agent-rail__logo" data-zhiyu-desktop-logo-image="zhiyu">
+        <img src={zhiyuLogoImage} alt="织羽" />
       </div>
       <div
         className="zhiyu-agent-rail__agents"
