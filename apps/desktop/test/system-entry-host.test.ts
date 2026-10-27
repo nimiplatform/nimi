@@ -135,9 +135,9 @@ test('both supported platforms create one recoverable Tray without binding a con
       assert.equal(value.host.enabled, true);
       assert.equal(value.tray().contextMenuCalls, 0);
       assert.equal(value.host.hideHomeWindowOnClose(), true);
-      value.host.setQuitPending(true);
+      value.host.setQuitPhase('confirming');
       assert.equal(value.host.hideHomeWindowOnClose(), false);
-      value.host.setQuitPending(false);
+      value.host.setQuitPhase('idle');
       value.tray().bounds = { x: 0, y: 0, width: 0, height: 0 };
       assert.equal(value.host.hideHomeWindowOnClose(), false);
       assert.equal(value.counts().hidden, 1);
@@ -202,6 +202,40 @@ test('invalidation fences a pending old-account publication', async () => {
     assert.equal((await value.host.snapshot()).projection, null);
   } finally { value.host.dispose(); }
 });
+
+for (const rejects of [false, true]) {
+  test(`quit stops pending observations when the account read ${rejects ? 'fails' : 'resolves'}, and failed quit can resume`, async () => {
+    const value = fixture();
+    try {
+      await value.host.initialize();
+      await value.host.publish(projection());
+      value.host.setQuitPhase('confirming');
+      assert.equal((await value.host.snapshot()).observation, 'current', 'quit impact still needs the current work projection');
+      let finish!: () => void;
+      let reads = 0;
+      value.setAdmissionReader(() => {
+        reads += 1;
+        return new Promise<SystemEntryAdmission>((resolve, reject) => {
+          finish = () => rejects ? reject(new Error('system-entry-account-unavailable')) : resolve({ generation: 'account-a', state: 'ready' });
+        });
+      });
+      const publishing = value.host.publish(projection('account-a', 2));
+      await Promise.resolve();
+      value.host.setQuitPhase('stopping');
+      finish();
+      await assert.rejects(publishing, /system-entry-observation-stopped/);
+      await assert.rejects(value.host.context(), /system-entry-observation-stopped/);
+      await assert.rejects(value.host.heartbeat({ generation: 'account-a' }), /system-entry-observation-stopped/);
+      assert.equal((await value.host.snapshot()).projection, null);
+      assert.equal(reads, 1, 'stopped observations must not access owners being torn down');
+      value.host.setQuitPhase('idle');
+      value.setAdmissionReader(() => ({ generation: 'account-b', state: 'ready' }));
+      await value.host.publish(projection('account-b'));
+      assert.equal((await value.host.snapshot()).observation, 'current');
+      assert.deepEqual(value.errors, []);
+    } finally { value.host.dispose(); }
+  });
+}
 
 test('native Home and Quit remain available when formal reads fail', async () => {
   const value = fixture();

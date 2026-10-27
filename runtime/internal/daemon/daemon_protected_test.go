@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/rand"
+	"encoding/json"
 	"io"
 	"log/slog"
 	"net"
@@ -67,62 +68,99 @@ func TestProtectedDaemonRunFailsClosedWithoutVerifiedNativeListener(t *testing.T
 }
 
 func TestProtectedDaemonRunProtectedUsesNativeCarrierWithoutPublicListeners(t *testing.T) {
-	serviceStateRoot := t.TempDir()
-	authorities := newDaemonProtectedAuthorities(t)
-	grpcAddr := availableTCPAddress(t)
-	httpAddr := availableTCPAddress(t)
-	protectedDaemon, err := NewProtected(
-		config.Config{
-			GRPCAddr:             grpcAddr,
-			HTTPAddr:             httpAddr,
-			ShutdownTimeout:      2 * time.Second,
-			AuditRingBufferSize:  64,
-			UsageStatsBufferSize: 64,
-			IdempotencyCapacity:  32,
-		},
-		slog.New(slog.NewTextHandler(io.Discard, nil)),
-		"test",
-		grpcserver.ProtectedServiceBindings{
-			ServiceStateRoot:                 serviceStateRoot,
-			ProductControlRoot:               filepath.Join(t.TempDir(), ".nimi"),
-			RuntimeServiceSID:                protectedlocal.WindowsProductionServiceSID,
-			RuntimeServiceUID:                450,
-			LocalDevelopmentConsentStorePath: filepath.Join(serviceStateRoot, "local-development.db"),
-			AccountCustody:                   daemonProtectedAccountCustody{},
-			AccountPartition:                 "account=user-alpha;logon=42",
-			LocalOSUserIdentity:              verifiedDaemonTestIdentity(t),
-			ConnectorSecrets:                 daemonProtectedConnectorSecrets{},
-			DesktopSessions:                  authorities.desktop,
-			LocalAppLaunches:                 authorities.localApps,
-			LocalDevelopmentVerifier:         daemonTestLocalDevelopmentVerifier{},
-			RuntimeRestartRequester:          func() bool { return true },
-		},
-	)
-	if err != nil {
-		t.Fatalf("NewProtected: %v", err)
-	}
-	closeDaemonForTest(t, protectedDaemon)
+	for _, transport := range []string{"verified-native-desktop", "verified-native-desktop-and-local-app"} {
+		t.Run(transport, func(t *testing.T) {
+			serviceStateRoot := t.TempDir()
+			authorities := newDaemonProtectedAuthorities(t)
+			grpcAddr := availableTCPAddress(t)
+			httpAddr := availableTCPAddress(t)
+			var logs bytes.Buffer
+			protectedDaemon, err := NewProtected(
+				config.Config{
+					GRPCAddr:             grpcAddr,
+					HTTPAddr:             httpAddr,
+					ShutdownTimeout:      2 * time.Second,
+					AuditRingBufferSize:  64,
+					UsageStatsBufferSize: 64,
+					IdempotencyCapacity:  32,
+				},
+				slog.New(slog.NewJSONHandler(&logs, nil)),
+				"test",
+				grpcserver.ProtectedServiceBindings{
+					ServiceStateRoot:                 serviceStateRoot,
+					ProductControlRoot:               filepath.Join(t.TempDir(), ".nimi"),
+					RuntimeServiceSID:                protectedlocal.WindowsProductionServiceSID,
+					RuntimeServiceUID:                450,
+					LocalDevelopmentConsentStorePath: filepath.Join(serviceStateRoot, "local-development.db"),
+					AccountCustody:                   daemonProtectedAccountCustody{},
+					AccountPartition:                 "account=user-alpha;logon=42",
+					LocalOSUserIdentity:              verifiedDaemonTestIdentity(t),
+					ConnectorSecrets:                 daemonProtectedConnectorSecrets{},
+					DesktopSessions:                  authorities.desktop,
+					LocalAppLaunches:                 authorities.localApps,
+					LocalDevelopmentVerifier:         daemonTestLocalDevelopmentVerifier{},
+					RuntimeRestartRequester:          func() bool { return true },
+				},
+			)
+			if err != nil {
+				t.Fatalf("NewProtected: %v", err)
+			}
+			closeDaemonForTest(t, protectedDaemon)
 
-	listener := newDaemonBlockingNativeListener()
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	done := make(chan error, 1)
-	go func() { done <- protectedDaemon.RunProtected(ctx, listener) }()
-	select {
-	case <-listener.accepted:
-	case <-time.After(5 * time.Second):
-		t.Fatal("protected daemon did not start the native carrier")
-	}
-	assertTCPAddressAvailable(t, grpcAddr)
-	assertTCPAddressAvailable(t, httpAddr)
-	cancel()
-	select {
-	case err := <-done:
-		if err != nil {
-			t.Fatalf("RunProtected error = %v", err)
-		}
-	case <-time.After(5 * time.Second):
-		t.Fatal("protected daemon did not stop after native carrier context cancellation")
+			listener := newDaemonBlockingNativeListener()
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			done := make(chan error, 1)
+			go func() {
+				if transport == "verified-native-desktop-and-local-app" {
+					done <- protectedDaemon.RunProtectedWithLocalApp(ctx, listener, newDaemonBlockingNativeListener())
+				} else {
+					done <- protectedDaemon.RunProtected(ctx, listener)
+				}
+			}()
+			select {
+			case <-listener.accepted:
+			case <-time.After(5 * time.Second):
+				t.Fatal("protected daemon did not start the native carrier")
+			}
+			assertTCPAddressAvailable(t, grpcAddr)
+			assertTCPAddressAvailable(t, httpAddr)
+			readyCtx, cancelReady := context.WithTimeout(ctx, 5*time.Second)
+			defer cancelReady()
+			if err := protectedDaemon.WaitReady(readyCtx); err != nil {
+				t.Fatalf("wait for protected daemon readiness: %v", err)
+			}
+			cancel()
+			select {
+			case err := <-done:
+				if err != nil {
+					t.Fatalf("RunProtected error = %v", err)
+				}
+			case <-time.After(5 * time.Second):
+				t.Fatal("protected daemon did not stop after native carrier context cancellation")
+			}
+			decoder := json.NewDecoder(&logs)
+			readyLogs := 0
+			for decoder.More() {
+				var record map[string]any
+				if err := decoder.Decode(&record); err != nil {
+					t.Fatalf("decode daemon log: %v", err)
+				}
+				if record["msg"] != "runtime ready" {
+					continue
+				}
+				readyLogs++
+				if record["status"] != "ready" || record["transport"] != transport {
+					t.Fatalf("ready log does not describe the serving transport: %+v", record)
+				}
+				if record["grpc_addr"] != nil || record["http_addr"] != nil {
+					t.Fatalf("native ready log advertises unopened TCP endpoints: %+v", record)
+				}
+			}
+			if readyLogs != 1 {
+				t.Fatalf("ready log count = %d, want 1", readyLogs)
+			}
+		})
 	}
 }
 

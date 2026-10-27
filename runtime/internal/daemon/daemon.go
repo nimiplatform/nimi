@@ -481,10 +481,10 @@ func (d *Daemon) run(ctx context.Context, serverCount int, startServers daemonSe
 			return fmt.Errorf("start runtime-agent life-frame loop: %w", err)
 		}
 	}
-	if transport == "verified-native-desktop" {
-		d.logger.Info("runtime ready", "transport", transport)
+	if d.protected {
+		d.logger.Info("runtime ready", "status", "ready", "transport", transport)
 	} else {
-		d.logger.Info("runtime ready", "grpc_addr", d.cfg.GRPCAddr, "http_addr", d.cfg.HTTPAddr)
+		d.logger.Info("runtime ready", "status", "ready", "grpc_addr", d.cfg.GRPCAddr, "http_addr", d.cfg.HTTPAddr)
 	}
 	if startupDegradedReason != "" {
 		d.transitionToDegraded(startupDegradedReason)

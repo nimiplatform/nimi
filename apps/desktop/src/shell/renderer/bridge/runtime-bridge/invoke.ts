@@ -6,6 +6,7 @@ import {
   toShellBridgeNimiError,
 } from '@nimiplatform/kit/shell/renderer/bridge';
 import { emitRendererLog, resolveRendererSessionTraceId, toRendererLogMessage } from '@nimiplatform/kit/telemetry';
+import { SYSTEM_ENTRY_HOME_COMMANDS } from '../../../shared/system-entry-types.js';
 
 function translateBridgeMessage(key: string, defaultValue: string): string {
   void key;
@@ -90,10 +91,17 @@ export async function invoke(command: string, payload: unknown = {}): Promise<un
     const bridgeError = toBridgeNimiError(error);
     const costMs = Number((performance.now() - startedAt).toFixed(2));
     const rawMessage = String(bridgeError.details?.rawMessage || bridgeError.message || '').trim();
+    // Passive observations can lose their generation during quit or account
+    // invalidation. Keep the rejection and its diagnostic, without presenting
+    // this expected cancellation as a Runtime failure. Actions remain errors.
+    const cancelledObservation = (rawMessage === 'system-entry-view-stale' || rawMessage === 'system-entry-observation-stopped')
+      && (command === SYSTEM_ENTRY_HOME_COMMANDS.context
+        || command === SYSTEM_ENTRY_HOME_COMMANDS.publish
+        || command === SYSTEM_ENTRY_HOME_COMMANDS.heartbeat);
     void emitRendererLog({
-      level: 'error',
+      level: cancelledObservation ? 'debug' : 'error',
       area: 'bridge',
-      message: toRendererLogMessage(`action:invoke-failed:${command}`),
+      message: toRendererLogMessage(`action:invoke-${cancelledObservation ? 'cancelled' : 'failed'}:${command}`),
       details: {
         invokeId,
         command,

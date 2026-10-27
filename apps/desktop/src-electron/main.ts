@@ -289,7 +289,7 @@ const desktopQuitCoordinator = createDesktopQuitCoordinator({
   finishQuit: async () => { quitCleanupComplete = true; await finishDesktopHomeProfileBeforeExit(); },
   recoverAfterFailedQuit: recoverDesktopAfterFailedQuit,
   phaseChanged: (phase) => {
-    systemEntryHost?.setQuitPending(phase !== 'idle');
+    systemEntryHost?.setQuitPhase(phase);
     if (phase === 'stopping' || phase === 'system-ending') systemEntryAdmission?.invalidate();
   },
 });
@@ -1245,6 +1245,7 @@ async function recoverDesktopAfterFailedQuit(_error: unknown): Promise<void> {
   ownerQuitRequested = false;
   homeRelaunchRequested = false;
   maintenanceRelaunchRequested = false;
+  systemEntryHost?.setQuitPhase('idle');
   installedAppHost?.resume();
   try { await localDevelopmentHost?.resumeAfterFailedShutdown(); }
   catch (error) { writeDesktopStderr(`[desktop-quit] supervisor-recovery:${desktopBootstrapFailureCode(error)}\n`); }
@@ -1419,6 +1420,7 @@ async function shutdownBeforeQuit(forUpdate = false): Promise<DesktopShutdownRep
   const avatarHost = bundledAvatarHost;
   const chatStoreHost = chatAiStoreHost;
   const currentSystemEntryHost = systemEntryHost;
+  currentSystemEntryHost?.setQuitPhase('stopping');
   const connectorAuthHost = connectorAuthAcquisitionHost;
   const runtimeBridge = registeredRuntimeBridge;
   const ordinaryDiagnostics: Array<{ operation: string; reason: string }> = [];

@@ -28,8 +28,11 @@ func NewRuntimeSourceBackend(rootDir string) (*SQLiteBackend, error) {
 	if statErr != nil && !errors.Is(statErr, os.ErrNotExist) {
 		return nil, fmt.Errorf("storage: inspect runtime source store: %w", statErr)
 	}
+	// Source replacement reads the current generation before writing. Reserve
+	// the writer at BEGIN so concurrent Agent rebuilds wait before taking their
+	// snapshot, rather than failing a deferred read-to-write upgrade with BUSY.
 	dsn := "file:" + storePath +
-		"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(on)"
+		"?_pragma=busy_timeout(5000)&_pragma=journal_mode(WAL)&_pragma=foreign_keys(on)&_txlock=immediate"
 	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("storage: open runtime source sqlite: %w", err)

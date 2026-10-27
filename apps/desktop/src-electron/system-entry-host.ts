@@ -1,4 +1,5 @@
 import type { BrowserWindow, Menu, MenuItemConstructorOptions, NativeImage, Tray } from 'electron';
+import type { DesktopQuitPhase } from './system-entry-quit-coordinator.js';
 import {
   SYSTEM_ENTRY_LIVENESS_MS,
   isSystemEntryActionOffered,
@@ -32,7 +33,7 @@ export type DesktopSystemEntryHost = {
   act(value: unknown): Promise<void>;
   setLocale(locale: SystemEntryLocale): void;
   setHomeVisibility(visible: boolean): void;
-  setQuitPending(pending: boolean): void;
+  setQuitPhase(phase: DesktopQuitPhase): void;
   hideHomeWindowOnClose(): boolean;
   hasRecoverableEntry(): boolean;
   openOverview(): Promise<void>;
@@ -77,6 +78,7 @@ export function createDesktopSystemEntryHost(input: CreateDesktopSystemEntryHost
   let initialized = false;
   let disposed = false;
   let quitPending = false;
+  let observationStopped = false;
   let homeVisible = true;
   let locale: SystemEntryLocale = input.locale ?? 'en';
   let colorScheme: SystemEntrySnapshot['colorScheme'] = null;
@@ -148,6 +150,7 @@ export function createDesktopSystemEntryHost(input: CreateDesktopSystemEntryHost
   };
 
   const readAdmission = async (): Promise<SystemEntryAdmission> => {
+    if (observationStopped) throw new Error('system-entry-observation-stopped');
     const request = ++admissionRequest;
     const capturedInvalidation = invalidation;
     let timer: ReturnType<typeof setTimeout> | undefined;
@@ -159,6 +162,7 @@ export function createDesktopSystemEntryHost(input: CreateDesktopSystemEntryHost
           timer.unref?.();
         }),
       ]);
+      if (observationStopped) throw new Error('system-entry-observation-stopped');
       if (disposed || capturedInvalidation !== invalidation) throw new Error('system-entry-view-stale');
       if (typeof result?.generation !== 'string' || !result.generation || result.generation.length > 128 || !ADMISSION_STATES.has(result.state)) {
         throw new Error('system-entry-admission-invalid');
@@ -177,6 +181,10 @@ export function createDesktopSystemEntryHost(input: CreateDesktopSystemEntryHost
       if (changedGeneration || changedState) notify();
       return admission;
     } catch (error) {
+      // Teardown may remove the account observer while this read is pending.
+      // Its result belongs to the stopped observation, not a new Runtime fault.
+      if (observationStopped) throw new Error('system-entry-observation-stopped');
+      if (disposed || capturedInvalidation !== invalidation) throw new Error('system-entry-view-stale');
       if (request < settledAdmissionRequest) return admission;
       if (!disposed && capturedInvalidation === invalidation) {
         settledAdmissionRequest = request;
@@ -189,6 +197,7 @@ export function createDesktopSystemEntryHost(input: CreateDesktopSystemEntryHost
     }
   };
   const snapshot = async (): Promise<SystemEntrySnapshot> => {
+    if (observationStopped) return currentSnapshot();
     try { await readAdmission(); }
     catch (error) {
       // Native recovery remains available even when formal reads fail. A
@@ -405,7 +414,13 @@ export function createDesktopSystemEntryHost(input: CreateDesktopSystemEntryHost
       notify();
     },
     setHomeVisibility(visible: boolean): void { homeVisible = visible; notify(); },
-    setQuitPending(pending: boolean): void { quitPending = pending; },
+    setQuitPhase(phase: DesktopQuitPhase): void {
+      quitPending = phase !== 'idle';
+      const stopped = phase === 'stopping' || phase === 'committed' || phase === 'system-ending';
+      if (stopped === observationStopped) return;
+      observationStopped = stopped;
+      invalidate();
+    },
     hideHomeWindowOnClose(): boolean {
       if (quitPending || !entryReady()) return false;
       input.hideHomeWindow();

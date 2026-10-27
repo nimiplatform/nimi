@@ -4,6 +4,7 @@ import test from 'node:test';
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import { setRuntimeLogger } from '@nimiplatform/kit/telemetry';
 import { invoke } from '../src/shell/renderer/bridge/runtime-bridge/invoke.js';
+import { SYSTEM_ENTRY_HOME_COMMANDS } from '../src/shell/shared/system-entry-types.js';
 
 type ElectronInvoke = (command: string, payload?: unknown) => Promise<unknown>;
 type ForwardedRendererLog = {
@@ -136,4 +137,39 @@ test('D-TEL-005: Electron invoke emits failed traces with structured bridge erro
   assert.equal(failedLog?.details?.traceId, 'trace-bridge-001');
   assert.equal(failedLog?.details?.retryable, true);
   assert.equal(failedLog?.details?.userMessage, 'AI provider request timed out.');
+});
+
+test('stale system-entry observations still reject but are cancellation diagnostics, not Runtime failures', async () => {
+  for (const reason of ['system-entry-view-stale', 'system-entry-observation-stopped']) {
+    for (const command of [SYSTEM_ENTRY_HOME_COMMANDS.context, SYSTEM_ENTRY_HOME_COMMANDS.publish, SYSTEM_ENTRY_HOME_COMMANDS.heartbeat]) {
+      const logs: ForwardedRendererLog[] = [];
+      withElectronInvoke(async (name, payload) => {
+        if (name === 'log_renderer_event') { logs.push((payload as { payload: ForwardedRendererLog }).payload); return null; }
+        assert.equal(name, command);
+        throw new Error(reason);
+      });
+      await assert.rejects(invoke(command), error => (error as Error).message === reason);
+      const cancelled = logs.find(log => log.message === `action:invoke-cancelled:${command}`);
+      assert.equal(cancelled?.level, 'debug');
+      assert.equal(cancelled?.details?.rawMessage, reason);
+      assert.ok(!logs.some(log => log.level === 'error'));
+    }
+  }
+});
+
+test('system-entry action refusals and genuine observation failures retain error telemetry', async () => {
+  for (const [command, message] of [
+    [SYSTEM_ENTRY_HOME_COMMANDS.actionResult, 'system-entry-view-stale'],
+    [SYSTEM_ENTRY_HOME_COMMANDS.context, 'system-entry-account-unavailable'],
+    [SYSTEM_ENTRY_HOME_COMMANDS.publish, 'system-entry-home-request-rejected'],
+    ['demo_command', 'system-entry-view-stale'],
+  ] as const) {
+    const logs: ForwardedRendererLog[] = [];
+    withElectronInvoke(async (name, payload) => {
+      if (name === 'log_renderer_event') { logs.push((payload as { payload: ForwardedRendererLog }).payload); return null; }
+      throw new Error(message);
+    });
+    await assert.rejects(invoke(command), error => (error as Error).message === message);
+    assert.equal(logs.find(log => log.message === `action:invoke-failed:${command}`)?.level, 'error');
+  }
 });

@@ -58,13 +58,18 @@ func runProductionDaemon(version string) (resultErr error) {
 	if err != nil {
 		return fmt.Errorf("load protected macOS Runtime configuration: %w", err)
 	}
+	logger := newMacOSRuntimeLogger()
+	// Package-level diagnostics log through the Runtime logger too.
+	slog.SetDefault(logger)
 
 	// The daemon must derive its one interactive user/audit-session partition
 	// from an already verified Desktop connection. No console-user lookup or
 	// caller-supplied account identifier enters protected service construction.
+	logger.Info("waiting for Desktop connection", "status", "waiting-for-desktop")
 	if err := desktopListener.Prime(ctx); err != nil {
 		return fmt.Errorf("verify initial macOS Desktop connection: %w", err)
 	}
+	logger.Info("Desktop connection verified; initializing Runtime", "status", "starting")
 	var restartRequested atomic.Bool
 	requestRestart := func() bool {
 		if !restartRequested.CompareAndSwap(false, true) {
@@ -73,9 +78,6 @@ func runProductionDaemon(version string) (resultErr error) {
 		cancel()
 		return true
 	}
-	logger := slog.New(slog.NewJSONHandler(protectedlocal.MacOSRuntimeLogWriter{}, nil))
-	// Package-level diagnostics log through the Runtime logger too.
-	slog.SetDefault(logger)
 	runtimeDaemon, err := daemon.NewProtectedFromMacOSSecurityState(cfg, logger, version, state, requestRestart)
 	if err != nil {
 		return fmt.Errorf("construct protected macOS Runtime: %w", err)
