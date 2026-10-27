@@ -78,12 +78,12 @@ export {
  * Mastra accepts wherever a model config is required, e.g.
  * `new Agent({ model: createNimiMastraModel({ model }) })`.
  */
-export type NimiMastraLanguageModel = LanguageModelV4;
+export type NimiMastraLanguageModel = ReturnType<typeof createNimiMastraModel>;
 
 // Build-time guarantee that the adapter model is accepted as a Mastra model
-// config. `LanguageModelV4` is a `MastraModelConfig` arm; instantiating this
-// generic re-checks the assignability whenever either side moves, and the build
-// fails closed if Mastra ever stops admitting the produced model shape.
+// config. Check the concrete adapter output, including only the terminal reasons
+// Nimi actually emits, rather than every variant a provider package may add.
+// The build still fails closed if Mastra stops admitting the produced shape.
 type AssertAssignable<T extends U, U> = T;
 export type NimiMastraModelIsMastraModelConfig = AssertAssignable<NimiMastraLanguageModel, MastraModelConfig>;
 
@@ -114,7 +114,7 @@ export interface NimiMastraModelOptions {
  * faithfully maps the model interface it drives. Unsupported model shapes fail
  * closed with a typed `NimiMastraUnsupportedFeatureError`.
  */
-export function createNimiMastraModel(options: NimiMastraModelOptions): NimiMastraLanguageModel {
+export function createNimiMastraModel(options: NimiMastraModelOptions) {
   if (!options || !options.model) {
     throwUnsupportedMastraFeature('model.config', 'a NimiAiModel is required');
   }
@@ -152,7 +152,7 @@ export function createNimiMastraModel(options: NimiMastraModelOptions): NimiMast
         stream: toV4ReadableStream(streamEvents),
       };
     },
-  };
+  } satisfies LanguageModelV4;
 }
 
 export type NimiMastraRuntimeModelOptions =

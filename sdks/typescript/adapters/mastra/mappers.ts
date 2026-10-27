@@ -553,7 +553,11 @@ function toV4ProviderMetadata(metadata: NimiJsonObject): SharedV4ProviderMetadat
   return metadata as unknown as SharedV4ProviderMetadata;
 }
 
-export function toV4FinishReason(reason: NimiFinishReason): LanguageModelV4FinishReason {
+export type NimiMastraFinishReason = LanguageModelV4FinishReason & {
+  unified: Exclude<NimiFinishReason, 'unknown'>;
+};
+
+export function toV4FinishReason(reason: NimiFinishReason): NimiMastraFinishReason {
   if (reason === 'tool-calls') {
     return { unified: 'tool-calls', raw: reason };
   }
@@ -596,10 +600,15 @@ export function toV4Usage(usage: NimiUsage | undefined): LanguageModelV4Usage {
   };
 }
 
+export type NimiMastraStreamPart = Exclude<LanguageModelV4StreamPart, { type: 'finish' }>
+  | (Omit<Extract<LanguageModelV4StreamPart, { type: 'finish' }>, 'finishReason'> & {
+    finishReason: NimiMastraFinishReason;
+  });
+
 export function toV4ReadableStream(
   events: AsyncIterable<NimiRunEvent>,
-): ReadableStream<LanguageModelV4StreamPart> {
-  return new ReadableStream<LanguageModelV4StreamPart>({
+): ReadableStream<NimiMastraStreamPart> {
+  return new ReadableStream<NimiMastraStreamPart>({
     async start(controller) {
       let textStarted = false;
       let reasoningStarted = false;
@@ -685,7 +694,7 @@ export function toV4ReadableStream(
 }
 
 function enqueueToolCall(
-  controller: ReadableStreamDefaultController<LanguageModelV4StreamPart>,
+  controller: ReadableStreamDefaultController<NimiMastraStreamPart>,
   toolCall: NimiToolCall,
 ): void {
   const input = JSON.stringify(toolCall.arguments);
