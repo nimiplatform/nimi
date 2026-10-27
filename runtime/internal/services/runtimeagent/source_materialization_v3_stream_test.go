@@ -2,9 +2,44 @@ package runtimeagent
 
 import (
 	"bytes"
+	"encoding/json"
 	"strings"
 	"testing"
 )
+
+func TestSourceMaterializationPacketStreamV3PreservesLongAuthoredBodies(t *testing.T) {
+	vector := loadSourceMaterializationReferenceVectorV3(t, "world-character")
+	// Larger than both the envelope limit and one encoded transport chunk.
+	text := strings.Repeat("完整世界正文。", 20000)
+	var document map[string]any
+	if err := json.Unmarshal(vector.Packet, &document); err != nil {
+		t.Fatal(err)
+	}
+	payload := document["semanticPayload"].(map[string]any)
+	context := payload["materializationContext"].(map[string]any)
+	world := context["owningWorld"].(map[string]any)
+	world["core"].(map[string]any)["narrative"] = map[string]any{"setting": text}
+	profile := payload["canonicalSource"].(map[string]any)["profile"].(map[string]any)
+	profile["identity"].(map[string]any)["summary"] = text
+	raw, err := json.Marshal(document)
+	if err != nil {
+		t.Fatal(err)
+	}
+	packet, err := decodeSourceMaterializationPacketStreamV3(bytes.NewReader(raw), int64(len(raw)), vector.Expectation.PublishedLimits)
+	if err != nil {
+		t.Fatalf("authored content within its component budget was rejected: %v", err)
+	}
+	decoded, err := json.Marshal(packet.SemanticPayload)
+	if err != nil || bytes.Count(decoded, []byte(text)) != 2 {
+		t.Fatalf("authored bodies were not preserved: %v", err)
+	}
+	limits := vector.Expectation.PublishedLimits
+	limits.MaxSegmentBytes = uint64(len(text) - 1)
+	_, err = decodeSourceMaterializationPacketStreamV3(bytes.NewReader(raw), int64(len(raw)), limits)
+	if err == nil || sourceMaterializationV3FailureCode(err) != sourceMaterializationFailureCapacityV3 {
+		t.Fatalf("authored body exceeding its published component bound was admitted: %v", err)
+	}
+}
 
 func TestSourceMaterializationPacketStreamV3AcceptsReferenceWorldAndPersona(t *testing.T) {
 	for _, name := range []string{"world-character", "persona-character"} {

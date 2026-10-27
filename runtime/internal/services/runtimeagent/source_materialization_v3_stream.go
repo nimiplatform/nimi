@@ -86,6 +86,9 @@ func preflightSourceMaterializationPacketStreamV3(
 	if sourceMaterializationMaxTextBytesV3 > maxStringBytes {
 		maxStringBytes = sourceMaterializationMaxTextBytesV3
 	}
+	if limits.MaxSegmentBytes > maxStringBytes {
+		maxStringBytes = limits.MaxSegmentBytes
+	}
 	if err := scanSourceMaterializationPacketLexicalLimitsV3(reader, maxBytes, maxStringBytes); err != nil {
 		_ = restore()
 		return err
@@ -414,6 +417,23 @@ func sourceMaterializationPacketStringLimitV3(path string, limits sourceMaterial
 	}
 	if path == "$.packetProof.compactJws" || path == "$.packetProof.signedPayload" {
 		return sourceMaterializationMaxProofBytesV3
+	}
+	// @nimi-authority: rule.nimi.runtime.agent-service.r043
+	// Authored bodies belong to canonical components, whose existing protocol
+	// bound is MaxSegmentBytes. The small envelope-text limit is not a prose limit.
+	// Full verification still checks component bytes, manifests and the set budget.
+	for _, prefix := range []string{
+		"$.semanticPayload.canonicalSource.profile.",
+		"$.semanticPayload.materializationContext.owningWorld.core.",
+		"$.semanticPayload.materializationContext.dependencyClosure.boundEntity.core.",
+		"$.semanticPayload.materializationContext.dependencyClosure.incidentRelationships[].core.",
+		"$.semanticPayload.materializationContext.dependencyClosure.endpointEntities[].core.",
+		"$.semanticPayload.materializationContext.dependencyClosure.explicitEntities[].core.",
+		"$.semanticPayload.materializationContext.dependencyClosure.explicitRelationships[].core.",
+	} {
+		if strings.HasPrefix(path, prefix) {
+			return limits.MaxSegmentBytes
+		}
 	}
 	return sourceMaterializationMaxTextBytesV3
 }
