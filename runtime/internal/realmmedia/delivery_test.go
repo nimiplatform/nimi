@@ -7,7 +7,7 @@ import (
 )
 
 func TestImageSelectsSuppliedRenditionAndNeverFallsBackToOriginal(t *testing.T) {
-	payload := map[string]any{"resourceId": "image1", "contentVersion": strings.Repeat("a", 64), "publicationGeneration": 1, "policyVersion": "v1", "originalUrl": "https://origin.example/large.png",
+	payload := map[string]any{"resourceId": "image1", "contentVersion": strings.Repeat("a", 64), "publicationGeneration": 1, "policyVersion": "v2", "originalUrl": "https://origin.example/large.png",
 		"images": []any{map[string]any{"purpose": "avatar", "families": []any{map[string]any{"mimeType": "image/webp", "sources": []any{
 			map[string]any{"url": "https://media.example/80.webp", "width": 80, "height": 80, "mimeType": "image/webp"},
 			map[string]any{"url": "https://media.example/160.webp", "width": 160, "height": 160, "mimeType": "image/webp"},
@@ -29,5 +29,14 @@ func TestImageSelectsSuppliedRenditionAndNeverFallsBackToOriginal(t *testing.T) 
 	raw, _ = json.Marshal(payload)
 	if _, err := Decode(raw); err == nil {
 		t.Fatal("unversioned media accepted")
+	}
+}
+
+func TestDecodeRejectsMalformedPolicyIdentity(t *testing.T) {
+	for _, policy := range []string{"", "v0", "v02", "v2/hero", "v2?grant=x"} {
+		raw, _ := json.Marshal(map[string]any{"resourceId": "image1", "contentVersion": strings.Repeat("a", 64), "publicationGeneration": 1, "policyVersion": policy})
+		if _, err := Decode(raw); err == nil {
+			t.Fatalf("accepted malformed policy %q", policy)
+		}
 	}
 }

@@ -16,6 +16,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
+	"github.com/nimiplatform/nimi/runtime/internal/realmmedia"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 )
 
@@ -195,7 +196,7 @@ func introductionOriginalMediaURL(value, contentHash *string) *string {
 		return nil
 	}
 	parts := strings.Split(strings.TrimPrefix(parsed.Path, "/"), "/")
-	if len(parts) != 5 || parts[0] != "m" || parts[2] != *contentHash || parts[3] != "v1" || parts[4] != "original.bin" || grant.Sub != parts[1] || grant.Ver != *contentHash || grant.V != 1 || grant.Aud != "nimi-media" || (grant.Env != "preview" && grant.Env != "production") || grant.Gen < 1 || grant.Exp <= grant.Iat || grant.Exp-grant.Iat > 300 || grant.Exp < time.Now().Unix() || grant.Iat > time.Now().Unix()+30 {
+	if len(parts) != 5 || parts[0] != "m" || parts[2] != *contentHash || !realmmedia.ValidPolicyVersion(parts[3]) || parts[4] != "original.bin" || grant.Sub != parts[1] || grant.Ver != *contentHash || grant.V != 1 || grant.Aud != "nimi-media" || (grant.Env != "preview" && grant.Env != "production") || grant.Gen < 1 || grant.Exp <= grant.Iat || grant.Exp-grant.Iat > 300 || grant.Exp < time.Now().Unix() || grant.Iat > time.Now().Unix()+30 {
 		return nil
 	}
 	allowed := false

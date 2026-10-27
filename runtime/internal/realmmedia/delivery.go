@@ -9,6 +9,14 @@ import (
 )
 
 var identity = regexp.MustCompile(`^[A-Za-z0-9_-]{1,128}$`)
+var policyVersion = regexp.MustCompile(`^v[1-9][0-9]*$`)
+
+// @nimi-authority: rule.nimi.sdks.realm-consumer.media-capabilities
+// ValidPolicyVersion validates the opaque Realm-owned policy identity, not its rendition rules.
+func ValidPolicyVersion(value string) bool {
+	return len(value) <= 32 && policyVersion.MatchString(value)
+}
+
 var version = regexp.MustCompile(`^[a-f0-9]{64}$`)
 
 // Decode carries Realm-owned delivery facts; it neither grants access nor assembles a URL.
@@ -20,7 +28,7 @@ func Decode(raw json.RawMessage) (*runtimev1.RealmMediaDelivery, error) {
 	if err := protojson.Unmarshal(raw, result); err != nil {
 		return nil, fmt.Errorf("invalid Realm media delivery")
 	}
-	if !identity.MatchString(result.ResourceId) || !version.MatchString(result.ContentVersion) || result.PublicationGeneration < 1 || result.PolicyVersion != "v1" {
+	if !identity.MatchString(result.ResourceId) || !version.MatchString(result.ContentVersion) || result.PublicationGeneration < 1 || !ValidPolicyVersion(result.PolicyVersion) {
 		return nil, fmt.Errorf("invalid Realm media identity")
 	}
 	return result, nil

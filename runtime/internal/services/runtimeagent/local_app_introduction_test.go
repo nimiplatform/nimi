@@ -2,9 +2,12 @@ package runtimeagent
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"strings"
 	"testing"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
@@ -99,5 +102,24 @@ func TestLocalAppAgentIntroductionUsesCurrentOwnedSourceWithoutConversation(t *t
 				t.Fatal("changed source disclosed introduction")
 			}
 		})
+	}
+}
+
+func TestIntroductionOriginalCarriesCurrentRealmPolicyWithGrant(t *testing.T) {
+	hash := strings.Repeat("a", 64)
+	now := time.Now().Unix()
+	body, _ := json.Marshal(map[string]any{"v": 1, "aud": "nimi-media", "env": "preview", "sub": "image1", "ver": hash, "gen": 2, "purposes": []string{"original"}, "iat": now, "exp": now + 300})
+	token := base64.RawURLEncoding.EncodeToString(body) + "." + base64.RawURLEncoding.EncodeToString(make([]byte, 32))
+	value := "https://assets-preview.nimi.ai/m/image1/" + hash + "/v2/original.bin?grant=" + token
+	if got := introductionOriginalMediaURL(&value, &hash); got == nil || *got != value {
+		t.Fatal("current Realm policy capability rejected")
+	}
+	wrong := strings.Replace(value, "/v2/", "/v02/", 1)
+	if introductionOriginalMediaURL(&wrong, &hash) != nil {
+		t.Fatal("malformed policy accepted")
+	}
+	mismatch := strings.Repeat("b", 64)
+	if introductionOriginalMediaURL(&value, &mismatch) != nil {
+		t.Fatal("content hash mismatch accepted")
 	}
 }
