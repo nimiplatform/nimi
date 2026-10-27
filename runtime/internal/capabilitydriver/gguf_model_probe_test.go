@@ -242,7 +242,7 @@ func BenchmarkLlamaGGUFProjectionReader(b *testing.B) {
 			if err != nil {
 				b.Fatal(err)
 			}
-			defer file.Close()
+			defer func() { _ = file.Close() }()
 			reader := &countedONNXReader{source: file}
 			driver, input := demandBindingInput(tc.embedding, len(data), nil)
 			b.ReportAllocs()

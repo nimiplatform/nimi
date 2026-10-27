@@ -162,7 +162,7 @@ func snapshotJSONDirectoryIdentity(path string) (os.FileInfo, error) {
 	if err != nil {
 		return nil, ErrLocalAppJSONUnavailable
 	}
-	defer directory.Close()
+	defer func() { _ = directory.Close() }()
 	info, err := directory.Stat()
 	if err != nil || !info.IsDir() {
 		return nil, ErrLocalAppJSONUnavailable
@@ -269,7 +269,7 @@ func (s *LocalAppJSONStore) Write(ctx context.Context, owner ManagedOwner, relat
 	if err != nil {
 		return LocalAppJSONDocument{}, err
 	}
-	defer os.Remove(temporary)
+	defer func() { _ = os.Remove(temporary) }()
 	err = guard(func() error {
 		if err := s.current(ctx); err != nil {
 			return err

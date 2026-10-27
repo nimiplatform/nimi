@@ -164,7 +164,7 @@ func (a *Attempt) Complete(usage *runtimev1.UsageStats, outcome runtimev1.Deskto
 			a.record.Revision++
 			a.record.ObservedAt = a.store.now().UTC()
 			a.record.Usage = cloneUsage(usage)
-			a.store.Record(a.record)
+			_ = a.store.Record(a.record)
 		}
 		return
 	}
@@ -174,7 +174,7 @@ func (a *Attempt) Complete(usage *runtimev1.UsageStats, outcome runtimev1.Deskto
 	a.record.Usage = cloneUsage(usage)
 	a.record.Outcome = outcome
 	a.record.ReasonCode = reason
-	a.store.Record(a.record)
+	_ = a.store.Record(a.record)
 }
 
 func (a *Attempt) Unknown() {
@@ -189,7 +189,7 @@ func (a *Attempt) Unknown() {
 	a.record.Revision++
 	a.record.ObservedAt = a.store.now().UTC()
 	a.record.ObservationUnknown = true
-	a.store.Record(a.record)
+	_ = a.store.Record(a.record)
 }
 
 func cloneFacts(facts Facts) Facts {

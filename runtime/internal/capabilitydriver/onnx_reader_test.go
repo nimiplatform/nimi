@@ -136,7 +136,7 @@ func BenchmarkONNXMetadataReader(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	r := &countedONNXReader{source: file}
 	b.ReportAllocs()
 	b.ResetTimer()

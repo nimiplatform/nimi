@@ -110,7 +110,7 @@ func TestCrashRetainsCountsAndCoverageUncertainty(t *testing.T) {
 	flushOwner(t, s)
 	*now = now.Add(time.Minute)
 	recovered := openWithClock(backend, s.logger, func() time.Time { return *now })
-	defer recovered.Close()
+	defer func() { _ = recovered.Close() }()
 	for _, source := range sourceNames() {
 		recovered.SetSourceCoverage(source, true, true)
 	}
@@ -153,7 +153,7 @@ func TestFailedAccountingAndGapWriteCannotBecomeCompleteAfterCrash(t *testing.T)
 	}
 	*now = now.Add(time.Minute)
 	recovered := openWithClock(backend, s.logger, func() time.Time { return *now })
-	defer recovered.Close()
+	defer func() { _ = recovered.Close() }()
 	for _, source := range sourceNames() {
 		recovered.SetSourceCoverage(source, true, true)
 	}
@@ -231,7 +231,7 @@ func TestObservationSchemaFailureIsOptionalAndPreservesExistingData(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer backend.Close()
+	defer func() { _ = backend.Close() }()
 	if err := backend.WriteTx(context.Background(), func(tx *sql.Tx) error {
 		if _, err := tx.Exec(`INSERT INTO runtime_local_agent_meta(key,value) VALUES ('unrelated-user-data','preserved')`); err != nil {
 			return err
@@ -244,7 +244,7 @@ func TestObservationSchemaFailureIsOptionalAndPreservesExistingData(t *testing.T
 		t.Fatal(err)
 	}
 	owner := Open(backend, logger)
-	defer owner.Close()
+	defer func() { _ = owner.Close() }()
 	if owner.initialized {
 		t.Fatal("incompatible observation schema was silently accepted")
 	}

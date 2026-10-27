@@ -146,19 +146,23 @@ func recordReadyPythonSelectedSourceConsumptionJobForTest(t *testing.T, svc *Ser
 	return job
 }
 
-func rememberPythonProfileJobContractForTest(svc *Service, family string, consumer string, identity engine.PythonDependencyProfileIdentity) string {
+func rememberPythonProfileJobContractForTest(t *testing.T, svc *Service, family string, consumer string, identity engine.PythonDependencyProfileIdentity) string {
+	t.Helper()
 	environmentKey := localEnvironmentPythonProfileKey(family, identity.DependencyID, svc.localEnvironmentRuntimeDataRoot())
-	rememberPythonDependencyJobContractForTest(svc, family, identity.DependencyID, environmentKey, consumer)
+	rememberPythonDependencyJobContractForTest(t, svc, family, identity.DependencyID, environmentKey, consumer)
 	return environmentKey
 }
 
-func rememberPythonDependencyJobContractForTest(svc *Service, family string, dependencyID string, environmentKey string, consumer string) {
-	svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{{
+func rememberPythonDependencyJobContractForTest(t *testing.T, svc *Service, family string, dependencyID string, environmentKey string, consumer string) {
+	t.Helper()
+	if err := svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{{
 		EnvironmentKey:   environmentKey,
 		DependencyFamily: family,
 		DependencyID:     dependencyID,
 		ConsumerScope:    consumer,
-	}})
+	}}); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func pythonDependencyProfileStatusForTest(identity engine.PythonDependencyProfileIdentity, consumer string, profileRoot string, uvPath string, packageCacheRoot string) engine.PythonDependencyProfileStatus {
@@ -271,7 +275,7 @@ func TestStartPythonRuntimeDependencyJobRequiresSelectedUVRecord(t *testing.T) {
 	svc.SetLocalEnvironmentPrerequisiteWaitTimeout(100 * time.Millisecond)
 	svc.SetEngineManager(&mockEngineManager{})
 	environmentKey := localEnvironmentPythonRuntimeKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
-	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonRuntime, localEnvironmentPythonRuntimeDependencyID(), environmentKey, consumer)
+	rememberPythonDependencyJobContractForTest(t, svc, localEnvironmentFamilyPythonRuntime, localEnvironmentPythonRuntimeDependencyID(), environmentKey, consumer)
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
 		EnvironmentKey:   environmentKey,
@@ -294,7 +298,7 @@ func TestStartPythonRuntimeDependencyJobPromotesVerifiedSelectedSource(t *testin
 	consumer, identity := currentTorchPythonDependencyProfileForTest(t)
 	uvRecord := upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
 	environmentKey := localEnvironmentPythonRuntimeKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
-	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonRuntime, localEnvironmentPythonRuntimeDependencyID(), environmentKey, consumer)
+	rememberPythonDependencyJobContractForTest(t, svc, localEnvironmentFamilyPythonRuntime, localEnvironmentPythonRuntimeDependencyID(), environmentKey, consumer)
 	svc.SetEngineManager(&mockEngineManager{
 		pythonRuntimeStatus: &engine.PythonRuntimeDependencyStatus{
 			PythonVersion:   "Python " + engine.ManagedPythonVersion,
@@ -339,7 +343,7 @@ func TestPythonRuntimeDependencyJobUsesInstallingWithoutDownloadProgress(t *test
 	consumer, identity := currentTorchPythonDependencyProfileForTest(t)
 	uvRecord := upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
 	environmentKey := localEnvironmentPythonRuntimeKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
-	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonRuntime, localEnvironmentPythonRuntimeDependencyID(), environmentKey, consumer)
+	rememberPythonDependencyJobContractForTest(t, svc, localEnvironmentFamilyPythonRuntime, localEnvironmentPythonRuntimeDependencyID(), environmentKey, consumer)
 	release := make(chan struct{})
 	svc.SetEngineManager(&mockEngineManager{
 		pythonRuntimeDependencyRelease: release,
@@ -379,7 +383,7 @@ func TestStartPythonRuntimeDependencyJobUsesRequestConsumerScope(t *testing.T) {
 	consumer, identity := currentTorchPythonDependencyProfileForTest(t)
 	upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
 	environmentKey := localEnvironmentPythonRuntimeKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
-	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonRuntime, localEnvironmentPythonRuntimeDependencyID(), environmentKey, consumer)
+	rememberPythonDependencyJobContractForTest(t, svc, localEnvironmentFamilyPythonRuntime, localEnvironmentPythonRuntimeDependencyID(), environmentKey, consumer)
 	svc.SetEngineManager(&mockEngineManager{pythonRuntimeStatus: &engine.PythonRuntimeDependencyStatus{
 		PythonVersion:   "Python " + engine.ManagedPythonVersion,
 		InterpreterPath: filepath.Join(svc.runtimeDataRoot, "environments", "python", engine.ManagedPythonVersion, "python.exe"),
@@ -425,7 +429,7 @@ func TestStartPythonVenvDependencyJobRequiresSelectedPythonRuntimeRecord(t *test
 	svc.SetLocalEnvironmentPrerequisiteWaitTimeout(100 * time.Millisecond)
 	upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
 	svc.SetEngineManager(&mockEngineManager{})
-	environmentKey := rememberPythonProfileJobContractForTest(svc, localEnvironmentFamilyPythonVenv, consumer, identity)
+	environmentKey := rememberPythonProfileJobContractForTest(t, svc, localEnvironmentFamilyPythonVenv, consumer, identity)
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
 		EnvironmentKey:   environmentKey,
@@ -456,7 +460,7 @@ func TestStartPythonVenvDependencyJobPromotesVerifiedSelectedSource(t *testing.T
 			return &status
 		}(),
 	})
-	environmentKey := rememberPythonProfileJobContractForTest(svc, localEnvironmentFamilyPythonVenv, consumer, identity)
+	environmentKey := rememberPythonProfileJobContractForTest(t, svc, localEnvironmentFamilyPythonVenv, consumer, identity)
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
 		EnvironmentKey:   environmentKey,
@@ -504,7 +508,7 @@ func TestStartPythonPackageSetDependencyJobRequiresSelectedVenvRecord(t *testing
 	svc.SetLocalEnvironmentPrerequisiteWaitTimeout(100 * time.Millisecond)
 	upsertReadyManagedUVForProfileTest(t, svc, consumer, identity)
 	svc.SetEngineManager(&mockEngineManager{})
-	environmentKey := rememberPythonProfileJobContractForTest(svc, localEnvironmentFamilyPythonPackageSet, consumer, identity)
+	environmentKey := rememberPythonProfileJobContractForTest(t, svc, localEnvironmentFamilyPythonPackageSet, consumer, identity)
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
 		EnvironmentKey:   environmentKey,
@@ -541,7 +545,7 @@ func TestStartPythonPackageSetDependencyJobFailsFastWhenVenvJobFailed(t *testing
 		t.Fatalf("failed to transition venv seed job")
 	}
 	svc.SetEngineManager(&mockEngineManager{})
-	packageEnvironmentKey := rememberPythonProfileJobContractForTest(svc, localEnvironmentFamilyPythonPackageSet, consumer, identity)
+	packageEnvironmentKey := rememberPythonProfileJobContractForTest(t, svc, localEnvironmentFamilyPythonPackageSet, consumer, identity)
 
 	startedAt := time.Now()
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
@@ -575,7 +579,7 @@ func TestStartPythonPackageSetDependencyJobPromotesVerifiedSelectedSource(t *tes
 	runtimeRecord := upsertReadyManagedPythonRuntimeForProfileTest(t, svc, consumer, identity)
 	status := pythonDependencyProfileStatusForTest(identity, consumer, venvRecord.CanonicalRoot, uvRecord.CanonicalRoot, filepath.Join(svc.runtimeDataRoot, "dependencies", "python-package-cache"))
 	svc.SetEngineManager(&mockEngineManager{pythonDependencyProfileStatus: &status})
-	environmentKey := rememberPythonProfileJobContractForTest(svc, localEnvironmentFamilyPythonPackageSet, consumer, identity)
+	environmentKey := rememberPythonProfileJobContractForTest(t, svc, localEnvironmentFamilyPythonPackageSet, consumer, identity)
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
 		EnvironmentKey:   environmentKey,
@@ -684,7 +688,7 @@ func TestPythonPackageSetWaitsForVerifiedVenvInsteadOfStaleRepairRecord(t *testi
 	venvRoot := filepath.Join(svc.runtimeDataRoot, "environments", "python-profiles", identity.ProfileDigest)
 	status := pythonDependencyProfileStatusForTest(identity, consumer, venvRoot, uvRecord.CanonicalRoot, filepath.Join(svc.runtimeDataRoot, "dependencies", "python-package-cache"))
 	svc.SetEngineManager(&mockEngineManager{pythonDependencyProfileStatus: &status})
-	packageEnvironmentKey := rememberPythonProfileJobContractForTest(svc, localEnvironmentFamilyPythonPackageSet, consumer, identity)
+	packageEnvironmentKey := rememberPythonProfileJobContractForTest(t, svc, localEnvironmentFamilyPythonPackageSet, consumer, identity)
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
 		EnvironmentKey:   packageEnvironmentKey,
@@ -820,9 +824,11 @@ func TestStartPythonTorchWheelDependencyJobRequiresCUDARecordForCUDAConsumer(t *
 
 	environmentKey := localEnvironmentPythonTorchWheelKey(torchIdentity, identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
 	dependencyID := localEnvironmentPythonTorchWheelDependencyID(torchIdentity)
-	svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{{
+	if err := svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{{
 		EnvironmentKey: environmentKey, DependencyFamily: localEnvironmentFamilyPythonTorchWheel, DependencyID: dependencyID, ConsumerScope: torchConsumer,
-	}})
+	}}); err != nil {
+		t.Fatal(err)
+	}
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
 		EnvironmentKey:   environmentKey,
 		DependencyFamily: localEnvironmentFamilyPythonTorchWheel,
@@ -857,9 +863,11 @@ func TestStartPythonTorchWheelDependencyJobPromotesVerifiedSelectedSource(t *tes
 
 	environmentKey := localEnvironmentPythonTorchWheelKey(torchIdentity, identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
 	dependencyID := localEnvironmentPythonTorchWheelDependencyID(torchIdentity)
-	svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{{
+	if err := svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{{
 		EnvironmentKey: environmentKey, DependencyFamily: localEnvironmentFamilyPythonTorchWheel, DependencyID: dependencyID, ConsumerScope: torchConsumer,
-	}})
+	}}); err != nil {
+		t.Fatal(err)
+	}
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
 		EnvironmentKey:   environmentKey,
 		DependencyFamily: localEnvironmentFamilyPythonTorchWheel,
@@ -946,8 +954,8 @@ func TestPythonPrerequisiteOrderingConvergesUnderConcurrentUnorderedStart(t *tes
 	consumer, identity := currentTorchPythonDependencyProfileForTest(t)
 	runtimeEnvironmentKey := localEnvironmentPythonRuntimeKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
 	uvEnvironmentKey := localEnvironmentManagedUVKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
-	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonRuntime, localEnvironmentPythonRuntimeDependencyID(), runtimeEnvironmentKey, consumer)
-	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonUV, "uv", uvEnvironmentKey, consumer)
+	rememberPythonDependencyJobContractForTest(t, svc, localEnvironmentFamilyPythonRuntime, localEnvironmentPythonRuntimeDependencyID(), runtimeEnvironmentKey, consumer)
+	rememberPythonDependencyJobContractForTest(t, svc, localEnvironmentFamilyPythonUV, "uv", uvEnvironmentKey, consumer)
 	uvExecutable := filepath.Join(svc.runtimeDataRoot, "dependencies", "uv", "uv.exe")
 	if err := os.MkdirAll(filepath.Dir(uvExecutable), 0o755); err != nil {
 		t.Fatal(err)
@@ -1013,7 +1021,7 @@ func TestPythonRuntimeWaitIgnoresFailedPrerequisiteFromDifferentConsumer(t *test
 	consumer := "speech.qwen3-asr.python"
 	identity := currentPythonDependencyProfileIdentityForTest(t, consumer)
 	runtimeEnvironmentKey := localEnvironmentPythonRuntimeKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
-	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonRuntime, localEnvironmentPythonRuntimeDependencyID(), runtimeEnvironmentKey, consumer)
+	rememberPythonDependencyJobContractForTest(t, svc, localEnvironmentFamilyPythonRuntime, localEnvironmentPythonRuntimeDependencyID(), runtimeEnvironmentKey, consumer)
 	svc.SetLocalEnvironmentPrerequisiteWaitTimeout(2 * time.Second)
 	startFailedLocalEnvironmentDependencyJobForTest(t, svc, localEnvironmentDependencyJobRequest{
 		EnvironmentKey:   "python.tool.uv|uv|host|windows/amd64|root|first-run",
@@ -1090,7 +1098,7 @@ func TestPythonVenvWaitIgnoresOlderFailedPrerequisiteWhenNewerJobInFlight(t *tes
 	venvRoot := filepath.Join(svc.runtimeDataRoot, "environments", "python-profiles", identity.ProfileDigest)
 	status := pythonDependencyProfileStatusForTest(identity, consumer, venvRoot, uvRecord.CanonicalRoot, filepath.Join(svc.runtimeDataRoot, "dependencies", "python-package-cache"))
 	svc.SetEngineManager(&mockEngineManager{pythonDependencyProfileStatus: &status})
-	venvEnvironmentKey := rememberPythonProfileJobContractForTest(svc, localEnvironmentFamilyPythonVenv, consumer, identity)
+	venvEnvironmentKey := rememberPythonProfileJobContractForTest(t, svc, localEnvironmentFamilyPythonVenv, consumer, identity)
 
 	resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
 		EnvironmentKey:   venvEnvironmentKey,

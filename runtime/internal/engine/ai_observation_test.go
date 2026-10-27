@@ -29,8 +29,8 @@ func TestTextObservationStartsAtInferenceAndCountsRealRetry(t *testing.T) {
 		t.Fatal(err)
 	}
 	owner := aitelemetry.Open(backend, logger)
-	defer backend.Close()
-	defer owner.Close()
+	defer func() { _ = backend.Close() }()
+	defer func() { _ = owner.Close() }()
 	entered, release := make(chan struct{}), make(chan struct{})
 	var first sync.Once
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -109,10 +109,10 @@ func TestAccountingStallCannotConsumeAnActualInferenceDeadline(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer backend.Close()
+	defer func() { _ = backend.Close() }()
 	blocked := &inferenceBlockedAccountingBackend{Backend: backend, entered: make(chan struct{}), release: make(chan struct{})}
 	owner := aitelemetry.Open(blocked, logger)
-	defer owner.Close()
+	defer func() { _ = owner.Close() }()
 	var release sync.Once
 	defer release.Do(func() { close(blocked.release) })
 	var calls atomic.Int32

@@ -80,7 +80,7 @@ func realmOpenContext(ctx context.Context) context.Context {
 }
 
 func serveInitialRealmSocket(conn *websocket.Conn) {
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 	if websocket.Message.Send(conn, `0{"sid":"initial","upgrades":[],"pingInterval":25000,"pingTimeout":20000}`) != nil {
 		return
 	}
@@ -216,7 +216,7 @@ func TestInitialRealmConnectionPreservesTerminalFailure(t *testing.T) {
 					return
 				}
 				websocket.Handler(func(conn *websocket.Conn) {
-					defer conn.Close()
+					defer func() { _ = conn.Close() }()
 					if test.name == "socket-protocol" {
 						_ = websocket.Message.Send(conn, "not-an-engine-opening")
 						return
@@ -248,7 +248,7 @@ func TestInitialRealmConnectionCancellationAndOwnerLossStopHandshake(t *testing.
 		t.Run(cause, func(t *testing.T) {
 			started, disconnected := make(chan struct{}), make(chan struct{})
 			server := httptest.NewServer(websocket.Handler(func(conn *websocket.Conn) {
-				defer conn.Close()
+				defer func() { _ = conn.Close() }()
 				defer close(disconnected)
 				_ = websocket.Message.Send(conn, `0{"sid":"initial"}`)
 				var frame string
@@ -380,7 +380,7 @@ func TestInitialRealmConnectionConcurrentOpensShareAccountConnection(t *testing.
 func TestInitialRealmConnectionWaitingCallerCancelsWithoutStoppingOwner(t *testing.T) {
 	started, release := make(chan struct{}), make(chan struct{})
 	server := httptest.NewServer(websocket.Handler(func(conn *websocket.Conn) {
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 		_ = websocket.Message.Send(conn, `0{"sid":"initial"}`)
 		var frame string
 		if websocket.Message.Receive(conn, &frame) != nil {

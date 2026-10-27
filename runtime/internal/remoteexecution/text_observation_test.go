@@ -82,9 +82,9 @@ func TestTextObservationExcludesPreDispatchAccountAdmission(t *testing.T) {
 				if err != nil {
 					t.Fatal(err)
 				}
-				defer backend.Close()
+				defer func() { _ = backend.Close() }()
 				owner := aitelemetry.Open(backend, logger)
-				defer owner.Close()
+				defer func() { _ = owner.Close() }()
 				from := time.Now().Add(-time.Second)
 				ctx := aitelemetry.WithInvocation(context.Background(), owner, aitelemetry.Facts{AccountID: "account-a", OperationID: "text-op", Source: aitelemetry.Source{Kind: "app", ID: "app", ParentID: "text-op", ParentKind: "scenario"}, Capability: "text.generate", Route: runtimev1.DesktopAIExecutionRoute_DESKTOP_AI_EXECUTION_ROUTE_CLOUD})
 				host := NewProviderTextHost(store, nimillm.NewCloudProvider(nimillm.CloudConfig{HTTPTimeout: time.Second, AllowLoopbackEndpoint: true}), auditlog.New(16, 16), true)

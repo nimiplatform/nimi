@@ -206,7 +206,9 @@ func TestPrepareLocalEnvironmentPlanApplyRestartsUnpromotedRepairAndPrerequisite
 			SourceKind:       localEnvironmentSourceManaged,
 		},
 	}
-	svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), dependencies)
+	if err := svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), dependencies); err != nil {
+		t.Fatal(err)
+	}
 	svc.mu.Lock()
 	svc.localEnvironmentDependencyJobs["historical-repair"] = localEnvironmentDependencyJobState{
 		JobID:               "historical-repair",
@@ -254,7 +256,9 @@ func TestPrepareLocalEnvironmentPlanApplyRejectsCurrentNonRetryableFailureBefore
 		State:            localEnvironmentStateFailed,
 		SourceKind:       localEnvironmentSourceManaged,
 	}
-	svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{dependency})
+	if err := svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{dependency}); err != nil {
+		t.Fatal(err)
+	}
 	svc.mu.Lock()
 	svc.localEnvironmentDependencyJobs["current-failed"] = localEnvironmentDependencyJobState{
 		JobID:               "current-failed",
@@ -293,7 +297,9 @@ func TestPrepareLocalEnvironmentPlanApplyRestartsFailedNativeSDCPPAfterCUDAReady
 		SourceKind:        localEnvironmentSourceManaged,
 		SelectedConsumers: []string{consumer},
 	})
-	svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{dependency})
+	if err := svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{dependency}); err != nil {
+		t.Fatal(err)
+	}
 	svc.mu.Lock()
 	svc.localEnvironmentDependencyJobs["failed-before-cuda-ready"] = localEnvironmentDependencyJobState{
 		JobID:               "failed-before-cuda-ready",
@@ -327,7 +333,9 @@ func TestPrepareLocalEnvironmentPlanApplyStartsFreshLlamaAcquisitionAfterSourceF
 		DependencyFamily: localEnvironmentFamilyNativeLlama, DependencyID: "llama.cpp.package",
 		ConsumerScope: "llama.cpp.cuda", State: localEnvironmentStateFailed, SourceKind: localEnvironmentSourceManaged, Required: true,
 	}
-	svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{dep})
+	if err := svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{dep}); err != nil {
+		t.Fatal(err)
+	}
 	upsertReadyPythonPrerequisiteForTest(t, svc, localEnvironmentSelectedSourceRecordState{
 		DependencyFamily: localEnvironmentFamilyCUDA, DependencyID: cudaUserSpaceRuntimeDependencyID,
 		Version: engine.NVIDIACUDAUserSpaceRuntimeVersion, EnvironmentKey: "accelerator.cuda.runtime|current-llama-cuda",
@@ -361,7 +369,9 @@ func TestPrepareLocalEnvironmentPlanApplyRestartsFailedNativeAudioCPPAfterCUDARe
 		EnvironmentKey: "accelerator.cuda.runtime|ready-after-audio-cpp-failure", SourceKind: localEnvironmentSourceManaged,
 		SelectedConsumers: []string{consumer},
 	})
-	svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{dependency})
+	if err := svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{dependency}); err != nil {
+		t.Fatal(err)
+	}
 	svc.mu.Lock()
 	svc.localEnvironmentDependencyJobs["failed-audio-cpp-package"] = localEnvironmentDependencyJobState{
 		JobID: "failed-audio-cpp-package", EnvironmentKey: dependency.EnvironmentKey,
@@ -431,12 +441,14 @@ func TestStartLocalEnvironmentDependencyProfileJobRequiresExactRememberedPlanCon
 	} {
 		t.Run(test.name, func(t *testing.T) {
 			svc := newTestService(t)
-			svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{{
+			if err := svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{{
 				EnvironmentKey:   environmentKey,
 				DependencyFamily: localEnvironmentFamilyPythonPackageSet,
 				DependencyID:     dependencyID,
 				ConsumerScope:    consumerScope,
-			}})
+			}}); err != nil {
+				t.Fatal(err)
+			}
 
 			resp, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
 				EnvironmentKey:   test.environmentKey,
@@ -484,7 +496,7 @@ func TestRetryLocalEnvironmentDependencyProfileJobRequiresExactRememberedPlanCon
 	if !failed.Retryable {
 		t.Fatalf("seeded Python dependency job retryable = false, want true")
 	}
-	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonRuntime, dependencyID, environmentKey, "speech.qwen3-tts.python")
+	rememberPythonDependencyJobContractForTest(t, svc, localEnvironmentFamilyPythonRuntime, dependencyID, environmentKey, "speech.qwen3-tts.python")
 
 	_, err = svc.RetryLocalEnvironmentDependencyJob(context.Background(), &runtimev1.RetryLocalEnvironmentDependencyJobRequest{
 		JobId:     failed.JobID,
@@ -1008,7 +1020,9 @@ func TestStartLocalEnvironmentDependencyJobFailsClosedForAmbiguousConsumerContra
 	cudaDep := findLocalEnvironmentDependency(t, cudaPlan, localEnvironmentFamilyNativeSDCPP)
 	cpuDep := cudaDep
 	cpuDep.ConsumerScope = "stable-diffusion.cpp.cpu"
-	svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{cpuDep})
+	if err := svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{cpuDep}); err != nil {
+		t.Fatal(err)
+	}
 
 	_, err := svc.StartLocalEnvironmentDependencyJob(context.Background(), &runtimev1.StartLocalEnvironmentDependencyJobRequest{
 		EnvironmentKey:   cudaDep.EnvironmentKey,
@@ -1391,7 +1405,7 @@ func TestStartPythonUVDependencyJobPromotesVerifiedSelectedSource(t *testing.T) 
 	svc := newTestService(t)
 	consumer, identity := currentTorchPythonDependencyProfileForTest(t)
 	environmentKey := localEnvironmentManagedUVKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
-	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonUV, "uv", environmentKey, consumer)
+	rememberPythonDependencyJobContractForTest(t, svc, localEnvironmentFamilyPythonUV, "uv", environmentKey, consumer)
 	svc.SetEngineManager(&mockEngineManager{
 		uvToolDependencyStatus: &engine.UVToolDependencyStatus{
 			Version:          "0.11.8",
@@ -1442,7 +1456,7 @@ func TestPythonUVDependencyJobProjectsDownloadProgress(t *testing.T) {
 	svc := newTestService(t)
 	consumer, identity := currentTorchPythonDependencyProfileForTest(t)
 	environmentKey := localEnvironmentManagedUVKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
-	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonUV, "uv", environmentKey, consumer)
+	rememberPythonDependencyJobContractForTest(t, svc, localEnvironmentFamilyPythonUV, "uv", environmentKey, consumer)
 	release := make(chan struct{})
 	svc.SetEngineManager(&mockEngineManager{
 		uvToolDependencyRelease: release,
@@ -1488,7 +1502,7 @@ func TestStartPythonUVDependencyJobRepairRequiredWithoutVersion(t *testing.T) {
 	consumer := "speech.qwen3-tts.python"
 	identity := currentPythonDependencyProfileIdentityForTest(t, consumer)
 	environmentKey := localEnvironmentManagedUVKey(identity.PlatformTuple, svc.localEnvironmentRuntimeDataRoot())
-	rememberPythonDependencyJobContractForTest(svc, localEnvironmentFamilyPythonUV, "uv", environmentKey, consumer)
+	rememberPythonDependencyJobContractForTest(t, svc, localEnvironmentFamilyPythonUV, "uv", environmentKey, consumer)
 	svc.SetEngineManager(&mockEngineManager{
 		uvToolDependencyStatus: &engine.UVToolDependencyStatus{
 			ExecutablePath: "uv.exe",

@@ -68,7 +68,7 @@ func BenchmarkMiniMaxMagicProbeReader(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	reader := &countedONNXReader{source: file}
 	input := ModelAssetFormatProbeInput{RecipeID: MiniMaxMusic3RecipeID, RequirementID: MiniMaxMusic3RequirementID, RelativePath: "language_model_q4_0.gguf", Entry: true}
 	b.ReportAllocs()

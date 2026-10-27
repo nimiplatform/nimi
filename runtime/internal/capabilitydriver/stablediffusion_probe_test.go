@@ -204,7 +204,7 @@ func BenchmarkStableDiffusionVideoProbeReader(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	reader := &countedONNXReader{source: file}
 	input := ModelAssetFormatProbeInput{RecipeID: StableDiffusionVideoRecipeID, RequirementID: StableDiffusionVideoFL2VARequirementID, RelativePath: "video.gguf", Entry: true}
 	b.ReportAllocs()
