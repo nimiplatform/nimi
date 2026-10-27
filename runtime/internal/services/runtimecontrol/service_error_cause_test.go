@@ -19,10 +19,10 @@ func (e *restartAuthorizationPrivateCause) Error() string {
 	return e.detail
 }
 
-func TestProtectedRestartAuthorizationErrorPreservesCauseWithoutLeakingDetail(t *testing.T) {
+func TestProtectedLifecycleAuthorizationErrorPreservesCauseWithoutLeakingDetail(t *testing.T) {
 	cause := &restartAuthorizationPrivateCause{detail: `authorize runtime restart with ledger C:\private\protected-local.db`}
 
-	mapped := protectedRestartAuthorizationError(cause)
+	mapped := protectedLifecycleAuthorizationError(cause)
 
 	if !errors.Is(mapped, cause) {
 		t.Fatal("mapped error does not preserve the original cause")
@@ -36,7 +36,7 @@ func TestProtectedRestartAuthorizationErrorPreservesCauseWithoutLeakingDetail(t 
 		t.Fatalf("mapped error = code=%s reason=%s present=%v", status.Code(mapped), reason, ok)
 	}
 	publicMessage := status.Convert(mapped).Message()
-	if strings.Contains(publicMessage, cause.detail) || !strings.Contains(publicMessage, "runtime restart authorization failed") {
+	if strings.Contains(publicMessage, cause.detail) || !strings.Contains(publicMessage, "runtime lifecycle authorization failed") {
 		t.Fatalf("unsafe or unexpected public status message: %q", publicMessage)
 	}
 }

@@ -264,3 +264,53 @@ func TestStreamActivityInterceptorAllowsExportAuditDrainOnShutdown(t *testing.T)
 		t.Fatal("export audit stream did not exit after parent cancellation")
 	}
 }
+
+func TestRootHandoffAdmitsProductStopOnlyAfterCommit(t *testing.T) {
+	registry := newActiveRPCRegistry(nil)
+	inFlightRestartCtx, inFlightRestartFinish, inFlightRestartAdmitted := registry.TrackUnary(
+		context.Background(),
+		"/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeStop",
+	)
+	if !inFlightRestartAdmitted {
+		t.Fatal("Runtime restart was not admitted before root handoff began")
+	}
+	closed := make(chan error, 1)
+	go func() { closed <- registry.CloseRootAdmission(context.Background()) }()
+	select {
+	case <-inFlightRestartCtx.Done():
+	case <-time.After(time.Second):
+		t.Fatal("in-flight Runtime restart was not canceled before Product Control commit")
+	}
+	inFlightRestartFinish()
+	if err := <-closed; err != nil {
+		t.Fatal(err)
+	}
+
+	_, productControlFinish, productControlAdmitted := registry.TrackUnary(
+		context.Background(),
+		"/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord",
+	)
+	productControlFinish()
+	if !productControlAdmitted {
+		t.Fatal("Product Control observation was not admitted while the handoff was prepared")
+	}
+
+	_, restartFinish, restartAdmitted := registry.TrackUnary(
+		context.Background(),
+		"/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeStop",
+	)
+	restartFinish()
+	if restartAdmitted {
+		t.Fatal("Runtime restart crossed root admission before Product Control committed the new root")
+	}
+
+	registry.CommitRootHandoff()
+	_, committedRestartFinish, committedRestartAdmitted := registry.TrackUnary(
+		context.Background(),
+		"/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeStop",
+	)
+	committedRestartFinish()
+	if !committedRestartAdmitted {
+		t.Fatal("Runtime restart was not admitted after Product Control committed the new root")
+	}
+}

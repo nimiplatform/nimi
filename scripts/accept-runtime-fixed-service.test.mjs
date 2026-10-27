@@ -387,7 +387,7 @@ test('macOS install always removes its built source candidate after an attempted
   assert.deepEqual(calls, ['sudo-helper', 'cleanup-candidate']);
 });
 
-test('installed macOS Desktop launcher requires one running fixed service', async () => {
+test('installed macOS Desktop launcher accepts a stopped on-demand service', async () => {
   const calls = [];
   await assert.rejects(
     runDevRuntimeService({
@@ -405,8 +405,7 @@ test('installed macOS Desktop launcher requires one running fixed service', asyn
     mode: 'desktop',
     queryStatus: async () => ({
       status: 'present',
-      state: 'running',
-      pid: 123,
+      state: 'stopped',
     }),
     launchDesktop: async () => {
       calls.push('launch');
@@ -415,4 +414,21 @@ test('installed macOS Desktop launcher requires one running fixed service', asyn
   });
   assert.deepEqual(calls, ['launch']);
   assert.deepEqual(result, { status: 'stopped' });
+});
+
+
+test('installed macOS service accepts an exact candidate update without rebuilding it', async () => {
+  const candidatePath = realpathSync(mkdtempSync(path.join(os.tmpdir(), 'nimi-lifecycle-update-')));
+  const calls = [];
+  try {
+    assert.deepEqual(parseMacOSDevRuntimeArguments(['--update-candidate', candidatePath]), { mode: 'update-candidate', candidatePath });
+    const result = await runDevRuntimeService({
+      platform: 'darwin', architecture: 'arm64', mode: 'update-candidate', candidatePath,
+      queryStatus: async () => ({ status: 'present', state: 'stopped' }),
+      buildCandidate: async () => { throw new Error('must not rebuild'); },
+      invokeHelper: async args => { calls.push(args); return { status: 'updated', state: 'stopped' }; },
+    });
+    assert.deepEqual(calls, [['update-candidate', candidatePath]]);
+    assert.deepEqual(result, { status: 'updated', state: 'stopped' });
+  } finally { rmSync(candidatePath, { recursive: true, force: true }); }
 });

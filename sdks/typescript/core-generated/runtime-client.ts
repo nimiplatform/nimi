@@ -2341,6 +2341,14 @@ export const RUNTIME_METHODS: readonly RuntimeMethodDescriptor[] = [
     "kind": "unary",
     "requestType": "RequestRuntimeRestartRequest",
     "responseType": "RequestRuntimeRestartResponse"
+  },
+  {
+    "methodId": "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeStop",
+    "service": "RuntimeServiceControlService",
+    "method": "RequestRuntimeStop",
+    "kind": "unary",
+    "requestType": "RequestRuntimeStopRequest",
+    "responseType": "RequestRuntimeStopResponse"
   }
 ] as const;
 

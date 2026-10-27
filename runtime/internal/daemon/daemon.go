@@ -56,6 +56,8 @@ type Daemon struct {
 	stopSupervisedOnce      sync.Once
 	stopSupervisedFn        func()
 	restartRequested        atomic.Bool
+	productStopRequested    atomic.Bool
+	productStop             <-chan struct{}
 }
 
 const (
@@ -122,13 +124,25 @@ func NewProtectedWithResources(cfg config.Config, logger *slog.Logger, version s
 	}
 	requestRestart := resources.Bindings.RuntimeRestartRequester
 	var d *Daemon
+	var lifecycleMu sync.Mutex
+	lifecycleAccepted := false
+	productStop := make(chan struct{})
+	resources.Bindings.RuntimeStopRequester = func() bool {
+		lifecycleMu.Lock()
+		defer lifecycleMu.Unlock()
+		if lifecycleAccepted {
+			return false
+		}
+		lifecycleAccepted = true
+		d.productStopRequested.Store(true)
+		close(productStop)
+		return true
+	}
 	if requestRestart != nil {
-		var restartMu sync.Mutex
-		restartAccepted := false
 		resources.Bindings.RuntimeRestartRequester = func() bool {
-			restartMu.Lock()
-			defer restartMu.Unlock()
-			if restartAccepted {
+			lifecycleMu.Lock()
+			defer lifecycleMu.Unlock()
+			if lifecycleAccepted {
 				return false
 			}
 			// Mark before notifying the external service owner: its requester may
@@ -142,7 +156,7 @@ func NewProtectedWithResources(cfg config.Config, logger *slog.Logger, version s
 				}
 				return false
 			}
-			restartAccepted = true
+			lifecycleAccepted = true
 			return true
 		}
 	}
@@ -154,6 +168,7 @@ func NewProtectedWithResources(cfg config.Config, logger *slog.Logger, version s
 			// The verified security state stays owned: the maintenance surface
 			// is served on the same Desktop transport until restart.
 			d = newMaintenanceDaemon(cfg, logger, maintenance.Maintenance, resources.Close)
+			d.productStop = productStop
 			return d, nil
 		}
 		if closeErr := resources.Close(); closeErr != nil {
@@ -161,6 +176,7 @@ func NewProtectedWithResources(cfg config.Config, logger *slog.Logger, version s
 		}
 		return nil, err
 	}
+	d.productStop = productStop
 	d.protectedStateClose = resources.Close
 	return d, nil
 }
@@ -509,6 +525,9 @@ func (d *Daemon) run(ctx context.Context, serverCount int, startServers daemonSe
 waitForShutdown:
 	for remainingServers > 0 {
 		select {
+		case <-d.productStop:
+			d.logger.Info("Nimi product shutdown requested")
+			break waitForShutdown
 		case <-ctx.Done():
 			d.logger.Info("runtime shutdown requested")
 			break waitForShutdown
@@ -849,3 +868,6 @@ func (d *Daemon) startSupervisedEngines(_ context.Context) {
 		svc.SetEngineManager(engine.NewServiceAdapter(mgr))
 	}
 }
+
+// ProductStopRequested distinguishes an explicit product exit from failure recovery.
+func (d *Daemon) ProductStopRequested() bool { return d != nil && d.productStopRequested.Load() }

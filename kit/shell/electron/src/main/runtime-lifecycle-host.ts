@@ -17,10 +17,12 @@ type NativeJsonOutcome =
 export type NimiElectronFixedRuntimeBinding = {
   readonly fixedRuntimeServiceStatus: () => Promise<NativeJsonOutcome>;
   readonly fixedRuntimeServiceStart: () => Promise<NativeJsonOutcome>;
+  readonly fixedRuntimeServiceStop: () => Promise<NativeJsonOutcome>;
   readonly fixedRuntimeServiceRestart: () => Promise<NativeJsonOutcome>;
 };
 
 export type NimiElectronFixedRuntimeLifecycleHost = {
+  readonly stop: () => Promise<void>;
   readonly invoke: (command: string, commandNames: ElectronRuntimeBridgeCommandNames) => Promise<unknown>;
 };
 
@@ -31,6 +33,19 @@ class ElectronFixedRuntimeLifecycleHost implements NimiElectronFixedRuntimeLifec
     private readonly binding: NimiElectronFixedRuntimeBinding,
     private readonly runtimeEndpoint: string,
   ) {}
+
+  // Host-only product shutdown; never a renderer lifecycle command.
+  async stop(): Promise<void> {
+    const outcome = await this.binding.fixedRuntimeServiceStop();
+    if (outcome?.status === 'error' && typeof outcome.reasonCode === 'string'
+      && isBoundedReasonCode(outcome.reasonCode) && typeof outcome.retryable === 'boolean') {
+      throw lifecycleError(outcome.reasonCode, outcome.retryable, 'product-runtime-stop');
+    }
+    if (outcome?.status !== 'ok' || !isPlainRecord(outcome.value)
+      || outcome.value.state !== 'stopped' || outcome.value.running !== false) {
+      throw lifecycleError('runtime-service-untrusted', false, 'product-runtime-stop');
+    }
+  }
 
   async invoke(command: string, commandNames: ElectronRuntimeBridgeCommandNames): Promise<unknown> {
     const method = command === commandNames.status
@@ -90,6 +105,11 @@ class LazyElectronFixedRuntimeLifecycleHost implements NimiElectronFixedRuntimeL
 
   constructor(private readonly runtimeEndpoint: string) {}
 
+  stop(): Promise<void> {
+    this.host ??= new ElectronFixedRuntimeLifecycleHost(loadPlatformBinding(), this.runtimeEndpoint);
+    return this.host.stop();
+  }
+
   invoke(command: string, commandNames: ElectronRuntimeBridgeCommandNames): Promise<unknown> {
     this.host ??= new ElectronFixedRuntimeLifecycleHost(loadPlatformBinding(), this.runtimeEndpoint);
     return this.host.invoke(command, commandNames);
@@ -110,6 +130,8 @@ class ElectronSourceRuntimeLifecycleHost implements NimiElectronRuntimeLifecycle
     private readonly statusProbe: NimiElectronDeveloperModeStatusProbe,
     private readonly runtimeEndpoint: string,
   ) {}
+
+  async stop(): Promise<void> { throw sourceLifecycleUnavailable('product-runtime-stop'); }
 
   async invoke(command: string, commandNames: ElectronRuntimeBridgeCommandNames): Promise<unknown> {
     if (command === commandNames.start || command === commandNames.restart) {
@@ -186,7 +208,8 @@ function validateBinding(value: unknown): NimiElectronFixedRuntimeBinding {
   if (!isPlainRecord(value)
     || typeof value.fixedRuntimeServiceStatus !== 'function'
     || typeof value.fixedRuntimeServiceStart !== 'function'
-    || typeof value.fixedRuntimeServiceRestart !== 'function') {
+    || typeof value.fixedRuntimeServiceRestart !== 'function'
+    || typeof value.fixedRuntimeServiceStop !== 'function') {
     throw lifecycleError('runtime-service-untrusted', false, 'nimi.shell.runtimeLifecycle.status');
   }
   return value as NimiElectronFixedRuntimeBinding;

@@ -1102,12 +1102,15 @@ function Install-Service {
 
     $binaryPathName = "`"$InstalledBinary`" serve"
     if ($null -eq $existing) {
-      New-Service -Name $ServiceName -BinaryPathName $binaryPathName -DisplayName 'Nimi Runtime' -Description 'Nimi fixed protected local Runtime service.' -StartupType Automatic | Out-Null
+      New-Service -Name $ServiceName -BinaryPathName $binaryPathName -DisplayName 'Nimi Runtime' -Description 'Nimi fixed protected local Runtime service.' -StartupType Manual | Out-Null
       $createdService = $true
     } else {
-      Invoke-ServiceControl -Arguments @('config', $ServiceName, 'binPath=', $binaryPathName, 'start=', 'auto', 'obj=', 'LocalSystem') -FailureMessage 'SCM failed to update the fixed NimiRuntime service definition.'
+      Invoke-ServiceControl -Arguments @('config', $ServiceName, 'binPath=', $binaryPathName, 'start=', 'demand', 'obj=', 'LocalSystem') -FailureMessage 'SCM failed to update the fixed NimiRuntime service definition.'
     }
     $mutatedService = $true
+    # Production Runtime starts with Home and does not autostart at boot.
+    # Interactive Home may start and observe the fixed service; stop remains an authenticated Runtime operation.
+    Invoke-ServiceControl -Arguments @('sdset', $ServiceName, 'D:P(A;;GA;;;SY)(A;;GA;;;BA)(A;;CCLCSWRPLOCRRC;;;IU)') -FailureMessage 'SCM failed to apply Runtime start and observation permissions.'
     Invoke-ServiceControl -Arguments @('sidtype', $ServiceName, 'restricted') -FailureMessage 'SCM failed to apply the restricted service SID.'
     Invoke-ServiceControl -Arguments @('failureflag', $ServiceName, '1') -FailureMessage 'SCM failed to enable non-crash recovery.'
     Invoke-ServiceControl -Arguments @('failure', $ServiceName, 'reset=', '300', 'actions=', 'restart/1000/restart/3000/restart/10000/none/0') -FailureMessage 'SCM failed to configure Runtime recovery.'
@@ -1135,6 +1138,11 @@ function Install-Service {
         $status.localAgentChatRepairHelperSignerCertificateSha256 -ne $installerSigner -or
         $status.signatureStatus -ne 'Valid' -or $status.state -ne 'running') {
       throw 'NimiRuntime failed post-install fixed-service validation.'
+    }
+    if ($DeploymentProfile -eq 'production') {
+      Stop-Service -Name $ServiceName -ErrorAction Stop
+      Wait-ServiceState -Expected 'Stopped'
+      $status = Get-Status
     }
     $status['installerSignerCertificateSha256'] = $installerSigner
     $status['stateAclConfiguredBySignedInstaller'] = $true

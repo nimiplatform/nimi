@@ -64,6 +64,8 @@ func (d *Daemon) runMaintenance(ctx context.Context, desktopListener net.Listene
 	d.readyOnce.Do(func() { close(d.readyCh) })
 	var serveErr error
 	select {
+	case <-d.productStop:
+		d.logger.Info("Nimi product maintenance shutdown requested")
 	case <-ctx.Done():
 		d.logger.Info("runtime maintenance shutdown requested")
 	case serveErr = <-errCh:

@@ -8,7 +8,7 @@ import desktopPackage from '../package.json' with { type: 'json' };
 import { getRuntimeWireCodec, RuntimeHealthStatus } from '@nimiplatform/sdk/runtime/generated';
 import { ProductUpdateError } from '../../../config/product-update-contract.mjs';
 import { verifyProductInstaller } from './product-update-installer-verification.js';
-import { DesktopShutdownBlockedError, runDesktopShutdownSteps, type DesktopShutdownReport } from './product-update-shutdown.js';
+import { DesktopShutdownBlockedError, runDesktopProductShutdown, type DesktopShutdownReport } from './product-update-shutdown.js';
 import { createDesktopFinalExit } from './desktop-final-exit.js';
 import { createDesktopHomeCommandPolicy } from './home-host-policy.js';
 import { installDesktopPermissionPolicy } from './desktop-permission-policy.js';
@@ -236,6 +236,7 @@ const desktopFinalExit = createDesktopFinalExit({
 app.on('will-quit', desktopFinalExit.finish);
 let homeChromeHost: NimiElectronAppChromeHost | undefined;
 let quitCleanup: Promise<void> | undefined;
+let stopProductRuntime: (() => Promise<void>) | undefined;
 let quitCleanupComplete = false;
 let ownerQuitRequested = false;
 let systemSessionEnding = false;
@@ -568,7 +569,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
             type: 'info',
             title: 'Approve Nimi Runtime',
             message: 'Nimi Runtime needs approval to run in the background.',
-            detail: 'Open System Settings → Login Items & Extensions and allow Nimi. A Mac administrator must approve this once. Nimi will close while approval is pending. After allowing Nimi, open it again; daily use requires no administrator privileges.',
+            detail: 'Open System Settings → Login Items & Extensions and allow Nimi. A Mac administrator must approve this once. The local AI service runs with Nimi Home, including when its window is hidden, and stops when you choose Quit Nimi. This does not enable launch at login. Nimi will close while approval is pending. After allowing Nimi, open it again; daily use requires no administrator privileges.',
             buttons: ['Open System Settings', 'Later'],
             defaultId: 0,
             cancelId: 1,
@@ -600,6 +601,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       }
     }
     const runtimeLifecycleHost = macOSProductionService ?? fixedRuntimeLifecycleHost;
+    if (!SOURCE_PER_USER_RUNTIME_D2) stopProductRuntime = () => runtimeLifecycleHost.stop();
     const updateHealthControl = createNimiElectronDesktopControlHost();
     let activationInFlight: Promise<void> | undefined;
     const readProductRuntimeHealth = async () => {
@@ -645,7 +647,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
     ) as DesktopRuntimeStatus;
     if (!SOURCE_PER_USER_RUNTIME_D2 && !macOSProductionService) {
       runtimeMaintenance = await readDesktopRuntimeMaintenance(
-        () => invokeRuntimeLifecycle(runtimeCommandNames.status),
+        () => invokeRuntimeLifecycle(runtimeCommandNames.start),
       );
     }
     const productControlHost = createDesktopElectronProductControlHost({
@@ -1252,8 +1254,8 @@ async function recoverDesktopAfterFailedQuit(): Promise<void> {
   productUpdateHost?.start();
   await focusDesktopMainWindow().catch((error) => writeDesktopStderr(`[desktop-quit] window-recovery:${desktopBootstrapFailureCode(error)}\n`));
   dialog.showErrorBox(systemEntryLocale === 'zh' ? 'Nimi Home 尚未退出' : 'Nimi Home could not close',
-    systemEntryLocale === 'zh' ? '部分托管 App 或关键资源没有完成关闭。Home 已保留，请重试退出；已关闭的 App 不会自动重新启动。'
-      : 'A supervised App or critical resource did not close cleanly. Home remains available so you can retry. Apps that already closed will not restart automatically.');
+    systemEntryLocale === 'zh' ? '部分 App、本地 AI 服务或关键资源尚未关闭。Nimi 仍保持打开，请重试退出；已关闭的 App 不会自动重新启动。'
+      : 'An App, the local AI service, or a critical resource did not close cleanly. Nimi remains available so you can retry. Apps that already closed will not restart automatically.');
 }
 
 async function confirmDesktopUserQuit(impact: { installed: readonly string[]; development: readonly string[]; avatar: Readonly<{ active: number; pending: boolean }>; observedWorkCount: number | null; workComplete: boolean }): Promise<boolean> {
@@ -1265,16 +1267,22 @@ async function confirmDesktopUserQuit(impact: { installed: readonly string[]; de
       `Avatar：${impact.avatar.active}${impact.avatar.pending ? '，还有实例正在准备' : ''}`,
       impact.workComplete ? `当前 AI 工作：${impact.observedWorkCount}`
         : impact.observedWorkCount !== null ? `已记录 ${impact.observedWorkCount} 项 AI 工作；其余状态尚未完整确认。` : '当前 AI 工作状态尚未完整确认。',
-      '退出会关闭 Home 和以上托管 App（包括正在打开或等待清理的实例）；Home 中的在途请求可能中断。本地 AI 服务保持独立；已提交的远端工作不保证取消。'].join('\n')
+      SOURCE_PER_USER_RUNTIME_D2
+        ? '退出会关闭 Home 和以上 App。源码 Runtime 由开发终端管理；已提交给云端的工作不保证取消。'
+        : '退出会关闭 Home、以上 App 和本地 AI 服务，并停止本地计算；正在进行的任务可能中断。已提交给云端的工作不保证取消。'].join('\n')
     : [`Installed Apps: ${impact.installed.length}${impact.installed.length ? ` (${names(impact.installed)})` : ''}`,
       `Development Apps: ${impact.development.length}${impact.development.length ? ` (${names(impact.development)})` : ''}`,
       `Avatars: ${impact.avatar.active}${impact.avatar.pending ? '; more are being prepared' : ''}`,
       impact.workComplete ? `Current AI work: ${impact.observedWorkCount}`
         : impact.observedWorkCount !== null ? `${impact.observedWorkCount} AI work items observed; other activity is not fully confirmed.` : 'Current AI activity is not fully confirmed.',
-      'Quitting closes Home and these supervised Apps, including instances opening or awaiting cleanup. In-flight Home requests may be interrupted. The local AI service has an independent lifetime; remote work already submitted may continue.'].join('\n');
-  const options: MessageBoxOptions = { type: 'question', title: chinese ? '退出 Nimi Home？' : 'Quit Nimi Home?',
-    message: chinese ? '退出会关闭由 Home 托管的 App。' : 'Quitting will close Home-supervised Apps.', detail,
-    buttons: chinese ? ['取消', '退出 Home'] : ['Cancel', 'Quit Home'], defaultId: 0, cancelId: 0, noLink: true };
+      SOURCE_PER_USER_RUNTIME_D2
+        ? 'Quitting closes Home and these Apps. The source Runtime is managed by its development terminal; work already submitted to cloud services may continue.'
+        : 'Quitting closes Home, these Apps, and the local AI service, and stops local computation. Active tasks may be interrupted. Work already submitted to cloud services may continue.'].join('\n');
+  const options: MessageBoxOptions = { type: 'question', title: chinese ? '退出 Nimi？' : 'Quit Nimi?',
+    message: SOURCE_PER_USER_RUNTIME_D2
+      ? (chinese ? '退出会关闭 Home 和托管 App。' : 'Quitting will close Home and its supervised Apps.')
+      : (chinese ? '退出会关闭 Nimi 及其本地 AI 服务。' : 'Quitting will close Nimi and its local AI service.'), detail,
+    buttons: chinese ? ['取消', '退出 Nimi'] : ['Cancel', 'Quit Nimi'], defaultId: 0, cancelId: 0, noLink: true };
   // A sheet on a hidden window is inaccessible; a standalone macOS dialog
   // can merely bounce the Dock icon while the app is inactive. Explicit quit
   // must restore the owner window before asking the user to confirm.
@@ -1354,7 +1362,8 @@ function handleDesktopSystemSessionEnd(): void {
   desktopQuitCoordinator.beginSystemEnd();
   let timer: ReturnType<typeof setTimeout> | undefined;
   // The OS owns process termination. Best-effort cleanup is bounded and
-  // never invokes ordinary confirmation, service stop or a Home relaunch.
+  // never invokes ordinary confirmation or a Home relaunch. Runtime stop is
+  // attempted within the same bound; system shutdown retains final OS control.
   void Promise.race([
     prepareDesktopQuit().catch((error) => writeDesktopStderr(`[desktop-session-end] ${desktopBootstrapFailureCode(error)}\n`)),
     new Promise<void>((resolve) => { timer = setTimeout(resolve, 2_000); }),
@@ -1463,17 +1472,19 @@ async function shutdownBeforeQuit(forUpdate = false): Promise<DesktopShutdownRep
     { operation: 'connector-auth', critical: false, timeoutMs: 5_000, run: () => connectorAuthHost?.shutdown() },
     { operation: 'system-entry', critical: false, timeoutMs: 5_000, run: () => currentSystemEntryHost?.dispose() },
   ];
-  const result = await runDesktopShutdownSteps(forUpdate ? steps.filter((step) => step.critical) : steps);
+  const result = await runDesktopProductShutdown({
+    steps, forUpdate,
+    stopRuntime: homeRelaunchRequested || maintenanceRelaunchRequested ? undefined : stopProductRuntime,
+  });
   const report: DesktopShutdownReport = { ...result, diagnostics: [...result.diagnostics, ...ordinaryDiagnostics] };
   for (const failure of [...report.criticalFailures, ...report.diagnostics]) {
     writeDesktopStderr(`[desktop-shutdown] ${failure.operation}:${failure.reason}\n`);
   }
   if (forUpdate) return report;
-  // Ordinary quit may finish with formal-resource diagnostics, as before.
-  // CP-U2 installation must inspect criticalCleanupComplete independently of
-  // this promise resolving or the process exiting. App stop failures still
-  // retain their bridge and block ordinary quit to avoid orphan processes.
-  if (report.criticalFailures.some((failure) => ['local-app-host', 'installed-app-host', 'avatar-host'].includes(failure.operation))) {
+  // Product exit requires complete critical cleanup and verified Runtime stop.
+  // Keep the bridge and system entry on failure so the same quit can be retried.
+  // Updates consume their separate critical report before installer handoff.
+  if (!report.criticalCleanupComplete) {
     throw new DesktopShutdownBlockedError(report);
   }
   if (localDevelopmentHost === localHost) localDevelopmentHost = undefined;

@@ -2762,6 +2762,15 @@
           "response_stream": false
         },
         {
+          "name": "RequestRuntimeStop",
+          "method_id": "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeStop",
+          "kind": "unary",
+          "request_type": "RequestRuntimeStopRequest",
+          "response_type": "RequestRuntimeStopResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
           "name": "GetRuntimeServiceState",
           "method_id": "/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState",
           "kind": "unary",
@@ -3064,7 +3073,8 @@
     "/nimi.runtime.v1.RuntimeRealmRealtimeService/OpenRealmRealtimeChannel",
     "/nimi.runtime.v1.RuntimeRealmRealtimeService/SubscribeRealmRealtimeEvents",
     "/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState",
-    "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart"
+    "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart",
+    "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeStop"
   ],
   "codec_maps": [
     {
@@ -5394,6 +5404,14 @@
       "kind": "unary",
       "request_type": "RequestRuntimeRestartRequest",
       "response_type": "RequestRuntimeRestartResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeStop",
+      "service": "RuntimeServiceControlService",
+      "method": "RequestRuntimeStop",
+      "kind": "unary",
+      "request_type": "RequestRuntimeStopRequest",
+      "response_type": "RequestRuntimeStopResponse"
     }
   ],
   "contract_maps": [
@@ -7724,6 +7742,14 @@
       "kind": "unary",
       "request_type": "RequestRuntimeRestartRequest",
       "response_type": "RequestRuntimeRestartResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeStop",
+      "service": "RuntimeServiceControlService",
+      "method": "RequestRuntimeStop",
+      "kind": "unary",
+      "request_type": "RequestRuntimeStopRequest",
+      "response_type": "RequestRuntimeStopResponse"
     }
   ],
   "schema_types": {
@@ -8581,6 +8607,8 @@
       "RequestPresenceVerificationResponse",
       "RequestRuntimeRestartRequest",
       "RequestRuntimeRestartResponse",
+      "RequestRuntimeStopRequest",
+      "RequestRuntimeStopResponse",
       "ResolveAppActivityOpenLaunchRequest",
       "ResolveAppActivityOpenLaunchResponse",
       "ResolveDesktopAgentReferenceRequest",
@@ -38764,6 +38792,31 @@
       },
       {
         "name": "RequestRuntimeRestartResponse",
+        "fields": [
+          {
+            "name": "accepted",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "reason_code",
+            "type": "ReasonCode",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/runtime_service_control.proto"
+      },
+      {
+        "name": "RequestRuntimeStopRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/runtime_service_control.proto"
+      },
+      {
+        "name": "RequestRuntimeStopResponse",
         "fields": [
           {
             "name": "accepted",

@@ -1062,7 +1062,12 @@ pub struct LocalAppAgentUpdateConversationContextRequest {
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
-pub struct LocalAppConversationFollowUpCancelRequest {pub agent_handle:String,pub conversation_anchor_id:String,pub task_id:String,pub expected_revision:u64}
+pub struct LocalAppConversationFollowUpCancelRequest {
+    pub agent_handle: String,
+    pub conversation_anchor_id: String,
+    pub task_id: String,
+    pub expected_revision: u64,
+}
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct LocalAppAgentPresentationAssetInput {
@@ -1147,7 +1152,9 @@ pub struct LocalAppConversationEvent {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum LocalAppConversationEventKind {
-    StateChanged {state: JsonValue},
+    StateChanged {
+        state: JsonValue,
+    },
     TurnAccepted {
         request_id: Option<String>,
         origin: String,
@@ -1491,6 +1498,16 @@ pub trait NimiDesktopControl: Send + Sync {
                         DesktopFirstPartyProductError,
                     >,
                 > + Send
+                + '_,
+        >,
+    >;
+
+    fn request_runtime_service_stop(
+        &self,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<RuntimeServiceActionOutcome, ProtectedCarrierError>>
+                + Send
                 + '_,
         >,
     >;
@@ -2278,7 +2295,14 @@ pub trait NimiLocalAppSession: Send + Sync {
     fn conversation_message_read(
         &self,
         request: LocalAppConversationMessageReadRequest,
-    ) -> Pin<Box<dyn Future<Output = Result<LocalAppConversationMessageReadResult, LocalAppOperationError>> + Send + '_>>;
+    ) -> Pin<
+        Box<
+            dyn Future<
+                    Output = Result<LocalAppConversationMessageReadResult, LocalAppOperationError>,
+                > + Send
+                + '_,
+        >,
+    >;
 
     fn embodiment_snapshot(
         &self,
@@ -2512,10 +2536,10 @@ pub trait NimiLocalAppSession: Send + Sync {
         request: LocalAppAgentUpdateAutonomyRequest,
     ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
-
-    fn conversation_follow_up_cancel(&self, request: LocalAppConversationFollowUpCancelRequest) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
-
-
+    fn conversation_follow_up_cancel(
+        &self,
+        request: LocalAppConversationFollowUpCancelRequest,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
 
     fn agent_update_conversation_context(
         &self,

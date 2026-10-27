@@ -36,6 +36,27 @@ export interface RequestRuntimeRestartResponse {
     reasonCode: ReasonCode;
 }
 /**
+ * The verified Home host requests an orderly product exit. Acceptance is not
+ * proof of process termination; the native carrier must observe it separately.
+ *
+ * @generated from protobuf message nimi.runtime.v1.RequestRuntimeStopRequest
+ */
+export interface RequestRuntimeStopRequest {
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.RequestRuntimeStopResponse
+ */
+export interface RequestRuntimeStopResponse {
+    /**
+     * @generated from protobuf field: bool accepted = 1
+     */
+    accepted: boolean;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ReasonCode reason_code = 2
+     */
+    reasonCode: ReasonCode;
+}
+/**
  * GetRuntimeServiceStateRequest is intentionally empty; the verified
  * desktop_control connection is the complete authority input.
  *
@@ -177,6 +198,99 @@ class RequestRuntimeRestartResponse$Type extends MessageType<RequestRuntimeResta
  * @generated MessageType for protobuf message nimi.runtime.v1.RequestRuntimeRestartResponse
  */
 export const RequestRuntimeRestartResponse = new RequestRuntimeRestartResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RequestRuntimeStopRequest$Type extends MessageType<RequestRuntimeStopRequest> {
+    constructor() {
+        super("nimi.runtime.v1.RequestRuntimeStopRequest", []);
+    }
+    create(value?: PartialMessage<RequestRuntimeStopRequest>): RequestRuntimeStopRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<RequestRuntimeStopRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RequestRuntimeStopRequest): RequestRuntimeStopRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RequestRuntimeStopRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RequestRuntimeStopRequest
+ */
+export const RequestRuntimeStopRequest = new RequestRuntimeStopRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class RequestRuntimeStopResponse$Type extends MessageType<RequestRuntimeStopResponse> {
+    constructor() {
+        super("nimi.runtime.v1.RequestRuntimeStopResponse", [
+            { no: 1, name: "accepted", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] }
+        ]);
+    }
+    create(value?: PartialMessage<RequestRuntimeStopResponse>): RequestRuntimeStopResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.accepted = false;
+        message.reasonCode = 0;
+        if (value !== undefined)
+            reflectionMergePartial<RequestRuntimeStopResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RequestRuntimeStopResponse): RequestRuntimeStopResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool accepted */ 1:
+                    message.accepted = reader.bool();
+                    break;
+                case /* nimi.runtime.v1.ReasonCode reason_code */ 2:
+                    message.reasonCode = reader.int32();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: RequestRuntimeStopResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool accepted = 1; */
+        if (message.accepted !== false)
+            writer.tag(1, WireType.Varint).bool(message.accepted);
+        /* nimi.runtime.v1.ReasonCode reason_code = 2; */
+        if (message.reasonCode !== 0)
+            writer.tag(2, WireType.Varint).int32(message.reasonCode);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.RequestRuntimeStopResponse
+ */
+export const RequestRuntimeStopResponse = new RequestRuntimeStopResponse$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class GetRuntimeServiceStateRequest$Type extends MessageType<GetRuntimeServiceStateRequest> {
     constructor() {

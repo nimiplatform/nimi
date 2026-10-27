@@ -2,7 +2,7 @@ import { runtimeStatusIsMaintenance } from './runtime-maintenance.js';
 
 type RegistrationOperation = 'status' | 'register' | 'reregister' | 'unregister' | 'open-settings';
 type CommandNames = { readonly status: string; readonly start: string; readonly restart: string };
-type LifecycleHost = { invoke(command: string, names: CommandNames): Promise<unknown> };
+type LifecycleHost = { stop(): Promise<void>; invoke(command: string, names: CommandNames): Promise<unknown> };
 
 export type MacOSRuntimeServicePorts = {
   readonly registration: (operation: RegistrationOperation) => Promise<number>;
@@ -16,6 +16,7 @@ export type MacOSRuntimeServicePorts = {
 // the exact native operation and protected Runtime status/restart requests.
 export function createDesktopMacOSRuntimeServiceHost(base: LifecycleHost, ports: MacOSRuntimeServicePorts) {
   let registrationInFlight: Promise<number> | undefined;
+  let startRequested = false;
   const registerAfterUnregister = async () => {
     await ports.registration('unregister');
     for (let attempt = 0; ; attempt += 1) {
@@ -69,6 +70,7 @@ export function createDesktopMacOSRuntimeServiceHost(base: LifecycleHost, ports:
         let command = names.start;
         for (;;) {
           try {
+            startRequested = true;
             const state = await base.invoke(command, names) as { running?: boolean; lastError?: string } | null;
             if (state?.running === true) return 'ready';
             if (runtimeStatusIsMaintenance(state)) return 'maintenance';
@@ -89,6 +91,11 @@ export function createDesktopMacOSRuntimeServiceHost(base: LifecycleHost, ports:
       // into renderer auto-start would immediately repeat a dismissed prompt.
       return 'approval-pending';
     },
+    async stop(): Promise<void> {
+      // An approval-only bootstrap never requested a Runtime process. Once
+      // startup was attempted, only native process observation can prove stop.
+      if (startRequested) await base.stop();
+    },
     async unregister(): Promise<void> {
       if (await ports.registration('unregister') !== 0) {
         throw new Error('Nimi Runtime could not be unregistered. The application was retained.');
@@ -102,6 +109,7 @@ export function createDesktopMacOSRuntimeServiceHost(base: LifecycleHost, ports:
         }
         return pending(registration);
       }
+      if (command === names.start) startRequested = true;
       return base.invoke(command, names);
     },
   };

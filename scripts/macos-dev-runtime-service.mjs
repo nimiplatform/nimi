@@ -44,15 +44,15 @@ export function parseMacOSDevRuntimeArguments(args) {
   const normalized = args.slice();
   while (normalized[0] === '--') normalized.shift();
   if (normalized.length === 0) return Object.freeze({ mode: 'update' });
-  if (normalized[0] === '--install-candidate' && normalized.length === 2) {
+  if (['--install-candidate', '--update-candidate'].includes(normalized[0]) && normalized.length === 2) {
     return Object.freeze({
-      mode: 'install-candidate',
+      mode: normalized[0].slice(2),
       candidatePath: requireDownloadedCandidateDirectory(normalized[1]),
     });
   }
   if (normalized.length !== 1 || !modes.has(normalized[0])) {
     throw workflowError(
-      'macOS fixed-service acceptance updates by default and otherwise accepts --install-candidate <absolute-canonical-directory> or exactly one of --install, --status, --logs, --desktop, --restart, or --uninstall.',
+      'macOS fixed-service acceptance updates by default and otherwise accepts --install-candidate or --update-candidate with one absolute canonical directory, or exactly one of --install, --status, --logs, --desktop, --restart, or --uninstall.',
       'dev-runtime-argument-invalid',
       'use_one_documented_macos_dev_runtime_mode',
     );
@@ -78,13 +78,14 @@ export async function runMacOSDevRuntimeService(input = {}) {
 
   const initial = await queryStatus();
   if (mode === 'desktop') {
-    assertInstalledRunningStatus(initial);
+    // Installed Home starts its on-demand service; stopped is a valid launch state.
+    assertUpdateReadyStatus(initial);
     const launchDesktop = input.launchDesktop ?? launchInstalledDesktop;
     return launchDesktop();
   }
   const invokeHelper = input.invokeHelper ?? runPrivilegedHelper;
 
-  if (mode === 'install' || mode === 'install-candidate' || mode === 'update') {
+  if (mode === 'install' || mode === 'install-candidate' || mode === 'update' || mode === 'update-candidate') {
     if ((mode === 'install' || mode === 'install-candidate') && initial.status !== 'absent') {
       throw workflowError(
         'macOS development Runtime install requires an absent product namespace.',
@@ -93,12 +94,12 @@ export async function runMacOSDevRuntimeService(input = {}) {
         { status: initial },
       );
     }
-    if (mode === 'update') {
+    if (mode === 'update' || mode === 'update-candidate') {
       assertUpdateReadyStatus(initial);
     }
-    if (mode === 'install-candidate') {
+    if (mode === 'install-candidate' || mode === 'update-candidate') {
       const candidatePath = requireDownloadedCandidateDirectory(input.candidatePath);
-      return Object.freeze(await invokeHelper(['install-candidate', candidatePath]));
+      return Object.freeze(await invokeHelper([mode, candidatePath]));
     }
     const buildCandidate = input.buildCandidate ?? buildDevelopmentCandidate;
     const candidate = await buildCandidate();

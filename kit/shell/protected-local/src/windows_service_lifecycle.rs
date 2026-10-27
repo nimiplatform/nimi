@@ -186,3 +186,28 @@ mod tests {
         );
     }
 }
+
+// Stop observes SCM without opening another protected pipe (which could start a new session).
+pub(super) async fn request_verified_runtime_stop_on_channel(
+    channel: Channel,
+) -> Result<RuntimeServiceActionOutcome, ProtectedCarrierError> {
+    if query_service_status()?.current_state != ServiceState::Stopped {
+        crate::service::request_runtime_stop(channel).await?;
+        let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(30);
+        loop {
+            if query_service_status()?.current_state == ServiceState::Stopped {
+                break;
+            }
+            if tokio::time::Instant::now() >= deadline {
+                return Err(unavailable());
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        }
+    }
+    Ok(RuntimeServiceActionOutcome {
+        state: RuntimeServiceState::Stopped,
+        release_id: None,
+        reason_code: None,
+        retryable: false,
+    })
+}

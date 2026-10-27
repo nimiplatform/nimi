@@ -745,9 +745,9 @@ units:
     kind: rule
     title: Window close hide and explicit quit stay distinct
     modality: must
-    statement: Closing the Home main window hides it only while an actual recoverable system entry exists. Explicit user quit serializes with App launch admission, explains the impact on installed and local-development Apps, Avatar and pending launches, clears quit intent on cancellation, and preserves recovery resources on critical stop failure. Ordinary Home quit leaves Runtime lifetime independent, while operating-system session end uses bounded native cleanup without an ordinary confirmation or a promise that Runtime survives the operating system; update and data-root handoff retain their stricter owner cleanup.
+    statement: Closing the Home main window hides it only while an actual recoverable system entry exists. Explicit user quit serializes with App launch admission, explains the impact on installed and local-development Apps, Avatar and pending launches, clears quit intent on cancellation, and preserves recovery resources on critical stop failure. Explicit production Nimi quit closes supervised Apps, stops and verifies the fixed Runtime and its supervised compute processes, then exits Home. Operating-system session end uses bounded native cleanup without an ordinary confirmation; update and data-root handoff retain their stricter owner cleanup and may restart Runtime only for the continuing Home session.
     condition: Whenever the main window closes or Desktop receives quit intent.
-    failure: Reject close-as-quit, quit without cleanup, and Runtime service stop.
+    failure: Reject close-as-quit, successful quit with live supervised Apps or Runtime, and unverified stop success.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.menu-bar

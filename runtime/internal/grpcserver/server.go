@@ -176,7 +176,8 @@ type ProtectedServiceBindings struct {
 	LocalAppLaunches                 *protectedlocal.LocalAppLaunchRegistry
 	LocalDevelopmentVerifier         protectedlocal.LocalDevelopmentProcessVerifier
 	DirectLocalAppLaunches           *protectedlocal.DirectLocalAppLaunches
-	RuntimeRestartRequester          runtimecontrolservice.RestartRequester
+	RuntimeRestartRequester          runtimecontrolservice.LifecycleRequester
+	RuntimeStopRequester             runtimecontrolservice.LifecycleRequester
 	// PeerRejections is the verified security state whose native listeners
 	// report the processes they refuse; the Runtime records them as transport
 	// refusals once its audit plane is composed.
@@ -624,9 +625,9 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	}
 	authSvc.SetRuntimeAccountSecurityContextProvider(accountSvc)
 	realmRealtimeSvc := realmrealtimeservice.New(logger, accountSvc)
-	runtimeControlSvc := runtimecontrolservice.New(nil, nil)
+	runtimeControlSvc := runtimecontrolservice.New(nil, nil, nil)
 	if protected != nil {
-		runtimeControlSvc = runtimecontrolservice.New(protected.DesktopSessions, protected.RuntimeRestartRequester)
+		runtimeControlSvc = runtimecontrolservice.New(protected.DesktopSessions, protected.RuntimeRestartRequester, protected.RuntimeStopRequester)
 	}
 
 	// AuthN validator — JWKS mode (K-AUTHN-004). revocationUrl shares the

@@ -343,6 +343,7 @@ describe('Electron fixed Runtime lifecycle host', () => {
         status: 'ok' as const,
         value: { running: true, state: 'running', releasePosture: 'non_release' },
       }),
+      fixedRuntimeServiceStop: async () => ({ status: 'ok' as const, value: { state: 'stopped', running: false } }),
       fixedRuntimeServiceRestart: async () => ({
         status: 'ok' as const,
         value: { running: true, state: 'running', releasePosture: 'non_release' },
@@ -380,6 +381,7 @@ describe('Electron Runtime lifecycle hosts in maintenance', () => {
     const host = createNimiElectronFixedRuntimeLifecycleHostForBinding({
       fixedRuntimeServiceStatus: async () => ({ status: 'ok' as const, value: maintenance }),
       fixedRuntimeServiceStart: async () => ({ status: 'ok' as const, value: maintenance }),
+      fixedRuntimeServiceStop: async () => ({ status: 'ok' as const, value: { state: 'stopped', running: false } }),
       fixedRuntimeServiceRestart: async () => ({ status: 'ok' as const, value: maintenance }),
     }, 'protected-desktop-control');
     const commands = createElectronRuntimeBridgeCommandNames();
@@ -749,5 +751,23 @@ describe('Electron local-development protected control', () => {
     }));
     await expect(control.removeRegistration(registrationHandle)).resolves.toBeUndefined();
     expect(remove).toHaveBeenCalledWith({ registrationHandle });
+  });
+});
+
+
+describe('verified product Runtime shutdown', () => {
+  it('requires observed stopped state and never accepts a stop acknowledgement as completion', async () => {
+    let value: unknown = { accepted: true };
+    const host = createNimiElectronFixedRuntimeLifecycleHostForBinding({
+      fixedRuntimeServiceStatus: async () => ({ status: 'ok', value: {} }),
+      fixedRuntimeServiceStart: async () => ({ status: 'ok', value: {} }),
+      fixedRuntimeServiceRestart: async () => ({ status: 'ok', value: {} }),
+      fixedRuntimeServiceStop: async () => ({ status: 'ok', value }),
+    }, 'protected-desktop-control');
+    await expect(host.stop()).rejects.toThrow('runtime-service-untrusted');
+    value = { state: 'stopped', running: false };
+    await expect(host.stop()).resolves.toBeUndefined();
+    value = { state: 'running', running: true };
+    await expect(host.stop()).rejects.toThrow('runtime-service-untrusted');
   });
 });

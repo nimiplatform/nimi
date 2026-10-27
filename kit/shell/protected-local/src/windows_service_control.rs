@@ -21,12 +21,12 @@ use windows_sys::Win32::System::Pipes::GetNamedPipeServerProcessId;
 
 #[cfg(not(feature = "windows-source-local-development"))]
 use crate::generated::OpenDesktopSessionRequest;
-use crate::RuntimeServiceMode;
 #[cfg(feature = "windows-source-local-development")]
 use crate::local_development::local_development_rebind_candidate_is_stale;
 use crate::windows_peer_trust::{verify_runtime_peer, VerifiedRuntimePeer};
 #[cfg(feature = "windows-source-local-development")]
 use crate::windows_source_policy::{source_pipe_name, WindowsSourcePipeRole};
+use crate::RuntimeServiceMode;
 use crate::{
     BundledAvatarRuntimeClientStreamRequest, BundledAvatarRuntimeError,
     BundledAvatarRuntimeRequest, BundledAvatarRuntimeResponse, BundledAvatarRuntimeStreamReceiver,
@@ -417,6 +417,27 @@ impl NimiDesktopControl for WindowsDesktopControl {
         ))
     }
 
+    fn request_runtime_service_stop(
+        &self,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<RuntimeServiceActionOutcome, ProtectedCarrierError>>
+                + Send
+                + '_,
+        >,
+    > {
+        #[cfg(feature = "windows-source-local-development")]
+        {
+            Box::pin(async { Err(unavailable()) })
+        }
+        #[cfg(not(feature = "windows-source-local-development"))]
+        {
+            Box::pin(lifecycle::request_verified_runtime_stop_on_channel(
+                self.channel(),
+            ))
+        }
+    }
+
     fn request_runtime_service_restart(
         &self,
     ) -> Pin<
@@ -695,8 +716,19 @@ impl NimiDesktopControl for WindowsDesktopControl {
         })
     }
 
-    fn local_development_run_access(&self, request: crate::LocalDevelopmentRunAccessRequest) -> Pin<Box<dyn Future<Output = Result<crate::LocalDevelopmentRunAccess, NimiHostError>> + Send + '_>> {
-        Box::pin(async move { crate::windows_local_development::run_access(self.channel(), request).await })
+    fn local_development_run_access(
+        &self,
+        request: crate::LocalDevelopmentRunAccessRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<crate::LocalDevelopmentRunAccess, NimiHostError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            crate::windows_local_development::run_access(self.channel(), request).await
+        })
     }
 
     fn local_development_host_status(
@@ -1156,15 +1188,45 @@ mod terminal_witness_tests {
         }
         assert_eq!(process.exit_code().unwrap(), Some(75));
         let run_id = [9; 32];
-        let registry = Arc::new(Mutex::new(HashMap::from([(run_id, SupervisedDevelopmentEntry {
-            process,
-            request: LocalDevelopmentLaunchRequest { registration_handle: [8; 32], supervisor_run_id: run_id, shell_kind: crate::LocalDevelopmentShellKind::Electron, host_executable_path: executable, renderer_origin: "http://127.0.0.1:1524".to_string(), host_arguments: args, working_directory: root.clone() },
-        })])));
+        let registry = Arc::new(Mutex::new(HashMap::from([(
+            run_id,
+            SupervisedDevelopmentEntry {
+                process,
+                request: LocalDevelopmentLaunchRequest {
+                    registration_handle: [8; 32],
+                    supervisor_run_id: run_id,
+                    shell_kind: crate::LocalDevelopmentShellKind::Electron,
+                    host_executable_path: executable,
+                    renderer_origin: "http://127.0.0.1:1524".to_string(),
+                    host_arguments: args,
+                    working_directory: root.clone(),
+                },
+            },
+        )])));
         // The real renewal order reads candidates before Desktop polls status.
-        assert!(live_supervised_development_rebind_candidates(&registry).unwrap().is_empty());
-        rebind_supervised_development_processes(tonic::transport::Endpoint::from_static("http://127.0.0.1:1").connect_lazy(), registry.clone(), Arc::new(AsyncMutex::new(())), true).await.unwrap();
+        assert!(live_supervised_development_rebind_candidates(&registry)
+            .unwrap()
+            .is_empty());
+        rebind_supervised_development_processes(
+            tonic::transport::Endpoint::from_static("http://127.0.0.1:1").connect_lazy(),
+            registry.clone(),
+            Arc::new(AsyncMutex::new(())),
+            true,
+        )
+        .await
+        .unwrap();
         assert!(discard_stale_supervised_development_rebind(&registry, run_id, pid).unwrap());
-        assert_eq!(registry.lock().unwrap().get(&run_id).unwrap().process.exit_code().unwrap(), Some(75));
+        assert_eq!(
+            registry
+                .lock()
+                .unwrap()
+                .get(&run_id)
+                .unwrap()
+                .process
+                .exit_code()
+                .unwrap(),
+            Some(75)
+        );
         drop(registry.lock().unwrap().remove(&run_id));
         assert!(registry.lock().unwrap().is_empty());
         std::fs::remove_dir_all(root).unwrap();

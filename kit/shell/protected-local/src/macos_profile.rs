@@ -11,6 +11,9 @@ pub(crate) use crate::macos_profile_local_development::*;
 ))]
 pub(crate) const RUNTIME_SIGNING_IDENTIFIER: &str = "ai.nimi.runtime";
 
+#[cfg(all(not(feature = "macos-local-development"), not(feature = "macos-source-local-development")))]
+pub(crate) const RUNTIME_SERVICE_LABEL: &str = "ai.nimi.runtime";
+
 #[cfg(all(
     not(feature = "macos-local-development"),
     not(feature = "macos-source-local-development")

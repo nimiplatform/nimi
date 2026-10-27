@@ -352,6 +352,9 @@ services:
   - name: RuntimeServiceControlService
     source_rule: K-PLOCAL-003
     methods:
+      - name: RequestRuntimeStop
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeStop
       - name: RequestRuntimeRestart
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart

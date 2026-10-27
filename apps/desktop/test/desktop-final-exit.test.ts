@@ -4,7 +4,7 @@ import test from 'node:test';
 import { runInNewContext } from 'node:vm';
 import ts from 'typescript';
 import { createDesktopFinalExit } from '../src-electron/desktop-final-exit.js';
-import { DesktopShutdownBlockedError, runDesktopShutdownSteps } from '../src-electron/product-update-shutdown.js';
+import { DesktopShutdownBlockedError, runDesktopProductShutdown } from '../src-electron/product-update-shutdown.js';
 import { createDesktopQuitCoordinator } from '../src-electron/system-entry-quit-coordinator.js';
 
 const mainSource = await readFile(new URL('../src-electron/main.ts', import.meta.url), 'utf8');
@@ -48,7 +48,7 @@ function shutdownFixture(stopLocal: () => Promise<void> = async () => {}) {
     unregister() { registered = false; unregisterCount += 1; },
   };
   const state: Record<string, unknown> = {
-    createDesktopFinalExit, runDesktopShutdownSteps, DesktopShutdownBlockedError, setTimeout, clearTimeout,
+    createDesktopFinalExit, runDesktopProductShutdown, DesktopShutdownBlockedError, setTimeout, clearTimeout,
     app: {
       on(event: string, listener: () => void) { listeners.set(event, listener); },
       quit() { quitCount += 1; },
@@ -59,7 +59,8 @@ function shutdownFixture(stopLocal: () => Promise<void> = async () => {}) {
     systemEntryHost: undefined, connectorAuthAcquisitionHost: undefined,
     registeredRuntimeBridge: bridge, productUpdateHost: undefined,
     DESKTOP_FORMAL_RESOURCE_SHUTDOWN_TIMEOUT_MS: 100,
-    homeRelaunchRequested: false, maintenanceRelaunchRequested: false,
+    homeRelaunchRequested: false,
+    stopProductRuntime: async () => {}, maintenanceRelaunchRequested: false,
     homeHostProfile: { mode: 'root' }, homeTemporaryEnvironment: { restore() {} },
     SOURCE_PER_USER_RUNTIME_D2: true, HOME_PROFILE_RELAUNCH_EXIT_CODE: 75,
     releaseDesktopHomeBootstrapSlot: async () => {},

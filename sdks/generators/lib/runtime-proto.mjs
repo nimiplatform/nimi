@@ -6,6 +6,7 @@ import { generatedBy, readText, repoRoot } from './context.mjs';
 // the raw core-generated transport for the explicit runtime/host entrypoint;
 // languages without a native Host consumer receive a hard-cut projection.
 export const HOST_PRIVATE_RUNTIME_METHOD_IDS = Object.freeze([
+  '/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeStop',
   '/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession',
   '/nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget',
   '/nimi.runtime.v1.RuntimeAgentService/RevalidateLocalAppAvatarHostTarget',
@@ -13,6 +14,8 @@ export const HOST_PRIVATE_RUNTIME_METHOD_IDS = Object.freeze([
   '/nimi.runtime.v1.RuntimeAppService/GetInstalledAppRunAccess',
 ]);
 export const HOST_PRIVATE_RUNTIME_MESSAGE_NAMES = Object.freeze([
+  'RequestRuntimeStopRequest',
+  'RequestRuntimeStopResponse',
   'RebindLocalAppSessionRequest',
   'ResolveLocalAppAvatarHostTargetRequest',
   'ResolveLocalAppAvatarHostTargetResponse',

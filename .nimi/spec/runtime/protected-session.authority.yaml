@@ -78,8 +78,8 @@ units:
     kind: rule
     title: Production deployment owns Runtime service lifecycle
     modality: must
-    statement: Production deployment and update authority owns any production Runtime service identity, installation, replacement, and uninstall, while the current Home host may request typed service status or restart through the protected production boundary; none of those service mechanics is a prerequisite, trust fact, or alternate access path for the D2 local-development per-user Runtime slice.
-    condition: Whenever production Runtime installation, update, restart, or service status is requested.
+    statement: Production deployment and update authority owns any production Runtime service identity, installation, replacement, and uninstall, while the current Home host requests typed start at product launch, status and restart during use, and graceful stop on explicit product quit through the protected production boundary; the live mutually verified Desktop connection alone authorizes the empty stop request, stop and restart are mutually exclusive, and stop completion requires native observation of termination; none of those service mechanics is a prerequisite, trust fact, or alternate access path for the D2 local-development per-user Runtime slice.
+    condition: Whenever production Runtime installation, update, start, stop, restart, or service status is requested.
     failure: Reject App or renderer production service control, Desktop ownership of production service identity, and production topology used to block D2 local-development acceptance.
     relations:
       - type: applies_to

@@ -2032,6 +2032,17 @@ pub struct RequestRuntimeRestartResponse {
     #[prost(enumeration = "ReasonCode", tag = "2")]
     pub reason_code: i32,
 }
+/// The verified Home host requests an orderly product exit. Acceptance is not
+/// proof of process termination; the native carrier must observe it separately.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RequestRuntimeStopRequest {}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct RequestRuntimeStopResponse {
+    #[prost(bool, tag = "1")]
+    pub accepted: bool,
+    #[prost(enumeration = "ReasonCode", tag = "2")]
+    pub reason_code: i32,
+}
 /// GetRuntimeServiceStateRequest is intentionally empty; the verified
 /// desktop_control connection is the complete authority input.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -2092,8 +2103,10 @@ pub mod runtime_service_control_service_client {
     use tonic::codegen::http::Uri;
     /// RuntimeServiceControlService is registered only for the protected Runtime
     /// host. RequestRuntimeRestart initiates graceful Runtime self-exit; callers
-    /// determine success only after SCM recovery and a new verified PID, creation
-    /// marker, boot epoch, and Desktop handshake. GetRuntimeServiceState is read
+    /// determine success only after platform service activation and a new verified
+    /// process and Desktop handshake. RequestRuntimeStop exits without recovery;
+    /// the native carrier observes termination without waking another process.
+    /// GetRuntimeServiceState is read
     /// by the Home host carrier before any other protected call on a new channel.
     #[derive(Debug, Clone)]
     pub struct RuntimeServiceControlServiceClient<T> {
@@ -2202,6 +2215,35 @@ pub mod runtime_service_control_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeServiceControlService",
                         "RequestRuntimeRestart",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn request_runtime_stop(
+            &mut self,
+            request: impl tonic::IntoRequest<super::RequestRuntimeStopRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::RequestRuntimeStopResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeStop",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeServiceControlService",
+                        "RequestRuntimeStop",
                     ),
                 );
             self.inner.unary(req, path, codec).await

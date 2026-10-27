@@ -243,7 +243,7 @@ func rootHandoffControlPlaneMethod(method string) bool {
 }
 
 func (r *activeRPCRegistry) rootHandoffMethodAdmittedLocked(method string) bool {
-	if method == "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart" {
+	if method == protectedRequestRuntimeRestartMethod || method == protectedRequestRuntimeStopMethod {
 		return r.rootHandoff.committed
 	}
 	return rootHandoffControlPlaneMethod(method)

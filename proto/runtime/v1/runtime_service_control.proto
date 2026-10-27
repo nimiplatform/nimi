@@ -18,6 +18,15 @@ message RequestRuntimeRestartResponse {
   ReasonCode reason_code = 2;
 }
 
+// The verified Home host requests an orderly product exit. Acceptance is not
+// proof of process termination; the native carrier must observe it separately.
+message RequestRuntimeStopRequest {}
+
+message RequestRuntimeStopResponse {
+  bool accepted = 1;
+  ReasonCode reason_code = 2;
+}
+
 // RuntimeServiceMode is the protected surface this Runtime process serves on
 // the verified Desktop transport. It is process-operational truth only; it
 // proves no product readiness, App access, account, or owner success.
@@ -43,10 +52,13 @@ message GetRuntimeServiceStateResponse {
 
 // RuntimeServiceControlService is registered only for the protected Runtime
 // host. RequestRuntimeRestart initiates graceful Runtime self-exit; callers
-// determine success only after SCM recovery and a new verified PID, creation
-// marker, boot epoch, and Desktop handshake. GetRuntimeServiceState is read
+// determine success only after platform service activation and a new verified
+// process and Desktop handshake. RequestRuntimeStop exits without recovery;
+// the native carrier observes termination without waking another process.
+// GetRuntimeServiceState is read
 // by the Home host carrier before any other protected call on a new channel.
 service RuntimeServiceControlService {
   rpc RequestRuntimeRestart(RequestRuntimeRestartRequest) returns (RequestRuntimeRestartResponse);
+  rpc RequestRuntimeStop(RequestRuntimeStopRequest) returns (RequestRuntimeStopResponse);
   rpc GetRuntimeServiceState(GetRuntimeServiceStateRequest) returns (GetRuntimeServiceStateResponse);
 }

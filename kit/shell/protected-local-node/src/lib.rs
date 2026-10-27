@@ -35,13 +35,12 @@ use nimi_shell_protected_local::{
     LocalAppAssetWriteRequest, LocalAppAvatarHostTargetResolveRequest,
     LocalAppConversationArtifactReadRequest, LocalAppConversationAttachmentUploadRequest,
     LocalAppConversationEvent, LocalAppConversationEventKind, LocalAppConversationInputPart,
-    LocalAppConversationInterruptRequest,
-    LocalAppConversationOpenRequest, LocalAppConversationSendRequest,
-    LocalAppConversationQuoteInput, LocalAppConversationMessageReadRequest,
-    LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
-    LocalAppConversationSubscriptionReceiver, LocalAppConversationVoiceRenderRequest,
-    LocalAppConversationVoiceTranscriptionRequest, LocalAppEmbodimentSnapshotRequest,
-    LocalAppEmbodimentSubscribeRequest, LocalAppOperationError,
+    LocalAppConversationInterruptRequest, LocalAppConversationMessageReadRequest,
+    LocalAppConversationOpenRequest, LocalAppConversationQuoteInput,
+    LocalAppConversationSendRequest, LocalAppConversationSnapshotRequest,
+    LocalAppConversationSubscribeRequest, LocalAppConversationSubscriptionReceiver,
+    LocalAppConversationVoiceRenderRequest, LocalAppConversationVoiceTranscriptionRequest,
+    LocalAppEmbodimentSnapshotRequest, LocalAppEmbodimentSubscribeRequest, LocalAppOperationError,
     LocalAppPersonaCharacterCreateRequest, LocalAppPersonaCharacterDeleteRequest,
     LocalAppPersonaCharacterGetOwnedRequest, LocalAppPersonaCharacterListOwnedRequest,
     LocalAppPersonaCharacterReplaceRequest, LocalAppRealmChatListRequest,
@@ -98,6 +97,10 @@ static LOCAL_APP_SESSION: Mutex<LocalAppSessionCache> = Mutex::const_new(LocalAp
 });
 static DESKTOP_CONTROL: LazyLock<Arc<Mutex<Option<Arc<dyn NimiDesktopControl>>>>> =
     LazyLock::new(|| Arc::new(Mutex::new(None)));
+// Serialize actual service mutations, including renderer start requests that
+// were already waiting when explicit product quit began.
+static PRODUCT_LIFECYCLE_GATE: Mutex<()> = Mutex::const_new(());
+static PRODUCT_STOPPING: std::sync::atomic::AtomicBool = std::sync::atomic::AtomicBool::new(false);
 const FIRST_PARTY_UNARY_MAX_DURATION: Duration = Duration::from_secs(300);
 const DESKTOP_CONTROL_CACHE_WAIT_TIMEOUT: Duration = Duration::from_secs(5);
 #[cfg(any(
@@ -609,16 +612,15 @@ mod first_party_unary_cancellation_tests {
         );
 
         let opened = Arc::new(AtomicBool::new(false));
-        let attempt = get_or_open_cached_desktop_control(
-            &slot,
-            Duration::from_millis(10),
-            || async {
+        let attempt =
+            get_or_open_cached_desktop_control(&slot, Duration::from_millis(10), || async {
                 opened.store(true, Ordering::SeqCst);
                 Ok(Arc::new(DropMarker(Arc::new(AtomicBool::new(false)))))
-            },
-        )
-        .await;
-        assert!(matches!(attempt, Err(ref error) if error.reason_code() == NimiHostErrorReasonCode::RuntimeServiceUnavailable));
+            })
+            .await;
+        assert!(
+            matches!(attempt, Err(ref error) if error.reason_code() == NimiHostErrorReasonCode::RuntimeServiceUnavailable)
+        );
         assert!(
             !opened.load(Ordering::SeqCst),
             "a new open cannot bypass retirement"
@@ -629,16 +631,13 @@ mod first_party_unary_cancellation_tests {
         );
 
         release_retirement.notify_one();
-        let replacement = get_or_open_cached_desktop_control(
-            &slot,
-            Duration::from_secs(1),
-            || async {
+        let replacement =
+            get_or_open_cached_desktop_control(&slot, Duration::from_secs(1), || async {
                 opened.store(true, Ordering::SeqCst);
                 Ok(Arc::new(DropMarker(Arc::new(AtomicBool::new(false)))))
-            },
-        )
-        .await
-        .expect("a replacement may open after owner retirement finishes");
+            })
+            .await
+            .expect("a replacement may open after owner retirement finishes");
         assert!(opened.load(Ordering::SeqCst));
         assert!(dropped.load(Ordering::SeqCst));
         assert!(old_control.upgrade().is_none());
@@ -938,6 +937,10 @@ pub async fn macos_runtime_service_registration(operation: String) -> NativeJson
 
 #[napi(js_name = "fixedRuntimeServiceStart")]
 pub async fn fixed_runtime_service_start() -> NativeJsonOutcome {
+    let _lifecycle = PRODUCT_LIFECYCLE_GATE.lock().await;
+    if PRODUCT_STOPPING.load(std::sync::atomic::Ordering::SeqCst) {
+        return NativeJsonOutcome::host_reason("runtime-service-unavailable", false);
+    }
     #[cfg(any(
         feature = "macos-source-local-development",
         feature = "windows-source-local-development"
@@ -960,13 +963,89 @@ pub async fn fixed_runtime_service_start() -> NativeJsonOutcome {
         feature = "windows-source-local-development"
     )))]
     match PlatformDesktopCarrier::default().request_runtime_service_start() {
-        Ok(outcome) => NativeJsonOutcome::success(project_runtime_service_action(outcome)),
+        Ok(_) => {
+            let deadline = tokio::time::Instant::now() + Duration::from_secs(45);
+            loop {
+                match current_or_open_desktop_control().await {
+                    Ok(control) => {
+                        return NativeJsonOutcome::success(project_verified_runtime_release(
+                            control.runtime_service_mode(),
+                            control.runtime_release_version(),
+                        ))
+                    }
+                    Err(error) if error.retryable() && tokio::time::Instant::now() < deadline => {}
+                    Err(error) => return NativeJsonOutcome::host_error(error),
+                }
+                tokio::time::sleep(Duration::from_millis(100)).await;
+            }
+        }
         Err(error) => NativeJsonOutcome::protected_error(error),
+    }
+}
+
+// @nimi-authority: rule.nimi.runtime.protected-session.r006
+#[napi(js_name = "fixedRuntimeServiceStop")]
+pub async fn fixed_runtime_service_stop() -> NativeJsonOutcome {
+    let _lifecycle = PRODUCT_LIFECYCLE_GATE.lock().await;
+    #[cfg(any(
+        feature = "macos-source-local-development",
+        feature = "windows-source-local-development"
+    ))]
+    {
+        return NativeJsonOutcome::host_reason("runtime-service-unavailable", false);
+    }
+    #[cfg(not(any(
+        feature = "macos-source-local-development",
+        feature = "windows-source-local-development"
+    )))]
+    {
+        let mut current = DESKTOP_CONTROL.lock().await;
+        let control = match current.as_ref().cloned() {
+            Some(control) => control,
+            None => {
+                // A failed bootstrap may never have opened a protected channel.
+                // Observe the fixed service first so quit cannot activate it.
+                match PlatformDesktopCarrier::default().runtime_service_status() {
+                    Ok(status) if status.state == nimi_shell_protected_local::RuntimeServiceState::Stopped => {
+                        PRODUCT_STOPPING.store(true, std::sync::atomic::Ordering::SeqCst);
+                        return NativeJsonOutcome::success(serde_json::json!({"state":"stopped","running":false}));
+                    },
+                    Ok(_) => {},
+                    Err(error) => return NativeJsonOutcome::protected_error(error),
+                }
+
+                let opened = match PlatformDesktopCarrier::default()
+                    .open_desktop_control()
+                    .await
+                {
+                    Ok(opened) => opened,
+                    Err(error) => return NativeJsonOutcome::protected_error(error),
+                };
+                let control = Arc::<dyn NimiDesktopControl>::from(opened);
+                *current = Some(control.clone());
+                control
+            }
+        };
+        PRODUCT_STOPPING.store(true, std::sync::atomic::Ordering::SeqCst);
+        let result = control.request_runtime_service_stop().await;
+        if result.is_err() {
+            PRODUCT_STOPPING.store(false, std::sync::atomic::Ordering::SeqCst);
+            return NativeJsonOutcome::protected_error(result.unwrap_err());
+        }
+        *current = None;
+        drop(current);
+        cancel_active_and_clear_completed_first_party_unaries().await;
+        account_events::close_all_account_event_streams().await;
+        bundled_avatar_streams::close_all_bundled_avatar_streams().await;
+        first_party_streams::close_all_first_party_product_streams().await;
+        control.invalidate_cached_transport().await;
+        NativeJsonOutcome::success(project_runtime_service_action(result.unwrap()))
     }
 }
 
 #[napi(js_name = "fixedRuntimeServiceRestart")]
 pub async fn fixed_runtime_service_restart() -> NativeJsonOutcome {
+    let _lifecycle = PRODUCT_LIFECYCLE_GATE.lock().await;
     #[cfg(any(
         feature = "macos-source-local-development",
         feature = "windows-source-local-development"
@@ -984,6 +1063,9 @@ pub async fn fixed_runtime_service_restart() -> NativeJsonOutcome {
         // status/product-control call cannot observe the old transport failure,
         // clear the slot, and win the replacement pipe before the restart verifier.
         let mut current = DESKTOP_CONTROL.lock().await;
+        if PRODUCT_STOPPING.load(std::sync::atomic::Ordering::SeqCst) {
+            return NativeJsonOutcome::host_reason("runtime-service-unavailable", false);
+        }
         let control = match current.as_ref() {
             Some(control) => control.clone(),
             None => {
@@ -1506,6 +1588,9 @@ async fn current_or_open_desktop_control() -> Result<Arc<dyn NimiDesktopControl>
                 );
                 error
             })?;
+    if PRODUCT_STOPPING.load(std::sync::atomic::Ordering::SeqCst) {
+        return Err(desktop_control_unavailable());
+    }
     if let Some(control) = current.as_ref() {
         return Ok(control.clone());
     }

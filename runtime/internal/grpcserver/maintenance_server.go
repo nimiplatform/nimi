@@ -26,6 +26,7 @@ import (
 // serves on its verified Desktop transport (service-operations r092).
 var maintenanceMethods = map[string]struct{}{
 	protectedGetRuntimeServiceStateMethod:                                    {},
+	protectedRequestRuntimeStopMethod:                                        {},
 	protectedRequestRuntimeRestartMethod:                                     {},
 	protectedOpenDesktopSessionMethod:                                        {},
 	"/nimi.runtime.v1.RuntimeLocalService/GetProductControlRecord":           {},
@@ -171,7 +172,7 @@ func newProtectedMaintenanceServer(logger *slog.Logger, cfg config.Config, bindi
 		grpc.UnknownServiceHandler(func(any, grpc.ServerStream) error { return maintenanceRefusal() }),
 	)
 	runtimev1.RegisterRuntimeServiceControlServiceServer(server, runtimecontrolservice.NewMaintenance(
-		bindings.DesktopSessions, bindings.RuntimeRestartRequester, reason,
+		bindings.DesktopSessions, bindings.RuntimeRestartRequester, bindings.RuntimeStopRequester, reason,
 	))
 	runtimev1.RegisterRuntimeAuthServiceServer(server, authservice.NewWithDependencies(
 		logger, audit, 0, 0, authservice.WithDesktopSessionManager(bindings.DesktopSessions),

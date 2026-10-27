@@ -34,6 +34,7 @@ func TestMaintenanceServerServesOnlyTheBoundedSurfaceWithTheTypedReason(t *testi
 	}
 	serviceStateRoot := t.TempDir()
 	var restarts atomic.Int32
+	var stops atomic.Int32
 	refusal := storedformat.Refuse("runtimeagent.conversation", storedformat.OfflineConversion, errors.New("retired layout"))
 	maintenance, err := newProtectedMaintenanceServer(
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
@@ -42,6 +43,7 @@ func TestMaintenanceServerServesOnlyTheBoundedSurfaceWithTheTypedReason(t *testi
 			ServiceStateRoot:        serviceStateRoot,
 			DesktopSessions:         manager,
 			RuntimeRestartRequester: func() bool { restarts.Add(1); return true },
+			RuntimeStopRequester:    func() bool { stops.Add(1); return true },
 		},
 		productControlRoot,
 		localservice.ProductControlDataRootSecurityBinding{},
@@ -135,6 +137,10 @@ func TestMaintenanceServerServesOnlyTheBoundedSurfaceWithTheTypedReason(t *testi
 	restart, err := control.RequestRuntimeRestart(context.Background(), &runtimev1.RequestRuntimeRestartRequest{})
 	if err != nil || !restart.GetAccepted() || restarts.Load() != 1 {
 		t.Fatalf("restart in maintenance = %+v, %v (requests=%d)", restart, err, restarts.Load())
+	}
+	stopped, err := control.RequestRuntimeStop(context.Background(), &runtimev1.RequestRuntimeStopRequest{})
+	if err != nil || !stopped.GetAccepted() || stops.Load() != 1 {
+		t.Fatalf("stop in maintenance = %+v, %v (requests=%d)", stopped, err, stops.Load())
 	}
 	// Session results live in the maintenance plane under the service state
 	// root, never in a data root.

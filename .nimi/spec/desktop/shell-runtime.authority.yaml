@@ -57,11 +57,11 @@ units:
         target: definition.nimi.desktop.shell-runtime.bootstrap-phase-plane
   - id: rule.nimi.desktop.shell-runtime.r003
     kind: rule
-    title: Runtime lifetime is independent of Desktop
+    title: Production Runtime follows the Nimi product lifetime
     modality: must
-    statement: Desktop does not spawn, select, directly stop, or own the Runtime service, and quitting Desktop does not define Runtime lifetime.
+    statement: Production Nimi Home requests the fixed Runtime service at startup through its protected lifecycle boundary. Closing the Home window hides it behind a recoverable system entry and keeps the product running; explicit Nimi quit closes supervised Apps and then requests and verifies Runtime termination before Home exits. Deployment retains service identity, installation and binary ownership, and the separately terminal-owned D2 development Runtime remains outside this production lifecycle.
     condition: Whenever Desktop starts, exits, repairs, or observes Runtime.
-    failure: Use the protected host and trusted service lifecycle boundary.
+    failure: Reject a successful product quit while Runtime or supervised App processes remain alive, direct renderer process control, and default boot or login autostart.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-runtime.security-boundary

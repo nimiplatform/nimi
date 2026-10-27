@@ -148,11 +148,11 @@ units:
         target: definition.nimi.desktop.bridge-ipc.runtime-service-control-plane
   - id: rule.nimi.desktop.bridge-ipc.r010
     kind: rule
-    title: Runtime service lifetime is not Desktop lifetime
-    modality: must_not
-    statement: Closing Desktop stops Runtime, Desktop directly owns the service process, or a renderer selects the Runtime binary or service identity.
+    title: Home coordinates product lifetime through protected service control
+    modality: must
+    statement: The production Home host starts the fixed Runtime through native service control and requests authenticated graceful stop only after supervised Apps close on explicit Nimi quit. The carrier confirms process termination without reconnecting to an on-demand service. Window hiding keeps Runtime running; renderer code never controls the service, selects its binary or identity, or treats a stop acknowledgement as completion.
     condition: Whenever Desktop or Runtime starts or exits.
-    failure: Preserve the independent trusted Runtime service lifecycle.
+    failure: Keep Home available with a visible failure when product shutdown is incomplete and preserve deployment-owned service identity.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.bridge-ipc.runtime-service-control-plane

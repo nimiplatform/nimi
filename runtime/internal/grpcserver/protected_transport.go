@@ -25,6 +25,7 @@ import (
 )
 
 const protectedOpenDesktopSessionMethod = "/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession"
+const protectedRequestRuntimeStopMethod = "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeStop"
 const protectedRequestRuntimeRestartMethod = "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart"
 const protectedGetRuntimeServiceStateMethod = "/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState"
 const protectedDesktopAuditProjectionMethod = "/nimi.runtime.v1.RuntimeAuditService/ListDesktopAuditEvents"
@@ -62,7 +63,7 @@ func protectedDesktopMethodRole(method string) (protectedlocal.OriginRole, bool)
 		return protectedlocal.RoleDesktopAccountHost, true
 	}
 	switch method {
-	case protectedOpenDesktopSessionMethod, protectedRequestRuntimeRestartMethod, protectedGetRuntimeServiceStateMethod:
+	case protectedOpenDesktopSessionMethod, protectedRequestRuntimeStopMethod, protectedRequestRuntimeRestartMethod, protectedGetRuntimeServiceStateMethod:
 		return protectedlocal.RoleVerifiedDesktopProcess, true
 	case "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
 		"/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",

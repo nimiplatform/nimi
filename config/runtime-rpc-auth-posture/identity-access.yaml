@@ -120,6 +120,8 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAppActivityService/ResolveAppActivityOpenLaunch
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeStop
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState

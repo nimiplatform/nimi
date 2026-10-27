@@ -89,3 +89,33 @@ pub trait FixedRuntimeServiceControl: Send + Sync {
         >,
     >;
 }
+
+// @nimi-authority: rule.nimi.runtime.protected-session.r006
+#[cfg(not(any(
+    feature = "macos-source-local-development",
+    feature = "windows-source-local-development"
+)))]
+pub(crate) async fn request_runtime_stop(
+    channel: tonic::transport::Channel,
+) -> Result<(), ProtectedCarrierError> {
+    let mut request = tonic::Request::new(crate::generated::RequestRuntimeStopRequest {});
+    request.set_timeout(std::time::Duration::from_secs(10));
+    let result = crate::grpc_limits::runtime_service_control_client(channel)
+        .request_runtime_stop(request)
+        .await;
+    match result {
+        Ok(response) if response.get_ref().accepted => Ok(()),
+        Err(status)
+            if matches!(
+                status.code(),
+                tonic::Code::Unavailable | tonic::Code::Cancelled | tonic::Code::Unknown
+            ) =>
+        {
+            Ok(())
+        }
+        _ => Err(ProtectedCarrierError::new(
+            ProtectedCarrierReasonCode::RuntimeServiceUntrusted,
+            false,
+        )),
+    }
+}

@@ -594,7 +594,7 @@ func install(version, jobPath, requestHash string) error {
 	if commandErr != nil {
 		return commandErr
 	}
-	config := mgr.Config{ServiceType: windows.SERVICE_WIN32_OWN_PROCESS, StartType: mgr.StartAutomatic, ErrorControl: mgr.ErrorNormal, DisplayName: "Nimi Runtime", ServiceStartName: "LocalSystem", BinaryPathName: binaryPath}
+	config := mgr.Config{ServiceType: windows.SERVICE_WIN32_OWN_PROCESS, StartType: mgr.StartManual, ErrorControl: mgr.ErrorNormal, DisplayName: "Nimi Runtime", ServiceStartName: "LocalSystem", BinaryPathName: binaryPath}
 	if err == nil {
 		defer func() { _ = service.Close() }()
 		prior, err := service.Config()
@@ -640,7 +640,7 @@ func install(version, jobPath, requestHash string) error {
 				}
 			}
 		}
-		if !completion {
+		if !completion || prior.StartType != mgr.StartManual {
 			if err := service.UpdateConfig(config); err != nil {
 				return err
 			}
@@ -684,6 +684,12 @@ func install(version, jobPath, requestHash string) error {
 	status, err := service.Query()
 	if err != nil {
 		return err
+	}
+	// @nimi-authority: rule.nimi.platform.product-lifecycle.p-home-runtime-lifecycle
+	// A fresh install only registers the service. Home starts it on demand;
+	// an authorized update still performs its guarded activation handoff.
+	if jobPath == "" && status.State == svc.Stopped {
+		return nil
 	}
 	if status.State == svc.Stopped {
 		if err := service.Start(); err != nil {

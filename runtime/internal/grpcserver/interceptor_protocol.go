@@ -216,6 +216,7 @@ func isWriteMethod(fullMethod string) bool {
 		"/nimi.runtime.v1.RuntimeAgentService/DeletePortableAIProfile",
 		"/nimi.runtime.v1.RuntimeExternalAgentService/IssueExternalAgentToken",
 		"/nimi.runtime.v1.RuntimeExternalAgentService/RevokeExternalAgentToken",
+		"/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeStop",
 		"/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart",
 		"/nimi.runtime.v1.RuntimeAuthService/OpenDesktopSession",
 		"/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession",

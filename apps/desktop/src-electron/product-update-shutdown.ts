@@ -36,3 +36,24 @@ export async function runDesktopShutdownSteps(steps: readonly DesktopShutdownSte
   }
   return { criticalCleanupComplete: criticalFailures.length === 0, criticalFailures, diagnostics };
 }
+
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-home-runtime-lifecycle
+// Keep the UI and bridge available until Apps and Runtime are confirmed closed.
+// The installer retains Runtime handoff for updates and Home relaunches retain
+// the same product session; neither uses ordinary product-stop here.
+export async function runDesktopProductShutdown(input: {
+  steps: readonly DesktopShutdownStep[];
+  forUpdate: boolean;
+  stopRuntime?: () => Promise<void>;
+}): Promise<DesktopShutdownReport> {
+  const owned = await runDesktopShutdownSteps(input.steps.filter(step => step.critical));
+  if (input.forUpdate || !owned.criticalCleanupComplete) return owned;
+  if (input.stopRuntime) {
+    const runtime = await runDesktopShutdownSteps([
+      { operation: 'runtime-service', critical: true, timeoutMs: 45_000, run: input.stopRuntime },
+    ]);
+    if (!runtime.criticalCleanupComplete) return { ...runtime, diagnostics: owned.diagnostics };
+  }
+  const presentation = await runDesktopShutdownSteps(input.steps.filter(step => !step.critical));
+  return { ...owned, diagnostics: [...owned.diagnostics, ...presentation.diagnostics] };
+}

@@ -7,7 +7,7 @@ const names = { status: 'status', start: 'start', restart: 'restart' };
 
 test('a newly installed service without a BTM record attempts native registration', async () => {
   const operations: string[] = [];
-  const host = createDesktopMacOSRuntimeServiceHost({
+  const host = createDesktopMacOSRuntimeServiceHost({ stop: async () => {},
     invoke: async () => { throw new Error('service is not approved yet'); },
   }, {
     registration: async (operation) => { operations.push(operation); return operation === 'status' ? 3 : 2; },
@@ -23,7 +23,7 @@ test('opening settings stops bootstrap until the native approval state changes',
   const operations: string[] = [];
   let registrationStatus = 2;
   let prompts = 0;
-  const host = createDesktopMacOSRuntimeServiceHost({
+  const host = createDesktopMacOSRuntimeServiceHost({ stop: async () => {},
     invoke: async () => {
       assert.equal(registrationStatus, 1, 'protected Runtime is queried only after approval');
       return { running: true };
@@ -44,7 +44,7 @@ test('opening settings stops bootstrap until the native approval state changes',
 test('pending administrator approval remains unavailable and does not repeatedly register', async () => {
   const operations: string[] = [];
   let registrationStatus = 0;
-  const host = createDesktopMacOSRuntimeServiceHost({
+  const host = createDesktopMacOSRuntimeServiceHost({ stop: async () => {},
     invoke: async () => { throw new Error('protected Runtime must not be called before approval'); },
   }, {
     registration: async (operation) => {
@@ -68,7 +68,7 @@ test('pending administrator approval remains unavailable and does not repeatedly
 test('an explicit start repairs an enabled registration whose update removed the socket', async () => {
   const operations: string[] = [];
   const ownerResult = { running: false, lastError: 'runtime-starting' };
-  const host = createDesktopMacOSRuntimeServiceHost({
+  const host = createDesktopMacOSRuntimeServiceHost({ stop: async () => {},
     invoke: async (command) => { operations.push(`runtime:${command}`); return ownerResult; },
   }, {
     registration: async (operation) => { operations.push(operation); return operation === 'unregister' ? 0 : 1; },
@@ -84,7 +84,7 @@ test('an update retries the temporary disabled BTM disposition after successful 
   const operations: string[] = [];
   let status = 1;
   let attempts = 0;
-  const host = createDesktopMacOSRuntimeServiceHost({ invoke: async () => ({ running: true }) }, {
+  const host = createDesktopMacOSRuntimeServiceHost({ stop: async () => {}, invoke: async () => ({ running: true }) }, {
     registration: async (operation) => {
       operations.push(operation);
       if (operation === 'unregister') status = 0;
@@ -104,7 +104,7 @@ test('an update retries the temporary disabled BTM disposition after successful 
 
 test('an update does not retry a trust failure as temporary registration state', async () => {
   const operations: string[] = [];
-  const host = createDesktopMacOSRuntimeServiceHost({ invoke: async () => ({ running: false }) }, {
+  const host = createDesktopMacOSRuntimeServiceHost({ stop: async () => {}, invoke: async () => ({ running: false }) }, {
     registration: async (operation) => {
       operations.push(operation);
       if (operation === 'register') throw new Error('runtime-service-untrusted');
@@ -120,7 +120,7 @@ test('an update does not retry a trust failure as temporary registration state',
 
 test('bootstrap waits for protected Runtime running after registration', async () => {
   const commands: string[] = [];
-  const host = createDesktopMacOSRuntimeServiceHost({
+  const host = createDesktopMacOSRuntimeServiceHost({ stop: async () => {},
     invoke: async (command) => {
       commands.push(command);
       return { running: command === names.status };
@@ -136,7 +136,7 @@ test('bootstrap waits for protected Runtime running after registration', async (
 });
 
 test('bootstrap propagates a protected Runtime failure instead of admitting the registered service', async () => {
-  const host = createDesktopMacOSRuntimeServiceHost({
+  const host = createDesktopMacOSRuntimeServiceHost({ stop: async () => {},
     invoke: async () => { throw new Error('runtime-service-untrusted'); },
   }, {
     registration: async () => 1,
@@ -159,6 +159,7 @@ test('bootstrap retries unavailable status from the formal lifecycle adapter', a
         state: 'running', running: true, releasePosture: 'release', releaseVersion: '0.2.0',
       } },
     fixedRuntimeServiceRestart: async () => { throw new Error('not used'); },
+    fixedRuntimeServiceStop: async () => { throw new Error('not used'); },
   }, 'protected-desktop-control');
   const host = createDesktopMacOSRuntimeServiceHost(base, {
     registration: async () => 1,
@@ -183,6 +184,7 @@ test('bootstrap preserves non-retryable lifecycle failures', async () => {
     const host = createDesktopMacOSRuntimeServiceHost(createNimiElectronFixedRuntimeLifecycleHostForBinding({
       fixedRuntimeServiceStart: failure,
       fixedRuntimeServiceStatus: failure,
+      fixedRuntimeServiceStop: async () => ({ status: 'ok' as const, value: { state: 'stopped', running: false } }),
       fixedRuntimeServiceRestart: failure,
     }, 'protected-desktop-control'), {
       registration: async () => 1,
@@ -197,7 +199,7 @@ test('bootstrap preserves non-retryable lifecycle failures', async () => {
 
 test('a running installation is not reregistered and uninstall errors propagate', async () => {
   const operations: string[] = [];
-  const host = createDesktopMacOSRuntimeServiceHost({ invoke: async () => ({ running: true }) }, {
+  const host = createDesktopMacOSRuntimeServiceHost({ stop: async () => {}, invoke: async () => ({ running: true }) }, {
     registration: async (operation) => { operations.push(operation); return 1; },
     socketExists: () => true,
     showApproval: async () => false,
@@ -210,7 +212,7 @@ test('a running installation is not reregistered and uninstall errors propagate'
 
 test('a Runtime that refused its stored data lets Home continue to recovery instead of failing start', async () => {
   const commands: string[] = [];
-  const host = createDesktopMacOSRuntimeServiceHost({
+  const host = createDesktopMacOSRuntimeServiceHost({ stop: async () => {},
     invoke: async (command) => {
       commands.push(command);
       return { running: false, lastError: 'runtime-stored-data-unsupported' };
@@ -227,11 +229,27 @@ test('a Runtime that refused its stored data lets Home continue to recovery inst
 
 test('an unknown startup failure leaves the same owner available for an explicit retry', async () => {
   let failed = true;
-  const host = createDesktopMacOSRuntimeServiceHost({ invoke: async () => {
+  const host = createDesktopMacOSRuntimeServiceHost({ stop: async () => {}, invoke: async () => {
     if (failed) throw new Error('unclassified storage error');
     return { running: true };
   } }, { registration: async () => 1, socketExists: () => true, showApproval: async () => false, runtimeEndpoint: 'protected-desktop-control' });
   await assert.rejects(host.prepare(names), /unclassified storage error/);
   failed = false;
   assert.equal(await host.prepare(names), 'ready');
+});
+
+
+test('product quit stops the registered service without unregistering it and propagates stop failure', async () => {
+  const calls: string[] = [];
+  const host = createDesktopMacOSRuntimeServiceHost({
+    invoke: async () => { calls.push('start'); return { running: true }; },
+    stop: async () => { calls.push('stop'); throw new Error('runtime-service-unavailable'); },
+  }, {
+    registration: async (operation) => { calls.push(operation); return 1; },
+    socketExists: () => true, showApproval: async () => false, runtimeEndpoint: 'protected-desktop-control',
+  });
+  await host.prepare(names);
+  calls.length = 0;
+  await assert.rejects(host.stop(), /runtime-service-unavailable/);
+  assert.deepEqual(calls, ['stop']);
 });

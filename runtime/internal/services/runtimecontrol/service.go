@@ -10,7 +10,7 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
-type RestartRequester func() bool
+type LifecycleRequester func() bool
 
 // Service owns only the protected Runtime self-exit trigger and the typed
 // service mode. SCM recovery, service definition, process replacement, and
@@ -18,21 +18,36 @@ type RestartRequester func() bool
 type Service struct {
 	runtimev1.UnimplementedRuntimeServiceControlServiceServer
 	desktopSessions   *protectedlocal.DesktopSessionManager
-	requestRestart    RestartRequester
+	requestRestart    LifecycleRequester
+	requestStop       LifecycleRequester
 	maintenanceReason runtimev1.ReasonCode
 }
 
 // New serves the ordinary protected Runtime.
-func New(desktopSessions *protectedlocal.DesktopSessionManager, requestRestart RestartRequester) *Service {
-	return &Service{desktopSessions: desktopSessions, requestRestart: requestRestart}
+func New(desktopSessions *protectedlocal.DesktopSessionManager, requestRestart LifecycleRequester, requestStop LifecycleRequester) *Service {
+	return &Service{desktopSessions: desktopSessions, requestRestart: requestRestart, requestStop: requestStop}
 }
 
 // NewMaintenance serves a Runtime that refused ordinary startup for reason.
-func NewMaintenance(desktopSessions *protectedlocal.DesktopSessionManager, requestRestart RestartRequester, reason runtimev1.ReasonCode) *Service {
+func NewMaintenance(desktopSessions *protectedlocal.DesktopSessionManager, requestRestart LifecycleRequester, requestStop LifecycleRequester, reason runtimev1.ReasonCode) *Service {
 	if reason == runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 		reason = runtimev1.ReasonCode_RUNTIME_STORED_DATA_UNSUPPORTED
 	}
-	return &Service{desktopSessions: desktopSessions, requestRestart: requestRestart, maintenanceReason: reason}
+	return &Service{desktopSessions: desktopSessions, requestRestart: requestRestart, requestStop: requestStop, maintenanceReason: reason}
+}
+
+// @nimi-authority: rule.nimi.runtime.protected-session.r006
+func (service *Service) RequestRuntimeStop(ctx context.Context, _ *runtimev1.RequestRuntimeStopRequest) (*runtimev1.RequestRuntimeStopResponse, error) {
+	if service == nil || service.desktopSessions == nil || service.requestStop == nil {
+		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE)
+	}
+	if err := service.desktopSessions.AuthorizeContext(ctx, protectedlocal.RoleVerifiedDesktopProcess); err != nil {
+		return nil, protectedLifecycleAuthorizationError(err)
+	}
+	if !service.requestStop() {
+		return nil, grpcerr.WithReasonCode(codes.Aborted, runtimev1.ReasonCode_PROTECTED_LOCAL_BOOT_EPOCH_MISMATCH)
+	}
+	return &runtimev1.RequestRuntimeStopResponse{Accepted: true, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
 // @nimi-authority: rule.nimi.runtime.protected-session.r034
@@ -47,7 +62,7 @@ func (service *Service) GetRuntimeServiceState(ctx context.Context, _ *runtimev1
 		})
 	}
 	if err := service.desktopSessions.AuthorizeContext(ctx, protectedlocal.RoleVerifiedDesktopProcess); err != nil {
-		return nil, protectedRestartAuthorizationError(err)
+		return nil, protectedLifecycleAuthorizationError(err)
 	}
 	if service.maintenanceReason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
 		return &runtimev1.GetRuntimeServiceStateResponse{
@@ -67,7 +82,7 @@ func (service *Service) RequestRuntimeRestart(ctx context.Context, _ *runtimev1.
 		})
 	}
 	if err := service.desktopSessions.AuthorizeContext(ctx, protectedlocal.RoleVerifiedDesktopProcess); err != nil {
-		return nil, protectedRestartAuthorizationError(err)
+		return nil, protectedLifecycleAuthorizationError(err)
 	}
 	if !service.requestRestart() {
 		retryable := true
@@ -79,14 +94,14 @@ func (service *Service) RequestRuntimeRestart(ctx context.Context, _ *runtimev1.
 	return &runtimev1.RequestRuntimeRestartResponse{Accepted: true, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
-func protectedRestartAuthorizationError(err error) error {
+func protectedLifecycleAuthorizationError(err error) error {
 	var failure *protectedlocal.Failure
 	if !errors.As(err, &failure) {
 		return grpcerr.WrapWithReasonCode(
 			codes.Unavailable,
 			runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE,
 			err,
-			grpcerr.ReasonOptions{Message: "runtime restart authorization failed"},
+			grpcerr.ReasonOptions{Message: "runtime lifecycle authorization failed"},
 		)
 	}
 	reasonValue, ok := runtimev1.ReasonCode_value[string(failure.Reason())]
@@ -95,13 +110,13 @@ func protectedRestartAuthorizationError(err error) error {
 			codes.Unavailable,
 			runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE,
 			err,
-			grpcerr.ReasonOptions{Message: "runtime restart authorization failed"},
+			grpcerr.ReasonOptions{Message: "runtime lifecycle authorization failed"},
 		)
 	}
 	retryable := failure.Retryable()
 	return grpcerr.WrapWithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode(reasonValue), err, grpcerr.ReasonOptions{
 		ActionHint: failure.ActionHint(),
 		Retryable:  &retryable,
-		Message:    "runtime restart authorization failed",
+		Message:    "runtime lifecycle authorization failed",
 	})
 }

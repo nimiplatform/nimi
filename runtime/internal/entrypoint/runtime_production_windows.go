@@ -177,6 +177,12 @@ func (service *windowsRuntimeService) Execute(_ []string, requests <-chan svc.Ch
 			}
 			readyReached = true
 		case err := <-done:
+			if runtimeDaemon.ProductStopRequested() {
+				if err != nil {
+					writeWindowsRuntimeFailure(err)
+				}
+				return false, 0
+			}
 			if err != nil {
 				writeWindowsRuntimeFailure(err)
 				return true, uint32(windowsRuntimeStartupDaemon)
@@ -190,6 +196,12 @@ func (service *windowsRuntimeService) Execute(_ []string, requests <-chan svc.Ch
 	startTicker.Stop()
 	select {
 	case err := <-done:
+		if runtimeDaemon.ProductStopRequested() {
+			if err != nil {
+				writeWindowsRuntimeFailure(err)
+			}
+			return false, 0
+		}
 		if err != nil {
 			writeWindowsRuntimeFailure(err)
 			return true, uint32(windowsRuntimeStartupDaemon)
@@ -226,6 +238,12 @@ func (service *windowsRuntimeService) Execute(_ []string, requests <-chan svc.Ch
 			// direct stop/start sequence.
 			return true, windowsRuntimeServiceRestartExitCode
 		case err := <-done:
+			if runtimeDaemon.ProductStopRequested() {
+				if err != nil {
+					writeWindowsRuntimeFailure(err)
+				}
+				return false, 0
+			}
 			if err != nil {
 				writeWindowsRuntimeFailure(err)
 				return false, 1

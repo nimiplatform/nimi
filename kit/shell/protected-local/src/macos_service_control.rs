@@ -3,9 +3,9 @@ use std::future::Future;
 use std::io;
 use std::os::fd::AsRawFd;
 use std::pin::Pin;
-use std::sync::{Arc, Mutex};
 #[cfg(feature = "macos-source-local-development")]
 use std::sync::OnceLock;
+use std::sync::{Arc, Mutex};
 
 use hyper_util::rt::TokioIo;
 use tokio::net::UnixStream;
@@ -16,8 +16,6 @@ use tower::service_fn;
 
 #[cfg(not(feature = "macos-source-local-development"))]
 use crate::generated::RequestRuntimeRestartRequest;
-#[cfg(not(feature = "macos-source-local-development"))]
-use crate::RuntimeServiceState;
 #[cfg(feature = "macos-source-local-development")]
 use crate::local_development::local_development_rebind_candidate_is_stale;
 use crate::macos_peer_trust::{
@@ -25,6 +23,8 @@ use crate::macos_peer_trust::{
 };
 use crate::macos_supervised_process::SupervisedDevelopmentProcess;
 use crate::RuntimeServiceMode;
+#[cfg(not(feature = "macos-source-local-development"))]
+use crate::RuntimeServiceState;
 use crate::{
     BundledAvatarRuntimeClientStreamRequest, BundledAvatarRuntimeError,
     BundledAvatarRuntimeRequest, BundledAvatarRuntimeResponse, BundledAvatarRuntimeStreamReceiver,
@@ -97,6 +97,8 @@ type SupervisedDevelopmentRegistry = Arc<Mutex<HashMap<[u8; 32], SupervisedDevel
 
 struct MacOSDesktopControl {
     channel: Channel,
+    #[cfg(not(feature = "macos-source-local-development"))]
+    runtime_pid: libc::pid_t,
     service_mode: RuntimeServiceMode,
     development_processes: SupervisedDevelopmentRegistry,
     #[cfg(feature = "macos-source-local-development")]
@@ -291,6 +293,28 @@ impl NimiDesktopControl for MacOSDesktopControl {
             )
             .await
         })
+    }
+
+    fn request_runtime_service_stop(
+        &self,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<RuntimeServiceActionOutcome, ProtectedCarrierError>>
+                + Send
+                + '_,
+        >,
+    > {
+        #[cfg(feature = "macos-source-local-development")]
+        {
+            Box::pin(async { Err(unavailable()) })
+        }
+        #[cfg(not(feature = "macos-source-local-development"))]
+        {
+            Box::pin(request_runtime_stop_on_channel(
+                self.channel.clone(),
+                self.runtime_pid,
+            ))
+        }
     }
 
     fn request_runtime_service_restart(
@@ -524,8 +548,19 @@ impl NimiDesktopControl for MacOSDesktopControl {
         })
     }
 
-    fn local_development_run_access(&self, request: crate::LocalDevelopmentRunAccessRequest) -> Pin<Box<dyn Future<Output = Result<crate::LocalDevelopmentRunAccess, NimiHostError>> + Send + '_>> {
-        Box::pin(async move { crate::windows_local_development::run_access(self.host_channel()?, request).await })
+    fn local_development_run_access(
+        &self,
+        request: crate::LocalDevelopmentRunAccessRequest,
+    ) -> Pin<
+        Box<
+            dyn Future<Output = Result<crate::LocalDevelopmentRunAccess, NimiHostError>>
+                + Send
+                + '_,
+        >,
+    > {
+        Box::pin(async move {
+            crate::windows_local_development::run_access(self.host_channel()?, request).await
+        })
     }
 
     fn local_development_host_status(
@@ -712,7 +747,7 @@ impl NimiProtectedLocalHostCarrier for MacOsUnixSocketCarrier {
                 .map_err(|_| repair_required())?
                 .map_err(|_| repair_required())?;
             }
-            let channel = open_verified_runtime_channel().await?;
+            let (channel, _runtime_pid) = open_verified_runtime_channel().await?;
             // The typed mode comes first: a maintenance Runtime serves no
             // development rebind or readiness roundtrip.
             let service_mode =
@@ -732,6 +767,8 @@ impl NimiProtectedLocalHostCarrier for MacOsUnixSocketCarrier {
             }
             Ok(Box::new(MacOSDesktopControl {
                 channel,
+                #[cfg(not(feature = "macos-source-local-development"))]
+                runtime_pid: _runtime_pid,
                 service_mode,
                 development_processes,
                 #[cfg(feature = "macos-source-local-development")]
@@ -779,11 +816,7 @@ impl FixedRuntimeServiceControl for MacOsUnixSocketCarrier {
         #[cfg(not(feature = "macos-source-local-development"))]
         match macos_service_status()? {
             SERVICE_NOT_REGISTERED => Ok(service_status(RuntimeServiceState::Stopped, None, true)),
-            SERVICE_ENABLED => Ok(service_status(
-                RuntimeServiceState::StartPending,
-                None,
-                true,
-            )),
+            SERVICE_ENABLED => Ok(service_status(read_registered_runtime_state()?, None, false)),
             SERVICE_REQUIRES_APPROVAL => Ok(service_status(
                 RuntimeServiceState::StartPending,
                 Some(ProtectedCarrierReasonCode::RuntimeServiceRepairRequired),
@@ -835,14 +868,14 @@ impl FixedRuntimeServiceControl for MacOsUnixSocketCarrier {
         #[cfg(not(feature = "macos-source-local-development"))]
         {
             Box::pin(async {
-                let channel = open_verified_runtime_channel().await?;
+                let (channel, _) = open_verified_runtime_channel().await?;
                 request_runtime_restart_on_channel(channel).await
             })
         }
     }
 }
 
-async fn open_verified_runtime_channel() -> Result<Channel, ProtectedCarrierError> {
+async fn open_verified_runtime_channel() -> Result<(Channel, libc::pid_t), ProtectedCarrierError> {
     #[cfg(not(feature = "macos-source-local-development"))]
     if macos_service_status()? != SERVICE_ENABLED {
         return Err(unavailable());
@@ -853,9 +886,16 @@ async fn open_verified_runtime_channel() -> Result<Channel, ProtectedCarrierErro
         .await
         .map_err(|_| unavailable())?;
     verify_runtime_peer_once(stream.as_raw_fd(), socket_text)?;
+    #[cfg(not(feature = "macos-source-local-development"))]
+    let runtime_pid = verified_socket_peer_pid(stream.as_raw_fd())?;
+    #[cfg(feature = "macos-source-local-development")]
+    let runtime_pid = 0;
     // Peer identity has passed the fixed production policy. A failed HTTP/2
     // handshake means this verified service connection is not ready.
-    channel_from_verified_socket(stream, unavailable).await
+    Ok((
+        channel_from_verified_socket(stream, unavailable).await?,
+        runtime_pid,
+    ))
 }
 
 pub(crate) async fn open_verified_local_app_runtime_channel(
@@ -1148,5 +1188,112 @@ mod source_local_development_readiness_tests {
         assert!(!error.retryable());
         accepted.await.expect("accept task");
         let _ = std::fs::remove_file(&path);
+    }
+}
+
+#[cfg(not(feature = "macos-source-local-development"))]
+fn verified_socket_peer_pid(fd: std::os::fd::RawFd) -> Result<libc::pid_t, ProtectedCarrierError> {
+    let mut pid: libc::pid_t = 0;
+    let mut size = std::mem::size_of_val(&pid) as libc::socklen_t;
+    // The connected socket has already passed the fixed Runtime peer policy.
+    let result = unsafe {
+        libc::getsockopt(
+            fd,
+            libc::SOL_LOCAL,
+            libc::LOCAL_PEERPID,
+            (&mut pid as *mut libc::pid_t).cast(),
+            &mut size,
+        )
+    };
+    if result != 0 || pid <= 0 {
+        return Err(untrusted());
+    }
+    Ok(pid)
+}
+
+#[cfg(not(feature = "macos-source-local-development"))]
+async fn request_runtime_stop_on_channel(
+    channel: Channel,
+    pid: libc::pid_t,
+) -> Result<RuntimeServiceActionOutcome, ProtectedCarrierError> {
+    if runtime_process_exists(pid)? {
+        crate::service::request_runtime_stop(channel).await?;
+        let deadline = tokio::time::Instant::now() + std::time::Duration::from_secs(30);
+        while runtime_process_exists(pid)? {
+            if tokio::time::Instant::now() >= deadline {
+                return Err(unavailable());
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+        }
+    }
+    Ok(service_outcome(RuntimeServiceState::Stopped, None, false))
+}
+
+#[cfg(not(feature = "macos-source-local-development"))]
+fn runtime_process_exists(pid: libc::pid_t) -> Result<bool, ProtectedCarrierError> {
+    if pid <= 0 {
+        return Err(untrusted());
+    }
+    // Signal zero only observes existence. EPERM is expected for the isolated
+    // service account and means alive. PID reuse conservatively blocks success.
+    if unsafe { libc::kill(pid, 0) } == 0 {
+        return Ok(true);
+    }
+    match io::Error::last_os_error().raw_os_error() {
+        Some(libc::ESRCH) => Ok(false),
+        Some(libc::EPERM) => Ok(true),
+        _ => Err(unavailable()),
+    }
+}
+
+#[cfg(all(test, not(feature = "macos-source-local-development")))]
+mod product_stop_tests {
+    #[test]
+    fn process_observation_distinguishes_a_live_process_from_its_confirmed_exit() {
+        let mut child = std::process::Command::new("/bin/sleep")
+            .arg("5")
+            .spawn()
+            .unwrap();
+        let pid = child.id() as libc::pid_t;
+        let before = super::runtime_process_exists(pid);
+        child.kill().unwrap();
+        child.wait().unwrap();
+        assert!(before.unwrap());
+        assert!(!super::runtime_process_exists(pid).unwrap());
+        assert!(super::runtime_process_exists(0).is_err());
+    }
+}
+
+// A stop check must never connect to launchd's activation socket.
+#[cfg(not(feature = "macos-source-local-development"))]
+fn read_registered_runtime_state() -> Result<RuntimeServiceState, ProtectedCarrierError> {
+    let output = std::process::Command::new("/bin/launchctl")
+        .args(["print", &format!("system/{}", crate::macos_profile::RUNTIME_SERVICE_LABEL)])
+        .output().map_err(|_| unavailable())?;
+    if !output.status.success() || output.stdout.len() > 65_536 { return Err(unavailable()); }
+    parse_launchd_runtime_state(std::str::from_utf8(&output.stdout).map_err(|_| untrusted())?)
+}
+
+#[cfg(not(feature = "macos-source-local-development"))]
+fn parse_launchd_runtime_state(text: &str) -> Result<RuntimeServiceState, ProtectedCarrierError> {
+    let state = text.lines().find_map(|line| line.strip_prefix("\tstate = "));
+    let pid = text.lines().find_map(|line| line.strip_prefix("\tpid = "));
+    match (state, pid) {
+        (Some("not running"), None) => Ok(RuntimeServiceState::Stopped),
+        (Some("running"), Some(value)) if value.parse::<u32>().is_ok_and(|pid| pid > 1) => Ok(RuntimeServiceState::Running),
+        _ => Err(unavailable()),
+    }
+}
+
+#[cfg(all(test, not(feature = "macos-source-local-development")))]
+mod launchd_status_tests {
+    #[test]
+    fn only_an_explicit_stopped_service_is_admitted_as_stopped() {
+        use crate::RuntimeServiceState;
+        assert_eq!(super::parse_launchd_runtime_state("system/service = {\n\tstate = not running\n\t\tpid = 99\n}").unwrap(), RuntimeServiceState::Stopped);
+        assert_eq!(super::parse_launchd_runtime_state("\tstate = running\n\tpid = 123\n").unwrap(), RuntimeServiceState::Running);
+        for value in ["", "\tstate = waiting", "\tstate = not running\n\tpid = 123", "\tstate = running\n\tpid = 0"] {
+            assert!(super::parse_launchd_runtime_state(value).is_err());
+        }
     }
 }

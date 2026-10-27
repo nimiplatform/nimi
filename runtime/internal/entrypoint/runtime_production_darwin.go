@@ -88,8 +88,8 @@ func runProductionDaemon(version string) (resultErr error) {
 		if err != nil && !errors.Is(err, context.Canceled) {
 			return fmt.Errorf("macOS Runtime restart requested after shutdown failure: %w", err)
 		}
-		// launchd's SuccessfulExit=false recovery policy replaces the process;
-		// Desktop never receives direct service-control authority.
+		// Home's next verified socket connection activates the replacement.
+		// The service has no boot/login launch or unconditional keep-alive.
 		return fmt.Errorf("macOS Runtime restart requested")
 	}
 	return err

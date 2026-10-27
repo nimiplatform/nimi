@@ -1625,3 +1625,17 @@ units:
         target: definition.nimi.platform.product-lifecycle.home-surface
       - type: applies_to
         target: definition.nimi.platform.product-lifecycle.release-bundle
+  - id: definition.nimi.platform.product-lifecycle.product-process-lifecycle
+    kind: definition
+    title: Nimi installed product process lifecycle
+    meaning: The installed Nimi product comprises the replaceable Home host, its supervised Apps and the isolated fixed Runtime service; process isolation does not imply an independently enabled background product session. The explicit terminal-owned D2 development topology remains separate.
+  - id: rule.nimi.platform.product-lifecycle.p-home-runtime-lifecycle
+    kind: rule
+    title: Home starts and explicitly exits the complete installed product
+    modality: must
+    statement: Opening production Nimi Home starts its fixed Runtime through the protected native service boundary. Closing the Home window only hides it while a recoverable tray or menu-bar entry exists. Explicit Quit Nimi closes supervised Apps and their pending launches, gracefully stops Runtime and its supervised compute processes, verifies their termination, and then exits Home; cancellation preserves the running session and an incomplete stop stays visible with a retry path. Home and Runtime do not start automatically at boot or login by default. Deployment continues to own installation, service identity, replacement and uninstall; update and data-root relaunch retain their existing guarded handoff and may restart Runtime for the continuing Home session. Service registration alone and an accepted stop request never prove a running or stopped process.
+    condition: Whenever the installed product is installed, started, hidden, quit, updated or restarted.
+    failure: Reject silent independent Runtime persistence after successful product quit, default boot or login autostart, direct renderer service control, and acknowledgement-only shutdown success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.product-lifecycle.product-process-lifecycle

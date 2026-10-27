@@ -83,11 +83,7 @@ func installCandidate(root: URL) throws -> [String: Any] {
     try ensureDirectory(socketRoot, owner: 0, group: 0, mode: 0o755)
     try runFixed(generatedRuntimeExecutablePath, ["macos-protected-state-provision"])
     try runFixed("/bin/launchctl", ["bootstrap", "system", generatedLaunchDaemonPath])
-    let pid = try waitForRuntime(previousPID: nil)
-    return [
-        "status": "installed", "state": "running", "pid": pid,
-        "serviceName": generatedLaunchDaemonLabel,
-    ]
+    return try installedServiceResult("installed")
 }
 
 func updateCandidate(root: URL) throws -> [String: Any] {
@@ -104,7 +100,6 @@ func updateCandidate(root: URL) throws -> [String: Any] {
     )
     let principal = try requireRuntimePrincipal()
     try requireRuntimeStateDirectory(principal)
-    let previousPID = try? launchdPID()
 
     try terminateInstalledDesktopProcesses()
     try stopLaunchdJob()
@@ -127,11 +122,24 @@ func updateCandidate(root: URL) throws -> [String: Any] {
         generatedInstallerHelperPath
     )
     try runFixed("/bin/launchctl", ["bootstrap", "system", generatedLaunchDaemonPath])
-    let pid = try waitForRuntime(previousPID: previousPID)
-    return [
-        "status": "updated", "state": "running", "pid": pid,
-        "serviceName": generatedLaunchDaemonLabel,
-    ]
+    return try installedServiceResult("updated")
+}
+
+// Installation registers the on-demand job; only opening Home starts Runtime.
+// Preserve an actual running observation if the user opened Home concurrently.
+private func installedServiceResult(_ operation: String) throws -> [String: Any] {
+    let registered = try launchdJobPresent()
+    try requireThat(
+        registered, "runtime-service-unavailable", "inspect_launchd_logs",
+        "The on-demand Runtime job was not registered."
+    )
+    var result = try serviceStatus()
+    try requireThat(
+        result["status"] as? String == "present", "runtime-service-repair-required",
+        "inspect_installed_runtime", "Runtime installation is incomplete."
+    )
+    result["status"] = operation
+    return result
 }
 
 func restartService() throws -> [String: Any] {
