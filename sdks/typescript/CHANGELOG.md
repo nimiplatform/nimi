@@ -2,6 +2,13 @@
 
 # SDK migration notes
 
+## 0.22.2 — 2026-10-27
+
+Fix WorldCore list/create projection to preserve Realm-owned optional
+`core.narrative` and `core.discovery`, matching exact get/replace. Canonical
+world settings and discovery topics no longer cause the entire list to reject.
+Use Kit/native 0.22.1 and the matching Runtime for world pages above 1 MiB.
+
 ## 0.22.1 — 2026-10-27
 
 Fix owner PersonaCharacter projection to preserve the existing Realm identity

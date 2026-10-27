@@ -1,11 +1,41 @@
 package account
 
 import (
+	"encoding/json"
+	"fmt"
 	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
+
+func TestLocalAppWorldCoreListPreservesLargeCanonicalSettingsAndDiscovery(t *testing.T) {
+	setting := strings.Repeat("A fictional harbor. ", 1800)
+	rows := make([]string, 50)
+	for index := range rows {
+		rows[index] = strings.Replace(validLocalAppWorldCoreJSON(fmt.Sprintf("world-%d", index)),
+			`"presentation":{}`, `"presentation":{},"narrative":{"setting":"`+setting+`"},"discovery":{"topicIds":["journey"]}`, 1)
+	}
+	body := "[" + strings.Join(rows, ",") + "]"
+	if len(body) <= 1<<20 {
+		t.Fatal("regression page must exceed the former limit")
+	}
+	response := projectLocalAppWorldCoreListResponse(&runtimev1.InvokeRealmUnaryResponse{
+		Accepted: true, ResponseJson: body, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED,
+		AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, HttpStatus: 200,
+	})
+	if !response.GetAccepted() {
+		t.Fatal("valid canonical world page rejected")
+	}
+	var worlds []map[string]any
+	if err := json.Unmarshal([]byte(response.GetResponseJson()), &worlds); err != nil || len(worlds) != len(rows) {
+		t.Fatal("world page was not preserved")
+	}
+	core := worlds[len(worlds)-1]["core"].(map[string]any)
+	if core["narrative"].(map[string]any)["setting"] != setting || core["discovery"].(map[string]any)["topicIds"].([]any)[0] != "journey" {
+		t.Fatal("canonical prose or discovery metadata was changed")
+	}
+}
 
 func TestLocalAppWorldCoreListProjectsOnlyExactDTOs(t *testing.T) {
 	response := projectLocalAppWorldCoreListResponse(&runtimev1.InvokeRealmUnaryResponse{

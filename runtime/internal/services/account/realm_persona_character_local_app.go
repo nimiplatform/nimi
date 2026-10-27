@@ -149,7 +149,7 @@ func decodeLocalAppPersonaJSON(raw []byte) (any, bool) {
 }
 
 func projectLocalAppPersonaCharacterListResponse(response *runtimev1.InvokeRealmUnaryResponse, accountID string) *runtimev1.InvokeRealmUnaryResponse {
-	decoded, ok := decodeLocalAppWorldCoreResponse(response)
+	decoded, ok := decodeLocalAppWorldCoreResponse(response, 1<<20)
 	if !ok {
 		return localAppPersonaContractFailure(response)
 	}
@@ -170,18 +170,18 @@ func projectLocalAppPersonaCharacterListResponse(response *runtimev1.InvokeRealm
 			return localAppPersonaContractFailure(response)
 		}
 	}
-	return projectCanonicalLocalAppWorldCoreResponse(response, items)
+	return projectCanonicalLocalAppWorldCoreResponse(response, items, 1<<20)
 }
 
 func projectLocalAppPersonaCharacterResponse(response *runtimev1.InvokeRealmUnaryResponse, accountID string) *runtimev1.InvokeRealmUnaryResponse {
-	decoded, ok := decodeLocalAppWorldCoreResponse(response)
+	decoded, ok := decodeLocalAppWorldCoreResponse(response, 1<<20)
 	if !ok {
 		return localAppPersonaContractFailure(response)
 	}
 	validation := &worldCoreDTOValidation{}
 	switch validation.personaCharacter(decoded, 0, accountID) {
 	case localAppPersonaOwnerValid:
-		return projectCanonicalLocalAppWorldCoreResponse(response, decoded)
+		return projectCanonicalLocalAppWorldCoreResponse(response, decoded, 1<<20)
 	case localAppPersonaSessionOwnerMissing:
 		return localAppPersonaSessionOwnerFailure(response)
 	case localAppPersonaOwnerMismatch:

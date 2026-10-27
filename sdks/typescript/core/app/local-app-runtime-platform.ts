@@ -913,7 +913,7 @@ function projectWorldCore(value: unknown): RealmModel<'WorldCoreDto'> {
   const core = asRecord(record.core);
   assertAllowedWorldCoreKeys(
     core,
-    ['identity', 'presentation', 'ontology', 'timeModel', 'timeline', 'entities', 'relationships', 'systems', 'scenes', 'assets', 'authoring'],
+    ['identity', 'narrative', 'discovery', 'presentation', 'ontology', 'timeModel', 'timeline', 'entities', 'relationships', 'systems', 'scenes', 'assets', 'authoring'],
     ['identity', 'presentation', 'ontology', 'timeModel', 'timeline', 'entities', 'relationships', 'systems', 'scenes', 'assets', 'authoring'],
     'WorldCore core',
   );

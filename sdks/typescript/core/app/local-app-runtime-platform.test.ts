@@ -1345,6 +1345,8 @@ test('WorldCore list accepts the exact owner DTO and rejects raw or credential-a
     lorebookDeclaration: { identityBaseSetting: 'A test world.', rolePlacements: [], worldRules: [] },
     core: {
       identity: { name: 'Harbor', summary: 'A coastal world.' }, presentation: {},
+      narrative: { setting: 'An archipelago whose towns record the tides in songs.' },
+      discovery: { topicIds: ['journey'] },
       ontology: { entityKinds: [], relationshipTypes: [] },
       timeModel: { mode: 'static', flowRatio: 1, isPaused: true,
         anchor: { realStartedAt: '2026-08-06T00:00:00Z', worldStartedAt: 'year 1', worldStartedAtDisplay: 'Year 1' },

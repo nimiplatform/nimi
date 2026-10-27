@@ -273,7 +273,11 @@ func worldCreatorGraphAuthoring(validation *worldCoreDTOValidation, value any, d
 }
 
 func projectLocalAppWorldCreatorResponse(operation LocalAppOperation, request realmUnaryRequestJSON, accountID string, response *runtimev1.InvokeRealmUnaryResponse) *runtimev1.InvokeRealmUnaryResponse {
-	decoded, ok := decodeLocalAppWorldCoreResponse(response)
+	responseMaxBytes := int64(1 << 20)
+	if operation == LocalAppOperationRealmWorldCoreList {
+		responseMaxBytes = realmBrokerOperations["WorldCoreController_listWorldCores"].responseMaxBytes
+	}
+	decoded, ok := decodeLocalAppWorldCoreResponse(response, responseMaxBytes)
 	if !ok {
 		return localAppWorldCoreContractFailure(response)
 	}
@@ -287,7 +291,7 @@ func projectLocalAppWorldCreatorResponse(operation LocalAppOperation, request re
 		if _, valid = value["canCreateWorld"].(bool); !valid {
 			return localAppWorldCoreContractFailure(response)
 		}
-		return projectCanonicalLocalAppWorldCoreResponse(response, value)
+		return projectCanonicalLocalAppWorldCoreResponse(response, value, responseMaxBytes)
 	}
 	validate := func(value any) bool {
 		object, ok := value.(map[string]any)
@@ -359,7 +363,7 @@ func projectLocalAppWorldCreatorResponse(operation LocalAppOperation, request re
 	} else if !validate(decoded) {
 		return localAppWorldCoreContractFailure(response)
 	}
-	return projectCanonicalLocalAppWorldCoreResponse(response, decoded)
+	return projectCanonicalLocalAppWorldCoreResponse(response, decoded, responseMaxBytes)
 }
 
 func validateWorldCreatorCharacter(validation *worldCoreDTOValidation, value any) bool {

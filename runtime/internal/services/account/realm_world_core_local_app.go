@@ -35,11 +35,11 @@ type worldCoreDTOValidation struct {
 	nodes int
 }
 
-func decodeLocalAppWorldCoreResponse(response *runtimev1.InvokeRealmUnaryResponse) (any, bool) {
+func decodeLocalAppWorldCoreResponse(response *runtimev1.InvokeRealmUnaryResponse, responseMaxBytes int64) (any, bool) {
 	if response == nil || !response.GetAccepted() || response.GetReasonCode() != runtimev1.ReasonCode_ACTION_EXECUTED ||
 		response.GetAccountReasonCode() != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED ||
 		response.GetProductionInert() || response.GetHttpStatus() < 200 || response.GetHttpStatus() >= 300 ||
-		response.GetErrorMessage() != "" || len(response.GetResponseJson()) == 0 || len(response.GetResponseJson()) > 1<<20 {
+		response.GetErrorMessage() != "" || len(response.GetResponseJson()) == 0 || int64(len(response.GetResponseJson())) > responseMaxBytes {
 		return nil, false
 	}
 	raw := []byte(response.GetResponseJson())
@@ -58,9 +58,9 @@ func decodeLocalAppWorldCoreResponse(response *runtimev1.InvokeRealmUnaryRespons
 	return decoded, true
 }
 
-func projectCanonicalLocalAppWorldCoreResponse(response *runtimev1.InvokeRealmUnaryResponse, value any) *runtimev1.InvokeRealmUnaryResponse {
+func projectCanonicalLocalAppWorldCoreResponse(response *runtimev1.InvokeRealmUnaryResponse, value any, responseMaxBytes int64) *runtimev1.InvokeRealmUnaryResponse {
 	canonical, err := json.Marshal(value)
-	if err != nil || len(canonical) > 1<<20 {
+	if err != nil || int64(len(canonical)) > responseMaxBytes {
 		return localAppWorldCoreContractFailure(response)
 	}
 	projected := proto.Clone(response).(*runtimev1.InvokeRealmUnaryResponse)
@@ -191,13 +191,25 @@ func (validation *worldCoreDTOValidation) origin(value any, depth int) bool {
 
 func (validation *worldCoreDTOValidation) core(value any, depth int) bool {
 	object, ok := validation.object(value, depth,
-		[]string{"identity", "presentation", "ontology", "timeModel", "timeline", "entities", "relationships", "systems", "scenes", "assets", "authoring"},
+		[]string{"identity", "narrative", "discovery", "presentation", "ontology", "timeModel", "timeline", "entities", "relationships", "systems", "scenes", "assets", "authoring"},
 		[]string{"identity", "presentation", "ontology", "timeModel", "timeline", "entities", "relationships", "systems", "scenes", "assets", "authoring"})
 	if !ok || !validation.identity(object["identity"], depth+1) || !validation.presentation(object["presentation"], depth+1) ||
 		!validation.ontology(object["ontology"], depth+1) || !validation.timeModel(object["timeModel"], depth+1) ||
 		!validation.timeline(object["timeline"], depth+1) || !validation.assets(object["assets"], depth+1) ||
 		!validation.authoring(object["authoring"], depth+1) {
 		return false
+	}
+	if value, exists := object["narrative"]; exists {
+		narrative, valid := validation.object(value, depth+1, []string{"setting"}, []string{"setting"})
+		if !valid || !worldCoreProfileText(narrative["setting"], true, localAppWorldCoreMaxTextBytes) {
+			return false
+		}
+	}
+	if value, exists := object["discovery"]; exists {
+		discovery, valid := validation.object(value, depth+1, []string{"topicIds"}, []string{"topicIds"})
+		if !valid || !validation.textArray(discovery["topicIds"], depth+2, true) {
+			return false
+		}
 	}
 	return validation.arrayObjects(object["entities"], depth+1, validation.entity) &&
 		validation.arrayObjects(object["relationships"], depth+1, validation.relationship) &&
