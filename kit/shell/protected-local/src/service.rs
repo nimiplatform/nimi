@@ -91,10 +91,13 @@ pub trait FixedRuntimeServiceControl: Send + Sync {
 }
 
 // @nimi-authority: rule.nimi.runtime.protected-session.r006
-#[cfg(not(any(
-    feature = "macos-source-local-development",
-    feature = "windows-source-local-development"
-)))]
+#[cfg(all(
+    any(target_os = "windows", target_os = "macos"),
+    not(any(
+        feature = "macos-source-local-development",
+        feature = "windows-source-local-development"
+    ))
+))]
 pub(crate) async fn request_runtime_stop(
     channel: tonic::transport::Channel,
 ) -> Result<(), ProtectedCarrierError> {

@@ -5,7 +5,7 @@
 ## 0.22.0 — 2026-10-27
 
 Use with SDK 0.22.0, the matching Kit 0.22.0 native npm package, and Rust
-carriers 0.11.0. This breaking 0.x minor includes the development changes
+carriers protected-local 0.11.1 and Tauri 0.11.0. This breaking 0.x minor includes the development changes
 recorded below: canonical Conversation quotations and playback, Realm media
 delivery, Desktop Open v2, Agent Center controls and Home product lifecycle.
 Update custom carriers and rebuild against the matching Runtime source.

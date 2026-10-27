@@ -4,7 +4,7 @@
 
 ## 0.22.0 — 2026-10-27
 
-Use with Kit/native 0.22.0 and Rust carriers 0.11.0 against the matching
+Use with Kit/native 0.22.0 and Rust carriers protected-local 0.11.1 and Tauri 0.11.0 against the matching
 Runtime source. This breaking 0.x minor includes the development changes
 recorded below: Realm media delivery and launch surfaces, Desktop Open v2,
 canonical Conversation quotations, recovery and context controls, LocalAgent
