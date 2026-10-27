@@ -4,18 +4,20 @@ import test from 'node:test';
 import ts from 'typescript';
 import { assertAuthDependencyClosure, localJavaScriptImports, type AuthDependencyReport } from '../scripts/check-auth-dependency-closure.js';
 
-test('the Web side-effect exception remains limited to re-export-only emitted Kit JavaScript', async () => {
-  const source = await readFile(new URL('../../../kit/core/src/sdk-contract.ts', import.meta.url), 'utf8');
-  // Type aliases are erased and cannot initialize Runtime in the browser.
-  // Inspect the actual JavaScript shape while still rejecting any executable
-  // declaration, import side effect, or initialization in this exception.
-  const emitted = ts.transpileModule(source, {
-    compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022, verbatimModuleSyntax: true },
-  }).outputText;
-  const ast = ts.createSourceFile('sdk-contract.js', emitted, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
-  assert.ok(ast.statements.length > 0);
-  assert.ok(ast.statements.every(statement => ts.isExportDeclaration(statement)),
-    'sdk-contract acquired initialization; review the Web moduleSideEffects exception');
+test('the Web side-effect exceptions remain limited to re-export-only emitted Kit JavaScript', async () => {
+  for (const file of ['core/src/sdk-contract.ts', 'features/chat/src/ui.ts']) {
+    const source = await readFile(new URL(`../../../kit/${file}`, import.meta.url), 'utf8');
+    // Type aliases are erased and cannot initialize Runtime in the browser.
+    // Inspect the actual JavaScript shape while still rejecting any executable
+    // declaration, import side effect, or initialization in this exception.
+    const emitted = ts.transpileModule(source, {
+      compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022, verbatimModuleSyntax: true },
+    }).outputText;
+    const ast = ts.createSourceFile(file.replace(/\.ts$/u, '.js'), emitted, ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
+    assert.ok(ast.statements.length > 0);
+    assert.ok(ast.statements.every(statement => ts.isExportDeclaration(statement)),
+      `${file} acquired initialization; review the Web moduleSideEffects exception`);
+  }
 });
 
 test('closure inspection follows side-effect imports and re-exports, with dynamic imports checked separately', () => {

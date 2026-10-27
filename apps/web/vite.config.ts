@@ -38,6 +38,14 @@ function chunkName(id: string): string | undefined {
   if (normalized.includes('/node_modules/@protobuf-ts/')) {
     return 'vendor-protobuf';
   }
+  if (normalized.includes('/node_modules/hls.js/')) {
+    return 'vendor-hls';
+  }
+  const isNimiSdk = normalized.startsWith(`${repoRootNormalized}/sdks/typescript/`)
+    || normalized.includes('/node_modules/@nimiplatform/sdk/');
+  if (isNimiSdk && /\/core-generated\/realm-(?:client|typed-client)\.js$/u.test(normalized)) {
+    return 'vendor-nimi-sdk-realm';
+  }
   if (
     normalized.includes('/node_modules/framer-motion/')
     || normalized.includes('/node_modules/motion-dom/')
@@ -145,11 +153,11 @@ export default defineConfig(({ mode }) => {
       sourcemap: true,
       rolldownOptions: {
         treeshake: {
-          // This source barrel contains only re-exports. Web Auth uses its
-          // Realm/error exports; unused Runtime families need no initialization.
-          // Keep this local to Web and this exact barrel, not the whole SDK.
+          // These barrels emit only re-exports. Web Auth and the static Chat
+          // preview need no initialization from unused Runtime/native exports.
+          // The closure test guards these exact entrypoints, not entire packages.
           moduleSideEffects: [{
-            test: /[/\\]kit[/\\]core[/\\]src[/\\]sdk-contract\.ts$/u,
+            test: /[/\\]kit[/\\](?:core[/\\]src[/\\]sdk-contract\.ts|dist[/\\]features[/\\]chat[/\\]ui\.js)$/u,
             external: false,
             sideEffects: false,
           }],
