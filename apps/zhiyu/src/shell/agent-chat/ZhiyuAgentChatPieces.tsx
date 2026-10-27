@@ -132,7 +132,7 @@ export function AvatarLaunchNotice({ feedback, onRetry, onOpenAppearance, onOpen
       {result && onDismiss ? <button type="button" aria-label="关闭形象提示" title="关闭形象提示" onClick={onDismiss}><X size={16} aria-hidden="true" /></button> : null}
     </div>
     {failed ? <>
-      <p>{checkNimi ? '请检查 Nimi 中的连接和登录状态，再重试。' : '可以检查伙伴的形象设置或下方诊断信息，再重试。'}</p>
+      <p>{checkNimi ? '请检查 Nimi 中的连接和登录状态，再重试。' : '请检查伙伴的形象设置或下方技术详情，再重试。'}</p>
       <div className="zhiyu-avatar-launch-notice__actions">
         {onRetry ? <button type="button" onClick={onRetry}>重试打开</button> : null}
         <button type="button" onClick={checkNimi ? onOpenNimi : onOpenAppearance}>{checkNimi ? '检查 Nimi' : '形象设置'}</button>

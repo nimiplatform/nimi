@@ -38,7 +38,7 @@ const COPY = {
     failed: '操作未完成，请打开 Home 查看或重试。', stale: '这条信息已更新，请刷新后重试。',
     ready: '本地 AI 服务已启动', degraded: '本地 AI 服务需要处理', starting: '本地 AI 服务正在启动', stopped: '本地 AI 服务已停止', serviceUnavailable: '本地 AI 服务暂时不可用',
     usage: '今日 AI 执行', usageDetails: '查看用量详情', attempt: '次', attempts: '次', local: '本地', cloud: '云端', estimate: '费用估算',
-    noPrice: '暂无可用的费用估算', paused: '提醒已暂停', pause: '暂停提醒 1 小时', resume: '结束暂停', notificationSettings: '通知设置',
+    noPrice: '暂无可用的费用估算', paused: '提醒已暂停', pause: '暂停提醒 1 小时', resume: '恢复通知', notificationSettings: '通知设置',
     observed: '最后观察', all: '查看全部', nativeOnly: '请从 Nimi 的系统图标打开速览。',
   },
   en: {
@@ -53,7 +53,7 @@ const COPY = {
     failed: 'The action did not finish. Open Home to review or retry.', stale: 'This information changed. Refresh and try again.',
     ready: 'Local AI service is running', degraded: 'Local AI service needs attention', starting: 'Local AI service is starting', stopped: 'Local AI service is stopped', serviceUnavailable: 'Local AI service is unavailable',
     usage: 'AI executions today', usageDetails: 'View usage details', attempt: 'execution', attempts: 'executions', local: 'Local', cloud: 'Cloud', estimate: 'Estimated cost',
-    noPrice: 'Cost estimate unavailable', paused: 'Notifications paused', pause: 'Pause notifications for 1 hour', resume: 'End pause', notificationSettings: 'Notification settings',
+    noPrice: 'Cost estimate unavailable', paused: 'Notifications paused', pause: 'Pause notifications for 1 hour', resume: 'Resume notifications', notificationSettings: 'Notification settings',
     observed: 'Last observed', all: 'View all', nativeOnly: 'Open this overview from the Nimi system icon.',
   },
 } as const;

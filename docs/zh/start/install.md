@@ -2,7 +2,7 @@
 
 配置好 Nimi 开发环境后，你就可以在本机开发和调试本地优先的 AI 应用、联调原生宿主交互，并运行端到端测试。
 
-开发时请选用与当前 Nimi 宿主匹配的 App Tools 版本，并沿用它生成的依赖组合。当前仓库源码声明的版本为 App Tools 0.13.1、SDK 0.21.0 与 Kit/native 0.21.0（源码中的版本声明不代表对应包已发布至 npm）。
+请选用与当前 Nimi 宿主匹配的 App Tools，并使用该工具明确支持的依赖组合。当前源码工作区构建 SDK/Kit 0.22.0 与 App Tools 0.13.2，但 App Tools 脚手架仍默认使用 SDK/Kit `^0.21.0`。脚手架默认组合与工作区包版本是两回事，源码版本声明也不代表对应包已发布至 npm。
 
 ---
 
@@ -26,8 +26,10 @@ Nimi 核心模块之间通过明确的契约协同工作。当前源码脚手架
 | :--- | :--- | :--- |
 | `@nimiplatform/sdk` | `^0.21.0` | 客户端核心 API、AI 推理与宿主会话绑定 |
 | `@nimiplatform/kit` | `^0.21.0` | 跨平台 UI 组件库、窗口桥接与主题契约 |
-| `@nimiplatform/app-tools` | `^0.13.1` | 项目脚手架与构建打包工具 |
+| `@nimiplatform/app-tools` | `^0.13.2` | 项目脚手架与构建打包工具 |
 | `@nimiplatform/sdk-adapter-vercel-ai` | `^0.5.0` | （可选）Vercel AI SDK 7 适配器 |
+
+[ONBOARDING.md](https://github.com/nimiplatform/nimi/blob/main/ONBOARDING.md) 中的 SDK/Kit 0.22.0 媒体检查点，尚不属于 App Tools 0.13.2 声明支持的独立 App 依赖组合。请按该检查点的源码工作区流程使用，不要只修改独立 App 的版本字符串。
 
 > [!NOTE] 本地归档与覆盖
 > 在主仓库源码中开发或使用离线开发包时，可在项目根目录通过 `pnpm-workspace.yaml` 的 `overrides` 字段将上述依赖直接指向本地 `.tgz` 归档文件。具体配置方式请参考[创建第一个 Nimi App](/zh/start/create-an-app)。

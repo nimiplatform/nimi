@@ -61,5 +61,5 @@
   "characterPartnerRefresh": "Refresh partner",
   "characterPartnerOpenUnavailable": "This partner could not be opened. Refresh your partner list and select the partner again.",
   "characterPartnerReadyFeedback": "Your partner is ready. Choose Open partner when you want to chat.",
-  "characterSourceRefreshPending": "Your partner was created, but the partner list could not be refreshed. Refresh the partner to confirm it without creating another one."
+  "characterSourceRefreshPending": "Your partner was created, but the partner list couldn't be updated. Select Refresh partner to check—this won't create a duplicate."
 }

@@ -46,7 +46,7 @@ export function AgentCenterReferenceVoiceSection({ session, snapshot, i18n, plac
           : t('synthesisSetup', 'Match voice creation to shared speech settings. Changes to shared speech settings affect every Agent.')}</p> : null}
         {voice.reason === 'owner-unavailable' ? <InlineAlert tone="warning">{t('unavailable', 'The sample or configuration could not be read. Refresh to try again.')}</InlineAlert> : null}
         {(error || voice.phase === 'failed') ? <InlineAlert tone="danger">{voice.reason === 'binding-unconfirmed'
-          ? t('unconfirmed', 'Save result unconfirmed. Refresh first; the voice will not be cloned again.')
+          ? t('unconfirmed', 'Could not confirm whether the voice was saved. Refresh first—the voice will not be cloned again.')
           : t('failed', 'Voice setup did not complete. Check the current voice or try again.')}</InlineAlert> : null}
         {voice.phase === 'canceled' ? <InlineAlert tone="neutral">{t('canceled', 'Voice setup canceled. The previous voice is retained.')}</InlineAlert> : null}
         <p className="m-0 text-[length:var(--nimi-type-caption-size)] leading-5 text-[var(--nimi-text-secondary)]">{t('cost', 'Voice creation and speech may incur provider charges.')}</p>

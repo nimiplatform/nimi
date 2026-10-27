@@ -794,7 +794,7 @@ function submissionCopy(key: string, values?: Record<string, string | number>): 
     'Chat.agentSubmissionWorking': '正在确认…', 'Chat.agentSubmissionRetryRecover': '继续这次重新回答', 'Chat.agentSubmissionRecover': '继续这条消息',
     'Chat.agentSubmissionQuoteRetained': '原请求包含一条引用。',
     'Chat.agentSubmissionOtherOptions': '其他选项', 'Chat.agentSubmissionCheck': '只查看对话', 'Chat.agentSubmissionKeepAsDraft': '取回文字作为草稿',
-    'Chat.agentSubmissionDismiss': '关闭提示', 'Chat.agentSubmissionDraftNotice': '取回文字不会撤回可能已受理的回复，也不会自动重新添加旧图片和引用。再次发送会成为一条新消息。',
+    'Chat.agentSubmissionDismiss': '关闭提示', 'Chat.agentSubmissionDraftNotice': '取回文字不会撤回可能已受理的请求，也不会自动恢复原有的图片和引用。再次发送会作为一条新消息发出。',
   };
   return copy[key] ?? key;
 }

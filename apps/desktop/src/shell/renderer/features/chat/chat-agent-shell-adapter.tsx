@@ -544,7 +544,7 @@ export function useAgentConversationModeHost(
     if (accessDenied) return Promise.reject(new Error(t('Chat.agentSourceUnavailable')));
     if (payload.retryOfTurnId) return submitConversation(payload);
     if (quote.state.status !== 'empty' && quote.state.status !== 'ready') {
-      return Promise.reject(new Error(t('Chat.agentQuoteNotReady', { defaultValue: 'Wait for the quotation to load, or remove it before sending.' })));
+      return Promise.reject(new Error(t('Chat.agentQuoteNotReady', { defaultValue: 'Wait for the quoted message to finish loading, or remove the quote before sending.' })));
     }
     return submitConversation({ ...payload,
       quoteRevision: quote.draftRef.revision,

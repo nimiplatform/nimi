@@ -39,7 +39,7 @@ export function projectSystemEntryWork(read: SystemEntryRead<DesktopAIActivitySn
           : routes.has(DesktopAIExecutionRoute.DESKTOP_AI_EXECUTION_ROUTE_CLOUD) ? (locale === 'zh' ? '云端' : 'Cloud')
             : (locale === 'zh' ? '执行来源未知' : 'Route unknown');
       const state = executions.some((execution) => execution.state !== DesktopAIExecutionState.DESKTOP_AI_EXECUTION_STATE_RUNNING)
-        ? (locale === 'zh' ? '暂时无法确认' : 'Awaiting current status')
+        ? (locale === 'zh' ? '状态待确认' : 'Awaiting current status')
         : (locale === 'zh' ? '执行中' : 'Running');
       const modelText = [...models.values()].join(' · ') || (locale === 'zh' ? '等待采用模型' : 'Waiting for model adoption');
       const title = first.sourceLabel || (locale === 'zh' ? 'AI 执行' : 'AI execution');
@@ -92,7 +92,7 @@ export function projectSystemEntryUsage(read: SystemEntryRead<DesktopAIUsageSumm
   else if (!summary.quantityComplete) notes.push(locale === 'zh' ? '部分计费用量缺失' : 'Some billing quantities are missing');
   if (BigInt(decimalCount(summary.totals.unpricedAttemptCount) ?? '0') > 0n || invalidCost) notes.push(locale === 'zh' ? '部分费用无法估算' : 'Some costs cannot be estimated');
   if (unknown > 0n) notes.push(locale === 'zh' ? '含来源未确认的执行' : 'Includes executions with an unknown route');
-  if (costs.length) notes.push(locale === 'zh' ? '费用为估算' : 'Costs are estimates');
+  if (costs.length) notes.push(locale === 'zh' ? '费用为估算值' : 'Costs are estimates');
   return { status: partial ? 'partial' : 'available', observedAt: systemEntryTimestampIso(summary.readAt), periodLabel,
     attempts, localAttempts: groupsValid ? String(local) : null, cloudAttempts: groupsValid ? String(cloud) : null,
     costs: costs.slice(0, 8), partial: partial || costs.length > 8, note: notes.join(' · ').slice(0, 512) };

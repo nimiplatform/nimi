@@ -57,7 +57,7 @@ export async function confirmCharacterSourceMaterialized(
   if (!isCurrent()) throw new Error('Source action expired');
   if (!committed.some(agent => agent.localAgentRef === expectedLocalAgentRef)) {
     throw new Error(t('Explore.characterSourceRefreshPending', {
-      defaultValue: 'Your partner was created, but the partner list could not be refreshed. Refresh the partner to confirm it without creating another one.',
+      defaultValue: 'Your partner was created, but the partner list couldn\'t be updated. Select Refresh partner to check—this won\'t create a duplicate.',
     }));
   }
 }
@@ -95,7 +95,7 @@ export async function ensureCharacterSourceMaterialized(
   } catch (error) {
     assertCurrent();
     throw new CharacterSourceConfirmationPendingError(t('Explore.characterSourceRefreshPending', {
-      defaultValue: 'Your partner was created, but the partner list could not be refreshed. Refresh the partner to confirm it without creating another one.',
+      defaultValue: 'Your partner was created, but the partner list couldn\'t be updated. Select Refresh partner to check—this won\'t create a duplicate.',
     }), created.localAgentRef, error);
   }
   return created.localAgentRef;

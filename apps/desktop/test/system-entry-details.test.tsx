@@ -112,7 +112,7 @@ test('current work groups owner parents, shows actual models and keeps unknown e
   assert.match(html, /Actual Model/); assert.match(html, /Actual Image Model/);
   assert.match(html, /Current status unconfirmed/); assert.match(html, /Reconnecting does not replay/);
   assert.match(html, /complete current work count is not confirmed/);
-  assert.match(html, /No confirmed parent work association/);
+  assert.match(html, /No confirmed work association/);
   assert.doesNotMatch(html, /href=|continue-chat|open-activity/);
   assert.doesNotMatch(html, /runtimeConfig\.systemEntry/);
 });
@@ -308,7 +308,7 @@ test('unavailable or incomplete empty reads never revive old models or fabricate
   assert.match(render(ai), /No execution records have arrived/);
   assert.doesNotMatch(render(ai), /Current work: 0/);
   const unavailable = { ...ai, usage: { status: 'unavailable' as const, value: null, error: 'owner unavailable' } };
-  assert.match(render(unavailable), /No request count or cost is assumed to be zero/);
+  assert.match(render(unavailable), /Missing execution counts and costs are not treated as zero/);
   assert.doesNotMatch(render(unavailable), /Estimated 0|Recorded AI executions<\/dt>/);
 });
 

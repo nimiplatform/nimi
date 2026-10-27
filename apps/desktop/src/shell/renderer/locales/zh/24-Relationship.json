@@ -38,10 +38,10 @@
   "tags": "标签",
   "tagsPlaceholder": "创作者、旅行者、世界原住民",
   "findByHandleTitle": "添加好友",
-  "findByHandleDescription": "输入对方完整的账号用户名，发送好友申请。无需对方公开完整资料。",
+  "findByHandleDescription": "输入对方完整的账号用户名，发送好友申请；无需对方公开完整资料。",
   "handleLabel": "账号用户名",
   "findByHandleAction": "发送好友申请",
-  "findByHandleFailed": "未能确认好友请求。请检查用户名、对方的好友申请设置和网络后重试。",
+  "findByHandleFailed": "未能确认好友申请是否发送成功。请检查账号用户名、对方的好友申请设置及网络连接后重试。",
   "friendHandleRequested": "好友申请已发送，对方接受后会出现在好友列表中。",
   "friendHandleAccepted": "你们已成为好友。",
   "friendHandleUnchanged": "你们已经是好友，或已有待处理的申请。请查看好友和申请列表。"

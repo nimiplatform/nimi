@@ -85,7 +85,7 @@
     "title": "Clean up old Nimi versions",
     "refresh": "Refresh preview",
     "confirm": "Delete {{count}} old versions",
-    "policy": "Keep the current version, one recent complete code version, and versions still in use. This does not enable rollback. Your account, app data, models and Runtime data are outside this cleanup.",
+    "policy": "Nimi keeps the current version, one recent complete code version, and any version still in use. Keeping older code does not enable rollback. Your account, app data, models, and Runtime data are not affected by this cleanup.",
     "working": "Checking or cleaning up versions. Keep this window open…",
     "failed": "Cleanup could not be confirmed. Review the details and refresh the preview before trying again.",
     "summary": "{{count}} older versions can be removed ({{size}} of logical files). Actual disk space released may differ.",

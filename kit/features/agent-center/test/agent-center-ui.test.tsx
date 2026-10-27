@@ -735,7 +735,7 @@ describe('AgentCenter UI session contract', () => {
     const card = node.querySelector('[data-agent-center-resource-pack-card="true"]') as HTMLElement;
     expect(card).toBeTruthy();
     expect(card.textContent).toContain('Zhiyu appearance');
-    expect(card.textContent).toContain('conversations in Zhiyu only');
+    expect(card.textContent).toContain('conversation appearance in Zhiyu only');
     expect(card.textContent).toContain('Using default appearance');
     expect(card.querySelector('[data-agent-center-resource-pack-action="select"]')).toBeNull();
     expect(card.querySelector('[data-agent-center-resource-pack-action="apply"]')).toBeNull();

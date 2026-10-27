@@ -54,6 +54,6 @@
   "storageReadFailed": "Storage estimates could not be read.",
   "dataRootReadFailed": "The current data location could not be read.",
   "checkSyncReadFailed": "Check and Sync status could not be read.",
-  "separateStorageScopes": "These estimates describe different storage scopes. They are not the total size of Nimi data or your disk.",
+  "separateStorageScopes": "These estimates cover separate storage areas and do not represent total Nimi data or overall disk usage.",
   "productVersions": "Retained product versions"
 }

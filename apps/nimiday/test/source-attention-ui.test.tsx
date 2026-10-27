@@ -198,7 +198,7 @@ it('shows all loaded sources with usable filters and separates unknown identitie
   const { el } = await render(<SourceBrowser target={{ mode: 'association' }} />);
   expect(el.querySelector('select[aria-label="显示范围"]')).not.toBeNull();
   expect(el.querySelector('input[type="search"]')).not.toBeNull();
-  expect(el.textContent).toContain('无法确认来源孩子');
+  expect(el.textContent).toContain('无法确认来源中的孩子信息');
   expect([...el.querySelectorAll('button')].some(button => button.textContent === '关联孩子')).toBe(false);
   expect(el.querySelectorAll('[data-testid="nd-source-row"]')).toHaveLength(10);
 });

@@ -61,5 +61,5 @@
   "characterPartnerRefresh": "刷新伙伴",
   "characterPartnerOpenUnavailable": "暂时无法打开这位伙伴。请刷新伙伴列表，再重新选择。",
   "characterPartnerReadyFeedback": "伙伴已就绪。想聊天时，请点击“打开伙伴”。",
-  "characterSourceRefreshPending": "伙伴已创建，但暂时无法刷新伙伴列表。请刷新伙伴以确认结果，这不会再次创建伙伴。"
+  "characterSourceRefreshPending": "伙伴已创建，但伙伴列表暂时未能刷新。可点击「刷新伙伴」重新读取，不会重复创建。"
 }

@@ -54,6 +54,6 @@
   "storageReadFailed": "暂时无法读取存储估算。",
   "dataRootReadFailed": "暂时无法读取当前数据位置。",
   "checkSyncReadFailed": "暂时无法读取检查与同步状态。",
-  "separateStorageScopes": "以上估算分别对应不同范围，不代表 Nimi 数据总量或磁盘占用。",
+  "separateStorageScopes": "以上数值分别统计不同存储区域，不代表 Nimi 的总数据量或整体磁盘占用。",
   "productVersions": "保留的产品版本"
 }

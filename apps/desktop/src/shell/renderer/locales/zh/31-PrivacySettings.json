@@ -30,7 +30,7 @@
   "directMessageVisibilityLabel": "私信可见性",
   "directMessageVisibilityHelper": "谁可以直接给你发消息",
   "ssotDefaultsTitle": "关于默认值",
-  "ssotDefaultsDescription": "这些偏好控制个人资料、好友申请、社交信息、在线状态和私信的访问范围。",
+  "ssotDefaultsDescription": "这些设置用于管理谁可以查看你的个人资料、社交信息和在线状态，以及谁可以向你发送好友申请或私信。",
   "tagProfile": "主页",
   "tagRequests": "请求",
   "tagSocial": "社交",

@@ -2,7 +2,7 @@
 
 Setting up your Nimi development environment gives you everything you need to build local-first AI applications, manage native host interactions, and test end-to-end user workflows on your own machine.
 
-Always choose the App Tools version that matches your Nimi host and keep the dependency combination it generates. This source checkout declares App Tools 0.13.1, SDK 0.21.0, and Kit/native 0.21.0—note that these versions reflect the current source repository and do not imply those exact versions are published on npm.
+Choose an App Tools version that matches your Nimi host and keep a dependency combination declared by that tool. This checkout builds SDK/Kit 0.22.0 and App Tools 0.13.2. The App Tools starter still defaults to SDK/Kit `^0.21.0`; that is a separate combination, not the workspace package version. Source version declarations do not establish npm publication.
 
 ---
 
@@ -26,8 +26,10 @@ Nimi's core packages are versioned independently. Use the dependency combination
 | :--- | :--- | :--- |
 | `@nimiplatform/sdk` | `^0.21.0` | Client core API, AI inference, and host-bound session integration |
 | `@nimiplatform/kit` | `^0.21.0` | Cross-platform UI components, window bridge, and theme contracts |
-| `@nimiplatform/app-tools` | `^0.13.1` | App scaffolding, project initialization, and production packaging |
+| `@nimiplatform/app-tools` | `^0.13.2` | App scaffolding, project initialization, and production packaging |
 | `@nimiplatform/sdk-adapter-vercel-ai` | `^0.5.0` | (Optional) Adapter for Vercel AI SDK 7 |
+
+The SDK/Kit 0.22.0 media checkpoint described in [ONBOARDING.md](https://github.com/nimiplatform/nimi/blob/main/ONBOARDING.md) is not a declared standalone dependency pair in App Tools 0.13.2. Follow that checkpoint’s source-workspace instructions; do not convert a standalone App by changing version strings alone.
 
 > [!NOTE] Local Archives & Overrides
 > When developing inside the source repository or working with offline distribution bundles, map dependencies directly to local `.tgz` archives using `pnpm-workspace.yaml` overrides. See [Create a Nimi App](/start/create-an-app) for configuration details.

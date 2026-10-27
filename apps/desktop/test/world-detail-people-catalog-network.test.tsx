@@ -164,7 +164,7 @@ test('one failed people source retains the other source and offers an independen
   try {
     assert.equal(view.value('status'), 'partial', 'one failed first page must not hide the successful source');
     assert.equal(view.value('offline'), 'true');
-    assert.match(view.text(), /Some people have not loaded yet/);
+    assert.match(view.text(), /The character directory has not fully loaded yet/);
     assert.equal(view.value('people'), 'Available Persona');
     const retry = view.button(/Try again/);
     assert.ok(retry, 'a retry is offered');
