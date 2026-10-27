@@ -1,4 +1,4 @@
-import { Button, IconButton, InlineAlert, LoadingSkeleton, ScrollArea, SearchField, Tooltip } from '@nimiplatform/kit/ui';
+import { Button, IconButton, InlineAlert, LoadingSkeleton, Popover, PopoverContent, PopoverTrigger, ScrollArea, SearchField, Tooltip } from '@nimiplatform/kit/ui';
 import {
   DesktopAIExecutionRoute,
   DesktopAIExecutionState,
@@ -7,7 +7,7 @@ import {
   type DesktopAICostEstimate,
   type DesktopAIUsageGroup,
 } from '@nimiplatform/sdk/runtime/generated';
-import { Activity, ArrowLeft, CalendarDays, ChevronDown, Coins, Info, Layers3, Play, RefreshCw } from 'lucide-react';
+import { Activity, ArrowLeft, CalendarDays, Coins, Info, Layers3, Play, RefreshCw } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SHELL_PAGE_WIDTH_CLASS } from '../../app-shell/layouts/shell-chrome-classes.js';
@@ -254,21 +254,24 @@ function UsageGroups({ groups, attempts, groupsComplete }: { groups: readonly De
 function UsageDataDetails({ ai }: { ai: SystemEntryAIState | null }) {
   const { t } = useTranslation();
   const pricingBases = ai?.usage.status === 'ready' ? [...new Set(ai.usage.value?.estimates.map(estimate => estimate.pricingBasis).filter(Boolean))] : [];
-  return <details className="group rounded-[20px] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_72%,transparent)] px-4 py-1 sm:px-5" data-testid="home-usage-data-details">
-    <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 rounded-md py-3 text-sm font-medium focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] [&::-webkit-details-marker]:hidden">
-      <span className="flex min-w-0 flex-wrap items-center gap-2.5"><span className="flex size-8 items-center justify-center rounded-xl bg-[var(--nimi-surface-panel)] text-[var(--nimi-text-secondary)]"><Info size={15} aria-hidden="true" /></span>
-        <span>{t(`${PREFIX}.usageExplanation`)}</span></span>
-      <ChevronDown size={16} className="shrink-0 text-[var(--nimi-text-secondary)] transition-transform group-open:rotate-180" aria-hidden="true" />
-    </summary>
-    <div className="space-y-5 border-t border-[var(--nimi-border-subtle)] py-5">
-      <div className="grid gap-4 md:grid-cols-2">
-        <section className="rounded-2xl bg-[var(--nimi-surface-panel)] p-4"><h3 className="text-sm font-medium">{t(`${PREFIX}.recordedAttempts`)}</h3><p className="mt-2 text-sm leading-6 text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.workDefinition`)} {t(`${PREFIX}.attemptDefinition`)}</p></section>
-        <section className="rounded-2xl bg-[var(--nimi-surface-panel)] p-4"><h3 className="text-sm font-medium">{t(`${PREFIX}.estimatedCosts`)}</h3><p className="mt-2 text-sm leading-6 text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.estimateDisclaimer`)}</p>
-          {pricingBases.map(basis => <p key={basis} className="mt-2 text-xs leading-5 text-[var(--nimi-text-secondary)]">{basis === 'captured_catalog_estimate' ? t(`${PREFIX}.capturedPricing`) : t(`${PREFIX}.pricingBasis`, { value: basis })}</p>)}
-        </section>
+  return <Popover>
+    <PopoverTrigger asChild>
+      <IconButton tone="ghost" size="sm" className="rounded-full text-[var(--nimi-text-secondary)]"
+        icon={<Info size={18} aria-hidden="true" />} aria-label={t(`${PREFIX}.usageExplanation`)} title={t(`${PREFIX}.usageExplanation`)}
+        data-testid="home-usage-explanation-trigger" />
+    </PopoverTrigger>
+    <PopoverContent align="start" sideOffset={8} className="w-[32rem] max-w-[calc(100vw-2rem)]">
+      <div data-testid="home-usage-data-details">
+        <h2 className="text-base font-semibold">{t(`${PREFIX}.usageExplanation`)}</h2>
+        <div className="mt-4 grid gap-4 md:grid-cols-2">
+          <section className="rounded-2xl bg-[var(--nimi-surface-panel)] p-4"><h3 className="text-sm font-medium">{t(`${PREFIX}.recordedAttempts`)}</h3><p className="mt-2 text-sm leading-6 text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.workDefinition`)} {t(`${PREFIX}.attemptDefinition`)}</p></section>
+          <section className="rounded-2xl bg-[var(--nimi-surface-panel)] p-4"><h3 className="text-sm font-medium">{t(`${PREFIX}.estimatedCosts`)}</h3><p className="mt-2 text-sm leading-6 text-[var(--nimi-text-secondary)]">{t(`${PREFIX}.estimateDisclaimer`)}</p>
+            {pricingBases.map(basis => <p key={basis} className="mt-2 text-xs leading-5 text-[var(--nimi-text-secondary)]">{basis === 'captured_catalog_estimate' ? t(`${PREFIX}.capturedPricing`) : t(`${PREFIX}.pricingBasis`, { value: basis })}</p>)}
+          </section>
+        </div>
       </div>
-    </div>
-  </details>;
+    </PopoverContent>
+  </Popover>;
 }
 
 // @nimi-authority: rule.nimi.runtime.rpc-foundations.home-ai-coverage
@@ -361,8 +364,8 @@ export function SystemEntryDetailsView({ ai, onBack, onRefresh, refreshing = fal
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Button tone="ghost" size="sm" className="-ml-2" onClick={onBack}><ArrowLeft size={16} aria-hidden="true" />{t('runtimeConfig.overview.back')}</Button>
         </div>
-        <div className="flex flex-wrap items-start justify-between gap-3"><div><h1 className="text-[28px] font-semibold tracking-[-0.035em]">{t(`${PREFIX}.activityUsageTitle`)}</h1>
-          <p className="mt-1.5 flex flex-wrap items-center gap-x-2 text-sm text-[var(--nimi-text-secondary)]"><span>{t(`${PREFIX}.scope`)}</span></p></div>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div className="flex items-center gap-2"><h1 className="text-[28px] font-semibold tracking-[-0.035em]">{t(`${PREFIX}.activityUsageTitle`)}</h1><UsageDataDetails ai={ai} /></div>
           <Button tone="secondary" size="sm" className="rounded-full px-4" disabled={refreshing} aria-busy={refreshing} onClick={onRefresh}><RefreshCw size={15} className={refreshing ? 'motion-safe:animate-spin' : undefined} aria-hidden="true" />{t(refreshing ? 'Common.loading' : 'runtimeConfig.overview.refresh')}</Button>
         </div>
       </header>
@@ -370,7 +373,6 @@ export function SystemEntryDetailsView({ ai, onBack, onRefresh, refreshing = fal
       <dl className="grid gap-4 md:grid-cols-3" data-testid="home-usage-summary"><CurrentWorkSummary ai={ai} /><UsageSummary ai={ai} /></dl>
       <CurrentWorkReading ai={ai} />
       <UsageBreakdown ai={ai} />
-      <UsageDataDetails ai={ai} />
     </div>
   </ScrollArea></div>;
 }

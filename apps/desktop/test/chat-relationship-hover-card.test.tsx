@@ -20,7 +20,6 @@ function render(target: ConversationTargetSummary, subtitle?: string): string {
   return renderToStaticMarkup(
     <RelationshipHoverCard
       target={target}
-      selected={false}
       pos={{ top: 120, right: 96 }}
       onMouseEnter={noop}
       onMouseLeave={noop}

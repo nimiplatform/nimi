@@ -82,7 +82,11 @@ test('one page shows independent work and daily execution counts with separate t
   ai.activity.value!.executions.push(execution({ attemptId: 'retry', startedAt: systemEntryTimestamp(now - 86_400_000) }));
   ai.activity.value!.observedAt = systemEntryTimestamp(now - 60_000);
   const document = JSDOM.fragment(render(ai));
-  assert.equal(document.querySelector('h1')!.textContent, 'AI activity & usage');
+  const title = document.querySelector('h1')!;
+  assert.equal(title.textContent, 'AI activity & usage');
+  assert.equal(title.nextElementSibling?.getAttribute('data-testid'), 'home-usage-explanation-trigger');
+  assert.doesNotMatch(document.textContent ?? '', /Current account · this device/);
+  assert.equal(document.querySelector('[data-testid="home-usage-data-details"]'), null);
   assert.equal(document.querySelector('nav'), null);
   assert.equal(document.querySelectorAll('[data-testid="home-current-work-row"]').length, 1);
   assert.match(document.querySelector('[data-testid="home-current-work-summary"]')!.textContent!, /1work items/);
@@ -144,10 +148,10 @@ test('usage preserves precise counts, independent currencies and explains missin
 test('complete usage keeps only concise explanations and hides normal coverage checks', async () => {
   await initI18n(); await changeLocale('en');
   const html = render(completeUsageState());
+  const triggerAt = html.indexOf('data-testid="home-usage-explanation-trigger"');
   const summaryAt = html.indexOf('data-testid="home-usage-summary"');
   const groupsAt = html.indexOf('data-testid="home-usage-group"');
-  const detailsAt = html.indexOf('data-testid="home-usage-data-details"');
-  assert.ok(summaryAt >= 0 && summaryAt < groupsAt && groupsAt < detailsAt);
+  assert.ok(triggerAt >= 0 && triggerAt < summaryAt && summaryAt < groupsAt);
   assert.match(html, /data-testid="home-usage-attempts-card"/);
   assert.match(html, /data-testid="home-usage-cost-card"/);
   assert.match(html, /data-testid="home-usage-route-summary"/);
@@ -156,15 +160,15 @@ test('complete usage keeps only concise explanations and hides normal coverage c
   assert.equal((html.match(/data-testid="home-usage-group"/g) ?? []).length, 1);
   assert.doesNotMatch(html, /Search models, providers or sources/);
   assert.match(html, /0\.0117501/);
-  assert.match(html, /About these numbers/);
   assert.doesNotMatch(html, /general API requests|Currencies are shown separately/);
-  const explanation = JSDOM.fragment(html).querySelector('[data-testid="home-usage-data-details"]')!;
-  assert.equal(explanation.querySelectorAll('section').length, 2);
-  assert.equal(explanation.hasAttribute('open'), false);
-  assert.equal(explanation.querySelector('dl, [role="status"]'), null);
+  const document = JSDOM.fragment(html);
+  const trigger = document.querySelector('[data-testid="home-usage-explanation-trigger"]')!;
+  assert.equal(trigger.getAttribute('aria-label'), 'About these numbers');
+  assert.equal(trigger.getAttribute('aria-expanded'), 'false');
+  assert.equal(document.querySelector('[data-testid="home-usage-data-details"]'), null);
 });
 
-test('pending measurements and unavailable prices warn only beside costs without repeating in explanations', async () => {
+test('pending measurements and unavailable prices warn only beside costs', async () => {
   await initI18n(); await changeLocale('en');
   const ai = completeUsageState(2);
   ai.usage.value!.totals = { ...ai.usage.value!.totals!, pendingUsageCount: '1', measuredAttemptCount: '1', unpricedAttemptCount: '1' };
@@ -177,7 +181,6 @@ test('pending measurements and unavailable prices warn only beside costs without
   assert.doesNotMatch(document.textContent ?? '', /Executions awaiting usage|Executions without a cost estimate|Unknown costs/);
   assert.equal(document.querySelector('[role="tooltip"]'), null);
   assert.equal(document.querySelector('[data-testid="home-usage-count-warning"], [data-testid="home-usage-details-warning"]'), null);
-  assert.doesNotMatch(document.querySelector('[data-testid="home-usage-data-details"]')!.textContent ?? '', /incomplete|awaiting|cannot yet/);
 });
 
 test('local execution costs are zero without currency even while quantities are pending', async () => {
@@ -273,7 +276,7 @@ test('each incomplete dimension is disclosed only beside the affected numbers', 
       }
       assert.match(document.querySelector('[data-testid="home-usage-attempts-card"] dd')!.textContent ?? '', /^2executions$/);
       assert.match(document.querySelector('[data-testid="home-usage-cost-card"]')!.textContent ?? '', /0\.0117501/);
-      assert.doesNotMatch(document.querySelector('[data-testid="home-usage-data-details"]')!.textContent ?? '', /Recorded range|coverage|incomplete|Not fully recorded/);
+      assert.doesNotMatch(document.querySelector('[data-testid="home-usage-data-details"]')?.textContent ?? '', /Recorded range|coverage|incomplete|Not fully recorded/);
       assert.doesNotMatch(document.body.textContent ?? '', /runtimeConfig\.systemEntry/);
     }
   });
@@ -409,10 +412,12 @@ test('large usage groups support search, route filters, recovery and details wit
     await setSearch('Model 2');
     await act(async () => search().dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
     assert.equal(groups().length, 6);
-    const details = document.querySelector<HTMLDetailsElement>('[data-testid="home-usage-data-details"]')!;
-    assert.equal(details.open, false);
-    await act(async () => details.querySelector('summary')!.click());
-    assert.equal(details.open, true);
+    assert.equal(document.querySelector('[data-testid="home-usage-data-details"]'), null);
+    const trigger = document.querySelector<HTMLButtonElement>('[data-testid="home-usage-explanation-trigger"]')!;
+    await act(async () => trigger.click());
+    assert.equal(trigger.getAttribute('aria-expanded'), 'true');
+    const details = document.querySelector('[data-testid="home-usage-data-details"]');
+    assert.ok(details);
     assert.match(details.textContent ?? '', /Each actual AI execution counts once/);
   });
 });

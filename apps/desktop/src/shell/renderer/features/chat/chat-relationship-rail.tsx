@@ -256,7 +256,6 @@ function RelationshipAvatar({
         <RelationshipHoverCard
           elementRef={hoverCardRef}
           target={target}
-          selected={selected}
           pos={hoverCardPos}
           onMouseEnter={cancelHide}
           onMouseLeave={scheduleHide}

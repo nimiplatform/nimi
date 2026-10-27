@@ -84,7 +84,6 @@ function LocalAgentGlyphIcon({ className = '' }: { className?: string }) {
 export function RelationshipHoverCard({
   elementRef,
   target,
-  selected,
   pos,
   onMouseEnter,
   onMouseLeave,
@@ -94,7 +93,6 @@ export function RelationshipHoverCard({
 }: {
   elementRef?: Ref<HTMLDivElement>;
   target: ConversationTargetSummary;
-  selected: boolean;
   pos: RelationshipHoverCardPosition;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
@@ -150,12 +148,6 @@ export function RelationshipHoverCard({
       onClick={onOpenProfile ?? onSelect}
       onKeyDown={handleCardKeyDown}
     >
-      <span
-        aria-hidden="true"
-        className={`absolute right-1.5 top-1/2 w-1 rounded-full bg-[var(--nimi-action-primary-bg)] shadow-[0_0_16px_color-mix(in_srgb,var(--nimi-action-primary-bg)_36%,transparent)] transition-all duration-200 ${
-          selected ? 'h-[92px] -translate-y-1/2 opacity-100' : 'h-0 -translate-y-1/2 opacity-0'
-        }`}
-      />
       <div className="flex min-w-0 items-center gap-4">
         <div className="shrink-0 transition-transform group-hover:scale-[1.03]">
           {avatarVisual}
