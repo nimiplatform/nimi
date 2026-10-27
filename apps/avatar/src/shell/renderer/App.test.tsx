@@ -369,14 +369,21 @@ describe('App composition state machine', () => {
     bootstrapAvatarMock.mockResolvedValue(createBootstrapHandle({ projection: createBackendProjection() }));
     render(<App />);
     act(() => seedReadyState());
-    await waitFor(() => expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-product-ready')).toBe('true'));
-    expect(isAvatarLocalQuiet()).toBe(false);
+    // Product rendering and the passive audio-gate effect settle separately.
+    await waitFor(() => {
+      expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-product-ready')).toBe('true');
+      expect(isAvatarLocalQuiet()).toBe(false);
+    });
     act(() => useAvatarStore.getState().setDriverStatus('error', 'preview-stream-lost'));
-    await waitFor(() => expect(screen.getByTestId('avatar-degraded-surface')).toBeTruthy());
-    expect(isAvatarLocalQuiet()).toBe(true);
+    await waitFor(() => {
+      expect(screen.getByTestId('avatar-degraded-surface')).toBeTruthy();
+      expect(isAvatarLocalQuiet()).toBe(true);
+    });
     act(() => useAvatarStore.getState().setDriverStatus('running'));
-    await waitFor(() => expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-product-ready')).toBe('true'));
-    expect(isAvatarLocalQuiet()).toBe(true);
+    await waitFor(() => {
+      expect(screen.getByTestId('avatar-root').getAttribute('data-avatar-product-ready')).toBe('true');
+      expect(isAvatarLocalQuiet()).toBe(true);
+    });
     expect(screen.queryByTestId('avatar-companion-surface')).toBeNull();
   });
 
