@@ -7,7 +7,7 @@ import { checkMode, repoRoot, relPath } from './context.mjs';
 const targetRelativeDir = 'sdks/typescript/core-generated/runtime-protobuf';
 const targetDir = path.join(repoRoot, targetRelativeDir);
 const localNodeBinDir = path.join(repoRoot, 'node_modules', '.bin');
-const requiredBufVersion = '1.70.0';
+const requiredBufVersion = '1.75.0';
 
 function pathEnvKey() {
   if (process.platform !== 'win32') {
