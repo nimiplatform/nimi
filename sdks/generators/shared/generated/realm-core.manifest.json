@@ -11597,6 +11597,163 @@
       ]
     },
     {
+      "operation_id": "WorldPublicController_listCharacterCatalog",
+      "method": "GET",
+      "path": "/api/world/character-sources/catalog",
+      "service": "World",
+      "tags": [
+        "World"
+      ],
+      "parameters": [
+        {
+          "name": "worldId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "q",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [],
+      "query_parameters": [
+        {
+          "name": "worldId",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "q",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/WorldPublicSourceCardPageDto",
+            "ref_name": "WorldPublicSourceCardPageDto"
+          },
+          "schema_ref": "#/components/schemas/WorldPublicSourceCardPageDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/WorldPublicSourceCardPageDto"
+        }
+      ]
+    },
+    {
       "operation_id": "WorldPublicController_listPersonaCharacterCatalog",
       "method": "GET",
       "path": "/api/world/persona-characters/catalog",
@@ -13138,6 +13295,12 @@
       "path": "/api/world/by-id/{worldId}/detail-with-characters"
     },
     {
+      "operation_id": "WorldPublicController_listCharacterCatalog",
+      "service": "World",
+      "method": "GET",
+      "path": "/api/world/character-sources/catalog"
+    },
+    {
       "operation_id": "WorldPublicController_listPersonaCharacterCatalog",
       "service": "World",
       "method": "GET",
@@ -13418,6 +13581,7 @@
         "WorldPublicController_getCharacterSource",
         "WorldPublicController_getWorld",
         "WorldPublicController_getWorldDetailWithCharacters",
+        "WorldPublicController_listCharacterCatalog",
         "WorldPublicController_listPersonaCharacterCatalog",
         "WorldPublicController_listWorldCatalog",
         "WorldPublicController_listWorldCharacterCatalog",

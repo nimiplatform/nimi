@@ -6,11 +6,11 @@ import { E2E_IDS } from '../../testability/e2e-ids';
 // Authority: .nimi/spec/desktop/product-surfaces.authority.yaml
 // (rule.nimi.desktop.product-surfaces.r002). Keep this closed UI vocabulary
 // aligned with the nearest owner behavior tests.
-export type ExploreSectionId = 'worlds' | 'personas';
+export type ExploreSectionId = 'worlds' | 'partners';
 
 export const EXPLORE_SECTION_IDS: readonly ExploreSectionId[] = [
   'worlds',
-  'personas',
+  'partners',
 ] as const;
 
 type SectionMeta = {
@@ -49,9 +49,9 @@ const SECTION_META: Record<ExploreSectionId, SectionMeta> = {
     labelKey: 'Explore.sectionWorlds',
     icon: ICON_WORLDS,
   },
-  personas: {
-    id: 'personas',
-    labelKey: 'Explore.sectionPersonas',
+  partners: {
+    id: 'partners',
+    labelKey: 'runtimeConfig.partners.title',
     icon: ICON_PERSONAS,
   },
 };

@@ -11,12 +11,13 @@ const require = createRequire(path.join(root, 'apps/desktop/package.json'));
 const ts = require('typescript');
 const renderer = path.join(root, 'apps/desktop/src/shell/renderer');
 const load = (p) => import(pathToFileURL(path.join(renderer, p)).href);
-const { ensureCharacterSourceMaterialized } = await load('features/relationship/character-source-launch-target.ts');
-const { resolveAgentTargetSnapshotForSourceRef } = await load('features/agents/agent-conversation-source-resolution.ts');
+const { ensureCharacterSourceMaterialized, CharacterSourceConfirmationPendingError } = await load('features/relationship/character-source-launch-target.ts');
+const { openPartnerConversation } = await load('features/agents/partner-navigation.ts');
+const { captureAccountActionScope } = await load('app-shell/providers/account-action-scope.ts');
 const { localAgentListQueryKey } = await load('features/agents/local-agent-list-model.ts');
 const { characterSourceRefKey, characterSourceMaterializationMessage, characterSourceMaterializationFailureMessage } = await load('features/explore/character-source-materialization.ts');
 const { launchAgentConversationFromDisplay } = await load('features/chat/agent-conversation-launcher.ts');
-const { createHomeNavigation } = await load('app-shell/providers/home-navigation.ts');
+const { createHomeNavigation, captureHomeNavigationScope } = await load('app-shell/providers/home-navigation.ts');
 
 function loadHandler(file, names, env) {
   const source = ts.createSourceFile(file, fs.readFileSync(file, 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
@@ -42,7 +43,7 @@ const sourceRef = {
 const source = { id: sourceRef.id, displayName: 'Partner', handle: 'partner', bio: null, sourceRef };
 
 async function run(surface, posture = 'missing', action = 'open') {
-  let auth = { status: 'authenticated' };
+  let auth = { status: 'authenticated', user: { id: 'owner-1' } };
   const currentAction = { current: { ownerUserId: 'owner-1', sourceKey: characterSourceRefKey(sourceRef) } };
   const events = [];
   const navigation = createHomeNavigation();
@@ -54,11 +55,13 @@ async function run(surface, posture = 'missing', action = 'open') {
     sourceKind: sourceRef.kind, sourceWorldId: sourceRef.worldId, sourceId: sourceRef.id,
     sourceHash: sourceRef.sourceHash,
     sourceContextStatus: { ready: true, localAgentRef: 'local-agent:new-empty-partner', sourceRef },
+    lifecycleStatus: 2,
   };
   const sdk = {
     runtimeAgentDiscovery: () => ({
       discoverLocalAgentsBySource: async () => {
         events.push('discover');
+        if (posture === 'confirmation-pending' && materialized) throw new Error('read unavailable after successful write');
         if (posture === 'ambiguous') return [localAgent, { ...localAgent, localAgentRef: 'local-agent:second', sourceContextStatus: { ...localAgent.sourceContextStatus, localAgentRef: 'local-agent:second' } }];
         return materialized || ['existing', 'denied', 'stale', 'switch-account', 'switch-source'].includes(posture) ? [localAgent] : [];
       },
@@ -72,6 +75,16 @@ async function run(surface, posture = 'missing', action = 'open') {
       },
     }),
     accountProduct: () => ({
+      agents: { getAgent: async ({ agentId }) => {
+        if (posture === 'unavailable') throw new Error('owner unavailable');
+        if (posture === 'switch-account') auth = { status: 'authenticated', user: { id: 'owner-2' } };
+        if (posture === 'switch-source') currentAction.current = null;
+        return { agent: { ...localAgent, localAgentRef: agentId, sourceContextStatus: {
+          schemaVersion: 2, ready: false, state: 4, reasonCode: 4, localAgentRef: agentId,
+          sourceSchemaVersion: 'realm.world-character-core/v1',
+          sourceRef: { worldCharacter: { ...sourceRef, kind: 1, worldEntityRef: { ...sourceRef.worldEntityRef, kind: 1 } } },
+        } } };
+      } },
       materializeRealmSource: async () => {
         events.push('MATERIALIZE_NEW_AGENT');
         materialized = true;
@@ -88,18 +101,20 @@ async function run(surface, posture = 'missing', action = 'open') {
       events.push(`OPEN_CONVERSATION:${agentHandle}`);
       return { conversationAnchorId: 'anchor-new', activeTurnId: null };
     } }),
+    withRuntimeProtectedScopes: async (_scopes, call) => call({}),
   };
   const env = {
     navigation, world: { id: 'world-1' }, peopleQueryText: 'Partner',
     source, ownerUserId: 'owner-1', currentAction, currentSourceKey: characterSourceRefKey(sourceRef),
-    appStore: { getState: () => ({ auth }) },
+    appStore: { getState: () => ({ auth }), subscribe: () => () => {} },
+    matchingPartners: ['missing', 'confirmation-pending'].includes(posture) ? [] : posture === 'ambiguous' ? [localAgent, { ...localAgent, localAgentRef: 'local-agent:second' }] : [localAgent],
     sourceMaterialization: { sourceKey: characterSourceRefKey(sourceRef), phase: 'ready' },
     materializationInFlight: { current: false },
     setSourceMaterialization: () => {}, i18n: { t: (_, options) => options?.defaultValue ?? '' },
     bindings: { sdk }, queryClient: { invalidateQueries: async () => {} },
-    ensureCharacterSourceMaterialized, localAgentListQueryKey,
+    ensureCharacterSourceMaterialized, CharacterSourceConfirmationPendingError, localAgentListQueryKey,
     characterSourceMaterializationMessage, characterSourceMaterializationFailureMessage,
-    resolveAgentTargetSnapshotForSourceRef, characterSourceRefKey, launchAgentConversationFromDisplay,
+    openPartnerConversation, captureAccountActionScope, captureHomeNavigationScope, characterSourceRefKey, launchAgentConversationFromDisplay,
     logRendererEvent: () => {},
     setAgentConversationTargetSnapshot: () => {}, setPendingAgentComposerPrefill: () => {},
     setFeedback: (feedback) => events.push(`feedback:${feedback.kind}`),
@@ -139,6 +154,14 @@ test('explicit creation materializes a missing partner without opening a convers
   const result = await run('source-detail', 'missing', 'create');
   assert.equal(result.materialized, true);
   assert.equal(result.opened, false);
+});
+test('a confirmed write with failed read opens exact read-only partner recovery instead of another creation', async () => {
+  const result = await run('source-detail', 'confirmation-pending', 'create');
+  assert.equal(result.materialized, true);
+  assert.equal(result.opened, false);
+  assert.equal(result.events.filter(event => event === 'MATERIALIZE_NEW_AGENT').length, 1);
+  assert.equal(result.navigation.getSnapshot().current.destination.partner.localAgentRef, 'local-agent:new-empty-partner');
+  assert.equal(result.events.includes('feedback:success'), false);
 });
 test('World Detail views the character source without creating or opening a partner', async () => {
   const result = await run('world-detail');

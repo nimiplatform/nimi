@@ -45,7 +45,7 @@ test('Zhiyu desktop_open_select_partner sends the standard DesktopOpenIntent', a
   assert.deepEqual(calls, [{
     intent: {
       kind: 'open-explore',
-      section: 'personas',
+      section: 'partners',
       productIntent: 'select-partner',
     },
   }]);
@@ -97,14 +97,14 @@ test('Zhiyu desktop-open mapping covers only partner-selection gaps', async () =
     stage: 'source-required',
   }), {
     kind: 'open-explore',
-    section: 'personas',
+    section: 'partners',
     productIntent: 'select-partner',
   });
   assert.deepEqual(module.zhiyuDesktopOpenIntentForProductGap({
     stage: 'agent-required',
   }), {
     kind: 'open-explore',
-    section: 'personas',
+    section: 'partners',
     productIntent: 'select-partner',
   });
 });

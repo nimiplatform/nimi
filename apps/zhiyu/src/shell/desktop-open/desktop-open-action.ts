@@ -14,7 +14,7 @@ export const ZHIYU_DESKTOP_OPEN_SELECT_PARTNER_REQUEST = {
     actionHint: ZHIYU_DESKTOP_OPEN_SELECT_PARTNER_ACTION,
   }) ?? {
     kind: 'open-explore',
-    section: 'personas',
+    section: 'partners',
     productIntent: 'select-partner',
   },
 } satisfies NimiDesktopOpenRendererRequest;
@@ -59,7 +59,7 @@ export function zhiyuDesktopOpenIntentForProductGap(
   ) {
     return {
       kind: 'open-explore',
-      section: 'personas',
+      section: 'partners',
       productIntent: 'select-partner',
     };
   }

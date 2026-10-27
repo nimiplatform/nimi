@@ -968,6 +968,12 @@ REALM_OPERATIONS = [
     "path": "/api/world/by-id/{worldId}/detail-with-characters"
   },
   {
+    "operation_id": "WorldPublicController_listCharacterCatalog",
+    "service": "World",
+    "method": "GET",
+    "path": "/api/world/character-sources/catalog"
+  },
+  {
     "operation_id": "WorldPublicController_listPersonaCharacterCatalog",
     "service": "World",
     "method": "GET",

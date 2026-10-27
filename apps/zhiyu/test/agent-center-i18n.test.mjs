@@ -101,7 +101,7 @@ test('Zhiyu can render Kit Agent Center sections from the shipped Chinese catalo
     assert.doesNotMatch(section, /data-agent-center-load-error/u);
   }
   assert.match(appearance, />外观</u);
-  assert.match(appearance, /尚未设置伙伴形象/u);
+  assert.match(appearance, /还没有添加形象/u);
   assert.match(behavior, /生活与联系/u);
   assert.match(behavior, /暂停自主生活时也可使用/u);
   assert.match(behavior, /此刻的生活/u);

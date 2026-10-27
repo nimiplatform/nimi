@@ -130,14 +130,13 @@ export function createAgentConversationDisplayStore(source: AgentConversationDis
   return Object.freeze({ getSnapshot, subscribe });
 }
 
-export function useAgentConversationRuntimeController(
-  input: UseAgentConversationRuntimeControllerInput,
-): AgentConversationRuntimeController {
-  const { activeTarget } = input;
+export function useDesktopAgentCenterSession(
+  input: { agentHandle?: string | null; conversationAnchorId?: string | null },
+): AgentCenterSession | null {
   const bindings = useDesktopRendererBindings();
   const store = useAppStoreApi();
-  const agentHandle = normalizeText(activeTarget?.agentHandle);
-  const conversationAnchorId = normalizeText(activeTarget?.conversationAnchorId);
+  const agentHandle = normalizeText(input.agentHandle);
+  const conversationAnchorId = normalizeText(input.conversationAnchorId);
   const [boundSession, setBoundSession] = useState<{
     agentHandle: string;
     conversationAnchorId: string;
@@ -210,6 +209,13 @@ export function useAgentConversationRuntimeController(
   const runtimeAgentCenterAdapter = boundSession?.agentHandle === agentHandle
     && boundSession.conversationAnchorId === conversationAnchorId && boundSession.bindings === bindings
     ? boundSession.session : null;
+  return runtimeAgentCenterAdapter;
+}
+
+export function useAgentConversationRuntimeController(
+  input: UseAgentConversationRuntimeControllerInput,
+): AgentConversationRuntimeController {
+  const runtimeAgentCenterAdapter = useDesktopAgentCenterSession(input.activeTarget ?? {});
 
   const displayStore = useMemo(() => createAgentConversationDisplayStore(runtimeAgentCenterAdapter), [runtimeAgentCenterAdapter]);
   const { runtimeCommittedStatus, runtimePresentationProfile } = useSyncExternalStore(

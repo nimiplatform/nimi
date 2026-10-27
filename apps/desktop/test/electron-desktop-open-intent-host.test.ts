@@ -21,13 +21,13 @@ import {
 import type { DesktopAvatarHostHandoffDispatch } from '../src-electron/bundled-avatar-host';
 
 const envelope: NimiDesktopOpenIntentEnvelope = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   sourceApp: 'nimi.zhiyu',
   sourceHost: 'desktop-electron-local-app-host',
   requestId: 'desktop-open-zhiyu-test-1',
   intent: {
     kind: 'open-explore',
-    section: 'personas',
+    section: 'partners',
     productIntent: 'select-partner',
   },
 };

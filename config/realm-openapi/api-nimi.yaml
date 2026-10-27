@@ -12960,6 +12960,50 @@ paths:
       summary: Page through the public world catalog with server-side search
       tags:
         - World
+  /api/world/character-sources/catalog:
+    get:
+      operationId: WorldPublicController_listCharacterCatalog
+      parameters:
+        - description: Optionally limit results to one public World.
+          in: query
+          name: worldId
+          required: false
+          schema:
+            type: string
+        - description: Page size from 1 to 100; default 20.
+          in: query
+          name: limit
+          required: false
+          schema:
+            type: number
+        - description: >-
+            Case-insensitive search over public names, summaries and declared
+            topics.
+          in: query
+          name: q
+          required: false
+          schema:
+            type: string
+        - description: Opaque cursor from the previous page of this same combined query.
+          in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WorldPublicSourceCardPageDto'
+          description: ''
+        '400':
+          description: >-
+            CATALOG_CURSOR_INVALID, CATALOG_CURSOR_SCOPE_MISMATCH,
+            CATALOG_LIMIT_INVALID or CATALOG_QUERY_INVALID
+      summary: Search public PersonaCharacters and WorldCharacters across public worlds
+      tags:
+        - World
   /api/world/character-sources/public-projection:
     post:
       operationId: WorldPublicController_getCharacterSource

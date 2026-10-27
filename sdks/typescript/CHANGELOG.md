@@ -2,6 +2,10 @@
 
 # SDK migration notes
 
+## Unreleased — Worlds and My partners (0.x minor)
+
+Desktop Open envelopes require schema version 2 and an explicit Explore `productIntent`: `worlds` supports `discover-worlds` or `discover-characters`; `partners` supports `select-partner`. Version 1 and the retired Persona section reject. Upgrade SDK, Kit and native carriers together. The Realm World Public facade adds `worldPublicControllerListCharacterCatalog` for the server-paginated union of public Persona and World Character sources; rebuild Runtime with the matching broker policy. No package publication is implied.
+
 ## Unreleased — Canonical message quotations (0.x minor)
 
 Protected Conversation sends may carry one exact `quote` selector (`sourceMessageId`, `format`, `startByte`, `endByte`). `conversation.readMessage` reads one currently authorized canonical source with its on-demand quotation text and a bounded navigation window. Its `readWatermark` is independent of live snapshot continuity; never hydrate or reset the live reducer from this window. Runtime validates and commits quotation text and request identity together.

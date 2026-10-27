@@ -7,6 +7,6 @@ export async function openNimiAiCapabilities(): Promise<boolean> {
 }
 
 export async function openNimiFindPartner(): Promise<boolean> {
-  const result = await openDesktopIntent({ intent: { kind: 'open-explore', section: 'personas', productIntent: 'select-partner' } });
+  const result = await openDesktopIntent({ intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner' } });
   return result.status === 'accepted';
 }

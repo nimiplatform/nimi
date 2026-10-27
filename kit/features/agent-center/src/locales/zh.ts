@@ -66,7 +66,7 @@ export const agentCenterZhCatalog = {
   "AgentCenter.conversationContext.title": "对话上下文",
   "AgentCenter.conversationContext.description": "选择后续回复可以引用的内容，已保存的聊天记录不会被删除。",
   "AgentCenter.conversationContext.sourceLimit": "若受限内容来自必需的角色设定或 App 指令，需由作者或来源维护者更正；调整历史范围无法跳过这些指令。",
-  "AgentCenter.conversationContext.empty": "暂未取得对话上下文设置。可先打开此 Agent 的对话再刷新；此功能需要配套的 Home 与 Runtime 版本。",
+  "AgentCenter.conversationContext.empty": "暂无可用的对话历史设置。尚未聊天的伙伴也可以管理外观、行为和记忆。",
   "AgentCenter.conversationContext.full": "当前可引用完整的对话历史。",
   "AgentCenter.conversationContext.range": "后续回复将跳过前 {{count}} 轮已保存的对话。",
   "AgentCenter.conversationContext.omitted": "此对话当前不引用补充记忆和检索内容。",

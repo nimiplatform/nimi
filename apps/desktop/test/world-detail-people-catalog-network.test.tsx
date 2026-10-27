@@ -151,20 +151,21 @@ test('a paused people catalog reads as offline and loads its pages once the conn
   }
 });
 
-test('with the Desktop reporting Realm unreachable a failed first page asks for a retry', async () => {
+test('one failed people source retains the other source and offers an independent retry', async () => {
   let realmReachable = false;
   const source: Source = {
     loadWorldCharacterPage: async () => {
       if (!realmReachable) throw Object.assign(new Error('Realm is unavailable'), { reasonCode: 'REALM_UNAVAILABLE' });
       return page([summary('c1', 'First Person')], null, 1);
     },
-    loadPersonaCharacterCatalogPage: async () => page([], null, 0),
+    loadPersonaCharacterCatalogPage: async () => page([summary('p1', 'Available Persona')], null, 1),
   };
   const view = await mountCatalog(source, true);
   try {
-    assert.equal(view.value('status'), 'error', 'a failed first page is never an empty World');
+    assert.equal(view.value('status'), 'partial', 'one failed first page must not hide the successful source');
     assert.equal(view.value('offline'), 'true');
-    assert.match(view.text(), /Couldn't connect to load this world's people\. Check your connection and try again\./);
+    assert.match(view.text(), /Some people have not loaded yet/);
+    assert.equal(view.value('people'), 'Available Persona');
     const retry = view.button(/Try again/);
     assert.ok(retry, 'a retry is offered');
 
@@ -172,8 +173,24 @@ test('with the Desktop reporting Realm unreachable a failed first page asks for 
     await act(async () => { retry.click(); });
     await view.settle();
     assert.equal(view.value('status'), 'ready');
-    assert.equal(view.value('people'), 'First Person');
+    assert.equal(view.value('people'), 'First Person,Available Persona');
   } finally {
     await view.cleanup();
   }
+});
+
+test('loading more people advances Persona while WorldCharacter still has another page', async () => {
+  const calls: string[] = [];
+  const source: Source = {
+    loadWorldCharacterPage: async (_worldId, request) => { calls.push('world:' + (request.cursor ?? 'first')); return request.cursor ? page([summary('c2', 'World page two')], 'world-third', 1000) : page([summary('c1', 'World first')], 'world-second', 1000); },
+    loadPersonaCharacterCatalogPage: async (request) => { calls.push('persona:' + (request.cursor ?? 'first')); return request.cursor ? page([summary('p2', 'Persona page two')], null, 2) : page([summary('p1', 'Persona first')], 'persona-second', 2); },
+  };
+  const view = await mountCatalog(source, false);
+  try {
+    await act(async () => view.button(/more/i)!.click());
+    await view.settle();
+    assert.ok(calls.includes('world:world-second'));
+    assert.ok(calls.includes('persona:persona-second'));
+    assert.match(view.value('people') ?? '', /Persona page two/);
+  } finally { await view.cleanup(); }
 });

@@ -22,7 +22,7 @@ const testTranslate = ((_: string, options?: { defaultValue?: string }) => (
   options?.defaultValue ?? ''
 )) as TFunction;
 
-test('existing character source materialization stays outside renderer Chat identity', async () => {
+test('existing character source returns its exact Home management reference without creating a Conversation', async () => {
   let materializeCalls = 0;
   const sdk = {
     accountProduct: () => ({
@@ -49,11 +49,11 @@ test('existing character source materialization stays outside renderer Chat iden
     sourceRef: WORLD_SOURCE_REF,
   }, 'user-1', testTranslate, sdk, () => true);
 
-  assert.equal(result, undefined);
+  assert.equal(result, 'local-agent:opaque-existing');
   assert.equal(materializeCalls, 0);
 });
 
-test('character source materialization re-reads committed ownership without returning raw identity', async () => {
+test('character source materialization re-reads the exact committed Home management reference', async () => {
   const discoveryInputs: unknown[] = [];
   let discoveryCall = 0;
   const sdk = {
@@ -104,7 +104,7 @@ test('character source materialization re-reads committed ownership without retu
     sourceRef: WORLD_SOURCE_REF,
   }, 'user-1', testTranslate, sdk, () => true);
 
-  assert.equal(result, undefined);
+  assert.equal(result, 'local-agent:opaque-materialized');
   assert.deepEqual(discoveryInputs[1], { ownerUserId: 'user-1', sourceRef: WORLD_SOURCE_REF });
 });
 
@@ -121,9 +121,15 @@ test('Realm source state distinguishes packet availability from Runtime-owned Lo
     sourceHash: SOURCE_HASH,
     sourceRef: WORLD_SOURCE_REF,
     runtimeSourceRef: 'runtime-source:worldCharacter:oasis:character-1:hash-1',
+    viewerRelation: { state: 'connectable' },
   };
 
   assert.equal(resolveCharacterSourceState(source), 'source_materialization_available');
+  assert.equal(resolveCharacterSourceState({ ...source, viewerRelation: { state: 'unavailable' } }), 'source_materialization_unavailable');
+  assert.equal(resolveCharacterSourceState({ ...source, viewerRelation: undefined }), 'source_materialization_unavailable');
+  assert.equal(resolveCharacterSourceState({ ...source, viewerRelation: { state: 'unavailable' } }, [{
+    localAgentRef: 'local-agent:existing-independent', sourceKind: 'worldCharacter', sourceWorldId: 'oasis', sourceId: 'character-1', sourceHash: SOURCE_HASH,
+  }]), 'local_agent_available', 'unpublished source resources must not disable an existing partner');
   const availableAction = describeCharacterPrimaryAction('source_materialization_available', testTranslate);
   assert.equal(availableAction.action, 'become_partner');
   assert.equal(availableAction.label, 'Become my partner');

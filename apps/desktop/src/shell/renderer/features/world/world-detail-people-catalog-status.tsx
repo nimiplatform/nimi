@@ -7,6 +7,10 @@ import type { WorldPeopleCatalogState } from './world-detail-types.js';
 // loading, offline or failed first page is never presented as an empty World.
 export function PeopleCatalogFirstPageStatus({ catalog }: { readonly catalog: WorldPeopleCatalogState }) {
   const { t } = useTranslation();
+  if (catalog.status === 'partial') return <div role="status" className="flex flex-wrap items-center gap-3 text-sm text-[var(--nimi-text-secondary)]">
+    <span>{t('runtimeConfig.partners.peoplePartial')}</span>
+    {catalog.canRetryFirstPage ? <Button tone="secondary" size="sm" onClick={catalog.onRetry}>{t('WorldDetail.paper.gallery.retry')}</Button> : null}
+  </div>;
   if (catalog.status === 'offline') {
     // The page is waiting for the connection and loads by itself once it returns.
     return (
@@ -55,7 +59,7 @@ export function PeopleCatalogMoreControl({
   readonly loadedCount: number;
 }) {
   const { t } = useTranslation();
-  if (catalog.status !== 'ready' || !catalog.hasMore) {
+  if ((catalog.status !== 'ready' && catalog.status !== 'partial') || !catalog.hasMore) {
     return null;
   }
   const failedOffline = catalog.loadMoreFailed && catalog.offline;
@@ -82,7 +86,7 @@ export function PeopleCatalogMoreControl({
           ? t('WorldDetail.paper.gallery.loadingMore')
           : catalog.loadMoreFailed
             ? t('WorldDetail.paper.gallery.retry')
-            : t('WorldDetail.paper.gallery.loadMore', {
+            : catalog.status === 'partial' ? t('runtimeConfig.partners.loadMore') : t('WorldDetail.paper.gallery.loadMore', {
               loaded: formatNum(loadedCount),
               total: formatNum(catalog.totalCount),
             })}

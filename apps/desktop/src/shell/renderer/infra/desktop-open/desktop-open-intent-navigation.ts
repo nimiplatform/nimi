@@ -54,7 +54,10 @@ export function applyDesktopOpenIntentToAppStore(
       return;
     }
     case 'open-explore': {
-      void store.push({ id: 'explore', exploreSection: intent.section, search: intent.query ?? '' });
+      void store.push(intent.section === 'partners'
+        ? { id: 'explore', exploreSection: 'partners', partnerQuery: intent.query ?? '' }
+        : { id: 'explore', exploreSection: 'worlds', exploreSearchKind: intent.productIntent === 'discover-characters' ? 'characters' : 'worlds',
+            ...(intent.productIntent === 'discover-characters' ? { search: intent.query ?? '' } : { worldSearch: intent.query ?? '' }) });
       return;
     }
     case 'open-runtime-config': {

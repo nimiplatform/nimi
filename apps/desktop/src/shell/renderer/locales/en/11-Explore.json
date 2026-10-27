@@ -46,7 +46,7 @@
   "characterSourceMaterialize": "Become my partner",
   "characterSourceOpenLocalAgent": "Open partner",
   "characterSourceMaterializedFeedback": "Partner added.",
-  "characterSourceMaterializationUnavailable": "This character is missing required details, so it cannot be added as a partner yet.",
+  "characterSourceMaterializationUnavailable": "This character is not ready to be added as a partner yet.",
   "characterSourceMaterializationRejected": "Failed to add as partner. Refresh the character and try again.",
   "characterSourceAmbiguous": "More than one partner already exists for this character. Open the partner from your relationship list.",
   "characterSourceAmbiguousLabel": "Open from partners",

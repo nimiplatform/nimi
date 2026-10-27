@@ -21,6 +21,7 @@ type CharacterSourceDetailPageProps = {
   onBack?: () => void;
   onOpenWorld: () => void;
   onPrimaryAction: () => void;
+  onCreateAnother?: () => void;
   partners?: { localAgentRef: string; displayName: string; capturedAt?: string }[];
   onSelectPartner?: (localAgentRef: string) => void;
   onStartChat?: (initialComposerText?: string) => void;
@@ -401,16 +402,16 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
                             {t('SourceDetail.openWorld', { defaultValue: 'Open World' })}
                           </button>
                         ) : null}
-                        {canStartChat ? (
+                        {primaryAction.action === 'partner_ambiguous' ? null : canStartChat ? (
                           <Button
                             type="button"
                             tone="primary"
                             size="lg"
-                            onClick={() => props.onStartChat?.()}
-                            disabled={!props.onStartChat || props.primaryActionJoining}
+                            onClick={props.onPrimaryAction}
+                            disabled={props.primaryActionJoining}
                           >
-                            <MessageCircle aria-hidden className="h-[16px] w-[16px]" strokeWidth={2.2} />
-                            {t('SourceDetail.worldCharacter.chatNow', { defaultValue: 'Chat now' })}
+                            <ChevronRight aria-hidden className="h-[16px] w-[16px]" strokeWidth={2.2} />
+                            {t('Explore.characterSourceOpenLocalAgent', { defaultValue: 'Open partner' })}
                           </Button>
                         ) : (
                           <Button
@@ -429,6 +430,7 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
                           </Button>
                         )}
                       </div>
+                      {primaryAction.state === 'source_materialization_unavailable' ? <p role="status" className="text-sm text-[var(--nimi-text-secondary)]">{primaryAction.hint}</p> : null}
                       {(props.partners?.length ?? 0) > 1 && props.onSelectPartner ? (
                         <div className="grid w-full gap-2">
                           <p className="text-sm font-medium text-[var(--nimi-text-primary)]">
@@ -445,6 +447,11 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
                           ))}
                         </div>
                       ) : null}
+                      {props.onCreateAnother ? <details className="w-full text-sm text-[var(--nimi-text-secondary)]">
+                        <summary className="cursor-pointer rounded-md focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]">{t('runtimeConfig.partners.createAnother')}</summary>
+                        <p className="mt-2">{t('runtimeConfig.partners.createAnotherHelp')}</p>
+                        <Button tone="secondary" size="sm" className="mt-2" disabled={props.primaryActionJoining} onClick={props.onCreateAnother}>{t('runtimeConfig.partners.confirmCreate')}</Button>
+                      </details> : null}
                     </div>
                   </div>
                 </div>

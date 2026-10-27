@@ -26796,6 +26796,26 @@ type RealmWorldPublicControllerGetWorldDetailWithCharactersOperationRequest stru
 	Body    struct{}                                                               `json:"body,omitempty"`
 }
 
+type RealmWorldPublicControllerListCharacterCatalogOperationPath struct {
+}
+
+type RealmWorldPublicControllerListCharacterCatalogOperationQuery struct {
+	WorldId string  `json:"worldId,omitempty"`
+	Limit   float64 `json:"limit,omitempty"`
+	Q       string  `json:"q,omitempty"`
+	Cursor  string  `json:"cursor,omitempty"`
+}
+
+type RealmWorldPublicControllerListCharacterCatalogOperationHeaders struct {
+}
+
+type RealmWorldPublicControllerListCharacterCatalogOperationRequest struct {
+	Path    RealmWorldPublicControllerListCharacterCatalogOperationPath    `json:"path,omitempty"`
+	Query   RealmWorldPublicControllerListCharacterCatalogOperationQuery   `json:"query,omitempty"`
+	Headers RealmWorldPublicControllerListCharacterCatalogOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                                                       `json:"body,omitempty"`
+}
+
 type RealmWorldPublicControllerListPersonaCharacterCatalogOperationPath struct {
 }
 
@@ -28168,6 +28188,14 @@ func (c RealmTypedClient) WorldPublicControllerGetWorldDetailWithCharacters(ctx 
 		return WorldPublicDetailWithCharactersDto{}, err
 	}
 	return decodeTypedResponse[WorldPublicDetailWithCharactersDto](raw)
+}
+
+func (c RealmTypedClient) WorldPublicControllerListCharacterCatalog(ctx context.Context, request RealmWorldPublicControllerListCharacterCatalogOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldPublicSourceCardPageDto, error) {
+	raw, err := c.operationTyped(ctx, "WorldPublicController_listCharacterCatalog", request, metadata, timeoutMS)
+	if err != nil {
+		return WorldPublicSourceCardPageDto{}, err
+	}
+	return decodeTypedResponse[WorldPublicSourceCardPageDto](raw)
 }
 
 func (c RealmTypedClient) WorldPublicControllerListPersonaCharacterCatalog(ctx context.Context, request RealmWorldPublicControllerListPersonaCharacterCatalogOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (WorldPublicSourceCardPageDto, error) {

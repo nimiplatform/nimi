@@ -46,7 +46,7 @@
   "characterSourceMaterialize": "添加为伙伴",
   "characterSourceOpenLocalAgent": "打开伙伴",
   "characterSourceMaterializedFeedback": "已添加为伙伴。",
-  "characterSourceMaterializationUnavailable": "此角色信息不完整，暂时无法添加为本地伙伴。",
+  "characterSourceMaterializationUnavailable": "此角色尚未准备好，暂时无法添加为伙伴。",
   "characterSourceMaterializationRejected": "添加伙伴失败，请刷新角色后重试。",
   "characterSourceAmbiguous": "此角色已经对应多个伙伴，请从伙伴列表打开。",
   "characterSourceAmbiguousLabel": "从伙伴列表打开",

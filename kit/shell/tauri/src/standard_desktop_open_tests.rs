@@ -161,7 +161,7 @@ fn query_length_counts_unicode_scalar_values() {
         json!({
             "intent": {
                 "kind": "open-explore",
-                "section": "personas",
+                "section": "partners", "productIntent": "select-partner",
                 "query": admitted_query,
             }
         }),
@@ -174,7 +174,7 @@ fn query_length_counts_unicode_scalar_values() {
         json!({
             "intent": {
                 "kind": "open-explore",
-                "section": "personas",
+                "section": "partners", "productIntent": "select-partner",
                 "query": "😀".repeat(161),
             }
         }),
@@ -263,6 +263,10 @@ fn read_golden_vectors() -> GoldenVectorTable {
 
 fn rejected_golden_case(id: &str) -> Option<(&'static str, serde_json::Value)> {
     Some(match id {
+        "explore-activity-view" | "explore-activity-section-only" => (
+            "nimi.tauri",
+            json!({ "intent": { "kind": "open-explore", "section": "activity", "productIntent": "view-activity" } }),
+        ),
         "source-app-missing" => (
             "",
             json!({ "intent": { "kind": "open-settings", "section": "profile" } }),
@@ -288,7 +292,7 @@ fn rejected_golden_case(id: &str) -> Option<(&'static str, serde_json::Value)> {
         ),
         "invalid-explore-activity-discover-personas-pair" => (
             "nimi.tauri",
-            json!({ "intent": { "kind": "open-explore", "section": "activity", "productIntent": "discover-personas" } }),
+            json!({ "intent": { "kind": "open-explore", "section": "activity", "productIntent": "discover-characters" } }),
         ),
         "invalid-source-host" => (
             "nimi.tauri",
@@ -310,7 +314,7 @@ fn rejected_golden_case(id: &str) -> Option<(&'static str, serde_json::Value)> {
         ),
         "invalid-query-too-long" => (
             "nimi.tauri",
-            json!({ "intent": { "kind": "open-explore", "section": "personas", "query": "x".repeat(161) } }),
+            json!({ "intent": { "kind": "open-explore", "section": "partners", "productIntent": "select-partner", "query": "x".repeat(161) } }),
         ),
         "developer-tools-settings-target-v1" => (
             "nimi.tauri",

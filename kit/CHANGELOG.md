@@ -2,6 +2,10 @@
 
 # Changelog
 
+## Unreleased — Worlds and My partners (0.x minor)
+
+Desktop Open envelopes now require schema version 2. Explore accepts `worlds` with `discover-worlds` or `discover-characters`, and `partners` with `select-partner`; `productIntent` is required. The old Persona section and schema version 1 reject. Rebuild matching SDK, Kit and native carriers together. Home resolves partner management in its own account scope; opening management does not create a Conversation. Agent Center removes the ambiguous global settings gear and retains contextual capability repair actions. No package publication is implied.
+
 ## Unreleased — Canonical desktop message actions (breaking 0.x minor)
 
 Home Agent Chat and Zhiyu share contextual message actions, exact text quotations, bounded source navigation and a renderer-owned playback controller. Consumers mount useLocalAppConversationPlayback and LocalAppConversationPlayer outside transient menus and virtual message rows, and supply CanonicalTranscriptView.messageActions. The former LocalAppConversationVoiceButton export and row-owned audio implementation are removed; update callers directly instead of retaining a compatibility wrapper.

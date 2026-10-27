@@ -40,6 +40,7 @@ surfaces:
   - WorldPublicController_listWorldTopics
   - WorldPublicController_listWorldCharacterCatalog
   - WorldPublicController_listPersonaCharacterCatalog
+  - WorldPublicController_listCharacterCatalog
   - getMe
   - updateMe
   - listMyFriendsWithDetails
@@ -415,6 +416,14 @@ operations:
     path_template: /api/world/persona-characters/catalog
     request_schema_ref: realm-openapi://operation/WorldPublicController_listPersonaCharacterCatalog/request
     response_schema_ref: realm-openapi://operation/WorldPublicController_listPersonaCharacterCatalog/response
+
+  - <<: *desktop_source_read
+    operation_id: WorldPublicController_listCharacterCatalog
+    authority_ref: realm:.nimi/spec/realm/core.authority.yaml#rule.realm.core.public-discovery-catalog
+    http_method: GET
+    path_template: /api/world/character-sources/catalog
+    request_schema_ref: realm-openapi://operation/WorldPublicController_listCharacterCatalog/request
+    response_schema_ref: realm-openapi://operation/WorldPublicController_listCharacterCatalog/response
 
   - <<: *desktop_product
     operation_id: getMe

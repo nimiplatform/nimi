@@ -300,7 +300,7 @@ fn compose_envelope_for_source(
     let source_app = normalize_source_app(source_app_value)?;
     let intent = parse_desktop_open_intent(request.intent)?;
     Ok(json!({
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "sourceApp": source_app,
         "sourceHost": "tauri-standard-shell",
         "requestId": request_id,
@@ -492,17 +492,15 @@ fn parse_explore_intent(
         "explore intent",
     )?;
     let section = required_string(record.get("section"), "intent.section")?;
-    if !matches!(section.as_str(), "worlds" | "personas" | "activity") {
+    if !matches!(section.as_str(), "worlds" | "partners") {
         return Err(unsupported_parse(
             "DesktopOpenIntent explore section is not admitted",
         ));
     }
-    let product_intent = optional_string(record.get("productIntent"), "intent.productIntent")?;
-    if let Some(value) = &product_intent {
+    let product_intent = required_string(record.get("productIntent"), "intent.productIntent")?;
         let admitted = match section.as_str() {
-            "worlds" => value == "discover-worlds",
-            "personas" => value == "discover-personas" || value == "select-partner",
-            "activity" => value == "view-activity",
+            "worlds" => product_intent == "discover-worlds" || product_intent == "discover-characters",
+            "partners" => product_intent == "select-partner",
             _ => false,
         };
         if !admitted {
@@ -510,7 +508,6 @@ fn parse_explore_intent(
                 "DesktopOpenIntent explore productIntent is not admitted for section",
             ));
         }
-    }
     let query = optional_string(record.get("query"), "intent.query")?;
     if query
         .as_ref()
@@ -523,10 +520,8 @@ fn parse_explore_intent(
     let mut output = json!({
         "kind": "open-explore",
         "section": section,
+        "productIntent": product_intent,
     });
-    if let Some(value) = product_intent {
-        output["productIntent"] = Value::String(value);
-    }
     if let Some(value) = query {
         output["query"] = Value::String(value);
     }

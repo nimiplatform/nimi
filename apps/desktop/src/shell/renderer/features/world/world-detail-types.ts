@@ -343,7 +343,8 @@ export type RealmConstellationData = {
 // `offline` is a first page waiting for the connection, which loads by itself once it returns;
 // `error` is a first page that failed and needs a retry.
 export type WorldPeopleCatalogState = {
-  readonly status: 'loading' | 'offline' | 'error' | 'ready';
+  readonly status: 'loading' | 'offline' | 'error' | 'ready' | 'partial';
+  readonly canRetryFirstPage?: boolean;
   readonly offline: boolean;
   readonly totalCount: number;
   readonly hasMore: boolean;

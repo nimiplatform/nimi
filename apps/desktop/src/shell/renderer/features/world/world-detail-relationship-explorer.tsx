@@ -182,7 +182,8 @@ function PeoplePanel({
         />
       </div>
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 10, scrollbarGutter: 'stable' }}>
-        {catalog.status !== 'ready' ? (
+        {catalog.status === 'partial' ? <PeopleCatalogFirstPageStatus catalog={catalog} /> : null}
+        {catalog.status !== 'ready' && catalog.status !== 'partial' ? (
           <PeopleCatalogFirstPageStatus catalog={catalog} />
         ) : people.length > 0 ? (
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0,1fr)', gap: 4 }}>
@@ -219,7 +220,7 @@ function PeoplePanel({
               );
             })}
           </div>
-        ) : <EmptyState title={t('WorldDetail.paper.relationshipExplorer.peopleList.empty')} style={{ margin: '20px 12px' }} />}
+        ) : catalog.status === 'partial' ? null : <EmptyState title={t('WorldDetail.paper.relationshipExplorer.peopleList.empty')} style={{ margin: '20px 12px' }} />}
         <PeopleCatalogMoreControl catalog={catalog} loadedCount={people.length} />
       </div>
     </aside>
@@ -300,14 +301,14 @@ export function WorldRelationshipExplorer({
         />
 
         <main style={{ minWidth: 0 }}>
-          {catalog.status !== 'ready' ? null : model.center ? (
+          {catalog.status !== 'ready' && catalog.status !== 'partial' ? null : model.center ? (
             <CharacterProfile
               center={model.center}
               characters={characters}
               onSelect={setSelectedCenterId}
               onOpenProfile={openCharacterProfile}
             />
-          ) : (
+          ) : catalog.status === 'partial' ? null : (
             <div style={{ ...panelStyle(), padding: 24 }}>
               <h2 style={{ margin: 0, fontSize: 18, fontWeight: 900, color: 'var(--nimi-text-primary)' }}>{t('WorldDetail.paper.relationshipExplorer.noCharactersTitle')}</h2>
               <p style={{ margin: '8px 0 0', fontSize: 12.5, lineHeight: 1.65, color: 'var(--nimi-text-muted)' }}>{t('WorldDetail.paper.relationshipExplorer.noCharactersDesc')}</p>

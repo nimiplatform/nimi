@@ -34,7 +34,7 @@ function normalizeRequiredText(value: unknown, field: string): string {
 }
 
 export class CharacterSourceConfirmationPendingError extends Error {
-  constructor(message: string, cause: unknown) {
+  constructor(message: string, readonly localAgentRef: string, cause?: unknown) {
     super(message, { cause });
     this.name = 'CharacterSourceConfirmationPendingError';
   }
@@ -47,6 +47,7 @@ export async function confirmCharacterSourceMaterialized(
   t: TFunction,
   sdk: DesktopRendererSdkPort,
   isCurrent: () => boolean,
+  expectedLocalAgentRef: string,
 ): Promise<void> {
   if (!isCurrent()) throw new Error('Source action expired');
   const ownerUserId = normalizeRequiredText(ownerUserIdInput, 'ownerUserId');
@@ -54,8 +55,7 @@ export async function confirmCharacterSourceMaterialized(
   if (!sourceRef) throw new Error(characterSourceMaterializationMessage(t));
   const committed = await discoverCharacterSourceLocalAgents({ sourceRef }, ownerUserId, sdk);
   if (!isCurrent()) throw new Error('Source action expired');
-  if (committed.length > 1) throw new Error(characterSourceAmbiguousMessage(t));
-  if (committed.length !== 1) {
+  if (!committed.some(agent => agent.localAgentRef === expectedLocalAgentRef)) {
     throw new Error(t('Explore.characterSourceRefreshPending', {
       defaultValue: 'Your partner was created, but the partner list could not be refreshed. Refresh the partner to confirm it without creating another one.',
     }));
@@ -64,9 +64,8 @@ export async function confirmCharacterSourceMaterialized(
 
 /**
  * Ensures one Runtime-owned LocalAgent exists for a canonical Realm source.
- * Raw Runtime identity remains inside the materialization/discovery adapters;
- * this product seam returns no identity and callers refresh the canonical
- * LocalApp Agent reference list before the user selects a Conversation.
+ * Returns the confirmed local reference for Home's partner management position.
+ * It does not resolve an App handle or create a Conversation.
  */
 export async function ensureCharacterSourceMaterialized(
   source: CharacterSourceMaterializationInput,
@@ -74,7 +73,7 @@ export async function ensureCharacterSourceMaterialized(
   t: TFunction,
   sdk: DesktopRendererSdkPort,
   isCurrent: () => boolean,
-): Promise<void> {
+): Promise<string> {
   const assertCurrent = () => { if (!isCurrent()) throw new Error('Source action expired'); };
   assertCurrent();
   const ownerUserId = normalizeRequiredText(ownerUserIdInput, 'ownerUserId');
@@ -87,18 +86,19 @@ export async function ensureCharacterSourceMaterialized(
   if (existing.length > 1) {
     throw new Error(characterSourceAmbiguousMessage(t));
   }
-  if (existing.length === 1) return;
+  if (existing.length === 1) return existing[0]!.localAgentRef;
 
-  await materializeCharacterSourceLocalAgent({ sourceRef }, t, sdk);
+  const created = await materializeCharacterSourceLocalAgent({ sourceRef }, t, sdk);
   assertCurrent();
   try {
-    await confirmCharacterSourceMaterialized(source, ownerUserId, t, sdk, isCurrent);
+    await confirmCharacterSourceMaterialized(source, ownerUserId, t, sdk, isCurrent, created.localAgentRef);
   } catch (error) {
     assertCurrent();
     throw new CharacterSourceConfirmationPendingError(t('Explore.characterSourceRefreshPending', {
       defaultValue: 'Your partner was created, but the partner list could not be refreshed. Refresh the partner to confirm it without creating another one.',
-    }), error);
+    }), created.localAgentRef, error);
   }
+  return created.localAgentRef;
 }
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r006
@@ -108,7 +108,7 @@ export async function createAnotherCharacterSourcePartner(
   t: TFunction,
   sdk: DesktopRendererSdkPort,
   isCurrent: () => boolean,
-): Promise<void> {
+): Promise<string> {
   const assertCurrent = () => { if (!isCurrent()) throw new Error('Source action expired'); };
   assertCurrent();
   const ownerUserId = normalizeRequiredText(ownerUserIdInput, 'ownerUserId');
@@ -121,11 +121,15 @@ export async function createAnotherCharacterSourcePartner(
   if (existing.some(agent => agent.localAgentRef === result.localAgentRef)) {
     throw new Error(t('SourceDetail.anotherPartnerNotConfirmed', { defaultValue: 'A new partner could not be confirmed. Refresh your partner list before trying again.' }));
   }
-  const committed = await discoverCharacterSourceLocalAgents({ sourceRef }, ownerUserId, sdk);
-  assertCurrent();
-  if (!committed.some(agent => agent.localAgentRef === result.localAgentRef && agent.ownerUserId === ownerUserId
-    && agent.sourceKind === sourceRef.kind && agent.sourceWorldId === sourceRef.worldId
-    && agent.sourceId === sourceRef.id && agent.sourceHash === sourceRef.sourceHash)) {
-    throw new Error(t('SourceDetail.anotherPartnerListPending', { defaultValue: 'Your partner was created, but the partner list has not refreshed. Refresh the list before continuing.' }));
+  try {
+    const committed = await discoverCharacterSourceLocalAgents({ sourceRef }, ownerUserId, sdk);
+    assertCurrent();
+    if (!committed.some(agent => agent.localAgentRef === result.localAgentRef && agent.ownerUserId === ownerUserId
+      && agent.sourceKind === sourceRef.kind && agent.sourceWorldId === sourceRef.worldId
+      && agent.sourceId === sourceRef.id && agent.sourceHash === sourceRef.sourceHash)) throw new Error('Created partner was not in the current owner inventory.');
+  } catch (error) {
+    assertCurrent();
+    throw new CharacterSourceConfirmationPendingError(t('SourceDetail.anotherPartnerListPending', { defaultValue: 'Your partner was created, but the partner list has not refreshed. Refresh the list before continuing.' }), result.localAgentRef, error);
   }
+  return result.localAgentRef;
 }

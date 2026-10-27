@@ -17,11 +17,11 @@ export function WorldAtlasImage({ world, eager = false }: { world: WorldListItem
 }
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r003
-export function WorldAlbumCard({ world, renderPeople }: { world: WorldListItem; renderPeople?: WorldPeopleRenderer }) {
+export function WorldAlbumCard({ world, renderPeople, viewKey }: { world: WorldListItem; renderPeople?: WorldPeopleRenderer; viewKey?: string }) {
   const { t } = useTranslation();
   const navigation = useHomeNavigation();
   return <article className="world-album-card" data-testid="world-discovery-card">
-    <button className="world-album-link" aria-label={t('WorldDetail.discovery.enterNamedWorld', { name: world.name })} onClick={() => void navigation.push({ id: 'world-detail', worldId: world.id })}>
+    <button data-view-key={viewKey ?? `world:${world.id}`} className="world-album-link" aria-label={t('WorldDetail.discovery.enterNamedWorld', { name: world.name })} onClick={() => void navigation.push({ id: 'world-detail', worldId: world.id })}>
       <WorldAtlasImage world={world} />
       <div className="world-album-caption"><h2 title={world.name}>{world.name}</h2>
         {renderPeople ? renderPeople(world) : <span className="world-album-count">{t('WorldDetail.discovery.peopleCount', { count: world.characterCount + world.personaCharacterCount })}</span>}
@@ -75,7 +75,7 @@ export function WorldTopicShelf({ topic, worlds, onSelect, renderPeople }: { top
   return <section className="world-atlas-section" aria-label={title}>
     <div className="world-atlas-section-heading"><div><h2>{title}</h2></div><button onClick={onSelect}>{t('World.album.viewAll')}</button></div>
     <div className="world-atlas-shelf"><div className="world-atlas-track" ref={track} onScroll={updateEdges}>
-      {worlds.map((world) => <WorldAlbumCard key={world.id} world={world} renderPeople={renderPeople} />)}
+      {worlds.map((world) => <WorldAlbumCard key={world.id} world={world} renderPeople={renderPeople} viewKey={`shelf:${topic.id}:${world.id}`} />)}
     </div>{worlds.length > 1 ? <div className="world-atlas-shelf-controls"><button disabled={edges.start} aria-label={t('World.album.previousTopic', { topic: title })} onClick={() => track.current?.scrollBy({ left: -track.current.clientWidth })}><ChevronLeft size={18} /></button><button aria-label={t('World.album.nextTopic', { topic: title })} disabled={edges.end} onClick={() => track.current?.scrollBy({ left: track.current.clientWidth })}><ChevronRight size={18} /></button></div> : null}</div>
   </section>;
 }

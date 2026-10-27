@@ -172,6 +172,7 @@ test('Desktop source-readiness Realm transport exposes the exact generated opera
     'WorldPublicController_listWorldTopics',
     'WorldPublicController_listWorldCatalog',
     'WorldPublicController_listPersonaCharacterCatalog',
+    'WorldPublicController_listCharacterCatalog',
   ]);
   let runtimeCalls = 0;
   const transport = createRuntimeAccountMediatedDesktopSourceReadinessRealmTransport({

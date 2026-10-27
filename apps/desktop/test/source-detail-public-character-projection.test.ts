@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
 
-import { realmSourceDetailData } from '../src/shell/renderer/features/source-detail/data/realm-source-detail-data.js';
+import { realmSourceDetailData, resolveCurrentPartnerSource } from '../src/shell/renderer/features/source-detail/data/realm-source-detail-data.js';
 import { projectCharacterSourceProfile } from '../src/shell/renderer/features/realm-source/character-source-profile-projection.js';
 import { readCharacterProfile } from '../src/shell/renderer/features/source-detail/source-detail-world-character-model.js';
 import { fetchSourceDisplayDetail } from '../src/shell/renderer/features/source-detail/source-detail-queries.js';
@@ -440,4 +440,22 @@ test('source detail fails closed when the public projection returns another sour
     () => realmSourceDetailData.loadRealmSourceDetailsBySourceRef(realm as never, personaRef),
     /mismatched sourceRef/,
   );
+});
+
+test('partner source navigation resolves the current public ref while keeping captured provenance', async () => {
+  const captured = { kind: 'personaCharacter' as const, id: 'p-a', worldId: 'world-a', ownerAccountId: 'creator-a', sourceHash: 'a'.repeat(64) };
+  const current = { ...captured, sourceHash: 'b'.repeat(64) };
+  const calls: unknown[] = [];
+  const realm = { worldCore: { worldCoreControllerGetPersonaCharacter: async () => current },
+    worldPublic: { worldPublicControllerGetCharacterSource: async (request: { body: { sourceRef: CharacterSourceRefV3 } }) => {
+      calls.push(request.body.sourceRef); return publicSourceCard(current, 'Current character');
+    } } };
+  const result = await resolveCurrentPartnerSource(realm as never, captured);
+  assert.equal(result.updated, true);
+  assert.deepEqual(result.sourceRef, current);
+  assert.equal(captured.sourceHash, 'a'.repeat(64));
+  assert.deepEqual(calls, [current]);
+  realm.worldCore.worldCoreControllerGetPersonaCharacter = async () => ({ ...current, ownerAccountId: 'other-owner' });
+  await assert.rejects(resolveCurrentPartnerSource(realm as never, captured), /identity/);
+  assert.equal(calls.length, 1, 'identity mismatch never probes a replacement public source');
 });

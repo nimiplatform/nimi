@@ -142,6 +142,7 @@ export const REALM_WORLD_PUBLIC_METHODS = [
   'worldPublicControllerGetWorld',
   'worldPublicControllerGetWorldDetailWithCharacters',
   'worldPublicControllerListPersonaCharacterCatalog',
+  'worldPublicControllerListCharacterCatalog',
   'worldPublicControllerListWorldCatalog',
   'worldPublicControllerListWorldTopics',
   'worldPublicControllerListWorldCharacterCatalog',

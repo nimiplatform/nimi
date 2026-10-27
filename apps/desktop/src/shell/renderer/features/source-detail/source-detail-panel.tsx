@@ -4,13 +4,16 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { useAppStore, useAppStoreApi } from '../../app-shell/providers/app-store';
-import { characterSourceMaterializationFailureMessage, characterSourceMaterializationMessage, characterSourceRefKey, discoverCharacterSourceLocalAgents, resolveCharacterSourceState, type CharacterSourceDiscoveredLocalAgent } from '../explore/character-source-materialization';
-import { ensureCharacterSourceMaterialized } from '../relationship/character-source-launch-target.js';
-import { fetchLocalAgentList, localAgentListQueryKey, toLocalAgentSourceDiscoveryProjections } from '../agents/local-agent-list-model';
-import { resolveAgentTargetSnapshotForSourceRef } from '../agents/agent-conversation-source-resolution.js';
+import { captureAccountActionScope } from '../../app-shell/providers/account-action-scope.js';
+import { captureHomeNavigationScope } from '../../app-shell/providers/home-navigation.js';
+import { characterSourceMaterializationFailureMessage, characterSourceMaterializationMessage, characterSourceRefKey, resolveCharacterSourceState } from '../explore/character-source-materialization';
+import { CharacterSourceConfirmationPendingError, createAnotherCharacterSourcePartner, ensureCharacterSourceMaterialized } from '../relationship/character-source-launch-target.js';
+import { localAgentListQueryKey } from '../agents/local-agent-list-model';
+import { isSameCharacter, readPartnerDirectoryForSource } from '../agents/partner-directory-model.js';
+import { openPartnerConversation } from '../agents/partner-navigation.js';
+import { AgentLifecycleStatus } from '@nimiplatform/sdk/runtime/wire-types';
 import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
 
-import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { sourceDisplayDetailQueryKey, fetchSourceDisplayDetail } from './source-detail-queries.js';
 import { SourceDetailView } from './source-detail-view.js';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
@@ -21,9 +24,7 @@ export function SourceDetailPanel({
   sourceRef: sourceRefProp,
   onBack,
 }: {
-  // Embedded hosts (e.g. the Explore persona rail+detail layout) pass an
-  // explicit sourceRef; the standalone panel falls back to the store-driven
-  // selection. Pass onBack=null to hide the back control when embedded.
+  // Embedded hosts may supply an explicit source; otherwise navigation owns it.
   sourceRef?: CharacterSourceRefV3 | null;
   onBack?: (() => void) | null;
 } = {}) {
@@ -35,6 +36,8 @@ export function SourceDetailPanel({
   const queryClient = useQueryClient();
   const authStatus = useAppStore((state) => state.auth.status);
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
+  const realmBaseUrl = useAppStore((state) => state.runtimeDefaults?.realm.realmBaseUrl ?? '');
+  const authorizationRevision = useAppStore((state) => state.auth.authorizationRevision);
   const storeSelectedSourceRef = useHomeDestination().sourceRef ?? null;
   const selectedSourceRef = sourceRefProp === undefined ? storeSelectedSourceRef : sourceRefProp;
 
@@ -57,7 +60,7 @@ export function SourceDetailPanel({
 
   const profileQuery = useQuery({
     queryKey: selectedSourceRef
-      ? sourceDisplayDetailQueryKey(selectedSourceRef)
+      ? [...sourceDisplayDetailQueryKey(selectedSourceRef), realmBaseUrl, ownerUserId, authorizationRevision]
       : ['source-display-detail', 'missing-character-source-ref-v3'],
     queryFn: async () => selectedSourceRef
       ? fetchSourceDisplayDetail(selectedSourceRef, bindings.sdk)
@@ -69,125 +72,88 @@ export function SourceDetailPanel({
     return profileQuery.data.source;
   }, [profileQuery.data]);
 
-  const sourceLocalAgentsQuery = useQuery({
-    queryKey: [
-      'source-detail-local-agents',
-      ownerUserId,
-      source?.sourceRef
-        ? characterSourceRefKey(source.sourceRef)
-        : source?.id ?? 'missing-source-ref',
-      source?.runtimeSourceRef ?? '',
-    ],
-    queryFn: async () => (source
-      ? discoverCharacterSourceLocalAgents(source, ownerUserId, bindings.sdk)
-      : []),
-    enabled: authStatus === 'authenticated' && Boolean(source) && Boolean(ownerUserId),
-    staleTime: 10_000,
-  });
-
   const localAgentListQuery = useQuery({
-    queryKey: localAgentListQueryKey(ownerUserId),
-    queryFn: async () => fetchLocalAgentList(ownerUserId, bindings.sdk),
-    enabled: authStatus === 'authenticated' && Boolean(ownerUserId),
-    staleTime: 15_000,
+    queryKey: ['source-detail-partners', ownerUserId, realmBaseUrl, authorizationRevision],
+    queryFn: () => readPartnerDirectoryForSource(bindings.sdk, ownerUserId),
+    enabled: authStatus === 'authenticated' && Boolean(ownerUserId), staleTime: 15_000, networkMode: 'always',
   });
-
-  const sourceRuntimeLocalAgents = useMemo(() => {
-    const byLocalAgentRef = new Map<string, CharacterSourceDiscoveredLocalAgent>();
-    for (const agent of sourceLocalAgentsQuery.data ?? []) {
-      if (agent.localAgentRef) {
-        byLocalAgentRef.set(agent.localAgentRef, agent);
-      }
-    }
-    for (const agent of toLocalAgentSourceDiscoveryProjections(
-      localAgentListQuery.data ?? [],
-      source?.sourceRef,
-    )) {
-      byLocalAgentRef.set(agent.localAgentRef, agent);
-    }
-    return [...byLocalAgentRef.values()];
-  }, [localAgentListQuery.data, source?.sourceRef, sourceLocalAgentsQuery.data]);
-
-  const currentSourceKey = useMemo(
-    () => (source?.sourceRef ? characterSourceRefKey(source.sourceRef) : null),
-    [source],
-  );
-
+  const matchingPartners = useMemo(() => (localAgentListQuery.data ?? []).filter(partner => isSameCharacter(partner.sourceRef, source?.sourceRef ?? null)), [localAgentListQuery.data, source?.sourceRef]);
+  const currentSourceKey = source?.sourceRef ? characterSourceRefKey(source.sourceRef) : null;
   const sourceForView = useMemo(() => {
-    if (!source) {
-      return null;
-    }
-    const resolvedState = resolveCharacterSourceState(
-      source,
-      sourceRuntimeLocalAgents,
-      {
-        runtimeInventoryPending: Boolean(
-          ownerUserId
-          && sourceLocalAgentsQuery.isPending
-          && localAgentListQuery.isPending
-        ),
-        runtimeInventoryUnavailable: !ownerUserId || (sourceLocalAgentsQuery.isError && localAgentListQuery.isError),
-      },
-    );
-    return {
-      ...source,
-      sourceState: resolvedState,
-    };
-  }, [
-    localAgentListQuery.isError,
-    localAgentListQuery.isPending,
-    ownerUserId,
-    source,
-    sourceLocalAgentsQuery.isError,
-    sourceLocalAgentsQuery.isPending,
-    sourceRuntimeLocalAgents,
-  ]);
+    if (!source) return null;
+    const base = resolveCharacterSourceState(source, [], {
+      runtimeInventoryPending: Boolean(ownerUserId) && localAgentListQuery.isPending,
+      runtimeInventoryUnavailable: !ownerUserId || localAgentListQuery.isError,
+    });
+    const sourceState = !localAgentListQuery.isPending && !localAgentListQuery.isError && matchingPartners.length
+      ? (matchingPartners.length === 1 ? 'local_agent_available' : 'local_agent_ambiguous') : base;
+    return { ...source, sourceState };
+  }, [source, ownerUserId, localAgentListQuery.isPending, localAgentListQuery.isError, matchingPartners]);
+  const openPartner = (localAgentRef: string) => {
+    if (!matchingPartners.some(partner => partner.localAgentRef === localAgentRef)) return;
+    void navigation.push({ id: 'explore', exploreSection: 'partners', partner: { localAgentRef } });
+  };
 
   const stats = useMemo(() => {
     if (!profileQuery.data) return null;
     return profileQuery.data.stats;
   }, [profileQuery.data]);
 
-  const ensureCharacterSourceReady = async (isCurrent: () => boolean) => {
+  const ensureCharacterSourceReady = async (isCurrent: () => boolean, another: boolean) => {
     if (!source) {
       throw new Error(characterSourceMaterializationMessage(i18n.t));
     }
 
-    await ensureCharacterSourceMaterialized(source, ownerUserId, i18n.t, bindings.sdk, isCurrent);
+    const createdRef = await (another ? createAnotherCharacterSourcePartner : ensureCharacterSourceMaterialized)(source, ownerUserId, i18n.t, bindings.sdk, isCurrent);
+    await queryClient.invalidateQueries({ queryKey: ['source-detail-partners', ownerUserId] });
+    await queryClient.invalidateQueries({ queryKey: ['home-partners', ownerUserId] });
     await queryClient.invalidateQueries({ queryKey: ['source-detail-local-agents'], exact: false });
     await queryClient.invalidateQueries({ queryKey: localAgentListQueryKey(ownerUserId), exact: true });
     await queryClient.invalidateQueries({ queryKey: ['desktop-local-app-agent-references'], exact: false });
+    return createdRef;
   };
 
-  const handlePrimaryAction = async () => {
+  const handlePrimaryAction = async (another = false) => {
+    if (!another && matchingPartners.length === 1) { openPartner(matchingPartners[0]!.localAgentRef); return; }
+    if (!another && matchingPartners.length > 1) return;
     if (!currentSourceKey) {
       return;
     }
     if (materializationInFlight.current) {
       return;
     }
-    const auth = appStore.getState().auth;
-    const isCurrent = () => auth.status === 'authenticated'
-      && appStore.getState().auth === auth
+    const scope = captureAccountActionScope(appStore);
+    if (!scope || scope.accountId !== ownerUserId) { scope?.dispose(); return; }
+    const position = captureHomeNavigationScope(navigation);
+    const isCurrent = () => scope.isCurrent() && position.isCurrent()
       && currentAction.current?.sourceKey === currentSourceKey
       && currentAction.current?.ownerUserId === ownerUserId;
-    if (!isCurrent()) return;
+    if (!isCurrent()) { scope.dispose(); position.dispose(); return; }
     materializationInFlight.current = true;
     setSourceMaterialization({ sourceKey: currentSourceKey, ownerUserId });
     try {
-      await ensureCharacterSourceReady(isCurrent);
+      const createdRef = await ensureCharacterSourceReady(isCurrent, another);
       if (!isCurrent()) return;
       setFeedback({
         kind: 'success',
         message: i18n.t('Explore.characterSourceMaterializedFeedback', { defaultValue: 'Partner added.' }),
       });
+      void navigation.push({ id: 'explore', exploreSection: 'partners', partner: { localAgentRef: createdRef } });
     } catch (error) {
       if (!isCurrent()) return;
       setFeedback({
         kind: 'error',
         message: characterSourceMaterializationFailureMessage(error, i18n.t),
       });
+      if (error instanceof CharacterSourceConfirmationPendingError) {
+        // The write already succeeded. The exact detail's Retry only reads;
+        // returning to a creation button here could duplicate this partner.
+        void queryClient.invalidateQueries({ queryKey: ['source-detail-partners', ownerUserId] });
+        void queryClient.invalidateQueries({ queryKey: ['home-partners', ownerUserId] });
+        void navigation.push({ id: 'explore', exploreSection: 'partners', partner: { localAgentRef: error.localAgentRef } });
+      }
     } finally {
+      scope.dispose(); position.dispose();
       materializationInFlight.current = false;
       setSourceMaterialization((pending) => pending?.sourceKey === currentSourceKey && pending.ownerUserId === ownerUserId ? null : pending);
     }
@@ -195,31 +161,18 @@ export function SourceDetailPanel({
 
   // @nimi-authority: rule.nimi.runtime.agent-participation.r197
   const handleStartChat = async (initialComposerText?: string, selectedLocalAgentRef?: string) => {
-    const auth = appStore.getState().auth;
-    const isCurrent = () => auth.status === 'authenticated'
-      && appStore.getState().auth === auth
+    const scope = captureAccountActionScope(appStore);
+    if (!scope || scope.accountId !== ownerUserId) { scope?.dispose(); return; }
+    const position = captureHomeNavigationScope(navigation);
+    const isCurrent = () => scope.isCurrent() && position.isCurrent()
       && currentAction.current?.sourceKey === currentSourceKey
       && currentAction.current?.ownerUserId === ownerUserId;
-    if (!isCurrent()) return;
+    if (!isCurrent()) { scope.dispose(); position.dispose(); return; }
     try {
       const prefillText = String(initialComposerText || '').trim();
-      const conversationTarget = source?.sourceRef
-        ? await resolveAgentTargetSnapshotForSourceRef({
-          sourceRef: source.sourceRef,
-          selectedLocalAgentRef,
-          ownerUserId,
-          sdk: bindings.sdk,
-          isCurrent,
-        }).catch((error: unknown) => {
-          logRendererEvent({
-            level: 'warn',
-            area: 'source-detail',
-            message: 'action:source-agent-conversation-resolve:failed',
-            details: { error: error instanceof Error ? error.message : String(error || '') },
-          });
-          return null;
-        })
-        : null;
+      const selected = selectedLocalAgentRef ?? (matchingPartners.length === 1 ? matchingPartners[0]!.localAgentRef : null);
+      const conversationTarget = source?.sourceRef && selected
+        ? await openPartnerConversation({ sdk: bindings.sdk, accountId: ownerUserId, localAgentRef: selected, expectedSource: source.sourceRef, isCurrent }) : null;
       if (!isCurrent()) return;
       if (conversationTarget) {
         await launchAgentConversationFromDisplay({
@@ -233,7 +186,7 @@ export function SourceDetailPanel({
         return;
       }
       setPendingAgentComposerPrefill({ text: '' });
-      void navigation.push({ id: 'chat', chat: { mode: 'agent' } });
+
       setFeedback({
         kind: 'error',
         message: i18n.t('SourceDetail.partnerUnavailable', {
@@ -241,10 +194,13 @@ export function SourceDetailPanel({
         }),
       });
     } catch (error) {
+      if (!isCurrent()) return;
       setFeedback({
         kind: 'error',
         message: characterSourceMaterializationFailureMessage(error, i18n.t),
       });
+    } finally {
+      scope.dispose(); position.dispose();
     }
   };
 
@@ -271,6 +227,8 @@ export function SourceDetailPanel({
         stats={stats}
         loading={profileQuery.isPending}
         error={profileQuery.isError}
+        retrying={profileQuery.isFetching}
+        onRetry={() => { void profileQuery.refetch(); }}
         primaryActionJoining={sourceMaterialization?.sourceKey === currentSourceKey
           && sourceMaterialization.ownerUserId === ownerUserId}
         onBack={onBack === null ? undefined : (onBack ?? navigation.back)}
@@ -283,11 +241,10 @@ export function SourceDetailPanel({
         onPrimaryAction={() => {
           void handlePrimaryAction();
         }}
-        partners={(localAgentListQuery.data ?? []).filter(agent => agent.sourceKey === currentSourceKey)}
-        onSelectPartner={(localAgentRef) => { void handleStartChat(undefined, localAgentRef); }}
-        onStartChat={(initialComposerText) => {
-          void handleStartChat(initialComposerText);
-        }}
+        partners={matchingPartners.map(partner => ({ localAgentRef: partner.localAgentRef, displayName: partner.displayName, capturedAt: partner.createdAt ?? undefined }))}
+        onCreateAnother={matchingPartners.length && !localAgentListQuery.isError && source?.viewerRelation.state === 'connectable' ? () => { void handlePrimaryAction(true); } : undefined}
+        onSelectPartner={openPartner}
+        onStartChat={matchingPartners.length === 1 && matchingPartners[0]!.lifecycle === AgentLifecycleStatus.ACTIVE ? (initialComposerText) => { void handleStartChat(initialComposerText); } : undefined}
       />
     </>
   );

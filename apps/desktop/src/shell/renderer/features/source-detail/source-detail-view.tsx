@@ -1,4 +1,5 @@
 import { useTranslation } from 'react-i18next';
+import { Button } from '@nimiplatform/kit/ui';
 import type { SourceDetailData } from './source-detail-model.js';
 import { SourceDetailSkeleton } from './source-detail-skeleton.js';
 import { CharacterSourceDetailPage } from './source-detail-world-character-view.js';
@@ -8,10 +9,13 @@ type SourceDetailViewProps = {
   stats?: { friendsCount: number; postsCount: number; likesCount: number } | null;
   loading: boolean;
   error: boolean;
+  retrying?: boolean;
+  onRetry?: () => void;
   primaryActionJoining?: boolean;
   onBack?: () => void;
   onOpenWorld: () => void;
   onPrimaryAction: () => void;
+  onCreateAnother?: () => void;
   partners?: { localAgentRef: string; displayName: string; capturedAt?: string }[];
   onSelectPartner?: (localAgentRef: string) => void;
   onStartChat?: (initialComposerText?: string) => void;
@@ -28,6 +32,7 @@ export function SourceDetailView(props: SourceDetailViewProps) {
     return (
       <div className="flex flex-1 flex-col items-center justify-center gap-3">
         <p className="text-sm text-[var(--nimi-status-danger)]">{t('SourceDetail.error')}</p>
+        {props.onRetry ? <Button tone="secondary" onClick={props.onRetry} disabled={props.retrying}>{t('Common.retry')}</Button> : null}
         {props.onBack ? (
           <button
             type="button"

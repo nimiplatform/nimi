@@ -415,8 +415,9 @@ export function MainLayoutView(props: MainLayoutViewProps) {
             exploreSearchText={exploreSearchText}
             runtimeActive={runtimeActive}
             runtimeEverMounted={runtimeEverMounted}
-            onExploreSectionChange={section => void navigation.push({ id: 'explore', exploreSection: section, search: destination.search ?? '', worldSearch: destination.worldSearch, worldTopicId: destination.worldTopicId })}
-            onExploreSearchTextChange={search => void navigation.replace({ id: 'explore', exploreSection: destination.exploreSection ?? 'worlds', search, exploreWorldId: destination.exploreWorldId, worldSearch: destination.worldSearch, worldTopicId: destination.worldTopicId })}
+            onExploreSectionChange={section => void navigation.push({ ...destination, id: 'explore', exploreSection: section,
+              ...(section === 'worlds' ? { partner: undefined } : {}), search: destination.search ?? '' })}
+            onExploreSearchTextChange={search => void navigation.replace({ ...destination, id: 'explore', exploreSection: destination.exploreSection ?? 'worlds', search })}
           />
         </div>
       </div>

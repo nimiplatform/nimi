@@ -1,4 +1,5 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { type ReactNode } from 'react';
+import { useHomeListPosition } from '../../app-shell/providers/use-home-list-position.js';
 import { useTranslation } from 'react-i18next';
 import { Bookmark, Compass, Grid2X2, Landmark, Leaf, Orbit, Sparkles, House, X } from 'lucide-react';
 import { Button, EmptyState, IconButton, LoadingSkeleton, NimiText, ScrollArea, SearchField, Surface } from '@nimiplatform/kit/ui';
@@ -41,8 +42,7 @@ export function WorldCatalogContent({ worlds, paging, embedded = false, searchQu
 }) {
   const { t, i18n } = useTranslation();
   const query = searchQuery ?? '';
-  const viewport = useRef<HTMLDivElement>(null);
-  useEffect(() => { viewport.current?.scrollTo({ top: 0 }); }, [topicId, query, favorites]);
+  const viewport = useHomeListPosition(JSON.stringify(['worlds', topicId, query, favorites]), !loading && !error);
   const browse = !query.trim() && !topicId && !favorites;
   const selectedTopic = topics.find((topic) => topic.id === topicId);
   const topicTitle = (topic: WorldAtlasTopic) => i18n.language.startsWith('zh') ? topic.title : topic.titleEn;
@@ -69,7 +69,7 @@ export function WorldCatalogContent({ worlds, paging, embedded = false, searchQu
         <section className="world-atlas-section" aria-label={t(favorites ? 'World.favorites.title' : 'World.album.allWorlds')}>
           <div className="world-atlas-section-heading"><div><h2>{favorites ? t('World.favorites.title') : query.trim() ? t('World.searchResults') : selectedTopic ? topicTitle(selectedTopic) : t('World.album.allWorlds')}</h2>{favorites ? <NimiText role="caption">{t('World.favorites.localOnly')}</NimiText> : null}</div></div>
           {favoritesPartialError ? <div className="mb-4 flex items-center gap-3" role="status"><NimiText role="helper">{t('World.favorites.partialError')}</NimiText>{!offline ? <Button tone="secondary" size="sm" onClick={onRetry}>{t('NotificationPanel.refresh')}</Button> : null}</div> : null}
-          {!worlds.length ? <EmptyState title={t(query.trim() ? 'World.noSearchResults' : favorites ? 'World.favorites.empty' : topicId ? 'World.noTopicWorlds' : 'World.noWorlds')} description={favorites && !query.trim() ? t('World.favorites.emptyBody') : undefined} /> : <div className="world-atlas-grid">{worlds.map((world) => <WorldAlbumCard key={world.id} world={world} renderPeople={renderPeople} />)}</div>}
+          {!worlds.length ? <EmptyState title={t(query.trim() ? 'World.noSearchResults' : favorites ? 'World.favorites.empty' : topicId ? 'World.noTopicWorlds' : 'World.noWorlds')} description={favorites && !query.trim() ? t('World.favorites.emptyBody') : undefined} /> : <div className="world-atlas-grid">{worlds.map((world) => <WorldAlbumCard key={world.id} world={world} renderPeople={renderPeople} viewKey={`all:${world.id}`} />)}</div>}
         </section>
         {paging.offlineIncomplete ? <NimiText role="helper" className="mt-4 text-center" aria-live="polite">{t('World.atlas.offlineIncomplete')}</NimiText> : paging.hasMore ? (
           <div className="mt-6 flex flex-col items-center gap-2" data-testid="world-catalog-load-more">

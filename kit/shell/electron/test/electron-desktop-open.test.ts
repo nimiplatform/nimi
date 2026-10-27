@@ -66,7 +66,7 @@ describe('Electron Desktop Open Intent host client', () => {
         payload: {
           payload: {
             requestId: 'desktop-open-20260708-request',
-            intent: { kind: 'open-explore', section: 'personas', productIntent: 'select-partner' },
+            intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner' },
           },
         },
       });
@@ -80,18 +80,18 @@ describe('Electron Desktop Open Intent host client', () => {
       expect(fetchCalls).toHaveLength(1);
       expect(fetchCalls[0]?.url).toBe('http://127.0.0.1:49152/v1/open-intent');
       expect(JSON.parse(String(fetchCalls[0]?.init.body))).toEqual({
-        schemaVersion: 1,
+        schemaVersion: 2,
         sourceApp: 'nimi.zhiyu',
         sourceHost: 'desktop-electron-local-app-host',
         requestId: 'desktop-open-20260708-request',
-        intent: { kind: 'open-explore', section: 'personas', productIntent: 'select-partner' },
+        intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner' },
       });
       await expect(invokeBridge(ipcMain, createInvokeEvent().event, {
         command: NIMI_STANDARD_SHELL_COMMANDS['desktop-open.openIntent'],
         payload: {
           payload: {
             sourceHost: 'electron-standard-shell',
-            intent: { kind: 'open-explore', section: 'personas', productIntent: 'select-partner' },
+            intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner' },
           },
         },
       })).resolves.toEqual({
@@ -157,7 +157,7 @@ describe('Electron Desktop Open Intent host client', () => {
           payload: {
             payload: {
               requestId: 'desktop-open-20260708-request',
-              intent: { kind: 'open-explore', section: 'personas', productIntent: 'select-partner' },
+              intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner' },
             },
           },
         });

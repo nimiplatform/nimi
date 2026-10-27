@@ -46,17 +46,17 @@ authority_refs:
 accepted:
   - id: explore-personas-select-partner
     envelope:
-      schemaVersion: 1
+      schemaVersion: 2
       sourceApp: nimi.zhiyu
       sourceHost: desktop-electron-local-app-host
       requestId: desktop-open-20260708-0001
       intent:
         kind: open-explore
-        section: personas
+        section: partners
         productIntent: select-partner
   - id: explore-worlds-discover
     envelope:
-      schemaVersion: 1
+      schemaVersion: 2
       sourceApp: nimi.test-launcher
       sourceHost: electron-standard-shell
       requestId: desktop-open-20260708-0009
@@ -66,35 +66,37 @@ accepted:
         productIntent: discover-worlds
   - id: explore-worlds-section-only
     envelope:
-      schemaVersion: 1
+      schemaVersion: 2
       sourceApp: nimi.test-launcher
       sourceHost: electron-standard-shell
       requestId: desktop-open-20260708-0012
       intent:
         kind: open-explore
         section: worlds
+        productIntent: discover-worlds
   - id: explore-personas-discover
     envelope:
-      schemaVersion: 1
+      schemaVersion: 2
       sourceApp: nimi.test-launcher
       sourceHost: electron-standard-shell
       requestId: desktop-open-20260708-0011
       intent:
         kind: open-explore
-        section: personas
-        productIntent: discover-personas
+        section: worlds
+        productIntent: discover-characters
   - id: explore-personas-section-only
     envelope:
-      schemaVersion: 1
+      schemaVersion: 2
       sourceApp: nimi.test-launcher
       sourceHost: electron-standard-shell
       requestId: desktop-open-20260708-0014
       intent:
         kind: open-explore
-        section: personas
+        section: partners
+        productIntent: select-partner
   - id: runtime-cloud-add-connector
     envelope:
-      schemaVersion: 1
+      schemaVersion: 2
       sourceApp: nimi.test-launcher
       sourceHost: electron-standard-shell
       requestId: desktop-open-20260708-0002
@@ -104,7 +106,7 @@ accepted:
         action: add-connector
   - id: runtime-models-install-model
     envelope:
-      schemaVersion: 1
+      schemaVersion: 2
       sourceApp: nimi.test-launcher
       sourceHost: tauri-standard-shell
       requestId: desktop-open-20260708-0003
@@ -114,17 +116,18 @@ accepted:
         action: install-model
   - id: explore-personas-search
     envelope:
-      schemaVersion: 1
+      schemaVersion: 2
       sourceApp: nimi.test-launcher
       sourceHost: electron-standard-shell
       requestId: desktop-open-20260708-0004
       intent:
         kind: open-explore
-        section: personas
+        section: partners
         query: mentor
+        productIntent: select-partner
   - id: apps-surface
     envelope:
-      schemaVersion: 1
+      schemaVersion: 2
       sourceApp: nimi.test-launcher
       sourceHost: electron-standard-shell
       requestId: desktop-open-20260708-0006
@@ -132,7 +135,7 @@ accepted:
         kind: open-apps
   - id: apps-selection
     envelope:
-      schemaVersion: 1
+      schemaVersion: 2
       sourceApp: nimi.test-launcher
       sourceHost: electron-standard-shell
       requestId: desktop-open-20260708-0007
@@ -141,7 +144,7 @@ accepted:
         appId: nimi.example
   - id: apps-ai-models
     envelope:
-      schemaVersion: 1
+      schemaVersion: 2
       sourceApp: nimi.example
       sourceHost: electron-standard-shell
       requestId: desktop-open-20260708-0015
@@ -151,7 +154,7 @@ accepted:
         section: ai-models
   - id: settings-profile
     envelope:
-      schemaVersion: 1
+      schemaVersion: 2
       sourceApp: nimi.test-launcher
       sourceHost: electron-standard-shell
       requestId: desktop-open-20260708-0008

@@ -12,7 +12,9 @@ const require = createRequire(path.join(root, 'apps/desktop/package.json'));
 const ts = require('typescript');
 const renderer = path.join(root, 'apps/desktop/src/shell/renderer');
 const load = (p) => import(pathToFileURL(path.join(renderer, p)).href);
-const { ensureCharacterSourceMaterialized } = await load('features/relationship/character-source-launch-target.ts');
+const { ensureCharacterSourceMaterialized, CharacterSourceConfirmationPendingError } = await load('features/relationship/character-source-launch-target.ts');
+const { captureAccountActionScope } = await load('app-shell/providers/account-action-scope.ts');
+const { createHomeNavigation, captureHomeNavigationScope } = await load('app-shell/providers/home-navigation.ts');
 const { localAgentListQueryKey } = await load('features/agents/local-agent-list-model.ts');
 const { characterSourceRefKey, characterSourceMaterializationMessage, characterSourceMaterializationFailureMessage } = await load('features/explore/character-source-materialization.ts');
 const { createNimiDesktopFirstPartyRuntimeClients } = await import(pathToFileURL(path.join(root, 'sdks/typescript/runtime/desktop-first-party-runtime.ts')).href);
@@ -65,11 +67,12 @@ test('creation clicked by account A must not dispatch against switched account B
   };
   const handler = loadCreationHandler({
     source, ownerUserId: 'account-A', currentAction, currentSourceKey: characterSourceRefKey(sourceRef),
-    appStore: {getState: () => ({auth})}, sourceMaterialization: null,
+    appStore: {getState: () => ({auth}), subscribe: () => () => {}}, sourceMaterialization: null,
+    matchingPartners: [], captureAccountActionScope, captureHomeNavigationScope, navigation: createHomeNavigation(),
     materializationInFlight: {current: false},
     setSourceMaterialization: () => {}, i18n: {t: (_, options) => options?.defaultValue ?? ''},
     bindings: {sdk}, queryClient: {invalidateQueries: async () => {}},
-    ensureCharacterSourceMaterialized, localAgentListQueryKey,
+    ensureCharacterSourceMaterialized, CharacterSourceConfirmationPendingError, localAgentListQueryKey,
     characterSourceMaterializationMessage, characterSourceMaterializationFailureMessage,
     setFeedback: (feedback) => events.push(`feedback:${feedback.kind}`),
   });

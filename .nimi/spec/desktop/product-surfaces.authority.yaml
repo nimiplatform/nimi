@@ -15,7 +15,7 @@ units:
   - id: definition.nimi.desktop.product-surfaces.explore
     kind: definition
     title: Desktop Explore product surface
-    meaning: Desktop Explore is the ordinary Realm discovery surface for admitted Worlds, PersonaCharacter sources and World-bound WorldCharacter sources; Realm public-activity feed and publishing are deferred for the current launch. It owns no Realm, source, Runtime, LocalAgent or AI-execution truth.
+    meaning: Desktop Explore combines Realm World and Character discovery with a current-account, current-device Runtime partner directory. Worlds owns World browsing, world-scoped characters and cross-world Character search; My partners owns selection and management entry for already-owned LocalAgents. The shell owns presentation and navigation only, never Realm source, Runtime inventory, Conversation or AI-execution truth.
   - id: definition.nimi.desktop.product-surfaces.home-feed
     kind: definition
     title: Desktop activity feed
@@ -36,9 +36,9 @@ units:
     kind: rule
     title: Explore is the unified Realm discovery surface
     modality: must
-    statement: Explore is the single ordinary Desktop surface for discovering admitted Realm Worlds and PersonaCharacters. World is folded into Explore, Apps retains App discovery, and WorldCharacter discovery uses World detail and source detail. Realm public activity, publishing and social search or recommendation are deferred and have no ordinary entry.
+    statement: Explore is the single ordinary Desktop discovery and partner-directory surface. Worlds contains admitted World browsing and typed PersonaCharacter and WorldCharacter discovery within Worlds or through the Realm-owned cross-world Character catalog; My partners presents this device's current-account Runtime inventory independently from source readiness. Apps retains App discovery; Realm public activity, publishing and social search or recommendation remain deferred.
     condition: Whenever Desktop exposes ordinary Realm discovery or constructs its ordinary navigation destinations.
-    failure: Reject a standalone World destination, App discovery in Explore, a fourth Explore section, or another ordinary Realm discovery owner.
+    failure: Reject a standalone primary World destination, App discovery in Explore, an additional Explore section, or another ordinary Realm discovery owner.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.explore
@@ -46,7 +46,7 @@ units:
     kind: rule
     title: Explore sections are closed
     modality: must
-    statement: Explore has exactly Worlds for admitted WorldCore browsing and World detail entry and Personas for PersonaCharacter discovery across Worlds. Their meanings remain distinct; the deferred Realm Activity feed is not a third section.
+    statement: Explore has exactly Worlds and My partners, represented by worlds and partners. Worlds contains World browsing and an explicit worlds or characters search task; My partners contains current-account current-device LocalAgents and their management detail. One Home navigation controller owns the section, query, selection and management position; no parallel local section switch, Personas primary catalog or third section remains.
     condition: Whenever Desktop configures, renders, labels, or selects an Explore section.
     failure: Reject a missing, additional, renamed, reordered in meaning, or undifferentiated Explore section projection.
     relations:
@@ -76,7 +76,7 @@ units:
     kind: rule
     title: Character and persona source cards are source-typed
     modality: must
-    statement: PersonaCharacter and WorldCharacter source cards present only displayName or avatar, worldOrigin, sourceKind and supplied role or category, concept or short description, supplied traits or topics, and supplied Realm activitySignal; World people discovery offers View character through canonical source-detail routing without LocalAgent-dependent grouping or actions, while surfaces that expose materialization or partner actions derive sourceState only from typed core source data plus bounded Runtime or SDK LocalAgentSourceContextStatus and opaque local-agent inventory or provenance projection, with unknown or partial status unavailable; Personas enter through Personas and WorldCharacters through World detail and source detail.
+    statement: PersonaCharacter and WorldCharacter discovery cards use the shared typed Realm public source-card projection and enter the same canonical source detail with complete CharacterSourceRefV3. World and cross-world discovery stay independent from LocalAgent inventory and do not scan Runtime per card. Runtime account mediation remains the transport prerequisite for fresh Realm reads. Materialization and existing-partner actions are resolved only at the selected source detail from exact owner source facts plus bounded current-account inventory and provenance; unknown or partial reads do not become empty or ready truth.
     condition: Whenever Explore renders or routes a PersonaCharacter or WorldCharacter source card.
     failure: Reject local or guessed source state, a new Explore source section, relationship or quota state as source truth, bare-source chat, and local conversation readiness as PersonaCharacter truth.
     relations:
@@ -86,7 +86,7 @@ units:
     kind: rule
     title: Source state determines the primary action
     modality: must
-    statement: "The source-generic primary action follows exact owner state: materialization_available offers Become my partner through MaterializeRealmSource with CharacterSourceRefV3 and fresh requestId; sign_in_required, source_not_ready, source_access_denied, materializing and runtime_unavailable remain disabled with their exact reasons; materialization_error remains unavailable with its bounded Runtime reason. On an explicit Open partner action, local_agent_available resolves the uniquely matching current-account owner-projected LocalAgent through the read-only Desktop ResolveDesktopAgentReference operation, then opens only its returned current-session agentHandle through canonical Conversation open. A missing, stale, denied or ambiguous target creates no Conversation; local_agent_ambiguous retains Open from partners and the canonical reference-list selection path. An explicit secondary Create another partner action may issue one fresh-requestId materialization for the current canonical source even when existing partners match; it explains that the current setting creates an independent new partner while existing partners and conversations remain, verifies the returned new LocalAgent in current Runtime inventory and provenance without requiring a unique source match, and preserves canonical reference-list selection for multiple instances; a source detail may distinguish current owner-projected instances by their captured creation time, and an explicit instance selection is revalidated for the same current account and canonical source before ResolveDesktopAgentReference and Conversation open. Materialization alone does not open a Conversation. Desktop receives only bounded LocalAgentSourceContextStatus and owner projections, never source snapshot, Packet, proof, raw diagnostics, prompt, context or caller-selected audience."
+    statement: "The source-generic primary action follows owner state: materialization_available offers Become my partner through MaterializeRealmSource with current complete CharacterSourceRefV3 and a fresh requestId; unavailable, denied, pending and failed source states retain their typed reasons. An explicit Open partner action selects the exact current-account inventory instance into My partners detail without opening a Conversation. Stable source identity may associate existing instances across captured source hashes for display, but never grants materialization, management or chat authority. Multiple instances require explicit human selection and owner-projected disambiguation. A selected LocalAgent is revalidated by exact local reference; active management resolves a fresh current Home session handle and uses the canonical Manager without creating a Conversation, and only an explicit Chat action opens the canonical Conversation. A stale or missing selection never falls back to another Agent. Create another partner is an explicit secondary action that uses the current source, verifies the returned new instance and preserves existing partners and conversations. Desktop receives bounded source status and provenance only, never snapshot bodies, Packets, proof, prompts or caller-selected audience."
     condition: Whenever Desktop derives or performs a WorldCharacter or PersonaCharacter primary action, explicit secondary materialization, or instance selection from source state.
     failure: Reject unknown or partial state, disable ineligible or concurrently repeated actions, and never acquire Packets, synthesize identity, present Create LocalAgent language, select an arbitrary matching Agent, use source identity or raw localAgentRef as an App handle, open before exact Runtime revalidation, or report materialization success without Runtime inventory and provenance.
     relations:
@@ -166,7 +166,7 @@ units:
     kind: rule
     title: Explore Open targets are closed
     modality: must
-    statement: Explore Open accepts exactly worlds with optional discover-worlds and personas with optional discover-personas or select-partner. Activity and view-activity are not admitted in the current launch. WorldCharacter materialization remains behind selected World detail and source detail and adds no section or productIntent pair.
+    statement: Explore Open requires an explicit productIntent and accepts exactly worlds with discover-worlds or discover-characters, and partners with select-partner. The retired personas section, discover-personas, activity and view-activity reject. Character materialization remains behind selected source detail and adds no section or productIntent pair; opening the partner directory never implicitly selects an instance or creates a Conversation.
     condition: Whenever Desktop applies an Explore Open Intent section and productIntent pairing.
     failure: Reject an invalid pairing as desktop-open-target-unsupported and never create WorldCore, PersonaCharacter, Packet v3, or LocalAgent truth while opening Explore.
     relations:
@@ -467,3 +467,23 @@ units:
         target: definition.nimi.desktop.product-surfaces.home-overview
       - type: applies_to
         target: definition.nimi.runtime.app-surface.app-activity-plane
+  - id: rule.nimi.desktop.product-surfaces.partners
+    kind: rule
+    title: My partners preserves owner inventory and exact management selection
+    modality: must
+    statement: My partners projects bounded current-account current-device Runtime ListAgents pages, retains INITIALIZING, ACTIVE, SUSPENDED and TERMINATING records independently of nullable source readiness or provenance, excludes TERMINATED records from the default directory, and reports loading, partial, failed and complete empty reads distinctly. Source and current World reads remain independently fallible. Only ACTIVE current-session references may enter covered Manager or Chat operations; no unknown state, name match, array order, stale handle or alternate sole reference authorizes an action. The canonical Agent Center factory may manage a selected partner without a Conversation anchor; normal no-history context does not require creating a chat. Shared LocalAgent AIConfig remains explicitly account-wide while appearance, behavior and Memory remain Agent-scoped.
+    condition: Whenever Home lists, selects or manages an existing partner.
+    failure: Retain honest unavailable states and the original selection without hiding valid inventory rows, manufacturing conversations, substituting another partner or persisting a frontend registry.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.explore
+  - id: rule.nimi.desktop.product-surfaces.partner-source-navigation
+    kind: rule
+    title: Partners retain captured provenance while navigating current source profiles
+    modality: must
+    statement: Home may resolve current Realm public Character information from an existing partner's captured provenance through the matching typed Realm owner read, verifying stable source, World and owner or WorldEntity identity before using the returned complete current source reference. A changed hash is displayed as updated role information while the partner retains its creation setting; unknown comparison is never called synchronized. Captured provenance, Conversation and Memory are not overwritten. A missing or denied source or World remains a local navigation failure, not deletion or replacement of the partner. Raw immutable source snapshot or prompt content is not exposed by this navigation.
+    condition: Whenever a partner opens its source Character or World.
+    failure: Reject identity mismatch, name-based substitution, stale refs presented as current, source writeback or raw snapshot exposure while preserving the partner's independent admitted operations.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.relationship-profile

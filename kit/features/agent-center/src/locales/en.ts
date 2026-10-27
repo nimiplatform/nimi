@@ -65,7 +65,7 @@ export const agentCenterEnCatalog = {
   "AgentCenter.conversationContext.title": "Conversation context",
   "AgentCenter.conversationContext.description": "Choose what future replies can draw on without deleting your saved messages.",
   "AgentCenter.conversationContext.sourceLimit": "If required character or app instructions contain restricted content, their author or source manager must correct them. Changing history cannot remove those instructions.",
-  "AgentCenter.conversationContext.empty": "Conversation context settings are not available yet. Open this Agent’s conversation and refresh. This control needs matching Home and Runtime versions.",
+  "AgentCenter.conversationContext.empty": "No conversation history settings are available yet. Appearance, behavior and memory can be managed before starting a conversation.",
   "AgentCenter.conversationContext.full": "All eligible conversation history can be used.",
   "AgentCenter.conversationContext.range": "The first {{count}} turns of saved history will be skipped in future replies.",
   "AgentCenter.conversationContext.omitted": "Supplemental memory and retrieval are not used in this conversation.",

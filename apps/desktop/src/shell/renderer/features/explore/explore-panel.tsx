@@ -1,319 +1,117 @@
-import { useHomeDestination, useHomeNavigation } from '../../app-shell/providers/app-store.js';
-import { useDesktopI18nResource } from '../../i18n/i18n-context';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity.js';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { useExploreCatalogQuery } from './explore-catalog-query.js';
-import { createRealmExploreData } from './data/realm-explore-data';
-import { createRealmWorldData } from '../world/data/realm-world-data.js';
-import { useAppStore, useAppStoreApi } from '../../app-shell/providers/app-store';
-import { captureAccountActionScope } from '../../app-shell/providers/account-action-scope.js';
-import { logRendererEvent } from '@nimiplatform/kit/telemetry';
-
-import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
-import { ExploreView } from './explore-view';
-import type { ExplorePersonaSourceCardData } from './explore-cards';
-import type { ExploreSectionId } from './explore-section-nav';
-import { parsePersonaSources } from './explore-persona-source-projection';
-import { WORLD_CATALOG_CONTRACT_VERSION, fetchWorldCatalogPage, worldCatalogQueryKey } from '../world/world-detail-queries.js';
-import type { WorldCatalogPaging } from '../world/world-list';
-import { WorldAtlasPeople, WorldAtlasTopics } from '../world/world-atlas-data.js';
-import type { WorldListItem } from '../world/world-list-model.js';
-import { useWorldFavorites } from '../world/use-world-favorites.js';
-import { characterSourceMaterializationFailureMessage, characterSourceRefKey, describeCharacterPrimaryAction, discoverCharacterSourceLocalAgents, resolveCharacterSourceState } from './character-source-materialization';
-import { CharacterSourceConfirmationPendingError, confirmCharacterSourceMaterialized, ensureCharacterSourceMaterialized } from '../relationship/character-source-launch-target.js';
-import { resolveAgentTargetSnapshotForSourceRef } from '../agents/agent-conversation-source-resolution.js';
-import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
-import { localAgentListQueryKey } from '../agents/local-agent-list-model';
+import { useState, useEffect, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
+import { Avatar, Button, EmptyState, InlineAlert, LoadingSkeleton, ScrollArea, SearchField } from '@nimiplatform/kit/ui';
+import { ArrowLeft, Search } from 'lucide-react';
+import { useAppStore, useHomeDestination, useHomeNavigation } from '../../app-shell/providers/app-store.js';
+import { useHomeListPosition } from '../../app-shell/providers/use-home-list-position.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+import { ExploreSectionNav, type ExploreSectionId } from './explore-section-nav.js';
+import { useExploreCatalogQuery } from './explore-catalog-query.js';
+import { characterSourceRefKey } from '../realm-source/realm-source-identity.js';
+import { readCharacterCatalog } from './character-catalog-data.js';
+import { createRealmWorldData } from '../world/data/realm-world-data.js';
+import { WorldCatalogContent, type WorldCatalogPaging } from '../world/world-list.js';
+import { WorldAtlasPeople, WorldAtlasTopics } from '../world/world-atlas-data.js';
+import { WORLD_CATALOG_CONTRACT_VERSION, fetchWorldCatalogPage, worldCatalogQueryKey } from '../world/world-detail-queries.js';
+import { useWorldFavorites } from '../world/use-world-favorites.js';
+import { PartnerDirectory } from '../agents/partner-directory.js';
 
-
-const PAGE_SIZE = 20;
-
-type ExplorePanelProps = {
-  activeSection: ExploreSectionId;
-  searchText: string;
-  onSectionChange: (section: ExploreSectionId) => void;
-  onSearchTextChange: (value: string) => void;
-};
-
-// @nimi-authority: definition.nimi.desktop.product-surfaces.explore
-// @nimi-authority: rule.nimi.desktop.product-surfaces.r001
-export function ExplorePanel(props: ExplorePanelProps) {
-
-  const navigation = useHomeNavigation();
+// @nimi-authority: rule.nimi.desktop.product-surfaces.r002
+export function ExplorePanel(props: {
+  activeSection: ExploreSectionId; searchText: string;
+  onSectionChange(section: ExploreSectionId): void; onSearchTextChange(value: string): void;
+}) {
+  const { t } = useTranslation();
   const destination = useHomeDestination();
-  const bindings = useDesktopRendererBindings();
-  const appStore = useAppStoreApi();
-  const mounted = useRef(true);
-  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
-  const realmExploreData = useMemo(
-    () => createRealmExploreData(bindings.sdk),
-    [bindings.sdk],
-  );
-  const i18n = useDesktopI18nResource().instance;
-  const queryClient = useQueryClient();
-  const bootstrapReady = useAppStore((state) => state.bootstrapReady);
-  const authStatus = useAppStore((state) => state.auth.status);
-  const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
-
-  const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
-  const setFeedback = emitFeedbackToast;
-  const sourceActionsInFlight = useRef(new Set<string>());
-  const [sourceActionStates, setSourceActionStates] = useState<Record<string, 'running' | 'refresh'>>({});
-
-  const realmBaseUrl = useAppStore((state) => String(state.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
-  const networkOffline = useAppStore((state) => state.offlineTier !== 'L0');
-  const realmWorldData = useMemo(() => createRealmWorldData(bindings.sdk), [bindings.sdk]);
-  const worldAtlasSource = { data: realmWorldData, realmBaseUrl, enabled: bootstrapReady, offline: networkOffline };
-  const renderWorldPeople = (world: WorldListItem) => <WorldAtlasPeople world={world} source={worldAtlasSource} />;
-
-  // The world rail owns its own search; worlds and personas never share one query string.
-  const worldSearchText = destination.worldSearch ?? '';
-  const setWorldSearchText = (value: string) => { void navigation.replace({ ...destination, worldSearch: value }); };
-  const worldQuery = useDebouncedSearch(worldSearchText);
-  const worldTopicId = destination.worldTopicId ?? '';
-  const worldFavorites = destination.worldCollection === 'favorites';
-  const setWorldTopicId = (value: string) => { void navigation.replace({ ...destination, worldTopicId: value || undefined, worldCollection: undefined }); };
-  const selectWorldFavorites = () => { void navigation.replace({ ...destination, worldTopicId: undefined, worldCollection: 'favorites' }); };
-  const favorites = useWorldFavorites({ data: realmWorldData, realmBaseUrl, enabled: bootstrapReady && worldFavorites, offline: networkOffline, search: worldQuery });
-  const worldTopics = useQuery({ queryKey: ['world-topics', WORLD_CATALOG_CONTRACT_VERSION, realmBaseUrl], queryFn: () => realmWorldData.loadWorldTopics(), enabled: bootstrapReady && !networkOffline, staleTime: 60_000 });
-  const worldCatalog = useExploreCatalogQuery({
-    queryKey: worldCatalogQueryKey(realmBaseUrl, worldQuery, { topicId: worldTopicId || undefined }),
-    loadPage: (cursor) => fetchWorldCatalogPage(realmWorldData, worldQuery, cursor, { topicId: worldTopicId || undefined }),
-    enabled: bootstrapReady,
-    networkOffline,
-    staleTime: 30_000,
-  });
-  const worldCatalogQuery = worldCatalog.query;
-  const worldCatalogItems = useMemo(
-    () => worldCatalogQuery.data?.pages.flatMap((page) => page.items) ?? [],
-    [worldCatalogQuery.data],
-  );
-  const worldCatalogPaging: WorldCatalogPaging = {
-    totalCount: worldCatalogQuery.data?.pages[0]?.totalCount ?? 0,
-    hasMore: Boolean(worldCatalogQuery.hasNextPage),
-    loadingMore: worldCatalogQuery.isFetchingNextPage,
-    loadMoreFailed: worldCatalogQuery.isFetchNextPageError,
-    // Offline keeps only the pages already shown for this query and marks them incomplete.
-    offlineIncomplete: worldCatalog.offline && Boolean(worldCatalogQuery.data),
-    onLoadMore: () => {
-      void worldCatalogQuery.fetchNextPage();
-    },
-  };
-
-  // Persona cards carry their own world name; the banner comes from worlds already loaded.
-  const worldsMap = useMemo(
-    () => new Map(worldCatalogItems.map((w) => [w.id, { bannerUrl: w.bannerUrl, name: w.name }])),
-    [worldCatalogItems],
-  );
-
-  const personaQuery = useDebouncedSearch(props.searchText);
-  const personaCatalog = useExploreCatalogQuery({
-    queryKey: ['explore-personas', WORLD_CATALOG_CONTRACT_VERSION, realmBaseUrl, authStatus, personaQuery],
-    loadPage: (cursor) => realmExploreData.loadExplorePersonas({
-      query: personaQuery || undefined,
-      cursor,
-      limit: PAGE_SIZE,
-    }),
-    enabled: bootstrapReady,
-    networkOffline,
-  });
-  const personaSourcesQuery = personaCatalog.query;
-  const personaPages = personaSourcesQuery.data?.pages;
-  const personaSourceBase = useMemo(
-    () => parsePersonaSources({ items: personaPages?.flatMap((page) => page.items) ?? [] }, worldsMap),
-    [personaPages, worldsMap],
-  );
-  const personaTotalCount = personaPages?.[0]?.totalCount ?? 0;
-
-  const personaSourceDiscoveryKey = useMemo(
-    () => personaSourceBase
-      .map((source) => source.sourceRef ? characterSourceRefKey(source.sourceRef) : source.id)
-      .join('|'),
-    [personaSourceBase],
-  );
-
-  const personaSourceLocalAgentsQuery = useQuery({
-    queryKey: ['explore-personas-local-agents', ownerUserId, personaSourceDiscoveryKey],
-    queryFn: async () => (await Promise.all(
-      personaSourceBase.map((source) => discoverCharacterSourceLocalAgents(source, ownerUserId, bindings.sdk)),
-    )).flat(),
-    enabled: authStatus === 'authenticated' && Boolean(ownerUserId) && personaSourceBase.length > 0,
-    staleTime: 10_000,
-  });
-
-  const personaSourceRuntimeInventoryPending = Boolean(
-    ownerUserId
-    && personaSourceBase.length > 0
-    && personaSourceLocalAgentsQuery.isPending,
-  );
-  const personaSourceRuntimeInventoryUnavailable = Boolean(
-    personaSourceBase.length > 0
-    && (!ownerUserId || personaSourceLocalAgentsQuery.isError),
-  );
-
-  const personaSources = useMemo(
-    () => personaSourceBase.map((personaSource) => ({
-      ...personaSource,
-      materializationActionState: sourceActionStates[`${realmBaseUrl}:${ownerUserId}:${characterSourceRefKey(personaSource.sourceRef)}`],
-      sourceState: resolveCharacterSourceState(
-        personaSource,
-        personaSourceLocalAgentsQuery.data ?? [],
-        {
-          runtimeInventoryPending: personaSourceRuntimeInventoryPending,
-          runtimeInventoryUnavailable: personaSourceRuntimeInventoryUnavailable,
-        },
-      ),
-    })),
-    [
-      personaSourceBase,
-      personaSourceLocalAgentsQuery.data,
-      personaSourceRuntimeInventoryPending,
-      personaSourceRuntimeInventoryUnavailable,
-      sourceActionStates,
-      ownerUserId,
-      realmBaseUrl,
-    ],
-  );
-
-  // @nimi-authority: rule.nimi.desktop.product-surfaces.r006
-  const onPersonaSourceManage = useCallback(async (source: ExplorePersonaSourceCardData) => {
-    const scope = captureAccountActionScope(appStore);
-    if (!scope) return;
-    const isCurrent = () => mounted.current && scope.isCurrent();
-    if (!isCurrent() || scope.accountId !== ownerUserId || scope.realmBaseUrl !== realmBaseUrl) {
-      scope.dispose();
-      return;
-    }
-    const actionKey = `${realmBaseUrl}:${ownerUserId}:${characterSourceRefKey(source.sourceRef)}`;
-    if (sourceActionsInFlight.current.has(actionKey)) { scope.dispose(); return; }
-    const refreshOnly = source.materializationActionState === 'refresh';
-    const action = describeCharacterPrimaryAction(source.sourceState ?? 'source_materialization_unavailable', i18n.t);
-    if (!refreshOnly && action.disabled) { scope.dispose(); return; }
-    sourceActionsInFlight.current.add(actionKey);
-    setSourceActionStates((current) => ({ ...current, [actionKey]: 'running' }));
-    const clearAction = () => setSourceActionStates((current) => {
-      const next = { ...current };
-      delete next[actionKey];
-      return next;
-    });
-    let partnerConfirmed = refreshOnly;
-    try {
-      if (!refreshOnly && action.action === 'open_partner') {
-        const target = await resolveAgentTargetSnapshotForSourceRef({ sourceRef: source.sourceRef, ownerUserId, sdk: bindings.sdk, isCurrent });
-        if (!isCurrent()) return;
-        if (!target) throw new Error(i18n.t('Explore.characterPartnerOpenUnavailable', {
-          defaultValue: 'This partner could not be opened. Refresh your partner list and select the partner again.',
-        }));
-        await launchAgentConversationFromDisplay({ target, navigation, setAgentConversationTargetSnapshot });
-        if (isCurrent()) clearAction();
-        return;
-      }
-      if (refreshOnly) {
-        await confirmCharacterSourceMaterialized(source, ownerUserId, i18n.t, bindings.sdk, isCurrent);
-      } else {
-        await ensureCharacterSourceMaterialized(source, ownerUserId, i18n.t, bindings.sdk, isCurrent);
-      }
-      partnerConfirmed = true;
-      await queryClient.invalidateQueries({ queryKey: ['explore-personas-local-agents'], exact: false }, { throwOnError: true });
-      await queryClient.invalidateQueries({ queryKey: localAgentListQueryKey(ownerUserId), exact: true }, { throwOnError: true });
-      await queryClient.invalidateQueries({ queryKey: ['desktop-local-app-agent-references'], exact: false }, { throwOnError: true });
-      if (!isCurrent()) return;
-      clearAction();
-      setFeedback({
-        kind: 'success',
-        message: i18n.t('Explore.characterPartnerReadyFeedback', { defaultValue: 'Your partner is ready. Choose Open partner when you want to chat.' }),
-      });
-      logRendererEvent({ level: 'info', area: 'explore', message: 'action:realm-source-materialization:partner-ready' });
-    } catch (error) {
-      if (!isCurrent()) return;
-      const refreshPending = partnerConfirmed || error instanceof CharacterSourceConfirmationPendingError;
-      if (refreshPending) setSourceActionStates((current) => ({ ...current, [actionKey]: 'refresh' }));
-      else clearAction();
-      setFeedback({
-        kind: refreshPending ? 'warning' : 'error',
-        message: refreshPending
-          ? i18n.t('Explore.characterSourceRefreshPending', { defaultValue: 'Your partner was created, but the partner list could not be refreshed. Refresh the partner to confirm it without creating another one.' })
-          : characterSourceMaterializationFailureMessage(error, i18n.t),
-      });
-    } finally {
-      sourceActionsInFlight.current.delete(actionKey);
-      scope.dispose();
-      if (mounted.current) setSourceActionStates((current) => {
-        if (current[actionKey] !== 'running') return current;
-        const next = { ...current };
-        delete next[actionKey];
-        return next;
-      });
-    }
-  }, [appStore, bindings.sdk, i18n, ownerUserId, realmBaseUrl, queryClient, navigation, setAgentConversationTargetSnapshot]);
-
-  const onPersonaSourceOpen = useCallback(
-    (sourceRef: CharacterSourceRefV3) => {
-      navigation.push({ id: 'source-detail', sourceRef: sourceRef });
-    },
-    [navigation],
-  );
-
-  return (
-    <>
-      <ExploreView
-        personaSources={personaSources}
-        worldCatalogItems={worldFavorites ? favorites.worlds : worldCatalogItems}
-        worldCatalogPaging={worldFavorites ? { totalCount: favorites.worlds.length, hasMore: false, loadingMore: false, loadMoreFailed: false, offlineIncomplete: favorites.offline && favorites.worlds.length > 0, onLoadMore() {} } : worldCatalogPaging}
-        worldFavorites={worldFavorites}
-        onWorldFavoritesSelect={selectWorldFavorites}
-        worldFavoritesUnavailable={worldFavorites ? favorites.unavailable : undefined}
-        worldFavoritesPartialError={worldFavorites && favorites.partialError}
-        renderWorldPeople={renderWorldPeople}
-        worldTopicShelves={<WorldAtlasTopics topics={worldTopics.data ?? []} source={worldAtlasSource} onSelect={setWorldTopicId} renderPeople={renderWorldPeople} />}
-        worldTopics={worldTopics.data ?? []}
-        worldTopicId={worldTopicId}
-        onWorldTopicChange={setWorldTopicId}
-        worldTopicsFailed={worldTopics.isError}
-        onRetryWorldTopics={() => { void worldTopics.refetch(); }}
-        worldSearchText={worldSearchText}
-        onWorldSearchTextChange={setWorldSearchText}
-        personaSearchText={props.searchText}
-        personaTotalCount={personaTotalCount}
-        personaHasMore={Boolean(personaSourcesQuery.hasNextPage)}
-        personaLoadingMore={personaSourcesQuery.isFetchingNextPage}
-        personaLoadMoreFailed={personaSourcesQuery.isFetchNextPageError}
-        personaOffline={personaCatalog.offline}
-        onLoadMorePersonas={() => {
-          void personaSourcesQuery.fetchNextPage();
-        }}
-        worldsLoading={worldFavorites ? favorites.loading : worldCatalog.initialLoading}
-        worldsError={worldFavorites ? favorites.error : worldCatalog.initialUnavailable}
-        worldsOffline={worldFavorites ? favorites.offline : worldCatalog.offline}
-        onRetryWorlds={() => {
-          if (worldFavorites) { favorites.retry(); return; }
-          void worldCatalogQuery.refetch();
-        }}
-        activeSection={props.activeSection}
-        onSectionChange={props.onSectionChange}
-        onSearchTextChange={props.onSearchTextChange}
-        personaLoading={personaCatalog.initialLoading}
-        personaError={personaCatalog.initialUnavailable}
-        onRetryPersonas={() => {
-          void personaSourcesQuery.refetch();
-        }}
-        onPersonaSourceManage={onPersonaSourceManage}
-        onPersonaSourceOpen={onPersonaSourceOpen}
-      />
-    </>
-  );
+  const navigation = useHomeNavigation();
+  const characters = destination.exploreSearchKind === 'characters';
+  return <div data-testid="panel:explore" className="flex min-h-0 flex-1 flex-col gap-3 px-3 pb-3 pt-2">
+    <header className="flex flex-wrap items-center justify-between gap-3 px-1">
+      <ExploreSectionNav active={props.activeSection} onSelect={props.onSectionChange} />
+      {props.activeSection === 'worlds' ? <Button tone="ghost" size="sm" onClick={() => { void navigation.push({ ...destination, exploreSearchKind: characters ? 'worlds' : 'characters' }); }}>
+        {characters ? <ArrowLeft size={16} /> : <Search size={16} />}{t(characters ? 'runtimeConfig.partners.backWorlds' : 'runtimeConfig.partners.findCharacters')}
+      </Button> : null}
+    </header>
+    {props.activeSection === 'partners' ? <PartnerDirectory /> : characters ? <CharacterDiscovery /> : <WorldDiscovery />}
+  </div>;
 }
 
-const SEARCH_DEBOUNCE_MS = 300;
+function useSearch(value: string) {
+  const [query, setQuery] = useState(value.trim());
+  useEffect(() => { const timer = setTimeout(() => setQuery(value.trim()), 300); return () => clearTimeout(timer); }, [value]);
+  return query;
+}
 
-function useDebouncedSearch(value: string): string {
-  const normalized = value.trim();
-  const [debounced, setDebounced] = useState(normalized);
-  useEffect(() => {
-    const timer = setTimeout(() => setDebounced(normalized), SEARCH_DEBOUNCE_MS);
-    return () => clearTimeout(timer);
-  }, [normalized]);
-  return debounced;
+function WorldDiscovery() {
+  const bindings = useDesktopRendererBindings();
+  const destination = useHomeDestination();
+  const navigation = useHomeNavigation();
+  const bootstrapReady = useAppStore(state => state.bootstrapReady);
+  const realmBaseUrl = useAppStore(state => state.runtimeDefaults?.realm.realmBaseUrl ?? '');
+  const networkOffline = useAppStore(state => state.offlineTier !== 'L0');
+  const realmWorldData = useMemo(() => createRealmWorldData(bindings.sdk), [bindings.sdk]);
+  const worldSearchText = destination.worldSearch ?? '';
+  const query = useSearch(worldSearchText);
+  const topicId = destination.worldTopicId ?? '';
+  const favoritesSelected = destination.worldCollection === 'favorites';
+  const setTopic = (value: string) => { void navigation.replace({ ...destination, worldTopicId: value || undefined, worldCollection: undefined }); };
+  const favorites = useWorldFavorites({ data: realmWorldData, realmBaseUrl, enabled: bootstrapReady && favoritesSelected, offline: networkOffline, search: query });
+  const topics = useQuery({ queryKey: ['world-topics', WORLD_CATALOG_CONTRACT_VERSION, realmBaseUrl], queryFn: () => realmWorldData.loadWorldTopics(), enabled: bootstrapReady && !networkOffline, staleTime: 60_000 });
+  const catalog = useExploreCatalogQuery({ queryKey: worldCatalogQueryKey(realmBaseUrl, query, { topicId: topicId || undefined }),
+    loadPage: cursor => fetchWorldCatalogPage(realmWorldData, query, cursor, { topicId: topicId || undefined }), enabled: bootstrapReady && !favoritesSelected, networkOffline, staleTime: 30_000 });
+  const worlds = useMemo(() => catalog.query.data?.pages.flatMap(page => page.items) ?? [], [catalog.query.data]);
+  const paging: WorldCatalogPaging = { totalCount: catalog.query.data?.pages[0]?.totalCount ?? 0, hasMore: Boolean(catalog.query.hasNextPage),
+    loadingMore: catalog.query.isFetchingNextPage, loadMoreFailed: catalog.query.isFetchNextPageError,
+    offlineIncomplete: catalog.offline && Boolean(catalog.query.data), onLoadMore: () => { void catalog.query.fetchNextPage(); } };
+  const source = { data: realmWorldData, realmBaseUrl, enabled: bootstrapReady, offline: networkOffline };
+  const renderPeople = (world: (typeof worlds)[number]) => <WorldAtlasPeople world={world} source={source} />;
+  return <WorldCatalogContent embedded favorites={favoritesSelected}
+    onFavoritesSelect={() => { void navigation.replace({ ...destination, worldTopicId: undefined, worldCollection: 'favorites' }); }}
+    favoritesUnavailable={favoritesSelected ? favorites.unavailable : undefined} favoritesPartialError={favoritesSelected && favorites.partialError}
+    loading={favoritesSelected ? favorites.loading : catalog.initialLoading} error={favoritesSelected ? favorites.error : catalog.initialUnavailable}
+    offline={favoritesSelected ? favorites.offline : catalog.offline} onRetry={() => { if (favoritesSelected) favorites.retry(); else void catalog.query.refetch(); }}
+    worlds={favoritesSelected ? favorites.worlds : worlds}
+    paging={favoritesSelected ? { totalCount: favorites.worlds.length, hasMore: false, loadingMore: false, loadMoreFailed: false, offlineIncomplete: favorites.offline && favorites.worlds.length > 0, onLoadMore() {} } : paging}
+    topics={topics.data ?? []} topicId={topicId} onTopicChange={setTopic} topicsFailed={topics.isError} onRetryTopics={() => { void topics.refetch(); }}
+    topicShelves={<WorldAtlasTopics topics={topics.data ?? []} source={source} onSelect={setTopic} renderPeople={renderPeople} />} renderPeople={renderPeople}
+    searchQuery={worldSearchText} onSearchQueryChange={worldSearch => { void navigation.replace({ ...destination, worldSearch }); }} />;
+}
+
+function CharacterDiscovery() {
+  const { t } = useTranslation();
+  const bindings = useDesktopRendererBindings();
+  const destination = useHomeDestination();
+  const navigation = useHomeNavigation();
+  const realmBaseUrl = useAppStore(state => state.runtimeDefaults?.realm.realmBaseUrl ?? '');
+  const accountId = useAppStore(state => state.auth.user?.id ?? '');
+  const bootstrapReady = useAppStore(state => state.bootstrapReady);
+  const offline = useAppStore(state => state.offlineTier !== 'L0');
+  const queryText = destination.search ?? '';
+  const query = useSearch(queryText);
+  const tooLong = [...query].length > 100;
+  const catalog = useExploreCatalogQuery({ queryKey: ['explore-characters', realmBaseUrl, accountId, query],
+    loadPage: cursor => readCharacterCatalog(bindings.sdk, query, cursor ?? undefined), enabled: bootstrapReady && !tooLong, networkOffline: offline });
+  const items = catalog.query.data?.pages.flatMap(page => page.items) ?? [];
+  const viewport = useHomeListPosition(JSON.stringify(['characters', realmBaseUrl, accountId, query]), !catalog.initialLoading);
+  return <ScrollArea viewportRef={viewport} className="min-h-0 flex-1" contentClassName="mx-auto max-w-[1120px] space-y-5 p-5">
+    <header className="flex flex-wrap items-center justify-between gap-4"><h1 className="text-2xl font-semibold">{t('runtimeConfig.partners.findCharacters')}</h1>
+      <SearchField aria-label={t('runtimeConfig.partners.characterSearch')} placeholder={t('runtimeConfig.partners.characterSearch')} value={queryText}
+        maxLength={100} onChange={event => { void navigation.replace({ ...destination, search: event.target.value }); }} /></header>
+    {tooLong ? <InlineAlert tone="warning">{t('runtimeConfig.partners.searchLimit')}</InlineAlert>
+      : catalog.initialLoading ? <LoadingSkeleton lines={5} />
+        : catalog.initialUnavailable ? <InlineAlert tone="warning" action={<Button onClick={() => { void catalog.query.refetch(); }}>{t('Common.retry')}</Button>}>{t('runtimeConfig.partners.charactersUnavailable')}</InlineAlert>
+          : <>{catalog.offline ? <InlineAlert tone="warning">{t('runtimeConfig.partners.charactersOffline')}</InlineAlert> : null}
+            {items.length ? <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3" data-testid="explore-character-results">
+              {items.map(item => <button key={characterSourceRefKey(item.sourceRef)} data-view-key={characterSourceRefKey(item.sourceRef)} className="flex items-start gap-4 rounded-2xl bg-[var(--nimi-surface-card)] p-5 text-left hover:bg-[var(--nimi-surface-active)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]"
+                onClick={() => { void navigation.push({ id: 'source-detail', sourceRef: item.sourceRef }); }}>
+                <Avatar alt={item.name} size="lg" src={item.avatarUrl || undefined} fallback={item.name.slice(0, 1)} />
+                <span className="min-w-0"><span className="block break-words font-semibold">{item.name}</span><span className="mt-1 block text-xs text-[var(--nimi-text-secondary)]">{item.worldName}</span>
+                  {item.summary ? <span className="mt-3 line-clamp-3 text-sm text-[var(--nimi-text-secondary)]">{item.summary}</span> : null}</span>
+              </button>)}
+            </div> : <EmptyState title={t('runtimeConfig.partners.noCharacters')} />}
+            {catalog.query.isFetchNextPageError ? <InlineAlert tone="warning">{t('runtimeConfig.partners.moreFailed')}</InlineAlert> : null}
+            {catalog.query.hasNextPage ? <Button disabled={catalog.offline || catalog.query.isFetchingNextPage} onClick={() => { void catalog.query.fetchNextPage(); }}>{t('runtimeConfig.partners.loadMore')}</Button> : null}
+          </>}
+  </ScrollArea>;
 }

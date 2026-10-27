@@ -244,4 +244,11 @@ test('relationship explorer searches and pages the Realm people catalog instead 
   assert.match(failed, /Try again/);
   assert.doesNotMatch(failed, /data-testid="world-relationship-profile"/);
   assert.doesNotMatch(failed, / \/ 0</);
+
+  const partial = render(readyPeopleCatalog(2, { status: 'partial', canRetryFirstPage: true }));
+  assert.match(partial, /Some people have not loaded yet/);
+  assert.match(partial, /Try again/);
+  assert.match(partial, />Mira</);
+  assert.match(partial, /data-testid="world-relationship-profile"/);
+  assert.doesNotMatch(partial, />2 \/ 2</, 'the missing source means the combined total is unknown');
 });

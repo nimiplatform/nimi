@@ -41,7 +41,7 @@ export function AppointPanel({ onDone, compact = false }: { readonly onDone?: ()
 
   const findPartner = async () => {
     try {
-      const result = await openDesktopIntent({ intent: { kind: 'open-explore', section: 'personas', productIntent: 'select-partner' } });
+      const result = await openDesktopIntent({ intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner' } });
       if (result.status !== 'accepted') nimiToast.show({ tone: 'warning', message: copy.agent.openHomeFailed, durationMs: 5000 });
     } catch {
       nimiToast.show({ tone: 'warning', message: copy.agent.openHomeFailed, durationMs: 5000 });

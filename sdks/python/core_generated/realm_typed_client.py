@@ -6442,6 +6442,31 @@ class RealmWorldPublicControllerGetWorldDetailWithCharactersOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
+class RealmWorldPublicControllerListCharacterCatalogOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerListCharacterCatalogOperationQuery:
+    worldId: str | None = None
+    limit: float | None = None
+    q: str | None = None
+    cursor: str | None = None
+
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerListCharacterCatalogOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmWorldPublicControllerListCharacterCatalogOperationRequest:
+    path: RealmWorldPublicControllerListCharacterCatalogOperationPath
+    query: RealmWorldPublicControllerListCharacterCatalogOperationQuery | None = None
+    headers: RealmWorldPublicControllerListCharacterCatalogOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
 class RealmWorldPublicControllerListPersonaCharacterCatalogOperationPath:
     pass
 
@@ -8143,6 +8168,16 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldPublicController_getWorldDetailWithCharacters", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldPublicDetailWithCharactersDto, raw)
+
+    async def world_public_controller_list_character_catalog(self, request: RealmWorldPublicControllerListCharacterCatalogOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldPublicControllerListCharacterCatalogOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": _model_body(request.query),
+            "headers": _model_body(request.headers),
+            "body": _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldPublicController_listCharacterCatalog", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(WorldPublicSourceCardPageDto, raw)
 
     async def world_public_controller_list_persona_character_catalog(self, request: RealmWorldPublicControllerListPersonaCharacterCatalogOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldPublicControllerListPersonaCharacterCatalogOperationResponse:
         envelope: dict[str, object] = {

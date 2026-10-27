@@ -416,6 +416,21 @@ var realmBrokerOperations = map[string]realmUnaryOperation{
 		responseMaxBytes:       1048576,
 		mediaUpload:            false,
 	},
+	"WorldPublicController_listCharacterCatalog": {
+		method: "GET",
+		path:   "/api/world/character-sources/catalog",
+		allowedCallerModes: map[runtimev1.AccountCallerMode]struct{}{
+			runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL: {},
+		},
+		authorizationProfile:   "protected_desktop_source_readiness",
+		pathParameterKinds:     map[string]realmUnaryParameterKind{},
+		requiredPathParameters: map[string]struct{}{},
+		queryParameterKinds:    map[string]realmUnaryParameterKind{"worldId": realmUnaryParameterString, "limit": realmUnaryParameterNumber, "q": realmUnaryParameterString, "cursor": realmUnaryParameterString},
+		requestBodyAllowed:     false,
+		requestBodyRequired:    false,
+		responseMaxBytes:       1048576,
+		mediaUpload:            false,
+	},
 	"getMe": {
 		method: "GET",
 		path:   "/api/human/me",

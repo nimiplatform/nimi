@@ -37,7 +37,8 @@ function WorldPeopleGallery({ characters, catalog, loading, onView }: {
           {catalog.query ? <IconButton tone="ghost" size="sm" icon={<X size={15} />} aria-label={t('World.clearSearch')} onClick={() => catalog.onQueryChange('')} /> : null}
         </div>
       </div>
-      {loading ? <LoadingSkeleton lines={3} label={t('WorldDetail.charactersLoading')} /> : catalog.status !== 'ready' ? <PeopleCatalogFirstPageStatus catalog={catalog} /> : characters.length ? (
+      {catalog.status === 'partial' ? <PeopleCatalogFirstPageStatus catalog={catalog} /> : null}
+      {loading && !characters.length && catalog.status === 'loading' ? <LoadingSkeleton lines={3} label={t('WorldDetail.charactersLoading')} /> : catalog.status !== 'ready' && catalog.status !== 'partial' ? <PeopleCatalogFirstPageStatus catalog={catalog} /> : characters.length ? (
         <div className={PEOPLE_GALLERY_GRID}>
           {characters.map((character) => {
             const image = character.portraitUrl || character.mediaAssets?.portrait?.externalUrl || character.avatarUrl || character.mediaAssets?.avatar?.externalUrl || null;
@@ -65,7 +66,7 @@ function WorldPeopleGallery({ characters, catalog, loading, onView }: {
             );
           })}
         </div>
-      ) : <EmptyState title={t(catalog.query ? 'WorldDetail.discovery.noPeopleMatch' : 'WorldDetail.discovery.noPeople')} />}
+      ) : catalog.status === 'partial' ? null : <EmptyState title={t(catalog.query ? 'WorldDetail.discovery.noPeopleMatch' : 'WorldDetail.discovery.noPeople')} />}
       <PeopleCatalogMoreControl catalog={catalog} loadedCount={characters.length} />
     </section>
   );

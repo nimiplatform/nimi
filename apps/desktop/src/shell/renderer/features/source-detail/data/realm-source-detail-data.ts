@@ -331,3 +331,21 @@ export const realmSourceDetailData = {
   ) =>
     loadRealmSourceDetailsBySourceRef(realm, sourceRef, context),
 };
+
+// @nimi-authority: rule.nimi.desktop.product-surfaces.partner-source-navigation
+export async function resolveCurrentPartnerSource(realm: Realm, captured: CharacterSourceRefV3) {
+  const value = captured.kind === 'personaCharacter'
+    ? await realm.worldCore.worldCoreControllerGetPersonaCharacter({ path: { personaCharacterId: captured.id } })
+    : await realm.worldCore.worldCoreControllerGetWorldCharacter({ path: { characterId: captured.id } });
+  const current = readCharacterSourceRefV3(captured.kind === 'personaCharacter'
+    ? { kind: captured.kind, id: value.id, worldId: value.worldId, sourceHash: value.sourceHash,
+        ownerAccountId: 'ownerAccountId' in value ? value.ownerAccountId : '' }
+    : { kind: captured.kind, id: value.id, worldId: value.worldId, sourceHash: value.sourceHash,
+        worldEntityRef: 'worldEntityRef' in value ? value.worldEntityRef : null });
+  const matches = current && current.kind === captured.kind && current.id === captured.id && current.worldId === captured.worldId
+    && (current.kind === 'personaCharacter' && captured.kind === 'personaCharacter' ? current.ownerAccountId === captured.ownerAccountId
+      : current.kind === 'worldCharacter' && captured.kind === 'worldCharacter' && current.worldEntityRef.entityId === captured.worldEntityRef.entityId);
+  if (!matches || !current) throw new Error('Current character identity no longer matches this partner source.');
+  const card = await loadPublicSourceCard(realm, current);
+  return { sourceRef: current, displayName: card.displayName, worldName: card.worldName, updated: current.sourceHash !== captured.sourceHash };
+}

@@ -1,4 +1,4 @@
-import { PlayCircle, Settings, X } from 'lucide-react';
+import { PlayCircle, X } from 'lucide-react';
 import { useMemo, useState, type KeyboardEvent } from 'react';
 import { Button, IconButton, InlineAlert, LoadingSkeleton } from '@nimiplatform/kit/ui';
 import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
@@ -426,17 +426,9 @@ function AgentCenterChromeActions(props: {
   readonly copy: Required<AgentCenterChromeCopy>;
   readonly actions?: AgentCenterProps['placementActions'];
 }) {
-  if (!props.actions?.openRuntimeSettings && !props.actions?.launchAvatar && !props.actions?.close) return null;
+  if (!props.actions?.launchAvatar && !props.actions?.close) return null;
   return (
     <div className="flex shrink-0 items-center gap-1.5" data-agent-center-chrome-actions="true">
-      {props.actions?.openRuntimeSettings ? (
-        <IconButton
-          aria-label={props.copy.openRuntimeSettingsLabel}
-          icon={<Settings aria-hidden="true" className="h-4 w-4" />}
-          onClick={props.actions.openRuntimeSettings}
-          tone="secondary"
-        />
-      ) : null}
       {props.actions?.launchAvatar ? (
         <IconButton
           aria-label={props.copy.launchAvatarLabel}

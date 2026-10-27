@@ -14,99 +14,110 @@ import {
 
 const acceptedVectors: readonly NimiDesktopOpenIntentEnvelope[] = [
   {
-    schemaVersion: 1,
+    schemaVersion: 2,
     sourceApp: 'nimi.lab',
     sourceHost: 'electron-standard-shell',
     requestId: 'desktop-open-20261015-context',
     intent: { kind: 'open-agent-center', conversationAnchorId: 'agent_anchor_context' },
   },
   {
-    schemaVersion: 1,
+    schemaVersion: 2,
     sourceApp: 'nimi.zhiyu',
     sourceHost: 'desktop-electron-local-app-host',
     requestId: 'desktop-open-20260708-0001',
-    intent: { kind: 'open-explore', section: 'personas', productIntent: 'select-partner' },
+    intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner' },
   },
   {
-    schemaVersion: 1,
+    schemaVersion: 2,
     sourceApp: 'nimi.test-launcher',
     sourceHost: 'electron-standard-shell',
     requestId: 'desktop-open-20260708-0009',
     intent: { kind: 'open-explore', section: 'worlds', productIntent: 'discover-worlds' },
   },
   {
-    schemaVersion: 1,
+    schemaVersion: 2,
     sourceApp: 'nimi.test-launcher',
     sourceHost: 'electron-standard-shell',
     requestId: 'desktop-open-20260708-0012',
-    intent: { kind: 'open-explore', section: 'worlds' },
+    intent: { kind: 'open-explore', section: 'worlds', productIntent: 'discover-worlds' },
   },
   {
-    schemaVersion: 1,
+    schemaVersion: 2,
     sourceApp: 'nimi.test-launcher',
     sourceHost: 'electron-standard-shell',
     requestId: 'desktop-open-20260708-0011',
-    intent: { kind: 'open-explore', section: 'personas', productIntent: 'discover-personas' },
+    intent: { kind: 'open-explore', section: 'worlds', productIntent: 'discover-characters' },
   },
   {
-    schemaVersion: 1,
+    schemaVersion: 2,
     sourceApp: 'nimi.test-launcher',
     sourceHost: 'electron-standard-shell',
     requestId: 'desktop-open-20260708-0014',
-    intent: { kind: 'open-explore', section: 'personas' },
+    intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner' },
   },
   {
-    schemaVersion: 1,
+    schemaVersion: 2,
     sourceApp: 'nimi.test-launcher',
     sourceHost: 'electron-standard-shell',
     requestId: 'desktop-open-20260708-0002',
     intent: { kind: 'open-runtime-config', page: 'cloud', action: 'add-connector' },
   },
   {
-    schemaVersion: 1,
+    schemaVersion: 2,
     sourceApp: 'nimi.test-launcher',
     sourceHost: 'tauri-standard-shell',
     requestId: 'desktop-open-20260708-0003',
     intent: { kind: 'open-runtime-config', page: 'models', action: 'install-model' },
   },
   {
-    schemaVersion: 1,
+    schemaVersion: 2,
     sourceApp: 'nimi.test-launcher',
     sourceHost: 'electron-standard-shell',
     requestId: 'desktop-open-20260708-0004',
-    intent: { kind: 'open-explore', section: 'personas', query: 'mentor' },
+    intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner', query: 'mentor' },
   },
   {
-    schemaVersion: 1,
+    schemaVersion: 2,
     sourceApp: 'nimi.test-launcher',
     sourceHost: 'electron-standard-shell',
     requestId: 'desktop-open-20260708-0006',
     intent: { kind: 'open-apps' },
   },
   {
-    schemaVersion: 1,
+    schemaVersion: 2,
     sourceApp: 'nimi.test-launcher',
     sourceHost: 'electron-standard-shell',
     requestId: 'desktop-open-20260708-0007',
     intent: { kind: 'open-apps', appId: 'nimi.example' },
   },
   {
-    schemaVersion: 1,
+    schemaVersion: 2,
     sourceApp: 'nimi.example',
     sourceHost: 'electron-standard-shell',
     requestId: 'desktop-open-20260708-0015',
     intent: { kind: 'open-apps', appId: 'nimi.example', section: 'ai-models' },
   },
   {
-    schemaVersion: 1,
+    schemaVersion: 2,
     sourceApp: 'nimi.test-launcher',
     sourceHost: 'electron-standard-shell',
     requestId: 'desktop-open-20260708-0008',
     intent: { kind: 'open-settings', section: 'profile' },
   },
-  {schemaVersion:1,sourceApp:'nimi.lab',sourceHost:'desktop-electron-local-app-host',requestId:'desktop-open-20261005-0200',intent:{kind:'open-integrations'}},
+  {schemaVersion: 2,sourceApp:'nimi.lab',sourceHost:'desktop-electron-local-app-host',requestId:'desktop-open-20261005-0200',intent:{kind:'open-integrations'}},
 ];
 describe('Desktop Open Intent SDK parser', () => {
+  it('rejects retired schema and sections and requires a consistent Explore task', () => {
+    assert.throws(() => parseNimiDesktopOpenIntentEnvelope({ ...acceptedVectors[0], schemaVersion: 1 }), /must be 2/);
+    for (const intent of [
+      { kind: 'open-explore', section: 'personas', productIntent: 'discover-personas' },
+      { kind: 'open-explore', section: 'worlds', productIntent: 'discover-personas' },
+      { kind: 'open-explore', section: 'partners', productIntent: 'discover-characters' },
+      { kind: 'open-explore', section: 'worlds', productIntent: 'select-partner' },
+      { kind: 'open-explore', section: 'partners' },
+    ]) assert.throws(() => parseNimiDesktopOpenIntentEnvelope({ ...acceptedVectors[0], intent }), NimiDesktopOpenIntentParseError);
+  });
+
   it('accepts admitted golden envelopes', () => {
     for (const vector of acceptedVectors) {
       assert.deepEqual(parseNimiDesktopOpenIntentEnvelope(vector), vector);
@@ -159,15 +170,15 @@ describe('Desktop Open Intent SDK parser', () => {
     assert.deepEqual(
       parseNimiDesktopOpenIntentEnvelope({
         ...acceptedVectors[0],
-        intent: { kind: 'open-explore', section: 'personas', query: admittedQuery },
+        intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner', query: admittedQuery },
       }).intent,
-      { kind: 'open-explore', section: 'personas', query: admittedQuery },
+      { kind: 'open-explore', section: 'partners', productIntent: 'select-partner', query: admittedQuery },
     );
 
     assertRejects(
       {
         ...acceptedVectors[0],
-        intent: { kind: 'open-explore', section: 'personas', query: '😀'.repeat(161) },
+        intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner', query: '😀'.repeat(161) },
       },
       'desktop-open-intent-invalid',
     );
@@ -199,7 +210,7 @@ describe('Desktop Open Intent SDK parser', () => {
         ...acceptedVectors[0],
         intent: {
           kind: 'open-explore',
-          section: 'personas',
+          section: 'partners', productIntent: 'select-partner',
           query: 'x'.repeat(161),
         },
       },
@@ -222,7 +233,7 @@ describe('Desktop Open Intent SDK parser', () => {
     assertRejects(
       {
         ...acceptedVectors[0],
-        intent: { kind: 'open-explore', section: 'activity', productIntent: 'discover-personas' },
+        intent: { kind: 'open-explore', section: 'activity', productIntent: 'discover-characters' },
       },
       'desktop-open-target-unsupported',
     );
@@ -253,11 +264,11 @@ describe('Desktop Open Intent SDK parser', () => {
     assert.deepEqual(
       parseNimiDesktopOpenRendererRequest({
         requestId: 'desktop-open-20260708-renderer',
-        intent: { kind: 'open-explore', section: 'personas', productIntent: 'select-partner' },
+        intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner' },
       }),
       {
         requestId: 'desktop-open-20260708-renderer',
-        intent: { kind: 'open-explore', section: 'personas', productIntent: 'select-partner' },
+        intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner' },
       },
     );
 
@@ -288,7 +299,7 @@ describe('Desktop Open Intent SDK parser', () => {
         request: { intent: { kind: 'open-settings', section: 'profile' } },
       }),
       {
-        schemaVersion: 1,
+        schemaVersion: 2,
         sourceApp: 'nimi.fixture',
         sourceHost: 'dev-fixture',
         requestId: 'desktop-open-20260708-host',

@@ -974,6 +974,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/world/by-id/{worldId}/detail-with-characters"),
     },
     RealmOperationDescriptor {
+        operation_id: "WorldPublicController_listCharacterCatalog",
+        service: "World",
+        method: "GET",
+        path: Some("/api/world/character-sources/catalog"),
+    },
+    RealmOperationDescriptor {
         operation_id: "WorldPublicController_listPersonaCharacterCatalog",
         service: "World",
         method: "GET",

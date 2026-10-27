@@ -55,7 +55,7 @@ export function characterSourceMaterializationMessage(t: TFunction): string {
   return translate(
     t,
     'Explore.characterSourceMaterializationUnavailable',
-    'This character is missing a current CharacterSourceRefV3, so it cannot become your partner yet.',
+    'This character is not ready to be added as a partner yet.',
   );
 }
 
@@ -156,6 +156,7 @@ function runtimeOwnedLocalAgentsForSource(
     && agent.sourceHash === sourceRef.sourceHash);
 }
 
+// @nimi-authority: rule.nimi.desktop.product-surfaces.r011
 export function resolveCharacterSourceState(
   sourceInput: unknown,
   localAgents: readonly CharacterSourceDiscoveredLocalAgent[] = [],
@@ -167,6 +168,9 @@ export function resolveCharacterSourceState(
   const matchingAgents = runtimeOwnedLocalAgentsForSource(sourceInput, localAgents);
   if (matchingAgents.length === 1) return 'local_agent_available';
   if (matchingAgents.length > 1) return 'local_agent_ambiguous';
+  const relation = sourceInput && typeof sourceInput === 'object'
+    ? (sourceInput as { viewerRelation?: { state?: unknown } }).viewerRelation : undefined;
+  if (relation?.state !== 'connectable') return 'source_materialization_unavailable';
   return 'source_materialization_available';
 }
 

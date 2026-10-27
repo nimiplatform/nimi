@@ -33,12 +33,12 @@ type DesktopOpenTarget = {
 
 const DESKTOP_OPEN_TARGETS: readonly DesktopOpenTarget[] = [
   { rowId: 'target.agent-center', intent: { kind: 'open-agent-center', conversationAnchorId: 'agent_anchor_context' }, expected: { activeTab: 'chat' } },
-  { rowId: 'target.explore-worlds-section', intent: { kind: 'open-explore', section: 'worlds' }, expected: { activeTab: 'explore', section: 'worlds' } },
+  { rowId: 'target.explore-worlds-section', intent: { kind: 'open-explore', section: 'worlds', productIntent: 'discover-worlds' }, expected: { activeTab: 'explore', section: 'worlds' } },
   { rowId: 'target.explore-worlds', intent: { kind: 'open-explore', section: 'worlds', productIntent: 'discover-worlds' }, expected: { activeTab: 'explore', section: 'worlds' } },
-  { rowId: 'target.explore-personas-section', intent: { kind: 'open-explore', section: 'personas' }, expected: { activeTab: 'explore', section: 'personas' } },
-  { rowId: 'target.explore-personas', intent: { kind: 'open-explore', section: 'personas', productIntent: 'select-partner' }, expected: { activeTab: 'explore', section: 'personas' } },
-  { rowId: 'target.explore-personas-discover', intent: { kind: 'open-explore', section: 'personas', productIntent: 'discover-personas' }, expected: { activeTab: 'explore', section: 'personas' } },
-  { rowId: 'target.explore-search', intent: { kind: 'open-explore', section: 'personas', query: 'mentor' }, expected: { activeTab: 'explore', section: 'personas', query: 'mentor' } },
+  { rowId: 'target.explore-personas-section', intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner' }, expected: { activeTab: 'explore', section: 'partners' } },
+  { rowId: 'target.explore-personas', intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner' }, expected: { activeTab: 'explore', section: 'partners' } },
+  { rowId: 'target.explore-personas-discover', intent: { kind: 'open-explore', section: 'worlds', productIntent: 'discover-characters' }, expected: { activeTab: 'explore', section: 'worlds' } },
+  { rowId: 'target.explore-search', intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner', query: 'mentor' }, expected: { activeTab: 'explore', section: 'partners', query: 'mentor' } },
   { rowId: 'target.runtime-connector', intent: { kind: 'open-runtime-config', page: 'cloud', action: 'add-connector' }, expected: { activeTab: 'runtime', page: 'cloudServices' } },
   { rowId: 'target.runtime-model', intent: { kind: 'open-runtime-config', page: 'models', action: 'install-model' }, expected: { activeTab: 'runtime', page: 'modelLibrary' } },
   { rowId: 'target.apps-surface', intent: { kind: 'open-apps' }, expected: { activeTab: 'apps' } },
@@ -168,7 +168,7 @@ for (const target of DESKTOP_OPEN_TARGETS) {
 
     if (target.expected.activeTab === 'explore') {
       assert.equal(appState.exploreSection, target.expected.section);
-      assert.equal(appState.search, target.expected.query ?? '');
+      assert.equal((appState.exploreSection === 'partners' ? appState.partnerQuery : appState.exploreSearchKind === 'characters' ? appState.search : appState.worldSearch) ?? '', target.expected.query ?? '');
     }
 
     if (target.expected.activeTab === 'runtime') {

@@ -23,26 +23,26 @@ const goldenVectorPath = path.resolve(
 );
 
 const rejectedGoldenPayloads: Record<string, unknown> = {
-  'explore-activity-view': { schemaVersion: 1, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-feed-1', intent: { kind: 'open-explore', section: 'activity', productIntent: 'view-activity' } },
-  'explore-activity-section-only': { schemaVersion: 1, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-feed-2', intent: { kind: 'open-explore', section: 'activity' } },
-  'source-app-missing': { schemaVersion: 1, sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-1', intent: { kind: 'open-settings', section: 'profile' } },
-  'unknown-field-authorization': { schemaVersion: 1, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-2', authorization: 'secret', intent: { kind: 'open-settings', section: 'profile' } },
-  'unknown-target': { schemaVersion: 1, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-3', intent: { kind: 'open-developer-tools' } },
-  'invalid-runtime-action-page-pair': { schemaVersion: 1, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-4', intent: { kind: 'open-runtime-config', page: 'cloud', action: 'install-model' } },
-  'invalid-explore-worlds-select-partner-pair': { schemaVersion: 1, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-5', intent: { kind: 'open-explore', section: 'worlds', productIntent: 'select-partner' } },
-  'invalid-explore-activity-discover-personas-pair': { schemaVersion: 1, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-6', intent: { kind: 'open-explore', section: 'activity', productIntent: 'discover-personas' } },
-  'invalid-source-host': { schemaVersion: 1, sourceApp: 'nimi.test', sourceHost: 'unknown-shell', requestId: 'desktop-open-reject-7', intent: { kind: 'open-settings', section: 'profile' } },
-  'invalid-request-id': { schemaVersion: 1, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open--reject-7b', intent: { kind: 'open-settings', section: 'profile' } },
-  'invalid-app-id': { schemaVersion: 1, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-8', intent: { kind: 'open-apps', appId: 'Nimi.Bad' } },
-  'invalid-query-too-long': { schemaVersion: 1, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-9', intent: { kind: 'open-explore', section: 'personas', query: 'x'.repeat(161) } },
-  'developer-tools-settings-target-v1': { schemaVersion: 1, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-10', intent: { kind: 'open-settings', section: 'developer-tools' } },
-  'retired-agents-target-v1': { schemaVersion: 1, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-11', intent: { kind: 'open-agents', view: 'inventory' } },
-  'runtime-profiles-manage-profile-v1': { schemaVersion: 1, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-15', intent: { kind: 'open-runtime-config', page: 'profiles', action: 'manage-profile' } },
-  'runtime-advanced-inspect-runtime-v1': { schemaVersion: 1, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-16', intent: { kind: 'open-runtime-config', page: 'advanced', action: 'inspect-runtime' } },
-  'os-scheme-url': { schemaVersion: 1, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-12', intent: { kind: 'open-url', url: 'nimi-desktop://runtime-config/cloud' } },
-  'raw-url-payload': { schemaVersion: 1, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-13', url: 'http://127.0.0.1:1/v1/open-intent' },
+  'explore-activity-view': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-feed-1', intent: { kind: 'open-explore', section: 'activity', productIntent: 'view-activity' } },
+  'explore-activity-section-only': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-feed-2', intent: { kind: 'open-explore', section: 'activity' } },
+  'source-app-missing': { schemaVersion: 2, sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-1', intent: { kind: 'open-settings', section: 'profile' } },
+  'unknown-field-authorization': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-2', authorization: 'secret', intent: { kind: 'open-settings', section: 'profile' } },
+  'unknown-target': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-3', intent: { kind: 'open-developer-tools' } },
+  'invalid-runtime-action-page-pair': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-4', intent: { kind: 'open-runtime-config', page: 'cloud', action: 'install-model' } },
+  'invalid-explore-worlds-select-partner-pair': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-5', intent: { kind: 'open-explore', section: 'worlds', productIntent: 'select-partner' } },
+  'invalid-explore-activity-discover-personas-pair': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-6', intent: { kind: 'open-explore', section: 'activity', productIntent: 'discover-characters' } },
+  'invalid-source-host': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'unknown-shell', requestId: 'desktop-open-reject-7', intent: { kind: 'open-settings', section: 'profile' } },
+  'invalid-request-id': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open--reject-7b', intent: { kind: 'open-settings', section: 'profile' } },
+  'invalid-app-id': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-8', intent: { kind: 'open-apps', appId: 'Nimi.Bad' } },
+  'invalid-query-too-long': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-9', intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner', query: 'x'.repeat(161) } },
+  'developer-tools-settings-target-v1': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-10', intent: { kind: 'open-settings', section: 'developer-tools' } },
+  'retired-agents-target-v1': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-11', intent: { kind: 'open-agents', view: 'inventory' } },
+  'runtime-profiles-manage-profile-v1': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-15', intent: { kind: 'open-runtime-config', page: 'profiles', action: 'manage-profile' } },
+  'runtime-advanced-inspect-runtime-v1': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-16', intent: { kind: 'open-runtime-config', page: 'advanced', action: 'inspect-runtime' } },
+  'os-scheme-url': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-12', intent: { kind: 'open-url', url: 'nimi-desktop://runtime-config/cloud' } },
+  'raw-url-payload': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-13', url: 'http://127.0.0.1:1/v1/open-intent' },
   'renderer-provided-source-app': { sourceApp: 'nimi.spoof', intent: { kind: 'open-apps' } },
-  'provider-model-credential-fields': { schemaVersion: 1, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-17', intent: { kind: 'open-runtime-config', page: 'models', action: 'install-model', providerApiKey: 'secret' } },
+  'provider-model-credential-fields': { schemaVersion: 2, sourceApp: 'nimi.test', sourceHost: 'electron-standard-shell', requestId: 'desktop-open-reject-17', intent: { kind: 'open-runtime-config', page: 'models', action: 'install-model', providerApiKey: 'secret' } },
 };
 
 function readGoldenVectors(): GoldenVectorTable {
@@ -53,10 +53,10 @@ describe('kit core desktop-open', () => {
   it('reuses the SDK parser for renderer request validation', () => {
     expect(parseNimiDesktopOpenRendererRequest({
       requestId: 'desktop-open-20260708-kit',
-      intent: { kind: 'open-explore', section: 'personas', productIntent: 'select-partner' },
+      intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner' },
     })).toEqual({
       requestId: 'desktop-open-20260708-kit',
-      intent: { kind: 'open-explore', section: 'personas', productIntent: 'select-partner' },
+      intent: { kind: 'open-explore', section: 'partners', productIntent: 'select-partner' },
     });
 
     expect(() => parseNimiDesktopOpenRendererRequest({
@@ -72,7 +72,7 @@ describe('kit core desktop-open', () => {
       requestId: 'desktop-open-20260708-kit-host',
       request: { intent: { kind: 'open-runtime-config', page: 'cloud', action: 'add-connector' } },
     })).toEqual({
-      schemaVersion: 1,
+      schemaVersion: 2,
       sourceApp: 'nimi.fixture',
       sourceHost: 'dev-fixture',
       requestId: 'desktop-open-20260708-kit-host',

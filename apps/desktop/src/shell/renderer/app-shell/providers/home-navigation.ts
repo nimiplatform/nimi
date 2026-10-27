@@ -29,7 +29,10 @@ export type HomeDestination = {
   readonly sourceRef?: CharacterSourceRefV3;
   readonly worldId?: string;
   readonly worldSubpage?: WorldDetailInitialSubpage;
-  readonly exploreSection?: 'worlds' | 'personas';
+  readonly exploreSection?: 'worlds' | 'partners';
+  readonly exploreSearchKind?: 'worlds' | 'characters';
+  readonly partnerQuery?: string;
+  readonly partner?: { readonly localAgentRef: string; readonly settingsSection?: AgentCenterSectionId };
   readonly search?: string;
   readonly exploreWorldId?: string;
   readonly worldSearch?: string;
@@ -54,7 +57,7 @@ export type HomeChatPosition = {
   readonly managerAnchorId?: string;
 };
 const CATALOG: Record<AppTab, readonly string[]> = {
-  home: ['homeSection'], chat: ['chat'], explore: ['exploreSection', 'search', 'exploreWorldId', 'worldSearch', 'worldTopicId', 'worldCollection'],
+  home: ['homeSection'], chat: ['chat'], explore: ['exploreSection', 'exploreSearchKind', 'partnerQuery', 'partner', 'search', 'exploreWorldId', 'worldSearch', 'worldTopicId', 'worldCollection'],
   apps: ['appId', 'appEntryKey', 'appSection'], runtime: ['runtime'], cloud: ['runtime'], downloads: [], diagnostics: ['runtime'],
   settings: ['settingsSection'], profile: ['profileId'],
   'source-detail': ['sourceRef'], 'world-detail': ['worldId', 'worldSubpage', 'search'],
@@ -83,13 +86,22 @@ export function validateHomeDestination(value: unknown): HomeDestination {
   }
   const closed = (key: string, allowed: readonly string[]) => { if (result[key] !== undefined && !allowed.includes(result[key] as string)) throw new Error(`Invalid Home ${key}.`); };
   closed('homeSection', ['overview', 'center', 'integrations', 'ai-activity']);
-  closed('exploreSection', ['worlds', 'personas']);
+  closed('exploreSection', ['worlds', 'partners']);
+  closed('exploreSearchKind', ['worlds', 'characters']);
   closed('worldCollection', ['favorites']);
   closed('worldSubpage', ['relationship-explorer']);
   closed('appSection', ['overview', 'ai-models']);
   closed('settingsSection', SETTINGS_SECTIONS);
   if (result.search !== undefined && typeof result.search !== 'string') throw new Error('Invalid Home search.');
   if (result.worldSearch !== undefined && typeof result.worldSearch !== 'string') throw new Error('Invalid Home world search.');
+  if (result.partnerQuery !== undefined && typeof result.partnerQuery !== 'string') throw new Error('Invalid Home partner search.');
+  if (result.partner !== undefined) {
+    const partner = result.partner as Record<string, unknown>;
+    if (result.exploreSection !== 'partners' || !partner || typeof partner !== 'object' || Array.isArray(partner)
+      || Object.keys(partner).some(key => !['localAgentRef', 'settingsSection'].includes(key))
+      || (partner.settingsSection !== undefined && !['overview', 'ai-config', 'behavior', 'cognition', 'appearance', 'advanced'].includes(partner.settingsSection as string))) throw new Error('Invalid Home partner position.');
+    result.partner = { localAgentRef: stringRef(partner.localAgentRef), ...(partner.settingsSection ? { settingsSection: partner.settingsSection } : {}) };
+  }
   if (!result.appId && (result.appSection || result.appEntryKey)) throw new Error('App detail requires an App reference.');
   if (id === 'home') result.homeSection ??= 'overview';
   if (id === 'explore') { result.exploreSection ??= 'worlds'; result.search ??= ''; }
@@ -181,4 +193,14 @@ export function createHomeNavigation(): HomeNavigation {
       return () => { guards.delete(guard); };
     },
   });
+}
+
+/** A late action cannot reclaim a position after the user left it, even if Back returns there. */
+export function captureHomeNavigationScope(navigation: HomeNavigation) {
+  const origin = navigation.getSnapshot();
+  let left = false;
+  const isCurrent = () => !left && navigation.getSnapshot().generation === origin.generation
+    && navigation.getSnapshot().current === origin.current;
+  const unsubscribe = navigation.subscribe(() => { if (!isCurrent()) left = true; });
+  return { isCurrent, dispose() { left = true; unsubscribe(); } };
 }

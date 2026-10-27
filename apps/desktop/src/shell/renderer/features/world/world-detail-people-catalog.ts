@@ -91,11 +91,12 @@ export function useWorldPeopleCatalog(input: WorldPeopleCatalogInput): {
   const firstPages = [firstPageState(characterCatalogQuery), firstPageState(personaCatalogQuery)];
   const queries = [characterCatalogQuery, personaCatalogQuery];
   const peopleCatalog: WorldPeopleCatalogState = {
-    status: firstPages.includes('failed')
+    status: firstPages.includes('ready') && firstPages.some(state => state !== 'ready') ? 'partial' : firstPages.includes('failed')
       ? 'error'
       : firstPages.includes('paused')
         ? 'offline'
         : firstPages.includes('pending') ? 'loading' : 'ready',
+    canRetryFirstPage: firstPages.includes('failed'),
     offline: input.networkOffline
       || queries.some((catalogQuery) => catalogQuery.isPaused || isRealmOfflineErrorLike(catalogQuery.error)),
     totalCount: (characterCatalogQuery.data?.pages[0]?.totalCount ?? 0)
@@ -107,10 +108,12 @@ export function useWorldPeopleCatalog(input: WorldPeopleCatalogInput): {
     query: input.queryText,
     onQueryChange: input.onQueryChange,
     onLoadMore: () => {
-      // World characters are paged first; personas continue after them.
+      // Both owner cursors advance fairly; a large WorldCharacter collection
+      // must not starve later pages of user-created Persona characters.
       if (characterCatalogQuery.hasNextPage) {
         void characterCatalogQuery.fetchNextPage();
-      } else if (personaCatalogQuery.hasNextPage) {
+      }
+      if (personaCatalogQuery.hasNextPage) {
         void personaCatalogQuery.fetchNextPage();
       }
     },

@@ -50,11 +50,11 @@ units:
         target: definition.nimi.desktop.shell-ui.shell-plane
   - id: rule.nimi.desktop.shell-ui.r002
     kind: rule
-    title: Explore Personas replaces the Characters primary surface
+    title: Explore Worlds and My partners own distinct discovery and management surfaces
     modality: must
-    statement: Desktop has no separate Characters tab or route; Explore Personas is the sole ordinary primary catalog for PersonaCharacter sources, consumes typed Realm source cards plus bounded Runtime or SDK source-context status, and routes selection to the existing Source Detail dossier without renderer-local LocalAgent inventory truth.
+    statement: Desktop has no separate Characters primary tab. Explore Worlds owns World browsing and typed cross-world Character search; Explore My partners is a real current-account current-device Runtime inventory and management surface, not a renamed Realm Persona catalog. Discovery selection opens canonical Source Detail; partner selection opens exact partner detail and may mount the shared Manager without creating a Conversation. All positions use the Home navigation controller.
     condition: Whenever Desktop lists or opens a PersonaCharacter source or constructs ordinary primary navigation.
-    failure: Reject a separate Characters surface, a renderer-local LocalAgent catalog or guessed source state, and any PersonaCharacter catalog path outside Explore Personas and Source Detail.
+    failure: Reject a separate Characters primary surface, a renderer-owned LocalAgent registry or guessed source state, and a primary PersonaCharacter catalog outside Explore Worlds and Source Detail.
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.shell-plane

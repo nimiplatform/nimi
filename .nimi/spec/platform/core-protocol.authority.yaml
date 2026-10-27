@@ -1713,11 +1713,11 @@ units:
   - id: definition.nimi.platform.core-protocol.desktop-open-target
     kind: definition
     title: P-DOPEN closed target kind
-    meaning: A Desktop Open target kind is exactly open-explore, open-runtime-config, open-apps, open-settings, open-integrations, or open-agent-center, while target-specific values remain owned by the referenced Desktop target catalog; PersonaCharacter catalog requests use open-explore with the Desktop-owned personas section rather than a separate character or agent target.
+    meaning: A Desktop Open target kind is exactly open-explore, open-runtime-config, open-apps, open-settings, open-integrations, or open-agent-center; target-specific values remain Desktop-owned. Explore admits worlds with discover-worlds or discover-characters, and partners with select-partner. The product intent is explicit and a query only filters display, never selects or authorizes an Agent. Existing open-agent-center carries only a Runtime-issued Conversation anchor correlation, resolved by Home under its own current-account authority.
   - id: definition.nimi.platform.core-protocol.desktop-open-envelope
     kind: definition
     title: P-DOPEN closed intent envelope
-    meaning: DesktopOpenEnvelope version one contains host-injected sourceApp, host-injected sourceHost, a host-generated-or-validated requestId, and one closed Desktop Open intent with no unknown fields.
+    meaning: DesktopOpenEnvelope version two contains host-injected sourceApp, host-injected sourceHost, a host-generated-or-validated requestId and one closed Desktop Open intent with no unknown fields. Version one and the retired personas section/discover-personas intent are rejected without aliasing or migration.
   - id: definition.nimi.platform.core-protocol.desktop-open-result
     kind: definition
     title: P-DOPEN closed domain result
@@ -1920,7 +1920,7 @@ units:
     kind: rule
     title: P-DOPEN-004 exact closed envelope
     modality: must
-    statement: DesktopOpenEnvelope uses schemaVersion one, host-injected sourceApp and sourceHost, a host-generated-or-validated requestId matching ^desktop-open-[A-Za-z0-9][A-Za-z0-9._:-]{0,114}$ with maximum length 128, and one closed intent, and rejects unknown fields.
+    statement: DesktopOpenEnvelope uses schemaVersion two, host-injected sourceApp and sourceHost, a host-generated-or-validated requestId matching ^desktop-open-[A-Za-z0-9][A-Za-z0-9._:-]{0,114}$ with maximum length 128, and one closed intent, and rejects unknown fields and older envelope versions. Explore requires its admitted section/productIntent combination and a query of at most 160 Unicode code points; query carries no target identity or permission.
     condition: Whenever a Desktop Open envelope is created, admitted, or decoded.
     failure: Return desktop-open-intent-invalid before dispatch when a field, value, grammar, length, or closure requirement fails.
     relations:
