@@ -102,9 +102,9 @@ test('Zhiyu can render Kit Agent Center sections from the shipped Chinese catalo
   }
   assert.match(appearance, />外观</u);
   assert.match(appearance, /还没有添加形象/u);
-  assert.match(behavior, /生活与联系/u);
-  assert.match(behavior, /暂停自主生活时也可使用/u);
-  assert.match(behavior, /此刻的生活/u);
+  assert.match(behavior, /陪伴方式/u);
+  assert.match(behavior, /与主动联系分别控制/u);
+  assert.match(behavior, /生活动态/u);
   assert.match(cognition, /状态与记忆/u);
   assert.doesNotMatch(appearance, /Configure this partner avatar/u);
 });

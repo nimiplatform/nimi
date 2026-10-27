@@ -50,14 +50,17 @@ test('Home sidebar keeps section and identity together and discards only the dep
   try {
     await select('a');
     await act(async () => root.render(<I18nextProvider i18n={i18n}><AppStoreProvider store={store}><DesktopRendererBindingProvider bindings={bindings}><Sidebar /></DesktopRendererBindingProvider></AppStoreProvider></I18nextProvider>));
-    const daily = () => document.querySelectorAll<HTMLInputElement>('input[type="number"]')[1]!;
+    const budgetSummary = Array.from(document.querySelectorAll('summary')).find(item => item.textContent?.includes('Background usage and limits'));
+    assert.ok(budgetSummary);
+    await act(async () => { budgetSummary.click(); await Promise.resolve(); });
+    const daily = () => document.querySelector<HTMLInputElement>('input[aria-label="Tokens per 24-hour window"]')!;
     assert.equal(daily().value, '0');
     await act(async () => {
       Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, 'value')!.set!.call(daily(), '24680');
       daily().dispatchEvent(new dom.window.Event('input', { bubbles: true }));
     });
     assert.equal(daily().value, '24680');
-    assert.ok(document.body.textContent?.includes('Changes are not saved yet.'), 'edit must reach the React form state');
+    assert.ok(document.body.textContent?.includes('You have unsaved changes.'), 'edit must reach the React form state');
     await act(async () => sessions.a.refresh());
     assert.equal(daily().value, '24680', 'same-partner refresh must preserve the unsaved draft');
     await act(async () => select('b'));

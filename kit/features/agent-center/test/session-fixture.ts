@@ -308,7 +308,10 @@ export async function sessionFor(
         const suspendedUntil = timestamp(autonomy.suspendedUntil);
         return {
           enabled: autonomy.enabled ?? false,
-          config: { freeContactEnabled:false,quietHours:null,maxFreeContactsPerDay:3,
+          config: {
+            freeContactEnabled: autonomy.freeContactEnabled ?? false,
+            quietHours: autonomy.quietHours ?? null,
+            maxFreeContactsPerDay: autonomy.maxFreeContactsPerDay ?? 3,
             mode: autonomy.mode ?? 'off',
             dailyTokenBudget: autonomy.dailyTokenBudget ?? 0,
             maxBackgroundOutputTokens: autonomy.maxBackgroundOutputTokens ?? 0,
@@ -321,16 +324,17 @@ export async function sessionFor(
         };
       },
       async update(input) {
+        const config = input.intent.config;
         autonomy = {
           ...autonomy,
-          freeContactEnabled:input.intent.config?.freeContactEnabled??autonomy.freeContactEnabled,
-          quietHours:input.intent.config?.quietHours??autonomy.quietHours,
-          maxFreeContactsPerDay:input.intent.config?.maxFreeContactsPerDay??autonomy.maxFreeContactsPerDay,
+          freeContactEnabled: config?.freeContactEnabled ?? autonomy.freeContactEnabled,
+          quietHours: config?.quietHours === undefined ? autonomy.quietHours : config.quietHours,
+          maxFreeContactsPerDay: config?.maxFreeContactsPerDay ?? autonomy.maxFreeContactsPerDay,
           revision: nextRevision(input.expectedAutonomyRevision),
           enabled: input.intent.enabled ?? autonomy.enabled,
-          mode: input.intent.config?.mode ?? autonomy.mode,
-          dailyTokenBudget: input.intent.config?.dailyTokenBudget ?? autonomy.dailyTokenBudget,
-          maxBackgroundOutputTokens: input.intent.config?.maxBackgroundOutputTokens ?? autonomy.maxBackgroundOutputTokens,
+          mode: config?.mode ?? autonomy.mode,
+          dailyTokenBudget: config?.dailyTokenBudget ?? autonomy.dailyTokenBudget,
+          maxBackgroundOutputTokens: config?.maxBackgroundOutputTokens ?? autonomy.maxBackgroundOutputTokens,
         };
         return this.snapshot({ agentHandle: input.agentHandle });
       },
@@ -457,7 +461,10 @@ export async function sessionFor(
             reasonCode: projection.runtimeError,
           });
         }
-        return { ...managerSnapshot(projection, cognitionMemory, previousProfile), conversationContext };
+        return {
+          ...managerSnapshot(projection, cognitionMemory, previousProfile),
+          conversationContext: conversationContext ? { ...conversationContext } : null,
+        };
       },
     },
   };

@@ -26,10 +26,10 @@ Appearance replacement is a one-step auto-save flow. After an explicit warning, 
 
 ### LocalAgent Resource Pack
 
-The Appearance section owns one shared `LocalAgent Resource Pack` card on every mount:
+The Appearance section owns one shared `LocalAgent Resource Pack` card. Hosts opt in with `showResourcePack` on `AgentCenter` or `AppAgentCenterEntry`; it defaults to `false`. Nimi Chat hides the entire card, while Zhiyu enables it for in-place selection, preview, Apply, and Clear. Visibility is a presentation choice and does not change session state, permissions, or action availability:
 
 - Canonical selected/null state and selection-only Clear come from the same presentation snapshot/commit client.
-- A non-Zhiyu mount exposes only the fixed `openZhiyuResourcePack` placement action and never selects candidate bytes.
+- An explicitly enabled non-Zhiyu mount exposes only the fixed `openZhiyuResourcePack` placement action and never selects candidate bytes.
 - When the factory receives the specific `AgentCenterResourcePackTargetController` and identity-free Host picker, the Manager binds one copied `.nimipack` snapshot to the current Agent and presentation revision, exposes Preview/Cancel, and submits those exact Manager-owned bytes only after manual Apply.
 - A successful commit is rendered from `presentation.readAsset`, not by promoting preview state. Clear never uses appearance restore-previous, and fallback keeps selected versus effective truth explicit without Pack history or automatic Apply.
 

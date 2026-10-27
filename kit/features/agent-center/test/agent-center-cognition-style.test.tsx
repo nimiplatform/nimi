@@ -15,7 +15,9 @@ describe('AgentCenter cognition projection surface', () => {
     });
     const markup = renderToStaticMarkup(<AgentCenter activeSection="cognition" session={session} />);
     expect(markup).toContain('data-agent-center-cognition-surface="memory-manager-projection"');
-    expect(markup).toContain('Current state is available');
+    expect(markup).toContain('Active');
+    expect(markup).toContain('Calm');
+    expect(markup).not.toContain('Current state is available');
     expect(markup).not.toMatch(/localAgentRef|ownerUserId|runtimeSourceRef|recentCanonicalMemories/u);
   });
 
@@ -38,11 +40,32 @@ describe('AgentCenter cognition projection surface', () => {
     const markup = renderToStaticMarkup(<AgentCenter activeSection="cognition" session={session} />);
     expect(markup).toContain('data-agent-center-cognition-surface="memory-manager-projection"');
     expect(markup).toContain('The user prefers jasmine tea');
-    expect(markup).toContain('explicit');
-    expect(markup).toContain('Committed user message');
+    expect(markup).toContain('Explicitly stated');
+    expect(markup).toContain('Active memories: 1');
+    expect(markup).toContain('From your conversation');
     expect(markup).toContain('Correct');
     expect(markup).toContain('Forget');
     expect(markup).toContain('Delete all Memory');
     expect(markup).not.toMatch(/provider-a|model-a|sqlite|generation_ref|ranking_score/iu);
+  });
+
+  it.each([
+    { outcome: 'ready' as const, enabled: true, expected: 'No saved memories yet' },
+    { outcome: 'ready' as const, enabled: false, expected: 'Enable memory to start remembering' },
+    { outcome: 'building' as const, enabled: true, expected: 'Organizing memories' },
+    { outcome: 'failed' as const, enabled: true, expected: 'Memory processing failed' },
+    { outcome: 'unavailable' as const, enabled: true, expected: 'Memory is temporarily unavailable' },
+  ])('distinguishes an empty Memory bank from $outcome with enabled=$enabled', async ({ outcome, enabled, expected }) => {
+    const session = await sessionFor({
+      cognitionMemory: {
+        outcome, enabled, adoptionRequired: false, items: [],
+        currentCount: 0, supersededCount: 0, forgottenCount: 0, nextPageToken: null,
+      },
+    });
+    const markup = renderToStaticMarkup(<AgentCenter activeSection="cognition" session={session} />);
+    expect(markup).toContain(expected);
+    if (outcome !== 'ready' || !enabled) expect(markup).not.toContain('No saved memories yet');
+    expect(markup).not.toContain('Delete all Memory');
+    session.dispose();
   });
 });

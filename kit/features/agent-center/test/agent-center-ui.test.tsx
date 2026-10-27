@@ -83,41 +83,191 @@ async function selectField(node: HTMLElement, ariaLabel: string, optionLabel: st
   await flush();
 }
 
+function behaviorField(node: HTMLElement, label: string): HTMLInputElement {
+  const field = node.querySelector<HTMLInputElement>(`input[aria-label="${label}"]`);
+  expect(field).toBeTruthy();
+  return field!;
+}
+
+function textButton(scope: ParentNode, label: string): HTMLButtonElement {
+  const button = Array.from(scope.querySelectorAll<HTMLButtonElement>('button'))
+    .find((item) => item.textContent?.trim() === label);
+  expect(button).toBeTruthy();
+  return button!;
+}
+
+function switchControl(node: HTMLElement, label: string): HTMLButtonElement {
+  const control = node.querySelector<HTMLButtonElement>(`button[role="switch"][aria-label="${label}"]`);
+  expect(control).toBeTruthy();
+  return control!;
+}
+
+function changeBehaviorField(field: HTMLInputElement, value: string): void {
+  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
+  act(() => { setter.call(field, value); field.dispatchEvent(new Event('input', { bubbles: true })); });
+}
+
 describe('AgentCenter UI session contract', () => {
   it('keeps the mounted editor and its unsaved draft across an unchanged-owner refresh', async () => {
     const session = await sessionFor();
     try {
       const node = render(<AgentCenter session={session} defaultSection="behavior" />);
       await flush();
-      const input = node.querySelector('input[type="number"]') as HTMLInputElement;
-      expect(input).toBeTruthy();
-      const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
-      act(() => { setter.call(input, '4'); input.dispatchEvent(new Event('input', { bubbles: true })); });
+      expect(node.textContent).not.toContain('Choose how your companion reaches out. You can keep chatting whether these options are on or off.');
+      act(() => { switchControl(node, 'Reach out to me').click(); });
+      const input = behaviorField(node, 'Maximum contacts per 24 hours');
+      changeBehaviorField(input, '4');
       expect(input.value).toBe('4');
       await act(async () => { await session.refresh(); });
-      expect(node.querySelector('input[type="number"]')).toBe(input);
+      expect(behaviorField(node, 'Maximum contacts per 24 hours')).toBe(input);
       expect(input.value).toBe('4');
       expect(node.querySelector('[data-agent-center-loading]')).toBeNull();
       expect(session.getSnapshot().state.autonomy.maxFreeContactsPerDay).toBe(3);
     } finally {
-      session.dispose();
+      act(() => { session.dispose(); });
     }
   });
   it('allows discarding a local edit when another window saved the same value', async () => {
-    const session = await sessionFor({ autonomy: { freeContactEnabled:false, quietHours:null, maxFreeContactsPerDay:3,
+    const session = await sessionFor({ autonomy: { freeContactEnabled:true, quietHours:null, maxFreeContactsPerDay:3,
       revision:'a1', enabled:true, mode:'low', budgetExhausted:false, usedTokensInWindow:0, dailyTokenBudget:100,
       maxBackgroundOutputTokens:10, windowStartedAt:null, suspendedUntil:null } });
     const snapshot = session.getSnapshot();
     const node = render(<AgentCenterBehaviorSection session={session} snapshot={snapshot} />);
-    const input = node.querySelector('input[type="number"]') as HTMLInputElement;
-    const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value')!.set!;
-    act(() => { setter.call(input, '4'); input.dispatchEvent(new Event('input', { bubbles:true })); });
+    changeBehaviorField(behaviorField(node, 'Maximum contacts per 24 hours'), '4');
     act(() => { root!.render(<AgentCenterBehaviorSection session={session} snapshot={{ ...snapshot, state: { ...snapshot.state,
       autonomy: { ...snapshot.state.autonomy, revision:'a2', maxFreeContactsPerDay:4 } } }} />); });
-    const discard = Array.from(node.querySelectorAll('button')).find(button => button.textContent?.includes('Discard changes'))!;
+    expect(node.textContent).toContain('Settings were updated elsewhere.');
+    const discard = textButton(node, 'Discard changes');
     expect(discard.disabled).toBe(false);
     act(() => discard.click());
-    expect(node.textContent).not.toContain('Settings changed elsewhere');
+    expect(node.textContent).not.toContain('Settings were updated elsewhere.');
+  });
+
+  it('distinguishes committed state from drafts and saves independent companionship settings', async () => {
+    const session = await sessionFor({ autonomy: { freeContactEnabled:false, quietHours:null, maxFreeContactsPerDay:3,
+      revision:'a1', enabled:true, mode:'low', budgetExhausted:false, usedTokensInWindow:0, dailyTokenBudget:100,
+      maxBackgroundOutputTokens:10, windowStartedAt:null, suspendedUntil:null } });
+    const update = vi.spyOn(session, 'updateAutonomy');
+    const node = render(<AgentCenter defaultSection="behavior" session={session} />);
+    await flush();
+    const contact = switchControl(node, 'Reach out to me');
+    expect(contact.getAttribute('aria-checked')).toBe('false');
+    expect(switchControl(node, 'Autonomous life').getAttribute('aria-checked')).toBe('true');
+    expect(node.textContent).not.toContain('Current: Off');
+    expect(node.textContent).not.toContain('Current: On');
+
+    act(() => { contact.click(); });
+    expect(contact.getAttribute('aria-checked')).toBe('true');
+    expect(node.textContent).not.toContain('Current: Off');
+    expect(node.textContent).toContain('Save to allow proactive contact');
+    changeBehaviorField(behaviorField(node, 'Maximum contacts per 24 hours'), '4');
+    await act(async () => { textButton(node, 'Save changes').click(); await Promise.resolve(); });
+    await flush();
+
+    expect(update).toHaveBeenCalledWith(expect.objectContaining({
+      enabled: true,
+      freeContactEnabled: true,
+      maxFreeContactsPerDay: 4,
+    }));
+    expect(session.getSnapshot().state.autonomy).toMatchObject({ enabled: true, freeContactEnabled: true, maxFreeContactsPerDay: 4 });
+    expect(node.textContent).toContain('Changes applied.');
+    expect(node.textContent).not.toContain('Save to allow proactive contact');
+    act(() => { session.dispose(); });
+  });
+
+  it('guards keyboard and pointer navigation plus close while a behavior draft is dirty', async () => {
+    const session = await sessionFor();
+    const close = vi.fn();
+    const node = render(<AgentCenter defaultSection="behavior" placementActions={{ close }} session={session} />);
+    await flush();
+    act(() => { switchControl(node, 'Reach out to me').click(); });
+    await flush();
+    const behaviorTab = node.querySelector<HTMLButtonElement>('#agent-center-tab-behavior')!;
+    act(() => {
+      behaviorTab.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true, cancelable: true }));
+    });
+    expect(document.body.textContent).toContain('Discard unsaved changes?');
+    expect(node.querySelector('#agent-center-panel-behavior')).not.toBeNull();
+    act(() => { textButton(document.body, 'Keep editing').click(); });
+    expect(switchControl(node, 'Reach out to me').getAttribute('aria-checked')).toBe('true');
+
+    act(() => { node.querySelector<HTMLButtonElement>('#agent-center-tab-cognition')!.click(); });
+    expect(document.body.textContent).toContain('Discard unsaved changes?');
+    act(() => { textButton(document.body, 'Discard and leave').click(); });
+    expect(node.querySelector('#agent-center-panel-cognition')).not.toBeNull();
+    act(() => { node.querySelector<HTMLButtonElement>('#agent-center-tab-behavior')!.click(); });
+    expect(switchControl(node, 'Reach out to me').getAttribute('aria-checked')).toBe('false');
+
+    act(() => { switchControl(node, 'Reach out to me').click(); });
+    await flush();
+    act(() => { node.querySelector<HTMLButtonElement>('button[aria-label="Close Agent Center"]')!.click(); });
+    expect(close).not.toHaveBeenCalled();
+    expect(document.body.textContent).toContain('Discard unsaved changes?');
+    act(() => { textButton(document.body, 'Discard and leave').click(); });
+    expect(close).toHaveBeenCalledTimes(1);
+    expect(session.getSnapshot().state.autonomy.freeContactEnabled).toBe(false);
+    act(() => { session.dispose(); });
+  });
+
+  it('blocks navigation while saving and restores close after a confirmed save', async () => {
+    const session = await sessionFor();
+    const close = vi.fn();
+    const updateAutonomy = session.updateAutonomy.bind(session);
+    let release: () => void = () => {};
+    const gate = new Promise<void>((resolve) => { release = resolve; });
+    vi.spyOn(session, 'updateAutonomy').mockImplementation(async (input) => { await gate; return updateAutonomy(input); });
+    const node = render(<AgentCenter defaultSection="behavior" placementActions={{ close }} session={session} />);
+    await flush();
+    act(() => { switchControl(node, 'Reach out to me').click(); });
+    await flush();
+    await act(async () => { textButton(node, 'Save changes').click(); await Promise.resolve(); });
+    expect(textButton(node, 'Saving…').disabled).toBe(true);
+    act(() => { node.querySelector<HTMLButtonElement>('button[aria-label="Close Agent Center"]')!.click(); });
+    act(() => { node.querySelector<HTMLButtonElement>('#agent-center-tab-cognition')!.click(); });
+    expect(close).not.toHaveBeenCalled();
+    expect(node.querySelector('#agent-center-panel-behavior')).not.toBeNull();
+    expect(document.body.textContent).not.toContain('Discard unsaved changes?');
+
+    await act(async () => { release(); await Promise.resolve(); });
+    await flush();
+    expect(node.textContent).toContain('Changes applied.');
+    act(() => { node.querySelector<HTMLButtonElement>('button[aria-label="Close Agent Center"]')!.click(); });
+    expect(close).toHaveBeenCalledTimes(1);
+    act(() => { session.dispose(); });
+  });
+
+  it('explains invalid contact limits and quiet hours without sending a mutation', async () => {
+    const session = await sessionFor({ autonomy: { freeContactEnabled:true, quietHours:{ timezone:'UTC', startMinute:1320, endMinute:480 }, maxFreeContactsPerDay:3,
+      revision:'a1', enabled:true, mode:'low', budgetExhausted:false, usedTokensInWindow:0, dailyTokenBudget:100,
+      maxBackgroundOutputTokens:10, windowStartedAt:null, suspendedUntil:null } });
+    const update = vi.spyOn(session, 'updateAutonomy');
+    const node = render(<AgentCenterBehaviorSection session={session} snapshot={session.getSnapshot()} />);
+    const limit = behaviorField(node, 'Maximum contacts per 24 hours');
+    changeBehaviorField(limit, '0');
+    await act(async () => { textButton(node, 'Save changes').click(); await Promise.resolve(); });
+    expect(update).not.toHaveBeenCalled();
+    expect(limit.getAttribute('aria-invalid')).toBe('true');
+    expect(limit.value).toBe('0');
+    expect(node.textContent).toContain('Proactive contact requires at least 1 when enabled.');
+
+    changeBehaviorField(limit, '2');
+    const quietEnd = behaviorField(node, 'Until');
+    changeBehaviorField(quietEnd, '22:00');
+    await act(async () => { textButton(node, 'Save changes').click(); await Promise.resolve(); });
+    expect(update).not.toHaveBeenCalled();
+    expect(quietEnd.getAttribute('aria-invalid')).toBe('true');
+    expect(node.textContent).toContain('Quiet hours cannot start and end at the same time.');
+    for (const label of ['From', 'Until']) {
+      changeBehaviorField(behaviorField(node, 'From'), '22:00');
+      changeBehaviorField(quietEnd, '08:00');
+      const emptyTime = behaviorField(node, label);
+      changeBehaviorField(emptyTime, '');
+      await act(async () => { textButton(node, 'Save changes').click(); await Promise.resolve(); });
+      expect(update).not.toHaveBeenCalled();
+      expect(emptyTime.getAttribute('aria-invalid')).toBe('true');
+      expect(node.textContent).toContain('Enter both a start and end time for quiet hours.');
+    }
+    act(() => { session.dispose(); });
   });
   it('renders from the Manager Session and exposes only UI composition props', async () => {
     const intent = {
@@ -540,7 +690,33 @@ describe('AgentCenter UI session contract', () => {
     expect(node.textContent).toContain('Choose a default voice below first');
   });
 
-  it('renders the shared Resource Pack card on a non-Zhiyu mount and routes only its placement entry', async () => {
+  it.each([undefined, false])('hides the entire Resource Pack card when showResourcePack=%s without clearing its selection', async (showResourcePack) => {
+    const session = await sessionFor({
+      appearance: {
+        status: 'not_configured',
+        presentationRevision: '4',
+        resourcePackSelection: {
+          assetRef: 'pack_0123456789ab',
+          targetId: 'zhiyu-experience-surface',
+          targetVersion: 1,
+        },
+      },
+    });
+    const node = render(<AgentCenter activeSection="appearance" session={session} showResourcePack={showResourcePack} />);
+    await flush();
+
+    expect(node.querySelector('[data-agent-center-resource-pack-card="true"]')).toBeNull();
+    expect(node.textContent).not.toContain('Zhiyu appearance');
+    expect(node.textContent).not.toContain('Change in Zhiyu');
+    expect(node.querySelector('[data-agent-center-background-import="true"]')).toBeTruthy();
+    expect(session.getSnapshot().state.appearance.resourcePackSelection?.assetRef).toBe('pack_0123456789ab');
+
+    act(() => { root?.render(<AgentCenter activeSection="appearance" session={session} showResourcePack />); });
+    await flush();
+    expect(node.querySelector('[data-agent-center-resource-pack-selected="pack_0123456789ab"]')).toBeTruthy();
+  });
+
+  it('renders an explicitly enabled Resource Pack card on a non-Zhiyu mount and routes only its placement entry', async () => {
     let placements = 0;
     const session = await sessionFor({}, undefined, undefined, undefined, {
       availability: { state: 'available', reasonCode: null, actionHint: null },
@@ -553,7 +729,7 @@ describe('AgentCenter UI session contract', () => {
         };
       },
     });
-    const node = render(<AgentCenter activeSection="appearance" session={session} />);
+    const node = render(<AgentCenter showResourcePack activeSection="appearance" session={session} />);
     await flush();
 
     const card = node.querySelector('[data-agent-center-resource-pack-card="true"]') as HTMLElement;
@@ -583,7 +759,7 @@ describe('AgentCenter UI session contract', () => {
         };
       },
     }, undefined, controller);
-    const node = render(<AgentCenter activeSection="appearance" session={session} />);
+    const node = render(<AgentCenter showResourcePack activeSection="appearance" session={session} />);
     await flush();
     const select = node.querySelector('[data-agent-center-resource-pack-action="select"]') as HTMLButtonElement;
     expect(select).toBeTruthy();
@@ -615,7 +791,7 @@ describe('AgentCenter UI session contract', () => {
         };
       },
     }, undefined, controller);
-    const node = render(<AgentCenter activeSection="appearance" session={session} />);
+    const node = render(<AgentCenter showResourcePack activeSection="appearance" session={session} />);
     await flush();
 
     act(() => {
@@ -647,7 +823,7 @@ describe('AgentCenter UI session contract', () => {
         };
       },
     }, undefined, controller);
-    const node = render(<AgentCenter activeSection="appearance" session={session} />);
+    const node = render(<AgentCenter showResourcePack activeSection="appearance" session={session} />);
     await flush();
     const status = node.querySelector('[data-agent-center-resource-pack-card="true"] [role="status"]') as HTMLElement;
 
@@ -683,7 +859,7 @@ describe('AgentCenter UI session contract', () => {
         };
       },
     }, undefined, controller);
-    const node = render(<AgentCenter activeSection="appearance" session={session} />);
+    const node = render(<AgentCenter showResourcePack activeSection="appearance" session={session} />);
     await flush();
     await act(async () => {
       (node.querySelector('[data-agent-center-resource-pack-action="select"]') as HTMLButtonElement).click();
@@ -723,7 +899,7 @@ describe('AgentCenter UI session contract', () => {
         clearResourcePack: async () => { await clearGate; },
       },
     } as typeof session;
-    const node = render(<AgentCenter activeSection="appearance" session={pendingSession} />);
+    const node = render(<AgentCenter showResourcePack activeSection="appearance" session={pendingSession} />);
     await flush();
 
     act(() => {
@@ -768,7 +944,7 @@ describe('AgentCenter UI session contract', () => {
         };
       },
     }, undefined, controller);
-    const node = render(<AgentCenter activeSection="appearance" session={session} />);
+    const node = render(<AgentCenter showResourcePack activeSection="appearance" session={session} />);
     await flush();
 
     act(() => {
@@ -813,7 +989,7 @@ describe('AgentCenter UI session contract', () => {
         };
       },
     }, undefined, new TestResourcePackTargetController());
-    const node = render(<AgentCenter activeSection="appearance" session={sessionA} />);
+    const node = render(<AgentCenter showResourcePack activeSection="appearance" session={sessionA} />);
     await flush();
 
     act(() => {
@@ -822,7 +998,7 @@ describe('AgentCenter UI session contract', () => {
     await flush();
     expect((node.querySelector('[data-agent-center-background-import="true"]') as HTMLButtonElement).disabled).toBe(true);
 
-    act(() => { root?.render(<AgentCenter activeSection="appearance" session={sessionB} />); });
+    act(() => { root?.render(<AgentCenter showResourcePack activeSection="appearance" session={sessionB} />); });
     await flush();
     expect((node.querySelector('[data-agent-center-resource-pack-action="select"]') as HTMLButtonElement).disabled).toBe(false);
     expect((node.querySelector('[data-agent-center-background-import="true"]') as HTMLButtonElement).disabled).toBe(false);
@@ -854,7 +1030,7 @@ describe('AgentCenter UI session contract', () => {
         };
       },
     }, undefined, controller);
-    const node = render(<AgentCenter activeSection="appearance" session={session} />);
+    const node = render(<AgentCenter showResourcePack activeSection="appearance" session={session} />);
     await flush();
 
     await act(async () => {
@@ -878,7 +1054,7 @@ describe('AgentCenter UI session contract', () => {
         };
       },
     }, undefined, controller);
-    const node = render(<AgentCenter activeSection="appearance" session={session} />);
+    const node = render(<AgentCenter showResourcePack activeSection="appearance" session={session} />);
     await flush();
     await act(async () => {
       (node.querySelector('[data-agent-center-resource-pack-action="select"]') as HTMLButtonElement).click();
@@ -904,7 +1080,7 @@ describe('AgentCenter UI session contract', () => {
         },
       },
     });
-    const node = render(<AgentCenter activeSection="appearance" session={session} />);
+    const node = render(<AgentCenter showResourcePack activeSection="appearance" session={session} />);
     await flush();
     expect(node.querySelector('[data-agent-center-resource-pack-selected="pack_0123456789ab"]')).toBeTruthy();
     const clear = node.querySelector('[data-agent-center-resource-pack-action="clear"]') as HTMLButtonElement;
@@ -950,22 +1126,16 @@ describe('AgentCenter UI session contract', () => {
     const node = render(<AgentCenter activeSection="behavior" session={session} />);
     await flush();
 
-    const inputs = node.querySelectorAll('input[type="number"]');
-    const daily = inputs[1] as HTMLInputElement;
-    const perHook = inputs[2] as HTMLInputElement;
-    await act(async () => {
-      Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set?.call(daily, '-1');
-      daily.dispatchEvent(new Event('input', { bubbles: true }));
-      Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')?.set?.call(perHook, '1.5');
-      perHook.dispatchEvent(new Event('input', { bubbles: true }));
-      await Promise.resolve();
-    });
-    await act(async () => {
-      node.querySelector('form')!.dispatchEvent(new Event('submit', {bubbles:true,cancelable:true}));
-      await Promise.resolve();
-    });
+    const daily = behaviorField(node, 'Tokens per 24-hour window');
+    const perGeneration = behaviorField(node, 'Output limit per background generation');
+    changeBehaviorField(daily, '-1');
+    changeBehaviorField(perGeneration, '1.5');
+    await act(async () => { textButton(node, 'Save changes').click(); await Promise.resolve(); });
 
     expect(update).not.toHaveBeenCalled();
+    expect(daily.getAttribute('aria-invalid')).toBe('true');
+    expect(daily.closest('details')?.open).toBe(true);
+    expect(node.textContent).toContain('The 24-hour token allowance must be a non-negative whole number.');
     expect(node.querySelector('[role="alert"]')).toBeTruthy();
   });
 

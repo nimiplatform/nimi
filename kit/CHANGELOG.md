@@ -22,6 +22,10 @@ Human Chat now uses the same canonical media bubble. Consumers with a restricted
 
 Kit `features/media` owns responsive images, avatars and HLS playback. Pass an authorized read-owner refresh callback for expiring media. Preserve `originalUrl` for explicit byte-exact download; `previewUrl` is an audio preview.
 
+## Unreleased — Host-controlled Agent Center Resource Pack visibility (0.x minor)
+
+`AgentCenter` and `AppAgentCenterEntry` add `showResourcePack`, defaulting to `false`. Hosts must explicitly opt in to show the shared Appearance Resource Pack card; Zhiyu enables it and Nimi Chat hides it. Consumers that previously relied on the always-visible card must pass `showResourcePack` to retain it. Canonical selection, permissions, operation availability, preview, Apply, and Clear remain owned by the existing session.
+
 ## Unreleased — Agent Center initial-read progress (0.x minor)
 
 Canonical Agent Center snapshots now include `reads`, a read-only completion map for the published manager, shared AIConfig, autonomy, presentation and memory observations. Consumers may show a partial read-only overview during initial loading; pending is not canonical absence or action permission. The original initial mutation gate, per-domain failure handling, explicit refresh and revision checks remain in force. Use the canonical factory and rebuild consumers of the widened snapshot type; there is no wire protocol or Runtime authority change.

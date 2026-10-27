@@ -100,6 +100,7 @@ test('Zhiyu adopts Kit canonical Agent Center chrome and keeps host context outs
   assert.match(source, /identity=\{\{/);
   assert.match(source, /placementActions=\{\{/);
   assert.match(source, /session=\{props\.session\}/);
+  assert.match(source, /\bshowResourcePack\s*\n/);
   assert.match(source, /data-zhiyu-agent-center-host-context="true"/);
   assert.doesNotMatch(source, /data-zhiyu-agent-center-owner|IconToggleAction|onOpenModelConfig/);
   assert.doesNotMatch(source, /runtimeError:/);

@@ -101,6 +101,7 @@ export function AgentConversationSettingsContent({ input }: AgentConversationSet
       onSectionChange={homeChat.setAgentCenterSection}
       placementActions={placementActions}
       session={input.runtimeAgentCenterAdapter}
+      showResourcePack={false}
     />
   );
 }

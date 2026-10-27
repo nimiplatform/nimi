@@ -27,6 +27,7 @@ export type AppAgentCenterEntryProps = Readonly<{
   readonly initialAgentReference?: NimiLocalAppAgentReference | null;
   readonly conversationAnchorId?: string | null;
   readonly hostMechanics?: AgentCenterHostMechanics | null;
+  readonly showResourcePack?: boolean;
   readonly resourcePackPlacement?: AgentCenterResourcePackPlacementAdapter | null;
   readonly resourcePackPlacementForAgent?: (handle: NimiLocalAppAgentHandle) => AgentCenterResourcePackPlacementAdapter | null;
   readonly onSelectedAgentChange?: (handle: NimiLocalAppAgentHandle) => void;
@@ -224,6 +225,7 @@ export function AppAgentCenterEntry(props: AppAgentCenterEntryProps) {
           identity={selected ? { displayName: selected.displayName, avatarUrl: selected.avatarUrl } : null}
           chrome="embedded"
           placementActions={props.placementActions}
+          showResourcePack={props.showResourcePack}
         />
         </section>
       ) : null}

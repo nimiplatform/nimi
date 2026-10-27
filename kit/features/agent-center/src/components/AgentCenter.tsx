@@ -1,6 +1,6 @@
 import { PlayCircle, X } from 'lucide-react';
-import { useMemo, useState, type KeyboardEvent } from 'react';
-import { Button, IconButton, InlineAlert, LoadingSkeleton } from '@nimiplatform/kit/ui';
+import { useCallback, useMemo, useState, type KeyboardEvent } from 'react';
+import { Button, ConfirmDialog, IconButton, InlineAlert, LoadingSkeleton } from '@nimiplatform/kit/ui';
 import { FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
 import { CANONICAL_CAPABILITY_CATALOG } from '@nimiplatform/kit/core/runtime-capabilities';
 import { AGENT_CENTER_SECTION_LABELS } from '../sections.js';
@@ -398,16 +398,18 @@ function renderSection(
   advancedCopy: Required<AgentCenterAdvancedCopy>,
   i18n: AgentCenterProps['i18n'],
   placementActions: AgentCenterProps['placementActions'],
+  showResourcePack: boolean,
+  onBehaviorNavigationStateChange: (state: { readonly dirty: boolean; readonly saving: boolean }) => void,
 ) {
   switch (section) {
     case 'ai-config':
       return <AgentCenterAIConfigSection i18n={i18n} placementActions={placementActions} session={session} snapshot={snapshot} />;
     case 'behavior':
-      return <AgentCenterBehaviorSection i18n={i18n} placementActions={placementActions} session={session} snapshot={snapshot} />;
+      return <AgentCenterBehaviorSection i18n={i18n} onNavigationStateChange={onBehaviorNavigationStateChange} placementActions={placementActions} session={session} snapshot={snapshot} />;
     case 'cognition':
       return <AgentCenterCognitionSection i18n={i18n} placementActions={placementActions} session={session} snapshot={snapshot} />;
     case 'appearance':
-      return <AgentCenterAppearanceSection i18n={i18n} placementActions={placementActions} session={session} snapshot={snapshot} />;
+      return <AgentCenterAppearanceSection i18n={i18n} placementActions={placementActions} session={session} snapshot={snapshot} showResourcePack={showResourcePack} />;
     case 'advanced':
       return <AgentCenterAdvanced copy={advancedCopy} placementActions={placementActions} state={snapshot.state} />;
   }
@@ -529,6 +531,8 @@ export function AgentCenter(props: AgentCenterProps) {
     props.defaultSection || 'overview',
   );
   const activeSection = props.activeSection || uncontrolledSection;
+  const [behaviorNavigation, setBehaviorNavigation] = useState({ dirty: false, saving: false });
+  const [pendingExit, setPendingExit] = useState<AgentCenterSectionId | 'close' | null>(null);
   const chrome = props.chrome || 'standalone';
   const setup = agentCenterSetupProgress(state);
   const sectionLabels = useMemo(
@@ -547,12 +551,32 @@ export function AgentCenter(props: AgentCenterProps) {
     () => translateCopyRecord(props.i18n, 'AgentCenter.advanced', resolveAdvancedCopy()),
     [props.i18n],
   );
-  const setSection = (section: AgentCenterSectionId) => {
+  const commitSection = useCallback((section: AgentCenterSectionId) => {
     if (!props.activeSection) {
       setUncontrolledSection(section);
     }
     props.onSectionChange?.(section);
-  };
+  }, [props.activeSection, props.onSectionChange]);
+  const setSection = useCallback((section: AgentCenterSectionId) => {
+    if (behaviorNavigation.saving) return;
+    if (activeSection === 'behavior' && section !== 'behavior' && behaviorNavigation.dirty) {
+      setPendingExit(section);
+      return;
+    }
+    commitSection(section);
+  }, [activeSection, behaviorNavigation.dirty, behaviorNavigation.saving, commitSection]);
+  const requestClose = useCallback(() => {
+    if (behaviorNavigation.saving) return;
+    if (activeSection === 'behavior' && behaviorNavigation.dirty) {
+      setPendingExit('close');
+      return;
+    }
+    props.placementActions?.close?.();
+  }, [activeSection, behaviorNavigation.dirty, behaviorNavigation.saving, props.placementActions]);
+  const placementActions = useMemo(() => {
+    if (!props.placementActions?.close) return props.placementActions;
+    return { ...props.placementActions, close: requestClose };
+  }, [props.placementActions, requestClose]);
   // Roving tabindex is already in place below; this wires the keyboard half of
   // the tabs pattern (automatic activation, per WAI-ARIA tabs with a live
   // tabpanel that is cheap to swap).
@@ -592,7 +616,7 @@ export function AgentCenter(props: AgentCenterProps) {
       {chrome === 'standalone' ? (
         <AgentCenterChromeHeader
           copy={chromeCopy}
-          actions={props.placementActions}
+          actions={placementActions}
           identity={props.identity}
           state={state}
         />
@@ -697,9 +721,26 @@ export function AgentCenter(props: AgentCenterProps) {
             store.snapshot,
             advancedCopy,
             props.i18n,
-            props.placementActions,
+            placementActions,
+            props.showResourcePack ?? false,
+            setBehaviorNavigation,
           )}
       </div>
+      <ConfirmDialog
+        cancelLabel={translateAgentCenter(props.i18n, 'AgentCenter.lifeSettings.leaveCancel', agentCenterEnCatalog['AgentCenter.lifeSettings.leaveCancel'])}
+        confirmLabel={translateAgentCenter(props.i18n, 'AgentCenter.lifeSettings.leaveConfirm', agentCenterEnCatalog['AgentCenter.lifeSettings.leaveConfirm'])}
+        message={translateAgentCenter(props.i18n, 'AgentCenter.lifeSettings.leaveMessage', agentCenterEnCatalog['AgentCenter.lifeSettings.leaveMessage'])}
+        onClose={() => setPendingExit(null)}
+        onConfirm={() => {
+          if (!pendingExit) return;
+          const destination = pendingExit;
+          setPendingExit(null);
+          if (destination === 'close') props.placementActions?.close?.();
+          else commitSection(destination);
+        }}
+        open={pendingExit !== null}
+        title={translateAgentCenter(props.i18n, 'AgentCenter.lifeSettings.leaveTitle', agentCenterEnCatalog['AgentCenter.lifeSettings.leaveTitle'])}
+      />
     </section>
   );
 }

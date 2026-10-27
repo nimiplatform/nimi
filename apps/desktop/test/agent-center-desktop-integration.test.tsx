@@ -22,6 +22,7 @@ test('Desktop Agent Center uses the canonical handle Manager and keeps its entry
   ), 'utf8');
 
   assert.match(settingsSource, /session=\{input\.runtimeAgentCenterAdapter\}/u);
+  assert.match(settingsSource, /showResourcePack=\{false\}/u);
   assert.match(runtimeSource, /createAppAgentCenterSession\(\{/u);
   assert.match(runtimeSource, /handle:\s*agentHandle/u);
   assert.match(runtimeSource, /const appClient = bindings\.sdk\.appProduct\(\)/u);

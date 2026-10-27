@@ -869,6 +869,8 @@ export interface AgentCenterSession {
 
 export interface AgentCenterProps {
   readonly session: AgentCenterSession;
+  /** Host presentation choice; defaults to false and does not grant operation access. */
+  readonly showResourcePack?: boolean;
   readonly activeSection?: AgentCenterSectionId;
   readonly defaultSection?: AgentCenterSectionId;
   readonly onSectionChange?: (section: AgentCenterSectionId) => void;

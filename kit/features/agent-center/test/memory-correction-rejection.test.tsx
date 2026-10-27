@@ -28,5 +28,9 @@ it('keeps rejected correction text editable and preserves the original Memory wi
     expect(container.textContent).toContain('This memory edit was not accepted. The original memory is unchanged, and your proposed text remains editable.');
     expect(draft.value).toBe('Proposed text'); expect(container.textContent).toContain('Original preference');
     expect(reject).toHaveBeenCalledTimes(1);
+    expect(draft.closest('[data-agent-center-memory-id]')?.querySelector('[role="alert"]')?.textContent).toContain('This memory edit was not accepted');
+    await act(async () => button('Cancel').click());
+    expect(container.querySelector('textarea')).toBeNull();
+    expect(container.textContent).not.toContain('This memory edit was not accepted');
   } finally { await act(async () => root.unmount()); container.remove(); }
 });

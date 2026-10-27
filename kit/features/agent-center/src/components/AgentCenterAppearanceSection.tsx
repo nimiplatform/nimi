@@ -24,6 +24,7 @@ import { AgentCenterProductActionNotice } from './AgentCenterProductActionNotice
 export interface AgentCenterAppearanceSectionProps {
   readonly session: AgentCenterSession;
   readonly snapshot: AgentCenterSnapshot;
+  readonly showResourcePack?: boolean;
   readonly i18n?: AgentCenterI18n;
   readonly placementActions?: AgentCenterPlacementActions;
 }
@@ -304,7 +305,7 @@ function AgentCenterResourcePackCard({
 }
 
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-agent-center-008
-export function AgentCenterAppearanceSection({ session, snapshot, i18n, placementActions }: AgentCenterAppearanceSectionProps) {
+export function AgentCenterAppearanceSection({ session, snapshot, i18n, placementActions, showResourcePack = false }: AgentCenterAppearanceSectionProps) {
   const appearance = snapshot.state.appearance;
   const t = (key: keyof typeof agentCenterEnCatalog) => translateAgentCenter(i18n, key, agentCenterEnCatalog[key]);
   const availability = snapshot.availability.replaceAppearance;
@@ -599,7 +600,9 @@ export function AgentCenterAppearanceSection({ session, snapshot, i18n, placemen
           <AgentCenterReferenceVoiceSection session={session} snapshot={snapshot} i18n={i18n} placementActions={placementActions} blocked={appearanceWritesBlocked} />
         </section>
 
-        <AgentCenterResourcePackCard blocked={appearanceOperationBusy} i18n={i18n} onBusyChange={setResourcePackCardBusy} session={session} snapshot={snapshot} />
+        {showResourcePack ? (
+          <AgentCenterResourcePackCard blocked={appearanceOperationBusy} i18n={i18n} onBusyChange={setResourcePackCardBusy} session={session} snapshot={snapshot} />
+        ) : null}
         {operation.message ? (
           <div className="sticky bottom-0 bg-[var(--nimi-surface-card)] py-2" role="status" aria-live="polite">
             <InlineAlert tone={OPERATION_NOTICE_TONE[operation.state]}>

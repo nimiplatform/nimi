@@ -106,6 +106,7 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
           launchAvatar: props.onAvatarLaunch,
         }}
         session={props.session}
+        showResourcePack
       /> : (
         <section
           className="flex min-h-0 flex-1 flex-col gap-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4"
