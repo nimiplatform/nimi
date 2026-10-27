@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { existsSync, mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { setTimeout as delay } from 'node:timers/promises';
 import os from 'node:os';
 import path from 'node:path';
@@ -48,7 +48,7 @@ test('Realm startup requires an explicit workspace with the guarded commands', (
   writeFileSync(path.join(root, 'package.json'), JSON.stringify({ scripts: {
     'dev:infra': 'node infra.mjs', 'dev:api': 'node api.mjs', 'dev:realtime': 'node realtime.mjs',
   } }));
-  assert.equal(validateRealmDevDirectory(root).toLowerCase(), root.toLowerCase());
+  assert.equal(validateRealmDevDirectory(root), realpathSync(root));
 });
 
 test('local startup configuration is read without overwriting explicit shell settings', (t) => {
