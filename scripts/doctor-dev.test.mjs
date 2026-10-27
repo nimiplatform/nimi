@@ -149,7 +149,7 @@ test('Mac process inventory preserves executable paths and excludes the live Hom
 });
 
 test('Mac doctor recognizes authenticated Home presence without exposing its caller token', async () => {
-  const executable = path.resolve('node_modules/electron/dist/Electron.app/Contents/MacOS/Electron');
+  const executable = `${path.resolve('.')}/node_modules/electron/dist/Electron.app/Contents/MacOS/Electron`;
   const report = await runDevDoctor({
     platform: 'darwin', nowUnixMs,
     probeHttp: async () => ({ state: 'ok', reason: 'http-reachable', statusCode: 200 }),

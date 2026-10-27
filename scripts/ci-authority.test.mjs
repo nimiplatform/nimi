@@ -129,8 +129,15 @@ test('authority review is wired into the selected CI job with available Git hist
 test('the CI package command rejects invalid identity transitions between otherwise valid corpora', async (context) => {
   const { root, base } = fixture(context);
   pnpm(root, ['run', 'spec:authority:check', '--json']);
+  // Physical deletion is admitted by the current authority authoring workflow;
+  // retained IDs still cannot revive a retired unit or change its kind.
+  const deleted = structuredClone(authority);
+  deleted.units = deleted.units.filter((unit) => unit.id !== 'definition.ci.retired');
+  writeAuthority(root, deleted);
+  const deletionReview = JSON.parse(pnpm(root, ['run', 'spec:authority:review', '--base', base, '--json']));
+  assert.equal(deletionReview.review.analysisComplete, true);
+  assert.equal(deletionReview.review.components.configuredAudit.blockingStatus, 'clear');
   const cases = [
-    ['physical deletion', (value) => { value.units = value.units.filter((unit) => unit.id !== 'definition.ci.retired'); }],
     ['retired ID revival', (value) => { value.units[2] = { id: 'definition.ci.retired', kind: 'definition', title: 'Revived subject', meaning: 'A revived subject.' }; }],
     ['same ID kind change', (value) => { value.units[1] = { ...structuredClone(value.units[3]), id: 'definition.ci.optional' }; }],
   ];
