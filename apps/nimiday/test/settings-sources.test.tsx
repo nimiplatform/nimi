@@ -40,6 +40,9 @@ async function edit(input: HTMLInputElement, value: string) {
   });
 }
 
+// These regressions deliberately mount 100 source editors and 80 child rows.
+// Shared CI runners need more than the default 5s for the complete DOM journey;
+// preserve the large fixtures and every interaction assertion.
 it('finds a source in a long list and preserves its open editor and child query when filtered out', async () => {
   resetEngine();
   const container = document.createElement('div'); document.body.append(container);
@@ -62,7 +65,7 @@ it('finds a source in a long list and preserves its open editor and child query 
     expect(section.querySelector('input')!.value).toBe('Child 79');
     expect(section.querySelectorAll('[data-testid="nd-source-group"]')).toHaveLength(1);
   } finally { await act(async () => root.unmount()); container.remove(); }
-});
+}, 15_000);
 
 it('searches a large child directory and retains the list after an empty search', async () => {
   resetEngine();
@@ -78,7 +81,7 @@ it('searches a large child directory and retains the list after an empty search'
     await edit(input, '');
     expect(container.querySelectorAll('.nd-child-source:not([hidden])')).toHaveLength(80);
   } finally { await act(async () => root.unmount()); container.remove(); }
-});
+}, 15_000);
 
 it('shows denied access without editable cached source controls and can retry', async () => {
   resetEngine(); context.engine.activityStatus = 'no-access'; context.retry.mockClear();

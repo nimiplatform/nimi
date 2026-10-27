@@ -294,6 +294,7 @@ const localAppStandardShell: NimiLocalAppStandardShell = {
     cancelConnectionSetup: unavailableCarrier,
   },
   conversation: {
+    readMessage: unavailableCarrier,
     async open() { return { conversationAnchorId: 'anchor-1', activeTurnId: null }; },
     async send() { return { turnId: 'turn-1' }; },
     cancelFollowUp: unavailableCarrier,
@@ -358,8 +359,8 @@ const resolveAvatarHostTargetRequest: ResolveLocalAppAvatarHostTargetRequest = {
 const revalidateAvatarHostTargetRequest: RevalidateLocalAppAvatarHostTargetRequest = {};
 const generatedResolveAvatarHostTargetRequest: GeneratedResolveLocalAppAvatarHostTargetRequest = {};
 const generatedRevalidateAvatarHostTargetRequest: GeneratedRevalidateLocalAppAvatarHostTargetRequest = {};
-const realmModelName: RealmModelName = 'PostDto';
-const post: Partial<RealmModel<'PostDto'>> = {};
+const realmModelName: RealmModelName = 'WorldPublicSourceCardDto';
+const sourceCard: Partial<RealmModel<'WorldPublicSourceCardDto'>> = {};
 // @ts-expect-error Packet transport models are Runtime-internal authority.
 const packetModelName: RealmModelName = 'SourceMaterializationPacketV3Dto';
 // @ts-expect-error Realm grant transport models are Runtime-internal authority.
@@ -378,7 +379,7 @@ const model: NimiAiModel = createNimiMockModel({ text: 'ok' });
 const runner: NimiAiRunnerSpec = { id: 'runner', name: 'Runner' };
 const registry = createNimiToolRegistry([]);
 
-void client; void runtime; void realm; void appClient; void localApp; void error; void json; void generatedReason; void scenarioRequest; void resolveAvatarHostTargetRequest; void revalidateAvatarHostTargetRequest; void generatedResolveAvatarHostTargetRequest; void generatedRevalidateAvatarHostTargetRequest; void realmModelName; void post; void packetModelName; void grantModelName; void sourceRefModelName; void message;
+void client; void runtime; void realm; void appClient; void localApp; void error; void json; void generatedReason; void scenarioRequest; void resolveAvatarHostTargetRequest; void revalidateAvatarHostTargetRequest; void generatedResolveAvatarHostTargetRequest; void generatedRevalidateAvatarHostTargetRequest; void realmModelName; void sourceCard; void packetModelName; void grantModelName; void sourceRefModelName; void message;
 void manifest; void model; void runner; void registry;
 void collectNimiTextStream; void runNimiAiRunner; void userTextMessage;
 void buildNimiConversationHistoryWindow; void createNimiGenerationJob; void createNimiGoldenRun;

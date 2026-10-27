@@ -120,7 +120,6 @@ pnpm --filter @nimiplatform/kit test
 pnpm check:nimi-kit
 ```
 
-
 ## Managed Realm media
 
 Canonical image/video messages consume `metadata.mediaDelivery` and the containing business read's `metadata.refreshMedia` callback. Use the canonical bubble instead of replacing it with raw image/video tags: it owns responsive candidates, HLS, expiry recovery and original-image preview. Original downloads use `metadata.openMediaOriginal(url)` when the consumer supplies its admitted host opener; ordinary browsers retain their link behavior. Expired original grants are refreshed before opening, and refresh/open failures remain visible in the dialog. No new Electron window or navigation permission is required.

@@ -16,13 +16,11 @@ Use the matching Runtime, SDK and native carrier with canonical quote/readMessag
 
 Agent introduction now separates `voiceSampleUrl` (original reference audio), `voiceSampleContentHash` / `voiceSampleMimeType` (verified original facts), and `voicePreviewUrl` (playback). Agent Center's reference-voice view exposes `previewUrl`; cloning continues to use the original and keys managed input by content hash, so renewing its URL does not change input identity. Rebuild native carriers with the matching protocol. Private media capabilities are omitted from durable account identity; Home uses one fenced `getMe` query for live profile/media display.
 
-
 Breaking 0.x change: Resource and attachment reads carry `delivery`, explicit `externalUrl` and availability instead of provider `url`, `storageRef` or `thumbnail`. Upload preparation requires request ID, SHA-256, byte length and MIME; binary PUT is followed by asynchronous finalize and publication readiness. Profile writes store `avatarResourceId` / `profileCoverResourceId`, never temporary signed URLs. Upgrade Realm, Runtime, SDK, Kit and the native carrier together. No npm or production deployment is implied.
 
 Human Chat now uses the same canonical media bubble. Consumers with a restricted native window supply `metadata.openMediaOriginal` through their existing host opener. Native HLS retains play intent and position while refreshing expired grants with `preload="none"`.
 
 Kit `features/media` owns responsive images, avatars and HLS playback. Pass an authorized read-owner refresh callback for expiring media. Preserve `originalUrl` for explicit byte-exact download; `previewUrl` is an audio preview.
-
 
 ## Unreleased — Agent Center initial-read progress (0.x minor)
 
@@ -35,7 +33,6 @@ Desktop Account status and event projections now require the Runtime-owned `auth
 Use matching source-built Realm, SDK, Kit and Desktop. Realm Post/feed, user/Post search and recommendations are deferred: their generated operations, handwritten SDK helpers, offline replay and Desktop Activity entry are removed. Explore retains World and Persona catalogs and source actions; exact-handle friend requests use `social.addFriendByHandle`, while full profile reads retain their separate privacy checks. Ordinary friendship, direct messaging and presence remain supported. `open-explore` accepts only `worlds` or `personas`; `activity`/`view-activity` reject. No compatibility route or automatic user-data migration is provided. This changes the next unreleased minor, not the published 0.21.0 package.
 
 Account 2FA setup now sends the actual prepare body and requires the same-session `challengeId` when enabling; callers must retain the prepare response until successful enable.
-
 
 ## Unreleased
 
