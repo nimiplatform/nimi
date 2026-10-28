@@ -212,17 +212,17 @@ func executeBytedanceOpenSpeechWS(
 	if strings.TrimSpace(apiKey) != "" {
 		config.Header.Set("Authorization", "Bearer "+strings.TrimSpace(apiKey))
 	}
-	connection, err := dialProviderWebSocket(ctx, config, false)
+	connection, transport, err := dialProviderWebSocket(ctx, config, false)
 	if err != nil {
 		return "", nil, MapProviderRequestError(err)
 	}
-	defer func() { _ = connection.Close() }()
+	defer func() { _ = transport.Close() }()
 
 	done := make(chan struct{})
 	go func() {
 		select {
 		case <-ctx.Done():
-			_ = connection.Close()
+			_ = transport.Close()
 		case <-done:
 		}
 	}()

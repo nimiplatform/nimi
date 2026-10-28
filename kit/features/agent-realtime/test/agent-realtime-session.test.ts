@@ -22,6 +22,79 @@ const AUDIO_FORMAT = Object.freeze({
 });
 
 describe('canonical Agent Realtime session', () => {
+  it.each(['eof', 'stream-error', 'subscribe-error'] as const)('retains the remote scope when %s cleanup Close fails', async (failure) => {
+    const stream = createEventStream<NimiRealtimeEventEnvelope<NimiAgentRealtimeEvent>>();
+    const client = createClient({ stream });
+    vi.mocked(client.close).mockRejectedValueOnce(new Error('close unavailable'));
+    if (failure === 'subscribe-error') vi.mocked(client.subscribe).mockRejectedValueOnce(new Error('subscribe unavailable'));
+    const session = createSession(client, createHost());
+    if (failure === 'subscribe-error') await expect(session.open()).rejects.toThrow('subscribe unavailable');
+    else {
+      await session.open();
+      if (failure === 'eof') await stream.subscription.cancel();
+      else stream.fail(new Error('observer unavailable'));
+    }
+    await vi.waitFor(() => expect(session.getState()).toMatchObject({ lifecycle: 'failed', closeUnconfirmed: true }));
+    expect(client.close).toHaveBeenCalledOnce();
+    await expect(session.open()).rejects.toThrow();
+    await session.close();
+    expect(client.close).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(client.close).mock.calls[1]).toEqual(vi.mocked(client.close).mock.calls[0]);
+    expect(session.getState()).toMatchObject({ lifecycle: 'closed', closeUnconfirmed: false });
+  });
+
+  it('waits for a pending Open and retains its late scope if Close fails', async () => {
+    const opened = createDeferred<ReturnType<typeof openResult>>();
+    const client = createClient({ stream: createEventStream(), open: () => opened.promise });
+    vi.mocked(client.close).mockRejectedValueOnce(new Error('late close unavailable'));
+    const session = createSession(client, createHost());
+    const opening = session.open().catch(error => error);
+    const closing = session.close().catch(error => error);
+    await vi.waitFor(() => expect(session.getState()).toMatchObject({ lifecycle: 'closing', closeUnconfirmed: true }));
+    await expect(session.open()).rejects.toThrow();
+    expect(client.close).not.toHaveBeenCalled();
+    opened.resolve(openResult());
+    await opening;
+    expect(await closing).toMatchObject({ message: 'late close unavailable' });
+    expect(session.getState()).toMatchObject({ lifecycle: 'failed', closeUnconfirmed: true });
+    await session.close();
+    expect(client.close).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(client.close).mock.calls[1]).toEqual(vi.mocked(client.close).mock.calls[0]);
+  });
+
+  it('keeps each capture frame gate independent of old pending frames', async () => {
+    const captures: Parameters<NimiAgentRealtimeHostMediaPort['microphone']['beginCapture']>[0][] = [];
+    const oldFrame = createDeferred<NimiRealtimeOperationResult>();
+    const newFrame = createDeferred<NimiRealtimeOperationResult>();
+    let frames = 0;
+    const client = createClient({ stream: createEventStream(), appendInput: async (request) => {
+      if (request.input.type !== 'audio-frame') return operation(control());
+      return ++frames === 1 ? oldFrame.promise : newFrame.promise;
+    } });
+    const session = createSession(client, createHost({ beginCapture: async input => {
+      captures.push(input);
+      return { status: 'ready', capture: { inputTrackId: `input-${captures.length}`, utteranceId: `utterance-${captures.length}`, stop: async () => {} } };
+    } }));
+    await session.open();
+    await session.requestCapture();
+    const first = captures[0]!.onFrame({ frameSequence: '1', frame: new Uint8Array(640) });
+    await session.close();
+    vi.mocked(client.subscribe).mockResolvedValueOnce(createEventStream().subscription);
+    await session.open();
+    await session.requestCapture();
+    const second = captures[1]!.onFrame({ frameSequence: '1', frame: new Uint8Array(640) });
+    expect(frames).toBe(2);
+    expect(session.getState().capture).toBe('active');
+    oldFrame.resolve(operation(control()));
+    await first;
+    // The old finally must not release the new capture's still-pending frame.
+    await expect(captures[1]!.onFrame({ frameSequence: '2', frame: new Uint8Array(640) }))
+      .rejects.toMatchObject({ reasonCode: 'KIT_AGENT_REALTIME_CAPTURE_OVERRUN' });
+    newFrame.resolve(operation(control()));
+    await second;
+    await session.close();
+  });
+
   it('keeps failed close scope for an explicit retry and blocks a replacement open', async () => {
     const client = createClient({ stream: createEventStream() });
     vi.mocked(client.close).mockRejectedValueOnce(new Error('pre-dispatch unavailable'));
@@ -247,12 +320,14 @@ describe('canonical Agent Realtime session', () => {
 
     const opening = session.open();
     await Promise.resolve();
-    await session.close();
+    const closing = session.close();
+    await vi.waitFor(() => expect(session.getState().lifecycle).toBe('closing'));
     deferred.resolve(openResult());
 
     await expect(opening).rejects.toMatchObject({
       reasonCode: 'KIT_AGENT_REALTIME_STALE_SESSION_EPOCH',
     });
+    await closing;
     expect(client.close).toHaveBeenCalledWith({
       agentHandle: HANDLE,
       realtimeSessionId: 'realtime-session-1',

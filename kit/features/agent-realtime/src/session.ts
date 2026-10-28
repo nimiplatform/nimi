@@ -15,7 +15,6 @@ import type {
   CreateNimiAgentRealtimeSessionInput,
   NimiAgentRealtimeCaptureHandle,
   NimiAgentRealtimeCaptureRequestResult,
-  NimiAgentRealtimeClient,
   NimiAgentRealtimeHostMediaPort,
   NimiAgentRealtimeOpenResult,
   NimiAgentRealtimeSession,
@@ -44,12 +43,13 @@ export function createNimiAgentRealtimeSession(
   const eventListeners = new Set<(event: NimiAgentRealtimeEvent) => void>();
   let state = createNimiAgentRealtimeSessionState(input);
   let activeSession: ActiveSessionScope | null = null;
+  let pendingOpen: { epoch: number; promise: Promise<NimiAgentRealtimeOpenResult> } | null = null;
   let pendingClose: ActiveSessionScope | null = null;
   let closingResult: NimiRealtimeOperationResult | null = null;
   let closeTask: Promise<NimiRealtimeOperationResult | null> | null = null;
   let activeCapture: ActiveCapture | null = null;
   let activeSubscription: NimiRealtimeSubscription<NimiAgentRealtimeEvent> | null = null;
-  let frameInFlight = false;
+  let frameInFlight: ActiveCapture | null = null;
   const playbackInterruptedTracks = new Set<string>();
   const runtimeCompletedTracks = new Map<string, boolean>();
 
@@ -71,7 +71,7 @@ export function createNimiAgentRealtimeSession(
       return () => eventListeners.delete(listener);
     },
     async open() {
-      if (state.lifecycle === 'opening' || state.lifecycle === 'closing' || activeSession || pendingClose) {
+      if (state.lifecycle === 'opening' || state.lifecycle === 'closing' || pendingOpen || activeSession || pendingClose) {
         throw recordIssue(sessionError(
           'KIT_AGENT_REALTIME_SESSION_ACTIVE',
           'An Agent Realtime session is already opening or active.',
@@ -86,7 +86,7 @@ export function createNimiAgentRealtimeSession(
       dispatch({ type: 'open-requested', epoch });
       let result: NimiAgentRealtimeOpenResult;
       try {
-        result = await input.agentRealtime.open({
+        const promise = input.agentRealtime.open({
           agentHandle: input.agentHandle,
           ...(input.conversationAnchorId === undefined
             ? {}
@@ -94,10 +94,14 @@ export function createNimiAgentRealtimeSession(
           inputAudio: input.inputAudio,
           turnDetection: input.turnDetection,
         });
+        pendingOpen = { epoch, promise };
+        result = await promise;
       } catch (cause) {
         const error = runtimeError(cause, 'open Agent Realtime', 'retry_agent_realtime_open');
         if (state.sessionEpoch === epoch) recordIssue(error, true);
         throw error;
+      } finally {
+        if (pendingOpen?.epoch === epoch) pendingOpen = null;
       }
 
       const scope: ActiveSessionScope = Object.freeze({
@@ -108,7 +112,8 @@ export function createNimiAgentRealtimeSession(
       });
       const stateAfterOpen = controller.getState();
       if (stateAfterOpen.sessionEpoch !== epoch || stateAfterOpen.lifecycle !== 'opening') {
-        await closeStaleOpen(input.agentRealtime, scope);
+        // Close owns the pending Open and its eventual scope before it can
+        // finish. Never start a second, untracked cleanup for the late reply.
         throw staleEpochError();
       }
       if (result.control.lifecycle === 'closed' || result.control.lifecycle === 'failed') {
@@ -124,19 +129,16 @@ export function createNimiAgentRealtimeSession(
       try {
         subscription = await input.agentRealtime.subscribe(scopeInput(scope));
       } catch (cause) {
-        if (activeSession === scope) activeSession = null;
-        await closeAfterSubscribeFailure(input.agentRealtime, scope);
         const error = runtimeError(
           cause,
           'subscribe to Agent Realtime',
           'retry_agent_realtime_open',
         );
-        if (state.sessionEpoch === epoch) recordIssue(error, true);
+        await closeAfterFailure(scope, error);
         throw error;
       }
       if (state.sessionEpoch !== epoch || activeSession !== scope) {
         await subscription.cancel();
-        await closeStaleOpen(input.agentRealtime, scope);
         throw staleEpochError();
       }
       activeSubscription = subscription;
@@ -317,12 +319,13 @@ export function createNimiAgentRealtimeSession(
   };
 
   async function performClose(): Promise<NimiRealtimeOperationResult | null> {
-    const closingSession = pendingClose ?? activeSession;
-    if (!pendingClose && activeSession) closingResult = null;
+    let closingSession = pendingClose ?? activeSession;
+    const opening = pendingOpen;
+    if (!pendingClose && (activeSession || opening)) closingResult = null;
     pendingClose = closingSession;
     const closingSubscription = activeSubscription;
     const closeEpoch = state.sessionEpoch + 1;
-    dispatch({ type: 'close-requested', epoch: closeEpoch, remotePending: Boolean(pendingClose && !closingResult) });
+    dispatch({ type: 'close-requested', epoch: closeEpoch, remotePending: Boolean(opening || pendingClose && !closingResult) });
     activeSession = null;
     activeSubscription = null;
     playbackInterruptedTracks.clear();
@@ -355,6 +358,21 @@ export function createNimiAgentRealtimeSession(
           'cancel Agent Realtime subscription',
           'retry_agent_realtime_close',
         );
+      }
+    }
+    if (opening && !closingSession) {
+      try {
+        const opened = await opening.promise;
+        closingSession = Object.freeze({
+          epoch: opening.epoch,
+          agentHandle: input.agentHandle,
+          realtimeSessionId: opened.realtimeSessionId,
+          generation: opened.generation,
+        });
+        pendingClose = closingSession;
+        closingResult = null;
+      } catch (cause) {
+        firstError ??= runtimeError(cause, 'open Agent Realtime', 'retry_agent_realtime_open');
       }
     }
     if (closingSession && !closingResult) {
@@ -439,23 +457,26 @@ export function createNimiAgentRealtimeSession(
               source: 'runtime',
             }), true, scope.epoch);
           }
-          await releaseTerminalMedia(scope);
-          activeSession = null;
-          activeSubscription = null;
+          if (envelope.control.lifecycle === 'closed' || envelope.control.lifecycle === 'failed') {
+            await releaseTerminalMedia(scope);
+            if (isCurrent(scope)) {
+              activeSession = null;
+              activeSubscription = null;
+            }
+          } else {
+            await closeAfterFailure(scope, state.error ?? terminalControlError({ control: envelope.control }));
+          }
           return;
         }
       }
       if (isCurrent(scope) && activeSubscription === subscription
         && state.lifecycle !== 'closed' && state.lifecycle !== 'failed') {
-        recordIssue(sessionError(
+        await closeAfterFailure(scope, sessionError(
           'KIT_AGENT_REALTIME_EVENT_STREAM_ENDED',
           'The Agent Realtime event stream ended without a terminal event.',
           'reopen_agent_realtime_session',
           true,
-        ), true);
-        await releaseTerminalMedia(scope);
-        activeSession = null;
-        activeSubscription = null;
+        ));
       }
     } catch (cause) {
       if (!isCurrent(scope) || activeSubscription !== subscription) return;
@@ -464,10 +485,7 @@ export function createNimiAgentRealtimeSession(
         'read Agent Realtime events',
         'reopen_agent_realtime_session',
       );
-      recordIssue(error, true);
-      await releaseTerminalMedia(scope);
-      activeSession = null;
-      activeSubscription = null;
+      await closeAfterFailure(scope, error);
     }
   }
 
@@ -477,7 +495,7 @@ export function createNimiAgentRealtimeSession(
   ): Promise<void> {
     if (!isCurrent(scope) || activeCapture?.epoch !== scope.epoch
       || state.capture !== 'active') return;
-    if (frameInFlight) {
+    if (frameInFlight === activeCapture) {
       const error = sessionError(
         'KIT_AGENT_REALTIME_CAPTURE_OVERRUN',
         'The Host delivered another microphone frame before the previous frame settled.',
@@ -493,7 +511,7 @@ export function createNimiAgentRealtimeSession(
       return;
     }
     const capture = activeCapture;
-    frameInFlight = true;
+    frameInFlight = capture;
     try {
       const result = await input.agentRealtime.appendInput({
         ...scopeInput(scope),
@@ -521,7 +539,7 @@ export function createNimiAgentRealtimeSession(
       }
       throw error;
     } finally {
-      frameInFlight = false;
+      if (frameInFlight === capture) frameInFlight = null;
     }
   }
 
@@ -689,6 +707,18 @@ export function createNimiAgentRealtimeSession(
     }
   }
 
+  async function closeAfterFailure(scope: ActiveSessionScope, error: NimiError): Promise<void> {
+    if (!isCurrent(scope)) return;
+    const closeEpoch = state.sessionEpoch + 1;
+    try {
+      await controller.close();
+    } catch {
+      // performClose retains the exact scope and unconfirmed state. Preserve
+      // the original stream/subscription error instead of masking its cause.
+    }
+    if (state.sessionEpoch === closeEpoch) recordIssue(error, true, closeEpoch);
+  }
+
   async function releaseTerminalMedia(scope: ActiveSessionScope): Promise<void> {
     await releaseCaptureWithoutObservation(scope, 'stopped');
     try {
@@ -788,26 +818,7 @@ function scopeInput(scope: ActiveSessionScope) {
   } as const;
 }
 
-async function closeStaleOpen(
-  client: NimiAgentRealtimeClient,
-  scope: ActiveSessionScope,
-): Promise<void> {
-  await client.close(scopeInput(scope));
-}
-
-async function closeAfterSubscribeFailure(
-  client: NimiAgentRealtimeClient,
-  scope: ActiveSessionScope,
-): Promise<void> {
-  try {
-    await client.close(scopeInput(scope));
-  } catch {
-    // The subscribe failure remains the causal typed error. Runtime will reap
-    // the inaccessible session under its own lifecycle policy.
-  }
-}
-
-function terminalControlError(result: NimiAgentRealtimeOpenResult): NimiError {
+function terminalControlError(result: Pick<NimiAgentRealtimeOpenResult, 'control'>): NimiError {
   const reasonCode = result.control.terminalReason || 'KIT_AGENT_REALTIME_OPEN_TERMINAL';
   return createNimiError({
     message: `Agent Realtime opened in terminal state: ${reasonCode}.`,

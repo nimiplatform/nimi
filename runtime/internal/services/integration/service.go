@@ -230,7 +230,11 @@ func (s *Service) scopeLive(ctx context.Context, d accountservice.LocalAppCaller
 	if s.revalidator == nil {
 		return time.Now().Before(d.ExpiresAt)
 	}
-	admitted, err := s.revalidator.AuthorizeLocalAppIngress(ctx, ingress)
+	// Admission binds session invalidation to its returned context. This is a
+	// short qualification check, not a new resource lifetime on the provider.
+	checkCtx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	admitted, err := s.revalidator.AuthorizeLocalAppIngress(checkCtx, ingress)
 	if err != nil {
 		return false
 	}

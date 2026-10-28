@@ -188,11 +188,17 @@ function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps & {
     turnDetection,
     host,
   } = props;
-  const session = useMemo(() => createNimiAgentRealtimeSession({
+  const requestedSession = useMemo(() => createNimiAgentRealtimeSession({
     agentRealtime,
     agentHandle,
     ...(conversationAnchorId === undefined ? {} : { conversationAnchorId }),
-    inputAudio,
+    inputAudio: {
+      codec: inputAudio.codec,
+      sampleRateHz: inputAudio.sampleRateHz,
+      channelCount: inputAudio.channelCount,
+      frameDurationMs: inputAudio.frameDurationMs,
+      maximumFrameBytes: inputAudio.maximumFrameBytes,
+    },
     turnDetection,
     host,
   }), [
@@ -200,9 +206,14 @@ function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps & {
     agentHandle,
     conversationAnchorId,
     host,
-    inputAudio,
+    inputAudio.codec,
+    inputAudio.sampleRateHz,
+    inputAudio.channelCount,
+    inputAudio.frameDurationMs,
+    inputAudio.maximumFrameBytes,
     turnDetection,
   ]);
+  const [session, setSession] = useState(requestedSession);
   const [state, setState] = useState(() => session.getState());
   const [text, setText] = useState('');
   const [reply, setReply] = useState<{
@@ -215,12 +226,27 @@ function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps & {
     setState(session.getState());
     const unsubscribe = session.subscribeState((next) => {
       setState(next);
-      props.onStateChange?.(next);
     });
     return () => {
       unsubscribe();
       void session.close().catch(() => undefined);
     };
+  }, [session]);
+
+  useEffect(() => {
+    if (requestedSession === session) return undefined;
+    let current = true;
+    // A real scope/config change must finish the previous owner's Close.
+    // On failure keep that controller visible so Retry Close still owns it.
+    void session.close().then(() => {
+      if (current) setSession(requestedSession);
+    }).catch(() => undefined);
+    return () => { current = false; };
+  }, [requestedSession, session]);
+
+  useEffect(() => {
+    if (!props.onStateChange) return undefined;
+    return session.subscribeState(props.onStateChange);
   }, [props.onStateChange, session]);
 
   useEffect(() => {
@@ -322,7 +348,11 @@ function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps & {
             tone="ghost"
             loading={closePending}
             disabled={closePending || (!active && state.lifecycle !== 'opening' && !state.closeUnconfirmed)}
-            onClick={() => { void session.close().catch(() => undefined); }}
+            onClick={() => {
+              void session.close().then(() => {
+                if (requestedSession !== session) setSession(requestedSession);
+              }).catch(() => undefined);
+            }}
           >
             {state.closeUnconfirmed && !closePending ? copy.retryClose : copy.close}
           </Button>

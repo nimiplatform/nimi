@@ -568,6 +568,7 @@ export function createRuntimeElectronIpcTransport(
         return;
       }
       done = true;
+      queue.length = 0;
       detachAbort?.();
       unsubscribe?.();
       unsubscribe = undefined;
@@ -729,33 +730,56 @@ export function createRuntimeElectronIpcTransport(
       }
     },
 
-    async *serverStream<Response = unknown, Body = unknown>(
+    // @nimi-authority: rule.nimi.sdks.client-core.r021
+    serverStream<Response = unknown, Body = unknown>(
       request: CoreStreamRequest<Body>,
     ): AsyncIterable<Response> {
-      let codec: ReturnType<typeof getRuntimeWireCodec>;
-      let stream: AsyncIterable<Uint8Array>;
-      try {
-        codec = getRuntimeWireCodec(request.methodId);
-        assertMethodKind(request.methodId, codec.kind, 'server_stream');
-        stream = await openStreamBytes(request.methodId, codec.encodeRequest(request.body), request);
-      } catch (error) {
-        throw asNimiError(error, {
-          reasonCode: ReasonCode.SDK_RUNTIME_ELECTRON_STREAM_OPEN_FAILED,
-          actionHint: 'check_runtime_bridge_and_daemon',
-          source: 'runtime',
-        });
-      }
-      try {
-        for await (const response of stream) {
-          yield codec.decodeResponse(response) as Response;
+      let ended = false;
+      let source: Promise<{ codec: ReturnType<typeof getRuntimeWireCodec>; iterator: AsyncIterator<Uint8Array> }> | undefined;
+      const open = () => source ??= (async () => {
+        try {
+          const codec = getRuntimeWireCodec(request.methodId);
+          assertMethodKind(request.methodId, codec.kind, 'server_stream');
+          const stream = await openStreamBytes(request.methodId, codec.encodeRequest(request.body), request);
+          return { codec, iterator: stream[Symbol.asyncIterator]() };
+        } catch (error) {
+          throw asNimiError(error, {
+            reasonCode: ReasonCode.SDK_RUNTIME_ELECTRON_STREAM_OPEN_FAILED,
+            actionHint: 'check_runtime_bridge_and_daemon',
+            source: 'runtime',
+          });
         }
-      } catch (error) {
-        throw asNimiError(error, {
-          reasonCode: ReasonCode.SDK_RUNTIME_ELECTRON_STREAM_FAILED,
-          actionHint: 'retry_or_reopen_stream',
-          source: 'runtime',
-        });
-      }
+      })();
+      // An async generator queues return behind its pending next. Keep the
+      // byte carrier's cancellation reachable even while no event arrives.
+      const iterator: AsyncIterator<Response> = {
+        async next() {
+          if (ended) return { done: true, value: undefined };
+          const current = await open();
+          if (ended) return { done: true, value: undefined };
+          try {
+            const item = await current.iterator.next();
+            if (ended || item.done) { ended = true; return { done: true, value: undefined }; }
+            return { done: false, value: current.codec.decodeResponse(item.value) as Response };
+          } catch (error) {
+            ended = true;
+            try { await current.iterator.return?.(); } catch { /* Preserve the stream/decoder failure. */ }
+            throw asNimiError(error, {
+              reasonCode: ReasonCode.SDK_RUNTIME_ELECTRON_STREAM_FAILED,
+              actionHint: 'retry_or_reopen_stream',
+              source: 'runtime',
+            });
+          }
+        },
+        async return() {
+          ended = true;
+          if (source) {
+            try { await (await source).iterator.return?.(); } catch { /* The pending next owns an opening failure. */ }
+          }
+          return { done: true, value: undefined };
+        },
+      };
+      return { [Symbol.asyncIterator]: () => iterator };
     },
   };
 }

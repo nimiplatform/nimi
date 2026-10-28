@@ -8,6 +8,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
+	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 )
@@ -222,7 +223,7 @@ func (s *Service) CompleteIntegrationProvider(ctx context.Context, req *runtimev
 			return nil, failure(codes.InvalidArgument, "INTEGRATION_ERROR_BOUNDS")
 		}
 		record.set("call_state", "failed")
-		return record.completion(s.finishProvider(c, "failed", "", "PROVIDER_FAILED", record)), nil
+		return record.completion(s.finishProvider(c, d, "failed", "", "PROVIDER_FAILED", record)), nil
 	}
 	value, err := decodeJSON(req.ResultJson, maxOutput)
 	if err != nil {
@@ -232,21 +233,21 @@ func (s *Service) CompleteIntegrationProvider(ctx context.Context, req *runtimev
 		return nil, err
 	}
 	record.set("call_state", "completed")
-	return record.completion(s.finishProvider(c, "completed", req.ResultJson, "", record)), nil
+	return record.completion(s.finishProvider(c, d, "completed", req.ResultJson, "", record)), nil
 }
 
 // The final result acceptance and cancellation mutation share one boundary;
 // validation outside the mutex cannot grant a late result a second chance.
 // The accepted terminal fact and its audit result commit in one transaction.
 // @nimi-authority: rule.nimi.runtime.integration.provider-lifetime
-func (s *Service) finishProvider(c *invocation, state, result, reason string, record *operationAudit) bool {
+func (s *Service) finishProvider(c *invocation, completing accountservice.LocalAppCallerDecision, state, result, reason string, record *operationAudit) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.closed || s.quiesced.Load() || c.ctx.Err() != nil || closed(c.decision.SessionInvalidated) || c.fact.Status != "accepted" {
 		return false
 	}
 	p := s.providers[c.target.Public.TargetRef]
-	if p == nil || p.decision.SessionID != c.providerSession || p.ctx.Err() != nil || closed(p.decision.SessionInvalidated) {
+	if p == nil || p.decision.SessionID != c.providerSession || !sameScope(p.decision, completing) || p.ctx.Err() != nil || closed(p.decision.SessionInvalidated) {
 		return false
 	}
 	accepted := false
@@ -254,7 +255,9 @@ func (s *Service) finishProvider(c *invocation, state, result, reason string, re
 	// writer and current consumer Account/registration/session fence before the
 	// result is made visible; an earlier validation does not authorize this commit.
 	err := s.withCallCommitLocked(c, func(commitCtx context.Context) error {
-		if p.ctx.Err() != nil || closed(p.decision.SessionInvalidated) || !time.Now().Before(p.decision.ExpiresAt) {
+		// Registration survives normal same-session renewal. Use the current
+		// completion admission, not the registration's original expiry snapshot.
+		if p.ctx.Err() != nil || closed(completing.SessionInvalidated) || !time.Now().Before(completing.ExpiresAt) {
 			return adapterError("INTEGRATION_SCOPE_ENDED")
 		}
 		accepted = s.finishLockedInContext(commitCtx, c, state, result, reason, record)

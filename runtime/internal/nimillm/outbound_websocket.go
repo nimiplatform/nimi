@@ -13,11 +13,13 @@ import (
 // A finite WebSocket exchange is one admitted transport invocation, like a
 // streamed HTTP request. Guard each socket handoff before connect; never hold
 // account/Connector locks through its handshake, frames or response wait.
-func dialProviderWebSocket(ctx context.Context, config *websocket.Config, allowLoopback bool) (*websocket.Conn, error) {
+// The caller owns raw transport closure: websocket.Conn.Close writes a close
+// frame and can wait behind a blocked writer even after context cancellation.
+// @nimi-authority: rule.nimi.runtime.service-operations.scenario-job-execution-scope
+func dialProviderWebSocket(ctx context.Context, config *websocket.Config, allowLoopback bool) (*websocket.Conn, net.Conn, error) {
 	gate, ok := ctx.Value(outboundGateKey{}).(OutboundGate)
 	if !ok || gate == nil {
-		conn, _, err := endpointsec.DialWebSocket(ctx, config, allowLoopback)
-		return conn, err
+		return endpointsec.DialWebSocket(ctx, config, allowLoopback)
 	}
 	copyConfig := *config
 	dialer := net.Dialer{}
@@ -45,11 +47,11 @@ func dialProviderWebSocket(ctx context.Context, config *websocket.Config, allowL
 		return err
 	}
 	copyConfig.Dialer = &dialer
-	conn, _, err := endpointsec.DialWebSocket(ctx, &copyConfig, allowLoopback)
+	conn, transport, err := endpointsec.DialWebSocket(ctx, &copyConfig, allowLoopback)
 	admissionMu.Lock()
 	defer admissionMu.Unlock()
 	if err != nil && admissionErr != nil {
-		return nil, admissionErr
+		return nil, nil, admissionErr
 	}
-	return conn, err
+	return conn, transport, err
 }

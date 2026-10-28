@@ -27,6 +27,72 @@ function fixture(works, workspace) {
 function workFixture() { const workspace = createWorkspace(); workspace.agentBinding = 'test-binding'; workspace.notifyHome = false; const work = createWork(workspace.projects[0].id, '分析', '保存完整成果', 'brief'); workspace.workIds = [work.id]; return { workspace, work }; }
 function deferred() { let resolve; const promise = new Promise(accept => { resolve = accept; }); return { promise, resolve }; }
 
+test('same-session status recovery saves the complete current reply once without resubmitting', async () => {
+  const { workspace, work } = workFixture();
+  work.messages = [{ messageId: 'old:result', executionId: 'old', role: 'assistant', parts: [{ kind: 'text', text: '旧轮回复' }] }];
+  const { engine, calls, client, documents } = fixture([work], workspace);
+  const get = client.agentWork.get;
+  client.agentWork.get = async () => { throw new Error('temporary read failure'); };
+  try {
+    await engine.initialize();
+    await engine.run(work.id);
+    assert.equal(engine.getWork(work.id).status, 'uncertain');
+    client.agentWork.get = get;
+    assert.equal(await engine.refreshWorkStatus(work.id), true);
+    assert.equal(await engine.refreshWorkStatus(work.id), true);
+    const current = engine.getWork(work.id);
+    assert.equal(current.status, 'review');
+    assert.equal(current.messages.filter(message => message.messageId === 'execution-1:result').length, 1);
+    assert.equal(current.messages.find(message => message.messageId === 'execution-1:result').parts[0].text, '完整结果');
+    assert.deepEqual(engine.messages.get(work.id), current.messages);
+    assert.deepEqual(documents.get(`nimigo/v1/work-${work.id}.json`).messages, current.messages);
+    const statusEntered = deferred(); const statusResult = deferred();
+    client.agentWork.get = async () => { statusEntered.resolve(); return statusResult.promise; };
+    const checking = engine.refreshWorkStatus(work.id);
+    await statusEntered.promise;
+    await engine.saveReply(work.id);
+    assert.equal(engine.getWork(work.id).status, 'complete');
+    assert.equal(engine.getWork(work.id).deliverables[0].revisions[0].executionId, 'execution-1');
+    statusResult.resolve({ executionId: 'execution-1', state: 'succeeded', outputText: '完整结果', reasonCode: '', message: '' });
+    await checking;
+    assert.equal(engine.getWork(work.id).status, 'complete');
+    assert.equal(calls.starts.length, 1);
+    assert.equal(calls.assets.length, 1);
+    assert.equal(new TextDecoder().decode(calls.assets[0].body), '完整结果');
+    assert.equal(current.messages[0].parts[0].text, '旧轮回复');
+  } finally { engine.dispose(); }
+});
+
+test('a successful empty current reply cannot save an older assistant message', async () => {
+  const { workspace, work } = workFixture();
+  work.messages = [{ messageId: 'old:result', executionId: 'old', role: 'assistant', parts: [{ kind: 'text', text: '旧轮回复' }] }];
+  const { engine, client, calls } = fixture([work], workspace);
+  client.agentWork.get = async input => ({ executionId: input.executionId, state: 'succeeded', outputText: '', reasonCode: '', message: '' });
+  try {
+    await engine.initialize(); await engine.run(work.id); await engine.refreshWorkStatus(work.id);
+    await assert.rejects(engine.saveReply(work.id), /本轮没有可保存/u);
+    assert.equal(calls.assets.length, 0);
+  } finally { engine.dispose(); }
+});
+
+test('a late status read cannot replace a newer attempt', async () => {
+  const { workspace, work } = workFixture();
+  const { engine, client } = fixture([work], workspace);
+  try {
+    await engine.initialize(); await engine.run(work.id);
+    const entered = deferred(); const result = deferred();
+    client.agentWork.get = async () => { entered.resolve(); return result.promise; };
+    const refreshing = engine.refreshWorkStatus(work.id);
+    const rejected = assert.rejects(refreshing, /执行范围已经变化/u);
+    await entered.promise;
+    await engine.modifyWork(work.id, value => { value.status = 'running'; value.attempts.push({ id: 'new', agentBinding: 'test-binding', executionId: 'new-execution', startedAt: work.createdAt, status: 'running' }); });
+    result.resolve({ executionId: 'execution-1', state: 'succeeded', outputText: 'late', reasonCode: '', message: '' });
+    await rejected;
+    assert.equal(engine.getWork(work.id).status, 'running');
+    assert.equal(engine.getWork(work.id).attempts.at(-1).id, 'new');
+  } finally { engine.dispose(); }
+});
+
 test('reopening never resubmits queued work, and does not read canonical chat', async () => {
   const { workspace, work } = workFixture(); work.status = 'queued'; work.queuedInput = { sequence: 1, followup: '保留追加要求' };
   const { engine, calls } = fixture([work], workspace);
@@ -153,6 +219,8 @@ test('a terminal completion returned by cancel is not relabelled as a cancelled 
     await engine.initialize(); await engine.run(work.id); await engine.stop(work.id);
     assert.equal(engine.getWork(work.id).status, 'review'); assert.equal(engine.getWork(work.id).attempts.at(-1).status, 'complete');
     assert.match(engine.getWork(work.id).error, /取消前结束/u);
+    assert.equal(engine.getWork(work.id).messages.at(-1).parts[0].text, '已先结束');
+    assert.deepEqual(engine.messages.get(work.id), engine.getWork(work.id).messages);
   } finally { engine.dispose(); }
 });
 

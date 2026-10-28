@@ -10,7 +10,7 @@ import {
   GetRuntimeHealthRequest,
   GetRuntimeHealthResponse,
 } from '../core-generated/runtime-protobuf/runtime/v1/audit';
-import { createRuntimeElectronIpcTransport, Runtime } from './index';
+import { createRuntimeElectronIpcTransport, createNimiRuntimeAgentConsumeClient, Runtime } from './index';
 import { ReasonCode } from '../types';
 
 type ElectronInvoke = (command: string, payload?: unknown) => Promise<unknown>;
@@ -231,6 +231,55 @@ test('electron-ipc Runtime transport decodes protobuf server streams', async () 
   } finally {
     restore();
   }
+});
+
+for (const mode of ['idle-return', 'break-after-event'] as const) test(`public consume Electron ${mode} releases the pending carrier without extra abort`, { timeout: 3000 }, async () => {
+  const listeners = new Map<string, (event: { payload: unknown }) => void>();
+  let closeCount = 0;
+  let markOpened!: () => void;
+  let markClosed!: () => void;
+  const opened = new Promise<void>(resolve => { markOpened = resolve; });
+  const closed = new Promise<void>(resolve => { markClosed = resolve; });
+  const restore = installElectronTestHook({
+    listen: (event, handler) => { listeners.set(event, handler); return () => { listeners.delete(event); }; },
+    invoke: async (command, payload) => {
+      if (command === STANDARD_ELECTRON_RUNTIME_COMMANDS.streamOpen) {
+        const streamId = String(unwrapPayload(payload).streamId);
+        if (mode === 'break-after-event') {
+          const event = AppMessageEvent.fromJson({ fromAppId: 'runtime.agent', toAppId: 'nimi.electron.test', sequence: '1',
+            messageType: 'runtime.agent.turn.text_delta', payload: { conversationAnchorId: 'anchor-1', turnId: 'turn-1', streamId: 'turn-stream-1', text: 'hello' } });
+          listeners.get(`${STANDARD_ELECTRON_RUNTIME_COMMANDS.eventNamespace}:stream:${streamId}`)?.({ payload: {
+            streamId, eventType: 'next', payloadBytesBase64: toBase64(AppMessageEvent.toBinary(event)),
+          } });
+        }
+        markOpened();
+        return { streamId };
+      }
+      if (command === STANDARD_ELECTRON_RUNTIME_COMMANDS.streamClose) { closeCount++; markClosed(); return {}; }
+      throw new Error(`unexpected command: ${command}`);
+    },
+  });
+  try {
+    const runtime = new Runtime({ appId: 'nimi.electron.test', transport: { type: 'electron-ipc' } });
+    const consume = createNimiRuntimeAgentConsumeClient({ runtime, runtimeAppId: 'nimi.electron.test' });
+    const stream = await consume.turns.subscribe({ ownerUserId: 'user-1', runtimeSourceRef: 'runtime-1', localAgentRef: 'local-agent:test-1', conversationAnchorId: 'anchor-1' });
+    if (mode === 'idle-return') {
+      const iterator = stream[Symbol.asyncIterator]();
+      const pending = iterator.next();
+      await opened;
+      await iterator.return?.();
+      await closed;
+      assert.equal((await pending).done, true);
+      await iterator.return?.();
+    } else {
+      let events = 0;
+      for await (const event of stream) { assert.equal(event.eventName, 'runtime.agent.turn.text_delta'); events++; break; }
+      await closed;
+      assert.equal(events, 1);
+    }
+    assert.equal(closeCount, 1);
+    assert.equal(listeners.size, 0);
+  } finally { restore(); }
 });
 
 test('electron-ipc Runtime transport fails closed when invoke is unavailable and does not spoof Tauri', async () => {

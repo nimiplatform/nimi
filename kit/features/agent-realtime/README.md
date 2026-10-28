@@ -41,6 +41,8 @@ The shared entry streams the latest Runtime-projected reply text as it arrives, 
 - **Agent-turn interruption**: Explicit turn interruption always dispatches to Runtime against the original output request. Because a completed native response may only represent a private intention step, the user turn remains active through its result continuation.
 - **Session close**: Closing explicitly interrupts any unfinished owned turn (even before an output track exists) while preserving committed intentions. Capture stopped solely due to closing is discarded rather than submitted.
 - **Unconfirmed close**: A failed remote Close retains its original scope and reports `closeUnconfirmed`. Explicit retry uses that scope; opening a replacement is blocked until its closure is confirmed. An unavailable old scope or lost reply is not treated as success. If a retry cannot confirm closure, stop the App in Nimi Home to release its protected session. Local input and playback remain stopped, and a Runtime terminal failure is preserved as failed.
+- **Interrupted opening or observation**: Close during Open waits for the issued scope and closes it through the same confirmation path. A failed/ended event stream or failed subscription also closes its owned scope; cleanup failure preserves it for Retry Close. The original observation error remains visible.
+- **Component updates**: Equal audio values and callback changes preserve the session. A different Agent or actual media configuration waits for the prior session's Close; a failure keeps that session's Retry Close available before switching. Each capture owns its in-flight frame gate, so a previous capture's late response cannot interfere with a new one.
 
 ## Ownership Boundary
 

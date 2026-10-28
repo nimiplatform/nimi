@@ -40,6 +40,37 @@ afterEach(() => {
 });
 
 describe('Agent Realtime public entry', () => {
+  it('preserves the live session on equal audio and callback rerenders, but closes on a real format change', async () => {
+    const client = formalClient(async () => [
+      { agentHandle: HANDLE_A, agentBinding: `agent_binding_${'A'.repeat(43)}`, activityAgentRef: 'agr_A', displayName: 'Agent A', avatarUrl: null },
+    ]);
+    let end: ((event: IteratorResult<NimiRealtimeEventEnvelope<NimiAgentRealtimeEvent>>) => void) | undefined;
+    vi.mocked(client.agentRealtime.subscribe).mockResolvedValue({
+      [Symbol.asyncIterator]: () => ({ next: () => new Promise(resolve => { end = resolve; }) }),
+      cancel: async () => { end?.({ done: true, value: undefined }); },
+    });
+    const host = testHost();
+    const props: ComponentProps<typeof AgentRealtimeEntry> = {
+      client, initialAgentHandle: HANDLE_A, inputAudio: { ...AUDIO_FORMAT },
+      turnDetection: 'manual', host, locale: 'en', onStateChange: vi.fn(),
+    };
+    const node = await renderEntry(props);
+    await act(async () => { Array.from(node.querySelectorAll('button')).find(b => b.textContent === 'Open live conversation')!.click(); });
+    expect(client.agentRealtime.open).toHaveBeenCalledOnce();
+    await act(async () => { root!.render(<AgentRealtimeEntry {...props} inputAudio={{ ...AUDIO_FORMAT }} onStateChange={vi.fn()} />); });
+    expect(client.agentRealtime.close).not.toHaveBeenCalled();
+    vi.mocked(client.agentRealtime.close).mockRejectedValueOnce(new Error('old scope close failed'));
+    await act(async () => { root!.render(<AgentRealtimeEntry {...props} inputAudio={{ ...AUDIO_FORMAT, sampleRateHz: 24_000 }} />); });
+    expect(client.agentRealtime.close).toHaveBeenCalledOnce();
+    expect(node.textContent).toContain('old scope close failed');
+    expect(client.agentRealtime.open).toHaveBeenCalledOnce();
+    const retry = Array.from(node.querySelectorAll('button')).find(button => button.textContent === resolveNimiAgentRealtimeCopy('en').retryClose)!;
+    await act(async () => { retry.click(); });
+    expect(client.agentRealtime.close).toHaveBeenCalledTimes(2);
+    await act(async () => { Array.from(node.querySelectorAll('button')).find(button => button.textContent === 'Open live conversation')!.click(); });
+    expect(client.agentRealtime.open).toHaveBeenLastCalledWith(expect.objectContaining({ inputAudio: { ...AUDIO_FORMAT, sampleRateHz: 24_000 } }));
+  });
+
   it('shows streamed text without audio and replaces final chunks without duplicating them', async () => {
     const client = formalClient(async () => [
       { agentHandle: HANDLE_A, agentBinding: `agent_binding_${'A'.repeat(43)}`, activityAgentRef: 'agr_A', displayName: 'Agent A', avatarUrl: null },

@@ -26,7 +26,20 @@ export const workTools = [
 
 export type GoClient = Pick<NimiLocalAppClient, 'agentWork' | 'activity' | 'storage' | 'integration'> & { realm: Pick<NimiLocalAppClient['realm'], 'worldCore'> };
 type WorkCall = Awaited<ReturnType<GoClient['agentWork']['listToolCalls']>>[number];
+type WorkExecution = Awaited<ReturnType<GoClient['agentWork']['get']>>;
 export type Pending = { workId: string; question: string; request: PendingRequest; change?: { world: RealmModel<'WorldCoreDto'>; summary: string } };
+
+// @nimi-authority: rule.nimi.nimigo.workbench.delivery
+function recordExecutionOutput(work: Work, execution: WorkExecution): void {
+  if (execution.state !== 'succeeded' || !execution.outputText) return;
+  const message: WorkMessage = { messageId: `${execution.executionId}:result`, executionId: execution.executionId,
+    role: 'assistant', parts: [{ kind: 'text', text: execution.outputText }] };
+  const messages = [...(work.messages || [])];
+  const index = messages.findIndex(value => value.messageId === message.messageId);
+  if (index < 0) messages.push(message);
+  else messages[index] = message;
+  work.messages = messages;
+}
 
 // Only exact input/admission refusals prove Start did not accept the work.
 // A typed error may instead arise while decoding an already returned reply.
@@ -122,18 +135,21 @@ export class GoEngine {
           if (work.status === 'needs-input') { await this.restoreQuestion(work); continue; }
           const reference = this.agents.find(a => a.agentBinding === attempt?.agentBinding);
           let restored: 'complete' | 'review' | 'failed' | 'stopped' | 'uncertain' = 'uncertain';
+          let observedExecution: WorkExecution | undefined;
           if (attempt?.executionId && reference) {
             try {
               const execution = await this.client.agentWork.get({ agentHandle: reference.agentHandle, executionId: attempt.executionId });
+              observedExecution = execution;
               restored = execution.state === 'succeeded' ? deliveredWorkStatus(work, execution.executionId) : execution.state === 'failed' ? 'failed' : execution.state === 'cancelled' ? 'stopped' : 'uncertain';
             } catch { /* The work remains explicitly uncertain until the owner can be observed. */ }
           }
           if (work.question && (restored === 'complete' || restored === 'review')) {
-            await this.modifyWork(work.id, w => { w.attempts.at(-1)!.status = 'complete'; });
+            await this.modifyWork(work.id, w => { w.attempts.at(-1)!.status = 'complete'; if (observedExecution) recordExecutionOutput(w, observedExecution); });
             await this.restoreQuestion(this.getWork(work.id));
             continue;
           }
           await this.modifyWork(work.id, w => {
+            if (observedExecution) recordExecutionOutput(w, observedExecution);
             w.status = work.status === 'queued' && restored !== 'uncertain' ? 'draft' : restored;
             // An unconfirmed round keeps its typed question until it is checked.
             if (restored !== 'uncertain') { w.question = undefined; w.pendingRequest = undefined; }
@@ -394,7 +410,7 @@ export class GoEngine {
           await this.modifyWork(workId, w => {
             w.status = status;
             w.attempts.find(a => a.id === attempt.id)!.status = execution.state === 'succeeded' ? 'complete' : status;
-            if (execution.state === 'succeeded' && execution.outputText) w.messages = [...(w.messages || []), { messageId: `${execution.executionId}:result`, executionId: execution.executionId, role: 'assistant', parts: [{ kind: 'text', text: execution.outputText }] }];
+            recordExecutionOutput(w, execution);
             w.error = execution.state === 'failed' || (execution.state === 'cancelled' && execution.message) ? errorText({ message: execution.message, reasonCode: execution.reasonCode }) : status === 'review' ? '本轮已结束，但尚未保存满足目标的新成果。' : undefined;
             if (execution.state === 'failed') w.errorReason = errorReasonOf(execution);
           }, check);
@@ -486,18 +502,32 @@ export class GoEngine {
   }
   async refreshWorkStatus(workId: string): Promise<boolean> {
     const work = this.getWork(workId); const attempt = work.attempts.at(-1);
+    const epoch = this.runEpoch;
+    const check = () => {
+      if (!this.ready || epoch !== this.runEpoch || this.getWork(workId).attempts.at(-1)?.id !== attempt?.id) throw new Error('本轮执行范围已经变化，请核对当前执行结果。');
+    };
     await this.refreshAgents();
+    check();
     const ref = this.agents.find(a => a.agentBinding === attempt?.agentBinding);
     if (!attempt?.executionId || !ref) throw new Error('无法定位这项工作的独立执行记录；资料和成果仍保留。');
     const execution = await this.client.agentWork.get({ agentHandle: ref.agentHandle, executionId: attempt.executionId });
+    check();
     if (execution.state === 'running' || execution.state === 'waiting_tool') return false;
     if (execution.state === 'succeeded' && work.question) {
-      await this.modifyWork(workId, w => { w.attempts.find(a => a.id === attempt.id)!.status = 'complete'; });
+      await this.modifyWork(workId, w => { w.attempts.find(a => a.id === attempt.id)!.status = 'complete'; recordExecutionOutput(w, execution); }, check);
+      await this.hydrate(workId);
       await this.restoreQuestion(this.getWork(workId));
       return true;
     }
-    const status = execution.state === 'succeeded' ? deliveredWorkStatus(work, execution.executionId) : execution.state === 'cancelled' ? 'stopped' : 'failed';
-    await this.modifyWork(workId, w => { w.status = status; w.question = undefined; w.pendingRequest = undefined; w.attempts.find(a => a.id === attempt.id)!.status = status; w.error = execution.state === 'failed' ? execution.message || execution.reasonCode : undefined; if (execution.state === 'failed') w.errorReason = errorReasonOf(execution); });
+    await this.modifyWork(workId, w => {
+      const status = execution.state === 'succeeded' ? deliveredWorkStatus(w, execution.executionId) : execution.state === 'cancelled' ? 'stopped' : 'failed';
+      recordExecutionOutput(w, execution);
+      w.status = status; w.question = undefined; w.pendingRequest = undefined;
+      w.attempts.find(a => a.id === attempt.id)!.status = execution.state === 'succeeded' ? 'complete' : status;
+      w.error = execution.state === 'failed' || execution.state === 'cancelled' && execution.message ? errorText(execution) : status === 'review' ? '本轮已结束，但尚未保存满足目标的新成果。' : undefined;
+      if (execution.state === 'failed') w.errorReason = errorReasonOf(execution);
+    }, check);
+    await this.hydrate(workId);
     return true;
   }
   async stop(workId: string) {
@@ -538,12 +568,30 @@ export class GoEngine {
       if (!recorded || (recorded.executionId && recorded.executionId !== attempt.executionId)) return;
       if (!execution && !['running', 'uncertain'].includes(recorded.status)) return;
       recorded.executionId = attempt.executionId;
+      if (execution) recordExecutionOutput(work, execution);
       recorded.status = execution?.state === 'cancelled' ? 'stopped' : execution?.state === 'succeeded' ? 'complete' : execution?.state === 'failed' ? 'failed' : 'uncertain';
       recorded.error = failure;
       if (work.attempts.at(-1)?.id !== attempt.id || work.status !== 'uncertain' || work.queuedInput) return;
       work.status = execution?.state === 'succeeded' ? deliveredWorkStatus(work, execution.executionId) : recorded.status;
       work.error = failure || (execution?.state === 'failed' ? execution.message || execution.reasonCode : work.status === 'review' ? '这轮已在取消前结束，但尚未保存满足目标的新成果。' : undefined);
     });
+    await this.hydrate(workId);
+  }
+  async saveReply(workId: string) {
+    const work = this.getWork(workId);
+    const attempt = work.attempts.at(-1);
+    const executionId = attempt?.executionId;
+    const reply = (work.messages || []).find(message => message.role === 'assistant' && message.executionId === executionId);
+    if (!attempt || !executionId || !reply) throw new Error('本轮没有可保存的完整业务回复，请先核对执行结果。');
+    const epoch = this.runEpoch;
+    const check = () => {
+      if (!this.ready || epoch !== this.runEpoch || this.getWork(workId).attempts.at(-1)?.id !== attempt.id || this.getWork(workId).status !== 'review') throw new Error('待交付执行已经变化，请核对当前结果。');
+    };
+    const saved = await this.saveDeliverable(workId, work.title, reply.parts.map(part => part.text).join('\n'), 'user', undefined, '', check);
+    await this.modifyWork(workId, w => {
+      w.deliverables.find(doc => doc.id === saved.deliverableId)!.revisions.find(revision => revision.id === saved.revision)!.executionId = executionId;
+      w.status = 'complete'; w.error = undefined;
+    }, check);
   }
   async publish(workId: string, check?: () => void) {
     check?.();

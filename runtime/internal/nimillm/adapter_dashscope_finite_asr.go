@@ -56,19 +56,19 @@ func executeDashScopeFiniteASR(ctx context.Context, cfg MediaAdapterConfig, req 
 	config.Header.Set("Authorization", "Bearer "+key)
 	ctx, cancel := context.WithTimeout(ctx, time.Duration(duration*float64(time.Second))+90*time.Second)
 	defer cancel()
-	connection, err := dialProviderWebSocket(ctx, config, cfg.AllowLoopbackEndpoint)
+	connection, transport, err := dialProviderWebSocket(ctx, config, cfg.AllowLoopbackEndpoint)
 	if err != nil {
 		if ctx.Err() != nil {
 			return nil, nil, "", ctx.Err()
 		}
 		return nil, nil, "", MapProviderRequestError(err)
 	}
-	defer func() { _ = connection.Close() }()
+	defer func() { _ = transport.Close() }()
 	connection.MaxPayloadBytes = localexecution.MaxSpeechTranscriptBytes + 65536
 	if deadline, ok := ctx.Deadline(); ok {
 		_ = connection.SetDeadline(deadline)
 	}
-	stopClose := context.AfterFunc(ctx, func() { _ = connection.Close() })
+	stopClose := context.AfterFunc(ctx, func() { _ = transport.Close() })
 	defer stopClose()
 	var uuid [16]byte
 	if _, err := rand.Read(uuid[:]); err != nil {
@@ -106,10 +106,10 @@ func executeDashScopeFiniteASR(ctx context.Context, cfg MediaAdapterConfig, req 
 		err := sendFiniteASRAudio(connection, audio, taskID, &finishRequested)
 		sendResult <- err
 		if err != nil {
-			_ = connection.Close()
+			_ = transport.Close()
 		}
 	}()
-	defer func() { _ = connection.Close(); <-sendDone }()
+	defer func() { _ = transport.Close(); <-sendDone }()
 	result := &runtimev1.SpeechTranscript{Status: runtimev1.SpeechTranscriptStatus_SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED}
 	var sentences []string
 	var textBytes int

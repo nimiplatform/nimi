@@ -80,7 +80,7 @@ export function createGoWorkspaceHost(options: { windowOpen: () => boolean; open
     'nimigo.work.archive': command((value, a) => value.modifyWork(text(a[0]), w => { if (['running', 'queued'].includes(w.status)) throw new Error('先停止工作再归档'); w.archived = !w.archived; })),
     'nimigo.work.step': command((value, a) => value.modifyWork(text(a[0]), w => { const step = w.steps.find(s => s.id === a[1]); if (!step) throw new Error('步骤不存在'); step.done = a[2] === true; })),
     'nimigo.project.source': command((value, a) => value.modifyWorkspace(w => { const project = w.projects.find(p => p.id === a[0]); if (!project) throw new Error('项目不存在'); project.sourceRef = text(a[1]) || undefined; })),
-    'nimigo.work.save-reply': command(async (value, a) => { const work = value.getWork(text(a[0])); const reply = [...(work.messages || [])].reverse().find(message => message.role === 'assistant'); if (!reply) throw new Error('没有完整的业务回复'); await value.saveDeliverable(work.id, work.title, reply.parts.map(part => part.text).join('\n'), 'user'); await value.modifyWork(work.id, w => { w.status = 'complete'; w.error = undefined; }); }),
+    'nimigo.work.save-reply': command((value, a) => value.saveReply(text(a[0]))),
   };
   return { handlers, windowClosed: () => { notify = undefined; engine?.windowClosed(); }, bind: (value: NimiElectronAppBusinessServices) => { services = value; }, invalidate: () => { generation++; notify = undefined; unsubscribe?.(); unsubscribe = undefined; engine?.dispose(); engine = undefined; projection = undefined; services = undefined; } };
 }

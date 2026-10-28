@@ -67,6 +67,22 @@ func TestRealtimeUsesCapturedConnectionOriginAndProxyPrefix(t *testing.T) {
 	}
 }
 
+func TestRealtimePreservesEscapedProxyPrefix(t *testing.T) {
+	transport := capabilitydriver.CloudRealtimeTransport{BasePath: "/v1", Path: "/v1/realtime", ModelQuery: true}
+	for _, path := range []string{"/gateway%2Ftenant", "/gateway%2ftenant", "/percent%25tenant", "/ordinary"} {
+		for _, suffix := range []string{"/v1", "/v1/", ""} {
+			got, err := materializeRealtimeEndpoint("https://proxy.example"+path+suffix+"?scope=a%2Fb", transport, "model")
+			if err != nil {
+				t.Fatal(err)
+			}
+			u, err := url.Parse(got)
+			if err != nil || u.RequestURI() != path+"/v1/realtime?model=model&scope=a%2Fb" {
+				t.Fatalf("proxy request-target changed: %s (%v)", got, err)
+			}
+		}
+	}
+}
+
 func TestRealtimeStalledWriterIsReleasedByCancelOrClose(t *testing.T) {
 	for _, action := range []string{"cancel", "close"} {
 		t.Run(action, func(t *testing.T) {

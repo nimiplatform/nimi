@@ -695,6 +695,10 @@ func bindLocalAppSessionInvalidation(ctx context.Context, invalidated <-chan str
 // resource-owner commit. Exact operation admission is revalidated first;
 // resource permission remains the caller owner's responsibility.
 func (s *Service) CommitLocalAppIngress(ctx context.Context, ingress localappop.Ingress, commit func(context.Context) error) error {
+	// The admission listener belongs to this short commit, not the potentially
+	// long-lived caller context. Release it on every return, including refusal.
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	authorized, err := s.AuthorizeLocalAppIngress(ctx, ingress)
 	if err != nil {
 		return err

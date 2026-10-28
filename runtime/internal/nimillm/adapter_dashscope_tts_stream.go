@@ -94,11 +94,11 @@ func (b *Backend) streamDashScopeRealtimeTTS(
 	}
 	config.Header.Set("Authorization", "Bearer "+apiKey)
 
-	connection, err := dialProviderWebSocket(ctx, config, b.allowLoopbackEndpoint)
+	connection, transport, err := dialProviderWebSocket(ctx, config, b.allowLoopbackEndpoint)
 	if err != nil {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, MapProviderRequestError(err)
 	}
-	defer func() { _ = connection.Close() }()
+	defer func() { _ = transport.Close() }()
 	if deadline, ok := ctx.Deadline(); ok {
 		_ = connection.SetDeadline(deadline)
 	}
@@ -106,7 +106,7 @@ func (b *Backend) streamDashScopeRealtimeTTS(
 	go func() {
 		select {
 		case <-ctx.Done():
-			_ = connection.Close()
+			_ = transport.Close()
 		case <-done:
 		}
 	}()
