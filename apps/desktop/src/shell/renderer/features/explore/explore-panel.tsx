@@ -12,7 +12,7 @@ import { characterSourceRefKey } from '../realm-source/realm-source-identity.js'
 import { readCharacterCatalog } from './character-catalog-data.js';
 import { createRealmWorldData } from '../world/data/realm-world-data.js';
 import { WorldCatalogContent, type WorldCatalogPaging } from '../world/world-list.js';
-import { WorldAtlasPeople, WorldAtlasTopics } from '../world/world-atlas-data.js';
+import { useWorldAtlasLeadWorlds, WorldAtlasPeople } from '../world/world-atlas-data.js';
 import { WORLD_CATALOG_CONTRACT_VERSION, fetchWorldCatalogPage, worldCatalogQueryKey } from '../world/world-detail-queries.js';
 import { useWorldFavorites } from '../world/use-world-favorites.js';
 import { PartnerDirectory } from '../agents/partner-directory.js';
@@ -65,6 +65,7 @@ function WorldDiscovery() {
     loadingMore: catalog.query.isFetchingNextPage, loadMoreFailed: catalog.query.isFetchNextPageError,
     offlineIncomplete: catalog.offline && Boolean(catalog.query.data), onLoadMore: () => { void catalog.query.fetchNextPage(); } };
   const source = { data: realmWorldData, realmBaseUrl, enabled: bootstrapReady, offline: networkOffline };
+  const spotlight = useWorldAtlasLeadWorlds({ ...source, enabled: bootstrapReady && !favoritesSelected && !topicId && !worldSearchText.trim() });
   const renderPeople = (world: (typeof worlds)[number]) => <WorldAtlasPeople world={world} source={source} />;
   return <WorldCatalogContent embedded favorites={favoritesSelected}
     onFavoritesSelect={() => { void navigation.replace({ ...destination, worldTopicId: undefined, worldCollection: 'favorites' }); }}
@@ -72,9 +73,10 @@ function WorldDiscovery() {
     loading={favoritesSelected ? favorites.loading : catalog.initialLoading} error={favoritesSelected ? favorites.error : catalog.initialUnavailable}
     offline={favoritesSelected ? favorites.offline : catalog.offline} onRetry={() => { if (favoritesSelected) favorites.retry(); else void catalog.query.refetch(); }}
     worlds={favoritesSelected ? favorites.worlds : worlds}
+    leadWorlds={spotlight.worlds} spotlightLoading={spotlight.loading} spotlightError={spotlight.error} onRetrySpotlight={spotlight.retry}
     paging={favoritesSelected ? { totalCount: favorites.worlds.length, hasMore: false, loadingMore: false, loadMoreFailed: false, offlineIncomplete: favorites.offline && favorites.worlds.length > 0, onLoadMore() {} } : paging}
     topics={topics.data ?? []} topicId={topicId} onTopicChange={setTopic} topicsFailed={topics.isError} onRetryTopics={() => { void topics.refetch(); }}
-    topicShelves={<WorldAtlasTopics topics={topics.data ?? []} source={source} onSelect={setTopic} renderPeople={renderPeople} />} renderPeople={renderPeople}
+    renderPeople={renderPeople}
     searchQuery={worldSearchText} onSearchQueryChange={worldSearch => { void navigation.replace({ ...destination, worldSearch }); }} />;
 }
 

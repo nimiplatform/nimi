@@ -1,9 +1,9 @@
 import { MediaImage } from '@nimiplatform/kit/features/media';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
-import { isMainWorld, type WorldListItem } from './world-list-model.js';
+import type { WorldListItem } from './world-list-model.js';
 
 export type WorldAtlasTopic = { id: string; title: string; titleEn: string; description?: string };
 export type WorldPeopleRenderer = (world: WorldListItem) => ReactNode;
@@ -30,20 +30,35 @@ export function WorldAlbumCard({ world, renderPeople, viewKey }: { world: WorldL
   </article>;
 }
 
+// @nimi-authority: rule.nimi.desktop.product-surfaces.r003
+export function WorldDiscoveryCard({ world, featured = false }: { world: WorldListItem; featured?: boolean }) {
+  const { t } = useTranslation();
+  const navigation = useHomeNavigation();
+  const summary = world.tagline || world.description;
+  return <article className={`world-discovery-card${featured ? ' world-discovery-card-featured' : ''}`} data-testid={featured ? 'world-featured-card' : 'world-discovery-card'}>
+    <button className="world-discovery-link" data-view-key={`${featured ? 'featured' : 'all'}:${world.id}`} aria-label={t('WorldDetail.discovery.enterNamedWorld', { name: world.name })} onClick={() => void navigation.push({ id: 'world-detail', worldId: world.id })}>
+      <WorldAtlasImage world={world} eager={featured} />
+      <div className="world-discovery-caption">
+        <div className="world-discovery-copy"><h3 title={world.name}>{world.name}</h3>{summary ? <p>{summary}</p> : null}</div>
+        <span className="world-discovery-arrow" aria-hidden="true"><ArrowRight size={18} /></span>
+      </div>
+    </button>
+  </article>;
+}
+
 export function WorldAtlasHero({ worlds }: { worlds: WorldListItem[] }) {
   const { t } = useTranslation();
   const navigation = useHomeNavigation();
-  const candidates = worlds.filter((world) => !isMainWorld(world) && (world.heroMedia || world.bannerMedia || world.bannerUrl)).slice(0, 5);
   const [index, setIndex] = useState(0);
-  const position = index % (candidates.length || 1);
-  const world = candidates[position];
+  const position = index % (worlds.length || 1);
+  const world = worlds[position];
   if (!world) return null;
   const openWorld = () => void navigation.push({ id: 'world-detail', worldId: world.id });
   const openLabel = t('World.album.showWorld', { name: world.name });
-  return <section className="world-atlas-hero" aria-label={t('World.album.spotlight')} aria-roledescription={t('World.album.carousel')}>
+  return <section className="world-atlas-hero" data-world-id={world.id} aria-label={t('World.album.spotlight')} aria-roledescription={t('World.album.carousel')}>
     <div className="world-atlas-hero-art"><button className="world-atlas-hero-open" aria-label={openLabel} onClick={openWorld}><WorldAtlasImage key={world.id} world={world} eager /></button>
-      <div className="world-atlas-hero-progress"><span>{String(position + 1).padStart(2, '0')} / {String(candidates.length).padStart(2, '0')}</span>
-        <div className="world-atlas-hero-dots">{candidates.map((item, itemIndex) => <button key={item.id} aria-label={t('World.album.showWorld', { name: item.name })} aria-current={position === itemIndex ? 'true' : undefined} onClick={() => setIndex(itemIndex)}><span /></button>)}</div>
+      <div className="world-atlas-hero-progress"><span>{String(position + 1).padStart(2, '0')} / {String(worlds.length).padStart(2, '0')}</span>
+        <div className="world-atlas-hero-dots">{worlds.map((item, itemIndex) => <button key={item.id} aria-label={t('World.album.showWorld', { name: item.name })} aria-current={position === itemIndex ? 'true' : undefined} onClick={() => setIndex(itemIndex)}><span /></button>)}</div>
       </div>
     </div>
     <div className="world-atlas-hero-copy" aria-live="polite">
@@ -53,29 +68,7 @@ export function WorldAtlasHero({ worlds }: { worlds: WorldListItem[] }) {
         <p className="world-atlas-meta">{[world.genre, world.era, t('WorldDetail.discovery.peopleCount', { count: world.characterCount + world.personaCharacterCount })].filter(Boolean).join(' · ')}</p>
         <p className="world-atlas-description">{world.tagline || world.description}</p>
       </button>
-      {candidates.length > 1 ? <div className="world-atlas-hero-actions"><div className="world-atlas-arrows"><button aria-label={t('World.album.previous')} onClick={() => setIndex((position + candidates.length - 1) % candidates.length)}><ChevronLeft size={20} /></button><button aria-label={t('World.album.next')} onClick={() => setIndex((position + 1) % candidates.length)}><ChevronRight size={20} /></button></div></div> : null}
+      {worlds.length > 1 ? <div className="world-atlas-hero-actions"><div className="world-atlas-arrows"><button aria-label={t('World.album.previous')} onClick={() => setIndex((position + worlds.length - 1) % worlds.length)}><ChevronLeft size={20} /></button><button aria-label={t('World.album.next')} onClick={() => setIndex((position + 1) % worlds.length)}><ChevronRight size={20} /></button></div></div> : null}
     </div>
-  </section>;
-}
-
-export function WorldTopicShelf({ topic, worlds, onSelect, renderPeople }: { topic: WorldAtlasTopic; worlds: WorldListItem[]; onSelect: () => void; renderPeople?: WorldPeopleRenderer }) {
-  const { t, i18n } = useTranslation();
-  const track = useRef<HTMLDivElement>(null);
-  const [edges, setEdges] = useState({ start: true, end: false });
-  const title = i18n.language.startsWith('zh') ? topic.title : topic.titleEn;
-  const updateEdges = () => { const node = track.current; if (node) setEdges({ start: node.scrollLeft < 2, end: node.scrollLeft + node.clientWidth >= node.scrollWidth - 2 }); };
-  useEffect(() => {
-    updateEdges();
-    const node = track.current;
-    if (!node) return;
-    const observer = new ResizeObserver(updateEdges);
-    observer.observe(node);
-    return () => observer.disconnect();
-  }, [worlds]);
-  return <section className="world-atlas-section" aria-label={title}>
-    <div className="world-atlas-section-heading"><div><h2>{title}</h2></div><button onClick={onSelect}>{t('World.album.viewAll')}</button></div>
-    <div className="world-atlas-shelf"><div className="world-atlas-track" ref={track} onScroll={updateEdges}>
-      {worlds.map((world) => <WorldAlbumCard key={world.id} world={world} renderPeople={renderPeople} viewKey={`shelf:${topic.id}:${world.id}`} />)}
-    </div>{worlds.length > 1 ? <div className="world-atlas-shelf-controls"><button disabled={edges.start} aria-label={t('World.album.previousTopic', { topic: title })} onClick={() => track.current?.scrollBy({ left: -track.current.clientWidth })}><ChevronLeft size={18} /></button><button aria-label={t('World.album.nextTopic', { topic: title })} disabled={edges.end} onClick={() => track.current?.scrollBy({ left: track.current.clientWidth })}><ChevronRight size={18} /></button></div> : null}</div>
   </section>;
 }
