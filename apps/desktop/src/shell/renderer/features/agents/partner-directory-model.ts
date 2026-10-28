@@ -5,6 +5,7 @@ import type { CharacterSourceRefV3 } from '../realm-source/realm-source-identity
 
 export type PartnerDirectoryItem = Readonly<{
   localAgentRef: string;
+  runtimeSourceRef: string;
   displayName: string;
   lifecycle: AgentLifecycleStatus;
   createdAt: string | null;
@@ -28,7 +29,7 @@ export function projectPartnerRecord(record: LocalAgentRecord, accountId: string
     } catch { /* Invalid optional provenance must not hide an owner inventory row. */ }
   }
   const createdAtMs = record.createdAt ? Number(record.createdAt.seconds) * 1000 + record.createdAt.nanos / 1e6 : NaN;
-  return { localAgentRef: record.localAgentRef, displayName: record.displayName,
+  return { localAgentRef: record.localAgentRef, runtimeSourceRef: record.runtimeSourceRef, displayName: record.displayName,
     lifecycle: record.lifecycleStatus, createdAt: Number.isFinite(createdAtMs) ? new Date(createdAtMs).toISOString() : null,
     sourceRef, sourceReady };
 }

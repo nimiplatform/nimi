@@ -347,5 +347,6 @@ export async function resolveCurrentPartnerSource(realm: Realm, captured: Charac
       : current.kind === 'worldCharacter' && captured.kind === 'worldCharacter' && current.worldEntityRef.entityId === captured.worldEntityRef.entityId);
   if (!matches || !current) throw new Error('Current character identity no longer matches this partner source.');
   const card = await loadPublicSourceCard(realm, current);
-  return { sourceRef: current, displayName: card.displayName, worldName: card.worldName, updated: current.sourceHash !== captured.sourceHash };
+  return { sourceRef: current, displayName: card.displayName, worldName: card.worldName,
+    summary: card.summary, media: card.media, updated: current.sourceHash !== captured.sourceHash };
 }

@@ -3108,7 +3108,8 @@
   "partners": {
     "title": "My partners",
     "scope": "Current account · this device",
-    "search": "Search loaded partners",
+    "search": "Find a partner",
+    "searchPartial": "Searching visible partners. Load more to keep looking.",
     "signIn": "Sign in to view partners on this device",
     "loadFailed": "Partners could not be read. Visible results may be incomplete.",
     "unnamed": "Unnamed partner",
@@ -3152,6 +3153,45 @@
     "createAnotherHelp": "Create an independent partner from the character’s current settings. Existing partners, conversations, and memory remain.",
     "confirmCreate": "Create partner",
     "details": "Partner details",
-    "peoplePartial": "The character directory has not fully loaded yet. Loaded characters remain visible."
+    "peoplePartial": "The character directory has not fully loaded yet. Loaded characters remain visible.",
+    "gallery": {
+      "subtitle": "The characters you have met, and the stories you continue together",
+      "featured": "Recent partners",
+      "carousel": "Carousel",
+      "collection": "Partner collection",
+      "fromWorld": "From {{name}}",
+      "invitation": "Every encounter can be the beginning of a new story.",
+      "noPortrait": "No portrait yet",
+      "more": "More actions for {{name}}",
+      "viewDetails": "View profile",
+      "viewPartner": "View {{name}}",
+      "chooseFeatured": "Choose a featured partner",
+      "showFeatured": "Show {{name}}",
+      "previous": "Previous partner",
+      "next": "Next partner",
+      "filterLabel": "Filter partners",
+      "filters": {
+        "all": "All",
+        "world": "From worlds",
+        "recent": "Recent chats",
+        "created": "My creations"
+      },
+      "sortLabel": "Sort partners",
+      "sort": {
+        "newest": "Newest first",
+        "oldest": "Oldest first",
+        "name": "By name"
+      },
+      "recentLoading": "Loading recent chats…",
+      "recentFailed": "Some chat records could not be read. These results may be incomplete.",
+      "empty": {
+        "all": "No matching partners yet",
+        "world": "No world characters among loaded partners",
+        "recent": "No chat history among loaded partners",
+        "created": "No characters you authored among loaded partners"
+      },
+      "showAll": "View all partners",
+      "back": "Back to partners"
+    }
   }
 }

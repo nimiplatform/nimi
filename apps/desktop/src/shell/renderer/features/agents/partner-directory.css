@@ -1,0 +1,40 @@
+.partner-directory-sidebar {
+  background: color-mix(in srgb, var(--nimi-sidebar-canvas) 72%, transparent);
+  border-color: color-mix(in srgb, var(--nimi-border-subtle) 60%, transparent);
+}
+.partner-directory-header { padding: 22px 18px 16px; }
+.partner-directory-header h1 { margin-bottom: 18px; font-size: 18px; line-height: 1.4; font-weight: 650; }
+.partner-directory-search { font-size: 13px; }
+.partner-directory-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 80px;
+  gap: 12px;
+  padding: 12px 10px;
+  border-radius: 16px;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+.partner-directory-row:hover { background: color-mix(in srgb, var(--nimi-surface-card) 80%, transparent); }
+.partner-directory-row[aria-current] { background: var(--nimi-surface-active); }
+.partner-directory-row:focus-visible { outline: 2px solid var(--nimi-focus-ring-color); outline-offset: -2px; }
+.partner-directory-avatar {
+  display: block;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--nimi-surface-panel);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--nimi-border-subtle) 60%, transparent);
+}
+.partner-avatar-fallback { display: grid; width: 100%; height: 100%; place-items: center; color: var(--nimi-text-secondary); background: var(--nimi-surface-active); font-size: 18px; }
+.partner-directory-copy { min-width: 0; flex: 1; }
+.partner-directory-name { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; line-height: 1.6; font-weight: 600; }
+.partner-directory-description { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 3px; color: var(--nimi-text-secondary); font-size: 12px; line-height: 1.6; }
+.partner-directory-status { white-space: normal; }
+.partner-directory-chevron { flex-shrink: 0; color: var(--nimi-text-secondary); opacity: 0; }
+.partner-directory-row:hover .partner-directory-chevron, .partner-directory-row:focus-visible .partner-directory-chevron, .partner-directory-row[aria-current] .partner-directory-chevron { opacity: 1; }
+@media (prefers-reduced-motion: reduce) { .partner-directory-row { transition: none; } }

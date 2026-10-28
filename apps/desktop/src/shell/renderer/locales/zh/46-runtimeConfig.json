@@ -3108,7 +3108,8 @@
   "partners": {
     "title": "我的伙伴",
     "scope": "当前账户 · 此设备",
-    "search": "在已加载伙伴中搜索",
+    "search": "找一位伙伴",
+    "searchPartial": "当前搜索已显示的伙伴，加载更多可继续查找。",
     "signIn": "登录后查看此设备的伙伴",
     "loadFailed": "伙伴列表暂时无法读取，当前显示的内容可能不完整。",
     "unnamed": "未命名伙伴",
@@ -3152,6 +3153,45 @@
     "createAnotherHelp": "使用角色的当前设定创建独立伙伴。已有伙伴及其对话和记忆会保留。",
     "confirmCreate": "确认创建",
     "details": "伙伴详情",
-    "peoplePartial": "人物目录尚未完整加载，已显示的内容仍可查看。"
+    "peoplePartial": "人物目录尚未完整加载，已显示的内容仍可查看。",
+    "gallery": {
+      "subtitle": "那些与你相遇，并愿意继续同行的角色",
+      "featured": "最近的伙伴",
+      "carousel": "轮播",
+      "collection": "伙伴收藏",
+      "fromWorld": "来自 {{name}}",
+      "invitation": "每一次相遇，都可以成为新的故事。",
+      "noPortrait": "暂无形象",
+      "more": "更多操作：{{name}}",
+      "viewDetails": "查看资料",
+      "viewPartner": "查看{{name}}",
+      "chooseFeatured": "切换横幅伙伴",
+      "showFeatured": "展示{{name}}",
+      "previous": "上一位伙伴",
+      "next": "下一位伙伴",
+      "filterLabel": "筛选伙伴",
+      "filters": {
+        "all": "全部",
+        "world": "来自世界",
+        "recent": "最近聊天",
+        "created": "我创建的"
+      },
+      "sortLabel": "伙伴排序",
+      "sort": {
+        "newest": "最近创建",
+        "oldest": "最早创建",
+        "name": "按名称"
+      },
+      "recentLoading": "正在读取最近聊天…",
+      "recentFailed": "部分聊天记录暂时无法读取，结果可能不完整。",
+      "empty": {
+        "all": "还没有符合条件的伙伴",
+        "world": "已加载的伙伴中还没有世界角色",
+        "recent": "已加载的伙伴中还没有聊天记录",
+        "created": "已加载的伙伴中还没有你创作的角色"
+      },
+      "showAll": "查看全部伙伴",
+      "back": "返回伙伴总览"
+    }
   }
 }
