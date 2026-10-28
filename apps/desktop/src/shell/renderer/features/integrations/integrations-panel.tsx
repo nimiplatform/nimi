@@ -575,7 +575,7 @@ export function IntegrationsPanel({
   };
   return (
     <div
-      className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 px-3 pb-3 pt-2 lg:flex-row"
+      className="desktop-module-workspace px-3 pb-3 pt-2"
       data-testid="integrations-panel"
     >
       <IntegrationSidebar
@@ -593,14 +593,14 @@ export function IntegrationsPanel({
       >
         <ScrollArea
           className="min-h-0 flex-1"
-          viewportClassName="bg-transparent"
-          contentClassName="px-5 py-6 sm:px-7"
+          viewportClassName="[&>div]:!block"
+          contentClassName="desktop-module-content"
         >
-          <header className="flex flex-wrap items-center justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-4">
-              <IntegrationServiceIcon kind={service} large />
+          <header className="desktop-module-header">
+            <div className="flex min-w-0 flex-1 basis-64 items-start gap-3">
+              <IntegrationServiceIcon kind={service} large className="desktop-module-header-icon [&>img]:size-7" />
               <div className="min-w-0">
-                <h1 className="text-2xl font-semibold">
+                <h1 className="desktop-module-title">
                   {allCalls
                     ? t('Integrations.allCalls')
                     : allPermissions
@@ -664,7 +664,7 @@ export function IntegrationsPanel({
               </Button>
             </div>
           </header>
-          <div className="mt-4 space-y-3" aria-live="polite">
+          <div className="space-y-3 not-empty:mt-4" aria-live="polite">
             {error ? <InlineAlert tone="warning">{error}</InlineAlert> : null}
             {notice ? <InlineAlert tone="info">{notice}</InlineAlert> : null}
             {target && !target.available && tab !== 'settings' ? (
@@ -680,7 +680,7 @@ export function IntegrationsPanel({
           </div>
           {!allCalls && !allPermissions ? (
             <div
-              className="mt-5 flex gap-6 border-b border-[var(--nimi-border-subtle)]"
+              className="mt-4 flex gap-4 border-b border-[var(--nimi-border-subtle)]"
               role="tablist"
               aria-label={t('Integrations.title')}
             >
@@ -722,9 +722,11 @@ export function IntegrationsPanel({
               ))}
             </div>
           ) : null}
-          <div
+          <Surface
+            tone="card"
+            padding="none"
             id="integration-content"
-            className="mt-6"
+            className="desktop-module-card mt-4"
             role={!allCalls && !allPermissions ? 'tabpanel' : undefined}
             aria-labelledby={!allCalls && !allPermissions ? `integration-tab-${tab}` : undefined}
           >
@@ -824,7 +826,7 @@ export function IntegrationsPanel({
                 onRevoke={revokePermission}
               />
             )}
-          </div>
+          </Surface>
         </ScrollArea>
       </Surface>
       <OverlayShell

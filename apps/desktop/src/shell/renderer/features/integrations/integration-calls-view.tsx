@@ -45,7 +45,7 @@ export function IntegrationCallsView({
     <section data-testid="integration-calls">
       {!global ? (
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <h2 className="text-xl font-semibold">{t('Integrations.usageRecords')}</h2>
+          <h2 className="desktop-module-section-title">{t('Integrations.usageRecords')}</h2>
           <Button
             tone="secondary"
             size="sm"

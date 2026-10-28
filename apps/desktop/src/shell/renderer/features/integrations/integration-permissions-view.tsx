@@ -37,7 +37,7 @@ export function IntegrationPermissionsView({
     <section data-testid="integration-permissions">
       {!all ? (
         <div className="flex flex-wrap items-start justify-between gap-3">
-          <h2 className="text-xl font-semibold">{t('Integrations.authorizedApps')}</h2>
+          <h2 className="desktop-module-section-title">{t('Integrations.authorizedApps')}</h2>
           {target ? (
             <Button
               tone="primary"
@@ -55,7 +55,7 @@ export function IntegrationPermissionsView({
         <p className="mt-4 text-sm text-[var(--nimi-text-secondary)]">{t('Integrations.noEligibleApps')}</p>
       ) : null}
       {permissions.length ? (
-        <div className="mt-5 overflow-x-auto rounded-xl border border-[var(--nimi-border-subtle)]">
+        <div className="mt-4 overflow-x-auto rounded-xl border border-[var(--nimi-border-subtle)]">
           <table className="w-full text-left text-sm">
             <thead className="bg-[color-mix(in_srgb,var(--nimi-surface-active)_45%,transparent)] text-xs text-[var(--nimi-text-secondary)]">
               <tr>

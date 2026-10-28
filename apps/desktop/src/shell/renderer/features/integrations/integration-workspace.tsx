@@ -1,5 +1,6 @@
 import { Blocks, Clock3, KeyRound, SearchX } from 'lucide-react';
-import { Button, ScrollArea, SearchField, SidebarShell } from '@nimiplatform/kit/ui';
+import { Button, ScrollArea, SearchField } from '@nimiplatform/kit/ui';
+import { DesktopModuleSidebar } from '../../components/desktop-module-sidebar.js';
 import { useTranslation } from 'react-i18next';
 import { useState } from 'react';
 import type { NimiIntegrationTarget } from '@nimiplatform/sdk/app';
@@ -71,17 +72,14 @@ export function IntegrationSidebar({
   const visible = services.filter((kind) =>
     `${serviceLabel(kind, t)} ${kind}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()),
   );
-  const itemClass = (active: boolean) =>
-    `desktop-sidebar__row flex w-full items-center text-left focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] ${active ? 'bg-[var(--nimi-surface-active)] font-medium' : 'hover:bg-[var(--nimi-surface-hover)]'}`;
+  const itemClass = 'desktop-sidebar__row flex w-full items-center text-left font-medium';
   return (
-    <SidebarShell className="desktop-sidebar h-64 min-h-0 w-full lg:h-auto lg:w-[248px]" data-testid="integrations-sidebar">
+    <DesktopModuleSidebar label={t('Integrations.title')} selectionKey={selected} data-testid="integrations-sidebar">
       <div className="desktop-sidebar__header">
-        <div className="flex items-end justify-between gap-2">
-          <h1 className="desktop-sidebar__title font-semibold text-[var(--nimi-text-primary)]">{t('Integrations.title')}</h1>
-          <p className="pb-0.5 text-right text-xs text-[var(--nimi-text-secondary)]">
-            {t('Integrations.serviceCount', { count: services.length })}
-          </p>
-        </div>
+        <h1 className="desktop-sidebar__title font-semibold text-[var(--nimi-text-primary)]">{t('Integrations.title')}</h1>
+        <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">
+          {t('Integrations.serviceCount', { count: services.length })}
+        </p>
       </div>
       <div className="desktop-sidebar__search">
         <SearchField
@@ -95,7 +93,7 @@ export function IntegrationSidebar({
           className="min-h-10"
         />
       </div>
-      <ScrollArea className="min-h-0 flex-1" contentClassName="desktop-sidebar__body desktop-sidebar__items">
+      <ScrollArea className="min-h-0 flex-1" viewportClassName="[&>div]:!block" contentClassName="desktop-sidebar__body desktop-sidebar__items">
         {visible.map((kind) => {
           const count = targets.filter((target) => target.kind === kind).length;
           return (
@@ -105,11 +103,13 @@ export function IntegrationSidebar({
               data-testid={`integration-service-${kind}`}
               aria-pressed={selected === kind}
               disabled={disabled}
-              className={itemClass(selected === kind)}
+              className={itemClass}
+              data-active={selected === kind}
+              aria-current={selected === kind ? 'page' : undefined}
               onClick={() => onSelect(kind)}
             >
               <IntegrationServiceIcon kind={kind} className="desktop-sidebar__icon" />
-              <span className="min-w-0 flex-1 break-words">{serviceLabel(kind, t)}</span>
+              <span className="desktop-sidebar__label min-w-0 flex-1">{serviceLabel(kind, t)}</span>
               {count > 0 ? (
                 <span className="text-xs tabular-nums text-[var(--nimi-text-muted)]">{count}</span>
               ) : null}
@@ -130,7 +130,9 @@ export function IntegrationSidebar({
         <button
           type="button"
           data-testid="integration-all-permissions"
-          className={itemClass(selected === 'all-permissions')}
+          className={itemClass}
+          data-active={selected === 'all-permissions'}
+          aria-current={selected === 'all-permissions' ? 'page' : undefined}
           disabled={disabled}
           aria-pressed={selected === 'all-permissions'}
           onClick={() => onSelect('all-permissions')}
@@ -141,7 +143,9 @@ export function IntegrationSidebar({
         <button
           type="button"
           data-testid="integration-all-calls"
-          className={itemClass(selected === 'all-calls')}
+          className={itemClass}
+          data-active={selected === 'all-calls'}
+          aria-current={selected === 'all-calls' ? 'page' : undefined}
           disabled={disabled}
           aria-pressed={selected === 'all-calls'}
           onClick={() => onSelect('all-calls')}
@@ -150,6 +154,6 @@ export function IntegrationSidebar({
           {t('Integrations.allCalls')}
         </button>
       </div>
-    </SidebarShell>
+    </DesktopModuleSidebar>
   );
 }

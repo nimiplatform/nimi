@@ -41,7 +41,7 @@ export function IntegrationSettingsView({
         ? 'Integrations.verificationRequired'
         : 'Integrations.checkConnectionHelp';
   return (
-    <section data-testid="integration-settings" className="space-y-6">
+    <section data-testid="integration-settings" className="desktop-module-stack">
       {!target.available ? (
         <section
           aria-label={t('Integrations.connectionUnavailable')}
@@ -77,7 +77,7 @@ export function IntegrationSettingsView({
       ) : null}
       {target.kind !== 'app' ? (
         <section aria-labelledby="integration-management-heading">
-          <h2 id="integration-management-heading" className="text-xl font-semibold">
+          <h2 id="integration-management-heading" className="desktop-module-section-title">
             {t('Integrations.connectionManagement')}
           </h2>
           <div className="mt-2 divide-y divide-[var(--nimi-border-subtle)]">
