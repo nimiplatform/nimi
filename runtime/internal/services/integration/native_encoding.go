@@ -4,7 +4,6 @@ import (
 	"context"
 	"io"
 	"sync"
-	"time"
 )
 
 // Reserves the complete buffering/encoding envelope before reading owned
@@ -67,9 +66,6 @@ func (s *Service) admitNativeReception(f *nativeFeed) error {
 	}
 	f.mu.Unlock()
 	for _, c := range calls {
-		if !c.decision.ExpiresAt.IsZero() && !time.Now().Before(c.decision.ExpiresAt) {
-			continue
-		}
 		if s.withCallCommitLocked(c, func(context.Context) error { return nil }) == nil {
 			return nil
 		}

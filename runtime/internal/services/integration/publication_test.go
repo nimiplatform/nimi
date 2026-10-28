@@ -61,6 +61,14 @@ type generationTestRevalidator struct {
 	entered, release chan struct{}
 }
 
+func (r generationTestRevalidator) CommitLocalAppProviderCompletion(consumer, provider context.Context, commit func(context.Context, context.Context) error) error {
+	provider, err := r.AuthorizeLocalAppIngress(provider, localappop.IngressIntegrationProviderComplete)
+	if err != nil {
+		return err
+	}
+	return r.CommitLocalAppIngress(consumer, localappop.IngressIntegrationCallInvoke, func(current context.Context) error { return commit(current, provider) })
+}
+
 func (r generationTestRevalidator) CommitLocalAppIngress(ctx context.Context, i localappop.Ingress, commit func(context.Context) error) error {
 	authorized, err := r.AuthorizeLocalAppIngress(ctx, i)
 	if err != nil {

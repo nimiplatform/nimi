@@ -40,6 +40,44 @@ afterEach(() => {
 });
 
 describe('Agent Realtime public entry', () => {
+  it.each(['unchanged', 'new-edit', 'edit-back', 'reopen', 'new-scope', 'rejected'] as const)('consumes only the submitted draft on ACK: %s', async (scenario) => {
+    const client = formalClient(async () => [
+      { agentHandle: HANDLE_A, agentBinding: `agent_binding_${'A'.repeat(43)}`, activityAgentRef: 'agr_A', displayName: 'Agent A', avatarUrl: null },
+    ]);
+    let end: ((event: IteratorResult<NimiRealtimeEventEnvelope<NimiAgentRealtimeEvent>>) => void) | undefined;
+    vi.mocked(client.agentRealtime.subscribe).mockImplementation(async () => ({
+      [Symbol.asyncIterator]: () => ({ next: () => new Promise(resolve => { end = resolve; }) }),
+      cancel: async () => { end?.({ done: true, value: undefined }); },
+    }));
+    let acknowledge!: (value: Awaited<ReturnType<NimiAgentRealtimeClient['appendInput']>>) => void;
+    vi.mocked(client.agentRealtime.appendInput).mockImplementation(() => new Promise(resolve => { acknowledge = resolve; }));
+    const props: ComponentProps<typeof AgentRealtimeEntry> = { client, initialAgentHandle: HANDLE_A, inputAudio: AUDIO_FORMAT, turnDetection: 'manual', host: testHost(), locale: 'en' };
+    const node = await renderEntry(props);
+    const button = (label: string) => Array.from(node.querySelectorAll('button')).find(value => value.textContent === label)!;
+    const fill = async (value: string) => act(async () => {
+      const editor = node.querySelector('textarea')!;
+      Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(editor, value);
+      editor.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await act(async () => { button(resolveNimiAgentRealtimeCopy('en').open).click(); });
+    await fill('submitted');
+    await act(async () => { button(resolveNimiAgentRealtimeCopy('en').sendText).click(); });
+    expect(client.agentRealtime.appendInput).toHaveBeenCalledOnce();
+    expect(node.querySelector('textarea')!.disabled).toBe(false);
+    if (scenario === 'new-edit' || scenario === 'edit-back') {
+      await fill('new draft');
+      if (scenario === 'edit-back') await fill('submitted');
+    } else if (scenario === 'reopen') {
+      await act(async () => { button(resolveNimiAgentRealtimeCopy('en').close).click(); });
+      await act(async () => { button(resolveNimiAgentRealtimeCopy('en').open).click(); });
+    } else if (scenario === 'new-scope') {
+      await act(async () => { root!.render(<AgentRealtimeEntry {...props} inputAudio={{ ...AUDIO_FORMAT, sampleRateHz: 24_000 }} />); });
+      await act(async () => { button(resolveNimiAgentRealtimeCopy('en').open).click(); });
+    }
+    await act(async () => { acknowledge({ ack: { ok: scenario !== 'rejected', reasonCode: '', actionHint: '' }, control: control() }); });
+    expect(node.querySelector('textarea')!.value).toBe(scenario === 'unchanged' ? '' : scenario === 'new-edit' ? 'new draft' : 'submitted');
+  });
+
   it('preserves the live session on equal audio and callback rerenders, but closes on a real format change', async () => {
     const client = formalClient(async () => [
       { agentHandle: HANDLE_A, agentBinding: `agent_binding_${'A'.repeat(43)}`, activityAgentRef: 'agr_A', displayName: 'Agent A', avatarUrl: null },

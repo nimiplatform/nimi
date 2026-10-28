@@ -70,12 +70,11 @@ func (t *gatedHTTPTransport) RoundTrip(request *http.Request) (*http.Response, e
 func (t *gatedHTTPTransport) CloseIdleConnections() { t.transport.CloseIdleConnections() }
 
 func httpClientWithOutboundGate(ctx context.Context, client *http.Client) *http.Client {
-	gate, ok := ctx.Value(outboundGateKey{}).(OutboundGate)
-	if !ok || gate == nil {
-		return client
-	}
 	cloned := *client
 	redirect := client.CheckRedirect
+	// Control requests must not be replayed by redirects, including TextHost
+	// calls that do not use the media Job gate. Artifact GET/HEAD keeps its policy.
+	// @nimi-authority: rule.nimi.runtime.security-core.r034
 	cloned.CheckRedirect = func(next *http.Request, via []*http.Request) error {
 		if len(via) > 0 && via[0].Method != http.MethodGet && via[0].Method != http.MethodHead {
 			return http.ErrUseLastResponse
@@ -87,6 +86,10 @@ func httpClientWithOutboundGate(ctx context.Context, client *http.Client) *http.
 			return fmt.Errorf("stopped after 10 redirects")
 		}
 		return nil
+	}
+	gate, ok := ctx.Value(outboundGateKey{}).(OutboundGate)
+	if !ok || gate == nil {
+		return &cloned
 	}
 	transport := client.Transport
 	if transport == nil {

@@ -339,6 +339,7 @@ func resolveDashScopeRealtimeTTSWebSocketURL(baseURL string) string {
 	return normalizeDashScopeRealtimeTTSWebSocketURL(baseParsed)
 }
 
+// @nimi-authority: definition.nimi.runtime.ai-provider.connector-plane
 func normalizeDashScopeRealtimeTTSWebSocketURL(parsed *url.URL) string {
 	if parsed == nil || strings.TrimSpace(parsed.Host) == "" {
 		return ""
@@ -350,16 +351,20 @@ func normalizeDashScopeRealtimeTTSWebSocketURL(parsed *url.URL) string {
 	default:
 		out.Scheme = "ws"
 	}
-	out.RawQuery = ""
 	out.Fragment = ""
-	out.Path = strings.TrimSuffix(out.Path, "/")
+	path := strings.TrimSuffix(out.EscapedPath(), "/")
 	for _, suffix := range []string{"/compatible-mode/v1", "/compatible-mode", "/v1"} {
-		if strings.HasSuffix(out.Path, suffix) {
-			out.Path = strings.TrimSuffix(out.Path, suffix)
+		if strings.HasSuffix(path, suffix) {
+			path = strings.TrimSuffix(path, suffix)
 			break
 		}
 	}
-	out.Path = strings.TrimSuffix(out.Path, "/") + dashScopeRealtimeTTSPath
+	out.RawPath = strings.TrimSuffix(path, "/") + dashScopeRealtimeTTSPath
+	var err error
+	out.Path, err = url.PathUnescape(out.RawPath)
+	if err != nil {
+		return ""
+	}
 	return out.String()
 }
 

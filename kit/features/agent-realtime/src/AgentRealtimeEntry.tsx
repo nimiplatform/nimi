@@ -216,6 +216,8 @@ function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps & {
   const [session, setSession] = useState(requestedSession);
   const [state, setState] = useState(() => session.getState());
   const [text, setText] = useState('');
+  const draftRevision = useRef(0);
+  const currentSession = useRef(session);
   const [reply, setReply] = useState<{
     requestId: string;
     tracks: readonly { id: string; text: string }[];
@@ -223,6 +225,7 @@ function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps & {
   const copy = resolveNimiAgentRealtimeCopy(props.locale);
 
   useEffect(() => {
+    currentSession.current = session;
     setState(session.getState());
     const unsubscribe = session.subscribeState((next) => {
       setState(next);
@@ -370,7 +373,10 @@ function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps & {
             rows={3}
             aria-label={copy.textInputLabel}
             disabled={!active || state.pressure === 'blocked'}
-            onChange={(event) => setText(event.currentTarget.value)}
+            onChange={(event) => {
+              draftRevision.current += 1;
+              setText(event.currentTarget.value);
+            }}
           />
           <Button
             type="button"
@@ -379,11 +385,17 @@ function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps & {
             onClick={() => {
               const value = text.trim();
               if (!value) return;
+              const revision = draftRevision.current;
+              const epoch = session.getState().sessionEpoch;
               void session.sendText({
                 requestId: createRequestId(),
                 text: value,
               }).then((result) => {
-                if (result.ack.ok) setText('');
+                if (result.ack.ok && currentSession.current === session
+                  && session.getState().sessionEpoch === epoch && draftRevision.current === revision) {
+                  draftRevision.current += 1;
+                  setText('');
+                }
               }).catch(() => undefined);
             }}
           >

@@ -699,19 +699,64 @@ func (s *Service) CommitLocalAppIngress(ctx context.Context, ingress localappop.
 	// long-lived caller context. Release it on every return, including refusal.
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	authorized, err := s.AuthorizeLocalAppIngress(ctx, ingress)
+	if commit == nil {
+		return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+	}
+	scope, err := s.prepareLocalAppCommit(ctx, ingress)
 	if err != nil {
 		return err
 	}
+	return s.commitLocalAppScopes(scope, nil, func() error { return commit(scope.authorized) })
+}
+
+// @nimi-authority: rule.nimi.runtime.integration.provider-lifetime
+// The fixed consumer/provider pair shares Account and canonical-registration
+// fences. Both current admissions are returned for the invocation's scope check.
+func (s *Service) CommitLocalAppProviderCompletion(ctx, providerCtx context.Context, commit func(context.Context, context.Context) error) error {
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+	providerCtx, cancelProvider := context.WithCancel(providerCtx)
+	defer cancelProvider()
+	if commit == nil {
+		return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+	}
+	consumer, err := s.prepareLocalAppCommit(ctx, localappop.IngressIntegrationCallInvoke)
+	if err != nil {
+		return err
+	}
+	provider, err := s.prepareLocalAppCommit(providerCtx, localappop.IngressIntegrationProviderComplete)
+	if err != nil {
+		return err
+	}
+	if consumer.decision.AccountID != provider.decision.AccountID || consumer.decision.RealmEnvironmentID != provider.decision.RealmEnvironmentID || consumer.decision.AccountGeneration != provider.decision.AccountGeneration {
+		return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)
+	}
+	return s.commitLocalAppScopes(consumer, &provider, func() error { return commit(consumer.authorized, provider.authorized) })
+}
+
+type localAppCommitScope struct {
+	authorized context.Context
+	decision   accountservice.LocalAppCallerDecision
+	connection *protectedlocal.LocalAppConnection
+	domain     localappop.Domain
+}
+
+func (s *Service) prepareLocalAppCommit(ctx context.Context, ingress localappop.Ingress) (localAppCommitScope, error) {
+	authorized, err := s.AuthorizeLocalAppIngress(ctx, ingress)
+	if err != nil {
+		return localAppCommitScope{}, err
+	}
 	decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(authorized)
 	connection, bound := protectedlocal.LocalAppConnectionFromContext(ctx)
-	if !ok || !bound || connection == nil || commit == nil {
-		return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
-	}
 	classification, classifyErr := localappop.ClassifyIngress(ingress)
-	if classifyErr != nil || s.localAppKernel == nil {
-		return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+	if !ok || !bound || connection == nil || s.localAppKernel == nil || classifyErr != nil {
+		return localAppCommitScope{}, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
 	}
+	// OperationCapability is not a declaration domain (notably for Base storage).
+	return localAppCommitScope{authorized, decision, connection, classification.Domain}, nil
+}
+
+func (s *Service) commitLocalAppScopes(consumer localAppCommitScope, provider *localAppCommitScope, commit func() error) error {
 	account, available := s.accountSecurity.(runtimeAccountGenerationCommitter)
 	if !available {
 		return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_ACCOUNT_CHANGED)
@@ -719,20 +764,43 @@ func (s *Service) CommitLocalAppIngress(ctx context.Context, ingress localappop.
 	// Owners reserve their persistence writer before these commit fences,
 	// matching Account audit mutation order. No callback re-enters admission
 	// or performs external network I/O; the actual local commit stays fenced.
+	ctx, decision := consumer.authorized, consumer.decision
+	requirement := func(scope localAppCommitScope) localappkernel.RegistrationRequirement {
+		return localappkernel.RegistrationRequirement{Subject: scope.decision.RegisteredAppSubject, SourceGeneration: scope.decision.SourceGeneration, DeclarationGeneration: scope.decision.DeclarationGeneration, Domain: string(scope.domain)}
+	}
 	accepted, err := account.CommitAuthenticatedRuntimeGeneration(ctx, decision.AccountID, decision.RealmEnvironmentID, decision.AccountGeneration, func() error {
 		// Canonical registration changes serialize here, rather than depending
 		// on the later session invalidation notification. The order matches Job
 		// publication: Account -> registration -> technical session.
 		entered := false
-		err := s.localAppKernel.Registrations().WithRegistrationAuthority(ctx, decision.RegisteredAppSubject, decision.SourceGeneration, decision.DeclarationGeneration, string(classification.Domain), func() error {
+		publish := func() error {
+			if ctx.Err() != nil || !s.now().UTC().Before(decision.ExpiresAt) || (provider != nil && (provider.authorized.Err() != nil || !s.now().UTC().Before(provider.decision.ExpiresAt))) {
+				return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+			}
+			return commit()
+		}
+		pinSessions := func() error {
 			entered = true
-			return connection.CommitSession(decision.SessionID, func() error {
-				if ctx.Err() != nil || !s.now().UTC().Before(decision.ExpiresAt) {
-					return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+			// All App publication pins enter under this same canonical mutex,
+			// serializing pairs even when their consumer/provider roles reverse.
+			return consumer.connection.CommitSession(decision.SessionID, func() error {
+				if provider != nil {
+					if provider.connection != consumer.connection {
+						return provider.connection.CommitSession(provider.decision.SessionID, publish)
+					}
+					if provider.decision.SessionID != decision.SessionID {
+						return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+					}
 				}
-				return commit(authorized)
+				return publish() // Same connection: never recursively RLock sessionMu.
 			})
-		})
+		}
+		var err error
+		if provider == nil {
+			err = s.localAppKernel.Registrations().WithRegistrationAuthority(ctx, decision.RegisteredAppSubject, decision.SourceGeneration, decision.DeclarationGeneration, string(consumer.domain), pinSessions)
+		} else {
+			err = s.localAppKernel.Registrations().WithRegistrationAuthorityPair(ctx, requirement(consumer), requirement(*provider), pinSessions)
+		}
 		if err != nil && !entered {
 			return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
 		}

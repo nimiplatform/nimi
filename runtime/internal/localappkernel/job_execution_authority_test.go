@@ -8,6 +8,27 @@ import (
 	"time"
 )
 
+func TestRegistrationPairChecksBothDomainsForOneSubject(t *testing.T) {
+	kernel := openTestKernel(t, filepath.Join(t.TempDir(), "registered-app.db"), mustWindowsIdentity(t, "S-1-5-21-100-200-300-1001"), "pair-install", 0x34)
+	defer kernel.Close()
+	input := developmentInput()
+	input.RawDeclaration = []string{"integration.consume"}
+	r, err := kernel.Registrations().RegisterDevelopment(context.Background(), input)
+	if err != nil {
+		t.Fatal(err)
+	}
+	consumer := RegistrationRequirement{r.RegisteredAppSubject, r.SourceGeneration, r.DeclarationGeneration, "integration.consume"}
+	provider := consumer
+	provider.Domain = "integration.provide"
+	called := false
+	if err := kernel.Registrations().WithRegistrationAuthorityPair(context.Background(), consumer, provider, func() error { called = true; return nil }); err == nil || called {
+		t.Fatal("same-subject deduplication granted a missing provider domain")
+	}
+	if err := kernel.Registrations().WithRegistrationAuthorityPair(context.Background(), consumer, consumer, func() error { called = true; return nil }); err != nil || !called {
+		t.Fatal("valid same-subject pair rejected", err)
+	}
+}
+
 func TestJobRegistrationAuthorityTracksCommittedOwnerWithdrawal(t *testing.T) {
 	kernel := openTestKernel(t, filepath.Join(t.TempDir(), "registered-app.db"), mustWindowsIdentity(t, "S-1-5-21-100-200-300-1001"), "job-install", 0x31)
 	defer func() { _ = kernel.Close() }()

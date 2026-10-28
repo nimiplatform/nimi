@@ -94,7 +94,11 @@ func TestWeixinPollKeepsNonemptyCursorAndGatesEveryAcknowledgment(t *testing.T) 
 					case "revoke", "empty-revoke":
 						grantTestTarget(t, s, c.decision, value.Public.TargetRef)
 					case "expiry":
-						c.decision.ExpiresAt = time.Now().Add(-time.Second)
+						// Expire the current owner projection, not the immutable
+						// invocation snapshot (which may precede a legal renewal).
+						current, _ := accountservice.AuthorizedLocalAppDecisionFromContext(c.ctx)
+						current.ExpiresAt = time.Now().Add(-time.Second)
+						c.ctx = accountservice.ContextWithAuthorizedLocalAppDecision(c.ctx, current)
 					case "session":
 						close(session)
 					case "generation":

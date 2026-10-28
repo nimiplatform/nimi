@@ -64,8 +64,28 @@ func (kernel *Kernel) invalidateJobAuthoritiesLocked() {
 // withdrawal fences publication; ordinary Host disconnect does not. An empty
 // domain is only the canonical base-operation class, never an App-access grant.
 func (store *RegistrationStore) WithRegistrationAuthority(ctx context.Context, subject string, sourceGeneration, declarationGeneration uint64, domain string, fn func() error) error {
-	if store == nil || store.kernel == nil || fn == nil || subject == "" || sourceGeneration == 0 || declarationGeneration == 0 ||
-		(domain != "" && !appaccess.IsSupportedDomain(domain)) {
+	return store.withRegistrationRequirements(ctx, RegistrationRequirement{subject, sourceGeneration, declarationGeneration, domain}, nil, fn)
+}
+
+// RegistrationRequirement contains facts to recheck, not a grant or a retained lease.
+type RegistrationRequirement struct {
+	Subject                                 string
+	SourceGeneration, DeclarationGeneration uint64
+	Domain                                  string
+}
+
+// @nimi-authority: rule.nimi.runtime.integration.provider-lifetime
+// WithRegistrationAuthorityPair checks both actual participants under the same
+// canonical mutation lock. In particular, it never nests that non-reentrant lock.
+func (store *RegistrationStore) WithRegistrationAuthorityPair(ctx context.Context, consumer, provider RegistrationRequirement, fn func() error) error {
+	return store.withRegistrationRequirements(ctx, consumer, &provider, fn)
+}
+
+func (store *RegistrationStore) withRegistrationRequirements(ctx context.Context, first RegistrationRequirement, second *RegistrationRequirement, fn func() error) error {
+	valid := func(r RegistrationRequirement) bool {
+		return r.Subject != "" && r.SourceGeneration != 0 && r.DeclarationGeneration != 0 && (r.Domain == "" || appaccess.IsSupportedDomain(r.Domain))
+	}
+	if store == nil || store.kernel == nil || fn == nil || !valid(first) || (second != nil && !valid(*second)) {
 		return fmt.Errorf("registration authority is unavailable")
 	}
 	store.kernel.mu.Lock()
@@ -73,12 +93,24 @@ func (store *RegistrationStore) WithRegistrationAuthority(ctx context.Context, s
 	if err := ctx.Err(); err != nil {
 		return err
 	}
-	r, err := loadCanonicalBySubject(ctx, store.kernel.db, subject)
+	r, err := loadCanonicalBySubject(ctx, store.kernel.db, first.Subject)
 	if err != nil {
 		return err
 	}
-	if r.State != RegistrationStateActive || r.SourceGeneration != sourceGeneration || r.DeclarationGeneration != declarationGeneration || (domain != "" && !slices.Contains(r.ActivatedDomains, domain)) {
+	if r.State != RegistrationStateActive || r.SourceGeneration != first.SourceGeneration || r.DeclarationGeneration != first.DeclarationGeneration || (first.Domain != "" && !slices.Contains(r.ActivatedDomains, first.Domain)) {
 		return ErrRegistrationTombstoned
+	}
+	if second != nil {
+		// A single subject can serve both roles but must cover both domains.
+		if second.Subject != first.Subject {
+			r, err = loadCanonicalBySubject(ctx, store.kernel.db, second.Subject)
+			if err != nil {
+				return err
+			}
+		}
+		if r.State != RegistrationStateActive || r.SourceGeneration != second.SourceGeneration || r.DeclarationGeneration != second.DeclarationGeneration || (second.Domain != "" && !slices.Contains(r.ActivatedDomains, second.Domain)) {
+			return ErrRegistrationTombstoned
+		}
 	}
 	return fn()
 }

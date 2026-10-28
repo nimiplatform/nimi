@@ -42,6 +42,14 @@ func (f testRevalidator) CommitLocalAppIngress(ctx context.Context, i localappop
 	return commit(authorized)
 }
 
+func (f testRevalidator) CommitLocalAppProviderCompletion(consumer, provider context.Context, commit func(context.Context, context.Context) error) error {
+	provider, err := f(provider, localappop.IngressIntegrationProviderComplete)
+	if err != nil {
+		return err
+	}
+	return f.CommitLocalAppIngress(consumer, localappop.IngressIntegrationCallInvoke, func(current context.Context) error { return commit(current, provider) })
+}
+
 type testSecrets struct {
 	mu     sync.Mutex
 	values map[string]string
@@ -112,7 +120,7 @@ func newIntegrationTestService(t *testing.T, transport http.RoundTripper) *Servi
 	client := &http.Client{Transport: transport, Timeout: 3 * time.Second}
 	s, err := New(Options{Backend: backend, Audit: audit, Secrets: &testSecrets{values: map[string]string{}}, HTTPClient: client, DesktopTransport: testDesktopTransport, Revalidator: testRevalidator(func(ctx context.Context, i localappop.Ingress) (context.Context, error) {
 		d, ok := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
-		if !ok || ctx.Err() != nil || closed(d.SessionInvalidated) {
+		if !ok || ctx.Err() != nil || closed(d.SessionInvalidated) || !time.Now().Before(d.ExpiresAt) {
 			return nil, failure(codes.PermissionDenied, "INTEGRATION_SCOPE_ENDED")
 		}
 		c, err := localappop.ClassifyIngress(i)

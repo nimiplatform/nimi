@@ -48,6 +48,7 @@ type Backend interface {
 type Revalidator interface {
 	AuthorizeLocalAppIngress(context.Context, localappop.Ingress) (context.Context, error)
 	CommitLocalAppIngress(context.Context, localappop.Ingress, func(context.Context) error) error
+	CommitLocalAppProviderCompletion(context.Context, context.Context, func(context.Context, context.Context) error) error
 }
 type Consumer struct{ Subject, AppID, DisplayName, SourceKind string }
 type Registrations interface {
@@ -463,6 +464,10 @@ func (s *Service) run(c *invocation) {
 
 // @nimi-authority: rule.nimi.runtime.integration.final-publication
 func (s *Service) withCallCommitLocked(c *invocation, commit func(context.Context) error) error {
+	return s.withCallScopesLocked(c, nil, commit)
+}
+
+func (s *Service) withCallScopesLocked(c *invocation, providerCtx context.Context, commit func(context.Context) error) error {
 	if s.closed || s.quiesced.Load() || s.removing[c.target.Public.TargetRef] || c.cancelRequested || c.ctx.Err() != nil || closed(c.decision.SessionInvalidated) || c.fact.Status != "accepted" || s.revalidator == nil {
 		return adapterError("INTEGRATION_SCOPE_ENDED")
 	}
@@ -471,12 +476,26 @@ func (s *Service) withCallCommitLocked(c *invocation, commit func(context.Contex
 		return adapterError("INTEGRATION_SCOPE_ENDED")
 	}
 	return s.backend.WithSerializedWriter(c.ctx, func(writerCtx context.Context) error {
-		return s.revalidator.CommitLocalAppIngress(writerCtx, localappop.IngressIntegrationCallInvoke, func(authorized context.Context) error {
+		publish := func(authorized context.Context) error {
 			next, ok := accountservice.AuthorizedLocalAppDecisionFromContext(authorized)
 			if !ok || !sameScope(c.decision, next) || c.ctx.Err() != nil || c.cancelRequested || closed(c.decision.SessionInvalidated) {
 				return adapterError("INTEGRATION_SCOPE_ENDED")
 			}
 			return commit(authorized)
+		}
+		if providerCtx == nil {
+			return s.revalidator.CommitLocalAppIngress(writerCtx, localappop.IngressIntegrationCallInvoke, publish)
+		}
+		expected, ok := accountservice.AuthorizedLocalAppDecisionFromContext(providerCtx)
+		if !ok {
+			return adapterError("INTEGRATION_SCOPE_ENDED")
+		}
+		return s.revalidator.CommitLocalAppProviderCompletion(writerCtx, providerCtx, func(consumer, provider context.Context) error {
+			current, ok := accountservice.AuthorizedLocalAppDecisionFromContext(provider)
+			if !ok || !sameScope(expected, current) {
+				return adapterError("INTEGRATION_SCOPE_ENDED")
+			}
+			return publish(consumer)
 		})
 	})
 }
@@ -487,9 +506,7 @@ func (s *Service) withCallCommitLocked(c *invocation, commit func(context.Contex
 func (s *Service) admitExternalPhase(c *invocation) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if !time.Now().Before(c.decision.ExpiresAt) {
-		return adapterError("INTEGRATION_SCOPE_ENDED")
-	}
+	// The owner fence reads current expiry, including normal same-session renewal.
 	if err := s.withCallCommitLocked(c, func(context.Context) error { return nil }); err != nil {
 		return adapterError("INTEGRATION_SCOPE_ENDED")
 	}

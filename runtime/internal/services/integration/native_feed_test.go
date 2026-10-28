@@ -21,6 +21,27 @@ func feedFixture(t *testing.T) (*Service, *nativeFeed, *invocation) {
 	return s, f, call
 }
 
+func TestNativeReceiverUsesCurrentOwnerInsteadOfCapturedExpiry(t *testing.T) {
+	s, feed, call := feedFixture(t)
+	// The captured invocation has aged; the actual revalidator still returns
+	// the current live scope from call.ctx, as it does after routine renewal.
+	call.decision.ExpiresAt = time.Now().Add(-time.Second)
+	if err := s.admitNativeReception(feed); err != nil {
+		t.Fatal("current receiver rejected", err)
+	}
+	published := false
+	if err := s.commitNativeFeed(feed, func() error { published = true; return nil }); err != nil || !published {
+		t.Fatal("current feed rejected", err)
+	}
+	call.cancel()
+	if err := s.admitNativeReception(feed); err == nil {
+		t.Fatal("canceled receiver admitted")
+	}
+	if err := s.commitNativeFeed(feed, func() error { t.Error("canceled feed published"); return nil }); err == nil {
+		t.Fatal("canceled feed admitted")
+	}
+}
+
 func TestNativeFeedKeepsExpiryCauseThroughReceiverTeardown(t *testing.T) {
 	_, feed, call := feedFixture(t)
 	feed.fail(adapterError("INTEGRATION_FEISHU_FRAGMENT_EXPIRED"))

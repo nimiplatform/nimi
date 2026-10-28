@@ -134,9 +134,6 @@ func (s *Service) commitNativeFeed(feed *nativeFeed, commit func() error) error 
 	}
 	feed.mu.Unlock()
 	for _, call := range leases {
-		if !call.decision.ExpiresAt.IsZero() && !time.Now().Before(call.decision.ExpiresAt) {
-			continue
-		}
 		err := s.withCallCommitLocked(call, func(context.Context) error {
 			feed.mu.Lock()
 			defer feed.mu.Unlock()
