@@ -23,7 +23,7 @@ units:
   - id: definition.nimi.runtime.security-core.endpoint-security-plane
     kind: definition
     title: Runtime endpoint security plane
-    meaning: The Runtime endpoint security plane validates every remote endpoint materialized from exact Runtime-private ExecutionHost configuration at execution time, consumes the exact admitted Connector reference only for ownership and request-scoped credential custody, rejects unsafe address classes after DNS resolution, and pins validated dial targets without accepting Driver, Connector, caller, AIConfig, Catalog, or environment endpoint authority or changing TLS or HTTP authority.
+    meaning: The Runtime endpoint security plane validates each exact remote destination materialized by Remote ExecutionHost from a captured Runtime-managed Connector endpoint plus versioned protocol path or explicitly admitted provider mapping, uses its separately protected credential generation, rejects prohibited resolved addresses and pins the validated dial set while retaining TLS and HTTP hostname authority. Apps, AIConfig target payloads and environment variables cannot override the endpoint; catalog setup metadata initializes a connection only before capture and Driver protocol metadata never independently chooses a live origin.
   - id: definition.nimi.runtime.security-core.grant-service-plane
     kind: definition
     lifecycle: removed
@@ -349,11 +349,11 @@ units:
         target: definition.nimi.runtime.security-core.ownership-authorization-plane
   - id: rule.nimi.runtime.security-core.r031
     kind: rule
-    title: Runtime-private Host endpoints require validation
+    title: Captured connection endpoints require execution-time Host validation
     modality: must
-    statement: Runtime applies endpoint security validation to the exact remote endpoint materialized from Runtime-private Remote ExecutionHost configuration for the committed Driver, the exact Job-captured or realtime.interact session-generation-captured Connector reference contributes only ownership and request- or session-scoped credential custody, and product execution accepts no Driver-, Connector-, caller-, AIConfig-, Catalog-, or environment-supplied endpoint or secret path.
+    statement: Runtime Remote ExecutionHost materializes the exact protocol destination from the immutable Job-captured or realtime.interact session-generation-captured managed Connector endpoint, validates endpoint and resolved addresses at dispatch, and exclusively owns transport and request-scoped secret use. Address configuration and authentication belong to one managed connection but secrets remain separately protected and are never exposed as ordinary configuration. Provider setup metadata may initialize the connection before capture; protocol metadata may describe a relative path or an explicitly admitted regional mapping but cannot replace a captured custom origin. Caller request, AIConfig, Profile, ambient environment and current catalog or connection changes cannot redirect an existing execution.
     condition: Whenever Runtime prepares a remote ExecutionHost request.
-    failure: Reject the request before network dispatch when the exact Host-materialized endpoint is unsafe or unvalidated or when any other source supplies the endpoint.
+    failure: Reject an unsafe, missing or unvalidated captured endpoint, a request override, or fallback to a current default after capture; preserve the exact execution target without exposing secrets.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.security-core.endpoint-security-plane

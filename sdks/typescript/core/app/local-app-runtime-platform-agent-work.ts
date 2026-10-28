@@ -51,7 +51,7 @@ export type NimiLocalAppAgentWorkClient = {
 
 export function validateNimiLocalAppAgentWorkStart(input: NimiLocalAppAgentWorkStartInput): NimiLocalAppAgentWorkStartInput {
   assertExactKeys(input, ['agentHandle', 'requestId', 'prompt', 'work'], 'Agent work start');
-  return { agentHandle: validateAgentHandle(input.agentHandle) as NimiLocalAppAgentHandle, requestId: workText(input.requestId, 256), prompt: workText(input.prompt, 32768), work: validateAgentWork(input.work) };
+  return { agentHandle: validateAgentHandle(input.agentHandle) as NimiLocalAppAgentHandle, requestId: workText(input.requestId, 256), prompt: workText(input.prompt, 16384, false, 'Agent work prompt'), work: validateAgentWork(input.work) };
 }
 export function validateNimiLocalAppAgentWorkScope(input: NimiLocalAppAgentWorkScope): NimiLocalAppAgentWorkScope {
   assertExactKeys(input, ['agentHandle', 'executionId'], 'Agent work scope');

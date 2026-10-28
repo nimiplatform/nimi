@@ -28,17 +28,17 @@ export type GoClient = Pick<NimiLocalAppClient, 'agentWork' | 'activity' | 'stor
 type WorkCall = Awaited<ReturnType<GoClient['agentWork']['listToolCalls']>>[number];
 export type Pending = { workId: string; question: string; request: PendingRequest; change?: { world: RealmModel<'WorldCoreDto'>; summary: string } };
 
-// Runtime answers every agent-work Start refusal before admitting the work, so a
-// typed refusal proves nothing was started. Only a lost transport, an
-// unclassified failure or a changed session leaves admission unknown.
-const ADMISSION_UNKNOWN = new Set([
-  'runtime-service-unavailable', 'runtime-service-untrusted', 'runtime-service-error-unclassified', 'canceled',
-  'session-invalid', 'process-replaced', 'account-changed', 'runtime-restarted', 'revoked', 'project-changed',
-  'local-app-snapshot-unavailable',
+// Only exact input/admission refusals prove Start did not accept the work.
+// A typed error may instead arise while decoding an already returned reply.
+const START_REFUSALS = new Set([
+  'sdk-local-app-input-invalid', 'protocol-envelope-invalid', 'agent-busy',
+  'ai-config-not-found', 'ai-config-invalid', 'ai-config-capability-not-configured',
+  'ai-connector-not-found', 'ai-connector-disabled', 'ai-connector-credential-missing',
+  'local-app-owner-unavailable',
 ]);
 export function startRefusedBeforeAdmission(error: unknown): boolean {
   const reason = (error as { reasonCode?: unknown } | null)?.reasonCode;
-  return typeof reason === 'string' && reason !== '' && !ADMISSION_UNKNOWN.has(reason);
+  return typeof reason === 'string' && START_REFUSALS.has(reason.replaceAll('_', '-').toLowerCase());
 }
 // @nimi-authority: rule.nimi.nimigo.workbench.delivery
 // @nimi-authority: rule.nimi.nimigo.workbench.assignment
@@ -395,7 +395,7 @@ export class GoEngine {
             w.status = status;
             w.attempts.find(a => a.id === attempt.id)!.status = execution.state === 'succeeded' ? 'complete' : status;
             if (execution.state === 'succeeded' && execution.outputText) w.messages = [...(w.messages || []), { messageId: `${execution.executionId}:result`, executionId: execution.executionId, role: 'assistant', parts: [{ kind: 'text', text: execution.outputText }] }];
-            w.error = execution.state === 'failed' ? errorText({ message: execution.message, reasonCode: execution.reasonCode }) : status === 'review' ? '本轮已结束，但尚未保存满足目标的新成果。' : undefined;
+            w.error = execution.state === 'failed' || (execution.state === 'cancelled' && execution.message) ? errorText({ message: execution.message, reasonCode: execution.reasonCode }) : status === 'review' ? '本轮已结束，但尚未保存满足目标的新成果。' : undefined;
             if (execution.state === 'failed') w.errorReason = errorReasonOf(execution);
           }, check);
           await this.hydrate(workId);

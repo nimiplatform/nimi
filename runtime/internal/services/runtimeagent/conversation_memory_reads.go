@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 )
 
@@ -164,6 +165,20 @@ func (s *Service) qualifyConversationMemoryReads(ctx context.Context, ref, turnI
 func (s *Service) invalidateConversationMemoryReads(ref string, refs map[string]bool, all bool) {
 	s.chatSurfaceMu.Lock()
 	var cancels []context.CancelFunc
+	// @nimi-authority: rule.nimi.runtime.agent-participation.app-work-memory-lifecycle
+	for _, work := range s.localAppWorkExecutions {
+		if work.owner.identity.LocalAgentRef != ref || localAppWorkTerminal(work.snapshot.State) {
+			continue
+		}
+		for _, memoryRef := range work.memoryReadSet.Refs {
+			if all || refs[memoryRef] {
+				work.snapshot.Message = "Memory used by this work changed. Review saved results before explicitly starting again."
+				s.terminalizeLocalAppWorkLocked(work, runtimev1.LocalAppAgentWorkState_LOCAL_APP_AGENT_WORK_STATE_CANCELLED, "", runtimev1.ReasonCode_AI_INPUT_INVALID)
+				cancels = append(cancels, work.cancel)
+				break
+			}
+		}
+	}
 	if work := s.backgroundByAgent[ref]; work != nil {
 		for _, memoryRef := range work.memoryRefs {
 			if all || refs[memoryRef] {

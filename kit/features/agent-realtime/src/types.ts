@@ -45,6 +45,8 @@ export type NimiAgentRealtimeSessionState = {
   readonly agentHandle: NimiLocalAppAgentHandle;
   readonly conversationAnchorId: string | null;
   readonly lifecycle: NimiAgentRealtimeLifecycle;
+  /** The original remote scope has not yet supplied a terminal close result. */
+  readonly closeUnconfirmed: boolean;
   readonly capture: NimiAgentRealtimeCaptureState;
   readonly playback: NimiAgentRealtimePlaybackState;
   readonly pressure: NimiRealtimeControlStatus['backpressure'];
@@ -123,10 +125,12 @@ export type NimiAgentRealtimeSessionAction =
   | {
     readonly type: 'close-requested';
     readonly epoch: number;
+    readonly remotePending: boolean;
   }
   | {
     readonly type: 'closed';
     readonly epoch: number;
+    readonly control?: NimiRealtimeControlStatus;
   };
 
 export type NimiAgentRealtimeCapturedFrame = {

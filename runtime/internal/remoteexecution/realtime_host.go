@@ -2,7 +2,9 @@ package remoteexecution
 
 import (
 	"context"
+	"errors"
 	"fmt"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -45,8 +47,8 @@ func NewProviderRealtimeHost(connectors *connector.ConnectorStore, allowLoopback
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.r114
 // Open captures one exact Connector credential generation into the private
-// live WebSocket. The endpoint is Driver-owned input and never comes from the
-// Connector, AIConfig, App, or environment.
+// live WebSocket. Its origin comes from that captured managed connection;
+// Driver metadata supplies only versioned protocol paths, never an origin.
 func (h *ProviderRealtimeHost) Open(
 	ctx context.Context,
 	accountID string,
@@ -78,11 +80,8 @@ func (h *ProviderRealtimeHost) Open(
 	if credential.APIKey == "" {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
 	}
-	endpoint, err := realtimeProviderURL(transport.Endpoint, target.ProviderModelID(), transport.ModelQuery)
+	endpoint, err := materializeRealtimeEndpoint(record.Endpoint, transport, target.ProviderModelID())
 	if err != nil {
-		return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN, err, grpcerr.ReasonOptions{})
-	}
-	if err := endpointsec.ValidateWebSocketEndpoint(ctx, endpoint, h.allowLoopback); err != nil {
 		return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN, err, grpcerr.ReasonOptions{})
 	}
 	config, err := websocket.NewConfig(endpoint, "https://runtime.nimi.local")
@@ -103,15 +102,31 @@ func (h *ProviderRealtimeHost) Open(
 			config.Header.Set(key, value)
 		}
 	}
-	conn, err := config.DialContext(ctx)
+	conn, transportConn, err := endpointsec.DialWebSocket(ctx, config, h.allowLoopback)
 	if err != nil {
 		return nil, normalizeRealtimeDialError(err)
 	}
 	session := &providerRealtimeSession{
-		conn: conn, events: make(chan []byte, 64), errors: make(chan error, 1), done: make(chan struct{}),
+		conn: conn, transport: transportConn, events: make(chan []byte, 64), errors: make(chan error, 1), done: make(chan struct{}),
 	}
 	go session.readLoop()
 	return session, nil
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.realtime-connection-endpoint
+func materializeRealtimeEndpoint(base string, transport capabilitydriver.CloudRealtimeTransport, model string) (string, error) {
+	parsed, err := url.Parse(strings.TrimSpace(base))
+	if err != nil || parsed.Scheme != "https" || parsed.Host == "" || parsed.User != nil || parsed.Fragment != "" {
+		return "", fmt.Errorf("captured Realtime connection endpoint is invalid")
+	}
+	parsed.Scheme = "wss"
+	// Preserve a custom proxy prefix and captured origin, including workspace
+	// or region. Replace only the Driver's declared service base path.
+	basePath := strings.TrimRight(parsed.Path, "/")
+	basePath = strings.TrimSuffix(basePath, transport.BasePath)
+	parsed.Path = basePath + transport.Path
+	parsed.RawPath = ""
+	return realtimeProviderURL(parsed.String(), model, transport.ModelQuery)
 }
 
 func realtimeProviderURL(endpoint string, model string, modelQuery bool) (string, error) {
@@ -134,11 +149,15 @@ func normalizeRealtimeDialError(err error) error {
 	if err == nil {
 		return nil
 	}
+	if errors.Is(err, endpointsec.ErrWebSocketEndpoint) {
+		return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN, err, grpcerr.ReasonOptions{})
+	}
 	return grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, err, grpcerr.ReasonOptions{})
 }
 
 type providerRealtimeSession struct {
 	conn      *websocket.Conn
+	transport net.Conn
 	writeMu   sync.Mutex
 	closeOnce sync.Once
 	events    chan []byte
@@ -146,6 +165,7 @@ type providerRealtimeSession struct {
 	done      chan struct{}
 }
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.r116
 func (s *providerRealtimeSession) Send(ctx context.Context, payload []byte) error {
 	if s == nil || s.conn == nil || len(payload) == 0 {
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REALTIME_SESSION_CLOSED)
@@ -157,9 +177,23 @@ func (s *providerRealtimeSession) Send(ctx context.Context, payload []byte) erro
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REALTIME_SESSION_CLOSED)
 	default:
 	}
+	// Cancellation must close the physical transport, not wait for the frame
+	// writer's mutex through websocket.Close.
+	stop := context.AfterFunc(ctx, func() { _ = s.Close() })
+	defer stop()
 	s.writeMu.Lock()
+	defer s.writeMu.Unlock()
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-s.done:
+		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REALTIME_SESSION_CLOSED)
+	default:
+	}
 	err := websocket.Message.Send(s.conn, string(payload))
-	s.writeMu.Unlock()
+	if ctx.Err() != nil {
+		return ctx.Err()
+	}
 	if err != nil {
 		return grpcerr.WrapWithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, err, grpcerr.ReasonOptions{})
 	}
@@ -176,8 +210,8 @@ func (s *providerRealtimeSession) Close() error {
 	var closeErr error
 	s.closeOnce.Do(func() {
 		close(s.done)
-		if s.conn != nil {
-			closeErr = s.conn.Close()
+		if s.transport != nil {
+			closeErr = s.transport.Close()
 		}
 	})
 	return closeErr

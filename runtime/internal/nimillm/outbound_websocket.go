@@ -6,16 +6,18 @@ import (
 	"sync"
 	"syscall"
 
+	"github.com/nimiplatform/nimi/runtime/internal/endpointsec"
 	"golang.org/x/net/websocket"
 )
 
 // A finite WebSocket exchange is one admitted transport invocation, like a
 // streamed HTTP request. Guard each socket handoff before connect; never hold
 // account/Connector locks through its handshake, frames or response wait.
-func dialProviderWebSocket(ctx context.Context, config *websocket.Config) (*websocket.Conn, error) {
+func dialProviderWebSocket(ctx context.Context, config *websocket.Config, allowLoopback bool) (*websocket.Conn, error) {
 	gate, ok := ctx.Value(outboundGateKey{}).(OutboundGate)
 	if !ok || gate == nil {
-		return config.DialContext(ctx)
+		conn, _, err := endpointsec.DialWebSocket(ctx, config, allowLoopback)
+		return conn, err
 	}
 	copyConfig := *config
 	dialer := net.Dialer{}
@@ -43,7 +45,7 @@ func dialProviderWebSocket(ctx context.Context, config *websocket.Config) (*webs
 		return err
 	}
 	copyConfig.Dialer = &dialer
-	conn, err := copyConfig.DialContext(ctx)
+	conn, _, err := endpointsec.DialWebSocket(ctx, &copyConfig, allowLoopback)
 	admissionMu.Lock()
 	defer admissionMu.Unlock()
 	if err != nil && admissionErr != nil {

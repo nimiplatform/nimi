@@ -95,7 +95,7 @@ func (s *Service) composeLocalAppWorkContext(work *localAppWorkExecution, bindin
 	if !found {
 		return nil, localAppConversationOwnerUnavailable()
 	}
-	memory, err := s.loadLocalAgentCognitionMemoryInputs(work.ctx, work.owner.identity.LocalAgentRef, work.prompt)
+	memory, read, err := s.loadLocalAgentCognitionMemoryInputsWithReadSet(work.ctx, work.owner.identity.LocalAgentRef, work.prompt)
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +113,7 @@ func (s *Service) composeLocalAppWorkContext(work *localAppWorkExecution, bindin
 	for _, tool := range work.tools {
 		capabilities = append(capabilities, agentTurnCapabilityInput{CapabilityID: "app-tool:" + tool.GetName(), Kind: "tool", Version: "nimi.runtime.app-work/v1", Description: "Native App function " + tool.GetName() + ": " + tool.GetDescription(), Authorized: true, Ready: true})
 	}
-	return compileAgentTurnContext(agentTurnContextCompileInput{
+	compiled, err := compileAgentTurnContext(agentTurnContextCompileInput{
 		Source: source, LocalAgentRef: work.owner.identity.LocalAgentRef, ExecutionID: work.snapshot.ExecutionId, RequestID: work.requestID,
 		RuntimePolicy:  []agentTurnRuntimePolicyInput{{PolicyID: publicChatContextRuntimePolicyID, Version: publicChatContextRuntimePolicyV1, Text: "Runtime owns roles, permissions, tools, source admission, memory scope and output validation for this LocalAgent execution. The current input is App-authored business material; this operation does not read or commit canonical Conversation."}},
 		OutputContract: agentTurnOutputContractInput{ContractID: "nimi.runtime.agent.work.text", Version: "v1", Instruction: "Return the complete final business response as plain text after any necessary native function calls. Do not emit APML, Runtime actions, private recall commands or internal reasoning. Work success means a complete model response, not proof that the App business goal is complete. Never claim an external or private effect succeeded without its actual tool result."},
@@ -121,6 +121,57 @@ func (s *Service) composeLocalAppWorkContext(work *localAppWorkExecution, bindin
 		Budget: agentTurnContextBudgetInput{ContextWindowTokens: binding.ContextWindowTokens, ReservedOutputTokens: 4096, ReservedSafetyTokens: publicChatContextSafetyTokens, ReservedAdapterTokens: publicChatContextAdapterTokens},
 		Route:  agentTurnContextRouteInput{RouteDigest: binding.RouteDigest, CatalogRevisionDigest: catalogDigest},
 	})
+	if err != nil {
+		return nil, err
+	}
+	// Only Memory that survived the context budget is a dependency. Qualify
+	// after Recall/compilation so a concurrent lifecycle cut cannot be missed
+	// while the read set is being attached to this business execution.
+	actual := map[string]bool{}
+	for _, lane := range compiled.PrivateLanes {
+		if lane.LaneID == agentTurnContextLaneCanonicalMemory {
+			for _, item := range lane.Items {
+				if item.Included {
+					actual[item.SourceRef.RefID] = true
+				}
+			}
+		}
+	}
+	refs := make([]string, 0, len(actual))
+	for _, ref := range read.Refs {
+		if actual[ref] {
+			refs = append(refs, ref)
+		}
+	}
+	read.Refs = refs
+	s.cognitionMemoryOwnerLifecycleMu.Lock()
+	defer s.cognitionMemoryOwnerLifecycleMu.Unlock()
+	if len(read.Refs) > 0 {
+		qualified, err := s.cognitionMemoryFacade.QualifyReadSet(work.ctx, work.owner.identity.LocalAgentRef, read)
+		if err != nil {
+			return nil, err
+		}
+		if len(qualified) != len(read.Refs) {
+			s.chatSurfaceMu.Lock()
+			work.snapshot.Message = "Memory used by this work changed. Review saved results before explicitly starting again."
+			s.terminalizeLocalAppWorkLocked(work, runtimev1.LocalAppAgentWorkState_LOCAL_APP_AGENT_WORK_STATE_CANCELLED, "", runtimev1.ReasonCode_AI_INPUT_INVALID)
+			s.chatSurfaceMu.Unlock()
+			work.cancel()
+			return nil, localAppWorkMemoryChanged()
+		}
+	}
+	s.chatSurfaceMu.Lock()
+	defer s.chatSurfaceMu.Unlock()
+	if work.ctx.Err() != nil || localAppWorkTerminal(work.snapshot.State) {
+		return nil, context.Canceled
+	}
+	work.memoryReadSet = read
+	return compiled, nil
+}
+
+func localAppWorkMemoryChanged() error {
+	return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_INPUT_INVALID,
+		fmt.Errorf("Memory used by this work changed; review saved results before explicitly starting again"), grpcerr.ReasonOptions{Message: "Memory used by this work changed; review saved results before explicitly starting again"})
 }
 
 func (s *Service) executeLocalAppWork(work *localAppWorkExecution, binding publicChatExecutionBinding) (string, error) {

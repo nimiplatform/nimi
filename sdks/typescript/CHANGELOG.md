@@ -2,6 +2,15 @@
 
 # SDK migration notes
 
+## Unreleased — Work input bounds and Agent stream cleanup
+
+Formal App Work prompts are limited to 16,384 UTF-8 bytes before dispatch,
+matching Runtime. Inputs previously accepted by the SDK above that limit now
+fail explicitly; nothing is truncated, and other field/whole-request budgets
+are unchanged. This narrowing belongs to the next 0.x minor source release.
+Runtime Agent consume streams release their upstream iterators on projection or
+merge failure without canceling the business execution or replaying work.
+
 ## 0.22.2 — 2026-10-27
 
 Fix WorldCore list/create projection to preserve Realm-owned optional

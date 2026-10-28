@@ -88,7 +88,7 @@ func geminiRealtimeOutputError(message string) error {
 	return cloudInvocationError(CloudInvocationFailureResponse, fmt.Errorf("%s", message))
 }
 func (s *geminiRealtimeSession) Transport() CloudRealtimeTransport {
-	return CloudRealtimeTransport{Endpoint: "wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent", APIKeyHeader: "x-goog-api-key"}
+	return CloudRealtimeTransport{BasePath: "/v1beta", Path: "/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent", APIKeyHeader: "x-goog-api-key"}
 }
 func realtimeJSON(value any) []byte { out, _ := json.Marshal(value); return out }
 func (s *geminiRealtimeSession) OpenWire(string) ([]byte, error) {

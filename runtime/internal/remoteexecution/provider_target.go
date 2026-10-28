@@ -84,9 +84,6 @@ func requestScopedProviderTarget(
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_CREDENTIAL_MISSING)
 	}
 	endpoint := strings.TrimSpace(connectorRecord.Endpoint)
-	if endpoint == "" {
-		endpoint = connector.ResolveEndpoint(connectorRecord.Provider, "")
-	}
 	endpoint, workspace := materializeDashScopeSpeechEndpoint(endpoint, target)
 	if err := endpointsec.ValidateEndpoint(ctx, endpoint, allowLoopback); err != nil {
 		credential.APIKey = ""

@@ -21,7 +21,7 @@ units:
   - id: definition.nimi.runtime.model-catalog.provider-metadata-plane
     kind: definition
     title: Runtime provider metadata plane
-    meaning: The Runtime provider metadata plane owns the merged source-provider schema and its one-way catalog inventory, capability, pricing, voice, and request-option projections into registries and tables, together with the boundary between source providers and runtime infrastructure providers; it never owns a Connector, Cloud provider-model target, committed default, execution route, execution selection, or ExecutionHost endpoint.
+    meaning: The Runtime provider metadata plane owns the merged source-provider schema and one-way inventory, capability, pricing, voice, request-option and non-binding setup recommendation projections. Built-in default endpoint metadata may initialize a Runtime-managed Connector before capture, but neither catalog nor its projections owns a connection, captured endpoint, committed Cloud provider-model target, execution route or selection; changing metadata cannot redirect a captured execution.
   - id: definition.nimi.runtime.model-catalog.voice-workflow-catalog-plane
     kind: definition
     title: Runtime voice-workflow catalog plane
@@ -158,9 +158,9 @@ units:
     kind: rule
     title: Source schema v3 structure is fixed
     modality: must
-    statement: A merged source-provider entry uses schema v3 whose core structure is runtime, models, language_profiles, and sources plus optional voice_sets, voice_workflow_models, and model_workflow_bindings, runtime.inventory_mode is required with values static_source or dynamic_endpoint, dynamic_endpoint requires runtime.dynamic_inventory and may omit models because inventory is discovered dynamically, and no catalog schema field carries an ExecutionHost endpoint, committed provider-model default, or execution selection.
+    statement: A merged source-provider entry uses schema v3 with runtime, models, language_profiles and sources plus admitted voice and workflow metadata, non-binding defaults and selection_profiles. runtime.inventory_mode is static_source or dynamic_endpoint; the latter requires dynamic_inventory and may omit static models. A built-in default_endpoint is setup metadata used only to initialize an explicit Runtime-managed connection before capture. No catalog field is an already committed provider-model target or supplies an endpoint fallback during execution.
     condition: Whenever a source-provider entry is merged or validated.
-    failure: Reject source entries outside the v3 structure or carrying Runtime-private endpoint or execution-selection truth.
+    failure: Reject an unsupported source shape or metadata used as captured endpoint, committed model target or execution selection.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.provider-metadata-plane
@@ -170,7 +170,7 @@ units:
     modality: must
     statement: A static_source remote source whose models declare text.generate declares a positive provider-default context_window_tokens or a positive per-row override, the value is the reviewed conservative request-capacity floor rather than a guessed general default, the model row override takes precedence over the provider default, and alias expansion inherits the canonical model's exact value. Realtime context composition uses a reviewed per-model request-capacity floor that leaves room for the documented output bound; it never inherits a text-model provider floor or another selected capability's capacity.
     condition: Whenever source context window capacity is declared or expanded.
-    failure: Fail closed in generation and freshness gating when the floor is missing or inconsistent.
+    failure: Fail closed in generation and metadata correctness validation when the floor is missing or inconsistent.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.provider-metadata-plane
@@ -178,9 +178,9 @@ units:
     kind: rule
     title: Catalog metadata projects one way from source
     modality: must
-    statement: Provider catalog inventory, capability, pricing, voice, and request-option metadata lives in the merged source-provider entry and projects one way into generated catalog registries and tables; dynamic inventory metadata describes catalog discovery only, and neither source metadata nor a projection carries or supplies an ExecutionHost endpoint, Connector, Cloud provider-model target, committed default, execution route, or execution selection.
+    statement: Provider inventory, capability, pricing, voice, request-option and non-binding setup or recommendation metadata lives in the merged source-provider entry and projects one way into generated registries and tables. Dynamic inventory describes catalog discovery only. A default endpoint may initialize a managed connection before capture; source or projection cannot independently supply a live execution endpoint, committed Connector, provider-model target, route or selection, or override an already captured connection.
     condition: Whenever provider catalog metadata is declared, generated, or consumed.
-    failure: Reject a projection that bypasses catalog source metadata or any source or projection that claims Runtime-private endpoint or execution-composition truth.
+    failure: Reject projections outside the declared source and any use of setup metadata to bypass captured connection or explicit AIConfig selection ownership.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.provider-metadata-plane
@@ -676,3 +676,13 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.catalog-plane
+  - id: rule.nimi.runtime.model-catalog.recommendation-freshness
+    kind: rule
+    title: Recommendation freshness is maintenance rather than execution authority
+    modality: must
+    statement: Non-binding recommendation review dates and expiry have an accountable source-review maintenance process and visible expired-review diagnostics, separate from hard validation of model identity, capabilities, conservative context capacity and schema or projection correctness. Expiry does not change or block an explicitly committed Cloud target and cannot be hidden by fabricated reviewed_at values. Existing defaults and selection metadata are retained or removed according to their actual consumers, never merely to make a freshness check green.
+    condition: Whenever recommendation review age is checked or used.
+    failure: Report stale recommendations as maintenance work, reject invalid execution metadata through its existing hard boundary, and never infer target unavailability solely from recommendation age.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.provider-metadata-plane

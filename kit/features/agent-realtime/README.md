@@ -40,6 +40,7 @@ The shared entry streams the latest Runtime-projected reply text as it arrives, 
 - **`interruptOutput`**: Returns `null` when it only stops remaining local playback; otherwise, it returns the Runtime operation result.
 - **Agent-turn interruption**: Explicit turn interruption always dispatches to Runtime against the original output request. Because a completed native response may only represent a private intention step, the user turn remains active through its result continuation.
 - **Session close**: Closing explicitly interrupts any unfinished owned turn (even before an output track exists) while preserving committed intentions. Capture stopped solely due to closing is discarded rather than submitted.
+- **Unconfirmed close**: A failed remote Close retains its original scope and reports `closeUnconfirmed`. Explicit retry uses that scope; opening a replacement is blocked until its closure is confirmed. An unavailable old scope or lost reply is not treated as success. If a retry cannot confirm closure, stop the App in Nimi Home to release its protected session. Local input and playback remain stopped, and a Runtime terminal failure is preserved as failed.
 
 ## Ownership Boundary
 

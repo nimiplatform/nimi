@@ -37,7 +37,7 @@ func TestWebSocketGateRejectsFreshConnectionAndAllowsHandedOffResponse(t *testin
 		}
 		return begin()
 	})
-	first, err := dialProviderWebSocket(ctx, config)
+	first, err := dialProviderWebSocket(ctx, config, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -49,7 +49,7 @@ func TestWebSocketGateRejectsFreshConnectionAndAllowsHandedOffResponse(t *testin
 	case <-time.After(time.Second):
 		t.Fatal("WebSocket response wait held Connector guard")
 	}
-	if second, err := dialProviderWebSocket(ctx, config); !errors.Is(err, denied) {
+	if second, err := dialProviderWebSocket(ctx, config, true); !errors.Is(err, denied) {
 		if second != nil {
 			_ = second.Close()
 		}

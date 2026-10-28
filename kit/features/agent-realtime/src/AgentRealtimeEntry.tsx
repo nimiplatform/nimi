@@ -268,7 +268,8 @@ function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps & {
 
         {state.error ? (
           <InlineAlert tone="danger">
-            {state.error.message}
+            {state.closeUnconfirmed ? <p>{copy.closeUnconfirmed}</p> : null}
+            <p>{state.error.message}</p>
           </InlineAlert>
         ) : null}
 
@@ -278,7 +279,7 @@ function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps & {
             size="sm"
             tone="primary"
             loading={openPending}
-            disabled={openPending || closePending || active}
+            disabled={openPending || closePending || active || state.closeUnconfirmed}
             onClick={() => {
               if (state.lifecycle === 'failed') props.onReloadAgents();
               else void session.open().catch(() => undefined);
@@ -320,10 +321,10 @@ function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps & {
             size="sm"
             tone="ghost"
             loading={closePending}
-            disabled={closePending || (!active && state.lifecycle !== 'opening')}
+            disabled={closePending || (!active && state.lifecycle !== 'opening' && !state.closeUnconfirmed)}
             onClick={() => { void session.close().catch(() => undefined); }}
           >
-            {copy.close}
+            {state.closeUnconfirmed && !closePending ? copy.retryClose : copy.close}
           </Button>
         </div>
 

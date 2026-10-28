@@ -238,6 +238,7 @@ func (s *Service) CompleteIntegrationProvider(ctx context.Context, req *runtimev
 // The final result acceptance and cancellation mutation share one boundary;
 // validation outside the mutex cannot grant a late result a second chance.
 // The accepted terminal fact and its audit result commit in one transaction.
+// @nimi-authority: rule.nimi.runtime.integration.provider-lifetime
 func (s *Service) finishProvider(c *invocation, state, result, reason string, record *operationAudit) bool {
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -248,5 +249,27 @@ func (s *Service) finishProvider(c *invocation, state, result, reason string, re
 	if p == nil || p.decision.SessionID != c.providerSession || p.ctx.Err() != nil || closed(p.decision.SessionInvalidated) {
 		return false
 	}
-	return s.finishLocked(c, state, result, reason, record)
+	accepted := false
+	// The provider and consumer belong to the same Account. Reserve the common
+	// writer and current consumer Account/registration/session fence before the
+	// result is made visible; an earlier validation does not authorize this commit.
+	err := s.withCallCommitLocked(c, func(commitCtx context.Context) error {
+		if p.ctx.Err() != nil || closed(p.decision.SessionInvalidated) || !time.Now().Before(p.decision.ExpiresAt) {
+			return adapterError("INTEGRATION_SCOPE_ENDED")
+		}
+		accepted = s.finishLockedInContext(commitCtx, c, state, result, reason, record)
+		return nil
+	})
+	if err == nil {
+		return accepted
+	}
+	s.cancelInvocationLocked(c)
+	// A delivered write may already have happened. Losing publication authority
+	// cannot rewrite that uncertainty as a claim that no effect occurred.
+	terminal := "canceled"
+	if c.delivered && c.op.Effect == "write" {
+		terminal = "unconfirmed"
+	}
+	s.finishLocked(c, terminal, "", "INTEGRATION_SCOPE_ENDED", record)
+	return false
 }

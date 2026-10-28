@@ -22,6 +22,60 @@ const AUDIO_FORMAT = Object.freeze({
 });
 
 describe('canonical Agent Realtime session', () => {
+  it('keeps failed close scope for an explicit retry and blocks a replacement open', async () => {
+    const client = createClient({ stream: createEventStream() });
+    vi.mocked(client.close).mockRejectedValueOnce(new Error('pre-dispatch unavailable'));
+    const session = createSession(client, createHost());
+    await session.open();
+    await expect(session.close()).rejects.toThrow();
+    expect(session.getState()).toMatchObject({ lifecycle: 'failed', closeUnconfirmed: true });
+    await expect(session.open()).rejects.toThrow();
+    await session.close();
+    expect(client.close).toHaveBeenCalledTimes(2);
+    expect(vi.mocked(client.close).mock.calls[1]).toEqual(vi.mocked(client.close).mock.calls[0]);
+    expect(session.getState()).toMatchObject({ lifecycle: 'closed', closeUnconfirmed: false });
+  });
+
+  it('does not reinterpret a denied close after a lost reply as successful closure', async () => {
+    const client = createClient({ stream: createEventStream() });
+    vi.mocked(client.close).mockRejectedValueOnce(new Error('reply lost')).mockRejectedValue(new Error('old scope unavailable'));
+    const session = createSession(client, createHost());
+    await session.open();
+    await expect(session.close()).rejects.toThrow();
+    await expect(session.close()).rejects.toThrow();
+    expect(client.close).toHaveBeenCalledTimes(2);
+    expect(session.getState()).toMatchObject({ lifecycle: 'failed', closeUnconfirmed: true });
+  });
+
+  it('coalesces concurrent close and preserves the Runtime terminal failure', async () => {
+    const client = createClient({ stream: createEventStream() });
+    const reply = createDeferred<NimiRealtimeOperationResult>();
+    vi.mocked(client.close).mockImplementation(() => reply.promise);
+    const session = createSession(client, createHost());
+    await session.open();
+    const first = session.close();
+    const second = session.close();
+    await vi.waitFor(() => expect(client.close).toHaveBeenCalledOnce());
+    reply.resolve(operation({ ...control('normal', 'failed'), terminalReason: 'owner-failed' }));
+    await Promise.all([first, second]);
+    expect(session.getState()).toMatchObject({ lifecycle: 'failed', closeUnconfirmed: false, control: { terminalReason: 'owner-failed' } });
+    expect(client.close).toHaveBeenCalledOnce();
+  });
+
+  it('stops a late microphone handle after close without submitting audio', async () => {
+    const client = createClient({ stream: createEventStream() });
+    const capture = createDeferred<Awaited<ReturnType<NimiAgentRealtimeHostMediaPort['microphone']['beginCapture']>>>();
+    const stop = vi.fn(async () => {});
+    const session = createSession(client, createHost({ beginCapture: async () => capture.promise }));
+    await session.open();
+    const pending = session.requestCapture().catch(error => error);
+    await session.close();
+    capture.resolve({ status: 'ready', capture: { inputTrackId: 'input', utteranceId: 'utterance', stop } });
+    await pending;
+    expect(stop).toHaveBeenCalledOnce();
+    expect(client.appendInput).not.toHaveBeenCalled();
+  });
+
   it('discards microphone input when closing instead of submitting a new turn', async () => {
     const client = createClient({stream:createEventStream<NimiRealtimeEventEnvelope<NimiAgentRealtimeEvent>>()});
     const stop = vi.fn(async()=>undefined);

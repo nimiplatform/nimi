@@ -9,6 +9,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
+	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 	"github.com/oklog/ulid/v2"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -39,12 +40,13 @@ type localAppWorkExecution struct {
 	tools       []*runtimev1.ToolSpec
 	rounds      int
 	// Mutable execution projection, pending call, and events use chatSurfaceMu.
-	snapshot   *runtimev1.LocalAppAgentWorkExecution
-	pending    *localAppWorkCall
-	events     []*runtimev1.LocalAppAgentWorkEvent
-	eventBytes int
-	changed    chan struct{}
-	terminalAt time.Time
+	snapshot      *runtimev1.LocalAppAgentWorkExecution
+	pending       *localAppWorkCall
+	events        []*runtimev1.LocalAppAgentWorkEvent
+	eventBytes    int
+	changed       chan struct{}
+	terminalAt    time.Time
+	memoryReadSet cognitionmemory.MemoryReadSet
 }
 
 type localAppWorkCall struct {
@@ -483,6 +485,7 @@ func (s *Service) runLocalAppWork(work *localAppWorkExecution, binding publicCha
 		s.chatSurfaceMu.Lock()
 		work.input, work.tools, work.prompt = nil, nil, ""
 		work.requestID = ""
+		work.memoryReadSet = cognitionmemory.MemoryReadSet{}
 		if s.localAppWorkActiveByAgent[work.owner.identity.LocalAgentRef] == work.snapshot.ExecutionId {
 			delete(s.localAppWorkActiveByAgent, work.owner.identity.LocalAgentRef)
 		}

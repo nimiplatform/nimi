@@ -44,6 +44,9 @@ export function createNimiAgentRealtimeSession(
   const eventListeners = new Set<(event: NimiAgentRealtimeEvent) => void>();
   let state = createNimiAgentRealtimeSessionState(input);
   let activeSession: ActiveSessionScope | null = null;
+  let pendingClose: ActiveSessionScope | null = null;
+  let closingResult: NimiRealtimeOperationResult | null = null;
+  let closeTask: Promise<NimiRealtimeOperationResult | null> | null = null;
   let activeCapture: ActiveCapture | null = null;
   let activeSubscription: NimiRealtimeSubscription<NimiAgentRealtimeEvent> | null = null;
   let frameInFlight = false;
@@ -68,7 +71,7 @@ export function createNimiAgentRealtimeSession(
       return () => eventListeners.delete(listener);
     },
     async open() {
-      if (state.lifecycle === 'opening' || state.lifecycle === 'closing' || activeSession) {
+      if (state.lifecycle === 'opening' || state.lifecycle === 'closing' || activeSession || pendingClose) {
         throw recordIssue(sessionError(
           'KIT_AGENT_REALTIME_SESSION_ACTIVE',
           'An Agent Realtime session is already opening or active.',
@@ -307,75 +310,90 @@ export function createNimiAgentRealtimeSession(
       }
       return result;
     },
-    async close() {
-      const closingSession = activeSession;
-      const closingSubscription = activeSubscription;
-      const closeEpoch = state.sessionEpoch + 1;
-      dispatch({ type: 'close-requested', epoch: closeEpoch });
-      activeSession = null;
-      activeSubscription = null;
-      playbackInterruptedTracks.clear();
-      runtimeCompletedTracks.clear();
-      let firstError: NimiError | null = null;
-      let result: NimiRealtimeOperationResult | null = null;
-
-      if (closingSession && activeCapture?.epoch === closingSession.epoch) {
-        try {
-          await stopCaptureForClosing(closingSession);
-        } catch (cause) {
-          firstError = hostOrRuntimeCloseError(cause);
-        }
-      } else if (activeCapture) {
-        const capture = activeCapture;
-        activeCapture = null;
-        try {
-          await capture.handle.stop();
-        } catch (cause) {
-          firstError = hostOrRuntimeCloseError(cause);
-        }
-      }
-
-      if (closingSubscription) {
-        try {
-          await closingSubscription.cancel();
-        } catch (cause) {
-          firstError ??= runtimeError(
-            cause,
-            'cancel Agent Realtime subscription',
-            'retry_agent_realtime_close',
-          );
-        }
-      }
-      if (closingSession) {
-        try {
-          result = await input.agentRealtime.close(scopeInput(closingSession));
-        } catch (cause) {
-          firstError ??= runtimeError(
-            cause,
-            'close Agent Realtime',
-            'retry_agent_realtime_close',
-          );
-        }
-      }
-      try {
-        await input.host.playback.close();
-      } catch (cause) {
-        firstError ??= playbackError(cause);
-      }
-
-      if (firstError) {
-        dispatch({
-          type: 'operation-failed',
-          epoch: closeEpoch,
-          error: firstError,
-          terminal: true,
-        });
-        throw firstError;
-      }
-      dispatch({ type: 'closed', epoch: closeEpoch });
-      return result;
+    close() {
+      closeTask ??= Promise.resolve().then(performClose).finally(() => { closeTask = null; });
+      return closeTask;
     },
   };
+
+  async function performClose(): Promise<NimiRealtimeOperationResult | null> {
+    const closingSession = pendingClose ?? activeSession;
+    if (!pendingClose && activeSession) closingResult = null;
+    pendingClose = closingSession;
+    const closingSubscription = activeSubscription;
+    const closeEpoch = state.sessionEpoch + 1;
+    dispatch({ type: 'close-requested', epoch: closeEpoch, remotePending: Boolean(pendingClose && !closingResult) });
+    activeSession = null;
+    activeSubscription = null;
+    playbackInterruptedTracks.clear();
+    runtimeCompletedTracks.clear();
+    let firstError: NimiError | null = null;
+    let result: NimiRealtimeOperationResult | null = closingResult;
+
+    if (closingSession && activeCapture?.epoch === closingSession.epoch) {
+      try {
+        await stopCaptureForClosing(closingSession);
+      } catch (cause) {
+        firstError = hostOrRuntimeCloseError(cause);
+      }
+    } else if (activeCapture) {
+      const capture = activeCapture;
+      activeCapture = null;
+      try {
+        await capture.handle.stop();
+      } catch (cause) {
+        firstError = hostOrRuntimeCloseError(cause);
+      }
+    }
+
+    if (closingSubscription) {
+      try {
+        await closingSubscription.cancel();
+      } catch (cause) {
+        firstError ??= runtimeError(
+          cause,
+          'cancel Agent Realtime subscription',
+          'retry_agent_realtime_close',
+        );
+      }
+    }
+    if (closingSession && !closingResult) {
+      try {
+        result = await input.agentRealtime.close(scopeInput(closingSession));
+        if (!result.ack.ok || !['closed', 'failed'].includes(result.control.lifecycle)) {
+          throw sessionError('KIT_AGENT_REALTIME_CLOSE_UNCONFIRMED', 'Runtime has not confirmed that this live conversation ended.', 'retry_agent_realtime_close', true);
+        }
+        closingResult = result;
+      } catch (cause) {
+        firstError ??= runtimeError(
+          cause,
+          'close Agent Realtime',
+          'retry_agent_realtime_close',
+        );
+      }
+    }
+    try {
+      await input.host.playback.close();
+    } catch (cause) {
+      firstError ??= playbackError(cause);
+    }
+
+    if (firstError) {
+      dispatch({
+        type: 'operation-failed',
+        epoch: closeEpoch,
+        error: firstError,
+        terminal: true,
+      });
+      throw firstError;
+    }
+    pendingClose = null;
+    dispatch({ type: 'closed', epoch: closeEpoch, ...(result ? { control: result.control } : {}) });
+    if (result?.control.lifecycle === 'failed') {
+      recordIssue(sessionError(result.control.terminalReason || 'KIT_AGENT_REALTIME_TERMINAL', 'Runtime ended this live conversation with a failure.', result.control.actionHint || 'reopen_agent_realtime_session', true), true, closeEpoch);
+    }
+    return result;
+  }
 
   async function pumpSubscription(
     subscription: NimiRealtimeSubscription<NimiAgentRealtimeEvent>,

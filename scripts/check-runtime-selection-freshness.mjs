@@ -59,11 +59,9 @@ function isSelectionReviewExpired(reviewedDate, freshnessSLADays, now) {
   return utcCalendarDay(expiry) < utcCalendarDay(now);
 }
 
-async function main() {
-  const sourceProviders = listProviderSourceDocs(sourceDir);
-
+export async function evaluateSelectionMetadata(sourceProviders, readSnapshot, now) {
   const failures = [];
-  const now = new Date();
+  const expiredReviews = [];
 
   for (const sourceEntry of sourceProviders) {
     const sourceDoc = sourceEntry.doc || {};
@@ -131,7 +129,7 @@ async function main() {
       }
       const expiry = addDays(reviewedDate, freshnessSLADays);
       if (isSelectionReviewExpired(reviewedDate, freshnessSLADays, now)) {
-        failures.push(`${provider}: selection profile ${profileID} expired on ${expiry.toISOString().slice(0, 10)}`);
+        expiredReviews.push(`${provider}: selection profile ${profileID} expired on ${expiry.toISOString().slice(0, 10)}`);
       }
       const capabilities = modelIndex.get(modelID.toLowerCase());
       if (!capabilities) {
@@ -145,8 +143,7 @@ async function main() {
 
     if (textGeneralProfiles.length === 1) {
       const expectedDefault = normalizeString(textGeneralProfiles[0]?.model_id);
-      const snapshotPath = path.join(snapshotDir, `${provider}.yaml`);
-      const snapshotDoc = YAML.parse(await fs.readFile(snapshotPath, 'utf8')) || {};
+      const snapshotDoc = await readSnapshot(provider);
       const actualDefault = normalizeString(snapshotDoc.default_text_model);
       if (expectedDefault && actualDefault.toLowerCase() !== expectedDefault.toLowerCase()) {
         failures.push(`${provider}: snapshot default_text_model ${actualDefault || '<empty>'} does not match selection_profiles[text.general]=${expectedDefault}`);
@@ -154,13 +151,26 @@ async function main() {
     }
   }
 
+  return { failures, expiredReviews };
+}
+
+async function main() {
+  const { failures, expiredReviews } = await evaluateSelectionMetadata(
+    listProviderSourceDocs(sourceDir),
+    async (provider) => YAML.parse(await fs.readFile(path.join(snapshotDir, provider + '.yaml'), 'utf8')) || {},
+    new Date(),
+  );
+  // @nimi-authority: rule.nimi.runtime.model-catalog.recommendation-freshness
+  if (expiredReviews.length > 0) {
+    process.stderr.write(`Recommendation review needed (${expiredReviews.length}); execution targets are unchanged:\n- ${expiredReviews.join('\n- ')}\n`);
+  }
   if (failures.length > 0) {
     process.stderr.write(`runtime selection freshness check failed:\n- ${failures.join('\n- ')}\n`);
     process.exitCode = 1;
     return;
   }
 
-  process.stdout.write('runtime selection freshness check passed\n');
+  process.stdout.write('runtime selection metadata check passed; recommendation age is a separate maintenance result\n');
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

@@ -63,23 +63,31 @@ function projectRuntimeAgentConsumeEventStream<Input>(
     [Symbol.asyncIterator](): AsyncIterator<NimiRuntimeAgentConsumeEvent> {
       const iterator = stream[Symbol.asyncIterator]();
       let closed = false;
+      const close = async () => {
+        if (closed) return;
+        closed = true;
+        try { await iterator.return?.(); } catch { /* Keep the original stream failure. */ }
+      };
       return {
         next: async () => {
-          while (!closed) {
-            const next = await iterator.next();
-            if (next.done) {
-              return { done: true, value: undefined };
+          try {
+            while (!closed) {
+              const next = await iterator.next();
+              if (closed || next.done) {
+                closed = true;
+                return { done: true, value: undefined };
+              }
+              const projected = project(next.value);
+              if (projected) return { done: false, value: projected };
             }
-            const projected = project(next.value);
-            if (projected) {
-              return { done: false, value: projected };
-            }
+          } catch (error) {
+            await close();
+            throw error;
           }
           return { done: true, value: undefined };
         },
         return: async () => {
-          closed = true;
-          await Promise.resolve(iterator.return?.()).catch(() => undefined);
+          await close();
           return { done: true, value: undefined };
         },
       };
@@ -104,7 +112,7 @@ export function mergeNimiRuntimeAgentStreams(
     iterator: AsyncIterator<NimiRuntimeAgentConsumeEvent>,
     index: number,
   ): Promise<NextState> =>
-    iterator.next().then(
+    Promise.resolve().then(() => iterator.next()).then(
       (result) => ({ index, result }),
       (error) => ({ index, error }),
     );
@@ -112,13 +120,21 @@ export function mergeNimiRuntimeAgentStreams(
     entry.next = pull(entry.iterator, entry.index);
   }
   let closed = false;
+  const close = async () => {
+    if (closed) return;
+    closed = true;
+    const owned = entries.splice(0, entries.length);
+    await Promise.allSettled(owned.map(async (entry) => entry.iterator.return?.()));
+  };
   return {
     [Symbol.asyncIterator](): AsyncIterator<NimiRuntimeAgentConsumeEvent> {
       return {
         next: async () => {
           while (!closed && entries.length > 0) {
             const next = await Promise.race(entries.map((entry) => entry.next!));
-            if (next.error) {
+            if (closed) return { done: true, value: undefined };
+            if ('error' in next) {
+              await close();
               throw next.error;
             }
             const result = next.result;
@@ -141,9 +157,7 @@ export function mergeNimiRuntimeAgentStreams(
           return { done: true, value: undefined };
         },
         return: async () => {
-          closed = true;
-          await Promise.allSettled(entries.map((entry) => entry.iterator.return?.()));
-          entries.splice(0, entries.length);
+          await close();
           return { done: true, value: undefined };
         },
       };

@@ -1,5 +1,6 @@
 # Non-authoritative machine configuration (active consumer contract).
 # Normative authority: .nimi/spec/runtime/rpc-foundations.authority.yaml
+# The realm scheme resolves relative to the Realm .nimi authority root.
 # External Realm authority (cross-repo): realm:spec/realm/core.authority.yaml + realm:spec/realm/feed.authority.yaml + realm:spec/realm/asset.authority.yaml
 version: 4
 table_family: protocol_surface
@@ -388,7 +389,7 @@ operations:
 
   - <<: *desktop_source_read
     operation_id: WorldPublicController_listWorldTopics
-    authority_ref: realm:.nimi/spec/realm/core.authority.yaml#rule.realm.core.world-discovery
+    authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.world-discovery
     http_method: GET
     path_template: /api/world/topics
     request_schema_ref: realm-openapi://operation/WorldPublicController_listWorldTopics/request
@@ -420,7 +421,7 @@ operations:
 
   - <<: *desktop_source_read
     operation_id: WorldPublicController_listCharacterCatalog
-    authority_ref: realm:.nimi/spec/realm/core.authority.yaml#rule.realm.core.public-discovery-catalog
+    authority_ref: realm:spec/realm/core.authority.yaml#rule.realm.core.public-discovery-catalog
     http_method: GET
     path_template: /api/world/character-sources/catalog
     request_schema_ref: realm-openapi://operation/WorldPublicController_listCharacterCatalog/request

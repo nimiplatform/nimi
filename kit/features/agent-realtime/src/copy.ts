@@ -15,6 +15,8 @@ export type NimiAgentRealtimeCopy = {
   readonly stop: string;
   readonly interrupt: string;
   readonly close: string;
+  readonly retryClose: string;
+  readonly closeUnconfirmed: string;
   readonly opening: string;
   readonly closing: string;
   readonly ready: string;
@@ -51,6 +53,8 @@ export const NIMI_AGENT_REALTIME_BASE_COPY: Readonly<
     stop: 'Stop microphone',
     interrupt: 'Interrupt output',
     close: 'Close live conversation',
+    retryClose: 'Retry closing',
+    closeUnconfirmed: 'Input has stopped, but closure is not confirmed. Retry closing. If it still fails, stop this App in Nimi Home to release its session.',
     opening: 'Opening live conversation…',
     closing: 'Closing live conversation…',
     ready: 'Live conversation is ready.',
@@ -83,6 +87,8 @@ export const NIMI_AGENT_REALTIME_BASE_COPY: Readonly<
     stop: '停止麦克风',
     interrupt: '打断输出',
     close: '关闭实时对话',
+    retryClose: '重试关闭',
+    closeUnconfirmed: '输入已停止，但尚未确认会话已关闭。请重试关闭；若仍失败，请在 Nimi Home 中停止此应用以释放会话。',
     opening: '正在开启实时对话…',
     closing: '正在关闭实时对话…',
     ready: '实时对话已就绪。',

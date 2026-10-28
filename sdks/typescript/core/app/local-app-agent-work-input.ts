@@ -14,8 +14,11 @@ export type NimiLocalAppAgentWorkToolCall = {
 function invalid(): never {
   return localAppError('Local-app work input is invalid.', 'SDK_LOCAL_APP_INPUT_INVALID', 'provide_bounded_app_work');
 }
-export function workText(value: unknown, max: number, empty = false): string {
-  if (typeof value !== 'string' || (!empty && !value.trim()) || value.includes('\u0000') || new TextEncoder().encode(value).byteLength > max) invalid();
+export function workText(value: unknown, max: number, empty = false, field?: string): string {
+  if (typeof value !== 'string' || (!empty && !value.trim()) || value.includes('\u0000') || new TextEncoder().encode(value).byteLength > max) {
+    if (field) return localAppError(`${field} must be nonempty, NUL-free text of at most ${max.toLocaleString('en-US')} UTF-8 bytes.`, 'SDK_LOCAL_APP_INPUT_INVALID', 'provide_bounded_app_work');
+    invalid();
+  }
   return value;
 }
 export function validateAgentWork(value: unknown): NimiLocalAppAgentWorkInput {

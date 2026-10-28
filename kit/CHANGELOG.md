@@ -2,6 +2,16 @@
 
 # Changelog
 
+## Unreleased — Agent Realtime close result preservation
+
+The headless state adds `closeUnconfirmed` for a remote closure that has not been
+confirmed. Close failures retain the original scope for explicit retry and block
+replacement Open; concurrent Close calls share one operation. The shared Entry
+offers retry and an explicit Nimi Home Stop recovery path, and does not rewrite a
+Runtime failed terminal as closed. Update custom state fixtures for the added
+field and rebuild matching SDK/Kit source packages. This is part of the next
+coordinated 0.x minor; no package publication or automatic replay is implied.
+
 ## 0.22.1 — 2026-10-27
 
 Fix protected `realm.worldCore.list` responses larger than 1 MiB by carrying

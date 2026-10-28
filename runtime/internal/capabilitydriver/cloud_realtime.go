@@ -13,7 +13,6 @@ import (
 
 const (
 	RealtimeInteractCapabilityContract = "realtime.interact"
-	dashScopeRealtimeEndpoint          = "wss://dashscope.aliyuncs.com/api-ws/v1/realtime"
 )
 
 type CloudRealtimeTarget struct {
@@ -155,7 +154,9 @@ func (dashScopeRealtimeDriver) ValidateTarget(identity Identity, raw *structpb.S
 	return CloudRealtimeTarget{provider: provider, providerModelID: model, remoteModelCatalogID: catalogID, region: region}, nil
 }
 
-func (dashScopeRealtimeDriver) Endpoint(CloudRealtimeTarget) string { return dashScopeRealtimeEndpoint }
+func (dashScopeRealtimeDriver) Transport() CloudRealtimeTransport {
+	return CloudRealtimeTransport{BasePath: "/compatible-mode/v1", Path: "/api-ws/v1/realtime", ModelQuery: true}
+}
 
 func (dashScopeRealtimeDriver) MapOpen(eventID string, target CloudRealtimeTarget, input CloudRealtimeOpen) ([]byte, error) {
 	if target.provider != "dashscope" || target.providerModelID != "qwen3.5-omni-flash-realtime" ||

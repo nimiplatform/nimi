@@ -17,7 +17,7 @@ units:
   - id: definition.nimi.runtime.ai-provider.connector-plane
     kind: definition
     title: Runtime connector plane
-    meaning: The Runtime connector plane is credential custody and account-ownership support whose create, update, delete and listing lifecycle stores provider-defined sealed payloads and whose bounded connection diagnostic retains only the last observed result, never route, target, binding, readiness, or execution truth; Cloud execution validates only the exact Connector reference committed by the canonical AIConfig owner and captures it through ownership, App Capability access, credential validity, and existing policy either as durable immutable Job effective input at Job admission or as bounded session-generation-scoped ephemeral input before successful realtime.interact Open.
+    meaning: The Runtime connector plane owns one managed service connection combining non-secret endpoint configuration with separately protected provider credential custody and account ownership. Its create, update, delete and listing lifecycle never commits an AIConfig route, model target, binding or readiness. Runtime captures the exact admitted connection endpoint and credential generation into immutable Job input or bounded Realtime session-generation input; subsequent connection edits affect only new executions. Apps reference authorized connections and cannot override endpoints per request; Remote ExecutionHost alone materializes protocol destinations, validates addresses, dials and uses secrets.
   - id: definition.nimi.runtime.ai-provider.model-service-plane
     kind: definition
     title: Runtime ModelAsset service plane
@@ -211,7 +211,7 @@ units:
     kind: rule
     title: Create validates admitted auth shapes
     modality: must
-    statement: CreateConnector validates required custody fields, injects only the default display label and initial authorization status, requires api_key and forbids provider_auth_profile and credential_json for auth_kind API_KEY, requires an authenticated caller plus provider_auth_profile and credential_json and forbids api_key for auth_kind OAUTH_MANAGED, and infers an omitted auth_kind as OAUTH_MANAGED when credential_json is present and as API_KEY otherwise; a Connector stores no ExecutionHost endpoint or route target.
+    statement: CreateConnector validates required custody fields, initializes an omitted endpoint from admitted provider setup metadata and injects the default display label and initial authorization status, requires api_key and forbids provider_auth_profile and credential_json for auth_kind API_KEY, requires an authenticated caller plus provider_auth_profile and credential_json and forbids api_key for auth_kind OAUTH_MANAGED, and infers an omitted auth_kind as OAUTH_MANAGED when credential_json is present and as API_KEY otherwise; a Connector stores its non-secret endpoint as connection configuration but no AIConfig route or model target.
     condition: Whenever ConnectorService creates a connector.
     failure: Reject creation requests that violate the admitted auth shape for the selected or inferred auth kind.
     relations:
@@ -241,7 +241,7 @@ units:
     kind: rule
     title: Update keeps coherent auth state
     modality: must
-    statement: UpdateConnector validates the mutable custody field set, invalidates authorization caches when credentials or auth profile change, keeps API_KEY patches free of provider_auth_profile, keeps OAUTH_MANAGED connectors holding a provider_auth_profile, never accepts api_key and credential_json in one patch, requires an auth-kind switch to supply the target shape credential explicitly without implicit conversion, and never accepts or changes an ExecutionHost endpoint or route target.
+    statement: UpdateConnector validates the mutable custody field set, invalidates authorization caches when credentials or auth profile change, keeps API_KEY patches free of provider_auth_profile, keeps OAUTH_MANAGED connectors holding a provider_auth_profile, never accepts api_key and credential_json in one patch, requires an auth-kind switch to supply the target shape credential explicitly without implicit conversion, permits an explicit non-secret endpoint update for new executions without changing already captured Jobs or session generations, and never changes an AIConfig route or model target.
     condition: Whenever ConnectorService updates a connector.
     failure: Reject patches that produce an incoherent auth state or rely on implicit credential conversion.
     relations:
@@ -1015,9 +1015,9 @@ units:
     kind: rule
     title: ExecutionHost target admission is private and bounded
     modality: must
-    statement: Before Host startup, Local and Remote ExecutionHost endpoints come only from exact Runtime-owned Host materialization or configuration associated with the committed Driver; llama, media, and speech Local Hosts use only Runtime-owned supervised materialization with private deterministic configuration or controlled allocation, sidecar alone may use an exact admitted private attached endpoint, and a Remote Host consumes the applicable exact Job-captured or realtime.interact session-generation-captured Driver target and credential context resolved from the captured current-account Connector reference. Authority promises no product-level fixed port, caller or ambient inference, environment default, attached recovery suggestion for llama, media, or speech, or endpoint identity in an App, AIConfig, AIProfile, Driver target choice, catalog, Loadout, binding, machine preference, public probe, or readiness truth.
+    statement: Local ExecutionHost endpoints come only from exact Runtime-owned supervised materialization associated with the committed Driver; llama, media and speech use private deterministic configuration or controlled allocation, while sidecar alone may use an exact admitted private attached endpoint. Remote ExecutionHost materializes its destination from the captured Runtime-managed Connector endpoint and versioned protocol metadata, preserving that connection generation and separately protected credentials. Neither path admits caller or ambient inference, environment defaults, product fixed-port promises, endpoint authority in App execution input, AIConfig or AIProfile targets, Loadouts, bindings, machine preferences, probes or readiness. Catalog setup addresses initialize managed connections before capture only and cannot override captured input.
     condition: Whenever an ExecutionHost target is admitted.
-    failure: Reject caller-injected, environment-injected, ambient, unmaterialized, or publicly projected Host endpoints and fail the exact Host composition without alternate endpoint routing.
+    failure: Reject caller or environment overrides, missing capture, unmaterialized destinations and alternate endpoint fallback; expose managed non-secret connection configuration only through its admitted management owner.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.remote-execution-host-plane
@@ -1072,9 +1072,9 @@ units:
     kind: rule
     title: Gemini endpoint materialization is Host private
     modality: must
-    statement: The Gemini CapabilityImplementationDriver emits only its declared provider protocol and provider-model target semantics, while the Remote ExecutionHost materializes the exact base endpoint from Runtime-private Host configuration before dispatch; neither Driver target nor Connector, environment variable, caller, catalog, AIConfig, or Profile supplies a base endpoint, and Host configuration never becomes route, provider-health, or machine-selection truth.
+    statement: The Gemini CapabilityImplementationDriver emits declared provider protocol and provider-model semantics while Remote ExecutionHost materializes the exact endpoint from the captured Runtime-managed Connector connection. Driver metadata describes protocol paths but no independent live origin. Provider setup metadata may initialize the connection before capture; environment, caller, AIConfig and Profile input cannot supply or override a base endpoint, and connection configuration never becomes route, provider-health or machine-selection truth.
     condition: Whenever Gemini Driver output and its Remote ExecutionHost are composed.
-    failure: Reject a Driver-, Connector-, environment-, caller-, catalog-, AIConfig-, or Profile-owned endpoint and every alternate endpoint fallback.
+    failure: Reject missing captured endpoint, request or environment overrides, protocol metadata that changes a custom origin, and alternate endpoint fallback.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.nimillm-plane
@@ -1910,3 +1910,15 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.realtime-connection-endpoint
+    kind: rule
+    title: Realtime protocol paths preserve the captured connection origin
+    modality: must
+    statement: Cloud Realtime captures the Runtime-managed Connector endpoint and derives its encrypted WebSocket destination from that origin. Versioned Driver protocol metadata declares only a service base path and the Realtime resource path; Host replaces that exact base-path suffix while preserving any custom proxy prefix, query values, region and workspace origin, then adds the declared model query field where the protocol requires it. Missing capture never falls back to a Driver hostname or current provider default, and fixed-domain provider restrictions and separately admitted regional mappings remain binding.
+    condition: Whenever Remote ExecutionHost opens a Cloud Realtime provider transport.
+    failure: Reject invalid or missing captured connection endpoints and any request-level origin override before network dispatch.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.connector-plane
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.realtime-plane

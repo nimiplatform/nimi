@@ -10,7 +10,8 @@ import (
 )
 
 type CloudRealtimeTransport struct {
-	Endpoint     string
+	BasePath     string
+	Path         string
 	ModelQuery   bool
 	APIKeyHeader string
 }
@@ -46,7 +47,7 @@ type CloudRealtimeProtocol interface {
 type realtimeWireMapper interface {
 	SelfIntentionTools(bool) []any
 	SelfIntentionToolsUpdate(string, bool, runtimev1.AiRealtimeTurnDetectionMode) ([]byte, error)
-	Endpoint(CloudRealtimeTarget) string
+	Transport() CloudRealtimeTransport
 	MapOpen(string, CloudRealtimeTarget, CloudRealtimeOpen) ([]byte, error)
 	MapInput(string, *runtimev1.AppendRealtimeInputRequest) ([]byte, error)
 	MapOwnerControl(string, *runtimev1.SubmitRealtimeOwnerControlRequest) ([]byte, error)
@@ -87,7 +88,7 @@ func (openAIRealtimeDriver) NewSession(target CloudRealtimeTarget, open CloudRea
 	return newRealtimeWireSession(openAIRealtimeDriver{}, target, open), nil
 }
 func (s *realtimeWireSession) Transport() CloudRealtimeTransport {
-	return CloudRealtimeTransport{Endpoint: s.mapper.Endpoint(s.target), ModelQuery: true}
+	return s.mapper.Transport()
 }
 func (s *realtimeWireSession) OpenWire(id string) ([]byte, error) {
 	return s.mapper.MapOpen(id, s.target, s.open)

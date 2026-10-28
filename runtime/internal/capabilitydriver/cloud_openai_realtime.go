@@ -38,8 +38,8 @@ func (openAIRealtimeDriver) ValidateTarget(identity Identity, raw *structpb.Stru
 	return CloudRealtimeTarget{provider: provider, providerModelID: model, remoteModelCatalogID: catalogID}, nil
 }
 
-func (openAIRealtimeDriver) Endpoint(CloudRealtimeTarget) string {
-	return "wss://api.openai.com/v1/realtime"
+func (openAIRealtimeDriver) Transport() CloudRealtimeTransport {
+	return CloudRealtimeTransport{BasePath: "/v1", Path: "/v1/realtime", ModelQuery: true}
 }
 
 func (openAIRealtimeDriver) MapOpen(eventID string, target CloudRealtimeTarget, input CloudRealtimeOpen) ([]byte, error) {

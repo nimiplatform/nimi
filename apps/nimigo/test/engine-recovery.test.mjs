@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { GoEngine } from '../src/product/engine.ts';
 import { createWork, createWorkspace, needsAiSetup, workCanEdit } from '../src/product/model.ts';
+import { createNimiLocalAppAgentWorkClient } from '../../../sdks/typescript/core/app/local-app-runtime-platform-agent-work.ts';
 
 function fixture(works, workspace) {
   const documents = new Map([['nimigo/v1/workspace.json', structuredClone(workspace)], ...works.map(work => [`nimigo/v1/work-${work.id}.json`, structuredClone(work)])]);
@@ -303,7 +304,7 @@ test('a forged saved read selection cannot turn the direct material action into 
 });
 
 test('a refusal Runtime returned before admission fails the attempt and keeps its input; a lost transport stays unconfirmed', async () => {
-  for (const [reasonCode, expected] of [['resource-exhausted', 'failed'], ['runtime-access-denied', 'failed'], ['runtime-service-unavailable', 'uncertain']]) {
+  for (const [reasonCode, expected] of [['protocol-envelope-invalid', 'failed'], ['SDK_LOCAL_APP_INPUT_INVALID', 'failed'], ['resource-exhausted', 'uncertain'], ['runtime-access-denied', 'uncertain'], ['SDK_LOCAL_APP_PROJECTION_INVALID', 'uncertain'], ['new-typed-reply-failure', 'uncertain'], ['runtime-service-unavailable', 'uncertain']]) {
     const { workspace, work } = workFixture(); const { engine, client } = fixture([work], workspace);
     client.agentWork.start = async () => { throw Object.assign(new Error(reasonCode), { reasonCode }); };
     try {
@@ -314,6 +315,25 @@ test('a refusal Runtime returned before admission fails the attempt and keeps it
       assert.equal(saved.attempts.at(-1).input, '保留这段追加要求');
     } finally { engine.dispose(); }
   }
+});
+
+test('a dispatched Start with malformed SDK reply persists uncertainty instead of authorizing resend', async () => {
+  const { workspace, work } = workFixture();
+  const { engine, client, calls, documents } = fixture([work], workspace);
+  const handle = `agent_ref_${'a'.repeat(43)}`;
+  client.agentWork.listReferences = async () => [{ agentBinding: 'test-binding', agentHandle: handle, displayName: 'Test Agent', avatarUrl: null }];
+  const actualSDK = createNimiLocalAppAgentWorkClient({ start: async input => { calls.starts.push(input); return { executionId: ' ' }; } });
+  client.agentWork.start = actualSDK.start;
+  try {
+    await engine.initialize();
+    await engine.run(work.id, '保留已提交的输入');
+    assert.equal(calls.starts.length, 1);
+    const saved = documents.get(`nimigo/v1/work-${work.id}.json`);
+    assert.equal(saved.status, 'uncertain');
+    assert.equal(saved.attempts.at(-1).status, 'uncertain');
+    assert.equal(saved.attempts.at(-1).input, '保留已提交的输入');
+    assert.equal(calls.results.length, 0);
+  } finally { engine.dispose(); }
 });
 
 test('a typed question survives a Host exit and is answered without restarting the old execution', async () => {

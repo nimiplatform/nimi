@@ -21,6 +21,26 @@ test('Integration setup carries one closed adapter configuration and excludes cr
 
 const agentHandle = `agent_ref_${'a'.repeat(43)}` as NimiLocalAppAgentHandle;
 
+test('Work prompt has a 16,384 UTF-8 byte boundary before dispatch without truncation', async () => {
+  const received: string[] = [];
+  const client = createNimiLocalAppAgentWorkClient({ start: async input => { received.push(input.prompt); return { executionId: 'accepted' }; } } as NimiLocalAppAgentWorkShell);
+  const work = { workId: 'work', instructions: '', sources: [], tools: [] };
+  for (const unit of ['a', '中', '😀']) {
+    const size = new TextEncoder().encode(unit).length;
+    for (const bytes of [16383, 16384, 16385]) {
+      const prompt = unit.repeat(Math.floor(bytes / size)) + 'x'.repeat(bytes % size);
+      const count = received.length;
+      if (bytes > 16384) {
+        await assert.rejects(client.start({ agentHandle, requestId: 'request', prompt, work }), /16,384 UTF-8 bytes/u);
+        assert.equal(received.length, count);
+      } else {
+        await client.start({ agentHandle, requestId: 'request', prompt, work });
+        assert.equal(received.at(-1), prompt);
+      }
+    }
+  }
+});
+
 test('Weixin new-target confirmation is a closed explicit action through shell and Runtime', async () => {
   const pending = {setupId:'iset_pending',adapter:'weixin',targetRef:'icon_original',status:'awaiting-new-target',expiresAt:{seconds:'1791288000',nanos:0},qrCodeUrl:'',verificationUrl:'',accountLabel:'candidate@im.bot',errorCode:''};
   const requests: unknown[] = [];
