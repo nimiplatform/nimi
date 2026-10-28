@@ -25,7 +25,7 @@
   display: none;
 }
 
-/* Module rails share geometry; each consumer keeps its own colors and states.
+/* Module rails share geometry; each consumer keeps its own content and states.
    The 4px rhythm leaves more space between groups than between their rows. */
 .desktop-sidebar,
 .desktop-module-panel {
@@ -42,6 +42,120 @@
 
 .desktop-sidebar.nimi-sidebar-shell {
   border-left-width: 1px;
+}
+
+.desktop-module-workspace {
+  display: flex;
+  flex: 1 1 0%;
+  min-width: 0;
+  min-height: 0;
+  gap: 8px;
+}
+
+.desktop-module-content {
+  min-width: 0;
+  padding: 20px;
+}
+
+.desktop-module-content--header {
+  flex-shrink: 0;
+  padding-bottom: 0;
+}
+
+.desktop-module-stack {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.desktop-module-header {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.desktop-module-title {
+  overflow-wrap: anywhere;
+  color: var(--nimi-text-primary);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 32px;
+  letter-spacing: -0.02em;
+}
+
+.desktop-module-section-title {
+  color: var(--nimi-text-primary);
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 24px;
+}
+
+.desktop-module-header-icon {
+  width: 40px;
+  height: 40px;
+  flex-shrink: 0;
+  border-radius: var(--nimi-radius-md);
+}
+
+.desktop-module-card {
+  min-width: 0;
+  padding: 16px;
+  border-radius: var(--nimi-radius-md);
+  box-shadow: none;
+}
+
+.desktop-module-card--flush {
+  padding: 0;
+}
+
+.desktop-module-sidebar {
+  width: 256px;
+  min-height: 0;
+}
+
+:scope.desktop-module-sidebar-popover {
+  width: min(288px, calc(100vw - 32px));
+}
+
+:scope.desktop-module-sidebar-popover .desktop-module-sidebar {
+  width: 100%;
+  height: min(640px, calc(100dvh - 128px));
+}
+
+@media (min-width: 1024px) {
+  .desktop-module-sidebar {
+    width: 288px;
+  }
+}
+
+@media (max-width: 767px) {
+  .desktop-module-workspace {
+    flex-direction: column;
+  }
+  .desktop-module-content {
+    padding: 16px;
+  }
+  .desktop-module-content--header {
+    padding-bottom: 0;
+  }
+}
+
+.desktop-module-sidebar :is(.desktop-sidebar__row, .desktop-sidebar__row-surface)[data-active="true"] {
+  background: var(--nimi-surface-active);
+  box-shadow: inset 0 0 0 1px var(--nimi-border-strong);
+}
+
+.desktop-module-sidebar :is(.desktop-sidebar__row, .desktop-sidebar__row-surface)[data-active="false"]:hover {
+  background: color-mix(in srgb, var(--nimi-surface-active) 60%, transparent);
+}
+
+.desktop-module-sidebar :is(.desktop-sidebar__row, .desktop-sidebar__control):focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 var(--nimi-focus-ring-width) var(--nimi-focus-ring-color);
 }
 
 .desktop-sidebar__header {
