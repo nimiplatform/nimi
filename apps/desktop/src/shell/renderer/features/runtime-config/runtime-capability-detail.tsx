@@ -175,13 +175,13 @@ export function RuntimeCapabilityDetail(props: Props) {
     environmentWritesDisabled={props.disabled} onPrepareEnvironment={loadout => { void props.onStart(loadout.recipeId, loadout); }} onOpenModelMarket={props.onModelMarket} />;
   const controlsDisabled = props.busy || props.disabled || Boolean(props.modelsLoading || props.modelsError || props.libraryLoading || props.libraryError);
   return (
-    <div className="space-y-5" data-testid={`ai-capability-detail:${props.capability}`}>
+    <div className="desktop-module-stack" data-testid={`ai-capability-detail:${props.capability}`}>
       <header className="flex items-start gap-3">
-        <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]"><Icon size={24} strokeWidth={1.6} /></span>
-        <div className="min-w-0"><h1 className="text-2xl font-semibold tracking-tight">{label}</h1>
+        <span className="desktop-module-header-icon flex items-center justify-center bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]"><Icon size={24} strokeWidth={1.6} /></span>
+        <div className="min-w-0"><h1 className="desktop-module-title">{label}</h1>
           <p className="mt-1 text-sm text-[var(--nimi-text-secondary)]">{displayRuntimeConfigCapabilityUsage(props.capability, t)}</p></div>
       </header>
-      <div className={props.apps ? 'grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_15rem]' : undefined}>
+      <div className={props.apps ? 'grid items-start gap-4 xl:grid-cols-[minmax(0,1fr)_15rem]' : undefined}>
         <div className="min-w-0 space-y-4">
           {props.status.task && !props.preparation ? <PendingSetupBanner task={props.status.task} model={props.taskModel} onOpen={() => props.onTask(props.status.task!.taskId)} /> : null}
           {props.preparation ? <div className="rounded-xl bg-[var(--nimi-surface-card)] p-4" data-testid="capability-preparation">{props.preparation}</div> : null}

@@ -1,5 +1,6 @@
 import { useHomeNavigation, useHomeDestination, useHomeEntryKey } from '../../app-shell/providers/app-store.js';
-import { Button, InlineAlert, ScrollArea, SelectField, SidebarShell, Surface } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, ScrollArea, Surface } from '@nimiplatform/kit/ui';
+import { DesktopModuleSidebar } from '../../components/desktop-module-sidebar.js';
 import type { NimiMachineLoadout } from '@nimiplatform/sdk/runtime';
 import { CircleDashed, LoaderCircle, SlidersHorizontal } from 'lucide-react';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
@@ -371,42 +372,12 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
 
   return (
     <div
-      className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 md:flex-row"
+      className="desktop-module-workspace"
       data-testid="ai-capabilities-workspace"
     >
-      <div className="space-y-2 md:hidden">
-        <SelectField
-          aria-label={t('runtimeConfig.capabilities.title')}
-          value={props.advancedDiagnostics ? '__diagnostics__' : visibleCapability ?? '__home__'}
-          options={[
-            { value: '__home__', label: t('runtimeConfig.product.setupsTitle') },
-            { value: '__diagnostics__', label: t('runtimeConfig.nav.advancedDiagnostics') },
-            ...railEntries.map((entry) => ({
-              value: entry.id,
-              label:
-                entry.state.state === 'ready' && entry.model
-                  ? `${label(entry.id)} · ${entry.model}`
-                  : `${label(entry.id)} · ${railStateLabel(entry)}`,
-            })),
-          ]}
-          onValueChange={(id) => {
-            if (id === '__home__') onHome();
-            else if (id === '__diagnostics__') props.onOpenAdvancedDiagnostics();
-            else openCapability(id);
-          }}
-        />
-        <div className="flex flex-wrap gap-1">
-          <Button tone="ghost" size="sm" onClick={props.onOpenModelFiles}>
-            {t('runtimeConfig.capabilities.manageFiles')}
-          </Button>
-          <Button tone="ghost" size="sm" aria-current={props.advancedDiagnostics ? 'page' : undefined} onClick={props.onOpenAdvancedDiagnostics}>
-            {t('runtimeConfig.nav.advancedDiagnostics')}
-          </Button>
-        </div>
-      </div>
-      <SidebarShell
-        className="desktop-sidebar hidden w-64 shrink-0 md:flex lg:w-72"
-        aria-label={t('runtimeConfig.capabilities.title')}
+      <DesktopModuleSidebar
+        label={t('runtimeConfig.capabilities.title')}
+        selectionKey={entryKey}
       >
         <button
           type="button"
@@ -454,7 +425,8 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                     type="button"
                     aria-current={visibleCapability === id ? 'page' : undefined}
                     title={hasStatusDetails ? undefined : markLabel}
-                    className={`desktop-sidebar__row flex w-full items-center text-left ${visibleCapability === id ? 'bg-[var(--nimi-surface-active)] ring-1 ring-inset ring-[var(--nimi-border-strong)]' : 'hover:bg-[color-mix(in_srgb,var(--nimi-surface-active)_60%,transparent)]'} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-action-primary-bg)]`}
+                    className="desktop-sidebar__row flex w-full items-center text-left"
+                    data-active={visibleCapability === id}
                     onClick={() => openCapability(id)}
                     data-testid={`ai-capability:${id}`}
                   >
@@ -492,7 +464,8 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
           <Button
             tone="ghost"
             size="sm"
-            className={`desktop-sidebar__row justify-start text-left ${props.advancedDiagnostics ? 'bg-[var(--nimi-surface-active)] ring-1 ring-inset ring-[var(--nimi-border-strong)]' : ''}`}
+            className="desktop-sidebar__row justify-start text-left"
+            data-active={Boolean(props.advancedDiagnostics)}
             aria-current={props.advancedDiagnostics ? 'page' : undefined}
             data-testid="ai-capabilities-advanced-diagnostics"
             onClick={props.onOpenAdvancedDiagnostics}
@@ -501,15 +474,16 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
             {t('runtimeConfig.nav.advancedDiagnostics')}
           </Button>
         </div>
-      </SidebarShell>
+      </DesktopModuleSidebar>
       <Surface
+        as="main"
         data-testid="ai-capabilities-detail-pane"
         tone="panel"
         material="glass-regular"
         padding="none"
         className="desktop-module-panel flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
       >
-        <ScrollArea viewportRef={contentViewportRef} className="min-h-0 flex-1" viewportClassName="[&>div]:!block" contentClassName="min-w-0 p-5 lg:px-8 lg:py-7">
+        <ScrollArea viewportRef={contentViewportRef} className="min-h-0 flex-1" viewportClassName="[&>div]:!block" contentClassName="desktop-module-content">
           {props.advancedDiagnostics ? (
             props.advancedDiagnostics.content
           ) : (
@@ -589,7 +563,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                   onOpenModelMarket={props.onOpenModelMarket}
                 />
               ) : !visibleCapability ? (
-                <div className="space-y-6">
+                <div className="desktop-module-stack">
                   <RuntimeConfigAiSettingsProfilesSection
                     key={homeRevision}
                     title={t('runtimeConfig.product.setupsTitle')}

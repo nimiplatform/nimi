@@ -182,11 +182,11 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
   );
   return (
     <div ref={sectionRef} tabIndex={-1} className="min-w-0" data-testid="runtime-ai-settings-profiles">
-      <div className="space-y-5">
+      <div className="desktop-module-stack">
         {mode.kind === 'list' || mode.kind === 'recommended' ? (
-          <header className="flex flex-wrap items-start justify-between gap-3">
+          <header className="desktop-module-header">
             <div className="min-w-0">
-              <h1 className="text-2xl font-semibold tracking-tight">{props.owner ? t('runtimeConfig.aiSettings.profileSelectionTitle') : props.title}</h1>
+              <h1 className="desktop-module-title">{props.owner ? t('runtimeConfig.aiSettings.profileSelectionTitle') : props.title}</h1>
               {!props.owner && props.lead ? (
                 <p className="mt-1.5 text-sm text-[var(--nimi-text-secondary)] md:hidden">{props.lead}</p>
               ) : null}
@@ -195,7 +195,7 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
         ) : null}
 
         {props.owner ? (
-          <div className="mt-3 flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-subtle)] p-5" data-testid="runtime-ai-settings-profile-owner-banner">
+          <div className="mt-3 flex flex-wrap items-center justify-between gap-4 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-subtle)] p-4" data-testid="runtime-ai-settings-profile-owner-banner">
             <ProfileOwnerIdentity owner={props.owner} prominent />
             <Button tone="ghost" size="sm" className="shrink-0" onClick={props.onCloseOwner} data-testid="runtime-ai-settings-profile-owner-close">
               {t('runtimeConfig.aiSettings.profileOwnerClose', { defaultValue: 'Exit app context' })}
@@ -290,7 +290,7 @@ export function RuntimeConfigAiSettingsProfilesSection(props: {
 
         {mode.kind === 'list' ? (
           <header className="sticky top-0 z-20 -mx-2 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-[var(--nimi-surface-panel)] px-2 py-2">
-            <h2 className="text-lg font-semibold text-[var(--nimi-text-primary)]">{t('runtimeConfig.aiSettings.profileLibraryTitle')}</h2>
+            <h2 className="desktop-module-section-title">{t('runtimeConfig.aiSettings.profileLibraryTitle')}</h2>
             <div className="flex shrink-0 flex-wrap items-center gap-1" data-testid="runtime-ai-settings-profile-transfer">
               <Button tone="ghost" size="sm" onClick={() => setImporting(true)} data-testid="runtime-ai-settings-profile-import">
                 <FileUp size={14} strokeWidth={1.8} aria-hidden="true" />
@@ -411,10 +411,10 @@ function ProfileLibraryCard(props: {
   ];
   return (
     <div
-      className="flex flex-wrap items-center gap-4 rounded-2xl border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_4%,var(--nimi-surface-card))] px-5 py-3"
+      className="flex flex-wrap items-center gap-4 rounded-[var(--nimi-radius-md)] border border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_18%,var(--nimi-border-subtle))] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_4%,var(--nimi-surface-card))] p-4"
       data-testid={`runtime-ai-settings-profile:${record.source.profileId}`}
     >
-      <span className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-[var(--nimi-border-subtle)] text-[var(--nimi-action-primary-bg)]">
+      <span className="desktop-module-header-icon flex items-center justify-center border border-[var(--nimi-border-subtle)] text-[var(--nimi-action-primary-bg)]">
         <FileSliders size={25} strokeWidth={1.6} aria-hidden="true" />
       </span>
       <div className="min-w-0 flex-1 basis-48">
@@ -656,20 +656,20 @@ function ProfileUsePanel(props: {
 
   return (
     <div
-      className="space-y-6"
+      className="desktop-module-stack"
       data-testid="runtime-ai-settings-profile-use-panel"
     >
       <Button tone="ghost" size="sm" className="-ml-3" onClick={props.onBack}>
         <ArrowLeft size={16} aria-hidden="true" />
         {t('runtimeConfig.aiSettings.profileBack')}
       </Button>
-      <header className="flex flex-wrap items-center gap-4 border-b border-[var(--nimi-border-subtle)] pb-6">
+      <header className="flex flex-wrap items-center gap-4 border-b border-[var(--nimi-border-subtle)] pb-4">
         <span className="flex size-14 shrink-0 items-center justify-center rounded-xl border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,var(--nimi-surface-card))] text-[var(--nimi-action-primary-bg)]">
           <FileSliders size={28} strokeWidth={1.6} aria-hidden="true" />
         </span>
         <div className="min-w-0 flex-1 basis-48">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="break-words text-2xl font-semibold tracking-tight">{profile.source.title}</h1>
+            <h1 className="desktop-module-title">{profile.source.title}</h1>
             <span className="rounded bg-[var(--nimi-surface-subtle)] px-2 py-0.5 text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.aiSettings.profileKind')}</span>
           </div>
           {props.saved ? <p className="mt-1 text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.aiSettings.profileSaved')}</p> : null}
@@ -691,9 +691,9 @@ function ProfileUsePanel(props: {
         </InlineAlert>
       ) : null}
       <section className="space-y-4" aria-label={t('runtimeConfig.aiSettings.profileContents')}>
-        <h2 className="text-lg font-semibold">{t('runtimeConfig.aiSettings.profileContents')}</h2>
+        <h2 className="desktop-module-section-title">{t('runtimeConfig.aiSettings.profileContents')}</h2>
         {!transferPlan && !previewError ? <LoadingSkeleton className="h-28 w-full" /> : null}
-        {capabilityPlans.length > 0 ? <div className="divide-y divide-[var(--nimi-border-subtle)] overflow-hidden rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]">
+        {capabilityPlans.length > 0 ? <div className="divide-y divide-[var(--nimi-border-subtle)] overflow-hidden rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]">
           {capabilityPlans.map((plan) => {
             const selectable = isStartable(plan);
             const Icon = capabilityIcon(plan.capabilityContract);
@@ -769,7 +769,7 @@ function ProfileUsePanel(props: {
           </label>
         ) : (
           <div className="space-y-3">
-            <h2 className="text-lg font-semibold">{t('runtimeConfig.aiSettings.profileOwnerScope')}</h2>
+            <h2 className="desktop-module-section-title">{t('runtimeConfig.aiSettings.profileOwnerScope')}</h2>
             <ProfileOwnerIdentity owner={props.owner} />
           </div>
         )}

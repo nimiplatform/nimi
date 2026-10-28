@@ -85,7 +85,7 @@ export function RuntimeLocalModelListSection(props: {
     <section className="space-y-3" data-testid="local-model-list" aria-labelledby="local-model-list-title">
       <div className="flex flex-wrap items-end justify-between gap-2">
         <div>
-          <h2 id="local-model-list-title" className="text-base font-semibold">
+          <h2 id="local-model-list-title" className="desktop-module-section-title">
             {t('runtimeConfig.localModels.title')}
             {!pending && !failed ? (
               <span className="ml-2 rounded-full bg-[var(--nimi-status-neutral-soft-bg)] px-2 py-0.5 text-xs font-medium text-[var(--nimi-status-neutral-soft-text)]">
@@ -180,7 +180,7 @@ function VariantCard(props: {
   const addedAt = Date.parse(variant.addedAt);
   return (
     <article
-      className="rounded-2xl bg-[var(--nimi-surface-card)] shadow-[var(--nimi-elevation-base)] ring-1 ring-[var(--nimi-border-subtle)]"
+      className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]"
       data-testid={`local-model-variant:${variant.contentId}`}
     >
       <div className="flex flex-wrap items-center gap-x-4 gap-y-3 px-4 py-4">
@@ -265,7 +265,7 @@ function VariantCard(props: {
             </span>
           ) : null}
         </div>
-        <div className="flex w-64 shrink-0 flex-wrap items-center gap-1 pl-6">
+        <div className="flex w-full min-w-0 flex-wrap items-center gap-1 sm:w-64 sm:shrink-0 sm:pl-6">
           {hasConfigurations ? (
             <Button
               tone="secondary"

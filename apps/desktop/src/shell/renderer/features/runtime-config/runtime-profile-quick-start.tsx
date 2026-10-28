@@ -1,4 +1,4 @@
-import { Button, InlineAlert, LoadingSkeleton, SelectField } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, LoadingSkeleton, SelectField, Surface } from '@nimiplatform/kit/ui';
 import { parseNimiPortableAIProfile, type NimiPortableAIProfile } from '@nimiplatform/sdk/ai';
 import type { NimiLoadoutRecipe, NimiRuntimeLocalVerifiedAssetDescriptor } from '@nimiplatform/sdk/runtime';
 import { useQuery } from '@tanstack/react-query';
@@ -33,12 +33,6 @@ import { useRuntimeModelLibrary } from './use-runtime-model-library.js';
 
 /** The capability the on-device conversation quick start is about. */
 export const CONVERSATION_CAPABILITY = 'text.generate';
-
-// Same hero surface as the cloud connection summary, so the overview's
-// readiness module and the cloud page read as one surface family.
-const QUICK_START_HERO_STYLE: CSSProperties = {
-  background: 'var(--nimi-surface-hero)',
-};
 
 const PRIMARY_ICON_TILE_STYLE: CSSProperties = {
   background:
@@ -168,7 +162,7 @@ export function RuntimeProfileQuickStart(props: {
               <button
                 key={entry.id}
                 type="button"
-                className="group flex flex-col rounded-[var(--nimi-radius-lg)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3.5 text-left shadow-[var(--nimi-elevation-base)] transition-[box-shadow,border-color] duration-200 hover:border-[color-mix(in_srgb,var(--nimi-action-primary-bg)_35%,var(--nimi-border-subtle))] hover:shadow-[var(--nimi-elevation-raised)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-action-primary-bg)]"
+                className="group flex flex-col rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4 text-left transition-colors hover:border-[var(--nimi-border-strong)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--nimi-action-primary-bg)]"
                 data-ready-capability={entry.id}
                 aria-label={t('runtimeConfig.quickStart.viewCapability', { capability: label })}
                 onClick={() => props.onOpenCapability(entry.id)}
@@ -277,20 +271,22 @@ function QuickStartShell(props: {
       ? 'bg-[var(--nimi-surface-card)] text-[var(--nimi-text-muted)] shadow-[var(--nimi-elevation-base)]'
       : 'text-[var(--nimi-action-primary-text)]';
   return (
-    <section
-      className="rounded-[var(--nimi-radius-xl)] border border-[var(--nimi-border-subtle)] p-5 shadow-[var(--nimi-elevation-base)] lg:p-6"
-      style={QUICK_START_HERO_STYLE}
+    <Surface
+      as="section"
+      tone="hero"
+      padding="none"
+      className="desktop-module-card"
       data-testid="ai-profile-quick-start"
       data-quick-start-state={props.state}
     >
-      <div className="flex flex-wrap items-start gap-5">
+      <div className="flex flex-wrap items-start gap-3">
         {Icon ? (
           <span
-            className={`flex size-14 shrink-0 items-center justify-center rounded-2xl ${iconTileClass}`}
+            className={`desktop-module-header-icon flex items-center justify-center ${iconTileClass}`}
             style={attention || muted ? undefined : PRIMARY_ICON_TILE_STYLE}
           >
             <Icon
-              size={28}
+              size={24}
               strokeWidth={1.6}
               className={props.state === 'preparing' ? 'animate-spin' : undefined}
               aria-hidden="true"
@@ -299,12 +295,12 @@ function QuickStartShell(props: {
         ) : null}
         <div className="min-w-0 flex-1 space-y-3">{props.children}</div>
       </div>
-    </section>
+    </Surface>
   );
 }
 
 function QuickStartTitle(props: { readonly children: ReactNode }) {
-  return <h2 className="text-xl font-bold text-[var(--nimi-text-primary)]">{props.children}</h2>;
+  return <h2 className="desktop-module-section-title">{props.children}</h2>;
 }
 
 function Fact(props: { readonly tone: 'good' | 'muted' | 'pending'; readonly children: ReactNode }) {
