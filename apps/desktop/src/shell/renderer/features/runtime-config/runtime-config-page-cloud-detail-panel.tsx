@@ -3,7 +3,7 @@ import type { ProviderCatalogEntry, DesktopConnectorReference } from '@nimiplatf
 import type { TFunction } from 'i18next';
 import { KeyRound, PencilLine } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
-import { ConfirmDialog } from '@nimiplatform/kit/ui';
+import { ConfirmDialog, Surface } from '@nimiplatform/kit/ui';
 import type { NimiRuntimeConnectorCatalogEntry } from '@nimiplatform/sdk/runtime';
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { homeRuntimeDestination } from '../../app-shell/providers/home-navigation.js';
@@ -80,10 +80,9 @@ type CloudConnectorDetailPanelProps = {
   vendorOptions: CloudConnectorVendorOption[];
 };
 
-// One card per service: identity and state on the hero band, then its
-// settings while editing and, once a check returns them, its models.
-// Nothing here reads as a form until the person asks to edit.
-const SECTION_CLASS = 'border-t border-[var(--nimi-border-subtle)] p-6 lg:p-7';
+// The selected connection owns the page header, status summary and detail card.
+// Connection settings appear only while editing; catalog reads stay independent.
+const SECTION_CLASS = 'border-t border-[var(--nimi-border-subtle)] p-4';
 const FIELD_NOTE_CLASS = 'rounded-[var(--nimi-radius-field)] bg-[var(--nimi-surface-panel)] px-4 py-3 text-xs text-[var(--nimi-text-muted)]';
 
 export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps) {
@@ -174,40 +173,41 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
   };
 
   return (
-    <div className="min-w-0 overflow-hidden rounded-[24px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]">
-      <section
-        className="p-6 lg:p-7"
-        style={{ background: 'var(--nimi-surface-hero)' }}
-        data-testid="cloud-connection-summary"
-      >
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="flex min-w-0 items-center gap-4">
-            <ProviderLogoTile provider={selectedConnector.provider || selectedConnector.vendor} label={vendorLabel} size="lg" className="shadow-[var(--nimi-elevation-base)]" />
-            <div className="min-w-0">
-              <h2 className="break-words text-[22px] font-semibold leading-tight tracking-tight text-[var(--nimi-text-primary)]">{selectedConnector.label}</h2>
-              {subtitle ? <p className="mt-1 truncate text-sm text-[var(--nimi-text-secondary)]">{subtitle}</p> : null}
-            </div>
-          </div>
-          <div className="flex shrink-0 flex-wrap items-center gap-2">
-            {!isSystemOwned && (editing || !credentialRejected || !canRepairCredential) ? (
-              <Button variant="ghost" size="sm" disabled={checking || savingToken || managedOAuthBusy} onClick={editing ? stopEditing : startEditing} icon={editing ? undefined : <PencilLine size={15} />}>
-                {t(editing ? 'Common.cancel' : 'runtimeConfig.product.editConnection')}
-              </Button>
-            ) : null}
-            {!editing && presentation !== 'needs-credential' && presentation !== 'disabled' ? (
-              <Button variant="ghost" size="sm" disabled={checking || savingToken || isDraft} onClick={() => { void model.testSelectedConnector(); }}>
-                {t(presentation === 'healthy' ? 'runtimeConfig.product.checkAgain' : 'runtimeConfig.product.checkConnection')}
-              </Button>
-            ) : null}
-            {!editing && presentation === 'needs-credential' && !isSystemOwned ? (
-              <Button variant="primary" size="sm" onClick={startEditing} icon={<KeyRound size={14} />}>
-                {t('runtimeConfig.product.addCredential')}
-              </Button>
-            ) : null}
+    <div className="desktop-module-stack">
+      <header className="desktop-module-header">
+        <div className="flex min-w-0 flex-1 basis-64 items-start gap-3">
+          <ProviderLogoTile provider={selectedConnector.provider || selectedConnector.vendor} label={vendorLabel} size="lg" className="desktop-module-header-icon" />
+          <div className="min-w-0">
+            <h1 className="desktop-module-title">{selectedConnector.label}</h1>
+            {subtitle ? <p className="mt-1 break-words text-sm text-[var(--nimi-text-secondary)]">{subtitle}</p> : null}
           </div>
         </div>
-
-        <div className="mt-5" data-testid={`cloud-connection-state:${presentation}`}>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          {!isSystemOwned && (editing || !credentialRejected || !canRepairCredential) ? (
+            <Button variant="ghost" size="sm" disabled={checking || savingToken || managedOAuthBusy} onClick={editing ? stopEditing : startEditing} icon={editing ? undefined : <PencilLine size={15} />}>
+              {t(editing ? 'Common.cancel' : 'runtimeConfig.product.editConnection')}
+            </Button>
+          ) : null}
+          {!editing && presentation !== 'needs-credential' && presentation !== 'disabled' ? (
+            <Button variant="ghost" size="sm" disabled={checking || savingToken || isDraft} onClick={() => { void model.testSelectedConnector(); }}>
+              {t(presentation === 'healthy' ? 'runtimeConfig.product.checkAgain' : 'runtimeConfig.product.checkConnection')}
+            </Button>
+          ) : null}
+          {!editing && presentation === 'needs-credential' && !isSystemOwned ? (
+            <Button variant="primary" size="sm" onClick={startEditing} icon={<KeyRound size={14} />}>
+              {t('runtimeConfig.product.addCredential')}
+            </Button>
+          ) : null}
+        </div>
+      </header>
+      <Surface
+        as="section"
+        tone="hero"
+        padding="none"
+        className="desktop-module-card"
+        data-testid="cloud-connection-summary"
+      >
+        <div data-testid={`cloud-connection-state:${presentation}`}>
           <CloudConnectorStatus connector={selectedConnector} checking={checking} t={t} />
           {selectedConnector.lastCheckedAt ? <p className="mt-2 text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.product.lastConnectionCheck', { time: new Date(selectedConnector.lastCheckedAt).toLocaleString() })}</p> : null}
           {presentation === 'attention' ? <div className="mt-3 space-y-2" role="alert">
@@ -224,197 +224,199 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
           <p className="mt-2">{t(isMachineGlobal ? 'runtimeConfig.cloud.managedMachineGlobal' : isRuntimeSystem ? 'runtimeConfig.cloudWorkspace.systemScope' : 'runtimeConfig.cloudWorkspace.accountScope')}</p>
           <details className="mt-2"><summary className="cursor-pointer">{t('runtimeConfig.cloudWorkspace.cloudDataTitle')}</summary><p className="mt-2">{t('runtimeConfig.cloudWorkspace.cloudDataBody')}</p></details>
         </div> : null}
-      </section>
+      </Surface>
 
-      {editing ? (
-        <section className={SECTION_CLASS} aria-label={t('runtimeConfig.product.connectionSettingsTitle')}>
-          <h3 className="text-base font-semibold text-[var(--nimi-text-primary)]">{t('runtimeConfig.product.connectionSettingsTitle')}</h3>
-          <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
-            {isRuntimeSystem ? (
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
-                  {t('runtimeConfig.cloud.apiKey', { defaultValue: 'API Key' })}
-                </label>
-                <div className={FIELD_NOTE_CLASS}>
-                  {selectedConnector.hasCredential
-                    ? t('runtimeConfig.cloud.managedByRuntime', { defaultValue: 'Managed by runtime (environment variable)' })
-                    : t('runtimeConfig.cloud.notConfigured', { defaultValue: 'Not configured — set the environment variable in config.json' })}
+      <Surface tone="card" padding="none" className="desktop-module-card desktop-module-card--flush overflow-hidden [&>section:first-child]:border-t-0">
+        {editing ? (
+          <section className={SECTION_CLASS} aria-label={t('runtimeConfig.product.connectionSettingsTitle')}>
+            <h2 className="desktop-module-section-title">{t('runtimeConfig.product.connectionSettingsTitle')}</h2>
+            <div className="mt-5 grid grid-cols-1 gap-4 md:grid-cols-2">
+              {isRuntimeSystem ? (
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
+                    {t('runtimeConfig.cloud.apiKey', { defaultValue: 'API Key' })}
+                  </label>
+                  <div className={FIELD_NOTE_CLASS}>
+                    {selectedConnector.hasCredential
+                      ? t('runtimeConfig.cloud.managedByRuntime', { defaultValue: 'Managed by runtime (environment variable)' })
+                      : t('runtimeConfig.cloud.notConfigured', { defaultValue: 'Not configured — set the environment variable in config.json' })}
+                  </div>
                 </div>
+              ) : selectedConnector.authMode === 'oauth_managed' ? (
+                <div>
+                  <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
+                    {t('runtimeConfig.cloud.managedOAuthCredential', { defaultValue: 'Managed OAuth credential' })}
+                  </label>
+                  <div className={FIELD_NOTE_CLASS}>
+                    {t('runtimeConfig.cloud.managedOAuthHostOwned', {
+                      defaultValue: 'Use the native sign-in flow below. OAuth tokens are never shown or entered here.',
+                    })}
+                  </div>
+                </div>
+              ) : (
+                <Input
+                  label={isDraft
+                    ? t('runtimeConfig.cloud.apiKeyRequired', { defaultValue: 'API Key (required)' })
+                    : t('runtimeConfig.product.replaceKey')}
+                  value={tokenDraft}
+                  onChange={props.setTokenDraft}
+                  type={model.showCloudApiKey ? 'text' : 'password'}
+                  placeholder={t('runtimeConfig.product.keyPlaceholder')}
+                  icon={<KeyIcon />}
+                  rightAccessory={(
+                    <button
+                      type="button"
+                      onClick={() => model.setShowCloudApiKey((v) => !v)}
+                      aria-label={model.showCloudApiKey
+                        ? t('Auth.hidePassword', { defaultValue: 'Hide' })
+                        : t('Auth.showPassword', { defaultValue: 'Show' })}
+                      title={model.showCloudApiKey
+                        ? t('Auth.hidePassword', { defaultValue: 'Hide' })
+                        : t('Auth.showPassword', { defaultValue: 'Show' })}
+                      className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-action-primary-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]"
+                    >
+                      {model.showCloudApiKey ? <EyeOffIcon /> : <EyeIcon />}
+                    </button>
+                  )}
+                />
+              )}
+              <Input
+                label={t('runtimeConfig.product.optionalConnectionName')}
+                value={connectorLabelDraft}
+                onChange={props.onConnectorLabelDraftChange}
+                placeholder={vendorLabel}
+                disabled={isRuntimeSystem || connectorConfigurationLocked}
+                icon={<ServerIcon />}
+              />
+            </div>
+
+            <details className="mt-4 rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-surface-panel)] p-4" open={Boolean(selectedProviderCatalogEntry?.requiresExplicitEndpoint)}>
+              <summary className="cursor-pointer text-sm font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.product.connectionOptions')}</summary>
+              <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
+                <Input
+                  label={t('runtimeConfig.cloud.endpoint', { defaultValue: 'Endpoint' })}
+                  value={endpointDraft}
+                  onChange={setEndpointDraft}
+                  placeholder={selectedProviderCatalogEntry?.defaultEndpoint || DEFAULT_CONNECTOR_ENDPOINT_V11}
+                  // Browser sign-in Connectors keep the provider's fixed endpoint.
+                  disabled={isRuntimeSystem || connectorConfigurationLocked || isBrowserManagedConnector}
+                />
+                {canEditVendor ? (
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
+                      {t('runtimeConfig.cloud.vendor', { defaultValue: 'Vendor' })}
+                    </label>
+                    <RuntimeSelect
+                      value={selectedConnector.vendor}
+                      onChange={(nextVendor) => { void props.onChangeConnectorVendor(nextVendor).catch((err) => props.reportError('Switch vendor failed', err)); }}
+                      disabled={!canEditVendor}
+                      className="w-full"
+                      options={vendorOptions}
+                      searchable
+                      searchPlaceholder={t('runtimeConfig.cloud.searchVendors', { defaultValue: 'Search vendors...' })}
+                    />
+                  </div>
+                ) : null}
+                {!isRuntimeSystem && authOptions.length > 1 ? (
+                  <div>
+                    <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
+                      {t('runtimeConfig.cloud.credentialType', { defaultValue: 'Credential Type' })}
+                    </label>
+                    <RuntimeSelect
+                      value={selectedAuthOptionValue}
+                      onChange={props.onChangeConnectorAuthOption}
+                      disabled={!canEditCredentialMode}
+                      className="w-full"
+                      options={authOptions}
+                    />
+                  </div>
+                ) : null}
               </div>
-            ) : selectedConnector.authMode === 'oauth_managed' ? (
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
-                  {t('runtimeConfig.cloud.managedOAuthCredential', { defaultValue: 'Managed OAuth credential' })}
-                </label>
-                <div className={FIELD_NOTE_CLASS}>
-                  {t('runtimeConfig.cloud.managedOAuthHostOwned', {
-                    defaultValue: 'Use the native sign-in flow below. OAuth tokens are never shown or entered here.',
+              {selectedProviderCatalogEntry?.inventoryMode === 'dynamic_endpoint' ? (
+                <p className="mt-3 text-xs text-[var(--nimi-text-muted)]">
+                  {t('runtimeConfig.cloud.liveInventoryHint', {
+                    defaultValue: 'This provider loads its catalog from the connector endpoint. Runtime selects an admitted implementation when execution starts.',
                   })}
-                </div>
-              </div>
-            ) : (
-              <Input
-                label={isDraft
-                  ? t('runtimeConfig.cloud.apiKeyRequired', { defaultValue: 'API Key (required)' })
-                  : t('runtimeConfig.product.replaceKey')}
-                value={tokenDraft}
-                onChange={props.setTokenDraft}
-                type={model.showCloudApiKey ? 'text' : 'password'}
-                placeholder={t('runtimeConfig.product.keyPlaceholder')}
-                icon={<KeyIcon />}
-                rightAccessory={(
-                  <button
-                    type="button"
-                    onClick={() => model.setShowCloudApiKey((v) => !v)}
-                    aria-label={model.showCloudApiKey
-                      ? t('Auth.hidePassword', { defaultValue: 'Hide' })
-                      : t('Auth.showPassword', { defaultValue: 'Show' })}
-                    title={model.showCloudApiKey
-                      ? t('Auth.hidePassword', { defaultValue: 'Hide' })
-                      : t('Auth.showPassword', { defaultValue: 'Show' })}
-                    className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--nimi-text-muted)] transition-colors hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-action-primary-bg)] focus:outline-none focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]"
-                  >
-                    {model.showCloudApiKey ? <EyeOffIcon /> : <EyeIcon />}
-                  </button>
-                )}
-              />
-            )}
-            <Input
-              label={t('runtimeConfig.product.optionalConnectionName')}
-              value={connectorLabelDraft}
-              onChange={props.onConnectorLabelDraftChange}
-              placeholder={vendorLabel}
-              disabled={isRuntimeSystem || connectorConfigurationLocked}
-              icon={<ServerIcon />}
-            />
-          </div>
-
-          <details className="mt-4 rounded-[var(--nimi-radius-lg)] bg-[var(--nimi-surface-panel)] p-4" open={Boolean(selectedProviderCatalogEntry?.requiresExplicitEndpoint)}>
-            <summary className="cursor-pointer text-sm font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.product.connectionOptions')}</summary>
-            <div className="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
-              <Input
-                label={t('runtimeConfig.cloud.endpoint', { defaultValue: 'Endpoint' })}
-                value={endpointDraft}
-                onChange={setEndpointDraft}
-                placeholder={selectedProviderCatalogEntry?.defaultEndpoint || DEFAULT_CONNECTOR_ENDPOINT_V11}
-                // Browser sign-in Connectors keep the provider's fixed endpoint.
-                disabled={isRuntimeSystem || connectorConfigurationLocked || isBrowserManagedConnector}
-              />
-              {canEditVendor ? (
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
-                    {t('runtimeConfig.cloud.vendor', { defaultValue: 'Vendor' })}
-                  </label>
-                  <RuntimeSelect
-                    value={selectedConnector.vendor}
-                    onChange={(nextVendor) => { void props.onChangeConnectorVendor(nextVendor).catch((err) => props.reportError('Switch vendor failed', err)); }}
-                    disabled={!canEditVendor}
-                    className="w-full"
-                    options={vendorOptions}
-                    searchable
-                    searchPlaceholder={t('runtimeConfig.cloud.searchVendors', { defaultValue: 'Search vendors...' })}
-                  />
-                </div>
+                </p>
               ) : null}
-              {!isRuntimeSystem && authOptions.length > 1 ? (
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
-                    {t('runtimeConfig.cloud.credentialType', { defaultValue: 'Credential Type' })}
-                  </label>
-                  <RuntimeSelect
-                    value={selectedAuthOptionValue}
-                    onChange={props.onChangeConnectorAuthOption}
-                    disabled={!canEditCredentialMode}
-                    className="w-full"
-                    options={authOptions}
-                  />
-                </div>
+              <p className="mt-3 font-mono text-[11px] text-[var(--nimi-text-muted)]">ID: {selectedConnector.id}</p>
+            </details>
+
+            <div className="mt-5 flex flex-wrap items-center gap-2">
+              {!isSystemOwned && (!isDraft || selectedConnector.authMode !== 'oauth_managed') && (
+                <Button
+                  variant="primary"
+                  size="sm"
+                  disabled={savingToken || connectorConfigurationLocked || (!pendingEdits && !isDraft) || (isDraft && !tokenDraft.trim())}
+                  onClick={() => void save()}
+                  icon={savingToken ? undefined : <CheckIcon />}
+                >
+                  {savingToken
+                    ? t('runtimeConfig.cloud.saving', { defaultValue: 'Saving...' })
+                    : t('runtimeConfig.product.saveAndCheck')}
+                </Button>
+              )}
+              {isBrowserManagedConnector ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  disabled={!canStartManagedOAuth}
+                  onClick={() => { void props.onAcquireManagedOAuth(); }}
+                >
+                  {chatGPTPlanSignInLabel({ busy: managedOAuthBusy, isDraft, hasCredential: selectedConnector.hasCredential, t })}
+                </Button>
+              ) : null}
+              {canManageCatalogOverrides ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={props.onManageCatalogOverrides}
+                >
+                  {t('runtimeConfig.catalogOverrides.manage', { defaultValue: 'Manage custom models' })}
+                </Button>
               ) : null}
             </div>
-            {selectedProviderCatalogEntry?.inventoryMode === 'dynamic_endpoint' ? (
-              <p className="mt-3 text-xs text-[var(--nimi-text-muted)]">
-                {t('runtimeConfig.cloud.liveInventoryHint', {
-                  defaultValue: 'This provider loads its catalog from the connector endpoint. Runtime selects an admitted implementation when execution starts.',
-                })}
-              </p>
-            ) : null}
-            <p className="mt-3 font-mono text-[11px] text-[var(--nimi-text-muted)]">ID: {selectedConnector.id}</p>
-          </details>
 
-          <div className="mt-5 flex flex-wrap items-center gap-2">
-            {!isSystemOwned && (!isDraft || selectedConnector.authMode !== 'oauth_managed') && (
-              <Button
-                variant="primary"
-                size="sm"
-                disabled={savingToken || connectorConfigurationLocked || (!pendingEdits && !isDraft) || (isDraft && !tokenDraft.trim())}
-                onClick={() => void save()}
-                icon={savingToken ? undefined : <CheckIcon />}
-              >
-                {savingToken
-                  ? t('runtimeConfig.cloud.saving', { defaultValue: 'Saving...' })
-                  : t('runtimeConfig.product.saveAndCheck')}
-              </Button>
-            )}
-            {isBrowserManagedConnector ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                disabled={!canStartManagedOAuth}
-                onClick={() => { void props.onAcquireManagedOAuth(); }}
-              >
-                {chatGPTPlanSignInLabel({ busy: managedOAuthBusy, isDraft, hasCredential: selectedConnector.hasCredential, t })}
-              </Button>
-            ) : null}
-            {canManageCatalogOverrides ? (
-              <Button
-                variant="secondary"
-                size="sm"
-                onClick={props.onManageCatalogOverrides}
-              >
-                {t('runtimeConfig.catalogOverrides.manage', { defaultValue: 'Manage custom models' })}
-              </Button>
-            ) : null}
-          </div>
+            <div className="mt-4 space-y-2 empty:hidden">
+              {isMachineGlobal ? (
+                <p className="text-xs text-[var(--nimi-text-secondary)]">
+                  {t('runtimeConfig.cloud.managedMachineGlobal', { defaultValue: 'Shared across accounts on this machine' })}
+                </p>
+              ) : null}
+              {selectedConnector.authMode === 'oauth_managed' && authStatus !== 'authenticated' ? (
+                <p className="rounded-[var(--nimi-radius-md)] bg-[var(--nimi-status-warning-soft-bg)] px-3 py-2 text-xs text-[var(--nimi-status-warning-soft-text)]">
+                  {t('runtimeConfig.cloud.oauthRequiresAuth', {
+                    defaultValue: 'Managed OAuth connectors require an authenticated desktop session before they can be created.',
+                  })}
+                </p>
+              ) : null}
+              {isBrowserManagedConnector && managedOAuthPending ? (
+                <ChatGPTPlanPendingNotice pending={managedOAuthPending} onCancel={props.onCancelManagedOAuth} t={t} />
+              ) : null}
+              {isBrowserManagedConnector && !isDraft ? (
+                <ChatGPTPlanAccountNotice connector={selectedConnector} t={t} />
+              ) : null}
+              {tokenSavedConnectorId === selectedConnector.id && (
+                <p className="flex items-center gap-1.5 text-xs text-[var(--nimi-status-success)]">
+                  <CheckIcon className="h-3.5 w-3.5" />
+                  {selectedConnector.authMode === 'oauth_managed'
+                    ? t('runtimeConfig.cloud.managedCredentialSaved', { defaultValue: 'Managed credential saved successfully' })
+                    : t('runtimeConfig.cloud.apiKeySaved', { defaultValue: 'API Key saved successfully' })}
+                </p>
+              )}
+              {tokenSaveError && (
+                <div className="rounded-[var(--nimi-radius-md)] bg-[var(--nimi-status-danger-soft-bg)] px-3 py-2 text-sm text-[var(--nimi-status-danger-soft-text)]">
+                  <p>{humanError}</p>
+                </div>
+              )}
+            </div>
+          </section>
+        ) : null}
 
-          <div className="mt-4 space-y-2 empty:hidden">
-            {isMachineGlobal ? (
-              <p className="text-xs text-[var(--nimi-text-secondary)]">
-                {t('runtimeConfig.cloud.managedMachineGlobal', { defaultValue: 'Shared across accounts on this machine' })}
-              </p>
-            ) : null}
-            {selectedConnector.authMode === 'oauth_managed' && authStatus !== 'authenticated' ? (
-              <p className="rounded-[var(--nimi-radius-md)] bg-[var(--nimi-status-warning-soft-bg)] px-3 py-2 text-xs text-[var(--nimi-status-warning-soft-text)]">
-                {t('runtimeConfig.cloud.oauthRequiresAuth', {
-                  defaultValue: 'Managed OAuth connectors require an authenticated desktop session before they can be created.',
-                })}
-              </p>
-            ) : null}
-            {isBrowserManagedConnector && managedOAuthPending ? (
-              <ChatGPTPlanPendingNotice pending={managedOAuthPending} onCancel={props.onCancelManagedOAuth} t={t} />
-            ) : null}
-            {isBrowserManagedConnector && !isDraft ? (
-              <ChatGPTPlanAccountNotice connector={selectedConnector} t={t} />
-            ) : null}
-            {tokenSavedConnectorId === selectedConnector.id && (
-              <p className="flex items-center gap-1.5 text-xs text-[var(--nimi-status-success)]">
-                <CheckIcon className="h-3.5 w-3.5" />
-                {selectedConnector.authMode === 'oauth_managed'
-                  ? t('runtimeConfig.cloud.managedCredentialSaved', { defaultValue: 'Managed credential saved successfully' })
-                  : t('runtimeConfig.cloud.apiKeySaved', { defaultValue: 'API Key saved successfully' })}
-              </p>
-            )}
-            {tokenSaveError && (
-              <div className="rounded-[var(--nimi-radius-md)] bg-[var(--nimi-status-danger-soft-bg)] px-3 py-2 text-sm text-[var(--nimi-status-danger-soft-text)]">
-                <p>{humanError}</p>
-              </div>
-            )}
-          </div>
-        </section>
-      ) : null}
-
-      {!isDraft ? <CloudConnectorCatalog connector={selectedConnector} onConfigure={props.onConfigure} /> : null}
-      {!isDraft ? <CloudConnectorReferences connectorId={selectedConnector.id} onOpenOwner={props.onOpenOwner} /> : null}
-      {!isDraft ? <CloudConnectorUsage connectorId={selectedConnector.id} onOpenHistory={props.onOpenHistory} /> : null}
+        {!isDraft ? <CloudConnectorCatalog connector={selectedConnector} onConfigure={props.onConfigure} /> : null}
+        {!isDraft ? <CloudConnectorReferences connectorId={selectedConnector.id} onOpenOwner={props.onOpenOwner} /> : null}
+        {!isDraft ? <CloudConnectorUsage connectorId={selectedConnector.id} onOpenHistory={props.onOpenHistory} /> : null}
+      </Surface>
       <ConfirmDialog open={leavePrompt !== null} title={t('runtimeConfig.cloudWorkspace.unsavedTitle')} message={t('runtimeConfig.cloudWorkspace.unsavedBody')} confirmLabel={t('runtimeConfig.cloudWorkspace.discard')} cancelLabel={t('Common.cancel')} confirmTone="danger" onClose={() => leavePrompt?.(false)} onConfirm={() => leavePrompt?.(true)} />
     </div>
   );

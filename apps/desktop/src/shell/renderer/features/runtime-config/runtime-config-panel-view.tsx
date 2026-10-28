@@ -118,7 +118,12 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           />
         </Suspense>
       </div>
-      {!workspaceActive ? (
+      {activePage === 'cloudServices' ? (
+        <Suspense fallback={<RuntimeSkeletonBlock className="h-64 w-full" />}>
+          <CloudServicesPage model={model} state={state} />
+        </Suspense>
+      ) : null}
+      {activePage === 'modelLibrary' ? (
         <Surface
           as="main"
           tone="panel"
@@ -126,7 +131,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
           padding="none"
           className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
         >
-          {activePage !== 'cloudServices' ? <div className="flex shrink-0 items-center justify-between gap-3 px-4 pt-3 pb-1">
+          <div className="flex shrink-0 items-center justify-between gap-3 px-4 pt-3 pb-1">
             <Button tone="ghost" size="sm" className="-ml-1 gap-1 text-[var(--nimi-text-secondary)]" onClick={browseContext ? model.onReturnToContextualLoadout : () => model.onChangePage('aiSettings')} data-testid="runtime-model-library-back">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6" /></svg>
               {browseContext
@@ -134,7 +139,7 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
                 : t('runtimeConfig.capabilities.backWorkspace')}
             </Button>
             <RuntimeHealthBadge daemonRunning={daemonRunning} status={runtimeStatus} />
-          </div> : null}
+          </div>
           <ScrollArea
             viewportRef={pageViewportRef}
             className="min-h-0 min-w-0 flex-1"
@@ -147,7 +152,6 @@ export function RuntimeConfigPanelView(props: { model: RuntimeConfigPanelControl
                   onClearActionFocus={model.clearActionFocus}
                 />
               ) : null}
-              {activePage === 'cloudServices' ? <CloudServicesPage model={model} state={state} /> : null}
             </Suspense>
           </ScrollArea>
         </Surface>

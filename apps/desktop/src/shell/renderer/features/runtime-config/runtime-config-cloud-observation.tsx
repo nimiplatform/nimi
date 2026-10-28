@@ -60,9 +60,9 @@ export function CloudConnectorReferences({ connectorId, compact = false, onOpenO
   const unavailable = query.isError || !consistent;
   const rows = unavailable ? [] : pages.flatMap(page => page.references);
   const entries = overview.data?.status === 'loaded' ? overview.data.entries : [];
-  return <section data-testid="cloud-configuration-references" className={compact ? 'mt-4 text-sm' : 'border-t border-[var(--nimi-border-subtle)] p-6 lg:p-7'}>
+  return <section data-testid="cloud-configuration-references" className={compact ? 'mt-4 text-sm' : 'border-t border-[var(--nimi-border-subtle)] p-4'}>
     <div className="flex items-center justify-between gap-3">
-      <h3 className="font-semibold text-[var(--nimi-text-primary)]">{t('runtimeConfig.cloudWorkspace.referencesTitle')}</h3>
+      <h2 className="desktop-module-section-title">{t('runtimeConfig.cloudWorkspace.referencesTitle')}</h2>
       {!compact && account.enabled ? <Button size="sm" tone="ghost" onClick={() => void query.refetch()} disabled={query.isFetching}>{t('runtimeConfig.runtime.refresh')}</Button> : null}
     </div>
     <p className="mt-2 text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.cloudWorkspace.referencesScope')}</p>
@@ -102,8 +102,8 @@ export function CloudConnectorUsage({ connectorId, onOpenHistory }: { connectorI
   });
   const summary = query.data;
   const complete = summary?.timeComplete && summary.sourceComplete && summary.quantityComplete && summary.attributionComplete;
-  return <section className="border-t border-[var(--nimi-border-subtle)] p-6 lg:p-7" data-testid="cloud-usage-summary">
-    <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-semibold text-[var(--nimi-text-primary)]">{t('runtimeConfig.cloudWorkspace.usageTitle')}</h3><Button size="sm" tone="ghost" onClick={onOpenHistory}>{t('runtimeConfig.cloudWorkspace.historyTitle')}</Button></div>
+  return <section className="border-t border-[var(--nimi-border-subtle)] p-4" data-testid="cloud-usage-summary">
+    <div className="flex flex-wrap items-center justify-between gap-3"><h2 className="desktop-module-section-title">{t('runtimeConfig.cloudWorkspace.usageTitle')}</h2><Button size="sm" tone="ghost" onClick={onOpenHistory}>{t('runtimeConfig.cloudWorkspace.historyTitle')}</Button></div>
     <div className="mt-3 flex items-center justify-between gap-3"><SegmentedControl size="sm" value={days} onValueChange={setDays} ariaLabel={t('runtimeConfig.cloudWorkspace.usageWindow')} items={['1','7'].map(value => ({ value, label: t(`runtimeConfig.cloudWorkspace.days${value}`) }))} /><Button size="sm" tone="ghost" disabled={query.isFetching} onClick={refresh}>{t('runtimeConfig.runtime.refresh')}</Button></div>
     {!account.enabled ? <p className="mt-3 text-sm">{t('runtimeConfig.cloudWorkspace.signInRequired')}</p> : query.isPending ? <p className="mt-3 text-sm">{t('Common.loading')}</p> : query.isError ? <p className="mt-3 text-sm" role="alert">{t('runtimeConfig.cloudWorkspace.usageFailed')}</p> : summary?.totals ? <>
       <div className="mt-4 grid grid-cols-2 gap-4">

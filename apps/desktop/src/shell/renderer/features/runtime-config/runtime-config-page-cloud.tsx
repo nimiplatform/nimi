@@ -14,6 +14,7 @@ import {
 import { type ProviderCatalogEntry, type DesktopConnectorReference } from '@nimiplatform/sdk/runtime/wire-types';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
 import { useAppStore, useHomeDestination, useHomeNavigation } from '../../app-shell/providers/app-store';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { CatalogOverridesDrawer } from './runtime-config-catalog-overrides-drawer';
@@ -32,8 +33,8 @@ import { CloudHistoryDialog } from './runtime-config-cloud-observation.js';
 import { openRuntimeSetupTaskFromEntry } from './runtime-setup-task-open.js';
 import { currentDesktopAccountIdForSetup } from './runtime-setup-task-ports.js';
 import { getRuntimeSetupTaskStore } from './runtime-setup-task-store.js';
-import { Button, CloudEmptyState, PlusIcon } from './runtime-config-page-cloud-primitives';
-import { RuntimePageHeader, RuntimePageShell } from './runtime-config-page-shell';
+import { CloudEmptyState } from './runtime-config-page-cloud-primitives';
+import { resetRuntimePageViewport } from './runtime-config-page-shell';
 import type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 import { testSelectedConnectorCommand } from './runtime-config-provider-commands.js';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
@@ -155,6 +156,10 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
   const managedOAuthBusy = connectorOAuth.busy;
   const managedOAuthPending = connectorOAuth.pending;
   const selectedConnectorId = selectedConnector?.id || '';
+  const contentViewportRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    resetRuntimePageViewport(contentViewportRef.current);
+  }, [selectedConnectorId]);
   useEffect(() => {
     if (destination.id === 'cloud' && !destination.runtime?.connectorId && selectedConnectorId) {
       const current = navigation.getSnapshot().current;
@@ -466,84 +471,77 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
     }).catch(() => model.setPageFeedback({ kind: 'error', message: t('runtimeConfig.cloudWorkspace.configureFailed') }));
   };
   return (
-    <RuntimePageShell className='space-y-6 pt-2 lg:pt-4'>
-      <RuntimePageHeader
-        title={t('runtimeConfig.nav.cloudServices', { defaultValue: 'Cloud Services' })}
-        actions={(
-          <>
-            <Button variant="ghost" size="sm" onClick={() => setHistoryConnectorRef('')}>{t('runtimeConfig.cloudWorkspace.historyTitle')}</Button>
-            {hasConnectors ? (
-            <Button
-              variant='primary'
-              size='sm'
-              onClick={onAddConnector}
-              icon={<PlusIcon />}
-            >
-              {t('runtimeConfig.cloud.addConnector', { defaultValue: 'Add' })}
-            </Button>
-            ) : null}
-          </>
-        )}
+    <div className="desktop-module-workspace" data-testid="cloud-services-workspace">
+      <CloudConnectorListPanel
+        defaultEndpointFor={(connector) => resolveProviderEndpoint(connector.provider || vendorToProvider(connector.vendor), providerCatalog)}
+        connectors={orderedConnectors}
+        deletingConnectorId={deletingConnectorId}
+        onDeleteConnector={(connectorId) => onDeleteConnector(connectorId).catch((e) => reportError('Remove connector failed', e))}
+        onSelectConnector={onSelectConnector}
+        selectedConnectorId={selectedConnectorId}
+        checkingConnectorId={autoCheckingId || (model.testingConnector ? selectedConnectorId : '')}
+        uncheckedCount={uncheckedConnectors.length}
+        onAddConnector={onAddConnector}
+        onOpenHistory={() => setHistoryConnectorRef('')}
+        t={t}
       />
-      {hasConnectors ? (
-        <div className="grid items-start gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
-          <CloudConnectorListPanel
-            defaultEndpointFor={(connector) => resolveProviderEndpoint(connector.provider || vendorToProvider(connector.vendor), providerCatalog)}
-            connectors={orderedConnectors}
-            deletingConnectorId={deletingConnectorId}
-            onDeleteConnector={(connectorId) => onDeleteConnector(connectorId).catch((e) => reportError('Remove connector failed', e))}
-            onSelectConnector={onSelectConnector}
-            selectedConnectorId={selectedConnectorId}
-            checkingConnectorId={autoCheckingId || (model.testingConnector ? selectedConnectorId : '')}
-            uncheckedCount={uncheckedConnectors.length}
-            t={t}
-          />
-          <CloudConnectorDetailPanel
-            key={selectedConnector?.id ?? 'empty'}
-            onConfigure={entry => { if (selectedConnector) setConfigureEntry({ connectorId: selectedConnector.id, entry }); }}
-            onOpenHistory={() => { if (selectedConnector) setHistoryConnectorRef(selectedConnector.id); }}
-            onOpenOwner={openReferencedOwner}
-            onSaveConnection={saveConnectionDetails}
-            authOptions={authOptions}
-            authStatus={authStatus}
-            canEditCredentialMode={canEditCredentialMode}
-            canEditVendor={canEditVendor}
-            canStartManagedOAuth={canStartManagedOAuth}
-            canManageCatalogOverrides={canManageCatalogOverrides}
-            managedOAuthBusy={managedOAuthBusy}
-            managedOAuthPending={managedOAuthPending}
-            connectorConfigurationLocked={managedOAuthBusy}
-            connectorLabelDraft={connectorLabelDraft}
-            isBrowserManagedConnector={isBrowserManagedConnector}
-            isDraft={isDraft}
-            isMachineGlobal={isMachineGlobal}
-            isRuntimeSystem={isRuntimeSystem}
-            isSystemOwned={isSystemOwned}
-            model={{ ...model, testingConnector: model.testingConnector || autoCheckingId === selectedConnectorId }}
-            onAcquireManagedOAuth={onAcquireManagedOAuth}
-            onCancelManagedOAuth={() => invalidateManagedOAuth('ChatGPT sign-in was canceled')}
-            onManageCatalogOverrides={() => setCatalogOverrideProviderId(selectedConnector?.provider || '')}
-            onConnectorLabelDraftChange={(label) => {
-              if (!managedOAuthBusy) setConnectorLabelDraft(label);
-            }}
-            onChangeConnectorAuthOption={onChangeConnectorAuthOption}
-            onChangeConnectorVendor={onChangeConnectorVendor}
-            reportError={reportError}
-            savingToken={savingToken}
-            selectedAuthOptionValue={selectedAuthOptionValue}
-            selectedConnector={selectedConnector}
-            selectedProviderCatalogEntry={selectedProviderCatalogEntry}
-            setTokenDraft={setTokenDraft}
-            t={t}
-            tokenDraft={tokenDraft}
-            tokenSaveError={tokenSaveError}
-            tokenSavedConnectorId={tokenSavedConnectorId}
-            vendorOptions={vendorOptions}
-          />
-        </div>
-      ) : (
-        <CloudEmptyState onAddConnector={onAddConnector} t={t} />
-      )}
+      <Surface
+        as="main"
+        tone="panel"
+        material="glass-regular"
+        padding="none"
+        className="desktop-module-panel flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden"
+        data-testid="cloud-services-detail-pane"
+      >
+        <ScrollArea viewportRef={contentViewportRef} className="min-h-0 flex-1" viewportClassName="[&>div]:!block" contentClassName="desktop-module-content">
+          {hasConnectors ? (
+            <CloudConnectorDetailPanel
+              key={selectedConnector?.id ?? 'empty'}
+              onConfigure={entry => { if (selectedConnector) setConfigureEntry({ connectorId: selectedConnector.id, entry }); }}
+              onOpenHistory={() => { if (selectedConnector) setHistoryConnectorRef(selectedConnector.id); }}
+              onOpenOwner={openReferencedOwner}
+              onSaveConnection={saveConnectionDetails}
+              authOptions={authOptions}
+              authStatus={authStatus}
+              canEditCredentialMode={canEditCredentialMode}
+              canEditVendor={canEditVendor}
+              canStartManagedOAuth={canStartManagedOAuth}
+              canManageCatalogOverrides={canManageCatalogOverrides}
+              managedOAuthBusy={managedOAuthBusy}
+              managedOAuthPending={managedOAuthPending}
+              connectorConfigurationLocked={managedOAuthBusy}
+              connectorLabelDraft={connectorLabelDraft}
+              isBrowserManagedConnector={isBrowserManagedConnector}
+              isDraft={isDraft}
+              isMachineGlobal={isMachineGlobal}
+              isRuntimeSystem={isRuntimeSystem}
+              isSystemOwned={isSystemOwned}
+              model={{ ...model, testingConnector: model.testingConnector || autoCheckingId === selectedConnectorId }}
+              onAcquireManagedOAuth={onAcquireManagedOAuth}
+              onCancelManagedOAuth={() => invalidateManagedOAuth('ChatGPT sign-in was canceled')}
+              onManageCatalogOverrides={() => setCatalogOverrideProviderId(selectedConnector?.provider || '')}
+              onConnectorLabelDraftChange={(label) => {
+                if (!managedOAuthBusy) setConnectorLabelDraft(label);
+              }}
+              onChangeConnectorAuthOption={onChangeConnectorAuthOption}
+              onChangeConnectorVendor={onChangeConnectorVendor}
+              reportError={reportError}
+              savingToken={savingToken}
+              selectedAuthOptionValue={selectedAuthOptionValue}
+              selectedConnector={selectedConnector}
+              selectedProviderCatalogEntry={selectedProviderCatalogEntry}
+              setTokenDraft={setTokenDraft}
+              t={t}
+              tokenDraft={tokenDraft}
+              tokenSaveError={tokenSaveError}
+              tokenSavedConnectorId={tokenSavedConnectorId}
+              vendorOptions={vendorOptions}
+            />
+          ) : (
+            <CloudEmptyState onAddConnector={onAddConnector} t={t} />
+          )}
+        </ScrollArea>
+      </Surface>
       <CatalogOverridesDrawer
         open={Boolean(catalogOverrideProviderId)}
         providerId={catalogOverrideProviderId}
@@ -587,6 +585,6 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
         }}
         t={t}
       />
-    </RuntimePageShell>
+    </div>
   );
 }

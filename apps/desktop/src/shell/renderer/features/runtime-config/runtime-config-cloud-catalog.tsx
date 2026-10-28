@@ -44,11 +44,11 @@ export function CloudConnectorCatalog({ connector, onConfigure }: {
   }, [sdk, key, connector.id, reload]);
   const visible = read.key === key ? read : { key, rows: [], loaded: false, loading: true, error: '' };
   const filtered = visible.rows.filter(row => `${row.modelLabel} ${row.providerModelId} ${row.capabilities.join(' ')}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
-  return <section className="border-t border-[var(--nimi-border-subtle)] p-6 lg:p-7" data-testid="cloud-model-catalog" aria-busy={visible.loading}>
+  return <section className="border-t border-[var(--nimi-border-subtle)] p-4" data-testid="cloud-model-catalog" aria-busy={visible.loading}>
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <h3 className="text-base font-semibold text-[var(--nimi-text-primary)]">{t('runtimeConfig.cloudWorkspace.catalogTitle')}
+      <h2 className="desktop-module-section-title">{t('runtimeConfig.cloudWorkspace.catalogTitle')}
         {visible.loaded && !visible.error ? <span className="ml-2 text-sm font-normal text-[var(--nimi-text-muted)]">{visible.rows.length}</span> : null}
-      </h3>
+      </h2>
       <Button size="sm" variant="ghost" disabled={visible.loading} onClick={() => setReload(value => value + 1)}>{t('runtimeConfig.cloudWorkspace.reloadCatalog')}</Button>
     </div>
     {visible.loaded && visible.rows.length > 0 ? <div className="mt-4">
