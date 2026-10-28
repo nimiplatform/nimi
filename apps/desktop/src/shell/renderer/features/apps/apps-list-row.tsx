@@ -195,14 +195,13 @@ export const AppListRow = memo(function AppListRow({
       data-local-development-shell={localDevelopment?.shell}
       data-source-generation={localDevelopment?.sourceGeneration}
       data-declaration-generation={localDevelopment?.declarationGeneration}
-      className="group relative flex min-h-[76px] min-w-0 items-center gap-4 rounded-2xl px-3 py-3 transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--nimi-surface-active)_45%,transparent)]"
+      className="group relative flex min-h-[76px] min-w-0 items-center gap-3 rounded-[var(--nimi-radius-sm)] px-3 py-3 transition-colors duration-150 hover:bg-[color-mix(in_srgb,var(--nimi-surface-active)_45%,transparent)]"
     >
       <AppArtworkIcon
         appId={identity.appId}
         displayName={identity.displayName}
         iconUrl={iconUrl}
-        size={presentation === 'attention' ? 'md' : 'lg'}
-        className="shadow-[var(--nimi-elevation-base)]"
+        size="md"
       />
       <div className="min-w-0 flex-1">
         <div className="flex min-w-0 items-center gap-2">

@@ -273,105 +273,107 @@ function LocalDevelopmentAppsDetailView({
 
   return (
     <div data-testid="apps-detail-body" className="flex min-h-0 flex-1 flex-col">
-      <header className="mx-auto w-full max-w-6xl shrink-0 px-5 pt-4 sm:px-7 sm:pt-5">
-        <Button
-          data-testid="apps-detail-back"
-          tone="ghost"
-          size="sm"
-          onClick={onBack}
-          className="-ml-2 mb-3"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
-          {t('Apps.library.backToLibrary')}
-        </Button>
-
-        <div className="flex min-w-0 items-center gap-5">
-          <AppArtworkIcon
-            appId={identity.appId}
-            displayName={identity.displayName}
-            iconUrl={iconUrl}
-            size="detail"
-          />
-          <div className="min-w-0 flex-1">
-            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
-              <h1 data-testid="apps-detail-title" className="break-words text-2xl font-semibold leading-8 text-[color:var(--nimi-text-primary)]">
-                {identity.displayName}
-              </h1>
-              {runVisual !== 'stopped' && runTransition === null ? <AppRunStatusBadge entry={entry} /> : null}
-            </div>
-            {entry.summary ? (
-              <p data-testid="apps-detail-summary" className="mt-1.5 break-words text-sm leading-6 text-[color:var(--nimi-text-secondary)]">
-                {entry.summary}
-              </p>
-            ) : null}
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {runTransition ? (
-              <>
-                <Button
-                  data-testid={`apps-detail-${runTransition}`}
-                  tone={runTransition === 'starting' ? 'primary' : 'secondary'}
-                  loading
-                >
-                  {t(`Apps.runState.${runTransition}`)}
-                </Button>
-                {runTransition === 'starting' && actionPlan.primary?.id === 'stop' ? (
-                  <AppsStartingStopButton testId="apps-detail-stop" disabled={stopDisabled} onStop={() => onAction('stop')} />
-                ) : null}
-              </>
-            ) : actionPlan.primary?.id === 'stop' ? (
-              <Button
-                data-testid="apps-detail-stop"
-                tone="secondary"
-                disabled={actionsDisabled}
-                onClick={() => onAction('stop')}
-              >
-                <Square className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
-                {t('Apps.action.stop')}
-              </Button>
-            ) : (
-              <Button
-                data-testid="apps-detail-launch"
-                tone="primary"
-                disabled={actionsDisabled}
-                onClick={() => onAction('launch')}
-              >
-                <Play className="mr-2 h-4 w-4" aria-hidden="true" />
-                {t(runVisual === 'failed' ? 'Apps.action.retry' : 'Apps.action.launch')}
-              </Button>
-            )}
-            <Popover>
-              <PopoverTrigger asChild>
-                <IconButton
-                  data-testid="apps-detail-more"
-                  icon={<MoreHorizontal className="h-4 w-4" aria-hidden="true" />}
-                  tone="secondary"
-                  aria-label={t('Apps.detail.moreActions')}
-                  title={t('Apps.detail.moreActions')}
-                />
-              </PopoverTrigger>
-              <PopoverContent align="end" sideOffset={6} className="p-1">
-                <ActionMenu items={menuItems} ariaLabel={t('Apps.detail.moreActions')} />
-              </PopoverContent>
-            </Popover>
-          </div>
-        </div>
-
-        <NimiTabs
-          className="mt-5"
-          items={tabItems}
-          value={activeTab}
-          onValueChange={(value) => setActiveTab(value as AppsDetailTab)}
-          ariaLabel={t('Apps.detail.tabsLabel')}
-        />
-      </header>
-
       <ScrollArea className="min-h-0 flex-1" viewportClassName="bg-transparent [&>div]:!block">
-        <div className="mx-auto w-full max-w-6xl px-5 py-6 sm:px-7">
+        <header className="desktop-module-content desktop-module-content--header">
+          <Button
+            data-testid="apps-detail-back"
+            tone="ghost"
+            size="sm"
+            onClick={onBack}
+            className="-ml-2 mb-3"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
+            {t('Apps.library.backToLibrary')}
+          </Button>
+
+          <div className="desktop-module-header">
+            <div className="flex min-w-0 flex-1 basis-64 items-start gap-3">
+              <AppArtworkIcon
+                appId={identity.appId}
+                displayName={identity.displayName}
+                iconUrl={iconUrl}
+                size="detail"
+                className="desktop-module-header-icon"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
+                  <h1 data-testid="apps-detail-title" className="desktop-module-title">
+                    {identity.displayName}
+                  </h1>
+                  {runVisual !== 'stopped' && runTransition === null ? <AppRunStatusBadge entry={entry} /> : null}
+                </div>
+                {entry.summary ? (
+                  <p data-testid="apps-detail-summary" className="mt-1.5 break-words text-sm leading-6 text-[color:var(--nimi-text-secondary)]">
+                    {entry.summary}
+                  </p>
+                ) : null}
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              {runTransition ? (
+                <>
+                  <Button
+                    data-testid={`apps-detail-${runTransition}`}
+                    tone={runTransition === 'starting' ? 'primary' : 'secondary'}
+                    loading
+                  >
+                    {t(`Apps.runState.${runTransition}`)}
+                  </Button>
+                  {runTransition === 'starting' && actionPlan.primary?.id === 'stop' ? (
+                    <AppsStartingStopButton testId="apps-detail-stop" disabled={stopDisabled} onStop={() => onAction('stop')} />
+                  ) : null}
+                </>
+              ) : actionPlan.primary?.id === 'stop' ? (
+                <Button
+                  data-testid="apps-detail-stop"
+                  tone="secondary"
+                  disabled={actionsDisabled}
+                  onClick={() => onAction('stop')}
+                >
+                  <Square className="mr-2 h-3.5 w-3.5" aria-hidden="true" />
+                  {t('Apps.action.stop')}
+                </Button>
+              ) : (
+                <Button
+                  data-testid="apps-detail-launch"
+                  tone="primary"
+                  disabled={actionsDisabled}
+                  onClick={() => onAction('launch')}
+                >
+                  <Play className="mr-2 h-4 w-4" aria-hidden="true" />
+                  {t(runVisual === 'failed' ? 'Apps.action.retry' : 'Apps.action.launch')}
+                </Button>
+              )}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <IconButton
+                    data-testid="apps-detail-more"
+                    icon={<MoreHorizontal className="h-4 w-4" aria-hidden="true" />}
+                    tone="secondary"
+                    aria-label={t('Apps.detail.moreActions')}
+                    title={t('Apps.detail.moreActions')}
+                  />
+                </PopoverTrigger>
+                <PopoverContent align="end" sideOffset={6} className="p-1">
+                  <ActionMenu items={menuItems} ariaLabel={t('Apps.detail.moreActions')} />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+
+          <NimiTabs
+            className="mt-4"
+            items={tabItems}
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as AppsDetailTab)}
+            ariaLabel={t('Apps.detail.tabsLabel')}
+          />
+        </header>
+        <div className="desktop-module-content">
           {actionError ? <AppsActionErrorAlert error={actionError} className="mb-5" /> : null}
 
           {activeTab === 'overview' ? (
-            <div role="tabpanel" id="apps-detail-panel-overview" aria-labelledby="apps-detail-tab-overview" tabIndex={0} className="space-y-7 outline-none">
+            <div role="tabpanel" id="apps-detail-panel-overview" aria-labelledby="apps-detail-tab-overview" tabIndex={0} className="desktop-module-stack outline-none">
               <AppsOverviewTab
                 sourceEntries={sourceEntries}
                 onRemoveSource={onRemoveSource}
@@ -392,7 +394,7 @@ function LocalDevelopmentAppsDetailView({
           ) : null}
 
           {activeTab === 'access' ? (
-            <div role="tabpanel" id="apps-detail-panel-access" aria-labelledby="apps-detail-tab-access" tabIndex={0} className="space-y-7 outline-none">
+            <div role="tabpanel" id="apps-detail-panel-access" aria-labelledby="apps-detail-tab-access" tabIndex={0} className="desktop-module-stack outline-none">
               <AppsAccessTabSections
                 appAccess={registration.appAccess}
                 aiModelsAvailable={aiModelsAvailable}
@@ -651,128 +653,130 @@ function InstalledAppsDetailView({
 
   return (
     <div data-testid="apps-detail-body" data-installed-detail className="flex min-h-0 flex-1 flex-col">
-      <header className="mx-auto w-full max-w-6xl shrink-0 px-5 pt-4 sm:px-7 sm:pt-5">
-        <Button
-          data-testid="apps-detail-back"
-          tone="ghost"
-          size="sm"
-          onClick={onBack}
-          className="-ml-2 mb-3"
-        >
-          <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
-          {t('Apps.library.backToLibrary')}
-        </Button>
-
-        <div className="flex min-w-0 items-center gap-5">
-          <AppArtworkIcon
-            appId={entry.identity.appId}
-            displayName={entry.identity.displayName}
-            iconUrl={iconUrl}
-            size="detail"
-          />
-          <div className="min-w-0 flex-1">
-            <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
-              <h1 data-testid="apps-detail-title" className="break-words text-2xl font-semibold leading-8 text-[color:var(--nimi-text-primary)]">
-                {entry.identity.displayName}{appSourceForEntry(entry) === 'verified' ? (
-                  <AppSourceBadge source="verified" description={t('Apps.sourceBadge.verifiedDescription')} className="ml-1.5 mt-1 align-top" />
-                ) : null}
-              </h1>
-              {release && runVisual !== 'stopped' && runTransition === null ? <AppRunStatusBadge entry={entry} /> : null}
-              {release ? (
-                <span className="text-sm text-[color:var(--nimi-text-secondary)]" data-testid="apps-installed-access">
-                  {t(installedRun?.accessAvailable ? 'Apps.installedAccess.ready' : 'Apps.installedAccess.unavailable')}
-                </span>
-              ) : null}
-            </div>
-            {entry.summary ? (
-              <p data-testid="apps-detail-summary" className="mt-1.5 break-words text-sm leading-6 text-[color:var(--nimi-text-secondary)]">
-                {entry.summary}
-              </p>
-            ) : null}
-            {appSourceForEntry(entry) !== 'verified' ? (
-              <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-                <AppSourceBadge source={appSourceForEntry(entry)} variant="quiet" />
-              </div>
-            ) : null}
-            {release || entry.packageJob ? (
-              <AppPackageStatusLine entry={entry} showInstalledVersion={false} className="mt-1.5" />
-            ) : null}
-          </div>
-          <div className="flex shrink-0 items-center gap-2">
-            {canRequestCatalogInstall(entry) ? (
-              <Button
-                data-testid="apps-detail-install"
-                tone="primary"
-                loading={activeAction === 'install'}
-                disabled={actionsDisabled}
-                onClick={() => onAction('install')}
-              >
-                <Download className="mr-2 h-4 w-4" aria-hidden="true" />
-                {t('Apps.action.install')}
-              </Button>
-            ) : runTransition ? (
-              <>
-                <Button
-                  data-testid={`apps-installed-${runTransition}`}
-                  tone={runTransition === 'starting' ? 'primary' : 'secondary'}
-                  loading
-                >
-                  {t(`Apps.runState.${runTransition}`)}
-                </Button>
-                {installedStartPending ? (
-                  <AppsStartingStopButton testId="apps-installed-stop" disabled={stopDisabled} onStop={() => onAction('stop')} />
-                ) : null}
-              </>
-            ) : actionPlan.primary ? (
-              <Button
-                data-testid="apps-installed-launch"
-                tone="primary"
-                loading={activeAction === 'launch'}
-                disabled={actionsDisabled}
-                onClick={() => onAction('launch')}
-              >
-                <Play className="mr-2 h-4 w-4" aria-hidden="true" />
-                {t(installedRun?.state === 'running'
-                  ? 'Apps.action.focus'
-                  : runVisual === 'failed' ? 'Apps.action.retry' : 'Apps.action.launch')}
-              </Button>
-            ) : null}
-            <Popover>
-              <PopoverTrigger asChild>
-                <IconButton
-                  data-testid="apps-detail-more"
-                  icon={<MoreHorizontal className="h-4 w-4" aria-hidden="true" />}
-                  tone="secondary"
-                  aria-label={t('Apps.detail.moreActions')}
-                  title={t('Apps.detail.moreActions')}
-                />
-              </PopoverTrigger>
-              <PopoverContent align="end" sideOffset={6} className="p-1">
-                <ActionMenu items={menuItems} ariaLabel={t('Apps.detail.moreActions')} />
-              </PopoverContent>
-            </Popover>
-          </div>
-        </div>
-        {catalog?.policyBlocked ? (
-          <InlineAlert tone="danger" className="mt-3" data-testid="apps-catalog-policy-blocked">
-            {t('Apps.catalog.policyBlocked', { reason: catalog.policyReason ?? t('Apps.catalog.policyBlockedFallback') })}
-          </InlineAlert>
-        ) : null}
-        {release && installedRun?.message ? <InlineAlert tone="danger" className="mt-3">{installedRun.message}</InlineAlert> : null}
-        <NimiTabs
-          className="mt-5"
-          items={tabItems}
-          value={activeTab}
-          onValueChange={(value) => setActiveTab(value as AppsDetailTab)}
-          ariaLabel={t('Apps.detail.tabsLabel')}
-        />
-      </header>
-
       <ScrollArea className="min-h-0 flex-1" viewportClassName="bg-transparent [&>div]:!block">
-        <div className="mx-auto w-full max-w-6xl px-5 py-6 sm:px-7">
+        <header className="desktop-module-content desktop-module-content--header">
+          <Button
+            data-testid="apps-detail-back"
+            tone="ghost"
+            size="sm"
+            onClick={onBack}
+            className="-ml-2 mb-3"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
+            {t('Apps.library.backToLibrary')}
+          </Button>
+
+          <div className="desktop-module-header">
+            <div className="flex min-w-0 flex-1 basis-64 items-start gap-3">
+              <AppArtworkIcon
+                appId={entry.identity.appId}
+                displayName={entry.identity.displayName}
+                iconUrl={iconUrl}
+                size="detail"
+                className="desktop-module-header-icon"
+              />
+              <div className="min-w-0 flex-1">
+                <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5">
+                  <h1 data-testid="apps-detail-title" className="desktop-module-title">
+                    {entry.identity.displayName}{appSourceForEntry(entry) === 'verified' ? (
+                      <AppSourceBadge source="verified" description={t('Apps.sourceBadge.verifiedDescription')} className="ml-1.5 mt-1 align-top" />
+                    ) : null}
+                  </h1>
+                  {release && runVisual !== 'stopped' && runTransition === null ? <AppRunStatusBadge entry={entry} /> : null}
+                  {release ? (
+                    <span className="text-sm text-[color:var(--nimi-text-secondary)]" data-testid="apps-installed-access">
+                      {t(installedRun?.accessAvailable ? 'Apps.installedAccess.ready' : 'Apps.installedAccess.unavailable')}
+                    </span>
+                  ) : null}
+                </div>
+                {entry.summary ? (
+                  <p data-testid="apps-detail-summary" className="mt-1.5 break-words text-sm leading-6 text-[color:var(--nimi-text-secondary)]">
+                    {entry.summary}
+                  </p>
+                ) : null}
+                {appSourceForEntry(entry) !== 'verified' ? (
+                  <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+                    <AppSourceBadge source={appSourceForEntry(entry)} variant="quiet" />
+                  </div>
+                ) : null}
+                {release || entry.packageJob ? (
+                  <AppPackageStatusLine entry={entry} showInstalledVersion={false} className="mt-1.5" />
+                ) : null}
+              </div>
+            </div>
+            <div className="flex shrink-0 items-center gap-2">
+              {canRequestCatalogInstall(entry) ? (
+                <Button
+                  data-testid="apps-detail-install"
+                  tone="primary"
+                  loading={activeAction === 'install'}
+                  disabled={actionsDisabled}
+                  onClick={() => onAction('install')}
+                >
+                  <Download className="mr-2 h-4 w-4" aria-hidden="true" />
+                  {t('Apps.action.install')}
+                </Button>
+              ) : runTransition ? (
+                <>
+                  <Button
+                    data-testid={`apps-installed-${runTransition}`}
+                    tone={runTransition === 'starting' ? 'primary' : 'secondary'}
+                    loading
+                  >
+                    {t(`Apps.runState.${runTransition}`)}
+                  </Button>
+                  {installedStartPending ? (
+                    <AppsStartingStopButton testId="apps-installed-stop" disabled={stopDisabled} onStop={() => onAction('stop')} />
+                  ) : null}
+                </>
+              ) : actionPlan.primary ? (
+                <Button
+                  data-testid="apps-installed-launch"
+                  tone="primary"
+                  loading={activeAction === 'launch'}
+                  disabled={actionsDisabled}
+                  onClick={() => onAction('launch')}
+                >
+                  <Play className="mr-2 h-4 w-4" aria-hidden="true" />
+                  {t(installedRun?.state === 'running'
+                    ? 'Apps.action.focus'
+                    : runVisual === 'failed' ? 'Apps.action.retry' : 'Apps.action.launch')}
+                </Button>
+              ) : null}
+              <Popover>
+                <PopoverTrigger asChild>
+                  <IconButton
+                    data-testid="apps-detail-more"
+                    icon={<MoreHorizontal className="h-4 w-4" aria-hidden="true" />}
+                    tone="secondary"
+                    aria-label={t('Apps.detail.moreActions')}
+                    title={t('Apps.detail.moreActions')}
+                  />
+                </PopoverTrigger>
+                <PopoverContent align="end" sideOffset={6} className="p-1">
+                  <ActionMenu items={menuItems} ariaLabel={t('Apps.detail.moreActions')} />
+                </PopoverContent>
+              </Popover>
+            </div>
+          </div>
+          {catalog?.policyBlocked ? (
+            <InlineAlert tone="danger" className="mt-3" data-testid="apps-catalog-policy-blocked">
+              {t('Apps.catalog.policyBlocked', { reason: catalog.policyReason ?? t('Apps.catalog.policyBlockedFallback') })}
+            </InlineAlert>
+          ) : null}
+          {release && installedRun?.message ? <InlineAlert tone="danger" className="mt-3">{installedRun.message}</InlineAlert> : null}
+          <NimiTabs
+            className="mt-4"
+            items={tabItems}
+            value={activeTab}
+            onValueChange={(value) => setActiveTab(value as AppsDetailTab)}
+            ariaLabel={t('Apps.detail.tabsLabel')}
+          />
+        </header>
+        <div className="desktop-module-content">
           {actionError ? <AppsActionErrorAlert error={actionError} className="mb-5" /> : null}
           {activeTab === 'overview' ? (
-            <div role="tabpanel" id="apps-detail-panel-overview" aria-labelledby="apps-detail-tab-overview" tabIndex={0} className="space-y-7 outline-none">
+            <div role="tabpanel" id="apps-detail-panel-overview" aria-labelledby="apps-detail-tab-overview" tabIndex={0} className="desktop-module-stack outline-none">
               <AppsOverviewTab
                 sourceEntries={sourceEntries}
                 onRemoveSource={onRemoveSource}
@@ -788,7 +792,7 @@ function InstalledAppsDetailView({
                       links={aboutLinks}
                       onOpenProperties={() => setPropertiesOpen(true)}
                     />
-                    <div className="mt-7" data-testid="apps-detail-safety-overview">
+                    <div className="mt-4" data-testid="apps-detail-safety-overview">
                       {safetyDeclarationSection(true)}
                     </div>
                   </>
@@ -798,7 +802,7 @@ function InstalledAppsDetailView({
           ) : null}
 
           {activeTab === 'access' ? (
-            <div role="tabpanel" id="apps-detail-panel-access" aria-labelledby="apps-detail-tab-access" tabIndex={0} className="space-y-7 outline-none">
+            <div role="tabpanel" id="apps-detail-panel-access" aria-labelledby="apps-detail-tab-access" tabIndex={0} className="desktop-module-stack outline-none">
               <AppsAccessTabSections
                 appAccess={declaredAppAccess}
                 aiModelsAvailable={aiModelsAvailable}
@@ -1038,7 +1042,7 @@ function AppsAboutSection({ entry, developer, fact, fallbackSummary = null, link
       data-testid="apps-about-section"
       aria-label={t('Apps.detail.aboutAppTitle', { name: identity.displayName })}
     >
-      <h2 className="text-lg font-semibold text-[color:var(--nimi-text-primary)]">
+      <h2 className="desktop-module-section-title">
         {t('Apps.detail.aboutAppTitle', { name: identity.displayName })}
       </h2>
       {entry.summary || !fallbackSummary ? null : (
@@ -1046,7 +1050,7 @@ function AppsAboutSection({ entry, developer, fact, fallbackSummary = null, link
           {fallbackSummary}
         </p>
       )}
-      <div className="mt-4 rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-active)_38%,transparent)] px-5 py-4">
+      <div className="mt-4 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4">
         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1">
           {facts.map((item) => (
             <div key={item.label} className="min-w-0">
@@ -1222,7 +1226,7 @@ function DetailSection({ title, description, children }: {
 }): ReactElement {
   return (
     <section>
-      <h2 className="text-lg font-semibold text-[color:var(--nimi-text-primary)]">{title}</h2>
+      <h2 className="desktop-module-section-title">{title}</h2>
       {description ? <p className="mt-1 max-w-3xl text-sm leading-6 text-[color:var(--nimi-text-secondary)]">{description}</p> : null}
       {children}
     </section>

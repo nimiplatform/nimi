@@ -39,10 +39,10 @@ import {
   PopoverTrigger,
   ScrollArea,
   SearchField,
-  SidebarShell,
   Surface,
   type NimiMenuItem,
 } from '@nimiplatform/kit/ui';
+import { DesktopModuleSidebar, type DesktopModuleSidebarHandle } from '../../components/desktop-module-sidebar.js';
 import {
   appsActionsLocked,
   hasAvailableCatalogUpdate,
@@ -159,6 +159,7 @@ export function AppsPanelView({
   const { t } = useTranslation();
   const [filterId, setFilterId] = useState<AppsRailFilterId>('all');
   const railSearchRef = useRef<HTMLInputElement>(null);
+  const railRef = useRef<DesktopModuleSidebarHandle>(null);
 
   const loadedEntries = projection?.status === 'loaded' ? projection.entries : [];
   // Ordinary discovery lists hide Catalog-only rows blocked by current policy;
@@ -221,11 +222,9 @@ export function AppsPanelView({
   useEffect(() => {
     const focusAppsSearch = (event: globalThis.KeyboardEvent) => {
       if (!(event.ctrlKey || event.metaKey) || event.key.toLocaleLowerCase() !== 'f') return;
-      const input = railSearchRef.current;
-      if (!input) return;
+      if (!railRef.current) return;
       event.preventDefault();
-      input.focus();
-      input.select();
+      railRef.current.focusSearch();
     };
     window.addEventListener('keydown', focusAppsSearch);
     return () => window.removeEventListener('keydown', focusAppsSearch);
@@ -260,7 +259,7 @@ export function AppsPanelView({
   }));
 
   return (
-    <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-2 px-3 pb-3 pt-2 lg:flex-row">
+    <div className="desktop-module-workspace px-3 pb-3 pt-2">
       {!downloadsOnly ? (
         <AppsRail
         projection={projection}
@@ -272,6 +271,7 @@ export function AppsPanelView({
         onSearchChange={onSearchChange}
         onClearSearch={() => onSearchChange('')}
         searchInputRef={railSearchRef}
+        sidebarRef={railRef}
         filterId={filterId}
         filterMenuItems={filterMenuItems}
         downloads={downloads}
@@ -326,7 +326,7 @@ export function AppsPanelView({
             onRetry={onRetry}
             onOpenDeveloperMode={onOpenDeveloperMode}
             onImportLocal={onImportLocal}
-            onFocusRailSearch={() => railSearchRef.current?.focus()}
+            onFocusRailSearch={() => railRef.current?.focusSearch()}
             actionError={actionError}
             sourceChoiceNotice={sourceChoiceNotice}
           />
@@ -352,6 +352,7 @@ function AppsRail({
   onSearchChange,
   onClearSearch,
   searchInputRef,
+  sidebarRef,
   filterId,
   filterMenuItems,
   downloads,
@@ -369,6 +370,7 @@ function AppsRail({
   readonly onSearchChange: (value: string) => void;
   readonly onClearSearch: () => void;
   readonly searchInputRef: React.RefObject<HTMLInputElement | null>;
+  readonly sidebarRef: React.Ref<DesktopModuleSidebarHandle>;
   readonly filterId: AppsRailFilterId;
   readonly filterMenuItems: NimiMenuItem[];
   readonly downloads?: AppsDownloadsContextValue;
@@ -396,18 +398,16 @@ function AppsRail({
     />
   );
   return (
-    <SidebarShell className="desktop-sidebar h-56 min-h-0 w-full lg:h-auto lg:w-[248px]" data-testid="apps-sidebar">
+    <DesktopModuleSidebar ref={sidebarRef} searchInputRef={searchInputRef} label={t('Navigation.apps')} selectionKey={selectedEntryKey} data-testid="apps-sidebar">
       <div className="desktop-sidebar__header">
-        <div className="flex items-end justify-between gap-2">
-          <h1 className="desktop-sidebar__title font-semibold text-[var(--nimi-text-primary)]">
-            {t('Navigation.apps', { defaultValue: 'Apps' })}
-          </h1>
-          <p className="pb-0.5 text-right text-xs text-[var(--nimi-text-secondary)]">
-            {projection?.status === 'loaded'
-              ? t('Apps.inventoryCount', { count: groupsCount })
-              : t('Apps.sidebar.subtitle')}
-          </p>
-        </div>
+        <h1 className="desktop-sidebar__title font-semibold text-[var(--nimi-text-primary)]">
+          {t('Navigation.apps', { defaultValue: 'Apps' })}
+        </h1>
+        <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">
+          {projection?.status === 'loaded'
+            ? t('Apps.inventoryCount', { count: groupsCount })
+            : t('Apps.sidebar.subtitle')}
+        </p>
       </div>
 
       <div className="desktop-sidebar__search flex items-center" data-testid="apps-sidebar-search">
@@ -487,7 +487,7 @@ function AppsRail({
       </ScrollArea>
 
       {downloads ? <RailDownloadsEntry downloads={downloads} onLeaveDownloads={onLeaveDownloads} /> : null}
-    </SidebarShell>
+    </DesktopModuleSidebar>
   );
 }
 
@@ -515,10 +515,8 @@ function RailDownloadsEntry({
             downloads.openDownloads();
           }
         }}
-        className={`desktop-sidebar__row flex w-full min-w-0 items-center text-left transition-colors focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)] ${active
-          ? 'bg-[var(--nimi-surface-active)] font-medium text-[color:var(--nimi-text-primary)]'
-          : 'font-medium text-[color:var(--nimi-text-secondary)] hover:bg-[color-mix(in_srgb,var(--nimi-surface-active)_60%,transparent)]'
-        }`}
+        className="desktop-sidebar__row flex w-full min-w-0 items-center text-left font-medium text-[var(--nimi-text-secondary)] transition-colors"
+        data-active={active}
       >
         <Download className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
         <span className="min-w-0 flex-1">{t('Apps.downloads.title')}</span>
@@ -633,21 +631,20 @@ const RailGroupRow = memo(function RailGroupRow({
         }}
       >
         <div
-          className={`desktop-sidebar__row-surface flex w-full min-w-0 items-center transition-colors ${active
-            ? 'bg-[var(--nimi-surface-active)]'
-            : 'hover:bg-[color-mix(in_srgb,var(--nimi-surface-active)_60%,transparent)]'
-          }`}
+          className="desktop-sidebar__row-surface flex w-full min-w-0 items-center transition-colors"
+          data-active={active}
           onContextMenu={openContextMenu}
         >
           <button
             type="button"
             ref={rowButtonRef}
             data-app-row
+            aria-current={active ? 'page' : undefined}
             data-testid={`apps-rail-app-${group.appId}`}
             tabIndex={tabIndex}
             onClick={() => onAction('details')}
             onKeyDown={onKeyDown}
-            className="desktop-sidebar__row flex min-w-0 flex-1 items-center text-left focus-visible:outline-none focus-visible:ring-[length:var(--nimi-focus-ring-width)] focus-visible:ring-[var(--nimi-focus-ring-color)]"
+            className="desktop-sidebar__row flex min-w-0 flex-1 items-center text-left"
           >
             <AppArtworkIcon
               appId={group.appId}
@@ -750,55 +747,40 @@ function AppsHome({
 }): ReactElement {
   const { t } = useTranslation();
   return (
-    <>
-      <div className="shrink-0 px-5 pt-6 sm:px-7">
-        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-3">
-          <div className="min-w-0">
-            <h1
-              data-testid="apps-library-title"
-              className="text-2xl font-bold leading-8 text-[color:var(--nimi-text-primary)]"
-            >
-              {t('Apps.library.pageTitle')}
-            </h1>
-          </div>
-          <div className="flex min-w-0 items-center gap-2">
-            <AppsAddMenu onImport={onImportLocal} onDeveloper={onOpenDeveloperMode} onBrowse={onFocusRailSearch} />
-          </div>
+    <ScrollArea className="min-h-0 flex-1" viewportClassName="[&>div]:!block" contentClassName="desktop-module-content desktop-module-stack">
+      <header className="desktop-module-header">
+        <h1 data-testid="apps-library-title" className="desktop-module-title">
+          {t('Apps.library.pageTitle')}
+        </h1>
+        <div className="flex min-w-0 items-center gap-2">
+          <AppsAddMenu onImport={onImportLocal} onDeveloper={onOpenDeveloperMode} onBrowse={onFocusRailSearch} />
         </div>
-      </div>
+      </header>
 
       {actionError ? (
-        <div className="shrink-0 px-5 pt-4 sm:px-7">
-          <AppsActionErrorAlert error={actionError} />
-        </div>
+        <AppsActionErrorAlert error={actionError} />
       ) : null}
       {sourceChoiceNotice ? (
-        <div className="shrink-0 px-5 pt-4 sm:px-7">
-          <InlineAlert tone="info" data-testid="apps-choose-source">{sourceChoiceNotice}</InlineAlert>
-        </div>
+        <InlineAlert tone="info" data-testid="apps-choose-source">{sourceChoiceNotice}</InlineAlert>
       ) : null}
 
       {projection?.status === 'loaded' && projection.runtimeError ? (
-        <div className="shrink-0 px-5 pt-4 sm:px-7">
-          <AppsActionErrorAlert testId="apps-runtime-error" error={{ message: t('Apps.lifecycleReadFailed'), detail: projection.runtimeError }} />
-        </div>
+        <AppsActionErrorAlert testId="apps-runtime-error" error={{ message: t('Apps.lifecycleReadFailed'), detail: projection.runtimeError }} />
       ) : null}
 
-      <ScrollArea className="min-h-0 flex-1" viewportClassName="bg-transparent">
-        <AppsHomeBody
-          projection={projection}
-          attentionEntries={attentionEntries}
-          updateEntries={updateEntries}
-          recentGroups={recentGroups}
-          pendingActions={pendingActions}
-          actionDispatcherFor={actionDispatcherFor}
-          onRetry={onRetry}
-          onOpenDeveloperMode={onOpenDeveloperMode}
-          onImportLocal={onImportLocal}
-          onFocusRailSearch={onFocusRailSearch}
-        />
-      </ScrollArea>
-    </>
+      <AppsHomeBody
+        projection={projection}
+        attentionEntries={attentionEntries}
+        updateEntries={updateEntries}
+        recentGroups={recentGroups}
+        pendingActions={pendingActions}
+        actionDispatcherFor={actionDispatcherFor}
+        onRetry={onRetry}
+        onOpenDeveloperMode={onOpenDeveloperMode}
+        onImportLocal={onImportLocal}
+        onFocusRailSearch={onFocusRailSearch}
+      />
+    </ScrollArea>
   );
 }
 
@@ -829,7 +811,7 @@ function AppsHomeBody({
 
   if (projection === null) {
     return (
-      <div data-testid="apps-panel-loading" aria-label={t('Apps.loading')} className="space-y-2 px-5 py-5 sm:px-7">
+      <div data-testid="apps-panel-loading" aria-label={t('Apps.loading')} className="space-y-2">
         {Array.from({ length: 6 }).map((_, index) => (
           <div key={index} className="flex animate-pulse items-center gap-4 rounded-2xl px-3 py-3">
             <div className="h-16 w-16 shrink-0 rounded-2xl bg-[color-mix(in_srgb,var(--nimi-surface-active)_64%,transparent)]" />
@@ -846,7 +828,7 @@ function AppsHomeBody({
 
   if (projection.status === 'error') {
     return (
-      <div className="px-5 py-6 sm:px-7">
+      <div>
         <InlineAlert
           tone="danger"
           data-testid="apps-error"
@@ -864,7 +846,7 @@ function AppsHomeBody({
 
   if (projection.entries.length === 0) {
     return (
-      <div className="px-5 py-6 sm:px-7">
+      <div>
         <EmptyState
           data-testid="apps-empty-local-development"
           data-state="empty"
@@ -883,10 +865,10 @@ function AppsHomeBody({
   const iconUrls = appIconUrlsForEntries(hideBlockedDiscoveryEntries(projection.entries));
 
   return (
-    <div className="space-y-8 px-5 py-5 sm:px-7">
+    <div className="desktop-module-stack">
       {attentionEntries.length > 0 ? (
-        <section data-testid="apps-home-attention" aria-label={t('Apps.home.attentionTitle')}>
-          <h2 className="flex min-w-0 items-baseline gap-2 px-1 text-base font-semibold leading-6 text-[color:var(--nimi-text-primary)]">
+        <Surface as="section" tone="card" padding="none" className="desktop-module-card" data-testid="apps-home-attention" aria-label={t('Apps.home.attentionTitle')}>
+          <h2 className="desktop-module-section-title flex min-w-0 items-baseline gap-2">
             <span className="truncate">{t('Apps.home.attentionTitle')}</span>
             <span className="shrink-0 text-xs font-normal text-[color:var(--nimi-text-muted)]">
               {t('Apps.library.allAppsCount', { count: groupAppsEntries(attentionEntries).length })}
@@ -935,12 +917,12 @@ function AppsHomeBody({
               </details>
             ))}
           </div>
-        </section>
+        </Surface>
       ) : null}
 
       {updateEntries.length > 0 ? (
-        <section data-testid="apps-home-updates" aria-label={t('Apps.home.updatesTitle')}>
-          <h2 className="flex min-w-0 items-baseline gap-2 px-1 text-base font-semibold leading-6 text-[color:var(--nimi-text-primary)]">
+        <Surface as="section" tone="card" padding="none" className="desktop-module-card" data-testid="apps-home-updates" aria-label={t('Apps.home.updatesTitle')}>
+          <h2 className="desktop-module-section-title flex min-w-0 items-baseline gap-2">
             <span className="truncate">{t('Apps.home.updatesTitle')}</span>
             <span className="shrink-0 text-xs font-normal text-[color:var(--nimi-text-muted)]">
               {t('Apps.library.allAppsCount', { count: updateEntries.length })}
@@ -960,11 +942,11 @@ function AppsHomeBody({
               />
             ))}
           </div>
-        </section>
+        </Surface>
       ) : null}
 
-      <section data-testid="apps-home-recent" aria-label={t('Apps.home.recentTitle')}>
-        <h2 className="px-1 text-base font-semibold leading-6 text-[color:var(--nimi-text-primary)]">
+      <Surface as="section" tone="card" padding="none" className="desktop-module-card" data-testid="apps-home-recent" aria-label={t('Apps.home.recentTitle')}>
+        <h2 className="desktop-module-section-title">
           {t('Apps.home.recentTitle')}
         </h2>
         <div className="mt-3 grid grid-cols-1 gap-1 xl:grid-cols-2 xl:gap-x-4">
@@ -980,7 +962,7 @@ function AppsHomeBody({
             />
           ))}
         </div>
-      </section>
+      </Surface>
 
       <CatalogStatusNote status={projection.catalogStatus} onRetry={onRetry} />
     </div>
