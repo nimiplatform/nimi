@@ -10,6 +10,7 @@ import {
 } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { NimiDesktopOpenAppsSection } from '@nimiplatform/kit/core/desktop-open';
+import { AppsAttentionSection } from './apps-attention-section.js';
 import { AppsActionErrorAlert } from './apps-action-error.js';
 import type { AppsActionError } from './apps-panel-controller.js';
 import type { NimiAIConfigOverwriteResult } from '@nimiplatform/kit/core/sdk-contract';
@@ -866,59 +867,8 @@ function AppsHomeBody({
 
   return (
     <div className="desktop-module-stack">
-      {attentionEntries.length > 0 ? (
-        <Surface as="section" tone="card" padding="none" className="desktop-module-card" data-testid="apps-home-attention" aria-label={t('Apps.home.attentionTitle')}>
-          <h2 className="desktop-module-section-title flex min-w-0 items-baseline gap-2">
-            <span className="truncate">{t('Apps.home.attentionTitle')}</span>
-            <span className="shrink-0 text-xs font-normal text-[color:var(--nimi-text-muted)]">
-              {t('Apps.library.allAppsCount', { count: groupAppsEntries(attentionEntries).length })}
-            </span>
-          </h2>
-          <div className="mt-3 divide-y divide-[var(--nimi-border-subtle)]">
-            {groupAppsEntries(attentionEntries).map((group) => group.entries.length === 1 ? (
-              <AppListRow
-                key={group.appId}
-                entry={group.primary}
-                iconUrl={iconUrls.get(group.appId)}
-                showSourceBadge
-                presentation="attention"
-                activeAction={pendingActionForEntry(pendingActions, group.primary.identity.entryKey)}
-                actionsDisabled={appsActionsLocked(pendingActions, group.appId)}
-                onAction={actionDispatcherFor(group.primary.identity.entryKey)}
-              />
-            ) : (
-              <details key={group.appId} data-testid={`apps-attention-group:${group.appId}`} className="group/source min-w-0">
-                <summary className="flex min-h-[76px] cursor-pointer list-none items-center gap-4 rounded-2xl px-3 py-3 hover:bg-[var(--nimi-surface-active)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)] [&::-webkit-details-marker]:hidden">
-                  <AppArtworkIcon appId={group.appId} displayName={group.displayName} iconUrl={iconUrls.get(group.appId)} size="md" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold">{group.displayName}</span>
-                    <span className="mt-1 block text-xs text-[var(--nimi-text-secondary)]">{t('Apps.home.attentionSources', { count: group.entries.length })}</span>
-                  </span>
-                  <ChevronRight size={16} aria-hidden="true" className="mr-2 shrink-0 text-[var(--nimi-text-secondary)] transition-transform group-open/source:rotate-90" />
-                </summary>
-                <div className="divide-y divide-[var(--nimi-border-subtle)] border-t border-[var(--nimi-border-subtle)]">
-                  {group.entries.map((entry) => (
-                    <div key={entry.identity.entryKey}>
-                      {entry.localDevelopment ? <p className="break-all px-4 pt-3 text-xs text-[var(--nimi-text-secondary)]">
-                        {entry.localDevelopment.canonicalProjectRoot} · {entry.localDevelopment.selector}
-                      </p> : null}
-                      <AppListRow
-                        entry={entry}
-                        iconUrl={iconUrls.get(entry.identity.appId)}
-                        showSourceBadge
-                        presentation="attention"
-                        activeAction={pendingActionForEntry(pendingActions, entry.identity.entryKey)}
-                        actionsDisabled={appsActionsLocked(pendingActions, entry.identity.appId)}
-                        onAction={actionDispatcherFor(entry.identity.entryKey)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </details>
-            ))}
-          </div>
-        </Surface>
-      ) : null}
+      <AppsAttentionSection entries={attentionEntries} iconUrls={iconUrls} pendingActions={pendingActions}
+        actionDispatcherFor={actionDispatcherFor} onRefresh={onRetry} />
 
       {updateEntries.length > 0 ? (
         <Surface as="section" tone="card" padding="none" className="desktop-module-card" data-testid="apps-home-updates" aria-label={t('Apps.home.updatesTitle')}>

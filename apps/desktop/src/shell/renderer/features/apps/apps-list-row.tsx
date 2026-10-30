@@ -41,11 +41,11 @@ function aiConfigSummaryPresentation(
   // List rows are the consumer surface: only postures that need action earn a
   // pill. Route fractions (AI 本地 · 2/13) and healthy partial setups stay in
   // the detail AI tab, whose audience can act on the precise numbers.
-  if (summary.healthPosture === 'blocked') {
+  if (summary.issues.length > 0) {
     return {
       label: t('Apps.aiConfig.summary.blockedBrief', {
-        defaultValue: `AI blocked · ${summary.blockedCount}`,
-        blockedCount: summary.blockedCount,
+        defaultValue: `AI blocked · ${summary.issues.length}`,
+        blockedCount: summary.issues.length,
       }),
     };
   }

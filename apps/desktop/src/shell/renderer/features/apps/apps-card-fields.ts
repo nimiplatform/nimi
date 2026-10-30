@@ -242,6 +242,10 @@ export function sortAppsEntries(
  * posture that blocks usage. There is no renderer-local health truth.
  */
 export function entryNeedsAttention(entry: DesktopAppsEntry): boolean {
+  return entryOperationNeedsAttention(entry) || (entry.aiConfigSummary?.issues.length ?? 0) > 0;
+}
+
+export function entryOperationNeedsAttention(entry: DesktopAppsEntry): boolean {
   if (appRunVisualState(entry.run?.state ?? null) === 'failed') return true;
   const job = entry.packageJob;
   if (
@@ -249,8 +253,7 @@ export function entryNeedsAttention(entry: DesktopAppsEntry): boolean {
     && (job.phase === AppPackageJobPhase.FAILED
       || job.terminalResult === AppPackageTerminalResult.FAILED)
   ) return true;
-  const health = entry.aiConfigSummary?.healthPosture;
-  return health === 'blocked' || health === 'unavailable';
+  return false;
 }
 
 /**

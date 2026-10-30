@@ -541,6 +541,7 @@ test('Apps home surfaces only actionable App AIConfig postures', async () => {
       blockedCount: 1,
       localCount: 0,
       cloudCount: 2,
+      issues: [{ capabilityContract: 'text.generate', route: 'cloud' as const, reasons: ['AI_REMOTE_MODEL_CATALOG_STALE'] }],
     },
   };
   const markup = renderView(baseProps({
@@ -561,9 +562,9 @@ test('Apps home hides non-actionable AI postures as ambient state', async () => 
   await initI18n();
   await changeLocale('zh');
   const cases = [
-    { routePosture: 'unconfigured' as const, healthPosture: 'healthy' as const, intentCount: 0, total: 9, blockedCount: 0, localCount: 0, cloudCount: 0 },
-    { routePosture: 'partial-local' as const, healthPosture: 'healthy' as const, intentCount: 2, total: 9, blockedCount: 0, localCount: 2, cloudCount: 0 },
-    { routePosture: 'local' as const, healthPosture: 'healthy' as const, intentCount: 9, total: 9, blockedCount: 0, localCount: 9, cloudCount: 0 },
+    { routePosture: 'unconfigured' as const, healthPosture: 'healthy' as const, intentCount: 0, total: 9, blockedCount: 0, localCount: 0, cloudCount: 0, issues: [] },
+    { routePosture: 'partial-local' as const, healthPosture: 'healthy' as const, intentCount: 2, total: 9, blockedCount: 0, localCount: 2, cloudCount: 0, issues: [] },
+    { routePosture: 'local' as const, healthPosture: 'healthy' as const, intentCount: 9, total: 9, blockedCount: 0, localCount: 9, cloudCount: 0, issues: [] },
   ];
   for (const aiConfigSummary of cases) {
     const markup = renderView(baseProps({

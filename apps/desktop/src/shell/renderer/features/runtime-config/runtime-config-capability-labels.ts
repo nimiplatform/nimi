@@ -3,6 +3,8 @@ export function displayRuntimeConfigCapabilityLabel(
   capabilityContract: string,
   t: TFunction,
 ): string {
+  if (capabilityContract === 'realtime.interact') return t('Apps.aiConfig.capability.realtimeInteract.label');
+  if (capabilityContract === 'world.generate') return t('Apps.aiConfig.capability.worldGenerate.label');
   if (capabilityContract === 'image.face_swap') return t('runtimeConfig.capabilityLabels.imageFaceSwap');
   if (capabilityContract === 'video.face_swap') return t('runtimeConfig.capabilityLabels.videoFaceSwap');
   if (capabilityContract === 'vision.locate') return t('runtimeConfig.capabilityLabels.visionLocate');

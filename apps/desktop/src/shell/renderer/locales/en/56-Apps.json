@@ -21,9 +21,9 @@
   },
   "home": {
     "attentionTitle": "Needs Attention",
-    "attentionSources": "{{count}} sources need attention",
     "updatesTitle": "Updates Available",
-    "recentTitle": "Recent Activity"
+    "recentTitle": "Recent Activity",
+    "attentionSources": "{{count}} sources need attention"
   },
   "overview": {
     "connected": "Connected",
@@ -744,5 +744,20 @@
       "biometric-identification": "Biometric identification",
       "public-safety-decision": "Public safety decisions"
     }
+  },
+  "attention": {
+    "localTitle": "Local AI preparation",
+    "reviewPreparation": "Review preparation",
+    "affects": "Used by: {{apps}}",
+    "choicesTitle": "Your choice needed",
+    "cloudStale": "The saved cloud model reference is no longer current. Review the available models.",
+    "cloudChoice": "Review the cloud connection and model for this capability.",
+    "reviewChoice": "Review settings",
+    "operationsTitle": "Launch and installation issues",
+    "preparationScope": "Nimi will prepare the selected configurations below, including the listed downloads and components. After one confirmation, it completes the steps automatically. This affects every app using these local capabilities; cloud settings stay unchanged.",
+    "confirmPreparation": "Confirm and prepare {{count}} capabilities",
+    "preparing": "Preparing…",
+    "chooseLocal": "Choose local model",
+    "queued": "Queued"
   }
 }

@@ -34,6 +34,12 @@ export type DesktopAppAIConfigRoutePosture =
 
 export type DesktopAppAIConfigHealthPosture = 'healthy' | 'blocked' | 'unavailable';
 
+export interface DesktopAppAIConfigIssue {
+  readonly capabilityContract: string;
+  readonly route: 'local' | 'cloud';
+  readonly reasons: readonly string[];
+}
+
 export interface DesktopAppAIConfigSummary {
   readonly routePosture: DesktopAppAIConfigRoutePosture;
   readonly healthPosture: DesktopAppAIConfigHealthPosture;
@@ -42,6 +48,8 @@ export interface DesktopAppAIConfigSummary {
   readonly blockedCount: number;
   readonly localCount: number;
   readonly cloudCount: number;
+  /** Actionable failures within this source's declared usage; empty declarations cover saved intent. */
+  readonly issues: readonly DesktopAppAIConfigIssue[];
 }
 
 export interface DesktopAppAIConfigReadOptions {
@@ -369,6 +377,8 @@ export async function projectAppsPanel(
           ? await projectAppAIConfigSummary({
               appId: entry.identity.appId,
               appAccess: appAccessForAIConfig(entry),
+              declaredCapabilities: entry.localDevelopment?.capabilityContractRefs
+                ?? entry.appInfo?.capabilityContractRefs ?? null,
               source,
               previous: previousEntries.get(entry.identity.entryKey)?.aiConfigSummary ?? null,
               refresh: options.refreshAIConfig !== false,
@@ -629,6 +639,7 @@ async function projectEntriesBounded<TInput, TOutput>(
 
 async function projectAppAIConfigSummary(input: {
   readonly appId: string;
+  readonly declaredCapabilities: readonly string[] | null;
   readonly appAccess: readonly string[];
   readonly source: DesktopAppsProjectionSource;
   readonly previous: DesktopAppAIConfigSummary | null;
@@ -665,7 +676,7 @@ async function projectAppAIConfigSummary(input: {
       timedOut,
       cancelled,
     ]);
-    return summarizeAppAIConfig(snapshot);
+    return summarizeAppAIConfig(snapshot, input.declaredCapabilities);
   } catch {
     return input.signal?.aborted ? input.previous : unavailableAIConfigSummary(input.previous);
   } finally {
@@ -676,6 +687,7 @@ async function projectAppAIConfigSummary(input: {
 
 export function summarizeAppAIConfig(
   snapshot: NimiAIConfigSnapshot,
+  declaredCapabilities: readonly string[] | null = [],
 ): DesktopAppAIConfigSummary {
   const config = snapshot.config;
   const capabilities = config?.capabilities ?? [];
@@ -704,13 +716,22 @@ export function summarizeAppAIConfig(
   const healthPosture: DesktopAppAIConfigHealthPosture = effectiveUnavailable
     ? 'unavailable'
     : blockedCount > 0 ? 'blocked' : 'healthy';
-  return { routePosture, healthPosture, intentCount, total, blockedCount, localCount, cloudCount };
+  const relevant = new Set(declaredCapabilities ?? []);
+  const issues = capabilities.flatMap((capability): DesktopAppAIConfigIssue[] => {
+    if (declaredCapabilities === null) return [];
+    if (relevant.size > 0 && !relevant.has(capability.capabilityContract)) return [];
+    const selection = effectiveByCapability.get(capability.capabilityContract);
+    const route = capability.route.oneofKind;
+    if (!selection || !['missing', 'blocked'].includes(selection.state) || (route !== 'local' && route !== 'cloud')) return [];
+    return [{ capabilityContract: capability.capabilityContract, route, reasons: selection.reasons }];
+  });
+  return { routePosture, healthPosture, intentCount, total, blockedCount, localCount, cloudCount, issues };
 }
 
 function unavailableAIConfigSummary(
   previous: DesktopAppAIConfigSummary | null = null,
 ): DesktopAppAIConfigSummary {
-  if (previous) return { ...previous, healthPosture: 'unavailable' };
+  if (previous) return { ...previous, healthPosture: 'unavailable', issues: [] };
   return {
     routePosture: 'unconfigured',
     healthPosture: 'unavailable',
@@ -719,6 +740,7 @@ function unavailableAIConfigSummary(
     blockedCount: 0,
     localCount: 0,
     cloudCount: 0,
+    issues: [],
   };
 }
 

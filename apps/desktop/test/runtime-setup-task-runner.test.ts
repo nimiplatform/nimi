@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { isRuntimeProfileRunning, runRuntimeProfileTasks } from '../src/shell/renderer/features/runtime-config/runtime-profile-task-runner.js';
+import { reviewCurrentLocalSetup } from '../src/shell/renderer/features/runtime-config/runtime-setup-current-review.js';
 
 import type {
   NimiLoadoutRecipe,
@@ -38,6 +39,40 @@ import {
 
 const CAPABILITY = 'image.generate';
 const ACCOUNT = 'acct-1';
+
+test('current-machine review deduplicates capabilities without writes, then one confirmation prepares the exact selection', async () => {
+  const store = makeStore();
+  const calls: CallLog = [];
+  const selected = loadout({ loadoutId: 'existing-selected', options: { steps: 37 } });
+  const state = baseState({ loadouts: [selected], selections: [{ capabilityContract: CAPABILITY, loadoutId: selected.loadoutId, effectiveDefaults: {} }] });
+  const ports = createPorts(state, calls);
+  const unrelated = store.createTask({ capabilityContract: CAPABILITY, source: { kind: 'runtime', accountId: ACCOUNT, returnFocus: 'runtime' } });
+  store.updateTask(unrelated.taskId, () => ({ candidateLoadoutId: selected.loadoutId, draft: { options: { steps: 99 } } }));
+  const reviewed = await reviewCurrentLocalSetup(store, ports, [CAPABILITY, CAPABILITY]);
+  assert.equal(reviewed.length, 1);
+  assert.notEqual(reviewed[0]?.taskId, unrelated.taskId, 'preparation does not adopt another editor’s pending choices');
+  assert.equal(store.getTask(reviewed[0]!.taskId)?.candidateLoadoutId, selected.loadoutId);
+  assert.deepEqual(calls.filter(call => ['loadouts.prepare', 'loadouts.commit', 'loadouts.select', 'install.install', 'environment.applyEnvironmentPlan', 'aiConfig.overwrite'].includes(call.method)), []);
+  const again = await reviewCurrentLocalSetup(store, ports, [CAPABILITY]);
+  assert.equal(again[0]?.taskId, reviewed[0]?.taskId);
+  assert.ok(reviewed[0]!.plan);
+  const id = reviewed[0]!.taskId;
+  await runRuntimeProfileTasks({ store, ports, taskIds: [id], plans: { [id]: reviewed[0]!.plan! }, choices: {}, mode: 'prepare-and-use' });
+  assert.equal(store.getTask(id)?.status, 'done');
+  assert.equal(state.selections[0]?.loadoutId, 'existing-selected');
+  assert.deepEqual(state.loadouts[0]?.options, { steps: 37 });
+  assert.equal(calls.some(call => call.method === 'aiConfig.overwrite'), false);
+});
+
+test('current-machine preparation requires a real selection and never substitutes a saved candidate', async () => {
+  const store = makeStore();
+  const calls: CallLog = [];
+  const ports = createPorts(baseState({ loadouts: [loadout({ loadoutId: 'unselected' })] }), calls);
+  const reviewed = await reviewCurrentLocalSetup(store, ports, [CAPABILITY]);
+  assert.equal(reviewed[0]?.plan, null);
+  assert.equal(store.getTask(reviewed[0]!.taskId)?.failure?.reasonCode, 'AI_LOCAL_SELECTION_NOT_FOUND');
+  assert.equal(calls.some(call => call.method === 'loadouts.prepare'), false);
+});
 
 test('Profile execution stays live outside its view and a second invocation cannot duplicate it', async () => {
   const store = makeStore();

@@ -21,9 +21,9 @@
   },
   "home": {
     "attentionTitle": "需处理",
-    "attentionSources": "{{count}} 个来源需要处理",
     "updatesTitle": "有更新",
-    "recentTitle": "最近活跃"
+    "recentTitle": "最近活跃",
+    "attentionSources": "{{count}} 个来源需要处理"
   },
   "overview": {
     "connected": "已接入",
@@ -744,5 +744,20 @@
       "biometric-identification": "生物特征身份识别",
       "public-safety-decision": "公共安全决策"
     }
+  },
+  "attention": {
+    "localTitle": "本机 AI 准备",
+    "reviewPreparation": "查看准备计划",
+    "affects": "使用此能力：{{apps}}",
+    "choicesTitle": "需要你选择",
+    "cloudStale": "已保存的云模型引用已失效，请确认当前要使用的模型。",
+    "cloudChoice": "请检查此能力使用的云服务连接和模型。",
+    "reviewChoice": "查看设置",
+    "operationsTitle": "启动与安装问题",
+    "preparationScope": "Nimi 将准备下列已选配置及所列模型文件和组件。确认一次后，后续步骤自动完成。这会影响使用这些本机能力的所有应用；云端设置保持不变。",
+    "confirmPreparation": "确认并自动准备 {{count}} 项",
+    "preparing": "正在准备…",
+    "chooseLocal": "选择本机模型",
+    "queued": "等待准备"
   }
 }
