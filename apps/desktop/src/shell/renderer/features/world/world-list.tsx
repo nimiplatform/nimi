@@ -46,7 +46,9 @@ export function WorldCatalogContent({ worlds, paging, embedded = false, searchQu
   const query = searchQuery ?? '';
   const viewport = useHomeListPosition(JSON.stringify(['worlds', topicId, query, favorites]), !loading && !error);
   const browse = !query.trim() && !topicId && !favorites;
-  const spotlightWorlds = browse && !spotlightLoading && !spotlightError ? selectWorldSpotlight(worlds, leadWorlds) : [];
+  // Render accepted entries as they arrive; another lead or the catalog itself
+  // may still be loading or unavailable without blocking a usable spotlight.
+  const spotlightWorlds = browse ? selectWorldSpotlight(worlds, leadWorlds) : [];
   const displayedWorldIds = new Set(spotlightWorlds.map((world) => world.id));
   const remainingWorlds = browse ? worlds.filter((world) => !displayedWorldIds.has(world.id)) : worlds;
   const selectedTopic = topics.find((topic) => topic.id === topicId);
@@ -64,7 +66,7 @@ export function WorldCatalogContent({ worlds, paging, embedded = false, searchQu
         </div>
       </div>
       <ScrollArea className="min-h-0 flex-1" viewportRef={viewport} viewportClassName="bg-transparent" contentClassName="world-atlas-body">
-        {browse && !loading && !error ? spotlightLoading ? <LoadingSkeleton lines={5} label={t('World.loading')} /> : spotlightError ? <WorldsLoadError embedded offline={offline} onRetry={onRetrySpotlight} /> : <WorldAtlasHero worlds={spotlightWorlds} /> : null}
+        {browse ? spotlightWorlds.length > 0 ? <WorldAtlasHero worlds={spotlightWorlds} /> : spotlightLoading ? <LoadingSkeleton lines={5} label={t('World.loading')} /> : spotlightError ? <WorldsLoadError embedded offline={offline} onRetry={onRetrySpotlight} /> : null : null}
         {onTopicChange ? <nav className="world-atlas-filters" aria-label={t('World.topics')}><button aria-pressed={!topicId && !favorites} onClick={() => onTopicChange('')}><Grid2X2 size={17} />{t('World.allTopics')}</button>{onFavoritesSelect ? <button aria-pressed={favorites} onClick={onFavoritesSelect}><Bookmark size={17} />{t('World.favorites.title')}</button> : null}{topics.map((topic) => { const Icon = topicIcons[topic.id as keyof typeof topicIcons] ?? Compass; return <button key={topic.id} aria-pressed={!favorites && topicId === topic.id} onClick={() => onTopicChange(topic.id)}><Icon size={17} />{topicTitle(topic)}</button>; })}</nav> : null}
         {favoritesUnavailable ? <EmptyState title={t(favoritesUnavailable)} /> : loading ? (
           <WorldsLoadingSkeleton embedded />

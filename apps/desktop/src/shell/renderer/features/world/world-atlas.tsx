@@ -45,19 +45,23 @@ export function WorldDiscoveryCard({ world }: { world: WorldListItem }) {
   </article>;
 }
 
+// @nimi-authority: rule.nimi.desktop.product-surfaces.r003
 export function WorldAtlasHero({ worlds }: { worlds: WorldListItem[] }) {
   const { t } = useTranslation();
   const navigation = useHomeNavigation();
-  const [index, setIndex] = useState(0);
-  const position = index % (worlds.length || 1);
+  const [activeWorldId, setActiveWorldId] = useState<string | null>(() => worlds[0]?.id ?? null);
+  const position = Math.max(0, worlds.findIndex((world) => world.id === activeWorldId));
   const world = worlds[position];
+  // New entries can sort ahead of the visible one. Keep its identity, and only
+  // select a replacement if the current World is no longer in the spotlight.
+  if (world && world.id !== activeWorldId) setActiveWorldId(world.id);
   if (!world) return null;
   const openWorld = () => void navigation.push({ id: 'world-detail', worldId: world.id });
   const openLabel = t('World.album.showWorld', { name: world.name });
   return <section className="world-atlas-hero" data-world-id={world.id} aria-label={t('World.album.spotlight')} aria-roledescription={t('World.album.carousel')}>
     <div className="world-atlas-hero-art"><button className="world-atlas-hero-open" aria-label={openLabel} onClick={openWorld}><WorldAtlasImage key={world.id} world={world} eager /></button>
       <div className="world-atlas-hero-progress"><span>{String(position + 1).padStart(2, '0')} / {String(worlds.length).padStart(2, '0')}</span>
-        <div className="world-atlas-hero-dots">{worlds.map((item, itemIndex) => <button key={item.id} aria-label={t('World.album.showWorld', { name: item.name })} aria-current={position === itemIndex ? 'true' : undefined} onClick={() => setIndex(itemIndex)}><span /></button>)}</div>
+        <div className="world-atlas-hero-dots">{worlds.map((item, itemIndex) => <button key={item.id} aria-label={t('World.album.showWorld', { name: item.name })} aria-current={position === itemIndex ? 'true' : undefined} onClick={() => setActiveWorldId(item.id)}><span /></button>)}</div>
       </div>
     </div>
     <div className="world-atlas-hero-copy" aria-live="polite">
@@ -65,7 +69,7 @@ export function WorldAtlasHero({ worlds }: { worlds: WorldListItem[] }) {
         <h2 title={world.name}>{world.name}</h2>
         {world.tagline || world.description ? <p className="world-atlas-description">{world.tagline || world.description}</p> : null}
       </button>
-      {worlds.length > 1 ? <div className="world-atlas-hero-actions"><div className="world-atlas-arrows"><button aria-label={t('World.album.previous')} onClick={() => setIndex((position + worlds.length - 1) % worlds.length)}><ChevronLeft size={20} /></button><button aria-label={t('World.album.next')} onClick={() => setIndex((position + 1) % worlds.length)}><ChevronRight size={20} /></button></div></div> : null}
+      {worlds.length > 1 ? <div className="world-atlas-hero-actions"><div className="world-atlas-arrows"><button aria-label={t('World.album.previous')} onClick={() => setActiveWorldId(worlds[(position + worlds.length - 1) % worlds.length]!.id)}><ChevronLeft size={20} /></button><button aria-label={t('World.album.next')} onClick={() => setActiveWorldId(worlds[(position + 1) % worlds.length]!.id)}><ChevronRight size={20} /></button></div></div> : null}
     </div>
   </section>;
 }

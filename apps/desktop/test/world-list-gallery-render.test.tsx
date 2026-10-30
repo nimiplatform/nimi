@@ -222,15 +222,35 @@ test('spotlight leads resolve outside the first page and stay out of exploration
   }
 });
 
-test('spotlight-only loading and errors leave the catalog available without excluding undisplayed worlds', () => {
+test('available catalog covers render while spotlight reads are pending or failed', () => {
   const worlds = Array.from({ length: 4 }, (_, index) => ({ ...world, id: `world-${index}`, name: `World ${index}`, bannerUrl: `https://example.com/${index}.png` }));
   for (const state of [{ spotlightLoading: true }, { spotlightError: true }]) {
     const document = new JSDOM(renderToStaticMarkup(<AppStoreProvider store={store}><WorldCatalogContent
       worlds={worlds} paging={paging} {...state}
     /></AppStoreProvider>)).window.document;
-    assert.equal(document.querySelector('.world-atlas-hero'), null);
-    assert.deepEqual(Array.from(document.querySelectorAll('.world-discovery-grid h3')).map(node => node.textContent), worlds.map(item => item.name));
+    assert.equal(document.querySelector('.world-atlas-hero h2')?.textContent, worlds[0]!.name);
+    assert.equal(document.querySelectorAll('.world-atlas-hero-dots button').length, worlds.length);
+    assert.equal(document.querySelectorAll('.world-discovery-grid h3').length, 0);
   }
+});
+
+test('a ready lead renders independently of pending or failed catalog and other leads', () => {
+  for (const state of [{ loading: true, spotlightLoading: true }, { error: true, spotlightError: true }]) {
+    const document = new JSDOM(renderToStaticMarkup(<AppStoreProvider store={store}><WorldCatalogContent
+      worlds={[]} leadWorlds={[{ ...world, id: 'd10', bannerUrl: 'https://example.com/ready.png' }]} paging={paging} {...state}
+    /></AppStoreProvider>)).window.document;
+    assert.equal(document.querySelector('.world-atlas-hero')?.getAttribute('data-world-id'), 'd10');
+    assert.equal(document.querySelector('.world-atlas-hero img')?.getAttribute('src'), 'https://example.com/ready.png');
+  }
+});
+
+test('an unavailable spotlight without usable covers keeps its retry and the catalog', () => {
+  const document = new JSDOM(renderToStaticMarkup(<AppStoreProvider store={store}><WorldCatalogContent
+    worlds={[world]} paging={paging} spotlightError onRetrySpotlight={() => {}}
+  /></AppStoreProvider>)).window.document;
+  assert.equal(document.querySelector('.world-atlas-hero'), null);
+  assert.ok(Array.from(document.querySelectorAll('button')).some(button => button.textContent === '刷新'));
+  assert.equal(document.querySelector('.world-discovery-grid h3')?.textContent, world.name);
 });
 
 test('canonical world navigation restores the originating people query after source detail', async () => {
