@@ -360,12 +360,13 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
       setDeletingConnectorId('');
     }
   }, [deletingConnectorId, invalidateManagedOAuth, model, refreshConnectorsFromSdk, selectedConnectorId, state.connectors, t, updateState]);
-  const onSelectConnector = useCallback((connectorId: string) => {
+  const onSelectConnector = useCallback(async (connectorId: string) => {
     if (connectorId !== selectedConnectorId && managedOAuthBusy) {
       invalidateManagedOAuth('Managed connector selection changed');
     }
-    void navigation.push({ id: 'cloud', runtime: { connectorId } });
-  }, [invalidateManagedOAuth, selectedConnectorId, navigation]);
+    const result = await navigation.push({ id: 'cloud', runtime: { connectorId } });
+    return result.status === 'committed';
+  }, [invalidateManagedOAuth, managedOAuthBusy, selectedConnectorId, navigation]);
   const onAcquireManagedOAuth = useCallback(() => {
     if (!selectedConnector || !selectedConnectorId || !isBrowserManagedConnector) {
       return;

@@ -1,10 +1,12 @@
-import { useEffect, useMemo, useState, type RefObject } from 'react';
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, EmptyState } from '@nimiplatform/kit/ui';
 import { ArrowLeft } from 'lucide-react';
 import { WorldCharacterQuickSheet } from './world-detail-quick-sheets.js';
 import { WorldRelationshipExplorer } from './world-detail-relationship-explorer.js';
 import { WorldDetailDiscovery } from './world-detail-discovery.js';
+import { WorldDetailReader } from './world-detail-reader.js';
+import type { WorldDetailInitialSubpage } from '../../app-shell/providers/store-types.js';
 import { derivedScenes } from './world-detail-template-model.js';
 import { WorldDetailPageSkeleton } from './world-detail-skeletons.js';
 import type { WorldCharacter, WorldAuditItem, WorldDetailData, WorldHistoryBundle, WorldPeopleCatalogState, WorldPublicAssetsData, WorldSemanticData } from './world-detail-types.js';
@@ -29,14 +31,16 @@ export type WorldDetailPageProps = {
   publicAssetsIncomplete?: boolean;
   onRetryReading?: () => void;
   onBack?: () => void;
+  onReadWorld?: () => void;
+  onBackToWorld?: () => void;
   onViewCharacter?: (character: WorldCharacter) => void;
   onFollowWorld?: (world: WorldDetailData) => Promise<void> | void;
   worldFollowed?: boolean;
-  initialSubpage?: 'relationship-explorer' | null;
+  initialSubpage?: WorldDetailInitialSubpage | null;
   rootScrollViewportRef?: RefObject<HTMLDivElement | null>;
 };
 
-type Subpage = 'root' | 'relationship-explorer';
+type Subpage = 'root' | WorldDetailInitialSubpage;
 
 export function worldDetailRootSectionScrollTop(input: {
   placement: 'start' | 'center'; viewportScrollTop: number; viewportTop: number;
@@ -53,15 +57,18 @@ export function WorldDetailLoadingState() {
 function WorldDetailPageBody(props: WorldDetailPageProps) {
   const [subpage, setSubpage] = useState<Subpage>(props.initialSubpage ?? 'root');
   const [selectedCharacter, setSelectedCharacter] = useState<WorldCharacter | null>(null);
+  const overviewScrollTop = useRef(0);
   const scenes = useMemo(() => derivedScenes(props.publicAssets, props.semantic), [props.publicAssets, props.semantic]);
 
+  useEffect(() => { overviewScrollTop.current = 0; }, [props.world.id]);
   useEffect(() => {
     setSubpage(props.initialSubpage ?? 'root');
     setSelectedCharacter(null);
   }, [props.world.id, props.initialSubpage]);
   useEffect(() => {
-    props.rootScrollViewportRef?.current?.scrollTo({ top: 0, behavior: 'auto' });
-  }, [subpage, props.rootScrollViewportRef]);
+    const frame = requestAnimationFrame(() => props.rootScrollViewportRef?.current?.scrollTo({ top: subpage === 'root' ? overviewScrollTop.current : 0, behavior: 'auto' }));
+    return () => cancelAnimationFrame(frame);
+  }, [subpage, props.rootScrollViewportRef, props.world.id]);
 
   const viewCharacter = (character: WorldCharacter) => {
     if (props.onViewCharacter) props.onViewCharacter(character);
@@ -71,12 +78,22 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
     const character = [...props.peopleCharacters, ...props.characters, ...scenes.flatMap((scene) => scene.relatedCharacters)].find((person) => person.id === id);
     if (character) viewCharacter(character);
   };
-  const backToWorld = () => setSubpage('root');
+  const backToWorld = () => {
+    if (props.onBackToWorld) props.onBackToWorld();
+    else setSubpage('root');
+  };
+  const readWorld = () => {
+    overviewScrollTop.current = props.rootScrollViewportRef?.current?.scrollTop ?? 0;
+    if (props.onReadWorld) props.onReadWorld();
+    else setSubpage('reader');
+  };
   let content;
-  if (subpage === 'relationship-explorer') {
+  if (subpage === 'reader') {
+    content = <WorldDetailReader world={props.world} semantic={props.semantic} history={props.history} loading={props.semanticLoading || props.historyLoading} incomplete={props.readingIncomplete} onRetry={props.onRetryReading} onClose={backToWorld} scrollViewportRef={props.rootScrollViewportRef} />;
+  } else if (subpage === 'relationship-explorer') {
     content = <WorldRelationshipExplorer world={props.world} characters={props.peopleCharacters} catalog={props.peopleCatalog} onBack={backToWorld} onSelectCharacter={selectCharacter} onViewCharacter={viewCharacter} />;
   } else {
-    content = <WorldDetailDiscovery key={props.world.id} props={props} scenes={scenes} onViewCharacter={viewCharacter} />;
+    content = <WorldDetailDiscovery key={props.world.id} props={props} scenes={scenes} onViewCharacter={viewCharacter} onReadWorld={readWorld} />;
   }
   return <>{content}{selectedCharacter ? <WorldCharacterQuickSheet character={selectedCharacter} onClose={() => setSelectedCharacter(null)} onViewCharacter={props.onViewCharacter} /> : null}</>;
 }

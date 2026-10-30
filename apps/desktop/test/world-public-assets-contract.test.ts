@@ -236,3 +236,23 @@ test('fetchWorldPublicAssets drops malformed external refs instead of inventing 
   const payload = await fetchWorldPublicAssets('world-1', realmWorldData);
   assert.deepEqual(payload.externalRefs, []);
 });
+
+test('world illustration delivery survives the public asset projection without adding scene or hero pictures', async () => {
+  const { worldIllustrations } = await import('../src/shell/renderer/features/world/world-detail-illustrations.js');
+  const delivery = {
+    resourceId: 'issued-highlight', contentVersion: 'b'.repeat(64), publicationGeneration: 2,
+    policyVersion: 'v2', expiresAt: null, originalUrl: null, previewUrl: null, video: null,
+    images: [{ purpose: 'detail', families: [{ mimeType: 'image/webp', sources: [{ url: 'https://example.com/issued.webp', width: 640, height: 960, mimeType: 'image/webp' }] }] }],
+  };
+  stubPublicAssetLoads({ assets: { mediaAssets: [
+    { id: 'issued-highlight', kind: 'highlight', delivery, provider: 'S3_OBJECT', width: 640, height: 960, provenance: {} },
+    { id: 'hero', kind: 'hero', externalUrl: 'https://example.com/hero.png', provider: 'EXTERNAL_URL', provenance: {} },
+  ] } });
+  const assets = await fetchWorldPublicAssets('world-1', realmWorldData);
+  const illustrations = worldIllustrations(assets);
+  assert.equal(illustrations.length, 1);
+  assert.equal(illustrations[0]?.id, 'issued-highlight');
+  assert.deepEqual(illustrations[0]?.delivery, delivery);
+  assert.equal(illustrations[0]?.ratio, 640 / 960);
+  assert.deepEqual(assets.scenes, []);
+});

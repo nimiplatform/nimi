@@ -13615,6 +13615,9 @@
       "name": "CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem"
     },
     {
+      "name": "CharacterProfileCoreDtoInteractionProfileMeetingScenesItem"
+    },
+    {
       "name": "CharacterProfileCoreDtoKnowledge"
     },
     {
@@ -17832,6 +17835,20 @@
             }
           },
           {
+            "name": "meetingScenes",
+            "required": false,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#generated/materialization/CharacterProfileCoreDtoInteractionProfileMeetingScenesItem",
+                "ref_name": "CharacterProfileCoreDtoInteractionProfileMeetingScenesItem"
+              },
+              "min_items": 1,
+              "max_items": null
+            }
+          },
+          {
             "name": "scenario",
             "required": false,
             "schema": {
@@ -17918,6 +17935,78 @@
         "required_properties": [
           "exemplarId",
           "character"
+        ],
+        "closed": true,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "CharacterProfileCoreDtoInteractionProfileMeetingScenesItem",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "greeting",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": 1,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "scenario",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": 1,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "sceneId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": 1,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "title",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": 1,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "sceneId",
+          "title",
+          "scenario",
+          "greeting"
         ],
         "closed": true,
         "additional_properties": null
@@ -19091,6 +19180,84 @@
                       "pattern": null
                     },
                     "min_items": null,
+                    "max_items": null
+                  }
+                },
+                {
+                  "name": "meetingScenes",
+                  "required": false,
+                  "schema": {
+                    "kind": "array",
+                    "items": {
+                      "kind": "object",
+                      "properties": [
+                        {
+                          "name": "greeting",
+                          "required": true,
+                          "schema": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null,
+                            "minimum": null,
+                            "maximum": null,
+                            "min_length": 1,
+                            "max_length": null,
+                            "pattern": null
+                          }
+                        },
+                        {
+                          "name": "scenario",
+                          "required": true,
+                          "schema": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null,
+                            "minimum": null,
+                            "maximum": null,
+                            "min_length": 1,
+                            "max_length": null,
+                            "pattern": null
+                          }
+                        },
+                        {
+                          "name": "sceneId",
+                          "required": true,
+                          "schema": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null,
+                            "minimum": null,
+                            "maximum": null,
+                            "min_length": 1,
+                            "max_length": null,
+                            "pattern": null
+                          }
+                        },
+                        {
+                          "name": "title",
+                          "required": true,
+                          "schema": {
+                            "kind": "scalar",
+                            "type": "string",
+                            "format": null,
+                            "minimum": null,
+                            "maximum": null,
+                            "min_length": 1,
+                            "max_length": null,
+                            "pattern": null
+                          }
+                        }
+                      ],
+                      "required_properties": [
+                        "sceneId",
+                        "title",
+                        "scenario",
+                        "greeting"
+                      ],
+                      "closed": true,
+                      "additional_properties": null
+                    },
+                    "min_items": 1,
                     "max_items": null
                   }
                 },

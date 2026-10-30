@@ -66,7 +66,16 @@ function isCharacterProfileInteraction(value: unknown): value is CharacterProfil
     && isNullableString(interaction.tone)
     && isNullableString(interaction.cadence)
     && isNullableString(interaction.scenario)
-    && isNullableString(interaction.greeting));
+    && isNullableString(interaction.greeting)
+    && (interaction.meetingScenes === undefined || (
+      Array.isArray(interaction.meetingScenes)
+      && interaction.meetingScenes.length > 0
+      && interaction.meetingScenes.every(value => {
+        const scene = asRecord(value);
+        return scene && ['sceneId', 'title', 'scenario', 'greeting'].every(key => typeof scene[key] === 'string' && scene[key].trim().length > 0);
+      })
+      && new Set(interaction.meetingScenes.map(scene => scene.sceneId)).size === interaction.meetingScenes.length
+    )));
 }
 
 function isCharacterProfileDialogueExemplar(value: unknown): value is CharacterProfileDialogueExemplarProjection {
@@ -80,6 +89,10 @@ function isCharacterProfileDialogueExemplar(value: unknown): value is CharacterP
 function isCharacterProfileProjection(value: unknown): value is CharacterProfileProjection {
   const profile = asRecord(value);
   return Boolean(profile
+    && (profile.profileLine === undefined || isNullableString(profile.profileLine))
+    && (profile.narrativeSummary === undefined || isNullableString(profile.narrativeSummary))
+    && (profile.drives === undefined || isStringArray(profile.drives))
+    && (profile.boundaries === undefined || isStringArray(profile.boundaries))
     && isNullableString(profile.role)
     && isNullableString(profile.archetype)
     && isStringArray(profile.traits)

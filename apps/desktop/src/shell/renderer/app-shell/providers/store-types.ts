@@ -47,7 +47,7 @@ export type AppTab =
   | 'world-detail'
   | 'notification';
 export type StatusKind = 'info' | 'success' | 'warning' | 'error';
-export type WorldDetailInitialSubpage = 'relationship-explorer';
+export type WorldDetailInitialSubpage = 'relationship-explorer' | 'reader';
 export type WorldDetailNavigationOptions = {
   initialSubpage?: WorldDetailInitialSubpage | null;
 };

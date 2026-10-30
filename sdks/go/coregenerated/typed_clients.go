@@ -13685,6 +13685,7 @@ type CharacterProfileCoreDtoInteractionProfile struct {
 	Greeting          string                                                           `json:"greeting,omitempty"`
 	GreetingVariants  []string                                                         `json:"greetingVariants,omitempty"`
 	InteractionModes  []string                                                         `json:"interactionModes"`
+	MeetingScenes     []CharacterProfileCoreDtoInteractionProfileMeetingScenesItem     `json:"meetingScenes,omitempty"`
 	Scenario          string                                                           `json:"scenario,omitempty"`
 	Tone              string                                                           `json:"tone,omitempty"`
 }
@@ -13729,6 +13730,39 @@ func (value *CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem) Unm
 		return fmt.Errorf("decode CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem: %w", err)
 	}
 	*value = CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem(decoded)
+	return nil
+}
+
+type CharacterProfileCoreDtoInteractionProfileMeetingScenesItem struct {
+	Greeting string `json:"greeting"`
+	Scenario string `json:"scenario"`
+	SceneId  string `json:"sceneId"`
+	Title    string `json:"title"`
+}
+
+func (value *CharacterProfileCoreDtoInteractionProfileMeetingScenesItem) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoInteractionProfileMeetingScenesItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "greeting", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoInteractionProfileMeetingScenesItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "scenario", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoInteractionProfileMeetingScenesItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sceneId", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoInteractionProfileMeetingScenesItem: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "title", false); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoInteractionProfileMeetingScenesItem: %w", err)
+	}
+	type modelAlias CharacterProfileCoreDtoInteractionProfileMeetingScenesItem
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode CharacterProfileCoreDtoInteractionProfileMeetingScenesItem: %w", err)
+	}
+	*value = CharacterProfileCoreDtoInteractionProfileMeetingScenesItem(decoded)
 	return nil
 }
 

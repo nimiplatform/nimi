@@ -12,7 +12,7 @@ const (
 	GetSourceMaterializationJwksOperationID                         = "getSourceMaterializationJwks"
 	GetSourceMaterializationJwksMethod                              = "GET"
 	GetSourceMaterializationJwksPath                                = "/api/auth/jwks/source-materialization"
-	MaterializationSchemaClosureSHA256                              = "f9145fac7c14c397b8fe4a1f1760e1b034c53a188ac33387eba593f5f39189a3"
+	MaterializationSchemaClosureSHA256                              = "a13343e637f28d625abc9206e99c6c6b818c09a788fce5be84eae543337f1d23"
 )
 
 var WorldCoreControllerCreateSourceMaterializationPacketOperation = OperationDescriptor{
@@ -134,11 +134,15 @@ var materializationClosedSchemaFields = map[string]ClosedSchemaFields{
 	},
 	"CharacterProfileCoreDtoInteractionProfile": {
 		Required: []string{"interactionModes"},
-		Optional: []string{"cadence", "dialogueExemplars", "greeting", "greetingVariants", "scenario", "tone"},
+		Optional: []string{"cadence", "dialogueExemplars", "greeting", "greetingVariants", "meetingScenes", "scenario", "tone"},
 	},
 	"CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem": {
 		Required: []string{"character", "exemplarId"},
 		Optional: []string{"user"},
+	},
+	"CharacterProfileCoreDtoInteractionProfileMeetingScenesItem": {
+		Required: []string{"greeting", "scenario", "sceneId", "title"},
+		Optional: []string{},
 	},
 	"CharacterProfileCoreDtoKnowledge": {
 		Required: []string{},
@@ -560,8 +564,9 @@ var materializationResponseClosedObjectFields = map[string][]ClosedSchemaFields{
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.profile.capabilities":                                                   {{Required: []string{}, Optional: []string{"tools"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.profile.capabilities.tools[]":                                           {{Required: []string{"toolId"}, Optional: []string{"name", "summary"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.profile.identity":                                                       {{Required: []string{"name", "summary"}, Optional: []string{"ageDescription", "aliases", "bodyDescription", "handle", "lifeStageDescription", "speciesDescription"}}},
-	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.profile.interactionProfile":                                             {{Required: []string{"interactionModes"}, Optional: []string{"cadence", "dialogueExemplars", "greeting", "greetingVariants", "scenario", "tone"}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.profile.interactionProfile":                                             {{Required: []string{"interactionModes"}, Optional: []string{"cadence", "dialogueExemplars", "greeting", "greetingVariants", "meetingScenes", "scenario", "tone"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.profile.interactionProfile.dialogueExemplars[]":                         {{Required: []string{"character", "exemplarId"}, Optional: []string{"user"}}},
+	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.profile.interactionProfile.meetingScenes[]":                             {{Required: []string{"greeting", "scenario", "sceneId", "title"}, Optional: []string{}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.profile.knowledge":                                                      {{Required: []string{}, Optional: []string{"constraints", "topics"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.profile.narrative":                                                      {{Required: []string{"summary"}, Optional: []string{"archetype", "milestones", "traits"}}},
 	"WorldCoreController_createSourceMaterializationPacket\u0000$.semanticPayload.canonicalSource.profile.narrative.milestones[]":                                         {{Required: []string{"milestoneId"}, Optional: []string{"sequence", "summary", "title"}}},

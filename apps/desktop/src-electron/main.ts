@@ -1258,31 +1258,15 @@ async function recoverDesktopAfterFailedQuit(): Promise<void> {
       : 'An App, the local AI service, or a critical resource did not close cleanly. Nimi remains available so you can retry. Apps that already closed will not restart automatically.');
 }
 
-async function confirmDesktopUserQuit(impact: { installed: readonly string[]; development: readonly string[]; avatar: Readonly<{ active: number; pending: boolean }>; observedWorkCount: number | null; workComplete: boolean }): Promise<boolean> {
+async function confirmDesktopUserQuit(): Promise<boolean> {
   const chinese = systemEntryLocale === 'zh';
-  const names = (items: readonly string[]) => items.slice(0, 6).map((name) => name.replace(/[\r\n\t]/gu, ' ').slice(0, 80)).join(', ');
-  const detail = chinese
-    ? [`已安装 App：${impact.installed.length}${impact.installed.length ? `（${names(impact.installed)}）` : ''}`,
-      `开发 App：${impact.development.length}${impact.development.length ? `（${names(impact.development)}）` : ''}`,
-      `Avatar：${impact.avatar.active}${impact.avatar.pending ? '，还有实例正在准备' : ''}`,
-      impact.workComplete ? `当前 AI 工作：${impact.observedWorkCount}`
-        : impact.observedWorkCount !== null ? `已记录 ${impact.observedWorkCount} 项 AI 工作；其余状态尚未完整确认。` : '当前 AI 工作状态尚未完整确认。',
-      SOURCE_PER_USER_RUNTIME_D2
-        ? '退出会关闭 Home 和以上 App。源码 Runtime 由开发终端管理；已提交给云端的工作不保证取消。'
-        : '退出会关闭 Home、以上 App 和本地 AI 服务，并停止本地计算；正在进行的任务可能中断。已提交给云端的工作不保证取消。'].join('\n')
-    : [`Installed Apps: ${impact.installed.length}${impact.installed.length ? ` (${names(impact.installed)})` : ''}`,
-      `Development Apps: ${impact.development.length}${impact.development.length ? ` (${names(impact.development)})` : ''}`,
-      `Avatars: ${impact.avatar.active}${impact.avatar.pending ? '; more are being prepared' : ''}`,
-      impact.workComplete ? `Current AI work: ${impact.observedWorkCount}`
-        : impact.observedWorkCount !== null ? `${impact.observedWorkCount} AI work items observed; other activity is not fully confirmed.` : 'Current AI activity is not fully confirmed.',
-      SOURCE_PER_USER_RUNTIME_D2
-        ? 'Quitting closes Home and these Apps. The source Runtime is managed by its development terminal; work already submitted to cloud services may continue.'
-        : 'Quitting closes Home, these Apps, and the local AI service, and stops local computation. Active tasks may be interrupted. Work already submitted to cloud services may continue.'].join('\n');
-  const options: MessageBoxOptions = { type: 'question', title: chinese ? '退出 Nimi？' : 'Quit Nimi?',
-    message: SOURCE_PER_USER_RUNTIME_D2
-      ? (chinese ? '退出会关闭 Home 和托管 App。' : 'Quitting will close Home and its supervised Apps.')
-      : (chinese ? '退出会关闭 Nimi 及其本地 AI 服务。' : 'Quitting will close Nimi and its local AI service.'), detail,
-    buttons: chinese ? ['取消', '退出 Nimi'] : ['Cancel', 'Quit Nimi'], defaultId: 0, cancelId: 0, noLink: true };
+  const detail = SOURCE_PER_USER_RUNTIME_D2
+    ? (chinese ? 'Home 和正在运行的 App 将关闭。' : 'Home and running Apps will close.')
+    : (chinese ? 'Home、正在运行的 App 和本地 AI 服务将关闭，进行中的任务可能中断。'
+      : 'Home, running Apps, and the local AI service will close. Active tasks may be interrupted.');
+  const options: MessageBoxOptions = { type: 'question', title: chinese ? '退出 Nimi' : 'Quit Nimi',
+    message: chinese ? '退出 Nimi？' : 'Quit Nimi?', detail,
+    buttons: chinese ? ['取消', '退出'] : ['Cancel', 'Quit'], defaultId: 0, cancelId: 0, noLink: true };
   // A sheet on a hidden window is inaccessible; a standalone macOS dialog
   // can merely bounce the Dock icon while the app is inactive. Explicit quit
   // must restore the owner window before asking the user to confirm.

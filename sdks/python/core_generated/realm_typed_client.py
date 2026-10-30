@@ -391,6 +391,7 @@ class CharacterProfileCoreDtoInteractionProfile:
     dialogueExemplars: tuple[CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem, ...] = field(default_factory=tuple)
     greeting: str | None = None
     greetingVariants: tuple[str, ...] = field(default_factory=tuple)
+    meetingScenes: tuple[CharacterProfileCoreDtoInteractionProfileMeetingScenesItem, ...] = field(default_factory=tuple)
     scenario: str | None = None
     tone: str | None = None
 
@@ -399,6 +400,13 @@ class CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem:
     character: str
     exemplarId: str
     user: str | None = None
+
+@dataclass(frozen=True)
+class CharacterProfileCoreDtoInteractionProfileMeetingScenesItem:
+    greeting: str
+    scenario: str
+    sceneId: str
+    title: str
 
 @dataclass(frozen=True)
 class CharacterProfileCoreDtoKnowledge:

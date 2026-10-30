@@ -385,7 +385,7 @@ func validateSourceMaterializationProfileShapeJSONV3(value any, path string) err
 			}
 		}
 	}
-	interaction, err := sourceMaterializationClosedObjectV3(profile["interactionProfile"], path+".interactionProfile", []string{"interactionModes"}, []string{"tone", "cadence", "scenario", "greeting", "greetingVariants", "dialogueExemplars"})
+	interaction, err := sourceMaterializationClosedObjectV3(profile["interactionProfile"], path+".interactionProfile", []string{"interactionModes"}, []string{"tone", "cadence", "scenario", "greeting", "greetingVariants", "dialogueExemplars", "meetingScenes"})
 	if err != nil {
 		return err
 	}
@@ -403,6 +403,33 @@ func validateSourceMaterializationProfileShapeJSONV3(value any, path string) err
 	if variants, exists := interaction["greetingVariants"]; exists {
 		if err := sourceMaterializationProfileStringArrayV3(variants, path+".interactionProfile.greetingVariants", sourceMaterializationProfileArraySemanticV3); err != nil {
 			return err
+		}
+	}
+	if scenes, exists := interaction["meetingScenes"]; exists {
+		items, err := sourceMaterializationArrayV3(scenes, path+".interactionProfile.meetingScenes", 16384, false)
+		if err != nil {
+			return err
+		}
+		seen := make(map[string]bool, len(items))
+		for index, item := range items {
+			itemPath := fmt.Sprintf("%s.interactionProfile.meetingScenes[%d]", path, index)
+			scene, err := sourceMaterializationClosedObjectV3(item, itemPath, []string{"sceneId", "title", "scenario", "greeting"}, nil)
+			if err != nil {
+				return err
+			}
+			id, err := sourceMaterializationProfileStringV3(scene["sceneId"], itemPath+".sceneId", true)
+			if err != nil {
+				return err
+			}
+			if seen[id] {
+				return fmt.Errorf("%s duplicate meeting scene id", itemPath)
+			}
+			seen[id] = true
+			for _, field := range []string{"title", "scenario", "greeting"} {
+				if err := sourceMaterializationProfileRequiredStringV3(scene[field], itemPath+"."+field); err != nil {
+					return err
+				}
+			}
 		}
 	}
 	if exemplars, exists := interaction["dialogueExemplars"]; exists {

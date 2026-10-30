@@ -2869,7 +2869,7 @@
       "attention": "需处理",
       "unchecked": "未检查"
     },
-    "selectedHidden": "所选连接不在当前筛选结果中。",
+    "selectedHidden": "右侧正在显示“{{name}}”的详情，该连接不在当前搜索或筛选结果中。",
     "clearFilters": "清除筛选",
     "signInRequired": "请先登录 Nimi 账户，再为应用配置模型。",
     "configureFailed": "无法打开此配置，请检查账户和权限后重试。",
@@ -3133,6 +3133,7 @@
     "unavailable": "此伙伴已不可用或暂时无法读取，不会自动切换到其他伙伴。",
     "actionFailed": "操作未完成，请重试。",
     "backWorlds": "返回世界",
+    "discoverPartners": "发现伙伴",
     "findCharacters": "寻找角色",
     "characterSearch": "搜索角色名字、简介或主题",
     "searchLimit": "角色搜索最多支持 100 个字符。",
@@ -3155,7 +3156,6 @@
     "details": "伙伴详情",
     "peoplePartial": "人物目录尚未完整加载，已显示的内容仍可查看。",
     "gallery": {
-      "subtitle": "那些与你相遇，并愿意继续同行的角色",
       "featured": "最近的伙伴",
       "carousel": "轮播",
       "collection": "伙伴收藏",

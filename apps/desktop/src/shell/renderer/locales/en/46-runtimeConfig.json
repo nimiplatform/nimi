@@ -2869,7 +2869,7 @@
       "attention": "Needs attention",
       "unchecked": "Unchecked"
     },
-    "selectedHidden": "The selected connection is outside this filter.",
+    "selectedHidden": "The details on the right are for “{{name}}”, which is outside the current search or filter.",
     "clearFilters": "Clear filters",
     "signInRequired": "Sign in to your Nimi account before configuring an app.",
     "configureFailed": "Could not open this configuration. Check your account and permissions, then try again.",
@@ -3133,6 +3133,7 @@
     "unavailable": "This partner is unavailable. No other partner will be selected automatically.",
     "actionFailed": "The action did not complete. Try again.",
     "backWorlds": "Back to worlds",
+    "discoverPartners": "Discover partners",
     "findCharacters": "Find characters",
     "characterSearch": "Search character names, summaries or topics",
     "searchLimit": "Character search supports up to 100 characters.",
@@ -3155,7 +3156,6 @@
     "details": "Partner details",
     "peoplePartial": "The character directory has not fully loaded yet. Loaded characters remain visible.",
     "gallery": {
-      "subtitle": "The characters you have met, and the stories you continue together",
       "featured": "Recent partners",
       "carousel": "Carousel",
       "collection": "Partner collection",

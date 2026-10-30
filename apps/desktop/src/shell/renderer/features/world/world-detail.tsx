@@ -16,12 +16,13 @@ import { fetchWorldPrimaryDisplayDetail, fetchWorldSupplementalDisplayDetail, to
 import { useFollowedWorlds } from './world-follow-store-context.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { createRealmWorldData } from './data/realm-world-data.js';
+import type { WorldDetailInitialSubpage } from '../../app-shell/providers/store-types.js';
 
 type WorldDetailProps = {
   world: WorldListItem;
   // The canonical world destination returns through Home navigation.
   onBack?: () => void;
-  initialSubpage?: 'relationship-explorer' | null;
+  initialSubpage?: WorldDetailInitialSubpage | null;
 };
 
 export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps) {
@@ -34,6 +35,8 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
   const authStatus = useAppStore((state) => state.auth.status);
 
   const detailViewportRef = useRef<HTMLDivElement | null>(null);
+  const readerOpenedHere = useRef(false);
+  useEffect(() => { readerOpenedHere.current = false; }, [world.id]);
   const isReady = authStatus === 'authenticated' && !!world.id;
   const setFeedback = emitFeedbackToast;
   const flowIdRef = useRef('');
@@ -272,6 +275,14 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
         publicAssetsIncomplete={worldSupplementalQuery.isError || supplementalDisplay?.sections.publicAssets === 'error'}
         onRetryReading={() => { void worldSupplementalQuery.refetch(); }}
         onBack={onBack}
+        onReadWorld={() => {
+          readerOpenedHere.current = true;
+          void navigation.push({ id: 'world-detail', worldId: world.id, worldSubpage: 'reader', search: peopleQueryText });
+        }}
+        onBackToWorld={() => {
+          if (readerOpenedHere.current && destination.worldSubpage === 'reader') void navigation.back();
+          else void navigation.replace({ id: 'world-detail', worldId: world.id, search: peopleQueryText });
+        }}
         onViewCharacter={handleViewCharacter}
         onFollowWorld={followed.available ? handleFollowWorld : undefined}
         worldFollowed={worldFollowed}

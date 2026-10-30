@@ -113,7 +113,15 @@ type realmSourceCompilerProfileAssetIntentV3 struct {
 	Summary  *string `json:"summary,omitempty"`
 }
 
+type realmSourceCompilerMeetingSceneV3 struct {
+	SceneID  string `json:"sceneId"`
+	Title    string `json:"title"`
+	Scenario string `json:"scenario"`
+	Greeting string `json:"greeting"`
+}
+
 type realmSourceCompilerInteractionProfileV3 struct {
+	MeetingScenes     *[]realmSourceCompilerMeetingSceneV3     `json:"meetingScenes,omitempty"`
 	InteractionModes  []string                                 `json:"interactionModes"`
 	Tone              *string                                  `json:"tone,omitempty"`
 	Cadence           *string                                  `json:"cadence,omitempty"`

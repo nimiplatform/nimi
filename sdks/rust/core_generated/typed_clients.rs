@@ -17267,6 +17267,7 @@ pub struct CharacterProfileCoreDtoInteractionProfile {
     pub greeting: String,
     pub greeting_variants: Vec<String>,
     pub interaction_modes: Vec<String>,
+    pub meeting_scenes: Vec<CharacterProfileCoreDtoInteractionProfileMeetingScenesItem>,
     pub scenario: String,
     pub tone: String,
 }
@@ -17276,6 +17277,14 @@ pub struct CharacterProfileCoreDtoInteractionProfileDialogueExemplarsItem {
     pub character: String,
     pub exemplar_id: String,
     pub user: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct CharacterProfileCoreDtoInteractionProfileMeetingScenesItem {
+    pub greeting: String,
+    pub scenario: String,
+    pub scene_id: String,
+    pub title: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

@@ -24,11 +24,19 @@ export type CharacterProfileRelationshipProjection = {
   summary: string;
 };
 
+export type CharacterProfileMeetingSceneProjection = {
+  sceneId: string;
+  title: string;
+  scenario: string;
+  greeting: string;
+};
+
 export type CharacterProfileInteractionProjection = {
   tone: string | null;
   cadence: string | null;
   scenario: string | null;
   greeting: string | null;
+  meetingScenes?: CharacterProfileMeetingSceneProjection[];
 };
 
 // A dialogue exemplar keeps the authored user/character pair so detail
@@ -41,6 +49,10 @@ export type CharacterProfileDialogueExemplarProjection = {
 };
 
 export type CharacterProfileProjection = {
+  profileLine?: string | null;
+  narrativeSummary?: string | null;
+  drives?: string[];
+  boundaries?: string[];
   disposition?: string | null;
   ageDescription?: string | null;
   speciesDescription?: string | null;
@@ -160,10 +172,12 @@ function projectInteraction(
     cadence: nonEmpty(profile.interactionProfile.cadence),
     scenario: nonEmpty(profile.interactionProfile.scenario),
     greeting: nonEmpty(profile.interactionProfile.greeting),
+    ...(profile.interactionProfile.meetingScenes ? { meetingScenes: profile.interactionProfile.meetingScenes.map(scene => ({ ...scene })) } : {}),
   };
   return Object.values(interaction).some(Boolean) ? interaction : null;
 }
 
+// @nimi-authority: rule.nimi.desktop.product-surfaces.r033
 export function projectCharacterSourceProfile(
   profile: CharacterProfileCoreDto,
   source: WorldPublicSourceCardDto,
@@ -200,6 +214,10 @@ export function projectCharacterSourceProfile(
       runtimeSourceRef: nonEmpty(source.relation.runtimeSourceRef),
     },
     characterProfile: {
+      profileLine: nonEmpty(profile.presentation.profileLine),
+      narrativeSummary: nonEmpty(profile.narrative.summary),
+      drives: uniqueStrings(profile.psychology?.drives ?? []),
+      boundaries: uniqueStrings(profile.psychology?.boundaries ?? []),
       disposition: nonEmpty(profile.psychology?.disposition),
       ageDescription: nonEmpty(profile.identity.ageDescription),
       speciesDescription: nonEmpty(profile.identity.speciesDescription),

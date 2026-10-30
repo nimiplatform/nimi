@@ -307,3 +307,40 @@ func sourceMaterializationStrictSchemaJWKSV3(privateKey *rsa.PrivateKey, keyID s
 		Purpose: "realm-source-materialization",
 	}
 }
+
+func TestSourceMaterializationMeetingScenesPreservePairs(t *testing.T) {
+	vector := loadSourceMaterializationReferenceVectorV3(t, "world-character")
+	profile := sourceMaterializationStrictSchemaProfileV3(t, vector.Packet)
+	interaction := profile["interactionProfile"].(map[string]any)
+	scenes := []any{
+		map[string]any{"sceneId": "z-first", "title": "Passage", "scenario": "He offers a key.", "greeting": "Follow me."},
+		map[string]any{"sceneId": "a-second", "title": "Boat", "scenario": "He boards the boat.", "greeting": "Watch your step."},
+	}
+	interaction["meetingScenes"] = scenes
+	if err := validateSourceMaterializationProfileShapeJSONV3(profile, "$.profile"); err != nil {
+		t.Fatalf("authored semantic order rejected: %v", err)
+	}
+	encoded, err := json.Marshal(profile)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var decoded realmSourceCompilerProfileV3
+	if err := json.Unmarshal(encoded, &decoded); err != nil {
+		t.Fatal(err)
+	}
+	got := decoded.InteractionProfile.MeetingScenes
+	if got == nil || len(*got) != 2 || (*got)[0].SceneID != "z-first" || (*got)[1].Greeting != "Watch your step." {
+		t.Fatalf("scene pairing lost: %+v", got)
+	}
+	for _, invalid := range []any{
+		[]any{},
+		[]any{scenes[0], scenes[0]},
+		[]any{map[string]any{"sceneId": "one", "title": "Title", "scenario": "Scene"}},
+		[]any{map[string]any{"sceneId": "one", "title": "Title", "scenario": "Scene", "greeting": " "}},
+	} {
+		interaction["meetingScenes"] = invalid
+		if err := validateSourceMaterializationProfileShapeJSONV3(profile, "$.profile"); err == nil {
+			t.Fatalf("invalid meeting scenes accepted: %+v", invalid)
+		}
+	}
+}

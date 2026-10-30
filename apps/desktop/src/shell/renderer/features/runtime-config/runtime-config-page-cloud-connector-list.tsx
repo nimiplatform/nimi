@@ -1,6 +1,6 @@
-import { Button, ConfirmDialog, IconButton, ScrollArea, StatusBadge, Tooltip, TextField, SegmentedControl } from '@nimiplatform/kit/ui';
+import { ActionMenu, Button, ConfirmDialog, IconButton, Popover, PopoverContent, PopoverTrigger, ScrollArea, SearchField, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
 import { DesktopModuleSidebar } from '../../components/desktop-module-sidebar.js';
-import { History, Plus, Search, Trash2 } from 'lucide-react';
+import { Check, History, ListFilter, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { ProviderLogoTile } from '../../components/provider-logo-tile.js';
 import { E2E_IDS } from '../../testability/e2e-ids';
@@ -12,6 +12,8 @@ import { CloudConnectorReferences } from './runtime-config-cloud-observation.js'
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 type Connector = RuntimeConfigStateV11['connectors'][number];
+const CONNECTOR_FILTERS = ['all', 'attention', 'unchecked'] as const;
+type ConnectorFilter = typeof CONNECTOR_FILTERS[number];
 
 export type ConnectorPresentationState = 'healthy' | 'unchecked' | 'needs-credential' | 'attention' | 'disabled';
 
@@ -22,6 +24,15 @@ export function connectorPresentationState(connector: Pick<Connector, 'hasCreden
   if (connector.status === 'healthy') return 'healthy';
   if (connector.status === 'idle') return 'unchecked';
   return 'attention';
+}
+
+function filterConnectors(connectors: Connector[], query: string, filter: ConnectorFilter): Connector[] {
+  const search = query.trim().toLocaleLowerCase();
+  return connectors.filter(connector => {
+    const state = connectorPresentationState(connector);
+    return `${connector.label} ${connector.vendor} ${connector.accountLabel ?? ''}`.toLocaleLowerCase().includes(search)
+      && (filter === 'all' || filter === 'unchecked' && state === 'unchecked' || filter === 'attention' && ['attention', 'needs-credential', 'disabled'].includes(state));
+  });
 }
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.r025
@@ -51,7 +62,7 @@ export function CloudConnectorListPanel(props: {
   deletingConnectorId: string;
   defaultEndpointFor: (connector: Connector) => string;
   onDeleteConnector: (connectorId: string) => Promise<void>;
-  onSelectConnector: (connectorId: string) => void;
+  onSelectConnector: (connectorId: string) => Promise<boolean>;
   onAddConnector: () => void;
   onOpenHistory: () => void;
   selectedConnectorId: string;
@@ -62,14 +73,20 @@ export function CloudConnectorListPanel(props: {
   const { connectors, t, uncheckedCount } = props;
   const [pendingDelete, setPendingDelete] = useState<Connector | null>(null);
   const [query, setQuery] = useState('');
-  const [filter, setFilter] = useState('all');
-  const visibleConnectors = connectors.filter(connector => {
-    const state = connectorPresentationState(connector);
-    return `${connector.label} ${connector.vendor} ${connector.accountLabel ?? ''}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())
-      && (filter === 'all' || filter === 'unchecked' && state === 'unchecked' || filter === 'attention' && ['attention', 'needs-credential', 'disabled'].includes(state));
-  });
-  const selectedHidden = connectors.some(connector => connector.id === props.selectedConnectorId)
+  const [filter, setFilter] = useState<ConnectorFilter>('all');
+  const visibleConnectors = filterConnectors(connectors, query, filter);
+  const selectedConnector = connectors.find(connector => connector.id === props.selectedConnectorId);
+  const selectedHidden = selectedConnector
     && !visibleConnectors.some(connector => connector.id === props.selectedConnectorId);
+  const selectFilter = async (nextFilter: ConnectorFilter) => {
+    const matches = filterConnectors(connectors, query, nextFilter);
+    if (matches.length > 0 && !matches.some(connector => connector.id === props.selectedConnectorId)) {
+      // The detail editor's leave guard must allow the selection before the
+      // rail hides it; cancelling an edit departure preserves both panes.
+      if (!await props.onSelectConnector(matches[0]!.id)) return;
+    }
+    setFilter(nextFilter);
+  };
   return (
     <DesktopModuleSidebar label={t('runtimeConfig.nav.cloudServices')} selectionKey={props.selectedConnectorId}>
       <div className="desktop-sidebar__header">
@@ -78,11 +95,39 @@ export function CloudConnectorListPanel(props: {
         </h2>
         <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.product.yourConnections', { count: connectors.length })}</p>
       </div>
-      <div className="desktop-sidebar__search flex flex-col">
-        <TextField leading={<Search size={14} />} value={query} onChange={event => setQuery(event.target.value)} aria-label={t('runtimeConfig.cloudWorkspace.searchConnections')} placeholder={t('runtimeConfig.cloudWorkspace.searchConnections')} />
-        <SegmentedControl size="sm" ariaLabel={t('runtimeConfig.cloudWorkspace.filterConnections')} value={filter} onValueChange={setFilter} items={['all', 'attention', 'unchecked'].map(value => ({ value, label: t(`runtimeConfig.cloudWorkspace.filter.${value}`) }))} />
-        {uncheckedCount > 0 ? <p className="px-1 text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.product.cloudSummaryUnchecked', { count: uncheckedCount })}</p> : null}
-        {selectedHidden ? <p className="text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.cloudWorkspace.selectedHidden')} <button className="underline" onClick={() => { setQuery(''); setFilter('all'); }}>{t('runtimeConfig.cloudWorkspace.clearFilters')}</button></p> : null}
+      <div className="desktop-sidebar__search flex flex-wrap items-center">
+        <SearchField
+          value={query}
+          onChange={event => setQuery(event.target.value)}
+          aria-label={t('runtimeConfig.cloudWorkspace.searchConnections')}
+          placeholder={t('runtimeConfig.cloudWorkspace.searchConnections')}
+          className="min-h-10 min-w-0 flex-1"
+        />
+        <Popover>
+          <PopoverTrigger asChild>
+            <IconButton
+              icon={<ListFilter className="h-3.5 w-3.5" aria-hidden="true" />}
+              tone="ghost"
+              size="sm"
+              aria-label={t('runtimeConfig.cloudWorkspace.filterConnections')}
+              title={`${t('runtimeConfig.cloudWorkspace.filterConnections')} · ${t(`runtimeConfig.cloudWorkspace.filter.${filter}`)}`}
+              className="desktop-sidebar__icon-action shrink-0"
+            />
+          </PopoverTrigger>
+          <PopoverContent align="end" sideOffset={6} className="p-1">
+            <ActionMenu
+              ariaLabel={t('runtimeConfig.cloudWorkspace.filterConnections')}
+              items={CONNECTOR_FILTERS.map(id => ({
+                id,
+                label: t(`runtimeConfig.cloudWorkspace.filter.${id}`),
+                trailingIcon: id === filter ? <Check className="h-4 w-4" aria-hidden="true" /> : undefined,
+                onSelect: () => { void selectFilter(id); },
+              }))}
+            />
+          </PopoverContent>
+        </Popover>
+        {filter === 'all' && !query.trim() && uncheckedCount > 0 ? <p className="basis-full px-1 text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.product.cloudSummaryUnchecked', { count: uncheckedCount })}</p> : null}
+        {selectedHidden ? <p className="basis-full text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.cloudWorkspace.selectedHidden', { name: selectedConnector.label })} <button className="underline" onClick={() => { setQuery(''); setFilter('all'); }}>{t('runtimeConfig.cloudWorkspace.clearFilters')}</button></p> : null}
       </div>
       <ScrollArea className="min-h-0 flex-1" viewportClassName="[&>div]:!block" contentClassName="desktop-sidebar__body min-w-0">
         {connectors.length > 0 && !visibleConnectors.length ? <p className="px-3 py-4 text-sm text-[var(--nimi-text-muted)]">{t('runtimeConfig.product.noServicesMatch')}</p> : null}

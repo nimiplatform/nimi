@@ -75,7 +75,7 @@
         "CONVERSATION": "Conversation"
       }
     },
-    "relationshipTitle": "Character relationships",
+    "relationshipTitle": "Related characters",
     "lifeContextTitle": "Life and work",
     "objectsTitle": "Related objects",
     "relationshipKind": {
@@ -388,7 +388,9 @@
       "entry": "Entry",
       "biogAddress": "Place",
       "postedAddress": "Posted place",
-      "authoredText": "Authored work"
+      "authoredText": "Authored work",
+      "acquaintance-of": "Acquaintance",
+      "neighbor-of": "Neighbor"
     },
     "interactionTitle": "Opening voice",
     "greeting": "Greeting",
@@ -399,7 +401,17 @@
     "firstMeetingTitle": "First meeting",
     "relationshipContext": "({{context}})",
     "dialogueRefresh": "Read another",
-    "dialogueYou": "You"
+    "dialogueYou": "You",
+    "drivesTitle": "What matters to them",
+    "knowledgeTitle": "Life and expertise",
+    "guidanceTitle": "Good to know",
+    "appearanceVoiceTitle": "Appearance and voice",
+    "dialogueTitle": "Sample exchanges",
+    "dialogueNumber": "Exchange {{number}}",
+    "greetingTab": "First words",
+    "readMore": "Read more",
+    "readLess": "Show less",
+    "partnerCount": "Partners created: {{count}}"
   },
   "friends": "Friends",
   "posts": "Posts",

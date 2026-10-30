@@ -1,14 +1,15 @@
 import { MediaImage, MediaAvatar } from '@nimiplatform/kit/features/media';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, ArrowUpRight, BookOpen, Bookmark, Compass, MapPin, ScrollText, X } from 'lucide-react';
+import { ArrowRight, BookOpen, Bookmark, Compass, MapPin, ScrollText, X } from 'lucide-react';
 import { Button, EmptyState, IconButton, LoadingSkeleton, NimiText, SearchField } from '@nimiplatform/kit/ui';
 import type { WorldDetailPageProps } from './world-detail-template.js';
 import type { WorldCharacter, WorldPeopleCatalogState, WorldSceneItem } from './world-detail-types.js';
 import { PeopleCatalogFirstPageStatus, PeopleCatalogMoreControl } from './world-detail-people-catalog-status.js';
 import { worldSummary, worldSummaryLead } from './world-detail-template-model.js';
 import { worldReadingEntries } from './world-detail-reading-model.js';
-import { WorldDetailReader } from './world-detail-reader.js';
+import { WorldStoryMarkdown } from './world-story-markdown.js';
+import { WorldDetailIllustrations, worldIllustrations } from './world-detail-illustrations.js';
 import { worldTimeDisplay } from './world-detail-paper-model.js';
 import { formatLocaleDateTime } from '../../i18n/index.js';
 
@@ -42,25 +43,32 @@ function WorldPeopleGallery({ characters, catalog, loading, onView }: {
         <div className={PEOPLE_GALLERY_GRID}>
           {characters.map((character) => {
             const image = character.portraitUrl || character.mediaAssets?.portrait?.externalUrl || character.avatarUrl || character.mediaAssets?.avatar?.externalUrl || null;
-            const identity = character.role || character.faction || '';
+            const portraitDelivery = character.mediaAssets?.portrait?.delivery;
+            const identity = [character.ageDescription, character.role, character.faction]
+              .map((value) => value?.trim())
+              .filter((value): value is string => Boolean(value));
+            const bio = character.bio.trim();
             return (
               <button
                 key={`${character.sourceRef.kind}:${character.id}`}
                 type="button"
                 onClick={() => onView(character)}
                 aria-label={t('WorldDetail.discovery.viewNamedCharacter', { name: character.name })}
-                className="group min-w-0 text-left"
+                className="group flex min-w-0 flex-col items-start text-left"
                 data-testid="world-person-card"
               >
-                <MediaImage delivery={character.mediaAssets?.portrait?.delivery ?? character.avatarMedia} externalUrl={image} purpose="detail" sizes="auto, 220px" alt={character.name} className="aspect-[5/4] h-auto w-full rounded-[12px] bg-[var(--nimi-surface-panel)] text-2xl transition-transform duration-200 group-hover:-translate-y-0.5 [&_img]:object-[50%_30%]" />
-                <div className="mt-2.5 flex items-center justify-between gap-2">
-                  <div className="min-w-0">
-                    <NimiText as="span" role="card-title" className="block line-clamp-1 break-words" title={character.name}>{character.name}</NimiText>
-                    {identity ? <NimiText as="span" role="caption" className="mt-0.5 block line-clamp-1" title={identity}>{identity}</NimiText> : null}
+                <MediaImage delivery={portraitDelivery ?? character.avatarMedia} externalUrl={image} purpose={portraitDelivery ? 'detail' : 'avatar'} sizes="auto, 220px" alt={character.name} className="h-auto w-full rounded-[12px] bg-[var(--nimi-surface-panel)] text-2xl transition-transform duration-200 group-hover:-translate-y-0.5" />
+                <div className="mt-3 w-full rounded-[12px] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_72%,transparent)] p-4 transition-colors duration-200 group-hover:bg-[var(--nimi-surface-panel)]">
+                  <div className="flex w-full items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <NimiText as="span" role="card-title" className="line-clamp-1 break-words text-[22px] font-semibold leading-7 tracking-normal" title={character.name}>{character.name}</NimiText>
+                      {identity.length ? <NimiText as="span" role="caption" className="mt-1 line-clamp-1 w-full break-words font-normal leading-5 tracking-[0.01em] text-[var(--nimi-text-secondary)]" title={identity.join(' | ')} data-testid="world-person-meta">{identity.join(' | ')}</NimiText> : null}
+                    </div>
+                    <span className="mt-1 flex h-7 w-7 shrink-0 items-center justify-center text-[var(--nimi-text-muted)] transition-all duration-200 group-hover:translate-x-0.5 group-hover:text-[var(--nimi-text-primary)] group-focus-visible:text-[var(--nimi-text-primary)]">
+                      <ArrowRight size={19} strokeWidth={1.6} />
+                    </span>
                   </div>
-                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-[var(--nimi-border-subtle)] text-[var(--nimi-text-muted)] transition-colors group-hover:border-[var(--nimi-border-strong)] group-hover:text-[var(--nimi-text-primary)]">
-                    <ArrowUpRight size={13} />
-                  </span>
+                  {bio ? <NimiText as="span" role="body" className="mt-3 line-clamp-2 min-h-10 w-full text-pretty break-words text-[13px] font-normal leading-5 tracking-[0.01em] text-[var(--nimi-text-secondary)]" title={bio} data-testid="world-person-bio">{bio}</NimiText> : null}
                 </div>
               </button>
             );
@@ -72,17 +80,18 @@ function WorldPeopleGallery({ characters, catalog, loading, onView }: {
   );
 }
 
-function WorldSceneRow({ scene, onViewCharacter }: {
+function WorldSceneRow({ scene, onViewCharacter, standalone }: {
+  standalone?: boolean;
   scene: WorldSceneItem;
   onViewCharacter: (character: WorldCharacter) => void;
 }) {
   const { t } = useTranslation();
   return (
     <div className="flex w-full min-w-0 items-start gap-3 py-3.5 first:pt-0 last:pb-0" data-testid="world-scene-row">
-      <span className={ITEM_TITLE_ICON}><MapPin size={15} /></span>
+      {!standalone ? <span className={ITEM_TITLE_ICON}><MapPin size={15} /></span> : null}
       <div className="min-w-0 flex-1">
-        <NimiText as="span" role="card-title" className="block line-clamp-1 break-words" title={scene.name}>{scene.name}</NimiText>
-        {scene.description ? <NimiText as="span" role="helper" className="mt-1 block break-words">{scene.description}</NimiText> : null}
+        <NimiText as={standalone ? 'h2' : 'h3'} role={standalone ? 'section-title' : 'card-title'} className="break-words">{scene.name}</NimiText>
+        {scene.description ? <NimiText role="body" className="mt-4 whitespace-pre-wrap break-words leading-relaxed">{scene.description}</NimiText> : null}
         {scene.relatedCharacters.length ? (
           <div className="mt-2.5 flex flex-wrap items-center gap-x-3.5 gap-y-2">
             {scene.relatedCharacters.map((character) => {
@@ -111,13 +120,13 @@ const ITEM_TITLE_ICON = 'flex h-[21px] w-5 shrink-0 items-center justify-center 
 
 // @nimi-authority: rule.nimi.desktop.shell-ui.r011
 // @nimi-authority: rule.nimi.desktop.shell-ui.r012
-export function WorldDetailDiscovery({ props, scenes, onViewCharacter }: {
+export function WorldDetailDiscovery({ props, scenes, onViewCharacter, onReadWorld }: {
   props: WorldDetailPageProps;
+  onReadWorld: () => void;
   scenes: readonly WorldSceneItem[];
   onViewCharacter: (character: WorldCharacter) => void;
 }) {
   const { t } = useTranslation();
-  const [readerOpen, setReaderOpen] = useState(false);
   const [bannerFailed, setBannerFailed] = useState(false);
   const world = props.world;
   const summary = worldSummary(world);
@@ -129,87 +138,84 @@ export function WorldDetailDiscovery({ props, scenes, onViewCharacter }: {
     .map((value) => value?.trim() ?? '')
     .find((value) => value && value !== summary.trim()) || null;
   const showBanner = Boolean((world.bannerMedia || world.bannerUrl) && !bannerFailed);
+  const useContainedBanner = world.id === 'x01';
   const aboutSystems = props.semantic.powerSystems;
   const aboutRules = aboutSystems.length === 0 ? props.semantic.operationRules.slice(0, 3) : [];
   const showAbout = aboutSystems.length > 0 || aboutRules.length > 0;
   const listedScenes = scenes.slice(0, 4);
-  const pairedAboutPlaces = showAbout && listedScenes.length > 0;
+  const illustrations = worldIllustrations(props.publicAssets);
+  const story = world.setting?.trim() || summary;
+  const hasReading = Boolean(story || settings.length);
+  const showExcerpt = Boolean(world.setting?.trim() || story !== summaryLead);
   return (
     <main className="@container mx-auto w-full max-w-[1440px] space-y-10 p-6 @min-[1120px]:px-10" data-nimi-density="regular" data-testid="world-detail-discovery">
-      {props.onBack ? <Button tone="ghost" size="sm" leadingIcon={<ArrowLeft size={16} />} onClick={props.onBack}>{t('WorldDetail.glass.backToAtlas')}</Button> : null}
-      <section data-testid="world-detail-overview" className={showBanner ? 'grid items-start gap-6 @min-[1120px]:grid-cols-[minmax(0,3fr)_minmax(0,7fr)] @min-[1120px]:gap-10' : 'max-w-[720px]'}>
+      <section data-testid="world-detail-overview" className={showBanner ? 'grid items-center gap-6 @min-[1120px]:grid-cols-[minmax(0,3fr)_minmax(0,7fr)] @min-[1120px]:gap-10' : 'max-w-[720px]'}>
         <div className="order-2 space-y-4 @min-[1120px]:order-1" data-nimi-density="expressive">
           {world.genre ? <NimiText role="overline">{world.genre}</NimiText> : null}
           <NimiText role="hero-title" className="line-clamp-2 break-words" title={world.name}>{world.name}</NimiText>
-          {metaLine ? <NimiText role="helper" className="line-clamp-1" title={metaLine}>{metaLine}</NimiText> : null}
+          {metaLine ? <NimiText role="helper" className="invisible line-clamp-1" aria-hidden="true">{metaLine}</NimiText> : null}
           {summaryLead ? <NimiText role="body" className="whitespace-pre-wrap break-words" data-testid="world-detail-summary">{summaryLead}</NimiText> : null}
           <div className="flex flex-wrap items-center justify-end gap-2.5 pt-2">
             {props.onFollowWorld ? <IconButton tone="secondary" size="sm" className="rounded-full" icon={props.worldFollowed ? <Bookmark size={16} fill="currentColor" className="text-[var(--nimi-action-primary-bg)]" /> : <Bookmark size={16} />} aria-pressed={Boolean(props.worldFollowed)} aria-label={t(props.worldFollowed ? 'WorldDetail.discovery.followed' : 'WorldDetail.discovery.follow')} onClick={() => props.onFollowWorld?.(world)} data-testid="world-detail-follow-world" /> : null}
-            {summary || settings.length ? <Button tone="primary" size="sm" className="rounded-full px-4 shadow-[var(--nimi-elevation-base)]" leadingIcon={<BookOpen size={16} />} onClick={() => setReaderOpen(true)} data-testid="world-detail-open-reader">{t('WorldDetail.discovery.readWorld')}</Button> : null}
           </div>
         </div>
         {showBanner ? (
-          <div className="relative order-1 @min-[1120px]:order-2">
-            <MediaImage delivery={world.bannerMedia} externalUrl={world.bannerUrl} purpose="hero" sizes="auto, 960px" loading="eager" fetchPriority="high" alt="" className="h-60 w-full rounded-[14px] object-cover @min-[640px]:h-80 @min-[1120px]:h-[380px]" onUnavailable={() => setBannerFailed(true)} data-testid="world-detail-banner" />
+          <div className={useContainedBanner ? 'relative order-1 aspect-[16/9] overflow-hidden rounded-[14px] bg-[var(--nimi-surface-panel)] @min-[1120px]:order-2' : 'relative order-1 @min-[1120px]:order-2'} data-testid="world-detail-banner-frame">
+            {useContainedBanner ? <MediaImage delivery={world.bannerMedia} externalUrl={world.bannerUrl} purpose="hero" sizes="auto, 960px" loading="eager" fetchPriority="low" alt="" aria-hidden="true" className="absolute inset-0 h-full w-full scale-110 object-cover blur-2xl" onUnavailable={() => setBannerFailed(true)} /> : null}
+            <MediaImage delivery={world.bannerMedia} externalUrl={world.bannerUrl} purpose="hero" sizes="auto, 960px" loading="eager" fetchPriority="high" alt="" className={useContainedBanner ? 'relative h-full w-full object-contain' : 'h-auto w-full rounded-[14px]'} onUnavailable={() => setBannerFailed(true)} data-testid="world-detail-banner" />
             {heroCaption ? <NimiText as="span" role="caption" className="absolute right-3 bottom-3 line-clamp-1 max-w-[70%] text-white [text-shadow:0_1px_8px_rgba(0,0,0,0.5)]" title={heroCaption}>{heroCaption}</NimiText> : null}
           </div>
         ) : null}
       </section>
+      {hasReading ? (
+        <section className="space-y-5 border-t border-[var(--nimi-border-subtle)] pt-8" data-testid="world-detail-story">
+          <NimiText as="h2" role="section-title">{t('WorldDetail.discovery.story')}</NimiText>
+          {showExcerpt ? <div className="max-w-[960px]"><WorldStoryMarkdown content={story} excerpt /></div> : null}
+          <Button tone="primary" size="sm" className="rounded-full px-4" leadingIcon={<BookOpen size={16} />} onClick={onReadWorld} data-testid="world-detail-open-reader">{t('WorldDetail.discovery.readWorld')}</Button>
+        </section>
+      ) : null}
       <WorldPeopleGallery characters={props.peopleCharacters} catalog={props.peopleCatalog} loading={props.charactersLoading} onView={onViewCharacter} />
       {props.readingIncomplete ? <EmptyState title={t('WorldDetail.discovery.readingIncomplete')} action={props.onRetryReading ? <Button tone="secondary" size="sm" onClick={props.onRetryReading}>{t('WorldDetail.paper.gallery.retry')}</Button> : undefined} /> : null}
       {props.semanticLoading ? <LoadingSkeleton lines={2} label={t('WorldDetail.loading')} /> : null}
-      {showAbout || listedScenes.length ? (
-        <div className="rounded-[24px] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_55%,transparent)] p-6 @min-[640px]:p-8 @min-[1120px]:p-10">
-          <div className={pairedAboutPlaces ? 'grid items-start gap-8 @min-[1120px]:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] @min-[1120px]:gap-0' : 'grid gap-8'}>
-            {showAbout ? (
-              <section className={pairedAboutPlaces ? 'space-y-5 @min-[1120px]:pr-12' : 'space-y-5'} data-testid="world-detail-about">
-                <NimiText role="section-title">{t('WorldDetail.discovery.about')}</NimiText>
-                {aboutSystems.length || aboutRules.length ? (
-                  <div className={aboutSystems.length ? 'space-y-6 pt-1' : 'grid gap-5 pt-1 @min-[640px]:grid-cols-3'} data-testid="world-detail-about-systems">
-                    {aboutSystems.map((system, index) => {
-                      const details = [...new Set(
-                        [system.description, ...system.rules, ...system.levels.map((level) => [level.name, level.description, level.extra].filter(Boolean).join('\n'))]
-                          .map((value) => value?.trim())
-                          .filter((value): value is string => Boolean(value) && value !== system.name.trim()),
-                      )];
-                      return (
-                        <div key={`system-${index}`} className="flex min-w-0 items-start gap-3">
-                          <span className={ITEM_TITLE_ICON}><Compass size={15} /></span>
-                          <div className="min-w-0 flex-1 space-y-1.5">
-                            <NimiText as="p" role="card-title" className="break-words">{system.name}</NimiText>
-                            {details.map((text, detailIndex) => (
-                              <NimiText key={detailIndex} role="helper" className="whitespace-pre-wrap break-words">{text}</NimiText>
-                            ))}
-                          </div>
-                        </div>
-                      );
-                    })}
-                    {aboutRules.map((rule) => (
-                      <div key={rule.key} className="flex min-w-0 items-start gap-3">
-                        <span className={ITEM_TITLE_ICON}><ScrollText size={15} /></span>
-                        <div className="min-w-0 flex-1 space-y-1">
-                          <NimiText as="p" role="card-title" className="line-clamp-2 break-words" title={rule.title}>{rule.title}</NimiText>
-                          {rule.value ? <NimiText role="helper" className="line-clamp-2 break-words">{rule.value}</NimiText> : null}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : null}
-              </section>
-            ) : null}
-            {listedScenes.length ? (
-              <section id="world-detail-scenes" className={pairedAboutPlaces ? 'space-y-5 border-t border-[var(--nimi-border-subtle)] pt-8 @min-[1120px]:border-t-0 @min-[1120px]:border-l @min-[1120px]:pt-0 @min-[1120px]:pl-12' : 'space-y-5'} data-testid="world-detail-scenes">
-                <NimiText role="section-title">{t('WorldDetail.discovery.places')}</NimiText>
-                <div className="divide-y divide-[var(--nimi-border-subtle)] pt-1">
-                  {listedScenes.map((scene) => <WorldSceneRow key={scene.id} scene={scene} onViewCharacter={onViewCharacter} />)}
+      {showAbout ? (
+        <section className="space-y-5 border-t border-[var(--nimi-border-subtle)] pt-8" data-testid="world-detail-about">
+          <NimiText as="h2" role="section-title">{t('WorldDetail.discovery.about')}</NimiText>
+          <div className="grid gap-6 @min-[640px]:grid-cols-2">
+            {aboutSystems.map((system, index) => {
+              const details = [...new Set(
+                [system.description, ...system.rules, ...system.levels.map((level) => [level.name, level.description, level.extra].filter(Boolean).join('\n'))]
+                  .map((value) => value?.trim()).filter((value): value is string => Boolean(value) && value !== system.name.trim()),
+              )];
+              return <div key={index} className="flex min-w-0 items-start gap-3">
+                <span className={ITEM_TITLE_ICON}><Compass size={15} /></span>
+                <div className="min-w-0 space-y-2">
+                  <NimiText as="p" role="card-title">{system.name}</NimiText>
+                  {details.map((text, detailIndex) => <NimiText key={detailIndex} role="body" className="whitespace-pre-wrap break-words">{text}</NimiText>)}
                 </div>
-              </section>
-            ) : null}
+              </div>;
+            })}
+            {aboutRules.map((rule) => <div key={rule.key} className="flex min-w-0 items-start gap-3">
+              <span className={ITEM_TITLE_ICON}><ScrollText size={15} /></span>
+              <div className="min-w-0 space-y-2">
+                <NimiText as="h3" role="card-title">{rule.title}</NimiText>
+                {rule.value ? <NimiText role="body" className="whitespace-pre-wrap break-words">{rule.value}</NimiText> : null}
+              </div>
+            </div>)}
           </div>
+        </section>
+      ) : null}
+      {illustrations.length || listedScenes.length ? (
+        <div className={'grid items-start gap-8 border-t border-[var(--nimi-border-subtle)] pt-8 ' + (illustrations.length && listedScenes.length ? '@min-[1120px]:grid-cols-[minmax(0,7fr)_minmax(0,5fr)] @min-[1120px]:gap-10' : '')}>
+          {illustrations.length ? <WorldDetailIllustrations key={world.id} illustrations={illustrations} worldName={world.name} /> : null}
+          {listedScenes.length ? <section id="world-detail-scenes" className="min-w-0 space-y-5" data-testid="world-detail-scenes">
+            {listedScenes.length > 1 ? <NimiText as="h2" role="section-title">{t('WorldDetail.discovery.places')}</NimiText> : null}
+            <div className="divide-y divide-[var(--nimi-border-subtle)]">
+              {listedScenes.map((scene) => <WorldSceneRow key={scene.id} scene={scene} standalone={listedScenes.length === 1} onViewCharacter={onViewCharacter} />)}
+            </div>
+          </section> : null}
         </div>
       ) : null}
       {props.publicAssetsIncomplete ? <EmptyState title={t('WorldDetail.discovery.placesIncomplete')} action={props.onRetryReading ? <Button tone="secondary" size="sm" onClick={props.onRetryReading}>{t('WorldDetail.paper.gallery.retry')}</Button> : undefined} /> : null}
-      {readerOpen ? <WorldDetailReader world={world} semantic={props.semantic} history={props.history} loading={props.semanticLoading || props.historyLoading} incomplete={props.readingIncomplete} onRetry={props.onRetryReading} onClose={() => setReaderOpen(false)} /> : null}
     </main>
   );
 }

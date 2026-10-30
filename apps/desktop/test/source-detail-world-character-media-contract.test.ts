@@ -233,7 +233,9 @@ test('world character detail renders the hero voice preview and sample dialogue 
   assert.equal(markup.match(/The archives are quiet; ask, and I will open them\./gu)?.length, 1);
   assert.equal(detail.characterProfile.interaction?.tone, 'A measured Song dynasty scholar voice.');
   assert.equal(detail.characterProfile.interaction?.cadence, 'Deliberate cadence with quiet pauses.');
-  assert.doesNotMatch(markup, /A measured Song dynasty scholar voice\.|Deliberate cadence with quiet pauses\./);
+  assert.match(markup, /data-testid="world-character-appearance-disclosure"/);
+  assert.match(markup, /A measured Song dynasty scholar voice\.|Deliberate cadence with quiet pauses\./);
+  assert.doesNotMatch(markup, /<details[^>]*open/);
   // The reference portrait card is gone from the presence layout, and neither
   // internal media labels nor local file paths leak into the page.
   assert.doesNotMatch(markup, /data-testid="world-character-reference-image"/);

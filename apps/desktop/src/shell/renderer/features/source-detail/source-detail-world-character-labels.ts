@@ -5,12 +5,12 @@ import { personaStyleDisplayText } from './source-detail-persona-style-labels.js
 
 type TranslationFn = ReturnType<typeof useTranslation>['t'];
 
-// The hero line is the explicit role as authored (closed-set persona style
-// codes are localized). No era, dynasty, courtesy name, or art name is derived
+// The hero line uses the explicit role or authored presentation line (closed-set
+// persona style codes are localized). No era, dynasty, courtesy name, or art name is derived
 // from the world id, archetype, summary, bio, or topics.
 export function worldCharacterHeroDescription(source: SourceDetailData, t: TranslationFn): string | null {
   const role = source.characterProfile.role?.trim();
-  return role ? personaStyleDisplayText(role, t) : null;
+  return role ? personaStyleDisplayText(role, t) : source.characterProfile.profileLine?.trim() || null;
 }
 
 export function worldCharacterPrimaryActionLabel(

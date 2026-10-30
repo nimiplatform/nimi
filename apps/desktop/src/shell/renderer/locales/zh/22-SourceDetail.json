@@ -75,7 +75,7 @@
         "CONVERSATION": "对话"
       }
     },
-    "relationshipTitle": "人物关系",
+    "relationshipTitle": "相关角色",
     "lifeContextTitle": "生活与工作",
     "objectsTitle": "相关物品",
     "relationshipKind": {
@@ -388,7 +388,9 @@
       "entry": "入仕",
       "biogAddress": "地点",
       "postedAddress": "任职地点",
-      "authoredText": "著述"
+      "authoredText": "著述",
+      "acquaintance-of": "熟识",
+      "neighbor-of": "邻居"
     },
     "interactionTitle": "开场语气",
     "greeting": "开场白",
@@ -399,7 +401,17 @@
     "firstMeetingTitle": "初次相遇",
     "relationshipContext": "（{{context}}）",
     "dialogueRefresh": "再看一段",
-    "dialogueYou": "你"
+    "dialogueYou": "你",
+    "drivesTitle": "在意的事",
+    "knowledgeTitle": "日常与专长",
+    "guidanceTitle": "相处须知",
+    "appearanceVoiceTitle": "外貌与声音",
+    "dialogueTitle": "相处片段",
+    "dialogueNumber": "片段 {{number}}",
+    "greetingTab": "初遇招呼",
+    "readMore": "阅读全文",
+    "readLess": "收起全文",
+    "partnerCount": "已创建 {{count}} 位伙伴"
   },
   "friends": "好友",
   "posts": "帖子",

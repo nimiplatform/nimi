@@ -252,3 +252,25 @@ test('shared character detail renders explicit age and disposition without readi
   });
   assert.doesNotMatch(noProse, /data-testid="world-character-about-section"/);
 });
+
+test('the profile uses full narrative and authored motives while absent sections stay hidden', () => {
+  const source = toSourceDetailData({ ...liBaiRaw, entity: null, bio: 'A short discovery line.',
+    characterProfile: { ...liBaiRaw.characterProfile, narrativeSummary: 'An octopus keeps every letter safe until its recipient is ready.',
+      speciesDescription: 'Octopus', ageDescription: 'Adult', drives: ['Keep the letters dry.'], boundaries: ['Never promises delivery dates.'],
+      bodyDescription: null, lifeStageDescription: null, disposition: null, role: null, archetype: null,
+      knowledgeTopics: [], knowledgeConstraints: [], milestones: [], relationshipNotes: [], interaction: null, dialogueExemplars: [] },
+    relationships: [],
+  }, 'source_materialization_available');
+  const render = (candidate: typeof source) => renderToStaticMarkup(React.createElement(SourceDetailView, {
+    source: candidate, loading: false, error: false, onOpenWorld: () => {}, onPrimaryAction: () => {},
+  }));
+  const markup = render(source);
+  assert.match(markup, /An octopus keeps every letter safe/);
+  assert.doesNotMatch(markup, /A short discovery line/);
+  assert.match(markup, /Adult · Octopus/);
+  assert.match(markup, /Keep the letters dry/);
+  assert.match(markup, /Never promises delivery dates/);
+  assert.doesNotMatch(markup, /world-character-dialogue-section|world-character-appearance-disclosure|world-character-relationship-clues-section/);
+  const empty = render({ ...source, bio: null, characterProfile: { ...source.characterProfile, narrativeSummary: null, drives: [], boundaries: [] } });
+  assert.doesNotMatch(empty, /world-character-overview-columns|world-character-drives-section|world-character-knowledge-section/);
+});

@@ -166,6 +166,22 @@ test('public biography life events keep their explicit kind in the shared milest
   assert.equal(readCharacterProfile(projection.characterProfile), projection.characterProfile);
 });
 
+test('the shared projection retains full narrative, motives and boundaries independently of the discovery summary', () => {
+  const profile = {
+    ...characterProfile('Aster', 'An archivist who protects letters until their recipients are ready.'),
+    psychology: { disposition: 'Quiet and patient.', drives: ['Protect every letter.', '  '], boundaries: ['Never promises a delivery date.'] },
+    identity: { name: 'Aster', summary: 'An archivist.', speciesDescription: 'Octopus', ageDescription: 'Adult' },
+  };
+  const projection = projectCharacterSourceProfile(profile as never, publicSourceCard(sourceRef, 'Aster') as never);
+  assert.equal(projection.bio, 'Aster summary');
+  assert.equal(projection.characterProfile.narrativeSummary, profile.narrative.summary);
+  assert.equal(projection.characterProfile.profileLine, profile.presentation.profileLine);
+  assert.deepEqual(projection.characterProfile.drives, ['Protect every letter.']);
+  assert.deepEqual(projection.characterProfile.boundaries, ['Never promises a delivery date.']);
+  assert.equal(projection.characterProfile.speciesDescription, 'Octopus');
+  assert.equal(projection.characterProfile.ageDescription, 'Adult');
+});
+
 test('source detail fails closed without a complete CharacterSourceRefV3', () => {
   const projection = projectCharacterSourceProfile(
     characterProfile('宋濂', '明初文学家、史学家。') as never,
@@ -458,4 +474,18 @@ test('partner source navigation resolves the current public ref while keeping ca
   realm.worldCore.worldCoreControllerGetPersonaCharacter = async () => ({ ...current, ownerAccountId: 'other-owner' });
   await assert.rejects(resolveCurrentPartnerSource(realm as never, captured), /identity/);
   assert.equal(calls.length, 1, 'identity mismatch never probes a replacement public source');
+});
+
+test('shared source projection preserves authored meeting scene order and pairing', () => {
+  const profile = characterProfile('朱利安', '礼宾官');
+  const scenes = [
+    { sceneId: 'z-first', title: '密道献宝', scenario: '递来钥匙。', greeting: '钥匙备齐啦！' },
+    { sceneId: 'a-second', title: '舞会恶作剧', scenario: '按下遥控器。', greeting: '好戏开场！' },
+  ];
+  const projection = projectCharacterSourceProfile({ ...profile, interactionProfile: { ...profile.interactionProfile, meetingScenes: scenes } } as never,
+    publicSourceCard(sourceRef, '朱利安') as never).characterProfile;
+  assert.deepEqual(projection.interaction?.meetingScenes, scenes);
+  assert.equal(readCharacterProfile(projection), projection);
+  assert.equal(readCharacterProfile({ ...projection, interaction: { ...projection.interaction, meetingScenes: [{ ...scenes[0], greeting: '' }] } }), null);
+  assert.equal(readCharacterProfile({ ...projection, interaction: { ...projection.interaction, meetingScenes: [scenes[0], scenes[0]] } }), null);
 });

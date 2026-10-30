@@ -26,6 +26,7 @@ import { toWorldDisplayCharacter } from './world-detail-primary-projection.js';
 import { toWorldDisplayHistoryItem } from './world-detail-history-projection.js';
 
 type WorldPublicAssetListPayload = {
+  readonly mediaAssets?: readonly unknown[];
   readonly resourceRefs: readonly unknown[];
   readonly externalRefs: readonly unknown[];
   readonly intents: readonly unknown[];
@@ -165,6 +166,8 @@ export function toWorldPublicAssetsData(
   scenesPayload: WorldPublicSceneListPayload,
 ): WorldPublicAssetsData {
   return {
+    mediaAssets: (assetsPayload.mediaAssets ?? []).map(readPublicMediaAsset)
+      .filter((asset): asset is WorldPublicMediaAsset => asset !== null),
     resourceRefs: assetsPayload.resourceRefs.map(toWorldDisplayResourceRef),
     externalRefs: assetsPayload.externalRefs
       .map(toWorldDisplayExternalRef)

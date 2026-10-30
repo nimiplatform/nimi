@@ -447,6 +447,52 @@ test('world discovery puts source profiles ahead of the about and places section
   assert.doesNotMatch(document.body.textContent!, /Become my partner|Chat now|Recommended paths|WorldDetail\./);
 });
 
+test('world discovery presents people with identity metadata and a short biography', () => {
+  const galleryCharacters = [{
+    ...characters[0],
+    ageDescription: '三十岁上下',
+    role: '退役特种工程兵',
+    faction: null,
+    bio: '外表冷峻寡言，实则用一身烟火气守护身边重要的人。',
+  }, ...characters.slice(1)];
+  const html = renderToStaticMarkup(<WorldDetailPage world={world} characters={galleryCharacters} peopleCharacters={galleryCharacters} peopleCatalog={readyPeopleCatalog(galleryCharacters.length)} history={history} semantic={semantic} audits={[]} publicAssets={publicAssets} onViewCharacter={() => {}} />);
+  const document = new JSDOM(html).window.document;
+  const card = document.querySelector('[data-testid="world-person-card"]')!;
+
+  assert.equal(card.querySelector('[data-testid="world-person-meta"]')?.textContent, '三十岁上下 | 退役特种工程兵');
+  assert.equal(card.querySelector('[data-testid="world-person-bio"]')?.textContent, galleryCharacters[0].bio);
+});
+
+test('world discovery renders avatar-only managed media with the issued avatar purpose', () => {
+  const avatarMedia: NonNullable<WorldCharacter['avatarMedia']> = {
+    resourceId: 'avatar-1',
+    contentVersion: 'a'.repeat(64),
+    publicationGeneration: 1,
+    policyVersion: 'v1',
+    expiresAt: null,
+    previewUrl: null,
+    originalUrl: 'https://media.example/avatar-original.bin',
+    images: [{
+      purpose: 'avatar',
+      families: [{
+        mimeType: 'image/webp',
+        sources: [{ url: 'https://media.example/avatar-256.webp', width: 256, height: 256, mimeType: 'image/webp' }],
+      }],
+    }],
+    video: null,
+  };
+  const galleryCharacters = [{ ...characters[0], avatarMedia }];
+  const html = renderToStaticMarkup(<WorldDetailPage world={world} characters={galleryCharacters} peopleCharacters={galleryCharacters} peopleCatalog={readyPeopleCatalog(galleryCharacters.length)} history={history} semantic={semantic} audits={[]} publicAssets={publicAssets} onViewCharacter={() => {}} />);
+  const document = new JSDOM(html).window.document;
+  const image = document.querySelector('[data-testid="world-person-card"] img');
+
+  assert.equal(image?.getAttribute('src'), 'https://media.example/avatar-256.webp');
+  assert.equal(image?.getAttribute('srcset'), 'https://media.example/avatar-256.webp 256w');
+  assert.equal(image?.getAttribute('width'), '256');
+  assert.equal(image?.getAttribute('height'), '256');
+  assert.ok(!image?.className.includes('aspect-'), 'the avatar keeps its original aspect ratio');
+});
+
 test('long description and system paragraphs remain full prose in the reader and on the homepage', () => {
   const description = '世界中的每个人都有自己的日常。'.repeat(50);
   const system = '这个世界的社会和生活运转规则。'.repeat(100);
@@ -460,7 +506,12 @@ test('long description and system paragraphs remain full prose in the reader and
   const multiWorld = { ...longWorld, description: `完整的第一段。\n\n${description}` };
   const multiDocument = new JSDOM(renderToStaticMarkup(<WorldDetailPage world={multiWorld} characters={characters} peopleCharacters={characters} peopleCatalog={readyPeopleCatalog(characters.length)} history={history} semantic={longSemantic} audits={[]} publicAssets={publicAssets} />)).window.document;
   assert.equal(multiDocument.querySelector('[data-testid="world-detail-summary"]')?.textContent, '完整的第一段。', 'a multi-paragraph summary shows the whole first paragraph only');
-  assert.equal(document.querySelector('[data-testid="world-detail-banner"]')?.tagName, 'IMG');
+  const banner = document.querySelector('[data-testid="world-detail-banner"]');
+  const bannerFrame = document.querySelector('[data-testid="world-detail-banner-frame"]');
+  assert.equal(banner?.tagName, 'IMG');
+  assert.ok(banner?.className.includes('h-auto'), 'other worlds keep their original banner aspect ratio');
+  assert.ok(!bannerFrame?.className.includes('aspect-[16/9]'), 'other worlds do not use the compact banner frame');
+  assert.ok(!banner?.className.includes('object-contain'), 'other worlds do not use the contained banner treatment');
   assert.ok(document.querySelector('[data-testid="world-detail-open-reader"]'));
   const about = document.querySelector('[data-testid="world-detail-about"]')!;
   assert.ok(about.textContent?.includes(system), 'the about section shows world systems in full on the homepage');
@@ -469,6 +520,16 @@ test('long description and system paragraphs remain full prose in the reader and
   const entries = worldReadingEntries(longWorld, longSemantic, history);
   assert.ok(entries.find((entry) => entry.section === 'description')?.text.includes(description));
   assert.deepEqual(entries.find((entry) => entry.section === 'systems')?.text, [system]);
+});
+
+test('the x01 world keeps its complete portrait banner inside a compact frame', () => {
+  const containedWorld = { ...world, id: 'x01', bannerUrl: 'https://example.test/world.png' };
+  const html = renderToStaticMarkup(<WorldDetailPage world={containedWorld} characters={[]} peopleCharacters={[]} peopleCatalog={readyPeopleCatalog(0)} history={emptyHistory} semantic={emptySemantic} audits={[]} publicAssets={publicAssets} />);
+  const document = new JSDOM(html).window.document;
+  const banner = document.querySelector('[data-testid="world-detail-banner"]');
+  const bannerFrame = document.querySelector('[data-testid="world-detail-banner-frame"]');
+  assert.ok(bannerFrame?.className.includes('aspect-[16/9]'), 'x01 uses the compact landscape frame');
+  assert.ok(banner?.className.includes('object-contain'), 'x01 shows the complete image without cropping');
 });
 
 test('world following remains a single secondary action and disappears when unavailable', () => {
@@ -542,6 +603,107 @@ test('prose blocks surface supplied content headings without altering text', () 
 test('failed supplemental content stays explicit while character discovery remains usable', () => {
   const document = new JSDOM(renderToStaticMarkup(<WorldDetailPage world={world} characters={characters} peopleCharacters={characters} peopleCatalog={readyPeopleCatalog(characters.length)} history={emptyHistory} semantic={emptySemantic} audits={[]} publicAssets={{ scenes: [], resourceRefs: [], externalRefs: [], intents: [] }} readingIncomplete publicAssetsIncomplete onRetryReading={() => {}} onViewCharacter={() => {}} />)).window.document;
   assert.ok(document.body.textContent?.includes('Some world settings or history could not be loaded'));
-  assert.ok(document.body.textContent?.includes('Places and references could not be loaded'));
+  assert.ok(document.body.textContent?.includes('Some scenes or illustrations could not be loaded'));
   assert.equal(document.querySelectorAll('button[aria-label^="View "]').length, characters.length);
+});
+
+test('world stories use their existing Markdown and expose one reading action after the excerpt', async () => {
+  const setting = '# 原文世界\n\n## 第一节\n\n### 真实的小标题\n\n第一段原文。\n\n第二段原文。\n\n第三段原文。\n\n第四段留给完整阅读。\n\n## 第二节\n\n后面的原文。';
+  const storyWorld = { ...world, name: '原文世界', setting };
+  const assets = { scenes: [], resourceRefs: [], externalRefs: [], intents: [] };
+  const props = { world: storyWorld, characters, peopleCharacters: characters, peopleCatalog: readyPeopleCatalog(characters.length), history: emptyHistory, semantic: emptySemantic, audits: [], publicAssets: assets };
+  const document = new JSDOM(renderToStaticMarkup(<WorldDetailPage {...props} />)).window.document;
+  const excerpt = document.querySelector('[data-testid="world-story-excerpt"]')!;
+  assert.equal(excerpt.querySelector('h3')?.textContent, '真实的小标题');
+  assert.ok(excerpt.textContent?.includes('第三段原文。'));
+  assert.ok(!excerpt.textContent?.includes('第四段留给完整阅读。'));
+  assert.equal(document.querySelectorAll('[data-testid="world-detail-open-reader"]').length, 1);
+  assert.ok(document.querySelector('[data-testid="world-detail-story"] [data-testid="world-detail-open-reader"]'));
+  assert.ok(!document.querySelector('[data-testid="world-detail-overview"] [data-testid="world-detail-open-reader"]'));
+  assert.ok(!document.querySelector('[data-testid="world-detail-illustrations"]'));
+  assert.ok(!document.querySelector('[data-testid="world-detail-scenes"]'));
+  assert.ok(!document.querySelector('[data-testid="world-detail-about"]'));
+  const reader = new JSDOM(renderToStaticMarkup(<WorldDetailPage {...props} initialSubpage="reader" />)).window.document;
+  assert.ok(reader.querySelector('main[data-testid="world-detail-reader"]'));
+  assert.equal(reader.querySelector('[role="dialog"]'), null);
+  assert.ok(reader.querySelector('[data-testid="world-story-document"]')?.textContent?.includes('第四段留给完整阅读。'));
+  assert.ok(reader.body.textContent?.includes('后面的原文。'));
+  assert.equal(reader.querySelector('[data-testid="world-detail-discovery"]'), null);
+});
+
+test('Markdown headings stay faithful through code fences, duplicate titles and unsafe embedded content', async () => {
+  const { WorldStoryMarkdown } = await import('../src/shell/renderer/features/world/world-story-markdown.js');
+  const content = '# 标题\n\n```text\n## 不是目录\n```\n\n## 相同标题\n\n保留 **加粗** 和列表。\n\n- 第一项\n- 第二项\n\n## 相同标题\n\n[危险链接](javascript:alert(1))\n\n<script>alert(1)</script>\n\n![来源说明](https://example.test/unissued.png)';
+  const document = new JSDOM(renderToStaticMarkup(<WorldStoryMarkdown content={content} title="标题" />)).window.document;
+  const headings = [...document.querySelectorAll('[data-world-heading]')];
+  assert.deepEqual(headings.map((node) => node.textContent), ['相同标题', '相同标题']);
+  assert.equal(new Set(headings.map((node) => node.id)).size, 2);
+  assert.ok(document.querySelector('pre')?.textContent?.includes('## 不是目录'));
+  assert.equal(document.querySelector('strong')?.textContent, '加粗');
+  assert.equal(document.querySelectorAll('li').length, 2);
+  assert.equal(document.querySelector('script, img, a[href^="javascript:"]'), null);
+  assert.ok(document.body.textContent?.includes('来源说明'));
+});
+
+test('world reading participates in Home back and forward navigation without losing the people query', async () => {
+  const { createHomeNavigation } = await import('../src/shell/renderer/app-shell/providers/home-navigation.js');
+  const navigation = createHomeNavigation();
+  try {
+    const detail = { id: 'world-detail' as const, worldId: 'world-1', search: '姚' };
+    assert.equal((await navigation.push(detail)).status, 'committed');
+    assert.equal((await navigation.push({ ...detail, worldSubpage: 'reader' })).status, 'committed');
+    assert.equal(navigation.getSnapshot().current.destination.worldSubpage, 'reader');
+    await navigation.back();
+    assert.deepEqual(navigation.getSnapshot().current.destination, detail);
+    await navigation.forward();
+    assert.equal(navigation.getSnapshot().current.destination.worldSubpage, 'reader');
+    assert.equal(navigation.getSnapshot().current.destination.search, '姚');
+  } finally { navigation.dispose(); }
+});
+
+test('the reading journey restores overview scroll and resets it for another world', async () => {
+  const { act, createRef } = await import('react');
+  const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost', pretendToBeVisual: true });
+  const globals = {
+    window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
+    HTMLElement: dom.window.HTMLElement, Element: dom.window.Element, Node: dom.window.Node,
+    MutationObserver: dom.window.MutationObserver, getComputedStyle: dom.window.getComputedStyle,
+    requestAnimationFrame: dom.window.requestAnimationFrame.bind(dom.window),
+    cancelAnimationFrame: dom.window.cancelAnimationFrame.bind(dom.window), IS_REACT_ACT_ENVIRONMENT: true,
+  };
+  const previous = new Map(Object.keys(globals).map((key) => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+  const { createRoot } = await import('react-dom/client');
+  const root = createRoot(dom.window.document.getElementById('root')!);
+  const viewport = createRef<HTMLDivElement>();
+  dom.window.HTMLElement.prototype.scrollTo = function (options) { this.scrollTop = (options as ScrollToOptions).top ?? 0; };
+  let jumpedTo = '';
+  dom.window.HTMLElement.prototype.scrollIntoView = function () { jumpedTo = this.id; };
+  const nextFrame = () => new Promise<void>((resolve) => dom.window.requestAnimationFrame(() => resolve()));
+  const storyWorld = { ...world, setting: '# 世界\n\n## 第一节\n\n第一段。\n\n## 第二节\n\n第二段。' };
+  const render = (id: string) => <div ref={viewport}><WorldDetailPage world={{ ...storyWorld, id }} characters={[]} peopleCharacters={[]} peopleCatalog={readyPeopleCatalog(0)} history={emptyHistory} semantic={emptySemantic} audits={[]} publicAssets={{ scenes: [], resourceRefs: [], externalRefs: [], intents: [] }} rootScrollViewportRef={viewport} /></div>;
+  try {
+    await act(async () => { root.render(render('world-1')); });
+    await act(nextFrame);
+    viewport.current!.scrollTop = 180;
+    await act(async () => { (dom.window.document.querySelector('[data-testid="world-detail-open-reader"]') as HTMLButtonElement).click(); });
+    await act(nextFrame);
+    assert.equal(viewport.current!.scrollTop, 0);
+    assert.ok(dom.window.document.querySelector('main[data-testid="world-detail-reader"]'));
+    const chapter = [...dom.window.document.querySelectorAll<HTMLButtonElement>('[data-testid="world-reader-contents"] button')].find((button) => button.textContent === '第二节')!;
+    await act(async () => chapter.click());
+    assert.ok(jumpedTo.startsWith('world-story-heading-'));
+    assert.equal(dom.window.document.activeElement?.textContent, '第二节');
+    const back = [...dom.window.document.querySelectorAll<HTMLButtonElement>('button')].find((button) => button.textContent === 'Back to world')!;
+    await act(async () => back.click());
+    await act(nextFrame);
+    assert.equal(viewport.current!.scrollTop, 180);
+    assert.ok(dom.window.document.querySelector('[data-testid="world-detail-discovery"]'));
+    await act(async () => { root.render(render('world-2')); });
+    await act(nextFrame);
+    assert.equal(viewport.current!.scrollTop, 0);
+  } finally {
+    await act(async () => root.unmount()); dom.window.close();
+    for (const [key, descriptor] of previous) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete (globalThis as Record<string, unknown>)[key]; }
+  }
 });

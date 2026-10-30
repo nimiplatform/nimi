@@ -89,7 +89,7 @@ export function validateHomeDestination(value: unknown): HomeDestination {
   closed('exploreSection', ['worlds', 'partners']);
   closed('exploreSearchKind', ['worlds', 'characters']);
   closed('worldCollection', ['favorites']);
-  closed('worldSubpage', ['relationship-explorer']);
+  closed('worldSubpage', ['relationship-explorer', 'reader']);
   closed('appSection', ['overview', 'ai-models']);
   closed('settingsSection', SETTINGS_SECTIONS);
   if (result.search !== undefined && typeof result.search !== 'string') throw new Error('Invalid Home search.');

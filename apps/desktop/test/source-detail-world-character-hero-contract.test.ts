@@ -198,6 +198,7 @@ test('world character hero keeps banner and avatar placement and shows the expli
         contentHash: 'entity-hash-yao-sui',
       },
       bio: '元代文学家、政治家。',
+      profileCoverUrl: 'https://cdn.example.test/yao-sui-banner.png',
       characterProfile: {
         ...ouYangDeRaw.characterProfile,
         role: '文学家，政治家',
@@ -223,7 +224,7 @@ test('world character hero keeps banner and avatar placement and shows the expli
     assert.doesNotMatch(markup, /data-testid="world-character-hero-dynasty-badge"/);
     // The hero line is the explicit role; no era prefix is guessed from the
     // archetype and no courtesy or art name is parsed out of the summary.
-    const description = /<p data-testid="world-character-hero-description"[^>]*>([^<]*)<\/p>/u.exec(markup)?.[1];
+    const description = /<p data-testid="world-character-hero-role"[^>]*>([^<]*)<\/p>/u.exec(markup)?.[1];
     assert.equal(description, '文学家，政治家');
     // The authored summary still renders unchanged in the overview.
     assert.match(markup, /姚燧，字端甫，号牧庵，元代文学家、政治家。/);
@@ -231,6 +232,14 @@ test('world character hero keeps banner and avatar placement and shows the expli
       markup.indexOf('data-testid="world-character-hero-avatar"') < markup.indexOf('data-testid="world-character-hero-title-row"'),
       'avatar should keep its original stacked placement before the name row',
     );
+    const bannerMarkup = markup.slice(
+      markup.indexOf('data-testid="world-character-hero-banner"'),
+      markup.indexOf('data-testid="world-character-hero-avatar"'),
+    );
+    assert.match(bannerMarkup, /h-\[260px\][^"]*max-w-\[1360px\]/);
+    assert.match(bannerMarkup, /overflow-hidden[^"]*rounded-\[24px\]/);
+    assert.match(bannerMarkup, /h-full[^"]*object-cover/);
+    assert.doesNotMatch(bannerMarkup, /h-auto|min-h-\[260px\]/);
   } finally {
     await changeLocale('en');
   }
@@ -363,7 +372,8 @@ test('world character hero shows the world pill, an age-qualified subtitle, and 
     assert.match(markup, /所在世界/);
     assert.match(markup, /东南秋声/);
     const description = /<p data-testid="world-character-hero-description"[^>]*>([^<]*)<\/p>/u.exec(markup)?.[1];
-    assert.equal(description, '瓦舍说话艺人 · 二十多岁');
+    assert.equal(description, '二十多岁');
+    assert.match(markup, /data-testid="world-character-hero-role"[^>]*>瓦舍说话艺人<\/p>/);
     assert.match(markup, /data-testid="world-character-hero-voice"/);
     assert.match(markup, /声音试听/);
     assert.match(markup, /· 23 秒/);
@@ -418,8 +428,8 @@ test('world character overview renders authored biography and dialogue without c
     assert.doesNotMatch(aboutMarkup, /相遇场景|士人交游圈/);
     assert.equal(aboutMarkup.match(/<h2\b/gu)?.length, 1);
     assert.equal(aboutMarkup.match(/<p\b/gu)?.length, 2);
-    assert.match(aboutMarkup, /<p data-testid="character-introduction"[^>]*>欧阳德，字崇一，号南野，谥文庄，江西泰和人。<\/p>/u);
-    assert.match(aboutMarkup, /<p data-testid="character-disposition"[^>]*>机敏狡黠，口齿锋利而幽默风趣。<\/p>/u);
+    assert.match(aboutMarkup, /<p[^>]* data-testid="character-introduction"[^>]*>欧阳德，字崇一，号南野，谥文庄，江西泰和人。<\/p>/u);
+    assert.match(aboutMarkup, /<p[^>]* data-testid="character-disposition"[^>]*>机敏狡黠，口齿锋利而幽默风趣。<\/p>/u);
     const sceneStart = markup.indexOf('data-testid="world-character-meeting-scene"');
     assert.ok(sceneStart > aboutEnd);
     assert.ok(sceneStart < markup.indexOf('data-testid="world-character-dialogue-section"'));
@@ -428,13 +438,14 @@ test('world character overview renders authored biography and dialogue without c
     assert.match(markup, /我荷包里只有几文零钱，听不了整本的大戏。/);
     assert.match(markup, /data-testid="world-character-dialogue-character"/);
     assert.match(markup, /瞧您说的，瓦舍里图的就是个市井热闹！/);
-    // The greeting stays available as the second sample, so the refresh control shows.
-    assert.match(markup, /data-testid="world-character-dialogue-refresh"/);
-    assert.match(markup, /再看一段/);
-    assert.ok(markup.indexOf('data-testid="world-character-dialogue-refresh"') > markup.indexOf('data-testid="world-character-opening-line"'));
+    // The greeting is directly selectable, separate from the first encounter scene.
+    assert.match(markup, /data-testid="world-character-dialogue-tabs"/);
+    assert.match(markup, /初遇招呼/);
+    assert.match(markup, /role="tab"[^>]*aria-selected="true"/);
     assert.doesNotMatch(markup, /可以聊什么|world-character-topics-section|world-character-topic-chip/);
-    assert.doesNotMatch(markup, /都城行铺生计与茶坊掌故/);
-    assert.doesNotMatch(markup, /额外话题/);
+    assert.match(markup, /日常与专长/);
+    assert.match(markup, /都城行铺生计与茶坊掌故/);
+    assert.match(markup, /额外话题/);
   } finally {
     await changeLocale('en');
   }
@@ -465,7 +476,7 @@ test('world character dialogue hides the refresh control when only the greeting 
   }
 });
 
-test('world character source detail removes facts panel and replaces breadcrumbs with back button', () => {
+test('world character source detail removes facts panel, breadcrumbs, and duplicate back button', () => {
   const source = toSourceDetailData({
     ...ouYangDeRaw,
     entity: {
@@ -488,7 +499,7 @@ test('world character source detail removes facts panel and replaces breadcrumbs
     }),
   );
 
-  assert.match(markup, /data-testid="world-character-back-button"/);
+  assert.doesNotMatch(markup, /data-testid="world-character-back-button"/);
   assert.doesNotMatch(markup, /aria-label="Breadcrumb"/);
   assert.doesNotMatch(markup, /World atlas/);
   assert.doesNotMatch(markup, /People<\/button>/);

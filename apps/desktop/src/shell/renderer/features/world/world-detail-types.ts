@@ -305,6 +305,7 @@ export type WorldAssetIntent = {
 };
 
 export type WorldPublicAssetsData = {
+  readonly mediaAssets?: readonly WorldPublicMediaAsset[];
   readonly resourceRefs: readonly WorldAssetResourceRef[];
   readonly externalRefs: readonly WorldAssetExternalRef[];
   readonly intents: readonly WorldAssetIntent[];

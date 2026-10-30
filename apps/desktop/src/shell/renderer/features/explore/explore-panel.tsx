@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Avatar, Button, EmptyState, InlineAlert, LoadingSkeleton, ScrollArea, SearchField } from '@nimiplatform/kit/ui';
-import { ArrowLeft, Search } from 'lucide-react';
+import { Avatar, Button, EmptyState, IconButton, InlineAlert, LoadingSkeleton, ScrollArea, SearchField } from '@nimiplatform/kit/ui';
+import { UsersRound, X } from 'lucide-react';
 import { useAppStore, useHomeDestination, useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useHomeListPosition } from '../../app-shell/providers/use-home-list-position.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
@@ -12,7 +12,7 @@ import { characterSourceRefKey } from '../realm-source/realm-source-identity.js'
 import { readCharacterCatalog } from './character-catalog-data.js';
 import { createRealmWorldData } from '../world/data/realm-world-data.js';
 import { WorldCatalogContent, type WorldCatalogPaging } from '../world/world-list.js';
-import { useWorldAtlasLeadWorlds, WorldAtlasPeople } from '../world/world-atlas-data.js';
+import { useWorldAtlasLeadWorlds } from '../world/world-atlas-data.js';
 import { WORLD_CATALOG_CONTRACT_VERSION, fetchWorldCatalogPage, worldCatalogQueryKey } from '../world/world-detail-queries.js';
 import { useWorldFavorites } from '../world/use-world-favorites.js';
 import { PartnerDirectory } from '../agents/partner-directory.js';
@@ -26,14 +26,15 @@ export function ExplorePanel(props: {
   const destination = useHomeDestination();
   const navigation = useHomeNavigation();
   const characters = destination.exploreSearchKind === 'characters';
+  const sectionNav = <ExploreSectionNav active={props.activeSection} onSelect={props.onSectionChange} />;
+  const partnerAction = <Button tone="ghost" size="sm" className="shrink-0" onClick={() => { void navigation.push({ ...destination, exploreSearchKind: 'characters' }); }}>
+    <UsersRound size={17} />{t('runtimeConfig.partners.discoverPartners')}
+  </Button>;
   return <div data-testid="panel:explore" className="flex min-h-0 flex-1 flex-col gap-3 px-3 pb-3 pt-2">
-    <header className="flex flex-wrap items-center justify-between gap-3 px-1">
-      <ExploreSectionNav active={props.activeSection} onSelect={props.onSectionChange} />
-      {props.activeSection === 'worlds' ? <Button tone="ghost" size="sm" onClick={() => { void navigation.push({ ...destination, exploreSearchKind: characters ? 'worlds' : 'characters' }); }}>
-        {characters ? <ArrowLeft size={16} /> : <Search size={16} />}{t(characters ? 'runtimeConfig.partners.backWorlds' : 'runtimeConfig.partners.findCharacters')}
-      </Button> : null}
-    </header>
-    {props.activeSection === 'partners' ? <PartnerDirectory /> : characters ? <CharacterDiscovery /> : <WorldDiscovery />}
+    {props.activeSection === 'worlds' && !characters ? null : <header className="flex flex-wrap items-center justify-between gap-3 px-1">
+      {sectionNav}
+    </header>}
+    {props.activeSection === 'partners' ? <PartnerDirectory /> : characters ? <CharacterDiscovery /> : <WorldDiscovery headerLeading={sectionNav} headerTrailing={partnerAction} />}
   </div>;
 }
 
@@ -43,7 +44,7 @@ function useSearch(value: string) {
   return query;
 }
 
-function WorldDiscovery() {
+function WorldDiscovery({ headerLeading, headerTrailing }: { headerLeading: ReactNode; headerTrailing: ReactNode }) {
   const bindings = useDesktopRendererBindings();
   const destination = useHomeDestination();
   const navigation = useHomeNavigation();
@@ -66,8 +67,7 @@ function WorldDiscovery() {
     offlineIncomplete: catalog.offline && Boolean(catalog.query.data), onLoadMore: () => { void catalog.query.fetchNextPage(); } };
   const source = { data: realmWorldData, realmBaseUrl, enabled: bootstrapReady, offline: networkOffline };
   const spotlight = useWorldAtlasLeadWorlds({ ...source, enabled: bootstrapReady && !favoritesSelected && !topicId && !worldSearchText.trim() });
-  const renderPeople = (world: (typeof worlds)[number]) => <WorldAtlasPeople world={world} source={source} />;
-  return <WorldCatalogContent embedded favorites={favoritesSelected}
+  return <WorldCatalogContent embedded favorites={favoritesSelected} headerLeading={headerLeading} headerTrailing={headerTrailing}
     onFavoritesSelect={() => { void navigation.replace({ ...destination, worldTopicId: undefined, worldCollection: 'favorites' }); }}
     favoritesUnavailable={favoritesSelected ? favorites.unavailable : undefined} favoritesPartialError={favoritesSelected && favorites.partialError}
     loading={favoritesSelected ? favorites.loading : catalog.initialLoading} error={favoritesSelected ? favorites.error : catalog.initialUnavailable}
@@ -76,7 +76,6 @@ function WorldDiscovery() {
     leadWorlds={spotlight.worlds} spotlightLoading={spotlight.loading} spotlightError={spotlight.error} onRetrySpotlight={spotlight.retry}
     paging={favoritesSelected ? { totalCount: favorites.worlds.length, hasMore: false, loadingMore: false, loadMoreFailed: false, offlineIncomplete: favorites.offline && favorites.worlds.length > 0, onLoadMore() {} } : paging}
     topics={topics.data ?? []} topicId={topicId} onTopicChange={setTopic} topicsFailed={topics.isError} onRetryTopics={() => { void topics.refetch(); }}
-    renderPeople={renderPeople}
     searchQuery={worldSearchText} onSearchQueryChange={worldSearch => { void navigation.replace({ ...destination, worldSearch }); }} />;
 }
 
@@ -89,6 +88,7 @@ function CharacterDiscovery() {
   const accountId = useAppStore(state => state.auth.user?.id ?? '');
   const bootstrapReady = useAppStore(state => state.bootstrapReady);
   const offline = useAppStore(state => state.offlineTier !== 'L0');
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const queryText = destination.search ?? '';
   const query = useSearch(queryText);
   const tooLong = [...query].length > 100;
@@ -98,8 +98,11 @@ function CharacterDiscovery() {
   const viewport = useHomeListPosition(JSON.stringify(['characters', realmBaseUrl, accountId, query]), !catalog.initialLoading);
   return <ScrollArea viewportRef={viewport} className="min-h-0 flex-1" contentClassName="mx-auto max-w-[1120px] space-y-5 p-5">
     <header className="flex flex-wrap items-center justify-between gap-4"><h1 className="text-2xl font-semibold">{t('runtimeConfig.partners.findCharacters')}</h1>
-      <SearchField aria-label={t('runtimeConfig.partners.characterSearch')} placeholder={t('runtimeConfig.partners.characterSearch')} value={queryText}
-        maxLength={100} onChange={event => { void navigation.replace({ ...destination, search: event.target.value }); }} /></header>
+      <SearchField ref={searchInputRef} aria-label={t('runtimeConfig.partners.characterSearch')} placeholder={t('runtimeConfig.partners.characterSearch')} value={queryText}
+        maxLength={100} onChange={event => { void navigation.replace({ ...destination, search: event.target.value }); }}
+        trailing={queryText ? <IconButton tone="ghost" size="sm" icon={<X size={15} aria-hidden="true" />}
+          aria-label={t('Common.clear')} title={t('Common.clear')}
+          onClick={() => { void navigation.replace({ ...destination, search: '' }); searchInputRef.current?.focus(); }} /> : undefined} /></header>
     {tooLong ? <InlineAlert tone="warning">{t('runtimeConfig.partners.searchLimit')}</InlineAlert>
       : catalog.initialLoading ? <LoadingSkeleton lines={5} />
         : catalog.initialUnavailable ? <InlineAlert tone="warning" action={<Button onClick={() => { void catalog.query.refetch(); }}>{t('Common.retry')}</Button>}>{t('runtimeConfig.partners.charactersUnavailable')}</InlineAlert>

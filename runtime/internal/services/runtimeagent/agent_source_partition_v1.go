@@ -423,6 +423,16 @@ func projectLocalAgentTypedCorpusV1(snapshot localAgentSourceSnapshotV2, partiti
 		agentTurnContextTextField{Name: "greeting_variants", Values: agentTurnContextOptionalStrings(interaction.GreetingVariants)}); err != nil {
 		return err
 	}
+	if interaction.MeetingScenes != nil {
+		for _, scene := range *interaction.MeetingScenes {
+			if err := appendUnit("source.meeting-scene."+scene.SceneID, "dialogue_exemplar", "semanticPayload.canonicalSource.profile.interactionProfile.meetingScenes."+scene.SceneID, characterRef, agentTurnContextV3PriorityOptional, "Authored first meeting example, not a current event",
+				agentTurnContextTextField{Name: "title", Values: []string{scene.Title}},
+				agentTurnContextTextField{Name: "scenario", Values: []string{scene.Scenario}},
+				agentTurnContextTextField{Name: "character", Values: []string{scene.Greeting}}); err != nil {
+				return err
+			}
+		}
+	}
 	if interaction.DialogueExemplars == nil || len(*interaction.DialogueExemplars) == 0 {
 		if err := appendLocalAgentCognitionOmissionV1(partition, seenCoverageIDs, "source.dialogue-exemplars", "dialogue_exemplar", "semanticPayload.canonicalSource.profile.interactionProfile.dialogueExemplars", characterRef, "explicit_source_section_empty"); err != nil {
 			return err

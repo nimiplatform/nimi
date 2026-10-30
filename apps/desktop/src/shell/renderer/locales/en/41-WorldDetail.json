@@ -1,7 +1,7 @@
 {
   "discovery": {
     "readingIncomplete": "Some world settings or history could not be loaded. Showing the content loaded so far.",
-    "placesIncomplete": "Places and references could not be loaded. Try again to view them.",
+    "placesIncomplete": "Some scenes or illustrations could not be loaded. Please retry.",
     "people": "People in this world",
     "peopleCount": "{{count}} people",
     "searchPeople": "Search people in this world",
@@ -10,10 +10,10 @@
     "viewCharacter": "View character",
     "viewNamedCharacter": "View {{name}}",
     "reader": "About this world",
-    "readWorld": "Continue reading",
+    "readWorld": "Read the full story",
     "readingEntryCount": "{{count}} items",
     "about": "How this world works",
-    "places": "Places to linger",
+    "places": "Scenes",
     "follow": "Add to favorites",
     "followed": "Remove from favorites",
     "enterWorld": "Explore world",
@@ -32,7 +32,12 @@
       "causality": "Causality",
       "languages": "Languages",
       "history": "World history"
-    }
+    },
+    "story": "World story",
+    "contents": "Contents",
+    "backToWorld": "Back to world",
+    "illustrations": "World illustrations",
+    "illustrationAlt": "Illustration {{index}} of {{name}}"
   },
   "title": "World",
   "loading": "Loading world details...",

@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Surface } from '@nimiplatform/kit/ui';
 import { E2E_IDS } from '../../testability/e2e-ids';
 
 // Authority: .nimi/spec/desktop/product-surfaces.authority.yaml
@@ -68,11 +67,11 @@ export function ExploreSectionNav({
   variant?: 'panel' | 'topbar';
 }) {
   const { t } = useTranslation();
-  const nav = (
-    <div className={variant === 'topbar' ? 'flex min-w-0 shrink-0 items-center gap-4 sm:gap-8' : 'flex flex-wrap items-center gap-2'}>
+  return (
+    <div className={variant === 'topbar' ? 'flex min-w-0 shrink-0 items-center gap-4 sm:gap-8' : 'flex min-w-0 items-center gap-2'}>
       <nav
         aria-label={t('Explore.sectionNavLabel', { defaultValue: 'Explore sections' })}
-        className={variant === 'topbar' ? 'flex min-w-0 items-center gap-4 sm:gap-8' : 'flex min-w-0 flex-wrap gap-1.5'}
+        className={variant === 'topbar' ? 'flex min-w-0 items-center gap-4 sm:gap-8' : 'flex min-w-0 items-center gap-7'}
         data-testid="explore-section-nav"
       >
         {EXPLORE_SECTION_IDS.map((id) => {
@@ -89,22 +88,8 @@ export function ExploreSectionNav({
               onClick={() => onSelect(id)}
               className={variant === 'topbar'
                 ? `inline-flex h-10 shrink-0 items-center text-[15px] transition-colors duration-200 ease-out hover:text-[color:var(--nimi-fg-1)] ${isActive ? 'font-semibold text-[color:var(--nimi-accent)]' : 'font-medium text-[color:var(--nimi-fg-2)]'}`
-                : 'inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-sm font-semibold transition-colors'}
-              style={{
-                fontFamily: 'var(--nimi-font-sans)',
-                background: variant === 'topbar'
-                  ? 'transparent'
-                  : (isActive ? 'var(--nimi-accent)' : 'transparent'),
-                color: variant === 'topbar'
-                  ? undefined
-                  : (isActive ? 'var(--nimi-accent-onAccent)' : 'var(--nimi-fg-2)'),
-                border: variant === 'topbar'
-                  ? undefined
-                  : (isActive
-                    ? '1px solid color-mix(in srgb, var(--nimi-accent) 80%, transparent)'
-                    : '1px solid transparent'),
-                boxShadow: undefined,
-              }}
+                : `relative inline-flex h-12 shrink-0 items-center gap-2 text-[15px] transition-colors duration-200 ease-out after:absolute after:inset-x-0 after:bottom-0 after:h-0.5 after:rounded-full after:transition-colors hover:text-[color:var(--nimi-fg-1)] ${isActive ? 'font-semibold text-[color:var(--nimi-accent)] after:bg-[color:var(--nimi-accent)]' : 'font-medium text-[color:var(--nimi-fg-2)] after:bg-transparent'}`}
+              style={{ fontFamily: 'var(--nimi-font-sans)', background: 'transparent' }}
             >
               {variant === 'topbar' ? null : (
                 <span aria-hidden className="shrink-0">{meta.icon}</span>
@@ -120,21 +105,6 @@ export function ExploreSectionNav({
         </div>
       )}
     </div>
-  );
-
-  if (variant === 'topbar') {
-    return nav;
-  }
-
-  return (
-    <Surface
-      tone="panel"
-      material="glass-regular"
-      padding="none"
-      className="rounded-2xl border-white/60 p-1.5 shadow-[0_14px_34px_rgba(15,23,42,0.05)]"
-    >
-      {nav}
-    </Surface>
   );
 }
 

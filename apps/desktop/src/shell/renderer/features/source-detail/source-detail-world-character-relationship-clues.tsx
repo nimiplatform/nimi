@@ -2,6 +2,7 @@ import { useTranslation } from 'react-i18next';
 import type { SourceDetailData } from './source-detail-model.js';
 import { uniqueStrings } from './source-detail-world-character-labels.js';
 import { relationKindLabel } from './source-detail-world-character-theme.js';
+import { CharacterProfileText } from './source-detail-character-content.js';
 
 type RelationshipClueItem = {
   id: string;
@@ -187,7 +188,7 @@ function RelationshipTextSection({ items, group }: { items: RelationshipClueItem
       <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">
         {titles[group]}
       </h2>
-      <ul data-testid={`${testId}-list`} role="list" className="mt-5 space-y-5">
+      <ul data-testid={`${testId}-list`} role="list" className={group === 'people' ? 'mt-3 divide-y divide-[var(--nimi-border-subtle)]' : 'mt-4 space-y-4'}>
         {items.map((item) => {
           const kind = item.type ? relationKindLabel(item.type, t) : null;
           const prose = item.summary ?? item.title;
@@ -198,6 +199,18 @@ function RelationshipTextSection({ items, group }: { items: RelationshipClueItem
             item.summary ? item.title : null,
             kind,
           ]).filter((text) => text !== prose);
+          if (group === 'people') return <li key={item.id}
+            data-testid={testId + '-clue-' + (item.type ?? 'untyped')}
+            className="grid grid-cols-[minmax(64px,0.25fr)_minmax(0,1fr)] gap-4 py-3">
+            <div className="min-w-0 break-words">
+              <p className="text-sm font-semibold text-[var(--nimi-text-primary)]">{item.title}</p>
+              {kind && kind !== item.title ? <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">{kind}</p> : null}
+            </div>
+            <div className="min-w-0 space-y-1">
+              {item.summary ? <CharacterProfileText text={item.summary} lines={2} /> : null}
+              {item.details.map(detail => <CharacterProfileText key={detail} text={detail} lines={2} />)}
+            </div>
+          </li>;
           return (
             <li
               key={item.id}

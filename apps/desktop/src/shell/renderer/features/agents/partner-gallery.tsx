@@ -128,7 +128,6 @@ export function PartnerGallery(props: GalleryProps) {
     void navigation.push({ ...destination, partner: { localAgentRef: partner.localAgentRef, ...(settings ? { settingsSection: 'overview' as const } : {}) } });
   };
   return <ScrollArea viewportRef={viewport} className={`min-h-0 min-w-0 flex-1 ${props.active ? 'hidden lg:block' : 'hidden'}`}><div className="partner-gallery" data-partner-gallery="true">
-    <header className="partner-gallery-header"><h1>{t(`${P}.title`)}</h1><p>{t(`${P}.gallery.subtitle`)}</p></header>
     {props.error ? <InlineAlert tone="warning" action={<Button size="sm" onClick={props.onRetry}>{t('Common.retry')}</Button>}>{t(`${P}.loadFailed`)}</InlineAlert> : null}
     {chat.failed ? <InlineAlert tone="warning">{t(`${P}.actionFailed`)}</InlineAlert> : null}
     {props.loading ? <LoadingSkeleton lines={6} /> : <>

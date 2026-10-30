@@ -79,7 +79,7 @@ test('incoming person relationships use the other endpoint and survive more than
   }, 'source_materialization_available');
   const markup = renderToStaticMarkup(React.createElement(WorldCharacterRelationshipCluesSection, { source }));
   assert.match(markup, /友人与欧阳德交游。/);
-  assert.match(markup, /友人 · custom-bond/);
+  assert.match(markup, />友人<\/p>[\s\S]*>custom-bond<\/p>/);
   assert.doesNotMatch(markup, /地点记录|欧阳德 · custom-bond/);
 });
 
@@ -107,7 +107,7 @@ test('relationship text localizes type identifiers and keeps authored descriptio
     source.relationshipTargets = { 'person-fang': { kind: 'person', name: '方婉仪' } };
     const markup = renderToStaticMarkup(React.createElement(AllRelationshipSections, { source }));
     const visibleMarkup = markup.replace(/\sdata-[^=]+="[^"]*"/gu, '');
-    assert.match(visibleMarkup, /方婉仪 · 夫妻/);
+    assert.match(visibleMarkup, />方婉仪<\/p>[\s\S]*>夫妻<\/p>/);
     assert.doesNotMatch(visibleMarkup, /共同创作|两人合作绘制花卉图卷|亲手绘制的瘦竹墨轴/);
     assert.match(visibleMarkup, /方婉仪与罗聘为夫妻。/);
     for (const [prose, context] of [
@@ -116,7 +116,7 @@ test('relationship text localizes type identifiers and keeps authored descriptio
       assert.ok(visibleMarkup.includes(`<p>${prose}<span`));
       assert.ok(visibleMarkup.includes(`（${context}）`));
     }
-    assert.match(visibleMarkup, /<h2[^>]*>人物关系<\/h2>/);
+    assert.match(visibleMarkup, /<h2[^>]*>相关角色<\/h2>/);
     assert.doesNotMatch(visibleMarkup, /关系线索|<svg|<\/span>：/);
     assert.doesNotMatch(visibleMarkup, /相关线索|spouses|co-creator-of|caretaker-of|trades-at|mentor-and-supervisor|creator-of|neighborly-cooperation|<button|aria-pressed/);
     assert.doesNotMatch(markup, /world-character-relationship-map|world-character-relationship-cards/);
@@ -349,7 +349,7 @@ test('world character relationship text localizes kinship kind labels', async ()
       }),
     );
 
-    assert.match(markup, /温氏 · 亲属/);
+    assert.match(markup, />温氏<\/p>[\s\S]*>亲属<\/p>/);
     assert.doesNotMatch(markup, />kinship</);
     assert.doesNotMatch(markup, /围绕亲属展开/);
   } finally {

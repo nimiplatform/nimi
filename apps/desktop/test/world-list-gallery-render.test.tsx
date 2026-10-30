@@ -8,6 +8,8 @@ import { AppStoreProvider } from '../src/shell/renderer/app-shell/providers/app-
 import { createAppStore } from '../src/shell/renderer/app-shell/providers/app-store-factory.js';
 import { createHomeNavigation } from '../src/shell/renderer/app-shell/providers/home-navigation.js';
 import { WorldCatalogContent, type WorldCatalogPaging } from '../src/shell/renderer/features/world/world-list.js';
+import { ExploreSectionNav } from '../src/shell/renderer/features/explore/explore-section-nav.js';
+import { WorldAlbumCard, WorldAtlasHero, WorldDiscoveryCard } from '../src/shell/renderer/features/world/world-atlas.js';
 import type { WorldListItem } from '../src/shell/renderer/features/world/world-list-model.js';
 
 (globalThis as { React?: typeof React }).React = React;
@@ -82,6 +84,44 @@ test('world gallery shows typed summaries and keeps the server total separate fr
   assert.equal(document.querySelector('[data-testid="world-detail-discovery"]'), null);
 });
 
+test('world gallery combines section tabs, count, search and partner discovery in one header', () => {
+  const document = new JSDOM(renderToStaticMarkup(
+    <AppStoreProvider store={store}><WorldCatalogContent
+      worlds={[world]} paging={paging}
+      headerLeading={<ExploreSectionNav active="worlds" onSelect={() => {}} />}
+      headerTrailing={<button>发现伙伴</button>}
+    /></AppStoreProvider>,
+  )).window.document;
+  const header = document.querySelector('.world-atlas-header-combined');
+  assert.ok(header?.querySelector('[data-testid="explore-section-nav"]'));
+  assert.equal(header?.querySelector('.world-atlas-count')?.textContent, '137 个世界');
+  assert.ok(header?.querySelector('input'));
+  assert.equal(header?.querySelector('h1'), null);
+  assert.equal(header?.querySelector('.world-atlas-tools')?.lastElementChild?.textContent, '发现伙伴');
+});
+
+test('world layouts preserve reviewed copy while discovery cards show only the name', () => {
+  const reviewedWorld = {
+    ...world,
+    name: '拆了演武场赔不起，我和宿敌连夜组队抢奖金',
+    tagline: '第18次约架拆了军校最豪华的演武场，背上五百万巨债的你和死对头姜燎被迫绑死组队，拉上毒舌改装师程野，开启一边打爆全国联赛抢奖金、一边抠门算账的疯狗夺冠路！',
+  };
+  for (const layout of [
+    <WorldAtlasHero worlds={[reviewedWorld]} />,
+    <WorldAlbumCard world={reviewedWorld} />,
+  ]) {
+    const document = new JSDOM(renderToStaticMarkup(<AppStoreProvider store={store}>{layout}</AppStoreProvider>)).window.document;
+    assert.equal(document.querySelector('h2, h3')?.textContent, reviewedWorld.name);
+    assert.deepEqual(Array.from(document.querySelectorAll('p')).map(node => node.textContent), [reviewedWorld.tagline]);
+    assert.ok(!document.body.textContent?.includes('80 位人物'));
+  }
+  const discoveryDocument = new JSDOM(renderToStaticMarkup(<AppStoreProvider store={store}><WorldDiscoveryCard world={reviewedWorld} /></AppStoreProvider>)).window.document;
+  assert.equal(discoveryDocument.querySelector('h3')?.textContent, reviewedWorld.name);
+  assert.equal(discoveryDocument.querySelector('p'), null);
+  const searchDocument = render({}, [world], '唐');
+  assert.equal(searchDocument.querySelector('.world-album-caption p')?.textContent, world.description);
+});
+
 test('world gallery preserves returned order and does not filter loaded rows again', () => {
   const document = render({}, [{ ...world, id: 'world-b', name: '另一个世界' }, world], '唐');
   assert.deepEqual(Array.from(document.querySelectorAll('h2[title]')).map((heading) => heading.textContent), ['另一个世界', world.name]);
@@ -122,26 +162,41 @@ test('hero uses covered creator worlds while keeping the main world in the catal
   assert.equal(document.querySelector('[aria-label="下一个世界"]'), null);
 });
 
-test('search results omit the hero and featured worlds', () => {
+test('search results omit the hero', () => {
   const document = render({}, [{ ...world, bannerUrl: 'https://example.com/real-cover.png' }], '唐');
   assert.equal(document.querySelector('.world-atlas-hero'), null);
-  assert.equal(document.querySelector('[data-testid="world-featured-card"]'), null);
   assert.equal(document.querySelectorAll('[data-testid="world-discovery-card"]').length, 1);
 });
 
-test('discovery keeps featured order and removes worlds displayed above from exploration', () => {
+test('discovery removes only spotlight worlds from exploration', () => {
   const worlds = [
     { ...world, id: 'main', type: 'OASIS', bannerUrl: 'https://example.com/main.png' },
     { ...world, id: 'uncovered' },
     ...['first', 'second', 'third'].map(id => ({ ...world, id, name: id, bannerUrl: `https://example.com/${id}.png`, tagline: `Introduction to ${id}` })),
   ];
   const document = render({}, worlds);
-  assert.deepEqual(Array.from(document.querySelectorAll('[data-testid="world-featured-card"] h3')).map(node => node.textContent), ['first', 'second']);
   assert.deepEqual(Array.from(document.querySelectorAll('.world-discovery-grid h3')).map(node => node.textContent), worlds.slice(0, 2).map(item => item.name));
-  assert.equal(document.querySelector('[data-testid="world-featured-card"] p')?.textContent, 'Introduction to first');
-  assert.equal(document.querySelector('.world-discovery-grid p')?.textContent, world.description);
-  assert.ok(document.querySelector('section[aria-label="为你精选的世界"]'));
+  assert.equal(document.querySelector('.world-discovery-grid p'), null);
+  assert.equal(document.querySelector('section[aria-label="为你精选的世界"]'), null);
   assert.ok(document.querySelector('section[aria-label="探索更多世界"]'));
+});
+
+test('exploration cards use the taller hero rendition instead of the cropped card rendition', () => {
+  const media: NonNullable<WorldListItem['bannerMedia']> = {
+    resourceId: 'resource-cover', contentVersion: 'a'.repeat(64), publicationGeneration: 1, policyVersion: 'policy-v1',
+    expiresAt: null, previewUrl: null, originalUrl: null, video: null,
+    images: ['card', 'hero'].map((purpose) => ({
+      purpose: purpose as 'card' | 'hero',
+      families: [{ mimeType: 'image/png', sources: [{ url: `https://example.com/${purpose}-640.png`, width: 640, height: purpose === 'card' ? 264 : 427, mimeType: 'image/png' }] }],
+    })),
+  };
+  const document = new JSDOM(renderToStaticMarkup(
+    <AppStoreProvider store={store}><WorldDiscoveryCard world={{ ...world, bannerMedia: media }} /></AppStoreProvider>,
+  )).window.document;
+  const image = document.querySelector('.world-discovery-card img');
+  assert.equal(image?.getAttribute('src'), 'https://example.com/hero-640.png');
+  assert.equal(image?.getAttribute('width'), '640');
+  assert.equal(image?.getAttribute('height'), '427');
 });
 
 test('spotlight leads resolve outside the first page and stay out of exploration after pagination', () => {
@@ -162,8 +217,7 @@ test('spotlight leads resolve outside the first page and stay out of exploration
       '查看红土大满贯：混双搭档是刚分手的前任，卫冕冠军在场边等我摔拍子', '查看薄墨平原', '查看雾峡灯塔与鲸骨邮局',
     ]);
     assert.equal(document.querySelector('.world-atlas-hero h2')?.textContent, leads[0]!.name);
-    assert.deepEqual(Array.from(document.querySelectorAll('[data-testid="world-featured-card"] h3')).map(node => node.textContent), ['Catalog 0', 'Catalog 1']);
-    assert.deepEqual(Array.from(document.querySelectorAll('.world-discovery-grid h3')).map(node => node.textContent), catalog.slice(2).map(item => item.name));
+    assert.deepEqual(Array.from(document.querySelectorAll('.world-discovery-grid h3')).map(node => node.textContent), catalog.map(item => item.name));
     assert.ok(document.querySelector('[data-testid="world-catalog-load-more"]'));
   }
 });
@@ -175,8 +229,7 @@ test('spotlight-only loading and errors leave the catalog available without excl
       worlds={worlds} paging={paging} {...state}
     /></AppStoreProvider>)).window.document;
     assert.equal(document.querySelector('.world-atlas-hero'), null);
-    assert.equal(document.querySelectorAll('[data-testid="world-featured-card"]').length, 2);
-    assert.deepEqual(Array.from(document.querySelectorAll('.world-discovery-grid h3')).map(node => node.textContent), ['World 2', 'World 3']);
+    assert.deepEqual(Array.from(document.querySelectorAll('.world-discovery-grid h3')).map(node => node.textContent), worlds.map(item => item.name));
   }
 });
 
@@ -215,7 +268,6 @@ test('favorites show the saved world grid without discovery shelves and keep the
   assert.equal(document.querySelector('nav button[aria-pressed="true"]')?.textContent, '我的收藏');
   assert.equal(document.querySelectorAll('[data-testid="world-discovery-card"]').length, 1);
   assert.equal(document.querySelector('.world-atlas-hero'), null);
-  assert.equal(document.querySelector('[data-testid="world-featured-card"]'), null);
   assert.equal(document.querySelector('[data-testid="world-catalog-load-more"]'), null);
 });
 

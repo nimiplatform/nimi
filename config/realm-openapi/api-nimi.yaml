@@ -889,6 +889,30 @@ components:
                   items:
                     type: string
                   type: array
+                meetingScenes:
+                  items:
+                    additionalProperties: false
+                    properties:
+                      greeting:
+                        minLength: 1
+                        type: string
+                      scenario:
+                        minLength: 1
+                        type: string
+                      sceneId:
+                        minLength: 1
+                        type: string
+                      title:
+                        minLength: 1
+                        type: string
+                    required:
+                      - sceneId
+                      - title
+                      - scenario
+                      - greeting
+                    type: object
+                  minItems: 1
+                  type: array
                 scenario:
                   type: string
                 tone:
@@ -1219,6 +1243,30 @@ components:
             interactionModes:
               items:
                 type: string
+              type: array
+            meetingScenes:
+              items:
+                additionalProperties: false
+                properties:
+                  greeting:
+                    minLength: 1
+                    type: string
+                  scenario:
+                    minLength: 1
+                    type: string
+                  sceneId:
+                    minLength: 1
+                    type: string
+                  title:
+                    minLength: 1
+                    type: string
+                required:
+                  - sceneId
+                  - title
+                  - scenario
+                  - greeting
+                type: object
+              minItems: 1
               type: array
             scenario:
               type: string
