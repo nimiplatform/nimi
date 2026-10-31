@@ -10,6 +10,7 @@ import {
   PopoverContent,
   PopoverTrigger,
   ScrollArea,
+  SearchField,
   SelectField as KitSelectField,
   SettingsSectionTitle as KitSettingsSectionTitle,
   StatusBadge as KitStatusBadge,
@@ -221,15 +222,6 @@ function SelectCheckIcon() {
   );
 }
 
-function SearchGlyph() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-      <circle cx="11" cy="11" r="8" />
-      <line x1="21" y1="21" x2="16.65" y2="16.65" />
-    </svg>
-  );
-}
-
 function SearchableRuntimeSelect({
   value,
   onChange,
@@ -335,20 +327,17 @@ function SearchableRuntimeSelect({
         )}
       >
         <div className="border-b border-[var(--nimi-border-subtle)] p-2">
-          <div className="relative">
-            <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[var(--nimi-text-muted)]">
-              <SearchGlyph />
-            </span>
-            <input
-              autoFocus
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.currentTarget.value)}
-              onKeyDown={onSearchKeyDown}
-              placeholder={searchPlaceholder || t('runtimeConfig.common.searchOptions', { defaultValue: 'Search options...' })}
-              aria-label={searchPlaceholder || t('runtimeConfig.common.searchOptions', { defaultValue: 'Search options...' })}
-              className="h-9 w-full rounded-md border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] pl-9 pr-3 text-sm text-[var(--nimi-field-text)] outline-none placeholder:text-[var(--nimi-text-muted)] focus:border-[var(--nimi-field-focus)] focus:ring-[length:var(--nimi-focus-ring-width)] focus:ring-[var(--nimi-focus-ring-color)]"
-            />
-          </div>
+          <SearchField
+            autoFocus
+            value={searchQuery}
+            onChange={(event) => setSearchQuery(event.currentTarget.value)}
+            onClear={() => setSearchQuery('')}
+            clearLabel={t('Common.clear')}
+            onKeyDown={onSearchKeyDown}
+            placeholder={searchPlaceholder || t('runtimeConfig.common.searchOptions', { defaultValue: 'Search options...' })}
+            aria-label={searchPlaceholder || t('runtimeConfig.common.searchOptions', { defaultValue: 'Search options...' })}
+            className="min-h-9 w-full"
+          />
         </div>
         <ScrollArea className="h-72 max-h-[var(--radix-popover-content-available-height)]" contentClassName="p-1 pr-3">
           <div role="listbox" className="space-y-0.5">

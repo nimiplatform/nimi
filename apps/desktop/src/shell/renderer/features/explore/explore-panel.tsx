@@ -1,8 +1,8 @@
 import { useState, useEffect, useMemo, useRef, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Avatar, Button, EmptyState, IconButton, InlineAlert, LoadingSkeleton, ScrollArea, SearchField } from '@nimiplatform/kit/ui';
-import { UsersRound, X } from 'lucide-react';
+import { Avatar, Button, EmptyState, InlineAlert, LoadingSkeleton, ScrollArea, SearchField } from '@nimiplatform/kit/ui';
+import { UsersRound } from 'lucide-react';
 import { useAppStore, useHomeDestination, useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useHomeListPosition } from '../../app-shell/providers/use-home-list-position.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
@@ -100,9 +100,7 @@ function CharacterDiscovery() {
     <header className="flex flex-wrap items-center justify-between gap-4"><h1 className="text-2xl font-semibold">{t('runtimeConfig.partners.findCharacters')}</h1>
       <SearchField ref={searchInputRef} aria-label={t('runtimeConfig.partners.characterSearch')} placeholder={t('runtimeConfig.partners.characterSearch')} value={queryText}
         maxLength={100} onChange={event => { void navigation.replace({ ...destination, search: event.target.value }); }}
-        trailing={queryText ? <IconButton tone="ghost" size="sm" icon={<X size={15} aria-hidden="true" />}
-          aria-label={t('Common.clear')} title={t('Common.clear')}
-          onClick={() => { void navigation.replace({ ...destination, search: '' }); searchInputRef.current?.focus(); }} /> : undefined} /></header>
+        onClear={() => { void navigation.replace({ ...destination, search: '' }); }} clearLabel={t('Common.clear')} /></header>
     {tooLong ? <InlineAlert tone="warning">{t('runtimeConfig.partners.searchLimit')}</InlineAlert>
       : catalog.initialLoading ? <LoadingSkeleton lines={5} />
         : catalog.initialUnavailable ? <InlineAlert tone="warning" action={<Button onClick={() => { void catalog.query.refetch(); }}>{t('Common.retry')}</Button>}>{t('runtimeConfig.partners.charactersUnavailable')}</InlineAlert>

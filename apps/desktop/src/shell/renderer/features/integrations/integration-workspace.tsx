@@ -85,6 +85,8 @@ export function IntegrationSidebar({
         <SearchField
           value={query}
           onChange={(event) => setQuery(event.target.value)}
+          onClear={() => setQuery('')}
+          clearLabel={t('Common.clear')}
           onKeyDown={(event) => {
             if (event.key === 'Escape') setQuery('');
           }}

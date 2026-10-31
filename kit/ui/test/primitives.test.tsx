@@ -283,6 +283,67 @@ test('text field danger tone applies danger chrome and auto-sets aria-invalid', 
   expect(explicitTrueInput!.getAttribute('aria-invalid')).toBe('true');
 });
 
+test('search field uses consistent typography and clears from its internal action', async () => {
+  function SearchHarness() {
+    const [query, setQuery] = useState('world');
+    return <SearchField
+      data-testid="search-filled"
+      clearButtonTestId="search-clear"
+      clearLabel="Clear search"
+      placeholder="Search worlds"
+      value={query}
+      onChange={(event) => setQuery(event.target.value)}
+      onClear={() => setQuery('')}
+    />;
+  }
+
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+  await act(async () => {
+    root?.render(<><SearchHarness /><SearchField data-testid="search-empty" value="" onChange={() => {}} onClear={() => {}} clearLabel="Clear search" /></>);
+    await flush();
+  });
+
+  const input = document.querySelector('[data-testid="search-filled"]') as HTMLInputElement;
+  expect(input.type).toBe('search');
+  expect(input.className).toMatch(/text-sm/);
+  expect(document.querySelector('[data-testid="search-empty"]')?.closest('label')?.querySelector('button')).toBeNull();
+  const clear = document.querySelector('[data-testid="search-clear"]') as HTMLButtonElement;
+  expect(clear.getAttribute('aria-label')).toBe('Clear search');
+  await act(async () => {
+    clear.click();
+    await flush();
+  });
+  expect(input.value).toBe('');
+  expect(document.activeElement).toBe(input);
+  expect(document.querySelector('[data-testid="search-clear"]')).toBeNull();
+});
+
+test('disabled search field prevents clearing until it is enabled', async () => {
+  const onClear = vi.fn();
+  container = document.createElement('div');
+  document.body.appendChild(container);
+  root = createRoot(container);
+  const render = async (disabled: boolean) => act(async () => {
+    root?.render(<SearchField value="model" onChange={() => {}} onClear={onClear} disabled={disabled} clearLabel="Clear search" />);
+  });
+
+  await render(true);
+  const input = container.querySelector('input')!;
+  const clear = container.querySelector('button')!;
+  expect(input.disabled).toBe(true);
+  expect(clear.disabled).toBe(true);
+  await act(async () => clear.click());
+  expect(onClear).not.toHaveBeenCalled();
+
+  await render(false);
+  expect(clear.disabled).toBe(false);
+  await act(async () => clear.click());
+  expect(onClear).toHaveBeenCalledTimes(1);
+  expect(document.activeElement).toBe(input);
+});
+
 test('textarea field danger tone applies danger chrome and auto-sets aria-invalid', async () => {
   container = document.createElement('div');
   document.body.appendChild(container);

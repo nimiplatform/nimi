@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { EmptyState } from '@nimiplatform/kit/ui';
+import { EmptyState, SearchField } from '@nimiplatform/kit/ui';
 import {
   buildWorldRelationshipExplorerModel,
   sameIdentityCharacters,
@@ -161,24 +161,14 @@ function PeoplePanel({
             <span style={{ fontSize: 12, color: 'var(--nimi-text-muted)', fontWeight: 700 }}>{people.length} / {catalog.totalCount}</span>
           ) : null}
         </div>
-        <input
-          type="text"
+        <SearchField
+          className="w-full"
           value={catalog.query}
           onChange={(event) => catalog.onQueryChange(event.target.value)}
+          onClear={() => catalog.onQueryChange('')}
+          clearLabel={t('Common.clear')}
           placeholder={t('WorldDetail.paper.relationshipExplorer.peopleList.searchPlaceholder')}
           aria-label={t('WorldDetail.paper.relationshipExplorer.peopleList.searchPlaceholder')}
-          style={{
-            width: '100%',
-            boxSizing: 'border-box',
-            padding: '9px 12px',
-            borderRadius: 10,
-            border: '1px solid var(--nimi-border-subtle)',
-            background: 'var(--nimi-surface-panel)',
-            color: 'var(--nimi-text-primary)',
-            fontSize: 13,
-            fontFamily: 'inherit',
-            outline: 'none',
-          }}
         />
       </div>
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 10, scrollbarGutter: 'stable' }}>

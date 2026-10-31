@@ -95,6 +95,8 @@ export function CloudConnectorListPanel(props: {
         <SearchField
           value={query}
           onChange={event => setQuery(event.target.value)}
+          onClear={() => setQuery('')}
+          clearLabel={t('Common.clear')}
           aria-label={t('runtimeConfig.cloudWorkspace.searchConnections')}
           placeholder={t('runtimeConfig.cloudWorkspace.searchConnections')}
           className="min-h-10 min-w-0 flex-1"

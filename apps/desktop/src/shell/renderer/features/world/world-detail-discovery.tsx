@@ -1,7 +1,7 @@
 import { MediaImage, MediaAvatar } from '@nimiplatform/kit/features/media';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight, BookOpen, Bookmark, Compass, MapPin, ScrollText, X } from 'lucide-react';
+import { ArrowRight, BookOpen, Bookmark, Compass, MapPin, ScrollText } from 'lucide-react';
 import { Button, EmptyState, IconButton, LoadingSkeleton, NimiText, SearchField } from '@nimiplatform/kit/ui';
 import type { WorldDetailPageProps } from './world-detail-template.js';
 import type { WorldCharacter, WorldPeopleCatalogState, WorldSceneItem } from './world-detail-types.js';
@@ -34,8 +34,9 @@ function WorldPeopleGallery({ characters, catalog, loading, onView }: {
           {catalog.status === 'ready' ? <NimiText role="caption">{t('WorldDetail.discovery.peopleCount', { count: catalog.totalCount })}</NimiText> : null}
         </div>
         <div className="flex max-w-full items-center gap-1">
-          {showSearch ? <SearchField value={catalog.query} onChange={(event) => catalog.onQueryChange(event.target.value)} onKeyDown={(event) => { if (event.key === 'Escape') catalog.onQueryChange(''); }} placeholder={t('WorldDetail.discovery.searchPeople')} aria-label={t('WorldDetail.discovery.searchPeople')} className="w-full sm:w-64" /> : null}
-          {catalog.query ? <IconButton tone="ghost" size="sm" icon={<X size={15} />} aria-label={t('World.clearSearch')} onClick={() => catalog.onQueryChange('')} /> : null}
+          {showSearch ? <SearchField value={catalog.query} onChange={(event) => catalog.onQueryChange(event.target.value)} onKeyDown={(event) => { if (event.key === 'Escape') catalog.onQueryChange(''); }}
+            onClear={() => catalog.onQueryChange('')} clearLabel={t('World.clearSearch')}
+            placeholder={t('WorldDetail.discovery.searchPeople')} aria-label={t('WorldDetail.discovery.searchPeople')} className="w-full sm:w-64" /> : null}
         </div>
       </div>
       {catalog.status === 'partial' ? <PeopleCatalogFirstPageStatus catalog={catalog} /> : null}

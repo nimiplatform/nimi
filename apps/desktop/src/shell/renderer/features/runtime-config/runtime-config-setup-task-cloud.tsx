@@ -6,8 +6,8 @@ import type {
   NimiAIConfigCloudConnectorOption,
   NimiAIConfigCloudTargetOption,
 } from '@nimiplatform/sdk/ai';
-import { Button, InlineAlert, LoadingSkeleton, StatusBadge, TextField } from '@nimiplatform/kit/ui';
-import { Check, Cloud, Plus, Search } from 'lucide-react';
+import { Button, InlineAlert, LoadingSkeleton, SearchField, StatusBadge } from '@nimiplatform/kit/ui';
+import { Check, Cloud, Plus } from 'lucide-react';
 import { ProviderLogoTile } from '../../components/provider-logo-tile.js';
 import {
   commitRuntimeSetupCloudUse,
@@ -350,13 +350,13 @@ export function RuntimeSetupTaskCloudPanel(props: {
             </p>
           ) : null}
           {targets && targets.length > 0 ? (
-            <TextField
-              type="search" value={targetQuery} onChange={(event) => setTargetQuery(event.currentTarget.value)}
-              leading={<Search size={17} aria-hidden="true" />}
+            <SearchField
+              value={targetQuery} onChange={(event) => setTargetQuery(event.currentTarget.value)}
+              onClear={() => setTargetQuery('')} clearLabel={t('Common.clear')}
               disabled={busy}
               aria-label={t('runtimeConfig.setupTask.cloud.searchModels', { defaultValue: 'Search models' })}
               placeholder={t('runtimeConfig.setupTask.cloud.searchModels', { defaultValue: 'Search models' })}
-              className="min-h-11 rounded-xl bg-[var(--nimi-surface-panel)] text-sm focus-within:ring-1"
+              className="w-full"
               data-testid="runtime-setup-cloud-search"
             />
           ) : null}

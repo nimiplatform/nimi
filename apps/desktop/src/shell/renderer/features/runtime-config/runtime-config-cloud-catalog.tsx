@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { TextField } from '@nimiplatform/kit/ui';
-import { Search } from 'lucide-react';
+import { SearchField } from '@nimiplatform/kit/ui';
 import { normalizeNimiRuntimeReasonCode, type NimiRuntimeConnectorCatalogEntry } from '@nimiplatform/sdk/runtime';
 import { asNimiError } from '@nimiplatform/sdk/types';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
@@ -59,7 +58,9 @@ export function CloudConnectorCatalog({ connector, onConfigure }: {
     </div>
     <p className="mt-1 text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.cloudWorkspace.catalogIntro')}</p>
     {visible.loaded && visible.rows.length > 0 ? <div className="mt-5 flex flex-wrap items-center gap-3">
-      <div className="min-w-0 flex-1"><TextField value={query} onChange={event => { setQuery(event.target.value); setLimit(20); }} leading={<Search size={16} />} aria-label={t('runtimeConfig.cloudWorkspace.searchModels')} placeholder={t('runtimeConfig.cloudWorkspace.searchModels')} /></div>
+      <div className="min-w-0 flex-1"><SearchField value={query} onChange={event => { setQuery(event.target.value); setLimit(20); }}
+        onClear={() => { setQuery(''); setLimit(20); }} clearLabel={t('Common.clear')}
+        aria-label={t('runtimeConfig.cloudWorkspace.searchModels')} placeholder={t('runtimeConfig.cloudWorkspace.searchModels')} /></div>
       {capabilities.length > 1 ? <select className="max-w-full rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-sm text-[var(--nimi-text-secondary)]" aria-label={t('runtimeConfig.cloudWorkspace.filterCapability')} value={capability} onChange={event => { setCapability(event.target.value); setLimit(20); }}>
         <option value="">{t('runtimeConfig.cloudWorkspace.allCapabilities')}</option>
         {capabilities.map(value => <option key={value} value={value}>{displayRuntimeConfigCapabilityLabel(value, t)}</option>)}

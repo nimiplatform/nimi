@@ -139,6 +139,8 @@ export function HomeMessageSourceFilter({ options, value, onChange, appIconUrl }
               ref={inputRef}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
+              onClear={() => setQuery('')}
+              clearLabel={t('Common.clear')}
               placeholder={t('runtimeConfig.overview.messages.searchSources')}
               aria-label={t('runtimeConfig.overview.messages.searchSources')}
               aria-controls={listId}

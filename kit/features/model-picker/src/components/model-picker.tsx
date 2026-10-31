@@ -140,6 +140,7 @@ function RouteModelPicker<TCandidate>(props: {
         <SearchField
           value={state.searchQuery}
           onChange={(event) => state.setSearchQuery(event.currentTarget.value)}
+          onClear={() => state.setSearchQuery('')}
           placeholder={copy.searchPlaceholder}
         />
       </div>
@@ -216,6 +217,7 @@ export function ModelPicker<TCandidate>({ state, className, copy, presentation =
         <SearchField
           value={state.searchQuery}
           onChange={(event) => state.setSearchQuery(event.currentTarget.value)}
+          onClear={() => state.setSearchQuery('')}
           placeholder={labels.searchPlaceholder}
         />
         {capabilityFilter ? (

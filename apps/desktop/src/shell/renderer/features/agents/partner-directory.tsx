@@ -67,7 +67,8 @@ export function PartnerDirectory() {
       <header className="partner-directory-header">
         <h1 ref={heading} tabIndex={-1}>{t(`${P}.title`)}</h1>
         <SearchField className="partner-directory-search" aria-label={t(`${P}.search`)} placeholder={t(`${P}.search`)} value={query}
-          onChange={event => { void navigation.replace({ ...destination, partnerQuery: event.target.value }); }} />
+          onChange={event => { void navigation.replace({ ...destination, partnerQuery: event.target.value }); }}
+          onClear={() => { void navigation.replace({ ...destination, partnerQuery: '' }); }} clearLabel={t('Common.clear')} />
         {inventory.hasNextPage && query.trim() ? <p className="mt-2 text-xs text-[var(--nimi-text-secondary)]">{t(`${P}.searchPartial`)}</p> : null}
       </header>
       <ScrollArea viewportRef={viewport} className="min-h-0 flex-1" contentClassName="space-y-1 px-2 pb-4">

@@ -219,6 +219,7 @@ function UsageGroups({ groups, attempts, groupsComplete }: { groups: readonly De
     {!groupsComplete ? <UsageNotice testId="home-usage-details-warning"><p>{t(`${PREFIX}.detailsIncomplete`)}</p></UsageNotice> : null}
     {groups.length > 5 || filtered ? <div className="mt-5 flex flex-wrap items-center gap-2">
       <SearchField value={query} onChange={event => setQuery(event.target.value)} onKeyDown={event => { if (event.key === 'Escape') setQuery(''); }}
+        onClear={() => setQuery('')} clearLabel={t('Common.clear')}
         placeholder={t(`${PREFIX}.searchGroups`)} aria-label={t(`${PREFIX}.searchGroups`)} aria-controls="home-usage-group-list" className="min-w-0 flex-1 text-sm sm:max-w-sm" />
       <label className="sr-only" htmlFor="home-usage-route-filter">{t(`${PREFIX}.routeFilter`)}</label>
       <select id="home-usage-route-filter" aria-label={t(`${PREFIX}.routeFilter`)} value={route} onChange={event => setRoute(event.target.value as UsageRouteFilter)}

@@ -18,7 +18,7 @@ import {
 } from '@nimiplatform/sdk/ai';
 import type { NimiLoadoutRecipe } from '@nimiplatform/sdk/runtime';
 import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
-import { Button, InlineAlert, ScrollShell, SelectField, Surface, TextField, type SelectFieldOption } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, ScrollShell, SearchField, SelectField, Surface, TextField, type SelectFieldOption } from '@nimiplatform/kit/ui';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
 import { createRuntimeAgentAIConfigAdapter } from '../../infra/runtime-agent-ai-config.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
@@ -301,8 +301,9 @@ export function AIProfileAuthoringView(props: AIProfileAuthoringViewProps) {
             <h4 className="px-2 text-xs font-semibold text-[var(--nimi-text-secondary)]">
               {t('runtimeConfig.profiles.authoring.profileCapabilities', { count: props.state.draft.capabilities.length })}
             </h4>
-            <TextField type="search" aria-label={t('runtimeConfig.profiles.authoring.searchCapabilities')}
+            <SearchField aria-label={t('runtimeConfig.profiles.authoring.searchCapabilities')}
               placeholder={t('runtimeConfig.profiles.authoring.searchCapabilities')} value={search}
+              onClear={() => setSearch('')} clearLabel={t('Common.clear')}
               data-testid="ai-profile-authoring-search" onChange={(event) => setSearch(event.currentTarget.value)} />
             <nav aria-label={t('runtimeConfig.profiles.authoring.capabilitiesTitle')} className="max-h-56 space-y-1 overflow-y-auto md:max-h-[50vh]">
               {visibleCapabilities.map((capability) => (
@@ -339,8 +340,9 @@ export function AIProfileAuthoringView(props: AIProfileAuthoringViewProps) {
             <Surface tone="card" className="space-y-4 p-5" data-testid="ai-profile-authoring-picker">
               <h4 className="text-sm font-semibold">{t('runtimeConfig.profiles.authoring.addCapability')}</h4>
               <p className="text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.profiles.authoring.addCapabilityBody')}</p>
-              <TextField type="search" aria-label={t('runtimeConfig.profiles.authoring.searchAvailableCapabilities')}
+              <SearchField aria-label={t('runtimeConfig.profiles.authoring.searchAvailableCapabilities')}
                 placeholder={t('runtimeConfig.profiles.authoring.searchAvailableCapabilities')} value={addSearch}
+                onClear={() => setAddSearch('')} clearLabel={t('Common.clear')}
                 data-testid="ai-profile-authoring-add-search" onChange={(event) => setAddSearch(event.currentTarget.value)} />
               <div className="grid max-h-[60vh] gap-2 overflow-y-auto sm:grid-cols-2">
                 {availableContracts.map((contract) => (

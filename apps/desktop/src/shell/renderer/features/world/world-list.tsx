@@ -1,8 +1,8 @@
 import { type ReactNode } from 'react';
 import { useHomeListPosition } from '../../app-shell/providers/use-home-list-position.js';
 import { useTranslation } from 'react-i18next';
-import { Bookmark, Compass, Grid2X2, Landmark, Leaf, Orbit, Sparkles, House, X } from 'lucide-react';
-import { Button, EmptyState, IconButton, LoadingSkeleton, NimiText, ScrollArea, SearchField, Surface } from '@nimiplatform/kit/ui';
+import { Bookmark, Compass, Grid2X2, Landmark, Leaf, Orbit, Sparkles, House } from 'lucide-react';
+import { Button, EmptyState, LoadingSkeleton, NimiText, ScrollArea, SearchField, Surface } from '@nimiplatform/kit/ui';
 import { WorldAlbumCard, WorldAtlasHero, WorldDiscoveryCard, type WorldAtlasTopic } from './world-atlas.js';
 import { type WorldListItem } from './world-list-model';
 import { selectWorldSpotlight } from './world-list-catalog-model.js';
@@ -59,8 +59,9 @@ export function WorldCatalogContent({ worlds, paging, embedded = false, searchQu
         <div className="world-atlas-title">{headerLeading ?? <h1>{t('World.title')}</h1>}{!loading && !error && !favoritesUnavailable ? <NimiText role="caption" className={headerLeading ? 'world-atlas-count' : undefined}>{t('World.atlas.worldCount', { value: paging.totalCount })}</NimiText> : null}</div>
         <div className="world-atlas-tools">
           {topicsFailed ? <Button tone="secondary" size="sm" onClick={onRetryTopics}>{t('World.retryTopics')}</Button> : null}
-          <SearchField value={query} onChange={(event) => onSearchQueryChange?.(event.target.value)} onKeyDown={(event) => { if (event.key === 'Escape') onSearchQueryChange?.(''); }} placeholder={t('World.searchByNameOrDescription')} aria-label={t('World.searchByNameOrDescription')} className="world-atlas-search" />
-          {query ? <IconButton tone="ghost" size="sm" icon={<X size={15} />} aria-label={t('World.clearSearch')} onClick={() => onSearchQueryChange?.('')} /> : null}
+          <SearchField value={query} onChange={(event) => onSearchQueryChange?.(event.target.value)} onKeyDown={(event) => { if (event.key === 'Escape') onSearchQueryChange?.(''); }}
+            onClear={() => onSearchQueryChange?.('')} clearLabel={t('World.clearSearch')}
+            placeholder={t('World.searchByNameOrDescription')} aria-label={t('World.searchByNameOrDescription')} className="world-atlas-search" />
           {railFlap}
           {headerTrailing}
         </div>

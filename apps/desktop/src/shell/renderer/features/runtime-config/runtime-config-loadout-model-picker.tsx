@@ -6,7 +6,7 @@ import type {
   NimiRuntimeLocalVerifiedAssetDescriptor,
   NimiRuntimeModelAssetRecord,
 } from '@nimiplatform/sdk/runtime';
-import { Button, OverlayShell, ScrollArea, StatusBadge, TextField } from '@nimiplatform/kit/ui';
+import { Button, OverlayShell, ScrollArea, SearchField, StatusBadge } from '@nimiplatform/kit/ui';
 import { formatBytes } from '../../components/download-format.js';
 import {
   groupLoadoutModelPresentations,
@@ -142,7 +142,8 @@ export function LoadoutSlotModelPicker(props: {
       footer={<Button tone="secondary" onClick={props.onClose}>{t('Common.close')}</Button>}
       data-testid={`loadout-model-picker:${slot.slotId}`}
     >
-      <TextField aria-label={t('runtimeConfig.product.searchModels')} placeholder={t('runtimeConfig.product.searchModels')} value={query} onChange={event => setQuery(event.currentTarget.value)} />
+      <SearchField aria-label={t('runtimeConfig.product.searchModels')} placeholder={t('runtimeConfig.product.searchModels')} value={query}
+        onChange={event => setQuery(event.currentTarget.value)} onClear={() => setQuery('')} clearLabel={t('Common.clear')} />
       <ScrollArea className="mt-3 h-[min(55vh,480px)]">
       <div className="grid gap-5 py-2 pr-3">
         <section className="grid gap-2" data-testid="loadout-model-picker:installed-section">

@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { SearchField } from '@nimiplatform/kit/ui';
 import { E2E_IDS } from '../../testability/e2e-ids';
 
 // Authority: .nimi/spec/desktop/product-surfaces.authority.yaml
@@ -32,13 +33,6 @@ const ICON_PERSONAS = (
     <circle cx="9" cy="7" r="4" />
     <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
     <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-  </svg>
-);
-
-const ICON_SEARCH = (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="11" cy="11" r="8" />
-    <line x1="21" y1="21" x2="16.65" y2="16.65" />
   </svg>
 );
 
@@ -120,22 +114,15 @@ export function ExploreSearchField({
   const { t } = useTranslation();
   const resolvedPlaceholder = placeholder ?? t('Explore.searchPlaceholder', { defaultValue: 'Search worlds, personas, posts...' });
   return (
-    <div
-      className="nimi-material-glass-regular group relative mx-auto flex h-11 w-full max-w-[480px] items-center rounded-xl border border-white/60 bg-white/45 pl-4 pr-3 shadow-[0_2px_10px_rgba(0,0,0,0.02)] backdrop-blur-[var(--nimi-backdrop-blur-regular)] transition-all duration-200 focus-within:border-white/90 focus-within:bg-white/70 focus-within:shadow-[0_4px_20px_rgba(0,0,0,0.05)]"
-      data-testid="explore-search-field"
-      data-titlebar-interactive="true"
-    >
-      <span className="pointer-events-none mr-3 text-[color:var(--nimi-fg-3)] transition-colors group-focus-within:text-[color:var(--nimi-accent)]">
-        {ICON_SEARCH}
-      </span>
-      <input
-        type="search"
-        className="min-w-0 flex-1 bg-transparent text-sm font-medium text-[color:var(--nimi-fg-1)] outline-none placeholder:text-[color:var(--nimi-fg-3)] focus:ring-0"
-        style={{ fontFamily: 'var(--nimi-font-sans)' }}
+    <div className="mx-auto w-full max-w-[480px]" data-testid="explore-search-field" data-titlebar-interactive="true">
+      <SearchField
+        className="h-11 w-full"
         aria-label={resolvedPlaceholder}
         placeholder={resolvedPlaceholder}
         value={value}
-        onChange={(e) => onChange(e.target.value)}
+        onChange={(event) => onChange(event.target.value)}
+        onClear={() => onChange('')}
+        clearLabel={t('Common.clear')}
       />
     </div>
   );

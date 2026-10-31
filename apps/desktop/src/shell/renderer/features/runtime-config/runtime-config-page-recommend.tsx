@@ -272,9 +272,10 @@ export function RecommendPage(props: RecommendPageProps) {
           <SearchField
             value={query}
             onChange={(event) => setQuery(event.currentTarget.value)}
+            onClear={() => setQuery('')}
+            clearLabel={t('Common.clear')}
             placeholder={t('runtimeConfig.recommend.searchPlaceholder', { defaultValue: 'Search models' })}
             className="min-h-9 min-w-56 flex-1"
-            inputClassName="text-xs"
           />
           {rowControls ? (
             <>

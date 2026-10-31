@@ -76,6 +76,7 @@ export function LocalModelCenterRuntimeView(props: LocalAssetsRuntimeViewProps) 
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3">
         <SearchField value={query} onChange={(event) => setQuery(event.currentTarget.value)}
+          onClear={() => setQuery('')} clearLabel={i18n.t('Common.clear')}
           aria-label={i18n.t('runtimeConfig.localModelCenter.searchInstalled')}
           placeholder={i18n.t('runtimeConfig.localModelCenter.searchInstalled')}
           className="min-h-9 w-full max-w-xs" />

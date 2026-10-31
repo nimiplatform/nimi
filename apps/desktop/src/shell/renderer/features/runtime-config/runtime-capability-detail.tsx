@@ -4,7 +4,7 @@ import {
   LoadingSkeleton,
   StatusBadge,
   type StatusTone,
-  TextField,
+  SearchField,
 } from '@nimiplatform/kit/ui';
 import {
   isNimiRuntimeLocalEnvironmentDependencyReadyState,
@@ -188,7 +188,8 @@ export function RuntimeCapabilityDetail(props: Props) {
           <div className="flex flex-wrap items-center justify-between gap-2">
             <h2 className="text-base font-semibold">{t('runtimeConfig.product.settings.models')}</h2>
             <div className="flex flex-wrap items-center gap-2">
-              {props.recipes.length > 6 ? <TextField aria-label={t('runtimeConfig.product.searchModels')} placeholder={t('runtimeConfig.product.searchModels')} value={query} onChange={event => setQuery(event.currentTarget.value)} /> : null}
+              {props.recipes.length > 6 ? <SearchField aria-label={t('runtimeConfig.product.searchModels')} placeholder={t('runtimeConfig.product.searchModels')} value={query}
+                onChange={event => setQuery(event.currentTarget.value)} onClear={() => setQuery('')} clearLabel={t('Common.clear')} /> : null}
               <Button tone="secondary" size="sm" onClick={() => props.onModelMarket({ kind: 'browse', capabilityContract: props.capability })}><Store size={14} />{t('runtimeConfig.product.modelPicker.browse')}</Button>
               {props.onImportModelFiles || props.onModelFiles ? <Button tone="secondary" size="sm" onClick={props.onImportModelFiles ?? props.onModelFiles} data-testid="capability-models-import"><FolderOpen size={14} />{t('runtimeConfig.product.importModel')}</Button> : null}
             </div>

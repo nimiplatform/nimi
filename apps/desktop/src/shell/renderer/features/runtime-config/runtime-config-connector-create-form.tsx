@@ -1,6 +1,6 @@
 // @nimi-authority: rule.nimi.sdks.feature-clients.r060
 
-import { InlineAlert, OverlayShell, ScrollArea, TextField } from '@nimiplatform/kit/ui';
+import { InlineAlert, OverlayShell, ScrollArea, SearchField } from '@nimiplatform/kit/ui';
 import { isNimiBrowserManagedConnectorProfile } from '@nimiplatform/sdk/runtime';
 import type { ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/wire-types';
 import { ArrowLeft, ChevronDown, SlidersHorizontal } from 'lucide-react';
@@ -194,7 +194,8 @@ export function RuntimeConfigConnectorCreateForm(props: {
 
   if (!resolvedProvider) return <div className="space-y-4" data-testid={testId}>
     <p className="text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.product.chooseServiceLead')}</p>
-    <TextField autoFocus aria-label={t('runtimeConfig.cloud.searchVendors')} placeholder={t('runtimeConfig.cloud.searchVendors')} value={providerQuery} onChange={event => setProviderQuery(event.currentTarget.value)} />
+    <SearchField autoFocus aria-label={t('runtimeConfig.cloud.searchVendors')} placeholder={t('runtimeConfig.cloud.searchVendors')} value={providerQuery}
+      onChange={event => setProviderQuery(event.currentTarget.value)} onClear={() => setProviderQuery('')} clearLabel={t('Common.clear')} />
     {catalogError ? <InlineAlert tone="danger">{catalogError}</InlineAlert> : null}
     <ScrollArea className="h-[min(46vh,360px)]" contentClassName="space-y-4 pr-2">
       {providerGroups.map(group => (

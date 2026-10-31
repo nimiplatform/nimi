@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollArea, SegmentedControl, Surface, Tooltip, cn } from '@nimiplatform/kit/ui';
+import { ScrollArea, SearchField, SegmentedControl, Surface, Tooltip, cn } from '@nimiplatform/kit/ui';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { buildAuditDiagnosticsText } from './runtime-config-audit-view-model.js';
@@ -15,7 +15,6 @@ import {
   FacetPill,
   IconButton,
   RefreshIcon,
-  SearchIcon,
   auditEventTypeColor,
 } from './runtime-config-local-debug-controls.js';
 import {
@@ -236,26 +235,26 @@ function LocalDebugContent({ onCollapse }: { onCollapse: () => void }) {
 
       {/* Toolbar: search + quick range + actions */}
       <div className="mt-5 flex flex-wrap items-center gap-2">
-        <div className="relative min-w-0 flex-1">
-          <span className={cn('pointer-events-none absolute left-3 top-1/2 -translate-y-1/2', TOKEN_TEXT_MUTED)}>
-            <SearchIcon />
-          </span>
-          <input
-            value={auditReasonCodeQuery}
-            onChange={(event) => {
-              const next = event.target.value;
-              setAuditReasonCodeQuery(next);
-              void loadAudits({ reasonCode: next });
-            }}
-            placeholder={t('runtimeConfig.runtime.auditSearchPlaceholder', {
-              defaultValue: 'Filter by modelKey, modelId, reason…',
-            })}
-            className={cn(
-              'h-9 w-full rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] pl-9 pr-3 text-xs outline-none transition-colors focus:border-[var(--nimi-field-focus)] focus:ring-2 focus:ring-[var(--nimi-focus-ring-color)]',
-              TOKEN_TEXT_PRIMARY,
-            )}
-          />
-        </div>
+        <SearchField
+          value={auditReasonCodeQuery}
+          onChange={(event) => {
+            const next = event.target.value;
+            setAuditReasonCodeQuery(next);
+            void loadAudits({ reasonCode: next });
+          }}
+          onClear={() => {
+            setAuditReasonCodeQuery('');
+            void loadAudits({ reasonCode: '' });
+          }}
+          clearLabel={t('Common.clear')}
+          placeholder={t('runtimeConfig.runtime.auditSearchPlaceholder', {
+            defaultValue: 'Filter by modelKey, modelId, reason…',
+          })}
+          aria-label={t('runtimeConfig.runtime.auditSearchPlaceholder', {
+            defaultValue: 'Filter by modelKey, modelId, reason…',
+          })}
+          className="min-h-9 min-w-0 flex-1"
+        />
 
         <SegmentedControl
           size="sm"

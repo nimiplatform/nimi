@@ -122,6 +122,6 @@ test('AI capabilities use a master-detail workspace without the retired four-tab
     readFeature('runtime-config/runtime-config-page-ai-settings.tsx'),
   ]);
   assert.doesNotMatch(panel, /RUNTIME_NAV_DESTINATIONS/);
-  assert.match(workspace, /SidebarShell/);
+  assert.match(workspace, /<DesktopModuleSidebar\b/);
   assert.match(workspace, /ai-capabilities-home/);
 });

@@ -1,6 +1,7 @@
-import React, { forwardRef, type InputHTMLAttributes, type ReactNode } from 'react';
+import React, { forwardRef, useImperativeHandle, useRef, type InputHTMLAttributes, type ReactNode } from 'react';
 import { cva } from 'class-variance-authority';
 import { cn, type FieldTone } from '../design-tokens.js';
+import { IconButton } from './button.js';
 
 const fieldVariants = cva(
   'flex items-center gap-2 rounded-[var(--nimi-radius-field)] border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] text-[var(--nimi-field-text)] min-h-[var(--nimi-sizing-field-md-height)] transition-colors duration-[var(--nimi-motion-fast)] focus-within:border-[var(--nimi-field-focus)] focus-within:ring-[length:var(--nimi-focus-ring-width)] focus-within:ring-[var(--nimi-focus-ring-color)]',
@@ -70,9 +71,59 @@ export const TextField = forwardRef<HTMLInputElement, TextFieldProps>(function T
   );
 });
 
-export const SearchField = forwardRef<HTMLInputElement, Omit<TextFieldProps, 'tone' | 'leading'>>(function SearchField(
-  props,
+const CLEAR_ICON = (
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+    <line x1="18" y1="6" x2="6" y2="18" />
+    <line x1="6" y1="6" x2="18" y2="18" />
+  </svg>
+);
+
+type SearchFieldProps = Omit<TextFieldProps, 'tone' | 'leading'> & {
+  onClear?: () => void;
+  clearLabel?: string;
+  clearButtonTestId?: string;
+};
+
+export const SearchField = forwardRef<HTMLInputElement, SearchFieldProps>(function SearchField(
+  {
+    onClear,
+    clearLabel = 'Clear search',
+    clearButtonTestId,
+    trailing,
+    inputClassName,
+    type,
+    value,
+    ...rest
+  },
   ref,
 ) {
-  return <TextField ref={ref} tone="search" leading={SEARCH_ICON} {...props} />;
+  const inputRef = useRef<HTMLInputElement>(null);
+  useImperativeHandle(ref, () => inputRef.current!);
+  const showClear = Boolean(onClear && value != null && String(value).length > 0);
+  const resolvedTrailing = trailing || showClear ? (
+    <>
+      {trailing}
+      {showClear ? <IconButton
+        data-testid={clearButtonTestId}
+        icon={CLEAR_ICON}
+        size="sm"
+        tone="ghost"
+        disabled={rest.disabled}
+        onClick={() => { onClear?.(); inputRef.current?.focus(); }}
+        className="h-6 w-6 min-h-6 rounded-full text-[var(--nimi-text-muted)] hover:text-[var(--nimi-text-secondary)]"
+        aria-label={clearLabel}
+        title={clearLabel}
+      /> : null}
+    </>
+  ) : undefined;
+  return <TextField
+    ref={inputRef}
+    tone="search"
+    leading={SEARCH_ICON}
+    trailing={resolvedTrailing}
+    inputClassName={cn('text-sm [&::-webkit-search-cancel-button]:appearance-none', inputClassName)}
+    type={type ?? 'search'}
+    value={value}
+    {...rest}
+  />;
 });

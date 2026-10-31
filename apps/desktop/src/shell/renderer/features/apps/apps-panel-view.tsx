@@ -26,7 +26,6 @@ import {
   MoreHorizontal,
   Plus,
   SearchX,
-  X,
 } from 'lucide-react';
 import {
   ActionMenu,
@@ -419,7 +418,9 @@ function AppsRail({
           onKeyDown={(event) => {
             if (event.key === 'Escape') onClearSearch();
           }}
-          trailing={searchQuery ? <SearchClearButton testId="apps-search-clear" onClear={onClearSearch} /> : undefined}
+          onClear={onClearSearch}
+          clearLabel={t('Apps.sidebar.clearSearch')}
+          clearButtonTestId="apps-search-clear"
           placeholder={t('Apps.sidebar.searchPlaceholder')}
           aria-label={t('Apps.sidebar.searchLabel')}
           className="min-h-10 min-w-0 flex-1"
@@ -953,28 +954,6 @@ function CatalogStatusNote({ status, onRetry }: {
     );
   }
   return null;
-}
-
-function SearchClearButton({
-  testId,
-  onClear,
-}: {
-  readonly testId: string;
-  readonly onClear: () => void;
-}): ReactElement {
-  const { t } = useTranslation();
-  return (
-    <IconButton
-      data-testid={testId}
-      icon={<X className="h-3 w-3" aria-hidden="true" />}
-      tone="ghost"
-      size="sm"
-      aria-label={t('Apps.sidebar.clearSearch')}
-      title={t('Apps.sidebar.clearSearch')}
-      className="h-8 w-8 min-h-8 shrink-0 rounded-full text-[var(--nimi-text-muted)]"
-      onClick={onClear}
-    />
-  );
 }
 
 function handleRailKeyDown(event: KeyboardEvent<HTMLButtonElement>): void {

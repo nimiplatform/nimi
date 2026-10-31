@@ -4,7 +4,7 @@ import { cn, type SidebarItemKind } from '../design-tokens.js';
 import { FOCUS_RING_CLASS_NAME } from '../a11y/focus.js';
 
 const SEARCH_ICON = (
-  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
     <circle cx="11" cy="11" r="8" />
     <line x1="21" y1="21" x2="16.65" y2="16.65" />
   </svg>
@@ -144,7 +144,7 @@ export function SidebarSearch({
             <span className="shrink-0 text-[var(--nimi-text-muted)]">{SEARCH_ICON}</span>
             <input
               ref={inputRef}
-              className="nimi-sidebar-search__field ml-1 min-w-0 flex-1 bg-transparent text-[length:var(--nimi-type-body-size)] outline-none placeholder:text-[var(--nimi-field-placeholder)]"
+              className="nimi-sidebar-search__field ml-1 min-w-0 flex-1 bg-transparent text-sm outline-none placeholder:text-[var(--nimi-field-placeholder)]"
               value={value}
               onChange={(event) => {
                 if (onValueChange) {
