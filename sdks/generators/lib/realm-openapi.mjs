@@ -325,13 +325,17 @@ function parseOpenApiOperations(spec) {
       const requestContentType = ['application/json', 'application/x-www-form-urlencoded']
         .find((contentType) => requestContent?.[contentType]?.schema) || null;
       const requestSchema = requestContentType ? requestContent[requestContentType].schema : null;
-      const responseSchemas = Object.entries(operation.responses || {})
+      const responses = Object.entries(operation.responses || {});
+      const responseSchemas = responses
         .map(([status, response]) => ({
           status,
           schema: parseOpenApiSchema(response?.content?.['application/json']?.schema),
           schema_ref: response?.content?.['application/json']?.schema?.$ref || null,
         }))
         .filter((entry) => entry.schema_ref || entry.schema.kind !== 'unknown');
+      const emptyAlternatives = responseSchemas.some(entry => entry.status.startsWith('2'))
+        ? responses.filter(([status, response]) => ['204', '205'].includes(status) && !response?.content).map(([status]) => status)
+        : [];
       operations.push({
         operation_id: String(operation.operationId || `${verb}_${route}`),
         method: verb.toUpperCase(),
@@ -346,6 +350,7 @@ function parseOpenApiOperations(spec) {
         request_schema_ref: requestSchema?.$ref || null,
         request_content_type: requestContentType,
         response_schemas: responseSchemas,
+        ...(emptyAlternatives.length ? { empty_success_statuses: emptyAlternatives } : {}),
         response_schema_refs: responseSchemas.filter((entry) => entry.schema_ref).map(({ status, schema_ref }) => ({ status, schema_ref })),
       });
     }

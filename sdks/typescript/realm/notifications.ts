@@ -31,6 +31,7 @@ export interface NimiRealmNotificationItemView {
   readonly actorHandle: string;
   readonly actorAvatarUrl: string | null;
   readonly actorKind: 'account';
+  readonly relationshipId?: string | null;
 }
 
 export interface NimiRealmNotificationListView {
@@ -121,6 +122,7 @@ export function toNimiRealmNotificationItemView(
     actorHandle,
     actorAvatarUrl: rawActorAvatarUrl || null,
     actorKind: 'account',
+    relationshipId: typeof raw.data?.relationshipId === 'string' ? raw.data.relationshipId : null,
   };
 }
 

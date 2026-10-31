@@ -49,9 +49,11 @@ export const REALM_AUTH_METHODS = [
 export const REALM_ACCOUNT_METHODS = [
   'getMe',
   'getMyCreatorEligibility',
+  'getMyHandleChangeEligibility',
   'getMyNotificationSettings',
   'getMySettings',
   'updateMe',
+  'updateMyHandle',
   'updateMyNotificationSettings',
   'updateMySettings',
 ] as const satisfies readonly RealmTypedMethodName[];
@@ -65,7 +67,8 @@ export const REALM_SOCIAL_METHODS = [
   'addFriendByHandle',
   'blockUser',
   'unblockUser',
-  'removeFriend',
+  'applyFriendshipAction',
+  'getMyRelationshipWithUser',
   'getMutualFriends',
   'getMutualFriendsCount',
   'getMyBlockedUsers',

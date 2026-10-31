@@ -85,7 +85,7 @@ func TestAccountRefreshTransactionRetainsDiagnosticCauseOnCustodyFailure(t *test
 	var output bytes.Buffer
 	service.logger = slog.New(slog.NewJSONHandler(&output, nil))
 	service.custody = unavailableCustody{}
-	result, err := service.refreshAccountSessionForRejectedToken(context.Background(), false, "", accountRefreshScheduled)
+	result, err := service.refreshAccountSessionForRejectedToken(context.Background(), false, "", accountRefreshScheduled, nil)
 	if err != nil || result == nil || result.accepted || result.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_UNAVAILABLE {
 		t.Fatal("failed custody did not remain unavailable")
 	}

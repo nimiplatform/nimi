@@ -26,6 +26,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/human/handle/{handle}/friends"),
     },
     RealmOperationDescriptor {
+        operation_id: "applyFriendshipAction",
+        service: "User",
+        method: "POST",
+        path: Some("/api/human/accounts/{id}/friendship-actions"),
+    },
+    RealmOperationDescriptor {
         operation_id: "archiveAsset",
         service: "Assets",
         method: "POST",
@@ -278,6 +284,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/auth/me/2fa/enable"),
     },
     RealmOperationDescriptor {
+        operation_id: "exportMyAccount",
+        service: "User",
+        method: "POST",
+        path: Some("/api/human/me/export"),
+    },
+    RealmOperationDescriptor {
         operation_id: "FeedbackController_getMyFeedbacks",
         service: "Support (Feedback)",
         method: "GET",
@@ -356,6 +368,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/human/me/creator-eligibility"),
     },
     RealmOperationDescriptor {
+        operation_id: "getMyHandleChangeEligibility",
+        service: "Me",
+        method: "GET",
+        path: Some("/api/human/me/handle-change-eligibility"),
+    },
+    RealmOperationDescriptor {
         operation_id: "getMyNotificationSettings",
         service: "Me",
         method: "GET",
@@ -372,6 +390,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Me",
         method: "GET",
         path: Some("/api/human/me/pp-config"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "getMyRelationshipWithUser",
+        service: "User",
+        method: "GET",
+        path: Some("/api/human/accounts/{id}/relationship"),
     },
     RealmOperationDescriptor {
         operation_id: "getMySettings",
@@ -468,6 +492,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Human Chats",
         method: "GET",
         path: Some("/api/human/chats/{chatId}/messages"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "listMyAccountSessions",
+        service: "Auth",
+        method: "GET",
+        path: Some("/api/auth/my-sessions"),
     },
     RealmOperationDescriptor {
         operation_id: "listMyFriendIds",
@@ -584,16 +614,22 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/human/chats/{chatId}/messages/{messageId}/recall"),
     },
     RealmOperationDescriptor {
+        operation_id: "recoverPassword",
+        service: "Auth",
+        method: "POST",
+        path: Some("/api/auth/password/recover"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "refreshBrowserSession",
+        service: "Auth",
+        method: "POST",
+        path: Some("/api/auth/browser-session/refresh"),
+    },
+    RealmOperationDescriptor {
         operation_id: "refreshToken",
         service: "Auth",
         method: "POST",
         path: Some("/api/auth/refresh"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "removeFriend",
-        service: "User",
-        method: "DELETE",
-        path: Some("/api/human/accounts/{id}/friends"),
     },
     RealmOperationDescriptor {
         operation_id: "ReportController_createReport",
@@ -606,6 +642,18 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Auth",
         method: "POST",
         path: Some("/api/auth/email/otp/request"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "revokeMyAccountSession",
+        service: "Auth",
+        method: "POST",
+        path: Some("/api/auth/my-sessions/{sessionId}/revoke"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "revokeMyOtherAccountSessions",
+        service: "Auth",
+        method: "POST",
+        path: Some("/api/auth/my-sessions/revoke-others"),
     },
     RealmOperationDescriptor {
         operation_id: "sendMessage",

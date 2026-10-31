@@ -2,6 +2,21 @@
 
 # SDK migration notes
 
+## Unreleased — Explicit user relationship and account contracts
+
+Ambiguous `removeFriend` / `removeNimiRealmFriendById` are removed. Use
+`applyNimiRealmFriendshipAction` with the relationship ID observed for the
+accept/reject/cancel/remove intent. Pending requests are directional cursor pages;
+consume their authorized minimal identity instead of reading a private profile.
+Human Chat read acknowledgements require `readThroughMessageId`. Account terminal
+requests require `expectedAccountId` as an owner comparison, never an owner selector.
+Browser consumers can renew the existing HttpOnly session with `refreshBrowserSession`;
+its successful response contains no bearer material and does not establish recent authentication.
+The bearer-returning `refreshToken` now requires an explicit refresh credential in its body.
+Regenerate from Realm OpenAPI and update affected callers together. These breaking
+pre-release contracts belong to the next coordinated 0.x minor; no dual path or
+package publication is implied.
+
 ## Unreleased — Work input bounds and Agent stream cleanup
 
 Formal App Work prompts are limited to 16,384 UTF-8 bytes before dispatch,

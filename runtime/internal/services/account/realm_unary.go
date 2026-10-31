@@ -35,6 +35,7 @@ type realmUnaryOperation struct {
 	queryParameterKinds    map[string]realmUnaryParameterKind
 	requestBodyAllowed     bool
 	requestBodyRequired    bool
+	noContentAllowed       bool
 	responseMaxBytes       int64
 	mediaUpload            bool
 }
@@ -105,7 +106,7 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 	if err != nil {
 		return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_REALM_BASE_DENIED, err.Error(), 0)), nil
 	}
-	accessToken, reason, ok, err := s.realmUnaryAccessToken(operationCtx, req.GetCaller())
+	accessToken, generation, reason, ok, err := s.realmUnaryCredential(operationCtx)
 	if err != nil {
 		if localAppOperation == 0 || ctx.Err() != nil {
 			return nil, err
@@ -168,7 +169,7 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 		return projectFailure(result.failure), nil
 	}
 	if result.status == http.StatusUnauthorized {
-		refresh, refreshErr := s.refreshAccountSessionAfterUnauthorized(operationCtx, accessToken)
+		refresh, refreshErr := s.refreshAccountSessionAfterUnauthorized(operationCtx, accessToken, generation)
 		if refreshErr != nil {
 			if localAppOperation == 0 || ctx.Err() != nil {
 				return nil, refreshErr
@@ -180,7 +181,11 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 		}
 		s.mu.RLock()
 		refreshedToken := s.material.AccessToken
+		sameOwner := s.accountGeneration == generation
 		s.mu.RUnlock()
+		if !sameOwner {
+			return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, "Account changed during Realm request", http.StatusUnauthorized)), nil
+		}
 		result = s.doRealmUnaryHTTP(operationCtx, client, targetURL, operation, parsedRequest, refreshedToken)
 		if result.err != nil {
 			if callerErr := ctx.Err(); callerErr != nil {
@@ -192,7 +197,7 @@ func (s *Service) InvokeRealmUnary(ctx context.Context, req *runtimev1.InvokeRea
 			return projectFailure(result.failure), nil
 		}
 		if result.status == http.StatusUnauthorized {
-			s.invalidateAccountAfterRealmUnauthorized(operationCtx)
+			s.invalidateAccountAfterRealmUnauthorized(operationCtx, generation, refreshedToken)
 			return projectFailure(realmUnaryFailure(runtimev1.ReasonCode_AUTH_TOKEN_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_AUTH_INVALID, "Realm rejected the refreshed account session", result.status)), nil
 		}
 	}
@@ -302,11 +307,12 @@ func isRealmPersonaCharacterMethodID(methodID string) bool {
 }
 
 type realmUnaryHTTPResult struct {
-	status  int
-	header  http.Header
-	body    []byte
-	failure *runtimev1.InvokeRealmUnaryResponse
-	err     error
+	noContentAllowed bool
+	status           int
+	header           http.Header
+	body             []byte
+	failure          *runtimev1.InvokeRealmUnaryResponse
+	err              error
 }
 
 func (s *Service) doRealmUnaryHTTP(
@@ -339,7 +345,7 @@ func (s *Service) doRealmUnaryHTTP(
 	if int64(len(responseBody)) > operation.responseMaxBytes {
 		return realmUnaryHTTPResult{failure: realmUnaryFailure(runtimev1.ReasonCode_REALM_CONTRACT_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_RESPONSE_TOO_LARGE, "Realm broker response exceeds the admitted response limit", response.StatusCode)}
 	}
-	return realmUnaryHTTPResult{status: response.StatusCode, header: response.Header.Clone(), body: responseBody}
+	return realmUnaryHTTPResult{status: response.StatusCode, header: response.Header.Clone(), body: responseBody, noContentAllowed: operation.noContentAllowed}
 }
 
 func projectRealmUnaryHTTPResult(result realmUnaryHTTPResult) *runtimev1.InvokeRealmUnaryResponse {
@@ -394,6 +400,14 @@ func projectRealmUnaryHTTPResultWithCredentialBodyScanner(result realmUnaryHTTPR
 	if result.status < 200 || result.status >= 300 {
 		return realmUnaryFailure(runtimev1.ReasonCode_REALM_CONTRACT_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_CONTRACT_FAILED, message, result.status)
 	}
+	if result.status == http.StatusNoContent {
+		if !result.noContentAllowed || len(result.body) != 0 {
+			return realmUnaryFailure(runtimev1.ReasonCode_REALM_CONTRACT_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_CONTRACT_FAILED, "Unexpected Realm no-content response", result.status)
+		}
+		// The protected carrier requires JSON for every accepted reply. Its
+		// representation of an empty result matches the SDK fetch transport.
+		return &runtimev1.InvokeRealmUnaryResponse{Accepted: true, ResponseJson: "{}", ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED, AccountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, HttpStatus: http.StatusNoContent}
+	}
 	mediaType, _, err := mime.ParseMediaType(result.header.Get("Content-Type"))
 	if err != nil || mediaType != "application/json" || len(bytes.TrimSpace(result.body)) == 0 || !json.Valid(result.body) || jsonstrict.RejectDuplicateKeys(result.body) != nil {
 		return realmUnaryFailure(runtimev1.ReasonCode_REALM_CONTRACT_INVALID, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_BROKER_CONTRACT_FAILED, "Realm success response violates the JSON contract", result.status)
@@ -407,7 +421,15 @@ func projectRealmUnaryHTTPResultWithCredentialBodyScanner(result realmUnaryHTTPR
 	}
 }
 
-func (s *Service) invalidateAccountAfterRealmUnauthorized(ctx context.Context) {
+func (s *Service) invalidateAccountAfterRealmUnauthorized(ctx context.Context, generation uint64, rejectedToken string) {
+	s.identityMutationMu.Lock()
+	defer s.identityMutationMu.Unlock()
+	s.mu.RLock()
+	current := s.accountGeneration == generation && s.material.AccessToken == rejectedToken
+	s.mu.RUnlock()
+	if !current {
+		return
+	}
 	if err := s.custody.Clear(ctx, s.partition); err != nil {
 		s.markCustodyUnavailable()
 		return
@@ -416,12 +438,19 @@ func (s *Service) invalidateAccountAfterRealmUnauthorized(ctx context.Context) {
 }
 
 func (s *Service) realmUnaryAccessToken(ctx context.Context, _ *runtimev1.AccountCaller) (string, runtimev1.AccountReasonCode, bool, error) {
+	token, _, reason, ok, err := s.realmUnaryCredential(ctx)
+	return token, reason, ok, err
+}
+
+func (s *Service) realmUnaryCredential(ctx context.Context) (string, uint64, runtimev1.AccountReasonCode, bool, error) {
+	s.identityMutationMu.Lock()
+	defer s.identityMutationMu.Unlock()
 	s.mu.RLock()
 	if (s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED &&
 		s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED &&
 		s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING) || s.material.RefreshToken == "" {
 		s.mu.RUnlock()
-		return "", runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, false, nil
+		return "", 0, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, false, nil
 	}
 	needsRefresh := s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED ||
 		s.state == runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING ||
@@ -434,20 +463,20 @@ func (s *Service) realmUnaryAccessToken(ctx context.Context, _ *runtimev1.Accoun
 	}
 	s.mu.RUnlock()
 	if needsRefresh {
-		refresh, err := s.refreshAccountSessionForRejectedToken(ctx, false, "", cause)
+		refresh, err := s.refreshAccountSessionLocked(ctx, false, "", cause, nil)
 		if err != nil {
-			return "", runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_UNSPECIFIED, false, err
+			return "", 0, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_UNSPECIFIED, false, err
 		}
 		if !refresh.accepted {
-			return "", refresh.accountReasonCode, false, nil
+			return "", 0, refresh.accountReasonCode, false, nil
 		}
 	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED || strings.TrimSpace(s.material.AccessToken) == "" {
-		return "", runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, false, nil
+		return "", 0, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE, false, nil
 	}
-	return s.material.AccessToken, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true, nil
+	return s.material.AccessToken, s.accountGeneration, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACTION_EXECUTED, true, nil
 }
 
 func realmUnaryFailure(reason runtimev1.ReasonCode, accountReason runtimev1.AccountReasonCode, message string, httpStatus int) *runtimev1.InvokeRealmUnaryResponse {

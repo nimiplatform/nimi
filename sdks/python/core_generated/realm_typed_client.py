@@ -3,7 +3,7 @@
 
 from __future__ import annotations
 from collections.abc import Mapping
-from dataclasses import MISSING, asdict, dataclass, field, fields, is_dataclass
+from dataclasses import MISSING, dataclass, field, fields, is_dataclass
 import types
 from typing import Literal, Union, get_args, get_origin, get_type_hints
 
@@ -11,13 +11,23 @@ from sdks.python.core_client import CoreClient
 from sdks.python.types import CoreUnaryRequest
 
 
+class _Unset:
+    pass
+
+
+_UNSET = _Unset()
+
+
 def _model_body(value: object) -> object:
-    if value is None:
-        return {}
     if is_dataclass(value):
-        return asdict(value)
+        return {item.metadata.get("wire", item.name): _model_body(member)
+                for item in fields(value)
+                if (member := getattr(value, item.name)) is not _UNSET
+                and not ("wire" in item.metadata and member is None)}
     if isinstance(value, Mapping):
-        return dict(value)
+        return {key: _model_body(member) for key, member in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_model_body(member) for member in value]
     return value
 
 
@@ -84,11 +94,115 @@ def _realm_decode_error(path: str, reason: str) -> RuntimeError:
     return error
 
 
+@dataclass(frozen=True)
+class AccountExportAttachmentDto:
+    displayKind: str | None = None
+    duration: float | None = None
+    height: float | None = None
+    title: str | None = None
+    unavailable: bool | None = None
+    width: float | None = None
+
+@dataclass(frozen=True)
+class AccountExportConversationDto:
+    chatId: str
+    messages: tuple[AccountExportMessageDto, ...]
+    peerAccountId: str
+    peerDisplayName: str
+    peerHandle: str
+
+@dataclass(frozen=True)
+class AccountExportDto:
+    completedAt: str
+    conversations: tuple[AccountExportConversationDto, ...]
+    exclusions: tuple[str, ...]
+    format: Literal["nimi-account-text-export/v1"]
+    profile: AccountExportProfileDto
+    relationships: tuple[AccountExportRelationshipDto, ...]
+    sections: tuple[AccountExportSectionDto, ...]
+    settings: AccountExportSettingsDto | None
+    startedAt: str
+    status: Literal["complete", "partial"]
+
+@dataclass(frozen=True)
+class AccountExportMessageDto:
+    createdAt: str
+    editedAt: str | None
+    messageId: str
+    senderAccountId: str
+    text: str | None
+    type: str
+    attachment: AccountExportAttachmentDto | None = None
+    replyToMessageId: str | None = None
+
+@dataclass(frozen=True)
+class AccountExportProfileDto:
+    accountId: str
+    createdAt: str
+    displayName: str
+    handle: str
+    languages: tuple[str, ...]
+    tags: tuple[str, ...]
+    bio: str | None = None
+    birthYear: float | None = None
+    city: str | None = None
+    countryCode: str | None = None
+    email: str | None = None
+    gender: str | None = None
+
+@dataclass(frozen=True)
+class AccountExportRelationshipDto:
+    accountId: str
+    displayName: str
+    handle: str
+    kind: Literal["friend", "received", "sent", "blocked"]
+    since: str
+    note: str | None = None
+    relationshipId: str | None = None
+
+@dataclass(frozen=True)
+class AccountExportRequestDto:
+    expectedAccountId: str
+
+@dataclass(frozen=True)
+class AccountExportSectionDto:
+    itemCount: float
+    name: str
+    status: Literal["complete", "partial", "unavailable"]
+    reason: str | None = None
+
+@dataclass(frozen=True)
+class AccountExportSettingDto:
+    name: str
+    value: str
+
+@dataclass(frozen=True)
+class AccountExportSettingsDto:
+    notifications: UserNotificationSettingsDto
+    values: tuple[AccountExportSettingDto, ...]
+
+@dataclass(frozen=True)
+class AccountOwnerIntentDto:
+    expectedAccountId: str
+
+@dataclass(frozen=True)
+class AccountSessionDto:
+    authenticatedAt: str | None
+    createdAt: str
+    current: bool
+    id: str
+
+@dataclass(frozen=True)
+class AccountSessionListDto:
+    items: tuple[AccountSessionDto, ...]
+    nextCursor: str | None
+    recentAuthentication: bool
+
 AccountStatus = Literal["ONBOARDING", "ACTIVE", "SUSPENDED", "BANNED"]
 
 @dataclass(frozen=True)
 class AddFriendBodyDto:
-    requestMessage: str | None = None
+    requestMessage: str | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class AssetDetailDto:
@@ -145,7 +259,7 @@ class Auth2faVerifyDto:
 @dataclass(frozen=True)
 class AuthErrorDto:
     message: str
-    reasonCode: Literal["AUTH_REQUIRED", "AUTH_INSUFFICIENT_SCOPE", "AUTH_INVALID_CREDENTIALS", "AUTH_INVALID_REQUEST", "AUTH_TOKEN_EXPIRED", "AUTH_TOKEN_VERIFICATION_UNAVAILABLE", "AUTH_INVALID_REFRESH_TOKEN", "AUTH_REFRESH_TOKEN_REVOKED", "AUTH_REFRESH_TOKEN_REPLAY_DETECTED", "AUTH_ACCOUNT_RESTRICTED", "AUTH_INVALID_TOKEN_TYPE", "AUTH_INVALID_2FA_TOKEN", "AUTH_INVALID_2FA_CODE", "AUTH_2FA_NOT_ENABLED", "AUTH_2FA_SETUP_EXPIRED", "AUTH_2FA_SETUP_UNAVAILABLE", "AUTH_2FA_STATE_CHANGED", "AUTH_INVALID_WALLET_NONCE", "AUTH_INVALID_WALLET_SIGNATURE", "AUTH_WALLET_ADDRESS_REQUIRED", "AUTH_WALLET_MESSAGE_REQUIRED", "AUTH_WALLET_SIGNATURE_REQUIRED", "AUTH_WALLET_NONCE_REQUIRED", "AUTH_WALLET_CHALLENGE_UNAVAILABLE", "AUTH_INVALID_OAUTH_CREDENTIAL", "AUTH_OAUTH_PROVIDER_UNAVAILABLE", "AUTH_OAUTH_IDENTITY_NOT_FOUND", "AUTH_OAUTH_IDENTITY_CONFLICT", "AUTH_OAUTH_LAST_LOGIN_METHOD", "AUTH_CURRENT_PASSWORD_REQUIRED", "AUTH_INVALID_CURRENT_PASSWORD", "AUTH_PASSWORD_NOT_SET", "AUTH_HANDLE_UNAVAILABLE", "AUTH_EMAIL_ALREADY_IN_USE", "AUTH_EMAIL_OTP_EXPIRED", "AUTH_INVALID_EMAIL_OTP", "AUTH_EMAIL_OTP_UNAVAILABLE", "AUTH_RATE_LIMITED", "AUTH_SESSION_REVOCATION_UNAVAILABLE", "AUTH_ACCOUNT_NOT_FOUND", "ACCOUNT_DELETED", "AUTH_ACCOUNT_TERMINAL_CONFLICT", "ADMIN_LAST_ACTIVE_REQUIRED"]
+    reasonCode: Literal["AUTH_REQUIRED", "AUTH_SESSION_REVOKED", "AUTH_RECENT_LOGIN_REQUIRED", "AUTH_ACCOUNT_CONTEXT_CHANGED", "AUTH_INSUFFICIENT_SCOPE", "AUTH_INVALID_CREDENTIALS", "AUTH_INVALID_REQUEST", "AUTH_TOKEN_EXPIRED", "AUTH_TOKEN_VERIFICATION_UNAVAILABLE", "AUTH_INVALID_REFRESH_TOKEN", "AUTH_REFRESH_TOKEN_REVOKED", "AUTH_REFRESH_TOKEN_REPLAY_DETECTED", "AUTH_ACCOUNT_RESTRICTED", "AUTH_INVALID_TOKEN_TYPE", "AUTH_INVALID_2FA_TOKEN", "AUTH_INVALID_2FA_CODE", "AUTH_2FA_NOT_ENABLED", "AUTH_2FA_SETUP_EXPIRED", "AUTH_2FA_SETUP_UNAVAILABLE", "AUTH_2FA_STATE_CHANGED", "AUTH_INVALID_WALLET_NONCE", "AUTH_INVALID_WALLET_SIGNATURE", "AUTH_WALLET_ADDRESS_REQUIRED", "AUTH_WALLET_MESSAGE_REQUIRED", "AUTH_WALLET_SIGNATURE_REQUIRED", "AUTH_WALLET_NONCE_REQUIRED", "AUTH_WALLET_CHALLENGE_UNAVAILABLE", "AUTH_INVALID_OAUTH_CREDENTIAL", "AUTH_OAUTH_PROVIDER_UNAVAILABLE", "AUTH_OAUTH_IDENTITY_NOT_FOUND", "AUTH_OAUTH_IDENTITY_CONFLICT", "AUTH_OAUTH_LAST_LOGIN_METHOD", "AUTH_CURRENT_PASSWORD_REQUIRED", "AUTH_INVALID_CURRENT_PASSWORD", "AUTH_PASSWORD_NOT_SET", "AUTH_HANDLE_UNAVAILABLE", "AUTH_EMAIL_ALREADY_IN_USE", "AUTH_EMAIL_OTP_EXPIRED", "AUTH_INVALID_EMAIL_OTP", "AUTH_EMAIL_OTP_UNAVAILABLE", "AUTH_RATE_LIMITED", "AUTH_SESSION_REVOCATION_UNAVAILABLE", "AUTH_ACCOUNT_NOT_FOUND", "ACCOUNT_DELETED", "AUTH_ACCOUNT_TERMINAL_CONFLICT", "ADMIN_LAST_ACTIVE_REQUIRED"]
     statusCode: Literal[400, 401, 403, 404, 409, 429, 503]
     traceId: str
     deleted_at: str | None = None
@@ -240,6 +354,7 @@ class BlockedUserDto:
     displayName: str | None
     handle: str | None
     id: str
+    isDeleted: bool
     reason: str | None
     avatarMedia: MediaDeliveryDto | None = None
 
@@ -251,7 +366,7 @@ class BlockedUserListDto:
 
 @dataclass(frozen=True)
 class BlockUserBodyDto:
-    reason: str | None = None
+    reason: str | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class BundleDetailDto:
@@ -579,10 +694,10 @@ class CheckEmailResponseDto:
 @dataclass(frozen=True)
 class CloneAssetDto:
     operationId: str
-    clonePolicy: Literal["ALLOW", "DENY", "INHERIT"] | None = None
-    ownerId: str | None = None
-    transferPolicy: Literal["ALLOW", "DENY", "INHERIT"] | None = None
-    usePolicy: UsePolicyDto | None = None
+    clonePolicy: Literal["ALLOW", "DENY", "INHERIT"] | None | _Unset = _UNSET
+    ownerId: str | None | _Unset = _UNSET
+    transferPolicy: Literal["ALLOW", "DENY", "INHERIT"] | None | _Unset = _UNSET
+    usePolicy: UsePolicyDto | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class ConnectDashboardLinkDto:
@@ -600,14 +715,14 @@ class CreateAssetDto:
     operationId: str
     originKind: Literal["ORIGINAL", "CLONE", "DERIVED"]
     transferPolicy: Literal["ALLOW", "DENY", "INHERIT"]
-    authorId: str | None = None
-    ownerId: str | None = None
-    previewResourceId: str | None = None
-    resourceRefs: tuple[str, ...] = field(default_factory=tuple)
-    rootAssetId: str | None = None
-    sourceAssetId: str | None = None
-    structuredPayload: Mapping[str, object] = field(default_factory=dict)
-    usePolicy: UsePolicyDto | None = None
+    authorId: str | None | _Unset = _UNSET
+    ownerId: str | None | _Unset = _UNSET
+    previewResourceId: str | None | _Unset = _UNSET
+    resourceRefs: tuple[str, ...] | None | _Unset = _UNSET
+    rootAssetId: str | None | _Unset = _UNSET
+    sourceAssetId: str | None | _Unset = _UNSET
+    structuredPayload: Mapping[str, object] | None | _Unset = _UNSET
+    usePolicy: UsePolicyDto | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class CreateBundleDto:
@@ -616,9 +731,9 @@ class CreateBundleDto:
     memberAssetIds: tuple[str, ...]
     title: str
     version: str
-    compatibleApps: tuple[str, ...] = field(default_factory=tuple)
-    importPolicy: ImportPolicyDto | None = None
-    tags: tuple[str, ...] = field(default_factory=tuple)
+    compatibleApps: tuple[str, ...] | None | _Unset = _UNSET
+    importPolicy: ImportPolicyDto | None | _Unset = _UNSET
+    tags: tuple[str, ...] | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class CreateConnectOnboardingDto:
@@ -629,10 +744,10 @@ class CreateConnectOnboardingDto:
 class CreateFeedbackDto:
     description: str
     type: Literal["BUG", "SUGGESTION", "PAYMENT_ISSUE", "OTHER"]
-    appVersion: str | None = None
-    contactEmail: str | None = None
-    screenshotUrls: tuple[str, ...] = field(default_factory=tuple)
-    userAgent: str | None = None
+    appVersion: str | None | _Unset = _UNSET
+    contactEmail: str | None | _Unset = _UNSET
+    screenshotUrls: tuple[str, ...] | None | _Unset = _UNSET
+    userAgent: str | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class CreateMediaDirectUploadDto:
@@ -640,21 +755,21 @@ class CreateMediaDirectUploadDto:
     mimeType: str
     requestId: str
     sizeBytes: float
-    controllerId: str | None = None
-    controllerKind: Literal["ACCOUNT", "WORLD"] | None = None
-    deliveryAccess: Literal["PUBLIC", "SIGNED"] | None = None
-    instrumental: bool | None = None
-    label: str | None = None
-    lyricsSource: str | None = None
-    metadata: Mapping[str, object] = field(default_factory=dict)
-    sourceArtifactId: str | None = None
-    sourceJobId: str | None = None
-    sourceRef: str | None = None
-    style: str | None = None
-    tags: tuple[str, ...] = field(default_factory=tuple)
-    title: str | None = None
-    traceId: str | None = None
-    worldId: str | None = None
+    controllerId: str | None | _Unset = _UNSET
+    controllerKind: Literal["ACCOUNT", "WORLD"] | None | _Unset = _UNSET
+    deliveryAccess: Literal["PUBLIC", "SIGNED"] | None | _Unset = _UNSET
+    instrumental: bool | None | _Unset = _UNSET
+    label: str | None | _Unset = _UNSET
+    lyricsSource: str | None | _Unset = _UNSET
+    metadata: Mapping[str, object] | None | _Unset = _UNSET
+    sourceArtifactId: str | None | _Unset = _UNSET
+    sourceJobId: str | None | _Unset = _UNSET
+    sourceRef: str | None | _Unset = _UNSET
+    style: str | None | _Unset = _UNSET
+    tags: tuple[str, ...] | None | _Unset = _UNSET
+    title: str | None | _Unset = _UNSET
+    traceId: str | None | _Unset = _UNSET
+    worldId: str | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class CreatePersonaCharacterCoreDto:
@@ -662,8 +777,8 @@ class CreatePersonaCharacterCoreDto:
     origin: RealmCoreOriginDto
     profile: CharacterProfileCoreInputDto
     worldId: str
-    id: str | None = None
-    visibility: Literal["private", "unlisted", "public", "system"] | None = None
+    id: str | None | _Unset = _UNSET
+    visibility: Literal["private", "unlisted", "public", "system"] | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class CreatePortalSessionDto:
@@ -674,7 +789,8 @@ class CreateReportDto:
     reason: ReportReason
     targetId: str
     targetType: Literal["USER", "POST"]
-    description: str | None = None
+    description: str | None | _Unset = _UNSET
+    messageEvidence: ReportMessageReferenceDto | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class CreateSourceMaterializationPacketV3Dto:
@@ -702,30 +818,30 @@ class CreateSubscriptionCheckoutDto:
 class CreateTextResourceDto:
     content: str
     requestId: str
-    controllerId: str | None = None
-    controllerKind: Literal["ACCOUNT", "WORLD"] | None = None
-    deliveryAccess: Literal["PUBLIC", "SIGNED"] | None = None
-    instrumental: bool | None = None
-    label: str | None = None
-    lyricsSource: str | None = None
-    metadata: Mapping[str, object] = field(default_factory=dict)
-    mimeType: str | None = None
-    sourceArtifactId: str | None = None
-    sourceJobId: str | None = None
-    sourceRef: str | None = None
-    style: str | None = None
-    tags: tuple[str, ...] = field(default_factory=tuple)
-    title: str | None = None
-    traceId: str | None = None
-    worldId: str | None = None
+    controllerId: str | None | _Unset = _UNSET
+    controllerKind: Literal["ACCOUNT", "WORLD"] | None | _Unset = _UNSET
+    deliveryAccess: Literal["PUBLIC", "SIGNED"] | None | _Unset = _UNSET
+    instrumental: bool | None | _Unset = _UNSET
+    label: str | None | _Unset = _UNSET
+    lyricsSource: str | None | _Unset = _UNSET
+    metadata: Mapping[str, object] | None | _Unset = _UNSET
+    mimeType: str | None | _Unset = _UNSET
+    sourceArtifactId: str | None | _Unset = _UNSET
+    sourceJobId: str | None | _Unset = _UNSET
+    sourceRef: str | None | _Unset = _UNSET
+    style: str | None | _Unset = _UNSET
+    tags: tuple[str, ...] | None | _Unset = _UNSET
+    title: str | None | _Unset = _UNSET
+    traceId: str | None | _Unset = _UNSET
+    worldId: str | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class CreateTransitDto:
     sourceRef: CharacterSourceRefV3Dto
     toWorldId: str
     transitType: Literal["INBOUND", "OUTBOUND"]
-    context: TransitContextDto | None = None
-    fromWorldId: str | None = None
+    context: TransitContextDto | None | _Unset = _UNSET
+    fromWorldId: str | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class CreateWithdrawalDto:
@@ -737,23 +853,23 @@ class CreateWorldCharacterCoreDto:
     origin: RealmCoreOriginDto
     profile: CharacterProfileCoreInputDto
     worldEntityRef: WorldEntityRefDto
-    id: str | None = None
-    visibility: Literal["private", "unlisted", "public", "system"] | None = None
+    id: str | None | _Unset = _UNSET
+    visibility: Literal["private", "unlisted", "public", "system"] | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class CreateWorldCoreDto:
     core: WorldCoreValueDto
     lorebookDeclaration: WorldLorebookDeclarationV1Dto
     origin: RealmCoreOriginDto
-    id: str | None = None
-    visibility: Literal["private", "unlisted", "public", "system"] | None = None
+    id: str | None | _Unset = _UNSET
+    visibility: Literal["private", "unlisted", "public", "system"] | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class CreateWorldEntityCoreDto:
     core: WorldEntityCoreValueDto
     kind: str
     origin: RealmCoreOriginDto
-    id: str | None = None
+    id: str | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class CreateWorldRelationshipCoreDto:
@@ -762,7 +878,7 @@ class CreateWorldRelationshipCoreDto:
     sourceEntityId: str
     targetEntityId: str
     type: str
-    id: str | None = None
+    id: str | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class CreatorEligibilityResponseDto:
@@ -801,8 +917,8 @@ class CursorPageMetaDto:
 
 @dataclass(frozen=True)
 class EditMessageInputDto:
-    payload: ChatTextPayloadDto | Mapping[str, object] | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatFriendRequestPayloadDto | ChatSystemPayloadDto | None = None
-    text: str | None = None
+    payload: ChatTextPayloadDto | Mapping[str, object] | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatFriendRequestPayloadDto | ChatSystemPayloadDto | None | _Unset = _UNSET
+    text: str | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class EmailOtpRequestDto:
@@ -846,6 +962,8 @@ class FriendProfileDto:
     displayName: str
     handle: str
     id: str
+    isDeleted: bool
+    relationshipId: str
     avatarMedia: MediaDeliveryDto | None = None
     avatarResourceId: str | None = None
     avatarUrl: str | None = None
@@ -880,12 +998,34 @@ class FriendProfileListDto:
 class FriendRequestResultDto:
     outcome: Literal["requested", "accepted", "unchanged"]
 
+FriendRequestVisibility = Literal["PUBLIC", "PRIVATE"]
+
+FriendshipAction = Literal["accept", "reject", "cancel", "remove"]
+
+@dataclass(frozen=True)
+class FriendshipActionDto:
+    action: FriendshipAction
+    relationshipId: str
+
+@dataclass(frozen=True)
+class FriendshipActionResultDto:
+    outcome: Literal["accepted", "rejected", "cancelled", "removed"]
+
 Gender = Literal["MALE", "FEMALE", "NONBINARY", "PREFER_NOT_SAY"]
 
 @dataclass(frozen=True)
 class HandleAvailabilityDto:
     available: bool
     message: str | None = None
+
+@dataclass(frozen=True)
+class HandleChangeEligibilityDto:
+    canChange: bool
+    handle: str
+    maxLength: float
+    minLength: float
+    nextEligibleAt: str | None
+    pattern: str
 
 @dataclass(frozen=True)
 class ImportPolicyDto:
@@ -927,9 +1067,17 @@ class ListMessagesResultDto:
     nextBefore: str | None
 
 @dataclass(frozen=True)
+class LogoutSessionDto:
+    refreshToken: str | None | _Unset = _UNSET
+
+@dataclass(frozen=True)
+class MarkChatReadDto:
+    readThroughMessageId: str
+
+@dataclass(frozen=True)
 class MarkNotificationsReadInputDto:
-    ids: tuple[str, ...] = field(default_factory=tuple)
-    markAllBefore: str | None = None
+    ids: tuple[str, ...] | None | _Unset = _UNSET
+    markAllBefore: str | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class MaterializationClosureSetManifestV3Dto:
@@ -1080,7 +1228,7 @@ class Me2faOperationResultDto:
 
 @dataclass(frozen=True)
 class Me2faPrepareDto:
-    code: str | None = None
+    code: str | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class Me2faPrepareResponseDto:
@@ -1239,12 +1387,21 @@ NotificationType = Literal["friend_request_received", "friend_request_accepted",
 class OAuthErrorResponseDto:
     error: Literal["invalid_request", "invalid_grant", "unsupported_grant_type", "unsupported_response_type"]
     message: str
-    reasonCode: Literal["AUTH_REQUIRED", "AUTH_INSUFFICIENT_SCOPE", "AUTH_INVALID_CREDENTIALS", "AUTH_INVALID_REQUEST", "AUTH_TOKEN_EXPIRED", "AUTH_TOKEN_VERIFICATION_UNAVAILABLE", "AUTH_INVALID_REFRESH_TOKEN", "AUTH_REFRESH_TOKEN_REVOKED", "AUTH_REFRESH_TOKEN_REPLAY_DETECTED", "AUTH_ACCOUNT_RESTRICTED", "AUTH_INVALID_TOKEN_TYPE", "AUTH_INVALID_2FA_TOKEN", "AUTH_INVALID_2FA_CODE", "AUTH_2FA_NOT_ENABLED", "AUTH_2FA_SETUP_EXPIRED", "AUTH_2FA_SETUP_UNAVAILABLE", "AUTH_2FA_STATE_CHANGED", "AUTH_INVALID_WALLET_NONCE", "AUTH_INVALID_WALLET_SIGNATURE", "AUTH_WALLET_ADDRESS_REQUIRED", "AUTH_WALLET_MESSAGE_REQUIRED", "AUTH_WALLET_SIGNATURE_REQUIRED", "AUTH_WALLET_NONCE_REQUIRED", "AUTH_WALLET_CHALLENGE_UNAVAILABLE", "AUTH_INVALID_OAUTH_CREDENTIAL", "AUTH_OAUTH_PROVIDER_UNAVAILABLE", "AUTH_OAUTH_IDENTITY_NOT_FOUND", "AUTH_OAUTH_IDENTITY_CONFLICT", "AUTH_OAUTH_LAST_LOGIN_METHOD", "AUTH_CURRENT_PASSWORD_REQUIRED", "AUTH_INVALID_CURRENT_PASSWORD", "AUTH_PASSWORD_NOT_SET", "AUTH_HANDLE_UNAVAILABLE", "AUTH_EMAIL_ALREADY_IN_USE", "AUTH_EMAIL_OTP_EXPIRED", "AUTH_INVALID_EMAIL_OTP", "AUTH_EMAIL_OTP_UNAVAILABLE", "AUTH_RATE_LIMITED", "AUTH_SESSION_REVOCATION_UNAVAILABLE", "AUTH_ACCOUNT_NOT_FOUND", "ACCOUNT_DELETED", "AUTH_ACCOUNT_TERMINAL_CONFLICT", "ADMIN_LAST_ACTIVE_REQUIRED"]
+    reasonCode: Literal["AUTH_REQUIRED", "AUTH_SESSION_REVOKED", "AUTH_RECENT_LOGIN_REQUIRED", "AUTH_ACCOUNT_CONTEXT_CHANGED", "AUTH_INSUFFICIENT_SCOPE", "AUTH_INVALID_CREDENTIALS", "AUTH_INVALID_REQUEST", "AUTH_TOKEN_EXPIRED", "AUTH_TOKEN_VERIFICATION_UNAVAILABLE", "AUTH_INVALID_REFRESH_TOKEN", "AUTH_REFRESH_TOKEN_REVOKED", "AUTH_REFRESH_TOKEN_REPLAY_DETECTED", "AUTH_ACCOUNT_RESTRICTED", "AUTH_INVALID_TOKEN_TYPE", "AUTH_INVALID_2FA_TOKEN", "AUTH_INVALID_2FA_CODE", "AUTH_2FA_NOT_ENABLED", "AUTH_2FA_SETUP_EXPIRED", "AUTH_2FA_SETUP_UNAVAILABLE", "AUTH_2FA_STATE_CHANGED", "AUTH_INVALID_WALLET_NONCE", "AUTH_INVALID_WALLET_SIGNATURE", "AUTH_WALLET_ADDRESS_REQUIRED", "AUTH_WALLET_MESSAGE_REQUIRED", "AUTH_WALLET_SIGNATURE_REQUIRED", "AUTH_WALLET_NONCE_REQUIRED", "AUTH_WALLET_CHALLENGE_UNAVAILABLE", "AUTH_INVALID_OAUTH_CREDENTIAL", "AUTH_OAUTH_PROVIDER_UNAVAILABLE", "AUTH_OAUTH_IDENTITY_NOT_FOUND", "AUTH_OAUTH_IDENTITY_CONFLICT", "AUTH_OAUTH_LAST_LOGIN_METHOD", "AUTH_CURRENT_PASSWORD_REQUIRED", "AUTH_INVALID_CURRENT_PASSWORD", "AUTH_PASSWORD_NOT_SET", "AUTH_HANDLE_UNAVAILABLE", "AUTH_EMAIL_ALREADY_IN_USE", "AUTH_EMAIL_OTP_EXPIRED", "AUTH_INVALID_EMAIL_OTP", "AUTH_EMAIL_OTP_UNAVAILABLE", "AUTH_RATE_LIMITED", "AUTH_SESSION_REVOCATION_UNAVAILABLE", "AUTH_ACCOUNT_NOT_FOUND", "ACCOUNT_DELETED", "AUTH_ACCOUNT_TERMINAL_CONFLICT", "ADMIN_LAST_ACTIVE_REQUIRED"]
     statusCode: Literal[400, 401, 403, 404, 409, 429, 503]
     traceId: str
     deleted_at: str | None = None
     error_description: str | None = None
     operation_id: str | None = None
+
+@dataclass(frozen=True)
+class OAuthLinkDto:
+    expectedAccountId: str
+    provider: Literal["GOOGLE", "WECHAT", "TIKTOK"]
+    code: str | None | _Unset = _UNSET
+    codeVerifier: str | None | _Unset = _UNSET
+    idToken: str | None | _Unset = _UNSET
+    redirectUri: str | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class OAuthLinkResponseDto:
@@ -1254,10 +1411,10 @@ class OAuthLinkResponseDto:
 @dataclass(frozen=True)
 class OAuthLoginDto:
     provider: Literal["GOOGLE", "WECHAT", "TIKTOK"]
-    code: str | None = None
-    codeVerifier: str | None = None
-    idToken: str | None = None
-    redirectUri: str | None = None
+    code: str | None | _Unset = _UNSET
+    codeVerifier: str | None | _Unset = _UNSET
+    idToken: str | None | _Unset = _UNSET
+    redirectUri: str | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class OAuthLoginResultDto:
@@ -1303,14 +1460,20 @@ class PasswordRegisterDto:
 
 @dataclass(frozen=True)
 class PendingFriendRequestDto:
+    avatarUrl: str | None
+    displayName: str
+    handle: str | None
+    isDeleted: bool
+    relationshipId: str
     requestMessage: str | None
     requestedAt: str
     userId: str
 
 @dataclass(frozen=True)
 class PendingFriendRequestListDto:
-    received: tuple[PendingFriendRequestDto, ...]
-    sent: tuple[PendingFriendRequestDto, ...]
+    items: tuple[PendingFriendRequestDto, ...]
+    nextCursor: str | None
+    total: float
 
 @dataclass(frozen=True)
 class PersonaCharacterCoreDto:
@@ -1459,8 +1622,15 @@ class RealmSourceCapabilitiesDto:
     canUseWorldCharacterSources: bool
 
 @dataclass(frozen=True)
+class RecoverPasswordDto:
+    code: str
+    email: str
+    newPassword: str
+    authenticatorCode: str | None | _Unset = _UNSET
+
+@dataclass(frozen=True)
 class RefreshTokenDto:
-    refreshToken: str | None = None
+    refreshToken: str
 
 @dataclass(frozen=True)
 class ReplacePersonaCharacterCoreDto:
@@ -1469,8 +1639,8 @@ class ReplacePersonaCharacterCoreDto:
     origin: RealmCoreOriginDto
     profile: CharacterProfileCoreInputDto
     worldId: str
-    id: str | None = None
-    visibility: Literal["private", "unlisted", "public", "system"] | None = None
+    id: str | None | _Unset = _UNSET
+    visibility: Literal["private", "unlisted", "public", "system"] | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class ReplaceWorldCharacterCoreDto:
@@ -1479,8 +1649,8 @@ class ReplaceWorldCharacterCoreDto:
     origin: RealmCoreOriginDto
     profile: CharacterProfileCoreInputDto
     worldEntityRef: WorldEntityRefDto
-    id: str | None = None
-    visibility: Literal["private", "unlisted", "public", "system"] | None = None
+    id: str | None | _Unset = _UNSET
+    visibility: Literal["private", "unlisted", "public", "system"] | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class ReplaceWorldCoreDto:
@@ -1488,8 +1658,8 @@ class ReplaceWorldCoreDto:
     core: WorldCoreValueDto
     lorebookDeclaration: WorldLorebookDeclarationV1Dto
     origin: RealmCoreOriginDto
-    id: str | None = None
-    visibility: Literal["private", "unlisted", "public", "system"] | None = None
+    id: str | None | _Unset = _UNSET
+    visibility: Literal["private", "unlisted", "public", "system"] | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class ReplaceWorldEntityCoreDto:
@@ -1497,7 +1667,7 @@ class ReplaceWorldEntityCoreDto:
     core: WorldEntityCoreValueDto
     kind: str
     origin: RealmCoreOriginDto
-    id: str | None = None
+    id: str | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class ReplaceWorldRelationshipCoreDto:
@@ -1507,7 +1677,12 @@ class ReplaceWorldRelationshipCoreDto:
     sourceEntityId: str
     targetEntityId: str
     type: str
-    id: str | None = None
+    id: str | None | _Unset = _UNSET
+
+@dataclass(frozen=True)
+class ReportMessageReferenceDto:
+    chatId: str
+    messageId: str
 
 ReportReason = Literal["SPAM", "NSFW", "HATE_SPEECH", "SCAM", "OTHER"]
 
@@ -1607,12 +1782,17 @@ class RevenueSourceOriginRequestDto:
     sourceRef: CharacterSourceRefV3Dto
 
 @dataclass(frozen=True)
+class RevokeAccountSessionsResultDto:
+    currentRevoked: bool
+    revokedCount: float
+
+@dataclass(frozen=True)
 class SendMessageInputDto:
     clientMessageId: str
     payload: ChatTextPayloadDto | Mapping[str, object] | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatFriendRequestPayloadDto | ChatSystemPayloadDto
     type: MessageType
-    replyToMessageId: str | None = None
-    text: str | None = None
+    replyToMessageId: str | None | _Unset = _UNSET
+    text: str | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class SocialProfileDto:
@@ -1727,9 +1907,9 @@ class SparkPackageDto:
 @dataclass(frozen=True)
 class StartChatInputDto:
     targetAccountId: str
-    payload: ChatTextPayloadDto | Mapping[str, object] | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatFriendRequestPayloadDto | ChatSystemPayloadDto | None = None
-    text: str | None = None
-    type: MessageType | None = None
+    payload: ChatTextPayloadDto | Mapping[str, object] | ChatPostRefPayloadDto | ChatUserRefPayloadDto | ChatLinkRefPayloadDto | ChatFriendRequestPayloadDto | ChatSystemPayloadDto | None | _Unset = _UNSET
+    text: str | None | _Unset = _UNSET
+    type: MessageType | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class StartChatResultDto:
@@ -1774,6 +1954,7 @@ class SubscriptionTierConfigDto:
 
 @dataclass(frozen=True)
 class TerminateCurrentAccountRequestDto:
+    expectedAccountId: str
     operation_id: str
 
 @dataclass(frozen=True)
@@ -1818,7 +1999,7 @@ class TransitDetailDto:
 class TranslateRequestDto:
     context: Literal["caption", "chat"]
     text: str
-    targetLang: str | None = None
+    targetLang: str | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class TranslateResponseDto:
@@ -1833,23 +2014,23 @@ class UnreadNotificationCountDto:
 
 @dataclass(frozen=True)
 class UpdateAssetDto:
-    clonePolicy: Literal["ALLOW", "DENY", "INHERIT"] | None = None
-    previewResourceId: str | None = None
-    resourceRefs: tuple[str, ...] = field(default_factory=tuple)
-    structuredPayload: Mapping[str, object] = field(default_factory=dict)
-    transferPolicy: Literal["ALLOW", "DENY", "INHERIT"] | None = None
-    usePolicy: UsePolicyDto | None = None
+    clonePolicy: Literal["ALLOW", "DENY", "INHERIT"] | None | _Unset = _UNSET
+    previewResourceId: str | None | _Unset = _UNSET
+    resourceRefs: tuple[str, ...] | None | _Unset = _UNSET
+    structuredPayload: Mapping[str, object] | None | _Unset = _UNSET
+    transferPolicy: Literal["ALLOW", "DENY", "INHERIT"] | None | _Unset = _UNSET
+    usePolicy: UsePolicyDto | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class UpdateBundleDto:
-    compatibleApps: tuple[str, ...] = field(default_factory=tuple)
-    coverAssetId: str | None = None
-    description: str | None = None
-    importPolicy: ImportPolicyDto | None = None
-    memberAssetIds: tuple[str, ...] = field(default_factory=tuple)
-    tags: tuple[str, ...] = field(default_factory=tuple)
-    title: str | None = None
-    version: str | None = None
+    compatibleApps: tuple[str, ...] | None | _Unset = _UNSET
+    coverAssetId: str | None | _Unset = _UNSET
+    description: str | None | _Unset = _UNSET
+    importPolicy: ImportPolicyDto | None | _Unset = _UNSET
+    memberAssetIds: tuple[str, ...] | None | _Unset = _UNSET
+    tags: tuple[str, ...] | None | _Unset = _UNSET
+    title: str | None | _Unset = _UNSET
+    version: str | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class UpdateMyHandleDto:
@@ -1858,7 +2039,7 @@ class UpdateMyHandleDto:
 @dataclass(frozen=True)
 class UpdatePasswordRequestDto:
     newPassword: str
-    oldPassword: str | None = None
+    oldPassword: str | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class UpdatePPSlotConfigDto:
@@ -1866,63 +2047,63 @@ class UpdatePPSlotConfigDto:
 
 @dataclass(frozen=True)
 class UpdateResourceDto:
-    controllerId: str | None = None
-    controllerKind: Literal["ACCOUNT", "WORLD"] | None = None
-    deliveryAccess: Literal["PUBLIC", "SIGNED"] | None = None
-    instrumental: bool | None = None
-    label: str | None = None
-    lyricsSource: str | None = None
-    metadata: Mapping[str, object] = field(default_factory=dict)
-    sourceArtifactId: str | None = None
-    sourceJobId: str | None = None
-    sourceRef: str | None = None
-    style: str | None = None
-    tags: tuple[str, ...] = field(default_factory=tuple)
-    title: str | None = None
-    traceId: str | None = None
-    worldId: str | None = None
+    controllerId: str | None | _Unset = _UNSET
+    controllerKind: Literal["ACCOUNT", "WORLD"] | None | _Unset = _UNSET
+    deliveryAccess: Literal["PUBLIC", "SIGNED"] | None | _Unset = _UNSET
+    instrumental: bool | None | _Unset = _UNSET
+    label: str | None | _Unset = _UNSET
+    lyricsSource: str | None | _Unset = _UNSET
+    metadata: Mapping[str, object] | None | _Unset = _UNSET
+    sourceArtifactId: str | None | _Unset = _UNSET
+    sourceJobId: str | None | _Unset = _UNSET
+    sourceRef: str | None | _Unset = _UNSET
+    style: str | None | _Unset = _UNSET
+    tags: tuple[str, ...] | None | _Unset = _UNSET
+    title: str | None | _Unset = _UNSET
+    traceId: str | None | _Unset = _UNSET
+    worldId: str | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class UpdateUserDto:
-    avatarResourceId: str | None = None
-    avatarUrl: str | None = None
-    bio: str | None = None
-    birthYear: float | None = None
-    city: str | None = None
-    countryCode: str | None = None
-    displayName: str | None = None
-    gender: Gender | None = None
-    languages: tuple[str, ...] = field(default_factory=tuple)
-    profileCoverResourceId: str | None = None
-    profileCoverUrl: str | None = None
-    tags: tuple[str, ...] = field(default_factory=tuple)
+    avatarResourceId: str | None | _Unset = _UNSET
+    avatarUrl: str | None | _Unset = _UNSET
+    bio: str | None | _Unset = _UNSET
+    birthYear: float | None | _Unset = _UNSET
+    city: str | None | _Unset = _UNSET
+    countryCode: str | None | _Unset = _UNSET
+    displayName: str | None | _Unset = _UNSET
+    gender: Gender | None | _Unset = _UNSET
+    languages: tuple[str, ...] | None | _Unset = _UNSET
+    profileCoverResourceId: str | None | _Unset = _UNSET
+    profileCoverUrl: str | None | _Unset = _UNSET
+    tags: tuple[str, ...] | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class UpdateUserNotificationSettingsDto:
-    activity: NotificationActivityDto | None = None
-    channels: NotificationChannelsDto | None = None
+    activity: NotificationActivityDto | None | _Unset = _UNSET
+    channels: NotificationChannelsDto | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class UpdateUserSettingsDto:
-    accountVisibility: Visibility | None = None
-    blockedAccountIds: tuple[str, ...] = field(default_factory=tuple)
-    defaultPostVisibility: Visibility | None = None
-    dmVisibility: Visibility | None = None
-    friendListVisibility: Visibility | None = None
-    friendRequestVisibility: Visibility | None = None
-    mentionVisibility: Visibility | None = None
-    notificationSettings: UpdateUserNotificationSettingsDto | None = None
-    nsfwChatEnabled: bool | None = None
-    onlineStatusVisibility: Visibility | None = None
-    presenceEmoji: str | None = None
-    presenceStatus: PresenceStatus | None = None
-    presenceText: str | None = None
-    profileVisibility: Visibility | None = None
-    publicFilter: PublicFilterDto | None = None
-    showSensitiveContent: bool | None = None
-    socialVisibility: Visibility | None = None
-    walletSecurityChallengeEnabled: bool | None = None
-    walletVisibility: Visibility | None = None
+    accountVisibility: Visibility | None | _Unset = _UNSET
+    blockedAccountIds: tuple[str, ...] | None | _Unset = _UNSET
+    defaultPostVisibility: Visibility | None | _Unset = _UNSET
+    dmVisibility: Visibility | None | _Unset = _UNSET
+    friendListVisibility: Visibility | None | _Unset = _UNSET
+    friendRequestVisibility: FriendRequestVisibility | None | _Unset = _UNSET
+    mentionVisibility: Visibility | None | _Unset = _UNSET
+    notificationSettings: UpdateUserNotificationSettingsDto | None | _Unset = _UNSET
+    nsfwChatEnabled: bool | None | _Unset = _UNSET
+    onlineStatusVisibility: Visibility | None | _Unset = _UNSET
+    presenceEmoji: str | None | _Unset = _UNSET
+    presenceStatus: PresenceStatus | None | _Unset = _UNSET
+    presenceText: str | None | _Unset = _UNSET
+    profileVisibility: Visibility | None | _Unset = _UNSET
+    publicFilter: PublicFilterDto | None | _Unset = _UNSET
+    showSensitiveContent: bool | None | _Unset = _UNSET
+    socialVisibility: Visibility | None | _Unset = _UNSET
+    walletSecurityChallengeEnabled: bool | None | _Unset = _UNSET
+    walletVisibility: Visibility | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class UsePolicyDto:
@@ -2034,13 +2215,21 @@ class UserProfileDto:
     tiers: UserTierSummaryDto | None = None
 
 @dataclass(frozen=True)
+class UserRelationshipDto:
+    blockedByMe: bool
+    canMessage: bool
+    canRequest: bool
+    relationshipId: str | None
+    state: Literal["none", "pending_incoming", "pending_outgoing", "active"]
+
+@dataclass(frozen=True)
 class UserSettingsDto:
     accountVisibility: Visibility | None = None
     blockedAccountIds: tuple[str, ...] = field(default_factory=tuple)
     defaultPostVisibility: Visibility | None = None
     dmVisibility: Visibility | None = None
     friendListVisibility: Visibility | None = None
-    friendRequestVisibility: Visibility | None = None
+    friendRequestVisibility: FriendRequestVisibility | None = None
     mentionVisibility: Visibility | None = None
     notificationSettings: UserNotificationSettingsDto | None = None
     nsfwChatEnabled: bool | None = None
@@ -2115,15 +2304,15 @@ class VisibilityCheckResultDto:
 class WalletBindDto:
     signature: str
     walletAddress: str
-    chainId: float | None = None
-    message: str | None = None
-    walletType: str | None = None
+    chainId: float | None | _Unset = _UNSET
+    message: str | None | _Unset = _UNSET
+    walletType: str | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class WalletChallengeDto:
     walletAddress: str
-    chainId: float | None = None
-    walletType: str | None = None
+    chainId: float | None | _Unset = _UNSET
+    walletType: str | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class WalletChallengeResponseDto:
@@ -2138,14 +2327,14 @@ class WalletLoginDto:
     nonce: str
     signature: str
     walletAddress: str
-    chainId: float | None = None
-    walletType: str | None = None
+    chainId: float | None | _Unset = _UNSET
+    walletType: str | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class WalletPrepareBindDto:
     walletAddress: str
-    chainId: float | None = None
-    chainNamespace: str | None = None
+    chainId: float | None | _Unset = _UNSET
+    chainNamespace: str | None | _Unset = _UNSET
 
 @dataclass(frozen=True)
 class WalletPrepareBindResponseDto:
@@ -2913,6 +3102,28 @@ class RealmAddFriendByHandleOperationRequest:
     query: RealmAddFriendByHandleOperationQuery | None = None
     headers: RealmAddFriendByHandleOperationHeaders | None = None
     body: AddFriendBodyDto | None = None
+
+@dataclass(frozen=True)
+class RealmApplyFriendshipActionOperationPath:
+    id: str
+
+
+@dataclass(frozen=True)
+class RealmApplyFriendshipActionOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmApplyFriendshipActionOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmApplyFriendshipActionOperationRequest:
+    path: RealmApplyFriendshipActionOperationPath
+    query: RealmApplyFriendshipActionOperationQuery | None = None
+    headers: RealmApplyFriendshipActionOperationHeaders | None = None
+    body: FriendshipActionDto | None = None
 
 @dataclass(frozen=True)
 class RealmArchiveAssetOperationPath:
@@ -3843,6 +4054,28 @@ class RealmEnable2FaOperationRequest:
     body: Me2faEnableDto | None = None
 
 @dataclass(frozen=True)
+class RealmExportMyAccountOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmExportMyAccountOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmExportMyAccountOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmExportMyAccountOperationRequest:
+    path: RealmExportMyAccountOperationPath
+    query: RealmExportMyAccountOperationQuery | None = None
+    headers: RealmExportMyAccountOperationHeaders | None = None
+    body: AccountExportRequestDto | None = None
+
+@dataclass(frozen=True)
 class RealmFeedbackControllerGetMyFeedbacksOperationPath:
     pass
 
@@ -4132,6 +4365,28 @@ class RealmGetMyCreatorEligibilityOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
+class RealmGetMyHandleChangeEligibilityOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetMyHandleChangeEligibilityOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetMyHandleChangeEligibilityOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetMyHandleChangeEligibilityOperationRequest:
+    path: RealmGetMyHandleChangeEligibilityOperationPath
+    query: RealmGetMyHandleChangeEligibilityOperationQuery | None = None
+    headers: RealmGetMyHandleChangeEligibilityOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
 class RealmGetMyNotificationSettingsOperationPath:
     pass
 
@@ -4160,7 +4415,9 @@ class RealmGetMyPendingFriendRequestsOperationPath:
 
 @dataclass(frozen=True)
 class RealmGetMyPendingFriendRequestsOperationQuery:
-    pass
+    cursor: str | None = None
+    limit: float | None = None
+    direction: Literal["received", "sent"] | None = None
 
 
 @dataclass(frozen=True)
@@ -4195,6 +4452,28 @@ class RealmGetMyPPConfigOperationRequest:
     path: RealmGetMyPPConfigOperationPath
     query: RealmGetMyPPConfigOperationQuery | None = None
     headers: RealmGetMyPPConfigOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmGetMyRelationshipWithUserOperationPath:
+    id: str
+
+
+@dataclass(frozen=True)
+class RealmGetMyRelationshipWithUserOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetMyRelationshipWithUserOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetMyRelationshipWithUserOperationRequest:
+    path: RealmGetMyRelationshipWithUserOperationPath
+    query: RealmGetMyRelationshipWithUserOperationQuery | None = None
+    headers: RealmGetMyRelationshipWithUserOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -4459,7 +4738,7 @@ class RealmLinkOauthOperationRequest:
     path: RealmLinkOauthOperationPath
     query: RealmLinkOauthOperationQuery | None = None
     headers: RealmLinkOauthOperationHeaders | None = None
-    body: OAuthLoginDto | None = None
+    body: OAuthLinkDto | None = None
 
 @dataclass(frozen=True)
 class RealmListAssetsOperationPath:
@@ -4557,6 +4836,30 @@ class RealmListMessagesOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
+class RealmListMyAccountSessionsOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmListMyAccountSessionsOperationQuery:
+    expectedAccountId: str | None = None
+    cursor: str | None = None
+    limit: float | None = None
+
+
+@dataclass(frozen=True)
+class RealmListMyAccountSessionsOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmListMyAccountSessionsOperationRequest:
+    path: RealmListMyAccountSessionsOperationPath
+    query: RealmListMyAccountSessionsOperationQuery | None = None
+    headers: RealmListMyAccountSessionsOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
 class RealmListMyFriendIdsOperationPath:
     pass
 
@@ -4585,6 +4888,7 @@ class RealmListMyFriendsWithDetailsOperationPath:
 
 @dataclass(frozen=True)
 class RealmListMyFriendsWithDetailsOperationQuery:
+    query: str | None = None
     cursor: str | None = None
     limit: float | None = None
 
@@ -4697,7 +5001,7 @@ class RealmLogoutOperationRequest:
     path: RealmLogoutOperationPath
     query: RealmLogoutOperationQuery | None = None
     headers: RealmLogoutOperationHeaders | None = None
-    body: RefreshTokenDto | None = None
+    body: LogoutSessionDto | None = None
 
 @dataclass(frozen=True)
 class RealmMarkChatReadOperationPath:
@@ -4719,7 +5023,7 @@ class RealmMarkChatReadOperationRequest:
     path: RealmMarkChatReadOperationPath
     query: RealmMarkChatReadOperationQuery | None = None
     headers: RealmMarkChatReadOperationHeaders | None = None
-    body: None | None = None
+    body: MarkChatReadDto | None = None
 
 @dataclass(frozen=True)
 class RealmMarkNotificationReadOperationPath:
@@ -4808,7 +5112,7 @@ class RealmOauthLoginOperationQuery:
 
 @dataclass(frozen=True)
 class RealmOauthLoginOperationHeaders:
-    x_nimi_auth_response: Literal["browser-session"] | None = None
+    x_nimi_auth_response: Literal["browser-session"] | None = field(default=None, metadata={"wire": "x-nimi-auth-response"})
 
 
 @dataclass(frozen=True)
@@ -4852,7 +5156,7 @@ class RealmPasswordLoginOperationQuery:
 
 @dataclass(frozen=True)
 class RealmPasswordLoginOperationHeaders:
-    x_nimi_auth_response: Literal["browser-session"] | None = None
+    x_nimi_auth_response: Literal["browser-session"] | None = field(default=None, metadata={"wire": "x-nimi-auth-response"})
 
 
 @dataclass(frozen=True)
@@ -4996,6 +5300,50 @@ class RealmRecallMessageOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
+class RealmRecoverPasswordOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmRecoverPasswordOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmRecoverPasswordOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmRecoverPasswordOperationRequest:
+    path: RealmRecoverPasswordOperationPath
+    query: RealmRecoverPasswordOperationQuery | None = None
+    headers: RealmRecoverPasswordOperationHeaders | None = None
+    body: RecoverPasswordDto | None = None
+
+@dataclass(frozen=True)
+class RealmRefreshBrowserSessionOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmRefreshBrowserSessionOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmRefreshBrowserSessionOperationHeaders:
+    x_nimi_auth_response: Literal["browser-session"] | None = field(default=None, metadata={"wire": "x-nimi-auth-response"})
+
+
+@dataclass(frozen=True)
+class RealmRefreshBrowserSessionOperationRequest:
+    path: RealmRefreshBrowserSessionOperationPath
+    query: RealmRefreshBrowserSessionOperationQuery | None = None
+    headers: RealmRefreshBrowserSessionOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
 class RealmRefreshTokenOperationPath:
     pass
 
@@ -5016,28 +5364,6 @@ class RealmRefreshTokenOperationRequest:
     query: RealmRefreshTokenOperationQuery | None = None
     headers: RealmRefreshTokenOperationHeaders | None = None
     body: RefreshTokenDto | None = None
-
-@dataclass(frozen=True)
-class RealmRemoveFriendOperationPath:
-    id: str
-
-
-@dataclass(frozen=True)
-class RealmRemoveFriendOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmRemoveFriendOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmRemoveFriendOperationRequest:
-    path: RealmRemoveFriendOperationPath
-    query: RealmRemoveFriendOperationQuery | None = None
-    headers: RealmRemoveFriendOperationHeaders | None = None
-    body: None | None = None
 
 @dataclass(frozen=True)
 class RealmReportControllerCreateReportOperationPath:
@@ -5082,6 +5408,50 @@ class RealmRequestEmailOtpOperationRequest:
     query: RealmRequestEmailOtpOperationQuery | None = None
     headers: RealmRequestEmailOtpOperationHeaders | None = None
     body: EmailOtpRequestDto | None = None
+
+@dataclass(frozen=True)
+class RealmRevokeMyAccountSessionOperationPath:
+    sessionId: str
+
+
+@dataclass(frozen=True)
+class RealmRevokeMyAccountSessionOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmRevokeMyAccountSessionOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmRevokeMyAccountSessionOperationRequest:
+    path: RealmRevokeMyAccountSessionOperationPath
+    query: RealmRevokeMyAccountSessionOperationQuery | None = None
+    headers: RealmRevokeMyAccountSessionOperationHeaders | None = None
+    body: AccountOwnerIntentDto | None = None
+
+@dataclass(frozen=True)
+class RealmRevokeMyOtherAccountSessionsOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmRevokeMyOtherAccountSessionsOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmRevokeMyOtherAccountSessionsOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmRevokeMyOtherAccountSessionsOperationRequest:
+    path: RealmRevokeMyOtherAccountSessionsOperationPath
+    query: RealmRevokeMyOtherAccountSessionsOperationQuery | None = None
+    headers: RealmRevokeMyOtherAccountSessionsOperationHeaders | None = None
+    body: AccountOwnerIntentDto | None = None
 
 @dataclass(frozen=True)
 class RealmSendMessageOperationPath:
@@ -5627,7 +5997,7 @@ class RealmVerify2FaOperationQuery:
 
 @dataclass(frozen=True)
 class RealmVerify2FaOperationHeaders:
-    x_nimi_auth_response: Literal["browser-session"] | None = None
+    x_nimi_auth_response: Literal["browser-session"] | None = field(default=None, metadata={"wire": "x-nimi-auth-response"})
 
 
 @dataclass(frozen=True)
@@ -5649,7 +6019,7 @@ class RealmVerifyEmailOtpOperationQuery:
 
 @dataclass(frozen=True)
 class RealmVerifyEmailOtpOperationHeaders:
-    x_nimi_auth_response: Literal["browser-session"] | None = None
+    x_nimi_auth_response: Literal["browser-session"] | None = field(default=None, metadata={"wire": "x-nimi-auth-response"})
 
 
 @dataclass(frozen=True)
@@ -5783,7 +6153,7 @@ class RealmWalletLoginOperationQuery:
 
 @dataclass(frozen=True)
 class RealmWalletLoginOperationHeaders:
-    x_nimi_auth_response: Literal["browser-session"] | None = None
+    x_nimi_auth_response: Literal["browser-session"] | None = field(default=None, metadata={"wire": "x-nimi-auth-response"})
 
 
 @dataclass(frozen=True)
@@ -6580,29 +6950,39 @@ class RealmTypedClient:
     async def add_friend(self, request: RealmAddFriendOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAddFriendOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="addFriend", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(None, raw)
+        return _decode_model(FriendRequestResultDto, raw)
 
     async def add_friend_by_handle(self, request: RealmAddFriendByHandleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAddFriendByHandleOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="addFriendByHandle", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(FriendRequestResultDto, raw)
 
+    async def apply_friendship_action(self, request: RealmApplyFriendshipActionOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmApplyFriendshipActionOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="applyFriendshipAction", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(FriendshipActionResultDto, raw)
+
     async def archive_asset(self, request: RealmArchiveAssetOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmArchiveAssetOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="archiveAsset", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AssetDetailDto, raw)
@@ -6610,9 +6990,9 @@ class RealmTypedClient:
     async def archive_bundle(self, request: RealmArchiveBundleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmArchiveBundleOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="archiveBundle", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(BundleDetailDto, raw)
@@ -6620,9 +7000,9 @@ class RealmTypedClient:
     async def bind_email(self, request: RealmBindEmailOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmBindEmailOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="bindEmail", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
@@ -6630,9 +7010,9 @@ class RealmTypedClient:
     async def bind_wallet(self, request: RealmBindWalletOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmBindWalletOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="bindWallet", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UserWalletDto, raw)
@@ -6640,9 +7020,9 @@ class RealmTypedClient:
     async def block_user(self, request: RealmBlockUserOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmBlockUserOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="blockUser", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
@@ -6650,9 +7030,9 @@ class RealmTypedClient:
     async def cancel_resource_upload(self, request: RealmCancelResourceUploadOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCancelResourceUploadOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="cancelResourceUpload", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResourceDetailDto, raw)
@@ -6660,9 +7040,9 @@ class RealmTypedClient:
     async def change_email(self, request: RealmChangeEmailOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmChangeEmailOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="changeEmail", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
@@ -6670,9 +7050,9 @@ class RealmTypedClient:
     async def check_email(self, request: RealmCheckEmailOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCheckEmailOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="checkEmail", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CheckEmailResponseDto, raw)
@@ -6680,9 +7060,9 @@ class RealmTypedClient:
     async def check_handle(self, request: RealmCheckHandleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCheckHandleOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="checkHandle", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(HandleAvailabilityDto, raw)
@@ -6690,9 +7070,9 @@ class RealmTypedClient:
     async def clone_asset(self, request: RealmCloneAssetOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCloneAssetOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="cloneAsset", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AssetDetailDto, raw)
@@ -6700,9 +7080,9 @@ class RealmTypedClient:
     async def create_asset(self, request: RealmCreateAssetOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreateAssetOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="createAsset", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AssetDetailDto, raw)
@@ -6710,9 +7090,9 @@ class RealmTypedClient:
     async def create_audio_direct_upload(self, request: RealmCreateAudioDirectUploadOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreateAudioDirectUploadOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="createAudioDirectUpload", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResourceDirectUploadSessionDto, raw)
@@ -6720,9 +7100,9 @@ class RealmTypedClient:
     async def create_bundle(self, request: RealmCreateBundleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreateBundleOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="createBundle", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(BundleDetailDto, raw)
@@ -6730,9 +7110,9 @@ class RealmTypedClient:
     async def create_image_direct_upload(self, request: RealmCreateImageDirectUploadOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreateImageDirectUploadOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="createImageDirectUpload", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResourceDirectUploadSessionDto, raw)
@@ -6740,9 +7120,9 @@ class RealmTypedClient:
     async def create_text_resource(self, request: RealmCreateTextResourceOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreateTextResourceOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="createTextResource", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResourceDetailDto, raw)
@@ -6750,9 +7130,9 @@ class RealmTypedClient:
     async def create_video_direct_upload(self, request: RealmCreateVideoDirectUploadOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreateVideoDirectUploadOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="createVideoDirectUpload", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResourceDirectUploadSessionDto, raw)
@@ -6760,9 +7140,9 @@ class RealmTypedClient:
     async def delete_resource(self, request: RealmDeleteResourceOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmDeleteResourceOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="deleteResource", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResourceDetailDto, raw)
@@ -6770,9 +7150,9 @@ class RealmTypedClient:
     async def disable2_fa(self, request: RealmDisable2FaOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmDisable2FaOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="disable2Fa", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(Me2faOperationResultDto, raw)
@@ -6780,9 +7160,9 @@ class RealmTypedClient:
     async def economy_controller_calculate_withdrawal(self, request: RealmEconomyControllerCalculateWithdrawalOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerCalculateWithdrawalOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_calculateWithdrawal", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WithdrawalSummaryDto, raw)
@@ -6790,9 +7170,9 @@ class RealmTypedClient:
     async def economy_controller_cancel_subscription(self, request: RealmEconomyControllerCancelSubscriptionOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerCancelSubscriptionOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_cancelSubscription", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
@@ -6800,9 +7180,9 @@ class RealmTypedClient:
     async def economy_controller_can_withdraw(self, request: RealmEconomyControllerCanWithdrawOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerCanWithdrawOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_canWithdraw", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CanWithdrawDto, raw)
@@ -6810,9 +7190,9 @@ class RealmTypedClient:
     async def economy_controller_create_connect_dashboard(self, request: RealmEconomyControllerCreateConnectDashboardOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerCreateConnectDashboardOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_createConnectDashboard", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ConnectDashboardLinkDto, raw)
@@ -6820,9 +7200,9 @@ class RealmTypedClient:
     async def economy_controller_create_connect_onboarding(self, request: RealmEconomyControllerCreateConnectOnboardingOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerCreateConnectOnboardingOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_createConnectOnboarding", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ConnectOnboardingResponseDto, raw)
@@ -6830,9 +7210,9 @@ class RealmTypedClient:
     async def economy_controller_create_portal_session(self, request: RealmEconomyControllerCreatePortalSessionOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerCreatePortalSessionOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_createPortalSession", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(PortalSessionDto, raw)
@@ -6840,9 +7220,9 @@ class RealmTypedClient:
     async def economy_controller_create_spark_checkout(self, request: RealmEconomyControllerCreateSparkCheckoutOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerCreateSparkCheckoutOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_createSparkCheckout", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SparkCheckoutSessionDto, raw)
@@ -6850,9 +7230,9 @@ class RealmTypedClient:
     async def economy_controller_create_subscription_checkout(self, request: RealmEconomyControllerCreateSubscriptionCheckoutOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerCreateSubscriptionCheckoutOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_createSubscriptionCheckout", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SubscriptionCheckoutSessionDto, raw)
@@ -6860,9 +7240,9 @@ class RealmTypedClient:
     async def economy_controller_create_withdrawal(self, request: RealmEconomyControllerCreateWithdrawalOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerCreateWithdrawalOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_createWithdrawal", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WithdrawalDto, raw)
@@ -6870,9 +7250,9 @@ class RealmTypedClient:
     async def economy_controller_get_balances(self, request: RealmEconomyControllerGetBalancesOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerGetBalancesOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_getBalances", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CurrencyBalancesDto, raw)
@@ -6880,9 +7260,9 @@ class RealmTypedClient:
     async def economy_controller_get_connect_status(self, request: RealmEconomyControllerGetConnectStatusOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerGetConnectStatusOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_getConnectStatus", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(StripeConnectStatusDto, raw)
@@ -6890,9 +7270,9 @@ class RealmTypedClient:
     async def economy_controller_get_gem_history(self, request: RealmEconomyControllerGetGemHistoryOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerGetGemHistoryOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_getGemHistory", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CurrencyTransactionHistoryDto, raw)
@@ -6900,9 +7280,9 @@ class RealmTypedClient:
     async def economy_controller_get_revenue_share_config(self, request: RealmEconomyControllerGetRevenueShareConfigOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerGetRevenueShareConfigOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_getRevenueShareConfig", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RevenueShareConfigDto, raw)
@@ -6910,9 +7290,9 @@ class RealmTypedClient:
     async def economy_controller_get_source_origin(self, request: RealmEconomyControllerGetSourceOriginOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerGetSourceOriginOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_getSourceOrigin", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SourceOriginDto, raw)
@@ -6920,9 +7300,9 @@ class RealmTypedClient:
     async def economy_controller_get_spark_history(self, request: RealmEconomyControllerGetSparkHistoryOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerGetSparkHistoryOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_getSparkHistory", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CurrencyTransactionHistoryDto, raw)
@@ -6930,9 +7310,9 @@ class RealmTypedClient:
     async def economy_controller_get_spark_packages(self, request: RealmEconomyControllerGetSparkPackagesOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerGetSparkPackagesOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_getSparkPackages", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(tuple[SparkPackageDto, ...], raw)
@@ -6940,9 +7320,9 @@ class RealmTypedClient:
     async def economy_controller_get_subscription(self, request: RealmEconomyControllerGetSubscriptionOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerGetSubscriptionOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_getSubscription", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(SubscriptionDto, raw)
@@ -6950,9 +7330,9 @@ class RealmTypedClient:
     async def economy_controller_get_subscription_tiers(self, request: RealmEconomyControllerGetSubscriptionTiersOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerGetSubscriptionTiersOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_getSubscriptionTiers", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(tuple[SubscriptionTierConfigDto, ...], raw)
@@ -6960,9 +7340,9 @@ class RealmTypedClient:
     async def economy_controller_get_withdrawal(self, request: RealmEconomyControllerGetWithdrawalOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerGetWithdrawalOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_getWithdrawal", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WithdrawalDto, raw)
@@ -6970,9 +7350,9 @@ class RealmTypedClient:
     async def economy_controller_get_withdrawal_config(self, request: RealmEconomyControllerGetWithdrawalConfigOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerGetWithdrawalConfigOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_getWithdrawalConfig", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WithdrawalConfigDto, raw)
@@ -6980,9 +7360,9 @@ class RealmTypedClient:
     async def economy_controller_get_withdrawal_history(self, request: RealmEconomyControllerGetWithdrawalHistoryOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerGetWithdrawalHistoryOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_getWithdrawalHistory", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WithdrawalHistoryDto, raw)
@@ -6990,9 +7370,9 @@ class RealmTypedClient:
     async def economy_controller_preview_revenue_distribution(self, request: RealmEconomyControllerPreviewRevenueDistributionOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEconomyControllerPreviewRevenueDistributionOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="EconomyController_previewRevenueDistribution", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(RevenueDistributionPreviewDto, raw)
@@ -7000,9 +7380,9 @@ class RealmTypedClient:
     async def edit_message(self, request: RealmEditMessageOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEditMessageOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="editMessage", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(MessageViewDto, raw)
@@ -7010,19 +7390,29 @@ class RealmTypedClient:
     async def enable2_fa(self, request: RealmEnable2FaOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEnable2FaOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="enable2Fa", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(Me2faOperationResultDto, raw)
 
+    async def export_my_account(self, request: RealmExportMyAccountOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmExportMyAccountOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="exportMyAccount", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(AccountExportDto, raw)
+
     async def feedback_controller_get_my_feedbacks(self, request: RealmFeedbackControllerGetMyFeedbacksOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmFeedbackControllerGetMyFeedbacksOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="FeedbackController_getMyFeedbacks", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(FeedbackListResponseDto, raw)
@@ -7030,9 +7420,9 @@ class RealmTypedClient:
     async def feedback_controller_submit_feedback(self, request: RealmFeedbackControllerSubmitFeedbackOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmFeedbackControllerSubmitFeedbackOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="FeedbackController_submitFeedback", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(FeedbackResponseDto, raw)
@@ -7040,9 +7430,9 @@ class RealmTypedClient:
     async def finalize_resource(self, request: RealmFinalizeResourceOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmFinalizeResourceOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="finalizeResource", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResourceDetailDto, raw)
@@ -7050,9 +7440,9 @@ class RealmTypedClient:
     async def get_asset(self, request: RealmGetAssetOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetAssetOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getAsset", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AssetDetailDto, raw)
@@ -7060,9 +7450,9 @@ class RealmTypedClient:
     async def get_auth_jwks(self, request: RealmGetAuthJwksOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetAuthJwksOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getAuthJwks", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AuthJwksResponseDto, raw)
@@ -7070,9 +7460,9 @@ class RealmTypedClient:
     async def get_bundle(self, request: RealmGetBundleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetBundleOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getBundle", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(BundleDetailDto, raw)
@@ -7080,9 +7470,9 @@ class RealmTypedClient:
     async def get_chat_by_id(self, request: RealmGetChatByIdOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetChatByIdOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getChatById", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ChatViewDto, raw)
@@ -7090,9 +7480,9 @@ class RealmTypedClient:
     async def get_me(self, request: RealmGetMeOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMeOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMe", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UserPrivateDto, raw)
@@ -7100,9 +7490,9 @@ class RealmTypedClient:
     async def get_mutual_friends(self, request: RealmGetMutualFriendsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMutualFriendsOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMutualFriends", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(MutualFriendListDto, raw)
@@ -7110,9 +7500,9 @@ class RealmTypedClient:
     async def get_mutual_friends_count(self, request: RealmGetMutualFriendsCountOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMutualFriendsCountOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMutualFriendsCount", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(MutualFriendCountDto, raw)
@@ -7120,9 +7510,9 @@ class RealmTypedClient:
     async def get_my_blocked_users(self, request: RealmGetMyBlockedUsersOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMyBlockedUsersOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMyBlockedUsers", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(BlockedUserListDto, raw)
@@ -7130,9 +7520,9 @@ class RealmTypedClient:
     async def get_my_capabilities(self, request: RealmGetMyCapabilitiesOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMyCapabilitiesOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMyCapabilities", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UserCapabilitiesDto, raw)
@@ -7140,19 +7530,29 @@ class RealmTypedClient:
     async def get_my_creator_eligibility(self, request: RealmGetMyCreatorEligibilityOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMyCreatorEligibilityOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMyCreatorEligibility", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CreatorEligibilityResponseDto, raw)
 
+    async def get_my_handle_change_eligibility(self, request: RealmGetMyHandleChangeEligibilityOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMyHandleChangeEligibilityOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMyHandleChangeEligibility", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(HandleChangeEligibilityDto, raw)
+
     async def get_my_notification_settings(self, request: RealmGetMyNotificationSettingsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMyNotificationSettingsOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMyNotificationSettings", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UserNotificationSettingsDto, raw)
@@ -7160,9 +7560,9 @@ class RealmTypedClient:
     async def get_my_pending_friend_requests(self, request: RealmGetMyPendingFriendRequestsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMyPendingFriendRequestsOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMyPendingFriendRequests", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(PendingFriendRequestListDto, raw)
@@ -7170,19 +7570,29 @@ class RealmTypedClient:
     async def get_my_ppconfig(self, request: RealmGetMyPPConfigOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMyPPConfigOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMyPPConfig", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(PPSlotConfigResponseDto, raw)
 
+    async def get_my_relationship_with_user(self, request: RealmGetMyRelationshipWithUserOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMyRelationshipWithUserOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMyRelationshipWithUser", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(UserRelationshipDto, raw)
+
     async def get_my_settings(self, request: RealmGetMySettingsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMySettingsOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMySettings", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UserSettingsDto, raw)
@@ -7190,9 +7600,9 @@ class RealmTypedClient:
     async def get_my_tiers(self, request: RealmGetMyTiersOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMyTiersOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMyTiers", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(TierDetailDto, raw)
@@ -7200,9 +7610,9 @@ class RealmTypedClient:
     async def get_my_wallets(self, request: RealmGetMyWalletsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMyWalletsOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMyWallets", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UserWalletListResponseDto, raw)
@@ -7210,9 +7620,9 @@ class RealmTypedClient:
     async def get_resource(self, request: RealmGetResourceOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetResourceOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getResource", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResourceDetailDto, raw)
@@ -7220,9 +7630,9 @@ class RealmTypedClient:
     async def get_unread_count(self, request: RealmGetUnreadCountOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetUnreadCountOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getUnreadCount", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UnreadNotificationCountDto, raw)
@@ -7230,9 +7640,9 @@ class RealmTypedClient:
     async def get_user(self, request: RealmGetUserOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetUserOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getUser", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UserProfileDto, raw)
@@ -7240,9 +7650,9 @@ class RealmTypedClient:
     async def get_user_by_handle(self, request: RealmGetUserByHandleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetUserByHandleOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getUserByHandle", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UserProfileDto, raw)
@@ -7250,9 +7660,9 @@ class RealmTypedClient:
     async def get_user_friends(self, request: RealmGetUserFriendsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetUserFriendsOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getUserFriends", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(tuple[str, ...], raw)
@@ -7260,9 +7670,9 @@ class RealmTypedClient:
     async def health_controller_live(self, request: RealmHealthControllerLiveOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmHealthControllerLiveOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="HealthController_live", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
@@ -7270,9 +7680,9 @@ class RealmTypedClient:
     async def health_controller_ready(self, request: RealmHealthControllerReadyOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmHealthControllerReadyOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="HealthController_ready", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
@@ -7280,9 +7690,9 @@ class RealmTypedClient:
     async def introspect_session(self, request: RealmIntrospectSessionOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmIntrospectSessionOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="introspectSession", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(IntrospectSessionResponseDto, raw)
@@ -7290,9 +7700,9 @@ class RealmTypedClient:
     async def link_oauth(self, request: RealmLinkOauthOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmLinkOauthOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="linkOauth", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OAuthLinkResponseDto, raw)
@@ -7300,9 +7710,9 @@ class RealmTypedClient:
     async def list_assets(self, request: RealmListAssetsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListAssetsOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="listAssets", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AssetListDto, raw)
@@ -7310,9 +7720,9 @@ class RealmTypedClient:
     async def list_bundles(self, request: RealmListBundlesOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListBundlesOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="listBundles", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(BundleListDto, raw)
@@ -7320,9 +7730,9 @@ class RealmTypedClient:
     async def list_chats(self, request: RealmListChatsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListChatsOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="listChats", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListChatsResultDto, raw)
@@ -7330,19 +7740,29 @@ class RealmTypedClient:
     async def list_messages(self, request: RealmListMessagesOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListMessagesOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="listMessages", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ListMessagesResultDto, raw)
 
+    async def list_my_account_sessions(self, request: RealmListMyAccountSessionsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListMyAccountSessionsOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="listMyAccountSessions", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(AccountSessionListDto, raw)
+
     async def list_my_friend_ids(self, request: RealmListMyFriendIdsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListMyFriendIdsOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="listMyFriendIds", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
@@ -7350,9 +7770,9 @@ class RealmTypedClient:
     async def list_my_friends_with_details(self, request: RealmListMyFriendsWithDetailsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListMyFriendsWithDetailsOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="listMyFriendsWithDetails", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(FriendProfileListDto, raw)
@@ -7360,9 +7780,9 @@ class RealmTypedClient:
     async def list_notifications(self, request: RealmListNotificationsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListNotificationsOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="listNotifications", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(NotificationListResultDto, raw)
@@ -7370,9 +7790,9 @@ class RealmTypedClient:
     async def list_online_users(self, request: RealmListOnlineUsersOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListOnlineUsersOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="listOnlineUsers", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(tuple[str, ...], raw)
@@ -7380,9 +7800,9 @@ class RealmTypedClient:
     async def list_resources(self, request: RealmListResourcesOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmListResourcesOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="listResources", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResourceListDto, raw)
@@ -7390,9 +7810,9 @@ class RealmTypedClient:
     async def logout(self, request: RealmLogoutOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmLogoutOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="logout", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
@@ -7400,9 +7820,9 @@ class RealmTypedClient:
     async def mark_chat_read(self, request: RealmMarkChatReadOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmMarkChatReadOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="markChatRead", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
@@ -7410,9 +7830,9 @@ class RealmTypedClient:
     async def mark_notification_read(self, request: RealmMarkNotificationReadOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmMarkNotificationReadOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="markNotificationRead", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
@@ -7420,9 +7840,9 @@ class RealmTypedClient:
     async def mark_notifications_read(self, request: RealmMarkNotificationsReadOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmMarkNotificationsReadOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="markNotificationsRead", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
@@ -7430,9 +7850,9 @@ class RealmTypedClient:
     async def oauth_authorize(self, request: RealmOauthAuthorizeOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmOauthAuthorizeOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="oauthAuthorize", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
@@ -7440,9 +7860,9 @@ class RealmTypedClient:
     async def oauth_login(self, request: RealmOauthLoginOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmOauthLoginOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="oauthLogin", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OAuthLoginResultDto, raw)
@@ -7450,9 +7870,9 @@ class RealmTypedClient:
     async def oauth_token(self, request: RealmOauthTokenOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmOauthTokenOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="oauthToken", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OAuthTokenResponseDto, raw)
@@ -7460,9 +7880,9 @@ class RealmTypedClient:
     async def password_login(self, request: RealmPasswordLoginOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmPasswordLoginOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="passwordLogin", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OAuthLoginResultDto, raw)
@@ -7470,9 +7890,9 @@ class RealmTypedClient:
     async def password_register(self, request: RealmPasswordRegisterOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmPasswordRegisterOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="passwordRegister", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OAuthLoginResultDto, raw)
@@ -7480,9 +7900,9 @@ class RealmTypedClient:
     async def prepare2_fa(self, request: RealmPrepare2FaOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmPrepare2FaOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="prepare2Fa", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(Me2faPrepareResponseDto, raw)
@@ -7490,9 +7910,9 @@ class RealmTypedClient:
     async def prepare_bind_wallet(self, request: RealmPrepareBindWalletOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmPrepareBindWalletOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="prepareBindWallet", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WalletPrepareBindResponseDto, raw)
@@ -7500,9 +7920,9 @@ class RealmTypedClient:
     async def publish_bundle(self, request: RealmPublishBundleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmPublishBundleOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="publishBundle", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(BundleDetailDto, raw)
@@ -7510,9 +7930,9 @@ class RealmTypedClient:
     async def publish_ready_asset(self, request: RealmPublishReadyAssetOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmPublishReadyAssetOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="publishReadyAsset", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AssetDetailDto, raw)
@@ -7520,39 +7940,49 @@ class RealmTypedClient:
     async def recall_message(self, request: RealmRecallMessageOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmRecallMessageOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="recallMessage", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(None, raw)
+
+    async def recover_password(self, request: RealmRecoverPasswordOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmRecoverPasswordOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="recoverPassword", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(None, raw)
+
+    async def refresh_browser_session(self, request: RealmRefreshBrowserSessionOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmRefreshBrowserSessionOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="refreshBrowserSession", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
 
     async def refresh_token(self, request: RealmRefreshTokenOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmRefreshTokenOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="refreshToken", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AuthTokensDto, raw)
 
-    async def remove_friend(self, request: RealmRemoveFriendOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmRemoveFriendOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="removeFriend", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(None, raw)
-
     async def report_controller_create_report(self, request: RealmReportControllerCreateReportOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmReportControllerCreateReportOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="ReportController_createReport", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ReportResponseDto, raw)
@@ -7560,19 +7990,39 @@ class RealmTypedClient:
     async def request_email_otp(self, request: RealmRequestEmailOtpOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmRequestEmailOtpOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="requestEmailOtp", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(EmailOtpResponseDto, raw)
 
+    async def revoke_my_account_session(self, request: RealmRevokeMyAccountSessionOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmRevokeMyAccountSessionOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="revokeMyAccountSession", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RevokeAccountSessionsResultDto, raw)
+
+    async def revoke_my_other_account_sessions(self, request: RealmRevokeMyOtherAccountSessionsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmRevokeMyOtherAccountSessionsOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="revokeMyOtherAccountSessions", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RevokeAccountSessionsResultDto, raw)
+
     async def send_message(self, request: RealmSendMessageOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmSendMessageOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="sendMessage", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(MessageViewDto, raw)
@@ -7580,9 +8030,9 @@ class RealmTypedClient:
     async def start_chat(self, request: RealmStartChatOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmStartChatOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="startChat", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(StartChatResultDto, raw)
@@ -7590,9 +8040,9 @@ class RealmTypedClient:
     async def sync_chat_events(self, request: RealmSyncChatEventsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmSyncChatEventsOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="syncChatEvents", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ChatSyncResultDto, raw)
@@ -7600,9 +8050,9 @@ class RealmTypedClient:
     async def terminate_current_account(self, request: RealmTerminateCurrentAccountOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmTerminateCurrentAccountOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="terminateCurrentAccount", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(TerminateCurrentAccountResponseDto, raw)
@@ -7610,9 +8060,9 @@ class RealmTypedClient:
     async def transit_controller_abandon(self, request: RealmTransitControllerAbandonOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmTransitControllerAbandonOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="TransitController_abandon", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(TransitDetailDto, raw)
@@ -7620,9 +8070,9 @@ class RealmTypedClient:
     async def transit_controller_complete(self, request: RealmTransitControllerCompleteOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmTransitControllerCompleteOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="TransitController_complete", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(TransitDetailDto, raw)
@@ -7630,9 +8080,9 @@ class RealmTypedClient:
     async def transit_controller_create_transit(self, request: RealmTransitControllerCreateTransitOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmTransitControllerCreateTransitOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="TransitController_createTransit", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(TransitDetailDto, raw)
@@ -7640,9 +8090,9 @@ class RealmTypedClient:
     async def transit_controller_get_active_transit(self, request: RealmTransitControllerGetActiveTransitOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmTransitControllerGetActiveTransitOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="TransitController_getActiveTransit", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(TransitDetailDto | None, raw)
@@ -7650,9 +8100,9 @@ class RealmTypedClient:
     async def transit_controller_get_transit(self, request: RealmTransitControllerGetTransitOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmTransitControllerGetTransitOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="TransitController_getTransit", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(TransitDetailDto, raw)
@@ -7660,9 +8110,9 @@ class RealmTypedClient:
     async def transit_controller_list_transits(self, request: RealmTransitControllerListTransitsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmTransitControllerListTransitsOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="TransitController_listTransits", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(tuple[TransitDetailDto, ...], raw)
@@ -7670,9 +8120,9 @@ class RealmTypedClient:
     async def transit_controller_start(self, request: RealmTransitControllerStartOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmTransitControllerStartOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="TransitController_start", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(TransitDetailDto, raw)
@@ -7680,9 +8130,9 @@ class RealmTypedClient:
     async def translate_text(self, request: RealmTranslateTextOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmTranslateTextOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="translateText", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(TranslateResponseDto, raw)
@@ -7690,9 +8140,9 @@ class RealmTypedClient:
     async def unbind_wallet(self, request: RealmUnbindWalletOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUnbindWalletOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="unbindWallet", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
@@ -7700,9 +8150,9 @@ class RealmTypedClient:
     async def unblock_user(self, request: RealmUnblockUserOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUnblockUserOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="unblockUser", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
@@ -7710,9 +8160,9 @@ class RealmTypedClient:
     async def unlink_oauth(self, request: RealmUnlinkOauthOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUnlinkOauthOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="unlinkOauth", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
@@ -7720,9 +8170,9 @@ class RealmTypedClient:
     async def update_asset(self, request: RealmUpdateAssetOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateAssetOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateAsset", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AssetDetailDto, raw)
@@ -7730,9 +8180,9 @@ class RealmTypedClient:
     async def update_bundle(self, request: RealmUpdateBundleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateBundleOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateBundle", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(BundleDetailDto, raw)
@@ -7740,9 +8190,9 @@ class RealmTypedClient:
     async def update_me(self, request: RealmUpdateMeOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateMeOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateMe", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UserPrivateDto, raw)
@@ -7750,9 +8200,9 @@ class RealmTypedClient:
     async def update_my_handle(self, request: RealmUpdateMyHandleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateMyHandleOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateMyHandle", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UserPrivateDto, raw)
@@ -7760,9 +8210,9 @@ class RealmTypedClient:
     async def update_my_notification_settings(self, request: RealmUpdateMyNotificationSettingsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateMyNotificationSettingsOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateMyNotificationSettings", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UserNotificationSettingsDto, raw)
@@ -7770,9 +8220,9 @@ class RealmTypedClient:
     async def update_my_ppconfig(self, request: RealmUpdateMyPPConfigOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateMyPPConfigOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateMyPPConfig", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(PPSlotConfigResponseDto, raw)
@@ -7780,9 +8230,9 @@ class RealmTypedClient:
     async def update_my_settings(self, request: RealmUpdateMySettingsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateMySettingsOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateMySettings", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UserSettingsDto, raw)
@@ -7790,9 +8240,9 @@ class RealmTypedClient:
     async def update_password(self, request: RealmUpdatePasswordOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdatePasswordOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="updatePassword", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
@@ -7800,9 +8250,9 @@ class RealmTypedClient:
     async def update_resource(self, request: RealmUpdateResourceOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmUpdateResourceOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="updateResource", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResourceDetailDto, raw)
@@ -7810,9 +8260,9 @@ class RealmTypedClient:
     async def verify2_fa(self, request: RealmVerify2FaOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmVerify2FaOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="verify2Fa", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AuthTokensDto, raw)
@@ -7820,9 +8270,9 @@ class RealmTypedClient:
     async def verify_email_otp(self, request: RealmVerifyEmailOtpOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmVerifyEmailOtpOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="verifyEmailOtp", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OAuthLoginResultDto, raw)
@@ -7830,9 +8280,9 @@ class RealmTypedClient:
     async def visibility_controller_check_can_dm(self, request: RealmVisibilityControllerCheckCanDmOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmVisibilityControllerCheckCanDmOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="VisibilityController_checkCanDm", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(CanDmResultDto, raw)
@@ -7840,9 +8290,9 @@ class RealmTypedClient:
     async def visibility_controller_check_can_view(self, request: RealmVisibilityControllerCheckCanViewOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmVisibilityControllerCheckCanViewOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="VisibilityController_checkCanView", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(VisibilityCheckResultDto, raw)
@@ -7850,9 +8300,9 @@ class RealmTypedClient:
     async def visibility_controller_check_can_view_public(self, request: RealmVisibilityControllerCheckCanViewPublicOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmVisibilityControllerCheckCanViewPublicOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="VisibilityController_checkCanViewPublic", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(VisibilityCheckResultDto, raw)
@@ -7860,9 +8310,9 @@ class RealmTypedClient:
     async def visibility_controller_get_user_settings(self, request: RealmVisibilityControllerGetUserSettingsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmVisibilityControllerGetUserSettingsOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="VisibilityController_getUserSettings", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(UserVisibilitySettingsDto, raw)
@@ -7870,9 +8320,9 @@ class RealmTypedClient:
     async def wallet_challenge(self, request: RealmWalletChallengeOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWalletChallengeOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="walletChallenge", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WalletChallengeResponseDto, raw)
@@ -7880,9 +8330,9 @@ class RealmTypedClient:
     async def wallet_login(self, request: RealmWalletLoginOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWalletLoginOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="walletLogin", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OAuthLoginResultDto, raw)
@@ -7890,9 +8340,9 @@ class RealmTypedClient:
     async def world_core_controller_create_persona_character(self, request: RealmWorldCoreControllerCreatePersonaCharacterOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerCreatePersonaCharacterOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_createPersonaCharacter", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(PersonaCharacterCoreDto, raw)
@@ -7900,9 +8350,9 @@ class RealmTypedClient:
     async def world_core_controller_create_world_character(self, request: RealmWorldCoreControllerCreateWorldCharacterOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerCreateWorldCharacterOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_createWorldCharacter", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldCharacterCoreDto, raw)
@@ -7910,9 +8360,9 @@ class RealmTypedClient:
     async def world_core_controller_create_world_core(self, request: RealmWorldCoreControllerCreateWorldCoreOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerCreateWorldCoreOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_createWorldCore", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldCoreDto, raw)
@@ -7920,9 +8370,9 @@ class RealmTypedClient:
     async def world_core_controller_create_world_entity(self, request: RealmWorldCoreControllerCreateWorldEntityOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerCreateWorldEntityOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_createWorldEntity", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldEntityCoreDto, raw)
@@ -7930,9 +8380,9 @@ class RealmTypedClient:
     async def world_core_controller_create_world_relationship(self, request: RealmWorldCoreControllerCreateWorldRelationshipOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerCreateWorldRelationshipOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_createWorldRelationship", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldRelationshipCoreDto, raw)
@@ -7940,9 +8390,9 @@ class RealmTypedClient:
     async def world_core_controller_delete_persona_character(self, request: RealmWorldCoreControllerDeletePersonaCharacterOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerDeletePersonaCharacterOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_deletePersonaCharacter", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
@@ -7950,9 +8400,9 @@ class RealmTypedClient:
     async def world_core_controller_delete_world_character(self, request: RealmWorldCoreControllerDeleteWorldCharacterOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerDeleteWorldCharacterOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_deleteWorldCharacter", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldCharacterCoreDto, raw)
@@ -7960,9 +8410,9 @@ class RealmTypedClient:
     async def world_core_controller_discover_persona_characters(self, request: RealmWorldCoreControllerDiscoverPersonaCharactersOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerDiscoverPersonaCharactersOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_discoverPersonaCharacters", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(tuple[PersonaCharacterCoreDto, ...], raw)
@@ -7970,9 +8420,9 @@ class RealmTypedClient:
     async def world_core_controller_discover_world_characters(self, request: RealmWorldCoreControllerDiscoverWorldCharactersOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerDiscoverWorldCharactersOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_discoverWorldCharacters", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(tuple[WorldCharacterCoreDto, ...], raw)
@@ -7980,9 +8430,9 @@ class RealmTypedClient:
     async def world_core_controller_get_oasis_world(self, request: RealmWorldCoreControllerGetOasisWorldOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerGetOasisWorldOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_getOasisWorld", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldCoreDto, raw)
@@ -7990,9 +8440,9 @@ class RealmTypedClient:
     async def world_core_controller_get_persona_character(self, request: RealmWorldCoreControllerGetPersonaCharacterOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerGetPersonaCharacterOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_getPersonaCharacter", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(PersonaCharacterCoreDto, raw)
@@ -8000,9 +8450,9 @@ class RealmTypedClient:
     async def world_core_controller_get_world_character(self, request: RealmWorldCoreControllerGetWorldCharacterOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerGetWorldCharacterOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_getWorldCharacter", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldCharacterCoreDto, raw)
@@ -8010,9 +8460,9 @@ class RealmTypedClient:
     async def world_core_controller_get_world_core(self, request: RealmWorldCoreControllerGetWorldCoreOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerGetWorldCoreOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_getWorldCore", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldCoreDto, raw)
@@ -8020,9 +8470,9 @@ class RealmTypedClient:
     async def world_core_controller_get_world_creation_eligibility(self, request: RealmWorldCoreControllerGetWorldCreationEligibilityOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerGetWorldCreationEligibilityOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_getWorldCreationEligibility", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldCreationEligibilityDto, raw)
@@ -8030,9 +8480,9 @@ class RealmTypedClient:
     async def world_core_controller_get_world_entity(self, request: RealmWorldCoreControllerGetWorldEntityOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerGetWorldEntityOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_getWorldEntity", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldEntityCoreDto, raw)
@@ -8040,9 +8490,9 @@ class RealmTypedClient:
     async def world_core_controller_get_world_relationship(self, request: RealmWorldCoreControllerGetWorldRelationshipOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerGetWorldRelationshipOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_getWorldRelationship", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldRelationshipCoreDto, raw)
@@ -8050,9 +8500,9 @@ class RealmTypedClient:
     async def world_core_controller_list_persona_characters(self, request: RealmWorldCoreControllerListPersonaCharactersOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerListPersonaCharactersOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_listPersonaCharacters", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(tuple[PersonaCharacterCoreDto, ...], raw)
@@ -8060,9 +8510,9 @@ class RealmTypedClient:
     async def world_core_controller_list_world_characters(self, request: RealmWorldCoreControllerListWorldCharactersOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerListWorldCharactersOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_listWorldCharacters", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(tuple[WorldCharacterCoreDto, ...], raw)
@@ -8070,9 +8520,9 @@ class RealmTypedClient:
     async def world_core_controller_list_world_cores(self, request: RealmWorldCoreControllerListWorldCoresOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerListWorldCoresOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_listWorldCores", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(tuple[WorldCoreDto, ...], raw)
@@ -8080,9 +8530,9 @@ class RealmTypedClient:
     async def world_core_controller_list_world_entities(self, request: RealmWorldCoreControllerListWorldEntitiesOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerListWorldEntitiesOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_listWorldEntities", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(tuple[WorldEntityCoreDto, ...], raw)
@@ -8090,9 +8540,9 @@ class RealmTypedClient:
     async def world_core_controller_list_world_relationships(self, request: RealmWorldCoreControllerListWorldRelationshipsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerListWorldRelationshipsOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_listWorldRelationships", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(tuple[WorldRelationshipCoreDto, ...], raw)
@@ -8100,9 +8550,9 @@ class RealmTypedClient:
     async def world_core_controller_replace_persona_character(self, request: RealmWorldCoreControllerReplacePersonaCharacterOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerReplacePersonaCharacterOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_replacePersonaCharacter", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(PersonaCharacterCoreDto, raw)
@@ -8110,9 +8560,9 @@ class RealmTypedClient:
     async def world_core_controller_replace_world_character(self, request: RealmWorldCoreControllerReplaceWorldCharacterOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerReplaceWorldCharacterOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_replaceWorldCharacter", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldCharacterCoreDto, raw)
@@ -8120,9 +8570,9 @@ class RealmTypedClient:
     async def world_core_controller_replace_world_core(self, request: RealmWorldCoreControllerReplaceWorldCoreOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerReplaceWorldCoreOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_replaceWorldCore", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldCoreDto, raw)
@@ -8130,9 +8580,9 @@ class RealmTypedClient:
     async def world_core_controller_replace_world_entity(self, request: RealmWorldCoreControllerReplaceWorldEntityOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerReplaceWorldEntityOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_replaceWorldEntity", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldEntityCoreDto, raw)
@@ -8140,9 +8590,9 @@ class RealmTypedClient:
     async def world_core_controller_replace_world_relationship(self, request: RealmWorldCoreControllerReplaceWorldRelationshipOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldCoreControllerReplaceWorldRelationshipOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldCoreController_replaceWorldRelationship", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldRelationshipCoreDto, raw)
@@ -8150,9 +8600,9 @@ class RealmTypedClient:
     async def world_public_controller_get_character_source(self, request: RealmWorldPublicControllerGetCharacterSourceOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldPublicControllerGetCharacterSourceOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldPublicController_getCharacterSource", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldPublicSourceCardDto, raw)
@@ -8160,9 +8610,9 @@ class RealmTypedClient:
     async def world_public_controller_get_world(self, request: RealmWorldPublicControllerGetWorldOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldPublicControllerGetWorldOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldPublicController_getWorld", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldPublicDetailDto, raw)
@@ -8170,9 +8620,9 @@ class RealmTypedClient:
     async def world_public_controller_get_world_detail_with_characters(self, request: RealmWorldPublicControllerGetWorldDetailWithCharactersOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldPublicControllerGetWorldDetailWithCharactersOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldPublicController_getWorldDetailWithCharacters", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldPublicDetailWithCharactersDto, raw)
@@ -8180,9 +8630,9 @@ class RealmTypedClient:
     async def world_public_controller_list_character_catalog(self, request: RealmWorldPublicControllerListCharacterCatalogOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldPublicControllerListCharacterCatalogOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldPublicController_listCharacterCatalog", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldPublicSourceCardPageDto, raw)
@@ -8190,9 +8640,9 @@ class RealmTypedClient:
     async def world_public_controller_list_persona_character_catalog(self, request: RealmWorldPublicControllerListPersonaCharacterCatalogOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldPublicControllerListPersonaCharacterCatalogOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldPublicController_listPersonaCharacterCatalog", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldPublicSourceCardPageDto, raw)
@@ -8200,9 +8650,9 @@ class RealmTypedClient:
     async def world_public_controller_list_world_catalog(self, request: RealmWorldPublicControllerListWorldCatalogOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldPublicControllerListWorldCatalogOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldPublicController_listWorldCatalog", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldPublicWorldCatalogPageDto, raw)
@@ -8210,9 +8660,9 @@ class RealmTypedClient:
     async def world_public_controller_list_world_character_catalog(self, request: RealmWorldPublicControllerListWorldCharacterCatalogOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldPublicControllerListWorldCharacterCatalogOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldPublicController_listWorldCharacterCatalog", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WorldPublicSourceCardPageDto, raw)
@@ -8220,9 +8670,9 @@ class RealmTypedClient:
     async def world_public_controller_list_world_topics(self, request: RealmWorldPublicControllerListWorldTopicsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmWorldPublicControllerListWorldTopicsOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="WorldPublicController_listWorldTopics", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(tuple[WorldPublicTopicDto, ...], raw)

@@ -100,9 +100,10 @@ export function createRealmChatService(humanChats: RealmHumanChatModule): RealmC
         body: input,
       }));
     },
-    async markChatRead(chatId) {
+    async markChatRead(chatId, readThroughMessageId) {
       await humanChats.markChatRead({
         path: { chatId: normalizeChatId(chatId) },
+        body: { readThroughMessageId },
       });
     },
     async syncChatEvents(chatId, afterSeq, limit = 200) {
@@ -215,13 +216,14 @@ export async function sendRealmChatMessage(chatId: string, input: string | Realm
 
 export async function markRealmChatRead(
   chatId: string,
+  readThroughMessageId: string,
   service: Pick<RealmChatService, 'markChatRead'> = realmChatService,
 ): Promise<void> {
   const normalizedChatId = normalizeChatId(chatId);
   if (!normalizedChatId) {
     throw new Error('Chat id is required');
   }
-  await service.markChatRead(normalizedChatId);
+  await service.markChatRead(normalizedChatId, readThroughMessageId);
 }
 
 export async function syncRealmChatEvents(

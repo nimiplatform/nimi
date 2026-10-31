@@ -2,6 +2,14 @@
 
 # Changelog
 
+## Unreleased — Explicit human read positions
+
+Human Chat read operations now require a `readThroughMessageId`; callers must
+pass the displayed or explicitly acknowledged position instead of asking the
+server to mark its newest message read. Update `RealmChatService.markChatRead`
+and `markRealmChatRead` callers and rebuild matching SDK/Kit source packages.
+This is a coordinated next 0.x minor change, not a published release.
+
 ## Unreleased — Agent Realtime close result preservation
 
 The headless state adds `closeUnconfirmed` for a remote closure that has not been

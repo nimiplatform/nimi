@@ -81,6 +81,7 @@ test('Realm account/settings helpers map to generated Realm modules', async () =
   assert.deepEqual(await disableNimiRealmTwoFactor(realm, { code: '654321' }), { enabled: false, success: true });
   assert.deepEqual(await linkNimiRealmOAuth(realm, {
     provider: NIMI_REALM_OAUTH_PROVIDER.GOOGLE,
+    expectedAccountId: 'owner',
     idToken: 'id-token',
   }), { linked: true });
   assert.deepEqual(await unlinkNimiRealmOAuth(realm, NIMI_REALM_OAUTH_PROVIDER.GOOGLE), { linked: false });
@@ -108,6 +109,7 @@ test('Realm account/settings helpers map to generated Realm modules', async () =
     path: {},
     body: {
       provider: NIMI_REALM_OAUTH_PROVIDER.GOOGLE,
+      expectedAccountId: 'owner',
       idToken: 'id-token',
     },
   });

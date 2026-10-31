@@ -6,6 +6,9 @@ import type {
   CreateReportDto,
   FriendProfileDto,
   FriendProfileListDto,
+  FriendshipActionDto,
+  FriendshipActionResultDto,
+  UserRelationshipDto,
   RealmTypedCallOptions,
   ReportResponseDto,
   SocialProfileDto,
@@ -30,10 +33,8 @@ import type {
   NimiRealmSocialProfileView,
 } from './social-types';
 import {
-  normalizeText,
   requireText,
   socialError,
-  toNullableString,
   toRecord,
 } from './social-validation';
 
@@ -46,11 +47,6 @@ export type {
   NimiRealmSocialDataErrorEmitter,
   NimiRealmSocialProfileView,
 } from './social-types';
-
-type PendingRequestMapValue = {
-  readonly requestedAt: string | null;
-  readonly requestMessage: string | null;
-};
 
 type NimiRealmPendingFriendRequestApi = {
   readonly generated: Pick<NimiRealmSocialApi['generated'], 'getMyPendingFriendRequests'>;
@@ -73,28 +69,21 @@ function toPendingRequestItem(value: unknown): NimiRealmPendingFriendRequestDto 
   ) {
     throw pendingFriendRequestDecodeError();
   }
-  return {
-    userId: record.userId,
-    requestedAt: record.requestedAt,
-    requestMessage: record.requestMessage,
-  };
+  if (typeof record.relationshipId !== 'string' || !record.relationshipId
+    || typeof record.displayName !== 'string' || typeof record.isDeleted !== 'boolean'
+    || (record.handle !== null && typeof record.handle !== 'string')
+    || (record.avatarUrl !== null && typeof record.avatarUrl !== 'string')) throw pendingFriendRequestDecodeError();
+  return record as unknown as NimiRealmPendingFriendRequestDto;
 }
 
 function normalizePendingRequestList(value: unknown): NimiRealmPendingFriendRequestListDto {
   const record = toRecord(value);
-  if (!record) {
+  if (!record || !Array.isArray(record.items)
+    || (record.nextCursor !== null && typeof record.nextCursor !== 'string')
+    || typeof record.total !== 'number' || !Number.isSafeInteger(record.total) || record.total < 0) {
     throw pendingFriendRequestDecodeError();
   }
-  const received = normalizePendingRequestCollection(record.received);
-  const sent = normalizePendingRequestCollection(record.sent);
-  return { received, sent };
-}
-
-function normalizePendingRequestCollection(value: unknown): NimiRealmPendingFriendRequestDto[] {
-  if (!Array.isArray(value)) {
-    throw pendingFriendRequestDecodeError();
-  }
-  return value.map(toPendingRequestItem);
+  return { items: record.items.map(toPendingRequestItem), nextCursor: record.nextCursor, total: record.total };
 }
 
 function pendingFriendRequestDecodeError(): Error {
@@ -126,6 +115,8 @@ function decodeFriendProfile(value: unknown): FriendProfileDto {
   if (
     !record
     || !hasValidUserProfileFields(record)
+    || typeof record.relationshipId !== 'string' || !record.relationshipId
+    || typeof record.isDeleted !== 'boolean'
     || !isOptionalNullableString(record.friendsSince)
   ) {
     throw socialResponseDecodeError('Realm friend profile response is malformed.');
@@ -226,7 +217,7 @@ function isUserTiers(value: unknown): value is UserTierSummaryDto {
   );
 }
 
-function decodeFriendProfileList(value: unknown): readonly FriendProfileDto[] {
+function decodeFriendProfileList(value: unknown): FriendProfileListDto {
   const record = toRecord(value);
   if (
     !record
@@ -237,7 +228,7 @@ function decodeFriendProfileList(value: unknown): readonly FriendProfileDto[] {
   ) {
     throw socialResponseDecodeError('Realm friend profile list response is malformed.');
   }
-  return record.items.map(decodeFriendProfile);
+  return { items: record.items.map(decodeFriendProfile), nextCursor: record.nextCursor, total: record.total };
 }
 
 function decodeBlockedUser(value: unknown): BlockedUserDto {
@@ -250,6 +241,7 @@ function decodeBlockedUser(value: unknown): BlockedUserDto {
     || (record.displayName !== null && typeof record.displayName !== 'string')
     || (record.handle !== null && typeof record.handle !== 'string')
     || typeof record.id !== 'string'
+    || typeof record.isDeleted !== 'boolean'
     || (record.reason !== null && typeof record.reason !== 'string')
   ) {
     throw socialResponseDecodeError('Realm blocked user response is malformed.');
@@ -275,139 +267,73 @@ function decodeBlockedUserList(value: unknown): BlockedUserListDto {
   };
 }
 
-function toPendingRequestMap(items: readonly NimiRealmPendingFriendRequestDto[]): Map<string, PendingRequestMapValue> {
-  const normalized = new Map<string, PendingRequestMapValue>();
-  for (const item of items) {
-    const userId = normalizeText(item.userId);
-    if (!userId || normalized.has(userId)) {
-      continue;
-    }
-    normalized.set(userId, {
-      requestedAt: toNullableString(item.requestedAt),
-      requestMessage: toNullableString(item.requestMessage),
-    });
-  }
-  return normalized;
-}
-
-async function resolvePendingRequestProfiles(
-  realm: Pick<NimiRealmSocialApi, 'generated'>,
-  emitRealmDataError: NimiRealmSocialDataErrorEmitter,
-  userMap: Map<string, PendingRequestMapValue>,
-  direction: 'received' | 'sent',
-  options?: RealmTypedCallOptions,
-): Promise<NimiRealmSocialContactRecord[]> {
-  const tasks = Array.from(userMap.entries()).map(async ([userId, { requestedAt, requestMessage }]) => {
-    try {
-      const profile = await realm.generated.getUser({ path: { id: userId } }, options);
-      const profileRecord = decodeUserProfile(profile);
-      return {
-        id: userId,
-        userId,
-        direction,
-        requestedAt,
-        requestMessage,
-        displayName: profileRecord.displayName,
-        handle: profileRecord.handle,
-        avatarUrl: profileRecord.avatarUrl,
-        bio: profileRecord.bio,
-      };
-    } catch (error) {
-      emitRealmDataError('load-pending-friend-request-profile', error, { userId, direction });
-      throw error;
-    }
-  });
-
-  const rows = await Promise.all(tasks);
-  rows.sort((a, b) => {
-    const timeA = toNullableString(a.requestedAt);
-    const timeB = toNullableString(b.requestedAt);
-    if (!timeA && !timeB) {
-      return 0;
-    }
-    if (!timeA) {
-      return 1;
-    }
-    if (!timeB) {
-      return -1;
-    }
-    return new Date(timeB).getTime() - new Date(timeA).getTime();
-  });
-  return rows;
-}
+export type NimiRealmRelationshipPageInput = { readonly cursor?: string; readonly limit?: number };
 
 export async function fetchNimiRealmPendingFriendRequests(
   realm: NimiRealmPendingFriendRequestApi,
   emitRealmDataError: NimiRealmSocialDataErrorEmitter,
+  input: NimiRealmRelationshipPageInput & { readonly direction: 'received' | 'sent' },
   options?: RealmTypedCallOptions,
 ): Promise<NimiRealmPendingFriendRequestListDto> {
   try {
-    return normalizePendingRequestList(await realm.generated.getMyPendingFriendRequests({ path: {} }, options));
+    return normalizePendingRequestList(await realm.generated.getMyPendingFriendRequests({ path: {}, query: input }, options));
   } catch (error) {
     emitRealmDataError('load-friend-requests', error);
     throw error;
   }
 }
 
-async function fetchNimiRealmBlockedUsers(
+export async function loadNimiRealmFriendListPage(
   realm: Pick<NimiRealmSocialApi, 'generated'>,
-  emitRealmDataError: NimiRealmSocialDataErrorEmitter,
+  input: NimiRealmRelationshipPageInput & { readonly query?: string } = {},
   options?: RealmTypedCallOptions,
-): Promise<NimiRealmSocialContactRecord[]> {
-  try {
-    const response = decodeBlockedUserList(await realm.generated.getMyBlockedUsers({
-      path: {},
-      query: { limit: 100 },
-    }, options));
-    return response.items.map((item) => ({ ...item }) as unknown as NimiRealmSocialContactRecord);
-  } catch (error) {
-    emitRealmDataError('load-blocked-users', error);
-    throw error;
-  }
+): Promise<FriendProfileListDto> {
+  return decodeFriendProfileList(await realm.generated.listMyFriendsWithDetails({ path: {}, query: input }, options));
 }
 
+export async function loadNimiRealmBlockedUserPage(
+  realm: Pick<NimiRealmSocialApi, 'generated'>,
+  input: NimiRealmRelationshipPageInput = {},
+  options?: RealmTypedCallOptions,
+): Promise<BlockedUserListDto> {
+  return decodeBlockedUserList(await realm.generated.getMyBlockedUsers({ path: {}, query: input }, options));
+}
+
+async function readAllSocialPages<T>(load: (cursor?: string) => Promise<{ items: readonly T[]; nextCursor: string | null }>): Promise<T[]> {
+  const result: T[] = [];
+  const visited = new Set<string>();
+  let cursor: string | undefined;
+  do {
+    const page = await load(cursor);
+    result.push(...page.items);
+    cursor = page.nextCursor ?? undefined;
+    if (cursor && visited.has(cursor)) throw socialResponseDecodeError('Realm relationship pagination repeated a cursor.');
+    if (cursor) visited.add(cursor);
+  } while (cursor);
+  return result;
+}
+
+/** Complete snapshot for callers that require all four lists. Independent screens
+ * use the page functions so a blocked-list error cannot hide available friends. */
 export async function loadNimiRealmSocialSnapshot(
   realm: Pick<NimiRealmSocialApi, 'generated'>,
   emitRealmDataError: NimiRealmSocialDataErrorEmitter,
   options?: RealmTypedCallOptions,
 ): Promise<NimiRealmSocialContactSnapshot> {
-  const [friendsResult, pendingResult, blockedUsers] = await Promise.all([
-    realm.generated.listMyFriendsWithDetails({
-      path: {},
-      query: { limit: 100 },
-    }, options),
-    fetchNimiRealmPendingFriendRequests(realm, emitRealmDataError, options),
-    fetchNimiRealmBlockedUsers(realm, emitRealmDataError, options),
+  const read = async <T>(action: string, load: () => Promise<T>): Promise<T> => {
+    try { return await load(); } catch (error) { emitRealmDataError(action, error); throw error; }
+  };
+  const [friends, received, sent, blocked] = await Promise.all([
+    read('load-friends', () => readAllSocialPages(cursor => loadNimiRealmFriendListPage(realm, { cursor, limit: 100 }, options))),
+    readAllSocialPages(cursor => fetchNimiRealmPendingFriendRequests(realm, emitRealmDataError, { direction: 'received', cursor, limit: 100 }, options)),
+    readAllSocialPages(cursor => fetchNimiRealmPendingFriendRequests(realm, emitRealmDataError, { direction: 'sent', cursor, limit: 100 }, options)),
+    read('load-blocked-users', () => readAllSocialPages(cursor => loadNimiRealmBlockedUserPage(realm, { cursor, limit: 100 }, options))),
   ]);
-
-  const pendingReceived = await resolvePendingRequestProfiles(
-    realm,
-    emitRealmDataError,
-    toPendingRequestMap(pendingResult.received),
-    'received',
-    options,
-  );
-  const pendingSent = await resolvePendingRequestProfiles(
-    realm,
-    emitRealmDataError,
-    toPendingRequestMap(pendingResult.sent),
-    'sent',
-    options,
-  );
-
-  let friends: readonly FriendProfileDto[];
-  try {
-    friends = decodeFriendProfileList(friendsResult as FriendProfileListDto);
-  } catch (error) {
-    emitRealmDataError('load-friends', error);
-    throw error;
-  }
-
   return {
-    friends: friends.map((item) => item as unknown as NimiRealmSocialContactRecord),
-    pendingReceived,
-    pendingSent,
-    blocked: blockedUsers,
+    friends: friends.map(item => ({ ...item }) as unknown as NimiRealmSocialContactRecord),
+    pendingReceived: received.map(item => ({ ...item, id: item.userId, direction: 'received' })),
+    pendingSent: sent.map(item => ({ ...item, id: item.userId, direction: 'sent' })),
+    blocked: blocked.map(item => ({ ...item }) as unknown as NimiRealmSocialContactRecord),
   };
 }
 
@@ -462,31 +388,37 @@ export async function addNimiRealmFriendById(
   userId: unknown,
   message?: string,
   options?: RealmTypedCallOptions,
-): Promise<{ readonly id: string }> {
+): Promise<{ readonly id: string; readonly outcome: 'requested' | 'accepted' | 'unchanged' }> {
   const normalizedUserId = requireText(userId, {
     reasonCode: 'SDK_REALM_USER_ID_REQUIRED',
     message: 'Realm user id is required.',
     actionHint: 'provide_realm_user_id',
   });
   const body: AddFriendBodyDto = message ? { requestMessage: message } : {};
-  await realm.social.addFriend({
+  const result = await realm.social.addFriend({
     path: { id: normalizedUserId },
     body,
   }, options);
-  return { id: normalizedUserId };
+  return { id: normalizedUserId, outcome: result.outcome };
 }
 
-export async function removeNimiRealmFriendById(
+export async function applyNimiRealmFriendshipAction(
+  realm: Pick<NimiRealmSocialApi, 'social'>,
+  userId: unknown,
+  input: FriendshipActionDto,
+  options?: RealmTypedCallOptions,
+): Promise<FriendshipActionResultDto> {
+  const id = requireText(userId, { reasonCode: 'SDK_REALM_USER_ID_REQUIRED', message: 'Realm user id is required.', actionHint: 'provide_realm_user_id' });
+  return realm.social.applyFriendshipAction({ path: { id }, body: input }, options);
+}
+
+export async function loadNimiRealmRelationship(
   realm: Pick<NimiRealmSocialApi, 'social'>,
   userId: unknown,
   options?: RealmTypedCallOptions,
-): Promise<void> {
-  const normalizedUserId = requireText(userId, {
-    reasonCode: 'SDK_REALM_USER_ID_REQUIRED',
-    message: 'Realm user id is required.',
-    actionHint: 'provide_realm_user_id',
-  });
-  await realm.social.removeFriend({ path: { id: normalizedUserId } }, options);
+): Promise<UserRelationshipDto> {
+  const id = requireText(userId, { reasonCode: 'SDK_REALM_USER_ID_REQUIRED', message: 'Realm user id is required.', actionHint: 'provide_realm_user_id' });
+  return realm.social.getMyRelationshipWithUser({ path: { id } }, options);
 }
 
 export async function blockNimiRealmUser(

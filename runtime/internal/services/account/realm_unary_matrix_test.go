@@ -471,6 +471,47 @@ func TestInvokeRealmUnaryConcurrentUnauthorizedRefreshesExactlyOnce(t *testing.T
 	}
 }
 
+func TestRealmWriteUnauthorizedAfterAccountSwitchDoesNotReplay(t *testing.T) {
+	started, release := make(chan struct{}), make(chan struct{})
+	var requests atomic.Int32
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if requests.Add(1) == 1 {
+			close(started)
+			<-release
+		}
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusUnauthorized)
+		_, _ = w.Write([]byte(`{"error":"expired"}`))
+	}))
+	defer server.Close()
+	svc := newRealmUnaryHarnessService(t, server.URL)
+	completeLogin(t, svc)
+	done := make(chan *runtimev1.InvokeRealmUnaryResponse, 1)
+	go func() {
+		response, _ := svc.InvokeRealmUnary(context.Background(), &runtimev1.InvokeRealmUnaryRequest{
+			Caller: realmDesktopShellCaller(), MethodId: "updateMyHandle", RequestJson: `{"body":{"handle":"renamed"}}`,
+		})
+		done <- response
+	}()
+	select {
+	case <-started:
+	case response := <-done:
+		t.Fatalf("write rejected before dispatch: %v", response)
+	}
+	func() {
+		defer close(release)
+		if _, err := svc.SwitchAccount(context.Background(), &runtimev1.SwitchAccountRequest{Caller: desktopAccountControlCaller()}); err != nil {
+			t.Fatal(err)
+		}
+		svc.exchanger = staticExchanger{material: testMaterial("acct-2", "access-2", "refresh-2")}
+		completeLogin(t, svc)
+	}()
+	response := <-done
+	if response.GetAccepted() || requests.Load() != 1 || svc.currentState() != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED {
+		t.Fatalf("stale write result=%v requests=%d state=%v", response, requests.Load(), svc.currentState())
+	}
+}
+
 func TestInvokeRealmUnaryRetriesUnauthorizedOnceThenRequiresReauthentication(t *testing.T) {
 	var requests atomic.Int32
 	server := httptest.NewServer(http.HandlerFunc(func(response http.ResponseWriter, _ *http.Request) {

@@ -71,7 +71,7 @@ func (s *Service) rebuildRefreshTimerLocked() {
 			}
 			return
 		}
-		result, err := s.refreshAccountSessionForRejectedToken(context.Background(), false, "", cause)
+		result, err := s.refreshAccountSessionForRejectedToken(context.Background(), false, "", cause, nil)
 		if err != nil && s.logger != nil {
 			s.logger.Warn("runtime account scheduled refresh failed", "error", err)
 			return

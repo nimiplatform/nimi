@@ -11,6 +11,14 @@ const USER_PROFILE_FIXTURE = {
   id: 'user-1',
 } satisfies UserProfileDto;
 
+test('browser 2FA admits its declared 204 while an empty token response on 200 still fails', async () => {
+  const verify = (response: Response) => new Realm({ transport: createRealmFetchTransport({
+    baseUrl: 'https://realm.test', fetch: async () => response,
+  }) }).auth.verify2Fa({ path: {}, headers: { 'x-nimi-auth-response': 'browser-session' }, body: { tempToken: 'challenge', code: '123456' } });
+  assert.equal(await verify(new Response(null, { status: 204 })), undefined);
+  await assert.rejects(verify(Response.json({}, { status: 200 })), { reasonCode: 'SDK_REALM_RESPONSE_DECODE_FAILED' });
+});
+
 test('Realm fetch transport maps generated operation requests to HTTP fetch', async () => {
   const calls: Array<{ readonly url: string; readonly init: RequestInit }> = [];
   const transport = createRealmFetchTransport({
@@ -254,7 +262,7 @@ test('Realm fetch transport fails closed on non-JSON and empty successful respon
   });
   assert.deepEqual(
     await noContentTransport.unary({
-      methodId: 'removeFriend',
+      methodId: 'unblockUser',
       body: { path: { id: 'user-1' } },
     }),
     {},

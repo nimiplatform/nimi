@@ -250,11 +250,12 @@ const (
 )
 
 type RefreshTokenDto struct {
-	RefreshToken string `json:"refreshToken,omitempty"`
+	RefreshToken string `json:"refreshToken"`
 }
 
 type TerminateCurrentAccountRequestDto struct {
-	OperationId string `json:"operation_id"`
+	ExpectedAccountId string `json:"expectedAccountId"`
+	OperationId       string `json:"operation_id"`
 }
 
 type TerminateCurrentAccountResponseDto struct {

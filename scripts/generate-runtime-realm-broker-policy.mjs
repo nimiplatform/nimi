@@ -116,12 +116,14 @@ function readOpenAPIOperations(document, admittedOperationIDs) {
         }
         return { name, location, required: parameter.required === true, schemaKind };
       });
+      const noContent = operation.responses?.['204'];
       operations.set(operationID, {
         method: method.toUpperCase(),
         path,
         parameters: normalizedParameters,
         requestBodyAllowed: operation?.requestBody !== undefined,
         requestBodyRequired: operation?.requestBody?.required === true,
+        noContentAllowed: Boolean(noContent && !noContent.$ref && Object.keys(noContent.content ?? {}).length === 0),
       });
     }
   }
@@ -188,6 +190,7 @@ function renderPolicy(operations) {
       `\t\tqueryParameterKinds: map[string]realmUnaryParameterKind{${queryParameters.map((parameter) => `${quoted(parameter.name)}: realmUnaryParameter${parameter.schemaKind[0].toUpperCase()}${parameter.schemaKind.slice(1)}`).join(', ')}},\n` +
       `\t\trequestBodyAllowed: ${projected.requestBodyAllowed},\n` +
       `\t\trequestBodyRequired: ${projected.requestBodyRequired},\n` +
+      (projected.noContentAllowed ? '\t\tnoContentAllowed: true,\n' : '') +
       `\t\tresponseMaxBytes: ${operation.response_max_bytes},\n` +
       `\t\tmediaUpload: ${mediaUpload},\n` +
       `\t},`;

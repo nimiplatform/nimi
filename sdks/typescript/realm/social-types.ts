@@ -28,7 +28,7 @@ export type NimiRealmSocialProfileView = UserProfileDto;
 
 export interface NimiRealmSocialApi {
   readonly account: Pick<RealmTypedClient, 'getMe' | 'updateMe'>;
-  readonly social: Pick<RealmTypedClient, 'addFriend' | 'blockUser' | 'removeFriend' | 'unblockUser'>;
+  readonly social: Pick<RealmTypedClient, 'addFriend' | 'blockUser' | 'applyFriendshipAction' | 'getMyRelationshipWithUser' | 'unblockUser'>;
   readonly generated: Pick<
     RealmTypedClient,
     | 'getMyBlockedUsers'

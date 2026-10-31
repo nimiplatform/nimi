@@ -70,7 +70,7 @@ export type RealmChatService = {
     chatId: string,
     input: RealmSendMessageInputDto,
   ) => Promise<RealmMessageViewDto>;
-  markChatRead: (chatId: string) => Promise<void>;
+  markChatRead: (chatId: string, readThroughMessageId: string) => Promise<void>;
   syncChatEvents: (
     chatId: string,
     afterSeq: number,

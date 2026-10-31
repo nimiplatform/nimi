@@ -20,6 +20,12 @@ REALM_OPERATIONS = [
     "path": "/api/human/handle/{handle}/friends"
   },
   {
+    "operation_id": "applyFriendshipAction",
+    "service": "User",
+    "method": "POST",
+    "path": "/api/human/accounts/{id}/friendship-actions"
+  },
+  {
     "operation_id": "archiveAsset",
     "service": "Assets",
     "method": "POST",
@@ -272,6 +278,12 @@ REALM_OPERATIONS = [
     "path": "/api/auth/me/2fa/enable"
   },
   {
+    "operation_id": "exportMyAccount",
+    "service": "User",
+    "method": "POST",
+    "path": "/api/human/me/export"
+  },
+  {
     "operation_id": "FeedbackController_getMyFeedbacks",
     "service": "Support (Feedback)",
     "method": "GET",
@@ -350,6 +362,12 @@ REALM_OPERATIONS = [
     "path": "/api/human/me/creator-eligibility"
   },
   {
+    "operation_id": "getMyHandleChangeEligibility",
+    "service": "Me",
+    "method": "GET",
+    "path": "/api/human/me/handle-change-eligibility"
+  },
+  {
     "operation_id": "getMyNotificationSettings",
     "service": "Me",
     "method": "GET",
@@ -366,6 +384,12 @@ REALM_OPERATIONS = [
     "service": "Me",
     "method": "GET",
     "path": "/api/human/me/pp-config"
+  },
+  {
+    "operation_id": "getMyRelationshipWithUser",
+    "service": "User",
+    "method": "GET",
+    "path": "/api/human/accounts/{id}/relationship"
   },
   {
     "operation_id": "getMySettings",
@@ -462,6 +486,12 @@ REALM_OPERATIONS = [
     "service": "Human Chats",
     "method": "GET",
     "path": "/api/human/chats/{chatId}/messages"
+  },
+  {
+    "operation_id": "listMyAccountSessions",
+    "service": "Auth",
+    "method": "GET",
+    "path": "/api/auth/my-sessions"
   },
   {
     "operation_id": "listMyFriendIds",
@@ -578,16 +608,22 @@ REALM_OPERATIONS = [
     "path": "/api/human/chats/{chatId}/messages/{messageId}/recall"
   },
   {
+    "operation_id": "recoverPassword",
+    "service": "Auth",
+    "method": "POST",
+    "path": "/api/auth/password/recover"
+  },
+  {
+    "operation_id": "refreshBrowserSession",
+    "service": "Auth",
+    "method": "POST",
+    "path": "/api/auth/browser-session/refresh"
+  },
+  {
     "operation_id": "refreshToken",
     "service": "Auth",
     "method": "POST",
     "path": "/api/auth/refresh"
-  },
-  {
-    "operation_id": "removeFriend",
-    "service": "User",
-    "method": "DELETE",
-    "path": "/api/human/accounts/{id}/friends"
   },
   {
     "operation_id": "ReportController_createReport",
@@ -600,6 +636,18 @@ REALM_OPERATIONS = [
     "service": "Auth",
     "method": "POST",
     "path": "/api/auth/email/otp/request"
+  },
+  {
+    "operation_id": "revokeMyAccountSession",
+    "service": "Auth",
+    "method": "POST",
+    "path": "/api/auth/my-sessions/{sessionId}/revoke"
+  },
+  {
+    "operation_id": "revokeMyOtherAccountSessions",
+    "service": "Auth",
+    "method": "POST",
+    "path": "/api/auth/my-sessions/revoke-others"
   },
   {
     "operation_id": "sendMessage",

@@ -46,6 +46,7 @@ ${fields}`;
     return `    async def ${name}(self, request: ${method.request_type}, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ${method.response_type}:
         raise RuntimeError(${quote(`SDK_RUNTIME_METHOD_UNAVAILABLE: Runtime method kind is not supported by the unary/server-stream core transport: ${method.method_id}`)})`;
   }).join('\n\n');
+  const inputModels = new Set(realm.operations.map(operation => operation.request_schema.ref_name).filter(Boolean));
   const renderRealmModel = (model) => {
     if (model.schema.kind !== 'object') return `${model.name} = ${pyOpenApiType(model.schema)}`;
     const orderedProperties = [
@@ -55,6 +56,7 @@ ${fields}`;
     const fields = orderedProperties.map((property) => {
       const type = pyOpenApiType(property.schema);
       if (property.required) return `    ${pyFieldName(property.name)}: ${type}`;
+      if (inputModels.has(model.name)) return `    ${pyFieldName(property.name)}: ${pythonOptionalType(type)} | _Unset = _UNSET`;
       if (property.schema.kind === 'array') return `    ${pyFieldName(property.name)}: ${type} = field(default_factory=tuple)`;
       if (property.schema.kind === 'object') return `    ${pyFieldName(property.name)}: ${type} = field(default_factory=dict)`;
       return `    ${pyFieldName(property.name)}: ${pythonOptionalType(type)} = None`;
@@ -77,7 +79,7 @@ ${fields}`;
       return `    ${pyFieldName(parameter.name)}: ${parameter.required ? type : `${pythonOptionalType(type)} = None`}`;
     }).join('\n') || '    pass';
     const queryFields = (operation.query_parameters || []).map((parameter) => `    ${pyFieldName(parameter.name)}: ${pythonOptionalType(pyOpenApiType(parameter.schema))} = None`).join('\n') || '    pass';
-    const headerFields = (operation.header_parameters || []).map((parameter) => `    ${snakeCase(parameter.name)}: ${pythonOptionalType(pyOpenApiType(parameter.schema))} = None`).join('\n') || '    pass';
+    const headerFields = (operation.header_parameters || []).map((parameter) => `    ${snakeCase(parameter.name)}: ${pythonOptionalType(pyOpenApiType(parameter.schema))} = field(default=None, metadata={"wire": ${quote(parameter.name)}})`).join('\n') || '    pass';
     return `@dataclass(frozen=True)
 class ${base}Path:
 ${pathFields}
@@ -105,9 +107,9 @@ class ${base}Request:
     return `    async def ${snakeCase(operation.operation_id)}(self, request: ${base}Request, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ${base}Response:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
-            "query": _model_body(request.query),
-            "headers": _model_body(request.headers),
-            "body": _model_body(request.body),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id=${quote(operation.operation_id)}, body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(${pyOpenApiType(openApiSuccessSchema(operation))}, raw)`;
@@ -177,7 +179,7 @@ ${runtimeMethods}
 
 from __future__ import annotations
 from collections.abc import Mapping
-from dataclasses import MISSING, asdict, dataclass, field, fields, is_dataclass
+from dataclasses import MISSING, dataclass, field, fields, is_dataclass
 import types
 from typing import Literal, Union, get_args, get_origin, get_type_hints
 
@@ -185,13 +187,23 @@ from sdks.python.core_client import CoreClient
 from sdks.python.types import CoreUnaryRequest
 
 
+class _Unset:
+    pass
+
+
+_UNSET = _Unset()
+
+
 def _model_body(value: object) -> object:
-    if value is None:
-        return {}
     if is_dataclass(value):
-        return asdict(value)
+        return {item.metadata.get("wire", item.name): _model_body(member)
+                for item in fields(value)
+                if (member := getattr(value, item.name)) is not _UNSET
+                and not ("wire" in item.metadata and member is None)}
     if isinstance(value, Mapping):
-        return dict(value)
+        return {key: _model_body(member) for key, member in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_model_body(member) for member in value]
     return value
 
 

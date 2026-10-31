@@ -1,5 +1,289 @@
 components:
   schemas:
+    AccountExportAttachmentDto:
+      properties:
+        displayKind:
+          type: string
+        duration:
+          type: number
+        height:
+          type: number
+        title:
+          type: string
+        unavailable:
+          type: boolean
+        width:
+          type: number
+      type: object
+    AccountExportConversationDto:
+      properties:
+        chatId:
+          type: string
+        messages:
+          items:
+            $ref: '#/components/schemas/AccountExportMessageDto'
+          type: array
+        peerAccountId:
+          type: string
+        peerDisplayName:
+          type: string
+        peerHandle:
+          type: string
+      required:
+        - chatId
+        - peerAccountId
+        - peerHandle
+        - peerDisplayName
+        - messages
+      type: object
+    AccountExportDto:
+      properties:
+        completedAt:
+          type: string
+        conversations:
+          items:
+            $ref: '#/components/schemas/AccountExportConversationDto'
+          type: array
+        exclusions:
+          items:
+            type: string
+          type: array
+        format:
+          enum:
+            - nimi-account-text-export/v1
+          type: string
+        profile:
+          $ref: '#/components/schemas/AccountExportProfileDto'
+        relationships:
+          items:
+            $ref: '#/components/schemas/AccountExportRelationshipDto'
+          type: array
+        sections:
+          items:
+            $ref: '#/components/schemas/AccountExportSectionDto'
+          type: array
+        settings:
+          allOf:
+            - $ref: '#/components/schemas/AccountExportSettingsDto'
+          nullable: true
+          type: object
+        startedAt:
+          type: string
+        status:
+          enum:
+            - complete
+            - partial
+          type: string
+      required:
+        - format
+        - startedAt
+        - completedAt
+        - status
+        - exclusions
+        - profile
+        - settings
+        - relationships
+        - conversations
+        - sections
+      type: object
+    AccountExportMessageDto:
+      properties:
+        attachment:
+          $ref: '#/components/schemas/AccountExportAttachmentDto'
+        createdAt:
+          type: string
+        editedAt:
+          nullable: true
+          type: string
+        messageId:
+          type: string
+        replyToMessageId:
+          type: string
+        senderAccountId:
+          type: string
+        text:
+          nullable: true
+          type: string
+        type:
+          type: string
+      required:
+        - messageId
+        - senderAccountId
+        - type
+        - text
+        - createdAt
+        - editedAt
+      type: object
+    AccountExportProfileDto:
+      properties:
+        accountId:
+          type: string
+        bio:
+          nullable: true
+          type: string
+        birthYear:
+          nullable: true
+          type: number
+        city:
+          nullable: true
+          type: string
+        countryCode:
+          nullable: true
+          type: string
+        createdAt:
+          type: string
+        displayName:
+          type: string
+        email:
+          nullable: true
+          type: string
+        gender:
+          nullable: true
+          type: string
+        handle:
+          type: string
+        languages:
+          items:
+            type: string
+          type: array
+        tags:
+          items:
+            type: string
+          type: array
+      required:
+        - accountId
+        - handle
+        - displayName
+        - languages
+        - tags
+        - createdAt
+      type: object
+    AccountExportRelationshipDto:
+      properties:
+        accountId:
+          type: string
+        displayName:
+          type: string
+        handle:
+          type: string
+        kind:
+          enum:
+            - friend
+            - received
+            - sent
+            - blocked
+          type: string
+        note:
+          nullable: true
+          type: string
+        relationshipId:
+          type: string
+        since:
+          type: string
+      required:
+        - accountId
+        - handle
+        - displayName
+        - kind
+        - since
+      type: object
+    AccountExportRequestDto:
+      properties:
+        expectedAccountId:
+          description: >-
+            The account shown when the user chose this action; compared with the
+            authenticated owner, never used to select an account.
+          type: string
+      required:
+        - expectedAccountId
+      type: object
+    AccountExportSectionDto:
+      properties:
+        itemCount:
+          type: number
+        name:
+          type: string
+        reason:
+          type: string
+        status:
+          enum:
+            - complete
+            - partial
+            - unavailable
+          type: string
+      required:
+        - name
+        - status
+        - itemCount
+      type: object
+    AccountExportSettingDto:
+      properties:
+        name:
+          type: string
+        value:
+          description: JSON-encoded scalar or list setting value
+          type: string
+      required:
+        - name
+        - value
+      type: object
+    AccountExportSettingsDto:
+      properties:
+        notifications:
+          $ref: '#/components/schemas/UserNotificationSettingsDto'
+        values:
+          items:
+            $ref: '#/components/schemas/AccountExportSettingDto'
+          type: array
+      required:
+        - values
+        - notifications
+      type: object
+    AccountOwnerIntentDto:
+      properties:
+        expectedAccountId:
+          description: >-
+            The account shown when the user chose this action; compared with the
+            authenticated owner, never used to select an account.
+          type: string
+      required:
+        - expectedAccountId
+      type: object
+    AccountSessionDto:
+      properties:
+        authenticatedAt:
+          format: date-time
+          nullable: true
+          type: string
+        createdAt:
+          format: date-time
+          type: string
+        current:
+          type: boolean
+        id:
+          type: string
+      required:
+        - id
+        - createdAt
+        - authenticatedAt
+        - current
+      type: object
+    AccountSessionListDto:
+      properties:
+        items:
+          items:
+            $ref: '#/components/schemas/AccountSessionDto'
+          type: array
+        nextCursor:
+          nullable: true
+          type: string
+        recentAuthentication:
+          type: boolean
+      required:
+        - items
+        - nextCursor
+        - recentAuthentication
+      type: object
     AccountStatus:
       enum:
         - ONBOARDING
@@ -184,6 +468,9 @@ components:
         reasonCode:
           enum:
             - AUTH_REQUIRED
+            - AUTH_SESSION_REVOKED
+            - AUTH_RECENT_LOGIN_REQUIRED
+            - AUTH_ACCOUNT_CONTEXT_CHANGED
             - AUTH_INSUFFICIENT_SCOPE
             - AUTH_INVALID_CREDENTIALS
             - AUTH_INVALID_REQUEST
@@ -503,10 +790,13 @@ components:
           type: string
         id:
           type: string
+        isDeleted:
+          type: boolean
         reason:
           nullable: true
           type: string
       required:
+        - isDeleted
         - id
         - handle
         - displayName
@@ -1978,6 +2268,12 @@ components:
           description: Additional context or description
           example: This post contains misleading links.
           type: string
+        messageEvidence:
+          allOf:
+            - $ref: '#/components/schemas/ReportMessageReferenceDto'
+          description: >-
+            Optional USER report evidence. The server reads the authorized
+            message; no client-authored message content is accepted.
         reason:
           allOf:
             - $ref: '#/components/schemas/ReportReason'
@@ -2500,6 +2796,8 @@ components:
           type: string
         id:
           type: string
+        isDeleted:
+          type: boolean
         isOnline:
           type: boolean
         languages:
@@ -2526,6 +2824,8 @@ components:
         profileCoverUrl:
           nullable: true
           type: string
+        relationshipId:
+          type: string
         socialProfiles:
           items:
             $ref: '#/components/schemas/SocialProfileDto'
@@ -2546,6 +2846,8 @@ components:
         - handle
         - displayName
         - createdAt
+        - relationshipId
+        - isDeleted
       type: object
     FriendProfileListDto:
       properties:
@@ -2574,6 +2876,41 @@ components:
       required:
         - outcome
       type: object
+    FriendRequestVisibility:
+      enum:
+        - PUBLIC
+        - PRIVATE
+      type: string
+    FriendshipAction:
+      enum:
+        - accept
+        - reject
+        - cancel
+        - remove
+      type: string
+    FriendshipActionDto:
+      properties:
+        action:
+          allOf:
+            - $ref: '#/components/schemas/FriendshipAction'
+        relationshipId:
+          type: string
+      required:
+        - action
+        - relationshipId
+      type: object
+    FriendshipActionResultDto:
+      properties:
+        outcome:
+          enum:
+            - accepted
+            - rejected
+            - cancelled
+            - removed
+          type: string
+      required:
+        - outcome
+      type: object
     Gender:
       enum:
         - MALE
@@ -2591,6 +2928,29 @@ components:
           type: string
       required:
         - available
+      type: object
+    HandleChangeEligibilityDto:
+      properties:
+        canChange:
+          type: boolean
+        handle:
+          type: string
+        maxLength:
+          type: number
+        minLength:
+          type: number
+        nextEligibleAt:
+          nullable: true
+          type: string
+        pattern:
+          type: string
+      required:
+        - handle
+        - canChange
+        - nextEligibleAt
+        - pattern
+        - minLength
+        - maxLength
       type: object
     ImportPolicyDto:
       properties:
@@ -2709,6 +3069,22 @@ components:
         - items
         - nextBefore
         - nextAfter
+      type: object
+    LogoutSessionDto:
+      properties:
+        refreshToken:
+          nullable: true
+          type: string
+      type: object
+    MarkChatReadDto:
+      properties:
+        readThroughMessageId:
+          description: >-
+            Message position explicitly observed or acknowledged by this
+            participant
+          type: string
+      required:
+        - readThroughMessageId
       type: object
     MarkNotificationsReadInputDto:
       properties:
@@ -3685,6 +4061,9 @@ components:
         reasonCode:
           enum:
             - AUTH_REQUIRED
+            - AUTH_SESSION_REVOKED
+            - AUTH_RECENT_LOGIN_REQUIRED
+            - AUTH_ACCOUNT_CONTEXT_CHANGED
             - AUTH_INSUFFICIENT_SCOPE
             - AUTH_INVALID_CREDENTIALS
             - AUTH_INVALID_REQUEST
@@ -3746,6 +4125,29 @@ components:
         - reasonCode
         - traceId
         - error
+      type: object
+    OAuthLinkDto:
+      properties:
+        code:
+          type: string
+        codeVerifier:
+          type: string
+        expectedAccountId:
+          description: Account that started the provider link.
+          type: string
+        idToken:
+          type: string
+        provider:
+          enum:
+            - GOOGLE
+            - WECHAT
+            - TIKTOK
+          type: string
+        redirectUri:
+          type: string
+      required:
+        - provider
+        - expectedAccountId
       type: object
     OAuthLinkResponseDto:
       properties:
@@ -3939,6 +4341,18 @@ components:
       type: object
     PendingFriendRequestDto:
       properties:
+        avatarUrl:
+          nullable: true
+          type: string
+        displayName:
+          type: string
+        handle:
+          nullable: true
+          type: string
+        isDeleted:
+          type: boolean
+        relationshipId:
+          type: string
         requestMessage:
           nullable: true
           type: string
@@ -3948,23 +4362,30 @@ components:
         userId:
           type: string
       required:
+        - relationshipId
         - userId
+        - displayName
+        - handle
+        - avatarUrl
+        - isDeleted
         - requestedAt
         - requestMessage
       type: object
     PendingFriendRequestListDto:
       properties:
-        received:
+        items:
           items:
             $ref: '#/components/schemas/PendingFriendRequestDto'
           type: array
-        sent:
-          items:
-            $ref: '#/components/schemas/PendingFriendRequestDto'
-          type: array
+        nextCursor:
+          nullable: true
+          type: string
+        total:
+          type: number
       required:
-        - received
-        - sent
+        - items
+        - nextCursor
+        - total
       type: object
     PersonaCharacterCoreDto:
       additionalProperties: false
@@ -4358,11 +4779,30 @@ components:
         - canCreateSourceMaterializationPacket
         - canUseWorldCharacterSources
       type: object
+    RecoverPasswordDto:
+      properties:
+        authenticatorCode:
+          description: Required when the account has an enabled authenticator.
+          type: string
+        code:
+          type: string
+        email:
+          description: Email address to send OTP to
+          type: string
+        newPassword:
+          type: string
+      required:
+        - email
+        - code
+        - newPassword
+      type: object
     RefreshTokenDto:
       properties:
         refreshToken:
-          nullable: true
+          description: Refresh credential held by this bearer client
           type: string
+      required:
+        - refreshToken
       type: object
     ReplacePersonaCharacterCoreDto:
       additionalProperties: false
@@ -4493,6 +4933,18 @@ components:
         - origin
         - core
         - baseContentHash
+      type: object
+    ReportMessageReferenceDto:
+      properties:
+        chatId:
+          description: Conversation containing the selected message
+          type: string
+        messageId:
+          description: One message authored by the reported account
+          type: string
+      required:
+        - chatId
+        - messageId
       type: object
     ReportReason:
       description: Reason for the report
@@ -4822,6 +5274,16 @@ components:
           $ref: '#/components/schemas/CharacterSourceRefV3Dto'
       required:
         - sourceRef
+      type: object
+    RevokeAccountSessionsResultDto:
+      properties:
+        currentRevoked:
+          type: boolean
+        revokedCount:
+          type: number
+      required:
+        - revokedCount
+        - currentRevoked
       type: object
     SendMessageInputDto:
       properties:
@@ -5381,11 +5843,17 @@ components:
     TerminateCurrentAccountRequestDto:
       additionalProperties: false
       properties:
+        expectedAccountId:
+          description: >-
+            The account shown when the user chose this action; compared with the
+            authenticated owner, never used to select an account.
+          type: string
         operation_id:
           maxLength: 128
           minLength: 16
           type: string
       required:
+        - expectedAccountId
         - operation_id
       type: object
     TerminateCurrentAccountResponseDto:
@@ -5615,7 +6083,7 @@ components:
     UpdateMyHandleDto:
       properties:
         handle:
-          pattern: ^[a-zA-Z0-9_][a-zA-Z0-9_-]{1,49}$
+          pattern: ^[a-z0-9_]{4,16}$
           type: string
       required:
         - handle
@@ -5758,7 +6226,7 @@ components:
             - $ref: '#/components/schemas/Visibility'
         friendRequestVisibility:
           allOf:
-            - $ref: '#/components/schemas/Visibility'
+            - $ref: '#/components/schemas/FriendRequestVisibility'
         mentionVisibility:
           allOf:
             - $ref: '#/components/schemas/Visibility'
@@ -6121,6 +6589,31 @@ components:
         - displayName
         - createdAt
       type: object
+    UserRelationshipDto:
+      properties:
+        blockedByMe:
+          type: boolean
+        canMessage:
+          type: boolean
+        canRequest:
+          type: boolean
+        relationshipId:
+          nullable: true
+          type: string
+        state:
+          enum:
+            - none
+            - pending_incoming
+            - pending_outgoing
+            - active
+          type: string
+      required:
+        - state
+        - relationshipId
+        - blockedByMe
+        - canRequest
+        - canMessage
+      type: object
     UserSettingsDto:
       properties:
         accountVisibility:
@@ -6141,7 +6634,7 @@ components:
             - $ref: '#/components/schemas/Visibility'
         friendRequestVisibility:
           allOf:
-            - $ref: '#/components/schemas/Visibility'
+            - $ref: '#/components/schemas/FriendRequestVisibility'
         mentionVisibility:
           allOf:
             - $ref: '#/components/schemas/Visibility'
@@ -8902,6 +9395,47 @@ paths:
       summary: Terminally delete the current Realm Account
       tags:
         - Auth
+  /api/auth/browser-session/refresh:
+    post:
+      operationId: refreshBrowserSession
+      parameters:
+        - in: header
+          name: x-nimi-auth-response
+          required: true
+          schema:
+            enum:
+              - browser-session
+            type: string
+      responses:
+        '204':
+          description: Browser cookies renewed; no response body or bearer credentials
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication request rejected
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication credential rejected
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication dependency unavailable
+      summary: Renew the existing secure browser session without exposing tokens
+      tags:
+        - Auth
   /api/auth/email/check:
     post:
       operationId: checkEmail
@@ -9084,7 +9618,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RefreshTokenDto'
+              $ref: '#/components/schemas/LogoutSessionDto'
         required: false
       responses:
         '204':
@@ -9445,6 +9979,88 @@ paths:
       summary: Update password
       tags:
         - Auth
+  /api/auth/my-sessions:
+    get:
+      operationId: listMyAccountSessions
+      parameters:
+        - in: query
+          name: expectedAccountId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: number
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountSessionListDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: List my unrevoked login sessions
+      tags:
+        - Auth
+  /api/auth/my-sessions/revoke-others:
+    post:
+      operationId: revokeMyOtherAccountSessions
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountOwnerIntentDto'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevokeAccountSessionsResultDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Revoke my other login sessions
+      tags:
+        - Auth
+  /api/auth/my-sessions/{sessionId}/revoke:
+    post:
+      operationId: revokeMyAccountSession
+      parameters:
+        - in: path
+          name: sessionId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountOwnerIntentDto'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevokeAccountSessionsResultDto'
+          description: ''
+        '404':
+          description: No such session belongs to the authenticated account.
+      security:
+        - bearer: []
+      summary: Revoke one of my login sessions
+      tags:
+        - Auth
   /api/auth/oauth/authorize:
     get:
       operationId: oauthAuthorize
@@ -9533,7 +10149,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OAuthLoginDto'
+              $ref: '#/components/schemas/OAuthLinkDto'
         required: true
       responses:
         '200':
@@ -9764,6 +10380,46 @@ paths:
       summary: Password login
       tags:
         - Auth
+  /api/auth/password/recover:
+    post:
+      operationId: recoverPassword
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RecoverPasswordDto'
+        required: true
+      responses:
+        '204':
+          description: Password replaced and existing sessions revoked.
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication request rejected
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication credential rejected
+        '429':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication rate limit exceeded
+        '503':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthErrorDto'
+          description: Authentication dependency unavailable
+      summary: Recover an existing account password
+      tags:
+        - Auth
   /api/auth/password/register:
     post:
       operationId: passwordRegister
@@ -9811,7 +10467,7 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/RefreshTokenDto'
-        required: false
+        required: true
       responses:
         '200':
           content:
@@ -9843,7 +10499,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AuthErrorDto'
           description: Authentication dependency unavailable
-      summary: Refresh token
+      summary: Renew explicit bearer credentials
       tags:
         - Auth
   /api/auth/sessions/introspect:
@@ -10579,22 +11235,6 @@ paths:
       tags:
         - User
   /api/human/accounts/{id}/friends:
-    delete:
-      operationId: removeFriend
-      parameters:
-        - in: path
-          name: id
-          required: true
-          schema:
-            type: string
-      responses:
-        '204':
-          description: Friend removed or request resolved
-      security:
-        - bearer: []
-      summary: Remove friend
-      tags:
-        - User
     get:
       description: Returns friend IDs for the target user (visibility-controlled).
       operationId: getUserFriends
@@ -10634,11 +11274,44 @@ paths:
               $ref: '#/components/schemas/AddFriendBodyDto'
         required: false
       responses:
-        '204':
-          description: Friend request processed
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FriendRequestResultDto'
+          description: ''
       security:
         - bearer: []
-      summary: Add friend
+      summary: Request friendship
+      tags:
+        - User
+  /api/human/accounts/{id}/friendship-actions:
+    post:
+      operationId: applyFriendshipAction
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FriendshipActionDto'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FriendshipActionResultDto'
+          description: ''
+        '409':
+          description: The request or relationship no longer matches the action.
+      security:
+        - bearer: []
+      summary: Apply an explicit friendship action
       tags:
         - User
   /api/human/accounts/{id}/mutual-friends:
@@ -10701,6 +11374,27 @@ paths:
       security:
         - bearer: []
       summary: Get mutual friends count
+      tags:
+        - User
+  /api/human/accounts/{id}/relationship:
+    get:
+      operationId: getMyRelationshipWithUser
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserRelationshipDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Get my relationship and contact permissions
       tags:
         - User
   /api/human/chats:
@@ -10901,6 +11595,12 @@ paths:
           required: true
           schema:
             type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MarkChatReadDto'
+        required: true
       responses:
         '204':
           description: Chat marked read
@@ -11067,7 +11767,7 @@ paths:
         their profile information and block metadata.
       operationId: getMyBlockedUsers
       parameters:
-        - description: Pagination cursor (ISO date string)
+        - description: Opaque relationship page cursor
           in: query
           name: cursor
           required: false
@@ -11173,6 +11873,30 @@ paths:
       summary: Get creator eligibility
       tags:
         - Me
+  /api/human/me/export:
+    post:
+      operationId: exportMyAccount
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountExportRequestDto'
+        required: true
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountExportDto'
+          description: ''
+        '409':
+          description: The authenticated account does not match the expected account
+      security:
+        - bearer: []
+      summary: Export current account profile and human chat text
+      tags:
+        - User
   /api/human/me/friends:
     get:
       operationId: listMyFriendIds
@@ -11192,7 +11916,12 @@ paths:
         including handle, display name, avatar, and friendship date.
       operationId: listMyFriendsWithDetails
       parameters:
-        - description: Pagination cursor (ISO date string)
+        - in: query
+          name: query
+          required: false
+          schema:
+            type: string
+        - description: Opaque relationship page cursor
           in: query
           name: cursor
           required: false
@@ -11219,10 +11948,28 @@ paths:
   /api/human/me/friends/pending:
     get:
       description: >-
-        Returns both received (from others) and sent (to others) pending friend
-        requests.
+        Returns one page of received or sent requests with their exact
+        relationship identity and minimal contact identity.
       operationId: getMyPendingFriendRequests
-      parameters: []
+      parameters:
+        - in: query
+          name: cursor
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: limit
+          required: false
+          schema:
+            type: number
+        - in: query
+          name: direction
+          required: true
+          schema:
+            enum:
+              - received
+              - sent
+            type: string
       responses:
         '200':
           content:
@@ -11255,6 +12002,22 @@ paths:
       security:
         - bearer: []
       summary: Update user handle
+      tags:
+        - Me
+  /api/human/me/handle-change-eligibility:
+    get:
+      operationId: getMyHandleChangeEligibility
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HandleChangeEligibilityDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Get handle change eligibility
       tags:
         - Me
   /api/human/me/notification-settings:
@@ -12498,7 +13261,9 @@ paths:
         - Realm Core
   /api/reports:
     post:
-      description: Report a user, post, Realm source, or comment for moderation.
+      description: >-
+        Report a user or post for moderation. A user report may reference one
+        message the reporter can read in its conversation.
       operationId: ReportController_createReport
       parameters: []
       requestBody:

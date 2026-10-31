@@ -16932,6 +16932,123 @@ where
     }
 }
 
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AccountExportAttachmentDto {
+    pub display_kind: String,
+    pub duration: f64,
+    pub height: f64,
+    pub title: String,
+    pub unavailable: bool,
+    pub width: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AccountExportConversationDto {
+    pub chat_id: String,
+    pub messages: Vec<AccountExportMessageDto>,
+    pub peer_account_id: String,
+    pub peer_display_name: String,
+    pub peer_handle: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AccountExportDto {
+    pub completed_at: String,
+    pub conversations: Vec<AccountExportConversationDto>,
+    pub exclusions: Vec<String>,
+    pub format: String,
+    pub profile: Box<AccountExportProfileDto>,
+    pub relationships: Vec<AccountExportRelationshipDto>,
+    pub sections: Vec<AccountExportSectionDto>,
+    pub settings: Option<Box<AccountExportSettingsDto>>,
+    pub started_at: String,
+    pub status: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AccountExportMessageDto {
+    pub attachment: Box<AccountExportAttachmentDto>,
+    pub created_at: String,
+    pub edited_at: Option<String>,
+    pub message_id: String,
+    pub reply_to_message_id: String,
+    pub sender_account_id: String,
+    pub text: Option<String>,
+    pub r#type: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AccountExportProfileDto {
+    pub account_id: String,
+    pub bio: Option<String>,
+    pub birth_year: Option<f64>,
+    pub city: Option<String>,
+    pub country_code: Option<String>,
+    pub created_at: String,
+    pub display_name: String,
+    pub email: Option<String>,
+    pub gender: Option<String>,
+    pub handle: String,
+    pub languages: Vec<String>,
+    pub tags: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AccountExportRelationshipDto {
+    pub account_id: String,
+    pub display_name: String,
+    pub handle: String,
+    pub kind: String,
+    pub note: Option<String>,
+    pub relationship_id: String,
+    pub since: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AccountExportRequestDto {
+    pub expected_account_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AccountExportSectionDto {
+    pub item_count: f64,
+    pub name: String,
+    pub reason: String,
+    pub status: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AccountExportSettingDto {
+    pub name: String,
+    pub value: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AccountExportSettingsDto {
+    pub notifications: Box<UserNotificationSettingsDto>,
+    pub values: Vec<AccountExportSettingDto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AccountOwnerIntentDto {
+    pub expected_account_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AccountSessionDto {
+    pub authenticated_at: Option<String>,
+    pub created_at: String,
+    pub current: bool,
+    pub id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AccountSessionListDto {
+    pub items: Vec<AccountSessionDto>,
+    pub next_cursor: Option<String>,
+    pub recent_authentication: bool,
+}
+
 pub type AccountStatus = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -17104,6 +17221,7 @@ pub struct BlockedUserDto {
     pub display_name: Option<String>,
     pub handle: Option<String>,
     pub id: String,
+    pub is_deleted: bool,
     pub reason: Option<String>,
 }
 
@@ -17615,6 +17733,7 @@ pub struct CreatePortalSessionDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct CreateReportDto {
     pub description: String,
+    pub message_evidence: Box<ReportMessageReferenceDto>,
     pub reason: Box<ReportReason>,
     pub target_id: String,
     pub target_type: String,
@@ -17822,6 +17941,7 @@ pub struct FriendProfileDto {
     pub gender: Option<Box<Gender>>,
     pub handle: String,
     pub id: String,
+    pub is_deleted: bool,
     pub is_online: bool,
     pub languages: Vec<String>,
     pub presence_emoji: Option<String>,
@@ -17830,6 +17950,7 @@ pub struct FriendProfileDto {
     pub profile_cover_media: Option<Box<MediaDeliveryDto>>,
     pub profile_cover_resource_id: Option<String>,
     pub profile_cover_url: Option<String>,
+    pub relationship_id: String,
     pub social_profiles: Vec<SocialProfileDto>,
     pub stats: Box<UserStatsDto>,
     pub status: Box<AccountStatus>,
@@ -17849,12 +17970,37 @@ pub struct FriendRequestResultDto {
     pub outcome: String,
 }
 
+pub type FriendRequestVisibility = String;
+
+pub type FriendshipAction = String;
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct FriendshipActionDto {
+    pub action: Box<FriendshipAction>,
+    pub relationship_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct FriendshipActionResultDto {
+    pub outcome: String,
+}
+
 pub type Gender = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct HandleAvailabilityDto {
     pub available: bool,
     pub message: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct HandleChangeEligibilityDto {
+    pub can_change: bool,
+    pub handle: String,
+    pub max_length: f64,
+    pub min_length: f64,
+    pub next_eligible_at: Option<String>,
+    pub pattern: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -17900,6 +18046,16 @@ pub struct ListMessagesResultDto {
     pub items: Vec<MessageViewDto>,
     pub next_after: Option<String>,
     pub next_before: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LogoutSessionDto {
+    pub refresh_token: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MarkChatReadDto {
+    pub read_through_message_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -18285,6 +18441,16 @@ pub struct OAuthErrorResponseDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct OAuthLinkDto {
+    pub code: String,
+    pub code_verifier: String,
+    pub expected_account_id: String,
+    pub id_token: String,
+    pub provider: String,
+    pub redirect_uri: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct OAuthLinkResponseDto {
     pub provider: String,
     pub status: String,
@@ -18348,6 +18514,11 @@ pub struct PasswordRegisterDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PendingFriendRequestDto {
+    pub avatar_url: Option<String>,
+    pub display_name: String,
+    pub handle: Option<String>,
+    pub is_deleted: bool,
+    pub relationship_id: String,
     pub request_message: Option<String>,
     pub requested_at: String,
     pub user_id: String,
@@ -18355,8 +18526,9 @@ pub struct PendingFriendRequestDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PendingFriendRequestListDto {
-    pub received: Vec<PendingFriendRequestDto>,
-    pub sent: Vec<PendingFriendRequestDto>,
+    pub items: Vec<PendingFriendRequestDto>,
+    pub next_cursor: Option<String>,
+    pub total: f64,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -18525,8 +18697,16 @@ pub struct RealmSourceCapabilitiesDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct RecoverPasswordDto {
+    pub authenticator_code: String,
+    pub code: String,
+    pub email: String,
+    pub new_password: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RefreshTokenDto {
-    pub refresh_token: Option<String>,
+    pub refresh_token: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -18579,6 +18759,12 @@ pub struct ReplaceWorldRelationshipCoreDto {
     pub source_entity_id: String,
     pub target_entity_id: String,
     pub r#type: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReportMessageReferenceDto {
+    pub chat_id: String,
+    pub message_id: String,
 }
 
 pub type ReportReason = String;
@@ -18685,6 +18871,12 @@ pub struct RevenueShareConfigDto {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RevenueSourceOriginRequestDto {
     pub source_ref: Box<CharacterSourceRefV3Dto>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RevokeAccountSessionsResultDto {
+    pub current_revoked: bool,
+    pub revoked_count: f64,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -18895,6 +19087,7 @@ pub struct SubscriptionTierConfigDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct TerminateCurrentAccountRequestDto {
+    pub expected_account_id: String,
     pub operation_id: String,
 }
 
@@ -19046,7 +19239,7 @@ pub struct UpdateUserSettingsDto {
     pub default_post_visibility: Box<Visibility>,
     pub dm_visibility: Box<Visibility>,
     pub friend_list_visibility: Box<Visibility>,
-    pub friend_request_visibility: Box<Visibility>,
+    pub friend_request_visibility: Box<FriendRequestVisibility>,
     pub mention_visibility: Box<Visibility>,
     pub notification_settings: Box<UpdateUserNotificationSettingsDto>,
     pub nsfw_chat_enabled: bool,
@@ -19179,13 +19372,22 @@ pub struct UserProfileDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct UserRelationshipDto {
+    pub blocked_by_me: bool,
+    pub can_message: bool,
+    pub can_request: bool,
+    pub relationship_id: Option<String>,
+    pub state: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct UserSettingsDto {
     pub account_visibility: Box<Visibility>,
     pub blocked_account_ids: Vec<String>,
     pub default_post_visibility: Box<Visibility>,
     pub dm_visibility: Box<Visibility>,
     pub friend_list_visibility: Box<Visibility>,
-    pub friend_request_visibility: Box<Visibility>,
+    pub friend_request_visibility: Box<FriendRequestVisibility>,
     pub mention_visibility: Box<Visibility>,
     pub notification_settings: Box<UserNotificationSettingsDto>,
     pub nsfw_chat_enabled: bool,
@@ -20316,6 +20518,53 @@ pub struct RealmGetMyCreatorEligibilityOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct RealmGetMyHandleChangeEligibilityOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct RealmGetMyHandleChangeEligibilityOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct RealmGetMyHandleChangeEligibilityOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetMyHandleChangeEligibilityOperationRequest {
+    pub path: RealmGetMyHandleChangeEligibilityOperationPath,
+    pub query: RealmGetMyHandleChangeEligibilityOperationQuery,
+    pub headers: RealmGetMyHandleChangeEligibilityOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct RealmGetMyRelationshipWithUserOperationPath {
+    #[serde(rename = "id")]
+    pub id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct RealmGetMyRelationshipWithUserOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct RealmGetMyRelationshipWithUserOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetMyRelationshipWithUserOperationRequest {
+    pub path: RealmGetMyRelationshipWithUserOperationPath,
+    pub query: RealmGetMyRelationshipWithUserOperationQuery,
+    pub headers: RealmGetMyRelationshipWithUserOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmGetMyTiersOperationPath {
 
 }
@@ -20760,6 +21009,112 @@ where
             tier: object.get("tier").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "getMyCreatorEligibility",
                 field: "tier",
+            })?,
+        })
+    }
+
+    pub fn get_my_handle_change_eligibility(&self, request: RealmGetMyHandleChangeEligibilityOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<HandleChangeEligibilityDto, RealmTypedClientError<T::Error>> {
+        let body = serde_json::to_vec(&serde_json::json!({
+            "path": request.path,
+            "query": request.query,
+            "headers": request.headers,
+            "body": serde_json::json!({}),
+        })).expect("Realm typed request JSON serialization cannot fail");
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "getMyHandleChangeEligibility".to_string(),
+            metadata,
+            body,
+            timeout,
+        }).map_err(RealmTypedClientError::Transport)?;
+        let object = json_object(&raw, RealmTypedClientError::ResponseDecode {
+            operation_id: "getMyHandleChangeEligibility",
+            field: "<body>",
+        })?;
+        Ok(HandleChangeEligibilityDto {
+            can_change: object.get("canChange").and_then(|value| value.as_bool()).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "getMyHandleChangeEligibility",
+                field: "canChange",
+            })?,
+            handle: object.get("handle").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "getMyHandleChangeEligibility",
+                field: "handle",
+            })?,
+            max_length: object.get("maxLength").and_then(|value| value.as_f64()).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "getMyHandleChangeEligibility",
+                field: "maxLength",
+            })?,
+            min_length: object.get("minLength").and_then(|value| value.as_f64()).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "getMyHandleChangeEligibility",
+                field: "minLength",
+            })?,
+            next_eligible_at: match object.get("nextEligibleAt") {
+                Some(value) if value.is_null() => None,
+                Some(value) => Some(value.as_str().map(String::from).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "getMyHandleChangeEligibility",
+                field: "nextEligibleAt",
+            })?),
+                None => return Err(RealmTypedClientError::ResponseDecode {
+                operation_id: "getMyHandleChangeEligibility",
+                field: "nextEligibleAt",
+            }),
+            },
+            pattern: object.get("pattern").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "getMyHandleChangeEligibility",
+                field: "pattern",
+            })?,
+        })
+    }
+
+    pub fn get_my_relationship_with_user(&self, request: RealmGetMyRelationshipWithUserOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UserRelationshipDto, RealmTypedClientError<T::Error>> {
+        if request.path.id.is_empty() {
+            return Err(RealmTypedClientError::RequestEncode {
+                operation_id: "getMyRelationshipWithUser",
+                field: "path.id",
+            });
+        }
+        let body = serde_json::to_vec(&serde_json::json!({
+            "path": request.path,
+            "query": request.query,
+            "headers": request.headers,
+            "body": serde_json::json!({}),
+        })).expect("Realm typed request JSON serialization cannot fail");
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "getMyRelationshipWithUser".to_string(),
+            metadata,
+            body,
+            timeout,
+        }).map_err(RealmTypedClientError::Transport)?;
+        let object = json_object(&raw, RealmTypedClientError::ResponseDecode {
+            operation_id: "getMyRelationshipWithUser",
+            field: "<body>",
+        })?;
+        Ok(UserRelationshipDto {
+            blocked_by_me: object.get("blockedByMe").and_then(|value| value.as_bool()).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "getMyRelationshipWithUser",
+                field: "blockedByMe",
+            })?,
+            can_message: object.get("canMessage").and_then(|value| value.as_bool()).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "getMyRelationshipWithUser",
+                field: "canMessage",
+            })?,
+            can_request: object.get("canRequest").and_then(|value| value.as_bool()).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "getMyRelationshipWithUser",
+                field: "canRequest",
+            })?,
+            relationship_id: match object.get("relationshipId") {
+                Some(value) if value.is_null() => None,
+                Some(value) => Some(value.as_str().map(String::from).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "getMyRelationshipWithUser",
+                field: "relationshipId",
+            })?),
+                None => return Err(RealmTypedClientError::ResponseDecode {
+                operation_id: "getMyRelationshipWithUser",
+                field: "relationshipId",
+            }),
+            },
+            state: object.get("state").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "getMyRelationshipWithUser",
+                field: "state",
             })?,
         })
     }

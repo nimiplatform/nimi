@@ -50,7 +50,10 @@ surfaces:
   - getUser
   - addFriend
   - addFriendByHandle
-  - removeFriend
+  - applyFriendshipAction
+  - getMyRelationshipWithUser
+  - getMyHandleChangeEligibility
+  - updateMyHandle
   - blockUser
   - unblockUser
   - ReportController_createReport
@@ -68,6 +71,9 @@ surfaces:
   - getMyCreatorEligibility
   - getMyNotificationSettings
   - getMySettings
+  - listMyAccountSessions
+  - revokeMyAccountSession
+  - revokeMyOtherAccountSessions
   - updateMyNotificationSettings
   - updateMySettings
   - updatePassword
@@ -492,14 +498,6 @@ operations:
     response_schema_ref: realm-openapi://operation/addFriendByHandle/response
 
   - <<: *desktop_product
-    operation_id: removeFriend
-    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
-    http_method: DELETE
-    path_template: /api/human/accounts/{id}/friends
-    request_schema_ref: realm-openapi://operation/removeFriend/request
-    response_schema_ref: realm-openapi://operation/removeFriend/response
-
-  - <<: *desktop_product
     operation_id: blockUser
     authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
     http_method: POST
@@ -813,6 +811,62 @@ operations:
     path_template: /api/resources/{resourceId}
     request_schema_ref: realm-openapi://operation/deleteResource/request
     response_schema_ref: realm-openapi://operation/deleteResource/response
+
+  - <<: *desktop_product
+    operation_id: applyFriendshipAction
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: POST
+    path_template: /api/human/accounts/{id}/friendship-actions
+    request_schema_ref: realm-openapi://operation/applyFriendshipAction/request
+    response_schema_ref: realm-openapi://operation/applyFriendshipAction/response
+
+  - <<: *desktop_product
+    operation_id: getMyRelationshipWithUser
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/human/accounts/{id}/relationship
+    request_schema_ref: realm-openapi://operation/getMyRelationshipWithUser/request
+    response_schema_ref: realm-openapi://operation/getMyRelationshipWithUser/response
+
+  - <<: *desktop_product
+    operation_id: getMyHandleChangeEligibility
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: GET
+    path_template: /api/human/me/handle-change-eligibility
+    request_schema_ref: realm-openapi://operation/getMyHandleChangeEligibility/request
+    response_schema_ref: realm-openapi://operation/getMyHandleChangeEligibility/response
+
+  - <<: *desktop_product
+    operation_id: updateMyHandle
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r006
+    http_method: PATCH
+    path_template: /api/human/me/handle
+    request_schema_ref: realm-openapi://operation/updateMyHandle/request
+    response_schema_ref: realm-openapi://operation/updateMyHandle/response
+
+  - <<: *desktop_sensitive
+    operation_id: listMyAccountSessions
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r023
+    http_method: GET
+    path_template: /api/auth/my-sessions
+    request_schema_ref: realm-openapi://operation/listMyAccountSessions/request
+    response_schema_ref: realm-openapi://operation/listMyAccountSessions/response
+
+  - <<: *desktop_sensitive
+    operation_id: revokeMyAccountSession
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r023
+    http_method: POST
+    path_template: /api/auth/my-sessions/{sessionId}/revoke
+    request_schema_ref: realm-openapi://operation/revokeMyAccountSession/request
+    response_schema_ref: realm-openapi://operation/revokeMyAccountSession/response
+
+  - <<: *desktop_sensitive
+    operation_id: revokeMyOtherAccountSessions
+    authority_ref: .nimi/spec/desktop/shell-runtime.authority.yaml#rule.nimi.desktop.shell-runtime.r023
+    http_method: POST
+    path_template: /api/auth/my-sessions/revoke-others
+    request_schema_ref: realm-openapi://operation/revokeMyOtherAccountSessions/request
+    response_schema_ref: realm-openapi://operation/revokeMyOtherAccountSessions/response
 
 forbidden_operation_classes:
   - every_realm_operation_not_listed_in_operations

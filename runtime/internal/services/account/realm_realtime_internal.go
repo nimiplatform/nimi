@@ -62,7 +62,7 @@ func (s *Service) RefreshRealmRealtimeAccount(ctx context.Context, generation ui
 	if !ok || currentGeneration != generation {
 		return RealmRealtimeAccountLease{}, fmt.Errorf("Realm account generation is stale")
 	}
-	result, err := s.refreshAccountSessionAfterUnauthorized(ctx, rejectedAccessToken)
+	result, err := s.refreshAccountSessionAfterUnauthorized(ctx, rejectedAccessToken, generation)
 	if err != nil {
 		return RealmRealtimeAccountLease{}, err
 	}

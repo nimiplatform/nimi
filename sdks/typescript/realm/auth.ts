@@ -70,6 +70,7 @@ const CHECK_EMAIL_ENTRY_ROUTES = new Set<CheckEmailResponseDto['entryRoute']>([
 const EXPECTED_ANONYMOUS_REASON_CODES = new Set<AuthErrorDto['reasonCode']>([
   'AUTH_REQUIRED',
   'AUTH_TOKEN_EXPIRED',
+  'AUTH_SESSION_REVOKED',
 ]);
 
 export function toNimiRealmAuthUserRecord(value: unknown): NimiRealmAuthUserRecord | null {

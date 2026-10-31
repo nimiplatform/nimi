@@ -11,6 +11,33 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
+func TestDeclaredNoContentRequiresEmptyBodyAndSafeHeaders(t *testing.T) {
+	for _, tc := range []struct {
+		name      string
+		operation string
+		body      string
+		header    http.Header
+		accepted  bool
+	}{
+		{"read acknowledgement", "markChatRead", "", nil, true},
+		{"unblock", "unblockUser", "", nil, true},
+		{"missing session projection", "listMyAccountSessions", "", nil, false},
+		{"body on 204", "markChatRead", "{}", nil, false},
+		{"credential on 204", "markChatRead", "", http.Header{"Set-Cookie": {"session=private"}}, false},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			response := projectRealmUnaryHTTPResult(realmUnaryHTTPResult{status: http.StatusNoContent, body: []byte(tc.body), header: tc.header, noContentAllowed: realmBrokerOperations[tc.operation].noContentAllowed})
+			wantJSON := ""
+			if tc.accepted {
+				wantJSON = "{}"
+			}
+			if response.GetAccepted() != tc.accepted || response.GetHttpStatus() != http.StatusNoContent || response.GetResponseJson() != wantJSON {
+				t.Fatalf("unexpected no-content projection: %v", response)
+			}
+		})
+	}
+}
+
 func TestWorldListResponseBudgetPreservesLargePagesAndStillRejectsOverflow(t *testing.T) {
 	body := `[{"id":"world-1","core":{"narrative":{"setting":"` + strings.Repeat("x", 2*1024*1024) + `"}}}]`
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
@@ -54,8 +81,17 @@ func TestRealmBrokerOperationSetContainsExactDesktopProductVocabulary(t *testing
 		"WorldPublicController_listPersonaCharacterCatalog":  {method: http.MethodGet, path: "/api/world/persona-characters/catalog"},
 		"WorldPublicController_listCharacterCatalog":         {method: http.MethodGet, path: "/api/world/character-sources/catalog"},
 	}
-	if len(realmBrokerOperations) != 76 {
-		t.Fatalf("Realm broker operation count = %d, want 76", len(realmBrokerOperations))
+	if len(realmBrokerOperations) != 82 {
+		t.Fatalf("Realm broker operation count = %d, want 82", len(realmBrokerOperations))
+	}
+	for _, id := range []string{"applyFriendshipAction", "getMyRelationshipWithUser", "getMyHandleChangeEligibility", "updateMyHandle", "listMyAccountSessions", "revokeMyAccountSession", "revokeMyOtherAccountSessions"} {
+		op, ok := realmBrokerOperations[id]
+		if !ok || !op.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_DESKTOP_SHELL) || op.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_LOCAL_APP) || op.admitsCallerMode(runtimev1.AccountCallerMode_ACCOUNT_CALLER_MODE_AVATAR_NATIVE_HOST) {
+			t.Fatalf("user foundation operation must remain Home-owned: %s", id)
+		}
+	}
+	if _, ok := realmBrokerOperations["removeFriend"]; ok {
+		t.Fatal("ambiguous relationship removal must not remain admitted")
 	}
 	for operationID, want := range expectedSourceReadiness {
 		operation, ok := realmBrokerOperations[operationID]

@@ -5,7 +5,7 @@ import type {
   Me2faPrepareResponseDto,
   Me2faEnableDto,
   Me2faVerifyDto,
-  OAuthLoginDto,
+  OAuthLinkDto,
   OAuthProvider,
   RealmTypedCallOptions,
   RealmTypedClient,
@@ -27,7 +27,7 @@ export type NimiRealmTwoFactorPrepareInput = Me2faPrepareDto;
 export type NimiRealmTwoFactorPrepareOutput = Me2faPrepareResponseDto;
 export type NimiRealmTwoFactorEnableInput = Me2faEnableDto;
 export type NimiRealmTwoFactorVerifyInput = Me2faVerifyDto;
-export type NimiRealmOAuthLinkInput = OAuthLoginDto;
+export type NimiRealmOAuthLinkInput = OAuthLinkDto;
 
 export interface NimiRealmPasswordUpdateView {
   readonly ok: true;

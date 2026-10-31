@@ -254,7 +254,7 @@ units:
     kind: rule
     title: Desktop account projection and intent stay bounded
     modality: must
-    statement: Desktop may render the current account's minimal projection and non-credential Profile fields and may send typed logout, switch, reauthenticate, and manage-account intent; account credential management opens the admitted Web account surface, and account switch starts a fresh Runtime-owned browser authorization that requires account selection.
+    statement: Desktop may render the current account's minimal identity and non-credential Profile fields and send typed logout, switch, reauthenticate and manage-account intents. Home account security reads the Realm-owned login-session list and can revoke a selected session or all other sessions through exact protected Desktop operations bound to the displayed account. The current Home login is identified by the Realm caller-session marker. A confirmed revocation of the current login ends its local Runtime session. Credential management uses the admitted Web surface and account switching starts fresh Runtime-owned browser authorization with account selection.
     condition: Whenever authenticated Desktop account UX is presented.
     failure: Reject renderer-owned account mutation, stale projection reuse, local credential management, or account switching without a fresh Runtime attempt.
     relations:

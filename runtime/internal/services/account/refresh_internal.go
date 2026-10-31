@@ -19,12 +19,13 @@ type refreshAccountSessionResult struct {
 func (s *Service) refreshAccountSessionAfterUnauthorized(
 	ctx context.Context,
 	rejectedAccessToken string,
+	generation uint64,
 ) (*refreshAccountSessionResult, error) {
-	return s.refreshAccountSessionForRejectedToken(ctx, true, rejectedAccessToken, accountRefreshRealmUnauthorized)
+	return s.refreshAccountSessionForRejectedToken(ctx, true, rejectedAccessToken, accountRefreshRealmUnauthorized, &generation)
 }
 
 func (s *Service) refreshAccountSessionInternal(ctx context.Context, force bool) (*refreshAccountSessionResult, error) {
-	return s.refreshAccountSessionForRejectedToken(ctx, force, "", accountRefreshInternal)
+	return s.refreshAccountSessionForRejectedToken(ctx, force, "", accountRefreshInternal, nil)
 }
 
 // @nimi-authority: rule.nimi.runtime.protected-session.r030
@@ -34,16 +35,19 @@ func (s *Service) refreshAccountSessionForRejectedToken(
 	force bool,
 	rejectedAccessToken string,
 	cause accountRefreshCause,
-) (result *refreshAccountSessionResult, err error) {
+	expectedGeneration *uint64,
+) (*refreshAccountSessionResult, error) {
+	s.identityMutationMu.Lock()
+	defer s.identityMutationMu.Unlock()
+	return s.refreshAccountSessionLocked(ctx, force, rejectedAccessToken, cause, expectedGeneration)
+}
+
+func (s *Service) refreshAccountSessionLocked(ctx context.Context, force bool, rejectedAccessToken string, cause accountRefreshCause, expectedGeneration *uint64) (result *refreshAccountSessionResult, err error) {
 	var auditSubjectID string
 	var beforeState runtimev1.AccountSessionState
 	var beforeRevision string
 	refreshAttempted := false
-	mutationLocked := false
 	defer func() {
-		if mutationLocked {
-			defer s.identityMutationMu.Unlock()
-		}
 		if refreshAttempted && result != nil && !result.accepted && result.accountReasonCode != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_DELETED {
 			s.emitRejectedAudit(ctx, "account.refresh.failed", auditSubjectID, result.reasonCode, result.accountReasonCode, "")
 		}
@@ -51,10 +55,13 @@ func (s *Service) refreshAccountSessionForRejectedToken(
 			s.logAccountAuthorizationTransition(cause, beforeState, beforeRevision, result != nil && result.accepted)
 		}
 	}()
-	s.identityMutationMu.Lock()
-	mutationLocked = true
 
 	s.mu.Lock()
+	if expectedGeneration != nil && *expectedGeneration != s.accountGeneration {
+		state := s.state
+		s.mu.Unlock()
+		return &refreshAccountSessionResult{state: state, reasonCode: runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED, accountReasonCode: runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_UNAVAILABLE}, nil
+	}
 	if s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_AUTHENTICATED &&
 		s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_EXPIRED &&
 		s.state != runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REFRESH_PENDING {

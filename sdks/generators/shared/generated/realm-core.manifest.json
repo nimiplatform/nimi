@@ -69,8 +69,23 @@
       },
       "request_schema_ref": "#/components/schemas/AddFriendBodyDto",
       "request_content_type": "application/json",
-      "response_schemas": [],
-      "response_schema_refs": []
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/FriendRequestResultDto",
+            "ref_name": "FriendRequestResultDto"
+          },
+          "schema_ref": "#/components/schemas/FriendRequestResultDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/FriendRequestResultDto"
+        }
+      ]
     },
     {
       "operation_id": "addFriendByHandle",
@@ -138,6 +153,75 @@
         {
           "status": "200",
           "schema_ref": "#/components/schemas/FriendRequestResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "applyFriendshipAction",
+      "method": "POST",
+      "path": "/api/human/accounts/{id}/friendship-actions",
+      "service": "User",
+      "tags": [
+        "User"
+      ],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/FriendshipActionDto",
+        "ref_name": "FriendshipActionDto"
+      },
+      "request_schema_ref": "#/components/schemas/FriendshipActionDto",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/FriendshipActionResultDto",
+            "ref_name": "FriendshipActionResultDto"
+          },
+          "schema_ref": "#/components/schemas/FriendshipActionResultDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/FriendshipActionResultDto"
         }
       ]
     },
@@ -2541,6 +2625,43 @@
       ]
     },
     {
+      "operation_id": "exportMyAccount",
+      "method": "POST",
+      "path": "/api/human/me/export",
+      "service": "User",
+      "tags": [
+        "User"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/AccountExportRequestDto",
+        "ref_name": "AccountExportRequestDto"
+      },
+      "request_schema_ref": "#/components/schemas/AccountExportRequestDto",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AccountExportDto",
+            "ref_name": "AccountExportDto"
+          },
+          "schema_ref": "#/components/schemas/AccountExportDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AccountExportDto"
+        }
+      ]
+    },
+    {
       "operation_id": "FeedbackController_getMyFeedbacks",
       "method": "GET",
       "path": "/api/support/feedback",
@@ -3390,6 +3511,41 @@
       ]
     },
     {
+      "operation_id": "getMyHandleChangeEligibility",
+      "method": "GET",
+      "path": "/api/human/me/handle-change-eligibility",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/HandleChangeEligibilityDto",
+            "ref_name": "HandleChangeEligibilityDto"
+          },
+          "schema_ref": "#/components/schemas/HandleChangeEligibilityDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/HandleChangeEligibilityDto"
+        }
+      ]
+    },
+    {
       "operation_id": "getMyNotificationSettings",
       "method": "GET",
       "path": "/api/human/me/notification-settings",
@@ -3432,9 +3588,97 @@
       "tags": [
         "Me"
       ],
-      "parameters": [],
+      "parameters": [
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "direction",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "received",
+              "sent"
+            ],
+            "type": "string"
+          }
+        }
+      ],
       "path_parameters": [],
-      "query_parameters": [],
+      "query_parameters": [
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "direction",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "received",
+              "sent"
+            ],
+            "type": "string"
+          }
+        }
+      ],
       "header_parameters": [],
       "request_schema": {
         "kind": "unknown"
@@ -3491,6 +3735,73 @@
         {
           "status": "200",
           "schema_ref": "#/components/schemas/PPSlotConfigResponseDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getMyRelationshipWithUser",
+      "method": "GET",
+      "path": "/api/human/accounts/{id}/relationship",
+      "service": "User",
+      "tags": [
+        "User"
+      ],
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/UserRelationshipDto",
+            "ref_name": "UserRelationshipDto"
+          },
+          "schema_ref": "#/components/schemas/UserRelationshipDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/UserRelationshipDto"
         }
       ]
     },
@@ -4072,10 +4383,10 @@
       "header_parameters": [],
       "request_schema": {
         "kind": "ref",
-        "ref": "#/components/schemas/OAuthLoginDto",
-        "ref_name": "OAuthLoginDto"
+        "ref": "#/components/schemas/OAuthLinkDto",
+        "ref_name": "OAuthLinkDto"
       },
-      "request_schema_ref": "#/components/schemas/OAuthLoginDto",
+      "request_schema_ref": "#/components/schemas/OAuthLinkDto",
       "request_content_type": "application/json",
       "response_schemas": [
         {
@@ -4653,34 +4964,29 @@
       ]
     },
     {
-      "operation_id": "listMyFriendIds",
+      "operation_id": "listMyAccountSessions",
       "method": "GET",
-      "path": "/api/human/me/friends",
-      "service": "Me",
+      "path": "/api/auth/my-sessions",
+      "service": "Auth",
       "tags": [
-        "Me"
-      ],
-      "parameters": [],
-      "path_parameters": [],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "request_content_type": null,
-      "response_schemas": [],
-      "response_schema_refs": []
-    },
-    {
-      "operation_id": "listMyFriendsWithDetails",
-      "method": "GET",
-      "path": "/api/human/me/friends/list",
-      "service": "Me",
-      "tags": [
-        "Me"
+        "Auth"
       ],
       "parameters": [
+        {
+          "name": "expectedAccountId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
         {
           "name": "cursor",
           "in": "query",
@@ -4714,6 +5020,168 @@
       ],
       "path_parameters": [],
       "query_parameters": [
+        {
+          "name": "expectedAccountId",
+          "in": "query",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AccountSessionListDto",
+            "ref_name": "AccountSessionListDto"
+          },
+          "schema_ref": "#/components/schemas/AccountSessionListDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/AccountSessionListDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "listMyFriendIds",
+      "method": "GET",
+      "path": "/api/human/me/friends",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [],
+      "response_schema_refs": []
+    },
+    {
+      "operation_id": "listMyFriendsWithDetails",
+      "method": "GET",
+      "path": "/api/human/me/friends/list",
+      "service": "Me",
+      "tags": [
+        "Me"
+      ],
+      "parameters": [
+        {
+          "name": "query",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "cursor",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
+        {
+          "name": "limit",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "number",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [],
+      "query_parameters": [
+        {
+          "name": "query",
+          "in": "query",
+          "required": false,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        },
         {
           "name": "cursor",
           "in": "query",
@@ -5229,10 +5697,10 @@
       "header_parameters": [],
       "request_schema": {
         "kind": "ref",
-        "ref": "#/components/schemas/RefreshTokenDto",
-        "ref_name": "RefreshTokenDto"
+        "ref": "#/components/schemas/LogoutSessionDto",
+        "ref_name": "LogoutSessionDto"
       },
-      "request_schema_ref": "#/components/schemas/RefreshTokenDto",
+      "request_schema_ref": "#/components/schemas/LogoutSessionDto",
       "request_content_type": "application/json",
       "response_schemas": [
         {
@@ -5336,10 +5804,12 @@
       "query_parameters": [],
       "header_parameters": [],
       "request_schema": {
-        "kind": "unknown"
+        "kind": "ref",
+        "ref": "#/components/schemas/MarkChatReadDto",
+        "ref_name": "MarkChatReadDto"
       },
-      "request_schema_ref": null,
-      "request_content_type": null,
+      "request_schema_ref": "#/components/schemas/MarkChatReadDto",
+      "request_content_type": "application/json",
       "response_schemas": [],
       "response_schema_refs": []
     },
@@ -6539,6 +7009,182 @@
       "response_schema_refs": []
     },
     {
+      "operation_id": "recoverPassword",
+      "method": "POST",
+      "path": "/api/auth/password/recover",
+      "service": "Auth",
+      "tags": [
+        "Auth"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/RecoverPasswordDto",
+        "ref_name": "RecoverPasswordDto"
+      },
+      "request_schema_ref": "#/components/schemas/RecoverPasswordDto",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "refreshBrowserSession",
+      "method": "POST",
+      "path": "/api/auth/browser-session/refresh",
+      "service": "Auth",
+      "tags": [
+        "Auth"
+      ],
+      "parameters": [
+        {
+          "name": "x-nimi-auth-response",
+          "in": "header",
+          "required": true,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "browser-session"
+            ],
+            "type": "string"
+          }
+        }
+      ],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [
+        {
+          "name": "x-nimi-auth-response",
+          "in": "header",
+          "required": true,
+          "schema": {
+            "kind": "enum",
+            "values": [
+              "browser-session"
+            ],
+            "type": "string"
+          }
+        }
+      ],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "400",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/AuthErrorDto",
+            "ref_name": "AuthErrorDto"
+          },
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "400",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "401",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "429",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        },
+        {
+          "status": "503",
+          "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ]
+    },
+    {
       "operation_id": "refreshToken",
       "method": "POST",
       "path": "/api/auth/refresh",
@@ -6626,58 +7272,6 @@
           "schema_ref": "#/components/schemas/AuthErrorDto"
         }
       ]
-    },
-    {
-      "operation_id": "removeFriend",
-      "method": "DELETE",
-      "path": "/api/human/accounts/{id}/friends",
-      "service": "User",
-      "tags": [
-        "User"
-      ],
-      "parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "path_parameters": [
-        {
-          "name": "id",
-          "in": "path",
-          "required": true,
-          "schema": {
-            "kind": "scalar",
-            "type": "string",
-            "format": null,
-            "minimum": null,
-            "maximum": null,
-            "min_length": null,
-            "max_length": null,
-            "pattern": null
-          }
-        }
-      ],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "unknown"
-      },
-      "request_schema_ref": null,
-      "request_content_type": null,
-      "response_schemas": [],
-      "response_schema_refs": []
     },
     {
       "operation_id": "ReportController_createReport",
@@ -6789,6 +7383,112 @@
         {
           "status": "503",
           "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "revokeMyAccountSession",
+      "method": "POST",
+      "path": "/api/auth/my-sessions/{sessionId}/revoke",
+      "service": "Auth",
+      "tags": [
+        "Auth"
+      ],
+      "parameters": [
+        {
+          "name": "sessionId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "sessionId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/AccountOwnerIntentDto",
+        "ref_name": "AccountOwnerIntentDto"
+      },
+      "request_schema_ref": "#/components/schemas/AccountOwnerIntentDto",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/RevokeAccountSessionsResultDto",
+            "ref_name": "RevokeAccountSessionsResultDto"
+          },
+          "schema_ref": "#/components/schemas/RevokeAccountSessionsResultDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/RevokeAccountSessionsResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "revokeMyOtherAccountSessions",
+      "method": "POST",
+      "path": "/api/auth/my-sessions/revoke-others",
+      "service": "Auth",
+      "tags": [
+        "Auth"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/AccountOwnerIntentDto",
+        "ref_name": "AccountOwnerIntentDto"
+      },
+      "request_schema_ref": "#/components/schemas/AccountOwnerIntentDto",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/RevokeAccountSessionsResultDto",
+            "ref_name": "RevokeAccountSessionsResultDto"
+          },
+          "schema_ref": "#/components/schemas/RevokeAccountSessionsResultDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/RevokeAccountSessionsResultDto"
         }
       ]
     },
@@ -8526,6 +9226,9 @@
           },
           "schema_ref": "#/components/schemas/AuthErrorDto"
         }
+      ],
+      "empty_success_statuses": [
+        "204"
       ],
       "response_schema_refs": [
         {
@@ -12335,6 +13038,12 @@
       "path": "/api/human/handle/{handle}/friends"
     },
     {
+      "operation_id": "applyFriendshipAction",
+      "service": "User",
+      "method": "POST",
+      "path": "/api/human/accounts/{id}/friendship-actions"
+    },
+    {
       "operation_id": "archiveAsset",
       "service": "Assets",
       "method": "POST",
@@ -12587,6 +13296,12 @@
       "path": "/api/auth/me/2fa/enable"
     },
     {
+      "operation_id": "exportMyAccount",
+      "service": "User",
+      "method": "POST",
+      "path": "/api/human/me/export"
+    },
+    {
       "operation_id": "FeedbackController_getMyFeedbacks",
       "service": "Support (Feedback)",
       "method": "GET",
@@ -12665,6 +13380,12 @@
       "path": "/api/human/me/creator-eligibility"
     },
     {
+      "operation_id": "getMyHandleChangeEligibility",
+      "service": "Me",
+      "method": "GET",
+      "path": "/api/human/me/handle-change-eligibility"
+    },
+    {
       "operation_id": "getMyNotificationSettings",
       "service": "Me",
       "method": "GET",
@@ -12681,6 +13402,12 @@
       "service": "Me",
       "method": "GET",
       "path": "/api/human/me/pp-config"
+    },
+    {
+      "operation_id": "getMyRelationshipWithUser",
+      "service": "User",
+      "method": "GET",
+      "path": "/api/human/accounts/{id}/relationship"
     },
     {
       "operation_id": "getMySettings",
@@ -12783,6 +13510,12 @@
       "service": "Human Chats",
       "method": "GET",
       "path": "/api/human/chats/{chatId}/messages"
+    },
+    {
+      "operation_id": "listMyAccountSessions",
+      "service": "Auth",
+      "method": "GET",
+      "path": "/api/auth/my-sessions"
     },
     {
       "operation_id": "listMyFriendIds",
@@ -12899,16 +13632,22 @@
       "path": "/api/human/chats/{chatId}/messages/{messageId}/recall"
     },
     {
+      "operation_id": "recoverPassword",
+      "service": "Auth",
+      "method": "POST",
+      "path": "/api/auth/password/recover"
+    },
+    {
+      "operation_id": "refreshBrowserSession",
+      "service": "Auth",
+      "method": "POST",
+      "path": "/api/auth/browser-session/refresh"
+    },
+    {
       "operation_id": "refreshToken",
       "service": "Auth",
       "method": "POST",
       "path": "/api/auth/refresh"
-    },
-    {
-      "operation_id": "removeFriend",
-      "service": "User",
-      "method": "DELETE",
-      "path": "/api/human/accounts/{id}/friends"
     },
     {
       "operation_id": "ReportController_createReport",
@@ -12921,6 +13660,18 @@
       "service": "Auth",
       "method": "POST",
       "path": "/api/auth/email/otp/request"
+    },
+    {
+      "operation_id": "revokeMyAccountSession",
+      "service": "Auth",
+      "method": "POST",
+      "path": "/api/auth/my-sessions/{sessionId}/revoke"
+    },
+    {
+      "operation_id": "revokeMyOtherAccountSessions",
+      "service": "Auth",
+      "method": "POST",
+      "path": "/api/auth/my-sessions/revoke-others"
     },
     {
       "operation_id": "sendMessage",
@@ -13346,14 +14097,19 @@
         "checkEmail",
         "introspectSession",
         "linkOauth",
+        "listMyAccountSessions",
         "logout",
         "oauthAuthorize",
         "oauthLogin",
         "oauthToken",
         "passwordLogin",
         "passwordRegister",
+        "recoverPassword",
+        "refreshBrowserSession",
         "refreshToken",
         "requestEmailOtp",
+        "revokeMyAccountSession",
+        "revokeMyOtherAccountSessions",
         "terminateCurrentAccount",
         "unlinkOauth",
         "updatePassword",
@@ -13444,6 +14200,7 @@
         "getMyBlockedUsers",
         "getMyCapabilities",
         "getMyCreatorEligibility",
+        "getMyHandleChangeEligibility",
         "getMyNotificationSettings",
         "getMyPPConfig",
         "getMyPendingFriendRequests",
@@ -13556,14 +14313,16 @@
       "operation_ids": [
         "addFriend",
         "addFriendByHandle",
+        "applyFriendshipAction",
         "checkHandle",
+        "exportMyAccount",
         "getMutualFriends",
         "getMutualFriendsCount",
+        "getMyRelationshipWithUser",
         "getUser",
         "getUserByHandle",
         "getUserFriends",
-        "listOnlineUsers",
-        "removeFriend"
+        "listOnlineUsers"
       ]
     },
     {
@@ -13590,6 +14349,45 @@
     }
   ],
   "model_maps": [
+    {
+      "name": "AccountExportAttachmentDto"
+    },
+    {
+      "name": "AccountExportConversationDto"
+    },
+    {
+      "name": "AccountExportDto"
+    },
+    {
+      "name": "AccountExportMessageDto"
+    },
+    {
+      "name": "AccountExportProfileDto"
+    },
+    {
+      "name": "AccountExportRelationshipDto"
+    },
+    {
+      "name": "AccountExportRequestDto"
+    },
+    {
+      "name": "AccountExportSectionDto"
+    },
+    {
+      "name": "AccountExportSettingDto"
+    },
+    {
+      "name": "AccountExportSettingsDto"
+    },
+    {
+      "name": "AccountOwnerIntentDto"
+    },
+    {
+      "name": "AccountSessionDto"
+    },
+    {
+      "name": "AccountSessionListDto"
+    },
     {
       "name": "AccountStatus"
     },
@@ -13903,10 +14701,25 @@
       "name": "FriendRequestResultDto"
     },
     {
+      "name": "FriendRequestVisibility"
+    },
+    {
+      "name": "FriendshipAction"
+    },
+    {
+      "name": "FriendshipActionDto"
+    },
+    {
+      "name": "FriendshipActionResultDto"
+    },
+    {
       "name": "Gender"
     },
     {
       "name": "HandleAvailabilityDto"
+    },
+    {
+      "name": "HandleChangeEligibilityDto"
     },
     {
       "name": "ImportPolicyDto"
@@ -13925,6 +14738,12 @@
     },
     {
       "name": "ListMessagesResultDto"
+    },
+    {
+      "name": "LogoutSessionDto"
+    },
+    {
+      "name": "MarkChatReadDto"
     },
     {
       "name": "MarkNotificationsReadInputDto"
@@ -14056,6 +14875,9 @@
       "name": "OAuthErrorResponseDto"
     },
     {
+      "name": "OAuthLinkDto"
+    },
+    {
       "name": "OAuthLinkResponseDto"
     },
     {
@@ -14155,6 +14977,9 @@
       "name": "RealmSourceCapabilitiesDto"
     },
     {
+      "name": "RecoverPasswordDto"
+    },
+    {
       "name": "RefreshTokenDto"
     },
     {
@@ -14171,6 +14996,9 @@
     },
     {
       "name": "ReplaceWorldRelationshipCoreDto"
+    },
+    {
+      "name": "ReportMessageReferenceDto"
     },
     {
       "name": "ReportReason"
@@ -14210,6 +15038,9 @@
     },
     {
       "name": "RevenueSourceOriginRequestDto"
+    },
+    {
+      "name": "RevokeAccountSessionsResultDto"
     },
     {
       "name": "SendMessageInputDto"
@@ -14345,6 +15176,9 @@
     },
     {
       "name": "UserProfileDto"
+    },
+    {
+      "name": "UserRelationshipDto"
     },
     {
       "name": "UserSettingsDto"
@@ -14654,6 +15488,1120 @@
     }
   ],
   "model_schemas": [
+    {
+      "name": "AccountExportAttachmentDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "displayKind",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "duration",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "height",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "title",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "unavailable",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "width",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "AccountExportConversationDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "chatId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "messages",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/AccountExportMessageDto",
+                "ref_name": "AccountExportMessageDto"
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "peerAccountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "peerDisplayName",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "peerHandle",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "chatId",
+          "peerAccountId",
+          "peerHandle",
+          "peerDisplayName",
+          "messages"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "AccountExportDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "completedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "conversations",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/AccountExportConversationDto",
+                "ref_name": "AccountExportConversationDto"
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "exclusions",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "format",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "nimi-account-text-export/v1"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "profile",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/AccountExportProfileDto",
+              "ref_name": "AccountExportProfileDto"
+            }
+          },
+          {
+            "name": "relationships",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/AccountExportRelationshipDto",
+                "ref_name": "AccountExportRelationshipDto"
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "sections",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/AccountExportSectionDto",
+                "ref_name": "AccountExportSectionDto"
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "settings",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/AccountExportSettingsDto",
+              "ref_name": "AccountExportSettingsDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "startedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "status",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "complete",
+                "partial"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "required_properties": [
+          "format",
+          "startedAt",
+          "completedAt",
+          "status",
+          "exclusions",
+          "profile",
+          "settings",
+          "relationships",
+          "conversations",
+          "sections"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "AccountExportMessageDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "attachment",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/AccountExportAttachmentDto",
+              "ref_name": "AccountExportAttachmentDto"
+            }
+          },
+          {
+            "name": "createdAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "editedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "messageId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "replyToMessageId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "senderAccountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "text",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "type",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "messageId",
+          "senderAccountId",
+          "type",
+          "text",
+          "createdAt",
+          "editedAt"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "AccountExportProfileDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "accountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "bio",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "birthYear",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "city",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "countryCode",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "createdAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "displayName",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "email",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "gender",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "handle",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "languages",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "tags",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          }
+        ],
+        "required_properties": [
+          "accountId",
+          "handle",
+          "displayName",
+          "languages",
+          "tags",
+          "createdAt"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "AccountExportRelationshipDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "accountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "displayName",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "handle",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "friend",
+                "received",
+                "sent",
+                "blocked"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "note",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "relationshipId",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "since",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "accountId",
+          "handle",
+          "displayName",
+          "kind",
+          "since"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "AccountExportRequestDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "expectedAccountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "expectedAccountId"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "AccountExportSectionDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "itemCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "name",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "reason",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "status",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "complete",
+                "partial",
+                "unavailable"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "required_properties": [
+          "name",
+          "status",
+          "itemCount"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "AccountExportSettingDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "name",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "value",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "name",
+          "value"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "AccountExportSettingsDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "notifications",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/UserNotificationSettingsDto",
+              "ref_name": "UserNotificationSettingsDto"
+            }
+          },
+          {
+            "name": "values",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/AccountExportSettingDto",
+                "ref_name": "AccountExportSettingDto"
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          }
+        ],
+        "required_properties": [
+          "values",
+          "notifications"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "AccountOwnerIntentDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "expectedAccountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "expectedAccountId"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "AccountSessionDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "authenticatedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "createdAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "current",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "id",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "id",
+          "createdAt",
+          "authenticatedAt",
+          "current"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "AccountSessionListDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "items",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/AccountSessionDto",
+                "ref_name": "AccountSessionDto"
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "nextCursor",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "recentAuthentication",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "items",
+          "nextCursor",
+          "recentAuthentication"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
     {
       "name": "AccountStatus",
       "schema": {
@@ -15288,6 +17236,9 @@
               "kind": "enum",
               "values": [
                 "AUTH_REQUIRED",
+                "AUTH_SESSION_REVOKED",
+                "AUTH_RECENT_LOGIN_REQUIRED",
+                "AUTH_ACCOUNT_CONTEXT_CHANGED",
                 "AUTH_INSUFFICIENT_SCOPE",
                 "AUTH_INVALID_CREDENTIALS",
                 "AUTH_INVALID_REQUEST",
@@ -16403,6 +18354,20 @@
             }
           },
           {
+            "name": "isDeleted",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
             "name": "reason",
             "required": true,
             "schema": {
@@ -16419,6 +18384,7 @@
           }
         ],
         "required_properties": [
+          "isDeleted",
           "id",
           "handle",
           "displayName",
@@ -22010,6 +23976,15 @@
             }
           },
           {
+            "name": "messageEvidence",
+            "required": false,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/ReportMessageReferenceDto",
+              "ref_name": "ReportMessageReferenceDto"
+            }
+          },
+          {
             "name": "reason",
             "required": true,
             "schema": {
@@ -23928,6 +25903,20 @@
             }
           },
           {
+            "name": "isDeleted",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
             "name": "isOnline",
             "required": false,
             "schema": {
@@ -24046,6 +26035,20 @@
             }
           },
           {
+            "name": "relationshipId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
             "name": "socialProfiles",
             "required": false,
             "schema": {
@@ -24110,7 +26113,9 @@
           "id",
           "handle",
           "displayName",
-          "createdAt"
+          "createdAt",
+          "relationshipId",
+          "isDeleted"
         ],
         "closed": false,
         "additional_properties": null
@@ -24201,6 +26206,94 @@
       }
     },
     {
+      "name": "FriendRequestVisibility",
+      "schema": {
+        "kind": "enum",
+        "values": [
+          "PUBLIC",
+          "PRIVATE"
+        ],
+        "type": "string"
+      }
+    },
+    {
+      "name": "FriendshipAction",
+      "schema": {
+        "kind": "enum",
+        "values": [
+          "accept",
+          "reject",
+          "cancel",
+          "remove"
+        ],
+        "type": "string"
+      }
+    },
+    {
+      "name": "FriendshipActionDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "action",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/FriendshipAction",
+              "ref_name": "FriendshipAction"
+            }
+          },
+          {
+            "name": "relationshipId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "action",
+          "relationshipId"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "FriendshipActionResultDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "outcome",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "accepted",
+                "rejected",
+                "cancelled",
+                "removed"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "required_properties": [
+          "outcome"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
       "name": "Gender",
       "schema": {
         "kind": "enum",
@@ -24249,6 +26342,109 @@
         ],
         "required_properties": [
           "available"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "HandleChangeEligibilityDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "canChange",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "handle",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "maxLength",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "minLength",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "nextEligibleAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "pattern",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "handle",
+          "canChange",
+          "nextEligibleAt",
+          "pattern",
+          "minLength",
+          "maxLength"
         ],
         "closed": false,
         "additional_properties": null
@@ -24633,6 +26829,59 @@
           "items",
           "nextBefore",
           "nextAfter"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "LogoutSessionDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "refreshToken",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          }
+        ],
+        "required_properties": [],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "MarkChatReadDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "readThroughMessageId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "readThroughMessageId"
         ],
         "closed": false,
         "additional_properties": null
@@ -28045,6 +30294,9 @@
               "kind": "enum",
               "values": [
                 "AUTH_REQUIRED",
+                "AUTH_SESSION_REVOKED",
+                "AUTH_RECENT_LOGIN_REQUIRED",
+                "AUTH_ACCOUNT_CONTEXT_CHANGED",
                 "AUTH_INSUFFICIENT_SCOPE",
                 "AUTH_INVALID_CREDENTIALS",
                 "AUTH_INVALID_REQUEST",
@@ -28129,6 +30381,103 @@
           "reasonCode",
           "traceId",
           "error"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "OAuthLinkDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "code",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "codeVerifier",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "expectedAccountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "idToken",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "provider",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "GOOGLE",
+                "WECHAT",
+                "TIKTOK"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "redirectUri",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "provider",
+          "expectedAccountId"
         ],
         "closed": false,
         "additional_properties": null
@@ -28666,6 +31015,78 @@
         "kind": "object",
         "properties": [
           {
+            "name": "avatarUrl",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "displayName",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "handle",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "isDeleted",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "relationshipId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
             "name": "requestMessage",
             "required": true,
             "schema": {
@@ -28710,7 +31131,12 @@
           }
         ],
         "required_properties": [
+          "relationshipId",
           "userId",
+          "displayName",
+          "handle",
+          "avatarUrl",
+          "isDeleted",
           "requestedAt",
           "requestMessage"
         ],
@@ -28724,7 +31150,7 @@
         "kind": "object",
         "properties": [
           {
-            "name": "received",
+            "name": "items",
             "required": true,
             "schema": {
               "kind": "array",
@@ -28738,23 +31164,39 @@
             }
           },
           {
-            "name": "sent",
+            "name": "nextCursor",
             "required": true,
             "schema": {
-              "kind": "array",
-              "items": {
-                "kind": "ref",
-                "ref": "#/components/schemas/PendingFriendRequestDto",
-                "ref_name": "PendingFriendRequestDto"
-              },
-              "min_items": null,
-              "max_items": null
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "total",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
             }
           }
         ],
         "required_properties": [
-          "received",
-          "sent"
+          "items",
+          "nextCursor",
+          "total"
         ],
         "closed": false,
         "additional_properties": null
@@ -30186,12 +32628,12 @@
       }
     },
     {
-      "name": "RefreshTokenDto",
+      "name": "RecoverPasswordDto",
       "schema": {
         "kind": "object",
         "properties": [
           {
-            "name": "refreshToken",
+            "name": "authenticatorCode",
             "required": false,
             "schema": {
               "kind": "scalar",
@@ -30201,12 +32643,84 @@
               "maximum": null,
               "min_length": null,
               "max_length": null,
-              "pattern": null,
-              "nullable": true
+              "pattern": null
+            }
+          },
+          {
+            "name": "code",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "email",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "newPassword",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
             }
           }
         ],
-        "required_properties": [],
+        "required_properties": [
+          "email",
+          "code",
+          "newPassword"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "RefreshTokenDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "refreshToken",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "refreshToken"
+        ],
         "closed": false,
         "additional_properties": null
       }
@@ -30668,6 +33182,48 @@
           "origin",
           "core",
           "baseContentHash"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "ReportMessageReferenceDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "chatId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "messageId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "chatId",
+          "messageId"
         ],
         "closed": false,
         "additional_properties": null
@@ -31724,6 +34280,48 @@
           "sourceRef"
         ],
         "closed": true,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "RevokeAccountSessionsResultDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "currentRevoked",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "revokedCount",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "revokedCount",
+          "currentRevoked"
+        ],
+        "closed": false,
         "additional_properties": null
       }
     },
@@ -33622,6 +36220,20 @@
         "kind": "object",
         "properties": [
           {
+            "name": "expectedAccountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
             "name": "operation_id",
             "required": true,
             "schema": {
@@ -33637,6 +36249,7 @@
           }
         ],
         "required_properties": [
+          "expectedAccountId",
           "operation_id"
         ],
         "closed": true,
@@ -34471,7 +37084,7 @@
               "maximum": null,
               "min_length": null,
               "max_length": null,
-              "pattern": "^[a-zA-Z0-9_][a-zA-Z0-9_-]{1,49}$"
+              "pattern": "^[a-z0-9_]{4,16}$"
             }
           }
         ],
@@ -35053,8 +37666,8 @@
             "required": false,
             "schema": {
               "kind": "ref",
-              "ref": "#/components/schemas/Visibility",
-              "ref_name": "Visibility"
+              "ref": "#/components/schemas/FriendRequestVisibility",
+              "ref_name": "FriendRequestVisibility"
             }
           },
           {
@@ -36520,6 +39133,94 @@
       }
     },
     {
+      "name": "UserRelationshipDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "blockedByMe",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "canMessage",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "canRequest",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "boolean",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "relationshipId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "state",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "none",
+                "pending_incoming",
+                "pending_outgoing",
+                "active"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "required_properties": [
+          "state",
+          "relationshipId",
+          "blockedByMe",
+          "canRequest",
+          "canMessage"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
       "name": "UserSettingsDto",
       "schema": {
         "kind": "object",
@@ -36584,8 +39285,8 @@
             "required": false,
             "schema": {
               "kind": "ref",
-              "ref": "#/components/schemas/Visibility",
-              "ref_name": "Visibility"
+              "ref": "#/components/schemas/FriendRequestVisibility",
+              "ref_name": "FriendRequestVisibility"
             }
           },
           {

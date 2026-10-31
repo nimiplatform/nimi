@@ -25,6 +25,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/human/handle/{handle}/friends"
   },
   {
+    "operationId": "applyFriendshipAction",
+    "service": "User",
+    "method": "POST",
+    "path": "/api/human/accounts/{id}/friendship-actions"
+  },
+  {
     "operationId": "archiveAsset",
     "service": "Assets",
     "method": "POST",
@@ -277,6 +283,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/auth/me/2fa/enable"
   },
   {
+    "operationId": "exportMyAccount",
+    "service": "User",
+    "method": "POST",
+    "path": "/api/human/me/export"
+  },
+  {
     "operationId": "FeedbackController_getMyFeedbacks",
     "service": "Support (Feedback)",
     "method": "GET",
@@ -355,6 +367,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/human/me/creator-eligibility"
   },
   {
+    "operationId": "getMyHandleChangeEligibility",
+    "service": "Me",
+    "method": "GET",
+    "path": "/api/human/me/handle-change-eligibility"
+  },
+  {
     "operationId": "getMyNotificationSettings",
     "service": "Me",
     "method": "GET",
@@ -371,6 +389,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Me",
     "method": "GET",
     "path": "/api/human/me/pp-config"
+  },
+  {
+    "operationId": "getMyRelationshipWithUser",
+    "service": "User",
+    "method": "GET",
+    "path": "/api/human/accounts/{id}/relationship"
   },
   {
     "operationId": "getMySettings",
@@ -467,6 +491,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Human Chats",
     "method": "GET",
     "path": "/api/human/chats/{chatId}/messages"
+  },
+  {
+    "operationId": "listMyAccountSessions",
+    "service": "Auth",
+    "method": "GET",
+    "path": "/api/auth/my-sessions"
   },
   {
     "operationId": "listMyFriendIds",
@@ -583,16 +613,22 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/human/chats/{chatId}/messages/{messageId}/recall"
   },
   {
+    "operationId": "recoverPassword",
+    "service": "Auth",
+    "method": "POST",
+    "path": "/api/auth/password/recover"
+  },
+  {
+    "operationId": "refreshBrowserSession",
+    "service": "Auth",
+    "method": "POST",
+    "path": "/api/auth/browser-session/refresh"
+  },
+  {
     "operationId": "refreshToken",
     "service": "Auth",
     "method": "POST",
     "path": "/api/auth/refresh"
-  },
-  {
-    "operationId": "removeFriend",
-    "service": "User",
-    "method": "DELETE",
-    "path": "/api/human/accounts/{id}/friends"
   },
   {
     "operationId": "ReportController_createReport",
@@ -605,6 +641,18 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Auth",
     "method": "POST",
     "path": "/api/auth/email/otp/request"
+  },
+  {
+    "operationId": "revokeMyAccountSession",
+    "service": "Auth",
+    "method": "POST",
+    "path": "/api/auth/my-sessions/{sessionId}/revoke"
+  },
+  {
+    "operationId": "revokeMyOtherAccountSessions",
+    "service": "Auth",
+    "method": "POST",
+    "path": "/api/auth/my-sessions/revoke-others"
   },
   {
     "operationId": "sendMessage",

@@ -51,7 +51,6 @@ export const NIMI_DESKTOP_PRODUCT_REALM_OPERATION_IDS = [
   "getUser",
   "addFriend",
   "addFriendByHandle",
-  "removeFriend",
   "blockUser",
   "unblockUser",
   "ReportController_createReport",
@@ -91,6 +90,13 @@ export const NIMI_DESKTOP_PRODUCT_REALM_OPERATION_IDS = [
   "getResource",
   "cancelResourceUpload",
   "deleteResource",
+  "applyFriendshipAction",
+  "getMyRelationshipWithUser",
+  "getMyHandleChangeEligibility",
+  "updateMyHandle",
+  "listMyAccountSessions",
+  "revokeMyAccountSession",
+  "revokeMyOtherAccountSessions",
 ] as const;
 
 export type NimiDesktopProductRealmOperationID =

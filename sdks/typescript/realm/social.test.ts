@@ -11,7 +11,7 @@ import {
   loadNimiRealmSocialSnapshot,
   loadNimiRealmUserProfileById,
   resolveNimiRealmBaseUrl,
-  removeNimiRealmFriendById,
+  applyNimiRealmFriendshipAction,
   resolveNimiRealmMediaUrl,
   unblockNimiRealmUser,
   updateNimiRealmCurrentUserProfile,
@@ -39,13 +39,14 @@ function createSocialRealmStub() {
         },
       },
       social: {
+        async getMyRelationshipWithUser() { return { state: 'none' as const, relationshipId: null, blockedByMe: false, canRequest: true, canMessage: true }; },
         async addFriend(request: { path: { id: string } }) {
           calls.push(`add:${request.path.id}`);
-          return {};
+          return { outcome: 'requested' as const };
         },
-        async removeFriend(request: { path: { id: string } }) {
-          calls.push(`remove:${request.path.id}`);
-          return {};
+        async applyFriendshipAction(request: { path: { id: string }; body: { action: string; relationshipId: string } }) {
+          calls.push(`${request.body.action}:${request.path.id}:${request.body.relationshipId}`);
+          return { outcome: 'removed' as const };
         },
         async blockUser(request: { path: { id: string }; body: { reason?: string } }) {
           calls.push(`block:${request.path.id}:${request.body.reason ?? ''}`);
@@ -59,21 +60,18 @@ function createSocialRealmStub() {
       generated: {
         async listMyFriendsWithDetails() {
           return {
-            items: [{ id: 'friend-1', handle: 'friend', displayName: 'Friend', createdAt: 'now' }],
+            items: [{ id: 'friend-1', relationshipId: 'relation-1', isDeleted: false, handle: 'friend', displayName: 'Friend', createdAt: 'now' }],
             nextCursor: null,
             total: 1,
           };
         },
-        async getMyPendingFriendRequests() {
+        async getMyPendingFriendRequests(request: { query: { direction: string } }) {
           return {
-            received: [
-              {
-                userId: 'pending-1',
-                requestedAt: '2026-06-05T00:00:00Z',
-                requestMessage: null,
-              },
-            ],
-            sent: [],
+            items: request.query.direction === 'received' ? [{
+              relationshipId: 'request-1', userId: 'pending-1', displayName: 'Private contact', handle: 'pending_1', avatarUrl: null, isDeleted: false,
+              requestedAt: '2026-06-05T00:00:00Z', requestMessage: null,
+            }] : [],
+            nextCursor: null, total: request.query.direction === 'received' ? 1 : 0,
           };
         },
         async getMyBlockedUsers() {
@@ -85,6 +83,7 @@ function createSocialRealmStub() {
               displayName: 'Blocked',
               handle: 'blocked',
               id: 'blocked-1',
+              isDeleted: false,
               reason: null,
             }],
             nextCursor: null,
@@ -110,12 +109,14 @@ function createSocialRealmStub() {
 }
 
 test('Realm social snapshot helper projects generated friend, pending, and blocked records', async () => {
-  const { realm } = createSocialRealmStub();
+  const { realm, calls } = createSocialRealmStub();
   const errors: string[] = [];
   const snapshot = await loadNimiRealmSocialSnapshot(realm, (action) => errors.push(action));
   assert.deepEqual(errors, []);
   assert.equal(snapshot.friends[0]?.id, 'friend-1');
   assert.equal(snapshot.pendingReceived[0]?.id, 'pending-1');
+  assert.equal(snapshot.pendingReceived[0]?.relationshipId, 'request-1');
+  assert.equal(calls.some(call => call.startsWith('getUser:')), false, 'pending contacts must not require complete private profiles');
   assert.equal(snapshot.blocked[0]?.id, 'blocked-1');
 });
 
@@ -164,11 +165,8 @@ test('Realm social reads fail closed on malformed friends, blocked users, and pr
     const { realm } = createSocialRealmStub();
     realm.generated.getUser = async () => ({});
     const errors: string[] = [];
-    await assert.rejects(
-      () => loadNimiRealmSocialSnapshot(realm, (action) => errors.push(action)),
-      isDecodeError,
-    );
-    assert.ok(errors.includes('load-pending-friend-request-profile'));
+    await assert.doesNotReject(() => loadNimiRealmSocialSnapshot(realm, (action) => errors.push(action)));
+    assert.deepEqual(errors, [], 'unreadable full profiles do not block authorized pending identities');
     await assert.rejects(
       () => loadNimiRealmUserProfileById(realm, (action) => errors.push(action), 'user-1'),
       isDecodeError,
@@ -192,12 +190,12 @@ test('Realm social reads fail closed on malformed friends, blocked users, and pr
 test('Realm friendship and block helpers call admitted facade methods and reject empty identities', async () => {
   const { realm, calls } = createSocialRealmStub();
   await addNimiRealmFriendById(realm, 'friend-2');
-  await removeNimiRealmFriendById(realm, 'friend-2');
+  await applyNimiRealmFriendshipAction(realm, 'friend-2', { action: 'remove', relationshipId: 'relation-2' });
   await blockNimiRealmUser(realm, 'blocked-2', 'spam');
   await unblockNimiRealmUser(realm, 'blocked-2');
   assert.deepEqual(calls, [
     'add:friend-2',
-    'remove:friend-2',
+    'remove:friend-2:relation-2',
     'block:blocked-2:spam',
     'unblock:blocked-2',
   ]);
