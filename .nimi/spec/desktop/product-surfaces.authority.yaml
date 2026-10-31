@@ -487,3 +487,13 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.relationship-profile
+  - id: rule.nimi.desktop.product-surfaces.public-profile-editor
+    kind: rule
+    title: Public identity edits use one explicit submission experience
+    modality: must
+    statement: Home public Profile entries share a Settings-owned editor with explicit save and cancel, draft-only preview, dirty-field updates and account-scoped async results; background refresh does not overwrite input, same-field writes use the last committed value, and no unimplemented collection is displayed as an empty result. Own-profile contact and privacy shortcuts enter their existing owners, while contact actions use the current authorized relationship independently of full-profile visibility.
+    condition: Whenever Home displays or edits human public identity.
+    failure: Preserve unsaved input on failure, reject cross-account results and stale relationship actions, and never invent private profile fields or successful saves.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.relationship-profile

@@ -1,7 +1,5 @@
 import type { RealmModel } from '@nimiplatform/sdk/realm/generated';
 
-export type HumanProfileTab = 'Collections' | 'FollowedWorlds';
-
 export type HumanProfileData = {
   accessState: 'full' | 'restricted';
   id: string;
@@ -16,13 +14,15 @@ export type HumanProfileData = {
   isOnline: boolean;
   isFriend: boolean;
   isPendingFriendRequest: boolean;
+  relationshipId?: string | null;
+  relationship?: RealmModel<'UserRelationshipDto'>;
   createdAt: string;
   tags: string[];
   languages: string[];
   city: string | null;
   countryCode: string | null;
   gender: string | null;
-  stats: { friendsCount: number; postsCount: number; likesCount: number } | null;
+  stats: { friendsCount?: number; postsCount: number; likesCount: number } | null;
 };
 
 type UserProfileDto = RealmModel<'UserProfileDto'>;
@@ -50,6 +50,8 @@ export type HumanProfileSource = Partial<Omit<
   likeCount?: number;
   isFriend?: boolean;
   isPendingFriendRequest?: boolean;
+  relationshipId?: string | null;
+  relationship?: RealmModel<'UserRelationshipDto'>;
 };
 
 function assertHumanProfileSource(raw: HumanProfileSource): void {
@@ -98,6 +100,8 @@ export function toHumanProfileData(raw: HumanProfileSource): HumanProfileData {
     isOnline: raw.isOnline === true,
     isFriend: raw.isFriend === true,
     isPendingFriendRequest: raw.isPendingFriendRequest === true,
+    relationshipId: raw.relationshipId ?? null,
+    relationship: raw.relationship,
     createdAt: typeof raw.createdAt === 'string' ? raw.createdAt : '',
     tags: Array.isArray(raw.tags) ? raw.tags.map(String) : [],
     languages: Array.isArray(raw.languages) ? raw.languages.map(String) : [],
@@ -106,7 +110,7 @@ export function toHumanProfileData(raw: HumanProfileSource): HumanProfileData {
     gender: typeof raw.gender === 'string' ? raw.gender : null,
     stats: stats
       ? {
-          friendsCount: typeof stats.friendsCount === 'number' ? stats.friendsCount : 0,
+          ...(typeof stats.friendsCount === 'number' ? { friendsCount: stats.friendsCount } : {}),
           postsCount: typeof stats.postsCount === 'number' ? stats.postsCount : 0,
           likesCount: typeof stats.likesCount === 'number'
             ? stats.likesCount

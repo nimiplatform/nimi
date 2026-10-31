@@ -6,6 +6,11 @@ import {
   toHumanProfileData,
 } from '../src/shell/renderer/features/profile/profile-model.js';
 
+test('an omitted friend count stays hidden while a disclosed zero remains a number', () => {
+  assert.equal(toHumanProfileData({ id: 'a', stats: { postsCount: 4 } }).stats?.friendsCount, undefined);
+  assert.equal(toHumanProfileData({ id: 'b', stats: { postsCount: 4, friendsCount: 0 } }).stats?.friendsCount, 0);
+});
+
 test('human profile projection preserves only UserProfile fields', () => {
   const profile = toHumanProfileData({
     id: 'account-a',

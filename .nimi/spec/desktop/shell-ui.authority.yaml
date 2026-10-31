@@ -1123,7 +1123,7 @@ units:
     kind: rule
     title: Settings navigation preserves pending user edits and entry focus
     modality: must
-    statement: Controlled navigation from Settings completes pending appearance, profile, privacy or Realm notification autosave before leaving; on failure it preserves the page for retry or an explicit discard decision. Forced account or data-root scope invalidation cancels pending navigation and never writes an old draft into a new owner. Reopening the same Settings section presents and focuses it without duplicate history. Search is page-scoped and read-only. Keyboard account-menu entry, escape and target focus, compact list-detail return and responsive focus recovery remain usable.
+    statement: Controlled navigation from Settings completes pending appearance, privacy or Realm notification autosave before leaving; on failure it preserves the page for retry or an explicit discard decision. Public profile edits use explicit save and cancel and controlled departure offers save, discard or continued editing without silently publishing a draft. Forced account or data-root scope invalidation cancels pending navigation and never writes an old draft into a new owner. Reopening the same Settings section presents and focuses it without duplicate history. Search is page-scoped and read-only. Keyboard account-menu entry, escape and target focus, compact list-detail return and responsive focus recovery remain usable.
     condition: Whenever Home navigates into, within or out of Settings.
     failure: Reject silently discarded unsaved edits, saving treated as saved, scope-crossing draft writes, repeated entry that leaves compact navigation on its list, or focus on removed elements.
     relations:
