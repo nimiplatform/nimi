@@ -15,8 +15,9 @@ import { bundleQueryKey, THREADS_QUERY_KEY } from '../src/shell/renderer/feature
 import { useAiConversationHostActions } from '../src/shell/renderer/features/chat/chat-nimi-shell-host-actions.js';
 import { createPlainTextMessageContent } from '../src/shell/renderer/features/chat/chat-nimi-thread-model.js';
 
+for (const route of ['side flip', 'direct switch', 'direct switch with empty draft'] as const) {
 for (const outcome of ['success', 'failure'] as const) {
-  test(`after a side flip, a historical thread owns the send and its ${outcome} cleanup`, async (t) => {
+  test(`after a ${route}, a historical thread owns the send and its ${outcome} cleanup`, async (t) => {
     const dataRoot = await mkdtemp(path.join(os.tmpdir(), 'nimi-chat-routing-'));
     const host = createDesktopElectronChatAiStoreHost({
       resolveSelectedDataRoot: () => dataRoot,
@@ -84,16 +85,29 @@ for (const outcome of ['success', 'failure'] as const) {
     await actions().handleCreateThread();
     const temporary = nimiComposerMemory(navigation).ephemeralThread!;
     const retainedDraft = nimiComposerDraftRef(navigation, temporary.id, '');
-    retainedDraft.current = 'Keep this unsent temporary draft';
+    const temporaryText = route === 'direct switch with empty draft' ? '' : 'Keep this unsent temporary draft';
+    retainedDraft.current = temporaryText;
     const temporaryBundle = client.getQueryData(bundleQueryKey(temporary.id));
-    await navigation.switchChatSide('human');
-    await navigation.switchChatSide('companion');
-    assert.equal(navigation.getSnapshot().current.destination.chat?.threadId, undefined);
-    actions().handleSelectThread(history.id);
-    await new Promise<void>(resolve => setImmediate(resolve));
+    if (route === 'side flip') {
+      await navigation.switchChatSide('human');
+      await navigation.switchChatSide('companion');
+      assert.equal(navigation.getSnapshot().current.destination.chat?.threadId, undefined);
+    }
+    await actions().handleSelectThread(history.id);
     assert.equal(navigation.getSnapshot().current.destination.chat?.threadId, history.id);
+    assert.deepEqual(reported, []);
+    assert.equal(retainedDraft.current, temporaryText);
     const historicalDraft = nimiComposerDraftRef(navigation, history.id, '');
     historicalDraft.current = 'Send only in history';
+    // Both drafts must remain independently reachable through ordinary selection.
+    await actions().handleSelectThread(temporary.id);
+    assert.equal(navigation.getSnapshot().current.destination.chat?.threadId, temporary.id);
+    assert.equal(nimiComposerDraftRef(navigation, temporary.id, '').current, temporaryText);
+    assert.equal((await chatAiStoreClient.getDraft(history.id))?.text, 'Send only in history');
+    await actions().handleSelectThread(history.id);
+    assert.equal(navigation.getSnapshot().current.destination.chat?.threadId, history.id);
+    assert.equal(historicalDraft.current, 'Send only in history');
+    assert.deepEqual(reported, []);
     calls.length = 0;
     const send = actions().handleSubmit(historicalDraft.current);
     // Register failure observation before settling the controlled model boundary.
@@ -107,7 +121,7 @@ for (const outcome of ['success', 'failure'] as const) {
     assert.equal(submittingThreadId, null);
     assert.equal(navigation.getSnapshot().current.destination.chat?.threadId, history.id);
     assert.equal(nimiComposerMemory(navigation).ephemeralThread?.id, temporary.id);
-    assert.equal(retainedDraft.current, 'Keep this unsent temporary draft');
+    assert.equal(retainedDraft.current, temporaryText);
     assert.equal(client.getQueryData(bundleQueryKey(temporary.id)), temporaryBundle);
     if (outcome === 'success') {
       assert.equal(error, null);
@@ -126,4 +140,5 @@ for (const outcome of ['success', 'failure'] as const) {
     }
     assert.equal(await chatAiStoreClient.getThreadBundle(temporary.id), null, 'the retained temporary draft was never sent or persisted');
   });
+}
 }

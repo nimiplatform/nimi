@@ -80,7 +80,7 @@ export function useAiConversationHostActions(
   input: UseAiConversationHostActionsInput,
 ): {
   handleCreateThread: () => Promise<void>;
-  handleSelectThread: (threadId: string) => void;
+  handleSelectThread: (threadId: string) => Promise<void>;
   handleSubmit: (text: string) => Promise<void>;
 } {
   const syncAiThreadSelectionState = useCallback((threadId: string | null) => {
@@ -90,6 +90,9 @@ export function useAiConversationHostActions(
   const persistDraftForThread = useCallback(async (threadId: string | null) => {
     const normalizedThreadId = threadId?.trim() || '';
     if (!normalizedThreadId) return;
+    // Unsent threads live in the scoped composer memory and query cache only.
+    // Keep that draft when leaving; the native store has no thread to update.
+    if (normalizedThreadId === input.ephemeralThread?.id) return;
     const nextText = input.currentDraftTextRef.current;
     if (nextText.trim()) {
       const draft = await chatAiStoreClient.putDraft({
@@ -129,17 +132,15 @@ export function useAiConversationHostActions(
     syncAiThreadSelectionState(thread.id);
   }, [input, syncAiThreadSelectionState]);
 
-  const handleSelectThread = useCallback((threadId: string) => {
+  const handleSelectThread = useCallback(async (threadId: string) => {
     if (!threadId || threadId === input.activeThreadId || input.submittingThreadId) return;
     if (!input.threads.some((candidate) => candidate.id === threadId)) return;
-    if (input.ephemeralThread && input.activeThreadId === input.ephemeralThread.id) {
-      input.queryClient.removeQueries({ queryKey: bundleQueryKey(input.ephemeralThread.id) });
-      input.setEphemeralThread(null);
-    }
-    void (async () => {
+    try {
       await persistDraftForThread(input.activeThreadId);
       syncAiThreadSelectionState(threadId);
-    })().catch(input.reportHostError);
+    } catch (error) {
+      input.reportHostError(error);
+    }
   }, [input, persistDraftForThread, syncAiThreadSelectionState]);
 
   // @nimi-authority: rule.nimi.desktop.shell-ui.chat-sides
