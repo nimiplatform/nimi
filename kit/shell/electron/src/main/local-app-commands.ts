@@ -2184,6 +2184,12 @@ export async function invalidateElectronLocalAppCommandResources(
   registryHost: NimiElectronLocalAppHost,
   closeHost: NimiElectronLocalAppHost = registryHost,
 ): Promise<void> {
+  const results = await Promise.allSettled(takeElectronLocalAppCommandClosers(registryHost, closeHost).map(close => close()));
+  if (results.some(result => result.status === 'rejected')) throw new Error('formal-app-command-resource-cleanup-failed');
+}
+
+/** Retire renderer handles immediately; the formal owner retains failed close operations for retry. */
+export function takeElectronLocalAppCommandClosers(registryHost: NimiElectronLocalAppHost, closeHost: NimiElectronLocalAppHost): Array<() => Promise<unknown>> {
   const scenarios = [...activeScenarioStreams(registryHost).entries()];
   const conversations = [...activeConversationStreams(registryHost)];
   const realtime = [...activeRealtimeStreams(registryHost)];
@@ -2200,17 +2206,16 @@ export async function invalidateElectronLocalAppCommandResources(
   activeConversationStreams(registryHost).clear();
   activeRealtimeStreams(registryHost).clear();
   activeActivityStreams(registryHost).clear();
-  const results = await Promise.allSettled([
-    ...scenarios.map(([streamId, method]) => (
+  return [
+    ...scenarios.map(([streamId, method]) => () => (
       method === 'textTurnSubscribe'
         ? closeHost.textTurnStreamClose({ streamId })
         : closeHost.scenarioJobStreamClose({ streamId })
     )),
-    ...conversations.map((streamId) => closeHost.conversationStreamClose({ streamId })),
-    ...realtime.map((streamId) => closeHost.realtimeStreamClose({ streamId })),
-    ...activity.map((streamId) => closeHost.activityStreamClose({ streamId })),
-  ]);
-  if (results.some((result) => result.status === 'rejected')) throw new Error('formal-app-command-resource-cleanup-failed');
+    ...conversations.map(streamId => () => closeHost.conversationStreamClose({ streamId })),
+    ...realtime.map(streamId => () => closeHost.realtimeStreamClose({ streamId })),
+    ...activity.map(streamId => () => closeHost.activityStreamClose({ streamId })),
+  ];
 }
 
 async function pumpScenarioStream(

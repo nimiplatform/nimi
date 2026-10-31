@@ -45,7 +45,7 @@ import {
   type NimiElectronLocalAppRecord,
 } from './local-app-host.js';
 import type { NimiElectronAppActivityOpenLaunchTarget, RuntimeGrpcBridgeStream } from './types.js';
-import { invalidateElectronLocalAppCommandResources } from './local-app-commands.js';
+import { takeElectronLocalAppCommandClosers } from './local-app-commands.js';
 
 type FormalAppProfile = 'desktop' | 'avatar';
 type RuntimeCallOptions = Readonly<{ signal?: AbortSignal; timeoutMs?: number }>;
@@ -115,7 +115,6 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
   readonly revealInOs?: (path: string) => Promise<void> | void;
   readonly activityLaunch?: NimiElectronAppActivityLaunch;
 }): NimiElectronFormalAppLocalHostOwner {
-  let criticalCleanupFailed = false;
   const inFlightOperations = new Set<Promise<unknown>>();
   const streamClosures = new Set<Promise<void>>();
   const trackOperation: FormalOperationTracker = async (operation) => {
@@ -205,27 +204,31 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
   const closePullStream = async (record: NimiElectronLocalAppRecord) => {
     const streamId = requiredText(record.streamId);
     const stream = pullStreams.get(streamId);
-    pullStreams.delete(streamId);
     await stream?.cancel();
+    pullStreams.delete(streamId);
     return { closed: Boolean(stream) };
   };
   const invalidateFormalSessionResources = (): Promise<void> => {
     invalidationInFlight ??= (async () => {
       const scopeResults = await Promise.allSettled(
-        [...resourceScopes].map((scope) => scope.invalidateResources()),
+        [...resourceScopes].map(scope => disposed ? scope.shutdown() : scope.invalidateResources()),
       );
-      criticalCleanupFailed ||= scopeResults.some((result) => result.status === 'rejected');
+
       // All exposed resource handles belong to one of the scopes above. Keep
       // this final owner cleanup for a concurrent close that had already left
       // its scope but had not yet removed the underlying Runtime resource.
-      const streams = [...pullStreams.values()];
-      pullStreams.clear();
+      const streams = [...pullStreams.entries()];
       const reads = [...assetReads.values()];
       assetReads.clear();
       assetWrites.clear();
       for (const read of reads) read.cancel();
-      const streamResults = await Promise.allSettled(streams.map((stream) => stream.cancel()));
-      criticalCleanupFailed ||= streamResults.some((result) => result.status === 'rejected');
+      const streamResults = await Promise.allSettled(streams.map(async ([id, stream]) => {
+        await stream.cancel();
+        pullStreams.delete(id);
+      }));
+      if ([...scopeResults, ...streamResults].some(result => result.status === 'rejected')) {
+        throw new Error('formal-app-critical-cleanup-failed');
+      }
     })().finally(() => {
       invalidationInFlight = undefined;
     });
@@ -625,9 +628,9 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     realmChatList: (record) => realmChat.list(record as never) as Promise<NimiElectronLocalAppRecord>,
     realmRealtimeOpen: () => realmRealtime.open() as Promise<NimiElectronLocalAppRecord>,
     realmRealtimeSubscribe: async (record) => openPullStream(await realmRealtime.subscribe(record as never)),
-    realmRealtimeAck: (record) => realmRealtime.ack(record as never) as Promise<NimiElectronLocalAppRecord>,
-    realmRealtimeSubscriptionClose: (record) => realmRealtime.closeSubscription(record as never) as Promise<NimiElectronLocalAppRecord>,
-    realmRealtimeChannelClose: (record) => realmRealtime.closeChannel(record as never) as Promise<NimiElectronLocalAppRecord>,
+    realmRealtimeAck: async record => ({ ack: await realmRealtime.ack(record as never) }),
+    realmRealtimeSubscriptionClose: async record => ({ ack: await realmRealtime.closeSubscription(record as never) }),
+    realmRealtimeChannelClose: async record => ({ ack: await realmRealtime.closeChannel(record as never) }),
     agentIntroductionGet: (record) => introduction.getIntroduction(record as never) as unknown as Promise<NimiElectronLocalAppRecord>,
     agentReferenceList: () => agents.listReferences() as Promise<readonly NimiElectronLocalAppRecord[]>,
     avatarHostTargetResolve: async (record) => {
@@ -841,43 +844,27 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     }
     return Object.freeze({ sourceClass, launchSelector: Uint8Array.from(resolved.launchSelector), appId: resolved.appId });
   };
+  async function disposeOwner(): Promise<void> {
+    disposed = true;
+    if (sessionRenewalTimer !== undefined) clearInterval(sessionRenewalTimer);
+    sessionRenewalTimer = undefined;
+    await invalidateResources();
+    // A concurrent session invalidation may have retired handles before disposal started.
+    if (resourceScopes.size > 0) await invalidateResources();
+  }
   const owner: NimiElectronFormalAppLocalHostOwner = Object.freeze({
     host: defaultScope.host,
     resolveDesktopAgentReference: resolveDesktopAgentReferenceForOwner,
     resolveAppActivityOpenLaunch,
     createResourceScope,
     invalidateResources,
-    dispose: async () => {
-      if (disposed) {
-        await settleBoundedFormalHostCleanup(
-          invalidationInFlight,
-          `${input.profile} formal App owner repeated disposal`,
-          () => { criticalCleanupFailed = true; },
-        );
-        return;
-      }
-      disposed = true;
-      if (sessionRenewalTimer !== undefined) clearInterval(sessionRenewalTimer);
-      sessionRenewalTimer = undefined;
-      const scopes = [...resourceScopes];
-      const results = await Promise.allSettled(scopes.map((scope) => scope.shutdown()));
-      criticalCleanupFailed ||= results.some((result) => result.status === 'rejected');
-      await settleBoundedFormalHostCleanup(
-        invalidateResources(),
-        `${input.profile} formal App owner disposal`,
-        () => { criticalCleanupFailed = true; },
-      );
-      resourceScopes.clear();
-    },
+    dispose: () => logFormalDisposalFailure(disposeOwner(), `${input.profile} formal App owner disposal`),
     // @nimi-authority: rule.nimi.platform.product-lifecycle.p-supd-006
     shutdown: async () => {
-      await owner.dispose();
-      await settleBoundedFormalHostCleanup(
-        waitForFormalCarrierSettlement(),
-        `${input.profile} formal App critical carrier shutdown`,
-        () => { criticalCleanupFailed = true; },
-      );
-      if (criticalCleanupFailed) throw new Error('formal-app-critical-cleanup-failed');
+      try {
+        await disposeOwner();
+        await runBoundedFormalHostOperation(waitForFormalCarrierSettlement);
+      } catch (cause) { throw new Error('formal-app-critical-cleanup-failed', { cause }); }
     },
   });
   return owner;
@@ -900,7 +887,7 @@ function createFormalAppResourceScope(
   let invalidationInFlight: Promise<void> | undefined;
   let disposed = false;
   let resourceGeneration = 0;
-  let criticalCleanupFailed = false;
+  const pendingCloses = new Set<() => Promise<unknown>>();
 
   const assertOpen = (): void => {
     if (disposed || invalidationInFlight) {
@@ -1209,71 +1196,61 @@ function createFormalAppResourceScope(
         aiRealtimeSessions.clear();
         videoSessions.clear();
         agentRealtimeSessions.clear();
-        await invalidateElectronLocalAppCommandResources(scopedHost, closeHost);
-        const results = await Promise.allSettled([
-          ...streams.map(([streamId, kind]) => {
+        const closes = [
+          ...takeElectronLocalAppCommandClosers(scopedHost, closeHost),
+          ...streams.map(([streamId, kind]) => () => {
             if (kind === 'text-turn') return closeHost.textTurnStreamClose({ streamId });
             if (kind === 'scenario-job') return closeHost.scenarioJobStreamClose({ streamId });
             if (kind === 'conversation') return closeHost.conversationStreamClose({ streamId });
             return closeHost.realtimeStreamClose({ streamId });
           }),
-          ...reads.map((streamId) => closeHost.assetReadClose({ streamId })),
-          ...writes.map((streamId) => closeHost.assetWriteAbort({ streamId })),
-          ...transcriptions.map((requestId) => closeHost.conversationVoiceTranscribe({ action: 'cancel', requestId })),
-          ...realmChannels.map((record) => closeHost.realmRealtimeChannelClose(record)),
-          ...aiSessions.map((record) => closeHost.aiRealtimeClose(record)),
-          ...visualSessions.map((record) => closeHost.videoSessionClose(record)),
-          ...agentSessions.map((record) => closeHost.agentRealtimeClose(record)),
-        ]);
-        if (results.some((result) => result.status === 'rejected')) throw new Error('formal-app-resource-cleanup-failed');
-      })().catch((error) => {
-        criticalCleanupFailed = true;
-        throw error;
-      }).finally(() => {
+          ...reads.map((streamId) => () => closeHost.assetReadClose({ streamId })),
+          ...writes.map((streamId) => () => closeHost.assetWriteAbort({ streamId })),
+          ...transcriptions.map((requestId) => () => closeHost.conversationVoiceTranscribe({ action: 'cancel', requestId })),
+          ...realmChannels.map(record => async () => {
+            try { await closeHost.realmRealtimeChannelClose(record); }
+            catch (error) {
+              // Restarting Runtime removes its old channel. Its exact not-found result settles this cleanup.
+              if (!(error instanceof NimiElectronDesktopControlHostError && error.reasonCode === 'REALM_NOT_FOUND')) throw error;
+            }
+          }),
+          ...aiSessions.map((record) => () => closeHost.aiRealtimeClose(record)),
+          ...visualSessions.map((record) => () => closeHost.videoSessionClose(record)),
+          ...agentSessions.map((record) => () => closeHost.agentRealtimeClose(record)),
+        ];
+        for (const close of closes) pendingCloses.add(close);
+        const results = await Promise.allSettled([...pendingCloses].map(async close => {
+          await close();
+          pendingCloses.delete(close);
+        }));
+        if (results.some(result => result.status === 'rejected')) throw new Error('formal-app-resource-cleanup-failed');
+      })().finally(() => {
         invalidationInFlight = undefined;
       });
       return invalidationInFlight;
     }).then(() => undefined);
   };
 
+  async function shutdownScope(): Promise<void> {
+    disposed = true;
+    try { await invalidateResources(); }
+    catch (cause) { throw new Error('formal-app-critical-cleanup-failed', { cause }); }
+    onDispose();
+  }
+
   const scope: NimiElectronFormalAppLocalHostResourceScope = Object.freeze({
     host: scopedHost,
     invalidateResources,
-    async dispose() {
-      if (disposed) {
-        await settleBoundedFormalHostCleanup(
-          invalidationInFlight,
-          'formal App sender scope repeated disposal',
-          () => { criticalCleanupFailed = true; },
-        );
-        return;
-      }
-      disposed = true;
-      await settleBoundedFormalHostCleanup(
-        invalidateResources(),
-        'formal App sender scope disposal',
-        () => { criticalCleanupFailed = true; },
-      );
-      if (!criticalCleanupFailed) onDispose();
-    },
-    shutdown: async () => {
-      await scope.dispose();
-      if (criticalCleanupFailed) throw new Error('formal-app-critical-cleanup-failed');
-    },
+    dispose: () => logFormalDisposalFailure(shutdownScope(), 'formal App sender scope disposal'),
+    shutdown: shutdownScope,
   });
   return scope;
 }
 
-async function settleBoundedFormalHostCleanup(
-  cleanup: Promise<unknown> | undefined,
-  operation: string,
-  onFailure: () => void,
-): Promise<void> {
-  if (!cleanup) return;
+async function logFormalDisposalFailure(cleanup: Promise<void>, operation: string): Promise<void> {
   try {
-    await runBoundedFormalHostOperation(async () => cleanup);
+    await cleanup;
   } catch (error) {
-    onFailure();
     console.warn(`[electron:formal-app] ${operation} did not settle cleanly: ${describeFormalHostError(error)}`);
   }
 }

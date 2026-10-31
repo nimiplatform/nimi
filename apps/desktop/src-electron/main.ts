@@ -1243,7 +1243,7 @@ function prepareDesktopQuit(): Promise<void> {
   return quitCleanup;
 }
 
-async function recoverDesktopAfterFailedQuit(): Promise<void> {
+async function recoverDesktopAfterFailedQuit(error: unknown): Promise<void> {
   ownerQuitRequested = false;
   homeRelaunchRequested = false;
   maintenanceRelaunchRequested = false;
@@ -1253,9 +1253,17 @@ async function recoverDesktopAfterFailedQuit(): Promise<void> {
   catch (error) { writeDesktopStderr(`[desktop-quit] supervisor-recovery:${desktopBootstrapFailureCode(error)}\n`); }
   productUpdateHost?.start();
   await focusDesktopMainWindow().catch((error) => writeDesktopStderr(`[desktop-quit] window-recovery:${desktopBootstrapFailureCode(error)}\n`));
-  dialog.showErrorBox(systemEntryLocale === 'zh' ? 'Nimi Home 尚未退出' : 'Nimi Home could not close',
-    systemEntryLocale === 'zh' ? '部分 App、本地 AI 服务或关键资源尚未关闭。Nimi 仍保持打开，请重试退出；已关闭的 App 不会自动重新启动。'
-      : 'An App, the local AI service, or a critical resource did not close cleanly. Nimi remains available so you can retry. Apps that already closed will not restart automatically.');
+  const chinese = systemEntryLocale === 'zh';
+  const failed = error instanceof DesktopShutdownBlockedError ? error.report.criticalFailures.map(failure => failure.operation) : [];
+  const labels: Record<string, string> = chinese
+    ? { 'formal-app-resources': 'App 的运行连接', 'local-app-host': '开发中的 App', 'installed-app-host': '已安装的 App',
+        'avatar-host': 'Avatar', 'chat-store': '本地聊天存储', 'product-update-download': '更新下载', 'runtime-service': '本地 AI 服务' }
+    : { 'formal-app-resources': 'App connections', 'local-app-host': 'development Apps', 'installed-app-host': 'installed Apps',
+        'avatar-host': 'Avatar', 'chat-store': 'local chat storage', 'product-update-download': 'the update download', 'runtime-service': 'the local AI service' };
+  const owners = failed.map(key => labels[key] ?? key).join(chinese ? '、' : ', ');
+  dialog.showErrorBox(chinese ? 'Nimi Home 尚未退出' : 'Nimi Home could not close',
+    (owners ? (chinese ? `尚未确认以下项目已关闭：${owners}。` : `Still waiting for ${owners} to close. `) : '')
+    + (chinese ? '请再次选择“退出 Nimi Home”。' : 'Choose Quit Nimi Home to try again.'));
 }
 
 async function confirmDesktopUserQuit(): Promise<boolean> {

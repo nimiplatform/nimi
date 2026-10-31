@@ -42,6 +42,7 @@ import {
 } from '../../../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/app.js';
 import {
   OpenRealmRealtimeChannelResponse,
+  CloseRealmRealtimeChannelResponse,
 } from '../../../../sdks/typescript/core-generated/runtime-protobuf/runtime/v1/realm_realtime.js';
 import {
   RealtimeAdapterKind,
@@ -1391,8 +1392,10 @@ describe('Electron formal App local host', () => {
     await owner.dispose();
   });
 
-  it('bounds both the first timed-out sender disposal and a repeated disposal of its original cleanup', async () => {
-    const never = new Promise<Uint8Array>(() => {});
+  it.each(['delayed', 'rejected', 'already-closed'] as const)('blocks shutdown until a %s native close is confirmed and then permits exit', async mode => {
+    let closeCalls = 0;
+    let finishClose!: (bytes: Uint8Array) => void;
+    const pendingClose = new Promise<Uint8Array>(resolve => { finishClose = resolve; });
     const unary = vi.fn(async (input: { methodId: string }) => {
       if (input.methodId.endsWith('/OpenRealmRealtimeChannel')) {
         return OpenRealmRealtimeChannelResponse.toBinary(OpenRealmRealtimeChannelResponse.create({
@@ -1417,7 +1420,12 @@ describe('Electron formal App local host', () => {
           }),
         }));
       }
-      if (input.methodId.endsWith('/CloseRealmRealtimeChannel')) return never;
+      if (input.methodId.endsWith('/CloseRealmRealtimeChannel')) {
+        closeCalls += 1;
+        if (mode === 'already-closed') throw new NimiElectronDesktopControlHostError('REALM_NOT_FOUND', false);
+        if (mode === 'rejected' && closeCalls === 1) throw new Error('temporary close failure');
+        return pendingClose;
+      }
       throw new Error(`unexpected formal App method: ${input.methodId}`);
     });
     const owner = createNimiElectronFormalAppLocalHostOwner({
@@ -1427,6 +1435,11 @@ describe('Electron formal App local host', () => {
     });
     const candidate = owner.createResourceScope();
     await candidate.host.realmRealtimeOpen();
+    if (mode === 'already-closed') {
+      await expect(owner.shutdown()).resolves.toBeUndefined();
+      expect(closeCalls).toBe(1);
+      return;
+    }
     const warning = vi.spyOn(console, 'warn').mockImplementation(() => {});
     vi.useFakeTimers();
     try {
@@ -1441,6 +1454,10 @@ describe('Electron formal App local host', () => {
       const critical = expect(candidate.shutdown()).rejects.toThrow('formal-app-critical-cleanup-failed');
       await vi.advanceTimersByTimeAsync(2_001);
       await critical;
+      finishClose(CloseRealmRealtimeChannelResponse.toBinary(CloseRealmRealtimeChannelResponse.create({ ack: { ok: true } })));
+      await vi.advanceTimersByTimeAsync(1);
+      await expect(owner.shutdown()).resolves.toBeUndefined();
+      expect(closeCalls).toBe(mode === 'rejected' ? 2 : 1);
     } finally {
       vi.useRealTimers();
       warning.mockRestore();
