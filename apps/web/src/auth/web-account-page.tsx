@@ -1,5 +1,7 @@
-import { useEffect, useMemo, useState, type CSSProperties, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { Link, Navigate } from 'react-router-dom';
+import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
+import { accountReturnTo } from './account-center-model.js';
 import { useTranslation } from 'react-i18next';
 import {
   buttonBase,
@@ -17,21 +19,10 @@ import {
   isFreshOauthContinuation,
   readValidatedOauthNext,
 } from './oauth-continuation.js';
+import { webHomeAuthPalette } from './web-auth-appearance.js';
 
 // Keep the landing homepage neutral surfaces; focus and action accents come
 // from the shared Nimi auth theme.
-const webHomeAuthPalette = {
-  '--nimi-text-primary': '#0f172a',
-  '--nimi-text-secondary': '#334155',
-  '--nimi-text-muted': '#64748b',
-  '--nimi-field-bg': '#ffffff',
-  '--nimi-field-border': '#e2e8f0',
-  '--nimi-border-subtle': '#e2e8f0',
-  '--nimi-elevation-base': '0 6px 18px rgba(15, 23, 42, 0.08)',
-  '--nimi-elevation-raised': '0 12px 28px rgba(15, 23, 42, 0.12)',
-  '--nimi-elevation-floating': '0 18px 44px rgba(15, 23, 42, 0.16)',
-} as CSSProperties;
-
 function WebAccountStatusShell({ children }: { children: ReactNode }) {
   return (
     <main
@@ -48,6 +39,7 @@ function WebAccountStatusShell({ children }: { children: ReactNode }) {
 
 export function WebAccountPage() {
   const { t } = useTranslation();
+  useEffect(() => { document.title = `${t('Auth.signIn')} · Nimi`; }, [t]);
   const adapter = useMemo(() => createWebAccountAuthAdapter(), []);
   const [currentUser, setCurrentUser] = useState<Record<string, unknown> | null>(null);
   const [checking, setChecking] = useState(true);
@@ -77,7 +69,8 @@ export function WebAccountPage() {
       setChecking(false);
     })().catch((error) => {
       if (!active) return;
-      setSessionError(error instanceof Error ? error.message : t('Account.sessionUnknown'));
+      if (extractNimiErrorFields(error).reasonCode === 'ACCOUNT_DELETED') setCurrentUser(null);
+      else setSessionError(error instanceof Error ? error.message : t('Account.sessionUnknown'));
       setChecking(false);
     });
     return () => { active = false; };
@@ -100,6 +93,10 @@ export function WebAccountPage() {
   }
 
   if (currentUser) {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has('returnTo') && !params.has('oauth_next')) {
+      return <Navigate to={accountReturnTo(window.location.search)} replace />;
+    }
     return (
       <WebAccountStatusShell>
         <div className="web-account-session">
@@ -123,6 +120,7 @@ export function WebAccountPage() {
 
   return (
     <WebAccountAuthPage
+      passwordRecoveryLink={<Link className="underline" to={{ pathname: '/account/recovery', search: window.location.search }}>{t('Auth.forgotPassword')}</Link>}
       adapter={adapter}
       session={{
         mode: 'embedded',

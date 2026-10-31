@@ -175,6 +175,7 @@ export type WebAccountAuthBackgroundState = {
 };
 
 export type WebAccountAuthPageProps = {
+  passwordRecoveryLink?: ReactNode;
   adapter: WebAccountAuthAdapter;
   session: WebAccountAuthSession;
   branding: WebAccountAuthBranding;

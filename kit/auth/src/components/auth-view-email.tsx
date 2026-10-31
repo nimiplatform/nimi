@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react';
+import { useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Eye, EyeOff } from 'lucide-react';
 import { buttonBase, buttonDefault, capsuleBar, capsuleBarIconButton, capsuleBarInput, capsuleBarSubmitButton, inputBase } from '../types/auth-types.js';
@@ -14,6 +14,7 @@ function PasswordToggleIcon({ visible }: { visible: boolean }) {
 }
 
 export function AuthViewEmailLogin(props: {
+  passwordRecoveryLink?: ReactNode;
   email: string;
   password: string;
   pending: boolean;
@@ -34,6 +35,7 @@ export function AuthViewEmailLogin(props: {
   } = props;
 
   const [showOtpConfirm, setShowOtpConfirm] = useState(false);
+  const otpTrigger = useRef<HTMLButtonElement>(null);
   const [showPassword, setShowPassword] = useState(false);
 
   return (
@@ -45,6 +47,8 @@ export function AuthViewEmailLogin(props: {
           <button
             type="button"
             data-testid={testIds?.otpButton}
+            ref={otpTrigger}
+            aria-expanded={showOtpConfirm}
             onClick={() => setShowOtpConfirm(true)}
             disabled={pending}
             aria-label={t('Auth.useEmailCodeInstead')}
@@ -101,18 +105,16 @@ export function AuthViewEmailLogin(props: {
         </div>
       </form>
 
-      <div className={`absolute left-0 right-0 z-20 mt-3 origin-top rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-5 shadow-[var(--nimi-elevation-floating)] backdrop-blur transition-all duration-200 ease-out ${
-        showOtpConfirm
-          ? 'scale-100 opacity-100'
-          : 'scale-95 opacity-0 pointer-events-none'
-      }`}>
+      {!showOtpConfirm && props.passwordRecoveryLink && <div className="mt-3 text-center text-sm">{props.passwordRecoveryLink}</div>}
+      {showOtpConfirm && <div className="absolute left-0 right-0 z-20 mt-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] p-5 shadow-[var(--nimi-elevation-floating)] backdrop-blur">
         <p className="mb-4 text-center text-sm text-[var(--nimi-text-primary)]">
           {t('Auth.otpConfirmMessage')}
         </p>
         <div className="flex items-center justify-center gap-3">
           <button
             type="button"
-            onClick={() => setShowOtpConfirm(false)}
+            autoFocus
+            onClick={() => { setShowOtpConfirm(false); otpTrigger.current?.focus(); }}
             className="rounded-full border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-5 py-2 text-sm font-medium text-[var(--nimi-text-muted)] transition hover:border-[var(--nimi-border-subtle)]"
           >
             {t('Auth.cancel')}
@@ -129,7 +131,7 @@ export function AuthViewEmailLogin(props: {
             {t('Auth.confirmOtp')}
           </button>
         </div>
-      </div>
+      </div>}
     </div>
   );
 }

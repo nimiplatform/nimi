@@ -20,6 +20,7 @@ test('current-account loader maps only classified anonymous session errors to nu
   for (const reasonCode of [
     'AUTH_REQUIRED',
     'AUTH_TOKEN_EXPIRED',
+    'AUTH_SESSION_REVOKED',
   ]) {
     const result = await loadWebCurrentAccount(async () => {
       throw createNimiError({

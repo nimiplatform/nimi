@@ -12,6 +12,31 @@ vi.mock('react-i18next', () => ({
 import { AuthViewEmailLogin } from '../src/components/auth-view-email';
 
 describe('AuthViewEmailLogin password visibility', () => {
+  it('exposes password recovery and only mounts OTP confirmation actions after they are requested', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    const sendCode = vi.fn();
+    try {
+      act(() => root.render(<AuthViewEmailLogin email="test@example.invalid" password="" pending={false}
+        onPasswordChange={() => {}} onSubmit={event => event.preventDefault()} onUseEmailCodeInstead={sendCode}
+        passwordRecoveryLink={<a href="/account/recovery">Forgot password?</a>} />));
+      const trigger = container.querySelector<HTMLButtonElement>('button[aria-expanded]')!;
+      const cancel = () => [...container.querySelectorAll('button')].find(button => button.textContent === 'Auth.cancel');
+      expect(container.querySelector('a')?.getAttribute('href')).toBe('/account/recovery');
+      expect(cancel()).toBeUndefined();
+      act(() => trigger.click());
+      expect(document.activeElement).toBe(cancel());
+      act(() => cancel()!.click());
+      expect(cancel()).toBeUndefined();
+      expect(document.activeElement).toBe(trigger);
+      expect(sendCode).not.toHaveBeenCalled();
+    } finally {
+      act(() => root.unmount());
+      container.remove();
+    }
+  });
+
   it('renders an eye toggle that flips the input type from password to text', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);

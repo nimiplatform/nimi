@@ -2,6 +2,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { resolveInitialLocale } from '../landing/i18n/locale.js';
 import { loadWebLocaleFont } from '../fonts.js';
+import { accountSecurityCopy } from './account-security-copy.js';
 
 const en = {
   Common: { back: 'Back' },
@@ -15,6 +16,7 @@ const en = {
     web3: 'Wallet',
     useEmailCodeInstead: 'Use an email code instead',
     passwordPlaceholder: 'Password',
+    forgotPassword: 'Forgot password?',
     hidePassword: 'Hide password',
     showPassword: 'Show password',
     otpConfirmMessage: 'Send a one-time code to this email?',
@@ -39,6 +41,7 @@ const en = {
   Account: {
     sessionCheck: 'Confirming secure session…',
     sessionUnknown: 'Unable to confirm the account session.',
+    pageUnavailable: 'This account page could not open. Try loading it again.',
     switchContinuationExpired: "The account-switch request has expired. Please start again.",
     signedInTitle: 'Signed in to Nimi',
     currentAccountFallback: 'current account',
@@ -48,7 +51,7 @@ const en = {
     loginRequired: 'Sign-in required',
     loginNimi: 'Sign in to Nimi',
     actionFailed: 'Account action failed',
-    passwordTooShort: 'Password must be at least 8 characters.',
+    passwordTooShort: 'Password must be at least 12 characters.',
     passwordUpdated: 'Password updated.',
     newPasswordPlaceholder: 'New password',
     updatePassword: 'Update password',
@@ -91,6 +94,8 @@ const en = {
     fullLoginRequired: 'This account needs the full sign-in flow for additional verification.',
     recoverySessionUnconfirmed: "Unable to confirm the account recovery session. Please try again.",
     recoverTitle: 'Recover account',
+    recoveryAuthenticator: 'Authenticator code (if enabled)',
+    requestNewRecoveryCode: 'Request a new email code',
     emailPlaceholder: 'Email',
     pleaseWait: 'Please wait…',
   },
@@ -108,6 +113,7 @@ const zh = {
     web3: '钱包',
     useEmailCodeInstead: '改用邮箱验证码',
     passwordPlaceholder: '密码',
+    forgotPassword: '忘记密码？',
     hidePassword: '隐藏密码',
     showPassword: '显示密码',
     otpConfirmMessage: '向此邮箱发送一次性验证码？',
@@ -132,6 +138,7 @@ const zh = {
   Account: {
     sessionCheck: '正在确认安全会话…',
     sessionUnknown: '无法确认账号会话。',
+    pageUnavailable: '暂时无法打开这个账号页面，请重新载入。',
     switchContinuationExpired: '账号切换会话已失效，请重新操作。',
     signedInTitle: '已登录 Nimi',
     currentAccountFallback: '当前账号',
@@ -141,7 +148,7 @@ const zh = {
     loginRequired: '需要登录',
     loginNimi: '登录 Nimi',
     actionFailed: '账号操作失败',
-    passwordTooShort: '密码至少需要 8 位。',
+    passwordTooShort: '密码至少需要 12 位。',
     passwordUpdated: '密码已更新。',
     newPasswordPlaceholder: '新密码',
     updatePassword: '更新密码',
@@ -184,6 +191,8 @@ const zh = {
     fullLoginRequired: '此账号需要通过完整登录流程完成附加验证。',
     recoverySessionUnconfirmed: '未能确认账号恢复会话，请重试。',
     recoverTitle: '恢复账号',
+    recoveryAuthenticator: '验证器验证码（已启用时必填）',
+    requestNewRecoveryCode: '重新获取邮箱验证码',
     emailPlaceholder: '邮箱',
     pleaseWait: '请稍候…',
   },
@@ -206,8 +215,8 @@ export async function initializeWebAccountI18n(): Promise<void> {
     fallbackLng: 'en',
     interpolation: { escapeValue: false },
     resources: {
-      en: { translation: en },
-      zh: { translation: zh },
+      en: { translation: { ...en, AccountSecurity: accountSecurityCopy.en } },
+      zh: { translation: { ...zh, AccountSecurity: accountSecurityCopy.zh } },
     },
   });
 }

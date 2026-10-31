@@ -211,6 +211,7 @@ export function WebAccountAuthPage(props: WebAccountAuthPageProps) {
               {flow.view === 'main' && flow.embeddedStage === 'credential' && flow.supportsPasswordLogin ? (
                 <AnimateIn className="w-full">
                   <AuthViewEmailLogin
+                    passwordRecoveryLink={props.passwordRecoveryLink}
                     email={flow.email}
                     password={flow.password}
                     pending={flow.pending}

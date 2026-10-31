@@ -15,6 +15,7 @@ const PENDING_LINK_KEY = 'nimi.web.account-provider-oauth.v1';
 const PENDING_LINK_MAX_AGE_MS = 10 * 60 * 1000;
 
 type PendingProviderLink = {
+  expectedAccountId?: string;
   provider: 'TIKTOK';
   mode: 'login' | 'link';
   state: string;
@@ -43,12 +44,13 @@ async function codeChallenge(verifier: string): Promise<string> {
   return base64Url(new Uint8Array(digest));
 }
 
-async function beginTikTokAccountOAuth(mode: PendingProviderLink['mode'], search = ''): Promise<void> {
+async function beginTikTokAccountOAuth(mode: PendingProviderLink['mode'], search = '', expectedAccountId?: string): Promise<void> {
   const clientId = String(import.meta.env.VITE_NIMI_TIKTOK_CLIENT_ID || '').trim();
   if (!clientId) throw new Error('TikTok 登录当前未配置。');
   const pending: PendingProviderLink = {
     provider: 'TIKTOK',
     mode,
+    ...(expectedAccountId ? { expectedAccountId } : {}),
     state: randomValue(24),
     codeVerifier: randomValue(32),
     redirectUri: new URL('/account/oauth/callback', window.location.origin).toString(),
@@ -72,8 +74,8 @@ export function beginTikTokAccountLogin(search: string): Promise<void> {
   return beginTikTokAccountOAuth('login', search);
 }
 
-export function beginTikTokAccountLink(): Promise<void> {
-  return beginTikTokAccountOAuth('link');
+export function beginTikTokAccountLink(expectedAccountId: string): Promise<void> {
+  return beginTikTokAccountOAuth('link', '', expectedAccountId);
 }
 
 function consumePendingProviderLink(): PendingProviderLink {
@@ -142,7 +144,8 @@ export async function completeTikTokAccountOAuth(search: string): Promise<Comple
     redirectUri: pending.redirectUri,
   } as const;
   if (pending.mode === 'link') {
-    await linkNimiRealmOAuth(createWebBrowserRealm(''), input);
+    if (typeof pending.expectedAccountId !== 'string' || !pending.expectedAccountId) throw new Error('OAuth 绑定账号无效。');
+    await linkNimiRealmOAuth(createWebBrowserRealm(''), { ...input, expectedAccountId: pending.expectedAccountId });
     return { mode: pending.mode };
   }
   const loginResult = await loginNimiRealmOAuth(createWebBrowserRealm(''), input);

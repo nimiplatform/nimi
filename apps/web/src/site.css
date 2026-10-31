@@ -93,6 +93,20 @@
 .web-account-form input { border: 1px solid #b7d5d5; border-radius: .75rem; padding: .8rem 1rem; background: white; }
 .web-account-form button { border-radius: 999px; padding: .8rem 1rem; background: #087b87; color: white; font-weight: 600; }
 .web-account-secret { overflow-wrap: anywhere; border-radius: .75rem; background: #e8f5f5; padding: 1rem; font-family: monospace; }
+.web-account-panel { margin-top: 2rem; padding-top: 1.5rem; border-top: 1px solid #b7d5d5; text-align: left; }
+.web-account-panel h2 { font-size: 1.35rem; font-weight: 650; }
+.web-account-verification-heading { max-width: 36rem; margin: 1rem auto 0; padding: 1rem; text-align: center; line-height: 1.65; }
+.web-account-panel p { margin: .75rem 0; line-height: 1.65; }
+.web-account-session-list { margin: 1rem 0; padding: 0; list-style: none; }
+.web-account-session-list li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 1rem 0; border-bottom: 1px solid #d6e6e6; }
+.web-account-session-list span { display: block; color: #496667; font-size: .875rem; }
+.web-account-form button:disabled { opacity: .55; cursor: not-allowed; }
+.web-account-form button:focus-visible, .web-account-form input:focus-visible { outline: 2px solid #087b87; outline-offset: 3px; }
+.web-account-check { display: flex; align-items: flex-start; gap: .65rem; margin: 1rem 0; }
+.web-account-check input { margin-top: .3rem; }
+.web-account-form button.web-account-danger { background: #a12626; }
+.web-account-confirmation { margin-top: 1rem; padding: 1rem; border: 1px solid #b7d5d5; border-radius: .75rem; }
+@media (max-width: 560px) { .web-account-session-list li { align-items: stretch; flex-direction: column; } }
 
 .release-page-shell {
   min-height: 100vh;

@@ -334,6 +334,9 @@ export function App() {
                 <GithubIcon />
               </a>
               <span aria-hidden="true" className="mx-2 hidden h-5 w-px bg-slate-200 sm:block" />
+              <a href={`/account?lang=${locale}`} className="inline-flex h-9 items-center rounded-lg px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
+                {locale === 'zh' ? '我的账号' : 'My account'}
+              </a>
               <a
                 href={links.downloadUrl}
                 className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-full bg-gradient-to-r from-[#38d6a3] to-[#0ea5e9] px-3 text-sm font-semibold text-white shadow-[0_4px_12px_-6px_rgba(14,165,233,0.5)] transition hover:brightness-[1.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38d6a3] focus-visible:ring-offset-1 sm:px-5 sm:text-base"

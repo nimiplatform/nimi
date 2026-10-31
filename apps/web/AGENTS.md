@@ -2,13 +2,13 @@
 
 ## Scope
 - Applies to `apps/web/**`.
-- Web is the independent first-party public site and account-interaction surface: landing, authentication and account-security pages, static Nimi Home and App introductions, legal, download, and navigation pages.
+- Web is the independent first-party public site and account-interaction surface: landing, authentication, personal profile, friendship and privacy management, account security, sessions and data, static Nimi Home and App introductions, legal, download, and navigation pages.
 
 ## Hard Boundaries
 - Keep landing-specific code under `apps/web/src/landing/**`; do not split the landing surface back out into a separate app.
 - Web must not import Desktop renderer or package surfaces, `@renderer/*`, `@runtime/*`, `@desktop-public/*`, `@tauri-apps/*`, Runtime-private code, local-file behavior, native IPC, or Desktop CORS bypasses.
 - Use `@nimiplatform/kit` and public typed SDK/Realm surfaces. Web account UI submits credential interactions to Realm but owns neither account truth nor bearer custody.
-- Keep landing, auth, legal, download, navigation, and Home/App informational composition under `apps/web`; do not restore Web Shell, hash-shell routing, Desktop adapters, or post/social product routes.
+- Keep public-site and personal account composition under `apps/web`; do not restore Web Shell, hash-shell routing, Desktop adapters, feeds, public social discovery or chat routes. Authenticated friendship management consumes the existing Realm graph and privacy projections.
 
 ## Retrieval Defaults
 - Start in the observed Web route, `apps/web/src/landing/**`, or the Web-owned account adapter and follow only public Kit/SDK contracts.
