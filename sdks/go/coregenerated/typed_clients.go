@@ -2495,13 +2495,14 @@ type AccountSessionEvent struct {
 }
 
 type AccountSessionSnapshot struct {
-	Sequence              uint64              `json:"sequence,omitempty"`
-	State                 AccountSessionState `json:"state,omitempty"`
-	ReasonCode            ReasonCode          `json:"reason_code,omitempty"`
-	AccountReasonCode     AccountReasonCode   `json:"account_reason_code,omitempty"`
-	AccountProjection     *AccountProjection  `json:"account_projection,omitempty"`
-	AuditDiagnostic       *ErrorInfo          `json:"audit_diagnostic,omitempty"`
-	AuthorizationRevision string              `json:"authorization_revision,omitempty"`
+	Sequence              uint64               `json:"sequence,omitempty"`
+	State                 AccountSessionState  `json:"state,omitempty"`
+	ReasonCode            ReasonCode           `json:"reason_code,omitempty"`
+	AccountReasonCode     AccountReasonCode    `json:"account_reason_code,omitempty"`
+	AccountProjection     *AccountProjection   `json:"account_projection,omitempty"`
+	AuditDiagnostic       *ErrorInfo           `json:"audit_diagnostic,omitempty"`
+	AuthorizationRevision string               `json:"authorization_revision,omitempty"`
+	DeletedOwner          *DeletedAccountOwner `json:"deleted_owner,omitempty"`
 }
 
 type Ack struct {
@@ -4364,6 +4365,11 @@ type DeleteVoiceAssetRequest struct {
 
 type DeleteVoiceAssetResponse struct {
 	Ack *Ack `json:"ack,omitempty"`
+}
+
+type DeletedAccountOwner struct {
+	AccountId          string `json:"account_id,omitempty"`
+	RealmEnvironmentId string `json:"realm_environment_id,omitempty"`
 }
 
 type DesktopAIActivitySnapshot struct {

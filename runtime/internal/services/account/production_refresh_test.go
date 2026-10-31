@@ -312,6 +312,13 @@ func TestAccountDeletedRefreshFencesBeforeCredentialClear(t *testing.T) {
 	if refreshErr != nil || !observerCalled || result.accepted || result.reasonCode != runtimev1.ReasonCode_AUTH_TOKEN_INVALID || result.accountReasonCode != runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_DELETED || custody.clearCalls != 1 || custody.has {
 		t.Fatalf("Account-deleted refresh result=(%+v,%v) observer=%v custody=%+v", result, refreshErr, observerCalled, custody)
 	}
+	service.mu.RLock()
+	snapshot := cloneAccountSessionSnapshot(service.currentSnapshotLocked())
+	service.mu.RUnlock()
+	if snapshot.GetAccountProjection() != nil || snapshot.GetDeletedOwner().GetAccountId() != material.AccountID ||
+		snapshot.GetDeletedOwner().GetRealmEnvironmentId() != material.RealmEnvironmentID {
+		t.Fatalf("terminal snapshot did not identify the exact deletion owner: %+v", snapshot)
+	}
 }
 
 func TestAccountDeletedObserverFailureCannotRecoverAuthenticatedAfterRestart(t *testing.T) {

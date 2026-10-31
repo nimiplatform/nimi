@@ -63,6 +63,21 @@ export interface AccountProjection {
     workspaceMemberships: WorkspaceMembershipProjection[];
 }
 /**
+ * Home may clear its own local data only for the confirmed terminal subject.
+ *
+ * @generated from protobuf message nimi.runtime.v1.DeletedAccountOwner
+ */
+export interface DeletedAccountOwner {
+    /**
+     * @generated from protobuf field: string account_id = 1
+     */
+    accountId: string;
+    /**
+     * @generated from protobuf field: string realm_environment_id = 2
+     */
+    realmEnvironmentId: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.AccountSessionSnapshot
  */
 export interface AccountSessionSnapshot {
@@ -100,6 +115,10 @@ export interface AccountSessionSnapshot {
      * @generated from protobuf field: string authorization_revision = 7
      */
     authorizationRevision: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.DeletedAccountOwner deleted_owner = 8
+     */
+    deletedOwner?: DeletedAccountOwner;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AccountCaller
@@ -1124,6 +1143,61 @@ class AccountProjection$Type extends MessageType<AccountProjection> {
  */
 export const AccountProjection = new AccountProjection$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class DeletedAccountOwner$Type extends MessageType<DeletedAccountOwner> {
+    constructor() {
+        super("nimi.runtime.v1.DeletedAccountOwner", [
+            { no: 1, name: "account_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "realm_environment_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<DeletedAccountOwner>): DeletedAccountOwner {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.accountId = "";
+        message.realmEnvironmentId = "";
+        if (value !== undefined)
+            reflectionMergePartial<DeletedAccountOwner>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: DeletedAccountOwner): DeletedAccountOwner {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string account_id */ 1:
+                    message.accountId = reader.string();
+                    break;
+                case /* string realm_environment_id */ 2:
+                    message.realmEnvironmentId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: DeletedAccountOwner, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string account_id = 1; */
+        if (message.accountId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.accountId);
+        /* string realm_environment_id = 2; */
+        if (message.realmEnvironmentId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.realmEnvironmentId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.DeletedAccountOwner
+ */
+export const DeletedAccountOwner = new DeletedAccountOwner$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class AccountSessionSnapshot$Type extends MessageType<AccountSessionSnapshot> {
     constructor() {
         super("nimi.runtime.v1.AccountSessionSnapshot", [
@@ -1133,7 +1207,8 @@ class AccountSessionSnapshot$Type extends MessageType<AccountSessionSnapshot> {
             { no: 4, name: "account_reason_code", kind: "enum", T: () => ["nimi.runtime.v1.AccountReasonCode", AccountReasonCode, "ACCOUNT_REASON_CODE_"] },
             { no: 5, name: "account_projection", kind: "message", T: () => AccountProjection },
             { no: 6, name: "audit_diagnostic", kind: "message", T: () => ErrorInfo },
-            { no: 7, name: "authorization_revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 7, name: "authorization_revision", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "deleted_owner", kind: "message", T: () => DeletedAccountOwner }
         ]);
     }
     create(value?: PartialMessage<AccountSessionSnapshot>): AccountSessionSnapshot {
@@ -1173,6 +1248,9 @@ class AccountSessionSnapshot$Type extends MessageType<AccountSessionSnapshot> {
                 case /* string authorization_revision */ 7:
                     message.authorizationRevision = reader.string();
                     break;
+                case /* nimi.runtime.v1.DeletedAccountOwner deleted_owner */ 8:
+                    message.deletedOwner = DeletedAccountOwner.internalBinaryRead(reader, reader.uint32(), options, message.deletedOwner);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1206,6 +1284,9 @@ class AccountSessionSnapshot$Type extends MessageType<AccountSessionSnapshot> {
         /* string authorization_revision = 7; */
         if (message.authorizationRevision !== "")
             writer.tag(7, WireType.LengthDelimited).string(message.authorizationRevision);
+        /* nimi.runtime.v1.DeletedAccountOwner deleted_owner = 8; */
+        if (message.deletedOwner)
+            DeletedAccountOwner.internalBinaryWrite(message.deletedOwner, writer.tag(8, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

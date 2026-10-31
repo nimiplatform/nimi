@@ -7867,6 +7867,7 @@
       "DeletePortableAIProfileResponse",
       "DeleteVoiceAssetRequest",
       "DeleteVoiceAssetResponse",
+      "DeletedAccountOwner",
       "DesktopAIActivitySnapshot",
       "DesktopAICloudAttempt",
       "DesktopAICostEstimate",
@@ -9105,6 +9106,13 @@
             "repeated": false,
             "optional": false,
             "number": 7
+          },
+          {
+            "name": "deleted_owner",
+            "type": "DeletedAccountOwner",
+            "repeated": false,
+            "optional": false,
+            "number": 8
           }
         ],
         "source_file": "proto/runtime/v1/account.proto"
@@ -18843,6 +18851,26 @@
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"
+      },
+      {
+        "name": "DeletedAccountOwner",
+        "fields": [
+          {
+            "name": "account_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "realm_environment_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
       },
       {
         "name": "DeleteLoadoutRequest",

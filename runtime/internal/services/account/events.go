@@ -87,7 +87,12 @@ func (s *Service) newEventLocked(eventType runtimev1.AccountEventType, reason ru
 
 func (s *Service) snapshotLocked(sequence uint64, reason runtimev1.AccountReasonCode) *runtimev1.AccountSessionSnapshot {
 	state, authorizationRevision := s.projectedAccountAuthorizationLocked()
+	var deletedOwner *runtimev1.DeletedAccountOwner
+	if reason == runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_DELETED {
+		deletedOwner = s.deletedOwner
+	}
 	return &runtimev1.AccountSessionSnapshot{
+		DeletedOwner:          deletedOwner,
 		Sequence:              sequence,
 		State:                 state,
 		ReasonCode:            commonReason(reason),
@@ -126,6 +131,9 @@ func (s *Service) markCustodyUnavailable() {
 func (s *Service) transitionToReauthRequired(reason runtimev1.AccountReasonCode) {
 	s.mu.Lock()
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED
+	if reason == runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_DELETED {
+		s.deletedOwner = &runtimev1.DeletedAccountOwner{AccountId: s.material.AccountID, RealmEnvironmentId: s.material.RealmEnvironmentID}
+	}
 	s.clearAuthenticatedRuntimeIdentityLocked()
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_FAILED, reason)
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_ACCOUNT_STATUS, reason)

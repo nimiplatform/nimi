@@ -69,6 +69,7 @@ export function createAuthSlice(set: AppStoreSet): AuthSlice {
           sequence: projection.sequence,
           reasonCode: projection.reasonCode,
           accountReasonCode: projection.accountReasonCode,
+          deletedOwner: projection.deletedOwner,
           authorizationRevision: projection.status === 'authenticated' || projection.status === 'refresh-pending'
             ? projection.authorizationRevision : '',
           ...(projection.status === 'unavailable' && projection.failureDetail

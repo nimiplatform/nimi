@@ -616,6 +616,7 @@ export async function getRuntimeAccountSessionStatusResponse(): Promise<GetAccou
       sequence: status.sequence,
       state: ACCOUNT_SESSION_STATE_BY_NAME[status.state],
       authorizationRevision: status.authorizationRevision,
+      deletedOwner: status.deletedOwner,
       reasonCode: status.reasonCode,
       accountReasonCode: status.accountReasonCode,
       accountProjection: toGeneratedAccountProjection(status.accountProjection),

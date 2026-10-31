@@ -7,6 +7,7 @@ fn account_snapshot_for_revision(
     AccountSessionSnapshot {
         sequence: 1,
         state: state as i32,
+        deleted_owner: None,
         authorization_revision: revision.to_string(),
         reason_code: ACTION_EXECUTED,
         account_reason_code: ACTION_EXECUTED,
@@ -216,6 +217,7 @@ fn projects_the_initial_zero_sequence_snapshot() {
         event_type: AccountEventType::AccountStatus as i32,
         delivery_kind: AccountSessionDeliveryKind::Snapshot as i32,
         snapshot: Some(AccountSessionSnapshot {
+            deleted_owner: None,
             authorization_revision: String::new(),
             sequence: 0,
             state: AccountSessionState::Anonymous as i32,
@@ -243,6 +245,7 @@ fn rejects_unknown_account_event_enums() {
         event_type: AccountEventType::AccountStatus as i32,
         delivery_kind: AccountSessionDeliveryKind::Snapshot as i32,
         snapshot: Some(AccountSessionSnapshot {
+            deleted_owner: None,
             authorization_revision: String::new(),
             sequence: 1,
             state: AccountSessionState::Anonymous as i32,
@@ -270,6 +273,7 @@ fn rejects_unknown_account_event_enums() {
         event_type: AccountEventType::Unspecified as i32,
         delivery_kind: AccountSessionDeliveryKind::Snapshot as i32,
         snapshot: Some(AccountSessionSnapshot {
+            deleted_owner: None,
             authorization_revision: String::new(),
             sequence: 1,
             state: AccountSessionState::Anonymous as i32,
@@ -294,6 +298,7 @@ fn projects_only_renderer_safe_account_fields() {
         account_reason_code: ACTION_EXECUTED,
         accepted: true,
         snapshot: Some(AccountSessionSnapshot {
+            deleted_owner: None,
             authorization_revision: "opaque-revision-1".to_string(),
             sequence: 17,
             state: AccountSessionState::Authenticated as i32,
@@ -340,6 +345,7 @@ fn rejects_inert_or_incomplete_account_responses() {
             account_reason_code: ACTION_EXECUTED,
             accepted: true,
             snapshot: Some(AccountSessionSnapshot {
+                deleted_owner: None,
                 authorization_revision: String::new(),
                 sequence: 1,
                 state: AccountSessionState::Unspecified as i32,
@@ -357,6 +363,7 @@ fn rejects_inert_or_incomplete_account_responses() {
 #[test]
 fn audit_diagnostic_preserves_committed_account_state() {
     let snapshot = AccountSessionSnapshot {
+        deleted_owner: None,
         authorization_revision: String::new(),
         sequence: 1,
         state: AccountSessionState::Anonymous as i32,

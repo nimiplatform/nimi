@@ -78,6 +78,7 @@ pub struct RuntimeBridgeDesktopAccountSessionStatus {
     pub sequence: String,
     pub state: String,
     pub authorization_revision: String,
+    pub deleted_owner: Option<nimi_shell_protected_local::DeletedAccountOwner>,
     pub reason_code: i32,
     pub account_reason_code: i32,
     pub account_projection: Option<RuntimeBridgeDesktopAccountProjection>,
@@ -524,6 +525,7 @@ pub async fn runtime_account_session_status(
         sequence: status.sequence.to_string(),
         state: status.state.as_str().to_string(),
         authorization_revision: status.authorization_revision,
+        deleted_owner: status.deleted_owner,
         reason_code: status.reason_code,
         account_reason_code: status.account_reason_code,
         account_projection: status.account_projection.map(|projection| {

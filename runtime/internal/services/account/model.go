@@ -210,6 +210,7 @@ type Service struct {
 	identityMutationMu           sync.Mutex
 	mu                           sync.RWMutex
 	state                        runtimev1.AccountSessionState
+	deletedOwner                 *runtimev1.DeletedAccountOwner
 	stateReason                  runtimev1.AccountReasonCode
 	projection                   *runtimev1.AccountProjection
 	material                     AccountMaterial

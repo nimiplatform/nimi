@@ -403,6 +403,7 @@ class AccountSessionSnapshot:
     account_projection: AccountProjection | None = None
     audit_diagnostic: ErrorInfo | None = None
     authorization_revision: str | None = None
+    deleted_owner: DeletedAccountOwner | None = None
 
 @dataclass(frozen=True)
 class Ack:
@@ -2273,6 +2274,11 @@ class DeleteVoiceAssetRequest:
 @dataclass(frozen=True)
 class DeleteVoiceAssetResponse:
     ack: Ack | None = None
+
+@dataclass(frozen=True)
+class DeletedAccountOwner:
+    account_id: str | None = None
+    realm_environment_id: str | None = None
 
 @dataclass(frozen=True)
 class DesktopAIActivitySnapshot:

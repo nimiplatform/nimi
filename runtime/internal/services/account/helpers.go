@@ -217,6 +217,7 @@ func cloneAccountSessionSnapshot(in *runtimev1.AccountSessionSnapshot) *runtimev
 		AccountReasonCode:     in.GetAccountReasonCode(),
 		AccountProjection:     cloneProjection(in.GetAccountProjection()),
 		AuthorizationRevision: in.GetAuthorizationRevision(),
+		DeletedOwner:          in.GetDeletedOwner(),
 	}
 }
 

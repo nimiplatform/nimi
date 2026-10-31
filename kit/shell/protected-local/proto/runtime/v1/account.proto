@@ -148,6 +148,12 @@ message AccountProjection {
   repeated WorkspaceMembershipProjection workspace_memberships = 4;
 }
 
+// Home may clear its own local data only for the confirmed terminal subject.
+message DeletedAccountOwner {
+  string account_id = 1;
+  string realm_environment_id = 2;
+}
+
 message AccountSessionSnapshot {
   uint64 sequence = 1;
   AccountSessionState state = 2;
@@ -161,6 +167,7 @@ message AccountSessionSnapshot {
   // same-identity refresh preserves it; expiry, identity replacement, or a new
   // Runtime lifetime cannot reuse it. This is not an App bootstrap field.
   string authorization_revision = 7;
+  DeletedAccountOwner deleted_owner = 8;
 }
 
 message AccountCaller {

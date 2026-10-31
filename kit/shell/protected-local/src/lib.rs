@@ -201,6 +201,7 @@ pub use carrier::{
     NimiLocalAppSession, NimiProtectedLocalHostCarrier,
 };
 pub use desktop_account::{
+    DeletedAccountOwner,
     DesktopAccountActionRequest, DesktopAccountAuditDiagnostic, DesktopAccountBeginLoginRequest,
     DesktopAccountBeginLoginResponse, DesktopAccountCompleteLoginRequest,
     DesktopAccountMutationResponse, DesktopAccountProjection, DesktopAccountRealmUnaryRequest,

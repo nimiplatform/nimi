@@ -138,11 +138,19 @@ pub struct DesktopAccountProjection {
     pub realm_environment_id: String,
 }
 
+#[derive(Clone, Debug, Eq, PartialEq, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeletedAccountOwner {
+    pub account_id: String,
+    pub realm_environment_id: String,
+}
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct DesktopAccountSessionStatus {
     pub sequence: u64,
     pub state: DesktopAccountSessionState,
     pub authorization_revision: String,
+    pub deleted_owner: Option<DeletedAccountOwner>,
     pub reason_code: i32,
     pub account_reason_code: i32,
     pub account_projection: Option<DesktopAccountProjection>,
@@ -155,6 +163,7 @@ pub struct DesktopAccountSessionEvent {
     pub delivery_kind: DesktopAccountSessionDeliveryKind,
     pub state: DesktopAccountSessionState,
     pub authorization_revision: String,
+    pub deleted_owner: Option<DeletedAccountOwner>,
     pub reason_code: i32,
     pub account_reason_code: i32,
     pub account_projection: Option<DesktopAccountProjection>,

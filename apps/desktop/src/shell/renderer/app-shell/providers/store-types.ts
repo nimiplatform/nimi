@@ -28,6 +28,7 @@ export type RuntimeAccountAuthProjection = {
   sequence: string;
   reasonCode: number;
   accountReasonCode: number;
+  deletedOwner?: { accountId: string; realmEnvironmentId: string };
   authorizationRevision: string;
   user: Record<string, unknown> | null;
   failureDetail?: string;
@@ -76,6 +77,7 @@ export type AppStoreState = {
     sequence: string;
     reasonCode: number;
     accountReasonCode: number;
+  deletedOwner?: { accountId: string; realmEnvironmentId: string };
     /** Runtime Account authorization continuity only, never a generic App scope. */
     authorizationRevision: string;
     /** Why the account could not be confirmed, while it is unavailable. */

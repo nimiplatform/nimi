@@ -41,6 +41,7 @@ export type DesktopAccountSessionStatus = {
   state: DesktopAccountSessionState;
   /** Runtime-owned opaque equality value; never authority or a credential. */
   authorizationRevision: string;
+  deletedOwner?: { accountId: string; realmEnvironmentId: string };
   reasonCode: RuntimeReasonCode;
   accountReasonCode: AccountReasonCode;
   accountProjection?: DesktopAccountProjection;
@@ -161,6 +162,7 @@ export function parseDesktopAccountSessionStatus(value: unknown): DesktopAccount
     'sequence',
     'state',
     'authorizationRevision',
+    'deletedOwner',
     'reasonCode',
     'auditDiagnostic',
     'accountReasonCode',
@@ -183,6 +185,17 @@ export function parseDesktopAccountSessionStatus(value: unknown): DesktopAccount
   if (state === 'authenticated' && !accountProjection) {
     throw new Error('runtime_account_session_status authenticated state requires accountProjection');
   }
+  let deletedOwner: DesktopAccountSessionStatus['deletedOwner'];
+  if (record.deletedOwner != null) {
+    if (state !== 'reauth-required' || record.accountReasonCode !== AccountReasonCode.ACCOUNT_DELETED)
+      throw new Error('Unexpected terminal account owner');
+    const owner = assertRecord(record.deletedOwner, 'Invalid terminal account owner');
+    assertExactKeys(owner, ['accountId', 'realmEnvironmentId'], 'terminal account owner');
+    deletedOwner = {
+      accountId: parseExactNonEmptyString(owner.accountId, 'accountId', 'terminal account owner', 256),
+      realmEnvironmentId: parseExactNonEmptyString(owner.realmEnvironmentId, 'realmEnvironmentId', 'terminal account owner', 256),
+    };
+  }
   const authorizationRevision = parseString(record.authorizationRevision, 'authorizationRevision', 'runtime_account_session_status');
   if (authorizationRevision.length > 64
     || authorizationRevision !== authorizationRevision.trim()
@@ -197,6 +210,7 @@ export function parseDesktopAccountSessionStatus(value: unknown): DesktopAccount
     sequence,
     state,
     authorizationRevision,
+    ...(deletedOwner ? { deletedOwner } : {}),
     reasonCode: parseKnownEnumInteger(
       record.reasonCode,
       'reasonCode',
@@ -221,6 +235,7 @@ export function parseDesktopAccountSessionEvent(value: unknown): DesktopAccountS
     'deliveryKind',
     'state',
     'authorizationRevision',
+    'deletedOwner',
     'reasonCode',
     'auditDiagnostic',
     'accountReasonCode',
@@ -240,6 +255,7 @@ export function parseDesktopAccountSessionEvent(value: unknown): DesktopAccountS
     sequence: record.sequence,
     state: record.state,
     authorizationRevision: record.authorizationRevision,
+    deletedOwner: record.deletedOwner,
     reasonCode: record.reasonCode,
     accountReasonCode: record.accountReasonCode,
     auditDiagnostic: record.auditDiagnostic,

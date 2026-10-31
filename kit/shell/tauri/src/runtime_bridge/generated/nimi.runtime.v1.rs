@@ -2306,6 +2306,14 @@ pub struct AccountProjection {
     #[prost(message, repeated, tag = "4")]
     pub workspace_memberships: ::prost::alloc::vec::Vec<WorkspaceMembershipProjection>,
 }
+/// Home may clear its own local data only for the confirmed terminal subject.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DeletedAccountOwner {
+    #[prost(string, tag = "1")]
+    pub account_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub realm_environment_id: ::prost::alloc::string::String,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AccountSessionSnapshot {
     #[prost(uint64, tag = "1")]
@@ -2327,6 +2335,8 @@ pub struct AccountSessionSnapshot {
     /// Runtime lifetime cannot reuse it. This is not an App bootstrap field.
     #[prost(string, tag = "7")]
     pub authorization_revision: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "8")]
+    pub deleted_owner: ::core::option::Option<DeletedAccountOwner>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AccountCaller {

@@ -129,6 +129,7 @@ func (s *Service) replayPendingRealmAccountDeletedResult(ctx context.Context) er
 	}
 	s.mu.Lock()
 	s.realmDeletionRetryAttempt = 0
+	s.deletedOwner = &runtimev1.DeletedAccountOwner{AccountId: pending.AccountID(), RealmEnvironmentId: s.material.RealmEnvironmentID}
 	s.state = runtimev1.AccountSessionState_ACCOUNT_SESSION_STATE_REAUTH_REQUIRED
 	s.clearAuthenticatedRuntimeIdentityLocked()
 	s.appendEventLocked(runtimev1.AccountEventType_ACCOUNT_EVENT_TYPE_REFRESH_FAILED, runtimev1.AccountReasonCode_ACCOUNT_REASON_CODE_ACCOUNT_DELETED)

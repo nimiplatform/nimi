@@ -504,7 +504,15 @@ fn project_snapshot(
     {
         return Err(untrusted());
     }
+    let deleted_owner = match snapshot.deleted_owner {
+        Some(owner) if state == DesktopAccountSessionState::ReauthRequired &&
+            snapshot.account_reason_code == AccountReasonCode::AccountDeleted as i32 =>
+            Some(crate::DeletedAccountOwner { account_id: required_text(owner.account_id)?, realm_environment_id: required_text(owner.realm_environment_id)? }),
+        Some(_) => return Err(untrusted()),
+        None => None,
+    };
     Ok(DesktopAccountSessionStatus {
+        deleted_owner,
         sequence: snapshot.sequence,
         state,
         authorization_revision,
@@ -542,6 +550,7 @@ fn project_event(event: AccountSessionEvent) -> Result<DesktopAccountSessionEven
         delivery_kind,
         state: status.state,
         authorization_revision: status.authorization_revision,
+        deleted_owner: status.deleted_owner,
         reason_code: status.reason_code,
         account_reason_code: status.account_reason_code,
         account_projection: status.account_projection,

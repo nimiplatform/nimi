@@ -4893,6 +4893,7 @@ pub struct AccountSessionSnapshot {
     pub account_projection: Option<Box<AccountProjection>>,
     pub audit_diagnostic: Option<Box<ErrorInfo>>,
     pub authorization_revision: Option<String>,
+    pub deleted_owner: Option<Box<DeletedAccountOwner>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
@@ -7626,6 +7627,12 @@ pub struct DeleteVoiceAssetRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct DeleteVoiceAssetResponse {
     pub ack: Option<Box<Ack>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DeletedAccountOwner {
+    pub account_id: Option<String>,
+    pub realm_environment_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
