@@ -114,16 +114,21 @@ export function createUnavailableDesktopRendererOfflinePort(
     throw new Error(reason);
   };
   return Object.freeze({
+    capture: unavailableSync,
+    purgeAccount: unavailable,
+    saveHumanDraft: unavailable,
+    loadHumanDraft: unavailable,
     syncChatList: unavailable,
     getCachedChatList: unavailable,
     syncChatMessages: unavailable,
     getCachedMessages: unavailable,
     syncProfileMetadata: unavailable,
     getCachedProfileMetadata: unavailable,
+    removeProfileMetadata: unavailable,
     upsertChatOutboxEntry: unavailable,
     getChatOutboxEntry: unavailable,
     getChatOutboxEntries: unavailable,
-    markChatOutboxSent: unavailable,
+    removeChatOutboxEntry: unavailable,
     markChatOutboxFailed: unavailable,
     markCacheFallbackUsed: unavailableSync,
     markRealmUnreachable: unavailableSync,

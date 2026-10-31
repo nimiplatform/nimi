@@ -16,7 +16,7 @@ import { createDesktopProductionOfflinePort } from '../src/shell/renderer/infra/
 function createTestOfflinePort() {
   return createDesktopProductionOfflinePort(
     new OfflineCoordinator(),
-    { enableEphemeralStore: true },
+    { enableEphemeralStore: true, readScope: () => ({ realmEnvironmentId: 'realm-test', accountId: 'user-1', generation: 0 }) },
   );
 }
 

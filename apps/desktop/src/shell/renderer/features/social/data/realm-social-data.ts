@@ -1,4 +1,5 @@
 import type { JsonObject } from '@nimiplatform/sdk/types';
+import type { AccountActionStore } from '../../../app-shell/providers/account-action-scope.js';
 import {
   createSocialSnapshotStore,
   isFriendInContacts,
@@ -12,7 +13,7 @@ import {
   loadPendingFriendRequests,
   loadSocialSnapshot,
   loadUserProfileById,
-  rejectOrRemoveFriend,
+  actOnFriendRequest,
   removeFriend,
   requestOrAcceptFriend,
   unblockUser,
@@ -28,12 +29,13 @@ import {
 export type { SocialContactSnapshot } from './social-snapshot';
 
 export function createRealmSocialData(input: {
+  readonly store: AccountActionStore;
   readonly callApi: RealmApiCaller;
   readonly emitDataError: RealmDataErrorEmitter;
   readonly now: () => number;
   readonly offline: RealmSocialOfflinePort;
 }) {
-  const snapshotStore = createSocialSnapshotStore();
+  const snapshotStore = createSocialSnapshotStore(input.store);
   const blockedUserListeners = new Set<() => void>();
   const notifyBlockedUsersChanged = () => {
     for (const listener of blockedUserListeners) listener();
@@ -63,18 +65,21 @@ export function createRealmSocialData(input: {
         message,
         reloadContacts: reloadSocialSnapshot,
       }),
-    removeFriend: (userId: string) =>
+    removeFriend: (userId: string, relationshipId: string) =>
       removeFriend({
         callApi: input.callApi,
         offline: input.offline,
         userId,
+        relationshipId,
         reloadContacts: reloadSocialSnapshot,
       }),
-    rejectOrRemoveFriend: (userId: string) =>
-      rejectOrRemoveFriend({
+    actOnFriendRequest: (userId: string, relationshipId: string, action: 'accept' | 'reject' | 'cancel') =>
+      actOnFriendRequest({
         callApi: input.callApi,
         offline: input.offline,
         userId,
+        relationshipId,
+        action,
         reloadContacts: reloadSocialSnapshot,
       }),
     async blockUser(contact: JsonObject) {

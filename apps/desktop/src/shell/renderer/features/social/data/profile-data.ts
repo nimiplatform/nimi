@@ -4,12 +4,14 @@ import {
   loadNimiRealmCurrentUserProfile,
   loadNimiRealmUserProfileById,
   type NimiRealmSocialProfileView,
-  removeNimiRealmFriendById,
+  applyNimiRealmFriendshipAction,
+  loadNimiRealmRelationship,
   unblockNimiRealmUser,
   updateNimiRealmCurrentUserProfile,
 } from '@nimiplatform/sdk/realm';
 import {
   isRealmOfflineErrorLike as isRealmOfflineError,
+  ReasonCode,
   type JsonObject,
 } from '@nimiplatform/sdk/types';
 import {
@@ -21,7 +23,7 @@ import {
 } from './social-snapshot';
 import type { RealmSocialOfflinePort } from './social-offline-port.js';
 
-type UserProfileProjection = NimiRealmSocialProfileView;
+type UserProfileProjection = NimiRealmSocialProfileView & { relationship: Awaited<ReturnType<typeof loadNimiRealmRelationship>>; relationshipId: string | null; isFriend: boolean; isPendingFriendRequest: boolean };
 
 export type { SocialContactSnapshot } from './social-snapshot';
 
@@ -86,19 +88,33 @@ export async function loadUserProfileById(
   id: string,
 ): Promise<UserProfileProjection> {
   const normalizedId = String(id || '').trim();
+  const cache = offline.capture();
   try {
     const enriched = await callApi(
-      (realm) => loadNimiRealmUserProfileById(realm, emitRealmDataError, normalizedId),
+      async realm => {
+        const [profile, relationship] = await Promise.all([
+          loadNimiRealmUserProfileById(realm, emitRealmDataError, normalizedId),
+          loadNimiRealmRelationship(realm, normalizedId),
+        ]);
+        return { ...profile, relationship, relationshipId: relationship.relationshipId,
+          isFriend: relationship.state === 'active', isPendingFriendRequest: relationship.state === 'pending_outgoing' };
+      },
       'Failed to load Realm user profile',
     );
-    await offline.syncProfileMetadata(`user:${normalizedId}`, enriched);
+    await cache.syncProfileMetadata(`user:${normalizedId}`, enriched);
     return enriched;
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      const cached = await offline.loadProfileMetadata<UserProfileProjection>(`user:${normalizedId}`);
+      const cached = await cache.loadProfileMetadata<UserProfileProjection>(`user:${normalizedId}`);
       if (cached) {
-        offline.markCacheFallbackUsed();
+        cache.markCacheFallbackUsed();
         return cached;
+      }
+    } else if (error && typeof error === 'object') {
+      const failure = error as { status?: unknown; statusCode?: unknown; reasonCode?: unknown; details?: { httpStatus?: unknown } };
+      const status = Number(failure.details?.httpStatus ?? failure.status ?? failure.statusCode);
+      if (status === 403 || status === 404 || failure.reasonCode === ReasonCode.PRINCIPAL_UNAUTHORIZED) {
+        await cache.removeProfileMetadata(`user:${normalizedId}`);
       }
     }
     throw error;
@@ -119,15 +135,17 @@ export async function addFriendById(
   );
 }
 
-export async function removeFriendById(
+export async function applySocialRelationshipAction(
   callApi: RealmApiCaller,
   userId: string,
+  relationshipId: string,
+  action: 'accept' | 'reject' | 'cancel' | 'remove',
 ) {
   if (!userId) {
     throw new Error('用户ID不能为空');
   }
   await callApi(
-    (realm) => removeNimiRealmFriendById(realm, userId),
+    (realm) => applyNimiRealmFriendshipAction(realm, userId, { action, relationshipId }),
     'Failed to remove Realm friend',
   );
 }
@@ -165,10 +183,11 @@ export async function removeFriend(input: {
   callApi: RealmApiCaller;
   offline: RealmSocialOfflinePort;
   userId: string;
+  relationshipId: string;
   reloadContacts: () => Promise<void>;
 }) {
   try {
-    await removeFriendById(input.callApi, input.userId);
+    await applySocialRelationshipAction(input.callApi, input.userId, input.relationshipId, 'remove');
     await input.reloadContacts();
   } catch (error) {
     if (isRealmOfflineError(error)) {
@@ -178,14 +197,16 @@ export async function removeFriend(input: {
   }
 }
 
-export async function rejectOrRemoveFriend(input: {
+export async function actOnFriendRequest(input: {
   callApi: RealmApiCaller;
   offline: RealmSocialOfflinePort;
   userId: string;
+  relationshipId: string;
+  action: 'accept' | 'reject' | 'cancel';
   reloadContacts: () => Promise<void>;
 }) {
   try {
-    await removeFriendById(input.callApi, input.userId);
+    await applySocialRelationshipAction(input.callApi, input.userId, input.relationshipId, input.action);
     await input.reloadContacts();
   } catch (error) {
     if (isRealmOfflineError(error)) {

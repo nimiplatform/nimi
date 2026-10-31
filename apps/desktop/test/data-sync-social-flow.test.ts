@@ -1,5 +1,6 @@
 import { describe, test } from 'node:test';
 import assert from 'node:assert/strict';
+import { createAppStore } from '../src/shell/renderer/app-shell/providers/app-store-factory.js';
 import {
   createOfflineNimiError,
   ReasonCode,
@@ -7,7 +8,7 @@ import {
 import {
   blockUser,
   loadSocialSnapshot,
-  rejectOrRemoveFriend,
+  actOnFriendRequest,
   removeFriend,
   requestOrAcceptFriend,
   unblockUser,
@@ -15,10 +16,14 @@ import {
 import { createSocialSnapshotStore } from '../src/shell/renderer/features/social/data/social-snapshot.js';
 import type { RealmSocialOfflinePort } from '../src/shell/renderer/features/social/data/social-offline-port.js';
 
-const snapshotStore = createSocialSnapshotStore();
+const accountStore = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
+accountStore.getState().setAuthSession({ id: 'test-user', realmEnvironmentId: 'realm' });
+const snapshotStore = createSocialSnapshotStore(accountStore);
 const failClosedOffline: RealmSocialOfflinePort = Object.freeze({
+  capture() { return failClosedOffline; },
   async syncProfileMetadata() {},
   async loadProfileMetadata() { return null; },
+  async removeProfileMetadata() {},
   markCacheFallbackUsed() {},
   markRealmUnreachable() {},
 });
@@ -58,15 +63,18 @@ describe('D-DSYNC-004: social flow behavior', () => {
         callApi: callApi as never,
         offline: failClosedOffline,
         userId: 'agent-or-human-1',
+        relationshipId: 'relationship-1',
         reloadContacts: async () => undefined,
       }),
       /realm offline/,
     );
     await assert.rejects(
-      () => rejectOrRemoveFriend({
+      () => actOnFriendRequest({
         callApi: callApi as never,
         offline: failClosedOffline,
         userId: 'agent-or-human-1',
+        relationshipId: 'relationship-1',
+        action: 'reject' as const,
         reloadContacts: async () => undefined,
       }),
       /realm offline/,
@@ -91,7 +99,7 @@ test('social snapshot ignores local test and fallback contacts when Realm return
     async (task) => task({
       generated: {
         listMyFriendsWithDetails: async () => ({ items: [], nextCursor: null, total: 0 }),
-        getMyPendingFriendRequests: async () => ({ received: [], sent: [] }),
+        getMyPendingFriendRequests: async () => ({ items: [], nextCursor: null, total: 0 }),
         getMyBlockedUsers: async () => ({ items: [], nextCursor: null, total: 0 }),
         getUser: async () => ({ id: 'unused', handle: 'unused', displayName: 'Unused', createdAt: 'now' }),
       },
@@ -164,7 +172,7 @@ test('blocked user load failures fail close instead of becoming an empty social 
       async (task) => task({
         generated: {
           listMyFriendsWithDetails: async () => ({ items: [], nextCursor: null, total: 0 }),
-          getMyPendingFriendRequests: async () => ({ received: [], sent: [] }),
+          getMyPendingFriendRequests: async () => ({ items: [], nextCursor: null, total: 0 }),
           getMyBlockedUsers: async () => {
             throw new Error('blocked users unavailable');
           },

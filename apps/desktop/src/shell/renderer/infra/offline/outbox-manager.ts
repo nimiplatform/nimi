@@ -3,6 +3,8 @@ import type {
 } from './types.js';
 import {
   OFFLINE_OUTBOX_MAX_ENTRIES,
+  offlineScopeKey,
+  type OfflineAccountScope,
 } from './types.js';
 import {
   hasIndexedDb,
@@ -11,6 +13,7 @@ import {
 } from './database.js';
 
 export type OfflineOutboxEphemeralStoreOptions = {
+  readonly scope: OfflineAccountScope;
   readonly enableEphemeralStore?: boolean;
 };
 
@@ -34,7 +37,7 @@ export class OfflineOutboxManager {
   private db: IDBDatabase | null = null;
   private ephemeral: OfflineOutboxEphemeralStore | null = null;
 
-  constructor(private readonly options: OfflineOutboxEphemeralStoreOptions = {}) {}
+  constructor(private readonly options: OfflineOutboxEphemeralStoreOptions) { offlineScopeKey(options.scope); }
 
   async open(): Promise<void> {
     if (this.db || this.ephemeral) {
@@ -49,7 +52,8 @@ export class OfflineOutboxManager {
         'OfflineOutboxManager requires IndexedDB or explicit enableEphemeralStore=true',
       );
     }
-    this.db = await openOfflineDatabase();
+    this.db = await openOfflineDatabase(this.options.scope);
+    this.db.onversionchange = () => this.close();
   }
 
   close(): void {
@@ -175,7 +179,7 @@ export class OfflineOutboxManager {
     });
   }
 
-  async markChatOutboxSent(clientMessageId: string): Promise<void> {
+  async removeChatOutboxEntry(clientMessageId: string): Promise<void> {
     if (this.ephemeral) {
       this.ensureEphemeralStore().chatOutbox.delete(clientMessageId);
       return;

@@ -28,5 +28,6 @@
   "scenarioJobOverlayRecovering": "重新连接中…",
   "scenarioJobOverlayCancelling": "取消中…",
   "scenarioJobOverlayFetchingArtifacts": "结果处理中…",
-  "scenarioJobOverlayRecoveryTimeout": "任务状态未知，请稍后刷新"
+  "scenarioJobOverlayRecoveryTimeout": "任务状态未知，请稍后刷新",
+  "accountDataCleanupFailed": "账号已终止，但 Home 未能完成移除其本机数据。请先打开故障排查处理。"
 }

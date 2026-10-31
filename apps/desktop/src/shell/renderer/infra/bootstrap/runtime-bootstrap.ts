@@ -19,7 +19,8 @@ import {
   stopAuthStateWatcher,
 } from './auth-state-watcher';
 import { createDesktopAccountProfileHydrator, type DesktopAccountProfileHydrator } from './runtime-bootstrap-account-profile';
-import { productionRealmSocialData as realmSocialData } from '../../features/social/data/production-realm-social-data.js';
+import { loadCurrentUserProfile } from '../../features/social/data/profile-data.js';
+import { callRealmApi, emitRealmDataError } from '../realm/realm-api.js';
 import { DESKTOP_VERSION_FALLBACK } from './desktop-version';
 import {
   runtimeDaemonUnavailable,
@@ -191,7 +192,7 @@ function startBootstrapRuntime(lifecycle: DesktopRendererLifecyclePort): Promise
       readClientScope: () => isDesktopNimiClientSessionReady() ? getDesktopRealm() : null,
       isCurrentBootstrap: () => accountProfileHydration?.hydrator === profileHydrator
         && offlineCoordinatorBinding?.lifecycle === lifecycle,
-      loadCurrentUser: () => realmSocialData.loadCurrentUser(),
+      loadCurrentUser: () => loadCurrentUserProfile(callRealmApi, emitRealmDataError),
       logEvent: logRendererEvent,
     });
     accountProfileHydration = { lifecycle, hydrator: profileHydrator };

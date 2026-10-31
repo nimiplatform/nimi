@@ -56,7 +56,7 @@ export function createDesktopRealmChatService(
     startChat: (input) => callService((service) => service.startChat(input)),
     listMessages: (chatId, limit, cursor) => callService((service) => service.listMessages(chatId, limit, cursor)),
     sendMessage: (chatId, input) => callService((service) => service.sendMessage(chatId, input)),
-    markChatRead: (chatId) => callService((service) => service.markChatRead(chatId)),
+    markChatRead: (chatId, readThroughMessageId) => callService((service) => service.markChatRead(chatId, readThroughMessageId)),
     syncChatEvents: (chatId, afterSeq, limit) => callService((service) => service.syncChatEvents(chatId, afterSeq, limit)),
   });
 }
@@ -184,9 +184,9 @@ export async function loadChatList(
   limit = 20,
   offline?: DesktopRendererOfflinePort,
 ) {
+  const cache = requireOffline(offline).capture();
   try {
     const result = await service.listChats(limit);
-    const cache = requireOffline(offline);
     const items = filterRealmDirectHumanChats(result?.items);
     await cache.syncChatList(items);
     return {
@@ -195,10 +195,10 @@ export async function loadChatList(
     };
   } catch (error) {
     if (isRealmOfflineError(error)) {
-      const cache = requireOffline(offline);
+      const cached = await cache.getCachedChatList();
       cache.markCacheFallbackUsed();
       return {
-        items: filterRealmDirectHumanChats(await cache.getCachedChatList()),
+        items: filterRealmDirectHumanChats(cached),
       };
     }
     emitChatError('load-chats', error);
@@ -250,7 +250,7 @@ export async function loadChatMessages(
   emitChatError: DesktopChatErrorEmitter = emitNoop,
   offline?: DesktopRendererOfflinePort,
 ) {
-  const offlinePort = requireOffline(offline);
+  const offlinePort = requireOffline(offline).capture();
   try {
     const result = await service.listMessages(chatId, limit);
     const items = Array.isArray(result?.items) ? result.items : [];
@@ -264,10 +264,12 @@ export async function loadChatMessages(
     };
   } catch (error) {
     if (isRealmOfflineError(error)) {
+      const items = await offlinePort.getCachedMessages<RealmMessageViewDto>(chatId);
+      const offlineOutbox = await offlinePort.getChatOutboxEntries(chatId);
       offlinePort.markCacheFallbackUsed();
       return {
-        items: await offlinePort.getCachedMessages<RealmMessageViewDto>(chatId),
-        offlineOutbox: await offlinePort.getChatOutboxEntries(chatId),
+        items,
+        offlineOutbox,
       };
     }
     emitChatError('load-messages', error, { chatId });
@@ -336,13 +338,15 @@ export async function sendChatMessage(
 
 export async function markChatAsRead(
   chatId: string,
+  readThroughMessageId: string,
   service: Pick<DesktopRealmHumanChatService, 'markChatRead'> = unavailableRealmChatService,
   emitChatError: DesktopChatErrorEmitter = emitNoop,
 ) {
   try {
-    await markRealmChatRead(chatId, service);
+    await markRealmChatRead(chatId, readThroughMessageId, service);
   } catch (error) {
     emitChatError('mark-chat-read', error, { chatId });
+    throw error;
   }
 }
 
@@ -368,7 +372,7 @@ export function createRealmHumanChatData(sdk: DesktopRendererSdkPort) {
       loadMoreChatMessages(chatId, cursor, pageSize, service, emit),
     sendChatMessage: (chatId: string, content: string, options: Partial<RealmSendMessageInputDto>) =>
       sendChatMessage(chatId, content, options, service, emit, sdk.offline),
-    markChatAsRead: (chatId: string) => markChatAsRead(chatId, service, emit),
+    markChatAsRead: (chatId: string, readThroughMessageId: string) => markChatAsRead(chatId, readThroughMessageId, service, emit),
   });
 }
 

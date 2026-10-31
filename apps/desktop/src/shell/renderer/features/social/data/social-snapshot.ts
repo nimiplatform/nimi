@@ -5,6 +5,7 @@ import {
   type NimiRealmSocialDataErrorEmitter,
   type Realm,
 } from '@nimiplatform/sdk/realm';
+import { captureAccountActionScope, type AccountActionStore } from '../../../app-shell/providers/account-action-scope.js';
 
 export type RealmApiCaller = <T>(task: (realm: Realm) => Promise<T>, fallbackMessage?: string) => Promise<T>;
 export type RealmDataErrorEmitter = NimiRealmSocialDataErrorEmitter;
@@ -19,16 +20,12 @@ function emptySocialContactSnapshot(): SocialContactSnapshot {
   };
 }
 
-function mergeWithLocalContacts(snapshot: SocialContactSnapshot): SocialContactSnapshot {
-  return snapshot;
-}
-
 export function fetchPendingFriendRequests(
   callApi: RealmApiCaller,
   emitRealmDataError: RealmDataErrorEmitter,
 ) {
   return callApi(
-    (realm) => fetchNimiRealmPendingFriendRequests(realm, emitRealmDataError),
+    (realm) => fetchNimiRealmPendingFriendRequests(realm, emitRealmDataError, { direction: 'received' }),
     'Failed to load Realm friend requests',
   );
 }
@@ -43,37 +40,53 @@ export type SocialSnapshotStore = {
   reset(): void;
 };
 
-export function createSocialSnapshotStore(): SocialSnapshotStore {
+export function createSocialSnapshotStore(store: AccountActionStore): SocialSnapshotStore {
+  let owner: ReturnType<typeof captureAccountActionScope> = null;
   let cachedContacts = emptySocialContactSnapshot();
   let inflightSnapshot: Promise<SocialContactSnapshot> | null = null;
 
+  function reset() {
+    owner?.dispose();
+    owner = null;
+    cachedContacts = emptySocialContactSnapshot();
+    inflightSnapshot = null;
+  }
+
+  function requireOwner() {
+    if (!owner?.isCurrent()) {
+      reset();
+      owner = captureAccountActionScope(store, { allowRefreshing: true });
+    }
+    if (!owner?.realmEnvironmentId) throw new Error('CONTACT_ACCOUNT_UNAVAILABLE');
+    return owner;
+  }
+
   return Object.freeze({
     load(callApi, emitRealmDataError) {
+      const scope = requireOwner();
       if (inflightSnapshot) return inflightSnapshot;
       inflightSnapshot = callApi(
-        (realm) => loadNimiRealmSocialSnapshot(realm, emitRealmDataError),
+        (realm) => loadNimiRealmSocialSnapshot(realm, emitRealmDataError, { signal: scope.signal }),
         'Failed to load Realm social snapshot',
       )
         .then((snapshot) => {
-          const merged = mergeWithLocalContacts(snapshot);
-          cachedContacts = { ...merged };
-          return merged;
+          scope.signal.throwIfAborted();
+          cachedContacts = snapshot;
+          return snapshot;
         })
         .finally(() => {
-          inflightSnapshot = null;
+          if (owner === scope) inflightSnapshot = null;
         });
       return inflightSnapshot;
     },
     get() {
-      return cachedContacts;
+      return owner?.isCurrent() ? cachedContacts : emptySocialContactSnapshot();
     },
     update(snapshot) {
+      requireOwner();
       cachedContacts = { ...snapshot };
     },
-    reset() {
-      cachedContacts = emptySocialContactSnapshot();
-      inflightSnapshot = null;
-    },
+    reset,
   });
 }
 

@@ -2,12 +2,16 @@ import type { JsonObject } from '@nimiplatform/sdk/types';
 import {
   OFFLINE_CACHE_MAX_CHATS,
   OFFLINE_CACHE_MAX_MESSAGES_PER_CHAT,
+  offlineScopeKey,
+  type OfflineAccountScope,
+  type HumanChatDraft,
 } from './types.js';
 import {
   hasIndexedDb,
   OFFLINE_STORE_PROFILE_METADATA,
   OFFLINE_STORE_CHAT_LIST,
   OFFLINE_STORE_CHAT_MESSAGES,
+  OFFLINE_STORE_HUMAN_DRAFTS,
   openOfflineDatabase,
 } from './database.js';
 
@@ -18,20 +22,25 @@ type MetadataRow = {
 };
 
 export type OfflineEphemeralStoreOptions = {
+  readonly scope: OfflineAccountScope;
   readonly enableEphemeralStore?: boolean;
 };
 
 type OfflineEphemeralStore = {
   chatList: Map<string, object>;
+  chatListReady: boolean;
   chatMessages: Map<string, Map<string, object>>;
   profileMetadata: Map<string, MetadataRow>;
+  drafts: Map<string, HumanChatDraft>;
 };
 
 function createEphemeralStore(): OfflineEphemeralStore {
   return {
     chatList: new Map(),
+    chatListReady: false,
     chatMessages: new Map(),
     profileMetadata: new Map(),
+    drafts: new Map(),
   };
 }
 
@@ -49,7 +58,7 @@ export class OfflineCacheManager {
   private db: IDBDatabase | null = null;
   private ephemeral: OfflineEphemeralStore | null = null;
 
-  constructor(private readonly options: OfflineEphemeralStoreOptions = {}) {}
+  constructor(private readonly options: OfflineEphemeralStoreOptions) { offlineScopeKey(options.scope); }
 
   async open(): Promise<void> {
     if (this.db || this.ephemeral) {
@@ -64,7 +73,8 @@ export class OfflineCacheManager {
         'OfflineCacheManager requires IndexedDB or explicit enableEphemeralStore=true',
       );
     }
-    this.db = await openOfflineDatabase();
+    this.db = await openOfflineDatabase(this.options.scope);
+    this.db.onversionchange = () => this.close();
   }
 
   close(): void {
@@ -125,6 +135,7 @@ export class OfflineCacheManager {
     if (this.ephemeral) {
       const ephemeral = this.ensureEphemeralStore();
       ephemeral.chatList.clear();
+      ephemeral.chatListReady = true;
       for (const chat of limited) {
         const record = chat as JsonObject;
         const id = String(record.id || '').trim();
@@ -134,19 +145,22 @@ export class OfflineCacheManager {
       return;
     }
     const db = this.ensureDb();
-    const tx = db.transaction(OFFLINE_STORE_CHAT_LIST, 'readwrite');
+    const tx = db.transaction([OFFLINE_STORE_CHAT_LIST, OFFLINE_STORE_PROFILE_METADATA], 'readwrite');
     const store = tx.objectStore(OFFLINE_STORE_CHAT_LIST);
     store.clear();
     for (const chat of limited) {
       store.put(chat);
     }
+    tx.objectStore(OFFLINE_STORE_PROFILE_METADATA).put(toMetadataRow('cache-state:chat-list', { available: true }));
     await this.complete(tx);
   }
 
   async getCachedChatList<T extends object = JsonObject>(): Promise<T[]> {
     if (this.ephemeral) {
+      if (!this.ephemeral.chatListReady) throw new Error('OFFLINE_CHAT_CACHE_UNAVAILABLE');
       return Array.from(this.ensureEphemeralStore().chatList.values()) as T[];
     }
+    if (!await this.getByKey(OFFLINE_STORE_PROFILE_METADATA, 'cache-state:chat-list')) throw new Error('OFFLINE_CHAT_CACHE_UNAVAILABLE');
     return await this.getAll<T>(OFFLINE_STORE_CHAT_LIST);
   }
 
@@ -168,7 +182,7 @@ export class OfflineCacheManager {
       return;
     }
     const db = this.ensureDb();
-    const tx = db.transaction(OFFLINE_STORE_CHAT_MESSAGES, 'readwrite');
+    const tx = db.transaction([OFFLINE_STORE_CHAT_MESSAGES, OFFLINE_STORE_PROFILE_METADATA], 'readwrite');
     const store = tx.objectStore(OFFLINE_STORE_CHAT_MESSAGES);
     const index = store.index('chatId_createdAt');
     const range = IDBKeyRange.bound([chatId], [chatId, '\uffff']);
@@ -188,13 +202,16 @@ export class OfflineCacheManager {
     for (const message of limited) {
       store.put({ ...message, chatId });
     }
+    tx.objectStore(OFFLINE_STORE_PROFILE_METADATA).put(toMetadataRow(`cache-state:messages:${chatId}`, { available: true }));
     await this.complete(tx);
   }
 
   async getCachedMessages<T extends object = JsonObject>(chatId: string): Promise<T[]> {
     if (this.ephemeral) {
+      if (!this.ephemeral.chatMessages.has(chatId)) throw new Error('OFFLINE_MESSAGE_CACHE_UNAVAILABLE');
       return Array.from((this.ensureEphemeralStore().chatMessages.get(chatId) || new Map()).values()) as T[];
     }
+    if (!await this.getByKey(OFFLINE_STORE_PROFILE_METADATA, `cache-state:messages:${chatId}`)) throw new Error('OFFLINE_MESSAGE_CACHE_UNAVAILABLE');
     const db = this.ensureDb();
     return await new Promise((resolve, reject) => {
       const tx = db.transaction(OFFLINE_STORE_CHAT_MESSAGES, 'readonly');
@@ -226,5 +243,28 @@ export class OfflineCacheManager {
     }
     const row = await this.getByKey<MetadataRow>(OFFLINE_STORE_PROFILE_METADATA, profileKey);
     return row && !Array.isArray(row.payload) ? row.payload as T : null;
+  }
+
+  async removeProfileMetadata(profileKey: string): Promise<void> {
+    if (this.ephemeral) { this.ephemeral.profileMetadata.delete(profileKey); return; }
+    const tx = this.ensureDb().transaction(OFFLINE_STORE_PROFILE_METADATA, 'readwrite');
+    tx.objectStore(OFFLINE_STORE_PROFILE_METADATA).delete(profileKey);
+    await this.complete(tx);
+  }
+
+  async saveHumanDraft(draft: HumanChatDraft): Promise<void> {
+    if (this.ephemeral) {
+      this.ephemeral.drafts.set(draft.peerAccountId, structuredClone(draft));
+      return;
+    }
+    const tx = this.ensureDb().transaction(OFFLINE_STORE_HUMAN_DRAFTS, 'readwrite');
+    tx.objectStore(OFFLINE_STORE_HUMAN_DRAFTS).put(draft);
+    await this.complete(tx);
+  }
+
+  async loadHumanDraft(peerAccountId: string): Promise<HumanChatDraft | null> {
+    return this.ephemeral
+      ? structuredClone(this.ephemeral.drafts.get(peerAccountId) ?? null)
+      : (await this.getByKey<HumanChatDraft>(OFFLINE_STORE_HUMAN_DRAFTS, peerAccountId)) ?? null;
   }
 }

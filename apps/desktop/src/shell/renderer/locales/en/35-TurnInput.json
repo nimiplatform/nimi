@@ -28,5 +28,6 @@
   "scenarioJobOverlayRecovering": "Reconnecting…",
   "scenarioJobOverlayCancelling": "Cancelling…",
   "scenarioJobOverlayFetchingArtifacts": "Processing results…",
-  "scenarioJobOverlayRecoveryTimeout": "Job status unknown; refresh later"
+  "scenarioJobOverlayRecoveryTimeout": "Job status unknown; refresh later",
+  "accountDataCleanupFailed": "Your account has ended, but Home could not finish removing its local data. Open troubleshooting before using this device again."
 }

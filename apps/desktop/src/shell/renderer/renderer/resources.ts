@@ -62,6 +62,7 @@ export function createDesktopRendererResources(
   const realmHumanChatData = createRealmHumanChatData(bindings.sdk);
   const worldFollowStore = createWorldFollowStore(bindings.app.commands.worldFollow);
   const realmSocialData = createRealmSocialData({
+    store,
     callApi: bindings.sdk.socialData.callApi,
     emitDataError: bindings.sdk.socialData.emitDataError,
     now: bindings.clock.now,

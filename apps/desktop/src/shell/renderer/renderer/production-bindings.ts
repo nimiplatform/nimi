@@ -61,6 +61,7 @@ import { createDesktopRendererRuntimeConfigNavigationPort } from './runtime-conf
 import { callRealmApi, emitRealmDataError } from '../infra/realm/realm-api.js';
 import { getOfflineCoordinator } from '../infra/offline/coordinator.js';
 import { createDesktopProductionOfflinePort } from '../infra/offline/production-offline-port.js';
+import { deletedOfflineAccount } from '../infra/offline/account-cleanup.js';
 import { hasElectronInvoke } from '@nimiplatform/kit/shell/renderer/bridge';
 import {
   pickLocalRuntimeAssetDirectory,
@@ -86,7 +87,16 @@ export function createDesktopProductionBindings(
     if (!connectedLifecycle) throw new Error('Home navigation owner is not connected.');
     return connectedLifecycle.navigation;
   });
-  const offline = createDesktopProductionOfflinePort(getOfflineCoordinator());
+  let connectedLifecycle: DesktopRendererLifecyclePort | null = null;
+  const offline = createDesktopProductionOfflinePort(getOfflineCoordinator(), {
+    readScope: () => {
+      const auth = connectedLifecycle?.auth();
+      if (!auth || (auth.status !== 'authenticated' && auth.status !== 'refresh-pending')) return null;
+      const accountId = typeof auth.user?.id === 'string' ? auth.user.id : '';
+      const realmEnvironmentId = typeof auth.user?.realmEnvironmentId === 'string' ? auth.user.realmEnvironmentId : '';
+      return accountId && realmEnvironmentId ? { accountId, realmEnvironmentId, generation: connectedLifecycle!.navigation.getSnapshot().generation } : null;
+    },
+  });
   const runtimeHealthCoordinator = createRuntimeHealthCoordinator(
     getDesktopAuditAdminClient,
     {
@@ -94,7 +104,14 @@ export function createDesktopProductionBindings(
       clearInterval: (handle) => window.clearInterval(handle as number),
     },
   );
-  let connectedLifecycle: DesktopRendererLifecyclePort | null = null;
+  const socialOffline = (port: typeof offline): import('../features/social/data/social-offline-port.js').RealmSocialOfflinePort => Object.freeze({
+    capture: () => socialOffline(port.capture()),
+    syncProfileMetadata: port.syncProfileMetadata,
+    loadProfileMetadata: port.getCachedProfileMetadata,
+    removeProfileMetadata: port.removeProfileMetadata,
+    markCacheFallbackUsed: port.markCacheFallbackUsed,
+    markRealmUnreachable: port.markRealmUnreachable,
+  });
   return createNimiCanonicalRendererHostBindings({
     scope: kit.scope,
     capabilities: kit.capabilities,
@@ -123,12 +140,7 @@ export function createDesktopProductionBindings(
       socialData: Object.freeze({
         callApi: callRealmApi,
         emitDataError: emitRealmDataError,
-        offline: Object.freeze({
-          syncProfileMetadata: offline.syncProfileMetadata,
-          loadProfileMetadata: offline.getCachedProfileMetadata,
-          markCacheFallbackUsed: offline.markCacheFallbackUsed,
-          markRealmUnreachable: offline.markRealmUnreachable,
-        }),
+        offline: socialOffline(offline),
       }),
       accountCaller: getDesktopRuntimeAccountCaller,
       withRuntimeProtectedScopes: withDesktopRuntimeProtectedScopes,
@@ -357,6 +369,12 @@ export function createDesktopProductionBindings(
             throw new Error('DESKTOP_PRODUCTION_LIFECYCLE_ALREADY_CONNECTED');
           }
           connectedLifecycle = lifecycle;
+          const disconnectAccountCleanup = lifecycle.subscribeAccount((current, previous) => {
+            const deleted = deletedOfflineAccount(previous, current);
+            if (deleted) void offline.purgeAccount(deleted).catch(() => lifecycle.setStatusBanner({
+              kind: 'error', message: lifecycle.translate('TurnInput.accountDataCleanupFailed'),
+            }));
+          });
           let active = true;
           const disconnectRuntimeHealth = connectRuntimeHealthCoordinator(
             runtimeHealthCoordinator,
@@ -367,6 +385,7 @@ export function createDesktopProductionBindings(
           return () => {
             if (!active) return;
             active = false;
+            disconnectAccountCleanup();
             connectedLifecycle = null;
             disconnectRuntimeHealth();
             disconnectBootstrap();

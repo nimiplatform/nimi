@@ -16,6 +16,7 @@ import type { HomeNavigation } from '../app-shell/providers/home-navigation.js';
  */
 export interface DesktopRendererLifecyclePort {
   auth(): AppStoreState['auth'];
+  subscribeAccount(listener: (current: AppStoreState['auth'], previous: AppStoreState['auth']) => void): () => void;
   bootstrap(): Readonly<Pick<AppStoreState, 'bootstrapError' | 'bootstrapReady'>>;
   translate(key: string, options?: Readonly<Record<string, unknown>>): string;
   subscribeBootstrap(listener: () => void): () => void;
@@ -46,6 +47,14 @@ export function createDesktopRendererLifecyclePort(
 ): DesktopRendererLifecyclePort {
   const port: DesktopRendererLifecyclePort = {
     auth: () => store.getState().auth,
+    subscribeAccount(listener) {
+      let previous = store.getState().auth;
+      return store.subscribe(state => {
+        if (state.auth === previous) return;
+        const before = previous; previous = state.auth;
+        listener(state.auth, before);
+      });
+    },
     bootstrap: () => {
       const state = store.getState();
       return Object.freeze({

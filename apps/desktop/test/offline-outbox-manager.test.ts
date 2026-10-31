@@ -6,7 +6,7 @@ import { OfflineOutboxManager } from '../src/shell/renderer/infra/offline/outbox
 
 describe('D-OFFLINE-002: outbox queue/send/fail behavior', () => {
   test('outbox manager fails closed without IndexedDB or explicit ephemeral store', async () => {
-    const manager = new OfflineOutboxManager();
+    const manager = new OfflineOutboxManager({ scope: { realmEnvironmentId: 'realm-test', accountId: 'alice' } });
     await assert.rejects(
       () => manager.open(),
       /OfflineOutboxManager requires IndexedDB or explicit enableEphemeralStore=true/,
@@ -14,7 +14,7 @@ describe('D-OFFLINE-002: outbox queue/send/fail behavior', () => {
   });
 
   test('queueOutboxEntry rejects when outbox full', async () => {
-    const manager = new OfflineOutboxManager({ enableEphemeralStore: true });
+    const manager = new OfflineOutboxManager({ enableEphemeralStore: true, scope: { realmEnvironmentId: 'realm-test', accountId: 'alice' } });
     await manager.open();
     for (let index = 0; index < 1000; index += 1) {
       await manager.upsertChatOutboxEntry({
@@ -40,7 +40,7 @@ describe('D-OFFLINE-002: outbox queue/send/fail behavior', () => {
   });
 
   test('outbox entries stay FIFO by enqueuedAt', async () => {
-    const manager = new OfflineOutboxManager({ enableEphemeralStore: true });
+    const manager = new OfflineOutboxManager({ enableEphemeralStore: true, scope: { realmEnvironmentId: 'realm-test', accountId: 'alice' } });
     await manager.open();
     await manager.upsertChatOutboxEntry({
       clientMessageId: 'later',
@@ -62,8 +62,8 @@ describe('D-OFFLINE-002: outbox queue/send/fail behavior', () => {
     assert.deepEqual(entries.map((entry) => entry.clientMessageId), ['earlier', 'later']);
   });
 
-  test('markChatOutboxSent deletes the delivered entry', async () => {
-    const manager = new OfflineOutboxManager({ enableEphemeralStore: true });
+  test('removeChatOutboxEntry deletes the delivered entry', async () => {
+    const manager = new OfflineOutboxManager({ enableEphemeralStore: true, scope: { realmEnvironmentId: 'realm-test', accountId: 'alice' } });
     await manager.open();
     await manager.upsertChatOutboxEntry({
       clientMessageId: 'cm-1',
@@ -73,12 +73,12 @@ describe('D-OFFLINE-002: outbox queue/send/fail behavior', () => {
       attempts: 0,
       status: 'pending',
     });
-    await manager.markChatOutboxSent('cm-1');
+    await manager.removeChatOutboxEntry('cm-1');
     assert.equal(await manager.getChatOutboxEntry('cm-1'), undefined);
   });
 
   test('markChatOutboxFailed preserves the failed reason without retrying', async () => {
-    const manager = new OfflineOutboxManager({ enableEphemeralStore: true });
+    const manager = new OfflineOutboxManager({ enableEphemeralStore: true, scope: { realmEnvironmentId: 'realm-test', accountId: 'alice' } });
     await manager.open();
     await manager.upsertChatOutboxEntry({
       clientMessageId: 'cm-2',
@@ -97,7 +97,7 @@ describe('D-OFFLINE-002: outbox queue/send/fail behavior', () => {
 
 describe('D-OFFLINE-005: explicit ephemeral cache behavior', () => {
   test('cache manager fails closed without IndexedDB or explicit ephemeral store', async () => {
-    const manager = new OfflineCacheManager();
+    const manager = new OfflineCacheManager({ scope: { realmEnvironmentId: 'realm-test', accountId: 'alice' } });
     await assert.rejects(
       () => manager.open(),
       /OfflineCacheManager requires IndexedDB or explicit enableEphemeralStore=true/,
@@ -105,7 +105,7 @@ describe('D-OFFLINE-005: explicit ephemeral cache behavior', () => {
   });
 
   test('chat list cache keeps the latest configured 20 records', async () => {
-    const manager = new OfflineCacheManager({ enableEphemeralStore: true });
+    const manager = new OfflineCacheManager({ enableEphemeralStore: true, scope: { realmEnvironmentId: 'realm-test', accountId: 'alice' } });
     await manager.open();
     await manager.syncChatList(
       Array.from({ length: 25 }, (_, index) => ({
@@ -123,7 +123,7 @@ describe('D-OFFLINE-005: explicit ephemeral cache behavior', () => {
   });
 
   test('message cache keeps the latest configured 50 records per chat', async () => {
-    const manager = new OfflineCacheManager({ enableEphemeralStore: true });
+    const manager = new OfflineCacheManager({ enableEphemeralStore: true, scope: { realmEnvironmentId: 'realm-test', accountId: 'alice' } });
     await manager.open();
     await manager.syncChatMessages(
       'chat-1',
@@ -140,7 +140,7 @@ describe('D-OFFLINE-005: explicit ephemeral cache behavior', () => {
   });
 
   test('profile metadata survives explicit ephemeral store round-trips and worlds are never cached', async () => {
-    const manager = new OfflineCacheManager({ enableEphemeralStore: true });
+    const manager = new OfflineCacheManager({ enableEphemeralStore: true, scope: { realmEnvironmentId: 'realm-test', accountId: 'alice' } });
     await manager.open();
 
     await manager.syncProfileMetadata('profile:alice', {

@@ -198,14 +198,17 @@ test('AppProviders owns independent route, store, query, and i18n resources', as
       queryClient,
       realmHumanChatData: {} as RealmHumanChatData,
       realmSocialData: createRealmSocialData({
+        store,
         callApi: async () => {
           throw new Error('TEST_REALM_API_NOT_AVAILABLE');
         },
         emitDataError: () => undefined,
         now: () => 1,
         offline: Object.freeze({
+          capture() { return this; },
           async syncProfileMetadata() {},
           async loadProfileMetadata() { return null; },
+          async removeProfileMetadata() {},
           markCacheFallbackUsed() {},
           markRealmUnreachable() {},
         }),
@@ -313,8 +316,10 @@ function createCanonicalBindings(input: {
         },
         emitDataError: () => undefined,
         offline: Object.freeze({
+          capture() { return this; },
           async syncProfileMetadata() {},
           async loadProfileMetadata() { return null; },
+          async removeProfileMetadata() {},
           markCacheFallbackUsed() {},
           markRealmUnreachable() {},
         }),
