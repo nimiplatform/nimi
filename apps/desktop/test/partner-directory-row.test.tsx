@@ -62,3 +62,26 @@ test('a portrait-only delivery supplies the sidebar avatar without requesting or
   assert.equal(document.querySelector('img')?.src, 'https://media.example/card.webp');
   assert.ok(!document.body.innerHTML.includes('original.png'));
 });
+
+test('partner cards use uncropped high-resolution artwork while the sidebar keeps avatar renditions', () => {
+  const profile: Source = { ...source, media: { ...source.media, assets: { ...source.media.assets,
+    avatar: { id: 'artwork', kind: 'image', externalUrl: null, delivery: {
+      resourceId: 'artwork', contentVersion: 'a'.repeat(64), publicationGeneration: 1, policyVersion: 'v2', expiresAt: null,
+      previewUrl: null, originalUrl: 'https://media.example/original.png', video: null,
+      images: [
+        { purpose: 'avatar', families: [{ mimeType: 'image/webp', sources: [{ url: 'https://media.example/avatar.webp', width: 256, height: 256, mimeType: 'image/webp' }] }] },
+        { purpose: 'card', families: [{ mimeType: 'image/webp', sources: [{ url: 'https://media.example/banner.webp', width: 640, height: 264, mimeType: 'image/webp' }] }] },
+        { purpose: 'detail', families: [{ mimeType: 'image/webp', sources: [
+          { url: 'https://media.example/detail-640.webp', width: 640, height: 640, mimeType: 'image/webp' },
+          { url: 'https://media.example/detail-960.webp', width: 960, height: 960, mimeType: 'image/webp' },
+        ] }] },
+      ],
+    } },
+  } } };
+  const card = new JSDOM(renderToStaticMarkup(<PartnerArtwork source={profile} name="桑禾" />)).window.document;
+  assert.equal(card.querySelector('img')?.src, 'https://media.example/detail-640.webp');
+  assert.ok(card.querySelector('img')?.srcset.includes('detail-960.webp 960w'));
+  assert.ok(!card.body.innerHTML.includes('banner.webp'));
+  assert.ok(!card.body.innerHTML.includes('original.png'));
+  assert.equal(renderRow(partner, profile).querySelector('img')?.src, 'https://media.example/avatar.webp');
+});

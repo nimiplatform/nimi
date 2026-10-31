@@ -47,6 +47,7 @@ export function usePartnerSource(partner: PartnerDirectoryItem, accountId: strin
   return { ...source, avatarUrl: reference.data?.reference?.avatarUrl };
 }
 
+// @nimi-authority: rule.nimi.desktop.product-surfaces.partners
 export function PartnerArtwork({ source, avatarUrl, name, variant = 'card' }: { source?: PartnerSource; avatarUrl?: string; name: string; variant?: 'avatar' | 'card' | 'hero' }) {
   const { t } = useTranslation();
   const media = source?.media;
@@ -54,7 +55,9 @@ export function PartnerArtwork({ source, avatarUrl, name, variant = 'card' }: { 
   const avatar = variant === 'avatar';
   const asset = (avatar ? media?.assets.avatar : null) ?? media?.assets.portrait ?? media?.assets.referenceImage ?? media?.assets.profileCover ?? media?.assets.avatar;
   const external = asset?.externalUrl ?? (avatar ? media?.external.avatarUrl : null) ?? media?.external.portraitUrl ?? media?.external.avatarUrl ?? media?.external.referenceImageUrl ?? media?.external.profileCoverUrl ?? avatarUrl;
-  const preferredPurpose = variant;
+  // World card renditions are cropped to a wide banner. Keep character artwork
+  // uncropped so this surface can frame it at its own aspect ratio.
+  const preferredPurpose = avatar ? 'avatar' : hero ? 'hero' : 'detail';
   const purposes = asset?.delivery?.images.map(set => set.purpose) ?? [];
   const purpose = ([preferredPurpose, 'detail', 'card', 'hero', 'avatar'] as const).find(value => purposes.includes(value)) ?? preferredPurpose;
   return <MediaImage delivery={asset?.delivery} externalUrl={external} purpose={purpose}
