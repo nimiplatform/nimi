@@ -1,0 +1,12 @@
+Source Han Sans (思源黑体), Adobe official Simplified Chinese regional variable WOFF2.
+Upstream release commit: a4f7cf94edfb9d7ffbdfc4841de276358bd7e0f2
+Retrieved: 2026-10-30
+
+SourceHanSansCN-VF.otf.woff2 (unmodified):
+https://raw.githubusercontent.com/adobe-fonts/source-han-sans/a4f7cf94edfb9d7ffbdfc4841de276358bd7e0f2/Variable/WOFF2/OTF/Subset/SourceHanSansCN-VF.otf.woff2
+
+License: SIL Open Font License 1.1; see LICENSE.txt in this directory.
+https://github.com/adobe-fonts/source-han-sans
+
+Bundled locally for Home world-detail descriptions and full-story prose,
+without a remote font-service dependency or a system font installation.

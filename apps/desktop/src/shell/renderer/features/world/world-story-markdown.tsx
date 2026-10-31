@@ -1,6 +1,7 @@
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { openExternalUrl } from '@nimiplatform/kit/shell/renderer/bridge';
+import { worldTitlePhrases } from './world-title-phrases.js';
 
 type MarkdownNode = {
   type: string;
@@ -8,10 +9,24 @@ type MarkdownNode = {
   depth?: number;
   children?: MarkdownNode[];
   position?: { start: { offset?: number } };
-  data?: { hProperties?: Record<string, unknown> };
+  data?: { hName?: string; hProperties?: Record<string, unknown> };
 };
 
 const nodeText = (node: MarkdownNode): string => node.value ?? (node.children ?? []).map(nodeText).join('');
+
+function groupTitlePhrases(node: MarkdownNode): void {
+  node.children = node.children?.flatMap((child) => {
+    if (child.type === 'text') {
+      return worldTitlePhrases(child.value ?? '').map((value): MarkdownNode => ({
+        type: 'worldTitlePhrase',
+        children: [{ type: 'text', value }],
+        data: { hName: 'span', hProperties: { className: 'world-title-phrase' } },
+      }));
+    }
+    groupTitlePhrases(child);
+    return [child];
+  });
+}
 
 // @nimi-authority: rule.nimi.desktop.shell-ui.r013
 // Work on parsed Markdown: fenced code cannot create a chapter, and the
@@ -22,12 +37,19 @@ function remarkWorldStory(options: { excerpt: boolean; title?: string }) {
       const start = tree.children.findIndex((node) => ['paragraph', 'list', 'blockquote', 'table'].includes(node.type));
       if (start >= 0) {
         const heading = tree.children.slice(0, start).filter((node) => node.type === 'heading').at(-1);
+        if (heading) groupTitlePhrases(heading);
         const body: MarkdownNode[] = [];
         for (const node of tree.children.slice(start)) {
           if (node.type === 'heading' || body.length >= 3) break;
+          // Keep the lead prose together; a following list or table belongs
+          // in the full reader instead of becoming a clipped fragment.
+          if (body.length && ['list', 'table', 'code'].includes(node.type)) break;
           if (node.type !== 'thematicBreak') body.push(node);
         }
-        tree.children = [...(heading ? [heading] : []), ...body];
+        tree.children = [...(heading ? [heading] : []), {
+          type: 'worldStoryPreview', children: body,
+          data: { hProperties: { 'data-world-story-preview': '' }, hName: 'div' },
+        }];
       }
     } else {
       const first = tree.children[0];
@@ -60,7 +82,7 @@ export function WorldStoryMarkdown({ content, excerpt = false, title }: {
   return (
     <div
       data-testid={excerpt ? 'world-story-excerpt' : 'world-story-document'}
-      className={'min-w-0 break-words text-[var(--nimi-text-secondary)] [overflow-wrap:anywhere] '
+      className={'world-story-markdown min-w-0 break-words text-[var(--nimi-text-secondary)] [overflow-wrap:anywhere] '
         + '[&_p]:my-4 [&_p]:leading-[1.9] [&_p:first-child]:mt-0 [&_p:last-child]:mb-0 '
         + '[&_h1]:mb-5 [&_h1]:mt-10 [&_h1]:text-2xl [&_h1]:font-semibold [&_h1]:leading-relaxed '
         + '[&_h2]:mb-4 [&_h2]:mt-9 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:leading-relaxed '
@@ -74,7 +96,9 @@ export function WorldStoryMarkdown({ content, excerpt = false, title }: {
         + '[&_hr]:my-8 [&_hr]:border-[var(--nimi-border-subtle)] [&_strong]:font-semibold '
         + '[&_code]:font-mono [&_code]:text-[0.9em] [&_pre]:my-4 [&_pre]:overflow-x-auto [&_pre]:rounded-lg [&_pre]:bg-[var(--nimi-surface-panel)] [&_pre]:p-4 '
         + '[&_th]:border-b [&_th]:border-[var(--nimi-border-subtle)] [&_th]:p-3 [&_th]:text-left [&_td]:border-b [&_td]:border-[var(--nimi-border-subtle)] [&_td]:p-3 '
-        + (excerpt ? 'text-[length:var(--nimi-type-body-size)]' : 'text-base @min-[1120px]:text-[17px]')}
+        + (excerpt
+          ? 'world-detail-story-excerpt text-sm [&_[data-world-heading]]:m-0 [&_[data-world-heading]]:mb-3 [&_[data-world-story-preview]]:line-clamp-4 [&_[data-world-story-preview]_p]:my-0 [&_[data-world-story-preview]_p]:leading-[1.85]'
+          : 'text-base @min-[1120px]:text-[17px]')}
     >
       <ReactMarkdown
         remarkPlugins={[remarkGfm, [remarkWorldStory, { excerpt, title }]]}

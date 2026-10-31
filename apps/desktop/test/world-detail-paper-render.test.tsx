@@ -359,6 +359,37 @@ test('world detail computes scene section centering inside the scroll viewport',
   assert.equal(300 + 1200 - scrollTop + 250, 450);
 });
 
+test('world detail hero shows the existing topic category above the title like the story overline', async () => {
+  await changeLocale('zh');
+  try {
+    const markup = renderToStaticMarkup(
+      React.createElement(WorldDetailPage, {
+        world: { ...world, topicIds: ['fantasy'] },
+        topics: [{ id: 'fantasy', title: '奇幻异域', titleEn: 'Fantasy Worlds' }],
+        characters,
+        peopleCharacters: characters,
+        peopleCatalog: readyPeopleCatalog(characters.length),
+        history,
+        semantic,
+        audits: [],
+        publicAssets,
+        onBack: () => {},
+        onViewCharacter: () => {},
+      }),
+    );
+    const document = new JSDOM(markup).window.document;
+    const overview = document.querySelector('[data-testid="world-detail-overview"]')!;
+    const category = overview.querySelector('[data-testid="world-detail-category"]')!;
+
+    assert.equal(category.textContent, '奇幻异域');
+    assert.equal(category.nextElementSibling?.textContent, world.name);
+    assert.ok(category.className.includes('tracking-[0.24em]'));
+    assert.ok(!overview.textContent?.includes('历史世界'));
+  } finally {
+    await changeLocale('en');
+  }
+});
+
 test('paper world detail hero omits banner tags even when metadata has display tags', () => {
   const noisyWorld: WorldDetailData = {
     ...world,
@@ -424,21 +455,18 @@ test('paper world detail formats ISO wall-clock world time labels before renderi
   assert.match(display ?? '', /2026/);
 });
 
-test('world discovery puts source profiles ahead of the about and places sections', () => {
+test('world discovery shows source profiles without repeating world settings or scenes', () => {
   const html = renderToStaticMarkup(<WorldDetailPage world={world} characters={characters} peopleCharacters={characters} peopleCatalog={readyPeopleCatalog(105, { hasMore: true })} history={history} semantic={semantic} audits={[]} publicAssets={publicAssets} onViewCharacter={() => {}} />);
   const document = new JSDOM(html).window.document;
   const people = document.querySelector('#world-detail-characters')!;
-  const about = document.querySelector('[data-testid="world-detail-about"]')!;
-  assert.ok(people.compareDocumentPosition(about) & 4, 'people precede the about section');
-  assert.ok(about.textContent?.includes('文人交游体系'), 'the about section shows world systems');
-  assert.ok(about.textContent?.includes('人物之间通过书信、拜访、诗文唱和形成关系网络。'), 'the about section shows full system descriptions');
-  assert.ok(about.textContent?.includes('交游关系必须来自公开资料。'), 'the about section shows every system rule');
-  const places = document.querySelector('[data-testid="world-detail-scenes"]')!;
-  assert.ok(people.compareDocumentPosition(places) & 4, 'people precede the places section');
-  assert.ok(places.textContent?.includes('书院讲堂'));
-  assert.equal(places.querySelectorAll('[data-testid="world-scene-row"]').length, 2);
-  assert.ok(places.querySelector('button[aria-label="View 姚燧"]'), 'place rows list related people inline');
-  assert.ok(places.querySelector('button[aria-label="View 倪瓒"]'), 'place rows list related people inline');
+  assert.equal(document.querySelector('[data-testid="world-detail-about"]'), null);
+  assert.ok(!document.body.textContent?.includes('文人交游体系'), 'world systems stay in the world setting reader');
+  assert.ok(!document.body.textContent?.includes('交游关系必须来自公开资料。'), 'system rules are not repeated below the people gallery');
+  assert.equal(document.querySelector('[data-testid="world-detail-scenes"]'), null);
+  assert.equal(document.querySelector('[data-testid="world-scene-row"]'), null);
+  for (const scene of publicAssets.scenes) {
+    assert.ok(!document.body.textContent?.includes(scene.description), 'scene descriptions stay off the detail page');
+  }
   assert.equal(people.querySelectorAll('[data-testid="world-person-card"]').length, characters.length);
   assert.equal(people.querySelectorAll('button[aria-label^="View "]').length, characters.length);
   assert.ok(people.textContent?.includes('105 people'));
@@ -463,7 +491,7 @@ test('world discovery presents people with identity metadata and a short biograp
   assert.equal(card.querySelector('[data-testid="world-person-bio"]')?.textContent, galleryCharacters[0].bio);
 });
 
-test('world discovery renders avatar-only managed media with the issued avatar purpose', () => {
+test('world discovery uses full-size artwork from the avatar slot when detail renditions are issued', () => {
   const avatarMedia: NonNullable<WorldCharacter['avatarMedia']> = {
     resourceId: 'avatar-1',
     contentVersion: 'a'.repeat(64),
@@ -481,19 +509,38 @@ test('world discovery renders avatar-only managed media with the issued avatar p
     }],
     video: null,
   };
-  const galleryCharacters = [{ ...characters[0], avatarMedia }];
-  const html = renderToStaticMarkup(<WorldDetailPage world={world} characters={galleryCharacters} peopleCharacters={galleryCharacters} peopleCatalog={readyPeopleCatalog(galleryCharacters.length)} history={history} semantic={semantic} audits={[]} publicAssets={publicAssets} onViewCharacter={() => {}} />);
-  const document = new JSDOM(html).window.document;
-  const image = document.querySelector('[data-testid="world-person-card"] img');
+  const detail: NonNullable<WorldCharacter['avatarMedia']>['images'][number] = {
+    purpose: 'detail',
+    families: [{
+      mimeType: 'image/webp',
+      sources: [
+        { url: 'https://media.example/detail-320.webp', width: 320, height: 400, mimeType: 'image/webp' },
+        { url: 'https://media.example/detail-640.webp', width: 640, height: 800, mimeType: 'image/webp' },
+        { url: 'https://media.example/detail-960.webp', width: 960, height: 1200, mimeType: 'image/webp' },
+      ],
+    }],
+  };
+  for (const hasDetail of [true, false]) {
+    const galleryCharacters = [{
+      ...characters[0],
+      avatarMedia: { ...avatarMedia, images: hasDetail ? [...avatarMedia.images, detail] : avatarMedia.images },
+    }];
+    const html = renderToStaticMarkup(<WorldDetailPage world={world} characters={galleryCharacters} peopleCharacters={galleryCharacters} peopleCatalog={readyPeopleCatalog(galleryCharacters.length)} history={history} semantic={semantic} audits={[]} publicAssets={publicAssets} onViewCharacter={() => {}} />);
+    const document = new JSDOM(html).window.document;
+    const image = document.querySelector('[data-testid="world-person-card"] img');
 
-  assert.equal(image?.getAttribute('src'), 'https://media.example/avatar-256.webp');
-  assert.equal(image?.getAttribute('srcset'), 'https://media.example/avatar-256.webp 256w');
-  assert.equal(image?.getAttribute('width'), '256');
-  assert.equal(image?.getAttribute('height'), '256');
-  assert.ok(!image?.className.includes('aspect-'), 'the avatar keeps its original aspect ratio');
+    assert.equal(image?.getAttribute('src'), hasDetail ? 'https://media.example/detail-320.webp' : 'https://media.example/avatar-256.webp');
+    assert.equal(image?.getAttribute('srcset'), hasDetail
+      ? 'https://media.example/detail-320.webp 320w, https://media.example/detail-640.webp 640w, https://media.example/detail-960.webp 960w'
+      : 'https://media.example/avatar-256.webp 256w');
+    assert.equal(image?.getAttribute('sizes'), 'auto, 220px');
+    assert.equal(image?.getAttribute('width'), hasDetail ? '320' : '256');
+    assert.equal(image?.getAttribute('height'), hasDetail ? '400' : '256');
+    assert.ok(!image?.className.includes('aspect-'), 'the artwork keeps its original aspect ratio');
+  }
 });
 
-test('long description and system paragraphs remain full prose in the reader and on the homepage', () => {
+test('long descriptions remain full prose and system paragraphs stay in the reader', () => {
   const description = '世界中的每个人都有自己的日常。'.repeat(50);
   const system = '这个世界的社会和生活运转规则。'.repeat(100);
   const longWorld = { ...world, overview: null, description, bannerUrl: 'https://example.test/world.png' };
@@ -513,9 +560,7 @@ test('long description and system paragraphs remain full prose in the reader and
   assert.ok(!bannerFrame?.className.includes('aspect-[16/9]'), 'other worlds do not use the compact banner frame');
   assert.ok(!banner?.className.includes('object-contain'), 'other worlds do not use the contained banner treatment');
   assert.ok(document.querySelector('[data-testid="world-detail-open-reader"]'));
-  const about = document.querySelector('[data-testid="world-detail-about"]')!;
-  assert.ok(about.textContent?.includes(system), 'the about section shows world systems in full on the homepage');
-  assert.equal(about.textContent!.split(system).length - 1, 1, 'a system paragraph repeated as name and description renders once');
+  assert.ok(!document.body.textContent?.includes(system), 'system paragraphs are not repeated on the homepage');
   assert.ok(Array.from(document.querySelectorAll('h1,h2,h3')).every((heading) => !heading.textContent?.includes(system)));
   const entries = worldReadingEntries(longWorld, longSemantic, history);
   assert.ok(entries.find((entry) => entry.section === 'description')?.text.includes(description));
@@ -533,7 +578,7 @@ test('the x01 world keeps its complete portrait banner inside a compact frame', 
 });
 
 test('world following remains a single secondary action and disappears when unavailable', () => {
-  const render = (follow?: () => void) => new JSDOM(renderToStaticMarkup(<WorldDetailPage world={world} characters={[]} peopleCharacters={[]} peopleCatalog={readyPeopleCatalog(0)} history={emptyHistory} semantic={emptySemantic} audits={[]} publicAssets={publicAssets} onFollowWorld={follow} worldFollowed />)).window.document;
+  const render = (follow?: () => void, bannerUrl: string | null = null) => new JSDOM(renderToStaticMarkup(<WorldDetailPage world={{ ...world, bannerUrl }} characters={[]} peopleCharacters={[]} peopleCatalog={readyPeopleCatalog(0)} history={emptyHistory} semantic={emptySemantic} audits={[]} publicAssets={publicAssets} onFollowWorld={follow} worldFollowed />)).window.document;
   const followed = render(() => {});
   const button = followed.querySelector('[data-testid="world-detail-follow-world"]');
   assert.equal(button?.getAttribute('aria-pressed'), 'true');
@@ -541,6 +586,15 @@ test('world following remains a single secondary action and disappears when unav
   assert.equal(button?.textContent?.trim(), '', 'the follow action is icon-only');
   assert.equal(followed.querySelectorAll('[data-testid="world-detail-follow-world"]').length, 1);
   assert.equal(render().querySelector('[data-testid="world-detail-follow-world"]'), null);
+
+  const withBanner = render(() => {}, 'https://example.test/world.png');
+  const bannerButton = withBanner.querySelector('[data-testid="world-detail-follow-world"]');
+  assert.equal(bannerButton?.parentElement, withBanner.querySelector('[data-testid="world-detail-banner-frame"]'));
+  assert.ok(bannerButton?.className.includes('absolute'));
+  assert.ok(bannerButton?.className.includes('top-3'));
+  assert.ok(bannerButton?.className.includes('right-3'));
+  assert.ok(bannerButton?.className.includes('bg-black/45'));
+  assert.ok(bannerButton?.className.includes('backdrop-blur-md'));
 });
 
 test('the full world reader does not lose levels or realms beyond old visual-card limits', () => {
@@ -645,6 +699,19 @@ test('Markdown headings stay faithful through code fences, duplicate titles and 
   assert.ok(document.body.textContent?.includes('来源说明'));
 });
 
+test('world story brings illustrations into its lead without clipping a following list into the preview', () => {
+  const setting = '## 开篇\n\n出发前的完整段落。\n\n- 留给完整阅读的细节';
+  const props = { world: { ...world, setting }, characters: [], peopleCharacters: [], peopleCatalog: readyPeopleCatalog(0), history: emptyHistory, semantic: emptySemantic, audits: [], publicAssets };
+  const document = new JSDOM(renderToStaticMarkup(<WorldDetailPage {...props} />)).window.document;
+  const story = document.querySelector('[data-testid="world-detail-story"]')!;
+  assert.ok(story.querySelector('[data-testid="world-detail-illustrations"] img'));
+  assert.equal(document.querySelectorAll('[data-testid="world-detail-illustrations"]').length, 1);
+  assert.ok(story.textContent?.includes('出发前的完整段落。'));
+  assert.ok(!story.textContent?.includes('留给完整阅读的细节'));
+  const reader = new JSDOM(renderToStaticMarkup(<WorldDetailPage {...props} initialSubpage="reader" />)).window.document;
+  assert.ok(reader.querySelector('[data-testid="world-story-document"] li')?.textContent?.includes('留给完整阅读的细节'));
+});
+
 test('world reading participates in Home back and forward navigation without losing the people query', async () => {
   const { createHomeNavigation } = await import('../src/shell/renderer/app-shell/providers/home-navigation.js');
   const navigation = createHomeNavigation();
@@ -661,7 +728,7 @@ test('world reading participates in Home back and forward navigation without los
   } finally { navigation.dispose(); }
 });
 
-test('the reading journey restores overview scroll and resets it for another world', async () => {
+test('the reading journey uses shell navigation and resets scroll for another world', async () => {
   const { act, createRef } = await import('react');
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost', pretendToBeVisual: true });
   const globals = {
@@ -680,25 +747,49 @@ test('the reading journey restores overview scroll and resets it for another wor
   let jumpedTo = '';
   dom.window.HTMLElement.prototype.scrollIntoView = function () { jumpedTo = this.id; };
   const nextFrame = () => new Promise<void>((resolve) => dom.window.requestAnimationFrame(() => resolve()));
-  const storyWorld = { ...world, setting: '# 世界\n\n## 第一节\n\n第一段。\n\n## 第二节\n\n第二段。' };
-  const render = (id: string) => <div ref={viewport}><WorldDetailPage world={{ ...storyWorld, id }} characters={[]} peopleCharacters={[]} peopleCatalog={readyPeopleCatalog(0)} history={emptyHistory} semantic={emptySemantic} audits={[]} publicAssets={{ scenes: [], resourceRefs: [], externalRefs: [], intents: [] }} rootScrollViewportRef={viewport} /></div>;
+  const storyWorld = { ...world, setting: '# 世界\n\n## 第一卷\n\n### 第一节\n\n第一段。\n\n### 第二节\n\n第二段。\n\n## 第二卷\n\n### 第三节\n\n第三段。' };
+  const storyAssets = { scenes: [], resourceRefs: [], externalRefs: [
+    { refId: 'first', kind: 'highlight-1', uri: 'https://example.test/first.png' },
+    { refId: 'second', kind: 'highlight-2', uri: 'https://example.test/second.png' },
+  ], intents: [] };
+  const render = (id: string, initialSubpage?: 'reader' | null) => <div ref={viewport}><WorldDetailPage world={{ ...storyWorld, id }} characters={[]} peopleCharacters={[]} peopleCatalog={readyPeopleCatalog(0)} history={emptyHistory} semantic={emptySemantic} audits={[]} publicAssets={storyAssets} initialSubpage={initialSubpage} rootScrollViewportRef={viewport} /></div>;
   try {
     await act(async () => { root.render(render('world-1')); });
     await act(nextFrame);
+    const illustration = () => dom.window.document.querySelector<HTMLImageElement>('[data-testid="world-detail-illustrations"] img[alt]:not([alt=""])')!;
+    const secondImage = dom.window.document.querySelectorAll<HTMLButtonElement>('[data-testid="world-illustration-thumbnails"] button')[1]!;
+    await act(async () => secondImage.click());
+    assert.equal(illustration().getAttribute('src'), 'https://example.test/second.png');
+    assert.equal(secondImage.getAttribute('aria-pressed'), 'true');
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      await act(async () => { illustration().dispatchEvent(new dom.window.Event('error')); });
+    }
+    assert.equal(illustration().getAttribute('src'), 'https://example.test/first.png');
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      await act(async () => { illustration().dispatchEvent(new dom.window.Event('error')); });
+    }
+    assert.equal(dom.window.document.querySelector('[data-testid="world-detail-illustrations"]'), null);
+    assert.ok(dom.window.document.querySelector('[data-testid="world-detail-open-reader"]'));
     viewport.current!.scrollTop = 180;
     await act(async () => { (dom.window.document.querySelector('[data-testid="world-detail-open-reader"]') as HTMLButtonElement).click(); });
     await act(nextFrame);
     assert.equal(viewport.current!.scrollTop, 0);
     assert.ok(dom.window.document.querySelector('main[data-testid="world-detail-reader"]'));
+    const chapterToggles = [...dom.window.document.querySelectorAll<HTMLButtonElement>('[data-testid="world-reader-contents"] button[aria-expanded]')];
+    assert.equal(chapterToggles.length, 3, 'the authored title and volumes retain their nested hierarchy');
+    const secondVolume = chapterToggles.find((button) => button.getAttribute('aria-label')?.includes('第二卷'))!;
+    if (secondVolume.getAttribute('aria-expanded') === 'true') await act(async () => secondVolume.click());
+    await act(async () => secondVolume.click());
+    assert.equal(secondVolume.getAttribute('aria-expanded'), 'true');
+    const firstVolume = chapterToggles.find((button) => button.getAttribute('aria-label')?.includes('第一卷'))!;
+    if (firstVolume.getAttribute('aria-expanded') !== 'true') await act(async () => firstVolume.click());
     const chapter = [...dom.window.document.querySelectorAll<HTMLButtonElement>('[data-testid="world-reader-contents"] button')].find((button) => button.textContent === '第二节')!;
     await act(async () => chapter.click());
     assert.ok(jumpedTo.startsWith('world-story-heading-'));
     assert.equal(dom.window.document.activeElement?.textContent, '第二节');
-    const back = [...dom.window.document.querySelectorAll<HTMLButtonElement>('button')].find((button) => button.textContent === 'Back to world')!;
-    await act(async () => back.click());
-    await act(nextFrame);
-    assert.equal(viewport.current!.scrollTop, 180);
-    assert.ok(dom.window.document.querySelector('[data-testid="world-detail-discovery"]'));
+    assert.equal(secondVolume.getAttribute('aria-expanded'), 'true', 'navigation preserves explicitly expanded chapters');
+    assert.equal(dom.window.document.querySelector('[data-testid="world-reader-next"]')?.textContent, 'Next section第二卷');
+    assert.equal(dom.window.document.querySelector('[data-testid="world-reader-back"]'), null, 'return navigation belongs to the shell back action');
     await act(async () => { root.render(render('world-2')); });
     await act(nextFrame);
     assert.equal(viewport.current!.scrollTop, 0);

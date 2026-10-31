@@ -12,7 +12,7 @@ import { WorldDetailPage } from './world-detail-template';
 import type { WorldCharacter } from './world-detail-types';
 import { useWorldPeopleCatalog } from './world-detail-people-catalog.js';
 import type { WorldListItem } from './world-list-model';
-import { fetchWorldPrimaryDisplayDetail, fetchWorldSupplementalDisplayDetail, toWorldPrimaryDisplayDetail, toWorldSupplementalDisplayDetail, type WorldDisplayDetail, toWorldDisplayFallback, worldDisplayDetailQueryKey, worldPrimaryDisplayDetailQueryKey, worldSupplementalDisplayDetailQueryKey } from './world-detail-queries';
+import { fetchWorldPrimaryDisplayDetail, fetchWorldSupplementalDisplayDetail, toWorldPrimaryDisplayDetail, toWorldSupplementalDisplayDetail, type WorldDisplayDetail, toWorldDisplayFallback, WORLD_CATALOG_CONTRACT_VERSION, worldDisplayDetailQueryKey, worldPrimaryDisplayDetailQueryKey, worldSupplementalDisplayDetailQueryKey } from './world-detail-queries';
 import { useFollowedWorlds } from './world-follow-store-context.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { createRealmWorldData } from './data/realm-world-data.js';
@@ -100,6 +100,12 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
     };
   }, [primaryRecord]);
   const offlineTier = useAppStore((state) => state.offlineTier);
+  const worldTopicsQuery = useQuery({
+    queryKey: ['world-topics', WORLD_CATALOG_CONTRACT_VERSION, realmBaseUrl],
+    queryFn: () => realmWorldData.loadWorldTopics(),
+    enabled: isReady && offlineTier === 'L0',
+    staleTime: 60_000,
+  });
   const { peopleCharacters, peopleCatalog } = useWorldPeopleCatalog({
     worldId: world.id,
     worldCreatedAt: world.createdAt,
@@ -264,6 +270,7 @@ export function WorldDetail({ world, onBack, initialSubpage }: WorldDetailProps)
         semantic={safeSemantic}
         audits={safeAudits}
         publicAssets={safePublicAssets}
+        topics={worldTopicsQuery.data ?? []}
         loading={initialLoading}
         error={pageError}
         charactersLoading={primaryLoading}

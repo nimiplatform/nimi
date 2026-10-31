@@ -61,6 +61,7 @@ export type WorldDetailData = {
   readonly genre?: string | null;
   readonly era?: string | null;
   readonly themes?: readonly string[] | null;
+  readonly topicIds?: readonly string[];
   readonly entityCount?: number;
   readonly relationshipCount?: number;
   readonly personaCharacterCount?: number;

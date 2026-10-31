@@ -6,6 +6,7 @@ import { WorldCharacterQuickSheet } from './world-detail-quick-sheets.js';
 import { WorldRelationshipExplorer } from './world-detail-relationship-explorer.js';
 import { WorldDetailDiscovery } from './world-detail-discovery.js';
 import { WorldDetailReader } from './world-detail-reader.js';
+import type { WorldAtlasTopic } from './world-atlas.js';
 import type { WorldDetailInitialSubpage } from '../../app-shell/providers/store-types.js';
 import { derivedScenes } from './world-detail-template-model.js';
 import { WorldDetailPageSkeleton } from './world-detail-skeletons.js';
@@ -20,6 +21,7 @@ export type WorldDetailPageProps = {
   semantic: WorldSemanticData;
   audits: WorldAuditItem[];
   publicAssets: WorldPublicAssetsData;
+  topics?: readonly WorldAtlasTopic[];
   loading?: boolean;
   error?: boolean;
   charactersLoading?: boolean;
@@ -89,11 +91,11 @@ function WorldDetailPageBody(props: WorldDetailPageProps) {
   };
   let content;
   if (subpage === 'reader') {
-    content = <WorldDetailReader world={props.world} semantic={props.semantic} history={props.history} loading={props.semanticLoading || props.historyLoading} incomplete={props.readingIncomplete} onRetry={props.onRetryReading} onClose={backToWorld} scrollViewportRef={props.rootScrollViewportRef} />;
+    content = <WorldDetailReader key={props.world.id} world={props.world} semantic={props.semantic} history={props.history} loading={props.semanticLoading || props.historyLoading} incomplete={props.readingIncomplete} onRetry={props.onRetryReading} scrollViewportRef={props.rootScrollViewportRef} />;
   } else if (subpage === 'relationship-explorer') {
     content = <WorldRelationshipExplorer world={props.world} characters={props.peopleCharacters} catalog={props.peopleCatalog} onBack={backToWorld} onSelectCharacter={selectCharacter} onViewCharacter={viewCharacter} />;
   } else {
-    content = <WorldDetailDiscovery key={props.world.id} props={props} scenes={scenes} onViewCharacter={viewCharacter} onReadWorld={readWorld} />;
+    content = <WorldDetailDiscovery key={props.world.id} props={props} onViewCharacter={viewCharacter} onReadWorld={readWorld} />;
   }
   return <>{content}{selectedCharacter ? <WorldCharacterQuickSheet character={selectedCharacter} onClose={() => setSelectedCharacter(null)} onViewCharacter={props.onViewCharacter} /> : null}</>;
 }

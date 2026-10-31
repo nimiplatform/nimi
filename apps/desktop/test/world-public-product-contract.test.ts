@@ -259,6 +259,7 @@ test('World detail list-item fallback consumes the already projected world list 
   assert.equal(fallback.name, 'Eldoria');
   assert.equal(fallback.description, 'A kingdom-scale fantasy setting for source discovery.');
   assert.equal(fallback.characterCount, 1);
+  assert.deepEqual(fallback.topicIds, item.topicIds);
   assert.equal(fallback.time.currentWorldTime, '2026-06-19T00:00:00.000Z');
 });
 

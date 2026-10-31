@@ -1,0 +1,13 @@
+Source Han Serif SC (思源宋体), Adobe official Simplified Chinese SemiBold OpenType.
+Version: 2.003
+Upstream release commit: 7889f11bf31170b5d092a083b357c8c8130f89e0
+Retrieved: 2026-10-30
+
+SourceHanSerifSC-SemiBold.otf (unmodified static SemiBold, weight 600):
+https://raw.githubusercontent.com/adobe-fonts/source-han-serif/7889f11bf31170b5d092a083b357c8c8130f89e0/OTF/SimplifiedChinese/SourceHanSerifSC-SemiBold.otf
+
+License: SIL Open Font License 1.1; see LICENSE.txt in this directory.
+https://github.com/adobe-fonts/source-han-serif
+
+Bundled locally for Home world-detail banner and story titles, without a remote
+font-service dependency or a requirement to install fonts on the user's system.

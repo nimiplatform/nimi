@@ -86,6 +86,7 @@ function worldListItemToDisplayData(listItem: WorldListItem): WorldDetailData {
     genre: listItem.genre,
     era: listItem.era,
     themes: listItem.themes,
+    topicIds: listItem.topicIds,
     entityCount: listItem.entityCount,
     relationshipCount: listItem.relationshipCount,
     personaCharacterCount: listItem.personaCharacterCount,

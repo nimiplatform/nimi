@@ -88,6 +88,7 @@ export type WorldListItem = {
   contentRating?: string | null;
   genre: string | null;
   themes: string[];
+  topicIds?: string[];
   era: string | null;
   iconUrl: string | null;
   bannerUrl: string | null;
@@ -373,6 +374,7 @@ export function toWorldListItem(raw: WorldDetailDto | WorldDetailWithCharactersD
     contentRating: typeof raw.contentRating === 'string' ? raw.contentRating : null,
     genre: readString(raw.genre),
     themes: readStringArray(raw.themes),
+    topicIds: readStringArray(raw.topicIds),
     era: readString(raw.era),
     iconMedia: readMediaDelivery(raw.iconMedia),
     bannerMedia: readMediaDelivery(raw.bannerMedia),
