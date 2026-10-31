@@ -64,7 +64,7 @@ function toDesktopPendingTimelineMessage(
   };
 }
 
-function timelineTimestamp(message: RealmChatTimelineMessage): number {
+function timelineTimestamp(message: RealmMessageViewDto): number {
   const timestamp = Date.parse(String(message.createdAt || ''));
   return Number.isFinite(timestamp) ? timestamp : 0;
 }
@@ -127,24 +127,37 @@ export function useHumanTimelineModel(selectedChatId: string | null, selectedCha
     return { items: [...byId.values()], offlineOutbox: messagePages.data.pages[0]?.offlineOutbox ?? [] };
   }, [messagePages.data]);
   const messagesQuery = { ...messagePages, data: messageData };
-  const readPosition = useRef('');
-  const readScope = `${realmBaseUrl}:${currentUserId}:${selectedChatId}`;
-  const currentReadScope = useRef(readScope);
-  currentReadScope.current = readScope;
+  // Realm pages arrive newest first. On equal timestamps keep their order,
+  // without interpreting opaque IDs or including local sends and uploads.
+  const newestMessage = useMemo(() => messageData?.items.reduce<RealmMessageViewDto | null>(
+    (latest, message) => !latest || timelineTimestamp(message) > timelineTimestamp(latest) ? message : latest,
+    null,
+  ) ?? null, [messageData]);
+  const readPosition = useRef<{ message: RealmMessageViewDto; failed: boolean } | null>(null);
+  const readScope = JSON.stringify([realmBaseUrl, realmEnvironmentId, currentUserId, selectedChatId]);
+  const readTarget = useRef({ scope: readScope, newestMessage });
+  readTarget.current = { scope: readScope, newestMessage };
   const [readError, setReadError] = useState<string | null>(null);
-  useEffect(() => { readPosition.current = ''; setReadError(null); }, [selectedChatId, currentUserId, realmBaseUrl]);
+  useEffect(() => { readPosition.current = null; setReadError(null); }, [readScope]);
   const acknowledgeRead = useCallback(async (messageId: string) => {
-    if (!selectedChatId || currentReadScope.current !== readScope || document.visibilityState !== 'visible' || messageId <= readPosition.current) return;
-    readPosition.current = messageId;
+    if (!selectedChatId || readTarget.current.scope !== readScope || document.visibilityState !== 'visible') return;
+    const previous = readPosition.current;
+    const retry = previous?.failed && previous.message.id === messageId;
+    const message = retry ? previous.message : readTarget.current.newestMessage;
+    if (!message || message.id !== messageId) return;
+    if (previous && !retry) {
+      if (previous.message.id === messageId || timelineTimestamp(message) < timelineTimestamp(previous.message)) return;
+    }
+    const attempt = { message, failed: false };
+    readPosition.current = attempt;
+    setReadError(null);
     try {
       await realmHumanChatData.markChatAsRead(selectedChatId, messageId);
-      if (currentReadScope.current !== readScope) return;
-      setReadError(null);
+      if (readTarget.current.scope !== readScope) return;
       void queryClient.invalidateQueries({ queryKey: ['chats'] });
     } catch {
-      if (currentReadScope.current !== readScope) return;
-      if (readPosition.current === messageId) {
-        readPosition.current = '';
+      if (readTarget.current.scope === readScope && readPosition.current === attempt) {
+        attempt.failed = true;
         setReadError(messageId);
       }
     }
@@ -249,7 +262,7 @@ export function useHumanTimelineModel(selectedChatId: string | null, selectedCha
     isStreaming,
     acknowledgeRead,
     readError,
-    newestMessageId: messageData?.items.reduce((latest, item) => item.id > latest ? item.id : latest, '') || null,
+    newestMessageId: newestMessage?.id ?? null,
     hasOlderMessages: messagePages.hasNextPage,
     loadingOlderMessages: messagePages.isFetchingNextPage,
     olderMessagesError: messagePages.isFetchNextPageError,
