@@ -1,6 +1,6 @@
 {
   "pageTitle": "Privacy",
-  "pageDescription": "Control access to your profile, social information and online status",
+  "pageDescription": "Choose who can see your profile and contact you. Changes save automatically.",
   "loading": "Loading privacy settings...",
   "loadError": "Failed to load privacy settings",
   "updateError": "Failed to update privacy settings",
@@ -10,7 +10,6 @@
   "visibilityModeDescription": "Quick switch between preset privacy configurations",
   "customModeHint": "Using custom settings. Select a preset mode above to reset.",
   "modeOpen": "Open",
-  "modeSmarterFilter": "Smarter Filter",
   "modeStrict": "Strict",
   "messagingSectionTitle": "Direct Messages",
   "messagingSectionDescription": "Choose who can send you direct messages",
@@ -19,12 +18,12 @@
   "visibilityPrivate": "Private",
   "profileVisibilityLabel": "Profile Visibility",
   "profileVisibilityHelper": "Who can view your full profile",
-  "friendRequestVisibilityLabel": "Friend Request Visibility",
-  "friendRequestVisibilityHelper": "Who can send you friend requests",
+  "friendRequestVisibilityLabel": "New friend requests",
+  "friendRequestVisibilityHelper": "Closing requests keeps your friends and existing requests.",
   "socialVisibilityLabel": "Social Visibility",
   "socialVisibilityHelper": "Who can see your social graph presence",
   "friendListVisibilityLabel": "Friend List Visibility",
-  "friendListVisibilityHelper": "Who can see your friend list",
+  "friendListVisibilityHelper": "Who can see your friend list and friend count",
   "onlineStatusVisibilityLabel": "Online Status Visibility",
   "onlineStatusVisibilityHelper": "Who can see your online status",
   "directMessageVisibilityLabel": "Direct Message Visibility",
@@ -34,5 +33,8 @@
   "tagProfile": "Profile",
   "tagRequests": "Requests",
   "tagSocial": "Social",
-  "tagDirectMessage": "DM"
+  "tagDirectMessage": "DM",
+  "modeFriendsOnly": "Friends can message",
+  "requestsAllowed": "Allow requests",
+  "requestsClosed": "No new requests"
 }

@@ -22,13 +22,14 @@ test('privacy autosave pauses after a failed save until an explicit retry or a n
   const { AppStoreProvider } = await import('../src/shell/renderer/app-shell/providers/app-store.js');
   const { createAppStore } = await import('../src/shell/renderer/app-shell/providers/app-store-factory.js');
   const appStore = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference: () => {} });
+  appStore.setState({ auth: { status: 'authenticated', sequence: '1', reasonCode: 0, accountReasonCode: 0, authorizationRevision: 'rev-1', user: { id: 'account-a' } } });
   await appStore.navigation.push({ id: 'settings', settingsSection: 'privacy' });
   const { PrivacyPage } = await import('../src/shell/renderer/features/settings/settings-privacy-page.js');
   const { DesktopMotionProvider } = await import('../src/shell/renderer/ui/motion/desktop-motion-context.js');
   await initI18n();
   await changeLocale('en');
 
-  const settings = { profileVisibility: 'PUBLIC', onlineStatusVisibility: 'PUBLIC', defaultPostVisibility: 'PUBLIC', dmVisibility: 'PUBLIC', allowFriendRequests: true, allowMentions: true };
+  const settings = { profileVisibility: 'PUBLIC', onlineStatusVisibility: 'PUBLIC', friendListVisibility: 'FRIENDS', socialVisibility: 'PRIVATE', friendRequestVisibility: 'PUBLIC', dmVisibility: 'PUBLIC' };
   const updates: unknown[] = [];
   let failUpdates = true;
   const realm = { account: {
@@ -78,7 +79,9 @@ test('privacy autosave pauses after a failed save until an explicit retry or a n
     await act(async () => { strict.click(); });
     await flushAutosave();
     assert.equal(updates.length, 1);
-    assert.equal(Object.hasOwn(updates[0] as object, 'defaultPostVisibility'), false);
+    assert.equal(Object.hasOwn(updates[0] as object, 'socialVisibility'), false);
+    assert.equal((updates[0] as { friendListVisibility: string }).friendListVisibility, 'PRIVATE');
+    assert.equal((updates[0] as { friendRequestVisibility: string }).friendRequestVisibility, 'PRIVATE');
     assert.equal((updates[0] as { dmVisibility: string }).dmVisibility, 'FRIENDS');
     assert.equal((updates[0] as { onlineStatusVisibility: string }).onlineStatusVisibility, 'PRIVATE');
     for (let cycle = 0; cycle < 5; cycle += 1) await flushAutosave();
@@ -94,7 +97,7 @@ test('privacy autosave pauses after a failed save until an explicit retry or a n
     assert.equal(updates.length, 2);
 
     failUpdates = false;
-    await act(async () => { radio('Smarter Filter')!.click(); });
+    await act(async () => { radio('Friends can message')!.click(); });
     await flushAutosave();
     assert.equal(updates.length, 3, 'a new edit schedules a new save');
   } finally {

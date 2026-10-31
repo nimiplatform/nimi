@@ -1,6 +1,6 @@
 {
   "pageTitle": "隐私",
-  "pageDescription": "控制个人资料、社交信息与在线状态的访问范围",
+  "pageDescription": "选择谁可以查看资料和联系你，修改会自动保存。",
   "loading": "正在加载隐私设置...",
   "loadError": "加载隐私设置失败",
   "updateError": "更新隐私设置失败",
@@ -10,7 +10,6 @@
   "visibilityModeDescription": "快速切换预设隐私配置",
   "customModeHint": "当前为自定义设置，选择上方模式可重置为预设",
   "modeOpen": "开放",
-  "modeSmarterFilter": "智能过滤",
   "modeStrict": "严格",
   "messagingSectionTitle": "私信",
   "messagingSectionDescription": "选择谁可以向你发送私信",
@@ -19,12 +18,12 @@
   "visibilityPrivate": "仅自己",
   "profileVisibilityLabel": "个人主页可见性",
   "profileVisibilityHelper": "谁可以查看你的完整资料",
-  "friendRequestVisibilityLabel": "好友申请可见性",
-  "friendRequestVisibilityHelper": "谁可以向你发送好友申请",
+  "friendRequestVisibilityLabel": "新的好友申请",
+  "friendRequestVisibilityHelper": "关闭后保留现有好友和已收到的申请。",
   "socialVisibilityLabel": "社交关系可见性",
   "socialVisibilityHelper": "谁可以看到你的社交关系",
   "friendListVisibilityLabel": "好友列表可见性",
-  "friendListVisibilityHelper": "谁可以看到你的好友列表",
+  "friendListVisibilityHelper": "谁可以看到你的好友名单和好友数量",
   "onlineStatusVisibilityLabel": "在线状态可见性",
   "onlineStatusVisibilityHelper": "谁可以看到你的在线状态",
   "directMessageVisibilityLabel": "私信可见性",
@@ -34,5 +33,8 @@
   "tagProfile": "主页",
   "tagRequests": "请求",
   "tagSocial": "社交",
-  "tagDirectMessage": "私信"
+  "tagDirectMessage": "私信",
+  "modeFriendsOnly": "好友私信",
+  "requestsAllowed": "允许申请",
+  "requestsClosed": "关闭新申请"
 }

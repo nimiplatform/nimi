@@ -3,8 +3,9 @@ import { useTranslation } from 'react-i18next';
 import { NimiText } from '@nimiplatform/kit/ui';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { InlineFeedback } from '../../ui/feedback/inline-feedback';
-import { Button, Card, PageShell, Section, StatusBadge } from './settings-layout-components.js';
-import { MonitorIcon, ShieldIcon } from './settings-assets.js';
+import { Button, Card, PageShell, Section } from './settings-layout-components.js';
+import { ShieldIcon } from './settings-assets.js';
+import { HomeLoginSessions } from './home-login-sessions.js';
 
 // @nimi-authority: rule.nimi.desktop.shell-runtime.r023
 export function SecurityPage() {
@@ -28,13 +29,14 @@ export function SecurityPage() {
 
   return (
     <PageShell title={t('SecuritySettings.pageTitle')} description={t('SecuritySettings.pageDescription')}>
+      <HomeLoginSessions />
       <Section title={t('SecuritySettings.accountSecurityTitle')}>
         <Card>
           <div className="flex items-center justify-between gap-6">
             <div className="flex items-center gap-4">
               <ShieldIcon className="h-5 w-5 text-[var(--nimi-text-muted)]" />
               <div className="flex min-w-0 flex-col gap-1">
-                <NimiText role="label">{t('SecuritySettings.manageAccount')}</NimiText>
+                <NimiText role="label">{t('SecuritySettings.loginMethods')}</NimiText>
                 <NimiText role="caption">{t('SecuritySettings.manageAccountDescription')}</NimiText>
               </div>
             </div>
@@ -49,20 +51,6 @@ export function SecurityPage() {
               className="mt-4"
             />
           ) : null}
-        </Card>
-      </Section>
-      <Section title={t('SecuritySettings.activeSessionsTitle')} description={t('SecuritySettings.activeSessionsDescription')}>
-        <Card>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <MonitorIcon className="h-5 w-5 text-[var(--nimi-text-muted)]" />
-              <div className="flex flex-col">
-                <NimiText role="label">{t('SecuritySettings.thisDevice')}</NimiText>
-                <NimiText role="caption">{t('SecuritySettings.runtimeSession')}</NimiText>
-              </div>
-            </div>
-            <StatusBadge status="success" text={t('SecuritySettings.currentSession')} />
-          </div>
         </Card>
       </Section>
     </PageShell>

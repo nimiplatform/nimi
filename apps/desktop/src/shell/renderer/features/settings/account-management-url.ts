@@ -15,5 +15,5 @@ export function resolveAccountManagementUrl(configuredWebBaseUrl: string): strin
   if (parsed.protocol !== 'https:' && !(parsed.protocol === 'http:' && isLoopback(parsed.hostname))) {
     throw new Error('Nimi Web account management requires HTTPS.');
   }
-  return new URL('/account', parsed.origin).toString();
+  return new URL('/account/security', parsed.origin).toString();
 }
