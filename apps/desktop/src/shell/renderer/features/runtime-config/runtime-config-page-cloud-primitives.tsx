@@ -100,6 +100,7 @@ export function Input({
     <div>
       {label ? <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">{label}</label> : null}
       <TextField
+        aria-label={label}
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}

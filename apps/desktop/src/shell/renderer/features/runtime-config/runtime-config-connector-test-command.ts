@@ -1,6 +1,5 @@
 import { createRendererFlowId, logRendererEvent } from '@nimiplatform/kit/telemetry';
 import {
-  formatNimiRuntimeErrorBanner as formatRuntimeConfigErrorBanner,
   formatNimiRuntimeErrorDetail as formatRuntimeConfigErrorDetail,
 } from '@nimiplatform/sdk/runtime';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
@@ -9,12 +8,15 @@ import type { RuntimeConfigStateUpdater } from './runtime-config-types';
 import { checkConnectorHealth } from './runtime-config-connector-discovery';
 import type { RuntimeConfigConnectorSdkService } from './runtime-config-connector-sdk-service.js';
 import { replaceConnectorsInState } from './runtime-config-connector-actions.js';
+import type { TFunction } from 'i18next';
+import { humanizeConnectorError } from './runtime-config-connector-error-copy.js';
 
 function connectorTestFailureKind(status: string): InlineFeedbackState['kind'] {
   return status === 'degraded' ? 'warning' : 'error';
 }
 
 export async function runSelectedConnectorTestCommand(input: {
+  t: TFunction;
   state: RuntimeConfigStateV11;
   selectedConnector: RuntimeConfigStateV11['connectors'][number];
   connectorSdk: RuntimeConfigConnectorSdkService;
@@ -67,18 +69,20 @@ export async function runSelectedConnectorTestCommand(input: {
   if (health.status !== 'healthy') {
     input.setControlFeedback({
       kind: connectorTestFailureKind(health.status),
-      message: `${input.selectedConnector.label} test ${health.status}${health.detail ? `: ${health.detail}` : ''}`,
+      message: humanizeConnectorError(health.detail, input.t, 'check'),
+      technicalDetail: health.detail || undefined,
     });
     return;
   }
 
   input.setControlFeedback({
     kind: 'success',
-    message: `${input.selectedConnector.label} test passed`,
+    message: input.t('runtimeConfig.product.connectionCheckPassed', { name: input.selectedConnector.label }),
   });
 }
 
 export async function markSelectedConnectorTestFailedCommand(input: {
+  t: TFunction;
   state: RuntimeConfigStateV11;
   selectedConnector: RuntimeConfigStateV11['connectors'][number];
   now: () => number;
@@ -112,6 +116,7 @@ export async function markSelectedConnectorTestFailedCommand(input: {
 
   input.setControlFeedback({
     kind: 'error',
-    message: formatRuntimeConfigErrorBanner('Connector test failed', input.error),
+    message: humanizeConnectorError(errorText, input.t, 'check'),
+    technicalDetail: errorText,
   });
 }

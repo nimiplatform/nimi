@@ -4,6 +4,7 @@ import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } fr
 import { useTranslation } from 'react-i18next';
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { DESKTOP_NIMI_APP_ID } from '../chat/chat-nimi-app-ai-config.js';
+import { AppArtworkIcon } from '../apps/apps-card-visuals.js';
 import { resolveRuntimeSetupReturnTarget } from './runtime-setup-task-open.js';
 import type {
   NimiLoadoutRecipe,
@@ -12,7 +13,7 @@ import type {
   NimiRuntimeLocalTransferProgressEvent,
 } from '@nimiplatform/sdk/runtime';
 import { Button, IconButton, InlineAlert, LoadingSkeleton, ProgressIndicator, StatusBadge } from '@nimiplatform/kit/ui';
-import { ArrowLeft, CheckCircle2, ChevronDown, ChevronRight, ChevronUp, LoaderCircle, X } from 'lucide-react';
+import { ArrowLeft, Bot, CheckCircle2, ChevronDown, ChevronRight, ChevronUp, Laptop, LoaderCircle, X } from 'lucide-react';
 import { formatBytes, formatDurationShort, formatTransferRate } from '../../components/download-format.js';
 import { IdentityTile } from '../../components/identity-tile.js';
 import { useRuntimeConfigLocalEnvironmentClient } from './runtime-config-local-environment-sdk-service.js';
@@ -646,8 +647,9 @@ export function PreparationProgress(props: {
   );
 }
 
-function sourceOwnerLabel(task: RuntimeSetupTask, t: (key: string, options?: Record<string, unknown>) => string): string {
-  if (task.source.kind === 'app') return task.source.ownerAppId || task.source.kind;
+function sourceOwnerLabel(task: RuntimeSetupTask, t: (key: string, options?: Record<string, unknown>) => string, displayName?: string): string {
+  if (task.source.kind === 'app') return task.source.ownerAppId === DESKTOP_NIMI_APP_ID
+    ? t('runtimeConfig.cloudWorkspace.nimiChat') : displayName || task.source.ownerAppId || task.source.kind;
   if (task.source.kind === 'local-agent') {
     return t('runtimeConfig.setupTask.sourceLocalAgent', { defaultValue: 'the shared LocalAgent' });
   }
@@ -667,6 +669,9 @@ export function RuntimeConfigSetupTaskView(props: {
   readonly onClose: () => void;
   /** Result-page return affordance; defaults to onClose. */
   readonly onReturnToSource?: () => void;
+  /** Display-only name from the current Apps projection; never an owner selector. */
+  readonly sourceOwnerDisplayName?: string;
+  readonly sourceOwnerIconUrl?: string | null;
   readonly embedded?: boolean;
   readonly disabled?: boolean;
   readonly onImportModelFiles?: () => void;
@@ -674,6 +679,8 @@ export function RuntimeConfigSetupTaskView(props: {
   const { t } = useTranslation();
   const snapshot = useRuntimeSetupTasks(props.store);
   const task = snapshot.tasks.find((entry) => entry.taskId === props.taskId) ?? null;
+  const returnTarget = resolveRuntimeSetupReturnTarget(task?.source.returnFocus);
+  const fromCloud = returnTarget?.kind === 'destination' && returnTarget.destination.id === 'cloud';
   const [recipes, setRecipes] = useState<readonly NimiLoadoutRecipe[]>([]);
   const [recipesLoading, setRecipesLoading] = useState(false);
   const [recipesError, setRecipesError] = useState('');
@@ -699,6 +706,7 @@ export function RuntimeConfigSetupTaskView(props: {
   // The route is a draft fact: machine-scope tasks are always local, and a
   // consumer source chooses Local or Cloud explicitly.
   const route = task?.draft?.route ?? (task?.source.kind === 'runtime' ? 'local' : null);
+  const cloudConsumer = task?.source.kind !== 'runtime' && route === 'cloud';
   // When a required file has no downloadable offer, open the advanced editor
   // so the reviewed candidate can bind model files already on this device.
   const draftRecipe = candidateInfo?.recipe ?? recipes.find((entry) => entry.recipeId === task?.draft?.recipeId) ?? null;
@@ -915,8 +923,9 @@ export function RuntimeConfigSetupTaskView(props: {
     if (task && !task.draft?.profileUseId && runtimeSetupTaskUnconfirmed(task)) {
       discardRuntimeSetupTask(props.store, task.taskId);
     }
-    props.onClose();
-  }, [props.onClose, props.store, task]);
+    if (fromCloud && props.onReturnToSource) props.onReturnToSource();
+    else props.onClose();
+  }, [fromCloud, props.onClose, props.onReturnToSource, props.store, task]);
 
   const stopInfo = t('runtimeConfig.setupTask.stopInfo', {
     defaultValue: 'Stopping blocks further automatic writes. Saved configurations and shared component jobs are kept and may continue.',
@@ -992,13 +1001,14 @@ export function RuntimeConfigSetupTaskView(props: {
     const capabilityLabel = displayRuntimeConfigCapabilityLabel(currentTask.capabilityContract, t);
     if (route === 'cloud') {
       return (
-        <div className="space-y-3">
-          {currentTask.source.kind !== 'runtime' ? (
-            <Button tone="ghost" size="sm" disabled={busy} onClick={() => onSelectRoute('local')} data-testid="runtime-setup-route-back-local">
-              {t('runtimeConfig.setupTask.routeSwitchLocal', { defaultValue: 'Switch to Local setup' })}
-            </Button>
-          ) : null}
-          <RuntimeSetupTaskCloudPanel task={currentTask} store={props.store} ports={props.ports} onBusyChange={setBusy} />
+        <div className="space-y-4">
+          <RuntimeSetupTaskCloudPanel
+            task={currentTask} store={props.store} ports={props.ports} onBusyChange={setBusy}
+            ownerLabel={sourceOwnerLabel(currentTask, t, props.sourceOwnerDisplayName)}
+          />
+          {currentTask.source.kind !== 'runtime' ? <Button tone="ghost" size="sm" disabled={busy} onClick={() => onSelectRoute('local')} data-testid="runtime-setup-route-back-local">
+            <Laptop size={15} aria-hidden="true" />{t('runtimeConfig.setupTask.routeSwitchLocal', { defaultValue: 'Switch to Local setup' })}
+          </Button> : null}
         </div>
       );
     }
@@ -1294,8 +1304,6 @@ export function RuntimeConfigSetupTaskView(props: {
         );
       case 'done': {
         const isCloudRoute = task.draft?.route === 'cloud' && !task.candidateLoadoutId;
-        const returnTarget = resolveRuntimeSetupReturnTarget(task.source.returnFocus);
-        const fromCloud = returnTarget?.kind === 'destination' && returnTarget.destination.id === 'cloud';
         return (
           <div className="space-y-3" data-testid="runtime-setup-task-done">
             <InlineAlert tone="success">
@@ -1320,7 +1328,7 @@ export function RuntimeConfigSetupTaskView(props: {
             <Button tone="primary" onClick={props.onReturnToSource ?? props.onClose} data-testid="runtime-setup-task-return">
               {fromCloud ? t('runtimeConfig.cloudWorkspace.backToCloud') : task.source.kind === 'runtime'
                 ? t('runtimeConfig.setupTask.back', { defaultValue: 'Back' })
-                : t('runtimeConfig.setupTask.returnToSource', { defaultValue: 'Return to {{source}}', source: sourceOwnerLabel(task, t) })}
+                : t('runtimeConfig.setupTask.returnToSource', { defaultValue: 'Return to {{source}}', source: sourceOwnerLabel(task, t, props.sourceOwnerDisplayName) })}
             </Button>
             {fromCloud && task.source.kind !== 'runtime' ? <RuntimeSetupConsumerAction source={task.source} /> : null}
           </div>
@@ -1429,7 +1437,7 @@ export function RuntimeConfigSetupTaskView(props: {
   };
 
   return (
-    <section className={`min-w-0 ${props.embedded ? 'space-y-5' : 'space-y-6'}`} data-testid="runtime-setup-task-view" aria-label={t('runtimeConfig.setupTask.title', { defaultValue: 'Setup task' })}>
+    <section className={`min-w-0 ${props.embedded ? 'space-y-5' : 'space-y-6'} ${cloudConsumer && !props.embedded ? 'mx-auto w-full max-w-3xl pb-4' : ''}`} data-testid="runtime-setup-task-view" aria-label={t('runtimeConfig.setupTask.title', { defaultValue: 'Setup task' })}>
       {/* First, so the spacing utility never leaves a trailing margin under the visible content. */}
       <span className="sr-only" role="status">{task?.status === 'prepared' && candidateReadiness !== 'ready'
         ? t(`runtimeConfig.environment.${candidateReadiness === 'checking' ? 'candidateChecking' : 'candidateNeedsCheck'}`)
@@ -1445,12 +1453,28 @@ export function RuntimeConfigSetupTaskView(props: {
             <ArrowLeft size={15} />
             {task?.draft?.profileUseId
               ? t('runtimeConfig.profileRun.back')
-              : task ? t('runtimeConfig.setupTask.backToCapability', { defaultValue: 'Back to {{capability}}', capability: capabilityLabel }) : t('runtimeConfig.setupTask.close', { defaultValue: 'Close' })}
+              : fromCloud ? t('runtimeConfig.cloudWorkspace.backToCloud') : task ? t('runtimeConfig.setupTask.backToCapability', { defaultValue: 'Back to {{capability}}', capability: capabilityLabel }) : t('runtimeConfig.setupTask.close', { defaultValue: 'Close' })}
           </Button>
           {stopEarly}
         </div>
       )}
-      {task && !props.embedded ? (
+      {task && !props.embedded && cloudConsumer ? (
+        <header className="flex items-center gap-5 px-1 py-2">
+          {task.source.kind === 'app' ? <AppArtworkIcon
+            appId={task.source.ownerAppId ?? ''}
+            displayName={sourceOwnerLabel(task, t, props.sourceOwnerDisplayName)}
+            iconUrl={props.sourceOwnerIconUrl}
+            size="lg"
+          /> : <span className="flex size-16 shrink-0 items-center justify-center rounded-2xl bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]"><Bot size={32} aria-hidden="true" /></span>}
+          <div className="min-w-0">
+            <p className="mb-1 text-xs font-medium text-[var(--nimi-text-secondary)]">{t('runtimeConfig.setupTask.cloud.appSetupTitle', { defaultValue: 'Model settings' })}</p>
+            <h1 className="break-words text-2xl font-semibold tracking-tight" data-testid="runtime-setup-hero-title">
+              <span data-testid="runtime-setup-source-owner">{sourceOwnerLabel(task, t, props.sourceOwnerDisplayName)}</span>
+            </h1>
+            <p className="mt-1.5 text-sm leading-relaxed text-[var(--nimi-text-secondary)]">{t('runtimeConfig.setupTask.cloud.appSetupLead', { defaultValue: 'Choose a cloud model for {{capability}}.', capability: capabilityLabel })}</p>
+          </div>
+        </header>
+      ) : task && !props.embedded ? (
         <header className="flex items-center gap-3">
           <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]">
             <HeroIcon size={20} strokeWidth={1.7} aria-hidden="true" />
@@ -1461,7 +1485,7 @@ export function RuntimeConfigSetupTaskView(props: {
             </h1>
             {task.source.kind !== 'runtime' ? (
               <p className="mt-0.5 text-sm text-[var(--nimi-text-secondary)]" data-testid="runtime-setup-source-owner">
-                {t('runtimeConfig.setupTask.forSource', { defaultValue: 'Settings for {{owner}}', owner: sourceOwnerLabel(task, t) })}
+                {t('runtimeConfig.setupTask.forSource', { defaultValue: 'Settings for {{owner}}', owner: sourceOwnerLabel(task, t, props.sourceOwnerDisplayName) })}
               </p>
             ) : null}
             {modelTitle && task.status !== 'review' ? (

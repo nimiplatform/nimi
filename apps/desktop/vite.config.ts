@@ -134,7 +134,8 @@ export default defineConfig(({ mode }) => {
     publicDir: path.resolve(import.meta.dirname, 'src/shell/renderer/public'),
     optimizeDeps: {
       include: [
-        'hls.js',
+        // MediaVideo loads this Kit-owned dependency dynamically.
+        '@nimiplatform/kit > hls.js',
         'zustand',
         'zustand/traditional',
         // The overview is opened after Home. With HMR disabled, discovering
@@ -158,7 +159,6 @@ export default defineConfig(({ mode }) => {
         'react-dom',
         'react-i18next',
         'scheduler',
-        'hls.js',
         'zustand',
       ],
       alias: [

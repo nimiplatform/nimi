@@ -422,7 +422,6 @@ export const en: Copy = {
   },
   items: {
     title: 'Items',
-    workspaceHint: 'Capture what needs doing. Make room for it in your day.',
     searchShort: 'Search all items',
     allCircles: 'All people & areas',
     showingCircle: (name: string) => `Showing: ${name}`,

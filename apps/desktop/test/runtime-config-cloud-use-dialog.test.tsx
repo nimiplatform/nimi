@@ -63,9 +63,14 @@ async function withDialog(run: (fixture: {
   let closed = 0;
   let hide!: () => void;
   const taskStore = getRuntimeSetupTaskStore();
-  if (existingTask) taskStore.createTask({ capabilityContract: 'text.generate', source: {
-    kind: 'app', ownerAppId: 'nimi.desktop', accountId: 'cloud-use-account', returnFocus: 'apps',
-  } });
+  if (existingTask) {
+    const prior = taskStore.createTask({ capabilityContract: 'text.generate', source: {
+      kind: 'app', ownerAppId: 'nimi.desktop', accountId: 'cloud-use-account', returnFocus: 'apps',
+    } });
+    taskStore.updateTask(prior.taskId, () => ({
+      status: 'review', draft: { route: 'local', profileUseId: 'prior-profile-use', recipeId: 'local-recipe' },
+    }));
+  }
   const tasksBefore = JSON.stringify(taskStore.getSnapshot().tasks);
   function Harness() {
     const [visible, setVisible] = useState(true);
@@ -135,4 +140,21 @@ test('unmounting cloud use abandons its pending entry, while a current entry sti
     assert.equal(task?.source.ownerAppId, 'nimi.desktop');
     assert.equal(task?.draft?.cloudConnectorRef, 'connection-test');
   });
+});
+
+test('choosing an app with a pending local Profile opens cloud configuration without changing the old task', async () => {
+  await withDialog(async fixture => {
+    const before = JSON.parse(fixture.tasksBefore) as { taskId: string }[];
+    await fixture.choose();
+    await fixture.finishAccountRead();
+    assert.equal(fixture.opened.length, 1);
+    const task = fixture.taskStore.getTask(fixture.opened[0]!);
+    assert.equal(task?.source.ownerAppId, 'nimi.desktop');
+    assert.equal(task?.status, 'draft');
+    assert.equal(task?.draft?.route, 'cloud');
+    assert.equal(task?.draft?.cloudConnectorRef, 'connection-test');
+    assert.equal(task?.draft?.cloudTargetSearch, 'test-model');
+    assert.equal(task?.draft?.profileUseId, undefined, 'the cloud entry must not open the local Profile group');
+    for (const prior of before) assert.deepEqual(fixture.taskStore.getTask(prior.taskId), prior);
+  }, true);
 });

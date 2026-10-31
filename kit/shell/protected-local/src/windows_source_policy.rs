@@ -15,14 +15,6 @@ impl WindowsSourcePipeRole {
     }
 }
 
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub(crate) struct WindowsSourceAclEntry {
-    pub principal: String,
-    pub allow: bool,
-    pub inherited: bool,
-    pub full_control: bool,
-}
-
 pub(crate) fn source_pipe_name(user_sid: &str, role: WindowsSourcePipeRole) -> Result<String, ()> {
     if !valid_user_sid(user_sid) {
         return Err(());
@@ -36,27 +28,6 @@ pub(crate) fn source_pipe_name(user_sid: &str, role: WindowsSourcePipeRole) -> R
         r"\\.\pipe\nimi-runtime-source-local-development-{identity}-{}-v1",
         role.label()
     ))
-}
-
-pub(crate) fn owner_only_pipe_sddl(user_sid: &str) -> Result<String, ()> {
-    if !valid_user_sid(user_sid) {
-        return Err(());
-    }
-    Ok(format!("O:{user_sid}D:P(A;;GA;;;{user_sid})"))
-}
-
-pub(crate) fn validate_owner_only_acl(
-    user_sid: &str,
-    entries: &[WindowsSourceAclEntry],
-) -> Result<(), ()> {
-    if !valid_user_sid(user_sid) || entries.len() != 1 {
-        return Err(());
-    }
-    let entry = &entries[0];
-    if entry.principal != user_sid || !entry.allow || entry.inherited || !entry.full_control {
-        return Err(());
-    }
-    Ok(())
 }
 
 fn valid_user_sid(value: &str) -> bool {
@@ -77,6 +48,32 @@ mod tests {
     use super::*;
 
     const SID: &str = "S-1-5-21-111-222-333-1001";
+
+    #[derive(Clone, Debug, Eq, PartialEq)]
+    struct WindowsSourceAclEntry {
+        principal: String,
+        allow: bool,
+        inherited: bool,
+        full_control: bool,
+    }
+
+    fn owner_only_pipe_sddl(user_sid: &str) -> Result<String, ()> {
+        if !valid_user_sid(user_sid) {
+            return Err(());
+        }
+        Ok(format!("O:{user_sid}D:P(A;;GA;;;{user_sid})"))
+    }
+
+    fn validate_owner_only_acl(user_sid: &str, entries: &[WindowsSourceAclEntry]) -> Result<(), ()> {
+        if !valid_user_sid(user_sid) || entries.len() != 1 {
+            return Err(());
+        }
+        let entry = &entries[0];
+        if entry.principal != user_sid || !entry.allow || entry.inherited || !entry.full_control {
+            return Err(());
+        }
+        Ok(())
+    }
 
     #[test]
     fn current_user_pipe_names_match_the_go_adapter_contract() {

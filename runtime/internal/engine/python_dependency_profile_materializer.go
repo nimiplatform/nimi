@@ -13,9 +13,10 @@ import (
 	"time"
 )
 
+// @nimi-authority: rule.nimi.runtime.local-compute.r069
 const (
 	pythonDependencyProfileInputDir               = "_profile-input"
-	pythonDependencyProfileMaterializationTimeout = 10 * time.Minute
+	pythonDependencyProfileMaterializationTimeout = 30 * time.Minute
 )
 
 // PythonDependencyProfileStatus is the verified projection of one immutable

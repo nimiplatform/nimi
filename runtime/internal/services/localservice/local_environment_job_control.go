@@ -274,6 +274,16 @@ func (s *Service) prepareLocalEnvironmentPlanApplyActions(plan localEnvironmentP
 				actions = append(actions, localEnvironmentPlanApplyAction{Kind: localEnvironmentPlanApplyStart, Dependency: dep})
 				continue
 			}
+			// A terminal initial Python setup must not permanently strand the
+			// current plan. Explicit confirmation admits a new materialization;
+			// it does not reclassify or automatically retry the failed job.
+			if hasJob && s.pythonProfileInitialSetupCanStartFresh(dep, job) {
+				if err := s.validateLocalEnvironmentPlanStartDependency(dep); err != nil {
+					return nil, err
+				}
+				actions = append(actions, localEnvironmentPlanApplyAction{Kind: localEnvironmentPlanApplyStart, Dependency: dep})
+				continue
+			}
 			if hasJob &&
 				strings.TrimSpace(job.State) == localEnvironmentStateFailed &&
 				(dep.DependencyFamily == localEnvironmentFamilyNativeLlama || dep.DependencyFamily == localEnvironmentFamilyNativeSDCPP || dep.DependencyFamily == localEnvironmentFamilyNativeAudioCPP) &&
@@ -311,6 +321,21 @@ func (s *Service) prepareLocalEnvironmentPlanApplyActions(plan localEnvironmentP
 		}
 	}
 	return actions, nil
+}
+
+// @nimi-authority: rule.nimi.runtime.local-compute.r069
+func (s *Service) pythonProfileInitialSetupCanStartFresh(dep localEnvironmentPlanDependency, job localEnvironmentDependencyJobState) bool {
+	if dep.DependencyFamily != localEnvironmentFamilyPythonVenv ||
+		dep.State != localEnvironmentStateFailed || job.State != localEnvironmentStateFailed ||
+		job.Retryable || job.RecoveryDisposition != localEnvironmentJobRecoveryNotRetryable ||
+		dep.SelectedSourceRecordID != "" || job.SelectedSourceRecordID != "" {
+		return false
+	}
+	if _, admitted := s.localEnvironmentPlanDependencyContract(dep.EnvironmentKey, dep.DependencyFamily, dep.DependencyID, dep.ConsumerScope); !admitted {
+		return false
+	}
+	_, selected := s.localEnvironmentSelectedSourceRecordForRepair(dep.EnvironmentKey, dep.DependencyFamily, dep.DependencyID, dep.ConsumerScope)
+	return !selected
 }
 
 // @nimi-authority: rule.nimi.runtime.local-compute.r051

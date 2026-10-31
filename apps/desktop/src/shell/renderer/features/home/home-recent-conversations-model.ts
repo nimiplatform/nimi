@@ -1,6 +1,7 @@
 import { createNimiRuntimeAgentConsumeClient } from '@nimiplatform/sdk/runtime';
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import type { LocalAgentListItem } from '../agents/local-agent-list-model.js';
+import type { WorldPublicSourceCardDto } from '../world/data/world-public-projection.js';
 
 // The strip renders one measured tile per partner, so the fan-out is bounded:
 // agents beyond the bound simply wait for the full chat surface instead of
@@ -11,6 +12,7 @@ export type HomeRecentChatPartner = Readonly<{
   localAgentRef: string;
   displayName: string;
   avatarUrl: string | null;
+  media?: WorldPublicSourceCardDto['media'];
   lastMessageText: string | null;
   /** Summary title backing the preview when the last turn carried no text. */
   conversationTitle: string | null;

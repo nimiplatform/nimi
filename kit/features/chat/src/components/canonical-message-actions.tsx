@@ -27,6 +27,8 @@ type OpenMessageMenu = {
   scopeKey: string;
   trigger: HTMLElement;
   anchor: DOMRect;
+  side: 'left' | 'right' | 'bottom';
+  align: 'start' | 'center';
   selection: ReturnType<typeof captureMessageSelection>;
   text: string;
   selectionMapped: boolean;
@@ -46,6 +48,7 @@ function messageContent(element: HTMLElement) {
   return element.closest<HTMLElement>('[data-canonical-message-id]')?.querySelector<HTMLElement>('[data-canonical-message-content]') || null;
 }
 const specializedTarget = (target: EventTarget | null) => target instanceof Element && Boolean(target.closest('a, button, input, textarea, code, pre, img, video, audio, [data-chat-native-context]'));
+const messageActionSide = (message: ConversationCanonicalMessage) => message.role === 'user' || message.role === 'human' ? 'left' : 'right';
 
 export function useCanonicalMessageActionContext() { return useContext(MessageActionsContext); }
 
@@ -76,6 +79,7 @@ export function CanonicalMessageActionsProvider({ actions, messages, copy, child
     if (!body) return null;
     return { focusSequence: ++focusSequence.current, messageId: message.id, scopeKey: actions.scopeKey, trigger,
       anchor: point ? new DOMRect(point.x, point.y, 0, 0) : trigger.getBoundingClientRect(),
+      side: point ? 'bottom' : messageActionSide(message), align: point ? 'start' : 'center',
       selection: captureMessageSelection(body), text: readMessageText(body).text,
       selectionMapped: !body.querySelector('[data-chat-quote-pending]'), outsideSelectionText: document.getSelection()?.toString() || '' };
   };
@@ -227,7 +231,7 @@ export function CanonicalMessageActionsProvider({ actions, messages, copy, child
     {feedback ? <div className="pointer-events-none absolute bottom-3 left-1/2 z-20 -translate-x-1/2 rounded-[var(--nimi-radius-sm)] bg-[var(--nimi-surface-overlay)] px-3 py-2 text-sm text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-floating)]">{feedback}</div> : null}
     <Popover open={Boolean(menu && items.length)} onOpenChange={open => { if (!open) setMenu(null); }}>
       <PopoverAnchor virtualRef={{ current: { getBoundingClientRect: () => menu?.anchor || new DOMRect() } }} />
-      <PopoverContent align="start" side="bottom" className="max-h-[min(24rem,calc(100vh-2rem))] max-w-[min(20rem,calc(100vw-2rem))] overflow-y-auto p-1"
+      <PopoverContent align={menu?.align || 'start'} side={menu?.side || 'bottom'} sideOffset={8} className="max-h-[min(24rem,calc(100vh-1rem))] max-w-[min(20rem,calc(100vw-1rem))] overflow-y-auto rounded-[var(--nimi-radius-md)] border-0 bg-[var(--nimi-surface-card)] p-1 !shadow-[0_8px_24px_rgba(15,23,42,0.10)]"
         onCloseAutoFocus={event => {
           event.preventDefault();
           // A close callback from an interrupted exit must not steal focus
@@ -266,12 +270,18 @@ export function CanonicalMessageActionToolbar({ message }: { message: Conversati
     event.preventDefault(); event.stopPropagation();
     context.open(message, event.currentTarget);
   };
-  return <div data-chat-copy-ignore data-message-toolbar className="absolute -top-4 right-1 z-10 flex items-center gap-0.5 rounded-[var(--nimi-radius-sm)] bg-[var(--nimi-surface-overlay)] p-0.5 opacity-0 shadow-[var(--nimi-elevation-raised)] transition-opacity group-hover:opacity-100 group-focus-within:opacity-100 [@media(hover:none)]:opacity-100">
+  const open = context.openMessageId === message.id;
+  const side = messageActionSide(message);
+  const visibility = open
+    ? 'pointer-events-auto opacity-100'
+    : 'pointer-events-none opacity-0 group-hover:pointer-events-auto group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:opacity-100 [@media(hover:none)]:pointer-events-auto [@media(hover:none)]:opacity-100';
+  const buttonClassName = `!h-7 !min-h-7 !w-7 !min-w-7 !border-0 !bg-transparent rounded-[var(--nimi-radius-sm)] text-[var(--nimi-text-muted)] hover:!bg-[color-mix(in_srgb,var(--nimi-text-primary)_6%,transparent)] ${FOCUS_RING_CLASS_NAME}`;
+  return <div data-chat-copy-ignore data-message-toolbar className={`absolute top-1/2 z-10 flex -translate-y-1/2 items-center gap-0.5 transition-opacity duration-[var(--nimi-motion-fast)] motion-reduce:transition-none ${side === 'left' ? 'right-[calc(100%+var(--nimi-space-3))]' : 'left-[calc(100%+var(--nimi-space-3))]'} ${visibility}`}>
     {context.actions.onQuote ? <IconButton tone="ghost" size="sm" aria-label={context.copy.messageQuoteLabel} icon={<Reply size={16} />} disabled={!context.quoteAllowed(message)}
-      className={`[@media(hover:none)]:hidden ${FOCUS_RING_CLASS_NAME}`} onKeyDown={openFromMenuKey} onContextMenu={openFromContextMenu}
+      className={`[@media(hover:none)]:hidden ${buttonClassName}`} onKeyDown={openFromMenuKey} onContextMenu={openFromContextMenu}
       onMouseDown={event => event.preventDefault()} onClick={event => context.quote(message, event.currentTarget)} /> : null}
-    <IconButton tone="ghost" size="sm" aria-label={context.copy.messageMoreLabel} aria-haspopup="menu" aria-expanded={context.openMessageId === message.id} aria-controls={context.openMessageId === message.id ? context.menuId : undefined}
-      icon={<MoreHorizontal size={16} />} onKeyDown={openFromMenuKey} onContextMenu={openFromContextMenu}
+    <IconButton tone="ghost" size="sm" aria-label={context.copy.messageMoreLabel} aria-haspopup="menu" aria-expanded={open} aria-controls={open ? context.menuId : undefined}
+      icon={<MoreHorizontal size={16} />} className={buttonClassName} onKeyDown={openFromMenuKey} onContextMenu={openFromContextMenu}
       onMouseDown={event => event.preventDefault()} onClick={event => context.open(message, event.currentTarget)} />
   </div>;
 }

@@ -35,7 +35,9 @@ async function withCloudRenderer(sdk: unknown, run: (ui: {
   store.setState(state => ({ auth: { ...state.auth, status: 'authenticated', user: { id: 'account-a' } } }));
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
   const i18n = createInstance();
-  await i18n.init({ lng: 'en', resources: { en: { translation: {} } } });
+  await i18n.init({ lng: 'en', resources: { en: { translation: { runtimeConfig: { cloudWorkspace: {
+    usageRequests: '{{requests}} requests recorded', tokens: '{{input}} input · {{output}} output',
+  } } } } } });
   const bindings = { sdk, app: { commands: {} } } as DesktopCanonicalRendererBindings;
   try {
     await run({ document: dom.window.document, components,
@@ -66,11 +68,11 @@ test('connection usage preserves uncertainty and refreshes within the same secon
     assert.equal(request?.connectorRef, 'exact-connection');
     assert.equal('accountId' in request!, false);
     const text = ui.document.querySelector('[data-testid="cloud-usage-summary"]')!.textContent!;
-    assert.match(text, /—/);
+    assert.match(text, /usageCountUnknown/);
     assert.match(text, /USD 1.25/); assert.match(text, /EUR 2.5/);
     assert.doesNotMatch(text, /3.75/);
     assert.match(text, /partialUsage/); assert.match(text, /unmeasured/);
-    const refresh = Array.from(ui.document.querySelectorAll('button')).find(button => button.textContent?.includes('runtimeConfig.runtime.refresh'));
+    const refresh = ui.document.querySelector<HTMLButtonElement>('button[aria-label="runtimeConfig.runtime.refresh"]');
     assert.ok(refresh);
     await act(async () => refresh.click());
     await ui.settle();
@@ -78,19 +80,68 @@ test('connection usage preserves uncertainty and refreshes within the same secon
   });
 });
 
+test('usage distinguishes incomplete records, a confirmed empty period, recorded activity and a read failure', async () => {
+  let summary = { ...usage(), estimates: [] };
+  let fail = false;
+  let historyOpened = 0;
+  let historyDays = '';
+  const sdk = { accountProduct: () => ({ audit: { getDesktopAIUsageSummary: async () => {
+    if (fail) throw new Error('Usage unavailable');
+    return { summary };
+  } } }) };
+  await withCloudRenderer(sdk, async ui => {
+    await ui.render(<ui.components.CloudConnectorUsage connectorId="connection" onOpenHistory={days => { historyOpened++; historyDays = days; }} />);
+    await ui.settle();
+    const section = () => ui.document.querySelector('[data-testid="cloud-usage-summary"]')!;
+    const refresh = async () => {
+      await act(async () => ui.document.querySelector<HTMLButtonElement>('button[aria-label="runtimeConfig.runtime.refresh"]')!.click());
+      await ui.settle();
+    };
+    assert.match(section().textContent!, /usageNotObservedBody/);
+    assert.doesNotMatch(section().textContent!, /usageEmpty|measuredTokens|noEstimate/);
+
+    summary = { ...summary, timeComplete: true, sourceComplete: true, quantityComplete: true, attributionComplete: true,
+      totals: { ...summary.totals!, unpricedAttemptCount: '0' }, partialReasons: [] };
+    await refresh();
+    assert.match(section().textContent!, /usageEmptyBody/);
+    assert.doesNotMatch(section().textContent!, /usageNotObserved|partialUsage|measuredTokens/);
+
+    summary = { ...summary, totals: { ...summary.totals!, attemptCount: '3', measuredAttemptCount: '1', inputTokens: '100', outputTokens: '50' } };
+    await refresh();
+    assert.match(section().textContent!, /3 requests recorded/);
+    assert.match(section().textContent!, /100 input · 50 output/);
+    assert.match(section().textContent!, /noEstimate/);
+    assert.doesNotMatch(section().textContent!, /usageEmpty|usageNotObserved/);
+
+    fail = true;
+    await refresh();
+    assert.match(section().querySelector('[role="alert"]')!.textContent!, /usageFailed/);
+    assert.doesNotMatch(section().textContent!, /usageEmpty|3 requests recorded/);
+    await act(async () => Array.from(section().querySelectorAll<HTMLButtonElement>('[role="radio"]')).find(button => button.textContent?.includes('days7'))!.click());
+    await ui.settle();
+    const history = Array.from(section().querySelectorAll('button')).find(button => button.textContent?.includes('viewHistory'))!;
+    await act(async () => history.click());
+    assert.equal(historyOpened, 1, 'history stays reachable when the summary cannot be read');
+    assert.equal(historyDays, '7', 'history uses the period selected in the usage view');
+  });
+});
+
 test('connection history refreshes within the same second and requires both coverage facts for an empty claim', async context => {
   context.mock.method(Date, 'now', () => 1_800_000_000_000);
   let attributionComplete = false;
   let reads = 0;
+  let windowSeconds = 0;
   const sdk = { accountProduct: () => ({ audit: {
-    listDesktopAICloudHistory: async () => {
+    listDesktopAICloudHistory: async (request: { fromTime: { seconds: string }; toTime: { seconds: string } }) => {
       reads++;
+      windowSeconds = Number(request.toTime.seconds) - Number(request.fromTime.seconds);
       return { attempts: [], nextPageToken: '', recordsComplete: true, attributionComplete };
     },
   } }) };
   await withCloudRenderer(sdk, async ui => {
-    await ui.render(<ui.components.CloudHistoryDialog connectorId="exact-connection" onClose={() => {}} />);
+    await ui.render(<ui.components.CloudHistoryDialog connectorId="exact-connection" initialDays="7" onClose={() => {}} />);
     await ui.settle();
+    assert.equal(windowSeconds, 7 * 86400);
     assert.match(ui.document.body.textContent!, /partialHistory/);
     assert.match(ui.document.body.textContent!, /historyNotObserved/);
     assert.doesNotMatch(ui.document.body.textContent!, /historyEmpty/);

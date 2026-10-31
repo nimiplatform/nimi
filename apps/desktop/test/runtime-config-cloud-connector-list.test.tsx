@@ -43,8 +43,6 @@ async function setup() {
       selectedConnectorId={snapshot.current.destination.runtime?.connectorId ?? ''}
       onSelectConnector={async connectorId => (await navigation.push({ id: 'cloud', runtime: { connectorId } })).status === 'committed'}
       defaultEndpointFor={() => ''}
-      deletingConnectorId=""
-      onDeleteConnector={async () => {}}
       onAddConnector={() => {}}
       onOpenHistory={() => {}}
       uncheckedCount={1}
@@ -147,7 +145,7 @@ test('filter selection respects search and empty results identify the retained d
     assert.deepEqual(ui.rows(), []);
     assert.equal(ui.selected(), 'missing');
     assert.match(ui.rail().textContent!, /右侧正在显示“Missing”的详情/);
-    assert.match(ui.rail().textContent!, /没有匹配的服务/);
+    assert.match(ui.rail().textContent!, /没有符合当前搜索或筛选条件的连接/);
     await ui.clickButton('清除筛选');
     assert.equal(ui.rows().length, 5);
     assert.equal(ui.activeRow(), 'Missing');

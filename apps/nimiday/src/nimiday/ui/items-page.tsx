@@ -113,7 +113,7 @@ export function ItemsPage({ focusItemId }: { readonly focusItemId?: string }) {
   };
 
   return <div className="nd-page nd-items-page" data-testid="nd-items">
-    <PageHead title={copy.items.title} sub={copy.items.workspaceHint}
+    <PageHead title={copy.items.title}
       action={<div className="nd-items-head-actions">
         <TextField type="search" aria-label={copy.items.search} placeholder={copy.items.searchShort} value={query}
           leading={<Search size={15} aria-hidden="true" />} onChange={event => setQuery(event.target.value)}

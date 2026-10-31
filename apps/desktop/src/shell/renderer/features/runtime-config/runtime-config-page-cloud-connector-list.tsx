@@ -1,6 +1,6 @@
-import { ActionMenu, Button, ConfirmDialog, IconButton, Popover, PopoverContent, PopoverTrigger, ScrollArea, SearchField, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
+import { ActionMenu, Button, IconButton, Popover, PopoverContent, PopoverTrigger, ScrollArea, SearchField, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
 import { DesktopModuleSidebar } from '../../components/desktop-module-sidebar.js';
-import { Check, History, ListFilter, Plus, Trash2 } from 'lucide-react';
+import { Check, History, ListFilter, Plus } from 'lucide-react';
 import { useState } from 'react';
 import { ProviderLogoTile } from '../../components/provider-logo-tile.js';
 import { E2E_IDS } from '../../testability/e2e-ids';
@@ -8,7 +8,6 @@ import { endpointHost } from './runtime-config-page-cloud-primitives';
 import type { RuntimeConfigStateV11 } from './runtime-config-state-types';
 import { getVendorLabelV11 } from './runtime-config-state-types';
 import { humanizeConnectorError } from './runtime-config-connector-error-copy.js';
-import { CloudConnectorReferences } from './runtime-config-cloud-observation.js';
 
 type Translate = (key: string, options?: Record<string, unknown>) => string;
 type Connector = RuntimeConfigStateV11['connectors'][number];
@@ -59,9 +58,7 @@ export function CloudConnectorStatus({ connector, checking = false, compact = fa
 /** The connection rail shares Home's module navigation geometry. */
 export function CloudConnectorListPanel(props: {
   connectors: Connector[];
-  deletingConnectorId: string;
   defaultEndpointFor: (connector: Connector) => string;
-  onDeleteConnector: (connectorId: string) => Promise<void>;
   onSelectConnector: (connectorId: string) => Promise<boolean>;
   onAddConnector: () => void;
   onOpenHistory: () => void;
@@ -71,7 +68,6 @@ export function CloudConnectorListPanel(props: {
   t: Translate;
 }) {
   const { connectors, t, uncheckedCount } = props;
-  const [pendingDelete, setPendingDelete] = useState<Connector | null>(null);
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<ConnectorFilter>('all');
   const visibleConnectors = filterConnectors(connectors, query, filter);
@@ -130,7 +126,7 @@ export function CloudConnectorListPanel(props: {
         {selectedHidden ? <p className="basis-full text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.cloudWorkspace.selectedHidden', { name: selectedConnector.label })} <button className="underline" onClick={() => { setQuery(''); setFilter('all'); }}>{t('runtimeConfig.cloudWorkspace.clearFilters')}</button></p> : null}
       </div>
       <ScrollArea className="min-h-0 flex-1" viewportClassName="[&>div]:!block" contentClassName="desktop-sidebar__body min-w-0">
-        {connectors.length > 0 && !visibleConnectors.length ? <p className="px-3 py-4 text-sm text-[var(--nimi-text-muted)]">{t('runtimeConfig.product.noServicesMatch')}</p> : null}
+        {connectors.length > 0 && !visibleConnectors.length ? <p className="px-3 py-4 text-sm text-[var(--nimi-text-muted)]">{t('runtimeConfig.cloudWorkspace.noConnectionsMatch')}</p> : null}
         <div className="desktop-sidebar__items" role="list" aria-label={t('runtimeConfig.product.yourConnections', { count: connectors.length })}>
           {visibleConnectors.map((connector) => (
             <CloudConnectorRow
@@ -142,8 +138,6 @@ export function CloudConnectorListPanel(props: {
               showEndpoint={!props.defaultEndpointFor(connector)
                 || connector.endpoint.replace(/\/+$/, '') !== props.defaultEndpointFor(connector).replace(/\/+$/, '')
                 || connectors.some((other) => other.id !== connector.id && other.label.trim().toLowerCase() === connector.label.trim().toLowerCase())}
-              deleting={connector.id === props.deletingConnectorId}
-              onDeleteConnector={async () => setPendingDelete(connector)}
               onSelectConnector={props.onSelectConnector}
               t={t}
             />
@@ -154,7 +148,6 @@ export function CloudConnectorListPanel(props: {
         <Button tone="primary" size="sm" className="desktop-sidebar__row justify-start" onClick={props.onAddConnector}><Plus size={14} />{t('runtimeConfig.cloud.addConnector')}</Button>
         <Button tone="ghost" size="sm" className="desktop-sidebar__row justify-start" onClick={props.onOpenHistory}><History size={14} />{t('runtimeConfig.cloudWorkspace.historyTitle')}</Button>
       </div>
-      <ConfirmDialog open={pendingDelete !== null} title={t('runtimeConfig.product.removeConnectionTitle', { name: pendingDelete?.label ?? '' })} message={<><span>{t('runtimeConfig.product.removeConnectionHelp')}</span>{pendingDelete ? <CloudConnectorReferences connectorId={pendingDelete.id} compact /> : null}</>} confirmLabel={t('runtimeConfig.cloud.deleteConnector')} cancelLabel={t('Common.cancel')} confirmTone="danger" onClose={() => setPendingDelete(null)} onConfirm={() => { if (!pendingDelete) return; void props.onDeleteConnector(pendingDelete.id).finally(() => setPendingDelete(null)); }} />
     </DesktopModuleSidebar>
   );
 }
@@ -165,13 +158,10 @@ function CloudConnectorRow(props: {
   checking?: boolean;
   duplicateLabel: boolean;
   showEndpoint: boolean;
-  deleting: boolean;
-  onDeleteConnector: (connectorId: string) => Promise<void>;
   onSelectConnector: (connectorId: string) => void;
   t: Translate;
 }) {
   const { active, connector, t } = props;
-  const canDelete = !connector.isSystemOwned && connector.scope !== 'runtime-system';
   const vendorLabel = getVendorLabelV11(connector.vendor);
   const host = connector.endpoint ? endpointHost(connector.endpoint) : '';
   const subtitle = [
@@ -191,7 +181,7 @@ function CloudConnectorRow(props: {
         className="desktop-sidebar__control flex w-full min-w-0 items-center gap-2 rounded-lg text-left"
       >
         <ProviderLogoTile provider={connector.provider || connector.vendor} label={vendorLabel} size="sm" className="desktop-sidebar__icon" />
-        <span className="min-w-0 flex-1 pr-7">
+        <span className="min-w-0 flex-1">
           <span className="flex min-w-0 items-center gap-2">
             <span className="desktop-sidebar__label min-w-0 font-medium text-[var(--nimi-text-primary)]" title={connector.label}>{connector.label}</span>
             <CloudConnectorScopeBadge connector={connector} t={t} />
@@ -201,18 +191,6 @@ function CloudConnectorRow(props: {
           <span className="mt-1 block"><CloudConnectorStatus connector={connector} checking={props.checking} compact t={t} /></span>
         </span>
       </button>
-      {canDelete ? (
-        <IconButton
-          size="sm"
-          tone="ghost"
-          aria-label={t('runtimeConfig.cloud.deleteConnector')}
-          title={t('runtimeConfig.cloud.deleteConnector')}
-          disabled={props.deleting}
-          icon={<Trash2 size={14} />}
-          className={`absolute right-2.5 top-2.5 text-[var(--nimi-text-muted)] transition-opacity hover:text-[var(--nimi-status-danger)] focus-visible:opacity-100 ${active ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}
-          onClick={() => { void props.onDeleteConnector(connector.id); }}
-        />
-      ) : null}
     </div>
   );
 }

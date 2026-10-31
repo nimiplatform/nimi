@@ -1,6 +1,7 @@
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { Avatar, Button, LoadingSkeleton } from '@nimiplatform/kit/ui';
-import { useQuery } from '@tanstack/react-query';
+import { MediaImage } from '@nimiplatform/kit/features/media';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { Compass, Send } from 'lucide-react';
 import { useCallback, useMemo, useState, type FormEvent } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +11,7 @@ import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { resolveAgentTargetSnapshotForSourceRef } from '../agents/agent-conversation-source-resolution.js';
 import { fetchLocalAgentList, localAgentListQueryKey, type LocalAgentListItem } from '../agents/local-agent-list-model.js';
 import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
+import { resolveCurrentPartnerSource } from '../source-detail/data/realm-source-detail-data.js';
 import { fetchHomeRecentChatPartners, type HomeRecentChatPartner } from './home-recent-conversations-model.js';
 import { useHomeRowCapacity } from './use-home-row-capacity.js';
 
@@ -39,15 +41,24 @@ export type HomeAgentCardViewProps = {
   onExplore: () => void;
 };
 
-function PartnerAvatar({ displayName, avatarUrl }: { displayName: string; avatarUrl: string | null }) {
+// @nimi-authority: rule.nimi.platform.ui-design-system.media-delivery
+function PartnerAvatar({ displayName, avatarUrl, media }: Pick<HomeRecentChatPartner, 'displayName' | 'avatarUrl' | 'media'>) {
+  const asset = media?.assets.avatar ?? media?.assets.portrait ?? media?.assets.referenceImage ?? media?.assets.profileCover;
+  const externalUrl = asset?.externalUrl ?? media?.external.avatarUrl ?? media?.external.portraitUrl
+    ?? media?.external.referenceImageUrl ?? media?.external.profileCoverUrl ?? avatarUrl;
+  const purposes = asset?.delivery?.images.map(set => set.purpose) ?? [];
+  const purpose = (['avatar', 'card', 'detail', 'hero'] as const).find(value => purposes.includes(value)) ?? 'avatar';
   return (
     <Avatar
-      src={avatarUrl}
       alt={displayName}
       size="md"
       tone="accent"
       className="size-[34px] shrink-0 text-sm"
-      fallback={<span aria-hidden="true">{[...displayName.trim()][0] || '?'}</span>}
+      fallback={(
+        <MediaImage delivery={asset?.delivery} externalUrl={externalUrl} purpose={purpose} sizes="34px"
+          alt={displayName} className="flex h-full w-full items-center justify-center object-cover"
+          fallback={<span aria-hidden="true">{[...displayName.trim()][0] || '?'}</span>} />
+      )}
     />
   );
 }
@@ -70,7 +81,7 @@ function PartnerTile({ partner, selected, onSelect }: {
       }`}
     >
       <span className="relative shrink-0">
-        <PartnerAvatar displayName={partner.displayName} avatarUrl={partner.avatarUrl} />
+        <PartnerAvatar displayName={partner.displayName} avatarUrl={partner.avatarUrl} media={partner.media} />
         {partner.hasUnread ? (
           <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-[var(--nimi-action-primary-bg)] ring-2 ring-[var(--nimi-surface-card)]" data-testid={`home-recent-chat-unread:${partner.localAgentRef}`} aria-hidden="true" />
         ) : null}
@@ -222,6 +233,8 @@ export function HomeAgentCard() {
   const { t } = useTranslation();
   const authStatus = useAppStore((state) => state.auth.status);
   const ownerUserId = useAppStore((state) => String(state.auth.user?.id || '').trim());
+  const realmBaseUrl = useAppStore((state) => state.runtimeDefaults?.realm.realmBaseUrl ?? '');
+  const authorizationRevision = useAppStore((state) => state.auth.authorizationRevision);
   const setAgentConversationTargetSnapshot = useAppStore((state) => state.setAgentConversationTargetSnapshot);
   const setPendingAgentComposerPrefill = useAppStore((state) => state.setPendingAgentComposerPrefill);
   const enabled = authStatus === 'authenticated' && Boolean(ownerUserId);
@@ -263,6 +276,24 @@ export function HomeAgentCard() {
     tileGap: HOME_PARTNER_TILE_GAP,
     limit: Math.max(1, Math.min(partners.length, HOME_PARTNER_TILE_LIMIT)),
   });
+  // Artwork is optional and loads independently of conversation previews. Share
+  // the directory's account-scoped source cache, only for tiles that are visible.
+  const artwork = useQueries({
+    queries: partners.slice(0, capacity).map((partner) => {
+      const sourceRef = agentItemsByRef.get(partner.localAgentRef)?.sourceRef;
+      return {
+        queryKey: ['partner-current-source', ownerUserId, `${realmBaseUrl}:${authorizationRevision}`, partner.localAgentRef, sourceRef],
+        queryFn: () => resolveCurrentPartnerSource(bindings.sdk.realm(), sourceRef!),
+        enabled: enabled && Boolean(sourceRef),
+        staleTime: 60_000,
+        retry: false,
+      };
+    }),
+  });
+  const partnersWithArtwork = partners.map((partner, index) => ({
+    ...partner,
+    media: artwork[index]?.data?.media,
+  }));
 
   const formatTime = useCallback((updatedAtMs: number): string => {
     const date = new Date(updatedAtMs);
@@ -330,7 +361,7 @@ export function HomeAgentCard() {
     <HomeAgentCardView
       key={ownerUserId}
       state={state}
-      partners={partners}
+      partners={partnersWithArtwork}
       partnersPending={partnersPending}
       selectedId={selected?.localAgentRef ?? null}
       visibleCount={capacity}

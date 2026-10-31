@@ -7,6 +7,7 @@ import type {
 import type { RuntimeConfigStateUpdater } from './runtime-config-types';
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import type { RuntimeConfigConnectorSdkService } from './runtime-config-connector-sdk-service.js';
+import type { TFunction } from 'i18next';
 
 export type RuntimeConfigPanelAsyncGuardContext = {
   testingConnector: boolean;
@@ -26,6 +27,7 @@ export type HealthProviderCommandContext = {
 };
 
 export type TestConnectorCommandContext = {
+  t: TFunction;
   state: RuntimeConfigStateMaybe;
   connectorSdk: RuntimeConfigConnectorSdkService;
   now: () => number;
@@ -38,7 +40,7 @@ export type TestConnectorCommandContext = {
 
 export type RuntimeConfigPanelProviderCommandFactories = {
   health: HealthProviderCommandContext;
-  testSelectedConnector: TestConnectorCommandContext;
+  testSelectedConnector: Omit<TestConnectorCommandContext, 'setControlFeedback'>;
 };
 
 export type RuntimeConfigPanelCommandsInput = {

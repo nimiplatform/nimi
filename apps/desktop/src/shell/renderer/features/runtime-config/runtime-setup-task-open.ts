@@ -5,9 +5,9 @@ import type {
 import { validateHomeDestination, type HomeChatPosition, type HomeDestination, type HomeNavigation } from '../../app-shell/providers/home-navigation.js';
 
 /**
- * Consumer entry helper: Apps/Chat open (or reuse) one setup task per exact
- * owner + capability and navigate to it. Task reuse keeps an in-flight task
- * from being duplicated when the same consumer entry is invoked twice.
+ * Consumer entry helper: Apps/Chat open (or reuse) a setup task for the exact
+ * owner + capability. A catalog entry additionally matches its cloud intent,
+ * preserving unrelated drafts when the user chooses a different model.
  */
 // @nimi-authority: rule.nimi.desktop.ai-consumption.r026
 
@@ -16,6 +16,12 @@ export type RuntimeSetupTaskOpenSource = {
   readonly ownerAppId?: string;
   readonly accountId: string;
   readonly returnFocus?: string;
+};
+
+/** Catalog hints only; the setup must still resolve the owner's exact options. */
+export type RuntimeSetupTaskCloudCatalogEntry = {
+  readonly connectorId: string;
+  readonly providerModelId: string;
 };
 
 function taskIsOpenable(task: RuntimeSetupTask): boolean {
@@ -29,11 +35,13 @@ function sameOpenSource(task: RuntimeSetupTask, source: RuntimeSetupTaskOpenSour
 }
 
 /** Finds a live task for the exact same capability + owner + account snapshot. */
+// @nimi-authority: rule.nimi.desktop.ai-consumption.cloud-services-workspace
 export function findReusableRuntimeSetupTask(
   store: RuntimeSetupTaskStore,
   input: {
     readonly capabilityContract: string;
     readonly source: RuntimeSetupTaskOpenSource;
+    readonly cloudCatalogEntry?: RuntimeSetupTaskCloudCatalogEntry;
   },
 ): RuntimeSetupTask | null {
   const candidates = store.getSnapshot().tasks.filter((task) => (
@@ -41,6 +49,14 @@ export function findReusableRuntimeSetupTask(
     && taskIsOpenable(task)
     && !task.supersededBy
     && sameOpenSource(task, input.source)
+    // A Profile-use member opens its whole preparation group. Never hand a
+    // cloud catalog choice to that group or overwrite its saved draft.
+    && (!input.cloudCatalogEntry || (
+      !task.draft?.profileUseId
+      && task.draft?.route === 'cloud'
+      && task.draft.cloudConnectorRef === input.cloudCatalogEntry.connectorId
+      && task.draft.cloudTargetSearch === input.cloudCatalogEntry.providerModelId
+    ))
   ));
   if (candidates.length === 0) return null;
   // Newest first: the latest task for the same owner wins the reuse.
@@ -56,6 +72,7 @@ export function openOrCreateRuntimeSetupTask(
   input: {
     readonly capabilityContract: string;
     readonly source: RuntimeSetupTaskOpenSource;
+    readonly cloudCatalogEntry?: RuntimeSetupTaskCloudCatalogEntry;
     readonly openTask: (taskId: string) => void;
   },
 ): { readonly taskId: string; readonly reused: boolean } {
@@ -76,6 +93,14 @@ export function openOrCreateRuntimeSetupTask(
       ...(input.source.returnFocus ? { returnFocus: input.source.returnFocus } : {}),
     },
   });
+  const { cloudCatalogEntry } = input;
+  if (cloudCatalogEntry) {
+    store.updateTask(task.taskId, () => ({ draft: {
+      route: 'cloud',
+      cloudConnectorRef: cloudCatalogEntry.connectorId,
+      cloudTargetSearch: cloudCatalogEntry.providerModelId,
+    } }));
+  }
   input.openTask(task.taskId);
   return { taskId: task.taskId, reused: false };
 }
@@ -90,6 +115,7 @@ export type RuntimeSetupReturnTarget =
 export async function openRuntimeSetupTaskFromEntry(store: RuntimeSetupTaskStore, input: {
   navigation: HomeNavigation;
   capabilityContract: string;
+  cloudCatalogEntry?: RuntimeSetupTaskCloudCatalogEntry;
   loadSource: (destination: HomeDestination) => Promise<RuntimeSetupTaskOpenSource>;
   openTask: (taskId: string) => void;
 }) {

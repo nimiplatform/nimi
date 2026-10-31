@@ -4,16 +4,13 @@ import {
 } from './runtime-config-provider-commands';
 import type {
   RuntimeConfigPanelCommandsInput,
+  TestConnectorCommandContext,
 } from './runtime-config-command-context';
 import { runRuntimeConfigAsyncGuard } from './runtime-config-runtime-ops';
 
 export function createRuntimeConfigPanelCommands(input: RuntimeConfigPanelCommandsInput) {
   const runLocalHealthCheckAction = async () => {
     await runLocalHealthCheckCommandWithGuard(input.provider.health);
-  };
-
-  const testSelectedConnectorAction = async () => {
-    await testSelectedConnectorCommand(input.provider.testSelectedConnector);
   };
 
   const runLocalHealthCheck = async () => {
@@ -24,11 +21,15 @@ export function createRuntimeConfigPanelCommands(input: RuntimeConfigPanelComman
     );
   };
 
-  const testSelectedConnector = async () => {
+  const testSelectedConnector = async (setControlFeedback: TestConnectorCommandContext['setControlFeedback']) => {
+    const context = { ...input.provider.testSelectedConnector, setControlFeedback };
     await runRuntimeConfigAsyncGuard(
       input.guard.testingConnector,
       input.guard.setTestingConnector,
-      testSelectedConnectorAction,
+      async () => {
+        setControlFeedback(null);
+        await testSelectedConnectorCommand(context);
+      },
     );
   };
 

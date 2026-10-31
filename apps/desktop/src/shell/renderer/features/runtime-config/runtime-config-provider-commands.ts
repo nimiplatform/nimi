@@ -32,6 +32,7 @@ export async function testSelectedConnectorCommand(input: TestConnectorCommandCo
   if (!input.state || !input.selectedConnector || input.testingConnector) return;
   try {
     await runSelectedConnectorTestCommand({
+      t: input.t,
       state: input.state,
       selectedConnector: input.selectedConnector,
       connectorSdk: input.connectorSdk,
@@ -41,6 +42,7 @@ export async function testSelectedConnectorCommand(input: TestConnectorCommandCo
     });
   } catch (error) {
     await markSelectedConnectorTestFailedCommand({
+      t: input.t,
       state: input.state,
       selectedConnector: input.selectedConnector,
       now: input.now,

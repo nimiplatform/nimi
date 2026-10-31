@@ -90,6 +90,57 @@ test('a different owner, account snapshot, or capability never reuses the task',
   assert.equal(otherCapability.reused, false);
 });
 
+test('a cloud catalog choice preserves local and Profile-use drafts and opens its own cloud setup', () => {
+  for (const draft of [
+    { route: 'local' as const, recipeId: 'local-recipe' },
+    { route: 'local' as const, profileUseId: 'profile-use', profileId: 'profile', recipeId: 'local-recipe' },
+    { route: 'cloud' as const, profileUseId: 'profile-use', cloudConnectorRef: 'connection', cloudTargetSearch: 'model' },
+  ]) {
+    const store = makeStore();
+    const prior = store.createTask({ capabilityContract: 'text.generate', source: APP_SOURCE });
+    store.updateTask(prior.taskId, () => ({ draft, status: 'review' }));
+    const before = store.getTask(prior.taskId);
+    let opened: string | undefined;
+    const result = openOrCreateRuntimeSetupTask(store, {
+      capabilityContract: 'text.generate',
+      source: { ...APP_SOURCE, returnFocus: 'home:cloud' },
+      cloudCatalogEntry: { connectorId: 'connection', providerModelId: 'model' },
+      openTask(taskId) {
+        opened = taskId;
+        assert.equal(store.getTask(taskId)?.draft?.route, 'cloud', 'cloud intent exists before navigation');
+      },
+    });
+    assert.equal(result.reused, false);
+    assert.equal(opened, result.taskId);
+    assert.notEqual(result.taskId, prior.taskId);
+    assert.deepEqual(store.getTask(prior.taskId), before, 'the prior task and return destination remain intact');
+    assert.deepEqual(store.getTask(result.taskId)?.draft, {
+      route: 'cloud', cloudConnectorRef: 'connection', cloudTargetSearch: 'model',
+    });
+  }
+});
+
+test('cloud catalog reuse matches the connection and model without replacing edits in that draft', () => {
+  const store = makeStore();
+  const open = (connectorId: string, providerModelId: string) => openOrCreateRuntimeSetupTask(store, {
+    capabilityContract: 'text.generate', source: APP_SOURCE,
+    cloudCatalogEntry: { connectorId, providerModelId }, openTask() {},
+  });
+  const first = open('connection', 'model');
+  store.updateTask(first.taskId, task => ({ draft: {
+    ...task.draft, cloudTargetKey: 'owner-resolved-target', cloudTargetLabel: 'Chosen variant',
+  } }));
+  const edited = store.getTask(first.taskId)?.draft;
+  const anotherModel = open('connection', 'another-model');
+  const anotherConnection = open('another-connection', 'model');
+  assert.notEqual(anotherModel.taskId, first.taskId);
+  assert.notEqual(anotherConnection.taskId, first.taskId);
+  const repeated = open('connection', 'model');
+  assert.equal(repeated.reused, true);
+  assert.equal(repeated.taskId, first.taskId);
+  assert.deepEqual(store.getTask(first.taskId)?.draft, edited);
+});
+
 test('terminal and superseded tasks are never reused', () => {
   const store = makeStore();
   const first = openOrCreateRuntimeSetupTask(store, {

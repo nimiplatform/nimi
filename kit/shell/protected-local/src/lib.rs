@@ -102,7 +102,10 @@ mod windows_peer_trust;
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
 mod windows_process_identity;
-#[cfg(any(target_os = "windows", test))]
+#[cfg(any(
+    test,
+    all(target_os = "windows", not(feature = "windows-source-local-development"))
+))]
 mod windows_product_identity;
 #[cfg(all(target_os = "windows", not(feature = "windows-source-local-development")))]
 #[allow(unsafe_code)]

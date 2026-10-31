@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import React from 'react';
+import React, { act } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
+import { JSDOM } from 'jsdom';
 import { initI18n, changeLocale } from '../src/shell/renderer/i18n';
 import { HomeAgentCardView, type HomeAgentCardViewProps } from '../src/shell/renderer/features/home/home-agent-card.js';
 import type { HomeRecentChatPartner } from '../src/shell/renderer/features/home/home-recent-conversations-model.js';
@@ -13,7 +14,7 @@ const PARTNERS: readonly HomeRecentChatPartner[] = [
   { localAgentRef: 'aria', displayName: 'Aria', avatarUrl: null, lastMessageText: 'See you tomorrow', conversationTitle: null, updatedAtMs: 1760500000000, hasUnread: true },
   { localAgentRef: 'bo', displayName: 'Bo', avatarUrl: 'https://example.com/bo.png', lastMessageText: null, conversationTitle: null, updatedAtMs: null, hasUnread: false },
 ];
-function render(overrides: Partial<HomeAgentCardViewProps> = {}): string {
+function view(overrides: Partial<HomeAgentCardViewProps> = {}) {
   const props: HomeAgentCardViewProps = {
     state: 'ready',
     partners: PARTNERS,
@@ -29,7 +30,36 @@ function render(overrides: Partial<HomeAgentCardViewProps> = {}): string {
     onExplore: noop,
     ...overrides,
   };
-  return renderToStaticMarkup(<HomeAgentCardView {...props} />);
+  return <HomeAgentCardView {...props} />;
+}
+
+function render(overrides: Partial<HomeAgentCardViewProps> = {}): string {
+  return renderToStaticMarkup(view(overrides));
+}
+
+async function withMountedView(overrides: Partial<HomeAgentCardViewProps>, check: (document: Document) => void) {
+  const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost' });
+  const previous = new Map<string, PropertyDescriptor | undefined>();
+  for (const [key, value] of Object.entries({ window: dom.window, document: dom.window.document,
+    navigator: dom.window.navigator, IS_REACT_ACT_ENVIRONMENT: true })) {
+    previous.set(key, Object.getOwnPropertyDescriptor(globalThis, key));
+    Object.defineProperty(globalThis, key, { configurable: true, value });
+  }
+  const { createRoot } = await import('react-dom/client');
+  const root = createRoot(dom.window.document.getElementById('root')!);
+  try {
+    await act(async () => { root.render(view(overrides)); });
+    // Radix Avatar mounts its fallback (containing MediaImage) after delayMs.
+    await act(async () => { await new Promise(resolve => setTimeout(resolve, 10)); });
+    check(dom.window.document);
+  } finally {
+    await act(async () => root.unmount());
+    dom.window.close();
+    for (const [key, descriptor] of previous) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else Reflect.deleteProperty(globalThis, key);
+    }
+  }
 }
 
 test('ready state renders the recent-chats header, compact strip, and one merged mini chat bar', async () => {
@@ -44,8 +74,6 @@ test('ready state renders the recent-chats header, compact strip, and one merged
   assert.match(html, /data-testid="home-recent-chat:aria"/);
   assert.match(html, /data-testid="home-recent-chat:bo"/);
   assert.match(html, /data-testid="home-recent-chat:lumi"[^>]*aria-pressed="true"|aria-pressed="true"[^>]*data-testid="home-recent-chat:lumi"/);
-  // Kit Avatar resolves image loading and fallback after mounting; this SSR
-  // check covers the partner identity and composition, not image loading.
   // Message preview and reply composer live in the same mini chat container.
   assert.match(html, /data-testid="home-mini-chat"[\s\S]*data-testid="home-recent-chat-preview"[\s\S]*data-testid="home-agent-composer"/);
   // Preview of the selected partner with its last message and formatted time.
@@ -61,6 +89,45 @@ test('ready state renders the recent-chats header, compact strip, and one merged
   // With an empty draft the send button renders in the muted gray treatment.
   assert.match(html, /class="[^"]*--nimi-surface-active[^"]*--nimi-text-muted[^"]*"[^>]*data-testid="home-agent-send"/);
   assert.doesNotMatch(html, /当前伙伴|切换|去聊天|home-agent-switch|<textarea/);
+});
+
+test('recent chat avatars render Realm-managed images when the runtime URL is absent', async () => {
+  await initI18n();
+  for (const kind of ['avatar', 'portrait'] as const) {
+    const purpose = kind === 'avatar' ? 'avatar' : 'card';
+    const media: NonNullable<HomeRecentChatPartner['media']> = {
+      assets: { avatar: null, portrait: null, referenceImage: null, profileCover: null, voiceSample: null,
+        [kind]: { id: 'character-image', kind: 'image', externalUrl: null, delivery: {
+          resourceId: 'character-image', contentVersion: 'a'.repeat(64), publicationGeneration: 1,
+          policyVersion: 'v1', expiresAt: null, previewUrl: null, video: null,
+          originalUrl: 'https://media.example/original.png',
+          images: [{ purpose, families: [{ mimeType: 'image/webp', sources: [
+            { url: 'https://media.example/character.webp', width: 96, height: 96, mimeType: 'image/webp' },
+          ] }] }],
+        } },
+      },
+      external: { avatarUrl: null, portraitUrl: null, referenceImageUrl: null, profileCoverUrl: null, voiceSampleUrl: null },
+      unavailableResourceRefs: [],
+    };
+    await withMountedView({ partners: [{ ...PARTNERS[0]!, media }] }, document => {
+      const image = document.querySelector('[data-testid="home-recent-chat:lumi"] img');
+      assert.equal(image?.getAttribute('src'), 'https://media.example/character.webp');
+      assert.equal(image?.getAttribute('alt'), 'Lumi');
+      assert.equal(image?.getAttribute('sizes'), '34px');
+      assert.ok(!document.body.innerHTML.includes('original.png'));
+    });
+  }
+});
+
+test('external artwork and missing-image initials preserve conversation actions', async () => {
+  await initI18n();
+  await withMountedView({}, document => {
+    assert.equal(document.querySelector('[data-testid="home-recent-chat:bo"] img')?.getAttribute('src'), 'https://example.com/bo.png');
+    const tile = document.querySelector('[data-testid="home-recent-chat:lumi"]');
+    assert.equal(tile?.querySelector('img'), null);
+    assert.equal(tile?.querySelector('[aria-hidden="true"]')?.textContent, 'L');
+    assert.ok(document.querySelector('[data-testid="home-agent-send"]'));
+  });
 });
 
 test('unread partners carry a dot on the avatar corner', async () => {

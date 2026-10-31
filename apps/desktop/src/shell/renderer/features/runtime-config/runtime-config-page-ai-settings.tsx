@@ -103,6 +103,8 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
   const [error, setError] = useState<RuntimeSetupFailureNotice | null>(null);
   const [homeRevision, setHomeRevision] = useState(0);
   const focusedTask = props.focusedTaskId ? store.getTask(props.focusedTaskId) : undefined;
+  const focusedReturnTarget = resolveRuntimeSetupReturnTarget(focusedTask?.source.returnFocus);
+  const cloudEntryTask = focusedReturnTarget?.kind === 'destination' && focusedReturnTarget.destination.id === 'cloud';
   const visibleCapability = props.advancedDiagnostics ? null : focusedTask?.capabilityContract ?? capability;
   const contentViewportRef = useRef<HTMLDivElement>(null);
   const diagnosticsActive = !!props.advancedDiagnostics;
@@ -375,7 +377,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
       className="desktop-module-workspace"
       data-testid="ai-capabilities-workspace"
     >
-      <DesktopModuleSidebar
+      {!cloudEntryTask ? <DesktopModuleSidebar
         label={t('runtimeConfig.capabilities.title')}
         selectionKey={entryKey}
       >
@@ -474,7 +476,7 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
             {t('runtimeConfig.nav.advancedDiagnostics')}
           </Button>
         </div>
-      </DesktopModuleSidebar>
+      </DesktopModuleSidebar> : null}
       <Surface
         as="main"
         data-testid="ai-capabilities-detail-pane"
@@ -537,6 +539,8 @@ export function AiSettingsPage(props: AiSettingsPageProps) {
                   <RuntimeConfigSetupTaskView
                     key={focusedTask.taskId}
                     taskId={focusedTask.taskId}
+                    sourceOwnerDisplayName={appsColumn && appsColumn !== 'unavailable' ? appsColumn.apps.find(app => app.identity.appId === focusedTask.source.ownerAppId)?.identity.displayName : undefined}
+                    sourceOwnerIconUrl={appsColumn && appsColumn !== 'unavailable' ? appsColumn.iconUrls.get(focusedTask.source.ownerAppId ?? '') : undefined}
                     store={store}
                     ports={ports}
                     disabled={props.runtimeWritesDisabled}

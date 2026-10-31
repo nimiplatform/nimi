@@ -19,12 +19,14 @@ import { useRuntimeConfigDaemonController } from './runtime-config-panel-control
 import { useRuntimeConfigInstallActions } from './runtime-config-panel-controller-install-actions';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
 import { useRuntimeConfigConnectorSdk } from './runtime-config-connector-sdk-context.js';
+import { useTranslation } from 'react-i18next';
 
 export type { RuntimeConfigPanelControllerModel } from './runtime-config-panel-types';
 
 const RUNTIME_DAEMON_STATUS_POLL_INTERVAL_MS = 30_000;
 
 export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerModel {
+  const { t } = useTranslation();
   const homeNavigation = useHomeNavigation();
   const bindings = useDesktopRendererBindings();
   const runtimeConnectorSdk = useRuntimeConfigConnectorSdk();
@@ -57,7 +59,6 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
   const bootstrapReady = useAppStore((state) => state.bootstrapReady);
   const offlineTier = useAppStore((state) => state.offlineTier);
   const setPageFeedback = emitFeedbackToast;
-  const setConnectorTestFeedback = emitFeedbackToast;
 
   const panelState = useRuntimeConfigPanelState();
   const derived = useRuntimeConfigPanelDerived({
@@ -96,6 +97,7 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
         setStatusBanner: setPageFeedback,
       },
       testSelectedConnector: {
+        t,
         get state() { return stateRef.current; },
         connectorSdk: runtimeConnectorSdk,
         now: bindings.clock.now,
@@ -103,10 +105,10 @@ export function useRuntimeConfigPanelController(): RuntimeConfigPanelControllerM
         get testingConnector() { return testingConnectorRef.current; },
         updateState: panelState.updateState,
         setStatusBanner: setPageFeedback,
-        setControlFeedback: setConnectorTestFeedback,
       },
     },
   }), [
+    t,
     bindings.clock.now,
     runtimeConnectorSdk,
     panelState.setCheckingHealth,

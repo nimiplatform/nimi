@@ -6,7 +6,9 @@ import type {
   NimiAIConfigCloudConnectorOption,
   NimiAIConfigCloudTargetOption,
 } from '@nimiplatform/sdk/ai';
-import { Button, InlineAlert, LoadingSkeleton, StatusBadge } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, LoadingSkeleton, StatusBadge, TextField } from '@nimiplatform/kit/ui';
+import { Check, Cloud, Plus, Search } from 'lucide-react';
+import { ProviderLogoTile } from '../../components/provider-logo-tile.js';
 import {
   commitRuntimeSetupCloudUse,
   type RuntimeSetupRunnerPorts,
@@ -67,6 +69,7 @@ export function RuntimeSetupTaskCloudPanel(props: {
   readonly ports: RuntimeSetupRunnerPorts;
   readonly onBusyChange: (busy: boolean) => void;
   readonly selectionOnly?: boolean;
+  readonly ownerLabel?: string;
 }) {
   const { t } = useTranslation();
   const { task } = props;
@@ -227,12 +230,7 @@ export function RuntimeSetupTaskCloudPanel(props: {
   const blockedConnectors = (connectors ?? []).filter((connector) => connector.state !== 'ready');
 
   return (
-    <div className="space-y-3" data-testid="runtime-setup-task-cloud">
-      <p className="text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-secondary)]">
-        {t('runtimeConfig.setupTask.cloud.chooseTargetLead', {
-          defaultValue: "Choose your cloud connection, then a model for this app.",
-        })}
-      </p>
+    <div className="space-y-5" data-testid="runtime-setup-task-cloud">
       {recommendation ? (
         <InlineAlert tone="info" data-testid="runtime-setup-cloud-recommendation">
           <div>{t('runtimeConfig.setupTask.cloud.profileRecommendation', {
@@ -248,6 +246,13 @@ export function RuntimeSetupTaskCloudPanel(props: {
           ) : null}
         </InlineAlert>
       ) : null}
+      <section className="space-y-4 rounded-3xl bg-[var(--nimi-surface-card)] p-5 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold">{t('runtimeConfig.setupTask.cloud.connectionLabel', { defaultValue: 'Cloud service' })}</h2>
+          {!showCreateForm ? <Button tone="ghost" size="sm" disabled={busy} onClick={() => setShowCreateForm(true)} data-testid="runtime-setup-cloud-add-connector">
+            <Plus size={15} aria-hidden="true" />{t('runtimeConfig.setupTask.cloud.addConnection', { defaultValue: 'Add a connection' })}
+          </Button> : null}
+        </div>
       {connectorsError ? (
         <InlineAlert tone="danger">
           <div>{t('runtimeConfig.setupTask.cloud.loadFailed', { defaultValue: 'Cloud options could not be loaded.' })}</div>
@@ -259,26 +264,29 @@ export function RuntimeSetupTaskCloudPanel(props: {
       ) : null}
       {connectors === null && !connectorsError ? <LoadingSkeleton className="h-20 w-full" /> : null}
       {connectors !== null ? (
-        <div className="space-y-2" data-testid="runtime-setup-cloud-connectors">
-          <div className="text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-primary)]">
-            {t('runtimeConfig.setupTask.cloud.connectionLabel', { defaultValue: 'Connection' })}
-          </div>
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,16rem),1fr))] gap-3" data-testid="runtime-setup-cloud-connectors" role="radiogroup" aria-label={t('runtimeConfig.setupTask.cloud.connectionLabel')}>
           {readyConnectors.map((connector) => (
             <label
               key={connector.connectorRef}
-              className="flex cursor-pointer items-center gap-2 rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] px-3 py-2"
+              className={`flex cursor-pointer items-center gap-3 rounded-2xl border p-4 transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--nimi-focus-ring-color)] ${selectedConnectorRef === connector.connectorRef ? 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-surface-active)]' : 'border-transparent bg-[var(--nimi-surface-panel)] hover:border-[var(--nimi-border-subtle)]'}`}
               data-testid={`runtime-setup-cloud-connector:${connector.connectorRef}`}
             >
               <input
                 type="radio"
                 name="runtime-setup-cloud-connector"
+                className="sr-only"
+                disabled={busy}
                 checked={selectedConnectorRef === connector.connectorRef}
                 onChange={() => onSelectConnector(connector.connectorRef)}
               />
-              <span className="min-w-0 truncate text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-primary)]">
-                {connector.label}
+              <ProviderLogoTile provider={connector.provider} label={connector.label} size="md" />
+              <span className="min-w-0 flex-1">
+                <span className="block break-words text-sm font-medium text-[var(--nimi-text-primary)]">{connector.label}</span>
+                {connector.label.toLocaleLowerCase() !== connector.provider.toLocaleLowerCase() ? <span className="mt-0.5 block text-xs text-[var(--nimi-text-secondary)]">{connector.provider}</span> : null}
               </span>
-              <span className="shrink-0 text-xs text-[var(--nimi-text-muted)]">{connector.provider}</span>
+              <span aria-hidden="true" className={`flex size-5 shrink-0 items-center justify-center rounded-full ${selectedConnectorRef === connector.connectorRef ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]' : 'border border-[var(--nimi-border-strong)]'}`}>
+                {selectedConnectorRef === connector.connectorRef ? <Check size={13} /> : null}
+              </span>
             </label>
           ))}
           {blockedConnectors.map((connector) => (
@@ -304,16 +312,6 @@ export function RuntimeSetupTaskCloudPanel(props: {
           ) : null}
         </div>
       ) : null}
-      {!showCreateForm ? (
-        <Button
-          tone="secondary"
-          size="sm"
-          onClick={() => setShowCreateForm(true)}
-          data-testid="runtime-setup-cloud-add-connector"
-        >
-          {t('runtimeConfig.setupTask.cloud.addConnection', { defaultValue: 'Add a connection' })}
-        </Button>
-      ) : null}
       {showCreateForm ? (
         <div className="rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] p-3" data-testid="runtime-setup-cloud-create">
           <RuntimeConfigConnectorCreateForm
@@ -332,11 +330,10 @@ export function RuntimeSetupTaskCloudPanel(props: {
           </p>
         </div>
       ) : null}
+      </section>
       {selectedConnectorRef && connectors !== null ? (
-        <div className="space-y-2" data-testid="runtime-setup-cloud-targets">
-          <div className="text-[length:var(--nimi-type-label-size)] font-semibold text-[var(--nimi-text-primary)]">
-            {t('runtimeConfig.setupTask.cloud.targetLabel', { defaultValue: "Cloud model" })}
-          </div>
+        <section className="space-y-4 rounded-3xl bg-[var(--nimi-surface-card)] p-5 sm:p-6" data-testid="runtime-setup-cloud-targets">
+          <h2 className="text-sm font-semibold">{t('runtimeConfig.setupTask.cloud.targetLabel', { defaultValue: 'Choose a model' })}</h2>
           {targets === null && !targetsError ? <LoadingSkeleton className="h-16 w-full" /> : null}
           {targetsError ? (
             <InlineAlert tone="danger">
@@ -353,74 +350,89 @@ export function RuntimeSetupTaskCloudPanel(props: {
             </p>
           ) : null}
           {targets && targets.length > 0 ? (
-            <input
+            <TextField
               type="search" value={targetQuery} onChange={(event) => setTargetQuery(event.currentTarget.value)}
+              leading={<Search size={17} aria-hidden="true" />}
+              disabled={busy}
               aria-label={t('runtimeConfig.setupTask.cloud.searchModels', { defaultValue: 'Search models' })}
               placeholder={t('runtimeConfig.setupTask.cloud.searchModels', { defaultValue: 'Search models' })}
-              className="w-full rounded-[var(--nimi-radius-md)] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-field-bg)] px-3 py-2 text-sm"
+              className="min-h-11 rounded-xl bg-[var(--nimi-surface-panel)] text-sm focus-within:ring-1"
               data-testid="runtime-setup-cloud-search"
             />
           ) : null}
           {targets && targets.length > 0 && visibleTargets.length === 0 ? (
             <p className="text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.setupTask.cloud.noSearchMatches', { defaultValue: 'No matching models. Try another name.' })}</p>
           ) : null}
+          <div className="space-y-3" role="radiogroup" aria-label={t('runtimeConfig.setupTask.cloud.targetLabel')}>
           {visibleTargets.map((target) => {
             const key = runtimeSetupCloudTargetKey(target);
             const ready = target.state === 'ready';
+            const selected = selectedTargetKey === key;
             return (
-              <label
+              <div
                 key={key}
-                className={`flex items-center gap-2 rounded-[var(--nimi-radius-md)] border px-3 py-2 ${ready ? 'cursor-pointer border-[var(--nimi-border-subtle)]' : 'border-dashed border-[var(--nimi-border-subtle)] opacity-75'}`}
+                className={`overflow-hidden rounded-2xl border transition-colors has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[var(--nimi-focus-ring-color)] ${selected ? 'border-[var(--nimi-action-primary-bg)] bg-[var(--nimi-surface-active)]' : 'border-transparent bg-[var(--nimi-surface-panel)]'} ${ready ? 'hover:border-[var(--nimi-action-primary-bg)]' : 'border-dashed border-[var(--nimi-border-subtle)]'}`}
                 data-testid={`runtime-setup-cloud-target:${target.label}`}
               >
+                <label className={`flex items-center gap-4 p-4 ${ready && !busy ? 'cursor-pointer' : 'cursor-default'}`}>
                 <input
                   type="radio"
                   name="runtime-setup-cloud-target"
-                  disabled={!ready}
-                  checked={selectedTargetKey === key}
+                  className="sr-only"
+                  disabled={!ready || busy}
+                  checked={selected}
                   onChange={() => onSelectTarget(target)}
                 />
+                <span aria-hidden="true" className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[var(--nimi-surface-card)] text-[var(--nimi-action-primary-bg)]"><Cloud size={23} strokeWidth={1.6} /></span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[length:var(--nimi-type-body-sm-size)] text-[var(--nimi-text-primary)]">{target.label}</span>
-                  <span className="block truncate text-xs text-[var(--nimi-text-muted)]">
-                    {target.implementation.implementationId}
-                    {target.reasons.length > 0 ? ` · ${target.reasons.join(', ')}` : ''}
-                  </span>
+                  <span className="block break-words text-base font-semibold text-[var(--nimi-text-primary)]">{target.label}</span>
+                  {target.reasons.length > 0 ? <span className="mt-1 block text-xs text-[var(--nimi-text-secondary)]">{target.reasons.join(', ')}</span> : null}
+                  {recommendation && matchesRuntimeSetupCloudRecommendation(target, recommendation) ? <span className="mt-1 block text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.setupTask.cloud.recommendedTarget', { defaultValue: 'From shared setup' })}</span> : null}
                 </span>
                 {!ready ? (
                   <StatusBadge tone="warning" shape="soft">
                     {t('runtimeConfig.setupTask.cloud.targetBlocked', { defaultValue: 'Not ready' })}
                   </StatusBadge>
                 ) : null}
-                {recommendation && matchesRuntimeSetupCloudRecommendation(target, recommendation) ? (
-                  <StatusBadge tone="info" shape="soft">{t('runtimeConfig.setupTask.cloud.recommendedTarget', { defaultValue: "From shared setup" })}</StatusBadge>
-                ) : null}
-              </label>
+                <span aria-hidden="true" className={`flex size-6 shrink-0 items-center justify-center rounded-full ${selected ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]' : 'border border-[var(--nimi-border-strong)]'}`}>
+                  {selected ? <Check size={15} /> : null}
+                </span>
+                </label>
+                <details className="px-4 pb-3 text-xs text-[var(--nimi-text-secondary)]">
+                  <summary className="w-fit cursor-pointer">{t('runtimeConfig.profiles.technicalDetails', { defaultValue: 'Technical details' })}</summary>
+                  <p className="mt-2 break-all">{target.implementation.implementationId} · {target.implementation.driverId} · {target.implementation.driverDialect}</p>
+                </details>
+              </div>
             );
           })}
-        </div>
+          </div>
+        </section>
       ) : null}
       {blockedMessage ? <InlineAlert tone="warning">{blockedMessage}</InlineAlert> : null}
+      <div className="space-y-4 px-1 pt-1">
+      <div className="flex flex-wrap items-center justify-between gap-4">
       {selectedTarget ? (
-        <p className="text-sm text-[var(--nimi-text-secondary)]" data-testid="runtime-setup-cloud-selected">
+        <p className="min-w-0 break-words text-sm font-medium text-[var(--nimi-text-primary)]" data-testid="runtime-setup-cloud-selected" aria-live="polite">
           {t('runtimeConfig.setupTask.cloud.selectedModel', { defaultValue: 'Selected model: {{model}}', model: selectedTarget.label })}
         </p>
-      ) : null}
-      <p className="text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.setupTask.cloud.executionNote', { defaultValue: 'Requests use this cloud service and may incur provider charges.' })}</p>
+      ) : <p className="text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.setupTask.cloud.chooseBeforeSave', { defaultValue: 'Select a model to continue.' })}</p>}
       {!props.selectionOnly ? (
-      <div className="flex flex-wrap items-center gap-2">
         <Button
           tone="primary"
+          className="max-w-full whitespace-normal text-center"
           disabled={!selectedTargetReady || busy}
           onClick={onSave}
           data-testid="runtime-setup-cloud-save"
         >
           {busy
             ? t('runtimeConfig.setupTask.cloud.saving', { defaultValue: 'Saving…' })
-            : t('runtimeConfig.setupTask.cloud.saveRoute', { defaultValue: "Save and use this model" })}
+            : props.ownerLabel ? t('runtimeConfig.setupTask.cloud.saveForOwner', { defaultValue: 'Save for {{owner}}', owner: props.ownerLabel })
+              : t('runtimeConfig.setupTask.cloud.saveRoute', { defaultValue: 'Save and use this model' })}
         </Button>
-      </div>
       ) : null}
+      </div>
+      <p className="text-xs leading-relaxed text-[var(--nimi-text-secondary)]">{t('runtimeConfig.setupTask.cloud.executionNote', { defaultValue: 'Saving makes no AI request. When used, requests go to this cloud service and may incur provider charges.' })}</p>
+      </div>
     </div>
   );
 }

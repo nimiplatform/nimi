@@ -21,10 +21,10 @@ async function render(node: React.ReactNode) {
   if (!container) { container = document.createElement('div'); document.body.append(container); root = createRoot(container); }
   await act(async () => { root!.render(node); await flush(); });
 }
-afterEach(async () => { await act(async () => { root?.unmount(); await flush(); }); container?.remove(); container = undefined as never; root = undefined; vi.unstubAllGlobals(); document.getSelection()?.removeAllRanges(); });
+afterEach(async () => { await act(async () => { root?.unmount(); await flush(); }); container?.remove(); container = undefined as never; root = undefined; vi.restoreAllMocks(); vi.unstubAllGlobals(); document.getSelection()?.removeAllRanges(); });
 const message = (overrides: Partial<ConversationCanonicalMessage> = {}): ConversationCanonicalMessage => ({ id: 'message', sessionId: 'anchor', targetId: 'agent', source: 'agent', role: 'assistant', kind: 'text', text: 'second same same', status: 'complete', createdAt: '2026-10-27', metadata: { canonicalMessageCommitted: true, canonicalTurnId: 'turn', canonicalTurnStatus: 'completed' }, ...overrides });
-function View({ value, onQuote, onReturnToComposer }: { value: ConversationCanonicalMessage; onQuote: () => void; onReturnToComposer?: () => void }) {
-  return <CanonicalMessageActionsProvider actions={{ scopeKey: 'scope', onQuote, onReturnToComposer }} messages={[value]}>
+function View({ value, onQuote, onReturnToComposer, playback }: { value: ConversationCanonicalMessage; onQuote: () => void; onReturnToComposer?: () => void; playback?: LocalAppConversationPlayback }) {
+  return <CanonicalMessageActionsProvider actions={{ scopeKey: 'scope', onQuote, onReturnToComposer, playback }} messages={[value]}>
     <article data-canonical-message-id={value.id}><CanonicalMessageBubble message={value} content={<p>{value.text}</p>} /></article>
   </CanonicalMessageActionsProvider>;
 }
@@ -104,6 +104,54 @@ describe('real shared message action rendering', () => {
     expect(menu?.contains(document.activeElement)).toBe(true);
     expect(container.querySelector('[aria-label="More actions"]')?.getAttribute('aria-expanded')).toBe('true');
     expect(onQuote).not.toHaveBeenCalled();
+  });
+  it.each([
+    ['assistant', 'right'],
+    ['user', 'left'],
+  ] as const)('anchors the %s action menu beside the message and keeps its toolbar open', async (role, side) => {
+    vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
+    vi.spyOn(document.documentElement, 'clientWidth', 'get').mockReturnValue(1024);
+    vi.spyOn(document.documentElement, 'clientHeight', 'get').mockReturnValue(768);
+    vi.spyOn(document.documentElement, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 1024, 768));
+    vi.spyOn(document.body, 'getBoundingClientRect').mockReturnValue(new DOMRect(0, 0, 1024, 768));
+    await render(<View value={message({ role })} onQuote={vi.fn()} />);
+    const trigger = container.querySelector<HTMLButtonElement>('[aria-label="More actions"]')!;
+    const getAnchor = vi.fn(() => new DOMRect(120, 160, 28, 28));
+    trigger.getBoundingClientRect = getAnchor;
+    await act(async () => { trigger.click(); await flush(); });
+    const menu = document.querySelector<HTMLElement>('[role="menu"]')!;
+    const panel = menu.closest<HTMLElement>('[data-side]')!;
+    const toolbar = container.querySelector<HTMLElement>('[data-message-toolbar]')!;
+    expect(getAnchor).toHaveBeenCalled();
+    expect(panel.dataset.side).toBe(side);
+    expect(panel.dataset.align).toBe('center');
+    expect(toolbar.classList.contains('opacity-100')).toBe(true);
+    expect(toolbar.classList.contains('pointer-events-auto')).toBe(true);
+    expect(Array.from(menu.querySelectorAll('[role="menuitem"]')).map(item => item.textContent)).toEqual(['Copy text', 'Reply with quote']);
+    await act(async () => {
+      toolbar.dispatchEvent(new MouseEvent('mouseleave', { relatedTarget: panel }));
+      panel.dispatchEvent(new MouseEvent('mouseenter'));
+      await flush();
+    });
+    expect(menu.isConnected).toBe(true);
+    expect(trigger.getAttribute('aria-expanded')).toBe('true');
+    expect(toolbar.classList.contains('opacity-100')).toBe(true);
+  });
+  it('keeps one read-message action connected to the existing playback controller', async () => {
+    vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
+    const value = message({ metadata: { ...message().metadata, canonicalConversationAnchorId: 'anchor' } });
+    const play = vi.fn(async () => {});
+    const playback: LocalAppConversationPlayback = {
+      state: { status: 'idle', phase: null, message: null, messageId: null, artifactId: null, position: 0, duration: 0, realtimeBlocked: false, sourceVisible: false, error: null },
+      stop: vi.fn(), play, pause: vi.fn(), resume: vi.fn(async () => {}), seek: vi.fn(), retry: vi.fn(async () => {}), refresh: vi.fn(async () => {}), continueRequest: vi.fn(async () => {}), setSourceVisible: vi.fn(),
+    };
+    await render(<View value={value} onQuote={vi.fn()} playback={playback} />);
+    await act(async () => { container.querySelector<HTMLButtonElement>('[aria-label="More actions"]')!.click(); await flush(); });
+    const readActions = Array.from(document.querySelectorAll<HTMLButtonElement>('[role="menuitem"]')).filter(button => button.textContent === 'Read aloud');
+    expect(readActions).toHaveLength(1);
+    await act(async () => { readActions[0]!.click(); await flush(); });
+    expect(play).toHaveBeenCalledOnce();
+    expect(play).toHaveBeenCalledWith(value);
   });
   it('leaves Enter/Space and content-specific menu keys to their native controls', async () => {
     const value = message();

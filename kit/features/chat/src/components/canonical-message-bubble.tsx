@@ -487,25 +487,27 @@ export const CanonicalMessageBubble = memo(function CanonicalMessageBubble({
           className={cn('relative', mediaContainerClassName)}
           onContextMenu={(event) => { if (!handleCanonicalMessageContextMenu(messageActions, message, event)) onMessageContextMenu?.(message, event); }}
         >
-          <CanonicalMessageActionToolbar message={message} />
           <CanonicalMessageQuote message={message} />
-          <div data-canonical-message-content="true">
-          {content === undefined ? (
-            <div
-              className={cn(
-                bubbleShape.className,
-                CHAT_BUBBLE_TEXT_CLASSNAME,
-                isMediaCard
-                  ? 'overflow-hidden border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]'
-                  : isUser
-                    ? 'bg-[var(--nimi-action-primary-bg)] border border-[var(--nimi-action-primary-bg-hover)] px-4 py-2 text-[var(--nimi-action-primary-text)] [&_*]:!text-inherit'
-                    : 'border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_80%,transparent)] px-4 py-2 text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)]',
-              )}
-              style={bubbleShape.style}
-            >
-              {defaultContent}
+          <div className="relative">
+            <div data-canonical-message-content="true">
+              {content === undefined ? (
+                <div
+                  className={cn(
+                    bubbleShape.className,
+                    CHAT_BUBBLE_TEXT_CLASSNAME,
+                    isMediaCard
+                      ? 'overflow-hidden border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)]'
+                      : isUser
+                        ? 'bg-[var(--nimi-action-primary-bg)] border border-[var(--nimi-action-primary-bg-hover)] px-4 py-2 text-[var(--nimi-action-primary-text)] [&_*]:!text-inherit'
+                        : 'border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_80%,transparent)] px-4 py-2 text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-base)]',
+                  )}
+                  style={bubbleShape.style}
+                >
+                  {defaultContent}
+                </div>
+              ) : content}
             </div>
-          ) : content}
+            <CanonicalMessageActionToolbar message={message} />
           </div>
           {showTimestamp && time ? (
             <div

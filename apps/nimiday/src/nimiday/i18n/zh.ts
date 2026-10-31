@@ -420,7 +420,6 @@ export const zh = {
   },
   items: {
     title: '事项',
-    workspaceHint: '把要做的事记下来，按自己的节奏安排。',
     searchShort: '搜索全部事项',
     allCircles: '全部对象',
     showingCircle: (name: string) => `正在查看：${name}`,

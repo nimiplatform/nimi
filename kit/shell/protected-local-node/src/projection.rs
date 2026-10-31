@@ -287,7 +287,8 @@ impl NativeJsonOutcome {
         }
     }
 
-    pub(super) fn protected_error(error: ProtectedCarrierError) -> Self {
+    #[cfg(not(feature = "windows-source-local-development"))]
+    pub(super) fn protected_error(error: nimi_shell_protected_local::ProtectedCarrierError) -> Self {
         Self {
             status: "error".to_string(),
             value: None,

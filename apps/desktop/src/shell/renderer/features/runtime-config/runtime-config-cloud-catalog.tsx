@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TextField } from '@nimiplatform/kit/ui';
+import { Search } from 'lucide-react';
 import { normalizeNimiRuntimeReasonCode, type NimiRuntimeConnectorCatalogEntry } from '@nimiplatform/sdk/runtime';
 import { asNimiError } from '@nimiplatform/sdk/types';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
@@ -29,6 +30,9 @@ export function CloudConnectorCatalog({ connector, onConfigure }: {
   const [read, setRead] = useState<CatalogRead>({ key: '', rows: [], loaded: false, loading: true, error: '' });
   const [reload, setReload] = useState(0);
   const [query, setQuery] = useState('');
+  const [capability, setCapability] = useState('');
+  const [limit, setLimit] = useState(20);
+  useEffect(() => { setQuery(''); setCapability(''); setLimit(20); }, [key]);
   useEffect(() => {
     let current = true;
     setRead(previous => ({ key, rows: previous.key === key ? previous.rows : [],
@@ -43,16 +47,24 @@ export function CloudConnectorCatalog({ connector, onConfigure }: {
     return () => { current = false; };
   }, [sdk, key, connector.id, reload]);
   const visible = read.key === key ? read : { key, rows: [], loaded: false, loading: true, error: '' };
-  const filtered = visible.rows.filter(row => `${row.modelLabel} ${row.providerModelId} ${row.capabilities.join(' ')}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
-  return <section className="border-t border-[var(--nimi-border-subtle)] p-4" data-testid="cloud-model-catalog" aria-busy={visible.loading}>
+  const capabilities = [...new Set(visible.rows.flatMap(row => row.capabilities))];
+  const filtered = visible.rows.filter(row => (!capability || row.capabilities.includes(capability))
+    && `${row.modelLabel} ${row.providerModelId} ${row.capabilities.map(value => `${value} ${displayRuntimeConfigCapabilityLabel(value, t)}`).join(' ')}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()));
+  return <section className="p-4" data-testid="cloud-model-catalog" aria-busy={visible.loading}>
     <div className="flex flex-wrap items-center justify-between gap-3">
       <h2 className="desktop-module-section-title">{t('runtimeConfig.cloudWorkspace.catalogTitle')}
         {visible.loaded && !visible.error ? <span className="ml-2 text-sm font-normal text-[var(--nimi-text-muted)]">{visible.rows.length}</span> : null}
       </h2>
       <Button size="sm" variant="ghost" disabled={visible.loading} onClick={() => setReload(value => value + 1)}>{t('runtimeConfig.cloudWorkspace.reloadCatalog')}</Button>
     </div>
-    {visible.loaded && visible.rows.length > 0 ? <div className="mt-4">
-      <TextField value={query} onChange={event => setQuery(event.target.value)} aria-label={t('runtimeConfig.cloudWorkspace.searchModels')} placeholder={t('runtimeConfig.cloudWorkspace.searchModels')} />
+    <p className="mt-1 text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.cloudWorkspace.catalogIntro')}</p>
+    {visible.loaded && visible.rows.length > 0 ? <div className="mt-5 flex flex-wrap items-center gap-3">
+      <div className="min-w-0 flex-1"><TextField value={query} onChange={event => { setQuery(event.target.value); setLimit(20); }} leading={<Search size={16} />} aria-label={t('runtimeConfig.cloudWorkspace.searchModels')} placeholder={t('runtimeConfig.cloudWorkspace.searchModels')} /></div>
+      {capabilities.length > 1 ? <select className="max-w-full rounded-lg border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-sm text-[var(--nimi-text-secondary)]" aria-label={t('runtimeConfig.cloudWorkspace.filterCapability')} value={capability} onChange={event => { setCapability(event.target.value); setLimit(20); }}>
+        <option value="">{t('runtimeConfig.cloudWorkspace.allCapabilities')}</option>
+        {capabilities.map(value => <option key={value} value={value}>{displayRuntimeConfigCapabilityLabel(value, t)}</option>)}
+      </select> : null}
+      {query || capability ? <Button size="sm" variant="ghost" onClick={() => { setQuery(''); setCapability(''); setLimit(20); }}>{t('runtimeConfig.cloudWorkspace.clearFilters')}</Button> : null}
     </div> : null}
     <div aria-live="polite" className="mt-3 text-sm text-[var(--nimi-text-secondary)]">
       {visible.loading ? <p>{t(visible.loaded ? 'runtimeConfig.cloudWorkspace.refreshingCatalog' : 'Common.loading')}</p> : null}
@@ -61,7 +73,7 @@ export function CloudConnectorCatalog({ connector, onConfigure }: {
       {visible.loaded && visible.rows.length > 0 && !filtered.length ? <p>{t('runtimeConfig.setupTask.cloud.noSearchMatches')}</p> : null}
     </div>
     {filtered.length ? <ul className="mt-4 divide-y divide-[var(--nimi-border-subtle)]">
-      {filtered.map(row => <li key={row.remoteModelCatalogId} className="flex flex-wrap items-center justify-between gap-3 py-3" data-testid={`cloud-model:${row.remoteModelCatalogId}`}>
+      {filtered.slice(0, limit).map(row => <li key={row.remoteModelCatalogId} className="flex flex-wrap items-center justify-between gap-4 py-4" data-testid={`cloud-model:${row.remoteModelCatalogId}`}>
         <div className="min-w-0 flex-1">
           <p className="break-words text-sm font-medium text-[var(--nimi-text-primary)]">{row.modelLabel}</p>
           {row.modelLabel !== row.providerModelId ? <p className="mt-1 break-all font-mono text-xs text-[var(--nimi-text-muted)]">{row.providerModelId}</p> : null}
@@ -71,6 +83,7 @@ export function CloudConnectorCatalog({ connector, onConfigure }: {
         {onConfigure ? <Button size="sm" variant="secondary" disabled={!row.available || connector.managementStatus === 'disabled'} onClick={() => onConfigure(row)}>{t('runtimeConfig.cloudWorkspace.configureUse')}</Button> : null}
       </li>)}
     </ul> : null}
-    <details className="mt-4 text-xs text-[var(--nimi-text-muted)]"><summary className="cursor-pointer">{t('runtimeConfig.cloudWorkspace.catalogMeaning')}</summary><p className="mt-2">{t('runtimeConfig.cloudWorkspace.catalogScope')}</p></details>
+    {filtered.length > 20 ? <div className="mt-3 flex items-center justify-between gap-3 text-xs text-[var(--nimi-text-secondary)]"><span>{t('runtimeConfig.cloudWorkspace.showingModels', { shown: Math.min(limit, filtered.length), total: filtered.length })}</span>{limit < filtered.length ? <Button size="sm" variant="secondary" onClick={() => setLimit(value => value + 20)}>{t('runtimeConfig.cloudWorkspace.loadMore')}</Button> : null}</div> : null}
+    <details className="mt-5 border-t border-[var(--nimi-border-subtle)] pt-4 text-xs leading-relaxed text-[var(--nimi-text-secondary)]"><summary className="cursor-pointer">{t('runtimeConfig.cloudWorkspace.catalogMeaning')}</summary><p className="mt-2">{t('runtimeConfig.cloudWorkspace.catalogScope')}</p></details>
   </section>;
 }

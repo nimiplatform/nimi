@@ -284,6 +284,66 @@ func TestPrepareLocalEnvironmentPlanApplyRejectsCurrentNonRetryableFailureBefore
 	}
 }
 
+func TestPrepareLocalEnvironmentPlanApplyRestartsUnselectedPythonProfile(t *testing.T) {
+	for _, test := range []struct {
+		name         string
+		rememberPlan bool
+		selected     bool
+		wantStart    bool
+	}{
+		{name: "new confirmed plan after initial timeout", rememberPlan: true, wantStart: true},
+		{name: "no admitted current plan"},
+		{name: "selected generation keeps its repair owner", rememberPlan: true, selected: true},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			svc := newTestService(t)
+			dep := localEnvironmentPlanDependency{
+				EnvironmentKey:   "python.venv|python-profile.current-lock",
+				DependencyFamily: localEnvironmentFamilyPythonVenv, DependencyID: "python-profile.current-lock",
+				ConsumerScope: "speech.faster-whisper.python", State: localEnvironmentStateFailed,
+				SourceKind: localEnvironmentSourceManaged, Required: true,
+			}
+			if test.rememberPlan {
+				if err := svc.rememberLocalEnvironmentPlanDependencyContracts(context.Background(), []localEnvironmentPlanDependency{dep}); err != nil {
+					t.Fatal(err)
+				}
+			}
+			failed := localEnvironmentDependencyJobState{
+				JobID: "initial-profile-timeout", EnvironmentKey: dep.EnvironmentKey,
+				DependencyFamily: dep.DependencyFamily, DependencyID: dep.DependencyID, ConsumerScope: dep.ConsumerScope,
+				State: localEnvironmentStateFailed, SourceKind: localEnvironmentSourceManaged,
+				ReasonCode: "LOCAL_ENVIRONMENT_DEPENDENCY_JOB_FAILED", RecoveryDisposition: localEnvironmentJobRecoveryNotRetryable,
+				FailureDetail: "sync frozen python dependency profile: context deadline exceeded",
+			}
+			svc.localEnvironmentDependencyJobs[failed.JobID] = failed
+			if test.selected {
+				svc.upsertLocalEnvironmentSelectedSourceRecord(localEnvironmentSelectedSourceRecordState{
+					EnvironmentKey: dep.EnvironmentKey, DependencyFamily: dep.DependencyFamily, DependencyID: dep.DependencyID,
+					SourceKind: localEnvironmentSourceManaged, CanonicalRoot: filepath.Join(t.TempDir(), "profile"),
+					SelectedConsumers: []string{dep.ConsumerScope},
+				})
+			}
+			actions, err := svc.prepareLocalEnvironmentPlanApplyActions(localEnvironmentPlan{Dependencies: []localEnvironmentPlanDependency{dep}})
+			if test.wantStart {
+				if err != nil || len(actions) != 1 || actions[0].Kind != localEnvironmentPlanApplyStart {
+					t.Fatalf("new initial profile setup: actions=%+v err=%v", actions, err)
+				}
+			} else if status.Code(err) != codes.FailedPrecondition {
+				t.Fatalf("unexpected initial setup admission: actions=%+v err=%v", actions, err)
+			}
+			if got := svc.localEnvironmentDependencyJobs[failed.JobID]; !reflect.DeepEqual(got, failed) {
+				t.Fatalf("new setup rewrote the terminal job: %+v", got)
+			}
+			_, err = svc.RetryLocalEnvironmentDependencyJob(context.Background(), &runtimev1.RetryLocalEnvironmentDependencyJobRequest{
+				JobId: failed.JobID, Confirmed: true,
+			})
+			if status.Code(err) != codes.FailedPrecondition {
+				t.Fatalf("terminal job retry policy changed: %v", err)
+			}
+		})
+	}
+}
+
 func TestPrepareLocalEnvironmentPlanApplyRestartsFailedNativeSDCPPAfterCUDAReady(t *testing.T) {
 	svc := newTestService(t)
 	consumer := stableDiffusionCUDAConsumerID

@@ -3,7 +3,7 @@
 import { InlineAlert, OverlayShell, ScrollArea, TextField } from '@nimiplatform/kit/ui';
 import { isNimiBrowserManagedConnectorProfile } from '@nimiplatform/sdk/runtime';
 import type { ProviderCatalogEntry } from '@nimiplatform/sdk/runtime/wire-types';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, ChevronDown, SlidersHorizontal } from 'lucide-react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store';
@@ -240,66 +240,64 @@ export function RuntimeConfigConnectorCreateForm(props: {
       {catalogError ? (
         <InlineAlert tone="danger">{catalogError}</InlineAlert>
       ) : null}
-      <details className="space-y-3 rounded-xl border border-[var(--nimi-border-subtle)] p-3" open={!resolveProviderEndpoint(resolvedProvider, providerCatalog)}>
-        <summary className="cursor-pointer text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.product.connectionOptions')}</summary>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Input
-            label={t('runtimeConfig.product.optionalConnectionName')}
-            value={label}
-            onChange={(next) => onChangeField(() => setLabel(next))}
-            placeholder={t('runtimeConfig.cloud.connectorNamePlaceholder', { defaultValue: 'My API Connector' })}
-            disabled={saving || oauthBusy}
-            icon={<ServerIcon />}
-          />
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
-              {t('runtimeConfig.cloud.vendor', { defaultValue: 'Vendor' })}
-            </label>
-            <RuntimeSelect
-              value={resolvedProvider}
-              onChange={(nextProvider) => onChangeField(() => {
-                setProvider(nextProvider);
-                setEndpoint('');
-                setAuthOptionValue('');
-              })}
-              disabled={saving || oauthBusy || managedProviders.length === 0}
-              className="w-full"
-              options={managedProviders.map((entry) => ({
-                value: entry.provider,
-                label: getVendorLabelV11(providerToVendor(entry.provider)),
-              }))}
-              searchable
-              searchPlaceholder={t('runtimeConfig.cloud.searchVendors', { defaultValue: 'Search vendors...' })}
-            />
-          </div>
-        </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-          {/* Browser sign-in Connectors use the provider's fixed endpoint. */}
-          {!isBrowserManaged ? (
-            <Input
-              label={t('runtimeConfig.cloud.endpoint', { defaultValue: 'Endpoint' })}
-              value={resolvedEndpoint}
-              onChange={(next) => onChangeField(() => setEndpoint(next))}
-              disabled={saving || oauthBusy}
-            />
-          ) : null}
-          {authOptions.length > 1 ? (
+      <details className="group overflow-hidden rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)]" open={!resolveProviderEndpoint(resolvedProvider, providerCatalog)}>
+        <summary className="flex cursor-pointer list-none items-center gap-2.5 px-3.5 py-3 text-sm font-medium text-[var(--nimi-text-primary)] transition-colors hover:bg-[var(--nimi-surface-active)] focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-[var(--nimi-focus-ring-color)] [&::-webkit-details-marker]:hidden">
+          <SlidersHorizontal size={15} className="shrink-0 text-[var(--nimi-text-muted)]" aria-hidden="true" />
+          <span className="min-w-0 flex-1">{t('runtimeConfig.product.connectionOptions')}</span>
+          <ChevronDown size={15} className="shrink-0 text-[var(--nimi-text-muted)] transition-transform group-open:rotate-180" aria-hidden="true" />
+        </summary>
+        <div className="space-y-4 border-t border-[var(--nimi-border-subtle)] px-3.5 py-4">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
-                {t('runtimeConfig.cloud.credentialType', { defaultValue: 'Credential Type' })}
+                {t('runtimeConfig.cloud.vendor', { defaultValue: 'Vendor' })}
               </label>
               <RuntimeSelect
-                value={resolvedAuthOption?.value ?? ''}
-                onChange={(next) => onChangeField(() => {
-                  setAuthOptionValue(next);
-                  setTokenDraft('');
+                value={resolvedProvider}
+                onChange={(nextProvider) => onChangeField(() => {
+                  setProvider(nextProvider);
+                  setEndpoint('');
+                  setAuthOptionValue('');
                 })}
-                disabled={saving || oauthBusy}
+                disabled={saving || oauthBusy || managedProviders.length === 0}
                 className="w-full"
-                options={authOptions}
+                options={managedProviders.map((entry) => ({
+                  value: entry.provider,
+                  label: getVendorLabelV11(providerToVendor(entry.provider)),
+                }))}
+                searchable
+                searchPlaceholder={t('runtimeConfig.cloud.searchVendors', { defaultValue: 'Search vendors...' })}
               />
             </div>
-          ) : null}
+          </div>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+            {/* Browser sign-in Connectors use the provider's fixed endpoint. */}
+            {!isBrowserManaged ? (
+              <Input
+                label={t('runtimeConfig.cloud.endpoint', { defaultValue: 'Endpoint' })}
+                value={resolvedEndpoint}
+                onChange={(next) => onChangeField(() => setEndpoint(next))}
+                disabled={saving || oauthBusy}
+              />
+            ) : null}
+            {authOptions.length > 1 ? (
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-[var(--nimi-text-secondary)]">
+                  {t('runtimeConfig.cloud.credentialType', { defaultValue: 'Credential Type' })}
+                </label>
+                <RuntimeSelect
+                  value={resolvedAuthOption?.value ?? ''}
+                  onChange={(next) => onChangeField(() => {
+                    setAuthOptionValue(next);
+                    setTokenDraft('');
+                  })}
+                  disabled={saving || oauthBusy}
+                  className="w-full"
+                  options={authOptions}
+                />
+              </div>
+            ) : null}
+          </div>
         </div>
       </details>
       {!isOAuthManaged ? (
@@ -319,6 +317,14 @@ export function RuntimeConfigConnectorCreateForm(props: {
           })}
         </p>
       )}
+      <Input
+        label={t('runtimeConfig.product.optionalConnectionName')}
+        value={label}
+        onChange={(next) => onChangeField(() => setLabel(next))}
+        placeholder={t('runtimeConfig.cloud.connectorNamePlaceholder', { defaultValue: 'My API Connector' })}
+        disabled={saving || oauthBusy}
+        icon={<ServerIcon />}
+      />
       {oauth.pending ? (
         <ChatGPTPlanPendingNotice pending={oauth.pending} onCancel={() => oauth.invalidate('ChatGPT sign-in was canceled')} t={t} />
       ) : null}

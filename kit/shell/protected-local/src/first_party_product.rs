@@ -348,9 +348,11 @@ mod tests {
     #[tokio::test]
     async fn selected_data_root_is_decoded_before_transport_or_acl_action() {
         let channel = tonic::transport::Endpoint::from_static("http://[::]:50051").connect_lazy();
-        let mut methods = vec![DesktopMachineProductUnaryMethod::SelectProductControlDataRoot];
-        #[cfg(target_os = "macos")]
-        methods.push(DesktopMachineProductUnaryMethod::ReplaceProductControlDataRoot);
+        let methods = [
+            DesktopMachineProductUnaryMethod::SelectProductControlDataRoot,
+            #[cfg(target_os = "macos")]
+            DesktopMachineProductUnaryMethod::ReplaceProductControlDataRoot,
+        ];
         for method in methods {
             let error = invoke_machine_unary(
                 channel.clone(),

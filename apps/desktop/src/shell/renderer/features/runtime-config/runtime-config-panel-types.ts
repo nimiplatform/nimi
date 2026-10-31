@@ -89,7 +89,7 @@ export type RuntimeConfigPanelControllerModel = {
   onCloseSavedConfigs: () => void;
   updateState: (updater: (prev: RuntimeConfigStateV11) => RuntimeConfigStateV11) => void;
   runLocalHealthCheck: () => Promise<void>;
-  testSelectedConnector: () => Promise<void>;
+  testSelectedConnector: (setFeedback: (feedback: InlineFeedbackState | null) => void) => Promise<void>;
   installResolvedModelPlan: (plan: NimiRuntimeLocalInstallPlanDescriptor) => Promise<RuntimeConfigInstallResult>;
   installConfirmation: RuntimeConfigInstallConfirmationRequest | null;
   resolveInstallConfirmation: (confirmed: boolean) => void;
