@@ -142,12 +142,16 @@ export function useAiConversationHostActions(
     })().catch(input.reportHostError);
   }, [input, persistDraftForThread, syncAiThreadSelectionState]);
 
+  // @nimi-authority: rule.nimi.desktop.shell-ui.chat-sides
   const handleSubmit = useCallback(async (value: string) => {
     const text = value.trim();
     if (!text || input.submittingThreadId) return;
     input.clearHostError();
     const createdAtMs = input.now();
-    const baseThread: ChatAiThreadRecord = input.ephemeralThread
+    // A side flip retains unsent drafts, but only the selected thread owns this send.
+    const activeEphemeralThread = input.ephemeralThread?.id === input.activeThreadId
+      ? input.ephemeralThread : null;
+    const baseThread: ChatAiThreadRecord = activeEphemeralThread
       ?? (input.selectedThreadRecord && input.activeThreadId
         ? {
           ...input.selectedThreadRecord,
@@ -161,7 +165,7 @@ export function useAiConversationHostActions(
           updatedAtMs: createdAtMs,
           lastMessageAtMs: null,
         });
-    const isFreshThread = !input.ephemeralThread
+    const isFreshThread = !activeEphemeralThread
       && !(input.selectedThreadRecord && input.activeThreadId);
     const userMessageId = createNimiClientId('ai-message-user');
     const userContent = createPlainTextMessageContent(text);
@@ -194,7 +198,7 @@ export function useAiConversationHostActions(
       const result = await input.executeTextCapability(text);
       const persisted = await ensureChatAiThreadRecordPersisted({
         thread: baseThread,
-        verifyExisting: Boolean(input.selectedThreadRecord && !input.ephemeralThread),
+        verifyExisting: Boolean(input.selectedThreadRecord && !activeEphemeralThread),
       });
       const userMessage = await chatAiStoreClient.createMessage({
         id: userMessageId,
@@ -238,7 +242,7 @@ export function useAiConversationHostActions(
       input.queryClient.setQueryData<ChatAiThreadSummary[]>(THREADS_QUERY_KEY, (current) => (
         upsertThreadSummary(Array.isArray(current) ? current : [], updatedThread)
       ));
-      input.setEphemeralThread(null);
+      if (activeEphemeralThread || isFreshThread) input.setEphemeralThread(null);
       input.currentDraftTextRef.current = '';
       syncAiThreadSelectionState(updatedThread.id);
       await input.queryClient.invalidateQueries({ queryKey: THREADS_QUERY_KEY });
