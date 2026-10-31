@@ -5,6 +5,15 @@ import type { ResourceDetailDto, ResourceDirectUploadSessionDto, CreateMediaDire
 import { uploadNimiRealmResourceFile, type NimiRealmResourceUploadApi } from './resource-upload.js';
 
 const file = new Blob(['verified original'], { type: 'image/png' });
+test('account retirement during the last hashing chunk stops the first upload request', async () => {
+  const controller = new AbortController();
+  let preparations = 0;
+  const realm = { resources: { createImageDirectUpload() { preparations++; throw Error('unexpected prepare'); } } } as unknown as NimiRealmResourceUploadApi;
+  await assert.rejects(uploadNimiRealmResourceFile(realm, { kind: 'image', file, failureMessage: 'upload failed',
+    options: { signal: controller.signal }, onProgress: p => { if (p.phase === 'hashing') controller.abort(); } }), { name: 'AbortError' });
+  assert.equal(preparations, 0);
+});
+
 const hash = createHash('sha256').update('verified original').digest('hex');
 function detail(state: 'PROCESSING' | 'PUBLISHING' | 'READY' | 'FAILED' = 'READY'): ResourceDetailDto {
   return { id: 'resource-1', resourceType: 'IMAGE', provider: 'S3_OBJECT', mimeType: 'image/png', status: state === 'PROCESSING' ? 'PENDING' : state === 'FAILED' ? 'FAILED' : 'READY', hashSha256: hash, sizeBytes: file.size, controllerId: 'owner', controllerKind: 'ACCOUNT', uploaderAccountId: 'owner', provenance: 'UPLOADED', deliveryAccess: 'SIGNED', tags: [], createdAt: '2026-10-26T00:00:00Z', updatedAt: '2026-10-26T00:00:00Z', externalUrl: null,

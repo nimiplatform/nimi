@@ -25,7 +25,18 @@ export interface NimiRealmResourceUploadApi {
   };
 }
 
+/** Metadata for bytes already accepted by the upload transport. Contains no upload URL or credentials. */
+export interface NimiRealmTransferredFile {
+  readonly resourceId: string;
+  readonly requestId: string;
+  readonly resourceType: ResourceDirectUploadSessionDto['resourceType'];
+  readonly hashSha256: string;
+  readonly sizeBytes: number;
+  readonly contentType: string;
+}
+
 export interface NimiRealmResourceUploadInput {
+  readonly onTransferred?: (transfer: NimiRealmTransferredFile) => Promise<void>;
   readonly kind: NimiRealmResourceUploadKind;
   readonly file: Blob;
   readonly fetchImpl?: typeof fetch;
@@ -35,6 +46,8 @@ export interface NimiRealmResourceUploadInput {
   readonly metadata?: NimiRealmResourceUploadMetadata;
   readonly requestId?: string;
   readonly processingTimeoutMs?: number;
+  /** An account-scoped caller must not start a fresh cleanup write after losing its principal. */
+  readonly cancelOnAbort?: boolean;
   readonly onProgress?: (progress: { phase: 'hashing' | 'uploading' | 'processing'; bytes: number; totalBytes: number }) => void;
   readonly failureMessage?: string;
   readonly options?: RealmTypedCallOptions;
@@ -69,6 +82,31 @@ function wait(milliseconds: number, signal?: AbortSignal): Promise<void> {
   });
 }
 
+export async function finalizeNimiRealmTransferredFile(realm: NimiRealmResourceUploadApi, transfer: NimiRealmTransferredFile,
+  input: Pick<NimiRealmResourceUploadInput, 'options' | 'failureMessage' | 'processingTimeoutMs' | 'onProgress'> = {}): Promise<ResourceDetailDto> {
+  const { resourceId, requestId } = transfer;
+  const signal = input.options?.signal;
+  signal?.throwIfAborted();
+  const processingTimeout = input.processingTimeoutMs ?? 600000;
+  if (!Number.isFinite(processingTimeout) || processingTimeout < 1 || processingTimeout > 7200000) fail('input', 'Invalid media processing timeout.');
+  function failIntent(phase: string, message: string, id: string, code?: string): never { return fail(phase, message, id, code, requestId); }
+  let resource = await realm.resources.finalizeResource({ path: { resourceId }, body: { requestId } }, input.options);
+  const deadline = Date.now() + processingTimeout;
+  while (true) {
+    signal?.throwIfAborted();
+    if (resource.id !== resourceId || resource.resourceType !== transfer.resourceType) failIntent('finalize', 'Resource identity changed during finalization.', resourceId);
+    if (resource.status === 'FAILED' || resource.status === 'DELETED' || resource.deliveryStatus.state === 'FAILED') failIntent('finalize', input.failureMessage || 'The media could not be verified or processed.', resourceId, resource.deliveryStatus.failureCode ?? undefined);
+    if (resource.status === 'READY' && resource.deliveryStatus.state === 'READY') {
+      if (!resource.delivery || resource.hashSha256 !== transfer.hashSha256 || resource.sizeBytes !== transfer.sizeBytes || resource.mimeType !== transfer.contentType || resource.delivery.contentVersion !== transfer.hashSha256) failIntent('finalize', 'The accepted original does not match the uploaded bytes.', resourceId);
+      return resource;
+    }
+    input.onProgress?.({ phase: 'processing', bytes: transfer.sizeBytes, totalBytes: transfer.sizeBytes });
+    if (Date.now() >= deadline) failIntent('processing', 'Upload was received and is still processing. Check the resource status before retrying.', resourceId);
+    await wait(Math.min(1000, Math.max(1, deadline - Date.now())), signal);
+    resource = await realm.resources.getResource({ path: { resourceId } }, input.options);
+  }
+}
+
 // @nimi-authority: rule.nimi.sdks.realm-consumer.r007
 export async function uploadNimiRealmResourceFile(realm: NimiRealmResourceUploadApi, input: NimiRealmResourceUploadInput): Promise<NimiRealmResourceUploadResult> {
   if (!['image', 'audio', 'video'].includes(input.kind) || !input.file || typeof input.file.slice !== 'function' || !Number.isSafeInteger(input.file.size) || input.file.size < 1 || input.file.size > 2147483647) fail('input', 'A supported non-empty media file is required.');
@@ -84,6 +122,7 @@ export async function uploadNimiRealmResourceFile(realm: NimiRealmResourceUpload
   signal?.throwIfAborted();
   const requestId = input.requestId ?? globalThis.crypto.randomUUID();
   const hashSha256 = await hashFile(input.file, signal, input.onProgress);
+  signal?.throwIfAborted();
   const body: CreateMediaDirectUploadDto = { ...input.metadata, requestId, hashSha256, sizeBytes: input.file.size, mimeType: contentType, deliveryAccess: input.deliveryAccess ?? 'SIGNED', label: input.metadata?.label ?? input.fileName };
   const request = { path: {}, body };
   const session = input.kind === 'image' ? await realm.resources.createImageDirectUpload(request, input.options)
@@ -104,24 +143,13 @@ export async function uploadNimiRealmResourceFile(realm: NimiRealmResourceUpload
     catch { signal?.throwIfAborted(); failIntent('transport', input.failureMessage || 'Resource transport failed; the upload URL is not included in diagnostics.', resourceId); }
     if (!response.ok) failIntent('transport', input.failureMessage || `Resource upload returned HTTP ${response.status}.`, resourceId);
     signal?.throwIfAborted();
-    let resource = await realm.resources.finalizeResource({ path: { resourceId }, body: { requestId } }, input.options);
-    const deadline = Date.now() + processingTimeout;
-    while (true) {
-      signal?.throwIfAborted();
-      if (resource.id !== resourceId || resource.resourceType !== session.resourceType) failIntent('finalize', 'Resource identity changed during finalization.', resourceId);
-      if (resource.status === 'FAILED' || resource.status === 'DELETED' || resource.deliveryStatus.state === 'FAILED') failIntent('finalize', input.failureMessage || 'The media could not be verified or processed.', resourceId, resource.deliveryStatus.failureCode ?? undefined);
-      if (resource.status === 'READY' && resource.deliveryStatus.state === 'READY') {
-        if (!resource.delivery || resource.hashSha256 !== hashSha256 || resource.sizeBytes !== input.file.size || resource.mimeType !== transport.contentType || resource.delivery.contentVersion !== hashSha256) failIntent('finalize', 'The accepted original does not match the uploaded bytes.', resourceId);
-        completed = true;
-        return { resourceId, session, resource };
-      }
-      input.onProgress?.({ phase: 'processing', bytes: input.file.size, totalBytes: input.file.size });
-      if (Date.now() >= deadline) failIntent('processing', 'Upload was received and is still processing. Check the resource status before retrying.', resourceId);
-      await wait(Math.min(1000, Math.max(1, deadline - Date.now())), signal);
-      resource = await realm.resources.getResource({ path: { resourceId } }, input.options);
-    }
+    const transfer = { resourceId, requestId, resourceType: session.resourceType, hashSha256, sizeBytes: input.file.size, contentType: transport.contentType };
+    await input.onTransferred?.(transfer);
+    const resource = await finalizeNimiRealmTransferredFile(realm, transfer, input);
+    completed = true;
+    return { resourceId, session, resource };
   } finally {
-    if (!completed && signal?.aborted) {
+    if (!completed && signal?.aborted && input.cancelOnAbort !== false) {
       // Best-effort cancellation is never reported as confirmed server cancellation.
       try { await realm.resources.cancelResourceUpload({ path: { resourceId }, body: { requestId } }, { ...input.options, signal: undefined, timeoutMs: 5000 }); } catch { /* The persisted Resource remains queryable. */ }
     }
