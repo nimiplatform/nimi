@@ -5,7 +5,7 @@ export type PendingAttachment = {
   kind: PendingAttachmentKind;
   previewUrl: string;
   name: string;
-  /** In-memory Agent send correlation; does not persist the File or preview. */
+  /** Send correlation; does not persist the File or preview URL. */
   submissionRequestId?: string;
 };
 

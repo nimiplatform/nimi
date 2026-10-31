@@ -36,5 +36,6 @@
   "nextPage": "Next page",
   "statusPrefix": "Status",
   "joinedAtPrefix": "Joined",
-  "turnAuditLabel": "Turn Audit"
+  "turnAuditLabel": "Turn Audit",
+  "awaitingConfirmation": "Send not confirmed. Retry from the composer."
 }

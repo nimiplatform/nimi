@@ -497,3 +497,13 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.desktop.product-surfaces.relationship-profile
+  - id: rule.nimi.desktop.product-surfaces.human-chat-consumption
+    kind: rule
+    title: Human conversation consumption preserves identity delivery and read boundaries
+    modality: must
+    statement: Home distinguishes contacts from canonical Chat threads, resolves first contact through Realm, pages conversations and messages through owner cursors, and invalidates obsolete page progression on refresh. Drafts and persistent chat, profile and outbox reads and writes are scoped by Realm environment and owning Account; unowned old cache is never read as current data. Each explicit text or attachment send retains its own stable clientMessageId through uncertain results and retries only unconfirmed items. Read acknowledgements name a displayed or explicitly confirmed message position and never arise from background fetch alone.
+    condition: Whenever Home lists contacts or consumes human Chat.
+    failure: Reject identity substitution, cross-account or unowned cache, stale async results and generic automatic replay; preserve partial send outcomes, readable admitted history and recovery actions without claiming unobserved delivery.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.product-surfaces.relationship-profile

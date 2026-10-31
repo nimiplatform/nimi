@@ -29,5 +29,20 @@
   "scenarioJobOverlayCancelling": "取消中…",
   "scenarioJobOverlayFetchingArtifacts": "结果处理中…",
   "scenarioJobOverlayRecoveryTimeout": "任务状态未知，请稍后刷新",
-  "accountDataCleanupFailed": "账号已终止，但 Home 未能完成移除其本机数据。请先打开故障排查处理。"
+  "accountDataCleanupFailed": "账号已终止，但 Home 未能完成移除其本机数据。请先打开故障排查处理。",
+  "attachmentsNeedReselect": "这些文件已无法在当前窗口读取。请移除不可用的项并重新选择文件。",
+  "pendingSendNeedsRetry": "有 {{count}} 项发送尚未确认。重试会沿用原发送记录，不会重复已确认的项。",
+  "draftStorageUnavailable": "无法读取或保存草稿。请保持窗口开启，在存储恢复后重试。",
+  "retryPendingSend": "重试未确认项",
+  "removeUnavailableAttachment": "移除不可用项",
+  "removeMissingAttachment": "移除 {{name}}",
+  "stopPendingSend": "不再重试",
+  "stopPendingSendConfirm": "这些消息可能已经发送。此操作只从本机移除未确认的发送项，不会撤回对方已收到的消息。",
+  "sendItemText": "文字消息",
+  "sendUnconfirmed": "尚未确认",
+  "sendNotStarted": "尚未发送",
+  "contactChecking": "正在确认是否可以发送新消息。历史和草稿仍会保留。",
+  "contactCheckFailed": "无法确认联系权限，暂不能发送新消息。历史和草稿会保留。",
+  "contactBlockedByMe": "你已屏蔽此用户，无法发送新消息。历史和草稿会保留。",
+  "contactSendingUnavailable": "目前无法向此用户发送新消息。历史和草稿仍会保留。"
 }

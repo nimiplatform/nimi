@@ -1,5 +1,8 @@
 import {
   useCallback,
+  useEffect,
+  useRef,
+  useState,
   type RefObject,
 } from 'react';
 import {
@@ -28,6 +31,7 @@ import { E2E_IDS } from '../../testability/e2e-ids';
 import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS, CHAT_TRANSCRIPT_BOTTOM_RESERVE_CLASS, CHAT_TRANSCRIPT_SCROLL_POSITION_CLASS, CHAT_TRANSCRIPT_SCROLL_VIEWPORT_CLASS } from './chat-shared-content-layout';
 import type { StreamState } from '../turns/stream-controller';
 import { useStreamController } from '../turns/stream-controller-context.js';
+import { ReportUserDialog } from '../relationship/report-user-dialog.js';
 import {
   useHumanTimelineModel,
   type HumanRealmChatTimelineDisplay,
@@ -39,6 +43,29 @@ import {
   type HumanVoiceUiState,
 } from './chat-human-voice-ui';
 export { HumanCanonicalComposer, HumanCanonicalProfileDrawer } from './chat-human-canonical-composer-profile';
+
+export function HumanReadMarker({ messageId, onVisible }: { messageId: string; onVisible: (id: string) => Promise<void> }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  useEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    let intersects = false;
+    const acknowledgeVisible = () => {
+      if (intersects && document.visibilityState === 'visible') void onVisible(messageId);
+    };
+    const observer = new IntersectionObserver(entries => {
+      intersects = entries.some(entry => entry.isIntersecting);
+      acknowledgeVisible();
+    }, { threshold: 1 });
+    observer.observe(node);
+    document.addEventListener('visibilitychange', acknowledgeVisible);
+    return () => {
+      observer.disconnect();
+      document.removeEventListener('visibilitychange', acknowledgeVisible);
+    };
+  }, [messageId, onVisible]);
+  return <span ref={ref} aria-hidden="true" className="block h-px w-px" />;
+}
 
 function HumanStreamFooter(props: {
   selectedChatId: string | null;
@@ -111,6 +138,8 @@ function useHumanMessageRenderers(input: {
   const { t } = useTranslation();
   const profilePanelTarget = useAppStore((state) => state.chatProfilePanelTarget);
   const setProfilePanelTarget = useAppStore((state) => state.setChatProfilePanelTarget);
+  const [reportMessage, setReportMessage] = useState<Parameters<CanonicalMessageAccessorySlot>[0] | null>(null);
+  useEffect(() => { setReportMessage(null); }, [input.selectedChatId, input.model.currentUserId]);
 
   const toggleProfilePanel = useCallback((target: 'self' | 'other') => {
     setProfilePanelTarget(profilePanelTarget === target ? null : target);
@@ -143,17 +172,24 @@ function useHumanMessageRenderers(input: {
   }, [input.model.contactAvatarUrl, input.model.contactName, input.model.currentUserAvatarUrl, profilePanelTarget, t, toggleProfilePanel]);
 
   const renderMessageAccessory = useCallback<CanonicalMessageAccessorySlot>((message) => {
+    const realmMessage = message.metadata?.realmMessage as { type?: string } | undefined;
     if (!message.error && message.status !== 'pending') {
-      return undefined;
+      return <>
+        {message.id === input.model.newestMessageId ? <HumanReadMarker messageId={message.id} onVisible={input.model.acknowledgeRead} /> : null}
+        {message.role !== 'human' && message.role !== 'user' && realmMessage?.type !== 'RECALL' ? <button type="button"
+          className="mt-1 rounded px-2 py-1 text-xs text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)]"
+          onClick={() => setReportMessage(message)}>{t('Relationship.report.action')}</button> : null}
+      </>;
     }
     return (
       <div className={`mt-1 text-[10px] ${message.error ? 'text-[var(--nimi-status-danger)]' : 'text-[var(--nimi-text-muted)]'} ${message.role === 'human' || message.role === 'user' ? 'text-right' : 'text-left'}`}>
-        {message.error || t('ChatTimeline.queuedLocally')}
+        {message.error || t('ChatTimeline.awaitingConfirmation', { defaultValue: 'Send not confirmed. Retry from the composer.' })}
       </div>
     );
-  }, [t]);
+  }, [t, input.model.newestMessageId, input.model.acknowledgeRead]);
 
   const footerContent = (
+    <>
     <HumanStreamFooter
       selectedChatId={input.selectedChatId}
       contactName={input.model.contactName}
@@ -161,6 +197,11 @@ function useHumanMessageRenderers(input: {
       streamState={input.model.streamState}
       isStreaming={input.model.isStreaming}
     />
+    {reportMessage ? <ReportUserDialog target={{ id: reportMessage.targetId,
+      displayName: reportMessage.senderName || input.model.contactName }}
+      message={{ chatId: reportMessage.sessionId, messageId: reportMessage.id, previewText: reportMessage.text }}
+      onClose={() => setReportMessage(null)} /> : null}
+    </>
   );
 
   return {
@@ -197,7 +238,7 @@ export function useHumanCanonicalTranscriptProps(props: {
   selectedChat: RealmChatViewDto | null;
   voiceUi?: HumanVoiceUiState;
 }): CanonicalTranscriptViewProps {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const model = useHumanTimelineModel(props.selectedChatId, props.selectedChat);
   const renderers = useHumanMessageRenderers({
     selectedChatId: props.selectedChatId,
@@ -206,12 +247,14 @@ export function useHumanCanonicalTranscriptProps(props: {
   return createHumanCanonicalTranscriptProps({
     model,
     t,
+    locale: i18n.language,
     voiceUi: props.voiceUi,
     renderers,
   });
 }
 
 function createHumanCanonicalTranscriptProps(input: {
+  locale: string;
   model: HumanTimelineModel;
   t: ReturnType<typeof useTranslation>['t'];
   voiceUi?: HumanVoiceUiState;
@@ -223,17 +266,28 @@ function createHumanCanonicalTranscriptProps(input: {
     activeConversationId: input.model.selectedChatId,
     loading: input.model.messagesQuery.isPending,
     loadingLabel: input.t('MessagePane.loadingConversation', { defaultValue: 'Loading conversation…' }),
-    error: input.model.messagesQuery.isError ? input.t('ChatTimeline.messageLoadError') : null,
-    emptyEyebrow: input.t('MessagePane.welcomeEyebrow', { defaultValue: 'Welcome' }),
-    emptyTitle: input.t('MessagePane.welcomeTitle', {
+    error: input.model.messagesQuery.isError && !input.model.canonicalMessages.length ? input.t('ChatTimeline.messageLoadError') : null,
+    errorAction: <button type="button" onClick={() => void input.model.messagesQuery.refetch()}>{input.t('Common.retry')}</button>,
+    bannerContent: <div className="flex items-center justify-center gap-3 p-2 text-sm">
+      {input.model.hasOlderMessages || input.model.olderMessagesError ? <button type="button" disabled={input.model.loadingOlderMessages}
+        onClick={() => void input.model.loadOlderMessages()}>{input.model.olderMessagesError ? input.t('Common.retry') : input.t('Chat.loadEarlierMessages', { defaultValue: 'Load earlier messages' })}</button> : null}
+      {input.model.readError ? <button type="button" onClick={() => void input.model.acknowledgeRead(input.model.readError!)}>{input.t('Chat.retryReadReceipt', { defaultValue: 'Retry read acknowledgement' })}</button> : null}
+    </div>,
+    emptyEyebrow: input.model.deletedPeer ? '' : input.t('MessagePane.welcomeEyebrow', { defaultValue: 'Welcome' }),
+    emptyTitle: input.model.deletedPeer ? input.t('Relationship.contacts.deletedUser') : input.t('MessagePane.welcomeTitle', {
       name: input.model.contactName,
       defaultValue: `Say hi to ${input.model.contactName}`,
     }),
-    emptyDescription: input.t('MessagePane.welcomeDescription', {
+    emptyDescription: input.model.deletedPeer ? input.t('Relationship.contacts.deletedChatHistory') : input.t('MessagePane.welcomeDescription', {
       name: input.model.contactName,
       defaultValue: `Start chatting with ${input.model.contactName}.`,
     }),
-    historyIntro: input.model.canonicalMessages.length > 0 ? input.t('MessagePane.historyIntro', { defaultValue: 'Earlier messages' }) : null,
+    formatDateLabel: ({ date, diffDays }) => {
+      if (diffDays === 0) return input.t('Chat.today');
+      if (diffDays === 1) return input.t('Chat.yesterday');
+      return date.toLocaleDateString(input.locale);
+    },
+    historyIntro: input.model.hasOlderMessages ? input.t('MessagePane.historyIntro', { defaultValue: 'Earlier messages' }) : null,
     pendingFirstBeat: input.model.isStreaming && input.model.canonicalMessages.length === 0,
     agentAvatarUrl: input.model.contactAvatarUrl,
     agentName: input.model.contactName,
@@ -311,7 +365,7 @@ export function useHumanCanonicalConversationSurface(props: {
   characterData: ConversationCharacterData;
 }) {
   const model = useHumanTimelineModel(props.selectedChatId, props.selectedChat);
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const voiceUi = useHumanVoiceUiState();
   const renderers = useHumanMessageRenderers({
     selectedChatId: props.selectedChatId,
@@ -320,6 +374,7 @@ export function useHumanCanonicalConversationSurface(props: {
   const transcriptProps = createHumanCanonicalTranscriptProps({
     model,
     t,
+    locale: i18n.language,
     voiceUi,
     renderers,
   });

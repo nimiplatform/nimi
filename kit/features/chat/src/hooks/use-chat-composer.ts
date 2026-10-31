@@ -25,6 +25,8 @@ export type UseChatComposerOptions<TAttachment = never> = {
   maxTextareaHeight?: number;
   onTextChange?: (text: string) => void;
   onError?: (error: unknown) => void;
+  /** Let a host with its own retry controls present and clear submission errors. */
+  onSubmitError?: (error: unknown) => void;
 };
 
 export type UseChatComposerResult<TAttachment = never> = ChatComposerState<TAttachment> & {
@@ -50,6 +52,7 @@ export function useChatComposer<TAttachment = never>({
   maxTextareaHeight = 200,
   onTextChange,
   onError,
+  onSubmitError,
 }: UseChatComposerOptions<TAttachment>): UseChatComposerResult<TAttachment> {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const mounted = useRef(true);
@@ -144,12 +147,13 @@ export function useChatComposer<TAttachment = never>({
       }
     } catch (nextError) {
       if (!mounted.current) return;
-      setError(nextError instanceof Error ? nextError.message : String(nextError));
+      if (onSubmitError) onSubmitError(nextError);
+      else setError(nextError instanceof Error ? nextError.message : String(nextError));
       onError?.(nextError);
     } finally {
       if (mounted.current) setIsSubmitting(false);
     }
-  }, [adapter, attachments, disabled, submitDisabled, isSubmitting, onError, text, updateAttachments, updateText]);
+  }, [adapter, attachments, disabled, submitDisabled, isSubmitting, onError, onSubmitError, text, updateAttachments, updateText]);
 
   const handleKeyDown = useCallback((event: KeyboardEvent<HTMLTextAreaElement>) => {
     if (event.nativeEvent.isComposing || event.keyCode === 229) {

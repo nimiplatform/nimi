@@ -36,5 +36,6 @@
   "nextPage": "下一页",
   "statusPrefix": "状态",
   "joinedAtPrefix": "加入时间",
-  "turnAuditLabel": "回合审计"
+  "turnAuditLabel": "回合审计",
+  "awaitingConfirmation": "发送尚未确认，请在输入区重试。"
 }

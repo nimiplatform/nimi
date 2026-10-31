@@ -761,6 +761,8 @@
   "agentReturnReading": "Return to reading",
   "agentReturnLatest": "Back to latest messages",
   "agentSubmissionQuoteRetained": "The original request includes a quotation.",
+  "loadEarlierMessages": "Load earlier messages",
+  "retryReadReceipt": "Retry read acknowledgement",
   "moreConversations": "More chats",
   "hoverCardPreviewHidden": "Message preview hidden"
 }

@@ -29,5 +29,20 @@
   "scenarioJobOverlayCancelling": "Cancelling…",
   "scenarioJobOverlayFetchingArtifacts": "Processing results…",
   "scenarioJobOverlayRecoveryTimeout": "Job status unknown; refresh later",
-  "accountDataCleanupFailed": "Your account has ended, but Home could not finish removing its local data. Open troubleshooting before using this device again."
+  "accountDataCleanupFailed": "Your account has ended, but Home could not finish removing its local data. Open troubleshooting before using this device again.",
+  "attachmentsNeedReselect": "These files are no longer available in this window. Remove the unavailable items and select the files again.",
+  "pendingSendNeedsRetry": "{{count}} send items are not confirmed. Retry checks the same items and does not repeat confirmed items.",
+  "draftStorageUnavailable": "Your draft could not be read or saved. Keep this window open and retry when storage is available.",
+  "retryPendingSend": "Retry unconfirmed items",
+  "removeUnavailableAttachment": "Remove unavailable item",
+  "removeMissingAttachment": "Remove {{name}}",
+  "stopPendingSend": "Stop retrying",
+  "stopPendingSendConfirm": "These messages may already have been sent. This removes the unconfirmed items from this device; it does not recall messages sent to the other person.",
+  "sendItemText": "Text message",
+  "sendUnconfirmed": "Not confirmed",
+  "sendNotStarted": "Not sent yet",
+  "contactChecking": "Checking whether new messages can be sent… Your history and draft remain available.",
+  "contactCheckFailed": "Contact permissions could not be checked. New messages are paused; your history and draft are kept.",
+  "contactBlockedByMe": "You have blocked this user. New messages cannot be sent; your history and draft are kept.",
+  "contactSendingUnavailable": "New messages cannot currently be sent to this user. Your history and draft remain available."
 }

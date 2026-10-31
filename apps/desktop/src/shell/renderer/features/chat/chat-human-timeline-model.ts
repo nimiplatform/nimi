@@ -1,7 +1,8 @@
+import { isDeletedChatPeer } from './use-human-chat-list.js';
 import { readMediaDelivery } from '@nimiplatform/kit/features/media/headless';
 import { openExternalUrl } from '@nimiplatform/kit/shell/renderer/bridge';
-import { useEffect, useMemo, useState } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
 import {
   getRealmChatTimelineDisplayModel,
   normalizeRealmMessagePayload,
@@ -13,6 +14,7 @@ import {
   type RealmChatTimelineMessage,
   type RealmChatViewDto,
   type RealmMessageViewDto,
+  type RealmListMessagesResultDto,
 } from '@nimiplatform/kit/features/chat/realm';
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/headless';
 import { useAppStore } from '../../app-shell/providers/app-store';
@@ -87,42 +89,66 @@ function useHumanStreamState(chatId: string | null): StreamState | null {
   return state;
 }
 
+// @nimi-authority: rule.nimi.desktop.product-surfaces.human-chat-consumption
 export function useHumanTimelineModel(selectedChatId: string | null, selectedChat: RealmChatViewDto | null) {
   const realmHumanChatData = useRealmHumanChatData();
   const authStatus = useAppStore((state) => state.auth.status);
   const realmBaseUrl = useAppStore((state) => String(state.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
   const currentUser = useAppStore((state) => state.auth.user);
   const currentUserId = String(currentUser?.id || '');
+  const realmEnvironmentId = String(currentUser?.realmEnvironmentId || '');
   const currentUserAvatarUrl = typeof currentUser?.avatarUrl === 'string' ? currentUser.avatarUrl : null;
   const uploadPlaceholders = useChatUploadPlaceholders(selectedChatId);
   const streamState = useHumanStreamState(selectedChatId);
   const isStreaming = streamState?.phase === 'waiting' || streamState?.phase === 'streaming';
   const otherUser = selectedChat?.otherUser;
+  const deletedPeer = isDeletedChatPeer(otherUser);
   const contactName = String(otherUser?.displayName || otherUser?.handle || 'Chat').trim();
   const contactAvatarUrl = otherUser?.avatarUrl || null;
   const queryClient = useQueryClient();
-  const selectedUnreadCount = Number(selectedChat?.unreadCount || 0);
-  const messagesQuery = useQuery({
-    queryKey: ['messages', selectedChatId],
-    queryFn: async () => {
-      if (!selectedChatId) {
-        return null;
+  const messagePages = useInfiniteQuery({
+    queryKey: ['messages', selectedChatId, realmEnvironmentId, currentUserId],
+    initialPageParam: null as string | null,
+    queryFn: async ({ pageParam }): Promise<RealmListMessagesResultDto & { offlineOutbox?: PersistentOutboxEntry[] }> => {
+      if (pageParam) {
+        const page = await realmHumanChatData.loadMoreChatMessages(selectedChatId!, pageParam, 50);
+        if (!page) throw new Error('Message page unavailable');
+        return page;
       }
-      return await realmHumanChatData.loadChatMessages(
-        selectedChatId,
-        50,
-        // Viewing a chat with pending unread marks it read, then refreshes the
-        // chat list so the relationship-rail badge clears.
-        selectedUnreadCount > 0
-          ? async (chatId) => {
-              await realmHumanChatData.markChatAsRead(chatId);
-              void queryClient.invalidateQueries({ queryKey: ['chats'] });
-            }
-          : undefined,
-      );
+      return realmHumanChatData.loadChatMessages(selectedChatId!, 50);
     },
+    getNextPageParam: page => page.nextBefore || undefined,
     enabled: authStatus === 'authenticated' && Boolean(selectedChatId),
   });
+  const messageData = useMemo(() => {
+    if (!messagePages.data) return undefined;
+    const byId = new Map<string, RealmMessageViewDto>();
+    for (const page of messagePages.data.pages) for (const item of page.items) if (!byId.has(item.id)) byId.set(item.id, item);
+    return { items: [...byId.values()], offlineOutbox: messagePages.data.pages[0]?.offlineOutbox ?? [] };
+  }, [messagePages.data]);
+  const messagesQuery = { ...messagePages, data: messageData };
+  const readPosition = useRef('');
+  const readScope = `${realmBaseUrl}:${currentUserId}:${selectedChatId}`;
+  const currentReadScope = useRef(readScope);
+  currentReadScope.current = readScope;
+  const [readError, setReadError] = useState<string | null>(null);
+  useEffect(() => { readPosition.current = ''; setReadError(null); }, [selectedChatId, currentUserId, realmBaseUrl]);
+  const acknowledgeRead = useCallback(async (messageId: string) => {
+    if (!selectedChatId || currentReadScope.current !== readScope || document.visibilityState !== 'visible' || messageId <= readPosition.current) return;
+    readPosition.current = messageId;
+    try {
+      await realmHumanChatData.markChatAsRead(selectedChatId, messageId);
+      if (currentReadScope.current !== readScope) return;
+      setReadError(null);
+      void queryClient.invalidateQueries({ queryKey: ['chats'] });
+    } catch {
+      if (currentReadScope.current !== readScope) return;
+      if (readPosition.current === messageId) {
+        readPosition.current = '';
+        setReadError(messageId);
+      }
+    }
+  }, [selectedChatId, realmHumanChatData, queryClient, readScope]);
 
   const confirmedTimelineMessages = useRealmMessageTimeline({
     messagesData: messagesQuery.data,
@@ -134,6 +160,7 @@ export function useHumanTimelineModel(selectedChatId: string | null, selectedCha
       ? messagesQuery.data.offlineOutbox
       : [];
     for (const entry of pendingEntries) {
+      if (entry.body.uploadNeeded === true) continue;
       const pending = toDesktopPendingTimelineMessage(entry, currentUserId);
       if (!merged.some((message) => sameRealmChatTimelineIdentity(message, pending))) {
         merged.push(pending);
@@ -213,12 +240,20 @@ export function useHumanTimelineModel(selectedChatId: string | null, selectedCha
     currentUserId,
     currentUserAvatarUrl,
     contactName,
+    deletedPeer,
     contactAvatarUrl,
     messagesQuery,
     timelineMessages,
     canonicalMessages,
     streamState,
     isStreaming,
+    acknowledgeRead,
+    readError,
+    newestMessageId: messageData?.items.reduce((latest, item) => item.id > latest ? item.id : latest, '') || null,
+    hasOlderMessages: messagePages.hasNextPage,
+    loadingOlderMessages: messagePages.isFetchingNextPage,
+    olderMessagesError: messagePages.isFetchNextPageError,
+    loadOlderMessages: () => messagePages.fetchNextPage(),
   };
 }
 

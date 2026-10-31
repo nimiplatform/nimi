@@ -37,6 +37,26 @@ afterEach(async () => {
 });
 
 describe('ChatComposer', () => {
+  it('keeps a failed draft without duplicating the error presented by the host', async () => {
+    const failure = new Error('Image upload failed');
+    const onSubmitError = vi.fn();
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    await act(async () => {
+      root?.render(<ChatComposer initialText="Keep this draft" onSubmitError={onSubmitError}
+        adapter={{ submit: async () => { throw failure; } }} />);
+      await flush();
+    });
+    await act(async () => {
+      container?.querySelector('textarea')?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Enter', bubbles: true }));
+      await flush();
+    });
+    expect(onSubmitError).toHaveBeenCalledWith(failure);
+    expect(container.querySelector('textarea')?.value).toBe('Keep this draft');
+    expect(container.textContent).not.toContain(failure.message);
+  });
+
   it('does not clear a replacement conversation when an old submit finishes', async () => {
     let finish!: () => void;
     const oldSubmit = vi.fn(() => new Promise<void>((resolve) => { finish = resolve; }));

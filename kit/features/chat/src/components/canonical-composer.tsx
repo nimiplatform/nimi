@@ -33,6 +33,7 @@ export type CanonicalComposerProps<TAttachment = never> = {
   intentLabel?: ReactNode;
   onInputCaptureText?: (text: string) => void;
   onTextChange?: (text: string) => void;
+  onSubmitError?: (error: unknown) => void;
   attachmentAdapter?: AttachmentAdapter<TAttachment>;
   attachments?: readonly TAttachment[];
   onAttachmentsChange?: (attachments: readonly TAttachment[]) => void;
@@ -66,6 +67,7 @@ export function CanonicalComposer<TAttachment = never>({
   intentLabel,
   onInputCaptureText,
   onTextChange,
+  onSubmitError,
   attachmentAdapter,
   attachments,
   onAttachmentsChange,
@@ -103,6 +105,7 @@ export function CanonicalComposer<TAttachment = never>({
               initialText={initialText}
               text={text}
               onTextChange={onTextChange ?? onInputCaptureText}
+              onSubmitError={onSubmitError}
               disabled={disabled}
               submitDisabled={submitDisabled}
               placeholder={placeholder}

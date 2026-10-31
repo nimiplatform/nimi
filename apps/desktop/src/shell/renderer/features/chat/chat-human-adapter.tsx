@@ -1,3 +1,5 @@
+import { isDeletedChatPeer, useHumanChatList } from './use-human-chat-list.js';
+import { useHumanContactAdmission } from './chat-human-contact-admission.js';
 import { Suspense, lazy, useMemo } from 'react';
 import { createReadyConversationSetupState } from '@nimiplatform/kit/features/chat/headless';
 import {
@@ -23,7 +25,7 @@ import {
   useHumanCanonicalConversationSurface,
 } from './chat-human-canonical-components';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
-import type { AuthStatus } from '../../app-shell/providers/app-store';
+import { useAppStore, type AuthStatus } from '../../app-shell/providers/app-store';
 import setupLogoImage from '../../assets/logo.png';
 
 import {
@@ -85,17 +87,15 @@ export function useHumanConversationModeHost(
   } = input;
   const { t } = useTranslation();
   const queryClient = useQueryClient();
-  const chatsQuery = useQuery({
-    queryKey: ['chats', authStatus],
-    queryFn: async () => realmHumanChatData.loadChatList(),
-    enabled: authStatus === 'authenticated',
-  });
+  const accountId = useAppStore(state => String(state.auth.user?.id || ''));
+  const realmEnvironmentId = useAppStore(state => String(state.auth.user?.realmEnvironmentId || ''));
+  const chatsQuery = useHumanChatList(authStatus);
 
   const noMessagesFallback = t('Chat.noMessages', { defaultValue: 'No messages yet' });
   const unknownTitle = t('Common.unknown', { defaultValue: 'Unknown' });
   const listedChats = ((chatsQuery.data as { items?: RealmChatViewDto[] } | undefined)?.items || []) as RealmChatViewDto[];
   const chatDetailQuery = useQuery({
-    queryKey: ['human-chat-detail', selectedChatId],
+    queryKey: ['human-chat-detail', selectedChatId, realmEnvironmentId, accountId],
     queryFn: () => realmHumanChatData.loadChatById(selectedChatId!),
     enabled: authStatus === 'authenticated' && Boolean(selectedChatId) && !listedChats.some(chat => chat.id === selectedChatId),
   });
@@ -123,6 +123,7 @@ export function useHumanConversationModeHost(
     [allChats],
   );
   const selectedChat = selectedChatId ? chatById.get(String(selectedChatId)) || null : null;
+  const contactAdmission = useHumanContactAdmission(selectedChat?.otherUser?.id || null, isDeletedChatPeer(selectedChat?.otherUser));
   const selectedChatTitle = selectedChat ? getRealmHumanChatTitle(selectedChat, unknownTitle) : t('Chat.humanTitle', { defaultValue: 'Human Chat' });
   const targets = useMemo(
     () => collapsedChats.map((chat) => toRealmHumanTargetSummary(chat, projectionOptions)),
@@ -260,7 +261,14 @@ export function useHumanConversationModeHost(
     activeThreadId: selectedChatId,
     targets,
     selectedTargetId: selectedChat ? getRealmHumanTargetId(selectedChat) : null,
-    topContent: selectedChatId && !selectedChat ? <InlineAlert tone={chatDetailQuery.isError ? 'warning' : 'info'}>
+    topContent: selectedChat ? (
+      <header className="flex min-w-0 items-baseline gap-2 pr-14">
+        <h2 className="truncate text-base font-semibold text-[var(--nimi-text-primary)]">{selectedChatTitle}</h2>
+        {selectedChat.otherUser?.handle && selectedChat.otherUser.handle !== selectedChatTitle ? (
+          <span className="truncate text-sm text-[var(--nimi-text-muted)]">@{selectedChat.otherUser.handle.replace(/^@/, '')}</span>
+        ) : null}
+      </header>
+    ) : selectedChatId ? <InlineAlert tone={chatDetailQuery.isError ? 'warning' : 'info'}>
       {chatDetailQuery.isPending ? t('Common.loading') : t('Chat.positionUnavailable')}
       {chatDetailQuery.isError ? <button type="button" onClick={() => void chatDetailQuery.refetch()}>{t('Common.retry')}</button> : null}
     </InlineAlert> : null,
@@ -361,6 +369,7 @@ export function useHumanConversationModeHost(
     composerContent: selectedChatId && selectedChat ? (
       <HumanCanonicalComposer
         selectedChatId={selectedChatId}
+        contactAdmission={contactAdmission}
         leadingAvatar={selectedChat ? {
           name: getRealmHumanChatTitle(selectedChat, unknownTitle),
           imageUrl: String(selectedChat.otherUser?.avatarUrl || '').trim() || null,
@@ -401,5 +410,8 @@ export function useHumanConversationModeHost(
     allChatsSorted,
     transcriptProps,
     targets,
+    contactAdmission.state,
+    contactAdmission.blockedByMe,
+    contactAdmission.refresh,
   ]);
 }

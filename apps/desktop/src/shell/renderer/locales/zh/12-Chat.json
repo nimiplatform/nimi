@@ -761,6 +761,8 @@
   "agentReturnReading": "返回刚才位置",
   "agentReturnLatest": "回到最新消息",
   "agentSubmissionQuoteRetained": "原请求包含一条引用。",
+  "loadEarlierMessages": "加载更早消息",
+  "retryReadReceipt": "重试标为已读",
   "moreConversations": "更多会话",
   "hoverCardPreviewHidden": "消息预览已隐藏"
 }
