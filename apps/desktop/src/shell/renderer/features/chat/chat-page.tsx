@@ -14,6 +14,7 @@ import { openOrCreateRuntimeSetupTask } from '../runtime-config/runtime-setup-ta
 import { currentDesktopAccountIdForSetup } from '../runtime-config/runtime-setup-task-ports.js';
 import { openAgentTargetSnapshotFromSummary, useChatTargetsForSidebar } from './chat-sidebar-targets';
 import { createChatTargetNavigation } from './chat-target-navigation.js';
+import { useRealmHumanChatData } from './data/realm-human-chat-data-context.js';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast.js';
 
 function createLazyImportError(label: string, error: unknown): Error {
@@ -120,6 +121,7 @@ export function ChatPage() {
   const homeChat = useHomeChatPosition();
   const navigation = useHomeNavigation();
   const sdk = useDesktopRendererSdk();
+  const humanChatData = useRealmHumanChatData();
   const runtimeConfigNavigation = useDesktopRendererCommands().runtimeConfigNavigation;
   const navigate = useNavigate();
   const authStatus = useAppStore((state) => state.auth.status);
@@ -259,6 +261,12 @@ export function ChatPage() {
   useEffect(() => {
     const controller = createChatTargetNavigation({
       navigation,
+      openHuman: async accountId => {
+        const result = await humanChatData.startChatWithTarget(accountId);
+        const chatId = result?.chatId || result?.chat?.id;
+        if (!chatId) throw new Error('Chat could not be opened.');
+        return chatId;
+      },
       openAgent: target => openAgentTargetSnapshotFromSummary(target, sdk.conversation()),
       rememberAgent: setAgentConversationTargetSnapshot,
       onError: error => {
@@ -269,7 +277,7 @@ export function ChatPage() {
     });
     targetNavigation.current = controller;
     return () => { controller.dispose(); };
-  }, [navigation, sdk, setAgentConversationTargetSnapshot]);
+  }, [navigation, sdk, humanChatData, setAgentConversationTargetSnapshot, authStatus]);
 
   const handleSelectTarget = useCallback((targetId: string) => {
     const target = allTargets.find((t) => t.id === targetId);

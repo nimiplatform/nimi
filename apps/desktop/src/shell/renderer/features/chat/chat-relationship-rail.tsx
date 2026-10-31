@@ -1,4 +1,5 @@
 import { UserPlus } from 'lucide-react';
+import { useHumanChatList } from './use-human-chat-list.js';
 import { FriendHandleLookupDialog } from '../relationship/friend-handle-lookup-dialog.js';
 import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
@@ -292,7 +293,10 @@ export function ChatRelationshipRail({
 }: ChatRelationshipRailProps) {
   const { t } = useTranslation();
   const [findFriendOpen, setFindFriendOpen] = useState(false);
+  const navigation = useHomeNavigation();
   const currentAccountId = useAppStore((state) => String(state.auth.user?.id ?? ''));
+  const authStatus = useAppStore(state => state.auth.status);
+  const humanChats = useHumanChatList(authStatus);
   const aiTargets = targets.filter((t) => t.source === 'ai');
   const humanTargets = targets.filter((t) => t.source === 'human');
   const agentTargets = targets.filter((t) => t.source === 'agent');
@@ -322,6 +326,9 @@ export function ChatRelationshipRail({
         <IconButton tone="ghost" size="sm" className="h-11 w-11" icon={<UserPlus size={16} />} onClick={() => setFindFriendOpen(true)}
           aria-label={t('Relationship.findByHandleTitle')} title={t('Relationship.findByHandleTitle')}
           data-testid="find-friend-by-handle" />
+        <button type="button" className="rounded-lg px-1 py-2 text-xs text-[var(--nimi-text-secondary)]"
+          onClick={() => { void navigation.push({ id: 'chat', chat: { mode: 'human' } }); }}
+          data-testid="human-contacts-entry">{t('Relationship.contacts.title', { defaultValue: 'Contacts' })}</button>
         {/* Human contacts */}
         {humanTargets.length > 0 ? (
           <>
@@ -338,6 +345,10 @@ export function ChatRelationshipRail({
         ) : null}
 
         {/* Source-backed localAgent targets */}
+        {humanChats.hasNextPage || humanChats.isError ? <button type="button" className="px-1 py-2 text-xs text-[var(--nimi-text-secondary)]"
+          disabled={humanChats.isFetching} onClick={() => { void (humanChats.isError ? humanChats.refetch() : humanChats.fetchNextPage()); }}>
+          {humanChats.isError ? t('Common.retry') : t('Chat.moreConversations', { defaultValue: 'More chats' })}
+        </button> : null}
         {agentTargets.length > 0 ? (
           <>
             <SidebarSeparator />

@@ -123,8 +123,25 @@ test('human sidebar targets include human friends without duplicating existing c
   }], friendTargets);
   assert.deepEqual(merged.map((target) => [target.id, target.canonicalSessionId]), [
     ['user-1', 'chat-newer'],
-    ['user-2', 'user-2'],
+    ['user-2', ''],
   ]);
+  const existingFriend = merged[0];
+  assert.ok(existingFriend);
+  assert.equal(existingFriend.metadata?.isFriend, true);
+  assert.equal(existingFriend.previewText, 'latest chat');
+});
+
+test('sidebar neutral previews are derived from the current friend set and preserve the conversation identity', () => {
+  const chat = { id: 'user-1', source: 'human' as const, canonicalSessionId: 'chat-1', title: 'Visitor',
+    previewText: 'sensitive body', bio: 'profile text', unreadCount: 2, metadata: { otherUserId: 'user-1', isFriend: true } };
+  const [stranger] = mergeHumanChatTargetsWithFriendTargets([chat], []);
+  assert.ok(stranger);
+  assert.equal(stranger.id, 'user-1');
+  assert.equal(stranger.canonicalSessionId, 'chat-1');
+  assert.equal(stranger.unreadCount, 2);
+  assert.equal(stranger.metadata?.isFriend, false, 'an old target flag must not override the current friend list');
+  assert.equal(stranger.previewText, null);
+  assert.equal(stranger.bio, null);
 });
 
 test('agent sidebar target is built only from the canonical reference projection', () => {

@@ -1,49 +1,38 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { loadContextualHumanProfile } from '../src/shell/renderer/features/profile/profile-loader.js';
 
-import { loadHumanProfileWithRelationship } from '../src/shell/renderer/features/profile/profile-loader';
-import type { SocialContactSnapshot } from '../src/shell/renderer/features/social/data/social-snapshot';
-
-const cachedFriendContacts = {
-  friends: [{ id: 'user_friend', displayName: 'Cached Friend' }],
-  pendingSent: [{ userId: 'user_pending' }],
-} as unknown as SocialContactSnapshot;
-
-test('a failed profile read stays a failure even when the contact cache knows the person', async () => {
+test('an unrelated failed profile read stays a failure even when the contact list knows the person', async () => {
   const failure = new Error('realm-unavailable');
-  await assert.rejects(
-    loadHumanProfileWithRelationship('user_friend', {
-      loadUserProfile: async () => { throw failure; },
-      isFriend: () => true,
-      contacts: () => cachedFriendContacts,
-    }),
-    (error) => error === failure,
-  );
+  await assert.rejects(loadContextualHumanProfile('person-a', {
+    loadUserProfile: async () => { throw failure; },
+    loadRelationship: async () => { throw new Error('An unrelated failure must not read a relationship fallback'); },
+  }, { id: 'person-a', displayName: 'Cached identity', handle: 'person_a' }), error => error === failure);
 });
 
-test('a loaded profile takes relationship facts from the owner contact list without reversing explicit ones', async () => {
-  const loaded = await loadHumanProfileWithRelationship('user_friend', {
-    loadUserProfile: async (id) => ({ id, displayName: 'Loaded' }),
-    isFriend: (id) => id === 'user_friend',
-    contacts: () => cachedFriendContacts,
+test('a loaded profile preserves the owner relationship without needing a second read', async () => {
+  const relationship = { state: 'active' as const, relationshipId: 'friendship-a', blockedByMe: false, canMessage: true, canRequest: false };
+  const profile = await loadContextualHumanProfile('person-a', {
+    loadUserProfile: async () => ({ id: 'person-a', displayName: 'A', handle: 'person_a', relationship, relationshipId: relationship.relationshipId, isFriend: true }),
+    loadRelationship: async () => { throw new Error('Do not repeat the owner relationship read'); },
   });
-  assert.equal(loaded.displayName, 'Loaded');
-  assert.equal(loaded.isFriend, true);
-  assert.equal(loaded.isPendingFriendRequest, false);
+  assert.equal(profile.isFriend, true);
+  assert.equal(profile.relationshipId, 'friendship-a');
+  assert.deepEqual(profile.relationship, relationship);
+});
 
-  const pending = await loadHumanProfileWithRelationship('user_pending', {
-    loadUserProfile: async (id) => ({ id, displayName: 'Pending' }),
-    isFriend: () => false,
-    contacts: () => cachedFriendContacts,
-  });
-  assert.equal(pending.isFriend, false);
-  assert.equal(pending.isPendingFriendRequest, true);
-
-  const explicit = await loadHumanProfileWithRelationship('user_friend', {
-    loadUserProfile: async (id) => ({ id, displayName: 'Explicit', isFriend: false, isPendingFriendRequest: false }),
-    isFriend: () => true,
-    contacts: () => cachedFriendContacts,
-  });
-  assert.equal(explicit.isFriend, false);
-  assert.equal(explicit.isPendingFriendRequest, false);
+test('restricted contextual profiles retain only minimal identity and freshly admitted relationship actions', async () => {
+  const profile = await loadContextualHumanProfile('person-a', {
+    loadUserProfile: async () => { throw Object.assign(new Error('Restricted'), { status: 403 }); },
+    loadRelationship: async () => ({ state: 'pending_incoming', relationshipId: 'request-a', blockedByMe: false, canMessage: false, canRequest: false }),
+  }, { id: 'person-a', displayName: 'A', handle: 'person_a', bio: 'stale private bio', city: 'private city', tags: ['private'], friendsCount: 20 });
+  assert.equal(profile.accessState, 'restricted');
+  assert.equal(profile.displayName, 'A');
+  assert.equal(profile.bio, null);
+  assert.equal(profile.city, null);
+  assert.deepEqual(profile.tags, []);
+  assert.equal(profile.stats, null);
+  assert.equal(profile.isFriend, false);
+  assert.equal(profile.relationshipId, 'request-a');
+  assert.equal(profile.relationship?.state, 'pending_incoming');
 });

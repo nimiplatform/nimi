@@ -1,5 +1,4 @@
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
-import { InlineFeedback } from '../../ui/feedback/inline-feedback';
 
 import {
   ActionMenu,
@@ -14,11 +13,8 @@ import {
 } from '@nimiplatform/kit/ui';
 import {
   AlertIcon,
-  CheckIcon,
   DotsIcon,
   MessageIcon,
-  StatDivider,
-  StatTile,
   TOPBAR_TOOLTIP_CLASS,
   TrashIcon,
   UserPlusIcon,
@@ -177,11 +173,13 @@ export function ProfileDetailActionButtons(input: {
   onBlock?: () => void;
   onUnblock?: () => void;
   onRemove?: () => void;
+  onReport?: () => void;
 }) {
   const i18n = useDesktopI18nResource().instance;
   const addFriendLabel = input.addFriendLabel || i18n.t('ProfileView.addFriend', { defaultValue: 'Add Friend' });
   const moreLabel = i18n.t('Common.moreOptions', { defaultValue: 'More options' });
   const menuItems: NimiMenuItem[] = [
+    ...(input.onReport ? [{ id: 'report', label: i18n.t('Relationship.report.action'), icon: <AlertIcon className="h-4 w-4" />, onSelect: input.onReport }] : []),
     ...(input.onBlock ? [{
       id: 'block',
       label: i18n.t('Common.block', { defaultValue: 'Block' }),
@@ -205,15 +203,9 @@ export function ProfileDetailActionButtons(input: {
   return (
     <>
       {input.showMessageButton ? (
-        <Tooltip content={i18n.t('Relationship.chat', { defaultValue: 'Chat' })} placement="bottom" contentClassName={TOPBAR_TOOLTIP_CLASS}>
-          <IconButton
-            icon={<MessageIcon className="h-4 w-4" />}
-            tone="secondary"
-            aria-label={i18n.t('Relationship.chat', { defaultValue: 'Chat' })}
-            onClick={input.onMessage}
-            className="h-10 w-10 rounded-full"
-          />
-        </Tooltip>
+        <Button leadingIcon={<MessageIcon className="h-4 w-4" />} tone="primary" onClick={input.onMessage}>
+          {i18n.t('Profile.message', { defaultValue: 'Message' })}
+        </Button>
       ) : null}
       {input.showAddFriendButton && input.onAddFriend ? (
         <Tooltip
@@ -223,14 +215,12 @@ export function ProfileDetailActionButtons(input: {
           placement="bottom"
           contentClassName={`${TOPBAR_TOOLTIP_CLASS}${input.canAddFriend === false && input.addFriendHint ? ' whitespace-pre-wrap max-w-xs' : ''}`}
         >
-          <IconButton
-            icon={<UserPlusIcon className="h-4 w-4" />}
+          <Button
+            leadingIcon={<UserPlusIcon className="h-4 w-4" />}
             tone="secondary"
-            aria-label={addFriendLabel}
             onClick={input.onAddFriend}
             disabled={input.canAddFriend === false}
-            className="h-10 w-10 rounded-full"
-          />
+          >{addFriendLabel}</Button>
         </Tooltip>
       ) : null}
       {input.showMoreButton ? (
@@ -254,146 +244,5 @@ export function ProfileDetailActionButtons(input: {
         </Popover>
       ) : null}
     </>
-  );
-}
-
-export function ProfileDetailSaveActions(input: {
-  draftDisplayName: string;
-  isSaving: boolean;
-  isUploadingAvatar: boolean;
-  onCancel: () => void;
-  onSave: () => void;
-  saveError: string | null;
-  stacked: boolean;
-}) {
-  const i18n = useDesktopI18nResource().instance;
-  const containerClassName = input.stacked ? 'flex flex-col gap-3' : 'flex w-full flex-col gap-3';
-
-  return (
-    <div className={containerClassName}>
-      {input.saveError ? (
-        <InlineFeedback feedback={{ kind: 'error', message: input.saveError }} />
-      ) : null}
-      <Button
-        tone="primary"
-        fullWidth
-        onClick={input.onSave}
-        loading={input.isSaving}
-        disabled={input.isSaving || input.isUploadingAvatar || !input.draftDisplayName.trim()}
-        leadingIcon={input.isSaving ? undefined : <CheckIcon className="h-4 w-4" />}
-        className="rounded-full py-3"
-      >
-        {input.isSaving
-          ? i18n.t('Common.saving', { defaultValue: 'Saving...' })
-          : i18n.t('Profile.saveProfile', { defaultValue: 'Save profile' })}
-      </Button>
-      <Button
-        tone="secondary"
-        fullWidth
-        onClick={input.onCancel}
-        disabled={input.isSaving}
-        className="rounded-full py-3"
-      >
-        {i18n.t('Common.cancel', { defaultValue: 'Cancel' })}
-      </Button>
-    </div>
-  );
-}
-
-export function ProfileDetailStatsActionsBlock(input: {
-  friendCount: number;
-  postCount: number;
-  likesCount: number;
-  isEditing: boolean;
-  isOwnProfile: boolean | undefined;
-  draftDisplayName: string;
-  isSaving: boolean;
-  isUploadingAvatar: boolean;
-  onCancel: () => void;
-  onSave: () => void;
-  saveError: string | null;
-  onMessage: () => void;
-  onAddFriend?: () => void;
-  showAddFriendButton?: boolean;
-  addFriendLabel?: string;
-  canAddFriend?: boolean;
-  addFriendHint?: string | null;
-  showMessageButton: boolean;
-  showMoreButton?: boolean;
-  showMenu?: boolean;
-  onShowMenuChange?: (open: boolean) => void;
-  onBlock?: () => void;
-  onUnblock?: () => void;
-  onRemove?: () => void;
-}) {
-  const i18n = useDesktopI18nResource().instance;
-  if (input.isEditing) {
-    return input.isOwnProfile ? (
-      <div className="rounded-[24px] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_70%,transparent)] p-4 shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
-        <ProfileDetailSaveActions
-          draftDisplayName={input.draftDisplayName}
-          isSaving={input.isSaving}
-          isUploadingAvatar={input.isUploadingAvatar}
-          onCancel={input.onCancel}
-          onSave={input.onSave}
-          saveError={input.saveError}
-          stacked
-        />
-      </div>
-    ) : null;
-  }
-
-  return (
-    <div className="rounded-[24px] border border-[var(--nimi-border-subtle)] bg-[color-mix(in_srgb,var(--nimi-surface-card)_70%,transparent)] p-4 shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="grid max-w-[320px] grid-cols-3 gap-2 lg:flex-1">
-          <StatTile label={i18n.t('Profile.friends', { defaultValue: 'Friends' })} value={input.friendCount} />
-        </div>
-        <div className="lg:min-w-[11rem]">
-          <div className="flex items-center gap-2 lg:justify-end">
-            <ProfileDetailActionButtons {...input} />
-          </div>
-          {input.showAddFriendButton && input.canAddFriend === false && input.addFriendHint ? (
-            <p className="mt-2 text-xs text-[var(--nimi-status-warning)] lg:text-right">{input.addFriendHint}</p>
-          ) : null}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-export function ProfileDetailDesktopStatsActions(input: {
-  friendCount: number;
-  postCount: number;
-  likesCount: number;
-  onMessage: () => void;
-  onAddFriend?: () => void;
-  showAddFriendButton?: boolean;
-  addFriendLabel?: string;
-  canAddFriend?: boolean;
-  addFriendHint?: string | null;
-  showMessageButton: boolean;
-  showMoreButton?: boolean;
-  showMenu?: boolean;
-  onShowMenuChange?: (open: boolean) => void;
-  onBlock?: () => void;
-  onUnblock?: () => void;
-  onRemove?: () => void;
-}) {
-  const i18n = useDesktopI18nResource().instance;
-  return (
-    <div className="flex w-[220px] shrink-0 flex-col items-end">
-      <div className="flex items-center justify-end gap-3">
-        <ProfileDetailActionButtons {...input} />
-      </div>
-      {input.showAddFriendButton && input.canAddFriend === false && input.addFriendHint ? (
-        <p className="mt-2 text-right text-xs text-[var(--nimi-status-warning)]">{input.addFriendHint}</p>
-      ) : null}
-      <div className="mt-5 grid w-full grid-cols-[1fr_18px_1fr_18px_1fr] items-start gap-x-0">
-        <StatTile label={i18n.t('Profile.friends', { defaultValue: 'Friends' })} value={input.friendCount} />
-        <StatDivider />
-        <StatDivider />
-      </div>
-    </div>
   );
 }

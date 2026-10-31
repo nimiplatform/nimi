@@ -1,58 +1,8 @@
-import type { RealmModel } from '@nimiplatform/sdk/realm';
 import type { ReactNode } from 'react';
-import type { HumanProfileData } from '../profile/profile-model';
 
 // Shared tooltip chrome for the profile detail top bar; matches the kit
 // tooltip bubble surface tokens so it stays readable in both themes.
 export const TOPBAR_TOOLTIP_CLASS = 'rounded-full border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-overlay)] px-3 py-1.5 text-xs font-semibold text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-floating)]';
-
-export type EditableProfileDraft = {
-  displayName: string;
-  avatarUrl: string;
-  avatarResourceId: string | null;
-  avatarMedia: RealmModel<'MediaDeliveryDto'> | null;
-  bio: string;
-  city: string;
-  countryCode: string;
-  gender: string;
-  languages: string;
-  tags: string;
-};
-
-export function buildEditableDraft(profile: HumanProfileData): EditableProfileDraft {
-  return {
-    displayName: profile.displayName || '',
-    avatarUrl: profile.avatarUrl || '',
-    avatarResourceId: profile.avatarResourceId ?? null,
-    avatarMedia: profile.avatarMedia ?? null,
-    bio: profile.bio || '',
-    city: profile.city || '',
-    countryCode: profile.countryCode || '',
-    gender: profile.gender || '',
-    languages: profile.languages.join(', '),
-    tags: profile.tags.join(', '),
-  };
-}
-
-export function EditableField(input: {
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  placeholder?: string;
-}) {
-  return (
-    <label className="block">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">{input.label}</span>
-      <input
-        type="text"
-        value={input.value}
-        onChange={(event) => input.onChange(event.target.value)}
-        placeholder={input.placeholder}
-        className="mt-1.5 w-full rounded-2xl border border-[var(--nimi-field-border)] bg-[var(--nimi-field-bg)] px-4 py-3 text-sm text-[var(--nimi-field-text)] outline-none transition focus:border-[var(--nimi-action-primary-bg)] focus:ring-4 focus:ring-[var(--nimi-action-primary-bg)]/10"
-      />
-    </label>
-  );
-}
 
 export function InlineMeta({
   value,

@@ -1,385 +1,67 @@
-import { useCurrentUserProfileProjection } from './current-user-profile.js';
-import { useHomeNavigation, useHomeDestination } from '../../app-shell/providers/app-store.js';
-import { useDesktopI18nResource } from '../../i18n/i18n-context';
-import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
-import { useMemo, useRef, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { useQueryClient } from '@tanstack/react-query';
+import { useMemo, useRef } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
-import { type SocialContactSnapshot } from '../social/data/social-snapshot';
-import { loadHumanProfileWithRelationship } from './profile-loader.js';
-
-import { useAppStore } from '../../app-shell/providers/app-store';
-import { ProfileDetailView, type EditableProfileDraft } from '../relationship/profile-detail-view.js';
-import {
-  ProfileDetailErrorState,
-  ProfileDetailLoadingState,
-} from '../relationship/profile-detail-view-content-shell.js';
-import { E2E_IDS } from '../../testability/e2e-ids';
-import {
-  requireHumanAccountId,
-  toHumanProfileData,
-  type HumanProfileSource,
-} from './profile-model.js';
-import { toFriendContact, type ContactRecord } from '../relationship/relationship-model';
-import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast';
-import {
-  BlockUserConfirmDialog,
-  RemoveFriendConfirmDialog,
-} from '../relationship/profile-detail-dialogs.js';
-import { parseOptionalJsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
-import { useRealmHumanChatData } from '../chat/data/realm-human-chat-data-context.js';
-
-function toErrorMessage(error: unknown, fallback: string): string {
-  if (error instanceof Error) {
-    const next = error.message.trim();
-    if (next) {
-      return next;
-    }
-  }
-  return fallback;
-}
+import { useCurrentUserProfileProjection } from './current-user-profile.js';
+import { useHomeNavigation, useHomeDestination, useAppStore } from '../../app-shell/providers/app-store.js';
+import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
+import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
+import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
+import { loadContextualHumanProfile } from './profile-loader.js';
+import { ProfileDetailView } from '../relationship/profile-detail-view.js';
+import { ProfileDetailErrorState, ProfileDetailLoadingState } from '../relationship/profile-detail-view-content-shell.js';
+import { E2E_IDS } from '../../testability/e2e-ids.js';
+import { requireHumanAccountId, toHumanProfileData, type HumanProfileSource } from './profile-model.js';
+import { openHomeSettings } from '../settings/settings-entry.js';
+import { useHumanProfileActions } from '../relationship/use-human-profile-actions.js';
 
 export function ProfilePanel() {
   const navigation = useHomeNavigation();
-  const realmHumanChatData = useRealmHumanChatData();
-  const realmSocialData = useRealmSocialData();
-  const i18n = useDesktopI18nResource().instance;
-  const authStatus = useAppStore((state) => state.auth.status);
-  const currentUser = useAppStore((state) => state.auth.user);
-  const { queryKey: currentProfileQueryKey } = useCurrentUserProfileProjection();
-  const applyCurrentUserProfile = useAppStore((state) => state.applyCurrentUserProfile);
-  const selectedProfileId = useHomeDestination().profileId ?? null;
-
-  const setRuntimeFields = useAppStore((state) => state.setRuntimeFields);
+  const social = useRealmSocialData();
   const queryClient = useQueryClient();
-  const [removeConfirmOpen, setRemoveConfirmOpen] = useState(false);
-  const [removeMutationPending, setRemoveMutationPending] = useState(false);
-  const [blockConfirmOpen, setBlockConfirmOpen] = useState(false);
-  const [blockMutationPending, setBlockMutationPending] = useState(false);
-  const setFeedback = emitFeedbackToast;
-  const profileScrollContainerRef = useRef<HTMLDivElement>(null);
-
-  const isOwnProfile = !selectedProfileId;
-
-  // Relationship hint from the owner's contact list; never a profile substitute.
-  const getContactFromCache = (id: string): ContactRecord | null => {
-    const contactsData = queryClient.getQueryData<SocialContactSnapshot>(['contacts', 'authenticated']);
-    if (contactsData?.friends) {
-      return contactsData.friends.map((item) => toFriendContact(item)).find((f) => f.id === id) || null;
-    }
-    return null;
-  };
-
+  const sdk = useDesktopRendererBindings().sdk;
+  const i18n = useDesktopI18nResource().instance;
+  const auth = useAppStore(state => state.auth);
+  const realmBaseUrl = useAppStore(state => String(state.runtimeDefaults?.realm.realmBaseUrl || ''));
+  useCurrentUserProfileProjection();
+  const selectedProfileId = useHomeDestination().profileId ?? null;
+  const isOwnProfile = !selectedProfileId || selectedProfileId === auth.user?.id;
+  const scroll = useRef<HTMLDivElement>(null);
   const profileQuery = useQuery({
-    queryKey: ['user-profile', selectedProfileId],
-    queryFn: () => loadHumanProfileWithRelationship(requireHumanAccountId(selectedProfileId), {
-      loadUserProfile: (id) => realmSocialData.loadUserProfile(id) as Promise<HumanProfileSource>,
-      isFriend: (id) => realmSocialData.isFriend(id) || Boolean(getContactFromCache(id)),
-      contacts: realmSocialData.contacts,
-    }),
-    enabled: authStatus === 'authenticated' && !!selectedProfileId,
+    queryKey: ['user-profile', realmBaseUrl, auth.user?.id, selectedProfileId],
+    queryFn: () => {
+      const id = requireHumanAccountId(selectedProfileId);
+      const known = social.contacts().friends.find(item => item.id === id);
+      const contactPages = queryClient.getQueriesData<{ pages: { items: { id: string; displayName: string | null; handle: string | null; avatarUrl: string | null }[] }[] }>({ queryKey: ['human-contacts', realmBaseUrl, auth.user?.id] });
+      const listed = contactPages.flatMap(([, data]) => data?.pages.flatMap(page => page.items) || []).find(item => item.id === id);
+      const chatPeer = queryClient.getQueryData<{ id: string; displayName: string; handle: string; avatarUrl: string | null }>(
+        ['chat-peer-identity', auth.user?.realmEnvironmentId, auth.user?.id, id]);
+      const identity = chatPeer || listed || known;
+      return loadContextualHumanProfile(id, {
+        loadUserProfile: value => social.loadUserProfile(value) as Promise<HumanProfileSource>,
+        loadRelationship: value => sdk.realm().social.getMyRelationshipWithUser({ path: { id: value } }),
+      }, identity ? { id, displayName: String(identity.displayName || identity.handle || ''), handle: String(identity.handle || ''), avatarUrl: typeof identity.avatarUrl === 'string' ? identity.avatarUrl : null } : null);
+    },
+    enabled: auth.status === 'authenticated' && !isOwnProfile,
     retry: 1,
   });
-  const profile = useMemo(() => {
-    if (isOwnProfile && currentUser) {
-      return toHumanProfileData(currentUser);
-    }
-    if (profileQuery.data) {
-      return toHumanProfileData(profileQuery.data);
-    }
-    return null;
-  }, [isOwnProfile, currentUser, profileQuery.data]);
-
+  const profile = useMemo(() => isOwnProfile && auth.user ? toHumanProfileData(auth.user) : profileQuery.data ?? null,
+    [isOwnProfile, auth.user, profileQuery.data]);
+  const actions = useHumanProfileActions(isOwnProfile ? null : profile);
   const loading = !isOwnProfile && profileQuery.isPending;
   const error = !isOwnProfile && profileQuery.isError;
-  const isBlockedProfile = Boolean(!isOwnProfile && profile && realmSocialData.isBlockedUser(profile.id));
-
-  const onMessage = async () => {
-    if (!profile) {
-      return;
-    }
-
-    try {
-      const result = await realmHumanChatData.startChatWithTarget(profile.id);
-      if (!result?.chatId) throw new Error('Chat could not be opened.');
-      const chatsSnapshot = await realmHumanChatData.loadChatList();
-      queryClient.setQueriesData({ queryKey: ['chats'] }, () => chatsSnapshot);
-      setRuntimeFields({
-        targetType: 'FRIEND',
-        targetAccountId: profile.id,
-        agentId: '',
-        worldId: '',
-      });
-      await navigation.push({ id: 'chat', chat: { mode: 'human', targetId: profile.id, threadId: String(result.chatId) } });
-    } catch (error) {
-      setFeedback({
-        kind: 'error',
-        message: toErrorMessage(error, i18n.t('Relationship.openChatFailed', { defaultValue: 'Failed to open chat' })),
-      });
-    }
-  };
-
-  const onAddFriend = async () => {
-    if (!profile) return;
-    try {
-      if (!selectedProfileId) {
-        return;
-      }
-      await realmSocialData.requestOrAcceptFriend(selectedProfileId);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['user-profile'], exact: false }),
-      ]);
-      setFeedback({
-        kind: 'success',
-        message: i18n.t('Relationship.addContactSuccess', { defaultValue: 'Friend request sent.' }),
-      });
-    } catch (error) {
-      setFeedback({
-        kind: 'error',
-        message: toErrorMessage(error, i18n.t('Relationship.addContactFailed', { defaultValue: 'Failed to add contact' })),
-      });
-    }
-  };
-
-  const onBlockProfile = async () => {
-    if (!profile) {
-      return;
-    }
-    if (blockMutationPending) {
-      return;
-    }
-    try {
-      setBlockMutationPending(true);
-      await realmSocialData.blockUser({
-        id: profile.id,
-        displayName: profile.displayName,
-        handle: profile.handle,
-        avatarUrl: profile.avatarUrl,
-        bio: profile.bio,
-      });
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['user-profile'], exact: false }),
-      ]);
-      setFeedback({
-        kind: 'success',
-        message: i18n.t('Relationship.blockUserSuccess', { defaultValue: 'User blocked.' }),
-      });
-      setBlockConfirmOpen(false);
-      navigation.back();
-    } catch (error) {
-      setFeedback({
-        kind: 'error',
-        message: toErrorMessage(error, i18n.t('Relationship.blockUserFailed', { defaultValue: 'Failed to block user' })),
-      });
-    } finally {
-      setBlockMutationPending(false);
-    }
-  };
-
-  const onUnblockProfile = async () => {
-    if (!profile || blockMutationPending) return;
-    try {
-      setBlockMutationPending(true);
-      await realmSocialData.unblockUser({ id: profile.id, displayName: profile.displayName, handle: profile.handle, avatarUrl: profile.avatarUrl });
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['user-profile'], exact: false }),
-      ]);
-      setFeedback({ kind: 'success', message: i18n.t('Relationship.unblockUserSuccess', { defaultValue: 'User unblocked.' }) });
-    } catch (error) {
-      setFeedback({ kind: 'error', message: toErrorMessage(error, i18n.t('Relationship.unblockUserFailed', { defaultValue: 'Failed to unblock user' })) });
-    } finally {
-      setBlockMutationPending(false);
-    }
-  };
-
-  const onRemoveProfile = async () => {
-    if (!profile) {
-      return;
-    }
-    if (removeMutationPending) {
-      return;
-    }
-    try {
-      setRemoveMutationPending(true);
-      await realmSocialData.removeFriend(profile.id);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['chats'], exact: false }),
-        queryClient.invalidateQueries({ queryKey: ['user-profile'], exact: false }),
-      ]);
-      setFeedback({
-        kind: 'success',
-        message: i18n.t('Relationship.removeFriendSuccess', { defaultValue: 'Friend removed.' }),
-      });
-      setRemoveConfirmOpen(false);
-      navigation.back();
-    } catch (error) {
-      setFeedback({
-        kind: 'error',
-        message: toErrorMessage(error, i18n.t('Relationship.removeFriendFailed', { defaultValue: 'Failed to remove friend' })),
-      });
-    } finally {
-      setRemoveMutationPending(false);
-    }
-  };
-
-  // Save feedback stays inline (the controller surfaces errors via saveError),
-  // matching the Settings > Profile inline-feedback pattern — no toast here.
-  const onSaveOwnProfile = async (draft: EditableProfileDraft) => {
-    const nextDisplayName = draft.displayName.trim();
-    if (!nextDisplayName) {
-      throw new Error(i18n.t('Profile.displayNameRequired', { defaultValue: 'Display name is required' }));
-    }
-
-    const toArray = (value: string) =>
-      value
-        .split(',')
-        .map((item) => item.trim())
-        .filter(Boolean);
-
-    const updated = await realmSocialData.updateUserProfile({
-      displayName: nextDisplayName,
-      ...(draft.avatarResourceId ? { avatarResourceId: draft.avatarResourceId } : { avatarUrl: draft.avatarUrl.trim() || null }),
-      bio: draft.bio.trim() || null,
-      city: draft.city.trim() || null,
-      countryCode: draft.countryCode.trim() || null,
-      gender: draft.gender.trim() || null,
-      languages: toArray(draft.languages),
-      tags: toArray(draft.tags),
-    });
-
-    const updatedUser = parseOptionalJsonObject(updated) ?? {};
-    if ((updated.avatarResourceId ?? null) !== draft.avatarResourceId) throw new Error(i18n.t('Profile.avatarUploadFailed'));
-    const updatedAuthUser = { ...updated, ...updatedUser };
-
-    queryClient.setQueryData(currentProfileQueryKey, updated);
-    applyCurrentUserProfile(updatedAuthUser, String(currentUser?.realmEnvironmentId || ''));
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ['user-profile'] }),
-      queryClient.invalidateQueries({ queryKey: ['contacts'] }),
-    ]);
-  };
-
-  if (loading) {
-    return (
-      <div data-testid={E2E_IDS.panel('profile')} className="flex min-h-0 flex-1 px-5 pb-5 pt-4">
-        <Surface
-          tone="panel"
-          material="glass-regular"
-          padding="none"
-          className="flex flex-1 items-center justify-center rounded-[2rem] border-[var(--nimi-border-subtle)] shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
-        >
-          <ProfileDetailLoadingState label={i18n.t('ProfileView.loading')} />
+  return <div data-testid={E2E_IDS.panel('profile')} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+    {loading ? <ProfileDetailLoadingState label={i18n.t('ProfileView.loading')} /> : error ? <ProfileDetailErrorState
+      backLabel={i18n.t('Common.back')} label={i18n.t('ProfileView.error')} onClose={navigation.back}
+      retryLabel={i18n.t('Common.retry')} onRetry={() => { void profileQuery.refetch(); }} /> : profile ? <ScrollArea className="min-h-0 flex-1"
+        viewportClassName="bg-transparent px-5 pb-5 pt-4" contentClassName="flex min-h-full w-full flex-col" viewportRef={scroll}>
+        <Surface tone="panel" material="glass-regular" padding="none" className="min-h-full overflow-hidden rounded-[2rem] border-[var(--nimi-border-subtle)] shadow-[0_22px_52px_rgba(15,23,42,0.08)]">
+          <ProfileDetailView profile={profile} isOwnProfile={isOwnProfile} loading={false} error={false}
+            hideBackButton externalScrollContainerRef={scroll} onClose={navigation.back} {...actions.props}
+            onEditProfile={isOwnProfile ? () => { void openHomeSettings(navigation, 'profile'); } : undefined}
+            onOpenFriends={isOwnProfile ? () => { void navigation.push({ id: 'chat', chat: { mode: 'human' } }); } : undefined}
+            onOpenPrivacy={isOwnProfile ? () => { void openHomeSettings(navigation, 'privacy'); } : undefined} />
         </Surface>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div data-testid={E2E_IDS.panel('profile')} className="flex min-h-0 flex-1 px-5 pb-5 pt-4">
-        <Surface
-          tone="panel"
-          material="glass-regular"
-          padding="none"
-          className="flex flex-1 items-center justify-center rounded-[2rem] border-[var(--nimi-border-subtle)] shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
-        >
-          <ProfileDetailErrorState
-            backLabel={i18n.t('Common.back')}
-            label={i18n.t('ProfileView.error')}
-            onClose={navigation.back}
-            retryLabel={i18n.t('Common.retry', { defaultValue: 'Retry' })}
-            onRetry={() => { void profileQuery.refetch(); }}
-          />
-        </Surface>
-      </div>
-    );
-  }
-
-  if (!profile) {
-    return (
-      <div data-testid={E2E_IDS.panel('profile')} className="flex min-h-0 flex-1 px-5 pb-5 pt-4">
-        <Surface
-          tone="panel"
-          material="glass-regular"
-          padding="none"
-          className="flex flex-1 items-center justify-center rounded-[2rem] border-[var(--nimi-border-subtle)] text-sm text-[var(--nimi-text-secondary)] shadow-[0_18px_44px_rgba(15,23,42,0.06)]"
-        >
-          {i18n.t('Profile.noProfileDataAvailable', { defaultValue: 'No profile data available' })}
-        </Surface>
-      </div>
-    );
-  }
-
-  return (
-    <div data-testid={E2E_IDS.panel('profile')} className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <ScrollArea
-        className="min-h-0 flex-1"
-        viewportClassName="bg-transparent px-5 pb-5 pt-4"
-        contentClassName="flex min-h-full w-full flex-col"
-        viewportRef={profileScrollContainerRef}
-      >
-        <Surface
-          tone="panel"
-          material="glass-regular"
-          padding="none"
-          className="min-h-full overflow-hidden rounded-[2rem] border-[var(--nimi-border-subtle)] shadow-[0_22px_52px_rgba(15,23,42,0.08)]"
-        >
-          <ProfileDetailView
-            profile={profile}
-            isOwnProfile={isOwnProfile}
-            isBlockedProfile={isBlockedProfile}
-            loading={loading}
-            error={error}
-            hideBackButton
-            externalScrollContainerRef={profileScrollContainerRef}
-            onClose={navigation.back}
-            onMessage={() => {
-              void onMessage();
-            }}
-            onAddFriend={!isOwnProfile && !isBlockedProfile && !profile.isFriend && !profile.isPendingFriendRequest ? () => {
-              void onAddFriend();
-            } : undefined}
-            onBlock={!isOwnProfile && !isBlockedProfile ? () => setBlockConfirmOpen(true) : undefined}
-            onUnblock={!isOwnProfile && isBlockedProfile ? () => { void onUnblockProfile(); } : undefined}
-            onRemove={!isOwnProfile && !isBlockedProfile && profile.isFriend ? () => setRemoveConfirmOpen(true) : undefined}
-            showMessageButton={!isOwnProfile && !isBlockedProfile}
-            onSaveProfile={isOwnProfile ? onSaveOwnProfile : undefined}
-          />
-        </Surface>
-      </ScrollArea>
-      {profile && removeConfirmOpen ? (
-        <RemoveFriendConfirmDialog
-          contact={profile}
-          pending={removeMutationPending}
-          onConfirm={() => {
-            void onRemoveProfile();
-          }}
-          onCancel={() => {
-            if (!removeMutationPending) {
-              setRemoveConfirmOpen(false);
-            }
-          }}
-        />
-      ) : null}
-      {profile && blockConfirmOpen ? (
-        <BlockUserConfirmDialog
-          contact={profile}
-          pending={blockMutationPending}
-          onConfirm={() => {
-            void onBlockProfile();
-          }}
-          onCancel={() => {
-            if (!blockMutationPending) {
-              setBlockConfirmOpen(false);
-            }
-          }}
-        />
-      ) : null}
-    </div>
-  );
+      </ScrollArea> : <p className="p-5 text-sm text-[var(--nimi-text-secondary)]">{i18n.t('Profile.noProfileDataAvailable')}</p>}
+    {actions.dialog}
+  </div>;
 }

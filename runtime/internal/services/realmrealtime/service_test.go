@@ -24,7 +24,7 @@ func TestListRealmChatsUsesCurrentCredentialAndProjectsBoundedOwnerRows(t *testi
 			t.Errorf("Realm Chat list authorization = %q", request.Header.Get("authorization"))
 		}
 		response.Header().Set("content-type", "application/json")
-		_, _ = response.Write([]byte(`{"items":[{"id":"chat-1","createdAt":"2026-08-26T01:00:00Z","updatedAt":"2026-08-26T02:00:00Z","lastMessageAt":"2026-08-26T02:00:00Z","unreadCount":3,"otherUser":{"id":"user-2","handle":"friend","displayName":"Friend","avatarUrl":"https://cdn.example/friend.png","status":"ACTIVE","createdAt":"2026-01-01T00:00:00Z"},"lastMessage":null}],"nextCursor":"chat-next"}`))
+		_, _ = response.Write([]byte(`{"items":[{"id":"chat-1","createdAt":"2026-08-26T01:00:00Z","updatedAt":"2026-08-26T02:00:00Z","lastMessageAt":"2026-08-26T02:00:00Z","unreadCount":3,"otherUser":{"id":"user-2","handle":"friend","displayName":"Friend","avatarUrl":"https://cdn.example/friend.png","status":"ACTIVE","createdAt":"2026-01-01T00:00:00Z"},"lastMessage":null},{"id":"chat-2","createdAt":"2026-08-26T01:00:00Z","updatedAt":"2026-08-26T02:00:00Z","lastMessageAt":"2026-08-26T02:00:00Z","unreadCount":0,"otherUser":{"id":"gone","handle":"","displayName":"Deleted account","status":"SUSPENDED","createdAt":"2026-01-01T00:00:00Z"},"lastMessage":null}],"nextCursor":"chat-next"}`))
 	}))
 	defer server.Close()
 	invalidated := make(chan struct{})
@@ -37,7 +37,7 @@ func TestListRealmChatsUsesCurrentCredentialAndProjectsBoundedOwnerRows(t *testi
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(result.GetItems()) != 1 || result.GetItems()[0].GetChatId() != "chat-1" ||
+	if len(result.GetItems()) != 2 || result.GetItems()[1].GetOtherUser().GetId() != "gone" || result.GetItems()[0].GetChatId() != "chat-1" ||
 		result.GetItems()[0].GetOtherUser().GetCreatedAt() == nil || result.GetItems()[0].GetUnreadCount() != 3 || result.GetNextCursor() != "chat-next" {
 		t.Fatalf("Realm Chat list projection = %+v", result)
 	}

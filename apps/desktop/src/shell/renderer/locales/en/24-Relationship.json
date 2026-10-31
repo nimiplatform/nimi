@@ -12,7 +12,7 @@
   "blockUserSuccess": "User blocked.",
   "unblockUserSuccess": "User unblocked.",
   "unblockUserFailed": "Couldn't unblock this user. Try again later.",
-  "blockUserConfirmMessage": "Block {{name}}? They will be moved to your Blocked list and won't be able to contact you.",
+  "blockUserConfirmMessage": "Block {{name}}? New contact will stop. Your existing messages, friendships and requests are kept; you can manage them separately.",
   "changePhoto": "Change Photo",
   "chat": "Chat",
   "city": "City",
@@ -32,7 +32,7 @@
   "reject": "Reject",
   "rejectRequestFailed": "Failed to reject friend request",
   "removeFriendConfirmMessagePrefix": "Remove",
-  "removeFriendConfirmMessageSuffix": "This will remove them from your friends list.",
+  "removeFriendConfirmMessageSuffix": "Existing messages are kept. Whether they can contact you again depends on your current message settings.",
   "removeFriendFailed": "Failed to remove friend",
   "removeFriendSuccess": "Friend removed.",
   "tags": "Tags",
@@ -44,5 +44,97 @@
   "findByHandleFailed": "The friend request could not be confirmed. Check the handle, their friend request settings and your connection, then try again.",
   "friendHandleRequested": "Friend request sent. They will appear in your friends when they accept.",
   "friendHandleAccepted": "You are now friends.",
-  "friendHandleUnchanged": "You are already friends or a request is already pending. Check your friends and requests."
+  "friendHandleUnchanged": "You are already friends or a request is already pending. Check your friends and requests.",
+  "contacts": {
+    "title": "Conversations and contacts",
+    "description": "Find your friends and manage requests and blocked accounts.",
+    "tabs": {
+      "friends": "Friends",
+      "received": "Received requests",
+      "sent": "Sent requests",
+      "blocked": "Blocked",
+      "conversations": "Conversations"
+    },
+    "search": "Search your friends",
+    "loadFailed": "Could not load this list. Your existing items are kept.",
+    "noSearchResults": "No friends match this search.",
+    "empty": {
+      "friends": "No friends yet. Add someone using their username.",
+      "received": "No pending requests received.",
+      "sent": "No pending requests sent.",
+      "blocked": "No blocked accounts."
+    },
+    "count": "{{count}} total",
+    "deletedUser": "Deleted account",
+    "deletedChatHistory": "This account has been deleted. There are no messages in this conversation.",
+    "actionFailed": "The action could not be completed. Try again.",
+    "relationshipChanged": "This relationship has changed. Refresh the list before trying again.",
+    "actionDone": {
+      "accept": "Friend request accepted.",
+      "reject": "Friend request rejected.",
+      "cancel": "Friend request cancelled.",
+      "remove": "Friend removed. Existing messages are kept.",
+      "block": "Account blocked. Existing relationships and messages are kept.",
+      "unblock": "Your block has been removed. Current privacy settings still apply."
+    },
+    "chatOpened": "Conversation opened.",
+    "openChat": "Open conversation",
+    "cancelRequest": "Cancel request",
+    "manageRelationship": "Manage relationship",
+    "loadMore": "Load more",
+    "blockedRelationship": "Relationship with {{name}}",
+    "relationshipState": {
+      "none": "No friendship or pending request.",
+      "active": "You are still friends. You can remove this friendship without unblocking.",
+      "pending_incoming": "A received request remains. You can reject it without unblocking.",
+      "pending_outgoing": "Your sent request remains. You can cancel it without unblocking."
+    },
+    "confirmTitle": {
+      "remove": "Remove friend",
+      "block": "Block account",
+      "unblock": "Unblock account"
+    },
+    "confirmBody": {
+      "remove": "Remove {{name}} from your friends? Existing messages are kept. Whether they can contact you again depends on your current message settings.",
+      "block": "Block {{name}}? New contact will be stopped. Existing messages, friendships and requests are kept; you can manage them separately.",
+      "unblock": "Remove your block on {{name}}? Existing relationships are kept, and current privacy settings still determine whether you can contact each other."
+    },
+    "refreshList": "Refresh list",
+    "loadedConversations": "{{count}} conversations loaded",
+    "messagePreview": "Open to read messages",
+    "emptyConversations": "No conversations yet. Choose a friend to start.",
+    "unreadMessages": "{{count}} unread messages"
+  },
+  "report": {
+    "action": "Report user",
+    "title": "Report {{name}}",
+    "reason": "Reason",
+    "description": "Additional information (optional)",
+    "reasons": {
+      "SPAM": "Spam",
+      "NSFW": "Sexual or explicit content",
+      "HATE_SPEECH": "Hate speech",
+      "SCAM": "Scam or fraud",
+      "OTHER": "Other"
+    },
+    "includeMessage": "Include this message as evidence",
+    "evidenceScope": "The selected message’s current stored content and attachment reference will be included. No other messages are included.",
+    "consequence": "Your report and any selected evidence will be available to authorized moderators. Reporting does not automatically block this user.",
+    "submit": "Submit report",
+    "failed": "Could not submit the report. Please try again.",
+    "received": "Your report has been received. This confirms submission, not a moderation decision.",
+    "receipt": "Report ID: {{id}}",
+    "status": "Submitted status: {{status}}",
+    "copyReceipt": "Copy report ID",
+    "copied": "Report ID copied",
+    "copyFailed": "Could not copy the report ID.",
+    "statusLabels": {
+      "PENDING": "Awaiting review",
+      "RESOLVED": "Reviewed",
+      "DISMISSED": "Dismissed"
+    }
+  },
+  "editProfile": "Edit profile",
+  "viewCurrentRequests": "View current requests",
+  "stateChanged": "The relationship changed. Refresh and try again."
 }

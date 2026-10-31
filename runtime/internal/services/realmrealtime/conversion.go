@@ -393,7 +393,7 @@ func convertWireChatList(input wireChatListResult) (*runtimev1.ListRealmChatsRes
 }
 
 func convertWireChatUserSummary(other wireChatUserSummary) (*runtimev1.RealmChatUserSummary, error) {
-	if strings.TrimSpace(other.ID) == "" || strings.TrimSpace(other.Handle) == "" || strings.TrimSpace(other.DisplayName) == "" {
+	if strings.TrimSpace(other.ID) == "" || (strings.TrimSpace(other.Handle) == "" && (other.Status != "SUSPENDED" || other.Handle != "")) || strings.TrimSpace(other.DisplayName) == "" {
 		return nil, fmt.Errorf("Realm Chat user summary is invalid")
 	}
 	createdAt, err := parseWireTime(other.CreatedAt)

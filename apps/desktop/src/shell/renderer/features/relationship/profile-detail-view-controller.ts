@@ -1,10 +1,5 @@
-import { selectMediaImage } from '@nimiplatform/kit/features/media/headless';
-import { type ChangeEvent, type RefObject, useEffect, useRef, useState } from 'react';
-import { uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
-import { useTranslation } from 'react-i18next';
-import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
-import type { HumanProfileData, HumanProfileTab } from '../profile/profile-model';
-import { buildEditableDraft, type EditableProfileDraft } from './profile-detail-view-parts.js';
+import { type RefObject, useEffect, useRef, useState } from 'react';
+import type { HumanProfileData } from '../profile/profile-model';
 
 export type ProfileDetailViewProps = {
   profile: HumanProfileData;
@@ -15,173 +10,44 @@ export type ProfileDetailViewProps = {
   onClose: () => void;
   onMessage: () => void;
   onAddFriend?: () => void;
+  onAcceptRequest?: () => void;
+  onRejectRequest?: () => void;
+  onCancelRequest?: () => void;
+  actionsPending?: boolean;
   addFriendLabel?: string;
   canAddFriend?: boolean;
   addFriendHint?: string | null;
   onBlock?: () => void;
-  /** Offered while the profile is blocked; unblocking restores the relationship controls. */
   onUnblock?: () => void;
   onRemove?: () => void;
+  onReport?: () => void;
   showMessageButton?: boolean;
   fullBleed?: boolean;
   isOwnProfile?: boolean;
-  // When true, suppress the floating back-arrow overlaid on the hero banner.
-  // Used by embedded profile contexts where the parent already provides navigation.
   hideBackButton?: boolean;
   externalScrollContainerRef?: RefObject<HTMLDivElement | null>;
-  onSaveProfile?: (draft: EditableProfileDraft) => Promise<void>;
+  onEditProfile?: () => void;
+  onOpenFriends?: () => void;
+  onOpenPrivacy?: () => void;
 };
 
-export const ACCEPTED_AVATAR_TYPES = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
-
-const DEFAULT_TAB: HumanProfileTab = 'Collections';
-const MAX_AVATAR_FILE_SIZE = 10 * 1024 * 1024;
-
-export function useProfileDetailViewController(props: ProfileDetailViewProps, realmBaseUrl: string) {
-  const bindings = useDesktopRendererBindings();
-  const { t } = useTranslation();
-  const [activeTab, setActiveTab] = useState<HumanProfileTab>(DEFAULT_TAB);
+export function useProfileDetailViewController(props: ProfileDetailViewProps) {
   const [showMenu, setShowMenu] = useState(false);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [showScrollTop, setShowScrollTop] = useState(false);
-  const [visitedTabs, setVisitedTabs] = useState<HumanProfileTab[]>([DEFAULT_TAB]);
-  const [draft, setDraft] = useState<EditableProfileDraft>(() => buildEditableDraft(props.profile));
   const internalScrollContainerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = props.externalScrollContainerRef ?? internalScrollContainerRef;
-  const usesExternalScrollContainer = Boolean(props.externalScrollContainerRef);
-  const avatarInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    setDraft(buildEditableDraft(props.profile));
-    setIsEditing(false);
-    setIsSaving(false);
-    setSaveError(null);
-    setActiveTab(DEFAULT_TAB);
-    setVisitedTabs([DEFAULT_TAB]);
-  }, [props.profile]);
-
-  useEffect(() => {
-    setVisitedTabs((current) => (current.includes(activeTab) ? current : [...current, activeTab]));
-  }, [activeTab]);
-
+  useEffect(() => { setShowMenu(false); }, [props.profile.id]);
   useEffect(() => {
     const container = scrollContainerRef.current;
-    if (!container || !props.isOwnProfile) {
-      setShowScrollTop(false);
-      return;
-    }
-
-    const handleScroll = () => {
-      setShowScrollTop(container.scrollTop > 420);
-    };
-
-    handleScroll();
-    container.addEventListener('scroll', handleScroll, { passive: true });
-    return () => container.removeEventListener('scroll', handleScroll);
-  }, [props.isOwnProfile, scrollContainerRef]);
-
-  const cancelEditing = () => {
-    setDraft(buildEditableDraft(props.profile));
-    setSaveError(null);
-    setIsEditing(false);
-  };
-
-  const toggleEditing = () => {
-    if (isEditing) {
-      cancelEditing();
-      return;
-    }
-    setIsEditing(true);
-  };
-
-  const handleSaveProfile = async () => {
-    if (!props.onSaveProfile) {
-      return;
-    }
-    if (!draft.displayName.trim()) {
-      setSaveError(t('Profile.displayNameRequired', { defaultValue: 'Display name is required' }));
-      return;
-    }
-    setIsSaving(true);
-    setSaveError(null);
-    try {
-      await props.onSaveProfile(draft);
-      setIsEditing(false);
-    } catch (error) {
-      setSaveError(error instanceof Error ? error.message : t('Profile.updateError', { defaultValue: 'Failed to update profile' }));
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const handleAvatarSelect = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    event.target.value = '';
-    if (!file) {
-      return;
-    }
-    if (!ACCEPTED_AVATAR_TYPES.includes(file.type)) {
-      setSaveError(t('Profile.avatarUnsupportedFormat', { defaultValue: 'Unsupported avatar format. Use PNG, JPEG, GIF, or WebP.' }));
-      return;
-    }
-    if (file.size > MAX_AVATAR_FILE_SIZE) {
-      setSaveError(t('Profile.avatarSizeLimit', { defaultValue: 'Avatar must be smaller than 10MB.' }));
-      return;
-    }
-    if (!realmBaseUrl) {
-      setSaveError(t('Profile.avatarUploadUnavailable', { defaultValue: 'Image upload is unavailable right now. Please try again.' }));
-      return;
-    }
-
-    setIsUploadingAvatar(true);
-    setSaveError(null);
-    try {
-      const uploaded = await uploadNimiRealmResourceFile(bindings.sdk.realm(), {
-        kind: 'image',
-        file,
-        failureMessage: t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }),
-      });
-      const avatarMedia = uploaded.resource.delivery;
-      const avatarUrl = selectMediaImage(avatarMedia, 'avatar')?.src;
-      if (!avatarUrl) {
-        throw new Error(t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }));
-      }
-      setDraft((current) => ({ ...current, avatarUrl, avatarMedia, avatarResourceId: uploaded.resourceId }));
-    } catch (error) {
-      setSaveError(error instanceof Error ? error.message : t('Profile.avatarUploadFailed', { defaultValue: 'Failed to upload avatar' }));
-    } finally {
-      setIsUploadingAvatar(false);
-    }
-  };
-
-  const scrollToTop = () => {
-    scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-  };
-
-  return {
-    activeTab,
-    avatarInputRef,
-    cancelEditing,
-    draft,
-    handleAvatarSelect,
-    handleSaveProfile,
-    isEditing,
-    isSaving,
-    isUploadingAvatar,
-    saveError,
-    scrollContainerRef,
-    scrollToTop,
-    setActiveTab,
-    setDraft,
-    setShowMenu,
-    showMenu,
-    showScrollTop,
-    toggleEditing,
-    usesExternalScrollContainer,
-    visitedTabs,
+    if (!container) return;
+    const onScroll = () => setShowScrollTop(container.scrollTop > 420);
+    onScroll();
+    container.addEventListener('scroll', onScroll, { passive: true });
+    return () => container.removeEventListener('scroll', onScroll);
+  }, [scrollContainerRef]);
+  return { showMenu, setShowMenu, showScrollTop, scrollContainerRef,
+    usesExternalScrollContainer: Boolean(props.externalScrollContainerRef),
+    scrollToTop: () => scrollContainerRef.current?.scrollTo({ top: 0, behavior: 'auto' }),
   };
 }
 

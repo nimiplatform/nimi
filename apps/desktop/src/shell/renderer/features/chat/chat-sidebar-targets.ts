@@ -18,6 +18,7 @@ import {
   type RealmChatViewDto,
 } from '@nimiplatform/kit/features/chat/realm';
 import { useRealmHumanChatData } from './data/realm-human-chat-data-context.js';
+import { useHumanChatList } from './use-human-chat-list.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 
 type SocialSnapshot = Awaited<ReturnType<RealmSocialData['loadSocialSnapshot']>>;
@@ -66,7 +67,7 @@ export function toHumanFriendTargetSummary(
   return {
     id: targetId,
     source: 'human',
-    canonicalSessionId: targetId,
+    canonicalSessionId: '',
     title,
     handle: toAtHandle(record.handle),
     bio: normalizeText(record.bio) || null,
@@ -80,6 +81,7 @@ export function toHumanFriendTargetSummary(
     metadata: {
       otherUserId: targetId,
       friendshipOnly: true,
+      isFriend: true,
     },
   };
 }
@@ -95,13 +97,20 @@ export function toHumanFriendTargetsFromSocialSnapshot(
     .sort((left, right) => left.title.localeCompare(right.title));
 }
 
+// @nimi-authority: rule.nimi.desktop.product-surfaces.r031
 export function mergeHumanChatTargetsWithFriendTargets(
   chatTargets: readonly ConversationTargetSummary[],
   friendTargets: readonly ConversationTargetSummary[],
 ): ConversationTargetSummary[] {
   const existingTargetIds = new Set(chatTargets.map((target) => target.id).filter(Boolean));
+  const friendIds = new Set(friendTargets.map(target => target.id));
   return [
-    ...chatTargets,
+    ...chatTargets.map(target => {
+      const isFriend = friendIds.has(target.id);
+      return { ...target, metadata: { ...target.metadata, isFriend },
+        previewText: isFriend ? target.previewText : null,
+        bio: isFriend ? target.bio : null };
+    }),
     ...friendTargets.filter((target) => !existingTargetIds.has(target.id)),
   ];
 }
@@ -193,18 +202,16 @@ export function useChatTargetsForSidebar(
   const realmSocialData = useRealmSocialData();
   const { t } = useTranslation();
   const ownerUserId = useAppStore((state) => normalizeText(state.auth.user?.id));
+  const realmEnvironmentId = useAppStore((state) => state.auth.user?.realmEnvironmentId);
+  const realmBaseUrl = useAppStore((state) => state.runtimeDefaults?.realm.realmBaseUrl);
+  const authorizationRevision = useAppStore((state) => state.auth.authorizationRevision);
   const queryAuthStatus = chatSidebarQueryAuthStatus(authStatus, ownerUserId);
   const canRead = authStatus === 'authenticated' && Boolean(ownerUserId);
 
-  const humanChatsQuery = useQuery({
-    queryKey: ['chats', queryAuthStatus],
-    queryFn: async () => realmHumanChatData.loadChatList(),
-    enabled: canRead,
-    staleTime: 30_000,
-  });
+  const humanChatsQuery = useHumanChatList(authStatus);
 
   const socialSnapshotQuery = useQuery({
-    queryKey: ['contacts', queryAuthStatus],
+    queryKey: ['contacts', realmEnvironmentId, realmBaseUrl, ownerUserId, authorizationRevision],
     queryFn: async () => realmSocialData.loadSocialSnapshot() as Promise<SocialSnapshot>,
     enabled: canRead,
     staleTime: 30_000,

@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readdir, readFile } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
+import ts from 'typescript';
 
 import {
   changeLocale,
@@ -15,6 +16,39 @@ import {
 import { readDesktopLocale } from './helpers/read-desktop-locale';
 
 const RENDERER_ROOT = resolve(import.meta.dirname, '../src/shell/renderer');
+
+type TranslationPattern = { pattern: string; literal: string | null; knownLength: number };
+
+function readTranslationPatterns(source: string, filename = 'renderer.tsx'): TranslationPattern[] {
+  const file = ts.createSourceFile(filename, source, ts.ScriptTarget.Latest, true,
+    filename.endsWith('.tsx') ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
+  const escape = (value: string) => [...value].map(char => '\\^$.*+?()[]{}|'.includes(char) ? '\\' + char : char).join('');
+  const read = (node: ts.Expression): TranslationPattern[] => {
+    if (ts.isStringLiteralLike(node)) return [{ pattern: escape(node.text), literal: node.text, knownLength: node.text.length }];
+    if (ts.isParenthesizedExpression(node)) return read(node.expression);
+    if (ts.isConditionalExpression(node)) return [...read(node.whenTrue), ...read(node.whenFalse)];
+    if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken) {
+      return read(node.left).flatMap(left => read(node.right).map(right => ({
+        pattern: left.pattern + right.pattern,
+        literal: left.literal !== null && right.literal !== null ? left.literal + right.literal : null,
+        knownLength: left.knownLength + right.knownLength,
+      })));
+    }
+    return [{ pattern: '.*', literal: null, knownLength: 0 }];
+  };
+  const patterns: TranslationPattern[] = [];
+  const visit = (node: ts.Node) => {
+    if (ts.isCallExpression(node) && node.arguments[0]) {
+      const name = node.expression.getText(file);
+      if (name === 't' || name === 'i18n.t' || name === 'deps.translate') {
+        patterns.push(...read(node.arguments[0]).filter(item => item.knownLength > 0));
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(file);
+  return patterns;
+}
 
 function flattenLocaleKeys(input: unknown, prefix = ''): string[] {
   if (!input || typeof input !== 'object' || Array.isArray(input)) {
@@ -228,17 +262,14 @@ test('renderer translation key usages resolve in en locale', async () => {
   const en = readDesktopLocale('en');
   const enKeys = new Set(flattenLocaleKeys(en));
   const sourceFiles = await collectRendererSourceFiles(RENDERER_ROOT);
-  const directKeyPattern = /\b(?:i18n\.t|t|deps\.translate)\(\s*['"]([^'"]+)['"]/g;
   const seenKeys = new Set<string>();
+  const dynamicPatterns = new Set<string>();
 
   for (const filePath of sourceFiles) {
     const source = await readFile(filePath, 'utf8');
-    let match: RegExpExecArray | null;
-    while ((match = directKeyPattern.exec(source)) !== null) {
-      const key = match[1];
-      if (key) {
-        seenKeys.add(key);
-      }
+    for (const item of readTranslationPatterns(source, filePath)) {
+      if (item.literal !== null) seenKeys.add(item.literal);
+      else dynamicPatterns.add(item.pattern);
     }
   }
 
@@ -252,6 +283,20 @@ test('renderer translation key usages resolve in en locale', async () => {
     [],
     `en.json is missing renderer translation keys: ${missingKeys.join(', ')}`,
   );
+  const missingPatterns = [...dynamicPatterns].filter(pattern => ![...enKeys].some(key => new RegExp('^' + pattern + '$').test(key)));
+  assert.deepEqual(missingPatterns, [], 'Dynamic translation families have no matching locale keys: ' + missingPatterns.join(', '));
+});
+
+test('translation scanning distinguishes complete literals, concatenation and unknown expressions', () => {
+  const patterns = readTranslationPatterns("t('Profile.editorValidation.' + validation); t('WorldDetail.discovery.reading.' + mode); t('Profile.' + 'bio'); t(condition ? 'Common.cancel' : 'Common.retry'); t(unknownKey);");
+  assert.deepEqual(patterns.filter(item => item.literal !== null).map(item => item.literal), ['Profile.bio', 'Common.cancel', 'Common.retry']);
+  const dynamic = patterns.filter(item => item.literal === null);
+  assert.equal(dynamic.length, 2);
+  const first = dynamic[0];
+  assert.ok(first);
+  assert.ok(new RegExp('^' + first.pattern + '$').test('Profile.editorValidation.name'));
+  assert.equal(new RegExp('^' + first.pattern + '$').test('ProfileXeditorValidationXname'), false);
+  assert.equal(patterns.some(item => item.literal === 'Profile.editorValidation.'), false);
 });
 
 test('conversation counts resolve plural translations in both locales without missing-key issues', async () => {

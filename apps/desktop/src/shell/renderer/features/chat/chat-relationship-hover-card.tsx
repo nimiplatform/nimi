@@ -102,7 +102,10 @@ export function RelationshipHoverCard({
 }) {
   const { t } = useTranslation();
   const identity = getIdentityLabel(target);
-  const preview = target.previewText || target.bio || null;
+  const hideHumanPreview = target.source === 'human' && target.metadata?.isFriend !== true;
+  const preview = hideHumanPreview
+    ? t('Chat.hoverCardPreviewHidden', { defaultValue: 'Message preview hidden' })
+    : target.previewText || null;
   const isLocalAgent = target.source === 'agent';
   const sourcePillLabel = t('Chat.hoverCardLocalAgent', { defaultValue: 'localAgent' });
 
@@ -183,9 +186,9 @@ export function RelationshipHoverCard({
           ) : null}
           {preview ? (
             <div className="mt-3 flex min-w-0 items-center gap-1.5 text-[12px] leading-4 text-[var(--nimi-text-muted)]">
-              <span className="shrink-0 font-medium text-[var(--nimi-text-secondary)]">
+              {!hideHumanPreview ? <span className="shrink-0 font-medium text-[var(--nimi-text-secondary)]">
                 {t('Chat.hoverCardLast', { defaultValue: 'Last:' })}
-              </span>
+              </span> : null}
               <span className="min-w-0 flex-1 truncate">{preview}</span>
             </div>
           ) : null}

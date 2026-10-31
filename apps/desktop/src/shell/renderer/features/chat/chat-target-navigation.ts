@@ -6,6 +6,7 @@ import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types
 export function createChatTargetNavigation(input: {
   navigation: HomeNavigation;
   openAgent: (target: ConversationTargetSummary) => Promise<AgentLocalTargetSnapshot | null>;
+  openHuman: (accountId: string) => Promise<string>;
   rememberAgent: (target: AgentLocalTargetSnapshot) => void;
   onError: (error: unknown) => void;
 }) {
@@ -16,7 +17,7 @@ export function createChatTargetNavigation(input: {
     async select(target: ConversationTargetSummary) {
       const token = ++request;
       if (disposed) return;
-      if (target.source !== 'agent') {
+      if (target.source === 'ai' || (target.source === 'human' && target.canonicalSessionId)) {
         await input.navigation.push({ id: 'chat', chat: { mode: target.source, targetId: target.id,
           ...(target.source === 'human' && target.canonicalSessionId ? { threadId: target.canonicalSessionId } : {}) } });
         return;
@@ -28,6 +29,11 @@ export function createChatTargetNavigation(input: {
         && input.navigation.getSnapshot().current.key === origin.current.key;
       const unsubscribe = input.navigation.subscribe(() => { if (!current()) left = true; });
       try {
+        if (target.source === 'human') {
+          const threadId = await input.openHuman(target.id);
+          if (current()) await input.navigation.push({ id: 'chat', chat: { mode: 'human', targetId: target.id, threadId } });
+          return;
+        }
         const agent = await input.openAgent(target);
         if (!current() || !agent?.agentHandle || !agent.conversationAnchorId) return;
         const section = input.navigation.getSnapshot().current.destination.chat?.agentCenterSection;

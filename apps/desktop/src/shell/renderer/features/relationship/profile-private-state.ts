@@ -2,7 +2,6 @@ import { extractNimiErrorFields, ReasonCode } from '@nimiplatform/sdk/types';
 import {
   toHumanProfileData,
   type HumanProfileData,
-  type HumanProfileSource,
 } from '../profile/profile-model';
 
 export type RestrictedHumanProfileSeed = {
@@ -52,35 +51,21 @@ export function isPrivateProfileAccessError(error: unknown): boolean {
   return readStatus(error) === 403;
 }
 
-function toStats(seed: RestrictedHumanProfileSeed): HumanProfileSource['stats'] {
-  const hasStats = typeof seed.friendsCount === 'number'
-    || typeof seed.postsCount === 'number'
-    || typeof seed.likesCount === 'number';
-  if (!hasStats) {
-    return null;
-  }
-  return {
-    friendsCount: seed.friendsCount ?? 0,
-    postsCount: seed.postsCount ?? 0,
-    likesCount: seed.likesCount ?? 0,
-  };
-}
-
 export function toRestrictedHumanProfileData(seed: RestrictedHumanProfileSeed): HumanProfileData {
   const profile = toHumanProfileData({
     id: seed.id,
     displayName: seed.displayName,
     handle: seed.handle,
     avatarUrl: seed.avatarUrl ?? null,
-    bio: seed.bio ?? null,
-    isOnline: seed.isOnline === true,
-    createdAt: seed.createdAt || seed.friendsSince || '',
-    tags: seed.tags ?? [],
-    city: seed.city ?? null,
-    countryCode: seed.countryCode ?? null,
-    gender: seed.gender ?? null,
-    stats: toStats(seed),
-    isFriend: true,
+    bio: null,
+    isOnline: false,
+    createdAt: '',
+    tags: [],
+    city: null,
+    countryCode: null,
+    gender: null,
+    stats: null,
+    isFriend: false,
     isPendingFriendRequest: false,
   });
   return {

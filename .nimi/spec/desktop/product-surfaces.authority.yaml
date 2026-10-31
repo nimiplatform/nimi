@@ -341,7 +341,7 @@ units:
     kind: rule
     title: Friend request states and transitions are closed
     modality: must
-    statement: Desktop friend-request projection uses exactly received_pending with accept or reject, sent_pending with cancel and no duplicate resend, accepted as an ACTIVE relationship no longer represented as a request, rejected with no relationship and no automatic duplicate, and cancelled with no relationship; only received_pending transitions to accepted or rejected and sent_pending transitions to accepted by the other party or cancelled by the sender, while Realm social admission alone creates the canonical relationship.
+    statement: Desktop friend-request projection uses exactly received_pending with accept or reject, sent_pending with cancel and no duplicate resend, accepted as an ACTIVE relationship no longer represented as a request, rejected with no relationship and no automatic duplicate, and cancelled with no relationship; only received_pending transitions to accepted or rejected and sent_pending transitions to accepted by the other party or cancelled by the sender, while Realm social admission alone creates the canonical relationship. Accept, reject, cancel and remove carry the relationship identity observed for that intent and never reinterpret a stale action; deliberate mutual requests may form an ACTIVE relationship. Unknown creation results are read before a user explicitly creates a new request intent.
     condition: Whenever Desktop projects or advances friend-request state.
     failure: Reject an unknown state or transition, duplicate resend, Desktop-created canonical relationship, automatic duplicate after rejection, and any accepted, rejected, or cancelled request still presented as pending.
     relations:

@@ -6,17 +6,44 @@ import { createChatTargetNavigation } from '../src/shell/renderer/features/chat/
 import type { AgentLocalTargetSnapshot } from '../src/shell/renderer/bridge/runtime-bridge/types.js';
 
 const target = (id: string) => ({ id, source: 'agent' }) as ConversationTargetSummary;
+const human = (id: string) => ({ id, title: id, source: 'human', canonicalSessionId: '' }) as ConversationTargetSummary;
 const snapshot = (id: string) => ({ agentHandle: id, conversationAnchorId: `anchor-${id}`, displayName: id }) as AgentLocalTargetSnapshot;
 const chat = (id: string, open = true) => ({ id: 'chat' as const, chat: { mode: 'agent' as const,
   targetId: id, agentHandle: id, conversationAnchorId: `anchor-${id}`, ...(open ? { agentCenterSection: 'ai-config' as const } : {}) } });
 function deferred<T>() { let resolve!: (value: T) => void; let reject!: (error: Error) => void;
   const promise = new Promise<T>((yes, no) => { resolve = yes; reject = no; }); return { promise, resolve, reject }; }
 
+test('a friend without history opens a real thread; a late open cannot select the wrong friend', async () => {
+  const navigation = createHomeNavigation();
+  const reads = { b: deferred<string>(), c: deferred<string>() };
+  const requested: string[] = [];
+  const controller = createChatTargetNavigation({ navigation,
+    openHuman: id => { requested.push(id); return reads[id as 'b' | 'c'].promise; },
+    openAgent: async () => null, rememberAgent: () => {}, onError: error => { throw error; } });
+  const b = controller.select(human('b'));
+  const c = controller.select(human('c'));
+  reads.c.resolve('thread-c'); await c;
+  reads.b.resolve('thread-b'); await b;
+  assert.deepEqual(requested, ['b', 'c']);
+  assert.deepEqual(navigation.getSnapshot().current.destination, { id: 'chat', chat: { mode: 'human', targetId: 'c', threadId: 'thread-c' } });
+  controller.dispose(); navigation.dispose();
+});
+
+test('failed first chat keeps the origin and reports the failure', async () => {
+  const navigation = createHomeNavigation(); const origin = navigation.getSnapshot().current;
+  const failure = new Error('Cannot contact this user'); const errors: unknown[] = [];
+  const controller = createChatTargetNavigation({ navigation, openHuman: async () => { throw failure; },
+    openAgent: async () => null, rememberAgent: () => {}, onError: error => errors.push(error) });
+  await controller.select(human('b'));
+  assert.equal(navigation.getSnapshot().current, origin); assert.deepEqual(errors, [failure]);
+  controller.dispose(); navigation.dispose();
+});
+
 test('avatar navigation retains an open section and leaves a closed manager closed', async () => {
   for (const open of [true, false]) {
     const navigation = createHomeNavigation(); await navigation.push(chat('a', open));
     const remembered: string[] = [];
-    const controller = createChatTargetNavigation({ navigation, openAgent: async t => snapshot(t.id),
+    const controller = createChatTargetNavigation({ navigation, openHuman: async () => { throw new Error('unexpected human open'); }, openAgent: async t => snapshot(t.id),
       rememberAgent: value => remembered.push(value.agentHandle!), onError: error => { throw error; } });
     await controller.select(target('b'));
     assert.deepEqual(navigation.getSnapshot().current.destination, chat('b', open));
@@ -32,7 +59,7 @@ test('last click wins regardless of response order; losing reads never update th
     const navigation = createHomeNavigation(); await navigation.push(chat('a'));
     const reads = { b: deferred<AgentLocalTargetSnapshot>(), c: deferred<AgentLocalTargetSnapshot>() };
     const remembered: string[] = [];
-    const controller = createChatTargetNavigation({ navigation, openAgent: t => reads[t.id as 'b' | 'c'].promise,
+    const controller = createChatTargetNavigation({ navigation, openHuman: async () => { throw new Error('unexpected human open'); }, openAgent: t => reads[t.id as 'b' | 'c'].promise,
       rememberAgent: value => remembered.push(value.agentHandle!), onError: error => { throw error; } });
     const b = controller.select(target('b')); const c = controller.select(target('c'));
     reads[first as 'b' | 'c'].resolve(snapshot(first)); await Promise.resolve();
@@ -48,7 +75,7 @@ test('leaving, returning, disposing and late failure cannot revive a superseded 
   for (const action of ['back', 'dispose', 'human']) {
     const navigation = createHomeNavigation(); await navigation.push(chat('a'));
     const read = deferred<AgentLocalTargetSnapshot>(); const errors: unknown[] = [];
-    const controller = createChatTargetNavigation({ navigation, openAgent: () => read.promise,
+    const controller = createChatTargetNavigation({ navigation, openHuman: async () => { throw new Error('unexpected human open'); }, openAgent: () => read.promise,
       rememberAgent: () => assert.fail('stale cache update'), onError: e => errors.push(e) });
     const pending = controller.select(target('b'));
     if (action === 'back') { await navigation.push({ id: 'home' }); await navigation.back(); }
@@ -65,7 +92,7 @@ test('current failure keeps the current partner and reports failure', async () =
   const navigation = createHomeNavigation(); await navigation.push(chat('a'));
   const errors: unknown[] = [];
   const failure = new Error('Cannot open partner');
-  const controller = createChatTargetNavigation({ navigation, openAgent: async () => { throw failure; },
+  const controller = createChatTargetNavigation({ navigation, openHuman: async () => { throw new Error('unexpected human open'); }, openAgent: async () => { throw failure; },
     rememberAgent: () => assert.fail('failed cache update'), onError: e => errors.push(e) });
   await controller.select(target('b'));
   assert.deepEqual(navigation.getSnapshot().current.destination, chat('a')); assert.deepEqual(errors, [failure]);

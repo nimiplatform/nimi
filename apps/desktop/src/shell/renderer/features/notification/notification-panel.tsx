@@ -272,7 +272,8 @@ export function NotificationPanel() {
       item,
       action: 'friend-accept',
       task: async () => {
-        await realmSocialData.requestOrAcceptFriend(actorId);
+        if (!item.relationshipId) throw new Error(t('Relationship.stateChanged', { defaultValue: 'This request has changed. Open Contacts to view current requests.' }));
+        await realmSocialData.actOnFriendRequest(actorId, item.relationshipId, 'accept');
       },
       errorMessage: t('Relationship.acceptRequestFailed', { defaultValue: 'Failed to accept friend request' }),
     });
@@ -292,7 +293,8 @@ export function NotificationPanel() {
       item,
       action: 'friend-reject',
       task: async () => {
-        await realmSocialData.rejectOrRemoveFriend(actorId);
+        if (!item.relationshipId) throw new Error(t('Relationship.stateChanged', { defaultValue: 'This request has changed. Open Contacts to view current requests.' }));
+        await realmSocialData.actOnFriendRequest(actorId, item.relationshipId, 'reject');
       },
       errorMessage: t('Relationship.rejectRequestFailed', { defaultValue: 'Failed to reject friend request' }),
     });

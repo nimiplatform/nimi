@@ -191,7 +191,7 @@ function ChatComposerAvatarHoverPreview(props: {
       }
     : null;
   const humanProfile = humanSeed
-    ? toHumanProfileData(profileQuery.data
+    ? toHumanProfileData(!profileQuery.isError && profileQuery.data
         ? { ...humanSeed, ...profileQuery.data }
         : humanSeed)
     : null;

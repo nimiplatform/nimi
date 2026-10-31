@@ -1,4 +1,5 @@
 import { Button } from '@nimiplatform/kit/ui';
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import type { TFunction } from 'i18next';
 import { getActionLabel } from './notification-panel-labels.js';
 import type { NotificationItemView, PendingItemAction } from './notification-panel-types.js';
@@ -10,6 +11,7 @@ export function NotificationActionButtons(props: {
   onAcceptFriendRequest: (item: NotificationItemView) => void;
   onRejectFriendRequest: (item: NotificationItemView) => void;
 }) {
+  const navigation = useHomeNavigation();
   const {
     item,
     pendingItemAction,
@@ -20,6 +22,9 @@ export function NotificationActionButtons(props: {
   const itemBusy = pendingItemAction?.itemId === item.id;
 
   if (item.type === 'friend_request_received') {
+    if (!item.relationshipId) return <Button tone="secondary" size="sm" onClick={event => {
+      event.stopPropagation(); void navigation.push({ id: 'chat', chat: { mode: 'human' } });
+    }}>{t('Relationship.viewCurrentRequests', { defaultValue: 'View current requests' })}</Button>;
     return (
       <>
         <Button

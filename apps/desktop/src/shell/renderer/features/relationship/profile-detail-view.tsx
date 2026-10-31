@@ -1,5 +1,4 @@
 import { useTranslation } from 'react-i18next';
-import { useAppStore } from '../../app-shell/providers/app-store';
 import {
   ProfileDetailViewContent,
 } from './profile-detail-view-content.js';
@@ -9,12 +8,9 @@ import {
 } from './profile-detail-view-content-shell.js';
 import { type ProfileDetailViewProps, useProfileDetailViewController } from './profile-detail-view-controller.js';
 
-export type { EditableProfileDraft } from './profile-detail-view-parts.js';
-
 export function ProfileDetailView(props: ProfileDetailViewProps) {
   const { t } = useTranslation();
-  const realmBaseUrl = useAppStore((state) => String(state.runtimeDefaults?.realm.realmBaseUrl || '').replace(/\/$/, ''));
-  const controller = useProfileDetailViewController(props, realmBaseUrl);
+  const controller = useProfileDetailViewController(props);
 
   if (props.loading) {
     return <ProfileDetailLoadingState label={t('ProfileView.loading')} />;

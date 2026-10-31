@@ -76,7 +76,26 @@ test('contact card keeps its handle and recent message when both exist', async (
     title: 'Aria',
     handle: '@aria',
     previewText: '明天见',
+    metadata: { isFriend: true },
   });
   assert.match(html, />aria</);
   assert.match(html, />最近：<\/span><span[^>]*>明天见</);
+});
+
+test('non-friend and unknown human previews never disclose message bodies or profile biographies', async () => {
+  await initI18n(); await changeLocale('zh');
+  for (const metadata of [{ isFriend: false }, {}]) {
+    const html = render({ id: 'stranger', source: 'human', canonicalSessionId: 'stranger-chat', title: 'Visitor',
+      previewText: 'private last message', bio: 'private biography', metadata });
+    assert.match(html, /消息预览已隐藏/);
+    assert.doesNotMatch(html, /private last message|private biography|最近：/);
+  }
+});
+
+test('a known friend biography is never mislabeled as a recent message', async () => {
+  await initI18n(); await changeLocale('zh');
+  const target = toHumanFriendTargetSummary({ id: 'friend', displayName: 'Friend', bio: 'profile biography' });
+  assert.ok(target);
+  const html = render(target);
+  assert.doesNotMatch(html, /profile biography|最近：/);
 });

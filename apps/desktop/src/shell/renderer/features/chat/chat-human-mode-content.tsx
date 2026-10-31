@@ -6,6 +6,7 @@ import { useAppStore } from '../../app-shell/providers/app-store';
 import { useHumanConversationModeHost } from './chat-human-adapter';
 import { ChatCanonicalModeFrame } from './chat-canonical-mode-frame';
 import { chatSidebarQueryAuthStatus } from './chat-sidebar-targets.js';
+import { HumanContactsPanel } from '../relationship/human-contacts-panel.js';
 
 export type ChatHumanModeContentProps = {
   allTargets: readonly ConversationTargetSummary[];
@@ -46,6 +47,7 @@ export function ChatHumanModeContent({
     [allTargets, selectedTargetId, host.targets],
   );
 
+  if (!selectedTargetId && !selectedChatId) return <HumanContactsPanel />;
   return (
     <ChatCanonicalModeFrame
       mode="human"

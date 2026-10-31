@@ -40,6 +40,20 @@ export function FriendHandleLookupDialog({ onClose }: { onClose: () => void }) {
       // The mutation is confirmed. Listings keep their own loading/error state.
       void queryClient.invalidateQueries({ queryKey: ['contacts'], exact: false });
     } catch {
+      if (request.current !== current || !scope.isCurrent()) return;
+      try {
+        const realm = sdk.realm();
+        const value = handle.trim().replace(/^@/, '');
+        const known = await realm.generated.getUserByHandle({ path: { handle: value } });
+        if (!scope.isCurrent()) return;
+        const relation = await realm.social.getMyRelationshipWithUser({ path: { id: known.id } });
+        if (request.current !== current || !scope.isCurrent()) return;
+        if (relation.state === 'active' || relation.state === 'pending_outgoing') {
+          setResult({ accountId: scope.accountId, realmBaseUrl: scope.realmBaseUrl, outcome: 'unchanged' });
+          void queryClient.invalidateQueries({ queryKey: ['human-contacts'] });
+          return;
+        }
+      } catch { /* An unreadable profile or offline Realm cannot confirm the original write. */ }
       if (request.current === current && scope.isCurrent()) setFailed(true);
     } finally {
       scope.dispose();

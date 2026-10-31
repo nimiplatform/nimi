@@ -22,8 +22,8 @@ export function ChatProfileCard({
 }: ChatProfileCardProps) {
   const i18n = useDesktopI18nResource();
   const { t } = useTranslation();
-  const friendCount = profileData.stats?.friendsCount ?? 0;
-  const postCount = profileData.stats?.postsCount ?? 0;
+  const friendCount = profileData.stats?.friendsCount;
+  const postCount = profileData.stats?.postsCount;
   const locationLabel = profileData.city && profileData.countryCode
     ? `${profileData.city}, ${profileData.countryCode.toUpperCase()}`
     : profileData.city || profileData.countryCode?.toUpperCase() || '';
@@ -106,14 +106,14 @@ export function ChatProfileCard({
         ) : null}
 
         <div className="mt-3 flex items-center gap-6">
-          <div className="text-center">
+          {friendCount != null && <div className="text-center">
             <p className="text-base font-bold text-[var(--nimi-text-primary)]">{friendCount}</p>
             <p className="text-[11px] text-[var(--nimi-text-muted)]">{t('ProfileView.friends')}</p>
-          </div>
-          <div className="text-center">
+          </div>}
+          {postCount != null && <div className="text-center">
             <p className="text-base font-bold text-[var(--nimi-text-primary)]">{postCount}</p>
             <p className="text-[11px] text-[var(--nimi-text-muted)]">{t('ProfileView.posts')}</p>
-          </div>
+          </div>}
         </div>
 
         <div className="mt-4 flex items-center justify-center gap-3">

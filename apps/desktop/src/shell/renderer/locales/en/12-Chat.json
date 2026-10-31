@@ -760,5 +760,7 @@
   "agentSourceUnavailable": "The original message could not be read.",
   "agentReturnReading": "Return to reading",
   "agentReturnLatest": "Back to latest messages",
-  "agentSubmissionQuoteRetained": "The original request includes a quotation."
+  "agentSubmissionQuoteRetained": "The original request includes a quotation.",
+  "moreConversations": "More chats",
+  "hoverCardPreviewHidden": "Message preview hidden"
 }

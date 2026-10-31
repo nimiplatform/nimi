@@ -284,7 +284,7 @@ export function projectRealmChatUserSnapshot(value: unknown): NimiRealmChatUserS
 export function projectRealmChatUserSummary(value: unknown): NimiRealmChatUserSummary {
   const record=requiredRecord(value,'Realm Chat user summary');
   assertExactProjectionKeys(record,['id','handle','displayName','avatarUrl','avatarResourceId','avatarMedia','status','presenceStatus','presenceText','presenceEmoji','createdAt'],'Realm Chat user summary');
-  return Object.freeze({id:selector(record.id),handle:text(record.handle,'handle',false,256),displayName:text(record.displayName,'displayName',false,512),avatarUrl:nullableText(record.avatarUrl),avatarResourceId:nullableText(record.avatarResourceId),avatarMedia:projectRealmMediaDelivery(record.avatarMedia),status:nullableText(record.status),presenceStatus:nullableText(record.presenceStatus),presenceText:nullableText(record.presenceText),presenceEmoji:nullableText(record.presenceEmoji),createdAt:requiredTimestamp(record.createdAt)});
+  return Object.freeze({id:selector(record.id),handle:text(record.handle,'handle',record.status==='SUSPENDED',256),displayName:text(record.displayName,'displayName',false,512),avatarUrl:nullableText(record.avatarUrl),avatarResourceId:nullableText(record.avatarResourceId),avatarMedia:projectRealmMediaDelivery(record.avatarMedia),status:nullableText(record.status),presenceStatus:nullableText(record.presenceStatus),presenceText:nullableText(record.presenceText),presenceEmoji:nullableText(record.presenceEmoji),createdAt:requiredTimestamp(record.createdAt)});
 }
 
 function projectControl(value: unknown): NimiRealtimeControlStatus {
