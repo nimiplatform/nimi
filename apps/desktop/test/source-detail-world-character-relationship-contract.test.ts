@@ -79,8 +79,49 @@ test('incoming person relationships use the other endpoint and survive more than
   }, 'source_materialization_available');
   const markup = renderToStaticMarkup(React.createElement(WorldCharacterRelationshipCluesSection, { source }));
   assert.match(markup, /友人与欧阳德交游。/);
-  assert.match(markup, />友人<\/p>[\s\S]*>custom-bond<\/p>/);
+  assert.match(markup, />友人<\/p>/);
+  assert.doesNotMatch(markup, />custom-bond<\/p>/);
   assert.doesNotMatch(markup, /地点记录|欧阳德 · custom-bond/);
+});
+
+test('Chinese relationships translate inquiry and learning without exposing untranslated type identifiers', async () => {
+  // Load English first so a missing Chinese translation cannot silently use it.
+  await changeLocale('en');
+  i18n.addResource('en', 'translation', 'SourceDetail.worldCharacter.relationshipKind.untranslated-bond', 'Untranslated bond');
+  await changeLocale('zh');
+  try {
+    const source = toSourceDetailData(ouYangDeRaw, 'source_materialization_available');
+    source.relationshipTargets = {
+      yi: { kind: 'person', name: '伊衍' },
+      qin: { kind: 'person', name: '秦茹' },
+      friend: { kind: 'person', name: '友人' },
+    };
+    source.relationshipClues = [{
+      id: 'inquiry', type: 'inquires-of', label: 'inquires-of',
+      targetEntityId: 'yi', targetLabel: '伊衍', summary: '向伊衍打听速滑对手的消息。', details: [],
+    }, {
+      id: 'untranslated', type: 'untranslated-bond', label: 'untranslated-bond',
+      targetEntityId: 'friend', targetLabel: '友人', summary: '雨天会帮友人收摊。', details: [],
+    }];
+    source.characterProfile = { ...source.characterProfile, relationshipNotes: [
+      { id: 'learning', type: 'learns-from', targetRef: 'qin', summary: '听取秦茹对起跑动作的指导。' },
+      { id: 'unnamed', type: 'untranslated-bond', targetRef: null, summary: '保留没有姓名的关系描述。' },
+    ] };
+    const markup = renderToStaticMarkup(React.createElement(WorldCharacterRelationshipCluesSection, { source }));
+    const visibleText = markup.replace(/<[^>]*>/gu, '');
+    assert.match(visibleText, /伊衍向其打听/);
+    assert.match(visibleText, /秦茹向其学习/);
+    assert.match(visibleText, /友人雨天会帮友人收摊。/);
+    assert.match(visibleText, /向伊衍打听速滑对手的消息。/);
+    assert.match(visibleText, /听取秦茹对起跑动作的指导。/);
+    assert.doesNotMatch(visibleText, /[A-Za-z]/u);
+    const unnamed = buildRelationshipClueItems(source, i18n.t.bind(i18n)).find(item => item.id === 'unnamed');
+    assert.equal(unnamed?.title, '保留没有姓名的关系描述。');
+    assert.equal(unnamed?.type, 'untranslated-bond');
+  } finally {
+    delete i18n.getResourceBundle('en', 'translation').SourceDetail.worldCharacter.relationshipKind['untranslated-bond'];
+    await changeLocale('en');
+  }
 });
 
 test('relationship text localizes type identifiers and keeps authored descriptions', async () => {
