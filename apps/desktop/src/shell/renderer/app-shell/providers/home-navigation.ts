@@ -47,6 +47,7 @@ export type HomeDestination = {
 };
 export type HomeChatPosition = {
   readonly mode: 'ai' | 'human' | 'agent';
+  readonly contactsSection?: 'conversations' | 'friends' | 'received' | 'sent' | 'blocked';
   readonly targetId?: string;
   readonly threadId?: string;
   readonly agentHandle?: string;
@@ -148,18 +149,22 @@ export function validateHomeDestination(value: unknown): HomeDestination {
     const chat = result.chat ?? { mode: 'ai', targetId: 'ai:assistant' };
     if (!chat || typeof chat !== 'object' || Array.isArray(chat)) throw new Error('Invalid chat position.');
     const fields = chat as Record<string, unknown>;
-    const keys = fields.mode === 'agent' ? ['mode', 'targetId', 'agentHandle', 'conversationAnchorId', 'managerAnchorId', 'agentCenterSection'] : ['mode', 'targetId', 'threadId'];
+    const keys = fields.mode === 'agent' ? ['mode', 'targetId', 'agentHandle', 'conversationAnchorId', 'managerAnchorId', 'agentCenterSection']
+      : fields.mode === 'human' ? ['mode', 'targetId', 'threadId', 'contactsSection'] : ['mode', 'targetId', 'threadId'];
     if (!['ai', 'human', 'agent'].includes(fields.mode as string) || Object.keys(fields).some(key => !keys.includes(key))) throw new Error('Invalid chat position fields.');
     const normalized: Record<string, unknown> = { mode: fields.mode };
     for (const key of keys) if (key !== 'mode' && fields[key] !== undefined) normalized[key] = stringRef(fields[key]);
     if (fields.mode === 'agent' && Boolean(normalized.agentHandle) !== Boolean(normalized.conversationAnchorId)) throw new Error('Agent conversation position requires its proven handle and Conversation anchor together.');
     if (normalized.agentCenterSection !== undefined && !['overview', 'ai-config', 'behavior', 'cognition', 'appearance', 'advanced'].includes(normalized.agentCenterSection as string)) throw new Error('Invalid Agent Center section.');
-    result.chat = normalized;
+    if (normalized.contactsSection !== undefined && !['conversations', 'friends', 'received', 'sent', 'blocked'].includes(normalized.contactsSection as string)) throw new Error('Invalid contacts section.');
+    result.chat = fields.mode === 'agent' && !normalized.targetId && !normalized.agentHandle && !normalized.managerAnchorId
+      ? { mode: 'ai', targetId: 'ai:assistant' } : normalized;
   }
   return result as HomeDestination;
 }
 export type HomeNavigation = NimiNavigationController<HomeDestination> & {
   readonly registerLeaveGuard: (guard: NimiNavigationLeaveGuard<HomeDestination>) => () => void;
+  readonly switchChatSide: (side: 'human' | 'companion') => ReturnType<NimiNavigationController<HomeDestination>['replace']>;
 };
 export function homeRuntimeDestination(page: RuntimePageIdV11, position: HomeRuntimePosition = {}): HomeDestination {
   return { id: page === 'cloudServices' ? 'cloud' : page === 'advancedDiagnostics' ? 'diagnostics' : 'runtime',
@@ -188,6 +193,11 @@ export function createHomeNavigation(): HomeNavigation {
   });
   return Object.freeze({
     ...navigation,
+    // @nimi-authority: rule.nimi.desktop.shell-ui.chat-sides
+    switchChatSide(side: 'human' | 'companion') {
+      return navigation.replace({ id: 'chat', chat: side === 'human'
+        ? { mode: 'human', contactsSection: 'conversations' } : { mode: 'ai', targetId: 'ai:assistant' } });
+    },
     registerLeaveGuard(guard: NimiNavigationLeaveGuard<HomeDestination>) {
       guards.add(guard);
       return () => { guards.delete(guard); };

@@ -4,7 +4,14 @@ import type { CanonicalConversationProjection } from '../headless/local-app-conv
 import { isLocalAppConversationAccessDenied } from '../headless/local-app-conversation-access.js';
 
 export type ConversationReadPosition = { messageId: string; offset: number };
-export type ConversationPositionRequest = { messageId: string | null; offset: number; requestKey: number; quote?: NimiLocalAppConversationQuoteInput };
+export type ConversationPositionRequest = {
+  messageId: string | null;
+  offset: number;
+  requestKey: number;
+  quote?: NimiLocalAppConversationQuoteInput;
+  /** Passive page restoration keeps focus on the navigation control. */
+  focus?: boolean;
+};
 export type LocalAppConversationHistoryOptions = {
   scopeKey: string;
   agentHandle: string | null;

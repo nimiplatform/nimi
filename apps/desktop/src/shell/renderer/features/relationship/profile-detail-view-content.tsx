@@ -30,19 +30,19 @@ export function ProfileDetailViewContent(input: { controller: ProfileDetailViewC
   };
   const closeMenu = (action?: () => void) => action ? () => { controller.setShowMenu(false); action(); } : undefined;
   const body = (
-    <section className="relative">
-      <div className="relative h-28 overflow-hidden bg-[linear-gradient(135deg,var(--nimi-ambient-mesh-base-start),var(--nimi-ambient-mesh-base-end))]">
+    <section className="relative mx-auto w-full max-w-[960px]">
+      <div className={profile.coverMedia || profile.coverUrl ? 'relative h-40 overflow-hidden rounded-2xl' : 'relative h-5'}>
         {profile.coverMedia || profile.coverUrl ? <MediaImage delivery={profile.coverMedia} externalUrl={profile.coverUrl} purpose="hero" sizes="auto, 960px" loading="eager" alt="" className="absolute inset-0 h-full w-full object-cover" /> : null}
         {!input.isOwnProfile && !input.hideBackButton ? <div className="absolute left-5 top-5"><Button tone="secondary" onClick={input.onClose}>{t('Common.back')}</Button></div> : null}
       </div>
-      <div className="relative space-y-6 px-5 pb-6 sm:px-8">
-        <div className="-mt-8 rounded-[var(--nimi-radius-xl)] bg-[var(--nimi-surface-card)] p-5 shadow-[var(--nimi-elevation-raised)] sm:p-7">
+      <div className="relative space-y-8 px-5 pb-8 sm:px-8">
+        <div className={profile.coverMedia || profile.coverUrl ? 'relative -mt-8 pt-0' : 'pt-4'}>
           <div className="flex flex-col gap-5 sm:flex-row sm:items-start">
             <EntityAvatar imageUrl={profile.avatarUrl} media={profile.avatarMedia} refreshMedia={async () => {
               const updated = input.isOwnProfile ? await bindings.sdk.realm().account.getMe({ path: {} })
                 : await bindings.sdk.realm().social.getUser({ path: { id: profile.id } });
               return updated.avatarMedia ?? null;
-            }} name={profile.displayName} kind="human" sizeClassName="h-24 w-24 shrink-0" textClassName="text-3xl font-semibold" />
+            }} name={profile.displayName} kind="human" sizeClassName="h-20 w-20 shrink-0" textClassName="text-3xl font-semibold" fallbackClassName="bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]" />
             <div className="min-w-0 flex-1">
               <h1 className="break-words text-2xl font-semibold text-[var(--nimi-text-primary)]">{profile.displayName}</h1>
               <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -51,6 +51,23 @@ export function ProfileDetailViewContent(input: { controller: ProfileDetailViewC
               </div>
               {copyFeedback ? <p role="status" className="mt-1 text-sm text-[var(--nimi-text-secondary)]">{copyFeedback}</p> : null}
               {!input.isOwnProfile ? <p className="mt-3 text-sm font-medium text-[var(--nimi-text-secondary)]">{blocked ? t('Profile.relationshipBlocked') : profile.isFriend ? t('Profile.relationshipFriend') : profile.isPendingFriendRequest ? t('Profile.relationshipPending') : profile.relationship?.state === 'pending_incoming' ? t('Profile.relationshipReceived') : t('Profile.relationshipNone')}</p> : null}
+              <fieldset disabled={input.actionsPending} className="mt-5 flex flex-wrap items-center gap-2">
+                {input.isOwnProfile ? <>
+                  {input.onEditProfile ? <Button tone="primary" leadingIcon={<Pencil size={16} />} onClick={input.onEditProfile}>{t('Relationship.editProfile')}</Button> : null}
+                  {input.onOpenFriends ? <Button tone="secondary" leadingIcon={<Users size={16} />} onClick={input.onOpenFriends}>{t('Profile.viewFriends')}{profile.stats?.friendsCount != null ? ' (' + profile.stats.friendsCount + ')' : ''}</Button> : null}
+                  {input.onOpenPrivacy ? <Button tone="ghost" leadingIcon={<Shield size={16} />} onClick={input.onOpenPrivacy}>{t('Profile.managePrivacy')}</Button> : null}
+                </> : <ProfileDetailActionButtons onMessage={input.onMessage} onAddFriend={input.onAddFriend}
+                  showAddFriendButton={!blocked && !profile.isFriend && !profile.isPendingFriendRequest && Boolean(input.onAddFriend)}
+                  canAddFriend={input.canAddFriend} addFriendLabel={input.addFriendLabel} addFriendHint={input.addFriendHint}
+                  showMessageButton={input.showMessageButton !== false && !blocked}
+                  showMoreButton={Boolean(input.onBlock || input.onUnblock || input.onRemove || input.onReport)} showMenu={controller.showMenu}
+                  onShowMenuChange={controller.setShowMenu} onBlock={closeMenu(input.onBlock)} onUnblock={closeMenu(input.onUnblock)} onRemove={closeMenu(input.onRemove)} onReport={closeMenu(input.onReport)} />}
+                {input.onAcceptRequest ? <Button tone="primary" onClick={input.onAcceptRequest}>{t('Relationship.accept')}</Button> : null}
+                {input.onRejectRequest ? <Button tone="secondary" onClick={input.onRejectRequest}>{t('Relationship.reject')}</Button> : null}
+                {input.onCancelRequest ? <Button tone="secondary" onClick={input.onCancelRequest}>{t('Relationship.contacts.cancelRequest')}</Button> : null}
+              </fieldset>
+              {!input.isOwnProfile && profile.relationship?.canMessage === false ? <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">{t('Profile.cannotMessage')}</p> : null}
+              {input.canAddFriend === false && input.addFriendHint ? <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">{input.addFriendHint}</p> : null}
               <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-[var(--nimi-text-secondary)]">{restricted ? t('Profile.privateProfileDescription') : profile.bio || t('Profile.noDescription')}</p>
               {!restricted && !blocked ? <>
                 <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2">
@@ -62,23 +79,6 @@ export function ProfileDetailViewContent(input: { controller: ProfileDetailViewC
               </> : null}
             </div>
           </div>
-          <fieldset disabled={input.actionsPending} className="mt-5 flex flex-wrap items-center gap-2">
-            {input.isOwnProfile ? <>
-              {input.onEditProfile ? <Button tone="primary" leadingIcon={<Pencil size={16} />} onClick={input.onEditProfile}>{t('Relationship.editProfile')}</Button> : null}
-              {input.onOpenFriends ? <Button tone="secondary" leadingIcon={<Users size={16} />} onClick={input.onOpenFriends}>{t('Profile.viewFriends')}{profile.stats?.friendsCount != null ? ' (' + profile.stats.friendsCount + ')' : ''}</Button> : null}
-              {input.onOpenPrivacy ? <Button tone="ghost" leadingIcon={<Shield size={16} />} onClick={input.onOpenPrivacy}>{t('Profile.managePrivacy')}</Button> : null}
-            </> : <ProfileDetailActionButtons onMessage={input.onMessage} onAddFriend={input.onAddFriend}
-              showAddFriendButton={!blocked && !profile.isFriend && !profile.isPendingFriendRequest && Boolean(input.onAddFriend)}
-              canAddFriend={input.canAddFriend} addFriendLabel={input.addFriendLabel} addFriendHint={input.addFriendHint}
-              showMessageButton={input.showMessageButton !== false && !blocked}
-              showMoreButton={Boolean(input.onBlock || input.onUnblock || input.onRemove || input.onReport)} showMenu={controller.showMenu}
-              onShowMenuChange={controller.setShowMenu} onBlock={closeMenu(input.onBlock)} onUnblock={closeMenu(input.onUnblock)} onRemove={closeMenu(input.onRemove)} onReport={closeMenu(input.onReport)} />}
-            {input.onAcceptRequest ? <Button tone="primary" onClick={input.onAcceptRequest}>{t('Relationship.accept')}</Button> : null}
-            {input.onRejectRequest ? <Button tone="secondary" onClick={input.onRejectRequest}>{t('Relationship.reject')}</Button> : null}
-            {input.onCancelRequest ? <Button tone="secondary" onClick={input.onCancelRequest}>{t('Relationship.contacts.cancelRequest')}</Button> : null}
-          </fieldset>
-          {!input.isOwnProfile && profile.relationship?.canMessage === false ? <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">{t('Profile.cannotMessage')}</p> : null}
-          {input.canAddFriend === false && input.addFriendHint ? <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">{input.addFriendHint}</p> : null}
         </div>
         {input.isOwnProfile ? <section aria-label={t('Profile.tabFollowedWorlds')} className="space-y-3">
           <div><h2 className="text-base font-semibold text-[var(--nimi-text-primary)]">{t('Profile.tabFollowedWorlds')}</h2><p className="mt-1 text-sm text-[var(--nimi-text-secondary)]">{t('Profile.followedWorldsDeviceScope')}</p></div>

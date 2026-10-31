@@ -3,6 +3,7 @@ import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { Component, Suspense, lazy, useCallback, useEffect, useLayoutEffect, useRef, useState, type ErrorInfo, type ReactNode } from 'react';
 import type { ConversationSetupAction } from '@nimiplatform/kit/features/chat/headless';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
@@ -12,7 +13,7 @@ import { DESKTOP_NIMI_APP_ID } from './chat-nimi-app-ai-config';
 import { getRuntimeSetupTaskStore } from '../runtime-config/runtime-setup-task-store.js';
 import { openOrCreateRuntimeSetupTask } from '../runtime-config/runtime-setup-task-open.js';
 import { currentDesktopAccountIdForSetup } from '../runtime-config/runtime-setup-task-ports.js';
-import { openAgentTargetSnapshotFromSummary, useChatTargetsForSidebar } from './chat-sidebar-targets';
+import { openAgentTargetSnapshotFromSummary, useChatSidebarData } from './chat-sidebar-targets';
 import { createChatTargetNavigation } from './chat-target-navigation.js';
 import { useRealmHumanChatData } from './data/realm-human-chat-data-context.js';
 import { emitFeedbackToast } from '../../ui/feedback/emit-feedback-toast.js';
@@ -118,6 +119,7 @@ function ChatModeUnavailable({ mode }: { mode: string }) {
 }
 
 export function ChatPage() {
+  const { t } = useTranslation();
   const homeChat = useHomeChatPosition();
   const navigation = useHomeNavigation();
   const sdk = useDesktopRendererSdk();
@@ -141,7 +143,7 @@ export function ChatPage() {
   }, [chatMode, homeChat.agentCenterSection, homeChat.setAgentCenterSection]);
   const [nimiThreadListOpen, setNimiThreadListOpen] = useState(false);
 
-  const allTargets = useChatTargetsForSidebar(authStatus);
+  const { targets: allTargets, agentsReady } = useChatSidebarData(authStatus);
 
   useEffect(() => {
     if (chatMode !== 'agent' || !storeSelectedTargetId) {
@@ -150,6 +152,11 @@ export function ChatPage() {
     const selected = allTargets.find((target) => (
       target.source === 'agent' && target.id === storeSelectedTargetId
     ));
+    if (!selected && agentsReady && !homeChat.managerAnchorId) {
+      emitFeedbackToast({ kind: 'info', message: t('Chat.rail.agentUnavailable') });
+      void navigation.replace({ id: 'chat', chat: { mode: 'ai', targetId: 'ai:assistant' } });
+      return;
+    }
     const existing = selected
       ? agentConversationTargetByHandle[String(selected.metadata?.agentHandle || '').trim()]
       : null;
@@ -180,7 +187,7 @@ export function ChatPage() {
     });
     return () => { cancelled = true; };
   }, [
-    allTargets,
+    allTargets, agentsReady, homeChat.managerAnchorId, navigation, t,
     agentConversationTargetByHandle,
     chatMode,
 
@@ -355,7 +362,8 @@ export function ChatPage() {
       {authStatus === 'authenticated' ? (
         <ChatRelationshipRail
           targets={allTargets}
-          selectedTargetId={storeSelectedTargetId}
+          selectedTargetId={storeSelectedTargetId ?? (chatMode === 'human' && homeChat.humanThreadId
+            ? allTargets.find(target => target.source === 'human' && target.canonicalSessionId === homeChat.humanThreadId)?.id ?? null : null)}
           activeMode={chatMode}
           onSelectTarget={handleSelectTarget}
           settingsOpen={chatSettingsOpen}

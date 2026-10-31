@@ -10,7 +10,7 @@ import type {
   NimiLocalAppConversationClient,
 } from '@nimiplatform/sdk/app';
 import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
-import { useAppStore, type AuthStatus } from '../../app-shell/providers/app-store';
+import { useAppStore, useHomeDestination, type AuthStatus } from '../../app-shell/providers/app-store';
 import {
   collapseRealmHumanChatsToTargets,
   compareRealmHumanChatsByRecency,
@@ -194,9 +194,9 @@ export function chatSidebarQueryAuthStatus(authStatus: AuthStatus, ownerUserId: 
   return authStatus === 'refresh-pending' && Boolean(ownerUserId.trim()) ? 'authenticated' : authStatus;
 }
 
-export function useChatTargetsForSidebar(
+export function useChatSidebarData(
   authStatus: AuthStatus,
-): readonly ConversationTargetSummary[] {
+) {
   const sdk = useDesktopRendererSdk();
   const realmHumanChatData = useRealmHumanChatData();
   const realmSocialData = useRealmSocialData();
@@ -209,6 +209,13 @@ export function useChatTargetsForSidebar(
   const canRead = authStatus === 'authenticated' && Boolean(ownerUserId);
 
   const humanChatsQuery = useHumanChatList(authStatus);
+  const position = useHomeDestination().chat;
+  const selectedChatId = position?.mode === 'human' ? position.threadId : undefined;
+  const selectedChat = useQuery({
+    queryKey: ['human-chat-detail', selectedChatId, String(realmEnvironmentId ?? ''), ownerUserId],
+    queryFn: () => realmHumanChatData.loadChatById(selectedChatId!),
+    enabled: canRead && Boolean(selectedChatId) && !humanChatsQuery.data?.items.some(chat => chat.id === selectedChatId),
+  });
 
   const socialSnapshotQuery = useQuery({
     queryKey: ['contacts', realmEnvironmentId, realmBaseUrl, ownerUserId, authorizationRevision],
@@ -225,7 +232,8 @@ export function useChatTargetsForSidebar(
   });
 
   const humanTargets = useMemo(() => {
-    const allChats = ((humanChatsQuery.data as { items?: RealmChatViewDto[] } | undefined)?.items || []) as RealmChatViewDto[];
+    const listed = humanChatsQuery.data?.items ?? [];
+    const allChats = selectedChat.data && !listed.some(chat => chat.id === selectedChat.data.id) ? [...listed, selectedChat.data] : listed;
     const sorted = [...allChats].sort(compareRealmHumanChatsByRecency);
     const collapsed = collapseRealmHumanChatsToTargets(sorted);
     const chatTargets = collapsed.map((chat) => toRealmHumanTargetSummary(chat, {
@@ -236,7 +244,7 @@ export function useChatTargetsForSidebar(
       unknownTitle: t('Common.unknown', { defaultValue: 'Unknown' }),
     });
     return mergeHumanChatTargetsWithFriendTargets(chatTargets, friendTargets);
-  }, [humanChatsQuery.data, socialSnapshotQuery.data, t]);
+  }, [humanChatsQuery.data, selectedChat.data, socialSnapshotQuery.data, t]);
 
   const agentTargets = useMemo(() => {
     return (localAgentReferencesQuery.data || [])
@@ -261,8 +269,7 @@ export function useChatTargetsForSidebar(
     metadata: {},
   }), [t]);
 
-  return useMemo(
-    () => [...humanTargets, aiTarget, ...agentTargets],
-    [humanTargets, aiTarget, agentTargets],
-  );
+  const targets = useMemo(() => [...humanTargets, aiTarget, ...agentTargets], [humanTargets, aiTarget, agentTargets]);
+  return { targets, agentsReady: canRead && localAgentReferencesQuery.isSuccess && !localAgentReferencesQuery.isFetching };
+
 }

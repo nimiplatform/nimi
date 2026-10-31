@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import type { RealmModel } from '@nimiplatform/sdk/realm';
 import { useAppStore, useAppStoreApi } from '../../app-shell/providers/app-store.js';
 import { captureAccountActionScope } from '../../app-shell/providers/account-action-scope.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
@@ -7,6 +8,7 @@ export type HumanContactAdmission = {
   state: 'loading' | 'error' | 'allowed' | 'denied';
   blockedByMe: boolean;
   deleted?: boolean;
+  relationship?: RealmModel<'UserRelationshipDto'>;
   refresh(): void;
 };
 
@@ -37,6 +39,7 @@ export function useHumanContactAdmission(peerAccountId: string | null, deleted =
   return {
     state: deleted ? 'denied' : query.isError || query.fetchStatus === 'paused' ? 'error' : !query.data ? 'loading' : query.data.canMessage ? 'allowed' : 'denied',
     blockedByMe: query.data?.blockedByMe === true,
+    relationship: query.isError ? undefined : query.data,
     deleted,
     refresh: () => { if (peerAccountId && auth.status === 'authenticated') void query.refetch(); },
   };

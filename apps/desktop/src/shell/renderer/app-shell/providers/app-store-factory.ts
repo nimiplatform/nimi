@@ -19,10 +19,12 @@ export function createAppStore(dependencies: AppStoreDependencies): AppStoreApi 
     ...createRuntimeSlice(set),
     ...createUiSlice(set, dependencies),
   }));
-  let previousScope = `${store.getState().auth.status}:${store.getState().auth.user?.id ?? ''}`;
+  const scopeOf = (state: AppStoreState) => [state.auth.status, state.auth.user?.id ?? '',
+    state.auth.user?.realmEnvironmentId ?? '', state.runtimeDefaults?.realm.realmBaseUrl ?? ''] as const;
+  let previousScope = scopeOf(store.getState());
   store.subscribe(state => {
-    const scope = `${state.auth.status}:${state.auth.user?.id ?? ''}`;
-    if (scope === previousScope) {
+    const scope = scopeOf(state);
+    if (scope.every((value, index) => value === previousScope[index])) {
       const current = navigation.getSnapshot().current.destination.chat;
       if (current?.mode === 'agent' && current.conversationAnchorId && state.auth.status === 'authenticated') {
         const refreshed = Object.values(state.agentConversationTargetByHandle).find(target => target.conversationAnchorId === current.conversationAnchorId);
@@ -32,8 +34,8 @@ export function createAppStore(dependencies: AppStoreDependencies): AppStoreApi 
     }
     const previous = previousScope; previousScope = scope;
     // Token refresh is one account; loss/change of proven identity fences old page callbacks.
-    const stable = (value: string) => /^(authenticated|refresh-pending):/.test(value);
-    if (stable(previous) && stable(scope) && previous.split(':').slice(1).join(':') === scope.split(':').slice(1).join(':')) return;
+    const stable = (value: string) => value === 'authenticated' || value === 'refresh-pending';
+    if (stable(previous[0]) && stable(scope[0]) && scope.slice(1).every((value, index) => value === previous[index + 1])) return;
     navigation.reset({ id: 'home' });
   });
   return Object.assign(store, { navigation });

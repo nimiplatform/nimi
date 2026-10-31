@@ -23,7 +23,7 @@ export function NotificationActionButtons(props: {
 
   if (item.type === 'friend_request_received') {
     if (!item.relationshipId) return <Button tone="secondary" size="sm" onClick={event => {
-      event.stopPropagation(); void navigation.push({ id: 'chat', chat: { mode: 'human' } });
+      event.stopPropagation(); void navigation.push({ id: 'chat', chat: { mode: 'human', contactsSection: 'received' } });
     }}>{t('Relationship.viewCurrentRequests', { defaultValue: 'View current requests' })}</Button>;
     return (
       <>

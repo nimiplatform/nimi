@@ -1,10 +1,11 @@
-import { UserPlus } from 'lucide-react';
+import { Rotate3d, ContactRound, History, Settings2 } from 'lucide-react';
+import { useReceivedFriendRequests } from '../relationship/human-contact-data.js';
+import './chat-relationship-rail.css';
 import { useHumanChatList } from './use-human-chat-list.js';
-import { FriendHandleLookupDialog } from '../relationship/friend-handle-lookup-dialog.js';
-import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
+import { useHomeNavigation, useHomeDestination } from '../../app-shell/providers/app-store.js';
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
 import type { ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
-import { IconButton, IconToggleAction, ScrollArea } from '@nimiplatform/kit/ui';
+import { IconButton, IconToggleAction } from '@nimiplatform/kit/ui';
 import { useTranslation } from 'react-i18next';
 import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { E2E_IDS } from '../../testability/e2e-ids';
@@ -84,6 +85,10 @@ function RelationshipAvatar({
   });
 
   const initial = (target.avatarFallback || target.title || '?').charAt(0).toUpperCase();
+  const deselectAgent = selected && target.source === 'agent';
+  const avatarActionLabel = deselectAgent
+    ? t('Chat.rail.deselectCompanion', { name: target.title })
+    : `${t('Chat.hoverCardOpenChat', { defaultValue: 'Open chat' })}: ${target.title}`;
   const unread = target.unreadCount && target.unreadCount > 0 ? target.unreadCount : null;
   const profileTarget = buildRelationshipProfileNavigationTarget(target);
   const canShowHoverCard = target.source !== 'ai';
@@ -207,15 +212,21 @@ function RelationshipAvatar({
           ref={ref}
           type="button"
           data-testid={testId}
-          onClick={onSelect}
+          onClick={() => {
+            if (!deselectAgent) { onSelect(); return; }
+            cancelHide(); setHoverCardPos(null);
+            void navigation.push({ id: 'chat', chat: { mode: 'ai', targetId: 'ai:assistant' } });
+          }}
           onMouseEnter={handleMouseEnter}
           onMouseMove={handleMouseMove}
           onMouseLeave={scheduleHide}
           onFocus={handleFocus}
           onBlur={scheduleHide}
           aria-current={selected ? 'page' : undefined}
+          aria-pressed={target.source === 'agent' ? selected : undefined}
           className="relative flex h-11 w-11 items-center justify-center"
-          aria-label={`${t('Chat.hoverCardOpenChat', { defaultValue: 'Open chat' })}: ${target.title}`}
+          aria-label={avatarActionLabel}
+          title={deselectAgent ? avatarActionLabel : undefined}
         >
           {/* Rounded clipping stays on the inner wrapper so the unread badge is not clipped. */}
           <div
@@ -269,139 +280,76 @@ function RelationshipAvatar({
   );
 }
 
-// ---------------------------------------------------------------------------
-// Separator
-// ---------------------------------------------------------------------------
-
-function SidebarSeparator() {
-  return <div className="mx-auto my-2 h-px w-7 shrink-0 rounded-full bg-[var(--nimi-border-subtle)]" />;
-}
-
-// ---------------------------------------------------------------------------
-// Section label (optional, for source grouping)
-// ---------------------------------------------------------------------------
-
+// @nimi-authority: rule.nimi.desktop.shell-ui.chat-sides
 export function ChatRelationshipRail({
-  targets,
-  selectedTargetId,
-  activeMode,
-  onSelectTarget,
-  settingsOpen,
-  onToggleSettings,
-  nimiThreadListOpen,
-  onToggleNimiThreadList,
+  targets, selectedTargetId, activeMode, onSelectTarget,
+  settingsOpen, onToggleSettings, nimiThreadListOpen, onToggleNimiThreadList,
 }: ChatRelationshipRailProps) {
   const { t } = useTranslation();
-  const [findFriendOpen, setFindFriendOpen] = useState(false);
   const navigation = useHomeNavigation();
-  const currentAccountId = useAppStore((state) => String(state.auth.user?.id ?? ''));
   const authStatus = useAppStore(state => state.auth.status);
   const humanChats = useHumanChatList(authStatus);
-  const aiTargets = targets.filter((t) => t.source === 'ai');
-  const humanTargets = targets.filter((t) => t.source === 'human');
-  const agentTargets = targets.filter((t) => t.source === 'agent');
-  const showNimiThreadToggle = activeMode === 'ai';
-
-  return (
-    <aside
-      data-testid={E2E_IDS.chatList}
-      data-chat-relationship-rail-chrome="transparent"
-      className="absolute right-4 top-0 z-10 flex h-full w-14 flex-col items-center bg-transparent py-2"
-    >
-      <ScrollArea
-        className="w-full flex-1 px-1 py-1"
-        viewportClassName="[scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-        contentClassName="flex flex-col items-center gap-1"
-      >
-        {/* AI targets (always visible) */}
-        {aiTargets.map((target) => (
-          <RelationshipAvatar
-            key={target.id}
-            target={target}
-            selected={selectedTargetId === target.id}
-            onSelect={() => onSelectTarget(target.id)}
-          />
-        ))}
-
-        <IconButton tone="ghost" size="sm" className="h-11 w-11" icon={<UserPlus size={16} />} onClick={() => setFindFriendOpen(true)}
-          aria-label={t('Relationship.findByHandleTitle')} title={t('Relationship.findByHandleTitle')}
-          data-testid="find-friend-by-handle" />
-        <button type="button" className="rounded-lg px-1 py-2 text-xs text-[var(--nimi-text-secondary)]"
-          onClick={() => { void navigation.push({ id: 'chat', chat: { mode: 'human' } }); }}
-          data-testid="human-contacts-entry">{t('Relationship.contacts.title', { defaultValue: 'Contacts' })}</button>
-        {/* Human contacts */}
-        {humanTargets.length > 0 ? (
-          <>
-            <SidebarSeparator />
-            {humanTargets.map((target) => (
-              <RelationshipAvatar
-                key={target.id}
-                target={target}
-                selected={selectedTargetId === target.id}
-                onSelect={() => onSelectTarget(target.id)}
-              />
-            ))}
-          </>
-        ) : null}
-
-        {/* Source-backed localAgent targets */}
-        {humanChats.hasNextPage || humanChats.isError ? <button type="button" className="px-1 py-2 text-xs text-[var(--nimi-text-secondary)]"
-          disabled={humanChats.isFetching} onClick={() => { void (humanChats.isError ? humanChats.refetch() : humanChats.fetchNextPage()); }}>
-          {humanChats.isError ? t('Common.retry') : t('Chat.moreConversations', { defaultValue: 'More chats' })}
-        </button> : null}
-        {agentTargets.length > 0 ? (
-          <>
-            <SidebarSeparator />
-            {agentTargets.map((target) => (
-              <RelationshipAvatar
-                key={target.id}
-                target={target}
-                selected={selectedTargetId === target.id}
-                onSelect={() => onSelectTarget(target.id)}
-              />
-            ))}
-          </>
-        ) : null}
-
-      </ScrollArea>
-      <div className="mt-4 flex w-full shrink-0 flex-col items-center gap-1 border-t border-white/70 px-1 pb-1 pt-3">
-        {showNimiThreadToggle ? (
-          <IconToggleAction
-            icon={(
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-                <rect x="3" y="4" width="18" height="16" rx="2" />
-                <path d="M8 8h8M8 12h8M8 16h5" />
-              </svg>
-            )}
-            active={nimiThreadListOpen}
-            aria-pressed={nimiThreadListOpen}
-            aria-label={t('Chat.toggleNimiThreadList', { defaultValue: 'Toggle Nimi conversations' })}
-            title={t('Chat.toggleNimiThreadList', { defaultValue: 'Toggle Nimi conversations' })}
-            onClick={onToggleNimiThreadList}
-            data-chat-nimi-thread-toggle="true"
-            className="h-10 w-10 rounded-2xl"
-          />
-        ) : null}
-        {activeMode === 'agent' ? null : (
-        <IconToggleAction
-          icon={(
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" />
-              <circle cx="12" cy="12" r="3" />
-            </svg>
-          )}
-          active={settingsOpen}
-          aria-pressed={settingsOpen}
-          aria-label={t('Chat.toggleSettings', { defaultValue: 'Toggle settings' })}
-          title={t('Chat.toggleSettings', { defaultValue: 'Toggle settings' })}
-          onClick={onToggleSettings}
-          data-testid={E2E_IDS.chatSettingsToggle}
-          data-chat-settings-toggle="true"
-          className="h-10 w-10 rounded-2xl"
-        />
-        )}
+  const requests = useReceivedFriendRequests();
+  const requestCount = requests.data?.pages[0]?.total ?? 0;
+  const position = useHomeDestination().chat;
+  const contactsOpen = activeMode === 'human' && !position?.targetId && !position?.threadId && position?.contactsSection !== 'conversations';
+  const humanSide = activeMode === 'human';
+  const recent = targets.filter(target => humanSide
+    ? target.source === 'human' && Boolean(target.canonicalSessionId)
+    : target.source === 'agent');
+  const [limit, setLimit] = useState(7);
+  const listRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const element = listRef.current;
+    if (!element) return;
+    const observer = new ResizeObserver(() => setLimit(Math.max(1, Math.min(7, Math.floor(element.clientHeight / 52)))));
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
+  const selected = recent.find(target => target.id === selectedTargetId);
+  const visible = recent.slice(0, limit);
+  if (selected && !visible.includes(selected)) visible[visible.length - 1] = selected;
+  const otherUnread = targets.filter(target => humanSide ? target.source !== 'human' : target.source === 'human')
+    .reduce((count, target) => count + (target.unreadCount ?? 0), humanSide ? 0 : requestCount);
+  const flipLabel = t(humanSide ? 'Chat.rail.switchToCompanions' : 'Chat.rail.switchToPeople');
+  const openContacts = (contactsSection: 'friends' | 'conversations') => {
+    void navigation.push({ id: 'chat', chat: { mode: 'human', contactsSection } });
+  };
+  return <aside data-testid={E2E_IDS.chatList} data-chat-relationship-rail-chrome="transparent"
+    data-chat-side={humanSide ? 'human' : 'companion'}
+    className="absolute right-4 top-0 z-10 flex h-full w-14 flex-col items-center bg-transparent pb-4 pt-5">
+    <div className="relative flex shrink-0 flex-col items-center gap-1 pb-4">
+      <IconButton tone="ghost" icon={<span className="chat-side-flip" data-side={humanSide ? 'human' : 'companion'} aria-hidden="true">
+        <Rotate3d size={29} strokeWidth={1.55} />
+      </span>} aria-label={flipLabel} title={flipLabel} data-testid="chat-side-flip"
+        onClick={() => { void navigation.switchChatSide(humanSide ? 'companion' : 'human'); }}
+        className="chat-side-toggle h-11 w-11 rounded-full" />
+      {otherUnread > 0 ? <span className="absolute -right-1 top-6 h-2.5 w-2.5 rounded-full bg-[var(--nimi-status-danger)] ring-2 ring-[var(--nimi-surface-canvas)]" role="status" aria-label={t('Chat.rail.otherUnread', { count: otherUnread })} /> : null}
+      <span className="whitespace-nowrap text-[10px] font-medium text-[var(--nimi-text-secondary)]" aria-live="polite">{t(humanSide ? 'Chat.rail.people' : 'Chat.rail.companions')}</span>
+    </div>
+    <div ref={listRef} className="mt-4 min-h-0 w-full flex-1 overflow-hidden">
+      <div key={humanSide ? 'human' : 'companion'} className="chat-side-entry flex flex-col items-center gap-2" data-side={humanSide ? 'human' : 'companion'}>
+        {visible.map(target => <RelationshipAvatar key={target.id} target={target} selected={selectedTargetId === target.id} onSelect={() => onSelectTarget(target.id)} />)}
       </div>
-      {findFriendOpen ? <FriendHandleLookupDialog key={currentAccountId} onClose={() => setFindFriendOpen(false)} /> : null}
-    </aside>
-  );
+    </div>
+    {humanSide || activeMode === 'ai' ? <div className="flex w-full shrink-0 flex-col items-center gap-1 border-t border-[var(--nimi-border-subtle)] pt-3" data-chat-rail-footer="true">
+      {humanSide ? <div key="human" className="flex w-full shrink-0 flex-col items-center gap-1" data-side="human">
+        <div className="relative">
+          <IconToggleAction icon={<ContactRound size={21} />}
+            active={contactsOpen}
+            aria-label={t('Relationship.contacts.title')}
+            title={t('Relationship.contacts.title')}
+            onClick={() => openContacts('friends')}
+            data-testid="human-contacts-entry" className="h-11 w-11 rounded-2xl" />
+          {requestCount > 0 ? <span className="pointer-events-none absolute -right-1 -top-1 rounded-full bg-[var(--nimi-status-danger)] px-1.5 text-[10px] font-semibold tabular-nums text-white">{requestCount > 99 ? '99+' : requestCount}</span> : null}
+        </div>
+        <span className="whitespace-nowrap text-[10px] font-medium text-[var(--nimi-text-secondary)]">{t('Relationship.contacts.title')}</span>
+      </div> : null}
+      {humanSide && humanChats.isError ? <button type="button" className="rounded px-1 py-1 text-xs text-[var(--nimi-text-secondary)]" onClick={() => { void humanChats.refetch(); }}>{t('Common.retry')}</button> : null}
+      {activeMode === 'ai' ? <IconToggleAction icon={<History size={18} />} active={nimiThreadListOpen} aria-pressed={nimiThreadListOpen}
+        aria-label={t('Chat.toggleNimiThreadList')} title={t('Chat.toggleNimiThreadList')} onClick={onToggleNimiThreadList} data-chat-nimi-thread-toggle="true" className="h-10 w-10 rounded-2xl" /> : null}
+      {activeMode === 'ai' || humanSide && selectedTargetId ? <IconToggleAction icon={<Settings2 size={18} />} active={settingsOpen} aria-pressed={settingsOpen}
+        aria-label={t('Chat.toggleSettings')} title={t('Chat.toggleSettings')} onClick={onToggleSettings} data-testid={E2E_IDS.chatSettingsToggle} data-chat-settings-toggle="true" className="h-10 w-10 rounded-2xl" /> : null}
+    </div> : null}
+  </aside>;
 }

@@ -46,16 +46,16 @@
   "friendHandleAccepted": "You are now friends.",
   "friendHandleUnchanged": "You are already friends or a request is already pending. Check your friends and requests.",
   "contacts": {
-    "title": "Conversations and contacts",
+    "title": "Contacts",
     "description": "Find your friends and manage requests and blocked accounts.",
     "tabs": {
       "friends": "Friends",
       "received": "Received requests",
       "sent": "Sent requests",
-      "blocked": "Blocked",
+      "blocked": "Blocked people",
       "conversations": "Conversations"
     },
-    "search": "Search your friends",
+    "search": "Search name or username",
     "loadFailed": "Could not load this list. Your existing items are kept.",
     "noSearchResults": "No friends match this search.",
     "empty": {
@@ -78,7 +78,7 @@
       "unblock": "Your block has been removed. Current privacy settings still apply."
     },
     "chatOpened": "Conversation opened.",
-    "openChat": "Open conversation",
+    "openChat": "Message",
     "cancelRequest": "Cancel request",
     "manageRelationship": "Manage relationship",
     "loadMore": "Load more",
@@ -103,7 +103,12 @@
     "loadedConversations": "{{count}} conversations loaded",
     "messagePreview": "Open to read messages",
     "emptyConversations": "No conversations yet. Choose a friend to start.",
-    "unreadMessages": "{{count}} unread messages"
+    "unreadMessages": "{{count}} unread messages",
+    "requests": "Friend requests",
+    "manageContacts": "Manage contacts",
+    "personActions": "Manage relationship with {{name}}",
+    "previewPerson": "View {{name}}’s profile",
+    "fullProfile": "Full profile"
   },
   "report": {
     "action": "Report user",

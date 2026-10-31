@@ -764,5 +764,15 @@
   "loadEarlierMessages": "加载更早消息",
   "retryReadReceipt": "重试标为已读",
   "moreConversations": "更多会话",
-  "hoverCardPreviewHidden": "消息预览已隐藏"
+  "hoverCardPreviewHidden": "消息预览已隐藏",
+  "rail": {
+    "people": "用户",
+    "companions": "AI 伙伴",
+    "switchToPeople": "切换到用户",
+    "switchToCompanions": "切换到 AI 伙伴",
+    "otherUnread": "另一侧有 {{count}} 条未读消息或待处理申请",
+    "agentUnavailable": "这位伙伴已不可用，已返回 Nimi Chat。",
+    "messageActions": "消息操作",
+    "deselectCompanion": "取消选择 {{name}}，返回 Nimi Chat"
+  }
 }

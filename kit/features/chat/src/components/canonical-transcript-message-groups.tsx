@@ -34,7 +34,7 @@ type TranscriptMessageGroupsProps = {
   onVoiceContextMenu?: (message: ConversationCanonicalMessage, event: MouseEvent<HTMLButtonElement>) => void;
   onMessageContextMenu?: (message: ConversationCanonicalMessage, event: MouseEvent<HTMLDivElement>) => void;
   formatDateLabel?: CanonicalTranscriptDateLabelFormatter;
-  messageFocusRequest?: { messageId: string | null; requestKey: number; offset?: number };
+  messageFocusRequest?: { messageId: string | null; requestKey: number; offset?: number; focus?: boolean };
   onFocusComplete?: (requestKey: number) => void;
   activeMessageId?: string | null;
   onMessageFocus?: (messageId: string) => void;
@@ -136,12 +136,18 @@ function NonVirtualizedTranscript(props: TranscriptMessageGroupsProps) {
   );
   useLayoutEffect(() => {
     if (!props.messageFocusRequest) return;
-    const target = Array.from(scrollRefElements(props.scrollRef)).find(item => item.dataset.canonicalMessageId === props.messageFocusRequest!.messageId);
-    target?.focus({ preventScroll: true }); target?.scrollIntoView?.({ block: 'nearest' });
-    if (target && props.scrollRef.current) {
-      props.scrollRef.current.scrollTop += target.getBoundingClientRect().top - props.scrollRef.current.getBoundingClientRect().top + (props.messageFocusRequest.offset || 0);
-      props.onFocusComplete?.(props.messageFocusRequest.requestKey);
-    }
+    const request = props.messageFocusRequest;
+    // Parent viewport refs and initial layout must exist before applying a restore.
+    const frame = requestAnimationFrame(() => {
+      const target = Array.from(scrollRefElements(props.scrollRef)).find(item => item.dataset.canonicalMessageId === request.messageId);
+      if (request.focus !== false) target?.focus({ preventScroll: true });
+      target?.scrollIntoView?.({ block: 'nearest' });
+      if (target && props.scrollRef.current) {
+        props.scrollRef.current.scrollTop += target.getBoundingClientRect().top - props.scrollRef.current.getBoundingClientRect().top + (request.offset || 0);
+        props.onFocusComplete?.(request.requestKey);
+      }
+    });
+    return () => cancelAnimationFrame(frame);
   }, [props.messageFocusRequest, props.scrollRef]);
   return (
     <>
@@ -204,7 +210,7 @@ function VirtualizedTranscript(props: TranscriptMessageGroupsProps) {
     virtualizer.scrollToIndex(index, { align: 'auto' });
     const frame = requestAnimationFrame(() => {
       const target = Array.from(scrollRefElements(scrollRef)).find(item => item.dataset.canonicalMessageId === request.messageId);
-      target?.focus({ preventScroll: true });
+      if (request.focus !== false) target?.focus({ preventScroll: true });
       if (target && scrollRef.current) { scrollRef.current.scrollTop += target.getBoundingClientRect().top - scrollRef.current.getBoundingClientRect().top + (request.offset || 0); props.onFocusComplete?.(request.requestKey); }
     });
     return () => cancelAnimationFrame(frame);
@@ -243,7 +249,7 @@ function VirtualizedTranscript(props: TranscriptMessageGroupsProps) {
 export const TranscriptMessageGroups = memo(function TranscriptMessageGroups(props: TranscriptMessageGroupsProps) {
   const actions = useCanonicalMessageActionContext();
   const [activeMessageId, setActiveMessageId] = useState<string | null>(props.messages.at(-1)?.id || null);
-  const [focusRequest, setFocusRequest] = useState<{ messageId: string; requestKey: number; offset?: number; origin: 'external' | 'keyboard' }>();
+  const [focusRequest, setFocusRequest] = useState<{ messageId: string; requestKey: number; offset?: number; focus?: boolean; origin: 'external' | 'keyboard' }>();
   const focusCounter = useRef(0);
   useLayoutEffect(() => {
     if (props.messageFocusRequest?.messageId === null) {

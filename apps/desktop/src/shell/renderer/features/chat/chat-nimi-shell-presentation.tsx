@@ -102,7 +102,7 @@ export function useAiConversationPresentation(
         <CanonicalComposer
           key={`${input.activeThreadId || 'none'}:${input.bundle?.draft?.updatedAtMs || 0}`}
           adapter={adapter.composerAdapter}
-          initialText={input.bundle?.draft?.text || ''}
+          initialText={input.currentDraftTextRef.current}
           disabled={Boolean(input.submittingThreadId)}
           placeholder={input.t('Chat.nimiComposerPlaceholder', { defaultValue: 'Ask Nimi anything…' })}
           layout="stacked"

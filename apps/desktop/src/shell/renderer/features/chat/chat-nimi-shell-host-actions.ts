@@ -126,7 +126,6 @@ export function useAiConversationHostActions(
     };
     input.setEphemeralThread(thread);
     input.queryClient.setQueryData(bundleQueryKey(thread.id), createEmptyBundle(thread));
-    input.currentDraftTextRef.current = '';
     syncAiThreadSelectionState(thread.id);
   }, [input, syncAiThreadSelectionState]);
 
@@ -139,7 +138,6 @@ export function useAiConversationHostActions(
     }
     void (async () => {
       await persistDraftForThread(input.activeThreadId);
-      input.currentDraftTextRef.current = '';
       syncAiThreadSelectionState(threadId);
     })().catch(input.reportHostError);
   }, [input, persistDraftForThread, syncAiThreadSelectionState]);

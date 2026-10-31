@@ -7,6 +7,32 @@ import type { ConversationPositionRequest } from '../src/runtime/local-app-conve
 
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
+it('restores an initial short transcript position without tail pinning or taking navigation focus', async () => {
+  const container = document.createElement('div'); document.body.append(container);
+  const navigation = document.createElement('button'); document.body.append(navigation); navigation.focus();
+  const offsets = new WeakMap<HTMLElement, number>();
+  vi.spyOn(HTMLElement.prototype, 'scrollTop', 'get').mockImplementation(function (this: HTMLElement) { return offsets.get(this) ?? 0; });
+  vi.spyOn(HTMLElement.prototype, 'scrollTop', 'set').mockImplementation(function (this: HTMLElement, value: number) { offsets.set(this, value); });
+  vi.spyOn(HTMLElement.prototype, 'scrollHeight', 'get').mockReturnValue(1000);
+  vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockReturnValue(400);
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockImplementation(function (this: HTMLElement) {
+    const viewport = container.querySelector<HTMLElement>('[data-canonical-transcript-root]');
+    const messageId = this.dataset.canonicalMessageId;
+    return new DOMRect(0, messageId ? Number(messageId.slice(1)) * 100 - (viewport?.scrollTop ?? 0) : 0, 640, messageId ? 100 : 400);
+  });
+  const messages: ConversationCanonicalMessage[] = Array.from({ length: 10 }, (_, index) => ({
+    id: `m${index}`, sessionId: 'human-chat', targetId: 'person', source: 'human', role: 'assistant', kind: 'text', status: 'complete', text: `message ${index}`, createdAt: '',
+  }));
+  const root = createRoot(container);
+  try {
+    await act(async () => root.render(<CanonicalTranscriptView messages={messages} activeConversationId="human-chat"
+      positionRequest={{ messageId: 'm3', offset: 12, requestKey: 0, focus: false }} />));
+    await act(async () => { await new Promise(resolve => requestAnimationFrame(resolve)); });
+    expect(container.querySelector<HTMLElement>('[data-canonical-transcript-root]')!.scrollTop).toBe(312);
+    expect(document.activeElement).toBe(navigation);
+  } finally { await act(async () => root.unmount()); container.remove(); navigation.remove(); vi.restoreAllMocks(); }
+});
+
 it('returns a short historical window to the actual virtualized live tail and preserves the newest navigation intent', async () => {
   // JSDOM supplies no layout. Model browser geometry and observer/event delivery,
   // keeping the real TanStack range/measurement/reconciliation implementation.

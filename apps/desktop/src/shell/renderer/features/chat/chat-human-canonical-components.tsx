@@ -31,6 +31,7 @@ import { E2E_IDS } from '../../testability/e2e-ids';
 import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS, CHAT_TRANSCRIPT_BOTTOM_RESERVE_CLASS, CHAT_TRANSCRIPT_SCROLL_POSITION_CLASS, CHAT_TRANSCRIPT_SCROLL_VIEWPORT_CLASS } from './chat-shared-content-layout';
 import type { StreamState } from '../turns/stream-controller';
 import { useStreamController } from '../turns/stream-controller-context.js';
+import { RelationshipActionsMenu } from '../relationship/relationship-actions-menu.js';
 import { ReportUserDialog } from '../relationship/report-user-dialog.js';
 import {
   useHumanTimelineModel,
@@ -176,9 +177,8 @@ function useHumanMessageRenderers(input: {
     if (!message.error && message.status !== 'pending') {
       return <>
         {message.id === input.model.newestMessageId ? <HumanReadMarker messageId={message.id} onVisible={input.model.acknowledgeRead} /> : null}
-        {message.role !== 'human' && message.role !== 'user' && realmMessage?.type !== 'RECALL' ? <button type="button"
-          className="mt-1 rounded px-2 py-1 text-xs text-[var(--nimi-text-secondary)] hover:bg-[var(--nimi-action-ghost-hover)]"
-          onClick={() => setReportMessage(message)}>{t('Relationship.report.action')}</button> : null}
+        {message.role !== 'human' && message.role !== 'user' && realmMessage?.type !== 'RECALL' ? <RelationshipActionsMenu label={t('Chat.rail.messageActions')}
+          items={[{ id: 'report', label: t('Relationship.report.action'), onSelect: () => setReportMessage(message) }]} /> : null}
       </>;
     }
     return (

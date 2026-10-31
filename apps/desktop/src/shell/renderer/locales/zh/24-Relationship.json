@@ -46,16 +46,16 @@
   "friendHandleAccepted": "你们已成为好友。",
   "friendHandleUnchanged": "你们已经是好友，或已有待处理的申请。请查看好友和申请列表。",
   "contacts": {
-    "title": "会话与联系人",
+    "title": "联系人",
     "description": "查找好友，管理好友申请和已屏蔽账号。",
     "tabs": {
       "friends": "好友",
       "received": "收到的申请",
       "sent": "发出的申请",
-      "blocked": "黑名单",
+      "blocked": "已屏蔽用户",
       "conversations": "会话"
     },
-    "search": "搜索我的好友",
+    "search": "搜索姓名或用户名",
     "loadFailed": "未能读取此列表，已加载的内容仍会保留。",
     "noSearchResults": "没有匹配的好友。",
     "empty": {
@@ -78,7 +78,7 @@
       "unblock": "已解除你设置的屏蔽，仍按当前隐私设置判断能否联系。"
     },
     "chatOpened": "已打开会话。",
-    "openChat": "打开会话",
+    "openChat": "发消息",
     "cancelRequest": "取消申请",
     "manageRelationship": "管理关系",
     "loadMore": "加载更多",
@@ -103,7 +103,12 @@
     "loadedConversations": "已加载 {{count}} 个会话",
     "messagePreview": "打开后查看消息内容",
     "emptyConversations": "还没有会话，选择一位好友开始聊天。",
-    "unreadMessages": "{{count}} 条未读消息"
+    "unreadMessages": "{{count}} 条未读消息",
+    "requests": "好友申请",
+    "manageContacts": "管理联系人",
+    "personActions": "管理与 {{name}} 的关系",
+    "previewPerson": "查看 {{name}} 的资料",
+    "fullProfile": "完整资料"
   },
   "report": {
     "action": "举报用户",

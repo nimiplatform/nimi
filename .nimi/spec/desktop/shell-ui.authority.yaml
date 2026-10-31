@@ -1109,6 +1109,16 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.desktop.shell-ui.shell-plane
+  - id: rule.nimi.desktop.shell-ui.chat-sides
+    kind: rule
+    title: Home Chat separates people and AI companions
+    modality: must
+    statement: Home Chat keeps its existing global navigation and a two-sided quick rail for people and AI companions. Every activation of the fixed labelled flip replaces the current destination with the human conversation list or the default Nimi Chat page, without restoring a previously selected person, LocalAgent, request section or thread. The people rail shows bounded recent human conversations, including permitted non-friend conversations, and places Contacts with pending-request attention in its footer; it has no separate all-conversations shortcut. The companion rail has neither a separate Nimi Chat target icon nor an all-companions shortcut; the full companion directory remains available through the existing primary Explore/My Companions destination. Object opens use ordinary Home navigation, and activating the selected companion avatar again clears that selection and returns to Nimi Chat with an explanatory accessible action label. Notifications may still navigate directly to their exact object and side. Scope invalidation clears position history and pending work. The current object stays discoverable, other-side unread attention remains visible, and motion preserves focus and object-scoped drafts while respecting reduced motion. An owner-confirmed unavailable Agent returns to Nimi Chat with an explanation; an incomplete or failed inventory read does not prove removal.
+    condition: Whenever Home composes Chat navigation and its relationship rail.
+    failure: Reject a flip restoring the previous chat object or thread, duplicate all-conversations or all-companions rail shortcuts, inaccessible Contacts or primary companion directory, lost or cross-account drafts, and treating loading or read failure as Agent deletion.
+    relations:
+      - type: applies_to
+        target: definition.nimi.desktop.shell-ui.shell-plane
   - id: rule.nimi.desktop.shell-ui.system-entry-projection
     kind: rule
     title: System overview is an admitted transient projection

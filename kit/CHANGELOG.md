@@ -2,6 +2,14 @@
 
 # Changelog
 
+## Unreleased — Passive chat reading-position restoration
+
+`ConversationPositionRequest` accepts optional `focus: false` for restoring a
+page's reading position while retaining focus on its navigation control. Explicit
+message navigation keeps its existing focus behavior. Initial transcript pinning
+now respects an admitted message position. This compatible type widening belongs
+to the next 0.x minor; no package publication is implied.
+
 ## Unreleased — Explicit human read positions
 
 Human Chat read operations now require a `readThroughMessageId`; callers must

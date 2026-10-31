@@ -21,6 +21,7 @@ import {
   CHAT_SIDE_SHEET_RAIL_RESERVE_CLASS,
 } from './chat-shared-content-layout';
 import { ChatSideSheet } from './chat-shared-side-sheet';
+import { useChatReadPosition } from './use-chat-read-position.js';
 
 export type ChatCanonicalModeFrameProps = {
   mode: ConversationMode;
@@ -69,6 +70,8 @@ export function ChatCanonicalModeFrame(props: ChatCanonicalModeFrameProps) {
     : `${props.mode}:landing`;
   const currentViewMode = useAppStore((state) => state.viewModeBySourceTarget[viewModeKey] || 'chat');
   const canonicalMessages = props.host.messages || [];
+  const transcriptProps = useChatReadPosition(`${props.mode}:${props.host.activeThreadId ?? props.selectedTargetId ?? 'landing'}`,
+    props.transcriptPropsOverride ?? props.host.transcriptProps);
   const canonicalCopy = useMemo<ChatCopy>(() => ({
     targetPaneLoadingLabel: t('Chat.loadingTargets', { defaultValue: 'Loading targets…' }),
     targetPaneEmptyTitle: t('Chat.noTargetsTitle', { defaultValue: 'No targets available' }),
@@ -150,7 +153,7 @@ export function ChatCanonicalModeFrame(props: ChatCanonicalModeFrameProps) {
         onSetupAction={props.onSetupAction}
         characterData={props.host.characterData}
         messages={canonicalMessages}
-        transcriptProps={props.transcriptPropsOverride ?? props.host.transcriptProps}
+        transcriptProps={transcriptProps}
         noSelectionLabel={t('Chat.selectConversationPrompt', { defaultValue: 'Select a conversation from the list' })}
         stagePanelProps={props.stagePanelPropsOverride ?? props.host.stagePanelProps}
         topContent={props.host.topContent}

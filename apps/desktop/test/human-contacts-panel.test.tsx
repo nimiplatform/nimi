@@ -38,7 +38,7 @@ test('contacts page consumes pagination and submits only the request identity th
     listMyFriendsWithDetails: async (request: { query: { cursor?: string } }) => { pages.push(request); return request.query.cursor
       ? { items: [friend('Alice'), friend('Bob')], nextCursor: null, total: 2 }
       : { items: [friend('Alice')], nextCursor: 'page-2', total: 2 }; },
-    getMyPendingFriendRequests: async () => { pendingListReads++; return { items: [{ userId: 'Carol', displayName: 'Carol', handle: 'carol', relationshipId: requestId, avatarUrl: null, isDeleted: false, requestMessage: 'Hello' }], nextCursor: null, total: 1 }; },
+    getMyPendingFriendRequests: async (request: { query: { direction: string } }) => { if (request.query.direction === 'sent') pendingListReads++; return { items: [{ userId: 'Carol', displayName: 'Carol', handle: 'carol', relationshipId: requestId, avatarUrl: null, isDeleted: false, requestMessage: 'Hello' }], nextCursor: null, total: 1 }; },
   }, social: {
     applyFriendshipAction: async (request: unknown) => { actions.push(request); throw new Error('Relationship changed. Refresh the list.'); },
   } };
@@ -54,10 +54,12 @@ test('contacts page consumes pagination and submits only the request identity th
       </DesktopI18nResourceProvider></RealmHumanChatDataProvider></DesktopRendererBindingProvider>
     </AppStoreProvider></QueryClientProvider>));
     await settle();
-    assert.ok(button('Alice'));
+    assert.ok(dom.window.document.querySelector('[aria-label="View Alice’s profile"]'));
+    assert.equal(button('Sent requests'), undefined, 'requests are not top-level tabs');
     await act(async () => button('Load more').click()); await settle();
     assert.equal(dom.window.document.querySelectorAll('li').length, 2, 'page overlap does not duplicate a person');
     assert.deepEqual(pages, [{ path: {}, query: { limit: 30 } }, { path: {}, query: { limit: 30, cursor: 'page-2' } }]);
+    await act(async () => [...dom.window.document.querySelectorAll('button')].find(element => element.textContent?.startsWith('Friend requests'))!.click()); await settle();
     await act(async () => button('Sent requests').click()); await settle();
     requestId = 'request-new';
     await act(async () => button('Cancel request').click()); await settle();

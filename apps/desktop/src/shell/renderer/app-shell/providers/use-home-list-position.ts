@@ -7,7 +7,7 @@ const positions = new WeakMap<HomeNavigation, { generation: number; entries: Map
 
 /** Ephemeral list position only. Canonical navigation still owns every route,
  * query and selection; reset drops these numbers with the old account scope. */
-export function useHomeListPosition(key: string, ready = true) {
+export function useHomeListPosition(key: string, ready = true, restoreFocus = true) {
   const navigation = useHomeNavigation();
   const viewport = useRef<HTMLDivElement>(null);
   const restoredFocus = useRef(false);
@@ -36,11 +36,11 @@ export function useHomeListPosition(key: string, ready = true) {
     // may restore the row the user left, but a cache hit alone may not.
     if (!restoredFocus.current) {
       restoredFocus.current = true;
-      if (focus) [...element.querySelectorAll<HTMLElement>('[data-view-key]')].find(node => node.dataset.viewKey === focus)?.focus({ preventScroll: true });
+      if (restoreFocus && focus) [...element.querySelectorAll<HTMLElement>('[data-view-key]')].find(node => node.dataset.viewKey === focus)?.focus({ preventScroll: true });
     }
     element.addEventListener('scroll', save, { passive: true });
     element.addEventListener('focusin', focused);
     return () => { save(); element.removeEventListener('scroll', save); element.removeEventListener('focusin', focused); };
-  }, [navigation, generation, key, ready]);
+  }, [navigation, generation, key, ready, restoreFocus]);
   return viewport;
 }

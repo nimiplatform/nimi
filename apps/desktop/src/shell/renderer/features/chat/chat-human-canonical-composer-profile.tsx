@@ -24,8 +24,8 @@ import {
   type HumanProfileSource,
 } from '../profile/profile-model';
 import { mergeSentRealmChatMessageIntoCache } from '../turns/chat-send-cache.js';
-import { formatPendingAttachmentSize, appendPendingAttachment, clearPendingAttachments, type PendingAttachment } from '../turns/turn-input-attachments';
-import { ChatComposerLeadingAvatar } from './chat-shared-composer-leading-avatar';
+import { formatPendingAttachmentSize, appendPendingAttachment, type PendingAttachment } from '../turns/turn-input-attachments';
+import { humanAttachmentDrafts } from './chat-human-attachment-drafts.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context';
 
@@ -92,20 +92,12 @@ export function HumanCanonicalComposer(props: HumanCanonicalComposerProps) {
   const auth = useAppStore(state => state.auth);
   const store = useAppStoreApi();
   const identity = JSON.stringify([auth.user?.realmEnvironmentId, auth.user?.id, store.navigation.getSnapshot().generation]);
-  const files = useRef<{ identity: string; peers: Map<string, PendingAttachment[]> }>({ identity, peers: new Map() });
-  if (files.current.identity !== identity) {
-    for (const items of files.current.peers.values()) clearPendingAttachments(items, url => URL.revokeObjectURL(url));
-    files.current = { identity, peers: new Map() };
-  }
-  useEffect(() => () => {
-    for (const items of files.current.peers.values()) clearPendingAttachments(items, url => URL.revokeObjectURL(url));
-    files.current.peers.clear();
-  }, []);
+  const files = humanAttachmentDrafts(store.navigation);
   const peer = props.leadingAvatar?.targetId;
   if (!peer || !auth.user?.id || !auth.user?.realmEnvironmentId || (auth.status !== 'authenticated' && auth.status !== 'refresh-pending')) return null;
   return <HumanComposerForAccount key={`${identity}:${peer}`} {...props} peerAccountId={peer}
-    initialAttachments={files.current.peers.get(peer) ?? []}
-    rememberAttachments={items => { files.current.peers.set(peer, items); }} />;
+    initialAttachments={files.get(peer)}
+    rememberAttachments={items => files.set(peer, items)} />;
 }
 
 function useOpenConversationProfile() {
@@ -120,7 +112,7 @@ function useOpenConversationProfile() {
 }
 
 function HumanComposerForAccount(props: HumanCanonicalComposerProps & {
-  peerAccountId: string; initialAttachments: PendingAttachment[]; rememberAttachments(items: PendingAttachment[]): void;
+  peerAccountId: string; initialAttachments: readonly PendingAttachment[]; rememberAttachments(items: PendingAttachment[]): void;
 }) {
   const openProfile = useOpenConversationProfile();
   const store = useAppStoreApi();
@@ -322,12 +314,7 @@ function HumanComposerForAccount(props: HumanCanonicalComposerProps & {
       attachmentsSlot={({ attachments, removeAttachment }) => <HumanAttachmentStrip attachments={attachments} removeAttachment={removeAttachment} />}
       attachLabel={t('TurnInput.uploadFile')} layout="stacked"
       runtimeHint={offlineTier === 'L2' ? t('TurnInput.runtimeUnavailableReadOnly') : null}
-      widthClassName={CHAT_CONTENT_WIDTH_CLASS} widthPositionClassName={CHAT_CONTENT_POSITION_CLASS} disableFocusBorder
-      leadingSlot={props.leadingAvatar ? <ChatComposerLeadingAvatar kind="human" name={props.leadingAvatar.name}
-        imageUrl={props.leadingAvatar.imageUrl || null} fallbackLabel={props.leadingAvatar.fallbackLabel || props.leadingAvatar.name}
-        preview={{ kind: 'human', profileId: props.peerAccountId, handle: props.leadingAvatar.handle || null, worldName: null }}
-        triggerTestId={E2E_IDS.chatHeaderProfileToggle} openProfileTestId={E2E_IDS.chatOpenUserProfile}
-        onOpenHumanProfilePage={profileId => openProfile(profileId, props.leadingAvatar!.name, props.leadingAvatar!.handle, props.leadingAvatar!.imageUrl)} /> : null} />
+      widthClassName={CHAT_CONTENT_WIDTH_CLASS} widthPositionClassName={CHAT_CONTENT_POSITION_CLASS} disableFocusBorder />
     <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple onChange={onFileChange} className="hidden" aria-hidden="true" />
     <ConfirmDialog open={stopRetryOpen} title={t('TurnInput.stopPendingSend')} message={t('TurnInput.stopPendingSendConfirm')}
       confirmLabel={t('TurnInput.stopPendingSend')} cancelLabel={t('Common.cancel')} onClose={() => setStopRetryOpen(false)}

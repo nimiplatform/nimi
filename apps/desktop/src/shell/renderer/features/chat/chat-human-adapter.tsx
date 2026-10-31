@@ -1,4 +1,5 @@
 import { isDeletedChatPeer, useHumanChatList } from './use-human-chat-list.js';
+import { HumanChatHeader } from './chat-human-header.js';
 import { useHumanContactAdmission } from './chat-human-contact-admission.js';
 import { Suspense, lazy, useMemo } from 'react';
 import { createReadyConversationSetupState } from '@nimiplatform/kit/features/chat/headless';
@@ -262,12 +263,7 @@ export function useHumanConversationModeHost(
     targets,
     selectedTargetId: selectedChat ? getRealmHumanTargetId(selectedChat) : null,
     topContent: selectedChat ? (
-      <header className="flex min-w-0 items-baseline gap-2 pr-14">
-        <h2 className="truncate text-base font-semibold text-[var(--nimi-text-primary)]">{selectedChatTitle}</h2>
-        {selectedChat.otherUser?.handle && selectedChat.otherUser.handle !== selectedChatTitle ? (
-          <span className="truncate text-sm text-[var(--nimi-text-muted)]">@{selectedChat.otherUser.handle.replace(/^@/, '')}</span>
-        ) : null}
-      </header>
+      <HumanChatHeader peer={selectedChat.otherUser} admission={contactAdmission} />
     ) : selectedChatId ? <InlineAlert tone={chatDetailQuery.isError ? 'warning' : 'info'}>
       {chatDetailQuery.isPending ? t('Common.loading') : t('Chat.positionUnavailable')}
       {chatDetailQuery.isError ? <button type="button" onClick={() => void chatDetailQuery.refetch()}>{t('Common.retry')}</button> : null}
@@ -410,6 +406,7 @@ export function useHumanConversationModeHost(
     allChatsSorted,
     transcriptProps,
     targets,
+    contactAdmission.relationship,
     contactAdmission.state,
     contactAdmission.blockedByMe,
     contactAdmission.refresh,

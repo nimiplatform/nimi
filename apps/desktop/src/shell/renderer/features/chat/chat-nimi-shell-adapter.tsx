@@ -1,3 +1,5 @@
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
+import { nimiComposerDraftRef, nimiComposerMemory } from './chat-nimi-composer-draft.js';
 import {
   useCallback,
   useEffect,
@@ -75,8 +77,12 @@ export function useAiConversationModeHost(
   const textRouteUsesChatGPTPlan = desktopNimiTextIntentUsesChatGPTPlan(textIntent);
   const [submittingThreadId, setSubmittingThreadId] = useState<string | null>(null);
   const [hostFeedback, setHostFeedback] = useState<InlineFeedbackState | null>(null);
-  const [ephemeralThread, setEphemeralThread] = useState<ChatAiThreadRecord | null>(null);
-  const currentDraftTextRef = useRef('');
+  const navigation = useHomeNavigation();
+  const composerMemory = nimiComposerMemory(navigation);
+  const [ephemeralThread, setLocalEphemeralThread] = useState<ChatAiThreadRecord | null>(composerMemory.ephemeralThread);
+  const setEphemeralThread = useCallback((thread: ChatAiThreadRecord | null) => {
+    composerMemory.ephemeralThread = thread; setLocalEphemeralThread(thread);
+  }, [composerMemory]);
 
   const reportHostError = useCallback((error: unknown) => {
     const userFacing = toChatUserFacingRuntimeError(
@@ -150,6 +156,9 @@ export function useAiConversationModeHost(
   ));
 
   const bundle = bundleQuery.data || null;
+  const generation = navigation.getSnapshot().generation;
+  const currentDraftTextRef = useMemo(() => nimiComposerDraftRef(navigation, activeThreadId, bundle?.draft?.text ?? ''),
+    [navigation, generation, activeThreadId, bundle?.draft?.text]);
   const messages = useMemo(
     () => (bundle?.messages || [])
       .map((message: ChatAiMessageRecord) => toConversationMessageViewModel(message))
@@ -235,7 +244,6 @@ export function useAiConversationModeHost(
       ...createEmptyBundle(thread),
       draft: { threadId: thread.id, text: pendingNimiPrefill.text, attachments: [], updatedAtMs: timestampMs },
     });
-    currentDraftTextRef.current = pendingNimiPrefill.text;
     syncSelectionToThread(thread.id);
     clearPendingNimiPrefill(pendingNimiPrefill.requestId);
   }, [bindings.clock, clearPendingNimiPrefill, pendingNimiPrefill, queryClient, submittingThreadId, syncSelectionToThread]);

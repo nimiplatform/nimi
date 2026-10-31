@@ -15,7 +15,7 @@ type ActionTarget = Pick<HumanProfileData, 'id' | 'displayName' | 'relationshipI
 type Confirmation = { action: 'remove' | 'block'; target: ActionTarget };
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r032
-export function useHumanProfileActions(profile: HumanProfileData | null, onOpenConversation?: () => void) {
+export function useHumanProfileActions(profile: (ActionTarget & Pick<HumanProfileData, 'relationship'>) | null, onOpenConversation?: () => void) {
   const { t } = useTranslation();
   const sdk = useDesktopRendererBindings().sdk;
   const store = useAppStoreApi();

@@ -1,6 +1,6 @@
 import { useMemo, useRef } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ScrollArea, Surface } from '@nimiplatform/kit/ui';
+import { ScrollArea } from '@nimiplatform/kit/ui';
 import { useCurrentUserProfileProjection } from './current-user-profile.js';
 import { useHomeNavigation, useHomeDestination, useAppStore } from '../../app-shell/providers/app-store.js';
 import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
@@ -53,14 +53,14 @@ export function ProfilePanel() {
     {loading ? <ProfileDetailLoadingState label={i18n.t('ProfileView.loading')} /> : error ? <ProfileDetailErrorState
       backLabel={i18n.t('Common.back')} label={i18n.t('ProfileView.error')} onClose={navigation.back}
       retryLabel={i18n.t('Common.retry')} onRetry={() => { void profileQuery.refetch(); }} /> : profile ? <ScrollArea className="min-h-0 flex-1"
-        viewportClassName="bg-transparent px-5 pb-5 pt-4" contentClassName="flex min-h-full w-full flex-col" viewportRef={scroll}>
-        <Surface tone="panel" material="glass-regular" padding="none" className="min-h-full overflow-hidden rounded-[2rem] border-[var(--nimi-border-subtle)] shadow-[0_22px_52px_rgba(15,23,42,0.08)]">
+        viewportClassName="bg-transparent px-5 pb-5 pt-8" contentClassName="mx-auto flex w-full max-w-[960px] flex-col" viewportRef={scroll}>
+        <section className="overflow-hidden rounded-2xl bg-[var(--nimi-surface-card)] py-5">
           <ProfileDetailView profile={profile} isOwnProfile={isOwnProfile} loading={false} error={false}
             hideBackButton externalScrollContainerRef={scroll} onClose={navigation.back} {...actions.props}
             onEditProfile={isOwnProfile ? () => { void openHomeSettings(navigation, 'profile'); } : undefined}
             onOpenFriends={isOwnProfile ? () => { void navigation.push({ id: 'chat', chat: { mode: 'human' } }); } : undefined}
             onOpenPrivacy={isOwnProfile ? () => { void openHomeSettings(navigation, 'privacy'); } : undefined} />
-        </Surface>
+        </section>
       </ScrollArea> : <p className="p-5 text-sm text-[var(--nimi-text-secondary)]">{i18n.t('Profile.noProfileDataAvailable')}</p>}
     {actions.dialog}
   </div>;

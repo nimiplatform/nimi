@@ -764,5 +764,15 @@
   "loadEarlierMessages": "Load earlier messages",
   "retryReadReceipt": "Retry read acknowledgement",
   "moreConversations": "More chats",
-  "hoverCardPreviewHidden": "Message preview hidden"
+  "hoverCardPreviewHidden": "Message preview hidden",
+  "rail": {
+    "people": "People",
+    "companions": "AI companions",
+    "switchToPeople": "Switch to people",
+    "switchToCompanions": "Switch to AI companions",
+    "otherUnread": "{{count}} unread messages or requests on the other side",
+    "agentUnavailable": "This companion is no longer available. You are back in Nimi Chat.",
+    "messageActions": "Message actions",
+    "deselectCompanion": "Deselect {{name}} and return to Nimi Chat"
+  }
 }

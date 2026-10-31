@@ -145,6 +145,8 @@ export function CanonicalTranscriptView({
   const resolvedPendingStopLabel = pendingStopLabel ?? copyResolved.typingStopLabel;
   const resolvedAgentName = agentName ?? copyResolved.bubbleAssistantLabel;
   const scrollRootRef = useRef<HTMLDivElement | null>(null);
+  const positionRequestRef = useRef(positionRequest);
+  positionRequestRef.current = positionRequest;
   const contentRootRef = useRef<HTMLDivElement | null>(null);
   const scrollMechanicsRef = useRef<CanonicalTranscriptScrollMechanics | null>(null);
   const downwardIntentRef = useRef({ distance: 0, lastAt: 0 });
@@ -234,8 +236,10 @@ export function CanonicalTranscriptView({
   useLayoutEffect(() => {
     cancelInitialPin();
     didInitialScrollRef.current = false;
-    if (scrollRootRef.current) scrollRootRef.current.scrollTop = 0;
-    nearBottomRef.current = true;
+    // A child may already have restored a message in this layout pass.
+    const restoringMessage = positionRequestRef.current?.messageId != null;
+    if (scrollRootRef.current && !restoringMessage) scrollRootRef.current.scrollTop = 0;
+    nearBottomRef.current = !restoringMessage;
     lastScrollHeightRef.current = scrollRootRef.current?.scrollHeight ?? 0;
     previousRenderStateRef.current = {
       messageCount: 0,
@@ -270,17 +274,21 @@ export function CanonicalTranscriptView({
       && (lastMessage.role === 'user' || lastMessage.role === 'human');
     if (!didInitialScrollRef.current && messages.length > 0) {
       didInitialScrollRef.current = true;
-      initialPinRef.current = true;
-      if (initialPinReleaseTimerRef.current) {
-        clearTimeout(initialPinReleaseTimerRef.current);
+      if (positionRequest?.messageId != null) {
+        nearBottomRef.current = false;
+      } else {
+        initialPinRef.current = true;
+        if (initialPinReleaseTimerRef.current) {
+          clearTimeout(initialPinReleaseTimerRef.current);
+        }
+        initialPinReleaseTimerRef.current = setTimeout(() => {
+          initialPinRef.current = false;
+          initialPinReleaseTimerRef.current = null;
+        }, INITIAL_TRANSCRIPT_PIN_SETTLE_MS);
+        root.scrollTop = root.scrollHeight;
+        lastScrollHeightRef.current = root.scrollHeight;
+        nearBottomRef.current = true;
       }
-      initialPinReleaseTimerRef.current = setTimeout(() => {
-        initialPinRef.current = false;
-        initialPinReleaseTimerRef.current = null;
-      }, INITIAL_TRANSCRIPT_PIN_SETTLE_MS);
-      root.scrollTop = root.scrollHeight;
-      lastScrollHeightRef.current = root.scrollHeight;
-      nearBottomRef.current = true;
     } else if (!showEmptyState && transcriptChanged && (nearBottomRef.current || ownMessageAppended)) {
       root.scrollTop = root.scrollHeight;
       lastScrollHeightRef.current = root.scrollHeight;
@@ -296,7 +304,7 @@ export function CanonicalTranscriptView({
       bottomInsetPx: contentBottomInsetPx,
     };
     onNearBottomChange?.(nextNearBottom);
-  }, [activeConversationId, contentBottomInsetPx, footerVisible, lastMessage?.id, lastMessage?.updatedAt, loading, messages.length, onNearBottomChange, pendingFirstBeat, showEmptyState]);
+  }, [activeConversationId, contentBottomInsetPx, footerVisible, lastMessage?.id, lastMessage?.updatedAt, loading, messages.length, onNearBottomChange, pendingFirstBeat, showEmptyState, positionRequest?.messageId]);
 
   // An explicit position is newer than automatic follow and any retained read
   // anchor. Route tail navigation through the actual virtualizer too, replacing

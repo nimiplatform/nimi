@@ -56,3 +56,35 @@ test('an exiting chat view and a late selection cannot replace a different page'
     for (const [key, descriptor] of previous) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else Reflect.deleteProperty(globalThis, key); }
   }
 });
+
+
+test('flip always opens conversations or Nimi Chat without restoring a person, partner or thread', async () => {
+  const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference() {} });
+  const people = { mode: 'human', contactsSection: 'conversations' };
+  const nimi = { mode: 'ai', targetId: 'ai:assistant' };
+  try {
+    await store.navigation.push({ id: 'chat', chat: { mode: 'human', targetId: 'person', threadId: 'human-thread' } });
+    await store.navigation.switchChatSide('companion');
+    assert.deepEqual(store.navigation.getSnapshot().current.destination.chat, nimi);
+    await store.navigation.push({ id: 'chat', chat: { mode: 'agent', targetId: 'partner', agentHandle: 'handle', conversationAnchorId: 'anchor' } });
+    await store.navigation.switchChatSide('human');
+    assert.deepEqual(store.navigation.getSnapshot().current.destination.chat, people);
+    await store.navigation.replace({ id: 'chat', chat: { mode: 'human', contactsSection: 'received' } });
+    await store.navigation.switchChatSide('companion');
+    assert.deepEqual(store.navigation.getSnapshot().current.destination.chat, nimi);
+    await store.navigation.push({ id: 'chat', chat: { mode: 'ai', targetId: 'ai:assistant', threadId: 'nimi-thread' } });
+    await store.navigation.switchChatSide('human');
+    assert.deepEqual(store.navigation.getSnapshot().current.destination.chat, people);
+    await store.navigation.switchChatSide('companion');
+    assert.deepEqual(store.navigation.getSnapshot().current.destination.chat, nimi);
+    const unregister = store.navigation.registerLeaveGuard(() => 'cancel');
+    await store.navigation.switchChatSide('human');
+    assert.deepEqual(store.navigation.getSnapshot().current.destination.chat, nimi, 'flip still respects controlled departure');
+    unregister();
+    store.navigation.reset({ id: 'home' });
+    await store.navigation.switchChatSide('human');
+    assert.deepEqual(store.navigation.getSnapshot().current.destination.chat, people);
+    assert.equal(validateHomeDestination({ id: 'chat', chat: { mode: 'agent' } }).chat?.mode, 'ai');
+    assert.throws(() => validateHomeDestination({ id: 'chat', chat: { mode: 'ai', contactsSection: 'friends' } }));
+  } finally { store.navigation.dispose(); }
+});
