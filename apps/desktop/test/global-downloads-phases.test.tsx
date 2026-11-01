@@ -66,6 +66,7 @@ test('Downloads invalidates confirmed phase changes, not order or failed observa
     });
     await act(settle);
     assert.match(downloads.errors.join(' '), /transfer observation failed/);
+    assert.equal(downloads.transferStatus, 'unavailable');
     transfers = transfers.map(item => ({ ...item, state: 'completed' }));
     transferFailure = false;
     await poll();
@@ -88,6 +89,7 @@ test('Downloads invalidates confirmed phase changes, not order or failed observa
     await poll();
     assert.deepEqual(invalidations, [], 'same facts after failure must not invalidate again');
     assert.deepEqual(downloads.errors, []);
+    assert.equal(downloads.transferStatus, 'ready');
 
     activation = 'root-b';
     transferFailure = true;
@@ -110,6 +112,7 @@ test('Downloads invalidates confirmed phase changes, not order or failed observa
     await poll();
     changedOnce();
     assert.match(downloads.errors.join(' '), /environment observation failed/);
+    assert.equal(downloads.transferStatus, 'ready', 'environment failures do not hide a confirmed transfer listing');
   } finally {
     unsubscribe();
     await act(async () => root.unmount());

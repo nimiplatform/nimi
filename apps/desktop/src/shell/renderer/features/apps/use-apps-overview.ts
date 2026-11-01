@@ -69,7 +69,13 @@ export function useAppsOverviewQuery(source: DesktopAppsProjectionSource, option
       })),
     };
   }, [inventory.data, catalog.data, catalog.isPaused]);
-  return { ...inventory, data };
+  const updatesUnavailable = inventory.isError || data?.status === 'error' || catalog.isError || catalog.isPaused
+    || (data?.status === 'loaded' && Boolean(data.runtimeError))
+    || catalog.data?.status === 'unavailable' || catalog.data?.status === 'not-implemented';
+  const updatesStatus = updatesUnavailable ? 'unavailable' as const
+    : data?.status === 'loaded' && data.catalogStatus === 'loaded' ? 'ready' as const : 'loading' as const;
+  const refreshUpdates = () => Promise.all([inventory.refetch(), catalog.refetch()]);
+  return { ...inventory, data, updatesStatus, refreshUpdates };
 }
 
 /** Read-only reuse of the Apps inventory projection for Home and target choice. */

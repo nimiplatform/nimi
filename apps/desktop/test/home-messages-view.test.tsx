@@ -75,6 +75,7 @@ function controller(input: {
   const status = input.preferencesStatus ?? 'ready';
   return {
     messages: input.messages,
+    systemSources: [],
     homeMessages: input.homeMessages === undefined ? input.messages : input.homeMessages,
     offHomeCount: input.offHomeCount ?? 0,
     app: {
@@ -309,6 +310,38 @@ test('center empty results are definite only after the relevant listing is compl
   const complete = renderCenter(controller({ messages: [rijing] }), 'pending');
   assert.match(complete, /Nothing pending/);
 
+});
+
+test('a selected download source survives the last download leaving the list', async () => {
+  await initI18n(); await changeLocale('en');
+  const current = renderCenter(controller({ messages: [growthOpen, download] }), 'all', download.groupKey);
+  assert.match(current, new RegExp('data-testid="home-message:' + download.key + '"'));
+  const after = renderCenter(controller({ messages: [growthOpen] }), 'all', download.groupKey);
+  assert.match(after, /title="Nimi · Downloads"/);
+  assert.match(after, /Clear source filter/);
+  assert.match(after, /No messages/);
+  assert.doesNotMatch(after, /Growth record 1/);
+  assert.match(renderCenter(controller({ messages: [growthOpen] })), /Growth record 1/);
+});
+
+test('only matching incomplete system listings suppress empty states and leave other records visible', async () => {
+  await initI18n(); await changeLocale('en');
+  for (const kind of ['download', 'update'] as const) {
+    const empty = controller({ messages: [] });
+    const source = { kind, status: 'unavailable' as const, retry: noop };
+    const unavailable = { ...empty, systemSources: [source] };
+    const loading = { ...empty, systemSources: [{ ...source, status: 'loading' as const }] };
+    for (const html of [renderCenter(unavailable), renderColumn(unavailable)]) {
+      assert.match(html, kind === 'download' ? /load downloads/ : /check for app updates/);
+      assert.match(html, /Retry/);
+      assert.doesNotMatch(html, />No messages</);
+    }
+    assert.doesNotMatch(renderCenter(loading), />No messages</);
+    assert.match(renderCenter(unavailable, 'all', kind === 'download' ? 'system:update' : 'system:download'), />No messages</);
+    assert.match(renderCenter(unavailable, 'pending'), /Nothing pending/);
+    assert.match(renderCenter(unavailable, 'unread'), /No unread messages/);
+    assert.match(renderCenter({ ...controller({ messages: [growthOpen] }), systemSources: [source] }), /Growth record 1/);
+  }
 });
 
 test('unloaded Realm messages and filtered Agent unread pages remain discoverable', async () => {

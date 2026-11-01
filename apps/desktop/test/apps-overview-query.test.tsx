@@ -75,6 +75,7 @@ test('local inventory appears while catalog and artwork are pending; remote-only
   try {
     assert.equal(view.state().isPending, false);
     assert.equal(view.loaded().catalogStatus, 'loading');
+    assert.equal(view.state().updatesStatus, 'loading');
     assert.equal(view.loaded().entries[0]?.identity.displayName, 'Installed');
     assert.equal(view.loaded().entries[0]?.iconUrl, null);
     await act(async () => {
@@ -99,11 +100,12 @@ test('local inventory appears while catalog and artwork are pending; remote-only
 
 test('catalog failure preserves imported local apps', async () => {
   const catalog = deferred<readonly ApprovedAppCatalogTarget[]>();
+  let recovered = false;
   const base = localSource();
   const view = await mountOverview({
     ...base,
     listCommittedReleases: async () => (await base.listCommittedReleases()).map((row) => ({ ...row, sourceClass: AppPackageSourceClass.USER_IMPORTED })),
-    listApprovedCatalogTargets: () => catalog.promise,
+    listApprovedCatalogTargets: () => recovered ? Promise.resolve([]) : catalog.promise,
   });
   try {
     assert.equal(view.state().isPending, false);
@@ -112,6 +114,11 @@ test('catalog failure preserves imported local apps', async () => {
     assert.equal(view.loaded().catalogStatus, 'unavailable');
     assert.equal(view.loaded().runtimeError, null);
     assert.equal(view.loaded().entries[0]?.identity.sourceClass, 'user_imported');
+    assert.equal(view.state().updatesStatus, 'unavailable');
+    recovered = true;
+    await act(async () => { await view.state().refreshUpdates(); });
+    await view.settle();
+    assert.equal(view.state().updatesStatus, 'ready', 'retry refreshes the catalog as well as the inventory');
   } finally { await view.cleanup(); }
 });
 

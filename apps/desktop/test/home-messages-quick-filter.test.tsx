@@ -48,6 +48,7 @@ function messages(all: HomeMessage[]): HomeMessages {
   const view = { status: 'ready' as const, complete: true, hasMore: false, error: null };
   return {
     messages: all,
+    systemSources: [],
     homeMessages: all,
     offHomeCount: 0,
     app: {

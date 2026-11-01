@@ -11,6 +11,13 @@ import { isHiddenFromHome, isSourceOffHome, useHomeMessagePreferences, type Home
 /** Where a message stands relative to the Home preview. */
 export type HomeMessagePlacement = 'shown' | 'hidden' | 'source-off';
 
+/** Downloads and updates depend on asynchronous owner listings. Setup tasks are a synchronous snapshot. */
+export type HomeSystemListing = Readonly<{
+  kind: 'download' | 'update';
+  status: 'loading' | 'ready' | 'unavailable';
+  retry?: () => void;
+}>;
+
 export type HomeMessages = Readonly<{
   /** Every loaded message of every source. */
   messages: readonly HomeMessage[];
@@ -20,6 +27,7 @@ export type HomeMessages = Readonly<{
   offHomeCount: number;
   app: HomeAppActivity;
   realm: HomeRealmMessages;
+  systemSources: readonly HomeSystemListing[];
   preferences: HomeMessagePreferencesController;
   placement: (message: HomeMessage) => HomeMessagePlacement;
   open: (message: HomeMessage) => void;
@@ -43,6 +51,7 @@ function placementOf(message: HomeMessage, preferences: HomeMessagePreferences |
  */
 export function useHomeMessages(input: Readonly<{
   systemMessages: readonly HomeSystemItemMessage[];
+  systemSources: readonly HomeSystemListing[];
 }>): HomeMessages {
   const sdk = useDesktopRendererSdk();
 
@@ -78,6 +87,7 @@ export function useHomeMessages(input: Readonly<{
     offHomeCount,
     app,
     realm,
+    systemSources: input.systemSources,
     preferences,
     placement: (message) => placementOf(message, ready),
     open: (message) => {

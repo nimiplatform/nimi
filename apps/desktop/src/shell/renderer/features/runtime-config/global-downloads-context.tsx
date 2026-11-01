@@ -30,6 +30,7 @@ type GlobalDownloadsContextValue = {
   readonly rootActivationId: string;
   readonly loading: boolean;
   readonly transfers: readonly NimiRuntimeLocalTransferSessionSummary[];
+  readonly transferStatus: 'loading' | 'ready' | 'unavailable';
   readonly environments: readonly NimiRuntimeLocalEnvironmentDependencyJob[];
   readonly errors: readonly string[];
   readonly activeCount: number;
@@ -53,6 +54,7 @@ export function GlobalDownloadsProvider({ children, nativeVisible = true }: Prop
     [bindings],
   );
   const [transfers, setTransfers] = useState<readonly NimiRuntimeLocalTransferSessionSummary[]>([]);
+  const [transferStatus, setTransferStatus] = useState<GlobalDownloadsContextValue['transferStatus']>('loading');
   const [environments, setEnvironments] = useState<readonly NimiRuntimeLocalEnvironmentDependencyJob[]>([]);
   const [errors, setErrors] = useState<readonly string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -93,6 +95,7 @@ export function GlobalDownloadsProvider({ children, nativeVisible = true }: Prop
           if (active) {
             setRootActivationId(before);
             setTransfers([]);
+            setTransferStatus('loading');
             setEnvironments([]);
           }
         }
@@ -110,6 +113,7 @@ export function GlobalDownloadsProvider({ children, nativeVisible = true }: Prop
           throw Error('Data location changed; refresh downloads');
         }
         const failures: string[] = [];
+        setTransferStatus(results[0].status === 'fulfilled' ? 'ready' : 'unavailable');
         if (results[0].status === 'fulfilled') { const items = results[0].value; setTransfers((previous) => replaceEqualDeep(previous, items)); }
         else failures.push(String(results[0].reason));
         if (results[1].status === 'fulfilled') { const items = results[1].value; setEnvironments((previous) => replaceEqualDeep(previous, items)); }
@@ -146,7 +150,10 @@ export function GlobalDownloadsProvider({ children, nativeVisible = true }: Prop
         }
         setErrors((previous) => replaceEqualDeep(previous, failures));
       } catch (error) {
-        if (active) setErrors((previous) => replaceEqualDeep(previous, [error instanceof Error ? error.message : String(error)]));
+        if (active) {
+          setTransferStatus('unavailable');
+          setErrors((previous) => replaceEqualDeep(previous, [error instanceof Error ? error.message : String(error)]));
+        }
       } finally {
         reading = false;
         if (active) setLoading(false);
@@ -170,7 +177,7 @@ export function GlobalDownloadsProvider({ children, nativeVisible = true }: Prop
     environments.filter((item) => isNimiRuntimeLocalEnvironmentDependencyJobActiveState(item.state)).length +
     (apps?.jobs.filter((item) => !packageJobIsTerminal(item)).length ?? 0);
   return (
-    <GlobalDownloadsContext.Provider value={{ rootActivationId, transfers, environments, errors, activeCount, refresh, loading, selectedTransfer, selectTransfer }}>
+    <GlobalDownloadsContext.Provider value={{ rootActivationId, transfers, transferStatus, environments, errors, activeCount, refresh, loading, selectedTransfer, selectTransfer }}>
       <RuntimeDownloadActivityContext.Provider value={onDownloadStart}>
         {children}
       </RuntimeDownloadActivityContext.Provider>

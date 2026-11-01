@@ -48,6 +48,16 @@ export function searchMessageSources(options: readonly MessageSourceOption[], qu
   return options.filter((option) => terms.every((term) => option.searchText.toLocaleLowerCase().includes(term)));
 }
 
+function absentSourceLabel(key: string, t: Translate): string {
+  switch (key) {
+    case 'system:download': return t('runtimeConfig.overview.messages.system.download');
+    case 'system:setup': return t('runtimeConfig.overview.messages.system.setup');
+    case 'system:update': return t('runtimeConfig.overview.messages.system.update');
+    case 'realm': return t('runtimeConfig.overview.messages.realmSource');
+    default: return t('runtimeConfig.overview.messages.selectedSource');
+  }
+}
+
 export function HomeMessageSourceFilter({ options, value, onChange, appIconUrl }: {
   options: readonly MessageSourceOption[];
   value: string | null;
@@ -64,9 +74,17 @@ export function HomeMessageSourceFilter({ options, value, onChange, appIconUrl }
   const selected = options.find((option) => option.value === value);
   const visible = searchMessageSources(options, query);
   const allLabel = t('runtimeConfig.overview.messages.allSources');
-  const selectedLabel = selected ? [selected.label, selected.detail].filter(Boolean).join(' · ') : allLabel;
+  // Navigation can restore a source after its last row has left the list.
+  const [lastChoice, setLastChoice] = useState<MessageSourceOption | null>(null);
+  const displayOption = selected ?? (lastChoice?.value === value ? lastChoice : null);
+  const selectedLabel = displayOption ? [displayOption.label, displayOption.detail].filter(Boolean).join(' · ')
+    : value ? absentSourceLabel(value, t) : allLabel;
   const setOpened = (next: boolean) => { setOpen(next); if (!next) setQuery(''); };
-  const choose = (next: string | null) => { onChange(next); setOpened(false); };
+  const choose = (next: string | null) => {
+    setLastChoice(options.find(option => option.value === next) ?? null);
+    onChange(next);
+    setOpened(false);
+  };
   const optionButtons = () => {
     return Array.from(listRef.current?.querySelectorAll<HTMLButtonElement>('[role="option"]') ?? []);
   };

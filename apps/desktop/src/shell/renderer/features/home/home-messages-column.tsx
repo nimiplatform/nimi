@@ -9,7 +9,7 @@ import {
   HomeMessageStack,
   type HomeMessageCardContext,
 } from './home-message-card.js';
-import type { HomeMessages } from './home-messages-controller.js';
+import type { HomeMessages, HomeSystemListing } from './home-messages-controller.js';
 import { filterTimelineMessages, homePreviewGroups, isPendingMessage, messageCenterSourceKey, messageDomainOfGroup, quickFilterSelection, type HomeMessageGroup, type HomeTimelineQuickFilter } from './home-messages-model.js';
 
 /** Loaded pending items; `more` while the open-todo listing is still incomplete. */
@@ -28,8 +28,9 @@ function appLoading(messages: HomeMessages): boolean {
 }
 
 /** Source-local read problems; each keeps the other sources usable. */
-export function HomeMessageSourceNotices({ messages, app = true, realm = true, preferences = true }: {
+export function HomeMessageSourceNotices({ messages, systemSources, app = true, realm = true, preferences = true }: {
   messages: HomeMessages;
+  systemSources: readonly HomeSystemListing[];
   app?: boolean;
   realm?: boolean;
   preferences?: boolean;
@@ -41,6 +42,11 @@ export function HomeMessageSourceNotices({ messages, app = true, realm = true, p
   );
   return (
     <>
+      {systemSources.filter(source => source.status === 'unavailable').map(source => (
+        <InlineAlert key={source.kind} tone="warning" action={source.retry && retry(source.retry)}>
+          {t(`runtimeConfig.overview.messages.system.${source.kind}Unavailable`)}
+        </InlineAlert>
+      ))}
       {realm && messages.realm.notifications.failed ? <InlineAlert tone="warning" action={retry(messages.realm.notifications.retry)}>{t('runtimeConfig.overview.messages.realmUnavailable')}</InlineAlert> : null}
       {realm && messages.realm.requests.failed ? <InlineAlert tone="warning" action={retry(messages.realm.requests.retry)}>{t('runtimeConfig.overview.messages.requestsUnavailable')}</InlineAlert> : null}
       {app && (messages.app.pending.status === 'unavailable' || messages.app.recent.status === 'unavailable') ? (
@@ -107,12 +113,15 @@ export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkFor
     }),
   };
   const pending = pendingSummary(messages);
-  const loading = !groups || appLoading(messages);
+  const systemSources = status === 'all' && type !== 'todo' ? messages.systemSources : [];
+  const loading = !groups || appLoading(messages)
+    || (!groups.length && systemSources.some(source => source.status === 'loading'));
   const appComplete = status === 'pending' ? messages.app.pending.complete
     : type === 'message' ? messages.app.recent.complete
     : messages.app.pending.complete && messages.app.recent.complete;
   const complete = appComplete && messages.realm.requests.complete
-    && (status === 'pending' || messages.realm.notifications.complete);
+    && (status === 'pending' || messages.realm.notifications.complete)
+    && systemSources.every(source => source.status === 'ready');
   const clearFilters = () => setFilter('all');
   const quickFilterItem = (value: HomeTimelineQuickFilter): NimiMenuItem => ({
     id: value,
@@ -214,7 +223,7 @@ export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkFor
           ) : null}
 
           <HomeExecutionNotices appArtworkFor={appArtworkForNotice} />
-          <HomeMessageSourceNotices messages={messages} />
+          <HomeMessageSourceNotices messages={messages} systemSources={systemSources} />
 
           <div
             ref={listRef}

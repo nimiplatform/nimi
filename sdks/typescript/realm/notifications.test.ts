@@ -95,6 +95,24 @@ test('Realm notification helpers map to generated notification requests', async 
   });
 });
 
+test('Realm notification pagination requires a usable cursor exactly when there is another page', () => {
+  const project = (page: unknown) => toNimiRealmNotificationListView(
+    { items: [], page } as NotificationListResultDto, '', '',
+  );
+  assert.deepEqual(project({ hasNext: false, nextCursor: null }), { items: [], hasNext: false, nextCursor: null });
+  assert.equal(project({ hasNext: true, nextCursor: 'cursor-2' }).nextCursor, 'cursor-2');
+  for (const page of [
+    { hasNext: true, nextCursor: null },
+    { hasNext: true, nextCursor: '  ' },
+    { hasNext: false, nextCursor: 'cursor-2' },
+    { nextCursor: 'cursor-2' },
+    { hasNext: false },
+  ]) {
+    assert.throws(() => project(page), (error: unknown) =>
+      (error as { reasonCode?: string }).reasonCode === ReasonCode.SDK_REALM_RESPONSE_DECODE_FAILED);
+  }
+});
+
 test('Realm notification views fail closed on invalid required values', async () => {
   for (const malformed of [
     { total: -1, byType: {} },

@@ -25,10 +25,11 @@ test('current requests survive missing notification pages; read only consumes ma
     actor: { id: 'eric', displayName: 'Eric', handle: 'eric', createdAt: '2026-10-01T00:00:00Z' },
     target: { accountId: 'eric' }, data: { relationshipId } });
   const readIds: string[][] = [];
+  let firstPageCursor: string | null = null;
   const realm = { notifications: {
     listNotifications: async ({ query }: { query: { cursor?: string } }) => query.cursor
       ? { items: [notice('current-notice', 'current-request')], page: { hasNext: false, nextCursor: null } }
-      : { items: [notice('old-notice', 'old-request')], page: { nextCursor: 'older' } },
+      : { items: [notice('old-notice', 'old-request')], page: { hasNext: true, nextCursor: firstPageCursor } },
     markNotificationsRead: async ({ body }: { body: { ids: string[] } }) => { readIds.push(body.ids); return {}; },
   }, generated: {
     getMyPendingFriendRequests: async () => ({ items: [{ userId: 'eric', relationshipId: 'current-request', displayName: 'Eric', handle: 'eric',
@@ -44,6 +45,13 @@ test('current requests survive missing notification pages; read only consumes ma
       <DesktopRendererBindingProvider bindings={{ sdk: { realm: () => realm } } as never}><Probe /></DesktopRendererBindingProvider>
     </AppStoreProvider></QueryClientProvider>));
     await settle();
+    assert.equal(current.notifications.failed, true);
+    assert.equal(current.notifications.complete, false, 'a missing continuation is a source failure, not a terminal page');
+    assert.equal(current.requests.complete, true);
+    assert.equal(current.messages.filter(message => message.request).length, 1);
+    firstPageCursor = 'older';
+    await act(async () => current.notifications.retry()); await settle();
+    assert.equal(current.notifications.failed, false);
     assert.equal(current.notifications.complete, false);
     const pending = filterCenterMessages(current.messages, 'pending', 'realm');
     assert.equal(pending.length, 1);

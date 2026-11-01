@@ -909,6 +909,7 @@
       "filterPendingCountMore": "待处理 {{count}}+",
       "sourceFilterLabel": "来源筛选",
       "allSources": "全部来源",
+      "selectedSource": "已选来源",
       "searchSources": "搜索来源",
       "clearSourceFilter": "清除来源筛选",
       "noMatchingSources": "未找到匹配来源，试试其他名称",
@@ -954,6 +955,8 @@
       "yesterdayAt": "昨天 {{time}}",
       "system": {
         "download": "Nimi · 下载",
+        "downloadUnavailable": "暂时无法加载下载记录。",
+        "updateUnavailable": "暂时无法检查应用更新。",
         "setup": "Nimi · AI 能力",
         "update": "Nimi · 应用更新",
         "downloadState": "进行中",
@@ -969,7 +972,7 @@
       "viewPerson": "查看用户",
       "findCompanion": "查找伙伴",
       "filterUnread": "未读",
-      "partialListing": "部分来源还有未加载的消息。",
+      "partialListing": "仅显示已加载的消息。",
       "requestsUnavailable": "好友申请暂时无法读取，请重试。",
       "hasUnread": "有未读消息",
       "realmTitle": {

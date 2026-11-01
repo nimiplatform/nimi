@@ -32,18 +32,23 @@ export function HomeMessageCenter({ messages, context, filter, sourceKey, onFilt
 }) {
   const { t } = useTranslation();
   const sourceOptions = messageSourceOptions(messages.messages, t);
-  const selectedSource = sourceKey && sourceOptions.some((option) => option.value === sourceKey) ? sourceKey : null;
-  const list = filterCenterMessages(messages.messages, filter, selectedSource);
-  const pending = pendingSummary(messages, selectedSource);
-  const domain = messageDomainOfGroup(selectedSource);
+  const list = filterCenterMessages(messages.messages, filter, sourceKey);
+  const pending = pendingSummary(messages, sourceKey);
+  const domain = messageDomainOfGroup(sourceKey);
   const appView = filter === 'pending' ? messages.app.pending : messages.app.recent;
   // Runtime summaries are never pending.
   const appRelevant = domain === null || domain === 'app' || (domain === 'runtime-agent' && filter !== 'pending');
   const realmRelevant = domain === null || domain === 'realm';
   const realmNotificationsRelevant = realmRelevant && filter !== 'pending';
-  const incomplete = appRelevant && !appView.complete || realmRelevant && !messages.realm.requests.complete
+  const systemSources = filter === 'all'
+    ? messages.systemSources.filter(source => !sourceKey || sourceKey === `system:${source.kind}`)
+    : [];
+  const incomplete = systemSources.some(source => source.status !== 'ready')
+    || appRelevant && !appView.complete || realmRelevant && !messages.realm.requests.complete
     || realmNotificationsRelevant && !messages.realm.notifications.complete;
-  const loading = !list.length && (appRelevant && appView.status === 'loading' || realmRelevant && messages.realm.requests.loading || realmNotificationsRelevant && messages.realm.notifications.loading);
+  const loading = !list.length && (systemSources.some(source => source.status === 'loading')
+    || appRelevant && appView.status === 'loading' || realmRelevant && messages.realm.requests.loading
+    || realmNotificationsRelevant && messages.realm.notifications.loading);
   const canLoadApp = appRelevant && appView.hasMore;
   const canLoadRequests = realmRelevant && messages.realm.requests.hasMore;
   const canLoadNotifications = realmNotificationsRelevant && messages.realm.notifications.hasMore;
@@ -81,11 +86,11 @@ export function HomeMessageCenter({ messages, context, filter, sourceKey, onFilt
             },
           ]}
         />
-        <HomeMessageSourceFilter options={sourceOptions} value={selectedSource} onChange={onSourceChange} appIconUrl={context.appIconUrl} />
+        <HomeMessageSourceFilter options={sourceOptions} value={sourceKey} onChange={onSourceChange} appIconUrl={context.appIconUrl} />
       </div>
 
       <HomeExecutionNotices appArtworkFor={appArtworkForNotice} />
-      <HomeMessageSourceNotices messages={messages} app={appRelevant} realm={realmRelevant} />
+      <HomeMessageSourceNotices messages={messages} app={appRelevant} realm={realmRelevant} systemSources={systemSources} />
 
       <div className="flex flex-col gap-2.5" data-testid="home-message-center-list">
         {list.map((message) => (

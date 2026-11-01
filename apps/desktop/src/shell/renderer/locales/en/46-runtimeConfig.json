@@ -909,6 +909,7 @@
       "filterPendingCountMore": "Pending {{count}}+",
       "sourceFilterLabel": "Filter by source",
       "allSources": "All sources",
+      "selectedSource": "Selected source",
       "searchSources": "Search sources",
       "clearSourceFilter": "Clear source filter",
       "noMatchingSources": "No matching sources. Try another name.",
@@ -954,6 +955,8 @@
       "yesterdayAt": "Yesterday {{time}}",
       "system": {
         "download": "Nimi · Downloads",
+        "downloadUnavailable": "Couldn't load downloads.",
+        "updateUnavailable": "Couldn't check for app updates.",
         "setup": "Nimi · AI capabilities",
         "update": "Nimi · App updates",
         "downloadState": "In progress",
@@ -969,7 +972,7 @@
       "viewPerson": "View profile",
       "findCompanion": "Find companion",
       "filterUnread": "Unread",
-      "partialListing": "Some sources have more messages to load.",
+      "partialListing": "Only messages loaded so far are shown.",
       "requestsUnavailable": "Friend requests are unavailable. Please retry.",
       "hasUnread": "Unread messages",
       "realmTitle": {

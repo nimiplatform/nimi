@@ -139,7 +139,10 @@ export function toNimiRealmNotificationListView(
   if (!record || !Array.isArray(record.items) || !page) {
     throw notificationDecodeError('Realm notification list response is malformed.');
   }
-  if (page.nextCursor !== undefined && page.nextCursor !== null && typeof page.nextCursor !== 'string') {
+  const { hasNext, nextCursor } = page;
+  if (typeof hasNext !== 'boolean'
+    || (nextCursor !== null && (typeof nextCursor !== 'string' || !nextCursor.trim()))
+    || hasNext !== (nextCursor !== null)) {
     throw notificationDecodeError('Realm notification list pagination response is malformed.');
   }
 
@@ -149,12 +152,10 @@ export function toNimiRealmNotificationListView(
       fallbackTitle,
       fallbackActorName,
     ));
-  const nextCursor = typeof page.nextCursor === 'string' ? page.nextCursor.trim() || null : null;
-
   return {
     items,
     nextCursor,
-    hasNext: nextCursor !== null,
+    hasNext,
   };
 }
 

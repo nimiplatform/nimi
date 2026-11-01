@@ -28,7 +28,7 @@ import type { ExecutionNoticeAppArtworkResolver } from './execution-notices.js';
 import type { HomeMessageCardContext } from './home-message-card.js';
 import { HomeMessageCenter } from './home-message-center.js';
 import { HomeMessagesColumn } from './home-messages-column.js';
-import { useHomeMessages, type HomeMessages } from './home-messages-controller.js';
+import { useHomeMessages, type HomeMessages, type HomeSystemListing } from './home-messages-controller.js';
 import { systemMessage, type HomeMessageFilter, type HomeSystemItemMessage } from './home-messages-model.js';
 import { useHomeRowCapacity } from './use-home-row-capacity.js';
 import { SystemEntryDetails } from '../system-entry/system-entry-details.js';
@@ -75,11 +75,12 @@ function SectionHeader({ title, action, onAction }: { title: string; action?: st
 }
 
 /** Holds one account's message consumption layer for both Home views. */
-function HomeMessagesScope({ systemMessages, children }: {
+function HomeMessagesScope({ systemMessages, systemSources, children }: {
   systemMessages: readonly HomeSystemItemMessage[];
+  systemSources: readonly HomeSystemListing[];
   children: (messages: HomeMessages) => ReactNode;
 }) {
-  const messages = useHomeMessages({ systemMessages });
+  const messages = useHomeMessages({ systemMessages, systemSources });
   return <>{children(messages)}</>;
 }
 
@@ -181,8 +182,10 @@ export function NimiOverview() {
   const openCenter = (filter: HomeMessageFilter) => {
     void navigation.push({ id: 'notification', messageFilter: filter });
   };
-  // System items are projected from their complete owner sets; only the Home
-  // preview trims them, and each keeps its own navigation target.
+  const systemSources: HomeSystemListing[] = [
+    { kind: 'download', status: downloads?.transferStatus ?? 'unavailable', retry: downloads?.refresh },
+    { kind: 'update', status: apps.updatesStatus, retry: apps.refreshUpdates },
+  ];
   const systemMessages: HomeSystemItemMessage[] = [
     ...activeTransfers.map((item) => systemMessage({
       kind: 'download',
@@ -457,7 +460,7 @@ export function NimiOverview() {
   );
 
   return messagesAccountKey ? (
-    <HomeMessagesScope key={messagesAccountKey} systemMessages={systemMessages}>
+    <HomeMessagesScope key={messagesAccountKey} systemMessages={systemMessages} systemSources={systemSources}>
       {renderPage}
     </HomeMessagesScope>
   ) : renderPage(null);
