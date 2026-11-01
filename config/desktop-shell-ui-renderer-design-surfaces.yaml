@@ -63,29 +63,21 @@ surfaces:
     testid_required: false
     source_rule: D-SHELL-037
   - id: explore.view.root
-    module: features/explore/explore-view.tsx
+    module: features/explore/explore-panel.tsx
     role: explore_root
     surface_profile: baseline
     density_mode: regular
-    exception_policy: allowlisted_arbitrary
+    exception_policy: none
     testid_required: true
     source_rule: D-SHELL-019
   - id: home.view.root
-    module: features/home/home-view.tsx
+    module: features/home/nimi-overview.tsx
     role: home_root
     surface_profile: secondary
     density_mode: regular
-    exception_policy: allowlisted_arbitrary
+    exception_policy: none
     testid_required: true
     source_rule: D-SHELL-015
-  - id: home.feed.cards
-    module: features/home/post-feed.tsx
-    role: home_feed_cards
-    surface_profile: secondary
-    density_mode: regular
-    exception_policy: none
-    testid_required: false
-    source_rule: D-SHELL-029
   - id: explore.discovery.cards
     module: features/explore/explore-cards.tsx
     role: explore_discovery_cards
@@ -118,30 +110,6 @@ surfaces:
     exception_policy: none
     testid_required: true
     source_rule: D-SHELL-015
-  - id: profile.posts.cards
-    module: features/profile/posts-tab.tsx
-    role: profile_posts_cards
-    surface_profile: secondary
-    density_mode: regular
-    exception_policy: none
-    testid_required: false
-    source_rule: D-SHELL-032
-  - id: profile.likes.cards
-    module: features/profile/likes-tab.tsx
-    role: profile_likes_cards
-    surface_profile: secondary
-    density_mode: regular
-    exception_policy: none
-    testid_required: false
-    source_rule: D-SHELL-032
-  - id: profile.collections.cards
-    module: features/profile/collections-tab.tsx
-    role: profile_collections_cards
-    surface_profile: secondary
-    density_mode: regular
-    exception_policy: none
-    testid_required: false
-    source_rule: D-SHELL-032
   - id: relationship.profile_detail.hero_exception
     module: features/relationship/profile-detail-view-content.tsx
     role: relationship_profile_detail_hero_exception

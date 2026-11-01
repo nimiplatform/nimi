@@ -7,8 +7,6 @@ owner: desktop
 catalog_id: desktop_renderer_design_overlays
 entries:
   - relationship.profile_detail_modal
-  - profile.create_post
-  - profile.create_post_popovers
 overlays:
   - id: relationship.profile_detail_modal
     module: features/relationship/profile-detail-modal.tsx
@@ -16,24 +14,6 @@ overlays:
     surface_tone: overlay
     elevation: modal
     z_token: --nimi-z-dialog
-    testid_required: true
-    reduced_motion: true
-    source_rule: D-SHELL-018
-  - id: profile.create_post
-    module: features/profile/create-post-modal.tsx
-    kind: dialog
-    surface_tone: overlay
-    elevation: modal
-    z_token: --nimi-z-dialog
-    testid_required: true
-    reduced_motion: true
-    source_rule: D-SHELL-018
-  - id: profile.create_post_popovers
-    module: features/profile/create-post-modal-panels.tsx
-    kind: popover
-    surface_tone: overlay
-    elevation: floating
-    z_token: --nimi-z-popover
     testid_required: true
     reduced_motion: true
     source_rule: D-SHELL-018
