@@ -1,5 +1,6 @@
 import { useHomeAppActivity } from '../../features/system-entry/system-entry-context.js';
-import { mergeActivitySnapshots } from '../../features/home/home-app-activity-model.js';
+import { messageCenterActivities, unreadCompanionReplies } from '../../features/home/home-app-activity-model.js';
+import { useHumanChatList } from '../../features/chat/use-human-chat-list.js';
 import { openHomeSettings } from '../../features/settings/settings-entry.js';
 import { useHomeNavigation, useHomeDestination } from '../providers/app-store.js';
 import { homeNavigationColumn } from '../providers/home-navigation.js';
@@ -130,7 +131,11 @@ export function MainLayoutView(props: MainLayoutViewProps) {
   });
 
   const messageActivity = useHomeAppActivity();
-  const activityUnread = useMemo(() => mergeActivitySnapshots(messageActivity.pending, messageActivity.recent).some(record => record.userView.unread), [messageActivity.pending, messageActivity.recent]);
+  const activityUnread = useMemo(() => messageCenterActivities(messageActivity.pending, messageActivity.recent)
+    .some(record => record.userView.unread), [messageActivity.pending, messageActivity.recent]);
+  const humanChats = useHumanChatList(props.authStatus);
+  const hasUnreadCompanion = useMemo(() => unreadCompanionReplies(messageActivity.recent.records).size > 0, [messageActivity.recent.records]);
+  const hasUnreadChat = hasUnreadCompanion || humanChats.data?.items.some(chat => chat.unreadCount > 0);
   const hasUnreadMessages = (unreadCountQuery.data?.total ?? 0) > 0 || activityUnread;
   const integrationsRailActive = props.activeTab === 'home' && homeEntryDestination === 'integrations';
 
@@ -315,6 +320,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                       item={item}
                       active={navigationColumn === item.id}
                       collapsed
+                      badge={item.id === 'chat' && hasUnreadChat ? t('Chat.rail.unreadChats') : undefined}
                       onClick={() => props.onNav(item.id)}
                     />
                   ))}

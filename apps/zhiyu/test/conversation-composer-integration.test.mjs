@@ -435,7 +435,7 @@ test('Zhiyu keeps original input and scopes its shared conversation controls', a
         await act(async () => view.node.querySelector('[data-chat-composer-send]').click());
         await settle(() => view.node.querySelector('[data-zhiyu-composer-state="submitting"]'));
         assert.equal(view.calls.send.length, 0);
-        assert.doesNotMatch(view.node.textContent, /继续这条消息|上一条消息的受理结果尚未确认/u);
+        assert.doesNotMatch(view.node.textContent, /上条消息尚未确认送达/u);
         await act(async () => save.resolve());
         await settle(() => view.calls.send.length === 1 && !view.node.querySelector('textarea').disabled);
         assert.equal(view.node.querySelector('textarea').value, '原来的问题');
@@ -453,10 +453,12 @@ test('Zhiyu keeps original input and scopes its shared conversation controls', a
         await attachImage(view.node);
         await act(async () => view.node.querySelector('[data-chat-composer-send]').click());
         await settle(() => view.calls.send.length === 1);
-        assert.doesNotMatch(view.node.textContent, /继续这条消息|上一条消息的受理结果尚未确认/u);
+        assert.doesNotMatch(view.node.textContent, /上条消息尚未确认送达/u);
         await act(async () => admission.reject(new Error('Transport unavailable')));
-        await settle(() => view.node.textContent.includes('继续这条消息'));
-        assert.match(view.node.textContent, /原来的问题/u);
+        await settle(() => view.node.textContent.includes('上条消息尚未确认送达'));
+        const details = [...view.node.querySelectorAll('button')].find(button => button.textContent === '详情');
+        await act(async () => details.click());
+        assert.match(view.node.querySelector('blockquote').textContent, /原来的问题/u);
       } finally { await view.close(); }
     });
 

@@ -12,7 +12,8 @@ import { resolveAgentTargetSnapshotForSourceRef } from '../agents/agent-conversa
 import { fetchLocalAgentList, localAgentListQueryKey, type LocalAgentListItem } from '../agents/local-agent-list-model.js';
 import { launchAgentConversationFromDisplay } from '../chat/agent-conversation-launcher.js';
 import { resolveCurrentPartnerSource } from '../source-detail/data/realm-source-detail-data.js';
-import { fetchHomeRecentChatPartners, type HomeRecentChatPartner } from './home-recent-conversations-model.js';
+import { fetchHomeRecentChatPartners, withRecentChatUnread, type HomeRecentChatPartner } from './home-recent-conversations-model.js';
+import { useHomeAppActivity } from '../system-entry/system-entry-context.js';
 import { useHomeRowCapacity } from './use-home-row-capacity.js';
 
 export type HomeAgentCardState = 'loading' | 'none' | 'unavailable' | 'ready';
@@ -227,6 +228,7 @@ function sameDay(left: Date, right: Date): boolean {
 
 /** Live wrapper used by Home. Conversation truth comes from Runtime; the composer routes into the agent conversation with the text prefilled. */
 export function HomeAgentCard() {
+  const activity = useHomeAppActivity();
   const navigation = useHomeNavigation();
   const bindings = useDesktopRendererBindings();
   const i18n = useDesktopI18nResource();
@@ -258,7 +260,7 @@ export function HomeAgentCard() {
     enabled: enabled && agentList.length > 0,
     staleTime: 30_000,
   });
-  const partners: readonly HomeRecentChatPartner[] = recent.data ?? (recent.isError
+  const partners: readonly HomeRecentChatPartner[] = recent.data ? withRecentChatUnread(recent.data, activity.recent.records) : (recent.isError
     ? agentList.map((item) => ({
       localAgentRef: item.localAgentRef,
       displayName: item.displayName,

@@ -17,7 +17,7 @@ test('read-only check never sends when a bounded snapshot does not contain the r
 });
 
 
-test('recovery highlights one continuation and keeps read-only inspection separate', async () => {
+test('the visible status action only checks delivery and continuation uses the saved request', async () => {
   const { JSDOM } = createRequire(import.meta.url)('jsdom');
   const dom = new JSDOM('<!doctype html><html><body></body></html>', {url:'http://localhost', pretendToBeVisual:true});
   const globals = {window:dom.window, document:dom.window.document, navigator:dom.window.navigator, HTMLElement:dom.window.HTMLElement, Element:dom.window.Element, Node:dom.window.Node, MutationObserver:dom.window.MutationObserver, IS_REACT_ACT_ENVIRONMENT:true};
@@ -45,16 +45,20 @@ test('recovery highlights one continuation and keeps read-only inspection separa
     await React.act(async()=>root.render(React.createElement(AgentSubmissionRecovery,{submission,agentHandle:'handle',conversation:()=>conversation as never,acknowledge:async id=>{assert.equal(admissions,1);acknowledged.push(id);},onAdmitted:admitted=>{admissions++;acknowledgeAgentComposerAttachments(store,'account','thread',admitted.requestId);},onResolved:()=>{resolved++;},onRestore:()=>{throw new Error('must not turn recovery into a new message');}})));
     assert.equal(sent.length,0);assert.equal(snapshots,0);
     const button=(label:string)=>Array.from(node.querySelectorAll('button')).find(el=>el.textContent===label)!;
-    const primary=button('Continue last send');assert.ok(primary);assert.equal(primary.closest('details'),null);
-    const alternatives=node.querySelector('details')!;assert.equal(alternatives.open,false);
+    const status=button('Check status');
+    const continuation=button('Continue last send');
+    assert.ok(status);assert.equal(status.closest('[hidden]'),null);
+    assert.ok(continuation.closest('[hidden]'));
     assert.doesNotMatch(node.textContent||'',/request ID|submission copy/);
-    alternatives.open=true;
-    await React.act(async()=>{button('View conversation only').click();await new Promise(r=>setImmediate(r));});
+    await React.act(async()=>{status.click();await new Promise(r=>setImmediate(r));});
     assert.equal(snapshots,1);assert.equal(sent.length,0);assert.equal(admissions,0);
+    await React.act(async()=>button('Details').click());
+    assert.equal(continuation.closest('[hidden]'),null);
+    assert.equal(sent.length,0);
     store.getState().setAgentComposerAttachments('account','thread',[...store.getState().agentComposerAttachments[key]!,later]);
-    await React.act(async()=>{primary.click();await new Promise(r=>setImmediate(r));});
+    await React.act(async()=>{continuation.click();await new Promise(r=>setImmediate(r));});
     assert.equal(sent.length,1);assert.equal(admissions,0);assert.equal(store.getState().agentComposerAttachments[key]?.length,2);
-    await React.act(async()=>{primary.click();await new Promise(r=>setImmediate(r));});
+    await React.act(async()=>{continuation.click();await new Promise(r=>setImmediate(r));});
     assert.equal(sent.length,2);assert.equal((sent[0] as {requestId:string}).requestId,submission.requestId);
     assert.equal(snapshots,1);assert.deepEqual(acknowledged,[submission.requestId]);assert.equal(resolved,1);assert.equal(admissions,1);assert.deepEqual(store.getState().agentComposerAttachments[key]?.map(item=>item.name),['later.png']);
   } finally {

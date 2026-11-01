@@ -20,6 +20,8 @@ import {
 import { useRealmHumanChatData } from './data/realm-human-chat-data-context.js';
 import { useHumanChatList } from './use-human-chat-list.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
+import { useHomeAppActivity } from '../system-entry/system-entry-context.js';
+import { unreadCompanionReplies } from '../home/home-app-activity-model.js';
 
 type SocialSnapshot = Awaited<ReturnType<RealmSocialData['loadSocialSnapshot']>>;
 
@@ -164,6 +166,7 @@ export async function openAgentTargetSnapshotFromSummary(
 // @nimi-authority: rule.nimi.desktop.agent-projection.r025
 export function toAgentReferenceTargetSummary(
   reference: NimiLocalAppAgentReference,
+  unreadCount = 0,
 ): ConversationTargetSummary {
   return {
     id: reference.agentHandle,
@@ -176,11 +179,12 @@ export function toAgentReferenceTargetSummary(
     avatarFallback: reference.displayName.charAt(0).toUpperCase() || 'A',
     previewText: null,
     updatedAt: null,
-    unreadCount: 0,
+    unreadCount,
     status: 'active',
     isOnline: null,
     metadata: {
       agentHandle: reference.agentHandle,
+      activityAgentRef: reference.activityAgentRef,
       agentBinding: reference.agentBinding,
       displayName: reference.displayName,
       avatarUrl: reference.avatarUrl,
@@ -209,6 +213,7 @@ export function useChatSidebarData(
   const canRead = authStatus === 'authenticated' && Boolean(ownerUserId);
 
   const humanChatsQuery = useHumanChatList(authStatus);
+  const { recent } = useHomeAppActivity();
   const position = useHomeDestination().chat;
   const selectedChatId = position?.mode === 'human' ? position.threadId : undefined;
   const selectedChat = useQuery({
@@ -247,10 +252,12 @@ export function useChatSidebarData(
   }, [humanChatsQuery.data, selectedChat.data, socialSnapshotQuery.data, t]);
 
   const agentTargets = useMemo(() => {
+    const unread = unreadCompanionReplies(recent.records);
     return (localAgentReferencesQuery.data || [])
-      .map(toAgentReferenceTargetSummary)
-      .sort((left, right) => left.title.localeCompare(right.title));
-  }, [localAgentReferencesQuery.data]);
+      .map(reference => toAgentReferenceTargetSummary(reference, unread.get(reference.activityAgentRef)?.length ?? 0))
+      .sort((left, right) => Number(Boolean(right.unreadCount)) - Number(Boolean(left.unreadCount))
+        || left.title.localeCompare(right.title));
+  }, [localAgentReferencesQuery.data, recent.records]);
 
   const aiTarget = useMemo((): ConversationTargetSummary => ({
     id: 'ai:assistant',

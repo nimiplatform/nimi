@@ -328,7 +328,7 @@ units:
     kind: rule
     title: Runtime Agent activity derives from committed turns
     modality: must
-    statement: When Runtime commits a completed LocalAgent Conversation turn, the Runtime Agent owner publishes one fixed Runtime-origin activity through the internal activity owner seam inside the same durable commit, keyed by that committed turn, with the Agent's owning account, the Agent display association, and the commit time as occurred time; it skips fenced accounts and terminating or terminated Agents, never publishes outside a committed turn transaction, and exposes no Conversation title, text, attachment, Memory, reasoning, provider trace, or navigation target.
+    statement: When Runtime commits a completed LocalAgent Conversation turn, the Runtime Agent owner publishes one fixed Runtime-origin activity through the internal activity owner seam inside the same durable commit, keyed as turn:<committed turn id> so a consumer with independent Conversation access can correlate a displayed reply, with the Agent's owning account, the Agent display association, and the commit time as occurred time; it skips fenced accounts and terminating or terminated Agents, never publishes outside a committed turn transaction, and exposes no Conversation title, text, attachment, Memory, reasoning, provider trace, or navigation target.
     condition: Whenever a LocalAgent Conversation turn commits or Runtime recovers Runtime-origin activity.
     failure: Roll back the activity together with an uncommitted turn, and never publish from volatile deltas, uncommitted turns, another account, or a fenced Agent.
     relations:

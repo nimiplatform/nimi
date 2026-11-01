@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import type { NimiAppActivityRecord, NimiAppActivityViewSnapshot } from '@nimiplatform/sdk/app';
-import { mergeActivitySnapshots } from '../src/shell/renderer/features/home/home-app-activity-model.js';
+import { mergeActivitySnapshots, messageCenterActivities, unreadCompanionReplies } from '../src/shell/renderer/features/home/home-app-activity-model.js';
 import {
   activityMessage,
   filterCenterMessages,
@@ -58,6 +58,22 @@ function system(kind: HomeSystemMessage['kind'], id: string, time: string | null
 }
 
 const RUNTIME_SOURCE = { kind: 'runtime-agent', sourceRef: 'src_runtime', appId: null, displayName: null, available: true } as const;
+
+test('reading a companion reply catches up only earlier turns of that companion and preserves App notices', () => {
+  const turn = (n: number, ref: string, read = false) => record(n, {
+    source: RUNTIME_SOURCE, agent: { agentRef: ref, displayName: 'Same name' },
+    kind: 'activity', todoState: null, type: 'nimi.runtime.agent-conversation.turn-completed.v1',
+    userView: { unread: !read, readThroughRevision: read ? 1 : 0, needsAttention: false },
+  });
+  const seen = turn(3, 'agr_a', true);
+  const tied = { ...turn(4, 'agr_a'), occurredAt: seen.occurredAt };
+  const task = record(6, { agent: seen.agent, type: seen.type });
+  const items = [turn(1, 'agr_a'), turn(2, 'agr_b'), seen, tied, turn(5, 'agr_a'), task];
+  const byAgent = unreadCompanionReplies(items);
+  assert.deepEqual(byAgent.get('agr_a'), [tied, items[4]]);
+  assert.deepEqual(byAgent.get('agr_b'), [items[1]]);
+  assert.deepEqual(messageCenterActivities(snapshot(items)), [task]);
+});
 
 test('the two App views join at the highest decimal change sequence before state is judged', () => {
   // 2^53 and 2^53 + 1 are equal as Numbers; only the decimal comparison orders them.

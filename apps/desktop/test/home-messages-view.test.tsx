@@ -8,6 +8,7 @@ import type { NimiAppActivityRecord, NimiAppActivityViewSnapshot } from '@nimipl
 import { changeLocale, i18n, initI18n, productionDesktopI18n } from '../src/shell/renderer/i18n';
 import { DesktopI18nResourceProvider } from '../src/shell/renderer/i18n/i18n-context.js';
 import type { HomeMessageCardContext } from '../src/shell/renderer/features/home/home-message-card.js';
+import { messageCenterActivities } from '../src/shell/renderer/features/home/home-app-activity-model.js';
 import { HomeMessageCenter } from '../src/shell/renderer/features/home/home-message-center.js';
 import { messageSourceOptions, searchMessageSources } from '../src/shell/renderer/features/home/home-message-source-filter.js';
 import { HomeMessagesColumn } from '../src/shell/renderer/features/home/home-messages-column.js';
@@ -197,7 +198,7 @@ const download = systemMessage({
 test('Home mixes sources chronologically with compact navigation above the preview', async () => {
   await initI18n(); await changeLocale('en');
   const html = renderColumn(controller({
-    messages: [growthOpen, growthRead, rijing, turn, download],
+    messages: [...messageCenterActivities(view([growthOpen.record, growthRead.record, rijing.record, turn.record])).map(activityMessage), download],
     pending: view([growthOpen.record, growthRead.record], { complete: false, hasMore: true }),
   }));
   assert.match(html, /data-testid="home-messages"/);
@@ -209,16 +210,14 @@ test('Home mixes sources chronologically with compact navigation above the previ
   assert.match(html, /1 more · Expand/);
   assert.match(html, />43%</, 'download progress comes from real totals');
   assert.match(html, /Pending 2\+/, 'an incomplete open-todo listing never claims a total');
-  // ShiJing and Runtime summaries have no open target; Runtime summaries remain non-openable.
+  // The mirror remains visible while ordinary companion replies belong in Chat.
   assert.doesNotMatch(cardHtml(html, rijing.key), />Open</);
   assert.match(cardHtml(html, rijing.key), /Mark as read/);
-  assert.doesNotMatch(cardHtml(html, turn.key), />Open</);
-  assert.match(cardHtml(html, turn.key), /Find companion/);
+  assert.ok(!html.includes(turn.key));
   assert.doesNotMatch(html, /View post/, 'deferred Realm Posts have no Home action');
-  assert.match(html, /Qilan/);
-  assert.match(html, /Replied in a conversation/);
+  assert.doesNotMatch(html, /Qilan|Replied in a conversation|Find companion/);
   assert.doesNotMatch(html, /publisher-owned/, 'publisher data is never parsed or shown');
-  assert.equal((html.match(/aria-label="Hide from Home"/g) ?? []).length, 2, 'ShiJing and Runtime cards can be hidden');
+  assert.equal((html.match(/aria-label="Hide from Home"/g) ?? []).length, 1, 'the mirror can be hidden');
   assert.match(html, /aria-label="Hide these 2 messages from Home"/, 'a stack hides its counted members');
   assert.match(html, /View all messages/);
   assert.match(html, /aria-label="Filter"/);

@@ -49,6 +49,14 @@ export function useSystemEntryActivityOwner(sdk: DesktopRendererSdkPort, scope: 
     };
   }, [client, scope]);
 
+  // Older retained replies also contribute to Chat attention. Continue the
+  // same account baseline in pages instead of opening an observer per Agent.
+  useEffect(() => {
+    if (scope && scope === state.scope && state.recent.hasMore && !state.recent.error) {
+      views.current.recent?.loadMore();
+    }
+  }, [scope, state.scope, state.recent]);
+
   const setBusyFor = useCallback((activityId: string, value: 'open' | 'read' | null) => {
     setBusy((current) => { const next = { ...current }; if (value) next[activityId] = value; else delete next[activityId]; return next; });
   }, []);
@@ -85,7 +93,7 @@ export function useSystemEntryActivityOwner(sdk: DesktopRendererSdkPort, scope: 
       recent: sameScope ? state.recent : INITIAL_SYSTEM_ENTRY_ACTIVITY,
       busy: sameScope ? busy : {}, notices: sameScope ? notices : {},
       open: (record) => { void openActivity(record).catch(() => undefined); },
-      markRead: (record) => { void markRead(record); },
+      markRead,
       retry: () => { views.current.pending?.relist(); views.current.recent?.relist(); },
       loadMore: (key) => views.current[key]?.loadMore(),
     },

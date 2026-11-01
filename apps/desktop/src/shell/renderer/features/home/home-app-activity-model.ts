@@ -1,8 +1,35 @@
 import {
+  NIMI_APP_ACTIVITY_RUNTIME_TURN_TYPE,
   NimiAppActivityMergeState,
   type NimiAppActivityRecord,
   type NimiAppActivityViewSnapshot,
 } from '@nimiplatform/sdk/app';
+
+// @nimi-authority: rule.nimi.desktop.product-surfaces.r035
+export function isConversationReply(record: NimiAppActivityRecord): boolean {
+  return record.source.kind === 'runtime-agent' && record.type === NIMI_APP_ACTIVITY_RUNTIME_TURN_TYPE;
+}
+
+export function unreadCompanionReplies(records: readonly NimiAppActivityRecord[]) {
+  // Seeing a later reply in a companion's conversation catches up the older
+  // replies there. Only the displayed turn needs an owner read write.
+  const readThrough = new Map<string, string>();
+  for (const record of records) {
+    if (!isConversationReply(record) || record.userView.unread || !record.agent) continue;
+    const ref = record.agent.agentRef;
+    if (record.occurredAt > (readThrough.get(ref) ?? '')) readThrough.set(ref, record.occurredAt);
+  }
+  const byAgent = new Map<string, NimiAppActivityRecord[]>();
+  for (const record of records) {
+    if (!isConversationReply(record) || !record.userView.unread || !record.agent) continue;
+    const ref = record.agent.agentRef;
+    if (record.occurredAt < (readThrough.get(ref) ?? '')) continue;
+    const replies = byAgent.get(ref);
+    if (replies) replies.push(record);
+    else byAgent.set(ref, [record]);
+  }
+  return byAgent;
+}
 
 /** Display name of the record's source; Runtime-origin records are shown by their Agent. */
 export function activitySourceLabel(record: NimiAppActivityRecord): string | null {
@@ -33,4 +60,8 @@ export function mergeActivitySnapshots(
     for (const record of snapshot.records) merged.mergeRecord(record);
   }
   return merged.list();
+}
+
+export function messageCenterActivities(...views: readonly NimiAppActivityViewSnapshot[]) {
+  return mergeActivitySnapshots(...views).filter(record => !isConversationReply(record));
 }

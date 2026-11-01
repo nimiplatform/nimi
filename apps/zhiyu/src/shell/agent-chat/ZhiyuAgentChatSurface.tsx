@@ -787,14 +787,14 @@ function followUpCopy(key: string, values?: Record<string, string | number>): st
 
 function submissionCopy(key: string, values?: Record<string, string | number>): string {
   const copy: Record<string, string> = {
-    'Chat.agentSubmissionRetryPending': '重新回答的受理结果尚未确认。', 'Chat.agentSubmissionPending': '上一条消息的受理结果尚未确认。',
-    'Chat.agentSubmissionRecoverNotice': '原内容已保留。继续会用原请求查回进展；若尚未收到则会继续发送，可能产生模型费用。',
-    'Chat.agentSubmissionAttachments': `已保留 ${values?.count ?? ''} 个附件。`, 'Chat.agentSubmissionUnknown': '目前还无法确认是否已受理，可按原请求继续查回或发送。',
+    'Chat.agentSubmissionRetryPending': '上次重新回答的状态待确认', 'Chat.agentSubmissionPending': '上条消息尚未确认送达',
+    'Chat.agentSubmissionRecoverNotice': '若伙伴已收到，只取回原进展。若还没收到，继续发送可能产生模型费用。',
+    'Chat.agentSubmissionAttachments': `已保留 ${values?.count ?? ''} 个附件。`, 'Chat.agentSubmissionUnknown': '暂未查到结果，可在详情中继续',
     'Chat.agentSubmissionCheckFailed': '暂时无法确认，请稍后重试。', 'Feedback.technicalDetails': '技术详情',
-    'Chat.agentSubmissionWorking': '正在确认…', 'Chat.agentSubmissionRetryRecover': '继续这次重新回答', 'Chat.agentSubmissionRecover': '继续这条消息',
+    'Chat.agentSubmissionWorking': '正在确认状态…', 'Chat.agentSubmissionRetryRecover': '继续上次重新回答', 'Chat.agentSubmissionRecover': '继续这条消息',
     'Chat.agentSubmissionQuoteRetained': '原请求包含一条引用。',
-    'Chat.agentSubmissionOtherOptions': '其他选项', 'Chat.agentSubmissionCheck': '只查看对话', 'Chat.agentSubmissionKeepAsDraft': '取回文字作为草稿',
-    'Chat.agentSubmissionDismiss': '关闭提示', 'Chat.agentSubmissionDraftNotice': '取回文字不会撤回可能已受理的请求，也不会自动恢复原有的图片和引用。再次发送会作为一条新消息发出。',
+    'Chat.agentSubmissionOtherOptions': '详情', 'Chat.agentSubmissionCheck': '查看状态', 'Chat.agentSubmissionKeepAsDraft': '取回文字作为草稿',
+    'Chat.agentSubmissionDismiss': '关闭提示', 'Chat.agentSubmissionDraftNotice': '已开始的回复会继续。放回输入框时只保留文字。',
   };
   return copy[key] ?? key;
 }

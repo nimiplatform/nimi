@@ -1,4 +1,6 @@
 import { createNimiRuntimeAgentConsumeClient } from '@nimiplatform/sdk/runtime';
+import type { NimiAppActivityRecord } from '@nimiplatform/sdk/app';
+import { unreadCompanionReplies } from './home-app-activity-model.js';
 import type { DesktopRendererSdkPort } from '../../renderer/sdk-port.js';
 import type { LocalAgentListItem } from '../agents/local-agent-list-model.js';
 import type { WorldPublicSourceCardDto } from '../world/data/world-public-projection.js';
@@ -18,6 +20,7 @@ export type HomeRecentChatPartner = Readonly<{
   conversationTitle: string | null;
   updatedAtMs: number | null;
   hasUnread: boolean;
+  activityAgentRef?: string;
 }>;
 
 function normalizeText(value: unknown): string {
@@ -30,21 +33,14 @@ function summaryTimestampMs(value: { seconds: string; nanos: number } | undefine
   return Number.isFinite(ms) && ms > 0 ? ms : null;
 }
 
-async function listUnreadRuntimeAgentRefs(sdk: DesktopRendererSdkPort): Promise<ReadonlySet<string>> {
-  const page = await sdk.appProduct().activity.list({ pageSize: 200 }).catch(() => null);
-  const refs = new Set<string>();
-  for (const record of page?.records ?? []) {
-    if (record.source.kind !== 'runtime-agent' || !record.userView.unread) continue;
-    const agentRef = normalizeText(record.agent?.agentRef);
-    if (agentRef) refs.add(agentRef);
-  }
-  return refs;
+export function withRecentChatUnread(partners: readonly HomeRecentChatPartner[], records: readonly NimiAppActivityRecord[]) {
+  const unread = unreadCompanionReplies(records);
+  return partners.map(partner => ({ ...partner, hasUnread: unread.has(partner.activityAgentRef ?? '') }));
 }
 
 // Projects Runtime conversation authority for the Home recent-chats card: each
 // owned LocalAgent's latest active conversation summary supplies the preview,
-// and unread App activity published by runtime agents supplies the unread dot
-// (the same signal the Home messages column uses). Every read fails soft — a
+// and the shared activity view supplies the unread dot at render time. A
 // partner whose read broke still renders from its LocalAgent identity so the
 // card never disappears, and agents without any conversation stay available
 // after the chatted partners so a first chat can start from Home.
@@ -62,7 +58,6 @@ export async function fetchHomeRecentChatPartners(input: {
     runtimeAppId: input.sdk.appId(),
     runtime: { agents: input.sdk.accountProduct().agents },
   });
-  const unreadAgentRefs = await listUnreadRuntimeAgentRefs(input.sdk);
   const partners = await Promise.all(agents.map(async (agent, order) => {
     const [summaries, resolved] = await Promise.all([
       input.sdk.withRuntimeProtectedScopes(
@@ -87,7 +82,8 @@ export async function fetchHomeRecentChatPartners(input: {
       lastMessageText: normalizeText(latest?.lastMessageText) || null,
       conversationTitle: normalizeText(latest?.title) || null,
       updatedAtMs: summaryTimestampMs(latest?.updatedAt),
-      hasUnread: Boolean(activityAgentRef) && unreadAgentRefs.has(activityAgentRef),
+      hasUnread: false,
+      activityAgentRef,
       order,
     };
   }));

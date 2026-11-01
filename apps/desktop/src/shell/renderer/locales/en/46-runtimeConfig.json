@@ -970,7 +970,6 @@
       "reviewRequest": "Review request",
       "openConversation": "Open conversation",
       "viewPerson": "View profile",
-      "findCompanion": "Find companion",
       "filterUnread": "Unread",
       "partialListing": "Only messages loaded so far are shown.",
       "requestsUnavailable": "Friend requests are unavailable. Please retry.",
@@ -991,7 +990,6 @@
       "needsAttention": "Needs attention",
       "unknownSource": "Unknown app",
       "withAgent": "with {{agent}}",
-      "runtimeTurnTitle": "Replied in a conversation",
       "sourceUnavailable": "{{source}} is no longer available on this device.",
       "readFailed": "Couldn't mark this item as read. Try again.",
       "state": {

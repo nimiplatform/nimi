@@ -1,5 +1,6 @@
 import { reconcileAgentSubmission } from '@nimiplatform/kit/features/chat/headless';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useId, useRef, useState } from 'react';
+import { ChevronDown, Clock3 } from 'lucide-react';
 import type {
   NimiLocalAppAgentHandle,
   NimiLocalAppConversationClient,
@@ -29,11 +30,14 @@ export function LocalAppConversationSubmissionRecovery(props: {
   latestIdentity.current = identity;
   const [state, setState] = useState<'idle' | 'checking' | 'unknown' | 'error'>('idle');
   const [reasonCode, setReasonCode] = useState('');
+  const [expanded, setExpanded] = useState(false);
+  const detailsId = useId();
   const active = useRef(true);
   useEffect(() => {
     active.current = true;
     setState('idle');
     setReasonCode('');
+    setExpanded(false);
     return () => {
       active.current = false;
     };
@@ -63,53 +67,41 @@ export function LocalAppConversationSubmissionRecovery(props: {
       }
     }
   };
+  const busy = state === 'checking';
+  const title = busy ? t('Chat.agentSubmissionWorking') : state === 'unknown' ? t('Chat.agentSubmissionUnknown')
+    : t(props.submission.retryOfTurnId ? 'Chat.agentSubmissionRetryPending' : 'Chat.agentSubmissionPending');
   return (
-    <div role="status" className="m-2 rounded border border-neutral-200 p-3 text-sm">
-      <p>{t(props.submission.retryOfTurnId ? 'Chat.agentSubmissionRetryPending' : 'Chat.agentSubmissionPending')}</p>
-      <p>{t('Chat.agentSubmissionRecoverNotice')}</p>
-      {props.submission.text ? (
-        <p className="my-2 max-h-32 overflow-auto whitespace-pre-wrap break-words">{props.submission.text}</p>
-      ) : null}
-      {props.submission.artifactIds.length ? (
-        <p>
-          {t('Chat.agentSubmissionAttachments', { count: props.submission.artifactIds.length })}
-        </p>
-      ) : null}
-      {props.submission.quote ? <p>{t('Chat.agentSubmissionQuoteRetained')}</p> : null}
-      {state === 'unknown' ? <p>{t('Chat.agentSubmissionUnknown')}</p> : null}
-      {state === 'error' ? <p role="alert">{props.describeError?.(reasonCode) || t('Chat.agentSubmissionCheckFailed')}</p> : null}
-      {state === 'error' && reasonCode ? <details className="text-xs"><summary>{t('Feedback.technicalDetails')}</summary><code>{reasonCode}</code></details> : null}
-      <div className="mt-2 flex flex-wrap gap-2">
-        {state === 'error' && props.isConfigurationError?.(reasonCode) && props.onOpenAgentCenter ? <Button tone="ghost" size="sm" onClick={props.onOpenAgentCenter}>{t('Chat.agentOpenConfiguration')}</Button> : null}
-        <Button
-          tone="primary"
-          size="sm"
-          disabled={state === 'checking'}
-          onClick={() => {
-            void check(true);
-          }}
-        >
-          {t(state === 'checking' ? 'Chat.agentSubmissionWorking'
-            : props.submission.retryOfTurnId ? 'Chat.agentSubmissionRetryRecover' : 'Chat.agentSubmissionRecover')}
+    <div className="px-2 py-1 text-sm text-[var(--nimi-text-secondary)]">
+      <div className="flex flex-wrap items-center gap-x-2">
+        <Clock3 aria-hidden="true" size={15} className="shrink-0" />
+        <span role="status" className="mr-auto">{title}</span>
+        <Button tone="ghost" size="sm" className="text-[var(--nimi-action-primary-bg)]" disabled={busy} onClick={() => void check(false)}>
+          {t('Chat.agentSubmissionCheck')}
+        </Button>
+        <Button tone="ghost" size="sm" aria-expanded={expanded} aria-controls={detailsId}
+          trailingIcon={<ChevronDown size={14} className={expanded ? 'rotate-180' : undefined} />}
+          onClick={() => setExpanded(open => !open)}>
+          {t('Chat.agentSubmissionOtherOptions')}
         </Button>
       </div>
-      <details className="mt-2">
-        <summary className="cursor-pointer text-neutral-600">{t('Chat.agentSubmissionOtherOptions')}</summary>
-        <div className="mt-2 flex flex-wrap gap-2">
-          <Button
-            tone="ghost"
-            size="sm"
-            onClick={() => {
-              void check(false);
-            }}
-            disabled={state === 'checking'}
-          >
-            {t('Chat.agentSubmissionCheck')}
+      {state === 'error' ? <div className="mt-1 flex flex-wrap items-center gap-2">
+        <span role="alert">{props.describeError?.(reasonCode) || t('Chat.agentSubmissionCheckFailed')}</span>
+        {props.isConfigurationError?.(reasonCode) && props.onOpenAgentCenter ? <Button tone="ghost" size="sm" onClick={props.onOpenAgentCenter}>{t('Chat.agentOpenConfiguration')}</Button> : null}
+      </div> : null}
+      <div id={detailsId} hidden={!expanded} className="my-1 border-l border-[var(--nimi-border-subtle)] pl-4">
+        {props.submission.text ? <blockquote className="max-h-20 overflow-y-auto whitespace-pre-wrap break-words text-[var(--nimi-text-primary)]">{props.submission.text}</blockquote> : null}
+        {props.submission.artifactIds.length ? <p>{t('Chat.agentSubmissionAttachments', { count: props.submission.artifactIds.length })}</p> : null}
+        {props.submission.quote ? <p>{t('Chat.agentSubmissionQuoteRetained')}</p> : null}
+        <p id={`${detailsId}-cost`} className="mt-2 text-xs">{t('Chat.agentSubmissionRecoverNotice')}</p>
+        <div className="mt-1 flex flex-wrap items-center gap-1">
+          <Button tone="secondary" size="sm" disabled={busy} aria-describedby={`${detailsId}-cost`} onClick={() => void check(true)}>
+            {t(props.submission.retryOfTurnId ? 'Chat.agentSubmissionRetryRecover' : 'Chat.agentSubmissionRecover')}
           </Button>
           <Button
             tone="ghost"
             size="sm"
-            disabled={state === 'checking'}
+            disabled={busy}
+            aria-describedby={`${detailsId}-draft`}
             onClick={() => {
               props.onRestore(props.submission.text);
               void props.acknowledge(props.submission.requestId).catch(() => {
@@ -120,8 +112,9 @@ export function LocalAppConversationSubmissionRecovery(props: {
             {t(props.submission.text ? 'Chat.agentSubmissionKeepAsDraft' : 'Chat.agentSubmissionDismiss')}
           </Button>
         </div>
-        <p className="mt-1 text-xs text-neutral-500">{t('Chat.agentSubmissionDraftNotice')}</p>
-      </details>
+        <p id={`${detailsId}-draft`} className="mt-1 text-xs">{t('Chat.agentSubmissionDraftNotice')}</p>
+        {state === 'error' && reasonCode ? <details className="mt-2 text-xs"><summary>{t('Feedback.technicalDetails')}</summary><code>{reasonCode}</code></details> : null}
+      </div>
     </div>
   );
 }

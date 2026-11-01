@@ -1,7 +1,7 @@
+import { ChatReadMarker } from './chat-read-marker.js';
 import {
   useCallback,
   useEffect,
-  useRef,
   useState,
   type RefObject,
 } from 'react';
@@ -44,29 +44,6 @@ import {
   type HumanVoiceUiState,
 } from './chat-human-voice-ui';
 export { HumanCanonicalComposer, HumanCanonicalProfileDrawer } from './chat-human-canonical-composer-profile';
-
-export function HumanReadMarker({ messageId, onVisible }: { messageId: string; onVisible: (id: string) => Promise<void> }) {
-  const ref = useRef<HTMLSpanElement>(null);
-  useEffect(() => {
-    const node = ref.current;
-    if (!node) return;
-    let intersects = false;
-    const acknowledgeVisible = () => {
-      if (intersects && document.visibilityState === 'visible') void onVisible(messageId);
-    };
-    const observer = new IntersectionObserver(entries => {
-      intersects = entries.some(entry => entry.isIntersecting);
-      acknowledgeVisible();
-    }, { threshold: 1 });
-    observer.observe(node);
-    document.addEventListener('visibilitychange', acknowledgeVisible);
-    return () => {
-      observer.disconnect();
-      document.removeEventListener('visibilitychange', acknowledgeVisible);
-    };
-  }, [messageId, onVisible]);
-  return <span ref={ref} aria-hidden="true" className="block h-px w-px" />;
-}
 
 function HumanStreamFooter(props: {
   selectedChatId: string | null;
@@ -176,7 +153,7 @@ function useHumanMessageRenderers(input: {
     const realmMessage = message.metadata?.realmMessage as { type?: string } | undefined;
     if (!message.error && message.status !== 'pending') {
       return <>
-        {message.id === input.model.newestMessageId ? <HumanReadMarker messageId={message.id} onVisible={input.model.acknowledgeRead} /> : null}
+        {message.id === input.model.newestMessageId ? <ChatReadMarker value={message.id} onVisible={input.model.acknowledgeRead} /> : null}
         {message.role !== 'human' && message.role !== 'user' && realmMessage?.type !== 'RECALL' ? <RelationshipActionsMenu label={t('Chat.rail.messageActions')}
           items={[{ id: 'report', label: t('Relationship.report.action'), onSelect: () => setReportMessage(message) }]} /> : null}
       </>;

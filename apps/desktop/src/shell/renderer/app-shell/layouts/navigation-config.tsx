@@ -248,7 +248,7 @@ export function NavLink({
         {collapsed ? null : <span className="relative z-10 flex-1 text-left">{translatedLabel}</span>}
         {collapsed ? null : badge}
         {collapsed && badge ? (
-          <span className="absolute right-2 top-2 inline-flex h-2 w-2 rounded-full bg-[var(--nimi-status-warning)]" />
+          <span className="absolute right-2 top-2 inline-flex h-2 w-2 rounded-full bg-[var(--nimi-status-danger)]"><span className="sr-only">{badge}</span></span>
         ) : null}
         {collapsed ? (
           <span className="sr-only">{translatedLabel}</span>

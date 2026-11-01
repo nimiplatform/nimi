@@ -18,7 +18,7 @@ import { useAppsDownloads } from '../apps/apps-downloads-context.js';
 import { useGlobalDownloads } from '../runtime-config/global-downloads-context.js';
 import { useRuntimeHealthCoordinatorState } from '../runtime-config/runtime-health-coordinator.js';
 import { fetchLocalAgentList, localAgentListQueryKey } from '../agents/local-agent-list-model.js';
-import { fetchHomeRecentChatPartners } from '../home/home-recent-conversations-model.js';
+import { fetchHomeRecentChatPartners, withRecentChatUnread } from '../home/home-recent-conversations-model.js';
 import { mergeActivitySnapshots } from '../home/home-app-activity-model.js';
 import { createSystemEntryAIObserver, type SystemEntryAIObserver } from './system-entry-ai-observer.js';
 import { projectSystemEntryUsage, projectSystemEntryWork, type SystemEntryAIState } from './system-entry-ai-model.js';
@@ -134,7 +134,7 @@ export function SystemEntryProvider({ children, notifications, reading, timeZone
     void recent.refetch({ cancelRefetch: false }).then(() => { if (active) setRecentReadScope(scope); });
     return () => { active = false; };
   }, [scope, agentsReadScope, agentRefs, recent.refetch]);
-  const recentActivityRevision = activity.recent.records.filter((record) => record.source.kind === 'runtime-agent').map((record) => `${record.activityId}:${record.changeSeq}`).join('|');
+  const recentActivityRevision = activity.recent.records.filter((record) => record.source.kind === 'runtime-agent').map((record) => record.activityId).join('|');
   useEffect(() => {
     if (scope && recentActivityRevision) void queryClient.invalidateQueries({ queryKey: ['home-recent-chat-partners', ownerUserId] });
   }, [scope, recentActivityRevision, ownerUserId, queryClient]);
@@ -184,7 +184,7 @@ export function SystemEntryProvider({ children, notifications, reading, timeZone
       loading: apps.isPending || appsReadScope !== scope, observedAt: apps.dataUpdatedAt ? new Date(apps.dataUpdatedAt).toISOString() : null, locale });
     const recentStatus = agents.isError || recent.isError ? 'unavailable'
       : agents.isPending || agentsReadScope !== scope || agentList.length > 0 && (recent.isPending || recentReadScope !== scope) ? 'loading' : 'ready';
-    const recentSection = projectSystemEntryRecent({ partners: recent.data ?? [], agentCount: agentList.length, status: recentStatus,
+    const recentSection = projectSystemEntryRecent({ partners: withRecentChatUnread(recent.data ?? [], activity.recent.records), agentCount: agentList.length, status: recentStatus,
       observedAt: recent.dataUpdatedAt ? new Date(recent.dataUpdatedAt).toISOString() : null, locale });
     const name = health.runtimeHealth && !health.error && !health.streamError ? projectNimiRuntimeHealthStatusName(health.runtimeHealth.status) : 'UNAVAILABLE';
     const service = name === 'READY' ? 'running' : name === 'DEGRADED' ? 'degraded' : name === 'STARTING' ? 'starting' : name === 'STOPPED' ? 'stopped' : 'unavailable';

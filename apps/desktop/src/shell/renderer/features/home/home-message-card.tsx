@@ -1,7 +1,6 @@
 import { EntityAvatar } from '../../components/entity-avatar.js';
 import { realmMessageAccount } from './home-realm-messages-model.js';
 import { AppCardSurface, Button, ProgressIndicator, StatusBadge } from '@nimiplatform/kit/ui';
-import { NIMI_APP_ACTIVITY_RUNTIME_TURN_TYPE } from '@nimiplatform/sdk/app';
 import { ArrowUpCircle, ArrowUpRight, Check, CircleAlert, Download, X } from 'lucide-react';
 import { useEffect, useRef, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -64,9 +63,7 @@ export function messageTitle(message: HomeMessage, t: Translate): string {
     }
     case 'app':
     case 'runtime-agent':
-      return message.sourceKind === 'runtime-agent' && message.record.type === NIMI_APP_ACTIVITY_RUNTIME_TURN_TYPE
-        ? t('runtimeConfig.overview.appActivity.runtimeTurnTitle')
-        : message.record.title;
+      return message.record.title;
     case 'system':
       return message.system.title;
   }
@@ -207,7 +204,6 @@ function openLabel(message: HomeMessage, busy: 'open' | 'read' | undefined, t: T
     if (message.notifications[0]?.target?.chatId) return t('runtimeConfig.overview.messages.openConversation');
     return realmMessageAccount(message).id ? t('runtimeConfig.overview.messages.viewPerson') : null;
   }
-  if (message.sourceKind === 'runtime-agent') return message.record.agent ? t('runtimeConfig.overview.messages.findCompanion') : null;
   // Runtime summaries and records without an App source object have no target.
   if (!isOpenable(message.record)) return null;
   return t(busy === 'open' ? 'runtimeConfig.overview.appActivity.opening' : 'runtimeConfig.overview.appActivity.open');

@@ -1,13 +1,16 @@
 import { useHomeChatPosition } from '../../app-shell/providers/home-chat-position.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, InlineAlert } from '@nimiplatform/kit/ui';
-import { type ConversationSetupAction, type ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
+import { type CanonicalMessageAccessorySlot, type ConversationSetupAction, type ConversationTargetSummary } from '@nimiplatform/kit/features/chat/headless';
 import { useTranslation } from 'react-i18next';
 import { useAppStore } from '../../app-shell/providers/app-store';
 import { useAgentConversationModeHost } from './chat-agent-shell-adapter';
 import { ChatAgentSceneBackground } from './chat-agent-scene-background';
 import { ChatCanonicalModeFrame } from './chat-canonical-mode-frame';
 import { ChatAgentActivityReferences } from './chat-agent-activity-references.js';
+import { ChatReadMarker } from './chat-read-marker.js';
+import { useHomeAppActivity } from '../system-entry/system-entry-context.js';
+import { unreadCompanionReplies } from '../home/home-app-activity-model.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { resolveDesktopOpenAgentCenterTarget } from '../../infra/desktop-open/desktop-open-intent-navigation.js';
 
@@ -110,6 +113,23 @@ export function ChatAgentModeContent({
     [allTargets, host.activeThreadId, host.characterData, selectedTargetId, t],
   );
 
+  const activity = useHomeAppActivity();
+  const activityRef = selectedTarget?.metadata?.activityAgentRef;
+  const unreadByTurn = useMemo(() => {
+    const replies = typeof activityRef === 'string' ? unreadCompanionReplies(activity.recent.records).get(activityRef) : undefined;
+    return new Map(replies?.map(record => [record.key, record]));
+  }, [activity.recent.records, activityRef]);
+
+  const renderReplyAccessory: CanonicalMessageAccessorySlot = (message, context) => {
+    const accessory = host.transcriptProps?.renderMessageAccessory?.(message, context);
+    const turn = message.metadata?.canonicalTurnId;
+    const reply = !settingsOpen && message.sessionId === agentConversationSelection.conversationAnchorId
+      && (message.role === 'assistant' || message.role === 'agent')
+      && message.metadata?.canonicalMessageCommitted === true && !message.metadata.canonicalPartial && typeof turn === 'string'
+      ? unreadByTurn.get(`turn:${turn}`) : undefined;
+    return reply ? <>{accessory}<ChatReadMarker value={reply} onVisible={activity.markRead} /></> : accessory;
+  };
+
   const sceneBackground = selectedTarget ? (
     <ChatAgentSceneBackground
       characterData={host.characterData}
@@ -133,8 +153,10 @@ export function ChatAgentModeContent({
       className="relative"
       sceneBackground={sceneBackground}
       settingsSheetBare
+      stagePanelPropsOverride={host.stagePanelProps && { ...host.stagePanelProps, renderMessageAccessory: renderReplyAccessory }}
       transcriptPropsOverride={{
         ...host.transcriptProps,
+        renderMessageAccessory: renderReplyAccessory,
         footerContent: <>
           {host.transcriptProps?.footerContent}
           <ChatAgentActivityReferences agentHandle={agentConversationSelection.agentHandle} navigationKey={host.transcriptProps?.positionRequest?.requestKey} />

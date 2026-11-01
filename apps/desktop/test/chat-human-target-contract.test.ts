@@ -156,6 +156,7 @@ test('agent sidebar target is built only from the canonical reference projection
   assert.equal(target.canonicalSessionId, AGENT_HANDLE);
   assert.deepEqual(target.metadata, {
     agentHandle: AGENT_HANDLE,
+    activityAgentRef: reference.activityAgentRef,
     agentBinding: reference.agentBinding,
     displayName: 'Runtime Archivist',
     avatarUrl: 'https://cdn.example.test/agent.png',

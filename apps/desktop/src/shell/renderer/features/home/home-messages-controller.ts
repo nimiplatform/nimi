@@ -1,9 +1,8 @@
 import { useMemo } from 'react';
-import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useHomeRealmMessages, type HomeRealmMessages } from './use-home-realm-messages.js';
 
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
-import { mergeActivitySnapshots } from './home-app-activity-model.js';
+import { messageCenterActivities } from './home-app-activity-model.js';
 import { useHomeAppActivity, type HomeAppActivity } from '../system-entry/system-entry-context.js';
 import { activityMessage, isHideableMessage, type HomeMessage, type HomeSystemItemMessage } from './home-messages-model.js';
 import { isHiddenFromHome, isSourceOffHome, useHomeMessagePreferences, type HomeMessagePreferences, type HomeMessagePreferencesController, type HomeMessagePreferencesStorage } from './home-messages-preferences.js';
@@ -57,7 +56,6 @@ export function useHomeMessages(input: Readonly<{
 
   const app = useHomeAppActivity();
   const realm = useHomeRealmMessages();
-  const navigation = useHomeNavigation();
   const storage = useMemo<HomeMessagePreferencesStorage>(() => ({
     readJson: (relativePath) => sdk.appProduct().storage.readJson(relativePath),
     writeJson: (relativePath, value) => sdk.appProduct().storage.writeJson(relativePath, value),
@@ -68,7 +66,7 @@ export function useHomeMessages(input: Readonly<{
   const messages = useMemo<HomeMessage[]>(() => [
     ...input.systemMessages,
     ...realm.messages,
-    ...mergeActivitySnapshots(app.pending, app.recent).map(activityMessage),
+    ...messageCenterActivities(app.pending, app.recent).map(activityMessage),
   ], [app.pending, app.recent, input.systemMessages, realm.messages]);
 
   const { homeMessages, offHomeCount } = useMemo(() => {
@@ -93,9 +91,7 @@ export function useHomeMessages(input: Readonly<{
     open: (message) => {
       if (message.sourceKind === 'system') message.system.open();
       else if (message.sourceKind === 'realm') realm.open(message);
-      else if (message.sourceKind === 'runtime-agent') {
-        if (message.record.agent) void navigation.push({ id: 'explore', exploreSection: 'partners', partnerQuery: message.record.agent.displayName });
-      } else app.open(message.record);
+      else if (message.sourceKind === 'app') app.open(message.record);
     },
     markRead: (message) => {
       if (message.sourceKind === 'realm') realm.markRead(message);

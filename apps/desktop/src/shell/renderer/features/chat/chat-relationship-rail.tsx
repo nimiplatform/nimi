@@ -225,7 +225,7 @@ function RelationshipAvatar({
           aria-current={selected ? 'page' : undefined}
           aria-pressed={target.source === 'agent' ? selected : undefined}
           className="relative flex h-11 w-11 items-center justify-center"
-          aria-label={avatarActionLabel}
+          aria-label={unread ? `${avatarActionLabel} · ${target.source === 'agent' ? t('Chat.rail.unreadChats') : t('Relationship.contacts.unreadMessages', { count: unread })}` : avatarActionLabel}
           title={deselectAgent ? avatarActionLabel : undefined}
         >
           {/* Rounded clipping stays on the inner wrapper so the unread badge is not clipped. */}
@@ -257,8 +257,10 @@ function RelationshipAvatar({
 
           {/* Unread badge */}
           {unread ? (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--nimi-status-danger)] px-1 text-[10px] font-bold text-white shadow-sm">
-              {unread > 99 ? '99+' : unread}
+            <span aria-hidden="true" className={target.source === 'agent'
+              ? 'absolute right-0 top-0 h-2.5 w-2.5 rounded-full bg-[var(--nimi-status-danger)] ring-2 ring-[var(--nimi-surface-canvas)]'
+              : 'absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--nimi-status-danger)] px-1 text-[10px] font-bold text-white shadow-sm'}>
+              {target.source === 'agent' ? null : unread > 99 ? '99+' : unread}
             </span>
           ) : null}
         </button>
@@ -308,9 +310,12 @@ export function ChatRelationshipRail({
   }, []);
   const selected = recent.find(target => target.id === selectedTargetId);
   const visible = recent.slice(0, limit);
-  if (selected && !visible.includes(selected)) visible[visible.length - 1] = selected;
-  const otherUnread = targets.filter(target => humanSide ? target.source !== 'human' : target.source === 'human')
-    .reduce((count, target) => count + (target.unreadCount ?? 0), humanSide ? 0 : requestCount);
+  if (selected && !visible.includes(selected)) visible.splice(Math.max(0, limit - 1), 0, selected);
+  for (const target of recent.slice(limit)) {
+    if (target !== selected && target.unreadCount) visible.push(target);
+  }
+  const otherUnread = (!humanSide && requestCount > 0) || targets.some(target =>
+    (humanSide ? target.source === 'agent' : target.source === 'human') && Boolean(target.unreadCount));
   const flipLabel = t(humanSide ? 'Chat.rail.switchToCompanions' : 'Chat.rail.switchToPeople');
   const openContacts = (contactsSection: 'friends' | 'conversations') => {
     void navigation.push({ id: 'chat', chat: { mode: 'human', contactsSection } });
@@ -324,10 +329,10 @@ export function ChatRelationshipRail({
       </span>} aria-label={flipLabel} title={flipLabel} data-testid="chat-side-flip"
         onClick={() => { void navigation.switchChatSide(humanSide ? 'companion' : 'human'); }}
         className="chat-side-toggle h-11 w-11 rounded-full" />
-      {otherUnread > 0 ? <span className="absolute -right-1 top-6 h-2.5 w-2.5 rounded-full bg-[var(--nimi-status-danger)] ring-2 ring-[var(--nimi-surface-canvas)]" role="status" aria-label={t('Chat.rail.otherUnread', { count: otherUnread })} /> : null}
+      {otherUnread ? <span className="absolute -right-1 top-6 h-2.5 w-2.5 rounded-full bg-[var(--nimi-status-danger)] ring-2 ring-[var(--nimi-surface-canvas)]" role="status" aria-label={t(humanSide ? 'Chat.rail.companionUnread' : 'Chat.rail.otherUnread')} /> : null}
       <span className="whitespace-nowrap text-[10px] font-medium text-[var(--nimi-text-secondary)]" aria-live="polite">{t(humanSide ? 'Chat.rail.people' : 'Chat.rail.companions')}</span>
     </div>
-    <div ref={listRef} className="mt-4 min-h-0 w-full flex-1 overflow-hidden">
+    <div ref={listRef} className="mt-4 min-h-0 w-full flex-1 overflow-y-auto">
       <div key={humanSide ? 'human' : 'companion'} className="chat-side-entry flex flex-col items-center gap-2" data-side={humanSide ? 'human' : 'companion'}>
         {visible.map(target => <RelationshipAvatar key={target.id} target={target} selected={selectedTargetId === target.id} onSelect={() => onSelectTarget(target.id)} />)}
       </div>

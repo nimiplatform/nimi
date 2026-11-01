@@ -2,6 +2,7 @@ import { HomeExecutionNotices, type ExecutionNoticeAppArtworkResolver } from './
 import { Button, LoadingSkeleton, PillTabs } from '@nimiplatform/kit/ui';
 import { ArrowLeft, Inbox } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useState } from 'react';
 import { HomeMessageCard, type HomeMessageCardContext } from './home-message-card.js';
 import { HomeMessageSourceFilter, messageSourceOptions } from './home-message-source-filter.js';
 import type { HomeMessages } from './home-messages-controller.js';
@@ -33,6 +34,7 @@ export function HomeMessageCenter({ messages, context, filter, sourceKey, onFilt
   const { t } = useTranslation();
   const sourceOptions = messageSourceOptions(messages.messages, t);
   const list = filterCenterMessages(messages.messages, filter, sourceKey);
+  const [visibleLimit, setVisibleLimit] = useState(100);
   const pending = pendingSummary(messages, sourceKey);
   const domain = messageDomainOfGroup(sourceKey);
   const appView = filter === 'pending' ? messages.app.pending : messages.app.recent;
@@ -52,7 +54,7 @@ export function HomeMessageCenter({ messages, context, filter, sourceKey, onFilt
   const canLoadApp = appRelevant && appView.hasMore;
   const canLoadRequests = realmRelevant && messages.realm.requests.hasMore;
   const canLoadNotifications = realmNotificationsRelevant && messages.realm.notifications.hasMore;
-  const canLoadMore = canLoadApp || canLoadRequests || canLoadNotifications;
+  const canLoadMore = list.length > visibleLimit || canLoadApp || canLoadRequests || canLoadNotifications;
   const loadingMore = appRelevant && appView.status === 'loading' || messages.realm.requests.loadingMore || messages.realm.notifications.loadingMore;
   return (
     <section className="mx-auto flex w-full max-w-[1060px] flex-col gap-4 pb-6" aria-labelledby="home-message-center-title" data-testid="home-message-center">
@@ -93,7 +95,7 @@ export function HomeMessageCenter({ messages, context, filter, sourceKey, onFilt
       <HomeMessageSourceNotices messages={messages} app={appRelevant} realm={realmRelevant} systemSources={systemSources} />
 
       <div className="flex flex-col gap-2.5" data-testid="home-message-center-list">
-        {list.map((message) => (
+        {list.slice(0, visibleLimit).map((message) => (
           <HomeMessageCard
             key={message.key}
             message={message}
@@ -123,6 +125,7 @@ export function HomeMessageCenter({ messages, context, filter, sourceKey, onFilt
       {incomplete && list.length > 0 ? <p className="text-center text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.overview.messages.partialListing')}</p> : null}
       {canLoadMore ? <div className="flex justify-center">
         <Button tone="secondary" size="sm" loading={loadingMore} onClick={() => {
+          if (list.length > visibleLimit) { setVisibleLimit(limit => limit + 100); return; }
           if (canLoadApp) messages.app.loadMore(filter === 'pending' ? 'pending' : 'recent');
           if (canLoadNotifications) messages.realm.notifications.loadMore();
           if (canLoadRequests) messages.realm.requests.loadMore();

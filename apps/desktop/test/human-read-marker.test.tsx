@@ -7,6 +7,8 @@ import type { RealmHumanChatData } from '../src/shell/renderer/features/chat/dat
 
 test('read receipts advance to the latest visible confirmed message even when its ID sorts earlier', async () => {
   const dom = new JSDOM('<html><body><div id="root"></div></body></html>', { url: 'http://localhost', pretendToBeVisual: true });
+  let focused = false;
+  dom.window.document.hasFocus = () => focused;
   let observe: IntersectionObserverCallback = () => {};
   let disconnected = false;
   class Observer {
@@ -24,7 +26,7 @@ test('read receipts advance to the latest visible confirmed message even when it
   const { AppStoreProvider } = await import('../src/shell/renderer/app-shell/providers/app-store.js');
   const { RealmHumanChatDataProvider } = await import('../src/shell/renderer/features/chat/data/realm-human-chat-data-context.js');
   const { useHumanTimelineModel } = await import('../src/shell/renderer/features/chat/chat-human-timeline-model.js');
-  const { HumanReadMarker } = await import('../src/shell/renderer/features/chat/chat-human-canonical-components.js');
+  const { ChatReadMarker } = await import('../src/shell/renderer/features/chat/chat-read-marker.js');
   const { ChatUploadPlaceholderProvider } = await import('../src/shell/renderer/features/turns/chat-upload-placeholder-context.js');
   const { createChatUploadPlaceholderStore } = await import('../src/shell/renderer/features/turns/chat-upload-placeholder-store.js');
   const { StreamControllerProvider } = await import('../src/shell/renderer/features/turns/stream-controller-context.js');
@@ -49,7 +51,7 @@ test('read receipts advance to the latest visible confirmed message even when it
   function TimelineMarker() {
     const { newestMessageId, acknowledgeRead, readError } = useHumanTimelineModel('chat', null);
     return <>
-      {newestMessageId && <HumanReadMarker messageId={newestMessageId} onVisible={acknowledgeRead} />}
+      {newestMessageId && <ChatReadMarker value={newestMessageId} onVisible={acknowledgeRead} />}
       {readError && <button onClick={() => void acknowledgeRead(readError)}>Retry {readError}</button>}
     </>;
   }
@@ -80,6 +82,9 @@ test('read receipts advance to the latest visible confirmed message even when it
     assert.deepEqual(acknowledgements, []);
     Object.defineProperty(dom.window.document, 'visibilityState', { configurable: true, value: 'visible' });
     await act(async () => { dom.window.document.dispatchEvent(new dom.window.Event('visibilitychange')); });
+    assert.deepEqual(acknowledgements, [], 'a visible but unfocused window keeps the reply unread');
+    focused = true;
+    await act(async () => { dom.window.dispatchEvent(new dom.window.Event('focus')); });
     assert.deepEqual(acknowledgements, ['z-first']);
     await act(async () => uploads.add(uploads.create({ chatId: 'chat', kind: 'image', previewUrl: 'blob:pending', senderId: 'alice',
       createdAt: '2026-10-01T12:02:00Z' })));

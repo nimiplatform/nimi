@@ -712,24 +712,30 @@ export function useAgentConversationModeHost(
           <AgentFollowUpControl key={`${authUserId}:${activeTarget.agentHandle}:${activeConversationAnchorId}`} agentHandle={activeTarget.agentHandle} conversationAnchorId={activeConversationAnchorId} state={history.controlState} conversation={() => bindings.sdk.conversation()} refresh={history.retry} onOpenAgentCenter={() => homeChat.setAgentCenterSection('behavior')} />
         </div>
       </div> : null}
+      {draftPersistence.submission && !submittingThreadId && draftAgentHandle && input.authStatus === 'authenticated' ? (
+        <div className="px-5">
+          <div className={`${CHAT_CONTENT_POSITION_CLASS} ${CHAT_CONTENT_WIDTH_CLASS}`}>
+            <AgentSubmissionRecovery
+              key={`${authUserId}:${draftAgentHandle}:${draftPersistence.submission.requestId}`}
+              submission={draftPersistence.submission}
+              agentHandle={draftAgentHandle}
+              conversation={() => bindings.sdk.conversation()}
+              acknowledge={draftPersistence.acknowledge}
+              onAdmitted={submission => acknowledgeAttachments(submission.requestId)}
+              onResolved={history.retry}
+              onOpenAgentCenter={input.onOpenAgentCenter}
+              onRestore={text => {
+                const previous = currentComposerTextRef.current;
+                if (text && previous !== text) currentComposerTextRef.current = previous ? `${previous}\n\n${text}` : text;
+                setComposerPrefillRequestId(value => (value || 0) + 1);
+              }}
+            />
+          </div>
+        </div>
+      ) : null}
       {presentation.composerContent}
       <div className="px-5">
       <div className={`${CHAT_CONTENT_POSITION_CLASS} ${CHAT_CONTENT_WIDTH_CLASS}`}>
-      {draftPersistence.submission && !submittingThreadId && draftAgentHandle && input.authStatus === 'authenticated' ? <AgentSubmissionRecovery
-        key={`${authUserId}:${draftAgentHandle}:${draftPersistence.submission.requestId}`}
-        submission={draftPersistence.submission}
-        agentHandle={draftAgentHandle}
-        conversation={() => bindings.sdk.conversation()}
-        acknowledge={draftPersistence.acknowledge}
-        onAdmitted={submission => acknowledgeAttachments(submission.requestId)}
-        onResolved={history.retry}
-        onOpenAgentCenter={input.onOpenAgentCenter}
-        onRestore={text => {
-          const previous = currentComposerTextRef.current;
-          if (text && previous !== text) currentComposerTextRef.current = previous ? `${previous}\n\n${text}` : text;
-          setComposerPrefillRequestId(value => (value || 0) + 1);
-        }}
-      /> : null}
       {draftAgentHandle && input.authStatus === 'authenticated' ? (
         <div role="status" className="flex min-h-6 items-center justify-end gap-2 px-3 text-xs text-neutral-500">
           {draftPersistence.status === 'unsaved'
