@@ -16,6 +16,22 @@ import (
 	"google.golang.org/protobuf/reflect/protoreflect"
 )
 
+func TestManagerProjectsRejectedSourceWithoutInventingContextLanes(t *testing.T) {
+	summary := &runtimev1.AgentTurnContextSummary{
+		SchemaVersion: runtimev1.AgentTurnContextSummarySchemaVersion_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V2,
+		State:         runtimev1.AgentTurnContextState_AGENT_TURN_CONTEXT_STATE_INVALID,
+		ReasonCode:    runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID,
+	}
+	projected, err := projectLocalAppAgentManagerContext(summary)
+	if err != nil || projected.GetReady() || projected.GetReasonCode() != summary.ReasonCode || len(projected.GetLanes()) != 0 {
+		t.Fatalf("source failure lost in manager projection: %v, %v", projected, err)
+	}
+	summary.Ready = true
+	if _, err := projectLocalAppAgentManagerContext(summary); err == nil {
+		t.Fatal("accepted invalid source marked ready")
+	}
+}
+
 func TestCanonicalLocalAppManagerSnapshotIsBoundedAndConversationScoped(t *testing.T) {
 	const (
 		accountID      = "account-manager-test"

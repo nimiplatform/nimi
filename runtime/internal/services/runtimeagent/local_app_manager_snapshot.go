@@ -248,9 +248,18 @@ func projectLocalAppAgentManagerContext(input *runtimev1.AgentTurnContextSummary
 			ConversationSummaryStatus: runtimev1.AgentConversationSummaryStatus_AGENT_CONVERSATION_SUMMARY_STATUS_ABSENT,
 		}, nil
 	}
-	if err := validateAgentTurnContextProjection(input); err != nil ||
-		input.GetState() == runtimev1.AgentTurnContextState_AGENT_TURN_CONTEXT_STATE_UNSPECIFIED ||
-		input.GetState() == runtimev1.AgentTurnContextState_AGENT_TURN_CONTEXT_STATE_INVALID {
+	// Composition can reject the source before any context lanes exist.
+	// Preserve that owner-issued failure so independent settings stay readable.
+	state, reason := input.GetState(), input.GetReasonCode()
+	preparationFailed := !input.GetReady() && len(input.GetLanes()) == 0 &&
+		input.GetSchemaVersion() == runtimev1.AgentTurnContextSummarySchemaVersion_AGENT_TURN_CONTEXT_SUMMARY_SCHEMA_VERSION_V2 &&
+		((state == runtimev1.AgentTurnContextState_AGENT_TURN_CONTEXT_STATE_INVALID &&
+			(reason == runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_SNAPSHOT_INVALID ||
+				reason == runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_CONTEXT_MANIFEST_INVALID)) ||
+			(state == runtimev1.AgentTurnContextState_AGENT_TURN_CONTEXT_STATE_NOT_COMPOSED &&
+				reason == runtimev1.AgentContextProjectionReasonCode_AGENT_CONTEXT_PROJECTION_REASON_CODE_SOURCE_NOT_MATERIALIZED))
+	if !preparationFailed && (state == runtimev1.AgentTurnContextState_AGENT_TURN_CONTEXT_STATE_INVALID ||
+		state == runtimev1.AgentTurnContextState_AGENT_TURN_CONTEXT_STATE_UNSPECIFIED || validateAgentTurnContextProjection(input) != nil) {
 		return nil, localAppConversationOwnerUnavailable()
 	}
 	lanes := make([]*runtimev1.AgentTurnContextLaneSummary, 0, len(input.GetLanes()))

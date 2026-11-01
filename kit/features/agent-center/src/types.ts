@@ -87,6 +87,7 @@ export type AgentCenterOverviewCopy = Partial<{
   readonly sourceContextBlockedDescription: string;
   readonly sourceContextTruncatedDescription: string;
   readonly sourceContextFailedDescription: string;
+  readonly sourceSnapshotInvalidDescription: string;
   readonly sourceContextUnknownDescription: string;
   readonly sourceReadyNoContextDescription: string;
   readonly sourceContextReadyPill: string;

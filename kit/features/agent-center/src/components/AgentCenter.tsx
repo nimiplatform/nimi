@@ -91,6 +91,9 @@ function sourceContextOverviewStatus(
   state: AgentCenterState,
   copy: Required<AgentCenterOverviewCopy>,
 ) {
+  if (state.sourceContext.source?.reasonCode === 'source_snapshot_invalid') {
+    return { description: copy.sourceSnapshotInvalidDescription, label: copy.sourceContextFailedPill, tone: 'err' as const };
+  }
   switch (state.sourceContext.status) {
     case 'ready':
       return { description: copy.sourceContextReadyDescription, label: copy.sourceContextReadyPill, tone: 'ready' as const };
@@ -631,7 +634,12 @@ export function AgentCenter(props: AgentCenterProps) {
           data-agent-center-load-error="true"
           tone="danger"
         >
-          {store.snapshot.error}
+          {Object.values(store.snapshot.reads).includes('failed') ? (
+            <>
+              {translateAgentCenter(props.i18n, 'AgentCenter.error.load', agentCenterEnCatalog['AgentCenter.error.load'])}
+              <details className="mt-1 text-xs"><summary>{translateAgentCenter(props.i18n, 'AgentCenter.error.details', agentCenterEnCatalog['AgentCenter.error.details'])}</summary>{store.snapshot.error}</details>
+            </>
+          ) : store.snapshot.error}
         </InlineAlert>
       ) : null}
       <nav
