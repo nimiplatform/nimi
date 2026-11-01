@@ -23,6 +23,8 @@ import {
 import { DEFAULT_HOME_MESSAGE_PREFERENCES } from '../src/shell/renderer/features/home/home-messages-preferences.js';
 import { HomeMessagesSettingsView } from '../src/shell/renderer/features/settings/settings-home-messages-section.js';
 import { DesktopMotionProvider } from '../src/shell/renderer/ui/motion/desktop-motion-context.js';
+import { AppStoreProvider, useHomeDestination } from '../src/shell/renderer/app-shell/providers/app-store.js';
+import { createAppStore } from '../src/shell/renderer/app-shell/providers/app-store-factory.js';
 
 (globalThis as { React?: typeof React }).React = React;
 
@@ -122,8 +124,9 @@ function context(overrides: Partial<HomeMessageCardContext> = {}): HomeMessageCa
   };
 }
 
-function wrap(node: React.ReactNode, client = new QueryClient({ defaultOptions: { queries: { retry: false } } })) {
-  return <QueryClientProvider client={client}><DesktopI18nResourceProvider resource={productionDesktopI18n}>{node}</DesktopI18nResourceProvider></QueryClientProvider>;
+const viewStore = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference: noop });
+function wrap(node: React.ReactNode, client = new QueryClient({ defaultOptions: { queries: { retry: false } } }), store = viewStore) {
+  return <AppStoreProvider store={store}><QueryClientProvider client={client}><DesktopI18nResourceProvider resource={productionDesktopI18n}>{node}</DesktopI18nResourceProvider></QueryClientProvider></AppStoreProvider>;
 }
 
 test('Home and message center show a compact interruption entry without exposing records inline', async () => {
@@ -376,6 +379,56 @@ test('center sources collect registrations by app identity and search every sour
   const duplicates = messageSourceOptions([current, differentApp], t);
   assert.deepEqual(duplicates.map((option) => option.detail).sort(), ['another.app', 'app.rws']);
   assert.equal(messageSourceOptions([turn], t)[0]!.label, 'Qilan');
+});
+
+test('Back restores the expanded message page and scroll offset for the same filter', async () => {
+  const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost', pretendToBeVisual: true });
+  const globals = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
+    HTMLElement: dom.window.HTMLElement, Element: dom.window.Element, getComputedStyle: dom.window.getComputedStyle,
+    ResizeObserver: class { observe() {} unobserve() {} disconnect() {} }, IS_REACT_ACT_ENVIRONMENT: true };
+  const previous = new Map(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, value });
+  const { createRoot } = await import('react-dom/client');
+  const root = createRoot(dom.window.document.getElementById('root')!);
+  const store = createAppStore({ initialChatThinkingPreference: 'off', persistChatThinkingPreference: noop });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: Infinity } } });
+  const inbox = controller({ messages: Array.from({ length: 115 }, (_, index) => activityMessage(record(index + 1))) });
+  function Screen() {
+    const dest = useHomeDestination();
+    return dest.id === 'notification' ? <HomeMessageCenter messages={inbox} context={context()} filter={dest.messageFilter ?? 'all'}
+      sourceKey={dest.messageSource ?? null} onFilterChange={noop} onSourceChange={noop} onBack={noop}
+      onOpenSettings={() => { void store.navigation.push({ id: 'settings', settingsSection: 'notifications' }); }} /> : null;
+  }
+  const { document } = dom.window;
+  const rows = () => document.querySelectorAll('[data-testid^="home-message:"]');
+  const viewport = () => document.querySelector<HTMLElement>('[data-radix-scroll-area-viewport]')!;
+  try {
+    await initI18n(); await changeLocale('en');
+    await store.navigation.push({ id: 'notification' });
+    await act(async () => root.render(wrap(<Screen />, client, store)));
+    assert.equal(rows().length, 100);
+    await act(async () => document.querySelector<HTMLButtonElement>('[data-testid="home-message-center-more"]')!.click());
+    assert.equal(rows().length, 115);
+    viewport().scrollTop = 10400;
+    viewport().dispatchEvent(new dom.window.Event('scroll'));
+    await act(async () => [...document.querySelectorAll('button')].find(button => button.textContent === 'Message & notification settings')!.click());
+    assert.equal(rows().length, 0);
+    await act(async () => { await store.navigation.back(); });
+    assert.equal(rows().length, 115);
+    assert.equal(viewport().scrollTop, 10400);
+    await act(async () => { await store.navigation.replace({ id: 'notification', messageFilter: 'unread' }); });
+    assert.equal(rows().length, 100, 'another filter has its own window');
+    await act(async () => { await store.navigation.replace({ id: 'notification' }); });
+    assert.equal(rows().length, 115);
+    await act(async () => { store.navigation.reset({ id: 'notification' }); });
+    assert.equal(rows().length, 100, 'a new account scope starts at the first page');
+    assert.equal(viewport().scrollTop, 0);
+  } finally {
+    await act(async () => root.unmount()); client.clear(); store.navigation.dispose(); dom.window.close();
+    for (const [key, descriptor] of previous) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor); else Reflect.deleteProperty(globalThis, key);
+    }
+  }
 });
 
 test('Settings can reach an off-Home source beyond the first activity page without claiming no sources', async () => {

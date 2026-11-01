@@ -1,6 +1,7 @@
 import { Rotate3d, ContactRound, History, Settings2 } from 'lucide-react';
 import { useReceivedFriendRequests } from '../relationship/human-contact-data.js';
 import './chat-relationship-rail.css';
+import { visibleChatRailTargets } from './chat-sidebar-targets.js';
 import { useHumanChatList } from './use-human-chat-list.js';
 import { useHomeNavigation, useHomeDestination } from '../../app-shell/providers/app-store.js';
 import { useEffect, useRef, useState, type MouseEvent } from 'react';
@@ -296,9 +297,6 @@ export function ChatRelationshipRail({
   const position = useHomeDestination().chat;
   const contactsOpen = activeMode === 'human' && !position?.targetId && !position?.threadId && position?.contactsSection !== 'conversations';
   const humanSide = activeMode === 'human';
-  const recent = targets.filter(target => humanSide
-    ? target.source === 'human' && Boolean(target.canonicalSessionId)
-    : target.source === 'agent');
   const [limit, setLimit] = useState(7);
   const listRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -308,12 +306,7 @@ export function ChatRelationshipRail({
     observer.observe(element);
     return () => observer.disconnect();
   }, []);
-  const selected = recent.find(target => target.id === selectedTargetId);
-  const visible = recent.slice(0, limit);
-  if (selected && !visible.includes(selected)) visible.splice(Math.max(0, limit - 1), 0, selected);
-  for (const target of recent.slice(limit)) {
-    if (target !== selected && target.unreadCount) visible.push(target);
-  }
+  const visible = visibleChatRailTargets(targets, selectedTargetId, humanSide, limit);
   const otherUnread = (!humanSide && requestCount > 0) || targets.some(target =>
     (humanSide ? target.source === 'agent' : target.source === 'human') && Boolean(target.unreadCount));
   const flipLabel = t(humanSide ? 'Chat.rail.switchToCompanions' : 'Chat.rail.switchToPeople');

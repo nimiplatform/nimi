@@ -25,6 +25,27 @@ import { unreadCompanionReplies } from '../home/home-app-activity-model.js';
 
 type SocialSnapshot = Awaited<ReturnType<RealmSocialData['loadSocialSnapshot']>>;
 
+// @nimi-authority: rule.nimi.desktop.shell-ui.chat-sides
+export function visibleChatRailTargets(
+  targets: readonly ConversationTargetSummary[], selectedTargetId: string | null, humanSide: boolean, limit: number,
+): ConversationTargetSummary[] {
+  const recent = targets.filter(target => humanSide
+    ? target.source === 'human' && Boolean(target.canonicalSessionId)
+    : target.source === 'agent');
+  const visible = recent.slice(0, limit);
+  const selected = recent.find(target => target.id === selectedTargetId);
+  if (selected && !visible.includes(selected)) {
+    // Reserve the last human slot for the open conversation.
+    visible.splice(limit - 1, humanSide ? 1 : 0, selected);
+  }
+  if (!humanSide) {
+    for (const target of recent.slice(limit)) {
+      if (target !== selected && target.unreadCount) visible.push(target);
+    }
+  }
+  return visible;
+}
+
 function normalizeText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }

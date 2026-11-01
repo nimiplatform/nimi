@@ -8,7 +8,7 @@ import { useAgentConversationModeHost } from './chat-agent-shell-adapter';
 import { ChatAgentSceneBackground } from './chat-agent-scene-background';
 import { ChatCanonicalModeFrame } from './chat-canonical-mode-frame';
 import { ChatAgentActivityReferences } from './chat-agent-activity-references.js';
-import { ChatReadMarker } from './chat-read-marker.js';
+import { ChatCompanionReadReceipt } from './chat-companion-read-receipt.js';
 import { useHomeAppActivity } from '../system-entry/system-entry-context.js';
 import { unreadCompanionReplies } from '../home/home-app-activity-model.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
@@ -127,7 +127,7 @@ export function ChatAgentModeContent({
       && (message.role === 'assistant' || message.role === 'agent')
       && message.metadata?.canonicalMessageCommitted === true && !message.metadata.canonicalPartial && typeof turn === 'string'
       ? unreadByTurn.get(`turn:${turn}`) : undefined;
-    return reply ? <>{accessory}<ChatReadMarker value={reply} onVisible={activity.markRead} /></> : accessory;
+    return reply ? <>{accessory}<ChatCompanionReadReceipt reply={reply} /></> : accessory;
   };
 
   const sceneBackground = selectedTarget ? (

@@ -1,8 +1,8 @@
-import { useLayoutEffect, useRef, useSyncExternalStore } from 'react';
+import { useLayoutEffect, useReducer, useRef, useSyncExternalStore } from 'react';
 import { useHomeNavigation } from './app-store.js';
 import type { HomeNavigation } from './home-navigation.js';
 
-type Position = { top: number; focus: string | null };
+type Position = { top: number; focus: string | null; visibleLimit?: number };
 const positions = new WeakMap<HomeNavigation, { generation: number; entries: Map<string, Position> }>();
 
 /** Ephemeral list position only. Canonical navigation still owns every route,
@@ -25,7 +25,7 @@ export function useHomeListPosition(key: string, ready = true, restoreFocus = tr
     let focus = saved?.focus ?? null;
     element.scrollTop = saved?.top ?? 0;
     const save = () => {
-      entries.set(key, { top: element.scrollTop, focus });
+      entries.set(key, { ...entries.get(key), top: element.scrollTop, focus });
       if (entries.size > 64) entries.delete(entries.keys().next().value!);
     };
     const focused = (event: FocusEvent) => {
@@ -43,4 +43,22 @@ export function useHomeListPosition(key: string, ready = true, restoreFocus = tr
     return () => { save(); element.removeEventListener('scroll', save); element.removeEventListener('focusin', focused); };
   }, [navigation, generation, key, ready, restoreFocus]);
   return viewport;
+}
+
+/** Restore the rendered window before the layout effect restores its scroll offset. */
+export function useHomePagedListPosition(key: string, pageSize: number) {
+  const navigation = useHomeNavigation();
+  const viewport = useHomeListPosition(key, true, false);
+  const [, refreshWindow] = useReducer((version: number) => version + 1, 0);
+  const generation = navigation.getSnapshot().generation;
+  const cache = positions.get(navigation);
+  const visibleLimit = (cache?.generation === generation ? cache.entries.get(key)?.visibleLimit : undefined) ?? pageSize;
+  const showMore = () => {
+    const current = positions.get(navigation);
+    if (current?.generation !== generation) return;
+    const position = current.entries.get(key) ?? { top: 0, focus: null };
+    current.entries.set(key, { ...position, visibleLimit: (position.visibleLimit ?? pageSize) + pageSize });
+    refreshWindow();
+  };
+  return { viewport, visibleLimit, showMore };
 }

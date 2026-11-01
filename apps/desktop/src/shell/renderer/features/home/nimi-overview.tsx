@@ -4,7 +4,6 @@ import { Button, InlineAlert, LoadingSkeleton, ScrollArea } from '@nimiplatform/
 import { useQuery } from '@tanstack/react-query';
 import { ArrowUp, ChevronRight } from 'lucide-react';
 import { useState, useSyncExternalStore, type ReactNode } from 'react';
-import { useHomeListPosition } from '../../app-shell/providers/use-home-list-position.js';
 import { useTranslation } from 'react-i18next';
 import { SHELL_PAGE_WIDTH_CLASS } from '../../app-shell/layouts/shell-chrome-classes.js';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
@@ -106,7 +105,6 @@ export function NimiOverview() {
   const centerSource = destination.messageSource ?? null;
   const setCenterFilter = (messageFilter: HomeMessageFilter) => { void navigation.replace({ id: 'notification', messageFilter, messageSource: centerSource ?? undefined }); };
   const setCenterSource = (messageSource: string | null) => { void navigation.replace({ id: 'notification', messageFilter: centerFilter, messageSource: messageSource ?? undefined }); };
-  const centerViewport = useHomeListPosition(`message-center:${centerFilter}:${centerSource ?? ''}`, view === 'center', false);
   const [integrationIntent, setIntegrationIntent] = useState<IntegrationsPanelIntent | null>(null);
   const openIntegrations = (intent?: IntegrationsPanelIntent) => {
     setIntegrationIntent(intent ?? null);
@@ -408,24 +406,17 @@ export function NimiOverview() {
   ) : (
     <div className="flex min-h-0 flex-1 flex-col p-3">
       {view === 'center' && messages ? (
-        <ScrollArea
-          viewportRef={centerViewport}
-          className="min-h-0 flex-1"
-          viewportClassName="bg-transparent [&>div]:!block"
-          contentClassName={`${SHELL_PAGE_WIDTH_CLASS} pb-7 pt-5`}
-        >
-          <HomeMessageCenter
-            messages={messages}
-            context={cardContext(messages)}
-            appArtworkForNotice={appArtworkForNotice}
-            filter={centerFilter}
-            sourceKey={centerSource}
-            onFilterChange={setCenterFilter}
-            onSourceChange={setCenterSource}
-            onBack={() => setView('overview')}
-            onOpenSettings={openMessageSettings}
-          />
-        </ScrollArea>
+        <HomeMessageCenter
+          messages={messages}
+          context={cardContext(messages)}
+          appArtworkForNotice={appArtworkForNotice}
+          filter={centerFilter}
+          sourceKey={centerSource}
+          onFilterChange={setCenterFilter}
+          onSourceChange={setCenterSource}
+          onBack={() => setView('overview')}
+          onOpenSettings={openMessageSettings}
+        />
       ) : (
         <>
           {splitColumns ? (

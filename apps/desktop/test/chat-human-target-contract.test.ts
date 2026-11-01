@@ -11,12 +11,26 @@ import {
   toAgentReferenceTargetSummary,
   toAgentTargetSnapshotFromSummary,
   toHumanFriendTargetsFromSocialSnapshot,
+  visibleChatRailTargets,
 } from '../src/shell/renderer/features/chat/chat-sidebar-targets.js';
 import { QueryClient, QueryObserver } from '@tanstack/react-query';
 import type { NimiLocalAppAgentReference } from '@nimiplatform/sdk/app';
 
 const SOURCE_HASH = 'a'.repeat(64);
 const AGENT_HANDLE = `agent_ref_${'A'.repeat(43)}`;
+
+test('the people rail stays bounded with unread overflow and keeps a selected older conversation visible', () => {
+  const people = Array.from({ length: 12 }, (_, index) => ({
+    id: `user-${index}`, title: `Person ${index}`, source: 'human' as const, canonicalSessionId: `chat-${index}`, unreadCount: 1,
+  }));
+  assert.deepEqual(visibleChatRailTargets(people, null, true, 7), people.slice(0, 7));
+  assert.deepEqual(visibleChatRailTargets(people, 'user-10', true, 3), [people[0], people[1], people[10]]);
+  assert.deepEqual(visibleChatRailTargets(people, 'user-10', true, 1), [people[10]]);
+  const agents = people.map(person => ({ ...person, source: 'agent' as const }));
+  const visibleAgents = visibleChatRailTargets(agents, agents[10]!.id, false, 3);
+  assert.equal(visibleAgents.length, agents.length);
+  assert.equal(new Set(visibleAgents).size, agents.length);
+});
 
 test('normal account refresh retains the same Agent reference cache without issuing pending reads', async () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity, gcTime: Infinity } } });

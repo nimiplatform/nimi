@@ -24,6 +24,7 @@ export function useSystemEntryActivityOwner(sdk: DesktopRendererSdkPort, scope: 
   const [busy, setBusy] = useState<Readonly<Record<string, 'open' | 'read'>>>({});
   const [notices, setNotices] = useState<Readonly<Record<string, HomeMessageNotice>>>({});
   const views = useRef<Partial<Record<HomeActivityViewKey, NimiAppActivityView>>>({});
+  const pendingReads = useRef(new Set<string>());
   const liveScope = useRef(scope);
   liveScope.current = scope;
 
@@ -79,10 +80,17 @@ export function useSystemEntryActivityOwner(sdk: DesktopRendererSdkPort, scope: 
   }, [scope, sdk, setBusyFor, notice, t]);
   const markRead = useCallback(async (record: NimiAppActivityRecord): Promise<void> => {
     if (!scope || scope !== liveScope.current) return;
+    // Focus and a retry click can acknowledge the same displayed reply together.
+    const write = `${scope}:${record.activityId}:${record.revision}`;
+    if (pendingReads.current.has(write)) return;
+    pendingReads.current.add(write);
     setBusyFor(record.activityId, 'read'); notice(record.activityId, null);
     try { await sdk.appProduct().activity.markRead({ activityId: record.activityId, displayedRevision: record.revision }); }
     catch { if (scope === liveScope.current) notice(record.activityId, { tone: 'warning', text: t('runtimeConfig.overview.appActivity.readFailed') }); }
-    finally { if (scope === liveScope.current) setBusyFor(record.activityId, null); }
+    finally {
+      pendingReads.current.delete(write);
+      if (scope === liveScope.current) setBusyFor(record.activityId, null);
+    }
   }, [scope, sdk, setBusyFor, notice, t]);
   const sameScope = scope !== null && state.scope === scope;
   return {
