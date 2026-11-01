@@ -893,7 +893,7 @@
       "clearFilters": "清除筛选",
       "noMatches": "首页暂无符合筛选的内容，可在消息中心查看全部。",
       "title": "消息",
-      "settings": "消息设置",
+      "settings": "消息与通知设置",
       "sectionItems": "消息与事项",
       "sectionActivity": "动态",
       "pendingEntry": "待处理 {{count}} 项",
@@ -914,9 +914,10 @@
       "noMatchingSources": "未找到匹配来源，试试其他名称",
       "sourceGroups": {
         "app": "应用",
-        "runtime-agent": "助手",
+        "runtime-agent": "AI 伙伴",
         "realm-post": "动态",
-        "system": "系统通知"
+        "system": "系统通知",
+        "realm": "社交与账号"
       },
       "hide": "从首页隐藏",
       "hideGroup": "从首页隐藏这 {{count}} 条消息",
@@ -927,7 +928,7 @@
       "collapse": "收起",
       "appUnavailable": "暂时无法读取应用消息",
       "otherSourcesShown": "其他来源照常显示。",
-      "realmUnavailable": "暂时无法读取动态。",
+      "realmUnavailable": "社交通知暂时无法读取，其他来源仍可查看。",
       "realmStale": "动态暂时无法刷新，显示的是上次读取的内容。",
       "preferencesUnavailable": "暂时无法读取首页显示设置，目前无法调整显示或隐藏。",
       "saveFailed": "未能保存显示设置",
@@ -948,8 +949,8 @@
       "postedTitle": "{{author}} 发布了动态",
       "noCaption": "（无文字）",
       "sourceRealm": "Realm · {{name}}",
-      "sourceRuntime": "Runtime · {{name}}",
-      "sourceRuntimeUnknown": "Runtime",
+      "sourceRuntime": "{{name}}",
+      "sourceRuntimeUnknown": "AI 伙伴",
       "yesterdayAt": "昨天 {{time}}",
       "system": {
         "download": "Nimi · 下载",
@@ -960,7 +961,24 @@
         "updateState": "可更新",
         "updateTitle": "{{app}} 可更新",
         "updateDetail": "新版本 {{version}}"
-      }
+      },
+      "realmSource": "社交与账号",
+      "pendingRequest": "待处理",
+      "reviewRequest": "处理申请",
+      "openConversation": "打开会话",
+      "viewPerson": "查看用户",
+      "findCompanion": "查找伙伴",
+      "filterUnread": "未读",
+      "partialListing": "部分来源还有未加载的消息。",
+      "requestsUnavailable": "好友申请暂时无法读取，请重试。",
+      "hasUnread": "有未读消息",
+      "realmTitle": {
+        "friend_request_received": "发来了好友申请",
+        "friend_request_accepted": "接受了你的好友申请",
+        "friend_request_rejected": "未接受你的好友申请"
+      },
+      "setupNeedsReview": "打开设置查看原因并继续。",
+      "unreadEmpty": "没有未读消息。"
     },
     "appActivity": {
       "open": "打开",
@@ -984,7 +1002,7 @@
         "activity-unavailable": "这一项已不可用。",
         "source-unavailable": "{{source}} 在这台设备上不可用。",
         "object-unavailable": "{{source}} 中已找不到这一项。",
-        "source-not-ready": "{{source}} 没有及时响应，请重试。",
+        "source-not-ready": "还未收到 {{source}} 的打开确认，请在应用就绪后重试。",
         "canceled": "已取消打开。",
         "host-unavailable": "Nimi 暂时无法打开应用。",
         "launch-failed": "{{source}} 未能启动。",
@@ -2802,7 +2820,11 @@
     "switchConnection": "切换连接",
     "noConnectionsMatch": "没有符合当前搜索或筛选条件的连接。",
     "connectionUnavailable": "此连接已不可用，请选择其他连接。",
-    "sections": { "models": "模型", "references": "应用配置", "usage": "用量" },
+    "sections": {
+      "models": "模型",
+      "references": "应用配置",
+      "usage": "用量"
+    },
     "connectionDisclosure": "计费与数据说明",
     "apiBillingShort": "用量由服务商计费。",
     "removeConnection": "移除连接",

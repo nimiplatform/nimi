@@ -893,7 +893,7 @@
       "clearFilters": "Clear filters",
       "noMatches": "No matches on Home. View all in Message center.",
       "title": "Messages",
-      "settings": "Message settings",
+      "settings": "Message & notification settings",
       "sectionItems": "Messages & items",
       "sectionActivity": "Activity",
       "pendingEntry": "{{count}} pending",
@@ -914,9 +914,10 @@
       "noMatchingSources": "No matching sources. Try another name.",
       "sourceGroups": {
         "app": "Apps",
-        "runtime-agent": "Assistants",
+        "runtime-agent": "AI companions",
         "realm-post": "Posts",
-        "system": "System notifications"
+        "system": "System notifications",
+        "realm": "People & account"
       },
       "hide": "Hide from Home",
       "hideGroup": "Hide these {{count}} messages from Home",
@@ -927,7 +928,7 @@
       "collapse": "Collapse",
       "appUnavailable": "App messages are temporarily unavailable",
       "otherSourcesShown": "Other sources are still shown.",
-      "realmUnavailable": "Posts are temporarily unavailable.",
+      "realmUnavailable": "Social notifications are unavailable. Other sources remain available.",
       "realmStale": "Couldn't refresh posts. Showing the last loaded version.",
       "preferencesUnavailable": "Couldn't load Home display settings. Hiding and display changes are temporarily unavailable.",
       "saveFailed": "Couldn't save display settings",
@@ -948,8 +949,8 @@
       "postedTitle": "{{author}} posted",
       "noCaption": "(no text)",
       "sourceRealm": "Realm · {{name}}",
-      "sourceRuntime": "Runtime · {{name}}",
-      "sourceRuntimeUnknown": "Runtime",
+      "sourceRuntime": "{{name}}",
+      "sourceRuntimeUnknown": "AI companion",
       "yesterdayAt": "Yesterday {{time}}",
       "system": {
         "download": "Nimi · Downloads",
@@ -960,7 +961,24 @@
         "updateState": "Update available",
         "updateTitle": "{{app}} has an update",
         "updateDetail": "Version {{version}}"
-      }
+      },
+      "realmSource": "People & account",
+      "pendingRequest": "Needs action",
+      "reviewRequest": "Review request",
+      "openConversation": "Open conversation",
+      "viewPerson": "View profile",
+      "findCompanion": "Find companion",
+      "filterUnread": "Unread",
+      "partialListing": "Some sources have more messages to load.",
+      "requestsUnavailable": "Friend requests are unavailable. Please retry.",
+      "hasUnread": "Unread messages",
+      "realmTitle": {
+        "friend_request_received": "Sent you a friend request",
+        "friend_request_accepted": "Accepted your friend request",
+        "friend_request_rejected": "Declined your friend request"
+      },
+      "setupNeedsReview": "Open settings to review the issue and continue.",
+      "unreadEmpty": "No unread messages."
     },
     "appActivity": {
       "open": "Open",
@@ -984,7 +1002,7 @@
         "activity-unavailable": "This item is no longer available.",
         "source-unavailable": "{{source}} is not available on this device.",
         "object-unavailable": "{{source}} can no longer find this item.",
-        "source-not-ready": "{{source}} didn't respond in time. Try again.",
+        "source-not-ready": "No open confirmation from {{source}} yet. Retry when the app is ready.",
         "canceled": "Opening was cancelled.",
         "host-unavailable": "Nimi can't open apps right now.",
         "launch-failed": "{{source}} couldn't be started.",
@@ -2802,7 +2820,11 @@
     "switchConnection": "Switch connection",
     "noConnectionsMatch": "No connections match the current search or filter.",
     "connectionUnavailable": "This connection is no longer available. Select another connection.",
-    "sections": { "models": "Models", "references": "App configurations", "usage": "Usage" },
+    "sections": {
+      "models": "Models",
+      "references": "App configurations",
+      "usage": "Usage"
+    },
     "connectionDisclosure": "Billing & data details",
     "apiBillingShort": "Usage is billed by the provider.",
     "removeConnection": "Remove connection",

@@ -70,6 +70,7 @@ test('Realm notification helpers map to generated notification requests', async 
   });
   const view = toNimiRealmNotificationListView(page, 'Notification', 'Unknown');
   assert.equal(view.items[0]?.actorName, 'Ada');
+  assert.deepEqual(view.items[0]?.target, { accountId: 'user-1' });
   assert.equal(view.nextCursor, 'cursor-2');
   assert.deepEqual(await markNimiRealmNotificationRead(realm, ' notification-1 '), { id: 'notification-1' });
   assert.deepEqual(await markNimiRealmNotificationsRead(realm, { ids: ['notification-1'] }), { ok: true });

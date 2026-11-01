@@ -1,4 +1,6 @@
 import { useMemo } from 'react';
+import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
+import { useHomeRealmMessages, type HomeRealmMessages } from './use-home-realm-messages.js';
 
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { mergeActivitySnapshots } from './home-app-activity-model.js';
@@ -17,6 +19,7 @@ export type HomeMessages = Readonly<{
   /** Loaded messages kept off Home by hiding or a source display choice. */
   offHomeCount: number;
   app: HomeAppActivity;
+  realm: HomeRealmMessages;
   preferences: HomeMessagePreferencesController;
   placement: (message: HomeMessage) => HomeMessagePlacement;
   open: (message: HomeMessage) => void;
@@ -44,6 +47,8 @@ export function useHomeMessages(input: Readonly<{
   const sdk = useDesktopRendererSdk();
 
   const app = useHomeAppActivity();
+  const realm = useHomeRealmMessages();
+  const navigation = useHomeNavigation();
   const storage = useMemo<HomeMessagePreferencesStorage>(() => ({
     readJson: (relativePath) => sdk.appProduct().storage.readJson(relativePath),
     writeJson: (relativePath, value) => sdk.appProduct().storage.writeJson(relativePath, value),
@@ -53,8 +58,9 @@ export function useHomeMessages(input: Readonly<{
 
   const messages = useMemo<HomeMessage[]>(() => [
     ...input.systemMessages,
+    ...realm.messages,
     ...mergeActivitySnapshots(app.pending, app.recent).map(activityMessage),
-  ], [app.pending, app.recent, input.systemMessages]);
+  ], [app.pending, app.recent, input.systemMessages, realm.messages]);
 
   const { homeMessages, offHomeCount } = useMemo(() => {
     if (preferences.state.status === 'loading') return { homeMessages: null, offHomeCount: 0 };
@@ -71,14 +77,19 @@ export function useHomeMessages(input: Readonly<{
     homeMessages,
     offHomeCount,
     app,
+    realm,
     preferences,
     placement: (message) => placementOf(message, ready),
     open: (message) => {
       if (message.sourceKind === 'system') message.system.open();
-      else app.open(message.record);
+      else if (message.sourceKind === 'realm') realm.open(message);
+      else if (message.sourceKind === 'runtime-agent') {
+        if (message.record.agent) void navigation.push({ id: 'explore', exploreSection: 'partners', partnerQuery: message.record.agent.displayName });
+      } else app.open(message.record);
     },
     markRead: (message) => {
-      if (message.sourceKind === 'app' || message.sourceKind === 'runtime-agent') app.markRead(message.record);
+      if (message.sourceKind === 'realm') realm.markRead(message);
+      else if (message.sourceKind === 'app' || message.sourceKind === 'runtime-agent') app.markRead(message.record);
     },
     hide: (targets) => {
       const hideable = targets.filter(isHideableMessage);
@@ -91,7 +102,7 @@ export function useHomeMessages(input: Readonly<{
       });
     },
     showOnHome: (message) => {
-      if (message.sourceKind !== 'system') void preferences.apply({ kind: 'show', activityId: message.record.activityId });
+      if (message.sourceKind === 'app' || message.sourceKind === 'runtime-agent') void preferences.apply({ kind: 'show', activityId: message.record.activityId });
     },
   };
 }

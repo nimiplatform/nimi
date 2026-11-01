@@ -1,3 +1,5 @@
+import { EntityAvatar } from '../../components/entity-avatar.js';
+import { realmMessageAccount } from './home-realm-messages-model.js';
 import { AppCardSurface, Button, ProgressIndicator, StatusBadge } from '@nimiplatform/kit/ui';
 import { NIMI_APP_ACTIVITY_RUNTIME_TURN_TYPE } from '@nimiplatform/sdk/app';
 import { ArrowUpCircle, ArrowUpRight, Check, CircleAlert, Download, X } from 'lucide-react';
@@ -11,6 +13,7 @@ import type { HomeMessageNotice } from '../system-entry/system-entry-context.js'
 import type { HomeMessagePlacement } from './home-messages-controller.js';
 import {
   isHideableMessage,
+  isUnreadMessage,
   isPendingMessage,
   type HomeMessage,
   type HomeMessageGroup,
@@ -39,6 +42,8 @@ const LIST_CARD_ELEVATION = 'shadow-[var(--nimi-home-card-elevation)]';
 
 export function messageSourceLabel(message: HomeMessage, t: Translate): string {
   switch (message.sourceKind) {
+    case 'realm':
+      return realmMessageAccount(message).name || t('runtimeConfig.overview.messages.realmSource');
     case 'app':
       return message.record.source.displayName || message.record.source.appId || t('runtimeConfig.overview.appActivity.unknownSource');
     case 'runtime-agent':
@@ -52,6 +57,11 @@ export function messageSourceLabel(message: HomeMessage, t: Translate): string {
 
 export function messageTitle(message: HomeMessage, t: Translate): string {
   switch (message.sourceKind) {
+    case 'realm': {
+      const notification = message.notifications[0];
+      const type = message.request ? 'friend_request_received' : notification?.type;
+      return t(`runtimeConfig.overview.messages.realmTitle.${type}`, { defaultValue: notification?.title || t('runtimeConfig.overview.messages.realmSource') });
+    }
     case 'app':
     case 'runtime-agent':
       return message.sourceKind === 'runtime-agent' && message.record.type === NIMI_APP_ACTIVITY_RUNTIME_TURN_TYPE
@@ -64,6 +74,8 @@ export function messageTitle(message: HomeMessage, t: Translate): string {
 
 function messageSummary(message: HomeMessage): string | null {
   switch (message.sourceKind) {
+    case 'realm':
+      return message.request?.requestMessage || (message.notifications[0]?.type.startsWith('friend_request_') ? null : message.notifications[0]?.body || null);
     case 'app':
     case 'runtime-agent':
       return message.record.summary;
@@ -127,6 +139,11 @@ function SystemTile({ children, alert }: { children: ReactNode; alert?: boolean 
 export function MessageSourceIcon({ message, context }: { message: HomeMessage; context: HomeMessageCardContext }) {
   const { t } = useTranslation();
   switch (message.sourceKind) {
+    case 'realm': {
+      const account = realmMessageAccount(message);
+      return <EntityAvatar name={account.name} imageUrl={account.avatarUrl} kind="human" sizeClassName="h-10 w-10 shrink-0"
+        fallbackClassName="bg-[var(--nimi-status-info-soft-bg)] text-[var(--nimi-status-info-soft-text)]" />;
+    }
     case 'app': {
       const { appId, sourceRef } = message.record.source;
       return (
@@ -139,7 +156,7 @@ export function MessageSourceIcon({ message, context }: { message: HomeMessage; 
       );
     }
     case 'runtime-agent':
-      return <Initial name={message.record.agent?.displayName || 'Runtime'} tone="info" />;
+      return <Initial name={message.record.agent?.displayName || t('runtimeConfig.overview.messages.sourceRuntimeUnknown')} tone="info" />;
     case 'system':
       if (message.system.kind === 'update' && message.system.app) {
         return (
@@ -167,6 +184,7 @@ function StateBadges({ message }: { message: HomeMessage }) {
     const tone = message.system.kind === 'setup' ? 'warning' : message.system.kind === 'download' ? 'info' : 'neutral';
     return <StatusBadge tone={tone}>{t(`runtimeConfig.overview.messages.system.${message.system.kind}State`)}</StatusBadge>;
   }
+  if (message.sourceKind === 'realm') return message.request ? <StatusBadge tone="info">{t('runtimeConfig.overview.messages.pendingRequest')}</StatusBadge> : null;
   const { record } = message;
   return (
     <>
@@ -184,14 +202,17 @@ function StateBadges({ message }: { message: HomeMessage }) {
 
 function openLabel(message: HomeMessage, busy: 'open' | 'read' | undefined, t: Translate): string | null {
   if (message.sourceKind === 'system') return t('runtimeConfig.overview.messages.view');
+  if (message.sourceKind === 'realm') {
+    if (message.request) return t('runtimeConfig.overview.messages.reviewRequest');
+    if (message.notifications[0]?.target?.chatId) return t('runtimeConfig.overview.messages.openConversation');
+    return realmMessageAccount(message).id ? t('runtimeConfig.overview.messages.viewPerson') : null;
+  }
+  if (message.sourceKind === 'runtime-agent') return message.record.agent ? t('runtimeConfig.overview.messages.findCompanion') : null;
   // Runtime summaries and records without an App source object have no target.
   if (!isOpenable(message.record)) return null;
   return t(busy === 'open' ? 'runtimeConfig.overview.appActivity.opening' : 'runtimeConfig.overview.appActivity.open');
 }
 
-function isUnread(message: HomeMessage): boolean {
-  return (message.sourceKind === 'app' || message.sourceKind === 'runtime-agent') && message.record.userView.unread;
-}
 
 function HideButton({ label, onClick }: { label: string; onClick: () => void }) {
   return (
@@ -231,7 +252,7 @@ function MessageHeading({ message, context }: {
 }) {
   const { t } = useTranslation();
   const title = messageTitle(message, t);
-  const unread = isUnread(message);
+  const unread = isUnreadMessage(message);
   const association = message.sourceKind === 'app' && message.record.agent
     ? t('runtimeConfig.overview.appActivity.withAgent', { agent: message.record.agent.displayName })
     : null;
@@ -279,19 +300,19 @@ function HomeMessageCardCompact({ message, context }: {
   context: HomeMessageCardContext;
 }) {
   const { t } = useTranslation();
-  const activityId = message.sourceKind === 'app' || message.sourceKind === 'runtime-agent' ? message.record.activityId : null;
+  const activityId = message.sourceKind === 'realm' ? message.key : message.sourceKind === 'app' || message.sourceKind === 'runtime-agent' ? message.record.activityId : null;
   const busy = activityId ? context.busy[activityId] : undefined;
   const notice = activityId ? context.notices[activityId] : undefined;
   const summary = messageSummary(message);
   const open = openLabel(message, busy, t);
   const progress = message.sourceKind === 'system' ? message.system.progress : null;
   const title = messageTitle(message, t);
-  const unread = isUnread(message);
+  const unread = isUnreadMessage(message);
   const association = message.sourceKind === 'app' && message.record.agent
     ? t('runtimeConfig.overview.appActivity.withAgent', { agent: message.record.agent.displayName })
     : null;
-  const hasBadges = message.sourceKind === 'system'
-    || (((message.record.kind === 'todo' && Boolean(message.record.todoState)) || message.record.userView.needsAttention));
+  const hasBadges = message.sourceKind === 'system' || (message.sourceKind === 'realm' ? Boolean(message.request)
+    : (message.record.kind === 'todo' && Boolean(message.record.todoState)) || message.record.userView.needsAttention);
   const actions: ReactNode[] = [];
   if (unread) {
     actions.push(
@@ -381,7 +402,7 @@ function HomeMessageCardCenter({ message, context, placement, onShowOnHome, onOp
   onOpenSettings?: () => void;
 }) {
   const { t } = useTranslation();
-  const activityId = message.sourceKind === 'app' || message.sourceKind === 'runtime-agent' ? message.record.activityId : null;
+  const activityId = message.sourceKind === 'realm' ? message.key : message.sourceKind === 'app' || message.sourceKind === 'runtime-agent' ? message.record.activityId : null;
   const busy = activityId ? context.busy[activityId] : undefined;
   const notice = activityId ? context.notices[activityId] : undefined;
   const summary = messageSummary(message);
@@ -395,7 +416,7 @@ function HomeMessageCardCenter({ message, context, placement, onShowOnHome, onOp
       aria-label={title}
       className={`group/message ${CARD_CLASS}`}
       data-testid={`home-message:${message.key}`}
-      data-unread={isUnread(message) ? 'true' : 'false'}
+      data-unread={isUnreadMessage(message) ? 'true' : 'false'}
     >
       <MessageSourceIcon message={message} context={context} />
       <div className="min-w-0 flex-1">
@@ -416,7 +437,7 @@ function HomeMessageCardCenter({ message, context, placement, onShowOnHome, onOp
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
           <StateBadges message={message} />
           <span className="min-w-2 flex-1" />
-          {isUnread(message) ? (
+          {isUnreadMessage(message) ? (
             <Button tone="ghost" size="sm" disabled={Boolean(busy)} onClick={() => context.onMarkRead(message)}>
               {t('runtimeConfig.overview.appActivity.markRead')}
             </Button>
@@ -557,7 +578,7 @@ export function HomeMessageStack({ group, context, onExpand, autoFocus, onAutoFo
           <MessageSourceIcon message={lead} context={context} />
           <span className="min-w-0 flex-1">
             <span className="flex items-center gap-1.5 pr-6 text-xs text-[var(--nimi-text-muted)]">
-              {group.messages.some(isUnread) ? <span className="size-1.5 shrink-0 rounded-full bg-[var(--nimi-status-info)]" aria-hidden="true" /> : null}
+              {group.messages.some(isUnreadMessage) ? <span className="size-1.5 shrink-0 rounded-full bg-[var(--nimi-status-info)]" aria-hidden="true" /> : null}
               <span className="truncate">{label}</span>
               {pending ? <StatusBadge tone="info">{t('runtimeConfig.overview.appActivity.state.open')}</StatusBadge> : null}
             </span>

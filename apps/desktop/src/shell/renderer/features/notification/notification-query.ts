@@ -1,5 +1,4 @@
 import type { QueryClient } from '@tanstack/react-query';
-import type { NimiRealmNotificationUnreadView } from '@nimiplatform/sdk/realm';
 
 interface NotificationIdentityUser {
   readonly [key: string]: unknown;
@@ -23,63 +22,12 @@ export function resolveNotificationIdentityRef(
   authStatus: string,
   user: NotificationIdentityUser | null | undefined,
 ): string | null {
-  if (authStatus !== 'authenticated') {
+  if (authStatus !== 'authenticated' && authStatus !== 'refresh-pending') {
     return null;
   }
   const rawIdentity = user?.id ?? user?.accountId ?? user?.subjectId ?? user?.sub;
   const identity = String(rawIdentity || '').trim();
-  return identity ? `user:${identity}` : null;
-}
-
-function normalizeUnreadCount(value: number): number {
-  if (!Number.isFinite(value) || value < 0) {
-    return 0;
-  }
-  return Math.floor(value);
-}
-
-export function patchNotificationUnreadCaches(
-  unreadCount: number,
-  identityRef: string,
-  client: QueryClient,
-): void {
-  const nextUnreadCount = normalizeUnreadCount(unreadCount);
-
-  client.setQueryData(
-    notificationQueryKeys.unreadCount(identityRef),
-    (current: unknown): NimiRealmNotificationUnreadView => {
-      if (current && typeof current === 'object' && !Array.isArray(current)) {
-        const currentProjection = current as Partial<NimiRealmNotificationUnreadView>;
-        return {
-          ...currentProjection,
-          total: nextUnreadCount,
-          byType: currentProjection.byType ?? {},
-        };
-      }
-      return {
-        total: nextUnreadCount,
-        byType: {},
-      };
-    },
-  );
-
-  client.setQueryData(
-    notificationQueryKeys.topbarUnreadCount(identityRef),
-    (current: unknown): NimiRealmNotificationUnreadView => {
-      if (current && typeof current === 'object' && !Array.isArray(current)) {
-        const currentProjection = current as Partial<NimiRealmNotificationUnreadView>;
-        return {
-          ...currentProjection,
-          total: nextUnreadCount,
-          byType: currentProjection.byType ?? {},
-        };
-      }
-      return {
-        total: nextUnreadCount,
-        byType: {},
-      };
-    },
-  );
+  return identity ? JSON.stringify(['realm-notifications', user?.realmEnvironmentId ?? '', identity]) : null;
 }
 
 export async function invalidateNotificationQueries(
@@ -89,5 +37,7 @@ export async function invalidateNotificationQueries(
     client.invalidateQueries({ queryKey: notificationQueryKeys.pageRoot }),
     client.invalidateQueries({ queryKey: notificationQueryKeys.unreadCountRoot }),
     client.invalidateQueries({ queryKey: notificationQueryKeys.topbarUnreadCountRoot }),
+    // The current-request projection must refresh alongside its notification.
+    client.invalidateQueries({ queryKey: ['human-contacts'], predicate: query => query.queryKey[3] === 'received' }),
   ]);
 }

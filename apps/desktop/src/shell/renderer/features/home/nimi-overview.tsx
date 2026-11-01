@@ -4,6 +4,7 @@ import { Button, InlineAlert, LoadingSkeleton, ScrollArea } from '@nimiplatform/
 import { useQuery } from '@tanstack/react-query';
 import { ArrowUp, ChevronRight } from 'lucide-react';
 import { useState, useSyncExternalStore, type ReactNode } from 'react';
+import { useHomeListPosition } from '../../app-shell/providers/use-home-list-position.js';
 import { useTranslation } from 'react-i18next';
 import { SHELL_PAGE_WIDTH_CLASS } from '../../app-shell/layouts/shell-chrome-classes.js';
 import { useAppStore } from '../../app-shell/providers/app-store.js';
@@ -19,7 +20,6 @@ import { capabilityPreparationState, useCapabilityInventory } from '../runtime-c
 import { displayRuntimeConfigCapabilityLabel } from '../runtime-config/runtime-config-capability-labels.js';
 import { isDownloadTerminal } from '../runtime-config/runtime-config-model-center-utils.js';
 import type { RuntimeAdvancedDiagnosticsPane } from '../runtime-config/runtime-config-state-types.js';
-import { runtimeSetupFailureText } from '../runtime-config/runtime-setup-failure-message.js';
 import { HomeAgentCard } from './home-agent-card.js';
 import { HomeGettingStarted } from './home-getting-started.js';
 import { HomeIntegrationsCard } from './home-integrations-card.js';
@@ -95,14 +95,17 @@ export function NimiOverview() {
   const authUser = useAppStore((state) => state.auth.user);
   const authStatus = useAppStore((state) => state.auth.status);
   const destination = useHomeDestination();
-  const inventory = useCapabilityInventory({ enabled: destination.id === 'home' });
+  const inventory = useCapabilityInventory({ enabled: destination.id === 'home' || destination.id === 'notification' });
   const downloads = useGlobalDownloads();
   const apps = useAppsOverview();
-  const homeEntryDestination = destination.homeSection ?? 'overview';
+  const homeEntryDestination = destination.id === 'notification' ? 'center' : destination.homeSection ?? 'overview';
   const view = homeEntryDestination;
-  const setView = (homeSection: 'overview' | 'center' | 'integrations' | 'ai-activity') => void navigation.push({ id: 'home', homeSection });
-  const [centerFilter, setCenterFilter] = useState<HomeMessageFilter>('all');
-  const [centerSource, setCenterSource] = useState<string | null>(null);
+  const setView = (homeSection: 'overview' | 'integrations' | 'ai-activity') => void navigation.push({ id: 'home', homeSection });
+  const centerFilter = destination.messageFilter ?? 'all';
+  const centerSource = destination.messageSource ?? null;
+  const setCenterFilter = (messageFilter: HomeMessageFilter) => { void navigation.replace({ id: 'notification', messageFilter, messageSource: centerSource ?? undefined }); };
+  const setCenterSource = (messageSource: string | null) => { void navigation.replace({ id: 'notification', messageFilter: centerFilter, messageSource: messageSource ?? undefined }); };
+  const centerViewport = useHomeListPosition(`message-center:${centerFilter}:${centerSource ?? ''}`, view === 'center', false);
   const [integrationIntent, setIntegrationIntent] = useState<IntegrationsPanelIntent | null>(null);
   const openIntegrations = (intent?: IntegrationsPanelIntent) => {
     setIntegrationIntent(intent ?? null);
@@ -151,7 +154,7 @@ export function NimiOverview() {
   // so the previous projection, subscriptions and display preferences are
   // dropped. A token refresh keeps the same account and scope.
   const messagesAccountKey = (authStatus === 'authenticated' || authStatus === 'refresh-pending') && authUser?.id
-    ? String(authUser.id)
+    ? JSON.stringify([authUser.realmEnvironmentId, authUser.id])
     : null;
   const now = new Date();
   const textPreparation = capabilityPreparationState({
@@ -176,9 +179,7 @@ export function NimiOverview() {
     void navigation.push({ id: 'settings', settingsSection: 'notifications' });
   };
   const openCenter = (filter: HomeMessageFilter) => {
-    setCenterFilter(filter);
-    setCenterSource(null);
-    setView('center');
+    void navigation.push({ id: 'notification', messageFilter: filter });
   };
   // System items are projected from their complete owner sets; only the Home
   // preview trims them, and each keeps its own navigation target.
@@ -200,7 +201,7 @@ export function NimiOverview() {
       kind: 'setup',
       id: task.taskId,
       title: t('runtimeConfig.overview.setupFailed', { capability: displayRuntimeConfigCapabilityLabel(task.capabilityContract, t) }),
-      detail: task.failure ? runtimeSetupFailureText(task.failure, t) : '',
+      detail: t('runtimeConfig.overview.messages.setupNeedsReview'),
       progress: null,
       time: task.updatedAt || null,
       app: null,
@@ -228,8 +229,8 @@ export function NimiOverview() {
   };
   const cardContext = (messages: HomeMessages): HomeMessageCardContext => ({
     now,
-    busy: messages.app.busy,
-    notices: messages.app.notices,
+    busy: { ...messages.app.busy, ...messages.realm.busy },
+    notices: { ...messages.app.notices, ...Object.fromEntries(Object.entries(messages.realm.errors).map(([id, text]) => [id, { tone: 'warning' as const, text }])) },
     appIconUrl: (appId) => (appId ? iconUrls.get(appId) ?? null : null),
     canHide: messages.preferences.state.status === 'ready' && !messages.preferences.saving,
     onOpen: messages.open,
@@ -405,6 +406,7 @@ export function NimiOverview() {
     <div className="flex min-h-0 flex-1 flex-col p-3">
       {view === 'center' && messages ? (
         <ScrollArea
+          viewportRef={centerViewport}
           className="min-h-0 flex-1"
           viewportClassName="bg-transparent [&>div]:!block"
           contentClassName={`${SHELL_PAGE_WIDTH_CLASS} pb-7 pt-5`}

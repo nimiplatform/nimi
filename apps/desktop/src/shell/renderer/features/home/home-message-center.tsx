@@ -34,14 +34,21 @@ export function HomeMessageCenter({ messages, context, filter, sourceKey, onFilt
   const sourceOptions = messageSourceOptions(messages.messages, t);
   const selectedSource = sourceKey && sourceOptions.some((option) => option.value === sourceKey) ? sourceKey : null;
   const list = filterCenterMessages(messages.messages, filter, selectedSource);
-  const pending = pendingSummary(messages);
+  const pending = pendingSummary(messages, selectedSource);
   const domain = messageDomainOfGroup(selectedSource);
   const appView = filter === 'pending' ? messages.app.pending : messages.app.recent;
   // Runtime summaries are never pending.
-  const appRelevant = domain === null || domain === 'app' || (domain === 'runtime-agent' && filter === 'all');
-  const appIncomplete = appRelevant && !appView.complete;
-  const loading = appRelevant && appView.status === 'loading' && !appView.records.length;
+  const appRelevant = domain === null || domain === 'app' || (domain === 'runtime-agent' && filter !== 'pending');
+  const realmRelevant = domain === null || domain === 'realm';
+  const realmNotificationsRelevant = realmRelevant && filter !== 'pending';
+  const incomplete = appRelevant && !appView.complete || realmRelevant && !messages.realm.requests.complete
+    || realmNotificationsRelevant && !messages.realm.notifications.complete;
+  const loading = !list.length && (appRelevant && appView.status === 'loading' || realmRelevant && messages.realm.requests.loading || realmNotificationsRelevant && messages.realm.notifications.loading);
   const canLoadApp = appRelevant && appView.hasMore;
+  const canLoadRequests = realmRelevant && messages.realm.requests.hasMore;
+  const canLoadNotifications = realmNotificationsRelevant && messages.realm.notifications.hasMore;
+  const canLoadMore = canLoadApp || canLoadRequests || canLoadNotifications;
+  const loadingMore = appRelevant && appView.status === 'loading' || messages.realm.requests.loadingMore || messages.realm.notifications.loadingMore;
   return (
     <section className="mx-auto flex w-full max-w-[1060px] flex-col gap-4 pb-6" aria-labelledby="home-message-center-title" data-testid="home-message-center">
       <div>
@@ -62,9 +69,10 @@ export function HomeMessageCenter({ messages, context, filter, sourceKey, onFilt
           ariaLabel={t('runtimeConfig.overview.messages.filterLabel')}
           size="sm"
           value={filter}
-          onValueChange={(value) => onFilterChange(value === 'pending' ? 'pending' : 'all')}
+          onValueChange={(value) => onFilterChange(value as HomeMessageFilter)}
           items={[
             { value: 'all', label: t('runtimeConfig.overview.messages.filterAll') },
+            { value: 'unread', label: t('runtimeConfig.overview.messages.filterUnread') },
             {
               value: 'pending',
               label: pending.known
@@ -77,7 +85,7 @@ export function HomeMessageCenter({ messages, context, filter, sourceKey, onFilt
       </div>
 
       <HomeExecutionNotices appArtworkFor={appArtworkForNotice} />
-      <HomeMessageSourceNotices messages={messages} app={appRelevant} />
+      <HomeMessageSourceNotices messages={messages} app={appRelevant} realm={realmRelevant} />
 
       <div className="flex flex-col gap-2.5" data-testid="home-message-center-list">
         {list.map((message) => (
@@ -97,26 +105,24 @@ export function HomeMessageCenter({ messages, context, filter, sourceKey, onFilt
         {!list.length && !loading ? (
           <div className="flex flex-col items-center gap-2 py-10 text-sm text-[var(--nimi-text-secondary)]" data-testid="home-message-center-empty">
             <Inbox size={20} aria-hidden="true" className="text-[var(--nimi-text-muted)]" />
-            {appIncomplete
+            {incomplete
               ? t('runtimeConfig.overview.messages.notLoaded')
               : filter === 'pending'
                 ? t('runtimeConfig.overview.messages.pendingEmpty')
-                : t('runtimeConfig.overview.messages.empty')}
+                : filter === 'unread' ? t('runtimeConfig.overview.messages.unreadEmpty')
+                  : t('runtimeConfig.overview.messages.empty')}
           </div>
         ) : null}
       </div>
 
-      {canLoadApp ? (
-        <div className="flex flex-col items-center gap-2">
-          <div className="flex flex-wrap justify-center gap-2">
-            {canLoadApp ? (
-              <Button tone="secondary" size="sm" onClick={() => messages.app.loadMore(filter === 'pending' ? 'pending' : 'recent')} data-testid="home-message-center-more-app">
-                {t('runtimeConfig.overview.messages.loadMoreApp')}
-              </Button>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
+      {incomplete && list.length > 0 ? <p className="text-center text-xs text-[var(--nimi-text-secondary)]">{t('runtimeConfig.overview.messages.partialListing')}</p> : null}
+      {canLoadMore ? <div className="flex justify-center">
+        <Button tone="secondary" size="sm" loading={loadingMore} onClick={() => {
+          if (canLoadApp) messages.app.loadMore(filter === 'pending' ? 'pending' : 'recent');
+          if (canLoadNotifications) messages.realm.notifications.loadMore();
+          if (canLoadRequests) messages.realm.requests.loadMore();
+        }} data-testid="home-message-center-more">{t('Relationship.contacts.loadMore')}</Button>
+      </div> : null}
     </section>
   );
 }

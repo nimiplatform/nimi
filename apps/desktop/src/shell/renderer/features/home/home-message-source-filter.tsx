@@ -6,8 +6,8 @@ import { messageSourceLabel } from './home-message-card.js';
 import { compareTimelineMessages, messageCenterSourceKey, type HomeMessage, type HomeMessageDomain } from './home-messages-model.js';
 
 type Translate = ReturnType<typeof useTranslation>['t'];
-const DOMAINS = ['app', 'runtime-agent', 'system'] as const;
-const DOMAIN_ICONS = { app: LayoutGrid, 'runtime-agent': MessageCircle, system: Settings2 };
+const DOMAINS = ['realm', 'app', 'runtime-agent', 'system'] as const;
+const DOMAIN_ICONS = { realm: MessageCircle, app: LayoutGrid, 'runtime-agent': MessageCircle, system: Settings2 };
 
 export type MessageSourceOption = Readonly<{
   value: string;
@@ -24,7 +24,7 @@ export function messageSourceOptions(messages: readonly HomeMessage[], t: Transl
   const sources = new Map<string, MessageSourceOption>();
   for (const message of [...messages].sort(compareTimelineMessages)) {
     const value = messageCenterSourceKey(message);
-    const label = message.sourceKind === 'runtime-agent' && message.record.agent
+    const label = message.sourceKind === 'realm' ? t('runtimeConfig.overview.messages.realmSource') : message.sourceKind === 'runtime-agent' && message.record.agent
       ? message.record.agent.displayName
       : messageSourceLabel(message, t);
     const appId = message.sourceKind === 'app' ? message.record.source.appId : null;

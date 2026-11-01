@@ -1,3 +1,5 @@
+import type { NimiRealmNotificationItemView } from '@nimiplatform/sdk/realm';
+import type { ContactRow } from '../relationship/human-contact-data.js';
 import type { NimiAppActivityRecord } from '@nimiplatform/sdk/app';
 import { isPendingTodo } from './home-app-activity-model.js';
 
@@ -21,14 +23,16 @@ export function quickFilterSelection(filter: HomeTimelineQuickFilter): Readonly<
 }
 
 export function timelineType(message: HomeMessage): Exclude<HomeTimelineType, 'all'> {
-  if (message.sourceKind === 'system' || message.record.kind === 'todo') return 'todo';
+  if (message.sourceKind === 'realm') return message.request ? 'todo' : 'message';
+  if (message.sourceKind === 'system') return message.system.kind === 'setup' ? 'todo' : 'message';
+  if (message.record.kind === 'todo') return 'todo';
   return 'message';
 }
 
 export function filterTimelineMessages(messages: readonly HomeMessage[], type: HomeTimelineType, status: HomeTimelineStatus): HomeMessage[] {
   return messages.filter((message) => (type === 'all' || timelineType(message) === type)
     && (status === 'all' || (status === 'pending' ? isPendingMessage(message)
-      : (message.sourceKind === 'app' || message.sourceKind === 'runtime-agent') && message.record.userView.unread)));
+      : isUnreadMessage(message))));
 }
 
 export type HomeSystemMessageKind = 'download' | 'setup' | 'update';
@@ -66,7 +70,14 @@ export type HomeSystemItemMessage = MessageBase & Readonly<{
   system: HomeSystemMessage;
 }>;
 
-export type HomeMessage = HomeActivityMessage | HomeSystemItemMessage;
+export type HomeRealmMessage = MessageBase & Readonly<{
+  sourceKind: 'realm';
+  time: string | null;
+  notifications: readonly NimiRealmNotificationItemView[];
+  request: ContactRow | null;
+}>;
+
+export type HomeMessage = HomeActivityMessage | HomeSystemItemMessage | HomeRealmMessage;
 
 export type HomeMessageGroup = Readonly<{
   key: string;
@@ -75,7 +86,7 @@ export type HomeMessageGroup = Readonly<{
   messages: readonly HomeMessage[];
 }>;
 
-export type HomeMessageFilter = 'all' | 'pending';
+export type HomeMessageFilter = 'all' | 'unread' | 'pending';
 
 export function activityMessage(record: NimiAppActivityRecord): HomeActivityMessage {
   const key = `activity:${record.activityId}`;
@@ -104,7 +115,8 @@ export function systemMessage(system: HomeSystemMessage): HomeSystemItemMessage 
 
 /** Open todos (read or not) and unresolved system items; activity summaries never are. */
 export function isPendingMessage(message: HomeMessage): boolean {
-  if (message.sourceKind === 'system') return true;
+  if (message.sourceKind === 'system') return message.system.kind === 'setup';
+  if (message.sourceKind === 'realm') return Boolean(message.request);
   return isPendingTodo(message.record);
 }
 
@@ -114,7 +126,7 @@ export function isInProgressMessage(message: HomeMessage): boolean {
 }
 
 export function isHideableMessage(message: HomeMessage): boolean {
-  return message.sourceKind !== 'system';
+  return message.sourceKind === 'app' || message.sourceKind === 'runtime-agent';
 }
 
 function factTime(message: HomeMessage): number | null {
@@ -190,16 +202,17 @@ export function filterCenterMessages(
   groupKey: string | null,
 ): HomeMessage[] {
   return messages
-    .filter((message) => (filter === 'all' || isPendingMessage(message))
+    .filter((message) => (filter === 'all' || (filter === 'unread' ? isUnreadMessage(message) : isPendingMessage(message)))
       && (!groupKey || messageCenterSourceKey(message) === groupKey))
-    .sort(compareMessages);
+    .sort(compareTimelineMessages);
 }
 
-export type HomeMessageDomain = 'app' | 'runtime-agent' | 'system';
+export type HomeMessageDomain = 'app' | 'runtime-agent' | 'system' | 'realm';
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r036
 /** Center filtering aggregates App registrations only; records and actions retain their exact source. */
 export function messageCenterSourceKey(message: HomeMessage): string {
+  if (message.sourceKind === 'realm') return 'realm';
   return message.sourceKind === 'app' && message.record.source.appId
     ? `app-id:${message.record.source.appId}`
     : message.groupKey;
@@ -208,8 +221,16 @@ export function messageCenterSourceKey(message: HomeMessage): string {
 /** Owner domain of a source filter; null selects every source. */
 export function messageDomainOfGroup(groupKey: string | null): HomeMessageDomain | null {
   if (!groupKey) return null;
+  if (groupKey === 'realm') return 'realm';
   if (groupKey.startsWith('app:') || groupKey.startsWith('app-id:')) return 'app';
   if (groupKey.startsWith('runtime-agent')) return 'runtime-agent';
   if (groupKey.startsWith('system:')) return 'system';
   return null;
+}
+
+/** Reading a notification is independent of todo or conversation read state. */
+export function isUnreadMessage(message: HomeMessage): boolean {
+  if (message.sourceKind === 'system') return false;
+  if (message.sourceKind === 'realm') return message.notifications.some(notification => !notification.isRead);
+  return message.record.userView.unread;
 }

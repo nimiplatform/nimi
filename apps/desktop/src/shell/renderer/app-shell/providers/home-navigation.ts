@@ -24,7 +24,7 @@ export type HomeRuntimePosition = {
 
 export type HomeDestination = {
   readonly id: AppTab;
-  readonly homeSection?: 'overview' | 'center' | 'integrations' | 'ai-activity';
+  readonly homeSection?: 'overview' | 'integrations' | 'ai-activity';
   readonly profileId?: string;
   readonly sourceRef?: CharacterSourceRefV3;
   readonly worldId?: string;
@@ -42,6 +42,8 @@ export type HomeDestination = {
   readonly appEntryKey?: string;
   readonly appSection?: NimiDesktopOpenAppsSection;
   readonly settingsSection?: string;
+  readonly messageFilter?: 'all' | 'unread' | 'pending';
+  readonly messageSource?: string;
   readonly chat?: HomeChatPosition;
   readonly runtime?: HomeRuntimePosition;
 };
@@ -62,7 +64,7 @@ const CATALOG: Record<AppTab, readonly string[]> = {
   apps: ['appId', 'appEntryKey', 'appSection'], runtime: ['runtime'], cloud: ['runtime'], downloads: [], diagnostics: ['runtime'],
   settings: ['settingsSection'], profile: ['profileId'],
   'source-detail': ['sourceRef'], 'world-detail': ['worldId', 'worldSubpage', 'search'],
-  notification: [],
+  notification: ['messageFilter', 'messageSource'],
 };
 const stringRef = (value: unknown): string => {
   if (typeof value !== 'string' || !value.trim() || value !== value.trim()) throw new Error('Home destination requires a nonempty reference.');
@@ -86,13 +88,15 @@ export function validateHomeDestination(value: unknown): HomeDestination {
     result.sourceRef = sourceRef;
   }
   const closed = (key: string, allowed: readonly string[]) => { if (result[key] !== undefined && !allowed.includes(result[key] as string)) throw new Error(`Invalid Home ${key}.`); };
-  closed('homeSection', ['overview', 'center', 'integrations', 'ai-activity']);
+  closed('homeSection', ['overview', 'integrations', 'ai-activity']);
   closed('exploreSection', ['worlds', 'partners']);
   closed('exploreSearchKind', ['worlds', 'characters']);
   closed('worldCollection', ['favorites']);
   closed('worldSubpage', ['relationship-explorer', 'reader']);
   closed('appSection', ['overview', 'ai-models']);
   closed('settingsSection', SETTINGS_SECTIONS);
+  closed('messageFilter', ['all', 'unread', 'pending']);
+  if (result.messageSource !== undefined) result.messageSource = stringRef(result.messageSource);
   if (result.search !== undefined && typeof result.search !== 'string') throw new Error('Invalid Home search.');
   if (result.worldSearch !== undefined && typeof result.worldSearch !== 'string') throw new Error('Invalid Home world search.');
   if (result.partnerQuery !== undefined && typeof result.partnerQuery !== 'string') throw new Error('Invalid Home partner search.');
@@ -107,6 +111,7 @@ export function validateHomeDestination(value: unknown): HomeDestination {
   if (id === 'home') result.homeSection ??= 'overview';
   if (id === 'explore') { result.exploreSection ??= 'worlds'; result.search ??= ''; }
   if (id === 'settings') result.settingsSection ??= 'appearance';
+  if (id === 'notification') result.messageFilter ??= 'all';
   if (id === 'runtime' || id === 'cloud' || id === 'diagnostics') {
     const position = result.runtime ?? {};
     if (!position || typeof position !== 'object' || Array.isArray(position)) throw new Error('Invalid Runtime position.');

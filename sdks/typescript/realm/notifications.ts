@@ -32,6 +32,7 @@ export interface NimiRealmNotificationItemView {
   readonly actorAvatarUrl: string | null;
   readonly actorKind: 'account';
   readonly relationshipId?: string | null;
+  readonly target: NotificationDto['target'];
 }
 
 export interface NimiRealmNotificationListView {
@@ -98,6 +99,7 @@ export function toNimiRealmNotificationItemView(
     || typeof raw.isRead !== 'boolean'
     || !isNotificationActor(raw.actor)
     || !isNullableRecord(raw.target)
+    || (raw.target != null && Object.values(raw.target).some(value => value != null && (typeof value !== 'string' || !value.trim())))
     || !isNullableRecord(raw.data)
   ) {
     throw notificationDecodeError('Realm notification item response is malformed.');
@@ -123,6 +125,7 @@ export function toNimiRealmNotificationItemView(
     actorAvatarUrl: rawActorAvatarUrl || null,
     actorKind: 'account',
     relationshipId: typeof raw.data?.relationshipId === 'string' ? raw.data.relationshipId : null,
+    target: raw.target,
   };
 }
 

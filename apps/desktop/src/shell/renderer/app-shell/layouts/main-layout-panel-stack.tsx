@@ -27,10 +27,7 @@ const RuntimeConfigPanelBody = lazy(async () => {
   const mod = await import('../../features/runtime-config/runtime-config-panel-view');
   return { default: mod.RuntimeConfigPanelBody };
 });
-const NotificationPanel = lazy(async () => {
-  const mod = await import('../../features/notification/notification-panel');
-  return { default: mod.NotificationPanel };
-});
+
 const ProfilePanel = lazy(async () => {
   const mod = await import('../../features/profile/profile-panel');
   return { default: mod.ProfilePanel };
@@ -119,8 +116,8 @@ export function MainLayoutPanelStack({
               <GlobalDownloadsView />
             </MotionPanelFrame>
           ) : null}
-          {activeTab === 'home' ? (
-            <MotionPanelFrame panelId="home">
+          {activeTab === 'home' || activeTab === 'notification' ? (
+            <MotionPanelFrame panelId={activeTab}>
               <NimiOverview />
             </MotionPanelFrame>
           ) : null}
@@ -148,11 +145,7 @@ export function MainLayoutPanelStack({
             </MotionPanelFrame>
           ) : null}
 
-          {activeTab === 'notification' ? (
-            <MotionPanelFrame panelId="notification">
-              <NotificationPanel />
-            </MotionPanelFrame>
-          ) : null}
+
 
           {activeTab === 'settings' ? (
             <MotionPanelFrame panelId="settings">

@@ -14,6 +14,7 @@ export type ContactRow = {
   avatarMedia?: RealmModel<'MediaDeliveryDto'> | null;
   isDeleted: boolean;
   requestMessage?: string | null;
+  requestedAt?: string;
 };
 export type ContactPage = { items: ContactRow[]; nextCursor: string | null; total: number };
 

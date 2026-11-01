@@ -64,7 +64,7 @@ export async function executeSystemEntryRendererAction(request: SystemEntryActio
   const action = request.action;
   switch (action.kind) {
     case 'home': return navigate({ id: 'home', homeSection: 'overview' });
-    case 'messages': return navigate({ id: 'home', homeSection: 'center' });
+    case 'messages': return navigate({ id: 'notification' });
     case 'activity':
     case 'usage': await input.reading.openAIActivity(); guard(); return;
     case 'downloads': return navigate({ id: 'downloads' });

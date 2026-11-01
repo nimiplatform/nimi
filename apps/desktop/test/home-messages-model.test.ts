@@ -98,14 +98,14 @@ test('App sources group by sourceRef and Runtime summaries by agentRef', () => {
   ]);
 });
 
-test('work in progress leads, then owner time newest first, then items without a time', () => {
+test('the center follows owner time without promoting ongoing downloads', () => {
   const download = systemMessage({ ...system('download', 'install-1', '2026-09-20T00:00:00.000Z'), progress: { value: 1, max: 4 } });
   const update = systemMessage(system('update', 'com.example.studio', null));
   const setup = systemMessage(system('setup', 'task-1', '2026-09-22T00:00:00.000Z'));
   const newest = activityMessage(record(9, { occurredAt: '2026-09-23T09:00:00.000Z' }));
   const older = activityMessage(record(8, { occurredAt: '2026-09-21T09:00:00.000Z' }));
   const order = filterCenterMessages([update, older, setup, newest, download], 'all', null).map((message) => message.key);
-  assert.deepEqual(order, [download.key, newest.key, setup.key, older.key, update.key]);
+  assert.deepEqual(order, [newest.key, setup.key, older.key, download.key, update.key]);
 });
 
 test('Home is a bounded time stream: interleaved, old and different-type messages never join a stack', () => {
@@ -137,9 +137,9 @@ test('timeline filters distinguish todos and summaries without inventing unread 
   const summary = activityMessage(record(3, { kind: 'activity', todoState: null }));
   const update = systemMessage(system('update', 'update', null));
   const messages = [todo, readTodo, summary,  update];
-  assert.deepEqual(filterTimelineMessages(messages, 'all', 'pending'), [todo, readTodo, update]);
+  assert.deepEqual(filterTimelineMessages(messages, 'all', 'pending'), [todo, readTodo]);
   assert.deepEqual(filterTimelineMessages(messages, 'all', 'unread'), [todo, summary]);
-  assert.deepEqual(filterTimelineMessages(messages, 'message', 'all'), [summary]);
+  assert.deepEqual(filterTimelineMessages(messages, 'message', 'all'), [summary, update]);
   assert.deepEqual(filterTimelineMessages(messages, 'todo', 'unread'), [todo]);
 });
 

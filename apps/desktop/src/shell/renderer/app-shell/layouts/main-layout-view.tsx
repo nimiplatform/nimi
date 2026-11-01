@@ -1,3 +1,5 @@
+import { useHomeAppActivity } from '../../features/system-entry/system-entry-context.js';
+import { mergeActivitySnapshots } from '../../features/home/home-app-activity-model.js';
 import { openHomeSettings } from '../../features/settings/settings-entry.js';
 import { useHomeNavigation, useHomeDestination } from '../providers/app-store.js';
 import { homeNavigationColumn } from '../providers/home-navigation.js';
@@ -127,8 +129,9 @@ export function MainLayoutView(props: MainLayoutViewProps) {
     refetchInterval: windowFocused ? 30_000 : false,
   });
 
-  const unreadCount = unreadCountQuery.data?.total ?? 0;
-  const unreadBadge = unreadCount > 99 ? '99+' : String(unreadCount);
+  const messageActivity = useHomeAppActivity();
+  const activityUnread = useMemo(() => mergeActivitySnapshots(messageActivity.pending, messageActivity.recent).some(record => record.userView.unread), [messageActivity.pending, messageActivity.recent]);
+  const hasUnreadMessages = (unreadCountQuery.data?.total ?? 0) > 0 || activityUnread;
   const integrationsRailActive = props.activeTab === 'home' && homeEntryDestination === 'integrations';
 
   const updateSettingsMenuPosition = useCallback(() => {
@@ -355,6 +358,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                       : 'text-[var(--nimi-text-secondary)] hover:text-[var(--nimi-text-primary)]'
                   }`}
                   aria-label={t('Common.openNotifications')}
+                  aria-current={props.activeTab === 'notification' ? 'page' : undefined}
                 >
                   <svg
                     width="20"
@@ -369,15 +373,7 @@ export function MainLayoutView(props: MainLayoutViewProps) {
                     <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
                     <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
                   </svg>
-                  {unreadCount > 0 ? (
-                    unreadCount > 1 ? (
-                      <span className="absolute -right-1 -top-1 flex min-w-[16px] items-center justify-center rounded-full border-2 border-[color:var(--nimi-surface-canvas)] bg-[var(--nimi-status-danger)] px-1 text-[10px] leading-[14px] text-white">
-                        {unreadBadge}
-                      </span>
-                    ) : (
-                      <span className="absolute right-1 top-1.5 h-2 w-2 rounded-full border-2 border-[color:var(--nimi-surface-canvas)] bg-[var(--nimi-status-danger)]" />
-                    )
-                  ) : null}
+                  {hasUnreadMessages ? <span className="absolute right-1 top-1.5 h-2.5 w-2.5 rounded-full border-2 border-[color:var(--nimi-surface-canvas)] bg-[var(--nimi-status-danger)]" role="status" aria-label={t('runtimeConfig.overview.messages.hasUnread')} /> : null}
                 </motion.button>
               </Tooltip>
               <Tooltip

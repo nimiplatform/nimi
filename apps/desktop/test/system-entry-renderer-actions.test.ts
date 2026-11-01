@@ -39,6 +39,13 @@ test('activity and usage actions share one Home destination and history entry', 
   for (const homeSection of ['work', 'usage']) assert.throws(() => validateHomeDestination({ id: 'home', homeSection }), /Invalid Home homeSection/);
 });
 
+test('system-entry messages uses the same global message center as the bell', async () => {
+  const value = setup();
+  await executeSystemEntryRendererAction({ requestId: 'messages', generation: 'account-a', revision: 1, action: { kind: 'messages' } }, value.input);
+  assert.deepEqual(value.input.navigation.getSnapshot().current.destination, { id: 'notification', messageFilter: 'all' });
+  value.input.navigation.dispose();
+});
+
 test('old generation action is rejected before navigation or source effects', async () => {
   const value = setup();
   await assert.rejects(executeSystemEntryRendererAction({ requestId: 'request-a', generation: 'old-account', revision: 1, action: { kind: 'downloads' } }, value.input), /system-entry-view-stale/);

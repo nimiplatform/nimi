@@ -10,27 +10,28 @@ import {
   type HomeMessageCardContext,
 } from './home-message-card.js';
 import type { HomeMessages } from './home-messages-controller.js';
-import { filterTimelineMessages, homePreviewGroups, isPendingMessage, quickFilterSelection, type HomeMessageGroup, type HomeTimelineQuickFilter } from './home-messages-model.js';
+import { filterTimelineMessages, homePreviewGroups, isPendingMessage, messageCenterSourceKey, messageDomainOfGroup, quickFilterSelection, type HomeMessageGroup, type HomeTimelineQuickFilter } from './home-messages-model.js';
 
 /** Loaded pending items; `more` while the open-todo listing is still incomplete. */
-export function pendingSummary(messages: HomeMessages): Readonly<{ count: number; more: boolean; known: boolean }> {
+export function pendingSummary(messages: HomeMessages, sourceKey: string | null = null): Readonly<{ count: number; more: boolean; known: boolean }> {
   const pending = messages.app.pending;
-  return {
-    count: messages.messages.filter(isPendingMessage).length,
-    more: !pending.complete,
-    known: pending.status !== 'loading' || pending.records.length > 0,
-  };
+  const domain = messageDomainOfGroup(sourceKey);
+  const count = messages.messages.filter(message => isPendingMessage(message) && (!sourceKey || messageCenterSourceKey(message) === sourceKey)).length;
+  const complete = (domain !== null && domain !== 'app' || pending.complete)
+    && (domain !== null && domain !== 'realm' || messages.realm.requests.complete);
+  return { count, more: !complete, known: complete || count > 0 };
 }
 
 function appLoading(messages: HomeMessages): boolean {
   const { pending, recent } = messages.app;
-  return (pending.status === 'loading' || recent.status === 'loading') && !pending.records.length && !recent.records.length;
+  return (pending.status === 'loading' || recent.status === 'loading' || messages.realm.notifications.loading || messages.realm.requests.loading) && !messages.messages.length;
 }
 
 /** Source-local read problems; each keeps the other sources usable. */
-export function HomeMessageSourceNotices({ messages, app = true, preferences = true }: {
+export function HomeMessageSourceNotices({ messages, app = true, realm = true, preferences = true }: {
   messages: HomeMessages;
   app?: boolean;
+  realm?: boolean;
   preferences?: boolean;
 }) {
   const { t } = useTranslation();
@@ -40,6 +41,8 @@ export function HomeMessageSourceNotices({ messages, app = true, preferences = t
   );
   return (
     <>
+      {realm && messages.realm.notifications.failed ? <InlineAlert tone="warning" action={retry(messages.realm.notifications.retry)}>{t('runtimeConfig.overview.messages.realmUnavailable')}</InlineAlert> : null}
+      {realm && messages.realm.requests.failed ? <InlineAlert tone="warning" action={retry(messages.realm.requests.retry)}>{t('runtimeConfig.overview.messages.requestsUnavailable')}</InlineAlert> : null}
       {app && (messages.app.pending.status === 'unavailable' || messages.app.recent.status === 'unavailable') ? (
         <InlineAlert tone="warning" action={retry(messages.app.retry)} data-testid="home-messages-app-unavailable">
           <p className="font-medium">{t('runtimeConfig.overview.messages.appUnavailable')}</p>
@@ -108,7 +111,8 @@ export function HomeMessagesColumn({ messages, context, onViewAll, appArtworkFor
   const appComplete = status === 'pending' ? messages.app.pending.complete
     : type === 'message' ? messages.app.recent.complete
     : messages.app.pending.complete && messages.app.recent.complete;
-  const complete = appComplete;
+  const complete = appComplete && messages.realm.requests.complete
+    && (status === 'pending' || messages.realm.notifications.complete);
   const clearFilters = () => setFilter('all');
   const quickFilterItem = (value: HomeTimelineQuickFilter): NimiMenuItem => ({
     id: value,

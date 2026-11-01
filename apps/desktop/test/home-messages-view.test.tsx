@@ -87,6 +87,9 @@ function controller(input: {
       retry: noop,
       loadMore: input.onLoadMore ?? noop,
     },
+    realm: { messages: [], busy: {}, errors: {}, open: noop, markRead: noop,
+      notifications: { complete: true, hasMore: false, loading: false, failed: false, loadingMore: false, loadMore: noop, retry: noop },
+      requests: { complete: true, hasMore: false, loading: false, failed: false, loadingMore: false, loadMore: noop, retry: noop } },
     preferences: {
       state: status === 'ready' ? { status, preferences: DEFAULT_HOME_MESSAGE_PREFERENCES } : { status },
       saving: false,
@@ -204,13 +207,14 @@ test('Home mixes sources chronologically with compact navigation above the previ
   assert.match(html, /data-testid="home-message-stack:app:src_parentos:/);
   assert.match(html, /1 more · Expand/);
   assert.match(html, />43%</, 'download progress comes from real totals');
-  assert.match(html, /Pending 3\+/, 'an incomplete open-todo listing never claims a total');
+  assert.match(html, /Pending 2\+/, 'an incomplete open-todo listing never claims a total');
   // ShiJing and Runtime summaries have no open target; Runtime summaries remain non-openable.
   assert.doesNotMatch(cardHtml(html, rijing.key), />Open</);
   assert.match(cardHtml(html, rijing.key), /Mark as read/);
   assert.doesNotMatch(cardHtml(html, turn.key), />Open</);
+  assert.match(cardHtml(html, turn.key), /Find companion/);
   assert.doesNotMatch(html, /View post/, 'deferred Realm Posts have no Home action');
-  assert.match(html, /Runtime · Qilan/);
+  assert.match(html, /Qilan/);
   assert.match(html, /Replied in a conversation/);
   assert.doesNotMatch(html, /publisher-owned/, 'publisher data is never parsed or shown');
   assert.equal((html.match(/aria-label="Hide from Home"/g) ?? []).length, 2, 'ShiJing and Runtime cards can be hidden');
@@ -289,8 +293,8 @@ test('the center reads summaries in full, keeps read and hidden open todos pendi
   assert.match(pending, /Hidden from Home/);
   assert.match(pending, /Show on Home/);
   assert.match(pending, /This source is hidden from Home/);
-  assert.match(pending, /Message settings/);
-  assert.match(pending, /Load more app messages/);
+  assert.match(pending, /Message &amp; notification settings/);
+  assert.match(pending, /Load more/);
   assert.doesNotMatch(pending, /Load more posts/, 'Pending never loads Realm posts');
 });
 
@@ -305,6 +309,22 @@ test('center empty results are definite only after the relevant listing is compl
   const complete = renderCenter(controller({ messages: [rijing] }), 'pending');
   assert.match(complete, /Nothing pending/);
 
+});
+
+test('unloaded Realm messages and filtered Agent unread pages remain discoverable', async () => {
+  await initI18n(); await changeLocale('en');
+  const empty = controller({ messages: [] });
+  const partialRealm = { ...empty, realm: { ...empty.realm,
+    notifications: { ...empty.realm.notifications, complete: false, hasMore: true } } };
+  assert.match(renderColumn(partialRealm), /No matching items loaded yet/);
+  assert.match(renderCenter(partialRealm), /Load more/);
+  const readTurn = activityMessage(record(40, { source: RUNTIME, kind: 'activity', todoState: null, objectRef: null,
+    agent: { agentRef: 'agr_qilan', displayName: 'Qilan' }, userView: { readThroughRevision: 1, unread: false, needsAttention: false } }));
+  const unread = renderCenter(controller({ messages: [readTurn], recent: view([readTurn.record], { complete: false, hasMore: true }) }), 'unread', 'runtime-agent:agr_qilan');
+  assert.match(unread, /No matching items loaded yet/);
+  assert.match(unread, /Load more/);
+  assert.match(renderCenter(controller({ messages: [growthOpen, readTurn] }), 'all', readTurn.groupKey), /Pending 0/,
+    'the selected Agent source does not inherit another App pending count');
 });
 
 test('center sources collect registrations by app identity and search every source name', async () => {

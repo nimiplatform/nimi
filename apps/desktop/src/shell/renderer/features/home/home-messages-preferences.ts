@@ -127,7 +127,7 @@ export function applyHomeMessagePreferenceChange(
 
 /** Hidden by an explicit Home hide of this or a later revision. System items are never hidden. */
 export function isHiddenFromHome(message: HomeMessage, preferences: HomeMessagePreferences): boolean {
-  if (message.sourceKind === 'system') return false;
+  if (message.sourceKind === 'system' || message.sourceKind === 'realm') return false;
   const hiddenRevision = preferences.hiddenActivities[message.record.activityId];
   return hiddenRevision !== undefined && hiddenRevision >= message.record.revision;
 }

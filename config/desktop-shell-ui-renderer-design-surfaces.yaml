@@ -95,7 +95,7 @@ surfaces:
     testid_required: false
     source_rule: D-SHELL-029
   - id: notification.panel.root
-    module: features/notification/notification-panel.tsx
+    module: features/home/home-message-center.tsx
     role: notification_root
     surface_profile: secondary
     density_mode: compact
@@ -103,7 +103,7 @@ surfaces:
     testid_required: true
     source_rule: D-SHELL-015
   - id: notification.inline.cards
-    module: features/notification/notification-panel.tsx
+    module: features/home/home-message-card.tsx
     role: notification_inline_cards
     surface_profile: secondary
     density_mode: compact
