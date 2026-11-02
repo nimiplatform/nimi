@@ -1,4 +1,4 @@
-import { memo, useCallback, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type RefObject } from 'react';
+import { memo, useCallback, useId, useLayoutEffect, useMemo, useRef, useState, type MouseEvent, type RefObject } from 'react';
 import { defaultRangeExtractor, useVirtualizer } from '@tanstack/react-virtual';
 import type { ChatCopy } from '../copy.js';
 import type {
@@ -101,7 +101,7 @@ const TranscriptMessageItem = memo(function TranscriptMessageItem(props: Omit<Tr
         if (event.key === 'PageUp' || event.key === 'PageDown') { event.preventDefault(); props.onNavigate?.(virtualItem.item.message.id, event.key === 'PageUp' ? -1 : 1); }
         if (event.key === 'Enter' || event.key === 'ContextMenu' || (event.shiftKey && event.key === 'F10')) { event.preventDefault(); actions.open(virtualItem.item.message, event.currentTarget); }
         if (event.ctrlKey && event.key === 'End') { event.preventDefault(); actions.actions.onReturnToComposer?.(); }
-        if (event.ctrlKey && event.key === 'Home') { event.preventDefault(); event.currentTarget.closest('[data-message-feed]')?.querySelector<HTMLElement>('summary')?.focus(); }
+        if (event.ctrlKey && event.key === 'Home') { event.preventDefault(); actions.openKeyboardHelp(event.currentTarget); }
       }}>
       <CanonicalMessageBubble
         message={virtualItem.item.message}
@@ -248,6 +248,7 @@ function VirtualizedTranscript(props: TranscriptMessageGroupsProps) {
 
 export const TranscriptMessageGroups = memo(function TranscriptMessageGroups(props: TranscriptMessageGroupsProps) {
   const actions = useCanonicalMessageActionContext();
+  const keyboardHelpDescriptionId = useId();
   const [activeMessageId, setActiveMessageId] = useState<string | null>(props.messages.at(-1)?.id || null);
   const [focusRequest, setFocusRequest] = useState<{ messageId: string; requestKey: number; offset?: number; focus?: boolean; origin: 'external' | 'keyboard' }>();
   const focusCounter = useRef(0);
@@ -272,8 +273,8 @@ export const TranscriptMessageGroups = memo(function TranscriptMessageGroups(pro
     onFocusComplete: (requestKey: number) => setFocusRequest(current => current?.requestKey === requestKey ? undefined : current) } : props;
   const shouldVirtualize = props.messages.length >= VIRTUALIZATION_THRESHOLD;
   const content = shouldVirtualize ? <VirtualizedTranscript {...rowProps} /> : <NonVirtualizedTranscript {...rowProps} />;
-  return actions ? <section role="feed" aria-label={actions.copy.messageNavigationLabel} data-message-feed>
-    <details className="mb-2 text-xs text-[var(--nimi-text-secondary)]"><summary className={FOCUS_RING_CLASS_NAME}>{actions.copy.messageKeyboardHelpLabel}</summary><p>{actions.copy.messageKeyboardHelp}</p></details>
+  return actions ? <section role="feed" aria-label={actions.copy.messageNavigationLabel} aria-describedby={keyboardHelpDescriptionId} data-message-feed>
+    <span id={keyboardHelpDescriptionId} className="sr-only">{actions.copy.messageKeyboardHelp}</span>
     {content}
   </section> : content;
 });

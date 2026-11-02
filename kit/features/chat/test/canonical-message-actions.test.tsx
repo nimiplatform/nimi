@@ -29,6 +29,55 @@ function View({ value, onQuote, onReturnToComposer, playback }: { value: Convers
   </CanonicalMessageActionsProvider>;
 }
 describe('real shared message action rendering', () => {
+  it('opens keyboard help from message actions and restores focus when dismissed', async () => {
+    vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
+    const copy = getMessageInteractionCopy('zh-CN');
+    await render(<CanonicalTranscriptView copy={copy} messages={[message()]} messageActions={{ scopeKey: 'scope' }} renderMessageContent={item => <p>{item.text}</p>} />);
+    const feed = container.querySelector('[role="feed"]')!;
+    expect(feed.querySelector('details')).toBeNull();
+    expect(document.getElementById(feed.getAttribute('aria-describedby')!)?.textContent).toBe(copy.messageKeyboardHelp);
+    const trigger = container.querySelector<HTMLButtonElement>('[aria-label="更多操作"]')!;
+    trigger.focus();
+    await act(async () => { trigger.click(); await flush(); });
+    const help = Array.from(document.querySelectorAll<HTMLElement>('[role="menuitem"]')).find(item => item.textContent === copy.messageKeyboardHelpLabel)!;
+    help.focus();
+    await act(async () => { help.click(); await flush(); });
+    const dialog = document.querySelector<HTMLElement>('[data-testid="message-keyboard-help"]')!;
+    expect(dialog.getAttribute('role')).toBe('dialog');
+    expect(dialog.textContent).toContain(copy.messageKeyboardHelp);
+    expect(dialog.contains(document.activeElement)).toBe(true);
+    await act(async () => {
+      dialog.querySelector<HTMLButtonElement>('[aria-label="关闭"]')!.click();
+      await flush();
+    });
+    await vi.waitFor(async () => {
+      await act(flush);
+      expect(document.querySelector('[data-testid="message-keyboard-help"]')).toBeNull();
+      expect(document.activeElement).toBe(trigger);
+    });
+  });
+  it('opens keyboard help from the focused message and closes it on conversation change', async () => {
+    const view = (scopeKey: string) => <CanonicalTranscriptView messages={[message()]} messageActions={{ scopeKey }} renderMessageContent={item => <p>{item.text}</p>} />;
+    await render(view('first'));
+    const article = container.querySelector<HTMLElement>('[role="article"]')!;
+    article.focus();
+    await act(async () => {
+      article.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', ctrlKey: true, bubbles: true, cancelable: true }));
+      await flush();
+    });
+    expect(document.querySelector('[data-testid="message-keyboard-help"]')?.contains(document.activeElement)).toBe(true);
+    await act(async () => {
+      document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true }));
+      await flush();
+    });
+    await vi.waitFor(async () => { await act(flush); expect(document.activeElement).toBe(article); });
+    await act(async () => {
+      article.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home', ctrlKey: true, bubbles: true, cancelable: true }));
+      await flush();
+    });
+    await render(view('second'));
+    await vi.waitFor(async () => { await act(flush); expect(document.querySelector('[data-testid="message-keyboard-help"]')).toBeNull(); });
+  });
   it('refocuses a menu reopened while the previous exit animation still owns its mounted panel', async () => {
     vi.stubGlobal('ResizeObserver', class { observe() {} unobserve() {} disconnect() {} });
     const onQuote = vi.fn();
@@ -127,7 +176,7 @@ describe('real shared message action rendering', () => {
     expect(panel.dataset.align).toBe('center');
     expect(toolbar.classList.contains('opacity-100')).toBe(true);
     expect(toolbar.classList.contains('pointer-events-auto')).toBe(true);
-    expect(Array.from(menu.querySelectorAll('[role="menuitem"]')).map(item => item.textContent)).toEqual(['Copy text', 'Reply with quote']);
+    expect(Array.from(menu.querySelectorAll('[role="menuitem"]')).map(item => item.textContent)).toEqual(['Copy text', 'Reply with quote', 'Message keyboard shortcuts']);
     await act(async () => {
       toolbar.dispatchEvent(new MouseEvent('mouseleave', { relatedTarget: panel }));
       panel.dispatchEvent(new MouseEvent('mouseenter'));

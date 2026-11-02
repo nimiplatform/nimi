@@ -1,3 +1,4 @@
+export { ConversationReadMarker } from './components/conversation-read-marker.js';
 export { ChatComposer } from './components/chat-composer.js';
 export type { ChatComposerProps } from './components/chat-composer.js';
 export { DEFAULT_CHAT_COPY, resolveChatCopy } from './copy.js';

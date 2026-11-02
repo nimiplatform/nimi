@@ -123,6 +123,7 @@ export type ChatCopy = {
   messageSelectionMultipleLabel?: string;
   messageNavigationLabel?: string;
   messageKeyboardHelpLabel?: string;
+  messageHelpCloseLabel?: string;
   messageKeyboardHelp?: string;
   voicePlayLabel?: string;
   voiceReadLabel?: string;
@@ -232,7 +233,8 @@ export const DEFAULT_CHAT_COPY: Required<ChatCopy> = Object.freeze({
   messageSelectionMultipleLabel: 'Select text from one message to quote it.',
   messageNavigationLabel: 'Conversation messages',
   messageKeyboardHelpLabel: 'Message keyboard shortcuts',
-  messageKeyboardHelp: 'Page Up and Page Down move between messages. Enter opens actions. Escape returns to the composer. Tab moves through links and controls in the current message.',
+  messageHelpCloseLabel: 'Close',
+  messageKeyboardHelp: 'When a message is focused, Page Up and Page Down move between messages, Enter opens actions, Ctrl + Home opens this help, and Escape returns to the composer. Tab moves through links and controls in the current message.',
   voicePlayLabel: 'Play voice',
   voiceReadLabel: 'Read aloud',
   voicePauseLabel: 'Pause',

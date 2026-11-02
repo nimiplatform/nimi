@@ -2,6 +2,14 @@
 
 # Changelog
 
+## Unreleased — Focused conversation read markers
+
+`ConversationReadMarker` is an additive chat/ui export for Home and protected
+App message surfaces. It reports only the last visibility observation in each
+browser batch while the document is visible and focused; callers still own the
+exact message or activity revision and the read operation. Mounting an overscan
+row is not a read. This new export belongs to the next coordinated 0.x minor.
+
 ## Unreleased — Passive chat reading-position restoration
 
 `ConversationPositionRequest` accepts optional `focus: false` for restoring a

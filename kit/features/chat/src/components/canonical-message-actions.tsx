@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent, type ReactNode } from 'react';
-import { Copy, MoreHorizontal, Pause, Play, Reply } from 'lucide-react';
-import { ActionMenu, IconButton, Popover, PopoverAnchor, PopoverContent, type NimiMenuItem } from '@nimiplatform/kit/ui';
+import { Copy, Keyboard, MoreHorizontal, Pause, Play, Reply, X } from 'lucide-react';
+import { ActionMenu, Dialog, DialogContent, DialogDescription, DialogTitle, IconButton, Popover, PopoverAnchor, PopoverContent, type NimiMenuItem } from '@nimiplatform/kit/ui';
 import { collectFocusableElements, FOCUS_RING_CLASS_NAME } from '@nimiplatform/kit/ui/a11y';
 import type { ConversationCanonicalMessage } from '../types.js';
 import { resolveChatCopy, type ChatCopy } from '../copy.js';
@@ -42,6 +42,7 @@ type MessageActionContext = {
   open: (message: ConversationCanonicalMessage, trigger: HTMLElement, point?: { x: number; y: number }) => void;
   quote: (message: ConversationCanonicalMessage, trigger: HTMLElement) => void;
   quoteAllowed: (message: ConversationCanonicalMessage) => boolean;
+  openKeyboardHelp: (trigger: HTMLElement) => void;
 };
 const MessageActionsContext = createContext<MessageActionContext | null>(null);
 function messageContent(element: HTMLElement) {
@@ -63,6 +64,7 @@ export function CanonicalMessageActionsProvider({ actions, messages, copy, child
   const labels = useMemo(() => resolveChatCopy(copy), [copy]);
   const [menu, setMenu] = useState<OpenMessageMenu | null>(null);
   const [feedback, setFeedback] = useState('');
+  const [keyboardHelpScope, setKeyboardHelpScope] = useState<string | null>(null);
   const restoreFocus = useRef(true);
   const tabExit = useRef<'forward' | 'backward' | null>(null);
   const rootRef = useRef<HTMLDivElement>(null);
@@ -87,6 +89,14 @@ export function CanonicalMessageActionsProvider({ actions, messages, copy, child
     const next = capture(message, trigger, point);
     if (next) { restoreFocus.current = true; tabExit.current = null; setMenu(next); }
   };
+  const openKeyboardHelp = (trigger: HTMLElement) => {
+    restoreFocus.current = false;
+    setMenu(null);
+    // The menu item is about to unmount. Let the dialog return focus to the
+    // message control, rather than retaining that transient menu item.
+    trigger.focus({ preventScroll: true });
+    setKeyboardHelpScope(actions.scopeKey);
+  };
   const validate = (entry: OpenMessageMenu) => entry.scopeKey === latest.current.actions.scopeKey
     ? latest.current.messages.find(item => item.id === entry.messageId) : null;
   const quoteEntry = (entry: OpenMessageMenu) => {
@@ -100,7 +110,7 @@ export function CanonicalMessageActionsProvider({ actions, messages, copy, child
     actions.onReturnToComposer?.();
   };
   const quote = (message: ConversationCanonicalMessage, trigger: HTMLElement) => { const entry = capture(message, trigger); if (entry) quoteEntry(entry); };
-  useEffect(() => { setMenu(null); setFeedback(''); }, [actions.scopeKey]);
+  useEffect(() => { setMenu(null); setFeedback(''); setKeyboardHelpScope(null); }, [actions.scopeKey]);
   useEffect(() => {
     let selected: { messageId: string; node: Node; selection: CanonicalMessageSelection } | null = null;
     let restoring = false;
@@ -225,7 +235,9 @@ export function CanonicalMessageActionsProvider({ actions, messages, copy, child
       } });
     }
   }
-  return <MessageActionsContext.Provider value={{ actions, copy: labels, openMessageId: menu?.messageId || null, menuId, open, quote, quoteAllowed }}>
+  if (menu && currentMessage) items.push({ id: 'keyboard-help', label: labels.messageKeyboardHelpLabel, icon: <Keyboard size={16} />,
+    onSelect: () => openKeyboardHelp(menu.trigger) });
+  return <MessageActionsContext.Provider value={{ actions, copy: labels, openMessageId: menu?.messageId || null, menuId, open, quote, quoteAllowed, openKeyboardHelp }}>
     <div ref={rootRef} className="contents">{children}</div>
     <span role="status" aria-live="polite" className="sr-only">{feedback}</span>
     {feedback ? <div className="pointer-events-none absolute bottom-3 left-1/2 z-20 -translate-x-1/2 rounded-[var(--nimi-radius-sm)] bg-[var(--nimi-surface-overlay)] px-3 py-2 text-sm text-[var(--nimi-text-primary)] shadow-[var(--nimi-elevation-floating)]">{feedback}</div> : null}
@@ -255,6 +267,15 @@ export function CanonicalMessageActionsProvider({ actions, messages, copy, child
         <ActionMenu id={menuId} ariaLabel={labels.messageActionsLabel} items={items} focusRequestKey={menu?.focusSequence} onRequestClose={(reason, backward) => { tabExit.current = reason === 'tab' ? backward ? 'backward' : 'forward' : null; setMenu(null); }} />
       </PopoverContent>
     </Popover>
+    <Dialog open={keyboardHelpScope === actions.scopeKey} onOpenChange={open => { if (!open) setKeyboardHelpScope(null); }}>
+      <DialogContent className="p-5" onClose={() => setKeyboardHelpScope(null)} data-testid="message-keyboard-help">
+        <div className="mb-3 flex items-center justify-between gap-4">
+          <DialogTitle className="text-base font-semibold text-[var(--nimi-text-primary)]">{labels.messageKeyboardHelpLabel}</DialogTitle>
+          <IconButton tone="ghost" size="sm" icon={<X size={16} />} aria-label={labels.messageHelpCloseLabel} onClick={() => setKeyboardHelpScope(null)} />
+        </div>
+        <DialogDescription className="text-sm leading-7 text-[var(--nimi-text-secondary)]">{labels.messageKeyboardHelp}</DialogDescription>
+      </DialogContent>
+    </Dialog>
   </MessageActionsContext.Provider>;
 }
 

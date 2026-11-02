@@ -21,11 +21,11 @@ export function AgentIntroduction({ introduction, displayName, avatarUrl, locale
   const zh = locale.startsWith('zh');
   const subtitle = agentIntroductionSubtitle(introduction, locale);
   const rich = Boolean(subtitle || introduction?.greeting || introduction?.referenceImageUrl || introduction?.voicePreviewUrl);
-  const imageUrl = introduction?.referenceImageUrl || avatarUrl || null;
+  const imageUrl = introduction?.referenceImageUrl || null;
   return (
     <div className="flex w-full min-w-0 flex-col items-center gap-6 text-center [overflow-wrap:anywhere]" data-agent-introduction="true">
       <div className="flex w-full min-w-0 flex-col items-center gap-2">
-        {!rich ? <Avatar src={avatarUrl ?? null} alt={displayName} size="lg" className="h-14 w-14" /> : null}
+        {!imageUrl ? <Avatar src={avatarUrl ?? null} alt={displayName} size="lg" className="h-14 w-14" /> : null}
         <h2 className={`max-w-full ${rich ? 'text-[length:var(--nimi-type-hero-title-size)] font-[var(--nimi-type-hero-title-weight)] leading-tight text-[var(--nimi-text-primary)]' : 'text-sm font-medium text-[var(--nimi-text-secondary)]'}`}>{displayName}</h2>
         {subtitle ? <p className="max-w-full text-sm text-[var(--nimi-text-muted)]">{subtitle}</p> : null}
         {!rich ? <>
