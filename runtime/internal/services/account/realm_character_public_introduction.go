@@ -2,6 +2,7 @@ package account
 
 import (
 	"context"
+
 	"github.com/nimiplatform/nimi/runtime/internal/realmmedia"
 )
 
@@ -21,6 +22,7 @@ type RealmCharacterPublicIntroduction struct {
 	Topics                 []string
 }
 
+// @nimi-authority: rule.nimi.runtime.agent-participation.agent-introduction
 func (s *Service) ResolveRealmCharacterPublicIntroduction(ctx context.Context, accountID string, sourceRef RealmSourceMaterializationSourceRefV3) (*RealmCharacterPublicIntroduction, error) {
 	source, err := s.resolveRealmCharacterPublicSource(ctx, accountID, sourceRef)
 	if err != nil {
@@ -32,8 +34,14 @@ func (s *Service) ResolveRealmCharacterPublicIntroduction(ctx context.Context, a
 		result.VoiceSampleURL = source.Media.External.VoiceSampleURL
 		result.VoicePreviewURL = source.Media.External.VoiceSampleURL
 		if assets := source.Media.Assets; assets != nil {
-			if result.ReferenceImageURL == nil {
-				result.ReferenceImageURL, err = realmCharacterPublicAssetURL(assets.ReferenceImage, "detail")
+			// Some characters publish their only portrait in the avatar slot.
+			// Large introduction surfaces need its detail rendition, not the
+			// small avatar URL carried by the partner inventory.
+			for _, asset := range []*realmCharacterPublicAsset{assets.ReferenceImage, assets.Portrait, assets.Avatar} {
+				if result.ReferenceImageURL != nil {
+					break
+				}
+				result.ReferenceImageURL, err = realmCharacterPublicAssetURL(asset, "detail")
 				if err != nil {
 					return nil, err
 				}
@@ -61,6 +69,12 @@ func (s *Service) ResolveRealmCharacterPublicIntroduction(ctx context.Context, a
 				}
 				result.VoiceSampleDurationSec = assets.VoiceSample.DurationSec
 			}
+		}
+		if result.ReferenceImageURL == nil {
+			result.ReferenceImageURL = source.Media.External.PortraitURL
+		}
+		if result.ReferenceImageURL == nil {
+			result.ReferenceImageURL = source.Media.External.AvatarURL
 		}
 	}
 	if source.CharacterBiography != nil {
