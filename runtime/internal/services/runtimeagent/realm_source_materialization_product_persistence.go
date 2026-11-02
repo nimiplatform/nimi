@@ -42,6 +42,17 @@ func (p *preparedRealmSourceMaterializationProductV3) commitTx(tx *sql.Tx) error
 	}
 	p.commitAttempted = true
 	p.commitMu.Unlock()
+	// @nimi-authority: rule.nimi.runtime.agent-service.r051
+	// The prepare lock remains held through this atomic commit. Check after the
+	// replay ledger, but before any product or Memory binding is persisted.
+	sourceRef := sourceMaterializationProtoRefV3(p.snapshot.Semantic.SourceRef)
+	for ref, existing := range p.svc.agents {
+		if ref != p.localAgentRef && existing.Agent.GetOwnerUserId() == p.svc.agents[p.localAgentRef].Agent.GetOwnerUserId() &&
+			existing.Agent.GetLifecycleStatus() != runtimev1.AgentLifecycleStatus_AGENT_LIFECYCLE_STATUS_TERMINATED &&
+			sameMaterializedCharacter(existing.Agent.GetSourceContextStatus().GetSourceRef(), sourceRef) {
+			return sourceMaterializationV3Error(sourceMaterializationFailureRequestConflictV3, "this Character already has a partner on this device")
+		}
+	}
 	if err := p.svc.stateRepo.persistSnapshotTx(tx, p.persisted, nil); err != nil {
 		return err
 	}

@@ -80,7 +80,7 @@ func materializeRealmSourceTestAgent(
 		return nil, status.Error(codes.InvalidArgument, "Realm Source materialization requires a Runtime-minted local_agent_ref")
 	}
 
-	verified := verifiedRealmSourceMaterializationVectorV3(t, "persona-character")
+	verified := verifiedPersonaCharacterFixture(t, localAgentRef)
 	verified.Packet.MaterializerAccountID = ownerUserID
 	packetHash, err := sourceMaterializationPacketHashV3(verified.Packet)
 	if err != nil {

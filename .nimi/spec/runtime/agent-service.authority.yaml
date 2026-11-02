@@ -210,11 +210,11 @@ units:
         target: definition.nimi.runtime.agent-service.local-agent-materialization-plane
   - id: rule.nimi.runtime.agent-service.r051
     kind: rule
-    title: Each materialization creates an independent LocalAgent
+    title: One current-device partner per account and stable Character identity
     modality: must
-    statement: The same Realm Character Source may materialize multiple independent LocalAgents, and every materialization receives distinct local identity, Conversation, Cognition Memory bank binding, Agent-scoped Memory enabled state, Memory and Knowledge namespace, and lifecycle without implicit merge or global default selection, while every LocalAgent in one account continues to consume the same singular account-scoped shared LocalAgent AIConfig with no per-Agent route or model override.
-    condition: Whenever a Character Source is materialized more than once.
-    failure: Reject identity reuse, implicit instance merge, or a source-wide global LocalAgent.
+    statement: "Within one Runtime device inventory, each account may own at most one non-terminated LocalAgent for a stable Realm Character identity: source kind, source id, owning World and Persona owner or bound WorldEntity, excluding sourceHash. INITIALIZING, ACTIVE, SUSPENDED and TERMINATING records reserve that identity. Runtime atomically rejects a second materialization, including concurrent requests and changed source hashes, as a request conflict; same-request committed replay retains its existing idempotency semantics. Different accounts and distinct Character identities remain independent. Termination releases the identity only after complete owner cleanup, and later materialization creates a new LocalAgent with empty history and Memory. Restoring duplicate Character partners fails closed with an explicit cleanup-required error. No automatic duplicate deletion, instance merge, post-birth source adoption or cross-device continuity is implied. Shared LocalAgent AIConfig remains singular and account-scoped."
+    condition: Whenever Runtime materializes or terminates a Character-backed LocalAgent.
+    failure: Reject duplicate materialization before committing any new LocalAgent, source projection or Memory binding; retain existing identities and histories unchanged.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-service.local-agent-materialization-plane

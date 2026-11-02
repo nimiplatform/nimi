@@ -44,6 +44,7 @@ func (s *Service) validateLoadedSourceSnapshotBindings(ctx context.Context) erro
 	}
 
 	snapshotCount := 0
+	characters := make(map[string]string)
 	err := s.realmSourceSnapshotStoreV2.visitValidatedSnapshots(ctx, func(snapshot localAgentSourceSnapshotV2) error {
 		snapshotCount++
 		agent := materialized[snapshot.LocalAgentRef]
@@ -55,6 +56,18 @@ func (s *Service) validateLoadedSourceSnapshotBindings(ctx context.Context) erro
 		if err != nil || runtimeSourceRef != expectedRuntimeSourceRef {
 			return fmt.Errorf("Realm-derived LocalAgent %s source identity does not match SnapshotV2", agent.GetLocalAgentRef())
 		}
+		// @nimi-authority: rule.nimi.runtime.agent-service.r051
+		identity := snapshot.Semantic.SourceRef
+		identity.SourceHash = ""
+		encoded, err := canonicalRealmSourceMaterializationRefV3(identity)
+		if err != nil {
+			return fmt.Errorf("encode restored Character identity: %w", err)
+		}
+		key := agent.GetOwnerUserId() + "\x00" + string(encoded)
+		if previous := characters[key]; previous != "" {
+			return fmt.Errorf("duplicate_character_partners_cleanup_required: %s and %s", previous, agent.GetLocalAgentRef())
+		}
+		characters[key] = agent.GetLocalAgentRef()
 		view, err := localAgentTurnSourceViewFromValidatedSnapshotV1(snapshot)
 		if err != nil {
 			return fmt.Errorf("hydrate Realm-derived LocalAgent %s turn source view: %w", agent.GetLocalAgentRef(), err)

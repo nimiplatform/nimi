@@ -21,7 +21,7 @@ const (
 	cbdbChainValidationRequestID = "cbdb-chain-validation-request"
 )
 
-var cbdbChainSuZheRuntimeSourceRef = testRuntimeAgentSourceRef("cbdb-song-slice-real-20260614-agent-8af2c5ca8a")
+var cbdbChainSuZheRuntimeSourceRef = testRuntimeAgentSourceRef(cbdbChainSuZheLocalAgentRef)
 
 func TestCBDBAgentChatIgnoresForgedAnchorMetadataForModelContext(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)

@@ -12,7 +12,10 @@ import (
 
 func testLocalAgentContext(ownerUserID string, runtimeSourceRef string) *runtimev1.AgentRequestContext {
 	fixtureKey := runtimeSourceRef
-	canonicalRuntimeSourceRef := testRuntimeAgentSourceRef(fixtureKey)
+	canonicalRuntimeSourceRef := runtimeSourceRef
+	if !strings.HasPrefix(runtimeSourceRef, localAgentRealmRuntimeSourceRefPrefixV3) {
+		canonicalRuntimeSourceRef = testRuntimeAgentSourceRef(testOpaqueLocalAgentRef(ownerUserID, fixtureKey))
+	}
 	return &runtimev1.AgentRequestContext{
 		AppId:            "runtime-agent-boundary-test",
 		SubjectUserId:    ownerUserID,
@@ -22,8 +25,11 @@ func testLocalAgentContext(ownerUserID string, runtimeSourceRef string) *runtime
 	}
 }
 
-func testRuntimeAgentSourceRef(_ string) string {
-	verifiedSourceRef := sourceMaterializationReferenceSourceRefV3("persona-character")
+func testRuntimeAgentSourceRef(key string) string {
+	if !strings.HasPrefix(key, runtimeGeneratedLocalAgentRefPrefix) {
+		key = testOpaqueLocalAgentRef("user-1", key)
+	}
+	verifiedSourceRef := testPersonaCharacterRef(key)
 	canonicalRuntimeSourceRef, err := runtimeSourceRefForRealmSourceV3(verifiedSourceRef)
 	if err != nil {
 		panic(err)
