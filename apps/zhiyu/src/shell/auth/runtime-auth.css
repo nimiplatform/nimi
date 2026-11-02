@@ -16,10 +16,10 @@
   box-sizing: border-box;
   padding: 32px 24px 20px;
   background:
-    radial-gradient(circle at 26% 42%, rgba(214, 228, 248, 0.55), transparent 34%),
-    radial-gradient(circle at 79% 68%, rgba(244, 224, 252, 0.38), transparent 32%),
-    radial-gradient(circle at 18% 88%, rgba(216, 248, 234, 0.62), transparent 34%),
-    linear-gradient(135deg, rgba(232, 242, 255, 0.82), rgba(252, 252, 255, 0.98) 45%, rgba(244, 240, 255, 0.72));
+    radial-gradient(circle at 26% 42%, rgba(214, 235, 249, 0.55), transparent 34%),
+    radial-gradient(circle at 79% 68%, rgba(211, 235, 249, 0.42), transparent 32%),
+    radial-gradient(circle at 18% 88%, rgba(216, 248, 234, 0.5), transparent 34%),
+    linear-gradient(135deg, rgba(232, 243, 252, 0.82), rgba(252, 252, 255, 0.98) 45%, rgba(230, 242, 251, 0.72));
   color: var(--nimi-text-primary, #17211c);
   font-family: var(--nimi-font-sans, "Inter", "Noto Sans SC", "Microsoft YaHei UI", system-ui, sans-serif);
 }
@@ -63,19 +63,19 @@
 /* The renderer host marks #root with the accent pack while the pack binds its
    tokens to :root, so accent tokens can be unset inside Zhiyu. */
 .runtime-gate-content .nimi-action--primary {
-  border-color: var(--nimi-action-primary-bg, #45B8D6);
-  background: var(--nimi-action-primary-bg, #45B8D6);
+  border-color: var(--nimi-action-primary-bg, #0580ca);
+  background: var(--nimi-action-primary-bg, #0580ca);
   color: var(--nimi-action-primary-text, #111827);
 }
 
 .runtime-gate-content .nimi-action--primary:not(:disabled):hover {
-  border-color: var(--nimi-action-primary-bg-hover, #35A7C4);
-  background: var(--nimi-action-primary-bg-hover, #35A7C4);
+  border-color: var(--nimi-action-primary-bg-hover, #0471b2);
+  background: var(--nimi-action-primary-bg-hover, #0471b2);
 }
 
 .runtime-gate-content .nimi-action:focus-visible,
 .runtime-gate-details__panel .nimi-action:focus-visible {
-  outline: 2px solid var(--nimi-focus-ring-color, rgba(69, 184, 214, 0.45));
+  outline: 2px solid var(--nimi-focus-ring-color, rgba(5, 128, 202, 0.45));
   outline-offset: 2px;
 }
 
@@ -90,10 +90,10 @@
   height: 88px;
   place-items: center;
   box-sizing: border-box;
-  border: 1px solid color-mix(in srgb, var(--nimi-action-primary-bg, #45B8D6) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nimi-action-primary-bg, #0580ca) 22%, transparent);
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.78);
-  box-shadow: 0 12px 32px rgba(45, 116, 140, 0.12);
+  box-shadow: 0 12px 32px rgba(5, 128, 202, 0.12);
 }
 
 .runtime-gate-mark img {
@@ -123,7 +123,7 @@
   content: "";
   position: absolute;
   inset: -1px;
-  border: 1px solid color-mix(in srgb, var(--nimi-action-primary-bg, #45B8D6) 55%, transparent);
+  border: 1px solid color-mix(in srgb, var(--nimi-action-primary-bg, #0580ca) 55%, transparent);
   border-radius: 50%;
   animation: runtime-gate-pulse 1.8s ease-out infinite;
 }
@@ -157,7 +157,7 @@
 }
 
 .runtime-gate-details summary:focus-visible {
-  outline: 2px solid color-mix(in srgb, var(--nimi-action-primary-bg, #45B8D6) 60%, transparent);
+  outline: 2px solid color-mix(in srgb, var(--nimi-action-primary-bg, #0580ca) 60%, transparent);
   outline-offset: 2px;
 }
 

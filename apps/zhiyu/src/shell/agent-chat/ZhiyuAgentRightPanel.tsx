@@ -5,7 +5,7 @@ import {
   type AgentCenterSession,
   type AgentCenterTranslationKey,
 } from '@nimiplatform/kit/features/agent-center';
-import { Globe2, X } from 'lucide-react';
+import { Globe2, RotateCcw, Settings2, X } from 'lucide-react';
 import { useMemo } from 'react';
 import type { ZhiyuEvidence } from '../app/evidence';
 import {
@@ -34,7 +34,7 @@ type RightAgentPanelProps = {
 
 const ZHIYU_AGENT_CENTER_OVERRIDES = {
   'AgentCenter.chrome.title': '织羽伙伴中心',
-  'AgentCenter.chrome.eyebrow': '织羽伙伴中心',
+  'AgentCenter.chrome.eyebrow': '伙伴设置',
   'AgentCenter.chrome.closeLabel': '关闭织羽伙伴中心',
   'AgentCenter.chrome.navLabel': '织羽伙伴中心分区',
   'AgentCenter.chrome.projectionLoadFailed': '织羽伙伴中心加载失败。',
@@ -52,7 +52,7 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
   const activityLabel = agentCenterHeaderStateLabel(props.evidence.companion.executionState);
   return (
     <aside
-      className="zhiyu-agent-center mr-2 my-12 flex h-[calc(100cqh-96px)] min-h-0 w-[min(500px,calc(100cqw-96px))] max-w-full shrink-0 flex-col gap-2 [grid-area:side]"
+      className="zhiyu-agent-center mr-3 my-6 flex h-[calc(100cqh-48px)] min-h-0 w-[min(460px,calc(100cqw-96px))] max-w-full shrink-0 flex-col gap-2 [grid-area:side]"
       data-zhiyu-region="agent-panel"
       data-zhiyu-agent-center-placement="kit"
       data-zhiyu-agent-panel-mode={props.mode}
@@ -62,7 +62,7 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
     >
       {moodLabel || activityLabel || agentCenterWorld ? (
         <div
-          className="flex min-w-0 shrink-0 flex-wrap items-center gap-1.5 px-1"
+          className="zhiyu-agent-center__context flex min-w-0 shrink-0 flex-wrap items-center gap-1.5 px-1"
           data-zhiyu-agent-center-host-context="true"
         >
           {moodLabel ? (
@@ -109,32 +109,41 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
         showResourcePack
       /> : (
         <section
-          className="flex min-h-0 flex-1 flex-col gap-3 rounded-2xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-4"
+          className="zhiyu-agent-center__unavailable flex min-h-0 flex-1 flex-col"
           data-zhiyu-agent-center-unavailable="owner-unavailable"
           aria-label="织羽伙伴中心暂不可用"
         >
-          <div className="flex min-w-0 items-center justify-between gap-2">
-            <h2 className="m-0 text-sm font-semibold">织羽伙伴中心</h2>
+          <header className="zhiyu-agent-center__unavailable-header">
+            <h2>伙伴设置</h2>
             <button
               type="button"
+              className="zhiyu-agent-center__icon-button"
               aria-label="关闭织羽伙伴中心"
               data-zhiyu-agent-center-unavailable-close="true"
               onClick={props.onClose}
             >
-              <X size={16} aria-hidden="true" />
+              <X size={18} aria-hidden="true" />
+            </button>
+          </header>
+          <div className="zhiyu-agent-center__unavailable-content">
+            <span className="zhiyu-agent-center__unavailable-icon" aria-hidden="true">
+              <Settings2 size={26} strokeWidth={1.6} />
+            </span>
+            <div className="zhiyu-agent-center__unavailable-copy">
+              <h3>设置暂时不可用</h3>
+              <p>伙伴设置暂时没有响应，请稍后重试。</p>
+            </div>
+            <button
+              type="button"
+              className="zhiyu-agent-center__retry-button"
+              data-zhiyu-agent-center-unavailable-action="retry"
+              data-zhiyu-agent-center-unavailable-reason="owner-unavailable"
+              onClick={props.onRetryAgentCenter}
+            >
+              <RotateCcw size={15} aria-hidden="true" />
+              <span>重试伙伴设置</span>
             </button>
           </div>
-          <p className="m-0 text-xs leading-relaxed text-[var(--nimi-text-secondary)]">
-            伙伴设置服务暂时不可用。织羽不会改走其他产品路径；请重试当前会话。
-          </p>
-          <button
-            type="button"
-            data-zhiyu-agent-center-unavailable-action="retry"
-            data-zhiyu-agent-center-unavailable-reason="owner-unavailable"
-            onClick={props.onRetryAgentCenter}
-          >
-            重试伙伴设置
-          </button>
         </section>
       )}
     </aside>

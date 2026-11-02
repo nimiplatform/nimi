@@ -150,6 +150,9 @@ export function stateDisplayLabel(value: string | null | undefined): string {
   if (normalized === 'calm') {
     return '平静';
   }
+  if (normalized === 'neutral') {
+    return '平和';
+  }
   return normalized;
 }
 

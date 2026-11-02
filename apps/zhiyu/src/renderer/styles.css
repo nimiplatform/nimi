@@ -1,6 +1,18 @@
 @import "../shell/app/home-surface.css";
 @import "../shell/auth/runtime-auth.css";
 
+.nimi-ui-module--zhiyu {
+  --nimi-action-primary-bg: #0580ca;
+  --nimi-action-primary-bg-hover: #0471b2;
+  --nimi-action-primary-text: #fff;
+  --nimi-surface-active: rgba(5, 128, 202, 0.12);
+  --nimi-action-ghost-hover: rgba(5, 128, 202, 0.08);
+  --nimi-sidebar-item-active: rgba(5, 128, 202, 0.12);
+  --nimi-sidebar-item-hover: rgba(5, 128, 202, 0.08);
+  --nimi-field-focus: #0580ca;
+  --nimi-focus-ring-color: #0580ca;
+}
+
 .nimi-ui-module--zhiyu[data-nimi-semantic-id="zhiyu-main-root"] {
   display: block;
   width: 100%;
