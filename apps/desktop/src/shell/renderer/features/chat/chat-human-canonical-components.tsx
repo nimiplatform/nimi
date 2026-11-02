@@ -144,7 +144,7 @@ function useHumanMessageRenderers(input: {
     }
     return (
       <div className={`mt-1 text-[10px] ${message.error ? 'text-[var(--nimi-status-danger)]' : 'text-[var(--nimi-text-muted)]'} ${message.role === 'human' || message.role === 'user' ? 'text-right' : 'text-left'}`}>
-        {message.error || t('ChatTimeline.awaitingConfirmation', { defaultValue: 'Send not confirmed. Retry from the composer.' })}
+        {message.error || t('ChatTimeline.awaitingConfirmation', { defaultValue: 'Send not confirmed. Retry in the input box below.' })}
       </div>
     );
   }, [t, input.model.newestMessageId, input.model.acknowledgeRead]);
@@ -232,7 +232,7 @@ function createHumanCanonicalTranscriptProps(input: {
     bannerContent: <div className="flex items-center justify-center gap-3 p-2 text-sm">
       {input.model.hasOlderMessages || input.model.olderMessagesError ? <button type="button" disabled={input.model.loadingOlderMessages}
         onClick={() => void input.model.loadOlderMessages()}>{input.model.olderMessagesError ? input.t('Common.retry') : input.t('Chat.loadEarlierMessages', { defaultValue: 'Load earlier messages' })}</button> : null}
-      {input.model.readError ? <button type="button" onClick={() => void input.model.acknowledgeRead(input.model.readError!)}>{input.t('Chat.retryReadReceipt', { defaultValue: 'Retry read acknowledgement' })}</button> : null}
+      {input.model.readError ? <button type="button" onClick={() => void input.model.acknowledgeRead(input.model.readError!)}>{input.t('Chat.retryReadReceipt', { defaultValue: 'Retry marking as read' })}</button> : null}
     </div>,
     emptyEyebrow: input.model.deletedPeer ? '' : input.t('MessagePane.welcomeEyebrow', { defaultValue: 'Welcome' }),
     emptyTitle: input.model.deletedPeer ? input.t('Relationship.contacts.deletedUser') : input.t('MessagePane.welcomeTitle', {

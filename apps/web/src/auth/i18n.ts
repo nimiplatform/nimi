@@ -41,7 +41,7 @@ const en = {
   Account: {
     sessionCheck: 'Confirming secure session…',
     sessionUnknown: 'Unable to confirm the account session.',
-    pageUnavailable: 'This account page could not open. Try loading it again.',
+    pageUnavailable: "Unable to open this account page. Try loading it again.",
     switchContinuationExpired: "The account-switch request has expired. Please start again.",
     signedInTitle: 'Signed in to Nimi',
     currentAccountFallback: 'current account',
@@ -82,6 +82,7 @@ const en = {
     tiktokLoginRejected: "TikTok sign-in verification failed. Please try again.",
     twoFaTransactionMissing: "Unable to start two-factor verification. Please try again.",
     oauthLinkFailed: 'OAuth linking failed',
+    oauthAccountUnavailable: 'Could not confirm the account to link. Please try again.',
     bearerForbidden: "The sign-in service returned an unexpected response. Please try again later or contact support.",
     twoFaFailed: 'Two-factor verification failed',
     oauthFailedTitle: 'OAuth action failed',
@@ -138,7 +139,7 @@ const zh = {
   Account: {
     sessionCheck: '正在确认安全会话…',
     sessionUnknown: '无法确认账号会话。',
-    pageUnavailable: '暂时无法打开这个账号页面，请重新载入。',
+    pageUnavailable: "暂时无法打开账号页面，请重新加载。",
     switchContinuationExpired: '账号切换会话已失效，请重新操作。',
     signedInTitle: '已登录 Nimi',
     currentAccountFallback: '当前账号',
@@ -179,6 +180,7 @@ const zh = {
     tiktokLoginRejected: 'TikTok 登录验证未通过，请重试。',
     twoFaTransactionMissing: '未能发起两步验证，请刷新后重试。',
     oauthLinkFailed: 'OAuth 绑定失败',
+    oauthAccountUnavailable: '无法确认要绑定的账号，请重试。',
     bearerForbidden: "登录服务返回了异常响应，请稍后重试或联系技术支持。",
     twoFaFailed: '两步验证失败',
     oauthFailedTitle: 'OAuth 操作失败',

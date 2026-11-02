@@ -41,13 +41,13 @@ function HumanAvatarCard({ person, placement, onSelect, children }: Props) {
     queryKey: ['human-profile-preview', realm, environment, viewerId, auth.authorizationRevision, person.id],
     queryFn: async () => {
       const scope = captureAccountActionScope(store);
-      if (!scope) throw new Error('Profile account is unavailable.');
+      if (!scope) throw new Error("No active account to load this profile.");
       try {
         const profile = await loadContextualHumanProfile(person.id, {
           loadUserProfile: id => social.loadUserProfile(id),
           loadRelationship: id => sdk.realm().social.getMyRelationshipWithUser({ path: { id } }),
         }, { id: person.id, displayName: person.name, handle: person.handle ?? '', avatarUrl: person.avatarUrl });
-        if (!scope.isCurrent()) throw new Error('Profile account changed.');
+        if (!scope.isCurrent()) throw new Error("Signed-in account changed while loading this profile.");
         return profile;
       } finally { scope.dispose(); }
     },

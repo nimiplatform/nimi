@@ -160,7 +160,7 @@
     "cloud": {
       "appSetupTitle": "Model settings",
       "appSetupLead": "Choose a cloud model for {{capability}}.",
-      "chooseBeforeSave": "Select a model to continue.",
+      "chooseBeforeSave": "Select a model before saving.",
       "saveForOwner": "Save for {{owner}}",
       "ownerRequired": "A cloud route can only be saved for a specific app or the shared LocalAgent.",
       "chooseTargetLead": "Choose your cloud connection, then a model for this app.",
@@ -182,7 +182,7 @@
       "searchModels": "Search models",
       "noSearchMatches": "No matching models. Try another name.",
       "selectedModel": "Model to save: {{model}}",
-      "executionNote": "Saving makes no AI request. When used, requests go to this cloud service and may incur provider charges."
+      "executionNote": "Saving doesn’t send any AI requests. Requests go to this cloud service only when used, and may incur provider charges."
     },
     "advanced": {
       "slotsTitle": "Model versions",
@@ -972,7 +972,7 @@
       "viewPerson": "View profile",
       "filterUnread": "Unread",
       "partialListing": "Only messages loaded so far are shown.",
-      "requestsUnavailable": "Friend requests are unavailable. Please retry.",
+      "requestsUnavailable": "Couldn’t load friend requests. Please try again.",
       "hasUnread": "Unread messages",
       "realmTitle": {
         "friend_request_received": "Sent you a friend request",
@@ -1003,7 +1003,7 @@
         "activity-unavailable": "This item is no longer available.",
         "source-unavailable": "{{source}} is not available on this device.",
         "object-unavailable": "{{source}} can no longer find this item.",
-        "source-not-ready": "No open confirmation from {{source}} yet. Retry when the app is ready.",
+        "source-not-ready": "{{source}} hasn’t confirmed opening this yet. Try again once the app is ready.",
         "canceled": "Opening was cancelled.",
         "host-unavailable": "Nimi can't open apps right now.",
         "launch-failed": "{{source}} couldn't be started.",
@@ -2854,8 +2854,8 @@
     "days1": "24 hours",
     "days7": "7 days",
     "usageFailed": "Couldn't load your usage. Refresh to try again.",
-    "usageSignIn": "Sign in to Nimi to see this account's usage on this device.",
-    "usageRequests": "{{requests}} requests recorded",
+    "usageSignIn": "Sign in to Nimi to view your account's usage on this device.",
+    "usageRequests": "Recorded requests: {{requests}}",
     "usageCountUnknown": "Request count is not yet available",
     "usageEmpty": "No usage recorded in this period",
     "usageEmptyBody": "AI requests made through this connection will appear here.",
@@ -2870,7 +2870,7 @@
     "estimate": "Estimated cost",
     "noEstimate": "Not enough data to estimate",
     "partialUsage": "Some data is missing. Usage and costs may be incomplete.",
-    "usageScope": "Only this account's activity on this device. Your provider's bill is the final cost.",
+    "usageScope": "Covers only this account's activity on this device. Final charges follow your provider's bill.",
     "historyTitle": "Call history",
     "historyScope": "Cloud attempts recorded on this device for the current account, retained for up to 7 days. Historical connections remain inspectable after removal.",
     "connectionIdentity": "Connection: {{id}}",
@@ -3214,7 +3214,7 @@
       "more": "More actions for {{name}}",
       "viewDetails": "View profile",
       "viewPartner": "View {{name}}",
-      "chooseFeatured": "Choose a featured partner",
+      "chooseFeatured": "Switch the banner partner",
       "showFeatured": "Show {{name}}",
       "previous": "Previous partner",
       "next": "Next partner",
@@ -3236,8 +3236,8 @@
       "empty": {
         "all": "No matching partners yet",
         "world": "No world characters among loaded partners",
-        "recent": "No chat history among loaded partners",
-        "created": "No characters you authored among loaded partners"
+        "recent": "None of the loaded partners have chat history yet",
+        "created": "None of the loaded partners are based on characters you created"
       },
       "showAll": "View all partners",
       "back": "Back to partners"

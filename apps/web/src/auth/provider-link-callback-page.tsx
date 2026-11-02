@@ -28,7 +28,7 @@ export function ProviderLinkCallbackPage() {
   const [code, setCode] = useState('');
   useEffect(() => {
     let active = true;
-    void completeTikTokAccountOAuth(window.location.search).then((result) => {
+    void completeTikTokAccountOAuth(window.location.search, t('Account.oauthAccountUnavailable')).then((result) => {
       if (!active) return;
       if (result.mode === 'link') {
         window.location.replace('/account');

@@ -500,7 +500,7 @@ export const agentCenterEnCatalog = {
   "AgentCenter.overview.sourceContextBlockedDescription": "Runtime source or context capacity needs attention.",
   "AgentCenter.overview.sourceContextBlockedPill": "Needs attention",
   "AgentCenter.overview.sourceContextFailedDescription": "Source and conversation context could not be checked.",
-  "AgentCenter.overview.sourceSnapshotInvalidDescription": "This companion’s saved setting is invalid, so it cannot reply. Create a new companion from an available character source to chat again.",
+  "AgentCenter.overview.sourceSnapshotInvalidDescription": "This companion’s saved character setup is invalid, so it can no longer reply. To chat again, create a new companion from an available character source.",
   "AgentCenter.overview.sourceContextFailedPill": "Unavailable",
   "AgentCenter.overview.sourceContextReadyDescription": "Realm source and the latest turn context are ready.",
   "AgentCenter.overview.sourceContextReadyPill": "Ready",

@@ -12,7 +12,7 @@
   "blockUserSuccess": "User blocked.",
   "unblockUserSuccess": "User unblocked.",
   "unblockUserFailed": "Couldn't unblock this user. Try again later.",
-  "blockUserConfirmMessage": "Block {{name}}? New contact will stop. Your existing messages, friendships and requests are kept; you can manage them separately.",
+  "blockUserConfirmMessage": "Block {{name}}? This stops new contact between you. Existing messages, friendships, and requests stay as they are, and you can manage them separately.",
   "changePhoto": "Change Photo",
   "chat": "Chat",
   "city": "City",
@@ -32,7 +32,7 @@
   "reject": "Reject",
   "rejectRequestFailed": "Failed to reject friend request",
   "removeFriendConfirmMessagePrefix": "Remove",
-  "removeFriendConfirmMessageSuffix": "Existing messages are kept. Whether they can contact you again depends on your current message settings.",
+  "removeFriendConfirmMessageSuffix": "Your existing messages stay intact. Whether they can contact you afterward depends on your current message settings.",
   "removeFriendFailed": "Failed to remove friend",
   "removeFriendSuccess": "Friend removed.",
   "tags": "Tags",
@@ -56,10 +56,10 @@
       "conversations": "Conversations"
     },
     "search": "Search name or username",
-    "loadFailed": "Could not load this list. Your existing items are kept.",
+    "loadFailed": "Couldn’t load this list. Anything already loaded is still shown.",
     "noSearchResults": "No friends match this search.",
     "empty": {
-      "friends": "No friends yet. Add someone using their username.",
+      "friends": "No friends yet. Send someone a friend request using their username.",
       "received": "No pending requests received.",
       "sent": "No pending requests sent.",
       "blocked": "No blocked accounts."
@@ -73,9 +73,9 @@
       "accept": "Friend request accepted.",
       "reject": "Friend request rejected.",
       "cancel": "Friend request cancelled.",
-      "remove": "Friend removed. Existing messages are kept.",
-      "block": "Account blocked. Existing relationships and messages are kept.",
-      "unblock": "Your block has been removed. Current privacy settings still apply."
+      "remove": "Friend removed. Your existing messages stay intact.",
+      "block": "Account blocked. Existing relationships and messages stay as they are.",
+      "unblock": "You’ve unblocked this account. Current privacy settings still apply."
     },
     "chatOpened": "Conversation opened.",
     "openChat": "Message",
@@ -85,9 +85,9 @@
     "blockedRelationship": "Relationship with {{name}}",
     "relationshipState": {
       "none": "No friendship or pending request.",
-      "active": "You are still friends. You can remove this friendship without unblocking.",
-      "pending_incoming": "A received request remains. You can reject it without unblocking.",
-      "pending_outgoing": "Your sent request remains. You can cancel it without unblocking."
+      "active": "You’re still friends. You can remove them as a friend without unblocking.",
+      "pending_incoming": "You still have a friend request from them. You can reject it without unblocking.",
+      "pending_outgoing": "Your friend request to them is still pending. You can cancel it without unblocking."
     },
     "confirmTitle": {
       "remove": "Remove friend",
@@ -95,9 +95,9 @@
       "unblock": "Unblock account"
     },
     "confirmBody": {
-      "remove": "Remove {{name}} from your friends? Existing messages are kept. Whether they can contact you again depends on your current message settings.",
-      "block": "Block {{name}}? New contact will be stopped. Existing messages, friendships and requests are kept; you can manage them separately.",
-      "unblock": "Remove your block on {{name}}? Existing relationships are kept, and current privacy settings still determine whether you can contact each other."
+      "remove": "Remove {{name}} from your friends? Your existing messages stay intact. Whether they can contact you afterward depends on your current message settings.",
+      "block": "Block {{name}}? This stops new contact between you. Existing messages, friendships, and requests stay as they are, and you can manage them separately.",
+      "unblock": "Remove your block on {{name}}? Any existing relationship stays as it is, and whether you can contact each other still depends on each person’s privacy settings."
     },
     "refreshList": "Refresh list",
     "loadedConversations": "{{count}} conversations loaded",
@@ -123,13 +123,13 @@
       "OTHER": "Other"
     },
     "includeMessage": "Include this message as evidence",
-    "evidenceScope": "The selected message’s current stored content and attachment reference will be included. No other messages are included.",
+    "evidenceScope": "Includes the currently saved content and attachment reference for this message only—no other messages are shared.",
     "consequence": "Your report and any selected evidence will be available to authorized moderators. Reporting does not automatically block this user.",
     "submit": "Submit report",
     "failed": "Could not submit the report. Please try again.",
     "received": "Your report has been received. This confirms submission, not a moderation decision.",
     "receipt": "Report ID: {{id}}",
-    "status": "Submitted status: {{status}}",
+    "status": "Submission status: {{status}}",
     "copyReceipt": "Copy report ID",
     "copied": "Report ID copied",
     "copyFailed": "Could not copy the report ID.",

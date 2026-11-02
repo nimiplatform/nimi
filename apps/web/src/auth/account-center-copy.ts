@@ -3,7 +3,7 @@ import { useCallback } from 'react';
 import { asNimiError } from '@nimiplatform/sdk/types';
 
 export const accountCenterCopy = {
-  accountUnavailable: ['Your account is temporarily unavailable', '暂时无法打开账号'],
+  accountUnavailable: ["Your account information is temporarily unavailable", "暂时无法读取账号信息"],
   sending: ['Sending…', '正在发送…'],
   keepEditing: ['Keep editing', '继续编辑'],
   discardChanges: ['Discard changes', '放弃更改'],
@@ -12,7 +12,7 @@ export const accountCenterCopy = {
     '没有找到该用户，请核对完整用户名后重试。',
   ],
   requestDenied: [
-    'This person is not accepting this request. Your request was not sent.',
+    "Can’t send a friend request to this person right now. Your request wasn’t sent.",
     '目前无法向对方发起申请，本次申请未发送。',
   ],
   sessionExpired: [
@@ -24,13 +24,13 @@ export const accountCenterCopy = {
     '操作过于频繁，请稍后再试。',
   ],
   requestRejected: [
-    'The request was not accepted. Check the username and try again.',
-    '申请未被接受，请核对用户名后重试。',
+    "Couldn’t send the friend request. Check the username and try again.",
+    "好友申请未能发出，请核对用户名后重试。",
   ],
   searchResults: ['Search results', '搜索结果'],
   usernameChangeHint: [
-    'Changing your username starts its change cooldown. Your friendships stay the same.',
-    '修改用户名后需等待冷却结束才能再次修改，已有好友关系不受影响。',
+    "Once you change your username, you’ll need to wait before changing it again. Your friendships won’t be affected.",
+    "修改用户名后，需要间隔一段时间才能再次修改，已有好友关系不受影响。",
   ],
   copySetupKey: ['Copy setup key', '复制设置密钥'],
   center: ['Your Nimi account', '你的 Nimi 账号'],
@@ -56,7 +56,7 @@ export const accountCenterCopy = {
     'Manage how you sign in and protect your account.',
     '管理登录方式，保护你的账号。',
   ],
-  sessionsIntro: ['Review where your account is signed in.', '查看和管理账号的登录记录。'],
+  sessionsIntro: ["Review and manage login records for your account.", '查看和管理账号的登录记录。'],
   dataIntro: [
     'Take a copy of your information, or manage your account’s future.',
     '保存一份自己的信息，或决定账号的去留。',
@@ -70,7 +70,7 @@ export const accountCenterCopy = {
   profileHint: ['Your name, avatar and introduction', '头像、名字与个人介绍'],
   friendsHint: ['Friends, requests and blocked accounts', '好友、申请与屏蔽名单'],
   securityHint: ['Password and sign-in methods', '密码与登录方式'],
-  privacyHint: ['Who can find and contact you', '谁能看到你、联系你'],
+  privacyHint: ["Who can see your info and contact you", '谁能看到你、联系你'],
   across: ['One identity across Nimi', '一个身份，连接 Nimi'],
   acrossHint: ['Changes here also appear in Nimi Home.', '这里的更改也会同步到 Nimi Home。'],
   loading: ['Loading your information…', '正在读取你的信息…'],
@@ -83,11 +83,11 @@ export const accountCenterCopy = {
   unavailable: ['We couldn’t load this. Try again.', '暂时无法读取，请重试。'],
   changed: [
     'The signed-in account has changed. Reload this page before continuing.',
-    '登录账号已变化，请重新载入页面后继续。',
+    "当前登录账号已变更，请刷新页面后继续。",
   ],
   refreshedFailed: [
-    'The change was saved, but the list could not refresh. Try refreshing it.',
-    '操作已完成，但列表未能刷新，请重试读取。',
+    "Your change was saved, but the list couldn’t update automatically. Refresh to see the latest.",
+    "操作已完成，但列表未能自动更新，请手动刷新查看。",
   ],
   name: ['Display name', '显示名称'],
   bio: ['About you', '个人介绍'],
@@ -108,8 +108,8 @@ export const accountCenterCopy = {
   invalidImage: ['Choose a JPG, PNG or WebP image.', '请选择 JPG、PNG 或 WebP 图片。'],
   username: ['Username', '用户名'],
   usernameHint: [
-    'Friends can add you using your exact username.',
-    '朋友可以通过完整用户名添加你。',
+    "People can use your exact username to send you a friend request.",
+    "朋友可以通过你的完整用户名向你发送好友申请。",
   ],
   copy: ['Copy username', '复制用户名'],
   copied: ['Username copied.', '用户名已复制。'],
@@ -126,18 +126,18 @@ export const accountCenterCopy = {
   blocked: ['Blocked', '已屏蔽'],
   add: ['Add a friend', '添加好友'],
   addHint: [
-    'Enter their exact username. No public search is needed.',
-    '输入对方的完整用户名，即可发起好友申请。',
+    "Enter someone’s exact username to send a friend request.",
+    "输入对方的完整用户名，向对方发送好友申请。",
   ],
   handlePlaceholder: ['For example, @alex', '例如 @alex'],
   message: ['A short introduction (optional)', '打个招呼（选填）'],
   sendRequest: ['Send request', '发送申请'],
   requestSent: ['Friend request sent.', '好友申请已发送。'],
-  alreadyFriends: ['You’re now friends.', '你们已经是好友了。'],
-  unchanged: ['This relationship is already up to date.', '关系已是最新状态。'],
+  alreadyFriends: ['You’re now friends.', "你们现在已成为好友。"],
+  unchanged: ["Already up to date—no changes were needed.", "无需重复操作，当前状态已是最新。"],
   requestUnknown: [
-    'The result is uncertain. Check Sent requests before sending another request.',
-    '目前无法确认结果，请先查看发出的申请，再决定是否重新发送。',
+    "We couldn’t confirm whether your request went through. Check your sent requests before sending it again.",
+    "暂时无法确认申请是否发出。请先查看“发出的申请”，再决定是否重新发送。",
   ],
   checkSent: ['Check sent requests', '查看发出的申请'],
   search: ['Search your friends', '搜索我的好友'],
@@ -146,8 +146,8 @@ export const accountCenterCopy = {
   more: ['Load more', '加载更多'],
   emptyFriends: ['Your friends will appear here', '好友会出现在这里'],
   emptyFriendsBody: [
-    'Add someone you know with their username. You can chat in Nimi Home once your connection is ready.',
-    '用用户名添加认识的人，建立联系后就可以在 Nimi Home 中聊天。',
+    "Enter someone’s exact username to send a friend request. You can chat in Nimi Home when your contact settings allow it.",
+    "输入完整用户名，向认识的人发送好友申请。双方的联系设置允许时，可在 Nimi Home 中聊天。",
   ],
   emptyReceived: ['No new requests', '暂时没有新的申请'],
   emptyReceivedBody: [
@@ -174,10 +174,10 @@ export const accountCenterCopy = {
   unblock: ['Unblock', '解除屏蔽'],
   actions: ['More actions', '更多操作'],
   confirm: ['Confirm', '确认'],
-  actionDone: ['Done. Your relationship has been updated.', '操作完成，关系已更新。'],
+  actionDone: ["Done—status updated.", "操作已完成，状态已更新。"],
   stateChanged: [
-    'This request or relationship has changed. Refresh to see its current state.',
-    '这条申请或关系已变化，请刷新后查看当前状态。',
+    "This request or status has changed. Refresh to see the latest.",
+    "该申请或好友状态已变更，请刷新查看最新状态。",
   ],
   confirmRemove: [
     'Remove this friend? Your existing chat history will remain.',
@@ -188,8 +188,8 @@ export const accountCenterCopy = {
     '屏蔽此用户？新的联系会受到限制，已有聊天记录和好友关系会保留。',
   ],
   confirmUnblock: [
-    'Unblock this person? Your current privacy settings will apply again.',
-    '解除屏蔽？之后会重新按你的隐私设置允许联系。',
+    "Unblock this person? Contact will still depend on both people’s current privacy settings.",
+    "解除屏蔽？能否继续联系仍取决于双方当前的隐私设置。",
   ],
   deletedUser: ['Deleted account', '已注销账号'],
   chatHome: ['Conversations continue in Nimi Home.', '与朋友的聊天继续在 Nimi Home 中进行。'],
@@ -241,7 +241,7 @@ export const accountCenterCopy = {
   sessionShortcut: ['Review login sessions', '查看登录会话'],
   deleteHint: [
     'Permanently close your account. Review what happens before continuing.',
-    '永久关闭账号。继续前请先了解数据处理后果。',
+    "永久注销账号。继续前请先了解账号与数据的处理方式。",
   ],
   notFound: ['This account page doesn’t exist', '这个账号页面不存在'],
   backAccount: ['Back to your account', '返回账号首页'],

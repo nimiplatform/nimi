@@ -1,8 +1,8 @@
 # 开发环境准备
 
-配置好 Nimi 开发环境后，你就可以在本机开发和调试本地优先的 AI 应用、联调原生宿主交互，并运行端到端测试。
+配置好 Nimi 开发环境后，你就可以在本机开发和调试本地优先的 AI 应用、联调原生宿主交互，并运行端到端工作流测试。
 
-请选用与当前 Nimi 宿主匹配的 App Tools，并使用该工具明确支持的依赖组合。当前源码工作区构建 SDK/Kit 0.22.0 与 App Tools 0.13.2，但 App Tools 脚手架仍默认使用 SDK/Kit `^0.21.0`。脚手架默认组合与工作区包版本是两回事，源码版本声明也不代表对应包已发布至 npm。
+选版本时，请先选择与目标 Nimi 宿主匹配的 `@nimiplatform/app-tools`，并沿用该版本声明的依赖组合。当前仓库源码中的 App Tools `0.14.0` 脚手架默认搭配 SDK `^0.22.2`、Kit `^0.22.1` 与 `nimi-shell-tauri` `0.11.1`。请注意区分源码声明与 npm 公开发布：仓库中声明的版本号不代表对应包已经发布到 npm，已发布包也不会包含源码中尚未发布的变更。
 
 ---
 
@@ -10,29 +10,33 @@
 
 开始前，请确认本机已安装以下工具：
 
-- **Node.js**：使用 Node.js 24.22.1 或 Node 24 LTS 分支上更新的补丁/次版本。
-- **pnpm**：推荐使用 pnpm 10.34.7（或兼容的 pnpm 10.x 版本）。
-- **C/C++ 构建工具**（可选）：若需从源码编译 Kit 的可选原生扩展，macOS 请安装 Xcode Command Line Tools，Windows 请安装 Visual Studio C++ 生成工具。
+- **Node.js**：Node.js 24.22.1，或 Node 24 LTS 分支上更新的补丁/次版本。
+- **pnpm**：pnpm 10.34.7（或兼容的 pnpm 10.x 版本）。
+- **C/C++ 构建工具**（可选）：如需从源码编译 Kit 的可选原生扩展；macOS 请安装 Xcode Command Line Tools，Windows 请安装 Visual Studio C++ 生成工具。
 
-脚手架生成的 App 工程内置项目级 Nimi Coding，其版本由所选 App Tools 包锁定；当前源码脚手架锁定为 0.7.0。执行 `pnpm install && pnpm run init` 即可完成初始化，无需全局安装。
+脚手架生成的 App 工程内置了项目级 Nimi Coding，版本由所选 App Tools 包锁定（当前 App Tools `0.14.0` 源码脚手架锁定为 `0.7.0`）。在项目内执行 `pnpm install && pnpm run init` 即可完成配置，无需全局安装。
 
 ---
 
 ## 2. 核心依赖组合说明
 
-Nimi 核心模块之间通过明确的契约协同工作。当前源码脚手架声明的依赖组合如下；若从 npm 安装，请以所选已发布工具生成的版本声明为准：
+Nimi 核心模块独立维护版本号，由各版本的 App Tools 声明配套依赖组合。请按安装方式选择版本：
+
+- **从 npm 安装**：直接使用所选已发布 `@nimiplatform/app-tools` 生成的依赖版本组合。
+- **基于当前源码开发**：App Tools `0.14.0` 源码脚手架声明的组合如下：
 
 | 模块 | 源码脚手架版本 | 说明 |
 | :--- | :--- | :--- |
-| `@nimiplatform/sdk` | `^0.21.0` | 客户端核心 API、AI 推理与宿主会话绑定 |
-| `@nimiplatform/kit` | `^0.21.0` | 跨平台 UI 组件库、窗口桥接与主题契约 |
-| `@nimiplatform/app-tools` | `^0.13.2` | 项目脚手架与构建打包工具 |
-| `@nimiplatform/sdk-adapter-vercel-ai` | `^0.5.0` | （可选）Vercel AI SDK 7 适配器 |
+| `@nimiplatform/sdk` | `^0.22.2` | 客户端核心 API、AI 推理与宿主会话绑定 |
+| `@nimiplatform/kit` | `^0.22.1` | 跨平台 UI 组件库、窗口桥接与主题契约 |
+| `@nimiplatform/app-tools` | `^0.14.0` | 项目脚手架、工程初始化与生产构建打包 |
+| `nimi-shell-tauri` | `0.11.1` | 脚手架锁定的 Tauri 壳模块 |
+| `@nimiplatform/sdk-adapter-vercel-ai` | `^0.6.2` | （可选）Vercel AI SDK 7 适配器 |
 
-[ONBOARDING.md](https://github.com/nimiplatform/nimi/blob/main/ONBOARDING.md) 中的 SDK/Kit 0.22.0 媒体检查点，尚不属于 App Tools 0.13.2 声明支持的独立 App 依赖组合。请按该检查点的源码工作区流程使用，不要只修改独立 App 的版本字符串。
+源码中新增的未发布（Unreleased）API 需要配合对应的源码构建使用；不要假设已发布的 npm 包具备这些新能力，也不要只在独立 App 中手动改大版本号。如需联调源码中的未发布变更，请按 [ONBOARDING.md](https://github.com/nimiplatform/nimi/blob/main/ONBOARDING.md) 中的源码工作区流程构建。
 
 > [!NOTE] 本地归档与覆盖
-> 在主仓库源码中开发或使用离线开发包时，可在项目根目录通过 `pnpm-workspace.yaml` 的 `overrides` 字段将上述依赖直接指向本地 `.tgz` 归档文件。具体配置方式请参考[创建第一个 Nimi App](/zh/start/create-an-app)。
+> 独立 App 需要测试本地构建包时，可在项目根目录通过 `pnpm-workspace.yaml` 的 `overrides` 字段将依赖直接指向本地 `.tgz` 归档文件。具体配置方式见[创建第一个 Nimi App](/zh/start/create-an-app)。
 
 ---
 

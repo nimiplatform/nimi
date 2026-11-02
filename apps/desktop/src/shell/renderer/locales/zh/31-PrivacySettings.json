@@ -19,7 +19,7 @@
   "profileVisibilityLabel": "个人主页可见性",
   "profileVisibilityHelper": "谁可以查看你的完整资料",
   "friendRequestVisibilityLabel": "新的好友申请",
-  "friendRequestVisibilityHelper": "关闭后保留现有好友和已收到的申请。",
+  "friendRequestVisibilityHelper": "关闭后不再接收新申请，现有好友和已有申请会保留。",
   "socialVisibilityLabel": "社交关系可见性",
   "socialVisibilityHelper": "谁可以看到你的社交关系",
   "friendListVisibilityLabel": "好友列表可见性",

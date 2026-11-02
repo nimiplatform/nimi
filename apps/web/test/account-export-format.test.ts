@@ -13,7 +13,7 @@ test('readable export retains coverage and text without interpreting user HTML',
   } as unknown as AccountTextExport;
   const markdown = accountExportMarkdown(data, 'en');
   assert.match(markdown, /unavailable/);
-  assert.match(markdown, /not an atomic snapshot/);
+  assert.match(markdown, /not a point-in-time snapshot/);
   assert.match(markdown, /Message recalled/);
   assert.match(markdown, /&lt;script&gt;/);
   assert.doesNotMatch(markdown, /<script>|<b>/);

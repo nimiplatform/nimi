@@ -19,7 +19,7 @@
   "profileVisibilityLabel": "Profile Visibility",
   "profileVisibilityHelper": "Who can view your full profile",
   "friendRequestVisibilityLabel": "New friend requests",
-  "friendRequestVisibilityHelper": "Closing requests keeps your friends and existing requests.",
+  "friendRequestVisibilityHelper": "Turning off new requests won’t affect your current friends or existing requests.",
   "socialVisibilityLabel": "Social Visibility",
   "socialVisibilityHelper": "Who can see your social graph presence",
   "friendListVisibilityLabel": "Friend List Visibility",

@@ -17,9 +17,9 @@
 
 自行运行 Realm 的机器需先确认数据库与媒体发布 owner：不同数据库不得直接向同一预览发布空间写入。不要复制用户 token、Runtime 数据目录或整份 `.env`，也不要重置旧数据库；当前一次性媒体工具不是任意机器通用的迁移器。同时采用新介绍合同的独立 App 还需在根目录提供 `NIMI_APP.md`，不支持 README 回退。
 
-2026-10-28 首发准备已将媒体交付切至 policy v2：大幅静态主图提前生成，Runtime 同步修复了写死 v1 的描述与原始语音链接校验。升级时必须重新构建并正常重启匹配 Runtime，不能只更新 Realm/Worker。最新配套代码、内容 revision 11 与生产变更预览见 Realm 的 `docker/production/MEDIA-LAUNCH.md`。
+2026-10-28 首发准备已将媒体交付切至 policy v2：大幅静态主图提前生成，Runtime 同步修复了写死 v1 的描述与原始语音链接校验。升级时必须重新构建并正常重启匹配的 Runtime，不能只更新 Realm/Worker。最新配套代码、内容 revision 11 与生产变更预览见 Realm 的 `docker/production/MEDIA-LAUNCH.md`。
 
-2026-10-28 经明确批准，Cloudflare账号已启用Workers Paid，预览Worker单请求CPU限额为1000ms；冷MISS主图p95为1.773秒，新的真实页面验收未再观察到非取消媒体请求失败。该结果只关闭本机/预览的CPU配额阻断；Windows、管理员界面、多POP和生产目标仍有未验证范围。代码、协议、数据准备与真实产品验收分别核对，不将构建通过或本机样本视为生产就绪。
+2026-10-28 经明确批准，Cloudflare 账号已启用 Workers Paid，预览 Worker 单请求 CPU 限额为 1000ms；冷 MISS 主图 p95 为 1.773秒，新的真实页面验收未再观察到非取消的媒体请求失败。该结果仅解除本机/预览的 CPU 配额阻断；Windows、管理员界面、多 POP 和生产目标仍有未验证范围。代码、协议、数据准备与真实产品验收须分别核对，不能将构建通过或本机样本视为生产就绪。
 
 ## 1. 核心架构与代码目录
 

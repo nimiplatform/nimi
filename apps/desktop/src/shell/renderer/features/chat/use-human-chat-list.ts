@@ -19,7 +19,7 @@ export function useHumanChatList(authStatus: AuthStatus) {
     initialPageParam: null as string | null,
     queryFn: async ({ pageParam }): Promise<RealmListChatsResultDto> => {
       const page = pageParam ? await data.loadMoreChatList(pageParam) : await data.loadChatList();
-      if (!page) throw new Error('Conversation page unavailable');
+      if (!page) throw new Error("Could not load conversations.");
       return page;
     },
     getNextPageParam: page => page.nextCursor || undefined,

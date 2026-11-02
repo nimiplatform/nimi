@@ -169,8 +169,8 @@ test('Home session controls bind pagination and revocation to the displayed owne
       path: {},
       query: { expectedAccountId: 'account-a', limit: 20, cursor: 'next' },
     });
-    await click('Sign out this session');
-    await click('Sign out this session', true);
+    await click('Sign out of this session');
+    await click('Sign out of this session', true);
     assert.deepEqual(calls.find((call) => call.kind === 'selected')?.input, {
       path: { sessionId: 'other-session' },
       body: { expectedAccountId: 'account-a' },
@@ -178,15 +178,15 @@ test('Home session controls bind pagination and revocation to the displayed owne
     assert.equal(localExits, 0);
     assert.match(
       dom.window.document.body.textContent!,
-      /selected login sessions have been signed out/,
+      /Signed out of the selected login sessions/,
     );
     assert.match(dom.window.document.body.textContent!, /Could not load the latest sign-ins/);
     assert.doesNotMatch(dom.window.document.body.textContent!, /Other login · source unknown/);
     readFails = false;
     hasOther = true;
     await click('Refresh sign-ins');
-    await click('Sign out all other sessions');
-    await click('Sign out all other sessions', true);
+    await click('Sign out of all other sessions');
+    await click('Sign out of all other sessions', true);
     assert.deepEqual(calls.find((call) => call.kind === 'others')?.input, {
       path: {},
       body: { expectedAccountId: 'account-a' },

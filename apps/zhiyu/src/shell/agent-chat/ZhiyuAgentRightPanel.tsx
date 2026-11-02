@@ -141,7 +141,7 @@ export function RightAgentPanel(props: RightAgentPanelProps) {
               onClick={props.onRetryAgentCenter}
             >
               <RotateCcw size={15} aria-hidden="true" />
-              <span>重试伙伴设置</span>
+              <span>重新加载伙伴设置</span>
             </button>
           </div>
         </section>

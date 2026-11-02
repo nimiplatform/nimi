@@ -138,7 +138,7 @@ test('Zhiyu Agent Center panel fails closed with typed owner-unavailable retry w
   assert.match(html, /data-zhiyu-agent-center-unavailable-reason="owner-unavailable"/);
   assert.match(html, /设置暂时不可用/);
   assert.match(html, /伙伴设置暂时没有响应，请稍后重试。/);
-  assert.match(html, /重试伙伴设置/);
+  assert.match(html, /重新加载伙伴设置/);
   assert.doesNotMatch(html, /不会改走其他产品路径/);
   assert.doesNotMatch(html, /Nimi Desktop|desktop_open_runtime_settings/u);
   assert.doesNotMatch(html, /浏览伙伴目录/);

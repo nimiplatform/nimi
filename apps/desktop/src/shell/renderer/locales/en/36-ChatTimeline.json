@@ -37,5 +37,5 @@
   "statusPrefix": "Status",
   "joinedAtPrefix": "Joined",
   "turnAuditLabel": "Turn Audit",
-  "awaitingConfirmation": "Send not confirmed. Retry from the composer."
+  "awaitingConfirmation": "Send not confirmed. Retry in the input box below."
 }

@@ -9,7 +9,7 @@
   "displayName": "显示名称",
   "displayNamePlaceholder": "你的显示名称",
   "username": "用户名",
-  "usernameHelper": "用户名更改以账号当前的更名资格为准。",
+  "usernameHelper": "能否更改用户名，以当前账号的修改条件为准。",
   "email": "邮箱",
   "emailPlaceholder": "your@email.com",
   "emailHelper": "邮箱由你使用的登录服务商管理",
@@ -144,7 +144,7 @@
   },
   "removePhoto": "移除头像",
   "photoUploaded": "头像已上传。",
-  "usernameIdentityHint": "将用户名告诉认识的朋友。更改用户名不会改变已有好友关系。",
+  "usernameIdentityHint": "可以把用户名告诉认识的人。更改用户名不会影响已有的好友关系。",
   "usernameCopied": "已复制用户名",
   "usernameCopyFailed": "未能复制用户名，请重试。",
   "copyUsername": "复制用户名",
@@ -157,7 +157,7 @@
   "relationshipBlocked": "已屏蔽",
   "followedWorldsDeviceScope": "此设备上关注的世界，仅你可见。",
   "unsavedChanges": "有未保存的修改",
-  "explicitSaveHint": "保存后才会更新你的公开资料。",
+  "explicitSaveHint": "保存后才会更新你的资料。",
   "continueEditing": "继续编辑",
   "previewHint": "这是当前草稿的预览，保存前不会发布。",
   "leaveTitle": "保存资料修改？",
@@ -171,7 +171,7 @@
   "profileLoadFailed": "未能读取你的资料，请重试后再编辑。",
   "editorValidation": {
     "name": "请填写显示名称。",
-    "length": "有字段超过允许的长度，请缩短后重试。",
+    "length": "有内容超出长度限制，请缩短后重试。",
     "languages": "语言最多 20 项，每项不超过 32 个字符。",
     "tags": "兴趣最多 20 项，每项不超过 64 个字符。"
   },
@@ -182,14 +182,14 @@
     "PREFER_NOT_SAY": "不愿透露"
   },
   "handleChanged": "用户名已更改，已有好友关系和聊天记录会保留。",
-  "handleEligibilityLoading": "正在确认更名资格…",
-  "handleEligibilityUnavailable": "暂时无法确认更名资格，请重试。",
+  "handleEligibilityLoading": "正在检查是否可更改用户名…",
+  "handleEligibilityUnavailable": "暂时无法确认是否可更改用户名，请重试。",
   "handleNextChange": "{{date}}后可以再次更改用户名。",
   "newUsername": "新用户名",
   "handleFormat": "使用 {{min}}–{{max}} 位小写字母、数字或下划线。",
   "changeUsername": "更改用户名",
   "confirmUsernameTitle": "确认更改用户名？",
-  "confirmUsernameBody": "将 {{old}} 改为 @{{next}}？旧用户名将不再用于找到此账号，已有好友关系和聊天记录会保留。用户名每年可更改一次。",
+  "confirmUsernameBody": "将 {{old}} 改为 @{{next}}？更改后无法再通过旧用户名找到此账号，已有好友关系和聊天记录会保留。用户名每年可更改一次。",
   "relationshipReceived": "收到好友申请",
   "cannotMessage": "当前联系设置不允许发送新消息，已有会话仍可从会话列表查看。"
 }

@@ -129,7 +129,7 @@ export async function confirmCurrentWebBrowserSession(): Promise<void> {
   }
 }
 
-export async function completeTikTokAccountOAuth(search: string): Promise<CompletedTikTokAccountOAuth> {
+export async function completeTikTokAccountOAuth(search: string, invalidAccountMessage = 'Could not confirm the account to link. Please try again.'): Promise<CompletedTikTokAccountOAuth> {
   const pending = consumePendingProviderLink();
   const query = new URLSearchParams(search);
   const error = String(query.get('error') || '').trim();
@@ -144,7 +144,7 @@ export async function completeTikTokAccountOAuth(search: string): Promise<Comple
     redirectUri: pending.redirectUri,
   } as const;
   if (pending.mode === 'link') {
-    if (typeof pending.expectedAccountId !== 'string' || !pending.expectedAccountId) throw new Error('OAuth 绑定账号无效。');
+    if (typeof pending.expectedAccountId !== 'string' || !pending.expectedAccountId) throw new Error(invalidAccountMessage);
     await linkNimiRealmOAuth(createWebBrowserRealm(''), { ...input, expectedAccountId: pending.expectedAccountId });
     return { mode: pending.mode };
   }

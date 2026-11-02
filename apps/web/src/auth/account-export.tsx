@@ -12,28 +12,28 @@ const copy = {
   en: {
     title: 'Account profile and chat text',
     description:
-      'Download your profile, settings, relationships and the chat text you can currently access. This does not include media files, credentials, local AI companions, memories or App data, and cannot restore Nimi.',
+      "Download your profile, settings, relationships and the chat text you currently have access to. Media files, credentials, local AI companions, memories, and App data aren’t included, and this file can’t be used to restore Nimi.",
     interval:
-      'Reads happen during generation, so this is not a snapshot of one instant. Incomplete sections are listed in the file.',
+      "Data is gathered section by section while the file is being built, rather than captured at a single instant. Any incomplete sections will be noted in the file.",
     json: 'Download JSON',
     markdown: 'Download readable Markdown',
     preparing: 'Reading your account data…',
     delivered:
-      'The file was handed to your browser for download. Check that it was saved before relying on it.',
-    partial: 'The download is partial. These sections could not be completed:',
+      "We’ve sent the file to your browser for download. Make sure it’s saved to your device before relying on this copy.",
+    partial: "This export is incomplete. These sections couldn’t be read in full:",
     changed: 'The signed-in account changed. Refresh the account page before exporting.',
     failed: 'Could not export account data. Please retry.',
   },
   zh: {
     title: '账号资料与聊天文本',
     description:
-      '下载你的资料、设置、好友关系和当前可读取的聊天文本。不包含附件文件、账号凭据、本机 AI 伙伴、记忆或 App 数据，也不能用于恢复 Nimi。',
-    interval: '内容在生成期间逐项读取，不是同一时刻的快照。未完成的部分会在文件中列明。',
+      "下载你的个人资料、设置、社交关系，以及当前可读取的聊天文本。导出内容不包含媒体附件、账号凭据、本机 AI 伙伴、记忆或 App 数据，也无法用于恢复 Nimi。",
+    interval: "数据会在生成文件时逐项读取，并非同一时刻的完整快照；如有未能完整读取的部分，会在文件中注明。",
     json: '下载 JSON',
     markdown: '下载可读 Markdown',
     preparing: '正在读取账号数据…',
-    delivered: '文件已交给浏览器下载。请确认文件已保存，再将其作为留存副本。',
-    partial: '这是部分导出。以下内容未能全部读取：',
+    delivered: "文件已交给浏览器下载。请先确认文件已成功保存到本地，再将其作为留存副本。",
+    partial: "本次导出不完整，以下内容未能完整读取：",
     changed: '当前登录账号已改变。请刷新账号页面后再导出。',
     failed: '无法导出账号数据，请重试。',
   },

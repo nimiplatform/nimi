@@ -567,10 +567,10 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
           },
           showApproval: async () => (await dialog.showMessageBox({
             type: 'info',
-            title: 'Approve Nimi Runtime',
-            message: 'Nimi Runtime needs approval to run in the background.',
-            detail: 'Open System Settings → Login Items & Extensions and allow Nimi. A Mac administrator must approve this once. The local AI service runs with Nimi Home, including when its window is hidden, and stops when you choose Quit Nimi. This does not enable launch at login. Nimi will close while approval is pending. After allowing Nimi, open it again; daily use requires no administrator privileges.',
-            buttons: ['Open System Settings', 'Later'],
+            title: systemEntryLocale === 'zh' ? "批准 Nimi 本地 AI 服务" : 'Approve Nimi Runtime',
+            message: systemEntryLocale === 'zh' ? "Nimi 本地 AI 服务需要批准才能在后台运行。" : 'Nimi Runtime needs approval to run in the background.',
+            detail: systemEntryLocale === 'zh' ? "请在“系统设置 → 登录项与扩展”中允许 Nimi 在后台运行。等待批准期间 Nimi 会先关闭，允许后重新打开 Nimi 即可。只需 Mac 管理员批准一次，日常使用无需管理员权限。这不会让 Nimi 在登录时自动打开：本地 AI 服务会随 Nimi Home 一同运行（即使窗口已隐藏），并在你选择“退出 Nimi”时停止。" : "Allow Nimi in System Settings → Login Items & Extensions. Nimi will close while waiting for approval—once allowed, open Nimi again. A Mac administrator only needs to approve this once, and daily use requires no administrator privileges. This does not set Nimi to launch at login: the local AI service runs alongside Nimi Home (even when its window is hidden) and stops when you choose Quit Nimi.",
+            buttons: systemEntryLocale === 'zh' ? ['打开系统设置', '稍后'] : ['Open System Settings', 'Later'],
             defaultId: 0,
             cancelId: 1,
           })).response === 0,
@@ -1263,7 +1263,7 @@ async function recoverDesktopAfterFailedQuit(error: unknown): Promise<void> {
   const owners = failed.map(key => labels[key] ?? key).join(chinese ? '、' : ', ');
   dialog.showErrorBox(chinese ? 'Nimi Home 尚未退出' : 'Nimi Home could not close',
     (owners ? (chinese ? `尚未确认以下项目已关闭：${owners}。` : `Still waiting for ${owners} to close. `) : '')
-    + (chinese ? '请再次选择“退出 Nimi Home”。' : 'Choose Quit Nimi Home to try again.'));
+    + (chinese ? '请再次选择“退出 Nimi”。' : 'Choose Quit Nimi to try again.'));
 }
 
 async function confirmDesktopUserQuit(): Promise<boolean> {

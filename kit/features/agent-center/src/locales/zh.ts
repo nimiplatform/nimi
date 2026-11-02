@@ -501,7 +501,7 @@ export const agentCenterZhCatalog = {
   "AgentCenter.overview.sourceContextBlockedDescription": "角色设定或对话上下文受阻，需要处理。",
   "AgentCenter.overview.sourceContextBlockedPill": "需要处理",
   "AgentCenter.overview.sourceContextFailedDescription": "无法检查角色设定与对话上下文。",
-  "AgentCenter.overview.sourceSnapshotInvalidDescription": "这位伙伴保存的设定已失效，无法继续回复。要重新聊天，需要从可用的角色来源创建新伙伴。",
+  "AgentCenter.overview.sourceSnapshotInvalidDescription": "这位伙伴保存的角色设定已失效，已无法继续回复。如需继续聊天，请从可用的角色来源创建新伙伴。",
   "AgentCenter.overview.sourceContextFailedPill": "不可用",
   "AgentCenter.overview.sourceContextReadyDescription": "角色设定与最新对话上下文已就绪。",
   "AgentCenter.overview.sourceContextReadyPill": "已就绪",

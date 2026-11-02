@@ -20,21 +20,25 @@ to the next 0.x minor; no package publication is implied.
 
 ## Unreleased — Explicit human read positions
 
-Human Chat read operations now require a `readThroughMessageId`; callers must
-pass the displayed or explicitly acknowledged position instead of asking the
-server to mark its newest message read. Update `RealmChatService.markChatRead`
+Human Chat read operations now require `readThroughMessageId`: callers must pass
+the displayed or explicitly acknowledged message position instead of asking the
+server to mark its newest message as read. Update `RealmChatService.markChatRead`
 and `markRealmChatRead` callers and rebuild matching SDK/Kit source packages.
-This is a coordinated next 0.x minor change, not a published release.
+This breaking source change belongs to the next coordinated 0.x minor, not a
+published release.
 
 ## Unreleased — Agent Realtime close result preservation
 
-The headless state adds `closeUnconfirmed` for a remote closure that has not been
+The headless state adds `closeUnconfirmed` when a remote closure has not been
 confirmed. Close failures retain the original scope for explicit retry and block
-replacement Open; concurrent Close calls share one operation. The shared Entry
+a replacement Open; concurrent Close calls share one operation. The shared Entry
 offers retry and an explicit Nimi Home Stop recovery path, and does not rewrite a
-Runtime failed terminal as closed. Update custom state fixtures for the added
-field and rebuild matching SDK/Kit source packages. This is part of the next
-coordinated 0.x minor; no package publication or automatic replay is implied.
+Runtime terminal failure as closed.
+
+Update custom state fixtures for the added field and rebuild matching SDK/Kit
+source packages. This source change (breaking for custom state fixtures) belongs
+to the next coordinated 0.x minor; no package publication or automatic replay is
+implied.
 
 ## 0.22.1 — 2026-10-27
 

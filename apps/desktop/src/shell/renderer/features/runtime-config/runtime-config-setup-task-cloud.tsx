@@ -415,7 +415,7 @@ export function RuntimeSetupTaskCloudPanel(props: {
         <p className="min-w-0 break-words text-sm font-medium text-[var(--nimi-text-primary)]" data-testid="runtime-setup-cloud-selected" aria-live="polite">
           {t('runtimeConfig.setupTask.cloud.selectedModel', { defaultValue: 'Selected model: {{model}}', model: selectedTarget.label })}
         </p>
-      ) : <p className="text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.setupTask.cloud.chooseBeforeSave', { defaultValue: 'Select a model to continue.' })}</p>}
+      ) : <p className="text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.setupTask.cloud.chooseBeforeSave', { defaultValue: 'Select a model before saving.' })}</p>}
       {!props.selectionOnly ? (
         <Button
           tone="primary"
@@ -431,7 +431,7 @@ export function RuntimeSetupTaskCloudPanel(props: {
         </Button>
       ) : null}
       </div>
-      <p className="text-xs leading-relaxed text-[var(--nimi-text-secondary)]">{t('runtimeConfig.setupTask.cloud.executionNote', { defaultValue: 'Saving makes no AI request. When used, requests go to this cloud service and may incur provider charges.' })}</p>
+      <p className="text-xs leading-relaxed text-[var(--nimi-text-secondary)]">{t('runtimeConfig.setupTask.cloud.executionNote', { defaultValue: 'Saving doesn’t send any AI requests. Requests go to this cloud service only when used, and may incur provider charges.' })}</p>
       </div>
     </div>
   );

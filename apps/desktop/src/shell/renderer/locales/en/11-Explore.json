@@ -49,7 +49,7 @@
   "characterSourceMaterializationUnavailable": "This character is not ready to be added as a partner yet.",
   "characterSourceMaterializationRejected": "Failed to add as partner. Refresh the character and try again.",
   "characterSourceAmbiguous": "Partner records conflict. Resolve duplicate local data before continuing.",
-  "characterSourceAmbiguousLabel": "Partner records conflict",
+  "characterSourceAmbiguousLabel": "Partner record conflict",
   "characterRuntimeUnavailable": "Service is unavailable, so this character cannot be added as a partner right now.",
   "characterRuntimeUnavailableLabel": "Service unavailable",
   "characterRuntimePending": "Checking whether this character is already your partner.",

@@ -22,7 +22,7 @@ pnpm dlx --package @nimiplatform/app-tools nimi-app create \
   --author "Your Name"
 
 # Or using local package archives (in source monorepo environments):
-pnpm dlx --package=file:./nimi-packages/nimiplatform-app-tools-0.13.0.tgz nimi-app create \
+pnpm dlx --package=file:./nimi-packages/nimiplatform-app-tools-0.14.0.tgz nimi-app create \
   --dir my-nimi-app \
   --profile standalone \
   --features studio-create \
@@ -53,8 +53,8 @@ Inspect the generated `package.json` and keep the dependency combination matched
 ```json
 {
   "dependencies": {
-    "@nimiplatform/sdk": "^0.21.0",
-    "@nimiplatform/kit": "^0.21.0"
+    "@nimiplatform/sdk": "^0.22.2",
+    "@nimiplatform/kit": "^0.22.1"
   }
 }
 ```
@@ -65,10 +65,10 @@ If you are developing against local build tarballs or offline delivery archives,
 packages:
   - .
 overrides:
-  '@nimiplatform/app-tools': file:../nimi-packages/nimiplatform-app-tools-0.13.0.tgz
-  '@nimiplatform/sdk': file:../nimi-packages/nimiplatform-sdk-0.21.0.tgz
-  '@nimiplatform/kit': file:../nimi-packages/nimiplatform-kit-0.21.0.tgz
-  '@nimiplatform/kit-protected-local-darwin-arm64': file:../nimi-packages/nimiplatform-kit-protected-local-darwin-arm64-0.21.0.tgz
+  '@nimiplatform/app-tools': file:../nimi-packages/nimiplatform-app-tools-0.14.0.tgz
+  '@nimiplatform/sdk': file:../nimi-packages/nimiplatform-sdk-0.22.2.tgz
+  '@nimiplatform/kit': file:../nimi-packages/nimiplatform-kit-0.22.1.tgz
+  '@nimiplatform/kit-protected-local-darwin-arm64': file:../nimi-packages/nimiplatform-kit-protected-local-darwin-arm64-0.22.1.tgz
 ```
 
 > [!TIP] Platform Architecture

@@ -63,7 +63,7 @@ export function characterSourceAmbiguousMessage(t: TFunction): string {
   return translate(
     t,
     'Explore.characterSourceAmbiguous',
-    'Partner records conflict. Resolve duplicate local data before continuing.',
+    "More than one local partner matches this character. Resolve the duplicate local records before continuing.",
   );
 }
 
@@ -188,7 +188,7 @@ export function describeCharacterPrimaryAction(
     return { state, action: 'partner_runtime_pending', label: translate(t, 'Explore.characterRuntimePendingLabel', 'Checking partner'), disabled: true, hint: characterRuntimePendingMessage(t) };
   }
   if (state === 'local_agent_ambiguous') {
-    return { state, action: 'partner_ambiguous', label: translate(t, 'Explore.characterSourceAmbiguousLabel', 'Partner records conflict'), disabled: true, hint: characterSourceAmbiguousMessage(t) };
+    return { state, action: 'partner_ambiguous', label: translate(t, 'Explore.characterSourceAmbiguousLabel', 'Partner record conflict'), disabled: true, hint: characterSourceAmbiguousMessage(t) };
   }
   if (state === 'local_agent_available') {
     return { state, action: 'open_partner', label: translate(t, 'Explore.characterSourceOpenLocalAgent', 'Open partner'), disabled: false };

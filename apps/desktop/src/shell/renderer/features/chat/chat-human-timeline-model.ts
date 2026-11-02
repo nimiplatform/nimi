@@ -112,7 +112,7 @@ export function useHumanTimelineModel(selectedChatId: string | null, selectedCha
     queryFn: async ({ pageParam }): Promise<RealmListMessagesResultDto & { offlineOutbox?: PersistentOutboxEntry[] }> => {
       if (pageParam) {
         const page = await realmHumanChatData.loadMoreChatMessages(selectedChatId!, pageParam, 50);
-        if (!page) throw new Error('Message page unavailable');
+        if (!page) throw new Error("Could not load more messages.");
         return page;
       }
       return realmHumanChatData.loadChatMessages(selectedChatId!, 50);

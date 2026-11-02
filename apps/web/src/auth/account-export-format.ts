@@ -25,8 +25,8 @@ export function accountExportMarkdown(data: AccountTextExport, locale: 'en' | 'z
     `# ${zh ? 'Nimi 账号资料与聊天文本' : 'Nimi account profile and chat text'}`,
     '', `${zh ? '生成时段' : 'Generation interval'}: ${data.startedAt} — ${data.completedAt}`,
     `${zh ? '结果' : 'Result'}: ${data.status}`, '',
-    zh ? '这是生成期间逐项读取的内容，不是同一时刻的全量快照，也不支持恢复。附件只包含可见元数据；文件不包含账号凭据、撤回正文、原始引用正文、附件文件或本机 AI/App 数据。'
-      : 'This contains reads made during the generation interval, not an atomic snapshot or a restorable backup. Attachments contain visible metadata only. Credentials, withdrawn text, original quoted bodies, media files and local AI/App data are excluded.',
+    zh ? '这是生成期间逐项读取的内容，不是同一时刻的全量快照，也不支持恢复。附件只包含可见元数据；文件不包含账号凭据、撤回正文、原始引用正文、附件或其他媒体文件、本机 AI/App 数据。'
+      : 'This export contains data read item by item during generation; it is not a point-in-time snapshot or a restorable backup. Attachments include visible metadata only. Account credentials, withdrawn text, original quoted text, attachment or other media files, and local AI/App data are not included.',
     '', `## ${zh ? '导出范围与未完成项' : 'Coverage and incomplete sections'}`, '',
     zh ? '| 内容 | 结果 | 项数 |' : '| Section | Result | Items |', '| --- | --- | --- |',
     ...data.sections.map(section => `| ${cell(accountExportSectionLabel(data, section.name, locale))} | ${cell(zh ? ({ complete: '已读取', partial: '部分读取', unavailable: '读取失败' }[section.status]) : section.status)} | ${section.itemCount} |`),
@@ -36,7 +36,7 @@ export function accountExportMarkdown(data: AccountTextExport, locale: 'en' | 'z
     ...(data.settings ? data.settings.values.map(setting => `- ${printable(setting.name)}: ${printable(setting.value)}`) : [zh ? '未能读取设置。' : 'Settings unavailable.']),
     ...(data.settings ? ['', '```json', JSON.stringify(data.settings.notifications, null, 2), '```'] : []),
     '', `## ${zh ? '关系' : 'Relationships'}`, '',
-    '| Type | Account | Name | Since | Note |', '| --- | --- | --- | --- | --- |',
+    zh ? '| 类型 | 账号 | 名称 | 建立时间 | 备注 |' : '| Type | Account | Name | Since | Note |', '| --- | --- | --- | --- | --- |',
     ...data.relationships.map(item => `| ${cell(item.kind)} | ${cell(item.handle || item.accountId)} | ${cell(item.displayName)} | ${cell(item.since)} | ${cell(item.note)} |`),
     '', `## ${zh ? '用户聊天' : 'Human conversations'}`, '',
   ];

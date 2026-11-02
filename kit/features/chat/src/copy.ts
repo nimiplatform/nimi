@@ -234,7 +234,7 @@ export const DEFAULT_CHAT_COPY: Required<ChatCopy> = Object.freeze({
   messageNavigationLabel: 'Conversation messages',
   messageKeyboardHelpLabel: 'Message keyboard shortcuts',
   messageHelpCloseLabel: 'Close',
-  messageKeyboardHelp: 'When a message is focused, Page Up and Page Down move between messages, Enter opens actions, Ctrl + Home opens this help, and Escape returns to the composer. Tab moves through links and controls in the current message.',
+  messageKeyboardHelp: "When a message is focused, use Page Up and Page Down to move between messages, Enter to open actions, Ctrl + Home to open this help, and Escape to return to the composer. Use Tab to move through links and controls in the current message.",
   voicePlayLabel: 'Play voice',
   voiceReadLabel: 'Read aloud',
   voicePauseLabel: 'Pause',
