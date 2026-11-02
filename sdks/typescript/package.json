@@ -126,7 +126,7 @@
     "test": "node ../../scripts/run-sdk-vnext-typescript-tests.mjs"
   },
   "devDependencies": {
-    "@grpc/grpc-js": "1.14.6",
+    "@grpc/grpc-js": "1.14.7",
     "@types/node": "24.19.2",
     "tsx": "4.23.15",
     "typescript": "6.0.3"
