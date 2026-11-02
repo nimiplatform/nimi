@@ -11,6 +11,7 @@ import {
 } from '../../realm-source/character-source-profile-projection.js';
 import {
   projectWorldPublicItem,
+  projectWorldPublicSourceCard,
   requireWorldPublicDetailDto,
   requireWorldPublicSourceCardDto,
   type WorldPublicSourceCardDto,
@@ -222,22 +223,19 @@ async function loadProfileProjection(
   runtimeSourceRef: string | null,
 ): Promise<JsonObject> {
   const projection = projectCharacterSourceProfile(profile, source);
-  // The source card carries character media only. Resolve the world's public
-  // banner when the character has no cover, using the same projection as World.
+  // Resolve the shared world banner with the same projection as World.
   let worldBannerUrl: string | null = null;
   let worldBannerMedia: unknown = null;
-  if (!projection.mediaAssets.profileCover && !projection.profileCoverUrl) {
-    // An unavailable optional image must not hide a successfully loaded
-    // character. Validate successful replies outside the transport catch so
-    // malformed or mismatched public projections still fail closed.
-    const world = await realm.worldPublic.worldPublicControllerGetWorld({
-      path: { worldId: source.worldId },
-    }).then(value => ({ value })).catch(() => null);
-    if (world !== null) {
-      const projected = projectWorldPublicItem(requireWorldPublicDetailDto(world.value, source.worldId));
-      worldBannerUrl = typeof projected.bannerUrl === 'string' ? projected.bannerUrl : null;
-      worldBannerMedia = projected.bannerMedia;
-    }
+  // An unavailable optional image must not hide a successfully loaded
+  // character. Validate successful replies outside the transport catch so
+  // malformed or mismatched public projections still fail closed.
+  const world = await realm.worldPublic.worldPublicControllerGetWorld({
+    path: { worldId: source.worldId },
+  }).then(value => ({ value })).catch(() => null);
+  if (world !== null) {
+    const projected = projectWorldPublicItem(requireWorldPublicDetailDto(world.value, source.worldId));
+    worldBannerUrl = typeof projected.bannerUrl === 'string' ? projected.bannerUrl : null;
+    worldBannerMedia = projected.bannerMedia;
   }
   return {
     ...projection,
@@ -347,6 +345,14 @@ export async function resolveCurrentPartnerSource(realm: Realm, captured: Charac
       : current.kind === 'worldCharacter' && captured.kind === 'worldCharacter' && current.worldEntityRef.entityId === captured.worldEntityRef.entityId);
   if (!matches || !current) throw new Error('Current character identity no longer matches this partner source.');
   const card = await loadPublicSourceCard(realm, current);
+  const display = projectWorldPublicSourceCard(card);
+  const voice = display.mediaAssets?.voiceSample;
   return { sourceRef: current, displayName: card.displayName, worldName: card.worldName,
-    summary: card.summary, media: card.media, updated: current.sourceHash !== captured.sourceHash };
+    summary: card.summary, media: card.media, updated: current.sourceHash !== captured.sourceHash,
+    preview: {
+      role: card.role ?? null,
+      species: display.speciesDescription ?? null,
+      topics: card.topics,
+      voice: voice && display.voiceSampleUrl ? { url: display.voiceSampleUrl, durationSec: voice.durationSec ?? null } : null,
+    } };
 }

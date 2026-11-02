@@ -11,17 +11,18 @@ export function CharacterDialogue({ source, includeGreeting = true, showTitle = 
 }) {
   const { t } = useTranslation();
   const id = useId();
-  const [index, setIndex] = useState(0);
   const exemplars = source.characterProfile.dialogueExemplars ?? [];
   const greeting = includeGreeting ? source.characterProfile.interaction?.greeting?.trim() : null;
+  const greetingSample = greeting && !exemplars.some(sample => !sample.user && sample.character === greeting)
+    ? { id: 'greeting', user: null, character: greeting, label: t('SourceDetail.worldCharacter.greetingTab') } : null;
   const samples = [
+    ...(greetingSample ? [greetingSample] : []),
     ...exemplars.map((sample, ordinal) => ({ ...sample,
       // Dialogue exemplars have no scene title. Do not infer one from ids or prose.
       label: t('SourceDetail.worldCharacter.dialogueNumber', { number: ordinal + 1 }),
     })),
-    ...(greeting && !exemplars.some(sample => !sample.user && sample.character === greeting)
-      ? [{ id: 'greeting', user: null, character: greeting, label: t('SourceDetail.worldCharacter.greetingTab') }] : []),
   ];
+  const [index, setIndex] = useState(greetingSample && exemplars.length ? 1 : 0);
   const selected = index < samples.length ? index : 0;
   const sample = samples[selected];
   if (!sample) return null;

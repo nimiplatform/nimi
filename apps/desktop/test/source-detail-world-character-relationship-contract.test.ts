@@ -24,6 +24,84 @@ test.before(async () => {
   await initI18n();
 });
 
+test('life copy groups explicit places and offices while retaining dates, duties and uncertainty', async () => {
+  await changeLocale('zh');
+  try {
+    const source = toSourceDetailData({
+      ...ouYangDeRaw,
+      displayName: '唐龙',
+      characterProfile: { ...ouYangDeRaw.characterProfile, relationshipNotes: [
+        { id: 'office', type: 'postedToOffice', targetRef: 'office', summary: '唐龙曾任按察使，主管一省司法刑狱与监察事务。' },
+      ] },
+      relationshipTargets: {
+        office: { kind: 'office', name: '按察使' },
+        province: { kind: 'place', name: '雲南' },
+        capital: { kind: 'place', name: '京師' },
+        home: { kind: 'place', name: '蘭溪' },
+        uncertain: { kind: 'place', name: '南京' },
+      },
+      relationships: [
+        { id: 'province', type: 'postedAddress', targetEntityId: 'province', summary: '唐龙任官或活动记录关联地点「雲南」。' },
+        { id: 'capital', type: 'biogAddress', targetEntityId: 'capital', summary: '唐龙与地点「京師」有关。', attributes: { year: 1546 } },
+        { id: 'home', type: 'biogAddress', targetEntityId: 'home', summary: '唐龙与地点「蘭溪」有关。' },
+        { id: 'uncertain', type: 'postedAddress', targetEntityId: 'uncertain', summary: '是否曾在南京任职，尚待确认。' },
+      ],
+    }, 'source_materialization_available');
+    const markup = renderToStaticMarkup(React.createElement(WorldCharacterBackgroundSections, { source }));
+    assert.match(markup, /官职与职责/);
+    assert.match(markup, /任职足迹/);
+    assert.match(markup, /生平所涉地点/);
+    assert.match(markup, /京师（1546）/);
+    assert.match(markup, /兰溪/);
+    assert.match(markup, /云南/);
+    assert.match(markup, /主管一省司法刑狱与监察事务/);
+    assert.match(markup, /是否曾在南京任职，尚待确认。/);
+    assert.doesNotMatch(markup, /任官或活动记录关联地点|与地点「|出生于|定居于/);
+    assert.equal((markup.match(/<li /g) ?? []).length, 3);
+  } finally {
+    await changeLocale('en');
+  }
+});
+
+test('life copy simplifies all reader-facing fields and compares localized labels without changing source identities', async () => {
+  const source = toSourceDetailData({
+    ...ouYangDeRaw,
+    displayName: '唐龙',
+    characterProfile: { ...ouYangDeRaw.characterProfile, relationshipNotes: [
+      { id: 'office', type: 'postedToOffice', targetRef: 'office', summary: '唐龙曾担任兵部尚书。' },
+    ] },
+    relationshipTargets: {
+      office: { kind: 'office', name: '兵部尚書' },
+      place: { kind: 'place', name: '陝西布政司' },
+      status: { kind: 'status', name: '為邑里所重' },
+      other: { kind: 'organization', name: '圖書館' },
+    },
+    relationships: [
+      { id: 'place', type: 'postedAddress', targetEntityId: 'place', summary: '唐龙任官或活动记录关联地点「陝西布政司」。', attributes: { officeLabel: '鳳陽巡撫', timeLabel: '嘉靖年間' } },
+      { id: 'status', type: 'status', targetEntityId: 'status', summary: '唐龙与身份「為邑里所重」有关。' },
+      { id: 'other', type: 'works-at', targetEntityId: 'other', summary: '整理圖書，編訂目錄。', attributes: { timeLabel: '週末' } },
+    ],
+  }, 'source_materialization_available');
+  const original = JSON.stringify(source);
+  try {
+    await changeLocale('zh');
+    const zh = renderToStaticMarkup(React.createElement(WorldCharacterBackgroundSections, { source }));
+    for (const text of ['陕西布政司', '凤阳巡抚', '嘉靖年间', '为邑里所重', '整理图书，编订目录。', '周末']) {
+      assert.ok(zh.includes(text), text);
+    }
+    assert.equal((zh.match(/兵部尚书/g) ?? []).length, 1);
+    assert.doesNotMatch(zh, /[陝鳳陽撫間為圖書編訂錄週]/);
+    await changeLocale('en');
+    const en = renderToStaticMarkup(React.createElement(WorldCharacterBackgroundSections, { source }));
+    assert.match(en, /陝西布政司/);
+    assert.match(en, /為邑里所重/);
+    assert.match(en, /整理圖書，編訂目錄。/);
+    assert.equal(JSON.stringify(source), original);
+  } finally {
+    await changeLocale('en');
+  }
+});
+
 test('only resolved person endpoints enter relationships; creative work and additional background are omitted', () => {
   const source = toSourceDetailData(ouYangDeRaw, 'source_materialization_available');
   source.relationshipClues = [];
@@ -158,7 +236,7 @@ test('relationship text localizes type identifiers and keeps authored descriptio
       assert.ok(visibleMarkup.includes(`（${context}）`));
     }
     assert.match(visibleMarkup, /<h2[^>]*>相关角色<\/h2>/);
-    assert.doesNotMatch(visibleMarkup, /关系线索|<svg|<\/span>：/);
+    assert.doesNotMatch(visibleMarkup, /关系线索|<\/span>：/);
     assert.doesNotMatch(visibleMarkup, /相关线索|spouses|co-creator-of|caretaker-of|trades-at|mentor-and-supervisor|creator-of|neighborly-cooperation|<button|aria-pressed/);
     assert.doesNotMatch(markup, /world-character-relationship-map|world-character-relationship-cards/);
   } finally {

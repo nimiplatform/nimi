@@ -1,10 +1,11 @@
 import { MediaImage } from '@nimiplatform/kit/features/media';
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ScrollArea } from '@nimiplatform/kit/ui';
 import { ChevronRight, Pause, Play, ScrollText } from 'lucide-react';
 import { EntityAvatar } from '../../components/entity-avatar.js';
 import type { SourceDetailData } from './source-detail-model.js';
+import { abbreviatedWorkReference, relationshipDetailCopy, sourceDetailDisplayText } from './source-detail-world-character-copy.js';
 import {
   uniqueStrings,
   worldCharacterHeroDescription,
@@ -16,32 +17,42 @@ import { CharacterAppearanceDisclosure, CharacterProfileSections, characterAbout
 
 type CharacterSourceDetailPageProps = {
   source: SourceDetailData;
+  partner?: {
+    displayName: string;
+    avatarUrl?: string | null;
+    actions: ReactNode;
+    status: ReactNode;
+    sourceNotice: ReactNode;
+  };
   stats?: { friendsCount: number; postsCount: number; likesCount: number } | null;
   onBack?: () => void;
   onOpenWorld: () => void;
   onPrimaryAction: () => void;
-  onCreateAnother?: () => void;
-  partners?: { localAgentRef: string; displayName: string; capturedAt?: string }[];
-  onSelectPartner?: (localAgentRef: string) => void;
   onStartChat?: (initialComposerText?: string) => void;
   primaryActionJoining?: boolean;
 };
 
 function WorldCharacterWorksBlock({ source }: { source: SourceDetailData }) {
-  const { t } = useTranslation();
-  const works = source.works.filter((work) => !work.textClue);
-  const textClues = source.works.filter((work) => work.textClue === true);
-  if (works.length === 0 && textClues.length === 0) return null;
-  const countText = works.length > 0
+  const { t, i18n } = useTranslation();
+  const display = (text: string) => sourceDetailDisplayText(text, i18n.resolvedLanguage ?? i18n.language);
+  const works = source.works.filter((work) => !work.textClue).map(work => ({
+    ...work,
+    summary: relationshipDetailCopy(work.summary, source.displayName, work.title, 'text'),
+  }));
+  const introducedWorks = works.filter(work => work.summary || work.timeLabel);
+  const bibliography = works.filter(work => !work.summary && !work.timeLabel);
+  const referenceClues = source.works.filter(work => work.textClue).map(work => ({
+    work, reference: abbreviatedWorkReference(work.summary, source.displayName),
+  }));
+  const compactReferences = referenceClues.flatMap(({ work, reference }) => reference ? [{ work, reference }] : []);
+  const textClues = referenceClues.filter(clue => !clue.reference).map(clue => clue.work);
+  if (source.works.length === 0) return null;
+  const countText = compactReferences.length === 0 && works.length > 0
     ? t('SourceDetail.works.count', {
         count: works.length,
         defaultValue: '{{count}} related works collected',
       })
-    : textClues.length === 0
-      ? t('SourceDetail.works.unavailable', {
-          defaultValue: 'Works collection data is not available for this source yet.',
-        })
-      : null;
+    : null;
   return (
     <section data-testid="world-character-works-section" className="border-t border-[var(--nimi-border-subtle)] py-7">
       <div className="flex items-start justify-between gap-4">
@@ -53,33 +64,44 @@ function WorldCharacterWorksBlock({ source }: { source: SourceDetailData }) {
             <p className="mt-1 text-sm leading-6 text-[var(--nimi-text-muted)]">{countText}</p>
           ) : null}
         </div>
-        <span className="rounded-full bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_14%,transparent)] px-3 py-1 text-xs font-semibold text-[var(--nimi-action-primary-bg)]">
-          {t('SourceDetail.works.badge', { defaultValue: 'Texts' })}
-        </span>
       </div>
 
-      {works.length > 0 ? (
+      {introducedWorks.length > 0 ? (
         <div data-testid="world-character-works-grid" className="mt-4 grid gap-3 md:grid-cols-2">
-          {works.map((work) => (
+          {introducedWorks.map((work) => (
             <article key={work.id} className="rounded-[14px] border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h4 className="truncate text-base font-semibold text-[var(--nimi-text-primary)]">{work.title}</h4>
+                  <h3 className="text-base font-semibold text-[var(--nimi-text-primary)] [overflow-wrap:anywhere]">{display(work.title)}</h3>
                   {work.romanizedTitle ? (
-                    <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">{work.romanizedTitle}</p>
+                    <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">{display(work.romanizedTitle)}</p>
                   ) : null}
                   {work.timeLabel ? (
-                    <p className="mt-1 text-xs font-semibold text-[var(--nimi-action-primary-bg)]">{work.timeLabel}</p>
+                    <p className="mt-1 text-xs font-semibold text-[var(--nimi-action-primary-bg)]">{display(work.timeLabel)}</p>
                   ) : null}
                 </div>
               </div>
               {work.summary ? (
-                <p className="mt-3 text-sm leading-6 text-[var(--nimi-text-muted)]">{work.summary}</p>
+                <p className="mt-3 text-sm leading-6 text-[var(--nimi-text-muted)]">{display(work.summary)}</p>
               ) : null}
             </article>
           ))}
         </div>
       ) : null}
+
+      {bibliography.length > 0 || compactReferences.length > 0 ? <div className="mt-4">
+        <h3 className="text-sm font-semibold text-[var(--nimi-text-secondary)]">{t('SourceDetail.works.bibliographyTitle')}</h3>
+        <ul data-testid="world-character-bibliography" className="mt-2 grid gap-x-8 gap-y-2 sm:grid-cols-2 lg:grid-cols-3">
+          {bibliography.map(work => <li key={work.id} className="min-w-0 border-l-2 border-[var(--nimi-border-subtle)] pl-3 text-sm leading-6 text-[var(--nimi-text-primary)] [overflow-wrap:anywhere]">
+            {display(work.title)}
+            {work.romanizedTitle ? <p className="text-xs text-[var(--nimi-text-muted)]">{display(work.romanizedTitle)}</p> : null}
+          </li>)}
+          {compactReferences.map(({ work, reference }) => <li key={work.id} className="min-w-0 border-l-2 border-[var(--nimi-border-subtle)] pl-3 text-sm leading-6 text-[var(--nimi-text-primary)] [overflow-wrap:anywhere]">
+            {display(reference)}
+            {work.timeLabel ? <p className="text-xs text-[var(--nimi-text-muted)]">{display(work.timeLabel)}</p> : null}
+          </li>)}
+        </ul>
+      </div> : null}
 
       {textClues.length > 0 ? (
         <div
@@ -99,7 +121,7 @@ function WorldCharacterWorksBlock({ source }: { source: SourceDetailData }) {
                 className="flex items-start gap-2 text-sm leading-6 text-[var(--nimi-text-muted)]"
               >
                 <span aria-hidden className="mt-[11px] h-1 w-1 shrink-0 rounded-full bg-current" />
-                <span className="min-w-0">{clue.summary ?? clue.title}</span>
+                <span className="min-w-0">{display(clue.summary ?? clue.title)}</span>
               </li>
             ))}
           </ul>
@@ -239,9 +261,11 @@ function WorldCharacterVoicePill({
 export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps) {
   const { t } = useTranslation();
   const { source } = props;
+  const partner = props.partner;
+  const Viewport = partner ? 'div' : ScrollArea;
   const profile = source.characterProfile;
-  const bannerMedia = source.profileCoverMedia ?? source.worldBannerMedia ?? source.referenceImageMedia;
-  const bannerUrl = source.profileCoverUrl ?? source.worldBannerUrl ?? source.referenceImageUrl;
+  const bannerMedia = source.worldBannerMedia ?? source.profileCoverMedia ?? source.referenceImageMedia;
+  const bannerUrl = source.worldBannerUrl ?? source.profileCoverUrl ?? source.referenceImageUrl;
   const heroIdentity = uniqueStrings([profile.ageDescription, profile.speciesDescription]).join(' · ');
   const heroRole = worldCharacterHeroDescription(source, t);
   const voiceSample = source.voiceSample;
@@ -257,13 +281,14 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
     || profile.knowledgeTopics.length || profile.knowledgeConstraints.length || profile.boundaries?.length
     || characterAppearanceDetails(source).length
     || relationships.some(item => item.group === 'life' || item.group === 'objects'));
-  const hasRightColumn = Boolean(profile.interaction?.meetingScenes?.length || meetingScene || hasDialogue || hasPeople);
+  const hasMeeting = Boolean(profile.interaction?.meetingScenes?.length || meetingScene || hasDialogue);
+  const hasRightColumn = hasMeeting || hasPeople;
 
   return (
     <div data-testid="character-source-detail-page" data-source-kind={source.sourceKind} className="flex min-h-0 flex-1 flex-col">
-      <ScrollArea className="flex-1" contentClassName="w-full">
+      <Viewport className="min-w-0 flex-1">
         <section data-testid="world-character-overview-section" data-nimi-density="expressive" className="min-w-0">
-          <div data-testid="world-character-hero-banner" className="relative mx-auto h-[260px] w-full max-w-[1360px] overflow-hidden rounded-[24px] max-[720px]:h-[178px]"
+          <div data-testid="world-character-hero-banner" className={`relative mx-auto ${partner ? 'h-[160px]' : 'h-[260px] max-[720px]:h-[178px]'} w-full max-w-[1360px] overflow-hidden rounded-[24px]`}
             style={{ backgroundImage: 'var(--nimi-surface-hero)' }}>
             {bannerMedia || bannerUrl ? <MediaImage delivery={bannerMedia} externalUrl={bannerUrl} purpose="hero"
               sizes="auto, 1360px" loading="eager" fetchPriority="high" alt="" className="absolute inset-0 h-full w-full object-cover object-[center_20%]" /> : null}
@@ -278,37 +303,42 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
           <div className="mx-auto max-w-[1400px] px-8 pb-8 max-[720px]:px-5">
             <div className="flex items-start gap-7 max-[720px]:flex-wrap max-[720px]:gap-4">
               <div data-testid="world-character-hero-avatar"
-                className="relative -mt-16 h-36 w-36 shrink-0 overflow-hidden rounded-[24px] bg-[var(--nimi-surface-card)] max-[720px]:-mt-12 max-[720px]:h-24 max-[720px]:w-24"
+                className={`relative shrink-0 overflow-hidden rounded-[24px] bg-[var(--nimi-surface-card)] ${partner ? '-mt-10 h-24 w-24' : '-mt-16 h-36 w-36 max-[720px]:-mt-12 max-[720px]:h-24 max-[720px]:w-24'}`}
                 style={{ boxShadow: '0 0 0 4px var(--nimi-surface-card), var(--nimi-elevation-raised)' }}>
-                <EntityAvatar imageUrl={source.avatarUrl} media={source.avatarMedia} name={source.displayName} kind="human" shape="rounded"
+                <EntityAvatar imageUrl={partner ? partner.avatarUrl : source.avatarUrl} media={partner ? undefined : source.avatarMedia} name={partner?.displayName ?? source.displayName} kind="human" shape="rounded"
                   sizeClassName="h-full w-full" radiusClassName="rounded-[24px]"
                   fallbackClassName="bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_10%,var(--nimi-surface-panel))] text-[var(--nimi-text-primary)]" textClassName="text-4xl font-semibold" />
               </div>
               <div className="flex min-w-0 flex-1 flex-wrap items-start justify-between gap-x-6 gap-y-4 pt-5 max-[720px]:basis-full max-[720px]:pt-0">
                 <div className="min-w-0 max-w-full">
                   <div data-testid="world-character-hero-title-row" className="flex flex-wrap items-center gap-4">
-                    <h1 className="break-words text-[40px] font-bold leading-tight tracking-normal text-[var(--nimi-text-primary)] max-[720px]:text-[32px]">{source.displayName}</h1>
+                    <h1 className={`break-words font-bold leading-tight tracking-normal text-[var(--nimi-text-primary)] ${partner ? 'text-[32px]' : 'text-[40px] max-[720px]:text-[32px]'}`}>{partner?.displayName ?? source.displayName}</h1>
                     {voiceSample ? <WorldCharacterVoicePill key={voiceSample.previewUrl} src={voiceSample.previewUrl} durationText={voiceDurationText} /> : null}
                   </div>
                   {heroIdentity ? <p data-testid="world-character-hero-description" className="mt-2 text-[15px] font-medium leading-6 text-[var(--nimi-text-secondary)]">{heroIdentity}</p> : null}
                   {heroRole ? <p data-testid="world-character-hero-role" className="mt-0.5 text-[15px] leading-6 text-[var(--nimi-text-secondary)]">{heroRole}</p> : null}
                 </div>
-                <CharacterActions {...props} />
+                {partner ? partner.actions : <CharacterActions {...props} />}
               </div>
             </div>
 
-            {hasLeftColumn || hasRightColumn ? <div data-testid="world-character-overview-columns" className="mt-6 border-t border-[var(--nimi-border-subtle)] pt-6">
+            {partner ? <div className="mt-6 space-y-6">{partner.status}{partner.sourceNotice}</div> : null}
+
+            {hasLeftColumn || hasRightColumn ? <div data-testid="world-character-overview-columns" className={partner ? "mt-5" : "mt-6 border-t border-[var(--nimi-border-subtle)] pt-6"}>
               <div data-testid="world-character-reading-columns"
-                className={`grid items-start gap-6 ${hasLeftColumn && hasRightColumn ? 'min-[1000px]:grid-cols-[minmax(0,0.92fr)_1px_minmax(0,1.08fr)] min-[1000px]:gap-x-6' : 'max-w-3xl'}`}>
+                className={`grid items-start gap-6 ${!partner && hasLeftColumn && hasRightColumn ? 'min-[1000px]:grid-cols-[minmax(0,0.92fr)_1px_minmax(0,1.08fr)] min-[1000px]:gap-x-6' : 'max-w-3xl'}`}>
                 {hasLeftColumn ? <div data-testid="world-character-profile-column" className="grid min-w-0 content-start gap-5">
                   <CharacterProfileSections source={source} />
                   <WorldCharacterBackgroundSections source={source} />
                   <CharacterAppearanceDisclosure source={source} />
                 </div> : null}
-                {hasLeftColumn && hasRightColumn ? <div aria-hidden="true" data-testid="world-character-reading-columns-divider"
+                {!partner && hasLeftColumn && hasRightColumn ? <div aria-hidden="true" data-testid="world-character-reading-columns-divider"
                   className="hidden w-px self-stretch bg-[var(--nimi-border-subtle)] min-[1000px]:block" /> : null}
                 {hasRightColumn ? <div data-testid="world-character-conversation-column" className="grid min-w-0 content-start gap-5">
-                  <CharacterFirstMeeting source={source} />
+                  {hasMeeting ? partner ? <details className="rounded-xl border border-[var(--nimi-border-subtle)] p-4">
+                    <summary className="cursor-pointer text-sm font-medium">{t('runtimeConfig.partners.meetingReference')}</summary>
+                    <div className="mt-4"><CharacterFirstMeeting source={source} /></div>
+                  </details> : <CharacterFirstMeeting source={source} /> : null}
                   <WorldCharacterRelationshipCluesSection source={source} />
                 </div> : null}
               </div>
@@ -316,7 +346,7 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
           </div>
         </section>
         <div className="mx-auto max-w-[1400px] px-8 max-[720px]:px-5"><WorldCharacterWorksBlock source={source} /></div>
-      </ScrollArea>
+      </Viewport>
     </div>
   );
 }

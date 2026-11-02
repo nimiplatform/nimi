@@ -15,6 +15,36 @@ test.before(async () => {
   await initI18n();
 });
 
+test('character background translates explicit topic categories without rewriting authored prose', async () => {
+  await changeLocale('zh');
+  try {
+    const source = toSourceDetailData(ouYangDeRaw, 'source_materialization_available');
+    source.characterProfile.knowledgeTopics = [
+      'association：与诗人方干有诗文往来。',
+      'entry: 通过科举入仕。',
+      'kinship：家族渊源。',
+      'postedToOffice：曾任主客员外郎。',
+      'text：著有《唐风集》。',
+      '熟悉诗词与文章。',
+      'Notes: an authored English note.',
+      '引文中的 association：保留原文。',
+    ];
+    const markup = renderToStaticMarkup(React.createElement(SourceDetailView, {
+      source, loading: false, error: false, onOpenWorld: () => {}, onPrimaryAction: () => {},
+    }));
+    const start = markup.indexOf('data-testid="world-character-knowledge-section"');
+    const background = markup.slice(start, markup.indexOf('</section>', start));
+    for (const text of ['人物背景', '交游：与诗人方干有诗文往来。', '入仕：通过科举入仕。', '亲属：家族渊源。',
+      '官职：曾任主客员外郎。', '文本：著有《唐风集》。', '熟悉诗词与文章。',
+      'Notes: an authored English note.', '引文中的 association：保留原文。']) {
+      assert.ok(background.includes(text), text);
+    }
+    assert.doesNotMatch(background, />association：|>entry:|>kinship：|>postedToOffice：|>text：|日常与专长/);
+  } finally {
+    await changeLocale('en');
+  }
+});
+
 test('world character source detail hides generic system and affordance tags from the hero', () => {
   const source = toSourceDetailData({
     ...ouYangDeRaw,
@@ -245,6 +275,33 @@ test('world character hero keeps banner and avatar placement and shows the expli
   }
 });
 
+test('world character hero prefers the world banner over character media', () => {
+  const source = toSourceDetailData({
+    ...ouYangDeRaw,
+    profileCoverUrl: 'https://cdn.example.test/li-mengyang-cover.png',
+    referenceImageUrl: 'https://cdn.example.test/li-mengyang-reference.png',
+    worldBannerUrl: 'https://cdn.example.test/ming-world-banner.png',
+  }, 'source_materialization_available');
+  const markup = renderToStaticMarkup(
+    React.createElement(SourceDetailView, {
+      source,
+      stats: null,
+      loading: false,
+      error: false,
+      onBack: () => {},
+      onOpenWorld: () => {},
+      onPrimaryAction: () => {},
+    }),
+  );
+  const bannerMarkup = markup.slice(
+    markup.indexOf('data-testid="world-character-hero-banner"'),
+    markup.indexOf('data-testid="world-character-hero-avatar"'),
+  );
+
+  assert.match(bannerMarkup, /src="https:\/\/cdn\.example\.test\/ming-world-banner\.png"/);
+  assert.doesNotMatch(bannerMarkup, /li-mengyang-(?:cover|reference)\.png/);
+});
+
 test('world character source detail renders admitted CBDB dossier prose as authored without script conversion', () => {
   const source = toSourceDetailData({
     ...ouYangDeRaw,
@@ -443,7 +500,7 @@ test('world character overview renders authored biography and dialogue without c
     assert.match(markup, /初遇招呼/);
     assert.match(markup, /role="tab"[^>]*aria-selected="true"/);
     assert.doesNotMatch(markup, /可以聊什么|world-character-topics-section|world-character-topic-chip/);
-    assert.match(markup, /日常与专长/);
+    assert.match(markup, /人物背景/);
     assert.match(markup, /都城行铺生计与茶坊掌故/);
     assert.match(markup, /额外话题/);
   } finally {

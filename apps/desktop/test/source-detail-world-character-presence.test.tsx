@@ -109,16 +109,16 @@ test('world character sample tabs select exchanges with keyboard access and rese
 
         const tabs = [...document.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
         assert.equal(tabs.length, 2);
-        assert.equal(tabs[0].textContent, '片段 1');
-        assert.equal(tabs[1].textContent, '初遇招呼');
-        await act(async () => { tabs[1].click(); });
+        assert.equal(tabs[0].textContent, '初遇招呼');
+        assert.equal(tabs[1].textContent, '片段 1');
+        await act(async () => { tabs[0].click(); });
         assert.equal(document.querySelector('[data-testid="world-character-dialogue-user"]'), null);
         assert.match(document.querySelector('[data-testid="world-character-opening-line"]')?.textContent ?? '', /吾乃欧阳德/);
         assert.equal(sceneText(), initialScene);
-        assert.equal(tabs[1].getAttribute('aria-selected'), 'true');
-        await act(async () => { tabs[1].dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })); });
-        assert.equal(document.activeElement, tabs[0]);
         assert.equal(tabs[0].getAttribute('aria-selected'), 'true');
+        await act(async () => { tabs[0].dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'ArrowRight', bubbles: true })); });
+        assert.equal(document.activeElement, tabs[1]);
+        assert.equal(tabs[1].getAttribute('aria-selected'), 'true');
         assert.match(document.querySelector('[data-testid="world-character-opening-line"]')?.textContent ?? '', /瞧您说的/);
         assert.equal(sceneText(), initialScene);
 
@@ -129,7 +129,7 @@ test('world character sample tabs select exchanges with keyboard access and rese
         assert.equal(worldOpened, 1);
 
         // Changing the source replaces the shared scene and starts its first sample.
-        await act(async () => { tabs[1].click(); });
+        await act(async () => { tabs[0].click(); });
         const nextSource = {
           ...source,
           sourceId: 'next-character',
@@ -177,7 +177,57 @@ test('world character sample tabs select exchanges with keyboard access and rese
   });
 });
 
-test('partner selection opens only the chosen existing partner and creating another stays explicit', async () => {
+test('related characters start compact and keep all relationships and details reachable', async () => {
+  await withDom(async (dom) => {
+    const { createRoot } = await import('react-dom/client');
+    const { initI18n, changeLocale, ouYangDeRaw, toSourceDetailData } = await import('./source-detail-world-character-test-utils.js');
+    const { WorldCharacterRelationshipCluesSection } = await import('../src/shell/renderer/features/source-detail/source-detail-world-character-relationship-clues.js');
+    await initI18n();
+    await changeLocale('zh');
+    const source = toSourceDetailData(ouYangDeRaw, 'source_materialization_available');
+    source.characterProfile.relationshipNotes = [];
+    source.relationshipClues = Array.from({ length: 6 }, (_, index) => ({
+      id: `friend-${index}`, type: 'association', label: '赠诗', targetEntityId: `person-${index}`,
+      targetLabel: `友人${index}`, summary: `与友人${index}有诗文往来。`, details: [`详细记录${index}`],
+    }));
+    source.relationshipTargets = Object.fromEntries(source.relationshipClues.map(item => [
+      item.targetEntityId!, { kind: 'person', name: item.targetLabel! },
+    ]));
+    const root = createRoot(dom.window.document.getElementById('root')!);
+    try {
+      await act(async () => { root.render(<WorldCharacterRelationshipCluesSection source={source} />); });
+      const document = dom.window.document;
+      const rows = () => document.querySelectorAll('[data-testid="world-character-relationship-list"] > li');
+      const toggle = () => document.querySelector<HTMLButtonElement>('button')!;
+      assert.equal(rows().length, 4);
+      assert.equal(toggle().textContent, '查看全部 6 条关系');
+      assert.equal(toggle().getAttribute('aria-expanded'), 'false');
+      const first = rows()[0].querySelector('details')!;
+      assert.equal(first.open, false);
+      await act(async () => { first.querySelector('summary')!.click(); });
+      assert.equal(first.open, true);
+      assert.match(first.textContent ?? '', /详细记录0/);
+      await act(async () => { toggle().click(); });
+      assert.equal(rows().length, 6);
+      assert.equal(toggle().getAttribute('aria-expanded'), 'true');
+      const last = rows()[5].querySelector('details')!;
+      await act(async () => { last.querySelector('summary')!.click(); });
+      assert.equal(last.open, true);
+      assert.match(last.textContent ?? '', /详细记录5/);
+      await act(async () => { toggle().click(); });
+      assert.equal(rows().length, 4);
+      await act(async () => { toggle().click(); });
+      await act(async () => { root.render(<WorldCharacterRelationshipCluesSection source={{ ...source, id: 'another-character' }} />); });
+      assert.equal(rows().length, 4);
+      assert.equal(rows()[0].querySelector('details')!.open, false);
+    } finally {
+      await act(async () => { root.unmount(); });
+      await changeLocale('en');
+    }
+  });
+});
+
+test('conflicting partner inventory offers no creation or arbitrary selection', async () => {
   await withDom(async (dom) => {
     const { ouYangDeRaw } = await import('./source-detail-world-character-test-utils.js');
     const { createRoot } = await import('react-dom/client');
@@ -187,36 +237,19 @@ test('partner selection opens only the chosen existing partner and creating anot
     await initI18n();
     await changeLocale('zh');
     const root = createRoot(dom.window.document.getElementById('root')!);
-    const selected: string[] = [];
-    let created = 0;
+    let actions = 0;
     try {
       await act(async () => root.render(React.createElement(SourceDetailView, {
         source: toSourceDetailData(ouYangDeRaw, 'local_agent_ambiguous'), loading: false, error: false,
-        onOpenWorld: () => {}, onPrimaryAction: () => { throw new Error('Ambiguous source must never pick automatically'); },
-        partners: [
-          { localAgentRef: 'partner-one', displayName: 'First', capturedAt: '2026-10-01T00:00:00Z' },
-          { localAgentRef: 'partner-two', displayName: 'Second', capturedAt: '2026-10-02T00:00:00Z' },
-        ],
-        onSelectPartner: ref => selected.push(ref), onCreateAnother: () => { created++; },
+        onOpenWorld: () => {}, onPrimaryAction: () => { actions++; },
       })));
-      const document = dom.window.document;
-      const choose = document.querySelector<HTMLButtonElement>('[data-testid="character-choose-partner"]')!;
-      assert.ok(choose);
-      assert.equal(document.body.textContent?.includes('Second'), false, 'the list starts collapsed');
-      await act(async () => { choose.click(); });
-      assert.deepEqual(selected, []);
-      const second = [...document.querySelectorAll<HTMLButtonElement>('button')].find(button => button.textContent?.includes('Second'));
-      assert.ok(second);
-      await act(async () => { second.click(); });
-      assert.deepEqual(selected, ['partner-two']);
-      const another = [...document.querySelectorAll<HTMLButtonElement>('button')].find(button => button.textContent === '创建另一位伙伴');
-      assert.ok(another);
-      await act(async () => { another.click(); });
-      assert.equal(created, 0, 'opening the explanation does not create a partner');
-      const confirm = [...document.querySelectorAll<HTMLButtonElement>('button')].find(button => button.textContent === '确认创建');
-      assert.ok(confirm);
-      await act(async () => { confirm.click(); });
-      assert.equal(created, 1);
+      const action = dom.window.document.querySelector<HTMLButtonElement>('[data-primary-action="partner_ambiguous"]')!;
+      assert.ok(action);
+      assert.equal(action.disabled, true);
+      await act(async () => action.click());
+      assert.equal(actions, 0);
+      assert.equal(dom.window.document.body.textContent?.includes('创建另一位伙伴'), false);
+      assert.equal(dom.window.document.querySelector('[data-testid="character-choose-partner"]'), null);
     } finally {
       await act(async () => root.unmount());
       await changeLocale('en');

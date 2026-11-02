@@ -17,7 +17,7 @@ type Source = NonNullable<ComponentProps<typeof PartnerArtwork>['source']>;
 const sourceRef = { kind: 'personaCharacter' as const, id: 'character', ownerAccountId: 'owner', worldId: 'world', sourceHash: 'a'.repeat(64) };
 const partner: PartnerDirectoryItem = { localAgentRef: 'local-agent:a', runtimeSourceRef: 'source-a', displayName: '桑禾',
   lifecycle: AgentLifecycleStatus.ACTIVE, sourceReady: true, sourceRef, createdAt: '2026-10-01T00:00:00Z' };
-const source: Source = { sourceRef, displayName: '桑禾', worldName: '河津', summary: '桑家染布铺的掌柜', updated: false,
+const source: Source = { sourceRef, displayName: '桑禾', worldName: '河津', summary: '桑家染布铺的掌柜', updated: false, preview: { role: null, species: null, topics: [], voice: null },
   media: { assets: { avatar: null, portrait: null, profileCover: null, referenceImage: null, voiceSample: null },
     external: { avatarUrl: 'https://media.example/avatar.webp', portraitUrl: 'https://media.example/portrait.webp', profileCoverUrl: null, referenceImageUrl: null, voiceSampleUrl: null }, unavailableResourceRefs: [] } };
 const bindings = { sdk: {} } as DesktopCanonicalRendererBindings;

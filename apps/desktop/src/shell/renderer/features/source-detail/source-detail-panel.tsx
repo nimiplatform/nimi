@@ -7,7 +7,7 @@ import { useAppStore, useAppStoreApi } from '../../app-shell/providers/app-store
 import { captureAccountActionScope } from '../../app-shell/providers/account-action-scope.js';
 import { captureHomeNavigationScope } from '../../app-shell/providers/home-navigation.js';
 import { characterSourceMaterializationFailureMessage, characterSourceMaterializationMessage, characterSourceRefKey, resolveCharacterSourceState } from '../explore/character-source-materialization';
-import { CharacterSourceConfirmationPendingError, createAnotherCharacterSourcePartner, ensureCharacterSourceMaterialized } from '../relationship/character-source-launch-target.js';
+import { CharacterSourceConfirmationPendingError, ensureCharacterSourceMaterialized } from '../relationship/character-source-launch-target.js';
 import { localAgentListQueryKey } from '../agents/local-agent-list-model';
 import { isSameCharacter, readPartnerDirectoryForSource } from '../agents/partner-directory-model.js';
 import { openPartnerConversation } from '../agents/partner-navigation.js';
@@ -83,7 +83,7 @@ export function SourceDetailPanel({
     if (!source) return null;
     const base = resolveCharacterSourceState(source, [], {
       runtimeInventoryPending: Boolean(ownerUserId) && localAgentListQuery.isPending,
-      runtimeInventoryUnavailable: !ownerUserId || localAgentListQuery.isError,
+      runtimeInventoryUnavailable: !ownerUserId || localAgentListQuery.isError || Boolean(localAgentListQuery.data?.some(partner => !partner.sourceRef)),
     });
     const sourceState = !localAgentListQuery.isPending && !localAgentListQuery.isError && matchingPartners.length
       ? (matchingPartners.length === 1 ? 'local_agent_available' : 'local_agent_ambiguous') : base;
@@ -99,12 +99,12 @@ export function SourceDetailPanel({
     return profileQuery.data.stats;
   }, [profileQuery.data]);
 
-  const ensureCharacterSourceReady = async (isCurrent: () => boolean, another: boolean) => {
+  const ensureCharacterSourceReady = async (isCurrent: () => boolean) => {
     if (!source) {
       throw new Error(characterSourceMaterializationMessage(i18n.t));
     }
 
-    const createdRef = await (another ? createAnotherCharacterSourcePartner : ensureCharacterSourceMaterialized)(source, ownerUserId, i18n.t, bindings.sdk, isCurrent);
+    const createdRef = await ensureCharacterSourceMaterialized(source, ownerUserId, i18n.t, bindings.sdk, isCurrent);
     await queryClient.invalidateQueries({ queryKey: ['source-detail-partners', ownerUserId] });
     await queryClient.invalidateQueries({ queryKey: ['home-partners', ownerUserId] });
     await queryClient.invalidateQueries({ queryKey: ['source-detail-local-agents'], exact: false });
@@ -113,9 +113,9 @@ export function SourceDetailPanel({
     return createdRef;
   };
 
-  const handlePrimaryAction = async (another = false) => {
-    if (!another && matchingPartners.length === 1) { openPartner(matchingPartners[0]!.localAgentRef); return; }
-    if (!another && matchingPartners.length > 1) return;
+  const handlePrimaryAction = async () => {
+    if (matchingPartners.length === 1) { openPartner(matchingPartners[0]!.localAgentRef); return; }
+    if (matchingPartners.length > 1) return;
     if (!currentSourceKey) {
       return;
     }
@@ -132,7 +132,7 @@ export function SourceDetailPanel({
     materializationInFlight.current = true;
     setSourceMaterialization({ sourceKey: currentSourceKey, ownerUserId });
     try {
-      const createdRef = await ensureCharacterSourceReady(isCurrent, another);
+      const createdRef = await ensureCharacterSourceReady(isCurrent);
       if (!isCurrent()) return;
       setFeedback({
         kind: 'success',
@@ -141,6 +141,7 @@ export function SourceDetailPanel({
       void navigation.push({ id: 'explore', exploreSection: 'partners', partner: { localAgentRef: createdRef } });
     } catch (error) {
       if (!isCurrent()) return;
+      void queryClient.invalidateQueries({ queryKey: ['source-detail-partners', ownerUserId] });
       setFeedback({
         kind: 'error',
         message: characterSourceMaterializationFailureMessage(error, i18n.t),
@@ -160,7 +161,7 @@ export function SourceDetailPanel({
   };
 
   // @nimi-authority: rule.nimi.runtime.agent-participation.r197
-  const handleStartChat = async (initialComposerText?: string, selectedLocalAgentRef?: string) => {
+  const handleStartChat = async (initialComposerText?: string) => {
     const scope = captureAccountActionScope(appStore);
     if (!scope || scope.accountId !== ownerUserId) { scope?.dispose(); return; }
     const position = captureHomeNavigationScope(navigation);
@@ -170,7 +171,7 @@ export function SourceDetailPanel({
     if (!isCurrent()) { scope.dispose(); position.dispose(); return; }
     try {
       const prefillText = String(initialComposerText || '').trim();
-      const selected = selectedLocalAgentRef ?? (matchingPartners.length === 1 ? matchingPartners[0]!.localAgentRef : null);
+      const selected = matchingPartners.length === 1 ? matchingPartners[0]!.localAgentRef : null;
       const conversationTarget = source?.sourceRef && selected
         ? await openPartnerConversation({ sdk: bindings.sdk, accountId: ownerUserId, localAgentRef: selected, expectedSource: source.sourceRef, isCurrent }) : null;
       if (!isCurrent()) return;
@@ -241,9 +242,6 @@ export function SourceDetailPanel({
         onPrimaryAction={() => {
           void handlePrimaryAction();
         }}
-        partners={matchingPartners.map(partner => ({ localAgentRef: partner.localAgentRef, displayName: partner.displayName, capturedAt: partner.createdAt ?? undefined }))}
-        onCreateAnother={matchingPartners.length && !localAgentListQuery.isError && source?.viewerRelation.state === 'connectable' ? () => { void handlePrimaryAction(true); } : undefined}
-        onSelectPartner={openPartner}
         onStartChat={matchingPartners.length === 1 && matchingPartners[0]!.lifecycle === AgentLifecycleStatus.ACTIVE ? (initialComposerText) => { void handleStartChat(initialComposerText); } : undefined}
       />
     </>

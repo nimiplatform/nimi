@@ -3202,9 +3202,6 @@
       "4": "正在移除",
       "5": "已移除"
     },
-    "createAnother": "创建另一位伙伴",
-    "createAnotherHelp": "使用角色的当前设定创建独立伙伴。已有伙伴及其对话和记忆会保留。",
-    "confirmCreate": "确认创建",
     "details": "伙伴详情",
     "peoplePartial": "人物目录尚未完整加载，已显示的内容仍可查看。",
     "gallery": {
@@ -3244,6 +3241,22 @@
       },
       "showAll": "查看全部伙伴",
       "back": "返回伙伴总览"
+    },
+    "characterProfile": "角色资料",
+    "meetingReference": "初次相遇 · 设定参考",
+    "status": {
+      "life": "生活模拟",
+      "contact": "主动联系",
+      "memory": "记忆",
+      "enabled": "已开启",
+      "disabled": "已关闭",
+      "loading": "正在读取…",
+      "unavailable": "暂时无法读取",
+      "unconfigured": "尚未配置",
+      "building": "准备中",
+      "ready": "可用",
+      "empty": "暂无记忆",
+      "failed": "读取失败"
     }
   }
 }

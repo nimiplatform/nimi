@@ -212,10 +212,11 @@ export function toSourceDetailData(
   if (!viewerRelation) {
     throw new Error('Source detail projection requires viewerRelation from WorldPublicSourceCard');
   }
+  const relationshipTargets = readRelationshipTargets(raw.relationshipTargets);
   const works = dedupeWorks([
     ...readProfileWorks(characterProfile),
     ...(sourceKind === 'worldCharacter'
-      ? readWorldCharacterWorksFromRelationships(relationships)
+      ? readWorldCharacterWorksFromRelationships(relationships, relationshipTargets)
       : []),
   ]);
   const avatarUrl = readSourceMediaUrl(raw, 'avatar', 'avatarUrl')
@@ -265,7 +266,7 @@ export function toSourceDetailData(
     relationshipClues: sourceRef.kind === 'worldCharacter'
       ? readRelationshipClues(relationships, sourceRef.worldEntityRef.entityId) : [],
     relationshipTargetLabels: sourceKind === 'worldCharacter' ? readRelationshipTargetLabels(relationships) : {},
-    relationshipTargets: readRelationshipTargets(raw.relationshipTargets),
+    relationshipTargets,
     works,
     worksAvailability: works.length > 0 ? 'available' : 'unavailable',
     sourceState,
@@ -274,6 +275,6 @@ export function toSourceDetailData(
       || readOptionalString(world, 'bannerUrl')
     ),
   };
-  // Source text is presented as authored: no script conversion or rewriting.
+  // Preserve authored source text here; localized rendering owns display script.
   return detail;
 }

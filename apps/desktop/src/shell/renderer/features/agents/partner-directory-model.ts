@@ -68,3 +68,17 @@ export function isSameCharacter(left: CharacterSourceRefV3 | null, right: Charac
     ? left.ownerAccountId === right.ownerAccountId
     : left.kind === 'worldCharacter' && right.kind === 'worldCharacter' && left.worldEntityRef.entityId === right.worldEntityRef.entityId;
 }
+
+// @nimi-authority: rule.nimi.desktop.product-surfaces.partners
+// A chat handle identifies the previewed partner. Source readiness and the
+// currently selected conversation must not choose a different local identity.
+export async function resolvePartnerForHandle(sdk: DesktopRendererSdkPort, accountId: string, agentHandle: string) {
+  if (!accountId || !agentHandle) throw new Error('Partner identity is unavailable.');
+  const inventory = await readPartnerDirectoryForSource(sdk, accountId);
+  const matches = (await Promise.all(inventory.filter(item => item.lifecycle === AgentLifecycleStatus.ACTIVE).map(async partner => {
+    const resolved = await sdk.resolveDesktopAgentReference({ localAgentRef: partner.localAgentRef }).catch(() => null);
+    return resolved?.reference?.agentHandle === agentHandle ? { partner, avatarUrl: resolved.reference.avatarUrl } : null;
+  }))).filter(item => item !== null);
+  if (matches.length !== 1) throw new Error('Partner identity is unavailable.');
+  return matches[0]!;
+}

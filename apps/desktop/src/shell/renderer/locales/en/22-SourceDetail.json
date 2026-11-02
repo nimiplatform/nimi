@@ -26,6 +26,7 @@
     "title": "Works",
     "count": "{{count}} related works collected",
     "badge": "Works",
+    "bibliographyTitle": "Related titles",
     "textCluesTitle": "Writing clues",
     "rowRef": "Reference",
     "statusCollected": "Collected",
@@ -76,6 +77,16 @@
       }
     },
     "relationshipTitle": "Related characters",
+    "relationshipsShowAll": "View all {{count}} relationships",
+    "relationshipsShowLess": "Show fewer related characters",
+    "lifeGroups": {
+      "entry": "Entering public service",
+      "postedToOffice": "Offices and responsibilities",
+      "postedAddress": "Places linked to service",
+      "biogAddress": "Places in their life",
+      "status": "Standing and reputation"
+    },
+    "listSeparator": "; ",
     "lifeContextTitle": "Life and work",
     "objectsTitle": "Related objects",
     "relationshipKind": {
@@ -405,7 +416,8 @@
     "dialogueRefresh": "Read another",
     "dialogueYou": "You",
     "drivesTitle": "What matters to them",
-    "knowledgeTitle": "Life and expertise",
+    "knowledgeTitle": "Background",
+    "knowledgeTopic": "{{label}}: {{text}}",
     "guidanceTitle": "Good to know",
     "appearanceVoiceTitle": "Appearance and voice",
     "dialogueTitle": "Sample exchanges",

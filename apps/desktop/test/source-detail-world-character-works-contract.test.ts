@@ -16,6 +16,124 @@ test.before(async () => {
   await initI18n();
 });
 
+test('resolved text endpoints become compact related titles without claiming authorship or parsing prose', async () => {
+  await changeLocale('zh');
+  try {
+    const source = toSourceDetailData({
+      ...ouYangDeRaw,
+      displayName: '唐龙',
+      characterProfile: { ...ouYangDeRaw.characterProfile, milestones: [] },
+      relationshipTargets: {
+        memorials: { kind: 'text', name: '督府奏議(唐龍)' },
+        learning: { kind: 'text', name: '易經大旨:四卷' },
+        editor: { kind: 'person', name: '某编者' },
+      },
+      relationships: [
+        { id: 'book-1', type: 'text', targetEntityId: 'memorials', summary: '唐龙与著作「督府奏議(唐龍)」有关。' },
+        { id: 'book-2', type: 'text', targetEntityId: 'learning', summary: '唐龙与著作「易經大旨:四卷」有关。' },
+        { id: 'letter', type: 'text', targetEntityId: 'editor', summary: '曾为友人文集作序。' },
+        { id: 'unknown-book', type: 'text', targetEntityId: 'unresolved', summary: '与著作「无题稿」有关，书名尚待考。' },
+      ],
+    }, 'source_materialization_available');
+    assert.deepEqual(source.works.filter(work => !work.textClue).map(work => work.title), ['督府奏議(唐龍)', '易經大旨:四卷']);
+    assert.equal(source.works.filter(work => work.textClue).length, 2);
+    const markup = renderToStaticMarkup(React.createElement(SourceDetailView, {
+      source, stats: null, loading: false, error: false,
+      onBack: () => {}, onOpenWorld: () => {}, onPrimaryAction: () => {},
+    }));
+    const worksMarkup = markup.slice(markup.indexOf('data-testid="world-character-works-section"'));
+    assert.match(worksMarkup, /相关书目/);
+    assert.match(worksMarkup, /督府奏议\(唐龙\)/);
+    assert.match(worksMarkup, /易经大旨:四卷/);
+    assert.match(worksMarkup, /书名尚待考/);
+    assert.doesNotMatch(worksMarkup, /唐龙与著作|唐龙著有|data-testid="world-character-works-grid"/);
+  } finally {
+    await changeLocale('en');
+  }
+});
+
+test('work introductions keep meaningful qualifications even when they begin with relation-only wording', () => {
+  const summary = '欧阳德与著作「南野集」有关。现存版本的编者尚待确认。';
+  const source = toSourceDetailData({
+    ...ouYangDeRaw,
+    characterProfile: { ...ouYangDeRaw.characterProfile, milestones: [] },
+    relationshipTargets: { book: { kind: 'text', name: '南野集' } },
+    relationships: [{ id: 'book', type: 'text', targetEntityId: 'book', summary }],
+  }, 'source_materialization_available');
+  const markup = renderToStaticMarkup(React.createElement(SourceDetailView, {
+    source, stats: null, loading: false, error: false,
+    onBack: () => {}, onOpenWorld: () => {}, onPrimaryAction: () => {},
+  }));
+  assert.match(markup, /data-testid="world-character-works-grid"/);
+  assert.ok(markup.includes(summary));
+});
+
+test('missing book endpoints keep reference semantics while repeated source-only sentences become a compact bibliography', async () => {
+  await changeLocale('zh');
+  try {
+    const source = toSourceDetailData({
+      ...ouYangDeRaw,
+      displayName: '唐龙',
+      characterProfile: { ...ouYangDeRaw.characterProfile, milestones: [] },
+      relationships: [
+        { id: 'a', type: 'text', summary: '唐龙与著作「二忠錄:二卷」有关。', attributes: { role: '0' } },
+        { id: 'b', type: 'text', summary: '唐龙与著作「歷官奏議」有关。', attributes: { role: '1' } },
+        { id: 'uncertain', type: 'text', summary: '唐龙与著作「无题稿」有关。作者尚待确认。' },
+      ],
+    }, 'source_materialization_available');
+    assert.ok(source.works.every(work => work.textClue));
+    const markup = renderToStaticMarkup(React.createElement(SourceDetailView, {
+      source, stats: null, loading: false, error: false,
+      onBack: () => {}, onOpenWorld: () => {}, onPrimaryAction: () => {},
+    }));
+    const bibliography = markup.slice(markup.indexOf('data-testid="world-character-bibliography"'), markup.indexOf('data-testid="world-character-text-clues"'));
+    assert.match(bibliography, /二忠录:二卷/);
+    assert.match(bibliography, /历官奏议/);
+    assert.doesNotMatch(bibliography, /唐龙与著作|>0<|>1<|无题稿/);
+    assert.ok(markup.includes('唐龙与著作「无题稿」有关。作者尚待确认。'));
+  } finally {
+    await changeLocale('en');
+  }
+});
+
+test('work display follows the Simplified Chinese locale across titles, references and prose without mutating source records', async () => {
+  const source = toSourceDetailData({
+    ...ouYangDeRaw,
+    displayName: '唐龙',
+    characterProfile: { ...ouYangDeRaw.characterProfile, milestones: [] },
+    relationshipTargets: { book: { kind: 'text', name: '漁石集:四卷' } },
+    relationships: [
+      { id: 'book', type: 'text', targetEntityId: 'book', summary: '收錄詩文，附有歷年著述。', attributes: { timeLabel: '嘉靖年間', romanizedTitle: 'Yushi ji' } },
+      { id: 'reference', type: 'text', summary: '唐龙与著作「康山羣忠錄」有关。' },
+      { id: 'clue', type: 'text', summary: '曾參與編輯，篇目尚待確認。' },
+    ],
+  }, 'source_materialization_available');
+  const original = JSON.stringify(source);
+  const renderWorks = () => {
+    const markup = renderToStaticMarkup(React.createElement(SourceDetailView, {
+      source, stats: null, loading: false, error: false,
+      onBack: () => {}, onOpenWorld: () => {}, onPrimaryAction: () => {},
+    }));
+    return markup.slice(markup.indexOf('data-testid="world-character-works-section"'));
+  };
+  try {
+    await changeLocale('zh');
+    const zh = renderWorks();
+    for (const text of ['渔石集:四卷', '收录诗文，附有历年著述。', '嘉靖年间', '康山群忠录', '曾参与编辑，篇目尚待确认。', 'Yushi ji']) {
+      assert.ok(zh.includes(text), text);
+    }
+    assert.doesNotMatch(zh, /[漁錄詩歷間羣參與輯認]/);
+    await changeLocale('en');
+    const en = renderWorks();
+    for (const text of ['漁石集:四卷', '收錄詩文，附有歷年著述。', '嘉靖年間', '康山羣忠錄', '曾參與編輯，篇目尚待確認。']) {
+      assert.ok(en.includes(text), text);
+    }
+    assert.equal(JSON.stringify(source), original);
+  } finally {
+    await changeLocale('en');
+  }
+});
+
 test('character source detail maps public biography work events as works collections', () => {
   const detail = toSourceDetailData(liBaiRaw, 'source_materialization_available');
 

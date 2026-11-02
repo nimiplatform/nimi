@@ -63,7 +63,13 @@ test('creation clicked by account A must not dispatch against switched account B
       if (++discoveryCalls === 1) return new Promise((resolve) => { completeFirstDiscovery = resolve; });
       return [];
     }}),
-    accountProduct: () => actualClients.accountProduct,
+    withRuntimeProtectedScopes: async (_scopes, call) => call({}),
+    accountProduct: () => ({ ...actualClients.accountProduct, agents: {
+      listAgents: async () => {
+        events.push(`discover:${auth.user.id}`);
+        return new Promise(resolve => { completeFirstDiscovery = () => resolve({ agents: [], nextPageToken: '' }); });
+      },
+    } }),
   };
   const handler = loadCreationHandler({
     source, ownerUserId: 'account-A', currentAction, currentSourceKey: characterSourceRefKey(sourceRef),

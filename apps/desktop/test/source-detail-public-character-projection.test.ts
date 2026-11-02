@@ -198,10 +198,8 @@ test('source detail fails closed without a complete CharacterSourceRefV3', () =>
   );
 });
 
-test('source detail loads one public Character projection without the full-world aggregate', async () => {
-  const calls: string[] = [];
-  const publicSource = publicSourceCard(sourceRef, '宋濂');
-  const publicWorld = {
+function publicWorldProjection() {
+  return {
     id: sourceRef.worldId,
     name: 'Ming World',
     summary: 'A world of scholars.',
@@ -220,6 +218,12 @@ test('source detail loads one public Character projection without the full-world
     createdAt: '2026-07-28T00:00:00.000Z',
     updatedAt: '2026-07-28T00:00:00.000Z',
   };
+}
+
+test('source detail loads one public Character projection without the full-world aggregate', async () => {
+  const calls: string[] = [];
+  const publicSource = publicSourceCard(sourceRef, '宋濂');
+  const publicWorld = publicWorldProjection();
   const realm = {
     worldCore: {
       worldCoreControllerGetWorldCharacter: async () => ({
@@ -313,7 +317,8 @@ test('source detail loads one public Character projection without the full-world
   calls.length = 0;
   const coveredDetail = await fetchSourceDisplayDetail(sourceRef, { realm: () => realm } as never);
   assert.equal(coveredDetail?.source.profileCoverUrl, 'https://cdn.example.test/personal-cover.png');
-  assert.deepEqual(calls, ['worldPublicControllerGetCharacterSource']);
+  assert.equal(coveredDetail?.source.worldBannerUrl, publicWorld.media.external.bannerUrl);
+  assert.deepEqual(calls, ['worldPublicControllerGetCharacterSource', 'worldPublicControllerGetWorld']);
 
   const getEntity = realm.worldCore.worldCoreControllerGetWorldEntity;
   realm.worldCore.worldCoreControllerGetWorldEntity = async (request) => {
@@ -331,6 +336,7 @@ test('source detail loads one public Character projection without the full-world
 });
 
 test('persona relationships recognize authored entity kinds through paginated public character bindings', async () => {
+  const publicWorld = publicWorldProjection();
   const personaRef = {
     kind: 'personaCharacter', id: 'persona-1', worldId: 'world-ming',
     ownerAccountId: 'account-1', sourceHash: 'd'.repeat(64),
@@ -354,6 +360,7 @@ test('persona relationships recognize authored entity kinds through paginated pu
       worldPublicControllerGetCharacterSource: async () => ({
         ...publicSourceCard(personaRef, 'Persona'), media: {external: { profileCoverUrl: 'https://example.test/cover.png' }, assets: {} },
       }),
+      worldPublicControllerGetWorld: async () => publicWorld,
       worldPublicControllerListWorldCharacterCatalog: async ({ query }: { query: { cursor?: string } }) => {
         cursors.push(query.cursor);
         return query.cursor
@@ -363,6 +370,7 @@ test('persona relationships recognize authored entity kinds through paginated pu
     },
   };
   const detail = await fetchSourceDisplayDetail(personaRef, { realm: () => realm } as never);
+  assert.equal(detail?.source.worldBannerUrl, publicWorld.media.external.bannerUrl);
   assert.deepEqual(cursors, [undefined, 'page-two']);
   assert.deepEqual(detail?.source.relationshipTargets, {
     'entity-mentor': { kind: 'river-spirit', name: '导师', isCharacter: true },

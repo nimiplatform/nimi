@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ChevronDown, Info } from 'lucide-react';
 import type { SourceDetailData } from './source-detail-model.js';
 import { uniqueStrings } from './source-detail-world-character-labels.js';
+import { characterKnowledgeTopicText } from './source-detail-world-character-theme.js';
 
 // Clamp only the reading preview; the complete authored text remains available.
 export function CharacterProfileText({ text, lines = 4, testId, className = '' }: {
@@ -87,7 +88,7 @@ export function CharacterProfileSections({ source }: { source: SourceDetailData 
       {topics.length ? <>
         <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">{t('SourceDetail.worldCharacter.knowledgeTitle')}</h2>
         <ul className="mt-3 grid gap-1 text-[15px] leading-7 text-[var(--nimi-text-secondary)]">
-          {topics.map(topic => <li key={topic}>{topic}</li>)}
+          {topics.map(topic => <li key={topic}>{characterKnowledgeTopicText(topic, t)}</li>)}
         </ul>
       </> : null}
       {rules.length ? <aside data-testid="world-character-guidance" className={`${topics.length ? 'mt-4' : ''} flex items-start gap-3 rounded-xl bg-[color-mix(in_srgb,var(--nimi-action-primary-bg)_6%,transparent)] px-4 py-3`}>

@@ -1,5 +1,5 @@
 import type { JsonObject } from '@nimiplatform/kit/shell/renderer/bridge';
-import type { SourceDetailWorkCollection } from './source-detail-model.js';
+import type { SourceDetailData, SourceDetailWorkCollection } from './source-detail-model.js';
 import {
   readOptionalString,
   readScalarString,
@@ -20,6 +20,7 @@ import {
   readRelationshipId,
   readRelationshipLabel,
   readRelationshipSummary,
+  readRelationshipTargetEntityId,
   readRelationshipTargetLabel,
   readRelationshipTimeLabel,
   readRelationshipType,
@@ -28,7 +29,11 @@ import {
 // A work comes only from a relationship row with an explicit work type. Its
 // title comes only from explicit title fields; titles are never parsed out of
 // summaries or other prose.
-function toWorkCollectionFromRelationship(row: JsonObject, index: number): SourceDetailWorkCollection | null {
+function toWorkCollectionFromRelationship(
+  row: JsonObject,
+  index: number,
+  targets: SourceDetailData['relationshipTargets'],
+): SourceDetailWorkCollection | null {
   const type = readRelationshipType(row);
   if (!isWorkRelationshipType(type)) {
     return null;
@@ -42,9 +47,14 @@ function toWorkCollectionFromRelationship(row: JsonObject, index: number): Sourc
     ?? readScalarString(row.targetEntityId)
     ?? readScalarString(row.targetRef)
     ?? readScalarString(core.targetEntityId);
+  const targetId = readRelationshipTargetEntityId(row);
+  const target = targetId ? targets[targetId] : null;
+  const targetTitle = target && ['text', 'work'].includes(target.kind) && !target.isCharacter
+    ? target.name : null;
   const title = readWorkTitle(attributes)
     ?? readOptionalString(presentation, 'title')
-    ?? readRelationshipTargetLabel(row);
+    ?? readRelationshipTargetLabel(row)
+    ?? targetTitle;
   // Rows without an explicit work title are writing evidence, not works. Keep
   // them as text clues titled by their relation label so they render
   // separately from real work cards.
@@ -149,8 +159,11 @@ export function dedupeWorks(works: SourceDetailWorkCollection[]): SourceDetailWo
   return result;
 }
 
-export function readWorldCharacterWorksFromRelationships(relationships: JsonObject[]): SourceDetailWorkCollection[] {
+export function readWorldCharacterWorksFromRelationships(
+  relationships: JsonObject[],
+  targets: SourceDetailData['relationshipTargets'] = {},
+): SourceDetailWorkCollection[] {
   return relationships
-    .map(toWorkCollectionFromRelationship)
+    .map((row, index) => toWorkCollectionFromRelationship(row, index, targets))
     .filter((work): work is SourceDetailWorkCollection => Boolean(work));
 }

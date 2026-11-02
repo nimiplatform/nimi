@@ -3202,9 +3202,6 @@
       "4": "Removing",
       "5": "Removed"
     },
-    "createAnother": "Create another partner",
-    "createAnotherHelp": "Create an independent partner from the character’s current settings. Existing partners, conversations, and memory remain.",
-    "confirmCreate": "Create partner",
     "details": "Partner details",
     "peoplePartial": "The character directory has not fully loaded yet. Loaded characters remain visible.",
     "gallery": {
@@ -3244,6 +3241,22 @@
       },
       "showAll": "View all partners",
       "back": "Back to partners"
+    },
+    "characterProfile": "Character profile",
+    "meetingReference": "First meeting · character setting",
+    "status": {
+      "life": "Life simulation",
+      "contact": "Proactive contact",
+      "memory": "Memory",
+      "enabled": "On",
+      "disabled": "Off",
+      "loading": "Reading…",
+      "unavailable": "Unavailable",
+      "unconfigured": "Not configured",
+      "building": "Preparing",
+      "ready": "Available",
+      "empty": "No memories yet",
+      "failed": "Could not read"
     }
   }
 }

@@ -75,7 +75,7 @@ async function run(surface, posture = 'missing', action = 'open') {
       },
     }),
     accountProduct: () => ({
-      agents: { getAgent: async ({ agentId }) => {
+      agents: { listAgents: async () => ({ agents: [], nextPageToken: '' }), getAgent: async ({ agentId }) => {
         if (posture === 'unavailable') throw new Error('owner unavailable');
         if (posture === 'switch-account') auth = { status: 'authenticated', user: { id: 'owner-2' } };
         if (posture === 'switch-source') currentAction.current = null;
@@ -143,11 +143,11 @@ test('Source Detail Open uses the sole current target without creation', async (
   assert.equal(result.events.includes('feedback:error'), false);
   assert.equal(result.navigation.getSnapshot().current.destination.chat.conversationAnchorId, 'anchor-new');
 });
-test('explicit instance selection resolves only the chosen current partner when source matches are ambiguous', async () => {
+test('conflicting partner records cannot open an arbitrarily selected instance', async () => {
   const result = await run('source-detail', 'ambiguous', 'select');
   assert.equal(result.materialized, false);
-  assert.equal(result.opened, true);
-  assert.equal(result.events.includes('resolve:local-agent:second'), true);
+  assert.equal(result.opened, false);
+  assert.equal(result.events.includes('resolve:local-agent:second'), false);
   assert.equal(result.events.includes('resolve:local-agent:new-empty-partner'), false);
 });
 test('explicit creation materializes a missing partner without opening a conversation', async () => {

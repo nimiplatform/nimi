@@ -26,6 +26,7 @@
     "title": "作品",
     "count": "收录 {{count}} 部相关作品",
     "badge": "作品",
+    "bibliographyTitle": "相关书目",
     "textCluesTitle": "著述线索",
     "rowRef": "资料编号",
     "statusCollected": "已收录",
@@ -76,6 +77,16 @@
       }
     },
     "relationshipTitle": "相关角色",
+    "relationshipsShowAll": "查看全部 {{count}} 条关系",
+    "relationshipsShowLess": "收起相关角色",
+    "lifeGroups": {
+      "entry": "入仕经历",
+      "postedToOffice": "官职与职责",
+      "postedAddress": "任职足迹",
+      "biogAddress": "生平所涉地点",
+      "status": "身份与声望"
+    },
+    "listSeparator": "、",
     "lifeContextTitle": "生活与工作",
     "objectsTitle": "相关物品",
     "relationshipKind": {
@@ -405,7 +416,8 @@
     "dialogueRefresh": "再看一段",
     "dialogueYou": "你",
     "drivesTitle": "动机与追求",
-    "knowledgeTitle": "日常与专长",
+    "knowledgeTitle": "人物背景",
+    "knowledgeTopic": "{{label}}：{{text}}",
     "guidanceTitle": "相处须知",
     "appearanceVoiceTitle": "外貌与声音",
     "dialogueTitle": "相处片段",

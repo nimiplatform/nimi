@@ -1,20 +1,14 @@
-import { useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
+import { useLayoutEffect, useMemo, useRef } from 'react';
+import { useInfiniteQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { Avatar, Button, EmptyState, InlineAlert, LoadingSkeleton, ScrollArea, SearchField, SidebarShell } from '@nimiplatform/kit/ui';
-import { AgentCenter, type AgentCenterI18n } from '@nimiplatform/kit/features/agent-center';
-import { AgentLifecycleStatus } from '@nimiplatform/sdk/runtime/wire-types';
-import { ArrowLeft, BookOpen, Globe, MessageCircle, Settings } from 'lucide-react';
+import { Button, EmptyState, InlineAlert, LoadingSkeleton, ScrollArea, SearchField, SidebarShell } from '@nimiplatform/kit/ui';
+import { ArrowLeft } from 'lucide-react';
+import { PartnerDetails } from './partner-details.js';
 import { useAppStore, useHomeDestination, useHomeNavigation } from '../../app-shell/providers/app-store.js';
 import { useHomeListPosition } from '../../app-shell/providers/use-home-list-position.js';
 import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
-import { useDesktopAgentCenterSession } from '../chat/chat-agent-shell-adapter-runtime.js';
-import { resolveCurrentPartnerSource } from '../source-detail/data/realm-source-detail-data.js';
-import { getRuntimeSetupTaskStore } from '../runtime-config/runtime-setup-task-store.js';
-import { openRuntimeSetupTaskFromEntry } from '../runtime-config/runtime-setup-task-open.js';
-import { projectPartnerRecord, partnerDirectoryQueryKey, readPartnerDirectoryPage } from './partner-directory-model.js';
+import { partnerDirectoryQueryKey, readPartnerDirectoryPage } from './partner-directory-model.js';
 import { PartnerGallery } from './partner-gallery.js';
-import { usePartnerChat } from './use-partner-chat.js';
 import { PartnerDirectoryRow } from './partner-directory-row.js';
 import './partner-directory.css';
 
@@ -90,70 +84,5 @@ export function PartnerDirectory() {
       <div ref={detail} tabIndex={-1} role="region" aria-label={t(`${P}.details`)}><Button tone="ghost" size="sm" onClick={showList} className="mb-4"><ArrowLeft size={16} />{t(`${P}.gallery.back`)}</Button>
         <PartnerDetails key={`${accountId}:${realm}:${auth.authorizationRevision}:${selectedRef}`} scopeKey={`${realm}:${auth.authorizationRevision}`} localAgentRef={selectedRef} accountId={accountId} /></div>
     </ScrollArea> : null}
-  </div>;
-}
-
-function PartnerDetails({ localAgentRef, accountId, scopeKey }: { localAgentRef: string; accountId: string; scopeKey: string }) {
-  const { t, i18n } = useTranslation();
-  const bindings = useDesktopRendererBindings();
-  const navigation = useHomeNavigation();
-  const destination = useHomeDestination();
-  const selected = useQuery({ queryKey: ['home-partner', accountId, scopeKey, localAgentRef],
-    queryFn: async () => {
-      const response = await bindings.sdk.withRuntimeProtectedScopes(['runtime.agent.read'], options => bindings.sdk.accountProduct().agents.getAgent({ agentId: localAgentRef }, options));
-      if (!response.agent || response.agent.localAgentRef !== localAgentRef) throw new Error('Selected partner is unavailable.');
-      return projectPartnerRecord(response.agent, accountId);
-    }, staleTime: 0, networkMode: 'always' });
-  const partner = selected.data;
-  const active = !selected.isError && partner?.lifecycle === AgentLifecycleStatus.ACTIVE;
-  const reference = useQuery({ queryKey: ['home-partner-reference', accountId, scopeKey, localAgentRef],
-    queryFn: () => bindings.sdk.resolveDesktopAgentReference({ localAgentRef }), enabled: active, staleTime: 0, gcTime: 0, networkMode: 'always' });
-  const settings = destination.partner?.settingsSection;
-  const session = useDesktopAgentCenterSession({ agentHandle: active && settings && !reference.isError ? reference.data?.reference?.agentHandle : null });
-  const source = useQuery({ queryKey: ['partner-current-source', accountId, scopeKey, localAgentRef, partner?.sourceRef],
-    queryFn: () => resolveCurrentPartnerSource(bindings.sdk.realm(), partner!.sourceRef!),
-    enabled: Boolean(partner?.sourceRef) && !selected.isError, staleTime: 60_000, retry: false });
-  const [actionError, setActionError] = useState<string | null>(null);
-  const chat = usePartnerChat(accountId);
-  const copy = useMemo<AgentCenterI18n>(() => ({ language: i18n.resolvedLanguage || i18n.language,
-    exists: key => key === 'AgentCenter.chrome.title' || i18n.exists(key),
-    t: (key, values) => key === 'AgentCenter.chrome.title' ? t(`${P}.settings`) : t(key, values) as string,
-  }), [i18n, t]);
-  const openSetup = (capabilityContract: string, creation = false) => {
-    void openRuntimeSetupTaskFromEntry(getRuntimeSetupTaskStore(), {
-      navigation, capabilityContract, loadSource: async origin => ({ kind: creation ? 'app' : 'local-agent',
-        ...(creation ? { ownerAppId: bindings.sdk.appId() } : {}), accountId,
-        returnFocus: 'home:' + encodeURIComponent(JSON.stringify(origin)) }),
-      openTask: taskId => bindings.app.commands.runtimeConfigNavigation.openSetupTask(taskId),
-    }).catch(() => setActionError(t(`${P}.actionFailed`)));
-  };
-  if (selected.isPending) return <LoadingSkeleton lines={4} />;
-  if (selected.isError || !partner) return <InlineAlert tone="warning" action={<Button size="sm" onClick={() => { void selected.refetch(); }}>{t('Common.retry')}</Button>}>{t(`${P}.unavailable`)}</InlineAlert>;
-  return <div className="space-y-5" data-testid="partner-details">
-    <header className="rounded-[20px] bg-[var(--nimi-surface-card)] p-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="flex min-w-0 items-center gap-4"><Avatar alt={partner.displayName} size="lg" src={reference.data?.reference?.avatarUrl || undefined} fallback={partner.displayName.slice(0, 1)} />
-          <div><h2 className="break-words text-2xl font-semibold">{partner.displayName || t(`${P}.unnamed`)}</h2>
-            <p className="mt-1 text-xs text-[var(--nimi-text-secondary)]">{partner.createdAt ? t(`${P}.created`, { time: new Date(partner.createdAt).toLocaleString() }) : t(`${P}.creationUnknown`)}</p></div></div>
-        <div className="flex flex-wrap gap-2"><Button tone="secondary" disabled={!active || reference.isPending || reference.isError} onClick={() => { void navigation.push({ ...destination, partner: { localAgentRef, settingsSection: 'overview' } }); }}><Settings size={16} />{t(`${P}.manage`)}</Button>
-          <Button tone="primary" disabled={!active || Boolean(chat.openingRef) || reference.isError} onClick={() => { void chat.openChat(partner); }}><MessageCircle size={16} />{t(`${P}.chat`)}</Button></div>
-      </div>
-      {!active ? <p className="mt-4 text-sm text-[var(--nimi-text-secondary)]">{t(`${P}.lifecycle.${partner.lifecycle}`, { defaultValue: t(`${P}.lifecycle.0`) })}</p> : null}
-      {reference.isError || actionError || chat.failed ? <InlineAlert tone="warning" className="mt-4">{actionError || t(chat.failed ? `${P}.actionFailed` : `${P}.managerUnavailable`)}</InlineAlert> : null}
-      <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-[var(--nimi-border-subtle)] pt-4 text-sm">
-        {source.data && !source.isError ? <Button tone="ghost" size="sm" onClick={() => { void navigation.push({ id: 'source-detail', sourceRef: source.data.sourceRef }); }}><BookOpen size={15} />{t(`${P}.source`, { name: source.data.displayName })}</Button>
-          : <span className="text-[var(--nimi-text-secondary)]">{t(source.isPending && source.fetchStatus !== 'paused' && partner.sourceRef ? `${P}.sourceLoading` : `${P}.sourceUnavailable`)}</span>}
-        {partner.sourceRef ? <Button tone="ghost" size="sm" onClick={() => { void navigation.push({ id: 'world-detail', worldId: partner.sourceRef!.worldId }); }}><Globe size={15} />{source.data?.worldName || t(`${P}.world`)}</Button> : null}
-        {source.isError ? <Button tone="ghost" size="sm" onClick={() => { void source.refetch(); }}>{t('Common.retry')}</Button> : null}
-      </div>
-      {source.data?.updated && !source.isError ? <p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">{t(`${P}.sourceUpdated`)}</p> : null}
-    </header>
-    {settings && session ? <>{settings === 'ai-config' ? <p className="text-sm text-[var(--nimi-text-secondary)]">{t(`${P}.sharedAI`)}</p> : null}
-      <AgentCenter session={session} activeSection={settings} chrome="standalone" identity={{ displayName: partner.displayName, avatarUrl: reference.data?.reference?.avatarUrl }} i18n={copy}
-        onSectionChange={settingsSection => { void navigation.replace({ ...destination, partner: { localAgentRef, settingsSection } }); }}
-        placementActions={{ close: () => { void navigation.replace({ ...destination, partner: { localAgentRef } }); },
-          openRuntimeSettings: () => bindings.app.commands.runtimeConfigNavigation.openPage('aiSettings'),
-          openMachineLoadout: capability => openSetup(capability), openReferenceVoiceSetup: scope => openSetup(scope === 'creation' ? 'voice.create' : 'audio.synthesize', scope === 'creation') }} />
-      </> : settings && active && reference.isPending ? <LoadingSkeleton lines={3} /> : null}
   </div>;
 }
