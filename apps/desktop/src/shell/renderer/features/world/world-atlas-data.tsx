@@ -1,13 +1,13 @@
 import { useQueries } from '@tanstack/react-query';
 import type { RealmWorldData } from './data/realm-world-data.js';
 import { fetchWorldListItem, worldListItemQueryKey } from './world-detail-queries.js';
-import { WORLD_ATLAS_LEAD_WORLD_IDS } from './world-list-catalog-model.js';
+import { WORLD_ATLAS_LEAD_WORLD_IDS, WORLD_DISCOVERY_LEAD_WORLD_IDS } from './world-list-catalog-model.js';
 
 export type WorldAtlasSource = { data: RealmWorldData; realmBaseUrl: string; enabled: boolean; offline: boolean };
 
-// Spotlight entries must be available before their catalog page is loaded.
+// Reviewed spotlight and curated-grid entries precede their server catalog pages.
 export function useWorldAtlasLeadWorlds(source: WorldAtlasSource) {
-  const queries = useQueries({ queries: WORLD_ATLAS_LEAD_WORLD_IDS.map((worldId) => ({
+  const queries = useQueries({ queries: [...WORLD_ATLAS_LEAD_WORLD_IDS, ...WORLD_DISCOVERY_LEAD_WORLD_IDS].map((worldId) => ({
     queryKey: worldListItemQueryKey(source.realmBaseUrl, worldId),
     queryFn: () => fetchWorldListItem(source.data, worldId),
     enabled: source.enabled && !source.offline,

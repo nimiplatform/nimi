@@ -86,6 +86,7 @@ function WorldPeopleGallery({ characters, catalog, loading, onView }: {
 
 // @nimi-authority: rule.nimi.desktop.shell-ui.r011
 // @nimi-authority: rule.nimi.desktop.shell-ui.r012
+// @nimi-authority: rule.nimi.desktop.shell-ui.r013
 export function WorldDetailDiscovery({ props, onViewCharacter, onReadWorld }: {
   props: WorldDetailPageProps;
   onReadWorld: () => void;
@@ -109,7 +110,14 @@ export function WorldDetailDiscovery({ props, onViewCharacter, onReadWorld }: {
   const showBanner = Boolean((world.bannerMedia || world.bannerUrl) && !bannerFailed);
   const useContainedBanner = world.id === 'x01';
   const illustrations = worldIllustrations(props.publicAssets);
-  const story = world.setting?.trim() || summary;
+  // Some worlds publish their setting as structured systems instead of prose.
+  // Preview those supplied descriptions without repeating the hero overview.
+  const systemDescriptions = props.semantic.powerSystems
+    .map((system) => system.description?.trim())
+    .filter((description) => description && description !== summaryLead)
+    .join('\n\n');
+  const expandedSummary = summary !== summaryLead ? summary : '';
+  const story = world.setting?.trim() || expandedSummary || systemDescriptions || summary;
   const hasReading = Boolean(story || settings.length);
   const showExcerpt = Boolean(world.setting?.trim() || story !== summaryLead);
   const followButton = props.onFollowWorld ? <IconButton tone="secondary" size="sm" className={showBanner ? 'absolute top-3 right-3 z-10 rounded-full border-white/15 bg-black/45 text-white shadow-none backdrop-blur-md hover:border-white/30 hover:bg-black/60 hover:shadow-none' : 'rounded-full'} icon={props.worldFollowed ? <Bookmark size={16} fill="currentColor" className="text-[var(--nimi-action-primary-bg)]" /> : <Bookmark size={16} />} aria-pressed={Boolean(props.worldFollowed)} aria-label={t(props.worldFollowed ? 'WorldDetail.discovery.followed' : 'WorldDetail.discovery.follow')} onClick={() => props.onFollowWorld?.(world)} data-testid="world-detail-follow-world" /> : null;

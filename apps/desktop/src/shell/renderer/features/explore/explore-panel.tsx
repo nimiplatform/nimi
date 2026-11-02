@@ -13,6 +13,7 @@ import { readCharacterCatalog } from './character-catalog-data.js';
 import { createRealmWorldData } from '../world/data/realm-world-data.js';
 import { WorldCatalogContent, type WorldCatalogPaging } from '../world/world-list.js';
 import { useWorldAtlasLeadWorlds } from '../world/world-atlas-data.js';
+import { selectWorldCatalogWorlds } from '../world/world-list-catalog-model.js';
 import { WORLD_CATALOG_CONTRACT_VERSION, fetchWorldCatalogPage, worldCatalogQueryKey } from '../world/world-detail-queries.js';
 import { useWorldFavorites } from '../world/use-world-favorites.js';
 import { PartnerDirectory } from '../agents/partner-directory.js';
@@ -61,7 +62,7 @@ function WorldDiscovery({ headerLeading, headerTrailing }: { headerLeading: Reac
   const topics = useQuery({ queryKey: ['world-topics', WORLD_CATALOG_CONTRACT_VERSION, realmBaseUrl], queryFn: () => realmWorldData.loadWorldTopics(), enabled: bootstrapReady && !networkOffline, staleTime: 60_000 });
   const catalog = useExploreCatalogQuery({ queryKey: worldCatalogQueryKey(realmBaseUrl, query, { topicId: topicId || undefined }),
     loadPage: cursor => fetchWorldCatalogPage(realmWorldData, query, cursor, { topicId: topicId || undefined }), enabled: bootstrapReady && !favoritesSelected, networkOffline, staleTime: 30_000 });
-  const worlds = useMemo(() => catalog.query.data?.pages.flatMap(page => page.items) ?? [], [catalog.query.data]);
+  const worlds = useMemo(() => selectWorldCatalogWorlds(catalog.query.data?.pages ?? [], worldSearchText, topicId), [catalog.query.data, worldSearchText, topicId]);
   const paging: WorldCatalogPaging = { totalCount: catalog.query.data?.pages[0]?.totalCount ?? 0, hasMore: Boolean(catalog.query.hasNextPage),
     loadingMore: catalog.query.isFetchingNextPage, loadMoreFailed: catalog.query.isFetchNextPageError,
     offlineIncomplete: catalog.offline && Boolean(catalog.query.data), onLoadMore: () => { void catalog.query.fetchNextPage(); } };

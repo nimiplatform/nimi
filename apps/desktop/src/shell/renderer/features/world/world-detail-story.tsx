@@ -44,7 +44,7 @@ export function WorldDetailStory({ worldName, story, showExcerpt, hasReading, il
   return (
     <section data-testid="world-detail-story" style={{ '--world-illustration-ratio': galleryRatio } as CSSProperties}
       className={'world-detail-story relative overflow-hidden rounded-[14px] bg-[color-mix(in_srgb,var(--nimi-surface-panel)_66%,transparent)] ' + (selected ? 'world-detail-story--illustrated' : '') + (selectedRatio > 1 ? ' world-detail-story--landscape' : '')}>
-      {selected ? <div className="relative min-w-0" data-testid="world-detail-illustrations">
+      {selected ? <div className="relative min-w-0 self-center" data-testid="world-detail-illustrations">
         <div className="world-illustration-stage flex items-center justify-center">
           <div className="relative max-w-full" style={{ width: `calc(var(--world-illustration-height) * ${selectedRatio})`, aspectRatio: selectedRatio }}>
             <button type="button" onClick={openViewer} aria-haspopup="dialog"
@@ -71,7 +71,7 @@ export function WorldDetailStory({ worldName, story, showExcerpt, hasReading, il
       </div> : null}
       <div className="world-detail-story-copy relative flex min-h-0 min-w-0 flex-col justify-center px-6 py-7 @min-[760px]:py-8 @min-[1120px]:pr-12">
         <NimiText as="h2" role="overline" className="mb-4 shrink-0 tracking-[0.24em]">{t('WorldDetail.discovery.story')}</NimiText>
-        {showExcerpt ? <div className="min-h-0 max-w-[720px] overflow-hidden"><WorldStoryMarkdown content={story} excerpt /></div> : null}
+        {showExcerpt ? <div className="max-w-[720px] shrink-0"><WorldStoryMarkdown content={story} excerpt /></div> : null}
         {hasReading ? <button type="button" onClick={onReadWorld} data-testid="world-detail-open-reader"
           className="group mt-5 flex w-fit shrink-0 items-center gap-4 border-b border-[var(--nimi-action-primary-bg)] pb-1.5 text-sm font-semibold text-[var(--nimi-action-primary-bg)] transition-colors hover:text-[var(--nimi-text-primary)] focus-visible:rounded-sm focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[var(--nimi-action-primary-bg)]">
           {t('WorldDetail.discovery.readWorld')}<ArrowRight size={17} strokeWidth={1.7} className="transition-transform group-hover:translate-x-1 motion-reduce:transition-none" />

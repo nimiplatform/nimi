@@ -11,6 +11,7 @@ import { WorldCatalogContent, type WorldCatalogPaging } from '../src/shell/rende
 import { ExploreSectionNav } from '../src/shell/renderer/features/explore/explore-section-nav.js';
 import { WorldAlbumCard, WorldAtlasHero, WorldDiscoveryCard } from '../src/shell/renderer/features/world/world-atlas.js';
 import type { WorldListItem } from '../src/shell/renderer/features/world/world-list-model.js';
+import { WORLD_ATLAS_LEAD_WORLD_IDS, WORLD_DISCOVERY_LEAD_WORLD_IDS } from '../src/shell/renderer/features/world/world-list-catalog-model.js';
 
 (globalThis as { React?: typeof React }).React = React;
 const world: WorldListItem = {
@@ -200,25 +201,38 @@ test('exploration cards use the taller hero rendition instead of the cropped car
 });
 
 test('spotlight leads resolve outside the first page and stay out of exploration after pagination', () => {
-  const leads = [
-    { ...world, id: 'z01', name: '季风之眼：云端标本船', bannerUrl: 'https://example.com/monsoon.png' },
-    { ...world, id: 'd10', name: '春风得意行', bannerUrl: 'https://example.com/spring.png' },
-    { ...world, id: 'cwe-b03-u09', name: '红土大满贯：混双搭档是刚分手的前任，卫冕冠军在场边等我摔拍子', bannerUrl: 'https://example.com/tennis.png' },
-    { ...world, id: 'thinink-plains', name: '薄墨平原', bannerUrl: 'https://example.com/plains.png' },
-    { ...world, id: 'z03', name: '雾峡灯塔与鲸骨邮局', bannerUrl: 'https://example.com/lighthouse.png' },
-  ];
+  const leads = WORLD_ATLAS_LEAD_WORLD_IDS.map(id => ({ ...world, id, name: id, bannerUrl: `https://example.com/${id}.png` }));
   const catalog = Array.from({ length: 8 }, (_, index) => ({ ...world, id: `catalog-${index}`, name: `Catalog ${index}`, bannerUrl: `https://example.com/${index}.png` }));
   for (const worlds of [catalog, [...catalog, ...leads]]) {
     const document = new JSDOM(renderToStaticMarkup(<AppStoreProvider store={store}><WorldCatalogContent
       worlds={worlds} leadWorlds={[...leads].reverse()} paging={paging}
     /></AppStoreProvider>)).window.document;
-    assert.deepEqual(Array.from(document.querySelectorAll('.world-atlas-hero-dots button')).map(node => node.getAttribute('aria-label')), [
-      '查看季风之眼：云端标本船', '查看春风得意行',
-      '查看红土大满贯：混双搭档是刚分手的前任，卫冕冠军在场边等我摔拍子', '查看薄墨平原', '查看雾峡灯塔与鲸骨邮局',
-    ]);
+    assert.deepEqual(Array.from(document.querySelectorAll('.world-atlas-hero-dots button')).map(node => node.getAttribute('aria-label')), leads.map(item => `查看${item.name}`));
     assert.equal(document.querySelector('.world-atlas-hero h2')?.textContent, leads[0]!.name);
     assert.deepEqual(Array.from(document.querySelectorAll('.world-discovery-grid h3')).map(node => node.textContent), catalog.map(item => item.name));
     assert.ok(document.querySelector('[data-testid="world-catalog-load-more"]'));
+  }
+});
+
+test('reviewed populated illustrated worlds lead the grid before paging and appear only once after paging', () => {
+  const leads = [...WORLD_ATLAS_LEAD_WORLD_IDS, ...WORLD_DISCOVERY_LEAD_WORLD_IDS]
+    .map(id => ({ ...world, id, name: id, bannerUrl: `https://example.com/${id}.png` }));
+  const catalog = [{ ...world, id: 'catalog', name: 'Catalog' }];
+  for (const worlds of [catalog, [...catalog, ...leads]]) {
+    const document = new JSDOM(renderToStaticMarkup(<AppStoreProvider store={store}><WorldCatalogContent
+      worlds={worlds} leadWorlds={[...leads].reverse()} paging={paging}
+    /></AppStoreProvider>)).window.document;
+    assert.deepEqual(Array.from(document.querySelectorAll('.world-discovery-grid h3')).map(node => node.textContent), [
+      'thinink-plains', 'summerwell-village', 'prism-city-network', 'oneiric-littoral', 'living-echo-continent', 'Catalog',
+    ]);
+    assert.equal(document.querySelectorAll('.world-atlas-hero-dots button').length, 5);
+    assert.ok(document.body.textContent?.includes('137 个世界'));
+  }
+  for (const state of [{ searchQuery: 'query' }, { topicId: 'history' }, { favorites: true }]) {
+    const document = new JSDOM(renderToStaticMarkup(<AppStoreProvider store={store}><WorldCatalogContent
+      worlds={catalog} leadWorlds={leads} paging={paging} {...state}
+    /></AppStoreProvider>)).window.document;
+    assert.deepEqual(Array.from(document.querySelectorAll('.world-album-caption h2')).map(node => node.textContent), ['Catalog']);
   }
 });
 
@@ -237,9 +251,9 @@ test('available catalog covers render while spotlight reads are pending or faile
 test('a ready lead renders independently of pending or failed catalog and other leads', () => {
   for (const state of [{ loading: true, spotlightLoading: true }, { error: true, spotlightError: true }]) {
     const document = new JSDOM(renderToStaticMarkup(<AppStoreProvider store={store}><WorldCatalogContent
-      worlds={[]} leadWorlds={[{ ...world, id: 'd10', bannerUrl: 'https://example.com/ready.png' }]} paging={paging} {...state}
+      worlds={[]} leadWorlds={[{ ...world, id: 'meridian-archipelago', bannerUrl: 'https://example.com/ready.png' }]} paging={paging} {...state}
     /></AppStoreProvider>)).window.document;
-    assert.equal(document.querySelector('.world-atlas-hero')?.getAttribute('data-world-id'), 'd10');
+    assert.equal(document.querySelector('.world-atlas-hero')?.getAttribute('data-world-id'), 'meridian-archipelago');
     assert.equal(document.querySelector('.world-atlas-hero img')?.getAttribute('src'), 'https://example.com/ready.png');
   }
 });

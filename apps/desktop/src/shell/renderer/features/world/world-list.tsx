@@ -5,7 +5,7 @@ import { Bookmark, Compass, Grid2X2, Landmark, Leaf, Orbit, Sparkles, House } fr
 import { Button, EmptyState, LoadingSkeleton, NimiText, ScrollArea, SearchField, Surface } from '@nimiplatform/kit/ui';
 import { WorldAlbumCard, WorldAtlasHero, WorldDiscoveryCard, type WorldAtlasTopic } from './world-atlas.js';
 import { type WorldListItem } from './world-list-model';
-import { selectWorldSpotlight } from './world-list-catalog-model.js';
+import { selectWorldDiscoveryWorlds, selectWorldSpotlight } from './world-list-catalog-model.js';
 
 export function WorldsLoadingSkeleton({ embedded = false }: { embedded?: boolean }) {
   const { t } = useTranslation();
@@ -50,7 +50,10 @@ export function WorldCatalogContent({ worlds, paging, embedded = false, searchQu
   // may still be loading or unavailable without blocking a usable spotlight.
   const spotlightWorlds = browse ? selectWorldSpotlight(worlds, leadWorlds) : [];
   const displayedWorldIds = new Set(spotlightWorlds.map((world) => world.id));
-  const remainingWorlds = browse ? worlds.filter((world) => !displayedWorldIds.has(world.id)) : worlds;
+  const remainingWorlds = browse ? selectWorldDiscoveryWorlds(
+    worlds.filter((world) => !displayedWorldIds.has(world.id)),
+    leadWorlds.filter((world) => !displayedWorldIds.has(world.id)),
+  ) : worlds;
   const selectedTopic = topics.find((topic) => topic.id === topicId);
   const topicTitle = (topic: WorldAtlasTopic) => i18n.language.startsWith('zh') ? topic.title : topic.titleEn;
   return (
@@ -77,7 +80,7 @@ export function WorldCatalogContent({ worlds, paging, embedded = false, searchQu
         <section className={`world-atlas-section${browse ? ' world-discovery-section' : ''}`} aria-label={t(favorites ? 'World.favorites.title' : browse ? 'World.album.exploreMore' : 'World.album.allWorlds')}>
           <div className="world-atlas-section-heading"><div><h2>{favorites ? t('World.favorites.title') : query.trim() ? t('World.searchResults') : selectedTopic ? topicTitle(selectedTopic) : t('World.album.exploreMore')}</h2>{browse ? <p>{t('World.album.exploreDescription')}</p> : null}{favorites ? <NimiText role="caption">{t('World.favorites.localOnly')}</NimiText> : null}</div></div>
           {favoritesPartialError ? <div className="mb-4 flex items-center gap-3" role="status"><NimiText role="helper">{t('World.favorites.partialError')}</NimiText>{!offline ? <Button tone="secondary" size="sm" onClick={onRetry}>{t('NotificationPanel.refresh')}</Button> : null}</div> : null}
-          {!worlds.length ? <EmptyState title={t(query.trim() ? 'World.noSearchResults' : favorites ? 'World.favorites.empty' : topicId ? 'World.noTopicWorlds' : 'World.noWorlds')} description={favorites && !query.trim() ? t('World.favorites.emptyBody') : undefined} /> : <div className={browse ? 'world-discovery-grid' : 'world-atlas-grid'}>{remainingWorlds.map((world) => browse ? <WorldDiscoveryCard key={world.id} world={world} /> : <WorldAlbumCard key={world.id} world={world} viewKey={`all:${world.id}`} />)}</div>}
+          {!remainingWorlds.length ? <EmptyState title={t(query.trim() ? 'World.noSearchResults' : favorites ? 'World.favorites.empty' : topicId ? 'World.noTopicWorlds' : 'World.noWorlds')} description={favorites && !query.trim() ? t('World.favorites.emptyBody') : undefined} /> : <div className={browse ? 'world-discovery-grid' : 'world-atlas-grid'}>{remainingWorlds.map((world) => browse ? <WorldDiscoveryCard key={world.id} world={world} /> : <WorldAlbumCard key={world.id} world={world} viewKey={`all:${world.id}`} />)}</div>}
         </section>
         {paging.offlineIncomplete ? <NimiText role="helper" className="mt-4 text-center" aria-live="polite">{t('World.atlas.offlineIncomplete')}</NimiText> : paging.hasMore ? (
           <div className="mt-6 flex flex-col items-center gap-2" data-testid="world-catalog-load-more">

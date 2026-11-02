@@ -86,25 +86,8 @@
   }
 
   .world-detail-story--landscape .world-detail-story-copy {
-    /* The image sets the row height; the excerpt must not enlarge it. */
-    contain: size;
-    justify-content: safe center;
-    overflow-y: auto;
+    /* Let the bounded excerpt size the row so only line-clamp truncates prose. */
     padding-block: clamp(12px, 2cqi, 32px);
-  }
-
-  .world-detail-story--landscape .world-detail-story-excerpt {
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-  }
-
-  .world-detail-story--landscape .world-detail-story-excerpt [data-world-heading] {
-    flex-shrink: 0;
-  }
-
-  .world-detail-story--landscape .world-detail-story-excerpt [data-world-story-preview] {
-    min-height: 0;
   }
 
   .world-detail-story--landscape .world-illustration-thumbnails {

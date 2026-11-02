@@ -540,7 +540,7 @@ test('world discovery uses full-size artwork from the avatar slot when detail re
   }
 });
 
-test('long descriptions remain full prose and system paragraphs stay in the reader', () => {
+test('long descriptions remain full prose and system previews stay bounded', () => {
   const description = '世界中的每个人都有自己的日常。'.repeat(50);
   const system = '这个世界的社会和生活运转规则。'.repeat(100);
   const longWorld = { ...world, overview: null, description, bannerUrl: 'https://example.test/world.png' };
@@ -553,6 +553,7 @@ test('long descriptions remain full prose and system paragraphs stay in the read
   const multiWorld = { ...longWorld, description: `完整的第一段。\n\n${description}` };
   const multiDocument = new JSDOM(renderToStaticMarkup(<WorldDetailPage world={multiWorld} characters={characters} peopleCharacters={characters} peopleCatalog={readyPeopleCatalog(characters.length)} history={history} semantic={longSemantic} audits={[]} publicAssets={publicAssets} />)).window.document;
   assert.equal(multiDocument.querySelector('[data-testid="world-detail-summary"]')?.textContent, '完整的第一段。', 'a multi-paragraph summary shows the whole first paragraph only');
+  assert.ok(multiDocument.querySelector('[data-testid="world-story-excerpt"]')?.textContent?.includes(description), 'the expanded overview keeps its existing preview');
   const banner = document.querySelector('[data-testid="world-detail-banner"]');
   const bannerFrame = document.querySelector('[data-testid="world-detail-banner-frame"]');
   assert.equal(banner?.tagName, 'IMG');
@@ -560,7 +561,9 @@ test('long descriptions remain full prose and system paragraphs stay in the read
   assert.ok(!bannerFrame?.className.includes('aspect-[16/9]'), 'other worlds do not use the compact banner frame');
   assert.ok(!banner?.className.includes('object-contain'), 'other worlds do not use the contained banner treatment');
   assert.ok(document.querySelector('[data-testid="world-detail-open-reader"]'));
-  assert.ok(!document.body.textContent?.includes(system), 'system paragraphs are not repeated on the homepage');
+  const excerpt = document.querySelector('[data-testid="world-story-excerpt"]')!;
+  assert.equal(excerpt.querySelector('p')?.textContent, system, 'the preview uses the supplied system prose');
+  assert.ok(excerpt.className.includes('line-clamp-4'), 'long system prose stays a bounded preview with full-reader navigation');
   assert.ok(Array.from(document.querySelectorAll('h1,h2,h3')).every((heading) => !heading.textContent?.includes(system)));
   const entries = worldReadingEntries(longWorld, longSemantic, history);
   assert.ok(entries.find((entry) => entry.section === 'description')?.text.includes(description));
@@ -661,16 +664,47 @@ test('failed supplemental content stays explicit while character discovery remai
   assert.equal(document.querySelectorAll('button[aria-label^="View "]').length, characters.length);
 });
 
+test('worlds without setting prose preview their supplied system descriptions', () => {
+  const descriptions = [
+    '涵盖中央六部、地方府州县及各类散官、荣衔，反映清代官僚制度的层级与职能。',
+    '包括进士、举人、贡生、监生等科举功名，以及荐举、荫补等非科举入仕途径。',
+    '记录父子、兄弟、夫妻、姻亲等亲属关系，展现清代精英家族的结构与联姻策略。',
+  ];
+  const systems = descriptions.map((description, index) => ({ name: `System ${index}`, description, levels: [], rules: [] }));
+  const props = {
+    world: { ...world, setting: null }, characters: [], peopleCharacters: [], peopleCatalog: readyPeopleCatalog(0),
+    history: emptyHistory, semantic: { ...emptySemantic, powerSystems: systems }, audits: [], publicAssets,
+  };
+  const document = new JSDOM(renderToStaticMarkup(<WorldDetailPage {...props} />)).window.document;
+  const excerpt = document.querySelector('[data-testid="world-story-excerpt"]')!;
+  assert.ok(excerpt, 'structured settings must not leave the introduction empty');
+  assert.deepEqual([...excerpt.querySelectorAll('p')].map((paragraph) => paragraph.textContent), descriptions);
+  assert.ok(!excerpt.textContent?.includes(world.overview!), 'the preview does not repeat the hero overview');
+  assert.equal(document.querySelectorAll('[data-testid="world-detail-open-reader"]').length, 1);
+
+  const reader = new JSDOM(renderToStaticMarkup(<WorldDetailPage {...props} initialSubpage="reader" />)).window.document;
+  for (const description of descriptions) {
+    assert.ok(reader.querySelector('[data-testid="world-detail-reader-content"]')?.textContent?.includes(description));
+  }
+
+  const empty = new JSDOM(renderToStaticMarkup(<WorldDetailPage {...props} semantic={{ ...emptySemantic, powerSystems: [
+    { name: 'No description', description: '  ', levels: [], rules: [] },
+    { name: 'Repeated overview', description: world.overview!, levels: [], rules: [] },
+  ] }} />)).window.document;
+  assert.equal(empty.querySelector('[data-testid="world-story-excerpt"]'), null, 'absent descriptions do not invent setting prose');
+});
+
 test('world stories use their existing Markdown and expose one reading action after the excerpt', async () => {
   const setting = '# 原文世界\n\n## 第一节\n\n### 真实的小标题\n\n第一段原文。\n\n第二段原文。\n\n第三段原文。\n\n第四段留给完整阅读。\n\n## 第二节\n\n后面的原文。';
   const storyWorld = { ...world, name: '原文世界', setting };
   const assets = { scenes: [], resourceRefs: [], externalRefs: [], intents: [] };
-  const props = { world: storyWorld, characters, peopleCharacters: characters, peopleCatalog: readyPeopleCatalog(characters.length), history: emptyHistory, semantic: emptySemantic, audits: [], publicAssets: assets };
+  const props = { world: storyWorld, characters, peopleCharacters: characters, peopleCatalog: readyPeopleCatalog(characters.length), history: emptyHistory, semantic, audits: [], publicAssets: assets };
   const document = new JSDOM(renderToStaticMarkup(<WorldDetailPage {...props} />)).window.document;
   const excerpt = document.querySelector('[data-testid="world-story-excerpt"]')!;
   assert.equal(excerpt.querySelector('h3')?.textContent, '真实的小标题');
   assert.ok(excerpt.textContent?.includes('第三段原文。'));
   assert.ok(!excerpt.textContent?.includes('第四段留给完整阅读。'));
+  assert.ok(!excerpt.textContent?.includes(semantic.powerSystems[0]!.description!), 'authored setting prose takes priority over system descriptions');
   assert.equal(document.querySelectorAll('[data-testid="world-detail-open-reader"]').length, 1);
   assert.ok(document.querySelector('[data-testid="world-detail-story"] [data-testid="world-detail-open-reader"]'));
   assert.ok(!document.querySelector('[data-testid="world-detail-overview"] [data-testid="world-detail-open-reader"]'));
