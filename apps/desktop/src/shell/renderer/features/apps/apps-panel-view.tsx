@@ -17,7 +17,6 @@ import type { NimiAIConfigOverwriteResult } from '@nimiplatform/kit/core/sdk-con
 import {
   Box,
   Check,
-  ChevronRight,
   Code2,
   Download,
   Info,

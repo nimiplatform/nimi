@@ -15,7 +15,6 @@ import { captureAccountActionScope } from '../../app-shell/providers/account-act
 import { createHumanChatSender } from './human-chat-send.js';
 import type { HumanContactAdmission } from './chat-human-contact-admission.js';
 import { Button, ConfirmDialog, InlineAlert } from '@nimiplatform/kit/ui';
-import { E2E_IDS } from '../../testability/e2e-ids';
 import { mergeSentRealmChatMessageIntoCache } from '../turns/chat-send-cache.js';
 import { formatPendingAttachmentSize, appendPendingAttachment, type PendingAttachment } from '../turns/turn-input-attachments';
 import { humanAttachmentDrafts } from './chat-human-attachment-drafts.js';

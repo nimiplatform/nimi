@@ -39,7 +39,12 @@ test('a failed companion read is explained on the reply and retries the displaye
     subscribe: async () => {
       let close!: () => void;
       const closed = new Promise<void>(resolve => { close = resolve; });
-      return { cancel: close, async *[Symbol.asyncIterator]() { await closed; } };
+      return {
+        cancel: close,
+        [Symbol.asyncIterator]() {
+          return { next: async () => { await closed; return { done: true, value: undefined }; } };
+        },
+      };
     },
     markRead: async (request: unknown) => {
       calls.push(request);

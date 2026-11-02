@@ -596,8 +596,8 @@ test('world following remains a single secondary action and disappears when unav
   assert.ok(bannerButton?.className.includes('absolute'));
   assert.ok(bannerButton?.className.includes('top-3'));
   assert.ok(bannerButton?.className.includes('right-3'));
-  assert.ok(bannerButton?.className.includes('bg-black/45'));
-  assert.ok(bannerButton?.className.includes('backdrop-blur-md'));
+  assert.ok(bannerButton?.className.includes('nimi-action--secondary'));
+  assert.ok(bannerButton?.className.includes('bg-[var(--nimi-action-secondary-bg)]'));
 });
 
 test('the full world reader does not lose levels or realms beyond old visual-card limits', () => {

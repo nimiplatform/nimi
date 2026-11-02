@@ -16,7 +16,6 @@ import {
   collapseRealmHumanChatsToTargets,
   compareRealmHumanChatsByRecency,
   toRealmHumanTargetSummary,
-  type RealmChatViewDto,
 } from '@nimiplatform/kit/features/chat/realm';
 import { useRealmHumanChatData } from './data/realm-human-chat-data-context.js';
 import { useHumanChatList } from './use-human-chat-list.js';
