@@ -73,7 +73,7 @@ test('mounted human composer separates peer/account drafts and retires old send 
     assert.equal((dom.window.document.querySelector('[data-chat-composer-send]') as HTMLButtonElement).disabled, true);
     assert.equal(field().value, 'for Bob');
     await render('bob', 'error');
-    assert.match(dom.window.document.body.textContent || '', /Contact permissions could not be checked/);
+    assert.match(dom.window.document.body.textContent || '', /Couldn’t check contact permissions/);
     await act(async () => [...dom.window.document.querySelectorAll('button')].find(button => button.textContent === 'Retry')!.click());
     assert.equal(permissionRetries, 1);
     await render('bob', 'denied');

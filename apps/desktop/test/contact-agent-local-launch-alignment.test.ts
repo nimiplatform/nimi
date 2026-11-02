@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import type { TFunction } from 'i18next';
+import { AgentLifecycleStatus } from '@nimiplatform/sdk/runtime/wire-types';
 import {
   describeCharacterPrimaryAction,
   resolveCharacterSourceState,
@@ -25,7 +26,21 @@ const testTranslate = ((_: string, options?: { defaultValue?: string }) => (
 test('existing character source returns its exact Home management reference without creating a Conversation', async () => {
   let materializeCalls = 0;
   const sdk = {
+    withRuntimeProtectedScopes: async (scopes: string[], call: (options: object) => unknown) => {
+      assert.deepEqual(scopes, ['runtime.agent.read']);
+      return call({});
+    },
     accountProduct: () => ({
+      agents: { listAgents: async () => ({ agents: [{
+        localAgentRef: 'local-agent:opaque-existing', ownerUserId: 'user-1',
+        runtimeSourceRef: 'runtime-source:private-existing', displayName: 'Archivist',
+        lifecycleStatus: AgentLifecycleStatus.ACTIVE,
+        sourceContextStatus: {
+          schemaVersion: 2, ready: false, state: 4, reasonCode: 4,
+          localAgentRef: 'local-agent:opaque-existing', sourceSchemaVersion: 'realm.world-character-core/v1',
+          sourceRef: { worldCharacter: { ...WORLD_SOURCE_REF, kind: 1, worldEntityRef: { ...WORLD_SOURCE_REF.worldEntityRef, kind: 1 } } },
+        },
+      }], nextPageToken: '' }) },
       materializeRealmSource: async () => {
         materializeCalls += 1;
         throw new Error('existing source must not be rematerialized');
@@ -55,9 +70,14 @@ test('existing character source returns its exact Home management reference with
 
 test('character source materialization re-reads the exact committed Home management reference', async () => {
   const discoveryInputs: unknown[] = [];
-  let discoveryCall = 0;
+  let inventoryReads = 0;
   const sdk = {
+    withRuntimeProtectedScopes: async (scopes: string[], call: (options: object) => unknown) => {
+      assert.deepEqual(scopes, ['runtime.agent.read']);
+      return call({});
+    },
     accountProduct: () => ({
+      agents: { listAgents: async () => { inventoryReads += 1; return { agents: [], nextPageToken: '' }; } },
       materializeRealmSource: async () => ({
         localAgentRef: 'local-agent:opaque-materialized',
         idempotentReplay: false,
@@ -67,8 +87,6 @@ test('character source materialization re-reads the exact committed Home managem
     runtimeAgentDiscovery: () => ({
       discoverLocalAgentsBySource: async (input: unknown) => {
         discoveryInputs.push(input);
-        discoveryCall += 1;
-        if (discoveryCall === 1) return [];
         return [{
           localAgentRef: 'local-agent:opaque-materialized',
           ownerUserId: 'user-1',
@@ -105,7 +123,9 @@ test('character source materialization re-reads the exact committed Home managem
   }, 'user-1', testTranslate, sdk, () => true);
 
   assert.equal(result, 'local-agent:opaque-materialized');
-  assert.deepEqual(discoveryInputs[1], { ownerUserId: 'user-1', sourceRef: WORLD_SOURCE_REF });
+  assert.equal(inventoryReads, 1);
+  assert.equal(discoveryInputs.length, 1);
+  assert.deepEqual(discoveryInputs[0], { ownerUserId: 'user-1', sourceRef: WORLD_SOURCE_REF });
 });
 
 test('Realm source state distinguishes packet availability from Runtime-owned LocalAgent discovery', () => {

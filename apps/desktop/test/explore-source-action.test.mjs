@@ -12,13 +12,15 @@ for (const posture of ['expected', 'other-only', 'concurrent']) {
   test(`creation confirms the returned reference in ${posture} owner inventory`, async () => {
     let writes = 0, reads = 0;
     const sdk = {
+      withRuntimeProtectedScopes: async (scopes, call) => { assert.deepEqual(scopes, ['runtime.agent.read']); return call({}); },
       runtimeAgentDiscovery: () => ({ discoverLocalAgentsBySource: async () => {
-        if (++reads === 1) return [];
+        reads++;
+        assert.equal(writes, 1, 'confirmation follows the committed creation');
         const expected = { localAgentRef: 'local-agent:new', ownerUserId: 'owner' };
         const other = { localAgentRef: 'local-agent:other', ownerUserId: 'owner' };
         return posture === 'expected' ? [expected] : posture === 'other-only' ? [other] : [other, expected];
       } }),
-      accountProduct: () => ({ materializeRealmSource: async () => { writes++; return { localAgentRef: 'local-agent:new' }; } }),
+      accountProduct: () => ({ agents: { listAgents: async () => { reads++; return { agents: [], nextPageToken: '' }; } }, materializeRealmSource: async () => { writes++; return { localAgentRef: 'local-agent:new' }; } }),
     };
     if (posture === 'other-only') {
       await assert.rejects(ensureCharacterSourceMaterialized(source, 'owner', t, sdk, () => true), error =>

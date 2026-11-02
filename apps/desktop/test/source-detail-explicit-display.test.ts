@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { JSDOM } from 'jsdom';
 
 import {
   React,
@@ -139,12 +140,12 @@ test('non-historical English and mixed-script source detail renders as authored 
   // Hero: the explicit role, no era badge (the archetype mentions "Ming").
   assert.doesNotMatch(markup, /data-testid="world-character-hero-dynasty-badge"/);
   assert.doesNotMatch(markup, /明代|元代|清代/);
-  const description = /<p data-testid="world-character-hero-description"[^>]*>([^<]*)<\/p>/u.exec(markup)?.[1];
+  const description = /<p data-testid="world-character-hero-role"[^>]*>([^<]*)<\/p>/u.exec(markup)?.[1];
   assert.equal(description, 'Station cartographer');
 
   // English and mixed-script targets appear in the relationship text.
   const mapMarkup = sliceBetween(markup, 'data-testid="world-character-relationship-list"', '</ul>');
-  assert.match(mapMarkup, /\(Oriel Vantasse · Crewmate\)/);
+  assert.match(new JSDOM(mapMarkup).window.document.body.textContent ?? '', /Oriel Vantasse\s*Crewmate/);
   assert.match(mapMarkup, /Noor 努尔/);
   assert.doesNotMatch(mapMarkup, /宇宙之子/);
   assert.doesNotMatch(markup, /data-testid="world-character-background-list"/);
@@ -152,7 +153,7 @@ test('non-historical English and mixed-script source detail renders as authored 
   // Explicit types retain their translated meaning. Untyped rows with a
   // resolved person endpoint remain neutral; unresolved background stays hidden.
   const [crewmateCard] = cardsBy(markup, 'world-character-relationship-clue-crewmate');
-  assert.match(crewmateCard ?? '', / · Crewmate\)/);
+  assert.match(new JSDOM(crewmateCard ?? '').window.document.body.textContent ?? '', /Oriel Vantasse\s*Crewmate/);
   const untypedCards = cardsBy(markup, 'world-character-relationship-clue-untyped');
   assert.equal(untypedCards.length, 1);
   assert.match(untypedCards.join('\n'), /Noor 努尔 keeps the 任意门 archive\./);
@@ -186,7 +187,7 @@ test('a contemporary troupe is not given an era or dynasty from 当代 or 代', 
     assert.doesNotMatch(markup, /data-testid="world-character-hero-dynasty-badge"/);
     assert.doesNotMatch(markup, /元代|明代|清代|唐代|宋代/);
     // The hero line is the explicit role only; 字 is not parsed out of the summary.
-    const description = /<p data-testid="world-character-hero-description"[^>]*>([^<]*)<\/p>/u.exec(markup)?.[1];
+    const description = /<p data-testid="world-character-hero-role"[^>]*>([^<]*)<\/p>/u.exec(markup)?.[1];
     assert.equal(description, '当代剧团导演');
     assert.match(markup, /当代剧团的导演，字小林，也写代码。/);
   } finally {
@@ -220,10 +221,10 @@ test('explicitly typed historical relationships still display with their localiz
 
     const [kinshipCard] = cardsBy(markup, 'world-character-relationship-clue-kinship');
     assert.match(kinshipCard ?? '', /温氏/);
-    assert.match(kinshipCard ?? '', /（温氏 · 亲属）/);
+    assert.match(new JSDOM(kinshipCard ?? '').window.document.body.textContent ?? '', /温氏\s*亲属/);
     const [statusCard] = cardsBy(markup, 'world-character-life-clue-status');
     assert.match(statusCard ?? '', /理学家 - 阳明学派/);
-    assert.match(statusCard ?? '', /（理学家 - 阳明学派 · 身份）/);
+    assert.match(statusCard ?? '', /身份与声望/);
   } finally {
     await changeLocale('en');
   }
@@ -285,7 +286,7 @@ test('relationship titles that equal a known entity id are treated as identifier
   const markup = render(source);
   const mapMarkup = sliceBetween(markup, 'data-testid="world-character-relationship-list"', '</ul>');
 
-  assert.doesNotMatch(mapMarkup, />entity-oriel<\/span>/);
+  assert.doesNotMatch(new JSDOM(mapMarkup).window.document.body.textContent ?? '', /entity-oriel/);
   // A hyphenated value that is not a known id is authored text and is shown.
-  assert.match(mapMarkup, /\(the-last-star-7 · Crewmate\)/);
+  assert.match(new JSDOM(mapMarkup).window.document.body.textContent ?? '', /the-last-star-7\s*Crewmate/);
 });
