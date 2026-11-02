@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { JSDOM } from 'jsdom';
+import { createRequire } from 'node:module';
 
 import {
   React,
@@ -12,6 +12,10 @@ import {
   toSourceDetailData,
 } from './source-detail-world-character-test-utils.js';
 import type { SourceDetailData } from '../src/shell/renderer/features/source-detail/source-detail-model.js';
+
+const { JSDOM } = createRequire(import.meta.url)('jsdom') as {
+  JSDOM: new (markup: string) => { window: { document: Document } };
+};
 
 test.before(async () => {
   await initI18n();
