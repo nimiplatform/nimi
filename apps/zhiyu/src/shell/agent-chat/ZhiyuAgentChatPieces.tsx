@@ -5,6 +5,8 @@ import {
   UserRound,
   X,
 } from 'lucide-react';
+import { ZhiyuPartnerAvatarCard } from './ZhiyuPartnerAvatarCard';
+import type { NimiLocalAppAgentHandle, NimiLocalAppAgentIntroductionClient } from '@nimiplatform/sdk/app';
 import type { ZhiyuEvidence } from '../app/evidence';
 import type { ZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
 import { avatarLaunchRecovery, type ZhiyuAvatarLaunchFeedback } from '../avatar/avatar-launch-feedback';
@@ -40,20 +42,23 @@ export function ComposerAvatarButton({
   currentPartnerName,
   currentPartnerAvatarUrl,
   hasCurrentPartner,
-  onOpenSettings,
+  onOpenSettings, agentHandle, readIntroduction, onOpenPartner,
 }: {
+  readonly agentHandle: NimiLocalAppAgentHandle | null;
+  readonly readIntroduction: NimiLocalAppAgentIntroductionClient['getIntroduction'];
+  readonly onOpenPartner: (section: 'overview' | 'cognition') => void;
   readonly currentPartnerName: string;
   readonly currentPartnerAvatarUrl: string | null;
   readonly hasCurrentPartner: boolean;
   readonly onOpenSettings: () => void;
 }) {
-  return (
+  const button = (
     <button
       type="button"
       className="zhiyu-home__composer-avatar"
-      aria-label={hasCurrentPartner ? `形象：${currentPartnerName}` : '选择本地伙伴'}
-      title={hasCurrentPartner ? `形象：${currentPartnerName}` : '选择本地伙伴'}
-      onClick={onOpenSettings}
+      aria-label={hasCurrentPartner ? `查看${currentPartnerName}的伙伴资料` : '选择本地伙伴'}
+      title={hasCurrentPartner ? `查看${currentPartnerName}的伙伴资料` : '选择本地伙伴'}
+      onClick={hasCurrentPartner ? undefined : onOpenSettings}
     >
       {!hasCurrentPartner ? <UserRound size={18} aria-hidden="true" /> : currentPartnerAvatarUrl ? (
         <img
@@ -65,6 +70,8 @@ export function ComposerAvatarButton({
       ) : partnerInitial(currentPartnerName)}
     </button>
   );
+  return hasCurrentPartner && agentHandle ? <ZhiyuPartnerAvatarCard agentHandle={agentHandle} name={currentPartnerName}
+    avatarUrl={currentPartnerAvatarUrl} placement="composer" readIntroduction={readIntroduction} onOpen={onOpenPartner}>{button}</ZhiyuPartnerAvatarCard> : button;
 }
 
 export function ComposerModeTools({

@@ -1,5 +1,6 @@
 import zhiyuLogoImage from '../assets/logo.png';
-import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
+import { ZhiyuPartnerAvatarCard } from './ZhiyuPartnerAvatarCard';
+import type { NimiLocalAppAgentHandle, NimiLocalAppAgentIntroductionClient } from '@nimiplatform/sdk/app';
 
 type DesktopPresenceRailProps = {
   readonly agents: readonly {
@@ -11,6 +12,8 @@ type DesktopPresenceRailProps = {
   readonly currentAgentHandle: string | null;
   readonly currentPartnerName: string;
   readonly hasCurrentPartner: boolean;
+  readonly readIntroduction: NimiLocalAppAgentIntroductionClient['getIntroduction'];
+  readonly onOpenPartner: (agentHandle: NimiLocalAppAgentHandle, section: 'overview' | 'cognition') => void;
   readonly onOpenCurrentAgent: () => void;
   readonly onSelectAgent: (agentHandle: NimiLocalAppAgentHandle) => void;
 };
@@ -21,7 +24,7 @@ export function DesktopPresenceRail({
   currentPartnerName,
   hasCurrentPartner,
   onOpenCurrentAgent,
-  onSelectAgent,
+  onSelectAgent, readIntroduction, onOpenPartner,
 }: DesktopPresenceRailProps) {
   return (
     <section
@@ -53,24 +56,19 @@ export function DesktopPresenceRail({
                 className={`zhiyu-agent-rail__agent-indicator${isCurrent ? ' is-active' : ''}`}
                 aria-hidden="true"
               />
+              <ZhiyuPartnerAvatarCard agentHandle={agent.agentHandle} name={displayName} avatarUrl={agent.avatarUrl}
+                placement="rail" readIntroduction={readIntroduction}
+                onOpen={section => { if (agent.agentHandle) onOpenPartner(agent.agentHandle, section); }}
+                onSelect={() => { if (canSelect && agent.agentHandle) onSelectAgent(agent.agentHandle); else if (isCurrent) onOpenCurrentAgent(); }}>
               <button
                 type="button"
                 className={`zhiyu-agent-rail__agent${isCurrent ? ' is-active' : ''}`}
                 aria-label={isCurrent ? `当前伙伴：${displayName}` : `选择伙伴：${displayName}`}
-                title={displayName}
                 data-zhiyu-local-agent-candidate="true"
                 data-zhiyu-local-agent-candidate-active={String(isCurrent)}
                 data-zhiyu-agent-handle={agent.agentHandle ?? ''}
                 disabled={!agent.agentHandle}
-                onClick={() => {
-                  if (canSelect && agent.agentHandle) {
-                    onSelectAgent(agent.agentHandle);
-                    return;
-                  }
-                  if (isCurrent) {
-                    onOpenCurrentAgent();
-                  }
-                }}
+
               >
                 {agent.avatarUrl ? (
                   <img
@@ -81,6 +79,7 @@ export function DesktopPresenceRail({
                   />
                 ) : partnerInitial(agent.displayName)}
               </button>
+              </ZhiyuPartnerAvatarCard>
             </div>
           );
         })}

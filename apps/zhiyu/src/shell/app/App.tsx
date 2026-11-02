@@ -481,11 +481,11 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     } finally { if (scope === currentScope.current) await observationRef.current?.refresh(); }
   }
 
-  function handleSelectLocalAgent(agentHandle: NimiLocalAppAgentHandle) {
+  function handleSelectLocalAgent(agentHandle: NimiLocalAppAgentHandle, panel?: import('@nimiplatform/kit/features/agent-center').AgentCenterSectionId) {
     agentCenterSession?.invalidate();
     agentCenterSession?.dispose();
     const initial = createInitialZhiyuEvidence();
-    void navigation.push({ id: 'partner', agentHandle });
+    void navigation.push({ id: 'partner', agentHandle, ...(panel ? { panel } : {}) });
     setSelectedLocalAgentRefreshKey((current) => current + 1);
     setEvidence((current) => ({
       ...initial,

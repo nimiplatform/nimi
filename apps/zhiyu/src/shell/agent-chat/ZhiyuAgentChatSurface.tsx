@@ -1,3 +1,4 @@
+import { useZhiyuConversationReadReceipts, ZhiyuConversationReadReceipt } from './ZhiyuConversationReadReceipts';
 import { useNimiNavigationSnapshot } from '@nimiplatform/kit/ui/app-chrome';
 import { useZhiyuNavigationOwner, type ZhiyuDestination } from '../app/navigation.js';
 import { AgentIntroduction } from '@nimiplatform/kit/features/chat/ui';
@@ -112,7 +113,7 @@ export type ZhiyuAgentChatSurfaceProps = {
   readonly onSubmit: (text: string, attachment?: ZhiyuRuntimeAgentChatAttachment, intent?: ZhiyuConversationSubmitIntent) => Promise<void> | void;
   readonly onTranscribeVoice?: (audioBytes: Uint8Array, mimeType: string, signal: AbortSignal) => Promise<string>;
   readonly onStopChat: () => void;
-  readonly onSelectLocalAgent: (agentHandle: NimiLocalAppAgentHandle) => void;
+  readonly onSelectLocalAgent: (agentHandle: NimiLocalAppAgentHandle, panel?: AgentPanelTab) => void;
   readonly onDesktopOpenRuntimeSettings: () => Promise<void> | void;
   readonly onRetryAgentCenter: () => void;
   readonly onResourcePackPlacementReady: (requestId: string) => void;
@@ -222,6 +223,7 @@ export function ZhiyuAgentChatSurface({
     || Boolean(evidence.chat.textTurnId) || connectionStatus !== 'ready' || submitting || Boolean(pendingSubmission);
   const composerKey = `${evidence.conversation.agentHandle ?? ''}|${evidence.conversation.conversationAnchorId ?? ''}`;
   const interactionScope = `${evidence.auth.accountId ?? ''}:${evidence.auth.ready}:${composerKey}`;
+  const readReceipts = useZhiyuConversationReadReceipts(interactionScope, evidence.auth.ready && !accessDenied ? evidence.conversation.agentHandle : null);
   const messageCopy = useMemo(() => getMessageInteractionCopy('zh-CN'), []);
   const playback = useLocalAppConversationPlayback({
     agentHandle: evidence.auth.ready && !accessDenied ? evidence.conversation.agentHandle : null,
@@ -544,6 +546,8 @@ export function ZhiyuAgentChatSurface({
             displayName: agent.displayName,
             avatarUrl: agent.avatarUrl,
           }))}
+          readIntroduction={readIntroduction}
+          onOpenPartner={(handle, section) => { if (handle === evidence.localAgent.agentHandle) openPanel(section); else onSelectLocalAgent(handle, section); }}
           currentAgentHandle={evidence.localAgent.agentHandle}
           currentPartnerName={currentPartnerName}
           hasCurrentPartner={hasCurrentPartner}
@@ -642,7 +646,13 @@ export function ZhiyuAgentChatSurface({
                 renderMessageContent={message => message.kind === 'text' && message.metadata?.canonicalPartial && !message.text.trim() && message.status !== 'streaming' && message.status !== 'pending'
                   ? <p role="status" className="text-sm text-[var(--nimi-text-secondary)]">{message.status === 'canceled' ? '已停止。' : '这次未收到完整回复。'}</p>
                   : undefined}
-                renderMessageAccessory={(message) => <>
+                renderMessageAccessory={(message) => {
+                  const reply = !destination.panel && message.sessionId === evidence.conversation.conversationAnchorId
+                    && (message.role === 'agent' || message.role === 'assistant') && message.metadata?.canonicalMessageCommitted === true
+                    && !message.metadata.canonicalPartial && typeof message.metadata.canonicalTurnId === 'string'
+                    ? readReceipts.replies.get(`turn:${message.metadata.canonicalTurnId}`) : undefined;
+                  return <>
+                  {reply ? <ZhiyuConversationReadReceipt reply={reply} state={readReceipts} /> : null}
                   {message.metadata?.canonicalPartial && message.text.trim() && message.status !== 'streaming'
                     ? <p className="text-xs text-neutral-500">{message.status === 'canceled' ? message.text.trim() ? '已停止，保留已收到的内容。' : '已停止。' : message.text.trim() ? '回复未完成，已收到的内容已保留。' : '这次未收到回复，可以重新回答原问题。'}</p>
                     : message.metadata?.canonicalMediaRunning ? <p className="text-xs text-neutral-500">文字已完成，媒体仍在处理。可以继续聊天。</p> : null}
@@ -652,7 +662,7 @@ export function ZhiyuAgentChatSurface({
                     label="停止生成媒体" errorLabel="尚未确认停止结果。文字回复已保留，可以继续聊天。" /> : null}
                   {Array.isArray(message.metadata?.canonicalImageFailures) && message.kind === 'text' && (message.role === 'agent' || message.role === 'assistant') ? message.metadata.canonicalImageFailures.map((failure: { actionId: string; reasonCode: string | null; message: string | null }) =>
                     <div key={failure.actionId} className="my-2 text-sm" role="status"><p>图片暂未生成，文字回复已保留，可以继续聊天。</p><details className="text-xs"><summary>技术详情</summary>{failure.reasonCode}{failure.message ? ` · ${failure.message}` : ''}</details></div>) : null}
-                </>}
+                </>; }}
 
               />
             </div>
@@ -692,7 +702,10 @@ export function ZhiyuAgentChatSurface({
                     currentPartnerName={currentPartnerName}
                     currentPartnerAvatarUrl={currentPartnerAvatar}
                     hasCurrentPartner={hasCurrentPartner}
-                    onOpenSettings={openAppearanceConfig}
+                    onOpenSettings={openAgentOverview}
+                    agentHandle={evidence.localAgent.agentHandle}
+                    readIntroduction={readIntroduction}
+                    onOpenPartner={openPanel}
                   />
                 )}
                 toolbarSlot={(
