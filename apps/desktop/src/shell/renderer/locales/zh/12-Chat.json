@@ -776,5 +776,34 @@
     "agentUnavailable": "这位伙伴已不可用，已返回 Nimi Chat。",
     "messageActions": "消息操作",
     "deselectCompanion": "取消选择 {{name}}，返回 Nimi Chat"
+  },
+  "partnerCard": {
+    "open": "查看{{name}}的伙伴资料",
+    "fromWorld": "来自 {{name}}",
+    "viewPartner": "查看伙伴",
+    "memory": "状态与记忆",
+    "profileUnavailable": "角色介绍暂时无法读取，仍可查看和管理伙伴。",
+    "viewProfile": "查看资料",
+    "memories": "记忆",
+    "topics": "可以聊",
+    "listenVoice": "听听声音",
+    "pauseVoice": "暂停试听",
+    "voiceSeconds": "{{seconds}}秒",
+    "voiceFailed": "暂时无法播放",
+    "more": "更多"
+  },
+  "humanCard": {
+    "open": "查看{{name}}的资料",
+    "more": "更多",
+    "viewProfile": "查看资料",
+    "addMedia": "添加图片或视频",
+    "restricted": "对方的详细资料暂不可见。",
+    "unavailable": "暂时无法读取资料。",
+    "blocked": "你已屏蔽此用户",
+    "requestSent": "好友申请已发送",
+    "accept": "接受好友申请",
+    "reject": "拒绝好友申请",
+    "cancelRequest": "取消好友申请",
+    "requestReceived": "对方请求添加你为好友"
   }
 }

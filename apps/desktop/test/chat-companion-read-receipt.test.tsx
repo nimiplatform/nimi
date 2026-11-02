@@ -57,7 +57,7 @@ test('a failed companion read is explained on the reply and retries the displaye
   try {
     await act(async () => root.render(<I18nextProvider i18n={i18n}><Conversation /></I18nextProvider>));
     assert.equal(calls.length, 0);
-    await act(async () => intersect([{ isIntersecting: true } as IntersectionObserverEntry], {} as IntersectionObserver));
+    await act(async () => intersect([{ isIntersecting: false }, { isIntersecting: true }] as IntersectionObserverEntry[], {} as IntersectionObserver));
     await act(async () => { dom.window.dispatchEvent(new dom.window.Event('focus')); });
     assert.equal(calls.length, 1, 'refocusing while the read is in flight must not send it twice');
     await act(async () => rejectFirst(Error('Connection lost')));

@@ -110,7 +110,6 @@ export type AppStoreState = {
   profileDetailOverlayOpen: boolean;
   primaryRailVisible: boolean;
   setPrimaryRailVisible: (visible: boolean) => void;
-  chatProfilePanelTarget: 'self' | 'other' | null;
   offlineTier: OfflineTier;
   setOfflineTier: (tier: OfflineTier) => void;
   setBootstrapReady: (ready: boolean) => void;
@@ -140,7 +139,6 @@ export type AppStoreState = {
   clearPendingNimiComposerPrefill: (requestId: number) => void;
   setChatSetupState: (mode: ConversationMode, setupState: ConversationSetupState | null) => void;
   setProfileDetailOverlayOpen: (open: boolean) => void;
-  setChatProfilePanelTarget: (target: 'self' | 'other' | null) => void;
   setStatusBanner: (banner: InlineFeedbackState | null) => void;
 };
 

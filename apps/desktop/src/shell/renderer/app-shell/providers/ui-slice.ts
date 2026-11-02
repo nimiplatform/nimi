@@ -30,7 +30,6 @@ type UiSlice = Pick<AppStoreState,
   | 'profileDetailOverlayOpen'
   | 'primaryRailVisible'
   | 'setPrimaryRailVisible'
-  | 'chatProfilePanelTarget'
   | 'offlineTier'
   | 'setOfflineTier'
   | 'setBootstrapReady'
@@ -48,7 +47,6 @@ type UiSlice = Pick<AppStoreState,
   | 'clearPendingNimiComposerPrefill'
   | 'setChatSetupState'
   | 'setProfileDetailOverlayOpen'
-  | 'setChatProfilePanelTarget'
   | 'setStatusBanner'
 >;
 
@@ -73,7 +71,6 @@ export function createUiSlice(
     profileDetailOverlayOpen: false,
     primaryRailVisible: true,
     setPrimaryRailVisible: (visible) => set({ primaryRailVisible: visible }),
-    chatProfilePanelTarget: null,
     offlineTier: 'L0' as OfflineTier,
     setOfflineTier: (tier) => set({ offlineTier: tier }),
     setBootstrapReady: (ready) => set({ bootstrapReady: ready }),
@@ -187,7 +184,6 @@ export function createUiSlice(
         },
       })),
     setProfileDetailOverlayOpen: (open) => set({ profileDetailOverlayOpen: open }),
-    setChatProfilePanelTarget: (target) => set({ chatProfilePanelTarget: target }),
     setStatusBanner: (banner) => emitFeedbackToast(banner),
   };
 }

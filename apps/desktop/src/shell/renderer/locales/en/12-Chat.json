@@ -776,5 +776,34 @@
     "agentUnavailable": "This companion is no longer available. You are back in Nimi Chat.",
     "messageActions": "Message actions",
     "deselectCompanion": "Deselect {{name}} and return to Nimi Chat"
+  },
+  "partnerCard": {
+    "open": "View {{name}}’s partner profile",
+    "fromWorld": "From {{name}}",
+    "viewPartner": "View partner",
+    "memory": "State & memory",
+    "profileUnavailable": "Character information is unavailable. You can still view and manage this partner.",
+    "viewProfile": "View profile",
+    "memories": "Memory",
+    "topics": "Talk about",
+    "listenVoice": "Hear their voice",
+    "pauseVoice": "Pause preview",
+    "voiceSeconds": "{{seconds}}s",
+    "voiceFailed": "Preview unavailable",
+    "more": "More"
+  },
+  "humanCard": {
+    "open": "View {{name}}’s profile",
+    "more": "More",
+    "viewProfile": "View profile",
+    "addMedia": "Add images or videos",
+    "restricted": "This person’s full profile is private.",
+    "unavailable": "Profile unavailable right now.",
+    "blocked": "You have blocked this person",
+    "requestSent": "Friend request sent",
+    "accept": "Accept friend request",
+    "reject": "Decline friend request",
+    "cancelRequest": "Cancel friend request",
+    "requestReceived": "This person sent you a friend request"
   }
 }

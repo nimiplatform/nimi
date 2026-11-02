@@ -377,10 +377,10 @@ export function useAgentConversationPresentation(
             leadingSlot={(
               <ChatComposerLeadingAvatar
                 kind="agent"
+                agentHandle={input.activeTarget?.agentHandle || ''}
                 name={resolvedAgentDisplayName}
                 imageUrl={characterData.avatarUrl || null}
                 fallbackLabel={characterData.avatarFallback || resolvedAgentDisplayName}
-                preview={characterProfilePreviewTarget}
               />
             )}
             avatarAction={{

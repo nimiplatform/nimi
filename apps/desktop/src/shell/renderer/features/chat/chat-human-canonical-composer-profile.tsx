@@ -1,13 +1,12 @@
-import { useHomeNavigation } from '../../app-shell/providers/app-store.js';
-import { useRealmSocialData } from '../social/data/realm-social-data-context.js';
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from 'react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ChatHumanAvatarCard } from './chat-human-avatar-card.js';
+import { EntityAvatar } from '../../components/entity-avatar.js';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { finalizeNimiRealmTransferredFile, uploadNimiRealmResourceFile } from '@nimiplatform/sdk/realm';
 import { CanonicalComposer } from '@nimiplatform/kit/features/chat/components/canonical-composer';
 import { CHAT_CONTENT_WIDTH_CLASS, CHAT_CONTENT_POSITION_CLASS } from './chat-shared-content-layout';
 import {
   createRealmChatResourceAttachmentPayload,
-  type RealmChatViewDto,
 } from '@nimiplatform/kit/features/chat/realm';
 import { useTranslation } from 'react-i18next';
 import { useRealmHumanChatData } from './data/realm-human-chat-data-context.js';
@@ -17,17 +16,10 @@ import { createHumanChatSender } from './human-chat-send.js';
 import type { HumanContactAdmission } from './chat-human-contact-admission.js';
 import { Button, ConfirmDialog, InlineAlert } from '@nimiplatform/kit/ui';
 import { E2E_IDS } from '../../testability/e2e-ids';
-import { ChatProfileCard } from '../turns/message-timeline-profile-card.js';
-import { toChatProfileSummary } from '../turns/message-timeline-utils.js';
-import {
-  toHumanProfileData,
-  type HumanProfileSource,
-} from '../profile/profile-model';
 import { mergeSentRealmChatMessageIntoCache } from '../turns/chat-send-cache.js';
 import { formatPendingAttachmentSize, appendPendingAttachment, type PendingAttachment } from '../turns/turn-input-attachments';
 import { humanAttachmentDrafts } from './chat-human-attachment-drafts.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
-import { useDesktopI18nResource } from '../../i18n/i18n-context';
 
 function HumanAttachmentStrip(props: {
   attachments: readonly PendingAttachment[];
@@ -100,21 +92,9 @@ export function HumanCanonicalComposer(props: HumanCanonicalComposerProps) {
     rememberAttachments={items => files.set(peer, items)} />;
 }
 
-function useOpenConversationProfile() {
-  const navigation = useHomeNavigation();
-  const viewer = useAppStore(state => state.auth.user);
-  const cache = useQueryClient();
-  return (id: string, displayName: string, handle?: string | null, avatarUrl?: string | null) => {
-    if (viewer && id !== viewer.id) cache.setQueryData(['chat-peer-identity', viewer.realmEnvironmentId, viewer.id, id],
-      { id, displayName, handle: handle || '', avatarUrl: avatarUrl ?? null });
-    navigation.push({ id: 'profile', profileId: id });
-  };
-}
-
 function HumanComposerForAccount(props: HumanCanonicalComposerProps & {
   peerAccountId: string; initialAttachments: readonly PendingAttachment[]; rememberAttachments(items: PendingAttachment[]): void;
 }) {
-  const openProfile = useOpenConversationProfile();
   const store = useAppStoreApi();
   const { t } = useTranslation();
   const sdk = useDesktopRendererSdk();
@@ -312,7 +292,14 @@ function HumanComposerForAccount(props: HumanCanonicalComposerProps & {
         mergeAttachments: (existing, incoming) => [...existing, ...incoming],
       }}
       attachmentsSlot={({ attachments, removeAttachment }) => <HumanAttachmentStrip attachments={attachments} removeAttachment={removeAttachment} />}
-      attachLabel={t('TurnInput.uploadFile')} layout="stacked"
+      attachLabel={t('Chat.humanCard.addMedia')} layout="stacked"
+      leadingSlot={<ChatHumanAvatarCard person={{ id: props.peerAccountId, name: props.leadingAvatar!.name,
+        handle: props.leadingAvatar?.handle, avatarUrl: props.leadingAvatar?.imageUrl, deleted: props.contactAdmission.deleted }} placement="composer">
+        <button type="button" disabled={props.contactAdmission.deleted} className="human-composer-identity" aria-label={t('Chat.humanCard.open', { name: props.leadingAvatar!.name })}>
+          <EntityAvatar name={props.leadingAvatar!.name} imageUrl={props.contactAdmission.deleted ? null : props.leadingAvatar?.imageUrl} kind="human" sizeClassName="h-8 w-8 shrink-0" textClassName="text-xs font-medium" />
+          <span>{props.contactAdmission.deleted ? t('Relationship.contacts.deletedUser') : props.leadingAvatar!.name}</span>
+        </button>
+      </ChatHumanAvatarCard>}
       runtimeHint={offlineTier === 'L2' ? t('TurnInput.runtimeUnavailableReadOnly') : null}
       widthClassName={CHAT_CONTENT_WIDTH_CLASS} widthPositionClassName={CHAT_CONTENT_POSITION_CLASS} disableFocusBorder />
     <input ref={fileInputRef} type="file" accept="image/*,video/*" multiple onChange={onFileChange} className="hidden" aria-hidden="true" />
@@ -328,72 +315,4 @@ function HumanComposerForAccount(props: HumanCanonicalComposerProps & {
         }).catch(showError);
       }} />
   </>;
-}
-
-export function HumanCanonicalProfileDrawer(props: {
-  selectedChat: RealmChatViewDto | null;
-}) {
-  const openProfile = useOpenConversationProfile();
-  const realmSocialData = useRealmSocialData();
-  const { t } = useTranslation();
-  const i18n = useDesktopI18nResource();
-  const authStatus = useAppStore((state) => state.auth.status);
-  const currentUser = useAppStore((state) => state.auth.user);
-  const currentUserId = String(currentUser?.id || '');
-
-  const profilePanelTarget = useAppStore((state) => state.chatProfilePanelTarget);
-  const setProfilePanelTarget = useAppStore((state) => state.setChatProfilePanelTarget);
-  const otherUser = props.selectedChat?.otherUser;
-  const otherUserId = String(otherUser?.id || '').trim();
-  const currentUserFallback = currentUser && typeof currentUser === 'object'
-    ? (currentUser as unknown as Record<string, unknown>)
-    : null;
-  const otherUserFallback = (otherUser as unknown as Record<string, unknown>) || null;
-  const profileTargetId = profilePanelTarget === 'self' ? currentUserId : otherUserId;
-
-  const profileQuery = useQuery({
-    queryKey: ['chat-contact-profile', profilePanelTarget, profileTargetId],
-    queryFn: async () => {
-      if (!profileTargetId) {
-        return null;
-      }
-      const result = await realmSocialData.loadUserProfile(profileTargetId);
-      return result as unknown as Record<string, unknown>;
-    },
-    enabled: authStatus === 'authenticated' && profilePanelTarget !== null && Boolean(profileTargetId),
-  });
-
-  const detail = profileQuery.isError ? null : profileQuery.data;
-  const profileSummary = useMemo(() => {
-    const fallback = profilePanelTarget === 'self' ? currentUserFallback : otherUserFallback;
-    return toChatProfileSummary({
-      fallback,
-      i18n,
-      profile: detail || null,
-    });
-  }, [currentUserFallback, i18n, otherUserFallback, profilePanelTarget, detail]);
-
-  const profileActionLabel = profilePanelTarget === 'self'
-    ? t('ChatTimeline.openMyProfile')
-    : t('ChatTimeline.openUserProfile');
-
-  if (profilePanelTarget === null) {
-    return null;
-  }
-
-  return (
-    <div className="flex h-full min-h-0 flex-col overflow-hidden px-4 py-4">
-      <ChatProfileCard
-        profileData={toHumanProfileData((detail || profileSummary) as unknown as HumanProfileSource)}
-        onClose={() => setProfilePanelTarget(null)}
-        onViewFullProfile={() => {
-          if (!profileSummary.id) {
-            return;
-          }
-          openProfile(profileSummary.id, profileSummary.displayName, profileSummary.handle, profileSummary.avatarUrl);
-        }}
-        viewFullProfileLabel={profileActionLabel}
-      />
-    </div>
-  );
 }

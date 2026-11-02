@@ -26,7 +26,7 @@ test('read receipts advance to the latest visible confirmed message even when it
   const { AppStoreProvider } = await import('../src/shell/renderer/app-shell/providers/app-store.js');
   const { RealmHumanChatDataProvider } = await import('../src/shell/renderer/features/chat/data/realm-human-chat-data-context.js');
   const { useHumanTimelineModel } = await import('../src/shell/renderer/features/chat/chat-human-timeline-model.js');
-  const { ChatReadMarker } = await import('../src/shell/renderer/features/chat/chat-read-marker.js');
+  const { ConversationReadMarker } = await import('@nimiplatform/kit/features/chat/ui');
   const { ChatUploadPlaceholderProvider } = await import('../src/shell/renderer/features/turns/chat-upload-placeholder-context.js');
   const { createChatUploadPlaceholderStore } = await import('../src/shell/renderer/features/turns/chat-upload-placeholder-store.js');
   const { StreamControllerProvider } = await import('../src/shell/renderer/features/turns/stream-controller-context.js');
@@ -51,7 +51,7 @@ test('read receipts advance to the latest visible confirmed message even when it
   function TimelineMarker() {
     const { newestMessageId, acknowledgeRead, readError } = useHumanTimelineModel('chat', null);
     return <>
-      {newestMessageId && <ChatReadMarker value={newestMessageId} onVisible={acknowledgeRead} />}
+      {newestMessageId && <ConversationReadMarker value={newestMessageId} onVisible={acknowledgeRead} />}
       {readError && <button onClick={() => void acknowledgeRead(readError)}>Retry {readError}</button>}
     </>;
   }
@@ -68,8 +68,8 @@ test('read receipts advance to the latest visible confirmed message even when it
       </StreamControllerProvider></ChatUploadPlaceholderProvider>
     </AppStoreProvider></QueryClientProvider>);
   });
-  const intersect = (value: boolean) => act(async () => {
-    observe([{ isIntersecting: value } as IntersectionObserverEntry], {} as IntersectionObserver);
+  const intersect = (...values: boolean[]) => act(async () => {
+    observe(values.map(isIntersecting => ({ isIntersecting } as IntersectionObserverEntry)), {} as IntersectionObserver);
   });
   try {
     const first = message('z-first', '2026-10-01T12:00:00Z');
@@ -90,7 +90,9 @@ test('read receipts advance to the latest visible confirmed message even when it
       createdAt: '2026-10-01T12:02:00Z' })));
     await renderPages([newest, first]);
     assert.deepEqual(acknowledgements, ['z-first'], 'a background update does not acknowledge the newly loaded message');
-    await intersect(true);
+    await intersect(true, false);
+    assert.deepEqual(acknowledgements, ['z-first'], 'a batch ending offscreen must not acknowledge an intermediate visible position');
+    await intersect(false, true);
     assert.deepEqual(acknowledgements, ['z-first', 'a-newest']);
     await renderPages([newest, first], [message('zz-older', '2026-10-01T11:59:00Z')]);
     await intersect(true);

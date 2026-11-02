@@ -36,3 +36,10 @@ test('restricted contextual profiles retain only minimal identity and freshly ad
   assert.equal(profile.relationshipId, 'request-a');
   assert.equal(profile.relationship?.state, 'pending_incoming');
 });
+
+test('contextual profile rejects a response for another account instead of using it as the selected person', async () => {
+  await assert.rejects(loadContextualHumanProfile('person-a', {
+    loadUserProfile: async () => ({ id: 'person-b', displayName: 'Wrong account' }),
+    loadRelationship: async () => { throw new Error('Identity errors are not restricted-profile fallbacks'); },
+  }), /identity/);
+});

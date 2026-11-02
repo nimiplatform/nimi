@@ -1,3 +1,5 @@
+@import './features/chat/chat-human-avatar-card.css';
+@import './features/chat/chat-partner-card.css';
 @scope (.nimi-ui-module--desktop) {
 :scope[data-nimi-semantic-id="desktop-main-root"] {
   display: flex;

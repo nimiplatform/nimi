@@ -1,5 +1,4 @@
 import { isDeletedChatPeer, useHumanChatList } from './use-human-chat-list.js';
-import { HumanChatHeader } from './chat-human-header.js';
 import { useHumanContactAdmission } from './chat-human-contact-admission.js';
 import { Suspense, lazy, useMemo } from 'react';
 import { createReadyConversationSetupState } from '@nimiplatform/kit/features/chat/headless';
@@ -22,7 +21,6 @@ import { logRendererEvent } from '@nimiplatform/kit/telemetry';
 import { useRealmHumanChatData } from './data/realm-human-chat-data-context.js';
 import {
   HumanCanonicalComposer,
-  HumanCanonicalProfileDrawer,
   useHumanCanonicalConversationSurface,
 } from './chat-human-canonical-components';
 import type { DesktopConversationModeHost } from './chat-shared-mode-host-types';
@@ -30,9 +28,7 @@ import { useAppStore, type AuthStatus } from '../../app-shell/providers/app-stor
 import setupLogoImage from '../../assets/logo.png';
 
 import {
-  ChatRuntimeInspectContent,
   RuntimeInspectCard,
-  RuntimeInspectUnsupportedNote,
 } from './chat-runtime-inspect-content';
 
 const ChatSettingsPanel = lazy(async () => {
@@ -45,7 +41,6 @@ type UseHumanConversationModeHostInput = {
   selectedChatId: string | null;
   setSelectedChatId: (chatId: string | null) => void;
   onOpenThread?: (threadId: string) => void;
-  setChatProfilePanelTarget: (target: 'self' | 'other' | null) => void;
 };
 
 function formatHumanChatTime(
@@ -84,7 +79,6 @@ export function useHumanConversationModeHost(
     authStatus,
     selectedChatId,
     setSelectedChatId,
-    setChatProfilePanelTarget,
   } = input;
   const { t } = useTranslation();
   const queryClient = useQueryClient();
@@ -149,77 +143,6 @@ export function useHumanConversationModeHost(
     onIntentOpenHistory: _humanStageOnIntentOpenHistory,
     ...stagePanelProps
   } = canonicalSurface.stagePanelProps;
-  const humanRuntimeInspectContent = selectedChat ? (
-    <ChatRuntimeInspectContent
-      title={t('Chat.settingsTitle', { defaultValue: 'Settings' })}
-      subtitle={t('Chat.humanTitle', { defaultValue: 'Human Chat' })}
-      statusTitle={t('Chat.mode.human', { defaultValue: 'Human' })}
-      statusHint={t('Chat.settingsDiagnosticsHint', {
-        defaultValue: 'Inspect delivery and conversation details for the current chat.',
-      })}
-      statusSummary={(
-        <RuntimeInspectCard
-          label={t('Chat.mode.human', { defaultValue: 'Human' })}
-          value={getRealmHumanChatTitle(selectedChat, unknownTitle)}
-          detail={canonicalSurface.diagnosticsSummary.isStreaming
-            ? t('Chat.voiceInspectPlaying', { defaultValue: 'Currently playing' })
-            : t('Chat.voiceInspectReady', { defaultValue: 'Ready to play' })}
-        />
-      )}
-      sections={[
-        {
-          key: 'chat',
-          title: t('Chat.settingsConversation', { defaultValue: 'Conversation' }),
-          hint: t('Chat.settingsChatDetailsHint', {
-            defaultValue: 'Runtime resolves conversation execution details when work starts.',
-          }),
-          summary: getRealmHumanChatTitle(selectedChat, unknownTitle),
-          content: (
-            <RuntimeInspectCard
-              label={t('Chat.mode.human', { defaultValue: 'Human' })}
-              value={getRealmHumanChatTitle(selectedChat, unknownTitle)}
-              detail={canonicalSurface.diagnosticsSummary.isStreaming
-                ? t('Chat.voiceInspectPlaying', { defaultValue: 'Currently playing' })
-                : t('Chat.voiceInspectReady', { defaultValue: 'Ready to play' })}
-            />
-          ),
-        },
-        {
-          key: 'voice',
-          title: t('Chat.settingsVoice', { defaultValue: 'Voice' }),
-          hint: t('Chat.settingsVoiceHint', {
-            defaultValue: 'Review voice playback and transcript visibility for this conversation.',
-          }),
-          content: canonicalSurface.rightSidebarContent || (
-            <RuntimeInspectUnsupportedNote label={t('Chat.voiceInspectTranscriptHidden', { defaultValue: 'Transcript is hidden until you reveal it.' })} />
-          ),
-        },
-        {
-          key: 'diagnostics',
-          title: t('Chat.diagnosticsTitle', { defaultValue: 'Diagnostics' }),
-          hint: t('Chat.settingsDiagnosticsHint', {
-            defaultValue: 'Inspect delivery and conversation details for the current chat.',
-          }),
-          content: (
-            <RuntimeInspectCard
-              label={t('Chat.diagnosticsSessionLabel', { defaultValue: 'Session' })}
-              value={`${canonicalSurface.diagnosticsSummary.messageCount}`}
-              detail={canonicalSurface.diagnosticsSummary.isStreaming
-                ? t('ChatTimeline.stopGenerating', 'Stop generating')
-                : t('Chat.voiceInspectReady', { defaultValue: 'Ready to play' })}
-            />
-          ),
-        },
-      ]}
-      initialOpenPanel={canonicalSurface.rightSidebarAutoOpenKey ? 'voice' : 'chat'}
-    />
-  ) : null;
-  const profileContent = selectedChat ? (
-    <div className="contents">
-      <HumanCanonicalProfileDrawer selectedChat={selectedChat} />
-      {humanRuntimeInspectContent}
-    </div>
-  ) : null;
   const rightSidebarContent = canonicalSurface.rightSidebarContent;
   const rightSidebarOverlayMenu = canonicalSurface.rightSidebarOverlayMenu;
   const rightSidebarAutoOpenKey = canonicalSurface.rightSidebarAutoOpenKey;
@@ -262,9 +185,7 @@ export function useHumanConversationModeHost(
     activeThreadId: selectedChatId,
     targets,
     selectedTargetId: selectedChat ? getRealmHumanTargetId(selectedChat) : null,
-    topContent: selectedChat ? (
-      <HumanChatHeader peer={selectedChat.otherUser} admission={contactAdmission} />
-    ) : selectedChatId ? <InlineAlert tone={chatDetailQuery.isError ? 'warning' : 'info'}>
+    topContent: selectedChat ? null : selectedChatId ? <InlineAlert tone={chatDetailQuery.isError ? 'warning' : 'info'}>
       {chatDetailQuery.isPending ? t('Common.loading') : t('Chat.positionUnavailable')}
       {chatDetailQuery.isError ? <button type="button" onClick={() => void chatDetailQuery.refetch()}>{t('Common.retry')}</button> : null}
     </InlineAlert> : null,
@@ -272,7 +193,6 @@ export function useHumanConversationModeHost(
     onSelectTarget: (targetId) => {
       const normalizedTargetId = String(targetId || '').trim();
       const existingChatId = resolveCanonicalRealmHumanChatId(allChats, normalizedTargetId);
-      setChatProfilePanelTarget(null);
       if (existingChatId) {
         setSelectedChatId(existingChatId);
         return;
@@ -327,14 +247,13 @@ export function useHumanConversationModeHost(
     },
     onSelectThread: (threadId: string) => {
       input.onOpenThread?.(threadId);
-      setChatProfilePanelTarget(null);
     },
     // Always pass transcript/stage props: the shell can render the transcript
     // while a selected target's chat is still resolving (selectedChatId null),
     // and undefined props would surface the kit English default empty state.
     transcriptProps,
     stagePanelProps,
-    profileContent: profileContent,
+    profileContent: null,
     rightSidebarContent: rightSidebarContent,
     rightSidebarOverlayMenu: rightSidebarOverlayMenu,
     rightSidebarAutoOpenKey: rightSidebarAutoOpenKey,
@@ -387,18 +306,15 @@ export function useHumanConversationModeHost(
     authStatus,
     canonicalMessages,
     canonicalSurface.diagnosticsSummary,
-    profileContent,
     rightSidebarAutoOpenKey,
     rightSidebarContent,
     rightSidebarOverlayMenu,
-    humanRuntimeInspectContent,
     selectedChat,
     selectedChatTitle,
     selectedChatId,
     chatDetailQuery.isError,
     chatDetailQuery.isPending,
     chatDetailQuery.refetch,
-    setChatProfilePanelTarget,
     setSelectedChatId,
     stagePanelProps,
     t,

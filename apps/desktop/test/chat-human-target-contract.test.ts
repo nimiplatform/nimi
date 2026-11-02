@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
   collapseRealmHumanChatsToTargets,
+  compareRealmHumanChatsByRecency,
   resolveCanonicalRealmHumanChatId,
   type RealmChatViewDto,
 } from '@nimiplatform/kit/features/chat/realm';
@@ -9,27 +10,58 @@ import {
   chatSidebarQueryAuthStatus,
   mergeHumanChatTargetsWithFriendTargets,
   toAgentReferenceTargetSummary,
+  toRecentAgentTargets,
   toAgentTargetSnapshotFromSummary,
   toHumanFriendTargetsFromSocialSnapshot,
   visibleChatRailTargets,
 } from '../src/shell/renderer/features/chat/chat-sidebar-targets.js';
 import { QueryClient, QueryObserver } from '@tanstack/react-query';
-import type { NimiLocalAppAgentReference } from '@nimiplatform/sdk/app';
+import type { NimiAppActivityRecord, NimiLocalAppAgentReference } from '@nimiplatform/sdk/app';
 
 const SOURCE_HASH = 'a'.repeat(64);
 const AGENT_HANDLE = `agent_ref_${'A'.repeat(43)}`;
 
-test('the people rail stays bounded with unread overflow and keeps a selected older conversation visible', () => {
+test('scrollable rails preserve chronological membership after unread attention clears', () => {
   const people = Array.from({ length: 12 }, (_, index) => ({
     id: `user-${index}`, title: `Person ${index}`, source: 'human' as const, canonicalSessionId: `chat-${index}`, unreadCount: 1,
   }));
-  assert.deepEqual(visibleChatRailTargets(people, null, true, 7), people.slice(0, 7));
-  assert.deepEqual(visibleChatRailTargets(people, 'user-10', true, 3), [people[0], people[1], people[10]]);
-  assert.deepEqual(visibleChatRailTargets(people, 'user-10', true, 1), [people[10]]);
   const agents = people.map(person => ({ ...person, source: 'agent' as const }));
-  const visibleAgents = visibleChatRailTargets(agents, agents[10]!.id, false, 3);
-  assert.equal(visibleAgents.length, agents.length);
-  assert.equal(new Set(visibleAgents).size, agents.length);
+  const targets = [...people, ...agents];
+  assert.deepEqual(visibleChatRailTargets(targets, true), people);
+  assert.deepEqual(visibleChatRailTargets(targets, false), agents);
+  const readTargets = targets.map(target => ({ ...target, unreadCount: 0 }));
+  for (const side of [true, false]) assert.deepEqual(visibleChatRailTargets(readTargets, side).map(t => t.id), visibleChatRailTargets(targets, side).map(t => t.id));
+});
+
+test('companion recency uses message occurrence, never unread status or the time of a read update', () => {
+  const reference = (id: string, name: string) => ({ agentHandle: id, agentBinding: `binding-${id}`, activityAgentRef: `activity-${id}`, displayName: name, avatarUrl: null }) as NimiLocalAppAgentReference;
+  const references = [reference('older', 'A'), reference('newer', 'Z'), reference('unchatted', 'B')];
+  const reply = (id: string, occurredAt: string, unread: boolean) => ({
+    key: `turn:${id}:${occurredAt}`, source: { kind: 'runtime-agent' }, type: 'nimi.runtime.agent-conversation.turn-completed.v1',
+    agent: { agentRef: `activity-${id}` }, occurredAt, updatedAt: '2026-11-02T20:00:00Z', userView: { unread },
+  }) as NimiAppActivityRecord;
+  const records = [reply('older', '2026-11-01T10:00:00Z', true), reply('newer', '2026-11-02T10:00:00Z', false)];
+  const before = toRecentAgentTargets(references, records);
+  assert.deepEqual(before.map(target => target.id), ['newer', 'older', 'unchatted']);
+  assert.equal(before[1]?.unreadCount, 1);
+  const after = toRecentAgentTargets(references, records.map(record => ({ ...record, userView: { ...record.userView, unread: false } })));
+  assert.deepEqual(after.map(target => target.id), before.map(target => target.id));
+  assert.equal(after[1]?.unreadCount, 0);
+  const appNotice = { ...reply('unchatted', '2026-11-03T10:00:00Z', true), source: { kind: 'app' } } as NimiAppActivityRecord;
+  assert.deepEqual(toRecentAgentTargets(references, [...records, appNotice]).map(target => target.id), before.map(target => target.id));
+  assert.deepEqual(toRecentAgentTargets(references, [...records, reply('older', '2026-11-03T10:00:00Z', false)]).map(target => target.id), ['older', 'newer', 'unchatted']);
+});
+
+test('human recency ignores acknowledgement updates and changes only for a newer message', () => {
+  const chats = [
+    { id: 'old', createdAt: '2026-10-01T00:00:00Z', lastMessageAt: '2026-11-01T00:00:00Z', updatedAt: '2026-11-03T00:00:00Z', unreadCount: 8 },
+    { id: 'recent', createdAt: '2026-10-01T00:00:00Z', lastMessageAt: '2026-11-02T00:00:00Z', updatedAt: '2026-11-02T00:00:00Z', unreadCount: 0 },
+  ] as RealmChatViewDto[];
+  assert.deepEqual([...chats].sort(compareRealmHumanChatsByRecency).map(chat => chat.id), ['recent', 'old']);
+  const read = chats.map(chat => ({ ...chat, unreadCount: 0, updatedAt: '2026-11-04T00:00:00Z' }));
+  assert.deepEqual(read.sort(compareRealmHumanChatsByRecency).map(chat => chat.id), ['recent', 'old']);
+  const received = chats.map(chat => chat.id === 'old' ? { ...chat, lastMessageAt: '2026-11-05T00:00:00Z' } : chat);
+  assert.deepEqual(received.sort(compareRealmHumanChatsByRecency).map(chat => chat.id), ['old', 'recent']);
 });
 
 test('normal account refresh retains the same Agent reference cache without issuing pending reads', async () => {

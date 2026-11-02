@@ -4,9 +4,6 @@ import test from 'node:test';
 import { parsePersonaSources } from '../src/shell/renderer/features/explore/explore-persona-source-projection.js';
 import { resolveCharacterSourceRefV3 } from '../src/shell/renderer/features/explore/character-source-materialization.js';
 import {
-  buildRelationshipProfileNavigationTarget,
-} from '../src/shell/renderer/features/chat/chat-relationship-hover-card.js';
-import {
   toAgentTargetSnapshotFromSummary,
   toHumanFriendTargetSummary,
 } from '../src/shell/renderer/features/chat/chat-sidebar-targets.js';
@@ -132,49 +129,6 @@ test('explore projection rejects display/sourceRef mismatch and friendship rejec
     displayName: 'Legacy-shaped Human',
     handle: 'account-a',
     isSource: false,
-  }), null);
-});
-
-test('chat relationship profile navigation discriminates human account ids from Character sourceRefs', () => {
-  assert.equal(buildRelationshipProfileNavigationTarget({
-    id: 'local-agent:user-a:runtime-source:personaCharacter:world-a:persona-a',
-    source: 'agent',
-    canonicalSessionId: 'conversation-a',
-    title: 'Persona A',
-    handle: '~persona-a',
-    metadata: {
-      runtimeSourceRef: 'runtime-source:personaCharacter:world-a:persona-a',
-    },
-  }), null);
-
-  assert.deepEqual(buildRelationshipProfileNavigationTarget({
-    id: 'local-agent:user-a:runtime-source:personaCharacter:world-a:persona-a',
-    source: 'agent',
-    canonicalSessionId: 'conversation-a',
-    title: 'Persona A',
-    metadata: { sourceRef },
-  }), {
-    kind: 'character',
-    sourceRef,
-  });
-
-  assert.deepEqual(buildRelationshipProfileNavigationTarget({
-    id: 'chat-a',
-    source: 'human',
-    canonicalSessionId: 'chat-a',
-    title: 'Human A',
-    metadata: { otherUserId: 'account-a' },
-  }), {
-    kind: 'human',
-    profileId: 'account-a',
-  });
-
-  assert.equal(buildRelationshipProfileNavigationTarget({
-    id: 'local-agent:user-a:agent-a',
-    source: 'human',
-    canonicalSessionId: 'local-agent:user-a:agent-a',
-    title: 'Misclassified LocalAgent',
-    metadata: { otherUserId: 'local-agent:user-a:agent-a' },
   }), null);
 });
 

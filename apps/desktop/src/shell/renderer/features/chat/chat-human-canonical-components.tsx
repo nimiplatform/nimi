@@ -1,4 +1,5 @@
-import { ChatReadMarker } from './chat-read-marker.js';
+import { ChatHumanAvatarCard } from './chat-human-avatar-card.js';
+import { ConversationReadMarker } from '@nimiplatform/kit/features/chat/ui';
 import {
   useCallback,
   useEffect,
@@ -43,7 +44,7 @@ import {
   useHumanVoiceUiState,
   type HumanVoiceUiState,
 } from './chat-human-voice-ui';
-export { HumanCanonicalComposer, HumanCanonicalProfileDrawer } from './chat-human-canonical-composer-profile';
+export { HumanCanonicalComposer } from './chat-human-canonical-composer-profile';
 
 function HumanStreamFooter(props: {
   selectedChatId: string | null;
@@ -114,46 +115,29 @@ function useHumanMessageRenderers(input: {
   model: HumanTimelineModel;
 }) {
   const { t } = useTranslation();
-  const profilePanelTarget = useAppStore((state) => state.chatProfilePanelTarget);
-  const setProfilePanelTarget = useAppStore((state) => state.setChatProfilePanelTarget);
+  const viewer = useAppStore(state => state.auth.user);
   const [reportMessage, setReportMessage] = useState<Parameters<CanonicalMessageAccessorySlot>[0] | null>(null);
   useEffect(() => { setReportMessage(null); }, [input.selectedChatId, input.model.currentUserId]);
 
-  const toggleProfilePanel = useCallback((target: 'self' | 'other') => {
-    setProfilePanelTarget(profilePanelTarget === target ? null : target);
-  }, [profilePanelTarget, setProfilePanelTarget]);
-
   const renderMessageAvatar = useCallback<CanonicalMessageAvatarSlot>((message) => {
     const isMe = message.role === 'human' || message.role === 'user';
-    const senderName = isMe ? t('ChatTimeline.you') : input.model.contactName;
-    const messageProfileTarget: 'self' | 'other' = isMe ? 'self' : 'other';
+    const id = isMe ? input.model.currentUserId : input.model.contactId;
+    const name = isMe ? String(viewer?.displayName || viewer?.handle || t('ChatTimeline.you')) : input.model.contactName;
+    const avatarUrl = isMe ? input.model.currentUserAvatarUrl : input.model.contactAvatarUrl;
     const display = (message.metadata as Record<string, unknown> | undefined)?.display as HumanRealmChatTimelineDisplay | undefined;
-    return (
-      <button
-        type="button"
-        onClick={() => toggleProfilePanel(messageProfileTarget)}
-        className={`${display?.isMediaMessage ? 'mt-0' : 'mt-1'} shrink-0`}
-        aria-label={profilePanelTarget === messageProfileTarget
-          ? (isMe ? t('ChatTimeline.collapseMyProfile') : t('ChatTimeline.collapseUserProfile'))
-          : (isMe ? t('ChatTimeline.viewMyProfile') : t('ChatTimeline.viewUserProfile'))}
-      >
-        <EntityAvatar
-          imageUrl={isMe ? input.model.currentUserAvatarUrl : input.model.contactAvatarUrl}
-          name={senderName}
-          kind="human"
-          sizeClassName="h-8 w-8"
-          textClassName="text-xs font-medium"
-          fallbackClassName={isMe ? 'bg-[var(--nimi-action-primary-bg)] text-[var(--nimi-action-primary-text)]' : undefined}
-        />
-      </button>
-    );
-  }, [input.model.contactAvatarUrl, input.model.contactName, input.model.currentUserAvatarUrl, profilePanelTarget, t, toggleProfilePanel]);
+    const visual = <EntityAvatar imageUrl={avatarUrl} name={name} kind="human" sizeClassName="h-8 w-8" textClassName="text-xs font-medium" />;
+    if (!id || !isMe && input.model.deletedPeer) return visual;
+    return <ChatHumanAvatarCard person={{ id, name, avatarUrl, handle: isMe ? String(viewer?.handle || '') : message.senderHandle }} placement="message">
+      <button type="button" className={`${display?.isMediaMessage ? 'mt-0' : 'mt-1'} shrink-0 rounded-full focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]`}
+        aria-label={isMe ? t('ChatTimeline.viewMyProfile') : t('Chat.humanCard.open', { name })}>{visual}</button>
+    </ChatHumanAvatarCard>;
+  }, [input.model.contactAvatarUrl, input.model.contactId, input.model.contactName, input.model.currentUserAvatarUrl, input.model.currentUserId, input.model.deletedPeer, viewer, t]);
 
   const renderMessageAccessory = useCallback<CanonicalMessageAccessorySlot>((message) => {
     const realmMessage = message.metadata?.realmMessage as { type?: string } | undefined;
     if (!message.error && message.status !== 'pending') {
       return <>
-        {message.id === input.model.newestMessageId ? <ChatReadMarker value={message.id} onVisible={input.model.acknowledgeRead} /> : null}
+        {message.id === input.model.newestMessageId ? <ConversationReadMarker value={message.id} onVisible={input.model.acknowledgeRead} /> : null}
         {message.role !== 'human' && message.role !== 'user' && realmMessage?.type !== 'RECALL' ? <RelationshipActionsMenu label={t('Chat.rail.messageActions')}
           items={[{ id: 'report', label: t('Relationship.report.action'), onSelect: () => setReportMessage(message) }]} /> : null}
       </>;

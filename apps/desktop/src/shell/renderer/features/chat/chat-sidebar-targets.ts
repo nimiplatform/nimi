@@ -8,6 +8,7 @@ import type {
   NimiLocalAppAgentHandle,
   NimiLocalAppAgentReference,
   NimiLocalAppConversationClient,
+  NimiAppActivityRecord,
 } from '@nimiplatform/sdk/app';
 import type { AgentLocalTargetSnapshot } from '../../bridge/runtime-bridge/types';
 import { useAppStore, useHomeDestination, type AuthStatus } from '../../app-shell/providers/app-store';
@@ -21,29 +22,36 @@ import { useRealmHumanChatData } from './data/realm-human-chat-data-context.js';
 import { useHumanChatList } from './use-human-chat-list.js';
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { useHomeAppActivity } from '../system-entry/system-entry-context.js';
-import { unreadCompanionReplies } from '../home/home-app-activity-model.js';
+import { isConversationReply, unreadCompanionReplies } from '../home/home-app-activity-model.js';
 
 type SocialSnapshot = Awaited<ReturnType<RealmSocialData['loadSocialSnapshot']>>;
 
 // @nimi-authority: rule.nimi.desktop.shell-ui.chat-sides
 export function visibleChatRailTargets(
-  targets: readonly ConversationTargetSummary[], selectedTargetId: string | null, humanSide: boolean, limit: number,
+  targets: readonly ConversationTargetSummary[], humanSide: boolean,
 ): ConversationTargetSummary[] {
-  const recent = targets.filter(target => humanSide
+  // Scrolling bounds the rail, not unread-dependent membership or a selected
+  // item inserted into another conversation's chronological position.
+  return targets.filter(target => humanSide
     ? target.source === 'human' && Boolean(target.canonicalSessionId)
     : target.source === 'agent');
-  const visible = recent.slice(0, limit);
-  const selected = recent.find(target => target.id === selectedTargetId);
-  if (selected && !visible.includes(selected)) {
-    // Reserve the last human slot for the open conversation.
-    visible.splice(limit - 1, humanSide ? 1 : 0, selected);
+}
+
+// @nimi-authority: rule.nimi.desktop.shell-ui.chat-sides
+export function toRecentAgentTargets(references: readonly NimiLocalAppAgentReference[], records: readonly NimiAppActivityRecord[]): ConversationTargetSummary[] {
+  const unread = unreadCompanionReplies(records);
+  const latest = new Map<string, string>();
+  for (const record of records) {
+    if (!isConversationReply(record) || !record.agent) continue;
+    const previous = latest.get(record.agent.agentRef);
+    if (!previous || Date.parse(record.occurredAt) > Date.parse(previous)) latest.set(record.agent.agentRef, record.occurredAt);
   }
-  if (!humanSide) {
-    for (const target of recent.slice(limit)) {
-      if (target !== selected && target.unreadCount) visible.push(target);
-    }
-  }
-  return visible;
+  return references.map(reference => ({
+    ...toAgentReferenceTargetSummary(reference, unread.get(reference.activityAgentRef)?.length ?? 0),
+    updatedAt: latest.get(reference.activityAgentRef) ?? null,
+  })).sort((left, right) => (right.updatedAt ? Date.parse(right.updatedAt) : 0) - (left.updatedAt ? Date.parse(left.updatedAt) : 0)
+    || left.title.localeCompare(right.title)
+    || String(left.metadata?.agentBinding).localeCompare(String(right.metadata?.agentBinding)));
 }
 
 function normalizeText(value: unknown): string {
@@ -273,11 +281,7 @@ export function useChatSidebarData(
   }, [humanChatsQuery.data, selectedChat.data, socialSnapshotQuery.data, t]);
 
   const agentTargets = useMemo(() => {
-    const unread = unreadCompanionReplies(recent.records);
-    return (localAgentReferencesQuery.data || [])
-      .map(reference => toAgentReferenceTargetSummary(reference, unread.get(reference.activityAgentRef)?.length ?? 0))
-      .sort((left, right) => Number(Boolean(right.unreadCount)) - Number(Boolean(left.unreadCount))
-        || left.title.localeCompare(right.title));
+    return toRecentAgentTargets(localAgentReferencesQuery.data ?? [], recent.records);
   }, [localAgentReferencesQuery.data, recent.records]);
 
   const aiTarget = useMemo((): ConversationTargetSummary => ({

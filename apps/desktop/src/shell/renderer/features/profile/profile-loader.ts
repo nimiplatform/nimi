@@ -10,7 +10,11 @@ export async function loadContextualHumanProfile(
   },
   seed?: RestrictedHumanProfileSeed | null,
 ): Promise<HumanProfileData> {
-  try { return toHumanProfileData(await ports.loadUserProfile(profileId)); }
+  try {
+    const profile = toHumanProfileData(await ports.loadUserProfile(profileId));
+    if (profile.id !== profileId) throw new Error('Profile identity does not match the selected account.');
+    return profile;
+  }
   catch (error) {
     if (!seed || seed.id !== profileId || !isPrivateProfileAccessError(error)) throw error;
     const relationship = await ports.loadRelationship(profileId);

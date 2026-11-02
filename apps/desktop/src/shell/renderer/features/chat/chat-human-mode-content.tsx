@@ -28,7 +28,6 @@ export function ChatHumanModeContent({
   const authStatus = useAppStore((state) => state.auth.status);
   const ownerUserId = useAppStore(state => String(state.auth.user?.id ?? ''));
   const selectedChatId = homeChat.humanThreadId;
-  const setChatProfilePanelTarget = useAppStore((state) => state.setChatProfilePanelTarget);
   const storeSelectedTargetId = homeChat.targetId;
 
   const host = useHumanConversationModeHost({
@@ -36,7 +35,6 @@ export function ChatHumanModeContent({
     selectedChatId,
     setSelectedChatId: homeChat.resolveHumanThread,
     onOpenThread: threadId => homeChat.open({ mode: 'human', threadId }),
-    setChatProfilePanelTarget,
   });
 
   const selectedTargetId = storeSelectedTargetId || host.selectedTargetId || null;

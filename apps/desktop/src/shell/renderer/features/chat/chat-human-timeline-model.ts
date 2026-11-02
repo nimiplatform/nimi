@@ -253,6 +253,7 @@ export function useHumanTimelineModel(selectedChatId: string | null, selectedCha
     currentUserId,
     currentUserAvatarUrl,
     contactName,
+    contactId: otherUser?.id ?? null,
     deletedPeer,
     contactAvatarUrl,
     messagesQuery,
