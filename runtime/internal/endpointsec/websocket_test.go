@@ -51,7 +51,7 @@ func TestWebSocketPinsValidatedAddressesAndPreservesTLSAndHost(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer raw.Close()
+	defer func() { _ = raw.Close() }()
 	var ready string
 	if err := websocket.Message.Receive(conn, &ready); err != nil || ready != "ready" {
 		t.Fatalf("frame: %q %v", ready, err)
@@ -76,7 +76,7 @@ func TestWebSocketRejectsUnsafeAddressesBeforeDial(t *testing.T) {
 
 func TestWebSocketCancellationInterruptsHandshake(t *testing.T) {
 	client, peer := net.Pipe()
-	defer peer.Close()
+	defer func() { _ = peer.Close() }()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	started := make(chan struct{})

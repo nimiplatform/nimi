@@ -25,7 +25,7 @@ func TestFiniteASRBackpressureCancellationReleasesTransport(t *testing.T) {
 	}
 	ready, release := make(chan struct{}), make(chan struct{})
 	server := httptest.NewServer(websocket.Handler(func(conn *websocket.Conn) {
-		defer conn.Close()
+		defer func() { _ = conn.Close() }()
 		var start map[string]any
 		if err := websocket.JSON.Receive(conn, &start); err != nil {
 			return

@@ -10,7 +10,11 @@ import (
 
 func TestRegistrationPairChecksBothDomainsForOneSubject(t *testing.T) {
 	kernel := openTestKernel(t, filepath.Join(t.TempDir(), "registered-app.db"), mustWindowsIdentity(t, "S-1-5-21-100-200-300-1001"), "pair-install", 0x34)
-	defer kernel.Close()
+	defer func() {
+		if err := kernel.Close(); err != nil {
+			t.Errorf("close kernel: %v", err)
+		}
+	}()
 	input := developmentInput()
 	input.RawDeclaration = []string{"integration.consume"}
 	r, err := kernel.Registrations().RegisterDevelopment(context.Background(), input)

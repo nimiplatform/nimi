@@ -35,7 +35,9 @@ func TestSecuredHTTPSameOriginPreservesCredentialsWithExplicitDefaultPort(t *tes
 		if err != nil || !called {
 			t.Fatalf("default-port alias treated as a new destination: %v", err)
 		}
-		response.Body.Close()
+		if err := response.Body.Close(); err != nil {
+			t.Errorf("close response body: %v", err)
+		}
 	}
 }
 
@@ -113,7 +115,11 @@ func TestSecuredHTTPRedirectUsesNewPortAndCurrentGate(t *testing.T) {
 			if err != nil {
 				t.Fatal(err)
 			}
-			defer response.Body.Close()
+			defer func() {
+				if err := response.Body.Close(); err != nil {
+					t.Errorf("close response body: %v", err)
+				}
+			}()
 			body, err := io.ReadAll(response.Body)
 			if err != nil || string(body) != "from-target" || targetRequests.Load() != 1 || admissions.Load() != 3 {
 				t.Fatalf("redirect result=%q requests=%d admissions=%d err=%v", body, targetRequests.Load(), admissions.Load(), err)
@@ -137,7 +143,9 @@ func TestSecuredHTTPRejectsHostOverrideAndKeepsControlRedirectDisabled(t *testin
 	defer client.CloseIdleConnections()
 	req.Host = "different.example"
 	if response, err := client.Do(req); err == nil {
-		response.Body.Close()
+		if err := response.Body.Close(); err != nil {
+			t.Errorf("close response body: %v", err)
+		}
 		t.Fatal("Host override accepted")
 	}
 	if calls.Load() != 0 {
@@ -148,7 +156,9 @@ func TestSecuredHTTPRejectsHostOverrideAndKeepsControlRedirectDisabled(t *testin
 	if err != nil {
 		t.Fatal(err)
 	}
-	response.Body.Close()
+	if err := response.Body.Close(); err != nil {
+		t.Errorf("close response body: %v", err)
+	}
 	if response.StatusCode != http.StatusFound || calls.Load() != 1 {
 		t.Fatal("control request followed redirect")
 	}

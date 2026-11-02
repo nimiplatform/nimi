@@ -37,7 +37,11 @@ func testProviderCompletionAfterSessionRenewal(t *testing.T, effect string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer backend.Close()
+	defer func() {
+		if err := backend.Close(); err != nil {
+			t.Errorf("close backend: %v", err)
+		}
+	}()
 	audit, err := auditlog.Open(backend, nil, 128, 128)
 	if err != nil {
 		t.Fatal(err)
@@ -51,7 +55,11 @@ func testProviderCompletionAfterSessionRenewal(t *testing.T, effect string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer s.Close()
+	defer func() {
+		if err := s.Close(); err != nil {
+			t.Errorf("close s: %v", err)
+		}
+	}()
 	authorize := func(i localappop.Ingress) context.Context {
 		c, e := f.service.AuthorizeLocalAppIngress(f.context, i)
 		if e != nil {
@@ -117,7 +125,11 @@ func TestIntegrationProviderTickerReleasesAdmissionWatchers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer backend.Close()
+	defer func() {
+		if err := backend.Close(); err != nil {
+			t.Errorf("close backend: %v", err)
+		}
+	}()
 	audit, err := auditlog.Open(backend, nil, 128, 128)
 	if err != nil {
 		t.Fatal(err)
@@ -126,7 +138,11 @@ func TestIntegrationProviderTickerReleasesAdmissionWatchers(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer s.Close()
+	defer func() {
+		if err := s.Close(); err != nil {
+			t.Errorf("close s: %v", err)
+		}
+	}()
 	regCtx, err := f.service.AuthorizeLocalAppIngress(f.context, localappop.IngressIntegrationProviderRegister)
 	if err != nil {
 		t.Fatal(err)

@@ -49,7 +49,11 @@ func TestIntegrationNativePhaseSurvivesConsumerRenewal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer backend.Close()
+	defer func() {
+		if err := backend.Close(); err != nil {
+			t.Errorf("close backend: %v", err)
+		}
+	}()
 	audit, err := auditlog.Open(backend, nil, 128, 128)
 	if err != nil {
 		t.Fatal(err)
@@ -76,7 +80,12 @@ func TestIntegrationNativePhaseSurvivesConsumerRenewal(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer func() { releaseToken(); s.Close() }()
+	defer func() {
+		releaseToken()
+		if err := s.Close(); err != nil {
+			t.Errorf("close integration service: %v", err)
+		}
+	}()
 	authorized, err := f.service.AuthorizeLocalAppIngress(ctx, localappop.IngressIntegrationCallInvoke)
 	if err != nil {
 		t.Fatal(err)
@@ -169,7 +178,11 @@ func testIntegrationProviderRemovalOrder(t *testing.T, effect, order string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer kernel.Close()
+	defer func() {
+		if err := kernel.Close(); err != nil {
+			t.Errorf("close kernel: %v", err)
+		}
+	}()
 	f.kernel = kernel
 	f.service.localAppKernel = kernel
 	input := f.registrationInput
@@ -225,7 +238,11 @@ func testIntegrationProviderRemovalOrder(t *testing.T, effect, order string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer realBackend.Close()
+	defer func() {
+		if err := realBackend.Close(); err != nil {
+			t.Errorf("close realBackend: %v", err)
+		}
+	}()
 	backend := realBackend
 	audit, err := auditlog.Open(backend, nil, 128, 128)
 	if err != nil {
@@ -250,7 +267,11 @@ func testIntegrationProviderRemovalOrder(t *testing.T, effect, order string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer s.Close()
+	defer func() {
+		if err := s.Close(); err != nil {
+			t.Errorf("close s: %v", err)
+		}
+	}()
 	// Reciprocal roles exercise the fixed pair owner without any new lock ordering registry.
 	paired := make(chan error, 2)
 	for _, scopes := range [][2]context.Context{{ctx, consumerCtx}, {consumerCtx, ctx}} {
