@@ -24,7 +24,7 @@ export function GetStartedSection({ content, links }: GetStartedSectionProps) {
               {content.primaryCta}
             </a>
             <a
-              href="#apps"
+              href={links.appsUrl}
               className="inline-flex min-w-44 items-center justify-center rounded-full border border-slate-300 bg-white px-7 py-3.5 text-base font-bold text-slate-700 shadow-sm transition hover:-translate-y-0.5 hover:border-emerald-300"
             >
               {content.secondaryCta}

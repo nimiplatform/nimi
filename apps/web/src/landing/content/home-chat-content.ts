@@ -1,5 +1,6 @@
 import { createDemoUsers, createDemoSelf } from './demo-user-content.js';
 import { createLocalAgentDemoData } from './local-agent-demo-data.js';
+import { EXAMPLE_LOG } from './demo-tour.js';
 import type { HeroDemoAgent } from './landing-content.js';
 
 /** Local agents share published character excerpts with Zhiyu; human contacts are fictional. */
@@ -10,6 +11,7 @@ export function createHomeChatData(locale: 'zh' | 'en') {
   const self = createDemoSelf(locale);
   const assistantThreads: HeroDemoAgent[] = [
     { id: 'ai:assistant', name: t('新对话', 'New conversation'), initial: 'N', messages: [] },
+    { id: EXAMPLE_LOG, name: t('连接日志示例', 'Sample connection log'), initial: 'N', messages: [] },
     {
       id: 'ai:plan',
       name: t('周末的创作安排', 'Weekend creative plan'),

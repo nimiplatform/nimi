@@ -6,15 +6,13 @@ import type { RemainingAppPreviewContent } from './landing-content.remaining-app
 import type { CanonicalTranscriptViewProps } from '@nimiplatform/kit/features/chat/components/canonical-transcript-view';
 import type { JevSearchPreviewContent, JevUltrafastPreviewContent, MoneyPrinterPreviewContent, OpenwhisprPreviewContent, VideoLingoPreviewContent, VoiceStudioPreviewContent } from './landing-content.third-party.js';
 
-export type LandingCapabilityTask = {
-  id: string;
+export type TourChapterCopy = {
   title: string;
-  description: string;
-};
-
-export type LandingCreateStep = {
-  title: string;
-  description: string;
+  intro: string;
+  stops: ReadonlyArray<readonly [string, string]>;
+  cta?: string;
+  note?: string;
+  detailsLabel?: string;
 };
 
 export type HeroDemoChatCopy = NonNullable<CanonicalTranscriptViewProps['copy']>;
@@ -1201,65 +1199,17 @@ export type LandingContent = {
     title: string;
     subtitle: string;
   };
-  worlds: {
-    title: string;
-    subtitle: string;
-    body: string;
-    exampleTitle: string;
-    exampleSteps: ReadonlyArray<string>;
-    cta: string;
-  };
-  capabilities: {
-    title: string;
-    subtitle: string;
-    tasks: ReadonlyArray<LandingCapabilityTask>;
-    localTitle: string;
-    localText: string;
-    cloudTitle: string;
-    cloudText: string;
-    costNote: string;
-    cta: string;
-  };
-  create: {
-    title: string;
-    subtitle: string;
-    body: string;
-    steps: ReadonlyArray<LandingCreateStep>;
-    caveat: string;
-    cta: string;
-  };
-  continuity: {
-    title: string;
-    subtitle: string;
-    body: string;
-    supports: ReadonlyArray<string>;
-  };
-  riskControl: {
-    title: string;
-    description: string;
-    benefit: string;
-    availability: string;
-    cta: string;
-    scope: string;
-    limit: string;
-    diagram: {
-      label: string;
-      apps: string;
-      activities: ReadonlyArray<string>;
-      runtime: string;
-      checks: ReadonlyArray<string>;
-      routes: ReadonlyArray<string>;
-      caption: string;
-    };
-  };
-  developers: {
-    eyebrow: string;
-    title: string;
-    subtitle: string;
-    body: string;
-    points: ReadonlyArray<string>;
-    primaryCta: string;
-    secondaryCta: string;
+  worlds: TourChapterCopy;
+  capabilities: TourChapterCopy & { costNote: string };
+  riskControl: TourChapterCopy & { scope: string; limit: string; draft: string; marker: string; notice: string };
+  create: TourChapterCopy;
+  continuity: TourChapterCopy;
+  developers: TourChapterCopy & { source: string };
+  guide: {
+    label: string; previous: string; next: string; pause: string; play: string; replay: string;
+    explore: string; exploring: string; resume: string;
+    openApp: string; backHome: string; resumeHint: string;
+    loading: string; unavailable: string; retry: string;
   };
   getStarted: {
     title: string;

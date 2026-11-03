@@ -1,6 +1,8 @@
 @import './demo-home.css';
+@import './demo-cloud.css';
 @import './demo-explore.css';
 @import './demo-chat.css';
+@import './home-tour.css';
 
 /* Tailwind root lives in ../foundation.css; this file is @imported there so
  * its @theme tokens and custom rules share the same compilation root. */
@@ -79,6 +81,12 @@ main > section[id] {
   overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
+}
+
+/* At the end of the last screen, let wheel and touch scroll the document
+ * into the footer, including when the screen has its own overflow. */
+main > .screen-section:last-child {
+  overscroll-behavior-y: auto;
 }
 
 /* `auto` margins center the content while keeping the top reachable when the

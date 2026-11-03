@@ -24,7 +24,8 @@ import type {
   ConversationCanonicalMessage,
 } from '@nimiplatform/kit/features/chat/types';
 import type { AgentCenterSectionId } from '@nimiplatform/kit/features/agent-center';
-import type { HeroDemo, HeroDemoAgent } from '../content/landing-content.js';
+import type { HeroDemo, HeroDemoAgent, LandingContent } from '../content/landing-content.js';
+import type { DemoDestination } from '../content/demo-navigation.js';
 import type { DemoChatSubmission } from '../content/home-chat-content.js';
 import type { DemoZhiyuAgentClient } from './demo-zhiyu-agent-center.js';
 import { DemoChatAgentCenter, createChatAgentClient } from './demo-chat-agent-center.js';
@@ -63,6 +64,8 @@ export function DemoChatSurface({
   demo,
   selectedTargetId,
   draft,
+  logExample,
+  logView,
   onDraftChange,
   baseMessages,
   localMessages,
@@ -75,6 +78,8 @@ export function DemoChatSurface({
   demo: HeroDemo;
   selectedTargetId: string | null;
   draft: string;
+  logExample?: LandingContent['riskControl'];
+  logView?: DemoDestination['view'];
   onDraftChange: (text: string) => void;
   baseMessages: Record<string, ConversationCanonicalMessage[]>;
   localMessages: Readonly<Record<string, readonly ConversationCanonicalMessage[]>>;
@@ -99,6 +104,9 @@ export function DemoChatSurface({
   const setImage = (value: string | undefined) =>
     setContexts((previous) => ({ ...previous, [targetId]: { ...previous[targetId], image: value } }));
   const [notice, setNotice] = useState('');
+  const [logDraft, setLogDraft] = useState(() => logExample
+    ? [logExample.draft, logView === 'edited' ? '' : logExample.marker].filter(Boolean).join('\n') : '');
+  const [refused, setRefused] = useState(logView === 'blocked');
   const [thinking, setThinking] = useState<Record<string, boolean>>({});
   const requestedCenter = useRef<string | null>(null);
   const [lastTarget, setLastTarget] = useState(targetId);
@@ -130,12 +138,18 @@ export function DemoChatSurface({
   const adapter = useMemo<ChatComposerAdapter<string>>(
     () => ({
       submit: ({ text }) => {
+        // This exercise demonstrates one masked sample. Visitor input is never scanned.
+        if (logExample && text.includes(logExample.marker)) {
+          setRefused(true);
+          return;
+        }
+        if (logExample) { setRefused(false); setLogDraft(''); }
         onSubmit({ text, image, quote });
         setImage(undefined);
         setQuote(undefined);
       },
     }),
-    [onSubmit, image, quote],
+    [onSubmit, image, quote, logExample],
   );
   const formatDateLabel = useMemo(() => {
     const dateFormatter = new Intl.DateTimeFormat(chat.dateLocale, { month: 'long', day: 'numeric' });
@@ -254,8 +268,8 @@ export function DemoChatSurface({
   const composer = (
     <CanonicalComposer
       adapter={adapter}
-      text={draft}
-      onTextChange={onDraftChange}
+      text={logExample ? logDraft : draft}
+      onTextChange={logExample ? setLogDraft : onDraftChange}
       layout="stacked"
       copy={copy}
       disableFocusBorder
@@ -446,10 +460,10 @@ export function DemoChatSurface({
             {!center && <div className="demo-chat-composer-dock">{composer}</div>}
           </>
         )}
-        {notice && (
-          <div className="demo-chat-notice" role="status">
-            {notice}
-            <button type="button" aria-label={t('关闭提示', 'Dismiss notice')} onClick={() => setNotice('')}>
+        {(notice || (refused && logExample)) && (
+          <div className="demo-chat-notice" role="status" data-tour-anchor={refused ? 'refusal' : undefined}>
+            {refused && logExample ? logExample.notice : notice}
+            <button type="button" aria-label={t('关闭提示', 'Dismiss notice')} onClick={() => { setNotice(''); setRefused(false); }}>
               <X size={14} />
             </button>
           </div>

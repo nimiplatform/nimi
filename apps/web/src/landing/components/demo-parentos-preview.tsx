@@ -1683,9 +1683,13 @@ function AdvisorPage({
 function JournalPage({
   content,
   notice,
+  journalView,
+  guiding,
 }: {
   content: HeroDemoParentosPreview;
   notice: (text: string) => void;
+  journalView?: 'journal' | 'keepsakes';
+  guiding: boolean;
 }) {
   const { t } = useAppPreviewLocale();
   const journal = content.journal;
@@ -1693,7 +1697,10 @@ function JournalPage({
   const [mode, setMode] = useState<'text' | 'voice'>('text');
   const [text, setText] = useState(() => '');
   const [keepsake, setKeepsake] = useState(false);
-  const [filter, setFilter] = useState<'all' | 'keepsake'>('all');
+  const [filter, setFilter] = useState<'all' | 'keepsake'>(journalView === 'keepsakes' ? 'keepsake' : 'all');
+  useEffect(() => {
+    if (guiding) setFilter(journalView === 'keepsakes' ? 'keepsake' : 'all');
+  }, [guiding, journalView]);
   const counts = {
     thisMonth: journal.counts.thisMonth + (entries.length - journal.entries.length),
     total: journal.counts.total + (entries.length - journal.entries.length),
@@ -1737,8 +1744,8 @@ function JournalPage({
     <div className="hide-scrollbar h-full overflow-y-auto px-6 pb-10 pt-8 sm:px-10">
       <div className="mx-auto max-w-4xl">
         <header className="mb-6 flex flex-wrap items-end justify-between gap-x-8 gap-y-5">
-          <div className="min-w-0 flex-1">
-            <h1 className="parentos-journal-hero-title parentos-journal-hero-title__bold text-[44px] leading-[1.05] tracking-tight text-[var(--nimi-text-primary)]">
+          <div className="min-w-0 flex-[1_1_17rem]">
+            <h1 data-tour-anchor="journal" className="parentos-journal-hero-title parentos-journal-hero-title__bold text-[clamp(1.9rem,7vw,2.75rem)] leading-[1.05] tracking-tight text-[var(--nimi-text-primary)]">
               {journal.heroLead}
               <span className="parentos-journal-hero-title__tail">
                 {journal.heroTail}
@@ -1752,7 +1759,7 @@ function JournalPage({
               <span className="text-[var(--nimi-text-muted)]">{journal.subtitleTail}</span>
             </p>
           </div>
-          <dl className="flex shrink-0 items-end gap-7">
+          <dl className="flex max-w-full flex-wrap items-end gap-x-5 gap-y-2 sm:gap-x-7">
             {[
               [journal.stats.thisMonth, counts.thisMonth],
               [journal.stats.total, counts.total],
@@ -1858,12 +1865,13 @@ function JournalPage({
           </Surface>
         </div>
 
-        <div className="mb-4 flex items-center gap-2">
+        <div className="mb-4 flex items-center gap-2" data-tour-anchor="journal-filter">
           {(['all', 'keepsake'] as const).map((key) => (
             <button
               key={key}
               type="button"
               onClick={() => setFilter(key)}
+              aria-pressed={filter === key}
               className={cn(
                 'rounded-full px-3.5 py-1.5 text-[13px] font-medium transition-colors',
                 filter === key
@@ -2521,9 +2529,14 @@ function ChildAppMenu({
   );
 }
 
-export function DemoParentosPreview({ content }: { content: HeroDemoParentosPreview }) {
+export function DemoParentosPreview({ content, journalView, guiding = false }: {
+  content: HeroDemoParentosPreview; journalView?: 'journal' | 'keepsakes'; guiding?: boolean;
+}) {
   const { t } = useAppPreviewLocale();
-  const [route, setRoute] = useState<ParentosRoute>('timeline');
+  const [route, setRoute] = useState<ParentosRoute>(journalView ? 'journal' : 'timeline');
+  useEffect(() => {
+    if (guiding) setRoute(journalView ? 'journal' : 'timeline');
+  }, [guiding, journalView]);
   const [notice, setNotice] = useState<string | null>(null);
   const noticeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(
@@ -2544,7 +2557,7 @@ export function DemoParentosPreview({ content }: { content: HeroDemoParentosPrev
       case 'profile':
         return <ProfilePage content={content} notice={showNotice} />;
       case 'journal':
-        return <JournalPage content={content} notice={showNotice} />;
+        return <JournalPage content={content} notice={showNotice} journalView={journalView} guiding={guiding} />;
       case 'advisor':
         return <AdvisorPage content={content} notice={showNotice} />;
       case 'reports':
@@ -2552,7 +2565,7 @@ export function DemoParentosPreview({ content }: { content: HeroDemoParentosPrev
       case 'settings':
         return <SettingsPage content={content} notice={showNotice} />;
     }
-  }, [content, route, showNotice]);
+  }, [content, route, showNotice, journalView, guiding]);
 
   return (
     <div
@@ -2584,6 +2597,7 @@ export function DemoParentosPreview({ content }: { content: HeroDemoParentosPrev
                   type="button"
                   aria-label={label}
                   aria-current={isActive ? 'page' : undefined}
+                  data-tour-anchor={item.id === 'journal' ? 'parent-home' : undefined}
                   onClick={() => setRoute(item.id)}
                   className={`group relative flex h-[40px] w-[40px] items-center justify-center rounded-xl transition-all duration-150 ${isActive ? 'bg-[var(--nimi-text-primary)] text-[var(--nimi-text-inverse)] shadow-[var(--nimi-elevation-base)]' : 'text-[var(--nimi-text-muted)] hover:bg-[var(--nimi-action-ghost-hover)] hover:text-[var(--nimi-text-primary)]'}`}
                 >

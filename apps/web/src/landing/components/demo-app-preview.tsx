@@ -8,6 +8,8 @@ import {
   IconButton,
 } from '@nimiplatform/kit/ui';
 import type { HeroDemo } from '../content/landing-content.js';
+import type { PreviewDestination, PreviewScreen } from '../content/demo-navigation.js';
+import { COURTYARD_PARTNER } from '../content/demo-tour.js';
 import { CloseIcon } from './demo-icons.js';
 import { AppPreviewLocaleProvider } from '../i18n/app-preview-locale.js';
 
@@ -111,14 +113,17 @@ export const DEMO_PREVIEW_APP_IDS = [
   'io.github.nimiplatform.presenton',
 ] as const;
 
-function previewFor(appId: string, preview: HeroDemo['appPreview']): ReactNode | null {
+function previewFor(appId: string, preview: HeroDemo['appPreview'], view: PreviewScreen, guiding: boolean): ReactNode | null {
   switch (appId) {
     case 'nimi.zhiyu':
-      return <DemoZhiyuPreview content={preview.zhiyu} />;
+      return <DemoZhiyuPreview content={preview.zhiyu} guiding={guiding}
+        initialPartnerId={view === 'companion' || view === 'memory' ? COURTYARD_PARTNER : null}
+        initialPanel={view === 'memory' ? 'cognition' : undefined} />;
     case 'nimi.shijing':
       return <DemoShijingPreview content={preview.shijing} />;
     case 'nimi.parentos':
-      return <DemoParentosPreview content={preview.parentos} />;
+      return <DemoParentosPreview content={preview.parentos} guiding={guiding}
+        journalView={view === 'journal' || view === 'keepsakes' ? view : undefined} />;
     case 'nimi.storybook':
       return <DemoStorybookPreview content={preview.storybook} />;
     case 'nimi.odd-bureau':
@@ -164,23 +169,18 @@ function previewFor(appId: string, preview: HeroDemo['appPreview']): ReactNode |
   }
 }
 
-/**
- * App interactive-preview modal. Opening "启动" on an app never starts a real
- * product session: it mounts a local replica using illustrative sample content.
- */
-export function DemoAppPreview({
-  appId,
-  apps,
-  preview,
-  onClose,
-}: {
-  appId: string | null;
+/** The same App dialog is opened by a library launch and by the guided tour. */
+export function DemoAppPreview({ opened, guiding, apps, preview, onClose, onBody, caption }: {
+  opened?: PreviewDestination;
+  guiding: boolean;
   apps: HeroDemo['apps'];
   preview: HeroDemo['appPreview'];
   onClose: () => void;
+  onBody?: (node: HTMLDivElement | null) => void;
+  caption?: ReactNode;
 }) {
-  const app = apps.items.find((item) => item.id === appId) ?? null;
-  const replica = app ? previewFor(app.id, preview) : null;
+  const app = apps.items.find(item => item.id === opened?.appId);
+  const replica = app && opened ? previewFor(app.id, preview, opened.screen, guiding) : null;
   // Replicas open their own in-demo dialogs (e.g. ParentOS 安排日期). Radix
   // handles Escape in the capture phase, so the replica cannot stop it from
   // reaching this modal; skip dismissal while such a dialog is on screen and
@@ -191,7 +191,7 @@ export function DemoAppPreview({
   };
   return (
     <Dialog
-      open={app !== null}
+      open={Boolean(app)}
       onOpenChange={(open) => {
         if (!open) dismiss();
       }}
@@ -200,7 +200,6 @@ export function DemoAppPreview({
         onClose={dismiss}
         className="flex h-[88vh] w-[96vw] max-w-[1360px] flex-col overflow-hidden p-0"
         data-testid="demo-app-preview"
-        data-demo-app-id={app?.id ?? ''}
       >
         <div className="flex min-w-0 shrink-0 items-center gap-2 border-b border-[var(--nimi-border-subtle)] px-5 py-3">
           <DialogTitle className="min-w-0 max-w-[45%] truncate text-sm font-semibold text-[var(--nimi-text-primary)]">
@@ -219,31 +218,19 @@ export function DemoAppPreview({
           />
         </div>
         <DialogBody className="min-h-0 flex-1 p-0">
-          {replica ? (
-            <Suspense
-              fallback={
-                <div className="flex h-full items-center justify-center text-xs text-[var(--nimi-text-muted)]" />
-              }
-            >
-              <div className="h-full min-h-0" lang={preview.locale === 'zh' ? 'zh-CN' : 'en'}>
-                <AppPreviewLocaleProvider
-                  key={preview.locale}
-                  locale={preview.locale}
-                  messages={preview.messages}
-                >
+          {app && <div ref={onBody} className="h-full min-h-0" data-tour-surface="" data-demo-app-id={app.id} lang={preview.locale === 'zh' ? 'zh-CN' : 'en'}>
+            {replica ? (
+              <Suspense fallback={<div className="h-full" aria-busy="true" />}>
+                <AppPreviewLocaleProvider key={preview.locale} locale={preview.locale} messages={preview.messages}>
                   {replica}
                 </AppPreviewLocaleProvider>
-              </div>
-            </Suspense>
-          ) : (
-            <div className="flex h-full items-center justify-center p-6">
-              <EmptyState
-                title={apps.previewUnavailableTitle}
-                description={apps.previewUnavailableBody}
-              />
-            </div>
-          )}
+              </Suspense>
+            ) : <div className="flex h-full items-center justify-center p-6">
+              <EmptyState title={apps.previewUnavailableTitle} description={apps.previewUnavailableBody} />
+            </div>}
+          </div>}
         </DialogBody>
+        {caption && <div className="tour-dialog-caption">{caption}</div>}
       </DialogContent>
     </Dialog>
   );

@@ -1,4 +1,5 @@
 import { useDemoZhiyuPlayback } from './demo-zhiyu-playback.js';
+import { useHeroDemoSession } from './hero-demo-context.js';
 import type { NimiLocalAppConversationQuote } from '@nimiplatform/sdk/app';
 import type {
   ConversationPositionRequest,
@@ -446,7 +447,9 @@ function ComposerAgentCenterButton({
 /* Preview                                                                   */
 /* ------------------------------------------------------------------------ */
 
-export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview }) {
+export function DemoZhiyuPreview({ content, initialPartnerId = null, initialPanel, guiding = false }: {
+  content: HeroDemoZhiyuPreview; initialPartnerId?: string | null; initialPanel?: AgentCenterSectionId; guiding?: boolean;
+}) {
   const { previewLang, t } = useAppPreviewLocale();
   const { copy } = content;
   const messageCopy = useMemo(
@@ -454,10 +457,13 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
     [copy.chat, previewLang],
   );
   const [navigation, dispatch] = useReducer(reduceZhiyuDemoNavigation, {
-    entries: [{ partnerId: null }],
+    entries: [{ partnerId: initialPartnerId, panel: initialPanel }],
     index: 0,
   });
   const destination = navigation.entries[navigation.index]!;
+  useEffect(() => {
+    if (guiding) dispatch({ type: 'push', destination: { partnerId: initialPartnerId, panel: initialPanel } });
+  }, [guiding, initialPartnerId, initialPanel]);
   const activePartnerId = destination.partnerId;
   const rightPanelMode: RightPanelMode = destination.panel ? 'agent' : 'closed';
   const activeAgentTab = destination.panel ?? 'overview';
@@ -467,9 +473,7 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
   const setRightPanelMode = (mode: RightPanelMode) =>
     navigate(activePartnerId, mode === 'closed' ? undefined : 'overview');
   const [sidebarVisible, setSidebarVisible] = useState(true);
-  const [localMessages, setLocalMessages] = useState<
-    Readonly<Record<string, readonly ConversationCanonicalMessage[]>>
-  >({});
+  const { localMessages, appendPartnerMessage: appendMessage } = useHeroDemoSession();
   const [stream, setStream] = useState<{
     partnerId: string;
     partial: string;
@@ -595,13 +599,6 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
     },
     [clearStreamTimer],
   );
-
-  const appendMessage = useCallback((partnerId: string, message: ConversationCanonicalMessage) => {
-    setLocalMessages((prev) => ({
-      ...prev,
-      [partnerId]: [...(prev[partnerId] ?? []), message],
-    }));
-  }, []);
 
   const finishStream = useCallback(
     (partner: HeroDemoZhiyuPartner, text: string, status: ConversationCanonicalMessage['status']) => {
@@ -868,6 +865,7 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
               <section
                 className="zhiyu-chat-canvas"
                 data-zhiyu-region="conversation"
+                data-choosing-partner={activePartner ? undefined : ''}
                 data-zhiyu-resource-pack-surface="true"
                 data-zhiyu-resource-pack-effective-source={resourcePack?.effectiveSource ?? 'default'}
                 data-zhiyu-resource-pack-phase={resourcePack?.phase ?? 'default'}
@@ -892,7 +890,7 @@ export function DemoZhiyuPreview({ content }: { content: HeroDemoZhiyuPreview })
                   data-zhiyu-agent-chat-ready={String(!streamingHere)}
                   data-zhiyu-agent-chat-message-count={String(messages.length)}
                 >
-                  <div ref={transcriptViewportRef} className="zhiyu-chat-canvas__transcript">
+                  <div ref={transcriptViewportRef} className="zhiyu-chat-canvas__transcript" data-tour-anchor="partner-chat">
                     <CanonicalTranscriptView
                       messages={messages.map((message) =>
                         message.role === 'user'

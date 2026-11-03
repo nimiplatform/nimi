@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { ArrowLeft, ChevronRight, Code2, MoreHorizontal, Play } from 'lucide-react';
 import { Button, IconButton, NimiTabs, ScrollArea, SearchField, cn } from '@nimiplatform/kit/ui';
 import type { HeroDemo, HeroDemoAppItem } from '../content/landing-content.js';
-import { DemoAppPreview } from './demo-app-preview.js';
 
 /**
  * Identity-tile gradients mirrored from the desktop apps panel
@@ -82,16 +81,19 @@ export function DemoAppsSurface({
   apps,
   preview,
   initialAppId,
+  initialAccess = false,
+  onLaunch,
 }: {
   apps: HeroDemo['apps'];
   preview: HeroDemo['appPreview'];
   initialAppId?: string;
+  initialAccess?: boolean;
+  onLaunch: (appId: string) => void;
 }) {
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(initialAppId ?? null);
   const [detailOpen, setDetailOpen] = useState(Boolean(initialAppId));
-  const [activeTab, setActiveTab] = useState('0');
-  const [previewAppId, setPreviewAppId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState(initialAccess ? '1' : '0');
 
   const t = (zh: string, en: string) => (preview.locale === 'zh' ? zh : en);
   const [infoOpen, setInfoOpen] = useState(false);
@@ -197,7 +199,7 @@ export function DemoAppsSurface({
                 {apps.backLabel}
               </Button>
 
-              <div className="demo-app-detail-summary flex min-w-0 items-center gap-5">
+              <div className="demo-app-detail-summary flex min-w-0 items-center gap-5" data-tour-anchor="app">
                 <AppArtworkIcon item={selected} size="lg" />
                 <div className="min-w-0 flex-1">
                   <h3 className="break-words text-2xl font-semibold leading-8 text-[var(--nimi-text-primary)]">
@@ -208,7 +210,7 @@ export function DemoAppsSurface({
                   </p>
                 </div>
                 <div className="demo-app-detail-actions flex shrink-0 items-center gap-2">
-                  <Button tone="primary" onClick={() => setPreviewAppId(selected.id)}>
+                  <Button tone="primary" aria-label={apps.launchLabel} data-tour-anchor="launch" onClick={() => onLaunch(selected.id)}>
                     <Play className="mr-2 h-4 w-4" aria-hidden="true" />
                     {apps.launchLabel}
                   </Button>
@@ -292,7 +294,7 @@ export function DemoAppsSurface({
                     </div>
                   </div>
                 ) : (
-                  <div className="demo-management-card">
+                  <div className="demo-management-card" data-tour-anchor={activeTab === '1' ? 'access' : undefined}>
                     <h2>{activeTab === '1' ? 'Nimi Access' : t('AI 配置', 'AI configuration')}</h2>
                     <p className="demo-muted mt-3">
                       {activeTab === '1'
@@ -337,7 +339,7 @@ export function DemoAppsSurface({
                     <h2>{item.name}</h2>
                   </button>
                   <p className="demo-muted my-3">{item.task}</p>
-                  <Button size="sm" tone="secondary" onClick={() => setPreviewAppId(item.id)}>
+                  <Button size="sm" tone="secondary" onClick={() => onLaunch(item.id)}>
                     <Play size={13} />
                     {apps.launchLabel}
                   </Button>
@@ -351,12 +353,6 @@ export function DemoAppsSurface({
         )}
       </section>
 
-      <DemoAppPreview
-        appId={previewAppId}
-        apps={apps}
-        preview={preview}
-        onClose={() => setPreviewAppId(null)}
-      />
     </div>
   );
 }

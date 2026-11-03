@@ -1,17 +1,24 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import {
-  initialDemoSurface,
+  initialDemoSection,
   reduceDemoNavigation,
   type DemoNavigation,
 } from '../src/landing/content/demo-navigation.js';
 
 const home = (): DemoNavigation => ({ entries: [{ surface: 'home' }], position: 0 });
 
-test('the second landing section starts on Chat and the top starts on Home', () => {
-  assert.equal(initialDemoSurface('#apps'), 'chat');
-  assert.equal(initialDemoSurface(''), 'home');
-  assert.equal(initialDemoSurface('#worlds'), 'home');
+test('landing deep links enter the matching Home tour and ordinary navigation takes over', () => {
+  assert.equal(initialDemoSection('#apps'), 1);
+  assert.equal(initialDemoSection(''), 0);
+  const index = initialDemoSection('#worlds');
+  let state = reduceDemoNavigation(home(), { type: 'enter-section', index });
+  assert.deepEqual(state.entries[state.position], { surface: 'explore', target: 'world:emberware-court' });
+  state = reduceDemoNavigation(state, { type: 'guide', step: 2 });
+  assert.equal(state.entries[state.position]?.surface, 'chat');
+  state = reduceDemoNavigation(state, { type: 'push', destination: { surface: 'cloud' } });
+  assert.equal(state.guide?.exploring, true);
+  assert.equal(reduceDemoNavigation(state, { type: 'enter-section', index }), state);
 });
 
 test('successive navigation actions keep destination and history position atomic', () => {
@@ -27,6 +34,28 @@ test('successive navigation actions keep destination and history position atomic
   assert.deepEqual(state.entries[state.position], { surface: 'chat', target: 'human:lin' });
   state = reduceDemoNavigation(state, { type: 'go', delta: 1 });
   assert.deepEqual(state.entries[state.position], { surface: 'home' });
+});
+
+test('guided and manual launches open the App over Home and closing restores its detail page', () => {
+  let state = reduceDemoNavigation(home(), { type: 'enter-section', index: initialDemoSection('#continuity') });
+  state = reduceDemoNavigation(state, { type: 'guide', step: 1 });
+  const library = state.entries;
+  state = reduceDemoNavigation(state, { type: 'guide', step: 2 });
+  assert.deepEqual(state.preview, { appId: 'nimi.zhiyu', screen: 'home', guided: true });
+  assert.equal(state.entries, library);
+  state = reduceDemoNavigation(state, { type: 'guide', step: 3 });
+  state = reduceDemoNavigation(state, { type: 'explore' });
+  assert.equal(state.preview?.screen, 'companion');
+  assert.equal(state.guide?.step, 3);
+  state = reduceDemoNavigation(state, { type: 'close-preview' });
+  assert.equal(state.preview, undefined);
+  assert.equal(state.guide?.exploring, true);
+  assert.equal(state.entries, library);
+  state = reduceDemoNavigation(state, { type: 'open-preview', appId: 'nimi.zhiyu' });
+  assert.deepEqual(state.preview, { appId: 'nimi.zhiyu', screen: 'home', guided: false });
+  state = reduceDemoNavigation(state, { type: 'enter-section', index: initialDemoSection('#worlds') });
+  assert.equal(state.preview, undefined);
+  assert.equal(state.entries[state.position]?.surface, 'explore');
 });
 
 test('changing chat side replaces the active entry without a stale selected target', () => {

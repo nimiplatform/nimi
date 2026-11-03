@@ -98,7 +98,8 @@ export function useHeroAppsMorph(): HeroAppsMorph {
         return undefined;
       }
       // The static fallback keeps the default page flip until the demo loads.
-      if (!heroWrap.querySelector('[data-demo-interactive="true"]')) {
+      const departing = direction === 1 ? heroWrap : appsWrap;
+      if (!departing.querySelector('[data-demo-interactive="true"]')) {
         return undefined;
       }
 

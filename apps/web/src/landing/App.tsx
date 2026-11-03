@@ -1,16 +1,14 @@
 import { HeroDemoSessionProvider } from './components/hero-demo-session.js';
-import { initialDemoSurface } from './content/demo-navigation.js';
+import { initialDemoSection } from './content/demo-navigation.js';
+import { demoChapters } from './content/demo-tour.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { UserRound } from 'lucide-react';
 import { AppsSection } from './components/apps-section.js';
-import { CapabilitiesSection } from './components/capabilities-section.js';
-import { ContinuitySection } from './components/continuity-section.js';
-import { CreateSection } from './components/create-section.js';
-import { DevelopersSection } from './components/developers-section.js';
+import { HomeTourSection } from './components/home-tour-section.js';
+import { SharedHomeWindow } from './components/shared-home-window.js';
 import { GetStartedSection } from './components/get-started-section.js';
 import { HeroSection } from './components/hero-section.js';
 import { LanguageToggle } from './components/language-toggle.js';
-import { RiskControlSection } from './components/risk-control-section.js';
-import { WorldsSection } from './components/worlds-section.js';
 import { loadLandingContent, type LandingContent } from './content/landing-content.js';
 import { resolveLandingLinks, resolveLocalizedLinks } from './config/landing-links.js';
 import { useSectionPaging } from './hooks/use-section-paging.js';
@@ -101,8 +99,7 @@ export function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
-  const [demoEntrySurface] = useState(() => initialDemoSurface(typeof window === 'undefined' ? '' : window.location.hash));
-  const [demoSection, setDemoSection] = useState(demoEntrySurface === 'chat' ? 1 : 0);
+  const [demoSection, setDemoSection] = useState(() => initialDemoSection(typeof window === 'undefined' ? '' : window.location.hash));
   const heroAppsMorph = useHeroAppsMorph();
   useSectionPaging(Boolean(content), { onFlip: heroAppsMorph.handleFlip, onNavigate: heroAppsMorph.cancel, onSectionChange: setDemoSection });
 
@@ -338,14 +335,16 @@ export function App() {
                 <GithubIcon />
               </a>
               <span aria-hidden="true" className="mx-2 hidden h-5 w-px bg-slate-200 sm:block" />
-              <a href={`/account?lang=${locale}`} className="inline-flex h-9 items-center rounded-lg px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
-                {locale === 'zh' ? '我的账号' : 'My account'}
+              <a href={`/account?lang=${locale}`} className="inline-flex h-9 items-center justify-center rounded-lg px-3 text-sm font-medium text-slate-700 transition hover:bg-slate-100 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 max-[480px]:w-9 max-[480px]:px-0">
+                <UserRound size={18} aria-hidden="true" className="min-[480px]:hidden" />
+                <span className="max-[480px]:sr-only">{locale === 'zh' ? '我的账号' : 'My account'}</span>
               </a>
               <a
                 href={links.downloadUrl}
                 className="inline-flex h-9 items-center justify-center whitespace-nowrap rounded-full bg-gradient-to-r from-[#38d6a3] to-[#0ea5e9] px-3 text-sm font-semibold text-white shadow-[0_4px_12px_-6px_rgba(14,165,233,0.5)] transition hover:brightness-[1.04] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#38d6a3] focus-visible:ring-offset-1 sm:px-5 sm:text-base"
               >
-                {content.hero.downloadCta}
+                <span className="max-[480px]:sr-only">{content.hero.downloadCta}</span>
+                <span aria-hidden="true" className="min-[480px]:hidden">{locale === 'zh' ? '下载 Beta' : 'Get Beta'}</span>
               </a>
             </div>
           </div>
@@ -386,20 +385,14 @@ export function App() {
       </header>
 
       <main id="main-content">
-        <HeroDemoSessionProvider key={content.hero.demo.appPreview.locale} demo={content.hero.demo} initialSurface={demoEntrySurface} section={demoSection}>
-        <HeroSection
-          content={content.hero}
-          links={links}
-          demoExpanded={heroAppsMorph.heroDemoExpanded}
-        />
-        <AppsSection content={content.apps} demo={content.hero.demo} />
+        <HeroDemoSessionProvider key={content.hero.demo.appPreview.locale} demo={content.hero.demo} section={demoSection}>
+          <HeroSection content={content.hero} links={links} />
+          <AppsSection content={content.apps} demo={content.hero.demo} />
+          {demoChapters.map((chapter, index) => (
+            <HomeTourSection key={chapter.id} index={index} content={content} links={links} />
+          ))}
+          <SharedHomeWindow inFlight={heroAppsMorph.heroDemoExpanded} content={content} />
         </HeroDemoSessionProvider>
-        <WorldsSection content={content.worlds} links={links} />
-        <CapabilitiesSection content={content.capabilities} links={links} />
-        <RiskControlSection content={content.riskControl} links={links} />
-        <CreateSection content={content.create} links={links} />
-        <ContinuitySection content={content.continuity} />
-        <DevelopersSection content={content.developers} links={links} />
         <GetStartedSection content={content.getStarted} links={links} />
       </main>
 

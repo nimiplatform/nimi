@@ -16,10 +16,10 @@ import type { DemoNavigate } from './demo-home.js';
 import { DemoBack, DemoNotice, DemoRow, DemoWorkspace, demoText } from './demo-home-ui.js';
 
 // @nimi-authority: rule.nimi.desktop.ai-consumption.capability-workspace
-export function DemoRuntimeSurface({ demo, onNavigate }: { demo: HeroDemo; onNavigate: DemoNavigate }) {
+export function DemoRuntimeSurface({ demo, onNavigate, initialCapability }: { demo: HeroDemo; onNavigate: DemoNavigate; initialCapability?: string }) {
   const c = demo.home;
   const t = demoText(demo);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(initialCapability ?? null);
   const [section, setSection] = useState<'overview' | 'files' | 'saved'>('overview');
   const [config, setConfig] = useState(false);
   const capability = c.capabilities.find((item) => item.id === selected);
@@ -82,7 +82,7 @@ export function DemoRuntimeSurface({ demo, onNavigate }: { demo: HeroDemo; onNav
             {capability.ready ? t('已就绪', 'Ready') : c.unset}
           </div>
           <h2 className="mt-6 mb-3">{t('模型', 'Models')}</h2>
-          <div className="demo-management-card">
+          <div className="demo-management-card" data-tour-anchor="model">
             <div className="demo-section-title">
               <span className="demo-model-icon">
                 <Cpu size={23} />
@@ -153,7 +153,7 @@ export function DemoRuntimeSurface({ demo, onNavigate }: { demo: HeroDemo; onNav
           </h1>
           {section === 'overview' && (
             <>
-              <section className="demo-ready-panel">
+              <section className="demo-ready-panel" data-tour-anchor="ready">
                 <h2>
                   <i className="demo-status-dot" />
                   {t('可用能力 · 4', 'Available capabilities · 4')}

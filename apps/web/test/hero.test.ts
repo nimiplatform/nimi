@@ -128,7 +128,7 @@ test('apps surface renders the two-pane library and the zhiyu preview mounts kit
   const demo = content.hero.demo;
 
   const appsHtml = renderToStaticMarkup(
-    createElement(DemoAppsSurface, { apps: demo.apps, preview: demo.appPreview }),
+    createElement(DemoAppsSurface, { apps: demo.apps, preview: demo.appPreview, onLaunch: () => {} }),
   );
   assert.ok(appsHtml.includes(demo.apps.searchPlaceholder));
   assert.ok(appsHtml.includes(`${demo.apps.items.length}${demo.apps.countSuffix}`));
@@ -138,7 +138,7 @@ test('apps surface renders the two-pane library and the zhiyu preview mounts kit
   assert.ok(!appsHtml.includes('data-testid="demo-app-preview"'));
 
   const zhiyu = demo.appPreview.zhiyu;
-  const zhiyuHtml = renderAppPreview(createElement(DemoZhiyuPreview, { content: zhiyu }));
+  const zhiyuHtml = renderAppPreview(createElement(HeroDemoSessionProvider, { demo, children: createElement(DemoZhiyuPreview, { content: zhiyu }) }));
   // The preview is the Zhiyu shell composition: same regions, class names,
   // and data attributes as apps/zhiyu's agent-chat surface, on kit surfaces.
   assert.ok(zhiyuHtml.includes('data-demo-zhiyu-root="true"'));

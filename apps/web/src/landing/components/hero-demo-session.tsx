@@ -1,7 +1,6 @@
 import {
-  createContext,
   useLayoutEffect,
-  useContext,
+  useEffect,
   useCallback,
   useMemo,
   useReducer,
@@ -15,9 +14,12 @@ import type { ExploreCharacter } from '../content/explore-demo-data.js';
 import { materializeChatMessages, resolveDemoChatTarget } from '../content/demo-chat-model.js';
 import { reduceDemoNavigation } from '../content/demo-navigation.js';
 import type { DemoPreferences } from './demo-settings.js';
+import { DemoSessionContext } from './hero-demo-context.js';
+import type { CloudExample } from '../content/demo-cloud-data.js';
 
 function useDemoSession(sourceDemo: HeroDemo, initialSurface: HeroDemoSurface, section?: number) {
   const [demo, setDemo] = useState(sourceDemo);
+  const [cloud, setCloud] = useState<CloudExample | null>(null);
   const [navigation, dispatch] = useReducer(reduceDemoNavigation, {
     entries: [{ surface: initialSurface }],
     position: 0,
@@ -40,7 +42,24 @@ function useDemoSession(sourceDemo: HeroDemo, initialSurface: HeroDemoSurface, s
     developer: false,
     visibility: 'friends',
   });
+  const [playing, setPlaying] = useState(() => typeof window !== 'undefined' && !window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  useEffect(() => {
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const pause = () => setPlaying(false);
+    const onVisibility = () => { if (document.hidden) pause(); };
+    media.addEventListener('change', pause);
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => { media.removeEventListener('change', pause); document.removeEventListener('visibilitychange', onVisibility); };
+  }, []);
   const current = history[position]!;
+  const guideStep = navigation.guide?.exploring ? undefined : navigation.guide?.step;
+  const selectGuideStep = useCallback((step: number) => dispatch({ type: 'guide', step }), []);
+  const explore = useCallback(() => dispatch({ type: 'explore' }), []);
+  const openPreview = useCallback((appId: string) => dispatch({ type: 'open-preview', appId }), []);
+  const closePreview = useCallback(() => dispatch({ type: 'close-preview' }), []);
+  const appendPartnerMessage = useCallback((id: string, message: ConversationCanonicalMessage) => {
+    setLocalMessages(previous => ({ ...previous, [id]: [...(previous[id] ?? []), message] }));
+  }, []);
   const surface = current.surface;
   const selectedChatTargetId = surface === 'chat' ? (current.target ?? null) : null;
   const navigate = (next: HeroDemoSurface, target?: string) =>
@@ -160,9 +179,23 @@ function useDemoSession(sourceDemo: HeroDemo, initialSurface: HeroDemoSurface, s
   };
   return {
     demo,
+    cloud,
+    setCloud,
     history,
     position,
     current,
+    homeRevision: navigation.homeRevision ?? 0,
+    section: navigation.section,
+    guideStep,
+    resumeStep: navigation.guide?.step ?? 0,
+    preview: navigation.preview,
+    openPreview,
+    closePreview,
+    playing,
+    setPlaying,
+    selectGuideStep,
+    explore,
+    appendPartnerMessage,
     surface,
     selectedChatTargetId,
     sidebar,
@@ -186,9 +219,9 @@ function useDemoSession(sourceDemo: HeroDemo, initialSurface: HeroDemoSurface, s
   };
 }
 
-const DemoSessionContext = createContext<ReturnType<typeof useDemoSession> | null>(null);
+export type HeroDemoSession = ReturnType<typeof useDemoSession>;
 
-/** The hero and expanded window are views of one visitor session, not separate apps. */
+/** Navigation, drafts and companion messages belong to the visitor's Home session. */
 export function HeroDemoSessionProvider({
   demo,
   initialSurface = 'home',
@@ -202,10 +235,4 @@ export function HeroDemoSessionProvider({
 }) {
   const session = useDemoSession(demo, initialSurface, section);
   return <DemoSessionContext.Provider value={session}>{children}</DemoSessionContext.Provider>;
-}
-
-export function useHeroDemoSession() {
-  const session = useContext(DemoSessionContext);
-  if (!session) throw new Error('HeroDemoView requires HeroDemoSessionProvider.');
-  return session;
 }

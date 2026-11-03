@@ -1,11 +1,5 @@
-import { Suspense, lazy, useEffect, useRef, useState } from 'react';
 import type { LandingContent } from '../content/landing-content.js';
-import { DemoErrorBoundary } from './demo-error-boundary.js';
 import { HeroDemoStatic } from './hero-demo-static.js';
-
-const HeroDemoView = lazy(async () => ({
-  default: (await import('./hero-demo.js')).HeroDemoView,
-}));
 
 export type AppsSectionProps = {
   content: LandingContent['apps'];
@@ -19,25 +13,8 @@ export type AppsSectionProps = {
  * hero demo for a seamless handoff. The window stays fully interactive.
  */
 export function AppsSection({ content, demo }: AppsSectionProps) {
-  const sectionRef = useRef<HTMLElement>(null);
-  const [activated, setActivated] = useState(false);
-  useEffect(() => {
-    const section = sectionRef.current;
-    if (!section) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        if (entries.some((entry) => entry.isIntersecting && entry.intersectionRatio > 0)) {
-          setActivated(true);
-          observer.disconnect();
-        }
-      },
-      { threshold: 0.01 },
-    );
-    observer.observe(section);
-    return () => observer.disconnect();
-  }, []);
   return (
-    <section ref={sectionRef} id="apps" className="screen-section relative overflow-hidden text-slate-900">
+    <section id="apps" className="screen-section relative overflow-hidden text-slate-900">
       <div className="pointer-events-none absolute inset-0 -z-0 overflow-hidden" aria-hidden="true">
         <div className="absolute inset-0 bg-gradient-to-br from-[#e8fbf3] via-[#eaf5fe] to-[#f4ecff]" />
         <div className="absolute left-[-10rem] top-[-8rem] h-96 w-96 rounded-full bg-[radial-gradient(closest-side,rgba(56,214,163,0.18),transparent)]" />
@@ -55,11 +32,8 @@ export function AppsSection({ content, demo }: AppsSectionProps) {
           className="mx-auto my-auto min-h-0 max-h-[840px] min-w-0 w-full max-w-[1360px] flex-1"
           data-apps-morph
         >
-          <DemoErrorBoundary fallback={<HeroDemoStatic demo={demo} surface="chat" expanded />}>
-            <Suspense fallback={<HeroDemoStatic demo={demo} surface="chat" expanded />}>
-              {activated ? <HeroDemoView expanded /> : <HeroDemoStatic demo={demo} surface="chat" expanded />}
-            </Suspense>
-          </DemoErrorBoundary>
+          <div data-home-slot="apps" className="home-demo-slot" />
+          <div className="home-slot-placeholder h-full"><HeroDemoStatic demo={demo} surface="chat" expanded /></div>
         </div>
       </div>
     </section>

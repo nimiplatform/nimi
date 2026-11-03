@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { loadLandingContent } from '../src/landing/content/landing-content.js';
+import { COURTYARD_PARTNER, demoChapters } from '../src/landing/content/demo-tour.js';
 
 const SECTION_KEYS = [
   'hero',
@@ -47,10 +48,13 @@ test('content exposes the full user journey in both locales', async () => {
     assert.ok(content.apps.subtitle.length > 0);
 
     assert.ok(content.worlds.title.length > 0);
-    assert.ok(content.capabilities.tasks.length >= 4);
-    assert.ok(content.create.steps.length >= 3);
-    assert.ok(content.continuity.supports.length >= 2);
-    assert.ok(content.developers.points.length >= 3);
+    for (const chapter of demoChapters) {
+      const copy = content[chapter.copy];
+      assert.equal(copy.stops.length, chapter.stops.length);
+      assert.ok(copy.stops.every(([title, body]) => title && body));
+    }
+    assert.ok(content.hero.demo.chat.agents.some(agent => agent.id === COURTYARD_PARTNER));
+    assert.ok(content.hero.demo.appPreview.zhiyu.partners.some(partner => partner.id === COURTYARD_PARTNER));
     assert.ok(content.getStarted.primaryCta.length > 0);
     assert.ok(content.footer.line1.length > 0);
     assert.ok(content.localeOptions.en.length > 0 && content.localeOptions.zh.length > 0);

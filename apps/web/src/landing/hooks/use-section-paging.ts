@@ -55,7 +55,13 @@ function sectionStarts(sections: HTMLElement[]): number[] {
   return sections.map((section, index) => (index === 0 ? 0 : section.offsetTop));
 }
 
-function nearestIndex(starts: number[], scrollY: number): number {
+const SCROLL_EDGE_SLACK = 1;
+
+export function pagingSectionIndex(starts: number[], scrollY: number): number {
+  // Once the document has scrolled past the final screen's start, the
+  // footer scrolls natively in both directions.
+  const lastStart = starts.at(-1);
+  if (lastStart === undefined || scrollY > lastStart + SCROLL_EDGE_SLACK) return -1;
   let best = 0;
   let bestDistance = Number.POSITIVE_INFINITY;
   starts.forEach((start, index) => {
@@ -104,8 +110,6 @@ export type DemoScrollProbe = {
   readonly scrollHeight?: number;
   readonly clientHeight?: number;
 } | null;
-
-const SCROLL_EDGE_SLACK = 1;
 
 function probeScrollsOnWheel(probe: DemoScrollProbe): boolean {
   // Browser-only refinement: boxes with overflow hidden/visible can overflow
@@ -201,7 +205,7 @@ export function isPagingKeyExcludedTarget(target: PagingEventTarget): boolean {
     return true;
   }
   const tagName = typeof target.tagName === 'string' ? target.tagName.toUpperCase() : '';
-  if (['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'A'].includes(tagName)) {
+  if (['INPUT', 'TEXTAREA', 'SELECT', 'BUTTON', 'A', 'SUMMARY', 'AUDIO'].includes(tagName)) {
     return true;
   }
   return isEventOwnedByDemoRegion(target);
@@ -260,7 +264,7 @@ export function useSectionPaging(enabled: boolean, options?: SectionPagingOption
     const current = () => {
       const sections = landingSections();
       const starts = sectionStarts(sections);
-      return { sections, starts, index: nearestIndex(starts, window.scrollY) };
+      return { sections, starts, index: pagingSectionIndex(starts, window.scrollY) };
     };
 
     let reportedSection = -1;
@@ -268,7 +272,7 @@ export function useSectionPaging(enabled: boolean, options?: SectionPagingOption
       const { index } = current();
       if (index === reportedSection) return;
       reportedSection = index;
-      optionsRef.current?.onSectionChange?.(index);
+      if (index >= 0) optionsRef.current?.onSectionChange?.(index);
     };
 
     const goTo = (index: number, instant = false) => {
@@ -282,6 +286,8 @@ export function useSectionPaging(enabled: boolean, options?: SectionPagingOption
       const skipAnimation = instant || Boolean(reduceMotion?.matches);
       lockUntil = now() + (skipAnimation ? 0 : 700);
       window.scrollTo({ top, behavior: skipAnimation ? 'auto' : 'smooth' });
+      // A resize can arrive before the scroll event for a fragment jump.
+      if (skipAnimation) reportSection();
     };
 
     const decideAt = (index: number, direction: PagingDirection): PagingDecision => {
@@ -326,11 +332,8 @@ export function useSectionPaging(enabled: boolean, options?: SectionPagingOption
       }
       const { index } = current();
       const decision = decideAt(index, direction);
-      if (decision.kind === 'inner') {
-        return;
-      }
-      event.preventDefault();
       if (decision.kind === 'flip') {
+        event.preventDefault();
         flip(index, decision.targetIndex, direction);
       }
     };
@@ -352,7 +355,8 @@ export function useSectionPaging(enabled: boolean, options?: SectionPagingOption
         return;
       }
       if (event.key === 'End') {
-        const { sections } = current();
+        const { sections, index } = current();
+        if (index < 0 || index === sections.length - 1) return;
         event.preventDefault();
         goTo(sections.length - 1);
         return;
@@ -385,8 +389,8 @@ export function useSectionPaging(enabled: boolean, options?: SectionPagingOption
         }
         return;
       }
-      event.preventDefault();
       if (decision.kind === 'flip') {
+        event.preventDefault();
         flip(index, decision.targetIndex, direction);
       }
     };
@@ -432,11 +436,11 @@ export function useSectionPaging(enabled: boolean, options?: SectionPagingOption
       }
       const { index } = current();
       const decision = decideAt(index, direction);
-      if (decision.kind === 'inner') {
+      if (decision.kind !== 'flip') {
         return;
       }
       event.preventDefault();
-      if (!touchFlipped && Math.abs(delta) > 50 && decision.kind === 'flip') {
+      if (!touchFlipped && Math.abs(delta) > 50) {
         touchFlipped = true;
         flip(index, decision.targetIndex, direction);
       }
@@ -495,8 +499,9 @@ export function useSectionPaging(enabled: boolean, options?: SectionPagingOption
     };
 
     const onResize = () => {
-      const { index } = current();
-      goTo(index, true);
+      // New section heights can put the old scroll offset in a different
+      // chapter. Keep the chapter the visitor was actually viewing.
+      if (reportedSection >= 0) goTo(reportedSection, true);
     };
 
     window.addEventListener('scroll', reportSection, { passive: true });

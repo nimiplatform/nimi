@@ -1,5 +1,9 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { createElement } from 'react';
+import { renderToStaticMarkup } from 'react-dom/server';
+import { GetStartedSection } from '../src/landing/components/get-started-section.js';
+import { loadLandingContent } from '../src/landing/content/landing-content.js';
 import {
   buildAppDetailUrl,
   landingLinkDefaults,
@@ -11,6 +15,15 @@ import {
 test('landing links use defaults when env is empty', () => {
   const links = resolveLandingLinks({});
   assert.deepEqual(links, landingLinkDefaults);
+});
+
+test('the final screen links directly to the app catalog in the active language', async () => {
+  for (const locale of ['zh', 'en'] as const) {
+    const { getStarted } = await loadLandingContent(locale);
+    const links = resolveLocalizedLinks(landingLinkDefaults, locale);
+    const html = renderToStaticMarkup(createElement(GetStartedSection, { content: getStarted, links }));
+    assert.match(html, new RegExp(`href="/apps\\?lang=${locale}"[^>]*>${getStarted.secondaryCta}</a>`));
+  }
 });
 
 test('landing links reject invalid URL protocols', () => {

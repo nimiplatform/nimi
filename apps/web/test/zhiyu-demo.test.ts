@@ -14,6 +14,7 @@ import {
   demoZhiyuPartnerHandle,
 } from '../src/landing/components/demo-zhiyu-agent-center.js';
 import { DemoZhiyuPreview } from '../src/landing/components/demo-zhiyu-preview.js';
+import { HeroDemoSessionProvider } from '../src/landing/components/hero-demo-session.js';
 import { createZhiyuPreviewContent } from '../src/landing/content/landing-content.zhiyu.js';
 import { loadLandingContent, type HeroDemoZhiyuPartner } from '../src/landing/content/landing-content.js';
 
@@ -99,8 +100,9 @@ test('every referenced demo asset exists under public/', () => {
   }
 });
 
-test('the preview starts with the current selection entry, authentic branding and a disabled composer', () => {
-  const html = renderToStaticMarkup(createElement(DemoZhiyuPreview, { content: zhiyuPreviewContent }));
+test('the preview starts with the current selection entry, authentic branding and a disabled composer', async () => {
+  const { demo } = (await loadLandingContent('zh')).hero;
+  const html = renderToStaticMarkup(createElement(HeroDemoSessionProvider, { demo, children: createElement(DemoZhiyuPreview, { content: zhiyuPreviewContent }) }));
   assert.ok(html.includes('data-demo-zhiyu-root="true"'));
   assert.ok(html.includes('/demo/zhiyu/logo.png'));
   assert.ok(html.includes('选择一位本地伙伴，开始对话'));

@@ -1,6 +1,6 @@
 import { ArrowLeft, ArrowRight, PanelLeft } from 'lucide-react';
 import { DemoHomeSurface, DemoMessages } from './demo-home.js';
-import { DemoCloudSurface, DemoIntegrationsSurface } from './demo-connections.js';
+import { DemoIntegrationsSurface } from './demo-connections.js';
 import { DemoDownloadsSurface, DemoDiagnosticsSurface } from './demo-system.js';
 import { cn } from '@nimiplatform/kit/ui';
 import { DemoAppsSurface } from './demo-apps.js';
@@ -8,15 +8,32 @@ import { DemoChatSurface } from './demo-chat.js';
 import { DemoExploreSurface } from './demo-explore.js';
 import { DemoRail, DemoSurfaceSwitcher } from './demo-rail.js';
 import { DemoRuntimeSurface } from './demo-runtime.js';
+import { DemoAppPreview } from './demo-app-preview.js';
+import { lazy, Suspense, type ReactNode } from 'react';
+import type { LandingContent } from '../content/landing-content.js';
+import { EXAMPLE_LOG } from '../content/demo-tour.js';
 import { DemoSettingsSurface } from './demo-settings.js';
 
-import { useHeroDemoSession } from './hero-demo-session.js';
+import { useHeroDemoSession } from './hero-demo-context.js';
 
-export type HeroDemoProps = { expanded?: boolean };
+export type HeroDemoProps = {
+  expanded?: boolean;
+  riskCopy?: LandingContent['riskControl'];
+  previewCaption?: ReactNode;
+  onPreviewBody?: (node: HTMLDivElement | null) => void;
+};
 
-export function HeroDemoView({ expanded }: HeroDemoProps) {
+const DemoCloudSurface = lazy(async () => ({ default: (await import('./demo-cloud.js')).DemoCloudSurface }));
+const DemoCloudSetup = lazy(async () => ({ default: (await import('./demo-cloud-setup.js')).DemoCloudSetup }));
+
+export function HeroDemoView({ expanded, riskCopy, previewCaption, onPreviewBody }: HeroDemoProps) {
   const {
     demo,
+    preview,
+    guideStep,
+    homeRevision,
+    openPreview,
+    closePreview,
     history,
     position,
     current,
@@ -105,7 +122,7 @@ export function HeroDemoView({ expanded }: HeroDemoProps) {
         )}
         <div className="demo-window-content min-w-0 flex-1">
           <div
-            key={surface === 'explore' || surface === 'chat' ? surface : `${surface}:${current.target ?? ''}`}
+            key={`${homeRevision}:${surface}:${surface === 'explore' || surface === 'chat' ? '' : current.target ?? ''}`}
             data-demo-surface
             className="demo-surface-enter h-full min-h-0"
           >
@@ -124,7 +141,10 @@ export function HeroDemoView({ expanded }: HeroDemoProps) {
             )}
             {surface === 'chat' && (
               <DemoChatSurface
+                key={selectedChatTargetId === EXAMPLE_LOG ? current.view ?? 'log' : 'chat'}
                 demo={demo}
+                logExample={selectedChatTargetId === EXAMPLE_LOG ? riskCopy : undefined}
+                logView={current.view}
                 draft={composerDrafts[selectedChatTargetId ?? demo.chat.defaultTargetId] ?? ''}
                 onDraftChange={(text) =>
                   setComposerDrafts((previous) => ({
@@ -159,13 +179,18 @@ export function HeroDemoView({ expanded }: HeroDemoProps) {
             )}
             {surface === 'apps' && (
               <DemoAppsSurface
+                key={current.view}
                 apps={demo.apps}
                 preview={demo.appPreview}
+                onLaunch={openPreview}
+                initialAccess={current.view === 'access'}
                 initialAppId={current.surface === 'apps' ? current.target : undefined}
               />
             )}
-            {surface === 'runtime' && <DemoRuntimeSurface demo={demo} onNavigate={navigate} />}
-            {surface === 'cloud' && <DemoCloudSurface demo={demo} onNavigate={navigate} />}
+            {surface === 'runtime' && (current.target?.startsWith('cloud-setup/') ?
+              <Suspense fallback={<div aria-busy="true">{demo.nav.runtime}</div>}><DemoCloudSetup target={current.target} demo={demo} /></Suspense> :
+              <DemoRuntimeSurface demo={demo} initialCapability={current.target} onNavigate={navigate} />)}
+            {surface === 'cloud' && <Suspense fallback={<div aria-busy="true">{demo.nav.cloud}</div>}><DemoCloudSurface demo={demo} target={current.target} /></Suspense>}
             {surface === 'integrations' && <DemoIntegrationsSurface demo={demo} target={current.target} />}
             {surface === 'messages' && (
               <DemoMessages
@@ -191,6 +216,8 @@ export function HeroDemoView({ expanded }: HeroDemoProps) {
           </div>
         </div>
       </div>
+      <DemoAppPreview opened={preview} guiding={Boolean(preview?.guided) && guideStep !== undefined} apps={demo.apps} preview={demo.appPreview} onClose={closePreview}
+        onBody={onPreviewBody} caption={previewCaption} />
     </div>
   );
 }

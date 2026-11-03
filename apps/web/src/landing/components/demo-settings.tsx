@@ -233,7 +233,7 @@ export function DemoSettingsSurface({
               </p>
             </>
           )}
-          {section === 'developer' && (
+          {section === 'developer' && <div data-tour-anchor="developer">
             <Setting
               label={t('开发者模式', 'Developer mode')}
               description={t(
@@ -243,7 +243,7 @@ export function DemoSettingsSurface({
             >
               {toggle('developer', t('开发者模式', 'Developer mode'))}
             </Setting>
-          )}
+          </div>}
           {section === 'troubleshooting' && (
             <>
               <h2>{t('运行状态', 'Service status')}</h2>

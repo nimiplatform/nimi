@@ -1,26 +1,17 @@
-import { Suspense, lazy } from 'react';
 import type { LandingContent } from '../content/landing-content.js';
 import type { LandingLinks } from '../config/landing-links.js';
-import { DemoErrorBoundary } from './demo-error-boundary.js';
 import { HeroDemoStatic } from './hero-demo-static.js';
-
-const HeroDemoView = lazy(async () => ({
-  default: (await import('./hero-demo.js')).HeroDemoView,
-}));
 
 export type HeroSectionProps = {
   content: LandingContent['hero'];
   links: LandingLinks;
-  /** While the morph runs, the demo frame stretches with its animated wrapper
-   * instead of using its fixed hero heights. */
-  demoExpanded?: boolean;
 };
 
 /** Closing sentence punctuation that may carry the small brand accent. */
 const ACCENT_PUNCTUATION = /^(.*?)([.。!?！？])$/u;
 
 export function HeroSection(props: HeroSectionProps) {
-  const { content, links, demoExpanded = false } = props;
+  const { content, links } = props;
   const sloganAccent = content.sloganAccent;
   const hasAccent = sloganAccent.length > 0 && content.slogan.endsWith(sloganAccent);
   const sloganLead = hasAccent
@@ -136,11 +127,8 @@ export function HeroSection(props: HeroSectionProps) {
           */}
           <div className="hero-product relative min-w-0" data-hero-morph>
             <div aria-hidden="true" className="hero-glow" />
-            <DemoErrorBoundary fallback={<HeroDemoStatic demo={content.demo} />}>
-              <Suspense fallback={<HeroDemoStatic demo={content.demo} />}>
-                <HeroDemoView expanded={demoExpanded} />
-              </Suspense>
-            </DemoErrorBoundary>
+            <div data-home-slot="hero" className="home-demo-slot" />
+            <div className="home-slot-placeholder"><HeroDemoStatic demo={content.demo} /></div>
           </div>
         </div>
       </div>

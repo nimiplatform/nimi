@@ -1176,6 +1176,27 @@
 }
 
 @scope (.nimi-ui-module--zhiyu) {
+  @media (max-width: 600px) {
+    .zhiyu-agent-chat__layout.is-side-closed .zhiyu-chat-canvas[data-choosing-partner] [data-canonical-transcript-width] {
+      width: 100%; max-width: 100%;
+    }
+    .zhiyu-chat-canvas[data-choosing-partner] h2 { text-wrap: balance; }
+  }
+  /* In a shallow App window the parked composer must not cover the
+     invitation to choose a partner. Both remain reachable by scrolling. */
+  @media (max-height: 500px) {
+    .zhiyu-chat-canvas[data-choosing-partner] {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      overflow-y: auto;
+    }
+    .zhiyu-chat-canvas[data-choosing-partner] .zhiyu-chat-canvas__shell { display: flex; flex: 1 0 140px; }
+    .zhiyu-chat-canvas[data-choosing-partner] .zhiyu-chat-canvas__transcript { flex: 1; }
+    .zhiyu-chat-canvas[data-choosing-partner] [data-canonical-transcript-width] { padding-bottom: 0; }
+    .zhiyu-chat-canvas[data-choosing-partner] .zhiyu-chat-canvas__overlay { position: static; flex: none; padding-left: 0; }
+    .zhiyu-chat-canvas[data-choosing-partner] .zhiyu-chat-canvas__overlay::before { display: none; }
+  }
   .zhiyu-agent-chat__layout[data-zhiyu-rail-visible="false"] {
     grid-template-columns: minmax(0, 1fr) 460px;
     grid-template-rows: minmax(0, 1fr);

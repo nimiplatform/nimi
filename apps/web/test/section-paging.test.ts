@@ -6,6 +6,7 @@ import {
   isEventOutsidePagingRoot,
   isEventOwnedByDemoRegion,
   isPagingKeyExcludedTarget,
+  pagingSectionIndex,
   resolvePagingDecision,
   type DemoScrollProbe,
 } from '../src/landing/hooks/use-section-paging.js';
@@ -60,6 +61,15 @@ test('paging does not flip past the last section', () => {
     }),
     { kind: 'none' },
   );
+});
+
+test('document scrolling takes over past the final screen and hands back at its start', () => {
+  const starts = [0, 800, 1600];
+  assert.equal(pagingSectionIndex(starts, 800), 1);
+  assert.equal(pagingSectionIndex(starts, 1600.5), 2);
+  assert.equal(pagingSectionIndex(starts, 1810), -1);
+  assert.equal(pagingSectionIndex(starts, 1610), -1);
+  assert.equal(pagingSectionIndex(starts, 1600), 2);
 });
 
 test('paging scrolls up inside an overflowing section before flipping back', () => {
@@ -173,6 +183,8 @@ test('paging keys ignore buttons, links, editable fields, and demo-region focus'
   };
   const body = { tagName: 'BODY', closest: () => null };
   assert.equal(isPagingKeyExcludedTarget(button), true);
+  assert.equal(isPagingKeyExcludedTarget({ tagName: 'SUMMARY' }), true);
+  assert.equal(isPagingKeyExcludedTarget({ tagName: 'AUDIO' }), true);
   assert.equal(isPagingKeyExcludedTarget(link), true);
   assert.equal(isPagingKeyExcludedTarget(editable), true);
   assert.equal(isPagingKeyExcludedTarget(demoFocus), true);

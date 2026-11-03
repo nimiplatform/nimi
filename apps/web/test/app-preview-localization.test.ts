@@ -8,6 +8,7 @@ import { createElement, type ComponentType } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { loadLandingContent } from '../src/landing/content/landing-content.js';
 import { AppPreviewLocaleProvider } from '../src/landing/i18n/app-preview-locale.js';
+import { HeroDemoSessionProvider } from '../src/landing/components/hero-demo-session.js';
 import { appPreviewMessagesEn } from '../src/landing/content/app-preview-messages.en.js';
 import { appPreviewMessagesZh } from '../src/landing/content/app-preview-messages.zh.js';
 
@@ -38,7 +39,8 @@ const previews = [
 ] as const;
 
 test('all 23 previews render English UI and authored examples when the outer locale is English', async () => {
-  const content = (await loadLandingContent('en')).hero.demo.appPreview;
+  const { demo } = (await loadLandingContent('en')).hero;
+  const content = demo.appPreview;
   for (const [file, name, key] of previews) {
     const module = (await import(`../src/landing/components/demo-${file}-preview.js`)) as Record<
       string,
@@ -51,7 +53,7 @@ test('all 23 previews render English UI and authored examples when the outer loc
       createElement(AppPreviewLocaleProvider, {
         locale: 'en',
         messages: content.messages,
-        children: createElement(module[name]!, { content: data }),
+        children: createElement(HeroDemoSessionProvider, { demo, children: createElement(module[name]!, { content: data }) }),
       }),
     );
     let text = html.replace(/<[^>]*>/gu, '');

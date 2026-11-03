@@ -115,7 +115,7 @@ export function DemoExploreSurface({
     return (
       <div className="demo-explore-detail-scroll">
         {back(() => openWorld(character.worldId))}
-        <div className="demo-explore-character-detail">
+        <div className="demo-explore-character-detail" data-tour-anchor="character">
           <img className="demo-explore-portrait" src={character.image} alt={character.name} />
           <section>
             <button
@@ -169,7 +169,7 @@ export function DemoExploreSurface({
             <h1>{world.name}</h1>
             <p className="demo-explore-original-copy">{world.summary}</p>
           </div>
-          <div className="demo-explore-detail-art">
+          <div className="demo-explore-detail-art" data-tour-anchor="world">
             <img src={world.image} alt={world.name} />
             <button
               type="button"
