@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import React from 'react';
+import React, { act } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { JSDOM } from 'jsdom';
 import { changeLocale, initI18n } from '../src/shell/renderer/i18n';
@@ -82,7 +82,84 @@ test('world gallery shows typed summaries and keeps the server total separate fr
   assert.ok(document.body.textContent?.includes('唐代文人世界'));
   assert.ok(document.querySelector('button[aria-label="探索唐代文人世界"]'));
   assert.ok(document.querySelector('[data-testid="world-catalog-load-more"]'));
+  assert.equal(document.querySelector('[data-testid="world-catalog-load-more"] button'), null);
   assert.equal(document.querySelector('[data-testid="world-detail-discovery"]'), null);
+});
+
+test('world pagination observes its scroll viewport, loads once per page, and pauses on errors or offline', async () => {
+  const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost' });
+  const observers: Observer[] = [];
+  class Observer {
+    target: Element | null = null;
+    disconnected = false;
+    constructor(readonly callback: IntersectionObserverCallback, readonly options: IntersectionObserverInit) { observers.push(this); }
+    observe(target: Element) { this.target = target; }
+    disconnect() { this.disconnected = true; }
+    notify(isIntersecting: boolean) {
+      this.callback([{ isIntersecting, target: this.target } as IntersectionObserverEntry], this as unknown as IntersectionObserver);
+    }
+  }
+  const globals = { window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
+    HTMLElement: dom.window.HTMLElement, Element: dom.window.Element, IntersectionObserver: Observer, IS_REACT_ACT_ENVIRONMENT: true };
+  const previous = new Map(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+  const { createRoot } = await import('react-dom/client');
+  const root = createRoot(dom.window.document.getElementById('root')!);
+  let calls = 0;
+  const draw = async (overrides: Partial<WorldCatalogPaging> = {}, query = '') => {
+    await act(async () => { root.render(<AppStoreProvider store={store}><WorldCatalogContent worlds={[world]}
+      searchQuery={query} paging={{ ...paging, onLoadMore: () => { calls++; }, ...overrides }} /></AppStoreProvider>); });
+  };
+  try {
+    await draw();
+    const first = observers.at(-1)!;
+    assert.ok(first.options.root instanceof dom.window.HTMLElement);
+    assert.ok((first.options.root as Element).contains(first.target));
+    assert.equal(first.options.rootMargin, '0px 0px 320px 0px');
+    assert.equal(first.target, dom.window.document.querySelector('[data-testid="world-catalog-load-more"]'));
+    await act(async () => { first.notify(false); });
+    assert.equal(calls, 0, 'a distant list end does not fetch');
+    await act(async () => { first.notify(true); first.notify(true); });
+    assert.equal(calls, 1, 'repeated notifications cannot duplicate the page request');
+    await draw();
+    assert.equal(observers.at(-1), first, 'an unrelated render does not rearm a pending request');
+    await draw({ loadingMore: true });
+    assert.equal(first.disconnected, true);
+    assert.equal(dom.window.document.querySelector('[aria-busy="true"]')?.textContent, '正在加载世界...');
+    await draw({ loadMoreFailed: true });
+    assert.equal(observers.length, 1, 'failure stops automatic retries');
+    const retry = dom.window.document.querySelector<HTMLButtonElement>('[data-testid="world-catalog-load-more"] button');
+    assert.ok(retry);
+    await act(async () => { retry.click(); });
+    assert.equal(calls, 2);
+    await draw({ loadingMore: true });
+    await draw();
+    const second = observers.at(-1)!;
+    assert.notEqual(second, first, 'the next accepted page rearms observation, including an underfilled viewport');
+    await act(async () => { second.notify(true); });
+    assert.equal(calls, 3);
+    await draw({ offlineIncomplete: true });
+    const offlineCount = observers.length;
+    assert.equal(dom.window.document.querySelector('[data-testid="world-catalog-load-more"]'), null);
+    await draw({ offlineIncomplete: true });
+    assert.equal(observers.length, offlineCount);
+    await draw();
+    assert.equal(observers.length, offlineCount + 1, 'reconnection resumes pagination');
+    await draw({}, 'new search');
+    const searchObserver = observers.at(-1)!;
+    await act(async () => { searchObserver.notify(true); });
+    assert.equal(calls, 4, 'a changed search observes its own list end');
+    await draw({ hasMore: false });
+    assert.equal(searchObserver.disconnected, true);
+    assert.equal(dom.window.document.querySelector('[data-testid="world-catalog-load-more"]'), null);
+    await act(async () => { searchObserver.notify(true); });
+    assert.equal(calls, 4, 'stale observer callbacks cannot fetch after completion');
+  } finally {
+    await act(async () => { root.unmount(); }); dom.window.close();
+    for (const [key, descriptor] of previous) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor); else Reflect.deleteProperty(globalThis, key);
+    }
+  }
 });
 
 test('world gallery combines section tabs, count, search and partner discovery in one header', () => {

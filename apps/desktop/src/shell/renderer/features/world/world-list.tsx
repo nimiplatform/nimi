@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import { useEffect, useEffectEvent, useRef, type ReactNode } from 'react';
 import { useHomeListPosition } from '../../app-shell/providers/use-home-list-position.js';
 import { useTranslation } from 'react-i18next';
 import { Bookmark, Compass, Grid2X2, Landmark, Leaf, Orbit, Sparkles, House } from 'lucide-react';
@@ -45,6 +45,25 @@ export function WorldCatalogContent({ worlds, paging, embedded = false, searchQu
   const { t, i18n } = useTranslation();
   const query = searchQuery ?? '';
   const viewport = useHomeListPosition(JSON.stringify(['worlds', topicId, query, favorites]), !loading && !error);
+  const loadMoreSentinel = useRef<HTMLDivElement>(null);
+  const loadMore = useEffectEvent(() => paging.onLoadMore());
+  // @nimi-authority: rule.nimi.desktop.product-surfaces.r002
+  useEffect(() => {
+    const root = viewport.current;
+    const sentinel = loadMoreSentinel.current;
+    if (!root || !sentinel || loading || error || offline || paging.offlineIncomplete
+      || !paging.hasMore || paging.loadingMore || paging.loadMoreFailed) return;
+    let requested = false;
+    const observer = new IntersectionObserver((entries) => {
+      if (requested || !entries.some((entry) => entry.isIntersecting)) return;
+      requested = true;
+      observer.disconnect();
+      loadMore();
+    }, { root, rootMargin: '0px 0px 320px 0px' });
+    observer.observe(sentinel);
+    return () => { requested = true; observer.disconnect(); };
+  }, [viewport, loading, error, offline, paging.offlineIncomplete, paging.hasMore,
+    paging.loadingMore, paging.loadMoreFailed, worlds.length, query, topicId, favorites, favoritesUnavailable]);
   const browse = !query.trim() && !topicId && !favorites;
   // Render accepted entries as they arrive; another lead or the catalog itself
   // may still be loading or unavailable without blocking a usable spotlight.
@@ -83,9 +102,11 @@ export function WorldCatalogContent({ worlds, paging, embedded = false, searchQu
           {!remainingWorlds.length ? <EmptyState title={t(query.trim() ? 'World.noSearchResults' : favorites ? 'World.favorites.empty' : topicId ? 'World.noTopicWorlds' : 'World.noWorlds')} description={favorites && !query.trim() ? t('World.favorites.emptyBody') : undefined} /> : <div className={browse ? 'world-discovery-grid' : 'world-atlas-grid'}>{remainingWorlds.map((world) => browse ? <WorldDiscoveryCard key={world.id} world={world} /> : <WorldAlbumCard key={world.id} world={world} viewKey={`all:${world.id}`} />)}</div>}
         </section>
         {paging.offlineIncomplete ? <NimiText role="helper" className="mt-4 text-center" aria-live="polite">{t('World.atlas.offlineIncomplete')}</NimiText> : paging.hasMore ? (
-          <div className="mt-6 flex flex-col items-center gap-2" data-testid="world-catalog-load-more">
-            {paging.loadMoreFailed ? <NimiText role="helper" className="text-[var(--nimi-status-danger)]" aria-live="polite">{t('World.atlas.loadMoreError')}</NimiText> : null}
-            <Button tone="secondary" loading={paging.loadingMore} onClick={paging.onLoadMore}>{t(paging.loadMoreFailed ? 'WorldDetail.paper.gallery.retry' : 'World.atlas.loadMore')}</Button>
+          <div ref={loadMoreSentinel} className="mt-6 flex min-h-10 flex-col items-center justify-center gap-2" data-testid="world-catalog-load-more" aria-busy={paging.loadingMore}>
+            {paging.loadMoreFailed ? <>
+              <NimiText role="helper" className="text-[var(--nimi-status-danger)]" aria-live="polite">{t('World.atlas.loadMoreError')}</NimiText>
+              <Button tone="secondary" disabled={offline} loading={paging.loadingMore} onClick={paging.onLoadMore}>{t('WorldDetail.paper.gallery.retry')}</Button>
+            </> : paging.loadingMore ? <NimiText role="helper" aria-live="polite">{t('World.loading')}</NimiText> : null}
           </div>
         ) : null}
         </>}
