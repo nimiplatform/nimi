@@ -1,0 +1,202 @@
+{
+  "source": "Nimi Home published World and Character UI",
+  "capturedAt": "2026-11-02",
+  "assets": [
+    {
+      "worldId": "cbdb-ming-lettered-networks-world",
+      "name": "明代士人交游网络",
+      "file": "/demo/explore/cbdb-ming-lettered-networks-world-cover.webp",
+      "source": "https://assets-preview.nimi.ai/m/forge-publication-world-asset-cbdb-ming-lettered-networks-world-hero/0933721ffb82820462f50c794bfe0723460fc65da5a4aa10be9c20417cc61722/v2/hero-1440.webp"
+    },
+    {
+      "worldId": "cbdb-ming-lettered-networks-world",
+      "name": "耿定向",
+      "file": "/demo/explore/cbdb-ming-lettered-networks-world-character-0.png",
+      "source": "https://assets-preview.nimi.ai/m/forge-publication-ledger-record-cbdb-world-character-cbdb-ming-lettered-networks-world-cbdb-person-124891-portrait/9af88c8f81ebe2664a0633306cd387a0d90cac218ccfc6298a4c83dc057c047d/v2/detail-320.png"
+    },
+    {
+      "worldId": "cbdb-ming-lettered-networks-world",
+      "name": "唐龙",
+      "file": "/demo/explore/cbdb-ming-lettered-networks-world-character-1.png",
+      "source": "https://assets-preview.nimi.ai/m/forge-publication-ledger-record-cbdb-world-character-cbdb-ming-lettered-networks-world-cbdb-person-68335-portrait/52e49876b2fba80863290d8b6d039e4c8f3e18dc29dba8fcb2b150de7ecfec18/v2/detail-320.png"
+    },
+    {
+      "worldId": "meridian-archipelago",
+      "name": "行脉诸洲",
+      "file": "/demo/explore/meridian-archipelago-cover.webp",
+      "source": "https://assets-preview.nimi.ai/m/forge_a7fdaca2dbf822f29cfb1f815427d3896d794d5a8bb8e7018658296db89fbb4f/188a9327513c42eee777dca37cd8cbd61908645d5bba8afd846b25d79af969c7/v2/hero-1440.webp"
+    },
+    {
+      "worldId": "meridian-archipelago",
+      "name": "柳问荇",
+      "file": "/demo/explore/meridian-archipelago-character-0.png",
+      "source": "https://assets-preview.nimi.ai/m/forge_22f1db13e368a1e3d48bdbb0d6ce12ac4584f961671cd2d1453f16f99fb5877e/3d7798be78d4e30a2d40cf73080acbf8bfc4b2a6a3f9468d00ef2c4d7d2cd0f2/v2/detail-320.png"
+    },
+    {
+      "worldId": "meridian-archipelago",
+      "name": "罗弥",
+      "file": "/demo/explore/meridian-archipelago-character-1.png",
+      "source": "https://assets-preview.nimi.ai/m/forge_c97e50a81fa006e02509da7506a7f95e55a2a12006e79bc145b7b69c7e9468e1/8b8f3ababe435aab96f48c6e931aa7ee1c0656742a7b0fa7ad7e5f4c6e2683d3/v2/detail-320.png"
+    },
+    {
+      "worldId": "d10",
+      "name": "春风得意行",
+      "file": "/demo/explore/d10-cover.png",
+      "source": "https://assets-preview.nimi.ai/m/forge_3287a3a265385e1ef6b019bb6bec4992b370a6fe5f55a714ea047a116195048a/e3e72020ccb491986f35fb3f2f58a663bcf6a0a6d836fd4c4455c3a6123cba31/v2/hero-640.png"
+    },
+    {
+      "worldId": "d10",
+      "name": "春风得意行",
+      "file": "/demo/explore/d10-illustration.png",
+      "source": "https://assets-preview.nimi.ai/m/forge_4bec52dcf321910b200c033f9cd8089e83f3d43527da4fd36a3556f608cb44aa/42df3ad71125cf726ea063303289c7216d9763e7be169d05c77d247487224b38/v2/detail-320.png"
+    },
+    {
+      "worldId": "d10",
+      "name": "裴少游",
+      "file": "/demo/explore/d10-character-0.png",
+      "source": "https://assets-preview.nimi.ai/m/forge_38c479197e1ae7204e469b403aee2250eb8f1e07a2fec83e4e07f7663c794a65/b8eb623a81b5ab92580e88d4b2bc6bdde7b57cd340bd3b8e814906b7b6a1af4e/v2/detail-320.png"
+    },
+    {
+      "worldId": "d10",
+      "name": "池晚照",
+      "file": "/demo/explore/d10-character-1.png",
+      "source": "https://assets-preview.nimi.ai/m/forge_b2513b2c248ce714aee90f2b88c144a47a95861980cc39d13f3525db19d2fa49/f4eee6d130104977449267ca1c9aedba4fa653b467f49ecabbb122c829bd03d6/v2/detail-320.png"
+    },
+    {
+      "worldId": "deepblue-observatories",
+      "name": "深蓝群站",
+      "file": "/demo/explore/deepblue-observatories-cover.webp",
+      "source": "https://assets-preview.nimi.ai/m/forge_91731f44e3575a393d990bfc67ee465c169c37dc059af8af2fb4e29779a42795/b1dd9520ca41ad0c6cbf63f179dde302ab7d52a0628cd67409b92701d6d81458/v2/hero-1440.webp"
+    },
+    {
+      "worldId": "deepblue-observatories",
+      "name": "芙敏",
+      "file": "/demo/explore/deepblue-observatories-character-0.png",
+      "source": "https://assets-preview.nimi.ai/m/forge_41b75114fbe0f9fb49ecaa05daf88a1b11d7a623cb1069b0ce44084c9a79e757/729566f7cf6a5dded1a88af4f1926cbe7bd745e167bc81f9d7b81944967c47b7/v2/detail-320.png"
+    },
+    {
+      "worldId": "deepblue-observatories",
+      "name": "蓝厄",
+      "file": "/demo/explore/deepblue-observatories-character-1.png",
+      "source": "https://assets-preview.nimi.ai/m/forge_5a18a49457ab94081b50fd025d648ab261bff4cd19adad890f63c6eeda607d86/ae929da13c4f049518190ff0efd8899ff4028e6b6576b974ae830eeb0dfab9f6/v2/detail-320.png"
+    },
+    {
+      "worldId": "emberware-court",
+      "name": "瓷炭院",
+      "file": "/demo/explore/emberware-court-cover.png",
+      "source": "https://assets-preview.nimi.ai/m/forge_792140d2e081c3c93c69cf2db7aef381eb35dcf5857feafae0760bff68615544/d38dc602ec26ebf8df03c38d5b724fde656e1ac6803cc5523d773a809472310c/v2/hero-640.png"
+    },
+    {
+      "worldId": "emberware-court",
+      "name": "禾罐",
+      "file": "/demo/explore/emberware-court-character-0.png",
+      "source": "https://assets-preview.nimi.ai/m/forge_22531d921ab218b95553db4c21d5a52c2cb26c537ee06aff90c7c81cfc83d26b/22cfe05a1ccf47976cf9da9f95cdac03fb8d48e35628480a19600ec37b168a70/v2/detail-320.png"
+    },
+    {
+      "worldId": "emberware-court",
+      "name": "佩榆",
+      "file": "/demo/explore/emberware-court-character-1.png",
+      "source": "https://assets-preview.nimi.ai/m/forge_e033d262518ea0acb4b53293e35b3d83c524d170a98e59e392cbe2696b00ce1a/65435029097ace381eb1d2ec23d07c540ea36212eb6a13ea0eda8f9aa2c308a4/v2/detail-320.png"
+    },
+    {
+      "worldId": "thinink-plains",
+      "name": "薄墨平原",
+      "file": "/demo/explore/thinink-plains-cover.webp",
+      "source": "https://assets-preview.nimi.ai/m/forge_6d97472f6ba198f36c152804f004d3c79417359e49d2014f682ca3bafa52addf/02c7235345f97d9298ffbcba057da69ad2a95a4736a5013accec2d917d47864d/v2/hero-960.webp"
+    },
+    {
+      "worldId": "thinink-plains",
+      "name": "薄墨平原",
+      "file": "/demo/explore/thinink-plains-illustration.png",
+      "source": "https://assets-preview.nimi.ai/m/forge_07eec5c8afed76038bb680b827730c373dbdf80b5e53054eeac44ed1f578084d/72e6f0dcd317811febe346a445f56d1123fcafe2ffb4a4d3497f4c6cddbc3db0/v2/detail-320.png"
+    },
+    {
+      "worldId": "thinink-plains",
+      "name": "柯芬",
+      "file": "/demo/explore/thinink-plains-character-0.png",
+      "source": "https://assets-preview.nimi.ai/m/forge_3ded348336b4f1b5d6689463a7a0b5b071215b0a1c57b1d221b1f202e36e8a4c/4d4529b23a9499cc4c690d7d93a106fa8da3ba5168f1162eb1ba4c35f6c518d3/v2/detail-320.png"
+    },
+    {
+      "worldId": "thinink-plains",
+      "name": "雅图",
+      "file": "/demo/explore/thinink-plains-character-1.png",
+      "source": "https://assets-preview.nimi.ai/m/forge_4f2fa6fa49ac01cafb7e59636dcdedf9d981be117699a87af039766f3507e774/c0ec03181d277fcbc12866cffce09e18d31ca38092f54f45d6f9b762b693c8c8/v2/detail-320.png"
+    },
+    {
+      "worldId": "summerwell-village",
+      "name": "夏井乡",
+      "file": "/demo/explore/summerwell-village-cover.webp",
+      "source": "https://assets-preview.nimi.ai/m/forge_c03886ee8f0db0e36749c7ed3c44977b655c45a0cc03cd2cdb7a5b6949c4e1e3/f6e129623fbc7a50a325356dc27eea082ead67185893ad390a9640306627dbe5/v2/hero-960.webp"
+    },
+    {
+      "worldId": "summerwell-village",
+      "name": "蒋笙",
+      "file": "/demo/explore/summerwell-village-character-0.png",
+      "source": "https://assets-preview.nimi.ai/m/forge_c1375471a47f4b2cb5fa7db75ed4b2dba1c6b6ef2db640152ae2fb0993706dcc/709fa30a6434cb87ca3aa52abdfa9ee91d43209acc280b18c61d56e46e995296/v2/detail-320.png"
+    },
+    {
+      "worldId": "summerwell-village",
+      "name": "吕苔",
+      "file": "/demo/explore/summerwell-village-character-1.png",
+      "source": "https://assets-preview.nimi.ai/m/forge_9a87b93ad0001fbaf1713eca6b45223f0684336a5239471a454c15bf515d7c6b/0cf0b511b98113699c281d0061f1da0624dc5804fc26e611bb39dfeb0580f44f/v2/detail-320.png"
+    },
+    {
+      "worldId": "prism-city-network",
+      "name": "折光城网",
+      "file": "/demo/explore/prism-city-network-cover.webp",
+      "source": "https://assets-preview.nimi.ai/m/forge_6a80fd8401e71f973fceec7c5dfc3aa728dbcb2e306b2643e2139486cb650f43/6436ab036cc6917a0bb607d0799767f8ebc6d1d3fc207570a45c35e5abd25ec1/v2/hero-960.webp"
+    },
+    {
+      "worldId": "prism-city-network",
+      "name": "棱七",
+      "file": "/demo/explore/prism-city-network-character-0.png",
+      "source": "https://assets-preview.nimi.ai/m/forge_4127714bd45922941f26af6de7ed01c4ac428c478bd6affeceab6f15feb27899/408fed2b4c386d5907b2a9ebdbcf877436d2ae7d41f50f2f1dbf475ce1b72346/v2/detail-320.png"
+    },
+    {
+      "worldId": "prism-city-network",
+      "name": "曲弦",
+      "file": "/demo/explore/prism-city-network-character-1.png",
+      "source": "https://assets-preview.nimi.ai/m/forge_7068f2b22a3731d41e21cf2e37dc82e2809f597a88bb1966c1844d6a5e352f59/993362ada7b5bab7032e53647afb7a405d67d635eed1e1c7215171fd96fe2d91/v2/detail-320.png"
+    },
+    {
+      "worldId": "cbdb-ming-lettered-networks-world",
+      "name": "唐龙",
+      "file": "/demo/explore/tanglong-reference.webp",
+      "source": "https://assets-preview.nimi.ai/m/forge-publication-ledger-record-cbdb-world-character-cbdb-ming-lettered-networks-world-cbdb-person-68335-referenceImage/11dcb83a19c7ea1d51b21669f3f555282ea981c59fb60233d2d82202ecf82c0b/v2/detail-960.webp"
+    },
+    {
+      "worldId": "cbdb-ming-lettered-networks-world",
+      "name": "唐龙",
+      "file": "/demo/explore/tanglong-voice.mp3",
+      "source": "https://assets-preview.nimi.ai/m/forge-publication-ledger-record-cbdb-world-character-cbdb-ming-lettered-networks-world-cbdb-person-68335-voiceSample/38c1cadf274392d18998f74787af2b752553ddb99087014c542f4177ca97f0f7/v2/audio-preview.mp3"
+    },
+    {
+      "worldId": "meridian-archipelago",
+      "name": "柳问荇",
+      "file": "/demo/explore/liuwenxing-voice.mp3",
+      "source": "https://assets-preview.nimi.ai/m/forge_63e03f7064bcb2f5a452df03ce00561c51bc86908ef197995084a5c88cd4ff46/ac7a19d0729392ed029ee2b002ae8d059cd908699d9a271f5dfb835630684236/v2/audio-preview.mp3",
+      "capturedAt": "2026-11-03"
+    },
+    {
+      "worldId": "emberware-court",
+      "name": "佩榆",
+      "file": "/demo/explore/peiyu-voice.mp3",
+      "source": "https://assets-preview.nimi.ai/m/forge_2a772768be5b46a3e1a6a2fc93e1ad7109404460d31462b4b6bf86fed881b690/695bfa180bb3a8e29147939db78018d2e176a3eb61f14aaa3d2217aa8d4fd0c6/v2/audio-preview.mp3",
+      "capturedAt": "2026-11-03"
+    },
+    {
+      "worldId": "emberware-court",
+      "name": "禾罐",
+      "file": "/demo/explore/heguan-voice.mp3",
+      "source": "https://assets-preview.nimi.ai/m/forge_360785ad30f00b3b88a6e157380e0042f5e55dc09e4c4fa0d5d2240386eafa87/90c7d09d94e6b82f6ceb52f8fba907ee695eff8d6e3cf8040fd5894ae3df93e8/v2/audio-preview.mp3",
+      "capturedAt": "2026-11-03"
+    },
+    {
+      "worldId": "meridian-archipelago",
+      "name": "罗弥",
+      "file": "/demo/explore/luomi-voice.mp3",
+      "source": "https://assets-preview.nimi.ai/m/forge_9ef97e725fd9a2f2a8fc99d4eca091d64153bd1597afce98febf9e9f73bd3068/64d0b155d66ac3335d076b4b830a3d6c1a163e9ca353b93f6e86301fa3eda86f/v2/audio-preview.mp3",
+      "capturedAt": "2026-11-03"
+    }
+  ]
+}

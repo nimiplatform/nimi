@@ -10,16 +10,14 @@ import type { HeroDemo } from '../content/landing-content.js';
  */
 export function HeroDemoStatic({
   demo,
-  surface = 'chat',
+  surface = 'home',
   expanded = false,
 }: {
   demo: HeroDemo;
-  surface?: 'chat' | 'apps';
+  surface?: 'home' | 'chat' | 'apps';
   expanded?: boolean;
 }) {
-  const frameClass = expanded
-    ? 'hero-demo-frame flex h-full min-h-0 flex-col'
-    : 'hero-demo-frame';
+  const frameClass = expanded ? 'hero-demo-frame flex h-full min-h-0 flex-col' : 'hero-demo-frame';
   const bodyClass = expanded
     ? 'flex min-h-0 flex-1 flex-col items-center justify-center px-6 text-center'
     : 'flex h-[520px] flex-col items-center justify-center px-6 text-center md:h-[620px] lg:h-[min(720px,80vh)] xl:h-[min(780px,82vh)] 2xl:h-[min(840px,84vh)]';
@@ -44,12 +42,14 @@ export function HeroDemoStatic({
       ) : (
         <div className={bodyClass}>
           <p className="text-base font-semibold tracking-tight text-slate-700 md:text-lg">
-            {demo.chat.greeting}
+            {surface === 'chat' ? demo.chat.greeting : demo.home.greeting}
           </p>
           <div className={placeholderClass}>
-            <span className="block text-left text-sm text-slate-400">{demo.chat.inputPlaceholder}</span>
+            <span className="block text-left text-sm text-slate-400">
+              {surface === 'chat' ? demo.chat.inputPlaceholder : demo.home.recent}
+            </span>
           </div>
-          <p className="mt-3 text-[11px] leading-5 text-slate-400">{demo.chat.inputNote}</p>
+          <p className="mt-3 text-[11px] leading-5 text-slate-400">{demo.home.badge}</p>
         </div>
       )}
     </div>

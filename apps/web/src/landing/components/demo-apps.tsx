@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ArrowLeft, ChevronRight, Code2, MoreHorizontal, Play } from 'lucide-react';
-import { Button, EmptyState, IconButton, NimiTabs, ScrollArea, SearchField, cn } from '@nimiplatform/kit/ui';
+import { Button, IconButton, NimiTabs, ScrollArea, SearchField, cn } from '@nimiplatform/kit/ui';
 import type { HeroDemo, HeroDemoAppItem } from '../content/landing-content.js';
 import { DemoAppPreview } from './demo-app-preview.js';
 
@@ -41,7 +41,13 @@ const ICON_SIZE_CLASS = {
 } as const;
 
 /** Replica of the desktop AppArtworkIcon: real icon when shipped, gradient glyph tile otherwise. */
-function AppArtworkIcon({ item, size }: { item: HeroDemoAppItem; size: keyof typeof ICON_SIZE_CLASS }) {
+export function AppArtworkIcon({
+  item,
+  size,
+}: {
+  item: HeroDemoAppItem;
+  size: keyof typeof ICON_SIZE_CLASS;
+}) {
   return (
     <span
       aria-hidden="true"
@@ -56,8 +62,18 @@ function AppArtworkIcon({ item, size }: { item: HeroDemoAppItem; size: keyof typ
       }}
     >
       {item.iconSrc ? (
-        <img src={item.iconSrc} alt="" loading="lazy" decoding="async" width={size === 'xs' ? 24 : 64} height={size === 'xs' ? 24 : 64} className="absolute inset-0 h-full w-full object-contain" />
-      ) : deriveIconGlyph(item.name)}
+        <img
+          src={item.iconSrc}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          width={size === 'xs' ? 24 : 64}
+          height={size === 'xs' ? 24 : 64}
+          className="absolute inset-0 h-full w-full object-contain"
+        />
+      ) : (
+        deriveIconGlyph(item.name)
+      )}
     </span>
   );
 }
@@ -65,38 +81,48 @@ function AppArtworkIcon({ item, size }: { item: HeroDemoAppItem; size: keyof typ
 export function DemoAppsSurface({
   apps,
   preview,
+  initialAppId,
 }: {
   apps: HeroDemo['apps'];
   preview: HeroDemo['appPreview'];
+  initialAppId?: string;
 }) {
   const [query, setQuery] = useState('');
-  const [selectedId, setSelectedId] = useState<string | null>(apps.items[0]?.id ?? null);
-  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedId, setSelectedId] = useState<string | null>(initialAppId ?? null);
+  const [detailOpen, setDetailOpen] = useState(Boolean(initialAppId));
   const [activeTab, setActiveTab] = useState('0');
   const [previewAppId, setPreviewAppId] = useState<string | null>(null);
 
+  const t = (zh: string, en: string) => (preview.locale === 'zh' ? zh : en);
+  const [infoOpen, setInfoOpen] = useState(false);
   const normalizedQuery = query.trim().toLowerCase();
   const visibleItems = normalizedQuery
-    ? apps.items.filter((item) => (
-      item.name.toLowerCase().includes(normalizedQuery)
-      || item.id.toLowerCase().includes(normalizedQuery)
-    ))
+    ? apps.items.filter(
+        (item) =>
+          item.name.toLowerCase().includes(normalizedQuery) ||
+          item.id.toLowerCase().includes(normalizedQuery),
+      )
     : apps.items;
   const selected = apps.items.find((item) => item.id === selectedId) ?? null;
-  const tabItems = apps.tabs.map((label, index) => ({ value: String(index), label }));
+  const tabItems = apps.tabs
+    .slice(0, selected?.id === 'nimi.zhiyu' ? 2 : undefined)
+    .map((label, index) => ({ value: String(index), label }));
 
   return (
-    <div className="flex h-full min-h-0 gap-2">
+    <div className="demo-apps-workspace flex h-full min-h-0 gap-2">
       <aside
         className={cn(
-          'w-full shrink-0 flex-col overflow-hidden rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] md:w-[248px]',
+          'demo-apps-sidebar w-full shrink-0 flex-col overflow-hidden rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] md:w-[248px]',
           detailOpen ? 'hidden md:flex' : 'flex',
         )}
       >
         <div className="flex min-h-[var(--nimi-sidebar-header-height,56px)] shrink-0 items-center justify-between gap-3 px-4">
           <div className="min-w-0">
             <p className="text-base font-semibold leading-6 text-[var(--nimi-text-primary)]">{apps.title}</p>
-            <p className="truncate text-[11px] text-[var(--nimi-text-muted)]">{apps.items.length}{apps.countSuffix}</p>
+            <p className="truncate text-[11px] text-[var(--nimi-text-muted)]">
+              {apps.items.length}
+              {apps.countSuffix}
+            </p>
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1 px-2 pb-2">
@@ -152,26 +178,36 @@ export function DemoAppsSurface({
       <section
         className={cn(
           'min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] shadow-[var(--nimi-elevation-base)]',
-          detailOpen ? 'flex' : 'hidden md:flex',
+          'flex',
         )}
       >
         {selected ? (
           <>
             <header className="shrink-0 px-5 pt-4 sm:px-7 sm:pt-5">
-              <Button tone="ghost" size="sm" className="-ml-2 mb-3" onClick={() => setDetailOpen(false)}>
+              <Button
+                tone="ghost"
+                size="sm"
+                className="-ml-2 mb-3"
+                onClick={() => {
+                  setDetailOpen(false);
+                  setSelectedId(null);
+                }}
+              >
                 <ArrowLeft className="mr-2 h-4 w-4" aria-hidden="true" />
                 {apps.backLabel}
               </Button>
 
-              <div className="flex min-w-0 items-center gap-5">
+              <div className="demo-app-detail-summary flex min-w-0 items-center gap-5">
                 <AppArtworkIcon item={selected} size="lg" />
                 <div className="min-w-0 flex-1">
                   <h3 className="break-words text-2xl font-semibold leading-8 text-[var(--nimi-text-primary)]">
                     {selected.name}
                   </h3>
-                  <p className="mt-1.5 break-words text-sm leading-6 text-[var(--nimi-text-secondary)]">{selected.task}</p>
+                  <p className="mt-1.5 break-words text-sm leading-6 text-[var(--nimi-text-secondary)]">
+                    {selected.task}
+                  </p>
                 </div>
-                <div className="flex shrink-0 items-center gap-2">
+                <div className="demo-app-detail-actions flex shrink-0 items-center gap-2">
                   <Button tone="primary" onClick={() => setPreviewAppId(selected.id)}>
                     <Play className="mr-2 h-4 w-4" aria-hidden="true" />
                     {apps.launchLabel}
@@ -181,10 +217,16 @@ export function DemoAppsSurface({
                     aria-label={apps.moreInfoLabel}
                     title={apps.moreInfoLabel}
                     icon={<MoreHorizontal className="h-4 w-4" aria-hidden="true" />}
+                    onClick={() => setInfoOpen(!infoOpen)}
                   />
                 </div>
               </div>
 
+              {infoOpen && (
+                <p className="demo-muted mt-3">
+                  {selected.id} · {t('演示数据', 'Sample data')}
+                </p>
+              )}
               <NimiTabs
                 className="mt-5"
                 items={tabItems}
@@ -198,21 +240,31 @@ export function DemoAppsSurface({
               <div className="mx-auto w-full max-w-6xl px-5 py-6 sm:px-7">
                 {activeTab === '0' ? (
                   <div className="flex flex-col gap-7 xl:grid xl:grid-cols-[minmax(0,1fr)_minmax(280px,340px)] xl:items-start">
-                    <section className="min-w-0 xl:order-2" aria-label={`${apps.aboutTitle} ${selected.name}`}>
+                    <section
+                      className="min-w-0 xl:order-2"
+                      aria-label={`${apps.aboutTitle} ${selected.name}`}
+                    >
                       <h4 className="text-lg font-semibold text-[var(--nimi-text-primary)]">
                         {apps.aboutTitle} {selected.name}
                       </h4>
                       <div className="mt-4 rounded-xl bg-[color-mix(in_srgb,var(--nimi-surface-active)_38%,transparent)] px-5 py-4">
                         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1">
                           <div className="min-w-0">
-                            <dt className="text-xs leading-4 text-[var(--nimi-text-muted)]">{apps.updatedLabel}</dt>
+                            <dt className="text-xs leading-4 text-[var(--nimi-text-muted)]">
+                              {apps.updatedLabel}
+                            </dt>
                             <dd className="mt-1 break-words text-sm font-medium leading-5 text-[var(--nimi-text-primary)]">
                               {selected.updatedAt}
                             </dd>
                           </div>
                         </dl>
                         <div className="mt-4 flex items-center">
-                          <Button tone="ghost" size="sm" className="-ml-2">
+                          <Button
+                            tone="ghost"
+                            size="sm"
+                            className="-ml-2"
+                            onClick={() => setInfoOpen(!infoOpen)}
+                          >
                             {apps.moreInfoLabel}
                             <ChevronRight className="ml-1 h-3.5 w-3.5" aria-hidden="true" />
                           </Button>
@@ -221,8 +273,12 @@ export function DemoAppsSurface({
                     </section>
 
                     <div className="min-w-0 max-w-3xl xl:order-1">
-                      <h4 className="mb-3 text-xl font-semibold leading-8 text-[var(--nimi-text-primary)]">{selected.name}</h4>
-                      <p className="my-3 text-sm leading-6 text-[var(--nimi-text-secondary)]">{selected.task}</p>
+                      <h4 className="mb-3 text-xl font-semibold leading-8 text-[var(--nimi-text-primary)]">
+                        {selected.name}
+                      </h4>
+                      <p className="my-3 text-sm leading-6 text-[var(--nimi-text-secondary)]">
+                        {selected.task}
+                      </p>
                       <ul className="mt-3 flex flex-wrap gap-1.5">
                         {selected.tags.map((tag) => (
                           <li
@@ -236,13 +292,62 @@ export function DemoAppsSurface({
                     </div>
                   </div>
                 ) : (
-                  <p className="py-6 text-center text-sm leading-6 text-[var(--nimi-text-muted)]">{apps.tabPlaceholderNote}</p>
+                  <div className="demo-management-card">
+                    <h2>{activeTab === '1' ? 'Nimi Access' : t('AI 配置', 'AI configuration')}</h2>
+                    <p className="demo-muted mt-3">
+                      {activeTab === '1'
+                        ? t(
+                            '此应用使用 Nimi 管理的身份、能力与授权。',
+                            'This app uses identity, capabilities, and permissions managed by Nimi.',
+                          )
+                        : t(
+                            '应用可使用本机配置，也可以选择专属的云端模型。',
+                            'Use the local configuration or choose a cloud model for this app.',
+                          )}
+                    </p>
+                    {selected.tags.map((tag) => (
+                      <div key={tag} className="demo-setting-row">
+                        <strong>{tag}</strong>
+                        <span className="demo-success">{t('已配置 · 示例', 'Configured · Sample')}</span>
+                      </div>
+                    ))}
+                    <p className="demo-simulation-note">{apps.previewBadge}</p>
+                  </div>
                 )}
               </div>
             </ScrollArea>
           </>
         ) : (
-          <EmptyState title={apps.title} className="m-auto" />
+          <div className="demo-apps-overview">
+            <h1>{t('应用中心', 'App center')}</h1>
+            <h2 className="mt-6 mb-4">{t('最近活跃', 'Recently active')}</h2>
+            <div className="demo-app-grid">
+              {visibleItems.map((item) => (
+                <article key={item.id} className="demo-management-card">
+                  <button
+                    type="button"
+                    className="demo-app-overview-title"
+                    onClick={() => {
+                      setSelectedId(item.id);
+                      setDetailOpen(true);
+                      setActiveTab('0');
+                    }}
+                  >
+                    <AppArtworkIcon item={item} size="lg" />
+                    <h2>{item.name}</h2>
+                  </button>
+                  <p className="demo-muted my-3">{item.task}</p>
+                  <Button size="sm" tone="secondary" onClick={() => setPreviewAppId(item.id)}>
+                    <Play size={13} />
+                    {apps.launchLabel}
+                  </Button>
+                </article>
+              ))}
+            </div>
+            {visibleItems.length === 0 && (
+              <p className="demo-empty">{t('没有匹配的应用', 'No matching apps')}</p>
+            )}
+          </div>
         )}
       </section>
 

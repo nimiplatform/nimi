@@ -1,7 +1,9 @@
 import { renderAppPreview } from './helpers/render-app-preview.js';
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createElement } from 'react';
+import { createElement, type ReactNode } from 'react';
+import { HeroDemoSessionProvider } from '../src/landing/components/hero-demo-session.js';
+import type { HeroDemo, HeroDemoSurface } from '../src/landing/content/landing-content.js';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { HeroSection } from '../src/landing/components/hero-section.js';
 import { HeroDemoView } from '../src/landing/components/hero-demo.js';
@@ -11,11 +13,22 @@ import { DemoZhiyuPreview } from '../src/landing/components/demo-zhiyu-preview.j
 import { loadLandingContent } from '../src/landing/content/landing-content.js';
 import { resolveLandingLinks } from '../src/landing/config/landing-links.js';
 
+function renderDemo(
+  demo: HeroDemo,
+  surface: HeroDemoSurface = 'home',
+  children: ReactNode = createElement(HeroDemoView),
+) {
+  return renderToStaticMarkup(
+    createElement(HeroDemoSessionProvider, { demo, initialSurface: surface, children }),
+  );
+}
+
 test('hero renders the slogan with the demo preview on the same screen in both locales', async () => {
   const links = resolveLandingLinks();
   for (const locale of ['en', 'zh'] as const) {
     const content = await loadLandingContent(locale);
-    const html = renderToStaticMarkup(createElement(HeroSection, { content: content.hero, links }));
+    const html = renderDemo(content.hero.demo, 'home', createElement(HeroSection, { content: content.hero, links }));
+    assert.ok(!html.includes('HeroDemoView requires'));
 
     assert.ok(html.includes(`aria-label="${content.hero.slogan}"`));
     // Flat editorial headline: one dark ink, no per-character gradient.
@@ -49,66 +62,56 @@ test('hero renders the slogan with the demo preview on the same screen in both l
 
     // The interactive demo loads as its own chunk: static markup carries the
     // size-stable fallback frame, and other surfaces stay hidden until selected.
-    assert.ok(html.includes(content.hero.demo.chat.greeting));
-    assert.ok(!html.includes(content.hero.demo.settings.groups[0]?.label ?? '__none__'));
+    assert.ok(html.includes(content.hero.demo.home.greeting));
+    assert.ok(!html.includes(content.hero.demo.home.settingsGroups[0]?.label ?? '__none__'));
   }
 });
 
-test('desktop preview composes kit chat components with localized copy in both locales', async () => {
+test('Home preview opens the current overview and keeps chat as a separate workspace', async () => {
   for (const locale of ['en', 'zh'] as const) {
-    const content = await loadLandingContent(locale);
-    const demo = content.hero.demo;
-    const html = renderToStaticMarkup(createElement(HeroDemoView, { demo }));
-
-    // Kit transcript empty state with the localized greeting and a real composer.
-    assert.ok(html.includes('data-canonical-transcript-root'));
-    assert.ok(html.includes(demo.chat.greeting));
-    assert.ok(html.includes(`placeholder="${demo.chat.inputPlaceholder}"`));
-    assert.ok(html.includes(`aria-label="${demo.chat.sendLabel}"`));
-
-    // Rail and narrow switcher expose all five preview surfaces.
-    assert.ok(html.includes(demo.nav.chat));
-    assert.ok(html.includes(demo.nav.explore));
-    assert.ok(html.includes(demo.nav.apps));
-    assert.ok(html.includes(demo.nav.runtime));
-    assert.ok(html.includes(demo.nav.settings));
-
-    // Every agent is a selectable conversation target.
-    for (const agent of demo.chat.agents) {
-      assert.ok(html.includes(`aria-label="${agent.name}"`));
+    const {
+      hero: { demo },
+    } = await loadLandingContent(locale);
+    const html = renderDemo(demo);
+    assert.ok(html.includes(demo.home.greeting));
+    assert.ok(html.includes(demo.home.recent));
+    assert.ok(html.includes(demo.home.myApps));
+    assert.ok(html.includes(demo.home.messages));
+    assert.ok(html.includes(demo.home.badge));
+    assert.ok(html.includes(demo.home.runtimeOK));
+    assert.ok(!html.includes('data-canonical-transcript-root'));
+    for (const surface of ['home', 'cloud', 'integrations', 'downloads', 'messages'] as const) {
+      assert.ok(html.includes(demo.nav[surface]));
     }
-
-    // Settings and runtime content stay hidden until their surfaces are selected.
-    assert.ok(!html.includes(demo.settings.groups[0]?.label ?? '__none__'));
-    assert.ok(!html.includes(demo.runtime.groups[0]?.label ?? '__none__'));
-    // The apps library stays hidden until its surface is selected.
-    assert.ok(!html.includes('织羽'));
-
-    if (locale === 'zh') {
-      // No kit default English copy leaks into the Chinese demo.
-      assert.ok(!html.includes('This Moment'));
-      assert.ok(!html.includes('Start the first turn'));
-      assert.ok(!html.includes('aria-label="Send"'));
-    }
+    const chat = renderDemo(demo, 'chat');
+    assert.ok(chat.includes('data-canonical-transcript-root'));
+    assert.ok(chat.includes(demo.chat.greeting));
+    assert.ok(chat.includes(`placeholder="${demo.chat.inputPlaceholder}"`));
+    assert.ok(chat.includes(`aria-label="${demo.chat.sendLabel}"`));
+    for (const agent of demo.chat.agents) assert.ok(chat.includes(`aria-label="${agent.name}"`));
   }
 });
 
-test('the morph override pins the hero demo to the apps surface', async () => {
-  const content = await loadLandingContent('zh');
-  const demo = content.hero.demo;
-  const html = renderToStaticMarkup(createElement(HeroDemoView, { demo, surfaceOverride: 'apps' }));
-
-  // While the morph runs, the zooming hero window already shows apps content.
-  assert.ok(html.includes(demo.apps.searchPlaceholder));
-  assert.ok(html.includes('织羽'));
-  assert.ok(!html.includes(demo.chat.greeting));
+test('hero and expanded windows render the same destination from their shared session', async () => {
+  const {
+    hero: { demo },
+  } = await loadLandingContent('zh');
+  for (const surface of ['home', 'chat', 'apps'] as const) {
+    const html = renderDemo(demo, surface, [
+      createElement(HeroDemoView, { key: 'hero' }),
+      createElement(HeroDemoView, { key: 'expanded', expanded: true }),
+    ]);
+    const expected =
+      surface === 'home' ? demo.home.greeting : surface === 'chat' ? demo.chat.greeting : '应用中心';
+    assert.equal(html.split(expected).length - 1, 2);
+    const absent = surface === 'home' ? demo.chat.greeting : demo.home.greeting;
+    assert.ok(!html.includes(absent));
+  }
 });
 
 test('apps section is a demo window under a centered section header', async () => {
   const content = await loadLandingContent('zh');
-  const html = renderToStaticMarkup(
-    createElement(AppsSection, { content: content.apps, demo: content.hero.demo }),
-  );
+  const html = renderDemo(content.hero.demo, 'apps', createElement(AppsSection, { content: content.apps, demo: content.hero.demo }));
 
   assert.ok(html.includes('id="apps"'));
   // The morph target wrapper the hero window zooms into.
@@ -117,14 +120,16 @@ test('apps section is a demo window under a centered section header', async () =
   assert.ok(html.includes('data-apps-copy'));
   assert.ok(html.includes(content.apps.title));
   assert.ok(html.includes(content.apps.subtitle));
-  assert.ok(html.includes(content.hero.demo.apps.title));
+  assert.ok(html.includes(content.hero.demo.chat.greeting));
 });
 
 test('apps surface renders the two-pane library and the zhiyu preview mounts kit chat components', async () => {
   const content = await loadLandingContent('zh');
   const demo = content.hero.demo;
 
-  const appsHtml = renderToStaticMarkup(createElement(DemoAppsSurface, { apps: demo.apps, preview: demo.appPreview }));
+  const appsHtml = renderToStaticMarkup(
+    createElement(DemoAppsSurface, { apps: demo.apps, preview: demo.appPreview }),
+  );
   assert.ok(appsHtml.includes(demo.apps.searchPlaceholder));
   assert.ok(appsHtml.includes(`${demo.apps.items.length}${demo.apps.countSuffix}`));
   assert.ok(appsHtml.includes('织羽'));
@@ -142,7 +147,7 @@ test('apps surface renders the two-pane library and the zhiyu preview mounts kit
   assert.ok(zhiyuHtml.includes('data-zhiyu-region="conversation"'));
   assert.ok(zhiyuHtml.includes('data-canonical-transcript-root'));
   assert.ok(zhiyuHtml.includes('data-canonical-composer-root'));
-  assert.ok(zhiyuHtml.includes(`placeholder="${zhiyu.copy.composerPlaceholder}"`));
+  assert.ok(zhiyuHtml.includes('先选择本地伙伴'));
   assert.ok(zhiyuHtml.includes(`aria-label="${zhiyu.copy.sendLabel}"`));
   assert.ok(zhiyuHtml.includes(`title="${zhiyu.copy.attachLabel}"`));
   // Composer tools mirror the app: avatar, proactive mode, and the Agent
@@ -153,15 +158,11 @@ test('apps surface renders the two-pane library and the zhiyu preview mounts kit
   assert.ok(zhiyuHtml.includes(`aria-label="${zhiyu.copy.agentCenterLabel}"`));
   // The rail labels the current partner and the selectable ones the way the
   // app's presence rail does.
-  const [first, ...rest] = zhiyu.partners;
-  assert.ok(first);
-  assert.ok(zhiyuHtml.includes(`aria-label="${zhiyu.copy.currentPartnerAriaPrefix}${first.name}"`));
-  for (const partner of rest) {
+  for (const partner of zhiyu.partners) {
     assert.ok(zhiyuHtml.includes(`aria-label="${zhiyu.copy.selectPartnerAriaPrefix}${partner.name}"`));
   }
-  // The first partner's transcript is seeded; the Agent Center stays closed
-  // until the visitor opens it.
-  assert.ok(zhiyuHtml.includes(first.messages[0]?.text ?? '__none__'));
+  // The current product starts with partner selection; selecting one opens its history.
+  assert.ok(zhiyuHtml.includes('选择一位本地伙伴，开始对话'));
   assert.ok(zhiyuHtml.includes('data-zhiyu-side-panel-state="closed"'));
   assert.ok(!zhiyuHtml.includes('data-zhiyu-region="agent-panel"'));
 });

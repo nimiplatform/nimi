@@ -13,7 +13,7 @@ export type AppsSectionProps = {
 };
 
 /**
- * Second screen: a full-screen desktop-app window opened on the apps surface.
+ * Second screen: the expanded view of the shared desktop demo session.
  * Scrolling down from the hero zooms the hero demo window into this one
  * (see use-hero-apps-morph), so the frame chrome and background mirror the
  * hero demo for a seamless handoff. The window stays fully interactive.
@@ -24,12 +24,15 @@ export function AppsSection({ content, demo }: AppsSectionProps) {
   useEffect(() => {
     const section = sectionRef.current;
     if (!section) return;
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.some((entry) => entry.isIntersecting && entry.intersectionRatio > 0)) {
-        setActivated(true);
-        observer.disconnect();
-      }
-    }, { threshold: 0.01 });
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting && entry.intersectionRatio > 0)) {
+          setActivated(true);
+          observer.disconnect();
+        }
+      },
+      { threshold: 0.01 },
+    );
     observer.observe(section);
     return () => observer.disconnect();
   }, []);
@@ -46,16 +49,15 @@ export function AppsSection({ content, demo }: AppsSectionProps) {
           <h2 className="font-display text-[clamp(1.5rem,2.6vw,2.25rem)] font-semibold leading-tight tracking-tight text-slate-900">
             {content.title}
           </h2>
-          <p className="mt-1 text-sm leading-6 text-slate-600 md:mt-1.5 md:text-base">
-            {content.subtitle}
-          </p>
+          <p className="mt-1 text-sm leading-6 text-slate-600 md:mt-1.5 md:text-base">{content.subtitle}</p>
         </div>
-        <div className="mx-auto my-auto min-h-0 max-h-[840px] min-w-0 w-full max-w-[1360px] flex-1" data-apps-morph>
-          <DemoErrorBoundary fallback={<HeroDemoStatic demo={demo} surface="apps" expanded />}>
-            <Suspense fallback={<HeroDemoStatic demo={demo} surface="apps" expanded />}>
-              {activated
-                ? <HeroDemoView demo={demo} defaultSurface="apps" expanded />
-                : <HeroDemoStatic demo={demo} surface="apps" expanded />}
+        <div
+          className="mx-auto my-auto min-h-0 max-h-[840px] min-w-0 w-full max-w-[1360px] flex-1"
+          data-apps-morph
+        >
+          <DemoErrorBoundary fallback={<HeroDemoStatic demo={demo} surface="chat" expanded />}>
+            <Suspense fallback={<HeroDemoStatic demo={demo} surface="chat" expanded />}>
+              {activated ? <HeroDemoView expanded /> : <HeroDemoStatic demo={demo} surface="chat" expanded />}
             </Suspense>
           </DemoErrorBoundary>
         </div>

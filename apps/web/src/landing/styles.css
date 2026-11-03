@@ -1,3 +1,7 @@
+@import './demo-home.css';
+@import './demo-explore.css';
+@import './demo-chat.css';
+
 /* Tailwind root lives in ../foundation.css; this file is @imported there so
  * its @theme tokens and custom rules share the same compilation root. */
 

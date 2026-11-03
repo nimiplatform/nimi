@@ -208,6 +208,8 @@ export function isPagingKeyExcludedTarget(target: PagingEventTarget): boolean {
 }
 
 export type SectionPagingOptions = {
+  /** Reports a changed visible section, including scrollbar and fragment navigation. */
+  onSectionChange?: (index: number) => void;
   /**
    * Intercepts a flip between two adjacent sections. Return a lock duration
    * in milliseconds when the option runs its own transition animation (the
@@ -259,6 +261,14 @@ export function useSectionPaging(enabled: boolean, options?: SectionPagingOption
       const sections = landingSections();
       const starts = sectionStarts(sections);
       return { sections, starts, index: nearestIndex(starts, window.scrollY) };
+    };
+
+    let reportedSection = -1;
+    const reportSection = () => {
+      const { index } = current();
+      if (index === reportedSection) return;
+      reportedSection = index;
+      optionsRef.current?.onSectionChange?.(index);
     };
 
     const goTo = (index: number, instant = false) => {
@@ -489,6 +499,7 @@ export function useSectionPaging(enabled: boolean, options?: SectionPagingOption
       goTo(index, true);
     };
 
+    window.addEventListener('scroll', reportSection, { passive: true });
     window.addEventListener('wheel', onWheel, { passive: false });
     window.addEventListener('keydown', onKeyDown);
     window.addEventListener('touchstart', onTouchStart, { passive: true });
@@ -501,8 +512,10 @@ export function useSectionPaging(enabled: boolean, options?: SectionPagingOption
 
     // Land on the requested section when the page opens with a fragment.
     onFragmentNavigation();
+    reportSection();
 
     return () => {
+      window.removeEventListener('scroll', reportSection);
       window.removeEventListener('wheel', onWheel);
       window.removeEventListener('keydown', onKeyDown);
       window.removeEventListener('touchstart', onTouchStart);

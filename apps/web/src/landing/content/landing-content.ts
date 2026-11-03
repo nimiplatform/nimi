@@ -1,3 +1,5 @@
+import type { NimiLocalAppAgentIntroduction } from '@nimiplatform/sdk/app';
+import type { HomeDemoContent } from './home-demo-content.js';
 import type { LandingLocale } from '../i18n/locale.js';
 import type { PreviewMessages } from '../i18n/preview-messages.js';
 import type { RemainingAppPreviewContent } from './landing-content.remaining-apps.js';
@@ -26,6 +28,21 @@ export type HeroDemoMessageSeed = {
 };
 
 export type HeroDemoAgent = {
+  introduction?: NimiLocalAppAgentIntroduction;
+  replies?: ReadonlyArray<string>;
+  avatarUrl?: string;
+  role?: string;
+  greeting?: string;
+  referenceImageUrl?: string;
+  voiceUrl?: string;
+  voiceDuration?: number;
+  worldName?: string;
+  bio?: string;
+  handle?: string;
+  city?: string;
+  countryCode?: string;
+  languages?: readonly string[];
+  tags?: readonly string[];
   id: string;
   name: string;
   initial: string;
@@ -77,6 +94,8 @@ export type HeroDemoZhiyuMessageSeed = HeroDemoMessageSeed & (
  * seeded here so the preview can run the same kit surfaces on mock data.
  */
 export type HeroDemoZhiyuPartner = {
+  introduction?: NimiLocalAppAgentIntroduction;
+  bio?: string;
   id: string;
   name: string;
   /** Rail and transcript avatar; null falls back to the name's initial like the shell. */
@@ -1092,22 +1111,12 @@ export type HeroDemoOddBureauPreview = {
   demo: { hostOnly: string; voice: string; dismiss: string };
 };
 
-export type HeroDemoSurface = 'chat' | 'explore' | 'apps' | 'runtime' | 'settings';
-
-export type HeroDemoRowGroup = {
-  label: string;
-  rows: ReadonlyArray<{ label: string; value: string }>;
-};
+export type HeroDemoSurface = 'home' | 'chat' | 'explore' | 'apps' | 'runtime' | 'cloud' | 'integrations' | 'downloads' | 'messages' | 'settings' | 'diagnostics';
 
 export type HeroDemo = {
   windowTitle: string;
-  nav: {
-    chat: string;
-    explore: string;
-    apps: string;
-    runtime: string;
-    settings: string;
-  };
+  nav: Record<HeroDemoSurface, string>;
+  home: HomeDemoContent;
   chat: {
     greeting: string;
     inputPlaceholder: string;
@@ -1122,14 +1131,9 @@ export type HeroDemo = {
     dateLabels: { today: string; yesterday: string };
     copy: HeroDemoChatCopy;
     agents: ReadonlyArray<HeroDemoAgent>;
-  };
-  explore: {
-    title: string;
-    searchPlaceholder: string;
-    sections: ReadonlyArray<{
-      label: string;
-      items: ReadonlyArray<{ name: string; meta: string }>;
-    }>;
+    people: ReadonlyArray<HeroDemoAgent>;
+    self: HeroDemoAgent;
+    assistantThreads: ReadonlyArray<HeroDemoAgent>;
   };
   apps: {
     title: string;
@@ -1138,7 +1142,6 @@ export type HeroDemo = {
     backLabel: string;
     launchLabel: string;
     tabs: ReadonlyArray<string>;
-    tabPlaceholderNote: string;
     aboutTitle: string;
     updatedLabel: string;
     moreInfoLabel: string;
@@ -1165,15 +1168,7 @@ export type HeroDemo = {
     voiceStudio: VoiceStudioPreviewContent;
     remainingApps: RemainingAppPreviewContent;
   };
-  runtime: {
-    title: string;
-    subtitle: string;
-    groups: ReadonlyArray<HeroDemoRowGroup>;
-  };
-  settings: {
-    title: string;
-    groups: ReadonlyArray<HeroDemoRowGroup>;
-  };
+
 };
 
 export type LandingContent = {

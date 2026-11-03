@@ -1,3 +1,5 @@
+import { createHomeChatData } from './home-chat-content.js';
+import { createHomeDemoContent } from './home-demo-content.js';
 import { createPreviewTranslate } from '../i18n/preview-messages.js';
 import { createRemainingAppPreviewContent } from './landing-content.remaining-apps.js';
 import { appPreviewMessagesZh } from './app-preview-messages.zh.js';
@@ -34,16 +36,17 @@ export const landingContentZh: LandingContent = {
     downloadNote: "Apple Silicon Mac 与 Windows x86_64 公开 Beta。使用 Nimi 需要账号。",
     docsCta: '查看文档',
     demo: {
-      windowTitle: 'Nimi',
-      nav: { chat: '聊天', explore: '探索', apps: '应用', runtime: '运行时', settings: '设置' },
+      windowTitle: 'Nimi Home',
+      nav: { home: '首页', chat: '聊天', explore: '探索', apps: '应用', runtime: 'AI 能力', cloud: '云服务', integrations: '集成', downloads: '下载', messages: '消息中心', settings: '设置', diagnostics: '高级与诊断' },
+      home: createHomeDemoContent('zh'),
       chat: {
-        greeting: '你好，Halliday！今天想从哪里开始？',
-        inputPlaceholder: '向你的 AI 伙伴提问…',
+        greeting: '你好，Halliday！想从哪里开始？',
+        inputPlaceholder: '向 Nimi 提问…',
         inputNote: "当前为演示界面，实际对话在 Nimi 桌面端进行。",
         sendLabel: '发送',
         backLabel: '返回',
         userName: 'Halliday',
-        defaultTargetId: 'agent-a',
+        defaultTargetId: 'ai:assistant',
         scriptedReply: '这是一条演示回复，用于展示对话样式；真实回答由 Nimi 桌面端生成。',
         dateLocale: 'zh-CN',
         dateLabels: { today: '今天', yesterday: '昨天' },
@@ -56,57 +59,7 @@ export const landingContentZh: LandingContent = {
           typingThinkingLabel: '正在思考',
           typingStopLabel: '停止',
         },
-        agents: [
-          {
-            id: 'agent-a',
-            name: '艾可 Echo',
-            initial: 'E',
-            messages: [
-              { id: 'a-m1', role: 'user', text: '帮我看下《深空信使》第三章的大纲，引力锚点的伏笔放在什么时候揭开更合适？', minutesAgo: 8 },
-              { id: 'a-m2', role: 'assistant', text: '建议放在飞船穿过碎石环的时候。表面上是一次常规读数异常，实际上是旧文明的定向脉冲，这样节奏更克制。', minutesAgo: 7 },
-              { id: 'a-m3', role: 'user', text: "好，就按这个方向，把这几幕的情绪张力再收紧一点。", minutesAgo: 6 },
-              { id: 'a-m4', role: 'assistant', text: '已为你重构好分段节奏草稿，重点强化了通信员的心理独白，随时可以在工作区打开查看。', minutesAgo: 5 },
-            ],
-          },
-          {
-            id: 'agent-e',
-            name: '星野 Hoshino',
-            initial: 'H',
-            messages: [
-              { id: 'e-m1', role: 'assistant', text: '欢迎回来！上次保存的那段雨夜钢琴动机，我为你生成了两个编排草稿，要试听一下吗？', minutesAgo: 1560 },
-              { id: 'e-m2', role: 'user', text: "先听听偏 Lo-Fi 质感的那版。", minutesAgo: 1558 },
-            ],
-          },
-          {
-            id: 'agent-k',
-            name: '卡尔 Kael',
-            initial: 'K',
-            messages: [
-              { id: 'k-m1', role: 'assistant', text: "你本周关注的 3 篇本地大模型量化笔记已整理完毕，核心结论也提炼好了，随时可以回顾。", minutesAgo: 3000 },
-            ],
-          },
-        ],
-      },
-      explore: {
-        title: '探索',
-        searchPlaceholder: '搜索角色、世界与应用',
-        sections: [
-          {
-            label: '角色',
-            items: [
-              { name: '艾可 Echo', meta: '叙事顾问 · 演示角色' },
-              { name: '星野 Hoshino', meta: '音乐伙伴 · 演示角色' },
-            ],
-          },
-          { label: '世界', items: [{ name: '零号绿洲 Oasis Zero', meta: '架空科幻 · 演示世界' }] },
-          {
-            label: '应用',
-            items: [
-              { name: 'ParentOS', meta: '记录孩子的成长轨迹与家庭观察' },
-              { name: 'Nimi Overtone', meta: "探索音乐灵感与声音实验" },
-            ],
-          },
-        ],
+        ...createHomeChatData('zh'),
       },
       apps: {
         title: '应用',
@@ -115,7 +68,6 @@ export const landingContentZh: LandingContent = {
         backLabel: '返回应用库',
         launchLabel: '启动',
         tabs: ['概览', 'Nimi Access', 'AI 模型'],
-        tabPlaceholderNote: "当前演示不包含此面板数据。",
         aboutTitle: '关于',
         updatedLabel: '最近更新',
         moreInfoLabel: '更多信息',
@@ -124,7 +76,7 @@ export const landingContentZh: LandingContent = {
         previewUnavailableBody: "此 App 暂未提供交互预览，请从应用库选择其他 App。",
         closeLabel: '关闭',
         items: [
-          { id: 'nimi.zhiyu', name: '织羽', task: '孵化属于你的本地 AI 伙伴：陪伴对话、个性塑造与共同成长。', tags: ['文字生成', '语音合成'], updatedAt: '2026年9月17日', localDev: true },
+          { id: 'nimi.zhiyu', iconSrc: '/demo/zhiyu-icon.png', name: '织羽', task: '与 Nimi 伙伴日常相处，延续对话与记忆，体验已配置的语音和形象。', tags: ['伙伴', '对话', '记忆'], updatedAt: '2026年9月17日', localDev: true },
           { id: 'nimi.parentos', name: 'ParentOS', task: "记录孩子的成长点滴与家庭日常，在本机建立私密的成长档案。", tags: ['文字生成', '语音转写'], updatedAt: '2026年9月15日', localDev: true, iconSrc: '/demo/parentos-icon.png' },
           { id: "io.github.nimiplatform.jev-search", name: "Jev Search", task: "用自然语言搜索全网信息，筛选感兴趣的来源，整理出清晰的参考链接。", tags: ["搜索","结果排序"], updatedAt: "2026年10月12日", localDev: true, iconSrc: '/demo/jev-search-icon.png' },
           { id: "io.github.nimiplatform.jev-ultrafast", name: "Jev Ultrafast", task: "为浏览器设定目标，让它自主观察网页、做出决策并连续执行自动化操作。", tags: ["浏览器任务","文字"], updatedAt: "2026年10月12日", localDev: true, iconSrc: '/demo/jev-ultrafast-icon.png' },
@@ -165,24 +117,7 @@ export const landingContentZh: LandingContent = {
         videoLingo: createVideoLingoPreviewContent(t),
         voiceStudio: createVoiceStudioPreviewContent(t),
       },
-      runtime: {
-        title: '运行时',
-        subtitle: "本地运行时与模型状态 · 演示数据",
-        groups: [
-          { label: '服务', rows: [{ label: '运行时状态', value: '运行中' }, { label: '版本', value: '演示构建' }] },
-          { label: "模型", rows: [{ label: '本地模型', value: '1 个可用' }, { label: '云端连接', value: '2 个' }] },
-          { label: '数据', rows: [{ label: '数据目录', value: '本机' }] },
-        ],
-      },
-      settings: {
-        title: '设置',
-        groups: [
-          { label: '账户', rows: [{ label: "个人资料", value: 'Halliday' }, { label: '语言', value: '中文' }] },
-          { label: '外观', rows: [{ label: '主题', value: '浅色' }, { label: '界面密度', value: '舒适' }] },
-          { label: '通知', rows: [{ label: '桌面通知', value: '已开启' }, { label: '提示音', value: "已关闭" }] },
-          { label: '关于', rows: [{ label: '版本', value: '演示构建' }] },
-        ],
-      },
+
     },
   },
   apps: {

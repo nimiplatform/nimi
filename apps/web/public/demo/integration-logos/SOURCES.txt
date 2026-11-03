@@ -1,0 +1,14 @@
+Official service marks, retrieved 2026-10-10. Logos remain trademarks of their owners.
+Files retain the original artwork and colors.
+
+feishu.svg: https://lf-package-cn.feishucdn.com/obj/feishu-static/lark/open/website/favicon-logo.svg
+  Linked by https://open.feishu.cn
+weixin.png: https://res.wx.qq.com/a/wx_fed/assets/res/OTE0YTAw.png
+  Apple touch icon linked by https://wx.qq.com
+qq-official.png: https://static-res.qq.com/static-res/imqq/qq-logo.png
+  Linked by https://im.qq.com/index
+telegram.svg: https://telegram.org/img/website_icon.svg?4
+  Linked by https://telegram.org
+mcp.svg: https://raw.githubusercontent.com/modelcontextprotocol/docs/main/favicon.svg
+onebot-v11.png: https://onebot.dev/logo.png
+  Linked by https://onebot.dev

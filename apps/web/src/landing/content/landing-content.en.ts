@@ -1,3 +1,5 @@
+import { createHomeChatData } from './home-chat-content.js';
+import { createHomeDemoContent } from './home-demo-content.js';
 import { createPreviewTranslate } from '../i18n/preview-messages.js';
 import { createRemainingAppPreviewContent } from './landing-content.remaining-apps.js';
 import { appPreviewMessagesEn } from './app-preview-messages.en.js';
@@ -34,8 +36,9 @@ export const landingContentEn: LandingContent = {
     downloadNote: "Public Beta for Apple Silicon Macs and Windows x86_64. A Nimi account is required.",
     docsCta: 'View docs',
     demo: {
-      windowTitle: 'Nimi',
-      nav: { chat: 'Chat', explore: 'Explore', apps: 'Apps', runtime: 'Runtime', settings: 'Settings' },
+      windowTitle: 'Nimi Home',
+      nav: { home: 'Home', chat: 'Chat', explore: 'Explore', apps: 'Apps', runtime: 'AI Capabilities', cloud: 'Cloud Services', integrations: 'Integrations', downloads: 'Downloads', messages: 'Message center', settings: 'Settings', diagnostics: 'Advanced & diagnostics' },
+      home: createHomeDemoContent('en'),
       chat: {
         greeting: 'Hi, Halliday! Where shall we begin today?',
         inputPlaceholder: 'Ask your AI companion…',
@@ -43,7 +46,7 @@ export const landingContentEn: LandingContent = {
         sendLabel: 'Send',
         backLabel: 'Back',
         userName: 'Halliday',
-        defaultTargetId: 'agent-a',
+        defaultTargetId: 'ai:assistant',
         scriptedReply: 'This is a sample reply demonstrating UI flow; real responses are generated live by the Nimi desktop app.',
         dateLocale: 'en-US',
         dateLabels: { today: 'Today', yesterday: 'Yesterday' },
@@ -56,57 +59,7 @@ export const landingContentEn: LandingContent = {
           typingThinkingLabel: 'Thinking',
           typingStopLabel: 'Stop',
         },
-        agents: [
-          {
-            id: 'agent-a',
-            name: 'Echo',
-            initial: 'E',
-            messages: [
-              { id: 'a-m1', role: 'user', text: 'Take a look at the outline for Chapter 3 of Deep Space Messenger. When should the gravity anchor foreshadowing pay off?', minutesAgo: 8 },
-              { id: 'a-m2', role: 'assistant', text: 'Right as the vessel traverses the asteroid ring. What looks like an ordinary telemetry spike is actually a directed beacon from the fallen civilization—it keeps the pacing restrained and haunting.', minutesAgo: 7 },
-              { id: 'a-m3', role: 'user', text: 'Love that direction. Let’s tighten the emotional cadence of these scenes.', minutesAgo: 6 },
-              { id: 'a-m4', role: 'assistant', text: 'I’ve restructured a beat-by-beat rhythm draft focusing on the communications officer’s internal monologue. It’s ready in your workspace whenever you want to inspect it.', minutesAgo: 5 },
-            ],
-          },
-          {
-            id: 'agent-e',
-            name: 'Hoshino',
-            initial: 'H',
-            messages: [
-              { id: 'e-m1', role: 'assistant', text: 'Welcome back! For that rainy-night piano motif you saved, I sketched two arrangement directions. Want to preview them?', minutesAgo: 1560 },
-              { id: 'e-m2', role: 'user', text: 'Let’s listen to the textured, lo-fi sketch first.', minutesAgo: 1558 },
-            ],
-          },
-          {
-            id: 'agent-k',
-            name: 'Kael',
-            initial: 'K',
-            messages: [
-              { id: 'k-m1', role: 'assistant', text: 'Your three reading notes on local LLM quantization from this week are organized, with the key takeaways ready to review.', minutesAgo: 3000 },
-            ],
-          },
-        ],
-      },
-      explore: {
-        title: 'Explore',
-        searchPlaceholder: 'Search characters, worlds, and apps',
-        sections: [
-          {
-            label: 'Characters',
-            items: [
-              { name: 'Echo', meta: 'Narrative Guide · Demo Character' },
-              { name: 'Hoshino', meta: 'Music Partner · Demo Character' },
-            ],
-          },
-          { label: 'Worlds', items: [{ name: 'Oasis Zero', meta: 'Sci-Fi World · Demo World' }] },
-          {
-            label: 'Apps',
-            items: [
-              { name: 'ParentOS', meta: 'Private child growth journal & family records' },
-              { name: 'Nimi Overtone', meta: 'Music playground for ideas and arrangement' },
-            ],
-          },
-        ],
+        ...createHomeChatData('en'),
       },
       apps: {
         title: 'Apps',
@@ -115,7 +68,6 @@ export const landingContentEn: LandingContent = {
         backLabel: 'Back to app library',
         launchLabel: 'Launch',
         tabs: ['Overview', 'Nimi Access', 'AI Models'],
-        tabPlaceholderNote: "This panel isn’t populated with demo data.",
         aboutTitle: 'About',
         updatedLabel: 'Recently updated',
         moreInfoLabel: 'More info',
@@ -124,7 +76,7 @@ export const landingContentEn: LandingContent = {
         previewUnavailableBody: 'An interactive preview is not available for this app yet. Please pick another app from the catalog.',
         closeLabel: 'Close',
         items: [
-          { id: 'nimi.zhiyu', name: 'Zhiyu', task: 'Nurture your local AI companion: personal conversation, evolving traits, and shared growth.', tags: ['Text Generation', 'Voice Synthesis'], updatedAt: 'September 17, 2026', localDev: true },
+          { id: 'nimi.zhiyu', iconSrc: '/demo/zhiyu-icon.png', name: 'Zhiyu', task: 'Spend time with your Nimi companions, continue conversations and memories, and use their configured voice and avatar.', tags: ['Companions', 'Conversations', 'Memory'], updatedAt: 'September 17, 2026', localDev: true },
           { id: 'nimi.parentos', name: 'ParentOS', task: "Keep your child’s growth journal and family milestones private, stored entirely on your local disk.", tags: ['Text Generation', 'Voice Transcription'], updatedAt: 'September 15, 2026', localDev: true, iconSrc: '/demo/parentos-icon.png' },
           { id: "io.github.nimiplatform.jev-search", name: "Jev Search", task: "Search the web in plain language, filter trusted sources, and organize relevant references.", tags: ["Search","Re-ranking"], updatedAt: "October 12, 2026", localDev: true, iconSrc: '/demo/jev-search-icon.png' },
           { id: "io.github.nimiplatform.jev-ultrafast", name: "Jev Ultrafast", task: "Set a goal and let your browser read the page, make decisions, and run multi-step workflows.", tags: ["Browser Automation","Text"], updatedAt: "October 12, 2026", localDev: true, iconSrc: '/demo/jev-ultrafast-icon.png' },
@@ -165,24 +117,7 @@ export const landingContentEn: LandingContent = {
         videoLingo: createVideoLingoPreviewContent(t),
         voiceStudio: createVoiceStudioPreviewContent(t),
       },
-      runtime: {
-        title: 'Runtime',
-        subtitle: "Local runtime and model status · sample data",
-        groups: [
-          { label: 'Service', rows: [{ label: 'Runtime status', value: 'Running' }, { label: 'Version', value: 'Preview build' }] },
-          { label: "Models", rows: [{ label: 'Local models', value: '1 ready' }, { label: 'Cloud connections', value: '2' }] },
-          { label: 'Data', rows: [{ label: 'Data folder', value: 'This device' }] },
-        ],
-      },
-      settings: {
-        title: 'Settings',
-        groups: [
-          { label: 'Account', rows: [{ label: 'Profile', value: 'Halliday' }, { label: 'Language', value: 'English' }] },
-          { label: 'Appearance', rows: [{ label: 'Theme', value: 'Light' }, { label: 'Density', value: 'Comfortable' }] },
-          { label: 'Notifications', rows: [{ label: 'Desktop notifications', value: 'On' }, { label: 'Sounds', value: 'Off' }] },
-          { label: 'About', rows: [{ label: 'Version', value: 'Preview build' }] },
-        ],
-      },
+
     },
   },
   apps: {

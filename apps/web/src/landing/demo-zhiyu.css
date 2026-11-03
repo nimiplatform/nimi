@@ -1,12 +1,4 @@
-/* Landing-owned port of the Zhiyu shell stylesheet
- * (apps/zhiyu/src/shell/app/home-surface.css). The interactive app preview
- * mounts the same class names and data attributes as the real Zhiyu shell so
- * the two render through identical layout rules. Keep this file in sync with
- * the app when its shell CSS changes; Web must not import app source directly.
- *
- * Demo-only additions live at the bottom under "Demo host".
- */
-
+/* Web-owned port of apps/zhiyu/src/shell/app/home-surface.css. No renderer imports. */
 @scope (.nimi-ui-module--zhiyu) {
 
 .zhiyu-agent-chat {
@@ -14,10 +6,10 @@
   min-height: 0;
   overflow: hidden;
   background:
-    radial-gradient(circle at 26% 42%, rgba(214, 228, 248, 0.55), transparent 34%),
-    radial-gradient(circle at 79% 68%, rgba(244, 224, 252, 0.38), transparent 32%),
-    radial-gradient(circle at 18% 88%, rgba(216, 248, 234, 0.62), transparent 34%),
-    linear-gradient(135deg, rgba(232, 242, 255, 0.82), rgba(252, 252, 255, 0.98) 45%, rgba(244, 240, 255, 0.72));
+    radial-gradient(circle at 26% 42%, rgba(214, 235, 249, 0.55), transparent 34%),
+    radial-gradient(circle at 79% 68%, rgba(211, 235, 249, 0.42), transparent 32%),
+    radial-gradient(circle at 18% 88%, rgba(216, 248, 234, 0.5), transparent 34%),
+    linear-gradient(135deg, rgba(232, 243, 252, 0.82), rgba(252, 252, 255, 0.98) 45%, rgba(230, 242, 251, 0.72));
   color: var(--nimi-text-primary, #17211c);
   font-family: var(--nimi-font-sans, "Inter", "Noto Sans SC", "Microsoft YaHei UI", system-ui, sans-serif);
 }
@@ -44,8 +36,8 @@
 }
 
 :where(.zhiyu-agent-chat) :where(button:not(:disabled):hover):not(:where([data-chat-agent-center="true"], [data-chat-agent-center="true"] *, [data-canonical-composer-root="true"] *)) {
-  border-color: color-mix(in srgb, var(--nimi-action-primary-bg, #45B8D6) 46%, var(--nimi-border-subtle, rgba(15, 23, 42, 0.12)));
-  background: color-mix(in srgb, var(--nimi-surface-card, #fff) 86%, var(--nimi-action-primary-bg, #45B8D6) 14%);
+  border-color: color-mix(in srgb, var(--nimi-action-primary-bg, #0580ca) 46%, var(--nimi-border-subtle, rgba(15, 23, 42, 0.12)));
+  background: color-mix(in srgb, var(--nimi-surface-card, #fff) 86%, var(--nimi-action-primary-bg, #0580ca) 14%);
 }
 
 :where(.zhiyu-agent-chat) :where(button:disabled):not(:where([data-chat-agent-center="true"], [data-chat-agent-center="true"] *, [data-canonical-composer-root="true"] *)) {
@@ -66,7 +58,7 @@
 
 .zhiyu-agent-chat__layout {
   display: grid;
-  grid-template-columns: 64px minmax(0, 1fr) 500px;
+  grid-template-columns: 64px minmax(0, 1fr) 460px;
   grid-template-areas: "presence conversation side";
   gap: 0;
   width: 100%;
@@ -105,8 +97,8 @@
 
 .zhiyu-agent-rail__logo img {
   display: block;
-  width: 28px;
-  height: 28px;
+  width: 40px;
+  height: 40px;
   object-fit: contain;
 }
 
@@ -155,7 +147,7 @@
   height: 0;
   transform: translateY(-50%);
   border-radius: 0 999px 999px 0;
-  background: #10b981;
+  background: var(--nimi-action-primary-bg);
   opacity: 0;
   transition: height 200ms ease, opacity 200ms ease;
 }
@@ -186,7 +178,7 @@
 }
 
 .zhiyu-agent-rail__agent {
-  background: linear-gradient(135deg, #34d399, #0d9488);
+  background: linear-gradient(135deg, var(--nimi-action-primary-bg), var(--nimi-action-primary-bg-hover));
   color: #fff;
   font-size: 15px;
   font-weight: 800;
@@ -318,7 +310,7 @@
    hard-clipped into rectangular slabs when the column fills the viewport. */
 .zhiyu-chat-canvas__transcript [data-canonical-transcript-width],
 .zhiyu-chat-canvas__composer [data-canonical-composer-width],
-.zhiyu-home__chat-failure-notice {
+.zhiyu-chat-canvas__composer .zhiyu-chat-canvas__message-player {
   width: min(720px, calc(100% - 48px));
   max-width: min(720px, calc(100% - 48px));
   margin-right: auto;
@@ -327,7 +319,7 @@
 
 .zhiyu-agent-chat__layout.is-side-closed .zhiyu-chat-canvas__transcript [data-canonical-transcript-width],
 .zhiyu-agent-chat__layout.is-side-closed .zhiyu-chat-canvas__composer [data-canonical-composer-width],
-.zhiyu-agent-chat__layout.is-side-closed .zhiyu-home__chat-failure-notice {
+.zhiyu-agent-chat__layout.is-side-closed .zhiyu-chat-canvas__composer .zhiyu-chat-canvas__message-player {
   width: min(720px, calc(100% - 48px));
   max-width: min(720px, calc(100% - 48px));
   margin-right: auto;
@@ -338,6 +330,13 @@
   display: grid;
   width: 100%;
   min-width: 0;
+}
+
+/* The Kit runtime hint is the only optional sibling above the composer input.
+   It sits 12px above the input, so its default 12px/24px warm shadow bled onto
+   it; keep the lift inside that gap. */
+.zhiyu-chat-canvas__composer [data-canonical-composer-width] > div:not(:last-child) {
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--nimi-status-warning, #d97706) 10%, transparent);
 }
 
 /* Floating composer + status strip, mirroring the desktop conversation pane's
@@ -413,6 +412,49 @@
   z-index: 1;
   pointer-events: auto;
 }
+
+.zhiyu-avatar-launch-notice {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  max-height: min(38vh, 280px);
+  overflow-y: auto;
+  padding: 12px 14px;
+  border: 1px solid var(--nimi-border-subtle);
+  border-radius: 14px;
+  background: var(--nimi-surface-card);
+  color: var(--nimi-text-primary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.zhiyu-avatar-launch-notice :where(p, strong) {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.zhiyu-avatar-launch-notice__heading,
+.zhiyu-avatar-launch-notice__actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.zhiyu-avatar-launch-notice__heading { justify-content: space-between; }
+.zhiyu-avatar-launch-notice__actions { flex-wrap: wrap; }
+.zhiyu-avatar-launch-notice button {
+  padding: 4px 8px;
+  border-radius: 8px;
+  color: var(--nimi-text-primary);
+}
+.zhiyu-avatar-launch-notice button:hover { background: var(--nimi-surface-active); }
+.zhiyu-avatar-launch-notice :where(button, summary):focus-visible {
+  outline: 2px solid var(--nimi-action-primary-bg);
+  outline-offset: 2px;
+}
+.zhiyu-avatar-launch-notice__actions button { text-decoration: underline; text-underline-offset: 3px; }
+.zhiyu-avatar-launch-notice summary { cursor: pointer; }
+.zhiyu-avatar-launch-notice details { min-width: 0; }
 
 .zhiyu-chat-canvas__canonical-composer[data-canonical-composer-root="true"],
 .zhiyu-chat-canvas__composer [data-chat-composer-surface="true"] {
@@ -517,7 +559,7 @@
 
 .zhiyu-no-local-partner-empty__eyebrow {
   margin: 0;
-  color: #25a982;
+  color: var(--nimi-action-primary-bg);
   font-size: 12px;
   font-weight: 800;
   letter-spacing: 0;
@@ -557,15 +599,15 @@
   padding: 0 22px;
   border: 0;
   border-radius: 12px;
-  background: linear-gradient(135deg, #49c99f, #22af8c);
+  background: var(--nimi-action-primary-bg);
   color: #fff;
-  box-shadow: 0 16px 34px rgba(34, 175, 140, 0.28);
+  box-shadow: 0 16px 34px rgba(5, 128, 202, 0.24);
   font-size: 15px;
   font-weight: 800;
 }
 
 .zhiyu-no-local-partner-empty__action:not(:disabled):hover {
-  background: linear-gradient(135deg, #55d2aa, #24b994);
+  background: var(--nimi-action-primary-bg-hover);
   transform: translateY(-1px);
 }
 
@@ -655,7 +697,281 @@
   flex: 1 1 0%;
   align-content: start;
   grid-auto-rows: max-content;
-  overflow-y: auto;
+  gap: 16px;
+  padding: 20px;
+  overflow: hidden;
+  border-color: rgba(255, 255, 255, 0.82);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 100% 0%, rgba(211, 235, 249, 0.62), transparent 32%),
+    rgba(255, 255, 255, 0.76);
+  box-shadow: 0 18px 48px rgba(77, 89, 128, 0.09), 0 2px 8px rgba(77, 89, 128, 0.03);
+}
+
+.zhiyu-agent-center__context {
+  padding: 0 10px;
+}
+
+.zhiyu-agent-center__context [data-zhiyu-agent-center-state-chip] {
+  border: 1px solid rgba(255, 255, 255, 0.62);
+  background: rgba(255, 255, 255, 0.52);
+  box-shadow: 0 2px 8px rgba(77, 89, 128, 0.04);
+}
+
+.zhiyu-agent-center > section[data-chat-agent-center] > header {
+  align-items: center;
+  padding: 2px 2px 0;
+}
+
+.zhiyu-agent-center > section[data-chat-agent-center] > header > div > span:first-child {
+  width: 52px;
+  height: 52px;
+  border-color: rgba(255, 255, 255, 0.9);
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--nimi-action-primary-bg) 8%, #fff);
+  box-shadow: 0 6px 18px rgba(5, 128, 202, 0.12);
+}
+
+.zhiyu-agent-center > section[data-chat-agent-center] > header h1 {
+  font-size: 21px;
+  letter-spacing: -0.025em;
+}
+
+.zhiyu-agent-center > section[data-chat-agent-center] > header > div > div > span:first-child {
+  color: #8790a6;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+}
+
+.zhiyu-agent-center [data-agent-center-chrome-actions] button {
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  color: #778198;
+}
+
+.zhiyu-agent-center [data-agent-center-chrome-actions] button:hover {
+  border-color: rgba(255, 255, 255, 0.76);
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow: none;
+  color: #4f5f88;
+}
+
+.zhiyu-agent-center [data-agent-center-nav-style] {
+  gap: 4px;
+  margin: 0;
+  padding: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.58);
+  border-radius: 16px;
+  background: rgba(235, 241, 248, 0.7);
+  scrollbar-width: none;
+}
+
+.zhiyu-agent-center [data-agent-center-nav-style]::-webkit-scrollbar {
+  display: none;
+}
+
+.zhiyu-agent-center [data-agent-center-nav-style] button {
+  height: 36px;
+  padding: 0 11px;
+  border-radius: 11px;
+  color: #7a8499;
+}
+
+.zhiyu-agent-center [data-agent-center-nav-style] button:hover {
+  background: rgba(255, 255, 255, 0.5);
+  color: var(--nimi-action-primary-bg-hover);
+}
+
+.zhiyu-agent-center [data-agent-center-nav-style] button[aria-selected="true"] {
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: 0 3px 10px rgba(5, 128, 202, 0.08);
+  color: var(--nimi-action-primary-bg);
+}
+
+.zhiyu-agent-center [data-agent-center-nav-style] button > svg {
+  width: 16px;
+  height: 16px;
+}
+
+.zhiyu-agent-center [data-agent-center-nav-style] button > span:not([aria-hidden="true"]) {
+  margin-left: 6px;
+  font-size: 12px;
+}
+
+.zhiyu-agent-center [role="tabpanel"] {
+  padding: 2px 3px 8px;
+  scrollbar-color: rgba(127, 139, 166, 0.24) transparent;
+  scrollbar-width: thin;
+  scroll-padding-bottom: 16px;
+}
+
+.zhiyu-agent-center [role="tabpanel"] > section {
+  gap: 14px;
+}
+
+.zhiyu-agent-center [role="tabpanel"] section > header {
+  margin-bottom: 0;
+  padding: 2px 3px 0;
+}
+
+.zhiyu-agent-center [role="tabpanel"] section > header h2 {
+  font-size: 17px;
+  letter-spacing: -0.015em;
+}
+
+.zhiyu-agent-center [role="tabpanel"] section > header p {
+  margin-top: 6px;
+  font-size: 12px;
+  line-height: 1.65;
+}
+
+.zhiyu-agent-center [role="tabpanel"] .rounded-\[14px\] {
+  border-color: rgba(255, 255, 255, 0.78);
+  border-radius: 17px;
+  background: rgba(255, 255, 255, 0.64);
+  box-shadow: 0 3px 14px rgba(77, 89, 128, 0.035);
+}
+
+.zhiyu-agent-center [role="tabpanel"] .rounded-\[14px\] > button {
+  padding: 15px 16px;
+}
+
+.zhiyu-agent-center [role="tabpanel"] .rounded-\[14px\] > button:hover {
+  background: rgba(239, 241, 250, 0.66);
+}
+
+.zhiyu-agent-center [data-agent-center-setup-summary] {
+  padding: 3px 4px 0;
+}
+
+.zhiyu-agent-center [data-agent-center-setup-summary] h3 {
+  font-size: 15px;
+}
+
+.zhiyu-agent-center [role="tabpanel"] :where(input, select, textarea) {
+  border-color: rgba(117, 129, 157, 0.16);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.76);
+}
+
+.zhiyu-agent-center [role="tabpanel"] .nimi-action {
+  border-radius: 11px;
+}
+
+.zhiyu-agent-center__unavailable {
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at 50% 42%, rgba(211, 235, 249, 0.66), transparent 34%),
+    rgba(255, 255, 255, 0.76);
+  box-shadow: 0 18px 48px rgba(77, 89, 128, 0.09), 0 2px 8px rgba(77, 89, 128, 0.03);
+}
+
+.zhiyu-agent-center__unavailable-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 19px 20px;
+}
+
+.zhiyu-agent-center__unavailable-header h2 {
+  margin: 0;
+  color: #303a50;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.zhiyu-agent-center .zhiyu-agent-center__icon-button {
+  display: inline-grid;
+  width: 34px;
+  min-width: 34px;
+  height: 34px;
+  min-height: 34px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 11px;
+  background: transparent;
+  color: #7a8499;
+}
+
+.zhiyu-agent-center .zhiyu-agent-center__icon-button:hover {
+  border: 0;
+  background: rgba(234, 237, 247, 0.74);
+  color: #4f5f88;
+}
+
+.zhiyu-agent-center__unavailable-content {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 28px 72px;
+  text-align: center;
+}
+
+.zhiyu-agent-center__unavailable-icon {
+  display: grid;
+  width: 62px;
+  height: 62px;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.88);
+  border-radius: 21px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.94), rgba(218, 238, 250, 0.8));
+  box-shadow: 0 10px 28px rgba(5, 128, 202, 0.11);
+  color: var(--nimi-action-primary-bg);
+}
+
+.zhiyu-agent-center__unavailable-copy {
+  margin-top: 22px;
+}
+
+.zhiyu-agent-center__unavailable-copy h3 {
+  margin: 0;
+  color: #303a50;
+  font-size: 18px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+}
+
+.zhiyu-agent-center__unavailable-copy p {
+  max-width: 260px;
+  margin: 9px auto 0;
+  color: #7a8499;
+  font-size: 13px;
+  line-height: 1.7;
+}
+
+.zhiyu-agent-center .zhiyu-agent-center__retry-button {
+  display: inline-flex;
+  min-height: 40px;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-top: 24px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--nimi-action-primary-bg);
+  box-shadow: 0 7px 18px rgba(5, 128, 202, 0.2);
+  color: #fff;
+  font-size: 13px;
+}
+
+.zhiyu-agent-center .zhiyu-agent-center__retry-button:hover {
+  border: 0;
+  background: var(--nimi-action-primary-bg-hover);
+  color: #fff;
+}
+
+.zhiyu-agent-center :where(.zhiyu-agent-center__icon-button, .zhiyu-agent-center__retry-button):focus-visible {
+  outline: 2px solid var(--nimi-action-primary-bg);
+  outline-offset: 3px;
 }
 
 .zhiyu-home__identity-grid,
@@ -683,7 +999,7 @@
 
 @container nimi-ui-module-zhiyu-surface (max-width: 1320px) {
   .zhiyu-agent-chat__layout {
-    grid-template-columns: 64px minmax(0, 1fr) 500px;
+    grid-template-columns: 64px minmax(0, 1fr) 460px;
     grid-template-areas: "presence conversation side";
     gap: 0;
   }
@@ -717,15 +1033,25 @@
   .zhiyu-agent-chat__layout,
   .zhiyu-agent-chat__layout.is-side-closed {
     grid-template-columns: 58px minmax(0, 1fr);
-    grid-template-areas:
-      "presence conversation"
-      "presence side";
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: "presence conversation";
     gap: 10px;
-    overflow-y: auto;
+    overflow: hidden;
   }
 
-  .zhiyu-agent-chat__layout.is-side-closed {
-    grid-template-areas: "presence conversation";
+  .zhiyu-agent-chat__layout:not(.is-side-closed) {
+    grid-template-areas: "presence side";
+  }
+
+  .zhiyu-agent-chat__layout:not(.is-side-closed) .zhiyu-chat-canvas {
+    display: none;
+  }
+
+  .zhiyu-agent-center {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    margin: 0;
   }
 
   .zhiyu-agent-rail {
@@ -755,7 +1081,8 @@
   }
 
   .zhiyu-chat-canvas__transcript [data-canonical-transcript-width],
-  .zhiyu-chat-canvas__composer [data-canonical-composer-width] {
+  .zhiyu-chat-canvas__composer [data-canonical-composer-width],
+  .zhiyu-chat-canvas__composer .zhiyu-chat-canvas__message-player {
     width: calc(100% - 48px);
   }
 }
@@ -768,7 +1095,7 @@
   .zhiyu-agent-chat__layout,
   .zhiyu-agent-chat__layout.is-side-closed {
     grid-template-columns: minmax(0, 1fr);
-    grid-template-rows: 52px auto;
+    grid-template-rows: 52px minmax(0, 1fr);
     grid-template-areas:
       "presence"
       "conversation";
@@ -776,22 +1103,9 @@
   }
 
   .zhiyu-agent-chat__layout:not(.is-side-closed) {
-    grid-template-rows: 52px auto auto;
     grid-template-areas:
       "presence"
-      "conversation"
       "side";
-  }
-
-  .zhiyu-agent-chat__layout:not(.is-side-closed) .zhiyu-agent-center {
-    position: relative;
-    inset: auto;
-    z-index: auto;
-    height: auto;
-    width: 100%;
-    max-width: 100%;
-    min-height: min(640px, calc(100cqh - 20px));
-    margin: 0;
   }
 
   .zhiyu-agent-chat__layout:not(.is-side-closed) .zhiyu-agent-center > section[data-chat-agent-center] {
@@ -861,15 +1175,36 @@
 
 }
 
+@scope (.nimi-ui-module--zhiyu) {
+  .zhiyu-agent-chat__layout[data-zhiyu-rail-visible="false"] {
+    grid-template-columns: minmax(0, 1fr) 460px;
+    grid-template-rows: minmax(0, 1fr);
+    grid-template-areas: "conversation side";
+  }
+  .zhiyu-agent-chat__layout[data-zhiyu-rail-visible="false"].is-side-closed {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "conversation";
+  }
+  @container nimi-ui-module-zhiyu-surface (max-width: 980px) {
+    .zhiyu-agent-chat__layout[data-zhiyu-rail-visible="false"] {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: minmax(0, 1fr);
+      grid-template-areas: "side";
+    }
+    .zhiyu-agent-chat__layout[data-zhiyu-rail-visible="false"].is-side-closed {
+      grid-template-rows: minmax(0, 1fr);
+      grid-template-areas: "conversation";
+    }
+  }
+}
+
 /* ---------------------------------------------------------------------- */
 /* Demo host                                                               */
 /* ---------------------------------------------------------------------- */
 
 /* Root sizing and the container the Zhiyu shell queries against; mirrors
- * apps/zhiyu/src/renderer/styles.css. The demo root also carries the accent
- * pack Zhiyu mounts through NimiThemeProvider ("nimi-accent"); the landing
- * page keeps its own root theme, so those tokens are scoped here instead of
- * applied to <html>. Values mirror kit/ui/src/generated/themes/nimi-accent.css. */
+ * apps/zhiyu/src/renderer/styles.css. Its current blue action palette is
+ * scoped to this preview; the public page keeps its own root theme. */
 .nimi-ui-module--zhiyu[data-demo-zhiyu-root="true"] {
   display: block;
   width: 100%;
@@ -878,15 +1213,15 @@
   min-height: 100%;
   overflow: clip;
   container: nimi-ui-module-zhiyu-surface / size;
-  --nimi-surface-active: rgba(69, 184, 214, 0.16);
-  --nimi-action-primary-bg: #45B8D6;
-  --nimi-action-primary-bg-hover: #35A7C4;
-  --nimi-action-primary-text: #111827;
-  --nimi-action-ghost-hover: rgba(69, 184, 214, 0.10);
-  --nimi-sidebar-item-active: rgba(69, 184, 214, 0.16);
-  --nimi-sidebar-item-hover: rgba(69, 184, 214, 0.08);
-  --nimi-field-focus: #45B8D6;
-  --nimi-focus-ring-color: rgba(69, 184, 214, 0.28);
+  --nimi-surface-active: rgba(5, 128, 202, 0.12);
+  --nimi-action-primary-bg: #0580ca;
+  --nimi-action-primary-bg-hover: #0471b2;
+  --nimi-action-primary-text: #fff;
+  --nimi-action-ghost-hover: rgba(5, 128, 202, 0.08);
+  --nimi-sidebar-item-active: rgba(5, 128, 202, 0.12);
+  --nimi-sidebar-item-hover: rgba(5, 128, 202, 0.08);
+  --nimi-field-focus: #0580ca;
+  --nimi-focus-ring-color: #0580ca;
 }
 
 /* The real controller paints a pack's scoped CSS onto the canvas; the demo
@@ -934,4 +1269,53 @@
   padding: 0 10px;
   border-radius: 8px;
   font-size: 11px;
+}
+
+.zhiyu-partner-preview { width: min(480px, calc(100vw - 32px)); padding: 0; border-radius: 18px; background: var(--nimi-surface-card); }
+.zhiyu-partner-preview__layout { display: grid; grid-template-columns: 36% minmax(0, 1fr); min-height: 250px; outline: none; }
+.zhiyu-partner-preview__layout.is-compact { grid-template-columns: 1fr; min-height: 0; }
+.zhiyu-partner-preview__art { position: relative; min-width: 0; overflow: hidden; border-radius: 17px 0 0 17px; background: var(--nimi-surface-panel); }
+.zhiyu-partner-preview__art img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.zhiyu-partner-preview__copy { min-width: 0; padding: 23px 22px 19px; display: flex; flex-direction: column; align-items: flex-start; }
+.zhiyu-partner-preview h3 { margin: 0; font-size: 22px; line-height: 1.3; font-weight: 650; color: var(--nimi-text-primary); overflow-wrap: anywhere; }
+.zhiyu-partner-preview__muted { margin: 8px 0 0; font-size: 12px; line-height: 1.6; color: var(--nimi-text-muted); }
+.zhiyu-partner-preview__muted button { margin-left: 8px; color: var(--nimi-action-primary-bg); }
+.zhiyu-partner-preview__intro { margin: 15px 0 0; font-size: 14px; line-height: 1.75; color: var(--nimi-text-secondary); display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.zhiyu-partner-preview__world { display: flex; align-items: center; gap: 6px; margin-top: 12px; font-size: 12px; color: var(--nimi-text-secondary); }
+.zhiyu-partner-preview__world svg { flex-shrink: 0; }
+.zhiyu-partner-preview__topics { display: flex; align-items: baseline; gap: 10px; width: 100%; border-top: 1px solid var(--nimi-border-subtle); margin-top: 15px; padding-top: 12px; font-size: 12px; line-height: 1.6; }
+.zhiyu-partner-preview__topics ul { display: flex; flex-wrap: wrap; gap: 6px 12px; list-style: none; padding: 0; margin: 0; color: var(--nimi-text-muted); }
+.zhiyu-partner-preview__topics li { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.zhiyu-partner-preview__actions { display: flex; gap: 18px; align-items: center; padding-top: 18px; margin-top: auto; font-size: 13px; }
+.zhiyu-partner-preview__actions button { display: inline-flex; gap: 8px; align-items: center; color: var(--nimi-text-secondary); }
+.zhiyu-partner-preview__actions button:first-child { font-weight: 600; color: var(--nimi-action-primary-bg); }
+.zhiyu-partner-preview__actions button + button { padding-left: 18px; border-left: 1px solid var(--nimi-border-subtle); }
+.zhiyu-partner-preview :is(button, summary):focus-visible { outline: 2px solid var(--nimi-focus-ring-color); outline-offset: 4px; border-radius: 4px; }
+.zhiyu-partner-preview__voice { margin-top: 12px; font-size: 12px; color: var(--nimi-text-secondary); }
+.zhiyu-partner-preview__voice button { display: inline-flex; gap: 7px; align-items: center; }
+.zhiyu-partner-preview__voice button > span { display: grid; place-items: center; width: 25px; height: 25px; border-radius: 50%; background: var(--nimi-surface-active); color: var(--nimi-action-primary-bg); }
+.zhiyu-partner-preview__voice small { font-size: 11px; color: var(--nimi-text-muted); }
+.zhiyu-partner-preview__voice audio { display: none; }
+
+.demo-zhiyu-preview { display: flex; height: 100%; min-height: 0; flex-direction: column; }
+.demo-zhiyu-chrome { display: flex; align-items: center; height: 40px; flex-shrink: 0; gap: 8px; padding: 0 12px; background: #f7f9fc; border-bottom: 1px solid #e6edf4; }
+.demo-zhiyu-chrome button { display: grid; place-items: center; width: 28px; height: 28px; color: #657182; border-radius: 6px; }
+.demo-zhiyu-chrome button:disabled { opacity: .35; }
+.demo-zhiyu-chrome button:hover:not(:disabled) { background: #0580ca12; }
+.demo-zhiyu-preview > .nimi-ui-module--zhiyu { flex: 1; min-height: 0; height: auto; }
+.zhiyu-partner-preview { --nimi-action-primary-bg: #0580ca; --nimi-surface-active: rgba(5,128,202,.12); }
+.nimi-ui-module--zhiyu[data-demo-zhiyu-root] [data-canonical-transcript-root] h2 { font-size: var(--nimi-type-page-title-size); }
+.nimi-ui-module--zhiyu[data-demo-zhiyu-root] [data-agent-introduction] h2 { font-size: var(--nimi-type-hero-title-size); }
+.demo-zhiyu-quote { display: flex; align-items: start; gap: 8px; padding: 8px 12px; border-radius: var(--nimi-radius-sm); background: var(--nimi-surface-panel); color: var(--nimi-text-secondary); font-size: 13px; }
+.demo-zhiyu-quote > div { min-width: 0; flex: 1; }
+.demo-zhiyu-quote small { font-size: 11px; }
+.demo-zhiyu-quote summary { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; cursor: pointer; list-style: none; }
+.demo-zhiyu-quote p { max-height: 120px; overflow: auto; white-space: pre-wrap; }
+.demo-zhiyu-quote > button { padding: 4px; flex-shrink: 0; }
+.demo-zhiyu-reading { display: flex; gap: 10px; padding: 6px 12px; }
+.demo-zhiyu-reading button { padding: 4px 8px; font-size: 12px; text-decoration: underline; }
+/* Zhiyu runs inside the public preview dialog. Its body-portaled Kit menus
+   must sit above that host dialog, as they do in the native app window. */
+body:has([data-testid="demo-app-preview"] [data-demo-zhiyu-root]) > [data-radix-popper-content-wrapper] {
+  z-index: calc(var(--nimi-z-dialog) + 1) !important;
 }

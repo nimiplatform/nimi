@@ -1,127 +1,193 @@
-import { useCallback, useMemo, useState } from 'react';
+import { ArrowLeft, ArrowRight, PanelLeft } from 'lucide-react';
+import { DemoHomeSurface, DemoMessages } from './demo-home.js';
+import { DemoCloudSurface, DemoIntegrationsSurface } from './demo-connections.js';
+import { DemoDownloadsSurface, DemoDiagnosticsSurface } from './demo-system.js';
 import { cn } from '@nimiplatform/kit/ui';
-import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/types';
-import type { HeroDemo, HeroDemoSurface } from '../content/landing-content.js';
 import { DemoAppsSurface } from './demo-apps.js';
-import { DemoChatSurface, materializeAgentMessages } from './demo-chat.js';
+import { DemoChatSurface } from './demo-chat.js';
 import { DemoExploreSurface } from './demo-explore.js';
 import { DemoRail, DemoSurfaceSwitcher } from './demo-rail.js';
 import { DemoRuntimeSurface } from './demo-runtime.js';
 import { DemoSettingsSurface } from './demo-settings.js';
 
-export type HeroDemoProps = {
-  demo: HeroDemo;
-  /** Initial internal surface; the hero starts on chat, the apps screen on apps. */
-  defaultSurface?: HeroDemoSurface;
-  /** Forces the visible surface while set — used by the hero↔apps morph so the
-   * zooming window cross-fades to the apps surface before it lands. */
-  surfaceOverride?: HeroDemoSurface | null;
-  /** Fills the parent instead of using the fixed hero mockup heights. */
-  expanded?: boolean;
-};
+import { useHeroDemoSession } from './hero-demo-session.js';
 
-export function HeroDemoView({ demo, defaultSurface, surfaceOverride, expanded }: HeroDemoProps) {
-  const initialSurface = defaultSurface ?? 'chat';
-  const [internalSurface, setInternalSurface] = useState<HeroDemoSurface>(initialSurface);
-  const [activeAgentId, setActiveAgentId] = useState<string | null>(null);
-  const [localMessages, setLocalMessages] = useState<Readonly<Record<string, readonly ConversationCanonicalMessage[]>>>({});
-  const [prevDemo, setPrevDemo] = useState(demo);
-  if (prevDemo !== demo) {
-    // Locale switched: demo-local state resets entirely (D7). Mock messages are
-    // translated per locale, so carrying local echoes across would mix languages.
-    setPrevDemo(demo);
-    setInternalSurface(initialSurface);
-    setActiveAgentId(null);
-    setLocalMessages({});
-  }
-  const surface = surfaceOverride ?? internalSurface;
+export type HeroDemoProps = { expanded?: boolean };
 
-  const baseMessages = useMemo(() => materializeAgentMessages(demo.chat), [demo]);
-
-  const handleSubmit = useCallback((text: string) => {
-    const targetId = activeAgentId ?? demo.chat.defaultTargetId;
-    const agent = demo.chat.agents.find((candidate) => candidate.id === targetId);
-    if (!agent) return;
-    const stamp = Date.now();
-    const sessionId = `demo-${targetId}`;
-    const echo: ConversationCanonicalMessage = {
-      id: `local-${stamp}-user`,
-      sessionId,
-      targetId,
-      source: 'agent',
-      role: 'user',
-      text,
-      createdAt: new Date(stamp).toISOString(),
-      status: 'complete',
-      kind: 'text',
-      senderName: demo.chat.userName,
-      senderKind: 'human',
-    };
-    const reply: ConversationCanonicalMessage = {
-      id: `local-${stamp}-agent`,
-      sessionId,
-      targetId,
-      source: 'agent',
-      role: 'assistant',
-      text: demo.chat.scriptedReply,
-      createdAt: new Date(stamp + 1).toISOString(),
-      status: 'complete',
-      kind: 'text',
-      senderName: agent.name,
-      senderKind: 'agent',
-    };
-    setLocalMessages((prev) => ({
-      ...prev,
-      [targetId]: [...(prev[targetId] ?? []), echo, reply],
-    }));
-    setActiveAgentId(targetId);
-  }, [activeAgentId, demo]);
+export function HeroDemoView({ expanded }: HeroDemoProps) {
+  const {
+    demo,
+    history,
+    position,
+    current,
+    surface,
+    selectedChatTargetId,
+    sidebar,
+    setSidebar,
+    preferences,
+    setPreferences,
+    composerDrafts,
+    setComposerDrafts,
+    localMessages,
+    messages,
+    baseMessages,
+    navigate,
+    goHistory,
+    switchChatSide,
+    readMessage,
+    hideMessage,
+    changeLocale,
+    addExplorePartner,
+    handleSubmit,
+    createThread,
+  } = useHeroDemoSession();
 
   return (
     <div
-      className={cn(
-        'hero-demo-frame',
-        expanded && 'flex h-full min-h-0 flex-col',
-      )}
+      className={cn('hero-demo-frame demo-home-frame', expanded && 'flex h-full min-h-0 flex-col')}
       data-demo-owns-scroll="true"
       data-demo-interactive="true"
+      data-demo-theme={preferences.theme}
+      data-demo-reduced-motion={preferences.reducedMotion}
     >
-      <div className="hero-demo-titlebar flex shrink-0 items-center gap-2 px-4 py-2.5">
-        <span className="h-2.5 w-2.5 rounded-full bg-[#fca5a5]" aria-hidden="true" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#fcd34d]" aria-hidden="true" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#6ee7b7]" aria-hidden="true" />
-        <span className="ml-2 text-sm font-semibold tracking-tight text-slate-700">{demo.windowTitle}</span>
-      </div>
-
-      <div className="shrink-0 px-3 pt-2 md:hidden">
-        <DemoSurfaceSwitcher demo={demo} surface={surface} onSelect={setInternalSurface} />
-      </div>
-
-      <div className={expanded ? 'flex min-h-0 flex-1' : 'flex h-[520px] md:h-[620px] lg:h-[min(720px,80vh)] xl:h-[min(780px,82vh)] 2xl:h-[min(840px,84vh)]'}>
-        <div className="hidden md:flex">
-          <DemoRail demo={demo} surface={surface} onSelect={setInternalSurface} />
+      <div className="hero-demo-titlebar demo-home-titlebar">
+        <div className="demo-traffic-lights" aria-hidden="true">
+          <i />
+          <i />
+          <i />
         </div>
-        <div className="min-w-0 flex-1 p-2 lg:p-3">
-          {/* Keyed remount on every surface switch so the incoming surface
-              plays its fade-in, including the switch the hero↔apps morph
-              performs after the window has landed (the outgoing surface is
-              faded out through data-demo-surface first). */}
-          <div key={surface} data-demo-surface className="demo-surface-enter h-full min-h-0">
-            {surface === 'chat' ? (
+        <button
+          type="button"
+          className="demo-icon-button"
+          aria-label={demo.home.back}
+          disabled={position === 0}
+          onClick={() => goHistory(-1)}
+        >
+          <ArrowLeft size={17} />
+        </button>
+        <button
+          type="button"
+          className="demo-icon-button"
+          aria-label={demo.appPreview.locale === 'zh' ? '前进' : 'Forward'}
+          disabled={position === history.length - 1}
+          onClick={() => goHistory(1)}
+        >
+          <ArrowRight size={17} />
+        </button>
+        <button
+          type="button"
+          className="demo-icon-button demo-sidebar-toggle"
+          aria-label={demo.appPreview.locale === 'zh' ? '切换侧栏' : 'Toggle sidebar'}
+          aria-pressed={sidebar}
+          onClick={() => setSidebar(!sidebar)}
+        >
+          <PanelLeft size={17} />
+        </button>
+        <span className="demo-window-title">{demo.windowTitle}</span>
+        <span className="demo-preview-badge" title={demo.home.note}>
+          {demo.home.badge}
+        </span>
+      </div>
+      <div className="px-3 pt-2 md:hidden">
+        <DemoSurfaceSwitcher demo={demo} surface={surface} onSelect={navigate} />
+      </div>
+      <div
+        className={
+          expanded
+            ? 'demo-window-body flex min-h-0 flex-1'
+            : 'demo-window-body flex h-[520px] md:h-[620px] lg:h-[min(720px,80vh)] xl:h-[min(780px,82vh)] 2xl:h-[min(840px,84vh)]'
+        }
+      >
+        {sidebar && (
+          <div className="hidden md:flex">
+            <DemoRail demo={demo} surface={surface} onSelect={navigate} />
+          </div>
+        )}
+        <div className="demo-window-content min-w-0 flex-1">
+          <div
+            key={surface === 'explore' || surface === 'chat' ? surface : `${surface}:${current.target ?? ''}`}
+            data-demo-surface
+            className="demo-surface-enter h-full min-h-0"
+          >
+            {surface === 'home' && (
+              <DemoHomeSurface
+                demo={demo}
+                messages={messages}
+                onNavigate={navigate}
+                onRead={readMessage}
+                onHide={hideMessage}
+                onReply={(id, text) => {
+                  setComposerDrafts((previous) => ({ ...previous, [id]: text }));
+                  navigate('chat', id);
+                }}
+              />
+            )}
+            {surface === 'chat' && (
               <DemoChatSurface
-                chat={demo.chat}
-                activeAgentId={activeAgentId}
+                demo={demo}
+                draft={composerDrafts[selectedChatTargetId ?? demo.chat.defaultTargetId] ?? ''}
+                onDraftChange={(text) =>
+                  setComposerDrafts((previous) => ({
+                    ...previous,
+                    [selectedChatTargetId ?? demo.chat.defaultTargetId]: text,
+                  }))
+                }
+                selectedTargetId={selectedChatTargetId}
                 baseMessages={baseMessages}
                 localMessages={localMessages}
-                onOpenAgent={setActiveAgentId}
-                onBack={() => setActiveAgentId(null)}
-                onSubmit={handleSubmit}
+                onSelectTarget={(id) => navigate('chat', id ?? undefined)}
+                onSwitchSide={switchChatSide}
+                onNavigate={navigate}
+                onCreateThread={createThread}
+                onSubmit={(submission) => {
+                  handleSubmit(submission);
+                  if (!selectedChatTargetId) navigate('chat', demo.chat.defaultTargetId);
+                }}
               />
-            ) : null}
-            {surface === 'explore' ? <DemoExploreSurface explore={demo.explore} /> : null}
-            {surface === 'apps' ? <DemoAppsSurface apps={demo.apps} preview={demo.appPreview} /> : null}
-            {surface === 'runtime' ? <DemoRuntimeSurface runtime={demo.runtime} /> : null}
-            {surface === 'settings' ? <DemoSettingsSurface settings={demo.settings} /> : null}
+            )}
+            {surface === 'explore' && (
+              <DemoExploreSurface
+                demo={demo}
+                target={current.target}
+                onNavigate={navigate}
+                onAddPartner={addExplorePartner}
+                onChat={(character) => {
+                  addExplorePartner(character);
+                  navigate('chat', character.id);
+                }}
+              />
+            )}
+            {surface === 'apps' && (
+              <DemoAppsSurface
+                apps={demo.apps}
+                preview={demo.appPreview}
+                initialAppId={current.surface === 'apps' ? current.target : undefined}
+              />
+            )}
+            {surface === 'runtime' && <DemoRuntimeSurface demo={demo} onNavigate={navigate} />}
+            {surface === 'cloud' && <DemoCloudSurface demo={demo} onNavigate={navigate} />}
+            {surface === 'integrations' && <DemoIntegrationsSurface demo={demo} target={current.target} />}
+            {surface === 'messages' && (
+              <DemoMessages
+                full
+                demo={demo}
+                messages={messages}
+                onNavigate={navigate}
+                onRead={readMessage}
+                onHide={hideMessage}
+              />
+            )}
+            {surface === 'downloads' && <DemoDownloadsSurface demo={demo} onNavigate={navigate} />}
+            {surface === 'diagnostics' && <DemoDiagnosticsSurface demo={demo} />}
+            {surface === 'settings' && (
+              <DemoSettingsSurface
+                demo={demo}
+                target={current.target}
+                preferences={preferences}
+                onPreferences={setPreferences}
+                onLocale={changeLocale}
+              />
+            )}
           </div>
         </div>
       </div>

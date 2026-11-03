@@ -1,3 +1,5 @@
+import { HeroDemoSessionProvider } from './components/hero-demo-session.js';
+import { initialDemoSurface } from './content/demo-navigation.js';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AppsSection } from './components/apps-section.js';
 import { CapabilitiesSection } from './components/capabilities-section.js';
@@ -99,8 +101,10 @@ export function App() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
+  const [demoEntrySurface] = useState(() => initialDemoSurface(typeof window === 'undefined' ? '' : window.location.hash));
+  const [demoSection, setDemoSection] = useState(demoEntrySurface === 'chat' ? 1 : 0);
   const heroAppsMorph = useHeroAppsMorph();
-  useSectionPaging(Boolean(content), { onFlip: heroAppsMorph.handleFlip, onNavigate: heroAppsMorph.cancel });
+  useSectionPaging(Boolean(content), { onFlip: heroAppsMorph.handleFlip, onNavigate: heroAppsMorph.cancel, onSectionChange: setDemoSection });
 
   useEffect(() => {
     if (typeof window === 'undefined') {
@@ -382,13 +386,14 @@ export function App() {
       </header>
 
       <main id="main-content">
+        <HeroDemoSessionProvider key={content.hero.demo.appPreview.locale} demo={content.hero.demo} initialSurface={demoEntrySurface} section={demoSection}>
         <HeroSection
           content={content.hero}
           links={links}
-          demoSurfaceOverride={heroAppsMorph.heroSurfaceOverride}
           demoExpanded={heroAppsMorph.heroDemoExpanded}
         />
         <AppsSection content={content.apps} demo={content.hero.demo} />
+        </HeroDemoSessionProvider>
         <WorldsSection content={content.worlds} links={links} />
         <CapabilitiesSection content={content.capabilities} links={links} />
         <RiskControlSection content={content.riskControl} links={links} />

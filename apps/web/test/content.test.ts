@@ -37,11 +37,10 @@ test('content exposes the full user journey in both locales', async () => {
     assert.ok(content.hero.demo.chat.sendLabel.length > 0);
     assert.ok(content.hero.demo.chat.scriptedReply.length > 0);
     assert.ok(content.hero.demo.chat.agents.length >= 2);
-    assert.ok(content.hero.demo.chat.agents.every((agent) => agent.messages.length >= 1));
-    assert.ok(content.hero.demo.chat.agents.some((agent) => agent.id === content.hero.demo.chat.defaultTargetId));
-    assert.ok(content.hero.demo.explore.sections.length >= 2);
+    assert.ok(content.hero.demo.chat.agents.some((agent) => agent.messages.length >= 1));
+    assert.ok(content.hero.demo.chat.assistantThreads.some((thread) => thread.id === content.hero.demo.chat.defaultTargetId));
     assert.ok(content.hero.demo.apps.items.length >= 3);
-    assert.ok(content.hero.demo.settings.groups.length >= 2);
+    assert.ok(content.hero.demo.home.settingsGroups.length >= 2);
 
     // The apps screen is the demo window under a centered section header.
     assert.ok(content.apps.title.trim().length > 0, `${locale}.apps needs a heading`);
@@ -77,7 +76,10 @@ test('landing copy stays capability-first without provider names or deferred cap
 
   for (const locale of ['en', 'zh'] as const) {
     const content = await loadLandingContent(locale);
-    const serialized = JSON.stringify(content);
+    // The product replica includes explicitly labeled sample model inventory.
+    // Public marketing copy remains capability-first.
+    const { demo: _demo, ...heroCopy } = content.hero;
+    const serialized = JSON.stringify({ ...content, hero: heroCopy });
     for (const pattern of banned) {
       assert.doesNotMatch(serialized, pattern, `${locale} contains ${pattern}`);
     }

@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react';
-import type { HeroDemoSurface, LandingContent } from '../content/landing-content.js';
+import type { LandingContent } from '../content/landing-content.js';
 import type { LandingLinks } from '../config/landing-links.js';
 import { DemoErrorBoundary } from './demo-error-boundary.js';
 import { HeroDemoStatic } from './hero-demo-static.js';
@@ -11,8 +11,6 @@ const HeroDemoView = lazy(async () => ({
 export type HeroSectionProps = {
   content: LandingContent['hero'];
   links: LandingLinks;
-  /** Forced demo surface while the hero↔apps morph runs (null = interactive). */
-  demoSurfaceOverride?: HeroDemoSurface | null;
   /** While the morph runs, the demo frame stretches with its animated wrapper
    * instead of using its fixed hero heights. */
   demoExpanded?: boolean;
@@ -22,7 +20,7 @@ export type HeroSectionProps = {
 const ACCENT_PUNCTUATION = /^(.*?)([.。!?！？])$/u;
 
 export function HeroSection(props: HeroSectionProps) {
-  const { content, links, demoSurfaceOverride = null, demoExpanded = false } = props;
+  const { content, links, demoExpanded = false } = props;
   const sloganAccent = content.sloganAccent;
   const hasAccent = sloganAccent.length > 0 && content.slogan.endsWith(sloganAccent);
   const sloganLead = hasAccent
@@ -61,9 +59,7 @@ export function HeroSection(props: HeroSectionProps) {
                       trailing characters onto their own line. */}
                   <span className="whitespace-nowrap">
                     {accentText}
-                    {accentPunctuation ? (
-                      <span className="text-[#14b8a6]">{accentPunctuation}</span>
-                    ) : null}
+                    {accentPunctuation ? <span className="text-[#14b8a6]">{accentPunctuation}</span> : null}
                   </span>
                 </>
               ) : (
@@ -142,7 +138,7 @@ export function HeroSection(props: HeroSectionProps) {
             <div aria-hidden="true" className="hero-glow" />
             <DemoErrorBoundary fallback={<HeroDemoStatic demo={content.demo} />}>
               <Suspense fallback={<HeroDemoStatic demo={content.demo} />}>
-                <HeroDemoView demo={content.demo} surfaceOverride={demoSurfaceOverride} expanded={demoExpanded} />
+                <HeroDemoView expanded={demoExpanded} />
               </Suspense>
             </DemoErrorBoundary>
           </div>

@@ -1,15 +1,27 @@
-import type { ReactElement } from 'react';
-import { Avatar, IconButton, SegmentedControl } from '@nimiplatform/kit/ui';
+import { useState } from 'react';
+import {
+  Bell,
+  Cloud,
+  Compass,
+  Cpu,
+  Download,
+  MessageSquare,
+  UserRound,
+  Wrench,
+  Plug,
+  Settings,
+  ShoppingBag,
+} from 'lucide-react';
 import type { HeroDemo, HeroDemoSurface } from '../content/landing-content.js';
-import { AppsIcon, BellIcon, ChatIcon, CompassIcon, GearIcon, RuntimeIcon } from './demo-icons.js';
 
-const SURFACE_ICONS: Record<HeroDemoSurface, () => ReactElement> = {
-  chat: ChatIcon,
-  explore: CompassIcon,
-  apps: AppsIcon,
-  runtime: RuntimeIcon,
-  settings: GearIcon,
-};
+const primary = [
+  ['chat', MessageSquare],
+  ['explore', Compass],
+  ['apps', ShoppingBag],
+  ['runtime', Cpu],
+  ['cloud', Cloud],
+  ['integrations', Plug],
+] as const;
 
 export function DemoRail({
   demo,
@@ -18,45 +30,117 @@ export function DemoRail({
 }: {
   demo: HeroDemo;
   surface: HeroDemoSurface;
-  onSelect: (next: HeroDemoSurface) => void;
+  onSelect: (next: HeroDemoSurface, target?: string) => void;
 }) {
-  const primary: ReadonlyArray<HeroDemoSurface> = ['chat', 'explore', 'apps', 'runtime'];
+  const [menu, setMenu] = useState(false);
   return (
-    <nav aria-label={demo.windowTitle} className="flex w-14 shrink-0 flex-col items-center gap-3 py-4">
-      <img src="/logo.svg" alt="" className="h-6 w-6" aria-hidden="true" />
-      <ul className="mt-2 flex flex-col items-center gap-2">
-        {primary.map((id) => {
-          const Icon = SURFACE_ICONS[id];
-          return (
-            <li key={id}>
-              <IconButton
-                aria-label={demo.nav[id]}
-                aria-pressed={id === surface}
-                active={id === surface}
-                icon={<Icon />}
-                onClick={() => onSelect(id)}
+    <nav
+      aria-label={demo.windowTitle}
+      className="demo-primary-rail"
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') setMenu(false);
+      }}
+    >
+      <button
+        type="button"
+        className="demo-home-logo"
+        aria-label={demo.nav.home}
+        aria-pressed={surface === 'home'}
+        onClick={() => onSelect('home')}
+      >
+        <img src="/logo.svg" alt="" />
+      </button>
+      <div className="demo-primary-items">
+        {primary.map(([id, Icon]) => (
+          <button
+            type="button"
+            key={id}
+            className="demo-rail-button"
+            aria-label={demo.nav[id]}
+            title={demo.nav[id]}
+            aria-pressed={surface === id}
+            onClick={() => onSelect(id)}
+          >
+            <Icon size={21} strokeWidth={1.7} />
+          </button>
+        ))}
+      </div>
+      <div className="demo-rail-bottom">
+        <button
+          type="button"
+          className="demo-rail-button"
+          aria-label={demo.nav.downloads}
+          title={demo.nav.downloads}
+          aria-pressed={surface === 'downloads'}
+          onClick={() => onSelect('downloads')}
+        >
+          <Download size={20} />
+        </button>
+        <button
+          type="button"
+          className="demo-rail-button"
+          aria-label={demo.nav.messages}
+          title={demo.nav.messages}
+          aria-pressed={surface === 'messages'}
+          onClick={() => onSelect('messages')}
+        >
+          <Bell size={20} />
+        </button>
+        <div className="relative">
+          <button
+            type="button"
+            className="demo-account-avatar"
+            aria-label={demo.appPreview.locale === 'zh' ? '账户菜单' : 'Account menu'}
+            aria-expanded={menu}
+            onClick={() => setMenu(!menu)}
+          >
+            <img src={demo.chat.self.avatarUrl} alt="" className="h-full w-full rounded-full" />
+          </button>
+          {menu && (
+            <>
+              <button
+                type="button"
+                className="demo-menu-dismiss"
+                aria-label={demo.home.close}
+                onClick={() => setMenu(false)}
               />
-            </li>
-          );
-        })}
-      </ul>
-      <div className="mt-auto flex flex-col items-center gap-2">
-        <IconButton
-          aria-label={demo.nav.settings}
-          aria-pressed={surface === 'settings'}
-          active={surface === 'settings'}
-          icon={<GearIcon />}
-          onClick={() => onSelect('settings')}
-        />
-        <span className="flex h-9 w-9 items-center justify-center text-[var(--nimi-text-muted)]" aria-hidden="true">
-          <BellIcon />
-        </span>
-        <Avatar
-          alt={demo.chat.userName}
-          size="md"
-          className="bg-gradient-to-br from-[#2fc79a] to-[#22cce7]"
-          fallback={<span className="text-xs font-bold text-slate-950">H</span>}
-        />
+              <div className="demo-account-menu">
+                <strong>Halliday</strong>
+                <small>{demo.home.badge}</small>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSelect('settings', 'profile');
+                    setMenu(false);
+                  }}
+                >
+                  <UserRound size={16} />
+                  {demo.home.settingsGroups[1]!.items[0]!.label}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSelect('settings');
+                    setMenu(false);
+                  }}
+                >
+                  <Settings size={16} />
+                  {demo.nav.settings}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    onSelect('settings', 'troubleshooting');
+                    setMenu(false);
+                  }}
+                >
+                  <Wrench size={16} />
+                  {demo.home.settingsGroups[3]!.items[0]!.label}
+                </button>
+              </div>
+            </>
+          )}
+        </div>
       </div>
     </nav>
   );
@@ -69,16 +153,20 @@ export function DemoSurfaceSwitcher({
 }: {
   demo: HeroDemo;
   surface: HeroDemoSurface;
-  onSelect: (next: HeroDemoSurface) => void;
+  onSelect: (next: HeroDemoSurface, target?: string) => void;
 }) {
-  const surfaces: ReadonlyArray<HeroDemoSurface> = ['chat', 'explore', 'apps', 'runtime', 'settings'];
   return (
-    <SegmentedControl
-      ariaLabel={demo.windowTitle}
-      size="sm"
+    <select
+      className="demo-mobile-nav"
+      aria-label={demo.windowTitle}
       value={surface}
-      onValueChange={(value) => onSelect(value as HeroDemoSurface)}
-      items={surfaces.map((id) => ({ value: id, label: demo.nav[id] }))}
-    />
+      onChange={(event) => onSelect(event.target.value as HeroDemoSurface)}
+    >
+      {Object.entries(demo.nav).map(([id, label]) => (
+        <option key={id} value={id}>
+          {label}
+        </option>
+      ))}
+    </select>
   );
 }
