@@ -766,13 +766,13 @@
   "moreConversations": "More chats",
   "hoverCardPreviewHidden": "Message preview hidden",
   "rail": {
-    "people": "People",
+    "people": "Friends",
     "companions": "AI companions",
-    "switchToPeople": "Switch to people",
+    "switchToPeople": "Switch to friends",
     "switchToCompanions": "Switch to AI companions",
     "unreadChats": "Unread conversations",
     "companionUnread": "Unread companion conversations",
-    "otherUnread": "Unread conversations or pending friend requests in People",
+    "otherUnread": "Unread friend conversations or pending friend requests",
     "agentUnavailable": "This companion is no longer available. You are back in Nimi Chat.",
     "messageActions": "Message actions",
     "deselectCompanion": "Deselect {{name}} and return to Nimi Chat"
