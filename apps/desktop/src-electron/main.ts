@@ -1247,6 +1247,17 @@ async function recoverDesktopAfterFailedQuit(error: unknown): Promise<void> {
   ownerQuitRequested = false;
   homeRelaunchRequested = false;
   maintenanceRelaunchRequested = false;
+  // @nimi-authority: rule.nimi.desktop.shell-ui.r066
+  // IPC can still be registered after later shutdown steps fail, while its
+  // formal Agent owners have already been disposed. Replace those owners and
+  // discard renderer-held handles before allowing ordinary Home work again.
+  try {
+    const replaced = await registeredRuntimeBridge?.restoreFormalAppResources?.();
+    const chatStoreReplaced = await chatAiStoreHost?.resumeAfterFailedShutdown();
+    if ((replaced || chatStoreReplaced) && mainWindow && !mainWindow.isDestroyed()) mainWindow.webContents.reload();
+  } catch (recoveryError) {
+    writeDesktopStderr(`[desktop-quit] work-recovery:${desktopBootstrapFailureCode(recoveryError)}\n`);
+  }
   systemEntryHost?.setQuitPhase('idle');
   installedAppHost?.resume();
   try { await localDevelopmentHost?.resumeAfterFailedShutdown(); }

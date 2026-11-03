@@ -46,6 +46,22 @@ function invoke(
   return host.commandHandlers[command]({ command, payload });
 }
 
+test('failed quit replaces the closed chat worker and preserves durable drafts through existing handlers', async (t) => {
+  const dataRoot = await temporaryDataRoot('quit-recovery');
+  const host = createDesktopElectronChatAiStoreHost({ resolveSelectedDataRoot: () => dataRoot, workerUrl: CHAT_AI_STORE_WORKER_URL });
+  t.after(async () => { await host.close(); await rm(dataRoot, { recursive: true, force: true }); });
+  assert.equal(await host.resumeAfterFailedShutdown(), false);
+  await invoke(host, 'chat_ai_create_thread', { payload: { id: 'recovery-thread', title: 'Recovery', createdAtMs: 100, updatedAtMs: 100, lastMessageAtMs: null } });
+  await invoke(host, 'chat_ai_put_draft', { payload: { threadId: 'recovery-thread', text: 'preserved draft', attachments: [], updatedAtMs: 120 } });
+  await host.close();
+  await assert.rejects(invoke(host, 'chat_ai_get_thread_bundle', { payload: { threadId: 'recovery-thread' } }), /chat-ai-store-worker-unavailable/);
+  assert.equal(await host.resumeAfterFailedShutdown(), true);
+  const bundle = await invoke(host, 'chat_ai_get_thread_bundle', { payload: { threadId: 'recovery-thread' } }) as { draft: { text: string } };
+  assert.equal(bundle.draft.text, 'preserved draft');
+  await invoke(host, 'chat_ai_put_draft', { payload: { threadId: 'recovery-thread', text: 'new draft', attachments: [], updatedAtMs: 130 } });
+  assert.equal(await host.resumeAfterFailedShutdown(), false);
+});
+
 test('electron chat ai store persists the existing thread/message/draft schema', async (t) => {
   const dataRoot = await temporaryDataRoot('roundtrip');
   const firstHost = createDesktopElectronChatAiStoreHost({

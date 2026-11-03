@@ -200,29 +200,31 @@ export function registerNimiElectronRuntimeBridge(
   const desktopControlHost = appId === 'nimi.desktop'
     ? createNimiElectronDesktopControlHost()
     : undefined;
-  const desktopFormalHostOwner = desktopControlHost && input.standardShellHost
+  const createDesktopFormalOwner = () => desktopControlHost && input.standardShellHost
     ? createNimiElectronFormalAppLocalHostOwner({
         appId: 'nimi.desktop', profile: 'desktop', control: desktopControlHost,
         revealInOs: input.standardShellHost.revealInOs,
         activityLaunch: input.standardShellHost.appActivitySourceLaunch,
       })
     : undefined;
+  let desktopFormalHostOwner = createDesktopFormalOwner();
   const standardShellHost = desktopFormalHostOwner && input.standardShellHost
     ? {
         ...input.standardShellHost,
-        localAppHost: desktopFormalHostOwner.host,
+        get localAppHost() { return desktopFormalHostOwner!.host; },
       }
     : input.standardShellHost;
-  const bundledAvatarFormalHostOwner = desktopControlHost && input.bundledAvatarHost
+  const createAvatarFormalOwner = () => desktopControlHost && input.bundledAvatarHost
     ? createNimiElectronFormalAppLocalHostOwner({
         appId: 'nimi.avatar', profile: 'avatar', control: desktopControlHost,
         revealInOs: input.bundledAvatarHost.standardShellHost?.revealInOs,
       })
     : undefined;
+  let bundledAvatarFormalHostOwner = createAvatarFormalOwner();
   const bundledAvatarStandardShellHost = bundledAvatarFormalHostOwner && input.bundledAvatarHost
     ? {
         ...input.bundledAvatarHost.standardShellHost,
-        localAppHost: bundledAvatarFormalHostOwner.host,
+        get localAppHost() { return bundledAvatarFormalHostOwner!.host; },
       }
     : input.bundledAvatarHost?.standardShellHost;
   const bundledAvatarFormalScopesBySender = new Map<
@@ -230,6 +232,15 @@ export function registerNimiElectronRuntimeBridge(
     NimiElectronFormalAppLocalHostResourceScope
   >();
   const invalidatedBundledAvatarSenders = new WeakSet<object>();
+  let formalOwnersStopped = false;
+  let unregistered = false;
+  const disposeFormalAppResources = async (): Promise<void> => {
+    formalOwnersStopped = true;
+    await Promise.all([
+      desktopFormalHostOwner?.shutdown(),
+      bundledAvatarFormalHostOwner?.shutdown(),
+    ]);
+  };
   const assertBundledAvatarSenderActive = (sender: object): void => {
     if (invalidatedBundledAvatarSenders.has(sender)) {
       throw new NimiElectronShellHostError({
@@ -703,33 +714,45 @@ export function registerNimiElectronRuntimeBridge(
         desktopAccountHost.subscribeSessionProjection(listener)
       ),
     } : {}),
-    ...(bundledAvatarStandardShellHost?.localAppHost
-      ? { bundledAvatarLocalAppHost: bundledAvatarStandardShellHost.localAppHost }
-      : {}),
+    get bundledAvatarLocalAppHost() { return bundledAvatarStandardShellHost?.localAppHost; },
     ...(desktopControlHost && desktopFormalHostOwner
       ? {
           resolveDesktopAgentReference: (request: Readonly<{ localAgentRef: string }>) => (
-            desktopFormalHostOwner.resolveDesktopAgentReference(request)
+            desktopFormalHostOwner!.resolveDesktopAgentReference(request)
           ),
           resolveAppActivityOpenLaunch: (openRequestId: string) => (
-            desktopFormalHostOwner.resolveAppActivityOpenLaunch(openRequestId)
+            desktopFormalHostOwner!.resolveAppActivityOpenLaunch(openRequestId)
           ),
           revalidateAvatarHostTarget: (avatarHostTargetRef: string) => (
             revalidateDesktopAvatarHostTarget(
               desktopControlHost,
-              desktopFormalHostOwner,
+              desktopFormalHostOwner!,
               avatarHostTargetRef,
             )
           ),
-          disposeFormalAppResources: async () => {
-            await Promise.all([
-              desktopFormalHostOwner.shutdown(),
-              bundledAvatarFormalHostOwner?.shutdown(),
-            ]);
+          disposeFormalAppResources,
+          // @nimi-authority: rule.nimi.desktop.shell-ui.r066
+          restoreFormalAppResources: async () => {
+            if (unregistered) throw new Error('runtime-bridge-unregistered');
+            if (!formalOwnersStopped) return false;
+            // A failed quit can leave Home open after these owners were
+            // permanently disposed. Finish their cleanup before replacing
+            // them; never revive old scopes or abandon pending native closes.
+            await disposeFormalAppResources();
+            if (unregistered) throw new Error('runtime-bridge-unregistered');
+            for (const sender of bundledAvatarFormalScopesBySender.keys()) {
+              invalidatedBundledAvatarSenders.add(sender);
+            }
+            bundledAvatarFormalScopesBySender.clear();
+            desktopFormalHostOwner = createDesktopFormalOwner();
+            bundledAvatarFormalHostOwner = createAvatarFormalOwner();
+            formalOwnersStopped = false;
+            return true;
           },
         }
       : {}),
     unregister: () => {
+      unregistered = true;
       input.standardShellHost?.chromeHost?.dispose();
       rendererStreams.dispose();
       input.ipcMain.removeHandler?.(invokeChannel);

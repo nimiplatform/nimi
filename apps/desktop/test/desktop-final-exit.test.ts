@@ -45,6 +45,7 @@ function shutdownFixture(stopLocal: () => Promise<void> = async () => {}) {
   const listeners = new Map<string, () => void>();
   const bridge = {
     disposeFormalAppResources: async () => {},
+    restoreFormalAppResources: async () => false,
     unregister() { registered = false; unregisterCount += 1; },
   };
   const state: Record<string, unknown> = {
@@ -59,7 +60,7 @@ function shutdownFixture(stopLocal: () => Promise<void> = async () => {}) {
     systemEntryHost: undefined, connectorAuthAcquisitionHost: undefined,
     registeredRuntimeBridge: bridge, productUpdateHost: undefined,
     DESKTOP_FORMAL_RESOURCE_SHUTDOWN_TIMEOUT_MS: 100,
-    homeRelaunchRequested: false,
+    homeRelaunchRequested: false, ownerQuitRequested: false,
     stopProductRuntime: async () => {}, maintenanceRelaunchRequested: false,
     homeHostProfile: { mode: 'root' }, homeTemporaryEnvironment: { restore() {} },
     SOURCE_PER_USER_RUNTIME_D2: true, HOME_PROFILE_RELAUNCH_EXIT_CODE: 75,
@@ -67,6 +68,8 @@ function shutdownFixture(stopLocal: () => Promise<void> = async () => {}) {
     systemEntryAccountUnsubscribe: undefined, systemEntryAdmission: undefined,
     systemEntryActionRelay: undefined, systemEntryRendererReady: true,
     powerMonitor: { removeListener() {} },
+    mainWindow: undefined, systemEntryLocale: 'en', dialog: { showErrorBox() {} },
+    focusDesktopMainWindow: async () => {},
     lockDesktopSystemEntry() {}, unlockDesktopSystemEntry() {}, suspendDesktopSystemEntry() {},
     resumeDesktopSystemEntry() {}, handleDesktopSystemSessionEnd() {}, writeDesktopStderr() {},
   };
@@ -76,11 +79,12 @@ function shutdownFixture(stopLocal: () => Promise<void> = async () => {}) {
     { compilerOptions: { target: ts.ScriptTarget.ES2022, module: ts.ModuleKind.None } },
   ).outputText;
   const owner = runInNewContext(
-    `${setup}\n${mainFunctions('desktopBootstrapFailureCode', 'shutdownBeforeQuit', 'finishDesktopHomeProfileBeforeExit')}
-    ({ shutdownBeforeQuit, finishDesktopHomeProfileBeforeExit });`, state,
-  ) as { shutdownBeforeQuit(): Promise<unknown>; finishDesktopHomeProfileBeforeExit(): Promise<void> };
+    `${setup}\n${mainFunctions('desktopBootstrapFailureCode', 'shutdownBeforeQuit', 'finishDesktopHomeProfileBeforeExit', 'recoverDesktopAfterFailedQuit')}
+    ({ shutdownBeforeQuit, finishDesktopHomeProfileBeforeExit, recoverDesktopAfterFailedQuit });`, state,
+  ) as { shutdownBeforeQuit(): Promise<unknown>; finishDesktopHomeProfileBeforeExit(): Promise<void>; recoverDesktopAfterFailedQuit(error: unknown): Promise<void> };
   return {
     bridge, state, exits, shutdown: owner.shutdownBeforeQuit, finishHomeProfile: owner.finishDesktopHomeProfileBeforeExit,
+    recover: owner.recoverDesktopAfterFailedQuit,
     finishNativeQuit: () => { listeners.get('will-quit')!(); },
     quitCount: () => quitCount,
     unregisterCount: () => unregisterCount,
@@ -104,6 +108,26 @@ test('resource cleanup retains the IPC owner while Home can still send its final
   fixture.finishNativeQuit();
   assert.equal(fixture.state.registeredRuntimeBridge, undefined);
   assert.equal(fixture.unregisterCount(), 1);
+});
+
+test('late quit failure replaces stopped formal owners and reloads Home before resuming App launches', async () => {
+  const fixture = shutdownFixture();
+  const calls: string[] = [];
+  let stopped = false;
+  fixture.bridge.disposeFormalAppResources = async () => { stopped = true; calls.push('dispose'); };
+  fixture.bridge.restoreFormalAppResources = async () => { assert.equal(stopped, true); calls.push('restore'); stopped = false; return true; };
+  fixture.state.stopProductRuntime = async () => { throw new Error('runtime-stop-failed'); };
+  fixture.state.installedAppHost = { shutdown: async () => {}, resume: () => { calls.push('resume'); } };
+  fixture.state.chatAiStoreHost = {
+    close: async () => { calls.push('chat-close'); },
+    resumeAfterFailedShutdown: async () => { calls.push('chat-restore'); return true; },
+  };
+  fixture.state.mainWindow = { isDestroyed: () => false, webContents: { reload: () => { calls.push('reload'); } } };
+  await assert.rejects(fixture.shutdown(), DesktopShutdownBlockedError);
+  await fixture.recover(new DesktopShutdownBlockedError({ criticalCleanupComplete: false, criticalFailures: [], diagnostics: [] }));
+  assert.deepEqual(calls, ['dispose', 'chat-close', 'restore', 'chat-restore', 'reload', 'resume']);
+  assert.equal(fixture.state.registeredRuntimeBridge, fixture.bridge);
+  assert.equal(fixture.unregisterCount(), 0);
 });
 
 test('failed critical quit preserves the bridge for a real retry and never finalizes', async () => {

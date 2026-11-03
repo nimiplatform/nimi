@@ -451,6 +451,8 @@ export type RegisteredNimiElectronRuntimeBridge = {
   readonly resolveAppActivityOpenLaunch?: (openRequestId: string) => Promise<NimiElectronAppActivityOpenLaunchTarget>;
   /** Bounded owner cleanup used before Desktop Host shutdown. */
   readonly disposeFormalAppResources?: () => Promise<void>;
+  /** Main-only failed-quit recovery. Replaces stopped owners after cleanup; true requires a fresh Home renderer. */
+  readonly restoreFormalAppResources?: () => Promise<boolean>;
   readonly unregister: () => void;
 };
 

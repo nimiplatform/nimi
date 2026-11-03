@@ -26,6 +26,7 @@ export type DesktopElectronChatAiStoreHost = {
     (context: ChatAiCommandContext) => Promise<unknown>
   >>;
   readonly close: () => Promise<void>;
+  readonly resumeAfterFailedShutdown: () => Promise<boolean>;
 };
 
 export function createDesktopElectronChatAiStoreHost(input: {
@@ -34,10 +35,12 @@ export function createDesktopElectronChatAiStoreHost(input: {
   readonly operationGate?: DesktopDataRootOperationGate;
 }): DesktopElectronChatAiStoreHost {
   const operationGate = input.operationGate ?? createDesktopDataRootOperationGate();
-  const store = new ElectronChatAiStoreWorkerClient(
+  const createStore = () => new ElectronChatAiStoreWorkerClient(
     input.resolveSelectedDataRoot,
     input.workerUrl ?? new URL('./chat-ai-store-worker.js', import.meta.url),
   );
+  let store = createStore();
+  let stopped = false;
   return {
     commandHandlers: Object.fromEntries(CHAT_AI_COMMANDS.map((command) => [
       command,
@@ -45,7 +48,15 @@ export function createDesktopElectronChatAiStoreHost(input: {
         () => store.invoke(command, context.payload),
       ),
     ])) as DesktopElectronChatAiStoreHost['commandHandlers'],
-    close: () => store.close(),
+    close: () => { stopped = true; return store.close(); },
+    // @nimi-authority: rule.nimi.desktop.shell-ui.r066
+    resumeAfterFailedShutdown: async () => {
+      if (!stopped) return false;
+      await store.close();
+      store = createStore();
+      stopped = false;
+      return true;
+    },
   };
 }
 
@@ -54,6 +65,7 @@ class ElectronChatAiStoreWorkerClient {
   private readonly worker: Worker;
   private nextId = 1;
   private closed = false;
+  private termination: Promise<number> | undefined;
   private tail: Promise<void> = Promise.resolve();
 
   constructor(
@@ -115,10 +127,10 @@ class ElectronChatAiStoreWorkerClient {
   }
 
   async close(): Promise<void> {
-    if (this.closed) return;
     this.closed = true;
     this.rejectPending();
-    await this.worker.terminate();
+    this.termination ??= this.worker.terminate();
+    await this.termination;
   }
 
   private handleResponse(value: unknown): void {
@@ -146,7 +158,8 @@ class ElectronChatAiStoreWorkerClient {
     if (this.closed) return;
     this.closed = true;
     this.rejectPending();
-    void this.worker.terminate();
+    this.termination ??= this.worker.terminate();
+    void this.termination;
   }
 
   private rejectPending(): void {
