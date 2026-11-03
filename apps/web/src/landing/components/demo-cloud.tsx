@@ -63,9 +63,9 @@ export function DemoCloudSurface({ demo, target }: { demo: HeroDemo; target?: st
     update(old => ({ ...old, connections: old.connections.filter(c => c.id !== current?.id) }));
     setPanel(null); setQuery(''); setFilter('all'); setTab('models'); setFeedback('');
   };
-  const openSetup = (use: CloudUse) => {
+  const openSetup = (use: CloudUse, source: 'catalog' | 'saved') => {
     const destination = cloudSetupTarget(use);
-    update(old => old.drafts[destination] ? old : { ...old, drafts: { ...old.drafts, [destination]: use } });
+    update(old => source === 'saved' || old.drafts[destination] ? old : { ...old, drafts: { ...old.drafts, [destination]: use } });
     setPanel(null);
     navigate('runtime', destination);
   };
@@ -139,7 +139,7 @@ export function DemoCloudSurface({ demo, target }: { demo: HeroDemo; target?: st
                 {refs.length ? <ul className="cloud-rows">{refs.map(use => {
                   const owner = ownerOptions(use.capability, t).find(o => o.id === use.owner);
                   return <li key={use.owner + use.capability}><div><strong>{owner?.name}</strong><small>{capabilityLabel(use.capability, demo)} · {use.model}</small></div>
-                    <Button size="sm" tone="secondary" onClick={() => openSetup(use)}>{t('打开配置', 'Open configuration')}</Button></li>;
+                    <Button size="sm" tone="secondary" onClick={() => openSetup(use, 'saved')}>{t('打开配置', 'Open configuration')}</Button></li>;
                 })}</ul> : <p className="cloud-empty">{t('还没有已保存的配置引用这条连接。', 'No saved configuration refers to this connection.')}</p>}
               </div>}
           </div>
@@ -151,6 +151,6 @@ export function DemoCloudSurface({ demo, target }: { demo: HeroDemo; target?: st
       connected={cloud.connections.map(item => item.provider)} references={refs.length} onSave={saveConnection} onRemove={removeConnection} onClose={() => setPanel(null)} t={t} />}
     {panel?.type === 'history' && <DemoCloudHistory connection={panel.scoped ? current : undefined} initialDays={panel.days} t={t} onClose={() => setPanel(null)} />}
     {panel?.type === 'use' && current && <DemoCloudUseDialog key={panel.model.id} connection={current} model={panel.model}
-      demo={demo} t={t} onClose={() => setPanel(null)} onChoose={openSetup} />}
+      demo={demo} t={t} onClose={() => setPanel(null)} onChoose={use => openSetup(use, 'catalog')} />}
   </div>;
 }

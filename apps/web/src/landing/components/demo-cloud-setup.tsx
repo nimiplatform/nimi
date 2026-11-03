@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { ArrowLeft, Check, Cloud } from 'lucide-react';
 import { Button, SearchField } from '@nimiplatform/kit/ui';
-import { capabilityLabel, modelsFor, ownerOptions, type CloudUse } from '../content/demo-cloud-data.js';
+import { capabilityLabel, cloudSetupTarget, modelsFor, ownerOptions, type CloudUse } from '../content/demo-cloud-data.js';
 import type { HeroDemo } from '../content/landing-content.js';
 import { useHeroDemoSession } from './hero-demo-context.js';
 import { demoText } from './demo-home-ui.js';
@@ -13,14 +13,15 @@ export function DemoCloudSetup({ target, demo }: { target: string; demo: HeroDem
   const [query, setQuery] = useState('');
   const t = demoText(demo);
   const draft = cloud?.drafts[target];
-  if (!cloud || !draft) return <div className="demo-module-content"><Button size="sm" tone="ghost" onClick={() => navigate('cloud')}>{t('返回云服务', 'Back to cloud services')}</Button></div>;
-  const owner = ownerOptions(draft.capability, t).find(o => o.id === draft.owner);
-  const connection = cloud.connections.find(c => c.id === draft.connectionId);
-  const available = connection ? modelsFor(connection.provider).filter(row => row.capabilities.includes(draft.capability)) : [];
-  const selected = available.find(row => row.id === draft.model);
+  const config = draft ?? cloud?.uses.find(use => cloudSetupTarget(use) === target);
+  if (!cloud || !config) return <div className="demo-module-content"><Button size="sm" tone="ghost" onClick={() => navigate('cloud')}>{t('返回云服务', 'Back to cloud services')}</Button></div>;
+  const owner = ownerOptions(config.capability, t).find(o => o.id === config.owner);
+  const connection = cloud.connections.find(c => c.id === config.connectionId);
+  const available = connection ? modelsFor(connection.provider).filter(row => row.capabilities.includes(config.capability)) : [];
+  const selected = available.find(row => row.id === config.model);
   const filtered = available.filter(row => (row.label + ' ' + row.id).toLowerCase().includes(query.trim().toLowerCase()));
   const updateDraft = (change: Partial<CloudUse>) => setCloud(old => old && ({
-    ...old, drafts: { ...old.drafts, [target]: { ...old.drafts[target]!, ...change } },
+    ...old, drafts: { ...old.drafts, [target]: { ...(old.drafts[target] ?? config), ...change } },
   }));
   const back = () => navigate('cloud', connection?.id);
   const save = () => {
@@ -36,7 +37,7 @@ export function DemoCloudSetup({ target, demo }: { target: string; demo: HeroDem
   return <div className="demo-module-content cloud-setup">
     <Button size="sm" tone="ghost" onClick={back}><ArrowLeft size={15} />{t('返回云服务', 'Back to cloud services')}</Button>
     <h1>{t('模型设置', 'Model setup')}</h1>
-    <p className="cloud-muted">{owner?.name} · {t('为这项能力选择云端模型', 'Choose a cloud model for this capability')} · {capabilityLabel(draft.capability, demo)}</p>
+    <p className="cloud-muted">{owner?.name} · {t('为这项能力选择云端模型', 'Choose a cloud model for this capability')} · {capabilityLabel(config.capability, demo)}</p>
     <div className="cloud-setup-card">
       <label className="cloud-field">{t('云服务', 'Cloud service')}<select value={connection?.id ?? ''} onChange={e => { updateDraft({ connectionId: e.target.value, model: '' }); setQuery(''); }}>
         {!connection && <option value="">{t('选择连接', 'Choose a connection')}</option>}
@@ -50,10 +51,12 @@ export function DemoCloudSetup({ target, demo }: { target: string; demo: HeroDem
         </button>)}
         {!filtered.length && <p className="cloud-empty">{t('此示例连接没有匹配的模型。', 'No matching models on this example connection.')}</p>}
       </div>
-      <p aria-live="polite">{selected ? t(`待保存：${selected.label}`, `Selected model: ${selected.label}`) : t('选择一个模型，确认后即可保存。', 'Choose a model, then confirm to save.')}</p>
+      <p aria-live="polite">{!selected ? t('选择一个模型，确认后即可保存。', 'Choose a model, then confirm to save.') : draft
+        ? t(`待保存：${selected.label}`, `Selected model: ${selected.label}`)
+        : t(`已保存：${selected.label}`, `Saved model: ${selected.label}`)}</p>
       <small>{t('离开后会保留这份示例草稿。保存只更新本页配置，不会发起 AI 请求；在桌面实际使用云服务时可能产生费用。', 'Leaving keeps this example draft. Saving updates only this page and sends no AI request. Actual cloud use in Home may incur provider charges.')}</small>
       {connection?.status === 'credential' && <small>{t('该连接仍需要凭据。', 'This connection still needs a credential.')}</small>}
-      <Button size="sm" tone="primary" disabled={!selected || !connection || connection.status === 'credential'} onClick={save}>
+      <Button size="sm" tone="primary" disabled={!draft || !selected || !connection || connection.status === 'credential'} onClick={save}>
         {t(`保存到 ${owner?.name}`, `Save for ${owner?.name}`)}
       </Button>
     </div>
