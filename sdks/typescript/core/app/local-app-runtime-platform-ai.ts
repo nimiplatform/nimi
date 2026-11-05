@@ -125,6 +125,12 @@ export type NimiLocalAppImageGenerateSpec = {
   readonly maskArtifactId?: string;
   readonly strength?: number;
   readonly responseFormat: '' | 'b64_json' | 'url';
+  readonly complexity?: '' | 'low' | 'medium' | 'high';
+  readonly outputFormat?: '' | 'png' | 'jpeg' | 'webp' | 'gif' | 'svg';
+  readonly markup?: string;
+  readonly markupArtifactId?: string;
+  readonly frameCount?: number;
+  readonly frameDurationMs?: number;
 };
 
 export type NimiLocalAppScenarioExecuteSpec =
@@ -993,7 +999,7 @@ function validateScenarioSpec<T extends NimiLocalAppScenarioExecuteSpec | NimiLo
       }) as T;
     case 'image-generate':
       if (execute) invalidAIInput('image-generate requires an async Job');
-      assertExactKeys(record, ['type', 'prompt', 'negativePrompt', 'n', 'size', 'aspectRatio', 'quality', 'style', 'seed', 'referenceImages', 'referenceImageArtifactId', 'mask', 'maskArtifactId', 'strength', 'responseFormat'], 'image spec');
+      assertExactKeys(record, ['type', 'prompt', 'negativePrompt', 'n', 'size', 'aspectRatio', 'quality', 'style', 'seed', 'referenceImages', 'referenceImageArtifactId', 'mask', 'maskArtifactId', 'strength', 'responseFormat', 'complexity', 'outputFormat', 'markup', 'markupArtifactId', 'frameCount', 'frameDurationMs'], 'image spec');
       boundedContent(record.prompt, 'image prompt', 32 * 1024);
       optionalBoundedText(record.negativePrompt, 'image negativePrompt', 32 * 1024);
       optionalBoundedInteger(record.n, 'image n', 0, 4);
@@ -1017,6 +1023,15 @@ function validateScenarioSpec<T extends NimiLocalAppScenarioExecuteSpec | NimiLo
       if (record.strength !== undefined && (typeof record.strength !== 'number' || !Number.isFinite(record.strength))) invalidAIInput('image strength is invalid');
       if (record.strength !== undefined && record.referenceImageArtifactId === '') invalidAIInput('image strength requires referenceImageArtifactId');
       if (!['', 'b64_json', 'url'].includes(String(record.responseFormat))) invalidAIInput('image responseFormat is invalid');
+      if (record.complexity !== undefined && (typeof record.complexity !== 'string' || !['', 'low', 'medium', 'high'].includes(record.complexity))) invalidAIInput('image complexity is invalid');
+      if (record.outputFormat !== undefined && (typeof record.outputFormat !== 'string' || !['', 'png', 'jpeg', 'webp', 'gif', 'svg'].includes(record.outputFormat))) invalidAIInput('image outputFormat is invalid');
+      if (record.markup !== undefined && record.markup !== '') boundedHttpsUrl(record.markup, 'image markup');
+      if (record.markupArtifactId !== undefined && record.markupArtifactId !== '') boundedIdentifier(record.markupArtifactId, 'image markupArtifactId');
+      if (record.markup && record.markupArtifactId) invalidAIInput('image markup carriers are mutually exclusive');
+      if ((record.markup || record.markupArtifactId) && (record.mask || record.maskArtifactId || (record.referenceImages.length === 0 && record.referenceImageArtifactId === ''))) invalidAIInput('image markup requires a source and excludes masks');
+      optionalBoundedInteger(record.frameCount, 'image frameCount', 2, 64);
+      optionalBoundedInteger(record.frameDurationMs, 'image frameDurationMs', 20, 2000);
+      if ((record.frameCount !== undefined || record.frameDurationMs !== undefined) && record.outputFormat !== 'gif') invalidAIInput('image animation controls require GIF output');
       break;
     case 'video-generate':
       if (execute) invalidAIInput('video-generate is not a synchronous spec');
@@ -1244,7 +1259,7 @@ function validateVideoSpec(record: Record<string, unknown>): void {
   optionalBoundedText(record.prompt, 'video prompt', 32 * 1024);
   optionalBoundedText(record.negativePrompt, 'video negativePrompt', 32 * 1024);
   if (!['t2v', 'i2v-first-frame', 'i2v-first-last', 'i2v-reference'].includes(String(record.mode))
-    || !Array.isArray(record.content) || record.content.length > 8) invalidAIInput('video spec is invalid');
+    || !Array.isArray(record.content) || record.content.length > 51) invalidAIInput('video spec is invalid');
   record.content.forEach((entry, index) => {
     const content = asRecord(entry);
     if (!content || !['prompt', 'first-frame', 'last-frame', 'reference-image', 'reference-video', 'reference-audio'].includes(String(content.role))) {
@@ -1266,7 +1281,7 @@ function validateVideoSpec(record: Record<string, unknown>): void {
   assertExactKeys(options, ['resolution', 'ratio', 'durationSec', 'frames', 'fps', 'seed', 'cameraFixed', 'watermark', 'generateAudio', 'draft', 'returnLastFrame'], 'video options');
   boundedToken(options.resolution, 'video resolution', 64);
   boundedToken(options.ratio, 'video ratio', 64);
-  optionalBoundedInteger(options.durationSec, 'video durationSec', 0, 600);
+  optionalBoundedInteger(options.durationSec, 'video durationSec', -1, 600);
   optionalBoundedInteger(options.frames, 'video frames', 0, 100_000);
   optionalBoundedInteger(options.fps, 'video fps', 0, 120);
   optionalBoundedInteger(options.seed, 'video seed', -1, 4_294_967_295);
@@ -2041,6 +2056,12 @@ function runtimeImageSpec(spec: NimiLocalAppImageGenerateSpec) {
     ...(spec.strength === undefined ? {} : { strength: spec.strength }),
     responseFormat: spec.responseFormat,
     referenceImageArtifactId: spec.referenceImageArtifactId,
+    complexity: spec.complexity ?? '',
+    outputFormat: spec.outputFormat ?? '',
+    markup: spec.markup ?? '',
+    markupArtifactId: spec.markupArtifactId ?? '',
+    ...(spec.frameCount === undefined ? {} : { frameCount: spec.frameCount }),
+    ...(spec.frameDurationMs === undefined ? {} : { frameDurationMs: spec.frameDurationMs }),
   };
 }
 
@@ -2380,6 +2401,12 @@ function localJobSpecFromRuntimeRequest(request: SubmitScenarioJobRequest): Nimi
         ...(spec.imageGenerate.maskArtifactId === '' ? {} : { maskArtifactId: spec.imageGenerate.maskArtifactId }),
         ...(spec.imageGenerate.strength === undefined ? {} : { strength: spec.imageGenerate.strength }),
         responseFormat: spec.imageGenerate.responseFormat as '' | 'b64_json' | 'url',
+        ...(spec.imageGenerate.complexity === '' || spec.imageGenerate.complexity === undefined ? {} : { complexity: spec.imageGenerate.complexity as NimiLocalAppImageGenerateSpec['complexity'] }),
+        ...(spec.imageGenerate.outputFormat === '' || spec.imageGenerate.outputFormat === undefined ? {} : { outputFormat: spec.imageGenerate.outputFormat as NimiLocalAppImageGenerateSpec['outputFormat'] }),
+        ...(spec.imageGenerate.markup === '' || spec.imageGenerate.markup === undefined ? {} : { markup: spec.imageGenerate.markup }),
+        ...(spec.imageGenerate.markupArtifactId === '' || spec.imageGenerate.markupArtifactId === undefined ? {} : { markupArtifactId: spec.imageGenerate.markupArtifactId }),
+        ...(spec.imageGenerate.frameCount === undefined ? {} : { frameCount: spec.imageGenerate.frameCount }),
+        ...(spec.imageGenerate.frameDurationMs === undefined ? {} : { frameDurationMs: spec.imageGenerate.frameDurationMs }),
       }, false);
     case 'videoGenerate':
       requireScenarioType(request, ScenarioType.VIDEO_GENERATE);

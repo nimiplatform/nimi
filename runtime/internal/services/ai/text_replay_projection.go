@@ -26,7 +26,7 @@ func projectTextReplay(registrations []textBehaviorAdapterRegistration, facts te
 		return result
 	}
 	support := matches[0].Support.Reasoning
-	if support == nil || !support.OpaqueContinuityCarrier {
+	if support == nil || !support.ContinuityCarrier {
 		return result
 	}
 	if !exactNonEmptyTextBehaviorValue(support.ContinuityKind) || support.ContinuityVersion == 0 {

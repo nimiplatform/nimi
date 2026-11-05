@@ -37,6 +37,7 @@ export type RuntimeImageGenerateArtifactSummary = {
   readonly sizeBytes?: number;
   readonly width?: number;
   readonly height?: number;
+  readonly durationMs?: number;
   readonly seed?: number;
 };
 
@@ -91,6 +92,13 @@ export type RuntimeImageGenerateInput = {
   readonly referenceImages?: readonly string[];
   readonly referenceImageArtifactId?: string;
   readonly mask?: string;
+  readonly maskArtifactId?: string;
+  readonly complexity?: '' | 'low' | 'medium' | 'high';
+  readonly outputFormat?: '' | 'png' | 'jpeg' | 'webp' | 'gif' | 'svg';
+  readonly markup?: string;
+  readonly markupArtifactId?: string;
+  readonly frameCount?: number;
+  readonly frameDurationMs?: number;
   readonly responseFormat?: string;
   readonly scenarioId: string;
   readonly subjectUserId?: string;
@@ -136,6 +144,13 @@ export async function runRuntimeImageGenerate(
       ...(input.referenceImages !== undefined ? { referenceImages: input.referenceImages } : {}),
       ...(input.referenceImageArtifactId !== undefined ? { referenceImageArtifactId: input.referenceImageArtifactId } : {}),
       ...(input.mask !== undefined ? { mask: input.mask } : {}),
+      ...(input.maskArtifactId !== undefined ? { maskArtifactId: input.maskArtifactId } : {}),
+      ...(input.complexity !== undefined ? { complexity: input.complexity } : {}),
+      ...(input.outputFormat !== undefined ? { outputFormat: input.outputFormat } : {}),
+      ...(input.markup !== undefined ? { markup: input.markup } : {}),
+      ...(input.markupArtifactId !== undefined ? { markupArtifactId: input.markupArtifactId } : {}),
+      ...(input.frameCount !== undefined ? { frameCount: input.frameCount } : {}),
+      ...(input.frameDurationMs !== undefined ? { frameDurationMs: input.frameDurationMs } : {}),
       ...(input.responseFormat !== undefined ? { responseFormat: input.responseFormat } : {}),
       requestId: identity.requestId,
       idempotencyKey: identity.idempotencyKey,
@@ -189,6 +204,7 @@ function toImageArtifactSummary(
     ...(sizeBytes > 0 ? { sizeBytes } : {}),
     ...(artifact.width > 0 ? { width: artifact.width } : {}),
     ...(artifact.height > 0 ? { height: artifact.height } : {}),
+    ...(Number(artifact.durationMs) > 0 ? { durationMs: Number(artifact.durationMs) } : {}),
     ...(seed !== undefined ? { seed } : {}),
   };
   if (uri) {

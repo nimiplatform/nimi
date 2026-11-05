@@ -628,7 +628,12 @@ test('shared history codec accepts the new typed snapshots and keeps older embed
       runRecord('embed-space', '2026-09-01T00:00:01.000Z', { capabilityId: 'text.embed', result: { ok: true, kind: 'embedding', summary: '1 vector', vectorCount: 1, dimensions: 3, spaceId: 'space-a', sample: [0.1] } }),
     ],
     'text.annotate': [annotationRun('annotate', '2026-09-01T00:00:02.000Z', 'studio/text-annotate/a.json')],
-    'text.tools': [runRecord('tools', '2026-09-01T00:00:03.000Z', {
+    'text.tools': [runRecord('json-object', '2026-11-04T00:00:00.000Z', {
+      capabilityId: 'text.tools', result: {
+        ok: true, kind: 'text-exchange', summary: 'JSON object', scenario: 'json-object', text: '{"answer":43}', structured: { answer: 43 },
+        steps: [{ origin: 'model', finishReason: 'stop', items: [{ type: 'text', text: '{"answer":43}' }] }],
+      },
+    }), runRecord('tools', '2026-09-01T00:00:03.000Z', {
       capabilityId: 'text.tools',
       result: {
         ok: true, kind: 'text-exchange', summary: 'done', scenario: 'tool-call', text: 'done',
@@ -690,6 +695,8 @@ test('shared history codec accepts the new typed snapshots and keeps older embed
   assert.equal(parsed['text.embed'][0].result.spaceId, undefined);
   assert.equal(parsed['text.embed'][1].result.spaceId, 'space-a');
   assert.equal(parsed['video.face_swap'][0].result.jobId, 'job-video-1');
+  assert.equal(parsed['text.tools'][0].result.scenario, 'json-object');
+  assert.deepEqual(parsed['text.tools'][0].result.structured, { answer: 43 });
   assert.deepEqual(historyPolicyModule.studioHistoryArtifactPaths(parsed['text.annotate'][0]), ['studio/text-annotate/a.json']);
   assert.deepEqual(historyPolicyModule.studioHistoryDocumentPaths(parsed['image.face_swap'][0]), []);
 
@@ -701,7 +708,7 @@ test('shared history codec accepts the new typed snapshots and keeps older embed
   reject((copy) => { copy['text.annotate'][0].result.document.mediaType = 'text/plain'; }, /saved JSON document/u);
   reject((copy) => { copy['image.face_swap'][0].result.faceSwap.inputs[1].role = 'reference-image'; }, /duplicate role/u);
   reject((copy) => { copy['image.face_swap'][0].result.faceSwap.noFacePolicy = 'fail'; }, /video target/u);
-  reject((copy) => { copy['text.tools'][0].result.steps[0].items[1].type = 'shell-command'; }, /unsupported value/u);
+  reject((copy) => { copy['text.tools'].find((entry) => entry.id === 'tools').result.steps[0].items[1].type = 'shell-command'; }, /unsupported value/u);
   reject((copy) => { copy['realtime.interact'][0].result.observed.Bad = 1; }, /invalid counter/u);
   reject((copy) => { copy['text.embed'][1].result.spaceId = ''; }, /spaceId/u);
   assert.equal(parsed['text.decide'][0].result.answers[1].selectedCandidateId, 'learn');

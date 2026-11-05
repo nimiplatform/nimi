@@ -16,7 +16,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-func worldImageFixture(t *testing.T, projection runtimev1.WorldImageProjection) (*runtimev1.WorldGenerateScenarioSpec, *ImageReference) {
+func worldImageFixture(t *testing.T, projection runtimev1.WorldImageProjection) (*runtimev1.WorldGenerateScenarioSpec, *CapturedMediaReference) {
 	t.Helper()
 	var out bytes.Buffer
 	if err := png.Encode(&out, image.NewRGBA(image.Rect(0, 0, 8, 4))); err != nil {
@@ -25,7 +25,7 @@ func worldImageFixture(t *testing.T, projection runtimev1.WorldImageProjection) 
 	digest := sha256.Sum256(out.Bytes())
 	return &runtimev1.WorldGenerateScenarioSpec{Conditioning: &runtimev1.WorldGenerateScenarioSpec_ImagePrompt{ImagePrompt: &runtimev1.WorldGenerateImagePrompt{
 		Content: &runtimev1.WorldGenerateAssetSource{Source: &runtimev1.WorldGenerateAssetSource_ArtifactId{ArtifactId: "owned-image"}}, Projection: projection,
-	}}}, &ImageReference{ArtifactID: "owned-image", MIMEType: "image/png", Bytes: out.Bytes(), SHA256: hex.EncodeToString(digest[:])}
+	}}}, &CapturedMediaReference{ArtifactID: "owned-image", MIMEType: "image/png", Bytes: out.Bytes(), SHA256: hex.EncodeToString(digest[:])}
 }
 
 func TestWorldImageSignedUploadPreservesCaptureAndNeverForwardsControlCredentials(t *testing.T) {

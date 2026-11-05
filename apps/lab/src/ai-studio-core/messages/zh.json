@@ -159,7 +159,8 @@
       "configInvalid": "此能力保存的 AI 配置无法在当前 Runtime 中运行，例如所用的云服务已不再支持。",
       "modelNotFound": "所选模型不可用：其云端账户未提供该模型，或没有可用的已准入实现。本次没有生成内容。",
       "fallback": "本次生成未完成。",
-      "stoppedDirectCall": "已停止等待这次调用，之后返回的结果不会显示。"
+      "stoppedDirectCall": "已停止等待这次调用，之后返回的结果不会显示。",
+      "providerAuthFailed": "云服务拒绝了当前连接的凭据。API 密钥可能已过期、被撤销或无效。"
     },
     "action": {
       "runtimeUnavailable": "返回 Desktop 确认本地 AI 已连接，然后重试。",
@@ -193,7 +194,8 @@
       "configInvalid": "打开 App AI 配置，为此能力重新选择模型，然后重新运行。",
       "modelNotFound": "打开 App AI 配置，为此能力选择一个可用的模型，然后重新运行。",
       "fallback": "请重试；如果仍然失败，再展开 Runtime 详情查看原因。",
-      "stoppedDirectCall": "准备好后可以直接重新运行。"
+      "stoppedDirectCall": "准备好后可以直接重新运行。",
+      "providerAuthFailed": "先在 Nimi 的「云服务」中更新此连接的密钥或重新登录，再提交新请求。"
     },
     "hint": {
       "runtimeUnavailable": "恢复受保护的 Runtime 连接后重试同一请求。",
@@ -434,7 +436,8 @@
       "toolResult": "工具结果 {{name}} · {{id}}",
       "toolError": "工具错误 {{name}} · {{id}}",
       "structured": "解析后的结构化结果",
-      "finalText": "最终文本"
+      "finalText": "最终文本",
+      "jsonObjectScenario": "JSON 对象测试：App 已解析最终文本并确认其为对象。"
     },
     "decision": {
       "title": "判断结果",

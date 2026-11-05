@@ -12,6 +12,7 @@ import (
 	"google.golang.org/protobuf/proto"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
@@ -68,6 +69,9 @@ func validateSubmitScenarioAsyncJobRequest(req *runtimev1.SubmitScenarioJobReque
 		}
 		if spec.GetN() < 0 || spec.GetN() > 16 {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
+		if err := capabilitydriver.ValidateImageControls(spec); err != nil {
+			return err
 		}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:
 		spec := req.GetSpec().GetVideoGenerate()
@@ -226,6 +230,7 @@ func validateVideoGenerateScenarioSpec(spec *runtimev1.VideoGenerateScenarioSpec
 	firstFrameCount := 0
 	lastFrameCount := 0
 	referenceImageCount := 0
+	referenceMediaCount := 0
 	for _, item := range content {
 		if item == nil {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
@@ -247,7 +252,9 @@ func validateVideoGenerateScenarioSpec(spec *runtimev1.VideoGenerateScenarioSpec
 			if strings.TrimSpace(item.GetArtifactRef().GetArtifactId()) == "" {
 				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 			}
-			if err := countVideoImageRole(item.GetRole(), &firstFrameCount, &lastFrameCount, &referenceImageCount); err != nil {
+			if item.GetRole() == runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_AUDIO || item.GetRole() == runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO {
+				referenceMediaCount++
+			} else if err := countVideoImageRole(item.GetRole(), &firstFrameCount, &lastFrameCount, &referenceImageCount); err != nil {
 				return err
 			}
 		case runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_VIDEO_URL:
@@ -255,11 +262,13 @@ func validateVideoGenerateScenarioSpec(spec *runtimev1.VideoGenerateScenarioSpec
 				item.GetRole() != runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO {
 				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 			}
+			referenceMediaCount++
 		case runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_AUDIO_URL:
 			if strings.TrimSpace(item.GetAudioUrl().GetUrl()) == "" ||
 				item.GetRole() != runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_AUDIO {
 				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 			}
+			referenceMediaCount++
 		default:
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 		}
@@ -282,7 +291,7 @@ func validateVideoGenerateScenarioSpec(spec *runtimev1.VideoGenerateScenarioSpec
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 		}
 	case runtimev1.VideoMode_VIDEO_MODE_I2V_REFERENCE:
-		if referenceImageCount < 1 || firstFrameCount != 0 || lastFrameCount != 0 {
+		if referenceImageCount+referenceMediaCount < 1 || firstFrameCount != 0 || lastFrameCount != 0 {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 		}
 	default:
@@ -293,13 +302,13 @@ func validateVideoGenerateScenarioSpec(spec *runtimev1.VideoGenerateScenarioSpec
 	if options == nil {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 	}
-	if options.GetDurationSec() < 0 || options.GetDurationSec() > 600 {
+	if options.GetDurationSec() < -1 || options.GetDurationSec() > 600 {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	if options.GetFrames() < 0 || options.GetFrames() > 1200 {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
-	if options.GetDurationSec() > 0 && options.GetFrames() > 0 {
+	if options.GetDurationSec() != 0 && options.GetFrames() > 0 {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	if options.GetFps() < 0 || options.GetFps() > 120 {
@@ -312,7 +321,7 @@ func validateVideoGenerateScenarioSpec(spec *runtimev1.VideoGenerateScenarioSpec
 	ratio := strings.TrimSpace(options.GetRatio())
 	if ratio != "" {
 		switch ratio {
-		case "16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "adaptive":
+		case "16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "4:5", "5:4", "9:21", "adaptive":
 		default:
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 		}

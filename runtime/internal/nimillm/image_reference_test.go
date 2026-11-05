@@ -24,7 +24,7 @@ func TestGeminiOwnedReferenceUsesCapturedOriginalBytesAndRejectsMissingCapture(t
 	}
 	payload := imageBody.Bytes()
 	digest := sha256.Sum256(payload)
-	reference := &ImageReference{ArtifactID: "owned-reference", MIMEType: "image/png", SHA256: hex.EncodeToString(digest[:]), Bytes: bytes.Clone(payload)}
+	reference := &CapturedMediaReference{ArtifactID: "owned-reference", MIMEType: "image/png", SHA256: hex.EncodeToString(digest[:]), Bytes: bytes.Clone(payload)}
 	ctx := WithImageReference(context.Background(), reference)
 	reference.Bytes[0] ^= 0xff
 	var calls atomic.Int32
@@ -72,7 +72,7 @@ func TestGeminiOwnedReferenceBudgetIncludesPromptAndBase64(t *testing.T) {
 	}
 	payload := append(imageBody.Bytes(), make([]byte, 15_000_000)...)
 	digest := sha256.Sum256(payload)
-	reference := &ImageReference{ArtifactID: "large", MIMEType: "image/png", SHA256: hex.EncodeToString(digest[:]), Bytes: payload}
+	reference := &CapturedMediaReference{ArtifactID: "large", MIMEType: "image/png", SHA256: hex.EncodeToString(digest[:]), Bytes: payload}
 	if err := ValidateGeminiImageReferenceRequest(&runtimev1.ImageGenerateScenarioSpec{Prompt: "edit", ReferenceImageArtifactId: "large"}, reference); err == nil {
 		t.Fatal("oversized serialized image input admitted")
 	}
@@ -90,7 +90,7 @@ func TestGeminiOwnedReferenceRejectsTruncatedImageWithValidHeaderAndDigest(t *te
 		t.Fatalf("fixture must retain valid image geometry: %v", err)
 	}
 	digest := sha256.Sum256(payload)
-	reference := &ImageReference{ArtifactID: "truncated", MIMEType: "image/png", SHA256: hex.EncodeToString(digest[:]), Bytes: payload}
+	reference := &CapturedMediaReference{ArtifactID: "truncated", MIMEType: "image/png", SHA256: hex.EncodeToString(digest[:]), Bytes: payload}
 	if err := ValidateGeminiImageReferenceRequest(&runtimev1.ImageGenerateScenarioSpec{Prompt: "edit", ReferenceImageArtifactId: reference.ArtifactID}, reference); err == nil {
 		t.Fatal("truncated image admitted as a captured reference")
 	}

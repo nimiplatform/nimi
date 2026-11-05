@@ -40,7 +40,7 @@ func ValidateCloudWorldRequestFields(provider string, spec *runtimev1.WorldGener
 	}
 }
 
-func ValidateCloudWorldImageReference(provider string, spec *runtimev1.WorldGenerateScenarioSpec, reference *ImageReference) error {
+func ValidateCloudWorldImageReference(provider string, spec *runtimev1.WorldGenerateScenarioSpec, reference *CapturedMediaReference) error {
 	if err := ValidateCloudWorldRequestFields(provider, spec); err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func ValidateCloudWorldImageReference(provider string, spec *runtimev1.WorldGene
 	}
 }
 
-func validateWorldImageReference(spec *runtimev1.WorldGenerateScenarioSpec, reference *ImageReference, maxBytes int) error {
+func validateWorldImageReference(spec *runtimev1.WorldGenerateScenarioSpec, reference *CapturedMediaReference, maxBytes int) error {
 	image := spec.GetImagePrompt()
 	id := image.GetContent().GetArtifactId()
 	if image == nil || id == "" || reference == nil || reference.ArtifactID != id || len(reference.Bytes) == 0 ||

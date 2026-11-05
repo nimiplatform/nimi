@@ -3,7 +3,7 @@ package managedimagebackend
 import "unsafe"
 
 // @nimi-authority: rule.nimi.runtime.local-compute.r067
-// The following types mirror stable-diffusion.h at master-995-fd21ecf.
+// The following types mirror stable-diffusion.h at master-1050-58bb3c1.
 // C enums/int are int32, C bool is one byte, and pointers/size_t use MSVC x64
 // eight-byte alignment. Update these layouts with the exact package cohort.
 type sdCtxParams struct {
@@ -215,6 +215,7 @@ type sdVideoGenParams struct {
 	CircularY             uint8
 	_                     [6]byte
 	ImagePreprocessRules  uintptr
+	RefImageArgs          uintptr
 }
 
 // Bidirectional compile-time size assertions for the MSVC x64 ABI.
@@ -225,6 +226,22 @@ var (
 	_ [unsafe.Sizeof(sdAudio{}) - 24]byte
 	_ [24 - unsafe.Sizeof(sdImage{})]byte
 	_ [unsafe.Sizeof(sdImage{}) - 24]byte
-	_ [584 - unsafe.Sizeof(sdVideoGenParams{})]byte
-	_ [unsafe.Sizeof(sdVideoGenParams{}) - 584]byte
+	_ [592 - unsafe.Sizeof(sdVideoGenParams{})]byte
+	_ [unsafe.Sizeof(sdVideoGenParams{}) - 592]byte
+)
+
+// The native aggregate owns frames, audio and generation_info together.
+type sdVideoGenerationResult struct {
+	Frames         unsafe.Pointer
+	FrameCount     int32
+	_              [4]byte
+	Audio          unsafe.Pointer
+	FPS            int32
+	_              [4]byte
+	GenerationInfo uintptr
+}
+
+var (
+	_ [40 - unsafe.Sizeof(sdVideoGenerationResult{})]byte
+	_ [unsafe.Sizeof(sdVideoGenerationResult{}) - 40]byte
 )

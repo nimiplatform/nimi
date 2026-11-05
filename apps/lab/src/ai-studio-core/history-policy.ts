@@ -5,6 +5,7 @@ import { studioResultAssetPaths, studioWorldInputSource } from './managed-result
 
 import type { AIStudioHistoryPanelPreferences } from './workspace.js';
 import type { StudioRunHistory, StudioRunHistoryRecord } from './history.js';
+import type { StudioJsonValue } from './runtime-types.js';
 
 // Existing records may truthfully carry a previously truncated input preview.
 const STORED_INPUT_PREVIEW_MAX_BYTES = 16 * 1024;
@@ -80,7 +81,7 @@ function validTimestamp(value: unknown, path: string): void {
   if (Number.isNaN(new Date(requiredString(value, path)).valueOf())) historyError(path, 'requires a valid timestamp');
 }
 
-function validateHistoryJson(value: unknown, path: string, depth = 0): void {
+export function validateHistoryJson(value: unknown, path: string, depth = 0): asserts value is StudioJsonValue {
   if (value === null || typeof value === 'string' || typeof value === 'boolean') return;
   if (typeof value === 'number' && Number.isFinite(value)) return;
   if (depth > 32) historyError(path, 'exceeds the JSON depth bound');
@@ -284,7 +285,7 @@ export function validateStudioHistoryResult(value: unknown, path: string): void 
     return;
   }
   if (kind === 'text-exchange') {
-    if (value.scenario !== 'tool-call' && value.scenario !== 'structured-output') historyError(`${path}.scenario`, 'is invalid');
+    if (value.scenario !== 'tool-call' && value.scenario !== 'structured-output' && value.scenario !== 'json-object') historyError(`${path}.scenario`, 'is invalid');
     if (!Array.isArray(value.steps) || value.steps.length === 0 || value.steps.length > 16) historyError(`${path}.steps`, 'requires 1 to 16 steps');
     value.steps.forEach((step, index) => {
       const stepPath = `${path}.steps[${index}]`;

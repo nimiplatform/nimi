@@ -36,12 +36,13 @@ func projectReasoningInput(registrations []textBehaviorAdapterRegistration, fact
 		}
 		for _, effort := range support.Efforts {
 			result.Efforts = append(result.Efforts, map[runtimev1.ReasoningEffort]string{
-				runtimev1.ReasoningEffort_REASONING_EFFORT_MINIMAL: "minimal",
-				runtimev1.ReasoningEffort_REASONING_EFFORT_LOW:     "low",
-				runtimev1.ReasoningEffort_REASONING_EFFORT_MEDIUM:  "medium",
-				runtimev1.ReasoningEffort_REASONING_EFFORT_HIGH:    "high",
-				runtimev1.ReasoningEffort_REASONING_EFFORT_XHIGH:   "xhigh",
-				runtimev1.ReasoningEffort_REASONING_EFFORT_MAXIMUM: "maximum",
+				runtimev1.ReasoningEffort_REASONING_EFFORT_MODEL_DEFAULT: "model-default",
+				runtimev1.ReasoningEffort_REASONING_EFFORT_MINIMAL:       "minimal",
+				runtimev1.ReasoningEffort_REASONING_EFFORT_LOW:           "low",
+				runtimev1.ReasoningEffort_REASONING_EFFORT_MEDIUM:        "medium",
+				runtimev1.ReasoningEffort_REASONING_EFFORT_HIGH:          "high",
+				runtimev1.ReasoningEffort_REASONING_EFFORT_XHIGH:         "xhigh",
+				runtimev1.ReasoningEffort_REASONING_EFFORT_MAXIMUM:       "maximum",
 			}[effort])
 		}
 		result.SupportsBudget = support.ExactBudget

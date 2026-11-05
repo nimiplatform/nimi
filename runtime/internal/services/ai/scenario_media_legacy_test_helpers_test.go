@@ -13,25 +13,24 @@ import (
 // These aliases retain existing test vocabulary while provider capability and
 // dialect truth is asserted against the production Driver registry.
 const (
-	adapterOpenAICompat       = capabilitydriver.CloudMediaAdapterOpenAICompat
-	adapterBytedanceARKTask   = capabilitydriver.CloudMediaAdapterBytedanceARKTask
-	adapterAlibabaNative      = capabilitydriver.CloudMediaAdapterAlibabaNative
-	adapterGeminiOperation    = capabilitydriver.CloudMediaAdapterGeminiOperation
-	adapterDashScopeChatSTT   = capabilitydriver.CloudMediaAdapterDashScopeChatSTT
-	adapterGeminiChatSTT      = capabilitydriver.CloudMediaAdapterGeminiChatSTT
-	adapterMiniMaxTask        = capabilitydriver.CloudMediaAdapterMiniMaxTask
-	adapterGLMTask            = capabilitydriver.CloudMediaAdapterGLMTask
-	adapterGLMNative          = capabilitydriver.CloudMediaAdapterGLMNative
-	adapterKlingTask          = capabilitydriver.CloudMediaAdapterKlingTask
-	adapterLumaTask           = capabilitydriver.CloudMediaAdapterLumaTask
-	adapterPikaTask           = capabilitydriver.CloudMediaAdapterPikaTask
-	adapterRunwayTask         = capabilitydriver.CloudMediaAdapterRunwayTask
-	adapterGoogleVeoOperation = capabilitydriver.CloudMediaAdapterGoogleVeoOperation
-	adapterStabilityMusic     = capabilitydriver.CloudMediaAdapterStabilityMusic
-	adapterSoundverseMusic    = capabilitydriver.CloudMediaAdapterSoundverseMusic
-	adapterMubertMusic        = capabilitydriver.CloudMediaAdapterMubertMusic
-	adapterLoudlyMusic        = capabilitydriver.CloudMediaAdapterLoudlyMusic
-	adapterWorldLabsNative    = capabilitydriver.CloudMediaAdapterWorldLabsNative
+	adapterOpenAICompat     = capabilitydriver.CloudMediaAdapterOpenAICompat
+	adapterBytedanceARKTask = capabilitydriver.CloudMediaAdapterBytedanceARKTask
+	adapterAlibabaNative    = capabilitydriver.CloudMediaAdapterAlibabaNative
+	adapterGeminiOperation  = capabilitydriver.CloudMediaAdapterGeminiOperation
+	adapterDashScopeChatSTT = capabilitydriver.CloudMediaAdapterDashScopeChatSTT
+	adapterGeminiChatSTT    = capabilitydriver.CloudMediaAdapterGeminiChatSTT
+	adapterMiniMaxTask      = capabilitydriver.CloudMediaAdapterMiniMaxTask
+	adapterGLMTask          = capabilitydriver.CloudMediaAdapterGLMTask
+	adapterGLMNative        = capabilitydriver.CloudMediaAdapterGLMNative
+	adapterKlingTask        = capabilitydriver.CloudMediaAdapterKlingTask
+	adapterLumaTask         = capabilitydriver.CloudMediaAdapterLumaTask
+	adapterPikaTask         = capabilitydriver.CloudMediaAdapterPikaTask
+	adapterRunwayTask       = capabilitydriver.CloudMediaAdapterRunwayTask
+	adapterStabilityMusic   = capabilitydriver.CloudMediaAdapterStabilityMusic
+	adapterSoundverseMusic  = capabilitydriver.CloudMediaAdapterSoundverseMusic
+	adapterMubertMusic      = capabilitydriver.CloudMediaAdapterMubertMusic
+	adapterLoudlyMusic      = capabilitydriver.CloudMediaAdapterLoudlyMusic
+	adapterWorldLabsNative  = capabilitydriver.CloudMediaAdapterWorldLabsNative
 )
 
 func findProbeModelID(models []nimillm.ProbeModel, targetModelID string) (string, bool) {

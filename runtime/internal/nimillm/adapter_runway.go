@@ -8,6 +8,7 @@ import (
 	"google.golang.org/grpc/codes"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
@@ -62,7 +63,7 @@ func ExecuteRunwayTask(
 	}
 	payload := map[string]any{
 		"model":      resolvedModel,
-		"promptText": VideoPrompt(spec),
+		"promptText": capabilitydriver.VideoPrompt(spec),
 	}
 	if dur := VideoDurationSec(spec); dur > 0 {
 		payload["duration"] = dur

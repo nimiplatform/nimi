@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"image"
+	"image/color"
 	"image/png"
 	"io"
 	"net/http"
@@ -23,6 +24,20 @@ func openAIImageTestPNG(width uint32, height uint32) []byte {
 		panic(err)
 	}
 	return encoded.Bytes()
+}
+
+func openAIImageTestMask(width, height int) []byte {
+	picture := image.NewGray(image.Rect(0, 0, width, height))
+	for y := 0; y < height; y++ {
+		for x := 0; x < width/2; x++ {
+			picture.SetGray(x, y, color.Gray{Y: 255})
+		}
+	}
+	var b bytes.Buffer
+	if err := png.Encode(&b, picture); err != nil {
+		panic(err)
+	}
+	return b.Bytes()
 }
 
 func openAIImageTestJob(size string, quality string) *runtimev1.SubmitScenarioJobRequest {
@@ -51,36 +66,40 @@ func openAIImageTestServer(t *testing.T, body *map[string]any, response func() s
 }
 
 func TestOpenAIImageSendsOnlyEndpointFields(t *testing.T) {
-	png := openAIImageTestPNG(1536, 1024)
-	var body map[string]any
-	server := openAIImageTestServer(t, &body, func() string {
-		return `{"data":[{"b64_json":"` + base64.StdEncoding.EncodeToString(png) + `"}],"usage":{"input_tokens":9,"output_tokens":272,"total_tokens":281}}`
-	})
-	defer server.Close()
+	for _, model := range []string{"gpt-image-2.5-flare", "gpt-image-2.6-flare", "gpt-image-2.6-sunburst"} {
+		t.Run(model, func(t *testing.T) {
+			png := openAIImageTestPNG(1536, 1024)
+			var body map[string]any
+			server := openAIImageTestServer(t, &body, func() string {
+				return `{"data":[{"b64_json":"` + base64.StdEncoding.EncodeToString(png) + `"}],"usage":{"input_tokens":9,"output_tokens":272,"total_tokens":281}}`
+			})
+			defer server.Close()
 
-	provider, target := openAITranscriptionTestTarget(server.URL, "gpt-image-2.5-flare")
-	artifacts, usage, _, err := provider.executeOpenAIImage(context.Background(), openAIImageTestJob("1536x1024", "low"), "gpt-image-2.5-flare", target)
-	if err != nil {
-		t.Fatalf("executeOpenAIImage: %v", err)
-	}
-	want := map[string]any{"model": "gpt-image-2.5-flare", "prompt": "A paper lantern", "size": "1536x1024", "quality": "low"}
-	if !reflect.DeepEqual(body, want) {
-		t.Fatalf("body = %v, want %v", body, want)
-	}
-	if len(artifacts) != 1 || artifacts[0].GetMimeType() != "image/png" || !bytes.Equal(artifacts[0].GetBytes(), png) ||
-		artifacts[0].GetWidth() != 1536 || artifacts[0].GetHeight() != 1024 {
-		t.Fatalf("artifacts = %+v", artifacts)
-	}
-	if usage.GetInputTokens() != 9 || usage.GetOutputTokens() != 272 || usage.GetComputeMs() != 0 {
-		t.Fatalf("usage = %+v", usage)
-	}
+			provider, target := openAITranscriptionTestTarget(server.URL, model)
+			artifacts, usage, _, err := provider.executeOpenAIImage(context.Background(), openAIImageTestJob("1536x1024", "low"), model, target)
+			if err != nil {
+				t.Fatalf("executeOpenAIImage: %v", err)
+			}
+			want := map[string]any{"model": model, "prompt": "A paper lantern", "size": "1536x1024", "quality": "low"}
+			if !reflect.DeepEqual(body, want) {
+				t.Fatalf("body = %v, want %v", body, want)
+			}
+			if len(artifacts) != 1 || artifacts[0].GetMimeType() != "image/png" || !bytes.Equal(artifacts[0].GetBytes(), png) ||
+				artifacts[0].GetWidth() != 1536 || artifacts[0].GetHeight() != 1024 {
+				t.Fatalf("artifacts = %+v", artifacts)
+			}
+			if usage.GetInputTokens() != 9 || usage.GetOutputTokens() != 272 || usage.GetComputeMs() != 0 {
+				t.Fatalf("usage = %+v", usage)
+			}
 
-	body = nil
-	if _, _, _, err := provider.executeOpenAIImage(context.Background(), openAIImageTestJob("", ""), "gpt-image-2.5-flare", target); err != nil {
-		t.Fatalf("plain prompt: %v", err)
-	}
-	if want := map[string]any{"model": "gpt-image-2.5-flare", "prompt": "A paper lantern"}; !reflect.DeepEqual(body, want) {
-		t.Fatalf("plain body = %v, want %v", body, want)
+			body = nil
+			if _, _, _, err := provider.executeOpenAIImage(context.Background(), openAIImageTestJob("", ""), model, target); err != nil {
+				t.Fatalf("plain prompt: %v", err)
+			}
+			if want := map[string]any{"model": model, "prompt": "A paper lantern"}; !reflect.DeepEqual(body, want) {
+				t.Fatalf("plain body = %v, want %v", body, want)
+			}
+		})
 	}
 }
 
@@ -110,99 +129,116 @@ func TestOpenAIImageRejectsResultsThatAreNotOnePNG(t *testing.T) {
 }
 
 func TestOpenAIImageEditUploadsReferenceAndMask(t *testing.T) {
-	reference := openAIImageTestPNG(1024, 1024)
-	mask := append(openAIImageTestPNG(1024, 1024), 'm')
-	smallMask := openAIImageTestPNG(512, 512)
-	result := openAIImageTestPNG(1024, 1024)
-	type upload struct {
-		name        string
-		contentType string
-		payload     []byte
-	}
-	fields := map[string][]string{}
-	uploads := map[string]upload{}
-	var edits int
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch {
-		case r.Method == http.MethodGet && r.URL.Path == "/reference.png":
-			_, _ = w.Write(reference)
-		case r.Method == http.MethodGet && r.URL.Path == "/mask.png":
-			_, _ = w.Write(mask)
-		case r.Method == http.MethodGet && r.URL.Path == "/small-mask.png":
-			_, _ = w.Write(smallMask)
-		case r.Method == http.MethodGet && r.URL.Path == "/not-an-image.txt":
-			_, _ = io.WriteString(w, "plain text, not an image")
-		case r.Method == http.MethodPost && r.URL.Path == "/v1/images/edits" && r.Header.Get("Authorization") == "Bearer test-key":
-			edits++
-			reader, err := r.MultipartReader()
+	for _, model := range []string{"gpt-image-2.5-sunburst", "gpt-image-2.6-flare", "gpt-image-2.6-sunburst"} {
+		t.Run(model, func(t *testing.T) {
+			reference := openAIImageTestPNG(1024, 1024)
+			mask := append(openAIImageTestMask(1024, 1024), 'm')
+			smallMask := openAIImageTestMask(512, 512)
+			result := openAIImageTestPNG(1024, 1024)
+			type upload struct {
+				name        string
+				contentType string
+				payload     []byte
+			}
+			fields := map[string][]string{}
+			uploads := map[string]upload{}
+			var edits int
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch {
+				case r.Method == http.MethodGet && r.URL.Path == "/reference.png":
+					_, _ = w.Write(reference)
+				case r.Method == http.MethodGet && r.URL.Path == "/mask.png":
+					_, _ = w.Write(mask)
+				case r.Method == http.MethodGet && r.URL.Path == "/small-mask.png":
+					_, _ = w.Write(smallMask)
+				case r.Method == http.MethodGet && r.URL.Path == "/not-an-image.txt":
+					_, _ = io.WriteString(w, "plain text, not an image")
+				case r.Method == http.MethodPost && r.URL.Path == "/v1/images/edits" && r.Header.Get("Authorization") == "Bearer test-key":
+					edits++
+					reader, err := r.MultipartReader()
+					if err != nil {
+						t.Errorf("MultipartReader: %v", err)
+						return
+					}
+					for {
+						part, err := reader.NextPart()
+						if err == io.EOF {
+							break
+						}
+						if err != nil {
+							t.Errorf("NextPart: %v", err)
+							return
+						}
+						payload, _ := io.ReadAll(part)
+						if part.FileName() != "" {
+							uploads[part.FormName()] = upload{part.FileName(), part.Header.Get("Content-Type"), payload}
+							continue
+						}
+						fields[part.FormName()] = append(fields[part.FormName()], string(payload))
+					}
+					w.Header().Set("Content-Type", "application/json")
+					_, _ = io.WriteString(w, `{"data":[{"b64_json":"`+base64.StdEncoding.EncodeToString(result)+`"}],"usage":{"input_tokens":300,"output_tokens":272}}`)
+				default:
+					http.NotFound(w, r)
+				}
+			}))
+			defer server.Close()
+
+			provider, target := openAITranscriptionTestTarget(server.URL, model)
+			edit := func(referencePath string, maskPath string) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, error) {
+				job := openAIImageTestJob("1024x1024", "low")
+				spec := job.GetSpec().GetImageGenerate()
+				spec.ReferenceImages = []string{server.URL + referencePath}
+				if maskPath != "" {
+					spec.Mask = server.URL + maskPath
+				}
+				artifacts, usage, _, err := provider.executeOpenAIImage(context.Background(), job, model, target)
+				return artifacts, usage, err
+			}
+			artifacts, usage, err := edit("/reference.png", "/mask.png")
 			if err != nil {
-				t.Errorf("MultipartReader: %v", err)
-				return
+				t.Fatalf("masked edit: %v", err)
 			}
-			for {
-				part, err := reader.NextPart()
-				if err == io.EOF {
-					break
-				}
-				if err != nil {
-					t.Errorf("NextPart: %v", err)
-					return
-				}
-				payload, _ := io.ReadAll(part)
-				if part.FileName() != "" {
-					uploads[part.FormName()] = upload{part.FileName(), part.Header.Get("Content-Type"), payload}
-					continue
-				}
-				fields[part.FormName()] = append(fields[part.FormName()], string(payload))
+			wantFields := map[string][]string{"model": {model}, "prompt": {"A paper lantern"}, "size": {"1024x1024"}, "quality": {"low"}}
+			if !reflect.DeepEqual(fields, wantFields) {
+				t.Fatalf("fields = %v, want %v", fields, wantFields)
 			}
-			w.Header().Set("Content-Type", "application/json")
-			_, _ = io.WriteString(w, `{"data":[{"b64_json":"`+base64.StdEncoding.EncodeToString(result)+`"}],"usage":{"input_tokens":300,"output_tokens":272}}`)
-		default:
-			http.NotFound(w, r)
-		}
-	}))
-	defer server.Close()
+			if got := uploads["image[]"]; got.name != "image.png" || got.contentType != "image/png" || !bytes.Equal(got.payload, reference) {
+				t.Fatalf("image upload = %q %q %d bytes", got.name, got.contentType, len(got.payload))
+			}
+			if got := uploads["mask"]; got.name != "mask.png" || got.contentType != "image/png" || bytes.Equal(got.payload, mask) || len(uploads) != 2 {
+				t.Fatalf("mask upload = %q %q %d bytes, uploads=%d", got.name, got.contentType, len(got.payload), len(uploads))
+			}
+			alpha, err := png.Decode(bytes.NewReader(uploads["mask"].payload))
+			if err != nil {
+				t.Fatal(err)
+			}
+			_, _, _, editAlpha := alpha.At(0, 0).RGBA()
+			_, _, _, keepAlpha := alpha.At(alpha.Bounds().Dx()-1, 0).RGBA()
+			if editAlpha != 0 || keepAlpha != 65535 {
+				t.Fatal("canonical white-edit mask did not become native alpha")
+			}
+			if len(artifacts) != 1 || !bytes.Equal(artifacts[0].GetBytes(), result) || usage.GetInputTokens() != 300 || usage.GetOutputTokens() != 272 {
+				t.Fatalf("artifacts=%+v usage=%+v", artifacts, usage)
+			}
 
-	provider, target := openAITranscriptionTestTarget(server.URL, "gpt-image-2.5-sunburst")
-	edit := func(referencePath string, maskPath string) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, error) {
-		job := openAIImageTestJob("1024x1024", "low")
-		spec := job.GetSpec().GetImageGenerate()
-		spec.ReferenceImages = []string{server.URL + referencePath}
-		if maskPath != "" {
-			spec.Mask = server.URL + maskPath
-		}
-		artifacts, usage, _, err := provider.executeOpenAIImage(context.Background(), job, "gpt-image-2.5-sunburst", target)
-		return artifacts, usage, err
-	}
-	artifacts, usage, err := edit("/reference.png", "/mask.png")
-	if err != nil {
-		t.Fatalf("masked edit: %v", err)
-	}
-	wantFields := map[string][]string{"model": {"gpt-image-2.5-sunburst"}, "prompt": {"A paper lantern"}, "size": {"1024x1024"}, "quality": {"low"}}
-	if !reflect.DeepEqual(fields, wantFields) {
-		t.Fatalf("fields = %v, want %v", fields, wantFields)
-	}
-	if got := uploads["image[]"]; got.name != "image.png" || got.contentType != "image/png" || !bytes.Equal(got.payload, reference) {
-		t.Fatalf("image upload = %q %q %d bytes", got.name, got.contentType, len(got.payload))
-	}
-	if got := uploads["mask"]; got.name != "mask.png" || got.contentType != "image/png" || !bytes.Equal(got.payload, mask) || len(uploads) != 2 {
-		t.Fatalf("mask upload = %q %q %d bytes, uploads=%d", got.name, got.contentType, len(got.payload), len(uploads))
-	}
-	if len(artifacts) != 1 || !bytes.Equal(artifacts[0].GetBytes(), result) || usage.GetInputTokens() != 300 || usage.GetOutputTokens() != 272 {
-		t.Fatalf("artifacts=%+v usage=%+v", artifacts, usage)
-	}
-
-	edits = 0
-	for name, paths := range map[string][2]string{
-		"mask of another size": {"/reference.png", "/small-mask.png"},
-		"reference not image":  {"/not-an-image.txt", ""},
-	} {
-		_, _, err := edit(paths[0], paths[1])
-		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED {
-			t.Fatalf("%s: reason=%v present=%v err=%v", name, reason, ok, err)
-		}
-	}
-	if edits != 0 {
-		t.Fatalf("rejected edits reached the provider %d times", edits)
+			edits = 0
+			for name, paths := range map[string][2]string{
+				"mask of another size": {"/reference.png", "/small-mask.png"},
+				"reference not image":  {"/not-an-image.txt", ""},
+			} {
+				_, _, err := edit(paths[0], paths[1])
+				expected := runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID
+				if name == "reference not image" {
+					expected = runtimev1.ReasonCode_ARTIFACT_MIME_MISMATCH
+				}
+				if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != expected {
+					t.Fatalf("%s: reason=%v present=%v err=%v", name, reason, ok, err)
+				}
+			}
+			if edits != 0 {
+				t.Fatalf("rejected edits reached the provider %d times", edits)
+			}
+		})
 	}
 }

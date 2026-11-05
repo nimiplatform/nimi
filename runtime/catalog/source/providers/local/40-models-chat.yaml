@@ -170,3 +170,97 @@ models:
       context_length: 262144
     aliases:
       - unsloth/Qwen3.5-4B-GGUF
+
+  - model_id: qwen3.8-27b-local
+    model_type: chat
+    family: qwen35
+    updated_at: 2026-11-04
+    capabilities: [text.generate]
+    source_ids: [qwen38_27b_author_modelcard, qwen38_27b_ggml_org_gguf]
+    install:
+      repo: ggml-org/Qwen3.8-27B-GGUF
+      revision: a316ea527fde32c12487be7574e2db5ac2ad2a7e # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      license: Apache-2.0
+      entry: Qwen3.8-27B-Q4_K_M.gguf
+      artifact_roles: [llm]
+      preferred_engine: llama
+    variants:
+      - variant_id: local.chat.qwen3.8-27b.q4-k-m.cuda
+        quant: Q4_K_M
+        files: [Qwen3.8-27B-Q4_K_M.gguf]
+        hashes:
+          Qwen3.8-27B-Q4_K_M.gguf: sha256:c600de0300ae8a0eb3a6c0b8b5561b8b96f16bd2c863c2a66c42de29d391a747
+        total_size_bytes: 18973870528
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 25769803776
+    fitness:
+      param_count: 26895998464
+      context_length: 8192
+      authored_context_length: 262144
+      kv_cache_bytes_per_token: 65536
+
+  - model_id: lfm3-1.7b-local
+    model_type: chat
+    family: lfm3
+    updated_at: 2026-11-04
+    capabilities: [text.generate]
+    source_ids: [lfm3_17b_author_modelcard, lfm3_17b_gguf_modelcard, lfm3_open_license_v1]
+    install:
+      repo: LiquidAI/LFM3-1.7B-GGUF
+      revision: cd0c74c575b5c416f3011b5b4c298077f26ca8c2 # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      license: LFM Open License v1.0
+      provenance: Official LiquidAI weights. Model use and redistribution remain subject to the model license, including its commercial-use revenue condition; runtime interface integration does not relicense the weights.
+      entry: LFM3-1.7B-Q4_K_M.gguf
+      artifact_roles: [llm]
+      preferred_engine: llama
+    variants:
+      - variant_id: local.chat.lfm3-1.7b.q4-k-m.cuda
+        quant: Q4_K_M
+        files: [LFM3-1.7B-Q4_K_M.gguf]
+        hashes:
+          LFM3-1.7B-Q4_K_M.gguf: sha256:3793e1e6e2266919d6e015287221b41100175a98eddaba92e111aed3b05c93c4
+        total_size_bytes: 1099627808
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 4294967296
+          min_vram_bytes: 4294967296
+    fitness:
+      param_count: 1728801600
+      context_length: 8192
+      authored_context_length: 262144
+      kv_cache_bytes_per_token: 12288
+
+  - model_id: gemma-4-12b-unified-local
+    model_type: chat
+    family: gemma4
+    updated_at: 2026-11-05
+    capabilities: [text.generate]
+    source_ids: [gemma4_12b_unified_author, gemma4_12b_qat_gguf]
+    install:
+      repo: google/gemma-4-12B-it-qat-q4_0-gguf
+      revision: 29d097773436b69ff9feafd636ab4cf873786537 # pragma: allowlist secret -- public model revision
+      install_kind: weights
+      license: Apache-2.0
+      entry: gemma-4-12b-it-qat-q4_0.gguf
+      artifact_roles: [llm]
+      preferred_engine: llama
+    variants:
+      - variant_id: local.chat.gemma4-12b-unified.qat-q4-0.cuda
+        quant: Q4_0
+        files: [gemma-4-12b-it-qat-q4_0.gguf]
+        hashes:
+          gemma-4-12b-it-qat-q4_0.gguf: sha256:93567e57a8fe10b23569b9d9ec38cd005deedf71e29477c421a4b83f418a538b
+        total_size_bytes: 6975879296
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 17179869184
+          min_vram_bytes: 17179869184
+    fitness:
+      param_count: 11907350576
+      context_length: 8192
+      authored_context_length: 262144
+      kv_cache_bytes_per_token: 16384

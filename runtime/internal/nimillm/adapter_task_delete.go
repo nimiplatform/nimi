@@ -16,11 +16,12 @@ import (
 type ProviderTaskCleanupOutcome string
 
 const (
-	ProviderTaskCleanupCanceled      ProviderTaskCleanupOutcome = "confirmed_canceled"
-	ProviderTaskCleanupNotCancelable ProviderTaskCleanupOutcome = "not_cancelable"
-	ProviderTaskCleanupUnconfirmed   ProviderTaskCleanupOutcome = "unconfirmed"
-	ProviderTaskCleanupUnsupported   ProviderTaskCleanupOutcome = "unsupported"
-	ProviderTaskCleanupFailed        ProviderTaskCleanupOutcome = "failed"
+	ProviderTaskCleanupCanceled         ProviderTaskCleanupOutcome = "confirmed_canceled"
+	ProviderTaskCleanupNotCancelable    ProviderTaskCleanupOutcome = "not_cancelable"
+	ProviderTaskCleanupUnconfirmed      ProviderTaskCleanupOutcome = "unconfirmed"
+	ProviderTaskCleanupUnsupported      ProviderTaskCleanupOutcome = "unsupported"
+	ProviderTaskCleanupFailed           ProviderTaskCleanupOutcome = "failed"
+	ProviderTaskCleanupResourcesDeleted ProviderTaskCleanupOutcome = "resources_deleted"
 )
 
 // DeleteProviderAsyncTask reports the provider's observed cleanup outcome.
@@ -33,6 +34,10 @@ func DeleteProviderAsyncTask(ctx context.Context, adapter string, providerJobID 
 			return ProviderTaskCleanupFailed, err
 		}
 		return ProviderTaskCleanupUnconfirmed, nil
+	case AdapterLumaRay32:
+		// Generation DELETE only accepts finished jobs and starts asynchronous data
+		// deletion. It is not a provider cancellation operation.
+		return ProviderTaskCleanupNotCancelable, nil
 	case AdapterSpaitialNative:
 		return cancelSpaitialTask(ctx, providerJobID, cfg)
 	case AdapterAlibabaNative:
@@ -46,7 +51,7 @@ func DeleteProviderAsyncTask(ctx context.Context, adapter string, providerJobID 
 // DashScope's official SDK joins tasks/{id}/cancel and POSTs it. Only queued
 // tasks can be canceled; RUNNING may report UnsupportedOperation.
 func cancelAlibabaTask(ctx context.Context, taskID string, cfg MediaAdapterConfig) (ProviderTaskCleanupOutcome, error) {
-	baseURL := nativeOriginURL(cfg.BaseURL)
+	baseURL := alibabaNativeBaseURL(cfg.BaseURL)
 	if baseURL == "" || taskID == "" || taskID != strings.TrimSpace(taskID) {
 		return ProviderTaskCleanupFailed, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}

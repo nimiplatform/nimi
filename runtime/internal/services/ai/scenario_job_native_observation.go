@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -13,6 +14,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/remoteexecution"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
@@ -148,6 +150,7 @@ func (s *Service) runNativeObservation(ctx context.Context, jobID string, versio
 	}
 	effective, err := s.cloudMediaEffectiveInputsFromResolvedAssembly(assembly)
 	if err != nil {
+		slog.Warn("native media observation failed", "stage", "restore_inputs", "job_id", jobID, "reason", reasonCodeFromMediaError(err).String())
 		s.setNativeObservationIssue(jobID, version, err)
 		return
 	}
@@ -156,6 +159,12 @@ func (s *Service) runNativeObservation(ctx context.Context, jobID string, versio
 		s.runNativeStopObservation(ctx, jobID, version, effective)
 		return
 	}
+	resourcesHandled := false
+	defer func() {
+		if !resourcesHandled {
+			s.cleanupCanceledGeminiOmniJob(ctx, jobID, effective)
+		}
+	}()
 	response := s.scenarioJobs.currentNativeResult(jobID)
 	previousResult := response
 	receipt := s.scenarioJobs.originalNativeReceipt(jobID)
@@ -169,7 +178,11 @@ func (s *Service) runNativeObservation(ctx context.Context, jobID string, versio
 		observed, terminal, err := host.ObserveNativeTask(query, effective.connector, effective.target, s.scenarioJobs.originalNativeReceipt(jobID), effective.dispatchAudit())
 		cancelQuery()
 		if err != nil {
+			slog.Warn("native media observation failed", "stage", "provider_query", "job_id", jobID, "reason", reasonCodeFromMediaError(err).String(), "terminal", terminal)
 			if terminal && previousResult == nil {
+				if receipt.Adapter == nimillm.AdapterGeminiOmniVideo {
+					s.cleanupGeminiOmniJobResources(ctx, effective, receipt)
+				}
 				if s.aiObservation != nil {
 					s.aiObservation.ObserveOperationOutcome(jobID, nil, runtimev1.DesktopAICloudAttemptOutcome_DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_FAILED, reasonCodeFromMediaError(err))
 				}
@@ -199,6 +212,7 @@ func (s *Service) runNativeObservation(ctx context.Context, jobID string, versio
 		required++
 	}
 	if len(response.Artifacts) != required {
+		slog.Warn("native media observation failed", "stage", "required_output_set", "job_id", jobID, "expected", required, "observed", len(response.Artifacts))
 		s.setNativeObservationIssue(jobID, version, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID))
 		return
 	}
@@ -212,6 +226,7 @@ func (s *Service) runNativeObservation(ctx context.Context, jobID string, versio
 			}
 		}
 		if err := s.scenarioJobs.withJobWorkAuthority(jobID, func() error { return s.scenarioJobs.stageNativeResult(ctx, jobID, response) }); err != nil {
+			slog.Warn("native media observation failed", "stage", "persist_native_result", "job_id", jobID, "reason", reasonCodeFromMediaError(err).String())
 			s.setNativeObservationIssue(jobID, version, err)
 			return
 		}
@@ -222,12 +237,50 @@ func (s *Service) runNativeObservation(ctx context.Context, jobID string, versio
 		return
 	}
 	defer capabilitydriver.CloseArtifactBodies(transport.ArtifactBodies)
+	if receipt != nil && receipt.Adapter == nimillm.AdapterGeminiOmniVideo {
+		cleanup := s.cleanupGeminiOmniJobResources(ctx, effective, receipt)
+		resourcesHandled = true
+		for _, artifact := range transport.Artifacts {
+			if artifact.Metadata == nil {
+				artifact.Metadata = &structpb.Struct{Fields: map[string]*structpb.Value{}}
+			}
+			if artifact.Metadata.Fields == nil {
+				artifact.Metadata.Fields = map[string]*structpb.Value{}
+			}
+			artifact.Metadata.Fields["provider_file_cleanup"] = structpb.NewStringValue(cleanup.FileState)
+			artifact.Metadata.Fields["provider_interaction_cleanup"] = structpb.NewStringValue(cleanup.InteractionState)
+			artifact.Metadata.Fields["provider_cleanup_reason"] = structpb.NewStringValue(cleanup.ReasonCode.String())
+		}
+	}
 	result, err := effective.driver.NormalizeResponse(transport)
 	if err == nil {
 		err = s.commitScenarioAsyncJobResult(context.WithValue(ctx, preparedScenarioBodiesKey{}, jobID), jobID, effective, result)
 	}
 
 	s.setNativeObservationIssue(jobID, version, err)
+}
+
+func (s *Service) cleanupCanceledGeminiOmniJob(ctx context.Context, jobID string, effective *cloudMediaEffectiveInputs) {
+	job, ok := s.scenarioJobs.get(jobID)
+	if !ok || job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
+		return
+	}
+	receipt := s.scenarioJobs.originalNativeReceipt(jobID)
+	if receipt != nil && receipt.Adapter == nimillm.AdapterGeminiOmniVideo {
+		s.cleanupGeminiOmniJobResources(ctx, effective, receipt)
+	}
+}
+
+// Complete bodies already belong to Runtime. A bounded cleanup failure is
+// recorded separately and cannot turn an acquired video into a fake failure.
+func (s *Service) cleanupGeminiOmniJobResources(ctx context.Context, effective *cloudMediaEffectiveInputs, receipt *nimillm.NativeTaskReceipt) nimillm.GeminiOmniResourceCleanup {
+	host, ok := s.remoteMediaHost.(remoteexecution.NativeTaskResourceCleanupHost)
+	if !ok {
+		return nimillm.GeminiOmniResourceCleanup{FileState: "unconfirmed", InteractionState: "unconfirmed", ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE}
+	}
+	cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 10*time.Second)
+	defer cancel()
+	return host.CleanupNativeTaskResources(cleanup, effective.connector, effective.target, receipt, effective.dispatchAudit())
 }
 
 func (s *Service) runNativeStopObservation(ctx context.Context, jobID string, version uint64, effective *cloudMediaEffectiveInputs) {

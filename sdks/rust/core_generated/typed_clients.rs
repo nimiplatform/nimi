@@ -4019,6 +4019,7 @@ pub enum ReasoningEffort {
     REASONINGEFFORTHIGH,
     REASONINGEFFORTMAXIMUM,
     REASONINGEFFORTXHIGH,
+    REASONINGEFFORTMODELDEFAULT,
 }
 
 impl Default for ReasoningEffort {
@@ -9129,6 +9130,12 @@ pub struct ImageGenerateScenarioSpec {
     pub reference_image_artifact_id: Option<String>,
     pub mask_artifact_id: Option<String>,
     pub strength: Option<f32>,
+    pub complexity: Option<String>,
+    pub output_format: Option<String>,
+    pub markup: Option<String>,
+    pub markup_artifact_id: Option<String>,
+    pub frame_count: Option<i32>,
+    pub frame_duration_ms: Option<i32>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11071,6 +11078,12 @@ pub struct LocalAppImageGenerateScenarioSpec {
     pub reference_image_artifact_id: Option<String>,
     pub mask_artifact_id: Option<String>,
     pub strength: Option<f32>,
+    pub complexity: Option<String>,
+    pub output_format: Option<String>,
+    pub markup: Option<String>,
+    pub markup_artifact_id: Option<String>,
+    pub frame_count: Option<i32>,
+    pub frame_duration_ms: Option<i32>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

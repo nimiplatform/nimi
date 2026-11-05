@@ -19,7 +19,7 @@ const worldLabsImageMaxBytes = 20_000_000
 // @nimi-authority: rule.nimi.runtime.ai-provider.r029
 // Both admission and dispatch validate the same captured bytes. No artifact is
 // reopened by the Driver and an aspect ratio never chooses the projection.
-func ValidateWorldLabsImageReference(spec *runtimev1.WorldGenerateScenarioSpec, reference *ImageReference) error {
+func ValidateWorldLabsImageReference(spec *runtimev1.WorldGenerateScenarioSpec, reference *CapturedMediaReference) error {
 	if err := ValidateWorldLabsRequestFields(spec); err != nil {
 		return err
 	}
@@ -28,7 +28,7 @@ func ValidateWorldLabsImageReference(spec *runtimev1.WorldGenerateScenarioSpec, 
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.r029
 func uploadWorldLabsImage(ctx context.Context, baseURL string, controlHeaders map[string]string, spec *runtimev1.WorldGenerateScenarioSpec) (string, error) {
-	reference, _ := ctx.Value(imageReferenceContextKey{}).(*ImageReference)
+	reference, _ := ctx.Value(imageReferenceContextKey{}).(*CapturedMediaReference)
 	if err := ValidateWorldLabsImageReference(spec, reference); err != nil {
 		return "", err
 	}

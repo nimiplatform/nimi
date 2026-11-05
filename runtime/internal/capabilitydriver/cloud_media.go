@@ -52,6 +52,7 @@ const (
 	CloudMediaAdapterMimoChatTTS             = "mimo_chat_synthesize_adapter"
 	CloudMediaAdapterMimoChatSTT             = "mimo_chat_transcribe_adapter"
 	CloudMediaAdapterMiniMaxTask             = "minimax_task_adapter"
+	CloudMediaAdapterMiniMaxH3Video          = "minimax_h3_video_v2_adapter"
 	CloudMediaAdapterGLMTask                 = "glm_task_adapter"
 	CloudMediaAdapterGLMNative               = "glm_native_adapter"
 	CloudMediaAdapterKimiChatMultimodal      = "kimi_chat_multimodal_adapter"
@@ -66,9 +67,10 @@ const (
 	CloudMediaAdapterStabilityNative         = "stability_native_adapter"
 	CloudMediaAdapterKlingTask               = "kling_task_adapter"
 	CloudMediaAdapterLumaTask                = "luma_task_adapter"
+	CloudMediaAdapterLumaRay32               = "luma_ray32_adapter"
 	CloudMediaAdapterPikaTask                = "pika_task_adapter"
 	CloudMediaAdapterRunwayTask              = "runway_task_adapter"
-	CloudMediaAdapterGoogleVeoOperation      = "google_veo_operation_adapter"
+	CloudMediaAdapterGeminiOmniVideo         = "gemini_omni_video_adapter"
 	CloudMediaAdapterStepFunNative           = "stepfun_native_adapter"
 	CloudMediaAdapterStabilityMusic          = "stability_music_adapter"
 	CloudMediaAdapterSoundverseMusic         = "soundverse_music_adapter"
@@ -525,7 +527,7 @@ func (d providerCloudMediaDriver) ValidateTarget(identity Identity, raw *structp
 	if !ok {
 		return CloudMediaTarget{}, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("provider model identity is required"))
 	}
-	if provider == "spaitial" && providerModelID != "default" {
+	if provider == "spaitial" && providerModelID != "echo-2" {
 		return CloudMediaTarget{}, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MODEL_NOT_FOUND)
 	}
 	remoteModelCatalogID, ok := exactCloudTargetText(raw, "remoteModelCatalogId")
@@ -595,12 +597,44 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 	if err := validateCloudMediaMappedRequest(mapped); err != nil {
 		return nil, err
 	}
+	if spec := mapped.GetSpec().GetImageGenerate(); spec != nil && ImageHasExtendedControls(spec) && !(d.provider == "openai" && IsOpenAIImage26(target.providerModelID)) {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
+	for _, item := range mapped.GetSpec().GetVideoGenerate().GetContent() {
+		if item.GetType() == runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_ARTIFACT_REF && !SupportsCloudVideoArtifacts(d.provider, target.providerModelID) {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
+	}
 	if mapped.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE && cloudMusicReferenceRequested(mapped) && d.provider != "stability" && !(d.provider == "gemini" && (target.providerModelID == geminiLyriaClipModel || target.providerModelID == geminiLyria35Model)) {
 		return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("provider does not support music iteration mapping"))
 	}
 	if spec := mapped.GetSpec().GetImageGenerate(); spec != nil && strings.TrimSpace(spec.GetReferenceImageArtifactId()) != "" {
-		if d.provider != "gemini" || len(spec.GetReferenceImages()) != 0 {
+		if (d.provider != "gemini" && !(d.provider == "flux" && IsFlux3ImageModel(target.providerModelID)) && !(d.provider == "ideogram" && target.providerModelID == Ideogram45Model) && !(d.provider == "openai" && IsOpenAIImage26(target.providerModelID))) || len(spec.GetReferenceImages()) != 0 {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
+	}
+	if d.provider == "ideogram" && target.providerModelID == Ideogram45Model && target.capabilityContract == "image.generate" {
+		if len(mapped.GetExtensions()) > 0 {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
+		if err := ValidateIdeogram45Request(mapped.GetSpec().GetImageGenerate()); err != nil {
+			return nil, err
+		}
+	}
+	if d.provider == "flux" && target.capabilityContract == "image.generate" && IsFlux3ImageModel(target.providerModelID) {
+		if len(mapped.GetExtensions()) > 0 {
+			return nil, flux3Unsupported()
+		}
+		if err := ValidateFlux3ImageRequest(mapped.GetSpec().GetImageGenerate(), target.providerModelID); err != nil {
+			return nil, err
+		}
+	}
+	if d.provider == "flux" && target.capabilityContract == "video.generate" {
+		if target.providerModelID != "flux-3-video" {
+			return nil, flux3Unsupported()
+		}
+		if err := ValidateFlux3VideoRequest(mapped); err != nil {
+			return nil, err
 		}
 	}
 	if d.provider == "gemini" && target.capabilityContract == "image.generate" {
@@ -613,12 +647,44 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 			return nil, err
 		}
 	}
-	if d.provider == "google_veo" && target.capabilityContract == "video.generate" {
-		if err := validateGoogleVeoVideoRequest(mapped, target.providerModelID); err != nil {
+	if d.provider == "gemini" && target.capabilityContract == "video.generate" {
+		if err := validateGeminiOmniVideoRequest(mapped, target.providerModelID); err != nil {
+			return nil, err
+		}
+	}
+	if d.provider == "dashscope" && target.capabilityContract == "video.generate" && IsAlibabaCurrentVideoModel(target.providerModelID) {
+		if err := ValidateAlibabaCurrentVideoRequest(mapped, target.providerModelID); err != nil {
+			return nil, err
+		}
+	}
+	if d.provider == "volcengine" && target.capabilityContract == "video.generate" {
+		if err := ValidateCurrentSeedanceVideoRequest(mapped, target.providerModelID); err != nil {
 			return nil, err
 		}
 	}
 	adapter := cloudMediaAdapterFor(d.provider, target.capabilityContract)
+	if d.provider == "luma" && target.providerModelID == LumaRay32Model && target.capabilityContract == "video.generate" {
+		if err := normalizeLumaRay32Request(mapped); err != nil {
+			return nil, err
+		}
+		adapter = CloudMediaAdapterLumaRay32
+	}
+	if d.provider == "minimax" && target.capabilityContract == "video.generate" && IsMiniMaxH3VideoModel(target.providerModelID) {
+		if err := normalizeMiniMaxH3VideoRequest(mapped, target.providerModelID); err != nil {
+			return nil, err
+		}
+		adapter = CloudMediaAdapterMiniMaxH3Video
+	}
+	if d.provider == "elevenlabs" && target.capabilityContract == "audio.synthesize" && (target.providerModelID == "eleven_v4" || target.providerModelID == "eleven_v4_turbo") {
+		if err := validateElevenV4Request(mapped, target.providerModelID, streamMode); err != nil {
+			return nil, err
+		}
+	}
+	if d.provider == "fish_audio" && target.capabilityContract == "audio.synthesize" && (target.providerModelID == "s2.1-pro" || target.providerModelID == "s2.1-pro-free") {
+		if err := validateFishS21Request(mapped, streamMode); err != nil {
+			return nil, err
+		}
+	}
 	if d.provider == "elevenlabs" && target.capabilityContract == "music.generate" {
 		if err := validateElevenLabsMusicRequest(mapped, target.providerModelID); err != nil {
 			return nil, err
@@ -893,7 +959,9 @@ func cloudMediaAdapterFor(provider string, capability string) string {
 		}
 	case "gemini":
 		switch capability {
-		case "image.generate", "video.generate", "audio.synthesize":
+		case "video.generate":
+			return CloudMediaAdapterGeminiOmniVideo
+		case "image.generate", "audio.synthesize":
 			return CloudMediaAdapterGeminiOperation
 		case "audio.transcribe":
 			return CloudMediaAdapterGeminiChatSTT
@@ -949,8 +1017,6 @@ func cloudMediaAdapterFor(provider string, capability string) string {
 		return CloudMediaAdapterPikaTask
 	case "runway":
 		return CloudMediaAdapterRunwayTask
-	case "google_veo":
-		return CloudMediaAdapterGoogleVeoOperation
 	case "stepfun":
 		return CloudMediaAdapterStepFunNative
 	case "soundverse":
@@ -1438,7 +1504,7 @@ func cloudMediaSpecForDefaults(request *runtimev1.SubmitScenarioJobRequest) (pro
 	}
 	switch request.GetScenarioType() {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
-		return request.GetSpec().GetImageGenerate(), allowed("negative_prompt", "n", "size", "aspect_ratio", "quality", "style", "seed", "response_format"), func(value proto.Message) {
+		return request.GetSpec().GetImageGenerate(), allowed("negative_prompt", "n", "size", "aspect_ratio", "quality", "style", "seed", "response_format", "complexity", "output_format", "frame_count", "frame_duration_ms"), func(value proto.Message) {
 			request.Spec.Spec = &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: value.(*runtimev1.ImageGenerateScenarioSpec)}
 		}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE:

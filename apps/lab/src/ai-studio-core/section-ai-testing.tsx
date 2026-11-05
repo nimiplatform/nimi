@@ -332,7 +332,7 @@ function TextStudioShell({
           recordedRunConfig: runConfig,
           recordedCreatedAt: pendingRun.createdAt,
           recordedPrompt: displayPrompt,
-          prompt: (capability.id === 'world.generate' && runHasAlternativeInput && !displayPrompt && !nextContext.trim()) || usesVerbatimStudioPrompt(capability.id) || profile.rawPrompt || recordedInput
+          prompt: ((capability.id === 'world.generate' || capability.id === 'video.generate') && runHasAlternativeInput && !displayPrompt && !nextContext.trim()) || usesVerbatimStudioPrompt(capability.id) || profile.rawPrompt || recordedInput
             ? displayPrompt
             : textStudioRuntimePrompt(displayPrompt, nextContext, directive),
           scenarioId: preset.id,

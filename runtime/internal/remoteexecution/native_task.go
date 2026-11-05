@@ -5,8 +5,10 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
+	"google.golang.org/grpc/codes"
 )
 
 type NativeTaskHost interface {
@@ -16,6 +18,30 @@ type NativeTaskHost interface {
 
 type NativeTaskStopHost interface {
 	StopNativeTask(context.Context, connector.ConnectorRecord, capabilitydriver.CloudMediaTarget, *nimillm.NativeTaskReceipt, MediaDispatchAudit) (nimillm.ProviderTaskCleanupOutcome, error)
+}
+
+type NativeTaskResourceCleanupHost interface {
+	CleanupNativeTaskResources(context.Context, connector.ConnectorRecord, capabilitydriver.CloudMediaTarget, *nimillm.NativeTaskReceipt, MediaDispatchAudit) nimillm.GeminiOmniResourceCleanup
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.gemini-omni-video
+func (h *ProviderMediaHost) CleanupNativeTaskResources(ctx context.Context, captured connector.ConnectorRecord, target capabilitydriver.CloudMediaTarget, receipt *nimillm.NativeTaskReceipt, audit MediaDispatchAudit) nimillm.GeminiOmniResourceCleanup {
+	result := nimillm.GeminiOmniResourceCleanup{FileState: "unconfirmed", InteractionState: "unconfirmed", ReasonCode: runtimev1.ReasonCode_AI_OUTPUT_INVALID}
+	ctx = h.jobOutboundContext(WithAsyncJob(ctx), captured, audit)
+	if receipt != nil && receipt.Adapter == nimillm.AdapterGeminiOmniVideo && nimillm.ValidateNativeTaskReceipt(receipt) == nil {
+		remote, err := requestScopedProviderTarget(ctx, h.connectors, h.allowLoopback, audit.AccountID, captured, target)
+		if err == nil {
+			result = nimillm.CleanupGeminiOmniResources(ctx, nimillm.MediaAdapterConfig{BaseURL: remote.Endpoint, APIKey: remote.APIKey, Headers: cloneRemoteHeaders(remote.Headers), AllowLoopbackEndpoint: h.allowLoopback}, receipt)
+			clearRequestScopedProviderTarget(remote)
+		} else {
+			result.ReasonCode = mediaReasonCode(err)
+		}
+	}
+	outcome := result.Outcome()
+	if err := h.recordDispatch(audit, "resource_cleanup", result.ReasonCode, false, &nimillm.ProviderTaskCleanupObservation{Outcome: outcome, ReasonCode: result.ReasonCode, GeminiResources: &result}); err != nil {
+		result.ReasonCode = mediaReasonCode(err)
+	}
+	return result
 }
 
 type FiniteMediaArtifactHost interface {
@@ -52,12 +78,25 @@ func (h *ProviderMediaHost) StopNativeTask(ctx context.Context, captured connect
 	if err := nimillm.ValidateNativeTaskReceipt(receipt); err != nil {
 		return nimillm.ProviderTaskCleanupFailed, err
 	}
+	if receipt.Model != "" && receipt.Model != target.ProviderModelID() {
+		return nimillm.ProviderTaskCleanupFailed, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	if receipt.Adapter == nimillm.AdapterGeminiOmniVideo {
+		result := h.CleanupNativeTaskResources(ctx, captured, target, receipt, audit)
+		if result.Complete() {
+			return nimillm.ProviderTaskCleanupUnconfirmed, nil
+		}
+		return nimillm.ProviderTaskCleanupFailed, grpcerr.WithReasonCode(codes.Unavailable, result.ReasonCode)
+	}
 	ctx = h.jobOutboundContext(WithAsyncJob(ctx), captured, audit)
 	remote, err := requestScopedProviderTarget(ctx, h.connectors, h.allowLoopback, audit.AccountID, captured, target)
 	if err != nil {
 		return nimillm.ProviderTaskCleanupFailed, err
 	}
 	defer clearRequestScopedProviderTarget(remote)
+	if receipt.Adapter == nimillm.AdapterMiniMaxH3Video {
+		return nimillm.CancelMiniMaxH3Task(ctx, receipt, nimillm.MediaAdapterConfig{BaseURL: remote.Endpoint, APIKey: remote.APIKey, Headers: cloneRemoteHeaders(remote.Headers), AllowLoopbackEndpoint: h.allowLoopback})
+	}
 	return nimillm.DeleteProviderAsyncTask(ctx, receipt.Adapter, receipt.TaskID, nimillm.MediaAdapterConfig{BaseURL: remote.Endpoint, APIKey: remote.APIKey, Headers: cloneRemoteHeaders(remote.Headers), AllowLoopbackEndpoint: h.allowLoopback})
 }
 
@@ -87,6 +126,9 @@ func (h *ProviderMediaHost) OpenNativeTaskArtifacts(ctx context.Context, capture
 // ObserveNativeTask opens the original sealed generation for one admitted
 // finite query. It has no submission method or configuration selection.
 func (h *ProviderMediaHost) ObserveNativeTask(ctx context.Context, captured connector.ConnectorRecord, target capabilitydriver.CloudMediaTarget, receipt *nimillm.NativeTaskReceipt, audit MediaDispatchAudit) (*nimillm.NativeTaskObservation, bool, error) {
+	if receipt != nil && receipt.Model != "" && receipt.Model != target.ProviderModelID() {
+		return nil, false, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
 	ctx = WithAsyncJob(ctx)
 	ctx = h.jobOutboundContext(ctx, captured, audit)
 	remote, err := requestScopedProviderTarget(ctx, h.connectors, h.allowLoopback, audit.AccountID, captured, target)

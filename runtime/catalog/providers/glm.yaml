@@ -1,9 +1,87 @@
 version: 1
 provider: glm
-catalog_version: 2026-07-20-glm-provider-v3
+catalog_version: 2026-11-05-glm-native-replay-v4
 inventory_mode: static_source
-default_text_model: glm-5.2
+default_text_model: glm-5.3
 models:
+  - model_id: glm-5.3
+    provider: glm
+    model_type: chat
+    updated_at: 2026-11-05
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-05
+      notes: Always-on thinking, 128K maximum output, exact function replay and JSON object. Live account acceptance remains separate from catalog support.
+    source_ref:
+      url: https://docs.bigmodel.cn/cn/guide/models/text/glm-5.3
+      retrieved_at: 2026-11-05
+      note: Exact flagship with always-on thinking, low/high/max effort, 1M context and 128K output.
+    context_window_tokens: 1048576
+  - model_id: glm-5.3-flash
+    provider: glm
+    model_type: chat
+    updated_at: 2026-11-05
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-05
+      notes: Always-on thinking, 128K maximum output, exact function replay and JSON object. Live account acceptance remains separate from catalog support.
+    source_ref:
+      url: https://docs.bigmodel.cn/cn/guide/models/vlm/glm-5.3-flash
+      retrieved_at: 2026-11-05
+      note: Exact Flash, FlashX and FlashX-Legal targets; native image and function replay mapping. Video and document delivery are not inferred.
+    features:
+      - input.image
+    context_window_tokens: 1048576
+  - model_id: glm-5.3-flashx
+    provider: glm
+    model_type: chat
+    updated_at: 2026-11-05
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-05
+      notes: Always-on thinking, 128K maximum output, exact function replay and JSON object. Live account acceptance remains separate from catalog support.
+    source_ref:
+      url: https://docs.bigmodel.cn/cn/guide/models/vlm/glm-5.3-flash
+      retrieved_at: 2026-11-05
+      note: Exact Flash, FlashX and FlashX-Legal targets; native image and function replay mapping. Video and document delivery are not inferred.
+    features:
+      - input.image
+    context_window_tokens: 1048576
+  - model_id: glm-5.3-flashx-legal
+    provider: glm
+    model_type: chat
+    updated_at: 2026-11-05
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-05
+      notes: Always-on thinking, 128K maximum output, exact function replay and JSON object. Live account acceptance remains separate from catalog support.
+    source_ref:
+      url: https://docs.bigmodel.cn/cn/guide/models/vlm/glm-5.3-flash
+      retrieved_at: 2026-11-05
+      note: Exact Flash, FlashX and FlashX-Legal targets; native image and function replay mapping. Video and document delivery are not inferred.
+    features:
+      - input.image
+    context_window_tokens: 1048576
   - model_id: glm-5.2
     provider: glm
     model_type: chat
@@ -205,21 +283,21 @@ selection_profiles:
   - provider: glm
     profile_id: text.general
     capability: text.generate
-    model_id: glm-5.2
-    reviewed_at: 2026-09-28
+    model_id: glm-5.3
+    reviewed_at: 2026-11-05
     freshness_sla_days: 21
-    rationale: GLM-5.2 remains in BigModel's recommended lineup for stable long-horizon tasks with a 1M context window; the newer GLM-5.3 flagship is not admitted in this catalog yet.
+    rationale: Current exact flagship; always-on hidden thinking and bounded native function replay.
   - provider: glm
     profile_id: text.fast
     capability: text.generate
-    model_id: glm-5-turbo
-    reviewed_at: 2026-09-28
+    model_id: glm-5.3-flashx
+    reviewed_at: 2026-11-05
     freshness_sla_days: 21
-    rationale: Callable GLM-5-Turbo; BigModel now positions it for OpenClaw long tasks rather than latency, and the GLM-5.3 Flash tier is not admitted in this catalog yet.
+    rationale: Official higher-throughput FlashX target with native image inputs; API credential required.
   - provider: glm
     profile_id: text.reasoning
     capability: text.generate
-    model_id: glm-5.2
-    reviewed_at: 2026-09-28
+    model_id: glm-5.3
+    reviewed_at: 2026-11-05
     freshness_sla_days: 21
-    rationale: Highest-capability admitted GLM route; GLM-5.3, BigModel's newer flagship with always-on thinking, is not admitted in this catalog yet.
+    rationale: Current flagship with exact low/high/max effort, no disabled or fabricated summary mode.

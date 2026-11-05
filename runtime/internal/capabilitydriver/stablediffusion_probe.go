@@ -16,6 +16,16 @@ import (
 
 const sdImageGGUFProbeSchema = "sd-image-gguf-probe/v1"
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.flux3-local-image
+func (StableDiffusionImageDriver) ModelAssetFormatProbeBytes(input ModelAssetFormatProbeInput) int64 {
+	// Qwen3-VL4B's reviewed tokenizer metadata places the tensor table beyond
+	// the generic four MiB window. Only this exact encoder contract needs more.
+	if input.Entry && input.RecipeID == StableDiffusionFlux3KleinRecipeID && input.RequirementID == StableDiffusionTextEncoderRequirementID {
+		return 8 << 20
+	}
+	return MaxAssetFormatProbeBytes
+}
+
 type sdImageGGUFProbe struct {
 	Schema         string   `json:"schema"`
 	RecipeID       string   `json:"recipeId"`
@@ -53,7 +63,7 @@ func sdGGUFFullInspection(requirement *runtimev1.LocalCapabilityRequirement) boo
 }
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.r064
-func (StableDiffusionImageDriver) ProbeModelAsset(input ModelAssetFormatProbeInput, source io.ReaderAt, size int64) ([]byte, error) {
+func (driver StableDiffusionImageDriver) ProbeModelAsset(input ModelAssetFormatProbeInput, source io.ReaderAt, size int64) ([]byte, error) {
 	if !input.Entry {
 		return nil, nil
 	}
@@ -71,7 +81,7 @@ func (StableDiffusionImageDriver) ProbeModelAsset(input ModelAssetFormatProbeInp
 	if format != "gguf" {
 		return nil, fmt.Errorf("unsupported image probe format")
 	}
-	reader, err := newGGUFProbeReader(source, size, MaxAssetFormatProbeBytes)
+	reader, err := newGGUFProbeReader(source, size, driver.ModelAssetFormatProbeBytes(input))
 	if err != nil {
 		return nil, err
 	}

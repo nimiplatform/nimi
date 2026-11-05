@@ -1,6 +1,6 @@
 schema_version: 3
 provider: luma
-catalog_version: 2026-04-18-luma-v2
+catalog_version: 2026-11-05-luma-ray32
 generated_target: runtime/catalog/providers/luma.yaml
 runtime:
   inventory_mode: static_source
@@ -22,6 +22,18 @@ defaults:
     notes: Luma video pricing varies by model family and account credits. The reviewed public docs do not expose stable per-model request prices in machine-readable form.
 
 sources:
+  - source_id: luma_ray32_generate
+    url: https://docs.agents.lumalabs.ai/guides/videos/generation/
+    retrieved_at: 2026-11-05
+    note: Current Ray3.2 keyframe grid, exact durations, resolution and ratio contracts.
+  - source_id: luma_agents_create
+    url: https://docs.agents.lumalabs.ai/api/resources/generations/methods/create/
+    retrieved_at: 2026-11-05
+    note: Native v1 generation envelope and exact original task states and output.
+  - source_id: luma_ray32_migration
+    url: https://docs.agents.lumalabs.ai/guides/videos/migration/
+    retrieved_at: 2026-11-05
+    note: Requires a provisioned Agents account and explicit https://agents.lumalabs.ai/v1 endpoint; older account retirement dates come from account notices.
   - source_id: luma_video_generation_doc
     url: https://docs.lumalabs.ai/docs/video-generation
     retrieved_at: 2026-04-18
@@ -32,6 +44,26 @@ sources:
     note: Luma create generation API reference showing the currently admitted model enum set.
 
 models:
+  - model_id: ray-3.2
+    model_type: video
+    updated_at: 2026-11-05
+    capabilities: [video.generate]
+    features: [input.image]
+    source_ids: [luma_ray32_generate, luma_agents_create, luma_ray32_migration]
+    video_generation:
+      modes: [t2v, i2v_first_frame, i2v_first_last]
+      input_roles:
+        t2v: [prompt]
+        i2v_first_frame: [prompt, first_frame]
+        i2v_first_last: [prompt, first_frame, last_frame]
+      limits:
+        resolution: [360p, 540p, 720p, 1080p]
+        duration_sec: [5, 10]
+        ratio: ['9:16', '3:4', '1:1', '4:3', '16:9', '21:9']
+      options:
+        supports: [resolution, duration_sec, ratio]
+        constraints: {}
+      outputs: {video_url: true, last_frame_url: false}
   - model_id: ray-2
     model_type: video
     updated_at: 2026-04-18

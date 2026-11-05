@@ -31,11 +31,6 @@ func ExtractTaskIDFromAdapterPayload(adapter string, payload map[string]any) str
 			payloadStringPath{"task_id"},
 			payloadStringPath{"taskId"},
 		)
-	case AdapterGoogleVeoOperation:
-		return firstStringAtPayloadPaths(payload,
-			payloadStringPath{"name"},
-			payloadStringPath{"id"},
-		)
 	case AdapterRunwayTask, AdapterFluxNative, AdapterLumaTask:
 		return firstStringAtPayloadPaths(payload,
 			payloadStringPath{"id"},

@@ -44,10 +44,19 @@ func TestGemma4E2BAdmitsOrderedSystemMessagesWithoutWideningOtherCombinations(t 
 
 func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 	registrations := productionTextBehaviorAdapterRegistrations()
-	if len(registrations) != 30 {
-		t.Fatalf("production adapter registrations = %d, want nine Gemma mappings, one Qwen mapping and twenty Cloud targets", len(registrations))
+	if len(registrations) != 42 {
+		t.Fatalf("production adapter registrations = %d, want ten Gemma mappings, two Qwen mappings, one LFM3 mapping and twenty-nine Cloud targets", len(registrations))
 	}
 	expectedCloudTargets := map[string]string{
+		"minimax/MiniMax-M3.1-Flash":      "minimax.MiniMax-M3.1-Flash.messages",
+		"minimax/MiniMax-M3":              "minimax.MiniMax-M3.messages",
+		"glm/glm-5.3":                     "glm.glm-5.3.chat",
+		"glm/glm-5.3-flash":               "glm.glm-5.3-flash.chat",
+		"glm/glm-5.3-flashx":              "glm.glm-5.3-flashx.chat",
+		"glm/glm-5.3-flashx-legal":        "glm.glm-5.3-flashx-legal.chat",
+		"gemini/gemini-4-argon":           "gemini.argon.interactions",
+		"openai/gpt-6.1-terra":            "openai.gpt-6.1-terra.responses",
+		"anthropic/claude-haiku-5-5":      "anthropic.claude-haiku-5-5.messages",
 		"dashscope/qwen3-vl-plus":         "dashscope.qwen3-vl-plus.ordered-text",
 		"mimo/mimo-v2.6-flash":            "mimo.v26-flash.chat-tools",
 		"mimo/mimo-v2.6-pro":              "mimo.v26-pro.chat-tools",
@@ -89,12 +98,26 @@ func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 				registration.ExecutionSemantics.RequiredTemplateIdentity != capabilitydriver.Qwen35Q4TemplateIdentity {
 				t.Fatalf("invalid production Qwen3.5 adapter registration: %+v", registration)
 			}
+		} else if registration.LocalTarget.RecipeID == capabilitydriver.LlamaQwen38RecipeID {
+			if registration.AdapterID != "llama.cpp.qwen38-27b.text-behavior" ||
+				registration.LocalTarget.ModelContents[0].ContentID != capabilitydriver.Qwen38Q4ContentID ||
+				registration.ExecutionSemantics.RequiredTemplateIdentity != capabilitydriver.Qwen38Q4TemplateIdentity {
+				t.Fatalf("invalid production Qwen3.8 adapter registration: %+v", registration)
+			}
+		} else if registration.LocalTarget.RecipeID == capabilitydriver.LlamaLFM3RecipeID {
+			if registration.AdapterID != "llama.cpp.lfm3-1.7b.text-behavior" || registration.LocalTarget.ModelContents[0].ContentID != capabilitydriver.LFM3Q4ContentID || registration.ExecutionSemantics.RequiredTemplateIdentity != capabilitydriver.LFM3Q4TemplateIdentity {
+				t.Fatalf("invalid production LFM3 adapter: %+v", registration)
+			}
+		} else if registration.LocalTarget.RecipeID == capabilitydriver.LlamaGemma412BRecipeID {
+			if registration.LocalTarget.ModelContents[0].ContentID != capabilitydriver.Gemma412BQ4ContentID || registration.ExecutionSemantics.RequiredTemplateIdentity != capabilitydriver.Gemma412BTemplateIdentity {
+				t.Fatalf("invalid unified Gemma adapter: %+v", registration)
+			}
 		} else if registration.LocalTarget.RecipeID != gemma4TextRecipeID {
 			t.Fatalf("invalid production Gemma 4 adapter registration: %+v", registration)
 		}
 		contentID := registration.LocalTarget.ModelContents[0].ContentID
 		if _, duplicate := seenContents[contentID]; duplicate {
-			t.Fatalf("duplicate production Gemma 4 adapter content %q", contentID)
+			t.Fatalf("duplicate production Local adapter content %q", contentID)
 		}
 		seenContents[contentID] = struct{}{}
 	}
@@ -584,7 +607,7 @@ func textBehaviorReason(err error) runtimev1.ReasonCode {
 	return reason
 }
 
-func TestSingleSystemConversationUsesExistingPlainPathWithoutChangingExternalOrderedInput(t *testing.T) {
+func TestSingleSystemConversationPreservesExactPlainRegistrationAndExternalOrder(t *testing.T) {
 	for _, target := range []struct {
 		provider, model string
 		ordered         bool
@@ -592,7 +615,7 @@ func TestSingleSystemConversationUsesExistingPlainPathWithoutChangingExternalOrd
 		identity := &runtimev1.CapabilityImplementationIdentity{ImplementationId: target.provider, DriverId: "nimillm", DriverDialect: target.provider}
 		plain := &runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{{Role: "system", Content: "scoped instructions"}, {Role: "user", Content: "current input"}}}
 		adapter, err := resolveTextBehaviorAdapter(productionTextBehaviorAdapterRegistrations(), identity, target.provider, target.model, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM, plain)
-		if err != nil || adapter != nil {
+		if err != nil || (adapter != nil) != (target.provider == "deepseek") {
 			t.Fatalf("%s plain path=%v err=%v", target.model, adapter, err)
 		}
 		external := proto.Clone(plain).(*runtimev1.TextGenerateScenarioSpec)

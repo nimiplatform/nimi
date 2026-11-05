@@ -1426,7 +1426,7 @@ function validateMusicSpec(value: Record<string, unknown>, command: string): voi
 function validateImageSpec(value: Record<string, unknown>, command: string): void {
   assertAllowedKeys(
     value,
-    ['type', 'prompt', 'negativePrompt', 'n', 'size', 'aspectRatio', 'quality', 'style', 'seed', 'referenceImages', 'referenceImageArtifactId', 'mask', 'responseFormat'],
+    ['type', 'prompt', 'negativePrompt', 'n', 'size', 'aspectRatio', 'quality', 'style', 'seed', 'referenceImages', 'referenceImageArtifactId', 'mask', 'responseFormat', 'maskArtifactId', 'strength', 'complexity', 'outputFormat', 'markup', 'markupArtifactId', 'frameCount', 'frameDurationMs'],
     ['type', 'prompt', 'negativePrompt', 'size', 'aspectRatio', 'quality', 'style', 'referenceImages', 'referenceImageArtifactId', 'mask', 'responseFormat'],
     command,
   );
@@ -1449,6 +1449,19 @@ function validateImageSpec(value: Record<string, unknown>, command: string): voi
   }
   const mask = optionalExactText(value.mask, 'mask', command, 2048);
   if (mask !== '') requiredHttpsUrl(mask, 'mask', command);
+  const maskArtifactId = value.maskArtifactId === undefined ? '' : optionalBoundedIdentifier(value.maskArtifactId, 'maskArtifactId', command);
+  if (mask && maskArtifactId || maskArtifactId && !referenceImageArtifactId) throw invalidPayload(command, 'mask requires one compatible source carrier');
+  if (value.strength !== undefined && (typeof value.strength !== 'number' || !Number.isFinite(value.strength) || !referenceImageArtifactId)) throw invalidPayload(command, 'image strength requires a source artifact and finite value');
+  const complexity = value.complexity === undefined ? '' : optionalExactText(value.complexity, 'complexity', command, 16);
+  const outputFormat = value.outputFormat === undefined ? '' : optionalExactText(value.outputFormat, 'outputFormat', command, 16);
+  if (!['', 'low', 'medium', 'high'].includes(complexity) || !['', 'png', 'jpeg', 'webp', 'gif', 'svg'].includes(outputFormat)) throw invalidPayload(command, 'image render options are invalid');
+  const markup = value.markup === undefined ? '' : optionalExactText(value.markup, 'markup', command, 2048);
+  if (markup) requiredHttpsUrl(markup, 'markup', command);
+  const markupArtifactId = value.markupArtifactId === undefined ? '' : optionalBoundedIdentifier(value.markupArtifactId, 'markupArtifactId', command);
+  if (markup && markupArtifactId || (markup || markupArtifactId) && (mask || maskArtifactId || !referenceImageArtifactId && value.referenceImages.length === 0)) throw invalidPayload(command, 'markup requires a source and excludes masks');
+  if (value.frameCount !== undefined) boundedSafeInteger(value.frameCount, 'frameCount', command, 2, 64);
+  if (value.frameDurationMs !== undefined) boundedSafeInteger(value.frameDurationMs, 'frameDurationMs', command, 20, 2000);
+  if ((value.frameCount !== undefined || value.frameDurationMs !== undefined) && outputFormat !== 'gif') throw invalidPayload(command, 'animation controls require GIF output');
   if (!['', 'b64_json', 'url'].includes(String(value.responseFormat))) {
     throw invalidPayload(command, 'responseFormat is invalid');
   }
@@ -1459,7 +1472,7 @@ function validateVideoSpec(value: Record<string, unknown>, command: string): voi
   optionalExactText(value.prompt, 'prompt', command, 32 * 1024);
   optionalExactText(value.negativePrompt, 'negativePrompt', command, 32 * 1024);
   if (!['t2v', 'i2v-first-frame', 'i2v-first-last', 'i2v-reference'].includes(String(value.mode))
-    || !Array.isArray(value.content) || value.content.length > 8
+    || !Array.isArray(value.content) || value.content.length > 51
     || (value.prompt === '' && value.content.length === 0)) throw invalidPayload(command, 'video spec is invalid');
   for (const itemValue of value.content) {
     if (!isPlainRecord(itemValue) || typeof itemValue.type !== 'string'
@@ -1486,7 +1499,7 @@ function validateVideoSpec(value: Record<string, unknown>, command: string): voi
   );
   optionalExactText(value.options.resolution, 'resolution', command, 64);
   optionalExactText(value.options.ratio, 'ratio', command, 64);
-  if (value.options.durationSec !== undefined) boundedSafeInteger(value.options.durationSec, 'durationSec', command, 0, 600);
+  if (value.options.durationSec !== undefined) boundedSafeInteger(value.options.durationSec, 'durationSec', command, -1, 600);
   if (value.options.frames !== undefined) boundedSafeInteger(value.options.frames, 'frames', command, 0, 100_000);
   if (value.options.fps !== undefined) boundedSafeInteger(value.options.fps, 'fps', command, 0, 120);
   if (value.options.seed !== undefined) boundedSafeInteger(value.options.seed, 'seed', command, -1, 4_294_967_295);

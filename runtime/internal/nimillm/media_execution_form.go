@@ -19,14 +19,16 @@ func MediaUsesNativeTask(adapter string, request *runtimev1.SubmitScenarioJobReq
 		}
 		contract := resolveDashScopeImageRequestContract(model)
 		return contract == dashScopeImageRequestContractAsyncTask || contract == dashScopeImageRequestContractAsyncText2Image
-	case AdapterMiniMaxTask:
+	case AdapterMiniMaxTask, AdapterMiniMaxH3Video:
 		return modal == runtimev1.Modal_MODAL_VIDEO
-	case AdapterGLMTask, AdapterLumaTask, AdapterPikaTask, AdapterRunwayTask, AdapterGoogleVeoOperation:
+	case AdapterGLMTask, AdapterLumaTask, AdapterLumaRay32, AdapterPikaTask, AdapterRunwayTask, AdapterGeminiOmniVideo:
 		return modal == runtimev1.Modal_MODAL_VIDEO
 	case AdapterKlingTask:
 		return modal == runtimev1.Modal_MODAL_IMAGE || modal == runtimev1.Modal_MODAL_VIDEO
+	case AdapterIdeogramNative:
+		return modal == runtimev1.Modal_MODAL_IMAGE && model == "ideogram-4-5"
 	case AdapterFluxNative:
-		return modal == runtimev1.Modal_MODAL_IMAGE
+		return modal == runtimev1.Modal_MODAL_IMAGE || modal == runtimev1.Modal_MODAL_VIDEO && model == "flux-3-video"
 	case AdapterMubertMusic:
 		return modal == runtimev1.Modal_MODAL_MUSIC
 	case AdapterWorldLabsNative, AdapterSpaitialNative:

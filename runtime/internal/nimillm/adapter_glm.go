@@ -13,6 +13,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
@@ -52,7 +53,7 @@ func ExecuteGLMTask(
 	submitPayload := map[string]any{
 		"model":                       modelResolved,
 		"mode":                        strings.ToLower(strings.TrimPrefix(spec.GetMode().String(), "VIDEO_MODE_")),
-		"prompt":                      VideoPrompt(spec),
+		"prompt":                      capabilitydriver.VideoPrompt(spec),
 		"negative_prompt":             VideoNegativePrompt(spec),
 		"content":                     contentPayload,
 		"duration_sec":                VideoDurationSec(spec),

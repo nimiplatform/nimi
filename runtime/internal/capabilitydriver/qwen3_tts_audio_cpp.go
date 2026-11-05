@@ -23,7 +23,7 @@ const (
 	Qwen3TTSAudioCppModelSizeBytes     = int64(2817044064)
 	Qwen3TTSAudioCppVerifiedContentID  = "sha256:3cfaac8e9f13554f6daea3c5e0c53fede71ef5500cbaae7445e5fc3a5bb12e72"
 	Qwen3TTSAudioCppPresetVoiceVivian  = "Vivian"
-	AudioCppWindowsCUDA13PackageID     = "audio-cpp-0.9.2-drama3-base-small-windows-amd64-cuda13.3"
+	AudioCppWindowsCUDA13PackageID     = "audio-cpp-0.9.3-windows-amd64-cuda13.3"
 	AudioCppCUDA13RuntimeDependencyID  = "nvidia-cuda13-user-space-runtime"
 	qwen3TTSAudioCppExpectedSampleRate = 24000
 	qwen3TTSAudioCppExpectedChannels   = 1
@@ -328,7 +328,7 @@ func validateQwen3TTSAudioCppRequest(value *runtimev1.SpeechSynthesizeScenarioSp
 	}
 	ref := request.GetVoiceRef()
 	if ref == nil || ref.GetKind() != runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET || ref.GetPresetVoiceId() != Qwen3TTSAudioCppPresetVoiceVivian {
-		return nil, invocationError(InvocationFailureUnsupported, fmt.Errorf("Qwen3-TTS audio.cpp requires the exact Vivian preset"))
+		return nil, invocationError(InvocationFailureVoiceInput, fmt.Errorf("Qwen3-TTS audio.cpp requires the exact Vivian preset"))
 	}
 	if request.SampleRateHz != nil || request.Speed != nil || request.Pitch != nil || request.Volume != nil || (request.GetTimingMode() != runtimev1.SpeechTimingMode_SPEECH_TIMING_MODE_UNSPECIFIED && request.GetTimingMode() != runtimev1.SpeechTimingMode_SPEECH_TIMING_MODE_NONE) || request.GetVoiceRenderHints() != nil {
 		return nil, invocationError(InvocationFailureUnsupported, fmt.Errorf("Qwen3-TTS audio.cpp request contains unsupported synthesis options"))

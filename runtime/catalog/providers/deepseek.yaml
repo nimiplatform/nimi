@@ -1,13 +1,13 @@
 version: 1
 provider: deepseek
-catalog_version: 2026-09-16-deepseek-flash
+catalog_version: 2026-11-04-deepseek-flash-vision
 inventory_mode: static_source
 default_text_model: deepseek-flash
 models:
   - model_id: deepseek-flash
     provider: deepseek
     model_type: chat
-    updated_at: 2026-09-16
+    updated_at: 2026-11-04
     capabilities:
       - text.generate
     pricing:
@@ -20,7 +20,9 @@ models:
     source_ref:
       url: https://api-docs.deepseek.com/quick_start/pricing
       retrieved_at: 2026-09-28
-      note: Current model table maps deepseek-flash to DeepSeek-V4.1-Flash and deepseek-v4-pro to DeepSeek-V4-Pro-0813. The legacy deepseek-v4-flash name is still accepted, but its model is retired and requests are served by V4.1 Flash. Prices distinguish peak and off-peak.
+      note: Current model table maps deepseek-flash to DeepSeek-V4.1-Flash-1017 and deepseek-v4-pro to DeepSeek-V4-Pro-0813. The legacy deepseek-v4-flash name is still accepted, but its model is retired and requests are served by V4.1 Flash. Prices distinguish peak and off-peak.
+    features:
+      - input.image
     context_window_tokens: 1000000
   - model_id: deepseek-v4-flash
     provider: deepseek
@@ -38,7 +40,7 @@ models:
     source_ref:
       url: https://api-docs.deepseek.com/quick_start/pricing
       retrieved_at: 2026-09-28
-      note: Current model table maps deepseek-flash to DeepSeek-V4.1-Flash and deepseek-v4-pro to DeepSeek-V4-Pro-0813. The legacy deepseek-v4-flash name is still accepted, but its model is retired and requests are served by V4.1 Flash. Prices distinguish peak and off-peak.
+      note: Current model table maps deepseek-flash to DeepSeek-V4.1-Flash-1017 and deepseek-v4-pro to DeepSeek-V4-Pro-0813. The legacy deepseek-v4-flash name is still accepted, but its model is retired and requests are served by V4.1 Flash. Prices distinguish peak and off-peak.
     context_window_tokens: 1000000
   - model_id: deepseek-v4-pro
     provider: deepseek
@@ -56,7 +58,7 @@ models:
     source_ref:
       url: https://api-docs.deepseek.com/quick_start/pricing
       retrieved_at: 2026-09-28
-      note: Current model table maps deepseek-flash to DeepSeek-V4.1-Flash and deepseek-v4-pro to DeepSeek-V4-Pro-0813. The legacy deepseek-v4-flash name is still accepted, but its model is retired and requests are served by V4.1 Flash. Prices distinguish peak and off-peak.
+      note: Current model table maps deepseek-flash to DeepSeek-V4.1-Flash-1017 and deepseek-v4-pro to DeepSeek-V4-Pro-0813. The legacy deepseek-v4-flash name is still accepted, but its model is retired and requests are served by V4.1 Flash. Prices distinguish peak and off-peak.
     context_window_tokens: 1000000
 voices: []
 selection_profiles:
@@ -64,13 +66,13 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: deepseek-flash
-    reviewed_at: 2026-09-28
+    reviewed_at: 2026-11-04
     freshness_sla_days: 21
-    rationale: Current official Flash API name, served by DeepSeek-V4.1-Flash. The name moves with provider releases, so its exact Runtime tool and JSON behavior is re-reviewed with this profile.
+    rationale: Current official Flash API name, served by DeepSeek-V4.1-Flash-1017. The name moves with provider releases, so its exact Runtime tool and JSON behavior is re-reviewed with this profile.
   - provider: deepseek
     profile_id: text.reasoning
     capability: text.generate
     model_id: deepseek-v4-pro
-    reviewed_at: 2026-09-28
+    reviewed_at: 2026-11-04
     freshness_sla_days: 21
     rationale: DeepSeek-V4-Pro-0813 stays officially served after 2026-09-14 as the larger text-only model; it keeps the higher published no-tool HLE score, while V4.1 Flash leads the agentic benchmarks.

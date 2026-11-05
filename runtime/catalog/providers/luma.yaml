@@ -1,8 +1,67 @@
 version: 1
 provider: luma
-catalog_version: 2026-04-18-luma-v2
+catalog_version: 2026-11-05-luma-ray32
 inventory_mode: static_source
 models:
+  - model_id: ray-3.2
+    provider: luma
+    model_type: video
+    updated_at: 2026-11-05
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Luma video pricing varies by model family and account credits. The reviewed public docs do not expose stable per-model request prices in machine-readable form.
+    source_ref:
+      url: https://docs.agents.lumalabs.ai/guides/videos/generation/
+      retrieved_at: 2026-11-05
+      note: Current Ray3.2 keyframe grid, exact durations, resolution and ratio contracts.
+    features:
+      - input.image
+    video_generation:
+      modes:
+        - t2v
+        - i2v_first_frame
+        - i2v_first_last
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+        i2v_first_last:
+          - prompt
+          - first_frame
+          - last_frame
+      limits:
+        resolution:
+          - 360p
+          - 540p
+          - 720p
+          - 1080p
+        duration_sec:
+          - 5
+          - 10
+        ratio:
+          - 9:16
+          - 3:4
+          - 1:1
+          - 4:3
+          - 16:9
+          - 21:9
+      options:
+        supports:
+          - resolution
+          - duration_sec
+          - ratio
+        constraints: {}
+      outputs:
+        video_url: true
+        last_frame_url: false
   - model_id: ray-2
     provider: luma
     model_type: video

@@ -5607,7 +5607,9 @@ pub struct ReasoningSummary {
     pub text: ::prost::alloc::string::String,
 }
 /// Bounded self-contained native continuity state. Callers preserve the ordered
-/// bytes unchanged; Runtime does not interpret or persist a cross-request store.
+/// bytes unchanged; only the exact Driver decodes its native replay format.
+/// A carrier may contain plaintext reasoning and does not guarantee encryption.
+/// Runtime keeps no cross-request continuity store.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ReasoningContinuityCarrier {
     #[prost(string, tag = "1")]
@@ -5832,6 +5834,18 @@ pub struct ImageGenerateScenarioSpec {
     pub mask_artifact_id: ::prost::alloc::string::String,
     #[prost(float, optional, tag = "14")]
     pub strength: ::core::option::Option<f32>,
+    #[prost(string, tag = "15")]
+    pub complexity: ::prost::alloc::string::String,
+    #[prost(string, tag = "16")]
+    pub output_format: ::prost::alloc::string::String,
+    #[prost(string, tag = "17")]
+    pub markup: ::prost::alloc::string::String,
+    #[prost(string, tag = "18")]
+    pub markup_artifact_id: ::prost::alloc::string::String,
+    #[prost(int32, optional, tag = "19")]
+    pub frame_count: ::core::option::Option<i32>,
+    #[prost(int32, optional, tag = "20")]
+    pub frame_duration_ms: ::core::option::Option<i32>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct VideoGenerateScenarioSpec {
@@ -7011,6 +7025,18 @@ pub struct LocalAppImageGenerateScenarioSpec {
     pub mask_artifact_id: ::prost::alloc::string::String,
     #[prost(float, optional, tag = "14")]
     pub strength: ::core::option::Option<f32>,
+    #[prost(string, tag = "15")]
+    pub complexity: ::prost::alloc::string::String,
+    #[prost(string, tag = "16")]
+    pub output_format: ::prost::alloc::string::String,
+    #[prost(string, tag = "17")]
+    pub markup: ::prost::alloc::string::String,
+    #[prost(string, tag = "18")]
+    pub markup_artifact_id: ::prost::alloc::string::String,
+    #[prost(int32, optional, tag = "19")]
+    pub frame_count: ::core::option::Option<i32>,
+    #[prost(int32, optional, tag = "20")]
+    pub frame_duration_ms: ::core::option::Option<i32>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ExecuteLocalAppScenarioRequest {
@@ -8411,6 +8437,9 @@ pub enum ReasoningEffort {
     High = 4,
     Maximum = 5,
     Xhigh = 6,
+    /// Activate thinking using the exact implementation's native default intensity.
+    /// This is distinct from omitting the entire ReasoningConfig.
+    ModelDefault = 7,
 }
 impl ReasoningEffort {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -8426,6 +8455,7 @@ impl ReasoningEffort {
             Self::High => "REASONING_EFFORT_HIGH",
             Self::Maximum => "REASONING_EFFORT_MAXIMUM",
             Self::Xhigh => "REASONING_EFFORT_XHIGH",
+            Self::ModelDefault => "REASONING_EFFORT_MODEL_DEFAULT",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -8438,6 +8468,7 @@ impl ReasoningEffort {
             "REASONING_EFFORT_HIGH" => Some(Self::High),
             "REASONING_EFFORT_MAXIMUM" => Some(Self::Maximum),
             "REASONING_EFFORT_XHIGH" => Some(Self::Xhigh),
+            "REASONING_EFFORT_MODEL_DEFAULT" => Some(Self::ModelDefault),
             _ => None,
         }
     }

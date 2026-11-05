@@ -44,7 +44,7 @@ func executeGeminiVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, c
 		voice["language_code"] = language
 	}
 	response := map[string]any{}
-	if err := geminiVoiceRequest(ctx, cfg, http.MethodPost, "/voices", map[string]any{"store": true, "voice": voice}, &response); err != nil {
+	if err := geminiNativeRequest(ctx, cfg, http.MethodPost, "/voices", map[string]any{"store": true, "voice": voice}, &response); err != nil {
 		return VoiceWorkflowResult{}, err
 	}
 	return parseGeminiStoredVoice(response, "", true)
@@ -62,7 +62,7 @@ func geminiStoredVoiceIDValid(id string) bool {
 	return true
 }
 
-func geminiVoiceRequest(ctx context.Context, cfg MediaAdapterConfig, method, path string, payload any, response *map[string]any) error {
+func geminiNativeRequest(ctx context.Context, cfg MediaAdapterConfig, method, path string, payload any, response *map[string]any) error {
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := resolveGeminiNativeBaseURL(cfg.BaseURL)
 	if baseURL == "" {
@@ -80,7 +80,7 @@ func inspectGeminiStoredVoice(ctx context.Context, id string, cfg MediaAdapterCo
 		return VoiceWorkflowResult{}, false, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 	}
 	response := map[string]any{}
-	if err := geminiVoiceRequest(ctx, cfg, http.MethodGet, "/voices/"+url.PathEscape(id), nil, &response); err != nil {
+	if err := geminiNativeRequest(ctx, cfg, http.MethodGet, "/voices/"+url.PathEscape(id), nil, &response); err != nil {
 		if status.Code(err) == codes.NotFound {
 			return VoiceWorkflowResult{}, false, nil
 		}
@@ -94,7 +94,7 @@ func deleteGeminiStoredVoice(ctx context.Context, id string, cfg MediaAdapterCon
 	if !geminiStoredVoiceIDValid(id) {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 	}
-	err := geminiVoiceRequest(ctx, cfg, http.MethodDelete, "/voices/"+url.PathEscape(id), nil, nil)
+	err := geminiNativeRequest(ctx, cfg, http.MethodDelete, "/voices/"+url.PathEscape(id), nil, nil)
 	if status.Code(err) == codes.NotFound {
 		return nil
 	}

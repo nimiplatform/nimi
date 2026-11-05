@@ -15,7 +15,8 @@ import (
 type OrderedItemKind uint8
 
 // MaxReasoningContinuityPayloadBytes is the canonical transport ceiling for
-// one self-contained opaque continuity carrier. Exact adapters may impose a
+// one self-contained native continuity carrier. Native replay may be plaintext;
+// this transport type does not promise encryption or provider authentication. Exact adapters may impose a
 // smaller bound, never a larger one.
 const MaxReasoningContinuityPayloadBytes = 64 << 10
 

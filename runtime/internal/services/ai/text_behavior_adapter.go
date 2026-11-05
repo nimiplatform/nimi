@@ -106,12 +106,12 @@ type textBehaviorToolUseSupport struct {
 }
 
 type textBehaviorReasoningSupport struct {
-	Activations             []runtimev1.ReasoningActivation
-	Presentations           []runtimev1.ReasoningPresentation
-	Efforts                 []runtimev1.ReasoningEffort
-	ExactBudget             bool
-	SummaryTranscript       bool
-	OpaqueContinuityCarrier bool
+	Activations       []runtimev1.ReasoningActivation
+	Presentations     []runtimev1.ReasoningPresentation
+	Efforts           []runtimev1.ReasoningEffort
+	ExactBudget       bool
+	SummaryTranscript bool
+	ContinuityCarrier bool
 	// Declared by the same versioned adapter that validates these carriers.
 	ContinuityKind    string
 	ContinuityVersion uint32
@@ -422,7 +422,7 @@ func validTextBehaviorSupport(support textBehaviorSupport) bool {
 		coveredReasoning = coveredReasoning || combination.Reasoning
 		coveredStructured = coveredStructured || combination.StructuredOutput
 	}
-	offOnly := support.Reasoning != nil && len(support.Reasoning.Activations) == 1 && support.Reasoning.Activations[0] == runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED && !support.Reasoning.SummaryTranscript && !support.Reasoning.OpaqueContinuityCarrier
+	offOnly := support.Reasoning != nil && len(support.Reasoning.Activations) == 1 && support.Reasoning.Activations[0] == runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED && !support.Reasoning.SummaryTranscript && !support.Reasoning.ContinuityCarrier
 	return (support.ToolUse == nil || coveredTool) && (support.Reasoning == nil || coveredReasoning || offOnly) &&
 		(support.StructuredOutput == nil || coveredStructured)
 }
@@ -463,7 +463,7 @@ func validTextBehaviorToolUseSupport(support textBehaviorToolUseSupport) bool {
 func validTextBehaviorReasoningSupport(support textBehaviorReasoningSupport) bool {
 	// A stateless relay can preserve opaque continuity without admitting any
 	// reasoning activation, intensity or presentation controls.
-	if support.OpaqueContinuityCarrier && !support.SummaryTranscript && len(support.Activations) == 0 &&
+	if support.ContinuityCarrier && !support.SummaryTranscript && len(support.Activations) == 0 &&
 		len(support.Presentations) == 0 && len(support.Efforts) == 0 && !support.ExactBudget {
 		return true
 	}
@@ -496,7 +496,8 @@ func validTextBehaviorReasoningSupport(support textBehaviorReasoningSupport) boo
 		switch value {
 		case runtimev1.ReasoningEffort_REASONING_EFFORT_MINIMAL, runtimev1.ReasoningEffort_REASONING_EFFORT_LOW,
 			runtimev1.ReasoningEffort_REASONING_EFFORT_MEDIUM, runtimev1.ReasoningEffort_REASONING_EFFORT_HIGH,
-			runtimev1.ReasoningEffort_REASONING_EFFORT_MAXIMUM, runtimev1.ReasoningEffort_REASONING_EFFORT_XHIGH:
+			runtimev1.ReasoningEffort_REASONING_EFFORT_MAXIMUM, runtimev1.ReasoningEffort_REASONING_EFFORT_XHIGH,
+			runtimev1.ReasoningEffort_REASONING_EFFORT_MODEL_DEFAULT:
 		default:
 			return false
 		}
@@ -649,7 +650,7 @@ func containsToolChoiceMode(values []runtimev1.ToolChoiceMode, expected runtimev
 
 func textBehaviorReasoningSupportsRequest(support *textBehaviorReasoningSupport, requested requestedTextBehaviors, spec *runtimev1.TextGenerateScenarioSpec) bool {
 	if support == nil || spec == nil || requested.reasoningSummaryTurn && !support.SummaryTranscript ||
-		requested.reasoningContinuity && !support.OpaqueContinuityCarrier {
+		requested.reasoningContinuity && !support.ContinuityCarrier {
 		return false
 	}
 	normalized := normalizeReasoningConfig(spec.GetReasoning())

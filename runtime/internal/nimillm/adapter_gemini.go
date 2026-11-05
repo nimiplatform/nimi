@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"net/url"
-	"strconv"
 	"strings"
 	"time"
 
@@ -21,7 +21,7 @@ const AdapterGeminiOperation = "gemini_operation_adapter"
 
 // ExecuteGeminiOperation retains the private dispatcher label for finite Gemini
 // image and transcription requests. TTS uses its dedicated generateContent or
-// interactions adapter; video belongs to the separately admitted Veo provider.
+// interactions adapter; video uses the dedicated Gemini Omni adapter.
 func ExecuteGeminiOperation(
 	ctx context.Context,
 	cfg MediaAdapterConfig,
@@ -74,13 +74,16 @@ func ExecuteGeminiImageGenerateContent(
 		return nil, nil, "", err
 	}
 	if artifactID := spec.GetReferenceImageArtifactId(); artifactID != "" {
-		reference, _ := ctx.Value(imageReferenceContextKey{}).(*ImageReference)
+		reference, _ := ctx.Value(imageReferenceContextKey{}).(*CapturedMediaReference)
 		if err := ValidateGeminiImageReferenceRequest(spec, reference); err != nil {
 			return nil, nil, "", err
 		}
 		referenceParts = append(referenceParts, geminiOwnedImagePart(reference))
 	}
-	payload := geminiImageGeneratePayload(spec, referenceParts)
+	payload, err := geminiImageGeneratePayload(spec, referenceParts)
+	if err != nil {
+		return nil, nil, "", err
+	}
 	if err := validateGeminiImagePayloadSize(payload); err != nil {
 		return nil, nil, "", err
 	}
@@ -102,12 +105,20 @@ func ExecuteGeminiImageGenerateContent(
 
 	artifactBytes, _, artifactURI := geminiFinalInlineImage(ctx, responsePayload["candidates"])
 	if len(artifactBytes) == 0 {
+		slog.Warn("Gemini image output invalid", "stage", "final_image")
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	imageConfig, imageFormat, valid := decodedMediaImageConfig(artifactBytes)
+	maxPixels := int64(16 << 20)
+	if resolvedModel == "gemini-nano-banana-2.1" {
+		// The documented 4K 1:8 canvas is 1536x12288, above 16 Mi pixels.
+		maxPixels = 20 << 20
+	}
+	imageConfig, imageFormat, valid := decodedMediaImageConfigWithPixelLimit(artifactBytes, maxPixels)
 	if !valid {
+		slog.Warn("Gemini image output invalid", "stage", "image_decode", "encoded_bytes", len(artifactBytes))
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
+
 	var mimeType string
 	switch imageFormat {
 	case "jpeg", "png":
@@ -172,43 +183,6 @@ func resolveGeminiNativeBaseURL(baseURL string) string {
 		return strings.TrimSuffix(normalized, "/openai")
 	}
 	return normalized
-}
-
-func resolveGeminiImageAspectRatio(spec *runtimev1.ImageGenerateScenarioSpec) string {
-	if spec == nil {
-		return ""
-	}
-	if aspectRatio := strings.TrimSpace(spec.GetAspectRatio()); aspectRatio != "" {
-		return aspectRatio
-	}
-	size := strings.ToLower(strings.TrimSpace(spec.GetSize()))
-	if size == "" {
-		return ""
-	}
-	parts := strings.Split(size, "x")
-	if len(parts) != 2 {
-		return ""
-	}
-	width, widthErr := strconv.Atoi(strings.TrimSpace(parts[0]))
-	height, heightErr := strconv.Atoi(strings.TrimSpace(parts[1]))
-	if widthErr != nil || heightErr != nil || width <= 0 || height <= 0 {
-		return ""
-	}
-	divisor := greatestCommonDivisor(width, height)
-	if divisor <= 0 {
-		return ""
-	}
-	return fmt.Sprintf("%d:%d", width/divisor, height/divisor)
-}
-
-func greatestCommonDivisor(left int, right int) int {
-	for right != 0 {
-		left, right = right, left%right
-	}
-	if left < 0 {
-		return -left
-	}
-	return left
 }
 
 func resolveGeminiGenerateContentHTTPTimeout(req *runtimev1.SubmitScenarioJobRequest) time.Duration {

@@ -32,7 +32,7 @@
     },
     "textTools": {
       "label": "Tools & structured output",
-      "summary": "Tests a fixed tool call or a fixed JSON Schema through text.generate and validates the result in the App.",
+      "summary": "Tests a fixed tool call, JSON object output or a fixed JSON Schema through text.generate and checks the result in the App.",
       "inputTitle": "Test tools and structured output",
       "inputPlaceholder": "Request for the model. It is sent exactly as written.",
       "primaryLabel": "Run test",
@@ -71,7 +71,10 @@
       "argumentsInvalid": "The tool call {{id}} has invalid arguments: {{detail}}",
       "tooManySteps": "The model kept calling tools after {{steps}} steps.",
       "streamOrder": "The streamed items arrived out of order.",
-      "streamIncomplete": "The stream ended before it completed."
+      "streamIncomplete": "The stream ended before it completed.",
+      "jsonObjectScenario": "JSON object output",
+      "jsonObjectHint": "The request asks for a JSON object. The App parses the complete final text and verifies it is an object.",
+      "jsonObjectPassed": "The JSON object test passed: the complete final text parsed as an object."
     },
     "textDecide": {
       "label": "Decisions",
@@ -156,6 +159,7 @@
       "hidden": "Hide summary",
       "summary": "Reasoning summary",
       "efforts": {
+        "model-default": "Native default intensity",
         "minimal": "Minimal",
         "low": "Low",
         "medium": "Medium",

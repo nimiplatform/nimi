@@ -192,7 +192,7 @@ func audioCppRuntimePackageInput(selected *localexecution.SelectedLocalExecution
 			result.AudioCppPackageID = capabilitydriver.AudioCppWindowsCUDA13PackageID
 			executableName := "audiocpp_cli.exe"
 			if source.ConsumerScope == "audio.cpp.vevo2.cpu" {
-				if selected.CapabilityContract != capabilitydriver.VoiceConvertCapabilityContract || selected.DriverIdentity.GetDriverId() != capabilitydriver.VeVo2DriverID || source.Version != "release-0.9.2-drama3-base-small@507495611b22dc4590e0e5609e05e8096384e33f" {
+				if selected.CapabilityContract != capabilitydriver.VoiceConvertCapabilityContract || selected.DriverIdentity.GetDriverId() != capabilitydriver.VeVo2DriverID || source.Version != "release-0.9.3@41c1f8ffa0d13a1b7e366e30ea5fe5ab8d169d48" {
 					return result, fmt.Errorf("Mac audio.cpp source does not belong to VeVo2")
 				}
 				result.AudioCppPackageID = capabilitydriver.AudioCppMacOSPackageID

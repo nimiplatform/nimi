@@ -309,7 +309,9 @@ export interface ReasoningSummary {
 }
 /**
  * Bounded self-contained native continuity state. Callers preserve the ordered
- * bytes unchanged; Runtime does not interpret or persist a cross-request store.
+ * bytes unchanged; only the exact Driver decodes its native replay format.
+ * A carrier may contain plaintext reasoning and does not guarantee encryption.
+ * Runtime keeps no cross-request continuity store.
  *
  * @generated from protobuf message nimi.runtime.v1.ReasoningContinuityCarrier
  */
@@ -724,6 +726,30 @@ export interface ImageGenerateScenarioSpec {
      * @generated from protobuf field: optional float strength = 14
      */
     strength?: number;
+    /**
+     * @generated from protobuf field: string complexity = 15
+     */
+    complexity: string;
+    /**
+     * @generated from protobuf field: string output_format = 16
+     */
+    outputFormat: string;
+    /**
+     * @generated from protobuf field: string markup = 17
+     */
+    markup: string;
+    /**
+     * @generated from protobuf field: string markup_artifact_id = 18
+     */
+    markupArtifactId: string;
+    /**
+     * @generated from protobuf field: optional int32 frame_count = 19
+     */
+    frameCount?: number;
+    /**
+     * @generated from protobuf field: optional int32 frame_duration_ms = 20
+     */
+    frameDurationMs?: number;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.VideoGenerateScenarioSpec
@@ -2957,6 +2983,30 @@ export interface LocalAppImageGenerateScenarioSpec {
      * @generated from protobuf field: optional float strength = 14
      */
     strength?: number;
+    /**
+     * @generated from protobuf field: string complexity = 15
+     */
+    complexity: string;
+    /**
+     * @generated from protobuf field: string output_format = 16
+     */
+    outputFormat: string;
+    /**
+     * @generated from protobuf field: string markup = 17
+     */
+    markup: string;
+    /**
+     * @generated from protobuf field: string markup_artifact_id = 18
+     */
+    markupArtifactId: string;
+    /**
+     * @generated from protobuf field: optional int32 frame_count = 19
+     */
+    frameCount?: number;
+    /**
+     * @generated from protobuf field: optional int32 frame_duration_ms = 20
+     */
+    frameDurationMs?: number;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ExecuteLocalAppScenarioRequest
@@ -5329,7 +5379,14 @@ export enum ReasoningEffort {
     /**
      * @generated from protobuf enum value: REASONING_EFFORT_XHIGH = 6;
      */
-    XHIGH = 6
+    XHIGH = 6,
+    /**
+     * Activate thinking using the exact implementation's native default intensity.
+     * This is distinct from omitting the entire ReasoningConfig.
+     *
+     * @generated from protobuf enum value: REASONING_EFFORT_MODEL_DEFAULT = 7;
+     */
+    MODEL_DEFAULT = 7
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ReasoningPresentation
@@ -7877,7 +7934,13 @@ class ImageGenerateScenarioSpec$Type extends MessageType<ImageGenerateScenarioSp
             { no: 11, name: "response_format", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 12, name: "reference_image_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 13, name: "mask_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 14, name: "strength", kind: "scalar", opt: true, T: 2 /*ScalarType.FLOAT*/ }
+            { no: 14, name: "strength", kind: "scalar", opt: true, T: 2 /*ScalarType.FLOAT*/ },
+            { no: 15, name: "complexity", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 16, name: "output_format", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 17, name: "markup", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 18, name: "markup_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 19, name: "frame_count", kind: "scalar", opt: true, T: 5 /*ScalarType.INT32*/ },
+            { no: 20, name: "frame_duration_ms", kind: "scalar", opt: true, T: 5 /*ScalarType.INT32*/ }
         ]);
     }
     create(value?: PartialMessage<ImageGenerateScenarioSpec>): ImageGenerateScenarioSpec {
@@ -7893,6 +7956,10 @@ class ImageGenerateScenarioSpec$Type extends MessageType<ImageGenerateScenarioSp
         message.responseFormat = "";
         message.referenceImageArtifactId = "";
         message.maskArtifactId = "";
+        message.complexity = "";
+        message.outputFormat = "";
+        message.markup = "";
+        message.markupArtifactId = "";
         if (value !== undefined)
             reflectionMergePartial<ImageGenerateScenarioSpec>(this, message, value);
         return message;
@@ -7943,6 +8010,24 @@ class ImageGenerateScenarioSpec$Type extends MessageType<ImageGenerateScenarioSp
                     break;
                 case /* optional float strength */ 14:
                     message.strength = reader.float();
+                    break;
+                case /* string complexity */ 15:
+                    message.complexity = reader.string();
+                    break;
+                case /* string output_format */ 16:
+                    message.outputFormat = reader.string();
+                    break;
+                case /* string markup */ 17:
+                    message.markup = reader.string();
+                    break;
+                case /* string markup_artifact_id */ 18:
+                    message.markupArtifactId = reader.string();
+                    break;
+                case /* optional int32 frame_count */ 19:
+                    message.frameCount = reader.int32();
+                    break;
+                case /* optional int32 frame_duration_ms */ 20:
+                    message.frameDurationMs = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -7998,6 +8083,24 @@ class ImageGenerateScenarioSpec$Type extends MessageType<ImageGenerateScenarioSp
         /* optional float strength = 14; */
         if (message.strength !== undefined)
             writer.tag(14, WireType.Bit32).float(message.strength);
+        /* string complexity = 15; */
+        if (message.complexity !== "")
+            writer.tag(15, WireType.LengthDelimited).string(message.complexity);
+        /* string output_format = 16; */
+        if (message.outputFormat !== "")
+            writer.tag(16, WireType.LengthDelimited).string(message.outputFormat);
+        /* string markup = 17; */
+        if (message.markup !== "")
+            writer.tag(17, WireType.LengthDelimited).string(message.markup);
+        /* string markup_artifact_id = 18; */
+        if (message.markupArtifactId !== "")
+            writer.tag(18, WireType.LengthDelimited).string(message.markupArtifactId);
+        /* optional int32 frame_count = 19; */
+        if (message.frameCount !== undefined)
+            writer.tag(19, WireType.Varint).int32(message.frameCount);
+        /* optional int32 frame_duration_ms = 20; */
+        if (message.frameDurationMs !== undefined)
+            writer.tag(20, WireType.Varint).int32(message.frameDurationMs);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -14646,7 +14749,13 @@ class LocalAppImageGenerateScenarioSpec$Type extends MessageType<LocalAppImageGe
             { no: 11, name: "response_format", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 12, name: "reference_image_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 13, name: "mask_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 14, name: "strength", kind: "scalar", opt: true, T: 2 /*ScalarType.FLOAT*/ }
+            { no: 14, name: "strength", kind: "scalar", opt: true, T: 2 /*ScalarType.FLOAT*/ },
+            { no: 15, name: "complexity", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 16, name: "output_format", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 17, name: "markup", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 18, name: "markup_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 19, name: "frame_count", kind: "scalar", opt: true, T: 5 /*ScalarType.INT32*/ },
+            { no: 20, name: "frame_duration_ms", kind: "scalar", opt: true, T: 5 /*ScalarType.INT32*/ }
         ]);
     }
     create(value?: PartialMessage<LocalAppImageGenerateScenarioSpec>): LocalAppImageGenerateScenarioSpec {
@@ -14662,6 +14771,10 @@ class LocalAppImageGenerateScenarioSpec$Type extends MessageType<LocalAppImageGe
         message.responseFormat = "";
         message.referenceImageArtifactId = "";
         message.maskArtifactId = "";
+        message.complexity = "";
+        message.outputFormat = "";
+        message.markup = "";
+        message.markupArtifactId = "";
         if (value !== undefined)
             reflectionMergePartial<LocalAppImageGenerateScenarioSpec>(this, message, value);
         return message;
@@ -14712,6 +14825,24 @@ class LocalAppImageGenerateScenarioSpec$Type extends MessageType<LocalAppImageGe
                     break;
                 case /* optional float strength */ 14:
                     message.strength = reader.float();
+                    break;
+                case /* string complexity */ 15:
+                    message.complexity = reader.string();
+                    break;
+                case /* string output_format */ 16:
+                    message.outputFormat = reader.string();
+                    break;
+                case /* string markup */ 17:
+                    message.markup = reader.string();
+                    break;
+                case /* string markup_artifact_id */ 18:
+                    message.markupArtifactId = reader.string();
+                    break;
+                case /* optional int32 frame_count */ 19:
+                    message.frameCount = reader.int32();
+                    break;
+                case /* optional int32 frame_duration_ms */ 20:
+                    message.frameDurationMs = reader.int32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -14767,6 +14898,24 @@ class LocalAppImageGenerateScenarioSpec$Type extends MessageType<LocalAppImageGe
         /* optional float strength = 14; */
         if (message.strength !== undefined)
             writer.tag(14, WireType.Bit32).float(message.strength);
+        /* string complexity = 15; */
+        if (message.complexity !== "")
+            writer.tag(15, WireType.LengthDelimited).string(message.complexity);
+        /* string output_format = 16; */
+        if (message.outputFormat !== "")
+            writer.tag(16, WireType.LengthDelimited).string(message.outputFormat);
+        /* string markup = 17; */
+        if (message.markup !== "")
+            writer.tag(17, WireType.LengthDelimited).string(message.markup);
+        /* string markup_artifact_id = 18; */
+        if (message.markupArtifactId !== "")
+            writer.tag(18, WireType.LengthDelimited).string(message.markupArtifactId);
+        /* optional int32 frame_count = 19; */
+        if (message.frameCount !== undefined)
+            writer.tag(19, WireType.Varint).int32(message.frameCount);
+        /* optional int32 frame_duration_ms = 20; */
+        if (message.frameDurationMs !== undefined)
+            writer.tag(20, WireType.Varint).int32(message.frameDurationMs);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

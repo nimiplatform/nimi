@@ -408,6 +408,12 @@ export function normalizeVideoGeneration(raw) {
   if (Object.keys(inputRoles).length === 0) {
     throw new Error('video_generation.input_roles must not be empty');
   }
+  let referenceAnchorRoles;
+  if (raw.reference_anchor_roles !== undefined) {
+    if (!Array.isArray(raw.reference_anchor_roles) || raw.reference_anchor_roles.length === 0 || !modes.includes('i2v_reference')) throw new Error('video_generation.reference_anchor_roles requires reference mode and a nonempty role set');
+    referenceAnchorRoles = raw.reference_anchor_roles.map(normalizeString);
+    if (new Set(referenceAnchorRoles).size !== referenceAnchorRoles.length || referenceAnchorRoles.some(role => !['reference_image', 'reference_video', 'reference_audio'].includes(role) || !inputRoles.i2v_reference?.includes(role))) throw new Error('video_generation.reference_anchor_roles must be unique declared reference roles');
+  }
   const limits = raw.limits && typeof raw.limits === 'object' ? raw.limits : {};
   if (Object.keys(limits).length === 0) {
     throw new Error('video_generation.limits must not be empty');
@@ -424,6 +430,7 @@ export function normalizeVideoGeneration(raw) {
   return {
     modes,
     input_roles: inputRoles,
+    ...(referenceAnchorRoles ? { reference_anchor_roles: referenceAnchorRoles } : {}),
     limits,
     options,
     outputs,
@@ -620,6 +627,24 @@ export function normalizeImageRequestOptions(raw, provider, modelID) {
     supports_quality: Boolean(raw.supports_quality),
     supports_style: Boolean(raw.supports_style),
   };
+  if (raw.complexity_levels !== undefined) {
+    const levels = normalizeStringArray(raw.complexity_levels);
+    if (levels.length === 0 || levels.some(value => !['low', 'medium', 'high'].includes(value))) throw new Error(`${provider} ${modelID} image complexity levels invalid`);
+    out.complexity_levels = levels;
+  }
+  if (raw.output_formats !== undefined) {
+    const formats = normalizeStringArray(raw.output_formats);
+    if (formats.length === 0 || formats.some(value => !['png', 'jpeg', 'webp', 'gif', 'svg'].includes(value))) throw new Error(`${provider} ${modelID} image output formats invalid`);
+    out.output_formats = formats;
+  }
+  if (raw.supports_markup !== undefined) {
+    if (typeof raw.supports_markup !== 'boolean' || raw.supports_markup && !out.supports_reference_images) throw new Error(`${provider} ${modelID} image markup requires source support`);
+    out.supports_markup = raw.supports_markup;
+  }
+  if (raw.max_animation_frames !== undefined) {
+    if (!Number.isInteger(raw.max_animation_frames) || raw.max_animation_frames < 2 || raw.max_animation_frames > 64 || !out.output_formats?.includes('gif')) throw new Error(`${provider} ${modelID} image animation limit invalid`);
+    out.max_animation_frames = raw.max_animation_frames;
+  }
   const providerExtensions = normalizeProviderExtensions(raw.provider_extensions, provider, modelID, 'image_request_options');
   if (providerExtensions) {
     out.provider_extensions = providerExtensions;

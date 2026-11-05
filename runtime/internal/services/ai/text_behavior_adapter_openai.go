@@ -15,7 +15,7 @@ import (
 func openAIResponsesTextBehaviorRegistration(modelID string) textBehaviorAdapterRegistration {
 	modes := []runtimev1.ExecutionMode{runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM}
 	activations := []runtimev1.ReasoningActivation{runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED}
-	if modelID == "gpt-6-luna" {
+	if modelID == "gpt-6-luna" || modelID == "gpt-6.1-terra" {
 		activations = append(activations, runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED)
 	}
 	return textBehaviorAdapterRegistration{
@@ -35,7 +35,7 @@ func openAIResponsesTextBehaviorRegistration(modelID string) textBehaviorAdapter
 				Activations:       activations,
 				Presentations:     []runtimev1.ReasoningPresentation{runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN, runtimev1.ReasoningPresentation_REASONING_PRESENTATION_SUMMARY},
 				Efforts:           []runtimev1.ReasoningEffort{runtimev1.ReasoningEffort_REASONING_EFFORT_LOW, runtimev1.ReasoningEffort_REASONING_EFFORT_MEDIUM, runtimev1.ReasoningEffort_REASONING_EFFORT_HIGH, runtimev1.ReasoningEffort_REASONING_EFFORT_XHIGH, runtimev1.ReasoningEffort_REASONING_EFFORT_MAXIMUM},
-				SummaryTranscript: true, OpaqueContinuityCarrier: true, ContinuityKind: capabilitydriver.OpenAIResponsesContinuityKind, ContinuityVersion: 1,
+				SummaryTranscript: true, ContinuityCarrier: true, ContinuityKind: capabilitydriver.OpenAIResponsesContinuityKind, ContinuityVersion: 1,
 			},
 			StructuredOutput: &textBehaviorStructuredOutputSupport{Kinds: []runtimev1.ResponseFormatKind{runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_SCHEMA}, SupportsStrictJSONSchema: true},
 			Combinations: []textBehaviorCombination{
@@ -55,4 +55,4 @@ func openAIResponsesTextBehaviorRegistration(modelID string) textBehaviorAdapter
 
 // openAIResponsesReviewedTextTargets are the exact standard OpenAI catalog
 // rows admitted to the Responses adapter.
-var openAIResponsesReviewedTextTargets = []string{"gpt-6-astra", "gpt-6.1-sol", "gpt-6-luna"}
+var openAIResponsesReviewedTextTargets = []string{"gpt-6-astra", "gpt-6.1-sol", "gpt-6.1-terra", "gpt-6-luna"}

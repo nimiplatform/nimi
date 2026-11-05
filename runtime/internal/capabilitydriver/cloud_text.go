@@ -260,6 +260,17 @@ func (d providerCloudTextDriver) MapRequest(target CloudTextTarget, spec *runtim
 	if err := validateCloudTextRequest(mapped); err != nil {
 		return nil, err
 	}
+	if target.provider == "deepseek" && adapter == nil {
+		if mapped.PresencePenalty != nil || mapped.FrequencyPenalty != nil || ((target.providerModelID == "deepseek-flash" || target.providerModelID == "deepseek-v4-flash") && mapped.TopP != nil && mapped.GetTopP() != 1) {
+			return nil, deepseekUnsupported()
+		}
+		if mapped.TopP != nil && mapped.GetTopP() <= 0 {
+			return nil, deepseekJSONInputError("DeepSeek top_p range")
+		}
+		if mapped.MaxTokens != nil && (mapped.GetMaxTokens() <= 0 || mapped.GetMaxTokens() > 393216) || len(mapped.GetStop()) > 16 {
+			return nil, deepseekJSONInputError("DeepSeek output/stop bounds")
+		}
+	}
 	var wireDirectives textwire.Directives
 	if adapter == nil {
 		var err error

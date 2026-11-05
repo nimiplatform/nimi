@@ -85,6 +85,9 @@ enum ReasoningEffort {
   REASONING_EFFORT_HIGH = 4;
   REASONING_EFFORT_MAXIMUM = 5;
   REASONING_EFFORT_XHIGH = 6;
+  // Activate thinking using the exact implementation's native default intensity.
+  // This is distinct from omitting the entire ReasoningConfig.
+  REASONING_EFFORT_MODEL_DEFAULT = 7;
 }
 
 enum ReasoningPresentation {
@@ -266,7 +269,9 @@ message ReasoningSummary {
 }
 
 // Bounded self-contained native continuity state. Callers preserve the ordered
-// bytes unchanged; Runtime does not interpret or persist a cross-request store.
+// bytes unchanged; only the exact Driver decodes its native replay format.
+// A carrier may contain plaintext reasoning and does not guarantee encryption.
+// Runtime keeps no cross-request continuity store.
 message ReasoningContinuityCarrier {
   string kind = 1;
   uint32 version = 2;
@@ -415,6 +420,12 @@ message ImageGenerateScenarioSpec {
   string reference_image_artifact_id = 12;
   string mask_artifact_id = 13;
   optional float strength = 14;
+  string complexity = 15;
+  string output_format = 16;
+  string markup = 17;
+  string markup_artifact_id = 18;
+  optional int32 frame_count = 19;
+  optional int32 frame_duration_ms = 20;
 }
 
 message VideoGenerateScenarioSpec {
@@ -1283,6 +1294,12 @@ message LocalAppImageGenerateScenarioSpec {
   string reference_image_artifact_id = 12;
   string mask_artifact_id = 13;
   optional float strength = 14;
+  string complexity = 15;
+  string output_format = 16;
+  string markup = 17;
+  string markup_artifact_id = 18;
+  optional int32 frame_count = 19;
+  optional int32 frame_duration_ms = 20;
 }
 
 message ExecuteLocalAppScenarioRequest {

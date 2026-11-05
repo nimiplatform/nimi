@@ -152,43 +152,6 @@ func TestScenarioJobStoreRejectsRemovedJobDeadlineBeforeProviderCreate(t *testin
 	}
 }
 
-func TestGoogleVeoLegacyDeadlineRejectedBeforeNativeCreate(t *testing.T) {
-	const model = "veo-3.1-generate-preview"
-	operation := "models/" + model + "/operations/slow_123"
-	var submissions atomic.Int32
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.Header.Get("x-goog-api-key") != "test-key" || r.Header.Get("Authorization") != "" {
-			t.Errorf("Google Veo did not use the selected native credential")
-		}
-		w.Header().Set("Content-Type", "application/json")
-		switch {
-		case r.Method == http.MethodPost && r.URL.Path == "/v1beta/models/"+model+":predictLongRunning":
-			submissions.Add(1)
-			_ = json.NewEncoder(w).Encode(map[string]any{"name": operation})
-		case r.Method == http.MethodGet && r.URL.Path == "/v1beta/"+operation:
-			_ = json.NewEncoder(w).Encode(map[string]any{"name": operation, "done": false})
-		default:
-			http.NotFound(w, r)
-		}
-	}))
-	defer server.Close()
-	fixture := newManagedCloudScenarioTestFixture(t, "google_veo", model, server.URL, Config{AllowLoopbackEndpoint: true})
-	ctx := withCloudScenarioTestIntent(scenarioJobUserContext("nimi.desktop", "user-001"), "video.generate", fixture.targetRef)
-	response, err := fixture.service.SubmitScenarioJob(ctx, &runtimev1.SubmitScenarioJobRequest{
-		Head:         &runtimev1.ScenarioRequestHead{AppId: "nimi.desktop", SubjectUserId: "user-001", TimeoutMs: 1000},
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
-		Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VideoGenerate{VideoGenerate: &runtimev1.VideoGenerateScenarioSpec{
-			Mode:    runtimev1.VideoMode_VIDEO_MODE_T2V,
-			Content: []*runtimev1.VideoContentItem{{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT, Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_PROMPT, Text: "A short product shot."}},
-			Options: &runtimev1.VideoGenerationOptions{Resolution: "720p", Ratio: "16:9", DurationSec: testInt32(4)},
-		}}},
-	})
-	reason, _ := grpcerr.ExtractReasonCode(err)
-	if response != nil || reason != runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED || submissions.Load() != 0 {
-		t.Fatalf("legacy deadline reached native create: %v %v creates=%d", response, err, submissions.Load())
-	}
-}
-
 func TestScenarioJobStoreVoiceLookupPaths(t *testing.T) {
 	fixture := newManagedCloudScenarioTestFixture(t, "dashscope", "qwen-audio-3.0-tts-plus", "https://example.com", Config{})
 	svc := fixture.service

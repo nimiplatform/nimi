@@ -9,7 +9,7 @@ import (
 )
 
 func TestOpenAIResponsesReasoningMappingAndOffAreExact(t *testing.T) {
-	for _, model := range []string{"gpt-6-astra", "gpt-6.1-sol", "gpt-6-luna"} {
+	for _, model := range []string{"gpt-6-astra", "gpt-6.1-sol", "gpt-6.1-terra", "gpt-6-luna"} {
 		for _, effort := range []runtimev1.ReasoningEffort{runtimev1.ReasoningEffort_REASONING_EFFORT_LOW, runtimev1.ReasoningEffort_REASONING_EFFORT_XHIGH, runtimev1.ReasoningEffort_REASONING_EFFORT_MAXIMUM} {
 			spec := &runtimev1.TextGenerateScenarioSpec{Input: []*runtimev1.ChatMessage{{Role: "user", Content: "Compute"}}, Reasoning: &runtimev1.ReasoningConfig{
 				Activation: runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED, Presentation: runtimev1.ReasoningPresentation_REASONING_PRESENTATION_SUMMARY,
@@ -40,7 +40,7 @@ func TestOpenAIResponsesReasoningMappingAndOffAreExact(t *testing.T) {
 			}
 			spec.Reasoning = &runtimev1.ReasoningConfig{Activation: runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED}
 			request, err = OpenAIResponsesTextBehaviorRequestSerializer(model, spec, true)
-			if model != "gpt-6-luna" {
+			if model != "gpt-6-luna" && model != "gpt-6.1-terra" {
 				if err == nil {
 					t.Fatal("unsupported off accepted")
 				}
@@ -52,7 +52,7 @@ func TestOpenAIResponsesReasoningMappingAndOffAreExact(t *testing.T) {
 			body = nil
 			_ = json.Unmarshal(request.Payload, &body)
 			if body["reasoning"].(map[string]any)["effort"] != "none" {
-				t.Fatal("Luna off was not none")
+				t.Fatal("supported explicit off was not none")
 			}
 		}
 	}

@@ -185,7 +185,7 @@ func (driver LlamaTextDriver) ProbeModelAsset(input ModelAssetFormatProbeInput, 
 	switch input.RequirementID {
 	case MainGGUFRequirementID:
 		var summary ggufmeta.Summary
-		if qwen35Recipe(input.RecipeID) {
+		if qwen35Recipe(input.RecipeID) || input.RecipeID == LlamaQwen38RecipeID || input.RecipeID == LlamaLFM3RecipeID || input.RecipeID == LlamaGemma412BRecipeID {
 			summary, err = ggufmeta.Inspect(reader)
 		} else {
 			summary, err = ggufmeta.InspectLLMMetadataWithChatTemplate(reader)
@@ -199,6 +199,15 @@ func (driver LlamaTextDriver) ProbeModelAsset(input ModelAssetFormatProbeInput, 
 		if qwen35Recipe(input.RecipeID) && !qwen35BaseTextModelContract(summary) {
 			return nil, fmt.Errorf("qwen35 Model Contract mismatch")
 		}
+		if input.RecipeID == LlamaQwen38RecipeID && !qwen38BaseTextModelContract(summary) {
+			return nil, fmt.Errorf("qwen38 27B Model Contract mismatch")
+		}
+		if input.RecipeID == LlamaLFM3RecipeID && !lfm3BaseTextModelContract(summary) {
+			return nil, fmt.Errorf("LFM3 1.7B Model Contract mismatch")
+		}
+		if input.RecipeID == LlamaGemma412BRecipeID && !gemma412BModelContract(summary, false) {
+			return nil, fmt.Errorf("Gemma 4 12B Model Contract mismatch")
+		}
 		facts.Architecture = ggufmeta.LLMDetectedArchitecture(summary)
 		if !contains(driver.recipeModelArchitectures(input.RecipeID, input.RequirementID), facts.Architecture) {
 			return nil, fmt.Errorf("GGUF architecture mismatch")
@@ -207,7 +216,7 @@ func (driver LlamaTextDriver) ProbeModelAsset(input ModelAssetFormatProbeInput, 
 		facts.TemplateIdentity, _ = ggufmeta.LLMChatTemplateIdentity(summary)
 		facts.Kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
 	case CompanionMMProjRequirementID:
-		if strings.TrimSpace(input.RecipeID) == LlamaQwen35VisionRecipeID {
+		if strings.TrimSpace(input.RecipeID) == LlamaQwen35VisionRecipeID || input.RecipeID == LlamaQwen38RecipeID || input.RecipeID == LlamaGemma412BRecipeID {
 			summary, inspectErr := ggufmeta.Inspect(reader)
 			if failure := reader.actualFailure(); failure != nil {
 				return nil, failure
@@ -215,8 +224,15 @@ func (driver LlamaTextDriver) ProbeModelAsset(input ModelAssetFormatProbeInput, 
 			if inspectErr != nil {
 				return nil, inspectErr
 			}
-			if !qwen35ProjectorModelContract(summary) {
-				return nil, fmt.Errorf("qwen35 projector Model Contract mismatch")
+			valid := qwen35ProjectorModelContract(summary)
+			if input.RecipeID == LlamaQwen38RecipeID {
+				valid = qwen38ProjectorModelContract(summary)
+			}
+			if input.RecipeID == LlamaGemma412BRecipeID {
+				valid = gemma412BModelContract(summary, true)
+			}
+			if !valid {
+				return nil, fmt.Errorf("projector Model Contract mismatch")
 			}
 			facts.Architecture = ggufmeta.LLMDetectedArchitecture(summary)
 		} else {
@@ -250,7 +266,12 @@ func (driver LlamaEmbedDriver) ProbeModelAsset(input ModelAssetFormatProbeInput,
 	if err != nil {
 		return nil, err
 	}
-	summary, err := ggufmeta.InspectEmbeddingMetadata(reader)
+	var summary ggufmeta.Summary
+	if input.RecipeID == LlamaEmbeddingGemma2RecipeID {
+		summary, err = ggufmeta.Inspect(reader)
+	} else {
+		summary, err = ggufmeta.InspectEmbeddingMetadata(reader)
+	}
 	if failure := reader.actualFailure(); failure != nil {
 		return nil, failure
 	}
@@ -260,6 +281,12 @@ func (driver LlamaEmbedDriver) ProbeModelAsset(input ModelAssetFormatProbeInput,
 	architecture := ggufmeta.LLMDetectedArchitecture(summary)
 	if !contains(driver.recipeModelArchitectures(input.RecipeID, input.RequirementID), architecture) {
 		return nil, fmt.Errorf("embedding GGUF architecture mismatch")
+	}
+	if input.RecipeID == LlamaEmbeddingGemma2RecipeID {
+		if !embeddingGemma2ModelContract(summary) {
+			return nil, fmt.Errorf("EmbeddingGemma 2 model contract mismatch")
+		}
+		return encodeLlamaGGUFProbe(llamaGGUFProbe{Schema: llamaGGUFProbeSchema, RecipeID: input.RecipeID, RequirementID: input.RequirementID, Kind: runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING, Architecture: architecture, ContextWindow: 8192, EmbeddingDimension: 768, EmbeddingInputProtocol: EmbeddingInputGemma2V1})
 	}
 	if input.RecipeID == LlamaQwen3EmbedRecipeID {
 		if pooling, ok := summary.Uint64Value("qwen3.pooling_type"); !ok || pooling != 3 {

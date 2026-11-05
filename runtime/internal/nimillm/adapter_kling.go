@@ -8,6 +8,7 @@ import (
 	"google.golang.org/grpc/codes"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
@@ -117,7 +118,7 @@ func executeKlingVideoTask(
 		"model_name": strings.TrimSpace(modelResolved),
 		"content":    contentPayload,
 	}
-	if prompt := VideoPrompt(spec); prompt != "" {
+	if prompt := capabilitydriver.VideoPrompt(spec); prompt != "" {
 		payload["prompt"] = prompt
 	}
 	if negPrompt := VideoNegativePrompt(spec); negPrompt != "" {

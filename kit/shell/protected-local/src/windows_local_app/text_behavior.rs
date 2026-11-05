@@ -222,6 +222,7 @@ fn parse_reasoning(value: Value) -> Result<Option<ReasoningConfig>, LocalAppOper
     } else {
         Some(match (input.effort.as_deref(), input.exact_budget_tokens) {
             (Some(effort), None) => reasoning_config::Intensity::Effort(match effort {
+                "model-default" => ReasoningEffort::ModelDefault,
                 "minimal" => ReasoningEffort::Minimal,
                 "low" => ReasoningEffort::Low,
                 "medium" => ReasoningEffort::Medium,
@@ -612,6 +613,9 @@ mod tests {
     #[test]
     fn reasoning_default_and_explicit_controls_do_not_collapse_at_native_input() {
         assert!(parse_reasoning(json!({})).unwrap().is_none());
+        let native_default = parse_reasoning(json!({"activation":"adaptive","effort":"model-default"})).unwrap().unwrap();
+        assert_eq!(native_default.activation, ReasoningActivation::Adaptive as i32);
+        assert_eq!(native_default.intensity, Some(reasoning_config::Intensity::Effort(ReasoningEffort::ModelDefault as i32)));
         let explicit = parse_reasoning(json!({"activation":"required","effort":"xhigh","presentation":"summary"})).unwrap().unwrap();
         assert_eq!(explicit.activation, ReasoningActivation::Required as i32);
         assert_eq!(explicit.presentation, ReasoningPresentation::Summary as i32);

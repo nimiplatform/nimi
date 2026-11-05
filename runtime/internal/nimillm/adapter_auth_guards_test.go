@@ -73,13 +73,7 @@ func TestAdaptersRejectMissingAPIKey(t *testing.T) {
 				return err
 			},
 		},
-		{
-			name: "google veo",
-			call: func() error {
-				_, _, _, err := ExecuteGoogleVeoOperation(context.Background(), MediaAdapterConfig{BaseURL: "https://example.com"}, nil, "job-1", videoReq, "google_veo/model")
-				return err
-			},
-		},
+
 		{
 			name: "kling",
 			call: func() error {
@@ -111,7 +105,7 @@ func TestAdaptersRejectMissingAPIKey(t *testing.T) {
 		{
 			name: "flux",
 			call: func() error {
-				_, _, _, err := ExecuteFluxImage(context.Background(), MediaAdapterConfig{BaseURL: "https://example.com"}, nil, "job-1", imageReq, "flux/model")
+				_, _, _, err := ExecuteFluxMedia(context.Background(), MediaAdapterConfig{BaseURL: "https://example.com"}, nil, "job-1", imageReq, "flux/model")
 				return err
 			},
 		},

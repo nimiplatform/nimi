@@ -242,10 +242,7 @@ func fetchHFCatalogVariants(ctx context.Context, endpoint string, repoRaw string
 	capabilities := inferCapabilitiesFromHF(details.PipelineTag, details.Tags)
 	categories := capabilityCategories(capabilities)
 	modelType := catalogModelTypeForAssetKind(inferAssetKindFromCapabilities(capabilities))
-	license := "unknown"
-	if raw, ok := details.CardData["license"].(string); ok && strings.TrimSpace(raw) != "" {
-		license = strings.TrimSpace(raw)
-	}
+	license := hfCatalogLicense(details.CardData, details.Tags)
 	for index := range variants {
 		variants[index].Revision = resolvedRevision
 		variants[index].Title = defaultString(strings.TrimSpace(details.ModelID), strings.TrimSpace(details.ID))
@@ -414,6 +411,7 @@ func inferCapabilitiesFromHF(pipelineTag string, tags []string) []string {
 	return caps
 }
 
+// @nimi-authority: rule.nimi.runtime.local-compute.r103
 func mapHFRowToCatalogItem(row hfModelSearchEntry, _ string) (*runtimev1.LocalCatalogModelDescriptor, bool) {
 	repoRaw := defaultString(strings.TrimSpace(row.ID), strings.TrimSpace(row.ModelID))
 	repo, err := normalizeHFRepo(repoRaw)
@@ -426,19 +424,11 @@ func mapHFRowToCatalogItem(row hfModelSearchEntry, _ string) (*runtimev1.LocalCa
 	}
 	capabilities := inferCapabilitiesFromHF(row.PipelineTag, row.Tags)
 	kind := inferAssetKindFromCapabilities(capabilities)
-	if len(capabilities) == 0 || kind == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
-		return nil, false
-	}
 	tags := normalizeStringSlice(append(append([]string(nil), row.Tags...), capabilities...))
-	license := ""
-	if row.CardData != nil {
-		if raw, ok := row.CardData["license"].(string); ok {
-			license = strings.TrimSpace(raw)
-		}
-	}
-	if license == "" {
-		license = "unknown"
-	}
+	// Discovery describes source content, not whether a Driver admits it. In
+	// particular, any-to-any and unclassified repositories remain discoverable
+	// without guessing a capability or a model kind.
+	license := hfCatalogLicense(row.CardData, row.Tags)
 	return &runtimev1.LocalCatalogModelDescriptor{
 		ItemId:            "hf_" + slug(repo),
 		Source:            "huggingface",
@@ -470,10 +460,6 @@ func mapHFRowToCatalogItem(row hfModelSearchEntry, _ string) (*runtimev1.LocalCa
 
 func listHFCatalogVariantsFromDetails(details *hfModelDetails) []hfCatalogVariant {
 	if details == nil {
-		return nil
-	}
-	capabilities := inferCapabilitiesFromHF(details.PipelineTag, details.Tags)
-	if len(capabilities) == 0 {
 		return nil
 	}
 	variants := make([]hfCatalogVariant, 0, len(details.Siblings))
@@ -519,6 +505,27 @@ func listHFCatalogVariantsFromDetails(details *hfModelDetails) []hfCatalogVarian
 		return variants[i].Filename < variants[j].Filename
 	})
 	return variants
+}
+
+func hfCatalogLicense(card map[string]any, tags []string) string {
+	if raw, ok := card["license"].(string); ok && strings.TrimSpace(raw) != "" {
+		return strings.TrimSpace(raw)
+	}
+	license := ""
+	for _, tag := range tags {
+		if !strings.HasPrefix(tag, "license:") {
+			continue
+		}
+		value := strings.TrimSpace(strings.TrimPrefix(tag, "license:"))
+		if value == "" {
+			continue
+		}
+		if license != "" && license != value {
+			return "unknown"
+		}
+		license = value
+	}
+	return defaultString(license, "unknown")
 }
 
 func hfCatalogFileHashes(siblings []hfModelSibling) map[string]string {

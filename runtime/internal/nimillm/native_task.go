@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
@@ -21,13 +22,15 @@ import (
 // NativeTaskReceipt is the secret-free protocol data for one original task.
 // It is Runtime-private and can never be projected as an App phase or handle.
 type NativeTaskReceipt struct {
-	Version           int                         `json:"version"`
-	Adapter           string                      `json:"adapter"`
-	TaskID            string                      `json:"task_id"`
-	Model             string                      `json:"model,omitempty"`
-	QueryPathTemplate string                      `json:"query_path_template"`
-	PollingURL        string                      `json:"polling_url,omitempty"`
-	Artifact          *runtimev1.ScenarioArtifact `json:"artifact_template"`
+	Version             int                         `json:"version"`
+	Adapter             string                      `json:"adapter"`
+	TaskID              string                      `json:"task_id"`
+	Model               string                      `json:"model,omitempty"`
+	QueryPathTemplate   string                      `json:"query_path_template"`
+	PollingURL          string                      `json:"polling_url,omitempty"`
+	Artifact            *runtimev1.ScenarioArtifact `json:"artifact_template"`
+	GeminiInteractionID string                      `json:"gemini_interaction_id,omitempty"`
+	Usage               *runtimev1.UsageStats       `json:"usage,omitempty"`
 }
 
 // NativeTaskObservation is a private body-acquisition plan. Provider control
@@ -95,6 +98,28 @@ func requireNativeTaskPublisher(ctx context.Context) error {
 }
 
 func ValidateNativeTaskReceipt(r *NativeTaskReceipt) error {
+	if r != nil && r.Adapter == AdapterLumaRay32 && r.Model != capabilitydriver.LumaRay32Model {
+		return fmt.Errorf("Luma original model identity invalid")
+	}
+	if r != nil && r.Adapter == AdapterIdeogramNative && r.Model != capabilitydriver.Ideogram45Model {
+		return fmt.Errorf("Ideogram original model identity invalid")
+	}
+	if r != nil && r.Adapter == AdapterMiniMaxH3Video && !capabilitydriver.IsMiniMaxH3VideoModel(r.Model) {
+		return fmt.Errorf("MiniMax H3 original model identity invalid")
+	}
+	if r != nil && r.Adapter == AdapterBytedanceARKTask && !capabilitydriver.IsCurrentSeedanceVideoModel(r.Model) {
+		return fmt.Errorf("Seedance original model identity invalid")
+	}
+	if r != nil && r.Adapter == AdapterGeminiOmniVideo {
+		if !validGeminiInteractionID(r.GeminiInteractionID) || r.Model != "gemini-omni-1.1-flash" || !validGeminiVideoArtifactURL("https://generativelanguage.googleapis.com/v1beta/files/"+r.TaskID+":download?alt=media") {
+			return fmt.Errorf("Gemini original resource identity invalid")
+		}
+	} else if r != nil && (r.GeminiInteractionID != "" || r.Usage != nil) {
+		return fmt.Errorf("native receipt contains inapplicable Gemini facts")
+	}
+	if r != nil && r.Usage != nil && (r.Usage.GetInputTokens() < 0 || r.Usage.GetOutputTokens() < 0) {
+		return fmt.Errorf("native receipt usage invalid")
+	}
 	if r == nil || r.Version != 1 || strings.TrimSpace(r.Adapter) == "" || strings.TrimSpace(r.TaskID) == "" || strings.TrimSpace(r.QueryPathTemplate) == "" || r.Artifact == nil || len(r.Artifact.GetBytes()) != 0 {
 		return fmt.Errorf("invalid original native task receipt")
 	}
@@ -126,6 +151,8 @@ func nativeTaskQueryPathAllowed(adapter, path string) bool {
 		return path == "/v1/images/generations/{task_id}" || path == "/v1/videos/text2video/{task_id}"
 	case AdapterRunwayTask:
 		return path == "/v1/tasks/{task_id}"
+	case AdapterLumaRay32:
+		return path == lumaRay32QueryPath
 	case AdapterLumaTask:
 		return path == "/dream-machine/v1/generations/{task_id}"
 	case AdapterPikaTask:
@@ -134,10 +161,14 @@ func nativeTaskQueryPathAllowed(adapter, path string) bool {
 		return path == "/async-result/{task_id}" || path == "/api/paas/v4/async-result/{task_id}"
 	case AdapterMiniMaxTask:
 		return path == "/v1/query/video_generation?task_id={task_id}"
+	case AdapterMiniMaxH3Video:
+		return path == miniMaxH3QueryPath
+	case AdapterIdeogramNative:
+		return path == ideogram45QueryPath
 	case AdapterFluxNative:
 		return path == "/v1/get_result?id={task_id}"
-	case AdapterGoogleVeoOperation:
-		return path == "/v1beta/{task_id}"
+	case AdapterGeminiOmniVideo:
+		return path == "/files/{task_id}"
 	case AdapterMubertMusic:
 		return path == "/public/tracks/{task_id}"
 	case AdapterWorldLabsNative:
@@ -157,6 +188,9 @@ func CloneNativeTaskReceipt(r *NativeTaskReceipt) *NativeTaskReceipt {
 	if r.Artifact != nil {
 		cloned.Artifact = proto.Clone(r.Artifact).(*runtimev1.ScenarioArtifact)
 	}
+	if r.Usage != nil {
+		cloned.Usage = proto.Clone(r.Usage).(*runtimev1.UsageStats)
+	}
 	return &cloned
 }
 
@@ -164,7 +198,7 @@ func EqualNativeTaskReceipt(a, b *NativeTaskReceipt) bool {
 	if a == nil || b == nil {
 		return a == b
 	}
-	return a.Version == b.Version && a.Adapter == b.Adapter && a.TaskID == b.TaskID && a.Model == b.Model && a.QueryPathTemplate == b.QueryPathTemplate && a.PollingURL == b.PollingURL && proto.Equal(a.Artifact, b.Artifact)
+	return a.Version == b.Version && a.Adapter == b.Adapter && a.TaskID == b.TaskID && a.Model == b.Model && a.QueryPathTemplate == b.QueryPathTemplate && a.PollingURL == b.PollingURL && proto.Equal(a.Artifact, b.Artifact) && a.GeminiInteractionID == b.GeminiInteractionID && proto.Equal(a.Usage, b.Usage)
 }
 
 // ObserveNativeTask performs exactly one original-task query. It cannot POST,
@@ -179,8 +213,23 @@ func ObserveNativeTask(ctx context.Context, cfg MediaAdapterConfig, r *NativeTas
 	if r.Adapter == AdapterWorldLabsNative || r.Adapter == AdapterSpaitialNative {
 		return observeNativeWorld(ctx, cfg, r)
 	}
+	if r.Adapter == AdapterGeminiOmniVideo {
+		return observeGeminiOmniVideo(ctx, cfg, r)
+	}
+	if r.Adapter == AdapterMiniMaxH3Video {
+		return observeMiniMaxH3Video(ctx, cfg, r)
+	}
+	if r.Adapter == AdapterLumaRay32 {
+		return observeLumaRay32(ctx, cfg, r)
+	}
+	if r.Adapter == AdapterIdeogramNative {
+		return observeIdeogram45Image(ctx, cfg, r)
+	}
+	if r.Adapter == AdapterMiniMaxTask {
+		cfg.BaseURL = miniMaxMediaBaseURL(cfg.BaseURL)
+	}
 	if r.Adapter == AdapterAlibabaNative {
-		cfg.BaseURL = nativeOriginURL(cfg.BaseURL)
+		cfg.BaseURL = alibabaNativeBaseURL(cfg.BaseURL)
 	}
 	response := map[string]any{}
 	query := ResolveTaskQueryPath(r.QueryPathTemplate, r.TaskID)
@@ -204,17 +253,6 @@ func ObserveNativeTask(ctx context.Context, cfg MediaAdapterConfig, r *NativeTas
 	if r.Adapter == AdapterMiniMaxTask {
 		query = strings.ReplaceAll(r.QueryPathTemplate, "{task_id}", url.QueryEscape(r.TaskID))
 	}
-	if r.Adapter == AdapterGoogleVeoOperation {
-		parts := strings.Split(r.TaskID, "/")
-		if len(parts) != 4 || !googleVeoOperationModelAllowed(parts[1]) || !validGoogleVeoOperationName(r.TaskID, parts[1]) {
-			return nil, false, fmt.Errorf("invalid original Google operation identity")
-		}
-		query, apiKey = "/v1beta/"+r.TaskID, ""
-		if headers == nil {
-			headers = make(map[string]string)
-		}
-		headers["x-goog-api-key"] = cfg.APIKey
-	}
 	var queryErr error
 	if r.Adapter == AdapterAlibabaNative && r.Artifact.GetMimeType() == "video/mp4" {
 		queryErr = doJSONRequestWithHeadersAndObservation(ctx, http.MethodGet, JoinURL(cfg.BaseURL, query), apiKey, nil, &response, headers, 0, "dashscope-video")
@@ -223,6 +261,30 @@ func ObserveNativeTask(ctx context.Context, cfg MediaAdapterConfig, r *NativeTas
 	}
 	if err := queryErr; err != nil {
 		return nil, false, err
+	}
+	if r.Adapter == AdapterBytedanceARKTask {
+		return observeSeedanceVideoResponse(r, response)
+	}
+	if r.Adapter == AdapterFluxNative {
+		if ValueAsString(response["id"]) != r.TaskID {
+			return nil, false, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		}
+		switch ValueAsString(response["status"]) {
+		case "Pending", "Reasoning", "Generating":
+			return nil, false, nil
+		case "Request Moderated", "Content Moderated":
+			return nil, true, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED)
+		case "Task not found":
+			return nil, true, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_PROVIDER_TASK_EXPIRED)
+		case "No Card Generated", "Error":
+			return nil, true, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
+		case "Ready":
+			if !validNativeVideoArtifactURL(ValueAsString(MapField(MapField(response, "result"), "sample"))) {
+				return nil, false, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+			}
+		default:
+			return nil, false, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		}
 	}
 	status := ResolveAsyncTaskStatus(response)
 	if r.Adapter == AdapterLumaTask {
@@ -252,17 +314,6 @@ func ObserveNativeTask(ctx context.Context, cfg MediaAdapterConfig, r *NativeTas
 	if r.Adapter == AdapterMiniMaxTask && status == "fail" {
 		status = "failed"
 	}
-	if r.Adapter == AdapterGoogleVeoOperation {
-		if response["error"] != nil {
-			return nil, true, providerTaskFailedError("failed", response)
-		}
-		if !ValueAsBool(response["done"]) {
-			return nil, false, nil
-		}
-		if status == "" {
-			status = "succeeded"
-		}
-	}
 	if IsAsyncTaskPendingStatus(status) || (r.Adapter == AdapterLumaTask && status == "dreaming") {
 		return nil, false, nil
 	}
@@ -287,13 +338,6 @@ func ObserveNativeTask(ctx context.Context, cfg MediaAdapterConfig, r *NativeTas
 			return nil, false, retrieveErr
 		}
 		sources, err = []nativeArtifactSource{source}, nil
-	}
-	if r.Adapter == AdapterGoogleVeoOperation {
-		uri := googleVeoVideoURI(response)
-		if !validGoogleVeoArtifactURL(uri) {
-			return nil, false, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-		}
-		sources = []nativeArtifactSource{{uri: uri, mime: "video/mp4"}}
 	}
 	if err != nil || len(sources) == 0 {
 		return nil, false, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
@@ -343,9 +387,9 @@ func OpenNativeTaskArtifacts(ctx context.Context, cfg MediaAdapterConfig, receip
 			slog.Info("DashScope video artifact fetch returned", "provider_task_id", providerDiagnosticID(receipt.TaskID), "opened", err == nil)
 		}()
 	}
-	if receipt.Adapter == AdapterGoogleVeoOperation {
+	if receipt.Adapter == AdapterGeminiOmniVideo {
 		return detachMediaArtifactBodiesWithOpener(ctx, artifacts, func(ctx context.Context, uri string) (io.ReadCloser, string, int64, error) {
-			return openGoogleVeoArtifactStream(ctx, uri, cfg.APIKey)
+			return openGeminiVideoArtifactStream(ctx, uri, cfg.APIKey)
 		})
 	}
 	return detachMediaArtifactBodies(ctx, artifacts)

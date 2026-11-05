@@ -7,9 +7,13 @@ import (
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.deepseek-v4-json-output
 func deepseekChatBehaviorRegistration(modelID, adapterID string) textBehaviorAdapterRegistration {
+	profile, err := capabilitydriver.NewDeepseekTextBehavior(modelID)
+	if err != nil {
+		panic("invalid reviewed DeepSeek registration")
+	}
 	modes := []runtimev1.ExecutionMode{runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM}
-	return textBehaviorAdapterRegistration{
-		AdapterID: adapterID, Version: "3",
+	registration := textBehaviorAdapterRegistration{
+		AdapterID: adapterID, Version: "5",
 		ImplementationID: "deepseek", DriverID: "nimillm", DriverDialect: "deepseek",
 		CloudTarget: &textBehaviorCloudTarget{Provider: "deepseek", ProviderModelID: modelID},
 		Support: textBehaviorSupport{
@@ -19,16 +23,21 @@ func deepseekChatBehaviorRegistration(modelID, adapterID string) textBehaviorAda
 				SingleCall:  true, MultipleCalls: true, ParallelCalls: true, ToolOnlyResponse: true, MixedTextAndCall: true, ToolResultRoundTrip: true,
 			},
 			StructuredOutput: &textBehaviorStructuredOutputSupport{Kinds: []runtimev1.ResponseFormatKind{runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT}},
-			Combinations: []textBehaviorCombination{
-				{ToolUse: true, Modes: modes}, {StructuredOutput: true, Modes: modes},
-				{OrderedSystemMessages: true, Modes: modes},
-				{ToolUse: true, OrderedSystemMessages: true, Modes: modes},
-				{StructuredOutput: true, OrderedSystemMessages: true, Modes: modes},
-			},
+			Reasoning:        &textBehaviorReasoningSupport{Activations: []runtimev1.ReasoningActivation{runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED, runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED}, Presentations: []runtimev1.ReasoningPresentation{runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN}, Efforts: []runtimev1.ReasoningEffort{runtimev1.ReasoningEffort_REASONING_EFFORT_LOW, runtimev1.ReasoningEffort_REASONING_EFFORT_HIGH, runtimev1.ReasoningEffort_REASONING_EFFORT_MAXIMUM}, ContinuityCarrier: true, ContinuityKind: profile.ContinuityKind(), ContinuityVersion: 1},
 		},
 		ExecutionSemantics:  textBehaviorExecutionSemantics{ProcessIdentityImpact: textBehaviorProcessIdentityUnaffected},
-		RequestSerializerID: "deepseek/chat/request/v3", RequestSerializer: capabilitydriver.DeepseekChatRequestSerializer,
-		NonStreamParserID: "deepseek/chat/response/v3", NonStreamParser: capabilitydriver.DeepseekChatNonStreamParser,
-		StreamAssemblerID: "deepseek/chat/stream/v3", StreamAssembler: capabilitydriver.DeepseekChatStreamAssembler,
+		RequestSerializerID: "deepseek/chat/request/v5", RequestSerializer: profile.Serialize, MaterializationPlanner: profile.PlanMaterialization,
+		NonStreamParserID: "deepseek/chat/response/v5", NonStreamParser: profile.Parse,
+		StreamAssemblerID: "deepseek/chat/stream/v5", StreamAssembler: profile.Stream,
 	}
+	for _, reasoning := range []bool{false, true} {
+		for _, ordered := range []bool{false, true} {
+			registration.Support.Combinations = append(registration.Support.Combinations,
+				textBehaviorCombination{Reasoning: reasoning, OrderedSystemMessages: ordered, Modes: modes},
+				textBehaviorCombination{Reasoning: reasoning, OrderedSystemMessages: ordered, ToolUse: true, Modes: modes},
+				textBehaviorCombination{Reasoning: reasoning, OrderedSystemMessages: ordered, StructuredOutput: true, Modes: modes})
+		}
+	}
+	return registration
+
 }

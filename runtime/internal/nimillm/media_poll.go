@@ -146,8 +146,9 @@ func sleepWithContext(ctx context.Context, delay time.Duration) error {
 }
 
 type ProviderTaskCleanupObservation struct {
-	Outcome    ProviderTaskCleanupOutcome
-	ReasonCode runtimev1.ReasonCode
+	Outcome         ProviderTaskCleanupOutcome
+	ReasonCode      runtimev1.ReasonCode
+	GeminiResources *GeminiOmniResourceCleanup
 }
 
 type providerTaskCleanupObserverKey struct{}

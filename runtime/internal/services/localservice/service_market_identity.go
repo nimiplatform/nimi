@@ -245,9 +245,9 @@ func (s *Service) installedModelAssetsSnapshot() []*runtimev1.ModelAssetRecord {
 	return items
 }
 
+// @nimi-authority: rule.nimi.runtime.local-compute.r103
 func catalogOfferInstallable(offer catalogOffer) bool {
-	if strings.TrimSpace(offer.offerRef) == "" || strings.TrimSpace(offer.entryPath) == "" || len(offer.files) == 0 ||
-		marketOfferAssetKind(offer) == runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_UNSPECIFIED {
+	if strings.TrimSpace(offer.offerRef) == "" || strings.TrimSpace(offer.entryPath) == "" || len(offer.files) == 0 {
 		return false
 	}
 	for _, file := range offer.files {

@@ -35,6 +35,7 @@ func TestCommittedRetiredCloudTextTargetsFailBeforeDispatch(t *testing.T) {
 		{"qianfan", "ernie-5.1", []string{"ernie-x1.1", "ernie-x1.1-preview"}},
 		{"stepfun", "step-3.7-flash", []string{"step-1-8k", "step-1-32k", "step-1v-8k", "step-1v-32k", "step-2-mini", "step-1o-vision-32k", "step-2-16k", "step-3"}},
 		{"dashscope", "qwen3-vl-plus", []string{"qwen-vl-max-latest"}},
+		{"volcengine", "doubao-seed-2-0-lite-260428", []string{"doubao-seed-2-0-lite-260215", "doubao-seed-2-0-mini-260215"}},
 	} {
 		t.Run(tc.provider, func(t *testing.T) { assertRetiredTextTargetsFailBeforeDispatch(t, tc.provider, tc.active, tc.retired) })
 	}
@@ -133,8 +134,6 @@ func TestCommittedRetiredCloudMediaTargetsFailTypedWithoutDispatch(t *testing.T)
 	}{
 		// OpenAI keeps no video row, so its Driver no longer implements video.generate.
 		{name: "openai sora-2", provider: "openai", activeModel: "gpt-image-1.5", retiredModel: "sora-2", capability: "video.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, spec: videoSpec, submitReason: runtimev1.ReasonCode_AI_CONFIG_INVALID, activeListed: false},
-		{name: "google veo 3.0", provider: "google_veo", activeModel: "veo-3.1-fast-generate-preview", retiredModel: "veo-3.0-generate-001", capability: "video.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, spec: videoSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
-		{name: "google veo 3.0 fast", provider: "google_veo", activeModel: "veo-3.1-fast-generate-preview", retiredModel: "veo-3.0-fast-generate-001", capability: "video.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, spec: videoSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
 		{name: "gemini image preview", provider: "gemini", activeModel: "gemini-3.1-flash-image", retiredModel: "gemini-3.1-flash-image-preview", capability: "image.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, spec: imageSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
 		{name: "stepfun retired image", provider: "stepfun", activeModel: "step-2x-large", retiredModel: "step-1x-medium", capability: "image.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, spec: imageSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
 		{name: "volcengine seedance 1.5", provider: "volcengine", activeModel: "doubao-seedance-2-0-260128", retiredModel: "seedance-1-5-pro", capability: "video.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, spec: videoSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},

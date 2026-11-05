@@ -61,6 +61,8 @@ export interface NimiToolResult {
   readonly providerMetadata?: NimiJsonObject;
 }
 
+/** Preserve and replay unchanged. Native replay may contain plaintext reasoning;
+ * this is not an encryption guarantee and must not be rendered as answer/summary. */
 export interface NimiReasoningContinuityCarrier {
   readonly kind: string;
   readonly version: number;

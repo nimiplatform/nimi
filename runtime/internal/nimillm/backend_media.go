@@ -15,6 +15,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 )
@@ -386,7 +387,7 @@ func (b *Backend) GenerateVideo(ctx context.Context, modelID string, spec *runti
 		} `json:"output"`
 	}
 
-	prompt := VideoPrompt(spec)
+	prompt := capabilitydriver.VideoPrompt(spec)
 	mode := ""
 	if spec != nil {
 		mode = strings.ToLower(strings.TrimPrefix(spec.GetMode().String(), "VIDEO_MODE_"))

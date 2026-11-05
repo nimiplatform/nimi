@@ -652,7 +652,7 @@ func TestResolveManagedImageBackendPackageSpecForHostWindowsNvidiaCUDA(t *testin
 		managedImageBackendStringSliceContains(spec.SupportedModelFamilies, "z-image-turbo") {
 		t.Fatalf("expected Windows managed image backend package to declare only the canonical z-image family, got %v", spec.SupportedModelFamilies)
 	}
-	if !strings.Contains(spec.InstallDirName, "fd21ecf") {
+	if !strings.Contains(spec.InstallDirName, "58bb3c1") {
 		t.Fatalf("expected release-qualified Windows install dir, got %q", spec.InstallDirName)
 	}
 }
@@ -687,9 +687,9 @@ func TestResolveManagedImageBackendPackageSpecForHostDarwinAppleUsesExactCanonic
 	if !ok || !spec.Supported {
 		t.Fatalf("darwin canonical package = %#v, ok=%v", spec, ok)
 	}
-	if spec.PackageSource != managedImageBackendPackageSourceCanonicalRuntimeWrapper || spec.ReleaseTag != "master-995-fd21ecf" ||
-		spec.SourceCommit != "fd21ecfceef2665d2c5f2db8536e3202d864fd30" || // pragma: allowlist secret -- public source commit
-		spec.ArchiveSHA256 != "3ee05d3f230b124834d2e67df7915017ef9b7ded9d811f72b8d5124fa93a4dd3" || spec.MinOSVersion != "26.0.0" { // pragma: allowlist secret -- public archive checksum
+	if spec.PackageSource != managedImageBackendPackageSourceCanonicalRuntimeWrapper || spec.ReleaseTag != "master-1050-58bb3c1" ||
+		spec.SourceCommit != "58bb3c1b1cd4749e94e39f537e9adfce295dcaee" || // pragma: allowlist secret -- public source commit
+		spec.ArchiveSHA256 != "7f295ccdc3a228c95e36b0221b59ba7dd125a023fe00f1ccfd827f1138f8882d" || spec.MinOSVersion != "26.0.0" { // pragma: allowlist secret -- public archive checksum
 		t.Fatalf("darwin exact package identity = %#v", spec)
 	}
 	for version, want := range map[string]bool{"25.9.9": false, "26.0": true, "26.5.2": true, "27": true, "": false} {
@@ -801,5 +801,14 @@ func TestResolveManagedImageBackendPackageSpecForHostUnknownSourceFailsClosed(t 
 		); ok {
 			t.Fatalf("expected package source %q to fail closed, got %#v", source, spec)
 		}
+	}
+}
+
+func TestFlux3KleinHasExactWindowsPackageAdmission(t *testing.T) {
+	if err := admitManagedImageRecipeForHost("flux3", "", "windows", "amd64", "nvidia", true); err != nil {
+		t.Fatal("reviewed Windows family rejected before native execution", err)
+	}
+	if err := admitManagedImageRecipeForHost("flux3", "", "darwin", "arm64", "apple", false); err == nil {
+		t.Fatal("unadmitted Mac FLUX3 route accepted")
 	}
 }

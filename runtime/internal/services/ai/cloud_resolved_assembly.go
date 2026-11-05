@@ -34,8 +34,11 @@ const (
 // an exact Connector custody record; credential material stays in the
 // request-scoped Remote ExecutionHost opening point.
 type cloudResolvedAssembly struct {
+	ImageMarkupReference *nimillm.CapturedMediaReference       `json:"image_markup_reference,omitempty"`
+	ImageMaskReference   *nimillm.CapturedMediaReference       `json:"image_mask_reference,omitempty"`
+	VideoMediaReferences []nimillm.CloudVideoMediaReference    `json:"video_media_references,omitempty"`
 	MusicVideoReference  *nimillm.MusicReferenceVideo          `json:"music_video_reference,omitempty"`
-	ImageReference       *nimillm.ImageReference               `json:"image_reference,omitempty"`
+	ImageReference       *nimillm.CapturedMediaReference       `json:"image_reference,omitempty"`
 	MusicReference       *nimillm.MusicReferenceAudio          `json:"music_reference,omitempty"`
 	EmbeddingDimension   int                                   `json:"embedding_dimension,omitempty"`
 	EmbeddingProtocol    capabilitydriver.CloudEmbedProtocol   `json:"embedding_protocol,omitempty"`
@@ -156,7 +159,7 @@ func validateCloudResolvedAssembly(assembly *cloudResolvedAssembly) error {
 		return fmt.Errorf("Cloud embedding output contract is missing")
 	}
 	if assembly != nil && assembly.RequestKind == cloudResolvedRequestEmbed &&
-		assembly.EmbeddingProtocol != capabilitydriver.CloudEmbedProtocolCompatibleV1 && assembly.EmbeddingProtocol != capabilitydriver.CloudEmbedProtocolGeminiV1 {
+		assembly.EmbeddingProtocol != capabilitydriver.CloudEmbedProtocolCompatibleV1 && assembly.EmbeddingProtocol != capabilitydriver.CloudEmbedProtocolGeminiV1 && assembly.EmbeddingProtocol != capabilitydriver.CloudEmbedProtocolCohereV2 {
 		return fmt.Errorf("Cloud embedding protocol capture is missing or unsupported")
 	}
 	if assembly != nil && assembly.RequestKind != cloudResolvedRequestEmbed && assembly.EmbeddingProtocol != "" {
@@ -197,6 +200,9 @@ func validateCloudResolvedAssemblyDraft(assembly *cloudResolvedAssembly) error {
 		return fmt.Errorf("Cloud voice ResolvedAssembly execution mode is invalid")
 	}
 	if assembly.RequestKind != cloudResolvedRequestMedia {
+		if len(assembly.VideoMediaReferences) > 0 || assembly.ImageMaskReference != nil || assembly.ImageMarkupReference != nil {
+			return fmt.Errorf("non-media Cloud assembly contains video images")
+		}
 		if assembly.MediaStreamMode != capabilitydriver.CloudMediaStreamNone {
 			return fmt.Errorf("non-media Cloud ResolvedAssembly cannot contain media stream behavior")
 		}
@@ -283,13 +289,13 @@ func validateCloudResolvedAssemblyDraft(assembly *cloudResolvedAssembly) error {
 			}
 		}
 	}
-	if err := validateCloudResolvedAssemblyRequest(assembly, provider); err != nil {
+	if err := validateCloudResolvedAssemblyRequest(assembly, provider, providerModelID); err != nil {
 		return err
 	}
 	return nil
 }
 
-func validateCloudResolvedAssemblyRequest(assembly *cloudResolvedAssembly, provider string) error {
+func validateCloudResolvedAssemblyRequest(assembly *cloudResolvedAssembly, provider, providerModelID string) error {
 	unmarshal := protojson.UnmarshalOptions{DiscardUnknown: false}
 	if assembly.MusicVideoReference != nil && (assembly.RequestKind != cloudResolvedRequestMedia || assembly.CapabilityContract != "music.generate") {
 		return fmt.Errorf("music video capture is outside its contract")
@@ -334,12 +340,40 @@ func validateCloudResolvedAssemblyRequest(assembly *cloudResolvedAssembly, provi
 			return fmt.Errorf("Cloud media ResolvedAssembly request identity is mismatched")
 		}
 		imageSpec := request.GetSpec().GetImageGenerate()
+		if len(assembly.VideoMediaReferences) > 0 || (cloudVideoHasArtifactReference(request) && assembly.CredentialCustodyRef != "") {
+			if !capabilitydriver.SupportsCloudVideoArtifacts(provider, providerModelID) || request.GetSpec().GetVideoGenerate() == nil {
+				return fmt.Errorf("Cloud video images have no exact adapter")
+			}
+			if err := nimillm.ValidateCloudVideoMediaReferences(provider, providerModelID, request.GetSpec().GetVideoGenerate(), assembly.VideoMediaReferences); err != nil {
+				return fmt.Errorf("Cloud video image capture invalid: %w", err)
+			}
+		}
+		if mask := assembly.ImageMaskReference; mask != nil {
+			if imageSpec == nil {
+				return fmt.Errorf("image mask has no exact adapter")
+			}
+			if err := nimillm.ValidateCloudImageMaskReference(provider, providerModelID, imageSpec, assembly.ImageReference, mask); err != nil {
+				return fmt.Errorf("invalid captured mask: %w", err)
+			}
+		} else if imageSpec != nil && imageSpec.GetMaskArtifactId() != "" && assembly.CredentialCustodyRef != "" {
+			return fmt.Errorf("missing captured image mask")
+		}
+		if markup := assembly.ImageMarkupReference; markup != nil {
+			if imageSpec == nil {
+				return fmt.Errorf("image markup has no image request")
+			}
+			if err := nimillm.ValidateCloudImageMarkupReference(provider, providerModelID, imageSpec, assembly.ImageReference, markup); err != nil {
+				return fmt.Errorf("invalid captured markup: %w", err)
+			}
+		} else if imageSpec != nil && imageSpec.GetMarkupArtifactId() != "" && assembly.CredentialCustodyRef != "" {
+			return fmt.Errorf("missing captured markup")
+		}
 		if reference := assembly.ImageReference; reference != nil {
 			var err error
 			if world := request.GetSpec().GetWorldGenerate(); world != nil && world.GetImagePrompt() != nil {
 				err = nimillm.ValidateCloudWorldImageReference(provider, world, reference)
 			} else if imageSpec != nil {
-				err = nimillm.ValidateGeminiImageReferenceRequest(imageSpec, reference)
+				err = nimillm.ValidateCloudImageReferenceRequest(provider, providerModelID, imageSpec, reference)
 			} else {
 				return fmt.Errorf("Cloud image capture does not match request")
 			}

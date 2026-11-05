@@ -39,7 +39,7 @@ func MimoChatRequestSerializer(spec *runtimev1.TextGenerateScenarioSpec, stream 
 	if err := validateMimoChatSpec(spec); err != nil {
 		return textbehavior.SerializedRequest{}, err
 	}
-	messages, err := deepseekChatMessages(spec)
+	messages, err := chatCompletionMessages(spec, nil, "")
 	if err != nil {
 		return textbehavior.SerializedRequest{}, err
 	}

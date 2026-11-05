@@ -233,12 +233,7 @@ func TestExtractTaskIDFromAdapterPayloadUsesAdapterSpecificPaths(t *testing.T) {
 			payload: map[string]any{"output": map[string]any{"task_id": "dash-1"}, "id": "wrong"},
 			want:    "dash-1",
 		},
-		{
-			name:    "google veo uses operation name",
-			adapter: AdapterGoogleVeoOperation,
-			payload: map[string]any{"name": "operations/veo-1", "task_id": "wrong"},
-			want:    "operations/veo-1",
-		},
+
 		{
 			name:    "runway uses top level id only",
 			adapter: AdapterRunwayTask,

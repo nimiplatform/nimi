@@ -1,6 +1,6 @@
 schema_version: 3
 provider: openai
-catalog_version: 2026-10-02-openai-whisper-word-timing
+catalog_version: 2026-11-04-openai-terra-responses
 generated_target: runtime/catalog/providers/openai.yaml
 runtime:
   inventory_mode: static_source
@@ -25,6 +25,22 @@ defaults:
     notes: Official pricing differs by model family, API mode, and service class.
 
 sources:
+  - source_id: openai_gpt_image_26_flare
+    url: https://developers.openai.com/api/docs/models/gpt-image-2.6-flare
+    retrieved_at: 2026-11-05
+    note: Exact current GPT Image2.6 Flare image generation/edit target; no dated snapshot published on the model card.
+  - source_id: openai_gpt_image_26_sunburst
+    url: https://developers.openai.com/api/docs/models/gpt-image-2.6-sunburst
+    retrieved_at: 2026-11-05
+    note: Exact current GPT Image2.6 Sunburst generation/edit target; no dated snapshot published on the model card.
+  - source_id: openai_gpt_image_26_guide
+    url: https://developers.openai.com/api/docs/guides/image-generation#gpt-image-26
+    retrieved_at: 2026-11-05
+    note: Independent low/medium/high complexity defaultshigh; markup,SVG and GIF require their own typed carrier and artifact admission, not ignored extension fields.
+  - source_id: openai_gpt_6_1_terra_doc
+    url: https://developers.openai.com/api/docs/models/gpt-6.1-terra
+    retrieved_at: 2026-11-04
+    note: Fixed gpt-6.1-terra target with text/image input, 922000 maximum input and 128000 maximum output, Responses-only function calling and none/low/medium/high/xhigh/max reasoning effort.
   - source_id: openai_realtime_2_1_doc
     url: https://developers.openai.com/api/docs/models/gpt-realtime-2.1
     retrieved_at: 2026-10-21
@@ -228,6 +244,76 @@ voice_sets:
         name: Shimmer
 
 models:
+  - model_id: gpt-image-2.6-flare
+    model_type: image
+    updated_at: 2026-11-05
+    capabilities: [image.generate]
+    features: [input.image, input.mask]
+    image_request_options:
+      complexity_levels: [low, medium, high]
+      output_formats: [png, jpeg, webp, gif, svg]
+      supports_markup: true
+      max_animation_frames: 64
+      response_formats: [b64_json]
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: true
+      supports_seed: false
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: true
+      supports_style: false
+    source_ids: [openai_gpt_image_26_flare, openai_gpt_image_26_guide]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-05
+      notes: Current2.6 model cards do not publish exact token rates; no2.5 rate is inherited as a verified2.6 price.
+  - model_id: gpt-image-2.6-sunburst
+    model_type: image
+    updated_at: 2026-11-05
+    capabilities: [image.generate]
+    features: [input.image, input.mask]
+    image_request_options:
+      complexity_levels: [low, medium, high]
+      output_formats: [png, jpeg, webp, gif, svg]
+      supports_markup: true
+      max_animation_frames: 64
+      response_formats: [b64_json]
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: true
+      supports_seed: false
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: true
+      supports_style: false
+    source_ids: [openai_gpt_image_26_sunburst, openai_gpt_image_26_guide]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-05
+      notes: Current2.6 model cards do not publish exact token rates; no2.5 rate is inherited as a verified2.6 price.
+  - model_id: gpt-6.1-terra
+    model_type: chat
+    updated_at: 2026-11-04
+    context_window_tokens: 922000
+    capabilities: [text.generate]
+    features: [input.image]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-04
+      notes: Stateless Responses target with native function tools and strict structured output. Pricing depends on context length and service tier.
+    source_ids: [openai_gpt_6_1_terra_doc, openai_reasoning_guide]
   - model_id: gpt-realtime-2.1
     model_type: chat
     updated_at: 2026-10-21

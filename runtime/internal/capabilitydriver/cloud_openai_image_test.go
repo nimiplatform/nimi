@@ -20,6 +20,47 @@ func openAIImageTestRequest(mutate func(*runtimev1.ImageGenerateScenarioSpec)) *
 	}
 }
 
+func TestOpenAIImage26UsesItsReviewedImageAPIRules(t *testing.T) {
+	for _, model := range []string{"gpt-image-2.6-flare", "gpt-image-2.6-sunburst"} {
+		driver, target := cloudMediaDriverTarget(t, "openai", model, "image.generate")
+		for _, spec := range []*runtimev1.ImageGenerateScenarioSpec{
+			{Prompt: "A paper boat"},
+			{Prompt: "A paper boat", Size: "auto", Quality: "medium"},
+			{Prompt: "Change the cup blue", Size: "1024x1024", ReferenceImages: []string{"https://example.com/source.png"}},
+			{Prompt: "vector boat", OutputFormat: "svg", Complexity: "high", Quality: "low"},
+			{Prompt: "moving boat", OutputFormat: "gif", FrameCount: proto.Int32(64), FrameDurationMs: proto.Int32(2000)},
+			{Prompt: "change annotated area", ReferenceImageArtifactId: "source", MarkupArtifactId: "overlay"},
+			{Prompt: "change white area", ReferenceImageArtifactId: "source", MaskArtifactId: "mask"},
+		} {
+			r := openAIImageTestRequest(nil)
+			r.Spec.Spec = &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: spec}
+			mapped, err := driver.MapRequest(target, r, nil, CloudMediaStreamNone)
+			if err != nil || mapped.ProviderModelID() != model || mapped.Adapter() != CloudMediaAdapterOpenAIImages {
+				t.Fatalf("%s exact route: %v", model, err)
+			}
+		}
+		for _, spec := range []*runtimev1.ImageGenerateScenarioSpec{
+			{Prompt: "boat", Quality: "max"},
+			{Prompt: "boat", Quality: "xhigh"},
+			{Prompt: "boat", Size: "3840x2160"},
+			{Prompt: "boat", Seed: proto.Int64(0)},
+			{Prompt: "boat", OutputFormat: "svg", ReferenceImageArtifactId: "source"},
+			{Prompt: "boat", OutputFormat: "gif", Size: "1024x1024"},
+			{Prompt: "boat", OutputFormat: "gif", FrameCount: proto.Int32(65)},
+			{Prompt: "boat", OutputFormat: "png", FrameCount: proto.Int32(3)},
+			{Prompt: "boat", MarkupArtifactId: "overlay"},
+			{Prompt: "boat", ReferenceImageArtifactId: "source", MaskArtifactId: "mask", MarkupArtifactId: "overlay"},
+			{Prompt: "boat", ReferenceImages: []string{"https://user:password@example.com/source.png"}},
+		} {
+			r := openAIImageTestRequest(nil)
+			r.Spec.Spec = &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: spec}
+			if _, err := driver.MapRequest(target, r, nil, CloudMediaStreamNone); err == nil {
+				t.Fatalf("%s inherited an unreviewed sibling control: %v", model, spec)
+			}
+		}
+	}
+}
+
 func TestOpenAIImageMapsOnlyPromptSizeAndQuality(t *testing.T) {
 	for _, model := range []string{"gpt-image-2.5-flare", "gpt-image-2.5-sunburst"} {
 		driver, target := cloudMediaDriverTarget(t, "openai", model, "image.generate")

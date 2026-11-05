@@ -19,6 +19,7 @@ const geminiProImageMaxReferenceImages = 1
 // table has no admitted request contract.
 // @nimi-authority: rule.nimi.runtime.ai-provider.r051
 var geminiImageAspectRatios = map[string]map[string]struct{}{
+	"gemini-nano-banana-2.1":      geminiImageRatioSet("1:1", "1:4", "1:8", "2:3", "3:2", "3:4", "4:1", "4:3", "4:5", "5:4", "8:1", "9:16", "16:9", "21:9"),
 	"gemini-3.1-flash-image":      geminiImageRatioSet("1:1", "1:4", "1:8", "2:3", "3:2", "3:4", "4:1", "4:3", "4:5", "5:4", "8:1", "9:16", "16:9", "21:9"),
 	"gemini-3.1-flash-lite-image": geminiImageRatioSet("1:1", "2:3", "3:2", "3:4", "4:3", "4:5", "5:4", "9:16", "16:9", "21:9"),
 	"gemini-3-pro-image":          geminiImageRatioSet("1:1", "16:9"),
@@ -46,8 +47,13 @@ func validateGeminiImageRequest(spec *runtimev1.ImageGenerateScenarioSpec, model
 	if model == "gemini-3-pro-image" {
 		maxReferences = geminiProImageMaxReferenceImages
 	}
+	sizeUnsupported := strings.TrimSpace(spec.GetSize()) != ""
+	if model == "gemini-nano-banana-2.1" {
+		_, err := GeminiNanoBanana21ImageSize(spec)
+		sizeUnsupported = err != nil
+	}
 	unsupported := spec.GetN() > 1 || strings.TrimSpace(spec.GetNegativePrompt()) != "" ||
-		strings.TrimSpace(spec.GetSize()) != "" || strings.TrimSpace(spec.GetQuality()) != "" ||
+		sizeUnsupported || strings.TrimSpace(spec.GetQuality()) != "" ||
 		strings.TrimSpace(spec.GetStyle()) != "" || spec.Seed != nil ||
 		strings.TrimSpace(spec.GetMask()) != "" || strings.TrimSpace(spec.GetMaskArtifactId()) != "" ||
 		spec.Strength != nil || (format != "" && format != "b64_json" && format != "base64") ||
@@ -59,7 +65,7 @@ func validateGeminiImageRequest(spec *runtimev1.ImageGenerateScenarioSpec, model
 	}
 	if unsupported {
 		return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{
-			Message:    "Gemini image generation supports one image from a prompt, the target's admitted reference count and aspect ratios; count, size, seed, negative prompt, quality, style, mask, and URL output are unsupported",
+			Message:    "Gemini image generation supports one image from a prompt, the target's admitted reference count, size and aspect ratios; an unsupported size, count, seed, negative prompt, quality, style, mask, or URL output is rejected",
 			ActionHint: "use_supported_gemini_image_options",
 		})
 	}

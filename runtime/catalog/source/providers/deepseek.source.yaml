@@ -1,6 +1,6 @@
 schema_version: 3
 provider: deepseek
-catalog_version: 2026-09-16-deepseek-flash
+catalog_version: 2026-11-04-deepseek-flash-vision
 generated_target: runtime/catalog/providers/deepseek.yaml
 runtime:
   inventory_mode: static_source
@@ -31,7 +31,7 @@ sources:
   - source_id: deepseek_pricing_doc
     url: https://api-docs.deepseek.com/quick_start/pricing
     retrieved_at: 2026-09-28
-    note: Current model table maps deepseek-flash to DeepSeek-V4.1-Flash and deepseek-v4-pro to DeepSeek-V4-Pro-0813. The legacy deepseek-v4-flash name is still accepted, but its model is retired and requests are served by V4.1 Flash. Prices distinguish peak and off-peak.
+    note: Current model table maps deepseek-flash to DeepSeek-V4.1-Flash-1017 and deepseek-v4-pro to DeepSeek-V4-Pro-0813. The legacy deepseek-v4-flash name is still accepted, but its model is retired and requests are served by V4.1 Flash. Prices distinguish peak and off-peak.
   - source_id: deepseek_v4_release_doc
     url: https://api-docs.deepseek.com/news/news260424/
     retrieved_at: 2026-08-25
@@ -41,25 +41,35 @@ sources:
     retrieved_at: 2026-09-28
     note: DeepSeek change log. The 2026-09-10 V4.1 Flash release retires V4 Flash, temporarily routes the legacy Flash names to V4.1 Flash, and continues V4 Pro after 2026-09-14.
 
+  - source_id: deepseek_vision_doc
+    url: https://api-docs.deepseek.com/guides/vision/
+    retrieved_at: 2026-11-04
+    note: Current Flash accepts user-message JPEG/PNG/GIF/WebP images through inline data or public URLs. Reviewed Nimi requests preserve the native byte/count/geometry and 48 MiB body limits without Files storage; caller-owned images remain in Runtime custody.
+  - source_id: deepseek_chat_api_doc
+    url: https://api-docs.deepseek.com/api/create-chat-completion/
+    retrieved_at: 2026-11-04
+    note: Non-thinking Flash top_p is fixed at 1, penalties are ignored, max_tokens is 1 through 393216, and at most sixteen stop sequences are supported. Runtime rejects controls that cannot be honored. Native thinking continuity remains a separate reviewed behavior.
+
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: deepseek-flash
-    reviewed_at: 2026-09-28
+    reviewed_at: 2026-11-04
     freshness_sla_days: 21
-    rationale: Current official Flash API name, served by DeepSeek-V4.1-Flash. The name moves with provider releases, so its exact Runtime tool and JSON behavior is re-reviewed with this profile.
+    rationale: Current official Flash API name, served by DeepSeek-V4.1-Flash-1017. The name moves with provider releases, so its exact Runtime tool and JSON behavior is re-reviewed with this profile.
   - profile_id: text.reasoning
     capability: text.generate
     model_id: deepseek-v4-pro
-    reviewed_at: 2026-09-28
+    reviewed_at: 2026-11-04
     freshness_sla_days: 21
     rationale: DeepSeek-V4-Pro-0813 stays officially served after 2026-09-14 as the larger text-only model; it keeps the higher published no-tool HLE score, while V4.1 Flash leads the agentic benchmarks.
 
 models:
   - model_id: deepseek-flash
     model_type: chat
-    updated_at: 2026-09-16
+    updated_at: 2026-11-04
     capabilities: [text.generate]
+    features: [input.image]
     pricing:
       unit: token
       input: "0.3"
@@ -67,7 +77,7 @@ models:
       currency: USD
       as_of: 2026-09-16
       notes: Current API target for DeepSeek V4.1 Flash. Per 1M tokens at peak cache-miss rates; off-peak input/output are $0.15/$0.6. Provider model aliases do not pin immutable weights; exact text behavior support is Runtime-owned.
-    source_ids: [deepseek_pricing_doc]
+    source_ids: [deepseek_pricing_doc, deepseek_vision_doc, deepseek_chat_api_doc]
 
   - model_id: deepseek-v4-flash
     model_type: chat

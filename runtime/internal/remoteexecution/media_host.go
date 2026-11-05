@@ -424,6 +424,10 @@ func (h *ProviderMediaHost) recordDispatch(audit MediaDispatchAudit, phase strin
 	if len(cleanup) > 0 && cleanup[0] != nil {
 		payload.Fields["provider_cleanup_outcome"] = structpb.NewStringValue(string(cleanup[0].Outcome))
 		payload.Fields["provider_cleanup_reason"] = structpb.NewStringValue(cleanup[0].ReasonCode.String())
+		if resources := cleanup[0].GeminiResources; resources != nil {
+			payload.Fields["provider_file_cleanup"] = structpb.NewStringValue(resources.FileState)
+			payload.Fields["provider_interaction_cleanup"] = structpb.NewStringValue(resources.InteractionState)
+		}
 	}
 	traceID := strings.TrimSpace(audit.TraceID)
 	if traceID == "" {

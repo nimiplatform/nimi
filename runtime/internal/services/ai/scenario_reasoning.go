@@ -105,7 +105,8 @@ func validateReasoningConfig(spec *runtimev1.TextGenerateScenarioSpec) error {
 				runtimev1.ReasoningEffort_REASONING_EFFORT_MEDIUM,
 				runtimev1.ReasoningEffort_REASONING_EFFORT_HIGH,
 				runtimev1.ReasoningEffort_REASONING_EFFORT_MAXIMUM:
-			case runtimev1.ReasoningEffort_REASONING_EFFORT_XHIGH:
+			case runtimev1.ReasoningEffort_REASONING_EFFORT_XHIGH,
+				runtimev1.ReasoningEffort_REASONING_EFFORT_MODEL_DEFAULT:
 			default:
 				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 			}

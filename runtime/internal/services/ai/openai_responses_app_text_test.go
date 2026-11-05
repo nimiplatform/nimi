@@ -69,119 +69,121 @@ func openAIResponsesText(id, text string) map[string]any {
 // Tool round trips replay the returned encrypted reasoning with top-level
 // function tools in both modes; nothing from the ChatGPT-plan route applies.
 func TestOpenAIResponsesAppToolRoundTripReplaysContinuityInBothModes(t *testing.T) {
-	for _, stream := range []bool{false, true} {
-		name := "sync"
-		if stream {
-			name = "stream"
-		}
-		t.Run(name, func(t *testing.T) {
-			var requests atomic.Int32
-			fixture, decision := openAIResponsesAppFixture(t, "gpt-6-luna", func(w http.ResponseWriter, r *http.Request) {
-				number := requests.Add(1)
-				body := decodeOpenAIResponsesRequest(t, r, "gpt-6-luna")
-				reasoning := body["reasoning"].(map[string]any)
-				if reasoning["effort"] != "low" || reasoning["summary"] != "auto" {
-					t.Errorf("reasoning controls = %v", reasoning)
-				}
-				tools, _ := body["tools"].([]any)
-				if len(tools) != 1 || tools[0].(map[string]any)["type"] != "function" || tools[0].(map[string]any)["name"] != "lookup" || body["parallel_tool_calls"] != true {
-					t.Errorf("function tools were not sent top-level: %v", body["tools"])
-				}
-				if number == 1 {
-					if body["tool_choice"] != "required" {
-						t.Errorf("tool choice = %v", body["tool_choice"])
-					}
-					output := []map[string]any{
-						{"type": "reasoning", "id": "rs_1", "encrypted_content": "opaque-continuity", "summary": []any{map[string]any{"type": "summary_text", "text": "Need lookup"}, map[string]any{"type": "summary_text", "text": "Then answer"}}},
-						openAIResponsesCall("fc_1", "call_1", `{"query":"one"}`),
-					}
-					writeChatGPTPlanResponse(t, w, output, chatGPTPlanCompleted(output))
-					return
-				}
-				input := body["input"].([]any)
-				if len(input) != 4 {
-					t.Errorf("replayed transcript = %v", input)
-					return
-				}
-				reasoning, call, result := input[1].(map[string]any), input[2].(map[string]any), input[3].(map[string]any)
-				_, namespaced := call["namespace"]
-				if reasoning["type"] != "reasoning" || reasoning["encrypted_content"] != "opaque-continuity" ||
-					call["type"] != "function_call" || call["call_id"] != "call_1" || namespaced ||
-					result["type"] != "function_call_output" || result["call_id"] != "call_1" {
-					t.Errorf("continuity order or call association lost: %v", input)
-				}
-				output := []map[string]any{openAIResponsesText("msg_1", "Lookup completed.")}
-				writeChatGPTPlanResponse(t, w, output, chatGPTPlanCompleted(output))
-			})
-			ctxFor := func() context.Context {
-				if stream {
-					return decision(accountservice.LocalAppOperationTextTurnStream, localappop.AppOperationIDTextTurnStream)
-				}
-				return decision(accountservice.LocalAppOperationScenarioExecute, localappop.AppOperationIDScenarioExecute)
+	for _, model := range []string{"gpt-6-luna", "gpt-6.1-terra"} {
+		for _, stream := range []bool{false, true} {
+			name := "sync"
+			if stream {
+				name = "stream"
 			}
-			step := func(input *runtimev1.StreamLocalAppTextTurnRequest) []*runtimev1.TextOutputItem {
-				t.Helper()
-				if !stream {
-					response, err := fixture.service.ExecuteLocalAppScenario(ctxFor(), &runtimev1.ExecuteLocalAppScenarioRequest{Spec: &runtimev1.ExecuteLocalAppScenarioRequest_TextGenerate{TextGenerate: input}})
-					if err != nil {
+			t.Run(model+"/"+name, func(t *testing.T) {
+				var requests atomic.Int32
+				fixture, decision := openAIResponsesAppFixture(t, model, func(w http.ResponseWriter, r *http.Request) {
+					number := requests.Add(1)
+					body := decodeOpenAIResponsesRequest(t, r, model)
+					reasoning := body["reasoning"].(map[string]any)
+					if reasoning["effort"] != "low" || reasoning["summary"] != "auto" {
+						t.Errorf("reasoning controls = %v", reasoning)
+					}
+					tools, _ := body["tools"].([]any)
+					if len(tools) != 1 || tools[0].(map[string]any)["type"] != "function" || tools[0].(map[string]any)["name"] != "lookup" || body["parallel_tool_calls"] != true {
+						t.Errorf("function tools were not sent top-level: %v", body["tools"])
+					}
+					if number == 1 {
+						if body["tool_choice"] != "required" {
+							t.Errorf("tool choice = %v", body["tool_choice"])
+						}
+						output := []map[string]any{
+							{"type": "reasoning", "id": "rs_1", "encrypted_content": "opaque-continuity", "summary": []any{map[string]any{"type": "summary_text", "text": "Need lookup"}, map[string]any{"type": "summary_text", "text": "Then answer"}}},
+							openAIResponsesCall("fc_1", "call_1", `{"query":"one"}`),
+						}
+						writeChatGPTPlanResponse(t, w, output, chatGPTPlanCompleted(output))
+						return
+					}
+					input := body["input"].([]any)
+					if len(input) != 4 {
+						t.Errorf("replayed transcript = %v", input)
+						return
+					}
+					reasoning, call, result := input[1].(map[string]any), input[2].(map[string]any), input[3].(map[string]any)
+					_, namespaced := call["namespace"]
+					if reasoning["type"] != "reasoning" || reasoning["encrypted_content"] != "opaque-continuity" ||
+						call["type"] != "function_call" || call["call_id"] != "call_1" || namespaced ||
+						result["type"] != "function_call_output" || result["call_id"] != "call_1" {
+						t.Errorf("continuity order or call association lost: %v", input)
+					}
+					output := []map[string]any{openAIResponsesText("msg_1", "Lookup completed.")}
+					writeChatGPTPlanResponse(t, w, output, chatGPTPlanCompleted(output))
+				})
+				ctxFor := func() context.Context {
+					if stream {
+						return decision(accountservice.LocalAppOperationTextTurnStream, localappop.AppOperationIDTextTurnStream)
+					}
+					return decision(accountservice.LocalAppOperationScenarioExecute, localappop.AppOperationIDScenarioExecute)
+				}
+				step := func(input *runtimev1.StreamLocalAppTextTurnRequest) []*runtimev1.TextOutputItem {
+					t.Helper()
+					if !stream {
+						response, err := fixture.service.ExecuteLocalAppScenario(ctxFor(), &runtimev1.ExecuteLocalAppScenarioRequest{Spec: &runtimev1.ExecuteLocalAppScenarioRequest_TextGenerate{TextGenerate: input}})
+						if err != nil {
+							t.Fatal(err)
+						}
+						return response.GetTextGenerate().GetItems()
+					}
+					events := &mockLocalAppTextTurnStream{ctx: ctxFor()}
+					if err := fixture.service.StreamLocalAppTextTurn(input, events); err != nil {
 						t.Fatal(err)
 					}
-					return response.GetTextGenerate().GetItems()
-				}
-				events := &mockLocalAppTextTurnStream{ctx: ctxFor()}
-				if err := fixture.service.StreamLocalAppTextTurn(input, events); err != nil {
-					t.Fatal(err)
-				}
-				var items []*runtimev1.TextOutputItem
-				completed := false
-				for _, event := range events.events {
-					switch {
-					case event.GetReasoningContinuity() != nil:
-						if int(event.GetReasoningContinuity().GetItemIndex()) != len(items) {
-							t.Fatal("carrier index collision")
+					var items []*runtimev1.TextOutputItem
+					completed := false
+					for _, event := range events.events {
+						switch {
+						case event.GetReasoningContinuity() != nil:
+							if int(event.GetReasoningContinuity().GetItemIndex()) != len(items) {
+								t.Fatal("carrier index collision")
+							}
+							items = append(items, &runtimev1.TextOutputItem{Item: &runtimev1.TextOutputItem_ReasoningContinuity{ReasoningContinuity: event.GetReasoningContinuity().GetCarrier()}})
+						case event.GetReasoningSummary() != nil:
+							if !event.GetReasoningSummary().GetItemCompleted() || int(event.GetReasoningSummary().GetItemIndex()) != len(items) {
+								t.Fatal("summary index or seal")
+							}
+							items = append(items, &runtimev1.TextOutputItem{Item: &runtimev1.TextOutputItem_ReasoningSummary{ReasoningSummary: &runtimev1.ReasoningSummary{Text: event.GetReasoningSummary().GetText()}}})
+						case event.GetToolCall() != nil:
+							items = append(items, &runtimev1.TextOutputItem{Item: &runtimev1.TextOutputItem_ToolCall{ToolCall: event.GetToolCall().GetToolCall()}})
+						case event.GetDelta() != nil:
+							items = append(items, &runtimev1.TextOutputItem{Item: &runtimev1.TextOutputItem_Text{Text: &runtimev1.TextOutputText{Text: event.GetDelta().GetText()}}})
+						case event.GetCompleted() != nil:
+							completed = true
+						case event.GetFailed() != nil:
+							t.Fatalf("stream failed: %v", event.GetFailed())
 						}
-						items = append(items, &runtimev1.TextOutputItem{Item: &runtimev1.TextOutputItem_ReasoningContinuity{ReasoningContinuity: event.GetReasoningContinuity().GetCarrier()}})
-					case event.GetReasoningSummary() != nil:
-						if !event.GetReasoningSummary().GetItemCompleted() || int(event.GetReasoningSummary().GetItemIndex()) != len(items) {
-							t.Fatal("summary index or seal")
-						}
-						items = append(items, &runtimev1.TextOutputItem{Item: &runtimev1.TextOutputItem_ReasoningSummary{ReasoningSummary: &runtimev1.ReasoningSummary{Text: event.GetReasoningSummary().GetText()}}})
-					case event.GetToolCall() != nil:
-						items = append(items, &runtimev1.TextOutputItem{Item: &runtimev1.TextOutputItem_ToolCall{ToolCall: event.GetToolCall().GetToolCall()}})
-					case event.GetDelta() != nil:
-						items = append(items, &runtimev1.TextOutputItem{Item: &runtimev1.TextOutputItem_Text{Text: &runtimev1.TextOutputText{Text: event.GetDelta().GetText()}}})
-					case event.GetCompleted() != nil:
-						completed = true
-					case event.GetFailed() != nil:
-						t.Fatalf("stream failed: %v", event.GetFailed())
 					}
+					if !completed {
+						t.Fatalf("stream never completed: %v", events.events)
+					}
+					return items
 				}
-				if !completed {
-					t.Fatalf("stream never completed: %v", events.events)
+				input := &runtimev1.StreamLocalAppTextTurnRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "Use the lookup"}}, Tools: []*runtimev1.ToolSpec{localAppLookupTool(t)}, ToolChoice: runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_REQUIRED}
+				input.Reasoning = &runtimev1.ReasoningConfig{Activation: runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED, Presentation: runtimev1.ReasoningPresentation_REASONING_PRESENTATION_SUMMARY, Intensity: &runtimev1.ReasoningConfig_Effort{Effort: runtimev1.ReasoningEffort_REASONING_EFFORT_LOW}}
+				if _, err := localAppTextGenerateSpec(input); err != nil {
+					t.Fatalf("protected reasoning input: %v", err)
 				}
-				return items
-			}
-			input := &runtimev1.StreamLocalAppTextTurnRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "Use the lookup"}}, Tools: []*runtimev1.ToolSpec{localAppLookupTool(t)}, ToolChoice: runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_REQUIRED}
-			input.Reasoning = &runtimev1.ReasoningConfig{Activation: runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED, Presentation: runtimev1.ReasoningPresentation_REASONING_PRESENTATION_SUMMARY, Intensity: &runtimev1.ReasoningConfig_Effort{Effort: runtimev1.ReasoningEffort_REASONING_EFFORT_LOW}}
-			if _, err := localAppTextGenerateSpec(input); err != nil {
-				t.Fatalf("protected reasoning input: %v", err)
-			}
-			items := step(input)
-			if len(items) != 4 || items[0].GetReasoningSummary().GetText() != "Need lookup" || items[1].GetReasoningSummary().GetText() != "Then answer" || items[2].GetReasoningContinuity().GetKind() != "openai.responses.encrypted-reasoning" || items[3].GetToolCall().GetId() != "call_1" {
-				t.Fatalf("ordered outputs: %v", items)
-			}
-			turn := &runtimev1.LocalAppTextCandidateMessage{Role: "assistant"}
-			for _, item := range items {
-				turn.TurnItems = append(turn.TurnItems, &runtimev1.TextTurnItem{Item: &runtimev1.TextTurnItem_Output{Output: item}})
-			}
-			turn.TurnItems = append(turn.TurnItems, &runtimev1.TextTurnItem{Item: &runtimev1.TextTurnItem_ToolResult{ToolResult: &runtimev1.ToolResult{ToolCallId: "call_1", ToolName: "lookup", Result: structpb.NewStringValue("complete")}}})
-			input.Messages = append(input.Messages, turn)
-			input.ToolChoice = runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_AUTO
-			final := step(input)
-			if len(final) != 1 || final[0].GetText().GetText() != "Lookup completed." || requests.Load() != 2 {
-				t.Fatalf("round trip = %v requests=%d", final, requests.Load())
-			}
-		})
+				items := step(input)
+				if len(items) != 4 || items[0].GetReasoningSummary().GetText() != "Need lookup" || items[1].GetReasoningSummary().GetText() != "Then answer" || items[2].GetReasoningContinuity().GetKind() != "openai.responses.encrypted-reasoning" || items[3].GetToolCall().GetId() != "call_1" {
+					t.Fatalf("ordered outputs: %v", items)
+				}
+				turn := &runtimev1.LocalAppTextCandidateMessage{Role: "assistant"}
+				for _, item := range items {
+					turn.TurnItems = append(turn.TurnItems, &runtimev1.TextTurnItem{Item: &runtimev1.TextTurnItem_Output{Output: item}})
+				}
+				turn.TurnItems = append(turn.TurnItems, &runtimev1.TextTurnItem{Item: &runtimev1.TextTurnItem_ToolResult{ToolResult: &runtimev1.ToolResult{ToolCallId: "call_1", ToolName: "lookup", Result: structpb.NewStringValue("complete")}}})
+				input.Messages = append(input.Messages, turn)
+				input.ToolChoice = runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_AUTO
+				final := step(input)
+				if len(final) != 1 || final[0].GetText().GetText() != "Lookup completed." || requests.Load() != 2 {
+					t.Fatalf("round trip = %v requests=%d", final, requests.Load())
+				}
+			})
+		}
 	}
 }
 

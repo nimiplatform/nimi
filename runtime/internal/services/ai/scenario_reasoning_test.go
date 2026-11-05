@@ -8,6 +8,18 @@ import (
 )
 
 func TestReasoningDefaultAndExactOffAdmissionAreDistinct(t *testing.T) {
+	nativeDefault := &runtimev1.TextGenerateScenarioSpec{Reasoning: &runtimev1.ReasoningConfig{Activation: runtimev1.ReasoningActivation_REASONING_ACTIVATION_ADAPTIVE, Intensity: &runtimev1.ReasoningConfig_Effort{Effort: runtimev1.ReasoningEffort_REASONING_EFFORT_MODEL_DEFAULT}}}
+	if err := validateReasoningConfig(nativeDefault); err != nil {
+		t.Fatal(err)
+	}
+	normalizeClonedReasoningConfig(nativeDefault)
+	if nativeDefault.GetReasoning().GetActivation() != runtimev1.ReasoningActivation_REASONING_ACTIVATION_ADAPTIVE || nativeDefault.GetReasoning().GetEffort() != runtimev1.ReasoningEffort_REASONING_EFFORT_MODEL_DEFAULT {
+		t.Fatal("native default intensity lost explicit activation")
+	}
+	registration := glm53TextBehaviorRegistration("glm-5.3")
+	if textBehaviorReasoningSupportsRequest(registration.Support.Reasoning, requestedTextBehaviors{reasoning: true}, nativeDefault) {
+		t.Fatal("an unregistered native-default mapping was inferred")
+	}
 	for _, config := range []*runtimev1.ReasoningConfig{nil, {}, {Presentation: runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN}} {
 		spec := &runtimev1.TextGenerateScenarioSpec{Reasoning: config}
 		if err := validateReasoningConfig(spec); err != nil {

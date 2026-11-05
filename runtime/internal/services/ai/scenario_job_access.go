@@ -8,6 +8,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/authn"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
@@ -167,6 +168,11 @@ func (s *Service) CancelScenarioJob(ctx context.Context, req *runtimev1.CancelSc
 			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_CANCELLABLE)
 		}
 		if job != nil && isTerminalScenarioJobStatus(job.GetStatus()) {
+			if receipt := s.scenarioJobs.originalNativeReceipt(jobID); receipt != nil && receipt.Adapter == nimillm.AdapterGeminiOmniVideo {
+				if cleanupErr := s.observeScenarioNativeJob(ctx, jobID); cleanupErr != nil && s.logger != nil {
+					s.logger.Warn("Gemini resource cleanup could not be admitted after cancellation", "job_id", jobID, "error", cleanupErr)
+				}
+			}
 			s.releaseCloudCredentialCustodyForJob(jobID)
 		}
 		return &runtimev1.CancelScenarioJobResponse{Job: job}, nil

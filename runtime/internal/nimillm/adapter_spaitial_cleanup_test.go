@@ -47,7 +47,7 @@ func TestSpaitialExplicitStopRequiresFreshRequestAndTerminalProof(t *testing.T) 
 				defer cancel()
 				ctx = WithNativeTaskPublisher(ctx, func(r *NativeTaskReceipt) error { receipt = CloneNativeTaskReceipt(r); return nil })
 				req := &runtimev1.SubmitScenarioJobRequest{Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_WorldGenerate{WorldGenerate: &runtimev1.WorldGenerateScenarioSpec{TextPrompt: "A room"}}}}
-				_, err := ExecuteSpaitialWorld(ctx, MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key", AllowLoopbackEndpoint: true}, noopGeminiJobUpdater{}, "cleanup-job", req, "default")
+				_, err := ExecuteSpaitialWorld(ctx, MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key", AllowLoopbackEndpoint: true}, noopGeminiJobUpdater{}, "cleanup-job", req, "echo-2")
 				if !errors.Is(err, ErrNativeTaskYielded) || posts.Load() != 1 || cancels.Load() != 0 {
 					t.Fatalf("handoff: %v", err)
 				}
@@ -102,7 +102,7 @@ func TestSpaitialCompletedTaskResultDeadlineDoesNotCancel(t *testing.T) {
 	req := &runtimev1.SubmitScenarioJobRequest{Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_WorldGenerate{WorldGenerate: &runtimev1.WorldGenerateScenarioSpec{TextPrompt: "A room"}}}}
 	var receipt *NativeTaskReceipt
 	createCtx := WithNativeTaskPublisher(loopbackProviderTestContext(context.Background()), func(r *NativeTaskReceipt) error { receipt = CloneNativeTaskReceipt(r); return nil })
-	_, err := ExecuteSpaitialWorld(createCtx, MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key", AllowLoopbackEndpoint: true}, noopGeminiJobUpdater{}, "completed-job", req, "default")
+	_, err := ExecuteSpaitialWorld(createCtx, MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key", AllowLoopbackEndpoint: true}, noopGeminiJobUpdater{}, "completed-job", req, "echo-2")
 	if !errors.Is(err, ErrNativeTaskYielded) {
 		t.Fatalf("create: %v", err)
 	}

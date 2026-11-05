@@ -1,6 +1,6 @@
 schema_version: 3
 provider: local
-catalog_version: 2026-08-24-local-v10
+catalog_version: 2026-11-05-local-gemma4-unified
 generated_target: runtime/catalog/providers/local.yaml
 runtime:
   inventory_mode: static_source

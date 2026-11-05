@@ -1,14 +1,14 @@
 schema_version: 3
 provider: flux
-catalog_version: 2026-04-18-flux-image-v2
+catalog_version: 2026-11-05-flux3-media
 generated_target: runtime/catalog/providers/flux.yaml
 runtime:
   inventory_mode: static_source
   runtime_plane: remote
   managed_connector_supported: true
   inline_supported: true
-  default_endpoint: null
-  requires_explicit_endpoint: true
+  default_endpoint: https://api.bfl.ai
+  requires_explicit_endpoint: false
 defaults:
   provider: flux
   model_type: image
@@ -22,6 +22,10 @@ defaults:
     notes: Black Forest Labs uses credit- and megapixel-based pricing that varies by model family and request shape.
 
 sources:
+  - source_id: bfl_current_schema
+    url: https://api.bfl.ai/openapi.json
+    retrieved_at: 2026-11-05
+    note: Current exact FLUX3 image, Klein and video schemas and original asynchronous task statuses.
   - source_id: bfl_api_doc
     url: https://docs.bfl.ai/get-started
     retrieved_at: 2026-04-18
@@ -48,6 +52,60 @@ sources:
     note: Black Forest Labs release notes including FLUX.2 preview endpoint updates.
 
 models:
+  - model_id: flux-3-image
+    model_type: image
+    updated_at: 2026-11-05
+    capabilities: [image.generate]
+    features: [input.image]
+    image_request_options:
+      response_formats: [b64_json]
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: false
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: false
+      supports_style: false
+    source_ids: [bfl_current_schema]
+  - model_id: flux-3-image-klein
+    model_type: image
+    updated_at: 2026-11-05
+    capabilities: [image.generate]
+    features: [input.image]
+    image_request_options:
+      response_formats: [b64_json]
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: false
+      supports_style: false
+    source_ids: [bfl_current_schema]
+  - model_id: flux-3-video
+    model_type: video
+    updated_at: 2026-11-05
+    capabilities: [video.generate]
+    features: [input.image]
+    source_ids: [bfl_current_schema]
+    video_generation:
+      modes: [t2v, i2v_first_frame, i2v_first_last]
+      input_roles:
+        t2v: [prompt]
+        i2v_first_frame: [prompt, first_frame]
+        i2v_first_last: [prompt, first_frame, last_frame]
+      limits:
+        resolution: [720p, 1080p, 1440p, 4k]
+        duration_sec: {min: -1, max: 20}
+        ratio: [16:9, 4:3, 1:1, 3:4, 9:16, 21:9, 9:21, adaptive]
+      options:
+        supports: [resolution, ratio, duration_sec, generate_audio, draft]
+        constraints: {}
+      outputs: {video_url: true, last_frame_url: false}
   - model_id: flux-2-klein-4b
     model_type: image
     updated_at: 2026-04-18

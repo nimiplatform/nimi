@@ -422,6 +422,7 @@
     "slotLabels": {
       "mainModel": "主模型",
       "visionProjector": "视觉投影器",
+      "mediaProjector": "媒体投影器",
       "visionModel": "视觉模型",
       "embeddingModel": "嵌入模型",
       "ttsModel": "语音合成模型",
@@ -2987,7 +2988,10 @@
       "sharedScope": "使用本机模型的应用会共享这份配置",
       "notUsed": "不使用",
       "slotHelp": {
-        "inputImage": "用于理解图片；不使用时只处理文字。"
+        "inputMedia": "用于理解{{features}}；不使用时只处理文字。",
+        "input_image": "图片",
+        "input_audio": "音频",
+        "input_video": "视频"
       },
       "optionsDefault": "未设置，使用默认值。",
       "optionsCustomized_one": "已设置 {{count}} 项参数，其余使用默认值。",

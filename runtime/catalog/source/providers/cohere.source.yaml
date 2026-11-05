@@ -1,6 +1,6 @@
 schema_version: 3
 provider: cohere
-catalog_version: 2026-07-20-cohere-v4
+catalog_version: 2026-11-04-cohere-embed5
 generated_target: runtime/catalog/providers/cohere.yaml
 runtime:
   inventory_mode: static_source
@@ -24,6 +24,14 @@ defaults:
     notes: Cohere pricing varies by model family and account plan.
 
 sources:
+  - source_id: cohere_embed5_models
+    url: https://docs.cohere.com/docs/models
+    retrieved_at: 2026-11-04
+    note: Embed v5.0 Pro and Fast support text embedding with selectable 256/512/768/1024/1536/2048 output dimensions and default 2048; native text and image modes remain separate.
+  - source_id: cohere_embed5_api
+    url: https://docs.cohere.com/reference/embed
+    retrieved_at: 2026-11-04
+    note: Native POST /v2/embed accepts typed inputs, required search_document/search_query input_type, output_dimension, float embeddings and truncate NONE.
   - source_id: cohere_models_doc
     url: https://docs.cohere.com/docs/models
     retrieved_at: 2026-07-20
@@ -72,6 +80,32 @@ selection_profiles:
     rationale: Command R7B, the smallest and fastest Command R model with the lowest listed per-token price, live with no deprecation notice.
 
 models:
+  - model_id: embed-v5.0-pro
+    model_type: embedding
+    updated_at: 2026-11-04
+    capabilities: [text.embed]
+    embedding: {dimension: 2048}
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-04
+      notes: Native Embed 5 text search protocol. The default output width is 2048; supported explicit widths are 256, 512, 768, 1024, 1536 and 2048.
+    source_ids: [cohere_embed5_models, cohere_embed5_api]
+  - model_id: embed-v5.0-fast
+    model_type: embedding
+    updated_at: 2026-11-04
+    capabilities: [text.embed]
+    embedding: {dimension: 2048}
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-04
+      notes: Lower-latency Embed 5 target. Nimi retains exact model identity in space_id rather than inferring cross-model index compatibility.
+    source_ids: [cohere_embed5_models, cohere_embed5_api]
   - model_id: north-mini-code-1-0
     model_type: chat
     updated_at: 2026-06-09

@@ -34,6 +34,7 @@ const (
 	StableDiffusionQwenImageRecipeID     = "qwen-image"
 	StableDiffusionQwenImageEditRecipeID = "qwen-image-edit-2511"
 	StableDiffusionFluxSchnellRecipeID   = "flux1-schnell"
+	StableDiffusionFlux3KleinRecipeID    = "flux3-klein"
 )
 
 const (
@@ -100,6 +101,8 @@ func stableDiffusionFamily(value string) (stableDiffusionFamilySpec, bool) {
 			textEncoderTensorContract: "t5-v1_1-xxl-encoder",
 			compatibleVAEs:            []string{"flux1-vae"}, vaeTensorContract: "flux1-vae-16ch",
 		}, true
+	case "flux3":
+		return stableDiffusionFamilySpec{name: value, mainArtifactRole: "diffusion_model", mainTensorContract: "flux3-klein", mainGGUFFamilies: []string{"flux3"}, compatibleTextEncoders: []string{"qwen-vl"}, textEncoderGGUFArchitectures: []string{"qwen3vl"}, textEncoderTensorContract: "qwen3-vl-4b-encoder", compatibleVAEs: []string{"flux2-vae"}, vaeTensorContract: "flux2-vae"}, true
 	case "z-image":
 		// Z-Image consumes the FLUX.1 VAE (ae.safetensors): its decoder conv_in
 		// weight projects the 16-channel latent shape as flux1-vae.
@@ -148,6 +151,8 @@ type stableDiffusionPortableConfig struct {
 
 func stableDiffusionRecipe(family stableDiffusionFamilySpec, recipeID string) (stableDiffusionFamilySpec, bool, bool) {
 	switch recipeID {
+	case StableDiffusionFlux3KleinRecipeID:
+		return family, family.name == "flux3", false
 	case StableDiffusionFluxSchnellRecipeID:
 		return family, family.name == "flux", false
 	case "z-image":
@@ -179,6 +184,9 @@ func StableDiffusionImageRecipeModelFamily(recipeID string) (string, bool) {
 	if recipeID == StableDiffusionFluxSchnellRecipeID {
 		familyName = "flux"
 	}
+	if recipeID == StableDiffusionFlux3KleinRecipeID {
+		familyName = "flux3"
+	}
 	family, ok := stableDiffusionFamily(familyName)
 	if !ok {
 		return "", false
@@ -191,7 +199,7 @@ func StableDiffusionImageRecipeModelFamily(recipeID string) (string, bool) {
 }
 
 func stableDiffusionRecipeSupportsInputImage(recipeID string) bool {
-	return recipeID == "qwen-image-edit-2511"
+	return recipeID == "qwen-image-edit-2511" || recipeID == StableDiffusionFlux3KleinRecipeID
 }
 
 func (StableDiffusionImageDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
@@ -973,7 +981,7 @@ func (stableDiffusionImageTranslator) validateImagePlan(plan *ImageInvocationPla
 		return fmt.Errorf("stable-diffusion image load and request variants are inconsistent")
 	}
 	if (load.recipeID == "qwen-image-edit-2511") != load.qwenImageZeroCondT ||
-		((load.recipeID == "qwen-image" || load.recipeID == "qwen-image-edit-2511") && load.flowShift != 3) {
+		((load.recipeID == "qwen-image" || load.recipeID == "qwen-image-edit-2511") && load.flowShift != 3) || (load.recipeID == StableDiffusionFlux3KleinRecipeID && load.flowShift != 6.93) {
 		return fmt.Errorf("stable-diffusion image recipe load facts are inconsistent")
 	}
 	files := []ImageModelFile{load.main, load.textEncoder, load.vae}
@@ -1002,7 +1010,7 @@ func (stableDiffusionImageTranslator) validateImagePlan(plan *ImageInvocationPla
 		}
 	}
 	if edit, isEdit := plan.requestPlan.(StableDiffusionCPPInstructionEditRequestPlan); isEdit {
-		if load.recipeID != "qwen-image-edit-2511" || edit.sourceImage.SourceIdentity == "" ||
+		if (load.recipeID != "qwen-image-edit-2511" && load.recipeID != StableDiffusionFlux3KleinRecipeID) || edit.sourceImage.SourceIdentity == "" ||
 			edit.sourceImage.SourceIdentity != strings.TrimSpace(edit.sourceImage.SourceIdentity) || len(edit.sourceImage.ImageBytes) == 0 {
 			return fmt.Errorf("stable-diffusion instruction-edit request is incomplete")
 		}
@@ -1210,13 +1218,27 @@ func normalizeStableDiffusionImageRequest(
 	if mask != "" || maskArtifactID != "" || len(maskInputs) > 0 || spec.Strength != nil {
 		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("selected stable-diffusion recipe does not admit a mask"))
 	}
+	if ImageHasExtendedControls(spec) {
+		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("selected local image recipe does not admit these render controls"))
+	}
 	negativePrompt := strings.TrimSpace(spec.GetNegativePrompt())
-	if (portable.recipeID == "qwen-image" || portable.recipeID == "qwen-image-edit-2511" || portable.recipeID == StableDiffusionFluxSchnellRecipeID) && negativePrompt != "" {
+	if (portable.recipeID == "qwen-image" || portable.recipeID == "qwen-image-edit-2511" || portable.recipeID == StableDiffusionFluxSchnellRecipeID || portable.recipeID == StableDiffusionFlux3KleinRecipeID) && negativePrompt != "" {
 		return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("selected image recipe does not admit negative_prompt"))
 	}
 	kind := stableDiffusionRequestTextToImage
 	sourceImage := ImageResolvedInput{}
 	switch portable.recipeID {
+	case StableDiffusionFlux3KleinRecipeID:
+		if len(sourceInputs) > 1 || imageCount != 1 {
+			return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("FLUX3 Klein supports one output and at most one owned source in this image contract"))
+		}
+		if len(sourceInputs) == 1 {
+			if sourceInputs[0].SourceIdentity == "" || sourceInputs[0].SourceIdentity != strings.TrimSpace(sourceInputs[0].SourceIdentity) || len(sourceInputs[0].ImageBytes) == 0 {
+				return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("image.generate resolved input.image is incomplete"))
+			}
+			sourceImage = cloneImageResolvedInput(sourceInputs[0])
+			kind = stableDiffusionRequestInstructionEdit
+		}
 	case "qwen-image-edit-2511":
 		if len(sourceInputs) != 1 || imageCount != 1 {
 			return normalizedStableDiffusionImageRequest{}, invocationError(InvocationFailureUnsupported, fmt.Errorf("Qwen Image Edit 2511 requires exactly one source image, one output, and no mask"))
@@ -1294,6 +1316,9 @@ func parseStableDiffusionPortableConfig(recipeID string, value *structpb.Struct)
 	if recipeID == StableDiffusionFluxSchnellRecipeID {
 		familyName = "flux"
 	}
+	if recipeID == StableDiffusionFlux3KleinRecipeID {
+		familyName = "flux3"
+	}
 	family, ok := stableDiffusionFamily(familyName)
 	if !ok {
 		return stableDiffusionPortableConfig{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
@@ -1324,6 +1349,14 @@ func parseStableDiffusionPortableConfig(recipeID string, value *structpb.Struct)
 		},
 	}
 	switch recipeID {
+	case StableDiffusionFlux3KleinRecipeID:
+		result.execution.steps = 16
+		result.execution.cfgScale = 1
+		result.execution.sampler = "euler"
+		result.execution.scheduler = "discrete"
+		result.execution.flowShift = 6.93
+		result.execution.diffusionFlashAttention = true
+		result.execution.offloadParamsToCPU = true
 	case StableDiffusionFluxSchnellRecipeID:
 		result.execution.steps = 4
 		result.execution.cfgScale = 1

@@ -1,6 +1,6 @@
 schema_version: 3
 provider: fish_audio
-catalog_version: 2026-04-18-fish-audio-v3
+catalog_version: 2026-11-04-fish-audio-s21
 generated_target: runtime/catalog/providers/fish_audio.yaml
 runtime:
   inventory_mode: static_source
@@ -23,6 +23,14 @@ defaults:
     notes: Fish Audio now publishes stable TTS pricing at $15.00 per 1M UTF-8 bytes for both `s1` and `s2-pro`, but the catalog pricing contract only normalizes token|char|second|request units, so byte-accurate pricing remains descriptive rather than numerically encoded here.
 
 sources:
+  - source_id: fish_audio_s21_models_doc
+    url: https://docs.fish.audio/developer-guide/models-pricing/models-overview
+    retrieved_at: 2026-11-04
+    note: S2.1-Pro production model and distinct free developer tier; free has fair-use limits and no TTFA or DPA guarantees. S1 remains deprecated until its December 31 retirement, not an alias to the newer model during this review.
+  - source_id: fish_audio_s21_tts_api
+    url: https://docs.fish.audio/api-reference/openapi.json
+    retrieved_at: 2026-11-04
+    note: Exact model header prevents silent default routing. Native v1 TTS accepts an existing voice id, four audio formats with format-specific sample rates, and speed from 0.5 to 2.0. Per-call audio requires MessagePack and is not admitted by this JSON saved-voice path.
   - source_id: fish_audio_quickstart_doc
     url: https://docs.fish.audio/developer-guide/getting-started/quickstart
     retrieved_at: 2026-04-18
@@ -84,6 +92,48 @@ voice_sets:
         langs: [en]
 
 models:
+  - model_id: s2.1-pro
+    updated_at: 2026-11-04
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [fish_audio_s21_models_doc, fish_audio_s21_tts_api, fish_audio_create_model_doc]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-04
+      notes: Production S2.1-Pro; byte-metered pricing cannot be represented as a request price.
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: default-voices-v1
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref, voice_asset_id]
+      langs_ref: short_multilingual_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [wav, pcm, mp3, opus]
+        supports_language: false
+  - model_id: s2.1-pro-free
+    updated_at: 2026-11-04
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [fish_audio_s21_models_doc, fish_audio_s21_tts_api, fish_audio_create_model_doc]
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: USD
+      as_of: 2026-11-04
+      notes: Free developer tier under fair-use limits, without production TTFA or DPA guarantees; never substituted for the paid model.
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: default-voices-v1
+      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref, voice_asset_id]
+      langs_ref: short_multilingual_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [wav, pcm, mp3, opus]
+        supports_language: false
   - model_id: s2-pro
     updated_at: 2026-04-18
     capabilities: [audio.synthesize, voice.create]
@@ -141,11 +191,17 @@ voice_workflow_models:
       reference_audio_uri_input: true
       reference_audio_bytes_input: true
       allowed_reference_audio_mime_types: [audio/wav, audio/mpeg, audio/ogg, audio/flac, audio/mp4, audio/m4a]
-    target_model_refs: [s1, s2-pro]
+    target_model_refs: [s1, s2-pro, s2.1-pro, s2.1-pro-free]
     langs_ref: short_multilingual_v1
     source_ids: [fish_audio_create_model_doc, fish_audio_quickstart_doc]
 
 model_workflow_bindings:
+  - model_id: s2.1-pro
+    workflow_model_refs: [fish-audio-create-model]
+    workflow_types: [reference_audio]
+  - model_id: s2.1-pro-free
+    workflow_model_refs: [fish-audio-create-model]
+    workflow_types: [reference_audio]
   - model_id: s1
     workflow_model_refs: [fish-audio-create-model]
     workflow_types: [reference_audio]

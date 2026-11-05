@@ -27,7 +27,6 @@ const PROVIDER_ALIASES = {
   awspolly: 'aws_polly',
   azurespeech: 'azure_speech',
   googlecloudtts: 'google_cloud_tts',
-  googleveo: 'google_veo',
   fishaudio: 'fish_audio',
 };
 

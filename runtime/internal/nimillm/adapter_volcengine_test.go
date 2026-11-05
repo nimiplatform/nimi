@@ -215,9 +215,10 @@ func TestExecuteBytedanceARKTaskVideoForwardsResolution(t *testing.T) {
 		case r.Method == http.MethodGet && r.URL.Path == "/contents/generations/tasks/ark-video-task-1":
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{
-				"id":        "ark-video-task-1",
-				"status":    "succeeded",
-				"video_url": server.URL + "/artifact.mp4",
+				"id":      "ark-video-task-1",
+				"model":   "doubao-seedance-2-0-260128",
+				"status":  "succeeded",
+				"content": map[string]any{"video_url": server.URL + "/artifact.mp4"},
 			})
 		case r.Method == http.MethodGet && r.URL.Path == "/artifact.mp4":
 			w.Header().Set("Content-Type", "video/mp4")

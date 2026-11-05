@@ -594,6 +594,25 @@ describe('Electron local-app standard-shell operations', () => {
     expect(calls).toHaveLength(2);
   });
 
+  it('forwards image markup, mask custody and animation controls without provider extras', async () => {
+    const calls: unknown[] = [];
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];
+    const base = { type: 'image-generate', prompt: 'edit', negativePrompt: '', size: '', aspectRatio: '', quality: 'low', style: '', referenceImages: [], referenceImageArtifactId: 'source', mask: '', responseFormat: '' };
+    const specs = [
+      { ...base, complexity: 'high', outputFormat: 'webp', markupArtifactId: 'overlay' },
+      { ...base, maskArtifactId: 'mask' },
+      { ...base, referenceImageArtifactId: '', outputFormat: 'gif', frameCount: 64, frameDurationMs: 36 },
+    ];
+    for (const spec of specs) await dispatchElectronLocalAppCommand({ host: localAppHost(calls), command, payload: { spec, timeoutMs: 0 } });
+    expect(calls).toEqual(specs.map(spec => ['scenarioJobSubmit', { spec, timeoutMs: 0 }]));
+    for (const spec of [
+      { ...specs[0], maskArtifactId: 'mask' }, { ...specs[0], markup: 'https://example.com/overlay.png' },
+      { ...specs[2], frameCount: 65 }, { ...specs[2], frameDurationMs: 19 },
+      { ...specs[2], outputFormat: 'png' }, { ...specs[0], svg: { model: 'hidden-backend' } },
+    ]) await expect(dispatchElectronLocalAppCommand({ host: localAppHost(calls), command, payload: { spec, timeoutMs: 0 } })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    expect(calls).toHaveLength(3);
+  });
+
   it('admits one bounded artifact-owned image reference and rejects mixed carriers', async () => {
     const calls: unknown[] = [];
     const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];
@@ -646,6 +665,26 @@ describe('Electron local-app standard-shell operations', () => {
       host: localAppHost(calls), command,
       payload: { spec: { ...spec, options: { ...spec.options, seed: 4_294_967_296 } }, timeoutMs: 0 },
     })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+  });
+
+  it('carries 51 video parts and automatic duration through the Electron trust boundary', async () => {
+    const calls: unknown[] = [];
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];
+    const spec = {
+      type: 'video-generate', prompt: '', negativePrompt: '', mode: 'i2v-reference',
+      content: Array.from({ length: 51 }, (_, i) => ({ type: 'artifact-ref', role: 'reference-image', artifactId: `owned-${i}` })),
+      options: { resolution: '480p', ratio: 'adaptive', durationSec: -1, generateAudio: false, watermark: false },
+    };
+    const host = { ...localAppHost(calls), scenarioJobSubmit: async (input: unknown) => { calls.push(input); throw new NimiElectronLocalAppHostError('upstream-failed', false); } };
+    await expect(dispatchElectronLocalAppCommand({ host, command, payload: { spec, timeoutMs: 0 } })).rejects.toMatchObject({ reasonCode: 'upstream-failed' });
+    expect(calls).toEqual([{ spec, timeoutMs: 0 }]);
+    for (const invalidSpec of [
+      { ...spec, content: [...spec.content, spec.content[0]] },
+      { ...spec, options: { ...spec.options, durationSec: -2 } },
+    ]) {
+      await expect(dispatchElectronLocalAppCommand({ host, command, payload: { spec: invalidSpec, timeoutMs: 0 } })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    }
+    expect(calls).toHaveLength(1);
   });
 
   it('keeps the exact Runtime voice reason through the standard-shell envelope', async () => {

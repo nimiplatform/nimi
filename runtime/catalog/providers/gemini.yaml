@@ -1,9 +1,123 @@
 version: 1
 provider: gemini
-catalog_version: 2026-10-04-gemini-live-hold
+catalog_version: 2026-11-05-gemini-omni-stored-video
 inventory_mode: static_source
 default_text_model: gemini-3.8-flash
 models:
+  - model_id: gemini-4-argon
+    provider: gemini
+    model_type: chat
+    updated_at: 2026-11-04
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-04
+      notes: Introductory and post-November pricing differ; use provider-reported usage without a permanent introductory cost claim.
+    source_ref:
+      url: https://aistudio.google.com/docs/latest-model
+      retrieved_at: 2026-11-04
+      note: Exact Argon model, unified 1048576 input plus output context, native low/medium/high thinking and default 65536 output limit; long-decode continuation is not admitted by this synchronous model-step adapter.
+    features:
+      - input.image
+      - input.audio
+      - input.video
+    context_window_tokens: 983040
+  - model_id: gemini-nano-banana-2.1
+    provider: gemini
+    model_type: image
+    updated_at: 2026-11-04
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-04
+      notes: Native one-image generation or reference editing at default 1K or explicit reviewed 1K/2K/4K output sizes; provider usage is preserved when reported.
+    source_ref:
+      url: https://aistudio.google.com/docs/models/gemini-nano-banana-2.1
+      retrieved_at: 2026-11-04
+      note: Latest Nano Banana 2.1 exact id; default 1K output, up to fourteen reference images and the wide and panoramic ratios. Native generateContent imageConfig maps reviewed 1K/2K/4K resolution tiers; returned pixel dimensions are measured and preserved, not promised from the example geometry table. No provider Files or conversation storage is introduced.
+    features:
+      - input.image
+    image_request_options:
+      response_formats:
+        - b64_json
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: false
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: false
+      supports_style: false
+  - model_id: gemini-omni-1.1-flash
+    provider: gemini
+    model_type: video
+    updated_at: 2026-11-05
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-04
+      notes: Provider pricing varies by output resolution and duration; Runtime does not infer charges from the generated clip.
+    source_ref:
+      url: https://aistudio.google.com/docs/omni
+      retrieved_at: 2026-11-05
+      note: Stable Omni 1.1 Flash uses unary Interactions with stored URI delivery for text, first/last-frame and reference-image tasks up to 4K. Inputs and outputs are temporarily stored by Google. Runtime captures the original interaction and file, takes complete local custody, then requests deletion of both; failures and absent resources are recorded separately without claiming instant deletion or stopped computation/billing. There is no replay of creation or automatic delivery fallback.
+    features:
+      - input.image
+    video_generation:
+      modes:
+        - t2v
+        - i2v_first_frame
+        - i2v_first_last
+        - i2v_reference
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+        i2v_first_last:
+          - prompt
+          - first_frame
+          - last_frame
+        i2v_reference:
+          - prompt
+          - reference_image
+      limits:
+        reference_images:
+          min: 1
+          max: 6
+        resolution:
+          - 360p
+          - 720p
+          - 1080p
+          - 4k
+        ratio:
+          - 16:9
+          - 9:16
+        duration_sec:
+          min: 3
+          max: 10
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+        constraints: {}
+      outputs:
+        video_url: true
   - model_id: gemini-3.8-flash
     provider: gemini
     model_type: chat

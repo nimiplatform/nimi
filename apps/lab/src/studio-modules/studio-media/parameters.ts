@@ -59,12 +59,27 @@ export type StudioImageGenerationParameters = {
   referenceImage?: string;
   referenceImageArtifactId?: string;
   mask?: string;
+  maskArtifactId?: string;
+  complexity?: '' | 'low' | 'medium' | 'high';
+  outputFormat?: '' | 'png' | 'jpeg' | 'webp' | 'gif' | 'svg';
+  markup?: string;
+  markupArtifactId?: string;
+  frameCount?: number;
+  frameDurationMs?: number;
 };
 
 export type StudioVideoGenerationParameters = {
-  mode?: 't2v' | 'i2v-first-frame' | 'i2v-reference';
+  mode?: 't2v' | 'i2v-first-frame' | 'i2v-first-last' | 'i2v-reference';
   firstFrameImageUrl?: string;
+  firstFrameArtifactId?: string;
+  lastFrameImageUrl?: string;
+  lastFrameArtifactId?: string;
   referenceArtifactId?: string;
+  additionalReferenceArtifactIds?: string[];
+  referenceVideoUrls?: string[];
+  referenceAudioUrls?: string[];
+  referenceAudioArtifactIds?: string[];
+  referenceVideoArtifactIds?: string[];
   negativePrompt?: string;
   resolution?: string;
   frames?: number;
@@ -210,6 +225,18 @@ export const MAX_STUDIO_ARTIFACT_UPLOAD_BYTES = 32 * 1024 * 1024;
 
 export const studioImageGenerateParameters = defineStudioParameters<StudioImageGenerationParameters>({
   initial: () => ({}),
+  restoreRecordedParameters: (snapshot) => {
+    if (!snapshot) return null;
+    const strings = new Set(['negativePrompt', 'size', 'aspectRatio', 'quality', 'style', 'referenceImage', 'referenceImageArtifactId', 'mask', 'maskArtifactId', 'complexity', 'outputFormat', 'markup', 'markupArtifactId']);
+    const numbers = new Set(['count', 'seed', 'frameCount', 'frameDurationMs']);
+    const restored: Record<string, unknown> = {};
+    for (const [key,value] of Object.entries(snapshot)) {
+      if (value === undefined) continue;
+      if (strings.has(key) ? typeof value !== 'string' : numbers.has(key) ? typeof value !== 'number' || !Number.isFinite(value) : true) return null;
+      restored[key] = value;
+    }
+    return restored as StudioImageGenerationParameters;
+  },
   routeMatrix: {
     negativePrompt: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
     count: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
@@ -221,15 +248,57 @@ export const studioImageGenerateParameters = defineStudioParameters<StudioImageG
     referenceImage: CLOUD_ONLY_STUDIO_PARAMETER,
     referenceImageArtifactId: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
     mask: CLOUD_ONLY_STUDIO_PARAMETER,
+    maskArtifactId: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
+    complexity: CLOUD_ONLY_STUDIO_PARAMETER,
+    outputFormat: CLOUD_ONLY_STUDIO_PARAMETER,
+    markup: CLOUD_ONLY_STUDIO_PARAMETER,
+    markupArtifactId: CLOUD_ONLY_STUDIO_PARAMETER,
+    frameCount: CLOUD_ONLY_STUDIO_PARAMETER,
+    frameDurationMs: CLOUD_ONLY_STUDIO_PARAMETER,
   },
 });
 
 export const studioVideoGenerateParameters = defineStudioParameters<StudioVideoGenerationParameters>({
 	initial: () => ({ mode: 't2v' }),
+  hasAlternativeInput: (value) => value.mode === 'i2v-first-frame' ? Boolean(value.firstFrameArtifactId || value.firstFrameImageUrl)
+    : value.mode === 'i2v-first-last' ? Boolean((value.firstFrameArtifactId || value.firstFrameImageUrl) && (value.lastFrameArtifactId || value.lastFrameImageUrl))
+      : value.mode === 'i2v-reference' ? Boolean(value.referenceArtifactId || value.additionalReferenceArtifactIds?.length || value.referenceVideoUrls?.length || value.referenceAudioUrls?.length || value.referenceAudioArtifactIds?.length || value.referenceVideoArtifactIds?.length) : false,
+  restoreRecordedParameters: (snapshot) => {
+    if (!snapshot) return null;
+    const strings = new Set(['mode', 'firstFrameImageUrl', 'firstFrameArtifactId', 'lastFrameImageUrl', 'lastFrameArtifactId', 'referenceArtifactId', 'negativePrompt', 'resolution', 'ratio', 'serviceTier']);
+    const numbers = new Set(['frames', 'seed', 'durationSec', 'fps', 'executionExpiresAfterSec']);
+    const booleans = new Set(['generateAudio', 'cameraFixed', 'watermark', 'draft', 'returnLastFrame']);
+    const restored: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(snapshot)) {
+      if (value === undefined) continue;
+      if (strings.has(key)) {
+        if (typeof value !== 'string') return null;
+      } else if (numbers.has(key)) {
+        if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+      } else if (booleans.has(key)) {
+        if (typeof value !== 'boolean') return null;
+      } else if (['additionalReferenceArtifactIds', 'referenceVideoUrls', 'referenceAudioUrls', 'referenceAudioArtifactIds', 'referenceVideoArtifactIds'].includes(key)) {
+        if (!Array.isArray(value) || value.some((item) => typeof item !== 'string')) return null;
+        restored[key] = [...value];
+        continue;
+      } else return null;
+      restored[key] = value;
+    }
+    if (restored.mode !== undefined && !['t2v', 'i2v-first-frame', 'i2v-first-last', 'i2v-reference'].includes(String(restored.mode))) return null;
+    return restored as StudioVideoGenerationParameters;
+  },
   routeMatrix: {
     mode: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
-    referenceArtifactId: LOCAL_ONLY_STUDIO_PARAMETER,
+    referenceArtifactId: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
+    additionalReferenceArtifactIds: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
+    referenceVideoUrls: CLOUD_ONLY_STUDIO_PARAMETER,
+    referenceAudioUrls: CLOUD_ONLY_STUDIO_PARAMETER,
+    referenceAudioArtifactIds: CLOUD_ONLY_STUDIO_PARAMETER,
+    referenceVideoArtifactIds: CLOUD_ONLY_STUDIO_PARAMETER,
     firstFrameImageUrl: CLOUD_ONLY_STUDIO_PARAMETER,
+    firstFrameArtifactId: CLOUD_ONLY_STUDIO_PARAMETER,
+    lastFrameImageUrl: CLOUD_ONLY_STUDIO_PARAMETER,
+    lastFrameArtifactId: CLOUD_ONLY_STUDIO_PARAMETER,
     negativePrompt: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
     resolution: LOCAL_AND_CLOUD_STUDIO_PARAMETER,
     frames: LOCAL_AND_CLOUD_STUDIO_PARAMETER,

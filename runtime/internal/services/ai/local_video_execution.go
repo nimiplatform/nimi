@@ -314,7 +314,7 @@ func (s *Service) resolveLocalVideoInvocationRequest(ctx context.Context, head *
 		generateAudio = &value
 	}
 	return capabilitydriver.VideoInvocationRequest{
-		Prompt: nimillm.VideoPrompt(spec), NegativePrompt: nimillm.VideoNegativePrompt(spec),
+		Prompt: capabilitydriver.VideoPrompt(spec), NegativePrompt: nimillm.VideoNegativePrompt(spec),
 		Width: int(width), Height: int(height), Ratio: ratio, DurationSec: int(options.GetDurationSec()),
 		FrameCount: int(options.GetFrames()), FPS: int(options.GetFps()), Seed: options.GetSeed(),
 		GenerateAudio: generateAudio, ReturnLastFrame: options.GetReturnLastFrame(), Inputs: inputs,

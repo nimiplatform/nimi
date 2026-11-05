@@ -162,7 +162,7 @@ test('customization enables an optional model from its version selector and expl
       onApply={async (draft) => { submitted.push(draft); }}
     />);
     const text = () => ui.document.body.textContent ?? '';
-    assert.match(text(), /customization\.slotHelp\.inputImage/, 'the optional model says what it adds');
+    assert.match(text(), /customization\.slotHelp\.inputMedia/, 'the optional model says what it adds');
     assert.match(text(), /customization\.optionsDefault/);
     const statusSlot = () => ui.document.querySelector('[data-testid="capability-customize-slot-status:companion.mmproj"]');
     assert.equal(statusSlot()?.textContent, '', 'an unused optional model shows no state but keeps its line');

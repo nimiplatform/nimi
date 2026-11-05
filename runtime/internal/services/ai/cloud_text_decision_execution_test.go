@@ -29,7 +29,7 @@ import (
 const (
 	cloudDecideAppID  = "app.decide"
 	cloudDecideUserID = "user-001"
-	cloudDecideModel  = "jev-1.13.0"
+	cloudDecideModel  = "jev-1.14.0"
 )
 
 func cloudDecideText(value string) *runtimev1.TextDecisionContent {
@@ -58,11 +58,11 @@ func cloudDecideSpec() *runtimev1.TextDecideScenarioSpec {
 	}
 }
 
-const cloudDecideWantBody = `{"state":{"ticket":"Payouts failing for 3 days","tier":"pro","amounts":[12.50,1e2]},"model":"jev-1.13.0","questions":{` +
+const cloudDecideWantBody = `{"state":{"ticket":"Payouts failing for 3 days","tier":"pro","amounts":[12.50,1e2]},"model":"jev-1.14.0","questions":{` +
 	`"team":{"type":"choice","instructions":"Which team should handle this?","criteria":{"technical":"Bugs, outages, integrations","billing":{"covers":["payments","refunds"]},"sales":null}},` +
 	`"urgent":{"type":"noul","instructions":"Is this urgent?","criteria":{"true":"Explicitly time-sensitive"}}}}`
 
-const cloudDecideValidResponse = `{"model":"jev-1.13.0","answers":{"urgent":{"type":"noul","noul":0.91},` +
+const cloudDecideValidResponse = `{"model":"jev-1.14.0","answers":{"urgent":{"type":"noul","noul":0.91},` +
 	`"team":{"type":"choice","choice":"billing","probabilities":{"sales":0.02,"billing":0.86,"technical":0.12},"confidence":0.8}},` +
 	`"usage":{"input_tokens":120,"output_tokens":7}}`
 
@@ -115,8 +115,8 @@ func (h cloudDecideHarness) targetOption(t *testing.T, connectorRef string) (*ru
 	if err != nil {
 		t.Fatalf("ListAIConfigCloudTargetOptions: %v", err)
 	}
-	if len(options) != 3 {
-		t.Fatalf("TypeSafe text.decide targets = %d, want jev-1.13.0, jev-latest and jev-preview", len(options))
+	if len(options) != 4 {
+		t.Fatalf("TypeSafe text.decide targets = %d, want jev-1.13.0, jev-1.14.0, jev-latest and jev-preview", len(options))
 	}
 	for _, option := range options {
 		if option.ProviderTarget.GetFields()["providerModelId"].GetStringValue() != cloudDecideModel {

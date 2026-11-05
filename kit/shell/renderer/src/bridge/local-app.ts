@@ -176,7 +176,15 @@ export type NimiLocalAppImageGenerateSpec = {
   readonly referenceImages: readonly string[];
   readonly referenceImageArtifactId: string;
   readonly mask: string;
+  readonly maskArtifactId?: string;
+  readonly strength?: number;
   readonly responseFormat: '' | 'b64_json' | 'url';
+  readonly complexity?: '' | 'low' | 'medium' | 'high';
+  readonly outputFormat?: '' | 'png' | 'jpeg' | 'webp' | 'gif' | 'svg';
+  readonly markup?: string;
+  readonly markupArtifactId?: string;
+  readonly frameCount?: number;
+  readonly frameDurationMs?: number;
 };
 
 export type NimiLocalAppVideoContent =

@@ -2,6 +2,7 @@
 export type DemoCloudModel = { label: string; id: string; capabilities: readonly string[] };
 export const cloudModelCatalog: Readonly<Record<string, readonly DemoCloudModel[]>> = {
   "anthropic": [
+    {"label":"claude-haiku-5-5","id":"claude-haiku-5-5","capabilities":["text.generate"]},
     {"label":"claude-fable-5-1","id":"claude-fable-5-1","capabilities":["text.generate"]},
     {"label":"claude-opus-5-5","id":"claude-opus-5-5","capabilities":["text.generate"]},
     {"label":"claude-sonnet-5-5","id":"claude-sonnet-5-5","capabilities":["text.generate"]},
@@ -158,6 +159,7 @@ export const cloudModelCatalog: Readonly<Record<string, readonly DemoCloudModel[
     {"label":"flux-dev","id":"flux-dev","capabilities":["image.generate"]},
   ],
   "gemini": [
+    {"label":"gemini-omni-1.1-flash","id":"gemini-omni-1.1-flash","capabilities":["video.generate"]},
     {"label":"gemini-3.8-flash","id":"gemini-3.8-flash","capabilities":["text.generate"]},
     {"label":"gemini-3.5-flash-lite","id":"gemini-3.5-flash-lite","capabilities":["text.generate"]},
     {"label":"gemini-3.5-flash","id":"gemini-3.5-flash","capabilities":["text.generate"]},
@@ -196,11 +198,6 @@ export const cloudModelCatalog: Readonly<Record<string, readonly DemoCloudModel[
     {"label":"gemini-2.5-flash-tts","id":"gemini-2.5-flash-tts","capabilities":["audio.synthesize"]},
     {"label":"gemini-2.5-pro-tts","id":"gemini-2.5-pro-tts","capabilities":["audio.synthesize"]},
   ],
-  "google_veo": [
-    {"label":"veo-3.1-fast-generate-preview","id":"veo-3.1-fast-generate-preview","capabilities":["video.generate"]},
-    {"label":"veo-3.1-generate-preview","id":"veo-3.1-generate-preview","capabilities":["video.generate"]},
-    {"label":"veo-3.1-lite-generate-preview","id":"veo-3.1-lite-generate-preview","capabilities":["video.generate"]},
-  ],
   "ideogram": [
     {"label":"ideogram-v3","id":"ideogram-v3","capabilities":["image.generate"]},
     {"label":"ideogram-v2-turbo","id":"ideogram-v2-turbo","capabilities":["image.generate"]},
@@ -237,6 +234,7 @@ export const cloudModelCatalog: Readonly<Record<string, readonly DemoCloudModel[
     {"label":"mubert-track-v3","id":"mubert-track-v3","capabilities":["music.generate"]},
   ],
   "openai": [
+    {"label":"gpt-6.1-terra","id":"gpt-6.1-terra","capabilities":["text.generate"]},
     {"label":"gpt-realtime-2.1","id":"gpt-realtime-2.1","capabilities":["realtime.interact"]},
     {"label":"gpt-4o-mini-tts","id":"gpt-4o-mini-tts","capabilities":["audio.synthesize"]},
     {"label":"tts-1","id":"tts-1","capabilities":["audio.synthesize"]},
@@ -290,7 +288,7 @@ export const cloudModelCatalog: Readonly<Record<string, readonly DemoCloudModel[
     {"label":"soundverse-song-v5","id":"soundverse-song-v5","capabilities":["music.generate"]},
   ],
   "spaitial": [
-    {"label":"default","id":"default","capabilities":["world.generate"]},
+    {"label":"echo-2","id":"echo-2","capabilities":["world.generate"]},
   ],
   "spark": [
     {"label":"4.0Ultra","id":"4.0Ultra","capabilities":["text.generate"]},
@@ -318,6 +316,7 @@ export const cloudModelCatalog: Readonly<Record<string, readonly DemoCloudModel[
     {"label":"step-2x-large","id":"step-2x-large","capabilities":["image.generate"]},
   ],
   "typesafe": [
+    {"label":"jev-1.14.0","id":"jev-1.14.0","capabilities":["text.decide"]},
     {"label":"jev-1.13.0","id":"jev-1.13.0","capabilities":["text.decide"]},
     {"label":"jev-latest","id":"jev-latest","capabilities":["text.decide"]},
     {"label":"jev-preview","id":"jev-preview","capabilities":["text.decide"]},
@@ -329,9 +328,7 @@ export const cloudModelCatalog: Readonly<Record<string, readonly DemoCloudModel[
     {"label":"doubao-seed-2-1-turbo-260628","id":"doubao-seed-2-1-turbo-260628","capabilities":["text.generate"]},
     {"label":"doubao-seed-2-0-pro-260215","id":"doubao-seed-2-0-pro-260215","capabilities":["text.generate"]},
     {"label":"doubao-seed-2-0-lite-260428","id":"doubao-seed-2-0-lite-260428","capabilities":["text.generate"]},
-    {"label":"doubao-seed-2-0-lite-260215","id":"doubao-seed-2-0-lite-260215","capabilities":["text.generate"]},
     {"label":"doubao-seed-2-0-mini-260428","id":"doubao-seed-2-0-mini-260428","capabilities":["text.generate"]},
-    {"label":"doubao-seed-2-0-mini-260215","id":"doubao-seed-2-0-mini-260215","capabilities":["text.generate"]},
     {"label":"doubao-seed-2-0-code-preview-260215","id":"doubao-seed-2-0-code-preview-260215","capabilities":["text.generate"]},
     {"label":"doubao-embedding","id":"doubao-embedding","capabilities":["text.embed"]},
     {"label":"doubao-seedream-5-0-260128","id":"doubao-seedream-5-0-260128","capabilities":["image.generate"]},

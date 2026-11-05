@@ -6,6 +6,7 @@ import (
 	"io"
 	"log/slog"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -235,15 +236,15 @@ func TestResolveTextGenerateArtifactPartClassifiesMedia(t *testing.T) {
 		Head:    head,
 		Artifacts: []*runtimev1.ScenarioArtifact{{
 			ArtifactId: "image",
-			Uri:        "file:///tmp/prompt.png",
+			Bytes:      []byte("png-bytes"),
 			MimeType:   "image/png",
 		}, {
 			ArtifactId: "video",
-			Uri:        "file:///tmp/prompt.mp4",
+			Bytes:      []byte("mp4-bytes"),
 			MimeType:   "video/mp4",
 		}, {
 			ArtifactId: "audio",
-			Uri:        "file:///tmp/prompt.wav",
+			Bytes:      []byte("wav-bytes"),
 			MimeType:   "audio/wav",
 		}},
 		CreatedAt: timestamppb.Now(),
@@ -288,9 +289,10 @@ func TestResolveTextGenerateArtifactPartClassifiesMedia(t *testing.T) {
 		if err != nil {
 			t.Fatalf("%s: resolveTextGenerateArtifactPart() error = %v", tt.name, err)
 		}
-		if cleanup != nil {
-			t.Fatalf("%s: expected no cleanup for uri-backed artifact", tt.name)
+		if cleanup == nil {
+			t.Fatalf("%s: owned artifact staging has no cleanup", tt.name)
 		}
+		cleanup()
 		if part.GetType() != tt.wantType {
 			t.Fatalf("%s: part type = %v, want %v", tt.name, part.GetType(), tt.wantType)
 		}
@@ -475,6 +477,10 @@ func TestTextGenerateArtifactHelpers(t *testing.T) {
 }
 
 func TestResolveTextGenerateScenarioResolvesArtifactRefsAndCleansUp(t *testing.T) {
+	temp := t.TempDir()
+	t.Setenv("TMP", temp)
+	t.Setenv("TEMP", temp)
+	t.Setenv("TMPDIR", temp)
 	logger := slog.New(slog.NewTextHandler(io.Discard, nil))
 	svc := newTestService(logger)
 	head := &runtimev1.ScenarioRequestHead{AppId: "app", SubjectUserId: "user"}
@@ -515,12 +521,15 @@ func TestResolveTextGenerateScenarioResolvesArtifactRefsAndCleansUp(t *testing.T
 	if part.GetType() != runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_AUDIO_URL {
 		t.Fatalf("resolved part type = %v", part.GetType())
 	}
-	path := part.GetAudioUrl()
-	if _, statErr := os.Stat(path); statErr != nil {
-		t.Fatalf("resolved temp artifact should exist before release: %v", statErr)
+	if part.GetAudioUrl() != "data:audio/wav;base64,d2F2ZQ==" {
+		t.Fatal("owned audio was not inlined without exposing a filesystem path")
+	}
+	paths, err := filepath.Glob(filepath.Join(temp, "nimi-text-multimodal-*"))
+	if err != nil || len(paths) != 1 {
+		t.Fatalf("staging paths=%v err=%v", paths, err)
 	}
 	resolved.release()
-	if _, statErr := os.Stat(path); !os.IsNotExist(statErr) {
+	if _, statErr := os.Stat(paths[0]); !os.IsNotExist(statErr) {
 		t.Fatalf("resolved temp artifact should be removed after release, got %v", statErr)
 	}
 }

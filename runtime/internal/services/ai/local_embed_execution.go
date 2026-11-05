@@ -217,6 +217,14 @@ func (s *Service) executeCapturedLocalEmbed(
 	if err != nil {
 		return localexecution.EmbedResult{}, localExecutionError(err)
 	}
+	if effective.plan.RepresentationFamily() == capabilitydriver.EmbeddingRepresentationGemma2V1 {
+		vectors, err := effective.plan.ProjectEmbeddingGemma2Vectors(result.Vectors)
+		if err != nil {
+			return localexecution.EmbedResult{}, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{})
+		}
+		result.Vectors = vectors
+		return result, nil
+	}
 	if len(result.Vectors) != len(effective.request.GetInputs()) {
 		return localexecution.EmbedResult{}, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}

@@ -40,6 +40,9 @@ func (s *Service) executeScenarioAsyncJob(
 		return
 	}
 	defer effective.release()
+	if effective.mapped.Adapter() == nimillm.AdapterGeminiOmniVideo {
+		defer s.cleanupCanceledGeminiOmniJob(ctx, jobID, effective)
+	}
 	req := effective.request
 	if _, ok, transitionErr := s.transitionScenarioJob(jobID, runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_QUEUED, runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_QUEUED, nil); transitionErr != nil {
 		s.failScenarioJobPersistencePrecondition(jobID, scenarioJobQueuedPersistenceFailedReason, transitionErr)

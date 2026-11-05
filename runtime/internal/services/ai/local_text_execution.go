@@ -96,6 +96,24 @@ func (s *Service) captureLocalTextEffectiveInputs(
 	if err := s.checkTextInputRisk(normalized); err != nil {
 		return nil, err
 	}
+	if selected.RecipeID == capabilitydriver.LlamaGemma412BRecipeID {
+		// Reserve encoded body space before opening any owned artifact. The
+		// bounded transcript plus per-part native envelope is conservative; the
+		// Driver also checks the complete serialized request before dispatch.
+		overhead, err := protojson.Marshal(normalized)
+		if err != nil {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		}
+		envelope := int64(len(overhead))
+		for _, message := range normalized.GetInput() {
+			envelope += int64(len(message.GetParts())) * 256
+		}
+		budget, err := textbehavior.NewOwnedMediaInputBudget(capabilitydriver.LlamaUnifiedMaxRequestBytes, envelope)
+		if err != nil {
+			return nil, err
+		}
+		ctx = textbehavior.WithOwnedMediaInputBudget(ctx, budget)
+	}
 	resolved, err := s.resolveSelectedLocalTextGenerateScenario(ctx, head, normalized)
 	if err != nil {
 		return nil, err

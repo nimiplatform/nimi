@@ -18,7 +18,7 @@ func observeNativeWorld(ctx context.Context, cfg MediaAdapterConfig, r *NativeTa
 	var world map[string]any
 	var artifacts []*runtimev1.ScenarioArtifact
 	if r.Adapter == AdapterSpaitialNative {
-		if !validSpaitialID(r.TaskID) || r.Model != "default" {
+		if !validSpaitialID(r.TaskID) || r.Model != "echo-2" {
 			return nil, false, spaitialOutputError("original World identity invalid")
 		}
 		state := map[string]any{}

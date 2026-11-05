@@ -12,8 +12,15 @@ import (
 )
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.deepseek-v4-json-output
-func validateDeepseekChatSpec(spec *runtimev1.TextGenerateScenarioSpec) error {
+func validateDeepseekChatSpec(spec *runtimev1.TextGenerateScenarioSpec, allowPlain bool) error {
 	if spec == nil || llamaBehaviorReasoningEnabled(spec) || spec.TopK != nil || spec.Seed != nil {
+		return deepseekUnsupported()
+	}
+	return validateChatFunctionSpec(spec, allowPlain)
+}
+
+func validateChatFunctionSpec(spec *runtimev1.TextGenerateScenarioSpec, allowPlain bool) error {
+	if spec == nil || spec.TopK != nil || spec.Seed != nil {
 		return deepseekUnsupported()
 	}
 	if len(spec.GetTools()) == 0 && (spec.GetToolChoiceName() != "" || (spec.GetToolChoice() != runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_UNSPECIFIED && spec.GetToolChoice() != runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_NONE)) {
@@ -32,14 +39,14 @@ func validateDeepseekChatSpec(spec *runtimev1.TextGenerateScenarioSpec) error {
 	if format.GetStrict() || format.GetJsonSchema() != nil {
 		return deepseekUnsupported()
 	}
-	if len(spec.GetTools()) == 0 && format.GetKind() != runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT &&
+	if !allowPlain && len(spec.GetTools()) == 0 && format.GetKind() != runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT &&
 		!textbehavior.RequiresOrderedSystemMessages(spec) {
 		return deepseekUnsupported()
 	}
 	return nil
 }
 
-func deepseekChatMessages(spec *runtimev1.TextGenerateScenarioSpec) ([]map[string]any, error) {
+func chatCompletionMessages(spec *runtimev1.TextGenerateScenarioSpec, projectContent func(*runtimev1.ChatMessage) (any, error), replayKind string) ([]map[string]any, error) {
 	messages := []map[string]any{}
 	if spec.GetSystemPrompt() != "" {
 		messages = append(messages, map[string]any{"role": "system", "content": spec.GetSystemPrompt()})
@@ -51,6 +58,14 @@ func deepseekChatMessages(spec *runtimev1.TextGenerateScenarioSpec) ([]map[strin
 		if len(m.GetTurnItems()) == 0 {
 			if m.Role != "system" && m.Role != "user" && m.Role != "assistant" {
 				return nil, deepseekJSONInputError("message role")
+			}
+			if projectContent != nil {
+				content, err := projectContent(m)
+				if err != nil {
+					return nil, err
+				}
+				messages = append(messages, map[string]any{"role": m.Role, "content": content})
+				continue
 			}
 			text := m.GetContent()
 			if len(m.GetParts()) > 0 {
@@ -116,6 +131,15 @@ func deepseekChatMessages(spec *runtimev1.TextGenerateScenarioSpec) ([]map[strin
 				assistant = map[string]any{"role": "assistant", "content": ""}
 			}
 			switch v := item.GetOutput().GetItem().(type) {
+			case *runtimev1.TextOutputItem_ReasoningContinuity:
+				if _, duplicate := assistant["reasoning_content"]; duplicate || len(calls) > 0 || assistant["content"] != "" {
+					return nil, nativeReasoningReplayInvalid()
+				}
+				reasoning, err := readNativeReasoningReplay(v.ReasoningContinuity, replayKind)
+				if err != nil {
+					return nil, err
+				}
+				assistant["reasoning_content"] = reasoning
 			case *runtimev1.TextOutputItem_Text:
 				if v.Text == nil || len(calls) > 0 {
 					return nil, deepseekUnsupported()
@@ -135,6 +159,13 @@ func deepseekChatMessages(spec *runtimev1.TextGenerateScenarioSpec) ([]map[strin
 	}
 	if len(messages) == 0 {
 		return nil, deepseekJSONInputError("missing text input")
+	}
+	if replayKind != "" && len(spec.GetTools()) > 0 {
+		for _, message := range messages {
+			if message["role"] == "assistant" && message["tool_calls"] != nil && message["reasoning_content"] == nil {
+				return nil, nativeReasoningReplayInvalid()
+			}
+		}
 	}
 	return messages, nil
 }

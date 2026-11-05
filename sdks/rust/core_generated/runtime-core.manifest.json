@@ -22561,6 +22561,48 @@
             "repeated": false,
             "optional": true,
             "number": 14
+          },
+          {
+            "name": "complexity",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 15
+          },
+          {
+            "name": "output_format",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 16
+          },
+          {
+            "name": "markup",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 17
+          },
+          {
+            "name": "markup_artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 18
+          },
+          {
+            "name": "frame_count",
+            "type": "int32",
+            "repeated": false,
+            "optional": true,
+            "number": 19
+          },
+          {
+            "name": "frame_duration_ms",
+            "type": "int32",
+            "repeated": false,
+            "optional": true,
+            "number": 20
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -29761,6 +29803,48 @@
             "repeated": false,
             "optional": true,
             "number": 14
+          },
+          {
+            "name": "complexity",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 15
+          },
+          {
+            "name": "output_format",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 16
+          },
+          {
+            "name": "markup",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 17
+          },
+          {
+            "name": "markup_artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 18
+          },
+          {
+            "name": "frame_count",
+            "type": "int32",
+            "repeated": false,
+            "optional": true,
+            "number": 19
+          },
+          {
+            "name": "frame_duration_ms",
+            "type": "int32",
+            "repeated": false,
+            "optional": true,
+            "number": 20
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -48724,7 +48808,8 @@
           "REASONING_EFFORT_MEDIUM",
           "REASONING_EFFORT_HIGH",
           "REASONING_EFFORT_MAXIMUM",
-          "REASONING_EFFORT_XHIGH"
+          "REASONING_EFFORT_XHIGH",
+          "REASONING_EFFORT_MODEL_DEFAULT"
         ],
         "source_file": "proto/runtime/v1/ai.proto"
       },

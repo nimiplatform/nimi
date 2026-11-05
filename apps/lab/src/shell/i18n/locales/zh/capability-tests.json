@@ -32,7 +32,7 @@
     },
     "textTools": {
       "label": "工具与结构化输出",
-      "summary": "通过 text.generate 测试指定的固定工具或 JSON Schema，并由 App 校验返回结果。",
+      "summary": "通过 text.generate 测试工具往返、JSON 对象或固定 JSON Schema 输出，并在 App 中校验结果。",
       "inputTitle": "测试工具调用与结构化输出",
       "inputPlaceholder": "输入发送给模型的请求内容（将按原样发送）。",
       "primaryLabel": "运行测试",
@@ -71,7 +71,10 @@
       "argumentsInvalid": "工具调用 {{id}} 的参数无效：{{detail}}",
       "tooManySteps": "模型在 {{steps}} 步之后仍在调用工具。",
       "streamOrder": "流式条目的到达顺序错乱。",
-      "streamIncomplete": "流式输出在完成前意外中断。"
+      "streamIncomplete": "流式输出在完成前意外中断。",
+      "jsonObjectScenario": "JSON 对象输出",
+      "jsonObjectHint": "请求 JSON 对象输出。App 解析完整的最终文本，并确认结果为对象。",
+      "jsonObjectPassed": "JSON 对象测试通过：完整的最终文本已解析为对象。"
     },
     "textDecide": {
       "label": "决策",
@@ -156,6 +159,7 @@
       "hidden": "不显示概要",
       "summary": "推理概要",
       "efforts": {
+        "model-default": "原生默认强度",
         "minimal": "Minimal",
         "low": "Low",
         "medium": "Medium",

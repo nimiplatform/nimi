@@ -27,6 +27,13 @@ export interface NimiRuntimeImageGenerationInput {
   readonly referenceImageArtifactId?: string;
   readonly mask?: string;
   readonly maskArtifactId?: string;
+  readonly complexity?: '' | 'low' | 'medium' | 'high';
+  readonly outputFormat?: '' | 'png' | 'jpeg' | 'webp' | 'gif' | 'svg';
+  readonly markup?: string;
+  readonly markupArtifactId?: string;
+  readonly frameCount?: number;
+  readonly frameDurationMs?: number;
+
   readonly strength?: number;
   readonly responseFormat?: string;
   readonly requestId: string;
@@ -74,6 +81,12 @@ export async function runNimiRuntimeImageGeneration(
         referenceImageArtifactId: input.referenceImageArtifactId,
         mask: input.mask,
         maskArtifactId: input.maskArtifactId,
+        complexity: input.complexity,
+        outputFormat: input.outputFormat,
+        markup: input.markup,
+        markupArtifactId: input.markupArtifactId,
+        frameCount: input.frameCount,
+        frameDurationMs: input.frameDurationMs,
         strength: input.strength,
         responseFormat: input.responseFormat,
       }),

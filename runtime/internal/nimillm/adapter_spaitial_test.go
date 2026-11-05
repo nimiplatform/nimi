@@ -60,7 +60,7 @@ func TestSpaitialCapturedImageUploadAndPrivateRequest(t *testing.T) {
 					_ = json.NewDecoder(r.Body).Decode(&payload)
 					input, _ := payload["input"].(map[string]any)
 					visibility, _ := payload["visibility"].(map[string]any)
-					if input["type"] != "file_id" || input["file_id"] != "file_owned" || input["is_pano"] != (projection == runtimev1.WorldImageProjection_WORLD_IMAGE_PROJECTION_EQUIRECTANGULAR_360) || input["prompt"] != nil || payload["model"] != "default" || visibility["is_public"] != false || visibility["is_listed"] != false {
+					if input["type"] != "file_id" || input["file_id"] != "file_owned" || input["is_pano"] != (projection == runtimev1.WorldImageProjection_WORLD_IMAGE_PROJECTION_EQUIRECTANGULAR_360) || input["prompt"] != nil || payload["model"] != "echo-2" || visibility["is_public"] != false || visibility["is_listed"] != false {
 						t.Errorf("incorrect mapping: %+v", payload)
 					}
 					_ = json.NewEncoder(w).Encode(map[string]any{"request_id": "req_owned"})
@@ -75,7 +75,7 @@ func TestSpaitialCapturedImageUploadAndPrivateRequest(t *testing.T) {
 					}
 					_, _ = w.Write(spaitialSPZFixture(t))
 				case "/v1/worlds/requests/req_owned":
-					_ = json.NewEncoder(w).Encode(map[string]any{"request_id": "req_owned", "status": "COMPLETED", "model": "default", "world": map[string]any{"id": "world_owned", "splat_format": "spz", "camera": map[string]any{"hfov_deg": 100, "roll_deg": 0, "pitch_deg": 0}}})
+					_ = json.NewEncoder(w).Encode(map[string]any{"request_id": "req_owned", "status": "COMPLETED", "model": "echo-2", "world": map[string]any{"id": "world_owned", "splat_format": "spz", "camera": map[string]any{"hfov_deg": 100, "roll_deg": 0, "pitch_deg": 0}}})
 				default:
 					t.Error("unexpected provider request")
 					http.NotFound(w, r)
@@ -86,7 +86,7 @@ func TestSpaitialCapturedImageUploadAndPrivateRequest(t *testing.T) {
 			req := &runtimev1.SubmitScenarioJobRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE, Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_WorldGenerate{WorldGenerate: spec}}}
 			var receipt *NativeTaskReceipt
 			ctx = WithNativeTaskPublisher(ctx, func(r *NativeTaskReceipt) error { receipt = CloneNativeTaskReceipt(r); return nil })
-			result, err := ExecuteSpaitialWorld(ctx, MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key", AllowLoopbackEndpoint: true}, noopJobStateUpdater{}, "job-owned", req, "default")
+			result, err := ExecuteSpaitialWorld(ctx, MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key", AllowLoopbackEndpoint: true}, noopJobStateUpdater{}, "job-owned", req, "echo-2")
 			if !errors.Is(err, ErrNativeTaskYielded) || polls != 0 {
 				t.Fatalf("create queried original task: %v polls=%d", err, polls)
 			}
@@ -230,7 +230,7 @@ func TestSpaitialLostReceiptNeverReplaysCapturedCreate(t *testing.T) {
 	}))
 	defer server.Close()
 	ctx := WithProviderPollWait(loopbackProviderTestContext(context.Background()), func(context.Context, time.Duration) error { waits++; return nil })
-	payload := map[string]any{"model": "default", "input": map[string]any{"type": "file_id", "file_id": "file_captured", "is_pano": true}}
+	payload := map[string]any{"model": "echo-2", "input": map[string]any{"type": "file_id", "file_id": "file_captured", "is_pano": true}}
 	var result map[string]any
 	err := submitSpaitialWorld(ctx, MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key"}, payload, "nimi-world-captured", &result)
 	mu.Lock()

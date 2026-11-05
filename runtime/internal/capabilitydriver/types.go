@@ -31,19 +31,24 @@ const (
 	// length inside one bounded ModelAsset format probe.
 	MaxSafetensorsHeaderBytes = MaxAssetFormatProbeBytes - 8
 
-	LlamaImplementationID      = "local.text.generate.llama-cpp"
-	LlamaDriverID              = "nimi.runtime.driver.llama-cpp"
-	LlamaDriverDialect         = "llama.cpp/text-generate/v2"
-	LlamaEmbedImplementationID = "local.text.embed.llama-cpp"
-	LlamaEmbedDriverDialect    = "llama.cpp/text-embed/v1"
-	LlamaQwen3EmbedDialect     = "llama.cpp/text-embed/qwen3-last/v1"
-	LlamaCapabilityContract    = "text.generate"
+	LlamaImplementationID       = "local.text.generate.llama-cpp"
+	LlamaDriverID               = "nimi.runtime.driver.llama-cpp"
+	LlamaDriverDialect          = "llama.cpp/text-generate/v2"
+	LlamaEmbedImplementationID  = "local.text.embed.llama-cpp"
+	LlamaEmbedDriverDialect     = "llama.cpp/text-embed/v1"
+	LlamaQwen3EmbedDialect      = "llama.cpp/text-embed/qwen3-last/v1"
+	LlamaEmbeddingGemma2Dialect = "llama.cpp/text-embed/embeddinggemma2-retrieval/v1"
+	LlamaCapabilityContract     = "text.generate"
 
-	LlamaGemma4RecipeID       = "llama.text-generate.gemma4.v1"
-	LlamaQwen35RecipeID       = "llama.text-generate.qwen35-4b.v1"
-	LlamaQwen35VisionRecipeID = "llama.text-generate.qwen35-4b-vision.v1"
-	LlamaEmbedGGUFRecipeID    = "llama.text-embed.gguf.v1"
-	LlamaQwen3EmbedRecipeID   = "llama.text-embed.qwen3-last.v1"
+	LlamaGemma4RecipeID          = "llama.text-generate.gemma4.v1"
+	LlamaQwen35RecipeID          = "llama.text-generate.qwen35-4b.v1"
+	LlamaQwen35VisionRecipeID    = "llama.text-generate.qwen35-4b-vision.v1"
+	LlamaQwen38RecipeID          = "llama.text-generate.qwen38-27b.v1"
+	LlamaLFM3RecipeID            = "llama.text-generate.lfm3-1.7b.v1"
+	LlamaGemma412BRecipeID       = "llama.text-generate.gemma4-12b-unified.v1"
+	LlamaEmbedGGUFRecipeID       = "llama.text-embed.gguf.v1"
+	LlamaQwen3EmbedRecipeID      = "llama.text-embed.qwen3-last.v1"
+	LlamaEmbeddingGemma2RecipeID = "llama.text-embed.embeddinggemma2-retrieval.v1"
 
 	MainGGUFRequirementID        = "main.gguf"
 	CompanionMMProjRequirementID = "companion.mmproj"
@@ -585,6 +590,7 @@ type TextInvocationPlan struct {
 // EmbedInvocationPlan is the immutable llama embedding substrate plan. The
 // ExecutionHost adds only process, endpoint, and transport facts.
 type EmbedInvocationPlan struct {
+	outputDimension      int
 	representationFamily string
 	processKey           string
 	processArgs          []string
@@ -593,6 +599,13 @@ type EmbedInvocationPlan struct {
 	requestPath          string
 	requestBody          []byte
 	expectedCount        int
+}
+
+func (p *EmbedInvocationPlan) OutputDimension(native int) int {
+	if p != nil && p.outputDimension > 0 {
+		return p.outputDimension
+	}
+	return native
 }
 
 func (p *EmbedInvocationPlan) RepresentationFamily() string {
@@ -1644,6 +1657,7 @@ func NewProductionRegistry() *Registry {
 		{CapabilityContract: LlamaCapabilityContract, Identity: Identity{ImplementationID: LlamaImplementationID, DriverID: LlamaDriverID, DriverDialect: LlamaDriverDialect}}:                                                             LlamaTextDriver{},
 		{CapabilityContract: TextEmbedCapabilityContract, Identity: Identity{ImplementationID: LlamaEmbedImplementationID, DriverID: LlamaDriverID, DriverDialect: LlamaEmbedDriverDialect}}:                                               LlamaEmbedDriver{},
 		{CapabilityContract: TextEmbedCapabilityContract, Identity: Identity{ImplementationID: LlamaEmbedImplementationID, DriverID: LlamaDriverID, DriverDialect: LlamaQwen3EmbedDialect}}:                                                LlamaEmbedDriver{},
+		{CapabilityContract: TextEmbedCapabilityContract, Identity: Identity{ImplementationID: LlamaEmbedImplementationID, DriverID: LlamaDriverID, DriverDialect: LlamaEmbeddingGemma2Dialect}}:                                           LlamaEmbedDriver{},
 		{CapabilityContract: StableDiffusionCapabilityContract, Identity: Identity{ImplementationID: StableDiffusionImplementationID, DriverID: StableDiffusionDriverID, DriverDialect: StableDiffusionDriverDialect}}:                     StableDiffusionImageDriver{},
 		{CapabilityContract: StableDiffusionVideoCapabilityContract, Identity: Identity{ImplementationID: StableDiffusionVideoImplementationID, DriverID: StableDiffusionVideoDriverID, DriverDialect: StableDiffusionVideoDriverDialect}}: StableDiffusionVideoDriver{},
 		{CapabilityContract: AudioSynthesizeContract, Identity: Identity{ImplementationID: Qwen3TTSImplementationID, DriverID: Qwen3TTSDriverID, DriverDialect: Qwen3TTSDriverDialect}}:                                                    Qwen3TTSDriver{},

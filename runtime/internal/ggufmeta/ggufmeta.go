@@ -475,6 +475,7 @@ type stableDiffusionTensorSignature struct {
 }
 
 var stableDiffusionTensorSignatures = []stableDiffusionTensorSignature{
+	{Family: "flux3", Suffix: "content_mode_blocks.image_cond.0.q_proj.weight"},
 	{Family: "ideogram4", Suffix: "llm_cond_proj.weight"},
 	{Family: "z-image", Suffix: "cap_embedder.0.weight"},
 	{Family: "qwen-image", Suffix: "transformer_blocks.0.img_mod.1.weight"},

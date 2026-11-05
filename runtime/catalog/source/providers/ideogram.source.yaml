@@ -1,6 +1,6 @@
 schema_version: 3
 provider: ideogram
-catalog_version: 2026-04-18-ideogram-v2
+catalog_version: 2026-11-05-ideogram45-v2
 generated_target: runtime/catalog/providers/ideogram.yaml
 runtime:
   inventory_mode: static_source
@@ -22,6 +22,14 @@ defaults:
     notes: Ideogram API pricing is published on the official pricing page, but per-model values are not exposed in a stable machine-readable format from the reviewed pages.
 
 sources:
+  - source_id: ideogram45_generate
+    url: https://developer.ideogram.ai/api-reference/images/generate/ideogram-4-5
+    retrieved_at: 2026-11-05
+    note: Exact Ideogram4.5 native v2 generation, multipart source edits and masks, async task contract.
+  - source_id: ideogram_v2_poll
+    url: https://developer.ideogram.ai/api-reference/generations/get-generation
+    retrieved_at: 2026-11-05
+    note: Original task identity, closed status set, whole safe image result set and URL custody.
   - source_id: ideogram_api_overview
     url: https://developer.ideogram.ai/
     retrieved_at: 2026-04-18
@@ -40,6 +48,23 @@ sources:
     note: Official Ideogram API pricing page.
 
 models:
+  - model_id: ideogram-4-5
+    model_type: image
+    updated_at: 2026-11-05
+    capabilities: [image.generate]
+    features: [input.image, input.mask]
+    image_request_options:
+      response_formats: [b64_json]
+      max_images_per_request: 4
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: true
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: true
+      supports_style: false
+    source_ids: [ideogram45_generate, ideogram_v2_poll]
   - model_id: ideogram-v3
     model_type: image
     updated_at: 2026-04-18

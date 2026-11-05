@@ -267,6 +267,37 @@ func TestScenarioJobStoreJournalMirrorsEveryMutationPath(t *testing.T) {
 	}
 }
 
+func TestConcurrentTerminalCloudCustodyReleaseIsDurableAndIdempotent(t *testing.T) {
+	store, err := newScenarioJobStoreForLocalStatePath(filepath.Join(t.TempDir(), "custody-state.json"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref := beginCloudCredentialCustodyForTest(t, store, "job-release")
+	job := completedScenarioJobForIsolationTest("job-release")
+	job.Status = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED
+	if _, published, err := store.createOwnedAndBindCloudAssemblyChecked(job, func() {}, nil, "scope-release", cloudAssemblyForIsolationTest(t, job)); err != nil || !published {
+		t.Fatalf("create: %v %v", published, err)
+	}
+	transitionScenarioJobForJournalTest(t, store, "job-release", runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED)
+	if err := store.clearTerminalCloudCredentialCustody("job-release", ref+"-foreign"); err == nil {
+		t.Fatal("different outstanding custody reference was accepted")
+	}
+	finished := make(chan error, 8)
+	for range 8 {
+		go func() { finished <- store.clearTerminalCloudCredentialCustody("job-release", ref) }()
+	}
+	for range 8 {
+		if err := <-finished; err != nil {
+			t.Fatalf("duplicate terminal cleanup: %v", err)
+		}
+	}
+	assertScenarioJobStoreMirrorsMemory(t, store)
+	assembly, ok := store.cloudResolvedAssembly("job-release")
+	if !ok || assembly.CredentialCustodyRef != "" {
+		t.Fatal("terminal obligation was not cleared")
+	}
+}
+
 // @nimi-authority: rule.nimi.runtime.service-operations.scenario-job-incremental-persistence
 func TestScenarioJobStoreMutationAppendsOnlyTheChangedJob(t *testing.T) {
 	localStatePath := filepath.Join(t.TempDir(), "local-state.json")

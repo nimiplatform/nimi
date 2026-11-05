@@ -213,7 +213,7 @@ export function loadoutSlotOfferForAsset(
 const SLOT_LABEL_KEYS: Readonly<Record<string, string>> = {
   'main.gguf': 'runtimeConfig.loadouts.slotLabels.mainModel',
   'main.diffusion': 'runtimeConfig.loadouts.slotLabels.mainModel',
-  'companion.mmproj': 'runtimeConfig.loadouts.slotLabels.visionProjector',
+  'companion.mmproj': 'runtimeConfig.loadouts.slotLabels.mediaProjector',
   'vision.model': 'runtimeConfig.loadouts.slotLabels.visionModel',
   'embedding.gguf': 'runtimeConfig.loadouts.slotLabels.embeddingModel',
   'tts.model': 'runtimeConfig.loadouts.slotLabels.ttsModel',

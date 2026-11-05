@@ -644,6 +644,32 @@ test('text.tools keeps content refusal and never executes a received tool from a
   assert.equal(fake.calls.execute.length, 0);
 });
 
+test('text.tools JSON object mode remains distinct from fixed Schema in sync and stream', async () => {
+  const { runLabCapability } = await load('lab/lab-runtime.js');
+  const text = '{"answer":43,"details":{"checked":true},"items":["a",2]}';
+  for (const delivery of ['sync', 'stream']) {
+    const fake = fakeClient(delivery === 'sync'
+      ? { execute: () => ({ output: { type: 'text-generate', items: [{ type: 'text', text }], finishReason: 'stop' }, traceId: 'json' }) }
+      : { streamTurn: () => [
+          { type: 'delta', sequence: '1', traceId: 'json', itemIndex: 0, text: text.slice(0, 12) },
+          { type: 'delta', sequence: '2', traceId: 'json', itemIndex: 0, text: text.slice(12) },
+          { type: 'completed', sequence: '3', traceId: 'json', finishReason: 'stop' },
+        ] });
+    const result = await runLabCapability({ capabilityId: 'text.tools', prompt: 'Return JSON.', parameters: { scenario: 'json-object', delivery } }, ready(fake.client));
+    assert.equal(result.ok, true, result.message);
+    const request = (delivery === 'sync' ? fake.calls.execute : fake.calls.streamTurn)[0];
+    assert.deepEqual(request.responseFormat, { type: 'json-object' });
+    assert.equal(request.tools, undefined);
+    assert.equal(result.output.scenario, 'json-object');
+    assert.deepEqual(result.output.structured, JSON.parse(text));
+  }
+  for (const text of ['not json', '[]', 'null', '{"overflow":1e400}']) {
+    const fake = fakeClient({ execute: () => ({ output: { type: 'text-generate', items: [{ type: 'text', text }], finishReason: 'stop' }, traceId: 'json-invalid' }) });
+    const result = await runLabCapability({ capabilityId: 'text.tools', prompt: 'Return JSON.', parameters: { scenario: 'json-object' } }, ready(fake.client));
+    assert.equal(result.ok, false, text);
+  }
+});
+
 test('text.tools structured output declares the fixed schema and the App parses and checks the final text', async () => {
   const { runLabCapability } = await load('lab/lab-runtime.js');
   const { t } = await load('shell/i18n/index.js');

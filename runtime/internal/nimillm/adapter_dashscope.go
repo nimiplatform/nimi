@@ -12,6 +12,7 @@ import (
 	"google.golang.org/grpc/codes"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
@@ -32,6 +33,28 @@ func nativeOriginURL(endpoint string) string {
 	return u.Scheme + "://" + u.Host
 }
 
+// Preserve a configured gateway prefix and query while removing only the
+// documented DashScope service-base suffix. Never infer a workspace or region.
+func alibabaNativeBaseURL(endpoint string) string {
+	u, err := url.Parse(strings.TrimSpace(endpoint))
+	if err != nil || u.Host == "" {
+		return ""
+	}
+	path := strings.TrimRight(u.EscapedPath(), "/")
+	for _, suffix := range []string{"/compatible-mode/v1", "/api/v1", "/v1"} {
+		if strings.HasSuffix(path, suffix) {
+			path = strings.TrimSuffix(path, suffix)
+			break
+		}
+	}
+	u.RawPath = path
+	u.Path, err = url.PathUnescape(path)
+	if err != nil {
+		return ""
+	}
+	return u.String()
+}
+
 // ExecuteAlibabaNative executes a scenario job against the Alibaba native API.
 // It handles four modals: image generation, video generation, TTS, and STT.
 func ExecuteAlibabaNative(
@@ -43,8 +66,8 @@ func ExecuteAlibabaNative(
 	modelResolved string,
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
-	compatibleBaseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
-	baseURL := nativeOriginURL(compatibleBaseURL)
+	compatibleBaseURL := strings.TrimSpace(cfg.BaseURL)
+	baseURL := alibabaNativeBaseURL(compatibleBaseURL)
 	if baseURL == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
@@ -125,10 +148,10 @@ func ExecuteAlibabaNative(
 		queryPathTemplate := resolveAlibabaTaskQueryPathTemplate()
 		submitPayload := map[string]any{
 			"model":           modelResolved,
-			"prompt":          VideoPrompt(spec),
+			"prompt":          capabilitydriver.VideoPrompt(spec),
 			"negative_prompt": VideoNegativePrompt(spec),
 			"input": map[string]any{
-				"prompt":          VideoPrompt(spec),
+				"prompt":          capabilitydriver.VideoPrompt(spec),
 				"negative_prompt": VideoNegativePrompt(spec),
 			},
 			"parameters": map[string]any{
@@ -153,7 +176,13 @@ func ExecuteAlibabaNative(
 		if content := VideoContentPayload(spec); len(content) > 0 {
 			submitPayload["content"] = content
 		}
-		if modelResolved == "wan2.7-i2v" {
+		if capabilitydriver.IsAlibabaCurrentVideoModel(modelResolved) {
+			var err error
+			submitPayload, err = buildAlibabaCurrentVideoPayload(ctx, modelResolved, spec)
+			if err != nil {
+				return nil, nil, "", err
+			}
+		} else if modelResolved == "wan2.7-i2v" {
 			var err error
 			submitPayload, err = buildWan27ImageVideoPayload(modelResolved, spec)
 			if err != nil {
@@ -263,7 +292,7 @@ func ExecuteAlibabaNative(
 // https://help.aliyun.com/zh/model-studio/text-to-video-api-reference
 // @nimi-authority: rule.nimi.runtime.ai-provider.r075
 func buildAlibabaTextVideoPayload(model string, spec *runtimev1.VideoGenerateScenarioSpec) (map[string]any, error) {
-	input := map[string]any{"prompt": VideoPrompt(spec)}
+	input := map[string]any{"prompt": capabilitydriver.VideoPrompt(spec)}
 	if negative := VideoNegativePrompt(spec); negative != "" {
 		input["negative_prompt"] = negative
 	}

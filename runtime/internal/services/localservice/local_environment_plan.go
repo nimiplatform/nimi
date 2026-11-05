@@ -41,6 +41,7 @@ const (
 )
 
 type localEnvironmentPlanRequest struct {
+	IncludeMediaCodec  bool
 	PackID             string
 	ConsumerScope      string
 	HostProfile        *runtimev1.LocalDeviceProfile
@@ -225,6 +226,9 @@ func (s *Service) resolveLocalEnvironmentPlan(ctx context.Context, req localEnvi
 	}
 	if strings.TrimSpace(req.ConsumerScope) == audioCppInflectTTSConsumerID {
 		def.RequiredDependencyFamilies = append(def.RequiredDependencyFamilies, localEnvironmentFamilyESpeakNG)
+	}
+	if req.IncludeMediaCodec {
+		def.RequiredDependencyFamilies = append(def.RequiredDependencyFamilies, localEnvironmentFamilyMediaCodec)
 	}
 
 	profile := cloneDeviceProfile(req.HostProfile)
@@ -804,6 +808,9 @@ func localEnvironmentOptionalDependencyRequiredForConsumer(def localComputePackD
 }
 
 func localEnvironmentDependencyConsumerScope(def localComputePackDefinition, family string, hostState localEnvironmentHostProfileState, consumerScope string, firstRunLlamaCUDARequired bool) string {
+	if family == localEnvironmentFamilyMediaCodec {
+		return "media-codec"
+	}
 	scope := strings.TrimSpace(consumerScope)
 	if !localEnvironmentFirstRunConsumerScope(scope) {
 		return scope

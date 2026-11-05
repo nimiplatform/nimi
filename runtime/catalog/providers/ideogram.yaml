@@ -1,8 +1,40 @@
 version: 1
 provider: ideogram
-catalog_version: 2026-04-18-ideogram-v2
+catalog_version: 2026-11-05-ideogram45-v2
 inventory_mode: static_source
 models:
+  - model_id: ideogram-4-5
+    provider: ideogram
+    model_type: image
+    updated_at: 2026-11-05
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Ideogram API pricing is published on the official pricing page, but per-model values are not exposed in a stable machine-readable format from the reviewed pages.
+    source_ref:
+      url: https://developer.ideogram.ai/api-reference/images/generate/ideogram-4-5
+      retrieved_at: 2026-11-05
+      note: Exact Ideogram4.5 native v2 generation, multipart source edits and masks, async task contract.
+    features:
+      - input.image
+      - input.mask
+    image_request_options:
+      response_formats:
+        - b64_json
+      max_images_per_request: 4
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: true
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: true
+      supports_style: false
   - model_id: ideogram-v3
     provider: ideogram
     model_type: image

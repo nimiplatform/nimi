@@ -188,7 +188,7 @@ func TestExecuteMiniMaxTaskYieldsReceiptWithOriginalQueryParameter(t *testing.T)
 
 	_, _, providerJobID, err := ExecuteMiniMaxTask(
 		ctx,
-		MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true, APIKey: "minimax-key"},
+		MediaAdapterConfig{BaseURL: server.URL + "/v1", AllowLoopbackEndpoint: true, APIKey: "minimax-key"},
 		noopJobStateUpdater{},
 		"job-minimax-video-cancel",
 		newAsyncVideoJobRequest("A short MiniMax scene."),
@@ -201,7 +201,7 @@ func TestExecuteMiniMaxTaskYieldsReceiptWithOriginalQueryParameter(t *testing.T)
 	if !errors.Is(err, ErrNativeTaskYielded) {
 		t.Fatalf("create did not yield: %v", err)
 	}
-	if _, terminal, err := ObserveNativeTask(context.Background(), MediaAdapterConfig{BaseURL: server.URL, APIKey: "minimax-key", AllowLoopbackEndpoint: true}, receipt); err != nil || terminal {
+	if _, terminal, err := ObserveNativeTask(context.Background(), MediaAdapterConfig{BaseURL: server.URL + "/v1", APIKey: "minimax-key", AllowLoopbackEndpoint: true}, receipt); err != nil || terminal {
 		t.Fatalf("original query: %v terminal=%v", err, terminal)
 	}
 }

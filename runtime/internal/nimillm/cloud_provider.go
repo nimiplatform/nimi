@@ -85,7 +85,7 @@ func (p *CloudProvider) GenerateTextScenarioWithTarget(
 }
 
 // EmbedWithTarget executes one exact connector target.
-func (p *CloudProvider) EmbedWithTarget(ctx context.Context, modelID string, inputs []string, dimensions *uint32, protocol capabilitydriver.CloudEmbedProtocol, target *RemoteTarget) ([]*structpb.ListValue, *runtimev1.UsageStats, error) {
+func (p *CloudProvider) EmbedWithTarget(ctx context.Context, modelID string, inputs []string, dimensions *uint32, protocol capabilitydriver.CloudEmbedProtocol, purpose runtimev1.TextEmbedPurpose, target *RemoteTarget) ([]*structpb.ListValue, *runtimev1.UsageStats, error) {
 	if target == nil {
 		return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
@@ -94,13 +94,18 @@ func (p *CloudProvider) EmbedWithTarget(ctx context.Context, modelID string, inp
 		return nil, nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	switch protocol {
+	case capabilitydriver.CloudEmbedProtocolCohereV2:
+		if target.ProviderType != "cohere" || (resolvedModelID != "embed-v5.0-pro" && resolvedModelID != "embed-v5.0-fast") {
+			return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+		}
+		return backend.EmbedCohereV2(ctx, resolvedModelID, inputs, dimensions, purpose)
 	case capabilitydriver.CloudEmbedProtocolGeminiV1:
 		if target.ProviderType != "gemini" || resolvedModelID != capabilitydriver.GeminiEmbedding2ModelID {
 			return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 		}
 		return backend.EmbedGeminiNative(ctx, resolvedModelID, inputs, dimensions)
 	case capabilitydriver.CloudEmbedProtocolCompatibleV1:
-		if target.ProviderType == "gemini" && resolvedModelID == capabilitydriver.GeminiEmbedding2ModelID {
+		if target.ProviderType == "gemini" && resolvedModelID == capabilitydriver.GeminiEmbedding2ModelID || target.ProviderType == "cohere" && (resolvedModelID == "embed-v5.0-pro" || resolvedModelID == "embed-v5.0-fast") {
 			return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 		}
 		return backend.Embed(ctx, resolvedModelID, inputs, dimensions)

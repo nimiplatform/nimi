@@ -62,6 +62,7 @@ const PROVIDER_RATE_LIMITED_REASON_CODE = 'AI_PROVIDER_RATE_LIMITED';
 // target again (or repairing its Connector in Desktop), never by retrying the
 // same request.
 const TARGET_RESELECTION_KEY_SEGMENTS: ReadonlyMap<string, string> = new Map([
+  ['AI_PROVIDER_AUTH_FAILED', 'providerAuthFailed'],
   ['AI_REMOTE_MODEL_CATALOG_STALE', 'catalogStale'],
   ['CAPABILITY_CATALOG_MISMATCH', 'catalogMismatch'],
   ['AI_CONNECTOR_DISABLED', 'connectorDisabled'],

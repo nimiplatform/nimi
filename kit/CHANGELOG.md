@@ -2,6 +2,20 @@
 
 # Changelog
 
+## Unreleased — Current model image and media controls
+
+The next coordinated 0.x minor adds image complexity, output format, transparent
+markup and GIF frame controls to the generation runner and protected App
+carriers. Owned masks now cross the Electron carrier, and animated image
+summaries preserve the Runtime-reported duration. Rebuild matching SDK, Kit,
+native carriers and Runtime together.
+
+For OpenAI masked edits, migrate provider-native alpha masks to opaque binary
+PNG masks with white editable and black preserved pixels. Native reasoning
+replay may contain provider text; it is continuation data, not a displayable
+answer/summary or an encryption guarantee. Extended video input bounds remain
+subject to exact Runtime target support. No package publication is implied.
+
 ## Unreleased — Focused conversation read markers
 
 `ConversationReadMarker` is an additive chat/ui export for Home and protected

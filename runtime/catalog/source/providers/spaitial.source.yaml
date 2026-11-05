@@ -1,6 +1,6 @@
 schema_version: 3
 provider: spaitial
-catalog_version: 2026-10-06-echo-standard-v1
+catalog_version: 2026-11-04-echo-2-exact-target
 generated_target: runtime/catalog/providers/spaitial.yaml
 runtime:
   inventory_mode: static_source
@@ -27,12 +27,16 @@ sources:
     note: Official text, owned file and panorama inputs, private worlds, polling, idempotency and authenticated artifact proxies.
   - source_id: spaitial_api_openapi
     url: https://api.spaitial.ai/v1/openapi.json
-    retrieved_at: 2026-10-06
-    note: Closed v1 request schemas; default is the explicit Standard target. Image input has no additional prompt field.
+    retrieved_at: 2026-11-04
+    note: Closed v1 request schemas require an explicit model slug and use echo-2 in the text, owned file and panorama examples. Image input has no additional prompt field.
+  - source_id: spaitial_models_doc
+    url: https://docs.spaitial.ai/api/generation-models
+    retrieved_at: 2026-11-04
+    note: Echo 2 uses the exact echo-2 slug and costs 160 credits. The retired default target is rejected with INVALID_INPUT; account-forbidden models return MODEL_FORBIDDEN. HQ requires separate artifact and resource acceptance.
 models:
-  - model_id: default
+  - model_id: echo-2
     model_type: world
-    updated_at: 2026-10-06
+    updated_at: 2026-11-04
     capabilities: [world.generate]
     features: [input.image]
-    source_ids: [spaitial_api_reference, spaitial_api_openapi]
+    source_ids: [spaitial_models_doc, spaitial_api_reference, spaitial_api_openapi]

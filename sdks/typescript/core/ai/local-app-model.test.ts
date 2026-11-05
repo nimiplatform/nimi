@@ -211,8 +211,10 @@ test('Local App image input rejects inline media, non-image files and non-user m
   assert.equal(f.inputs.length, 0);
 });
 
-test('opaque continuity survives the native JSON boundary and the next model turn', async () => {
-  const carrier = { kind: 'test.encrypted', version: 1, payload: [0, 127, 255] };
+for (const carrier of [
+  { kind: 'test.encrypted', version: 1, payload: [0, 127, 255] },
+  { kind: 'glm.chat.native-reasoning-replay.glm-5.3', version: 1, payload: Array.from(new TextEncoder().encode('  native 原文\r\n😀 ')) },
+]) test(`native continuity ${carrier.kind} survives JSON and the next turn without becoming visible text`, async () => {
   const f = fixture(async function* () {
     yield { type: 'reasoning-continuity', sequence: '1', traceId: 'trace-continuity', itemIndex: 0, carrier };
     yield { type: 'tool-call', sequence: '2', traceId: 'trace-continuity', itemIndex: 1, toolCall: call };
@@ -220,6 +222,7 @@ test('opaque continuity survives the native JSON boundary and the next model tur
   });
   const first = await f.model.generateText({ messages: [user], tools: [tool] });
   assert.deepEqual(first.outputItems?.[0], { type: 'reasoning-continuity', carrier: { ...carrier, payload: new Uint8Array(carrier.payload) } });
+  assert.equal(first.text, '');
   await f.model.generateText({ messages: [user, { role: 'assistant', content: [], turnItems: [
     ...first.outputItems!.map((output) => ({ type: 'output' as const, output })),
     { type: 'tool-result', toolResult: { toolCallId: call.id, toolName: call.name, result: 'found' } },

@@ -172,8 +172,6 @@ test('Cloud enables carrier fields but not private Local App scheduling fields',
     for (const [field, item] of states(capabilityId, 'cloud')) {
       if (capabilityId === 'video.generate' && ['serviceTier', 'executionExpiresAfterSec'].includes(field)) {
         assert.deepEqual(item, { field, state: 'disabled', unavailableBecause: 'local-app-surface' });
-      } else if (capabilityId === 'video.generate' && field === 'referenceArtifactId') {
-        assert.deepEqual(item, { field, state: 'disabled', unavailableBecause: 'route' });
       } else {
         assert.equal(item.state, 'enabled', `${capabilityId}.${field}`);
       }
@@ -181,11 +179,13 @@ test('Cloud enables carrier fields but not private Local App scheduling fields',
   }
 });
 
-test('video first-frame URL is Cloud-only and artifact input is Local-only', () => {
+test('video frame controls are Cloud-only and reference artifacts reach both routes', () => {
   assert.equal(states('video.generate', 'cloud').get('firstFrameImageUrl')?.state, 'enabled');
   assert.equal(states('video.generate', 'local').get('firstFrameImageUrl')?.state, 'disabled');
-  assert.equal(states('video.generate', 'cloud').get('referenceArtifactId')?.state, 'disabled');
+  assert.equal(states('video.generate', 'cloud').get('referenceArtifactId')?.state, 'enabled');
   assert.equal(states('video.generate', 'local').get('referenceArtifactId')?.state, 'enabled');
+  assert.equal(states('video.generate', 'cloud').get('additionalReferenceArtifactIds')?.state, 'enabled');
+  assert.equal(states('video.generate', 'cloud').get('lastFrameArtifactId')?.state, 'enabled');
 });
 
 test('presentation recomputes immediately from the selected route', () => {
@@ -221,4 +221,21 @@ test('request projection drops disabled drafts and applies fixed route values', 
     topK: 40,
     stop: ['END'],
   }), { topK: 40, stop: ['END'] });
+});
+
+test('video history restores ordered artifact references and exact options without changing the record', () => {
+  const contract = labStudioComposition.getCapability('video.generate').parameters;
+  const snapshot = { mode: 'i2v-reference', referenceArtifactId: 'first', additionalReferenceArtifactIds: ['second', 'third'], referenceAudioArtifactIds: ['voice-one', 'voice-two'], referenceVideoArtifactIds: ['video-one'], resolution: '720p', durationSec: 3, generateAudio: false };
+  const restored = contract.restoreRecordedParameters(snapshot);
+  assert.deepEqual(restored, snapshot);
+  restored.additionalReferenceArtifactIds.push('changed draft');
+  assert.deepEqual(snapshot.additionalReferenceArtifactIds, ['second', 'third']);
+  restored.referenceAudioArtifactIds.push('changed voice');
+  assert.deepEqual(snapshot.referenceAudioArtifactIds, ['voice-one', 'voice-two']);
+  restored.referenceVideoArtifactIds.push('changed video');
+  assert.deepEqual(snapshot.referenceVideoArtifactIds, ['video-one']);
+  const frames = { mode: 'i2v-first-last', firstFrameArtifactId: 'start', lastFrameArtifactId: 'end' };
+  assert.deepEqual(contract.restoreRecordedParameters(frames), frames);
+  assert.equal(contract.restoreRecordedParameters({ mode: 'i2v-reference', additionalReferenceArtifactIds: [123] }), null);
+  assert.equal(contract.restoreRecordedParameters({ mode: 'unknown-mode' }), null);
 });

@@ -40,7 +40,7 @@ func anthropicAdaptiveAppFixture(t *testing.T, modelID string, handler http.Hand
 // carriers; the App replays them unchanged with the ToolResult, and plain
 // text uses the same hooks with thinking omitted.
 func TestAnthropicAdaptiveAppReplaysSignedThinkingAcrossToolRoundTrip(t *testing.T) {
-	for _, modelID := range anthropicAdaptiveReviewedTextTargets {
+	for _, modelID := range append(append([]string{}, anthropicAdaptiveReviewedTextTargets...), "claude-haiku-5-5") {
 		t.Run(modelID, func(t *testing.T) {
 			var calls atomic.Int32
 			fixture, decision := anthropicAdaptiveAppFixture(t, modelID, func(w http.ResponseWriter, r *http.Request) {
@@ -108,6 +108,9 @@ func TestAnthropicAdaptiveAppReplaysSignedThinkingAcrossToolRoundTrip(t *testing
 				"forced tool choice": {Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "Use it"}}, Tools: []*runtimev1.ToolSpec{localAppLookupTool(t)}, ToolChoice: runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_REQUIRED},
 				"sampling":           {Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "Hi"}}, Temperature: &temperature},
 			} {
+				if modelID == "claude-haiku-5-5" && name == "forced tool choice" {
+					continue
+				}
 				if _, err := execute(rejected); err == nil {
 					t.Fatalf("%s was admitted", name)
 				} else if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED {

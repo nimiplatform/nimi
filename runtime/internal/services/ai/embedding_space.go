@@ -67,7 +67,7 @@ func localEmbeddingSpaceID(effective *localEmbedEffectiveInputs, vectors []*runt
 	}
 	identity := normalizedEmbeddingIdentity(effective.effectiveInputIdentity)
 	family := effective.plan.RepresentationFamily()
-	if family == capabilitydriver.EmbeddingRepresentationNomicRetrievalV1 {
+	if family == capabilitydriver.EmbeddingRepresentationNomicRetrievalV1 || family == capabilitydriver.EmbeddingRepresentationGemma2V1 {
 		semantics, _ := structpb.NewStruct(map[string]any{"embeddingRepresentation": family})
 		return embeddingSpaceID("local", "", vectors, identity, semantics)
 	}
@@ -109,7 +109,7 @@ func cloudEmbeddingSpaceParts(effective *cloudEmbedEffectiveInputs) []proto.Mess
 	}}
 	// Native mapping introduces different captured semantics from the earlier
 	// compatible transport, while omission and explicit native width still agree.
-	if protocol := effective.target.Protocol(); protocol == capabilitydriver.CloudEmbedProtocolGeminiV1 {
+	if protocol := effective.target.Protocol(); protocol == capabilitydriver.CloudEmbedProtocolGeminiV1 || protocol == capabilitydriver.CloudEmbedProtocolCohereV2 {
 		connectorTarget.Fields["embeddingProtocol"] = structpb.NewStringValue(string(protocol))
 	}
 	return []proto.Message{effective.implementation, target, effective.defaults, connectorTarget}

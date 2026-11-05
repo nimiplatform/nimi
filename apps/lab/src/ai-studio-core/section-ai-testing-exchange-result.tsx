@@ -11,7 +11,7 @@ export function TextExchangeResultView({ output }: { readonly output: TextExchan
   return (
     <section className="studio-result__rich" aria-label={t('StudioResults.exchange.title')}>
       <p className="studio-result__plain">
-        {t(output.scenario === 'tool-call' ? 'StudioResults.exchange.toolScenario' : 'StudioResults.exchange.structuredScenario')}
+        {t(output.scenario === 'tool-call' ? 'StudioResults.exchange.toolScenario' : output.scenario === 'json-object' ? 'StudioResults.exchange.jsonObjectScenario' : 'StudioResults.exchange.structuredScenario')}
       </p>
       <ol className="studio-exchange">
         {output.steps.map((step, index) => (

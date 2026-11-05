@@ -43,7 +43,7 @@ func TestFluxFreezesReturnedPollingURLAndUsesNativeAuthentication(t *testing.T) 
 	ctx := WithNativeTaskPublisher(context.Background(), func(r *NativeTaskReceipt) error { receipt = CloneNativeTaskReceipt(r); return nil })
 	cfg := MediaAdapterConfig{BaseURL: endpoint, APIKey: "original-key", AllowLoopbackEndpoint: true}
 	request := &runtimev1.SubmitScenarioJobRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "a cup"}}}}
-	_, _, id, err := ExecuteFluxImage(ctx, cfg, noopJobStateUpdater{}, "job", request, "flux-pro")
+	_, _, id, err := ExecuteFluxMedia(ctx, cfg, noopJobStateUpdater{}, "job", request, "flux-pro")
 	if !errors.Is(err, ErrNativeTaskYielded) || id != "original" || queries.Load() != 0 {
 		t.Fatalf("create did not hand off: %v", err)
 	}

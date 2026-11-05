@@ -23,7 +23,7 @@ func TestSpaitialConnectorCheckUsesAuthenticatedNativeReadOnlyEndpoint(t *testin
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
-		_, _ = w.Write([]byte(`{"models":[{"id":"default"},{"id":"Echo 2 (HQ)"}]}`))
+		_, _ = w.Write([]byte(`{"models":[{"id":"echo-2"},{"id":"Echo 2 (HQ)"}]}`))
 	}))
 	defer server.Close()
 	provider := &CloudProvider{allowLoopbackEndpoint: true}

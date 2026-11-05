@@ -31,6 +31,13 @@ export type NimiRuntimeGenerationScenario =
     readonly referenceImageArtifactId?: string;
     readonly mask?: string;
     readonly maskArtifactId?: string;
+  readonly complexity?: '' | 'low' | 'medium' | 'high';
+  readonly outputFormat?: '' | 'png' | 'jpeg' | 'webp' | 'gif' | 'svg';
+  readonly markup?: string;
+  readonly markupArtifactId?: string;
+  readonly frameCount?: number;
+  readonly frameDurationMs?: number;
+
     readonly strength?: number;
     readonly responseFormat?: string;
   }
@@ -226,9 +233,23 @@ function toRuntimeImageGenerationSpec(
   if (maskArtifactId && !referenceImageArtifactId) {
     throw generationScenarioError(
       'SDK_GENERATION_SCENARIO_INVALID',
-      'Local image maskArtifactId requires referenceImageArtifactId source custody',
+      'Image maskArtifactId requires referenceImageArtifactId source custody',
       'provide_image_source_artifact_id',
     );
+  }
+  const complexity = normalizeScenarioText(input.complexity);
+  const outputFormat = normalizeScenarioText(input.outputFormat);
+  const markup = normalizeScenarioText(input.markup);
+  const markupArtifactId = normalizeImageArtifactId(input.markupArtifactId, 'markup');
+  const frameCount = normalizeOptionalFiniteNumber(input.frameCount, 'image frame count');
+  const frameDurationMs = normalizeOptionalFiniteNumber(input.frameDurationMs, 'image frame duration');
+  if (!['', 'low', 'medium', 'high'].includes(complexity) || !['', 'png', 'jpeg', 'webp', 'gif', 'svg'].includes(outputFormat)
+    || (frameCount !== undefined && (!Number.isInteger(frameCount) || frameCount < 2 || frameCount > 64))
+    || (frameDurationMs !== undefined && (!Number.isInteger(frameDurationMs) || frameDurationMs < 20 || frameDurationMs > 2000))
+    || ((frameCount !== undefined || frameDurationMs !== undefined) && outputFormat !== 'gif')
+    || (markup && markupArtifactId)
+    || ((markup || markupArtifactId) && (mask || maskArtifactId || (!referenceImageArtifactId && referenceImages.length === 0)))) {
+    throw generationScenarioError('SDK_GENERATION_SCENARIO_INVALID', 'Image render controls or annotation source are invalid', 'use_valid_image_controls');
   }
   const strength = normalizeOptionalFiniteNumber(input.strength, 'image strength');
   if (strength !== undefined && !referenceImageArtifactId) {
@@ -253,6 +274,7 @@ function toRuntimeImageGenerationSpec(
     maskArtifactId,
     strength,
     responseFormat: normalizeScenarioText(input.responseFormat),
+    complexity, outputFormat, markup, markupArtifactId, frameCount, frameDurationMs,
   };
 }
 
@@ -470,7 +492,7 @@ function normalizeScenarioText(value: unknown): string {
   return String(value ?? '').trim();
 }
 
-function normalizeImageArtifactId(value: unknown, role: 'reference' | 'mask' = 'reference'): string {
+function normalizeImageArtifactId(value: unknown, role: 'reference' | 'mask' | 'markup' = 'reference'): string {
   if (value === undefined || value === null || value === '') return '';
   if (typeof value !== 'string' || value.trim() !== value || value.length > 128 || /[\u0000-\u001f\u007f]/u.test(value)) {
     throw generationScenarioError(

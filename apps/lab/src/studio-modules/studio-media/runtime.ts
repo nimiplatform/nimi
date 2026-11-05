@@ -57,6 +57,13 @@ async function runImageGenerate(context: StudioCapabilityRuntimeContext) {
     ...(parameters?.referenceImage !== undefined ? { referenceImages: [parameters.referenceImage] } : {}),
     ...(parameters?.referenceImageArtifactId !== undefined ? { referenceImageArtifactId: parameters.referenceImageArtifactId } : {}),
     ...(parameters?.mask !== undefined ? { mask: parameters.mask } : {}),
+    ...(parameters?.maskArtifactId !== undefined ? { maskArtifactId: parameters.maskArtifactId } : {}),
+    ...(parameters?.complexity !== undefined ? { complexity: parameters.complexity } : {}),
+    ...(parameters?.outputFormat !== undefined ? { outputFormat: parameters.outputFormat } : {}),
+    ...(parameters?.markup !== undefined ? { markup: parameters.markup } : {}),
+    ...(parameters?.markupArtifactId !== undefined ? { markupArtifactId: parameters.markupArtifactId } : {}),
+    ...(parameters?.frameCount !== undefined ? { frameCount: parameters.frameCount } : {}),
+    ...(parameters?.frameDurationMs !== undefined ? { frameDurationMs: parameters.frameDurationMs } : {}),
     scenarioId: context.scenarioId,
     surfaceId: context.host.surfaceId,
     observationSignal: context.input.observationSignal,
@@ -140,11 +147,38 @@ async function runVideoGenerate(context: StudioCapabilityRuntimeContext) {
       onJobUpdate: context.input.onJobUpdate, onObservation: context.input.onObservation });
     return projectStudioArtifactRunnerResult(context, result);
   }
-  if (!context.prompt) return inputRequired(context);
   const parameters = context.input.parameters as StudioVideoGenerationParameters | undefined;
   const mode = parameters?.mode ?? 't2v';
-  if (mode === 'i2v-first-frame' && !parameters?.firstFrameImageUrl?.trim()) {
-    return context.host.nonSuccess(context.capability, 'input-invalid', context.host.translate('Studio.parameters.videoFirstFrameRequired'));
+  if (!context.prompt && mode === 't2v') return inputRequired(context);
+  type VideoContent = NonNullable<Parameters<typeof context.host.runners.videoGenerate>[0]['content']>[number];
+  const content: VideoContent[] = [];
+  if (mode === 'i2v-first-frame' || mode === 'i2v-first-last') {
+    const frames = [
+      { role: 'first-frame' as const, artifactId: parameters?.firstFrameArtifactId, url: parameters?.firstFrameImageUrl },
+      ...(mode === 'i2v-first-last' ? [{ role: 'last-frame' as const, artifactId: parameters?.lastFrameArtifactId, url: parameters?.lastFrameImageUrl }] : []),
+    ];
+    for (const frame of frames) {
+      if (Number(Boolean(frame.artifactId?.trim())) + Number(Boolean(frame.url?.trim())) !== 1) {
+        return context.host.nonSuccess(context.capability, 'input-invalid', context.host.translate(frame.role === 'first-frame' ? 'Studio.parameters.videoFirstFrameRequired' : 'Studio.parameters.videoLastFrameRequired'));
+      }
+      content.push(frame.artifactId?.trim()
+        ? { type: 'artifact-ref', role: frame.role, artifactId: frame.artifactId }
+        : { type: 'image-url', role: frame.role, url: frame.url! });
+    }
+  } else if (mode === 'i2v-reference') {
+    const ids = [...(parameters?.referenceArtifactId?.trim() ? [parameters.referenceArtifactId] : []), ...(parameters?.additionalReferenceArtifactIds ?? [])];
+    const videos = parameters?.referenceVideoUrls ?? [];
+    const audios = parameters?.referenceAudioUrls ?? [];
+    const audioIds = parameters?.referenceAudioArtifactIds ?? [];
+    const videoIds = parameters?.referenceVideoArtifactIds ?? [];
+    if (ids.length + videos.length + audios.length + audioIds.length + videoIds.length === 0 || [...ids, ...videos, ...audios, ...audioIds, ...videoIds].some((id) => typeof id !== 'string' || !id.trim())) {
+      return context.host.nonSuccess(context.capability, 'input-invalid', context.host.translate('Studio.parameters.videoReferencesRequired'));
+    }
+    content.push(...ids.map((artifactId) => ({ type: 'artifact-ref' as const, role: 'reference-image' as const, artifactId: artifactId! })));
+    content.push(...videoIds.map((artifactId) => ({ type: 'artifact-ref' as const, role: 'reference-video' as const, artifactId })));
+    content.push(...videos.map((url) => ({ type: 'video-url' as const, role: 'reference-video' as const, url })));
+    content.push(...audioIds.map((artifactId) => ({ type: 'artifact-ref' as const, role: 'reference-audio' as const, artifactId })));
+    content.push(...audios.map((url) => ({ type: 'audio-url' as const, role: 'reference-audio' as const, url })));
   }
   const result = await context.host.runners.videoGenerate({
     runtime: { ai: createStudioScenarioJobClient(context) },
@@ -152,12 +186,7 @@ async function runVideoGenerate(context: StudioCapabilityRuntimeContext) {
     mode,
     prompt: context.prompt,
     ...(parameters?.negativePrompt !== undefined ? { negativePrompt: parameters.negativePrompt } : {}),
-    ...(mode === 'i2v-first-frame' && parameters?.firstFrameImageUrl ? {
-      content: [{ type: 'image-url', role: 'first-frame', url: parameters.firstFrameImageUrl }],
-    } : {}),
-    ...(mode === 'i2v-reference' && parameters?.referenceArtifactId ? {
-      content: [{ type: 'artifact-ref', role: 'reference-image', artifactId: parameters.referenceArtifactId }],
-    } : {}),
+    ...(content.length > 0 ? { content } : {}),
     options: videoGenerationOptions(parameters),
     scenarioId: context.scenarioId,
     surfaceId: context.host.surfaceId,

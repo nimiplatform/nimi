@@ -37,7 +37,7 @@ func worldPollSPZFixture(t *testing.T) []byte {
 
 func worldPollServiceFixture(t *testing.T, provider, endpoint string, wait func(context.Context, time.Duration) error) (managedCloudScenarioTestFixture, context.Context) {
 	t.Helper()
-	model := "default"
+	model := "echo-2"
 	if provider == "worldlabs" {
 		model = "marble-1.1"
 	}
@@ -98,7 +98,7 @@ func TestWorldFreshGetKeepsOriginalTaskAcrossTransientObservation(t *testing.T) 
 				case "/v1/worlds/requests/req_original", "/marble/v1/worlds/world-original":
 					results.Add(1)
 					if provider == "spaitial" {
-						_ = json.NewEncoder(w).Encode(map[string]any{"request_id": "req_original", "status": "COMPLETED", "model": "default", "world": map[string]any{"id": "world-original", "splat_format": "spz"}})
+						_ = json.NewEncoder(w).Encode(map[string]any{"request_id": "req_original", "status": "COMPLETED", "model": "echo-2", "world": map[string]any{"id": "world-original", "splat_format": "spz"}})
 					} else {
 						_ = json.NewEncoder(w).Encode(map[string]any{"world_id": "world-original", "assets": map[string]any{"splats": map[string]any{"spz_urls": map[string]any{"500k": endpoint + "/scene"}, "semantics_metadata": map[string]any{"metric_scale_factor": 1.0, "ground_plane_offset": 0.0}}}})
 					}

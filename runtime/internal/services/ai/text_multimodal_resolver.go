@@ -207,39 +207,23 @@ func (s *Service) resolveTextGenerateArtifactPart(
 			},
 		}, cleanup, nil
 	case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_VIDEO_URL:
-		if !localText {
-			inline, err := inlineOwnedTextMediaURL(resolvedPath, mimeType)
-			if err != nil {
-				if cleanup != nil {
-					cleanup()
-				}
-				return nil, nil, err
+		inline, err := inlineOwnedTextMediaURL(resolvedPath, mimeType)
+		if err != nil {
+			if cleanup != nil {
+				cleanup()
 			}
-			return &runtimev1.ChatContentPart{Type: partType, Content: &runtimev1.ChatContentPart_VideoUrl{VideoUrl: inline}}, cleanup, nil
+			return nil, nil, err
 		}
-		return &runtimev1.ChatContentPart{
-			Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_VIDEO_URL,
-			Content: &runtimev1.ChatContentPart_VideoUrl{
-				VideoUrl: resolvedPath,
-			},
-		}, cleanup, nil
+		return &runtimev1.ChatContentPart{Type: partType, Content: &runtimev1.ChatContentPart_VideoUrl{VideoUrl: inline}}, cleanup, nil
 	case runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_AUDIO_URL:
-		if !localText {
-			inline, err := inlineOwnedTextMediaURL(resolvedPath, mimeType)
-			if err != nil {
-				if cleanup != nil {
-					cleanup()
-				}
-				return nil, nil, err
+		inline, err := inlineOwnedTextMediaURL(resolvedPath, mimeType)
+		if err != nil {
+			if cleanup != nil {
+				cleanup()
 			}
-			return &runtimev1.ChatContentPart{Type: partType, Content: &runtimev1.ChatContentPart_AudioUrl{AudioUrl: inline}}, cleanup, nil
+			return nil, nil, err
 		}
-		return &runtimev1.ChatContentPart{
-			Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_AUDIO_URL,
-			Content: &runtimev1.ChatContentPart_AudioUrl{
-				AudioUrl: resolvedPath,
-			},
-		}, cleanup, nil
+		return &runtimev1.ChatContentPart{Type: partType, Content: &runtimev1.ChatContentPart_AudioUrl{AudioUrl: inline}}, cleanup, nil
 	default:
 		if cleanup != nil {
 			cleanup()

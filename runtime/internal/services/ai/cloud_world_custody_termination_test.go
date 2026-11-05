@@ -30,7 +30,7 @@ func TestWorldCustodyTerminationKeepsOwnerClassification(t *testing.T) {
 					}
 					_ = json.NewEncoder(w).Encode(map[string]any{"request_id": "req_custody", "status": state})
 				case "/v1/worlds/requests/req_custody":
-					_ = json.NewEncoder(w).Encode(map[string]any{"request_id": "req_custody", "status": "COMPLETED", "model": "default", "world": map[string]any{"id": "world_custody", "splat_format": "spz"}})
+					_ = json.NewEncoder(w).Encode(map[string]any{"request_id": "req_custody", "status": "COMPLETED", "model": "echo-2", "world": map[string]any{"id": "world_custody", "splat_format": "spz"}})
 				case "/v1/worlds/requests/req_custody/splat":
 					http.Redirect(w, r, endpoint+"/scene", http.StatusFound)
 				case "/scene":

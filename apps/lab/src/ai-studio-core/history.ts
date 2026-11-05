@@ -149,7 +149,7 @@ export type StudioRunHistoryResultSnapshot =
       ok: true;
       kind: 'text-exchange';
       summary: string;
-      scenario: 'tool-call' | 'structured-output';
+      scenario: 'tool-call' | 'structured-output' | 'json-object';
       steps: StudioTextExchangeStep[];
       text: string;
       structured?: StudioJsonValue;

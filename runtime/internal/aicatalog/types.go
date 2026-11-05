@@ -64,11 +64,12 @@ type VideoGenerationOutputs struct {
 }
 
 type VideoGenerationCapability struct {
-	Modes      []string               `yaml:"modes" json:"modes"`
-	InputRoles map[string][]string    `yaml:"input_roles" json:"input_roles"`
-	Limits     map[string]any         `yaml:"limits" json:"limits"`
-	Options    VideoGenerationOptions `yaml:"options" json:"options"`
-	Outputs    VideoGenerationOutputs `yaml:"outputs" json:"outputs"`
+	Modes                []string               `yaml:"modes" json:"modes"`
+	InputRoles           map[string][]string    `yaml:"input_roles" json:"input_roles"`
+	ReferenceAnchorRoles []string               `yaml:"reference_anchor_roles,omitempty" json:"reference_anchor_roles,omitempty"`
+	Limits               map[string]any         `yaml:"limits" json:"limits"`
+	Options              VideoGenerationOptions `yaml:"options" json:"options"`
+	Outputs              VideoGenerationOutputs `yaml:"outputs" json:"outputs"`
 }
 
 type NumericRange struct {
@@ -100,6 +101,10 @@ type VoiceRequestOptions struct {
 }
 
 type ImageRequestOptions struct {
+	ComplexityLevels        []string                   `yaml:"complexity_levels,omitempty" json:"complexity_levels,omitempty"`
+	OutputFormats           []string                   `yaml:"output_formats,omitempty" json:"output_formats,omitempty"`
+	SupportsMarkup          bool                       `yaml:"supports_markup,omitempty" json:"supports_markup,omitempty"`
+	MaxAnimationFrames      int                        `yaml:"max_animation_frames,omitempty" json:"max_animation_frames,omitempty"`
 	ResponseFormats         []string                   `yaml:"response_formats,omitempty" json:"response_formats,omitempty"`
 	MaxImagesPerRequest     int                        `yaml:"max_images_per_request,omitempty" json:"max_images_per_request,omitempty"`
 	SupportsNegativePrompt  bool                       `yaml:"supports_negative_prompt,omitempty" json:"supports_negative_prompt,omitempty"`

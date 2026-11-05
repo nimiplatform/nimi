@@ -66,7 +66,8 @@ export async function answerWithTools(
 ```
 
 - **Tool Execution & Turn History**: The application owns tool handlers and subsequent conversation turns. Preserve ordered `outputItems` as `turnItems` on the next tool step, along with matching tool results.
-- **Reasoning Continuity**: Preserve opaque `reasoning-continuity` payloads byte-for-byte in their original order. Do not decode or display them.
+- **Reasoning Continuity**: Preserve native `reasoning-continuity` payloads byte-for-byte in their original order, including ordinary thinking turns before tools are introduced. Do not decode or display them. Some exact adapters carry plaintext native reasoning, so this carrier does not guarantee encryption or confidentiality from its holder.
+- **Native default intensity**: Where Runtime explicitly advertises it, `effort: 'model-default'` keeps the requested `adaptive` or `required` activation while leaving intensity to the native implementation. Omitting the entire reasoning configuration instead keeps the implementation's complete default, which may leave thinking off.
 - **Validation**: Treat a response as complete only after successful completion—check the finish reason and validate the returned JSON against your business schema.
 
 ---

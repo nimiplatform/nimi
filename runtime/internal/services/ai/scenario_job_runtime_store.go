@@ -490,6 +490,12 @@ func (s *scenarioJobStore) clearTerminalCloudCredentialCustody(jobID string, ref
 	if !isTerminalScenarioJobStatus(record.job.GetStatus()) {
 		return fmt.Errorf("Cloud credential custody Job %q is not terminal", id)
 	}
+	// Concurrent terminal observation and execution cleanup may both release
+	// the same captured obligation. A completed release is already durable;
+	// a different non-empty reference must still fail closed below.
+	if record.cloudAssembly.CredentialCustodyRef == "" {
+		return nil
+	}
 	if strings.TrimSpace(record.cloudAssembly.CredentialCustodyRef) != custodyRef {
 		return fmt.Errorf("terminal Cloud credential custody reference does not match Job %q", id)
 	}

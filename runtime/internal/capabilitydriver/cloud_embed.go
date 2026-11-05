@@ -30,6 +30,7 @@ type CloudEmbedProtocol string
 const (
 	CloudEmbedProtocolCompatibleV1 CloudEmbedProtocol = "openai-compatible/embeddings/v1"
 	CloudEmbedProtocolGeminiV1     CloudEmbedProtocol = "gemini/embed-content/v1"
+	CloudEmbedProtocolCohereV2     CloudEmbedProtocol = "cohere/embed-v5/search/v2"
 )
 
 // CloudEmbedTarget is one exact provider/model target interpreted by an
@@ -48,6 +49,9 @@ func (t CloudEmbedTarget) RemoteModelCatalogID() string { return t.remoteModelCa
 func (t CloudEmbedTarget) Region() string               { return t.region }
 
 func (t CloudEmbedTarget) Protocol() CloudEmbedProtocol {
+	if t.provider == "cohere" && (t.providerModelID == "embed-v5.0-pro" || t.providerModelID == "embed-v5.0-fast") {
+		return CloudEmbedProtocolCohereV2
+	}
 	if t.provider == "gemini" && t.providerModelID == GeminiEmbedding2ModelID {
 		return CloudEmbedProtocolGeminiV1
 	}
@@ -55,6 +59,9 @@ func (t CloudEmbedTarget) Protocol() CloudEmbedProtocol {
 }
 
 func (t CloudEmbedTarget) DefaultDimensions() uint32 {
+	if t.Protocol() == CloudEmbedProtocolCohereV2 {
+		return 2048
+	}
 	if t.Protocol() == CloudEmbedProtocolGeminiV1 {
 		return GeminiEmbedding2Dimensions
 	}
@@ -69,7 +76,10 @@ type CloudEmbedMappedRequest struct {
 	protocol           CloudEmbedProtocol
 	defaultDimensions  uint32
 	transportBatchSize int
+	purpose            runtimev1.TextEmbedPurpose
 }
+
+func (r *CloudEmbedMappedRequest) Purpose() runtimev1.TextEmbedPurpose { return r.purpose }
 
 // TransportBatchSize is captured by the exact Driver without changing the
 // public request bound or exposing provider-specific controls to consumers.
@@ -262,6 +272,13 @@ func (d providerCloudEmbedDriver) MapRequest(target CloudEmbedTarget, spec *runt
 		if limit == 0 || spec.GetDimensions() < minimum || spec.GetDimensions() > limit {
 			return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("requested embedding dimensions are unsupported by the selected implementation"))
 		}
+		if protocol == CloudEmbedProtocolCohereV2 {
+			switch spec.GetDimensions() {
+			case 256, 512, 768, 1024, 1536, 2048:
+			default:
+				return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("Cohere Embed 5 output dimension is unsupported"))
+			}
+		}
 		value := spec.GetDimensions()
 		dimensions = &value
 	}
@@ -273,11 +290,14 @@ func (d providerCloudEmbedDriver) MapRequest(target CloudEmbedTarget, spec *runt
 	if target.provider == "dashscope" && (target.providerModelID == "text-embedding-v3" || target.providerModelID == "text-embedding-v4") {
 		transportBatchSize = 10
 	}
-	return &CloudEmbedMappedRequest{providerModelID: target.providerModelID, inputs: inputs, dimensions: dimensions, protocol: protocol, defaultDimensions: defaultDimensions, transportBatchSize: transportBatchSize}, nil
+	return &CloudEmbedMappedRequest{providerModelID: target.providerModelID, inputs: inputs, dimensions: dimensions, protocol: protocol, defaultDimensions: defaultDimensions, transportBatchSize: transportBatchSize, purpose: spec.GetPurpose()}, nil
 }
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.embedding-output-contract
 func nativeCloudEmbeddingDimensionBounds(provider, modelID string) (uint32, uint32) {
+	if provider == "cohere" && (modelID == "embed-v5.0-pro" || modelID == "embed-v5.0-fast") {
+		return 256, 2048
+	}
 	if provider == "gemini" && modelID == GeminiEmbedding2ModelID {
 		return 128, GeminiEmbedding2Dimensions
 	}

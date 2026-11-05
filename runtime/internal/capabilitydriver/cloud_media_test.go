@@ -13,19 +13,21 @@ import (
 )
 
 func TestSpaitialStandardUsesExactWorldDriverWithoutHQFallback(t *testing.T) {
-	driver, target := cloudMediaDriverTarget(t, "spaitial", "default", "world.generate")
+	driver, target := cloudMediaDriverTarget(t, "spaitial", "echo-2", "world.generate")
 	request := &runtimev1.SubmitScenarioJobRequest{
 		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_WORLD_GENERATE,
 		Spec:         &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_WorldGenerate{WorldGenerate: &runtimev1.WorldGenerateScenarioSpec{TextPrompt: "A reading room."}}},
 	}
 	mapped, err := driver.MapRequest(target, request, nil, CloudMediaStreamNone)
-	if err != nil || mapped.Adapter() != CloudMediaAdapterSpaitialNative || mapped.ProviderModelID() != "default" {
+	if err != nil || mapped.Adapter() != CloudMediaAdapterSpaitialNative || mapped.ProviderModelID() != "echo-2" {
 		t.Fatalf("Standard world mapping: %+v err=%v", mapped, err)
 	}
-	bad, _ := structpb.NewStruct(map[string]any{"provider": "spaitial", "providerModelId": "Echo 2 (HQ)", "remoteModelCatalogId": "catalog-hq"})
-	_, err = driver.ValidateTarget(Identity{ImplementationID: "cloud.world.generate.spaitial", DriverID: "nimi.runtime.driver.spaitial", DriverDialect: "provider/media-v1"}, bad, "world.generate")
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MODEL_NOT_FOUND {
-		t.Fatalf("HQ must be rejected by exact model admission: %v", err)
+	for _, model := range []string{"default", "echo-hq", "Echo 2 (HQ)"} {
+		bad, _ := structpb.NewStruct(map[string]any{"provider": "spaitial", "providerModelId": model, "remoteModelCatalogId": "catalog-unadmitted"})
+		_, err = driver.ValidateTarget(Identity{ImplementationID: "cloud.world.generate.spaitial", DriverID: "nimi.runtime.driver.spaitial", DriverDialect: "provider/media-v1"}, bad, "world.generate")
+		if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_MODEL_NOT_FOUND {
+			t.Fatalf("unadmitted target %s must be rejected: %v", model, err)
+		}
 	}
 }
 

@@ -1,13 +1,34 @@
 version: 1
 provider: minimax
-catalog_version: 2026-07-20-minimax-v3
+catalog_version: 2026-11-05-minimax-h3-v2
 inventory_mode: static_source
-default_text_model: MiniMax-M3
+default_text_model: MiniMax-M3.1-Flash
 models:
+  - model_id: MiniMax-M3.1-Flash
+    provider: minimax
+    model_type: chat
+    updated_at: 2026-11-05
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-05
+      notes: Current exact Messages target; always-adaptive thinking, native default or low/medium/high/xhigh/max effort, and auto function tools. Account and regional availability require separate acceptance.
+    source_ref:
+      url: https://platform.minimax.cn/docs/api-reference/text-chat-anthropic
+      retrieved_at: 2026-11-05
+      note: Exact current M3.1-Flash and M3 Messages API, auto-only tools, native thinking/signature replay, and 512K maximum output.
+    features:
+      - input.image
+      - input.video
+    context_window_tokens: 1000000
   - model_id: MiniMax-M3
     provider: minimax
     model_type: chat
-    updated_at: 2026-07-20
+    updated_at: 2026-11-05
     capabilities:
       - text.generate
     pricing:
@@ -16,14 +37,15 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-07-20
-      notes: Current frontier coding and agent model with native image and video inputs and a documented 1M context window.
+      notes: Exact M3 Messages target with default thinking off or explicit adaptive native-default intensity; arbitrary effort values are not passed because the provider ignores them.
     source_ref:
-      url: https://platform.minimaxi.com/docs/api-reference/api-overview
-      retrieved_at: 2026-07-20
-      note: MiniMax API overview with text, image, and video model tables.
+      url: https://platform.minimax.cn/docs/api-reference/text-chat-anthropic
+      retrieved_at: 2026-11-05
+      note: Exact current M3.1-Flash and M3 Messages API, auto-only tools, native thinking/signature replay, and 512K maximum output.
     features:
       - input.image
-    context_window_tokens: 8192
+      - input.video
+    context_window_tokens: 1000000
   - model_id: MiniMax-M2.7
     provider: minimax
     model_type: chat
@@ -115,12 +137,324 @@ models:
       supports_aspect_ratio: true
       supports_quality: true
       supports_style: true
+  - model_id: MiniMax-H3
+    provider: minimax
+    model_type: video
+    updated_at: 2026-11-05
+    capabilities:
+      - video.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-07-20
+      notes: Current MiniMax M3 pricing varies by pay-as-you-go and Token Plan product surface.
+    source_ref:
+      url: https://platform.minimax.cn/docs/api-reference/video-generation-v2-create
+      retrieved_at: 2026-11-05
+      note: Exact H3, Highspeed, Lite and Max media contracts and required native controls.
+    features:
+      - input.image
+    video_generation:
+      modes:
+        - t2v
+        - i2v_first_frame
+        - i2v_first_last
+        - i2v_reference
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+        i2v_first_last:
+          - prompt
+          - first_frame
+          - last_frame
+        i2v_reference:
+          - prompt
+          - reference_image
+          - reference_video
+          - reference_audio
+      reference_anchor_roles:
+        - reference_image
+        - reference_video
+        - reference_audio
+      limits:
+        reference_images:
+          min: 0
+          max: 9
+        reference_videos:
+          min: 0
+          max: 3
+        reference_audios:
+          min: 0
+          max: 3
+        resolution:
+          - 768p
+          - 2k
+        duration_sec:
+          min: 4
+          max: 15
+        ratio:
+          - 16:9
+          - 4:3
+          - 1:1
+          - 3:4
+          - 9:16
+          - 21:9
+          - adaptive
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+          - watermark
+        constraints: {}
+      outputs:
+        video_url: true
+        last_frame_url: false
+  - model_id: MiniMax-H3-Highspeed
+    provider: minimax
+    model_type: video
+    updated_at: 2026-11-05
+    capabilities:
+      - video.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-07-20
+      notes: Current MiniMax M3 pricing varies by pay-as-you-go and Token Plan product surface.
+    source_ref:
+      url: https://platform.minimax.cn/docs/api-reference/video-generation-v2-create
+      retrieved_at: 2026-11-05
+      note: Exact H3, Highspeed, Lite and Max media contracts and required native controls.
+    features:
+      - input.image
+    video_generation:
+      modes:
+        - t2v
+        - i2v_first_frame
+        - i2v_first_last
+        - i2v_reference
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+        i2v_first_last:
+          - prompt
+          - first_frame
+          - last_frame
+        i2v_reference:
+          - prompt
+          - reference_image
+          - reference_video
+          - reference_audio
+      reference_anchor_roles:
+        - reference_image
+        - reference_video
+        - reference_audio
+      limits:
+        reference_images:
+          min: 0
+          max: 9
+        reference_videos:
+          min: 0
+          max: 3
+        reference_audios:
+          min: 0
+          max: 3
+        resolution:
+          - 480p
+          - 768p
+        duration_sec:
+          min: 4
+          max: 15
+        ratio:
+          - 16:9
+          - 4:3
+          - 1:1
+          - 3:4
+          - 9:16
+          - 21:9
+          - adaptive
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+          - watermark
+        constraints: {}
+      outputs:
+        video_url: true
+        last_frame_url: false
+  - model_id: MiniMax-H3-Lite
+    provider: minimax
+    model_type: video
+    updated_at: 2026-11-05
+    capabilities:
+      - video.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-07-20
+      notes: Current MiniMax M3 pricing varies by pay-as-you-go and Token Plan product surface.
+    source_ref:
+      url: https://platform.minimax.cn/docs/api-reference/video-generation-v2-create
+      retrieved_at: 2026-11-05
+      note: Exact H3, Highspeed, Lite and Max media contracts and required native controls.
+    features:
+      - input.image
+    video_generation:
+      modes:
+        - t2v
+        - i2v_first_frame
+        - i2v_first_last
+        - i2v_reference
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+        i2v_first_last:
+          - prompt
+          - first_frame
+          - last_frame
+        i2v_reference:
+          - prompt
+          - reference_image
+          - reference_video
+          - reference_audio
+      reference_anchor_roles:
+        - reference_image
+        - reference_video
+        - reference_audio
+      limits:
+        reference_images:
+          min: 0
+          max: 9
+        reference_videos:
+          min: 0
+          max: 3
+        reference_audios:
+          min: 0
+          max: 3
+        resolution:
+          - 480p
+          - 768p
+        duration_sec:
+          min: 4
+          max: 15
+        ratio:
+          - 16:9
+          - 4:3
+          - 1:1
+          - 3:4
+          - 9:16
+          - 21:9
+          - adaptive
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+          - watermark
+        constraints: {}
+      outputs:
+        video_url: true
+        last_frame_url: false
+  - model_id: MiniMax-H3-Max
+    provider: minimax
+    model_type: video
+    updated_at: 2026-11-05
+    capabilities:
+      - video.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-07-20
+      notes: Current MiniMax M3 pricing varies by pay-as-you-go and Token Plan product surface.
+    source_ref:
+      url: https://platform.minimax.cn/docs/api-reference/video-generation-v2-create
+      retrieved_at: 2026-11-05
+      note: Exact H3, Highspeed, Lite and Max media contracts and required native controls.
+    features:
+      - input.image
+    video_generation:
+      modes:
+        - t2v
+        - i2v_first_frame
+        - i2v_first_last
+        - i2v_reference
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+        i2v_first_last:
+          - prompt
+          - first_frame
+          - last_frame
+        i2v_reference:
+          - prompt
+          - reference_image
+          - reference_video
+          - reference_audio
+      reference_anchor_roles:
+        - reference_image
+        - reference_video
+        - reference_audio
+      limits:
+        reference_images:
+          min: 0
+          max: 9
+        reference_videos:
+          min: 0
+          max: 3
+        reference_audios:
+          min: 0
+          max: 3
+        resolution:
+          - 480p
+          - 768p
+        duration_sec:
+          min: 5
+          max: 15
+        ratio:
+          - 16:9
+          - 4:3
+          - 1:1
+          - 3:4
+          - 9:16
+          - 21:9
+          - adaptive
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+          - watermark
+        constraints: {}
+      outputs:
+        video_url: true
+        last_frame_url: false
 voices: []
 selection_profiles:
   - provider: minimax
     profile_id: text.general
     capability: text.generate
-    model_id: MiniMax-M3
-    reviewed_at: 2026-09-28
+    model_id: MiniMax-M3.1-Flash
+    reviewed_at: 2026-11-05
     freshness_sla_days: 21
-    rationale: MiniMax-M3 is served on the pay-as-you-go API with native multimodal input and a 1M context window; the newer M3.1 Flash Preview is subscription-only.
+    rationale: Current documented M3.1-Flash target with native image/video inputs, typed adaptive effort and complete thinking replay; account access is verified separately.

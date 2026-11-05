@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -32,6 +33,13 @@ func EmbeddingRepresentation(inputProtocol string, purpose runtimev1.TextEmbedPu
 		if inputProtocol == EmbeddingInputNativeV1 {
 			return EmbeddingRepresentationNativeV1, "", nil
 		}
+		if inputProtocol == EmbeddingInputGemma2V1 {
+			prefix := "title: none | text: "
+			if purpose == runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_RETRIEVAL_QUERY {
+				prefix = "task: search result | query: "
+			}
+			return EmbeddingRepresentationGemma2V1, prefix, nil
+		}
 		if inputProtocol != EmbeddingInputNomicV1 {
 			return "", "", invocationError(InvocationFailureUnsupportedEmbeddingPurpose, fmt.Errorf("selected embedding Model Contract does not admit this retrieval purpose"))
 		}
@@ -51,14 +59,14 @@ func EmbeddingRepresentation(inputProtocol string, purpose runtimev1.TextEmbedPu
 type LlamaEmbedDriver struct{}
 
 func (LlamaEmbedDriver) ModelAssetFormatProbeBytes(input ModelAssetFormatProbeInput) int64 {
-	if input.Entry && (input.RecipeID == LlamaEmbedGGUFRecipeID || input.RecipeID == LlamaQwen3EmbedRecipeID) && input.RequirementID == EmbeddingGGUFRequirementID {
+	if input.Entry && (input.RecipeID == LlamaEmbedGGUFRecipeID || input.RecipeID == LlamaQwen3EmbedRecipeID || input.RecipeID == LlamaEmbeddingGemma2RecipeID) && input.RequirementID == EmbeddingGGUFRequirementID {
 		return MaxDriverAssetFormatProbeBytes
 	}
 	return MaxAssetFormatProbeBytes
 }
 
 func (LlamaEmbedDriver) ImplementationSupportedFeatures(recipeID string) ([]string, runtimev1.LocalCapabilityReason) {
-	if recipeID != LlamaEmbedGGUFRecipeID && recipeID != LlamaQwen3EmbedRecipeID {
+	if recipeID != LlamaEmbedGGUFRecipeID && recipeID != LlamaQwen3EmbedRecipeID && recipeID != LlamaEmbeddingGemma2RecipeID {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
 	}
 	return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
@@ -84,6 +92,8 @@ func (LlamaEmbedDriver) recipeModelArchitectures(recipeID string, slotID string)
 		return []string{"bert", "nomic-bert"}
 	case LlamaQwen3EmbedRecipeID:
 		return []string{"qwen3"}
+	case LlamaEmbeddingGemma2RecipeID:
+		return []string{"gemma-embedding2"}
 	default:
 		return nil
 	}
@@ -102,6 +112,12 @@ func (driver LlamaEmbedDriver) ProjectModelAssetBinding(input ModelAssetBindingI
 	if facts.Architecture == "nomic-bert" {
 		protocol = EmbeddingInputNomicV1
 	}
+	if input.RecipeID == LlamaEmbeddingGemma2RecipeID {
+		if !embeddingGemma2ContentMatches(input.Binding.GetVerifiedContentId(), input.Binding.GetEntrySha256()) || facts.EmbeddingDimension != 768 || facts.ContextWindow != 8192 {
+			return ModelAssetBindingProjection{}, invalid
+		}
+		protocol = EmbeddingInputGemma2V1
+	}
 	if facts.EmbeddingInputProtocol != protocol {
 		return ModelAssetBindingProjection{}, invalid
 	}
@@ -114,7 +130,7 @@ func (driver LlamaEmbedDriver) ProjectModelAssetBinding(input ModelAssetBindingI
 }
 
 func (LlamaEmbedDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
-	if input.RecipeID != LlamaEmbedGGUFRecipeID && input.RecipeID != LlamaQwen3EmbedRecipeID {
+	if input.RecipeID != LlamaEmbedGGUFRecipeID && input.RecipeID != LlamaQwen3EmbedRecipeID && input.RecipeID != LlamaEmbeddingGemma2RecipeID {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
 	}
 	if len(input.SupportedFeatures) != 0 {
@@ -189,7 +205,7 @@ func (driver LlamaEmbedDriver) ValidateCombination(
 }
 
 func (driver LlamaEmbedDriver) PlanEmbedInvocation(input EmbedInvocationInput) (*EmbedInvocationPlan, error) {
-	if input.RecipeID != LlamaEmbedGGUFRecipeID && input.RecipeID != LlamaQwen3EmbedRecipeID {
+	if input.RecipeID != LlamaEmbedGGUFRecipeID && input.RecipeID != LlamaQwen3EmbedRecipeID && input.RecipeID != LlamaEmbeddingGemma2RecipeID {
 		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("unknown llama embedding recipe %q", input.RecipeID))
 	}
 	binding, err := exactLlamaEmbedInvocationBinding(input.ExactBindings)
@@ -200,11 +216,24 @@ func (driver LlamaEmbedDriver) PlanEmbedInvocation(input EmbedInvocationInput) (
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("llama embedding portable config: %s", reason.String()))
 	}
+	outputDimension := 0
+	request := input.Request
+	if input.RecipeID == LlamaEmbeddingGemma2RecipeID {
+		if !embeddingGemma2ContentMatches(binding.VerifiedContentID, binding.EntrySHA256) || binding.EmbeddingInputProtocol != EmbeddingInputGemma2V1 {
+			return nil, invocationError(InvocationFailureInvalidBinding, fmt.Errorf("unreviewed EmbeddingGemma 2 binding"))
+		}
+		outputDimension, err = embeddingGemma2OutputDimension(request)
+		if err != nil {
+			return nil, err
+		}
+		request = proto.Clone(request).(*runtimev1.TextEmbedScenarioSpec)
+		request.Dimensions = nil
+	}
 	family, prefix, err := EmbeddingRepresentation(binding.EmbeddingInputProtocol, input.Request.GetPurpose())
 	if err != nil {
 		return nil, err
 	}
-	requestBody, inputCount, err := llamaEmbedRequestBody(input.Request, prefix)
+	requestBody, inputCount, err := llamaEmbedRequestBody(request, prefix)
 	if err != nil {
 		return nil, err
 	}
@@ -213,6 +242,9 @@ func (driver LlamaEmbedDriver) PlanEmbedInvocation(input EmbedInvocationInput) (
 		return nil, err
 	}
 
+	if input.RecipeID == LlamaEmbeddingGemma2RecipeID && contextWindow > 8192 {
+		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("EmbeddingGemma 2 context exceeds 8192"))
+	}
 	processArgs := []string{
 		"--model", binding.AbsolutePath,
 		"--alias", llamaEmbedModelAlias,
@@ -227,6 +259,9 @@ func (driver LlamaEmbedDriver) PlanEmbedInvocation(input EmbedInvocationInput) (
 		// llama.cpp clamps ubatch to batch; both must cover its admitted context.
 		// Keep the causal Qwen recipe's existing bounded batch behavior.
 		processArgs = append(processArgs, "--batch-size", strconv.FormatUint(contextWindow, 10))
+	}
+	if input.RecipeID == LlamaEmbeddingGemma2RecipeID {
+		processArgs = append(processArgs, "--pooling", "mean", "--parallel", "1")
 	}
 	if portable.cacheTypeK != "" {
 		processArgs = append(processArgs, "--cache-type-k", portable.cacheTypeK)
@@ -262,6 +297,7 @@ func (driver LlamaEmbedDriver) PlanEmbedInvocation(input EmbedInvocationInput) (
 	}
 	return &EmbedInvocationPlan{
 		representationFamily: family,
+		outputDimension:      outputDimension,
 		processKey:           hex.EncodeToString(hash.Sum(nil)),
 		processArgs:          processArgs,
 		modelFiles:           cloneInvocationExactBindings([]InvocationExactBinding{binding}),

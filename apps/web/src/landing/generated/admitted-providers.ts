@@ -1,7 +1,7 @@
 /**
  * @generated
  * Source: config/runtime-provider-catalog.yaml
- *   sha256: 9b81afe83c26b2b275d972abb976773c15ac6fb4fb1f86834497b9644c921aa3
+ *   sha256: 075f5f7cdba11e1e0f48623b6c6f72655b3c05afad7fbdf59fa90a2bc0be5c7d
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.
@@ -133,14 +133,6 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   },
   {
     provider: "google_cloud_tts",
-    defaultEndpoint: null,
-    defaultTextModel: null,
-    requiresExplicitEndpoint: true,
-    inventoryMode: "static_source",
-    sourceRule: "K-MCAT-027",
-  },
-  {
-    provider: "google_veo",
     defaultEndpoint: null,
     defaultTextModel: null,
     requiresExplicitEndpoint: true,

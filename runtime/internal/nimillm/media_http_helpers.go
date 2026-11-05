@@ -258,7 +258,11 @@ func providerHTTPErrorFromResponse(response *http.Response, targetURL string) (m
 			code = ValueAsString(detail["code"])
 		}
 		// Fixed diagnostic vocabulary only; never log the provider body or message.
-		slog.Warn("[provider-http-debug] error response", "status", response.StatusCode, "url", targetURL, "provider_code", providerDiagnosticID(code), "field_hints", providerErrorFieldHints(payload))
+		requestPath := ""
+		if parsed, parseErr := url.Parse(targetURL); parseErr == nil {
+			requestPath = parsed.Path
+		}
+		slog.Warn("[provider-http-debug] error response", "status", response.StatusCode, "path", requestPath, "provider_code", providerDiagnosticID(code), "field_hints", providerErrorFieldHints(payload))
 	}
 	return payload, MapProviderHTTPError(response.StatusCode, payload)
 }
@@ -269,7 +273,7 @@ func providerHTTPErrorFromResponse(response *http.Response, targetURL string) (m
 func providerErrorFieldHints(payload map[string]any) []string {
 	message := strings.ToLower(ProviderErrorMessage(payload))
 	hints := make([]string, 0)
-	for _, field := range []string{"max_completion_tokens", "max_tokens", "temperature", "top_p", "top_k", "stream_options", "stream", "reasoning_content", "thinking", "tools", "tool_choice", "messages", "model", "balance", "quota", "token", "unsupported", "invalid", "limit"} {
+	for _, field := range []string{"max_completion_tokens", "max_tokens", "temperature", "top_p", "top_k", "stream_options", "stream", "reasoning_content", "thinking", "tools", "tool_choice", "messages", "model", "balance", "quota", "token", "unsupported", "invalid", "limit", "duration", "video_config", "response_format", "resolution", "aspect_ratio", "delivery", "background", "store", "location", "region", "permission", "not found", "not supported"} {
 		if strings.Contains(message, field) {
 			hints = append(hints, field)
 		}
@@ -390,10 +394,9 @@ func doJSONRequestWithHeadersAndObservation(
 	}
 	defer func() { _ = response.Body.Close() }()
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		var payload map[string]any
-		_ = json.NewDecoder(response.Body).Decode(&payload)
+		payload, mappedErr := providerHTTPErrorFromResponse(response, targetURL)
 		observeProviderParameterFailure(ctx, response.StatusCode, payload)
-		return MapProviderHTTPError(response.StatusCode, payload)
+		return mappedErr
 	}
 	if target == nil {
 		return nil
@@ -506,21 +509,51 @@ func upgradeHTTPToHTTPS(rawURL string) string {
 // JoinURL joins a base URL with a suffix path. If the suffix is already an
 // absolute URL it is returned as-is.
 func JoinURL(baseURL string, suffix string) string {
-	base := strings.TrimSuffix(strings.TrimSpace(baseURL), "/")
+	base := strings.TrimSpace(baseURL)
 	if base == "" {
 		return ""
 	}
 	suffixPath := strings.TrimSpace(suffix)
 	if suffixPath == "" {
-		return base
+		u, err := url.Parse(base)
+		if err != nil {
+			return ""
+		}
+		trimmed := strings.TrimRight(u.EscapedPath(), "/")
+		u.Path, err = url.PathUnescape(trimmed)
+		if err != nil {
+			return ""
+		}
+		u.RawPath = trimmed
+		return u.String()
 	}
 	if strings.HasPrefix(suffixPath, "http://") || strings.HasPrefix(suffixPath, "https://") {
 		return suffixPath
 	}
-	if !strings.HasPrefix(suffixPath, "/") {
-		suffixPath = "/" + suffixPath
+	u, err := url.Parse(base)
+	if err != nil {
+		return ""
 	}
-	return base + suffixPath
+	resource, err := url.Parse(suffixPath)
+	if err != nil || resource.Host != "" || resource.Scheme != "" {
+		return ""
+	}
+	joined := strings.TrimRight(u.EscapedPath(), "/") + "/" + strings.TrimLeft(resource.EscapedPath(), "/")
+	u.Path, err = url.PathUnescape(joined)
+	if err != nil {
+		return ""
+	}
+	u.RawPath = joined
+	if resource.RawQuery != "" {
+		if u.RawQuery != "" {
+			u.RawQuery += "&"
+		}
+		u.RawQuery += resource.RawQuery
+	}
+	if resource.Fragment != "" {
+		u.Fragment = resource.Fragment
+	}
+	return u.String()
 }
 
 func decodeProviderJSONResponse(ctx context.Context, body io.Reader, target *map[string]any) error {

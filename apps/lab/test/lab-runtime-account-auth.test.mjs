@@ -2107,3 +2107,54 @@ test('Lab refuses Submit when the author action cannot be saved', async () => {
   const result = await runLabCapability({ capabilityId: 'image.generate', prompt: 'An image' }, readyRuntimeDependencies(client));
   assert.equal(result.ok, false); assert.match(result.message, /business storage unavailable/); assert.equal(submits, 0);
 });
+
+test('Lab video preserves owned first/last frames and ordered reference images', async () => {
+  const { runLabCapability } = await importLabRuntime();
+  for (const entry of [
+    { parameters: { mode: 'i2v-first-frame', firstFrameArtifactId: 'first-owned' }, expected: [{ type: 'artifact-ref', role: 'first-frame', artifactId: 'first-owned' }] },
+    { parameters: { mode: 'i2v-first-last', firstFrameArtifactId: 'first-owned', lastFrameArtifactId: 'last-owned' }, expected: [{ type: 'artifact-ref', role: 'first-frame', artifactId: 'first-owned' }, { type: 'artifact-ref', role: 'last-frame', artifactId: 'last-owned' }] },
+    { parameters: { mode: 'i2v-reference', referenceArtifactId: 'one', additionalReferenceArtifactIds: ['two', 'three', 'four', 'five', 'six'] }, expected: ['one', 'two', 'three', 'four', 'five', 'six'].map((artifactId) => ({ type: 'artifact-ref', role: 'reference-image', artifactId })) },
+  ]) {
+    const calls = [];
+    const result = await runLabCapability({ capabilityId: 'video.generate', prompt: 'Animate the supplied images.', parameters: entry.parameters }, readyRuntimeDependencies(fakeLocalAppClient(), { runners: {
+      async videoGenerate(input) { calls.push(input); throw new Error('Stop after testing request assembly'); },
+    } }));
+    assert.equal(result.ok, false);
+    assert.equal(calls.length, 1);
+    assert.equal(calls[0].mode, entry.parameters.mode);
+    assert.deepEqual(calls[0].content, entry.expected);
+  }
+  let calls = 0;
+  for (const parameters of [
+    { mode: 'i2v-first-last', firstFrameArtifactId: 'first-owned' },
+    { mode: 'i2v-first-frame', firstFrameArtifactId: 'first-owned', firstFrameImageUrl: 'https://example.test/first.png' },
+    { mode: 'i2v-reference' },
+  ]) {
+    const result = await runLabCapability({ capabilityId: 'video.generate', prompt: 'Animate.', parameters }, readyRuntimeDependencies(fakeLocalAppClient(), { runners: { async videoGenerate() { calls++; throw new Error('Invalid input reached submission'); } } }));
+    assert.equal(result.ok, false);
+    assert.equal(result.reason, 'input-invalid');
+  }
+  assert.equal(calls, 0);
+});
+
+test('Lab video preserves promptless media, automatic duration and explicit false controls', async () => {
+  const { runLabCapability } = await importLabRuntime();
+  for (const entry of [
+    { parameters: { mode: 'i2v-first-frame', firstFrameArtifactId: 'owned' }, expected: [{ type: 'artifact-ref', role: 'first-frame', artifactId: 'owned' }] },
+    { parameters: { mode: 'i2v-reference', referenceVideoArtifactIds: ['owned-video'], referenceVideoUrls: ['https://example.test/clip.mp4'] }, expected: [{ type: 'artifact-ref', role: 'reference-video', artifactId: 'owned-video' }, { type: 'video-url', role: 'reference-video', url: 'https://example.test/clip.mp4' }] },
+    { parameters: { mode: 'i2v-reference', referenceAudioArtifactIds: ['voice-one', 'voice-two'], referenceAudioUrls: ['https://example.test/voice.wav'] }, expected: [{ type: 'artifact-ref', role: 'reference-audio', artifactId: 'voice-one' }, { type: 'artifact-ref', role: 'reference-audio', artifactId: 'voice-two' }, { type: 'audio-url', role: 'reference-audio', url: 'https://example.test/voice.wav' }] },
+    { parameters: { mode: 'i2v-reference', referenceVideoUrls: ['https://example.test/clip.mp4'], referenceAudioUrls: ['https://example.test/voice.wav'] }, expected: [{ type: 'video-url', role: 'reference-video', url: 'https://example.test/clip.mp4' }, { type: 'audio-url', role: 'reference-audio', url: 'https://example.test/voice.wav' }] },
+  ]) {
+    const calls = [];
+    const result = await runLabCapability({ capabilityId: 'video.generate', prompt: '', parameters: { ...entry.parameters, durationSec: -1, generateAudio: false, watermark: false } }, readyRuntimeDependencies(fakeLocalAppClient(), { runners: {
+      async videoGenerate(input) { calls.push(input); throw new Error('Stop at the tested request boundary'); },
+    } }));
+    assert.equal(result.ok, false);
+    assert.equal(calls.length, 1, result.message);
+    assert.equal(calls[0].prompt, '');
+    assert.deepEqual(calls[0].content, entry.expected);
+    assert.equal(calls[0].options.durationSec, -1);
+    assert.equal(calls[0].options.generateAudio, false);
+    assert.equal(calls[0].options.watermark, false);
+  }
+});

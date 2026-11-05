@@ -198,7 +198,7 @@ func TestExecuteGeminiImageGenerateContentUsesNativeEndpoint(t *testing.T) {
 				Spec: &runtimev1.ScenarioSpec_ImageGenerate{
 					ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{
 						Prompt:          "A moon over the ocean.",
-						Size:            "1024x1024",
+						AspectRatio:     "1:1",
 						ReferenceImages: []string{"data:image/png;base64," + base64.StdEncoding.EncodeToString(referenceBytes)},
 					},
 				},

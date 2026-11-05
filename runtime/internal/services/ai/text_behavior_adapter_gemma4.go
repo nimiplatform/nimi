@@ -22,11 +22,18 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 		registrations = append(registrations, gemma4TextBehaviorRegistration(entry))
 	}
 	registrations = append(registrations, qwen35Q4TextBehaviorRegistration())
+	registrations = append(registrations, qwen38Q4TextBehaviorRegistration(), lfm3Q4TextBehaviorRegistration())
+	registrations = append(registrations, gemma412BTextBehaviorRegistration())
 	registrations = append(registrations, anthropicTextBehaviorRegistrations()...)
 	registrations = append(registrations, dashscopeQwen38FlashBehaviorRegistration())
 	registrations = append(registrations, dashscopeQwen38Max0902BehaviorRegistration())
 	registrations = append(registrations, dashscopeQwenVLPlusBehaviorRegistration())
 	registrations = append(registrations, gemini38FlashSchemaBehaviorRegistration())
+	registrations = append(registrations, geminiArgonBehaviorRegistration())
+	registrations = append(registrations, miniMaxMessagesRegistration("MiniMax-M3.1-Flash"), miniMaxMessagesRegistration("MiniMax-M3"))
+	for _, model := range []string{"glm-5.3", "glm-5.3-flash", "glm-5.3-flashx", "glm-5.3-flashx-legal"} {
+		registrations = append(registrations, glm53TextBehaviorRegistration(model))
+	}
 	registrations = append(registrations,
 		mimoChatBehaviorRegistration("mimo-v2.6-flash", "mimo.v26-flash.chat-tools"),
 		mimoChatBehaviorRegistration("mimo-v2.6-pro", "mimo.v26-pro.chat-tools"),
@@ -43,13 +50,25 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 	return registrations
 }
 
+func gemma412BTextBehaviorRegistration() textBehaviorAdapterRegistration {
+	registration := gemma4TextBehaviorRegistration(capabilitydriver.Gemma4BehaviorCohortEntry{
+		ContentID: capabilitydriver.Gemma412BQ4ContentID, EntrySHA256: capabilitydriver.Gemma412BQ4ContentID[len("sha256:"):],
+		TemplateIdentity: capabilitydriver.Gemma412BTemplateIdentity, ProjectorContentID: capabilitydriver.Gemma412BProjectorContentID,
+	})
+	registration.AdapterID, registration.Version = "llama.cpp.gemma4-12b-unified.text-behavior", "1"
+	registration.LocalTarget.RecipeID = capabilitydriver.LlamaGemma412BRecipeID
+	modes := []runtimev1.ExecutionMode{runtimev1.ExecutionMode_EXECUTION_MODE_SYNC, runtimev1.ExecutionMode_EXECUTION_MODE_STREAM, runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB}
+	registration.Support.Combinations = append(registration.Support.Combinations, textBehaviorCombination{Modes: modes}, textBehaviorCombination{Reasoning: true, StructuredOutput: true, Modes: modes})
+	return registration
+}
+
 func gemma4TextBehaviorRegistration(entry capabilitydriver.Gemma4BehaviorCohortEntry) textBehaviorAdapterRegistration {
 	modes := []runtimev1.ExecutionMode{
 		runtimev1.ExecutionMode_EXECUTION_MODE_SYNC,
 		runtimev1.ExecutionMode_EXECUTION_MODE_STREAM,
 		runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 	}
-	toolProjection := capabilitydriver.Gemma4ToolUseCapabilityProjection()
+	toolProjection := capabilitydriver.LlamaFunctionToolUseCapabilityProjection()
 	combinations := []textBehaviorCombination{
 		{ToolUse: true, Modes: append([]runtimev1.ExecutionMode(nil), modes...)},
 		{Reasoning: true, Modes: append([]runtimev1.ExecutionMode(nil), modes...)},

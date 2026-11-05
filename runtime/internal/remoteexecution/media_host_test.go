@@ -15,11 +15,33 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/structpb"
 )
+
+func TestOriginalNativeModelMismatchFailsBeforeCredentialAccess(t *testing.T) {
+	raw, _ := structpb.NewStruct(map[string]any{"provider": "volcengine", "providerModelId": capabilitydriver.Seedance25VideoModel, "remoteModelCatalogId": "catalog-seedance"})
+	_, target, err := capabilitydriver.NewProductionCloudMediaRegistry().Resolve(capabilitydriver.Identity{ImplementationID: "cloud.video.generate.volcengine", DriverID: "nimi.runtime.driver.volcengine", DriverDialect: "provider/media-v1"}, raw, "video.generate")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// No Connector store exists: neither observation nor cancellation may open
+	// credentials for a receipt belonging to another exact model.
+	host := NewProviderMediaHost(nil, nil, auditlog.New(16, 16), true)
+	receipt := &nimillm.NativeTaskReceipt{Version: 1, Adapter: nimillm.AdapterBytedanceARKTask, TaskID: "original", Model: capabilitydriver.Seedance20VideoModel, QueryPathTemplate: "/contents/generations/tasks/{task_id}", Artifact: &runtimev1.ScenarioArtifact{ArtifactId: "output", MimeType: "video/mp4"}}
+	dispatch := MediaDispatchAudit{AppID: "app", AccountID: "account", TraceID: "trace-model-mismatch", Provider: "volcengine", CapabilityContract: "video.generate"}
+	_, _, err = host.ObserveNativeTask(context.Background(), connector.ConnectorRecord{}, target, receipt, dispatch)
+	if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
+		t.Fatalf("observation mismatch: %v", err)
+	}
+	_, err = host.StopNativeTask(context.Background(), connector.ConnectorRecord{}, target, receipt, dispatch)
+	if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
+		t.Fatalf("cancellation mismatch: %v", err)
+	}
+}
 
 func TestProviderMediaHostAuditsActualAlibabaCleanupOutcome(t *testing.T) {
 	for _, outcome := range []string{"confirmed_canceled", "not_cancelable"} {

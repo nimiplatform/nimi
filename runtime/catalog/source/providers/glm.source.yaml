@@ -1,6 +1,6 @@
 schema_version: 3
 provider: glm
-catalog_version: 2026-07-20-glm-provider-v3
+catalog_version: 2026-11-05-glm-native-replay-v4
 generated_target: runtime/catalog/providers/glm.yaml
 runtime:
   inventory_mode: static_source
@@ -11,7 +11,7 @@ runtime:
   requires_explicit_endpoint: false
 defaults:
   provider: glm
-  default_text_model: glm-5.2
+  default_text_model: glm-5.3
   model_type: chat
   capabilities: []
   context_window_tokens: 8192
@@ -24,6 +24,18 @@ defaults:
     notes: GLM text pricing depends on model family and sometimes separate price pages; this source keeps explicit public prices only where directly documented in the admitted evidence set.
 
 sources:
+  - source_id: glm_glm_5_3_doc
+    url: https://docs.bigmodel.cn/cn/guide/models/text/glm-5.3
+    retrieved_at: 2026-11-05
+    note: Exact flagship with always-on thinking, low/high/max effort, 1M context and 128K output.
+  - source_id: glm_glm_5_3_flash_doc
+    url: https://docs.bigmodel.cn/cn/guide/models/vlm/glm-5.3-flash
+    retrieved_at: 2026-11-05
+    note: Exact Flash, FlashX and FlashX-Legal targets; native image and function replay mapping. Video and document delivery are not inferred.
+  - source_id: glm_native_replay_doc
+    url: https://docs.bigmodel.cn/cn/guide/capabilities/thinking-mode
+    retrieved_at: 2026-11-05
+    note: Original reasoning_content must accompany function-result continuation; clear_thinking false preserves supplied prior reasoning.
   - source_id: glm_model_overview_doc
     url: https://docs.bigmodel.cn/cn/guide/start/model-overview
     retrieved_at: 2026-07-20
@@ -60,24 +72,83 @@ sources:
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
-    model_id: glm-5.2
-    reviewed_at: 2026-09-28
+    model_id: glm-5.3
+    reviewed_at: 2026-11-05
     freshness_sla_days: 21
-    rationale: GLM-5.2 remains in BigModel's recommended lineup for stable long-horizon tasks with a 1M context window; the newer GLM-5.3 flagship is not admitted in this catalog yet.
+    rationale: Current exact flagship; always-on hidden thinking and bounded native function replay.
   - profile_id: text.fast
     capability: text.generate
-    model_id: glm-5-turbo
-    reviewed_at: 2026-09-28
+    model_id: glm-5.3-flashx
+    reviewed_at: 2026-11-05
     freshness_sla_days: 21
-    rationale: Callable GLM-5-Turbo; BigModel now positions it for OpenClaw long tasks rather than latency, and the GLM-5.3 Flash tier is not admitted in this catalog yet.
+    rationale: Official higher-throughput FlashX target with native image inputs; API credential required.
   - profile_id: text.reasoning
     capability: text.generate
-    model_id: glm-5.2
-    reviewed_at: 2026-09-28
+    model_id: glm-5.3
+    reviewed_at: 2026-11-05
     freshness_sla_days: 21
-    rationale: Highest-capability admitted GLM route; GLM-5.3, BigModel's newer flagship with always-on thinking, is not admitted in this catalog yet.
+    rationale: Current flagship with exact low/high/max effort, no disabled or fabricated summary mode.
 
 models:
+  - model_id: glm-5.3
+    model_type: chat
+    updated_at: 2026-11-05
+    context_window_tokens: 1048576
+    capabilities: [text.generate]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-05
+      notes: Always-on thinking, 128K maximum output, exact function replay and JSON object. Live account acceptance remains separate from catalog support.
+    source_ids: [glm_glm_5_3_doc, glm_native_replay_doc]
+
+  - model_id: glm-5.3-flash
+    model_type: chat
+    updated_at: 2026-11-05
+    context_window_tokens: 1048576
+    capabilities: [text.generate]
+    features: [input.image]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-05
+      notes: Always-on thinking, 128K maximum output, exact function replay and JSON object. Live account acceptance remains separate from catalog support.
+    source_ids: [glm_glm_5_3_flash_doc, glm_native_replay_doc]
+
+  - model_id: glm-5.3-flashx
+    model_type: chat
+    updated_at: 2026-11-05
+    context_window_tokens: 1048576
+    capabilities: [text.generate]
+    features: [input.image]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-05
+      notes: Always-on thinking, 128K maximum output, exact function replay and JSON object. Live account acceptance remains separate from catalog support.
+    source_ids: [glm_glm_5_3_flash_doc, glm_native_replay_doc]
+
+  - model_id: glm-5.3-flashx-legal
+    model_type: chat
+    updated_at: 2026-11-05
+    context_window_tokens: 1048576
+    capabilities: [text.generate]
+    features: [input.image]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-05
+      notes: Always-on thinking, 128K maximum output, exact function replay and JSON object. Live account acceptance remains separate from catalog support.
+    source_ids: [glm_glm_5_3_flash_doc, glm_native_replay_doc]
+
   - model_id: glm-5.2
     model_type: chat
     updated_at: 2026-06-16

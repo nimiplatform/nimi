@@ -80,7 +80,7 @@ func gemma4ApplySampling(body map[string]any, spec *runtimev1.TextGenerateScenar
 
 func gemma4BehaviorMessages(spec *runtimev1.TextGenerateScenarioSpec) ([]map[string]any, error) {
 	messages := make([]map[string]any, 0, len(spec.GetInput())+1)
-	if systemPrompt := strings.TrimSpace(spec.GetSystemPrompt()); systemPrompt != "" {
+	if systemPrompt := spec.GetSystemPrompt(); systemPrompt != "" {
 		messages = append(messages, map[string]any{"role": "system", "content": systemPrompt})
 	}
 	for _, message := range spec.GetInput() {

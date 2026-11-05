@@ -4,9 +4,9 @@ import (
 	"context"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
-	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
 	"google.golang.org/grpc/codes"
 )
@@ -50,7 +50,7 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 	// Owner normalization cloned the request. Both Local and Cloud consume this
 	// canonical content before mode validation, idempotency and resource selection.
 	if video := req.GetSpec().GetVideoGenerate(); video != nil {
-		video.Content = nimillm.VideoContentWithPrompt(video)
+		video.Content = capabilitydriver.VideoContentWithPrompt(video)
 	}
 	// Validate the route-neutral request before resolving any configured
 	// resource. An invalid request must not touch a Local Loadout or Cloud

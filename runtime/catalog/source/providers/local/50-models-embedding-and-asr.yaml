@@ -250,3 +250,34 @@ models:
       - local/qwen3-asr-transformers-1.7b
       - speech/qwen3asr-transformers-1.7b
       - Qwen/Qwen3-ASR-1.7B-hf
+
+  - model_id: embeddinggemma-2-text-local
+    model_type: embedding
+    family: gemma-embedding2
+    updated_at: 2026-11-04
+    capabilities: [text.embed]
+    source_ids: [embeddinggemma2_author_modelcard, embeddinggemma2_ggml_org_gguf]
+    embedding:
+      dimension: 768
+    install:
+      repo: ggml-org/embeddinggemma-2-GGUF
+      revision: 6ea3e3a309d12a4779cfda98b8c19800d2d5da71 # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      license: Apache-2.0
+      entry: embeddinggemma-2-Q8_0.gguf
+      artifact_roles: [embedding]
+      preferred_engine: llama
+    variants:
+      - variant_id: local.embedding.embeddinggemma2.q8-0.cuda
+        quant: Q8_0
+        files: [embeddinggemma-2-Q8_0.gguf]
+        hashes:
+          embeddinggemma-2-Q8_0.gguf: sha256:2188ac1deca4b77dffefd603c2776a9d76d9d74ec01841392982ebb840b09135
+        total_size_bytes: 309855456
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 4294967296
+          min_vram_bytes: 4294967296
+    fitness:
+      param_count: 271002648
+      context_length: 8192

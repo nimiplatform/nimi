@@ -1,9 +1,117 @@
 version: 1
 provider: openai
-catalog_version: 2026-10-02-openai-whisper-word-timing
+catalog_version: 2026-11-04-openai-terra-responses
 inventory_mode: static_source
 default_text_model: gpt-5.6-sol
 models:
+  - model_id: gpt-image-2.6-flare
+    provider: openai
+    model_type: image
+    updated_at: 2026-11-05
+    capabilities:
+      - image.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-05
+      notes: Current2.6 model cards do not publish exact token rates; no2.5 rate is inherited as a verified2.6 price.
+    source_ref:
+      url: https://developers.openai.com/api/docs/models/gpt-image-2.6-flare
+      retrieved_at: 2026-11-05
+      note: Exact current GPT Image2.6 Flare image generation/edit target; no dated snapshot published on the model card.
+    features:
+      - input.image
+      - input.mask
+    image_request_options:
+      response_formats:
+        - b64_json
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: true
+      supports_seed: false
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: true
+      supports_style: false
+      complexity_levels:
+        - low
+        - medium
+        - high
+      output_formats:
+        - png
+        - jpeg
+        - webp
+        - gif
+        - svg
+      supports_markup: true
+      max_animation_frames: 64
+  - model_id: gpt-image-2.6-sunburst
+    provider: openai
+    model_type: image
+    updated_at: 2026-11-05
+    capabilities:
+      - image.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-05
+      notes: Current2.6 model cards do not publish exact token rates; no2.5 rate is inherited as a verified2.6 price.
+    source_ref:
+      url: https://developers.openai.com/api/docs/models/gpt-image-2.6-sunburst
+      retrieved_at: 2026-11-05
+      note: Exact current GPT Image2.6 Sunburst generation/edit target; no dated snapshot published on the model card.
+    features:
+      - input.image
+      - input.mask
+    image_request_options:
+      response_formats:
+        - b64_json
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: true
+      supports_seed: false
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: true
+      supports_style: false
+      complexity_levels:
+        - low
+        - medium
+        - high
+      output_formats:
+        - png
+        - jpeg
+        - webp
+        - gif
+        - svg
+      supports_markup: true
+      max_animation_frames: 64
+  - model_id: gpt-6.1-terra
+    provider: openai
+    model_type: chat
+    updated_at: 2026-11-04
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-04
+      notes: Stateless Responses target with native function tools and strict structured output. Pricing depends on context length and service tier.
+    source_ref:
+      url: https://developers.openai.com/api/docs/models/gpt-6.1-terra
+      retrieved_at: 2026-11-04
+      note: Fixed gpt-6.1-terra target with text/image input, 922000 maximum input and 128000 maximum output, Responses-only function calling and none/low/medium/high/xhigh/max reasoning effort.
+    features:
+      - input.image
+    context_window_tokens: 922000
   - model_id: gpt-realtime-2.1
     provider: openai
     model_type: chat

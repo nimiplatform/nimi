@@ -12,12 +12,12 @@ import (
 )
 
 const (
-	AudioCppPackageVersion        = "0.9.2-drama3-base-small"
-	AudioCppPackageCommit         = "507495611b22dc4590e0e5609e05e8096384e33f" // pragma: allowlist secret -- public source commit
-	AudioCppPackageAssetName      = "audio-v0.9.2-drama3-base-small-bin-windows-x64-cuda13.3.zip"
-	AudioCppPackageArchiveURL     = "https://github.com/0xShug0/audio.cpp/releases/download/v0.9.2-drama3-base-small/audio-v0.9.2-drama3-base-small-bin-windows-x64-cuda13.3.zip"
-	AudioCppPackageArchiveSHA256  = "b570efa4b17c2aa32c431c653489c009b58f57f60d68782b3b94b6c06304a9e8" // pragma: allowlist secret -- public archive checksum
-	AudioCppPackageArchiveBytes   = int64(275837338)
+	AudioCppPackageVersion        = "0.9.3"
+	AudioCppPackageCommit         = "41c1f8ffa0d13a1b7e366e30ea5fe5ab8d169d48" // pragma: allowlist secret -- public source commit
+	AudioCppPackageAssetName      = "audio-v0.9.3-bin-windows-x64-cuda13.3.zip"
+	AudioCppPackageArchiveURL     = "https://github.com/0xShug0/audio.cpp/releases/download/v0.9.3/audio-v0.9.3-bin-windows-x64-cuda13.3.zip"
+	AudioCppPackageArchiveSHA256  = "0bd3988be10c31ec078c40df2bd0d4266e660804f6d5083aeb05d1309d091e43" // pragma: allowlist secret -- public archive checksum
+	AudioCppPackageArchiveBytes   = int64(277336614)
 	AudioCppSelectedSourceVersion = "release-" + AudioCppPackageVersion + "@" + AudioCppPackageCommit
 	AudioCppCLIExecutableName     = "audiocpp_cli.exe"
 )
@@ -255,7 +255,7 @@ func (m *Manager) audioCppStatusFromRegistryEntry(entry *RegistryEntry) (EngineB
 		Platform:         identity.Platform,
 		AssetName:        identity.AssetName,
 		AcceleratorPlane: identity.AcceleratorPlane,
-		Detail:           "audio.cpp v0.9.2-drama3-base-small official " + identity.Platform + " CLI package verified and promoted",
+		Detail:           "audio.cpp v0.9.3 official " + identity.Platform + " CLI package verified and promoted",
 	}, nil
 }
 

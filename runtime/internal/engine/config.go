@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-const defaultLlamaVersion = "b11669"
+const defaultLlamaVersion = "b11960"
 
 // EngineKind identifies a supported local AI engine.
 type EngineKind string
@@ -305,10 +305,11 @@ type EngineConfig struct {
 
 // DefaultLlamaConfig returns the default configuration for the llama engine.
 //
-// Version gate (b11669):
+// Version gate (b11960):
 //   - Supports: --ctx-size, --cache-type-k/v, --flash-attn (on/off/auto),
 //     --mmproj, --n-gpu-layers.
 //   - Includes LLM_ARCH_GEMMA4 and Gemma 4 vision projector support.
+//   - Includes the LFM3 family and template-owned reasoning effort controls.
 //   - Upstream Gemma 4 E2B/E4B audio support does not widen the Nimi Driver's
 //     admitted image/text inputs or its exact projector bindings.
 func DefaultLlamaConfig() EngineConfig {

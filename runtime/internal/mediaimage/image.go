@@ -21,15 +21,23 @@ type Info struct {
 // Inspect validates the complete static image before allocation beyond its
 // caller-owned bound and returns its explicit EXIF-oriented geometry.
 func Inspect(data []byte, maxBytes int, maxPixels int64) (Info, error) {
+	info, _, err := Decode(data, maxBytes, maxPixels)
+	return info, err
+}
+
+// Decode also exposes the original raster for constraints such as alpha or
+// mask validation. Info retains EXIF-oriented geometry; pixels are not rewritten.
+func Decode(data []byte, maxBytes int, maxPixels int64) (Info, image.Image, error) {
+	var raster image.Image
 	if len(data) == 0 || len(data) > maxBytes {
-		return Info{}, fmt.Errorf("image exceeds its byte bound")
+		return Info{}, nil, fmt.Errorf("image exceeds its byte bound")
 	}
 	config, format, err := image.DecodeConfig(bytes.NewReader(data))
 	if err != nil {
-		return Info{}, fmt.Errorf("decode image: %w", err)
+		return Info{}, nil, fmt.Errorf("decode image: %w", err)
 	}
 	if config.Width <= 0 || config.Height <= 0 || int64(config.Width)*int64(config.Height) > maxPixels {
-		return Info{}, fmt.Errorf("image exceeds its pixel bound")
+		return Info{}, nil, fmt.Errorf("image exceeds its pixel bound")
 	}
 	orientation := uint16(1)
 	var exif []byte
@@ -49,7 +57,7 @@ func Inspect(data []byte, maxBytes int, maxPixels int64) (Info, error) {
 			}
 			length := int(binary.BigEndian.Uint16(data[offset+2:]))
 			if length < 2 || offset+2+length > len(data) {
-				return Info{}, fmt.Errorf("JPEG segment is invalid")
+				return Info{}, nil, fmt.Errorf("JPEG segment is invalid")
 			}
 			segment := data[offset+4 : offset+2+length]
 			if marker == 0xe1 && bytes.HasPrefix(segment, []byte("Exif\x00\x00")) {
@@ -62,11 +70,11 @@ func Inspect(data []byte, maxBytes int, maxPixels int64) (Info, error) {
 		for offset := 8; offset+12 <= len(data); {
 			length := int(binary.BigEndian.Uint32(data[offset:]))
 			if length > len(data)-offset-12 {
-				return Info{}, fmt.Errorf("PNG chunk is invalid")
+				return Info{}, nil, fmt.Errorf("PNG chunk is invalid")
 			}
 			kind := string(data[offset+4 : offset+8])
 			if kind == "acTL" {
-				return Info{}, fmt.Errorf("accepts only static images")
+				return Info{}, nil, fmt.Errorf("accepts only static images")
 			}
 			if kind == "eXIf" {
 				exif = data[offset+8 : offset+8+length]
@@ -77,11 +85,11 @@ func Inspect(data []byte, maxBytes int, maxPixels int64) (Info, error) {
 		for offset := 12; offset+8 <= len(data); {
 			length := int(binary.LittleEndian.Uint32(data[offset+4:]))
 			if length > len(data)-offset-8 {
-				return Info{}, fmt.Errorf("WebP chunk is invalid")
+				return Info{}, nil, fmt.Errorf("WebP chunk is invalid")
 			}
 			kind := string(data[offset : offset+4])
 			if kind == "ANIM" || kind == "ANMF" {
-				return Info{}, fmt.Errorf("accepts only static images")
+				return Info{}, nil, fmt.Errorf("accepts only static images")
 			}
 			if kind == "EXIF" {
 				exif = bytes.TrimPrefix(data[offset+8:offset+8+length], []byte("Exif\x00\x00"))
@@ -91,27 +99,30 @@ func Inspect(data []byte, maxBytes int, maxPixels int64) (Info, error) {
 	case "gif":
 		decoded, decodeErr := gif.DecodeAll(bytes.NewReader(data))
 		if decodeErr != nil || len(decoded.Image) != 1 {
-			return Info{}, fmt.Errorf("accepts only one decodable static image")
+			return Info{}, nil, fmt.Errorf("accepts only one decodable static image")
 		}
+		raster = decoded.Image[0]
 	default:
-		return Info{}, fmt.Errorf("image format is unsupported")
+		return Info{}, nil, fmt.Errorf("image format is unsupported")
 	}
 	if len(exif) > 0 {
 		orientation, err = exifOrientation(exif)
 		if err != nil {
-			return Info{}, err
+			return Info{}, nil, err
 		}
 	}
 	if format != "gif" {
-		if _, _, err := image.Decode(bytes.NewReader(data)); err != nil {
-			return Info{}, fmt.Errorf("decode complete image: %w", err)
+		var decodeErr error
+		raster, _, decodeErr = image.Decode(bytes.NewReader(data))
+		if decodeErr != nil {
+			return Info{}, nil, fmt.Errorf("decode complete image: %w", decodeErr)
 		}
 	}
 	width, height := uint32(config.Width), uint32(config.Height)
 	if orientation >= 5 && orientation <= 8 {
 		width, height = height, width
 	}
-	return Info{Width: width, Height: height, Format: format, Orientation: orientation}, nil
+	return Info{Width: width, Height: height, Format: format, Orientation: orientation}, raster, nil
 }
 
 func exifOrientation(data []byte) (uint16, error) {

@@ -1967,13 +1967,14 @@ const (
 type ReasoningEffort string
 
 const (
-	REASONINGEFFORTUNSPECIFIED ReasoningEffort = "REASONING_EFFORT_UNSPECIFIED"
-	REASONINGEFFORTMINIMAL     ReasoningEffort = "REASONING_EFFORT_MINIMAL"
-	REASONINGEFFORTLOW         ReasoningEffort = "REASONING_EFFORT_LOW"
-	REASONINGEFFORTMEDIUM      ReasoningEffort = "REASONING_EFFORT_MEDIUM"
-	REASONINGEFFORTHIGH        ReasoningEffort = "REASONING_EFFORT_HIGH"
-	REASONINGEFFORTMAXIMUM     ReasoningEffort = "REASONING_EFFORT_MAXIMUM"
-	REASONINGEFFORTXHIGH       ReasoningEffort = "REASONING_EFFORT_XHIGH"
+	REASONINGEFFORTUNSPECIFIED  ReasoningEffort = "REASONING_EFFORT_UNSPECIFIED"
+	REASONINGEFFORTMINIMAL      ReasoningEffort = "REASONING_EFFORT_MINIMAL"
+	REASONINGEFFORTLOW          ReasoningEffort = "REASONING_EFFORT_LOW"
+	REASONINGEFFORTMEDIUM       ReasoningEffort = "REASONING_EFFORT_MEDIUM"
+	REASONINGEFFORTHIGH         ReasoningEffort = "REASONING_EFFORT_HIGH"
+	REASONINGEFFORTMAXIMUM      ReasoningEffort = "REASONING_EFFORT_MAXIMUM"
+	REASONINGEFFORTXHIGH        ReasoningEffort = "REASONING_EFFORT_XHIGH"
+	REASONINGEFFORTMODELDEFAULT ReasoningEffort = "REASONING_EFFORT_MODEL_DEFAULT"
 )
 
 type ReasoningPresentation string
@@ -5181,6 +5182,12 @@ type ImageGenerateScenarioSpec struct {
 	ReferenceImageArtifactId string   `json:"reference_image_artifact_id,omitempty"`
 	MaskArtifactId           string   `json:"mask_artifact_id,omitempty"`
 	Strength                 *float32 `json:"strength,omitempty"`
+	Complexity               string   `json:"complexity,omitempty"`
+	OutputFormat             string   `json:"output_format,omitempty"`
+	Markup                   string   `json:"markup,omitempty"`
+	MarkupArtifactId         string   `json:"markup_artifact_id,omitempty"`
+	FrameCount               *int32   `json:"frame_count,omitempty"`
+	FrameDurationMs          *int32   `json:"frame_duration_ms,omitempty"`
 }
 
 type ImportModelAssetRequest struct {
@@ -6683,6 +6690,12 @@ type LocalAppImageGenerateScenarioSpec struct {
 	ReferenceImageArtifactId string   `json:"reference_image_artifact_id,omitempty"`
 	MaskArtifactId           string   `json:"mask_artifact_id,omitempty"`
 	Strength                 *float32 `json:"strength,omitempty"`
+	Complexity               string   `json:"complexity,omitempty"`
+	OutputFormat             string   `json:"output_format,omitempty"`
+	Markup                   string   `json:"markup,omitempty"`
+	MarkupArtifactId         string   `json:"markup_artifact_id,omitempty"`
+	FrameCount               *int32   `json:"frame_count,omitempty"`
+	FrameDurationMs          *int32   `json:"frame_duration_ms,omitempty"`
 }
 
 type LocalAppMusicGenerateJobSpec struct {

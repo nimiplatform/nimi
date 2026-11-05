@@ -1653,12 +1653,15 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	}
 
 	all := list("")
-	if len(all) != 110 {
-		t.Fatalf("all Loadout recipes = %d, want 110", len(all))
+	if len(all) != 115 {
+		t.Fatalf("all Loadout recipes = %d, want 115", len(all))
 	}
 	byID := make(map[string]*runtimev1.LoadoutRecipeDescriptor, len(all))
 	for _, recipe := range all {
 		byID[recipe.GetRecipeId()] = recipe
+	}
+	if recipe := byID[capabilitydriver.StableDiffusionFlux3KleinRecipeID]; recipe == nil || recipe.GetCapabilityContract() != "image.generate" || len(recipe.GetSlots()) != 3 {
+		t.Fatal("FLUX3 Klein independent main, encoder and VAE slots missing")
 	}
 	if recipe := byID[capabilitydriver.SherpaSpeakerEmbedRecipeID]; recipe == nil || recipe.GetCapabilityContract() != capabilitydriver.SpeakerEmbedContract || len(recipe.GetSlots()) != 1 || recipe.GetImplementation().GetDriverId() != capabilitydriver.SherpaSpeakerEmbedDriverID {
 		t.Fatal("speaker representation recipe lost its exact single encoder projection")
@@ -2042,14 +2045,14 @@ func seedStableDiffusionSelectedSourcesForLoadoutTest(t *testing.T, svc *Service
 		return
 	}
 	packageRoot := filepath.Join(root, "environments", "stable-diffusion")
-	archiveSHA256 := "959063b5bdd3b7780d4ae0023adc47a6e0f4cea2d36f9f6585336341259cdb18" // pragma: allowlist secret
+	archiveSHA256 := "2767f24655b7bbd1290f7cb307e05c988cda388108b7d83b502cf95276df3b50" // pragma: allowlist secret
 	if profile.OS == "darwin" {
-		archiveSHA256 = "3ee05d3f230b124834d2e67df7915017ef9b7ded9d811f72b8d5124fa93a4dd3" // pragma: allowlist secret
+		archiveSHA256 = "7f295ccdc3a228c95e36b0221b59ba7dd125a023fe00f1ccfd827f1138f8882d" // pragma: allowlist secret
 	}
 	packageRecord := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
 		EnvironmentKey:   localEnvironmentKey(localEnvironmentFamilyNativeSDCPP, "stable-diffusion.cpp.package", profile.HostProfileID, localEnvironmentPlatformTuple(profile), root),
 		DependencyFamily: localEnvironmentFamilyNativeSDCPP, DependencyID: "stable-diffusion.cpp.package", CanonicalRoot: packageRoot,
-		Version: "master-995-fd21ecf", Hashes: map[string]string{"archive_sha256": archiveSHA256}, SelectedConsumers: []string{consumer}, VerifiedArtifacts: []string{filepath.Join(packageRoot, "sd.exe")},
+		Version: "master-1050-58bb3c1", Hashes: map[string]string{"archive_sha256": archiveSHA256}, SelectedConsumers: []string{consumer}, VerifiedArtifacts: []string{filepath.Join(packageRoot, "sd.exe")},
 	})
 	writeSelectedSourceLocalArtifactsForTest(t, packageRecord)
 	svc.upsertLocalEnvironmentSelectedSourceRecord(packageRecord)

@@ -1,6 +1,6 @@
 schema_version: 3
 provider: volcengine
-catalog_version: 2026-09-30-volcengine-retired-doubao-256k
+catalog_version: 2026-11-05-volcengine-seedance25
 generated_target: runtime/catalog/providers/volcengine.yaml
 runtime:
   inventory_mode: static_source
@@ -21,25 +21,31 @@ defaults:
     output: unknown
     currency: CNY
     as_of: 2026-06-28
-    notes: Volcengine Ark pricing varies by account plan and endpoint tier. OpenSpeech speech surfaces are now tracked under the separate volcengine_openspeech provider.
+    notes: Volcengine Ark pricing varies by account plan and endpoint tier.
+      OpenSpeech speech surfaces are now tracked under the separate
+      volcengine_openspeech provider.
 
 sources:
   - source_id: volcengine_retirement_audit_doc
     url: https://docs.volcengine.com/docs/ark/model-deprecation-notice?lang=zh
-    retrieved_at: 2026-09-30
-    note: Official lifecycle evidence for retired targets removed by the 2026-09-30 review.
+    retrieved_at: 2026-11-04
+    note: Official EOS notice confirms doubao-seed-2-0-lite-260215 and
+      doubao-seed-2-0-mini-260215 shut down on 2026-10-22; later November
+      retirements are separate.
   - source_id: volcengine_seedance_video_doc
     url: https://www.volcengine.com/docs/82379/1366799?lang=zh
     retrieved_at: 2026-03-05
     note: Volcengine Seedance video generation overview (t2v and i2v).
   - source_id: volcengine_seedance_create_task_api
     url: https://www.volcengine.com/docs/82379/1520757?lang=zh
-    retrieved_at: 2026-03-05
-    note: Volcengine create video generation task API contract.
+    retrieved_at: 2026-11-05
+    note: Current official API reviewed for exact Seedance 2.5 and 2.0 media roles,
+      options, task identity and actual result contract.
   - source_id: volcengine_seedance_query_task_api
     url: https://www.volcengine.com/docs/82379/1521309?lang=zh
-    retrieved_at: 2026-03-05
-    note: Volcengine query video generation task API contract.
+    retrieved_at: 2026-11-05
+    note: Current official API reviewed for exact Seedance 2.5 and 2.0 media roles,
+      options, task identity and actual result contract.
   - source_id: volcengine_openai_sdk_doc
     url: https://www.volcengine.com/docs/6489/1331021
     retrieved_at: 2026-06-28
@@ -47,7 +53,8 @@ sources:
   - source_id: volcengine_model_list_doc
     url: https://www.volcengine.com/docs/82379/1330310
     retrieved_at: 2026-09-28
-    note: Volcengine Ark model list documentation with recommended and previous model sections; refreshed against a credentialed GET /api/v3/models probe.
+    note: Volcengine Ark model list documentation with recommended and previous
+      model sections; refreshed against a credentialed GET /api/v3/models probe.
   - source_id: volcengine_embedding_doc
     url: https://www.volcengine.com/docs/84716/1288890
     retrieved_at: 2026-04-18
@@ -63,31 +70,158 @@ selection_profiles:
     model_id: doubao-seed-2-1-pro-260915
     reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Ark's recommended Doubao-Seed 2.1 Pro snapshot with a 1024k context window, verified through Ark chat completions.
+    rationale: Ark's recommended Doubao-Seed 2.1 Pro snapshot with a 1024k context
+      window, verified through Ark chat completions.
   - profile_id: text.fast
     capability: text.generate
     model_id: doubao-seed-2-1-turbo-260628
     reviewed_at: 2026-09-28
     freshness_sla_days: 21
-    rationale: Ark's recommended low-cost, low-latency Doubao-Seed 2.1 Turbo snapshot, verified through Ark chat completions.
+    rationale: Ark's recommended low-cost, low-latency Doubao-Seed 2.1 Turbo
+      snapshot, verified through Ark chat completions.
 
 models:
-  - model_id: doubao-seedance-2-0-260128
+  - model_id: doubao-seedance-2-5-260628
     model_type: video
-    updated_at: 2026-04-03
-    capabilities: [video.generate]
-    features: [input.image]
-    source_ids: [volcengine_seedance_video_doc, volcengine_seedance_create_task_api, volcengine_seedance_query_task_api]
+    updated_at: 2026-11-05
+    capabilities:
+      - video.generate
+    features:
+      - input.image
+    source_ids:
+      - volcengine_seedance_video_doc
+      - volcengine_seedance_create_task_api
+      - volcengine_seedance_query_task_api
     video_generation:
-      modes: [t2v, i2v_first_frame, i2v_first_last, i2v_reference]
+      modes:
+        - t2v
+        - i2v_first_frame
+        - i2v_first_last
+        - i2v_reference
       input_roles:
-        t2v: [prompt, reference_video, reference_audio]
-        i2v_first_frame: [prompt, first_frame, reference_video, reference_audio]
-        i2v_first_last: [prompt, first_frame, last_frame, reference_video, reference_audio]
-        i2v_reference: [prompt, reference_image, reference_video, reference_audio]
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+        i2v_first_last:
+          - prompt
+          - first_frame
+          - last_frame
+        i2v_reference:
+          - prompt
+          - reference_image
+          - reference_video
+          - reference_audio
+      reference_anchor_roles:
+        - reference_image
+        - reference_video
+        - reference_audio
       limits:
         reference_images:
-          min: 1
+          min: 0
+          max: 30
+        reference_videos:
+          min: 0
+          max: 10
+        reference_audios:
+          min: 0
+          max: 10
+        resolution:
+          - 480p
+          - 720p
+          - 1080p
+        duration_sec:
+          - -1
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          - 11
+          - 12
+          - 13
+          - 14
+          - 15
+          - 16
+          - 17
+          - 18
+          - 19
+          - 20
+          - 21
+          - 22
+          - 23
+          - 24
+          - 25
+          - 26
+          - 27
+          - 28
+          - 29
+          - 30
+        ratio:
+          - 16:9
+          - 4:3
+          - 1:1
+          - 3:4
+          - 9:16
+          - 21:9
+          - adaptive
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+          - generate_audio
+          - execution_expires_after_sec
+          - return_last_frame
+          - watermark
+          - draft
+        constraints: {}
+      outputs:
+        video_url: true
+        last_frame_url: true
+    aliases:
+      - seedance-2.5
+  - model_id: doubao-seedance-2-0-260128
+    model_type: video
+    updated_at: 2026-11-05
+    capabilities:
+      - video.generate
+    features:
+      - input.image
+    source_ids:
+      - volcengine_seedance_video_doc
+      - volcengine_seedance_create_task_api
+      - volcengine_seedance_query_task_api
+    video_generation:
+      modes:
+        - t2v
+        - i2v_first_frame
+        - i2v_first_last
+        - i2v_reference
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+        i2v_first_last:
+          - prompt
+          - first_frame
+          - last_frame
+        i2v_reference:
+          - prompt
+          - reference_image
+          - reference_video
+          - reference_audio
+      reference_anchor_roles:
+        - reference_image
+        - reference_video
+      limits:
+        reference_images:
+          min: 0
           max: 9
         reference_videos:
           min: 0
@@ -95,22 +229,39 @@ models:
         reference_audios:
           min: 0
           max: 3
-        resolution: ["480p", "720p"]
-        seed:
-          min: -1
-          max: 4294967295
+        resolution:
+          - 480p
+          - 720p
+          - 1080p
+          - 4k
         duration_sec:
-          min: 4
-          max: 15
-        ratio: ["16:9", "4:3", "1:1", "3:4", "9:16", "21:9", adaptive]
+          - -1
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          - 11
+          - 12
+          - 13
+          - 14
+          - 15
+        ratio:
+          - 16:9
+          - 4:3
+          - 1:1
+          - 3:4
+          - 9:16
+          - 21:9
+          - adaptive
       options:
         supports:
           - resolution
           - ratio
           - duration_sec
-          - seed
           - generate_audio
-          - service_tier
           - execution_expires_after_sec
           - return_last_frame
           - watermark
@@ -124,152 +275,135 @@ models:
   - model_id: doubao-seed-2-1-pro-260915
     model_type: chat
     updated_at: 2026-09-28
-    capabilities: [text.generate]
+    capabilities: [ text.generate ]
     pricing:
       unit: token
       input: unknown
       output: unknown
       currency: CNY
       as_of: 2026-09-28
-      notes: Recommended Doubao-Seed 2.1 Pro Ark chat snapshot with a 1024k context window; pricing varies by account plan and endpoint tier.
-    source_ids: [volcengine_model_list_doc]
+      notes: Recommended Doubao-Seed 2.1 Pro Ark chat snapshot with a 1024k context
+        window; pricing varies by account plan and endpoint tier.
+    source_ids: [ volcengine_model_list_doc ]
     aliases:
       - doubao-seed-2.1-pro
 
   - model_id: doubao-seed-2-1-pro-260628
     model_type: chat
     updated_at: 2026-06-28
-    capabilities: [text.generate]
+    capabilities: [ text.generate ]
     pricing:
       unit: token
       input: unknown
       output: unknown
       currency: CNY
       as_of: 2026-09-28
-      notes: Previous Doubao-Seed 2.1 Pro Ark chat snapshot, now listed under previous models; pricing varies by account plan and endpoint tier.
-    source_ids: [volcengine_openai_sdk_doc, volcengine_model_list_doc]
+      notes: Previous Doubao-Seed 2.1 Pro Ark chat snapshot, now listed under previous
+        models; pricing varies by account plan and endpoint tier.
+    source_ids: [ volcengine_openai_sdk_doc, volcengine_model_list_doc ]
 
   - model_id: doubao-seed-2-1-turbo-260628
     model_type: chat
     updated_at: 2026-06-28
-    capabilities: [text.generate]
+    capabilities: [ text.generate ]
     pricing:
       unit: token
       input: unknown
       output: unknown
       currency: CNY
       as_of: 2026-06-28
-      notes: Current Doubao-Seed 2.1 Turbo Ark chat model pricing varies by account plan and endpoint tier.
-    source_ids: [volcengine_openai_sdk_doc, volcengine_model_list_doc]
+      notes: Current Doubao-Seed 2.1 Turbo Ark chat model pricing varies by account
+        plan and endpoint tier.
+    source_ids: [ volcengine_openai_sdk_doc, volcengine_model_list_doc ]
     aliases:
       - doubao-seed-2.1-turbo
 
   - model_id: doubao-seed-2-0-pro-260215
     model_type: chat
     updated_at: 2026-06-28
-    capabilities: [text.generate]
+    capabilities: [ text.generate ]
     pricing:
       unit: token
       input: unknown
       output: unknown
       currency: CNY
       as_of: 2026-06-28
-      notes: Prior Doubao-Seed 2.0 Pro Ark chat snapshot remains listed by the live model API; pricing varies by account plan and endpoint tier.
-    source_ids: [volcengine_openai_sdk_doc, volcengine_model_list_doc]
+      notes: Prior Doubao-Seed 2.0 Pro Ark chat snapshot remains listed by the live
+        model API; pricing varies by account plan and endpoint tier.
+    source_ids: [ volcengine_openai_sdk_doc, volcengine_model_list_doc ]
     aliases:
       - doubao-seed-2.0-pro
 
   - model_id: doubao-seed-2-0-lite-260428
     model_type: chat
     updated_at: 2026-06-28
-    capabilities: [text.generate]
+    capabilities: [ text.generate ]
     pricing:
       unit: token
       input: unknown
       output: unknown
       currency: CNY
       as_of: 2026-06-28
-      notes: Current Doubao-Seed 2.0 Lite Ark chat snapshot remains listed by the live model API; pricing varies by account plan and endpoint tier.
-    source_ids: [volcengine_openai_sdk_doc, volcengine_model_list_doc]
+      notes: Current Doubao-Seed 2.0 Lite Ark chat snapshot remains listed by the live
+        model API; pricing varies by account plan and endpoint tier.
+    source_ids: [ volcengine_openai_sdk_doc, volcengine_model_list_doc ]
     aliases:
       - doubao-seed-2.0-lite
-
-  - model_id: doubao-seed-2-0-lite-260215
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities: [text.generate]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-04-18
-      notes: Prior Doubao-Seed 2.0 Lite Ark chat snapshot retained without a floating alias; pricing varies by account plan and endpoint tier.
-    source_ids: [volcengine_openai_sdk_doc, volcengine_model_list_doc]
 
   - model_id: doubao-seed-2-0-mini-260428
     model_type: chat
     updated_at: 2026-06-28
-    capabilities: [text.generate]
+    capabilities: [ text.generate ]
     pricing:
       unit: token
       input: unknown
       output: unknown
       currency: CNY
       as_of: 2026-06-28
-      notes: Current Doubao-Seed 2.0 Mini Ark chat snapshot remains listed by the live model API; pricing varies by account plan and endpoint tier.
-    source_ids: [volcengine_openai_sdk_doc, volcengine_model_list_doc]
+      notes: Current Doubao-Seed 2.0 Mini Ark chat snapshot remains listed by the live
+        model API; pricing varies by account plan and endpoint tier.
+    source_ids: [ volcengine_openai_sdk_doc, volcengine_model_list_doc ]
     aliases:
       - doubao-seed-2.0-mini
-
-  - model_id: doubao-seed-2-0-mini-260215
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities: [text.generate]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-04-18
-    notes: Lightweight Ark chat model pricing varies by account plan and endpoint tier.
-    source_ids: [volcengine_openai_sdk_doc]
 
   - model_id: doubao-seed-2-0-code-preview-260215
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate]
+    capabilities: [ text.generate ]
     pricing:
       unit: token
       input: unknown
       output: unknown
       currency: CNY
       as_of: 2026-04-18
-      notes: Code-specialized Ark chat model pricing varies by account plan and endpoint tier.
-    source_ids: [volcengine_openai_sdk_doc]
+      notes: Code-specialized Ark chat model pricing varies by account plan and
+        endpoint tier.
+    source_ids: [ volcengine_openai_sdk_doc ]
     aliases:
       - doubao-seed-2.0-code
 
   - model_id: doubao-embedding
     model_type: embedding
     updated_at: 2026-04-18
-    capabilities: [text.embed]
+    capabilities: [ text.embed ]
     pricing:
       unit: token
       input: unknown
       output: unknown
       currency: CNY
       as_of: 2026-04-18
-      notes: Ark embedding pricing varies by account plan and dimension tier. The exact Ark output width for this target is unverified; text.embed AIConfig admission remains blocked until a fixed dimension is verified.
-    source_ids: [volcengine_embedding_doc]
+      notes: Ark embedding pricing varies by account plan and dimension tier. The
+        exact Ark output width for this target is unverified; text.embed
+        AIConfig admission remains blocked until a fixed dimension is verified.
+    source_ids: [ volcengine_embedding_doc ]
 
   - model_id: doubao-seedream-5-0-260128
     model_type: image
     updated_at: 2026-04-18
-    capabilities: [image.generate]
-    features: [input.image, input.mask]
+    capabilities: [ image.generate ]
+    features: [ input.image, input.mask ]
     image_request_options:
-      response_formats: [b64_json, url]
+      response_formats: [ b64_json, url ]
       max_images_per_request: 1
       supports_negative_prompt: true
       supports_reference_images: true
@@ -286,17 +420,17 @@ models:
       currency: CNY
       as_of: 2026-04-18
       notes: Ark image generation pricing varies by quality profile and account tier.
-    source_ids: [volcengine_seedream_doc]
+    source_ids: [ volcengine_seedream_doc ]
     aliases:
       - seedream-5.0
 
   - model_id: doubao-seedream-4-5-251128
     model_type: image
     updated_at: 2026-04-18
-    capabilities: [image.generate]
-    features: [input.image, input.mask]
+    capabilities: [ image.generate ]
+    features: [ input.image, input.mask ]
     image_request_options:
-      response_formats: [b64_json, url]
+      response_formats: [ b64_json, url ]
       max_images_per_request: 1
       supports_negative_prompt: true
       supports_reference_images: true
@@ -312,5 +446,6 @@ models:
       output: unknown
       currency: CNY
       as_of: 2026-04-18
-      notes: Prior Ark image generation pricing varies by quality profile and account tier.
-    source_ids: [volcengine_seedream_doc]
+      notes: Prior Ark image generation pricing varies by quality profile and account
+        tier.
+    source_ids: [ volcengine_seedream_doc ]

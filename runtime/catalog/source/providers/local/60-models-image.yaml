@@ -1,4 +1,41 @@
 models:
+  - model_id: flux3-image-klein-local
+    model_type: image
+    family: flux3
+    updated_at: 2026-11-05
+    capabilities: [image.generate]
+    features: [input.image]
+    image_request_options:
+      response_formats: [b64_json, url]
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+    source_ids: [flux3_klein_official, flux3_klein_gguf, stable_diffusion_cpp_flux3_guide]
+    install:
+      repo: leejet/flux-3-image-klein-GGUF
+      revision: 1c2ad2f9b9247ccca6506a23bdb033fdb0873321 # pragma: allowlist secret -- public model revision
+      install_kind: weights
+      license: FLUX Kommunity License 1.0
+      provenance: Quantized by leejet from the Black Forest Labs distilled FLUX3 Klein; model use follows the original license, independently of Runtime integration.
+      entry: flux3-image-klein-Q4_K.gguf
+      artifact_roles: [diffusion_model]
+      preferred_engine: media
+    variants:
+      - variant_id: local.image.flux3-klein.q4-k.cuda
+        quant: Q4_K
+        entry: flux3-image-klein-Q4_K.gguf
+        files: [flux3-image-klein-Q4_K.gguf]
+        hashes:
+          flux3-image-klein-Q4_K.gguf: sha256:19ddbfbed61da4bb16ebf169aaf48e9e5db43aba557be1ee537e9f00f586092e
+        total_size_bytes: 3514023104
+        host_requirement: {accelerator: cuda}
+    fitness: {param_count: 5600000000, context_length: 0}
   - model_id: flux.1-schnell-local
     model_type: image
     family: flux

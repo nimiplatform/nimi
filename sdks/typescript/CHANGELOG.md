@@ -2,6 +2,27 @@
 
 # SDK migration notes
 
+## Unreleased — Current model request and replay contracts
+
+These source changes belong to the next coordinated 0.x minor with matching
+Runtime, Kit and native carriers; they do not publish a package.
+
+- Image generation adds independent `complexity`, `outputFormat`, `markup`,
+  `markupArtifactId`, `frameCount` and `frameDurationMs` controls. Exact Runtime
+  targets decide supported combinations. Markup is a separate transparent PNG
+  matching the source geometry and cannot be combined with a mask. SVG and GIF
+  are generation-only for the admitted GPT Image 2.6 targets.
+- **Mask semantics (breaking):** OpenAI edits consume the canonical opaque
+  binary PNG mask: white edits, black preserves. Runtime converts it to the
+  provider's alpha convention. Update callers that supplied native alpha masks.
+- Native reasoning replay can contain provider reasoning text. Retain it only
+  for the exact provider/model continuation; do not display it as an answer or
+  reasoning summary, or describe it as encrypted/opaque. `MODEL_DEFAULT`
+  preserves a provider's own reasoning-effort default when admitted.
+- Video input carries up to 51 ordered content items through protected Apps,
+  including owned audio/video references only where the selected target admits
+  them. A wider carrier does not imply every model supports every combination.
+
 ## Unreleased — Explicit user relationship and account contracts
 
 Pre-release contract updates for the next coordinated 0.x minor (no dual path or

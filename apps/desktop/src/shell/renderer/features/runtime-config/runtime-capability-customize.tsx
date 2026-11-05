@@ -299,8 +299,10 @@ export function RuntimeCapabilityCustomize(props: {
     const status: SlotStatus | undefined = value === UNRESOLVED
       ? { tone: 'attention', text: t('runtimeConfig.loadouts.unresolved') }
       : current?.status;
-    const help = optional && recipe.capabilityContract === 'text.generate' && slot.conditionalFeatures?.includes('input.image')
-      ? t('runtimeConfig.product.customization.slotHelp.inputImage')
+    const help = optional && recipe.capabilityContract === 'text.generate' && slot.conditionalFeatures?.length
+      ? t('runtimeConfig.product.customization.slotHelp.inputMedia', {
+        features: slot.conditionalFeatures.map((feature) => t(`runtimeConfig.product.customization.slotHelp.${feature.replace('.', '_')}`, { defaultValue: feature })).join(' · '),
+      })
       : '';
     return { slot, label, optional, value, selectOptions, status: value === NOT_USED ? undefined : status, help };
   });
@@ -374,6 +376,7 @@ export function RuntimeCapabilityCustomize(props: {
                   </div>
                 </div>
                 <SelectField
+                  contentLayer="dialog"
                   aria-label={row.label}
                   data-testid={`capability-customize-version:${row.slot.slotId}`}
                   value={row.value}

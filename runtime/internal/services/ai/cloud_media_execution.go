@@ -174,11 +174,7 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 	if s == nil || head == nil || request == nil || request.GetSpec() == nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
-	if cloudVideoHasArtifactReference(request) || cloudImageHasLocalOnlyInput(request) {
-		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{
-			Message: "Cloud media execution does not support video artifact inputs, image masks or Local image strength",
-		})
-	}
+
 	capabilityContract := scenarioTargetCapability(request.GetScenarioType())
 	composition, err := s.resolveCloudMediaRouteComposition(ctx, head, capabilityContract)
 	if err != nil {
@@ -187,6 +183,11 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 	intent := composition.intent
 	driver := composition.driver
 	target := composition.target
+	if cloudImageHasLocalOnlyInput(request) && !(composition.target.Provider() == "ideogram" && composition.target.ProviderModelID() == capabilitydriver.Ideogram45Model) && !(composition.target.Provider() == "openai" && capabilitydriver.IsOpenAIImage26(composition.target.ProviderModelID())) {
+		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{
+			Message: "Cloud media execution does not support image masks or Local image strength",
+		})
+	}
 	accountID := composition.accountID
 	connectorRecord := composition.connector
 	binding := composition.binding
@@ -250,24 +251,77 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 		return nil, cloudMediaDriverError(capabilityContract, err)
 	}
 	effectiveRequest = mapped.Request()
+	var videoImages []nimillm.CloudVideoMediaReference
+	if cloudVideoHasArtifactReference(effectiveRequest) {
+		capturedBytes := 0
+		for index, item := range effectiveRequest.GetSpec().GetVideoGenerate().GetContent() {
+			if item.GetType() != runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_ARTIFACT_REF {
+				continue
+			}
+			id := item.GetArtifactRef().GetArtifactId()
+			mediaKind, byteLimit := "image/", int64(32<<20)
+			if item.GetRole() == runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_AUDIO {
+				mediaKind, byteLimit = "audio/", 15_000_000
+			} else if item.GetRole() == runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO {
+				mediaKind = "video/"
+			}
+			payload, mimeType, captureErr := s.resolveOwnedMediaArtifactBytes(ctx, effectiveRequest.GetHead(), id, mediaKind, byteLimit)
+			if captureErr != nil {
+				return nil, captureErr
+			}
+			capturedBytes += len(payload)
+			if (target.Provider() == "dashscope" || target.Provider() == "volcengine" || target.Provider() == "minimax") && capturedBytes > 64_000_000 {
+				return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
+			}
+			digest := sha256.Sum256(payload)
+			videoImages = append(videoImages, nimillm.CloudVideoMediaReference{ContentIndex: index, Reference: nimillm.CapturedMediaReference{ArtifactID: id, MIMEType: mimeType, SHA256: hex.EncodeToString(digest[:]), Bytes: payload}})
+		}
+		if err := nimillm.ValidateCloudVideoMediaReferences(target.Provider(), target.ProviderModelID(), effectiveRequest.GetSpec().GetVideoGenerate(), videoImages); err != nil {
+			return nil, err
+		}
+	}
 	if effectiveRequest.GetSpec().GetWorldGenerate() != nil {
 		if err := nimillm.ValidateCloudWorldRequestFields(target.Provider(), effectiveRequest.GetSpec().GetWorldGenerate()); err != nil {
 			return nil, err
 		}
 	}
 	// @nimi-authority: rule.nimi.runtime.ai-provider.gemini-owned-image-reference
-	var imageReference *nimillm.ImageReference
+	var imageReference *nimillm.CapturedMediaReference
 	if spec := effectiveRequest.GetSpec().GetImageGenerate(); spec != nil && spec.GetReferenceImageArtifactId() != "" {
-		payload, mimeType, captureErr := s.resolveOwnedImageArtifactBytes(ctx, effectiveRequest.GetHead(), spec.GetReferenceImageArtifactId())
+		payload, mimeType, captureErr := s.resolveOwnedMediaArtifactBytes(ctx, effectiveRequest.GetHead(), spec.GetReferenceImageArtifactId(), "image/", 32<<20)
 		if captureErr != nil {
 			return nil, captureErr
 		}
 		digest := sha256.Sum256(payload)
-		imageReference = &nimillm.ImageReference{
+		imageReference = &nimillm.CapturedMediaReference{
 			ArtifactID: spec.GetReferenceImageArtifactId(), MIMEType: mimeType,
 			Bytes: payload, SHA256: hex.EncodeToString(digest[:]),
 		}
-		if captureErr := nimillm.ValidateGeminiImageReferenceRequest(spec, imageReference); captureErr != nil {
+		if captureErr := nimillm.ValidateCloudImageReferenceRequest(target.Provider(), target.ProviderModelID(), spec, imageReference); captureErr != nil {
+			return nil, captureErr
+		}
+	}
+	var imageMask *nimillm.CapturedMediaReference
+	if spec := effectiveRequest.GetSpec().GetImageGenerate(); spec != nil && spec.GetMaskArtifactId() != "" {
+		payload, mimeType, captureErr := s.resolveOwnedMediaArtifactBytes(ctx, effectiveRequest.GetHead(), spec.GetMaskArtifactId(), "image/", 25_000_000)
+		if captureErr != nil {
+			return nil, captureErr
+		}
+		digest := sha256.Sum256(payload)
+		imageMask = &nimillm.CapturedMediaReference{ArtifactID: spec.GetMaskArtifactId(), MIMEType: mimeType, Bytes: payload, SHA256: hex.EncodeToString(digest[:])}
+		if captureErr := nimillm.ValidateCloudImageMaskReference(target.Provider(), target.ProviderModelID(), spec, imageReference, imageMask); captureErr != nil {
+			return nil, captureErr
+		}
+	}
+	var imageMarkup *nimillm.CapturedMediaReference
+	if spec := effectiveRequest.GetSpec().GetImageGenerate(); spec != nil && spec.GetMarkupArtifactId() != "" {
+		payload, mimeType, captureErr := s.resolveOwnedMediaArtifactBytes(ctx, effectiveRequest.GetHead(), spec.GetMarkupArtifactId(), "image/", 32<<20)
+		if captureErr != nil {
+			return nil, captureErr
+		}
+		digest := sha256.Sum256(payload)
+		imageMarkup = &nimillm.CapturedMediaReference{ArtifactID: spec.GetMarkupArtifactId(), MIMEType: mimeType, Bytes: payload, SHA256: hex.EncodeToString(digest[:])}
+		if captureErr := nimillm.ValidateCloudImageMarkupReference(target.Provider(), target.ProviderModelID(), spec, imageReference, imageMarkup); captureErr != nil {
 			return nil, captureErr
 		}
 	}
@@ -277,12 +331,12 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)
 		}
 		artifactID := spec.GetImagePrompt().GetContent().GetArtifactId()
-		payload, mimeType, captureErr := s.resolveOwnedImageArtifactBytes(ctx, effectiveRequest.GetHead(), artifactID)
+		payload, mimeType, captureErr := s.resolveOwnedMediaArtifactBytes(ctx, effectiveRequest.GetHead(), artifactID, "image/", 32<<20)
 		if captureErr != nil {
 			return nil, captureErr
 		}
 		digest := sha256.Sum256(payload)
-		imageReference = &nimillm.ImageReference{ArtifactID: artifactID, MIMEType: mimeType, Bytes: payload, SHA256: hex.EncodeToString(digest[:])}
+		imageReference = &nimillm.CapturedMediaReference{ArtifactID: artifactID, MIMEType: mimeType, Bytes: payload, SHA256: hex.EncodeToString(digest[:])}
 		if captureErr := nimillm.ValidateCloudWorldImageReference(target.Provider(), spec, imageReference); captureErr != nil {
 			return nil, captureErr
 		}
@@ -373,6 +427,9 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 	effective.resolvedAssembly.MusicReference = musicReference
 	effective.resolvedAssembly.MusicVideoReference = musicVideo
 	effective.resolvedAssembly.ImageReference = imageReference
+	effective.resolvedAssembly.ImageMaskReference = imageMask
+	effective.resolvedAssembly.ImageMarkupReference = imageMarkup
+	effective.resolvedAssembly.VideoMediaReferences = videoImages
 	if err := s.auditCloudMediaCapture(effective); err != nil {
 		effective.release()
 		return nil, err
@@ -522,6 +579,9 @@ func (s *Service) executeCapturedCloudMedia(ctx context.Context, effective *clou
 		ctx = nimillm.WithMusicReferenceAudio(ctx, effective.resolvedAssembly.MusicReference)
 		ctx = nimillm.WithMusicReferenceVideo(ctx, effective.resolvedAssembly.MusicVideoReference)
 		ctx = nimillm.WithImageReference(ctx, effective.resolvedAssembly.ImageReference)
+		ctx = nimillm.WithImageMaskReference(ctx, effective.resolvedAssembly.ImageMaskReference)
+		ctx = nimillm.WithImageMarkupReference(ctx, effective.resolvedAssembly.ImageMarkupReference)
+		ctx = nimillm.WithCloudVideoMediaReferences(ctx, effective.resolvedAssembly.VideoMediaReferences)
 	}
 	response, err := s.remoteMediaHost.ExecuteMedia(ctx, effective.connector, effective.target, effective.mapped, effective.dispatchAudit())
 	if err != nil {

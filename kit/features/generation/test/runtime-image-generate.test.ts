@@ -36,6 +36,14 @@ function imageArtifact(overrides: Partial<NimiRuntimeScenarioArtifact> = {}): Ni
   };
 }
 
+it('preserves animated image MIME, preview bytes and measured duration', async () => {
+  const { client } = fakeClient({ artifacts: [imageArtifact({ mimeType: 'image/gif', durationMs: '1800', bytes: new Uint8Array([71, 73, 70]) })] });
+  const result = await runRuntimeImageGenerate(input(client, { outputFormat: 'gif', frameCount: 9, frameDurationMs: 200 }));
+  expect(result.ok).toBe(true);
+  if (!result.ok) throw result.error;
+  expect(result.output.firstArtifact).toMatchObject({ mimeType: 'image/gif', durationMs: 1800, previewUrl: 'data:image/gif;base64,R0lG' });
+});
+
 function imageEventType(status: ScenarioJobStatus): ScenarioJobEventType {
   switch (status) {
     case ScenarioJobStatus.SUBMITTED: return ScenarioJobEventType.SCENARIO_JOB_EVENT_SUBMITTED;

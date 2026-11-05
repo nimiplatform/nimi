@@ -36,8 +36,7 @@ type stableDiffusionVideoFFI struct {
 	generateVideo   *syscall.LazyProc
 	setProgress     *syscall.LazyProc
 	cancelGenerate  *syscall.LazyProc
-	freeImages      *syscall.LazyProc
-	freeAudio       *syscall.LazyProc
+	freeVideoResult *syscall.LazyProc
 	strToSample     *syscall.LazyProc
 	strToScheduler  *syscall.LazyProc
 
@@ -86,8 +85,7 @@ func newStableDiffusionVideoEngine(executablePath string) (videoEngine, error) {
 		generateVideo:   dll.NewProc("generate_video"),
 		setProgress:     dll.NewProc("sd_set_progress_callback"),
 		cancelGenerate:  dll.NewProc("sd_cancel_generation"),
-		freeImages:      dll.NewProc("free_sd_images"),
-		freeAudio:       dll.NewProc("free_sd_audio"),
+		freeVideoResult: dll.NewProc("free_sd_video_generation_result"),
 		strToSample:     dll.NewProc("str_to_sample_method"),
 		strToScheduler:  dll.NewProc("str_to_scheduler"),
 	}
@@ -110,7 +108,7 @@ func (engine *stableDiffusionVideoFFI) Load(request VideoModelRequest) (bool, er
 	if err := engine.dll.Load(); err != nil {
 		return false, videoError(VideoErrorLoad, fmt.Errorf("load stable-diffusion video DLL: %w", err))
 	}
-	for _, proc := range []*syscall.LazyProc{engine.ctxParamsInit, engine.videoParamsInit, engine.newContext, engine.freeContext, engine.supportsVideo, engine.generateVideo, engine.setProgress, engine.cancelGenerate, engine.freeImages, engine.freeAudio, engine.strToSample, engine.strToScheduler} {
+	for _, proc := range []*syscall.LazyProc{engine.ctxParamsInit, engine.videoParamsInit, engine.newContext, engine.freeContext, engine.supportsVideo, engine.generateVideo, engine.setProgress, engine.cancelGenerate, engine.freeVideoResult, engine.strToSample, engine.strToScheduler} {
 		if err := proc.Find(); err != nil {
 			return false, videoError(VideoErrorEngineIncompatible, fmt.Errorf("stable-diffusion video export %s unavailable: %w", proc.Name, err))
 		}
@@ -268,26 +266,14 @@ func (engine *stableDiffusionVideoFFI) Generate(request VideoGenerateRequest, pr
 		defer runtime.KeepAlive(reference)
 	}
 
-	var framesOut unsafe.Pointer
-	var frameCountOut int32
-	var audioOut unsafe.Pointer
-	var fpsOut int32
-	success, _, _ := engine.generateVideo.Call(
-		contextPointer,
-		uintptr(unsafe.Pointer(&params)),
-		uintptr(unsafe.Pointer(&framesOut)),
-		uintptr(unsafe.Pointer(&frameCountOut)),
-		uintptr(unsafe.Pointer(&audioOut)),
-		uintptr(unsafe.Pointer(&fpsOut)),
-	)
+	var resultOut *sdVideoGenerationResult
+	success, _, _ := engine.generateVideo.Call(contextPointer, uintptr(unsafe.Pointer(&params)), uintptr(unsafe.Pointer(&resultOut)))
 	runtime.KeepAlive(prompt)
 	runtime.KeepAlive(negative)
-	if framesOut != nil {
-		defer callVideoVoid(engine.freeImages, uintptr(framesOut), uintptr(frameCountOut))
+	if resultOut != nil {
+		defer callVideoVoid(engine.freeVideoResult, uintptr(unsafe.Pointer(resultOut)))
 	}
-	if audioOut != nil {
-		defer callVideoVoid(engine.freeAudio, uintptr(audioOut))
-	}
+
 	if success == 0 {
 		if engine.canceled.Load() {
 			return VideoCandidate{}, videoError(VideoErrorCanceled, fmt.Errorf("stable-diffusion video generation canceled"))
@@ -296,7 +282,10 @@ func (engine *stableDiffusionVideoFFI) Generate(request VideoGenerateRequest, pr
 	}
 	// Report the engine's effective frame rate. The public H3 postcondition
 	// rejects changes to its fixed 24 FPS contract instead of relabeling frames.
-	candidate, err := copyFFIVideoCandidate(framesOut, frameCountOut, audioOut, int(fpsOut))
+	if resultOut == nil {
+		return VideoCandidate{}, videoError(VideoErrorInference, fmt.Errorf("generate_video returned no result"))
+	}
+	candidate, err := copyFFIVideoCandidate(resultOut.Frames, resultOut.FrameCount, resultOut.Audio, int(resultOut.FPS))
 	if err != nil {
 		return VideoCandidate{}, err
 	}

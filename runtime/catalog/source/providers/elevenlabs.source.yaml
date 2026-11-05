@@ -1,6 +1,6 @@
 schema_version: 3
 provider: elevenlabs
-catalog_version: 2026-04-18-elevenlabs-v3
+catalog_version: 2026-11-04-elevenlabs-v4
 generated_target: runtime/catalog/providers/elevenlabs.yaml
 runtime:
   inventory_mode: static_source
@@ -23,6 +23,14 @@ defaults:
     notes: ElevenLabs public API docs expose request surfaces but not a stable per-model pricing schema.
 
 sources:
+  - source_id: elevenlabs_v4_models
+    url: https://elevenlabs.io/docs/overview/models
+    retrieved_at: 2026-11-04
+    note: Exact eleven_v4 and eleven_v4_turbo model identifiers; v4 has a 10000-character limit. The finite single-speaker implementation does not imply realtime dialogue or native streaming.
+  - source_id: elevenlabs_current_tts_openapi
+    url: https://api.elevenlabs.io/openapi.json
+    retrieved_at: 2026-11-04
+    note: Native text-to-speech model_id, voice reference and format enum; WAV is wav_rate, PCM is pcm_rate, and Ogg Opus uses opus_48000_bitrate.
   - source_id: elevenlabs_music_v2
     url: https://elevenlabs.io/docs/api-reference/music/compose
     retrieved_at: 2026-10-02
@@ -91,6 +99,32 @@ voice_sets:
         name: Josh
 
 models:
+  - model_id: eleven_v4
+    updated_at: 2026-11-04
+    capabilities: [audio.synthesize]
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: default-voices-v1
+      supports_voice_ref_kinds: [provider_voice_ref, voice_asset_id, preset_voice_id]
+      langs_ref: short_multilingual_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [mp3, pcm, ogg, wav]
+        supports_language: true
+    source_ids: [elevenlabs_v4_models, elevenlabs_current_tts_openapi, elevenlabs_voices]
+  - model_id: eleven_v4_turbo
+    updated_at: 2026-11-04
+    capabilities: [audio.synthesize]
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: default-voices-v1
+      supports_voice_ref_kinds: [provider_voice_ref, voice_asset_id, preset_voice_id]
+      langs_ref: short_multilingual_v1
+      request_options:
+        timing_modes: [none]
+        audio_formats: [mp3, pcm, ogg, wav]
+        supports_language: true
+    source_ids: [elevenlabs_v4_models, elevenlabs_current_tts_openapi, elevenlabs_voices]
   - model_id: music_v2
     model_type: music
     updated_at: 2026-10-02

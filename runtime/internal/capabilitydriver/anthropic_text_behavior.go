@@ -28,8 +28,10 @@ type anthropicMessagesProfile struct {
 	// samplingControls admits temperature or top_p, never both, and top_k.
 	samplingControls bool
 	// forcedToolChoice admits required and named tool choice.
-	forcedToolChoice bool
-	defaultMaxTokens int32
+	forcedToolChoice       bool
+	defaultMaxTokens       int32
+	reasoningControls      bool
+	rejectAssistantPrefill bool
 }
 
 // Claude models whose thinking stays off unless requested.
@@ -40,6 +42,8 @@ var anthropicLegacyMessages = &anthropicMessagesProfile{samplingControls: true, 
 // output budget, so the default limit leaves room for both.
 var anthropicAdaptiveMessages = &anthropicMessagesProfile{adaptiveThinking: true, defaultMaxTokens: 16384}
 
+var anthropicHaiku55Messages = &anthropicMessagesProfile{adaptiveThinking: true, forcedToolChoice: true, defaultMaxTokens: 16384, reasoningControls: true, rejectAssistantPrefill: true}
+
 // @nimi-authority: rule.nimi.runtime.ai-provider.anthropic-messages-text-behaviors
 func AnthropicTextBehaviorRequestSerializer(spec *runtimev1.TextGenerateScenarioSpec, stream bool) (textbehavior.SerializedRequest, error) {
 	return serializeAnthropicRequest(anthropicLegacyMessages, spec, stream)
@@ -47,6 +51,11 @@ func AnthropicTextBehaviorRequestSerializer(spec *runtimev1.TextGenerateScenario
 
 func AnthropicAdaptiveTextBehaviorRequestSerializer(spec *runtimev1.TextGenerateScenarioSpec, stream bool) (textbehavior.SerializedRequest, error) {
 	return serializeAnthropicRequest(anthropicAdaptiveMessages, spec, stream)
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.anthropic-haiku55-text-behaviors
+func AnthropicHaiku55TextBehaviorRequestSerializer(spec *runtimev1.TextGenerateScenarioSpec, stream bool) (textbehavior.SerializedRequest, error) {
+	return serializeAnthropicRequest(anthropicHaiku55Messages, spec, stream)
 }
 
 func serializeAnthropicRequest(profile *anthropicMessagesProfile, spec *runtimev1.TextGenerateScenarioSpec, stream bool) (textbehavior.SerializedRequest, error) {
@@ -148,6 +157,9 @@ func serializeAnthropicRequest(profile *anthropicMessagesProfile, spec *runtimev
 	if len(messages) == 0 {
 		return textbehavior.SerializedRequest{}, anthropicBehaviorInput("empty messages")
 	}
+	if profile.rejectAssistantPrefill && messages[len(messages)-1]["role"] != "user" {
+		return textbehavior.SerializedRequest{}, anthropicBehaviorUnsupported("assistant prefill")
+	}
 	maxTokens := spec.GetMaxTokens()
 	if maxTokens <= 0 {
 		maxTokens = profile.defaultMaxTokens
@@ -155,6 +167,11 @@ func serializeAnthropicRequest(profile *anthropicMessagesProfile, spec *runtimev
 	body := map[string]any{"messages": messages, "max_tokens": maxTokens, "stream": stream}
 	if profile.adaptiveThinking {
 		body["thinking"] = map[string]any{"type": "adaptive", "display": "omitted"}
+	}
+	if profile.reasoningControls {
+		if err := applyAnthropicHaiku55Reasoning(body, spec.GetReasoning()); err != nil {
+			return textbehavior.SerializedRequest{}, err
+		}
 	}
 	if len(system) > 0 {
 		body["system"] = strings.Join(system, "\n\n")
@@ -212,7 +229,12 @@ func serializeAnthropicRequest(profile *anthropicMessagesProfile, spec *runtimev
 		if err := validateAnthropicStructuredSchema(schema); err != nil {
 			return textbehavior.SerializedRequest{}, err
 		}
-		body["output_config"] = map[string]any{"format": map[string]any{"type": "json_schema", "schema": schema}}
+		output, _ := body["output_config"].(map[string]any)
+		if output == nil {
+			output = map[string]any{}
+		}
+		output["format"] = map[string]any{"type": "json_schema", "schema": schema}
+		body["output_config"] = output
 	}
 	payload, err := json.Marshal(body)
 	if err != nil {
@@ -604,7 +626,7 @@ func finishAnthropicBehavior(assembler *textbehavior.OrderedStreamAssembler, sto
 		finish = runtimev1.FinishReason_FINISH_REASON_STOP
 	case "tool_use":
 		finish = runtimev1.FinishReason_FINISH_REASON_TOOL_CALL
-	case "max_tokens":
+	case "max_tokens", "model_context_window_exceeded":
 		finish = runtimev1.FinishReason_FINISH_REASON_LENGTH
 	case "refusal":
 		finish = runtimev1.FinishReason_FINISH_REASON_CONTENT_FILTER

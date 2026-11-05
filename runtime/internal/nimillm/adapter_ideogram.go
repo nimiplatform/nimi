@@ -8,19 +8,23 @@ import (
 	"google.golang.org/grpc/codes"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 const AdapterIdeogramNative = "ideogram_native_adapter"
 
 // ExecuteIdeogramImage executes an image generation scenario job against the Ideogram API.
-// Ideogram uses POST /generate with JSON body. Auth via Bearer token. Sync response.
+// Exact 4.5 uses the v2 asynchronous protocol; earlier targets use their separate endpoint mapping.
 func ExecuteIdeogramImage(
 	ctx context.Context,
 	cfg MediaAdapterConfig,
 	req *runtimev1.SubmitScenarioJobRequest,
 	modelResolved string,
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
+	if modelResolved == capabilitydriver.Ideogram45Model {
+		return executeIdeogram45Image(ctx, cfg, scenarioImageSpec(req))
+	}
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
@@ -52,7 +56,7 @@ func ExecuteIdeogramImage(
 	if style := strings.TrimSpace(spec.GetStyle()); style != "" {
 		imageRequest["style_type"] = style
 	}
-	if seed := spec.GetSeed(); seed != 0 {
+	if seed := spec.GetSeed(); spec.Seed != nil {
 		imageRequest["seed"] = seed
 	}
 
@@ -62,7 +66,12 @@ func ExecuteIdeogramImage(
 
 	endpoint := firstProviderEndpointPath([]string{"/generate"})
 	resp := map[string]any{}
-	if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, endpoint), apiKey, payload, &resp); err != nil {
+	headers := cloneMediaHeaders(cfg.Headers)
+	if headers == nil {
+		headers = map[string]string{}
+	}
+	headers["Api-Key"] = apiKey
+	if err := DoJSONRequestWithHeaders(ctx, http.MethodPost, JoinURL(baseURL, endpoint), "", payload, &resp, headers); err != nil {
 		return nil, nil, "", err
 	}
 	artifactBytes, mimeType, artifactURI := ExtractTaskArtifactSource(ctx, resp)

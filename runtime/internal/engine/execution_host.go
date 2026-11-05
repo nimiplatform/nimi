@@ -1061,6 +1061,26 @@ func (m *Manager) ValidateLlamaDependencySources(config EngineConfig, sources []
 			return fmt.Errorf("captured llama CUDA dependency source no longer matches Runtime dependency state")
 		}
 	}
+	for _, source := range sources {
+		if source.DependencyFamily != "native-tool.media-codec" {
+			continue
+		}
+		codec, ok := exactInvocationDependencySource(sources, "native-tool.media-codec", MediaCodecDependencyID)
+		spec, err := mediaCodecSpecFor(currentGOOS(), currentGOARCH())
+		if !ok || err != nil || codec.ConsumerScope != "media-codec" || codec.Version != spec.version || !sameCleanPath(codec.CanonicalRoot, filepath.Join(m.depsDir, "media-codec", spec.directory)) {
+			return fmt.Errorf("captured llama media codec identity mismatch")
+		}
+		status, err := mediaCodecStatus(codec.CanonicalRoot, spec)
+		if err != nil {
+			return fmt.Errorf("verify captured llama media codec: %w", err)
+		}
+		for path, hash := range status.Hashes {
+			if codec.Hashes[path] != hash {
+				return fmt.Errorf("captured llama media codec hash mismatch")
+			}
+		}
+		break
+	}
 	return nil
 }
 

@@ -3,7 +3,9 @@ import { createNimiError } from '../../types';
 
 export type NimiRuntimeAIReasoningActivation = 'disabled' | 'adaptive' | 'required';
 export type NimiRuntimeAIReasoningPresentation = 'hidden' | 'summary';
-export type NimiRuntimeAIReasoningEffort = 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'maximum';
+/** model-default preserves explicit activation and delegates only intensity to
+ * the exact native implementation; it does not select or change a model. */
+export type NimiRuntimeAIReasoningEffort = 'model-default' | 'minimal' | 'low' | 'medium' | 'high' | 'xhigh' | 'maximum';
 
 export type NimiReasoningInputCapabilities = {
   readonly followsModelDefault: true;
@@ -20,7 +22,7 @@ export function projectReasoningInputCapabilities(value: unknown, fail: (detail:
   const keys = ['followsModelDefault', 'supportsDisabled', 'supportsRequired', 'supportsAdaptive', 'efforts', 'supportsBudget', 'presentations'];
   if (!record || typeof record !== 'object' || Array.isArray(record) || Object.keys(record).length !== keys.length || Object.keys(record).some((key) => !keys.includes(key))
     || record.followsModelDefault !== true || ['supportsDisabled', 'supportsRequired', 'supportsAdaptive', 'supportsBudget'].some((key) => typeof record[key] !== 'boolean')
-    || !Array.isArray(record.efforts) || new Set(record.efforts).size !== record.efforts.length || record.efforts.some((effort) => !['minimal', 'low', 'medium', 'high', 'xhigh', 'maximum'].includes(effort))
+    || !Array.isArray(record.efforts) || new Set(record.efforts).size !== record.efforts.length || record.efforts.some((effort) => !['model-default', 'minimal', 'low', 'medium', 'high', 'xhigh', 'maximum'].includes(effort))
     || !Array.isArray(record.presentations) || new Set(record.presentations).size !== record.presentations.length || record.presentations.some((presentation) => !['hidden', 'summary'].includes(presentation))) return fail('Invalid reasoning input capabilities');
   return Object.freeze({ ...record, efforts: Object.freeze([...record.efforts]), presentations: Object.freeze([...record.presentations]) }) as NimiReasoningInputCapabilities;
 }
@@ -94,6 +96,7 @@ export function toRuntimeReasoningConfig(reasoning: NimiRuntimeAIReasoningOption
 
 function toRuntimeReasoningEffort(effort: NimiRuntimeAIReasoningEffort | undefined, runtimeInputInvalid: (detail: string) => never): ReasoningEffort {
   switch (effort) {
+    case 'model-default': return ReasoningEffort.MODEL_DEFAULT;
     case 'minimal': return ReasoningEffort.MINIMAL;
     case 'low': return ReasoningEffort.LOW;
     case 'medium': return ReasoningEffort.MEDIUM;

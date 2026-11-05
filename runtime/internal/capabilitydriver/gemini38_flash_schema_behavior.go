@@ -86,7 +86,7 @@ func Gemini38FlashSchemaRequestSerializer(spec *runtimev1.TextGenerateScenarioSp
 	if _, err := textbehavior.CompileJSONSchema(schema); err != nil {
 		return textbehavior.SerializedRequest{}, geminiSchemaUnsupported()
 	}
-	messages, err := deepseekChatMessages(spec)
+	messages, err := chatCompletionMessages(spec, nil, "")
 	if err != nil {
 		return textbehavior.SerializedRequest{}, err
 	}

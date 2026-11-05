@@ -8,6 +8,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"google.golang.org/grpc/codes"
@@ -90,6 +91,8 @@ func (p *CloudProvider) ExecuteMediaAdapter(
 		artifacts, usage, providerJobID, err = ExecuteGeminiTranscribe(ctx, cfg, request, modelID)
 	case "minimax_task_adapter":
 		artifacts, usage, providerJobID, err = ExecuteMiniMaxTask(ctx, cfg, updater, privateJobID, request, modelID, mediaExecutionExtensions)
+	case AdapterMiniMaxH3Video:
+		artifacts, usage, providerJobID, err = ExecuteMiniMaxH3Video(ctx, cfg, request, modelID)
 	case "glm_task_adapter":
 		artifacts, usage, providerJobID, err = ExecuteGLMTask(ctx, cfg, updater, privateJobID, request, modelID, mediaExecutionExtensions)
 	case "glm_native_adapter":
@@ -109,7 +112,7 @@ func (p *CloudProvider) ExecuteMediaAdapter(
 	case "google_cloud_tts_adapter":
 		artifacts, usage, providerJobID, err = ExecuteGoogleCloudTTS(ctx, cfg, request, modelID)
 	case "flux_native_adapter":
-		artifacts, usage, providerJobID, err = ExecuteFluxImage(ctx, cfg, updater, privateJobID, request, modelID)
+		artifacts, usage, providerJobID, err = ExecuteFluxMedia(ctx, cfg, updater, privateJobID, request, modelID)
 	case "ideogram_native_adapter":
 		artifacts, usage, providerJobID, err = ExecuteIdeogramImage(ctx, cfg, request, modelID)
 	case "stability_native_adapter":
@@ -118,14 +121,16 @@ func (p *CloudProvider) ExecuteMediaAdapter(
 		artifacts, usage, providerJobID, err = ExecuteStabilityMusic(ctx, cfg, request, modelID)
 	case "kling_task_adapter":
 		artifacts, usage, providerJobID, err = ExecuteKlingTask(ctx, cfg, updater, privateJobID, request, modelID)
+	case AdapterLumaRay32:
+		artifacts, usage, providerJobID, err = ExecuteLumaRay32(ctx, cfg, request)
 	case "luma_task_adapter":
 		artifacts, usage, providerJobID, err = ExecuteLumaTask(ctx, cfg, updater, privateJobID, request, modelID)
 	case "pika_task_adapter":
 		artifacts, usage, providerJobID, err = ExecutePikaTask(ctx, cfg, updater, privateJobID, request, modelID)
 	case "runway_task_adapter":
 		artifacts, usage, providerJobID, err = ExecuteRunwayTask(ctx, cfg, updater, privateJobID, request, modelID)
-	case "google_veo_operation_adapter":
-		artifacts, usage, providerJobID, err = ExecuteGoogleVeoOperation(ctx, cfg, updater, privateJobID, request, modelID)
+	case AdapterGeminiOmniVideo:
+		return ExecuteGeminiOmniVideo(ctx, cfg, request, modelID)
 	case "stepfun_native_adapter":
 		artifacts, usage, providerJobID, err = ExecuteStepFunMedia(ctx, cfg, request, modelID)
 	case "soundverse_music_adapter":
@@ -153,13 +158,7 @@ func (p *CloudProvider) ExecuteMediaAdapter(
 		if observedVideo {
 			slog.Info("DashScope video artifact fetch started", "private_request_id", privateJobID, "provider_task_id", providerDiagnosticID(providerJobID), "artifact_count", len(artifacts))
 		}
-		if adapter == AdapterGoogleVeoOperation {
-			bodies, err = detachMediaArtifactBodiesWithOpener(ctx, artifacts, func(ctx context.Context, uri string) (io.ReadCloser, string, int64, error) {
-				return openGoogleVeoArtifactStream(ctx, uri, cfg.APIKey)
-			})
-		} else {
-			bodies, err = detachMediaArtifactBodies(ctx, artifacts)
-		}
+		bodies, err = detachMediaArtifactBodies(ctx, artifacts)
 		if observedVideo {
 			slog.Info("DashScope video artifact fetch returned", "private_request_id", privateJobID, "provider_task_id", providerDiagnosticID(providerJobID),
 				"elapsed_ms", time.Since(started).Milliseconds(), "opened", err == nil)
@@ -306,7 +305,7 @@ func (p *CloudProvider) executeGenericMediaWithTarget(
 		}
 		metadata := map[string]any{
 			"adapter":                     adapter,
-			"prompt":                      VideoPrompt(spec),
+			"prompt":                      capabilitydriver.VideoPrompt(spec),
 			"negative_prompt":             VideoNegativePrompt(spec),
 			"mode":                        spec.GetMode().String(),
 			"content":                     VideoContentPayload(spec),

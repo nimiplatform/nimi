@@ -32,7 +32,7 @@ var openAIResponses = &responsesProfile{
 func OpenAIResponsesTextBehaviorRequestSerializer(modelID string, spec *runtimev1.TextGenerateScenarioSpec, _ bool) (textbehavior.SerializedRequest, error) {
 	profile := *openAIResponses
 	profile.reasoningControls = true
-	profile.reasoningDisabled = modelID == "gpt-6-luna"
+	profile.reasoningDisabled = modelID == "gpt-6-luna" || modelID == "gpt-6.1-terra"
 	return serializeResponsesRequest(&profile, spec)
 }
 

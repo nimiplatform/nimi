@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"google.golang.org/protobuf/proto"
 )
 
@@ -32,7 +33,7 @@ func TestVideoContentWithPromptPreservesAllInputs(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			spec := &runtimev1.VideoGenerateScenarioSpec{Prompt: tc.prompt, Content: tc.content}
 			original := proto.Clone(spec)
-			if got := VideoPrompt(spec); got != tc.want {
+			if got := capabilitydriver.VideoPrompt(spec); got != tc.want {
 				t.Fatalf("prompt %q, want %q", got, tc.want)
 			}
 			payload := VideoContentPayload(spec)
@@ -46,10 +47,10 @@ func TestVideoContentWithPromptPreservesAllInputs(t *testing.T) {
 			if !proto.Equal(spec, original) {
 				t.Fatal("projection mutated the input")
 			}
-			spec.Content = VideoContentWithPrompt(spec)
+			spec.Content = capabilitydriver.VideoContentWithPrompt(spec)
 			once := proto.Clone(spec)
-			spec.Content = VideoContentWithPrompt(spec)
-			if !proto.Equal(spec, once) || VideoPrompt(spec) != tc.want {
+			spec.Content = capabilitydriver.VideoContentWithPrompt(spec)
+			if !proto.Equal(spec, once) || capabilitydriver.VideoPrompt(spec) != tc.want {
 				t.Fatal("normalization is not idempotent")
 			}
 		})

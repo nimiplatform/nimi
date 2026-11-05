@@ -1,6 +1,6 @@
 schema_version: 3
 provider: dashscope
-catalog_version: 2026-10-17-dashscope-qwen3-vl-plus-context
+catalog_version: 2026-11-05-dashscope-current-video
 generated_target: runtime/catalog/providers/dashscope.yaml
 runtime:
   inventory_mode: static_source
@@ -25,6 +25,22 @@ defaults:
     notes: Official document does not provide stable public pricing in a unified schema.
 
 sources:
+  - source_id: dashscope_wan3_video_api
+    url: https://help.aliyun.com/zh/model-studio/wan3-video-generation-api-reference
+    retrieved_at: 2026-11-05
+    note: Exact Wan3 standard/prime native media combinations and parameter limits; owned audio/video temporary upload is a separately admitted path.
+  - source_id: dashscope_happyhorse_t2v_api
+    url: https://help.aliyun.com/en/model-studio/happyhorse-text-to-video-api-reference
+    retrieved_at: 2026-11-05
+    note: HappyHorse1.1 text-to-video fields and default watermark behavior.
+  - source_id: dashscope_happyhorse_i2v_api
+    url: https://help.aliyun.com/en/model-studio/happyhorse-image-to-video-api-reference
+    retrieved_at: 2026-11-05
+    note: One first frame, native input.media and image-derived output aspect ratio.
+  - source_id: dashscope_happyhorse_r2v_api
+    url: https://help.aliyun.com/en/model-studio/happyhorse-reference-to-video-api-reference
+    retrieved_at: 2026-11-05
+    note: One through nine ordered references, exact geometry and native parameters; existing endpoints remain functional.
   - source_id: dashscope_qwen3_tts_retirement_doc
     url: https://www.aliyun.com/notice/118434
     retrieved_at: 2026-10-15
@@ -348,6 +364,159 @@ voice_sets:
         name: 龙安欢
 
 models:
+  - model_id: wan3.0-video
+    model_type: video
+    updated_at: 2026-11-05
+    capabilities: [video.generate]
+    features: [input.image]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-05
+      notes: Pricing and entitlement depend on the captured region and account; no successful generation or zero cost is inferred from catalog membership.
+    source_ids: [dashscope_wan3_video_api]
+    video_generation:
+      modes: [t2v, i2v_first_frame, i2v_first_last, i2v_reference]
+      input_roles:
+        t2v: [prompt]
+        i2v_first_frame: [prompt, first_frame]
+        i2v_first_last: [prompt, first_frame, last_frame]
+        i2v_reference: [prompt, reference_image, reference_video, reference_audio]
+      reference_anchor_roles: [reference_image, reference_video, reference_audio]
+      limits:
+        resolution: [480p, 720p, 1080p]
+        ratio: ['adaptive', '21:9', '16:9', '4:3', '1:1', '3:4', '9:16']
+        duration_sec: [-1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+        seed: {min: -1, max: 2147483647}
+        reference_images: {min: 0, max: 10}
+        reference_videos: {min: 1, max: 5}
+        reference_audios: {min: 1, max: 5}
+      options:
+        supports: [resolution, duration_sec, watermark, seed, ratio, generate_audio]
+        constraints: {}
+      outputs:
+        video_url: true
+
+  - model_id: wan3.0-video-prime
+    model_type: video
+    updated_at: 2026-11-05
+    capabilities: [video.generate]
+    features: [input.image]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-05
+      notes: Pricing and entitlement depend on the captured region and account; no successful generation or zero cost is inferred from catalog membership.
+    source_ids: [dashscope_wan3_video_api]
+    video_generation:
+      modes: [t2v, i2v_first_frame, i2v_first_last, i2v_reference]
+      input_roles:
+        t2v: [prompt]
+        i2v_first_frame: [prompt, first_frame]
+        i2v_first_last: [prompt, first_frame, last_frame]
+        i2v_reference: [prompt, reference_image, reference_video, reference_audio]
+      reference_anchor_roles: [reference_image, reference_video, reference_audio]
+      limits:
+        resolution: [480p, 720p, 1080p]
+        ratio: ['adaptive', '21:9', '16:9', '4:3', '1:1', '3:4', '9:16']
+        duration_sec: [-1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30]
+        seed: {min: -1, max: 2147483647}
+        reference_images: {min: 0, max: 10}
+        reference_videos: {min: 1, max: 5}
+        reference_audios: {min: 1, max: 5}
+      options:
+        supports: [resolution, duration_sec, watermark, seed, ratio, generate_audio]
+        constraints: {}
+      outputs:
+        video_url: true
+
+  - model_id: happyhorse-1.1-t2v
+    model_type: video
+    updated_at: 2026-11-05
+    capabilities: [video.generate]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-05
+      notes: Pricing and entitlement depend on the captured region and account; no successful generation or zero cost is inferred from catalog membership.
+    source_ids: [dashscope_happyhorse_t2v_api]
+    video_generation:
+      modes: [t2v]
+      input_roles:
+        t2v: [prompt]
+      limits:
+        resolution: [480p, 720p, 1080p]
+        ratio: ['16:9', '9:16', '1:1', '4:3', '3:4', '4:5', '5:4', '9:21', '21:9']
+        duration_sec: {min: 3, max: 15}
+        seed: {min: 0, max: 2147483647}
+      options:
+        supports: [resolution, duration_sec, watermark, seed, ratio]
+        constraints: {}
+      outputs:
+        video_url: true
+
+  - model_id: happyhorse-1.1-i2v
+    model_type: video
+    updated_at: 2026-11-05
+    capabilities: [video.generate]
+    features: [input.image]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-05
+      notes: Pricing and entitlement depend on the captured region and account; no successful generation or zero cost is inferred from catalog membership.
+    source_ids: [dashscope_happyhorse_i2v_api]
+    video_generation:
+      modes: [i2v_first_frame]
+      input_roles:
+        i2v_first_frame: [prompt, first_frame]
+      limits:
+        resolution: [480p, 720p, 1080p]
+        duration_sec: {min: 3, max: 15}
+        seed: {min: 0, max: 2147483647}
+      options:
+        supports: [resolution, duration_sec, watermark, seed]
+        constraints: {}
+      outputs:
+        video_url: true
+
+  - model_id: happyhorse-1.1-r2v
+    model_type: video
+    updated_at: 2026-11-05
+    capabilities: [video.generate]
+    features: [input.image]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-05
+      notes: Pricing and entitlement depend on the captured region and account; no successful generation or zero cost is inferred from catalog membership.
+    source_ids: [dashscope_happyhorse_r2v_api]
+    video_generation:
+      modes: [i2v_reference]
+      input_roles:
+        i2v_reference: [prompt, reference_image]
+      limits:
+        resolution: [480p, 720p, 1080p]
+        ratio: ['16:9', '9:16', '1:1', '4:3', '3:4', '4:5', '5:4', '9:21', '21:9']
+        duration_sec: {min: 3, max: 15}
+        seed: {min: 0, max: 2147483647}
+        reference_images: {min: 1, max: 9}
+      options:
+        supports: [resolution, duration_sec, watermark, seed, ratio]
+        constraints: {}
+      outputs:
+        video_url: true
+
   - model_id: qwen-audio-3.0-tts-plus
     updated_at: 2026-09-16
     capabilities: [audio.synthesize, voice.create]

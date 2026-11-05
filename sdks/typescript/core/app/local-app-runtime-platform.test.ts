@@ -1577,6 +1577,54 @@ test('protected synthesis alignment retains zero, validates typed units and surv
   await assert.rejects(client.ai.scenarioJobs.get('aligned-job'));
 });
 
+test('protected image controls reach the shell and reject incompatible markup and animation carriers', async () => {
+  const base = standardShell([]);
+  const captured: unknown[] = [];
+  const jobs = createNimiLocalAppClient({ standardShell: {
+    ...base, ai: { ...base.ai, scenarioJobs: { ...base.ai.scenarioJobs, async submit(spec) {
+      captured.push(spec);
+      throw Object.assign(new Error('isolated owner boundary'), { reasonCode: 'local-app-owner-unavailable', retryable: false });
+    } } },
+  } }).ai.scenarioJobs;
+  const spec = { type: 'image-generate' as const, prompt: 'edit', negativePrompt: '', size: '', aspectRatio: '', quality: 'low', style: '', referenceImages: [], referenceImageArtifactId: 'source', mask: '', responseFormat: '' as const };
+  const markup = { ...spec, complexity: 'high' as const, outputFormat: 'webp' as const, markupArtifactId: 'overlay' };
+  const gif = { ...spec, referenceImageArtifactId: '', outputFormat: 'gif' as const, frameCount: 64, frameDurationMs: 36 };
+  await assert.rejects(jobs.submit(markup), isTypedOwnerUnavailable);
+  await assert.rejects(jobs.submit(gif), isTypedOwnerUnavailable);
+  assert.deepEqual(captured, [markup, gif]);
+  for (const invalid of [
+    { ...markup, maskArtifactId: 'mask' }, { ...markup, referenceImageArtifactId: '' },
+    { ...markup, markup: 'https://example.com/overlay.png' }, { ...gif, frameCount: 65 },
+    { ...gif, frameDurationMs: 19 }, { ...gif, outputFormat: 'png' as const },
+  ]) {
+    await assert.rejects(jobs.submit(invalid), (error: unknown) => (error as { reasonCode?: string }).reasonCode === 'SDK_LOCAL_APP_INPUT_INVALID');
+  }
+  assert.equal(captured.length, 2);
+});
+
+test('image runner preserves new controls through the Runtime-to-protected-App conversion', async () => {
+  const base = standardShell([]);
+  const captured: Array<Record<string, unknown>> = [];
+  const client = createNimiLocalAppClient({ standardShell: {
+    ...base, ai: { ...base.ai, scenarioJobs: { ...base.ai.scenarioJobs, async submit(spec) {
+      captured.push({ ...spec });
+      throw Object.assign(new Error('isolated owner boundary'), { reasonCode: 'local-app-owner-unavailable', retryable: false });
+    } } },
+  } });
+  const runtime = { ai: createNimiLocalAppRuntimeScenarioJobClient(client.ai) };
+  const controls = [
+    { referenceImageArtifactId: 'source', complexity: 'high' as const, outputFormat: 'svg' as const },
+    { referenceImageArtifactId: 'source', markupArtifactId: 'overlay', complexity: 'low' as const, outputFormat: 'webp' as const },
+    { outputFormat: 'gif' as const, frameCount: 64, frameDurationMs: 36 },
+  ];
+  for (const value of controls) {
+    await assert.rejects(runNimiRuntimeImageGeneration({ runtime, head: { appId: 'app.test' }, prompt: 'image test', requestId: 'image-test-request', idempotencyKey: 'image-test-key', ...value }), isTypedOwnerUnavailable);
+  }
+  for (let i = 0; i < controls.length; i++) {
+    for (const [key, value] of Object.entries(controls[i]!)) assert.equal(captured[i]![key], value, `lost ${key}`);
+  }
+});
+
 test('local-app image generation admits one artifact custody carrier and rejects URL XOR', async () => {
   const calls: string[] = [];
   const jobs = createNimiLocalAppClient({ standardShell: standardShell(calls) }).ai.scenarioJobs;
@@ -2248,4 +2296,25 @@ test('reference voice action carries retained submission identity and expiry', a
   assert.deepEqual(calls[1], ['', 'reference-action']);
   Object.assign(job, { status: 'failed', recoveryExpiresAt: { seconds: '1790086467', nanos: 0 } });
   assert.ok((await client.ai.scenarioJobs.lookupSubmission('reference-action')).job.recoveryExpiresAt);
+});
+test('local-app video transports fifty-one parts and automatic duration without widening model admission', async () => {
+  const base = standardShell([]);
+  const calls: unknown[] = [];
+  const ownerFailure = Object.assign(new Error('provider rejected reference audio'), { reasonCode: 'upstream-failed' });
+  const client = createNimiLocalAppClient({ standardShell: {
+    ...base, ai: { ...base.ai, scenarioJobs: { ...base.ai.scenarioJobs,
+      async submit(spec) { calls.push(spec); throw ownerFailure; },
+    } },
+  } });
+  const spec = {
+    type: 'video-generate' as const, mode: 'i2v-reference' as const,
+    prompt: 'A harbor.', negativePrompt: '',
+    content: Array.from({length: 51}, (_, i) => ({ type: 'artifact-ref' as const, role: 'reference-image' as const, artifactId: `owned-${i}` })),
+    options: { resolution: '720p', ratio: '16:9', durationSec: -1, watermark: false, generateAudio: false },
+  };
+  await assert.rejects(() => client.ai.scenarioJobs.submit(spec), error => error === ownerFailure);
+  assert.deepEqual(calls, [spec]);
+  await assert.rejects(() => client.ai.scenarioJobs.submit({ ...spec, content: [...spec.content, spec.content[0]!] }));
+  await assert.rejects(() => client.ai.scenarioJobs.submit({ ...spec, options: { ...spec.options, durationSec: -2 } }));
+  assert.equal(calls.length, 1);
 });

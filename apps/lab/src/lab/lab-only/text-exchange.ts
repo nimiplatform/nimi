@@ -24,8 +24,9 @@ import type {
   StudioTextExchangeStep,
 } from '../../ai-studio-core/runtime-types.js';
 import { t } from '../../shell/i18n/index.js';
+import { validateHistoryJson } from '../../ai-studio-core/history-policy.js';
 
-export type LabTextExchangeScenario = 'tool-call' | 'structured-output';
+export type LabTextExchangeScenario = 'tool-call' | 'structured-output' | 'json-object';
 // Synchronous steps use scenario.execute; streaming steps use the text-turn
 // stream, which delivers text as it is generated and each tool call once
 // it is complete.
@@ -92,7 +93,7 @@ export function runLabTestTool(argumentsValue: unknown): { readonly result: Stud
   return { result: { centimeters, inches: Math.round((centimeters / 2.54) * 10_000) / 10_000 } };
 }
 
-export function checkLabTestSchemaResult(text: string): { readonly title: string; readonly priority: 'low' | 'medium' | 'high'; readonly tags: readonly string[] } {
+export function checkLabJsonObjectResult(text: string) {
   let parsed: unknown;
   try {
     parsed = JSON.parse(text);
@@ -100,6 +101,11 @@ export function checkLabTestSchemaResult(text: string): { readonly title: string
     throw new Error(t('CapabilityTests.textTools.notJson'));
   }
   if (!isJsonObject(parsed)) throw new Error(t('CapabilityTests.textTools.notObject'));
+  return parsed;
+}
+
+export function checkLabTestSchemaResult(text: string): { readonly title: string; readonly priority: 'low' | 'medium' | 'high'; readonly tags: readonly string[] } {
+  const parsed = checkLabJsonObjectResult(text);
   const extra = Object.keys(parsed).filter((key) => !['title', 'priority', 'tags'].includes(key));
   if (extra.length > 0) throw new Error(t('CapabilityTests.textTools.undeclaredFields', { fields: extra.join(', ') }));
   if (typeof parsed.title !== 'string' || !parsed.title.trim()) throw new Error(t('CapabilityTests.textTools.titleInvalid'));
@@ -201,7 +207,7 @@ export async function runLabTextExchange(context: StudioCapabilityRuntimeContext
   const { host, capability } = context;
   const signal = context.input.signal;
   const parameters = context.input.parameters as LabTextExchangeParameters | undefined;
-  const scenario: LabTextExchangeScenario = parameters?.scenario === 'structured-output' ? 'structured-output' : 'tool-call';
+  const scenario: LabTextExchangeScenario = parameters?.scenario === 'structured-output' || parameters?.scenario === 'json-object' ? parameters.scenario : 'tool-call';
   const delivery: LabTextExchangeDelivery = parameters?.delivery === 'stream' ? 'stream' : 'sync';
   const prompt = context.input.prompt.trim();
   if (!prompt) return host.nonSuccess(capability, 'input-invalid', host.translate('CapabilityTests.textTools.inputRequired'));
@@ -217,7 +223,9 @@ export async function runLabTextExchange(context: StudioCapabilityRuntimeContext
       if (signal?.aborted) return stopped(context);
       const request: NimiLocalAppTextTurnInput = scenario === 'tool-call'
         ? { messages: [...messages], tools: [LAB_TEST_TOOL], toolChoice: 'auto' }
-        : { messages: [...messages], responseFormat: { type: 'json-schema', name: LAB_TEST_SCHEMA_NAME, schema: LAB_TEST_SCHEMA, strict: true } };
+        : scenario === 'json-object'
+          ? { messages: [...messages], responseFormat: { type: 'json-object' } }
+          : { messages: [...messages], responseFormat: { type: 'json-schema', name: LAB_TEST_SCHEMA_NAME, schema: LAB_TEST_SCHEMA, strict: true } };
       if (parameters?.reasoning !== undefined) Object.assign(request, { reasoning: parameters.reasoning });
       const response = delivery === 'stream'
         ? await streamLabTextStep(context, request)
@@ -236,19 +244,27 @@ export async function runLabTextExchange(context: StudioCapabilityRuntimeContext
       if (toolCalls.length === 0) {
         if (scenario === 'tool-call' && step === 0) fail(host.translate('CapabilityTests.textTools.toolNotCalled', { tool: LAB_TEST_TOOL_NAME }));
         const text = output.items.flatMap((item) => item.type === 'text' ? [item.text] : []).join('');
-        if (scenario === 'structured-output') {
-          let structured: ReturnType<typeof checkLabTestSchemaResult>;
+        if (scenario !== 'tool-call') {
+          let structured: StudioJsonValue;
           try {
-            structured = checkLabTestSchemaResult(text);
+            if (scenario === 'json-object') {
+              const parsed = checkLabJsonObjectResult(text);
+              validateHistoryJson(parsed, 'structured');
+              structured = parsed;
+            }
+            else {
+              const checked = checkLabTestSchemaResult(text);
+              structured = { title: checked.title, priority: checked.priority, tags: [...checked.tags] };
+            }
           } catch (error) {
             fail(host.translate('CapabilityTests.textTools.structuredCheckFailed', { detail: error instanceof Error ? error.message : String(error) }));
           }
-          return success(context, scenario, steps, text, lastTraceId, { title: structured.title, priority: structured.priority, tags: [...structured.tags] });
+          return success(context, scenario, steps, text, lastTraceId, structured);
         }
         if (!text.trim()) fail(host.translate('CapabilityTests.textTools.noFinalText'));
         return success(context, scenario, steps, text, lastTraceId);
       }
-      if (scenario === 'structured-output') fail(host.translate('CapabilityTests.textTools.unexpectedToolCall'));
+      if (scenario !== 'tool-call') fail(host.translate('CapabilityTests.textTools.unexpectedToolCall'));
       const results: NimiLocalAppTextTurnItem[] = [];
       const resultItems: StudioTextExchangeItem[] = [];
       for (const call of toolCalls) {
@@ -297,7 +313,7 @@ function success(
     ok: true,
     capabilityId: context.capability.id,
     capabilityLabel: context.capability.label,
-    message: context.host.translate(scenario === 'tool-call' ? 'CapabilityTests.textTools.toolPassed' : 'CapabilityTests.textTools.schemaPassed'),
+    message: context.host.translate(scenario === 'tool-call' ? 'CapabilityTests.textTools.toolPassed' : scenario === 'json-object' ? 'CapabilityTests.textTools.jsonObjectPassed' : 'CapabilityTests.textTools.schemaPassed'),
     output: {
       kind: 'text-exchange',
       scenario,

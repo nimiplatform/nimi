@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
 )
@@ -19,7 +20,7 @@ func buildWan27ImageVideoPayload(model string, spec *runtimev1.VideoGenerateScen
 		return invalid()
 	}
 	input := map[string]any{}
-	if prompt := VideoPrompt(spec); prompt != "" {
+	if prompt := capabilitydriver.VideoPrompt(spec); prompt != "" {
 		input["prompt"] = prompt
 	}
 	if negative := VideoNegativePrompt(spec); negative != "" {
@@ -27,7 +28,7 @@ func buildWan27ImageVideoPayload(model string, spec *runtimev1.VideoGenerateScen
 	}
 	media := []map[string]any{}
 	seen := map[string]bool{}
-	for _, item := range VideoContentWithPrompt(spec) {
+	for _, item := range capabilitydriver.VideoContentWithPrompt(spec) {
 		if item == nil {
 			return invalid()
 		}

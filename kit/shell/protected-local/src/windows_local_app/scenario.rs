@@ -729,6 +729,12 @@ fn parse_image_spec(
             "maskArtifactId",
             "strength",
             "responseFormat",
+            "complexity",
+            "outputFormat",
+            "markup",
+            "markupArtifactId",
+            "frameCount",
+            "frameDurationMs",
         ],
         &[
             "type",
@@ -779,7 +785,28 @@ fn parse_image_spec(
     {
         return Err(invalid_payload());
     }
+    let complexity = optional_present_text_field(object, "complexity", 16)?;
+    let output_format = optional_present_text_field(object, "outputFormat", 16)?;
+    let markup = optional_present_text_field(object, "markup", MAX_URI_BYTES)?;
+    let markup_artifact_id = optional_present_text_field(object, "markupArtifactId", MAX_IDENTIFIER_BYTES)?;
+    let frame_count = optional_integer_field(object, "frameCount")?;
+    let frame_duration_ms = optional_integer_field(object, "frameDurationMs")?;
+    if !matches!(complexity.as_str(), "" | "low" | "medium" | "high")
+        || !matches!(output_format.as_str(), "" | "png" | "jpeg" | "webp" | "gif" | "svg")
+        || (!markup.is_empty() && !is_https_url(&markup))
+        || (!markup.is_empty() && !markup_artifact_id.is_empty())
+        || ((!markup.is_empty() || !markup_artifact_id.is_empty()) && (!mask.is_empty() || !mask_artifact_id.is_empty() || reference_images.is_empty() && reference_image_artifact_id.is_empty()))
+        || frame_count.is_some_and(|v| !(2..=64).contains(&v))
+        || frame_duration_ms.is_some_and(|v| !(20..=2000).contains(&v))
+        || ((frame_count.is_some() || frame_duration_ms.is_some()) && output_format != "gif")
+    { return Err(invalid_payload()); }
     Ok(LocalAppImageGenerateScenarioSpec {
+        complexity,
+        output_format,
+        markup,
+        markup_artifact_id,
+        frame_count: frame_count.map(|v| v as i32),
+        frame_duration_ms: frame_duration_ms.map(|v| v as i32),
         prompt,
         negative_prompt,
         n: n.map(|value| i32::try_from(value).map_err(|_| invalid_payload()))
@@ -824,7 +851,7 @@ fn parse_video_spec(
     let content_values = field(object, "content")?
         .as_array()
         .ok_or_else(invalid_payload)?;
-    if content_values.len() > 8 || (prompt.is_empty() && content_values.is_empty()) {
+    if content_values.len() > 51 || (prompt.is_empty() && content_values.is_empty()) {
         return Err(invalid_payload());
     }
     let content = content_values
@@ -856,7 +883,7 @@ fn parse_video_spec(
     let frames = optional_integer_field(options_object, "frames")?;
     let fps = optional_integer_field(options_object, "fps")?;
     let seed = optional_integer_field(options_object, "seed")?;
-    if duration_sec.is_some_and(|value| !(0..=600).contains(&value))
+    if duration_sec.is_some_and(|value| !(-1..=600).contains(&value))
         || frames.is_some_and(|value| !(0..=100_000).contains(&value))
         || fps.is_some_and(|value| !(0..=120).contains(&value))
         || seed.is_some_and(|value| !(-1..=4_294_967_295).contains(&value))
@@ -2095,6 +2122,22 @@ mod tests {
     }
 
     #[test]
+    fn video_fifty_one_parts_and_automatic_duration_are_bounded() {
+        let mut input = json!({"type":"video-generate", "mode":"i2v-reference", "prompt":"", "negativePrompt":"",
+            "content": (0..51).map(|i| json!({"type":"artifact-ref", "role":"reference-image", "artifactId":format!("owned-{i}")})).collect::<Vec<_>>(),
+            "options":{"resolution":"480p", "ratio":"adaptive", "durationSec":-1, "watermark":false, "generateAudio":false}});
+        let JobSpec::VideoGenerate(spec) = parse_job_spec(input.clone()).unwrap() else { panic!("video spec") };
+        assert_eq!(spec.content.len(),51);
+        assert_eq!(spec.options.as_ref().unwrap().duration_sec,Some(-1));
+        assert_eq!(spec.options.as_ref().unwrap().generate_audio,Some(false));
+        input["content"].as_array_mut().unwrap().push(json!({"type":"artifact-ref", "role":"reference-image", "artifactId":"too-many"}));
+        assert!(parse_job_spec(input.clone()).is_err());
+        input["content"].as_array_mut().unwrap().pop();
+        input["options"]["durationSec"] = json!(-2);
+        assert!(parse_job_spec(input).is_err());
+    }
+
+    #[test]
     fn t2v_reference_audio_preserves_the_existing_carrier() {
         let JobSpec::VideoGenerate(spec) = parse_job_spec(json!({
             "type": "video-generate", "mode": "t2v", "prompt": "A harbor.", "negativePrompt": "",
@@ -2264,6 +2307,27 @@ mod tests {
         assert!(parse_job_spec(JsonValue::Object(injected)).is_err());
         assert!(base64_bytes_input(&json!(base64_bytes_output(&[0u8; 32])), 16).is_err());
         assert!(base64_bytes_input(&json!(vec![0u8; 8]), 16).is_err());
+    }
+
+    #[test]
+    fn image_render_controls_preserve_types_and_reject_conflicting_carriers() {
+        let input = json!({
+            "type":"image-generate", "prompt":"edit", "negativePrompt":"", "size":"", "aspectRatio":"", "quality":"low", "style":"",
+            "referenceImages":[], "referenceImageArtifactId":"source", "mask":"", "responseFormat":"",
+            "complexity":"high", "outputFormat":"webp", "markupArtifactId":"overlay"
+        });
+        let JobSpec::ImageGenerate(parsed) = parse_job_spec(input.clone()).unwrap() else { panic!("expected image"); };
+        assert_eq!(parsed.complexity, "high");
+        assert_eq!(parsed.output_format, "webp");
+        assert_eq!(parsed.markup_artifact_id, "overlay");
+        assert_eq!(parsed.frame_count, None);
+        for (key,value) in [("maskArtifactId",json!("mask")),("markup",json!("https://example.com/x.png")),("referenceImageArtifactId",json!("")),("frameCount",json!(3)),("complexity",json!("max"))] {
+            let mut invalid=input.clone();invalid[key]=value;assert!(parse_job_spec(invalid).is_err());
+        }
+        let mut gif=input.clone();gif.as_object_mut().unwrap().remove("markupArtifactId");gif["referenceImageArtifactId"]=json!("");gif["outputFormat"]=json!("gif");gif["frameCount"]=json!(64);gif["frameDurationMs"]=json!(36);
+        let JobSpec::ImageGenerate(parsed) = parse_job_spec(gif.clone()).unwrap() else { panic!("expected animation"); };
+        assert_eq!(parsed.frame_count,Some(64));assert_eq!(parsed.frame_duration_ms,Some(36));
+        gif["frameCount"]=json!(65);assert!(parse_job_spec(gif).is_err());
     }
 
     #[test]

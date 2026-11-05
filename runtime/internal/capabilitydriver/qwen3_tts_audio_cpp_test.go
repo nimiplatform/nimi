@@ -83,3 +83,13 @@ func floatPtr(value float32) *float32 { return &value }
 func presetVoiceReference(value string) *runtimev1.VoiceReference {
 	return &runtimev1.VoiceReference{Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET, Reference: &runtimev1.VoiceReference_PresetVoiceId{PresetVoiceId: value}}
 }
+
+func TestQwen3TTSAudioCppMissingPresetIsVoiceInputFailure(t *testing.T) {
+	for _, ref := range []*runtimev1.VoiceReference{nil, presetVoiceReference("Ryan"), {Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF, Reference: &runtimev1.VoiceReference_ProviderVoiceRef{ProviderVoiceRef: "Vivian"}}} {
+		_, err := validateQwen3TTSAudioCppRequest(&runtimev1.SpeechSynthesizeScenarioSpec{Text: "hello", VoiceRef: ref})
+		failure, ok := err.(*InvocationError)
+		if !ok || failure.Kind != InvocationFailureVoiceInput {
+			t.Fatalf("missing or incompatible voice must not suggest resetting media options: %v", err)
+		}
+	}
+}

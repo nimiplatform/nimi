@@ -249,7 +249,7 @@ func TestStableDiffusionVideoFFILayoutMatchesPinnedHeader(t *testing.T) {
 	if got := unsafe.Sizeof(sdCtxParams{}); got != 336 {
 		t.Fatalf("sizeof(sd_ctx_params_t) = %d", got)
 	}
-	if got := unsafe.Sizeof(sdVideoGenParams{}); got != 584 {
+	if got := unsafe.Sizeof(sdVideoGenParams{}); got != 592 {
 		t.Fatalf("sizeof(sd_vid_gen_params_t) = %d", got)
 	}
 	if got := unsafe.Sizeof(sdImage{}); got != 24 {
@@ -257,6 +257,10 @@ func TestStableDiffusionVideoFFILayoutMatchesPinnedHeader(t *testing.T) {
 	}
 	if got := unsafe.Sizeof(sdAudio{}); got != 24 {
 		t.Fatalf("sizeof(sd_audio_t) = %d", got)
+	}
+	result := sdVideoGenerationResult{}
+	if unsafe.Sizeof(result) != 40 || unsafe.Offsetof(result.Frames) != 0 || unsafe.Offsetof(result.FrameCount) != 8 || unsafe.Offsetof(result.Audio) != 16 || unsafe.Offsetof(result.FPS) != 24 || unsafe.Offsetof(result.GenerationInfo) != 32 {
+		t.Fatal("sd_video_generation_result_t does not match the pinned x64 header")
 	}
 	ctx := sdCtxParams{}
 	for name, got := range map[string]uintptr{
@@ -278,9 +282,9 @@ func TestStableDiffusionVideoFFILayoutMatchesPinnedHeader(t *testing.T) {
 		"width": unsafe.Offsetof(video.Width), "sample_params": unsafe.Offsetof(video.SampleParams), "seed": unsafe.Offsetof(video.Seed),
 		"video_frames": unsafe.Offsetof(video.VideoFrames), "vae_tiling_params": unsafe.Offsetof(video.VAETilingParams),
 		"cache": unsafe.Offsetof(video.Cache), "hires": unsafe.Offsetof(video.Hires), "circular_x": unsafe.Offsetof(video.CircularX),
-		"image_preprocess": unsafe.Offsetof(video.ImagePreprocessRules),
+		"image_preprocess": unsafe.Offsetof(video.ImagePreprocessRules), "ref_image_args": unsafe.Offsetof(video.RefImageArgs),
 	} {
-		want := map[string]uintptr{"prompt": 16, "init_image": 40, "ref_images": 88, "width": 148, "sample_params": 160, "seed": 360, "video_frames": 368, "vae_tiling_params": 384, "cache": 416, "hires": 512, "circular_x": 568, "image_preprocess": 576}[name]
+		want := map[string]uintptr{"prompt": 16, "init_image": 40, "ref_images": 88, "width": 148, "sample_params": 160, "seed": 360, "video_frames": 368, "vae_tiling_params": 384, "cache": 416, "hires": 512, "circular_x": 568, "image_preprocess": 576, "ref_image_args": 584}[name]
 		if got != want {
 			t.Fatalf("offsetof(sd_vid_gen_params_t.%s) = %d, want %d", name, got, want)
 		}
@@ -305,7 +309,7 @@ func startVideoTestServer(t *testing.T, server *Server) (string, func()) {
 }
 
 func h3VideoPackageIdentity() videoPackageIdentity {
-	return videoPackageIdentity{Name: "master-995-fd21ecf", SupportedModelFamilies: []string{"minimax-h3"}, ArchiveSHA256: stableDiffusionVideoArchiveSHA256}
+	return videoPackageIdentity{Name: "master-1050-58bb3c1", SupportedModelFamilies: []string{"minimax-h3"}, ArchiveSHA256: stableDiffusionVideoArchiveSHA256}
 }
 
 func validVideoModelRequest(address string) VideoModelRequest {

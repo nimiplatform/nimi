@@ -31,7 +31,7 @@ func ExecuteGeminiTTSInteractions(ctx context.Context, cfg MediaAdapterConfig, r
 	ctx = withProviderParameterObserver(ctx, func(status int, fields []string) {
 		slog.Warn("Gemini stored voice synthesis request rejected", "http_status", status, "mentioned_fields", fields)
 	})
-	if err := geminiVoiceRequest(ctx, cfg, http.MethodPost, "/interactions", payload, &response); err != nil {
+	if err := geminiNativeRequest(ctx, cfg, http.MethodPost, "/interactions", payload, &response); err != nil {
 		return nil, nil, "", err
 	}
 	invalid := func() ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {

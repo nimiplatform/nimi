@@ -481,6 +481,27 @@ func validateImageRequestOptions(provider string, modelID string, options *Image
 	if options.MaxImagesPerRequest > 16 {
 		return fmt.Errorf("model %s:%s image_request_options.max_images_per_request must be <= 16", provider, modelID)
 	}
+	for _, value := range options.ComplexityLevels {
+		if value != "low" && value != "medium" && value != "high" {
+			return fmt.Errorf("image complexity level invalid: %s:%s", provider, modelID)
+		}
+	}
+	gifOutput := false
+	for _, value := range options.OutputFormats {
+		switch value {
+		case "png", "jpeg", "webp", "svg":
+		case "gif":
+			gifOutput = true
+		default:
+			return fmt.Errorf("image output format invalid: %s:%s", provider, modelID)
+		}
+	}
+	if options.SupportsMarkup && !options.SupportsReferenceImages {
+		return fmt.Errorf("image markup requires references: %s:%s", provider, modelID)
+	}
+	if options.MaxAnimationFrames != 0 && (options.MaxAnimationFrames < 2 || options.MaxAnimationFrames > 64 || !gifOutput) {
+		return fmt.Errorf("image animation limit invalid: %s:%s", provider, modelID)
+	}
 	return validateProviderExtensions(provider, modelID, "image_request_options", options.ProviderExtensions)
 }
 

@@ -1,6 +1,6 @@
 schema_version: 3
 provider: anthropic
-catalog_version: 2026-09-30-anthropic-current-adaptive
+catalog_version: 2026-11-04-anthropic-haiku55
 generated_target: runtime/catalog/providers/anthropic.yaml
 runtime:
   inventory_mode: static_source
@@ -24,6 +24,18 @@ defaults:
     notes: Anthropic pricing varies by model family, token class, and contract tier.
 
 sources:
+  - source_id: anthropic_haiku55_overview
+    url: https://platform.claude.com/docs/en/models/haiku-5-5/overview
+    retrieved_at: 2026-11-04
+    note: Fixed claude-haiku-5-5 released 2026-10-07, one-million-token context, 128K output, text/image input, and tiered input/output pricing.
+  - source_id: anthropic_haiku55_migration
+    url: https://platform.claude.com/docs/en/models/haiku-5-5/migration-guide
+    retrieved_at: 2026-11-04
+    note: Adaptive thinking by default, hidden signatures, native forced tool choice, no sampling or assistant prefill, and unchanged Messages response and streaming shapes.
+  - source_id: anthropic_current_effort
+    url: https://platform.claude.com/docs/en/build-with-claude/effort
+    retrieved_at: 2026-11-04
+    note: Haiku 5.5 permits all five effort levels; disabled thinking is valid only at high or below, with medium as its default effort.
   - source_id: anthropic_models_overview
     url: https://platform.claude.com/docs/en/about-claude/models/overview
     retrieved_at: 2026-09-30
@@ -98,6 +110,20 @@ selection_profiles:
     rationale: Anthropic's current model for demanding reasoning and long-horizon work; retirement not before 2027-09-01.
 
 models:
+  - model_id: claude-haiku-5-5
+    model_type: chat
+    updated_at: 2026-11-04
+    context_window_tokens: 872000
+    capabilities: [text.generate]
+    features: [input.image]
+    pricing:
+      unit: token
+      input: "0.10"
+      output: "0.50"
+      currency: USD
+      as_of: 2026-11-04
+      notes: Per 1M tokens for prompts up to 100000 tokens; above that tier input is $0.50 and output $2.50. The request capacity floor leaves room for 128K output inside the 1M total context.
+    source_ids: [anthropic_haiku55_overview, anthropic_haiku55_migration, anthropic_current_effort]
   - model_id: claude-fable-5-1
     model_type: chat
     updated_at: 2026-09-30

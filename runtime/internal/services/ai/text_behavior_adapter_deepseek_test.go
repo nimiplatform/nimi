@@ -22,7 +22,7 @@ func TestPositionedSystemRequiresAnExactModeAndCombination(t *testing.T) {
 			adapter, err := resolveTextBehaviorAdapter(registrations, identity, target.provider, target.model, mode, spec)
 			admitted := target.model == "deepseek-flash" && mode != runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB
 			if admitted {
-				if err != nil || adapter == nil || adapter.registration.Version != "3" {
+				if err != nil || adapter == nil || adapter.registration.Version != "5" {
 					t.Fatalf("admitted %v/%v: %v %v", target, mode, adapter, err)
 				}
 			} else if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED {
@@ -61,7 +61,7 @@ func TestDeepseekToolsResolveExactTargetsModesAndCombinations(t *testing.T) {
 					s.ToolChoiceName = s.Tools[0].Name
 				}
 				adapter, err := resolveTextBehaviorAdapter(productionTextBehaviorAdapterRegistrations(), identity, "deepseek", model, mode, s)
-				if err != nil || adapter == nil || adapter.registration.Version != "3" {
+				if err != nil || adapter == nil || adapter.registration.Version != "5" {
 					t.Fatalf("%s/%v/%v adapter=%+v err=%v", model, mode, choice, adapter, err)
 				}
 			}
@@ -84,7 +84,7 @@ func TestDeepseekToolsResolveExactTargetsModesAndCombinations(t *testing.T) {
 	}
 	s = testTextBehaviorToolSpec()
 	s.Reasoning = &runtimev1.ReasoningConfig{Activation: runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED, Intensity: &runtimev1.ReasoningConfig_Effort{Effort: runtimev1.ReasoningEffort_REASONING_EFFORT_HIGH}, Presentation: runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN}
-	if _, err := resolveTextBehaviorAdapter(productionTextBehaviorAdapterRegistrations(), identity, "deepseek", "deepseek-flash", runtimev1.ExecutionMode_EXECUTION_MODE_STREAM, s); err == nil {
-		t.Fatal("raw reasoning tool roundtrip promoted")
+	if _, err := resolveTextBehaviorAdapter(productionTextBehaviorAdapterRegistrations(), identity, "deepseek", "deepseek-flash", runtimev1.ExecutionMode_EXECUTION_MODE_STREAM, s); err != nil {
+		t.Fatalf("native reasoning tool roundtrip rejected: %v", err)
 	}
 }

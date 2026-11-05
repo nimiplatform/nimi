@@ -316,6 +316,15 @@ func (s *Service) resolveCloudTextConsumerIntent(ctx context.Context, head *runt
 }
 
 func cloudTextDriverError(err error) error {
+	// Exact Driver controls can already carry a classified public contract
+	// rejection. It is not an unclassified provider/server failure.
+	if reason, ok := grpcerr.ExtractReasonCode(err); ok {
+		switch reason {
+		case runtimev1.ReasonCode_AI_INPUT_INVALID, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED,
+			runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED:
+			return err
+		}
+	}
 	var driverErr *capabilitydriver.CloudInvocationError
 	if !errors.As(err, &driverErr) {
 		return grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, err, grpcerr.ReasonOptions{})

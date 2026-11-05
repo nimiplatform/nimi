@@ -411,6 +411,9 @@ const (
 	ReasoningEffort_REASONING_EFFORT_HIGH        ReasoningEffort = 4
 	ReasoningEffort_REASONING_EFFORT_MAXIMUM     ReasoningEffort = 5
 	ReasoningEffort_REASONING_EFFORT_XHIGH       ReasoningEffort = 6
+	// Activate thinking using the exact implementation's native default intensity.
+	// This is distinct from omitting the entire ReasoningConfig.
+	ReasoningEffort_REASONING_EFFORT_MODEL_DEFAULT ReasoningEffort = 7
 )
 
 // Enum value maps for ReasoningEffort.
@@ -423,15 +426,17 @@ var (
 		4: "REASONING_EFFORT_HIGH",
 		5: "REASONING_EFFORT_MAXIMUM",
 		6: "REASONING_EFFORT_XHIGH",
+		7: "REASONING_EFFORT_MODEL_DEFAULT",
 	}
 	ReasoningEffort_value = map[string]int32{
-		"REASONING_EFFORT_UNSPECIFIED": 0,
-		"REASONING_EFFORT_MINIMAL":     1,
-		"REASONING_EFFORT_LOW":         2,
-		"REASONING_EFFORT_MEDIUM":      3,
-		"REASONING_EFFORT_HIGH":        4,
-		"REASONING_EFFORT_MAXIMUM":     5,
-		"REASONING_EFFORT_XHIGH":       6,
+		"REASONING_EFFORT_UNSPECIFIED":   0,
+		"REASONING_EFFORT_MINIMAL":       1,
+		"REASONING_EFFORT_LOW":           2,
+		"REASONING_EFFORT_MEDIUM":        3,
+		"REASONING_EFFORT_HIGH":          4,
+		"REASONING_EFFORT_MAXIMUM":       5,
+		"REASONING_EFFORT_XHIGH":         6,
+		"REASONING_EFFORT_MODEL_DEFAULT": 7,
 	}
 )
 
@@ -3061,7 +3066,9 @@ func (x *ReasoningSummary) GetText() string {
 }
 
 // Bounded self-contained native continuity state. Callers preserve the ordered
-// bytes unchanged; Runtime does not interpret or persist a cross-request store.
+// bytes unchanged; only the exact Driver decodes its native replay format.
+// A carrier may contain plaintext reasoning and does not guarantee encryption.
+// Runtime keeps no cross-request continuity store.
 type ReasoningContinuityCarrier struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Kind          string                 `protobuf:"bytes,1,opt,name=kind,proto3" json:"kind,omitempty"`
@@ -4184,6 +4191,12 @@ type ImageGenerateScenarioSpec struct {
 	ReferenceImageArtifactId string                 `protobuf:"bytes,12,opt,name=reference_image_artifact_id,json=referenceImageArtifactId,proto3" json:"reference_image_artifact_id,omitempty"`
 	MaskArtifactId           string                 `protobuf:"bytes,13,opt,name=mask_artifact_id,json=maskArtifactId,proto3" json:"mask_artifact_id,omitempty"`
 	Strength                 *float32               `protobuf:"fixed32,14,opt,name=strength,proto3,oneof" json:"strength,omitempty"`
+	Complexity               string                 `protobuf:"bytes,15,opt,name=complexity,proto3" json:"complexity,omitempty"`
+	OutputFormat             string                 `protobuf:"bytes,16,opt,name=output_format,json=outputFormat,proto3" json:"output_format,omitempty"`
+	Markup                   string                 `protobuf:"bytes,17,opt,name=markup,proto3" json:"markup,omitempty"`
+	MarkupArtifactId         string                 `protobuf:"bytes,18,opt,name=markup_artifact_id,json=markupArtifactId,proto3" json:"markup_artifact_id,omitempty"`
+	FrameCount               *int32                 `protobuf:"varint,19,opt,name=frame_count,json=frameCount,proto3,oneof" json:"frame_count,omitempty"`
+	FrameDurationMs          *int32                 `protobuf:"varint,20,opt,name=frame_duration_ms,json=frameDurationMs,proto3,oneof" json:"frame_duration_ms,omitempty"`
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
 }
@@ -4312,6 +4325,48 @@ func (x *ImageGenerateScenarioSpec) GetMaskArtifactId() string {
 func (x *ImageGenerateScenarioSpec) GetStrength() float32 {
 	if x != nil && x.Strength != nil {
 		return *x.Strength
+	}
+	return 0
+}
+
+func (x *ImageGenerateScenarioSpec) GetComplexity() string {
+	if x != nil {
+		return x.Complexity
+	}
+	return ""
+}
+
+func (x *ImageGenerateScenarioSpec) GetOutputFormat() string {
+	if x != nil {
+		return x.OutputFormat
+	}
+	return ""
+}
+
+func (x *ImageGenerateScenarioSpec) GetMarkup() string {
+	if x != nil {
+		return x.Markup
+	}
+	return ""
+}
+
+func (x *ImageGenerateScenarioSpec) GetMarkupArtifactId() string {
+	if x != nil {
+		return x.MarkupArtifactId
+	}
+	return ""
+}
+
+func (x *ImageGenerateScenarioSpec) GetFrameCount() int32 {
+	if x != nil && x.FrameCount != nil {
+		return *x.FrameCount
+	}
+	return 0
+}
+
+func (x *ImageGenerateScenarioSpec) GetFrameDurationMs() int32 {
+	if x != nil && x.FrameDurationMs != nil {
+		return *x.FrameDurationMs
 	}
 	return 0
 }
@@ -11251,6 +11306,12 @@ type LocalAppImageGenerateScenarioSpec struct {
 	ReferenceImageArtifactId string                 `protobuf:"bytes,12,opt,name=reference_image_artifact_id,json=referenceImageArtifactId,proto3" json:"reference_image_artifact_id,omitempty"`
 	MaskArtifactId           string                 `protobuf:"bytes,13,opt,name=mask_artifact_id,json=maskArtifactId,proto3" json:"mask_artifact_id,omitempty"`
 	Strength                 *float32               `protobuf:"fixed32,14,opt,name=strength,proto3,oneof" json:"strength,omitempty"`
+	Complexity               string                 `protobuf:"bytes,15,opt,name=complexity,proto3" json:"complexity,omitempty"`
+	OutputFormat             string                 `protobuf:"bytes,16,opt,name=output_format,json=outputFormat,proto3" json:"output_format,omitempty"`
+	Markup                   string                 `protobuf:"bytes,17,opt,name=markup,proto3" json:"markup,omitempty"`
+	MarkupArtifactId         string                 `protobuf:"bytes,18,opt,name=markup_artifact_id,json=markupArtifactId,proto3" json:"markup_artifact_id,omitempty"`
+	FrameCount               *int32                 `protobuf:"varint,19,opt,name=frame_count,json=frameCount,proto3,oneof" json:"frame_count,omitempty"`
+	FrameDurationMs          *int32                 `protobuf:"varint,20,opt,name=frame_duration_ms,json=frameDurationMs,proto3,oneof" json:"frame_duration_ms,omitempty"`
 	unknownFields            protoimpl.UnknownFields
 	sizeCache                protoimpl.SizeCache
 }
@@ -11379,6 +11440,48 @@ func (x *LocalAppImageGenerateScenarioSpec) GetMaskArtifactId() string {
 func (x *LocalAppImageGenerateScenarioSpec) GetStrength() float32 {
 	if x != nil && x.Strength != nil {
 		return *x.Strength
+	}
+	return 0
+}
+
+func (x *LocalAppImageGenerateScenarioSpec) GetComplexity() string {
+	if x != nil {
+		return x.Complexity
+	}
+	return ""
+}
+
+func (x *LocalAppImageGenerateScenarioSpec) GetOutputFormat() string {
+	if x != nil {
+		return x.OutputFormat
+	}
+	return ""
+}
+
+func (x *LocalAppImageGenerateScenarioSpec) GetMarkup() string {
+	if x != nil {
+		return x.Markup
+	}
+	return ""
+}
+
+func (x *LocalAppImageGenerateScenarioSpec) GetMarkupArtifactId() string {
+	if x != nil {
+		return x.MarkupArtifactId
+	}
+	return ""
+}
+
+func (x *LocalAppImageGenerateScenarioSpec) GetFrameCount() int32 {
+	if x != nil && x.FrameCount != nil {
+		return *x.FrameCount
+	}
+	return 0
+}
+
+func (x *LocalAppImageGenerateScenarioSpec) GetFrameDurationMs() int32 {
+	if x != nil && x.FrameDurationMs != nil {
+		return *x.FrameDurationMs
 	}
 	return 0
 }
@@ -17841,7 +17944,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"dimensions\x18\x02 \x01(\rH\x00R\n" +
 	"dimensions\x88\x01\x01\x12;\n" +
 	"\apurpose\x18\x03 \x01(\x0e2!.nimi.runtime.v1.TextEmbedPurposeR\apurposeB\r\n" +
-	"\v_dimensions\"\xfd\x03\n" +
+	"\v_dimensions\"\x85\x06\n" +
 	"\x19ImageGenerateScenarioSpec\x12\x16\n" +
 	"\x06prompt\x18\x01 \x01(\tR\x06prompt\x12'\n" +
 	"\x0fnegative_prompt\x18\x02 \x01(\tR\x0enegativePrompt\x12\x11\n" +
@@ -17857,10 +17960,21 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x0fresponse_format\x18\v \x01(\tR\x0eresponseFormat\x12=\n" +
 	"\x1breference_image_artifact_id\x18\f \x01(\tR\x18referenceImageArtifactId\x12(\n" +
 	"\x10mask_artifact_id\x18\r \x01(\tR\x0emaskArtifactId\x12\x1f\n" +
-	"\bstrength\x18\x0e \x01(\x02H\x02R\bstrength\x88\x01\x01B\x04\n" +
+	"\bstrength\x18\x0e \x01(\x02H\x02R\bstrength\x88\x01\x01\x12\x1e\n" +
+	"\n" +
+	"complexity\x18\x0f \x01(\tR\n" +
+	"complexity\x12#\n" +
+	"\routput_format\x18\x10 \x01(\tR\foutputFormat\x12\x16\n" +
+	"\x06markup\x18\x11 \x01(\tR\x06markup\x12,\n" +
+	"\x12markup_artifact_id\x18\x12 \x01(\tR\x10markupArtifactId\x12$\n" +
+	"\vframe_count\x18\x13 \x01(\x05H\x03R\n" +
+	"frameCount\x88\x01\x01\x12/\n" +
+	"\x11frame_duration_ms\x18\x14 \x01(\x05H\x04R\x0fframeDurationMs\x88\x01\x01B\x04\n" +
 	"\x02_nB\a\n" +
 	"\x05_seedB\v\n" +
-	"\t_strength\"\x8c\x02\n" +
+	"\t_strengthB\x0e\n" +
+	"\f_frame_countB\x14\n" +
+	"\x12_frame_duration_ms\"\x8c\x02\n" +
 	"\x19VideoGenerateScenarioSpec\x12\x16\n" +
 	"\x06prompt\x18\x01 \x01(\tR\x06prompt\x12'\n" +
 	"\x0fnegative_prompt\x18\x02 \x01(\tR\x0enegativePrompt\x12.\n" +
@@ -18414,7 +18528,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"dimensions\x18\x02 \x01(\rH\x00R\n" +
 	"dimensions\x88\x01\x01\x12;\n" +
 	"\apurpose\x18\x03 \x01(\x0e2!.nimi.runtime.v1.TextEmbedPurposeR\apurposeB\r\n" +
-	"\v_dimensions\"\x85\x04\n" +
+	"\v_dimensions\"\x8d\x06\n" +
 	"!LocalAppImageGenerateScenarioSpec\x12\x16\n" +
 	"\x06prompt\x18\x01 \x01(\tR\x06prompt\x12'\n" +
 	"\x0fnegative_prompt\x18\x02 \x01(\tR\x0enegativePrompt\x12\x11\n" +
@@ -18430,10 +18544,21 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x0fresponse_format\x18\v \x01(\tR\x0eresponseFormat\x12=\n" +
 	"\x1breference_image_artifact_id\x18\f \x01(\tR\x18referenceImageArtifactId\x12(\n" +
 	"\x10mask_artifact_id\x18\r \x01(\tR\x0emaskArtifactId\x12\x1f\n" +
-	"\bstrength\x18\x0e \x01(\x02H\x02R\bstrength\x88\x01\x01B\x04\n" +
+	"\bstrength\x18\x0e \x01(\x02H\x02R\bstrength\x88\x01\x01\x12\x1e\n" +
+	"\n" +
+	"complexity\x18\x0f \x01(\tR\n" +
+	"complexity\x12#\n" +
+	"\routput_format\x18\x10 \x01(\tR\foutputFormat\x12\x16\n" +
+	"\x06markup\x18\x11 \x01(\tR\x06markup\x12,\n" +
+	"\x12markup_artifact_id\x18\x12 \x01(\tR\x10markupArtifactId\x12$\n" +
+	"\vframe_count\x18\x13 \x01(\x05H\x03R\n" +
+	"frameCount\x88\x01\x01\x12/\n" +
+	"\x11frame_duration_ms\x18\x14 \x01(\x05H\x04R\x0fframeDurationMs\x88\x01\x01B\x04\n" +
 	"\x02_nB\a\n" +
 	"\x05_seedB\v\n" +
-	"\t_strength\"\xd1\x02\n" +
+	"\t_strengthB\x0e\n" +
+	"\f_frame_countB\x14\n" +
+	"\x12_frame_duration_ms\"\xd1\x02\n" +
 	"\x1eExecuteLocalAppScenarioRequest\x12O\n" +
 	"\n" +
 	"text_embed\x18\x01 \x01(\v2..nimi.runtime.v1.LocalAppTextEmbedScenarioSpecH\x00R\ttextEmbed\x12U\n" +
@@ -19049,7 +19174,7 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	" REASONING_ACTIVATION_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dREASONING_ACTIVATION_DISABLED\x10\x01\x12!\n" +
 	"\x1dREASONING_ACTIVATION_ADAPTIVE\x10\x02\x12!\n" +
-	"\x1dREASONING_ACTIVATION_REQUIRED\x10\x03*\xdd\x01\n" +
+	"\x1dREASONING_ACTIVATION_REQUIRED\x10\x03*\x81\x02\n" +
 	"\x0fReasoningEffort\x12 \n" +
 	"\x1cREASONING_EFFORT_UNSPECIFIED\x10\x00\x12\x1c\n" +
 	"\x18REASONING_EFFORT_MINIMAL\x10\x01\x12\x18\n" +
@@ -19057,7 +19182,8 @@ const file_runtime_v1_ai_proto_rawDesc = "" +
 	"\x17REASONING_EFFORT_MEDIUM\x10\x03\x12\x19\n" +
 	"\x15REASONING_EFFORT_HIGH\x10\x04\x12\x1c\n" +
 	"\x18REASONING_EFFORT_MAXIMUM\x10\x05\x12\x1a\n" +
-	"\x16REASONING_EFFORT_XHIGH\x10\x06*\x86\x01\n" +
+	"\x16REASONING_EFFORT_XHIGH\x10\x06\x12\"\n" +
+	"\x1eREASONING_EFFORT_MODEL_DEFAULT\x10\a*\x86\x01\n" +
 	"\x15ReasoningPresentation\x12&\n" +
 	"\"REASONING_PRESENTATION_UNSPECIFIED\x10\x00\x12!\n" +
 	"\x1dREASONING_PRESENTATION_HIDDEN\x10\x01\x12\"\n" +

@@ -422,6 +422,7 @@
     "slotLabels": {
       "mainModel": "Main model",
       "visionProjector": "Vision projector",
+      "mediaProjector": "Media projector",
       "visionModel": "Vision model",
       "embeddingModel": "Embedding model",
       "ttsModel": "Speech model",
@@ -2987,7 +2988,10 @@
       "sharedScope": "Apps using this device’s models share this configuration",
       "notUsed": "Don’t use",
       "slotHelp": {
-        "inputImage": "Used to understand images. When not used, only text is handled."
+        "inputMedia": "Used to understand {{features}}. When not used, only text is handled.",
+        "input_image": "images",
+        "input_audio": "audio",
+        "input_video": "video"
       },
       "optionsDefault": "Not set. Defaults are used.",
       "optionsCustomized_one": "{{count}} option set. The rest use defaults.",

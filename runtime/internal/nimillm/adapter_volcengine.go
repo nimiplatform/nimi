@@ -27,7 +27,7 @@ func ExecuteBytedanceARKTask(
 	modelResolved string,
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
-	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
+	baseURL := strings.TrimSpace(cfg.BaseURL)
 	if baseURL == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
@@ -106,35 +106,13 @@ func ExecuteBytedanceARKTask(
 		}
 		submitPath := resolveBytedanceARKVideoSubmitPath()
 		queryPathTemplate := resolveBytedanceARKVideoQueryPathTemplate()
-		contentPayload := VideoContentPayload(spec)
+		submitPayload, err := buildSeedanceVideoPayload(ctx, modelResolved, spec)
+		if err != nil {
+			return nil, nil, "", err
+		}
+		contentPayload := submitPayload["content"].([]map[string]any)
 		if len(contentPayload) == 0 {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-		}
-		submitPayload := map[string]any{
-			"model":     modelResolved,
-			"content":   contentPayload,
-			"watermark": VideoWatermark(spec),
-		}
-		if ratio := VideoRatio(spec); ratio != "" {
-			submitPayload["ratio"] = ratio
-		}
-		if resolution := VideoResolution(spec); resolution != "" {
-			submitPayload["resolution"] = resolution
-		}
-		if durationSec := VideoDurationSec(spec); durationSec > 0 {
-			submitPayload["duration"] = durationSec
-		}
-		if VideoGenerateAudio(spec) {
-			submitPayload["generate_audio"] = true
-		}
-		if seed := VideoSeed(spec); seed != 0 {
-			submitPayload["seed"] = seed
-		}
-		if serviceTier := VideoServiceTier(spec); serviceTier != "" {
-			submitPayload["service_tier"] = serviceTier
-		}
-		if expiresAfter := VideoExecutionExpiresAfterSec(spec); expiresAfter > 0 {
-			submitPayload["execution_expires_after"] = expiresAfter
 		}
 
 		// Request content (including the user prompt) must not reach logs.
@@ -155,18 +133,10 @@ func ExecuteBytedanceARKTask(
 		if providerJobID == "" {
 			return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
-		return PollProviderTaskForArtifact(
-			ctx, updater, jobID, baseURL, apiKey,
-			AdapterBytedanceARKTask, providerJobID, submitPath, queryPathTemplate,
-			"video/mp4",
-			func(artifact *runtimev1.ScenarioArtifact) {
-				ApplyVideoSpecMetadata(artifact, spec)
-			},
-			map[string]any{
-				"mode":               spec.GetMode().String(),
-				"content_item_count": len(contentPayload),
-			},
-		)
+		template := BinaryArtifact("video/mp4", nil, map[string]any{"adapter": AdapterBytedanceARKTask})
+		_, err = publishNativeTask(ctx, &NativeTaskReceipt{Version: 1, Adapter: AdapterBytedanceARKTask, TaskID: providerJobID, Model: modelResolved, QueryPathTemplate: queryPathTemplate, Artifact: template})
+		return nil, nil, providerJobID, err
+
 	default:
 		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}

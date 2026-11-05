@@ -46,7 +46,7 @@ func ExecuteFishAudioTTS(
 	ext := scenarioExtensionPayloadForScenario(req)
 
 	payload := map[string]any{
-		"text": strings.TrimSpace(spec.GetText()),
+		"text": spec.GetText(),
 	}
 	headers := map[string]string{}
 	if resolvedModel != "" {
@@ -56,7 +56,7 @@ func ExecuteFishAudioTTS(
 		payload["reference_id"] = voiceRef
 	}
 	if audioFormat := strings.TrimSpace(spec.GetAudioFormat()); audioFormat != "" {
-		payload["format"] = audioFormat
+		payload["format"] = strings.ToLower(audioFormat)
 	}
 	if speed := scenarioSpeechSpeed(spec); speed > 0 {
 		payload["prosody"] = map[string]any{

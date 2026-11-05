@@ -17,9 +17,9 @@ import (
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.r050
 // The Google API key can only accompany the exact native file-download URL
-// returned by Veo. A provider-returned alternate host, port, path or redirect
+// returned by Gemini Omni. A provider-returned alternate host, port, path or redirect
 // cannot receive the credential.
-func validGoogleVeoArtifactURL(raw string) bool {
+func validGeminiVideoArtifactURL(raw string) bool {
 	parsed, err := url.Parse(raw)
 	if err != nil || parsed.Scheme != "https" || parsed.Host != "generativelanguage.googleapis.com" ||
 		parsed.User != nil || parsed.Fragment != "" || parsed.RawQuery != "alt=media" ||
@@ -43,11 +43,11 @@ func validGoogleVeoArtifactURL(raw string) bool {
 	return true
 }
 
-func openGoogleVeoArtifactStream(ctx context.Context, artifactURL string, rawAPIKey string) (io.ReadCloser, string, int64, error) {
+func openGeminiVideoArtifactStream(ctx context.Context, artifactURL string, rawAPIKey string) (io.ReadCloser, string, int64, error) {
 	invalidOutput := func() error {
 		return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	if !validGoogleVeoArtifactURL(artifactURL) {
+	if !validGeminiVideoArtifactURL(artifactURL) {
 		return nil, "", -1, invalidOutput()
 	}
 	apiKey, err := requireProviderAPIKey(rawAPIKey)

@@ -30,19 +30,19 @@ entries:
     dependency_family: native-engine-package.stablediffusion-ggml
     package_source: canonical_runtime_wrapper
     package_format: direct_archive
-    release_tag: master-995-fd21ecf
-    source_commit: fd21ecfceef2665d2c5f2db8536e3202d864fd30 # pragma: allowlist secret
-    install_dir_name: sd-macos-metal-arm64-stablediffusion-ggml-fd21ecf
+    release_tag: master-1050-58bb3c1
+    source_commit: 58bb3c1b1cd4749e94e39f537e9adfce295dcaee # pragma: allowlist secret
+    install_dir_name: sd-macos-metal-arm64-stablediffusion-ggml-58bb3c1
     image_ref: ""
-    archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-995-fd21ecf/sd-master-fd21ecf-bin-Darwin-macOS-26.6.2-arm64.zip
-    archive_sha256: 3ee05d3f230b124834d2e67df7915017ef9b7ded9d811f72b8d5124fa93a4dd3 # pragma: allowlist secret
+    archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-1050-58bb3c1/sd-master-58bb3c1-bin-Darwin-macOS-26.6.2-arm64.zip
+    archive_sha256: 7f295ccdc3a228c95e36b0221b59ba7dd125a023fe00f1ccfd827f1138f8882d # pragma: allowlist secret
     executable_candidates: [sd-cli, sd-server]
     supported_model_families: [flux, ideogram4, minimax-h3, qwen-image, sdxl, z-image]
     launch_mode: runtime_wrapper
     wrapper_driver: stable-diffusion.cpp
     product_state: supported
     detail: >-
-      Canonical official master-995-fd21ecf Apple Silicon archive for the
+      Canonical official master-1050-58bb3c1 Apple Silicon archive for the
       macOS 26.0+ / arm64 / Apple Metal first-class target. This exact source
       has no experimental, LocalAI-derived, or alternate-backend fallback;
       every recipe-family and product claim remains independently subject to
@@ -58,12 +58,12 @@ entries:
     dependency_family: native-engine-package.stablediffusion-ggml
     package_source: canonical_runtime_wrapper
     package_format: direct_archive
-    release_tag: master-995-fd21ecf
-    source_commit: fd21ecfceef2665d2c5f2db8536e3202d864fd30 # pragma: allowlist secret
-    install_dir_name: sd-win-cuda12-x64-stablediffusion-ggml-fd21ecf
+    release_tag: master-1050-58bb3c1
+    source_commit: 58bb3c1b1cd4749e94e39f537e9adfce295dcaee # pragma: allowlist secret
+    install_dir_name: sd-win-cuda12-x64-stablediffusion-ggml-58bb3c1
     image_ref: ""
-    archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-995-fd21ecf/sd-master-fd21ecf-bin-win-cuda12-x64.zip
-    archive_sha256: 959063b5bdd3b7780d4ae0023adc47a6e0f4cea2d36f9f6585336341259cdb18 # pragma: allowlist secret
+    archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-1050-58bb3c1/sd-master-58bb3c1-bin-win-cuda12-x64.zip
+    archive_sha256: 2767f24655b7bbd1290f7cb307e05c988cda388108b7d83b502cf95276df3b50 # pragma: allowlist secret
     dependency_requirements:
       - dependency_id: nvidia-cuda-user-space-runtime
         consumer_id: stable-diffusion.cpp.cuda
@@ -72,7 +72,7 @@ entries:
         accelerator_projection_table: shared-accelerator-dependencies.yaml
         first_network_materialization_requires_confirmation: true
     executable_candidates: [sd.exe, sd-cli.exe]
-    supported_model_families: [flux, ideogram4, minimax-h3, qwen-image, sdxl, z-image]
+    supported_model_families: [flux3, flux, ideogram4, minimax-h3, qwen-image, sdxl, z-image]
     launch_mode: runtime_wrapper
     wrapper_driver: stable-diffusion.cpp
     product_state: supported

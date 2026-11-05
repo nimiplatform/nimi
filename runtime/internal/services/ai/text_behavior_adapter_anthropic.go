@@ -49,7 +49,7 @@ func anthropicAdaptiveTextBehaviorRegistration(modelID string) textBehaviorAdapt
 				ChoiceModes: []runtimev1.ToolChoiceMode{runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_AUTO, runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_NONE},
 				SingleCall:  true, MultipleCalls: true, ParallelCalls: true, ToolOnlyResponse: true, MixedTextAndCall: true, ToolResultRoundTrip: true,
 			},
-			Reasoning:        &textBehaviorReasoningSupport{OpaqueContinuityCarrier: true, ContinuityKind: capabilitydriver.AnthropicThinkingContinuityKind, ContinuityVersion: 1},
+			Reasoning:        &textBehaviorReasoningSupport{ContinuityCarrier: true, ContinuityKind: capabilitydriver.AnthropicThinkingContinuityKind, ContinuityVersion: 1},
 			StructuredOutput: &textBehaviorStructuredOutputSupport{Kinds: []runtimev1.ResponseFormatKind{runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_SCHEMA}, SupportsStrictJSONSchema: true},
 			Combinations: []textBehaviorCombination{
 				{Modes: modes}, {Reasoning: true, Modes: modes},
@@ -72,9 +72,22 @@ func anthropicTextBehaviorRegistrations() []textBehaviorAdapterRegistration {
 	registrations := []textBehaviorAdapterRegistration{
 		anthropicLegacyTextBehaviorRegistration("claude-sonnet-4-6", "anthropic.sonnet46.messages"),
 		anthropicLegacyTextBehaviorRegistration("claude-haiku-4-5", "anthropic.haiku45.messages"),
+		anthropicHaiku55TextBehaviorRegistration(),
 	}
 	for _, modelID := range anthropicAdaptiveReviewedTextTargets {
 		registrations = append(registrations, anthropicAdaptiveTextBehaviorRegistration(modelID))
 	}
 	return registrations
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.anthropic-haiku55-text-behaviors
+func anthropicHaiku55TextBehaviorRegistration() textBehaviorAdapterRegistration {
+	registration := anthropicAdaptiveTextBehaviorRegistration("claude-haiku-5-5")
+	registration.RequestSerializerID = "anthropic/haiku55/request/v1"
+	registration.RequestSerializer = capabilitydriver.AnthropicHaiku55TextBehaviorRequestSerializer
+	registration.Support.ToolUse.ChoiceModes = append(registration.Support.ToolUse.ChoiceModes, runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_REQUIRED, runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_TOOL)
+	registration.Support.Reasoning.Activations = []runtimev1.ReasoningActivation{runtimev1.ReasoningActivation_REASONING_ACTIVATION_ADAPTIVE, runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED}
+	registration.Support.Reasoning.Presentations = []runtimev1.ReasoningPresentation{runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN}
+	registration.Support.Reasoning.Efforts = []runtimev1.ReasoningEffort{runtimev1.ReasoningEffort_REASONING_EFFORT_LOW, runtimev1.ReasoningEffort_REASONING_EFFORT_MEDIUM, runtimev1.ReasoningEffort_REASONING_EFFORT_HIGH, runtimev1.ReasoningEffort_REASONING_EFFORT_XHIGH, runtimev1.ReasoningEffort_REASONING_EFFORT_MAXIMUM}
+	return registration
 }

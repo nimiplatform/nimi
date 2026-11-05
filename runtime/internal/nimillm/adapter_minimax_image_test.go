@@ -49,14 +49,18 @@ func TestMiniMaxImageIsFiniteAndKeepsTheWholeSet(t *testing.T) {
 			}))
 			defer server.Close()
 			endpoint = server.URL
-			cfg := MediaAdapterConfig{BaseURL: endpoint, APIKey: "key", AllowLoopbackEndpoint: true}
+			apiEndpoint := endpoint
+			if format == "base64" {
+				apiEndpoint += "/v1"
+			}
+			cfg := MediaAdapterConfig{BaseURL: apiEndpoint, APIKey: "key", AllowLoopbackEndpoint: true}
 			ctx := WithMediaAdapterEndpointPolicy(context.Background(), cfg)
 			ctx = WithNativeTaskPublisher(ctx, func(*NativeTaskReceipt) error { publishes.Add(1); return nil })
 			request := &runtimev1.SubmitScenarioJobRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "cup", N: proto.Int32(2), Seed: proto.Int64(0), Size: "1024x1024", ResponseFormat: format}}}}
 			if MediaUsesNativeTask(AdapterMiniMaxTask, request, "image-01") {
 				t.Fatal("image trace was classified as native task")
 			}
-			result, err := (&CloudProvider{}).ExecuteMediaAdapter(ctx, AdapterMiniMaxTask, "job", request, "image-01", &RemoteTarget{Endpoint: endpoint, APIKey: "key", AllowLoopback: true}, noopJobStateUpdater{})
+			result, err := (&CloudProvider{}).ExecuteMediaAdapter(ctx, AdapterMiniMaxTask, "job", request, "image-01", &RemoteTarget{Endpoint: apiEndpoint, APIKey: "key", AllowLoopback: true}, noopJobStateUpdater{})
 			if err != nil || len(result.Artifacts) != 2 || result.ProviderJobID != "" || creates.Load() != 1 || queries.Load() != 0 || publishes.Load() != 0 {
 				t.Fatalf("image entered task query lifecycle: %v (%d/%d/%d)", err, creates.Load(), queries.Load(), publishes.Load())
 			}

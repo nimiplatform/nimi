@@ -345,6 +345,18 @@ func validateVideoGenerationCapability(provider string, modelID string, video *V
 	if len(video.InputRoles) == 0 {
 		return fmt.Errorf("model %s:%s video_generation.input_roles must not be empty", provider, modelID)
 	}
+	if video.ReferenceAnchorRoles != nil {
+		if len(video.ReferenceAnchorRoles) == 0 || !slices.Contains(video.Modes, "i2v_reference") {
+			return fmt.Errorf("model %s:%s reference anchors require reference mode and a nonempty role set", provider, modelID)
+		}
+		seen := map[string]bool{}
+		for _, role := range video.ReferenceAnchorRoles {
+			if (role != "reference_image" && role != "reference_video" && role != "reference_audio") || seen[role] || !slices.Contains(video.InputRoles["i2v_reference"], role) {
+				return fmt.Errorf("model %s:%s invalid reference anchor %q", provider, modelID, role)
+			}
+			seen[role] = true
+		}
+	}
 	if len(video.Limits) == 0 {
 		return fmt.Errorf("model %s:%s video_generation.limits must not be empty", provider, modelID)
 	}

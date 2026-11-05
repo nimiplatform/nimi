@@ -41,7 +41,7 @@ func TestAudioCppRetainedDriversIntegration(t *testing.T) {
 		AudioCppPackageID: capabilitydriver.AudioCppWindowsCUDA13PackageID, AudioCppSelectedSourceRecordID: "isolated-fixed-092",
 		AudioCppRoot: packageRoot, AudioCppExecutablePath: filepath.Join(packageRoot, AudioCppCLIExecutableName),
 		CUDA13DependencyID: capabilitydriver.AudioCppCUDA13RuntimeDependencyID, CUDA13SelectedSourceRecordID: "isolated-fixed-133",
-		CUDA13Root: filepath.Join(root, "engine", "audio-v0.9.2-drama3-base-small-cudart-windows-x64-cuda13.3")}
+		CUDA13Root: filepath.Join(root, "engine", "audio-v0.9.3-cudart-windows-x64-cuda13.3")}
 	binding := func(t *testing.T, directory, requirement, entry string) capabilitydriver.InvocationExactBinding {
 		t.Helper()
 		directory = filepath.Clean(directory)

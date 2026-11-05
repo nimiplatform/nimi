@@ -601,7 +601,7 @@ func localResolvedAssemblyForEmbed(selected *localexecution.SelectedLocalExecuti
 	if err != nil {
 		return nil, err
 	}
-	assembly.EmbeddingDimension = selected.EmbeddingDimension
+	assembly.EmbeddingDimension = plan.OutputDimension(selected.EmbeddingDimension)
 	assembly.LoadPlan = localResolvedAssemblyLoadPlan{Kind: "embed", Embed: &localResolvedAssemblyEmbedPlan{
 		ProcessKey: plan.ProcessKey(), ProcessArgs: plan.ProcessArgs(), ModelFiles: resolvedAssemblyInvocationBindings(plan.ModelFiles()),
 		RequestPath: plan.RequestPath(), RequestBody: plan.RequestBody(), ExpectedCount: plan.ExpectedCount(), RepresentationFamily: plan.RepresentationFamily(),
@@ -1081,7 +1081,7 @@ func validateLocalResolvedAssembly(assembly *localResolvedAssembly) error {
 		if assembly.LoadPlan.Embed == nil || strings.TrimSpace(assembly.LoadPlan.Embed.ProcessKey) == "" || assembly.LoadPlan.Embed.ExpectedCount <= 0 || assembly.EmbeddingDimension <= 0 {
 			return fmt.Errorf("local ResolvedAssembly embed load plan is incomplete")
 		}
-		if family := assembly.LoadPlan.Embed.RepresentationFamily; family != capabilitydriver.EmbeddingRepresentationNativeV1 && family != capabilitydriver.EmbeddingRepresentationNomicRetrievalV1 {
+		if family := assembly.LoadPlan.Embed.RepresentationFamily; family != capabilitydriver.EmbeddingRepresentationNativeV1 && family != capabilitydriver.EmbeddingRepresentationNomicRetrievalV1 && family != capabilitydriver.EmbeddingRepresentationGemma2V1 {
 			return fmt.Errorf("captured embedding representation is unavailable")
 		}
 	case "speech":

@@ -159,7 +159,8 @@
       "configInvalid": "This capability's saved AI configuration can't run on the current Runtime, for example because its cloud service is no longer supported.",
       "modelNotFound": "The selected model is not available: its cloud account does not offer it, or no admitted implementation exists for it. Nothing was generated.",
       "fallback": "The generation did not complete.",
-      "stoppedDirectCall": "You stopped waiting for this call. A result that arrives later will not be shown."
+      "stoppedDirectCall": "You stopped waiting for this call. A result that arrives later will not be shown.",
+      "providerAuthFailed": "The cloud service rejected this connection's credentials. Its API key may be expired, revoked, or invalid."
     },
     "action": {
       "runtimeUnavailable": "Return to Desktop, confirm Local AI is connected, then try again.",
@@ -193,7 +194,8 @@
       "configInvalid": "Open App AI configuration, choose a model for this capability again, then run it again.",
       "modelNotFound": "Open App AI configuration, choose an available model for this capability, then run it again.",
       "fallback": "Try again. If it still fails, open Runtime details to find the cause.",
-      "stoppedDirectCall": "Run it again whenever you are ready."
+      "stoppedDirectCall": "Run it again whenever you are ready.",
+      "providerAuthFailed": "Update this connection's API key or sign in again in Nimi Cloud Services, then submit a new request."
     },
     "hint": {
       "runtimeUnavailable": "Restore the protected Runtime connection, then retry the same request.",
@@ -434,7 +436,8 @@
       "toolResult": "Tool result {{name}} · {{id}}",
       "toolError": "Tool error {{name}} · {{id}}",
       "structured": "Parsed structured result",
-      "finalText": "Final text"
+      "finalText": "Final text",
+      "jsonObjectScenario": "JSON object test: the App parsed the final text and verified it is an object."
     },
     "decision": {
       "title": "Decisions",

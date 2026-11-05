@@ -85,6 +85,12 @@ func (s *Service) ProjectSelectedLocalLoadout(ctx context.Context, capabilityCon
 				option.Reasons = append(option.Reasons, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
 			}
 		}
+		if loadoutNeedsLlamaVideoCodec(loadout) {
+			if _, ready, _ := s.readySelectedSourceForFamilyAndConsumer(localEnvironmentFamilyMediaCodec, "media-codec"); !ready {
+				option.ValidationState = runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_BLOCKED
+				option.Reasons = append(option.Reasons, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED)
+			}
+		}
 	}
 	if capabilityContract == "text.generate" && loadout.GetValidationState() == runtimev1.LoadoutValidationState_LOADOUT_VALIDATION_STATE_CONFIGURED {
 		identity := &localexecution.TextBehaviorIdentity{
@@ -231,6 +237,13 @@ func (s *Service) resolveLocalExecutionLocked(ctx context.Context, pass admissio
 	dependencySources, dependencyErr := s.resolveSelectedLocalExecutionDependencySources(capabilityContract, driver, identity)
 	if dependencyErr != nil {
 		return nil, dependencyErr
+	}
+	if loadoutNeedsLlamaVideoCodec(loadout) {
+		codec, codecErr := s.captureLlamaMediaCodecSource(ctx)
+		if codecErr != nil {
+			return nil, codecErr
+		}
+		dependencySources = append(dependencySources, codec)
 	}
 	return &localexecution.SelectedLocalExecution{
 		LoadoutID:          loadout.GetLoadoutId(),
@@ -385,6 +398,21 @@ func cloneTextBehaviorCapabilityProjections(values []*runtimev1.TextBehaviorCapa
 		}
 	}
 	return result
+}
+
+func loadoutNeedsLlamaVideoCodec(loadout *runtimev1.Loadout) bool {
+	return loadout.GetRecipeId() == capabilitydriver.LlamaGemma412BRecipeID && stringSliceContains(loadout.GetConfiguredFeatures(), "input.video")
+}
+
+func (s *Service) captureLlamaMediaCodecSource(ctx context.Context) (localexecution.ExactDependencySource, error) {
+	record, ready, _ := s.readySelectedSourceForFamilyAndConsumer(localEnvironmentFamilyMediaCodec, "media-codec")
+	if ready {
+		_, _, err := s.ResolveMediaCodecDependency(ctx)
+		if err == nil {
+			return localexecution.ExactDependencySource{DependencyFamily: record.DependencyFamily, DependencyID: record.DependencyID, ConsumerScope: "media-codec", SelectedSourceRecordID: record.RecordID, CanonicalRoot: record.CanonicalRoot, Version: record.Version, VerifiedArtifacts: append([]string(nil), record.VerifiedArtifacts...), Hashes: cloneStringMap(record.Hashes)}, nil
+		}
+	}
+	return localexecution.ExactDependencySource{}, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_CODEC_UNAVAILABLE, "Prepare the unified model's managed audio and video tools in AI Capabilities", nil)
 }
 
 func (s *Service) resolveSelectedLocalExecutionDependencySources(capabilityContract string, driver capabilitydriver.Driver, identity *runtimev1.CapabilityImplementationIdentity) ([]localexecution.ExactDependencySource, error) {

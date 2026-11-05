@@ -17,10 +17,10 @@ func AudioCppPackageForPlatform(platform string) (AudioCppPackageIdentity, error
 			ArchiveBytes: AudioCppPackageArchiveBytes, ExecutableName: AudioCppCLIExecutableName,
 			AcceleratorPlane: "cuda13", AdmittedFiles: append([]string(nil), audioCppPackageAdmittedFiles...)}, nil
 	case "darwin/arm64":
-		return AudioCppPackageIdentity{Platform: platform, AssetName: "audio-v0.9.2-drama3-base-small-bin-macos-arm64-metal.tar.gz",
-			ArchiveURL:    "https://github.com/0xShug0/audio.cpp/releases/download/v0.9.2-drama3-base-small/audio-v0.9.2-drama3-base-small-bin-macos-arm64-metal.tar.gz",
-			ArchiveSHA256: "1281998c1acd170a7d92139853fe6ce6ab920e211d2ad3359775d43ad9ba616d", // pragma: allowlist secret -- public archive checksum
-			ArchiveBytes:  32708971, ExecutableName: "audiocpp_cli", AcceleratorPlane: "cpu,metal",
+		return AudioCppPackageIdentity{Platform: platform, AssetName: "audio-v0.9.3-bin-macos-arm64-metal.tar.gz",
+			ArchiveURL:    "https://github.com/0xShug0/audio.cpp/releases/download/v0.9.3/audio-v0.9.3-bin-macos-arm64-metal.tar.gz",
+			ArchiveSHA256: "70a84c2b61ce5ef99547a12affab9b0d40daf08666baf7da4f940d5c7b722819", // pragma: allowlist secret -- public archive checksum
+			ArchiveBytes:  34847832, ExecutableName: "audiocpp_cli", AcceleratorPlane: "cpu,metal",
 			AdmittedFiles: []string{"audiocpp_cli", "LICENSE"}}, nil
 	default:
 		return AudioCppPackageIdentity{}, fmt.Errorf("audio.cpp package is unsupported on %s", platform)

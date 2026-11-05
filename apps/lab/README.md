@@ -52,7 +52,8 @@ Every canonical AI capability has a formal Lab entry that invokes the SDK Local 
 | --- | --- | --- |
 | **Speaker Representation** | `audio.speaker.embed` | Short audio (WAV, MP3, FLAC) processed through a Local Scenario Job. The resulting vector and opaque `spaceId` persist across history and submission recovery. Inputs must be re-selected for new runs; only vectors sharing the same space are comparable (this represents feature space, not identity/authentication). |
 | **Text Annotation** | `text.annotate` | Scenario Job outputting tokens with Unicode scalar offsets and sentence boundaries. Saved as an App JSON document linked to history. |
-| **Tools & Structured Output** | `text.generate` | Exercises side-effect-free test tools with ordered items and matching `ToolResult`, or validates JSON Schema constraints. |
+| **Tools & Structured Output** | `text.generate` | Exercises side-effect-free test tools with ordered items and matching `ToolResult`, JSON object output, or fixed JSON Schema constraints. The JSON modes are explicit choices and both validate the complete final result. |
+| **Video Generation** | `video.generate` | Text, one first frame, ordered first/last frames, and ordered reference images through the existing protected Job carrier. Frames accept an uploaded App-owned artifact or an HTTPS URL; reference uploads retain their order. Runtime decides each exact target's admitted modes and limits. |
 | **Decision Logic** | `text.decide` | Synchronous Scenario calls via Local or Cloud routes. Evaluates choice and yes/no prompts, returning candidate probabilities and execution traces. Stop requests cancellation; late responses are discarded. |
 | **Multi-turn Conversation** | `text.generate` | Multi-turn text dialogue using Kit's `simple-ai` provider and `createModelConversationRuntimeAdapter`. Replays compatible turns on model switch, while incompatible routes establish a clean context boundary. Oversized history is safely rejected without corrupting earlier turns. |
 | **Session Hook** | `text.generate` | Multi-turn dialogue using Kit's `useAppAiChatSession({ model })` hook. The App builds request history directly from completed exchanges and respects Runtime compatibility boundaries. |
@@ -60,7 +61,7 @@ Every canonical AI capability has a formal Lab entry that invokes the SDK Local 
 | **Video Face Swap** | `video.face_swap` | Finite MP4 job with an explicit no-face policy, plus a real-time frame session test (fixed 1280×720 RGB8 frames). |
 | **Realtime Interaction** | `realtime.interact` | Direct App session bypassing agent layers: validates 16 kHz mono PCM S16LE audio streaming, microphone input, and lifecycle events. |
 
-The Conversation and Session Hook entries preserve original records and opaque continuity. Model switching waits for the active turn to settle, saves a context boundary, and uses the current Runtime compatibility facts; media or capacity mismatches fail explicitly rather than silently dropping history.
+The Conversation and Session Hook entries preserve original records and native continuity. Native replay may contain plaintext reasoning; preserve its bytes without interpreting or displaying them, and do not treat the carrier as an encryption guarantee. Model switching waits for the active turn to settle, saves a context boundary, and uses the current Runtime compatibility facts; media or capacity mismatches fail explicitly rather than silently dropping history.
 
 ### Execution Guarantees & Constraints
 

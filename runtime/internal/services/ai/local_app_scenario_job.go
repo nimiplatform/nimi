@@ -20,7 +20,7 @@ const (
 	maxLocalAppScenarioJobReasonBytes    = 1024
 	maxLocalAppScenarioCancelReasonBytes = 512
 	maxLocalAppScenarioReferenceURIBytes = 2048
-	maxLocalAppScenarioVideoContentItems = 8
+	maxLocalAppScenarioVideoContentItems = 51
 	maxLocalAppScenarioVideoContentText  = 8 * 1024
 	maxLocalAppScenarioVoiceHintCount    = 8
 	maxLocalAppScenarioVoiceHintBytes    = 64
@@ -659,7 +659,7 @@ func validateLocalAppVideoGenerationOptions(options *runtimev1.LocalAppVideoGene
 	}
 	if !localAppOptionalExactText(options.GetResolution(), maxLocalAppScenarioVoiceHintBytes) ||
 		!localAppOptionalExactText(options.GetRatio(), maxLocalAppScenarioVoiceHintBytes) ||
-		options.GetDurationSec() < 0 || options.GetDurationSec() > 600 ||
+		options.GetDurationSec() < -1 || options.GetDurationSec() > 600 ||
 		options.GetFrames() < 0 || options.GetFrames() > 100000 ||
 		options.GetFps() < 0 || options.GetFps() > 120 ||
 		options.Seed != nil && (options.GetSeed() < -1 || options.GetSeed() > 4_294_967_295) {

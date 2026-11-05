@@ -13,7 +13,7 @@ const (
 	NVIDIACUDAUserSpaceRuntimeDependencyID   = "nvidia-cuda-user-space-runtime"
 	NVIDIACUDA13UserSpaceRuntimeDependencyID = "nvidia-cuda13-user-space-runtime"
 	NVIDIACUDAUserSpaceRuntimeVersion        = "cuda_major=12;cuda_minor=8;source=sd-master-995-fd21ecf"
-	NVIDIACUDA13UserSpaceRuntimeVersion      = "cuda_major=13;audio.cpp=v0.9.2-drama3-base-small;cuda_minor=3"
+	NVIDIACUDA13UserSpaceRuntimeVersion      = "cuda_major=13;audio.cpp=v0.9.3;cuda_minor=3"
 )
 
 type SharedAcceleratorDependencyState string
@@ -72,12 +72,12 @@ var nvidiaCUDA13UserSpaceRuntimeRequiredArtifacts = []string{
 }
 
 var nvidiaCUDA13UserSpaceRuntimeManagedSource = sharedAcceleratorDependencyManagedSource{
-	SourceID:       "audiocpp-0.9.2-drama3-base-small-cuda13.3-win-x64-runtime",
-	ArchiveURL:     "https://github.com/0xShug0/audio.cpp/releases/download/v0.9.2-drama3-base-small/audio-v0.9.2-drama3-base-small-cudart-windows-x64-cuda13.3.zip",
-	ArchiveSHA256:  "cf58e70c53db680af5e4b8e5ef538ffd1d81bd489ef49843fe486fcd079c9182", // pragma: allowlist secret -- public archive checksum
-	ReleaseVersion: "v0.9.2-drama3-base-small",
-	ReleaseAsset:   "audio-v0.9.2-drama3-base-small-cudart-windows-x64-cuda13.3.zip",
-	InstallDirName: "nvidia-cuda13.3-audiocpp-0.9.2-drama3-base-small",
+	SourceID:       "audiocpp-0.9.3-cuda13.3-win-x64-runtime",
+	ArchiveURL:     "https://github.com/0xShug0/audio.cpp/releases/download/v0.9.3/audio-v0.9.3-cudart-windows-x64-cuda13.3.zip",
+	ArchiveSHA256:  "839eb20f684a8aab64895b1e466b32ce9b29dfc19dc1ce15b2ef35218512ac0a", // pragma: allowlist secret -- public archive checksum
+	ReleaseVersion: "v0.9.3",
+	ReleaseAsset:   "audio-v0.9.3-cudart-windows-x64-cuda13.3.zip",
+	InstallDirName: "nvidia-cuda13.3-audiocpp-0.9.3",
 }
 
 type sharedAcceleratorDependencySpec struct {

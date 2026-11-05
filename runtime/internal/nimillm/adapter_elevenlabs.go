@@ -3,6 +3,7 @@ package nimillm
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 	"strings"
@@ -74,7 +75,7 @@ func ExecuteElevenLabsTTS(
 
 	payload := map[string]any{
 		"model_id":       strings.TrimSpace(modelResolved),
-		"text":           strings.TrimSpace(spec.GetText()),
+		"text":           spec.GetText(),
 		"voice_settings": voiceSettings,
 	}
 	if language := strings.TrimSpace(spec.GetLanguage()); language != "" {
@@ -83,6 +84,9 @@ func ExecuteElevenLabsTTS(
 
 	// Resolve the output format query parameter from audio_format spec.
 	outputFormat := resolveElevenLabsOutputFormat(spec)
+	if outputFormat == "" {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
 
 	// Build request URL: POST /v1/text-to-speech/{voice_id}
 	endpoint := "/v1/text-to-speech/" + url.PathEscape(voiceID)
@@ -156,16 +160,36 @@ func resolveElevenLabsOutputFormat(spec *runtimev1.SpeechSynthesizeScenarioSpec)
 		return ""
 	}
 	format := strings.ToLower(strings.TrimSpace(spec.GetAudioFormat()))
-	switch format {
-	case "mp3", "mpeg", "audio/mpeg":
-		return "mp3_44100_128"
-	case "pcm", "audio/pcm":
-		return "pcm_44100"
-	case "ogg", "audio/ogg":
-		return "ogg_opus"
-	case "wav", "audio/wav":
-		return "pcm_44100"
-	default:
-		return ""
+	rate := spec.GetSampleRateHz()
+	if rate == 0 {
+		rate = 44100
+		if format == "ogg" || format == "audio/ogg" {
+			rate = 48000
+		}
 	}
+	switch format {
+	case "", "mp3", "mpeg", "audio/mpeg":
+		switch rate {
+		case 22050:
+			return "mp3_22050_32"
+		case 24000:
+			return "mp3_24000_48"
+		case 44100:
+			return "mp3_44100_128"
+		}
+	case "ogg", "audio/ogg":
+		if rate == 48000 {
+			return "opus_48000_128"
+		}
+	case "pcm", "audio/pcm", "wav", "audio/wav":
+		codec := "pcm"
+		if format == "wav" || format == "audio/wav" {
+			codec = "wav"
+		}
+		switch rate {
+		case 8000, 16000, 22050, 24000, 32000, 44100, 48000:
+			return fmt.Sprintf("%s_%d", codec, rate)
+		}
+	}
+	return ""
 }

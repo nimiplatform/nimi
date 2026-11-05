@@ -353,7 +353,7 @@ func (s *Service) resolveLocalImageArtifactInput(
 	if role != capabilitydriver.ImageResolvedInputRoleSource && role != capabilitydriver.ImageResolvedInputRoleMask {
 		return capabilitydriver.ImageResolvedInput{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT)
 	}
-	payload, _, err := s.resolveOwnedImageArtifactBytes(ctx, head, artifactID)
+	payload, _, err := s.resolveOwnedMediaArtifactBytes(ctx, head, artifactID, "image/", runtimeartifact.MaxInlineBytes)
 	if err != nil {
 		return capabilitydriver.ImageResolvedInput{}, err
 	}
@@ -363,10 +363,12 @@ func (s *Service) resolveLocalImageArtifactInput(
 // resolveOwnedImageArtifactBytes is the shared image custody boundary for Local
 // and admitted Cloud inputs. It authorizes the exact operation and owner before
 // reading bounded bytes; execution never reopens the submitted identifier.
-func (s *Service) resolveOwnedImageArtifactBytes(
+func (s *Service) resolveOwnedMediaArtifactBytes(
 	ctx context.Context,
 	head *runtimev1.ScenarioRequestHead,
 	artifactID string,
+	mediaKind string,
+	maxBytes int64,
 ) ([]byte, string, error) {
 	if artifactID == "" {
 		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT)
@@ -396,13 +398,13 @@ func (s *Service) resolveOwnedImageArtifactBytes(
 	}
 	defer func() { _ = source.Body.Close() }()
 	record := source.Record
-	if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(record.MimeType)), "image/") {
+	if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(record.MimeType)), mediaKind) {
 		return nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_MIME_MISMATCH)
 	}
-	if record.SizeBytes > runtimeartifact.MaxInlineBytes {
+	if record.SizeBytes > maxBytes {
 		return nil, "", grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
 	}
-	payload, err := io.ReadAll(io.LimitReader(source.Body, runtimeartifact.MaxInlineBytes+1))
+	payload, err := io.ReadAll(io.LimitReader(source.Body, maxBytes+1))
 	if err != nil || len(payload) == 0 || int64(len(payload)) != record.SizeBytes {
 		if _, localApp := accountservice.AuthorizedLocalAppDecisionFromContext(ctx); localApp {
 			return nil, "", grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_ARTIFACT_FORBIDDEN)

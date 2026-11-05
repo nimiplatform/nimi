@@ -1,7 +1,5 @@
 package capabilitydriver
 
-import runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-
 const (
 	Gemma4E2BTemplateIdentity   = "sha256:33204f1acb5bd0002713e16a593847f24ceeafe711ed88bda2a352dc996a3373"
 	Gemma426BTemplateIdentity   = "sha256:94899c0f917d93f6fe81c95744d1e8ddab2d21d39228d2e4aec1fb2a25bff413"
@@ -58,19 +56,4 @@ func gemma4ProjectorForMainContent(contentID string) (string, bool) {
 		}
 	}
 	return "", false
-}
-
-func Gemma4ToolUseCapabilityProjection() *runtimev1.ToolUseCapabilityProjection {
-	return &runtimev1.ToolUseCapabilityProjection{
-		SupportedToolSpecKinds: []runtimev1.ToolSpecKind{runtimev1.ToolSpecKind_TOOL_SPEC_KIND_FUNCTION},
-		SupportedToolChoiceModes: []runtimev1.ToolChoiceMode{
-			runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_AUTO,
-			runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_NONE,
-			runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_REQUIRED,
-			runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_TOOL,
-		},
-		SupportsSingleCall: true, SupportsMultipleCalls: true, SupportsParallelCalls: true,
-		SupportsSync: true, SupportsStream: true, SupportsToolOnlyResponse: true,
-		SupportsToolResultRoundTrip: true, SupportsMixedTextAndToolCalls: true,
-	}
 }

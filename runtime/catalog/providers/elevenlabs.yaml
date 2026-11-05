@@ -1,8 +1,72 @@
 version: 1
 provider: elevenlabs
-catalog_version: 2026-04-18-elevenlabs-v3
+catalog_version: 2026-11-04-elevenlabs-v4
 inventory_mode: static_source
 models:
+  - model_id: eleven_v4
+    provider: elevenlabs
+    model_type: tts
+    updated_at: 2026-11-04
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-10
+      notes: ElevenLabs public API docs expose request surfaces but not a stable per-model pricing schema.
+    source_ref:
+      url: https://elevenlabs.io/docs/overview/models
+      retrieved_at: 2026-11-04
+      note: Exact eleven_v4 and eleven_v4_turbo model identifiers; v4 has a 10000-character limit. The finite single-speaker implementation does not imply realtime dialogue or native streaming.
+    voice_set_id: elevenlabs:default-voices-v1
+    voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
+        - pcm
+        - ogg
+        - wav
+      supports_language: true
+    voice_ref_kinds:
+      - provider_voice_ref
+      - voice_asset_id
+      - preset_voice_id
+  - model_id: eleven_v4_turbo
+    provider: elevenlabs
+    model_type: tts
+    updated_at: 2026-11-04
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-03-10
+      notes: ElevenLabs public API docs expose request surfaces but not a stable per-model pricing schema.
+    source_ref:
+      url: https://elevenlabs.io/docs/overview/models
+      retrieved_at: 2026-11-04
+      note: Exact eleven_v4 and eleven_v4_turbo model identifiers; v4 has a 10000-character limit. The finite single-speaker implementation does not imply realtime dialogue or native streaming.
+    voice_set_id: elevenlabs:default-voices-v1
+    voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
+        - pcm
+        - ogg
+        - wav
+      supports_language: true
+    voice_ref_kinds:
+      - provider_voice_ref
+      - voice_asset_id
+      - preset_voice_id
   - model_id: music_v2
     provider: elevenlabs
     model_type: music
@@ -342,6 +406,8 @@ voices:
     langs:
       - en
     model_ids:
+      - eleven_v4
+      - eleven_v4_turbo
       - eleven_v3
       - eleven_multilingual_v2
       - eleven_flash_v2_5
@@ -362,6 +428,8 @@ voices:
     langs:
       - en
     model_ids:
+      - eleven_v4
+      - eleven_v4_turbo
       - eleven_v3
       - eleven_multilingual_v2
       - eleven_flash_v2_5
@@ -382,6 +450,8 @@ voices:
     langs:
       - en
     model_ids:
+      - eleven_v4
+      - eleven_v4_turbo
       - eleven_v3
       - eleven_multilingual_v2
       - eleven_flash_v2_5
@@ -402,6 +472,8 @@ voices:
     langs:
       - en
     model_ids:
+      - eleven_v4
+      - eleven_v4_turbo
       - eleven_v3
       - eleven_multilingual_v2
       - eleven_flash_v2_5

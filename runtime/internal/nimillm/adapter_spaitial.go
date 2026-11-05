@@ -24,7 +24,7 @@ const AdapterSpaitialNative = "spaitial_world_adapter"
 // @nimi-authority: rule.nimi.runtime.ai-provider.r029
 func ExecuteSpaitialWorld(ctx context.Context, cfg MediaAdapterConfig, updater JobStateUpdater, jobID string, req *runtimev1.SubmitScenarioJobRequest, model string) (MediaExecutionResult, error) {
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
-	if req == nil || model != "default" || jobID == "" {
+	if req == nil || model != "echo-2" || jobID == "" {
 		return MediaExecutionResult{}, spaitialOutputError("invalid captured target")
 	}
 	spec := scenarioWorldGenerateSpec(req)
@@ -137,6 +137,15 @@ func spaitialRequest(ctx context.Context, cfg MediaAdapterConfig, method, path s
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		var payload map[string]any
 		_ = json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&payload)
+		// SpAItial's closed HTTP contract assigns 402 to insufficient credits.
+		// Free-form wording mentioning the API key must not turn it into an
+		// authentication failure and tell the user to replace a working key.
+		if resp.StatusCode == http.StatusPaymentRequired {
+			return grpcerr.WithReasonCodeOptions(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED, grpcerr.ReasonOptions{
+				Message: "provider account has insufficient credits", ActionHint: "replenish_provider_balance_or_adjust_quota",
+				Metadata: providerHTTPStatusMetadata(resp.StatusCode),
+			})
+		}
 		return MapProviderHTTPError(resp.StatusCode, payload)
 	}
 	if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(target); err != nil {
@@ -160,7 +169,7 @@ func spaitialJSON(ctx context.Context, cfg MediaAdapterConfig, method, path stri
 }
 
 func uploadSpaitialImage(ctx context.Context, cfg MediaAdapterConfig, spec *runtimev1.WorldGenerateScenarioSpec) (string, error) {
-	ref, _ := ctx.Value(imageReferenceContextKey{}).(*ImageReference)
+	ref, _ := ctx.Value(imageReferenceContextKey{}).(*CapturedMediaReference)
 	if err := ValidateCloudWorldImageReference("spaitial", spec, ref); err != nil {
 		return "", err
 	}
@@ -214,7 +223,7 @@ func prepareSpaitialWorldAcquisition(cfg MediaAdapterConfig, result map[string]a
 	if (world["title"] != nil && !titleOK) || (world["description"] != nil && !captionOK) {
 		return nil, spaitialOutputError("world display metadata invalid")
 	}
-	// Echo default's observed SPZ output uses RDF/OpenCV scene coordinates.
+	// The Standard pipeline's previously observed SPZ uses RDF/OpenCV coordinates.
 	// The container/version alone does not establish axes or calibration.
 	// Preserve source bytes and declare their verified basis independently of
 	// metric scale and ground, which the provider has not supplied.

@@ -13,6 +13,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
@@ -89,7 +90,8 @@ func ExecuteMiniMaxTask(
 	extractScenarioExtensions func(*runtimev1.SubmitScenarioJobRequest) *structpb.Struct,
 ) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
-	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
+	baseURL := miniMaxMediaBaseURL(cfg.BaseURL)
+	cfg.BaseURL = baseURL
 	if baseURL == "" {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
@@ -272,7 +274,7 @@ func ExecuteMiniMaxTask(
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	submitPath, queryPath, defaultMIME := "/v1/video_generation", "/v1/query/video_generation", "video/mp4"
-	prompt := VideoPrompt(spec)
+	prompt := capabilitydriver.VideoPrompt(spec)
 	submitPayload := map[string]any{
 		"model":  modelResolved,
 		"prompt": prompt,
@@ -314,7 +316,7 @@ func ExecuteMiniMaxTask(
 }
 
 func miniMaxVideoSubmitPayload(modelResolved string, spec *runtimev1.VideoGenerateScenarioSpec) (map[string]any, error) {
-	if spec == nil || strings.TrimSpace(VideoPrompt(spec)) == "" {
+	if spec == nil || strings.TrimSpace(capabilitydriver.VideoPrompt(spec)) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	if !strings.EqualFold(strings.TrimSpace(modelResolved), "MiniMax-Hailuo-2.3") {
@@ -348,7 +350,7 @@ func miniMaxVideoSubmitPayload(modelResolved string, spec *runtimev1.VideoGenera
 
 	payload := map[string]any{
 		"model":  strings.TrimSpace(modelResolved),
-		"prompt": VideoPrompt(spec),
+		"prompt": capabilitydriver.VideoPrompt(spec),
 	}
 	if firstFrame != "" {
 		payload["first_frame_image"] = firstFrame

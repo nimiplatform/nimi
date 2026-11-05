@@ -204,7 +204,7 @@ export function LabVideoFaceSwapParameterPanel(props: StudioParameterPanelProps)
 export function LabTextExchangeParameterPanel(props: StudioParameterPanelProps) {
   const { t } = useTranslation();
   const parameters = props.parameters as LabTextExchangeParameters;
-  const scenario = parameters.scenario === 'structured-output' ? 'structured-output' : 'tool-call';
+  const scenario = parameters.scenario === 'structured-output' || parameters.scenario === 'json-object' ? parameters.scenario : 'tool-call';
   const delivery = parameters.delivery === 'stream' ? 'stream' : 'sync';
   return (
     <Frame {...props}>
@@ -214,9 +214,10 @@ export function LabTextExchangeParameterPanel(props: StudioParameterPanelProps) 
           disabled={props.disabled}
           options={[
             { value: 'tool-call', label: t('CapabilityTests.textTools.toolScenario') },
+            { value: 'json-object', label: t('CapabilityTests.textTools.jsonObjectScenario') },
             { value: 'structured-output', label: t('CapabilityTests.textTools.structuredScenario') },
           ]}
-          onValueChange={(value) => props.onChange({ ...parameters, scenario: value === 'structured-output' ? 'structured-output' : 'tool-call', delivery })}
+          onValueChange={(value) => props.onChange({ ...parameters, scenario: value === 'structured-output' || value === 'json-object' ? value : 'tool-call', delivery })}
         />
       </StudioParameterField>
       <StudioParameterField label={t('CapabilityTests.textTools.delivery')}>
@@ -230,7 +231,7 @@ export function LabTextExchangeParameterPanel(props: StudioParameterPanelProps) 
           onValueChange={(value) => props.onChange({ ...parameters, scenario, delivery: value === 'stream' ? 'stream' : 'sync' })}
         />
       </StudioParameterField>
-      <p className="text-sm opacity-70">{t(scenario === 'tool-call' ? 'CapabilityTests.textTools.toolHint' : 'CapabilityTests.textTools.structuredHint')}</p>
+      <p className="text-sm opacity-70">{t(scenario === 'tool-call' ? 'CapabilityTests.textTools.toolHint' : scenario === 'json-object' ? 'CapabilityTests.textTools.jsonObjectHint' : 'CapabilityTests.textTools.structuredHint')}</p>
       <LabReasoningControls value={parameters.reasoning} disabled={props.disabled} onChange={(reasoning) => props.onChange({ ...parameters, reasoning })} />
     </Frame>
   );

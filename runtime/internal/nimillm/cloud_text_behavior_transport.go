@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -31,6 +32,8 @@ func WithTextBehaviorDispatchObserver(ctx context.Context, observer func()) cont
 // @nimi-authority: rule.nimi.runtime.ai-provider.deepseek-v4-json-output
 // @nimi-authority: rule.nimi.runtime.ai-provider.openai-responses-text-behaviors
 // @nimi-authority: rule.nimi.runtime.ai-provider.mimo-v26-tool-text
+// @nimi-authority: rule.nimi.runtime.ai-provider.glm53-native-text
+// @nimi-authority: rule.nimi.runtime.ai-provider.minimax-m3-messages
 // The Host supplies the exact credential-bearing target only for this call.
 // Hooks were selected and their request serialized before Job publication.
 func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
@@ -49,6 +52,8 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	case "dashscope":
 	case "gemini":
 	case "mimo":
+	case "glm":
+	case "minimax":
 	case chatGPTPlanProvider:
 		// The public ChatGPT-plan route admits only streaming Responses.
 		path, wireStream = chatGPTPlanResponsesPath, true
@@ -63,10 +68,18 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	nativeGemini := serialized.Protocol == capabilitydriver.GeminiNativeBaseProtocol
-	if serialized.Protocol != "" && !nativeGemini {
+	argonGemini := serialized.Protocol == capabilitydriver.GeminiArgonInteractionsProtocol
+	miniMaxMessages := serialized.Protocol == capabilitydriver.MiniMaxMessagesProtocol
+	if serialized.Protocol != "" && !nativeGemini && !argonGemini && !miniMaxMessages {
 		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
 	}
 	if nativeGemini && (target.ProviderType != "gemini" || resolvedModelID != "gemini-3.8-flash") {
+		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
+	}
+	if argonGemini && (target.ProviderType != "gemini" || resolvedModelID != "gemini-4-argon") {
+		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
+	}
+	if miniMaxMessages && (target.ProviderType != "minimax" || resolvedModelID != "MiniMax-M3.1-Flash" && resolvedModelID != "MiniMax-M3") || target.ProviderType == "minimax" && !miniMaxMessages {
 		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
 	}
 	if target.ProviderType == "deepseek" || target.ProviderType == "dashscope" || target.ProviderType == "gemini" || target.ProviderType == "mimo" {
@@ -74,6 +87,9 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	}
 	if target.ProviderType == "openai" {
 		path = resolveOpenAICompatiblePath(backend.baseURL, "/responses")
+	}
+	if target.ProviderType == "glm" {
+		path = resolveGLMAPIPath(backend.baseURL, "chat/completions")
 	}
 	if target.ProviderType == chatGPTPlanProvider {
 		// The usable set is the reviewed target intersected with the current
@@ -96,6 +112,31 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 		return textbehavior.NormalizedResult{}, MapProviderRequestError(err)
 	}
 	endpoint := backend.baseURL + path
+	if miniMaxMessages {
+		if len(payload) > capabilitydriver.MiniMaxMessagesMaxRequestBytes {
+			return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		}
+		parsed, parseErr := url.Parse(backend.baseURL)
+		if parseErr != nil {
+			return textbehavior.NormalizedResult{}, MapProviderRequestError(parseErr)
+		}
+		prefix := strings.TrimRight(parsed.Path, "/")
+		for _, suffix := range []string{"/anthropic/v1", "/anthropic", "/v1"} {
+			if strings.HasSuffix(prefix, suffix) {
+				prefix = strings.TrimSuffix(prefix, suffix)
+				break
+			}
+		}
+		parsed.Path, parsed.RawPath = prefix+"/anthropic/v1/messages", ""
+		endpoint, path = parsed.String(), parsed.Path
+	}
+	if argonGemini {
+		if len(payload) > capabilitydriver.GeminiNativeMaxRequestBytes {
+			return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		}
+		path = "/interactions"
+		endpoint = resolveGeminiNativeBaseURL(backend.baseURL) + path
+	}
 	if nativeGemini {
 		if len(payload) > capabilitydriver.GeminiNativeMaxRequestBytes {
 			return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
@@ -111,9 +152,15 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 		return textbehavior.NormalizedResult{}, err
 	}
 	request.Header.Set("Content-Type", serialized.ContentType)
-	if nativeGemini {
+	if nativeGemini || argonGemini {
 		request.Header.Del("Authorization")
 		request.Header.Set("x-goog-api-key", backend.apiKey)
+	}
+	if miniMaxMessages {
+		// The exact MiniMax protocol uses Bearer even when its path contains
+		// /anthropic; generic URL heuristics cannot select credential semantics.
+		request.Header.Del("x-api-key")
+		request.Header.Set("Authorization", "Bearer "+backend.apiKey)
 	}
 	if wireStream {
 		request.Header.Set("Accept", "text/event-stream")
@@ -142,7 +189,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	if !wireStream {
 		var body []byte
 		var err error
-		if nativeGemini {
+		if nativeGemini || argonGemini || miniMaxMessages {
 			body, err = readLimitedResponseBody(response.Body, anthropicMessageStreamLimit)
 		} else {
 			body, err = io.ReadAll(response.Body)

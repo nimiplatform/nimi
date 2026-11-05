@@ -313,6 +313,12 @@ test('Runtime-backed Nimi AI preserves optional sampling presence and explicit z
 });
 
 test('Runtime-backed Nimi AI maps effort intensity and rejects invalid reasoning algebra', async () => {
+  const defaultClient = new FakeScenarioClient();
+  await createNimiRuntimeAIModel({ runtime: defaultClient, appId: 'app-native-default', reasoning: { activation: 'adaptive', effort: 'model-default' } }).generateText({ messages: [{ role: 'user', content: [textPart('Reason.')] }] });
+  const nativeSpec = defaultClient.executeRequests[0]?.spec?.spec;
+  const nativeReasoning = nativeSpec?.oneofKind === 'textGenerate' ? nativeSpec.textGenerate.reasoning : undefined;
+  assert.equal(nativeReasoning?.activation, ReasoningActivation.ADAPTIVE);
+  assert.deepEqual(nativeReasoning?.intensity, { oneofKind: 'effort', effort: ReasoningEffort.MODEL_DEFAULT });
   const client = new FakeScenarioClient();
   const model = createNimiRuntimeAIModel({
     runtime: client,

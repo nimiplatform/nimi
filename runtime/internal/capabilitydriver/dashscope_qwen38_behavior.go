@@ -37,7 +37,7 @@ func DashscopeQwen38RequestSerializer(spec *runtimev1.TextGenerateScenarioSpec, 
 		if _, err := textbehavior.CompileJSONSchema(schema); err != nil {
 			return unsupported()
 		}
-		messages, err := deepseekChatMessages(spec)
+		messages, err := chatCompletionMessages(spec, nil, "")
 		if err != nil {
 			return textbehavior.SerializedRequest{}, err
 		}

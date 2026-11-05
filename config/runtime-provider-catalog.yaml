@@ -52,7 +52,6 @@ entries:
   - providers_45
   - providers_46
   - providers_47
-  - providers_48
 providers:
   - provider: anthropic
     default_endpoint: https://api.anthropic.com
@@ -121,9 +120,9 @@ providers:
     inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: flux
-    default_endpoint: null
+    default_endpoint: https://api.bfl.ai
     default_text_model: null
-    requires_explicit_endpoint: true
+    requires_explicit_endpoint: false
     inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: gemini
@@ -134,17 +133,11 @@ providers:
     source_rule: K-MCAT-027
   - provider: glm
     default_endpoint: https://open.bigmodel.cn/api/paas/v4
-    default_text_model: glm-5.2
+    default_text_model: glm-5.3
     requires_explicit_endpoint: false
     inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: google_cloud_tts
-    default_endpoint: null
-    default_text_model: null
-    requires_explicit_endpoint: true
-    inventory_mode: static_source
-    source_rule: K-MCAT-027
-  - provider: google_veo
     default_endpoint: null
     default_text_model: null
     requires_explicit_endpoint: true
@@ -193,8 +186,8 @@ providers:
     inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: minimax
-    default_endpoint: https://api.minimaxi.com/v1
-    default_text_model: MiniMax-M3
+    default_endpoint: https://api.minimax.cn/v1
+    default_text_model: MiniMax-M3.1-Flash
     requires_explicit_endpoint: false
     inventory_mode: static_source
     source_rule: K-MCAT-027

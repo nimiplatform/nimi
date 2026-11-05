@@ -506,7 +506,7 @@ func TestResolveHFCatalogOfferKeepsRevisionBoundParentFacts(t *testing.T) {
 	}
 }
 
-func TestHFCatalogUnknownPipelineFailsClosed(t *testing.T) {
+func TestHFCatalogUnclassifiedContentRemainsDiscoverableWithoutCapabilityAdmission(t *testing.T) {
 	if capabilities := inferCapabilitiesFromHF("unknown-pipeline", nil); len(capabilities) != 0 {
 		t.Fatalf("unknown pipeline must not fall back to chat, got %v", capabilities)
 	}
@@ -515,9 +515,22 @@ func TestHFCatalogUnknownPipelineFailsClosed(t *testing.T) {
 		ID:          "org/unknown-pipeline-model",
 		ModelID:     "org/unknown-pipeline-model",
 		PipelineTag: "unknown-pipeline",
+		Sha:         immutableHFRevisionForTest,
 	}, "")
-	if ok || item != nil {
-		t.Fatalf("unknown pipeline row must be blocked, got ok=%v item=%v", ok, item)
+	if !ok || item == nil || len(item.Capabilities) != 0 || item.ModelType != "" || item.InstallAvailable || item.Engine != "" {
+		t.Fatalf("unclassified discovery must not invent admission, got ok=%v item=%v", ok, item)
+	}
+
+	variants := listHFCatalogVariantsFromDetails(&hfModelDetails{
+		PipelineTag: "any-to-any",
+		Siblings:    []hfModelSibling{{Rfilename: "model.gguf", Lfs: &hfModelSiblingLFS{Size: 8, Sha256: strings.Repeat("a", 64)}}},
+	})
+	if len(variants) != 1 {
+		t.Fatalf("unclassified GGUF variants missing: %+v", variants)
+	}
+	offer, err := catalogOfferFromHFVariant("org/model", immutableHFRevisionForTest, variants[0])
+	if err != nil || !catalogOfferInstallable(offer) || len(offer.capabilities) != 0 || offer.modelType != "" {
+		t.Fatalf("downloadability must not require inferred capability: %+v err=%v", offer, err)
 	}
 }
 
@@ -547,14 +560,32 @@ func TestHFCatalogProjectsExternalPipelineCategoriesToCanonicalCapabilities(t *t
 	}
 }
 
-func TestHFCatalogAmbiguousCrossKindRowFailsClosed(t *testing.T) {
+func TestHFCatalogAmbiguousCrossKindRowDoesNotInventKind(t *testing.T) {
 	item, ok := mapHFRowToCatalogItem(hfModelSearchEntry{
 		ID:          "org/ambiguous-model",
 		PipelineTag: "text-to-speech",
 		Tags:        []string{"text-generation"},
+		Sha:         immutableHFRevisionForTest,
 	}, "")
-	if ok || item != nil {
-		t.Fatalf("cross-kind inferred row must be blocked, got ok=%v item=%v", ok, item)
+	if !ok || item == nil || item.ModelType != "" || item.InstallAvailable || item.Engine != "" {
+		t.Fatalf("cross-kind discovery must not invent admission, got ok=%v item=%v", ok, item)
+	}
+}
+
+func TestHFCatalogLicenseUsesSourceFactsWithoutGuessing(t *testing.T) {
+	for _, tc := range []struct {
+		card map[string]any
+		tags []string
+		want string
+	}{
+		{nil, []string{"any-to-any", "license:apache-2.0"}, "apache-2.0"},
+		{map[string]any{"license": "other"}, []string{"license:apache-2.0"}, "other"},
+		{nil, []string{"license:apache-2.0", "license:mit"}, "unknown"},
+		{nil, nil, "unknown"},
+	} {
+		if got := hfCatalogLicense(tc.card, tc.tags); got != tc.want {
+			t.Fatalf("license=%q want=%q", got, tc.want)
+		}
 	}
 }
 

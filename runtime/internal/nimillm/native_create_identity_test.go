@@ -20,7 +20,7 @@ func TestNativeCreateRequiresReceiptIdentityBeforeAnyBodyAcquisition(t *testing.
 		request     *runtimev1.SubmitScenarioJobRequest
 		run         execute
 	}{
-		{"flux", "flux-pro", image, ExecuteFluxImage},
+		{"flux", "flux-pro", image, ExecuteFluxMedia},
 		{"luma", "ray", video, ExecuteLumaTask},
 		{"runway", "gen", video, ExecuteRunwayTask},
 		{"pika", "pika", video, ExecutePikaTask},

@@ -107,6 +107,16 @@ func (s *Service) validateVideoGenerateAgainstCatalog(
 
 	actualRoles := videoScenarioInputRoles(spec)
 	requiredRoles := requiredVideoRolesForMode(spec.GetMode())
+	if spec.GetMode() == runtimev1.VideoMode_VIDEO_MODE_I2V_REFERENCE {
+		anchors := model.VideoGeneration.ReferenceAnchorRoles
+		if len(anchors) == 0 {
+			anchors = []string{"reference_image"}
+		}
+		if len(filterVideoRoles(actualRoles, anchors)) == 0 {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
+		requiredRoles = nil
+	}
 	if !sameStringSet(filterVideoRoles(actualRoles, requiredRoles), requiredRoles) {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
@@ -136,6 +146,9 @@ func (s *Service) validateVideoGenerateAgainstCatalog(
 		}
 	}
 	if value := options.GetDurationSec(); options.DurationSec != nil {
+		if value == -1 && model.VideoGeneration.Limits["duration_sec"] == nil {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
 		if err := ensureVideoOptionSupported(model.VideoGeneration, "duration_sec"); err != nil {
 			return err
 		}
@@ -286,6 +299,14 @@ func videoScenarioInputRoles(spec *runtimev1.VideoGenerateScenarioSpec) []string
 				roles["last_frame"] = struct{}{}
 			case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_IMAGE:
 				roles["reference_image"] = struct{}{}
+			case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_AUDIO:
+				if item.GetType() == runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_ARTIFACT_REF {
+					roles["reference_audio"] = struct{}{}
+				}
+			case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO:
+				if item.GetType() == runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_ARTIFACT_REF {
+					roles["reference_video"] = struct{}{}
+				}
 			}
 		case runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_VIDEO_URL:
 			if item.GetRole() == runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO {
@@ -347,9 +368,9 @@ func videoReferenceVideoCount(spec *runtimev1.VideoGenerateScenarioSpec) int {
 		if item == nil {
 			continue
 		}
-		if item.GetType() == runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_VIDEO_URL &&
-			item.GetRole() == runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO &&
-			strings.TrimSpace(item.GetVideoUrl().GetUrl()) != "" {
+		if item.GetRole() == runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO &&
+			((item.GetType() == runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_VIDEO_URL && strings.TrimSpace(item.GetVideoUrl().GetUrl()) != "") ||
+				(item.GetType() == runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_ARTIFACT_REF && item.GetArtifactRef().GetArtifactId() != "")) {
 			count++
 		}
 	}
@@ -365,9 +386,9 @@ func videoReferenceAudioCount(spec *runtimev1.VideoGenerateScenarioSpec) int {
 		if item == nil {
 			continue
 		}
-		if item.GetType() == runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_AUDIO_URL &&
-			item.GetRole() == runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_AUDIO &&
-			strings.TrimSpace(item.GetAudioUrl().GetUrl()) != "" {
+		if item.GetRole() == runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_AUDIO &&
+			((item.GetType() == runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_AUDIO_URL && strings.TrimSpace(item.GetAudioUrl().GetUrl()) != "") ||
+				(item.GetType() == runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_ARTIFACT_REF && item.GetArtifactRef().GetArtifactId() != "")) {
 			count++
 		}
 	}

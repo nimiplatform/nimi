@@ -250,12 +250,12 @@ func TestNativeTaskHandoffDoesNoPollingOrCleanup(t *testing.T) {
 	var receipt *NativeTaskReceipt
 	parent, cancel := context.WithCancel(context.Background())
 	ctx := WithNativeTaskPublisher(parent, func(r *NativeTaskReceipt) error { receipt = CloneNativeTaskReceipt(r); return nil })
-	artifacts, usage, id, err := PollProviderTaskForArtifact(ctx, noopJobStateUpdater{}, "job", server.URL, "key", AdapterBytedanceARKTask, "task-1", "/contents/generations/tasks", resolveBytedanceARKVideoQueryPathTemplate(), "video/mp4", nil, nil)
+	artifacts, usage, id, err := PollProviderTaskForArtifact(ctx, noopJobStateUpdater{}, "job", server.URL, "key", AdapterAlibabaNative, "task-1", "/api/v1/services/aigc/video-generation/video-synthesis", resolveAlibabaTaskQueryPathTemplate(), "video/mp4", nil, nil)
 	cancel()
 	if !errors.Is(err, ErrNativeTaskYielded) || receipt == nil || id != "task-1" || len(artifacts) != 0 || usage != nil || calls.Load() != 0 {
 		t.Fatalf("receipt handoff performed IO or lost identity: %v %v calls=%d", receipt, err, calls.Load())
 	}
-	if _, _, _, err := PollProviderTaskForArtifact(context.Background(), noopJobStateUpdater{}, "job", server.URL, "key", AdapterBytedanceARKTask, "task-1", "/contents/generations/tasks", resolveBytedanceARKVideoQueryPathTemplate(), "video/mp4", nil, nil); err == nil || calls.Load() != 0 {
+	if _, _, _, err := PollProviderTaskForArtifact(context.Background(), noopJobStateUpdater{}, "job", server.URL, "key", AdapterAlibabaNative, "task-1", "/api/v1/services/aigc/video-generation/video-synthesis", resolveAlibabaTaskQueryPathTemplate(), "video/mp4", nil, nil); err == nil || calls.Load() != 0 {
 		t.Fatal("missing owner fell back to polling")
 	}
 }
@@ -267,13 +267,13 @@ func TestNativeTaskObservationIsOneQueryAndPreservesTerminalProvenance(t *testin
 		terminal   bool
 		reason     runtimev1.ReasonCode
 	}{
-		{name: "queued", body: `{"status":"queued"}`, httpStatus: 200},
+		{name: "queued", body: `{"id":"original","model":"doubao-seedance-2-5-260628","status":"queued"}`, httpStatus: 200},
 		{name: "transient", body: `{"error":"temporarily unavailable"}`, httpStatus: 503, reason: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE},
 		{name: "auth", body: `{"error":"unauthorized"}`, httpStatus: 401, reason: runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED},
-		{name: "canceled", body: `{"status":"canceled"}`, httpStatus: 200, terminal: true, reason: runtimev1.ReasonCode_AI_PROVIDER_TASK_CANCELED},
-		{name: "expired", body: `{"status":"expired"}`, httpStatus: 200, terminal: true, reason: runtimev1.ReasonCode_AI_PROVIDER_TASK_EXPIRED},
-		{name: "failed", body: `{"status":"failed","failure_reason":"temporary internal failure"}`, httpStatus: 200, terminal: true, reason: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE},
-		{name: "success", body: `{"status":"succeeded","b64_mp4":"dmlkZW8tYnl0ZXM="}`, httpStatus: 200, terminal: true},
+		{name: "canceled", body: `{"id":"original","model":"doubao-seedance-2-5-260628","status":"cancelled"}`, httpStatus: 200, terminal: true, reason: runtimev1.ReasonCode_AI_PROVIDER_TASK_CANCELED},
+		{name: "expired", body: `{"id":"original","model":"doubao-seedance-2-5-260628","status":"expired"}`, httpStatus: 200, terminal: true, reason: runtimev1.ReasonCode_AI_PROVIDER_TASK_EXPIRED},
+		{name: "failed", body: `{"id":"original","model":"doubao-seedance-2-5-260628","status":"failed","failure_reason":"temporary internal failure"}`, httpStatus: 200, terminal: true, reason: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE},
+		{name: "success", body: `{"id":"original","model":"doubao-seedance-2-5-260628","status":"succeeded","content":{"video_url":"https://media.example.test/result.mp4"}}`, httpStatus: 200, terminal: true},
 	} {
 		t.Run(tc.name, func(t *testing.T) {
 			var calls atomic.Int32
@@ -287,7 +287,7 @@ func TestNativeTaskObservationIsOneQueryAndPreservesTerminalProvenance(t *testin
 				_, _ = w.Write([]byte(tc.body))
 			}))
 			defer server.Close()
-			receipt := &NativeTaskReceipt{Version: 1, Adapter: AdapterBytedanceARKTask, TaskID: "original", QueryPathTemplate: resolveBytedanceARKVideoQueryPathTemplate(), Artifact: BinaryArtifact("video/mp4", nil, map[string]any{"adapter": AdapterBytedanceARKTask})}
+			receipt := &NativeTaskReceipt{Version: 1, Adapter: AdapterBytedanceARKTask, Model: "doubao-seedance-2-5-260628", TaskID: "original", QueryPathTemplate: resolveBytedanceARKVideoQueryPathTemplate(), Artifact: BinaryArtifact("video/mp4", nil, map[string]any{"adapter": AdapterBytedanceARKTask})}
 			observation, terminal, err := ObserveNativeTask(context.Background(), MediaAdapterConfig{BaseURL: server.URL, AllowLoopbackEndpoint: true}, receipt)
 			var artifacts []*runtimev1.ScenarioArtifact
 			if observation != nil {
@@ -305,7 +305,7 @@ func TestNativeTaskObservationIsOneQueryAndPreservesTerminalProvenance(t *testin
 				t.Fatal(err)
 			}
 			if tc.name == "success" {
-				if len(artifacts) != 1 || string(artifacts[0].GetBytes()) != "video-bytes" || artifacts[0].Metadata.AsMap()["response"] != nil {
+				if len(artifacts) != 1 || artifacts[0].GetUri() != "https://media.example.test/result.mp4" || artifacts[0].Metadata.AsMap()["response"] != nil {
 					t.Fatalf("invalid artifact: %v", artifacts)
 				}
 			}
@@ -326,7 +326,7 @@ func TestNativeObservationKeepsCompleteOutputSetWithoutAcquiringBodies(t *testin
 	}{
 		{AdapterAlibabaNative, "/api/v1/tasks/{task_id}", `{"output":{"task_id":"original","task_status":"SUCCEEDED","results":[{"url":"%s/one"},{"url":"%s/two"}]}}`, 2},
 		{AdapterRunwayTask, "/v1/tasks/{task_id}", `{"id":"original","status":"SUCCEEDED","output":["%s/one","%s/two"]}`, 2},
-		{AdapterBytedanceARKTask, "/contents/generations/tasks/{task_id}", `{"id":"original","status":"succeeded","content":{"video_url":"%s/one","last_frame_url":"%s/two"}}`, 2},
+		{AdapterBytedanceARKTask, "/contents/generations/tasks/{task_id}", `{"id":"original","model":"doubao-seedance-2-5-260628","status":"succeeded","content":{"video_url":"%s/one","last_frame_url":"%s/two"}}`, 2},
 		{AdapterLumaTask, "/dream-machine/v1/generations/{task_id}", `{"id":"original","state":"completed","assets":{"video":"%s/one"},"ignored":"%s"}`, 1},
 	} {
 		t.Run(tc.adapter, func(t *testing.T) {
@@ -345,6 +345,9 @@ func TestNativeObservationKeepsCompleteOutputSetWithoutAcquiringBodies(t *testin
 			defer server.Close()
 			endpoint = server.URL
 			receipt := &NativeTaskReceipt{Version: 1, Adapter: tc.adapter, TaskID: "original", QueryPathTemplate: tc.path, Artifact: BinaryArtifact("video/mp4", nil, nil)}
+			if tc.adapter == AdapterBytedanceARKTask {
+				receipt.Model = "doubao-seedance-2-5-260628"
+			}
 			observation, terminal, err := ObserveNativeTask(context.Background(), MediaAdapterConfig{BaseURL: endpoint, AllowLoopbackEndpoint: true}, receipt)
 			if err != nil || !terminal || len(observation.GetArtifacts()) != tc.count || queries.Load() != 1 || bodies.Load() != 0 {
 				t.Fatalf("query fetched or lost a body: result=%v terminal=%v err=%v query=%d bodies=%d", observation, terminal, err, queries.Load(), bodies.Load())

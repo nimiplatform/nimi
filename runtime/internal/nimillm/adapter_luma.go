@@ -8,6 +8,7 @@ import (
 	"google.golang.org/grpc/codes"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
@@ -42,7 +43,7 @@ func ExecuteLumaTask(
 	}
 
 	payload := map[string]any{
-		"prompt": VideoPrompt(spec),
+		"prompt": capabilitydriver.VideoPrompt(spec),
 	}
 	if resolvedModel := strings.TrimSpace(modelResolved); resolvedModel != "" {
 		payload["model"] = resolvedModel

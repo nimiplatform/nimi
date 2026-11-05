@@ -13,19 +13,30 @@ import (
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.deepseek-v4-json-output
 func DeepseekChatRequestSerializer(spec *runtimev1.TextGenerateScenarioSpec, stream bool) (textbehavior.SerializedRequest, error) {
-	if err := validateDeepseekChatSpec(spec); err != nil {
+	if err := validateDeepseekChatSpec(spec, false); err != nil {
 		return textbehavior.SerializedRequest{}, err
 	}
-	messages, err := deepseekChatMessages(spec)
+	messages, err := chatCompletionMessages(spec, nil, "")
 	if err != nil {
 		return textbehavior.SerializedRequest{}, err
 	}
+	return deepseekChatSerializeMessages(spec, stream, messages, false, "")
+}
+
+func deepseekChatSerializeMessages(spec *runtimev1.TextGenerateScenarioSpec, stream bool, messages []map[string]any, thinking bool, effort string) (textbehavior.SerializedRequest, error) {
 	jsonMode := spec.GetResponseFormat().GetKind() == runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT
 	if jsonMode {
 		cue := false
 		for _, m := range messages {
-			if value, ok := m["content"].(string); ok {
+			switch value := m["content"].(type) {
+			case string:
 				cue = cue || strings.Contains(strings.ToLower(value), "json")
+			case []map[string]any:
+				for _, part := range value {
+					if text, ok := part["text"].(string); ok {
+						cue = cue || strings.Contains(strings.ToLower(text), "json")
+					}
+				}
 			}
 		}
 		if !cue {
@@ -33,6 +44,10 @@ func DeepseekChatRequestSerializer(spec *runtimev1.TextGenerateScenarioSpec, str
 		}
 	}
 	body := map[string]any{"messages": messages, "stream": stream, "thinking": map[string]string{"type": "disabled"}}
+	if thinking {
+		body["thinking"] = map[string]string{"type": "enabled"}
+		body["reasoning_effort"] = effort
+	}
 	if jsonMode {
 		body["response_format"] = map[string]string{"type": "json_object"}
 	}
@@ -159,7 +174,7 @@ func deepseekJSONUsage(value deepseekJSONEnvelope) *runtimev1.UsageStats {
 }
 
 func DeepseekChatNonStreamParser(payload []byte, spec *runtimev1.TextGenerateScenarioSpec) (textbehavior.NormalizedResult, error) {
-	if err := validateDeepseekChatSpec(spec); err != nil {
+	if err := validateDeepseekChatSpec(spec, false); err != nil {
 		return textbehavior.NormalizedResult{}, err
 	}
 	if len(spec.GetTools()) > 0 {
@@ -194,7 +209,7 @@ func parseChatTextResponse(payload []byte, jsonObject bool) (textbehavior.Normal
 }
 
 func DeepseekChatStreamAssembler(spec *runtimev1.TextGenerateScenarioSpec) (textbehavior.StreamFragmentAssembler, error) {
-	if err := validateDeepseekChatSpec(spec); err != nil {
+	if err := validateDeepseekChatSpec(spec, false); err != nil {
 		return nil, err
 	}
 	if len(spec.GetTools()) > 0 {

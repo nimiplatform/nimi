@@ -129,10 +129,16 @@ func fluxGGUFForTest(architecture string, metadata map[string]uint32, tensors ma
 	buffer.WriteString("GGUF")
 	write(uint32(3))
 	write(uint64(len(tensors)))
-	write(uint64(len(metadata) + 1))
-	str("general.architecture")
-	write(uint32(8))
-	str(architecture)
+	count := len(metadata)
+	if architecture != "" {
+		count++
+	}
+	write(uint64(count))
+	if architecture != "" {
+		str("general.architecture")
+		write(uint32(8))
+		str(architecture)
+	}
 	keys := make([]string, 0, len(metadata))
 	for key := range metadata {
 		keys = append(keys, key)

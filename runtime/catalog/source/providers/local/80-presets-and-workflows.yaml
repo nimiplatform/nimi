@@ -446,6 +446,66 @@ loadout_recipes:
         model_contract:
           format: gguf
           artifact_role: mmproj
+  - recipe_id: llama.text-generate.qwen38-27b.v1
+    revision: "1"
+    title: Qwen3.8 27B image and text (Windows CUDA)
+    capability_contract: text.generate
+    implementation_id: local.text.generate.llama-cpp
+    driver_id: nimi.runtime.driver.llama-cpp
+    driver_dialect: llama.cpp/text-generate/v2
+    default_options: { contextSize: 8192, gpuLayers: 99 }
+    supported_features: [input.image]
+    slot_metadata:
+      - slot_id: main.gguf
+        display_label: Qwen3.8 27B main model
+        recommended_variant_ids: [local.chat.qwen3.8-27b.q4-k-m.cuda]
+        model_contract:
+          format: gguf
+          gguf_architectures: [qwen35]
+      - slot_id: companion.mmproj
+        display_label: Qwen3.8 27B BF16 vision projector
+        recommended_variant_ids: [local.aux.qwen3.8-27b.mmproj-bf16.cuda]
+        model_contract:
+          format: gguf
+          artifact_role: mmproj
+  - recipe_id: llama.text-generate.lfm3-1.7b.v1
+    revision: "1"
+    title: LFM3 1.7B text (Windows CUDA)
+    capability_contract: text.generate
+    implementation_id: local.text.generate.llama-cpp
+    driver_id: nimi.runtime.driver.llama-cpp
+    driver_dialect: llama.cpp/text-generate/v2
+    default_options: { contextSize: 8192, gpuLayers: 99 }
+    supported_features: []
+    slot_metadata:
+      - slot_id: main.gguf
+        display_label: LFM3 1.7B Q4_K_M model
+        recommended_variant_ids: [local.chat.lfm3-1.7b.q4-k-m.cuda]
+        model_contract:
+          format: gguf
+          gguf_architectures: [lfm3]
+  - recipe_id: llama.text-generate.gemma4-12b-unified.v1
+    revision: "1"
+    title: Gemma 4 12B unified image, audio and video (Windows CUDA)
+    capability_contract: text.generate
+    implementation_id: local.text.generate.llama-cpp
+    driver_id: nimi.runtime.driver.llama-cpp
+    driver_dialect: llama.cpp/text-generate/v2
+    default_options: { contextSize: 8192, gpuLayers: 99 }
+    supported_features: [input.image, input.audio, input.video]
+    slot_metadata:
+      - slot_id: main.gguf
+        display_label: Gemma 4 12B QAT Q4_0 main model
+        recommended_variant_ids: [local.chat.gemma4-12b-unified.qat-q4-0.cuda]
+        model_contract:
+          format: gguf
+          gguf_architectures: [gemma4]
+      - slot_id: companion.mmproj
+        display_label: Gemma 4 12B unified image and audio projection
+        recommended_variant_ids: [local.aux.gemma4-12b-unified.projection.cuda]
+        model_contract:
+          format: gguf
+          artifact_role: mmproj
   - recipe_id: llama.text-embed.gguf.v1
     revision: "1"
     title: llama.cpp GGUF embeddings
@@ -478,6 +538,22 @@ loadout_recipes:
         model_contract:
           format: gguf
           gguf_architectures: [qwen3]
+  - recipe_id: llama.text-embed.embeddinggemma2-retrieval.v1
+    revision: "1"
+    title: EmbeddingGemma 2 text retrieval
+    capability_contract: text.embed
+    implementation_id: local.text.embed.llama-cpp
+    driver_id: nimi.runtime.driver.llama-cpp
+    driver_dialect: llama.cpp/text-embed/embeddinggemma2-retrieval/v1
+    default_options: { contextSize: 8192, gpuLayers: 99 }
+    supported_features: []
+    slot_metadata:
+      - slot_id: embedding.gguf
+        display_label: EmbeddingGemma 2 Q8 model
+        recommended_variant_ids: [local.embedding.embeddinggemma2.q8-0.cuda]
+        model_contract:
+          format: gguf
+          gguf_architectures: [gemma-embedding2]
   - recipe_id: voxcpm2
     revision: "2"
     title: VoxCPM2 speech synthesis
@@ -690,6 +766,38 @@ loadout_recipes:
         model_contract:
           format: safetensors
           artifact_role: stt_transformers_model
+  - recipe_id: flux3-klein
+    revision: "1"
+    title: FLUX3 Klein generation and editing (Windows CUDA)
+    capability_contract: image.generate
+    implementation_id: local.image.generate.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp
+    driver_dialect: stable-diffusion.cpp/image-generate/v4
+    default_options: {}
+    supported_features: [input.image]
+    slot_metadata:
+      - slot_id: main.diffusion
+        display_label: Distilled diffusion model
+        recommended_variant_ids: [local.image.flux3-klein.q4-k.cuda]
+        model_contract:
+          format: gguf
+          artifact_role: diffusion_model
+          gguf_families: [flux3]
+          tensor_contract: flux3-klein
+      - slot_id: companion.text-encoder
+        display_label: Qwen3-VL 4B text encoder
+        recommended_variant_ids: [local.image-textenc.qwen3-vl-4b-instruct.q4-k-m.cuda]
+        model_contract:
+          format: gguf
+          artifact_role: text_encoder
+          gguf_architectures: [qwen3vl]
+          tensor_contract: qwen3-vl-4b-encoder
+      - slot_id: companion.vae
+        display_label: FLUX2 VAE
+        recommended_variant_ids: [local.image-vae.flux2-ae.f16.cuda]
+        model_contract:
+          format: safetensors
+          tensor_contract: flux2-vae
   - recipe_id: flux1-schnell
     revision: "1"
     title: FLUX.1 Schnell generation

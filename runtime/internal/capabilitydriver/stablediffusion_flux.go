@@ -53,8 +53,55 @@ func stableDiffusionSafetensorsContractFamily(contract string, probe []byte) (st
 	return "clip-l", true
 }
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.flux3-local-image
 func stableDiffusionGGUFTensorContractValid(contract string, summary ggufmeta.Summary) bool {
 	switch contract {
+	case "flux3-klein":
+		// This GGUF has no general.architecture metadata. The distilled flow-map
+		// tensors and exact encoder/latent dimensions establish the model contract.
+		for name, shape := range map[string][]uint64{
+			"emb_in.image.weight": {128, 3072}, "emb_in.image_cond.weight": {128, 3072}, "txt_in.weight": {20480, 3072},
+			"ref_time_in.in_layer.weight": {256, 3072}, "content_mode_blocks.image.4.q_proj.weight": {3072, 3072},
+			"content_mode_blocks.image_cond.4.q_proj.weight": {3072, 3072}, "txt_mode_blocks.4.q_proj.weight": {3072, 3072},
+			"single_blocks.0.mlp_in.weight": {3072, 18432}, "single_blocks.27.mlp_out.weight": {9216, 3072}, "final_layer.image.linear.weight": {3072, 128},
+		} {
+			if !slices.Equal(summary.TensorShapes[name], shape) {
+				return false
+			}
+		}
+		for _, prefix := range []string{"content_mode_blocks.image.5.", "content_mode_blocks.image_cond.5.", "txt_mode_blocks.5.", "single_blocks.28."} {
+			for _, name := range summary.TensorNames {
+				if strings.HasPrefix(name, prefix) {
+					return false
+				}
+			}
+		}
+		return true
+	case "qwen3-vl-4b-encoder":
+		if ggufmeta.LLMDetectedArchitecture(summary) != "qwen3vl" {
+			return false
+		}
+		for name, shape := range map[string][]uint64{"token_embd.weight": {2560, 151936}, "output_norm.weight": {2560}, "blk.0.attn_q.weight": {2560, 4096}, "blk.35.attn_output.weight": {4096, 2560}, "blk.35.ffn_up.weight": {2560, 9728}} {
+			if !slices.Equal(summary.TensorShapes[name], shape) {
+				return false
+			}
+		}
+
+		for key, want := range map[string]uint64{"qwen3vl.embedding_length": 2560, "qwen3vl.block_count": 36, "qwen3vl.feed_forward_length": 9728, "qwen3vl.attention.head_count": 32, "qwen3vl.attention.head_count_kv": 8} {
+			found := false
+			for _, entry := range summary.Entries {
+				if entry.Key == key {
+					if found || !entry.HasUint64Value || entry.Uint64Value != want {
+						return false
+					}
+					found = true
+				}
+			}
+			if !found {
+				return false
+			}
+		}
+		return true
 	case "flux1-schnell":
 		if ggufmeta.LLMDetectedArchitecture(summary) != "flux" {
 			return false

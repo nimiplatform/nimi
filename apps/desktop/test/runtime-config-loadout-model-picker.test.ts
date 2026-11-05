@@ -172,7 +172,7 @@ test('offer partition keeps installed offers out and separates installable from 
 
 test('slot labels localize known runtime slot ids and fall back otherwise', () => {
   assert.equal(loadoutSlotLabelKey('main.gguf'), 'runtimeConfig.loadouts.slotLabels.mainModel');
-  assert.equal(loadoutSlotLabelKey('companion.mmproj'), 'runtimeConfig.loadouts.slotLabels.visionProjector');
+  assert.equal(loadoutSlotLabelKey('companion.mmproj'), 'runtimeConfig.loadouts.slotLabels.mediaProjector');
   assert.equal(loadoutSlotLabelKey('future.slot'), null);
 });
 
@@ -267,6 +267,7 @@ test('model picker locale keys stay in parity and drop the market-task CTA', asy
     assert.deepEqual(Object.keys(document.loadouts.slotLabels).sort(), [
       'embeddingModel',
       'mainModel',
+      'mediaProjector',
       'sttModel',
       'textEncoder',
       'ttsModel',
