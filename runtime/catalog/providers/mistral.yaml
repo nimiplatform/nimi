@@ -1,50 +1,50 @@
 version: 1
 provider: mistral
-catalog_version: 2026-04-18-mistral-v4
+catalog_version: 2026-11-06-mistral-native-text
 inventory_mode: static_source
-default_text_model: mistral-large-latest
+default_text_model: mistral-large-4-0
 models:
-  - model_id: mistral-large-latest
+  - model_id: mistral-large-4-0
     provider: mistral
     model_type: chat
-    updated_at: 2025-12-02
+    updated_at: 2026-10-06
     capabilities:
       - text.generate
     pricing:
       unit: token
-      input: "0.50"
-      output: "1.50"
+      input: "0.70"
+      output: "2.10"
       currency: USD
-      as_of: 2026-04-18
-      notes: Current alias-backed flagship row aligned to Mistral Large 3. Per 1M tokens.
+      as_of: 2026-11-06
+      notes: Public Preview Large 4 exact major.minor target; upstream may silently update preview weights. Native thinking blocks and signatures are replayed without exposing raw reasoning as an answer. Per 1M tokens; account availability and task quality require live acceptance.
     source_ref:
-      url: https://docs.mistral.ai/models
-      retrieved_at: 2026-04-18
-      note: Mistral model catalog and lifecycle aliases.
+      url: https://docs.mistral.ai/models/mistral-large-4-0
+      retrieved_at: 2026-11-06
+      note: Public Preview Large 4 model code, context and pricing.
     features:
       - input.image
-    context_window_tokens: 8192
-  - model_id: mistral-medium-latest
+    context_window_tokens: 1000000
+  - model_id: mistral-large-4
     provider: mistral
     model_type: chat
-    updated_at: 2025-08-12
+    updated_at: 2026-10-06
     capabilities:
       - text.generate
     pricing:
       unit: token
-      input: "0.40"
-      output: "2.00"
+      input: "0.70"
+      output: "2.10"
       currency: USD
-      as_of: 2026-04-18
-      notes: Current alias-backed mid-tier row aligned to Mistral Medium 3.1. Per 1M tokens.
+      as_of: 2026-11-06
+      notes: Public Preview Large 4 major-version API target; not an immutable weight pin. Its replay kind remains separate from the exact major.minor target. Per 1M tokens; account availability and task quality require live acceptance.
     source_ref:
-      url: https://docs.mistral.ai/models
-      retrieved_at: 2026-04-18
-      note: Mistral model catalog and lifecycle aliases.
+      url: https://docs.mistral.ai/models/mistral-large-4-0
+      retrieved_at: 2026-11-06
+      note: Public Preview Large 4 model code, context and pricing.
     features:
       - input.image
-    context_window_tokens: 8192
-  - model_id: mistral-small-latest
+    context_window_tokens: 1000000
+  - model_id: mistral-small-2603
     provider: mistral
     model_type: chat
     updated_at: 2026-03-16
@@ -55,15 +55,15 @@ models:
       input: "0.15"
       output: "0.60"
       currency: USD
-      as_of: 2026-04-18
-      notes: Current alias-backed efficient row aligned to Mistral Small 4. Supports adjustable reasoning. Per 1M tokens.
+      as_of: 2026-11-06
+      notes: GA Small 4 dated API target, native none/high reasoning and typed thinking replay. Per 1M tokens; account availability and task quality require live acceptance.
     source_ref:
-      url: https://docs.mistral.ai/models
+      url: https://docs.mistral.ai/models/mistral-small-4-0-26-03
       retrieved_at: 2026-04-18
-      note: Mistral model catalog and lifecycle aliases.
+      note: Mistral Small 4 model card.
     features:
       - input.image
-    context_window_tokens: 8192
+    context_window_tokens: 256000
   - model_id: codestral-latest
     provider: mistral
     model_type: chat
@@ -106,14 +106,14 @@ selection_profiles:
   - provider: mistral
     profile_id: text.general
     capability: text.generate
-    model_id: mistral-large-latest
-    reviewed_at: 2026-09-28
+    model_id: mistral-large-4-0
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: Alias currently resolving to Mistral Large 3 (mistral-large-2512), the GA model used in Mistral's API quickstart; Mistral Medium 3.5 is newer, but its admitted alias row still describes Medium 3.1.
+    rationale: Current Large 4 replaces deprecated Large 3 and Medium 3.5 for new integrations; it remains Public Preview with possible silent updates, and live account acceptance is separate.
   - provider: mistral
     profile_id: text.fast
     capability: text.generate
-    model_id: mistral-small-latest
-    reviewed_at: 2026-09-28
+    model_id: mistral-small-2603
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: Alias currently resolving to Mistral Small 4 (mistral-small-2603), Mistral's cost-efficient GA model.
+    rationale: Current GA Small 4 exact dated target, with native none/high reasoning and efficient 6.5B active parameters; no mutable alias is substituted for the selected model.

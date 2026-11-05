@@ -904,7 +904,7 @@ var Records = map[string]ProviderRecord{
 		ManagedConnectorSupported:     true,
 		InlineSupported:               true,
 		DefaultEndpoint:               "https://api.mistral.ai/v1",
-		DefaultTextModel:              "mistral-large-latest",
+		DefaultTextModel:              "mistral-large-4-0",
 		RequiresExplicitEndpoint:      false,
 		InventoryMode:                 "static_source",
 		DynamicDiscoveryTransport:     "",

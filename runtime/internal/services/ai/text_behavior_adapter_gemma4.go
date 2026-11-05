@@ -32,6 +32,9 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 	registrations = append(registrations, gemini38FlashSchemaBehaviorRegistration())
 	registrations = append(registrations, geminiArgonBehaviorRegistration())
 	registrations = append(registrations, miniMaxMessagesRegistration("MiniMax-M3.1-Flash"), miniMaxMessagesRegistration("MiniMax-M3"))
+	for _, model := range []string{"mistral-large-4", "mistral-large-4-0", "mistral-small-2603"} {
+		registrations = append(registrations, mistralTextBehaviorRegistration(model))
+	}
 	for _, model := range []string{"glm-5.3", "glm-5.3-flash", "glm-5.3-flashx", "glm-5.3-flashx-legal"} {
 		registrations = append(registrations, glm53TextBehaviorRegistration(model))
 	}

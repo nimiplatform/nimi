@@ -1,6 +1,6 @@
 schema_version: 3
 provider: mistral
-catalog_version: 2026-04-18-mistral-v4
+catalog_version: 2026-11-06-mistral-native-text
 generated_target: runtime/catalog/providers/mistral.yaml
 runtime:
   inventory_mode: static_source
@@ -11,7 +11,7 @@ runtime:
   requires_explicit_endpoint: false
 defaults:
   provider: mistral
-  default_text_model: mistral-large-latest
+  default_text_model: mistral-large-4-0
   model_type: chat
   capabilities: []
   context_window_tokens: 8192
@@ -65,62 +65,90 @@ sources:
     retrieved_at: 2026-04-18
     note: Adjustable reasoning support for mistral-small-latest.
 
+  - source_id: mistral_large4_doc
+    url: https://docs.mistral.ai/models/mistral-large-4-0
+    retrieved_at: 2026-11-06
+    note: Public Preview Large 4 model code, context and pricing.
+  - source_id: mistral_native_chat_doc
+    url: https://docs.mistral.ai/openapi.yaml
+    retrieved_at: 2026-11-06
+    note: Native Chat request, content chunks, tool choice, strict JSON Schema and SSE contracts.
+  - source_id: mistral_current_reasoning_doc
+    url: https://docs.mistral.ai/inference/conversations/reasoning
+    retrieved_at: 2026-11-06
+    note: Large 4 low/medium/high, Small 4 none/high, native ThinkChunk replay and mixed stream content shapes.
+  - source_id: mistral_current_vision_doc
+    url: https://docs.mistral.ai/inference/conversations/vision
+    retrieved_at: 2026-11-06
+    note: Eight images, 10 MB files and PNG/JPEG/WebP/single-frame GIF; native image_url.
+  - source_id: mistral_lifecycle_doc
+    url: https://docs.mistral.ai/inference/model-lifecycle
+    retrieved_at: 2026-11-06
+    note: Deprecated models remain available until retirement; aliases can cross generations, preview may silently change, and fixed major.minor targets are preferred.
+  - source_id: mistral_medium35_deprecation_doc
+    url: https://docs.mistral.ai/models/mistral-medium-3-5-26-04
+    retrieved_at: 2026-11-06
+    note: Medium 3.5 deprecated on 2026-10-31; official replacement Large 4. Not a claim of immediate endpoint shutdown.
+
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
-    model_id: mistral-large-latest
-    reviewed_at: 2026-09-28
+    model_id: mistral-large-4-0
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: Alias currently resolving to Mistral Large 3 (mistral-large-2512), the GA model used in Mistral's API quickstart; Mistral Medium 3.5 is newer, but its admitted alias row still describes Medium 3.1.
+    rationale: Current Large 4 replaces deprecated Large 3 and Medium 3.5 for new integrations; it remains Public Preview with possible silent updates, and live account acceptance is separate.
   - profile_id: text.fast
     capability: text.generate
-    model_id: mistral-small-latest
-    reviewed_at: 2026-09-28
+    model_id: mistral-small-2603
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: Alias currently resolving to Mistral Small 4 (mistral-small-2603), Mistral's cost-efficient GA model.
+    rationale: Current GA Small 4 exact dated target, with native none/high reasoning and efficient 6.5B active parameters; no mutable alias is substituted for the selected model.
 
 models:
-  - model_id: mistral-large-latest
+  - model_id: mistral-large-4-0
     model_type: chat
-    updated_at: 2025-12-02
+    updated_at: 2026-10-06
     capabilities: [text.generate]
     features: [input.image]
+    context_window_tokens: 1000000
     pricing:
       unit: token
-      input: "0.50"
-      output: "1.50"
+      input: "0.70"
+      output: "2.10"
       currency: USD
-      as_of: 2026-04-18
-      notes: Current alias-backed flagship row aligned to Mistral Large 3. Per 1M tokens.
-    source_ids: [mistral_models_doc, mistral_changelog_doc, mistral_large_3_doc]
+      as_of: 2026-11-06
+      notes: Public Preview Large 4 exact major.minor target; upstream may silently update preview weights. Native thinking blocks and signatures are replayed without exposing raw reasoning as an answer. Per 1M tokens; account availability and task quality require live acceptance.
+    source_ids: [mistral_large4_doc, mistral_native_chat_doc, mistral_current_reasoning_doc, mistral_current_vision_doc, mistral_lifecycle_doc]
 
-  - model_id: mistral-medium-latest
+  - model_id: mistral-large-4
     model_type: chat
-    updated_at: 2025-08-12
+    updated_at: 2026-10-06
     capabilities: [text.generate]
     features: [input.image]
+    context_window_tokens: 1000000
     pricing:
       unit: token
-      input: "0.40"
-      output: "2.00"
+      input: "0.70"
+      output: "2.10"
       currency: USD
-      as_of: 2026-04-18
-      notes: Current alias-backed mid-tier row aligned to Mistral Medium 3.1. Per 1M tokens.
-    source_ids: [mistral_models_doc, mistral_medium_3_1_doc, mistral_sdk_clients_doc]
+      as_of: 2026-11-06
+      notes: Public Preview Large 4 major-version API target; not an immutable weight pin. Its replay kind remains separate from the exact major.minor target. Per 1M tokens; account availability and task quality require live acceptance.
+    source_ids: [mistral_large4_doc, mistral_native_chat_doc, mistral_current_reasoning_doc, mistral_current_vision_doc, mistral_lifecycle_doc]
 
-  - model_id: mistral-small-latest
+  - model_id: mistral-small-2603
     model_type: chat
     updated_at: 2026-03-16
     capabilities: [text.generate]
     features: [input.image]
+    context_window_tokens: 256000
     pricing:
       unit: token
       input: "0.15"
       output: "0.60"
       currency: USD
-      as_of: 2026-04-18
-      notes: Current alias-backed efficient row aligned to Mistral Small 4. Supports adjustable reasoning. Per 1M tokens.
-    source_ids: [mistral_models_doc, mistral_small_4_doc, mistral_adjustable_reasoning_doc]
+      as_of: 2026-11-06
+      notes: GA Small 4 dated API target, native none/high reasoning and typed thinking replay. Per 1M tokens; account availability and task quality require live acceptance.
+    source_ids: [mistral_small_4_doc, mistral_native_chat_doc, mistral_current_reasoning_doc, mistral_current_vision_doc, mistral_lifecycle_doc]
 
   - model_id: codestral-latest
     model_type: chat

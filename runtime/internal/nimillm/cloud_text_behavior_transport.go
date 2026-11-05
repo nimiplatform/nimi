@@ -34,6 +34,7 @@ func WithTextBehaviorDispatchObserver(ctx context.Context, observer func()) cont
 // @nimi-authority: rule.nimi.runtime.ai-provider.mimo-v26-tool-text
 // @nimi-authority: rule.nimi.runtime.ai-provider.glm53-native-text
 // @nimi-authority: rule.nimi.runtime.ai-provider.minimax-m3-messages
+// @nimi-authority: rule.nimi.runtime.ai-provider.mistral-native-text
 // The Host supplies the exact credential-bearing target only for this call.
 // Hooks were selected and their request serialized before Job publication.
 func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
@@ -52,6 +53,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	case "dashscope":
 	case "gemini":
 	case "mimo":
+	case "mistral":
 	case "glm":
 	case "minimax":
 	case chatGPTPlanProvider:
@@ -82,7 +84,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	if miniMaxMessages && (target.ProviderType != "minimax" || resolvedModelID != "MiniMax-M3.1-Flash" && resolvedModelID != "MiniMax-M3") || target.ProviderType == "minimax" && !miniMaxMessages {
 		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
 	}
-	if target.ProviderType == "deepseek" || target.ProviderType == "dashscope" || target.ProviderType == "gemini" || target.ProviderType == "mimo" {
+	if target.ProviderType == "deepseek" || target.ProviderType == "dashscope" || target.ProviderType == "gemini" || target.ProviderType == "mimo" || target.ProviderType == "mistral" {
 		path = resolveOpenAICompatiblePath(backend.baseURL, "/chat/completions")
 	}
 	if target.ProviderType == "openai" {
@@ -156,8 +158,8 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 		request.Header.Del("Authorization")
 		request.Header.Set("x-goog-api-key", backend.apiKey)
 	}
-	if miniMaxMessages {
-		// The exact MiniMax protocol uses Bearer even when its path contains
+	if miniMaxMessages || target.ProviderType == "mistral" {
+		// These exact protocols use Bearer even when a gateway path contains
 		// /anthropic; generic URL heuristics cannot select credential semantics.
 		request.Header.Del("x-api-key")
 		request.Header.Set("Authorization", "Bearer "+backend.apiKey)
