@@ -105,6 +105,35 @@ func TestScenarioJobReasonCodeClassification(t *testing.T) {
 	})
 }
 
+func TestAsyncJobPreservesProviderTimeoutApartFromExecutionDeadline(t *testing.T) {
+	for _, executionDeadline := range []bool{false, true} {
+		svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
+		jobID := "image-timeout"
+		if svc.scenarioJobs.create(&runtimev1.ScenarioJob{JobId: jobID,
+			Head:          &runtimev1.ScenarioRequestHead{AppId: "test-app", SubjectUserId: "user-001"},
+			ScenarioType:  runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+			ExecutionMode: runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
+			Status:        runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_SUBMITTED,
+			ReasonCode:    runtimev1.ReasonCode_ACTION_EXECUTED,
+		}, func() {}) == nil {
+			t.Fatal("create job")
+		}
+		ctx := context.Background()
+		want := runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT
+		if executionDeadline {
+			var cancel context.CancelFunc
+			ctx, cancel = context.WithDeadline(ctx, time.Now().Add(-time.Second))
+			defer cancel()
+			want = runtimev1.ReasonCode_AI_EXECUTION_RESOURCE_LIMIT_EXCEEDED
+		}
+		svc.finishScenarioAsyncJobFailure(ctx, jobID, nil, grpcerr.WithReasonCode(codes.DeadlineExceeded, runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT))
+		job, ok := svc.scenarioJobs.get(jobID)
+		if !ok || job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT || job.GetReasonCode() != want {
+			t.Fatalf("execution deadline %v: status %v reason %v, want %v", executionDeadline, job.GetStatus(), job.GetReasonCode(), want)
+		}
+	}
+}
+
 func TestStreamCancellationTerminalReasonMatchesCanceledStatus(t *testing.T) {
 	tests := []struct {
 		name        string

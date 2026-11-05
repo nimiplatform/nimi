@@ -2,6 +2,10 @@ package config
 
 import "github.com/oklog/ulid/v2"
 
+// Generation can spend minutes producing media before the first response byte.
+// Connection checks and caller deadlines impose their own shorter bounds.
+const DefaultAIHTTPTimeoutSeconds = 300
+
 // intPtr returns a pointer to the given int value.
 func intPtr(v int) *int { return &v }
 
@@ -25,7 +29,7 @@ func DefaultFileConfig() FileConfig {
 			Enabled: boolPtr(true),
 			Mode:    LocalServiceModeDesktopLocal,
 		},
-		AIHTTPTimeoutSeconds:    intPtr(30),
+		AIHTTPTimeoutSeconds:    intPtr(DefaultAIHTTPTimeoutSeconds),
 		GlobalConcurrencyLimit:  intPtr(8),
 		PerAppConcurrencyLimit:  intPtr(2),
 		IdempotencyCapacity:     intPtr(10000),

@@ -14,6 +14,13 @@ func TestProtectedRuntimeConfigBindsSpeechExecutionHostPort(t *testing.T) {
 	}
 }
 
+func TestProtectedRuntimeConfigAllowsSlowMediaGeneration(t *testing.T) {
+	cfg := newProtectedRuntimeConfig(t.TempDir(), "runtime-id", "https://realm.example")
+	if cfg.AIHTTPTimeoutSeconds != 300 {
+		t.Fatalf("protected Runtime generation timeout = %d, want 300 seconds", cfg.AIHTTPTimeoutSeconds)
+	}
+}
+
 func TestProtectedRuntimeConfigConstructsLlamaExecutionHost(t *testing.T) {
 	cfg := newProtectedRuntimeConfig(t.TempDir(), "runtime-id", "https://realm.example")
 	want := engine.DefaultLlamaConfig()

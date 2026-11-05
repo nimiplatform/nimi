@@ -429,7 +429,7 @@ func TestConfigDefaultsMatchSpec(t *testing.T) {
 		{"localAuditCapacity", cfg.LocalAuditCapacity, 5000},
 		{"sessionTtlMinSeconds", cfg.SessionTTLMinSeconds, 60},
 		{"sessionTtlMaxSeconds", cfg.SessionTTLMaxSeconds, 86400},
-		{"aiHttpTimeoutSeconds", cfg.AIHTTPTimeoutSeconds, 30},
+		{"aiHttpTimeoutSeconds", cfg.AIHTTPTimeoutSeconds, 300},
 		{"allowLoopbackProviderEndpoint", cfg.AllowLoopbackProviderEndpoint, false},
 		{"engineLlamaEnabled", cfg.EngineLlamaEnabled, false},
 	}

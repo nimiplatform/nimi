@@ -246,7 +246,9 @@ func (s *Service) finishScenarioAsyncJobFailure(ctx context.Context, jobID strin
 	} else if errors.Is(ctx.Err(), context.DeadlineExceeded) || errors.Is(err, context.DeadlineExceeded) || reasonCode == runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
 		statusValue = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_TIMEOUT
 		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_TIMEOUT
-		reasonCode = runtimev1.ReasonCode_AI_EXECUTION_RESOURCE_LIMIT_EXCEEDED
+		if reasonCode != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT || errors.Is(ctx.Err(), context.DeadlineExceeded) {
+			reasonCode = runtimev1.ReasonCode_AI_EXECUTION_RESOURCE_LIMIT_EXCEEDED
+		}
 	} else if (errors.Is(err, context.Canceled) || status.Code(err) == codes.Canceled) && s.scenarioJobs.cancellationRequested(jobID) {
 		statusValue = runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED
 		eventType = runtimev1.ScenarioJobEventType_SCENARIO_JOB_EVENT_CANCELED

@@ -32,7 +32,7 @@ function ImageLayerField(props: { parameters: StudioImageGenerationParameters; f
   const host = useAIStudioHost();
   const input = useRef<HTMLInputElement>(null);
   const [busy,setBusy] = useState(false);
-  const [name,setName] = useState('');
+  const [uploaded,setUploaded] = useState<{ artifactId: string; name: string } | null>(null);
   const [error,setError] = useState('');
   async function choose(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0]; event.currentTarget.value=''; if (!file) return;
@@ -40,13 +40,13 @@ function ImageLayerField(props: { parameters: StudioImageGenerationParameters; f
     setBusy(true); setError('');
     try {
       const asset = await host.sdk.uploadLocalAppArtifact({bytes:new Uint8Array(await file.arrayBuffer()),mimeType:'image/png'});
-      const next = {...props.parameters,[props.field]:asset.artifactId}; delete next[props.urlField]; props.onChange(next); setName(file.name);
+      const next = {...props.parameters,[props.field]:asset.artifactId}; delete next[props.urlField]; props.onChange(next); setUploaded({artifactId:asset.artifactId,name:file.name});
     } catch (failure) { setError(failure instanceof Error ? failure.message : String(failure)); }
     finally { setBusy(false); }
   }
   return <StudioParameterField label={props.label}>
     <input ref={input} aria-label={props.label} className="studio-parameters__file-input" type="file" accept="image/png" disabled={props.disabled || busy} onChange={event=>void choose(event)} />
-    <div className="studio-parameters__file-row"><Button type="button" tone="ghost" size="sm" disabled={props.disabled || busy} onClick={()=>input.current?.click()}>{host.translate(busy?'Studio.parameters.uploadingImage':'Studio.parameters.chooseImageFile')}</Button>{name?<span>{name}</span>:null}{props.parameters[props.field]?<Button type="button" tone="ghost" size="sm" disabled={props.disabled || busy} onClick={()=>{const next={...props.parameters};delete next[props.field];props.onChange(next);setName('');setError('');}}>{host.translate('Studio.parameters.clearLayer')}</Button>:null}</div>
+    <div className="studio-parameters__file-row"><Button type="button" tone="ghost" size="sm" disabled={props.disabled || busy} onClick={()=>input.current?.click()}>{host.translate(busy?'Studio.parameters.uploadingImage':'Studio.parameters.chooseImageFile')}</Button>{uploaded && uploaded.artifactId===props.parameters[props.field]?<span>{uploaded.name}</span>:null}{props.parameters[props.field]?<Button type="button" tone="ghost" size="sm" disabled={props.disabled || busy} onClick={()=>{const next={...props.parameters};delete next[props.field];props.onChange(next);setUploaded(null);setError('');}}>{host.translate('Studio.parameters.clearLayer')}</Button>:null}</div>
     {error?<small>{error}</small>:null}<small>{props.hint}</small>
   </StudioParameterField>;
 }
@@ -60,7 +60,7 @@ function ImageFields(props: StudioParameterPanelProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
-  const [uploadedFileName, setUploadedFileName] = useState('');
+  const [uploadedReference, setUploadedReference] = useState<{ artifactId: string; name: string } | null>(null);
   const imageMimes = props.source === 'cloud' ? ['image/png', 'image/jpeg', 'image/webp'] : STUDIO_IMAGE_MIME_TYPES;
   async function selectReferenceImage(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0];
@@ -83,7 +83,7 @@ function ImageFields(props: StudioParameterPanelProps) {
       });
       const next = { ...parameters, referenceImageArtifactId: result.artifactId };
       delete next.referenceImage;
-      setUploadedFileName(file.name);
+      setUploadedReference({ artifactId: result.artifactId, name: file.name });
       update(next);
     } catch (error) {
       setUploadError(error instanceof Error ? error.message : String(error));
@@ -94,13 +94,13 @@ function ImageFields(props: StudioParameterPanelProps) {
   const updateReferenceUrl = (next: StudioImageGenerationParameters) => {
     const normalized = { ...next };
     delete normalized.referenceImageArtifactId;
-    setUploadedFileName('');
+    setUploadedReference(null);
     update(normalized);
   };
   const clearReferenceArtifact = () => {
     const normalized = { ...parameters };
     delete normalized.referenceImageArtifactId;
-    setUploadedFileName('');
+    setUploadedReference(null);
     setUploadError('');
     update(normalized);
   };
@@ -140,7 +140,7 @@ function ImageFields(props: StudioParameterPanelProps) {
             <Button type="button" tone="ghost" size="sm" disabled={props.disabled || routeDisabled || uploading} leadingIcon={<Upload size={14} aria-hidden="true" />} onClick={() => inputRef.current?.click()}>
               {uploading ? t('Studio.parameters.uploadingImage') : t('Studio.parameters.chooseImageFile')}
             </Button>
-            {uploadedFileName ? <span>{uploadedFileName}</span> : null}
+            {uploadedReference && uploadedReference.artifactId === parameters.referenceImageArtifactId ? <span>{uploadedReference.name}</span> : null}
             {parameters.referenceImageArtifactId ? (
               <Button type="button" tone="ghost" size="sm" disabled={props.disabled || routeDisabled || uploading} leadingIcon={<Trash2 size={14} aria-hidden="true" />} onClick={clearReferenceArtifact}>
                 {t('Studio.parameters.clearReferenceImage')}

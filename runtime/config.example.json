@@ -4,7 +4,7 @@
   "httpAddr": "127.0.0.1:46372",
   "shutdownTimeoutSeconds": 10,
   "localStatePath": "/absolute/non-production/private-state/local-state.json",
-  "aiHttpTimeoutSeconds": 30,
+  "aiHttpTimeoutSeconds": 300,
   "globalConcurrencyLimit": 8,
   "perAppConcurrencyLimit": 2,
   "idempotencyCapacity": 10000,

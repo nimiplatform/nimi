@@ -39,7 +39,7 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
-	aiHTTPTimeoutSeconds, err := readIntWithFileConfigFallback("NIMI_RUNTIME_AI_HTTP_TIMEOUT_SECONDS", fileCfg.AIHTTPTimeoutSeconds, 30)
+	aiHTTPTimeoutSeconds, err := readIntWithFileConfigFallback("NIMI_RUNTIME_AI_HTTP_TIMEOUT_SECONDS", fileCfg.AIHTTPTimeoutSeconds, DefaultAIHTTPTimeoutSeconds)
 	if err != nil {
 		return Config{}, err
 	}

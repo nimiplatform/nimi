@@ -78,8 +78,8 @@ func TestLoadDefaultsWithoutConfigFile(t *testing.T) {
 	if cfg.EngineLlamaVersion != engine.DefaultLlamaConfig().Version {
 		t.Fatalf("llama version default mismatch: got=%q want=%q", cfg.EngineLlamaVersion, engine.DefaultLlamaConfig().Version)
 	}
-	if cfg.AIHTTPTimeoutSeconds != 30 {
-		t.Fatalf("aiHttpTimeoutSeconds default mismatch: got=%d want=30", cfg.AIHTTPTimeoutSeconds)
+	if cfg.AIHTTPTimeoutSeconds != 300 {
+		t.Fatalf("aiHttpTimeoutSeconds default mismatch: got=%d want=300", cfg.AIHTTPTimeoutSeconds)
 	}
 	if cfg.GlobalConcurrencyLimit != 8 {
 		t.Fatalf("globalConcurrencyLimit default mismatch: got=%d want=8", cfg.GlobalConcurrencyLimit)
