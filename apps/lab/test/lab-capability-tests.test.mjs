@@ -1063,6 +1063,58 @@ test('embedding retrieval purpose failures give task-specific bilingual guidance
   }
 });
 
+test('embedding retrieval ranks complete same-space vectors and preserves the result in history', async () => {
+  const { runLabCapability } = await load('lab/lab-runtime.js');
+  const { createStudioRunHistoryRecord, restoreStudioCapabilityRunResult } = await load('ai-studio-core/history.js');
+  const fake = fakeClient({ execute: (_spec, call) => ({
+    output: { type: 'text-embed', spaceId: 'same-space', vectors: call === 1 ? [[0, 10], [4, 0], [-2, 0]] : [[3, 0]], usage: { totalTokens: call === 1 ? 7 : 3 } },
+    traceId: `embedding-${call}`,
+  }) });
+  const result = await runLabCapability({ capabilityId: 'text.embed', prompt: '', parameters: { inputs: ['unrelated', 'relevant', 'opposite'], retrievalQuery: 'find relevant', dimensions: 2, purpose: 'retrieval-query' } }, ready(fake.client));
+  assert.equal(result.ok, true);
+  assert.deepEqual(fake.calls.execute, [
+    { type: 'text-embed', inputs: ['unrelated', 'relevant', 'opposite'], dimensions: 2, purpose: 'retrieval-document' },
+    { type: 'text-embed', inputs: ['find relevant'], dimensions: 2, purpose: 'retrieval-query' },
+  ]);
+  assert.deepEqual(result.output.retrieval.matches, [
+    { inputIndex: 1, excerpt: 'relevant', score: 1 },
+    { inputIndex: 0, excerpt: 'unrelated', score: 0 },
+    { inputIndex: 2, excerpt: 'opposite', score: -1 },
+  ]);
+  assert.equal(result.output.totalTokens, 10);
+  const record = createStudioRunHistoryRecord({ result, prompt: 'comparison', runId: 'retrieval-one', createdAt: '2026-11-06T00:00:00Z' });
+  const restored = restoreStudioCapabilityRunResult(record, () => 'Embeddings');
+  assert.deepEqual(restored.output.retrieval, result.output.retrieval);
+});
+
+test('embedding retrieval refuses incomparable spaces, incomplete batches and zero vectors', async () => {
+  const { runLabCapability } = await load('lab/lab-runtime.js');
+  for (const queryOutput of [
+    { spaceId: 'other-space', vectors: [[1, 0]] },
+    { spaceId: 'same-space', vectors: [[0, 0]] },
+    { spaceId: 'same-space', vectors: [[1]] },
+    { spaceId: 'same-space', vectors: [[1, 0], [1, 0]] },
+  ]) {
+    const fake = fakeClient({ execute: (_spec, call) => ({ output: { type: 'text-embed', ...(call === 1 ? { spaceId: 'same-space', vectors: [[1, 0]] } : queryOutput) } }) });
+    const result = await runLabCapability({ capabilityId: 'text.embed', prompt: 'document', parameters: { retrievalQuery: 'query' } }, ready(fake.client));
+    assert.equal(result.ok, false);
+    assert.equal(fake.calls.execute.length, 2);
+  }
+});
+
+test('embedding retrieval cancellation never starts the second model call', async () => {
+  const { runLabCapability } = await load('lab/lab-runtime.js');
+  const controller = new AbortController();
+  const fake = fakeClient({ execute: (_spec, _call, options) => {
+    assert.equal(options.signal, controller.signal);
+    controller.abort();
+    return { output: { type: 'text-embed', spaceId: 'same-space', vectors: [[1, 0]] } };
+  } });
+  const result = await runLabCapability({ capabilityId: 'text.embed', prompt: 'document', parameters: { retrievalQuery: 'query' }, signal: controller.signal }, ready(fake.client));
+  assert.equal(result.ok, false);
+  assert.equal(fake.calls.execute.length, 1);
+});
+
 test('missing local execution configuration leads to Home setup without retrying or changing the App target', async () => {
   const { runLabCapability } = await load('lab/lab-runtime.js');
   const { studioNonSuccessReasonUserMessage, studioNonSuccessReasonUserAction, studioNonSuccessNeedsTargetReselection } = await load('ai-studio-core/non-success-presentation.js');

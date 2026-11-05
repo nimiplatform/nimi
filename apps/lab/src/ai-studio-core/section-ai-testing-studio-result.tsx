@@ -61,7 +61,7 @@ function ReadyBody({ result }: { result: StudioCapabilityRunResult & { ok: true 
   }
   if (output.kind === 'speaker-embedding') return <SpeakerEmbeddingResultBody spaceId={output.spaceId} vector={output.vector} />;
   if (output.kind === 'embedding') {
-    return <EmbeddingResultBody spaceId={output.spaceId} />;
+    return <EmbeddingResultBody spaceId={output.spaceId} retrieval={output.retrieval} />;
   }
   if (output.kind === 'voice-asset') {
     return (

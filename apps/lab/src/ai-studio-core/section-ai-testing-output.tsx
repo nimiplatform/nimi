@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Button, Dialog, DialogContent, DialogTitle, IconButton, nimiToast, Tooltip } from '@nimiplatform/kit/ui';
 import { Copy as CopyIcon, Download as DownloadIcon, Maximize2, X } from 'lucide-react';
 import { useAIStudioHost, type AIStudioHostPort, type StudioTextExportResult } from './host-context.js';
-import type { StudioCapabilityRunResult } from './runtime-types.js';
+import type { StudioCapabilityRunResult, StudioEmbeddingRetrieval } from './runtime-types.js';
 import { openNimiLocalAppAssetMediaUrl } from '@nimiplatform/kit/shell/renderer/bridge';
 import { studioNonSuccessReasonTitle, type StudioTranslate } from './non-success-presentation.js';
 import {
@@ -30,6 +30,7 @@ export function formatTypedOutput(
       spaceId: output.spaceId ?? null,
       sample: output.sample,
       totalTokens: output.totalTokens,
+      ...(output.retrieval ? { retrieval: output.retrieval } : {}),
     }, null, 2);
   }
   if (output.kind === 'text-annotation') {
@@ -111,7 +112,7 @@ export function KnownJobNotice({ jobId }: { readonly jobId?: string }) {
   return <p className="studio-result__hint">{t('StudioResults.job.known', { jobId })}</p>;
 }
 
-export function EmbeddingResultBody({ spaceId }: { readonly spaceId?: string }) {
+export function EmbeddingResultBody({ spaceId, retrieval }: { readonly spaceId?: string; readonly retrieval?: StudioEmbeddingRetrieval }) {
   const { translate: t } = useAIStudioHost();
   return (
     <div className="studio-result__rich">
@@ -119,6 +120,15 @@ export function EmbeddingResultBody({ spaceId }: { readonly spaceId?: string }) 
       <p className="studio-result__hint">
         {spaceId ? t('StudioResults.embedding.space', { spaceId }) : t('StudioResults.embedding.spaceNotRecorded')}
       </p>
+      {retrieval ? <section aria-label={t('Studio.embeddingRetrieval.title')}>
+        <h3>{t('Studio.embeddingRetrieval.title')}</h3>
+        <p>{retrieval.query}</p>
+        <ol>{retrieval.matches.map((match, index) => <li key={match.inputIndex}>
+          <strong>{t('Studio.embeddingRetrieval.match', { rank: index + 1, input: match.inputIndex + 1, score: match.score.toFixed(4) })}</strong>
+          <p>{match.excerpt}</p>
+        </li>)}</ol>
+        <p className="studio-result__hint">{t('Studio.embeddingRetrieval.hint')}</p>
+      </section> : null}
     </div>
   );
 }

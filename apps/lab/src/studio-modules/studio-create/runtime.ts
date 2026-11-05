@@ -3,6 +3,7 @@ import type { NimiRuntimeAIScenarioClient } from '@nimiplatform/sdk/ai';
 import type { NimiLocalAppTextTurnEvent } from '@nimiplatform/sdk/app';
 import { ExecutionMode, FinishReason, ScenarioType } from '@nimiplatform/sdk/runtime/generated';
 import type { StudioCapabilityRuntimeHandlers } from '../../ai-studio-core/runtime-dispatcher.js';
+import type { StudioEmbeddingRetrieval } from '../../ai-studio-core/runtime-types.js';
 import {
   projectStudioRunnerNonSuccess,
   studioAbortError,
@@ -191,12 +192,17 @@ async function runTextEmbed(context: StudioCapabilityRuntimeContext) {
     parameters,
   );
   if (!context.prompt && embeddingInputs.length === 0) return inputRequired(context);
+  const documents = embeddingInputs.length > 0 ? embeddingInputs : [context.prompt];
+  const query = parameters?.retrievalQuery?.trim();
+  const signal = studioRequestSignal(context);
+  if (signal?.aborted) throw studioAbortError();
   const result = await context.host.client.ai.scenario.execute({
     type: 'text-embed',
-    inputs: embeddingInputs.length > 0 ? embeddingInputs : [context.prompt],
+    inputs: documents,
     ...(parameters?.dimensions !== undefined ? { dimensions: parameters.dimensions } : {}),
-    ...(parameters?.purpose !== undefined ? { purpose: parameters.purpose } : {}),
-  });
+    ...(query ? { purpose: 'retrieval-document' } : parameters?.purpose !== undefined ? { purpose: parameters.purpose } : {}),
+  }, { signal });
+  if (signal?.aborted) throw studioAbortError();
   if (result.output.type !== 'text-embed') {
     return context.host.nonSuccess(
       context.capability,
@@ -215,6 +221,41 @@ async function runTextEmbed(context: StudioCapabilityRuntimeContext) {
     );
   }
   const first = result.output.vectors[0] ?? [];
+  let retrieval: StudioEmbeddingRetrieval | undefined;
+  let totalTokens = result.output.usage?.totalTokens;
+  let traceId = result.traceId;
+  if (query) {
+    const queried = await context.host.client.ai.scenario.execute({
+      type: 'text-embed', inputs: [query], purpose: 'retrieval-query',
+      ...(parameters?.dimensions !== undefined ? { dimensions: parameters.dimensions } : {}),
+    }, { signal });
+    if (signal?.aborted) throw studioAbortError();
+    if (queried.output.type !== 'text-embed' || queried.output.spaceId !== spaceId) {
+      return context.host.nonSuccess(context.capability, 'runtime-call-failed', context.host.translate('Studio.embeddingRetrieval.spaceChanged'));
+    }
+    const q = queried.output.vectors[0];
+    const qNorm = q ? Math.hypot(...q) : 0;
+    if (queried.output.vectors.length !== 1 || !qNorm || result.output.vectors.length !== documents.length) {
+      return context.host.nonSuccess(context.capability, 'runtime-call-failed', context.host.translate('Studio.embeddingRetrieval.invalidVectors'));
+    }
+    const matches: { inputIndex: number; excerpt: string; score: number }[] = [];
+    for (const [inputIndex, vector] of result.output.vectors.entries()) {
+      const norm = Math.hypot(...vector);
+      if (vector.length !== q.length || !norm) {
+        return context.host.nonSuccess(context.capability, 'runtime-call-failed', context.host.translate('Studio.embeddingRetrieval.invalidVectors'));
+      }
+      const score = vector.reduce((sum, value, index) => sum + (value / norm) * (q[index]! / qNorm), 0);
+      if (!Number.isFinite(score)) {
+        return context.host.nonSuccess(context.capability, 'runtime-call-failed', context.host.translate('Studio.embeddingRetrieval.invalidVectors'));
+      }
+      matches.push({ inputIndex, excerpt: Array.from(documents[inputIndex]!).slice(0, 300).join(''), score: Math.max(-1, Math.min(1, score)) });
+    }
+    matches.sort((a, b) => b.score - a.score || a.inputIndex - b.inputIndex);
+    retrieval = { query, matches };
+    totalTokens = totalTokens !== undefined && queried.output.usage?.totalTokens !== undefined
+      ? totalTokens + queried.output.usage.totalTokens : undefined;
+    traceId = queried.traceId;
+  }
   return {
     ok: true as const,
     capabilityId: context.capability.id,
@@ -226,9 +267,10 @@ async function runTextEmbed(context: StudioCapabilityRuntimeContext) {
       dimensions: first.length,
       spaceId,
       sample: [...first.slice(0, 8)],
-      ...(result.output.usage ? { totalTokens: result.output.usage.totalTokens } : {}),
+      ...(totalTokens !== undefined ? { totalTokens } : {}),
+      ...(retrieval ? { retrieval } : {}),
     },
-    ...(result.traceId ? { trace: { traceId: result.traceId } } : {}),
+    ...(traceId ? { trace: { traceId } } : {}),
   };
 }
 

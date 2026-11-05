@@ -123,6 +123,27 @@ test('native reply normal and stop-late facts save, reopen and serialize without
  }
 });
 
+test('retrieval history retains valid order and rejects invented or incomplete comparisons', () => {
+  const record = runRecord('retrieval', '2026-11-06T00:00:00Z', {
+    capabilityId: 'text.embed', runConfig: undefined,
+    result: { ok: true, kind: 'embedding', summary: '2 vectors', vectorCount: 2, dimensions: 2, spaceId: 'space', sample: [1, 0],
+      retrieval: { query: 'query', matches: [{ inputIndex: 1, excerpt: 'match', score: 1 }, { inputIndex: 0, excerpt: 'other', score: 0 }] } },
+  });
+  const good = JSON.parse(JSON.stringify({ 'text.embed': [record] }));
+  assert.deepEqual(historyPolicyModule.parseStudioRunHistory(good), good);
+  for (const mutate of [
+    result => { result.spaceId = ''; },
+    result => { result.retrieval.matches.reverse(); },
+    result => { result.retrieval.matches.pop(); },
+    result => { result.retrieval.matches[0].score = 2; },
+    result => { result.retrieval.matches[0].inputIndex = 0; },
+  ]) {
+    const bad = structuredClone(good);
+    mutate(bad['text.embed'][0].result);
+    assert.throws(() => historyPolicyModule.parseStudioRunHistory(bad));
+  }
+});
+
 function runRecord(id, createdAt, overrides = {}) {
   return {
     id,

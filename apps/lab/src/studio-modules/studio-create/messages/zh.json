@@ -77,8 +77,17 @@
         "topK": "Top K",
         "presencePenalty": "存在惩罚",
         "frequencyPenalty": "频率惩罚",
-        "stop": "停止序列"
-      }
+        "stop": "停止序列",
+        "retrievalQuery": "检索比较问题（可选）"
+      },
+      "embeddingRetrievalHint": "填写后，将输入作为待检索文档，再以检索问题生成一次向量，按余弦相似度排序。共调用模型两次，云端可能产生两次用量；留空只生成输入向量。"
+    },
+    "embeddingRetrieval": {
+      "title": "检索排序",
+      "match": "第 {{rank}} 名 · 输入 {{input}} · 相似度 {{score}}",
+      "hint": "相似度用于比较本次文档，不是概率或通用质量评分。",
+      "spaceChanged": "文档和查询返回了不同向量空间，未进行比较。请确认两次调用使用相同模型配置。",
+      "invalidVectors": "文档或查询向量无法进行完整、有效的相似度比较。"
     }
   }
 }

@@ -271,6 +271,24 @@ export function validateStudioHistoryResult(value: unknown, path: string): void 
       historyError(`${path}.sample`, 'requires finite numbers');
     }
     optionalNonNegativeNumber(value.totalTokens, `${path}.totalTokens`);
+    if (value.retrieval !== undefined) {
+      const retrieval = value.retrieval;
+      if (!isJsonObject(retrieval) || !requiredString(retrieval.query, `${path}.retrieval.query`).trim()
+        || !requiredString(value.spaceId, `${path}.spaceId`).trim()
+        || !Array.isArray(retrieval.matches) || !retrieval.matches.length || retrieval.matches.length !== value.vectorCount) historyError(path, 'requires a complete retrieval ranking');
+      const seen = new Set<number>();
+      let previous = Infinity;
+      for (const match of retrieval.matches) {
+        if (!isJsonObject(match)) historyError(path, 'requires retrieval match objects');
+        nonNegativeSafeInteger(match.inputIndex, `${path}.retrieval.inputIndex`);
+        const index = match.inputIndex as number;
+        if (index >= (value.vectorCount as number) || seen.has(index) || typeof match.score !== 'number'
+          || !Number.isFinite(match.score) || match.score < -1 || match.score > 1 || match.score > previous
+          || Array.from(requiredString(match.excerpt, `${path}.retrieval.excerpt`)).length > 300) historyError(path, 'has invalid retrieval order or score');
+        seen.add(index);
+        previous = match.score;
+      }
+    }
     return;
   }
   if (kind === 'text-annotation') {

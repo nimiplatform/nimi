@@ -77,8 +77,17 @@
         "topK": "Top K",
         "presencePenalty": "Presence penalty",
         "frequencyPenalty": "Frequency penalty",
-        "stop": "Stop sequences"
-      }
+        "stop": "Stop sequences",
+        "retrievalQuery": "Retrieval comparison query (optional)"
+      },
+      "embeddingRetrievalHint": "When filled, embed the inputs as documents, then embed this query and rank by cosine similarity. This makes two model calls and may incur cloud usage for each. Leave empty to embed inputs only."
+    },
+    "embeddingRetrieval": {
+      "title": "Retrieval ranking",
+      "match": "Rank {{rank}} · Input {{input}} · Similarity {{score}}",
+      "hint": "Similarity compares this set of documents. It is not a probability or a general quality score.",
+      "spaceChanged": "Documents and query returned different embedding spaces. No comparison was made; use the same model configuration for both calls.",
+      "invalidVectors": "Document or query vectors cannot form a complete, valid similarity comparison."
     }
   }
 }

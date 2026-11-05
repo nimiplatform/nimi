@@ -322,7 +322,7 @@ function TextStudioHistorySnapshotBody({ snapshot, recordId, submittedParameters
   }
   if (snapshot.kind === 'speaker-embedding') return <SpeakerEmbeddingResultBody spaceId={snapshot.spaceId} vector={snapshot.vector} />;
   if (snapshot.kind === 'embedding') {
-    return <EmbeddingResultBody spaceId={snapshot.spaceId} />;
+    return <EmbeddingResultBody spaceId={snapshot.spaceId} retrieval={snapshot.retrieval} />;
   }
   if (snapshot.kind === 'text-annotation') {
     return <TextAnnotationResultView output={{

@@ -91,6 +91,7 @@ function EmbeddingFields(props: StudioParameterPanelProps) {
   const translate: StudioParameterTranslate = (key, values) => t(key, values);
   const parameters = props.parameters as StudioEmbeddingParameters;
   const values = parameters.inputs?.length ? parameters.inputs : [''];
+  const retrieval = Boolean(parameters.retrievalQuery?.trim());
   const updateValues = (nextValues: string[]) => {
     const next = { ...parameters };
     if (nextValues.length > 1 || nextValues.some((value) => value.trim())) next.inputs = nextValues;
@@ -131,8 +132,8 @@ function EmbeddingFields(props: StudioParameterPanelProps) {
     render: (routeDisabled) => (
       <StudioParameterField label={t('Studio.parameters.fields.embeddingPurpose')}>
         <SelectField
-          value={parameters.purpose ?? 'unspecified'}
-          disabled={props.disabled || routeDisabled}
+          value={retrieval ? 'retrieval-document' : parameters.purpose ?? 'unspecified'}
+          disabled={props.disabled || routeDisabled || retrieval}
           onValueChange={(value) => {
             const next = { ...parameters };
             if (value === 'retrieval-document' || value === 'retrieval-query') next.purpose = value;
@@ -148,6 +149,14 @@ function EmbeddingFields(props: StudioParameterPanelProps) {
         <small>{t('Studio.parameters.embeddingPurposeHint')}</small>
       </StudioParameterField>
     ),
+  }, {
+    field: 'retrievalQuery',
+    label: t('Studio.parameters.fields.retrievalQuery'),
+    render: (routeDisabled) => <StudioParameterField label={t('Studio.parameters.fields.retrievalQuery')}>
+      <TextareaField rows={2} value={parameters.retrievalQuery ?? ''} disabled={props.disabled || routeDisabled}
+        onChange={(event) => props.onChange({ ...parameters, retrievalQuery: event.currentTarget.value })} />
+      <small>{t('Studio.parameters.embeddingRetrievalHint')}</small>
+    </StudioParameterField>,
   }, {
     field: 'dimensions',
     label: t('Studio.parameters.fields.dimensions'),
