@@ -39,10 +39,13 @@ func nativeReasoningAppFixture(t *testing.T, provider, model string, handler htt
 }
 
 func TestNativeReasoningProtectedAppRoundTrip(t *testing.T) {
-	for _, model := range []string{"glm-5.3", "glm-5.3-flash", "glm-5.3-flashx", "glm-5.3-flashx-legal", "deepseek-flash", "deepseek-v4-flash", "deepseek-v4-pro"} {
+	for _, model := range []string{"glm-5.3", "glm-5.3-flash", "glm-5.3-flashx", "glm-5.3-flashx-legal", "deepseek-flash", "deepseek-v4-flash", "deepseek-v4-pro", "qwen3.8-omni-flash"} {
 		provider, path := "glm", "/proxy/api/paas/v4/chat/completions"
 		if strings.HasPrefix(model, "deepseek") {
 			provider, path = "deepseek", "/v1/chat/completions"
+		}
+		if model == "qwen3.8-omni-flash" {
+			provider, path = "dashscope", "/v1/chat/completions"
 		}
 		for _, stream := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%s/stream=%v", model, stream), func(t *testing.T) {
@@ -56,7 +59,13 @@ func TestNativeReasoningProtectedAppRoundTrip(t *testing.T) {
 						t.Error(err)
 						return
 					}
-					if r.URL.Path != path || body["model"] != model || body["stream"] != stream || r.Header.Get("Authorization") != "Bearer test-key" || (provider == "glm" && body["thinking"].(map[string]any)["clear_thinking"] != false) || body["thinking"].(map[string]any)["type"] != "enabled" || body["reasoning_effort"] != "low" {
+					thinkingEnabled := false
+					if provider == "dashscope" {
+						thinkingEnabled = body["preserve_thinking"] == true && body["enable_search"] == false && body["thinking"] == nil
+					} else if thinking, ok := body["thinking"].(map[string]any); ok {
+						thinkingEnabled = thinking["type"] == "enabled" && (provider != "glm" || thinking["clear_thinking"] == false)
+					}
+					if r.URL.Path != path || body["model"] != model || body["stream"] != stream || r.Header.Get("Authorization") != "Bearer test-key" || !thinkingEnabled || body["reasoning_effort"] != "low" {
 						t.Errorf("wrong exact native request: %s %v", r.URL.Path, body)
 					}
 					message := map[string]any{"reasoning_content": raw, "content": ""}

@@ -27,6 +27,7 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 	registrations = append(registrations, anthropicTextBehaviorRegistrations()...)
 	registrations = append(registrations, dashscopeQwen38FlashBehaviorRegistration())
 	registrations = append(registrations, dashscopeQwen38Max0902BehaviorRegistration())
+	registrations = append(registrations, qwen38OmniTextBehaviorRegistration())
 	registrations = append(registrations, dashscopeQwenVLPlusBehaviorRegistration())
 	registrations = append(registrations, gemini38FlashSchemaBehaviorRegistration())
 	registrations = append(registrations, geminiArgonBehaviorRegistration())

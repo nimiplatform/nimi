@@ -2126,3 +2126,13 @@ units:
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.dashscope-qwen38-omni
+    kind: rule
+    title: Qwen3.8 Omni preserves native multimodal text and reasoning semantics
+    modality: must
+    statement: The exact DashScope qwen3.8-omni-flash Chat Completions adapter returns text with ordered Function Tool calls and JSON Object output in synchronous or streaming execution. Omitted reasoning and explicit REQUIRED with MODEL_DEFAULT preserve the native enabled default; DISABLED maps to reasoning_effort none, and exact LOW, MEDIUM and XHIGH map to low, medium and xhigh without guessed token budgets or renamed effort aliases. Native reasoning_content remains a bounded model-bound original replay carrier under R088 and is never displayed as final text or summary; preserve_thinking remains enabled, reasoning from earlier assistant turns is passed unchanged, and history produced without reasoning is not filled with fabricated replay. The App owns business tools, web search is disabled, and neither speech output nor Responses caching is inferred. The existing owned-media boundary resolves authorized artifacts before serialization; this exact adapter admits combined user PNG, JPEG or WebP images, WAV or MP3 audio and MP4 video, preserves ordered messages and captured URLs, and emits native image_url, input_audio or video_url envelopes. Inline audio and video Base64 must be smaller than ten million bytes, inline images remain within twenty million decoded bytes, and the serialized request remains within forty-eight MiB and the shared public input limits. At most 2048 images, 2048 audio inputs, 250 inline images, 250 inline audio inputs and 64 video inputs are admitted. Unsupported formats, JSON Schema, spatial multichannel controls and unreviewed sampling options fail before native dispatch; no provider-native URL limit is misrepresented as permission to fetch arbitrary content or bypass App artifact ownership. The configured Connector supplies the regional workspace endpoint and credential; Runtime never guesses a workspace from a key or silently switches an existing connection.
+    condition: Whenever the exact Qwen3.8 Omni text target is selected, configured, materialized, invoked or projected.
+    failure: Reject unsupported combinations and invalid media or continuity before dispatch, retain real finish and usage evidence, and never substitute another model or fabricate provider acceptance.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane

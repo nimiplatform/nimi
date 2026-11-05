@@ -47,6 +47,10 @@ func validateChatFunctionSpec(spec *runtimev1.TextGenerateScenarioSpec, allowPla
 }
 
 func chatCompletionMessages(spec *runtimev1.TextGenerateScenarioSpec, projectContent func(*runtimev1.ChatMessage) (any, error), replayKind string) ([]map[string]any, error) {
+	return chatCompletionMessagesWithReplay(spec, projectContent, replayKind, true)
+}
+
+func chatCompletionMessagesWithReplay(spec *runtimev1.TextGenerateScenarioSpec, projectContent func(*runtimev1.ChatMessage) (any, error), replayKind string, requireToolReplay bool) ([]map[string]any, error) {
 	messages := []map[string]any{}
 	if spec.GetSystemPrompt() != "" {
 		messages = append(messages, map[string]any{"role": "system", "content": spec.GetSystemPrompt()})
@@ -160,7 +164,7 @@ func chatCompletionMessages(spec *runtimev1.TextGenerateScenarioSpec, projectCon
 	if len(messages) == 0 {
 		return nil, deepseekJSONInputError("missing text input")
 	}
-	if replayKind != "" && len(spec.GetTools()) > 0 {
+	if requireToolReplay && replayKind != "" && len(spec.GetTools()) > 0 {
 		for _, message := range messages {
 			if message["role"] == "assistant" && message["tool_calls"] != nil && message["reasoning_content"] == nil {
 				return nil, nativeReasoningReplayInvalid()

@@ -44,10 +44,11 @@ func TestGemma4E2BAdmitsOrderedSystemMessagesWithoutWideningOtherCombinations(t 
 
 func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 	registrations := productionTextBehaviorAdapterRegistrations()
-	if len(registrations) != 42 {
-		t.Fatalf("production adapter registrations = %d, want ten Gemma mappings, two Qwen mappings, one LFM3 mapping and twenty-nine Cloud targets", len(registrations))
+	if len(registrations) != 43 {
+		t.Fatalf("production adapter registrations = %d, want ten Gemma mappings, two Qwen mappings, one LFM3 mapping and thirty Cloud targets", len(registrations))
 	}
 	expectedCloudTargets := map[string]string{
+		"dashscope/qwen3.8-omni-flash":    "dashscope.qwen38-omni-flash.chat",
 		"minimax/MiniMax-M3.1-Flash":      "minimax.MiniMax-M3.1-Flash.messages",
 		"minimax/MiniMax-M3":              "minimax.MiniMax-M3.messages",
 		"glm/glm-5.3":                     "glm.glm-5.3.chat",

@@ -137,6 +137,14 @@ sources:
     url: https://help.aliyun.com/en/model-studio/qwen3-8-omni-flash-realtime
     retrieved_at: 2026-11-05
     note: Workspace-scoped Qwen3.8 realtime target, 196608 maximum input and 65536 maximum output; speech bills both output audio and corresponding text.
+  - source_id: dashscope_qwen38_omni_model
+    url: https://help.aliyun.com/en/model-studio/qwen3-8-omni-flash
+    retrieved_at: 2026-11-05
+    note: Exact text-output Omni target with text/image/audio/video input, default thinking and workspace-scoped Chat Completions.
+  - source_id: dashscope_qwen38_omni_guide
+    url: https://help.aliyun.com/en/model-studio/qwen-omni
+    retrieved_at: 2026-11-05
+    note: Native media envelopes and limits, reasoning_effort none/low/medium/xhigh, preserve_thinking and original reasoning replay.
   - source_id: dashscope_qwen38_realtime_client
     url: https://help.aliyun.com/en/model-studio/client-events
     retrieved_at: 2026-11-05
@@ -664,6 +672,20 @@ models:
         timing_modes: [none]
         audio_formats: [wav, pcm, mp3, opus]
         supports_language: true
+  - model_id: qwen3.8-omni-flash
+    model_type: chat
+    updated_at: 2026-11-05
+    capabilities: [text.generate]
+    features: [input.image, input.audio, input.video]
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-05
+      notes: Workspace-scoped text-output Omni. Default thinking and bounded native replay, synchronous/streamed function tools and JSON Object; JSON Schema is not admitted. Supports PNG/JPEG/WebP images, WAV/MP3 audio and MP4 video within the captured request budget; audio/video inline encoding must remain below 10 MB. Spatial multichannel interpretation, native search and speech output are not enabled.
+    source_ids: [dashscope_qwen38_omni_model, dashscope_qwen38_omni_guide, dashscope_qwen_function_calling_doc, dashscope_qwen_structured_output_doc]
+
   - model_id: qwen3.8-flash
     model_type: chat
     updated_at: 2026-09-29

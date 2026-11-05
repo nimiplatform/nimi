@@ -677,6 +677,28 @@ models:
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
+  - model_id: qwen3.8-omni-flash
+    provider: dashscope
+    model_type: chat
+    updated_at: 2026-11-05
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-05
+      notes: Workspace-scoped text-output Omni. Default thinking and bounded native replay, synchronous/streamed function tools and JSON Object; JSON Schema is not admitted. Supports PNG/JPEG/WebP images, WAV/MP3 audio and MP4 video within the captured request budget; audio/video inline encoding must remain below 10 MB. Spatial multichannel interpretation, native search and speech output are not enabled.
+    source_ref:
+      url: https://help.aliyun.com/en/model-studio/qwen3-8-omni-flash
+      retrieved_at: 2026-11-05
+      note: Exact text-output Omni target with text/image/audio/video input, default thinking and workspace-scoped Chat Completions.
+    features:
+      - input.image
+      - input.audio
+      - input.video
+    context_window_tokens: 8192
   - model_id: qwen3.8-flash
     provider: dashscope
     model_type: chat
