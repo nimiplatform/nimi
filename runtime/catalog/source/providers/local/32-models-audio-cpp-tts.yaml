@@ -762,3 +762,90 @@ models:
           MioCodec-25Hz-44.1kHz-v2-GGUF/miocodec-25hz-44khz-v2-q8_0.gguf: sha256:4c76a36313496acd5c9d39bb54f8bb239050eb8891829414ac195161db44b3bb
         total_size_bytes: 299066464
         host_requirement: { accelerator: cuda }
+  - model_id: fish-drama3-small-audio-cpp-local
+    model_type: tts
+    family: fish_drama3
+    updated_at: 2026-11-06
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [audio_cpp_093_fish_drama3]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_fish_drama3_audio_cpp_dynamic_voice_set
+      supports_voice_ref_kinds: [voice_asset_id]
+      langs: [auto]
+    install:
+      repo: pentacoxian-dev/drama3-small-GGUF
+      revision: 4a3078e885344bb9b24d511cec389d2726854d15 # pragma: allowlist secret -- public immutable model revision
+      install_kind: verified-hf-multi-file
+      license: Fish Audio Community License v1.0
+      entry: drama3-small-IQ3_XXS.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.fish-drama3.audio-cpp.iq3-xxs.cuda
+        quant: IQ3_XXS
+        entry: drama3-small-IQ3_XXS.gguf
+        files: [drama3-small-IQ3_XXS.gguf]
+        hashes:
+          drama3-small-IQ3_XXS.gguf: sha256:97d773973d756141a65432b08de76fd4bedbb44e8b98805755130e02d7fe2561
+        total_size_bytes: 10460748576
+        host_requirement: {accelerator: cuda}
+  - model_id: kitten-tts2-audio-cpp-local
+    model_type: tts
+    family: kitten_tts2
+    updated_at: 2026-11-06
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [audio_cpp_093_kitten_tts2]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_kitten_tts2_audio_cpp_dynamic_voice_set
+      supports_voice_ref_kinds: [preset_voice_id, voice_asset_id]
+      langs: [auto]
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: fd2fe4c3195bc410f8b817bf7c7519fd822686fb # pragma: allowlist secret -- public immutable model revision
+      install_kind: verified-hf-multi-file
+      license: Stellon Labs Community License
+      entry: KittenTTS2-GGUF/kitten-tts2-20261021-q8_0.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.kitten-tts2.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        entry: KittenTTS2-GGUF/kitten-tts2-20261021-q8_0.gguf
+        files: [KittenTTS2-GGUF/kitten-tts2-20261021-q8_0.gguf]
+        hashes:
+          KittenTTS2-GGUF/kitten-tts2-20261021-q8_0.gguf: sha256:cd67d70466344b41e5e6c7fa317d09e88f499d2973e030d35c969dc8c7c84ff5
+        total_size_bytes: 3343404128
+        host_requirement: {accelerator: cuda}
+  - model_id: plapre3-audio-cpp-local
+    model_type: tts
+    family: plapre
+    updated_at: 2026-11-06
+    capabilities: [audio.synthesize, voice.create]
+    features: [input.audio]
+    source_ids: [audio_cpp_093_plapre]
+    voice:
+      discovery_mode: dynamic_user_scoped
+      dynamic_voice_set_ref: local_plapre_audio_cpp_dynamic_voice_set
+      supports_voice_ref_kinds: [preset_voice_id, voice_asset_id]
+      langs: [da]
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: fd2fe4c3195bc410f8b817bf7c7519fd822686fb # pragma: allowlist secret -- public immutable model revision
+      install_kind: verified-hf-multi-file
+      license: CC-BY-4.0
+      entry: Plapre-3-GGUF/plapre-3-bf16.gguf
+      artifact_roles: [tts_model]
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.plapre.audio-cpp.bf16.cuda
+        quant: BF16
+        entry: Plapre-3-GGUF/plapre-3-bf16.gguf
+        files: [Plapre-3-GGUF/plapre-3-bf16.gguf]
+        hashes:
+          Plapre-3-GGUF/plapre-3-bf16.gguf: sha256:8baa6069d5cd81bc01bfc039bfcb7c4b7406e659157b3c768fa2bc839fdfc9a1
+        total_size_bytes: 1145069888
+        host_requirement: {accelerator: cuda}

@@ -607,3 +607,69 @@ loadout_recipes:
     supported_features: [input.audio]
     slot_metadata:
       - { slot_id: tts.model, display_label: Vevo2 GGUF, recommended_variant_ids: [local.tts.vevo2.audio-cpp.q8-0.cuda], model_contract: { format: gguf, model_family: vevo2, artifact_role: tts_model } }
+  - recipe_id: fish-drama3.audio-cpp.synthesize.v1
+    revision: "1"
+    title: Fish Audio Drama 3 Small - Built with Fish Audio synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.fish-drama3.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.fish-drama3.tts
+    driver_dialect: audio.cpp/fish_drama3/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - {slot_id: tts.model, display_label: Fish Audio Drama 3 Small - Built with Fish Audio GGUF, recommended_variant_ids: [local.tts.fish-drama3.audio-cpp.iq3-xxs.cuda], model_contract: {format: gguf, model_family: fish_drama3, artifact_role: tts_model}}
+  - recipe_id: fish-drama3.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: Fish Audio Drama 3 Small - Built with Fish Audio reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.fish-drama3.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.fish-drama3.voice-reference
+    driver_dialect: audio.cpp/fish_drama3/voice-reference-create/v1
+    default_options: {}
+    supported_features: [input.audio]
+    slot_metadata:
+      - {slot_id: tts.model, display_label: Fish Audio Drama 3 Small - Built with Fish Audio GGUF, recommended_variant_ids: [local.tts.fish-drama3.audio-cpp.iq3-xxs.cuda], model_contract: {format: gguf, model_family: fish_drama3, artifact_role: tts_model}}
+  - recipe_id: kitten-tts2.audio-cpp.synthesize.v1
+    revision: "1"
+    title: Kitten TTS 2 - Powered by KittenML synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.kitten-tts2.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.kitten-tts2.tts
+    driver_dialect: audio.cpp/kitten_tts2/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - {slot_id: tts.model, display_label: Kitten TTS 2 - Powered by KittenML GGUF, recommended_variant_ids: [local.tts.kitten-tts2.audio-cpp.q8-0.cuda], model_contract: {format: gguf, model_family: kitten_tts2, artifact_role: tts_model}}
+  - recipe_id: kitten-tts2.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: Kitten TTS 2 - Powered by KittenML reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.kitten-tts2.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.kitten-tts2.voice-reference
+    driver_dialect: audio.cpp/kitten_tts2/voice-reference-create/v1
+    default_options: {}
+    supported_features: [input.audio]
+    slot_metadata:
+      - {slot_id: tts.model, display_label: Kitten TTS 2 - Powered by KittenML GGUF, recommended_variant_ids: [local.tts.kitten-tts2.audio-cpp.q8-0.cuda], model_contract: {format: gguf, model_family: kitten_tts2, artifact_role: tts_model}}
+  - recipe_id: plapre.audio-cpp.synthesize.v1
+    revision: "1"
+    title: Plapre 3 Danish synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.plapre.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.plapre.tts
+    driver_dialect: audio.cpp/plapre/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - {slot_id: tts.model, display_label: Plapre 3 Danish GGUF, recommended_variant_ids: [local.tts.plapre.audio-cpp.bf16.cuda], model_contract: {format: gguf, model_family: plapre, artifact_role: tts_model}}
+  - recipe_id: plapre.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: Plapre 3 Danish reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.plapre.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.plapre.voice-reference
+    driver_dialect: audio.cpp/plapre/voice-reference-create/v1
+    default_options: {}
+    supported_features: [input.audio]
+    slot_metadata:
+      - {slot_id: tts.model, display_label: Plapre 3 Danish GGUF, recommended_variant_ids: [local.tts.plapre.audio-cpp.bf16.cuda], model_contract: {format: gguf, model_family: plapre, artifact_role: tts_model}}

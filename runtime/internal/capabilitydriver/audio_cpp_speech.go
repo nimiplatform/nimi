@@ -77,6 +77,10 @@ type audioCppTTSSpec struct {
 	requiredFileSizes           map[string]int64
 	languages                   []string
 	languageTokens              map[string]string
+	noLanguageArgument          bool
+	embeddedPresetVoices        bool
+	referenceMinSeconds         float64
+	referenceMaxSeconds         float64
 }
 
 type audioCppASRSpec struct {
@@ -106,6 +110,9 @@ var audioCppQwen3ASRLanguageTokens = map[string]string{
 }
 
 var audioCppTTSSpecs = []audioCppTTSSpec{
+	{family: "fish_drama3", displayName: "Fish Audio Drama 3 · Built with Fish Audio", cliTask: "tts", referencePolicy: audioCppReferenceOptional, referenceArgument: "--voice-ref", languages: []string{"auto"}, noLanguageArgument: true},
+	{family: "kitten_tts2", displayName: "Kitten TTS 2 · Powered by KittenML", cliTask: "tts", referencePolicy: audioCppReferenceOptional, referenceTextRequired: true, referenceArgument: "--voice-ref", presetArgument: "--voice-id", embeddedPresetVoices: true, languages: []string{"auto"}, noLanguageArgument: true, referenceMinSeconds: 1, referenceMaxSeconds: 30},
+	{family: "plapre", displayName: "Plapre 3 Danish", cliTask: "tts", referencePolicy: audioCppReferenceOptional, referenceArgument: "--voice-ref", presetArgument: "--voice-id", embeddedPresetVoices: true, languages: []string{"da"}, noLanguageArgument: true},
 	{family: "chatterbox", displayName: "Chatterbox", cliTask: "clon", referencePolicy: audioCppReferenceRequired, referenceArgument: "--voice-ref", languages: []string{"ar", "da", "de", "el", "en", "es", "fi", "fr", "hi", "it", "ko", "ms", "nl", "no", "pl", "pt", "sv", "sw", "tr"}},
 	{family: "confucius4_tts", displayName: "Confucius4-TTS", cliTask: "clon", referencePolicy: audioCppReferenceRequired, referenceArgument: "--voice-ref", languages: []string{"zh", "en", "ja", "ko", "de", "fr", "es", "id", "it", "th", "pt", "ru", "ms", "vi"}},
 	{family: "dots_tts", displayName: "DotTTS", cliTask: "tts", referencePolicy: audioCppReferenceRequired, referenceArgument: "--voice-ref"},
@@ -741,7 +748,7 @@ func (d AudioCppReferenceVoiceDriver) ValidateBinding(requirement *runtimev1.Loc
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
 	}
 	detected, ok := audioCppEmbeddedFamily(asset.FormatProbe)
-	if !ok || detected != d.spec.family {
+	if !ok || detected != d.spec.family || d.spec.embeddedPresetVoices && !audioCppPresetProbeValid(asset.FormatProbe, d.spec.family) {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
 	}
 	return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
@@ -769,7 +776,7 @@ func (d AudioCppReferenceVoiceDriver) PlanVoiceCreateInvocation(input VoiceCreat
 	}
 	reference := request.GetReferenceAudio()
 	mimeType := strings.ToLower(strings.TrimSpace(reference.GetReferenceAudioMime()))
-	if strings.TrimSpace(reference.GetReferenceAudioUri()) != "" || len(reference.GetReferenceAudioBytes()) == 0 || len(reference.GetReferenceAudioBytes()) > audioCppMaxTranscriptionWAVSize || (mimeType != "audio/wav" && mimeType != "audio/wave" && mimeType != "audio/x-wav") || !audioCppASRWAVSupported(reference.GetReferenceAudioBytes()) {
+	if strings.TrimSpace(reference.GetReferenceAudioUri()) != "" || len(reference.GetReferenceAudioBytes()) == 0 || len(reference.GetReferenceAudioBytes()) > audioCppMaxTranscriptionWAVSize || (mimeType != "audio/wav" && mimeType != "audio/wave" && mimeType != "audio/x-wav") || !audioCppReferenceWAVSupported(reference.GetReferenceAudioBytes(), d.spec) {
 		return nil, invocationError(InvocationFailureInvalidRequest, fmt.Errorf("%s reference audio must be a supported WAV", d.spec.displayName))
 	}
 	referenceText := strings.TrimSpace(reference.GetText())
@@ -916,7 +923,7 @@ func (d AudioCppTTSDriver) ValidateBinding(requirement *runtimev1.LocalCapabilit
 		}
 	} else {
 		detected, ok := audioCppEmbeddedFamily(asset.FormatProbe)
-		if !ok || detected != family {
+		if !ok || detected != family || d.spec.embeddedPresetVoices && !audioCppPresetProbeValid(asset.FormatProbe, d.spec.family) {
 			return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
 		}
 	}
@@ -958,7 +965,12 @@ func (d AudioCppASRDriver) ValidateCombination(requirements []*runtimev1.LocalCa
 }
 
 func (d AudioCppTTSDriver) ListPresetVoices(bindings []InvocationExactBinding) ([]SpeechPresetVoice, error) {
-	if _, err := audioCppInvocationBindings(bindings, d.spec.family, AudioCppTTSModelRequirementID, d.spec.requiresCodec); err != nil {
+	indexed, err := audioCppInvocationBindings(bindings, d.spec.family, AudioCppTTSModelRequirementID, d.spec.requiresCodec)
+	if err != nil {
+		return nil, err
+	}
+	d, err = d.withEmbeddedPresetVoices(indexed[AudioCppTTSModelRequirementID])
+	if err != nil {
 		return nil, err
 	}
 	voices := make([]SpeechPresetVoice, len(d.spec.presetVoices))
@@ -979,6 +991,10 @@ func (d AudioCppTTSDriver) PlanAudioCppTTSSynthesis(input AudioCppTTSSynthesizeI
 	}
 	if err := validateAudioCppSpeechRuntime(input.Runtime, d.spec.requiresESpeak); err != nil {
 		return nil, invocationError(InvocationFailureInvalidConfig, err)
+	}
+	d, err = d.withEmbeddedPresetVoices(bindings[AudioCppTTSModelRequirementID])
+	if err != nil {
+		return nil, err
 	}
 	request, args, err := d.ttsRequestArgs(input.Request, input.ReferenceVoice)
 	if err != nil {
@@ -1052,7 +1068,9 @@ func (d AudioCppTTSDriver) ttsRequestArgs(value *runtimev1.SpeechSynthesizeScena
 		if len(d.spec.languages) > 0 && !contains(d.spec.languages, language) {
 			return nil, nil, invocationError(InvocationFailureUnsupported, fmt.Errorf("%s language is unsupported", d.spec.displayName))
 		}
-		args = append(args, "--language", audioCppNativeLanguageToken(language, d.spec.languageTokens))
+		if !d.spec.noLanguageArgument {
+			args = append(args, "--language", audioCppNativeLanguageToken(language, d.spec.languageTokens))
+		}
 	}
 	if request.Speed != nil {
 		args = append(args, "--request-option", d.spec.speakingRateOption+"="+fmt.Sprintf("%g", request.GetSpeed()))
@@ -1086,7 +1104,7 @@ func (d AudioCppTTSDriver) ttsRequestArgs(value *runtimev1.SpeechSynthesizeScena
 			return nil, nil, invocationError(InvocationFailureUnsupported, fmt.Errorf("%s reference voice is unavailable", d.spec.displayName))
 		}
 		mimeType := strings.ToLower(strings.TrimSpace(reference.MIMEType))
-		if d.spec.referencePolicy == audioCppReferenceForbidden || strings.TrimSpace(reference.ProviderVoiceRef) == "" || strings.TrimSpace(reference.ProviderVoiceRef) != strings.TrimSpace(ref.GetProviderVoiceRef()) || !filepath.IsAbs(reference.WAVPath) || !strings.EqualFold(filepath.Ext(reference.WAVPath), ".wav") || (mimeType != "audio/wav" && mimeType != "audio/wave" && mimeType != "audio/x-wav") || len(reference.WAVBytes) == 0 || len(reference.WAVBytes) > audioCppMaxTranscriptionWAVSize || !audioCppASRWAVSupported(reference.WAVBytes) {
+		if d.spec.referencePolicy == audioCppReferenceForbidden || strings.TrimSpace(reference.ProviderVoiceRef) == "" || strings.TrimSpace(reference.ProviderVoiceRef) != strings.TrimSpace(ref.GetProviderVoiceRef()) || !filepath.IsAbs(reference.WAVPath) || !strings.EqualFold(filepath.Ext(reference.WAVPath), ".wav") || (mimeType != "audio/wav" && mimeType != "audio/wave" && mimeType != "audio/x-wav") || len(reference.WAVBytes) == 0 || len(reference.WAVBytes) > audioCppMaxTranscriptionWAVSize || !audioCppReferenceWAVSupported(reference.WAVBytes, d.spec) {
 			return nil, nil, invocationError(InvocationFailureUnsupported, fmt.Errorf("%s reference voice is unavailable", d.spec.displayName))
 		}
 		if len(reference.ReferenceText) > audioCppMaxReferenceTextBytes || utf8.RuneCountInString(reference.ReferenceText) > audioCppMaxReferenceTextRunes || (d.spec.referenceTextRequired && strings.TrimSpace(reference.ReferenceText) == "") {
@@ -1208,35 +1226,45 @@ func audioCppNativeLanguageToken(canonical string, tokens map[string]string) str
 }
 
 func audioCppASRWAVSupported(value []byte) bool {
+	_, ok := audioCppWAVDuration(value)
+	return ok
+}
+
+func audioCppWAVDuration(value []byte) (float64, bool) {
 	if len(value) < 44 || string(value[:4]) != "RIFF" || string(value[8:12]) != "WAVE" {
-		return false
+		return 0, false
 	}
 	if int(binary.LittleEndian.Uint32(value[4:8]))+8 != len(value) {
-		return false
+		return 0, false
 	}
 	formatSupported := false
-	hasAudioData := false
+	dataBytes := 0
+	bytesPerSecond := float64(0)
 	for offset := 12; offset+8 <= len(value); {
 		size := int(binary.LittleEndian.Uint32(value[offset+4 : offset+8]))
 		start := offset + 8
 		if size < 0 || start+size > len(value) {
-			return false
+			return 0, false
 		}
 		if string(value[offset:offset+4]) == "fmt " {
 			if size < 16 {
-				return false
+				return 0, false
 			}
 			format := binary.LittleEndian.Uint16(value[start : start+2])
 			channels := binary.LittleEndian.Uint16(value[start+2 : start+4])
 			rate := binary.LittleEndian.Uint32(value[start+4 : start+8])
 			bits := binary.LittleEndian.Uint16(value[start+14 : start+16])
+			bytesPerSecond = float64(channels) * float64(rate) * float64(bits) / 8
 			formatSupported = channels > 0 && rate > 0 && ((format == 1 && (bits == 16 || bits == 24)) || (format == 3 && bits == 32))
 		} else if string(value[offset:offset+4]) == "data" && size > 0 {
-			hasAudioData = true
+			dataBytes += size
 		}
 		offset = start + size + size%2
 	}
-	return formatSupported && hasAudioData
+	if !formatSupported || dataBytes == 0 {
+		return 0, false
+	}
+	return float64(dataBytes) / bytesPerSecond, true
 }
 
 func audioCppInvocationBindings(values []InvocationExactBinding, mainFamily string, mainRequirementID string, requiresCodec bool) (map[string]InvocationExactBinding, error) {

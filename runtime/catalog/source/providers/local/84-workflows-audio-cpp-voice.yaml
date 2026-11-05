@@ -88,6 +88,23 @@ voice_workflow_models:
     workflow_family: vevo2
     target_model_refs: [vevo2-audio-cpp-tts-local]
 
+  - <<: *audio_cpp_reference_workflow
+    workflow_model_id: fish-drama3.audio-cpp.reference-voice.v1
+    workflow_family: fish_drama3
+    target_model_refs: [fish-drama3-small-audio-cpp-local]
+    source_ids: [audio_cpp_093_fish_drama3]
+  - <<: *audio_cpp_reference_workflow
+    workflow_model_id: kitten-tts2.audio-cpp.reference-voice.v1
+    workflow_family: kitten_tts2
+    target_model_refs: [kitten-tts2-audio-cpp-local]
+    source_ids: [audio_cpp_093_kitten_tts2]
+    request_options: {text_prompt_mode: required, supports_language_hints: false, supports_preferred_name: true, reference_audio_uri_input: true, reference_audio_bytes_input: true, allowed_reference_audio_mime_types: [audio/wav]}
+  - <<: *audio_cpp_reference_workflow
+    workflow_model_id: plapre.audio-cpp.reference-voice.v1
+    workflow_family: plapre
+    target_model_refs: [plapre3-audio-cpp-local]
+    source_ids: [audio_cpp_093_plapre]
+
 model_workflow_bindings:
   - { model_id: chatterbox-audio-cpp-local, workflow_model_refs: [chatterbox.audio-cpp.reference-voice.v1], workflow_types: [reference_audio] }
   - { model_id: confucius4-tts-audio-cpp-local, workflow_model_refs: [confucius4-tts.audio-cpp.reference-voice.v1], workflow_types: [reference_audio] }
@@ -109,3 +126,6 @@ model_workflow_bindings:
   - { model_id: vietneu-tts-audio-cpp-local, workflow_model_refs: [vietneu-tts.audio-cpp.reference-voice.v1], workflow_types: [reference_audio] }
   - { model_id: voxcpm2-audio-cpp-local, workflow_model_refs: [voxcpm2.audio-cpp.reference-voice.v1], workflow_types: [reference_audio] }
   - { model_id: vevo2-audio-cpp-tts-local, workflow_model_refs: [vevo2.audio-cpp.reference-voice.v1], workflow_types: [reference_audio] }
+  - {model_id: fish-drama3-small-audio-cpp-local, workflow_model_refs: [fish-drama3.audio-cpp.reference-voice.v1], workflow_types: [reference_audio]}
+  - {model_id: kitten-tts2-audio-cpp-local, workflow_model_refs: [kitten-tts2.audio-cpp.reference-voice.v1], workflow_types: [reference_audio]}
+  - {model_id: plapre3-audio-cpp-local, workflow_model_refs: [plapre.audio-cpp.reference-voice.v1], workflow_types: [reference_audio]}

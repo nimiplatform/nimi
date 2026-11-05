@@ -23,3 +23,15 @@ sources:
     url: https://huggingface.co/FunAudioLLM/SenseVoiceSmall-GGUF-audiocpp/tree/5c3fcfe748a8714216bc135476d5863084fddb72
     retrieved_at: 2026-08-24
     note: Immutable SenseVoice Small audio.cpp Q8 snapshot.
+  - source_id: audio_cpp_093_fish_drama3
+    url: https://github.com/0xShug0/audio.cpp/blob/41c1f8ffa0d13a1b7e366e30ea5fe5ab8d169d48/docs/models/fish_drama3.md
+    retrieved_at: 2026-11-06
+    note: Exact native family, embedded presets and reference conditions. Initial Nimi execution is finite Windows CUDA synthesis and owned reference voice creation; upstream streaming and editing are not inferred.
+  - source_id: audio_cpp_093_kitten_tts2
+    url: https://github.com/0xShug0/audio.cpp/blob/41c1f8ffa0d13a1b7e366e30ea5fe5ab8d169d48/docs/models/kitten_tts2.md
+    retrieved_at: 2026-11-06
+    note: Exact native family, embedded presets and reference conditions. Initial Nimi execution is finite Windows CUDA synthesis and owned reference voice creation; upstream streaming and editing are not inferred.
+  - source_id: audio_cpp_093_plapre
+    url: https://github.com/0xShug0/audio.cpp/blob/41c1f8ffa0d13a1b7e366e30ea5fe5ab8d169d48/docs/models/plapre.md
+    retrieved_at: 2026-11-06
+    note: Exact native family, embedded presets and reference conditions. Initial Nimi execution is finite Windows CUDA synthesis and owned reference voice creation; upstream streaming and editing are not inferred.

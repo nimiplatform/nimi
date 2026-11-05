@@ -2965,6 +2965,143 @@ models:
         total_size_bytes: 299066464
         host_requirement:
           accelerator: cuda
+  - model_id: fish-drama3-small-audio-cpp-local
+    provider: local
+    model_type: tts
+    updated_at: 2026-11-06
+    capabilities:
+      - audio.synthesize
+      - voice.create
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/0xShug0/audio.cpp/blob/41c1f8ffa0d13a1b7e366e30ea5fe5ab8d169d48/docs/models/fish_drama3.md
+      retrieved_at: 2026-11-06
+      note: Exact native family, embedded presets and reference conditions. Initial Nimi execution is finite Windows CUDA synthesis and owned reference voice creation; upstream streaming and editing are not inferred.
+    features:
+      - input.audio
+    family: fish_drama3
+    voice_set_id: local:local_fish_drama3_audio_cpp_dynamic_voice_set
+    voice_discovery_mode: dynamic_user_scoped
+    voice_ref_kinds:
+      - voice_asset_id
+    install:
+      repo: pentacoxian-dev/drama3-small-GGUF
+      revision: 4a3078e885344bb9b24d511cec389d2726854d15
+      install_kind: verified-hf-multi-file
+      entry: drama3-small-IQ3_XXS.gguf
+      artifact_roles:
+        - tts_model
+      license: Fish Audio Community License v1.0
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.fish-drama3.audio-cpp.iq3-xxs.cuda
+        quant: IQ3_XXS
+        entry: drama3-small-IQ3_XXS.gguf
+        files:
+          - drama3-small-IQ3_XXS.gguf
+        hashes:
+          drama3-small-IQ3_XXS.gguf: sha256:97d773973d756141a65432b08de76fd4bedbb44e8b98805755130e02d7fe2561
+        total_size_bytes: 10460748576
+        host_requirement:
+          accelerator: cuda
+  - model_id: kitten-tts2-audio-cpp-local
+    provider: local
+    model_type: tts
+    updated_at: 2026-11-06
+    capabilities:
+      - audio.synthesize
+      - voice.create
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/0xShug0/audio.cpp/blob/41c1f8ffa0d13a1b7e366e30ea5fe5ab8d169d48/docs/models/kitten_tts2.md
+      retrieved_at: 2026-11-06
+      note: Exact native family, embedded presets and reference conditions. Initial Nimi execution is finite Windows CUDA synthesis and owned reference voice creation; upstream streaming and editing are not inferred.
+    features:
+      - input.audio
+    family: kitten_tts2
+    voice_set_id: local:local_kitten_tts2_audio_cpp_dynamic_voice_set
+    voice_discovery_mode: dynamic_user_scoped
+    voice_ref_kinds:
+      - preset_voice_id
+      - voice_asset_id
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: fd2fe4c3195bc410f8b817bf7c7519fd822686fb
+      install_kind: verified-hf-multi-file
+      entry: KittenTTS2-GGUF/kitten-tts2-20261021-q8_0.gguf
+      artifact_roles:
+        - tts_model
+      license: Stellon Labs Community License
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.kitten-tts2.audio-cpp.q8-0.cuda
+        quant: Q8_0
+        entry: KittenTTS2-GGUF/kitten-tts2-20261021-q8_0.gguf
+        files:
+          - KittenTTS2-GGUF/kitten-tts2-20261021-q8_0.gguf
+        hashes:
+          KittenTTS2-GGUF/kitten-tts2-20261021-q8_0.gguf: sha256:cd67d70466344b41e5e6c7fa317d09e88f499d2973e030d35c969dc8c7c84ff5
+        total_size_bytes: 3343404128
+        host_requirement:
+          accelerator: cuda
+  - model_id: plapre3-audio-cpp-local
+    provider: local
+    model_type: tts
+    updated_at: 2026-11-06
+    capabilities:
+      - audio.synthesize
+      - voice.create
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://github.com/0xShug0/audio.cpp/blob/41c1f8ffa0d13a1b7e366e30ea5fe5ab8d169d48/docs/models/plapre.md
+      retrieved_at: 2026-11-06
+      note: Exact native family, embedded presets and reference conditions. Initial Nimi execution is finite Windows CUDA synthesis and owned reference voice creation; upstream streaming and editing are not inferred.
+    features:
+      - input.audio
+    family: plapre
+    voice_set_id: local:local_plapre_audio_cpp_dynamic_voice_set
+    voice_discovery_mode: dynamic_user_scoped
+    voice_ref_kinds:
+      - preset_voice_id
+      - voice_asset_id
+    install:
+      repo: audio-cpp/audio.cpp-gguf
+      revision: fd2fe4c3195bc410f8b817bf7c7519fd822686fb
+      install_kind: verified-hf-multi-file
+      entry: Plapre-3-GGUF/plapre-3-bf16.gguf
+      artifact_roles:
+        - tts_model
+      license: CC-BY-4.0
+      preferred_engine: audio-cpp
+    variants:
+      - variant_id: local.tts.plapre.audio-cpp.bf16.cuda
+        quant: BF16
+        entry: Plapre-3-GGUF/plapre-3-bf16.gguf
+        files:
+          - Plapre-3-GGUF/plapre-3-bf16.gguf
+        hashes:
+          Plapre-3-GGUF/plapre-3-bf16.gguf: sha256:8baa6069d5cd81bc01bfc039bfcb7c4b7406e659157b3c768fa2bc839fdfc9a1
+        total_size_bytes: 1145069888
+        host_requirement:
+          accelerator: cuda
   - model_id: gemma-4-e2b-it-local
     provider: local
     model_type: chat
@@ -9664,6 +9801,69 @@ voices:
       url: https://github.com/0xShug0/audio.cpp/blob/release-0.6.1/README.md
       retrieved_at: 2026-08-24
       note: Exact release-0.6.1 supported-model and CLI family surface for audio.cpp speech Drivers.
+  - voice_id: user-custom
+    voice_set_id: local:local_fish_drama3_audio_cpp_dynamic_voice_set
+    provider: local
+    name: User Custom Voice
+    langs:
+      - zh-cn
+      - en-us
+      - fr-fr
+      - de-de
+      - ru-ru
+      - it-it
+      - es-es
+      - pt-pt
+      - ja-jp
+      - ko-kr
+    model_ids:
+      - fish-drama3-small-audio-cpp-local
+    source_ref:
+      url: https://github.com/0xShug0/audio.cpp/blob/41c1f8ffa0d13a1b7e366e30ea5fe5ab8d169d48/docs/models/fish_drama3.md
+      retrieved_at: 2026-11-06
+      note: Exact native family, embedded presets and reference conditions. Initial Nimi execution is finite Windows CUDA synthesis and owned reference voice creation; upstream streaming and editing are not inferred.
+  - voice_id: user-custom
+    voice_set_id: local:local_kitten_tts2_audio_cpp_dynamic_voice_set
+    provider: local
+    name: User Custom Voice
+    langs:
+      - zh-cn
+      - en-us
+      - fr-fr
+      - de-de
+      - ru-ru
+      - it-it
+      - es-es
+      - pt-pt
+      - ja-jp
+      - ko-kr
+    model_ids:
+      - kitten-tts2-audio-cpp-local
+    source_ref:
+      url: https://github.com/0xShug0/audio.cpp/blob/41c1f8ffa0d13a1b7e366e30ea5fe5ab8d169d48/docs/models/kitten_tts2.md
+      retrieved_at: 2026-11-06
+      note: Exact native family, embedded presets and reference conditions. Initial Nimi execution is finite Windows CUDA synthesis and owned reference voice creation; upstream streaming and editing are not inferred.
+  - voice_id: user-custom
+    voice_set_id: local:local_plapre_audio_cpp_dynamic_voice_set
+    provider: local
+    name: User Custom Voice
+    langs:
+      - zh-cn
+      - en-us
+      - fr-fr
+      - de-de
+      - ru-ru
+      - it-it
+      - es-es
+      - pt-pt
+      - ja-jp
+      - ko-kr
+    model_ids:
+      - plapre3-audio-cpp-local
+    source_ref:
+      url: https://github.com/0xShug0/audio.cpp/blob/41c1f8ffa0d13a1b7e366e30ea5fe5ab8d169d48/docs/models/plapre.md
+      retrieved_at: 2026-11-06
+      note: Exact native family, embedded presets and reference conditions. Initial Nimi execution is finite Windows CUDA synthesis and owned reference voice creation; upstream streaming and editing are not inferred.
 voice_workflow_models:
   - workflow_model_id: qwen3-local-voice-clone
     workflow_type: reference_audio
@@ -10333,6 +10533,96 @@ voice_workflow_models:
       - pt-pt
       - ja-jp
       - ko-kr
+  - workflow_model_id: fish-drama3.audio-cpp.reference-voice.v1
+    workflow_type: reference_audio
+    workflow_family: fish_drama3
+    input_contract_ref: local_audio_cpp_reference_voice_input_v1
+    output_persistence: session_ephemeral
+    request_options:
+      text_prompt_mode: optional
+      supports_language_hints: false
+      supports_preferred_name: true
+      reference_audio_uri_input: true
+      reference_audio_bytes_input: true
+      allowed_reference_audio_mime_types:
+        - audio/wav
+    target_model_refs:
+      - fish-drama3-small-audio-cpp-local
+    source_ref:
+      url: https://github.com/0xShug0/audio.cpp/blob/41c1f8ffa0d13a1b7e366e30ea5fe5ab8d169d48/docs/models/fish_drama3.md
+      retrieved_at: 2026-11-06
+      note: Exact native family, embedded presets and reference conditions. Initial Nimi execution is finite Windows CUDA synthesis and owned reference voice creation; upstream streaming and editing are not inferred.
+    langs:
+      - zh-cn
+      - en-us
+      - fr-fr
+      - de-de
+      - ru-ru
+      - it-it
+      - es-es
+      - pt-pt
+      - ja-jp
+      - ko-kr
+  - workflow_model_id: kitten-tts2.audio-cpp.reference-voice.v1
+    workflow_type: reference_audio
+    workflow_family: kitten_tts2
+    input_contract_ref: local_audio_cpp_reference_voice_input_v1
+    output_persistence: session_ephemeral
+    request_options:
+      text_prompt_mode: required
+      supports_language_hints: false
+      supports_preferred_name: true
+      reference_audio_uri_input: true
+      reference_audio_bytes_input: true
+      allowed_reference_audio_mime_types:
+        - audio/wav
+    target_model_refs:
+      - kitten-tts2-audio-cpp-local
+    source_ref:
+      url: https://github.com/0xShug0/audio.cpp/blob/41c1f8ffa0d13a1b7e366e30ea5fe5ab8d169d48/docs/models/kitten_tts2.md
+      retrieved_at: 2026-11-06
+      note: Exact native family, embedded presets and reference conditions. Initial Nimi execution is finite Windows CUDA synthesis and owned reference voice creation; upstream streaming and editing are not inferred.
+    langs:
+      - zh-cn
+      - en-us
+      - fr-fr
+      - de-de
+      - ru-ru
+      - it-it
+      - es-es
+      - pt-pt
+      - ja-jp
+      - ko-kr
+  - workflow_model_id: plapre.audio-cpp.reference-voice.v1
+    workflow_type: reference_audio
+    workflow_family: plapre
+    input_contract_ref: local_audio_cpp_reference_voice_input_v1
+    output_persistence: session_ephemeral
+    request_options:
+      text_prompt_mode: optional
+      supports_language_hints: false
+      supports_preferred_name: true
+      reference_audio_uri_input: true
+      reference_audio_bytes_input: true
+      allowed_reference_audio_mime_types:
+        - audio/wav
+    target_model_refs:
+      - plapre3-audio-cpp-local
+    source_ref:
+      url: https://github.com/0xShug0/audio.cpp/blob/41c1f8ffa0d13a1b7e366e30ea5fe5ab8d169d48/docs/models/plapre.md
+      retrieved_at: 2026-11-06
+      note: Exact native family, embedded presets and reference conditions. Initial Nimi execution is finite Windows CUDA synthesis and owned reference voice creation; upstream streaming and editing are not inferred.
+    langs:
+      - zh-cn
+      - en-us
+      - fr-fr
+      - de-de
+      - ru-ru
+      - it-it
+      - es-es
+      - pt-pt
+      - ja-jp
+      - ko-kr
 model_workflow_bindings:
   - model_id: qwen3-tts-base-local
     workflow_model_refs:
@@ -10472,6 +10762,21 @@ model_workflow_bindings:
   - model_id: vevo2-audio-cpp-tts-local
     workflow_model_refs:
       - vevo2.audio-cpp.reference-voice.v1
+    workflow_types:
+      - reference_audio
+  - model_id: fish-drama3-small-audio-cpp-local
+    workflow_model_refs:
+      - fish-drama3.audio-cpp.reference-voice.v1
+    workflow_types:
+      - reference_audio
+  - model_id: kitten-tts2-audio-cpp-local
+    workflow_model_refs:
+      - kitten-tts2.audio-cpp.reference-voice.v1
+    workflow_types:
+      - reference_audio
+  - model_id: plapre3-audio-cpp-local
+    workflow_model_refs:
+      - plapre.audio-cpp.reference-voice.v1
     workflow_types:
       - reference_audio
 voice_handle_policies:
@@ -13174,6 +13479,129 @@ loadout_recipes:
         model_contract:
           format: gguf
           model_family: vevo2
+          artifact_role: tts_model
+  - recipe_id: fish-drama3.audio-cpp.synthesize.v1
+    revision: "1"
+    title: Fish Audio Drama 3 Small - Built with Fish Audio synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.fish-drama3.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.fish-drama3.tts
+    driver_dialect: audio.cpp/fish_drama3/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: tts.model
+        display_label: Fish Audio Drama 3 Small - Built with Fish Audio GGUF
+        recommended_variant_ids:
+          - local.tts.fish-drama3.audio-cpp.iq3-xxs.cuda
+        recommended_content_ids:
+          - sha256:97d773973d756141a65432b08de76fd4bedbb44e8b98805755130e02d7fe2561
+        model_contract:
+          format: gguf
+          model_family: fish_drama3
+          artifact_role: tts_model
+  - recipe_id: fish-drama3.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: Fish Audio Drama 3 Small - Built with Fish Audio reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.fish-drama3.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.fish-drama3.voice-reference
+    driver_dialect: audio.cpp/fish_drama3/voice-reference-create/v1
+    default_options: {}
+    supported_features:
+      - input.audio
+    slot_metadata:
+      - slot_id: tts.model
+        display_label: Fish Audio Drama 3 Small - Built with Fish Audio GGUF
+        recommended_variant_ids:
+          - local.tts.fish-drama3.audio-cpp.iq3-xxs.cuda
+        recommended_content_ids:
+          - sha256:97d773973d756141a65432b08de76fd4bedbb44e8b98805755130e02d7fe2561
+        model_contract:
+          format: gguf
+          model_family: fish_drama3
+          artifact_role: tts_model
+  - recipe_id: kitten-tts2.audio-cpp.synthesize.v1
+    revision: "1"
+    title: Kitten TTS 2 - Powered by KittenML synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.kitten-tts2.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.kitten-tts2.tts
+    driver_dialect: audio.cpp/kitten_tts2/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: tts.model
+        display_label: Kitten TTS 2 - Powered by KittenML GGUF
+        recommended_variant_ids:
+          - local.tts.kitten-tts2.audio-cpp.q8-0.cuda
+        recommended_content_ids:
+          - sha256:cd67d70466344b41e5e6c7fa317d09e88f499d2973e030d35c969dc8c7c84ff5
+        model_contract:
+          format: gguf
+          model_family: kitten_tts2
+          artifact_role: tts_model
+  - recipe_id: kitten-tts2.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: Kitten TTS 2 - Powered by KittenML reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.kitten-tts2.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.kitten-tts2.voice-reference
+    driver_dialect: audio.cpp/kitten_tts2/voice-reference-create/v1
+    default_options: {}
+    supported_features:
+      - input.audio
+    slot_metadata:
+      - slot_id: tts.model
+        display_label: Kitten TTS 2 - Powered by KittenML GGUF
+        recommended_variant_ids:
+          - local.tts.kitten-tts2.audio-cpp.q8-0.cuda
+        recommended_content_ids:
+          - sha256:cd67d70466344b41e5e6c7fa317d09e88f499d2973e030d35c969dc8c7c84ff5
+        model_contract:
+          format: gguf
+          model_family: kitten_tts2
+          artifact_role: tts_model
+  - recipe_id: plapre.audio-cpp.synthesize.v1
+    revision: "1"
+    title: Plapre 3 Danish synthesis
+    capability_contract: audio.synthesize
+    implementation_id: local.audio.synthesize.plapre.audio-cpp
+    driver_id: nimi.runtime.driver.audio-cpp.plapre.tts
+    driver_dialect: audio.cpp/plapre/audio-synthesize/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: tts.model
+        display_label: Plapre 3 Danish GGUF
+        recommended_variant_ids:
+          - local.tts.plapre.audio-cpp.bf16.cuda
+        recommended_content_ids:
+          - sha256:8baa6069d5cd81bc01bfc039bfcb7c4b7406e659157b3c768fa2bc839fdfc9a1
+        model_contract:
+          format: gguf
+          model_family: plapre
+          artifact_role: tts_model
+  - recipe_id: plapre.audio-cpp.reference-voice.v1
+    revision: "1"
+    title: Plapre 3 Danish reference voice
+    capability_contract: voice.create
+    implementation_id: local.voice.create.plapre.audio-cpp-reference
+    driver_id: nimi.runtime.driver.audio-cpp.plapre.voice-reference
+    driver_dialect: audio.cpp/plapre/voice-reference-create/v1
+    default_options: {}
+    supported_features:
+      - input.audio
+    slot_metadata:
+      - slot_id: tts.model
+        display_label: Plapre 3 Danish GGUF
+        recommended_variant_ids:
+          - local.tts.plapre.audio-cpp.bf16.cuda
+        recommended_content_ids:
+          - sha256:8baa6069d5cd81bc01bfc039bfcb7c4b7406e659157b3c768fa2bc839fdfc9a1
+        model_contract:
+          format: gguf
+          model_family: plapre
           artifact_role: tts_model
   - recipe_id: laya-typed-decisions
     revision: "1"

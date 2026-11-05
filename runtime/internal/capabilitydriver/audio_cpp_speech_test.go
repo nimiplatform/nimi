@@ -40,14 +40,14 @@ func TestAudioCppSpeechProductionRegistryHasExactReleaseFamilies(t *testing.T) {
 			t.Fatalf("unexpected contract %q", registration.CapabilityContract)
 		}
 	}
-	if ttsCount != 24 || asrCount != 11 {
+	if ttsCount != 27 || asrCount != 11 {
 		t.Fatalf("release family counts tts=%d asr=%d", ttsCount, asrCount)
 	}
 	qwenBase := audioCppRegistrationForTest(t, AudioSynthesizeContract, "qwen3_tts")
 	if qwenBase.Identity.ImplementationID != AudioCppQwen3TTSBaseImplementationID || qwenBase.Identity.ImplementationID == Qwen3TTSAudioCppImplementationID {
 		t.Fatalf("Qwen3-TTS Base implementation_id=%q, existing CustomVoice=%q", qwenBase.Identity.ImplementationID, Qwen3TTSAudioCppImplementationID)
 	}
-	if references := AudioCppReferenceVoiceRegistrations(); len(references) != 20 {
+	if references := AudioCppReferenceVoiceRegistrations(); len(references) != 23 {
 		t.Fatalf("reference voice registrations=%d", len(references))
 	} else {
 		for _, registration := range references {
