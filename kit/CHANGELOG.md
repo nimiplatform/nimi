@@ -2,6 +2,19 @@
 
 # Changelog
 
+## Unreleased — Explicit SVG author selection
+
+OpenAI SVG output now requires a Home-owned `svgAuthor` selection on its existing
+managed API-key connection. Select a current text-model catalog item explicitly;
+Apps cannot pass an arbitrary author or borrow their text route. Selection changes
+apply to new tasks; the captured author and credential remain fixed for submitted
+work. Rebuild matching Runtime, native carrier and SDK together.
+
+Cloud history carries `modelUsage` components for image rendering and SVG authoring
+within one request. A missing component remains unknown. Aggregate measured tokens
+sum complete component reports once; a primary-model rate does not price the author.
+No package publication is implied.
+
 ## Unreleased — Explicit continuous AI Realtime
 
 The next coordinated 0.x minor adds `interactionMode: 'continuous'` for exact

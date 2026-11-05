@@ -65,6 +65,10 @@ func recordAggregate(record Record) (aggregate, string, error) {
 
 // @nimi-authority: rule.nimi.runtime.rpc-foundations.home-ai-usage-summary
 func estimateCost(record Record) (string, string, bool) {
+	// A single captured price cannot price distinct native author/render models.
+	if len(record.ModelUsage) > 1 {
+		return "", "", false
+	}
 	if record.Route == runtimev1.DesktopAIExecutionRoute_DESKTOP_AI_EXECUTION_ROUTE_LOCAL {
 		return "none", "0", true
 	}

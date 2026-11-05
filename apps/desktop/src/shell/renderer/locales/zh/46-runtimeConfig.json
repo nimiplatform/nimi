@@ -1,4 +1,22 @@
 {
+  "svgAuthor": {
+    "title": "SVG 绘制",
+    "unconfigured": "未选择绘制模型",
+    "configure": "配置",
+    "description": "生成 SVG 时，图像模型先创建参考图，再由此模型绘制可编辑的矢量内容。两个阶段都可能产生供方费用，报告的用量分别记录。修改只影响新任务。",
+    "model": "SVG 绘制模型",
+    "choose": "选择模型",
+    "availability": "从此连接的文本模型中选择。保存配置不代表已通过 SVG 权限验证；生成时由供方检查所选模型是否可用。",
+    "save": "保存",
+    "cancel": "取消",
+    "remove": "移除选择",
+    "loadFailed": "无法读取模型列表，请重试。",
+    "saveFailed": "无法保存选择，请重新加载模型列表并选择当前可用项。",
+    "imageUsage": "参考图生成",
+    "authorUsage": "SVG 绘制",
+    "tokens": "输入 {{input}} · 输出 {{output}} · 推理 {{reasoning}} tokens",
+    "imageTokens": "输入 {{input}} · 输出 {{output}} tokens"
+  },
   "positionUnavailable": "这一项暂时不可用，已保留当前浏览位置。",
   "setupTaskUnavailable": "这次准备任务已不存在，可以返回 AI 能力重新查看配置方案。",
   "reasonMessages": {

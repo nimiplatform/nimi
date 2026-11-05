@@ -251,6 +251,15 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 		return nil, cloudMediaDriverError(capabilityContract, err)
 	}
 	effectiveRequest = mapped.Request()
+	if target.Provider() == "openai" && effectiveRequest.GetSpec().GetImageGenerate().GetOutputFormat() == "svg" {
+		if !connector.ValidSVGAuthor(connectorRecord.SVGAuthor) {
+			return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{Message: "SVG output requires an explicitly configured author model", ActionHint: "configure_svg_author"})
+		}
+		_, _, err := connector.ValidateAIConfigCloudSelection(s.connStore, s.speechCatalog, accountID, "text.generate", &runtimev1.CapabilityImplementationIdentity{ImplementationId: "openai", DriverId: "nimillm", DriverDialect: "openai"}, connector.RemoteModelCatalogRef{ConnectorID: connectorRecord.ConnectorID, Provider: "openai", ProviderModelID: connectorRecord.SVGAuthor.ProviderModelID, RemoteModelCatalogID: connectorRecord.SVGAuthor.RemoteModelCatalogID})
+		if err != nil {
+			return nil, err
+		}
+	}
 	if target.Provider() == "dashscope" && nimillm.AlibabaVideoRequiresOSS(effectiveRequest.GetSpec().GetVideoGenerate()) && connectorRecord.MediaStorage == nil {
 		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_STORAGE_NOT_CONFIGURED, grpcerr.ReasonOptions{Message: "Owned audio or video references require configured OSS media storage", ActionHint: "configure_oss_media_storage"})
 	}

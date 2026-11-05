@@ -102,6 +102,14 @@ func (s *Service) scenarioObservationContext(ctx context.Context, jobID string) 
 			if provider != "" && model != "" {
 				route = runtimev1.DesktopAIExecutionRoute_DESKTOP_AI_EXECUTION_ROUTE_CLOUD
 				models = []*runtimev1.DesktopAIExecutionModel{{ModelId: model, DisplayName: model, ProviderId: provider, Role: "primary"}}
+				if assembly.Connector.SVGAuthor != nil && assembly.RequestKind == cloudResolvedRequestMedia {
+					request := &runtimev1.SubmitScenarioJobRequest{}
+					if protojson.Unmarshal(assembly.Request, request) == nil && request.GetSpec().GetImageGenerate().GetOutputFormat() == "svg" {
+						models[0].Role = "image-render"
+						author := assembly.Connector.SVGAuthor.ProviderModelID
+						models = append(models, &runtimev1.DesktopAIExecutionModel{ProviderId: provider, ModelId: author, DisplayName: author, Role: "svg-author"})
+					}
+				}
 			}
 		}
 	}

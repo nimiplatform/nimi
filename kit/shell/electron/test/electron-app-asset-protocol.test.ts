@@ -73,6 +73,26 @@ beforeEach(() => {
 });
 
 describe('Electron local-app opaque asset media protocol', () => {
+  it('serves bounded SVG only as an image with a sandboxed response policy', async () => {
+    const bytes = new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 8 4"><path d="M0 0L8 4"/></svg>');
+    const fixture = createAssetHostFixture(bytes, 'image/svg+xml');
+    const host = createNimiElectronLocalAppAssetMediaHost({ localAppHost: fixture.host, platform });
+    const opened = await host.open(RELATIVE_PATH, 7);
+    for (const type of ['mainFrame', 'subFrame', 'object', 'script', 'xhr', 'other', 'media']) {
+      expect(approve(opened.url, 7, type)).toBe(false);
+    }
+    expect(approve(opened.url, 8, 'image')).toBe(false);
+    expect(approve(opened.url, 7, 'image')).toBe(true);
+    const response = await electronFixture.protocolHandler!({ url: opened.url, headers: new Headers() });
+    expect(response.status).toBe(200);
+    expect(response.headers.get('content-type')).toBe('image/svg+xml');
+    expect(response.headers.get('content-security-policy')).toBe("sandbox; default-src 'none'; style-src 'unsafe-inline'");
+    expect(Array.from(new Uint8Array(await response.arrayBuffer()))).toEqual(Array.from(bytes));
+    host.close();
+    const invalid = createNimiElectronLocalAppAssetMediaHost({ localAppHost: createAssetHostFixture(new TextEncoder().encode('<html>wrong type</html>'), 'image/svg+xml').host, platform });
+    await expect(invalid.open(RELATIVE_PATH, 7)).rejects.toThrow();
+    invalid.close();
+  });
   it.each(['audio/wav', 'audio/x-wav'])('serves verified WAV bytes declared as %s', async (mediaType) => {
     const bytes = Uint8Array.from([82, 73, 70, 70, 4, 0, 0, 0, 87, 65, 86, 69]);
     const fixture = createAssetHostFixture(bytes, mediaType);

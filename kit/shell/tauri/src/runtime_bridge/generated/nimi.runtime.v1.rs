@@ -16770,6 +16770,17 @@ pub struct DesktopAiCloudAttempt {
     pub usage_measured: bool,
     #[prost(message, optional, tag = "16")]
     pub usage: ::core::option::Option<UsageStats>,
+    /// Separate native model work inside one provider request; not extra requests.
+    #[prost(message, repeated, tag = "17")]
+    pub model_usage: ::prost::alloc::vec::Vec<DesktopAiModelUsage>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct DesktopAiModelUsage {
+    #[prost(message, optional, tag = "1")]
+    pub model: ::core::option::Option<DesktopAiExecutionModel>,
+    /// Absence is unreported, never a zero estimate.
+    #[prost(message, optional, tag = "2")]
+    pub usage: ::core::option::Option<UsageStats>,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct ListDesktopAiCloudHistoryRequest {

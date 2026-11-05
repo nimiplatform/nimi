@@ -2817,8 +2817,10 @@ type DesktopAICloudAttempt struct {
 	ReasonCode     ReasonCode                   `protobuf:"varint,14,opt,name=reason_code,json=reasonCode,proto3,enum=nimi.runtime.v1.ReasonCode" json:"reason_code,omitempty"`
 	UsageMeasured  bool                         `protobuf:"varint,15,opt,name=usage_measured,json=usageMeasured,proto3" json:"usage_measured,omitempty"`
 	Usage          *UsageStats                  `protobuf:"bytes,16,opt,name=usage,proto3" json:"usage,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Separate native model work inside one provider request; not extra requests.
+	ModelUsage    []*DesktopAIModelUsage `protobuf:"bytes,17,rep,name=model_usage,json=modelUsage,proto3" json:"model_usage,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *DesktopAICloudAttempt) Reset() {
@@ -2963,6 +2965,66 @@ func (x *DesktopAICloudAttempt) GetUsage() *UsageStats {
 	return nil
 }
 
+func (x *DesktopAICloudAttempt) GetModelUsage() []*DesktopAIModelUsage {
+	if x != nil {
+		return x.ModelUsage
+	}
+	return nil
+}
+
+type DesktopAIModelUsage struct {
+	state protoimpl.MessageState   `protogen:"open.v1"`
+	Model *DesktopAIExecutionModel `protobuf:"bytes,1,opt,name=model,proto3" json:"model,omitempty"`
+	// Absence is unreported, never a zero estimate.
+	Usage         *UsageStats `protobuf:"bytes,2,opt,name=usage,proto3" json:"usage,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *DesktopAIModelUsage) Reset() {
+	*x = DesktopAIModelUsage{}
+	mi := &file_runtime_v1_audit_proto_msgTypes[29]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *DesktopAIModelUsage) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*DesktopAIModelUsage) ProtoMessage() {}
+
+func (x *DesktopAIModelUsage) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_audit_proto_msgTypes[29]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use DesktopAIModelUsage.ProtoReflect.Descriptor instead.
+func (*DesktopAIModelUsage) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{29}
+}
+
+func (x *DesktopAIModelUsage) GetModel() *DesktopAIExecutionModel {
+	if x != nil {
+		return x.Model
+	}
+	return nil
+}
+
+func (x *DesktopAIModelUsage) GetUsage() *UsageStats {
+	if x != nil {
+		return x.Usage
+	}
+	return nil
+}
+
 type ListDesktopAICloudHistoryRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	ConnectorRef  string                 `protobuf:"bytes,1,opt,name=connector_ref,json=connectorRef,proto3" json:"connector_ref,omitempty"`
@@ -2976,7 +3038,7 @@ type ListDesktopAICloudHistoryRequest struct {
 
 func (x *ListDesktopAICloudHistoryRequest) Reset() {
 	*x = ListDesktopAICloudHistoryRequest{}
-	mi := &file_runtime_v1_audit_proto_msgTypes[29]
+	mi := &file_runtime_v1_audit_proto_msgTypes[30]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -2988,7 +3050,7 @@ func (x *ListDesktopAICloudHistoryRequest) String() string {
 func (*ListDesktopAICloudHistoryRequest) ProtoMessage() {}
 
 func (x *ListDesktopAICloudHistoryRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_audit_proto_msgTypes[29]
+	mi := &file_runtime_v1_audit_proto_msgTypes[30]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3001,7 +3063,7 @@ func (x *ListDesktopAICloudHistoryRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListDesktopAICloudHistoryRequest.ProtoReflect.Descriptor instead.
 func (*ListDesktopAICloudHistoryRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{29}
+	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{30}
 }
 
 func (x *ListDesktopAICloudHistoryRequest) GetConnectorRef() string {
@@ -3053,7 +3115,7 @@ type ListDesktopAICloudHistoryResponse struct {
 
 func (x *ListDesktopAICloudHistoryResponse) Reset() {
 	*x = ListDesktopAICloudHistoryResponse{}
-	mi := &file_runtime_v1_audit_proto_msgTypes[30]
+	mi := &file_runtime_v1_audit_proto_msgTypes[31]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -3065,7 +3127,7 @@ func (x *ListDesktopAICloudHistoryResponse) String() string {
 func (*ListDesktopAICloudHistoryResponse) ProtoMessage() {}
 
 func (x *ListDesktopAICloudHistoryResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_audit_proto_msgTypes[30]
+	mi := &file_runtime_v1_audit_proto_msgTypes[31]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -3078,7 +3140,7 @@ func (x *ListDesktopAICloudHistoryResponse) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use ListDesktopAICloudHistoryResponse.ProtoReflect.Descriptor instead.
 func (*ListDesktopAICloudHistoryResponse) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{30}
+	return file_runtime_v1_audit_proto_rawDescGZIP(), []int{31}
 }
 
 func (x *ListDesktopAICloudHistoryResponse) GetAttempts() []*DesktopAICloudAttempt {
@@ -3398,7 +3460,7 @@ const file_runtime_v1_audit_proto_rawDesc = "" +
 	"\vcoverage_to\x18\x0f \x01(\v2\x1a.google.protobuf.TimestampR\n" +
 	"coverageTo\x12'\n" +
 	"\x0fpartial_reasons\x18\x10 \x03(\tR\x0epartialReasons\x121\n" +
-	"\x14attribution_complete\x18\x11 \x01(\bR\x13attributionComplete\"\x84\x06\n" +
+	"\x14attribution_complete\x18\x11 \x01(\bR\x13attributionComplete\"\xcb\x06\n" +
 	"\x15DesktopAICloudAttempt\x12\x1d\n" +
 	"\n" +
 	"attempt_id\x18\x01 \x01(\tR\tattemptId\x12#\n" +
@@ -3424,7 +3486,12 @@ const file_runtime_v1_audit_proto_rawDesc = "" +
 	"\vreason_code\x18\x0e \x01(\x0e2\x1b.nimi.runtime.v1.ReasonCodeR\n" +
 	"reasonCode\x12%\n" +
 	"\x0eusage_measured\x18\x0f \x01(\bR\rusageMeasured\x121\n" +
-	"\x05usage\x18\x10 \x01(\v2\x1b.nimi.runtime.v1.UsageStatsR\x05usage\"\xf1\x01\n" +
+	"\x05usage\x18\x10 \x01(\v2\x1b.nimi.runtime.v1.UsageStatsR\x05usage\x12E\n" +
+	"\vmodel_usage\x18\x11 \x03(\v2$.nimi.runtime.v1.DesktopAIModelUsageR\n" +
+	"modelUsage\"\x88\x01\n" +
+	"\x13DesktopAIModelUsage\x12>\n" +
+	"\x05model\x18\x01 \x01(\v2(.nimi.runtime.v1.DesktopAIExecutionModelR\x05model\x121\n" +
+	"\x05usage\x18\x02 \x01(\v2\x1b.nimi.runtime.v1.UsageStatsR\x05usage\"\xf1\x01\n" +
 	" ListDesktopAICloudHistoryRequest\x12#\n" +
 	"\rconnector_ref\x18\x01 \x01(\tR\fconnectorRef\x127\n" +
 	"\tfrom_time\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\bfromTime\x123\n" +
@@ -3491,7 +3558,7 @@ func file_runtime_v1_audit_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_audit_proto_enumTypes = make([]protoimpl.EnumInfo, 5)
-var file_runtime_v1_audit_proto_msgTypes = make([]protoimpl.MessageInfo, 31)
+var file_runtime_v1_audit_proto_msgTypes = make([]protoimpl.MessageInfo, 32)
 var file_runtime_v1_audit_proto_goTypes = []any{
 	(UsageWindow)(0),                             // 0: nimi.runtime.v1.UsageWindow
 	(RuntimeHealthStatus)(0),                     // 1: nimi.runtime.v1.RuntimeHealthStatus
@@ -3527,108 +3594,112 @@ var file_runtime_v1_audit_proto_goTypes = []any{
 	(*DesktopAIUsageGroup)(nil),                  // 31: nimi.runtime.v1.DesktopAIUsageGroup
 	(*DesktopAIUsageSummary)(nil),                // 32: nimi.runtime.v1.DesktopAIUsageSummary
 	(*DesktopAICloudAttempt)(nil),                // 33: nimi.runtime.v1.DesktopAICloudAttempt
-	(*ListDesktopAICloudHistoryRequest)(nil),     // 34: nimi.runtime.v1.ListDesktopAICloudHistoryRequest
-	(*ListDesktopAICloudHistoryResponse)(nil),    // 35: nimi.runtime.v1.ListDesktopAICloudHistoryResponse
-	(ReasonCode)(0),                              // 36: nimi.runtime.v1.ReasonCode
-	(*timestamppb.Timestamp)(nil),                // 37: google.protobuf.Timestamp
-	(CallerKind)(0),                              // 38: nimi.runtime.v1.CallerKind
-	(*structpb.Struct)(nil),                      // 39: google.protobuf.Struct
-	(*UsageStats)(nil),                           // 40: nimi.runtime.v1.UsageStats
+	(*DesktopAIModelUsage)(nil),                  // 34: nimi.runtime.v1.DesktopAIModelUsage
+	(*ListDesktopAICloudHistoryRequest)(nil),     // 35: nimi.runtime.v1.ListDesktopAICloudHistoryRequest
+	(*ListDesktopAICloudHistoryResponse)(nil),    // 36: nimi.runtime.v1.ListDesktopAICloudHistoryResponse
+	(ReasonCode)(0),                              // 37: nimi.runtime.v1.ReasonCode
+	(*timestamppb.Timestamp)(nil),                // 38: google.protobuf.Timestamp
+	(CallerKind)(0),                              // 39: nimi.runtime.v1.CallerKind
+	(*structpb.Struct)(nil),                      // 40: google.protobuf.Struct
+	(*UsageStats)(nil),                           // 41: nimi.runtime.v1.UsageStats
 }
 var file_runtime_v1_audit_proto_depIdxs = []int32{
-	36, // 0: nimi.runtime.v1.ListAuditEventsRequest.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	37, // 1: nimi.runtime.v1.ListAuditEventsRequest.from_time:type_name -> google.protobuf.Timestamp
-	37, // 2: nimi.runtime.v1.ListAuditEventsRequest.to_time:type_name -> google.protobuf.Timestamp
-	38, // 3: nimi.runtime.v1.ListAuditEventsRequest.caller_kind:type_name -> nimi.runtime.v1.CallerKind
-	36, // 4: nimi.runtime.v1.AuditEventRecord.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	37, // 5: nimi.runtime.v1.AuditEventRecord.timestamp:type_name -> google.protobuf.Timestamp
-	39, // 6: nimi.runtime.v1.AuditEventRecord.payload:type_name -> google.protobuf.Struct
-	38, // 7: nimi.runtime.v1.AuditEventRecord.caller_kind:type_name -> nimi.runtime.v1.CallerKind
+	37, // 0: nimi.runtime.v1.ListAuditEventsRequest.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	38, // 1: nimi.runtime.v1.ListAuditEventsRequest.from_time:type_name -> google.protobuf.Timestamp
+	38, // 2: nimi.runtime.v1.ListAuditEventsRequest.to_time:type_name -> google.protobuf.Timestamp
+	39, // 3: nimi.runtime.v1.ListAuditEventsRequest.caller_kind:type_name -> nimi.runtime.v1.CallerKind
+	37, // 4: nimi.runtime.v1.AuditEventRecord.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	38, // 5: nimi.runtime.v1.AuditEventRecord.timestamp:type_name -> google.protobuf.Timestamp
+	40, // 6: nimi.runtime.v1.AuditEventRecord.payload:type_name -> google.protobuf.Struct
+	39, // 7: nimi.runtime.v1.AuditEventRecord.caller_kind:type_name -> nimi.runtime.v1.CallerKind
 	6,  // 8: nimi.runtime.v1.ListAuditEventsResponse.events:type_name -> nimi.runtime.v1.AuditEventRecord
-	36, // 9: nimi.runtime.v1.ListDesktopAuditEventsRequest.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	38, // 10: nimi.runtime.v1.ListDesktopAuditEventsRequest.caller_kind:type_name -> nimi.runtime.v1.CallerKind
-	37, // 11: nimi.runtime.v1.ListDesktopAuditEventsRequest.from_time:type_name -> google.protobuf.Timestamp
-	37, // 12: nimi.runtime.v1.ListDesktopAuditEventsRequest.to_time:type_name -> google.protobuf.Timestamp
-	36, // 13: nimi.runtime.v1.DesktopAuditEventProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	37, // 14: nimi.runtime.v1.DesktopAuditEventProjection.timestamp:type_name -> google.protobuf.Timestamp
-	38, // 15: nimi.runtime.v1.DesktopAuditEventProjection.caller_kind:type_name -> nimi.runtime.v1.CallerKind
+	37, // 9: nimi.runtime.v1.ListDesktopAuditEventsRequest.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	39, // 10: nimi.runtime.v1.ListDesktopAuditEventsRequest.caller_kind:type_name -> nimi.runtime.v1.CallerKind
+	38, // 11: nimi.runtime.v1.ListDesktopAuditEventsRequest.from_time:type_name -> google.protobuf.Timestamp
+	38, // 12: nimi.runtime.v1.ListDesktopAuditEventsRequest.to_time:type_name -> google.protobuf.Timestamp
+	37, // 13: nimi.runtime.v1.DesktopAuditEventProjection.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	38, // 14: nimi.runtime.v1.DesktopAuditEventProjection.timestamp:type_name -> google.protobuf.Timestamp
+	39, // 15: nimi.runtime.v1.DesktopAuditEventProjection.caller_kind:type_name -> nimi.runtime.v1.CallerKind
 	9,  // 16: nimi.runtime.v1.ListDesktopAuditEventsResponse.events:type_name -> nimi.runtime.v1.DesktopAuditEventProjection
-	37, // 17: nimi.runtime.v1.ExportAuditEventsRequest.from_time:type_name -> google.protobuf.Timestamp
-	37, // 18: nimi.runtime.v1.ExportAuditEventsRequest.to_time:type_name -> google.protobuf.Timestamp
-	38, // 19: nimi.runtime.v1.ListUsageStatsRequest.caller_kind:type_name -> nimi.runtime.v1.CallerKind
+	38, // 17: nimi.runtime.v1.ExportAuditEventsRequest.from_time:type_name -> google.protobuf.Timestamp
+	38, // 18: nimi.runtime.v1.ExportAuditEventsRequest.to_time:type_name -> google.protobuf.Timestamp
+	39, // 19: nimi.runtime.v1.ListUsageStatsRequest.caller_kind:type_name -> nimi.runtime.v1.CallerKind
 	0,  // 20: nimi.runtime.v1.ListUsageStatsRequest.window:type_name -> nimi.runtime.v1.UsageWindow
-	37, // 21: nimi.runtime.v1.ListUsageStatsRequest.from_time:type_name -> google.protobuf.Timestamp
-	37, // 22: nimi.runtime.v1.ListUsageStatsRequest.to_time:type_name -> google.protobuf.Timestamp
-	38, // 23: nimi.runtime.v1.UsageStatRecord.caller_kind:type_name -> nimi.runtime.v1.CallerKind
+	38, // 21: nimi.runtime.v1.ListUsageStatsRequest.from_time:type_name -> google.protobuf.Timestamp
+	38, // 22: nimi.runtime.v1.ListUsageStatsRequest.to_time:type_name -> google.protobuf.Timestamp
+	39, // 23: nimi.runtime.v1.UsageStatRecord.caller_kind:type_name -> nimi.runtime.v1.CallerKind
 	0,  // 24: nimi.runtime.v1.UsageStatRecord.window:type_name -> nimi.runtime.v1.UsageWindow
-	37, // 25: nimi.runtime.v1.UsageStatRecord.bucket_start:type_name -> google.protobuf.Timestamp
+	38, // 25: nimi.runtime.v1.UsageStatRecord.bucket_start:type_name -> google.protobuf.Timestamp
 	13, // 26: nimi.runtime.v1.ListUsageStatsResponse.records:type_name -> nimi.runtime.v1.UsageStatRecord
 	1,  // 27: nimi.runtime.v1.GetRuntimeHealthResponse.status:type_name -> nimi.runtime.v1.RuntimeHealthStatus
-	37, // 28: nimi.runtime.v1.GetRuntimeHealthResponse.sampled_at:type_name -> google.protobuf.Timestamp
+	38, // 28: nimi.runtime.v1.GetRuntimeHealthResponse.sampled_at:type_name -> google.protobuf.Timestamp
 	1,  // 29: nimi.runtime.v1.RuntimeHealthEvent.status:type_name -> nimi.runtime.v1.RuntimeHealthStatus
-	37, // 30: nimi.runtime.v1.RuntimeHealthEvent.sampled_at:type_name -> google.protobuf.Timestamp
+	38, // 30: nimi.runtime.v1.RuntimeHealthEvent.sampled_at:type_name -> google.protobuf.Timestamp
 	26, // 31: nimi.runtime.v1.GetDesktopAIActivitySnapshotResponse.snapshot:type_name -> nimi.runtime.v1.DesktopAIActivitySnapshot
 	23, // 32: nimi.runtime.v1.DesktopAIExecution.models:type_name -> nimi.runtime.v1.DesktopAIExecutionModel
 	2,  // 33: nimi.runtime.v1.DesktopAIExecution.route:type_name -> nimi.runtime.v1.DesktopAIExecutionRoute
 	3,  // 34: nimi.runtime.v1.DesktopAIExecution.state:type_name -> nimi.runtime.v1.DesktopAIExecutionState
-	37, // 35: nimi.runtime.v1.DesktopAIExecution.started_at:type_name -> google.protobuf.Timestamp
-	37, // 36: nimi.runtime.v1.DesktopAIExecution.observed_at:type_name -> google.protobuf.Timestamp
-	37, // 37: nimi.runtime.v1.DesktopAIActivitySnapshot.observed_at:type_name -> google.protobuf.Timestamp
+	38, // 35: nimi.runtime.v1.DesktopAIExecution.started_at:type_name -> google.protobuf.Timestamp
+	38, // 36: nimi.runtime.v1.DesktopAIExecution.observed_at:type_name -> google.protobuf.Timestamp
+	38, // 37: nimi.runtime.v1.DesktopAIActivitySnapshot.observed_at:type_name -> google.protobuf.Timestamp
 	25, // 38: nimi.runtime.v1.DesktopAIActivitySnapshot.executions:type_name -> nimi.runtime.v1.DesktopAIExecution
 	24, // 39: nimi.runtime.v1.DesktopAIActivitySnapshot.source_coverage:type_name -> nimi.runtime.v1.DesktopAISourceCoverage
-	37, // 40: nimi.runtime.v1.GetDesktopAIUsageSummaryRequest.from_time:type_name -> google.protobuf.Timestamp
-	37, // 41: nimi.runtime.v1.GetDesktopAIUsageSummaryRequest.to_time:type_name -> google.protobuf.Timestamp
+	38, // 40: nimi.runtime.v1.GetDesktopAIUsageSummaryRequest.from_time:type_name -> google.protobuf.Timestamp
+	38, // 41: nimi.runtime.v1.GetDesktopAIUsageSummaryRequest.to_time:type_name -> google.protobuf.Timestamp
 	32, // 42: nimi.runtime.v1.GetDesktopAIUsageSummaryResponse.summary:type_name -> nimi.runtime.v1.DesktopAIUsageSummary
 	23, // 43: nimi.runtime.v1.DesktopAIUsageGroup.models:type_name -> nimi.runtime.v1.DesktopAIExecutionModel
 	2,  // 44: nimi.runtime.v1.DesktopAIUsageGroup.route:type_name -> nimi.runtime.v1.DesktopAIExecutionRoute
 	29, // 45: nimi.runtime.v1.DesktopAIUsageGroup.totals:type_name -> nimi.runtime.v1.DesktopAIUsageTotals
 	30, // 46: nimi.runtime.v1.DesktopAIUsageGroup.estimates:type_name -> nimi.runtime.v1.DesktopAICostEstimate
-	37, // 47: nimi.runtime.v1.DesktopAIUsageSummary.read_at:type_name -> google.protobuf.Timestamp
-	37, // 48: nimi.runtime.v1.DesktopAIUsageSummary.from_time:type_name -> google.protobuf.Timestamp
-	37, // 49: nimi.runtime.v1.DesktopAIUsageSummary.to_time:type_name -> google.protobuf.Timestamp
-	37, // 50: nimi.runtime.v1.DesktopAIUsageSummary.effective_to:type_name -> google.protobuf.Timestamp
+	38, // 47: nimi.runtime.v1.DesktopAIUsageSummary.read_at:type_name -> google.protobuf.Timestamp
+	38, // 48: nimi.runtime.v1.DesktopAIUsageSummary.from_time:type_name -> google.protobuf.Timestamp
+	38, // 49: nimi.runtime.v1.DesktopAIUsageSummary.to_time:type_name -> google.protobuf.Timestamp
+	38, // 50: nimi.runtime.v1.DesktopAIUsageSummary.effective_to:type_name -> google.protobuf.Timestamp
 	29, // 51: nimi.runtime.v1.DesktopAIUsageSummary.totals:type_name -> nimi.runtime.v1.DesktopAIUsageTotals
 	31, // 52: nimi.runtime.v1.DesktopAIUsageSummary.groups:type_name -> nimi.runtime.v1.DesktopAIUsageGroup
 	30, // 53: nimi.runtime.v1.DesktopAIUsageSummary.estimates:type_name -> nimi.runtime.v1.DesktopAICostEstimate
 	24, // 54: nimi.runtime.v1.DesktopAIUsageSummary.source_coverage:type_name -> nimi.runtime.v1.DesktopAISourceCoverage
-	37, // 55: nimi.runtime.v1.DesktopAIUsageSummary.coverage_from:type_name -> google.protobuf.Timestamp
-	37, // 56: nimi.runtime.v1.DesktopAIUsageSummary.coverage_to:type_name -> google.protobuf.Timestamp
+	38, // 55: nimi.runtime.v1.DesktopAIUsageSummary.coverage_from:type_name -> google.protobuf.Timestamp
+	38, // 56: nimi.runtime.v1.DesktopAIUsageSummary.coverage_to:type_name -> google.protobuf.Timestamp
 	23, // 57: nimi.runtime.v1.DesktopAICloudAttempt.models:type_name -> nimi.runtime.v1.DesktopAIExecutionModel
-	37, // 58: nimi.runtime.v1.DesktopAICloudAttempt.started_at:type_name -> google.protobuf.Timestamp
-	37, // 59: nimi.runtime.v1.DesktopAICloudAttempt.observed_at:type_name -> google.protobuf.Timestamp
-	37, // 60: nimi.runtime.v1.DesktopAICloudAttempt.finished_at:type_name -> google.protobuf.Timestamp
+	38, // 58: nimi.runtime.v1.DesktopAICloudAttempt.started_at:type_name -> google.protobuf.Timestamp
+	38, // 59: nimi.runtime.v1.DesktopAICloudAttempt.observed_at:type_name -> google.protobuf.Timestamp
+	38, // 60: nimi.runtime.v1.DesktopAICloudAttempt.finished_at:type_name -> google.protobuf.Timestamp
 	4,  // 61: nimi.runtime.v1.DesktopAICloudAttempt.outcome:type_name -> nimi.runtime.v1.DesktopAICloudAttemptOutcome
-	36, // 62: nimi.runtime.v1.DesktopAICloudAttempt.reason_code:type_name -> nimi.runtime.v1.ReasonCode
-	40, // 63: nimi.runtime.v1.DesktopAICloudAttempt.usage:type_name -> nimi.runtime.v1.UsageStats
-	37, // 64: nimi.runtime.v1.ListDesktopAICloudHistoryRequest.from_time:type_name -> google.protobuf.Timestamp
-	37, // 65: nimi.runtime.v1.ListDesktopAICloudHistoryRequest.to_time:type_name -> google.protobuf.Timestamp
-	33, // 66: nimi.runtime.v1.ListDesktopAICloudHistoryResponse.attempts:type_name -> nimi.runtime.v1.DesktopAICloudAttempt
-	37, // 67: nimi.runtime.v1.ListDesktopAICloudHistoryResponse.read_at:type_name -> google.protobuf.Timestamp
-	34, // 68: nimi.runtime.v1.RuntimeAuditService.ListDesktopAICloudHistory:input_type -> nimi.runtime.v1.ListDesktopAICloudHistoryRequest
-	5,  // 69: nimi.runtime.v1.RuntimeAuditService.ListAuditEvents:input_type -> nimi.runtime.v1.ListAuditEventsRequest
-	8,  // 70: nimi.runtime.v1.RuntimeAuditService.ListDesktopAuditEvents:input_type -> nimi.runtime.v1.ListDesktopAuditEventsRequest
-	11, // 71: nimi.runtime.v1.RuntimeAuditService.ExportAuditEvents:input_type -> nimi.runtime.v1.ExportAuditEventsRequest
-	12, // 72: nimi.runtime.v1.RuntimeAuditService.ListUsageStats:input_type -> nimi.runtime.v1.ListUsageStatsRequest
-	15, // 73: nimi.runtime.v1.RuntimeAuditService.GetRuntimeHealth:input_type -> nimi.runtime.v1.GetRuntimeHealthRequest
-	17, // 74: nimi.runtime.v1.RuntimeAuditService.SubscribeRuntimeHealthEvents:input_type -> nimi.runtime.v1.SubscribeRuntimeHealthEventsRequest
-	20, // 75: nimi.runtime.v1.RuntimeAuditService.GetDesktopAIActivitySnapshot:input_type -> nimi.runtime.v1.GetDesktopAIActivitySnapshotRequest
-	22, // 76: nimi.runtime.v1.RuntimeAuditService.SubscribeDesktopAIActivity:input_type -> nimi.runtime.v1.SubscribeDesktopAIActivityRequest
-	27, // 77: nimi.runtime.v1.RuntimeAuditService.GetDesktopAIUsageSummary:input_type -> nimi.runtime.v1.GetDesktopAIUsageSummaryRequest
-	35, // 78: nimi.runtime.v1.RuntimeAuditService.ListDesktopAICloudHistory:output_type -> nimi.runtime.v1.ListDesktopAICloudHistoryResponse
-	7,  // 79: nimi.runtime.v1.RuntimeAuditService.ListAuditEvents:output_type -> nimi.runtime.v1.ListAuditEventsResponse
-	10, // 80: nimi.runtime.v1.RuntimeAuditService.ListDesktopAuditEvents:output_type -> nimi.runtime.v1.ListDesktopAuditEventsResponse
-	19, // 81: nimi.runtime.v1.RuntimeAuditService.ExportAuditEvents:output_type -> nimi.runtime.v1.AuditExportChunk
-	14, // 82: nimi.runtime.v1.RuntimeAuditService.ListUsageStats:output_type -> nimi.runtime.v1.ListUsageStatsResponse
-	16, // 83: nimi.runtime.v1.RuntimeAuditService.GetRuntimeHealth:output_type -> nimi.runtime.v1.GetRuntimeHealthResponse
-	18, // 84: nimi.runtime.v1.RuntimeAuditService.SubscribeRuntimeHealthEvents:output_type -> nimi.runtime.v1.RuntimeHealthEvent
-	21, // 85: nimi.runtime.v1.RuntimeAuditService.GetDesktopAIActivitySnapshot:output_type -> nimi.runtime.v1.GetDesktopAIActivitySnapshotResponse
-	26, // 86: nimi.runtime.v1.RuntimeAuditService.SubscribeDesktopAIActivity:output_type -> nimi.runtime.v1.DesktopAIActivitySnapshot
-	28, // 87: nimi.runtime.v1.RuntimeAuditService.GetDesktopAIUsageSummary:output_type -> nimi.runtime.v1.GetDesktopAIUsageSummaryResponse
-	78, // [78:88] is the sub-list for method output_type
-	68, // [68:78] is the sub-list for method input_type
-	68, // [68:68] is the sub-list for extension type_name
-	68, // [68:68] is the sub-list for extension extendee
-	0,  // [0:68] is the sub-list for field type_name
+	37, // 62: nimi.runtime.v1.DesktopAICloudAttempt.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	41, // 63: nimi.runtime.v1.DesktopAICloudAttempt.usage:type_name -> nimi.runtime.v1.UsageStats
+	34, // 64: nimi.runtime.v1.DesktopAICloudAttempt.model_usage:type_name -> nimi.runtime.v1.DesktopAIModelUsage
+	23, // 65: nimi.runtime.v1.DesktopAIModelUsage.model:type_name -> nimi.runtime.v1.DesktopAIExecutionModel
+	41, // 66: nimi.runtime.v1.DesktopAIModelUsage.usage:type_name -> nimi.runtime.v1.UsageStats
+	38, // 67: nimi.runtime.v1.ListDesktopAICloudHistoryRequest.from_time:type_name -> google.protobuf.Timestamp
+	38, // 68: nimi.runtime.v1.ListDesktopAICloudHistoryRequest.to_time:type_name -> google.protobuf.Timestamp
+	33, // 69: nimi.runtime.v1.ListDesktopAICloudHistoryResponse.attempts:type_name -> nimi.runtime.v1.DesktopAICloudAttempt
+	38, // 70: nimi.runtime.v1.ListDesktopAICloudHistoryResponse.read_at:type_name -> google.protobuf.Timestamp
+	35, // 71: nimi.runtime.v1.RuntimeAuditService.ListDesktopAICloudHistory:input_type -> nimi.runtime.v1.ListDesktopAICloudHistoryRequest
+	5,  // 72: nimi.runtime.v1.RuntimeAuditService.ListAuditEvents:input_type -> nimi.runtime.v1.ListAuditEventsRequest
+	8,  // 73: nimi.runtime.v1.RuntimeAuditService.ListDesktopAuditEvents:input_type -> nimi.runtime.v1.ListDesktopAuditEventsRequest
+	11, // 74: nimi.runtime.v1.RuntimeAuditService.ExportAuditEvents:input_type -> nimi.runtime.v1.ExportAuditEventsRequest
+	12, // 75: nimi.runtime.v1.RuntimeAuditService.ListUsageStats:input_type -> nimi.runtime.v1.ListUsageStatsRequest
+	15, // 76: nimi.runtime.v1.RuntimeAuditService.GetRuntimeHealth:input_type -> nimi.runtime.v1.GetRuntimeHealthRequest
+	17, // 77: nimi.runtime.v1.RuntimeAuditService.SubscribeRuntimeHealthEvents:input_type -> nimi.runtime.v1.SubscribeRuntimeHealthEventsRequest
+	20, // 78: nimi.runtime.v1.RuntimeAuditService.GetDesktopAIActivitySnapshot:input_type -> nimi.runtime.v1.GetDesktopAIActivitySnapshotRequest
+	22, // 79: nimi.runtime.v1.RuntimeAuditService.SubscribeDesktopAIActivity:input_type -> nimi.runtime.v1.SubscribeDesktopAIActivityRequest
+	27, // 80: nimi.runtime.v1.RuntimeAuditService.GetDesktopAIUsageSummary:input_type -> nimi.runtime.v1.GetDesktopAIUsageSummaryRequest
+	36, // 81: nimi.runtime.v1.RuntimeAuditService.ListDesktopAICloudHistory:output_type -> nimi.runtime.v1.ListDesktopAICloudHistoryResponse
+	7,  // 82: nimi.runtime.v1.RuntimeAuditService.ListAuditEvents:output_type -> nimi.runtime.v1.ListAuditEventsResponse
+	10, // 83: nimi.runtime.v1.RuntimeAuditService.ListDesktopAuditEvents:output_type -> nimi.runtime.v1.ListDesktopAuditEventsResponse
+	19, // 84: nimi.runtime.v1.RuntimeAuditService.ExportAuditEvents:output_type -> nimi.runtime.v1.AuditExportChunk
+	14, // 85: nimi.runtime.v1.RuntimeAuditService.ListUsageStats:output_type -> nimi.runtime.v1.ListUsageStatsResponse
+	16, // 86: nimi.runtime.v1.RuntimeAuditService.GetRuntimeHealth:output_type -> nimi.runtime.v1.GetRuntimeHealthResponse
+	18, // 87: nimi.runtime.v1.RuntimeAuditService.SubscribeRuntimeHealthEvents:output_type -> nimi.runtime.v1.RuntimeHealthEvent
+	21, // 88: nimi.runtime.v1.RuntimeAuditService.GetDesktopAIActivitySnapshot:output_type -> nimi.runtime.v1.GetDesktopAIActivitySnapshotResponse
+	26, // 89: nimi.runtime.v1.RuntimeAuditService.SubscribeDesktopAIActivity:output_type -> nimi.runtime.v1.DesktopAIActivitySnapshot
+	28, // 90: nimi.runtime.v1.RuntimeAuditService.GetDesktopAIUsageSummary:output_type -> nimi.runtime.v1.GetDesktopAIUsageSummaryResponse
+	81, // [81:91] is the sub-list for method output_type
+	71, // [71:81] is the sub-list for method input_type
+	71, // [71:71] is the sub-list for extension type_name
+	71, // [71:71] is the sub-list for extension extendee
+	0,  // [0:71] is the sub-list for field type_name
 }
 
 func init() { file_runtime_v1_audit_proto_init() }
@@ -3643,7 +3714,7 @@ func file_runtime_v1_audit_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_audit_proto_rawDesc), len(file_runtime_v1_audit_proto_rawDesc)),
 			NumEnums:      5,
-			NumMessages:   31,
+			NumMessages:   32,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

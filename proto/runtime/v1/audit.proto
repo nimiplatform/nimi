@@ -350,6 +350,14 @@ message DesktopAICloudAttempt {
   ReasonCode reason_code = 14;
   bool usage_measured = 15;
   UsageStats usage = 16;
+  // Separate native model work inside one provider request; not extra requests.
+  repeated DesktopAIModelUsage model_usage = 17;
+}
+
+message DesktopAIModelUsage {
+  DesktopAIExecutionModel model = 1;
+  // Absence is unreported, never a zero estimate.
+  UsageStats usage = 2;
 }
 
 message ListDesktopAICloudHistoryRequest {

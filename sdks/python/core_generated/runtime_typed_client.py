@@ -2047,6 +2047,7 @@ class Connector:
     oauth_registration: ConnectorOAuthRegistration | None = None
     last_check: ConnectorCheck | None = None
     media_storage: ConnectorOSSStorage | None = None
+    svg_author: ConnectorSVGAuthor | None = None
 
 @dataclass(frozen=True)
 class ConnectorCheck:
@@ -2088,6 +2089,16 @@ class ConnectorOSSStorageInput:
     access_key_id: str | None = None
     access_key_secret: str | None = None
     security_token: str | None = None
+
+@dataclass(frozen=True)
+class ConnectorSVGAuthor:
+    provider_model_id: str | None = None
+    remote_model_catalog_id: str | None = None
+
+@dataclass(frozen=True)
+class ConnectorSVGAuthorUpdate:
+    author: ConnectorSVGAuthor | None = None
+    remove: bool | None = None
 
 @dataclass(frozen=True)
 class ConsentRef:
@@ -2357,6 +2368,7 @@ class DesktopAICloudAttempt:
     reason_code: ReasonCode | None = None
     usage_measured: bool | None = None
     usage: UsageStats | None = None
+    model_usage: tuple[DesktopAIModelUsage, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class DesktopAICostEstimate:
@@ -2385,6 +2397,11 @@ class DesktopAIExecutionModel:
     display_name: str | None = None
     role: str | None = None
     provider_id: str | None = None
+
+@dataclass(frozen=True)
+class DesktopAIModelUsage:
+    model: DesktopAIExecutionModel | None = None
+    usage: UsageStats | None = None
 
 @dataclass(frozen=True)
 class DesktopAISourceCoverage:
@@ -5839,6 +5856,7 @@ class ProviderCatalogEntry:
     inventory_mode: str | None = None
     inline_supported: bool | None = None
     supports_oss_media_storage: bool | None = None
+    supports_svg_author: bool | None = None
 
 @dataclass(frozen=True)
 class PutAppActivityRequest:
@@ -7643,6 +7661,7 @@ class UpdateConnectorRequest:
     provider_auth_profile: str | None = None
     credential_json: str | None = None
     media_storage: ConnectorMediaStorageUpdate | None = None
+    svg_author: ConnectorSVGAuthorUpdate | None = None
 
 @dataclass(frozen=True)
 class UpdateConnectorResponse:

@@ -70,6 +70,7 @@ type Record struct {
 	ObservedAt         time.Time                              `json:"observed_at"`
 	TerminalAt         time.Time                              `json:"terminal_at,omitempty"`
 	Usage              *runtimev1.UsageStats                  `json:"usage,omitempty"`
+	ModelUsage         []*runtimev1.DesktopAIModelUsage       `json:"model_usage,omitempty"`
 	ObservationUnknown bool                                   `json:"observation_unknown,omitempty"`
 	Outcome            runtimev1.DesktopAICloudAttemptOutcome `json:"outcome,omitempty"`
 	ReasonCode         runtimev1.ReasonCode                   `json:"reason_code,omitempty"`
@@ -160,7 +161,7 @@ func (a *Attempt) Complete(usage *runtimev1.UsageStats, outcome runtimev1.Deskto
 	if !a.record.TerminalAt.IsZero() {
 		// A late measurement may fill an unknown quantity without changing
 		// the already observed outcome, terminal time or attempt identity.
-		if a.record.Usage == nil && usage != nil {
+		if a.record.Usage == nil && usage != nil && len(a.record.ModelUsage) == 0 {
 			a.record.Revision++
 			a.record.ObservedAt = a.store.now().UTC()
 			a.record.Usage = cloneUsage(usage)
@@ -172,6 +173,9 @@ func (a *Attempt) Complete(usage *runtimev1.UsageStats, outcome runtimev1.Deskto
 	a.record.TerminalAt = a.store.now().UTC()
 	a.record.ObservedAt = a.record.TerminalAt
 	a.record.Usage = cloneUsage(usage)
+	if len(a.record.ModelUsage) > 0 {
+		a.record.Usage = completeModelUsage(a.record.ModelUsage)
+	}
 	a.record.Outcome = outcome
 	a.record.ReasonCode = reason
 	_ = a.store.Record(a.record)
@@ -208,4 +212,44 @@ func cloneUsage(usage *runtimev1.UsageStats) *runtimev1.UsageStats {
 		return nil
 	}
 	return proto.Clone(usage).(*runtimev1.UsageStats)
+}
+
+// SetModelUsage records native components of this same HTTP attempt. It never
+// creates an extra execution or attributes author tokens to the image model.
+// @nimi-authority: rule.nimi.runtime.ai-provider.openai-svg-author
+func (a *Attempt) SetModelUsage(values []*runtimev1.DesktopAIModelUsage) {
+	if a == nil {
+		return
+	}
+	a.mu.Lock()
+	defer a.mu.Unlock()
+	if !a.record.TerminalAt.IsZero() {
+		return
+	}
+	a.record.ModelUsage = cloneModelUsage(values)
+}
+
+func cloneModelUsage(values []*runtimev1.DesktopAIModelUsage) []*runtimev1.DesktopAIModelUsage {
+	result := make([]*runtimev1.DesktopAIModelUsage, 0, len(values))
+	for _, value := range values {
+		if value != nil {
+			result = append(result, proto.Clone(value).(*runtimev1.DesktopAIModelUsage))
+		}
+	}
+	return result
+}
+
+func completeModelUsage(values []*runtimev1.DesktopAIModelUsage) *runtimev1.UsageStats {
+	result := &runtimev1.UsageStats{}
+	for _, value := range values {
+		if value.GetUsage() == nil {
+			return nil
+		}
+		u := value.Usage
+		result.InputTokens += u.InputTokens
+		result.OutputTokens += u.OutputTokens
+		result.CachedInputTokens += u.CachedInputTokens
+		result.ReasoningOutputTokens += u.ReasoningOutputTokens
+	}
+	return result
 }

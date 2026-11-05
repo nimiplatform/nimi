@@ -9,8 +9,70 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	runtimeartifact "github.com/nimiplatform/nimi/runtime/internal/services/runtimeartifact"
 )
+
+func TestOpenAISVGAuthorIsRequiredAndCapturedBeforeJob(t *testing.T) {
+	f, ctx := cloudImageArtifactProviderFixture(t, "openai", "gpt-image-2.6-flare", "https://api.openai.com")
+	host := newControlledRemoteMediaHost(false)
+	f.service.remoteMediaHost = host
+	t.Cleanup(func() { closeOnce(host.release) })
+	request := &runtimev1.SubmitLocalAppScenarioJobRequest{Spec: &runtimev1.SubmitLocalAppScenarioJobRequest_ImageGenerate{ImageGenerate: &runtimev1.LocalAppImageGenerateScenarioSpec{Prompt: "A vector icon", OutputFormat: "svg"}}}
+	if _, err := f.service.SubmitLocalAppScenarioJob(ctx, request); err == nil {
+		t.Fatal("missing author admitted")
+	}
+	if len(f.service.scenarioJobs.jobs) != 0 {
+		t.Fatal("missing author created a job")
+	}
+	models, err := f.connectorService.ListConnectorModels(f.context, &runtimev1.ListConnectorModelsRequest{ConnectorId: f.connectorID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var author *runtimev1.ConnectorSVGAuthor
+	for _, model := range models.Models {
+		if model.ProviderModelId == "gpt-6.1-sol" {
+			author = &runtimev1.ConnectorSVGAuthor{ProviderModelId: model.ProviderModelId, RemoteModelCatalogId: model.RemoteModelCatalogId}
+		}
+	}
+	if author == nil {
+		t.Fatal("missing author candidate")
+	}
+	// Fixture setup: the Connector owner's independent test covers audited CRUD.
+	if _, err = f.service.connStore.Update(f.connectorID, connector.ConnectorMutations{ReplaceSVGAuthor: true, SVGAuthor: &connector.SVGAuthorConfig{ProviderModelID: author.ProviderModelId, RemoteModelCatalogID: author.RemoteModelCatalogId}}); err != nil {
+		t.Fatal(err)
+	}
+	response, err := f.service.SubmitLocalAppScenarioJob(ctx, request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	<-host.started
+	id := response.GetJob().GetJobId()
+	assembly, ok := f.service.scenarioJobs.cloudResolvedAssembly(id)
+	if !ok || assembly.Connector.SVGAuthor.ProviderModelID != author.ProviderModelId {
+		t.Fatal("author not captured")
+	}
+	if _, err = f.service.connStore.Update(f.connectorID, connector.ConnectorMutations{ReplaceSVGAuthor: true}); err != nil {
+		t.Fatal(err)
+	}
+	if assembly.Connector.SVGAuthor.ProviderModelID != author.ProviderModelId {
+		t.Fatal("old job changed")
+	}
+	if err = validateCloudResolvedAssembly(assembly); err != nil {
+		t.Fatal(err)
+	}
+	tampered, err := cloneCloudResolvedAssembly(assembly)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tampered.Connector.SVGAuthor = nil
+	if err = validateCloudResolvedAssembly(tampered); err == nil {
+		t.Fatal("SVG snapshot lost required author")
+	}
+	closeOnce(host.release)
+	_ = waitForScenarioJobTerminalForLocalTextTest(t, f.service, id)
+	waitCompletedScenarioJobCleanup(t, f.service, id)
+}
 
 func TestOpenAIImage26PublicMarkupCustody(t *testing.T) {
 	f, ctx := cloudImageArtifactProviderFixture(t, "openai", "gpt-image-2.6-flare", "https://api.openai.com")

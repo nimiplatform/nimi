@@ -5,6 +5,7 @@ import {
   ConnectorStatus,
   type Connector,
   type ConnectorMediaStorageUpdate,
+  type ConnectorSVGAuthorUpdate,
   type ErrorInfo,
   type ConnectorModelDescriptor,
   type ProviderCatalogEntry,
@@ -64,6 +65,7 @@ export interface NimiRuntimeConnectorProjectionInput {
   readonly label: string;
   readonly hasCredential: boolean;
   readonly mediaStorage?: Connector['mediaStorage'];
+  readonly svgAuthor?: Connector['svgAuthor'];
   readonly authKind?: ConnectorAuthKind;
   readonly providerAuthProfile?: string;
   readonly oauthRegistration?: { readonly accountLabel?: string };
@@ -125,6 +127,7 @@ export interface NimiRuntimeConnectorInventoryClient {
     readonly credentialValue?: string;
     readonly authMode?: 'api_key';
     readonly mediaStorage?: ConnectorMediaStorageUpdate;
+    readonly svgAuthor?: ConnectorSVGAuthorUpdate;
   }): Promise<NimiRuntimeConnectorProjection | null>;
   deleteConnector(connectorId: string): Promise<NimiRuntimeConnectorDeleteResult>;
   testConnector(connectorId: string): Promise<NimiRuntimeConnectorProjection>;
@@ -145,6 +148,7 @@ function cloneConnector(connector: NimiRuntimeConnectorProjection): NimiRuntimeC
     ...connector,
     lastCheck: connector.lastCheck ? { ...connector.lastCheck } : undefined,
     ...(connector.mediaStorage ? { mediaStorage: { ...connector.mediaStorage } } : {}),
+    ...(connector.svgAuthor ? { svgAuthor: { ...connector.svgAuthor } } : {}),
     models: [...connector.models],
   };
 }
@@ -344,6 +348,7 @@ export function nimiRuntimeConnectorToProjection(
     scope,
     hasCredential: Boolean(connector.hasCredential),
     ...(connector.mediaStorage ? { mediaStorage: { region: connector.mediaStorage.region, bucket: connector.mediaStorage.bucket, keyPrefix: connector.mediaStorage.keyPrefix } } : {}),
+    ...(connector.svgAuthor ? { svgAuthor: { ...connector.svgAuthor } } : {}),
     isSystemOwned: scope !== 'user',
     managementStatus: connector.status === ConnectorStatus.ACTIVE ? 'active' : connector.status === ConnectorStatus.DISABLED ? 'disabled' : 'unknown',
     configurationVersion: connector.updatedAt ? `${connector.updatedAt.seconds}:${connector.updatedAt.nanos}` : '',
@@ -487,6 +492,7 @@ export function createNimiRuntimeConnectorInventoryClient(
     readonly credentialValue?: string;
     readonly authMode?: 'api_key';
     readonly mediaStorage?: ConnectorMediaStorageUpdate;
+    readonly svgAuthor?: ConnectorSVGAuthorUpdate;
   }): Promise<NimiRuntimeConnectorProjection | null> {
     assertRendererSafeConnectorMutation(input);
     const credentialValue = normalizeText(input.credentialValue ?? input.apiKey);
@@ -502,6 +508,7 @@ export function createNimiRuntimeConnectorInventoryClient(
       providerAuthProfile: undefined,
       credentialJson: undefined,
       ...(input.mediaStorage === undefined ? {} : { mediaStorage: input.mediaStorage }),
+      ...(input.svgAuthor === undefined ? {} : { svgAuthor: input.svgAuthor }),
     }, options.callOptions);
     invalidateConnectorInventoryCache();
     if (response.auditDiagnostic) options.onAuditDiagnostic?.(response.auditDiagnostic);

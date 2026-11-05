@@ -7318,6 +7318,7 @@ pub struct Connector {
     pub oauth_registration: Option<Box<ConnectorOAuthRegistration>>,
     pub last_check: Option<Box<ConnectorCheck>>,
     pub media_storage: Option<Box<ConnectorOSSStorage>>,
+    pub svg_author: Option<Box<ConnectorSVGAuthor>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7365,6 +7366,18 @@ pub struct ConnectorOSSStorageInput {
     pub access_key_id: Option<String>,
     pub access_key_secret: Option<String>,
     pub security_token: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ConnectorSVGAuthor {
+    pub provider_model_id: Option<String>,
+    pub remote_model_catalog_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ConnectorSVGAuthorUpdate {
+    pub author: Option<Box<ConnectorSVGAuthor>>,
+    pub remove: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7767,6 +7780,7 @@ pub struct DesktopAICloudAttempt {
     pub reason_code: Option<ReasonCode>,
     pub usage_measured: Option<bool>,
     pub usage: Option<Box<UsageStats>>,
+    pub model_usage: Vec<Box<DesktopAIModelUsage>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7798,6 +7812,12 @@ pub struct DesktopAIExecutionModel {
     pub display_name: Option<String>,
     pub role: Option<String>,
     pub provider_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct DesktopAIModelUsage {
+    pub model: Option<Box<DesktopAIExecutionModel>>,
+    pub usage: Option<Box<UsageStats>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12756,6 +12776,7 @@ pub struct ProviderCatalogEntry {
     pub inventory_mode: Option<String>,
     pub inline_supported: Option<bool>,
     pub supports_oss_media_storage: Option<bool>,
+    pub supports_svg_author: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -15654,6 +15675,7 @@ pub struct UpdateConnectorRequest {
     pub provider_auth_profile: Option<String>,
     pub credential_json: Option<String>,
     pub media_storage: Option<Box<ConnectorMediaStorageUpdate>>,
+    pub svg_author: Option<Box<ConnectorSVGAuthorUpdate>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

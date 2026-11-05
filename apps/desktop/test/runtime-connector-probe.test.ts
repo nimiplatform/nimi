@@ -204,6 +204,7 @@ const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     inventoryMode: 'dynamic_endpoint',
     inlineSupported: true,
     supportsOssMediaStorage: false,
+    supportsSvgAuthor: false,
   },
   {
     provider: 'deepseek',
@@ -215,6 +216,7 @@ const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     inventoryMode: 'static_source',
     inlineSupported: true,
     supportsOssMediaStorage: false,
+    supportsSvgAuthor: false,
   },
   {
     provider: 'gemini',
@@ -226,6 +228,7 @@ const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     inventoryMode: 'static_source',
     inlineSupported: true,
     supportsOssMediaStorage: false,
+    supportsSvgAuthor: false,
   },
   {
     provider: 'openai_chatgpt_plan',
@@ -237,6 +240,7 @@ const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     inventoryMode: 'static_source',
     inlineSupported: false,
     supportsOssMediaStorage: false,
+    supportsSvgAuthor: false,
   },
 ];
 

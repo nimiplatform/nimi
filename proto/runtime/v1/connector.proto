@@ -58,6 +58,20 @@ message Connector {
   // Non-secret optional storage for provider-bound input media. Credentials
   // remain in the same Runtime custody generation as the provider credential.
   ConnectorOSSStorage media_storage = 17;
+  // Explicit model for SVG authoring, separate from the selected image model.
+  ConnectorSVGAuthor svg_author = 18;
+}
+
+message ConnectorSVGAuthor {
+  string provider_model_id = 1;
+  string remote_model_catalog_id = 2;
+}
+
+message ConnectorSVGAuthorUpdate {
+  oneof change {
+    ConnectorSVGAuthor author = 1;
+    bool remove = 2;
+  }
 }
 
 message ConnectorOSSStorage {
@@ -148,6 +162,7 @@ message UpdateConnectorRequest {
   optional string provider_auth_profile = 9;
   optional string credential_json = 10;
   ConnectorMediaStorageUpdate media_storage = 11;
+  ConnectorSVGAuthorUpdate svg_author = 12;
 }
 
 message UpdateConnectorResponse {
@@ -215,6 +230,7 @@ message ProviderCatalogEntry {
   string inventory_mode = 7;
   bool inline_supported = 8;
   bool supports_oss_media_storage = 9;
+  bool supports_svg_author = 10;
 }
 
 message ListProviderCatalogRequest {}

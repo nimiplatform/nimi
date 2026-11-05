@@ -4163,6 +4163,7 @@ type Connector struct {
 	OauthRegistration   *ConnectorOAuthRegistration `json:"oauth_registration,omitempty"`
 	LastCheck           *ConnectorCheck             `json:"last_check,omitempty"`
 	MediaStorage        *ConnectorOSSStorage        `json:"media_storage,omitempty"`
+	SvgAuthor           *ConnectorSVGAuthor         `json:"svg_author,omitempty"`
 }
 
 type ConnectorCheck struct {
@@ -4204,6 +4205,16 @@ type ConnectorOSSStorageInput struct {
 	AccessKeyId     string               `json:"access_key_id,omitempty"`
 	AccessKeySecret string               `json:"access_key_secret,omitempty"`
 	SecurityToken   string               `json:"security_token,omitempty"`
+}
+
+type ConnectorSVGAuthor struct {
+	ProviderModelId      string `json:"provider_model_id,omitempty"`
+	RemoteModelCatalogId string `json:"remote_model_catalog_id,omitempty"`
+}
+
+type ConnectorSVGAuthorUpdate struct {
+	Author *ConnectorSVGAuthor `json:"author,omitempty"`
+	Remove bool                `json:"remove,omitempty"`
 }
 
 type ConsentRef struct {
@@ -4471,6 +4482,7 @@ type DesktopAICloudAttempt struct {
 	ReasonCode     ReasonCode                   `json:"reason_code,omitempty"`
 	UsageMeasured  bool                         `json:"usage_measured,omitempty"`
 	Usage          *UsageStats                  `json:"usage,omitempty"`
+	ModelUsage     []DesktopAIModelUsage        `json:"model_usage,omitempty"`
 }
 
 type DesktopAICostEstimate struct {
@@ -4499,6 +4511,11 @@ type DesktopAIExecutionModel struct {
 	DisplayName string `json:"display_name,omitempty"`
 	Role        string `json:"role,omitempty"`
 	ProviderId  string `json:"provider_id,omitempty"`
+}
+
+type DesktopAIModelUsage struct {
+	Model *DesktopAIExecutionModel `json:"model,omitempty"`
+	Usage *UsageStats              `json:"usage,omitempty"`
 }
 
 type DesktopAISourceCoverage struct {
@@ -7924,6 +7941,7 @@ type ProviderCatalogEntry struct {
 	InventoryMode            string `json:"inventory_mode,omitempty"`
 	InlineSupported          bool   `json:"inline_supported,omitempty"`
 	SupportsOssMediaStorage  bool   `json:"supports_oss_media_storage,omitempty"`
+	SupportsSvgAuthor        bool   `json:"supports_svg_author,omitempty"`
 }
 
 type PutAppActivityRequest struct {
@@ -9718,6 +9736,7 @@ type UpdateConnectorRequest struct {
 	ProviderAuthProfile *string                      `json:"provider_auth_profile,omitempty"`
 	CredentialJson      *string                      `json:"credential_json,omitempty"`
 	MediaStorage        *ConnectorMediaStorageUpdate `json:"media_storage,omitempty"`
+	SvgAuthor           *ConnectorSVGAuthorUpdate    `json:"svg_author,omitempty"`
 }
 
 type UpdateConnectorResponse struct {

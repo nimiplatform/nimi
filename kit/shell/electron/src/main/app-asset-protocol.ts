@@ -9,8 +9,9 @@ export const NIMI_ELECTRON_APP_ASSET_PROTOCOL_REGISTRATION = Object.freeze({
   privileges: Object.freeze({ standard: true, secure: true, corsEnabled: true, supportFetchAPI: true, stream: true }),
 });
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.openai-svg-author
 const SAFE_MEDIA_TYPES = new Set([
-  'image/png', 'image/jpeg', 'image/webp', 'image/gif',
+  'image/png', 'image/jpeg', 'image/webp', 'image/gif', 'image/svg+xml',
   'audio/wav', 'audio/x-wav', 'audio/mpeg', 'audio/ogg',
   'video/mp4', 'video/webm',
 ]);
@@ -105,6 +106,7 @@ export function createNimiElectronLocalAppAssetMediaHost(input: {
     const pin = handle ? handles.get(handle) : undefined;
     const allowed = Boolean(pin)
       && pin!.rendererId === details.webContentsId
+      && (pin!.mediaType !== 'image/svg+xml' || details.resourceType === 'image')
       && details.resourceType !== 'mainFrame'
       && details.resourceType !== 'subFrame';
     if (allowed && handle) approved.set(handle, (approved.get(handle) ?? 0) + 1);
@@ -177,6 +179,9 @@ export function createNimiElectronLocalAppAssetMediaHost(input: {
       'cache-control': 'no-store',
       'x-content-type-options': 'nosniff',
     });
+    if (pin.mediaType === 'image/svg+xml') {
+      headers.set('content-security-policy', "sandbox; default-src 'none'; style-src 'unsafe-inline'");
+    }
     if (requested) headers.set('content-range', `bytes ${offset}-${offset + length - 1}/${pin.sizeBytes}`);
     return new Response(body, { status: requested ? 206 : 200, headers });
   });
@@ -191,6 +196,7 @@ export function createNimiElectronLocalAppAssetMediaHost(input: {
       const sha256 = String(asset.sha256 ?? '');
       if (!SAFE_MEDIA_TYPES.has(mediaType) || !Number.isSafeInteger(sizeBytes) || sizeBytes <= 0
         || !/^sha256:[0-9a-f]{64}$/u.test(sha256)) throw mediaHostError('invalid-payload');
+      if (mediaType === 'image/svg+xml' && sizeBytes > 4 * 1024 * 1024) throw mediaHostError('invalid-payload');
       const signatureBytes = signatureReadBytes(mediaType);
       const prefixLength = Math.min(sizeBytes, signatureBytes);
       const prefixRead = await input.localAppHost.assetReadOpen({ relativePath, offset: 0, length: prefixLength });
@@ -310,6 +316,15 @@ function parseHttpRange(value: string | null, total: number): { readonly offset:
 }
 
 function validSignature(mediaType: string, bytes: Uint8Array): boolean {
+  if (mediaType === 'image/svg+xml') {
+    // This identifies the container, not trusted executable XML. Only Chromium
+    // image-context loads are admitted above; document/fetch/plugin loads are
+    // denied and the response CSP disables scripts and external resources.
+    try {
+      const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+      return /^\s*(?:<\?xml\s[^?]*\?>\s*)?(?:<!--[\s\S]*?-->\s*)*<svg(?:\s|>)/u.test(text);
+    } catch { return false; }
+  }
   const ascii = (offset: number, text: string) => text.split('').every((char, index) => bytes[offset + index] === char.charCodeAt(0));
   if (mediaType === 'image/png') return bytes.length >= 8 && [137, 80, 78, 71, 13, 10, 26, 10].every((byte, index) => bytes[index] === byte);
   if (mediaType === 'image/jpeg') return bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff;
@@ -327,6 +342,7 @@ function validSignature(mediaType: string, bytes: Uint8Array): boolean {
 }
 
 function signatureReadBytes(mediaType: string): number {
+  if (mediaType === 'image/svg+xml') return 4 * 1024 * 1024;
   if (mediaType === 'image/png') return 8;
   if (mediaType === 'image/jpeg') return 3;
   if (mediaType === 'image/gif') return 6;

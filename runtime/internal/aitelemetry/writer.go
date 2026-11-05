@@ -164,7 +164,7 @@ func (s *Store) finishOperationTx(ctx context.Context, tx *sql.Tx, write account
 			record.TerminalAt = write.at
 		}
 		record.ObservedAt = write.at
-		if len(records) == 1 && write.usage != nil && record.Usage == nil {
+		if len(records) == 1 && write.usage != nil && record.Usage == nil && len(record.ModelUsage) == 0 {
 			record.Usage = cloneUsage(write.usage)
 		}
 		if len(records) == 1 && write.outcome != runtimev1.DesktopAICloudAttemptOutcome_DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_UNSPECIFIED && (record.Outcome == runtimev1.DesktopAICloudAttemptOutcome_DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_UNSPECIFIED || record.Outcome == runtimev1.DesktopAICloudAttemptOutcome_DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_UNKNOWN) {

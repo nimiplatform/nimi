@@ -990,6 +990,27 @@ export interface DesktopAICloudAttempt {
      * @generated from protobuf field: nimi.runtime.v1.UsageStats usage = 16
      */
     usage?: UsageStats;
+    /**
+     * Separate native model work inside one provider request; not extra requests.
+     *
+     * @generated from protobuf field: repeated nimi.runtime.v1.DesktopAIModelUsage model_usage = 17
+     */
+    modelUsage: DesktopAIModelUsage[];
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.DesktopAIModelUsage
+ */
+export interface DesktopAIModelUsage {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.DesktopAIExecutionModel model = 1
+     */
+    model?: DesktopAIExecutionModel;
+    /**
+     * Absence is unreported, never a zero estimate.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.UsageStats usage = 2
+     */
+    usage?: UsageStats;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListDesktopAICloudHistoryRequest
@@ -3726,7 +3747,8 @@ class DesktopAICloudAttempt$Type extends MessageType<DesktopAICloudAttempt> {
             { no: 13, name: "outcome", kind: "enum", T: () => ["nimi.runtime.v1.DesktopAICloudAttemptOutcome", DesktopAICloudAttemptOutcome] },
             { no: 14, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
             { no: 15, name: "usage_measured", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 16, name: "usage", kind: "message", T: () => UsageStats }
+            { no: 16, name: "usage", kind: "message", T: () => UsageStats },
+            { no: 17, name: "model_usage", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => DesktopAIModelUsage }
         ]);
     }
     create(value?: PartialMessage<DesktopAICloudAttempt>): DesktopAICloudAttempt {
@@ -3743,6 +3765,7 @@ class DesktopAICloudAttempt$Type extends MessageType<DesktopAICloudAttempt> {
         message.outcome = 0;
         message.reasonCode = 0;
         message.usageMeasured = false;
+        message.modelUsage = [];
         if (value !== undefined)
             reflectionMergePartial<DesktopAICloudAttempt>(this, message, value);
         return message;
@@ -3799,6 +3822,9 @@ class DesktopAICloudAttempt$Type extends MessageType<DesktopAICloudAttempt> {
                     break;
                 case /* nimi.runtime.v1.UsageStats usage */ 16:
                     message.usage = UsageStats.internalBinaryRead(reader, reader.uint32(), options, message.usage);
+                    break;
+                case /* repeated nimi.runtime.v1.DesktopAIModelUsage model_usage */ 17:
+                    message.modelUsage.push(DesktopAIModelUsage.internalBinaryRead(reader, reader.uint32(), options));
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3860,6 +3886,9 @@ class DesktopAICloudAttempt$Type extends MessageType<DesktopAICloudAttempt> {
         /* nimi.runtime.v1.UsageStats usage = 16; */
         if (message.usage)
             UsageStats.internalBinaryWrite(message.usage, writer.tag(16, WireType.LengthDelimited).fork(), options).join();
+        /* repeated nimi.runtime.v1.DesktopAIModelUsage model_usage = 17; */
+        for (let i = 0; i < message.modelUsage.length; i++)
+            DesktopAIModelUsage.internalBinaryWrite(message.modelUsage[i], writer.tag(17, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3870,6 +3899,59 @@ class DesktopAICloudAttempt$Type extends MessageType<DesktopAICloudAttempt> {
  * @generated MessageType for protobuf message nimi.runtime.v1.DesktopAICloudAttempt
  */
 export const DesktopAICloudAttempt = new DesktopAICloudAttempt$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class DesktopAIModelUsage$Type extends MessageType<DesktopAIModelUsage> {
+    constructor() {
+        super("nimi.runtime.v1.DesktopAIModelUsage", [
+            { no: 1, name: "model", kind: "message", T: () => DesktopAIExecutionModel },
+            { no: 2, name: "usage", kind: "message", T: () => UsageStats }
+        ]);
+    }
+    create(value?: PartialMessage<DesktopAIModelUsage>): DesktopAIModelUsage {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<DesktopAIModelUsage>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: DesktopAIModelUsage): DesktopAIModelUsage {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.DesktopAIExecutionModel model */ 1:
+                    message.model = DesktopAIExecutionModel.internalBinaryRead(reader, reader.uint32(), options, message.model);
+                    break;
+                case /* nimi.runtime.v1.UsageStats usage */ 2:
+                    message.usage = UsageStats.internalBinaryRead(reader, reader.uint32(), options, message.usage);
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: DesktopAIModelUsage, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.DesktopAIExecutionModel model = 1; */
+        if (message.model)
+            DesktopAIExecutionModel.internalBinaryWrite(message.model, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.UsageStats usage = 2; */
+        if (message.usage)
+            UsageStats.internalBinaryWrite(message.usage, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.DesktopAIModelUsage
+ */
+export const DesktopAIModelUsage = new DesktopAIModelUsage$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ListDesktopAICloudHistoryRequest$Type extends MessageType<ListDesktopAICloudHistoryRequest> {
     constructor() {

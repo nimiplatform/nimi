@@ -126,6 +126,10 @@ func (h *ProviderMediaHost) ExecuteMedia(
 		cleanup = &observation
 	})
 	attempt := aitelemetry.Begin(ctx)
+	if request.Request().GetSpec().GetImageGenerate().GetOutputFormat() == "svg" && remoteTarget.SVGAuthorModelID != "" {
+		attempt.SetModelUsage([]*runtimev1.DesktopAIModelUsage{{Model: &runtimev1.DesktopAIExecutionModel{ProviderId: target.Provider(), ModelId: target.ProviderModelID(), DisplayName: target.ProviderModelID(), Role: "image-render"}}, {Model: &runtimev1.DesktopAIExecutionModel{ProviderId: target.Provider(), ModelId: remoteTarget.SVGAuthorModelID, DisplayName: remoteTarget.SVGAuthorModelID, Role: "svg-author"}}})
+	}
+	ctx = nimillm.WithModelUsageObserver(ctx, attempt.SetModelUsage)
 	var reportedUsage *runtimev1.UsageStats
 	defer func() { finishCloudAttempt(attempt, reportedUsage, executionErr) }()
 	result, err := h.transport.ExecuteMediaAdapter(

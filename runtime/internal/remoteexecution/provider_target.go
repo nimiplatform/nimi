@@ -98,7 +98,12 @@ func requestScopedProviderTarget(
 		}
 		credential.Headers["X-DashScope-WorkSpace"] = workspace
 	}
+	author := ""
+	if connectorRecord.SVGAuthor != nil {
+		author = connectorRecord.SVGAuthor.ProviderModelID
+	}
 	return &nimillm.RemoteTarget{
+		SVGAuthorModelID:     author,
 		ProviderType:         target.Provider(),
 		ProviderModelID:      target.ProviderModelID(),
 		RemoteModelCatalogID: target.RemoteModelCatalogID(),

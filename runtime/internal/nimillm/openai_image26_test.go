@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/binary"
+	"errors"
 	"image"
 	"image/color"
 	"image/gif"
@@ -35,6 +36,75 @@ func image26GIF(t *testing.T, frames, delay int) []byte {
 	return b.Bytes()
 }
 
+func TestSVGAuthorUsageIsSeparateAndBoundToTheConfiguredModel(t *testing.T) {
+	for _, test := range []struct {
+		name, usage string
+		valid       bool
+	}{
+		{"reported", `,"svg_usage":{"model":"gpt-6.1-sol","input_tokens":4,"output_tokens":9,"reasoning_tokens":3,"total_tokens":13}`, true},
+		{"absent", "", true},
+		{"wrong model", `,"svg_usage":{"model":"other","input_tokens":4,"output_tokens":9,"reasoning_tokens":3,"total_tokens":13}`, false},
+		{"bad total", `,"svg_usage":{"model":"gpt-6.1-sol","input_tokens":4,"output_tokens":9,"reasoning_tokens":3,"total_tokens":99}`, false},
+		{"missing quantity", `,"svg_usage":{"model":"gpt-6.1-sol","output_tokens":9}`, false},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			var body map[string]any
+			svg := []byte(`<svg xmlns="http://www.w3.org/2000/svg" width="8" height="4"><path d="M0 0L8 4"/></svg>`)
+			server := openAIImageTestServer(t, &body, func() string {
+				return `{"data":[{"b64_json":"` + base64.StdEncoding.EncodeToString(svg) + `"}],"usage":{"input_tokens":11,"output_tokens":27}` + test.usage + `}`
+			})
+			defer server.Close()
+			provider, target := openAITranscriptionTestTarget(server.URL, "gpt-image-2.6-flare")
+			target.SVGAuthorModelID = "gpt-6.1-sol"
+			job := openAIImageTestJob("", "low")
+			job.GetSpec().GetImageGenerate().OutputFormat = "svg"
+			var observed []*runtimev1.DesktopAIModelUsage
+			ctx := WithModelUsageObserver(context.Background(), func(values []*runtimev1.DesktopAIModelUsage) { observed = values })
+			artifacts, primary, _, err := provider.executeOpenAIImage(ctx, job, "gpt-image-2.6-flare", target)
+			if (err == nil) != test.valid {
+				t.Fatalf("result: %v", err)
+			}
+			if !test.valid {
+				return
+			}
+			if len(artifacts) != 1 || primary.GetInputTokens() != 11 || primary.GetOutputTokens() != 27 || len(observed) != 2 || observed[1].Model.ModelId != "gpt-6.1-sol" {
+				t.Fatal("primary and author attribution merged or lost")
+			}
+			if test.usage == "" {
+				if observed[1].Usage != nil {
+					t.Fatal("missing usage fabricated")
+				}
+			} else if observed[1].Usage.OutputTokens != 9 || artifacts[0].Metadata.GetFields()["svg_usage"].GetStructValue().GetFields()["model"].GetStringValue() != "gpt-6.1-sol" {
+				t.Fatal("native author usage lost")
+			}
+		})
+	}
+}
+
+func TestFiniteSVGResultCustodyRetainsPrimaryUsageWithoutRepeatingGeneration(t *testing.T) {
+	var body map[string]any
+	svg := []byte(`<svg xmlns="http://www.w3.org/2000/svg" width="8" height="4"><path d="M0 0L8 4"/></svg>`)
+	hits := 0
+	server := openAIImageTestServer(t, &body, func() string {
+		hits++
+		return `{"data":[{"b64_json":"` + base64.StdEncoding.EncodeToString(svg) + `"}],"usage":{"input_tokens":11,"output_tokens":27}}`
+	})
+	defer server.Close()
+	provider, target := openAITranscriptionTestTarget(server.URL, "gpt-image-2.6-flare")
+	target.SVGAuthorModelID = "gpt-6.1-sol"
+	request := openAIImageTestJob("", "low")
+	request.GetSpec().GetImageGenerate().OutputFormat = "svg"
+	retained := false
+	ctx := WithFiniteMediaResultOwner(context.Background(), func(artifacts []*runtimev1.ScenarioArtifact, usage *runtimev1.UsageStats) error {
+		retained = len(artifacts) == 1 && usage.GetOutputTokens() == 27
+		return nil
+	})
+	result, err := provider.ExecuteMediaAdapter(ctx, adapterOpenAIImages, "trace", request, "gpt-image-2.6-flare", target, noopJobStateUpdater{})
+	if !errors.Is(err, ErrFiniteMediaResultOwned) || !retained || hits != 1 || result.Usage.GetOutputTokens() != 27 {
+		t.Fatalf("lost retained finite evidence: %v %v hits=%d", result, err, hits)
+	}
+}
+
 func TestOpenAIImage26FormatsAndNativeControls(t *testing.T) {
 	var jpegBytes bytes.Buffer
 	if err := jpeg.Encode(&jpegBytes, image.NewGray(image.Rect(0, 0, 8, 4)), nil); err != nil {
@@ -53,10 +123,13 @@ func TestOpenAIImage26FormatsAndNativeControls(t *testing.T) {
 		t.Run(tt.format, func(t *testing.T) {
 			var body map[string]any
 			server := openAIImageTestServer(t, &body, func() string {
-				return `{"data":[{"b64_json":"` + base64.StdEncoding.EncodeToString(tt.data) + `"}],"usage":{"input_tokens":11,"output_tokens":27},"svg_usage":{"output_tokens":999}}`
+				return `{"data":[{"b64_json":"` + base64.StdEncoding.EncodeToString(tt.data) + `"}],"usage":{"input_tokens":11,"output_tokens":27},"svg_usage":{"model":"gpt-6.1-sol","input_tokens":101,"output_tokens":999,"reasoning_tokens":500,"total_tokens":1100}}`
 			})
 			defer server.Close()
 			provider, target := openAITranscriptionTestTarget(server.URL, "gpt-image-2.6-flare")
+			if tt.format == "svg" {
+				target.SVGAuthorModelID = "gpt-6.1-sol"
+			}
 			job := openAIImageTestJob("", "low")
 			s := job.GetSpec().GetImageGenerate()
 			s.Complexity = "high"
@@ -76,8 +149,12 @@ func TestOpenAIImage26FormatsAndNativeControls(t *testing.T) {
 			if body["complexity"] != "high" || body["quality"] != "low" || body["output_format"] != tt.format {
 				t.Fatal(body)
 			}
-			if _, ok := body["svg"]; ok {
-				t.Fatal("selected a hidden authoring backend")
+			if tt.format == "svg" {
+				if body["svg"].(map[string]any)["model"] != "gpt-6.1-sol" || body["n"] != float64(1) {
+					t.Fatal("missing captured author")
+				}
+			} else if _, ok := body["svg"]; ok {
+				t.Fatal("author added to non-SVG request")
 			}
 			if tt.format == "gif" && (body["frame_count"] != float64(3) || body["frame_duration_ms"] != float64(36)) {
 				t.Fatal(body)

@@ -93,6 +93,48 @@ export interface Connector {
      * @generated from protobuf field: nimi.runtime.v1.ConnectorOSSStorage media_storage = 17
      */
     mediaStorage?: ConnectorOSSStorage;
+    /**
+     * Explicit model for SVG authoring, separate from the selected image model.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.ConnectorSVGAuthor svg_author = 18
+     */
+    svgAuthor?: ConnectorSVGAuthor;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ConnectorSVGAuthor
+ */
+export interface ConnectorSVGAuthor {
+    /**
+     * @generated from protobuf field: string provider_model_id = 1
+     */
+    providerModelId: string;
+    /**
+     * @generated from protobuf field: string remote_model_catalog_id = 2
+     */
+    remoteModelCatalogId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ConnectorSVGAuthorUpdate
+ */
+export interface ConnectorSVGAuthorUpdate {
+    /**
+     * @generated from protobuf oneof: change
+     */
+    change: {
+        oneofKind: "author";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.ConnectorSVGAuthor author = 1
+         */
+        author: ConnectorSVGAuthor;
+    } | {
+        oneofKind: "remove";
+        /**
+         * @generated from protobuf field: bool remove = 2
+         */
+        remove: boolean;
+    } | {
+        oneofKind: undefined;
+    };
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ConnectorOSSStorage
@@ -337,6 +379,10 @@ export interface UpdateConnectorRequest {
      * @generated from protobuf field: nimi.runtime.v1.ConnectorMediaStorageUpdate media_storage = 11
      */
     mediaStorage?: ConnectorMediaStorageUpdate;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ConnectorSVGAuthorUpdate svg_author = 12
+     */
+    svgAuthor?: ConnectorSVGAuthorUpdate;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.UpdateConnectorResponse
@@ -510,6 +556,10 @@ export interface ProviderCatalogEntry {
      * @generated from protobuf field: bool supports_oss_media_storage = 9
      */
     supportsOssMediaStorage: boolean;
+    /**
+     * @generated from protobuf field: bool supports_svg_author = 10
+     */
+    supportsSvgAuthor: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListProviderCatalogRequest
@@ -1314,7 +1364,8 @@ class Connector$Type extends MessageType<Connector> {
             { no: 14, name: "provider_auth_profile", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 15, name: "oauth_registration", kind: "message", T: () => ConnectorOAuthRegistration },
             { no: 16, name: "last_check", kind: "message", T: () => ConnectorCheck },
-            { no: 17, name: "media_storage", kind: "message", T: () => ConnectorOSSStorage }
+            { no: 17, name: "media_storage", kind: "message", T: () => ConnectorOSSStorage },
+            { no: 18, name: "svg_author", kind: "message", T: () => ConnectorSVGAuthor }
         ]);
     }
     create(value?: PartialMessage<Connector>): Connector {
@@ -1387,6 +1438,9 @@ class Connector$Type extends MessageType<Connector> {
                 case /* nimi.runtime.v1.ConnectorOSSStorage media_storage */ 17:
                     message.mediaStorage = ConnectorOSSStorage.internalBinaryRead(reader, reader.uint32(), options, message.mediaStorage);
                     break;
+                case /* nimi.runtime.v1.ConnectorSVGAuthor svg_author */ 18:
+                    message.svgAuthor = ConnectorSVGAuthor.internalBinaryRead(reader, reader.uint32(), options, message.svgAuthor);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1447,6 +1501,9 @@ class Connector$Type extends MessageType<Connector> {
         /* nimi.runtime.v1.ConnectorOSSStorage media_storage = 17; */
         if (message.mediaStorage)
             ConnectorOSSStorage.internalBinaryWrite(message.mediaStorage, writer.tag(17, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ConnectorSVGAuthor svg_author = 18; */
+        if (message.svgAuthor)
+            ConnectorSVGAuthor.internalBinaryWrite(message.svgAuthor, writer.tag(18, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1457,6 +1514,121 @@ class Connector$Type extends MessageType<Connector> {
  * @generated MessageType for protobuf message nimi.runtime.v1.Connector
  */
 export const Connector = new Connector$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ConnectorSVGAuthor$Type extends MessageType<ConnectorSVGAuthor> {
+    constructor() {
+        super("nimi.runtime.v1.ConnectorSVGAuthor", [
+            { no: 1, name: "provider_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "remote_model_catalog_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ConnectorSVGAuthor>): ConnectorSVGAuthor {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.providerModelId = "";
+        message.remoteModelCatalogId = "";
+        if (value !== undefined)
+            reflectionMergePartial<ConnectorSVGAuthor>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ConnectorSVGAuthor): ConnectorSVGAuthor {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string provider_model_id */ 1:
+                    message.providerModelId = reader.string();
+                    break;
+                case /* string remote_model_catalog_id */ 2:
+                    message.remoteModelCatalogId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ConnectorSVGAuthor, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string provider_model_id = 1; */
+        if (message.providerModelId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.providerModelId);
+        /* string remote_model_catalog_id = 2; */
+        if (message.remoteModelCatalogId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.remoteModelCatalogId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ConnectorSVGAuthor
+ */
+export const ConnectorSVGAuthor = new ConnectorSVGAuthor$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ConnectorSVGAuthorUpdate$Type extends MessageType<ConnectorSVGAuthorUpdate> {
+    constructor() {
+        super("nimi.runtime.v1.ConnectorSVGAuthorUpdate", [
+            { no: 1, name: "author", kind: "message", oneof: "change", T: () => ConnectorSVGAuthor },
+            { no: 2, name: "remove", kind: "scalar", oneof: "change", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ConnectorSVGAuthorUpdate>): ConnectorSVGAuthorUpdate {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.change = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<ConnectorSVGAuthorUpdate>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ConnectorSVGAuthorUpdate): ConnectorSVGAuthorUpdate {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ConnectorSVGAuthor author */ 1:
+                    message.change = {
+                        oneofKind: "author",
+                        author: ConnectorSVGAuthor.internalBinaryRead(reader, reader.uint32(), options, (message.change as any).author)
+                    };
+                    break;
+                case /* bool remove */ 2:
+                    message.change = {
+                        oneofKind: "remove",
+                        remove: reader.bool()
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ConnectorSVGAuthorUpdate, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ConnectorSVGAuthor author = 1; */
+        if (message.change.oneofKind === "author")
+            ConnectorSVGAuthor.internalBinaryWrite(message.change.author, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* bool remove = 2; */
+        if (message.change.oneofKind === "remove")
+            writer.tag(2, WireType.Varint).bool(message.change.remove);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ConnectorSVGAuthorUpdate
+ */
+export const ConnectorSVGAuthorUpdate = new ConnectorSVGAuthorUpdate$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ConnectorOSSStorage$Type extends MessageType<ConnectorOSSStorage> {
     constructor() {
@@ -2162,7 +2334,8 @@ class UpdateConnectorRequest$Type extends MessageType<UpdateConnectorRequest> {
             { no: 8, name: "auth_kind", kind: "enum", opt: true, T: () => ["nimi.runtime.v1.ConnectorAuthKind", ConnectorAuthKind, "CONNECTOR_AUTH_KIND_"] },
             { no: 9, name: "provider_auth_profile", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 10, name: "credential_json", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
-            { no: 11, name: "media_storage", kind: "message", T: () => ConnectorMediaStorageUpdate }
+            { no: 11, name: "media_storage", kind: "message", T: () => ConnectorMediaStorageUpdate },
+            { no: 12, name: "svg_author", kind: "message", T: () => ConnectorSVGAuthorUpdate }
         ]);
     }
     create(value?: PartialMessage<UpdateConnectorRequest>): UpdateConnectorRequest {
@@ -2208,6 +2381,9 @@ class UpdateConnectorRequest$Type extends MessageType<UpdateConnectorRequest> {
                 case /* nimi.runtime.v1.ConnectorMediaStorageUpdate media_storage */ 11:
                     message.mediaStorage = ConnectorMediaStorageUpdate.internalBinaryRead(reader, reader.uint32(), options, message.mediaStorage);
                     break;
+                case /* nimi.runtime.v1.ConnectorSVGAuthorUpdate svg_author */ 12:
+                    message.svgAuthor = ConnectorSVGAuthorUpdate.internalBinaryRead(reader, reader.uint32(), options, message.svgAuthor);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -2250,6 +2426,9 @@ class UpdateConnectorRequest$Type extends MessageType<UpdateConnectorRequest> {
         /* nimi.runtime.v1.ConnectorMediaStorageUpdate media_storage = 11; */
         if (message.mediaStorage)
             ConnectorMediaStorageUpdate.internalBinaryWrite(message.mediaStorage, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ConnectorSVGAuthorUpdate svg_author = 12; */
+        if (message.svgAuthor)
+            ConnectorSVGAuthorUpdate.internalBinaryWrite(message.svgAuthor, writer.tag(12, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2762,7 +2941,8 @@ class ProviderCatalogEntry$Type extends MessageType<ProviderCatalogEntry> {
             { no: 6, name: "managed_supported", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 7, name: "inventory_mode", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 8, name: "inline_supported", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 9, name: "supports_oss_media_storage", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 9, name: "supports_oss_media_storage", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 10, name: "supports_svg_author", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<ProviderCatalogEntry>): ProviderCatalogEntry {
@@ -2776,6 +2956,7 @@ class ProviderCatalogEntry$Type extends MessageType<ProviderCatalogEntry> {
         message.inventoryMode = "";
         message.inlineSupported = false;
         message.supportsOssMediaStorage = false;
+        message.supportsSvgAuthor = false;
         if (value !== undefined)
             reflectionMergePartial<ProviderCatalogEntry>(this, message, value);
         return message;
@@ -2811,6 +2992,9 @@ class ProviderCatalogEntry$Type extends MessageType<ProviderCatalogEntry> {
                     break;
                 case /* bool supports_oss_media_storage */ 9:
                     message.supportsOssMediaStorage = reader.bool();
+                    break;
+                case /* bool supports_svg_author */ 10:
+                    message.supportsSvgAuthor = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2851,6 +3035,9 @@ class ProviderCatalogEntry$Type extends MessageType<ProviderCatalogEntry> {
         /* bool supports_oss_media_storage = 9; */
         if (message.supportsOssMediaStorage !== false)
             writer.tag(9, WireType.Varint).bool(message.supportsOssMediaStorage);
+        /* bool supports_svg_author = 10; */
+        if (message.supportsSvgAuthor !== false)
+            writer.tag(10, WireType.Varint).bool(message.supportsSvgAuthor);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

@@ -43,15 +43,20 @@ func (p *CloudProvider) executeOpenAIImage(
 	}
 	// Reference and mask downloads follow the target's endpoint policy.
 	ctx = mediaAdapterEndpointPolicyContext(ctx, MediaAdapterConfig{AllowLoopbackEndpoint: target.AllowLoopback})
-	output, usage, err := backend.generateOpenAIImage(ctx, backendModelID, spec)
+	output, usage, err := backend.generateOpenAIImageWithAuthor(ctx, backendModelID, spec, target.SVGAuthorModelID)
 	if err != nil {
 		return nil, nil, "", err
 	}
-	artifact := BinaryArtifact(output.mimeType, output.bytes, map[string]any{"adapter": adapterOpenAIImages, "width": output.width, "height": output.height, "duration_ms": output.durationMs})
+	metadata := map[string]any{"adapter": adapterOpenAIImages, "width": output.width, "height": output.height, "duration_ms": output.durationMs}
+	if output.svgUsage != nil {
+		metadata["svg_usage"] = map[string]any{"model": output.svgUsage.Model, "input_tokens": *output.svgUsage.InputTokens, "output_tokens": *output.svgUsage.OutputTokens, "reasoning_tokens": *output.svgUsage.ReasoningTokens, "total_tokens": *output.svgUsage.TotalTokens}
+	}
+	artifact := BinaryArtifact(output.mimeType, output.bytes, metadata)
 	return []*runtimev1.ScenarioArtifact{artifact}, usage, "", nil
 }
 
 type openAIImageOutput struct {
+	svgUsage      *openAISVGUsage
 	bytes         []byte
 	mimeType      string
 	width, height int32
@@ -59,10 +64,21 @@ type openAIImageOutput struct {
 }
 
 func (b *Backend) generateOpenAIImage(ctx context.Context, modelID string, spec *runtimev1.ImageGenerateScenarioSpec) (*openAIImageOutput, *runtimev1.UsageStats, error) {
+	return b.generateOpenAIImageWithAuthor(ctx, modelID, spec, "")
+}
+
+func (b *Backend) generateOpenAIImageWithAuthor(ctx context.Context, modelID string, spec *runtimev1.ImageGenerateScenarioSpec, authorModel string) (*openAIImageOutput, *runtimev1.UsageStats, error) {
 	if b == nil || spec == nil {
 		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 	}
 	fields := map[string]any{"model": modelID, "prompt": strings.TrimSpace(spec.GetPrompt())}
+	if spec.GetOutputFormat() == "svg" {
+		if authorModel == "" {
+			return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
+		fields["svg"] = map[string]string{"model": authorModel}
+		fields["n"] = 1
+	}
 	for key, value := range map[string]string{"size": spec.GetSize(), "quality": spec.GetQuality(), "complexity": spec.GetComplexity(), "output_format": spec.GetOutputFormat()} {
 		if value != "" {
 			fields[key] = value
@@ -89,6 +105,26 @@ func (b *Backend) generateOpenAIImage(ctx context.Context, modelID string, spec 
 		}
 	}
 	invalid := grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	var usage *runtimev1.UsageStats
+	if reported := out.Usage; reported != nil && reported.InputTokens != nil && reported.OutputTokens != nil && *reported.InputTokens >= 0 && *reported.OutputTokens >= 0 {
+		usage = &runtimev1.UsageStats{InputTokens: *reported.InputTokens, OutputTokens: *reported.OutputTokens}
+	}
+	if spec.GetOutputFormat() == "svg" {
+		if usage != nil && (usage.InputTokens > 1<<50 || usage.OutputTokens > 1<<50) {
+			return nil, nil, invalid
+		}
+		var svgUsage *runtimev1.UsageStats
+		if value := out.SVGUsage; value != nil {
+			if value.Model != authorModel || value.InputTokens == nil || value.OutputTokens == nil || value.ReasoningTokens == nil || value.TotalTokens == nil || *value.InputTokens < 0 || *value.OutputTokens < 0 || *value.ReasoningTokens < 0 || *value.ReasoningTokens > *value.OutputTokens || *value.InputTokens > 1<<50 || *value.OutputTokens > 1<<50 || *value.TotalTokens != *value.InputTokens+*value.OutputTokens {
+				return nil, nil, invalid
+			}
+			svgUsage = &runtimev1.UsageStats{InputTokens: *value.InputTokens, OutputTokens: *value.OutputTokens, ReasoningOutputTokens: *value.ReasoningTokens}
+		}
+		reportModelUsage(ctx, []*runtimev1.DesktopAIModelUsage{
+			{Model: &runtimev1.DesktopAIExecutionModel{ProviderId: "openai", ModelId: modelID, DisplayName: modelID, Role: "image-render"}, Usage: usage},
+			{Model: &runtimev1.DesktopAIExecutionModel{ProviderId: "openai", ModelId: authorModel, DisplayName: authorModel, Role: "svg-author"}, Usage: svgUsage},
+		})
+	}
 	if len(out.Data) != 1 || out.Data[0].B64JSON == "" {
 		return nil, nil, invalid
 	}
@@ -100,15 +136,23 @@ func (b *Backend) generateOpenAIImage(ctx context.Context, modelID string, spec 
 	if err != nil {
 		return nil, nil, err
 	}
-	var usage *runtimev1.UsageStats
-	if reported := out.Usage; reported != nil && reported.InputTokens != nil && reported.OutputTokens != nil && *reported.InputTokens >= 0 && *reported.OutputTokens >= 0 {
-		usage = &runtimev1.UsageStats{InputTokens: *reported.InputTokens, OutputTokens: *reported.OutputTokens}
+	if spec.GetOutputFormat() == "svg" {
+		output.svgUsage = out.SVGUsage
 	}
 	return output, usage, nil
 }
 
+type openAISVGUsage struct {
+	Model           string `json:"model"`
+	InputTokens     *int64 `json:"input_tokens"`
+	OutputTokens    *int64 `json:"output_tokens"`
+	ReasoningTokens *int64 `json:"reasoning_tokens"`
+	TotalTokens     *int64 `json:"total_tokens"`
+}
+
 type openAIImageResponse struct {
-	Data []struct {
+	SVGUsage *openAISVGUsage `json:"svg_usage"`
+	Data     []struct {
 		B64JSON string `json:"b64_json"`
 	} `json:"data"`
 	Usage *struct {

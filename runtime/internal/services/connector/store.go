@@ -58,10 +58,13 @@ type ConnectorRecord struct {
 	OAuthRegistration    *OAuthRegistration `json:"oauth_registration,omitempty"`
 	CredentialCustodyRef string             `json:"-"`
 	MediaStorage         *ossmedia.Config   `json:"media_storage,omitempty"`
+	SVGAuthor            *SVGAuthorConfig   `json:"svg_author,omitempty"`
 }
 
 // ConnectorMutations describes mutable fields for Update.
 type ConnectorMutations struct {
+	ReplaceSVGAuthor    bool
+	SVGAuthor           *SVGAuthorConfig
 	ReplaceMediaStorage bool
 	MediaStorage        *ossmedia.Credentials
 	Label               *string
@@ -301,6 +304,9 @@ func (s *ConnectorStore) updateRecord(connectorID string, mutations ConnectorMut
 	}
 
 	rec := &records[idx]
+	if mutations.ReplaceSVGAuthor {
+		rec.SVGAuthor = CloneSVGAuthor(mutations.SVGAuthor)
+	}
 	// Derive the complete sealed credential under the same store lock as the
 	// non-secret projection. Provider-key updates retain existing OSS custody.
 	if mutations.ReplaceMediaStorage || mutations.SecretPayload != nil && rec.MediaStorage != nil {

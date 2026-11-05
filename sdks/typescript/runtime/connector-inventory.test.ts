@@ -67,6 +67,27 @@ test('OSS configuration uses the typed management carrier and projects no storag
   assert.deepEqual(requests, [setup, remove]);
 });
 
+test('SVG author selection preserves exact catalog identity and explicit removal', async () => {
+  const author = { providerModelId: 'gpt-6.1-sol', remoteModelCatalogId: 'exact-catalog' };
+  const calls: unknown[] = [];
+  const client = createNimiRuntimeConnectorInventoryClient({ connectors: {
+    async listProviderCatalog() { return { providers: [] }; },
+    async updateConnector(request) {
+      calls.push(request.svgAuthor);
+      return { connector: { connectorId: 'connection', provider: 'openai', endpoint: 'https://api.openai.com/v1', label: 'OpenAI',
+        hasCredential: true, authKind: ConnectorAuthKind.API_KEY, ownerType: ConnectorOwnerType.REALM_USER,
+        kind: ConnectorKind.REMOTE_MANAGED, status: ConnectorStatus.ACTIVE,
+        svgAuthor: request.svgAuthor?.change.oneofKind === 'author' ? author : undefined } };
+    },
+  } as NimiRuntimeConnectorClient });
+  const setup = { change: { oneofKind: 'author' as const, author } };
+  const result = await client.updateConnector({ connectorId: 'connection', svgAuthor: setup });
+  assert.deepEqual(result?.svgAuthor, author);
+  const remove = { change: { oneofKind: 'remove' as const, remove: true } };
+  assert.equal((await client.updateConnector({ connectorId: 'connection', svgAuthor: remove }))?.svgAuthor, undefined);
+  assert.deepEqual(calls, [setup, remove]);
+});
+
 test('catalog reads preserve unavailable models and never perform a connection check', async () => {
   const requested: string[] = [];
   const inventory = createNimiRuntimeConnectorInventoryClient({ connectors: {

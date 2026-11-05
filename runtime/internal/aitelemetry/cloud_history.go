@@ -151,7 +151,7 @@ func cloudAttemptProjection(record Record) *runtimev1.DesktopAICloudAttempt {
 	result := &runtimev1.DesktopAICloudAttempt{AttemptId: record.ID, ConnectorRef: record.ConnectorRef, SourceKind: record.Source.Kind,
 		SourceId: record.Source.ID, SourceLabel: record.Source.Label, ParentWorkId: record.Source.ParentID, ParentWorkKind: record.Source.ParentKind,
 		Capability: record.Capability, Models: cloneFacts(record.Facts).Models, StartedAt: timestamppb.New(record.StartedAt), ObservedAt: timestamppb.New(record.ObservedAt),
-		Outcome: outcome, ReasonCode: record.ReasonCode, UsageMeasured: record.Usage != nil, Usage: cloneUsage(record.Usage)}
+		Outcome: outcome, ReasonCode: record.ReasonCode, UsageMeasured: record.Usage != nil, Usage: cloneUsage(record.Usage), ModelUsage: cloneModelUsage(record.ModelUsage)}
 	if !record.TerminalAt.IsZero() {
 		result.FinishedAt = timestamppb.New(record.TerminalAt)
 	}

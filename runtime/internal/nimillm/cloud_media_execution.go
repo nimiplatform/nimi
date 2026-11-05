@@ -151,7 +151,7 @@ func (p *CloudProvider) ExecuteMediaAdapter(
 	var bodies map[string]*MediaArtifactBody
 	if err == nil {
 		if retained, retainErr := retainFiniteMediaResult(ctx, artifacts, usage); retained {
-			return MediaExecutionResult{}, retainErr
+			return MediaExecutionResult{Usage: usage}, retainErr
 		}
 		observedVideo := adapter == AdapterAlibabaNative && request.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE
 		started := time.Now()

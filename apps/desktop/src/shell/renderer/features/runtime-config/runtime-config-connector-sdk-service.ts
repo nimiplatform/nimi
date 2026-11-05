@@ -18,7 +18,7 @@ import {
   type NimiRuntimeConnectorProjectionInput,
 } from '@nimiplatform/sdk/runtime';
 import { type RuntimeTypedCallOptions } from '@nimiplatform/sdk/runtime/generated';
-import { type ProviderCatalogEntry, type ConnectorMediaStorageUpdate } from '@nimiplatform/sdk/runtime/wire-types';
+import { type ProviderCatalogEntry, type ConnectorMediaStorageUpdate, type ConnectorSVGAuthorUpdate } from '@nimiplatform/sdk/runtime/wire-types';
 import type {
   ApiConnector,
   ApiConnectorAuthModeV11,
@@ -63,6 +63,7 @@ export type RuntimeConfigConnectorSdkService = Readonly<{
     credentialValue?: string;
     authMode?: 'api_key';
     mediaStorage?: ConnectorMediaStorageUpdate;
+    svgAuthor?: ConnectorSVGAuthorUpdate;
   }): Promise<ApiConnector | null>;
   sdkDeleteConnector(connectorId: string): Promise<NimiRuntimeConnectorDeleteResult>;
   sdkTestConnector(connectorId: string): Promise<ApiConnector>;

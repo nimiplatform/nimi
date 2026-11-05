@@ -335,6 +335,9 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 		if req.MediaStorage != nil {
 			updatePaths = append(updatePaths, "media_storage")
 		}
+		if req.SvgAuthor != nil {
+			updatePaths = append(updatePaths, "svg_author")
+		}
 		if req.GetStatus() != runtimev1.ConnectorStatus_CONNECTOR_STATUS_UNSPECIFIED {
 			updatePaths = append(updatePaths, "status")
 		}
@@ -356,6 +359,12 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 		seenPaths[path] = true
 
 		switch path {
+		case "svg_author":
+			if req.SvgAuthor == nil {
+				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+			}
+			mutations.ReplaceSVGAuthor = true
+			hasChange = true
 		case "media_storage":
 			if req.MediaStorage == nil {
 				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
@@ -489,6 +498,26 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 		defer storage.Clear()
 		mutations.MediaStorage = storage
 	} else if rec.MediaStorage != nil && nextAuthKind != runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_API_KEY {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+	}
+	if mutations.ReplaceSVGAuthor {
+		switch change := req.SvgAuthor.GetChange().(type) {
+		case *runtimev1.ConnectorSVGAuthorUpdate_Author:
+			selected := rec
+			selected.AuthKind = nextAuthKind
+			author, err := s.resolveSVGAuthor(rec.OwnerID, selected, change.Author)
+			if err != nil {
+				return nil, err
+			}
+			mutations.SVGAuthor = author
+		case *runtimev1.ConnectorSVGAuthorUpdate_Remove:
+			if !change.Remove {
+				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+			}
+		default:
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+		}
+	} else if rec.SVGAuthor != nil && nextAuthKind != runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_API_KEY {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
 

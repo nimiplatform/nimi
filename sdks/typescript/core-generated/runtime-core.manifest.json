@@ -7997,6 +7997,8 @@
       "ConnectorOAuthRegistration",
       "ConnectorOSSStorage",
       "ConnectorOSSStorageInput",
+      "ConnectorSVGAuthor",
+      "ConnectorSVGAuthorUpdate",
       "ConsentRef",
       "ConversationAnchor",
       "ConversationAnchorSnapshot",
@@ -8034,6 +8036,7 @@
       "DesktopAICostEstimate",
       "DesktopAIExecution",
       "DesktopAIExecutionModel",
+      "DesktopAIModelUsage",
       "DesktopAISourceCoverage",
       "DesktopAIUsageGroup",
       "DesktopAIUsageSummary",
@@ -18028,6 +18031,13 @@
             "repeated": false,
             "optional": false,
             "number": 17
+          },
+          {
+            "name": "svg_author",
+            "type": "ConnectorSVGAuthor",
+            "repeated": false,
+            "optional": false,
+            "number": 18
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"
@@ -18225,6 +18235,46 @@
             "repeated": false,
             "optional": false,
             "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/connector.proto"
+      },
+      {
+        "name": "ConnectorSVGAuthor",
+        "fields": [
+          {
+            "name": "provider_model_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "remote_model_catalog_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/connector.proto"
+      },
+      {
+        "name": "ConnectorSVGAuthorUpdate",
+        "fields": [
+          {
+            "name": "author",
+            "type": "ConnectorSVGAuthor",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "remove",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"
@@ -19582,6 +19632,13 @@
             "repeated": false,
             "optional": false,
             "number": 16
+          },
+          {
+            "name": "model_usage",
+            "type": "DesktopAIModelUsage",
+            "repeated": true,
+            "optional": false,
+            "number": 17
           }
         ],
         "source_file": "proto/runtime/v1/audit.proto"
@@ -19733,6 +19790,26 @@
             "repeated": false,
             "optional": false,
             "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/audit.proto"
+      },
+      {
+        "name": "DesktopAIModelUsage",
+        "fields": [
+          {
+            "name": "model",
+            "type": "DesktopAIExecutionModel",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "usage",
+            "type": "UsageStats",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/audit.proto"
@@ -36512,6 +36589,13 @@
             "repeated": false,
             "optional": false,
             "number": 9
+          },
+          {
+            "name": "supports_svg_author",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 10
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"
@@ -45072,6 +45156,13 @@
             "repeated": false,
             "optional": false,
             "number": 11
+          },
+          {
+            "name": "svg_author",
+            "type": "ConnectorSVGAuthorUpdate",
+            "repeated": false,
+            "optional": false,
+            "number": 12
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"

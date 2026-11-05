@@ -26,6 +26,7 @@ func (s *Service) ListProviderCatalog(_ context.Context, _ *runtimev1.ListProvid
 			InventoryMode:            entry.InventoryMode,
 			InlineSupported:          cap.InlineSupported,
 			SupportsOssMediaStorage:  provider == "dashscope",
+			SupportsSvgAuthor:        provider == "openai",
 		})
 	}
 	return &runtimev1.ListProviderCatalogResponse{Providers: entries}, nil

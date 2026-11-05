@@ -340,6 +340,9 @@ func validateCloudResolvedAssemblyRequest(assembly *cloudResolvedAssembly, provi
 			return fmt.Errorf("Cloud media ResolvedAssembly request identity is mismatched")
 		}
 		imageSpec := request.GetSpec().GetImageGenerate()
+		if provider == "openai" && imageSpec.GetOutputFormat() == "svg" && !connector.ValidSVGAuthor(assembly.Connector.SVGAuthor) {
+			return fmt.Errorf("Cloud SVG has no captured author configuration")
+		}
 		if provider == "dashscope" && nimillm.AlibabaVideoRequiresOSS(request.GetSpec().GetVideoGenerate()) && assembly.Connector.MediaStorage == nil {
 			return fmt.Errorf("Cloud owned video inputs have no captured OSS configuration")
 		}
@@ -525,6 +528,7 @@ func (capture *cloudVoiceWorkflowCapture) resolution() catalog.ResolveVoiceWorkf
 }
 
 func cloneConnectorRecord(input connector.ConnectorRecord) connector.ConnectorRecord {
+	input.SVGAuthor = connector.CloneSVGAuthor(input.SVGAuthor)
 	if input.MediaStorage != nil {
 		storage := *input.MediaStorage
 		input.MediaStorage = &storage

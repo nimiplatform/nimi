@@ -234,6 +234,7 @@ func (s *Store) record(record Record, liveStart bool) error {
 	}
 	record.Facts = cloneFacts(record.Facts)
 	record.Usage = cloneUsage(record.Usage)
+	record.ModelUsage = cloneModelUsage(record.ModelUsage)
 	encoded, err := json.Marshal(record)
 	if err != nil {
 		return fmt.Errorf("encode AI attempt: %w", err)

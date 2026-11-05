@@ -11,7 +11,13 @@ import (
 
 // @nimi-authority: rule.nimi.runtime.rpc-foundations.home-cloud-connection-observation
 func finishCloudAttempt(attempt *aitelemetry.Attempt, usage *runtimev1.UsageStats, err error) {
-	if errors.Is(err, nimillm.ErrNativeTaskYielded) || errors.Is(err, nimillm.ErrFiniteMediaResultOwned) {
+	if errors.Is(err, nimillm.ErrFiniteMediaResultOwned) {
+		// Native generation is complete and the original response is in Job
+		// custody. Later artifact acquisition is not another provider attempt.
+		attempt.Complete(usage, runtimev1.DesktopAICloudAttemptOutcome_DESKTOP_AI_CLOUD_ATTEMPT_OUTCOME_SUCCEEDED, runtimev1.ReasonCode_ACTION_EXECUTED)
+		return
+	}
+	if errors.Is(err, nimillm.ErrNativeTaskYielded) {
 		return
 	}
 	if nimillm.IsNativeCreateResponseUnavailable(err) || errors.Is(err, context.Canceled) || errors.Is(err, context.DeadlineExceeded) {
