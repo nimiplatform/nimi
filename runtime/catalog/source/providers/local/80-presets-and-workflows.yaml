@@ -917,6 +917,28 @@ loadout_recipes:
           artifact_role: uncond_diffusion_model
           gguf_families:
             - ideogram4
+  - recipe_id: wan22-ti2v-5b
+    revision: "1"
+    title: Wan2.2 TI2V 5B silent video (Windows CUDA)
+    capability_contract: video.generate
+    implementation_id: local.video.generate.wan22.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp
+    driver_dialect: stable-diffusion.cpp/wan22-ti2v-video-generate/v1
+    default_options: {}
+    supported_features: [input.image]
+    slot_metadata:
+      - slot_id: diffusion.wan22-ti2v
+        display_label: Wan2.2 TI2V 5B transformer
+        recommended_variant_ids: [local.video.wan22-ti2v-5b.q4-k-m.cuda]
+        model_contract: {format: gguf, artifact_role: diffusion_transformer}
+      - slot_id: encoder.umt5-xxl
+        display_label: UMT5 XXL text encoder
+        recommended_variant_ids: [local.video-textenc.umt5-xxl.q8-0.cuda]
+        model_contract: {format: gguf, artifact_role: text_encoder}
+      - slot_id: vae.video
+        display_label: Wan2.2 48-channel video VAE
+        recommended_variant_ids: [local.video-vae.wan22-ti2v.f16.cuda]
+        model_contract: {format: safetensors}
   - recipe_id: minimax-h3
     revision: "1"
     title: MiniMax-H3 video generation

@@ -71,7 +71,7 @@ entries:
         accelerator_projection_table: shared-accelerator-dependencies.yaml
         first_network_materialization_requires_confirmation: true
     executable_candidates: [sd.exe, sd-cli.exe]
-    supported_model_families: [flux3, flux, ideogram4, minimax-h3, qwen-image, sdxl, z-image]
+    supported_model_families: [wan22, flux3, flux, ideogram4, minimax-h3, qwen-image, sdxl, z-image]
     launch_mode: runtime_wrapper
     wrapper_driver: stable-diffusion.cpp
     product_state: supported

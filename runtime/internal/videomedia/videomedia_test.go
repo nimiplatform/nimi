@@ -164,6 +164,50 @@ func TestFFmpegEncodeAndInspectIntegration(t *testing.T) {
 	}
 }
 
+func TestWan22SilentFFmpegEncodingHasNoFabricatedAudio(t *testing.T) {
+	dir := strings.TrimSpace(os.Getenv("NIMI_TEST_FFMPEG_DIR"))
+	if dir == "" {
+		t.Skip("managed codec unavailable")
+	}
+	suffix := ""
+	if runtime.GOOS == "windows" {
+		suffix = ".exe"
+	}
+	processor, err := New(filepath.Join(dir, "ffmpeg"+suffix), filepath.Join(dir, "ffprobe"+suffix))
+	if err != nil {
+		t.Fatal(err)
+	}
+	driver := capabilitydriver.Wan22VideoDriver{}
+	requirements, reason := driver.ProjectRecipe(capabilitydriver.Wan22VideoRecipeID, nil, []string{"input.image"})
+	if reason != 0 {
+		t.Fatal(reason)
+	}
+	root := t.TempDir()
+	bindings := []capabilitydriver.InvocationExactBinding{}
+	for _, requirement := range requirements {
+		digest := sha256.Sum256([]byte(requirement.RequirementId))
+		text := hex.EncodeToString(digest[:])
+		bindings = append(bindings, capabilitydriver.InvocationExactBinding{RequirementID: requirement.RequirementId, ModelAssetID: requirement.RequirementId, AbsolutePath: filepath.Join(root, requirement.RequirementId+".bin"), VerifiedContentID: "sha256:" + text, EntrySHA256: text})
+	}
+	plan, err := driver.PlanVideoInvocation(capabilitydriver.VideoInvocationInput{LoadoutID: "silent-codec-test", ExactBindings: bindings, Request: capabilitydriver.VideoInvocationRequest{Prompt: "clip", Width: 64, Height: 64, FrameCount: 5, ReturnLastFrame: true}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	candidate := rawCandidateForTest(plan)
+	candidate.Audio = localexecution.RawAudio{}
+	result, err := processor.EncodeAndInspect(videoCustodyTestContext(t), plan, candidate)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if result.Facts.Channels != 0 || result.Facts.SampleRate != 0 || result.Facts.FrameCount != 5 || result.Facts.FPS != 24 || result.LastFrame == nil {
+		t.Fatalf("wrong silent output facts: %+v", result.Facts)
+	}
+	candidate.Audio = localexecution.RawAudio{PCMSamples: []float32{0, 0}, Channels: 2, SampleRate: 32000}
+	if ValidateCandidate(plan, candidate) == nil {
+		t.Fatal("unrequested audio accepted")
+	}
+}
+
 func videoPlanForTest(t *testing.T, frameCount int, returnLastFrame bool) *capabilitydriver.VideoInvocationPlan {
 	t.Helper()
 	root := t.TempDir()

@@ -9,7 +9,7 @@ import (
 )
 
 const (
-	VideoProtocolVersion uint32 = 1
+	VideoProtocolVersion uint32 = 2
 
 	backendLoadVideoModelMethod = "/backend.Backend/LoadVideoModel"
 	backendGenerateVideoMethod  = "/backend.Backend/GenerateVideo"
@@ -64,8 +64,9 @@ func videoError(kind string, err error) error {
 type VideoModelRequest struct {
 	BackendAddress          string
 	ProcessKey              string
-	FL2VADiffusionPath      string
-	Ref2VADiffusionPath     string
+	RecipeID                string
+	DiffusionPath           string
+	SampleSteps             int
 	EncoderPath             string
 	VideoVAEPath            string
 	AudioVAEPath            string
@@ -79,14 +80,18 @@ type VideoModelRequest struct {
 	RNG                     string
 }
 
-func (request VideoModelRequest) selectedDiffusionPath() string {
-	if request.ConditioningMode == "ref2va-image" {
-		return request.Ref2VADiffusionPath
-	}
-	return request.FL2VADiffusionPath
-}
-
 func validateVideoModelRecipe(request VideoModelRequest) error {
+	wan := request.RecipeID == "wan22-ti2v-5b"
+	if request.RecipeID != "minimax-h3" && !wan || request.SampleSteps < 0 || request.SampleSteps > 100 || wan && request.SampleSteps == 0 {
+		return videoError(VideoErrorLoad, fmt.Errorf("managed video recipe or steps are invalid"))
+	}
+	if wan {
+		if request.AudioVAEPath != "" || request.ConditioningMode != "wan22-text" && request.ConditioningMode != "wan22-first-image" {
+			return videoError(VideoErrorLoad, fmt.Errorf("invalid Wan2.2 model configuration"))
+		}
+	} else if request.AudioVAEPath == "" || request.ConditioningMode != "fl2va-t2va" && request.ConditioningMode != "ref2va-image" {
+		return videoError(VideoErrorLoad, fmt.Errorf("invalid H3 model configuration"))
+	}
 	if math.IsNaN(request.CFGScale) || math.IsInf(request.CFGScale, 0) || request.CFGScale < 0 || request.CFGScale > 30 || request.CFGScale > math.MaxFloat32 {
 		return videoError(VideoErrorLoad, fmt.Errorf("managed H3 video cfg scale is invalid"))
 	}
@@ -135,6 +140,7 @@ type VideoLoadDiagnostics struct {
 }
 
 type VideoGenerateRequest struct {
+	AudioRequired  bool
 	BackendAddress string
 	Width          int
 	Height         int
@@ -196,6 +202,12 @@ func validateVideoCandidate(req VideoGenerateRequest, candidate VideoCandidate) 
 		if frame.Width != req.Width || frame.Height != req.Height || len(frame.RGBBytes) != frameBytes {
 			return videoError(VideoErrorPostcondition, fmt.Errorf("managed video frame %d shape postcondition failed", index))
 		}
+	}
+	if !req.AudioRequired {
+		if len(candidate.Audio.PCMSamples) != 0 || candidate.Audio.Channels != 0 || candidate.Audio.SampleRate != 0 {
+			return videoError(VideoErrorPostcondition, fmt.Errorf("silent video returned an unexpected audio track"))
+		}
+		return nil
 	}
 	if candidate.Audio.Channels != 2 || candidate.Audio.SampleRate != 32000 || len(candidate.Audio.PCMSamples) == 0 || len(candidate.Audio.PCMSamples)%2 != 0 {
 		return videoError(VideoErrorPostcondition, fmt.Errorf("managed video audio postcondition failed: samples=%d channels=%d sample_rate=%d", len(candidate.Audio.PCMSamples), candidate.Audio.Channels, candidate.Audio.SampleRate))

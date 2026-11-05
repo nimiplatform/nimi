@@ -147,6 +147,7 @@ func (s *managerVideoInvocationSubstrate) GenerateVideo(ctx context.Context, pla
 	}
 	reference, hasReference := plan.ReferenceImage()
 	request := managedimagebackend.VideoGenerateRequest{
+		AudioRequired:  plan.AudioRequired(),
 		BackendAddress: address,
 		Prompt:         plan.Prompt(),
 		NegativePrompt: plan.NegativePrompt(),
@@ -292,13 +293,9 @@ func videoExecutionEngineConfigFromDirectory(directory, address string, config V
 }
 
 func videoLoadRequest(address string, plan *capabilitydriver.VideoInvocationPlan) managedimagebackend.VideoModelRequest {
-	bindings := make(map[string]string, len(plan.ExactBindings()))
-	for _, binding := range plan.ExactBindings() {
-		bindings[binding.RequirementID] = binding.AbsolutePath
-	}
 	return managedimagebackend.VideoModelRequest{
 		BackendAddress: address, ProcessKey: plan.ProcessKey(),
-		FL2VADiffusionPath: bindings[capabilitydriver.StableDiffusionVideoFL2VARequirementID], Ref2VADiffusionPath: bindings[capabilitydriver.StableDiffusionVideoRef2VARequirementID],
+		RecipeID: plan.RecipeID(), DiffusionPath: plan.DiffusionModelPath(), SampleSteps: plan.SampleSteps(),
 		EncoderPath: plan.EncoderPath(), VideoVAEPath: plan.VideoVAEPath(), AudioVAEPath: plan.AudioVAEPath(), ConditioningMode: string(plan.ConditioningMode()),
 		CFGScale: plan.CFGScale(), FlowShift: plan.FlowShift(), SampleMethod: plan.SampleMethod(), Scheduler: plan.Scheduler(),
 		DiffusionFlashAttention: plan.DiffusionFlashAttention(), OffloadToCPU: plan.OffloadToCPU(), RNG: plan.RNG(),

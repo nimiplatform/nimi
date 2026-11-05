@@ -1,4 +1,41 @@
 models:
+  - model_id: wan2.2-ti2v-5b-local
+    model_type: video
+    family: wan22
+    updated_at: 2026-11-06
+    capabilities: [video.generate]
+    features: [input.image]
+    source_ids: [wan22_ti2v_gguf, stable_diffusion_cpp_wan22_guide]
+    video_generation:
+      modes: [t2v, i2v_first_frame]
+      input_roles:
+        t2v: [prompt]
+        i2v_first_frame: [prompt, first_frame]
+      limits:
+        resolution: [288p, 480p, 720p]
+      options:
+        supports: [resolution, ratio, duration_sec]
+        constraints: {}
+      outputs:
+        video_url: true
+    install:
+      repo: QuantStack/Wan2.2-TI2V-5B-GGUF
+      revision: 57437632ddd08bdcbd1508c866aa22e126ed51d2 # pragma: allowlist secret -- public model revision
+      install_kind: weights
+      license: Apache-2.0
+      entry: Wan2.2-TI2V-5B-Q4_K_M.gguf
+      artifact_roles: [diffusion_transformer]
+      preferred_engine: media
+    variants:
+      - variant_id: local.video.wan22-ti2v-5b.q4-k-m.cuda
+        quant: Q4_K_M
+        entry: Wan2.2-TI2V-5B-Q4_K_M.gguf
+        files: [Wan2.2-TI2V-5B-Q4_K_M.gguf]
+        hashes:
+          Wan2.2-TI2V-5B-Q4_K_M.gguf: sha256:95b19697b7f98e65b0a543640e9ca7b4dfec32e2a6e3731e8e10708be52655e2
+        total_size_bytes: 3433116000
+        host_requirement: {accelerator: cuda, min_ram_bytes: 34359738368, min_vram_bytes: 25769803776}
+    fitness: {param_count: 5000000000, context_length: 0}
   # MiniMax-H3 is a five-axis stable-diffusion.cpp recipe. FL2VA and Ref2VA
   # are independent video ModelAssets; the combined encoder is a reusable
   # chat-kind ModelAsset; both VAEs are passive assets. No version grouping is

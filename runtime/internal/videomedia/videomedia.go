@@ -242,7 +242,16 @@ func ValidateCandidate(plan *capabilitydriver.VideoInvocationPlan, candidate loc
 		}
 		rawBytes += int64(len(frame.RGBBytes))
 	}
-	if !plan.AudioRequired() || candidate.Audio.Channels != 2 || candidate.Audio.SampleRate != 32000 || len(candidate.Audio.PCMSamples) == 0 {
+	if !plan.AudioRequired() {
+		if len(candidate.Audio.PCMSamples) != 0 || candidate.Audio.Channels != 0 || candidate.Audio.SampleRate != 0 {
+			return mediaFailure("validate candidate", fmt.Errorf("silent video contains unexpected audio"))
+		}
+		if rawBytes > localexecution.MaxRawAVCandidateBytes {
+			return mediaFailure("validate candidate", fmt.Errorf("raw video exceeds its private resource bound"))
+		}
+		return nil
+	}
+	if candidate.Audio.Channels != 2 || candidate.Audio.SampleRate != 32000 || len(candidate.Audio.PCMSamples) == 0 {
 		return mediaFailure("validate candidate", fmt.Errorf("candidate audio must be non-empty stereo 32000 Hz PCM"))
 	}
 	if len(candidate.Audio.PCMSamples)%candidate.Audio.Channels != 0 {
@@ -285,23 +294,25 @@ func (p *Processor) EncodeAndInspect(ctx context.Context, plan *capabilitydriver
 	if !ok || files == nil {
 		return Result{}, &Error{Kind: FailureUnavailable, Op: "admit codec body set", Err: fmt.Errorf("Runtime file custody is required")}
 	}
-	if err := files.Write(ctx, "audio", "audio/wav", func(writer io.Writer) error { return writeFloat32WAVTo(writer, candidate.Audio) }); err != nil {
-		return Result{}, &Error{Kind: FailureEncode, Op: "stage owned audio", Err: err}
-	}
-	audioPath, releaseAudio, err := files.Borrow(ctx, "audio")
-	if err != nil {
-		return Result{}, err
-	}
-	defer releaseAudio()
 	width, height := plan.Size()
 	args := []string{
 		"-hide_banner", "-loglevel", "error", "-y",
 		"-f", "rawvideo", "-pix_fmt", "rgb24", "-s", fmt.Sprintf("%dx%d", width, height), "-r", "24", "-i", "pipe:0",
-		"-i", audioPath,
-		"-map", "0:v:0", "-map", "1:a:0", "-frames:v", strconv.Itoa(plan.FrameCount()),
-		"-c:v", "libx264", "-bf", "0", "-pix_fmt", "yuv420p", "-c:a", "aac", "-ar", "32000", "-ac", "2", "-movflags", "frag_keyframe+empty_moov",
-		"-f", "mp4", "pipe:1",
 	}
+	if plan.AudioRequired() {
+		if err := files.Write(ctx, "audio", "audio/wav", func(writer io.Writer) error { return writeFloat32WAVTo(writer, candidate.Audio) }); err != nil {
+			return Result{}, &Error{Kind: FailureEncode, Op: "stage owned audio", Err: err}
+		}
+		audioPath, releaseAudio, err := files.Borrow(ctx, "audio")
+		if err != nil {
+			return Result{}, err
+		}
+		defer releaseAudio()
+		args = append(args, "-i", audioPath, "-map", "0:v:0", "-map", "1:a:0", "-c:a", "aac", "-ar", "32000", "-ac", "2")
+	} else {
+		args = append(args, "-map", "0:v:0", "-an")
+	}
+	args = append(args, "-frames:v", strconv.Itoa(plan.FrameCount()), "-c:v", "libx264", "-bf", "0", "-pix_fmt", "yuv420p", "-movflags", "frag_keyframe+empty_moov", "-f", "mp4", "pipe:1")
 	command := newCodecCommand(ctx, p.ffmpegPath, args...)
 	readers := make([]io.Reader, 0, len(candidate.Frames))
 	for _, frame := range candidate.Frames {
@@ -494,8 +505,8 @@ func (p *Processor) inspect(ctx context.Context, path string, plan *capabilitydr
 			}
 		}
 	}
-	if video == nil || audio == nil {
-		return Facts{}, mediaFailure("inspect MP4", fmt.Errorf("both video and audio streams are required"))
+	if video == nil || plan.AudioRequired() && audio == nil || !plan.AudioRequired() && audio != nil {
+		return Facts{}, mediaFailure("inspect MP4", fmt.Errorf("video/audio streams do not match the captured plan"))
 	}
 	width, height := plan.Size()
 	if video.Width != width || video.Height != height {
@@ -521,16 +532,20 @@ func (p *Processor) inspect(ctx context.Context, path string, plan *capabilitydr
 	} else {
 		return Facts{}, mediaFailure("inspect MP4", fmt.Errorf("video frame count is unavailable"))
 	}
-	if audio.Channels != 2 || strings.TrimSpace(audio.SampleRate) != "32000" {
-		return Facts{}, mediaFailure("inspect MP4", fmt.Errorf("audio must be stereo 32000 Hz"))
-	}
-	audioDuration, err := parsePositiveSeconds(audio.Duration)
-	if err != nil {
-		return Facts{}, mediaFailure("inspect MP4", fmt.Errorf("audio duration: %w", err))
-	}
 	oneFrame := 1.0 / fps
-	if math.Abs(videoDuration-audioDuration) > oneFrame+0.0001 {
-		return Facts{}, mediaFailure("inspect MP4", fmt.Errorf("audio/video duration delta exceeds one frame"))
+	channels, sampleRate := 0, 0
+	if audio != nil {
+		if audio.Channels != 2 || strings.TrimSpace(audio.SampleRate) != "32000" {
+			return Facts{}, mediaFailure("inspect MP4", fmt.Errorf("audio must be stereo 32000 Hz"))
+		}
+		audioDuration, err := parsePositiveSeconds(audio.Duration)
+		if err != nil {
+			return Facts{}, mediaFailure("inspect MP4", fmt.Errorf("audio duration: %w", err))
+		}
+		if math.Abs(videoDuration-audioDuration) > oneFrame+0.0001 {
+			return Facts{}, mediaFailure("inspect MP4", fmt.Errorf("audio/video duration delta exceeds one frame"))
+		}
+		channels, sampleRate = 2, 32000
 	}
 	expectedDuration := float64(plan.FrameCount()) / fps
 	if math.Abs(videoDuration-expectedDuration) > oneFrame+0.0001 {
@@ -538,7 +553,7 @@ func (p *Processor) inspect(ctx context.Context, path string, plan *capabilitydr
 	}
 	return Facts{
 		Width: width, Height: height, FPS: 24, FrameCount: plan.FrameCount(),
-		Duration: time.Duration(videoDuration * float64(time.Second)), Channels: 2, SampleRate: 32000,
+		Duration: time.Duration(videoDuration * float64(time.Second)), Channels: channels, SampleRate: sampleRate,
 	}, nil
 }
 

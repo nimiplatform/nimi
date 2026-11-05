@@ -1,4 +1,16 @@
 sources:
+  - source_id: wan22_ti2v_gguf
+    url: https://huggingface.co/QuantStack/Wan2.2-TI2V-5B-GGUF/tree/57437632ddd08bdcbd1508c866aa22e126ed51d2
+    retrieved_at: 2026-11-06
+    note: Apache2.0 TI2V5B quantization and distinct48-channel Wan2.2 VAE, independently pinned.
+  - source_id: wan22_umt5_encoder
+    url: https://huggingface.co/city96/umt5-xxl-encoder-gguf/tree/b535255bee98c2b0a59ea7c0ae2dcd0c6657b3b7
+    retrieved_at: 2026-11-06
+    note: Apache2.0 UMT5XXL encoder,4096-dimensional256384-vocabulary T5 encoder; distinct from FLUX T5v1.1.
+  - source_id: stable_diffusion_cpp_wan22_guide
+    url: https://github.com/leejet/stable-diffusion.cpp/blob/58bb3c1b1cd4749e94e39f537e9adfce295dcaee/docs/wan.md
+    retrieved_at: 2026-11-06
+    note: Native generate_video, TI2V5B main, UMT5XXL and Wan2.2 VAE; text or first-image conditioning, EulerCFG6/flow3 example.
   - source_id: flux3_klein_official
     url: https://huggingface.co/black-forest-labs/flux-3-image-klein/tree/09561231f44e41381c461caf53d5452005a60ac9
     retrieved_at: 2026-11-05

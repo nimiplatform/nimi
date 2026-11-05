@@ -28,8 +28,9 @@ func LoadVideoModel(ctx context.Context, request VideoModelRequest) (*VideoLoadD
 	message := dynamicpb.NewMessage(loadVideoModelRequestDescriptor)
 	setUint32Field(message, "protocol_version", VideoProtocolVersion)
 	setStringField(message, "process_key", request.ProcessKey)
-	setStringField(message, "fl2va_diffusion_path", request.FL2VADiffusionPath)
-	setStringField(message, "ref2va_diffusion_path", request.Ref2VADiffusionPath)
+	setStringField(message, "diffusion_path", request.DiffusionPath)
+	setStringField(message, "recipe_id", request.RecipeID)
+	setInt32Field(message, "sample_steps", int32(request.SampleSteps))
 	setStringField(message, "encoder_path", request.EncoderPath)
 	setStringField(message, "video_vae_path", request.VideoVAEPath)
 	setStringField(message, "audio_vae_path", request.AudioVAEPath)
@@ -68,6 +69,7 @@ func GenerateVideo(ctx context.Context, request VideoGenerateRequest) (VideoCand
 	setStringField(message, "prompt", request.Prompt)
 	setStringField(message, "negative_prompt", request.NegativePrompt)
 	setBytesField(message, "reference_image", request.ReferenceImage)
+	setBoolField(message, "audio_required", request.AudioRequired)
 
 	stream, err := conn.NewStream(ctx, &grpc.StreamDesc{ServerStreams: true}, backendGenerateVideoMethod)
 	if err != nil {

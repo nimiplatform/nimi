@@ -32,16 +32,15 @@ func (identity videoPackageIdentity) String() string {
 	return strings.TrimSpace(identity.Alias)
 }
 
-func (identity videoPackageIdentity) supportsH3() bool {
+func (identity videoPackageIdentity) supportsRecipe(recipe string) bool {
 	if identity.ArchiveSHA256 != stableDiffusionVideoArchiveSHA256 {
 		return false
 	}
-	for _, family := range identity.SupportedModelFamilies {
-		if strings.EqualFold(strings.TrimSpace(family), "minimax-h3") {
-			return true
-		}
-	}
-	return false
+	// Family labels are a snapshot from installation, not the current Driver
+	// support contract. The Host admits the recipe against its current package
+	// catalog and verifies the installed payload before starting this wrapper.
+	// Bind the wrapper's implemented recipes to the exact native ABI instead.
+	return recipe == "minimax-h3" || recipe == "wan22-ti2v-5b"
 }
 
 func resolveVideoPackageIdentity(executablePath string) videoPackageIdentity {
@@ -64,10 +63,6 @@ func resolveVideoPackageIdentity(executablePath string) videoPackageIdentity {
 	return videoPackageIdentity{Name: filepath.Base(directory)}
 }
 
-func (s *Server) videoCompatible() bool {
-	return s.videoPackage.supportsH3()
-}
-
 func (s *Server) handleLoadVideoModel(stream grpc.ServerStream) error {
 	requestMessage := dynamicpb.NewMessage(loadVideoModelRequestDescriptor)
 	if err := stream.RecvMsg(requestMessage); err != nil {
@@ -77,8 +72,8 @@ func (s *Server) handleLoadVideoModel(stream grpc.ServerStream) error {
 	if err != nil {
 		return stream.SendMsg(protocolErrorResult(err))
 	}
-	if !s.videoCompatible() {
-		err := videoError(VideoErrorEngineIncompatible, fmt.Errorf("managed backend package %q does not match the pinned MiniMax-H3 video ABI", s.videoPackage.String()))
+	if !s.videoPackage.supportsRecipe(request.RecipeID) {
+		err := videoError(VideoErrorEngineIncompatible, fmt.Errorf("managed backend package %q does not match the pinned video ABI for recipe %q", s.videoPackage.String(), request.RecipeID))
 		return stream.SendMsg(protocolErrorResult(err))
 	}
 	if s.videoEngine == nil {
@@ -110,8 +105,8 @@ func (s *Server) handleGenerateVideo(stream grpc.ServerStream) error {
 	if err != nil {
 		return stream.SendMsg(videoTerminalEvent(VideoCandidate{}, err))
 	}
-	if !s.videoCompatible() {
-		err := videoError(VideoErrorEngineIncompatible, fmt.Errorf("managed backend package %q is not marked MiniMax-H3 capable", s.videoPackage.String()))
+	if !s.videoPackage.supportsRecipe("minimax-h3") && !s.videoPackage.supportsRecipe("wan22-ti2v-5b") {
+		err := videoError(VideoErrorEngineIncompatible, fmt.Errorf("managed backend package %q does not match the pinned video ABI", s.videoPackage.String()))
 		return stream.SendMsg(videoTerminalEvent(VideoCandidate{}, err))
 	}
 	s.videoStateMu.Lock()

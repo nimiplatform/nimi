@@ -91,6 +91,32 @@ func TestManagedVideoProtocolRoundTripAndCompatibilityGate(t *testing.T) {
 	}
 }
 
+func TestManagedVideoLoadsWanFromVerifiedPackageWithOlderFamilySnapshot(t *testing.T) {
+	engine := &fakeVideoEngine{}
+	server := &Server{driver: &fakeBackendDriver{}, videoEngine: engine, videoPackage: h3VideoPackageIdentity()}
+	address, stop := startVideoTestServer(t, server)
+	defer stop()
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	request := validVideoModelRequest(address)
+	request.RecipeID = "wan22-ti2v-5b"
+	request.ConditioningMode = "wan22-text"
+	request.AudioVAEPath = ""
+	request.SampleSteps = 50
+	if _, err := LoadVideoModel(ctx, request); err != nil {
+		t.Fatalf("exact ABI with installation-time family snapshot: %v", err)
+	}
+	request.RecipeID = "unimplemented-video"
+	if _, err := LoadVideoModel(ctx, request); err == nil {
+		t.Fatalf("unimplemented recipe: %v", err)
+	}
+	engine.mu.Lock()
+	defer engine.mu.Unlock()
+	if engine.loads != 1 {
+		t.Fatalf("FFI loads = %d, want only the implemented recipe", engine.loads)
+	}
+}
+
 func TestManagedVideoRejectsOldABIEvenWithFamilyAndRetiredOverride(t *testing.T) {
 	t.Setenv("NIMI_VIDEO_FFI_ALLOW_UNPINNED", "1")
 	engine := &fakeVideoEngine{}
@@ -314,14 +340,33 @@ func h3VideoPackageIdentity() videoPackageIdentity {
 
 func validVideoModelRequest(address string) VideoModelRequest {
 	return VideoModelRequest{
-		BackendAddress: address, ProcessKey: "process-key", FL2VADiffusionPath: `D:\models\fl2va.gguf`, Ref2VADiffusionPath: `D:\models\ref2va.gguf`,
+		BackendAddress: address, ProcessKey: "process-key", RecipeID: "minimax-h3", DiffusionPath: `D:\models\fl2va.gguf`,
 		EncoderPath: `D:\models\encoder.gguf`, VideoVAEPath: `D:\models\video.safetensors`, AudioVAEPath: `D:\models\audio.safetensors`, ConditioningMode: "fl2va-t2va",
 		CFGScale: 1, FlowShift: 12, DiffusionFlashAttention: true, OffloadToCPU: true, RNG: "cpu",
 	}
 }
 
 func validVideoGenerateRequest(address string) VideoGenerateRequest {
-	return VideoGenerateRequest{BackendAddress: address, Width: 32, Height: 32, FrameCount: 5, FPS: 24, Seed: 7, Prompt: "cat"}
+	return VideoGenerateRequest{BackendAddress: address, AudioRequired: true, Width: 32, Height: 32, FrameCount: 5, FPS: 24, Seed: 7, Prompt: "cat"}
+}
+
+func TestWan22VideoPostconditionDoesNotRequireH3Audio(t *testing.T) {
+	request := validVideoGenerateRequest("")
+	request.AudioRequired = false
+	candidate := candidateForVideoTest(request.Width, request.Height, request.FrameCount, true)
+	candidate.Audio = VideoAudio{}
+	if err := validateVideoCandidate(request, candidate); err != nil {
+		t.Fatal(err)
+	}
+	request.AudioRequired = true
+	if err := validateVideoCandidate(request, candidate); err == nil {
+		t.Fatal("missing H3 audio accepted")
+	}
+	request.AudioRequired = false
+	candidate.Audio = VideoAudio{PCMSamples: []float32{0, 0}, Channels: 2, SampleRate: 32000}
+	if err := validateVideoCandidate(request, candidate); err == nil {
+		t.Fatal("Wan audio invented")
+	}
 }
 
 func candidateForVideoTest(width, height, frames int, validShape bool) VideoCandidate {

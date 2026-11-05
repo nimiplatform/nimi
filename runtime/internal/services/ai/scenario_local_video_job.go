@@ -139,11 +139,17 @@ func (s *Service) runLocalVideoScenarioJob(ctx context.Context, jobID string, ti
 	if effective.plan.ReturnLastFrame() {
 		bodyCount = 2
 	}
-	slots := make([]runtimeartifact.JobBodySlot, bodyCount+1)
+	slotCount := bodyCount
+	if effective.plan.AudioRequired() {
+		slotCount++
+	}
+	slots := make([]runtimeartifact.JobBodySlot, slotCount)
 	for index := range slots {
 		slots[index] = runtimeartifact.JobBodySlot{ArtifactID: fmt.Sprintf("%s-video-%d", jobID, index+1), MaxBytes: runtimeartifact.MaxCustodyBytes}
 	}
-	slots[bodyCount] = runtimeartifact.JobBodySlot{ArtifactID: jobID + "-video-audio", MaxBytes: localexecution.MaxRawAVCandidateBytes + 44}
+	if effective.plan.AudioRequired() {
+		slots[bodyCount] = runtimeartifact.JobBodySlot{ArtifactID: jobID + "-video-audio", MaxBytes: localexecution.MaxRawAVCandidateBytes + 44}
+	}
 	if bodyCount == 2 {
 		slots[1].MaxBytes = localexecution.MaxImageArtifactBytes
 	}
@@ -198,7 +204,10 @@ func (s *Service) runLocalVideoScenarioJob(ctx context.Context, jobID string, ti
 		s.finishLocalVideoJobFailure(ctx, jobID, fmt.Errorf("codec body custody owner unavailable"))
 		return
 	}
-	fileIDs := map[string]string{"audio": slots[bodyCount].ArtifactID, "video": slots[0].ArtifactID}
+	fileIDs := map[string]string{"video": slots[0].ArtifactID}
+	if effective.plan.AudioRequired() {
+		fileIDs["audio"] = slots[bodyCount].ArtifactID
+	}
 	if bodyCount == 2 {
 		fileIDs["last-frame"] = slots[1].ArtifactID
 	}

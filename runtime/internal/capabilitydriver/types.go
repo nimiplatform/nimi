@@ -1328,11 +1328,14 @@ type VideoConditioningMode string
 const (
 	VideoConditioningModeFL2VAT2VA   VideoConditioningMode = "fl2va-t2va"
 	VideoConditioningModeRef2VAImage VideoConditioningMode = "ref2va-image"
+	VideoConditioningModeWan22Text   VideoConditioningMode = "wan22-text"
+	VideoConditioningModeWan22Image  VideoConditioningMode = "wan22-first-image"
 )
 
 // VideoInvocationPlan is private to the video Driver/Host seam. Its fields are
 // immutable after construction and accessors return copies where needed.
 type VideoInvocationPlan struct {
+	sampleSteps             int
 	processKey              string
 	loadoutID               string
 	recipeID                string
@@ -1539,6 +1542,13 @@ func (p *VideoInvocationPlan) SampleMethod() string {
 	return p.sampleMethod
 }
 
+func (p *VideoInvocationPlan) SampleSteps() int {
+	if p == nil {
+		return 0
+	}
+	return p.sampleSteps
+}
+
 func (p *VideoInvocationPlan) Scheduler() string {
 	if p == nil {
 		return ""
@@ -1660,6 +1670,7 @@ func NewProductionRegistry() *Registry {
 		{CapabilityContract: TextEmbedCapabilityContract, Identity: Identity{ImplementationID: LlamaEmbedImplementationID, DriverID: LlamaDriverID, DriverDialect: LlamaEmbeddingGemma2Dialect}}:                                           LlamaEmbedDriver{},
 		{CapabilityContract: StableDiffusionCapabilityContract, Identity: Identity{ImplementationID: StableDiffusionImplementationID, DriverID: StableDiffusionDriverID, DriverDialect: StableDiffusionDriverDialect}}:                     StableDiffusionImageDriver{},
 		{CapabilityContract: StableDiffusionVideoCapabilityContract, Identity: Identity{ImplementationID: StableDiffusionVideoImplementationID, DriverID: StableDiffusionVideoDriverID, DriverDialect: StableDiffusionVideoDriverDialect}}: StableDiffusionVideoDriver{},
+		{CapabilityContract: StableDiffusionVideoCapabilityContract, Identity: Identity{ImplementationID: Wan22VideoImplementationID, DriverID: StableDiffusionVideoDriverID, DriverDialect: Wan22VideoDialect}}:                           Wan22VideoDriver{},
 		{CapabilityContract: AudioSynthesizeContract, Identity: Identity{ImplementationID: Qwen3TTSImplementationID, DriverID: Qwen3TTSDriverID, DriverDialect: Qwen3TTSDriverDialect}}:                                                    Qwen3TTSDriver{},
 		{CapabilityContract: AudioSynthesizeContract, Identity: Identity{ImplementationID: Qwen3TTSAudioCppImplementationID, DriverID: Qwen3TTSAudioCppDriverID, DriverDialect: Qwen3TTSAudioCppDriverDialect}}:                            Qwen3TTSAudioCppDriver{},
 		{CapabilityContract: AudioSynthesizeContract, Identity: Identity{ImplementationID: VoxCPMImplementationID, DriverID: VoxCPMDriverID, DriverDialect: VoxCPMDriverDialect}}:                                                          VoxCPMDriver{},

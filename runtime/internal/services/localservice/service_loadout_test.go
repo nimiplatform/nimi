@@ -1653,8 +1653,8 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 	}
 
 	all := list("")
-	if len(all) != 115 {
-		t.Fatalf("all Loadout recipes = %d, want 115", len(all))
+	if len(all) != 116 {
+		t.Fatalf("all Loadout recipes = %d, want 116", len(all))
 	}
 	byID := make(map[string]*runtimev1.LoadoutRecipeDescriptor, len(all))
 	for _, recipe := range all {
@@ -1761,9 +1761,10 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 		}
 	}
 	video := list(capabilitydriver.StableDiffusionVideoCapabilityContract)
-	if len(video) != 1 || video[0].GetRecipeId() != capabilitydriver.StableDiffusionVideoRecipeID || len(video[0].GetSlots()) != 5 {
+	if len(video) != 2 || len(byID[capabilitydriver.StableDiffusionVideoRecipeID].GetSlots()) != 5 || len(byID[capabilitydriver.Wan22VideoRecipeID].GetSlots()) != 3 || byID[capabilitydriver.Wan22VideoRecipeID].GetApplicability() != runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED {
 		t.Fatalf("video recipes = %+v", video)
 	}
+	video = []*runtimev1.LoadoutRecipeDescriptor{byID[capabilitydriver.StableDiffusionVideoRecipeID]}
 	for index, slotID := range []string{
 		capabilitydriver.StableDiffusionVideoFL2VARequirementID,
 		capabilitydriver.StableDiffusionVideoRef2VARequirementID,

@@ -128,15 +128,21 @@ func (engine *stableDiffusionVideoFFI) Load(request VideoModelRequest) (bool, er
 			return false, err
 		}
 	}
-	if request.ConditioningMode != "fl2va-t2va" && request.ConditioningMode != "ref2va-image" {
+	wan := request.RecipeID == "wan22-ti2v-5b"
+	if request.RecipeID != "minimax-h3" && !wan || wan && request.ConditioningMode != "wan22-text" && request.ConditioningMode != "wan22-first-image" || !wan && request.ConditioningMode != "fl2va-t2va" && request.ConditioningMode != "ref2va-image" {
 		return false, videoError(VideoErrorLoad, fmt.Errorf("managed H3 video conditioning mode is unsupported"))
 	}
-	for label, path := range map[string]string{
-		"diffusion": request.selectedDiffusionPath(),
+	paths := map[string]string{
+		"diffusion": request.DiffusionPath,
 		"encoder":   request.EncoderPath,
 		"video VAE": request.VideoVAEPath,
-		"audio VAE": request.AudioVAEPath,
-	} {
+	}
+	if !wan {
+		paths["audio VAE"] = request.AudioVAEPath
+	} else if request.AudioVAEPath != "" {
+		return false, videoError(VideoErrorLoad, fmt.Errorf("Wan2.2 does not use an audio VAE"))
+	}
+	for label, path := range paths {
 		if !filepath.IsAbs(path) || filepath.Clean(path) != path {
 			return false, videoError(VideoErrorLoad, fmt.Errorf("%s model path is not canonical absolute", label))
 		}
@@ -168,12 +174,17 @@ func (engine *stableDiffusionVideoFFI) Load(request VideoModelRequest) (bool, er
 		*target = uintptr(unsafe.Pointer(pointer))
 		return nil
 	}
-	for target, value := range map[*uintptr]string{
-		&params.DiffusionModelPath: request.selectedDiffusionPath(),
-		&params.LLMPath:            request.EncoderPath,
+	modelPaths := map[*uintptr]string{
+		&params.DiffusionModelPath: request.DiffusionPath,
 		&params.VAEPath:            request.VideoVAEPath,
-		&params.AudioVAEPath:       request.AudioVAEPath,
-	} {
+	}
+	if wan {
+		modelPaths[&params.T5XXLPath] = request.EncoderPath
+	} else {
+		modelPaths[&params.LLMPath] = request.EncoderPath
+		modelPaths[&params.AudioVAEPath] = request.AudioVAEPath
+	}
+	for target, value := range modelPaths {
 		if err := setCString(target, value); err != nil {
 			return false, videoError(VideoErrorLoad, fmt.Errorf("encode video model path: %w", err))
 		}
@@ -251,7 +262,8 @@ func (engine *stableDiffusionVideoFFI) Generate(request VideoGenerateRequest, pr
 	}); err != nil {
 		return VideoCandidate{}, err
 	}
-	if (model.ConditioningMode == "ref2va-image") != (len(request.ReferenceImage) > 0) {
+	wan := model.RecipeID == "wan22-ti2v-5b"
+	if request.AudioRequired == wan || ((model.ConditioningMode == "ref2va-image" || model.ConditioningMode == "wan22-first-image") != (len(request.ReferenceImage) > 0)) {
 		return VideoCandidate{}, videoError(VideoErrorInference, fmt.Errorf("video conditioning payload does not match loaded route"))
 	}
 
@@ -260,8 +272,12 @@ func (engine *stableDiffusionVideoFFI) Generate(request VideoGenerateRequest, pr
 		if err != nil {
 			return VideoCandidate{}, err
 		}
-		params.RefImages = uintptr(unsafe.Pointer(&reference))
-		params.RefImagesCount = 1
+		if wan {
+			params.InitImage = reference
+		} else {
+			params.RefImages = uintptr(unsafe.Pointer(&reference))
+			params.RefImagesCount = 1
+		}
 		defer runtime.KeepAlive(pixels)
 		defer runtime.KeepAlive(reference)
 	}
@@ -368,7 +384,7 @@ func copyFFIVideoCandidate(framesPointer unsafe.Pointer, frameCount int32, audio
 		candidate.Frames = append(candidate.Frames, VideoFrame{RGBBytes: append([]byte(nil), payload...), Width: int(frame.Width), Height: int(frame.Height)})
 	}
 	if audioPointer == nil {
-		return VideoCandidate{}, videoError(VideoErrorPostcondition, fmt.Errorf("stable-diffusion returned no audio"))
+		return candidate, nil
 	}
 	audio := *(*sdAudio)(audioPointer)
 	totalSamples := audio.SampleCount * uint64(audio.Channels)

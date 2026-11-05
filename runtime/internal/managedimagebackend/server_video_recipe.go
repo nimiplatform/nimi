@@ -52,6 +52,9 @@ func applyVideoGenerateRecipe(params *sdVideoGenParams, model VideoModelRequest,
 	}
 	params.SampleParams.Guidance.TextCFG = float32(model.CFGScale)
 	params.SampleParams.FlowShift = float32(model.FlowShift)
+	if model.SampleSteps > 0 {
+		params.SampleParams.SampleSteps = int32(model.SampleSteps)
+	}
 	if sample, present, err := convert("sample method", model.SampleMethod, sdSampleMethodCount); err != nil {
 		return err
 	} else if present {

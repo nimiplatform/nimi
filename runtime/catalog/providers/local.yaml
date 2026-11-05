@@ -4723,6 +4723,78 @@ models:
         total_size_bytes: 934349912
         host_requirement:
           accelerator: cuda
+  - model_id: asset-video-vae-wan22-ti2v
+    provider: local
+    model_type: vae
+    updated_at: 2026-11-06
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/QuantStack/Wan2.2-TI2V-5B-GGUF/tree/57437632ddd08bdcbd1508c866aa22e126ed51d2
+      retrieved_at: 2026-11-06
+      note: Apache2.0 TI2V5B quantization and distinct48-channel Wan2.2 VAE, independently pinned.
+    family: wan22-vae
+    install:
+      repo: QuantStack/Wan2.2-TI2V-5B-GGUF
+      revision: 57437632ddd08bdcbd1508c866aa22e126ed51d2
+      install_kind: weights
+      entry: VAE/Wan2.2_VAE.safetensors
+      artifact_roles:
+        - video_vae
+      license: Apache-2.0
+    variants:
+      - variant_id: local.video-vae.wan22-ti2v.f16.cuda
+        quant: F16
+        entry: VAE/Wan2.2_VAE.safetensors
+        files:
+          - VAE/Wan2.2_VAE.safetensors
+        hashes:
+          VAE/Wan2.2_VAE.safetensors: sha256:e40321bd36b9709991dae2530eb4ac303dd168276980d3e9bc4b6e2b75fed156
+        total_size_bytes: 1409400960
+        host_requirement:
+          accelerator: cuda
+  - model_id: asset-video-textenc-umt5-xxl
+    provider: local
+    model_type: auxiliary
+    updated_at: 2026-11-06
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/city96/umt5-xxl-encoder-gguf/tree/b535255bee98c2b0a59ea7c0ae2dcd0c6657b3b7
+      retrieved_at: 2026-11-06
+      note: Apache2.0 UMT5XXL encoder,4096-dimensional256384-vocabulary T5 encoder; distinct from FLUX T5v1.1.
+    family: umt5-xxl
+    install:
+      repo: city96/umt5-xxl-encoder-gguf
+      revision: b535255bee98c2b0a59ea7c0ae2dcd0c6657b3b7
+      install_kind: weights
+      entry: umt5-xxl-encoder-Q8_0.gguf
+      artifact_roles:
+        - text_encoder
+      license: Apache-2.0
+    variants:
+      - variant_id: local.video-textenc.umt5-xxl.q8-0.cuda
+        quant: Q8_0
+        entry: umt5-xxl-encoder-Q8_0.gguf
+        files:
+          - umt5-xxl-encoder-Q8_0.gguf
+        hashes:
+          umt5-xxl-encoder-Q8_0.gguf: sha256:2521d4de0bf9e1cc6549866463ceae85e4ec3239bc6063f7488810be39033bbc
+        total_size_bytes: 6043068256
+        host_requirement:
+          accelerator: cuda
   - model_id: asset-image-textenc-qwen3-vl-4b-instruct
     provider: local
     model_type: auxiliary
@@ -7326,6 +7398,74 @@ models:
           min_vram_bytes: 25769803776
     fitness:
       param_count: 20000000000
+      context_length: 0
+  - model_id: wan2.2-ti2v-5b-local
+    provider: local
+    model_type: video
+    updated_at: 2026-11-06
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/QuantStack/Wan2.2-TI2V-5B-GGUF/tree/57437632ddd08bdcbd1508c866aa22e126ed51d2
+      retrieved_at: 2026-11-06
+      note: Apache2.0 TI2V5B quantization and distinct48-channel Wan2.2 VAE, independently pinned.
+    features:
+      - input.image
+    family: wan22
+    video_generation:
+      modes:
+        - t2v
+        - i2v_first_frame
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+      limits:
+        resolution:
+          - 288p
+          - 480p
+          - 720p
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+        constraints: {}
+      outputs:
+        video_url: true
+    install:
+      repo: QuantStack/Wan2.2-TI2V-5B-GGUF
+      revision: 57437632ddd08bdcbd1508c866aa22e126ed51d2
+      install_kind: weights
+      entry: Wan2.2-TI2V-5B-Q4_K_M.gguf
+      artifact_roles:
+        - diffusion_transformer
+      license: Apache-2.0
+      preferred_engine: media
+    variants:
+      - variant_id: local.video.wan22-ti2v-5b.q4-k-m.cuda
+        quant: Q4_K_M
+        entry: Wan2.2-TI2V-5B-Q4_K_M.gguf
+        files:
+          - Wan2.2-TI2V-5B-Q4_K_M.gguf
+        hashes:
+          Wan2.2-TI2V-5B-Q4_K_M.gguf: sha256:95b19697b7f98e65b0a543640e9ca7b4dfec32e2a6e3731e8e10708be52655e2
+        total_size_bytes: 3433116000
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 25769803776
+    fitness:
+      param_count: 5000000000
       context_length: 0
   - model_id: minimax-h3-fl2va-local
     provider: local
@@ -11573,6 +11713,43 @@ loadout_recipes:
           artifact_role: uncond_diffusion_model
           gguf_families:
             - ideogram4
+  - recipe_id: wan22-ti2v-5b
+    revision: "1"
+    title: Wan2.2 TI2V 5B silent video (Windows CUDA)
+    capability_contract: video.generate
+    implementation_id: local.video.generate.wan22.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp
+    driver_dialect: stable-diffusion.cpp/wan22-ti2v-video-generate/v1
+    default_options: {}
+    supported_features:
+      - input.image
+    slot_metadata:
+      - slot_id: diffusion.wan22-ti2v
+        display_label: Wan2.2 TI2V 5B transformer
+        recommended_variant_ids:
+          - local.video.wan22-ti2v-5b.q4-k-m.cuda
+        recommended_content_ids:
+          - sha256:95b19697b7f98e65b0a543640e9ca7b4dfec32e2a6e3731e8e10708be52655e2
+        model_contract:
+          format: gguf
+          artifact_role: diffusion_transformer
+      - slot_id: encoder.umt5-xxl
+        display_label: UMT5 XXL text encoder
+        recommended_variant_ids:
+          - local.video-textenc.umt5-xxl.q8-0.cuda
+        recommended_content_ids:
+          - sha256:2521d4de0bf9e1cc6549866463ceae85e4ec3239bc6063f7488810be39033bbc
+        model_contract:
+          format: gguf
+          artifact_role: text_encoder
+      - slot_id: vae.video
+        display_label: Wan2.2 48-channel video VAE
+        recommended_variant_ids:
+          - local.video-vae.wan22-ti2v.f16.cuda
+        recommended_content_ids:
+          - sha256:e40321bd36b9709991dae2530eb4ac303dd168276980d3e9bc4b6e2b75fed156
+        model_contract:
+          format: safetensors
   - recipe_id: minimax-h3
     revision: "1"
     title: MiniMax-H3 video generation

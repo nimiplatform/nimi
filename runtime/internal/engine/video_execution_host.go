@@ -82,10 +82,14 @@ func NewVideoExecutionHost(manager *Manager, logger *slog.Logger, config VideoEx
 		if err := validateVideoInvocationPlan(plan); err != nil {
 			return err
 		}
-		if plan.RecipeID() != capabilitydriver.StableDiffusionVideoRecipeID {
+		family := plan.RecipeID()
+		if family == capabilitydriver.Wan22VideoRecipeID {
+			family = "wan22"
+		}
+		if plan.RecipeID() != capabilitydriver.StableDiffusionVideoRecipeID && plan.RecipeID() != capabilitydriver.Wan22VideoRecipeID {
 			return fmt.Errorf("video invocation recipe %q has no managed package family", plan.RecipeID())
 		}
-		return admitManagedImageRecipeForCurrentHost(capabilitydriver.StableDiffusionVideoRecipeID, config.PackageSource)
+		return admitManagedImageRecipeForCurrentHost(family, config.PackageSource)
 	}
 	return host
 }
@@ -388,19 +392,25 @@ func (h *VideoExecutionHost) deliver(request *videoExecutionRequest, outcome vid
 }
 
 func validateVideoInvocationPlan(plan *capabilitydriver.VideoInvocationPlan) error {
-	if plan == nil || strings.TrimSpace(plan.ProcessKey()) == "" || strings.TrimSpace(plan.Prompt()) == "" || plan.FrameCount() < 1 || plan.FPS() != 24 || !plan.AudioRequired() {
+	if plan == nil || strings.TrimSpace(plan.ProcessKey()) == "" || strings.TrimSpace(plan.Prompt()) == "" || plan.FrameCount() < 1 || plan.FPS() != 24 {
 		return fmt.Errorf("video invocation plan is incomplete")
 	}
 	width, height := plan.Size()
 	if width <= 0 || height <= 0 {
 		return fmt.Errorf("video invocation plan has invalid dimensions")
 	}
-	for _, path := range []string{plan.DiffusionModelPath(), plan.EncoderPath(), plan.VideoVAEPath(), plan.AudioVAEPath()} {
+	paths := []string{plan.DiffusionModelPath(), plan.EncoderPath(), plan.VideoVAEPath()}
+	if plan.RecipeID() == capabilitydriver.StableDiffusionVideoRecipeID && plan.AudioRequired() {
+		paths = append(paths, plan.AudioVAEPath())
+	} else if plan.RecipeID() != capabilitydriver.Wan22VideoRecipeID || plan.AudioRequired() || plan.AudioVAEPath() != "" {
+		return fmt.Errorf("video invocation audio contract is invalid")
+	}
+	for _, path := range paths {
 		if !filepath.IsAbs(path) || filepath.Clean(path) != path {
 			return fmt.Errorf("video invocation plan has a non-absolute model path")
 		}
 	}
-	if len(plan.ModelFiles()) != 4 {
+	if len(plan.ModelFiles()) != len(paths) {
 		return fmt.Errorf("video invocation plan has incomplete exact model content")
 	}
 	return nil
@@ -416,6 +426,12 @@ func validateRawAVCandidate(plan *capabilitydriver.VideoInvocationPlan, candidat
 		if frame.Width != width || frame.Height != height || len(frame.RGBBytes) != int(expectedBytes64) {
 			return fmt.Errorf("video substrate returned invalid frame %d", index)
 		}
+	}
+	if !plan.AudioRequired() {
+		if len(candidate.Audio.PCMSamples) != 0 || candidate.Audio.Channels != 0 || candidate.Audio.SampleRate != 0 {
+			return fmt.Errorf("silent video substrate returned unexpected audio")
+		}
+		return nil
 	}
 	if len(candidate.Audio.PCMSamples) == 0 || len(candidate.Audio.PCMSamples)%2 != 0 || candidate.Audio.Channels != 2 || candidate.Audio.SampleRate != 32000 {
 		return fmt.Errorf("video substrate returned invalid required audio")

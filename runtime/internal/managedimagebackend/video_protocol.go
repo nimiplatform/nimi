@@ -35,15 +35,15 @@ func ensureVideoDescriptors() error {
 			return &descriptorpb.FieldDescriptorProto{Name: stringPtr(name), Number: int32Ptr(number), Label: repeated.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_MESSAGE.Enum(), TypeName: stringPtr(typeName)}
 		}
 		file, err := protodesc.NewFile(&descriptorpb.FileDescriptorProto{
-			Name:    stringPtr("nimi_managed_video_v1.proto"),
+			Name:    stringPtr("nimi_managed_video_v2.proto"),
 			Package: stringPtr("backendvideo"),
 			Syntax:  stringPtr("proto3"),
 			MessageType: []*descriptorpb.DescriptorProto{
 				{Name: stringPtr("LoadVideoModelRequest"), Field: []*descriptorpb.FieldDescriptorProto{
 					field("protocol_version", 1, descriptorpb.FieldDescriptorProto_TYPE_UINT32),
 					field("process_key", 2, descriptorpb.FieldDescriptorProto_TYPE_STRING),
-					field("fl2va_diffusion_path", 3, descriptorpb.FieldDescriptorProto_TYPE_STRING),
-					field("ref2va_diffusion_path", 4, descriptorpb.FieldDescriptorProto_TYPE_STRING),
+					field("diffusion_path", 3, descriptorpb.FieldDescriptorProto_TYPE_STRING),
+					field("recipe_id", 4, descriptorpb.FieldDescriptorProto_TYPE_STRING),
 					field("encoder_path", 5, descriptorpb.FieldDescriptorProto_TYPE_STRING),
 					field("video_vae_path", 6, descriptorpb.FieldDescriptorProto_TYPE_STRING),
 					field("audio_vae_path", 7, descriptorpb.FieldDescriptorProto_TYPE_STRING),
@@ -55,6 +55,7 @@ func ensureVideoDescriptors() error {
 					field("diffusion_flash_attention", 13, descriptorpb.FieldDescriptorProto_TYPE_BOOL),
 					field("offload_to_cpu", 14, descriptorpb.FieldDescriptorProto_TYPE_BOOL),
 					field("rng", 15, descriptorpb.FieldDescriptorProto_TYPE_STRING),
+					field("sample_steps", 16, descriptorpb.FieldDescriptorProto_TYPE_INT32),
 				}},
 				{Name: stringPtr("VideoOperationResult"), Field: []*descriptorpb.FieldDescriptorProto{
 					field("protocol_version", 1, descriptorpb.FieldDescriptorProto_TYPE_UINT32),
@@ -74,6 +75,7 @@ func ensureVideoDescriptors() error {
 					field("prompt", 7, descriptorpb.FieldDescriptorProto_TYPE_STRING),
 					field("negative_prompt", 8, descriptorpb.FieldDescriptorProto_TYPE_STRING),
 					field("reference_image", 9, descriptorpb.FieldDescriptorProto_TYPE_BYTES),
+					field("audio_required", 10, descriptorpb.FieldDescriptorProto_TYPE_BOOL),
 				}},
 				{Name: stringPtr("VideoFrame"), Field: []*descriptorpb.FieldDescriptorProto{
 					field("rgb", 1, descriptorpb.FieldDescriptorProto_TYPE_BYTES),
@@ -176,8 +178,9 @@ func decodeVideoModelRequest(message *dynamicpb.Message) (VideoModelRequest, err
 	}
 	request := VideoModelRequest{
 		ProcessKey:              readOptionalStringField(message, "process_key"),
-		FL2VADiffusionPath:      readOptionalStringField(message, "fl2va_diffusion_path"),
-		Ref2VADiffusionPath:     readOptionalStringField(message, "ref2va_diffusion_path"),
+		DiffusionPath:           readOptionalStringField(message, "diffusion_path"),
+		RecipeID:                readOptionalStringField(message, "recipe_id"),
+		SampleSteps:             int(readOptionalInt32Field(message, "sample_steps")),
 		EncoderPath:             readOptionalStringField(message, "encoder_path"),
 		VideoVAEPath:            readOptionalStringField(message, "video_vae_path"),
 		AudioVAEPath:            readOptionalStringField(message, "audio_vae_path"),
@@ -190,7 +193,7 @@ func decodeVideoModelRequest(message *dynamicpb.Message) (VideoModelRequest, err
 		OffloadToCPU:            readOptionalBoolField(message, "offload_to_cpu"),
 		RNG:                     readOptionalStringField(message, "rng"),
 	}
-	if strings.TrimSpace(request.ProcessKey) == "" || strings.TrimSpace(request.FL2VADiffusionPath) == "" || strings.TrimSpace(request.Ref2VADiffusionPath) == "" || strings.TrimSpace(request.EncoderPath) == "" || strings.TrimSpace(request.VideoVAEPath) == "" || strings.TrimSpace(request.AudioVAEPath) == "" {
+	if strings.TrimSpace(request.ProcessKey) == "" || strings.TrimSpace(request.DiffusionPath) == "" || strings.TrimSpace(request.EncoderPath) == "" || strings.TrimSpace(request.VideoVAEPath) == "" {
 		return VideoModelRequest{}, videoError(VideoErrorLoad, fmt.Errorf("managed video model request is incomplete"))
 	}
 	if err := validateVideoModelRecipe(request); err != nil {
@@ -204,6 +207,7 @@ func decodeVideoGenerateRequest(message *dynamicpb.Message) (VideoGenerateReques
 		return VideoGenerateRequest{}, videoError(VideoErrorProtocolMismatch, fmt.Errorf("managed video protocol version mismatch"))
 	}
 	return VideoGenerateRequest{
+		AudioRequired:  readOptionalBoolField(message, "audio_required"),
 		Width:          int(readOptionalInt32Field(message, "width")),
 		Height:         int(readOptionalInt32Field(message, "height")),
 		FrameCount:     int(readOptionalInt32Field(message, "frame_count")),

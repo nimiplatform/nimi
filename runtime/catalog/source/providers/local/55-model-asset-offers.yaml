@@ -1,6 +1,50 @@
 # Independent passive ModelAsset offers. Recipe slot metadata may recommend
 # their variant IDs; no row has a parent model, inherited binding, or download claim.
 models:
+  - model_id: asset-video-vae-wan22-ti2v
+    model_type: vae
+    family: wan22-vae
+    updated_at: 2026-11-06
+    capabilities: []
+    source_ids: [wan22_ti2v_gguf, stable_diffusion_cpp_wan22_guide]
+    install:
+      repo: QuantStack/Wan2.2-TI2V-5B-GGUF
+      revision: 57437632ddd08bdcbd1508c866aa22e126ed51d2 # pragma: allowlist secret -- public model revision
+      install_kind: weights
+      license: Apache-2.0
+      entry: VAE/Wan2.2_VAE.safetensors
+      artifact_roles: [video_vae]
+    variants:
+      - variant_id: local.video-vae.wan22-ti2v.f16.cuda
+        quant: F16
+        entry: VAE/Wan2.2_VAE.safetensors
+        files: [VAE/Wan2.2_VAE.safetensors]
+        hashes:
+          VAE/Wan2.2_VAE.safetensors: sha256:e40321bd36b9709991dae2530eb4ac303dd168276980d3e9bc4b6e2b75fed156
+        total_size_bytes: 1409400960
+        host_requirement: {accelerator: cuda}
+  - model_id: asset-video-textenc-umt5-xxl
+    model_type: auxiliary
+    family: umt5-xxl
+    updated_at: 2026-11-06
+    capabilities: []
+    source_ids: [wan22_umt5_encoder, stable_diffusion_cpp_wan22_guide]
+    install:
+      repo: city96/umt5-xxl-encoder-gguf
+      revision: b535255bee98c2b0a59ea7c0ae2dcd0c6657b3b7 # pragma: allowlist secret -- public model revision
+      install_kind: weights
+      license: Apache-2.0
+      entry: umt5-xxl-encoder-Q8_0.gguf
+      artifact_roles: [text_encoder]
+    variants:
+      - variant_id: local.video-textenc.umt5-xxl.q8-0.cuda
+        quant: Q8_0
+        entry: umt5-xxl-encoder-Q8_0.gguf
+        files: [umt5-xxl-encoder-Q8_0.gguf]
+        hashes:
+          umt5-xxl-encoder-Q8_0.gguf: sha256:2521d4de0bf9e1cc6549866463ceae85e4ec3239bc6063f7488810be39033bbc
+        total_size_bytes: 6043068256
+        host_requirement: {accelerator: cuda}
   - model_id: asset-image-textenc-qwen3-vl-4b-instruct
     model_type: auxiliary
     family: qwen-vl
