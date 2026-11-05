@@ -93,21 +93,21 @@ selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: claude-sonnet-5-5
-    reviewed_at: 2026-09-30
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: Current Sonnet model, which Anthropic positions as its best combination of speed and intelligence; retirement not before 2027-09-28.
+    rationale: Retained after reviewing the current lineup for its speed and intelligence balance; Opus 5.5 is the vendor default starting recommendation and Fable 5.1 serves demanding reasoning.
   - profile_id: text.fast
     capability: text.generate
-    model_id: claude-haiku-4-5
-    reviewed_at: 2026-09-28
+    model_id: claude-haiku-5-5
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: Anthropic's fastest current model; no newer Haiku exists, and it is active with no announced deprecation.
+    rationale: Current fastest Claude model for high-volume latency-sensitive classification, extraction and routing; the exact Haiku 5.5 adapter is admitted.
   - profile_id: text.reasoning
     capability: text.generate
     model_id: claude-fable-5-1
-    reviewed_at: 2026-09-30
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: Anthropic's current model for demanding reasoning and long-horizon work; retirement not before 2027-09-01.
+    rationale: Current Claude recommendation for demanding reasoning and long-horizon work; its always-adaptive thinking remains explicit in the exact adapter.
 
 models:
   - model_id: claude-haiku-5-5

@@ -1,6 +1,6 @@
 version: 1
 provider: gemini
-catalog_version: 2026-11-05-gemini-omni-stored-video
+catalog_version: 2026-11-06-gemini-omni12
 inventory_mode: static_source
 default_text_model: gemini-3.8-flash
 models:
@@ -57,6 +57,67 @@ models:
       supports_aspect_ratio: true
       supports_quality: false
       supports_style: false
+  - model_id: gemini-omni-1.2-flash
+    provider: gemini
+    model_type: video
+    updated_at: 2026-11-06
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-04
+      notes: Current stable Omni target. Text, first-frame and image-reference generation allow 3–15 seconds; first/last interpolation remains 3–10 seconds. Native URI storage and cleanup retain exact original resource custody. Price varies by resolution and duration; measured cost is not inferred.
+    source_ref:
+      url: https://aistudio.google.com/docs/omni
+      retrieved_at: 2026-11-06
+      note: Stable Omni 1.1 and 1.2 Flash use unary Interactions with stored URI delivery for text, first/last-frame and reference-image tasks up to 4K. Inputs and outputs are temporarily stored by Google. Runtime captures the original interaction and file, takes complete local custody, then requests deletion of both; failures and absent resources are recorded separately without claiming instant deletion or stopped computation/billing. There is no replay of creation or automatic delivery fallback.
+    features:
+      - input.image
+    video_generation:
+      modes:
+        - t2v
+        - i2v_first_frame
+        - i2v_first_last
+        - i2v_reference
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+        i2v_first_last:
+          - prompt
+          - first_frame
+          - last_frame
+        i2v_reference:
+          - prompt
+          - reference_image
+      limits:
+        reference_images:
+          min: 1
+          max: 6
+        resolution:
+          - 360p
+          - 720p
+          - 1080p
+          - 4k
+        ratio:
+          - 16:9
+          - 9:16
+        duration_sec:
+          min: 3
+          max: 15
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+        constraints: {}
+      outputs:
+        video_url: true
   - model_id: gemini-omni-1.1-flash
     provider: gemini
     model_type: video
@@ -72,8 +133,8 @@ models:
       notes: Provider pricing varies by output resolution and duration; Runtime does not infer charges from the generated clip.
     source_ref:
       url: https://aistudio.google.com/docs/omni
-      retrieved_at: 2026-11-05
-      note: Stable Omni 1.1 Flash uses unary Interactions with stored URI delivery for text, first/last-frame and reference-image tasks up to 4K. Inputs and outputs are temporarily stored by Google. Runtime captures the original interaction and file, takes complete local custody, then requests deletion of both; failures and absent resources are recorded separately without claiming instant deletion or stopped computation/billing. There is no replay of creation or automatic delivery fallback.
+      retrieved_at: 2026-11-06
+      note: Stable Omni 1.1 and 1.2 Flash use unary Interactions with stored URI delivery for text, first/last-frame and reference-image tasks up to 4K. Inputs and outputs are temporarily stored by Google. Runtime captures the original interaction and file, takes complete local custody, then requests deletion of both; failures and absent resources are recorded separately without claiming instant deletion or stopped computation/billing. There is no replay of creation or automatic delivery fallback.
     features:
       - input.image
     video_generation:
@@ -1000,23 +1061,23 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: gemini-3.8-flash
-    reviewed_at: 2026-09-28
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: Newest stable Gemini Flash model and Google's named choice for new projects; base text and image input verified through the OpenAI-compatible endpoint.
+    rationale: Retained after reviewing the current model index as the most intelligent Flash model for agentic and enterprise workloads; Gemini 4 Argon is the flagship reasoning alternative.
   - provider: gemini
     profile_id: text.fast
     capability: text.generate
     model_id: gemini-3.5-flash-lite
-    reviewed_at: 2026-09-28
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: Google's fastest and most cost-effective stable Flash-Lite model and the announced replacement for Gemini 3.1 Flash-Lite; base text and image input verified through the OpenAI-compatible endpoint.
+    rationale: The current index continues to identify Gemini 3.5 Flash-Lite as the fastest and most cost-effective 3.5 model for high-throughput execution.
   - provider: gemini
     profile_id: text.reasoning
     capability: text.generate
-    model_id: gemini-3.1-pro-preview
-    reviewed_at: 2026-09-28
+    model_id: gemini-4-argon
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: Gemini 3.1 Pro Preview remains the only Pro-tier Gemini API text model for advanced reasoning; it is a preview with no announced shutdown date.
+    rationale: Current flagship Gemini reasoning model with a shared 1M context; the exact Runtime adapter admits native reasoning, tool continuity, structured output and owned multimodal input.
 voice_workflow_models:
   - workflow_model_id: gemini-3.8-flash-tts
     workflow_type: text_description

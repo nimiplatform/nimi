@@ -427,7 +427,7 @@ function withStudioKnownJob(result: StudioNonSuccess, error: unknown): StudioNon
 }
 
 function studioNonSuccessReasonFromRuntime(reason: string, diagnostics?: StudioNonSuccessDiagnostics): StudioNonSuccessReason {
-  if (diagnostics && ['SDK_LOCAL_APP_INPUT_INVALID', 'AI_INPUT_INVALID', 'AI_INPUT_LIMIT_EXCEEDED', 'AI_VOICE_INPUT_INVALID', 'AI_VOICE_TARGET_MODEL_MISMATCH', 'AI_VOICE_ASSET_NOT_FOUND', 'AI_VOICE_ASSET_EXPIRED'].includes(diagnostics.reasonCode)) {
+  if (diagnostics && ['SDK_LOCAL_APP_INPUT_INVALID', 'AI_INPUT_INVALID', 'AI_INPUT_LIMIT_EXCEEDED', 'AI_MEDIA_SPEC_INVALID', 'AI_VOICE_INPUT_INVALID', 'AI_VOICE_TARGET_MODEL_MISMATCH', 'AI_VOICE_ASSET_NOT_FOUND', 'AI_VOICE_ASSET_EXPIRED'].includes(diagnostics.reasonCode)) {
     return 'input-invalid';
   }
   return studioNonSuccessReason(reason);

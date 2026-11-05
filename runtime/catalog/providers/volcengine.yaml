@@ -599,13 +599,13 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: doubao-seed-2-1-pro-260915
-    reviewed_at: 2026-09-28
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: Ark's recommended Doubao-Seed 2.1 Pro snapshot with a 1024k context window, verified through Ark chat completions.
+    rationale: Retained current stable Doubao-Seed 2.1 Pro snapshot with a 1024k context window, verified through Ark chat completions.
   - provider: volcengine
     profile_id: text.fast
     capability: text.generate
     model_id: doubao-seed-2-1-turbo-260628
-    reviewed_at: 2026-09-28
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
     rationale: Ark's recommended low-cost, low-latency Doubao-Seed 2.1 Turbo snapshot, verified through Ark chat completions.

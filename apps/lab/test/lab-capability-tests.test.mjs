@@ -1115,6 +1115,29 @@ test('embedding retrieval cancellation never starts the second model call', asyn
   assert.equal(fake.calls.execute.length, 1);
 });
 
+test('music request requirements are checked from resource facts before creating a submission', async () => {
+  const { runLabCapability } = await load('lab/lab-runtime.js');
+  const { t } = await load('shell/i18n/index.js');
+  const { studioNonSuccessReasonUserMessage } = await load('ai-studio-core/non-success-presentation.js');
+  for (const [lyricsMode, lyrics, key] of [['required', '', 'Music.lyricsRequired'], ['unsupported', 'a verse', 'Music.lyricsUnsupported']]) {
+    const fake = fakeClient();
+    fake.client.aiConfig = { get: async () => ({ effectiveSelections: [{ capabilityContract: 'music.generate', state: 'ready', resource: { oneofKind: 'local', local: { musicInput: { generation: [{ scoreMode: 'unsupported', lyricsMode }] } } } }] }) };
+    const result = await runLabCapability({ capabilityId: 'music.generate', prompt: 'acoustic song', parameters: { lyrics } }, ready(fake.client));
+    assert.equal(result.ok, false);
+    assert.equal(result.reason, 'input-invalid');
+    assert.equal(result.message, t(key));
+    assert.equal(fake.calls.submit.length, 0);
+    assert.equal(fake.calls.write.length, 0);
+    assert.equal(studioNonSuccessReasonUserMessage(result.reason, t, 'music.generate', undefined, result.message), t(key));
+  }
+});
+
+test('media specification rejection is an input outcome rather than a retry suggestion', async () => {
+  const { projectStudioRuntimeError } = await load('ai-studio-core/runtime.js');
+  const result = projectStudioRuntimeError({ capability: { id: 'music.generate' }, host: { nonSuccess: (_capability, reason) => ({ reason }) } }, typedError('ai-media-spec-invalid'));
+  assert.equal(result.reason, 'input-invalid');
+});
+
 test('missing local execution configuration leads to Home setup without retrying or changing the App target', async () => {
   const { runLabCapability } = await load('lab/lab-runtime.js');
   const { studioNonSuccessReasonUserMessage, studioNonSuccessReasonUserAction, studioNonSuccessNeedsTargetReselection } = await load('ai-studio-core/non-success-presentation.js');

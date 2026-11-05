@@ -143,13 +143,13 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: command-a-plus-05-2026
-    reviewed_at: 2026-09-28
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: Command A+, the fastest and most performant Command A model, live with no deprecation notice.
+    rationale: The current model table still lists Command A+ as Live, combining vision, reasoning and agentic text with improved latency and throughput over Command A Reasoning.
   - provider: cohere
     profile_id: text.fast
     capability: text.generate
     model_id: command-r7b-12-2024
-    reviewed_at: 2026-09-28
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: Command R7B, the smallest and fastest Command R model with the lowest listed per-token price, live with no deprecation notice.
+    rationale: The current model table still lists Command R7B as Live and describes it as small and fast for RAG and tool-using work; retained for this latency-oriented profile.

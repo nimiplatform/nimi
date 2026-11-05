@@ -12,7 +12,7 @@ runtime:
 resolution_mode: model_anchor_v2
 defaults:
   provider: openai
-  default_text_model: gpt-5.6-sol
+  default_text_model: gpt-6.1-sol
   model_type: tts
   capabilities: []
   context_window_tokens: 8192
@@ -184,22 +184,22 @@ language_profiles:
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
-    model_id: gpt-5.6-sol
-    reviewed_at: 2026-09-28
+    model_id: gpt-6.1-sol
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: Active exact GPT-5.6 Sol model with no announced shutdown; the newer GPT-6 models are not admitted for this standard OpenAI route yet.
+    rationale: Current GPT-6.1 Sol balances speed, cost and intelligence for complex work; the exact Responses adapter supports native tools, hidden reasoning replay and structured output.
   - profile_id: text.fast
     capability: text.generate
-    model_id: gpt-5.6-terra
-    reviewed_at: 2026-09-28
+    model_id: gpt-6-luna
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: Active GPT-5.6 Terra for balanced conversational and high-volume workloads; GPT-6 Sol and Luna are not admitted for this route yet.
+    rationale: The current GPT-6 guide identifies Luna as the fastest and most cost-effective choice for focused high-volume tasks; its exact Runtime Responses adapter is admitted.
   - profile_id: text.reasoning
     capability: text.generate
-    model_id: gpt-5.6-sol
-    reviewed_at: 2026-09-28
+    model_id: gpt-6-astra
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: Highest-capability admitted standard OpenAI model; GPT-6 Astra is OpenAI's current flagship but is not admitted for this route yet.
+    rationale: Current highest-intelligence OpenAI model for demanding reasoning and professional work; its exact Responses adapter preserves native encrypted reasoning continuity.
 
 voice_sets:
   - voice_set_id: openai-gpt-4o-mini-tts-v1

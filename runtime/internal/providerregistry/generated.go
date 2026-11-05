@@ -991,7 +991,7 @@ var Records = map[string]ProviderRecord{
 		ManagedConnectorSupported:     true,
 		InlineSupported:               true,
 		DefaultEndpoint:               "https://api.openai.com/v1",
-		DefaultTextModel:              "gpt-5.6-sol",
+		DefaultTextModel:              "gpt-6.1-sol",
 		RequiresExplicitEndpoint:      false,
 		InventoryMode:                 "static_source",
 		DynamicDiscoveryTransport:     "",

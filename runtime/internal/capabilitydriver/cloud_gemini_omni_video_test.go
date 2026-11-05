@@ -65,3 +65,43 @@ func TestGeminiOmniVideoAdmitsExactModesAndControls(t *testing.T) {
 		t.Fatal(err)
 	}
 }
+
+func TestGeminiOmni12DurationIsBoundToExactModelAndMode(t *testing.T) {
+	driver, target := cloudMediaDriverTarget(t, "gemini", GeminiOmni12VideoModel, "video.generate")
+	for _, mode := range []runtimev1.VideoMode{runtimev1.VideoMode_VIDEO_MODE_T2V, runtimev1.VideoMode_VIDEO_MODE_I2V_FIRST_FRAME, runtimev1.VideoMode_VIDEO_MODE_I2V_FIRST_LAST, runtimev1.VideoMode_VIDEO_MODE_I2V_REFERENCE} {
+		spec := &runtimev1.VideoGenerateScenarioSpec{Mode: mode, Prompt: "A toy boat.", Options: &runtimev1.VideoGenerationOptions{DurationSec: testInt32(15)}}
+		add := func(role runtimev1.VideoContentRole) {
+			spec.Content = append(spec.Content, &runtimev1.VideoContentItem{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_IMAGE_URL, Role: role, ImageUrl: &runtimev1.VideoContentImageURL{Url: "https://media.example/boat.png"}})
+		}
+		switch mode {
+		case runtimev1.VideoMode_VIDEO_MODE_I2V_FIRST_FRAME:
+			add(runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_FIRST_FRAME)
+		case runtimev1.VideoMode_VIDEO_MODE_I2V_FIRST_LAST:
+			add(runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_FIRST_FRAME)
+			add(runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_LAST_FRAME)
+		case runtimev1.VideoMode_VIDEO_MODE_I2V_REFERENCE:
+			for i := 0; i < 6; i++ {
+				add(runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_IMAGE)
+			}
+		}
+		request := &runtimev1.SubmitScenarioJobRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VideoGenerate{VideoGenerate: spec}}}
+		_, err := driver.MapRequest(target, request, nil, CloudMediaStreamNone)
+		if (err == nil) != (mode != runtimev1.VideoMode_VIDEO_MODE_I2V_FIRST_LAST) {
+			t.Fatalf("mode %v at 15s: %v", mode, err)
+		}
+		spec.Options.DurationSec = testInt32(10)
+		if _, err := driver.MapRequest(target, request, nil, CloudMediaStreamNone); err != nil {
+			t.Fatal(err)
+		}
+		for _, duration := range []int32{2, 16} {
+			spec.Options.DurationSec = testInt32(duration)
+			if _, err := driver.MapRequest(target, request, nil, CloudMediaStreamNone); err == nil {
+				t.Fatal("out-of-range duration accepted")
+			}
+		}
+		spec.Options.DurationSec = testInt32(15)
+		if err := validateGeminiOmniVideoRequest(request, GeminiOmniVideoModel); err == nil {
+			t.Fatal("1.2 duration leaked into 1.1")
+		}
+	}
+}

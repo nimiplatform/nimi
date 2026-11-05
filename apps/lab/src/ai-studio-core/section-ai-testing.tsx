@@ -608,7 +608,8 @@ function TextStudioShell({
                 running={displayingExecution}
                 canRestoreInputs={displayedRunParameters !== null}
                 canRegenerate={!running && runTarget.canDispatch && (capability.id !== 'vision.locate' || Boolean(savedTextMedia)) && textMediaReplayable && displayedRunReplayable && replayAssetsAvailable}
-                regenerateHint={!running && !textMediaReplayable ? t('Studio.profiles.textGenerate.savedMediaUnavailable')
+                regenerateHint={currentResult && !currentResult.ok && currentResult.reason === 'input-invalid' ? undefined
+                  : !running && !textMediaReplayable ? t('Studio.profiles.textGenerate.savedMediaUnavailable')
                   : !running && replayAssetsChecking ? t('StudioShell.historyInputsChecking')
                     : !running && (!displayedRunReplayable || !replayAssetsAvailable) ? t('StudioShell.historyInputsUnavailable') : undefined}
                 cancelRequested={displayingExecution && cancelRequested}

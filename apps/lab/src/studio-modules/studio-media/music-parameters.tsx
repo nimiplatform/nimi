@@ -54,10 +54,11 @@ export function MusicFields(props: StudioParameterPanelProps) {
   }
   return <div className="space-y-4">
     {loading ? <p>{t('Music.loadingInputs')}</p> : !capabilities ? <p>{t('Music.configureInputs')}</p> : null}
-    <StudioParameterField label={t('Studio.parameters.fields.lyrics')}>
+    <StudioParameterField label={t(profile?.lyricsMode === 'required' ? 'Music.requiredLyricsLabel' : 'Studio.parameters.fields.lyrics')}>
       <TextareaField value={parameters.lyrics ?? ''} disabled={disabled || parameters.instrumental === true}
         textareaClassName="min-h-36 font-mono" onChange={(event) => update({ ...parameters, lyrics: event.currentTarget.value })} />
     </StudioParameterField>
+    {profile?.lyricsMode === 'required' ? <p className="text-sm opacity-70">{t('Music.lyricsRequired')}</p> : null}
     {profile?.lyricsMode === 'unsupported' ? <p className="text-sm opacity-70">{t('Music.lyricsUnsupported')}</p> : null}
     <StudioNumberParameter current={parameters} field="durationSeconds" label={t('Music.duration', { max: profile?.maxDurationSeconds ?? '—' })} onChange={update} disabled={disabled} />
     <p className="text-sm opacity-70">{profile && profile.maxDurationSeconds > 0 && profile.maxDurationSeconds === profile.defaultDurationSeconds

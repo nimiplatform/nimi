@@ -46,13 +46,13 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: 4.0Ultra
-    reviewed_at: 2026-09-28
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
     rationale: The strongest non-reasoning Spark `/v1` model, now running X1.5 in fast mode.
   - provider: spark
     profile_id: text.fast
     capability: text.generate
     model_id: lite
-    reviewed_at: 2026-09-28
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
     rationale: The lightweight Spark `/v1` model with faster responses and free use.

@@ -127,7 +127,7 @@ func geminiOmniVideoResult(response map[string]any, model string) (*NativeTaskRe
 
 func observeGeminiOmniVideo(ctx context.Context, cfg MediaAdapterConfig, receipt *NativeTaskReceipt) (*NativeTaskObservation, bool, error) {
 	uri := "https://generativelanguage.googleapis.com/v1beta/files/" + receipt.TaskID + ":download?alt=media"
-	if receipt.Model != capabilitydriver.GeminiOmniVideoModel || !validGeminiVideoArtifactURL(uri) {
+	if !capabilitydriver.IsGeminiOmniVideoModel(receipt.Model) || !validGeminiVideoArtifactURL(uri) {
 		return nil, false, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	response := map[string]any{}

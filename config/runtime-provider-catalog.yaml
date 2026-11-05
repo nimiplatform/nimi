@@ -211,7 +211,7 @@ providers:
     source_rule: K-MCAT-027
   - provider: openai
     default_endpoint: https://api.openai.com/v1
-    default_text_model: gpt-5.6-sol
+    default_text_model: gpt-6.1-sol
     requires_explicit_endpoint: false
     inventory_mode: static_source
     source_rule: K-MCAT-027

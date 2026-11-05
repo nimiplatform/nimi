@@ -98,6 +98,8 @@ async function runMusicGenerate(context: StudioCapabilityRuntimeContext) {
   const capabilities = resource?.oneofKind === 'local' ? resource.local.musicInput : resource?.oneofKind === 'cloud' ? resource.cloud.target?.musicInput : undefined;
   const profile = capabilities?.generation.find((item) => item.scoreMode === (parameters?.scoreRelativePath ? 'required' : 'unsupported'));
   if (selected?.state !== 'ready' || !profile) return context.host.nonSuccess(context.capability, 'input-invalid', context.host.translate('Music.configureInputs'));
+  if (profile.lyricsMode === 'required' && !lyrics.trim()) return context.host.nonSuccess(context.capability, 'input-invalid', context.host.translate('Music.lyricsRequired'));
+  if (profile.lyricsMode === 'unsupported' && lyrics.trim()) return context.host.nonSuccess(context.capability, 'input-invalid', context.host.translate('Music.lyricsUnsupported'));
   let score: { artifactId: string; format: 'abc' } | undefined;
   if (parameters?.scoreRelativePath) {
     const input = await context.host.client.storage.assets.read({ relativePath: parameters.scoreRelativePath });

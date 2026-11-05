@@ -119,7 +119,7 @@ func ValidateNativeTaskReceipt(r *NativeTaskReceipt) error {
 		return fmt.Errorf("Seedance original model identity invalid")
 	}
 	if r != nil && r.Adapter == AdapterGeminiOmniVideo {
-		if !validGeminiInteractionID(r.GeminiInteractionID) || r.Model != "gemini-omni-1.1-flash" || !validGeminiVideoArtifactURL("https://generativelanguage.googleapis.com/v1beta/files/"+r.TaskID+":download?alt=media") {
+		if !validGeminiInteractionID(r.GeminiInteractionID) || !capabilitydriver.IsGeminiOmniVideoModel(r.Model) || !validGeminiVideoArtifactURL("https://generativelanguage.googleapis.com/v1beta/files/"+r.TaskID+":download?alt=media") {
 			return fmt.Errorf("Gemini original resource identity invalid")
 		}
 	} else if r != nil && (r.GeminiInteractionID != "" || r.Usage != nil) {

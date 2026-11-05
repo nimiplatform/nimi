@@ -95,7 +95,7 @@ export function studioNonSuccessReasonUserMessage(reason: string, translate: Stu
   const storage = capabilityId === 'video.generate' ? mediaStorageKeySegment(diagnostics) : '';
   if (storage) return translate(`NonSuccess.message.${storage}`);
   if (capabilityId === 'audio.synthesize' && diagnostics && UNAVAILABLE_VOICE_REASON_CODES.has(diagnostics.reasonCode)) return translate('NonSuccess.message.voiceUnavailable');
-  if (reason === 'input-invalid' && capabilityId === 'video.generate' && !diagnostics && appInputMessage) return appInputMessage;
+  if (reason === 'input-invalid' && (capabilityId === 'video.generate' || capabilityId === 'music.generate') && !diagnostics && appInputMessage) return appInputMessage;
   if (reason === 'input-invalid' && capabilityId === 'audio.transcribe') return translate('NonSuccess.message.transcriptionInputInvalid');
   if (capabilityId === 'audio.synthesize' && diagnostics?.reasonCode === VOICE_INPUT_INVALID_REASON_CODE) return translate('NonSuccess.message.voiceInputRequired');
   if (capabilityId === 'audio.synthesize' && diagnostics?.reasonCode === VOICE_TARGET_MISMATCH_REASON_CODE) return translate('NonSuccess.message.voiceTargetMismatch');

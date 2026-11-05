@@ -141,13 +141,13 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: ernie-5.1
-    reviewed_at: 2026-09-28
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: ERNIE 5.1, the newest ERNIE model in Qianfan's model list and Baidu's named replacement for ERNIE X1.1.
+    rationale: The current Qianfan model list, updated 2026-11-03, retains ERNIE 5.1 as its flagship ERNIE text model.
   - provider: qianfan
     profile_id: text.reasoning
     capability: text.generate
     model_id: ernie-5.1
-    reviewed_at: 2026-09-28
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: Baidu's named replacement for ERNIE X1.1, which goes offline on 2026-09-29; ERNIE 5.1 supports deep-thinking budgets.
+    rationale: Retained ERNIE 5.1 reasoning target; ERNIE X1.1 is retired, and current model availability does not establish live account acceptance.

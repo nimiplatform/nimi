@@ -10,16 +10,21 @@ import (
 )
 
 const GeminiOmniVideoModel = "gemini-omni-1.1-flash"
+const GeminiOmni12VideoModel = "gemini-omni-1.2-flash"
+
+func IsGeminiOmniVideoModel(model string) bool {
+	return model == GeminiOmniVideoModel || model == GeminiOmni12VideoModel
+}
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.gemini-omni-video
 func validateGeminiOmniVideoRequest(request *runtimev1.SubmitScenarioJobRequest, model string) error {
 	unsupported := func() error {
 		return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{
-			Message:    "Gemini Omni supports text, first/last frames or up to six reference images, 3–10 seconds, 16:9 or 9:16 and 360p/720p/1080p/4k; other controls are unavailable",
+			Message:    "Gemini Omni supports text, first/last frames or up to six reference images, 16:9 or 9:16 and 360p/720p/1080p/4k; duration is 3–10 seconds for 1.1 and first/last frames, or 3–15 seconds for other 1.2 modes",
 			ActionHint: "use_supported_gemini_omni_video_options",
 		})
 	}
-	if model != GeminiOmniVideoModel || request == nil || request.GetSpec().GetVideoGenerate() == nil || len(request.GetExtensions()) != 0 {
+	if !IsGeminiOmniVideoModel(model) || request == nil || request.GetSpec().GetVideoGenerate() == nil || len(request.GetExtensions()) != 0 {
 		return unsupported()
 	}
 	spec := request.GetSpec().GetVideoGenerate()
@@ -93,7 +98,11 @@ func validateGeminiOmniVideoRequest(request *runtimev1.SubmitScenarioJobRequest,
 	if options == nil {
 		return nil
 	}
-	if options.DurationSec != nil && (options.GetDurationSec() < 3 || options.GetDurationSec() > 10) {
+	maxDuration := int32(10)
+	if model == GeminiOmni12VideoModel && spec.GetMode() != runtimev1.VideoMode_VIDEO_MODE_I2V_FIRST_LAST {
+		maxDuration = 15
+	}
+	if options.DurationSec != nil && (options.GetDurationSec() < 3 || options.GetDurationSec() > maxDuration) {
 		return unsupported()
 	}
 	switch options.GetResolution() {

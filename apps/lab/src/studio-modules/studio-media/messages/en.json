@@ -355,6 +355,8 @@
     "generatedPlan": "Generated plan in ABC notation",
     "recovered": "Saved to History. Select the entry there to open the result.",
     "observationIssue": "Progress is temporarily unavailable. Checking the original task again…",
-    "recoveryNeedsAttention": "Recovery needs attention"
+    "recoveryNeedsAttention": "Recovery needs attention",
+    "requiredLyricsLabel": "Lyrics (required)",
+    "lyricsRequired": "The selected model requires lyrics. Add lyrics, or choose a model that supports instrumental input."
   }
 }

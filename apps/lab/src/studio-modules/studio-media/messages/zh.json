@@ -355,6 +355,8 @@
     "generatedPlan": "ABC 格式的生成计划",
     "recovered": "已保存到历史，可选择对应记录查看结果。",
     "observationIssue": "暂时无法更新进度，正在继续查询原任务…",
-    "recoveryNeedsAttention": "恢复遇到问题"
+    "recoveryNeedsAttention": "恢复遇到问题",
+    "requiredLyricsLabel": "歌词（必填）",
+    "lyricsRequired": "所选模型需要歌词。请填写歌词；如需纯配乐，请选择支持该输入方式的模型。"
   }
 }
