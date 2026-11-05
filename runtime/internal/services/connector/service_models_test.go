@@ -621,6 +621,44 @@ func TestTestConnectorRemotePropagatesProviderAuthFailure(t *testing.T) {
 		t.Fatalf("expected AI_PROVIDER_AUTH_FAILED, got %v", resp.GetAck().GetReasonCode())
 	}
 }
+
+func TestConnectorCheckAllowsColdResponseBeyondFourSecondsAndHonorsCallerDeadline(t *testing.T) {
+	svc := newTestService(t)
+	ctx := userContext("user-1")
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		select {
+		case <-time.After(4200 * time.Millisecond):
+			w.Header().Set("Content-Type", "application/json")
+			_, _ = io.WriteString(w, `{"data":[]}`)
+		case <-r.Context().Done():
+		}
+	}))
+	t.Cleanup(server.Close)
+	svc.SetCloudProvider(nimillm.NewCloudProvider(nimillm.CloudConfig{
+		Providers:   map[string]nimillm.ProviderCredentials{"openai": {BaseURL: server.URL}},
+		HTTPTimeout: 10 * time.Second, AllowLoopbackEndpoint: true,
+	}))
+	created, err := svc.CreateConnector(ctx, &runtimev1.CreateConnectorRequest{Provider: "openai", Endpoint: server.URL, ApiKey: "test-key"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	request := &runtimev1.TestConnectorRequest{ConnectorId: created.GetConnector().GetConnectorId()}
+	result, err := svc.TestConnector(ctx, request)
+	if err != nil || !result.GetAck().GetOk() {
+		t.Fatalf("reachable delayed endpoint rejected: %v %v", result, err)
+	}
+	bounded, cancel := context.WithTimeout(ctx, 50*time.Millisecond)
+	defer cancel()
+	started := time.Now()
+	result, err = svc.TestConnector(bounded, request)
+	if err != nil || result.GetAck().GetOk() || time.Since(started) > time.Second {
+		t.Fatalf("caller deadline not preserved: %v %v", result, err)
+	}
+	if result.GetAck().GetReasonCode() != runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT {
+		t.Fatalf("timeout reason changed: %v", result.GetAck())
+	}
+}
+
 func TestTestConnectorQwenOAuthUsesBearerTokenThroughOpenAICompatibleProvider(t *testing.T) {
 	svc := newTestService(t)
 	ctx := userContext("user-1")

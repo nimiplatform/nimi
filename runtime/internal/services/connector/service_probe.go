@@ -14,6 +14,10 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 )
 
+// An explicit connection check must allow a cold DNS/TLS round trip and the
+// provider's response. It still inherits an earlier caller cancellation.
+const connectorProbeTimeout = 30 * time.Second
+
 // @nimi-authority: rule.nimi.runtime.ai-provider.r025
 func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnectorRequest) (*runtimev1.TestConnectorResponse, error) {
 	connectorID := strings.TrimSpace(req.GetConnectorId())
@@ -75,7 +79,7 @@ func (s *Service) TestConnector(ctx context.Context, req *runtimev1.TestConnecto
 		s.emitAudit(ctx, "connector.test", reason, auditPayload)
 		return &runtimev1.TestConnectorResponse{Ack: &runtimev1.Ack{Ok: check.OK, ReasonCode: reason, ActionHint: hint}, Connector: recordToProto(updated)}, nil
 	}
-	probeCtx, cancel := context.WithTimeout(ctx, 4*time.Second)
+	probeCtx, cancel := context.WithTimeout(ctx, connectorProbeTimeout)
 	defer cancel()
 	if IsChatGPTPlanRecord(rec) {
 		reason, hint := s.testChatGPTPlanConnector(probeCtx, rec)

@@ -101,7 +101,9 @@ export function createRuntimeConfigConnectorSdkService(
     createConnector: (request, options) => getConnectors().createConnector(request, options),
     updateConnector: (request, options) => getConnectors().updateConnector(request, options),
     deleteConnector: (request, options) => getConnectors().deleteConnector(request, options),
-    testConnector: (request, options) => getConnectors().testConnector(request, options),
+    // The Runtime check owns a 30-second network budget. Leave time for its
+    // persisted observation to return without extending ordinary local CRUD.
+    testConnector: (request, options) => getConnectors().testConnector(request, { ...options, timeoutMs: 35_000 }),
     listConnectorModels: (request, options) => getConnectors().listConnectorModels(request, options),
   });
   const inventory = createNimiRuntimeConnectorInventoryClient({

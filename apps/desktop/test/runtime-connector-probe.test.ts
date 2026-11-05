@@ -240,6 +240,25 @@ const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
   },
 ];
 
+test('connection checks receive the network budget while inventory reads stay bounded locally', async () => {
+  const calls: ElectronInvokeCall[] = [];
+  const restore = installElectronRuntime(calls);
+  clearRuntimeConnectorSdkCaches();
+  try {
+    // This fixture returns no check receipt. Rejection is expected; the test
+    // protects the deadline carried by the real SDK/IPC request, not success.
+    await assert.rejects(connectorSdk.sdkTestConnector('conn-openai'));
+    await sdkListConnectors();
+    const check = calls.find(call => call.payload.methodId === '/nimi.runtime.v1.RuntimeConnectorService/TestConnector');
+    const list = calls.find(call => call.payload.methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectors');
+    assert.equal(check?.payload.timeoutMs, 35_000);
+    assert.equal(list?.payload.timeoutMs, 5_000);
+  } finally {
+    clearRuntimeConnectorSdkCaches();
+    restore();
+  }
+});
+
 test('sdkConnectorToApiConnector maps SDK connector shape to ApiConnector', () => {
   const sdkConnector = {
     connectorId: 'conn-123',

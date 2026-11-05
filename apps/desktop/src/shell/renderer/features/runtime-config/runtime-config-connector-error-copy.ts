@@ -11,7 +11,9 @@ export function humanizeConnectorError(raw: string, t: (key: string) => string, 
     return t('runtimeConfig.product.errorConnectorUnsupported');
   if (text.includes('AI_PROVIDER_AUTH_FAILED') || text.includes('AI_CONNECTOR_CREDENTIAL_MISSING') || text.includes('UNAUTHORIZED') || text.includes('401') || text.includes('INVALID_API_KEY'))
     return t('runtimeConfig.product.errorCredentialRejected');
-  if (text.includes('UNREACHABLE') || text.includes('ECONNREFUSED') || text.includes('ENOTFOUND') || text.includes('TIMEOUT') || text.includes('NETWORK'))
+  if (text.includes('TIMEOUT') || text.includes('TIMED OUT') || text.includes('DEADLINE_EXCEEDED') || text.includes('DEADLINEEXCEEDED'))
+    return t('runtimeConfig.product.errorConnectionTimeout');
+  if (text.includes('UNREACHABLE') || text.includes('ECONNREFUSED') || text.includes('ENOTFOUND') || text.includes('NETWORK'))
     return t('runtimeConfig.product.errorEndpointUnreachable');
   if (text.includes('AI_PROVIDER_UNAVAILABLE'))
     return t('runtimeConfig.product.errorProviderUnavailable');

@@ -25,3 +25,9 @@ test('credential, reachability and unsupported-service failures keep their speci
   assert.equal(humanizeConnectorError('dial tcp: ECONNREFUSED', t, 'check'), 'runtimeConfig.product.errorEndpointUnreachable');
   assert.equal(humanizeConnectorError('AI_CONNECTOR_INVALID', t, 'check'), 'runtimeConfig.product.errorConnectorUnsupported');
 });
+
+test('a connection-check timeout is not reported as an unreachable endpoint', () => {
+  for (const reason of ['AI_PROVIDER_TIMEOUT', 'DeadlineExceeded', 'DEADLINE_EXCEEDED', 'network request timed out']) {
+    assert.equal(humanizeConnectorError(reason, t, 'check'), 'runtimeConfig.product.errorConnectionTimeout');
+  }
+});

@@ -3143,6 +3143,7 @@
     "errorCredentialRejected": "Credential or access verification failed. Check your authorization.",
     "errorConnectorUnsupported": "Nimi no longer supports this connection's service or settings. Remove this connection, then connect a supported service.",
     "errorEndpointUnreachable": "The service endpoint could not be reached. Check the endpoint and your network.",
+    "errorConnectionTimeout": "The connection check timed out. Try again later and check your network connection.",
     "errorProviderUnavailable": "The service did not respond successfully just now. Try again in a moment.",
     "connectionCheckedModels": "Connected · {{count}} models available",
     "checkAgain": "Check again",
