@@ -133,6 +133,22 @@ sources:
     url: https://help.aliyun.com/en/model-studio/qwen3-5-omni-flash-realtime
     retrieved_at: 2026-10-21
     note: Exact model has 262144 total context, 196608 maximum input and 65536 maximum output; the request-capacity floor uses the input limit.
+  - source_id: dashscope_qwen38_realtime_model
+    url: https://help.aliyun.com/en/model-studio/qwen3-8-omni-flash-realtime
+    retrieved_at: 2026-11-05
+    note: Workspace-scoped Qwen3.8 realtime target, 196608 maximum input and 65536 maximum output; speech bills both output audio and corresponding text.
+  - source_id: dashscope_qwen38_realtime_client
+    url: https://help.aliyun.com/en/model-studio/client-events
+    retrieved_at: 2026-11-05
+    note: Nested PCM formats, Tina voice and explicit turn controls. Multichannel/video/MCP are separate native features outside the current Nimi audio/text session contract.
+  - source_id: dashscope_qwen38_realtime_server
+    url: https://help.aliyun.com/zh/model-studio/server-events
+    retrieved_at: 2026-11-05
+    note: Native session configuration echo, transcription prefix/stash snapshots and response terminals.
+  - source_id: dashscope_qwen38_realtime_endpoint
+    url: https://help.aliyun.com/en/model-studio/realtime-websocket-overview
+    retrieved_at: 2026-11-05
+    note: Requires the configured workspace domain in Beijing or Singapore; no workspace is inferred from an API key.
   - source_id: dashscope_funasr_doc
     url: https://help.aliyun.com/zh/model-studio/funauidio-asr-recorded-speech-recognition-restful-api
     retrieved_at: 2026-04-18
@@ -1119,6 +1135,20 @@ models:
     aliases:
       - qwen3-asr-flash-2025-09-08
       - qwen3-asr-flash-2026-02-10
+
+  - model_id: qwen3.8-omni-flash-realtime
+    model_type: chat
+    updated_at: 2026-11-05
+    capabilities: [realtime.interact]
+    context_window_tokens: 196608
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-05
+      notes: Requires a workspace-specific configured endpoint and matching regional key. Nimi admits owner-controlled mono PCM audio/text; native automatic response/interruption must remain disabled. Modality-specific audio and text charges cannot be represented by a single request rate.
+    source_ids: [dashscope_qwen38_realtime_model, dashscope_qwen38_realtime_client, dashscope_qwen38_realtime_server, dashscope_qwen38_realtime_endpoint]
 
   - model_id: qwen3.5-omni-flash-realtime
     model_type: chat

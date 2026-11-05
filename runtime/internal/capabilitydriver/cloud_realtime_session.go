@@ -91,6 +91,9 @@ func (dashScopeRealtimeDriver) NewSession(target CloudRealtimeTarget, open Cloud
 	if open.InteractionMode == runtimev1.AiRealtimeInteractionMode_AI_REALTIME_INTERACTION_MODE_CONTINUOUS {
 		return nil, continuousRealtimeUnsupported()
 	}
+	if target.ProviderModelID() == dashScope38RealtimeModel {
+		return newRealtimeWireSession(dashScope38RealtimeMapper{}, target, open), nil
+	}
 	return newRealtimeWireSession(dashScopeRealtimeDriver{}, target, open), nil
 }
 func (openAIRealtimeDriver) NewSession(target CloudRealtimeTarget, open CloudRealtimeOpen) (CloudRealtimeProtocol, error) {

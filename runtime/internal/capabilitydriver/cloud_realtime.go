@@ -152,7 +152,7 @@ func (dashScopeRealtimeDriver) ValidateTarget(identity Identity, raw *structpb.S
 	provider, providerOK := exactCloudTargetText(raw, "provider")
 	model, modelOK := exactCloudTargetText(raw, "providerModelId")
 	catalogID, catalogOK := exactCloudTargetText(raw, "remoteModelCatalogId")
-	if !providerOK || provider != "dashscope" || !modelOK || model != "qwen3.5-omni-flash-realtime" || !catalogOK {
+	if !providerOK || provider != "dashscope" || !modelOK || (model != "qwen3.5-omni-flash-realtime" && model != dashScope38RealtimeModel) || !catalogOK {
 		return CloudRealtimeTarget{}, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("DashScope Realtime target is not admitted"))
 	}
 	region := ""
