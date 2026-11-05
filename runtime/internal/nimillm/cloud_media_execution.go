@@ -123,6 +123,8 @@ func (p *CloudProvider) ExecuteMediaAdapter(
 		artifacts, usage, providerJobID, err = ExecuteKlingTask(ctx, cfg, updater, privateJobID, request, modelID)
 	case AdapterLumaRay32:
 		artifacts, usage, providerJobID, err = ExecuteLumaRay32(ctx, cfg, request)
+	case AdapterLumaUniImage:
+		artifacts, usage, providerJobID, err = ExecuteLumaUniImage(ctx, cfg, request, modelID)
 	case "luma_task_adapter":
 		artifacts, usage, providerJobID, err = ExecuteLumaTask(ctx, cfg, updater, privateJobID, request, modelID)
 	case "pika_task_adapter":

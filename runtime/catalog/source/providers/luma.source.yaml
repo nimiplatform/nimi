@@ -1,6 +1,6 @@
 schema_version: 3
 provider: luma
-catalog_version: 2026-11-05-luma-ray32
+catalog_version: 2026-11-06-luma-uni-images
 generated_target: runtime/catalog/providers/luma.yaml
 runtime:
   inventory_mode: static_source
@@ -22,6 +22,14 @@ defaults:
     notes: Luma video pricing varies by model family and account credits. The reviewed public docs do not expose stable per-model request prices in machine-readable form.
 
 sources:
+  - source_id: luma_uni_generation
+    url: https://docs.agents.lumalabs.ai/guides/images/generation/
+    retrieved_at: 2026-11-06
+    note: Exact uni-1 and uni-1-max image options, image versus edit semantics and native task lifecycle.
+  - source_id: luma_uni_editing
+    url: https://docs.agents.lumalabs.ai/guides/images/editing/
+    retrieved_at: 2026-11-06
+    note: Original source plus up to eight ordered references; source geometry and typed original task identity.
   - source_id: luma_ray32_generate
     url: https://docs.agents.lumalabs.ai/guides/videos/generation/
     retrieved_at: 2026-11-05
@@ -44,6 +52,54 @@ sources:
     note: Luma create generation API reference showing the currently admitted model enum set.
 
 models:
+  - model_id: uni-1
+    model_type: image
+    updated_at: 2026-11-06
+    capabilities: [image.generate]
+    features: [input.image]
+    image_request_options:
+      response_formats: [b64_json]
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: false
+      supports_size: false
+      supports_aspect_ratio: true
+      supports_quality: false
+      supports_style: true
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Native credit charges are account-specific; token usage and USD cost are not inferred.
+    source_ids: [luma_uni_generation, luma_uni_editing, luma_agents_create]
+  - model_id: uni-1-max
+    model_type: image
+    updated_at: 2026-11-06
+    capabilities: [image.generate]
+    features: [input.image]
+    image_request_options:
+      response_formats: [b64_json]
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: false
+      supports_size: false
+      supports_aspect_ratio: true
+      supports_quality: false
+      supports_style: true
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Native credit charges are account-specific; token usage and USD cost are not inferred.
+    source_ids: [luma_uni_generation, luma_uni_editing, luma_agents_create]
   - model_id: ray-3.2
     model_type: video
     updated_at: 2026-11-05

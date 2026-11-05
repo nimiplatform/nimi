@@ -68,6 +68,7 @@ const (
 	CloudMediaAdapterKlingTask               = "kling_task_adapter"
 	CloudMediaAdapterLumaTask                = "luma_task_adapter"
 	CloudMediaAdapterLumaRay32               = "luma_ray32_adapter"
+	CloudMediaAdapterLumaUniImage            = "luma_uni_image_adapter"
 	CloudMediaAdapterPikaTask                = "pika_task_adapter"
 	CloudMediaAdapterRunwayTask              = "runway_task_adapter"
 	CloudMediaAdapterGeminiOmniVideo         = "gemini_omni_video_adapter"
@@ -597,7 +598,7 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 	if err := validateCloudMediaMappedRequest(mapped); err != nil {
 		return nil, err
 	}
-	if spec := mapped.GetSpec().GetImageGenerate(); spec != nil && ImageHasExtendedControls(spec) && !(d.provider == "openai" && IsOpenAIImage26(target.providerModelID)) {
+	if spec := mapped.GetSpec().GetImageGenerate(); spec != nil && ImageHasExtendedControls(spec) && !(d.provider == "openai" && IsOpenAIImage26(target.providerModelID)) && !(d.provider == "luma" && IsLumaUniImageModel(target.providerModelID)) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	for _, item := range mapped.GetSpec().GetVideoGenerate().GetContent() {
@@ -609,7 +610,7 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 		return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("provider does not support music iteration mapping"))
 	}
 	if spec := mapped.GetSpec().GetImageGenerate(); spec != nil && strings.TrimSpace(spec.GetReferenceImageArtifactId()) != "" {
-		if (d.provider != "gemini" && !(d.provider == "flux" && IsFlux3ImageModel(target.providerModelID)) && !(d.provider == "ideogram" && target.providerModelID == Ideogram45Model) && !(d.provider == "openai" && IsOpenAIImage26(target.providerModelID))) || len(spec.GetReferenceImages()) != 0 {
+		if (d.provider != "gemini" && !(d.provider == "flux" && IsFlux3ImageModel(target.providerModelID)) && !(d.provider == "ideogram" && target.providerModelID == Ideogram45Model) && !(d.provider == "openai" && IsOpenAIImage26(target.providerModelID)) && !(d.provider == "luma" && IsLumaUniImageModel(target.providerModelID))) || len(spec.GetReferenceImages()) != 0 {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 		}
 	}
@@ -618,6 +619,14 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 		}
 		if err := ValidateIdeogram45Request(mapped.GetSpec().GetImageGenerate()); err != nil {
+			return nil, err
+		}
+	}
+	if d.provider == "ideogram" && target.providerModelID != Ideogram45Model && target.capabilityContract == "image.generate" {
+		if len(mapped.GetExtensions()) > 0 {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
+		if err := ValidateIdeogramGenerationRequest(mapped.GetSpec().GetImageGenerate(), target.providerModelID); err != nil {
 			return nil, err
 		}
 	}
@@ -663,6 +672,15 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 		}
 	}
 	adapter := cloudMediaAdapterFor(d.provider, target.capabilityContract)
+	if d.provider == "luma" && target.capabilityContract == "image.generate" {
+		if !IsLumaUniImageModel(target.providerModelID) {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
+		if err := normalizeLumaUniImageRequest(mapped); err != nil {
+			return nil, err
+		}
+		adapter = CloudMediaAdapterLumaUniImage
+	}
 	if d.provider == "luma" && target.providerModelID == LumaRay32Model && target.capabilityContract == "video.generate" {
 		if err := normalizeLumaRay32Request(mapped); err != nil {
 			return nil, err

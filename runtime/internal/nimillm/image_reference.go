@@ -115,6 +115,9 @@ func ValidateGeminiImageReferenceRequest(spec *runtimev1.ImageGenerateScenarioSp
 }
 
 func ValidateCloudImageReferenceRequest(provider, model string, spec *runtimev1.ImageGenerateScenarioSpec, reference *CapturedMediaReference) error {
+	if provider == "luma" && capabilitydriver.IsLumaUniImageModel(model) {
+		return validateCapturedRasterReference(reference, spec.GetReferenceImageArtifactId(), 16<<20, 8000)
+	}
 	if provider == "ideogram" && model == capabilitydriver.Ideogram45Model {
 		return ValidateIdeogram45OwnedSource(spec, reference)
 	}

@@ -374,6 +374,7 @@ providers:
     endpoint_requirement: explicit_required
     inventory_mode: static_source
     capabilities:
+      - image.generate
       - video.generate
     sources:
       - K-MCAT-027

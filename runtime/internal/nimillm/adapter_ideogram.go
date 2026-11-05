@@ -1,7 +1,10 @@
 package nimillm
 
 import (
+	"bytes"
 	"context"
+	"fmt"
+	"mime/multipart"
 	"net/http"
 	"strings"
 
@@ -42,55 +45,87 @@ func ExecuteIdeogramImage(
 	if spec == nil {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
+	if modelResolved != "ideogram-v3" && modelResolved != "ideogram-v2-turbo" {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
 
 	imageRequest := map[string]any{
-		"prompt": strings.TrimSpace(spec.GetPrompt()),
-		"model":  strings.TrimSpace(modelResolved),
+		"prompt": spec.GetPrompt(),
 	}
 	if negPrompt := strings.TrimSpace(spec.GetNegativePrompt()); negPrompt != "" {
 		imageRequest["negative_prompt"] = negPrompt
 	}
 	if aspectRatio := strings.TrimSpace(spec.GetAspectRatio()); aspectRatio != "" {
-		imageRequest["aspect_ratio"] = aspectRatio
+		if modelResolved == "ideogram-v3" {
+			imageRequest["aspect_ratio"] = strings.ReplaceAll(aspectRatio, ":", "x")
+		} else {
+			imageRequest["aspect_ratio"] = "ASPECT_" + strings.ReplaceAll(aspectRatio, ":", "_")
+		}
 	}
 	if style := strings.TrimSpace(spec.GetStyle()); style != "" {
-		imageRequest["style_type"] = style
+		imageRequest["style_type"] = strings.ToUpper(style)
 	}
 	if seed := spec.GetSeed(); spec.Seed != nil {
 		imageRequest["seed"] = seed
 	}
 
-	payload := map[string]any{
-		"image_request": imageRequest,
-	}
-
-	endpoint := firstProviderEndpointPath([]string{"/generate"})
+	endpoint := "/generate"
 	resp := map[string]any{}
 	headers := cloneMediaHeaders(cfg.Headers)
 	if headers == nil {
 		headers = map[string]string{}
 	}
 	headers["Api-Key"] = apiKey
-	if err := DoJSONRequestWithHeaders(ctx, http.MethodPost, JoinURL(baseURL, endpoint), "", payload, &resp, headers); err != nil {
-		return nil, nil, "", err
+	if modelResolved == "ideogram-v3" {
+		endpoint = "/v1/ideogram-v3/generate"
+		var body bytes.Buffer
+		writer := multipart.NewWriter(&body)
+		for key, value := range imageRequest {
+			if err := writer.WriteField(key, fmt.Sprint(value)); err != nil {
+				return nil, nil, "", err
+			}
+		}
+		if err := writer.Close(); err != nil {
+			return nil, nil, "", err
+		}
+		if err := postIdeogramMultipart(ctx, JoinURL(baseURL, endpoint), body.Bytes(), writer.FormDataContentType(), headers, &resp); err != nil {
+			return nil, nil, "", err
+		}
+	} else {
+		imageRequest["model"] = "V_2_TURBO"
+		if err := DoJSONRequestWithHeaders(ctx, http.MethodPost, JoinURL(baseURL, endpoint), "", map[string]any{"image_request": imageRequest}, &resp, headers); err != nil {
+			return nil, nil, "", err
+		}
 	}
-	artifactBytes, mimeType, artifactURI := ExtractTaskArtifactSource(ctx, resp)
-	if len(artifactBytes) == 0 && strings.TrimSpace(artifactURI) == "" {
+	data, ok := resp["data"].([]any)
+	if !ok || len(data) != 1 {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	if mimeType == "" {
-		mimeType = ResolveImageArtifactMIME(spec, artifactBytes)
+	row, ok := data[0].(map[string]any)
+	if !ok {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	safe, ok := row["is_image_safe"].(bool)
+	if !ok {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	if !safe {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED)
+	}
+	artifactURI := ValueAsString(row["url"])
+	if !validNativeVideoArtifactURL(artifactURI) {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
 	artifactMeta := map[string]any{
 		"adapter":  AdapterIdeogramNative,
 		"endpoint": endpoint,
 		"prompt":   strings.TrimSpace(spec.GetPrompt()),
-		"response": resp,
 	}
 	if artifactURI != "" {
 		artifactMeta["uri"] = artifactURI
 	}
-	artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
+	artifact := BinaryArtifact("image/png", nil, artifactMeta)
+	artifact.Uri = artifactURI
 	ApplyImageSpecMetadata(artifact, spec)
 	return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 }

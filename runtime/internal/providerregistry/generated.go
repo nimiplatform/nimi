@@ -830,7 +830,7 @@ var Records = map[string]ProviderRecord{
 		DynamicPreferredModelPatterns: nil,
 		SupportsText:                  false,
 		SupportsEmbed:                 false,
-		SupportsImage:                 false,
+		SupportsImage:                 true,
 		SupportsVideo:                 true,
 		SupportsTTS:                   false,
 		SupportsSTT:                   false,

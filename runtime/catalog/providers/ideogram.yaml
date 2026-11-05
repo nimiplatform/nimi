@@ -1,6 +1,6 @@
 version: 1
 provider: ideogram
-catalog_version: 2026-11-05-ideogram45-v2
+catalog_version: 2026-11-06-native-image-protocols
 inventory_mode: static_source
 models:
   - model_id: ideogram-4-5
@@ -78,9 +78,9 @@ models:
       as_of: 2026-04-18
       notes: Ideogram legacy V_2_TURBO pricing remains on the official pricing page, but the reviewed page does not expose a stable per-model number in machine-readable text.
     source_ref:
-      url: https://developer.ideogram.ai/api-reference/api-reference/generate
-      retrieved_at: 2026-04-18
-      note: Ideogram legacy generate endpoint reference that still documents V_2 family usage.
+      url: https://developer.ideogram.ai/v1/api-reference/legacy-endpoints/generate
+      retrieved_at: 2026-11-06
+      note: Separate /generate JSON image_request envelope and native V_2_TURBO model identity; no silent model migration.
     image_request_options: &a1
       response_formats:
         - b64_json
@@ -107,9 +107,9 @@ models:
       as_of: 2026-04-18
       notes: Ideogram legacy V_2_TURBO pricing remains on the official pricing page, but the reviewed page does not expose a stable per-model number in machine-readable text.
     source_ref:
-      url: https://developer.ideogram.ai/api-reference/api-reference/generate
-      retrieved_at: 2026-04-18
-      note: Ideogram legacy generate endpoint reference that still documents V_2 family usage.
+      url: https://developer.ideogram.ai/v1/api-reference/legacy-endpoints/generate
+      retrieved_at: 2026-11-06
+      note: Separate /generate JSON image_request envelope and native V_2_TURBO model identity; no silent model migration.
     api_model_id: ideogram-v2-turbo
     image_request_options: *a1
 voices: []

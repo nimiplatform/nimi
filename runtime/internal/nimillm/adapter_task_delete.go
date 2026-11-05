@@ -34,7 +34,7 @@ func DeleteProviderAsyncTask(ctx context.Context, adapter string, providerJobID 
 			return ProviderTaskCleanupFailed, err
 		}
 		return ProviderTaskCleanupUnconfirmed, nil
-	case AdapterLumaRay32:
+	case AdapterLumaRay32, AdapterLumaUniImage:
 		// Generation DELETE only accepts finished jobs and starts asynchronous data
 		// deletion. It is not a provider cancellation operation.
 		return ProviderTaskCleanupNotCancelable, nil

@@ -30,6 +30,7 @@ type NativeTaskReceipt struct {
 	PollingURL          string                      `json:"polling_url,omitempty"`
 	Artifact            *runtimev1.ScenarioArtifact `json:"artifact_template"`
 	GeminiInteractionID string                      `json:"gemini_interaction_id,omitempty"`
+	LumaGenerationType  string                      `json:"luma_generation_type,omitempty"`
 	Usage               *runtimev1.UsageStats       `json:"usage,omitempty"`
 }
 
@@ -98,6 +99,13 @@ func requireNativeTaskPublisher(ctx context.Context) error {
 }
 
 func ValidateNativeTaskReceipt(r *NativeTaskReceipt) error {
+	if r != nil && r.Adapter == AdapterLumaUniImage {
+		if !capabilitydriver.IsLumaUniImageModel(r.Model) || (r.LumaGenerationType != "image" && r.LumaGenerationType != "image_edit") || r.Artifact == nil || (r.Artifact.GetMimeType() != "image/png" && r.Artifact.GetMimeType() != "image/jpeg") {
+			return fmt.Errorf("Luma original image identity invalid")
+		}
+	} else if r != nil && r.LumaGenerationType != "" {
+		return fmt.Errorf("native receipt contains inapplicable Luma image type")
+	}
 	if r != nil && r.Adapter == AdapterLumaRay32 && r.Model != capabilitydriver.LumaRay32Model {
 		return fmt.Errorf("Luma original model identity invalid")
 	}
@@ -151,8 +159,8 @@ func nativeTaskQueryPathAllowed(adapter, path string) bool {
 		return path == "/v1/images/generations/{task_id}" || path == "/v1/videos/text2video/{task_id}"
 	case AdapterRunwayTask:
 		return path == "/v1/tasks/{task_id}"
-	case AdapterLumaRay32:
-		return path == lumaRay32QueryPath
+	case AdapterLumaRay32, AdapterLumaUniImage:
+		return path == lumaAgentsQueryPath
 	case AdapterLumaTask:
 		return path == "/dream-machine/v1/generations/{task_id}"
 	case AdapterPikaTask:
@@ -220,7 +228,10 @@ func ObserveNativeTask(ctx context.Context, cfg MediaAdapterConfig, r *NativeTas
 		return observeMiniMaxH3Video(ctx, cfg, r)
 	}
 	if r.Adapter == AdapterLumaRay32 {
-		return observeLumaRay32(ctx, cfg, r)
+		return observeLumaAgents(ctx, cfg, r, "video", "video")
+	}
+	if r.Adapter == AdapterLumaUniImage {
+		return observeLumaAgents(ctx, cfg, r, r.LumaGenerationType, "image")
 	}
 	if r.Adapter == AdapterIdeogramNative {
 		return observeIdeogram45Image(ctx, cfg, r)

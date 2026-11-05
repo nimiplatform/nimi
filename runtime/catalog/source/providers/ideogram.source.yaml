@@ -1,6 +1,6 @@
 schema_version: 3
 provider: ideogram
-catalog_version: 2026-11-05-ideogram45-v2
+catalog_version: 2026-11-06-native-image-protocols
 generated_target: runtime/catalog/providers/ideogram.yaml
 runtime:
   inventory_mode: static_source
@@ -35,13 +35,13 @@ sources:
     retrieved_at: 2026-04-18
     note: Ideogram developer API overview centered on current Ideogram 3.0 endpoints.
   - source_id: ideogram_generate_v3_doc
-    url: https://developer.ideogram.ai/api-reference/api-reference/generate-v3
-    retrieved_at: 2026-04-18
-    note: Ideogram 3.0 generate endpoint reference.
+    url: https://developer.ideogram.ai/v1/api-reference/generate-images/generate-v3
+    retrieved_at: 2026-11-06
+    note: Native v3 multipart generation, aspect and style fields, seed presence, and safe synchronous image results.
   - source_id: ideogram_generate_legacy_doc
-    url: https://developer.ideogram.ai/api-reference/api-reference/generate
-    retrieved_at: 2026-04-18
-    note: Ideogram legacy generate endpoint reference that still documents V_2 family usage.
+    url: https://developer.ideogram.ai/v1/api-reference/legacy-endpoints/generate
+    retrieved_at: 2026-11-06
+    note: Separate /generate JSON image_request envelope and native V_2_TURBO model identity; no silent model migration.
   - source_id: ideogram_pricing_page
     url: https://ideogram.ai/features/api-pricing
     retrieved_at: 2026-04-18

@@ -58,7 +58,7 @@ func executeIdeogram45Image(ctx context.Context, cfg MediaAdapterConfig, s *runt
 		var contentType string
 		body, contentType, err = ideogram45Multipart(ctx, s, fields)
 		if err == nil {
-			err = postIdeogram45Multipart(nativeCreateRequest(ctx), endpoint, body, contentType, headers, &response)
+			err = postIdeogramMultipart(nativeCreateRequest(ctx), endpoint, body, contentType, headers, &response)
 		}
 	}
 	if err != nil {
@@ -162,7 +162,7 @@ func ideogram45Multipart(ctx context.Context, s *runtimev1.ImageGenerateScenario
 	return body.Bytes(), writer.FormDataContentType(), nil
 }
 
-func postIdeogram45Multipart(ctx context.Context, endpoint string, body []byte, contentType string, headers map[string]string, target *map[string]any) error {
+func postIdeogramMultipart(ctx context.Context, endpoint string, body []byte, contentType string, headers map[string]string, target *map[string]any) error {
 	client, req, err := newSecuredHTTPRequest(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
 	if err != nil {
 		return err

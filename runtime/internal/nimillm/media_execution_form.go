@@ -27,6 +27,8 @@ func MediaUsesNativeTask(adapter string, request *runtimev1.SubmitScenarioJobReq
 		return modal == runtimev1.Modal_MODAL_IMAGE || modal == runtimev1.Modal_MODAL_VIDEO
 	case AdapterIdeogramNative:
 		return modal == runtimev1.Modal_MODAL_IMAGE && model == "ideogram-4-5"
+	case AdapterLumaUniImage:
+		return modal == runtimev1.Modal_MODAL_IMAGE
 	case AdapterFluxNative:
 		return modal == runtimev1.Modal_MODAL_IMAGE || modal == runtimev1.Modal_MODAL_VIDEO && model == "flux-3-video"
 	case AdapterMubertMusic:
