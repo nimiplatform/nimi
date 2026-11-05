@@ -1,4 +1,6 @@
 import type { HeroDemo } from '../content/landing-content.js';
+import type { ReactNode } from 'react';
+import { DemoWindowHeader, type DemoWindowClose } from './demo-window-header.js';
 
 /**
  * Static, size-stable stand-in for the interactive desktop preview: rendered
@@ -12,10 +14,16 @@ export function HeroDemoStatic({
   demo,
   surface = 'home',
   expanded = false,
+  windowTitle,
+  windowActions,
+  windowClose,
 }: {
   demo: HeroDemo;
   surface?: 'home' | 'chat' | 'apps';
   expanded?: boolean;
+  windowTitle?: string;
+  windowActions?: ReactNode;
+  windowClose?: DemoWindowClose;
 }) {
   const frameClass = expanded ? 'hero-demo-frame flex h-full min-h-0 flex-col' : 'hero-demo-frame';
   const bodyClass = expanded
@@ -24,12 +32,10 @@ export function HeroDemoStatic({
   const placeholderClass = 'mt-6 w-full max-w-xl rounded-control border border-slate-200 bg-white px-5 py-4';
   return (
     <div className={frameClass}>
-      <div className="hero-demo-titlebar flex shrink-0 items-center gap-2 px-4 py-2.5">
-        <span className="h-2.5 w-2.5 rounded-full bg-[#fca5a5]" aria-hidden="true" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#fcd34d]" aria-hidden="true" />
-        <span className="h-2.5 w-2.5 rounded-full bg-[#6ee7b7]" aria-hidden="true" />
-        <span className="ml-2 text-sm font-semibold tracking-tight text-slate-700">{demo.windowTitle}</span>
-      </div>
+      <DemoWindowHeader title={windowTitle ?? demo.windowTitle} close={windowClose}>
+        <span className="demo-preview-badge ml-auto">{demo.home.badge}</span>
+        {windowActions}
+      </DemoWindowHeader>
       {surface === 'apps' ? (
         <div className={bodyClass}>
           <p className="text-base font-semibold tracking-tight text-slate-700 md:text-lg">
@@ -49,7 +55,6 @@ export function HeroDemoStatic({
               {surface === 'chat' ? demo.chat.inputPlaceholder : demo.home.recent}
             </span>
           </div>
-          <p className="mt-3 text-[11px] leading-5 text-slate-400">{demo.home.badge}</p>
         </div>
       )}
     </div>

@@ -7,7 +7,7 @@ import type {
   NimiIntegrationTarget,
 } from '@nimiplatform/sdk/app';
 import { AppArtworkIcon } from '../apps/apps-card-visuals.js';
-import { integrationOperationPresentation } from './integration-operation-presentation.js';
+import { integrationOperationDisplayName, integrationOperationPresentation } from './integration-operation-presentation.js';
 import { IntegrationConsumerDetails } from './integration-consumer-details.js';
 
 export function IntegrationPermissionsView({
@@ -115,7 +115,11 @@ export function IntegrationPermissionsView({
                               {t('Integrations.unavailablePermissionSource')}
                             </p>
                           ) : null}
-                          <IntegrationConsumerDetails consumerRef={permission.consumerRef} targetRef={permission.targetRef} />
+                          <IntegrationConsumerDetails
+                            consumerRef={permission.consumerRef}
+                            targetRef={permission.targetRef}
+                            operations={permission.operations}
+                          />
                         </div>
                       </div>
                     </td>
@@ -126,11 +130,11 @@ export function IntegrationPermissionsView({
                           return (
                             <li
                               key={name}
-                              className="break-all rounded-md bg-[var(--nimi-surface-active)] px-2 py-0.5 text-xs text-[var(--nimi-text-secondary)]"
+                              className="break-words rounded-md bg-[var(--nimi-surface-active)] px-2 py-0.5 text-xs text-[var(--nimi-text-secondary)]"
                             >
                               {source && op
                                 ? integrationOperationPresentation(source.kind, op, t).name
-                                : name}
+                                : integrationOperationDisplayName({ name })}
                             </li>
                           );
                         })}

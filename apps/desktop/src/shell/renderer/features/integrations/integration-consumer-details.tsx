@@ -3,7 +3,11 @@ import { IconButton } from '@nimiplatform/kit/ui';
 import { Check, Copy } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-export function IntegrationConsumerDetails({ consumerRef, targetRef }: { consumerRef: string; targetRef?: string }) {
+export function IntegrationConsumerDetails({ consumerRef, targetRef, operations }: {
+  consumerRef: string;
+  targetRef?: string;
+  operations?: readonly string[];
+}) {
   const { t } = useTranslation();
   const [copyStatus, setCopyStatus] = useState<'idle' | 'copying' | 'copied' | 'failed'>('idle');
 
@@ -42,6 +46,12 @@ export function IntegrationConsumerDetails({ consumerRef, targetRef }: { consume
         {targetRef ? <>
           <p>{t('Integrations.connectionReference')}</p>
           <code className="block select-text break-all">{targetRef}</code>
+        </> : null}
+        {operations?.length ? <>
+          <p>{t('Integrations.operationIdentifiers')}</p>
+          <ul className="space-y-1">
+            {operations.map(name => <li key={name}><code className="select-text break-all">{name}</code></li>)}
+          </ul>
         </> : null}
       </div>
     </details>

@@ -40,7 +40,7 @@ export function AppsInstallConfirmationDialog({
             <dt>{t('Apps.catalog.target')}</dt>
             <dd className="break-all text-right">{intent.targetId}</dd>
             <dt>{t('Apps.catalog.asset')}</dt>
-            <dd className="break-all text-right">{intent.assetName} · {intent.assetSize} bytes</dd>
+            <dd className="break-all text-right">{intent.assetName} · {t('Apps.catalog.assetSizeBytes', { size: intent.assetSize })}</dd>
           </dl>
           {intent.windowsCodeSigning === 'unsigned' ? <p className="text-xs">{t('Apps.catalog.unsignedConfirmVerification')}</p> : null}
           {intent.update && intent.update.installedSafetyDeclaration !== undefined

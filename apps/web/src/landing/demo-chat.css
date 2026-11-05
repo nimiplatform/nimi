@@ -618,3 +618,10 @@
 .demo-contact-time { flex-shrink: 0; white-space: nowrap; font-size: 11px; }
 .demo-chat-profile > .demo-chat-human-avatar { width: 72px; height: 72px; }
 @container (max-width: 520px) { .demo-contact-time { margin-left: 52px; } }
+
+.demo-content-check { width: 100%; max-width: 560px; margin-inline: auto; text-align: left; }
+.demo-chat-composer-dock .demo-content-check { max-width: 720px; }
+.demo-content-check-note, .demo-content-check-edit p { margin: 0.45rem 0.25rem; color: #526278; font-size: 12px; line-height: 1.5; }
+.demo-content-check-result { margin-top: 0.65rem; padding: 0.8rem; border: 1px solid #cfb786; border-radius: 12px; background: #fff8e9; color: #644710; }
+.demo-content-check-result p { margin: 0 0 0.65rem; font-size: 13px; line-height: 1.55; }
+.demo-content-check-edit { margin-top: 0.5rem; }

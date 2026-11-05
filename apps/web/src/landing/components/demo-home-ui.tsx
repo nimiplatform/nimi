@@ -82,10 +82,6 @@ export function DemoBack({ demo, onClick }: { demo: HeroDemo; onClick: () => voi
   );
 }
 
-export function DemoNotice({ demo }: { demo: HeroDemo }) {
-  return <p className="demo-simulation-note">{demo.home.note}</p>;
-}
-
 export function DemoPartnerAvatar({ index, name, src }: { index: number; name: string; src?: string }) {
   const assets = ['qingzhao', 'wanxing', 'xiake'];
   return (

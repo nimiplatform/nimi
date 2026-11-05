@@ -49,10 +49,9 @@ fn names(input: &Value, key: &str) -> Result<Vec<String>, LocalAppOperationError
     }
     Ok(names)
 }
+// @nimi-authority: rule.nimi.runtime.integration.description
 fn operation(input: &Value) -> Result<IntegrationOperation, LocalAppOperationError> {
-    exact(
-        input,
-        &[
+    let mut keys = vec![
             "name",
             "description",
             "inputSchemaJson",
@@ -60,8 +59,17 @@ fn operation(input: &Value) -> Result<IntegrationOperation, LocalAppOperationErr
             "effect",
             "supportsCancel",
             "retryPolicy",
-        ],
-    )?;
+    ];
+    if input.get("displayName").is_some() {
+        keys.push("displayName");
+    }
+    exact(input, &keys)?;
+    let display_name = input.get("displayName")
+        .map(|_| text(input, "displayName", 512, false))
+        .transpose()?;
+    if display_name.as_deref().is_some_and(|name| name.trim() != name) {
+        return Err(invalid_payload());
+    }
     let input_schema_json = text(input, "inputSchemaJson", 65536, false)?;
     let output_schema_json = text(input, "outputSchemaJson", 65536, false)?;
     for encoded in [&input_schema_json, &output_schema_json] {
@@ -79,6 +87,7 @@ fn operation(input: &Value) -> Result<IntegrationOperation, LocalAppOperationErr
     }
     Ok(IntegrationOperation {
         name: text(input, "name", 128, false)?,
+        display_name,
         description: text(input, "description", 4096, true)?,
         input_schema_json,
         output_schema_json,
@@ -97,7 +106,11 @@ fn operations(input: &Value) -> Result<Vec<IntegrationOperation>, LocalAppOperat
     list.iter().map(operation).collect()
 }
 fn project_operation(v: IntegrationOperation) -> Value {
-    json!({"name":v.name,"description":v.description,"inputSchemaJson":v.input_schema_json,"outputSchemaJson":v.output_schema_json,"effect":v.effect,"supportsCancel":v.supports_cancel,"retryPolicy":v.retry_policy})
+    let mut result = json!({"name":v.name,"description":v.description,"inputSchemaJson":v.input_schema_json,"outputSchemaJson":v.output_schema_json,"effect":v.effect,"supportsCancel":v.supports_cancel,"retryPolicy":v.retry_policy});
+    if let Some(display_name) = v.display_name {
+        result["displayName"] = Value::String(display_name);
+    }
+    result
 }
 fn target(v: IntegrationTarget) -> Value {
     json!({"targetRef":v.target_ref,"integrationId":v.integration_id,"displayName":v.display_name,"accountLabel":v.account_label,"kind":v.kind,"available":v.available,"operations":v.operations.into_iter().map(project_operation).collect::<Vec<_>>(),"skill":v.skill,"permittedOperations":v.permitted_operations})
@@ -580,6 +593,22 @@ mod tests {
         }
         let oversized = json!({"data":"x".repeat(33 * 1024 * 1024)});
         assert!(exact(&oversized, &["data"]).is_err());
+    }
+    #[test]
+    fn source_display_names_survive_native_projection_without_changing_operation_identity() {
+        let mut value = json!({"name":"warehouse.lookupSKU","description":"Source description","inputSchemaJson":"{}","outputSchemaJson":"{}","effect":"read","supportsCancel":false,"retryPolicy":"none"});
+        assert_eq!(project_operation(operation(&value).unwrap()), value);
+        value["displayName"] = json!("查询库存");
+        assert_eq!(project_operation(operation(&value).unwrap()), value);
+        for title in [json!(null), json!(1), json!(""), json!(" "), json!(" padded "), json!("bad\0name"), json!("中".repeat(171))] {
+            let mut invalid = value.clone();
+            invalid["displayName"] = title;
+            assert!(operation(&invalid).is_err());
+        }
+        value["displayName"] = json!("中".repeat(170) + "ab");
+        assert_eq!(project_operation(operation(&value).unwrap()), value);
+        value["title"] = json!("unsupported extra field");
+        assert!(operation(&value).is_err());
     }
     #[test]
     fn call_timestamps_retain_the_runtime_fraction() {

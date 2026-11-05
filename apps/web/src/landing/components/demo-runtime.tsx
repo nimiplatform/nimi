@@ -13,7 +13,7 @@ import {
 import { Button } from '@nimiplatform/kit/ui';
 import type { HeroDemo } from '../content/landing-content.js';
 import type { DemoNavigate } from './demo-home.js';
-import { DemoBack, DemoNotice, DemoRow, DemoWorkspace, demoText } from './demo-home-ui.js';
+import { DemoBack, DemoRow, DemoWorkspace, demoText } from './demo-home-ui.js';
 
 // @nimi-authority: rule.nimi.desktop.ai-consumption.capability-workspace
 export function DemoRuntimeSurface({ demo, onNavigate, initialCapability }: { demo: HeroDemo; onNavigate: DemoNavigate; initialCapability?: string }) {
@@ -112,7 +112,6 @@ export function DemoRuntimeSurface({ demo, onNavigate, initialCapability }: { de
                 <p className="demo-muted mt-2">
                   {capability.model} · {t('本地', 'Local')}
                 </p>
-                <DemoNotice demo={demo} />
               </div>
             )}
           </div>

@@ -1,6 +1,6 @@
 import { useAppPreviewLocale } from '../i18n/app-preview-locale.js';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
-import { Check, Info } from 'lucide-react';
+import { Check } from 'lucide-react';
 
 export function PreviewButton({
   children,
@@ -18,12 +18,10 @@ export function PreviewButton({
   );
 }
 
-export function PreviewNotice({ children }: { children: ReactNode }) {
+export function PreviewCredits() {
   const { t } = useAppPreviewLocale();
   return (
     <footer className="tp-notice">
-      <Info size={14} aria-hidden="true" />
-      <span>{children}</span>
       <a href="/demo/third-party-NOTICES.txt" target="_blank" rel="noreferrer">
         {t('shared.previewNotice.credits')}
       </a>

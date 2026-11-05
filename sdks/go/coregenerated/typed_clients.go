@@ -5281,13 +5281,14 @@ type IntegrationOneBotV11Config struct {
 }
 
 type IntegrationOperation struct {
-	Name             string `json:"name,omitempty"`
-	Description      string `json:"description,omitempty"`
-	InputSchemaJson  string `json:"input_schema_json,omitempty"`
-	OutputSchemaJson string `json:"output_schema_json,omitempty"`
-	Effect           string `json:"effect,omitempty"`
-	SupportsCancel   bool   `json:"supports_cancel,omitempty"`
-	RetryPolicy      string `json:"retry_policy,omitempty"`
+	Name             string  `json:"name,omitempty"`
+	Description      string  `json:"description,omitempty"`
+	InputSchemaJson  string  `json:"input_schema_json,omitempty"`
+	OutputSchemaJson string  `json:"output_schema_json,omitempty"`
+	Effect           string  `json:"effect,omitempty"`
+	SupportsCancel   bool    `json:"supports_cancel,omitempty"`
+	RetryPolicy      string  `json:"retry_policy,omitempty"`
+	DisplayName      *string `json:"display_name,omitempty"`
 }
 
 type IntegrationPermission struct {

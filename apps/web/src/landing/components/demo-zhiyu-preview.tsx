@@ -62,7 +62,6 @@ import {
   createDemoZhiyuAgentCenterSession,
   createDemoZhiyuAgentClient,
   type DemoZhiyuAgentCenterSession,
-  type DemoZhiyuAgentClient,
 } from './demo-zhiyu-agent-center.js';
 
 /**
@@ -473,7 +472,7 @@ export function DemoZhiyuPreview({ content, initialPartnerId = null, initialPane
   const setRightPanelMode = (mode: RightPanelMode) =>
     navigate(activePartnerId, mode === 'closed' ? undefined : 'overview');
   const [sidebarVisible, setSidebarVisible] = useState(true);
-  const { localMessages, appendPartnerMessage: appendMessage } = useHeroDemoSession();
+  const { localMessages, appendPartnerMessage: appendMessage, agentClients } = useHeroDemoSession();
   const [stream, setStream] = useState<{
     partnerId: string;
     partial: string;
@@ -526,7 +525,6 @@ export function DemoZhiyuPreview({ content, initialPartnerId = null, initialPane
   const voiceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const noticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const replyCursorRef = useRef<Record<string, number>>({});
-  const agentClientsRef = useRef(new Map<string, DemoZhiyuAgentClient>());
   const transcriptViewportRef = useRef<HTMLDivElement>(null);
 
   const activePartner = content.partners.find((partner) => partner.id === activePartnerId) ?? null;
@@ -536,16 +534,10 @@ export function DemoZhiyuPreview({ content, initialPartnerId = null, initialPane
     [copy, previewLang],
   );
 
-  // One mock Runtime client per partner for the lifetime of the preview, so
-  // settings the visitor changes survive switching partners back and forth.
-  const agentClient = useMemo(() => {
-    if (!activePartner) return null;
-    const existing = agentClientsRef.current.get(activePartner.id);
-    if (existing) return existing;
-    const created = createDemoZhiyuAgentClient(activePartner, content);
-    agentClientsRef.current.set(activePartner.id, created);
-    return created;
-  }, [activePartner, content]);
+  // Home and Zhiyu resolve the same visitor-session Local Agent state.
+  const agentClient = useMemo(() => activePartner
+    ? agentClients.get(activePartner.id, () => createDemoZhiyuAgentClient(activePartner, content)) : null,
+  [activePartner, content, agentClients]);
   // The kit session is created and disposed inside one effect: disposal is
   // permanent, and an effect pair (unlike a memo) survives StrictMode's
   // mount → cleanup → mount replay with a fresh session.
@@ -557,7 +549,9 @@ export function DemoZhiyuPreview({ content, initialPartnerId = null, initialPane
     }
     const created = createDemoZhiyuAgentCenterSession(agentClient);
     setAgentCenter(created);
+    const unsubscribe = agentClient.subscribeChanges(() => { void created.session.refresh(); });
     return () => {
+      unsubscribe();
       created.session.dispose();
       setAgentCenter((current) => (current === created ? null : current));
     };

@@ -3210,6 +3210,7 @@ class IntegrationOperation:
     effect: str | None = None
     supports_cancel: bool | None = None
     retry_policy: str | None = None
+    display_name: str | None = None
 
 @dataclass(frozen=True)
 class IntegrationPermission:

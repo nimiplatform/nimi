@@ -112,7 +112,7 @@ export function DemoExplorePartners({
             <ArrowLeft size={15} />
             {t('返回伙伴列表', 'Back to companions')}
           </Button>
-          <div className="demo-explore-character-detail">
+          <div className="demo-explore-character-detail" data-tour-anchor="local-partner">
             <img className="demo-explore-portrait" src={selected.image} alt={selected.name} />
             <section>
               <h1>{selected.name}</h1>
@@ -130,7 +130,6 @@ export function DemoExplorePartners({
                 {t('开始聊天', 'Start chatting')}
                 <ArrowRight size={16} />
               </Button>
-              <p className="demo-simulation-note">{demo.home.badge}</p>
             </section>
           </div>
         </div>

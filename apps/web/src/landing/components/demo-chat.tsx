@@ -1,8 +1,9 @@
+import { reduceContentCheckDemo, type ContentCheckDemo } from '../content/content-check-demo.js';
 import { resolveDemoChatTarget } from '../content/demo-chat-model.js';
 import { DemoHumanAvatar, DemoHumanProfileDetails } from './demo-human-profile.js';
 import { DemoChatAvatarCard } from './demo-chat-avatar-card.js';
 import { exploreCharacters } from '../content/explore-demo-data.js';
-import { useMemo, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Lightbulb,
   ContactRound,
@@ -25,9 +26,8 @@ import type {
 } from '@nimiplatform/kit/features/chat/types';
 import type { AgentCenterSectionId } from '@nimiplatform/kit/features/agent-center';
 import type { HeroDemo, HeroDemoAgent, LandingContent } from '../content/landing-content.js';
-import type { DemoDestination } from '../content/demo-navigation.js';
 import type { DemoChatSubmission } from '../content/home-chat-content.js';
-import type { DemoZhiyuAgentClient } from './demo-zhiyu-agent-center.js';
+import { useHeroDemoSession } from './hero-demo-context.js';
 import { DemoChatAgentCenter, createChatAgentClient } from './demo-chat-agent-center.js';
 import { DemoChatContacts } from './demo-chat-contacts.js';
 import { DemoPartnerAvatar, demoText } from './demo-home-ui.js';
@@ -65,7 +65,6 @@ export function DemoChatSurface({
   selectedTargetId,
   draft,
   logExample,
-  logView,
   onDraftChange,
   baseMessages,
   localMessages,
@@ -79,7 +78,6 @@ export function DemoChatSurface({
   selectedTargetId: string | null;
   draft: string;
   logExample?: LandingContent['riskControl'];
-  logView?: DemoDestination['view'];
   onDraftChange: (text: string) => void;
   baseMessages: Record<string, ConversationCanonicalMessage[]>;
   localMessages: Readonly<Record<string, readonly ConversationCanonicalMessage[]>>;
@@ -104,9 +102,9 @@ export function DemoChatSurface({
   const setImage = (value: string | undefined) =>
     setContexts((previous) => ({ ...previous, [targetId]: { ...previous[targetId], image: value } }));
   const [notice, setNotice] = useState('');
-  const [logDraft, setLogDraft] = useState(() => logExample
-    ? [logExample.draft, logView === 'edited' ? '' : logExample.marker].filter(Boolean).join('\n') : '');
-  const [refused, setRefused] = useState(logView === 'blocked');
+  const [contentCheck, setContentCheck] = useState<ContentCheckDemo>(() => ({
+    draft: logExample ? `${logExample.draft}\n${logExample.marker}` : '', phase: 'draft',
+  }));
   const [thinking, setThinking] = useState<Record<string, boolean>>({});
   const requestedCenter = useRef<string | null>(null);
   const [lastTarget, setLastTarget] = useState(targetId);
@@ -122,34 +120,28 @@ export function DemoChatSurface({
     requestedCenter.current = null;
     setNotice('');
   }
-  const clients = useRef(new Map<string, DemoZhiyuAgentClient>());
+  const { agentClients } = useHeroDemoSession();
   const root = useRef<HTMLDivElement>(null);
   const client = useMemo(() => {
     if (mode !== 'agent' || !target) return null;
-    let result = clients.current.get(target.id);
-    if (!result) {
-      result = createChatAgentClient(target, demo);
-      clients.current.set(target.id, result);
-    }
-    return result;
-  }, [mode, target, demo]);
+    return agentClients.get(target.id, () => createChatAgentClient(target, demo));
+  }, [mode, target, demo, agentClients]);
   const messages = [...(baseMessages[targetId] ?? []), ...(localMessages[targetId] ?? [])];
   const copy = useMemo(() => ({ ...getMessageInteractionCopy(chat.dateLocale), ...chat.copy }), [chat]);
   const adapter = useMemo<ChatComposerAdapter<string>>(
     () => ({
       submit: ({ text }) => {
-        // This exercise demonstrates one masked sample. Visitor input is never scanned.
-        if (logExample && text.includes(logExample.marker)) {
-          setRefused(true);
-          return;
+        if (logExample) {
+          const next = reduceContentCheckDemo(contentCheck, { type: 'submit', marker: logExample.marker });
+          setContentCheck(next);
+          if (next.phase !== 'submitted') return;
         }
-        if (logExample) { setRefused(false); setLogDraft(''); }
         onSubmit({ text, image, quote });
         setImage(undefined);
         setQuote(undefined);
       },
     }),
-    [onSubmit, image, quote, logExample],
+    [onSubmit, image, quote, logExample, contentCheck],
   );
   const formatDateLabel = useMemo(() => {
     const dateFormatter = new Intl.DateTimeFormat(chat.dateLocale, { month: 'long', day: 'numeric' });
@@ -265,11 +257,15 @@ export function DemoChatSurface({
         }}
       />
     ) : undefined;
-  const composer = (
+  useEffect(() => {
+    if (logExample && contentCheck.phase === 'editing') root.current?.querySelector<HTMLTextAreaElement>('textarea')?.focus({ preventScroll: true });
+  }, [logExample, contentCheck.phase]);
+  const composerInput = (
     <CanonicalComposer
       adapter={adapter}
-      text={logExample ? logDraft : draft}
-      onTextChange={logExample ? setLogDraft : onDraftChange}
+      text={logExample ? contentCheck.draft : draft}
+      onTextChange={logExample ? text => setContentCheck(previous => reduceContentCheckDemo(previous, { type: 'change', text })) : onDraftChange}
+      disabled={Boolean(logExample && contentCheck.phase === 'blocked')}
       layout="stacked"
       copy={copy}
       disableFocusBorder
@@ -346,8 +342,7 @@ export function DemoChatSurface({
             )}
             {image && (
               <div className="demo-chat-attachment">
-                <img src={image} alt={t('演示图片', 'Sample image')} />
-                <span>{t('演示图片 · 仅保留在本页', 'Sample image · This page only')}</span>
+                <img src={image} alt={t("图片", "Image")} />
                 <button
                   type="button"
                   aria-label={t('移除图片', 'Remove image')}
@@ -362,6 +357,21 @@ export function DemoChatSurface({
       }
     />
   );
+
+  const composer = logExample ? <div className="demo-content-check" data-content-check-phase={contentCheck.phase}>
+    <p className="demo-content-check-note">{logExample.sampleNote}</p>
+    {composerInput}
+    {contentCheck.phase === 'blocked' && <div className="demo-content-check-result" role="status">
+      <p>{logExample.notice}</p>
+      <Button size="sm" tone="primary" onClick={() => setContentCheck(previous => reduceContentCheckDemo(previous, { type: 'edit' }))}>{logExample.editLabel}</Button>
+    </div>}
+    {contentCheck.phase === 'editing' && <div className="demo-content-check-edit">
+      <p>{logExample.editingNote}</p>
+      {contentCheck.draft.includes(logExample.marker) && <Button size="sm" tone="secondary"
+        onClick={() => setContentCheck(previous => reduceContentCheckDemo(previous, { type: 'remove-example', marker: logExample.marker }))}>{logExample.removeLabel}</Button>}
+    </div>}
+    {contentCheck.phase === 'submitted' && <p role="status" className="demo-content-check-note">{logExample.submittedNote}</p>}
+  </div> : composerInput;
 
   return (
     <div
@@ -436,7 +446,7 @@ export function DemoChatSurface({
                       <img
                         className="demo-chat-message-image"
                         src={attachment}
-                        alt={t('演示图片', 'Sample image')}
+                        alt={t("图片", "Image")}
                       />
                     )}
                     {message.text && <p className="whitespace-pre-wrap">{message.text}</p>}
@@ -460,20 +470,14 @@ export function DemoChatSurface({
             {!center && <div className="demo-chat-composer-dock">{composer}</div>}
           </>
         )}
-        {(notice || (refused && logExample)) && (
-          <div className="demo-chat-notice" role="status" data-tour-anchor={refused ? 'refusal' : undefined}>
-            {refused && logExample ? logExample.notice : notice}
-            <button type="button" aria-label={t('关闭提示', 'Dismiss notice')} onClick={() => { setNotice(''); setRefused(false); }}>
+        {notice && (
+          <div className="demo-chat-notice" role="status">
+            {notice}
+            <button type="button" aria-label={t('关闭提示', 'Dismiss notice')} onClick={() => { setNotice(''); }}>
               <X size={14} />
             </button>
           </div>
         )}
-        <p className="demo-chat-footnote">
-          {t(
-            '演示对话 · 不发送给真实用户，不调用模型',
-            'Demo conversation · No messages to real users or model calls',
-          )}
-        </p>
       </main>
       {panel === 'agent-center' && target && client ? (
         <DemoChatAgentCenter
@@ -546,8 +550,8 @@ export function DemoChatSurface({
                 ) : (
                   <span className="demo-success">
                     {profileTarget.id === chat.self.id
-                      ? t('当前演示账号', 'Current demo account')
-                      : t('好友 · 演示联系人', 'Friend · Demo contact')}
+                      ? t("当前账号", "Current account")
+                      : t("好友", "Friend")}
                   </span>
                 )}
               </div>

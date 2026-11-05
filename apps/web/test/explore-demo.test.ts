@@ -7,6 +7,25 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { DemoExploreSurface, filterExploreWorlds } from '../src/landing/components/demo-explore.js';
 import { exploreWorlds, exploreCharacters } from '../src/landing/content/explore-demo-data.js';
 import { loadLandingContent } from '../src/landing/content/landing-content.js';
+import { COURTYARD_PARTNER, demoChapters } from '../src/landing/content/demo-tour.js';
+import { initialDemoSection, reduceDemoNavigation } from '../src/landing/content/demo-navigation.js';
+
+test('Explore tour introduces worlds and varied characters before following one into a local conversation', async () => {
+  const chapter = demoChapters[0]!;
+  let state = reduceDemoNavigation({ entries: [{ surface: 'home' }], position: 0 }, { type: 'enter-section', index: initialDemoSection('#worlds') });
+  assert.deepEqual(state.entries[state.position], { surface: 'explore' });
+  const targets = ['characters', 'world:emberware-court', `character:${COURTYARD_PARTNER}`, `partner:${COURTYARD_PARTNER}`, COURTYARD_PARTNER];
+  for (const [index, target] of targets.entries()) {
+    state = reduceDemoNavigation(state, { type: 'guide', step: index + 1 });
+    assert.deepEqual(state.entries[state.position], { surface: index === 4 ? 'chat' : 'explore', target });
+  }
+  for (const locale of ['zh', 'en'] as const) {
+    const content = await loadLandingContent(locale);
+    assert.equal(content.worlds.stops.length, chapter.stops.length);
+    assert.ok(content.worlds.intro.includes('Local Agent'));
+    assert.ok(!content.worlds.title.includes('禾罐') && !content.worlds.title.includes('Heguan'));
+  }
+});
 
 test('Explore uses published world artwork and keeps every character attached to its source world', () => {
   const provenance = JSON.parse(readFileSync(new URL('../public/demo/explore/SOURCES.json', import.meta.url), 'utf8'));

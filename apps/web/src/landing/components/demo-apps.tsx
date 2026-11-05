@@ -39,6 +39,13 @@ const ICON_SIZE_CLASS = {
   lg: 'h-16 w-16 rounded-2xl text-2xl',
 } as const;
 
+// Presentation excerpts from the current ParentOS / Zhiyu nimi.app.yaml declarations.
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-appacc-001
+const DEMO_ACCESS_DOMAINS: Readonly<Record<string, readonly (readonly [string, string])[]>> = {
+  'nimi.parentos': [['AI 能力调用', 'AI capability consumption'], ['应用活动', 'App activity']],
+  'nimi.zhiyu': [['本地伙伴访问', 'Local companion access'], ['伙伴配置', 'Companion configuration'], ['应用活动', 'App activity']],
+};
+
 /** Replica of the desktop AppArtworkIcon: real icon when shipped, gradient glyph tile otherwise. */
 export function AppArtworkIcon({
   item,
@@ -226,7 +233,7 @@ export function DemoAppsSurface({
 
               {infoOpen && (
                 <p className="demo-muted mt-3">
-                  {selected.id} · {t('演示数据', 'Sample data')}
+                  {selected.id}
                 </p>
               )}
               <NimiTabs
@@ -299,21 +306,24 @@ export function DemoAppsSurface({
                     <p className="demo-muted mt-3">
                       {activeTab === '1'
                         ? t(
-                            '此应用使用 Nimi 管理的身份、能力与授权。',
-                            'This app uses identity, capabilities, and permissions managed by Nimi.',
+                            "以下为此应用声明的 Nimi 访问范围。实际调用仍受当前受保护会话与对应服务规则约束。",
+                            "The app’s declared Nimi access scope. Actual calls remain subject to the current protected session and the rules of the service handling them.",
                           )
                         : t(
                             '应用可使用本机配置，也可以选择专属的云端模型。',
                             'Use the local configuration or choose a cloud model for this app.',
                           )}
                     </p>
-                    {selected.tags.map((tag) => (
+                    {activeTab === '1' ? (DEMO_ACCESS_DOMAINS[selected.id] ? DEMO_ACCESS_DOMAINS[selected.id]!.map(([zh, en]) => (
+                      <div key={en} className="demo-setting-row">
+                        <strong>{t(zh, en)}</strong><span className="demo-muted">{t("已声明", "Declared")}</span>
+                      </div>
+                    )) : <p className="demo-muted mt-3">{t('此应用预览未提供声明范围，请在 Home 查看其当前 Nimi Access。', 'This preview does not include the declaration. View the app’s current Nimi Access in Home.')}</p>) : selected.tags.map((tag) => (
                       <div key={tag} className="demo-setting-row">
                         <strong>{tag}</strong>
-                        <span className="demo-success">{t('已配置 · 示例', 'Configured · Sample')}</span>
+                        <span className="demo-success">{t("已配置", "Configured")}</span>
                       </div>
                     ))}
-                    <p className="demo-simulation-note">{apps.previewBadge}</p>
                   </div>
                 )}
               </div>

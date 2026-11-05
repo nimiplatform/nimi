@@ -37,23 +37,28 @@
 }
 .demo-home-titlebar {
   display: flex;
+  flex-shrink: 0;
   align-items: center;
   gap: 6px;
   height: 40px;
   padding: 0 12px;
-  background: var(--demo-panel);
+  background: var(--demo-panel, #fff);
 }
 .demo-traffic-lights {
   display: flex;
   gap: 6px;
   margin-right: 12px;
 }
-.demo-traffic-lights i {
+.demo-traffic-lights i, .demo-window-close {
   width: 10px;
   height: 10px;
   background: #ff6059;
   border-radius: 50%;
 }
+.demo-window-close { position: relative; padding: 0; border: 0; flex: none; cursor: pointer; }
+.demo-window-close::before { content: ''; position: absolute; inset: -6px; border-radius: 50%; }
+.demo-window-close:hover { background: #e74740; }
+.demo-window-close:focus-visible { outline: 2px solid #0ea5e9; outline-offset: 4px; }
 .demo-traffic-lights i:nth-child(2) {
   background: #ffbd2e;
 }

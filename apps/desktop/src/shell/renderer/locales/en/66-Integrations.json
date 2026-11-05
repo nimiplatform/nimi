@@ -23,7 +23,15 @@
   "botToken": "Bot token",
   "bearerToken": "Access token (optional)",
   "custody": "Credentials stay in Nimi Runtime. Authorized apps only receive a connection reference and the results of permitted operations.",
-  "telegramMode": "Reply collection uses one shared receiver. Existing webhooks must be managed at their source; this form does not remove them.",
+  "telegramWebhookHelp": "How to resolve",
+  "telegramWebhookNewBotTitle": "Use a new bot",
+  "telegramWebhookNewBotCreate": "Open the official @BotFather in Telegram, send /newbot, and follow the steps to create a bot.",
+  "telegramWebhookOpenBotFather": "Open @BotFather",
+  "telegramWebhookNewBotConnect": "Copy the new bot's token, enter it here, and connect again.",
+  "telegramWebhookExistingBotTitle": "Keep using this bot",
+  "telegramWebhookExistingBotImpact": "Turning off message delivery to the original service means it will no longer receive new messages for this bot.",
+  "telegramWebhookExistingBotDisable": "Go to the platform where you previously connected this bot and turn off its message delivery setting (Webhook). If you cannot find that setting, contact the platform's administrator. If you do not know which platform it is, use a new bot.",
+  "telegramWebhookExistingBotReconnect": "Once that is done, enter the original bot's token here and connect again. Nimi does not change the original platform's settings automatically.",
   "connect": "Connect account",
   "working": "Working…",
   "connected": "Connected. Close this window and open App permissions to authorize apps and operations.",
@@ -122,7 +130,7 @@
     "INTEGRATION_WEIXIN_PROVIDER_REJECTED": "WeChat rejected this request. Check the selected account and verification state.",
     "INTEGRATION_WEIXIN_IDENTITY_INVALID": "WeChat did not return a verified account identity. Authenticate again.",
     "INTEGRATION_MANAGEMENT_DENIED": "This connection does not have Nimi Home management access.",
-    "INTEGRATION_TELEGRAM_WEBHOOK_CONFLICT": "This bot already uses a webhook. Select a dedicated test bot or manage its receiver at the source.",
+    "INTEGRATION_TELEGRAM_WEBHOOK_CONFLICT": "This bot is set up to send messages to another service, so it cannot connect to Nimi yet. Use a new bot, or turn off message delivery to the original service and try again.",
     "INTEGRATION_TELEGRAM_BOT_ALREADY_CONNECTED": "This bot already has a connection. Select it from the existing integrations and allow the apps that need it.",
     "INTEGRATION_TELEGRAM_VERIFICATION_REQUIRED": "Select this connection and verify the bot's identity first.",
     "INTEGRATION_TELEGRAM_IDENTITY_INVALID": "Telegram did not return a valid bot identity. Check the credential and try again.",
@@ -232,11 +240,26 @@
   "submitVerification": "Submit code",
   "feishuManualHelp": "In the Feishu developer console, enable the bot, select long-connection event delivery, add the Receive message event, then grant the app permissions below and publish. No user permissions are needed.",
   "feishuScopeHelp": [
-    { "label": "Message sends and updates", "scope": "im:message:send_as_bot" },
-    { "label": "Private messages", "scope": "im:message.p2p_msg:readonly" },
-    { "label": "Group mentions", "scope": "im:message.group_at_msg:readonly" },
-    { "label": "Media uploads", "scope": "im:resource" },
-    { "label": "Message media downloads", "scope": "im:message:readonly" }
+    {
+      "label": "Message sends and updates",
+      "scope": "im:message:send_as_bot"
+    },
+    {
+      "label": "Private messages",
+      "scope": "im:message.p2p_msg:readonly"
+    },
+    {
+      "label": "Group mentions",
+      "scope": "im:message.group_at_msg:readonly"
+    },
+    {
+      "label": "Media uploads",
+      "scope": "im:resource"
+    },
+    {
+      "label": "Message media downloads",
+      "scope": "im:message:readonly"
+    }
   ],
   "qqMode": "Enable the official QQ bot WebSocket subscription for C2C and group messages in the QQ developer console. Apps can reply or send using a current received-message context; proactive messages without context are rejected. QQ credentials and OneBot connections are independent.",
   "onebotMode": "Connect to your selected OneBot v11 endpoint on this computer. Enter its numeric bot account ID and matching non-empty access token. Nimi verifies the account and implementation version; it does not install the endpoint.",
@@ -249,6 +272,7 @@
   "requiredToken": "Access token (required)",
   "selectExistingTarget": "Select an existing connection to manage its permissions.",
   "descriptorSource": "Original operation description from {{source}}",
+  "operationIdentifiers": "Operation identifiers",
   "operationNames": {
     "send": "Send a message",
     "reply": "Reply to a received message",
@@ -258,6 +282,8 @@
   },
   "operationSummaries": {
     "send": "Send one message to the specified conversation using this account.",
+    "send_telegram": "Allow the app to send text messages to a specified conversation using this Telegram bot.",
+    "receive_telegram": "Allow the app to read new messages received by this Telegram bot. This permission covers the whole bot connection, not just one conversation.",
     "send_weixin": "Send once to a peer using a current received-message context for that peer.",
     "send_qq": "Send once using a recent message context for the same recipient: C2C within 60 minutes, group within 5 minutes, sharing at most 5 replies per source message.",
     "reply": "Reply once to the message referenced by Runtime. The provider must still accept that reference.",

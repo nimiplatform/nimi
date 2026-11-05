@@ -3,6 +3,7 @@ import test from 'node:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { loadLandingContent } from '../src/landing/content/landing-content.js';
+import { HeroDemoSessionProvider } from '../src/landing/components/hero-demo-session.js';
 import { DemoChatSurface } from '../src/landing/components/demo-chat.js';
 import { materializeChatMessages, resolveDemoChatTarget } from '../src/landing/content/demo-chat-model.js';
 
@@ -49,14 +50,14 @@ test('seeded user and LocalAgent chats render their real text and the correct in
     };
     const fresh = demo.chat.agents[0]!;
     const freshHtml = renderToStaticMarkup(
-      createElement(DemoChatSurface, { ...common, selectedTargetId: fresh.id }),
+      createElement(HeroDemoSessionProvider, { demo, children: createElement(DemoChatSurface, { ...common, selectedTargetId: fresh.id }) }),
     );
     assert.ok(freshHtml.includes('data-agent-introduction="true"'));
     assert.ok(freshHtml.includes(fresh.greeting!));
     assert.ok(freshHtml.includes('data-agent-empty-suggestions="true"'));
     const agent = demo.chat.agents[1]!;
     const agentHtml = renderToStaticMarkup(
-      createElement(DemoChatSurface, { ...common, selectedTargetId: agent.id }),
+      createElement(HeroDemoSessionProvider, { demo, children: createElement(DemoChatSurface, { ...common, selectedTargetId: agent.id }) }),
     );
     assert.ok(agentHtml.includes(agent.messages[0]!.text));
     assert.ok(agentHtml.includes('data-chat-composer-layout="stacked"'));
@@ -64,14 +65,14 @@ test('seeded user and LocalAgent chats render their real text and the correct in
     assert.ok(agentHtml.includes(agent.avatarUrl!));
     const person = demo.chat.people[0]!;
     const humanHtml = renderToStaticMarkup(
-      createElement(DemoChatSurface, { ...common, selectedTargetId: person.id }),
+      createElement(HeroDemoSessionProvider, { demo, children: createElement(DemoChatSurface, { ...common, selectedTargetId: person.id }) }),
     );
     assert.ok(humanHtml.includes(person.messages[0]!.text));
     assert.ok(humanHtml.includes('data-demo-chat-mode="human"'));
     assert.ok(!humanHtml.includes('aria-label="Agent Center"'));
     assert.ok(!humanHtml.includes('aria-label="伙伴中心"'));
     const contacts = renderToStaticMarkup(
-      createElement(DemoChatSurface, { ...common, selectedTargetId: 'human:contacts' }),
+      createElement(HeroDemoSessionProvider, { demo, children: createElement(DemoChatSurface, { ...common, selectedTargetId: 'human:contacts' }) }),
     );
     assert.ok(contacts.includes(person.handle!));
     assert.ok(contacts.includes(locale === 'zh' ? '好友申请' : 'Requests'));

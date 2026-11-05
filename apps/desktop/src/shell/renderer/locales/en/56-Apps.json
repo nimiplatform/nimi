@@ -59,6 +59,7 @@
     "license": "Open-source license",
     "target": "Platform",
     "asset": "Package file",
+    "assetSizeBytes": "{{size}} bytes",
     "nativePosture": "Native signing posture",
     "executionProfile": "Execution profile",
     "appAccess": "Requested App Access",

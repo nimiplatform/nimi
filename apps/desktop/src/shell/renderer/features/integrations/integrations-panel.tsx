@@ -22,6 +22,7 @@ import type {
 import { useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { AppArtworkIcon } from '../apps/apps-card-visuals.js';
 import { integrationErrorCode, integrationErrorTranslationKey } from './integration-error.js';
+import { IntegrationErrorNotice } from './integration-error-notice.js';
 import { IntegrationSetupQr } from './integration-setup-qr.js';
 import { integrationSetupPending, observeIntegrationSetup } from './integration-setup-observer.js';
 import { Check, Plus, QrCode, RefreshCw, ShieldCheck, X } from 'lucide-react';
@@ -36,7 +37,7 @@ import { IntegrationCallsView } from './integration-calls-view.js';
 import { IntegrationPermissionsView } from './integration-permissions-view.js';
 import { IntegrationConsumerDetails } from './integration-consumer-details.js';
 import { IntegrationSettingsView, integrationAvailabilityKey } from './integration-settings-view.js';
-import { integrationOperationIcon, integrationOperationPresentation } from './integration-operation-presentation.js';
+import { integrationOperationDisplayName, integrationOperationIcon, integrationOperationPresentation } from './integration-operation-presentation.js';
 
 const fieldClass =
   'w-full rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] px-3 py-2 text-sm text-[var(--nimi-text-primary)] focus-visible:outline-2 focus-visible:outline-[var(--nimi-focus-ring-color)]';
@@ -90,7 +91,7 @@ export function IntegrationsPanel({
   const sdk = useDesktopRendererSdk();
   const [snapshot, setSnapshot] = useState<NimiIntegrationManagement | null>(null);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<{ message: string; code?: string } | null>(null);
   const [notice, setNotice] = useState('');
   const entryServiceRef = useRef(requestedEntryService(intent?.service));
   const [service, setService] = useState(() => entryServiceRef.current || 'mcp');
@@ -129,7 +130,7 @@ export function IntegrationsPanel({
     expiredSetupRef.current = '';
     setSetup(null);
     setExpiredSetupId('');
-    setError('');
+    setError(null);
     setNotice('');
   };
   const [targetRef, setTargetRef] = useState('');
@@ -171,11 +172,12 @@ export function IntegrationsPanel({
   const showError = (cause: unknown) => {
     if (!active.current) return;
     const code = integrationErrorCode(cause);
-    setError(
-      code
+    setError({
+      code,
+      message: code
         ? t(integrationErrorTranslationKey(code, adapter), { defaultValue: t('Integrations.unavailable') })
         : t('Integrations.unavailable'),
-    );
+    });
   };
   // Mutation replies belong to one request and one setup. React state updates
   // alone cannot provide this fence because a second reply may arrive before
@@ -282,7 +284,7 @@ export function IntegrationsPanel({
   const run = async (action: (version: number) => Promise<void>) => {
     const version = ++runVersion.current;
     setBusy(true);
-    setError('');
+    setError(null);
     setNotice('');
     try {
       await action(version);
@@ -360,7 +362,7 @@ export function IntegrationsPanel({
     value ? new Date(value).toLocaleString(i18n.language) : t('Integrations.unknownTime');
   const operationName = (name: string, source = target) => {
     const op = source?.operations.find((item) => item.name === name);
-    return op && source ? integrationOperationPresentation(source.kind, op, t).name : name;
+    return op && source ? integrationOperationPresentation(source.kind, op, t).name : integrationOperationDisplayName({ name });
   };
   const connect = async (version: number) => {
     setupEditorVersion.current = editorVersion.current;
@@ -412,7 +414,7 @@ export function IntegrationsPanel({
   const submitVerification = () => {
     const code = verificationCode.current?.value || '';
     if (!/^[0-9]{1,32}$/u.test(code)) {
-      setError(t('Integrations.verificationInvalid'));
+      setError({ message: t('Integrations.verificationInvalid') });
       verificationCode.current?.focus();
       return;
     }
@@ -456,7 +458,7 @@ export function IntegrationsPanel({
     selectTarget(snapshot?.targets.find((item) => item.kind === kind)?.targetRef || '');
     setService(kind);
     setTab('permissions');
-    setError('');
+    setError(null);
     setNotice('');
   };
   const openConnection = (refresh = false) => {
@@ -479,7 +481,7 @@ export function IntegrationsPanel({
       cancelingSetupRef.current = true;
       setCancelingSetup(true);
       setBusy(true);
-      setError('');
+      setError(null);
       setNotice('');
       void (async () => {
         try {
@@ -492,10 +494,10 @@ export function IntegrationsPanel({
             setNotice(t('Integrations.connectionCanceled'));
           } else {
             applySetupReply(next, version, setup.setupId);
-            setError(t('Integrations.cancelNotCompleted'));
+            setError({ message: t('Integrations.cancelNotCompleted') });
           }
         } catch {
-          if (active.current && version === runVersion.current) setError(t('Integrations.cancelFailed'));
+          if (active.current && version === runVersion.current) setError({ message: t('Integrations.cancelFailed') });
         } finally {
           cancelingSetupRef.current = false;
           if (active.current) {
@@ -535,7 +537,7 @@ export function IntegrationsPanel({
       setOperations([]);
     }
     setEditingConsumerRef(permission?.consumerRef ?? '');
-    setError('');
+    setError(null);
     setNotice('');
     setPermissionOpen(true);
   };
@@ -665,7 +667,7 @@ export function IntegrationsPanel({
             </div>
           </header>
           <div className="space-y-3 not-empty:mt-4" aria-live="polite">
-            {error ? <InlineAlert tone="warning">{error}</InlineAlert> : null}
+            {error ? <InlineAlert tone="warning"><IntegrationErrorNotice {...error} /></InlineAlert> : null}
             {notice ? <InlineAlert tone="info">{notice}</InlineAlert> : null}
             {target && !target.available && tab !== 'settings' ? (
               <InlineAlert tone="info">
@@ -872,7 +874,7 @@ export function IntegrationsPanel({
         data-testid="integration-connection-drawer"
       >
         <ScrollArea className="min-h-0 flex-1" contentClassName="px-6 py-2 pb-6">
-          {error ? <InlineAlert tone="warning">{error}</InlineAlert> : null}
+          {error ? <InlineAlert tone="warning"><IntegrationErrorNotice {...error} /></InlineAlert> : null}
           {notice ? <InlineAlert tone="info">{notice}</InlineAlert> : null}
           {refreshRef ? (
             <>
@@ -1068,11 +1070,6 @@ export function IntegrationsPanel({
                 </details>
               </div>
             ) : null}
-            {adapter === 'telegram' ? (
-              <p className="text-xs leading-relaxed text-[var(--nimi-text-secondary)]">
-                {t('Integrations.telegramMode')}
-              </p>
-            ) : null}
             {adapter === 'qq-official' ? (
               <p className="text-xs leading-relaxed text-[var(--nimi-text-secondary)]">
                 {t('Integrations.qqMode')}
@@ -1129,7 +1126,7 @@ export function IntegrationsPanel({
                         inputMode="numeric"
                         pattern="[0-9]+"
                         maxLength={32}
-                        aria-invalid={error === t('Integrations.verificationInvalid')}
+                        aria-invalid={error?.message === t('Integrations.verificationInvalid')}
                         disabled={busy}
                       />
                     </label>
@@ -1165,11 +1162,12 @@ export function IntegrationsPanel({
                   </>
                 ) : null}
                 {setup.errorCode ? (
-                  <p>
-                    {t(integrationErrorTranslationKey(setup.errorCode, setup.adapter), {
+                  <IntegrationErrorNotice
+                    code={setup.errorCode}
+                    message={t(integrationErrorTranslationKey(setup.errorCode, setup.adapter), {
                       defaultValue: t('Integrations.unavailable'),
                     })}
-                  </p>
+                  />
                 ) : null}
                 {setupActive ? (
                   <Button
@@ -1262,7 +1260,7 @@ export function IntegrationsPanel({
         data-testid="integration-permission-drawer"
       >
         <ScrollArea className="min-h-0 flex-1" contentClassName="px-6 py-2">
-          {error ? <InlineAlert tone="warning">{error}</InlineAlert> : null}
+          {error ? <InlineAlert tone="warning"><IntegrationErrorNotice {...error} /></InlineAlert> : null}
           {target && !editingConsumerRef && !permissionConsumers.length ? (
             <div className="px-4 py-12 text-center">
               <ShieldCheck size={28} aria-hidden="true" className="mx-auto mb-4 text-[var(--nimi-text-muted)]" />
@@ -1369,7 +1367,7 @@ export function IntegrationsPanel({
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="flex items-center justify-between gap-2">
-                            <span className="truncate text-sm font-medium">{display.name}</span>
+                            <span className="break-words text-sm font-medium">{display.name}</span>
                             <StatusBadge
                               tone={op.effect === 'write' ? 'warning' : 'neutral'}
                               shape="soft"
@@ -1387,8 +1385,8 @@ export function IntegrationsPanel({
                         </span>
                       </label>
                       <details className="mx-3 mb-2 ml-14 mt-1 rounded-lg px-2 py-1 text-xs text-[var(--nimi-text-muted)]">
-                        <summary className="cursor-pointer">{t('Integrations.operationDetails')}</summary>
-                        <p className="mt-2 break-all">{op.name}</p>
+                        <summary className="cursor-pointer">{t('Integrations.technicalDetails')}</summary>
+                        <p className="mt-2 break-all"><code>{op.name}</code></p>
                         <p className="mt-2">
                           {t('Integrations.descriptorSource', { source: target.displayName })}
                         </p>

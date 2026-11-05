@@ -2,7 +2,7 @@ import { useAppPreviewLocale } from '../i18n/app-preview-locale.js';
 import { useState } from 'react';
 import { ArrowUpRight, Check, MousePointer2, Play, RotateCcw, Square } from 'lucide-react';
 import type { JevUltrafastPreviewContent } from '../content/landing-content.third-party.js';
-import { PreviewButton, PreviewNotice } from './demo-third-party-shared.js';
+import { PreviewButton, PreviewCredits } from './demo-third-party-shared.js';
 
 /** Replica of jev_ultrafast/static/index.html's task, browser, choice and history panels. */
 export function DemoJevUltrafastPreview({ content }: { content: JevUltrafastPreviewContent }) {
@@ -250,7 +250,7 @@ export function DemoJevUltrafastPreview({ content }: { content: JevUltrafastPrev
           </section>
         )}
       </main>
-      <PreviewNotice>{content.notice}</PreviewNotice>
+      <PreviewCredits />
     </div>
   );
 }

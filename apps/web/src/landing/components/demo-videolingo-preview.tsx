@@ -12,7 +12,7 @@ import {
 import type { VideoLingoPreviewContent } from '../content/landing-content.third-party.js';
 import {
   PreviewButton,
-  PreviewNotice,
+  PreviewCredits,
   PreviewSteps,
   PreviewWaveform,
 } from './demo-third-party-shared.js';
@@ -320,7 +320,7 @@ export function DemoVideoLingoPreview({ content }: { content: VideoLingoPreviewC
           </div>
         )}
       </div>
-      <PreviewNotice>{content.notice}</PreviewNotice>
+      <PreviewCredits />
     </div>
   );
 }

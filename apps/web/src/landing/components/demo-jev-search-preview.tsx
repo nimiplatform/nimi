@@ -9,7 +9,7 @@ import {
   SlidersHorizontal,
 } from 'lucide-react';
 import type { JevSearchPreviewContent } from '../content/landing-content.third-party.js';
-import { PreviewButton, PreviewNotice } from './demo-third-party-shared.js';
+import { PreviewButton, PreviewCredits } from './demo-third-party-shared.js';
 
 /** Landing-owned replica of jev-search's routes/index, search-box, filters and results. */
 export function DemoJevSearchPreview({ content }: { content: JevSearchPreviewContent }) {
@@ -176,7 +176,7 @@ export function DemoJevSearchPreview({ content }: { content: JevSearchPreviewCon
           </>
         )}
       </main>
-      <PreviewNotice>{content.notice}</PreviewNotice>
+      <PreviewCredits />
     </div>
   );
 }

@@ -23,7 +23,15 @@
   "botToken": "机器人 Token",
   "bearerToken": "访问 Token（可选）",
   "custody": "凭据由 Nimi Runtime 保管。获准应用只取得连接引用和允许操作的结果。",
-  "telegramMode": "消息回复通过共享接收器统一收取。若原服务已配置 Webhook，请前往原服务管理，此处不会将它删除。",
+  "telegramWebhookHelp": "查看处理方法",
+  "telegramWebhookNewBotTitle": "使用新机器人",
+  "telegramWebhookNewBotCreate": "在 Telegram 中打开官方 @BotFather，发送 /newbot，按提示创建机器人。",
+  "telegramWebhookOpenBotFather": "打开 @BotFather",
+  "telegramWebhookNewBotConnect": "复制新机器人的 Token，回到此处填写并重新连接。",
+  "telegramWebhookExistingBotTitle": "继续使用原机器人",
+  "telegramWebhookExistingBotImpact": "关闭原服务的消息接收后，它将不再收到这个机器人的新消息。",
+  "telegramWebhookExistingBotDisable": "前往之前连接该机器人的平台，关闭此机器人的消息接收设置（Webhook）。找不到该设置时，请联系原平台的管理员；不清楚是哪个平台时，可改用新机器人。",
+  "telegramWebhookExistingBotReconnect": "完成后，回到此处重新填写原机器人的 Token，再次连接。Nimi 不会自动更改原平台的设置。",
   "connect": "连接账户",
   "working": "处理中…",
   "connected": "已连接。请关闭此窗口，在“应用授权”中选择允许的应用和操作。",
@@ -51,7 +59,7 @@
   "verified": "连接已验证，现有许可和回复位置已保留。",
   "operations": "允许的操作",
   "read": "读取",
-  "write": "写入（按可能修改处理）",
+  "write": "可能更改数据",
   "apps": "应用",
   "allowed": "已保存所选使用许可。",
   "empty": "请先连接服务，或运行一个提供集成的应用。",
@@ -124,7 +132,7 @@
     "INTEGRATION_WEIXIN_PROVIDER_REJECTED": "微信拒绝了请求，请检查所选账号及验证状态。",
     "INTEGRATION_WEIXIN_IDENTITY_INVALID": "微信未返回已核验账号身份，请重新认证。",
     "INTEGRATION_MANAGEMENT_DENIED": "当前连接没有 Nimi Home 管理权限。",
-    "INTEGRATION_TELEGRAM_WEBHOOK_CONFLICT": "此机器人已启用 webhook。请改用专用的测试机器人，或在原服务中调整接收方式。",
+    "INTEGRATION_TELEGRAM_WEBHOOK_CONFLICT": "这个机器人已设置由其他服务接收消息，暂时无法连接 Nimi。请使用新机器人，或先关闭原服务的消息接收设置后重试。",
     "INTEGRATION_TELEGRAM_BOT_ALREADY_CONNECTED": "此机器人已有连接。请在现有集成中选择它，并为需要的应用设置许可。",
     "INTEGRATION_TELEGRAM_VERIFICATION_REQUIRED": "请先选择此连接并验证机器人的身份。",
     "INTEGRATION_TELEGRAM_IDENTITY_INVALID": "Telegram 未返回有效的机器人身份。请检查凭据后重试。",
@@ -234,11 +242,26 @@
   "submitVerification": "提交验证码",
   "feishuManualHelp": "请在飞书开发者后台启用机器人，选择「使用长连接接收事件」，添加「接收消息」事件，开通下列应用权限后发布。无需用户身份权限。",
   "feishuScopeHelp": [
-    { "label": "发送与更新", "scope": "im:message:send_as_bot" },
-    { "label": "私聊接收", "scope": "im:message.p2p_msg:readonly" },
-    { "label": "群内 @", "scope": "im:message.group_at_msg:readonly" },
-    { "label": "上传媒体", "scope": "im:resource" },
-    { "label": "下载消息媒体", "scope": "im:message:readonly" }
+    {
+      "label": "发送与更新",
+      "scope": "im:message:send_as_bot"
+    },
+    {
+      "label": "私聊接收",
+      "scope": "im:message.p2p_msg:readonly"
+    },
+    {
+      "label": "群内 @",
+      "scope": "im:message.group_at_msg:readonly"
+    },
+    {
+      "label": "上传媒体",
+      "scope": "im:resource"
+    },
+    {
+      "label": "下载消息媒体",
+      "scope": "im:message:readonly"
+    }
   ],
   "qqMode": "请在 QQ 开发者平台启用官方机器人 WebSocket 的单聊和群消息订阅。App 可基于已收消息的有效上下文进行回复，或向同一会话发送消息；无上下文的主动推送会被拒绝。QQ 官方凭据与 OneBot 连接相互独立。",
   "onebotMode": "请先在本机运行所选的 OneBot v11 协议端，再填写机器人的数字账号及一致的非空 access token。Nimi 仅核验真实账号与实现版本，不会代为安装协议端。",
@@ -251,6 +274,7 @@
   "requiredToken": "访问 Token（必填）",
   "selectExistingTarget": "请选择已有连接，管理它的应用许可。",
   "descriptorSource": "来自 {{source}} 的原始操作说明",
+  "operationIdentifiers": "操作标识",
   "operationNames": {
     "send": "发送消息",
     "reply": "回复消息",
@@ -260,6 +284,8 @@
   },
   "operationSummaries": {
     "send": "使用此账号，向指定会话发送一条消息。",
+    "send_telegram": "允许应用使用此 Telegram 机器人，向指定会话发送文字消息。",
+    "receive_telegram": "允许应用读取此 Telegram 机器人收到的新消息。此权限适用于整个机器人连接，不限于某个会话。",
     "send_weixin": "基于该联系人当前收到的消息上下文，向同一联系人发送一次消息。",
     "send_qq": "使用同一接收方的近期消息上下文发送一次：私聊 60 分钟内、群聊 5 分钟内，每条来源消息共享最多 5 次回复。",
     "reply": "使用 Runtime 保留的来源引用回复一次；该引用仍需平台接受。",

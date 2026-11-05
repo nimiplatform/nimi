@@ -35,8 +35,11 @@
       "^Google$",
       "^Google login$",
       "^Nimi$",
-    "^Nimi Desktop$",
-    "^new Promise\\b",
+      "^Nimi Desktop$",
+      "^Nimi Runtime$",
+      "^(zh-cn, en-us|t2v, i2v_first_frame|resolution, ratio, duration_sec)$",
+      "^(local-agent:desktop:\\.\\.\\.|runtime-source:\\.\\.\\.|user-1|anchor-1)$",
+      "^(sha256|ID):$",
       "^(mp3|wav|ogg|pcm|auto|base64|url)$",
       "^/absolute/path/to/nimi_data$"
     ]

@@ -40,6 +40,7 @@
   "findByHandleTitle": "添加好友",
   "findByHandleDescription": "输入对方完整的账号用户名，发送好友申请；无需对方公开完整资料。",
   "handleLabel": "账号用户名",
+  "handlePlaceholder": "例如：@alex",
   "findByHandleAction": "发送好友申请",
   "findByHandleFailed": "未能确认好友申请是否发送成功。请检查账号用户名、对方的好友申请设置及网络连接后重试。",
   "friendHandleRequested": "好友申请已发送，对方接受后会出现在好友列表中。",

@@ -74,7 +74,8 @@ export function DemoChatAgentCenter({
   useEffect(() => {
     const created = createDemoZhiyuAgentCenterSession(client);
     setCenter(created);
-    return () => created.session.dispose();
+    const unsubscribe = client.subscribeChanges(() => { void created.session.refresh(); });
+    return () => { unsubscribe(); created.session.dispose(); };
   }, [client]);
   const i18n = useMemo(
     () => createAgentCenterI18n({ language: demo.appPreview.locale, t: (key) => key }),

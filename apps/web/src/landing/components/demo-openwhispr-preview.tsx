@@ -15,7 +15,7 @@ import {
   Upload,
 } from 'lucide-react';
 import type { OpenwhisprPreviewContent } from '../content/landing-content.third-party.js';
-import { PreviewButton, PreviewNotice } from './demo-third-party-shared.js';
+import { PreviewButton, PreviewCredits } from './demo-third-party-shared.js';
 
 const NAV_ICONS = [Home, BarChart3, MessageSquare, BookOpen, Upload, BookOpen, Settings];
 type PreviewNote = { title: string; time: string; duration: string; text: string; raw: string };
@@ -308,7 +308,7 @@ export function DemoOpenwhisprPreview({ content }: { content: OpenwhisprPreviewC
           )}
         </div>
       </div>
-      <PreviewNotice>{content.notice}</PreviewNotice>
+      <PreviewCredits />
     </div>
   );
 }

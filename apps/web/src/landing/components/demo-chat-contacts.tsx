@@ -54,12 +54,6 @@ export function DemoChatContacts({
               aria-label={t('用户名', 'Username')}
               placeholder="@lin.demo"
             />
-            <p className="demo-muted">
-              {t(
-                '可搜索本页的演示联系人；不会向真实账号发送申请。',
-                'Search this page’s demo contacts. No request is sent to a real account.',
-              )}
-            </p>
           </div>
         ) : null}
         <div className="demo-chat-contact-tabs">

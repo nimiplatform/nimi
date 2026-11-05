@@ -59,6 +59,7 @@
     "license": "开源许可证",
     "target": "适用平台",
     "asset": "安装包",
+    "assetSizeBytes": "{{size}} 字节",
     "nativePosture": "原生签名状态",
     "executionProfile": "执行配置",
     "appAccess": "请求的 App Access",

@@ -9269,6 +9269,7 @@ pub struct IntegrationOperation {
     pub effect: Option<String>,
     pub supports_cancel: Option<bool>,
     pub retry_policy: Option<String>,
+    pub display_name: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

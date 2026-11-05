@@ -5,6 +5,9 @@ import { useHeroDemoSession } from './hero-demo-context.js';
 
 export function HomeTourCaption({ copy, controls }: { copy: TourChapterCopy; controls: LandingContent['guide'] }) {
   const { section, resumeStep, guideStep, selectGuideStep, explore, playing, setPlaying, preferences, demo, preview, closePreview } = useHeroDemoSession();
+  const chapter = demoChapters[(section ?? 0) - 2];
+  const manual = chapter?.manual;
+  const keepInstruction = chapter?.copy === 'riskControl';
   const last = copy.stops.length - 1;
   const free = guideStep === undefined;
   const [title, body] = copy.stops[resumeStep]!;
@@ -21,9 +24,9 @@ export function HomeTourCaption({ copy, controls }: { copy: TourChapterCopy; con
       <div className="tour-count" aria-label={`${resumeStep + 1} / ${copy.stops.length}`}>
         <b>{String(resumeStep + 1).padStart(2, '0')}</b><span>/ {String(copy.stops.length).padStart(2, '0')}</span>
       </div>
-      <div className="tour-caption-copy" aria-live={playing && !preferences.reducedMotion && !free ? 'off' : 'polite'}>
-        <h3>{free ? controls.exploring : title}</h3>
-        <p>{free ? controls.resumeHint.replace('{step}', title) : body}</p>
+      <div className="tour-caption-copy" aria-live={!manual && playing && !preferences.reducedMotion && !free ? 'off' : 'polite'}>
+        <h3>{free && !keepInstruction ? controls.exploring : title}</h3>
+        <p>{free && !keepInstruction ? controls.resumeHint.replace('{step}', title) : body}</p>
       </div>
       <div className="tour-actions">
         <button type="button" className="tour-mode" onClick={free ? () => move(resumeStep) : explore}>
@@ -34,7 +37,7 @@ export function HomeTourCaption({ copy, controls }: { copy: TourChapterCopy; con
         <button type="button" className="tour-next" onClick={finishApp ? closePreview : () => move(resumeStep === last ? 0 : resumeStep + 1)}>
           {nextLabel}{resumeStep === last && !finishApp ? <RotateCcw size={14} /> : <ArrowRight size={15} />}
         </button>
-        {!free && resumeStep < last && !preferences.reducedMotion && (
+        {!manual && !free && resumeStep < last && !preferences.reducedMotion && (
           <button type="button" className="tour-icon" aria-label={playing ? controls.pause : controls.play} title={playing ? controls.pause : controls.play}
             onClick={() => setPlaying(!playing)}>{playing ? <Pause size={15} /> : <Play size={15} />}</button>
         )}

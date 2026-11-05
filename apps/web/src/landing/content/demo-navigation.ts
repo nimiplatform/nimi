@@ -4,10 +4,10 @@ import { demoChapters, demoSectionIds } from './demo-tour.js';
 export type DemoDestination = {
   surface: HeroDemoSurface;
   target?: string;
-  view?: 'draft' | 'blocked' | 'edited' | 'access';
+  view?: 'draft' | 'access';
 };
 export type PreviewScreen = 'home' | 'journal' | 'keepsakes' | 'companion' | 'memory';
-export type PreviewDestination = { appId: string; screen: PreviewScreen };
+export type PreviewDestination = { appId: string; screen: PreviewScreen; partnerId?: string };
 export type DemoNavigation = {
   entries: readonly DemoDestination[];
   position: number;
@@ -22,7 +22,7 @@ export type DemoNavigationAction =
   | { type: 'enter-section'; index: number }
   | { type: 'guide'; step: number }
   | { type: 'explore' }
-  | { type: 'open-preview'; appId: string }
+  | { type: 'open-preview'; appId: string; screen?: PreviewScreen; partnerId?: string }
   | { type: 'close-preview' };
 
 export function initialDemoSection(hash: string) {
@@ -67,7 +67,7 @@ export function reduceDemoNavigation(state: DemoNavigation, action: DemoNavigati
     : state;
   if (action.type === 'explore') return free;
   if (action.type === 'open-preview') {
-    return { ...free, preview: { appId: action.appId, screen: 'home', guided: false } };
+    return { ...free, preview: { appId: action.appId, screen: action.screen ?? 'home', ...(action.partnerId ? { partnerId: action.partnerId } : {}), guided: false } };
   }
   const closed = free.preview ? { ...free, preview: undefined } : free;
   if (action.type === 'close-preview') return closed;

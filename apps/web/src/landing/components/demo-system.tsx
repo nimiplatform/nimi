@@ -3,7 +3,7 @@ import { CheckCircle2, FileBox } from 'lucide-react';
 import { Button } from '@nimiplatform/kit/ui';
 import type { HeroDemo } from '../content/landing-content.js';
 import type { DemoNavigate } from './demo-home.js';
-import { DemoNotice, demoText } from './demo-home-ui.js';
+import { demoText } from './demo-home-ui.js';
 
 export function DemoDownloadsSurface({ demo, onNavigate }: { demo: HeroDemo; onNavigate: DemoNavigate }) {
   const t = demoText(demo);
@@ -44,7 +44,6 @@ export function DemoDownloadsSurface({ demo, onNavigate }: { demo: HeroDemo; onN
             </div>
           ))
       )}
-      <DemoNotice demo={demo} />
     </div>
   );
 }
@@ -96,7 +95,6 @@ export function DemoDiagnosticsSurface({ demo }: { demo: HeroDemo }) {
           </>
         )}
       </div>
-      <DemoNotice demo={demo} />
     </div>
   );
 }

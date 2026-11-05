@@ -49,12 +49,12 @@ export function DemoCloudSetup({ target, demo }: { target: string; demo: HeroDem
         {filtered.map(row => <button type="button" key={row.id} aria-pressed={selected?.id === row.id} onClick={() => updateDraft({ model: row.id })}>
           <Cloud size={16} /><span>{row.label}</span>{selected?.id === row.id && <Check size={16} />}
         </button>)}
-        {!filtered.length && <p className="cloud-empty">{t('此示例连接没有匹配的模型。', 'No matching models on this example connection.')}</p>}
+        {!filtered.length && <p className="cloud-empty">{t("此连接没有匹配的模型。", "No matching models on this connection.")}</p>}
       </div>
       <p aria-live="polite">{!selected ? t('选择一个模型，确认后即可保存。', 'Choose a model, then confirm to save.') : draft
         ? t(`待保存：${selected.label}`, `Selected model: ${selected.label}`)
         : t(`已保存：${selected.label}`, `Saved model: ${selected.label}`)}</p>
-      <small>{t('离开后会保留这份示例草稿。保存只更新本页配置，不会发起 AI 请求；在桌面实际使用云服务时可能产生费用。', 'Leaving keeps this example draft. Saving updates only this page and sends no AI request. Actual cloud use in Home may incur provider charges.')}</small>
+      <small>{t("离开后会保留这份草稿。保存仅更新配置，不会发起 AI 请求；使用云服务时可能产生服务商费用。", "Leaving keeps this draft. Saving only updates the configuration and sends no AI request. Using cloud services may incur provider charges.")}</small>
       {connection?.status === 'credential' && <small>{t('该连接仍需要凭据。', 'This connection still needs a credential.')}</small>}
       <Button size="sm" tone="primary" disabled={!draft || !selected || !connection || connection.status === 'credential'} onClick={save}>
         {t(`保存到 ${owner?.name}`, `Save for ${owner?.name}`)}

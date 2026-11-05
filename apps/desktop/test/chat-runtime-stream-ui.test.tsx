@@ -186,8 +186,13 @@ test('runtime stream footer shows the non-terminal waiting warning with Stop ava
   assert.doesNotMatch(markup, /Interrupted/u);
 });
 
-test('runtime agent debug accessory renders runtime.agent.turns anchor evidence', async () => {
+for (const locale of ['en', 'zh'] as const) {
+test(`runtime agent debug accessory renders localized labels and runtime.agent.turns anchor evidence in ${locale}`, async () => {
   const RuntimeAgentDebugMessageAccessory = await loadRuntimeAgentDebugMessageAccessory();
+  const { initI18n, changeLocale, i18n } = await import('../src/shell/renderer/i18n/index.js');
+  await initI18n();
+  await changeLocale(locale);
+  const t = i18n.getFixedT(locale);
   const markup = renderToStaticMarkup(
     <RuntimeAgentDebugMessageAccessory
       message={buildCanonicalMessage({
@@ -202,8 +207,8 @@ test('runtime agent debug accessory renders runtime.agent.turns anchor evidence'
           normalizedModelOutput: null,
           statusCue: null,
           followUpInstruction: null,
-          followUpTurn: false,
-          chainId: null,
+          followUpTurn: true,
+          chainId: 'chain-rt-1',
           followUpDepth: null,
           maxFollowUpTurns: null,
           followUpCanceledByUser: false,
@@ -229,6 +234,8 @@ test('runtime agent debug accessory renders runtime.agent.turns anchor evidence'
       copiedLabel="Copied"
       followUpLabel="Follow-up"
       followUpInstructionLabel="Follow-up instruction"
+      followUpChainLabel={t('Chat.agentDebugFollowUpChainLabel')}
+      runtimeAgentTurnsLabel={t('Chat.agentDebugRuntimeAgentTurnsLabel')}
       promptLabel="Prompt"
       systemPromptLabel="System prompt"
       rawOutputLabel="Raw output"
@@ -236,7 +243,9 @@ test('runtime agent debug accessory renders runtime.agent.turns anchor evidence'
     />,
   );
 
-  assert.match(markup, /Runtime Agent Turns/u);
+  assert.match(markup, locale === 'en' ? /Follow-up chain/u : /跟进链路/u);
+  assert.match(markup, locale === 'en' ? /Runtime Agent Turns/u : /Runtime Agent 轮次/u);
+  assert.match(markup, /chainId=chain-rt-1/u);
   assert.match(markup, /conversationAnchorId=anchor-rt-1/u);
   assert.match(markup, /runtimeTurnId=turn-rt-1/u);
   assert.match(markup, /runtimeStreamId=stream-rt-1/u);
@@ -247,6 +256,7 @@ test('runtime agent debug accessory renders runtime.agent.turns anchor evidence'
   assert.doesNotMatch(markup, /modelResolved=/u);
   assert.doesNotMatch(markup, /routeDecision=/u);
 });
+}
 
 
 test('image failures retain readable content and keep diagnostic codes collapsed', async () => {

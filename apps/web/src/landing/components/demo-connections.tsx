@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Plus, ShieldCheck } from 'lucide-react';
 import { Button, SearchField } from '@nimiplatform/kit/ui';
 import type { HeroDemo } from '../content/landing-content.js';
-import { DemoNotice, DemoRow, DemoWorkspace, DemoServiceIcon, demoText } from './demo-home-ui.js';
+import { DemoRow, DemoWorkspace, DemoServiceIcon, demoText } from './demo-home-ui.js';
 
 export function DemoIntegrationsSurface({ demo, target }: { demo: HeroDemo; target?: string }) {
   const t = demoText(demo);
@@ -61,7 +61,6 @@ export function DemoIntegrationsSurface({ demo, target }: { demo: HeroDemo; targ
       {details && (
         <div className="demo-management-card my-4">
           <h2>{t('连接此服务', 'Connect this service')}</h2>
-          <DemoNotice demo={demo} />
           <p className="demo-muted mt-3">
             {t(
               '在 Nimi Home 中添加连接后，再选择允许使用此连接的应用与操作。',
@@ -113,7 +112,7 @@ export function DemoIntegrationsSurface({ demo, target }: { demo: HeroDemo; targ
               <div className="demo-setting-row">
                 <div>
                   <strong>{t('读取连接状态', 'Read connection status')}</strong>
-                  <small>14:20 · {t('示例记录', 'Sample record')}</small>
+                  <small>14:20 · {t("记录", "Record")}</small>
                 </div>
                 <span className="demo-success">{t('完成', 'Completed')}</span>
               </div>
@@ -132,7 +131,6 @@ export function DemoIntegrationsSurface({ demo, target }: { demo: HeroDemo; targ
               <span>{t('凭据', 'Credentials')}</span>
               <span>{t('由本机 Runtime 管理', 'Managed by local Runtime')}</span>
             </div>
-            <DemoNotice demo={demo} />
           </>
         )}
       </section>

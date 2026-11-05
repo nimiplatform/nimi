@@ -220,6 +220,8 @@
   "agentDebugCopiedLabel": "Copied",
   "agentDebugFollowUpLabel": "Auto follow-up",
   "agentDebugFollowUpInstructionLabel": "Follow-up instruction",
+  "agentDebugFollowUpChainLabel": "Follow-up chain",
+  "agentDebugRuntimeAgentTurnsLabel": "Runtime Agent Turns",
   "agentDiagnosticsRuntimeStateTitle": "Runtime State",
   "agentDiagnosticsStatusTextLabel": "Status text",
   "agentDiagnosticsWorldContextLabel": "World context",

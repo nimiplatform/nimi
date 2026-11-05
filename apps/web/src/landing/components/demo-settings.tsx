@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react';
 import type { HeroDemo } from '../content/landing-content.js';
-import { DemoNotice, DemoRow, DemoWorkspace, demoText } from './demo-home-ui.js';
+import { DemoRow, DemoWorkspace, demoText } from './demo-home-ui.js';
 
 export type DemoPreferences = {
   theme: 'system' | 'light' | 'dark';
@@ -207,7 +207,7 @@ export function DemoSettingsSurface({
               <h2 className="my-4">{t('登录会话', 'Login sessions')}</h2>
               <Setting
                 label="Nimi Home · macOS"
-                description={t('当前会话 · 示例设备', 'Current session · Sample device')}
+                description={t("当前会话 · 此设备", "Current session · This device")}
               >
                 <span className="demo-success">{t('当前', 'Current')}</span>
               </Setting>
@@ -264,7 +264,7 @@ export function DemoSettingsSurface({
                 )}
               </p>
               <details>
-                <summary>{t('查看示例日志', 'View sample log')}</summary>
+                <summary>{t("查看日志", "View log")}</summary>
                 <pre className="demo-log">
                   14:20:00 [demo] Runtime healthy
                   <br />
@@ -274,7 +274,6 @@ export function DemoSettingsSurface({
             </>
           )}
         </div>
-        <DemoNotice demo={demo} />
       </div>
     </DemoWorkspace>
   );

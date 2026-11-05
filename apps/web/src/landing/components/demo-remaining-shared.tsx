@@ -2,7 +2,7 @@ import { useAppPreviewLocale } from '../i18n/app-preview-locale.js';
 import type { ReactNode } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import type { RemainingPreviewMeta } from '../content/landing-content.remaining-apps.js';
-import { PreviewNotice } from './demo-third-party-shared.js';
+import { PreviewCredits } from './demo-third-party-shared.js';
 
 export type PreviewNavItem = { id: string; label: string; Icon: LucideIcon };
 
@@ -23,7 +23,7 @@ export function RemainingPreview({
       lang={previewLang}
     >
       {children}
-      <PreviewNotice>{content.notice}</PreviewNotice>
+      <PreviewCredits />
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { getStoryCopy } from './story-copy.js';
 import { exploreCharacters } from './explore-demo-data.js';
 import type { HeroDemoAgent, HeroDemoZhiyuPartner } from './landing-content.js';
 
@@ -91,8 +92,8 @@ export function createLocalAgentDemoData(): HeroDemoAgent[] {
 }
 
 /** Demo-only settings, shared by both public Kit Agent Center consumers. */
-export function createLocalAgentDemoPartners(): HeroDemoZhiyuPartner[] {
-  return createLocalAgentDemoData().map((agent) => ({
+export function toLocalAgentDemoPartner(agent: HeroDemoAgent, locale: 'zh' | 'en'): HeroDemoZhiyuPartner {
+  return {
     id: agent.id,
     name: agent.name,
     avatarUrl: agent.avatarUrl!,
@@ -102,9 +103,16 @@ export function createLocalAgentDemoPartners(): HeroDemoZhiyuPartner[] {
     hostMoodLabel: null,
     hostActivityLabel: null,
     messages: agent.messages,
-    replies: agent.replies!,
+    replies: agent.replies ?? [],
     reasoning: null,
-    memories: [],
+    // Explicitly illustrative, never exported from a real account or claimed as model-extracted.
+    memories: agent.id === 'demo:emberware-court:character-0' ? [{
+      id: 'illustrative-heguan-memory',
+      content: getStoryCopy(locale)['experience.memorySeed'],
+      epistemicStatus: 'explicit',
+      daysAgo: 1,
+      sourceExplanation: getStoryCopy(locale)['experience.memorySeedSource'],
+    }] : [],
     autonomy: { enabled: false, mode: 'off', dailyTokenBudget: 8000, maxBackgroundOutputTokens: 800, usedTokensInWindow: 0 },
     appearance: { backendKind: null, avatarAssetRef: null, backgroundAssetRef: null, defaultVoiceReference: null, avatarAutoplay: false },
     aiConfig: [{ capability: 'text.generate', route: 'local' }, { capability: 'text.embed', route: 'local' }],
@@ -115,8 +123,12 @@ export function createLocalAgentDemoPartners(): HeroDemoZhiyuPartner[] {
       currentEmotion: '',
       sourceReady: true,
       transcriptTurnCount: agent.messages.length,
-      memoryItemCount: 0,
+      memoryItemCount: agent.id === 'demo:emberware-court:character-0' ? 1 : 0,
       lorebookItemCount: 0,
     },
-  }));
+  };
+}
+
+export function createLocalAgentDemoPartners(locale: 'zh' | 'en'): HeroDemoZhiyuPartner[] {
+  return createLocalAgentDemoData().map(agent => toLocalAgentDemoPartner(agent, locale));
 }

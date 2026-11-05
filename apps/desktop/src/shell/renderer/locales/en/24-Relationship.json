@@ -40,6 +40,7 @@
   "findByHandleTitle": "Add a friend",
   "findByHandleDescription": "Enter their complete account handle to send a friend request. Their profile can stay private.",
   "handleLabel": "Account handle",
+  "handlePlaceholder": "e.g. @alex",
   "findByHandleAction": "Send friend request",
   "findByHandleFailed": "The friend request could not be confirmed. Check the handle, their friend request settings and your connection, then try again.",
   "friendHandleRequested": "Friend request sent. They will appear in your friends when they accept.",

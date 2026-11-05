@@ -18,6 +18,9 @@ message IntegrationOperation {
   bool supports_cancel = 6;
   // "none" or "safe". Protocol/tool annotations alone do not establish safety.
   string retry_policy = 7;
+  // Source-owned display copy only; name remains the permission/invocation ID.
+  // Optional, nonempty trimmed text, at most 512 UTF-8 bytes, without NUL.
+  optional string display_name = 8;
 }
 
 message IntegrationTarget {

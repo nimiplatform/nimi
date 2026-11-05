@@ -18,7 +18,7 @@ import {
   Wand2,
 } from 'lucide-react';
 import type { VoiceStudioPreviewContent } from '../content/landing-content.third-party.js';
-import { PreviewButton, PreviewNotice, PreviewWaveform } from './demo-third-party-shared.js';
+import { PreviewButton, PreviewCredits, PreviewWaveform } from './demo-third-party-shared.js';
 
 const NAV_ICONS = [
   Mic,
@@ -392,7 +392,7 @@ export function DemoVoiceStudioPreview({ content }: { content: VoiceStudioPrevie
           )}
         </main>
       </div>
-      <PreviewNotice>{content.notice}</PreviewNotice>
+      <PreviewCredits />
     </div>
   );
 }

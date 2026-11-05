@@ -3,7 +3,7 @@ import test from 'node:test';
 import React, { act } from 'react';
 import { JSDOM } from 'jsdom';
 import type { DesktopCanonicalRendererBindings } from '../src/shell/renderer/renderer/contract.js';
-import { integrationOperationPresentation } from '../src/shell/renderer/features/integrations/integration-operation-presentation.js';
+import { integrationOperationDisplayName, integrationOperationPresentation } from '../src/shell/renderer/features/integrations/integration-operation-presentation.js';
 
 // Owner UI fixtures prove form/state behavior only, not a platform login.
 async function homePanel(integration:unknown, check:(document:Document,dom:JSDOM,unmount:()=>Promise<void>)=>Promise<void>) {
@@ -292,13 +292,149 @@ for(const kind of ['qq-official','onebot-v11'])for(const available of [true,fals
   });
 });
 
-test('Home display copy follows only Runtime-declared native IDs and preserves unknown source text',()=>{
-  const op={name:'feishu.updates.read',description:'original descriptor',effect:'read'} as Parameters<typeof integrationOperationPresentation>[1];
-  const localized=integrationOperationPresentation('feishu',op,key=>`localized:${key}`);
-  assert.equal(localized.name,'localized:Integrations.operationNames.receive');assert.equal(localized.summary,'localized:Integrations.operationSummaries.receive');
-  assert.deepEqual(integrationOperationPresentation('app',op,key=>key),{name:op.name,summary:op.description});
-  const unknown={...op,name:'feishu.new.operation'};
-  assert.deepEqual(integrationOperationPresentation('feishu',unknown,key=>key),{name:unknown.name,summary:unknown.description});
+test('Home preserves source titles and descriptions without provider-specific mappings', () => {
+  const op = { name: 'feishu.updates.read', description: 'Original source explanation', effect: 'read' } as Parameters<typeof integrationOperationPresentation>[1];
+  const localized = integrationOperationPresentation('feishu', op, key => `localized:${key}`);
+  assert.equal(localized.name, 'localized:Integrations.operationNames.receive');
+  assert.equal(localized.summary, 'localized:Integrations.operationSummaries.receive');
+  for (const kind of ['mcp', 'app']) {
+    const source = { ...op, name: 'unseen_vendor.lookupSKU', displayName: '查询库存（含预留数量）' };
+    assert.deepEqual(integrationOperationPresentation(kind, source, key => key), {
+      name: source.displayName, summary: source.description,
+    });
+  }
+  for (const [kind, name, expected] of [
+    ['mcp', 'microsoft_docs_search', 'Microsoft Docs Search'],
+    ['app', 'deliverable.read', 'Deliverable Read'],
+    ['mcp', 'polyagent.account', 'Polyagent Account'],
+    ['app', 'getHTTPResponse', 'Get HTTP Response'],
+    ['mcp', 'custom-v2.lookup_SKU', 'Custom V2 Lookup SKU'],
+    ['mcp', 'constructor', 'Constructor'],
+    ['feishu', 'feishu.new.operation', 'Feishu New Operation'],
+    ['telegram', 'telegram.messages.send', 'Telegram Messages Send'],
+  ]) {
+    assert.deepEqual(integrationOperationPresentation(kind!, { ...op, name: name! }, key => key), {
+      name: expected, summary: op.description,
+    });
+  }
+  assert.equal(integrationOperationDisplayName({ name: 'HTTPStatus.lookup_code' }), 'HTTP Status Lookup Code');
+  assert.equal(integrationOperationDisplayName({ name: '读取版本' }), '读取版本');
+});
+
+for (const locale of ['zh', 'en'] as const) test(`Telegram permissions use ${locale} display copy while saving exact operation IDs`, async () => {
+  const operations = [
+    { name: 'telegram.sendMessage', description: 'Send a message to the selected Telegram chat.', effect: 'write' },
+    { name: 'telegram.updates.read', description: 'Read replies from the Runtime-owned shared receiver. Cursor retention is at most 24 hours and 1000 updates; canceling the invocation ends this reader.', effect: 'read' },
+  ].map(operation => ({ ...operation, inputSchemaJson: '{}', outputSchemaJson: '{}' }));
+  const target = { targetRef: 'telegram-connection', kind: 'telegram', integrationId: 'telegram', displayName: 'Telegram bot', accountLabel: '', available: true, operations, permittedOperations: [] };
+  const consumer = { consumerRef: 'consumer', appId: 'lab', displayName: 'Lab', sourceKind: 'development' };
+  const permissions: { targetRef: string; consumerRef: string; operations: string[] }[] = [];
+  await homePanel({
+    getManagement: async () => ({ targets: [target], consumers: [consumer], permissions, calls: [] }),
+    setPermission: async (input: typeof permissions[number]) => { permissions.push(input); },
+  }, async (document) => {
+    await clickNamed(document, 'Authorize apps');
+    const { changeLocale } = await import('../src/shell/renderer/i18n/index.js');
+    await act(async () => { await changeLocale(locale); });
+    const drawer = document.querySelector('[data-testid=integration-permission-drawer][aria-hidden=false]')!;
+    const labels = [...drawer.querySelectorAll<HTMLLabelElement>('[data-testid=integration-operations] label')];
+    const names = locale === 'zh' ? ['发送消息', '接收消息'] : ['Send a message', 'Receive new messages'];
+    assert.equal(labels.length, 2);
+    labels.forEach((label, index) => {
+      assert.ok(label.textContent?.includes(names[index]!));
+      assert.doesNotMatch(label.textContent || '', /telegram\.|Runtime|Cursor|invocation/u);
+      const details = label.parentElement!.querySelector('details')!;
+      assert.equal(details.open, false);
+      assert.equal(details.querySelector('summary')!.textContent, locale === 'zh' ? '技术详情' : 'Technical details');
+      assert.equal(details.querySelector('code')!.textContent, operations[index]!.name);
+      assert.ok(details.textContent?.includes(operations[index]!.description));
+    });
+    assert.match(labels[0]!.textContent || '', locale === 'zh' ? /Telegram 机器人.*发送文字消息/u : /send text messages.*Telegram bot/u);
+    assert.match(labels[1]!.textContent || '', locale === 'zh' ? /整个机器人连接，不限于某个会话/u : /whole bot connection, not just one conversation/u);
+    await act(async () => {
+      drawer.querySelector<HTMLInputElement>('fieldset:first-of-type input')!.click();
+      labels.forEach(label => label.querySelector<HTMLInputElement>('input')!.click());
+    });
+    await clickNamed(document, locale === 'zh' ? '确认授权' : 'Confirm authorization');
+    assert.deepEqual(permissions, [{
+      targetRef: target.targetRef, consumerRef: consumer.consumerRef,
+      operations: ['telegram.sendMessage', 'telegram.updates.read'],
+    }]);
+    const permissionRow = document.querySelector('[data-testid=integration-permissions] tbody tr')!;
+    names.forEach(name => assert.ok(permissionRow.textContent?.includes(name)));
+    assert.doesNotMatch(permissionRow.querySelector('td:nth-child(2)')!.textContent || '', /telegram\.sendMessage|telegram\.updates\.read/u);
+  });
+});
+
+for (const locale of ['zh', 'en'] as const) test(`New provider permissions use source titles or readable identifiers in ${locale} without changing grants`, async () => {
+  const sources = [
+    {
+      kind: 'mcp', integrationId: 'mcp', displayName: 'Unseen inventory server', available: true,
+      names: ['inventory.lookup_SKU', 'inventory.adjustStock', 'warehouseHTTPStatus'],
+      titles: ['查询库存', 'Adjust stock', undefined],
+      labels: ['查询库存', 'Adjust stock', 'Warehouse HTTP Status'],
+    },
+    {
+      kind: 'app', integrationId: 'example.workspace', displayName: 'New workspace app', available: true,
+      names: ['projectArtifacts.lookupRevision', 'projectArtifacts.exportRevision'],
+      titles: ['成果版本', '成果版本'],
+      labels: ['成果版本', '成果版本'],
+    },
+    {
+      kind: 'app', integrationId: 'example.offline', displayName: 'Offline app', available: false,
+      names: ['saved_report.read'], titles: [undefined], labels: ['Saved Report Read'],
+    },
+  ];
+  const targets = sources.map((source, index) => ({
+    ...source, targetRef: `source-${index}`, accountLabel: '', permittedOperations: [],
+    operations: source.names.map((name, operationIndex) => ({
+      name, displayName: source.titles[operationIndex], description: `Original provider explanation ${operationIndex}`,
+      effect: operationIndex === 1 ? 'write' : 'read', inputSchemaJson: '{}', outputSchemaJson: '{}',
+    })),
+  }));
+  const consumer = { consumerRef: 'consumer', appId: 'lab', displayName: 'Lab', sourceKind: 'development' };
+  const permissions = targets.map(target => ({ targetRef: target.targetRef, consumerRef: consumer.consumerRef, operations: [target.operations[0]!.name] }));
+  const writes: typeof permissions = [];
+  await homePanel({
+    getManagement: async () => ({ targets, consumers: [consumer], permissions, calls: [] }),
+    setPermission: async (input: typeof permissions[number]) => {
+      writes.push(input);
+      permissions.find(permission => permission.targetRef === input.targetRef)!.operations = input.operations;
+    },
+  }, async (document) => {
+    await clickNamed(document, 'All permissions');
+    const { changeLocale } = await import('../src/shell/renderer/i18n/index.js');
+    await act(async () => { await changeLocale(locale); });
+    for (const [index, source] of sources.entries()) {
+      const row = document.querySelectorAll('[data-testid=integration-permissions] tbody tr')[index]!;
+      assert.equal(row.querySelector('td:nth-child(2)')!.textContent, source.labels[0]);
+      const details = row.querySelector('details')!;
+      assert.equal(details.open, false);
+      assert.ok(details.textContent?.includes(source.names[0]!));
+      assert.deepEqual(writes.length, index, 'reading and navigation must not change permissions');
+      await act(async () => { row.querySelector<HTMLButtonElement>('td:last-child button')!.click(); });
+      const drawer = document.querySelector('[data-testid=integration-permission-drawer][aria-hidden=false]')!;
+      const labels = [...drawer.querySelectorAll<HTMLLabelElement>('[data-testid=integration-operations] label')];
+      assert.equal(labels.length, source.labels.length);
+      labels.forEach((label, operationIndex) => {
+        assert.ok(label.textContent?.includes(source.labels[operationIndex]!));
+        assert.ok(!label.textContent?.includes(source.names[operationIndex]!));
+        const operationDetails = label.parentElement!.querySelector('details')!;
+        assert.equal(operationDetails.open, false);
+        assert.equal(operationDetails.querySelector('code')!.textContent, source.names[operationIndex]);
+        assert.ok(operationDetails.textContent?.includes(`Original provider explanation ${operationIndex}`));
+        assert.ok(label.textContent?.includes(`Original provider explanation ${operationIndex}`));
+      });
+      await act(async () => { labels.slice(1).forEach(label => label.querySelector<HTMLInputElement>('input')!.click()); });
+      await clickNamed(document, locale === 'zh' ? '保存权限' : 'Save permissions');
+      assert.deepEqual(writes[index], {
+        targetRef: targets[index]!.targetRef, consumerRef: consumer.consumerRef, operations: source.names,
+      });
+      await clickNamed(document, locale === 'zh' ? '全部使用许可' : 'All permissions');
+      const updatedRow = document.querySelectorAll('[data-testid=integration-permissions] tbody tr')[index]!;
+      assert.deepEqual([...updatedRow.querySelectorAll('td:nth-child(2) li')].map(item => item.textContent), source.labels);
+    }
+  });
 });
 
 for (const adapter of ['mcp', 'onebot-v11']) test(`Home configuration refusal gives the selected ${adapter} correction`, async () => {
@@ -324,6 +460,69 @@ for (const adapter of ['mcp', 'onebot-v11']) test(`Home configuration refusal gi
     assert.doesNotMatch(alert.textContent || '', /integration service is unavailable/iu);
   });
 });
+
+for (const locale of ['en', 'zh'] as const) {
+  for (const carrier of ['rpc', 'setup'] as const) {
+    test(`Telegram shows dismissible conflict guidance only after a ${carrier} failure in ${locale}`, async () => {
+      let reason = 'INTEGRATION_TELEGRAM_WEBHOOK_CONFLICT';
+      const setup = {
+        setupId: 'telegram-conflict',
+        adapter: 'telegram',
+        targetRef: '',
+        expiresAt: new Date(Date.now() + 60000).toISOString(),
+      };
+      const integration = {
+        getManagement: empty,
+        startConnectionSetup: async () => {
+          if (carrier === 'rpc') {
+            throw Object.assign(new Error('local-app-operation-unavailable'), {
+              details: { reasonMetadata: { integration_reason: reason } },
+            });
+          }
+          return { ...setup, status: 'awaiting-input' };
+        },
+        submitConnectionSetup: async () => ({ ...setup, status: 'verifying' }),
+        getConnectionSetup: async () => ({ ...setup, status: 'failed', errorCode: reason }),
+        cancelConnectionSetup: async () => ({ ...setup, status: 'canceled' }),
+      };
+      await homePanel(integration, async (document, dom) => {
+        const form = await openServiceConnection(document, 'telegram');
+        const { changeLocale } = await import('../src/shell/renderer/i18n/index.js');
+        await act(async () => { await changeLocale(locale); });
+        const drawer = () => document.querySelector('[data-testid=integration-connection-drawer][aria-hidden=false]')!;
+        assert.doesNotMatch(drawer().textContent || '', /shared receiver|共享接收器|Webhook/iu);
+        assert.equal(drawer().querySelector('details'), null, 'new connections have no conflict help');
+        const submit = async () => {
+          await act(async () => { form.dispatchEvent(new dom.window.Event('submit', { bubbles: true, cancelable: true })); });
+          if (carrier === 'setup') await act(async () => { await new Promise(resolve => setTimeout(resolve, 1100)); });
+        };
+        await submit();
+        assert.match(drawer().textContent || '', locale === 'en' ? /another service.*cannot connect to Nimi/u : /其他服务接收消息.*无法连接 Nimi/u);
+        const help = drawer().querySelector('details')!;
+        assert.ok(help);
+        assert.equal(help.open, false);
+        const summary = help.querySelector('summary')!;
+        assert.equal(summary.textContent, locale === 'en' ? 'How to resolve' : '查看处理方法');
+        await act(async () => summary.click());
+        assert.equal(help.open, true);
+        assert.match(help.textContent || '', /\/newbot/u);
+        assert.equal(help.querySelector('a')?.href, 'https://t.me/BotFather');
+        assert.match(help.textContent || '', locale === 'en' ? /no longer receive new messages/u : /不再收到.*新消息/u);
+        assert.match(help.textContent || '', locale === 'en' ? /administrator/u : /管理员/u);
+        await act(async () => summary.click());
+        assert.equal(help.open, false);
+        assert.doesNotMatch(drawer().textContent || '', /INTEGRATION_/u);
+
+        reason = 'INTEGRATION_NETWORK_FAILED';
+        await submit();
+        assert.equal(drawer().querySelector('details'), null, 'another failure must clear the previous conflict guidance');
+        await act(async () => drawer().querySelector<HTMLButtonElement>('button[aria-label]')!.click());
+        await act(async () => document.querySelector<HTMLButtonElement>('[data-testid=integration-add-connection]')!.click());
+        assert.equal(drawer().querySelector('details'), null, 'reopening starts without conflict guidance');
+      });
+    });
+  }
+}
 
 for (const [adapter, code, hint] of [
   ['qq-official', 'INTEGRATION_QQ_AUTH_REJECTED', /QQ application verification did not complete.*platform status/u],

@@ -37,7 +37,7 @@ export function DemoCloudSurface({ demo, target }: { demo: HeroDemo; target?: st
   const [query, setQuery] = useState('');
   const [filter, setFilter] = useState<Filter>('all');
   const [filterOpen, setFilterOpen] = useState(false);
-  const [tab, setTab] = useState<(typeof tabs)[number]>(returning ? 'references' : 'models');
+  const [tab, setTab] = useState<(typeof tabs)[number]>(returning || target === 'credentials' ? 'references' : 'models');
   const [panel, setPanel] = useState<Panel | null>(null);
   const [feedback, setFeedback] = useState('');
   const tabId = useId();
@@ -116,10 +116,12 @@ export function DemoCloudSurface({ demo, target }: { demo: HeroDemo; target?: st
                 {current.status === 'checked' ? t('再次检查', 'Check again') : t('检查连接', 'Check connection')}</Button>}
           </div>
         </header>
-        <section className="cloud-summary">
+        <section className="cloud-summary" data-tour-anchor="cloud-custody">
           {feedback && <p role="status" className="cloud-feedback">{feedback}</p>}
-          {current.status === 'checked' && <small>{t('上次检查：今天 10:24（示例）', 'Last checked today at 10:24 (example)')}</small>}
+          {current.status === 'checked' && <small>{t("上次检查：今天 10:24", "Last checked today at 10:24")}</small>}
           <p>{t('当前账户的连接。', 'Connection for the current account.')} {current.auth === 'api_key' && t('用量由服务商计费。', 'Usage is billed by the provider.')}</p>
+          <p>{current.status === 'credential' ? t('凭据尚未配置。', 'Credentials have not been configured.') :
+            t("凭据已保存。经 Nimi 调用时，由本机 Runtime 托管，应用不会取得服务密钥。", "Credentials saved. For calls through Nimi, the on-device Runtime holds them; apps do not receive the provider key.")}</p>
           <details><summary>{t('计费与数据说明', 'Billing & data details')}</summary><p>{t('云端推理会将所需内容发送给所选服务商。实际费用、数据处理与保留规则由服务商决定。', 'Cloud inference sends the necessary content to the chosen provider. Its billing and data policies apply.')}</p></details>
         </section>
         <section className="cloud-card" key={current.id}>
@@ -135,7 +137,7 @@ export function DemoCloudSurface({ demo, target }: { demo: HeroDemo; target?: st
             {tab === 'models' ? <DemoCloudCatalog connection={current} demo={demo} t={t} onConfigure={model => setPanel({ type: 'use', model })} /> :
               tab === 'usage' ? <DemoCloudUsage connection={current} t={t} openHistory={days => setPanel({ type: 'history', scoped: true, days })} /> :
               <div className="cloud-pane"><h3>{t('已保存的应用配置', 'Saved app configurations')}</h3>
-                <p className="cloud-muted">{t('本页示例中已保存的配置。存在引用不代表正在调用模型。', 'Saved configurations in this example. A reference does not mean the model is running.')}</p>
+                <p className="cloud-muted">{t("已保存的配置。存在引用不代表正在调用模型。", "Saved configurations. A reference does not mean the model is running.")}</p>
                 {refs.length ? <ul className="cloud-rows">{refs.map(use => {
                   const owner = ownerOptions(use.capability, t).find(o => o.id === use.owner);
                   return <li key={use.owner + use.capability}><div><strong>{owner?.name}</strong><small>{capabilityLabel(use.capability, demo)} · {use.model}</small></div>

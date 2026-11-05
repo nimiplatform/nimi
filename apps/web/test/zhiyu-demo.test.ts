@@ -18,7 +18,7 @@ import { HeroDemoSessionProvider } from '../src/landing/components/hero-demo-ses
 import { createZhiyuPreviewContent } from '../src/landing/content/landing-content.zhiyu.js';
 import { loadLandingContent, type HeroDemoZhiyuPartner } from '../src/landing/content/landing-content.js';
 
-const zhiyuPreviewContent = createZhiyuPreviewContent(createPreviewTranslate(appPreviewMessagesZh));
+const zhiyuPreviewContent = createZhiyuPreviewContent(createPreviewTranslate(appPreviewMessagesZh), 'zh');
 
 const PUBLIC_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', 'public');
 
@@ -66,7 +66,10 @@ test('Home and Zhiyu share published character identities, introductions and ope
       assert.deepEqual(partner.introduction, home.introduction);
       assert.deepEqual(partner.messages, home.messages);
       assert.deepEqual(partner.replies, home.replies);
-      assert.equal(partner.memories.length, 0, 'Do not attach old fictional personal memories to a real character');
+      for (const memory of partner.memories) {
+        assert.doesNotMatch(memory.content, /演示记忆|demo memory/);
+        assert.match(memory.sourceExplanation, /手动记录|Manual record/);
+      }
       assert.ok(partner.introduction?.voicePreviewUrl);
       if (partner.messages.length) {
         assert.equal(partner.messages.length, 2);

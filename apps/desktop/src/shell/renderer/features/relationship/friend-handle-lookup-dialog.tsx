@@ -69,7 +69,7 @@ export function FriendHandleLookupDialog({ onClose }: { onClose: () => void }) {
         <label className="flex flex-col gap-1.5 text-sm">
           {t('Relationship.handleLabel')}
           <TextField autoFocus value={handle} onChange={(event) => { setHandle(event.target.value); setResult(null); setFailed(false); }}
-            placeholder="@handle" autoComplete="off" disabled={pending} />
+            placeholder={t('Relationship.handlePlaceholder')} autoComplete="off" disabled={pending} />
         </label>
         {failed ? <InlineAlert tone="danger">{t('Relationship.findByHandleFailed')}</InlineAlert> : null}
         {outcome ? <InlineAlert tone="success">{t(`Relationship.friendHandle${outcome === 'requested' ? 'Requested' : outcome === 'accepted' ? 'Accepted' : 'Unchanged'}`)}</InlineAlert> : null}

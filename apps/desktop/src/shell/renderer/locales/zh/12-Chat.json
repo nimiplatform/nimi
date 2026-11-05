@@ -220,6 +220,8 @@
   "agentDebugCopiedLabel": "已复制",
   "agentDebugFollowUpLabel": "自动跟进",
   "agentDebugFollowUpInstructionLabel": "跟进指令",
+  "agentDebugFollowUpChainLabel": "跟进链路",
+  "agentDebugRuntimeAgentTurnsLabel": "Runtime Agent 轮次",
   "agentDiagnosticsRuntimeStateTitle": "运行时状态",
   "agentDiagnosticsStatusTextLabel": "状态文本",
   "agentDiagnosticsWorldContextLabel": "世界上下文",

@@ -1,0 +1,33 @@
+[
+  {
+    "file": "/story/security-workbench.webp",
+    "source": "Built-in image_gen",
+    "reference": "Approved option 2, expanded narrative",
+    "createdAt": "2026-11-04",
+    "sha256": "e1b565188b42721e40510ccc57d3d55fae87f7dd4583ffdff9f4a738d074ecc7"
+  },
+  {
+    "file": "/story/nimigo-icon.png",
+    "source": "apps/nimigo/assets/app-icon.png",
+    "sha256": "2074e5254b4d322712e475905fea9c78b2b050499450dd0e20d3985964884371"
+  },
+  {
+    "file": "/story/nimiday-icon.png",
+    "source": "apps/nimiday/assets/app-icon.png",
+    "sha256": "84edb7b3f81e181f2101fee549fb5984eae90e777f167a0b3633321a848e7b85"
+  },
+  {
+    "file": "/story/heguan-cutout-v2.webp",
+    "source": "Built-in image_gen edit",
+    "reference": "apps/web/public/demo/explore/emberware-court-character-0.png",
+    "createdAt": "2026-11-04",
+    "sha256": "46c1b1441149847492854ce841450848f2b31dc3cb6bff7e9b9f469bfabb16a1"
+  },
+  {
+    "file": "/story/power-scene-v3.webp",
+    "source": "Built-in image_gen",
+    "reference": "Existing Nimi blue/green visual identity; local/cloud capability scene",
+    "createdAt": "2026-11-04",
+    "sha256": "17504ba42e03be680a4b21cb106d3e875a8063bd0ba1b787cf1b06e3dc3f5bf9"
+  }
+]

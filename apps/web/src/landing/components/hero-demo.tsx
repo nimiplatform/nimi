@@ -15,9 +15,14 @@ import { EXAMPLE_LOG } from '../content/demo-tour.js';
 import { DemoSettingsSurface } from './demo-settings.js';
 
 import { useHeroDemoSession } from './hero-demo-context.js';
+import { DemoWindowHeader, type DemoWindowClose } from './demo-window-header.js';
 
 export type HeroDemoProps = {
   expanded?: boolean;
+  windowTitle?: string;
+  windowActions?: ReactNode;
+  windowClose?: DemoWindowClose;
+  inlinePreview?: boolean;
   riskCopy?: LandingContent['riskControl'];
   previewCaption?: ReactNode;
   onPreviewBody?: (node: HTMLDivElement | null) => void;
@@ -26,7 +31,7 @@ export type HeroDemoProps = {
 const DemoCloudSurface = lazy(async () => ({ default: (await import('./demo-cloud.js')).DemoCloudSurface }));
 const DemoCloudSetup = lazy(async () => ({ default: (await import('./demo-cloud-setup.js')).DemoCloudSetup }));
 
-export function HeroDemoView({ expanded, riskCopy, previewCaption, onPreviewBody }: HeroDemoProps) {
+export function HeroDemoView({ expanded, windowTitle, windowActions, windowClose, inlinePreview, riskCopy, previewCaption, onPreviewBody }: HeroDemoProps) {
   const {
     demo,
     preview,
@@ -59,6 +64,10 @@ export function HeroDemoView({ expanded, riskCopy, previewCaption, onPreviewBody
     createThread,
   } = useHeroDemoSession();
 
+  if (inlinePreview && preview) return <DemoAppPreview opened={preview} inline
+    guiding={guideStep !== undefined} apps={demo.apps} preview={demo.appPreview}
+    onClose={closePreview} onBody={onPreviewBody} />;
+
   return (
     <div
       className={cn('hero-demo-frame demo-home-frame', expanded && 'flex h-full min-h-0 flex-col')}
@@ -67,12 +76,7 @@ export function HeroDemoView({ expanded, riskCopy, previewCaption, onPreviewBody
       data-demo-theme={preferences.theme}
       data-demo-reduced-motion={preferences.reducedMotion}
     >
-      <div className="hero-demo-titlebar demo-home-titlebar">
-        <div className="demo-traffic-lights" aria-hidden="true">
-          <i />
-          <i />
-          <i />
-        </div>
+      <DemoWindowHeader title={windowTitle ?? demo.windowTitle} close={windowClose} navigation={<>
         <button
           type="button"
           className="demo-icon-button"
@@ -100,11 +104,12 @@ export function HeroDemoView({ expanded, riskCopy, previewCaption, onPreviewBody
         >
           <PanelLeft size={17} />
         </button>
-        <span className="demo-window-title">{demo.windowTitle}</span>
-        <span className="demo-preview-badge" title={demo.home.note}>
+      </>}>
+        <span className="demo-preview-badge">
           {demo.home.badge}
         </span>
-      </div>
+        {windowActions}
+      </DemoWindowHeader>
       <div className="px-3 pt-2 md:hidden">
         <DemoSurfaceSwitcher demo={demo} surface={surface} onSelect={navigate} />
       </div>
@@ -144,7 +149,6 @@ export function HeroDemoView({ expanded, riskCopy, previewCaption, onPreviewBody
                 key={selectedChatTargetId === EXAMPLE_LOG ? current.view ?? 'log' : 'chat'}
                 demo={demo}
                 logExample={selectedChatTargetId === EXAMPLE_LOG ? riskCopy : undefined}
-                logView={current.view}
                 draft={composerDrafts[selectedChatTargetId ?? demo.chat.defaultTargetId] ?? ''}
                 onDraftChange={(text) =>
                   setComposerDrafts((previous) => ({

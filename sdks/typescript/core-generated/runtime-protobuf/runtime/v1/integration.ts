@@ -51,6 +51,13 @@ export interface IntegrationOperation {
      * @generated from protobuf field: string retry_policy = 7
      */
     retryPolicy: string;
+    /**
+     * Source-owned display copy only; name remains the permission/invocation ID.
+     * Optional, nonempty trimmed text, at most 512 UTF-8 bytes, without NUL.
+     *
+     * @generated from protobuf field: optional string display_name = 8
+     */
+    displayName?: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.IntegrationTarget
@@ -806,7 +813,8 @@ class IntegrationOperation$Type extends MessageType<IntegrationOperation> {
             { no: 4, name: "output_schema_json", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "effect", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "supports_cancel", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 7, name: "retry_policy", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 7, name: "retry_policy", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 8, name: "display_name", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<IntegrationOperation>): IntegrationOperation {
@@ -848,6 +856,9 @@ class IntegrationOperation$Type extends MessageType<IntegrationOperation> {
                 case /* string retry_policy */ 7:
                     message.retryPolicy = reader.string();
                     break;
+                case /* optional string display_name */ 8:
+                    message.displayName = reader.string();
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -881,6 +892,9 @@ class IntegrationOperation$Type extends MessageType<IntegrationOperation> {
         /* string retry_policy = 7; */
         if (message.retryPolicy !== "")
             writer.tag(7, WireType.LengthDelimited).string(message.retryPolicy);
+        /* optional string display_name = 8; */
+        if (message.displayName !== undefined)
+            writer.tag(8, WireType.LengthDelimited).string(message.displayName);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

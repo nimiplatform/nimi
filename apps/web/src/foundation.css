@@ -11,6 +11,7 @@
 @import "./landing/demo-third-party.css";
 @import "./landing/demo-remaining-apps.css";
 @import "./site.css";
+@import "./landing/story.css";
 
 /*
  * Keep kit styles and Tailwind in one compilation root: kit ships @source

@@ -177,7 +177,16 @@ func (s *Service) configureInitialAdapter(ctx context.Context, account, id strin
 			if tool.Annotations != nil && tool.Annotations.ReadOnlyHint {
 				effect = "read"
 			}
-			t.Public.Operations = append(t.Public.Operations, &runtimev1.IntegrationOperation{Name: tool.Name, Description: tool.Description, InputSchemaJson: string(input), OutputSchemaJson: string(output), Effect: effect, RetryPolicy: "none"})
+			// @nimi-authority: rule.nimi.runtime.integration.description
+			title := strings.TrimSpace(tool.Title)
+			if title == "" && tool.Annotations != nil {
+				title = strings.TrimSpace(tool.Annotations.Title)
+			}
+			op := &runtimev1.IntegrationOperation{Name: tool.Name, Description: tool.Description, InputSchemaJson: string(input), OutputSchemaJson: string(output), Effect: effect, RetryPolicy: "none"}
+			if title != "" {
+				op.DisplayName = &title
+			}
+			t.Public.Operations = append(t.Public.Operations, op)
 			if len(t.Public.Operations) > 128 {
 				return target{}, failure(codes.InvalidArgument, "INTEGRATION_OPERATIONS_BOUNDS")
 			}

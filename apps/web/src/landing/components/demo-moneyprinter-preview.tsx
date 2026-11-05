@@ -13,7 +13,7 @@ import {
   Subtitles,
 } from 'lucide-react';
 import type { MoneyPrinterPreviewContent } from '../content/landing-content.third-party.js';
-import { PreviewButton, PreviewNotice, PreviewSteps } from './demo-third-party-shared.js';
+import { PreviewButton, PreviewCredits, PreviewSteps } from './demo-third-party-shared.js';
 
 /** Landing-owned port of MoneyPrinterTurbo/src/production/Studio's paper-and-green workbench. */
 export function DemoMoneyPrinterPreview({ content }: { content: MoneyPrinterPreviewContent }) {
@@ -296,7 +296,7 @@ export function DemoMoneyPrinterPreview({ content }: { content: MoneyPrinterPrev
           )}
         </div>
       </div>
-      <PreviewNotice>{content.notice}</PreviewNotice>
+      <PreviewCredits />
     </div>
   );
 }

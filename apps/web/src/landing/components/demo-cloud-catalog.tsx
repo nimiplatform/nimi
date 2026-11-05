@@ -20,7 +20,7 @@ export function DemoCloudCatalog({ connection, demo, t, onConfigure }: {
     <div className="cloud-title-row"><h3>{t('模型目录', 'Model catalog')} <small>{rows.length}</small></h3>
       <Button size="sm" tone="ghost" onClick={() => { setLimit(20); setRefreshed(true); }}>{t('刷新目录', 'Refresh catalog')}</Button></div>
     <p className="cloud-muted">{t('选择模型，再配置给需要它的应用。', 'Choose a model, then configure it for the app that needs it.')}</p>
-    {refreshed && <small role="status">{t('已重新显示随附的示例目录。', 'The bundled example catalog has been refreshed.')}</small>}
+    {refreshed && <small role="status">{t("已重新显示随附目录。", "The bundled catalog has been refreshed.")}</small>}
     {rows.length > 0 && <div className="cloud-tools"><SearchField value={query} onChange={e => { setQuery(e.target.value); setLimit(20); }}
       onClear={() => setQuery('')} aria-label={t('搜索模型或能力', 'Search models or capabilities')} placeholder={t('搜索模型或能力', 'Search models or capabilities')} />
       {capabilities.length > 1 && <select aria-label={t('能力', 'Capability')} value={capability} onChange={e => { setCapability(e.target.value); setLimit(20); }}>
@@ -31,7 +31,7 @@ export function DemoCloudCatalog({ connection, demo, t, onConfigure }: {
     <div data-tour-anchor="cloud-catalog">
       {!filtered.length && <p role="status" className="cloud-empty">{rows.length ? t('没有匹配的模型，试试其他名称或能力。', 'No matching models. Try another name or capability.') :
         dynamic ? t('这个服务的模型需要在 Home 中从连接端点读取。网页未连接服务。', 'Home reads this provider’s models from the connected endpoint. This preview is offline.') :
-        t('此服务没有随附的示例模型。', 'There are no bundled example models for this provider.')}</p>}
+        t("此服务没有随附的模型。", "There are no bundled models for this provider.")}</p>}
       <ul className="cloud-rows">{filtered.slice(0, limit).map(row => <li key={row.id}>
         <div><strong>{row.label}</strong>{row.label !== row.id && <code>{row.id}</code>}
           <small>{row.capabilities.map(cap => capabilityLabel(cap, demo)).join(' · ')}</small></div>

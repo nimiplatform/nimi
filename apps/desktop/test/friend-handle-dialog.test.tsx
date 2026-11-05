@@ -49,6 +49,10 @@ test('the mounted friend dialog submits without a profile read, survives refresh
   try {
     await act(async () => root.render(<QueryClientProvider client={client}><AppStoreProvider store={store as never}><DesktopRendererBindingProvider bindings={bindings}><DesktopMotionProvider><FriendHandleLookupDialog onClose={() => {}} /></DesktopMotionProvider></DesktopRendererBindingProvider></AppStoreProvider></QueryClientProvider>));
     assert.match(button().textContent ?? '', /Send friend request/);
+    assert.equal(dom.window.document.querySelector('input')?.placeholder, 'e.g. @alex');
+    await act(async () => { await changeLocale('zh'); });
+    assert.equal(dom.window.document.querySelector('input')?.placeholder, '例如：@alex');
+    await act(async () => { await changeLocale('en'); });
     await edit(' @bob '); await submit();
     assert.equal(button().disabled, true);
     await act(async () => { store.setState({ auth: { status: 'refresh-pending', user: { id: 'account-a' } } }); store.setState({ auth: { status: 'authenticated', user: { id: 'account-a' } } }); complete({ outcome: 'requested' }); });
@@ -69,7 +73,8 @@ test('the mounted friend dialog submits without a profile read, survives refresh
     assert.doesNotMatch(text(), /Friend request sent/);
     assert.equal(button().disabled, false, 'cancelled old-owner action must not keep the form pending');
   } finally {
-    await act(async () => root.unmount()); client.clear(); dom.window.close();
+    await act(async () => { root.unmount(); await new Promise(resolve => setTimeout(resolve, 0)); });
+    client.clear(); dom.window.close();
     for (const [key, descriptor] of previous) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete (globalThis as Record<string, unknown>)[key]; }
   }
 });

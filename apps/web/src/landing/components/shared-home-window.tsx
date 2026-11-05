@@ -22,10 +22,11 @@ export function SharedHomeWindow({ inFlight, content }: {
   inFlight: boolean;
   content: LandingContent;
 }) {
-  const { section = 0, guideStep, explore, demo, playing, preview, selectGuideStep, preferences } = useHeroDemoSession();
+  const { section = 0, guideStep, explore, demo, playing, setPlaying, preview, selectGuideStep, preferences } = useHeroDemoSession();
   const [host] = useState(() => document.createElement('div'));
   const [dialogBody, setDialogBody] = useState<HTMLDivElement | null>(null);
-  const surface = preview ? dialogBody : host;
+  const inlinePreview = Boolean(demoChapters[section - 2]?.embeddedApps && preview?.guided);
+  const surface = preview && !inlinePreview ? dialogBody : host;
   const slot = inFlight ? 'hero' : demoSectionIds[section];
   const expanded = inFlight || slot !== 'hero';
   const chapter = demoChapters[section - 2];
@@ -53,7 +54,7 @@ export function SharedHomeWindow({ inFlight, content }: {
       marked = target;
       if (!target) return;
       target.dataset.tourCurrent = String(guideStep + 1);
-      if (playing && !preferences.reducedMotion && !document.hidden && guideStep + 1 < chapter.stops.length) {
+      if (!chapter.manual && playing && !preferences.reducedMotion && !document.hidden && guideStep + 1 < chapter.stops.length) {
         timer = window.setTimeout(() => selectGuideStep(guideStep + 1), 7500);
       }
       // Reveal the annotated control inside Home or an App without moving the landing page.
@@ -71,21 +72,27 @@ export function SharedHomeWindow({ inFlight, content }: {
     const observer = new MutationObserver(mark);
     observer.observe(surface, { childList: true, subtree: true });
     const handsOn = () => explore();
+    const pause = () => setPlaying(false);
     const onWheel = (event: WheelEvent) => {
       if (!event.ctrlKey && event.deltaY && demoRegionInnerCanScroll(event.target as HTMLElement, event.deltaY > 0 ? 1 : -1)) explore();
     };
-    surface.addEventListener('pointerdown', handsOn, true);
-    surface.addEventListener('focusin', handsOn, true);
+    // Pause immediately, but change caption/layout only after the control receives its action.
+    surface.addEventListener('pointerdown', pause, true);
+    surface.addEventListener('focusin', pause, true);
+    surface.addEventListener('click', handsOn);
+    surface.addEventListener('input', handsOn);
     surface.addEventListener('wheel', onWheel, { passive: true });
     return () => {
       observer.disconnect();
       window.clearTimeout(timer);
       marked?.removeAttribute('data-tour-current');
-      surface.removeEventListener('pointerdown', handsOn, true);
-      surface.removeEventListener('focusin', handsOn, true);
+      surface.removeEventListener('pointerdown', pause, true);
+      surface.removeEventListener('focusin', pause, true);
+      surface.removeEventListener('click', handsOn);
+      surface.removeEventListener('input', handsOn);
       surface.removeEventListener('wheel', onWheel);
     };
-  }, [surface, chapter, stop, guideStep, explore, playing, preferences.reducedMotion, selectGuideStep]);
+  }, [surface, chapter, stop, guideStep, explore, playing, setPlaying, preferences.reducedMotion, selectGuideStep]);
 
   if (!slot || slot === 'get-started') return null;
   const fallback = <HeroDemoStatic demo={demo} surface={slot === 'apps' ? 'chat' : 'home'} expanded={expanded} />;
@@ -98,8 +105,8 @@ export function SharedHomeWindow({ inFlight, content }: {
   return createPortal(
     <DemoErrorBoundary fallback={failure}>
       <Suspense fallback={chapter ? <div className="hero-demo-frame tour-load-state" aria-busy="true">{content.guide.loading}</div> : fallback}>
-        <HeroDemoView expanded={expanded} riskCopy={content.riskControl} onPreviewBody={setDialogBody}
-          previewCaption={preview?.guided && chapter ? <HomeTourCaption copy={content[chapter.copy]} controls={content.guide} /> : undefined} />
+        <HeroDemoView expanded={expanded} inlinePreview={inlinePreview} riskCopy={content.riskControl} onPreviewBody={setDialogBody}
+          previewCaption={!inlinePreview && preview?.guided && chapter ? <HomeTourCaption copy={content[chapter.copy]} controls={content.guide} /> : undefined} />
       </Suspense>
     </DemoErrorBoundary>, host,
   );

@@ -86,8 +86,8 @@ export function DemoCloudForm({ connection, connected, references, onSave, onRem
         </details>
         {!managed ? <div className="cloud-key-example">
           <label className="cloud-field">{t('API 密钥', 'API key')}<input type="password" readOnly value={sampleKey ? 'demo-only' : ''} autoComplete="off"
-            placeholder={connection ? t('留空保留已有凭据', 'Leave blank to keep the credential') : t('请使用下方的示例密钥', 'Use the sample key below')} /></label>
-          <Button size="sm" tone="secondary" disabled={sampleKey} onClick={() => setSampleKey(true)}><KeyRound size={14} />{sampleKey ? t('已填入示例密钥', 'Sample key filled in') : t('使用示例密钥', 'Use sample key')}</Button>
+            placeholder={connection ? t('留空保留已有凭据', 'Leave blank to keep the credential') : t("请使用下方的预置密钥", "Use the preset key below")} /></label>
+          <Button size="sm" tone="secondary" disabled={sampleKey} onClick={() => setSampleKey(true)}><KeyRound size={14} />{sampleKey ? t("已填入预置密钥", "Preset key filled in") : t("使用预置密钥", "Use preset key")}</Button>
           <small>{t('网页只接受内置样例。真实密钥由桌面端的本机 Runtime 管理。', 'Only the built-in sample is used here. The desktop Runtime manages real credentials.')}</small>
         </div> : <div className="cloud-auth-note">
           <strong>{browserSignIn ? t('在桌面端登录 ChatGPT', 'Sign in to ChatGPT in the desktop app') : t('由宿主管理授权', 'Host-managed authorization')}</strong>
@@ -95,10 +95,10 @@ export function DemoCloudForm({ connection, connected, references, onSave, onRem
         </div>}
         <label className="cloud-field">{t('名称（可选）', 'Name (optional)')}<input value={name} maxLength={100} placeholder={provider.name} onChange={e => setName(e.target.value)} /></label>
         <div className="cloud-form-actions"><Button size="sm" tone="primary" disabled={!validEndpoint || !method || (!managed && !hasKey)} onClick={save}>
-          {managed && !hasKey ? t('预览待授权连接', 'Preview pending connection') : t('保存示例连接', 'Save example connection')}
+          {managed && !hasKey ? t('预览待授权连接', 'Preview pending connection') : t("保存连接", "Save connection")}
         </Button><Button size="sm" tone="secondary" onClick={onClose}>{t('取消', 'Cancel')}</Button></div>
         {connection && <div className="cloud-remove">
-          {removing ? <><p>{t(`移除本页的「${connection.name}」示例？引用它的配置（${references}）将需要重新选择连接。`, `Remove the “${connection.name}” example? Its ${references} configuration references will need another connection.`)}</p>
+          {removing ? <><p>{t(`移除「${connection.name}」？引用它的配置（${references}）将需要重新选择连接。`, `Remove “${connection.name}”? Its ${references} configuration references will need another connection.`)}</p>
             <Button size="sm" tone="secondary" onClick={onRemove}>{t('确认移除', 'Confirm removal')}</Button>
             <Button size="sm" tone="ghost" onClick={() => setRemoving(false)}>{t('取消', 'Cancel')}</Button></> :
             <Button size="sm" tone="ghost" onClick={() => setRemoving(true)}>{t('移除连接', 'Remove connection')}</Button>}

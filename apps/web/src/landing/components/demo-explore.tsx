@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   ArrowLeft,
   ArrowRight,
@@ -68,6 +68,10 @@ export function DemoExploreSurface({
   const world = target?.startsWith('world:')
     ? exploreWorlds.find((world) => world.id === target.slice(6))
     : undefined;
+  useEffect(() => {
+    setReading(false);
+    setPeopleQuery('');
+  }, [world?.id]);
   const character = target?.startsWith('character:')
     ? exploreCharacters.find((character) => character.id === target.slice(10))
     : undefined;
@@ -76,8 +80,6 @@ export function DemoExploreSurface({
   const browse = !query.trim() && !topic;
   const results = filterExploreWorlds(query, topic, favorites).filter((world) => !browse || !world.featured);
   const openWorld = (id: string) => {
-    setReading(false);
-    setPeopleQuery('');
     onNavigate('explore', `world:${id}`);
   };
   const openCharacter = (id: string) => onNavigate('explore', `character:${id}`);
@@ -141,12 +143,6 @@ export function DemoExploreSurface({
             </Button>
             <h2>{t(`关于${character.name}`, `About ${character.name}`)}</h2>
             <p className="demo-explore-original-copy">{character.bio}</p>
-            <p className="demo-simulation-note">
-              {t(
-                '角色资料来自 Nimi Home；添加与聊天仅在本页演示中生效。',
-                'Character content comes from Nimi Home. Adding and chatting only affect this page’s demo.',
-              )}
-            </p>
           </section>
         </div>
       </div>
@@ -154,7 +150,7 @@ export function DemoExploreSurface({
 
   if (world)
     return (
-      <div className="demo-explore-detail-scroll">
+      <div key={world.id} className="demo-explore-detail-scroll">
         {back(() => onNavigate('explore'))}
         <section className="demo-explore-world-overview">
           <div>
@@ -258,7 +254,11 @@ export function DemoExploreSurface({
     );
 
   if (discovering) {
-    const people = exploreCharacters.filter((person) =>
+    // Show a range of worlds before the second resident of each world.
+    const people = [
+      ...exploreWorlds.flatMap((world) => world.people.slice(0, 1)),
+      ...exploreWorlds.flatMap((world) => world.people.slice(1)),
+    ].filter((person) =>
       `${person.name} ${person.worldName} ${person.bio}`
         .toLocaleLowerCase()
         .includes(characterQuery.trim().toLocaleLowerCase()),
@@ -276,7 +276,7 @@ export function DemoExploreSurface({
               onChange={(event) => setCharacterQuery(event.target.value)}
             />
           </header>
-          <div className="demo-explore-character-results">
+          <div className="demo-explore-character-results" data-tour-anchor="character-gallery">
             {people.map((person) => (
               <button type="button" key={person.id} onClick={() => openCharacter(person.id)}>
                 <img src={person.image} alt="" />
@@ -408,7 +408,7 @@ export function DemoExploreSurface({
               </button>
             ))}
           </nav>
-          <section className={`demo-world-atlas-section ${browse ? 'demo-world-discovery-section' : ''}`}>
+          <section className={`demo-world-atlas-section ${browse ? 'demo-world-discovery-section' : ''}`} data-tour-anchor="world-gallery">
             <div className="demo-world-atlas-section-heading">
               <div>
                 <h2>

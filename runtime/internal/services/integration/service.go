@@ -283,6 +283,8 @@ type noRemoteSchema struct{}
 func (noRemoteSchema) Load(string) (any, error) {
 	return nil, errors.New("remote schema references unavailable")
 }
+
+// @nimi-authority: rule.nimi.runtime.integration.description
 func validateOperations(ops []*runtimev1.IntegrationOperation) error {
 	if len(ops) == 0 || len(ops) > 128 {
 		return failure(codes.InvalidArgument, "INTEGRATION_OPERATIONS_BOUNDS")
@@ -290,6 +292,9 @@ func validateOperations(ops []*runtimev1.IntegrationOperation) error {
 	names := map[string]bool{}
 	for _, op := range ops {
 		if op == nil || len(op.Name) == 0 || len(op.Name) > 128 || strings.TrimSpace(op.Name) != op.Name || names[op.Name] || len(op.Description) > 4096 || (op.Effect != "read" && op.Effect != "write") || (op.RetryPolicy != "none" && op.RetryPolicy != "safe") {
+			return failure(codes.InvalidArgument, "INTEGRATION_OPERATION_INVALID")
+		}
+		if op.DisplayName != nil && (op.GetDisplayName() == "" || len(op.GetDisplayName()) > 512 || strings.TrimSpace(op.GetDisplayName()) != op.GetDisplayName() || strings.ContainsRune(op.GetDisplayName(), '\x00')) {
 			return failure(codes.InvalidArgument, "INTEGRATION_OPERATION_INVALID")
 		}
 		names[op.Name] = true

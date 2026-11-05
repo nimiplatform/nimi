@@ -215,6 +215,36 @@ test('Integration accepts full bounded schemas and aggregate descriptors, includ
   assert.equal(registrations, 1);
 });
 
+test('Integration carries optional source display names through registration and discovery without changing IDs', async () => {
+  const operations = [
+    { name: 'warehouse.lookupSKU', displayName: '查询库存', description: 'Source explanation', inputSchemaJson: '{}', outputSchemaJson: '{}', effect: 'read', supportsCancel: false, retryPolicy: 'none' },
+    { name: 'warehouse.getHTTPStatus', description: 'Original status explanation', inputSchemaJson: '{}', outputSchemaJson: '{}', effect: 'read', supportsCancel: false, retryPolicy: 'none' },
+  ];
+  const target = { targetRef: 'target-1', integrationId: 'unseen.provider', displayName: 'Warehouse', accountLabel: '', kind: 'app', available: false, operations, skill: '', permittedOperations: [] };
+  let projected: unknown = target;
+  const requests: unknown[] = [];
+  const client = createNimiLocalAppIntegrationRuntimeClient({
+    registerIntegrationProvider: async input => { requests.push(input); return { target }; },
+    listIntegrationCatalog: async () => ({ targets: [projected] }),
+    getIntegrationManagement: async () => ({ targets: [projected], permissions: [], consumers: [], calls: [] }),
+  } as unknown as NimiLocalAppIntegrationRuntime);
+  const registration = { integrationId: target.integrationId, displayName: target.displayName, operations, skill: '' };
+  assert.deepEqual(await client.registerProvider(registration), target);
+  assert.deepEqual(requests, [registration]);
+  assert.deepEqual((await client.listCatalog())[0]!.operations, operations);
+  assert.deepEqual((await client.getManagement()).targets[0]!.operations, operations);
+  for (const displayName of [null, 1, '', ' ', ' trailing ', 'bad\0name', '中'.repeat(171)]) {
+    const invalid = { ...operations[0], displayName };
+    await assert.rejects(client.registerProvider({ ...registration, operations: [invalid] } as never));
+    projected = { ...target, operations: [invalid] };
+    await assert.rejects(client.listCatalog());
+  }
+  assert.equal(requests.length, 1, 'invalid titles never reach Runtime');
+  const limit = { ...operations[0]!, displayName: '中'.repeat(170) + 'ab' };
+  projected = { ...target, operations: [limit] };
+  assert.equal((await client.listCatalog())[0]!.operations[0]!.displayName, limit.displayName);
+});
+
 test('Agent work allows an optional empty tool description without weakening schema validation', () => {
   const work = { workId: 'work-1', instructions: '', sources: [], tools: [{ name: 'read', description: '', inputSchemaJson: '{"type":"object"}' }] };
   assert.deepEqual(validateAgentWork(work), work);

@@ -5,12 +5,11 @@ import {
   DialogContent,
   DialogTitle,
   EmptyState,
-  IconButton,
 } from '@nimiplatform/kit/ui';
 import type { HeroDemo } from '../content/landing-content.js';
 import type { PreviewDestination, PreviewScreen } from '../content/demo-navigation.js';
 import { COURTYARD_PARTNER } from '../content/demo-tour.js';
-import { CloseIcon } from './demo-icons.js';
+import { DemoWindowHeader } from './demo-window-header.js';
 import { AppPreviewLocaleProvider } from '../i18n/app-preview-locale.js';
 
 // Per the packet's on-demand constraint, each app's preview loads its own chunk
@@ -113,11 +112,11 @@ export const DEMO_PREVIEW_APP_IDS = [
   'io.github.nimiplatform.presenton',
 ] as const;
 
-function previewFor(appId: string, preview: HeroDemo['appPreview'], view: PreviewScreen, guiding: boolean): ReactNode | null {
+function previewFor(appId: string, preview: HeroDemo['appPreview'], view: PreviewScreen, guiding: boolean, partnerId = COURTYARD_PARTNER): ReactNode | null {
   switch (appId) {
     case 'nimi.zhiyu':
       return <DemoZhiyuPreview content={preview.zhiyu} guiding={guiding}
-        initialPartnerId={view === 'companion' || view === 'memory' ? COURTYARD_PARTNER : null}
+        initialPartnerId={view === 'companion' || view === 'memory' ? partnerId : null}
         initialPanel={view === 'memory' ? 'cognition' : undefined} />;
     case 'nimi.shijing':
       return <DemoShijingPreview content={preview.shijing} />;
@@ -170,8 +169,9 @@ function previewFor(appId: string, preview: HeroDemo['appPreview'], view: Previe
 }
 
 /** The same App dialog is opened by a library launch and by the guided tour. */
-export function DemoAppPreview({ opened, guiding, apps, preview, onClose, onBody, caption }: {
+export function DemoAppPreview({ opened, guiding, apps, preview, onClose, onBody, caption, inline = false }: {
   opened?: PreviewDestination;
+  inline?: boolean;
   guiding: boolean;
   apps: HeroDemo['apps'];
   preview: HeroDemo['appPreview'];
@@ -180,7 +180,7 @@ export function DemoAppPreview({ opened, guiding, apps, preview, onClose, onBody
   caption?: ReactNode;
 }) {
   const app = apps.items.find(item => item.id === opened?.appId);
-  const replica = app && opened ? previewFor(app.id, preview, opened.screen, guiding) : null;
+  const replica = app && opened ? previewFor(app.id, preview, opened.screen, guiding, opened.partnerId) : null;
   // Replicas open their own in-demo dialogs (e.g. ParentOS 安排日期). Radix
   // handles Escape in the capture phase, so the replica cannot stop it from
   // reaching this modal; skip dismissal while such a dialog is on screen and
@@ -189,6 +189,16 @@ export function DemoAppPreview({ opened, guiding, apps, preview, onClose, onBody
     if (document.querySelector('[data-demo-nested-dialog]')) return;
     onClose();
   };
+  if (inline && app) return <section className="hero-demo-frame demo-embedded-app" aria-label={app.name} data-testid="demo-embedded-app">
+    <DemoWindowHeader title={app.name} iconSrc={app.iconSrc} close={{ label: apps.closeLabel, onClose: dismiss }} />
+    <div ref={onBody} className="demo-embedded-app-body" data-tour-surface="" data-tour-anchor="app-content" data-demo-app-id={app.id} lang={preview.locale === 'zh' ? 'zh-CN' : 'en'}>
+      <Suspense fallback={<div className="tour-load-state" aria-busy="true">{app.name}</div>}>
+        <AppPreviewLocaleProvider key={preview.locale} locale={preview.locale} messages={preview.messages}>
+          {replica}
+        </AppPreviewLocaleProvider>
+      </Suspense>
+    </div>
+  </section>;
   return (
     <Dialog
       open={Boolean(app)}
@@ -198,25 +208,11 @@ export function DemoAppPreview({ opened, guiding, apps, preview, onClose, onBody
     >
       <DialogContent
         onClose={dismiss}
-        className="flex h-[88vh] w-[96vw] max-w-[1360px] flex-col overflow-hidden p-0"
+        className="demo-window-dialog demo-app-dialog"
         data-testid="demo-app-preview"
       >
-        <div className="flex min-w-0 shrink-0 items-center gap-2 border-b border-[var(--nimi-border-subtle)] px-5 py-3">
-          <DialogTitle className="min-w-0 max-w-[45%] truncate text-sm font-semibold text-[var(--nimi-text-primary)]">
-            {app?.name ?? ''}
-          </DialogTitle>
-          <span className="min-w-0 truncate rounded-full bg-[var(--nimi-surface-active)] px-2.5 py-1 text-[11px] font-semibold text-[var(--nimi-text-secondary)]">
-            {apps.previewBadge}
-          </span>
-          <span className="min-w-0 flex-1" />
-          <IconButton
-            className="shrink-0"
-            aria-label={apps.closeLabel}
-            icon={<CloseIcon />}
-            size="sm"
-            onClick={onClose}
-          />
-        </div>
+        <DialogTitle className="sr-only">{app?.name ?? ''}</DialogTitle>
+        <DemoWindowHeader title={app?.name ?? ''} iconSrc={app?.iconSrc} close={{ label: apps.closeLabel, onClose: dismiss }} />
         <DialogBody className="min-h-0 flex-1 p-0">
           {app && <div ref={onBody} className="h-full min-h-0" data-tour-surface="" data-demo-app-id={app.id} lang={preview.locale === 'zh' ? 'zh-CN' : 'en'}>
             {replica ? (

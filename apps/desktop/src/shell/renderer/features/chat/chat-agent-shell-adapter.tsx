@@ -493,6 +493,8 @@ export function useAgentConversationModeHost(
           copiedLabel={t('Chat.agentDebugCopiedLabel', { defaultValue: 'Copied' })}
           followUpLabel={t('Chat.agentDebugFollowUpLabel', { defaultValue: 'Auto follow-up' })}
           followUpInstructionLabel={t('Chat.agentDebugFollowUpInstructionLabel', { defaultValue: 'Follow-up instruction' })}
+          followUpChainLabel={t('Chat.agentDebugFollowUpChainLabel')}
+          runtimeAgentTurnsLabel={t('Chat.agentDebugRuntimeAgentTurnsLabel')}
           promptLabel={t('Chat.agentDebugPromptLabel', { defaultValue: 'Prompt' })}
           systemPromptLabel={t('Chat.agentDebugSystemPromptLabel', { defaultValue: 'System Prompt' })}
           rawOutputLabel={t('Chat.agentDebugRawRuntimeOutputLabel', { defaultValue: 'Raw Runtime Output' })}

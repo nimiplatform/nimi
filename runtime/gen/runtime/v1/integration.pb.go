@@ -82,7 +82,10 @@ type IntegrationOperation struct {
 	Effect         string `protobuf:"bytes,5,opt,name=effect,proto3" json:"effect,omitempty"`
 	SupportsCancel bool   `protobuf:"varint,6,opt,name=supports_cancel,json=supportsCancel,proto3" json:"supports_cancel,omitempty"`
 	// "none" or "safe". Protocol/tool annotations alone do not establish safety.
-	RetryPolicy   string `protobuf:"bytes,7,opt,name=retry_policy,json=retryPolicy,proto3" json:"retry_policy,omitempty"`
+	RetryPolicy string `protobuf:"bytes,7,opt,name=retry_policy,json=retryPolicy,proto3" json:"retry_policy,omitempty"`
+	// Source-owned display copy only; name remains the permission/invocation ID.
+	// Optional, nonempty trimmed text, at most 512 UTF-8 bytes, without NUL.
+	DisplayName   *string `protobuf:"bytes,8,opt,name=display_name,json=displayName,proto3,oneof" json:"display_name,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -162,6 +165,13 @@ func (x *IntegrationOperation) GetSupportsCancel() bool {
 func (x *IntegrationOperation) GetRetryPolicy() string {
 	if x != nil {
 		return x.RetryPolicy
+	}
+	return ""
+}
+
+func (x *IntegrationOperation) GetDisplayName() string {
+	if x != nil && x.DisplayName != nil {
+		return *x.DisplayName
 	}
 	return ""
 }
@@ -2851,7 +2861,7 @@ var File_runtime_v1_integration_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_integration_proto_rawDesc = "" +
 	"\n" +
-	"\x1cruntime/v1/integration.proto\x12\x0fnimi.runtime.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x8a\x02\n" +
+	"\x1cruntime/v1/integration.proto\x12\x0fnimi.runtime.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xc3\x02\n" +
 	"\x14IntegrationOperation\x12\x12\n" +
 	"\x04name\x18\x01 \x01(\tR\x04name\x12 \n" +
 	"\vdescription\x18\x02 \x01(\tR\vdescription\x12*\n" +
@@ -2859,7 +2869,9 @@ const file_runtime_v1_integration_proto_rawDesc = "" +
 	"\x12output_schema_json\x18\x04 \x01(\tR\x10outputSchemaJson\x12\x16\n" +
 	"\x06effect\x18\x05 \x01(\tR\x06effect\x12'\n" +
 	"\x0fsupports_cancel\x18\x06 \x01(\bR\x0esupportsCancel\x12!\n" +
-	"\fretry_policy\x18\a \x01(\tR\vretryPolicy\"\xe3\x02\n" +
+	"\fretry_policy\x18\a \x01(\tR\vretryPolicy\x12&\n" +
+	"\fdisplay_name\x18\b \x01(\tH\x00R\vdisplayName\x88\x01\x01B\x0f\n" +
+	"\r_display_name\"\xe3\x02\n" +
 	"\x11IntegrationTarget\x12\x1d\n" +
 	"\n" +
 	"target_ref\x18\x01 \x01(\tR\ttargetRef\x12%\n" +
@@ -3232,6 +3244,7 @@ func file_runtime_v1_integration_proto_init() {
 	if File_runtime_v1_integration_proto != nil {
 		return
 	}
+	file_runtime_v1_integration_proto_msgTypes[0].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

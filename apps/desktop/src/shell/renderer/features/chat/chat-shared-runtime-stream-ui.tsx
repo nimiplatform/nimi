@@ -181,6 +181,8 @@ export function RuntimeAgentDebugMessageAccessory(props: {
   copiedLabel: string;
   followUpLabel: string;
   followUpInstructionLabel: string;
+  followUpChainLabel: string;
+  runtimeAgentTurnsLabel: string;
   promptLabel: string;
   systemPromptLabel: string;
   rawOutputLabel: string;
@@ -311,7 +313,7 @@ export function RuntimeAgentDebugMessageAccessory(props: {
             {debugMetadata.followUpTurn ? (
               <div>
                 <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
-                  Follow-up chain
+                  {props.followUpChainLabel}
                 </div>
                 <pre className="mt-1 whitespace-pre-wrap break-words font-sans text-xs leading-5 text-[var(--nimi-text-secondary)]">
                   {[
@@ -333,7 +335,7 @@ export function RuntimeAgentDebugMessageAccessory(props: {
             {debugMetadata.runtimeAgentTurns ? (
               <div>
                 <div className="text-[10px] font-semibold uppercase tracking-[0.14em] text-[var(--nimi-text-muted)]">
-                  Runtime Agent Turns
+                  {props.runtimeAgentTurnsLabel}
                 </div>
                 <pre className="mt-1 whitespace-pre-wrap break-words font-sans text-xs leading-5 text-[var(--nimi-text-secondary)]">
                   {[

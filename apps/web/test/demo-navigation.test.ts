@@ -13,8 +13,8 @@ test('landing deep links enter the matching Home tour and ordinary navigation ta
   assert.equal(initialDemoSection(''), 0);
   const index = initialDemoSection('#worlds');
   let state = reduceDemoNavigation(home(), { type: 'enter-section', index });
-  assert.deepEqual(state.entries[state.position], { surface: 'explore', target: 'world:emberware-court' });
-  state = reduceDemoNavigation(state, { type: 'guide', step: 2 });
+  assert.deepEqual(state.entries[state.position], { surface: 'explore' });
+  state = reduceDemoNavigation(state, { type: 'guide', step: 5 });
   assert.equal(state.entries[state.position]?.surface, 'chat');
   state = reduceDemoNavigation(state, { type: 'push', destination: { surface: 'cloud' } });
   assert.equal(state.guide?.exploring, true);
@@ -36,21 +36,23 @@ test('successive navigation actions keep destination and history position atomic
   assert.deepEqual(state.entries[state.position], { surface: 'home' });
 });
 
-test('guided and manual launches open the App over Home and closing restores its detail page', () => {
+test('continuity opens the real Zhiyu preview immediately and switches explicitly to Home and back', () => {
   let state = reduceDemoNavigation(home(), { type: 'enter-section', index: initialDemoSection('#continuity') });
+  assert.deepEqual(state.preview, { appId: 'nimi.zhiyu', screen: 'companion', guided: true });
   state = reduceDemoNavigation(state, { type: 'guide', step: 1 });
-  const library = state.entries;
+  assert.equal(state.preview?.screen, 'memory');
   state = reduceDemoNavigation(state, { type: 'guide', step: 2 });
-  assert.deepEqual(state.preview, { appId: 'nimi.zhiyu', screen: 'home', guided: true });
-  assert.equal(state.entries, library);
+  assert.equal(state.preview, undefined);
+  assert.equal(state.entries[state.position]?.surface, 'chat');
   state = reduceDemoNavigation(state, { type: 'guide', step: 3 });
+  const library = state.entries;
   state = reduceDemoNavigation(state, { type: 'explore' });
-  assert.equal(state.preview?.screen, 'companion');
-  assert.equal(state.guide?.step, 3);
+  assert.deepEqual(state.preview, { appId: 'nimi.zhiyu', screen: 'companion', guided: true });
   state = reduceDemoNavigation(state, { type: 'close-preview' });
   assert.equal(state.preview, undefined);
   assert.equal(state.guide?.exploring, true);
   assert.equal(state.entries, library);
+  assert.deepEqual(state.entries[state.position], { surface: 'apps', target: 'nimi.zhiyu' });
   state = reduceDemoNavigation(state, { type: 'open-preview', appId: 'nimi.zhiyu' });
   assert.deepEqual(state.preview, { appId: 'nimi.zhiyu', screen: 'home', guided: false });
   state = reduceDemoNavigation(state, { type: 'enter-section', index: initialDemoSection('#worlds') });

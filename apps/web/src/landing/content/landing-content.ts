@@ -7,12 +7,14 @@ import type { CanonicalTranscriptViewProps } from '@nimiplatform/kit/features/ch
 import type { JevSearchPreviewContent, JevUltrafastPreviewContent, MoneyPrinterPreviewContent, OpenwhisprPreviewContent, VideoLingoPreviewContent, VoiceStudioPreviewContent } from './landing-content.third-party.js';
 
 export type TourChapterCopy = {
+  choices?: ReadonlyArray<string>;
   title: string;
   intro: string;
   stops: ReadonlyArray<readonly [string, string]>;
   cta?: string;
   note?: string;
   detailsLabel?: string;
+  details?: string;
 };
 
 export type HeroDemoChatCopy = NonNullable<CanonicalTranscriptViewProps['copy']>;
@@ -1201,7 +1203,7 @@ export type LandingContent = {
   };
   worlds: TourChapterCopy;
   capabilities: TourChapterCopy & { costNote: string };
-  riskControl: TourChapterCopy & { scope: string; limit: string; draft: string; marker: string; notice: string };
+  riskControl: TourChapterCopy & { scope: string; limit: string; draft: string; marker: string; notice: string; topicsLabel: string; topics: readonly string[]; previewLabel: string; checkpoints: string; sampleNote: string; editLabel: string; removeLabel: string; editingNote: string; submittedNote: string };
   create: TourChapterCopy;
   continuity: TourChapterCopy;
   developers: TourChapterCopy & { source: string };

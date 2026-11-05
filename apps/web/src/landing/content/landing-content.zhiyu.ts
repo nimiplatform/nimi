@@ -3,7 +3,7 @@ import { createLocalAgentDemoPartners } from './local-agent-demo-data.js';
 import type { HeroDemoZhiyuPreview } from './landing-content.js';
 
 /** Zhiyu-specific chrome over the same published local-agent data used by Home. */
-export const createZhiyuPreviewContent = (t: PreviewTranslate): HeroDemoZhiyuPreview => {
+export const createZhiyuPreviewContent = (t: PreviewTranslate, locale: 'zh' | 'en'): HeroDemoZhiyuPreview => {
   const content: HeroDemoZhiyuPreview = {
     appName: t('zhiyu.appName'),
     copy: {
@@ -95,7 +95,7 @@ export const createZhiyuPreviewContent = (t: PreviewTranslate): HeroDemoZhiyuPre
         { voiceId: 'xiaoman', name: t('zhiyu.demo.presetVoices.item3.name') },
       ],
     },
-    partners: createLocalAgentDemoPartners(),
+    partners: createLocalAgentDemoPartners(locale),
   };
   return content;
 };

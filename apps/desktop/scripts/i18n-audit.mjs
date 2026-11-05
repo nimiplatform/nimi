@@ -4,6 +4,7 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, extname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { extractI18nCandidates } from './lib/i18n-audit-source.mjs';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(__dirname, '..');
@@ -51,28 +52,6 @@ function collectFiles(input) {
   return files;
 }
 
-function extractCandidatesFromLine(line, isTsxFile) {
-  const candidates = [];
-  // JSX text cannot contain a bare `}`, so a run with one is expression code, not copy.
-  const jsxTextRegex = />\s*([^<>{}]+?)\s*</g;
-  const attrRegex = /\b(?:aria-label|placeholder|title|label|description)\s*=\s*["'`]([^"'`]+)["'`]/g;
-
-  const regexes = isTsxFile
-    ? [jsxTextRegex, attrRegex]
-    : [attrRegex];
-
-  for (const regex of regexes) {
-    let match;
-    while ((match = regex.exec(line))) {
-      const text = String(match[1] || '').trim();
-      if (text) {
-        candidates.push(text);
-      }
-    }
-  }
-  return candidates;
-}
-
 function isLikelyTranslationKey(text) {
   return /^[A-Za-z0-9_.-]+$/.test(text) && text.includes('.');
 }
@@ -93,21 +72,6 @@ function isUserVisibleLiteral(text) {
   if (isTelemetryCode(text)) return false;
   if (isReasonCode(text)) return false;
   return true;
-}
-
-function isLikelyCodeFragment(text, line) {
-  if (!text || !line) return false;
-  if (text.includes(' as ')) return true;
-  if (text.includes('&&') || text.includes('||') || text.includes('=>')) return true;
-  if (/^,\s*[a-zA-Z_$][\w$]*:\s*/.test(text)) return true;
-  if (/^[a-zA-Z_$][\w$]*:\s*[A-Z][A-Za-z0-9_<>,\s[\]|]*$/.test(text)) return true;
-  if (/^[a-zA-Z_$][\w$]*:\s*[a-z][A-Za-z0-9_<>,\s[\]|]*(\)\s*:\s*[A-Z][A-Za-z0-9_<>,\s[\]|]*)?$/.test(text)) return true;
-  if (/^,\s*[a-zA-Z_$][\w$]*:\s*[a-zA-Z][A-Za-z0-9_<>,\s[\]|]*(\)\s*:\s*[A-Za-z][A-Za-z0-9_<>,\s[\]|]*)?$/.test(text)) return true;
-  if (/^\)\s*:\s*[A-Z][A-Za-z0-9_<>,\s[\]|]*$/.test(text)) return true;
-  if (text.includes('): Array') || text.includes('): Promise') || text.includes('): Record') || text.includes('): string')) return true;
-  if (/^[=<>!&|]/.test(text)) return true;
-  if (text === 'Promise' && line.includes('Promise<')) return true;
-  return false;
 }
 
 function runAudit() {
@@ -140,27 +104,11 @@ function runAudit() {
       }
 
       const source = readFileSync(filePath, 'utf8');
-      const lines = source.split('\n');
-      const isTsxFile = extname(filePath) === '.tsx';
-      lines.forEach((line, index) => {
-        const trimmed = line.trim();
-        if (!trimmed) return;
-        if (trimmed.startsWith('//')) return;
-        if (line.includes('t(\'') || line.includes('i18n.t(') || line.includes('defaultValue:')) return;
-
-        const candidates = extractCandidatesFromLine(line, isTsxFile);
-        for (const candidate of candidates) {
-          if (!isUserVisibleLiteral(candidate)) continue;
-          if (isLikelyCodeFragment(candidate, line)) continue;
-          if (line.includes('message:') && isTelemetryCode(candidate)) continue;
-          if (allowRegexes.some((regex) => regex.test(candidate))) continue;
-          violations.push({
-            file: rel,
-            line: index + 1,
-            text: candidate,
-          });
-        }
-      });
+      for (const candidate of extractI18nCandidates(source, rel)) {
+        if (!isUserVisibleLiteral(candidate.text)) continue;
+        if (allowRegexes.some((regex) => regex.test(candidate.text))) continue;
+        violations.push({ file: rel, ...candidate });
+      }
     }
   }
 

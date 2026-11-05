@@ -518,6 +518,9 @@ export type DemoZhiyuAgentClient = {
   createResourcePackController(): DemoZhiyuResourcePackController;
   /** Reflects the visitor's conversation activity into the manager snapshot. */
   noteConversationTurn(): void;
+  /** Explicitly reset the illustrative memory, not a Runtime operation. */
+  resetExampleMemory(): void;
+  subscribeChanges(listener: () => void): () => void;
 };
 
 export function createDemoZhiyuAgentClient(
@@ -545,6 +548,8 @@ export function createDemoZhiyuAgentClient(
   let resourcePackSelection: PresentationProjection['resourcePackSelection'] = null;
   let resourcePackMaterial: { fileName: string; content: Uint8Array; sha256: string } | null = null;
   let memory = seedMemory(partner, now());
+  const listeners = new Set<() => void>();
+  const changed = () => setTimeout(() => listeners.forEach(listener => listener()), 0);
   let extraTurns = 0;
   let assetSequence = 0;
 
@@ -656,6 +661,7 @@ export function createDemoZhiyuAgentClient(
           maxFreeContactsPerDay: input.intent.config?.maxFreeContactsPerDay ?? autonomy.maxFreeContactsPerDay,
           quietHours: input.intent.config ? input.intent.config.quietHours : autonomy.quietHours,
         };
+        changed();
         return this.snapshot({ agentHandle: input.agentHandle });
       },
     },
@@ -743,6 +749,7 @@ export function createDemoZhiyuAgentClient(
             ? { ...item, content: input.correctedContent, epistemicStatus: 'explicit', updatedAt: new Date(now()).toISOString() }
             : item)),
         };
+        changed();
         return memoryMutation('committed', [input.memoryId]);
       },
       async forget(input) {
@@ -755,6 +762,7 @@ export function createDemoZhiyuAgentClient(
           currentCount: remaining.filter((item) => item.lifecycle === 'current').length,
           forgottenCount: memory.forgottenCount + (memory.items.length - remaining.length),
         };
+        changed();
         return memoryMutation('forgotten', input.memoryIds);
       },
       async setEnabled(input) {
@@ -764,6 +772,7 @@ export function createDemoZhiyuAgentClient(
           enabled: input.enabled,
           adoptionRequired: false,
         };
+        changed();
         return memoryMutation('committed', []);
       },
       async deleteAll() {
@@ -776,6 +785,7 @@ export function createDemoZhiyuAgentClient(
           forgottenCount: 0,
           nextPageToken: null,
         };
+        changed();
         return memoryMutation('deleted', []);
       },
     },
@@ -895,6 +905,8 @@ export function createDemoZhiyuAgentClient(
     createResourcePackController() {
       return new DemoZhiyuResourcePackController(resourcePackFileNames);
     },
+    subscribeChanges(listener) { listeners.add(listener); return () => { listeners.delete(listener); }; },
+    resetExampleMemory() { memory = seedMemory(partner, now()); changed(); },
     noteConversationTurn() {
       extraTurns += 1;
     },

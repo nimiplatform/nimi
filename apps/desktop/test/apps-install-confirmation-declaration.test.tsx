@@ -48,6 +48,10 @@ test('the existing install and update confirmations carry the declaration summar
     assert.ok(dialog.querySelector('[data-testid="apps-safety-declaration-summary"]'), 'the existing confirmation carries the summary');
     assert.match(dialog.textContent ?? '', /Teens/u);
     assert.match(dialog.textContent ?? '', /Continue and install/u, 'the confirmation action is unchanged');
+    assert.match(dialog.textContent ?? '', /42 bytes/u);
+    await act(async () => { await changeLocale('zh'); });
+    assert.match(dialog.textContent ?? '', /42 字节/u);
+    await act(async () => { await changeLocale('en'); });
     await act(async () => {
       root.render(<AppsInstallConfirmationDialog intent={{ ...intent, update: { launchSelector: new Uint8Array([2]), installedVersion: '1.1.0', installedSafetyDeclaration: declaration() } }} pending={false} onConfirm={() => {}} onClose={() => {}} />);
     });

@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Button, SelectField } from '@nimiplatform/kit/ui';
 import { CheckCircle2, ChevronDown, ChevronUp, Circle, CircleAlert, Clock3, RefreshCw } from 'lucide-react';
 import type { NimiIntegrationCall, NimiIntegrationTarget } from '@nimiplatform/sdk/app';
-import { integrationOperationPresentation } from './integration-operation-presentation.js';
+import { integrationOperationDisplayName, integrationOperationPresentation } from './integration-operation-presentation.js';
 
 const statuses = ['accepted', 'completed', 'failed', 'canceled', 'unconfirmed'] as const;
 const pageSize = 20;
@@ -134,7 +134,7 @@ export function IntegrationCallsView({
               const target = targets.find((item) => item.targetRef === call.targetRef);
               const op = target?.operations.find((item) => item.name === call.operation);
               const operation =
-                target && op ? integrationOperationPresentation(target.kind, op, t).name : call.operation;
+                target && op ? integrationOperationPresentation(target.kind, op, t).name : integrationOperationDisplayName({ name: call.operation });
               const open = expanded === call.callId;
               const StatusIcon = {
                 accepted: Clock3,

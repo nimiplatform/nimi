@@ -132,9 +132,15 @@ function text(value: unknown, bound: number, empty = false, projection = false):
   return value;
 }
 function list(value: unknown, max = 1000): unknown[] { if (!Array.isArray(value) || value.length > max) return localAppProjectionError('Integration list'); return value; }
+// @nimi-authority: rule.nimi.runtime.integration.description
 function operation(value: unknown, projection = true): NimiIntegrationOperation {
   const row = asRecord(value); const keys = ['name','description','inputSchemaJson','outputSchemaJson','effect','supportsCancel','retryPolicy'];
+  if (row && Object.hasOwn(row, 'displayName')) keys.push('displayName');
   if (projection) assertExactProjectionKeys(row, keys, 'Integration operation'); else assertExactKeys(row, keys, 'Integration operation');
+  if (row.displayName !== undefined) {
+    const displayName = text(row.displayName, 512, false, projection);
+    if (displayName.trim() !== displayName) return projection ? localAppProjectionError('Integration display name') : invalid();
+  }
   for (const key of ['name','description','inputSchemaJson','outputSchemaJson']) text(row[key], key.endsWith('Json') ? 65536 : key === 'name' ? 128 : 4096, key === 'description', projection);
   if (!['read','write'].includes(String(row.effect)) || !['none','safe'].includes(String(row.retryPolicy)) || typeof row.supportsCancel !== 'boolean') return projection ? localAppProjectionError('Integration operation') : invalid();
   for (const key of ['inputSchemaJson','outputSchemaJson']) { try { const schema = JSON.parse(String(row[key])); if (typeof schema !== 'boolean' && !asRecord(schema)) throw new Error(); } catch { return projection ? localAppProjectionError('Integration schema') : invalid(); } }
