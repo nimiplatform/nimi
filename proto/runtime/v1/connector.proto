@@ -55,6 +55,30 @@ message Connector {
   ConnectorOAuthRegistration oauth_registration = 15;
   // Historical diagnostic for this credential/configuration, never admission.
   ConnectorCheck last_check = 16;
+  // Non-secret optional storage for provider-bound input media. Credentials
+  // remain in the same Runtime custody generation as the provider credential.
+  ConnectorOSSStorage media_storage = 17;
+}
+
+message ConnectorOSSStorage {
+  string region = 1;
+  string bucket = 2;
+  string key_prefix = 3;
+}
+
+message ConnectorOSSStorageInput {
+  ConnectorOSSStorage config = 1;
+  string access_key_id = 2;
+  string access_key_secret = 3;
+  string security_token = 4;
+}
+
+message ConnectorMediaStorageUpdate {
+  oneof change {
+    ConnectorOSSStorageInput oss = 1;
+    // Must be true. Removes storage for new requests only.
+    bool remove = 2;
+  }
 }
 
 message ConnectorCheck {
@@ -78,6 +102,7 @@ message CreateConnectorRequest {
   ConnectorAuthKind auth_kind = 6;
   string provider_auth_profile = 7;
   string credential_json = 8;
+  ConnectorMediaStorageUpdate media_storage = 9;
 }
 
 message CreateConnectorResponse {
@@ -122,6 +147,7 @@ message UpdateConnectorRequest {
   optional ConnectorAuthKind auth_kind = 8;
   optional string provider_auth_profile = 9;
   optional string credential_json = 10;
+  ConnectorMediaStorageUpdate media_storage = 11;
 }
 
 message UpdateConnectorResponse {
@@ -188,6 +214,7 @@ message ProviderCatalogEntry {
   bool managed_supported = 6;
   string inventory_mode = 7;
   bool inline_supported = 8;
+  bool supports_oss_media_storage = 9;
 }
 
 message ListProviderCatalogRequest {}

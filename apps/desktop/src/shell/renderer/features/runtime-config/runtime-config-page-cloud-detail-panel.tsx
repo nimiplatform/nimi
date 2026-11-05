@@ -1,4 +1,5 @@
 import { humanizeConnectorError } from './runtime-config-connector-error-copy.js';
+import { CloudMediaStorage } from './runtime-config-media-storage.js';
 import type { ProviderCatalogEntry, DesktopConnectorReference } from '@nimiplatform/sdk/runtime/wire-types';
 import type { TFunction } from 'i18next';
 import { KeyRound, PencilLine } from 'lucide-react';
@@ -244,6 +245,8 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
         </div>
         {isBrowserManagedConnector ? <div className="mt-3"><ChatGPTPlanAccountNotice connector={selectedConnector} t={t} /></div> : null}
       </Surface>
+
+      {selectedProviderCatalogEntry?.supportsOssMediaStorage && !isDraft ? <CloudMediaStorage key={selectedConnector.id} connector={selectedConnector} disabled={connectorConfigurationLocked || model.runtimeWritesDisabled || isSystemOwned || savingToken} t={t} onSaved={saved => { model.updateState(prev => ({ ...prev, connectors: prev.connectors.map(item => item.id === saved.id ? saved : item) })); model.onVaultChanged(); }} /> : null}
 
       {editing ? (
         <OverlayShell open kind="drawer" size="sm" title={t('runtimeConfig.product.editConnection')} onClose={stopEditing} dataTestId="cloud-connection-editor" panelClassName="flex max-h-screen flex-col" contentClassName="flex min-h-0 flex-1 flex-col overflow-hidden p-0">

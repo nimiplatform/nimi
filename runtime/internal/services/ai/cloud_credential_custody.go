@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
 	"google.golang.org/grpc/codes"
 
@@ -93,6 +94,7 @@ func (s *Service) releaseCloudCredentialCustodyForJobDurably(jobID string) error
 	}
 	s.scenarioJobs.mu.RLock()
 	record := s.scenarioJobs.jobs[strings.TrimSpace(jobID)]
+	notDispatched := record != nil && record.job != nil && record.job.GetSubmissionOutcome() == runtimev1.ScenarioJobSubmissionOutcome_SCENARIO_JOB_SUBMISSION_OUTCOME_NOT_DISPATCHED
 	canRelease := record != nil && record.job != nil && isTerminalScenarioJobStatus(record.job.GetStatus()) && !record.executionStarted && !record.terminalUnpersisted
 	if canRelease && record.job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
 		canRelease = record.job.GetStopOutcome() == runtimev1.ScenarioJobStopOutcome_SCENARIO_JOB_STOP_OUTCOME_NOT_DISPATCHED || record.job.GetStopOutcome() == runtimev1.ScenarioJobStopOutcome_SCENARIO_JOB_STOP_OUTCOME_CONFIRMED || scenarioJobPublicExpired(record, time.Now())
@@ -109,6 +111,26 @@ func (s *Service) releaseCloudCredentialCustodyForJobDurably(jobID string) error
 	assembly, ok := s.scenarioJobs.cloudResolvedAssembly(jobID)
 	if !ok || assembly == nil || strings.TrimSpace(assembly.CredentialCustodyRef) == "" {
 		return nil
+	}
+	if assembly.Connector.MediaStorage != nil && s.scenarioJobs.currentInputCleanup(jobID) == nil {
+		count := 0
+		for _, reference := range assembly.VideoMediaReferences {
+			if strings.HasPrefix(reference.Reference.MIMEType, "audio/") || strings.HasPrefix(reference.Reference.MIMEType, "video/") {
+				count++
+			}
+		}
+		if count > 0 {
+			// Credential release does not restore a Driver or historical App
+			// permission. Record the unresolved disposition using frozen inputs
+			// only; a missing account or retired model cannot block unrelated work.
+			result := nimillm.OSSInputCleanup{State: "unconfirmed", Unconfirmed: count, ReasonCode: runtimev1.ReasonCode_AI_MEDIA_STORAGE_CLEANUP_UNCONFIRMED}
+			if notDispatched {
+				result = nimillm.OSSInputCleanup{State: "not_required", ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}
+			}
+			if err := s.scenarioJobs.recordInputCleanup(jobID, result); err != nil {
+				return err
+			}
+		}
 	}
 	if err := s.releaseCloudCredentialCustody(assembly.CredentialCustodyRef); err != nil {
 		return err

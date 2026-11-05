@@ -56,7 +56,15 @@ func buildAlibabaCurrentVideoPayload(ctx context.Context, model string, spec *ru
 			if !ok || ref.ArtifactID != item.GetArtifactRef().GetArtifactId() {
 				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 			}
-			location = "data:" + ref.MIMEType + ";base64," + base64.StdEncoding.EncodeToString(ref.Bytes)
+			if item.GetRole() == runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_AUDIO || item.GetRole() == runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO {
+				urls, _ := ctx.Value(alibabaUploadedInputURLsKey{}).(map[int]string)
+				location = urls[i]
+				if location == "" {
+					return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_STORAGE_NOT_CONFIGURED)
+				}
+			} else {
+				location = "data:" + ref.MIMEType + ";base64," + base64.StdEncoding.EncodeToString(ref.Bytes)
+			}
 		default:
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 		}

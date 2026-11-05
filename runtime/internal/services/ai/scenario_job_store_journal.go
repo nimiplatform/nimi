@@ -491,6 +491,9 @@ func scenarioJobDiskRecordFor(jobID string, record *scenarioJobRecord, validate 
 		return scenarioJobDiskRecord{}, fmt.Errorf("scenario job %q has no record", jobID)
 	}
 	if validate {
+		if err := validateInputCleanupRecord(record); err != nil {
+			return scenarioJobDiskRecord{}, err
+		}
 		if record.publicEvicted && !isTerminalScenarioJobStatus(record.job.GetStatus()) {
 			return scenarioJobDiskRecord{}, fmt.Errorf("nonterminal Job cannot have terminal public eviction")
 		}
@@ -554,6 +557,7 @@ func scenarioJobDiskRecordFor(jobID string, record *scenarioJobRecord, validate 
 		receipt = nil
 	}
 	return scenarioJobDiskRecord{
+		InputCleanup:     cloneInputCleanup(record.inputCleanup),
 		PublicEvicted:    record.publicEvicted,
 		DispatchPossible: cloneScenarioDispatch(record.dispatchPossible), NativeReceipt: receipt, NativeResult: record.nativeResult, BodyArtifactIDs: append([]string(nil), record.bodyArtifactIDs...), ResultCandidate: cloneScenarioResultCandidate(record.resultCandidate), Payload: cloneEmbeddingPayload(record.payload), Job: raw, ResolvedAssembly: assemblyRaw, CloudResolvedAssembly: cloudAssemblyRaw, Owner: cloneLocalAppJobOwner(record.localAppOwner),
 		VoiceAsset: voiceAssetRaw, VoiceReference: voiceReferenceRaw,

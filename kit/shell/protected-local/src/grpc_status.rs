@@ -268,6 +268,11 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AI_REALTIME_SESSION_CLOSED" => LocalAppReasonCode::AiRealtimeSessionClosed,
         "AI_MEDIA_SPEC_INVALID" => LocalAppReasonCode::AiMediaSpecInvalid,
         "AI_MEDIA_OPTION_UNSUPPORTED" => LocalAppReasonCode::AiMediaOptionUnsupported,
+        "AI_MEDIA_STORAGE_NOT_CONFIGURED" => LocalAppReasonCode::AiMediaStorageNotConfigured,
+        "AI_MEDIA_STORAGE_AUTH_FAILED" => LocalAppReasonCode::AiMediaStorageAuthFailed,
+        "AI_MEDIA_STORAGE_UNAVAILABLE" => LocalAppReasonCode::AiMediaStorageUnavailable,
+        "AI_MEDIA_STORAGE_OPTION_UNSUPPORTED" => LocalAppReasonCode::AiMediaStorageOptionUnsupported,
+        "AI_MEDIA_STORAGE_CLEANUP_UNCONFIRMED" => LocalAppReasonCode::AiMediaStorageCleanupUnconfirmed,
         "AI_MEDIA_JOB_NOT_FOUND" => LocalAppReasonCode::AiMediaJobNotFound,
         "AI_MEDIA_JOB_NOT_CANCELLABLE" => LocalAppReasonCode::AiMediaJobNotCancellable,
         "AI_FACE_REFERENCE_MISSING" => LocalAppReasonCode::AiFaceReferenceMissing,
@@ -992,6 +997,11 @@ mod tests {
             ("AI_MODALITY_NOT_SUPPORTED", "ai-modality-not-supported"),
             ("AI_MEDIA_SPEC_INVALID", "ai-media-spec-invalid"),
             ("AI_MEDIA_OPTION_UNSUPPORTED", "ai-media-option-unsupported"),
+            ("AI_MEDIA_STORAGE_NOT_CONFIGURED", "ai-media-storage-not-configured"),
+            ("AI_MEDIA_STORAGE_AUTH_FAILED", "ai-media-storage-auth-failed"),
+            ("AI_MEDIA_STORAGE_UNAVAILABLE", "ai-media-storage-unavailable"),
+            ("AI_MEDIA_STORAGE_OPTION_UNSUPPORTED", "ai-media-storage-option-unsupported"),
+            ("AI_MEDIA_STORAGE_CLEANUP_UNCONFIRMED", "ai-media-storage-cleanup-unconfirmed"),
         ] {
             assert_eq!(
                 local_app_reason_from_runtime_reason(runtime_reason)

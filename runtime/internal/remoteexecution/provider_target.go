@@ -86,6 +86,7 @@ func requestScopedProviderTarget(
 	endpoint := strings.TrimSpace(connectorRecord.Endpoint)
 	endpoint, workspace := materializeDashScopeSpeechEndpoint(endpoint, target)
 	if err := endpointsec.ValidateEndpoint(ctx, endpoint, allowLoopback); err != nil {
+		credential.MediaStorage.Clear()
 		credential.APIKey = ""
 		credential.Headers = nil
 		return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN, err, grpcerr.ReasonOptions{Message: "connector endpoint is not allowed"})
@@ -105,6 +106,7 @@ func requestScopedProviderTarget(
 		Endpoint:             endpoint,
 		APIKey:               credential.APIKey,
 		Headers:              credential.Headers,
+		MediaStorage:         credential.MediaStorage,
 		AllowLoopback:        allowLoopback,
 	}, nil
 }
@@ -114,6 +116,8 @@ func clearRequestScopedProviderTarget(target *nimillm.RemoteTarget) {
 		return
 	}
 	target.APIKey = ""
+	target.MediaStorage.Clear()
+	target.MediaStorage = nil
 	for key := range target.Headers {
 		target.Headers[key] = ""
 		delete(target.Headers, key)

@@ -95,6 +95,16 @@ func ValidateAlibabaCurrentVideoRequest(req *runtimev1.SubmitScenarioJobRequest,
 				last++
 			case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_IMAGE:
 				images++
+			case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO:
+				if !wan || item.GetType() != runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_ARTIFACT_REF {
+					return alibabaVideoUnsupported()
+				}
+				videos++
+			case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_AUDIO:
+				if !wan || item.GetType() != runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_ARTIFACT_REF {
+					return alibabaVideoUnsupported()
+				}
+				audios++
 			default:
 				return alibabaVideoUnsupported()
 			}

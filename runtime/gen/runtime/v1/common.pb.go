@@ -313,11 +313,17 @@ const (
 	ReasonCode_AI_MODULE_CONFIG_INVALID ReasonCode = 430
 	// MEMORY family (444+)
 	ReasonCode_AI_MEMORY_EMBEDDING_TARGET_REF_INVALID ReasonCode = 444
-	ReasonCode_APP_SCOPE_FORBIDDEN                    ReasonCode = 503
-	ReasonCode_APP_SCOPE_REVOKED                      ReasonCode = 504
-	ReasonCode_APP_MESSAGE_PAYLOAD_TOO_LARGE          ReasonCode = 550
-	ReasonCode_APP_MESSAGE_RATE_LIMITED               ReasonCode = 551
-	ReasonCode_APP_MESSAGE_LOOP_DETECTED              ReasonCode = 552
+	// MEDIA_STORAGE family (450+): distinct from the inference provider key.
+	ReasonCode_AI_MEDIA_STORAGE_NOT_CONFIGURED      ReasonCode = 450
+	ReasonCode_AI_MEDIA_STORAGE_AUTH_FAILED         ReasonCode = 451
+	ReasonCode_AI_MEDIA_STORAGE_UNAVAILABLE         ReasonCode = 452
+	ReasonCode_AI_MEDIA_STORAGE_OPTION_UNSUPPORTED  ReasonCode = 453
+	ReasonCode_AI_MEDIA_STORAGE_CLEANUP_UNCONFIRMED ReasonCode = 454
+	ReasonCode_APP_SCOPE_FORBIDDEN                  ReasonCode = 503
+	ReasonCode_APP_SCOPE_REVOKED                    ReasonCode = 504
+	ReasonCode_APP_MESSAGE_PAYLOAD_TOO_LARGE        ReasonCode = 550
+	ReasonCode_APP_MESSAGE_RATE_LIMITED             ReasonCode = 551
+	ReasonCode_APP_MESSAGE_LOOP_DETECTED            ReasonCode = 552
 	// LOCAL_SPEECH family (560+)
 	ReasonCode_AI_LOCAL_SPEECH_PREFLIGHT_BLOCKED              ReasonCode = 560
 	ReasonCode_AI_LOCAL_SPEECH_DOWNLOAD_CONFIRMATION_REQUIRED ReasonCode = 561
@@ -713,6 +719,11 @@ var (
 		425: "AI_VOICE_TARGET_MODEL_MISMATCH",
 		430: "AI_MODULE_CONFIG_INVALID",
 		444: "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID",
+		450: "AI_MEDIA_STORAGE_NOT_CONFIGURED",
+		451: "AI_MEDIA_STORAGE_AUTH_FAILED",
+		452: "AI_MEDIA_STORAGE_UNAVAILABLE",
+		453: "AI_MEDIA_STORAGE_OPTION_UNSUPPORTED",
+		454: "AI_MEDIA_STORAGE_CLEANUP_UNCONFIRMED",
 		503: "APP_SCOPE_FORBIDDEN",
 		504: "APP_SCOPE_REVOKED",
 		550: "APP_MESSAGE_PAYLOAD_TOO_LARGE",
@@ -1029,6 +1040,11 @@ var (
 		"AI_VOICE_TARGET_MODEL_MISMATCH":                       425,
 		"AI_MODULE_CONFIG_INVALID":                             430,
 		"AI_MEMORY_EMBEDDING_TARGET_REF_INVALID":               444,
+		"AI_MEDIA_STORAGE_NOT_CONFIGURED":                      450,
+		"AI_MEDIA_STORAGE_AUTH_FAILED":                         451,
+		"AI_MEDIA_STORAGE_UNAVAILABLE":                         452,
+		"AI_MEDIA_STORAGE_OPTION_UNSUPPORTED":                  453,
+		"AI_MEDIA_STORAGE_CLEANUP_UNCONFIRMED":                 454,
 		"APP_SCOPE_FORBIDDEN":                                  503,
 		"APP_SCOPE_REVOKED":                                    504,
 		"APP_MESSAGE_PAYLOAD_TOO_LARGE":                        550,
@@ -1747,7 +1763,7 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x15TOOL_CHOICE_MODE_AUTO\x10\x01\x12\x19\n" +
 	"\x15TOOL_CHOICE_MODE_NONE\x10\x02\x12\x1d\n" +
 	"\x19TOOL_CHOICE_MODE_REQUIRED\x10\x03\x12\x19\n" +
-	"\x15TOOL_CHOICE_MODE_TOOL\x10\x04*\xd1a\n" +
+	"\x15TOOL_CHOICE_MODE_TOOL\x10\x04*\x92c\n" +
 	"\n" +
 	"ReasonCode\x12\x1b\n" +
 	"\x17REASON_CODE_UNSPECIFIED\x10\x00\x12\x13\n" +
@@ -1858,7 +1874,12 @@ const file_runtime_v1_common_proto_rawDesc = "" +
 	"\x1eAI_VOICE_ASSET_SCOPE_FORBIDDEN\x10\xa8\x03\x12#\n" +
 	"\x1eAI_VOICE_TARGET_MODEL_MISMATCH\x10\xa9\x03\x12\x1d\n" +
 	"\x18AI_MODULE_CONFIG_INVALID\x10\xae\x03\x12+\n" +
-	"&AI_MEMORY_EMBEDDING_TARGET_REF_INVALID\x10\xbc\x03\x12\x18\n" +
+	"&AI_MEMORY_EMBEDDING_TARGET_REF_INVALID\x10\xbc\x03\x12$\n" +
+	"\x1fAI_MEDIA_STORAGE_NOT_CONFIGURED\x10\xc2\x03\x12!\n" +
+	"\x1cAI_MEDIA_STORAGE_AUTH_FAILED\x10\xc3\x03\x12!\n" +
+	"\x1cAI_MEDIA_STORAGE_UNAVAILABLE\x10\xc4\x03\x12(\n" +
+	"#AI_MEDIA_STORAGE_OPTION_UNSUPPORTED\x10\xc5\x03\x12)\n" +
+	"$AI_MEDIA_STORAGE_CLEANUP_UNCONFIRMED\x10\xc6\x03\x12\x18\n" +
 	"\x13APP_SCOPE_FORBIDDEN\x10\xf7\x03\x12\x16\n" +
 	"\x11APP_SCOPE_REVOKED\x10\xf8\x03\x12\"\n" +
 	"\x1dAPP_MESSAGE_PAYLOAD_TOO_LARGE\x10\xa6\x04\x12\x1d\n" +

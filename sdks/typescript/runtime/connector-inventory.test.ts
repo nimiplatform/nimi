@@ -29,6 +29,7 @@ const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     managedSupported: true,
     inventoryMode: 'dynamic_endpoint',
     inlineSupported: true,
+    supportsOssMediaStorage: false,
   },
   {
     provider: 'openai_chatgpt_plan',
@@ -39,8 +40,32 @@ const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
     managedSupported: true,
     inventoryMode: 'static_source',
     inlineSupported: false,
+    supportsOssMediaStorage: false,
   },
 ];
+
+test('OSS configuration uses the typed management carrier and projects no storage secrets', async () => {
+  const config = { region: 'cn-beijing', bucket: 'test-bucket', keyPrefix: 'nimi-input/' };
+  const setup = { change: { oneofKind: 'oss' as const, oss: { config, accessKeyId: 'storage-id', accessKeySecret: 'storage-secret', securityToken: '' } } };
+  const requests: unknown[] = [];
+  const native = { connectorId: 'connector', provider: 'dashscope', label: 'Video', endpoint: 'https://dashscope.aliyuncs.com', hasCredential: true,
+    authKind: ConnectorAuthKind.API_KEY, providerAuthProfile: '', ownerType: ConnectorOwnerType.REALM_USER, ownerId: 'owner', kind: ConnectorKind.REMOTE_MANAGED, status: ConnectorStatus.ACTIVE };
+  const client = createNimiRuntimeConnectorInventoryClient({ connectors: {
+    async listProviderCatalog() { return { providers: [] }; },
+    async updateConnector(request) {
+      requests.push(request.mediaStorage);
+      return { connector: { ...native, mediaStorage: request.mediaStorage?.change.oneofKind === 'oss' ? { ...config, accessKeySecret: 'must-not-project' } : undefined } };
+    },
+  } as NimiRuntimeConnectorClient });
+  const updated = await client.updateConnector({ connectorId: 'connector', mediaStorage: setup });
+  assert.deepEqual(updated?.mediaStorage, config);
+  assert.ok(!JSON.stringify(updated).includes('storage-secret'));
+  assert.ok(!JSON.stringify(updated).includes('must-not-project'));
+  const remove = { change: { oneofKind: 'remove' as const, remove: true } };
+  const cleared = await client.updateConnector({ connectorId: 'connector', mediaStorage: remove });
+  assert.equal(cleared?.mediaStorage, undefined);
+  assert.deepEqual(requests, [setup, remove]);
+});
 
 test('catalog reads preserve unavailable models and never perform a connection check', async () => {
   const requested: string[] = [];

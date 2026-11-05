@@ -340,6 +340,9 @@ func validateCloudResolvedAssemblyRequest(assembly *cloudResolvedAssembly, provi
 			return fmt.Errorf("Cloud media ResolvedAssembly request identity is mismatched")
 		}
 		imageSpec := request.GetSpec().GetImageGenerate()
+		if provider == "dashscope" && nimillm.AlibabaVideoRequiresOSS(request.GetSpec().GetVideoGenerate()) && assembly.Connector.MediaStorage == nil {
+			return fmt.Errorf("Cloud owned video inputs have no captured OSS configuration")
+		}
 		if len(assembly.VideoMediaReferences) > 0 || (cloudVideoHasArtifactReference(request) && assembly.CredentialCustodyRef != "") {
 			if !capabilitydriver.SupportsCloudVideoArtifacts(provider, providerModelID) || request.GetSpec().GetVideoGenerate() == nil {
 				return fmt.Errorf("Cloud video images have no exact adapter")
@@ -521,4 +524,10 @@ func (capture *cloudVoiceWorkflowCapture) resolution() catalog.ResolveVoiceWorkf
 	}
 }
 
-func cloneConnectorRecord(input connector.ConnectorRecord) connector.ConnectorRecord { return input }
+func cloneConnectorRecord(input connector.ConnectorRecord) connector.ConnectorRecord {
+	if input.MediaStorage != nil {
+		storage := *input.MediaStorage
+		input.MediaStorage = &storage
+	}
+	return input
+}

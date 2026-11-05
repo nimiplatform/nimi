@@ -285,6 +285,12 @@ pub enum ReasonCode {
     AiModuleConfigInvalid = 430,
     /// MEMORY family (444+)
     AiMemoryEmbeddingTargetRefInvalid = 444,
+    /// MEDIA_STORAGE family (450+): distinct from the inference provider key.
+    AiMediaStorageNotConfigured = 450,
+    AiMediaStorageAuthFailed = 451,
+    AiMediaStorageUnavailable = 452,
+    AiMediaStorageOptionUnsupported = 453,
+    AiMediaStorageCleanupUnconfirmed = 454,
     AppScopeForbidden = 503,
     AppScopeRevoked = 504,
     AppMessagePayloadTooLarge = 550,
@@ -697,6 +703,15 @@ impl ReasonCode {
             Self::AiModuleConfigInvalid => "AI_MODULE_CONFIG_INVALID",
             Self::AiMemoryEmbeddingTargetRefInvalid => {
                 "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID"
+            }
+            Self::AiMediaStorageNotConfigured => "AI_MEDIA_STORAGE_NOT_CONFIGURED",
+            Self::AiMediaStorageAuthFailed => "AI_MEDIA_STORAGE_AUTH_FAILED",
+            Self::AiMediaStorageUnavailable => "AI_MEDIA_STORAGE_UNAVAILABLE",
+            Self::AiMediaStorageOptionUnsupported => {
+                "AI_MEDIA_STORAGE_OPTION_UNSUPPORTED"
+            }
+            Self::AiMediaStorageCleanupUnconfirmed => {
+                "AI_MEDIA_STORAGE_CLEANUP_UNCONFIRMED"
             }
             Self::AppScopeForbidden => "APP_SCOPE_FORBIDDEN",
             Self::AppScopeRevoked => "APP_SCOPE_REVOKED",
@@ -1118,6 +1133,15 @@ impl ReasonCode {
             "AI_MODULE_CONFIG_INVALID" => Some(Self::AiModuleConfigInvalid),
             "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID" => {
                 Some(Self::AiMemoryEmbeddingTargetRefInvalid)
+            }
+            "AI_MEDIA_STORAGE_NOT_CONFIGURED" => Some(Self::AiMediaStorageNotConfigured),
+            "AI_MEDIA_STORAGE_AUTH_FAILED" => Some(Self::AiMediaStorageAuthFailed),
+            "AI_MEDIA_STORAGE_UNAVAILABLE" => Some(Self::AiMediaStorageUnavailable),
+            "AI_MEDIA_STORAGE_OPTION_UNSUPPORTED" => {
+                Some(Self::AiMediaStorageOptionUnsupported)
+            }
+            "AI_MEDIA_STORAGE_CLEANUP_UNCONFIRMED" => {
+                Some(Self::AiMediaStorageCleanupUnconfirmed)
             }
             "APP_SCOPE_FORBIDDEN" => Some(Self::AppScopeForbidden),
             "APP_SCOPE_REVOKED" => Some(Self::AppScopeRevoked),

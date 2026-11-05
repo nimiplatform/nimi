@@ -160,7 +160,12 @@
       "modelNotFound": "所选模型不可用：其云端账户未提供该模型，或没有可用的已准入实现。本次没有生成内容。",
       "fallback": "本次生成未完成。",
       "stoppedDirectCall": "已停止等待这次调用，之后返回的结果不会显示。",
-      "providerAuthFailed": "云服务拒绝了当前连接的凭据。API 密钥可能已过期、被撤销或无效。"
+      "providerAuthFailed": "云服务拒绝了当前连接的凭据。API 密钥可能已过期、被撤销或无效。",
+      "mediaStorageMissing": "这次视频请求需要配置存储，用于上传参考音频或视频。",
+      "mediaStorageCredentials": "OSS 拒绝了参考素材存储的凭据。",
+      "mediaStorageVersioning": "参考素材存储需要使用从未启用版本控制的 Bucket。",
+      "mediaStorageUnavailable": "参考素材存储请求未能完成。",
+      "mediaStorageCleanup": "本任务未能确认已上传参考对象的归属或删除结果。"
     },
     "action": {
       "runtimeUnavailable": "返回 Desktop 确认本地 AI 已连接，然后重试。",
@@ -195,7 +200,12 @@
       "modelNotFound": "打开 App AI 配置，为此能力选择一个可用的模型，然后重新运行。",
       "fallback": "请重试；如果仍然失败，再展开 Runtime 详情查看原因。",
       "stoppedDirectCall": "准备好后可以直接重新运行。",
-      "providerAuthFailed": "先在 Nimi 的「云服务」中更新此连接的密钥或重新登录，再提交新请求。"
+      "providerAuthFailed": "先在 Nimi 的「云服务」中更新此连接的密钥或重新登录，再提交新请求。",
+      "mediaStorageMissing": "在 Nimi「云服务」中打开当前连接，配置「参考音视频存储」，再提交新请求。",
+      "mediaStorageCredentials": "在当前连接的「参考音视频存储」中更新 OSS 凭据，并检查 Bucket 权限。",
+      "mediaStorageVersioning": "为当前连接配置从未启用版本控制的 OSS Bucket。",
+      "mediaStorageUnavailable": "先在 Nimi「云服务」检查 OSS 地域、Bucket 和权限，再提交新请求。",
+      "mediaStorageCleanup": "查看 Nimi 诊断中的本任务清理结果及所配置的 OSS Bucket。重新生成不能证明旧素材已被删除。"
     },
     "hint": {
       "runtimeUnavailable": "恢复受保护的 Runtime 连接后重试同一请求。",

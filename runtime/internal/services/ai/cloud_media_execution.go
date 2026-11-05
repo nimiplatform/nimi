@@ -251,6 +251,9 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 		return nil, cloudMediaDriverError(capabilityContract, err)
 	}
 	effectiveRequest = mapped.Request()
+	if target.Provider() == "dashscope" && nimillm.AlibabaVideoRequiresOSS(effectiveRequest.GetSpec().GetVideoGenerate()) && connectorRecord.MediaStorage == nil {
+		return nil, grpcerr.WithReasonCodeOptions(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_STORAGE_NOT_CONFIGURED, grpcerr.ReasonOptions{Message: "Owned audio or video references require configured OSS media storage", ActionHint: "configure_oss_media_storage"})
+	}
 	var videoImages []nimillm.CloudVideoMediaReference
 	if cloudVideoHasArtifactReference(effectiveRequest) {
 		capturedBytes := 0
@@ -582,6 +585,13 @@ func (s *Service) executeCapturedCloudMedia(ctx context.Context, effective *clou
 		ctx = nimillm.WithImageMaskReference(ctx, effective.resolvedAssembly.ImageMaskReference)
 		ctx = nimillm.WithImageMarkupReference(ctx, effective.resolvedAssembly.ImageMarkupReference)
 		ctx = nimillm.WithCloudVideoMediaReferences(ctx, effective.resolvedAssembly.VideoMediaReferences)
+	}
+	if effective.connector.MediaStorage != nil && nimillm.AlibabaVideoRequiresOSS(effective.request.GetSpec().GetVideoGenerate()) {
+		jobID, err := connector.JobIDForCredentialCustodyRef(effective.connector.CredentialCustodyRef)
+		if err != nil {
+			return capabilitydriver.CloudMediaResult{}, err
+		}
+		ctx = remoteexecution.WithInputCleanupObserver(ctx, func(result nimillm.OSSInputCleanup) error { return s.scenarioJobs.recordInputCleanup(jobID, result) })
 	}
 	response, err := s.remoteMediaHost.ExecuteMedia(ctx, effective.connector, effective.target, effective.mapped, effective.dispatchAudit())
 	if err != nil {

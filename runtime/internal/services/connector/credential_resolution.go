@@ -2,13 +2,15 @@ package connector
 
 import (
 	"encoding/json"
+	"github.com/nimiplatform/nimi/runtime/internal/ossmedia"
 	"strings"
 	"time"
 )
 
 type ResolvedCredential struct {
-	APIKey  string
-	Headers map[string]string
+	MediaStorage *ossmedia.Credentials
+	APIKey       string
+	Headers      map[string]string
 }
 
 func ResolveCredential(record ConnectorRecord, secretPayload string) ResolvedCredential {
@@ -24,6 +26,11 @@ func ResolveCredential(record ConnectorRecord, secretPayload string) ResolvedCre
 	resolved := ResolvedCredential{
 		APIKey: strings.TrimSpace(extractAPIKeyFromSecretPayload(secretPayload)),
 	}
+	storage, err := decodeMediaCredential(record, secretPayload)
+	if err != nil {
+		return ResolvedCredential{}
+	}
+	resolved.MediaStorage = storage
 	if resolved.APIKey == "" {
 		return resolved
 	}

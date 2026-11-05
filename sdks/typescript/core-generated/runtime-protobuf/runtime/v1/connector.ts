@@ -86,6 +86,76 @@ export interface Connector {
      * @generated from protobuf field: nimi.runtime.v1.ConnectorCheck last_check = 16
      */
     lastCheck?: ConnectorCheck;
+    /**
+     * Non-secret optional storage for provider-bound input media. Credentials
+     * remain in the same Runtime custody generation as the provider credential.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.ConnectorOSSStorage media_storage = 17
+     */
+    mediaStorage?: ConnectorOSSStorage;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ConnectorOSSStorage
+ */
+export interface ConnectorOSSStorage {
+    /**
+     * @generated from protobuf field: string region = 1
+     */
+    region: string;
+    /**
+     * @generated from protobuf field: string bucket = 2
+     */
+    bucket: string;
+    /**
+     * @generated from protobuf field: string key_prefix = 3
+     */
+    keyPrefix: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ConnectorOSSStorageInput
+ */
+export interface ConnectorOSSStorageInput {
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ConnectorOSSStorage config = 1
+     */
+    config?: ConnectorOSSStorage;
+    /**
+     * @generated from protobuf field: string access_key_id = 2
+     */
+    accessKeyId: string;
+    /**
+     * @generated from protobuf field: string access_key_secret = 3
+     */
+    accessKeySecret: string;
+    /**
+     * @generated from protobuf field: string security_token = 4
+     */
+    securityToken: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ConnectorMediaStorageUpdate
+ */
+export interface ConnectorMediaStorageUpdate {
+    /**
+     * @generated from protobuf oneof: change
+     */
+    change: {
+        oneofKind: "oss";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.ConnectorOSSStorageInput oss = 1
+         */
+        oss: ConnectorOSSStorageInput;
+    } | {
+        oneofKind: "remove";
+        /**
+         * Must be true. Removes storage for new requests only.
+         *
+         * @generated from protobuf field: bool remove = 2
+         */
+        remove: boolean;
+    } | {
+        oneofKind: undefined;
+    };
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ConnectorCheck
@@ -149,6 +219,10 @@ export interface CreateConnectorRequest {
      * @generated from protobuf field: string credential_json = 8
      */
     credentialJson: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ConnectorMediaStorageUpdate media_storage = 9
+     */
+    mediaStorage?: ConnectorMediaStorageUpdate;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.CreateConnectorResponse
@@ -259,6 +333,10 @@ export interface UpdateConnectorRequest {
      * @generated from protobuf field: optional string credential_json = 10
      */
     credentialJson?: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ConnectorMediaStorageUpdate media_storage = 11
+     */
+    mediaStorage?: ConnectorMediaStorageUpdate;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.UpdateConnectorResponse
@@ -428,6 +506,10 @@ export interface ProviderCatalogEntry {
      * @generated from protobuf field: bool inline_supported = 8
      */
     inlineSupported: boolean;
+    /**
+     * @generated from protobuf field: bool supports_oss_media_storage = 9
+     */
+    supportsOssMediaStorage: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListProviderCatalogRequest
@@ -1231,7 +1313,8 @@ class Connector$Type extends MessageType<Connector> {
             { no: 13, name: "auth_kind", kind: "enum", T: () => ["nimi.runtime.v1.ConnectorAuthKind", ConnectorAuthKind, "CONNECTOR_AUTH_KIND_"] },
             { no: 14, name: "provider_auth_profile", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 15, name: "oauth_registration", kind: "message", T: () => ConnectorOAuthRegistration },
-            { no: 16, name: "last_check", kind: "message", T: () => ConnectorCheck }
+            { no: 16, name: "last_check", kind: "message", T: () => ConnectorCheck },
+            { no: 17, name: "media_storage", kind: "message", T: () => ConnectorOSSStorage }
         ]);
     }
     create(value?: PartialMessage<Connector>): Connector {
@@ -1301,6 +1384,9 @@ class Connector$Type extends MessageType<Connector> {
                 case /* nimi.runtime.v1.ConnectorCheck last_check */ 16:
                     message.lastCheck = ConnectorCheck.internalBinaryRead(reader, reader.uint32(), options, message.lastCheck);
                     break;
+                case /* nimi.runtime.v1.ConnectorOSSStorage media_storage */ 17:
+                    message.mediaStorage = ConnectorOSSStorage.internalBinaryRead(reader, reader.uint32(), options, message.mediaStorage);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1358,6 +1444,9 @@ class Connector$Type extends MessageType<Connector> {
         /* nimi.runtime.v1.ConnectorCheck last_check = 16; */
         if (message.lastCheck)
             ConnectorCheck.internalBinaryWrite(message.lastCheck, writer.tag(16, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ConnectorOSSStorage media_storage = 17; */
+        if (message.mediaStorage)
+            ConnectorOSSStorage.internalBinaryWrite(message.mediaStorage, writer.tag(17, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1368,6 +1457,199 @@ class Connector$Type extends MessageType<Connector> {
  * @generated MessageType for protobuf message nimi.runtime.v1.Connector
  */
 export const Connector = new Connector$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ConnectorOSSStorage$Type extends MessageType<ConnectorOSSStorage> {
+    constructor() {
+        super("nimi.runtime.v1.ConnectorOSSStorage", [
+            { no: 1, name: "region", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "bucket", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "key_prefix", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ConnectorOSSStorage>): ConnectorOSSStorage {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.region = "";
+        message.bucket = "";
+        message.keyPrefix = "";
+        if (value !== undefined)
+            reflectionMergePartial<ConnectorOSSStorage>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ConnectorOSSStorage): ConnectorOSSStorage {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string region */ 1:
+                    message.region = reader.string();
+                    break;
+                case /* string bucket */ 2:
+                    message.bucket = reader.string();
+                    break;
+                case /* string key_prefix */ 3:
+                    message.keyPrefix = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ConnectorOSSStorage, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string region = 1; */
+        if (message.region !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.region);
+        /* string bucket = 2; */
+        if (message.bucket !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.bucket);
+        /* string key_prefix = 3; */
+        if (message.keyPrefix !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.keyPrefix);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ConnectorOSSStorage
+ */
+export const ConnectorOSSStorage = new ConnectorOSSStorage$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ConnectorOSSStorageInput$Type extends MessageType<ConnectorOSSStorageInput> {
+    constructor() {
+        super("nimi.runtime.v1.ConnectorOSSStorageInput", [
+            { no: 1, name: "config", kind: "message", T: () => ConnectorOSSStorage },
+            { no: 2, name: "access_key_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "access_key_secret", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "security_token", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ConnectorOSSStorageInput>): ConnectorOSSStorageInput {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.accessKeyId = "";
+        message.accessKeySecret = "";
+        message.securityToken = "";
+        if (value !== undefined)
+            reflectionMergePartial<ConnectorOSSStorageInput>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ConnectorOSSStorageInput): ConnectorOSSStorageInput {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ConnectorOSSStorage config */ 1:
+                    message.config = ConnectorOSSStorage.internalBinaryRead(reader, reader.uint32(), options, message.config);
+                    break;
+                case /* string access_key_id */ 2:
+                    message.accessKeyId = reader.string();
+                    break;
+                case /* string access_key_secret */ 3:
+                    message.accessKeySecret = reader.string();
+                    break;
+                case /* string security_token */ 4:
+                    message.securityToken = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ConnectorOSSStorageInput, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ConnectorOSSStorage config = 1; */
+        if (message.config)
+            ConnectorOSSStorage.internalBinaryWrite(message.config, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* string access_key_id = 2; */
+        if (message.accessKeyId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.accessKeyId);
+        /* string access_key_secret = 3; */
+        if (message.accessKeySecret !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.accessKeySecret);
+        /* string security_token = 4; */
+        if (message.securityToken !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.securityToken);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ConnectorOSSStorageInput
+ */
+export const ConnectorOSSStorageInput = new ConnectorOSSStorageInput$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ConnectorMediaStorageUpdate$Type extends MessageType<ConnectorMediaStorageUpdate> {
+    constructor() {
+        super("nimi.runtime.v1.ConnectorMediaStorageUpdate", [
+            { no: 1, name: "oss", kind: "message", oneof: "change", T: () => ConnectorOSSStorageInput },
+            { no: 2, name: "remove", kind: "scalar", oneof: "change", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ConnectorMediaStorageUpdate>): ConnectorMediaStorageUpdate {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.change = { oneofKind: undefined };
+        if (value !== undefined)
+            reflectionMergePartial<ConnectorMediaStorageUpdate>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ConnectorMediaStorageUpdate): ConnectorMediaStorageUpdate {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* nimi.runtime.v1.ConnectorOSSStorageInput oss */ 1:
+                    message.change = {
+                        oneofKind: "oss",
+                        oss: ConnectorOSSStorageInput.internalBinaryRead(reader, reader.uint32(), options, (message.change as any).oss)
+                    };
+                    break;
+                case /* bool remove */ 2:
+                    message.change = {
+                        oneofKind: "remove",
+                        remove: reader.bool()
+                    };
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ConnectorMediaStorageUpdate, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* nimi.runtime.v1.ConnectorOSSStorageInput oss = 1; */
+        if (message.change.oneofKind === "oss")
+            ConnectorOSSStorageInput.internalBinaryWrite(message.change.oss, writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        /* bool remove = 2; */
+        if (message.change.oneofKind === "remove")
+            writer.tag(2, WireType.Varint).bool(message.change.remove);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ConnectorMediaStorageUpdate
+ */
+export const ConnectorMediaStorageUpdate = new ConnectorMediaStorageUpdate$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ConnectorCheck$Type extends MessageType<ConnectorCheck> {
     constructor() {
@@ -1495,7 +1777,8 @@ class CreateConnectorRequest$Type extends MessageType<CreateConnectorRequest> {
             { no: 4, name: "api_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "auth_kind", kind: "enum", T: () => ["nimi.runtime.v1.ConnectorAuthKind", ConnectorAuthKind, "CONNECTOR_AUTH_KIND_"] },
             { no: 7, name: "provider_auth_profile", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "credential_json", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 8, name: "credential_json", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 9, name: "media_storage", kind: "message", T: () => ConnectorMediaStorageUpdate }
         ]);
     }
     create(value?: PartialMessage<CreateConnectorRequest>): CreateConnectorRequest {
@@ -1537,6 +1820,9 @@ class CreateConnectorRequest$Type extends MessageType<CreateConnectorRequest> {
                 case /* string credential_json */ 8:
                     message.credentialJson = reader.string();
                     break;
+                case /* nimi.runtime.v1.ConnectorMediaStorageUpdate media_storage */ 9:
+                    message.mediaStorage = ConnectorMediaStorageUpdate.internalBinaryRead(reader, reader.uint32(), options, message.mediaStorage);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1570,6 +1856,9 @@ class CreateConnectorRequest$Type extends MessageType<CreateConnectorRequest> {
         /* string credential_json = 8; */
         if (message.credentialJson !== "")
             writer.tag(8, WireType.LengthDelimited).string(message.credentialJson);
+        /* nimi.runtime.v1.ConnectorMediaStorageUpdate media_storage = 9; */
+        if (message.mediaStorage)
+            ConnectorMediaStorageUpdate.internalBinaryWrite(message.mediaStorage, writer.tag(9, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1872,7 +2161,8 @@ class UpdateConnectorRequest$Type extends MessageType<UpdateConnectorRequest> {
             { no: 7, name: "update_mask", kind: "message", T: () => FieldMask },
             { no: 8, name: "auth_kind", kind: "enum", opt: true, T: () => ["nimi.runtime.v1.ConnectorAuthKind", ConnectorAuthKind, "CONNECTOR_AUTH_KIND_"] },
             { no: 9, name: "provider_auth_profile", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
-            { no: 10, name: "credential_json", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ }
+            { no: 10, name: "credential_json", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
+            { no: 11, name: "media_storage", kind: "message", T: () => ConnectorMediaStorageUpdate }
         ]);
     }
     create(value?: PartialMessage<UpdateConnectorRequest>): UpdateConnectorRequest {
@@ -1915,6 +2205,9 @@ class UpdateConnectorRequest$Type extends MessageType<UpdateConnectorRequest> {
                 case /* optional string credential_json */ 10:
                     message.credentialJson = reader.string();
                     break;
+                case /* nimi.runtime.v1.ConnectorMediaStorageUpdate media_storage */ 11:
+                    message.mediaStorage = ConnectorMediaStorageUpdate.internalBinaryRead(reader, reader.uint32(), options, message.mediaStorage);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1954,6 +2247,9 @@ class UpdateConnectorRequest$Type extends MessageType<UpdateConnectorRequest> {
         /* optional string credential_json = 10; */
         if (message.credentialJson !== undefined)
             writer.tag(10, WireType.LengthDelimited).string(message.credentialJson);
+        /* nimi.runtime.v1.ConnectorMediaStorageUpdate media_storage = 11; */
+        if (message.mediaStorage)
+            ConnectorMediaStorageUpdate.internalBinaryWrite(message.mediaStorage, writer.tag(11, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2465,7 +2761,8 @@ class ProviderCatalogEntry$Type extends MessageType<ProviderCatalogEntry> {
             { no: 5, name: "execution_module", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 6, name: "managed_supported", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 7, name: "inventory_mode", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 8, name: "inline_supported", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 8, name: "inline_supported", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 9, name: "supports_oss_media_storage", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<ProviderCatalogEntry>): ProviderCatalogEntry {
@@ -2478,6 +2775,7 @@ class ProviderCatalogEntry$Type extends MessageType<ProviderCatalogEntry> {
         message.managedSupported = false;
         message.inventoryMode = "";
         message.inlineSupported = false;
+        message.supportsOssMediaStorage = false;
         if (value !== undefined)
             reflectionMergePartial<ProviderCatalogEntry>(this, message, value);
         return message;
@@ -2510,6 +2808,9 @@ class ProviderCatalogEntry$Type extends MessageType<ProviderCatalogEntry> {
                     break;
                 case /* bool inline_supported */ 8:
                     message.inlineSupported = reader.bool();
+                    break;
+                case /* bool supports_oss_media_storage */ 9:
+                    message.supportsOssMediaStorage = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2547,6 +2848,9 @@ class ProviderCatalogEntry$Type extends MessageType<ProviderCatalogEntry> {
         /* bool inline_supported = 8; */
         if (message.inlineSupported !== false)
             writer.tag(8, WireType.Varint).bool(message.inlineSupported);
+        /* bool supports_oss_media_storage = 9; */
+        if (message.supportsOssMediaStorage !== false)
+            writer.tag(9, WireType.Varint).bool(message.supportsOssMediaStorage);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

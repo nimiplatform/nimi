@@ -3262,5 +3262,25 @@
       "empty": "暂无记忆",
       "failed": "读取失败"
     }
+  },
+  "mediaStorage": {
+    "title": "参考音视频存储",
+    "description": "视频模型需要上传本地参考音频或视频时使用。",
+    "configured": "已配置。实际上传请求会验证存储权限。",
+    "unconfigured": "尚未配置。不影响文本和受支持的参考图片请求。",
+    "configure": "配置 OSS",
+    "replace": "更换存储配置",
+    "remove": "移除存储配置",
+    "requirements": "使用从未启用版本控制的私有 Bucket。凭据需要 PutObject、GetObject、DeleteObject 和 GetBucketVersioning 权限；可能产生 OSS 存储及流量费用。",
+    "dataHandling": "素材以私有对象保存，通过限时链接交给视频供方。任务结束后 Runtime 请求删除，失败会记录；删除确认不保证即时物理擦除。配置变更仅影响新请求。",
+    "fields": {
+      "region": "OSS 地域",
+      "bucket": "Bucket 名称",
+      "prefix": "对象路径前缀（以 / 结尾）",
+      "accessKeyId": "AccessKey ID",
+      "accessKeySecret": "AccessKey 密钥",
+      "securityToken": "STS 安全令牌（可选）"
+    },
+    "invalid": "OSS 设置无效。请检查地域、小写 Bucket 名称、以 / 结尾的路径前缀及凭据字段。"
   }
 }

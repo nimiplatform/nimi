@@ -2427,3 +2427,14 @@ for(const reasonCode of ['APP_SCOPE_FORBIDDEN','AI_REALTIME_SESSION_NOT_FOUND'])
   await assert.rejects(session.close());assert.equal(session.getState().phase,'interrupted');assert.throws(()=>labRealtimeSessionSummary(session.getState()));
  });
 }
+
+
+test('owned video storage errors guide the storage setting instead of the provider API key', async () => {
+  const { studioNonSuccessReasonUserMessage, studioNonSuccessReasonUserAction } = await load('ai-studio-core/non-success-presentation.js');
+  const t = key => key;
+  for (const [reasonCode, segment] of [['AI_MEDIA_STORAGE_NOT_CONFIGURED','mediaStorageMissing'], ['AI_MEDIA_STORAGE_AUTH_FAILED','mediaStorageCredentials'], ['AI_MEDIA_STORAGE_OPTION_UNSUPPORTED','mediaStorageVersioning'], ['AI_MEDIA_STORAGE_UNAVAILABLE','mediaStorageUnavailable'], ['AI_MEDIA_STORAGE_CLEANUP_UNCONFIRMED','mediaStorageCleanup']]) {
+    const diagnostics = { reasonCode };
+    assert.equal(studioNonSuccessReasonUserMessage('runtime-call-failed',t,'video.generate',diagnostics), `NonSuccess.message.${segment}`);
+    assert.equal(studioNonSuccessReasonUserAction('runtime-call-failed',t,'video.generate',diagnostics), `NonSuccess.action.${segment}`);
+  }
+});

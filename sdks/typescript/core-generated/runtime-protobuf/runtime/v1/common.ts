@@ -661,6 +661,28 @@ export enum ReasonCode {
      */
     AI_MEMORY_EMBEDDING_TARGET_REF_INVALID = 444,
     /**
+     * MEDIA_STORAGE family (450+): distinct from the inference provider key.
+     *
+     * @generated from protobuf enum value: AI_MEDIA_STORAGE_NOT_CONFIGURED = 450;
+     */
+    AI_MEDIA_STORAGE_NOT_CONFIGURED = 450,
+    /**
+     * @generated from protobuf enum value: AI_MEDIA_STORAGE_AUTH_FAILED = 451;
+     */
+    AI_MEDIA_STORAGE_AUTH_FAILED = 451,
+    /**
+     * @generated from protobuf enum value: AI_MEDIA_STORAGE_UNAVAILABLE = 452;
+     */
+    AI_MEDIA_STORAGE_UNAVAILABLE = 452,
+    /**
+     * @generated from protobuf enum value: AI_MEDIA_STORAGE_OPTION_UNSUPPORTED = 453;
+     */
+    AI_MEDIA_STORAGE_OPTION_UNSUPPORTED = 453,
+    /**
+     * @generated from protobuf enum value: AI_MEDIA_STORAGE_CLEANUP_UNCONFIRMED = 454;
+     */
+    AI_MEDIA_STORAGE_CLEANUP_UNCONFIRMED = 454,
+    /**
      * @generated from protobuf enum value: APP_SCOPE_FORBIDDEN = 503;
      */
     APP_SCOPE_FORBIDDEN = 503,

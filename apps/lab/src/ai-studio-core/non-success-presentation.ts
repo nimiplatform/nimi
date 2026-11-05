@@ -80,7 +80,20 @@ export function studioNonSuccessNeedsTargetReselection(diagnostics?: StudioNonSu
   return targetReselectionKeySegment(diagnostics) !== '';
 }
 
+function mediaStorageKeySegment(diagnostics?: StudioNonSuccessDiagnostics): string {
+  switch (diagnostics?.reasonCode) {
+    case 'AI_MEDIA_STORAGE_NOT_CONFIGURED': return 'mediaStorageMissing';
+    case 'AI_MEDIA_STORAGE_AUTH_FAILED': return 'mediaStorageCredentials';
+    case 'AI_MEDIA_STORAGE_UNAVAILABLE': return 'mediaStorageUnavailable';
+    case 'AI_MEDIA_STORAGE_OPTION_UNSUPPORTED': return 'mediaStorageVersioning';
+    case 'AI_MEDIA_STORAGE_CLEANUP_UNCONFIRMED': return 'mediaStorageCleanup';
+    default: return '';
+  }
+}
+
 export function studioNonSuccessReasonUserMessage(reason: string, translate: StudioTranslate, capabilityId?: string, diagnostics?: StudioNonSuccessDiagnostics, appInputMessage?: string): string {
+  const storage = capabilityId === 'video.generate' ? mediaStorageKeySegment(diagnostics) : '';
+  if (storage) return translate(`NonSuccess.message.${storage}`);
   if (capabilityId === 'audio.synthesize' && diagnostics && UNAVAILABLE_VOICE_REASON_CODES.has(diagnostics.reasonCode)) return translate('NonSuccess.message.voiceUnavailable');
   if (reason === 'input-invalid' && capabilityId === 'video.generate' && !diagnostics && appInputMessage) return appInputMessage;
   if (reason === 'input-invalid' && capabilityId === 'audio.transcribe') return translate('NonSuccess.message.transcriptionInputInvalid');
@@ -109,6 +122,8 @@ export function studioNonSuccessReasonUserMessage(reason: string, translate: Stu
 }
 
 export function studioNonSuccessReasonUserAction(reason: string, translate: StudioTranslate, capabilityId?: string, diagnostics?: StudioNonSuccessDiagnostics): string {
+  const storage = capabilityId === 'video.generate' ? mediaStorageKeySegment(diagnostics) : '';
+  if (storage) return translate(`NonSuccess.action.${storage}`);
   if (capabilityId === 'audio.synthesize' && diagnostics && UNAVAILABLE_VOICE_REASON_CODES.has(diagnostics.reasonCode)) return translate('NonSuccess.action.voiceUnavailable');
   if (reason === 'input-invalid' && capabilityId === 'audio.transcribe') return translate('NonSuccess.action.transcriptionInputInvalid');
   if (capabilityId === 'audio.synthesize' && diagnostics?.reasonCode === VOICE_INPUT_INVALID_REASON_CODE) return translate('NonSuccess.action.voiceInputRequired');

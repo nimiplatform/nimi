@@ -2528,6 +2528,11 @@ function actionHint(reasonCode: string): string {
     case 'ai-connector-not-found': return 'reselect_app_ai_config_target';
     case 'ai-connector-disabled': return 'enable_cloud_connector_or_reselect_target';
     case 'ai-connector-credential-missing': return 'add_cloud_connector_credential_or_reselect_target';
+    case 'ai-media-storage-not-configured': return 'configure_oss_media_storage';
+    case 'ai-media-storage-auth-failed': return 'update_oss_media_storage_credentials';
+    case 'ai-media-storage-unavailable': return 'check_oss_media_storage';
+    case 'ai-media-storage-option-unsupported': return 'configure_unversioned_oss_bucket';
+    case 'ai-media-storage-cleanup-unconfirmed': return 'inspect_oss_media_cleanup';
     // The provider, the network path to it, the Agent or Realm is busy or
     // unreachable for now; the same request can succeed on a later retry.
     case 'ai-provider-unavailable':

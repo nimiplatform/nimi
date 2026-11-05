@@ -2942,6 +2942,16 @@ pub enum ReasonCode {
     AIMODULECONFIGINVALID,
     #[serde(rename = "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID")]
     AIMEMORYEMBEDDINGTARGETREFINVALID,
+    #[serde(rename = "AI_MEDIA_STORAGE_NOT_CONFIGURED")]
+    AIMEDIASTORAGENOTCONFIGURED,
+    #[serde(rename = "AI_MEDIA_STORAGE_AUTH_FAILED")]
+    AIMEDIASTORAGEAUTHFAILED,
+    #[serde(rename = "AI_MEDIA_STORAGE_UNAVAILABLE")]
+    AIMEDIASTORAGEUNAVAILABLE,
+    #[serde(rename = "AI_MEDIA_STORAGE_OPTION_UNSUPPORTED")]
+    AIMEDIASTORAGEOPTIONUNSUPPORTED,
+    #[serde(rename = "AI_MEDIA_STORAGE_CLEANUP_UNCONFIRMED")]
+    AIMEDIASTORAGECLEANUPUNCONFIRMED,
     #[serde(rename = "APP_SCOPE_FORBIDDEN")]
     APPSCOPEFORBIDDEN,
     #[serde(rename = "APP_SCOPE_REVOKED")]
@@ -3581,6 +3591,16 @@ impl ReasonCode {
             "AIMODULECONFIGINVALID" => Some(Self::AIMODULECONFIGINVALID),
             "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID" => Some(Self::AIMEMORYEMBEDDINGTARGETREFINVALID),
             "AIMEMORYEMBEDDINGTARGETREFINVALID" => Some(Self::AIMEMORYEMBEDDINGTARGETREFINVALID),
+            "AI_MEDIA_STORAGE_NOT_CONFIGURED" => Some(Self::AIMEDIASTORAGENOTCONFIGURED),
+            "AIMEDIASTORAGENOTCONFIGURED" => Some(Self::AIMEDIASTORAGENOTCONFIGURED),
+            "AI_MEDIA_STORAGE_AUTH_FAILED" => Some(Self::AIMEDIASTORAGEAUTHFAILED),
+            "AIMEDIASTORAGEAUTHFAILED" => Some(Self::AIMEDIASTORAGEAUTHFAILED),
+            "AI_MEDIA_STORAGE_UNAVAILABLE" => Some(Self::AIMEDIASTORAGEUNAVAILABLE),
+            "AIMEDIASTORAGEUNAVAILABLE" => Some(Self::AIMEDIASTORAGEUNAVAILABLE),
+            "AI_MEDIA_STORAGE_OPTION_UNSUPPORTED" => Some(Self::AIMEDIASTORAGEOPTIONUNSUPPORTED),
+            "AIMEDIASTORAGEOPTIONUNSUPPORTED" => Some(Self::AIMEDIASTORAGEOPTIONUNSUPPORTED),
+            "AI_MEDIA_STORAGE_CLEANUP_UNCONFIRMED" => Some(Self::AIMEDIASTORAGECLEANUPUNCONFIRMED),
+            "AIMEDIASTORAGECLEANUPUNCONFIRMED" => Some(Self::AIMEDIASTORAGECLEANUPUNCONFIRMED),
             "APP_SCOPE_FORBIDDEN" => Some(Self::APPSCOPEFORBIDDEN),
             "APPSCOPEFORBIDDEN" => Some(Self::APPSCOPEFORBIDDEN),
             "APP_SCOPE_REVOKED" => Some(Self::APPSCOPEREVOKED),
@@ -7241,6 +7261,7 @@ pub struct Connector {
     pub provider_auth_profile: Option<String>,
     pub oauth_registration: Option<Box<ConnectorOAuthRegistration>>,
     pub last_check: Option<Box<ConnectorCheck>>,
+    pub media_storage: Option<Box<ConnectorOSSStorage>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7248,6 +7269,12 @@ pub struct ConnectorCheck {
     pub ok: Option<bool>,
     pub reason_code: Option<ReasonCode>,
     pub checked_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ConnectorMediaStorageUpdate {
+    pub oss: Option<Box<ConnectorOSSStorageInput>>,
+    pub remove: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7267,6 +7294,21 @@ pub struct ConnectorModelDescriptor {
 pub struct ConnectorOAuthRegistration {
     pub issued_client_id: Option<String>,
     pub account_label: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ConnectorOSSStorage {
+    pub region: Option<String>,
+    pub bucket: Option<String>,
+    pub key_prefix: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ConnectorOSSStorageInput {
+    pub config: Option<Box<ConnectorOSSStorage>>,
+    pub access_key_id: Option<String>,
+    pub access_key_secret: Option<String>,
+    pub security_token: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7324,6 +7366,7 @@ pub struct CreateConnectorRequest {
     pub auth_kind: Option<ConnectorAuthKind>,
     pub provider_auth_profile: Option<String>,
     pub credential_json: Option<String>,
+    pub media_storage: Option<Box<ConnectorMediaStorageUpdate>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12654,6 +12697,7 @@ pub struct ProviderCatalogEntry {
     pub managed_supported: Option<bool>,
     pub inventory_mode: Option<String>,
     pub inline_supported: Option<bool>,
+    pub supports_oss_media_storage: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -15551,6 +15595,7 @@ pub struct UpdateConnectorRequest {
     pub auth_kind: Option<ConnectorAuthKind>,
     pub provider_auth_profile: Option<String>,
     pub credential_json: Option<String>,
+    pub media_storage: Option<Box<ConnectorMediaStorageUpdate>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

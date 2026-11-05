@@ -2,6 +2,21 @@
 
 # Changelog
 
+## Unreleased — Managed OSS reference-media storage
+
+The next coordinated 0.x minor adds optional OSS media-storage configuration to
+Connector management. Region, bucket and key prefix are readable; storage keys
+and optional STS tokens are write-only and stay in Runtime custody. Configure or
+remove the whole storage binding explicitly. The provider catalog advertises
+which connections support it; Apps cannot choose storage per inference request.
+
+Owned Wan 3 audio/video references require configured storage. Existing text,
+public-URL and supported image-reference paths remain independent. Runtime uses
+private task-owned objects, bounded signed URLs and attempted active deletion;
+cleanup outcomes are recorded, including unconfirmed outcomes after interrupted
+execution without current authorization. Configuration does not establish actual
+account access, and deletion acknowledgement does not guarantee physical erasure.
+
 ## Unreleased — Current model image and media controls
 
 The next coordinated 0.x minor adds image complexity, output format, transparent

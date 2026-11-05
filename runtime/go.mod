@@ -4,6 +4,7 @@ go 1.26.10
 
 require (
 	github.com/Microsoft/go-winio v0.6.4
+	github.com/aliyun/alibabacloud-oss-go-sdk-v2 v1.6.1
 	github.com/dlclark/regexp2 v1.12.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/gorilla/websocket v1.5.3

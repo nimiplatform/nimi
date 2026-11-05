@@ -155,6 +155,14 @@ func (s *Service) runNativeObservation(ctx context.Context, jobID string, versio
 		return
 	}
 	defer effective.release()
+	ossHandled := false
+	defer func() {
+		if !ossHandled {
+			if job, ok := s.scenarioJobs.get(jobID); ok && isTerminalScenarioJobStatus(job.GetStatus()) {
+				s.cleanupOSSJobResources(ctx, jobID, effective)
+			}
+		}
+	}()
 	if job, ok := s.scenarioJobs.get(jobID); ok && job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
 		s.runNativeStopObservation(ctx, jobID, version, effective)
 		return
@@ -237,6 +245,20 @@ func (s *Service) runNativeObservation(ctx context.Context, jobID string, versio
 		return
 	}
 	defer capabilitydriver.CloseArtifactBodies(transport.ArtifactBodies)
+	if effective.target.Provider() == "dashscope" && nimillm.AlibabaVideoRequiresOSS(effective.request.GetSpec().GetVideoGenerate()) {
+		cleanup := s.cleanupOSSJobResources(ctx, jobID, effective)
+		ossHandled = true
+		for _, artifact := range transport.Artifacts {
+			if artifact.Metadata == nil {
+				artifact.Metadata = &structpb.Struct{Fields: map[string]*structpb.Value{}}
+			}
+			if artifact.Metadata.Fields == nil {
+				artifact.Metadata.Fields = map[string]*structpb.Value{}
+			}
+			artifact.Metadata.Fields["oss_input_cleanup"] = structpb.NewStringValue(cleanup.State)
+			artifact.Metadata.Fields["oss_input_cleanup_reason"] = structpb.NewStringValue(cleanup.ReasonCode.String())
+		}
+	}
 	if receipt != nil && receipt.Adapter == nimillm.AdapterGeminiOmniVideo {
 		cleanup := s.cleanupGeminiOmniJobResources(ctx, effective, receipt)
 		resourcesHandled = true
@@ -269,6 +291,29 @@ func (s *Service) cleanupCanceledGeminiOmniJob(ctx context.Context, jobID string
 	if receipt != nil && receipt.Adapter == nimillm.AdapterGeminiOmniVideo {
 		s.cleanupGeminiOmniJobResources(ctx, effective, receipt)
 	}
+}
+
+func (s *Service) cleanupOSSJobResources(ctx context.Context, jobID string, effective *cloudMediaEffectiveInputs) (result nimillm.OSSInputCleanup) {
+	if effective.target.Provider() != "dashscope" || !nimillm.AlibabaVideoRequiresOSS(effective.request.GetSpec().GetVideoGenerate()) {
+		return nimillm.OSSInputCleanup{State: "not_required", ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}
+	}
+	if previous := s.scenarioJobs.currentInputCleanup(jobID); previous != nil {
+		return *previous
+	}
+	defer func() {
+		if err := s.scenarioJobs.recordInputCleanup(jobID, result); err != nil {
+			s.logScenarioJobPersistenceFailure("OSS input cleanup disposition could not be persisted", "job_id", jobID, "error", err)
+			result.State = "unconfirmed"
+			result.ReasonCode = runtimev1.ReasonCode_AI_PROVIDER_INTERNAL
+		}
+	}()
+	host, ok := s.remoteMediaHost.(remoteexecution.OwnedMediaCleanupHost)
+	if !ok || effective.resolvedAssembly == nil {
+		return nimillm.OSSInputCleanup{State: "unconfirmed", ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE}
+	}
+	cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 20*time.Second)
+	defer cancel()
+	return host.CleanupOwnedMedia(cleanup, effective.connector, effective.target, effective.resolvedAssembly.VideoMediaReferences, effective.dispatchAudit())
 }
 
 // Complete bodies already belong to Runtime. A bounded cleanup failure is

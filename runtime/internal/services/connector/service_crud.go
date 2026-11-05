@@ -100,6 +100,19 @@ func (s *Service) CreateConnector(ctx context.Context, req *runtimev1.CreateConn
 		ProviderAuthProfile: providerAuthProfile,
 		OAuthRegistration:   oauthRegistration,
 	}
+	if req.MediaStorage != nil {
+		storage, err := parseMediaStorageUpdate(provider, authKind, req.MediaStorage, true)
+		if err != nil {
+			return nil, err
+		}
+		defer storage.Clear()
+		captured := storage.Config
+		rec.MediaStorage = &captured
+		secretPayload, err = encodeMediaCredential(apiKey, storage)
+		if err != nil {
+			return nil, s.internalProviderError("create_connector.media_storage", err)
+		}
+	}
 	if hasOwner {
 		rec.OwnerType = runtimev1.ConnectorOwnerType_CONNECTOR_OWNER_TYPE_REALM_USER
 		rec.OwnerID = ownerID
@@ -319,6 +332,9 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 		if req.CredentialJson != nil {
 			updatePaths = append(updatePaths, "credential_json")
 		}
+		if req.MediaStorage != nil {
+			updatePaths = append(updatePaths, "media_storage")
+		}
 		if req.GetStatus() != runtimev1.ConnectorStatus_CONNECTOR_STATUS_UNSPECIFIED {
 			updatePaths = append(updatePaths, "status")
 		}
@@ -340,6 +356,12 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 		seenPaths[path] = true
 
 		switch path {
+		case "media_storage":
+			if req.MediaStorage == nil {
+				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+			}
+			mutations.ReplaceMediaStorage = true
+			hasChange = true
 		case "label":
 			if req.Label == nil {
 				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
@@ -458,6 +480,16 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 		if err := s.prepareChatGPTPlanUpdate(&mutations, nextAuthKind, nextProviderAuthProfile); err != nil {
 			return nil, err
 		}
+	}
+	if mutations.ReplaceMediaStorage {
+		storage, err := parseMediaStorageUpdate(rec.Provider, nextAuthKind, req.MediaStorage, false)
+		if err != nil {
+			return nil, err
+		}
+		defer storage.Clear()
+		mutations.MediaStorage = storage
+	} else if rec.MediaStorage != nil && nextAuthKind != runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_API_KEY {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
 
 	// @nimi-authority: rule.nimi.runtime.ai-provider.chatgpt-plan-refresh-custody

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/ossmedia"
 	"log/slog"
 	"os"
 	"path/filepath"
@@ -56,10 +57,13 @@ type ConnectorRecord struct {
 	// registration; tokens stay only in sealed custody.
 	OAuthRegistration    *OAuthRegistration `json:"oauth_registration,omitempty"`
 	CredentialCustodyRef string             `json:"-"`
+	MediaStorage         *ossmedia.Config   `json:"media_storage,omitempty"`
 }
 
 // ConnectorMutations describes mutable fields for Update.
 type ConnectorMutations struct {
+	ReplaceMediaStorage bool
+	MediaStorage        *ossmedia.Credentials
 	Label               *string
 	Endpoint            *string
 	SecretPayload       *string
@@ -297,6 +301,35 @@ func (s *ConnectorStore) updateRecord(connectorID string, mutations ConnectorMut
 	}
 
 	rec := &records[idx]
+	// Derive the complete sealed credential under the same store lock as the
+	// non-secret projection. Provider-key updates retain existing OSS custody.
+	if mutations.ReplaceMediaStorage || mutations.SecretPayload != nil && rec.MediaStorage != nil {
+		existing, err := s.readStoredSecretPayloadLocked(connectorID)
+		if err != nil {
+			return ConnectorRecord{}, fmt.Errorf("read media credential custody: %w", err)
+		}
+		storage, err := decodeMediaCredential(*rec, existing)
+		if err != nil {
+			return ConnectorRecord{}, err
+		}
+		if mutations.ReplaceMediaStorage {
+			storage = mutations.MediaStorage
+		}
+		apiKey := extractAPIKeyFromSecretPayload(existing)
+		if mutations.SecretPayload != nil {
+			apiKey = *mutations.SecretPayload
+		}
+		payload, err := encodeMediaCredential(apiKey, storage)
+		if err != nil {
+			return ConnectorRecord{}, err
+		}
+		mutations.SecretPayload = &payload
+		rec.MediaStorage = nil
+		if storage != nil {
+			captured := storage.Config
+			rec.MediaStorage = &captured
+		}
+	}
 	checkChanged := mutations.SecretPayload != nil || mutations.SealedCredential != nil ||
 		(mutations.Endpoint != nil && *mutations.Endpoint != rec.Endpoint) ||
 		(mutations.AuthKind != nil && normalizeAuthKind(*mutations.AuthKind) != rec.AuthKind) ||

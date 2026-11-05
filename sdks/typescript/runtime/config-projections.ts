@@ -32,6 +32,7 @@ export interface NimiRuntimeConnectorProjection {
   readonly endpoint: string;
   readonly scope: NimiRuntimeConnectorScope;
   readonly hasCredential: boolean;
+  readonly mediaStorage?: Readonly<{ region: string; bucket: string; keyPrefix: string }>;
   readonly isSystemOwned: boolean;
   readonly managementStatus: 'active' | 'disabled' | 'unknown';
   readonly configurationVersion: string;
@@ -58,6 +59,7 @@ export interface NimiRuntimeConfigConnectorProjectionInput {
   readonly endpoint?: unknown;
   readonly scope?: unknown;
   readonly hasCredential?: unknown;
+  readonly mediaStorage?: NimiRuntimeConnectorProjection['mediaStorage'];
   readonly isSystemOwned?: unknown;
   readonly managementStatus?: unknown;
   readonly configurationVersion?: unknown;
@@ -285,6 +287,7 @@ export function normalizeNimiRuntimeConfigConnectorProjection(
     endpoint: normalizeNimiRuntimeConfigEndpoint(raw.endpoint, NIMI_RUNTIME_CONFIG_DEFAULT_CONNECTOR_ENDPOINT),
     scope,
     hasCredential: Boolean(raw.hasCredential),
+    ...(raw.mediaStorage ? { mediaStorage: { region: raw.mediaStorage.region, bucket: raw.mediaStorage.bucket, keyPrefix: raw.mediaStorage.keyPrefix } } : {}),
     isSystemOwned: scope !== 'user' || Boolean(raw.isSystemOwned),
     managementStatus: raw.managementStatus === 'active' || raw.managementStatus === 'disabled' ? raw.managementStatus : 'unknown',
     configurationVersion: normalizeText(raw.configurationVersion),

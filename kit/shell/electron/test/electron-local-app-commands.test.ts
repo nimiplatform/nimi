@@ -324,6 +324,11 @@ describe('Electron local-app standard-shell operations', () => {
       ['ai-connector-not-found', 'reselect_app_ai_config_target'],
       ['ai-connector-disabled', 'enable_cloud_connector_or_reselect_target'],
       ['ai-connector-credential-missing', 'add_cloud_connector_credential_or_reselect_target'],
+      ['ai-media-storage-not-configured', 'configure_oss_media_storage'],
+      ['ai-media-storage-auth-failed', 'update_oss_media_storage_credentials'],
+      ['ai-media-storage-unavailable', 'check_oss_media_storage'],
+      ['ai-media-storage-option-unsupported', 'configure_unversioned_oss_bucket'],
+      ['ai-media-storage-cleanup-unconfirmed', 'inspect_oss_media_cleanup'],
     ] as const) {
       await expect(dispatchElectronLocalAppCommand({
         command,

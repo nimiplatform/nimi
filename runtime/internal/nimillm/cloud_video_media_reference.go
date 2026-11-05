@@ -36,6 +36,9 @@ func ValidateCloudVideoMediaReferences(provider, model string, spec *runtimev1.V
 		limit = 2
 	} else if provider == "dashscope" {
 		limit = capabilitydriver.AlibabaVideoImageReferenceLimit(model)
+		if model == "wan3.0-video" || model == "wan3.0-video-prime" {
+			limit += 10
+		}
 	} else if provider == "volcengine" {
 		images, _, audios := capabilitydriver.SeedanceVideoReferenceLimits(model)
 		limit = images + audios
@@ -72,8 +75,22 @@ func ValidateCloudVideoMediaReferences(provider, model string, spec *runtimev1.V
 				return err
 			}
 			if provider == "dashscope" {
-				if err := capabilitydriver.ValidateAlibabaCurrentVideoImage(model, reference.Bytes, reference.MIMEType); err != nil {
-					return err
+				switch item.GetRole() {
+				case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_AUDIO:
+					if reference.MIMEType != "audio/wav" && reference.MIMEType != "audio/mpeg" {
+						return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_MIME_MISMATCH)
+					}
+					if len(reference.Bytes) > 15_000_000 {
+						return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
+					}
+				case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO:
+					if reference.MIMEType != "video/mp4" {
+						return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_MIME_MISMATCH)
+					}
+				default:
+					if err := capabilitydriver.ValidateAlibabaCurrentVideoImage(model, reference.Bytes, reference.MIMEType); err != nil {
+						return err
+					}
 				}
 			} else if provider == "minimax" {
 				switch item.GetRole() {

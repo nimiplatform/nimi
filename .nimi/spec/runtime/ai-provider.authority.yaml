@@ -299,7 +299,7 @@ units:
     kind: rule
     title: Update patch semantics are closed
     modality: must
-    statement: update_mask paths admit only label, api_key, status, auth_kind, provider_auth_profile, and credential_json, an empty mask derives effective paths from explicitly present optional fields and a non-unspecified status, underivable, unknown, endpoint-bearing, or declared-but-absent paths return INVALID_ARGUMENT with AI_CONNECTOR_INVALID, and fields outside the effective paths stay unchanged without implicit full overwrite.
+    statement: update_mask paths admit only label, api_key, status, auth_kind, provider_auth_profile, credential_json, and media_storage, an empty mask derives effective paths from explicitly present optional fields and a non-unspecified status, underivable, unknown, endpoint-bearing, or declared-but-absent paths return INVALID_ARGUMENT with AI_CONNECTOR_INVALID, and fields outside the effective paths stay unchanged without implicit full overwrite. media_storage follows the exact managed OSS input-storage contract and never changes provider authentication kind or execution selection.
     condition: Whenever UpdateConnectorRequest patch semantics are evaluated.
     failure: Return INVALID_ARGUMENT with AI_CONNECTOR_INVALID instead of implicit or partial-unknown patching.
     relations:
@@ -2098,5 +2098,19 @@ units:
     condition: Whenever exact GPT Image2.6 controls, source custody or result media cross Runtime, SDK, native App or Lab boundaries.
     failure: Reject unknown or dropped controls, incompatible input combinations, foreign or altered captures, malformed or active media, incomplete outputs and unverified billing assumptions; never report a catalog update or fixture as real generation acceptance.
     relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.oss-input-storage
+    kind: rule
+    title: Managed OSS input storage preserves provider and task custody
+    modality: must
+    statement: A managed DashScope API-key Connector may explicitly configure Alibaba OSS input storage through typed connector management fields, with non-secret region, bucket and key prefix projected separately from write-only OSS credentials retained in Runtime credential custody. Setting or replacing storage supplies its complete configuration and credentials, removing it is explicit, provider-key replacement preserves the existing storage, and no per-App inference request can select a bucket, storage endpoint, object key or credential. The Connector's immutable credential generation captures provider and storage credentials together for each admitted Job; later connection edits or removal do not retarget that Job. Remote ExecutionHost alone uploads captured owned media to unique task-scoped keys under the configured prefix using HTTPS, a private object ACL and the official OSS signature protocol, exposes only a bounded signed GET URL to the captured video provider, and never forwards a DashScope API key to OSS or an OSS secret to the video endpoint. Uploads require an unversioned bucket so ordinary object deletion does not merely create a delete marker; versioned or suspended buckets fail explicitly. Each key is derivable from the original Job identity and immutable captured input before upload, so cleanup covers completed, failed and canceled requests including an interrupted upload or provider creation without inventing a provider task. Cleanup attempts only those exact task-owned keys, records deleted, failed or unconfirmed outcomes through existing Job audit, and never enumerates or deletes pre-existing objects. Cleanup dispositions persist in the existing Job journal before captured credentials are released; a process restart never reconstructs transient App authorization and records unconfirmed without outbound IO when current authority is unavailable. API deletion success does not promise immediate physical erasure, cancellation of model computation or reversal of billing. Storage configuration alone proves neither account access nor model-input support; missing storage blocks only requests requiring uploaded owned audio or video. Storage failures use distinct AI_MEDIA_STORAGE_NOT_CONFIGURED, AI_MEDIA_STORAGE_AUTH_FAILED, AI_MEDIA_STORAGE_UNAVAILABLE, AI_MEDIA_STORAGE_OPTION_UNSUPPORTED and AI_MEDIA_STORAGE_CLEANUP_UNCONFIRMED reasons through Runtime, native carrier, SDK and App projection, without misclassifying storage access as a missing inference-provider key. The official Model Studio temporary upload interface is not a production fallback.
+    condition: Whenever a managed Connector configures OSS storage or an admitted cloud video request uploads owned input media.
+    failure: Reject missing or incompatible storage before dispatch, preserve captured configuration, record cleanup failure without claiming deletion, and leave unrelated model paths available.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.connector-plane
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane

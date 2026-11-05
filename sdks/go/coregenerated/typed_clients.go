@@ -1748,6 +1748,11 @@ const (
 	AIVOICETARGETMODELMISMATCH                      ReasonCode = "AI_VOICE_TARGET_MODEL_MISMATCH"
 	AIMODULECONFIGINVALID                           ReasonCode = "AI_MODULE_CONFIG_INVALID"
 	AIMEMORYEMBEDDINGTARGETREFINVALID               ReasonCode = "AI_MEMORY_EMBEDDING_TARGET_REF_INVALID"
+	AIMEDIASTORAGENOTCONFIGURED                     ReasonCode = "AI_MEDIA_STORAGE_NOT_CONFIGURED"
+	AIMEDIASTORAGEAUTHFAILED                        ReasonCode = "AI_MEDIA_STORAGE_AUTH_FAILED"
+	AIMEDIASTORAGEUNAVAILABLE                       ReasonCode = "AI_MEDIA_STORAGE_UNAVAILABLE"
+	AIMEDIASTORAGEOPTIONUNSUPPORTED                 ReasonCode = "AI_MEDIA_STORAGE_OPTION_UNSUPPORTED"
+	AIMEDIASTORAGECLEANUPUNCONFIRMED                ReasonCode = "AI_MEDIA_STORAGE_CLEANUP_UNCONFIRMED"
 	APPSCOPEFORBIDDEN                               ReasonCode = "APP_SCOPE_FORBIDDEN"
 	APPSCOPEREVOKED                                 ReasonCode = "APP_SCOPE_REVOKED"
 	APPMESSAGEPAYLOADTOOLARGE                       ReasonCode = "APP_MESSAGE_PAYLOAD_TOO_LARGE"
@@ -4114,12 +4119,18 @@ type Connector struct {
 	ProviderAuthProfile string                      `json:"provider_auth_profile,omitempty"`
 	OauthRegistration   *ConnectorOAuthRegistration `json:"oauth_registration,omitempty"`
 	LastCheck           *ConnectorCheck             `json:"last_check,omitempty"`
+	MediaStorage        *ConnectorOSSStorage        `json:"media_storage,omitempty"`
 }
 
 type ConnectorCheck struct {
 	Ok         bool       `json:"ok,omitempty"`
 	ReasonCode ReasonCode `json:"reason_code,omitempty"`
 	CheckedAt  string     `json:"checked_at,omitempty"`
+}
+
+type ConnectorMediaStorageUpdate struct {
+	Oss    *ConnectorOSSStorageInput `json:"oss,omitempty"`
+	Remove bool                      `json:"remove,omitempty"`
 }
 
 type ConnectorModelDescriptor struct {
@@ -4137,6 +4148,19 @@ type ConnectorModelDescriptor struct {
 type ConnectorOAuthRegistration struct {
 	IssuedClientId string `json:"issued_client_id,omitempty"`
 	AccountLabel   string `json:"account_label,omitempty"`
+}
+
+type ConnectorOSSStorage struct {
+	Region    string `json:"region,omitempty"`
+	Bucket    string `json:"bucket,omitempty"`
+	KeyPrefix string `json:"key_prefix,omitempty"`
+}
+
+type ConnectorOSSStorageInput struct {
+	Config          *ConnectorOSSStorage `json:"config,omitempty"`
+	AccessKeyId     string               `json:"access_key_id,omitempty"`
+	AccessKeySecret string               `json:"access_key_secret,omitempty"`
+	SecurityToken   string               `json:"security_token,omitempty"`
 }
 
 type ConsentRef struct {
@@ -4181,13 +4205,14 @@ type CorrectLocalAppAgentMemoryResponse struct {
 }
 
 type CreateConnectorRequest struct {
-	Provider            string            `json:"provider,omitempty"`
-	Endpoint            string            `json:"endpoint,omitempty"`
-	Label               string            `json:"label,omitempty"`
-	ApiKey              string            `json:"api_key,omitempty"`
-	AuthKind            ConnectorAuthKind `json:"auth_kind,omitempty"`
-	ProviderAuthProfile string            `json:"provider_auth_profile,omitempty"`
-	CredentialJson      string            `json:"credential_json,omitempty"`
+	Provider            string                       `json:"provider,omitempty"`
+	Endpoint            string                       `json:"endpoint,omitempty"`
+	Label               string                       `json:"label,omitempty"`
+	ApiKey              string                       `json:"api_key,omitempty"`
+	AuthKind            ConnectorAuthKind            `json:"auth_kind,omitempty"`
+	ProviderAuthProfile string                       `json:"provider_auth_profile,omitempty"`
+	CredentialJson      string                       `json:"credential_json,omitempty"`
+	MediaStorage        *ConnectorMediaStorageUpdate `json:"media_storage,omitempty"`
 }
 
 type CreateConnectorResponse struct {
@@ -7853,6 +7878,7 @@ type ProviderCatalogEntry struct {
 	ManagedSupported         bool   `json:"managed_supported,omitempty"`
 	InventoryMode            string `json:"inventory_mode,omitempty"`
 	InlineSupported          bool   `json:"inline_supported,omitempty"`
+	SupportsOssMediaStorage  bool   `json:"supports_oss_media_storage,omitempty"`
 }
 
 type PutAppActivityRequest struct {
@@ -9637,15 +9663,16 @@ type UpdateAgentStateResponse struct {
 }
 
 type UpdateConnectorRequest struct {
-	ConnectorId         string             `json:"connector_id,omitempty"`
-	Label               *string            `json:"label,omitempty"`
-	Endpoint            *string            `json:"endpoint,omitempty"`
-	ApiKey              *string            `json:"api_key,omitempty"`
-	Status              ConnectorStatus    `json:"status,omitempty"`
-	UpdateMask          string             `json:"update_mask,omitempty"`
-	AuthKind            *ConnectorAuthKind `json:"auth_kind,omitempty"`
-	ProviderAuthProfile *string            `json:"provider_auth_profile,omitempty"`
-	CredentialJson      *string            `json:"credential_json,omitempty"`
+	ConnectorId         string                       `json:"connector_id,omitempty"`
+	Label               *string                      `json:"label,omitempty"`
+	Endpoint            *string                      `json:"endpoint,omitempty"`
+	ApiKey              *string                      `json:"api_key,omitempty"`
+	Status              ConnectorStatus              `json:"status,omitempty"`
+	UpdateMask          string                       `json:"update_mask,omitempty"`
+	AuthKind            *ConnectorAuthKind           `json:"auth_kind,omitempty"`
+	ProviderAuthProfile *string                      `json:"provider_auth_profile,omitempty"`
+	CredentialJson      *string                      `json:"credential_json,omitempty"`
+	MediaStorage        *ConnectorMediaStorageUpdate `json:"media_storage,omitempty"`
 }
 
 type UpdateConnectorResponse struct {

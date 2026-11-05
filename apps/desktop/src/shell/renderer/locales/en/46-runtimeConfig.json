@@ -3262,5 +3262,25 @@
       "empty": "No memories yet",
       "failed": "Could not read"
     }
+  },
+  "mediaStorage": {
+    "title": "Reference media storage",
+    "description": "Used when a video model needs uploaded audio or video references.",
+    "configured": "Configured. Storage access is verified when a request uploads media.",
+    "unconfigured": "Not configured. Text and supported image-reference requests remain available.",
+    "configure": "Configure OSS",
+    "replace": "Replace storage settings",
+    "remove": "Remove storage configuration",
+    "requirements": "Use a private bucket with versioning never enabled. The credential needs PutObject, GetObject, DeleteObject and GetBucketVersioning permissions. OSS storage and transfer charges may apply.",
+    "dataHandling": "Inputs are stored as private objects and shared with the video provider through time-limited links. Runtime requests deletion after the task; failures are recorded. Deletion acknowledgement does not guarantee immediate physical erasure. Changes affect new requests only.",
+    "fields": {
+      "region": "OSS region",
+      "bucket": "Bucket name",
+      "prefix": "Object key prefix (end with /)",
+      "accessKeyId": "AccessKey ID",
+      "accessKeySecret": "AccessKey secret",
+      "securityToken": "STS security token (optional)"
+    },
+    "invalid": "The OSS settings are invalid. Check the region, lowercase Bucket name, path prefix ending with /, and credential fields."
   }
 }

@@ -160,7 +160,12 @@
       "modelNotFound": "The selected model is not available: its cloud account does not offer it, or no admitted implementation exists for it. Nothing was generated.",
       "fallback": "The generation did not complete.",
       "stoppedDirectCall": "You stopped waiting for this call. A result that arrives later will not be shown.",
-      "providerAuthFailed": "The cloud service rejected this connection's credentials. Its API key may be expired, revoked, or invalid."
+      "providerAuthFailed": "The cloud service rejected this connection's credentials. Its API key may be expired, revoked, or invalid.",
+      "mediaStorageMissing": "This video request needs storage for its uploaded audio or video references.",
+      "mediaStorageCredentials": "OSS rejected the reference-media storage credentials.",
+      "mediaStorageVersioning": "Reference-media storage requires a bucket with versioning never enabled.",
+      "mediaStorageUnavailable": "The reference-media storage request could not complete.",
+      "mediaStorageCleanup": "The task could not confirm ownership or deletion of an uploaded reference object."
     },
     "action": {
       "runtimeUnavailable": "Return to Desktop, confirm Local AI is connected, then try again.",
@@ -195,7 +200,12 @@
       "modelNotFound": "Open App AI configuration, choose an available model for this capability, then run it again.",
       "fallback": "Try again. If it still fails, open Runtime details to find the cause.",
       "stoppedDirectCall": "Run it again whenever you are ready.",
-      "providerAuthFailed": "Update this connection's API key or sign in again in Nimi Cloud Services, then submit a new request."
+      "providerAuthFailed": "Update this connection's API key or sign in again in Nimi Cloud Services, then submit a new request.",
+      "mediaStorageMissing": "In Nimi Cloud Services, open this connection and configure Reference media storage. Then submit a new request.",
+      "mediaStorageCredentials": "Update the OSS credentials in this connection’s Reference media storage settings and verify its bucket permissions.",
+      "mediaStorageVersioning": "Configure an unversioned OSS bucket for this connection’s reference media.",
+      "mediaStorageUnavailable": "Check the OSS region, bucket and permissions in Nimi Cloud Services before submitting again.",
+      "mediaStorageCleanup": "Inspect this task’s cleanup result in Nimi diagnostics and the configured OSS bucket. Re-running generation does not prove cleanup."
     },
     "hint": {
       "runtimeUnavailable": "Restore the protected Runtime connection, then retry the same request.",

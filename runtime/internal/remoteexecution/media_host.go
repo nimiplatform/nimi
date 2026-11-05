@@ -85,6 +85,41 @@ func (h *ProviderMediaHost) ExecuteMedia(
 		return capabilitydriver.CloudMediaTransportResponse{}, h.auditedError(audit, "error", err)
 	}
 	defer clearRequestScopedProviderTarget(remoteTarget)
+	if target.Provider() == "dashscope" && nimillm.AlibabaVideoRequiresOSS(request.Request().GetSpec().GetVideoGenerate()) {
+		jobID, err := connector.JobIDForCredentialCustodyRef(connectorRecord.CredentialCustodyRef)
+		if err != nil {
+			return capabilitydriver.CloudMediaTransportResponse{}, h.auditedError(audit, "input_storage_error", err)
+		}
+		client, err := nimillm.NewOSSInputClient(ctx, remoteTarget.MediaStorage)
+		if err != nil {
+			return capabilitydriver.CloudMediaTransportResponse{}, h.auditedError(audit, "input_storage_error", err)
+		}
+		defer client.Close()
+		var objects []nimillm.OSSInputObject
+		defer func() {
+			if errors.Is(executionErr, nimillm.ErrNativeTaskYielded) {
+				return
+			}
+			cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 20*time.Second)
+			defer cancel()
+			result := client.Cleanup(cleanup, objects)
+			auditErr := h.recordOSSInputCleanup(audit, result)
+			if auditErr != nil {
+				result.State = "unconfirmed"
+				result.ReasonCode = mediaReasonCode(auditErr)
+			}
+			recordErr := reportInputCleanup(ctx, result)
+			if err := errors.Join(auditErr, recordErr); err != nil && executionErr == nil {
+				capabilitydriver.CloseArtifactBodies(response.ArtifactBodies)
+				response = capabilitydriver.CloudMediaTransportResponse{}
+				executionErr = err
+			}
+		}()
+		ctx, objects, err = nimillm.PrepareAlibabaOSSInputs(ctx, client, jobID)
+		if err != nil {
+			return capabilitydriver.CloudMediaTransportResponse{}, h.auditedError(audit, "input_storage_error", err)
+		}
+	}
 	pollState := &privateMediaPollState{}
 	var cleanup *nimillm.ProviderTaskCleanupObservation
 	ctx = nimillm.WithProviderTaskCleanupObserver(ctx, func(observation nimillm.ProviderTaskCleanupObservation) {
@@ -427,6 +462,13 @@ func (h *ProviderMediaHost) recordDispatch(audit MediaDispatchAudit, phase strin
 		if resources := cleanup[0].GeminiResources; resources != nil {
 			payload.Fields["provider_file_cleanup"] = structpb.NewStringValue(resources.FileState)
 			payload.Fields["provider_interaction_cleanup"] = structpb.NewStringValue(resources.InteractionState)
+		}
+		if resources := cleanup[0].OSSInputs; resources != nil {
+			payload.Fields["oss_input_cleanup"] = structpb.NewStringValue(resources.State)
+			payload.Fields["oss_inputs_deleted"] = structpb.NewNumberValue(float64(resources.Deleted))
+			payload.Fields["oss_inputs_absent"] = structpb.NewNumberValue(float64(resources.Absent))
+			payload.Fields["oss_inputs_failed"] = structpb.NewNumberValue(float64(resources.Failed))
+			payload.Fields["oss_inputs_unconfirmed"] = structpb.NewNumberValue(float64(resources.Unconfirmed))
 		}
 	}
 	traceID := strings.TrimSpace(audit.TraceID)

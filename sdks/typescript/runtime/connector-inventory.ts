@@ -4,6 +4,7 @@ import {
   ConnectorOwnerType,
   ConnectorStatus,
   type Connector,
+  type ConnectorMediaStorageUpdate,
   type ErrorInfo,
   type ConnectorModelDescriptor,
   type ProviderCatalogEntry,
@@ -62,6 +63,7 @@ export interface NimiRuntimeConnectorProjectionInput {
   readonly endpoint: string;
   readonly label: string;
   readonly hasCredential: boolean;
+  readonly mediaStorage?: Connector['mediaStorage'];
   readonly authKind?: ConnectorAuthKind;
   readonly providerAuthProfile?: string;
   readonly oauthRegistration?: { readonly accountLabel?: string };
@@ -113,6 +115,7 @@ export interface NimiRuntimeConnectorInventoryClient {
     readonly apiKey?: string;
     readonly credentialValue?: string;
     readonly authMode?: 'api_key';
+    readonly mediaStorage?: ConnectorMediaStorageUpdate;
   }): Promise<NimiRuntimeConnectorProjection | null>;
   updateConnector(input: {
     readonly connectorId: string;
@@ -121,6 +124,7 @@ export interface NimiRuntimeConnectorInventoryClient {
     readonly apiKey?: string;
     readonly credentialValue?: string;
     readonly authMode?: 'api_key';
+    readonly mediaStorage?: ConnectorMediaStorageUpdate;
   }): Promise<NimiRuntimeConnectorProjection | null>;
   deleteConnector(connectorId: string): Promise<NimiRuntimeConnectorDeleteResult>;
   testConnector(connectorId: string): Promise<NimiRuntimeConnectorProjection>;
@@ -140,6 +144,7 @@ function cloneConnector(connector: NimiRuntimeConnectorProjection): NimiRuntimeC
   return {
     ...connector,
     lastCheck: connector.lastCheck ? { ...connector.lastCheck } : undefined,
+    ...(connector.mediaStorage ? { mediaStorage: { ...connector.mediaStorage } } : {}),
     models: [...connector.models],
   };
 }
@@ -338,6 +343,7 @@ export function nimiRuntimeConnectorToProjection(
     endpoint: normalizeText(connector.endpoint) || defaultEndpoint,
     scope,
     hasCredential: Boolean(connector.hasCredential),
+    ...(connector.mediaStorage ? { mediaStorage: { region: connector.mediaStorage.region, bucket: connector.mediaStorage.bucket, keyPrefix: connector.mediaStorage.keyPrefix } } : {}),
     isSystemOwned: scope !== 'user',
     managementStatus: connector.status === ConnectorStatus.ACTIVE ? 'active' : connector.status === ConnectorStatus.DISABLED ? 'disabled' : 'unknown',
     configurationVersion: connector.updatedAt ? `${connector.updatedAt.seconds}:${connector.updatedAt.nanos}` : '',
@@ -452,6 +458,7 @@ export function createNimiRuntimeConnectorInventoryClient(
     readonly apiKey?: string;
     readonly credentialValue?: string;
     readonly authMode?: 'api_key';
+    readonly mediaStorage?: ConnectorMediaStorageUpdate;
   }): Promise<NimiRuntimeConnectorProjection | null> {
     assertRendererSafeConnectorMutation(input);
     const credentialValue = normalizeText(input.credentialValue ?? input.apiKey);
@@ -463,6 +470,7 @@ export function createNimiRuntimeConnectorInventoryClient(
       authKind: ConnectorAuthKind.API_KEY,
       providerAuthProfile: '',
       credentialJson: '',
+      ...(input.mediaStorage === undefined ? {} : { mediaStorage: input.mediaStorage }),
     }, options.callOptions);
     invalidateConnectorInventoryCache();
     if (response.auditDiagnostic) options.onAuditDiagnostic?.(response.auditDiagnostic);
@@ -478,6 +486,7 @@ export function createNimiRuntimeConnectorInventoryClient(
     readonly apiKey?: string;
     readonly credentialValue?: string;
     readonly authMode?: 'api_key';
+    readonly mediaStorage?: ConnectorMediaStorageUpdate;
   }): Promise<NimiRuntimeConnectorProjection | null> {
     assertRendererSafeConnectorMutation(input);
     const credentialValue = normalizeText(input.credentialValue ?? input.apiKey);
@@ -492,6 +501,7 @@ export function createNimiRuntimeConnectorInventoryClient(
         : undefined,
       providerAuthProfile: undefined,
       credentialJson: undefined,
+      ...(input.mediaStorage === undefined ? {} : { mediaStorage: input.mediaStorage }),
     }, options.callOptions);
     invalidateConnectorInventoryCache();
     if (response.auditDiagnostic) options.onAuditDiagnostic?.(response.auditDiagnostic);

@@ -2,6 +2,7 @@ package nimillm
 
 import (
 	"context"
+	"github.com/nimiplatform/nimi/runtime/internal/ossmedia"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
@@ -41,6 +42,7 @@ type StreamingSpeechProvider interface {
 
 // RemoteTarget provides resolved credentials for a managed or inline remote call.
 type RemoteTarget struct {
+	MediaStorage *ossmedia.Credentials
 	ProviderType string // canonical provider ID
 	Endpoint     string // resolved endpoint URL
 	APIKey       string // decrypted API key
