@@ -33,6 +33,7 @@ func OpenAIResponsesTextBehaviorRequestSerializer(modelID string, spec *runtimev
 	profile := *openAIResponses
 	profile.reasoningControls = true
 	profile.reasoningDisabled = modelID == "gpt-6-luna" || modelID == "gpt-6.1-terra"
+	profile.jsonObject = modelID == "gpt-6.1-terra"
 	return serializeResponsesRequest(&profile, spec)
 }
 

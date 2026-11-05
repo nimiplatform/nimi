@@ -35,6 +35,7 @@ type responsesProfile struct {
 	parallelToolCalls bool
 	reasoningControls bool
 	reasoningDisabled bool
+	jsonObject        bool
 	failure           func(status int, code string) error
 }
 
@@ -190,28 +191,32 @@ func serializeResponsesRequest(profile *responsesProfile, spec *runtimev1.TextGe
 		body["tool_choice"] = choice
 	}
 	if format := spec.ResponseFormat; format != nil && format.Kind != runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_UNSPECIFIED && format.Kind != runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_TEXT {
-		if format.Kind != runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_SCHEMA || !format.Strict {
-			return textbehavior.SerializedRequest{}, profile.unsupported("response format combination")
+		if format.Kind == runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT && profile.jsonObject {
+			body["text"] = map[string]any{"format": map[string]any{"type": "json_object"}}
+		} else {
+			if format.Kind != runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_SCHEMA || !format.Strict {
+				return textbehavior.SerializedRequest{}, profile.unsupported("response format combination")
+			}
+			schema := format.GetJsonSchema().AsMap()
+			if _, err := textbehavior.CompileJSONSchema(schema); err != nil {
+				return textbehavior.SerializedRequest{}, profile.inputError("response schema")
+			}
+			if schema["type"] != "object" || schema["anyOf"] != nil {
+				return textbehavior.SerializedRequest{}, profile.unsupported("structured root")
+			}
+			if err := validateResponsesStructuredSchema(profile, schema, true); err != nil {
+				return textbehavior.SerializedRequest{}, profile.unsupported("strict JSON Schema subset")
+			}
+			name := format.SchemaName
+			if name == "" {
+				name = "response"
+			}
+			textFormat := map[string]any{"type": "json_schema", "name": name, "schema": schema, "strict": true}
+			if format.SchemaDescription != "" {
+				textFormat["description"] = format.SchemaDescription
+			}
+			body["text"] = map[string]any{"format": textFormat}
 		}
-		schema := format.GetJsonSchema().AsMap()
-		if _, err := textbehavior.CompileJSONSchema(schema); err != nil {
-			return textbehavior.SerializedRequest{}, profile.inputError("response schema")
-		}
-		if schema["type"] != "object" || schema["anyOf"] != nil {
-			return textbehavior.SerializedRequest{}, profile.unsupported("structured root")
-		}
-		if err := validateResponsesStructuredSchema(profile, schema, true); err != nil {
-			return textbehavior.SerializedRequest{}, profile.unsupported("strict JSON Schema subset")
-		}
-		name := format.SchemaName
-		if name == "" {
-			name = "response"
-		}
-		textFormat := map[string]any{"type": "json_schema", "name": name, "schema": schema, "strict": true}
-		if format.SchemaDescription != "" {
-			textFormat["description"] = format.SchemaDescription
-		}
-		body["text"] = map[string]any{"format": textFormat}
 	}
 	payload, err := json.Marshal(body)
 	if err != nil {
@@ -684,16 +689,23 @@ func (stream *responsesBehaviorStream) Finish() (textbehavior.NormalizedResult, 
 			text.WriteString(item.Text)
 		}
 	}
-	if stream.spec.GetResponseFormat().GetKind() == runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_SCHEMA && finish == runtimev1.FinishReason_FINISH_REASON_STOP {
+	format := stream.spec.GetResponseFormat().GetKind()
+	if (format == runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_SCHEMA || format == runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT) && finish == runtimev1.FinishReason_FINISH_REASON_STOP {
 		var instance any
 		decoder := json.NewDecoder(strings.NewReader(text.String()))
 		decoder.UseNumber()
 		if decoder.Decode(&instance) != nil || decoder.Decode(new(any)) != io.EOF {
 			return textbehavior.NormalizedResult{}, stream.profile.outputError("structured JSON")
 		}
-		schema, err := textbehavior.CompileJSONSchema(stream.spec.ResponseFormat.JsonSchema.AsMap())
-		if err != nil || schema.Validate(instance) != nil {
-			return textbehavior.NormalizedResult{}, stream.profile.outputError("structured schema mismatch")
+		if format == runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT {
+			if _, ok := instance.(map[string]any); !ok {
+				return textbehavior.NormalizedResult{}, stream.profile.outputError("JSON object required")
+			}
+		} else {
+			schema, err := textbehavior.CompileJSONSchema(stream.spec.ResponseFormat.JsonSchema.AsMap())
+			if err != nil || schema.Validate(instance) != nil {
+				return textbehavior.NormalizedResult{}, stream.profile.outputError("structured schema mismatch")
+			}
 		}
 	}
 	var usage *runtimev1.UsageStats

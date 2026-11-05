@@ -8,6 +8,45 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 )
 
+func TestOpenAIResponsesJSONObjectIsExactAndRequiresOneObject(t *testing.T) {
+	spec := &runtimev1.TextGenerateScenarioSpec{
+		Input:          []*runtimev1.ChatMessage{{Role: "user", Content: "Return JSON."}},
+		ResponseFormat: &runtimev1.ResponseFormat{Kind: runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT},
+	}
+	for _, model := range []string{"gpt-6-astra", "gpt-6.1-sol", "gpt-6-luna"} {
+		if _, err := OpenAIResponsesTextBehaviorRequestSerializer(model, spec, true); err == nil {
+			t.Fatalf("unreviewed JSON object target admitted: %s", model)
+		}
+	}
+	for _, tc := range []struct {
+		text  string
+		valid bool
+	}{
+		{`{"answer":43}`, true}, {`{}`, true},
+		{`[]`, false}, {`null`, false}, {`"text"`, false},
+		{`{"answer":`, false}, {`{"answer":43} {}`, false},
+	} {
+		t.Run(tc.text, func(t *testing.T) {
+			stream := newResponsesStreamAssembler(openAIResponses, spec)
+			item := map[string]any{"type": "message", "id": "msg_json", "content": []any{map[string]any{"type": "output_text", "text": tc.text}}}
+			for _, event := range []map[string]any{
+				{"type": "response.output_item.added", "output_index": 0, "item": map[string]any{"type": "message", "id": "msg_json"}},
+				{"type": "response.output_item.done", "output_index": 0, "item": item},
+				{"type": "response.completed", "response": map[string]any{"status": "completed", "output": []any{item}}},
+			} {
+				payload, _ := json.Marshal(event)
+				if _, err := stream.Append(payload); err != nil {
+					t.Fatal(err)
+				}
+			}
+			_, err := stream.Finish()
+			if (err == nil) != tc.valid {
+				t.Fatalf("valid=%t error=%v", tc.valid, err)
+			}
+		})
+	}
+}
+
 func TestOpenAIResponsesReasoningMappingAndOffAreExact(t *testing.T) {
 	for _, model := range []string{"gpt-6-astra", "gpt-6.1-sol", "gpt-6.1-terra", "gpt-6-luna"} {
 		for _, effort := range []runtimev1.ReasoningEffort{runtimev1.ReasoningEffort_REASONING_EFFORT_LOW, runtimev1.ReasoningEffort_REASONING_EFFORT_XHIGH, runtimev1.ReasoningEffort_REASONING_EFFORT_MAXIMUM} {

@@ -66,6 +66,54 @@ func openAIResponsesText(id, text string) map[string]any {
 	return map[string]any{"type": "message", "id": id, "content": []any{map[string]any{"type": "output_text", "text": text}}}
 }
 
+func TestOpenAIResponsesTerraJSONObjectThroughPublicApp(t *testing.T) {
+	for _, streaming := range []bool{false, true} {
+		t.Run(map[bool]string{false: "sync", true: "stream"}[streaming], func(t *testing.T) {
+			fixture, decision := openAIResponsesAppFixture(t, "gpt-6.1-terra", func(w http.ResponseWriter, r *http.Request) {
+				body := decodeOpenAIResponsesRequest(t, r, "gpt-6.1-terra")
+				format := body["text"].(map[string]any)["format"].(map[string]any)
+				if format["type"] != "json_object" || len(format) != 1 || body["reasoning"].(map[string]any)["effort"] != "none" {
+					t.Errorf("JSON object request changed: %v", body)
+				}
+				output := []map[string]any{openAIResponsesText("msg_json", `{"answer":43}`)}
+				writeChatGPTPlanResponse(t, w, output, chatGPTPlanCompleted(output))
+			})
+			input := &runtimev1.StreamLocalAppTextTurnRequest{
+				Messages:       []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "Return JSON with answer 43."}},
+				ResponseFormat: &runtimev1.ResponseFormat{Kind: runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_OBJECT},
+				Reasoning:      &runtimev1.ReasoningConfig{Activation: runtimev1.ReasoningActivation_REASONING_ACTIVATION_DISABLED},
+			}
+			if !streaming {
+				result, err := fixture.service.ExecuteLocalAppScenario(decision(accountservice.LocalAppOperationScenarioExecute, localappop.AppOperationIDScenarioExecute),
+					&runtimev1.ExecuteLocalAppScenarioRequest{Spec: &runtimev1.ExecuteLocalAppScenarioRequest_TextGenerate{TextGenerate: input}})
+				if err != nil || result.GetTextGenerate().GetItems()[0].GetText().GetText() != `{"answer":43}` {
+					t.Fatalf("JSON result=%v err=%v", result, err)
+				}
+				return
+			}
+			stream := &mockLocalAppTextTurnStream{ctx: decision(accountservice.LocalAppOperationTextTurnStream, localappop.AppOperationIDTextTurnStream)}
+			if err := fixture.service.StreamLocalAppTextTurn(input, stream); err != nil {
+				t.Fatal(err)
+			}
+			completed, value := false, ""
+			for _, event := range stream.events {
+				if event.GetFailed() != nil {
+					t.Fatalf("JSON stream failed: %v", event.GetFailed())
+				}
+				if event.GetCompleted() != nil {
+					completed = true
+				}
+				if event.GetDelta() != nil {
+					value += event.GetDelta().GetText()
+				}
+			}
+			if !completed || value != `{"answer":43}` {
+				t.Fatalf("completed=%t text=%s", completed, value)
+			}
+		})
+	}
+}
+
 // Tool round trips replay the returned encrypted reasoning with top-level
 // function tools in both modes; nothing from the ChatGPT-plan route applies.
 func TestOpenAIResponsesAppToolRoundTripReplaysContinuityInBothModes(t *testing.T) {
