@@ -24,7 +24,7 @@ func TestMimoToolsSerializeNativeParametersAndOrderedResultRoundTrip(t *testing.
 		}})
 	before := proto.Clone(s)
 	for _, stream := range []bool{false, true} {
-		request, err := MimoChatRequestSerializer(s, stream)
+		request, err := testMimoProfile(t).Serialize(s, stream)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -32,7 +32,7 @@ func TestMimoToolsSerializeNativeParametersAndOrderedResultRoundTrip(t *testing.
 		if err = json.Unmarshal(request.Payload, &b); err != nil {
 			t.Fatal(err)
 		}
-		if b["max_completion_tokens"] != float64(8000) || b["max_tokens"] != nil || b["stream_options"] != nil || b["model"] != nil || b["stream"] != stream || b["thinking"].(map[string]any)["type"] != "disabled" || b["tool_choice"] != "auto" {
+		if b["max_completion_tokens"] != float64(8000) || b["max_tokens"] != nil || b["stream_options"] != nil || b["model"] != "mimo-v2.6-flash" || b["stream"] != stream || b["thinking"].(map[string]any)["type"] != "disabled" || b["tool_choice"] != "auto" {
 			t.Fatalf("wire mapping=%v", b)
 		}
 		msgs := b["messages"].([]any)
@@ -81,7 +81,7 @@ func TestMimoToolsRefuseUnsupportedChoicesAndParameters(t *testing.T) {
 		t.Run(name, func(t *testing.T) {
 			s := deepseekToolSpec(t)
 			mutate(s)
-			if _, err := MimoChatRequestSerializer(s, true); err == nil {
+			if _, err := testMimoProfile(t).Serialize(s, true); err == nil {
 				t.Fatal("unsupported request admitted")
 			}
 		})
@@ -90,7 +90,7 @@ func TestMimoToolsRefuseUnsupportedChoicesAndParameters(t *testing.T) {
 
 func TestMimoToolStreamKeepsParallelFragmentsPrivateAndRequiresTerminalEvidence(t *testing.T) {
 	s := deepseekToolSpec(t)
-	a, err := MimoChatStreamAssembler(s)
+	a, err := testMimoProfile(t).Stream(s)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -144,12 +144,12 @@ func TestMimoToolOutputsFailClosed(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			s := deepseekToolSpec(t)
 			payload, _ := json.Marshal(map[string]any{"choices": []any{map[string]any{"index": 0, "finish_reason": tc.finish, "message": map[string]any{"tool_calls": []any{map[string]any{"id": "call-a", "type": "function", "function": map[string]any{"name": "lookup", "arguments": tc.args}}}}}}})
-			_, err := MimoChatNonStreamParser(payload, s)
+			_, err := testMimoProfile(t).Parse(payload, s)
 			reason, _ := grpcerr.ExtractReasonCode(err)
 			if reason != tc.reason {
 				t.Fatalf("nonstream err=%v", err)
 			}
-			a, _ := MimoChatStreamAssembler(s)
+			a, _ := testMimoProfile(t).Stream(s)
 			if _, err := a.Append(deepseekToolChunk(t, map[string]any{"tool_calls": []any{deepseekCallChunk(0, "a", "lookup", tc.args)}}, nil)); err != nil {
 				t.Fatal(err)
 			}
@@ -167,13 +167,22 @@ func TestMimoToolOutputsFailClosed(t *testing.T) {
 	}
 	s := deepseekToolSpec(t)
 	call := []byte(`{"choices":[{"index":0,"message":{"tool_calls":[{"id":"call-1","type":"function","function":{"name":"lookup","arguments":"{\"city\":\"北京\"}"}}]},"finish_reason":"tool_calls"}]}`)
-	toolResult, err := MimoChatNonStreamParser(call, s)
+	toolResult, err := testMimoProfile(t).Parse(call, s)
 	if err != nil || len(toolResult.Items) != 1 || toolResult.Items[0].ToolCall.GetId() != "call-1" || toolResult.Items[0].ToolCall.GetArgumentsJson() != `{"city":"北京"}` || toolResult.FinishReason != runtimev1.FinishReason_FINISH_REASON_TOOL_CALL {
 		t.Fatalf("synchronous tool result=%+v err=%v", toolResult, err)
 	}
 	good := []byte(`{"choices":[{"index":0,"message":{"content":"  done\n"},"finish_reason":"stop"}]}`)
-	r, err := MimoChatNonStreamParser(good, s)
+	r, err := testMimoProfile(t).Parse(good, s)
 	if err != nil || len(r.Items) != 1 || r.Items[0].Kind != textbehavior.OrderedItemText || r.Items[0].Text != "  done\n" {
 		t.Fatalf("result=%+v err=%v", r, err)
 	}
+}
+
+func testMimoProfile(t *testing.T) MimoTextBehavior {
+	t.Helper()
+	p, err := NewMimoTextBehavior("mimo-v2.6-flash")
+	if err != nil {
+		t.Fatal(err)
+	}
+	return p
 }

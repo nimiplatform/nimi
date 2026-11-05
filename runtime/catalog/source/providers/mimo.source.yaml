@@ -1,6 +1,6 @@
 schema_version: 3
 provider: mimo
-catalog_version: 2026-10-27-mimo-v2-6
+catalog_version: 2026-11-06-mimo-v26-native-text
 generated_target: runtime/catalog/providers/mimo.yaml
 runtime:
   inventory_mode: static_source
@@ -27,7 +27,7 @@ defaults:
 sources:
   - source_id: mimo_models_doc
     url: https://mimo.mi.com/docs/zh-CN/quick-start/summary/model
-    retrieved_at: 2026-10-27
+    retrieved_at: 2026-11-06
     note: Xiaomi MiMo official current models page confirms V2.5 text names retired on 2026-10-21; V2.6 Pro and Flash remain current.
   - source_id: mimo_deprecation_doc
     url: https://mimo.mi.com/docs/zh-CN/updates/deprecate
@@ -54,6 +54,27 @@ sources:
     retrieved_at: 2026-06-06
     note: Xiaomi MiMo V2.5 TTS guide covering preset voices and chat completion audio output.
 
+  - source_id: mimo_thinking_v26_doc
+    url: https://mimo.mi.com/docs/zh-CN/quick-start/usage-guide/text-generation/deep-thinking
+    retrieved_at: 2026-11-06
+    note: Current native MiMo V2.6 thinking request semantics and limits.
+  - source_id: mimo_structured_v26_doc
+    url: https://mimo.mi.com/docs/zh-CN/quick-start/usage-guide/text-generation/structured-output
+    retrieved_at: 2026-11-06
+    note: Current native MiMo V2.6 structured request semantics and limits.
+  - source_id: mimo_image_v26_doc
+    url: https://mimo.mi.com/docs/zh-CN/quick-start/usage-guide/multimodal-understanding/image-understanding
+    retrieved_at: 2026-11-06
+    note: Current native MiMo V2.6 image request semantics and limits.
+  - source_id: mimo_audio_v26_doc
+    url: https://mimo.mi.com/docs/zh-CN/quick-start/usage-guide/multimodal-understanding/audio-understanding
+    retrieved_at: 2026-11-06
+    note: Current native MiMo V2.6 audio request semantics and limits.
+  - source_id: mimo_video_v26_doc
+    url: https://mimo.mi.com/docs/zh-CN/quick-start/usage-guide/multimodal-understanding/video-understanding
+    retrieved_at: 2026-11-06
+    note: Current native MiMo V2.6 video request semantics and limits.
+
 language_profiles:
   short_v1: [zh, en]
 
@@ -61,21 +82,21 @@ selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: mimo-v2.6-pro
-    reviewed_at: 2026-10-10
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: MiMo's recommended V2.6 Pro model for complex and long-horizon work; it replaces V2.5 Pro on 2026-10-14, ahead of the old name's retirement on 2026-10-21.
+    rationale: MiMo's recommended V2.6 Pro model for complex and long-horizon work; the current model table recommends it for these workloads and confirms V2.5 text names are retired.
   - profile_id: text.fast
     capability: text.generate
     model_id: mimo-v2.6-flash
-    reviewed_at: 2026-10-10
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: MiMo's recommended V2.6 Flash model for high-frequency, large-scale work; it replaces V2.5 on 2026-10-14, ahead of the old name's retirement on 2026-10-21.
+    rationale: MiMo's recommended V2.6 Flash model for high-frequency, large-scale work; the current model table recommends it for these workloads and confirms V2.5 text names are retired.
   - profile_id: text.reasoning
     capability: text.generate
     model_id: mimo-v2.6-pro
-    reviewed_at: 2026-10-10
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: MiMo's V2.6 Pro deep-thinking model; select the current exact model name before the V2.5 text names retire on 2026-10-21.
+    rationale: MiMo's V2.6 Pro deep-thinking model; native hidden thinking and exact-model reasoning replay are admitted; explicit sampling controls ignored by thinking are rejected.
 
 voice_sets:
   - voice_set_id: tts_preset_v25
@@ -113,6 +134,7 @@ models:
     model_type: chat
     updated_at: 2026-09-22
     capabilities: [text.generate]
+    features: [input.image, input.audio, input.video]
     context_window_tokens: 1000000
     pricing:
       unit: token
@@ -120,13 +142,14 @@ models:
       output: unknown
       currency: CNY
       as_of: 2026-10-10
-      notes: Recommended MiMo V2.6 Pro model with a 1M context window and 128K output limit. Upstream full-modal input is not declared here until Runtime verifies it.
-    source_ids: [mimo_models_doc, mimo_openai_api_doc]
+      notes: Recommended MiMo V2.6 Pro model with a 1M context window and 128K output limit. Runtime admits native user image/audio/video input, hidden thinking with exact-model replay, function tools and separate JSON-object output; JSON Schema and provider-executed search are not admitted.
+    source_ids: [mimo_models_doc, mimo_openai_api_doc, mimo_thinking_v26_doc, mimo_structured_v26_doc, mimo_image_v26_doc, mimo_audio_v26_doc, mimo_video_v26_doc]
 
   - model_id: mimo-v2.6-flash
     model_type: chat
     updated_at: 2026-09-22
     capabilities: [text.generate]
+    features: [input.image, input.audio, input.video]
     context_window_tokens: 1000000
     pricing:
       unit: token
@@ -134,8 +157,8 @@ models:
       output: unknown
       currency: CNY
       as_of: 2026-10-10
-      notes: Recommended MiMo V2.6 Flash model for high-frequency, large-scale work, with a 1M context window and 128K output limit. Upstream full-modal input is not declared here until Runtime verifies it.
-    source_ids: [mimo_models_doc, mimo_openai_api_doc]
+      notes: Recommended MiMo V2.6 Flash model for high-frequency, large-scale work, with a 1M context window and 128K output limit. Runtime admits native user image/audio/video input, hidden thinking with exact-model replay, function tools and separate JSON-object output; JSON Schema and provider-executed search are not admitted.
+    source_ids: [mimo_models_doc, mimo_openai_api_doc, mimo_thinking_v26_doc, mimo_structured_v26_doc, mimo_image_v26_doc, mimo_audio_v26_doc, mimo_video_v26_doc]
 
   - model_id: mimo-v2.5-asr
     model_type: stt

@@ -39,13 +39,16 @@ func nativeReasoningAppFixture(t *testing.T, provider, model string, handler htt
 }
 
 func TestNativeReasoningProtectedAppRoundTrip(t *testing.T) {
-	for _, model := range []string{"glm-5.3", "glm-5.3-flash", "glm-5.3-flashx", "glm-5.3-flashx-legal", "deepseek-flash", "deepseek-v4-flash", "deepseek-v4-pro", "qwen3.8-omni-flash"} {
+	for _, model := range []string{"glm-5.3", "glm-5.3-flash", "glm-5.3-flashx", "glm-5.3-flashx-legal", "deepseek-flash", "deepseek-v4-flash", "deepseek-v4-pro", "qwen3.8-omni-flash", "mimo-v2.6-pro", "mimo-v2.6-flash"} {
 		provider, path := "glm", "/proxy/api/paas/v4/chat/completions"
 		if strings.HasPrefix(model, "deepseek") {
 			provider, path = "deepseek", "/v1/chat/completions"
 		}
 		if model == "qwen3.8-omni-flash" {
 			provider, path = "dashscope", "/v1/chat/completions"
+		}
+		if strings.HasPrefix(model, "mimo-") {
+			provider, path = "mimo", "/v1/chat/completions"
 		}
 		for _, stream := range []bool{false, true} {
 			t.Run(fmt.Sprintf("%s/stream=%v", model, stream), func(t *testing.T) {
@@ -65,7 +68,7 @@ func TestNativeReasoningProtectedAppRoundTrip(t *testing.T) {
 					} else if thinking, ok := body["thinking"].(map[string]any); ok {
 						thinkingEnabled = thinking["type"] == "enabled" && (provider != "glm" || thinking["clear_thinking"] == false)
 					}
-					if r.URL.Path != path || body["model"] != model || body["stream"] != stream || r.Header.Get("Authorization") != "Bearer test-key" || !thinkingEnabled || body["reasoning_effort"] != "low" {
+					if r.URL.Path != path || body["model"] != model || body["stream"] != stream || r.Header.Get("Authorization") != "Bearer test-key" || !thinkingEnabled || (provider != "mimo" && body["reasoning_effort"] != "low") || (provider == "mimo" && body["reasoning_effort"] != nil) {
 						t.Errorf("wrong exact native request: %s %v", r.URL.Path, body)
 					}
 					message := map[string]any{"reasoning_content": raw, "content": ""}
@@ -138,6 +141,9 @@ func TestNativeReasoningProtectedAppRoundTrip(t *testing.T) {
 				schema, _ := structpb.NewStruct(map[string]any{"type": "object", "properties": map[string]any{"city": map[string]any{"type": "string"}}, "required": []any{"city"}, "additionalProperties": false})
 				input := &runtimev1.StreamLocalAppTextTurnRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "Use lookup for Beijing."}}, Tools: []*runtimev1.ToolSpec{{Kind: runtimev1.ToolSpecKind_TOOL_SPEC_KIND_FUNCTION, Name: "lookup", InputSchema: schema}}}
 				input.Reasoning = &runtimev1.ReasoningConfig{Activation: runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED, Intensity: &runtimev1.ReasoningConfig_Effort{Effort: runtimev1.ReasoningEffort_REASONING_EFFORT_LOW}}
+				if provider == "mimo" {
+					input.Reasoning.Intensity = &runtimev1.ReasoningConfig_Effort{Effort: runtimev1.ReasoningEffort_REASONING_EFFORT_MODEL_DEFAULT}
+				}
 				first := step(input)
 				if len(first) != 2 || string(first[0].GetReasoningContinuity().GetPayload()) != string(wantCarrier) || first[1].GetToolCall().GetId() != "call-original" {
 					t.Fatalf("first=%v", first)

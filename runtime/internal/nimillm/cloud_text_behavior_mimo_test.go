@@ -19,7 +19,11 @@ import (
 func mimoToolsInvocation(t *testing.T) *textbehavior.Invocation {
 	t.Helper()
 	schema, _ := structpb.NewStruct(map[string]any{"type": "object", "properties": map[string]any{"query": map[string]any{"type": "string"}}, "required": []any{"query"}, "additionalProperties": false})
-	adapter, err := textbehavior.NewAdapter(textbehavior.AdapterCapture{AdapterID: "mimo.v26-flash.chat-tools", Version: "1", RequestSerializerID: "mimo/chat-tools/request/v1", NonStreamParserID: "mimo/chat-tools/response/v1", StreamAssemblerID: "mimo/chat-tools/stream/v1", ProcessIdentityImpact: textbehavior.ProcessIdentityUnaffected}, capabilitydriver.MimoChatRequestSerializer, capabilitydriver.MimoChatNonStreamParser, capabilitydriver.MimoChatStreamAssembler)
+	profile, err := capabilitydriver.NewMimoTextBehavior("mimo-v2.6-flash")
+	if err != nil {
+		t.Fatal(err)
+	}
+	adapter, err := textbehavior.NewAdapter(textbehavior.AdapterCapture{AdapterID: "mimo.v26-flash.chat-tools", Version: "2", RequestSerializerID: "mimo/mimo-v2.6-flash/request/v2", NonStreamParserID: "mimo/mimo-v2.6-flash/response/v2", StreamAssemblerID: "mimo/mimo-v2.6-flash/stream/v2", ProcessIdentityImpact: textbehavior.ProcessIdentityUnaffected}, profile.Serialize, profile.Parse, profile.Stream)
 	if err != nil {
 		t.Fatal(err)
 	}

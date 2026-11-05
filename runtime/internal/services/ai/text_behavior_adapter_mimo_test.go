@@ -13,7 +13,7 @@ func TestMimoToolsResolveOnlyReviewedTargetsAndModes(t *testing.T) {
 			spec := testTextBehaviorToolSpec()
 			spec.ToolChoice = runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_AUTO
 			adapter, err := resolveTextBehaviorAdapter(productionTextBehaviorAdapterRegistrations(), identity, "mimo", model, mode, spec)
-			if err != nil || adapter == nil || adapter.registration.Version != "1" {
+			if err != nil || adapter == nil || adapter.registration.Version != "2" {
 				t.Fatalf("%s/%v: adapter=%v err=%v", model, mode, adapter, err)
 			}
 		}
