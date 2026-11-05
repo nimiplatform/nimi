@@ -37,55 +37,62 @@ type realtimeInputIdentity struct {
 }
 
 type realtimeSessionRecord struct {
-	aiObservation        *aitelemetry.Store
-	aiObservationFacts   aitelemetry.Facts
-	aiObservationStarted time.Time
-	aiObservationGap     bool
-	aiAttemptsByResponse map[string]*aitelemetry.Attempt
-	contextMetadata      agentintent.RealtimeContext
-	selfUsageObserver    agentintent.UsageObserver
-	selfHandler          agentintent.Handler
-	selfPending          *capabilitydriver.CloudRealtimeEvent
-	selfUsed             bool
-	selfWaiting          bool
-	selfCancel           context.CancelFunc
-	selfUsage            *runtimev1.UsageStats
-	operationMu          sync.Mutex
-	mu                   sync.Mutex
-	sessionID            string
-	channelID            string
-	generation           uint64
-	appID                string
-	subjectUserID        string
-	ownerSessionID       accountservice.LocalAppSessionID
-	ownerInvalidated     <-chan struct{}
-	terminalDone         chan struct{}
-	terminalControl      *runtimev1.RealtimeControlStatus
-	correlationID        string
-	inputAudio           *runtimev1.AiRealtimeAudioFormat
-	outputAudio          *runtimev1.AiRealtimeAudioFormat
-	turnDetection        runtimev1.AiRealtimeTurnDetectionMode
-	stream               *realtimecore.Stream[*runtimev1.AiRealtimeEvent]
-	driver               capabilitydriver.CloudRealtimeProtocol
-	openExpectation      capabilitydriver.CloudRealtimeOpen
-	provider             remoteexecution.RealtimeSession
-	ctx                  context.Context
-	cancel               context.CancelFunc
-	closed               bool
-	nextSequence         uint64
-	pendingRequestID     string
-	requestsByResponse   map[string]string
-	responseKeysRequired bool
-	inputTrackID         string
-	utteranceID          string
-	inputFrameSeq        uint64
-	inputIdentityCount   uint64
-	inputCommitted       bool
-	pendingInputs        []realtimeInputIdentity
-	inputsByProvider     map[string]realtimeInputIdentity
-	terminalInputs       map[string]struct{}
-	tracksByProvider     map[string]*realtimeOutputTrack
-	tracksByRuntime      map[string]*realtimeOutputTrack
+	interactionMode           runtimev1.AiRealtimeInteractionMode
+	closing                   bool
+	continuousTrack           *realtimeOutputTrack
+	continuousAttempt         *aitelemetry.Attempt
+	continuousUsage           *runtimev1.AiRealtimeSessionUsage
+	contextRequests           map[string]*realtimeContextRequest
+	contextRequestsByProvider map[string]string
+	aiObservation             *aitelemetry.Store
+	aiObservationFacts        aitelemetry.Facts
+	aiObservationStarted      time.Time
+	aiObservationGap          bool
+	aiAttemptsByResponse      map[string]*aitelemetry.Attempt
+	contextMetadata           agentintent.RealtimeContext
+	selfUsageObserver         agentintent.UsageObserver
+	selfHandler               agentintent.Handler
+	selfPending               *capabilitydriver.CloudRealtimeEvent
+	selfUsed                  bool
+	selfWaiting               bool
+	selfCancel                context.CancelFunc
+	selfUsage                 *runtimev1.UsageStats
+	operationMu               sync.Mutex
+	mu                        sync.Mutex
+	sessionID                 string
+	channelID                 string
+	generation                uint64
+	appID                     string
+	subjectUserID             string
+	ownerSessionID            accountservice.LocalAppSessionID
+	ownerInvalidated          <-chan struct{}
+	terminalDone              chan struct{}
+	terminalControl           *runtimev1.RealtimeControlStatus
+	correlationID             string
+	inputAudio                *runtimev1.AiRealtimeAudioFormat
+	outputAudio               *runtimev1.AiRealtimeAudioFormat
+	turnDetection             runtimev1.AiRealtimeTurnDetectionMode
+	stream                    *realtimecore.Stream[*runtimev1.AiRealtimeEvent]
+	driver                    capabilitydriver.CloudRealtimeProtocol
+	openExpectation           capabilitydriver.CloudRealtimeOpen
+	provider                  remoteexecution.RealtimeSession
+	ctx                       context.Context
+	cancel                    context.CancelFunc
+	closed                    bool
+	nextSequence              uint64
+	pendingRequestID          string
+	requestsByResponse        map[string]string
+	responseKeysRequired      bool
+	inputTrackID              string
+	utteranceID               string
+	inputFrameSeq             uint64
+	inputIdentityCount        uint64
+	inputCommitted            bool
+	pendingInputs             []realtimeInputIdentity
+	inputsByProvider          map[string]realtimeInputIdentity
+	terminalInputs            map[string]struct{}
+	tracksByProvider          map[string]*realtimeOutputTrack
+	tracksByRuntime           map[string]*realtimeOutputTrack
 }
 
 type realtimeSessionStore struct {
@@ -104,6 +111,7 @@ type realtimeSessionTerminal struct {
 	ownerSessionID       accountservice.LocalAppSessionID
 	ownerInvalidated     <-chan struct{}
 	control              *runtimev1.RealtimeControlStatus
+	usage                *runtimev1.AiRealtimeSessionUsage
 	expiresAt            time.Time
 }
 
@@ -158,7 +166,7 @@ func (s *realtimeSessionStore) finish(record *realtimeSessionRecord, control *ru
 		}
 		delete(s.terminals, oldestID)
 	}
-	s.terminals[record.sessionID] = realtimeSessionTerminal{appID: record.appID, subjectUserID: record.subjectUserID, ownerSessionID: record.ownerSessionID, ownerInvalidated: record.ownerInvalidated, control: proto.Clone(control).(*runtimev1.RealtimeControlStatus), expiresAt: now.Add(realtimeTerminalTTL)}
+	s.terminals[record.sessionID] = realtimeSessionTerminal{appID: record.appID, subjectUserID: record.subjectUserID, ownerSessionID: record.ownerSessionID, ownerInvalidated: record.ownerInvalidated, control: proto.Clone(control).(*runtimev1.RealtimeControlStatus), usage: cloneRealtimeSessionUsage(record.continuousUsage), expiresAt: now.Add(realtimeTerminalTTL)}
 	delete(s.sessions, record.sessionID)
 }
 
@@ -169,6 +177,7 @@ func (s *realtimeSessionStore) terminal(id string) (realtimeSessionTerminal, boo
 	terminal, ok := s.terminals[strings.TrimSpace(id)]
 	if ok {
 		terminal.control = proto.Clone(terminal.control).(*runtimev1.RealtimeControlStatus)
+		terminal.usage = cloneRealtimeSessionUsage(terminal.usage)
 	}
 	return terminal, ok
 }

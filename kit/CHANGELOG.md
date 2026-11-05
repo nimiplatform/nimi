@@ -2,6 +2,27 @@
 
 # Changelog
 
+## Unreleased — Explicit continuous AI Realtime
+
+The next coordinated 0.x minor adds `interactionMode: 'continuous'` for exact
+supporting Runtime targets. Omission keeps owner-controlled input semantics.
+Continuous Open omits turn detection; its returned mode is explicit and checked.
+Rebuild matching Runtime, native carrier, SDK and Kit together.
+
+Continuous audio has one session input stream, an empty utterance ID, monotonic
+frame sequence and a session output track with no response request ID. Transcript
+fragments carry input/output direction and native time ranges. Context-request
+IDs are Runtime-issued opaque correlations: the caller owns business work and
+can append instructions, silent context/progress, or a sanitized speakable result.
+Input mute/unmute is distinct from output cancellation; close ends the session.
+
+No per-turn response start, completion or cancellation is fabricated. The close
+receipt may carry reported cumulative audio seconds and explicit finality; replace
+cumulative observations instead of adding them. Neither token usage nor pricing
+is inferred. A native completed session uses the `completed` terminal reason.
+This does not enable Responses/Decisions delegation or the Agent self-intention
+seam for a continuous-only target, and no package publication is implied.
+
 ## Unreleased — Managed OSS reference-media storage
 
 The next coordinated 0.x minor adds optional OSS media-storage configuration to

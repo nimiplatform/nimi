@@ -112,6 +112,7 @@ export type StudioTextDecisionAnswer =
   | { readonly questionId: string; readonly kind: 'boolean'; readonly trueProbability: number };
 
 export type StudioSessionSummary = {
+  readonly audioUsage?: { readonly audioSeconds: number; readonly final: boolean };
   readonly capabilityContract: string;
   readonly startedAt: string;
   readonly endedAt: string;

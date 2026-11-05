@@ -325,7 +325,8 @@
         "closing": "正在关闭",
         "closed": "已关闭",
         "terminated": "已被所有者结束",
-        "interrupted": "观察已中断"
+        "interrupted": "观察已中断",
+        "openFailed": "未能打开"
       },
       "control": "{{lifecycle}} · 背压 {{backpressure}} · 缓冲 {{buffered}}/{{capacity}}",
       "inputSection": "输入与控制",
@@ -348,6 +349,7 @@
       "cancelResponse": "取消回应",
       "interrupt": "中断 {{track}}",
       "audioHint": "发送文本会自动触发回应。在手动轮次下使用麦克风时，需先提交录制的音频，再手动开始回应。麦克风仅在你主动开启时工作，并会在会话关闭时停止。",
+      "continuousAudioHint": "麦克风仅在你主动开启时工作。停止采集也会静音会话输入；模型仍可能继续发言，直到你关闭会话。",
       "outputSection": "输出",
       "noOutput": "暂无输出。",
       "transcript": "转写（{{final}}）",
@@ -379,10 +381,40 @@
         "ackWithReason": "已确认 {{reason}}",
         "rejected": "已拒绝 {{reasonCode}}",
         "rejectedWithHint": "已拒绝 {{reasonCode}}（{{hint}}）",
-        "sessionOpened": "{{id}} 第 {{generation}} 代"
+        "sessionOpened": "{{id}} 第 {{generation}} 代",
+        "openedContinuous": "持续音频会话已就绪",
+        "contextRequest": "上下文请求 {{id}}，位置 {{offset}} 毫秒",
+        "sessionUsage": "累计音频 {{seconds}} 秒；最终值={{final}}"
       },
       "closeUnconfirmed": "尚未确认会话已关闭。请先关闭此会话再新建；关闭失败时可重试。",
-      "closeTimedOut": "关闭请求超时，尚未确认会话已关闭。"
+      "closeTimedOut": "关闭请求超时，尚未确认会话已关闭。",
+      "interactionMode": "交互模式",
+      "ownerControlled": "逐轮控制",
+      "continuous": "持续对话",
+      "continuousHelp": "模型持续衔接倾听和发言，没有调用方的逐轮开始或单轮取消。静音输入不会停止输出；关闭会话才结束。",
+      "continuousControlUnsupported": "持续模式不支持此控制，请静音输入或关闭会话。",
+      "sendContinuousRecording": "流式发送录音",
+      "continuousRecordingHint": "按实时节奏发送最多四秒、格式匹配的 PCM 录音，不发送提交输入或开始响应指令。",
+      "muteInput": "静音输入",
+      "unmuteInput": "恢复输入",
+      "contextSection": "App 准备的上下文",
+      "contextHelp": "模型可能请求补充上下文。本页不执行业务动作或后端模型调用；请提供 App 已准备的上下文或结果。静默上下文仍可能影响之后的发言。",
+      "contextKind": "上下文类型",
+      "contextKinds": {
+        "instruction": "指令",
+        "context": "静默上下文 / 进度",
+        "sanitized-result": "可转述的结果"
+      },
+      "contextRequest": "上下文请求",
+      "generalContext": "通用会话上下文",
+      "contextText": "上下文或结果文本",
+      "contextBytes": "{{bytes}} / 500 UTF-8 字节",
+      "sendContext": "发送上下文",
+      "usageFinal": "供方最终报告的累计音频：{{seconds}} 秒。此值不是 token 数或费用估算。",
+      "usagePartial": "供方目前报告的累计音频：{{seconds}} 秒；尚未确认最终结束。",
+      "transcriptWindow": "显示最近 200 个连续转写片段。",
+      "inputTranscript": "输入转写",
+      "outputTranscript": "输出转写"
     },
     "jobs": {
       "streamEnded": "任务 {{jobId}} 仍处于 {{status}} 状态；事件流在任务到达终态前已结束。",

@@ -136,6 +136,9 @@ export type {
   NimiRealtimeOperationResult,
   NimiRealtimeSubscription,
   NimiRealtimeUsage,
+  NimiRealtimeInteractionMode,
+  NimiRealtimeSessionUsage,
+  NimiAiRealtimeOpenInput,
 } from './local-app-runtime-platform-realtime.js';
 export type {
   NimiRealmChatAttachment,

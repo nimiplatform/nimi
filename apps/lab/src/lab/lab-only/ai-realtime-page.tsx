@@ -66,6 +66,10 @@ function LabAiRealtimeSurface({
   const runTarget = useStudioRunTargetSummary(registration, runtime);
   const media = useMemo(() => createBrowserAgentRealtimeHostMediaPort(), []);
   const [instruction, setInstruction] = useState('You are a concise assistant for a Nimi Lab Realtime test.');
+  const [interactionMode, setInteractionMode] = useState<'owner-controlled' | 'continuous'>('owner-controlled');
+  const [contextText, setContextText] = useState('');
+  const [contextKind, setContextKind] = useState<'instruction' | 'context' | 'sanitized-result'>('context');
+  const [contextRequestId, setContextRequestId] = useState('general');
   const [turnDetection, setTurnDetection] = useState<'server-vad' | 'manual'>('manual');
   const [audioOutputEnabled, setAudioOutputEnabled] = useState(false);
   const [inputSampleRate, setInputSampleRate] = useState<16000 | 24000>(16000);
@@ -92,8 +96,8 @@ function LabAiRealtimeSurface({
   const captureRef = useRef<Capture | null>(null);
   const recordedRef = useRef(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const latest = useRef({ runTarget, workspace, t, turnDetection, audioOutputEnabled, inputSampleRate });
-  latest.current = { runTarget, workspace, t, turnDetection, audioOutputEnabled, inputSampleRate };
+  const latest = useRef({ runTarget, workspace, t, interactionMode, turnDetection, audioOutputEnabled, inputSampleRate });
+  latest.current = { runTarget, workspace, t, interactionMode, turnDetection, audioOutputEnabled, inputSampleRate };
 
   const record = (result: StudioCapabilityRunResult) => {
     if (recordedRef.current) return;
@@ -105,7 +109,8 @@ function LabAiRealtimeSurface({
       context: '',
       attachmentCount: 0,
       requestParameters: {
-        turnDetection: current.turnDetection,
+        interactionMode: current.interactionMode,
+        ...(current.interactionMode === 'owner-controlled' ? { turnDetection: current.turnDetection } : {}),
         audioOutputEnabled: current.audioOutputEnabled,
         inputAudio: current.t('CapabilityTests.aiRealtime.inputFormatValue', { rate: current.inputSampleRate / 1000, bytes: current.inputSampleRate * 2 * 20 / 1000 }),
       },
@@ -173,7 +178,7 @@ function LabAiRealtimeSurface({
     });
     sessionRef.current = session;
     try {
-      await session.open({ instruction, turnDetection, audioOutputEnabled, inputAudio: labRealtimeInputAudio(inputSampleRate) });
+      await session.open({ instruction, interactionMode, turnDetection, audioOutputEnabled, inputAudio: labRealtimeInputAudio(inputSampleRate) });
     } catch (error) {
       record(capabilityNonSuccess(registration.descriptor, 'runtime-call-failed', error instanceof Error ? error.message : String(error), studioNonSuccessDiagnostics(error)));
     } finally {
@@ -196,6 +201,7 @@ function LabAiRealtimeSurface({
   async function startCapture() {
     const session = sessionRef.current;
     if (!session || !open || captureRef.current) return;
+    if (interactionMode === 'continuous' && state.inputMuted) await session.ownerControl('unmute-input');
     const started = await media.microphone.beginCapture({
       format: state.negotiatedInputAudio ?? LAB_AI_REALTIME_INPUT_AUDIO,
       onFrame: async (frame) => {
@@ -218,11 +224,12 @@ function LabAiRealtimeSurface({
     setCapture(started.capture);
   }
 
-  async function stopCapture() {
+  async function stopCapture(muteInput = true) {
     const active = captureRef.current;
     captureRef.current = null;
     setCapture(null);
     await active?.stop();
+    if (muteInput && active && interactionMode === 'continuous' && sessionRef.current && state.phase === 'open') await sessionRef.current.ownerControl('mute-input');
   }
 
   async function sendRecording(startResponse = true) {
@@ -236,8 +243,9 @@ function LabAiRealtimeSurface({
     const inputTrackId = createNimiClientId('lab-recording-track');
     const utteranceId = createNimiClientId('lab-recording-utterance');
     try {
-      await sendLabRealtimeRecordingFrames({ session, frames, inputTrackId, utteranceId, turnDetection, startResponse });
-      if (!startResponse) setRecordingSubmitted(true);
+      if (interactionMode === 'continuous' && state.inputMuted) await session.ownerControl('unmute-input');
+      await sendLabRealtimeRecordingFrames({ session, frames, inputTrackId, utteranceId, interactionMode, turnDetection, startResponse });
+      if (!startResponse || interactionMode === 'continuous') setRecordingSubmitted(true);
     } catch (error) {
       // Even a lost first ack can leave input on the owner. Discard that
       // partial or unknown buffer by closing the captured Session before retry.
@@ -251,7 +259,7 @@ function LabAiRealtimeSurface({
   async function closeSession() {
     const session = sessionRef.current;
     if (!session) return;
-    await stopCapture().catch(() => undefined);
+    await stopCapture(false).catch(() => undefined);
     try {
       await session.close();
     } finally {
@@ -286,7 +294,11 @@ function LabAiRealtimeSurface({
       <section className="lab-realtime__card" aria-label={t('CapabilityTests.aiRealtime.openSection')}>
         <TextareaField rows={2} value={instruction} disabled={phase !== 'idle' && phase !== 'closed' && phase !== 'terminated'} aria-label={t('CapabilityTests.aiRealtime.instruction')} onChange={(event) => setInstruction(event.currentTarget.value)} />
         <div className="lab-realtime__row">
-          <SelectField
+          <SelectField value={interactionMode} aria-label={t('CapabilityTests.aiRealtime.interactionMode')}
+            disabled={['open','opening','closing','interrupted'].includes(phase)}
+            options={[{value:'owner-controlled',label:t('CapabilityTests.aiRealtime.ownerControlled')},{value:'continuous',label:t('CapabilityTests.aiRealtime.continuous')}]}
+            onValueChange={value => { const mode=value==='continuous'?'continuous':'owner-controlled';setInteractionMode(mode);if(mode==='continuous')setAudioOutputEnabled(true); }} />
+          {interactionMode === 'owner-controlled' ? <SelectField
             value={turnDetection}
             disabled={['open', 'opening', 'closing', 'interrupted'].includes(phase)}
             aria-label={t('CapabilityTests.aiRealtime.turnDetection')}
@@ -295,9 +307,9 @@ function LabAiRealtimeSurface({
               { value: 'server-vad', label: t('CapabilityTests.aiRealtime.serverVad') },
             ]}
             onValueChange={(value) => setTurnDetection(value === 'server-vad' ? 'server-vad' : 'manual')}
-          />
+          /> : null}
           <label className="lab-realtime__toggle">
-            <Toggle checked={audioOutputEnabled} disabled={phase === 'open' || phase === 'opening'} onValueChange={setAudioOutputEnabled} ariaLabel={t('CapabilityTests.aiRealtime.audioOutput')} />
+            <Toggle checked={audioOutputEnabled} disabled={interactionMode === 'continuous' || phase === 'open' || phase === 'opening'} onValueChange={setAudioOutputEnabled} ariaLabel={t('CapabilityTests.aiRealtime.audioOutput')} />
             <span>{t('CapabilityTests.aiRealtime.audioOutput')}</span>
           </label>
           <SelectField
@@ -316,7 +328,7 @@ function LabAiRealtimeSurface({
           <Button type="button" size="sm" tone="ghost" disabled={(!open && phase !== 'interrupted') || busy} onClick={() => void run(closeSession)}>
             {t('CapabilityTests.aiRealtime.close')}
           </Button>
-          <StatusBadge tone={open ? 'success' : phase === 'terminated' || phase === 'interrupted' ? 'warning' : 'neutral'} shape="dot">{t(`CapabilityTests.aiRealtime.phase.${phase}`)}</StatusBadge>
+          <StatusBadge tone={open ? 'success' : phase === 'terminated' || phase === 'interrupted' ? 'warning' : 'neutral'} shape="dot">{t(`CapabilityTests.aiRealtime.phase.${phase === 'terminated' && !state.scope ? 'openFailed' : phase}`)}</StatusBadge>
           {state.control ? (
             <span className="lab-realtime__meta">
               {t('CapabilityTests.aiRealtime.control', {
@@ -333,22 +345,24 @@ function LabAiRealtimeSurface({
       </section>
 
       <section className="lab-realtime__card" aria-label={t('CapabilityTests.aiRealtime.inputSection')}>
-        <TextareaField rows={2} value={text} disabled={!open} aria-label={t('CapabilityTests.aiRealtime.textInput')} onChange={(event) => setText(event.currentTarget.value)} />
+        {interactionMode === 'continuous' ? <InlineAlert tone="info">{t('CapabilityTests.aiRealtime.continuousHelp')}</InlineAlert> : null}
+        {interactionMode === 'owner-controlled' ? <TextareaField rows={2} value={text} disabled={!open} aria-label={t('CapabilityTests.aiRealtime.textInput')} onChange={(event) => setText(event.currentTarget.value)} /> : null}
         <div className="lab-realtime__row">
-          <Button type="button" size="sm" tone="primary" disabled={!open || busy || state.responsePending || !text.trim()} onClick={() => void run(() => sessionRef.current!.sendText(text.trim()))}>
+          {interactionMode === 'owner-controlled' ? <Button type="button" size="sm" tone="primary" disabled={!open || busy || state.responsePending || !text.trim()} onClick={() => void run(() => sessionRef.current!.sendText(text.trim()))}>
             {t('CapabilityTests.aiRealtime.sendText')}
-          </Button>
+          </Button> : null}
           <Button type="button" size="sm" tone="secondary" disabled={!open || busy} onClick={() => void (capture ? stopCapture() : startCapture()).catch((error: unknown) => setNotice(error instanceof Error ? error.message : String(error)))}>
             {t(capture ? 'CapabilityTests.aiRealtime.stopMic' : 'CapabilityTests.aiRealtime.startMic')}
           </Button>
           <input type="file" accept=".wav,audio/wav" aria-label={t('CapabilityTests.aiRealtime.recordingFile')}
-            disabled={busy || !!capture || recordingSubmitted} onChange={(event) => setRecording(event.currentTarget.files?.[0] ?? null)} />
+            disabled={busy || !!capture || (interactionMode === 'owner-controlled' && recordingSubmitted)} onChange={(event) => {setRecording(event.currentTarget.files?.[0] ?? null);setRecordingSubmitted(false);}} />
           <Button type="button" size="sm" tone="secondary"
-            disabled={!open || busy || !!capture || !recording || recordingSubmitted || state.responsePending || activeTracks.length > 0}
-            onClick={() => void run(sendRecording)}>{t(turnDetection === 'manual' ? 'CapabilityTests.aiRealtime.sendRecording' : 'CapabilityTests.aiRealtime.sendRecordingVad')}</Button>
-          {turnDetection === 'manual' ? <Button type="button" size="sm" tone="secondary"
+            disabled={!open || busy || !!capture || !recording || recordingSubmitted || (interactionMode === 'owner-controlled' && (state.responsePending || activeTracks.length > 0))}
+            onClick={() => void run(sendRecording)}>{t(interactionMode === 'continuous' ? 'CapabilityTests.aiRealtime.sendContinuousRecording' : turnDetection === 'manual' ? 'CapabilityTests.aiRealtime.sendRecording' : 'CapabilityTests.aiRealtime.sendRecordingVad')}</Button>
+          {interactionMode === 'owner-controlled' && turnDetection === 'manual' ? <Button type="button" size="sm" tone="secondary"
             disabled={!open || busy || !!capture || !recording || recordingSubmitted || state.responsePending || activeTracks.length > 0}
             onClick={() => void run(() => sendRecording(false))}>{t('CapabilityTests.aiRealtime.submitRecordingOnly')}</Button> : null}
+          {interactionMode === 'owner-controlled' ? <>
           <Button type="button" size="sm" tone="ghost" disabled={!open || busy} onClick={() => void control('commit-input')}>{t('CapabilityTests.aiRealtime.commitInput')}</Button>
           <Button type="button" size="sm" tone="ghost" disabled={!open || busy || state.responsePending || activeTracks.length > 0} onClick={() => void control('start-response')}>{t('CapabilityTests.aiRealtime.startResponse')}</Button>
           <Button type="button" size="sm" tone="ghost" disabled={!open || busy || state.responsePending || activeTracks.length > 0 || state.tracks.length === 0} onClick={() => void control('continue-response')}>{t('CapabilityTests.aiRealtime.continueResponse')}</Button>
@@ -358,15 +372,31 @@ function LabAiRealtimeSurface({
               {t('CapabilityTests.aiRealtime.interrupt', { track: track.outputTrackId })}
             </Button>
           ))}
+          </> : <Button type="button" size="sm" tone="secondary" disabled={!open || busy || !!capture} onClick={() => void control(state.inputMuted ? 'unmute-input' : 'mute-input')}>{t(state.inputMuted ? 'CapabilityTests.aiRealtime.unmuteInput' : 'CapabilityTests.aiRealtime.muteInput')}</Button>}
         </div>
         {recordingSubmitted ? <p role="status">{t('CapabilityTests.aiRealtime.recordingSubmitted')}</p> : null}
-        <p className="lab-realtime__meta">{t('CapabilityTests.aiRealtime.audioHint')}</p>
-        <p className="lab-realtime__meta">{t(turnDetection === 'manual' ? 'CapabilityTests.aiRealtime.recordingHint' : 'CapabilityTests.aiRealtime.recordingHintVad')}</p>
+        <p className="lab-realtime__meta">{t(interactionMode === 'continuous' ? 'CapabilityTests.aiRealtime.continuousAudioHint' : 'CapabilityTests.aiRealtime.audioHint')}</p>
+        <p className="lab-realtime__meta">{t(interactionMode === 'continuous' ? 'CapabilityTests.aiRealtime.continuousRecordingHint' : turnDetection === 'manual' ? 'CapabilityTests.aiRealtime.recordingHint' : 'CapabilityTests.aiRealtime.recordingHintVad')}</p>
         {notice ? <InlineAlert tone="warning">{notice}</InlineAlert> : null}
       </section>
 
+      {interactionMode === 'continuous' ? <section className="lab-realtime__card" aria-label={t('CapabilityTests.aiRealtime.contextSection')}>
+        <strong>{t('CapabilityTests.aiRealtime.contextSection')}</strong>
+        <p className="lab-realtime__meta">{t('CapabilityTests.aiRealtime.contextHelp')}</p>
+        <div className="lab-realtime__row">
+          <SelectField aria-label={t('CapabilityTests.aiRealtime.contextKind')} value={contextKind} options={['instruction','context','sanitized-result'].map(value=>({value,label:t(`CapabilityTests.aiRealtime.contextKinds.${value}`)}))} onValueChange={value=>setContextKind(value as typeof contextKind)} disabled={!open || busy} />
+          <SelectField aria-label={t('CapabilityTests.aiRealtime.contextRequest')} value={contextRequestId} options={[{value:'general',label:t('CapabilityTests.aiRealtime.generalContext')},...(state.contextRequests??[]).filter(request=>!request.replied).map(request=>({value:request.contextRequestId,label:`${request.contextRequestId} · ${request.offsetMs} ms`}))]} onValueChange={setContextRequestId} disabled={!open || busy} />
+        </div>
+        <TextareaField rows={2} value={contextText} onChange={event=>setContextText(event.currentTarget.value)} aria-label={t('CapabilityTests.aiRealtime.contextText')} disabled={!open || busy} />
+        <p className="lab-realtime__meta">{t('CapabilityTests.aiRealtime.contextBytes', { bytes: new TextEncoder().encode(contextText.trim()).byteLength })}</p>
+        <Button type="button" size="sm" tone="secondary" disabled={!open || busy || !contextText.trim() || new TextEncoder().encode(contextText.trim()).byteLength>500} onClick={()=>void run(async()=>{await sessionRef.current!.appendOwnerContext(contextText.trim(),contextKind,contextRequestId==='general'?undefined:contextRequestId);setContextText('');setContextRequestId('general');})}>{t('CapabilityTests.aiRealtime.sendContext')}</Button>
+      </section> : null}
+
       <section className="lab-realtime__card" aria-label={t('CapabilityTests.aiRealtime.outputSection')}>
-        {state.tracks.length === 0 && state.transcripts.length === 0 ? <p className="lab-realtime__meta">{t('CapabilityTests.aiRealtime.noOutput')}</p> : null}
+        {state.tracks.length === 0 && state.transcripts.length === 0 && !(state.continuousTranscripts?.length) ? <p className="lab-realtime__meta">{t('CapabilityTests.aiRealtime.noOutput')}</p> : null}
+        {state.sessionUsage ? <p className="lab-realtime__meta">{t(state.sessionUsage.final ? 'CapabilityTests.aiRealtime.usageFinal' : 'CapabilityTests.aiRealtime.usagePartial', { seconds: state.sessionUsage.audioSeconds })}</p> : null}
+        {state.transcriptWindowTrimmed ? <p className="lab-realtime__meta">{t('CapabilityTests.aiRealtime.transcriptWindow')}</p> : null}
+        {state.continuousTranscripts?.map((entry,index)=><p key={index} className="lab-realtime__transcript"><strong>{t(entry.direction==='input'?'CapabilityTests.aiRealtime.inputTranscript':'CapabilityTests.aiRealtime.outputTranscript')} · {entry.startMs}–{entry.endMs} ms</strong> {entry.textDelta}</p>)}
         {state.transcripts.map((entry, index) => (
           <p key={`${entry.utteranceId}:${index}`} className="lab-realtime__transcript">
             <strong>{t('CapabilityTests.aiRealtime.transcript', { final: entry.final ? 'final' : 'partial' })}</strong> {entry.text}

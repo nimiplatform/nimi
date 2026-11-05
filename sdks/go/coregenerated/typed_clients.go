@@ -426,6 +426,14 @@ const (
 	AIREALTIMEAUDIOCODECPCMS16LE    AiRealtimeAudioCodec = "AI_REALTIME_AUDIO_CODEC_PCM_S16LE"
 )
 
+type AiRealtimeInteractionMode string
+
+const (
+	AIREALTIMEINTERACTIONMODEUNSPECIFIED     AiRealtimeInteractionMode = "AI_REALTIME_INTERACTION_MODE_UNSPECIFIED"
+	AIREALTIMEINTERACTIONMODEOWNERCONTROLLED AiRealtimeInteractionMode = "AI_REALTIME_INTERACTION_MODE_OWNER_CONTROLLED"
+	AIREALTIMEINTERACTIONMODECONTINUOUS      AiRealtimeInteractionMode = "AI_REALTIME_INTERACTION_MODE_CONTINUOUS"
+)
+
 type AiRealtimeOutputTrackLifecycle string
 
 const (
@@ -454,6 +462,8 @@ const (
 	AIREALTIMEOWNERCONTROLKINDCONTINUERESPONSE AiRealtimeOwnerControlKind = "AI_REALTIME_OWNER_CONTROL_KIND_CONTINUE_RESPONSE"
 	AIREALTIMEOWNERCONTROLKINDPAUSERESPONSE    AiRealtimeOwnerControlKind = "AI_REALTIME_OWNER_CONTROL_KIND_PAUSE_RESPONSE"
 	AIREALTIMEOWNERCONTROLKINDCANCELRESPONSE   AiRealtimeOwnerControlKind = "AI_REALTIME_OWNER_CONTROL_KIND_CANCEL_RESPONSE"
+	AIREALTIMEOWNERCONTROLKINDMUTEINPUT        AiRealtimeOwnerControlKind = "AI_REALTIME_OWNER_CONTROL_KIND_MUTE_INPUT"
+	AIREALTIMEOWNERCONTROLKINDUNMUTEINPUT      AiRealtimeOwnerControlKind = "AI_REALTIME_OWNER_CONTROL_KIND_UNMUTE_INPUT"
 )
 
 type AiRealtimeSpeechState string
@@ -462,6 +472,14 @@ const (
 	AIREALTIMESPEECHSTATEUNSPECIFIED AiRealtimeSpeechState = "AI_REALTIME_SPEECH_STATE_UNSPECIFIED"
 	AIREALTIMESPEECHSTATESTARTED     AiRealtimeSpeechState = "AI_REALTIME_SPEECH_STATE_STARTED"
 	AIREALTIMESPEECHSTATESTOPPED     AiRealtimeSpeechState = "AI_REALTIME_SPEECH_STATE_STOPPED"
+)
+
+type AiRealtimeTranscriptDirection string
+
+const (
+	AIREALTIMETRANSCRIPTDIRECTIONUNSPECIFIED AiRealtimeTranscriptDirection = "AI_REALTIME_TRANSCRIPT_DIRECTION_UNSPECIFIED"
+	AIREALTIMETRANSCRIPTDIRECTIONINPUT       AiRealtimeTranscriptDirection = "AI_REALTIME_TRANSCRIPT_DIRECTION_INPUT"
+	AIREALTIMETRANSCRIPTDIRECTIONOUTPUT      AiRealtimeTranscriptDirection = "AI_REALTIME_TRANSCRIPT_DIRECTION_OUTPUT"
 )
 
 type AiRealtimeTurnDetectionMode string
@@ -1634,6 +1652,7 @@ const (
 	REALTIMETERMINALREASONRUNTIMESHUTDOWN   RealtimeTerminalReason = "REALTIME_TERMINAL_REASON_RUNTIME_SHUTDOWN"
 	REALTIMETERMINALREASONSTALEGENERATION   RealtimeTerminalReason = "REALTIME_TERMINAL_REASON_STALE_GENERATION"
 	REALTIMETERMINALREASONOWNERFAILED       RealtimeTerminalReason = "REALTIME_TERMINAL_REASON_OWNER_FAILED"
+	REALTIMETERMINALREASONCOMPLETED         RealtimeTerminalReason = "REALTIME_TERMINAL_REASON_COMPLETED"
 )
 
 type ReasonCode string
@@ -2910,18 +2929,33 @@ type AiRealtimeAudioFrameOutput struct {
 	Format        *AiRealtimeAudioFormat `json:"format,omitempty"`
 }
 
+type AiRealtimeContextRequest struct {
+	ContextRequestId string `json:"context_request_id,omitempty"`
+	OffsetMs         int64  `json:"offset_ms,omitempty"`
+}
+
+type AiRealtimeContinuousTranscript struct {
+	Direction AiRealtimeTranscriptDirection `json:"direction,omitempty"`
+	TextDelta string                        `json:"text_delta,omitempty"`
+	StartMs   int64                         `json:"start_ms,omitempty"`
+	EndMs     int64                         `json:"end_ms,omitempty"`
+}
+
 type AiRealtimeEvent struct {
-	Control         *RealtimeControlStatus       `json:"control,omitempty"`
-	Opened          *AiRealtimeSessionOpened     `json:"opened,omitempty"`
-	InputAccepted   *AiRealtimeInputAccepted     `json:"input_accepted,omitempty"`
-	SpeechStatus    *AiRealtimeSpeechStatus      `json:"speech_status,omitempty"`
-	Transcript      *AiRealtimeTranscript        `json:"transcript,omitempty"`
-	TextOutput      *AiRealtimeTextOutput        `json:"text_output,omitempty"`
-	AudioFrame      *AiRealtimeAudioFrameOutput  `json:"audio_frame,omitempty"`
-	OutputTrack     *AiRealtimeOutputTrackStatus `json:"output_track,omitempty"`
-	RequestTerminal *AiRealtimeRequestTerminal   `json:"request_terminal,omitempty"`
-	SessionTerminal *AiRealtimeSessionTerminal   `json:"session_terminal,omitempty"`
-	Failure         *AiRealtimeFailure           `json:"failure,omitempty"`
+	Control              *RealtimeControlStatus          `json:"control,omitempty"`
+	Opened               *AiRealtimeSessionOpened        `json:"opened,omitempty"`
+	InputAccepted        *AiRealtimeInputAccepted        `json:"input_accepted,omitempty"`
+	SpeechStatus         *AiRealtimeSpeechStatus         `json:"speech_status,omitempty"`
+	Transcript           *AiRealtimeTranscript           `json:"transcript,omitempty"`
+	TextOutput           *AiRealtimeTextOutput           `json:"text_output,omitempty"`
+	AudioFrame           *AiRealtimeAudioFrameOutput     `json:"audio_frame,omitempty"`
+	OutputTrack          *AiRealtimeOutputTrackStatus    `json:"output_track,omitempty"`
+	RequestTerminal      *AiRealtimeRequestTerminal      `json:"request_terminal,omitempty"`
+	SessionTerminal      *AiRealtimeSessionTerminal      `json:"session_terminal,omitempty"`
+	Failure              *AiRealtimeFailure              `json:"failure,omitempty"`
+	ContinuousTranscript *AiRealtimeContinuousTranscript `json:"continuous_transcript,omitempty"`
+	ContextRequest       *AiRealtimeContextRequest       `json:"context_request,omitempty"`
+	SessionUsage         *AiRealtimeSessionUsage         `json:"session_usage,omitempty"`
 }
 
 type AiRealtimeFailure struct {
@@ -2945,9 +2979,10 @@ type AiRealtimeOutputTrackStatus struct {
 }
 
 type AiRealtimeOwnerContextInput struct {
-	RequestId string                     `json:"request_id,omitempty"`
-	Kind      AiRealtimeOwnerContextKind `json:"kind,omitempty"`
-	Text      string                     `json:"text,omitempty"`
+	RequestId        string                     `json:"request_id,omitempty"`
+	Kind             AiRealtimeOwnerContextKind `json:"kind,omitempty"`
+	Text             string                     `json:"text,omitempty"`
+	ContextRequestId string                     `json:"context_request_id,omitempty"`
 }
 
 type AiRealtimeRequestTerminal struct {
@@ -2958,13 +2993,20 @@ type AiRealtimeRequestTerminal struct {
 }
 
 type AiRealtimeSessionOpened struct {
-	InputAudio    *AiRealtimeAudioFormat      `json:"input_audio,omitempty"`
-	OutputAudio   *AiRealtimeAudioFormat      `json:"output_audio,omitempty"`
-	TurnDetection AiRealtimeTurnDetectionMode `json:"turn_detection,omitempty"`
+	InputAudio      *AiRealtimeAudioFormat      `json:"input_audio,omitempty"`
+	OutputAudio     *AiRealtimeAudioFormat      `json:"output_audio,omitempty"`
+	TurnDetection   AiRealtimeTurnDetectionMode `json:"turn_detection,omitempty"`
+	InteractionMode AiRealtimeInteractionMode   `json:"interaction_mode,omitempty"`
 }
 
 type AiRealtimeSessionTerminal struct {
-	ReasonCode ReasonCode `json:"reason_code,omitempty"`
+	ReasonCode ReasonCode              `json:"reason_code,omitempty"`
+	Usage      *AiRealtimeSessionUsage `json:"usage,omitempty"`
+}
+
+type AiRealtimeSessionUsage struct {
+	AudioSeconds float64 `json:"audio_seconds,omitempty"`
+	Final        bool    `json:"final,omitempty"`
 }
 
 type AiRealtimeSpeechStatus struct {
@@ -3725,8 +3767,9 @@ type CloseRealtimeSessionRequest struct {
 }
 
 type CloseRealtimeSessionResponse struct {
-	Ack     *Ack                   `json:"ack,omitempty"`
-	Control *RealtimeControlStatus `json:"control,omitempty"`
+	Ack     *Ack                    `json:"ack,omitempty"`
+	Control *RealtimeControlStatus  `json:"control,omitempty"`
+	Usage   *AiRealtimeSessionUsage `json:"usage,omitempty"`
 }
 
 type CloseVideoSessionRequest struct {
@@ -7684,15 +7727,17 @@ type OpenRealtimeSessionRequest struct {
 	AudioOutputEnabled bool                        `json:"audio_output_enabled,omitempty"`
 	TurnDetection      AiRealtimeTurnDetectionMode `json:"turn_detection,omitempty"`
 	InitialInstruction string                      `json:"initial_instruction,omitempty"`
+	InteractionMode    AiRealtimeInteractionMode   `json:"interaction_mode,omitempty"`
 }
 
 type OpenRealtimeSessionResponse struct {
-	RealtimeSessionId     string                 `json:"realtime_session_id,omitempty"`
-	ChannelId             string                 `json:"channel_id,omitempty"`
-	Generation            uint64                 `json:"generation,omitempty"`
-	NegotiatedInputAudio  *AiRealtimeAudioFormat `json:"negotiated_input_audio,omitempty"`
-	NegotiatedOutputAudio *AiRealtimeAudioFormat `json:"negotiated_output_audio,omitempty"`
-	Control               *RealtimeControlStatus `json:"control,omitempty"`
+	RealtimeSessionId     string                    `json:"realtime_session_id,omitempty"`
+	ChannelId             string                    `json:"channel_id,omitempty"`
+	Generation            uint64                    `json:"generation,omitempty"`
+	NegotiatedInputAudio  *AiRealtimeAudioFormat    `json:"negotiated_input_audio,omitempty"`
+	NegotiatedOutputAudio *AiRealtimeAudioFormat    `json:"negotiated_output_audio,omitempty"`
+	Control               *RealtimeControlStatus    `json:"control,omitempty"`
+	InteractionMode       AiRealtimeInteractionMode `json:"interaction_mode,omitempty"`
 }
 
 type OpenVideoSessionRequest struct {

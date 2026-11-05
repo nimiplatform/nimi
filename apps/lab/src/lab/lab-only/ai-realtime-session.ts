@@ -3,6 +3,8 @@ import type {
   NimiAiRealtimeEvent,
   NimiRealtimeAudioFormat,
   NimiRealtimeControlStatus,
+  NimiRealtimeInteractionMode,
+  NimiRealtimeSessionUsage,
 } from '@nimiplatform/sdk/app';
 import type { StudioSessionSummary } from '../../ai-studio-core/runtime-types.js';
 import { t } from '../../shell/i18n/index.js';
@@ -22,7 +24,7 @@ export function labRealtimeInputAudio(sampleRateHz: 16000 | 24000): NimiRealtime
   return { ...LAB_AI_REALTIME_INPUT_AUDIO, sampleRateHz, maximumFrameBytes: sampleRateHz * 2 * 20 / 1000 };
 }
 
-export type LabRealtimeOwnerControl = 'commit-input' | 'start-response' | 'continue-response' | 'pause-response' | 'cancel-response';
+export type LabRealtimeOwnerControl = 'commit-input' | 'start-response' | 'continue-response' | 'pause-response' | 'cancel-response' | 'mute-input' | 'unmute-input';
 type Scope = { readonly realtimeSessionId: string; readonly generation: string };
 
 export type LabRealtimeOutputTrack = {
@@ -39,6 +41,12 @@ export type LabRealtimeOutputTrack = {
 export type LabRealtimeLogEntry = { readonly index: number; readonly kind: string; readonly detail: string };
 
 export type LabRealtimeState = {
+  readonly interactionMode?: NimiRealtimeInteractionMode;
+  readonly inputMuted?: boolean;
+  readonly sessionUsage?: NimiRealtimeSessionUsage;
+  readonly continuousTranscripts?: readonly { readonly direction: 'input' | 'output'; readonly textDelta: string; readonly startMs: number; readonly endMs: number }[];
+  readonly transcriptWindowTrimmed?: boolean;
+  readonly contextRequests?: readonly { readonly contextRequestId: string; readonly offsetMs: number; readonly replied: boolean }[];
   readonly phase: 'idle' | 'opening' | 'open' | 'closing' | 'closed' | 'terminated' | 'interrupted';
   readonly responsePending: boolean;
   readonly scope?: Scope;
@@ -83,7 +91,7 @@ function ackDetail(ack: { readonly ok: boolean; readonly reasonCode: string; rea
 
 function eventDetail(event: NimiAiRealtimeEvent): string {
   switch (event.type) {
-    case 'opened': return t(event.outputAudio ? `${LOG}.openedWithAudio` : `${LOG}.opened`, { turnDetection: event.turnDetection });
+    case 'opened': if (event.interactionMode === 'continuous') return t(`${LOG}.openedContinuous`); return t(event.outputAudio ? `${LOG}.openedWithAudio` : `${LOG}.opened`, { turnDetection: event.turnDetection });
     case 'input-accepted': return event.requestId
       ? t(`${LOG}.inputRequest`, { requestId: event.requestId })
       : t(`${LOG}.inputFrame`, { track: event.inputTrackId, sequence: event.frameSequence });
@@ -92,6 +100,9 @@ function eventDetail(event: NimiAiRealtimeEvent): string {
     case 'text-output': return event.final ? t(`${LOG}.textOutputFinal`, { track: event.outputTrackId, text: event.text }) : `${event.outputTrackId}: ${event.text}`;
     case 'audio-frame': return t(`${LOG}.audioFrame`, { track: event.outputTrackId, sequence: event.frameSequence, bytes: event.frame.byteLength });
     case 'output-track': return `${event.outputTrackId} ${event.lifecycle}${event.reasonCode ? ` (${event.reasonCode})` : ''}`;
+    case 'continuous-transcript': return `${event.direction} ${event.startMs}–${event.endMs} ms: ${event.textDelta}`;
+    case 'context-request': return t(`${LOG}.contextRequest`, { id: event.contextRequestId, offset: event.offsetMs });
+    case 'session-usage': return t(`${LOG}.sessionUsage`, { seconds: event.usage.audioSeconds, final: event.usage.final });
     case 'request-terminal': return `${event.requestId} ${event.finishReason}${event.reasonCode ? ` (${event.reasonCode})` : ''}`;
     case 'session-terminal': return event.reasonCode;
     case 'failure': return event.requestId || event.outputTrackId
@@ -121,6 +132,8 @@ export function createLabRealtimeController(input: {
 }) {
   let state: LabRealtimeState = { phase: 'idle', responsePending: false, tracks: [], transcripts: [], log: [], observed: {} };
   let logIndex = 0;
+  let continuousInputTrackId = '';
+  let continuousFrameSequence = 0;
   let cancelSubscription: (() => Promise<void>) | null = null;
   // Close cannot cancel an Open already sent to the owner. A close requested
   // before Open returns is kept here, and the Open flow closes the Session the
@@ -180,7 +193,7 @@ export function createLabRealtimeController(input: {
     let timer: ReturnType<typeof setTimeout> | undefined;
     try {
       return await Promise.race([input.client.close(scope), new Promise<never>((_, reject) => {
-        timer = setTimeout(() => reject(Object.assign(new Error(t('CapabilityTests.aiRealtime.closeTimedOut')), { reasonCode: 'close-timeout' })), 5000);
+        timer = setTimeout(() => reject(Object.assign(new Error(t('CapabilityTests.aiRealtime.closeTimedOut')), { reasonCode: 'close-timeout' })), state.interactionMode === 'continuous' ? 8000 : 5000);
       })]);
     } finally { if (timer !== undefined) clearTimeout(timer); }
   };
@@ -193,6 +206,7 @@ export function createLabRealtimeController(input: {
       : [...state.tracks, next] });
   };
   const isOpenScope = (scope: Scope) => state.phase === 'open' && state.scope === scope;
+  const isObservedScope = (scope: Scope) => state.scope === scope && (state.phase === 'open' || (state.phase === 'closing' && state.interactionMode === 'continuous'));
   const requireScope = (): Scope => {
     if (state.phase !== 'open' || !state.scope) throw new Error(t('CapabilityTests.aiRealtime.notOpen'));
     return state.scope;
@@ -212,7 +226,7 @@ export function createLabRealtimeController(input: {
       track(event.outputTrackId, event.requestId, (current) => ({ text: event.final ? event.text : current.text + event.text }));
     } else if (event.type === 'audio-frame') {
       track(event.outputTrackId, event.requestId, (current) => ({ audioFrames: current.audioFrames + 1 }));
-      if (!input.playback || stoppedPlaybackTracks.has(event.outputTrackId)) return;
+      if (state.phase !== 'open' || !input.playback || stoppedPlaybackTracks.has(event.outputTrackId)) return;
       track(event.outputTrackId, event.requestId, () => ({ playbackPending: true }));
       try {
         await input.playback.writeAudioFrame({ outputTrackId: event.outputTrackId, frameSequence: event.frameSequence, frame: event.frame, format: event.format });
@@ -246,12 +260,20 @@ export function createLabRealtimeController(input: {
           set({ error: describeError(error) });
         });
       }
+    } else if (event.type === 'continuous-transcript') {
+      const fragments = [...(state.continuousTranscripts ?? []), { direction: event.direction, textDelta: event.textDelta, startMs: event.startMs, endMs: event.endMs }];
+      set({ continuousTranscripts: fragments.slice(-MAX_LOG_ENTRIES), transcriptWindowTrimmed: state.transcriptWindowTrimmed || fragments.length > MAX_LOG_ENTRIES });
+    } else if (event.type === 'context-request') {
+      set({ contextRequests: [...(state.contextRequests ?? []), { contextRequestId: event.contextRequestId, offsetMs: event.offsetMs, replied: false }] });
+    } else if (event.type === 'session-usage') {
+      set({ sessionUsage: { ...event.usage } });
     } else if (event.type === 'transcript') {
       const transcripts = state.transcripts.filter((entry) => entry.utteranceId !== event.utteranceId || entry.final);
       set({ transcripts: [...transcripts, { utteranceId: event.utteranceId, text: event.text, final: event.final }] });
     } else if (event.type === 'request-terminal' || event.type === 'failure') {
       settleResponse(event.requestId);
     } else if (event.type === 'session-terminal') {
+      if (event.usage) set({ sessionUsage: { ...event.usage } });
       ownerEnded = true;
       if (state.phase !== 'closing') finish('terminated', event.reasonCode || 'session-terminal');
     }
@@ -260,10 +282,10 @@ export function createLabRealtimeController(input: {
   const pump = async (subscription: AsyncIterable<{ readonly control: NimiRealtimeControlStatus; readonly event: NimiAiRealtimeEvent }>, scope: Scope) => {
     try {
       for await (const envelope of subscription) {
-        if (!isOpenScope(scope)) return;
+        if (!isObservedScope(scope)) return;
         set({ control: envelope.control });
         await apply(envelope.event, scope);
-        if (!isOpenScope(scope)) return;
+        if (!isObservedScope(scope)) return;
         if (envelope.control.lifecycle === 'closed' || envelope.control.lifecycle === 'failed') {
           ownerEnded = true;
           if (state.phase === 'open') finish('terminated', envelope.control.terminalReason || envelope.control.lifecycle);
@@ -283,7 +305,7 @@ export function createLabRealtimeController(input: {
     void closePlayback().catch(() => undefined);
     try {
       const result = await boundedOwnerClose(scope);
-      set({ control: result.control });
+      set({ control: result.control, ...(result.usage ? { sessionUsage: { ...result.usage } } : {}) });
       log('close', result.ack.ok
         ? t(`${LOG}.ackWithReason`, { reason: result.control.terminalReason || result.control.lifecycle })
         : t(`${LOG}.rejected`, { reasonCode: result.ack.reasonCode }));
@@ -302,14 +324,14 @@ export function createLabRealtimeController(input: {
     }
   };
 
-  type OpenOptions = { readonly inputAudio?: NimiRealtimeAudioFormat; readonly instruction: string; readonly turnDetection: 'server-vad' | 'manual'; readonly audioOutputEnabled: boolean };
+  type OpenOptions = { readonly interactionMode?: NimiRealtimeInteractionMode; readonly inputAudio?: NimiRealtimeAudioFormat; readonly instruction: string; readonly turnDetection: 'server-vad' | 'manual'; readonly audioOutputEnabled: boolean };
   const openFlow = async (options: OpenOptions) => {
     let opened;
     try {
       opened = await input.client.open({
         inputAudio: options.inputAudio ?? LAB_AI_REALTIME_INPUT_AUDIO,
         audioOutputEnabled: options.audioOutputEnabled,
-        turnDetection: options.turnDetection,
+        ...(options.interactionMode === 'continuous' ? { interactionMode: 'continuous' as const } : { interactionMode: 'owner-controlled' as const, turnDetection: options.turnDetection }),
         initialInstruction: options.instruction.trim(),
       });
     } catch (error) {
@@ -324,7 +346,7 @@ export function createLabRealtimeController(input: {
       await closeScope(scope, 'closed-during-open');
       return;
     }
-    set({ phase: 'open', scope, control: opened.control, negotiatedInputAudio: opened.negotiatedInputAudio, negotiatedOutputAudio: opened.negotiatedOutputAudio });
+    set({ phase: 'open', scope, interactionMode: opened.interactionMode, control: opened.control, negotiatedInputAudio: opened.negotiatedInputAudio, negotiatedOutputAudio: opened.negotiatedOutputAudio });
     let subscription;
     try {
       subscription = await input.client.subscribe(scope);
@@ -366,7 +388,8 @@ export function createLabRealtimeController(input: {
       // Closed before Open was sent: the owner is never contacted.
       if (state.phase === 'closed' && state.terminalReason === 'closed-before-open') return;
       if (state.phase !== 'idle') throw new Error(t('CapabilityTests.aiRealtime.alreadyUsed'));
-      set({ phase: 'opening', startedAt: input.now().toISOString() });
+      set({ phase: 'opening', interactionMode: options.interactionMode ?? 'owner-controlled', startedAt: input.now().toISOString() });
+      if (options.interactionMode === 'continuous') continuousInputTrackId = input.createId('lab-live-input');
       pendingOpen = openFlow(options);
       try {
         await pendingOpen;
@@ -376,6 +399,7 @@ export function createLabRealtimeController(input: {
     },
     // A text turn is one conversation input plus an explicit response start.
     async sendText(text: string): Promise<string> {
+      if (state.interactionMode === 'continuous') throw new Error(t('CapabilityTests.aiRealtime.continuousControlUnsupported'));
       const scope = requireScope();
       if (state.responsePending) throw new Error(t('CapabilityTests.aiRealtime.responseAlreadyPending'));
       const requestId = input.createId('lab-text');
@@ -394,12 +418,20 @@ export function createLabRealtimeController(input: {
     },
     async appendAudioFrame(frame: { readonly inputTrackId: string; readonly utteranceId: string; readonly frameSequence: string; readonly frame: Uint8Array }): Promise<void> {
       const scope = requireScope();
-      const result = await input.client.appendInput({ ...scope, input: { type: 'audio-frame', ...frame } });
+      const payload = state.interactionMode === 'continuous' ? { ...frame, inputTrackId: continuousInputTrackId, utteranceId: '', frameSequence: String(++continuousFrameSequence) } : frame;
+      const result = await input.client.appendInput({ ...scope, input: { type: 'audio-frame', ...payload } }).catch(error => { observationInterrupted(reasonCodeOf(error, 'audio-input-unconfirmed'), describeError(error)); throw error; });
       set({ control: result.control });
       if (!result.ack.ok) throw Object.assign(new Error(t('CapabilityTests.aiRealtime.audioFrameNotAcknowledged')), { reasonCode: result.ack.reasonCode });
       count('audio-frame-input');
     },
+    async appendOwnerContext(text: string, kind: 'instruction' | 'context' | 'sanitized-result', contextRequestId?: string): Promise<void> {
+      const scope = requireScope();
+      operation('owner-context', await input.client.appendInput({ ...scope, input: { type: 'owner-context', requestId: input.createId('lab-context'), kind, text, ...(contextRequestId ? { contextRequestId } : {}) } }));
+      count('owner-context-input');
+      if (kind === 'sanitized-result' && contextRequestId) set({ contextRequests: state.contextRequests?.map(request => request.contextRequestId === contextRequestId ? { ...request, replied: true } : request) });
+    },
     async ownerControl(control: LabRealtimeOwnerControl): Promise<void> {
+      if (state.interactionMode === 'continuous' && control !== 'mute-input' && control !== 'unmute-input') throw new Error(t('CapabilityTests.aiRealtime.continuousControlUnsupported'));
       const scope = requireScope();
       const startsResponse = control === 'start-response' || control === 'continue-response';
       const requestId = input.createId('lab-control');
@@ -411,6 +443,7 @@ export function createLabRealtimeController(input: {
       try {
         operation(control, await input.client.submitOwnerControl({ ...scope, requestId, control }));
         count('owner-control');
+        if (control === 'mute-input' || control === 'unmute-input') set({ inputMuted: control === 'mute-input' });
       } catch (error) {
         if (startsResponse) settleResponse(requestId);
         throw error;
@@ -450,6 +483,7 @@ export function labRealtimeSessionSummary(state: LabRealtimeState): StudioSessio
     endedAt: state.endedAt ?? state.startedAt ?? new Date(0).toISOString(),
     ending: state.phase === 'closed' ? 'closed' : 'terminated',
     terminalReason: state.terminalReason ?? 'unknown',
+    ...(state.sessionUsage ? { audioUsage: { ...state.sessionUsage } } : {}),
     observed: Object.fromEntries(Object.entries(state.observed).filter(([key]) => /^[a-z][a-z0-9-]{0,63}$/u.test(key)).slice(0, 32)),
   };
 }

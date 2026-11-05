@@ -61,6 +61,7 @@ export function projectRuntimeRealtimeControl(value: RealtimeControlStatus | und
         [RealtimeTerminalReason.RUNTIME_SHUTDOWN]: 'runtime-shutdown',
         [RealtimeTerminalReason.STALE_GENERATION]: 'stale-generation',
         [RealtimeTerminalReason.OWNER_FAILED]: 'owner-failed',
+        [RealtimeTerminalReason.COMPLETED]: 'completed',
       }, 'Realtime terminal reason'),
     actionHint: value.actionHint,
     occurredAt: projectRuntimeOptionalTimestamp(value.occurredAt),

@@ -7,6 +7,9 @@ import {
   AiRealtimeOwnerControlKind,
   AiRealtimeSpeechState,
   AiRealtimeTurnDetectionMode,
+  AiRealtimeInteractionMode,
+  AiRealtimeTranscriptDirection,
+  type AiRealtimeSessionUsage,
   type AiRealtimeAudioFormat,
   type AiRealtimeEvent,
   type AppendRealtimeInputRequest,
@@ -53,6 +56,7 @@ export function createNimiAiRealtimeRuntimeClient(
     open: async (input) => {
       const source = record(input, 'AI Realtime open input');
       const response = await runtime.openRealtimeSession({
+        interactionMode: source.interactionMode === 'continuous' ? AiRealtimeInteractionMode.CONTINUOUS : AiRealtimeInteractionMode.OWNER_CONTROLLED,
         inputAudio: inputAudioFormat(source.inputAudio),
         audioOutputEnabled: boolean(source.audioOutputEnabled),
         turnDetection: turnDetection(source.turnDetection),
@@ -67,6 +71,7 @@ export function createNimiAiRealtimeRuntimeClient(
           ? outputAudioFormat(response.negotiatedOutputAudio)
           : null,
         control: projectRuntimeRealtimeControl(response.control),
+        interactionMode: interactionModeName(response.interactionMode),
       };
     },
     appendInput: async (input) => {
@@ -107,7 +112,7 @@ export function createNimiAiRealtimeRuntimeClient(
     },
     close: async (input) => {
       const response = await runtime.closeRealtimeSession(scope(record(input, 'AI Realtime close input')));
-      return outputOperation(response.ack, response.control);
+      return { ...outputOperation(response.ack, response.control), ...(response.usage ? { usage: sessionUsage(response.usage) } : {}) };
     },
   };
   return createNimiAiRealtimeClient(shell);
@@ -123,7 +128,7 @@ function runtimeInput(value: unknown): AppendRealtimeInputRequest['input'] {
       oneofKind: 'audioFrame',
       audioFrame: {
         inputTrackId: text(source.inputTrackId),
-        utteranceId: text(source.utteranceId),
+        utteranceId: text(source.utteranceId, true),
         frameSequence: decimal(source.frameSequence),
         frame: bytes(source.frame),
       },
@@ -136,6 +141,7 @@ function runtimeInput(value: unknown): AppendRealtimeInputRequest['input'] {
         requestId: text(source.requestId),
         kind: ownerContextKind(source.kind),
         text: text(source.text),
+        contextRequestId: text(source.contextRequestId ?? '', true),
       },
     };
   }
@@ -155,6 +161,7 @@ function outputEvent(value: AiRealtimeEvent) {
         inputAudio: outputAudioFormat(value.event.opened.inputAudio),
         outputAudio: value.event.opened.outputAudio ? outputAudioFormat(value.event.opened.outputAudio) : null,
         turnDetection: turnDetectionName(value.event.opened.turnDetection),
+        interactionMode: interactionModeName(value.event.opened.interactionMode),
       } };
     case 'inputAccepted':
       return { control, event: { type: 'input-accepted', ...value.event.inputAccepted } };
@@ -206,7 +213,14 @@ function outputEvent(value: AiRealtimeEvent) {
       return { control, event: {
         type: 'session-terminal',
         reasonCode: projectRuntimeReasonCode(value.event.sessionTerminal.reasonCode),
+        ...(value.event.sessionTerminal.usage ? { usage: sessionUsage(value.event.sessionTerminal.usage) } : {}),
       } };
+    case 'continuousTranscript':
+      return { control, event: { type: 'continuous-transcript', direction: projectRuntimeEnum(value.event.continuousTranscript.direction, { [AiRealtimeTranscriptDirection.INPUT]: 'input', [AiRealtimeTranscriptDirection.OUTPUT]: 'output' }, 'Continuous transcript direction'), textDelta: value.event.continuousTranscript.textDelta, startMs: Number(value.event.continuousTranscript.startMs), endMs: Number(value.event.continuousTranscript.endMs) } };
+    case 'contextRequest':
+      return { control, event: { type: 'context-request', contextRequestId: value.event.contextRequest.contextRequestId, offsetMs: Number(value.event.contextRequest.offsetMs) } };
+    case 'sessionUsage':
+      return { control, event: { type: 'session-usage', usage: sessionUsage(value.event.sessionUsage) } };
     case 'failure':
       return { control, event: {
         type: 'failure',
@@ -247,12 +261,14 @@ function outputAudioFormat(value: AiRealtimeAudioFormat | undefined) {
 }
 
 function turnDetection(value: unknown): AiRealtimeTurnDetectionMode {
+  if (value === null) return AiRealtimeTurnDetectionMode.UNSPECIFIED;
   if (value === 'server-vad') return AiRealtimeTurnDetectionMode.SERVER_VAD;
   if (value === 'manual') return AiRealtimeTurnDetectionMode.MANUAL;
   return invalid('AI Realtime turn detection');
 }
 
-function turnDetectionName(value: AiRealtimeTurnDetectionMode): 'server-vad' | 'manual' {
+function turnDetectionName(value: AiRealtimeTurnDetectionMode): 'server-vad' | 'manual' | null {
+  if (value === AiRealtimeTurnDetectionMode.UNSPECIFIED) return null;
   if (value === AiRealtimeTurnDetectionMode.SERVER_VAD) return 'server-vad';
   if (value === AiRealtimeTurnDetectionMode.MANUAL) return 'manual';
   return invalid('AI Realtime turn detection');
@@ -266,6 +282,8 @@ function ownerContextKind(value: unknown): AiRealtimeOwnerContextKind {
 }
 
 function ownerControl(value: unknown): AiRealtimeOwnerControlKind {
+  if (value === 'mute-input') return AiRealtimeOwnerControlKind.MUTE_INPUT;
+  if (value === 'unmute-input') return AiRealtimeOwnerControlKind.UNMUTE_INPUT;
   if (value === 'commit-input') return AiRealtimeOwnerControlKind.COMMIT_INPUT;
   if (value === 'start-response') return AiRealtimeOwnerControlKind.START_RESPONSE;
   if (value === 'continue-response') return AiRealtimeOwnerControlKind.CONTINUE_RESPONSE;
@@ -326,3 +344,8 @@ function bytes(value: unknown): Uint8Array {
     ? Uint8Array.from(value)
     : invalid('AI Realtime bytes');
 }
+
+function interactionModeName(value: AiRealtimeInteractionMode) {
+  return projectRuntimeEnum(value, { [AiRealtimeInteractionMode.OWNER_CONTROLLED]: 'owner-controlled', [AiRealtimeInteractionMode.CONTINUOUS]: 'continuous' }, 'Realtime interaction mode');
+}
+function sessionUsage(value: AiRealtimeSessionUsage) { return { audioSeconds: value.audioSeconds, final: value.final }; }

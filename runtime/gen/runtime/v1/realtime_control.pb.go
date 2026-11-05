@@ -202,6 +202,7 @@ const (
 	RealtimeTerminalReason_REALTIME_TERMINAL_REASON_RUNTIME_SHUTDOWN   RealtimeTerminalReason = 9
 	RealtimeTerminalReason_REALTIME_TERMINAL_REASON_STALE_GENERATION   RealtimeTerminalReason = 10
 	RealtimeTerminalReason_REALTIME_TERMINAL_REASON_OWNER_FAILED       RealtimeTerminalReason = 11
+	RealtimeTerminalReason_REALTIME_TERMINAL_REASON_COMPLETED          RealtimeTerminalReason = 12
 )
 
 // Enum value maps for RealtimeTerminalReason.
@@ -219,6 +220,7 @@ var (
 		9:  "REALTIME_TERMINAL_REASON_RUNTIME_SHUTDOWN",
 		10: "REALTIME_TERMINAL_REASON_STALE_GENERATION",
 		11: "REALTIME_TERMINAL_REASON_OWNER_FAILED",
+		12: "REALTIME_TERMINAL_REASON_COMPLETED",
 	}
 	RealtimeTerminalReason_value = map[string]int32{
 		"REALTIME_TERMINAL_REASON_UNSPECIFIED":        0,
@@ -233,6 +235,7 @@ var (
 		"REALTIME_TERMINAL_REASON_RUNTIME_SHUTDOWN":   9,
 		"REALTIME_TERMINAL_REASON_STALE_GENERATION":   10,
 		"REALTIME_TERMINAL_REASON_OWNER_FAILED":       11,
+		"REALTIME_TERMINAL_REASON_COMPLETED":          12,
 	}
 )
 
@@ -454,7 +457,7 @@ const file_runtime_v1_realtime_control_proto_rawDesc = "" +
 	"'REALTIME_BACKPRESSURE_STATE_UNSPECIFIED\x10\x00\x12&\n" +
 	"\"REALTIME_BACKPRESSURE_STATE_NORMAL\x10\x01\x12)\n" +
 	"%REALTIME_BACKPRESSURE_STATE_PRESSURED\x10\x02\x12'\n" +
-	"#REALTIME_BACKPRESSURE_STATE_BLOCKED\x10\x03*\xaf\x04\n" +
+	"#REALTIME_BACKPRESSURE_STATE_BLOCKED\x10\x03*\xd7\x04\n" +
 	"\x16RealtimeTerminalReason\x12(\n" +
 	"$REALTIME_TERMINAL_REASON_UNSPECIFIED\x10\x00\x12&\n" +
 	"\"REALTIME_TERMINAL_REASON_CANCELLED\x10\x01\x12,\n" +
@@ -468,7 +471,8 @@ const file_runtime_v1_realtime_control_proto_rawDesc = "" +
 	")REALTIME_TERMINAL_REASON_RUNTIME_SHUTDOWN\x10\t\x12-\n" +
 	")REALTIME_TERMINAL_REASON_STALE_GENERATION\x10\n" +
 	"\x12)\n" +
-	"%REALTIME_TERMINAL_REASON_OWNER_FAILED\x10\vB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
+	"%REALTIME_TERMINAL_REASON_OWNER_FAILED\x10\v\x12&\n" +
+	"\"REALTIME_TERMINAL_REASON_COMPLETED\x10\fB?Z=github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1b\x06proto3"
 
 var (
 	file_runtime_v1_realtime_control_proto_rawDescOnce sync.Once

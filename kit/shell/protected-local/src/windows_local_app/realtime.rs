@@ -37,11 +37,13 @@ pub(super) async fn ai_open(
     request: LocalAppAiRealtimeOpenRequest,
 ) -> Result<JsonValue, LocalAppOperationError> {
     let input_audio = parse_audio_format(&request.input_audio)?;
-    let turn_detection = parse_turn_detection(&request.turn_detection)?;
+    let interaction_mode = match request.interaction_mode.as_str() { "owner-controlled" => 1, "continuous" => 2, _ => return Err(invalid_payload()) };
+    let turn_detection = if interaction_mode == 2 { if !request.turn_detection.is_empty() { return Err(invalid_payload()); } 0 } else { parse_turn_detection(&request.turn_detection)? };
     require_text(&request.initial_instruction, MAX_INSTRUCTION_BYTES, true)?;
     let response = crate::grpc_limits::runtime_ai_realtime_client(channel)
         .open_realtime_session(OpenRealtimeSessionRequest {
             input_audio: Some(input_audio),
+            interaction_mode,
             audio_output_enabled: request.audio_output_enabled,
             turn_detection,
             initial_instruction: request.initial_instruction,
@@ -49,7 +51,8 @@ pub(super) async fn ai_open(
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
-    project_open(
+    if response.interaction_mode != interaction_mode { return Err(untrusted()); }
+    let mut output = project_open(
         None,
         response.realtime_session_id,
         response.channel_id,
@@ -57,7 +60,9 @@ pub(super) async fn ai_open(
         response.negotiated_input_audio,
         response.negotiated_output_audio,
         response.control,
-    )
+    )?;
+    output["interactionMode"] = json!(interaction_mode_name(response.interaction_mode)?);
+    Ok(output)
 }
 
 pub(super) async fn ai_append_input(
@@ -160,7 +165,9 @@ pub(super) async fn ai_close(
         .await
         .map_err(local_app_error_from_status)?
         .into_inner();
-    project_operation(response.ack, response.control)
+    let mut output = project_operation(response.ack, response.control)?;
+    if let Some(usage) = response.usage { output["usage"] = project_session_usage(usage)?; }
+    Ok(output)
 }
 
 pub(super) async fn agent_open(
@@ -349,13 +356,14 @@ fn parse_ai_input(value: JsonValue) -> Result<AiInput, LocalAppOperationError> {
         {
             Ok(AiInput::AudioFrame(AiRealtimeAudioFrameInput {
                 input_track_id: json_text(record, "inputTrackId", MAX_SELECTOR_BYTES, false)?,
-                utterance_id: json_text(record, "utteranceId", MAX_SELECTOR_BYTES, false)?,
+                utterance_id: json_text(record, "utteranceId", MAX_SELECTOR_BYTES, true)?,
                 frame_sequence: json_u64_string(record, "frameSequence")?,
                 frame: json_bytes(record, "frame")?,
             }))
         }
-        Some("owner-context") if exact_keys(record, &["type", "requestId", "kind", "text"]) => {
+        Some("owner-context") if exact_keys(record, &["type", "requestId", "kind", "text"]) || exact_keys(record, &["type", "requestId", "kind", "text", "contextRequestId"]) => {
             Ok(AiInput::OwnerContext(AiRealtimeOwnerContextInput {
+                context_request_id: if record.contains_key("contextRequestId") { json_text(record,"contextRequestId",MAX_SELECTOR_BYTES,true)? } else { String::new() },
                 request_id: json_text(record, "requestId", MAX_SELECTOR_BYTES, false)?,
                 kind: match record.get("kind").and_then(JsonValue::as_str) {
                     Some("instruction") => 1,
@@ -422,7 +430,8 @@ fn project_ai_event(
             "type":"opened",
             "inputAudio":project_audio_format(value.input_audio).map_err(|error| realtime_projection_error(error, "ai_realtime_opened_input_audio"))?,
             "outputAudio":project_optional_audio_format(value.output_audio).map_err(|error| realtime_projection_error(error, "ai_realtime_opened_output_audio"))?,
-            "turnDetection":turn_detection_name(value.turn_detection).map_err(|error| realtime_projection_error(error, "ai_realtime_opened_turn_detection"))?,
+            "turnDetection":if value.interaction_mode == 2 { if value.turn_detection != 0 {return Err(untrusted());} JsonValue::Null } else { json!(turn_detection_name(value.turn_detection).map_err(|error| realtime_projection_error(error, "ai_realtime_opened_turn_detection"))?) },
+            "interactionMode":interaction_mode_name(value.interaction_mode)?,
         }),
         AiEvent::InputAccepted(value) => {
             json!({"type":"input-accepted","inputTrackId":value.input_track_id,"utteranceId":value.utterance_id,"frameSequence":value.frame_sequence.to_string(),"requestId":value.request_id})
@@ -447,8 +456,19 @@ fn project_ai_event(
             json!({"type":"request-terminal","requestId":value.request_id,"finishReason":finish_reason_name(value.finish_reason)?,"usage":project_usage(value.usage),"reasonCode":reason_name(value.reason_code)?})
         }
         AiEvent::SessionTerminal(value) => {
-            json!({"type":"session-terminal","reasonCode":reason_name(value.reason_code)?})
+            let mut output=json!({"type":"session-terminal","reasonCode":reason_name(value.reason_code)?});
+            if let Some(usage)=value.usage { output["usage"]=project_session_usage(usage)?; } output
         }
+        AiEvent::ContinuousTranscript(value) => {
+            if value.start_ms<0 || value.end_ms<value.start_ms || value.end_ms>86_400_000 || value.text_delta.len()>32*1024 {return Err(untrusted());}
+            json!({"type":"continuous-transcript","direction":match value.direction {1=>"input",2=>"output",_=>return Err(untrusted())},"textDelta":value.text_delta,"startMs":value.start_ms,"endMs":value.end_ms})
+        }
+        AiEvent::ContextRequest(value) => {
+            require_text(&value.context_request_id,MAX_SELECTOR_BYTES,false).map_err(|_|untrusted())?;
+            if value.offset_ms<0 || value.offset_ms>86_400_000 {return Err(untrusted());}
+            json!({"type":"context-request","contextRequestId":value.context_request_id,"offsetMs":value.offset_ms})
+        }
+        AiEvent::SessionUsage(value) => json!({"type":"session-usage","usage":project_session_usage(value)?}),
         AiEvent::Failure(value) => {
             json!({"type":"failure","requestId":value.request_id,"outputTrackId":value.output_track_id,"reasonCode":reason_name(value.reason_code)?})
         }
@@ -557,7 +577,7 @@ pub(super) fn project_control(
         "backpressure":match value.backpressure {1=>"normal",2=>"pressured",3=>"blocked",_=>return Err(untrusted())},
         "bufferedItems":value.buffered_items,
         "bufferCapacity":value.buffer_capacity,
-        "terminalReason":match value.terminal_reason {0=>"",1=>"cancelled",2=>"unauthenticated",3=>"permission-denied",4=>"not-found",5=>"unavailable",6=>"protocol-failure",7=>"resource-exhausted",8=>"slow-consumer",9=>"runtime-shutdown",10=>"stale-generation",11=>"owner-failed",_=>return Err(untrusted())},
+        "terminalReason":match value.terminal_reason {0=>"",1=>"cancelled",2=>"unauthenticated",3=>"permission-denied",4=>"not-found",5=>"unavailable",6=>"protocol-failure",7=>"resource-exhausted",8=>"slow-consumer",9=>"runtime-shutdown",10=>"stale-generation",11=>"owner-failed",12=>"completed",_=>return Err(untrusted())},
         "actionHint":value.action_hint,
         "occurredAt":value.occurred_at.map(|time|json!({"seconds":time.seconds.to_string(),"nanos":time.nanos})),
     }))
@@ -649,6 +669,8 @@ fn parse_owner_control(value: &str) -> Result<i32, LocalAppOperationError> {
         "continue-response" => Ok(3),
         "pause-response" => Ok(4),
         "cancel-response" => Ok(5),
+        "mute-input" => Ok(6),
+        "unmute-input" => Ok(7),
         _ => Err(invalid_payload()),
     }
 }
@@ -798,6 +820,7 @@ mod tests {
                 ..Default::default()
             }),
             event: Some(AiEvent::Opened(crate::generated::AiRealtimeSessionOpened {
+                interaction_mode: 1,
                 input_audio: Some(format.clone()),
                 output_audio: Some(AiRealtimeAudioFormat {
                     sample_rate_hz: 24_000,
@@ -828,4 +851,25 @@ mod tests {
             _ => panic!("capture stop mapped to the wrong Agent input variant"),
         }
     }
+
+    #[test]
+    fn continuous_audio_and_context_keep_their_neutral_scope() {
+        let audio=json!({"type":"audio-frame","inputTrackId":"stream","utteranceId":"","frameSequence":"1","frame":[0,0]});
+        assert!(parse_ai_input(audio.clone()).is_ok());
+        assert!(parse_agent_input(audio).is_err());
+        let value=parse_ai_input(json!({"type":"owner-context","requestId":"reply","kind":"sanitized-result","text":"App result","contextRequestId":"runtime-request"})).unwrap();
+        let AiInput::OwnerContext(context)=value else {panic!("wrong input kind")};
+        assert_eq!(context.context_request_id,"runtime-request");
+        assert_eq!(parse_owner_control("mute-input").unwrap(),6);
+        assert_eq!(parse_owner_control("unmute-input").unwrap(),7);
+        let projected=project_session_usage(crate::generated::AiRealtimeSessionUsage{audio_seconds:0.0,r#final:true}).unwrap();
+        assert_eq!(projected,json!({"audioSeconds":0.0,"final":true}));
+        assert!(project_session_usage(crate::generated::AiRealtimeSessionUsage{audio_seconds:f64::NAN,r#final:true}).is_err());
+    }
+}
+
+fn interaction_mode_name(value:i32)->Result<&'static str,LocalAppOperationError> {match value {1=>Ok("owner-controlled"),2=>Ok("continuous"),_=>Err(untrusted())}}
+fn project_session_usage(value:crate::generated::AiRealtimeSessionUsage)->Result<JsonValue,LocalAppOperationError> {
+    if !value.audio_seconds.is_finite() || !(0.0..=86400.0).contains(&value.audio_seconds) {return Err(untrusted());}
+    Ok(json!({"audioSeconds":value.audio_seconds,"final":value.r#final}))
 }

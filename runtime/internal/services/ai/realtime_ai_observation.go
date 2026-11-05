@@ -81,6 +81,10 @@ func finishRealtimeAIObservation(record *realtimeSessionRecord, responseID strin
 func markRealtimeAIObservationUnknown(record *realtimeSessionRecord) {
 	record.mu.Lock()
 	attempts := make(map[*aitelemetry.Attempt]struct{})
+	if record.continuousAttempt != nil {
+		attempts[record.continuousAttempt] = struct{}{}
+		record.continuousAttempt = nil
+	}
 	for _, track := range record.tracksByProvider {
 		if track.aiAttempt != nil {
 			attempts[track.aiAttempt] = struct{}{}

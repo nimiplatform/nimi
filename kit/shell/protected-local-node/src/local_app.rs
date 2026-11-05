@@ -2418,8 +2418,9 @@ pub async fn local_app_ai_realtime_open(input: NativeAiRealtimeOpenInput) -> Nat
         session
             .ai_realtime_open(LocalAppAiRealtimeOpenRequest {
                 input_audio: input.input_audio,
+                interaction_mode: input.interaction_mode.unwrap_or_else(|| "owner-controlled".into()),
                 audio_output_enabled: input.audio_output_enabled,
-                turn_detection: input.turn_detection,
+                turn_detection: input.turn_detection.unwrap_or_default(),
                 initial_instruction: input.initial_instruction,
             })
             .await

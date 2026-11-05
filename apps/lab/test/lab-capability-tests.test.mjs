@@ -1489,7 +1489,7 @@ function fakeRealtime({ events = [], openError, ackOk = true, endStream = false 
       async open(input) {
         calls.open.push(input);
         if (openError) throw openError;
-        return { realtimeSessionId: 'rt-1', generation: '1', channelId: 'ch', negotiatedInputAudio: input.inputAudio, negotiatedOutputAudio: null, control: control() };
+        return { realtimeSessionId: 'rt-1', generation: '1', channelId: 'ch', interactionMode: input.interactionMode ?? 'owner-controlled', negotiatedInputAudio: input.inputAudio, negotiatedOutputAudio: null, control: control() };
       },
       async appendInput(input) { calls.append.push(input); return operation(); },
       async submitOwnerControl(input) { calls.control.push(input); return operation(); },
@@ -1524,6 +1524,7 @@ test('direct AI Realtime opens without an Agent using the legal 16 kHz PCM forma
   assert.deepEqual(fake.calls.open[0], {
     inputAudio: { codec: 'pcm-s16le', sampleRateHz: 16000, channelCount: 1, frameDurationMs: 20, maximumFrameBytes: 640 },
     audioOutputEnabled: false,
+    interactionMode: 'owner-controlled',
     turnDetection: 'manual',
     initialInstruction: 'Be brief.',
   });
@@ -2437,4 +2438,38 @@ test('owned video storage errors guide the storage setting instead of the provid
     assert.equal(studioNonSuccessReasonUserMessage('runtime-call-failed',t,'video.generate',diagnostics), `NonSuccess.message.${segment}`);
     assert.equal(studioNonSuccessReasonUserAction('runtime-call-failed',t,'video.generate',diagnostics), `NonSuccess.action.${segment}`);
   }
+});
+
+
+test('continuous Lab sessions keep one input stream, explicit App context and final native audio usage', async () => {
+  const { createLabRealtimeController, labRealtimeSessionSummary } = await load('lab/lab-only/ai-realtime-session.js');
+  const fake = fakeRealtime({ events: [
+    {type:'continuous-transcript',direction:'input',textDelta:'hello ',startMs:0,endMs:100},
+    {type:'context-request',contextRequestId:'runtime-context',offsetMs:100},
+    {type:'session-usage',usage:{audioSeconds:2.5,final:false}},
+    {type:'session-usage',usage:{audioSeconds:4.8,final:false}},
+  ] });
+  const close=fake.client.close;
+  fake.client.close=async scope=>({...await close(scope),usage:{audioSeconds:4.8,final:true}});
+  let id=0;
+  const session=createLabRealtimeController({client:fake.client,now:()=>new Date(),createId:prefix=>`${prefix}-${++id}`,onState:()=>{}});
+  await session.open({interactionMode:'continuous',instruction:'Caller owns work.',turnDetection:'manual',audioOutputEnabled:true});
+  assert.equal(fake.calls.open[0].interactionMode,'continuous');
+  assert.equal('turnDetection' in fake.calls.open[0],false);
+  await session.appendAudioFrame({inputTrackId:'capture-a',utteranceId:'old-utterance-a',frameSequence:'1',frame:Uint8Array.of(0,0)});
+  await session.appendAudioFrame({inputTrackId:'capture-b',utteranceId:'old-utterance-b',frameSequence:'1',frame:Uint8Array.of(0,0)});
+  assert.equal(fake.calls.append[0].input.inputTrackId,fake.calls.append[1].input.inputTrackId);
+  assert.deepEqual(fake.calls.append.slice(0,2).map(value=>[value.input.utteranceId,value.input.frameSequence]),[['','1'],['','2']]);
+  await waitFor(()=>session.getState().sessionUsage?.audioSeconds===4.8,'cumulative usage');
+  assert.equal(session.getState().continuousTranscripts[0].textDelta,'hello ');
+  assert.equal(fake.calls.control.length,0,'no fake commit or response start');
+  await session.appendOwnerContext('App result','sanitized-result','runtime-context');
+  assert.equal(fake.calls.append.at(-1).input.contextRequestId,'runtime-context');
+  assert.equal(session.getState().contextRequests[0].replied,true);
+  await assert.rejects(session.sendText('not a user-text transport'));
+  await assert.rejects(session.ownerControl('start-response'));
+  await session.ownerControl('mute-input');assert.equal(session.getState().inputMuted,true);
+  await session.ownerControl('unmute-input');assert.equal(session.getState().inputMuted,false);
+  await session.close();
+  assert.deepEqual(labRealtimeSessionSummary(session.getState()).audioUsage,{audioSeconds:4.8,final:true});
 });

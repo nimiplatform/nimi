@@ -19,6 +19,12 @@ enum AiRealtimeTurnDetectionMode {
   AI_REALTIME_TURN_DETECTION_MODE_MANUAL = 2;
 }
 
+enum AiRealtimeInteractionMode {
+  AI_REALTIME_INTERACTION_MODE_UNSPECIFIED = 0;
+  AI_REALTIME_INTERACTION_MODE_OWNER_CONTROLLED = 1;
+  AI_REALTIME_INTERACTION_MODE_CONTINUOUS = 2;
+}
+
 message AiRealtimeAudioFormat {
   AiRealtimeAudioCodec codec = 1;
   uint32 sample_rate_hz = 2;
@@ -32,6 +38,7 @@ message OpenRealtimeSessionRequest {
   bool audio_output_enabled = 2;
   AiRealtimeTurnDetectionMode turn_detection = 3;
   string initial_instruction = 4;
+  AiRealtimeInteractionMode interaction_mode = 5;
 }
 
 message OpenRealtimeSessionResponse {
@@ -41,6 +48,7 @@ message OpenRealtimeSessionResponse {
   AiRealtimeAudioFormat negotiated_input_audio = 4;
   AiRealtimeAudioFormat negotiated_output_audio = 5;
   RealtimeControlStatus control = 6;
+  AiRealtimeInteractionMode interaction_mode = 7;
 }
 
 message AiRealtimeTextInput {
@@ -66,6 +74,8 @@ message AiRealtimeOwnerContextInput {
   string request_id = 1;
   AiRealtimeOwnerContextKind kind = 2;
   string text = 3;
+  // Optional Runtime-issued context request, never a native delegation handle.
+  string context_request_id = 4;
 }
 
 message AppendRealtimeInputRequest {
@@ -90,6 +100,8 @@ enum AiRealtimeOwnerControlKind {
   AI_REALTIME_OWNER_CONTROL_KIND_CONTINUE_RESPONSE = 3;
   AI_REALTIME_OWNER_CONTROL_KIND_PAUSE_RESPONSE = 4;
   AI_REALTIME_OWNER_CONTROL_KIND_CANCEL_RESPONSE = 5;
+  AI_REALTIME_OWNER_CONTROL_KIND_MUTE_INPUT = 6;
+  AI_REALTIME_OWNER_CONTROL_KIND_UNMUTE_INPUT = 7;
 }
 
 message SubmitRealtimeOwnerControlRequest {
@@ -113,6 +125,7 @@ message AiRealtimeSessionOpened {
   AiRealtimeAudioFormat input_audio = 1;
   AiRealtimeAudioFormat output_audio = 2;
   AiRealtimeTurnDetectionMode turn_detection = 3;
+  AiRealtimeInteractionMode interaction_mode = 4;
 }
 
 message AiRealtimeInputAccepted {
@@ -180,6 +193,32 @@ message AiRealtimeRequestTerminal {
 
 message AiRealtimeSessionTerminal {
   ReasonCode reason_code = 1;
+  AiRealtimeSessionUsage usage = 2;
+}
+
+enum AiRealtimeTranscriptDirection {
+  AI_REALTIME_TRANSCRIPT_DIRECTION_UNSPECIFIED = 0;
+  AI_REALTIME_TRANSCRIPT_DIRECTION_INPUT = 1;
+  AI_REALTIME_TRANSCRIPT_DIRECTION_OUTPUT = 2;
+}
+
+message AiRealtimeContinuousTranscript {
+  AiRealtimeTranscriptDirection direction = 1;
+  string text_delta = 2;
+  int64 start_ms = 3;
+  int64 end_ms = 4;
+}
+
+message AiRealtimeContextRequest {
+  string context_request_id = 1;
+  int64 offset_ms = 2;
+}
+
+// Cumulative native audio duration: replace earlier observations, never sum.
+// It is neither token usage nor a charge estimate. Final requires native proof.
+message AiRealtimeSessionUsage {
+  double audio_seconds = 1;
+  bool final = 2;
 }
 
 message AiRealtimeFailure {
@@ -201,6 +240,9 @@ message AiRealtimeEvent {
     AiRealtimeRequestTerminal request_terminal = 17;
     AiRealtimeSessionTerminal session_terminal = 18;
     AiRealtimeFailure failure = 19;
+    AiRealtimeContinuousTranscript continuous_transcript = 20;
+    AiRealtimeContextRequest context_request = 21;
+    AiRealtimeSessionUsage session_usage = 22;
   }
 }
 
@@ -223,6 +265,7 @@ message CloseRealtimeSessionRequest {
 message CloseRealtimeSessionResponse {
   Ack ack = 1;
   RealtimeControlStatus control = 2;
+  AiRealtimeSessionUsage usage = 3;
 }
 
 service RuntimeAiRealtimeService {

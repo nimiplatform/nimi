@@ -98,7 +98,8 @@ func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRe
 	}
 	// This immutable expectation belongs to this Open, never the shared registry Driver.
 	openExpectation := capabilitydriver.CloudRealtimeOpen{
-		InputAudio: cloneRealtimeAudioFormat(inputFormat), AudioOutput: req.GetAudioOutputEnabled(), TurnDetection: turnDetection,
+		InteractionMode: normalizedRealtimeInteractionMode(req.GetInteractionMode()),
+		InputAudio:      cloneRealtimeAudioFormat(inputFormat), AudioOutput: req.GetAudioOutputEnabled(), TurnDetection: turnDetection,
 		InitialInstruction: req.GetInitialInstruction(), SelfIntention: agentintent.FromContext(ctx) != nil,
 	}
 	protocol, err := driver.NewSession(target, openExpectation)
@@ -132,6 +133,7 @@ func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRe
 	_ = coreStream.Transition(1, realtimecore.LifecycleReady)
 	sessionCtx, cancel := context.WithCancel(context.Background())
 	realtime := &realtimeSessionRecord{
+		interactionMode:   openExpectation.InteractionMode,
 		contextMetadata:   contextMetadata,
 		selfHandler:       agentintent.FromContext(ctx),
 		selfUsageObserver: agentintent.UsageFromContext(ctx),
@@ -153,15 +155,22 @@ func (s *Service) OpenRealtimeSession(ctx context.Context, req *runtimev1.OpenRe
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
 	opened := &runtimev1.AiRealtimeEvent{Event: &runtimev1.AiRealtimeEvent_Opened{Opened: &runtimev1.AiRealtimeSessionOpened{
-		InputAudio: cloneRealtimeAudioFormat(inputFormat), OutputAudio: cloneRealtimeAudioFormat(outputFormat), TurnDetection: turnDetection,
+		InteractionMode: openExpectation.InteractionMode,
+		InputAudio:      cloneRealtimeAudioFormat(inputFormat), OutputAudio: cloneRealtimeAudioFormat(outputFormat), TurnDetection: turnDetection,
 	}}}
 	if err := s.publishRealtimeEvent(realtime, opened); err != nil {
 		s.terminalizeRealtimeSession(realtime, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, realtimecore.TerminalOwnerFailed)
 		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	}
+	if realtime.interactionMode == runtimev1.AiRealtimeInteractionMode_AI_REALTIME_INTERACTION_MODE_CONTINUOUS && realtime.aiObservation != nil {
+		// Successful native Session readiness is the observation boundary. It
+		// is one continuous session, not an invented sequence of response turns.
+		realtime.continuousAttempt = realtime.aiObservation.Begin(realtime.aiObservationFacts)
+	}
 	go s.runRealtimeProvider(realtime)
 	control := realtimeControl(realtime, runtimev1.RealtimeLifecycle_REALTIME_LIFECYCLE_READY, runtimev1.RealtimeTerminalReason_REALTIME_TERMINAL_REASON_UNSPECIFIED, "")
 	return &runtimev1.OpenRealtimeSessionResponse{
+		InteractionMode:   openExpectation.InteractionMode,
 		RealtimeSessionId: sessionID, ChannelId: channelID, Generation: 1,
 		NegotiatedInputAudio: cloneRealtimeAudioFormat(inputFormat), NegotiatedOutputAudio: cloneRealtimeAudioFormat(outputFormat), Control: control,
 	}, nil
@@ -183,10 +192,18 @@ func validateRealtimeOpen(req *runtimev1.OpenRealtimeSessionRequest) (*runtimev1
 		return nil, nil, 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	turnDetection := req.GetTurnDetection()
-	if turnDetection == runtimev1.AiRealtimeTurnDetectionMode_AI_REALTIME_TURN_DETECTION_MODE_UNSPECIFIED {
+	mode := normalizedRealtimeInteractionMode(req.GetInteractionMode())
+	if mode != runtimev1.AiRealtimeInteractionMode_AI_REALTIME_INTERACTION_MODE_OWNER_CONTROLLED && mode != runtimev1.AiRealtimeInteractionMode_AI_REALTIME_INTERACTION_MODE_CONTINUOUS {
+		return nil, nil, 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	}
+	if mode == runtimev1.AiRealtimeInteractionMode_AI_REALTIME_INTERACTION_MODE_CONTINUOUS {
+		if turnDetection != runtimev1.AiRealtimeTurnDetectionMode_AI_REALTIME_TURN_DETECTION_MODE_UNSPECIFIED {
+			return nil, nil, 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
+	} else if turnDetection == runtimev1.AiRealtimeTurnDetectionMode_AI_REALTIME_TURN_DETECTION_MODE_UNSPECIFIED {
 		turnDetection = runtimev1.AiRealtimeTurnDetectionMode_AI_REALTIME_TURN_DETECTION_MODE_SERVER_VAD
 	}
-	if turnDetection != runtimev1.AiRealtimeTurnDetectionMode_AI_REALTIME_TURN_DETECTION_MODE_SERVER_VAD &&
+	if mode != runtimev1.AiRealtimeInteractionMode_AI_REALTIME_INTERACTION_MODE_CONTINUOUS && turnDetection != runtimev1.AiRealtimeTurnDetectionMode_AI_REALTIME_TURN_DETECTION_MODE_SERVER_VAD &&
 		turnDetection != runtimev1.AiRealtimeTurnDetectionMode_AI_REALTIME_TURN_DETECTION_MODE_MANUAL {
 		return nil, nil, 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MODALITY_NOT_SUPPORTED)
 	}
@@ -235,7 +252,7 @@ func waitRealtimeProviderReady(ctx context.Context, session interface {
 				if event.Kind == capabilitydriver.CloudRealtimeEventReady {
 					return nil
 				}
-				if event.Kind == capabilitydriver.CloudRealtimeEventFailed {
+				if event.Kind == capabilitydriver.CloudRealtimeEventFailed || event.Kind == capabilitydriver.CloudRealtimeEventSessionClosed {
 					return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 				}
 			}
@@ -272,7 +289,11 @@ func (s *Service) appendRealtimeInput(ctx context.Context, req *runtimev1.Append
 		}
 		return nil, err
 	}
-	effect, err := record.driver.Input(ulid.Make().String(), req)
+	wireRequest, err := continuousRealtimeInputRequest(record, req)
+	if err != nil {
+		return nil, err
+	}
+	effect, err := record.driver.Input(ulid.Make().String(), wireRequest)
 	if err != nil {
 		return nil, realtimeDriverError(err)
 	}
@@ -283,6 +304,7 @@ func (s *Service) appendRealtimeInput(ctx context.Context, req *runtimev1.Append
 		s.terminalizeRealtimeSession(record, reasonCodeOr(err, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE), realtimecore.TerminalOwnerFailed)
 		return nil, err
 	}
+	markContinuousContextReplied(record, req)
 	accepted := &runtimev1.AiRealtimeInputAccepted{}
 	publishAccepted := true
 	switch input := req.GetInput().(type) {
@@ -321,8 +343,11 @@ func realtimeInputAdmission(record *realtimeSessionRecord, req *runtimev1.Append
 	}
 	record.mu.Lock()
 	defer record.mu.Unlock()
-	if record.closed {
+	if record.closed || record.closing {
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REALTIME_SESSION_CLOSED)
+	}
+	if record.interactionMode == runtimev1.AiRealtimeInteractionMode_AI_REALTIME_INTERACTION_MODE_CONTINUOUS {
+		return continuousRealtimeInputAdmissionLocked(record, req, capture)
 	}
 	switch input := req.GetInput().(type) {
 	case *runtimev1.AppendRealtimeInputRequest_AudioFrame:
@@ -364,6 +389,9 @@ func realtimeInputAdmission(record *realtimeSessionRecord, req *runtimev1.Append
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 		}
 	case *runtimev1.AppendRealtimeInputRequest_OwnerContext:
+		if input.OwnerContext.GetContextRequestId() != "" {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
 		if input.OwnerContext == nil || strings.TrimSpace(input.OwnerContext.GetRequestId()) == "" || strings.TrimSpace(input.OwnerContext.GetText()) == "" ||
 			len(input.OwnerContext.GetText()) > aiRealtimeMaxTextBytes || input.OwnerContext.GetKind() == runtimev1.AiRealtimeOwnerContextKind_AI_REALTIME_OWNER_CONTEXT_KIND_UNSPECIFIED {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
@@ -378,6 +406,17 @@ func (s *Service) SubmitRealtimeOwnerControl(ctx context.Context, req *runtimev1
 	record, err := s.authorizedRealtimeRecord(ctx, req.GetRealtimeSessionId(), req.GetGeneration())
 	if err != nil {
 		return nil, err
+	}
+	if record.interactionMode == runtimev1.AiRealtimeInteractionMode_AI_REALTIME_INTERACTION_MODE_CONTINUOUS {
+		record.mu.Lock()
+		closing := record.closing || record.closed
+		record.mu.Unlock()
+		if closing {
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REALTIME_SESSION_CLOSED)
+		}
+		if req.GetControl() != runtimev1.AiRealtimeOwnerControlKind_AI_REALTIME_OWNER_CONTROL_KIND_MUTE_INPUT && req.GetControl() != runtimev1.AiRealtimeOwnerControlKind_AI_REALTIME_OWNER_CONTROL_KIND_UNMUTE_INPUT {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
 	}
 	if req == nil || strings.TrimSpace(req.GetRequestId()) == "" || req.GetControl() == runtimev1.AiRealtimeOwnerControlKind_AI_REALTIME_OWNER_CONTROL_KIND_UNSPECIFIED {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
@@ -494,6 +533,9 @@ func (s *Service) InterruptRealtimeOutput(ctx context.Context, req *runtimev1.In
 	if err != nil {
 		return nil, err
 	}
+	if record.interactionMode == runtimev1.AiRealtimeInteractionMode_AI_REALTIME_INTERACTION_MODE_CONTINUOUS {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+	}
 	if req == nil || strings.TrimSpace(req.GetOutputTrackId()) == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
@@ -568,7 +610,11 @@ func (s *Service) CloseRealtimeSession(ctx context.Context, req *runtimev1.Close
 		}
 		return nil, err
 	}
-	s.terminalizeRealtimeSession(record, runtimev1.ReasonCode_ACTION_EXECUTED, realtimecore.TerminalCancelled)
+	if record.interactionMode == runtimev1.AiRealtimeInteractionMode_AI_REALTIME_INTERACTION_MODE_CONTINUOUS {
+		s.closeContinuousRealtimeSession(ctx, record)
+	} else {
+		s.terminalizeRealtimeSession(record, runtimev1.ReasonCode_ACTION_EXECUTED, realtimecore.TerminalCancelled)
+	}
 	select {
 	case <-ctx.Done():
 		return nil, status.FromContextError(ctx.Err()).Err()
@@ -576,8 +622,9 @@ func (s *Service) CloseRealtimeSession(ctx context.Context, req *runtimev1.Close
 	}
 	record.mu.Lock()
 	control := proto.Clone(record.terminalControl).(*runtimev1.RealtimeControlStatus)
+	usage := cloneRealtimeSessionUsage(record.continuousUsage)
 	record.mu.Unlock()
-	return &runtimev1.CloseRealtimeSessionResponse{Ack: &runtimev1.Ack{Ok: true}, Control: control}, nil
+	return &runtimev1.CloseRealtimeSessionResponse{Ack: &runtimev1.Ack{Ok: true}, Control: control, Usage: usage}, nil
 }
 
 // ReplayClosedRealtimeSession is an internal owner proof for protected ingress,
@@ -606,7 +653,7 @@ func (s *Service) ReplayClosedRealtimeSession(ctx context.Context, req *runtimev
 	if sessionID != terminal.ownerSessionID {
 		return nil, false
 	}
-	return &runtimev1.CloseRealtimeSessionResponse{Ack: &runtimev1.Ack{Ok: true}, Control: terminal.control}, true
+	return &runtimev1.CloseRealtimeSessionResponse{Ack: &runtimev1.Ack{Ok: true}, Control: terminal.control, Usage: cloneRealtimeSessionUsage(terminal.usage)}, true
 }
 
 func (s *Service) runRealtimeProvider(record *realtimeSessionRecord) {
@@ -614,7 +661,13 @@ func (s *Service) runRealtimeProvider(record *realtimeSessionRecord) {
 		select {
 		case <-record.ctx.Done():
 			return
+		case <-record.ownerInvalidated:
+			s.terminalizeRealtimeSession(record, runtimev1.ReasonCode_AUTH_TOKEN_INVALID, realtimecore.TerminalOwnerFailed)
+			return
 		case err, ok := <-record.provider.Errors():
+			if s.drainRealtimeProviderEvents(record) {
+				return
+			}
 			if !ok || err == nil {
 				if s.logger != nil {
 					s.logger.Warn("AI Realtime provider error channel closed")
@@ -635,24 +688,52 @@ func (s *Service) runRealtimeProvider(record *realtimeSessionRecord) {
 				s.terminalizeRealtimeSession(record, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE, realtimecore.TerminalOwnerFailed)
 				return
 			}
-			events, err := record.driver.Normalize(raw)
-			if err != nil {
-				if s.logger != nil {
-					s.logger.Warn("AI Realtime provider event rejected", "error", err)
-				}
-				s.terminalizeRealtimeSession(record, runtimev1.ReasonCode_AI_OUTPUT_INVALID, realtimecore.TerminalOwnerFailed)
+			if s.processRealtimeProviderWire(record, raw) {
 				return
-			}
-			for _, event := range events {
-				if s.projectRealtimeProviderEvent(record, event) {
-					return
-				}
 			}
 		}
 	}
 }
 
+// Transport termination follows already received wire events. Consume them in
+// order before classifying a disconnect, so a buffered native final receipt is
+// not lost to a select race between the data and error channels.
+func (s *Service) drainRealtimeProviderEvents(record *realtimeSessionRecord) bool {
+	for {
+		select {
+		case raw, ok := <-record.provider.Events():
+			if !ok {
+				return false
+			}
+			if s.processRealtimeProviderWire(record, raw) {
+				return true
+			}
+		default:
+			return false
+		}
+	}
+}
+func (s *Service) processRealtimeProviderWire(record *realtimeSessionRecord, raw []byte) bool {
+	events, err := record.driver.Normalize(raw)
+	if err != nil {
+		if s.logger != nil {
+			s.logger.Warn("AI Realtime provider event rejected", "error", err)
+		}
+		s.terminalizeRealtimeSession(record, runtimev1.ReasonCode_AI_OUTPUT_INVALID, realtimecore.TerminalOwnerFailed)
+		return true
+	}
+	for _, event := range events {
+		if s.projectRealtimeProviderEvent(record, event) {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Service) projectRealtimeProviderEvent(record *realtimeSessionRecord, source capabilitydriver.CloudRealtimeEvent) bool {
+	if record.interactionMode == runtimev1.AiRealtimeInteractionMode_AI_REALTIME_INTERACTION_MODE_CONTINUOUS {
+		return s.projectContinuousRealtimeEvent(record, source)
+	}
 	if source.ProviderResponseID != "" {
 		record.mu.Lock()
 		_, known := record.requestsByResponse[source.ProviderResponseID]
@@ -1218,6 +1299,10 @@ func (s *Service) terminalizeRealtimeSession(record *realtimeSessionRecord, reas
 		lifecycle = runtimev1.RealtimeLifecycle_REALTIME_LIFECYCLE_CLOSED
 		terminalReason = runtimev1.RealtimeTerminalReason_REALTIME_TERMINAL_REASON_CANCELLED
 	}
+	if terminal == realtimecore.TerminalCompleted {
+		lifecycle = runtimev1.RealtimeLifecycle_REALTIME_LIFECYCLE_CLOSED
+		terminalReason = runtimev1.RealtimeTerminalReason_REALTIME_TERMINAL_REASON_COMPLETED
+	}
 	if terminal == realtimecore.TerminalRuntimeShutdown {
 		terminalReason = runtimev1.RealtimeTerminalReason_REALTIME_TERMINAL_REASON_RUNTIME_SHUTDOWN
 	}
@@ -1230,7 +1315,7 @@ func (s *Service) terminalizeRealtimeSession(record *realtimeSessionRecord, reas
 	}
 	event := &runtimev1.AiRealtimeEvent{
 		Control: realtimeControlLocked(record, sequence, lifecycle, terminalReason, ""),
-		Event:   &runtimev1.AiRealtimeEvent_SessionTerminal{SessionTerminal: &runtimev1.AiRealtimeSessionTerminal{ReasonCode: reason}},
+		Event:   &runtimev1.AiRealtimeEvent_SessionTerminal{SessionTerminal: &runtimev1.AiRealtimeSessionTerminal{ReasonCode: reason, Usage: cloneRealtimeSessionUsage(record.continuousUsage)}},
 	}
 	record.mu.Unlock()
 	markRealtimeAIObservationUnknown(record)
@@ -1334,6 +1419,9 @@ func cloneRealtimeAudioFormat(value *runtimev1.AiRealtimeAudioFormat) *runtimev1
 func realtimeDriverError(err error) error {
 	if err == nil {
 		return nil
+	}
+	if _, typed := grpcerr.ExtractReasonCode(err); typed {
+		return err
 	}
 	var formatError *capabilitydriver.RealtimeInputFormatError
 	if errors.As(err, &formatError) && (formatError.ExpectedSampleRateHz == 16000 || formatError.ExpectedSampleRateHz == 24000) {

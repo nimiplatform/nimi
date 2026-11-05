@@ -14,6 +14,12 @@ export enum AiRealtimeAudioCodec {
   PCM_S16LE = 1,
 }
 
+export enum AiRealtimeInteractionMode {
+  UNSPECIFIED = 0,
+  OWNER_CONTROLLED = 1,
+  CONTINUOUS = 2,
+}
+
 export enum AiRealtimeOutputTrackLifecycle {
   UNSPECIFIED = 0,
   ACTIVE = 1,
@@ -36,12 +42,20 @@ export enum AiRealtimeOwnerControlKind {
   CONTINUE_RESPONSE = 3,
   PAUSE_RESPONSE = 4,
   CANCEL_RESPONSE = 5,
+  MUTE_INPUT = 6,
+  UNMUTE_INPUT = 7,
 }
 
 export enum AiRealtimeSpeechState {
   UNSPECIFIED = 0,
   STARTED = 1,
   STOPPED = 2,
+}
+
+export enum AiRealtimeTranscriptDirection {
+  UNSPECIFIED = 0,
+  INPUT = 1,
+  OUTPUT = 2,
 }
 
 export enum AiRealtimeTurnDetectionMode {
@@ -350,6 +364,7 @@ export enum RealtimeTerminalReason {
   RUNTIME_SHUTDOWN = 9,
   STALE_GENERATION = 10,
   OWNER_FAILED = 11,
+  COMPLETED = 12,
 }
 
 export enum ReasoningActivation {

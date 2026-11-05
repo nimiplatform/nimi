@@ -63,6 +63,9 @@ fn generate_runtime_proto_client() {
         let full = proto_root.join(relative);
         println!("cargo:rerun-if-changed={}", full.display());
     }
+    for relative in ["runtime/v1/ai_realtime.proto", "runtime/v1/realtime_control.proto"] {
+        println!("cargo:rerun-if-changed={}", proto_root.join(relative).display());
+    }
     println!(
         "cargo:rerun-if-changed={}",
         proto_root

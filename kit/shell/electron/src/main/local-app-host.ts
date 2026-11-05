@@ -1575,7 +1575,7 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
   }
 
   aiRealtimeOpen(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
-    return invokeRecord(() => this.binding.localAppAiRealtimeOpen(input));
+    return invokeRecord(() => this.binding.localAppAiRealtimeOpen(presentNativeFields(input)));
   }
   videoSessionOpen(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return invokeRecord(() => this.binding.localAppVideoSessionOpen(input)); }
   videoSessionSubmit(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> { return invokeRecord(() => this.binding.localAppVideoSessionSubmit(input)); }

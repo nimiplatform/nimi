@@ -199,7 +199,11 @@ export enum RealtimeTerminalReason {
     /**
      * @generated from protobuf enum value: REALTIME_TERMINAL_REASON_OWNER_FAILED = 11;
      */
-    OWNER_FAILED = 11
+    OWNER_FAILED = 11,
+    /**
+     * @generated from protobuf enum value: REALTIME_TERMINAL_REASON_COMPLETED = 12;
+     */
+    COMPLETED = 12
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class RealtimeControlStatus$Type extends MessageType<RealtimeControlStatus> {

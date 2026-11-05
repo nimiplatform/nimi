@@ -44,6 +44,12 @@ type CloudRealtimeProtocol interface {
 	Close()
 }
 
+// A native session-level close is separate from response/track cancellation.
+// Finalization arrives as an observed SessionClosed event, never a local ACK.
+type CloudRealtimeSessionCloser interface {
+	CloseWire(string) ([]byte, error)
+}
+
 type realtimeWireMapper interface {
 	SelfIntentionTools(bool) []any
 	SelfIntentionToolsUpdate(string, bool, runtimev1.AiRealtimeTurnDetectionMode) ([]byte, error)
@@ -82,9 +88,18 @@ func newRealtimeWireSession(mapper realtimeWireMapper, target CloudRealtimeTarge
 }
 
 func (dashScopeRealtimeDriver) NewSession(target CloudRealtimeTarget, open CloudRealtimeOpen) (CloudRealtimeProtocol, error) {
+	if open.InteractionMode == runtimev1.AiRealtimeInteractionMode_AI_REALTIME_INTERACTION_MODE_CONTINUOUS {
+		return nil, continuousRealtimeUnsupported()
+	}
 	return newRealtimeWireSession(dashScopeRealtimeDriver{}, target, open), nil
 }
 func (openAIRealtimeDriver) NewSession(target CloudRealtimeTarget, open CloudRealtimeOpen) (CloudRealtimeProtocol, error) {
+	if target.ProviderModelID() == OpenAILiveModel {
+		return newOpenAILiveSession(target, open)
+	}
+	if open.InteractionMode == runtimev1.AiRealtimeInteractionMode_AI_REALTIME_INTERACTION_MODE_CONTINUOUS {
+		return nil, continuousRealtimeUnsupported()
+	}
 	return newRealtimeWireSession(openAIRealtimeDriver{}, target, open), nil
 }
 func (s *realtimeWireSession) Transport() CloudRealtimeTransport {

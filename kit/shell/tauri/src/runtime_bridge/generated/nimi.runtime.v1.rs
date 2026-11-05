@@ -20491,6 +20491,7 @@ pub enum RealtimeTerminalReason {
     RuntimeShutdown = 9,
     StaleGeneration = 10,
     OwnerFailed = 11,
+    Completed = 12,
 }
 impl RealtimeTerminalReason {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -20511,6 +20512,7 @@ impl RealtimeTerminalReason {
             Self::RuntimeShutdown => "REALTIME_TERMINAL_REASON_RUNTIME_SHUTDOWN",
             Self::StaleGeneration => "REALTIME_TERMINAL_REASON_STALE_GENERATION",
             Self::OwnerFailed => "REALTIME_TERMINAL_REASON_OWNER_FAILED",
+            Self::Completed => "REALTIME_TERMINAL_REASON_COMPLETED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -20530,6 +20532,7 @@ impl RealtimeTerminalReason {
             "REALTIME_TERMINAL_REASON_RUNTIME_SHUTDOWN" => Some(Self::RuntimeShutdown),
             "REALTIME_TERMINAL_REASON_STALE_GENERATION" => Some(Self::StaleGeneration),
             "REALTIME_TERMINAL_REASON_OWNER_FAILED" => Some(Self::OwnerFailed),
+            "REALTIME_TERMINAL_REASON_COMPLETED" => Some(Self::Completed),
             _ => None,
         }
     }
@@ -20557,6 +20560,8 @@ pub struct OpenRealtimeSessionRequest {
     pub turn_detection: i32,
     #[prost(string, tag = "4")]
     pub initial_instruction: ::prost::alloc::string::String,
+    #[prost(enumeration = "AiRealtimeInteractionMode", tag = "5")]
+    pub interaction_mode: i32,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct OpenRealtimeSessionResponse {
@@ -20572,6 +20577,8 @@ pub struct OpenRealtimeSessionResponse {
     pub negotiated_output_audio: ::core::option::Option<AiRealtimeAudioFormat>,
     #[prost(message, optional, tag = "6")]
     pub control: ::core::option::Option<RealtimeControlStatus>,
+    #[prost(enumeration = "AiRealtimeInteractionMode", tag = "7")]
+    pub interaction_mode: i32,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AiRealtimeTextInput {
@@ -20599,6 +20606,9 @@ pub struct AiRealtimeOwnerContextInput {
     pub kind: i32,
     #[prost(string, tag = "3")]
     pub text: ::prost::alloc::string::String,
+    /// Optional Runtime-issued context request, never a native delegation handle.
+    #[prost(string, tag = "4")]
+    pub context_request_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AppendRealtimeInputRequest {
@@ -20661,6 +20671,8 @@ pub struct AiRealtimeSessionOpened {
     pub output_audio: ::core::option::Option<AiRealtimeAudioFormat>,
     #[prost(enumeration = "AiRealtimeTurnDetectionMode", tag = "3")]
     pub turn_detection: i32,
+    #[prost(enumeration = "AiRealtimeInteractionMode", tag = "4")]
+    pub interaction_mode: i32,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AiRealtimeInputAccepted {
@@ -20739,10 +20751,39 @@ pub struct AiRealtimeRequestTerminal {
     #[prost(enumeration = "ReasonCode", tag = "4")]
     pub reason_code: i32,
 }
-#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
 pub struct AiRealtimeSessionTerminal {
     #[prost(enumeration = "ReasonCode", tag = "1")]
     pub reason_code: i32,
+    #[prost(message, optional, tag = "2")]
+    pub usage: ::core::option::Option<AiRealtimeSessionUsage>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiRealtimeContinuousTranscript {
+    #[prost(enumeration = "AiRealtimeTranscriptDirection", tag = "1")]
+    pub direction: i32,
+    #[prost(string, tag = "2")]
+    pub text_delta: ::prost::alloc::string::String,
+    #[prost(int64, tag = "3")]
+    pub start_ms: i64,
+    #[prost(int64, tag = "4")]
+    pub end_ms: i64,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiRealtimeContextRequest {
+    #[prost(string, tag = "1")]
+    pub context_request_id: ::prost::alloc::string::String,
+    #[prost(int64, tag = "2")]
+    pub offset_ms: i64,
+}
+/// Cumulative native audio duration: replace earlier observations, never sum.
+/// It is neither token usage nor a charge estimate. Final requires native proof.
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct AiRealtimeSessionUsage {
+    #[prost(double, tag = "1")]
+    pub audio_seconds: f64,
+    #[prost(bool, tag = "2")]
+    pub r#final: bool,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AiRealtimeFailure {
@@ -20753,19 +20794,19 @@ pub struct AiRealtimeFailure {
     #[prost(enumeration = "ReasonCode", tag = "3")]
     pub reason_code: i32,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct AiRealtimeEvent {
     #[prost(message, optional, tag = "1")]
     pub control: ::core::option::Option<RealtimeControlStatus>,
     #[prost(
         oneof = "ai_realtime_event::Event",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22"
     )]
     pub event: ::core::option::Option<ai_realtime_event::Event>,
 }
 /// Nested message and enum types in `AiRealtimeEvent`.
 pub mod ai_realtime_event {
-    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    #[derive(Clone, PartialEq, ::prost::Oneof)]
     pub enum Event {
         #[prost(message, tag = "10")]
         Opened(super::AiRealtimeSessionOpened),
@@ -20787,6 +20828,12 @@ pub mod ai_realtime_event {
         SessionTerminal(super::AiRealtimeSessionTerminal),
         #[prost(message, tag = "19")]
         Failure(super::AiRealtimeFailure),
+        #[prost(message, tag = "20")]
+        ContinuousTranscript(super::AiRealtimeContinuousTranscript),
+        #[prost(message, tag = "21")]
+        ContextRequest(super::AiRealtimeContextRequest),
+        #[prost(message, tag = "22")]
+        SessionUsage(super::AiRealtimeSessionUsage),
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -20812,12 +20859,14 @@ pub struct CloseRealtimeSessionRequest {
     #[prost(uint64, tag = "2")]
     pub generation: u64,
 }
-#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct CloseRealtimeSessionResponse {
     #[prost(message, optional, tag = "1")]
     pub ack: ::core::option::Option<Ack>,
     #[prost(message, optional, tag = "2")]
     pub control: ::core::option::Option<RealtimeControlStatus>,
+    #[prost(message, optional, tag = "3")]
+    pub usage: ::core::option::Option<AiRealtimeSessionUsage>,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -20876,6 +20925,37 @@ impl AiRealtimeTurnDetectionMode {
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
+pub enum AiRealtimeInteractionMode {
+    Unspecified = 0,
+    OwnerControlled = 1,
+    Continuous = 2,
+}
+impl AiRealtimeInteractionMode {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AI_REALTIME_INTERACTION_MODE_UNSPECIFIED",
+            Self::OwnerControlled => "AI_REALTIME_INTERACTION_MODE_OWNER_CONTROLLED",
+            Self::Continuous => "AI_REALTIME_INTERACTION_MODE_CONTINUOUS",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AI_REALTIME_INTERACTION_MODE_UNSPECIFIED" => Some(Self::Unspecified),
+            "AI_REALTIME_INTERACTION_MODE_OWNER_CONTROLLED" => {
+                Some(Self::OwnerControlled)
+            }
+            "AI_REALTIME_INTERACTION_MODE_CONTINUOUS" => Some(Self::Continuous),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
 pub enum AiRealtimeOwnerContextKind {
     Unspecified = 0,
     Instruction = 1,
@@ -20917,6 +20997,8 @@ pub enum AiRealtimeOwnerControlKind {
     ContinueResponse = 3,
     PauseResponse = 4,
     CancelResponse = 5,
+    MuteInput = 6,
+    UnmuteInput = 7,
 }
 impl AiRealtimeOwnerControlKind {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -20931,6 +21013,8 @@ impl AiRealtimeOwnerControlKind {
             Self::ContinueResponse => "AI_REALTIME_OWNER_CONTROL_KIND_CONTINUE_RESPONSE",
             Self::PauseResponse => "AI_REALTIME_OWNER_CONTROL_KIND_PAUSE_RESPONSE",
             Self::CancelResponse => "AI_REALTIME_OWNER_CONTROL_KIND_CANCEL_RESPONSE",
+            Self::MuteInput => "AI_REALTIME_OWNER_CONTROL_KIND_MUTE_INPUT",
+            Self::UnmuteInput => "AI_REALTIME_OWNER_CONTROL_KIND_UNMUTE_INPUT",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -20946,6 +21030,8 @@ impl AiRealtimeOwnerControlKind {
             "AI_REALTIME_OWNER_CONTROL_KIND_CANCEL_RESPONSE" => {
                 Some(Self::CancelResponse)
             }
+            "AI_REALTIME_OWNER_CONTROL_KIND_MUTE_INPUT" => Some(Self::MuteInput),
+            "AI_REALTIME_OWNER_CONTROL_KIND_UNMUTE_INPUT" => Some(Self::UnmuteInput),
             _ => None,
         }
     }
@@ -21010,6 +21096,35 @@ impl AiRealtimeOutputTrackLifecycle {
             "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_INTERRUPTED" => Some(Self::Interrupted),
             "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_COMPLETED" => Some(Self::Completed),
             "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_FAILED" => Some(Self::Failed),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum AiRealtimeTranscriptDirection {
+    Unspecified = 0,
+    Input = 1,
+    Output = 2,
+}
+impl AiRealtimeTranscriptDirection {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "AI_REALTIME_TRANSCRIPT_DIRECTION_UNSPECIFIED",
+            Self::Input => "AI_REALTIME_TRANSCRIPT_DIRECTION_INPUT",
+            Self::Output => "AI_REALTIME_TRANSCRIPT_DIRECTION_OUTPUT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "AI_REALTIME_TRANSCRIPT_DIRECTION_UNSPECIFIED" => Some(Self::Unspecified),
+            "AI_REALTIME_TRANSCRIPT_DIRECTION_INPUT" => Some(Self::Input),
+            "AI_REALTIME_TRANSCRIPT_DIRECTION_OUTPUT" => Some(Self::Output),
             _ => None,
         }
     }

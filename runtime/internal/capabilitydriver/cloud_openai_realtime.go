@@ -32,7 +32,7 @@ func (openAIRealtimeDriver) ValidateTarget(identity Identity, raw *structpb.Stru
 	provider, providerOK := exactCloudTargetText(raw, "provider")
 	model, modelOK := exactCloudTargetText(raw, "providerModelId")
 	catalogID, catalogOK := exactCloudTargetText(raw, "remoteModelCatalogId")
-	if !providerOK || provider != "openai" || !modelOK || model != "gpt-realtime-2.1" || !catalogOK {
+	if !providerOK || provider != "openai" || !modelOK || (model != "gpt-realtime-2.1" && model != OpenAILiveModel) || !catalogOK {
 		return invalid()
 	}
 	return CloudRealtimeTarget{provider: provider, providerModelID: model, remoteModelCatalogID: catalogID}, nil

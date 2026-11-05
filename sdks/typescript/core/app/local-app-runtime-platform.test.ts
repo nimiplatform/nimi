@@ -615,7 +615,7 @@ test('all formal Apps receive one closed AI and Agent Realtime SDK contract', as
         open: async (input) => {
           calls.push(['ai.open', input]);
           return {
-            realtimeSessionId: 'realtime-1', channelId: 'channel-1', generation: '1',
+            realtimeSessionId: 'realtime-1', channelId: 'channel-1', generation: '1', interactionMode: 'owner-controlled',
             negotiatedInputAudio: { codec: 'pcm-s16le', sampleRateHz: 16000, channelCount: 1, frameDurationMs: 20, maximumFrameBytes: 640 },
             negotiatedOutputAudio: { codec: 'pcm-s16le', sampleRateHz: 24000, channelCount: 1, frameDurationMs: 20, maximumFrameBytes: 960 },
             control,

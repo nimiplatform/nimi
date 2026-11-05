@@ -28,6 +28,7 @@ func (t CloudRealtimeTarget) RemoteModelCatalogID() string { return t.remoteMode
 func (t CloudRealtimeTarget) Region() string               { return t.region }
 
 type CloudRealtimeOpen struct {
+	InteractionMode    runtimev1.AiRealtimeInteractionMode
 	SelfIntention      bool
 	InputAudio         *runtimev1.AiRealtimeAudioFormat
 	AudioOutput        bool
@@ -61,6 +62,10 @@ const (
 	CloudRealtimeEventSelfIntention
 	CloudRealtimeEventResponseDone
 	CloudRealtimeEventFailed
+	CloudRealtimeEventContinuousTranscript
+	CloudRealtimeEventContextRequest
+	CloudRealtimeEventSessionUsage
+	CloudRealtimeEventSessionClosed
 )
 
 type CloudRealtimeResponseStatus uint8
@@ -72,6 +77,13 @@ const (
 )
 
 type CloudRealtimeEvent struct {
+	ProviderSessionID   string
+	ProviderContextID   string
+	TranscriptDirection runtimev1.AiRealtimeTranscriptDirection
+	StartMS, EndMS      int64
+	OffsetMS            int64
+	SessionAudioSeconds *float64
+	SessionCloseReason  string
 	CallID              string
 	Kind                CloudRealtimeEventKind
 	ProviderResponseID  string

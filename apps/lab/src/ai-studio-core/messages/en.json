@@ -473,7 +473,9 @@
       "nothingObserved": "No results were observed.",
       "notRestorable": "A closed Session cannot be restored. Open a new Session to run it again.",
       "stateClosed": "Closed",
-      "stateTerminated": "Terminated"
+      "stateTerminated": "Terminated",
+      "audioUsageFinal": "Final reported cumulative audio: {{seconds}} s. This is not a token count or price estimate.",
+      "audioUsagePartial": "Reported cumulative audio so far: {{seconds}} s; finalization is unconfirmed."
     },
     "faceSwap": {
       "inputs": "Face replacement inputs",

@@ -1,6 +1,6 @@
 version: 1
 provider: openai
-catalog_version: 2026-11-04-openai-terra-responses
+catalog_version: 2026-11-05-openai-live-and-image26
 inventory_mode: static_source
 default_text_model: gpt-5.6-sol
 models:
@@ -130,6 +130,23 @@ models:
       retrieved_at: 2026-10-21
       note: Exact model card supplies 128000 total context and 32000 maximum output; the reviewed request-capacity floor leaves room for the maximum output. Session Open still confirms account access.
     context_window_tokens: 96000
+  - model_id: gpt-live-1
+    provider: openai
+    model_type: chat
+    updated_at: 2026-11-05
+    capabilities:
+      - realtime.interact
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-05
+      notes: Requires explicit continuous mode with 24 kHz PCM audio output and client-owned context. Native cumulative audio seconds are preserved without token or cost estimates; owner-controlled turns and automatic backend delegation are not admitted.
+    source_ref:
+      url: https://developers.openai.com/api/docs/models/gpt-live-1
+      retrieved_at: 2026-11-05
+      note: Exact full-duplex gpt-live-1 target, native session-duration usage and independent backend delegation.
   - model_id: gpt-4o-mini-tts
     provider: openai
     model_type: tts

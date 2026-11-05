@@ -13,6 +13,7 @@ import {
 import {
   AiRealtimeAudioCodec,
   AiRealtimeTurnDetectionMode,
+  AiRealtimeInteractionMode,
 } from '../../core-generated/runtime-protobuf/runtime/v1/ai_realtime.js';
 import { createNimiLocalAppAIConsumptionRuntimeClient } from './local-app-runtime-platform-ai.js';
 import { createNimiAiRealtimeRuntimeClient } from './local-app-runtime-platform-direct-ai-realtime.js';
@@ -130,6 +131,7 @@ test('formal AI Realtime runtime adapter preserves typed owner input and safe pr
       openRequest = request;
       return {
         realtimeSessionId: 'realtime-1', channelId: 'channel-1', generation: '1',
+        interactionMode: AiRealtimeInteractionMode.OWNER_CONTROLLED,
         negotiatedInputAudio: request.inputAudio,
         negotiatedOutputAudio: undefined,
         control,
@@ -158,6 +160,7 @@ test('formal AI Realtime runtime adapter preserves typed owner input and safe pr
     initialInstruction: '',
   });
   assert.deepEqual(openRequest, {
+    interactionMode: AiRealtimeInteractionMode.OWNER_CONTROLLED,
     inputAudio: { ...audio, codec: AiRealtimeAudioCodec.PCM_S16LE },
     audioOutputEnabled: false,
     turnDetection: AiRealtimeTurnDetectionMode.MANUAL,
@@ -171,7 +174,7 @@ test('formal AI Realtime runtime adapter preserves typed owner input and safe pr
     realtimeSessionId: 'realtime-1', generation: '1',
     input: {
       oneofKind: 'ownerContext',
-      ownerContext: { requestId: 'request-1', kind: 3, text: 'safe' },
+      ownerContext: { requestId: 'request-1', kind: 3, text: 'safe', contextRequestId: '' },
     },
   });
 });

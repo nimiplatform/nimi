@@ -530,9 +530,10 @@ pub struct NativeAppActivityOpenRequestCompleteInput {
 
 #[napi(object)]
 pub struct NativeAiRealtimeOpenInput {
+    pub interaction_mode: Option<String>,
     pub input_audio: JsonValue,
     pub audio_output_enabled: bool,
-    pub turn_detection: String,
+    pub turn_detection: Option<String>,
     pub initial_instruction: String,
 }
 

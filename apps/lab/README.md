@@ -59,7 +59,7 @@ Every canonical AI capability has a formal Lab entry that invokes the SDK Local 
 | **Session Hook** | `text.generate` | Multi-turn dialogue using Kit's `useAppAiChatSession({ model })` hook. The App builds request history directly from completed exchanges and respects Runtime compatibility boundaries. |
 | **Image Face Swap** | `image.face_swap` | Uploads reference and target images as App-owned artifacts; validates output PNG and records file metadata (name, MIME, size, digest) per role. |
 | **Video Face Swap** | `video.face_swap` | Finite MP4 job with an explicit no-face policy, plus a real-time frame session test (fixed 1280×720 RGB8 frames). |
-| **Realtime Interaction** | `realtime.interact` | Direct App session bypassing agent layers: validates 16 kHz mono PCM S16LE audio streaming, microphone input, and lifecycle events. |
+| **Realtime Interaction** | `realtime.interact` | Direct App session with explicit owner-controlled or continuous mode. Uses the negotiated 16/24 kHz mono PCM tuple, microphone or paced recording input, typed lifecycle events and bounded continuous transcript fragments. Continuous context requests require caller-prepared context/results; no backend calls run automatically. |
 
 The Conversation and Session Hook entries preserve original records and native continuity. Native replay may contain plaintext reasoning; preserve its bytes without interpreting or displaying them, and do not treat the carrier as an encryption guarantee. Model switching waits for the active turn to settle, saves a context boundary, and uses the current Runtime compatibility facts; media or capacity mismatches fail explicitly rather than silently dropping history.
 

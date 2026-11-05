@@ -1246,6 +1246,7 @@ pub type LocalAppConversationSubscriptionReceiver =
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct LocalAppAiRealtimeOpenRequest {
+    pub interaction_mode: String,
     pub input_audio: JsonValue,
     pub audio_output_enabled: bool,
     pub turn_detection: String,

@@ -30,7 +30,7 @@ func TestAiRealtimePublicWireIsNeutralAndClosed(t *testing.T) {
 		}
 	}
 	event := (&runtimev1.AiRealtimeEvent{}).ProtoReflect().Descriptor()
-	if event.Oneofs().Len() != 1 || event.Oneofs().Get(0).Fields().Len() != 10 {
+	if event.Oneofs().Len() != 1 || event.Oneofs().Get(0).Fields().Len() != 13 {
 		t.Fatalf("Realtime event union = oneofs:%d variants:%d", event.Oneofs().Len(), event.Oneofs().Get(0).Fields().Len())
 	}
 	for _, forbidden := range []string{"kind", "payload", "unknown", "agent_id", "conversation_id", "turn_id"} {

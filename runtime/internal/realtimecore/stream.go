@@ -43,6 +43,7 @@ const (
 	TerminalStaleGeneration TerminalReason = "stale_generation"
 	TerminalRuntimeShutdown TerminalReason = "runtime_shutdown"
 	TerminalOwnerFailed     TerminalReason = "owner_failed"
+	TerminalCompleted       TerminalReason = "completed"
 )
 
 type Config struct {
@@ -200,7 +201,7 @@ func (s *Stream[T]) Close(generation uint64, reason TerminalReason) error {
 		reason = TerminalCancelled
 	}
 	s.terminal = reason
-	if reason == TerminalCancelled || reason == TerminalRuntimeShutdown {
+	if reason == TerminalCancelled || reason == TerminalRuntimeShutdown || reason == TerminalCompleted {
 		s.lifecycle = LifecycleClosed
 	} else {
 		s.lifecycle = LifecycleFailed
@@ -239,7 +240,7 @@ func (s *Stream[T]) PublishTerminal(generation uint64, value T, reason TerminalR
 			close(s.queue)
 			s.terminal = reason
 			s.terminalPending = false
-			if reason == TerminalCancelled || reason == TerminalRuntimeShutdown {
+			if reason == TerminalCancelled || reason == TerminalRuntimeShutdown || reason == TerminalCompleted {
 				s.lifecycle = LifecycleClosed
 			} else {
 				s.lifecycle = LifecycleFailed

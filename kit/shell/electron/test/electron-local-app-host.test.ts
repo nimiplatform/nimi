@@ -9,6 +9,23 @@ import {
 } from '../src/main/local-app-host.js';
 
 describe('Electron protected local-app host', () => {
+  it('omits the continuous turn detector at the native boundary and preserves typed mode rejection', async () => {
+    let invalidations = 0;
+    const host = createNimiElectronLocalAppHostForBinding({ ...binding([]),
+      localAppAiRealtimeOpen: async (input) => {
+        // N-API optional String properties accept omission, not an explicit null.
+        expect(Object.hasOwn(input, 'turnDetection')).toBe(false);
+        expect(input.interactionMode).toBe('continuous');
+        return { status: 'error' as const, reasonCode: 'ai-media-option-unsupported', retryable: false };
+      },
+    }, () => { invalidations++; });
+    await expect(host.aiRealtimeOpen({ interactionMode: 'continuous', turnDetection: null,
+      inputAudio: { codec: 'pcm-s16le', sampleRateHz: 24000, channelCount: 1, frameDurationMs: 20, maximumFrameBytes: 960 },
+      audioOutputEnabled: true, initialInstruction: 'A concise conversation.',
+    })).rejects.toMatchObject({ reasonCode: 'ai-media-option-unsupported' });
+    expect(invalidations).toBe(0);
+    await expect(host.sessionStatus()).resolves.toMatchObject({ state: 'ready' });
+  });
   it('carries explicit context selection and preserves conflicts without session reset or retry', async () => {
     const calls: Array<{ method: string; input?: unknown }> = [];
     const host = createNimiElectronLocalAppHostForBinding(binding(calls));

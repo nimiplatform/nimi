@@ -7665,6 +7665,8 @@
       "AiRealtimeAudioFormat",
       "AiRealtimeAudioFrameInput",
       "AiRealtimeAudioFrameOutput",
+      "AiRealtimeContextRequest",
+      "AiRealtimeContinuousTranscript",
       "AiRealtimeEvent",
       "AiRealtimeFailure",
       "AiRealtimeInputAccepted",
@@ -7673,6 +7675,7 @@
       "AiRealtimeRequestTerminal",
       "AiRealtimeSessionOpened",
       "AiRealtimeSessionTerminal",
+      "AiRealtimeSessionUsage",
       "AiRealtimeSpeechStatus",
       "AiRealtimeTextInput",
       "AiRealtimeTextOutput",
@@ -8739,10 +8742,12 @@
       "AgentTurnContextTruncationReason",
       "AgentVoiceTimingPhase",
       "AiRealtimeAudioCodec",
+      "AiRealtimeInteractionMode",
       "AiRealtimeOutputTrackLifecycle",
       "AiRealtimeOwnerContextKind",
       "AiRealtimeOwnerControlKind",
       "AiRealtimeSpeechState",
+      "AiRealtimeTranscriptDirection",
       "AiRealtimeTurnDetectionMode",
       "AiVideoPixelFormat",
       "AppActivityChangeKind",
@@ -11778,6 +11783,60 @@
         "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
+        "name": "AiRealtimeContextRequest",
+        "fields": [
+          {
+            "name": "context_request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "offset_ms",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "AiRealtimeContinuousTranscript",
+        "fields": [
+          {
+            "name": "direction",
+            "type": "AiRealtimeTranscriptDirection",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "text_delta",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "start_ms",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "end_ms",
+            "type": "int64",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
         "name": "AiRealtimeEvent",
         "fields": [
           {
@@ -11856,6 +11915,27 @@
             "repeated": false,
             "optional": false,
             "number": 19
+          },
+          {
+            "name": "continuous_transcript",
+            "type": "AiRealtimeContinuousTranscript",
+            "repeated": false,
+            "optional": false,
+            "number": 20
+          },
+          {
+            "name": "context_request",
+            "type": "AiRealtimeContextRequest",
+            "repeated": false,
+            "optional": false,
+            "number": 21
+          },
+          {
+            "name": "session_usage",
+            "type": "AiRealtimeSessionUsage",
+            "repeated": false,
+            "optional": false,
+            "number": 22
           }
         ],
         "source_file": "proto/runtime/v1/ai_realtime.proto"
@@ -11978,6 +12058,13 @@
             "repeated": false,
             "optional": false,
             "number": 3
+          },
+          {
+            "name": "context_request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/ai_realtime.proto"
@@ -12039,6 +12126,13 @@
             "repeated": false,
             "optional": false,
             "number": 3
+          },
+          {
+            "name": "interaction_mode",
+            "type": "AiRealtimeInteractionMode",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/ai_realtime.proto"
@@ -12052,6 +12146,33 @@
             "repeated": false,
             "optional": false,
             "number": 1
+          },
+          {
+            "name": "usage",
+            "type": "AiRealtimeSessionUsage",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "AiRealtimeSessionUsage",
+        "fields": [
+          {
+            "name": "audio_seconds",
+            "type": "double",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "final",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
           }
         ],
         "source_file": "proto/runtime/v1/ai_realtime.proto"
@@ -15854,6 +15975,13 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "usage",
+            "type": "AiRealtimeSessionUsage",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/ai_realtime.proto"
@@ -35217,6 +35345,13 @@
             "repeated": false,
             "optional": false,
             "number": 4
+          },
+          {
+            "name": "interaction_mode",
+            "type": "AiRealtimeInteractionMode",
+            "repeated": false,
+            "optional": false,
+            "number": 5
           }
         ],
         "source_file": "proto/runtime/v1/ai_realtime.proto"
@@ -35265,6 +35400,13 @@
             "repeated": false,
             "optional": false,
             "number": 6
+          },
+          {
+            "name": "interaction_mode",
+            "type": "AiRealtimeInteractionMode",
+            "repeated": false,
+            "optional": false,
+            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/ai_realtime.proto"
@@ -47248,6 +47390,15 @@
         "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
+        "name": "AiRealtimeInteractionMode",
+        "values": [
+          "AI_REALTIME_INTERACTION_MODE_UNSPECIFIED",
+          "AI_REALTIME_INTERACTION_MODE_OWNER_CONTROLLED",
+          "AI_REALTIME_INTERACTION_MODE_CONTINUOUS"
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
         "name": "AiRealtimeOutputTrackLifecycle",
         "values": [
           "AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_UNSPECIFIED",
@@ -47276,7 +47427,9 @@
           "AI_REALTIME_OWNER_CONTROL_KIND_START_RESPONSE",
           "AI_REALTIME_OWNER_CONTROL_KIND_CONTINUE_RESPONSE",
           "AI_REALTIME_OWNER_CONTROL_KIND_PAUSE_RESPONSE",
-          "AI_REALTIME_OWNER_CONTROL_KIND_CANCEL_RESPONSE"
+          "AI_REALTIME_OWNER_CONTROL_KIND_CANCEL_RESPONSE",
+          "AI_REALTIME_OWNER_CONTROL_KIND_MUTE_INPUT",
+          "AI_REALTIME_OWNER_CONTROL_KIND_UNMUTE_INPUT"
         ],
         "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
@@ -47286,6 +47439,15 @@
           "AI_REALTIME_SPEECH_STATE_UNSPECIFIED",
           "AI_REALTIME_SPEECH_STATE_STARTED",
           "AI_REALTIME_SPEECH_STATE_STOPPED"
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
+        "name": "AiRealtimeTranscriptDirection",
+        "values": [
+          "AI_REALTIME_TRANSCRIPT_DIRECTION_UNSPECIFIED",
+          "AI_REALTIME_TRANSCRIPT_DIRECTION_INPUT",
+          "AI_REALTIME_TRANSCRIPT_DIRECTION_OUTPUT"
         ],
         "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
@@ -48577,7 +48739,8 @@
           "REALTIME_TERMINAL_REASON_SLOW_CONSUMER",
           "REALTIME_TERMINAL_REASON_RUNTIME_SHUTDOWN",
           "REALTIME_TERMINAL_REASON_STALE_GENERATION",
-          "REALTIME_TERMINAL_REASON_OWNER_FAILED"
+          "REALTIME_TERMINAL_REASON_OWNER_FAILED",
+          "REALTIME_TERMINAL_REASON_COMPLETED"
         ],
         "source_file": "proto/runtime/v1/realtime_control.proto"
       },

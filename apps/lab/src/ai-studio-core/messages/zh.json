@@ -473,7 +473,9 @@
       "nothingObserved": "未观察到任何结果。",
       "notRestorable": "已关闭的会话无法恢复。如需再次测试，请打开新会话。",
       "stateClosed": "已关闭",
-      "stateTerminated": "已终止"
+      "stateTerminated": "已终止",
+      "audioUsageFinal": "供方最终报告的累计音频：{{seconds}} 秒。此值不是 token 数或费用估算。",
+      "audioUsagePartial": "供方目前报告的累计音频：{{seconds}} 秒；尚未确认最终结束。"
     },
     "faceSwap": {
       "inputs": "换脸输入",

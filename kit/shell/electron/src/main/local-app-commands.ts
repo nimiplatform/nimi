@@ -877,15 +877,20 @@ function validatePayload(
 	  return identifiers(payload, ['channelId', 'subscriptionId'], command);
     case 'realmRealtimeChannelClose':
 	  return identifiers(payload, ['channelId'], command);
-    case 'aiRealtimeOpen':
-      assertExactKeys(payload, ['inputAudio', 'audioOutputEnabled', 'turnDetection', 'initialInstruction'], command);
+    case 'aiRealtimeOpen': {
+      assertAllowedKeys(payload, ['inputAudio', 'audioOutputEnabled', 'turnDetection', 'initialInstruction', 'interactionMode'], ['inputAudio', 'audioOutputEnabled', 'turnDetection', 'initialInstruction'], command);
       if (typeof payload.audioOutputEnabled !== 'boolean') throw invalidPayload(command, 'audioOutputEnabled is invalid');
+      const interactionMode = payload.interactionMode ?? 'owner-controlled';
+      if (interactionMode !== 'owner-controlled' && interactionMode !== 'continuous') throw invalidPayload(command, 'Realtime interaction mode is invalid');
+      if (interactionMode === 'continuous' && payload.turnDetection !== null) throw invalidPayload(command, 'Continuous mode has no turn detector');
       return {
+        interactionMode,
         inputAudio: realtimeAudioFormat(payload.inputAudio, command),
         audioOutputEnabled: payload.audioOutputEnabled,
-        turnDetection: realtimeTurnDetection(payload.turnDetection, command),
+        turnDetection: interactionMode === 'continuous' ? null : realtimeTurnDetection(payload.turnDetection, command),
         initialInstruction: optionalExactText(payload.initialInstruction, 'initialInstruction', command, 16 * 1024),
       };
+    }
     case 'videoSessionOpen':
       assertExactKeys(payload, ['referenceImageArtifactId', 'width', 'height', 'pixelFormat'], command);
       if (payload.width !== 1280 || payload.height !== 720 || payload.pixelFormat !== 'rgb8') throw invalidPayload(command, 'video format is invalid');
@@ -914,7 +919,7 @@ function validatePayload(
       return { ...realtimeScope(payload, command, true, ['input']), input: realtimeInput(payload.input, command, false) };
     case 'aiRealtimeSubmitOwnerControl': {
       const scope = realtimeScope(payload, command, false, ['requestId', 'control']);
-      if (!['commit-input', 'start-response', 'continue-response', 'pause-response', 'cancel-response'].includes(String(payload.control))) {
+      if (!['commit-input', 'start-response', 'continue-response', 'pause-response', 'cancel-response', 'mute-input', 'unmute-input'].includes(String(payload.control))) {
         throw invalidPayload(command, 'Realtime owner control is invalid');
       }
       return { ...scope, requestId: requiredText(payload.requestId, 'requestId', command, MAX_IDENTIFIER_LENGTH), control: payload.control as string };
@@ -2055,7 +2060,7 @@ function realtimeInput(value: unknown, command: string, allowOwnerContext: boole
     return {
       type: 'audio-frame',
       inputTrackId: requiredText(value.inputTrackId, 'inputTrackId', command, MAX_IDENTIFIER_LENGTH),
-      utteranceId: requiredText(value.utteranceId, 'utteranceId', command, MAX_IDENTIFIER_LENGTH),
+      utteranceId: allowOwnerContext && value.utteranceId === '' ? '' : requiredText(value.utteranceId, 'utteranceId', command, MAX_IDENTIFIER_LENGTH),
       frameSequence: value.frameSequence,
       frame: [...value.frame] as NimiElectronLocalAppJson,
     };
@@ -2069,7 +2074,7 @@ function realtimeInput(value: unknown, command: string, allowOwnerContext: boole
     };
   }
   if (allowOwnerContext && value.type === 'owner-context') {
-    assertExactKeys(value, ['type', 'requestId', 'kind', 'text'], command);
+    assertAllowedKeys(value, ['type', 'requestId', 'kind', 'text', 'contextRequestId'], ['type', 'requestId', 'kind', 'text'], command);
     if (!['instruction', 'context', 'sanitized-result'].includes(String(value.kind))) {
       throw invalidPayload(command, 'Realtime owner context kind is invalid');
     }
@@ -2077,6 +2082,7 @@ function realtimeInput(value: unknown, command: string, allowOwnerContext: boole
       type: 'owner-context',
       requestId: requiredText(value.requestId, 'requestId', command, MAX_IDENTIFIER_LENGTH),
       kind: value.kind as string,
+      ...(value.contextRequestId === undefined ? {} : { contextRequestId: requiredText(value.contextRequestId, 'contextRequestId', command, MAX_IDENTIFIER_LENGTH) }),
       text: requiredText(value.text, 'text', command, 64 * 1024),
     };
   }

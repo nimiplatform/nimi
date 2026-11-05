@@ -314,6 +314,18 @@ describe('Electron local-app standard-shell operations', () => {
     }
   });
 
+  it('carries explicit continuous mode and rejects owner-mode VAD on that request', async () => {
+    const calls: unknown[] = [];
+    const host = { aiRealtimeOpen: async (input: unknown) => { calls.push(input); return {}; }, aiRealtimeAppendInput: async (input: unknown) => { calls.push(input); return {}; } } as never;
+    const payload = { interactionMode:'continuous', inputAudio:{codec:'pcm-s16le',sampleRateHz:24000,channelCount:1,frameDurationMs:20,maximumFrameBytes:960},audioOutputEnabled:true,turnDetection:null,initialInstruction:'' };
+    await dispatchElectronLocalAppCommand({host,command:NIMI_STANDARD_SHELL_COMMANDS['local-app.aiRealtimeOpen'],payload});
+    expect(calls[0]).toEqual(payload);
+    await expect(dispatchElectronLocalAppCommand({host,command:NIMI_STANDARD_SHELL_COMMANDS['local-app.aiRealtimeOpen'],payload:{...payload,turnDetection:'manual'}})).rejects.toMatchObject({reasonCode:'invalid-payload'});
+    const input = {type:'owner-context',requestId:'reply',kind:'sanitized-result',text:'App result',contextRequestId:'runtime-request'};
+    await dispatchElectronLocalAppCommand({host,command:NIMI_STANDARD_SHELL_COMMANDS['local-app.aiRealtimeAppendInput'],payload:{realtimeSessionId:'session',generation:'1',input}});
+    expect(calls[1]).toMatchObject({input});
+  });
+
   it('keeps committed Cloud target reasons with a reselect next step', async () => {
     const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];
     const payload = { spec: { type: 'music-generate', prompt: 'ballad', lyrics: 'sing', durationSeconds: 20 }, timeoutMs: 0, clientSubmissionId: 'song-action' };

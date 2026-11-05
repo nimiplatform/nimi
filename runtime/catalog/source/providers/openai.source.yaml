@@ -1,6 +1,6 @@
 schema_version: 3
 provider: openai
-catalog_version: 2026-11-04-openai-terra-responses
+catalog_version: 2026-11-05-openai-live-and-image26
 generated_target: runtime/catalog/providers/openai.yaml
 runtime:
   inventory_mode: static_source
@@ -25,6 +25,18 @@ defaults:
     notes: Official pricing differs by model family, API mode, and service class.
 
 sources:
+  - source_id: openai_live_model_doc
+    url: https://developers.openai.com/api/docs/models/gpt-live-1
+    retrieved_at: 2026-11-05
+    note: Exact full-duplex gpt-live-1 target, native session-duration usage and independent backend delegation.
+  - source_id: openai_live_websocket_guide
+    url: https://developers.openai.com/api/docs/guides/voice-websockets?api=live
+    retrieved_at: 2026-11-05
+    note: Primary /v1/live/sessions WebSocket, session.start, continuous audio/transcript deltas and native session.closed finalization.
+  - source_id: openai_live_client_delegation
+    url: https://developers.openai.com/api/docs/guides/live-delegation?delegation-mode=client
+    retrieved_at: 2026-11-05
+    note: Client delegation carries metadata only; the App owns work and returns explicit context. Responses and Decisions backend calls are not enabled.
   - source_id: openai_gpt_image_26_flare
     url: https://developers.openai.com/api/docs/models/gpt-image-2.6-flare
     retrieved_at: 2026-11-05
@@ -328,6 +340,19 @@ models:
       currency: USD
       as_of: 2026-10-01
       notes: Realtime usage depends on text/audio input and output tokens. Exact account access is confirmed by Session Open, not catalog presence.
+
+  - model_id: gpt-live-1
+    model_type: chat
+    updated_at: 2026-11-05
+    capabilities: [realtime.interact]
+    source_ids: [openai_live_model_doc, openai_live_websocket_guide, openai_live_client_delegation]
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-05
+      notes: Requires explicit continuous mode with 24 kHz PCM audio output and client-owned context. Native cumulative audio seconds are preserved without token or cost estimates; owner-controlled turns and automatic backend delegation are not admitted.
 
   - model_id: gpt-4o-mini-tts
     model_type: tts

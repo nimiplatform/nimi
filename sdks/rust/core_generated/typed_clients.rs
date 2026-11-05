@@ -822,6 +822,19 @@ impl Default for AiRealtimeAudioCodec {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AiRealtimeInteractionMode {
+    AIREALTIMEINTERACTIONMODEUNSPECIFIED,
+    AIREALTIMEINTERACTIONMODEOWNERCONTROLLED,
+    AIREALTIMEINTERACTIONMODECONTINUOUS,
+}
+
+impl Default for AiRealtimeInteractionMode {
+    fn default() -> Self {
+        Self::AIREALTIMEINTERACTIONMODEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum AiRealtimeOutputTrackLifecycle {
     AIREALTIMEOUTPUTTRACKLIFECYCLEUNSPECIFIED,
     AIREALTIMEOUTPUTTRACKLIFECYCLEACTIVE,
@@ -858,6 +871,8 @@ pub enum AiRealtimeOwnerControlKind {
     AIREALTIMEOWNERCONTROLKINDCONTINUERESPONSE,
     AIREALTIMEOWNERCONTROLKINDPAUSERESPONSE,
     AIREALTIMEOWNERCONTROLKINDCANCELRESPONSE,
+    AIREALTIMEOWNERCONTROLKINDMUTEINPUT,
+    AIREALTIMEOWNERCONTROLKINDUNMUTEINPUT,
 }
 
 impl Default for AiRealtimeOwnerControlKind {
@@ -876,6 +891,19 @@ pub enum AiRealtimeSpeechState {
 impl Default for AiRealtimeSpeechState {
     fn default() -> Self {
         Self::AIREALTIMESPEECHSTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum AiRealtimeTranscriptDirection {
+    AIREALTIMETRANSCRIPTDIRECTIONUNSPECIFIED,
+    AIREALTIMETRANSCRIPTDIRECTIONINPUT,
+    AIREALTIMETRANSCRIPTDIRECTIONOUTPUT,
+}
+
+impl Default for AiRealtimeTranscriptDirection {
+    fn default() -> Self {
+        Self::AIREALTIMETRANSCRIPTDIRECTIONUNSPECIFIED
     }
 }
 
@@ -2714,6 +2742,7 @@ pub enum RealtimeTerminalReason {
     REALTIMETERMINALREASONRUNTIMESHUTDOWN,
     REALTIMETERMINALREASONSTALEGENERATION,
     REALTIMETERMINALREASONOWNERFAILED,
+    REALTIMETERMINALREASONCOMPLETED,
 }
 
 impl Default for RealtimeTerminalReason {
@@ -5420,6 +5449,20 @@ pub struct AiRealtimeAudioFrameOutput {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AiRealtimeContextRequest {
+    pub context_request_id: Option<String>,
+    pub offset_ms: Option<i64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AiRealtimeContinuousTranscript {
+    pub direction: Option<AiRealtimeTranscriptDirection>,
+    pub text_delta: Option<String>,
+    pub start_ms: Option<i64>,
+    pub end_ms: Option<i64>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AiRealtimeEvent {
     pub control: Option<Box<RealtimeControlStatus>>,
     pub opened: Option<Box<AiRealtimeSessionOpened>>,
@@ -5432,6 +5475,9 @@ pub struct AiRealtimeEvent {
     pub request_terminal: Option<Box<AiRealtimeRequestTerminal>>,
     pub session_terminal: Option<Box<AiRealtimeSessionTerminal>>,
     pub failure: Option<Box<AiRealtimeFailure>>,
+    pub continuous_transcript: Option<Box<AiRealtimeContinuousTranscript>>,
+    pub context_request: Option<Box<AiRealtimeContextRequest>>,
+    pub session_usage: Option<Box<AiRealtimeSessionUsage>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -5462,6 +5508,7 @@ pub struct AiRealtimeOwnerContextInput {
     pub request_id: Option<String>,
     pub kind: Option<AiRealtimeOwnerContextKind>,
     pub text: Option<String>,
+    pub context_request_id: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -5477,11 +5524,19 @@ pub struct AiRealtimeSessionOpened {
     pub input_audio: Option<Box<AiRealtimeAudioFormat>>,
     pub output_audio: Option<Box<AiRealtimeAudioFormat>>,
     pub turn_detection: Option<AiRealtimeTurnDetectionMode>,
+    pub interaction_mode: Option<AiRealtimeInteractionMode>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct AiRealtimeSessionTerminal {
     pub reason_code: Option<ReasonCode>,
+    pub usage: Option<Box<AiRealtimeSessionUsage>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct AiRealtimeSessionUsage {
+    pub audio_seconds: Option<f64>,
+    pub r#final: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6612,6 +6667,7 @@ pub struct CloseRealtimeSessionRequest {
 pub struct CloseRealtimeSessionResponse {
     pub ack: Option<Box<Ack>>,
     pub control: Option<Box<RealtimeControlStatus>>,
+    pub usage: Option<Box<AiRealtimeSessionUsage>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
@@ -12446,6 +12502,7 @@ pub struct OpenRealtimeSessionRequest {
     pub audio_output_enabled: Option<bool>,
     pub turn_detection: Option<AiRealtimeTurnDetectionMode>,
     pub initial_instruction: Option<String>,
+    pub interaction_mode: Option<AiRealtimeInteractionMode>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12456,6 +12513,7 @@ pub struct OpenRealtimeSessionResponse {
     pub negotiated_input_audio: Option<Box<AiRealtimeAudioFormat>>,
     pub negotiated_output_audio: Option<Box<AiRealtimeAudioFormat>>,
     pub control: Option<Box<RealtimeControlStatus>>,
+    pub interaction_mode: Option<AiRealtimeInteractionMode>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

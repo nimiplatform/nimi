@@ -11,15 +11,18 @@ export async function sendLabRealtimeRecordingFrames(input: {
   readonly inputTrackId: string;
   readonly utteranceId: string;
   readonly turnDetection: 'manual' | 'server-vad';
+  readonly interactionMode?: 'owner-controlled' | 'continuous';
   readonly startResponse?: boolean;
 }): Promise<void> {
+  const started = performance.now();
   for (let index = 0; index < input.frames.length; index += 1) {
     await input.session.appendAudioFrame({
       inputTrackId: input.inputTrackId, utteranceId: input.utteranceId,
       frameSequence: String(index + 1), frame: input.frames[index]!,
     });
+    if (input.interactionMode === 'continuous') { const delay = started + (index + 1) * 20 - performance.now(); if (delay > 0) await new Promise(resolve => setTimeout(resolve, delay)); }
   }
-  if (input.turnDetection === 'manual') {
+  if (input.interactionMode !== 'continuous' && input.turnDetection === 'manual') {
     await input.session.ownerControl('commit-input');
     if (input.startResponse !== false) await input.session.ownerControl('start-response');
   }
