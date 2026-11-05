@@ -35,6 +35,9 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 	for _, model := range []string{"mistral-large-4", "mistral-large-4-0", "mistral-small-2603"} {
 		registrations = append(registrations, mistralTextBehaviorRegistration(model))
 	}
+	for _, model := range []string{"step-5-preview", "step-3.7-flash", "step-3.5-flash-2603"} {
+		registrations = append(registrations, stepfunTextBehaviorRegistration(model))
+	}
 	for _, model := range []string{"glm-5.3", "glm-5.3-flash", "glm-5.3-flashx", "glm-5.3-flashx-legal"} {
 		registrations = append(registrations, glm53TextBehaviorRegistration(model))
 	}

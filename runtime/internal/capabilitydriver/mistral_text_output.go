@@ -291,24 +291,9 @@ func (s *mistralTextStream) Finish() (textbehavior.NormalizedResult, error) {
 		return result, err
 	}
 	if s.spec.GetResponseFormat().GetKind() == runtimev1.ResponseFormatKind_RESPONSE_FORMAT_KIND_JSON_SCHEMA {
-		if result.FinishReason != runtimev1.FinishReason_FINISH_REASON_STOP {
-			return textbehavior.NormalizedResult{}, deepseekIncomplete()
-		}
-		var text strings.Builder
-		for _, item := range result.Items {
-			if item.Kind == textbehavior.OrderedItemText {
-				text.WriteString(item.Text)
-			}
-		}
-		var instance any
-		d := json.NewDecoder(strings.NewReader(text.String()))
-		d.UseNumber()
-		if d.Decode(&instance) != nil || d.Decode(new(any)) != io.EOF {
-			return textbehavior.NormalizedResult{}, deepseekJSONOutputError()
-		}
-		schema, err := textbehavior.CompileJSONSchema(s.spec.GetResponseFormat().GetJsonSchema().AsMap())
-		if err != nil || schema.Validate(instance) != nil {
-			return textbehavior.NormalizedResult{}, deepseekJSONOutputError()
+		result, err = validateStrictChatSchemaResult(result, s.spec)
+		if err != nil {
+			return result, err
 		}
 	}
 	if s.carrier != nil {

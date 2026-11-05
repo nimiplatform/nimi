@@ -1,6 +1,6 @@
 schema_version: 3
 provider: stepfun
-catalog_version: 2026-09-30-stepfun-retired-targets
+catalog_version: 2026-11-06-stepfun-native-text
 generated_target: runtime/catalog/providers/stepfun.yaml
 runtime:
   inventory_mode: static_source
@@ -90,6 +90,35 @@ sources:
     retrieved_at: 2026-04-18
     note: StepFun image model overview and API references.
 
+  - source_id: stepfun_native_chat
+    url: https://platform.stepfun.ai/docs/en/api-reference/chat/chat-completion-create
+    retrieved_at: 2026-11-06
+    note: Current StepFun native native_chat protocol, model-specific controls and limits.
+  - source_id: stepfun_native_reasoning
+    url: https://platform.stepfun.ai/docs/en/guides/developer/reasoning
+    retrieved_at: 2026-11-06
+    note: Current StepFun native native_reasoning protocol, model-specific controls and limits.
+  - source_id: stepfun_native_schema
+    url: https://platform.stepfun.ai/docs/en/guides/developer/json-mode
+    retrieved_at: 2026-11-06
+    note: Current StepFun native native_schema protocol, model-specific controls and limits.
+  - source_id: stepfun_native_tools
+    url: https://platform.stepfun.ai/docs/en/api-reference/tool-call
+    retrieved_at: 2026-11-06
+    note: Current StepFun native native_tools protocol, model-specific controls and limits.
+  - source_id: stepfun_native_image
+    url: https://platform.stepfun.ai/docs/en/guides/developer/image-chat
+    retrieved_at: 2026-11-06
+    note: Current StepFun native native_image protocol, model-specific controls and limits.
+  - source_id: stepfun_native_video
+    url: https://platform.stepfun.ai/docs/en/guides/developer/video-chat
+    retrieved_at: 2026-11-06
+    note: Current StepFun native native_video protocol, model-specific controls and limits.
+  - source_id: stepfun_step5_model
+    url: https://platform.stepfun.ai/docs/en/guides/models/step-5-preview
+    retrieved_at: 2026-11-06
+    note: Current StepFun native step5_model protocol, model-specific controls and limits.
+
 language_profiles:
   tts_langs_v1: [zh, en, ja]
 
@@ -97,21 +126,21 @@ selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: step-3.7-flash
-    reviewed_at: 2026-09-28
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: StepFun's recommended production flagship for multimodal reasoning and Agent work; the newer Step 5 is still a preview.
+    rationale: Retained stable high-speed multimodal reasoning choice; current Step 5 Preview is separately admitted for more demanding agent and knowledge work.
   - profile_id: text.fast
     capability: text.generate
     model_id: step-3.5-flash-2603
-    reviewed_at: 2026-09-28
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
     rationale: Agent-optimized Step 3.5 Flash snapshot with faster inference and a low-reasoning mode; the previous step-2-mini target was retired on 2026-07-08.
   - profile_id: text.reasoning
     capability: text.generate
-    model_id: step-3.7-flash
-    reviewed_at: 2026-09-28
+    model_id: step-5-preview
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: StepFun's recommended production flagship for reasoning and long-running Agent work; Step 5 Preview is not admitted.
+    rationale: Current vendor recommendation for demanding software engineering, professional knowledge and multi-step agent work; Preview status and live account acceptance remain explicit.
 
 voice_sets:
   - voice_set_id: tts_2_voice_set
@@ -173,19 +202,34 @@ voice_sets:
 
 models:
   # --- Chat / Text Models ---
+  - model_id: step-5-preview
+    model_type: chat
+    updated_at: 2026-11-06
+    capabilities: [text.generate]
+    features: [input.image, input.video]
+    context_window_tokens: 1000000
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Current Preview model with documented 1M context and 64k maximum output; native tools, hidden reasoning tiers and separate strict JSON Schema. Provider output and context limits remain authoritative; no invented native reasoning replay or built-in search support.
+    source_ids: [stepfun_step5_model, stepfun_native_chat, stepfun_native_reasoning, stepfun_native_schema, stepfun_native_tools, stepfun_native_image, stepfun_native_video]
+
   - model_id: step-3.7-flash
     model_type: chat
     updated_at: 2026-07-20
     capabilities: [text.generate]
-    features: [input.image]
+    features: [input.image, input.video]
     pricing:
       unit: token
       input: unknown
       output: unknown
       currency: USD
       as_of: 2026-07-20
-      notes: Current production Agent model with native image and video understanding, web and visual search, and tool orchestration.
-    source_ids: [stepfun_3_7_product_doc, stepfun_3_7_console_doc]
+      notes: Current high-speed multimodal reasoning model; exact Runtime adapter admits native image/video, function tools, hidden reasoning tiers and separate JSON Schema. Provider-executed search is not admitted.
+    source_ids: [stepfun_3_7_product_doc, stepfun_3_7_console_doc, stepfun_native_chat, stepfun_native_reasoning, stepfun_native_schema, stepfun_native_tools, stepfun_native_image, stepfun_native_video]
 
   - model_id: step-3.5-flash-2603
     model_type: chat

@@ -201,8 +201,9 @@ func (s *Service) resolveTextGenerateArtifactPart(
 			Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_IMAGE_URL,
 			Content: &runtimev1.ChatContentPart_ImageUrl{
 				ImageUrl: &runtimev1.ChatContentImageURL{
-					Url:    imageURL,
-					Detail: "auto",
+					// ArtifactRef carries no detail choice. Preserve omission;
+					// the captured adapter owns the native model's default.
+					Url: imageURL,
 				},
 			},
 		}, cleanup, nil

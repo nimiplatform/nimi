@@ -44,10 +44,13 @@ func TestGemma4E2BAdmitsOrderedSystemMessagesWithoutWideningOtherCombinations(t 
 
 func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 	registrations := productionTextBehaviorAdapterRegistrations()
-	if len(registrations) != 46 {
-		t.Fatalf("production adapter registrations = %d, want ten Gemma mappings, two Qwen mappings, one LFM3 mapping and thirty-three Cloud targets", len(registrations))
+	if len(registrations) != 49 {
+		t.Fatalf("production adapter registrations = %d, want ten Gemma mappings, two Qwen mappings, one LFM3 mapping and thirty-six Cloud targets", len(registrations))
 	}
 	expectedCloudTargets := map[string]string{
+		"stepfun/step-5-preview":          "stepfun.step-5-preview.chat",
+		"stepfun/step-3.7-flash":          "stepfun.step-3.7-flash.chat",
+		"stepfun/step-3.5-flash-2603":     "stepfun.step-3.5-flash-2603.chat",
 		"mistral/mistral-large-4":         "mistral.mistral-large-4.chat",
 		"mistral/mistral-large-4-0":       "mistral.mistral-large-4-0.chat",
 		"mistral/mistral-small-2603":      "mistral.mistral-small-2603.chat",
