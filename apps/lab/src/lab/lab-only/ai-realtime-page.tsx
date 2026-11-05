@@ -140,7 +140,7 @@ function LabAiRealtimeSurface({
   // An owner-ended Session is recorded with its terminal reason.
   useEffect(() => {
     const session = sessionRef.current;
-    if ((state.phase === 'terminated' || state.phase === 'interrupted') && session && state.scope) {
+    if ((state.phase === 'closed' || state.phase === 'terminated' || state.phase === 'interrupted') && session && state.scope) {
       void stopCapture();
       recordSummary(session);
     }
@@ -374,7 +374,7 @@ function LabAiRealtimeSurface({
           ))}
           </> : <Button type="button" size="sm" tone="secondary" disabled={!open || busy || !!capture} onClick={() => void control(state.inputMuted ? 'unmute-input' : 'mute-input')}>{t(state.inputMuted ? 'CapabilityTests.aiRealtime.unmuteInput' : 'CapabilityTests.aiRealtime.muteInput')}</Button>}
         </div>
-        {recordingSubmitted ? <p role="status">{t('CapabilityTests.aiRealtime.recordingSubmitted')}</p> : null}
+        {recordingSubmitted ? <p role="status">{t(interactionMode === 'continuous' ? 'CapabilityTests.aiRealtime.recordingStreamed' : 'CapabilityTests.aiRealtime.recordingSubmitted')}</p> : null}
         <p className="lab-realtime__meta">{t(interactionMode === 'continuous' ? 'CapabilityTests.aiRealtime.continuousAudioHint' : 'CapabilityTests.aiRealtime.audioHint')}</p>
         <p className="lab-realtime__meta">{t(interactionMode === 'continuous' ? 'CapabilityTests.aiRealtime.continuousRecordingHint' : turnDetection === 'manual' ? 'CapabilityTests.aiRealtime.recordingHint' : 'CapabilityTests.aiRealtime.recordingHintVad')}</p>
         {notice ? <InlineAlert tone="warning">{notice}</InlineAlert> : null}

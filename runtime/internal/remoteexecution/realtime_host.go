@@ -4,18 +4,19 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
 	"net"
 	"net/http"
 	"net/url"
 	"strings"
 	"sync"
 
+	"github.com/gorilla/websocket"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/endpointsec"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/services/connector"
-	"golang.org/x/net/websocket"
 	"google.golang.org/grpc/codes"
 )
 
@@ -84,26 +85,26 @@ func (h *ProviderRealtimeHost) Open(
 	if err != nil {
 		return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN, err, grpcerr.ReasonOptions{})
 	}
-	config, err := websocket.NewConfig(endpoint, "https://runtime.nimi.local")
-	if err != nil {
-		return nil, grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN, err, grpcerr.ReasonOptions{})
-	}
-	config.Header = make(http.Header)
+	headers := make(http.Header)
 	if transport.APIKeyHeader != "" {
 		if target.Provider() != "gemini" || transport.APIKeyHeader != "x-goog-api-key" {
 			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN)
 		}
-		config.Header.Set(transport.APIKeyHeader, credential.APIKey)
+		headers.Set(transport.APIKeyHeader, credential.APIKey)
 	} else {
-		config.Header.Set("Authorization", "Bearer "+credential.APIKey)
+		headers.Set("Authorization", "Bearer "+credential.APIKey)
 	}
 	for key, value := range credential.Headers {
 		if strings.TrimSpace(key) != "" && strings.TrimSpace(value) != "" && !strings.EqualFold(key, "Authorization") && !strings.EqualFold(key, "x-goog-api-key") {
-			config.Header.Set(key, value)
+			headers.Set(key, value)
 		}
 	}
-	conn, transportConn, err := endpointsec.DialWebSocket(ctx, config, h.allowLoopback)
+	conn, transportConn, err := endpointsec.DialServerWebSocket(ctx, endpoint, headers, h.allowLoopback)
 	if err != nil {
+		var handshake *endpointsec.WebSocketHandshakeError
+		if errors.As(err, &handshake) {
+			slog.Warn("provider realtime handshake rejected", "provider", target.Provider(), "status", handshake.StatusCode)
+		}
 		return nil, normalizeRealtimeDialError(err)
 	}
 	session := &providerRealtimeSession{
@@ -193,7 +194,7 @@ func (s *providerRealtimeSession) Send(ctx context.Context, payload []byte) erro
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_REALTIME_SESSION_CLOSED)
 	default:
 	}
-	err := websocket.Message.Send(s.conn, string(payload))
+	err := s.conn.WriteMessage(websocket.TextMessage, payload)
 	if ctx.Err() != nil {
 		return ctx.Err()
 	}
@@ -224,8 +225,8 @@ func (s *providerRealtimeSession) readLoop() {
 	defer close(s.events)
 	defer close(s.errors)
 	for {
-		var payload []byte
-		if err := websocket.Message.Receive(s.conn, &payload); err != nil {
+		_, payload, err := s.conn.ReadMessage()
+		if err != nil {
 			select {
 			case <-s.done:
 				return

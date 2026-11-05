@@ -339,6 +339,7 @@
       "sendRecordingVad": "Send recording",
       "submitRecordingOnly": "Submit recording without responding",
       "recordingSubmitted": "Recording submitted. Select Start response when ready.",
+      "recordingStreamed": "Recording sent as continuous audio.",
       "recordingHint": "Use up to 4 seconds of mono PCM16 WAV matching the Session input rate. Submit without responding to commit it first, then select Start response. Send recording and respond performs both actions.",
       "recordingHintVad": "Send up to 4 seconds of mono PCM16 WAV matching the Session input rate. Include a quiet tail so VAD can detect the end of speech. Sending only supplies audio; wait for the actual transcript, then select Start response when ready.",
       "recordingFormatError": "Choose a non-empty mono PCM16 WAV of at most 4 seconds matching the Session input rate (16 or 24 kHz).",

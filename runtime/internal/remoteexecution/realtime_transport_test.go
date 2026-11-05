@@ -14,8 +14,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/gorilla/websocket"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
-	"golang.org/x/net/websocket"
 )
 
 func stalledRealtimeTransport(t *testing.T) *providerRealtimeSession {
@@ -33,8 +33,8 @@ func stalledRealtimeTransport(t *testing.T) *providerRealtimeSession {
 		_, err = fmt.Fprintf(peer, "HTTP/1.1 101 Switching Protocols\r\nUpgrade: websocket\r\nConnection: Upgrade\r\nSec-WebSocket-Accept: %s\r\n\r\n", base64.StdEncoding.EncodeToString(digest[:]))
 		ready <- err
 	}()
-	config, _ := websocket.NewConfig("ws://fixture.invalid/realtime", "http://runtime.nimi.local")
-	conn, err := websocket.NewClient(config, client)
+	dialer := websocket.Dialer{NetDialContext: func(context.Context, string, string) (net.Conn, error) { return client, nil }}
+	conn, _, err := dialer.DialContext(context.Background(), "ws://fixture.invalid/realtime", nil)
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -275,7 +275,10 @@ export function createLabRealtimeController(input: {
     } else if (event.type === 'session-terminal') {
       if (event.usage) set({ sessionUsage: { ...event.usage } });
       ownerEnded = true;
-      if (state.phase !== 'closing') finish('terminated', event.reasonCode || 'session-terminal');
+      if (state.phase !== 'closing') {
+        const completed = state.control?.lifecycle === 'closed' && state.control.terminalReason === 'completed';
+        finish(completed ? 'closed' : 'terminated', completed ? 'completed' : event.reasonCode || 'session-terminal');
+      }
     }
   };
 
@@ -288,7 +291,7 @@ export function createLabRealtimeController(input: {
         if (!isObservedScope(scope)) return;
         if (envelope.control.lifecycle === 'closed' || envelope.control.lifecycle === 'failed') {
           ownerEnded = true;
-          if (state.phase === 'open') finish('terminated', envelope.control.terminalReason || envelope.control.lifecycle);
+          if (state.phase === 'open') finish(envelope.control.terminalReason === 'completed' ? 'closed' : 'terminated', envelope.control.terminalReason || envelope.control.lifecycle);
         }
       }
       if (state.phase === 'open' && state.scope === scope) observationInterrupted('event-stream-ended');

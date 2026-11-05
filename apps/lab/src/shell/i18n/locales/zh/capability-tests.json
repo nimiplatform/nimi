@@ -339,6 +339,7 @@
       "sendRecordingVad": "发送录音",
       "submitRecordingOnly": "提交录音，不开始回应",
       "recordingSubmitted": "录音已提交。准备好后请点击“开始回应”。",
+      "recordingStreamed": "录音已按连续音频发送。",
       "recordingHint": "使用最长 4 秒、采样率与会话输入一致的单声道 PCM16 WAV。「提交录音，不开始回应」仅结束本轮音频输入，需再点击「开始回应」触发回复；「发送录音并开始回应」则会依次完成这两步。",
       "recordingHintVad": "发送最长 4 秒、采样率与会话输入一致的单声道 PCM16 WAV 音频。录音末尾需留出静音，以便 VAD 检测语音结束。此操作仅发送音频；请等待真实转写返回，确认就绪后再点击“开始回应”。",
       "recordingFormatError": "请选择非空、最长 4 秒、与会话输入采样率一致（16 或 24 kHz）的单声道 PCM16 WAV 录音。",

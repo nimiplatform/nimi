@@ -2473,3 +2473,26 @@ test('continuous Lab sessions keep one input stream, explicit App context and fi
   await session.close();
   assert.deepEqual(labRealtimeSessionSummary(session.getState()).audioUsage,{audioSeconds:4.8,final:true});
 });
+
+test('a native completed continuous session is recorded as closed rather than failed', async () => {
+  const { createLabRealtimeController, labRealtimeSessionSummary } = await load('lab/lab-only/ai-realtime-session.js');
+  const fake = fakeRealtime();
+  let opened;
+  const open = fake.client.open;
+  fake.client.open = async input => (opened = await open(input));
+  fake.client.subscribe = async () => ({
+    async *[Symbol.asyncIterator]() {
+      await new Promise(resolve => setImmediate(resolve));
+      yield { control: { ...opened.control, lifecycle: 'closed', terminalReason: 'completed' },
+        event: { type: 'session-terminal', reasonCode: 'ACTION_EXECUTED', usage: { audioSeconds: 0, final: true } } };
+    },
+    async cancel() {},
+  });
+  const session = createLabRealtimeController({ client: fake.client, now: () => new Date(), createId: prefix => prefix, onState: () => {} });
+  await session.open({ interactionMode: 'continuous', instruction: '', audioOutputEnabled: true });
+  await waitFor(() => session.getState().phase === 'closed', 'native completion');
+  assert.equal(session.getState().terminalReason, 'completed');
+  assert.equal(labRealtimeSessionSummary(session.getState()).ending, 'closed');
+  assert.deepEqual(labRealtimeSessionSummary(session.getState()).audioUsage, { audioSeconds: 0, final: true });
+  assert.equal(fake.calls.close.length, 0, 'a native completed session does not require another Close call');
+});
