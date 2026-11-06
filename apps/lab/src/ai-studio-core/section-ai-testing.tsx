@@ -636,7 +636,7 @@ function TextStudioShell({
               />
             )}
             {displayingExecution && observationIssue ? <p role="status">{t('Music.observationIssue')}</p> : null}
-            {isStudioJobRecoveryCapability(capability.id) ? <StudioJobRecoveryPanel key={capability.id} capability={capability.id} disabled={running} /> : null}
+            {isStudioJobRecoveryCapability(capability.id) ? <StudioJobRecoveryPanel key={capability.id} capability={capability.id} disabled={running} onSelectHistoryRun={onSelectHistoryRun} /> : null}
           </main>
         </div>
         <CapabilityRunHistory

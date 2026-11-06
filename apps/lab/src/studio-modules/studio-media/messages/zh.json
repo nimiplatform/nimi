@@ -353,7 +353,7 @@
     "hideScore": "收起 ABC",
     "exportScore": "导出 ABC 乐谱",
     "generatedPlan": "ABC 格式的生成计划",
-    "recovered": "已保存到历史，可选择对应记录查看结果。",
+    "recovered": "结果已保存到历史。",
     "observationIssue": "暂时无法更新进度，正在继续查询原任务…",
     "recoveryNeedsAttention": "恢复遇到问题",
     "requiredLyricsLabel": "歌词（必填）",

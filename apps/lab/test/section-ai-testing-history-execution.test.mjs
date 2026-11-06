@@ -688,21 +688,59 @@ test('music recovery opens success only after the workspace commits formal histo
     app: { events: { subscribeAIConfigRefresh: () => () => {} } },
     sdk: { storage: { readJson: async () => ({ value: [entry] }) }, assets: { async read({ relativePath }) { const asset = assets.get(relativePath); return { asset, range: { offset: 0, length: asset.sizeBytes, totalSize: asset.sizeBytes }, body: (async function* () { yield new Uint8Array(asset.sizeBytes); })() }; } },
       runCapability: async input => { calls.push(input); return result; } } };
-  const commits = [];
+  const commits = [], selected = [];
   const commit = async (...args) => { commits.push(args); await deferred.promise; return { id: 'formal-record' }; };
   const container = document.getElementById('root'), renderer = createRoot(container);
   try {
     await act(async () => renderer.render(createElement(AIStudioHostProvider, { value: host },
-      createElement(StudioHistoryResultContext.Provider, { value: commit }, createElement(StudioJobRecoveryPanel, { capability: 'audio.separate', disabled: false })))));
+      createElement(StudioHistoryResultContext.Provider, { value: commit }, createElement(StudioJobRecoveryPanel, { capability: 'audio.separate', disabled: false, onSelectHistoryRun: record => selected.push(record) })))));
     await openRecoveryRecords();
     const open = [...container.querySelectorAll('button')].find(button => button.textContent === 'Music.openSaved');
     await act(async () => open.click());
     assert.equal(commits.length, 1); assert.equal(commits[0][0], result); assert.equal(commits[0][1], 'original prompt');
     assert.equal(container.textContent.includes('Music.recovered'), false, 'uncommitted result is not presented as saved');
+    assert.equal(selected.length, 0, 'an uncommitted result cannot be opened');
     await act(async () => { deferred.resolve(); await deferred.promise; });
     assert.ok(container.textContent.includes('Music.recovered'));
+    assert.deepEqual(selected, [{ id: 'formal-record' }], 'open saved result selects the committed record in the existing result view');
     assert.equal(container.querySelector('details.studio-recovery').open, false, 'saved result returns space to the main result view');
     assert.equal(calls.length, 1); assert.equal(calls[0].parameters.recoverySubmissionId, 'synthetic-recovery');
+  } finally { await act(async () => renderer.unmount()); }
+});
+
+test('speaker extraction exposes Stop and keeps a later request independent', async () => {
+  const registration = labStudioComposition.getCapability('audio.speaker.embed');
+  const target = { capabilityId: 'audio.speaker.embed', capabilityContract: 'audio.speaker.embed', section: 'speaker',
+    source: 'local', status: 'configured', canDispatch: true, intentLabel: 'Local', detail: 'configured', params: {}, paramsSummary: [], profileOrigin: null };
+  const audio = { name: 'synthetic.wav', mimeType: 'audio/wav', sizeBytes: 4, bytes: new Uint8Array([1, 2, 3, 4]) };
+  const calls = [], recorded = [];
+  const host = {
+    appTitle: 'Lab', translate: key => key, locale: 'en', clock: { now: () => Date.now() },
+    app: { projection: { promptDraft: () => ({ prompt: '' }), projectRunTarget: () => target, runStatusLabel: s => s },
+      events: { subscribeAIConfigRefresh: () => () => {} }, commands: { savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => {} } },
+    sdk: { aiConfig: { get: async () => null }, storage: { readJson: async () => ({ value: [] }) },
+      runCapability(input) { const deferred = Promise.withResolvers(); calls.push({ input, ...deferred }); return deferred.promise; } },
+  };
+  const container = document.getElementById('root'), renderer = createRoot(container);
+  const button = label => [...container.querySelectorAll('button')].find(el => el.getAttribute('aria-label') === label || el.textContent.trim() === label);
+  try {
+    await act(async () => renderer.render(createElement(TooltipProvider, null, createElement(AIStudioHostProvider, { value: host },
+      createElement(StudioCapabilityParameterContext.Provider, { value: { state: { 'audio.speaker.embed': { audio } }, setParameters: () => {} } },
+        createElement(SectionAITesting, { registration, registrations: [registration], runtime: { status: 'connected', detail: 'connected' },
+          lastResult: null, history: {}, historySelectionRequest: null, onSelectHistoryRun: () => {},
+          onResult: async result => { recorded.push(result); return null; }, verboseConsole: false, draftPersistence: false }))))));
+    await act(async () => button('CapabilityTests.speakerEmbedding.primaryLabel').click());
+    assert.equal(calls.length, 1);
+    assert.deepEqual(calls[0].input.parameters.audio, audio);
+    assert.ok(button('StudioShell.cancelGeneration'));
+    await act(async () => button('StudioShell.cancelGeneration').click());
+    assert.equal(calls[0].input.signal.aborted, true);
+    await act(async () => calls[0].resolve({ ok: false, capabilityId: 'audio.speaker.embed', reason: 'runtime-canceled', message: 'canceled', jobId: 'first-job', jobState: 'canceled' }));
+    assert.equal(recorded[0].reason, 'runtime-canceled');
+    await act(async () => button('CapabilityTests.speakerEmbedding.primaryLabel').click());
+    assert.equal(calls.length, 2);
+    assert.equal(calls[1].input.signal.aborted, false);
+    await act(async () => calls[1].resolve({ ok: false, capabilityId: 'audio.speaker.embed', reason: 'runtime-canceled', message: 'fixture ends', jobId: 'second-job', jobState: 'canceled' }));
   } finally { await act(async () => renderer.unmount()); }
 });
 

@@ -3,9 +3,10 @@ import { StudioHistoryResultContext, StudioHistoryPanelContext } from './context
 import { Button } from '@nimiplatform/kit/ui';
 import { useAIStudioHost } from './host-context.js';
 import type { StudioCapabilityRunResult } from './runtime-types.js';
+import type { StudioRunHistoryRecord } from './history.js';
 import { forgetStudioJobRecovery, readStudioJobRecovery, type StudioJobRecoveryEntry, type StudioJobRecoveryCapability } from './job-recovery.js';
 
-export function StudioJobRecoveryPanel({ disabled, capability = 'music.generate' }: { readonly disabled: boolean; readonly capability?: StudioJobRecoveryCapability }) {
+export function StudioJobRecoveryPanel({ disabled, capability = 'music.generate', onSelectHistoryRun }: { readonly disabled: boolean; readonly capability?: StudioJobRecoveryCapability; readonly onSelectHistoryRun?: (record: StudioRunHistoryRecord) => void }) {
   const host = useAIStudioHost();
   const { translate: t } = host;
   const commitResult = useContext(StudioHistoryResultContext);
@@ -58,7 +59,8 @@ export function StudioJobRecoveryPanel({ disabled, capability = 'music.generate'
       if (next.ok) {
         controller.signal.throwIfAborted();
         if (!commitResult) throw new Error(t('Music.historyOwnerUnavailable'));
-        await commitResult(next, entry.prompt ?? '', entry.runConfig);
+        const record = await commitResult(next, entry.prompt ?? '', entry.runConfig);
+        if (!view.signal.aborted) onSelectHistoryRun?.(record);
       }
       if (view.signal.aborted) return;
       setResult(next);

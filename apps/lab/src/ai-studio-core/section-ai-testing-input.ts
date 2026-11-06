@@ -45,5 +45,6 @@ export function canCancelStudioCapabilityRun(input: {
     || input.resultKind === 'text-decision'
     || input.resultKind === 'transcript'
     || input.resultKind === 'vision-locate'
+    || input.resultKind === 'speaker-embedding'
     || input.resultKind === 'voice-asset';
 }
