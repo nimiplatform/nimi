@@ -61,6 +61,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	case "mistral":
 	case "kimi":
 	case "groq":
+	case "fireworks":
 	case "stepfun":
 	case "glm":
 	case "minimax":
@@ -98,7 +99,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	if miniMaxMessages && (target.ProviderType != "minimax" || resolvedModelID != "MiniMax-M3.1-Flash" && resolvedModelID != "MiniMax-M3") || target.ProviderType == "minimax" && !miniMaxMessages {
 		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
 	}
-	if target.ProviderType == "deepseek" || target.ProviderType == "dashscope" || target.ProviderType == "gemini" || target.ProviderType == "mimo" || target.ProviderType == "mistral" || target.ProviderType == "stepfun" || target.ProviderType == "kimi" {
+	if target.ProviderType == "deepseek" || target.ProviderType == "dashscope" || target.ProviderType == "gemini" || target.ProviderType == "mimo" || target.ProviderType == "mistral" || target.ProviderType == "stepfun" || target.ProviderType == "kimi" || target.ProviderType == "fireworks" {
 		path = resolveOpenAICompatiblePath(backend.baseURL, "/chat/completions")
 	}
 	if target.ProviderType == "groq" {
@@ -183,7 +184,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 		request.Header.Del("Authorization")
 		request.Header.Set("x-goog-api-key", backend.apiKey)
 	}
-	if miniMaxMessages || target.ProviderType == "mistral" || target.ProviderType == "stepfun" {
+	if miniMaxMessages || target.ProviderType == "mistral" || target.ProviderType == "stepfun" || target.ProviderType == "fireworks" {
 		// These exact protocols use Bearer even when a gateway path contains
 		// /anthropic; generic URL heuristics cannot select credential semantics.
 		request.Header.Del("x-api-key")

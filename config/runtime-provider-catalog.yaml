@@ -108,10 +108,10 @@ providers:
     inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: fireworks
-    default_endpoint: null
+    default_endpoint: https://api.fireworks.ai/inference/v1
     default_text_model: null
-    requires_explicit_endpoint: true
-    inventory_mode: dynamic_endpoint
+    requires_explicit_endpoint: false
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: fish_audio
     default_endpoint: https://api.fish.audio
