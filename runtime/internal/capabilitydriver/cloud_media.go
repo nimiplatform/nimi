@@ -613,6 +613,18 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 			return nil, err
 		}
 	}
+	if d.provider == "groq" {
+		switch target.capabilityContract {
+		case "audio.synthesize":
+			if err := validateGroqSpeechRequest(mapped, target.providerModelID, streamMode); err != nil {
+				return nil, err
+			}
+		case "audio.transcribe":
+			if err := validateGroqTranscribeRequest(mapped, target.providerModelID); err != nil {
+				return nil, err
+			}
+		}
+	}
 	if spec := mapped.GetSpec().GetImageGenerate(); spec != nil && ImageHasExtendedControls(spec) && !SupportsGPTImageOwnedInputs(d.provider, target.providerModelID) && d.provider != "stability" && !(d.provider == "luma" && IsLumaUniImageModel(target.providerModelID)) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
@@ -1091,6 +1103,14 @@ func cloudMediaAdapterFor(provider string, capability string) string {
 		return CloudMediaAdapterFishAudioNative
 	case "aws_polly":
 		return CloudMediaAdapterAWSPollyNative
+	case "groq":
+		if capability == "audio.synthesize" {
+			return CloudMediaAdapterGroqSpeech
+		}
+		if capability == "audio.transcribe" {
+			return CloudMediaAdapterGroqTranscribe
+		}
+		return ""
 	case "azure_speech":
 		return CloudMediaAdapterAzureSpeechNative
 	case "google_cloud_tts":

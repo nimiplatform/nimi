@@ -1,6 +1,6 @@
 schema_version: 3
 provider: groq
-catalog_version: 2026-04-18-groq-v4
+catalog_version: 2026-11-06-groq-native
 generated_target: runtime/catalog/providers/groq.yaml
 runtime:
   runtime_plane: remote
@@ -8,16 +8,7 @@ runtime:
   inline_supported: true
   default_endpoint: https://api.groq.com/openai/v1
   requires_explicit_endpoint: false
-  inventory_mode: dynamic_endpoint
-  dynamic_inventory:
-    discovery_transport: connector_list_models
-    cache_ttl_sec: 300
-    selection_mode: pass_through
-    failure_policy: use_cache_then_fail_closed
-    allowed_capabilities:
-      - text.generate
-      - audio.transcribe
-      - audio.synthesize
+  inventory_mode: static_source
 defaults:
   provider: groq
   model_type: chat
@@ -27,11 +18,353 @@ defaults:
     input: unknown
     output: unknown
     currency: USD
-    as_of: 2026-04-18
-    notes: Groq publishes an active models catalog and a Models API endpoint for enumerating currently available models, so runtime inventory should be discovered dynamically instead of curated as static source rows.
-
+    as_of: 2026-11-06
+    notes: Reviewed Groq model-step and finite speech targets. Account access and model quality require separate live acceptance; no remote discovery is catalog authority.
+  default_text_model: openai/gpt-oss-120b
 sources:
-  - source_id: groq_models_doc
+  - source_id: groq_models
     url: https://console.groq.com/docs/models
-    retrieved_at: 2026-04-18
-    note: Groq official model catalog documenting production models, preview models, systems, pricing, and the Models API enumeration endpoint.
+    retrieved_at: 2026-11-06
+    note: Current native Groq protocol, model limits or availability.
+  - source_id: groq_reasoning
+    url: https://console.groq.com/docs/reasoning
+    retrieved_at: 2026-11-06
+    note: Current native Groq protocol, model limits or availability.
+  - source_id: groq_structured_outputs
+    url: https://console.groq.com/docs/structured-outputs
+    retrieved_at: 2026-11-06
+    note: Current native Groq protocol, model limits or availability.
+  - source_id: groq_tool_use
+    url: https://console.groq.com/docs/tool-use
+    retrieved_at: 2026-11-06
+    note: Current native Groq protocol, model limits or availability.
+  - source_id: groq_vision
+    url: https://console.groq.com/docs/vision
+    retrieved_at: 2026-11-06
+    note: Current native Groq protocol, model limits or availability.
+  - source_id: groq_api_reference
+    url: https://console.groq.com/docs/api-reference
+    retrieved_at: 2026-11-06
+    note: Current native Groq protocol, model limits or availability.
+  - source_id: groq_openai
+    url: https://console.groq.com/docs/openai
+    retrieved_at: 2026-11-06
+    note: Current native Groq protocol, model limits or availability.
+  - source_id: groq_speech_to_text
+    url: https://console.groq.com/docs/speech-to-text
+    retrieved_at: 2026-11-06
+    note: Current native Groq protocol, model limits or availability.
+  - source_id: groq_text_to_speech_orpheus
+    url: https://console.groq.com/docs/text-to-speech/orpheus
+    retrieved_at: 2026-11-06
+    note: Current native Groq protocol, model limits or availability.
+  - source_id: groq_model_0
+    url: https://console.groq.com/docs/model/openai/gpt-oss-120b
+    retrieved_at: 2026-11-06
+    note: Exact current model card; Preview or Enterprise status is retained in model notes.
+  - source_id: groq_model_1
+    url: https://console.groq.com/docs/model/qwen/qwen3.8-27b
+    retrieved_at: 2026-11-06
+    note: Exact current model card; Preview or Enterprise status is retained in model notes.
+  - source_id: groq_model_2
+    url: https://console.groq.com/docs/model/meta-models/muse-spark-open
+    retrieved_at: 2026-11-06
+    note: Exact current model card; Preview or Enterprise status is retained in model notes.
+  - source_id: groq_model_3
+    url: https://console.groq.com/docs/model/minimaxai/minimax-m2.7
+    retrieved_at: 2026-11-06
+    note: Exact current model card; Preview or Enterprise status is retained in model notes.
+models:
+  - model_id: openai/gpt-oss-120b
+    model_type: chat
+    updated_at: 2026-11-06
+    context_window_tokens: 131072
+    capabilities:
+      - text.generate
+    source_ids:
+      - groq_models
+      - groq_reasoning
+      - groq_tool_use
+      - groq_structured_outputs
+      - groq_api_reference
+      - groq_openai
+    pricing:
+      unit: token
+      input: "0.15"
+      output: "0.60"
+      currency: USD
+      as_of: 2026-11-06
+      notes: Production. Hidden native reasoning; single client function call per model step. Strict JSON schema is synchronous and cannot be combined with tools.
+  - model_id: openai/gpt-oss-20b
+    model_type: chat
+    updated_at: 2026-11-06
+    context_window_tokens: 131072
+    capabilities:
+      - text.generate
+    source_ids:
+      - groq_models
+      - groq_reasoning
+      - groq_tool_use
+      - groq_structured_outputs
+      - groq_api_reference
+      - groq_openai
+    pricing:
+      unit: token
+      input: "0.075"
+      output: "0.30"
+      currency: USD
+      as_of: 2026-11-06
+      notes: Production. Hidden native reasoning; no parallel tool calls. Native seed is best effort.
+  - model_id: qwen/qwen3.8-27b
+    model_type: chat
+    updated_at: 2026-11-06
+    context_window_tokens: 131072
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+    source_ids:
+      - groq_models
+      - groq_reasoning
+      - groq_tool_use
+      - groq_structured_outputs
+      - groq_api_reference
+      - groq_openai
+      - groq_vision
+    pricing:
+      unit: token
+      input: "0.80"
+      output: "4.00"
+      currency: USD
+      as_of: 2026-11-06
+      notes: Preview. Text and at most three owned images. Explicit low/medium/high thinking and none are reviewed; conflicting native-default thinking documentation is not resolved by guessing.
+  - model_id: meta-models/muse-spark-open
+    model_type: chat
+    updated_at: 2026-11-06
+    context_window_tokens: 131072
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+    source_ids:
+      - groq_models
+      - groq_reasoning
+      - groq_tool_use
+      - groq_structured_outputs
+      - groq_api_reference
+      - groq_openai
+      - groq_vision
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Limited Preview; Enterprise access requires provider approval. Always-on reasoning; at most five owned images.
+  - model_id: minimaxai/minimax-m2.7
+    model_type: chat
+    updated_at: 2026-11-06
+    context_window_tokens: 196608
+    capabilities:
+      - text.generate
+    source_ids:
+      - groq_models
+      - groq_reasoning
+      - groq_tool_use
+      - groq_structured_outputs
+      - groq_api_reference
+      - groq_openai
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Enterprise access. Native default thinking, client tool use and JSON object; strict JSON Schema is not advertised for this target.
+  - model_id: canopylabs/orpheus-v1-english
+    model_type: tts
+    updated_at: 2026-11-06
+    capabilities:
+      - audio.synthesize
+    source_ids:
+      - groq_models
+      - groq_text_to_speech_orpheus
+      - groq_api_reference
+    pricing:
+      unit: char
+      input: "22.00"
+      output: "0"
+      currency: USD
+      as_of: 2026-11-06
+      notes: Preview. At most 200 characters and complete WAV output. Native sample rate is measured from the response; generic API controls not promised by the model guide are not admitted.
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: en-orpheus-v1
+      supports_voice_ref_kinds:
+        - preset_voice_id
+        - provider_voice_ref
+      langs_ref: orpheus_english
+      request_options:
+        timing_modes:
+          - none
+        audio_formats:
+          - wav
+        supports_language: true
+  - model_id: canopylabs/orpheus-arabic-saudi
+    model_type: tts
+    updated_at: 2026-11-06
+    capabilities:
+      - audio.synthesize
+    source_ids:
+      - groq_models
+      - groq_text_to_speech_orpheus
+      - groq_api_reference
+    pricing:
+      unit: char
+      input: "40.00"
+      output: "0"
+      currency: USD
+      as_of: 2026-11-06
+      notes: Preview. At most 200 characters and complete WAV output. Native sample rate is measured from the response; generic API controls not promised by the model guide are not admitted.
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: ar-orpheus-v1
+      supports_voice_ref_kinds:
+        - preset_voice_id
+        - provider_voice_ref
+      langs_ref: orpheus_arabic
+      request_options:
+        timing_modes:
+          - none
+        audio_formats:
+          - wav
+        supports_language: true
+  - model_id: whisper-large-v3
+    model_type: stt
+    updated_at: 2026-11-06
+    capabilities:
+      - audio.transcribe
+    source_ids:
+      - groq_models
+      - groq_speech_to_text
+      - groq_api_reference
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Native billing is by audio duration with a 10-second minimum. Do not infer billable usage from recording duration. Reviewed direct-upload WAV/MP3/M4A/WebM/FLAC/Ogg boundary is 25 MB; context hints have a conservative 224-byte Runtime limit.
+    transcription:
+      tiers:
+        - core_transcript
+        - timed_transcript
+      response_formats:
+        - text
+      supports_language: true
+      supports_prompt: true
+      supports_timestamps: true
+      supports_diarization: false
+  - model_id: whisper-large-v3-turbo
+    model_type: stt
+    updated_at: 2026-11-06
+    capabilities:
+      - audio.transcribe
+    source_ids:
+      - groq_models
+      - groq_speech_to_text
+      - groq_api_reference
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Native billing is by audio duration with a 10-second minimum. Do not infer billable usage from recording duration. Reviewed direct-upload WAV/MP3/M4A/WebM/FLAC/Ogg boundary is 25 MB; context hints have a conservative 224-byte Runtime limit.
+    transcription:
+      tiers:
+        - core_transcript
+        - timed_transcript
+      response_formats:
+        - text
+      supports_language: true
+      supports_prompt: true
+      supports_timestamps: true
+      supports_diarization: false
+language_profiles:
+  orpheus_english:
+    - en
+  orpheus_arabic:
+    - ar
+voice_sets:
+  - voice_set_id: en-orpheus-v1
+    langs_ref: orpheus_english
+    source_ids:
+      - groq_text_to_speech_orpheus
+    voices:
+      - voice_id: autumn
+        name: autumn
+        langs:
+          - en
+      - voice_id: diana
+        name: diana
+        langs:
+          - en
+      - voice_id: hannah
+        name: hannah
+        langs:
+          - en
+      - voice_id: austin
+        name: austin
+        langs:
+          - en
+      - voice_id: daniel
+        name: daniel
+        langs:
+          - en
+      - voice_id: troy
+        name: troy
+        langs:
+          - en
+  - voice_set_id: ar-orpheus-v1
+    langs_ref: orpheus_arabic
+    source_ids:
+      - groq_text_to_speech_orpheus
+    voices:
+      - voice_id: abdullah
+        name: abdullah
+        langs:
+          - ar
+      - voice_id: fahad
+        name: fahad
+        langs:
+          - ar
+      - voice_id: sultan
+        name: sultan
+        langs:
+          - ar
+      - voice_id: lulwa
+        name: lulwa
+        langs:
+          - ar
+      - voice_id: noura
+        name: noura
+        langs:
+          - ar
+      - voice_id: aisha
+        name: aisha
+        langs:
+          - ar
+selection_profiles:
+  - profile_id: text.general
+    model_id: openai/gpt-oss-120b
+    capability: text.generate
+    reviewed_at: 2026-11-06
+    freshness_sla_days: 21
+    rationale: Current production Groq target with reviewed hidden reasoning and client tools; no account entitlement or quality guarantee is inferred.
+  - profile_id: text.fast
+    model_id: openai/gpt-oss-20b
+    capability: text.generate
+    reviewed_at: 2026-11-06
+    freshness_sla_days: 21
+    rationale: Current production Groq target with reviewed hidden reasoning and client tools; no account entitlement or quality guarantee is inferred.

@@ -93,7 +93,7 @@ func TestMistralTranscriptionUsesNativeUploadAndActualSourceDiarization(t *testi
 						t.Fatalf("altered transcript or fabricated words: %v", &result)
 					}
 					if diarize {
-						expected, err := mistralRecordingDuration(context.Background(), audio, mimeType)
+						expected, err := nativeSpeechRecordingDuration(context.Background(), audio, mimeType)
 						if err != nil {
 							t.Fatal(err)
 						}
@@ -246,7 +246,7 @@ func TestMistralSourceDurationUsesStereoFramesWithoutChangingMonoOwners(t *testi
 	binary.LittleEndian.PutUint16(stereo[22:], 2)
 	binary.LittleEndian.PutUint32(stereo[28:], 96000)
 	binary.LittleEndian.PutUint16(stereo[32:], 4)
-	duration, err := mistralRecordingDuration(context.Background(), stereo, "audio/wav")
+	duration, err := nativeSpeechRecordingDuration(context.Background(), stereo, "audio/wav")
 	if err != nil || duration != .05 {
 		t.Fatalf("stereo sample duration %v %v", duration, err)
 	}

@@ -44,10 +44,15 @@ func TestGemma4E2BAdmitsOrderedSystemMessagesWithoutWideningOtherCombinations(t 
 
 func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 	registrations := productionTextBehaviorAdapterRegistrations()
-	if len(registrations) != 69 {
-		t.Fatalf("production adapter registrations = %d, want thirteen Local mappings and fifty-six Cloud targets", len(registrations))
+	if len(registrations) != 74 {
+		t.Fatalf("production adapter registrations = %d, want thirteen Local mappings and sixty-one Cloud targets", len(registrations))
 	}
 	expectedCloudTargets := map[string]string{
+		"groq/openai/gpt-oss-120b":            "groq.openai/gpt-oss-120b.chat",
+		"groq/openai/gpt-oss-20b":             "groq.openai/gpt-oss-20b.chat",
+		"groq/qwen/qwen3.8-27b":               "groq.qwen/qwen3.8-27b.chat",
+		"groq/meta-models/muse-spark-open":    "groq.meta-models/muse-spark-open.chat",
+		"groq/minimaxai/minimax-m2.7":         "groq.minimaxai/minimax-m2.7.chat",
 		"kimi/kimi-k3.1-pro":                  "kimi.kimi-k3.1-pro.chat",
 		"kimi/kimi-k3.1-pro-highspeed":        "kimi.kimi-k3.1-pro-highspeed.chat",
 		"kimi/kimi-k3":                        "kimi.kimi-k3.chat",

@@ -306,8 +306,11 @@ func TestMediaRoutingHelpers(t *testing.T) {
 	if got := resolveMediaAdapterName("", "", runtimev1.Modal_MODAL_MUSIC, "loudly"); got != adapterLoudlyMusic {
 		t.Fatalf("unexpected loudly music adapter: %s", got)
 	}
-	if got := resolveMediaAdapterName("", "", runtimev1.Modal_MODAL_STT, "groq"); got != adapterOpenAICompat {
+	if got := resolveMediaAdapterName("", "", runtimev1.Modal_MODAL_STT, "groq"); got != "groq_transcriptions_adapter" {
 		t.Fatalf("unexpected groq stt adapter: %s", got)
+	}
+	if got := resolveMediaAdapterName("", "", runtimev1.Modal_MODAL_TTS, "groq"); got != "groq_speech_adapter" {
+		t.Fatalf("unexpected groq tts adapter: %s", got)
 	}
 
 	if got := stringSliceToAny([]string{"  a ", "", "b"}); len(got) != 2 {

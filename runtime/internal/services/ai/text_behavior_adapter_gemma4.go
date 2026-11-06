@@ -62,6 +62,9 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 	for _, model := range []string{"kimi-k3.1-pro", "kimi-k3.1-pro-highspeed", "kimi-k3"} {
 		registrations = append(registrations, kimiK3TextBehaviorRegistration(model))
 	}
+	for _, model := range []string{"openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b", "meta-models/muse-spark-open", "minimaxai/minimax-m2.7"} {
+		registrations = append(registrations, groqTextBehaviorRegistration(model))
+	}
 	return registrations
 }
 

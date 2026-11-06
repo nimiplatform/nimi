@@ -60,6 +60,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	case "mimo":
 	case "mistral":
 	case "kimi":
+	case "groq":
 	case "stepfun":
 	case "glm":
 	case "minimax":
@@ -97,6 +98,11 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	}
 	if target.ProviderType == "deepseek" || target.ProviderType == "dashscope" || target.ProviderType == "gemini" || target.ProviderType == "mimo" || target.ProviderType == "mistral" || target.ProviderType == "stepfun" || target.ProviderType == "kimi" {
 		path = resolveOpenAICompatiblePath(backend.baseURL, "/chat/completions")
+	}
+	if target.ProviderType == "groq" {
+		// Backend normalization removes only the terminal /v1. Groq's /openai
+		// prefix still needs /v1; Gemini's superficially similar prefix does not.
+		path = backend.compatiblePath("/chat/completions")
 	}
 	if target.ProviderType == "openai" || target.ProviderType == "xai" {
 		path = resolveOpenAICompatiblePath(backend.baseURL, "/responses")

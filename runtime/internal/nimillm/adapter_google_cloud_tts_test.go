@@ -123,6 +123,12 @@ func TestGoogleCloudTTSNativeCodecFiles(t *testing.T) {
 					t.Fatal("corrupt Ogg page accepted")
 				}
 			}
+			if tc.mime == "audio/wav" || tc.mime == "audio/mpeg" {
+				duration, err := nativeSpeechRecordingDuration(context.Background(), audio, tc.mime)
+				if err != nil || duration < .39 {
+					t.Fatalf("synthesis artifact cannot be consumed as a recording: %v %v", duration, err)
+				}
+			}
 		})
 	}
 }

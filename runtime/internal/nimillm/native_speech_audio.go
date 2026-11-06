@@ -10,6 +10,26 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
+func nativeSpeechRecordingDuration(ctx context.Context, audio []byte, mimeType string) (float64, error) {
+	if mimeType == "audio/wav" {
+		// Cloud TTS can produce PCM, A-law and mu-law WAV containers. Their
+		// exact frame counts all follow the validated block alignment.
+		rate, size, align, _, err := inspectFiniteWAVEncoding(audio, 0)
+		if err == nil {
+			return float64(size) / float64(uint64(rate)*uint64(align)), nil
+		}
+	} else if mimeType == "audio/mpeg" {
+		_, duration, valid := inspectCompleteMP3(ctx, audio)
+		if valid {
+			return duration, nil
+		}
+	}
+	if ctx.Err() != nil {
+		return 0, ctx.Err()
+	}
+	return 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+}
+
 // nativeSpeechArtifact checks the returned format and takes file metadata from
 // its actual container. Raw mono encodings use the captured native wire rate.
 func nativeSpeechArtifact(ctx context.Context, audio []byte, encoding string, rate int32, metadata map[string]any) (*runtimev1.ScenarioArtifact, error) {

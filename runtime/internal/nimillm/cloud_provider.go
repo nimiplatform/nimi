@@ -53,6 +53,7 @@ func NewCloudProvider(cfg CloudConfig) *CloudProvider {
 		b := NewSecuredBackendWithHeaders(backendName, baseURL, creds.APIKey, creds.Headers, cfg.HTTPTimeout, cfg.AllowLoopbackEndpoint)
 		if b != nil {
 			b.azureOpenAI = canonical == "azure"
+			b.groqOpenAI = canonical == "groq"
 			backends[canonical] = b
 		}
 	}
@@ -243,6 +244,9 @@ func (p *CloudProvider) backendFromTarget(target *RemoteTarget) *Backend {
 	if backend != nil && target.ProviderType == "azure" {
 		backend.azureOpenAI = true
 		backend.modelDeployment = target.AzureDeploymentName
+	}
+	if backend != nil && target.ProviderType == "groq" {
+		backend.groqOpenAI = true
 	}
 	if backend != nil && target.ProviderType == "bedrock" {
 		backend.modelDeployment = target.BedrockInvocationModelID

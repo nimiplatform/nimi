@@ -57,6 +57,10 @@ func (p *CloudProvider) ExecuteMediaAdapter(
 		err           error
 	)
 	switch strings.TrimSpace(adapter) {
+	case capabilitydriver.CloudMediaAdapterGroqSpeech:
+		artifacts, usage, providerJobID, err = p.executeGroqSpeech(ctx, request, modelID, target)
+	case capabilitydriver.CloudMediaAdapterGroqTranscribe:
+		artifacts, usage, providerJobID, err = p.executeGroqTranscriptions(ctx, request, modelID, target)
 	case AdapterXAIImage:
 		artifacts, usage, providerJobID, err = ExecuteXAIImage(ctx, cfg, request, modelID)
 	case AdapterXAIVideo:
@@ -232,6 +236,8 @@ func speechAdapterMatchesProvider(adapter string, provider string) bool {
 	adapter = strings.TrimSpace(adapter)
 	provider = strings.ToLower(strings.TrimSpace(provider))
 	switch adapter {
+	case capabilitydriver.CloudMediaAdapterGroqSpeech:
+		return provider == "groq"
 	case capabilitydriver.CloudMediaAdapterMistralSpeech:
 		return provider == "mistral"
 	case "openai_compat_adapter":

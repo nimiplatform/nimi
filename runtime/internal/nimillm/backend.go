@@ -27,6 +27,7 @@ const maxInlineOpenAIMediaBytes = 32 << 20
 type Backend struct {
 	// Exact provider-native facts captured by CloudProvider, never App flags.
 	azureOpenAI     bool
+	groqOpenAI      bool
 	modelDeployment string
 	Name            string
 	baseURL         string
@@ -399,6 +400,7 @@ func (b *Backend) WithRequestOverridesAndHeadersWithPolicy(endpoint string, apiK
 		clone := NewSecuredBackendWithHeaders(b.Name, normalizedEndpoint, normalizedAPIKey, resolvedHeaders, b.timeout(), allowLoopback)
 		if clone != nil {
 			clone.azureOpenAI = b.azureOpenAI
+			clone.groqOpenAI = b.groqOpenAI
 			clone.modelDeployment = b.modelDeployment
 		}
 		return clone

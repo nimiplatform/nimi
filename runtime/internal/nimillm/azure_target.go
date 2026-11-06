@@ -73,7 +73,7 @@ func (b *Backend) requestModelID(model string) string {
 }
 
 func (b *Backend) compatiblePath(resource string) string {
-	if b.azureOpenAI {
+	if b.azureOpenAI || b.groqOpenAI {
 		return "/v1/" + strings.TrimLeft(resource, "/")
 	}
 	return resolveOpenAICompatiblePath(b.baseURL, resource)

@@ -36,7 +36,7 @@ func executeMistralVoiceWorkflow(ctx context.Context, req VoiceWorkflowRequest, 
 		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_VOICE_INPUT_INVALID)
 	}
 	mimeType := ValueAsString(input["reference_audio_mime"])
-	if _, err := mistralRecordingDuration(ctx, audio, mimeType); err != nil {
+	if _, err := nativeSpeechRecordingDuration(ctx, audio, mimeType); err != nil {
 		return VoiceWorkflowResult{}, err
 	}
 	filename := "voice.wav"

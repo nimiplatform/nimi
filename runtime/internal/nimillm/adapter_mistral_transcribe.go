@@ -33,23 +33,6 @@ func (u *mistralAudioUsage) normalize() (*runtimev1.UsageStats, error) {
 func mistralAudioInvalidOutput() error {
 	return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 }
-func mistralRecordingDuration(ctx context.Context, audio []byte, mimeType string) (float64, error) {
-	if mimeType == "audio/wav" {
-		rate, size, align, _, err := inspectFinitePCMWAV(audio)
-		if err == nil {
-			return float64(size) / float64(uint64(rate)*uint64(align)), nil
-		}
-	} else if mimeType == "audio/mpeg" {
-		_, duration, valid := inspectCompleteMP3(ctx, audio)
-		if valid {
-			return duration, nil
-		}
-	}
-	if ctx.Err() != nil {
-		return 0, ctx.Err()
-	}
-	return 0, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
-}
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.speech-transcription-result
 func (p *CloudProvider) executeMistralTranscriptions(ctx context.Context, req *runtimev1.SubmitScenarioJobRequest, model string, target *RemoteTarget) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
@@ -59,7 +42,7 @@ func (p *CloudProvider) executeMistralTranscriptions(ctx context.Context, req *r
 	}
 	s := req.GetSpec().GetSpeechTranscribe()
 	audio := s.GetAudioSource().GetAudioBytes()
-	duration, err := mistralRecordingDuration(ctx, audio, s.GetMimeType())
+	duration, err := nativeSpeechRecordingDuration(ctx, audio, s.GetMimeType())
 	if err != nil {
 		return nil, nil, "", err
 	}
