@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
 import { listProviderSourceDocs } from './lib/provider-source.mjs';
+import { providerCapabilityDeclaration } from './lib/provider-capability-declaration.mjs';
 import {
   buildLanguageProfiles,
   buildSourceIndex,
@@ -854,6 +855,7 @@ export function generateProviderCatalog(doc) {
   if (inventoryMode === 'static_source' && modelsOut.length === 0) {
     throw new Error(`${provider} static_source providers must declare models`);
   }
+  providerCapabilityDeclaration(runtime, modelsOut.flatMap((model) => model.capabilities), canonicalModelCapabilities, provider);
 
   const result = {
     version: 1,

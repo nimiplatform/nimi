@@ -14,6 +14,17 @@ const duplicateVideoFixture = path.join(
   'runtime-catalog-duplicate-video-mode.source.yaml',
 );
 
+test('provider capabilities cannot create models or hide model capability declarations', () => {
+  const source = YAML.parse(fs.readFileSync(path.join(import.meta.dirname, '..', 'runtime', 'catalog', 'source', 'providers', 'together.source.yaml'), 'utf8'));
+  const generated = generateProviderCatalog(source);
+  assert.equal(generated.models.length, source.models.length);
+  assert.ok(!generated.models.some((model) => model.capabilities.includes('text.embed')));
+  source.runtime.capabilities = ['text.embed'];
+  assert.throws(() => generateProviderCatalog(source), /omits model capability text.generate/u);
+  source.runtime.capabilities = [];
+  assert.throws(() => generateProviderCatalog(source), /unique canonical capability tokens/u);
+});
+
 test('mixed Gemini voice discovery keeps presets separate from stored user voices', () => {
   const source = YAML.parse(fs.readFileSync(path.join(import.meta.dirname, '..', 'runtime', 'catalog', 'source', 'providers', 'gemini.source.yaml'), 'utf8'));
   const generated = generateProviderCatalog(source);

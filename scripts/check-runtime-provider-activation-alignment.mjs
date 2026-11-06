@@ -5,6 +5,7 @@ import path from 'node:path';
 import process from 'node:process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { listProviderSourceDocs } from './lib/provider-source.mjs';
+import { capabilityFlags } from './generate-runtime-provider-registry.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -39,32 +40,11 @@ function normalizeStringArray(value) {
 }
 
 function inferSourceCapabilities(doc) {
-  const defaults = normalizeStringArray(doc?.defaults?.capabilities);
-  const models = Array.isArray(doc?.models) ? doc.models : [];
-  const inventoryMode = normalizeProviderId(doc?.runtime?.inventory_mode);
-  const dynamicAllowed = normalizeStringArray(doc?.runtime?.dynamic_inventory?.allowed_capabilities);
-  let supportsTTS = false;
-  let supportsSTT = false;
-
-  if (inventoryMode === 'dynamic_endpoint') {
-    supportsTTS = dynamicAllowed.includes('audio.synthesize');
-    supportsSTT = dynamicAllowed.includes('audio.transcribe');
-  }
-
-  for (const model of models) {
-    const capabilities = normalizeStringArray(model?.capabilities);
-    const effective = capabilities.length > 0 ? capabilities : defaults;
-    if (effective.includes('audio.synthesize')) {
-      supportsTTS = true;
-    }
-    if (effective.includes('audio.transcribe')) {
-      supportsSTT = true;
-    }
-  }
+  const flags = capabilityFlags(doc);
   const workflows = Array.isArray(doc?.voice_workflow_models) ? doc.voice_workflow_models : [];
   return {
-    supportsTTS,
-    supportsSTT,
+    supportsTTS: flags.tts,
+    supportsSTT: flags.stt,
     workflowCount: workflows.length,
   };
 }

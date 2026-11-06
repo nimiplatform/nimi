@@ -1,40 +1,192 @@
 schema_version: 3
 provider: together
-catalog_version: 2026-04-18-together-v2
+catalog_version: 2026-11-07-together-reviewed-chat
 generated_target: runtime/catalog/providers/together.yaml
 runtime:
   runtime_plane: remote
   managed_connector_supported: true
   inline_supported: true
-  default_endpoint: null
-  requires_explicit_endpoint: true
-  inventory_mode: dynamic_endpoint
-  dynamic_inventory:
-    discovery_transport: connector_list_models
-    cache_ttl_sec: 300
-    selection_mode: pass_through
-    failure_policy: use_cache_then_fail_closed
-    allowed_capabilities:
-      - text.generate
-      - text.embed
-      - image.generate
-      - video.generate
-      - audio.synthesize
-      - audio.transcribe
+  default_endpoint: https://api.together.ai/v1
+  requires_explicit_endpoint: false
+  inventory_mode: static_source
+  capabilities:
+    - text.generate
+    - text.embed
+    - image.generate
+    - video.generate
+    - audio.synthesize
+    - audio.transcribe
 defaults:
   provider: together
   model_type: chat
   capabilities: []
+  context_window_tokens: 1000000
   pricing:
     unit: token
     input: unknown
     output: unknown
     currency: USD
-    as_of: 2026-04-18
-    notes: Together Serverless exposes a broad, fast-changing multi-provider model marketplace across text, image, video, audio, embedding, and moderation surfaces, so runtime inventory should be discovered dynamically instead of curated as static source rows.
-
+    as_of: 2026-11-07
+    notes: Reviewed serverless targets. Other capability declarations retain explicit custom-catalog paths and do not invent built-in models or deployment identities.
 sources:
-  - source_id: together_models_doc
-    url: https://docs.together.ai/docs/serverless-models
-    retrieved_at: 2026-04-18
-    note: Together AI serverless catalog spanning chat, image, vision, video, audio, embedding, rerank, and moderation models.
+  - source_id: together_serverless
+    url: https://docs.together.ai/docs/serverless/models
+    retrieved_at: 2026-11-07
+    note: Official Together contract; real account inference is recorded separately.
+  - source_id: together_chat
+    url: https://docs.together.ai/reference/chat-completions
+    retrieved_at: 2026-11-07
+    note: Official Together contract; real account inference is recorded separately.
+  - source_id: together_reasoning
+    url: https://docs.together.ai/docs/inference/chat/reasoning
+    retrieved_at: 2026-11-07
+    note: Official Together contract; real account inference is recorded separately.
+  - source_id: together_structured
+    url: https://docs.together.ai/docs/inference/chat/structured-outputs
+    retrieved_at: 2026-11-07
+    note: Official Together contract; real account inference is recorded separately.
+  - source_id: together_kimi
+    url: https://docs.together.ai/docs/kimi-k3-quickstart
+    retrieved_at: 2026-11-07
+    note: Official Together contract; real account inference is recorded separately.
+  - source_id: together_glm
+    url: https://docs.together.ai/docs/glm-5.3-quickstart
+    retrieved_at: 2026-11-07
+    note: Official Together contract; real account inference is recorded separately.
+  - source_id: together_deepseek
+    url: https://docs.together.ai/docs/deepseek-v4-quickstart
+    retrieved_at: 2026-11-07
+    note: Official Together contract; real account inference is recorded separately.
+models:
+  - model_id: deepseek-ai/DeepSeek-V4-Pro-0813
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    source_ids:
+      - together_serverless
+      - together_chat
+      - together_reasoning
+      - together_structured
+      - together_deepseek
+  - model_id: deepseek-ai/DeepSeek-V4.1-Flash
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    source_ids:
+      - together_serverless
+      - together_chat
+      - together_reasoning
+      - together_structured
+  - model_id: deepseek-ai/DeepSeek-V4.1-Flash-1017
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    source_ids:
+      - together_serverless
+      - together_chat
+      - together_reasoning
+      - together_structured
+  - model_id: moonshotai/Kimi-K3
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+    source_ids:
+      - together_serverless
+      - together_chat
+      - together_reasoning
+      - together_structured
+      - together_kimi
+  - model_id: moonshotai/Kimi-K3.1-Pro
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+    source_ids:
+      - together_serverless
+      - together_chat
+      - together_reasoning
+      - together_structured
+  - model_id: zai-org/GLM-5.3
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    source_ids:
+      - together_serverless
+      - together_chat
+      - together_reasoning
+      - together_structured
+      - together_glm
+  - model_id: zai-org/GLM-5.3-Flash
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    source_ids:
+      - together_serverless
+      - together_chat
+      - together_reasoning
+      - together_structured
+      - together_glm
+  - model_id: MiniMaxAI/MiniMax-M3.1-Flash
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    source_ids:
+      - together_serverless
+      - together_chat
+      - together_reasoning
+      - together_structured
+  - model_id: Qwen/Qwen3.8-Flash
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    source_ids:
+      - together_serverless
+      - together_chat
+      - together_reasoning
+      - together_structured
+  - model_id: meta-models/Muse-Glimmer-30B
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    context_window_tokens: 131072
+    source_ids:
+      - together_serverless
+      - together_chat
+      - together_reasoning
+      - together_structured
+  - model_id: meta-models/Muse-Spark-Open-816B-A42B
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    source_ids:
+      - together_serverless
+      - together_chat
+      - together_reasoning
+      - together_structured
+  - model_id: nvidia/NVIDIA-Nemotron-3.5-Super-VL
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    context_window_tokens: 262144
+    features:
+      - input.image
+    source_ids:
+      - together_serverless
+      - together_chat
+      - together_reasoning
+      - together_structured

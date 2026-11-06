@@ -44,6 +44,10 @@ func nativeReasoningReplayInvalid() error {
 // The reviewed GLM and DeepSeek protocols share this Chat Completions envelope.
 // Their exact request controls and model identities remain adapter-owned.
 func parseReasoningChatResponse(payload []byte, spec *runtimev1.TextGenerateScenarioSpec, kind string) (textbehavior.NormalizedResult, error) {
+	return parseReasoningChatResponseWithPolicy(payload, spec, kind, true)
+}
+
+func parseReasoningChatResponseWithPolicy(payload []byte, spec *runtimev1.TextGenerateScenarioSpec, kind string, requireToolReasoning bool) (textbehavior.NormalizedResult, error) {
 	if !utf8.Valid(payload) {
 		return textbehavior.NormalizedResult{}, deepseekJSONOutputError()
 	}
@@ -73,7 +77,7 @@ func parseReasoningChatResponse(payload []byte, spec *runtimev1.TextGenerateScen
 	if err != nil {
 		return result, err
 	}
-	if result.FinishReason == runtimev1.FinishReason_FINISH_REASON_TOOL_CALL && carrier == nil {
+	if requireToolReasoning && result.FinishReason == runtimev1.FinishReason_FINISH_REASON_TOOL_CALL && carrier == nil {
 		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_REASONING_CONTINUITY_INVALID, grpcerr.ReasonOptions{Message: "The provider omitted reasoning_content from a thinking tool-call response"})
 	}
 	if carrier != nil {
@@ -89,6 +93,7 @@ type reasoningChatStream struct {
 	reasoningPresent bool
 	sealed           bool
 	carrier          *runtimev1.ReasoningContinuityCarrier
+	optional         bool
 }
 
 func newReasoningChatStream(spec *runtimev1.TextGenerateScenarioSpec, kind string) textbehavior.StreamFragmentAssembler {
@@ -143,7 +148,7 @@ func (s *reasoningChatStream) Append(payload []byte) ([]textbehavior.OrderedDelt
 				return nil, err
 			}
 		}
-		if choice.FinishReason != nil && *choice.FinishReason == "tool_calls" && s.carrier == nil {
+		if !s.optional && choice.FinishReason != nil && *choice.FinishReason == "tool_calls" && s.carrier == nil {
 			return nil, nativeReasoningReplayInvalid()
 		}
 	}

@@ -44,10 +44,22 @@ func TestGemma4E2BAdmitsOrderedSystemMessagesWithoutWideningOtherCombinations(t 
 
 func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 	registrations := productionTextBehaviorAdapterRegistrations()
-	if len(registrations) != 117 {
-		t.Fatalf("production adapter registrations = %d, want thirteen Local mappings and one hundred and four Cloud targets", len(registrations))
+	if len(registrations) != 129 {
+		t.Fatalf("production adapter registrations = %d, want thirteen Local mappings and one hundred and sixteen Cloud targets", len(registrations))
 	}
 	expectedCloudTargets := map[string]string{
+		"together/deepseek-ai/DeepSeek-V4-Pro-0813":                    "together.deepseek-ai/DeepSeek-V4-Pro-0813.chat",
+		"together/deepseek-ai/DeepSeek-V4.1-Flash":                     "together.deepseek-ai/DeepSeek-V4.1-Flash.chat",
+		"together/deepseek-ai/DeepSeek-V4.1-Flash-1017":                "together.deepseek-ai/DeepSeek-V4.1-Flash-1017.chat",
+		"together/moonshotai/Kimi-K3":                                  "together.moonshotai/Kimi-K3.chat",
+		"together/moonshotai/Kimi-K3.1-Pro":                            "together.moonshotai/Kimi-K3.1-Pro.chat",
+		"together/zai-org/GLM-5.3":                                     "together.zai-org/GLM-5.3.chat",
+		"together/zai-org/GLM-5.3-Flash":                               "together.zai-org/GLM-5.3-Flash.chat",
+		"together/MiniMaxAI/MiniMax-M3.1-Flash":                        "together.MiniMaxAI/MiniMax-M3.1-Flash.chat",
+		"together/Qwen/Qwen3.8-Flash":                                  "together.Qwen/Qwen3.8-Flash.chat",
+		"together/meta-models/Muse-Glimmer-30B":                        "together.meta-models/Muse-Glimmer-30B.chat",
+		"together/meta-models/Muse-Spark-Open-816B-A42B":               "together.meta-models/Muse-Spark-Open-816B-A42B.chat",
+		"together/nvidia/NVIDIA-Nemotron-3.5-Super-VL":                 "together.nvidia/NVIDIA-Nemotron-3.5-Super-VL.chat",
 		"openrouter/openai/gpt-6.1-terra":                              "openrouter.openai/gpt-6.1-terra.responses",
 		"openrouter/openai/gpt-6.1-sol":                                "openrouter.openai/gpt-6.1-sol.responses",
 		"openrouter/openai/gpt-6-astra":                                "openrouter.openai/gpt-6-astra.responses",

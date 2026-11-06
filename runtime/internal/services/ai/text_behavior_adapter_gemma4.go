@@ -74,6 +74,9 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 	for _, model := range capabilitydriver.OpenRouterTextModels() {
 		registrations = append(registrations, openRouterTextBehaviorRegistration(model))
 	}
+	for _, model := range capabilitydriver.TogetherTextModels() {
+		registrations = append(registrations, togetherTextBehaviorRegistration(model))
+	}
 	return registrations
 }
 

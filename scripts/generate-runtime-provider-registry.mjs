@@ -6,6 +6,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import YAML from 'yaml';
 import { listProviderSourceDocs } from './lib/provider-source.mjs';
+import { providerCapabilityDeclaration } from './lib/provider-capability-declaration.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(scriptDir, '..');
@@ -160,14 +161,9 @@ function normalizeDynamicInventory(value, providerID) {
 }
 
 export function capabilityFlags(sourceDoc) {
-  const runtime = sourceDoc?.runtime && typeof sourceDoc.runtime === 'object' ? sourceDoc.runtime : {};
-  const inventoryMode = normalizeInventoryMode(runtime?.inventory_mode);
-  const dynamicInventory = inventoryMode === 'dynamic_endpoint'
-    ? normalizeDynamicInventory(runtime?.dynamic_inventory, sourceDoc?.provider || '<unknown>')
-    : null;
   const models = Array.isArray(sourceDoc?.models) ? sourceDoc.models : [];
   const defaults = normalizeStringArray(sourceDoc?.defaults?.capabilities).map((entry) => entry.toLowerCase());
-  const dynamicCapabilities = normalizeStringArray(dynamicInventory?.allowedCapabilities).map((entry) => entry.toLowerCase());
+  const declaredCapabilities = collectProviderCapabilities(sourceDoc);
 
   let text = false;
   let embed = false;
@@ -179,10 +175,7 @@ export function capabilityFlags(sourceDoc) {
   let realtime = false;
   let decide = false;
 
-  for (const capability of dynamicCapabilities) {
-    if (!canonicalModelCapabilities.has(capability)) {
-      throw new Error(`provider ${sourceDoc?.provider || '<unknown>'} uses non-canonical capability token: ${capability}`);
-    }
+  for (const capability of declaredCapabilities) {
     if (capability === 'text.generate') text = true;
     if (capability === 'text.embed') embed = true;
     if (capability === 'image.generate') image = true;
@@ -192,43 +185,6 @@ export function capabilityFlags(sourceDoc) {
     if (capability === 'music.generate') music = true;
     if (capability === 'realtime.interact') realtime = true;
     if (capability === 'text.decide') decide = true;
-  }
-
-  for (const model of models) {
-    const capabilities = normalizeStringArray(model?.capabilities).map((entry) => entry.toLowerCase());
-    const effectiveCaps = capabilities.length > 0 ? capabilities : defaults;
-    for (const capability of effectiveCaps) {
-      if (!canonicalModelCapabilities.has(capability)) {
-        throw new Error(`provider ${sourceDoc?.provider || '<unknown>'} uses non-canonical capability token: ${capability}`);
-      }
-      if (capability === 'text.generate') {
-        text = true;
-      }
-      if (capability === 'text.embed') {
-        embed = true;
-      }
-      if (capability === 'image.generate') {
-        image = true;
-      }
-      if (capability === 'video.generate') {
-        video = true;
-      }
-      if (capability === 'audio.synthesize') {
-        tts = true;
-      }
-      if (capability === 'audio.transcribe') {
-        stt = true;
-      }
-      if (capability === 'music.generate') {
-        music = true;
-      }
-      if (capability === 'realtime.interact') {
-        realtime = true;
-      }
-      if (capability === 'text.decide') {
-        decide = true;
-      }
-    }
   }
 
   const workflows = Array.isArray(sourceDoc.voice_workflow_models) ? sourceDoc.voice_workflow_models : [];
@@ -278,7 +234,7 @@ function collectProviderCapabilities(sourceDoc) {
       capabilitySet.add(normalized);
     }
   }
-  return [...capabilitySet].sort((left, right) => left.localeCompare(right));
+  return providerCapabilityDeclaration(runtime, capabilitySet, canonicalModelCapabilities, sourceDoc?.provider || '<unknown>');
 }
 
 async function loadTokenProbeProviders(recordsByID) {

@@ -93,6 +93,16 @@ Legacy capability synonyms such as `chat`, `embedding`, `image`, `tts`, `stt`, `
 - `requires_explicit_endpoint`
 - `inventory_mode` (`static_source|dynamic_endpoint`)
 
+For `static_source`, optional `runtime.capabilities` declares the reviewed
+provider capability list independently of the built-in model selection. It must
+be non-empty, unique, canonical, and include every model-row capability. This
+allows an explicit custom-catalog capability to remain available when no public
+built-in model can be named, such as deployment-scoped embeddings. Omitting the
+field derives the list from model rows. The field creates no model or output
+contract and does not grant execution admission or select a target; those still
+require the existing Runtime and AIConfig contracts
+(`rule.nimi.runtime.model-catalog.r013`).
+
 When `inventory_mode=dynamic_endpoint`, `runtime.dynamic_inventory` is required:
 
 - `discovery_transport` (`connector_list_models`)
