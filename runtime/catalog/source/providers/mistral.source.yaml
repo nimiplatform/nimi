@@ -1,6 +1,6 @@
 schema_version: 3
 provider: mistral
-catalog_version: 2026-11-06-mistral-voxtral3
+catalog_version: 2026-11-06-mistral-voxtral3-transcription-options
 generated_target: runtime/catalog/providers/mistral.yaml
 runtime:
   inventory_mode: static_source
@@ -219,7 +219,7 @@ models:
       notes: General-purpose text embedding model retained in current source scope. Per 1M tokens.
     source_ids: [ mistral_embeddings_doc, mistral_embed_model_doc, mistral_models_doc ]
   - model_id: voxtral-mini-transcribe-3-0
-    model_type: asr
+    model_type: stt
     updated_at: 2026-10-20
     capabilities:
       - audio.transcribe
@@ -234,8 +234,19 @@ models:
       currency: USD
       as_of: 2026-11-06
       notes: Public Preview. Native billing is based on audio minutes or characters; no synthetic per-request USD cost.
+    transcription:
+      tiers:
+        - core_transcript
+        - speaker_aware_transcript
+      response_formats:
+        - text
+      supports_language: true
+      supports_prompt: true
+      supports_timestamps: false
+      supports_diarization: true
+      max_speaker_count: 0
   - model_id: voxtral-small-transcribe-3-0
-    model_type: asr
+    model_type: stt
     updated_at: 2026-10-20
     capabilities:
       - audio.transcribe
@@ -250,6 +261,17 @@ models:
       currency: USD
       as_of: 2026-11-06
       notes: Public Preview. Native billing is based on audio minutes or characters; no synthetic per-request USD cost.
+    transcription:
+      tiers:
+        - core_transcript
+        - speaker_aware_transcript
+      response_formats:
+        - text
+      supports_language: true
+      supports_prompt: true
+      supports_timestamps: false
+      supports_diarization: true
+      max_speaker_count: 0
   - model_id: voxtral-mini-tts-3-0
     model_type: tts
     updated_at: 2026-10-20

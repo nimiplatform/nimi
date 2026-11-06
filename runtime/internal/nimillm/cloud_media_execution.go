@@ -57,6 +57,10 @@ func (p *CloudProvider) ExecuteMediaAdapter(
 		err           error
 	)
 	switch strings.TrimSpace(adapter) {
+	case AdapterXAIImage:
+		artifacts, usage, providerJobID, err = ExecuteXAIImage(ctx, cfg, request, modelID)
+	case AdapterXAIVideo:
+		artifacts, usage, providerJobID, err = ExecuteXAIVideo(ctx, cfg, request, modelID)
 	case capabilitydriver.CloudMediaAdapterMistralTranscribe:
 		artifacts, usage, providerJobID, err = p.executeMistralTranscriptions(ctx, request, modelID, target)
 	case capabilitydriver.CloudMediaAdapterMistralSpeech:

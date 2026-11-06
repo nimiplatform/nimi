@@ -1,6 +1,6 @@
 version: 1
 provider: mistral
-catalog_version: 2026-11-06-mistral-voxtral3
+catalog_version: 2026-11-06-mistral-voxtral3-transcription-options
 inventory_mode: static_source
 default_text_model: mistral-large-4-0
 models:
@@ -103,7 +103,7 @@ models:
       dimension: 1024
   - model_id: voxtral-mini-transcribe-3-0
     provider: mistral
-    model_type: asr
+    model_type: stt
     updated_at: 2026-10-20
     capabilities:
       - audio.transcribe
@@ -118,9 +118,19 @@ models:
       url: https://docs.mistral.ai/models/voxtral-mini-transcribe-3-0
       retrieved_at: 2026-11-06
       note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+    transcription:
+      tiers:
+        - core_transcript
+        - speaker_aware_transcript
+      response_formats:
+        - text
+      supports_language: true
+      supports_prompt: true
+      supports_diarization: true
+      max_speaker_count: 0
   - model_id: voxtral-small-transcribe-3-0
     provider: mistral
-    model_type: asr
+    model_type: stt
     updated_at: 2026-10-20
     capabilities:
       - audio.transcribe
@@ -135,6 +145,16 @@ models:
       url: https://docs.mistral.ai/models/voxtral-small-transcribe-3-0
       retrieved_at: 2026-11-06
       note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+    transcription:
+      tiers:
+        - core_transcript
+        - speaker_aware_transcript
+      response_formats:
+        - text
+      supports_language: true
+      supports_prompt: true
+      supports_diarization: true
+      max_speaker_count: 0
   - model_id: voxtral-mini-tts-3-0
     provider: mistral
     model_type: tts

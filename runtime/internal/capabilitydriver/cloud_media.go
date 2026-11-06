@@ -610,7 +610,7 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 		return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("provider does not support music iteration mapping"))
 	}
 	if spec := mapped.GetSpec().GetImageGenerate(); spec != nil && strings.TrimSpace(spec.GetReferenceImageArtifactId()) != "" {
-		if (d.provider != "gemini" && !(d.provider == "flux" && IsFlux3ImageModel(target.providerModelID)) && !(d.provider == "ideogram" && target.providerModelID == Ideogram45Model) && !(d.provider == "stability" && StabilityImageReferenceSupported(target.providerModelID)) && !SupportsGPTImageOwnedInputs(d.provider, target.providerModelID) && !(d.provider == "luma" && IsLumaUniImageModel(target.providerModelID))) || len(spec.GetReferenceImages()) != 0 {
+		if (d.provider != "gemini" && !(d.provider == "xai" && target.providerModelID == XAIImage2Model) && !(d.provider == "flux" && IsFlux3ImageModel(target.providerModelID)) && !(d.provider == "ideogram" && target.providerModelID == Ideogram45Model) && !(d.provider == "stability" && StabilityImageReferenceSupported(target.providerModelID)) && !SupportsGPTImageOwnedInputs(d.provider, target.providerModelID) && !(d.provider == "luma" && IsLumaUniImageModel(target.providerModelID))) || len(spec.GetReferenceImages()) != 0 {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 		}
 	}
@@ -672,6 +672,18 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 		}
 	}
 	adapter := cloudMediaAdapterFor(d.provider, target.capabilityContract)
+	if d.provider == "xai" {
+		if target.capabilityContract == "image.generate" {
+			if err := validateXAIImageRequest(mapped, target.providerModelID); err != nil {
+				return nil, err
+			}
+		}
+		if target.capabilityContract == "video.generate" {
+			if err := validateXAIVideoRequest(mapped, target.providerModelID); err != nil {
+				return nil, err
+			}
+		}
+	}
 	if d.provider == "mistral" {
 		if target.capabilityContract == "audio.transcribe" {
 			if err := validateMistralTranscribeRequest(mapped, target.providerModelID); err != nil {
@@ -1002,6 +1014,14 @@ func cloudMediaAdapterFor(provider string, capability string) string {
 		}
 	}
 	switch provider {
+	case "xai":
+		if capability == "image.generate" {
+			return CloudMediaAdapterXAIImage
+		}
+		if capability == "video.generate" {
+			return CloudMediaAdapterXAIVideo
+		}
+		return ""
 	case "volcengine_openspeech":
 		if capability == "audio.synthesize" || capability == "audio.transcribe" {
 			return CloudMediaAdapterBytedanceOpenSpeech

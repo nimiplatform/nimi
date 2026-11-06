@@ -32,7 +32,9 @@ func WithCloudVideoMediaReferences(ctx context.Context, references []CloudVideoM
 func ValidateCloudVideoMediaReferences(provider, model string, spec *runtimev1.VideoGenerateScenarioSpec, references []CloudVideoMediaReference) error {
 	invalid := grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 	limit := 6
-	if provider == "flux" || provider == "luma" {
+	if provider == "xai" {
+		limit = capabilitydriver.XAIVideoReferenceLimit(model)
+	} else if provider == "flux" || provider == "luma" {
 		limit = 2
 	} else if provider == "dashscope" {
 		limit = capabilitydriver.AlibabaVideoImageReferenceLimit(model)
@@ -58,7 +60,15 @@ func ValidateCloudVideoMediaReferences(provider, model string, spec *runtimev1.V
 			return invalid
 		}
 		reference := &references[next].Reference
-		if provider == "luma" {
+		if provider == "xai" {
+			total += len(reference.Bytes)
+			if total > 64_000_000 {
+				return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
+			}
+			if err := validateCapturedXAIImage(reference, item.GetArtifactRef().GetArtifactId()); err != nil {
+				return err
+			}
+		} else if provider == "luma" {
 			if err := validateCapturedRasterReference(reference, item.GetArtifactRef().GetArtifactId(), 16<<20, 8000); err != nil {
 				return err
 			}

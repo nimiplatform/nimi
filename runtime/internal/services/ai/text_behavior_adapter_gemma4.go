@@ -58,6 +58,7 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 		registrations = append(registrations, azureResponsesTextBehaviorRegistration(modelID))
 	}
 	registrations = append(registrations, bedrockTextBehaviorRegistrations()...)
+	registrations = append(registrations, xaiGrok47TextBehaviorRegistration())
 	return registrations
 }
 

@@ -748,10 +748,8 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: default_or_explicit
-    inventory_mode: dynamic_endpoint
+    inventory_mode: static_source
     capabilities:
-      - audio.synthesize
-      - audio.transcribe
       - image.generate
       - text.generate
       - video.generate

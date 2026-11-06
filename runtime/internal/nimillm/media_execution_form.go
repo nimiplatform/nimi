@@ -1,6 +1,9 @@
 package nimillm
 
-import runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+import (
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+)
 
 // MediaUsesNativeTask follows the actual dispatcher branches, including the
 // synchronous variants inside adapters whose names also mention tasks. This
@@ -8,6 +11,10 @@ import runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 func MediaUsesNativeTask(adapter string, request *runtimev1.SubmitScenarioJobRequest, model string) bool {
 	modal := scenarioModal(request)
 	switch adapter {
+	case AdapterXAIImage:
+		return modal == runtimev1.Modal_MODAL_IMAGE && capabilitydriver.IsXAIImageModel(model)
+	case AdapterXAIVideo:
+		return modal == runtimev1.Modal_MODAL_VIDEO && capabilitydriver.IsXAIVideoModel(model)
 	case AdapterBytedanceARKTask:
 		return modal == runtimev1.Modal_MODAL_VIDEO
 	case AdapterAlibabaNative:

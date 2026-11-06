@@ -134,6 +134,20 @@ func validateNativeResult(record *scenarioJobRecord) error {
 			return fmt.Errorf("finite result does not contain its required output set")
 		}
 	}
+	// The original request already owns output cardinality. Native image
+	// tasks must not publish a partial batch as a successful complete result.
+	if !finite && (record.job.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE || record.nativeReceipt.Adapter == nimillm.AdapterXAIVideo) {
+		request := &runtimev1.SubmitScenarioJobRequest{}
+		if record.cloudAssembly == nil || protojson.Unmarshal(record.cloudAssembly.Request, request) != nil {
+			return fmt.Errorf("native result has no valid captured request")
+		}
+		if len(result.Artifacts) != requiredScenarioBodyCount(request) {
+			return fmt.Errorf("native result does not contain its captured output set")
+		}
+		if record.nativeReceipt.Adapter == nimillm.AdapterXAIVideo && result.Artifacts[0].GetDurationMs() != int64(request.GetSpec().GetVideoGenerate().GetOptions().GetDurationSec())*1000 {
+			return fmt.Errorf("xAI reported video duration differs from the captured request")
+		}
+	}
 	ids := map[string]bool{}
 	for index, artifact := range result.Artifacts {
 		expected := fmt.Sprintf("%s-result-%d", record.job.GetJobId(), index+1)

@@ -1,17 +1,337 @@
 version: 1
 provider: xai
-catalog_version: 2026-04-18-xai-v3
-inventory_mode: dynamic_endpoint
-models: []
+catalog_version: 2026-11-06-xai-native-current
+inventory_mode: static_source
+default_text_model: grok-4.7
+models:
+  - model_id: grok-4.7
+    provider: xai
+    model_type: chat
+    updated_at: 2026-11-06
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Pricing changes at 200k prompt tokens; a flat rate would omit long-context and regional pricing. Use provider-reported usage and account billing.
+    source_ref:
+      url: https://docs.x.ai/developers/grok-4-7
+      retrieved_at: 2026-11-06
+      note: Official current API or exact model behavior; real account acceptance is separate.
+    features:
+      - input.image
+    context_window_tokens: 500000
+  - model_id: grok-imagine-image-2.0
+    provider: xai
+    model_type: image
+    updated_at: 2026-11-06
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Published native cohort; account entitlement and actual usage are separate from catalog admission.
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/images/generation
+      retrieved_at: 2026-11-06
+      note: Official current API or exact model behavior; real account acceptance is separate.
+    features:
+      - input.image
+    image_request_options:
+      response_formats:
+        - b64_json
+      max_images_per_request: 10
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: false
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: true
+      supports_style: false
+  - model_id: grok-imagine-image
+    provider: xai
+    model_type: image
+    updated_at: 2026-11-06
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Published native cohort; account entitlement and actual usage are separate from catalog admission.
+    source_ref:
+      url: https://docs.x.ai/developers/models
+      retrieved_at: 2026-11-06
+      note: Official current API or exact model behavior; real account acceptance is separate.
+    image_request_options:
+      response_formats:
+        - b64_json
+      max_images_per_request: 10
+      supports_negative_prompt: false
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: false
+      supports_size: false
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+  - model_id: grok-imagine-video-1.5
+    provider: xai
+    model_type: video
+    updated_at: 2026-11-06
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Published native cohort; account entitlement and actual usage are separate from catalog admission.
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/video/generation
+      retrieved_at: 2026-11-06
+      note: Official current API or exact model behavior; real account acceptance is separate.
+    features:
+      - input.image
+    video_generation:
+      modes:
+        - t2v
+        - i2v_first_frame
+        - i2v_first_last
+        - i2v_reference
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+        i2v_first_last:
+          - prompt
+          - first_frame
+          - last_frame
+        i2v_reference:
+          - prompt
+          - reference_image
+      limits:
+        resolution:
+          - 480p
+          - 720p
+          - 1080p
+        duration_sec:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          - 11
+          - 12
+          - 13
+          - 14
+          - 15
+        ratio:
+          - 16:9
+          - 9:16
+          - 1:1
+          - 4:3
+          - 3:4
+          - 3:2
+          - 2:3
+          - 21:9
+          - 5:2
+        reference_images:
+          min: 0
+          max: 14
+      options:
+        supports:
+          - resolution
+          - duration_sec
+          - ratio
+          - generate_audio
+        constraints:
+          i2v_ratio: source_image
+          reference_resolution:
+            - 480p
+            - 720p
+          reference_max_duration_sec: 15
+          first_last_resolution:
+            - 480p
+            - 720p
+      outputs:
+        video_url: true
+        last_frame_url: false
+  - model_id: grok-imagine-video-1.5-lite
+    provider: xai
+    model_type: video
+    updated_at: 2026-11-06
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Published native cohort; account entitlement and actual usage are separate from catalog admission.
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/video/generation
+      retrieved_at: 2026-11-06
+      note: Official current API or exact model behavior; real account acceptance is separate.
+    features:
+      - input.image
+    video_generation:
+      modes:
+        - t2v
+        - i2v_first_frame
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+      limits:
+        resolution:
+          - 480p
+          - 720p
+          - 1080p
+        duration_sec:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          - 11
+          - 12
+          - 13
+          - 14
+          - 15
+        ratio:
+          - 16:9
+          - 9:16
+          - 1:1
+          - 4:3
+          - 3:4
+          - 3:2
+          - 2:3
+          - 21:9
+          - 5:2
+      options:
+        supports:
+          - resolution
+          - duration_sec
+          - ratio
+          - generate_audio
+        constraints:
+          i2v_ratio: source_image
+      outputs:
+        video_url: true
+        last_frame_url: false
+  - model_id: grok-imagine-video
+    provider: xai
+    model_type: video
+    updated_at: 2026-11-06
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Published native cohort; account entitlement and actual usage are separate from catalog admission.
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/video/generation
+      retrieved_at: 2026-11-06
+      note: Official current API or exact model behavior; real account acceptance is separate.
+    features:
+      - input.image
+    video_generation:
+      modes:
+        - t2v
+        - i2v_first_frame
+        - i2v_reference
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+        i2v_reference:
+          - prompt
+          - reference_image
+      limits:
+        resolution:
+          - 480p
+          - 720p
+        duration_sec:
+          - 1
+          - 2
+          - 3
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          - 11
+          - 12
+          - 13
+          - 14
+          - 15
+        ratio:
+          - 16:9
+          - 9:16
+          - 1:1
+          - 4:3
+          - 3:4
+          - 3:2
+          - 2:3
+          - 21:9
+          - 5:2
+        reference_images:
+          min: 0
+          max: 7
+      options:
+        supports:
+          - resolution
+          - duration_sec
+          - ratio
+          - generate_audio
+        constraints:
+          i2v_ratio: source_image
+          reference_resolution:
+            - 480p
+            - 720p
+          reference_max_duration_sec: 10
+      outputs:
+        video_url: true
+        last_frame_url: false
 voices: []
-dynamic_inventory:
-  discovery_transport: connector_list_models
-  cache_ttl_sec: 300
-  selection_mode: pass_through
-  failure_policy: use_cache_then_fail_closed
-  allowed_capabilities:
-    - text.generate
-    - image.generate
-    - video.generate
-    - audio.synthesize
-    - audio.transcribe
+selection_profiles:
+  - provider: xai
+    profile_id: text.general
+    capability: text.generate
+    model_id: grok-4.7
+    reviewed_at: 2026-11-06
+    freshness_sla_days: 21
+    rationale: Current public flagship with native Responses tools, encrypted reasoning and reviewed structured output; Fast is not a public API target.

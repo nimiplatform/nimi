@@ -70,6 +70,8 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 		wireStream = true
 	case "azure":
 		wireStream = true
+	case "xai":
+		wireStream = true
 	default:
 		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
 	}
@@ -95,7 +97,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	if target.ProviderType == "deepseek" || target.ProviderType == "dashscope" || target.ProviderType == "gemini" || target.ProviderType == "mimo" || target.ProviderType == "mistral" || target.ProviderType == "stepfun" {
 		path = resolveOpenAICompatiblePath(backend.baseURL, "/chat/completions")
 	}
-	if target.ProviderType == "openai" {
+	if target.ProviderType == "openai" || target.ProviderType == "xai" {
 		path = resolveOpenAICompatiblePath(backend.baseURL, "/responses")
 	}
 	if target.ProviderType == "azure" {

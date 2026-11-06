@@ -99,6 +99,11 @@ func requireNativeTaskPublisher(ctx context.Context) error {
 }
 
 func ValidateNativeTaskReceipt(r *NativeTaskReceipt) error {
+	if r != nil && (r.Adapter == AdapterXAIImage || r.Adapter == AdapterXAIVideo) {
+		if !validXAITaskID(r.TaskID) || r.Artifact == nil || r.Adapter == AdapterXAIImage && (!capabilitydriver.IsXAIImageModel(r.Model) || r.Artifact.GetMimeType() != "image/jpeg") || r.Adapter == AdapterXAIVideo && (!capabilitydriver.IsXAIVideoModel(r.Model) || r.Artifact.GetMimeType() != "video/mp4") {
+			return fmt.Errorf("xAI original media task identity invalid")
+		}
+	}
 	if r != nil && r.Adapter == AdapterStabilityMusic && (r.Model != "stable-audio-3" || !validStabilityTaskID(r.TaskID) || r.Artifact == nil || r.Artifact.GetMimeType() != "audio/wav") {
 		return fmt.Errorf("Stable Audio original task identity invalid")
 	}
@@ -154,6 +159,10 @@ func ValidateNativeTaskReceipt(r *NativeTaskReceipt) error {
 // URL supplied by a provider response or a recovered row.
 func nativeTaskQueryPathAllowed(adapter, path string) bool {
 	switch adapter {
+	case AdapterXAIImage:
+		return path == xaiImageQueryPath
+	case AdapterXAIVideo:
+		return path == xaiVideoQueryPath
 	case AdapterAlibabaNative:
 		return path == resolveAlibabaTaskQueryPathTemplate()
 	case AdapterBytedanceARKTask:
@@ -223,6 +232,9 @@ func ObserveNativeTask(ctx context.Context, cfg MediaAdapterConfig, r *NativeTas
 	}
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	ctx = originalControlRequest(ctx)
+	if r.Adapter == AdapterXAIImage || r.Adapter == AdapterXAIVideo {
+		return observeXAIMedia(ctx, cfg, r)
+	}
 	if r.Adapter == AdapterStabilityMusic {
 		return observeStabilityAudio(ctx, cfg, r)
 	}
@@ -397,6 +409,9 @@ func OpenNativeTaskArtifacts(ctx context.Context, cfg MediaAdapterConfig, receip
 	}
 	artifacts := observation.Artifacts
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
+	if receipt.Adapter == AdapterXAIImage {
+		return openXAIImageArtifacts(ctx, artifacts)
+	}
 	if receipt.Adapter == AdapterStabilityMusic {
 		if len(artifacts) != 1 || artifacts[0].GetArtifactId() != receipt.Artifact.GetArtifactId() {
 			return nil, fmt.Errorf("Stable Audio original result slot invalid")

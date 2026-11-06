@@ -331,7 +331,7 @@ providers:
     source_rule: K-MCAT-027
   - provider: xai
     default_endpoint: https://api.x.ai/v1
-    default_text_model: null
+    default_text_model: grok-4.7
     requires_explicit_endpoint: false
-    inventory_mode: dynamic_endpoint
+    inventory_mode: static_source
     source_rule: K-MCAT-027

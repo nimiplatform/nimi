@@ -115,6 +115,9 @@ func ValidateGeminiImageReferenceRequest(spec *runtimev1.ImageGenerateScenarioSp
 }
 
 func ValidateCloudImageReferenceRequest(provider, model string, spec *runtimev1.ImageGenerateScenarioSpec, reference *CapturedMediaReference) error {
+	if provider == "xai" && model == capabilitydriver.XAIImage2Model {
+		return validateCapturedXAIImage(reference, spec.GetReferenceImageArtifactId())
+	}
 	if provider == "stability" && capabilitydriver.StabilityImageReferenceSupported(model) {
 		if err := validateCapturedRasterReference(reference, spec.GetReferenceImageArtifactId(), 16384*16384, 16384); err != nil {
 			return err
@@ -145,6 +148,17 @@ func ValidateCloudImageReferenceRequest(provider, model string, spec *runtimev1.
 		return validateFlux3Reference(reference, spec.GetReferenceImageArtifactId())
 	}
 	return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+}
+
+func validateCapturedXAIImage(reference *CapturedMediaReference, id string) error {
+	if err := validateCapturedMediaReferenceIdentity(reference, id); err != nil {
+		return err
+	}
+	geometry, format, err := image.DecodeConfig(bytes.NewReader(reference.Bytes))
+	if err != nil || geometry.Width <= 0 || geometry.Height <= 0 || (format != "png" && format != "jpeg" && format != "webp") || reference.MIMEType != "image/"+format {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_MIME_MISMATCH)
+	}
+	return nil
 }
 
 // Reviewed raster callers choose finite decoder geometry without changing custody.

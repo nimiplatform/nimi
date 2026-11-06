@@ -37,7 +37,12 @@ type responsesProfile struct {
 	reasoningDisabled bool
 	jsonObject        bool
 	samplingControls  bool
-	failure           func(status int, code string) error
+	// Exact native routes may use a different schema subset/defaults. The
+	// original caller schema still validates every completed result.
+	schemaMapper       func(map[string]any) (map[string]any, error)
+	strictToolSchemas  bool
+	orderedSystemInput bool
+	failure            func(status int, code string) error
 }
 
 func (profile *responsesProfile) inputError(detail string) error {
@@ -126,12 +131,17 @@ func serializeResponsesRequest(profile *responsesProfile, spec *runtimev1.TextGe
 				return textbehavior.SerializedRequest{}, profile.unsupported("non-text input")
 			}
 		}
-		// System text travels only as Responses instructions.
+		// Some routes admit ordered system messages in input; other reviewed
+		// Responses routes retain their instructions-only contract.
 		if message.Role == "system" {
 			if hasImage {
 				return textbehavior.SerializedRequest{}, profile.inputError("system image content")
 			}
-			instructions = append(instructions, text.String())
+			if profile.orderedSystemInput {
+				input = append(input, map[string]any{"role": "system", "content": text.String()})
+			} else {
+				instructions = append(instructions, text.String())
+			}
 			continue
 		}
 		if message.Role != "user" && message.Role != "assistant" {
@@ -172,9 +182,16 @@ func serializeResponsesRequest(profile *responsesProfile, spec *runtimev1.TextGe
 			if _, err := textbehavior.CompileJSONSchema(schema); err != nil {
 				return textbehavior.SerializedRequest{}, profile.inputError("tool schema")
 			}
+			if profile.schemaMapper != nil {
+				var err error
+				schema, err = profile.schemaMapper(schema)
+				if err != nil {
+					return textbehavior.SerializedRequest{}, err
+				}
+			}
 			// Preserve the caller's schema; Runtime validates every completed
 			// call against it before exposing the call.
-			tools = append(tools, map[string]any{"type": "function", "name": tool.Name, "description": tool.Description, "parameters": schema, "strict": false})
+			tools = append(tools, map[string]any{"type": "function", "name": tool.Name, "description": tool.Description, "parameters": schema, "strict": profile.strictToolSchemas})
 		}
 		if profile.toolNamespace != "" {
 			body["tools"] = []any{map[string]any{
@@ -214,7 +231,13 @@ func serializeResponsesRequest(profile *responsesProfile, spec *runtimev1.TextGe
 			if schema["type"] != "object" || schema["anyOf"] != nil {
 				return textbehavior.SerializedRequest{}, profile.unsupported("structured root")
 			}
-			if err := validateResponsesStructuredSchema(profile, schema, true); err != nil {
+			if profile.schemaMapper != nil {
+				var err error
+				schema, err = profile.schemaMapper(schema)
+				if err != nil {
+					return textbehavior.SerializedRequest{}, err
+				}
+			} else if err := validateResponsesStructuredSchema(profile, schema, true); err != nil {
 				return textbehavior.SerializedRequest{}, profile.unsupported("strict JSON Schema subset")
 			}
 			name := format.SchemaName
