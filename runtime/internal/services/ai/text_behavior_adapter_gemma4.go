@@ -65,6 +65,9 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 	for _, model := range []string{"openai/gpt-oss-120b", "openai/gpt-oss-20b", "qwen/qwen3.8-27b", "meta-models/muse-spark-open", "minimaxai/minimax-m2.7"} {
 		registrations = append(registrations, groqTextBehaviorRegistration(model))
 	}
+	for _, model := range capabilitydriver.PerplexityTextModels() {
+		registrations = append(registrations, perplexityTextBehaviorRegistration(model))
+	}
 	return registrations
 }
 

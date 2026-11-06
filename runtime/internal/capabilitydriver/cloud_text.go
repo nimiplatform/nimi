@@ -272,6 +272,9 @@ func (d providerCloudTextDriver) MapRequest(target CloudTextTarget, spec *runtim
 		}
 	}
 	var wireDirectives textwire.Directives
+	if d.provider == "perplexity" && adapter == nil {
+		return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("Perplexity requires an exact Agent API adapter"))
+	}
 	if adapter == nil {
 		var err error
 		wireDirectives, err = mapCloudTextWireDirectives(d.provider, mapped.GetReasoning())

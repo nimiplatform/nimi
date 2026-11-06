@@ -1,13 +1,338 @@
 version: 1
 provider: perplexity
-catalog_version: 2026-04-18-perplexity-v3
-inventory_mode: dynamic_endpoint
-models: []
+catalog_version: 2026-11-06-perplexity-agent
+inventory_mode: static_source
+models:
+  - model_id: anthropic/claude-fable-5-1
+    provider: perplexity
+    model_type: chat
+    updated_at: 2026-11-06
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: "10"
+      output: "50"
+      currency: USD
+      as_of: 2026-11-06
+      notes: Default-tier published rate at the reviewed short-context floor; long-context, cache and optional service-tier prices differ. Provider persists content even with store=false. No server-side search, tools, model fallback or continuation. PNG/JPEG where declared; other formats unreviewed. Actual account access is NOT-VERIFIED.
+    source_ref:
+      url: https://docs.perplexity.ai/docs/agent-api/models
+      retrieved_at: 2026-11-06
+      note: Reviewed Agent API protocol, model availability, data retention or native result behavior.
+    features:
+      - input.image
+    context_window_tokens: 8192
+  - model_id: anthropic/claude-opus-5-5
+    provider: perplexity
+    model_type: chat
+    updated_at: 2026-11-06
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: "4"
+      output: "20"
+      currency: USD
+      as_of: 2026-11-06
+      notes: Default-tier published rate at the reviewed short-context floor; long-context, cache and optional service-tier prices differ. Provider persists content even with store=false. No server-side search, tools, model fallback or continuation. PNG/JPEG where declared; other formats unreviewed. Actual account access is NOT-VERIFIED.
+    source_ref:
+      url: https://docs.perplexity.ai/docs/agent-api/models
+      retrieved_at: 2026-11-06
+      note: Reviewed Agent API protocol, model availability, data retention or native result behavior.
+    features:
+      - input.image
+    context_window_tokens: 8192
+  - model_id: anthropic/claude-sonnet-5-5
+    provider: perplexity
+    model_type: chat
+    updated_at: 2026-11-06
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: "2"
+      output: "10"
+      currency: USD
+      as_of: 2026-11-06
+      notes: Default-tier published rate at the reviewed short-context floor; long-context, cache and optional service-tier prices differ. Provider persists content even with store=false. No server-side search, tools, model fallback or continuation. PNG/JPEG where declared; other formats unreviewed. Actual account access is NOT-VERIFIED.
+    source_ref:
+      url: https://docs.perplexity.ai/docs/agent-api/models
+      retrieved_at: 2026-11-06
+      note: Reviewed Agent API protocol, model availability, data retention or native result behavior.
+    features:
+      - input.image
+    context_window_tokens: 8192
+  - model_id: anthropic/claude-haiku-5-5
+    provider: perplexity
+    model_type: chat
+    updated_at: 2026-11-06
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: "0.1"
+      output: "0.5"
+      currency: USD
+      as_of: 2026-11-06
+      notes: Default-tier published rate at the reviewed short-context floor; long-context, cache and optional service-tier prices differ. Provider persists content even with store=false. No server-side search, tools, model fallback or continuation. PNG/JPEG where declared; other formats unreviewed. Actual account access is NOT-VERIFIED.
+    source_ref:
+      url: https://docs.perplexity.ai/docs/agent-api/models
+      retrieved_at: 2026-11-06
+      note: Reviewed Agent API protocol, model availability, data retention or native result behavior.
+    features:
+      - input.image
+    context_window_tokens: 8192
+  - model_id: openai/gpt-6.1-sol
+    provider: perplexity
+    model_type: chat
+    updated_at: 2026-11-06
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: "2"
+      output: "10"
+      currency: USD
+      as_of: 2026-11-06
+      notes: Default-tier published rate at the reviewed short-context floor; long-context, cache and optional service-tier prices differ. Provider persists content even with store=false. No server-side search, tools, model fallback or continuation. PNG/JPEG where declared; other formats unreviewed. Actual account access is NOT-VERIFIED.
+    source_ref:
+      url: https://docs.perplexity.ai/docs/agent-api/models
+      retrieved_at: 2026-11-06
+      note: Reviewed Agent API protocol, model availability, data retention or native result behavior.
+    features:
+      - input.image
+    context_window_tokens: 8192
+  - model_id: openai/gpt-6-astra
+    provider: perplexity
+    model_type: chat
+    updated_at: 2026-11-06
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: "10"
+      output: "50"
+      currency: USD
+      as_of: 2026-11-06
+      notes: Default-tier published rate at the reviewed short-context floor; long-context, cache and optional service-tier prices differ. Provider persists content even with store=false. No server-side search, tools, model fallback or continuation. PNG/JPEG where declared; other formats unreviewed. Actual account access is NOT-VERIFIED.
+    source_ref:
+      url: https://docs.perplexity.ai/docs/agent-api/models
+      retrieved_at: 2026-11-06
+      note: Reviewed Agent API protocol, model availability, data retention or native result behavior.
+    features:
+      - input.image
+    context_window_tokens: 8192
+  - model_id: openai/gpt-6-sol
+    provider: perplexity
+    model_type: chat
+    updated_at: 2026-11-06
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: "2"
+      output: "10"
+      currency: USD
+      as_of: 2026-11-06
+      notes: Default-tier published rate at the reviewed short-context floor; long-context, cache and optional service-tier prices differ. Provider persists content even with store=false. No server-side search, tools, model fallback or continuation. PNG/JPEG where declared; other formats unreviewed. Actual account access is NOT-VERIFIED.
+    source_ref:
+      url: https://docs.perplexity.ai/docs/agent-api/models
+      retrieved_at: 2026-11-06
+      note: Reviewed Agent API protocol, model availability, data retention or native result behavior.
+    features:
+      - input.image
+    context_window_tokens: 8192
+  - model_id: openai/gpt-6-luna
+    provider: perplexity
+    model_type: chat
+    updated_at: 2026-11-06
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: "0.1"
+      output: "0.5"
+      currency: USD
+      as_of: 2026-11-06
+      notes: Default-tier published rate at the reviewed short-context floor; long-context, cache and optional service-tier prices differ. Provider persists content even with store=false. No server-side search, tools, model fallback or continuation. PNG/JPEG where declared; other formats unreviewed. Actual account access is NOT-VERIFIED.
+    source_ref:
+      url: https://docs.perplexity.ai/docs/agent-api/models
+      retrieved_at: 2026-11-06
+      note: Reviewed Agent API protocol, model availability, data retention or native result behavior.
+    features:
+      - input.image
+    context_window_tokens: 8192
+  - model_id: google/gemini-4-argon
+    provider: perplexity
+    model_type: chat
+    updated_at: 2026-11-06
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: "2"
+      output: "10"
+      currency: USD
+      as_of: 2026-11-06
+      notes: Default-tier published rate at the reviewed short-context floor; long-context, cache and optional service-tier prices differ. Provider persists content even with store=false. No server-side search, tools, model fallback or continuation. PNG/JPEG where declared; other formats unreviewed. Actual account access is NOT-VERIFIED.
+    source_ref:
+      url: https://docs.perplexity.ai/docs/agent-api/models
+      retrieved_at: 2026-11-06
+      note: Reviewed Agent API protocol, model availability, data retention or native result behavior.
+    features:
+      - input.image
+    context_window_tokens: 8192
+  - model_id: google/gemini-3.8-flash
+    provider: perplexity
+    model_type: chat
+    updated_at: 2026-11-06
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: "0.75"
+      output: "3.75"
+      currency: USD
+      as_of: 2026-11-06
+      notes: Default-tier published rate at the reviewed short-context floor; long-context, cache and optional service-tier prices differ. Provider persists content even with store=false. No server-side search, tools, model fallback or continuation. PNG/JPEG where declared; other formats unreviewed. Actual account access is NOT-VERIFIED.
+    source_ref:
+      url: https://docs.perplexity.ai/docs/agent-api/models
+      retrieved_at: 2026-11-06
+      note: Reviewed Agent API protocol, model availability, data retention or native result behavior.
+    features:
+      - input.image
+    context_window_tokens: 8192
+  - model_id: xai/grok-4.7
+    provider: perplexity
+    model_type: chat
+    updated_at: 2026-11-06
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: "2"
+      output: "6"
+      currency: USD
+      as_of: 2026-11-06
+      notes: Default-tier published rate at the reviewed short-context floor; long-context, cache and optional service-tier prices differ. Provider persists content even with store=false. No server-side search, tools, model fallback or continuation. PNG/JPEG where declared; other formats unreviewed. Actual account access is NOT-VERIFIED.
+    source_ref:
+      url: https://docs.perplexity.ai/docs/agent-api/models
+      retrieved_at: 2026-11-06
+      note: Reviewed Agent API protocol, model availability, data retention or native result behavior.
+    features:
+      - input.image
+    context_window_tokens: 8192
+  - model_id: xai/grok-4.6
+    provider: perplexity
+    model_type: chat
+    updated_at: 2026-11-06
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: "2"
+      output: "6"
+      currency: USD
+      as_of: 2026-11-06
+      notes: Default-tier published rate at the reviewed short-context floor; long-context, cache and optional service-tier prices differ. Provider persists content even with store=false. No server-side search, tools, model fallback or continuation. PNG/JPEG where declared; other formats unreviewed. Actual account access is NOT-VERIFIED.
+    source_ref:
+      url: https://docs.perplexity.ai/docs/agent-api/models
+      retrieved_at: 2026-11-06
+      note: Reviewed Agent API protocol, model availability, data retention or native result behavior.
+    features:
+      - input.image
+    context_window_tokens: 8192
+  - model_id: perplexity/glm-5.3
+    provider: perplexity
+    model_type: chat
+    updated_at: 2026-11-06
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: "1.4"
+      output: "4.4"
+      currency: USD
+      as_of: 2026-11-06
+      notes: Default-tier published rate at the reviewed short-context floor; long-context, cache and optional service-tier prices differ. Provider persists content even with store=false. No server-side search, tools, model fallback or continuation. PNG/JPEG where declared; other formats unreviewed. Actual account access is NOT-VERIFIED.
+    source_ref:
+      url: https://docs.perplexity.ai/docs/agent-api/models
+      retrieved_at: 2026-11-06
+      note: Reviewed Agent API protocol, model availability, data retention or native result behavior.
+    context_window_tokens: 8192
+  - model_id: perplexity/glm-5.3-flash
+    provider: perplexity
+    model_type: chat
+    updated_at: 2026-11-06
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: "0.15"
+      output: "0.5"
+      currency: USD
+      as_of: 2026-11-06
+      notes: Default-tier published rate at the reviewed short-context floor; long-context, cache and optional service-tier prices differ. Provider persists content even with store=false. No server-side search, tools, model fallback or continuation. PNG/JPEG where declared; other formats unreviewed. Actual account access is NOT-VERIFIED.
+    source_ref:
+      url: https://docs.perplexity.ai/docs/agent-api/models
+      retrieved_at: 2026-11-06
+      note: Reviewed Agent API protocol, model availability, data retention or native result behavior.
+    context_window_tokens: 8192
+  - model_id: perplexity/deepseek-v4-pro-0813
+    provider: perplexity
+    model_type: chat
+    updated_at: 2026-11-06
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: "1.32"
+      output: "3.96"
+      currency: USD
+      as_of: 2026-11-06
+      notes: Default-tier published rate at the reviewed short-context floor; long-context, cache and optional service-tier prices differ. Provider persists content even with store=false. No server-side search, tools, model fallback or continuation. PNG/JPEG where declared; other formats unreviewed. Actual account access is NOT-VERIFIED.
+    source_ref:
+      url: https://docs.perplexity.ai/docs/agent-api/models
+      retrieved_at: 2026-11-06
+      note: Reviewed Agent API protocol, model availability, data retention or native result behavior.
+    context_window_tokens: 8192
+  - model_id: perplexity/kimi-k3
+    provider: perplexity
+    model_type: chat
+    updated_at: 2026-11-06
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: "3"
+      output: "15"
+      currency: USD
+      as_of: 2026-11-06
+      notes: Default-tier published rate at the reviewed short-context floor; long-context, cache and optional service-tier prices differ. Provider persists content even with store=false. No server-side search, tools, model fallback or continuation. PNG/JPEG where declared; other formats unreviewed. Actual account access is NOT-VERIFIED.
+    source_ref:
+      url: https://docs.perplexity.ai/docs/agent-api/models
+      retrieved_at: 2026-11-06
+      note: Reviewed Agent API protocol, model availability, data retention or native result behavior.
+    features:
+      - input.image
+    context_window_tokens: 8192
+  - model_id: perplexity/nemotron-3.5-super-120b-a12b
+    provider: perplexity
+    model_type: chat
+    updated_at: 2026-11-06
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: "0.2"
+      output: "0.5"
+      currency: USD
+      as_of: 2026-11-06
+      notes: Default-tier published rate at the reviewed short-context floor; long-context, cache and optional service-tier prices differ. Provider persists content even with store=false. No server-side search, tools, model fallback or continuation. PNG/JPEG where declared; other formats unreviewed. Actual account access is NOT-VERIFIED.
+    source_ref:
+      url: https://docs.perplexity.ai/docs/agent-api/models
+      retrieved_at: 2026-11-06
+      note: Reviewed Agent API protocol, model availability, data retention or native result behavior.
+    context_window_tokens: 1048576
 voices: []
-dynamic_inventory:
-  discovery_transport: connector_list_models
-  cache_ttl_sec: 300
-  selection_mode: pass_through
-  failure_policy: use_cache_then_fail_closed
-  allowed_capabilities:
-    - text.generate

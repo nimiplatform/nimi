@@ -234,10 +234,10 @@ providers:
     inventory_mode: dynamic_endpoint
     source_rule: K-MCAT-027
   - provider: perplexity
-    default_endpoint: null
+    default_endpoint: https://api.perplexity.ai/v1
     default_text_model: null
-    requires_explicit_endpoint: true
-    inventory_mode: dynamic_endpoint
+    requires_explicit_endpoint: false
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: pika
     default_endpoint: null
