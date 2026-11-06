@@ -77,6 +77,9 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 	for _, model := range capabilitydriver.TogetherTextModels() {
 		registrations = append(registrations, togetherTextBehaviorRegistration(model))
 	}
+	for _, model := range capabilitydriver.SiliconFlowTextModels() {
+		registrations = append(registrations, siliconFlowTextBehaviorRegistration(model))
+	}
 	return registrations
 }
 

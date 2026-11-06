@@ -61,6 +61,12 @@ func (b *Backend) supportsAnthropicMessages() bool {
 		return false
 	}
 	lowerName := strings.ToLower(strings.TrimSpace(b.Name))
+	// These provider identities are captured by the Cloud backend factory.
+	// A proxy directory named /anthropic cannot change their credential scheme.
+	switch strings.TrimPrefix(lowerName, "cloud-") {
+	case "openrouter", "together", "siliconflow":
+		return false
+	}
 	lowerBase := strings.ToLower(strings.TrimSpace(b.baseURL))
 	return strings.Contains(lowerName, "anthropic") ||
 		strings.Contains(lowerBase, "api.anthropic.com") ||

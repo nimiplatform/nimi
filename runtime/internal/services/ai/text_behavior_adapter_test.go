@@ -44,10 +44,17 @@ func TestGemma4E2BAdmitsOrderedSystemMessagesWithoutWideningOtherCombinations(t 
 
 func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 	registrations := productionTextBehaviorAdapterRegistrations()
-	if len(registrations) != 129 {
-		t.Fatalf("production adapter registrations = %d, want thirteen Local mappings and one hundred and sixteen Cloud targets", len(registrations))
+	if len(registrations) != 136 {
+		t.Fatalf("production adapter registrations = %d, want thirteen Local mappings and one hundred and twenty-three Cloud targets", len(registrations))
 	}
 	expectedCloudTargets := map[string]string{
+		"siliconflow/deepseek-ai/DeepSeek-V4.1-Flash":                  "siliconflow.deepseek-ai/DeepSeek-V4.1-Flash.chat",
+		"siliconflow/deepseek-ai/DeepSeek-V4-Flash":                    "siliconflow.deepseek-ai/DeepSeek-V4-Flash.chat",
+		"siliconflow/deepseek-ai/DeepSeek-V4-Pro":                      "siliconflow.deepseek-ai/DeepSeek-V4-Pro.chat",
+		"siliconflow/Pro/zai-org/GLM-5.2":                              "siliconflow.Pro/zai-org/GLM-5.2.chat",
+		"siliconflow/Pro/zai-org/GLM-5.1":                              "siliconflow.Pro/zai-org/GLM-5.1.chat",
+		"siliconflow/Qwen/Qwen3.8-27B":                                 "siliconflow.Qwen/Qwen3.8-27B.chat",
+		"siliconflow/moonshotai/Kimi-K2.7-Code":                        "siliconflow.moonshotai/Kimi-K2.7-Code.chat",
 		"together/deepseek-ai/DeepSeek-V4-Pro-0813":                    "together.deepseek-ai/DeepSeek-V4-Pro-0813.chat",
 		"together/deepseek-ai/DeepSeek-V4.1-Flash":                     "together.deepseek-ai/DeepSeek-V4.1-Flash.chat",
 		"together/deepseek-ai/DeepSeek-V4.1-Flash-1017":                "together.deepseek-ai/DeepSeek-V4.1-Flash-1017.chat",

@@ -63,6 +63,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	case "groq":
 	case "fireworks":
 	case "together":
+	case "siliconflow":
 	case "stepfun":
 	case "glm":
 	case "minimax":
@@ -115,7 +116,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	}
 	// These native protocols retain /v1 even behind a configured proxy whose
 	// path happens to end in /openai or /api/v3. A path name is not a provider.
-	if target.ProviderType == "together" {
+	if target.ProviderType == "together" || target.ProviderType == "siliconflow" {
 		path = "/v1/chat/completions"
 	}
 	if target.ProviderType == "openrouter" {
@@ -195,7 +196,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 		request.Header.Del("Authorization")
 		request.Header.Set("x-goog-api-key", backend.apiKey)
 	}
-	if miniMaxMessages || target.ProviderType == "mistral" || target.ProviderType == "stepfun" || target.ProviderType == "fireworks" || target.ProviderType == "openrouter" || target.ProviderType == "together" {
+	if miniMaxMessages || target.ProviderType == "mistral" || target.ProviderType == "stepfun" || target.ProviderType == "fireworks" || target.ProviderType == "openrouter" || target.ProviderType == "together" || target.ProviderType == "siliconflow" {
 		// These exact protocols use Bearer even when a gateway path contains
 		// /anthropic; generic URL heuristics cannot select credential semantics.
 		request.Header.Del("x-api-key")

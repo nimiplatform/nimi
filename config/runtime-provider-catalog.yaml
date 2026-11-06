@@ -258,10 +258,10 @@ providers:
     inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: siliconflow
-    default_endpoint: null
+    default_endpoint: https://api.siliconflow.cn/v1
     default_text_model: null
-    requires_explicit_endpoint: true
-    inventory_mode: dynamic_endpoint
+    requires_explicit_endpoint: false
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: soundverse
     default_endpoint: https://api.soundverse.ai

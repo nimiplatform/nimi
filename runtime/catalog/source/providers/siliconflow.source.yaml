@@ -1,40 +1,246 @@
 schema_version: 3
 provider: siliconflow
-catalog_version: 2026-04-18-siliconflow-v2
+catalog_version: 2026-11-07-siliconflow-reviewed-core
 generated_target: runtime/catalog/providers/siliconflow.yaml
 runtime:
   runtime_plane: remote
   managed_connector_supported: true
   inline_supported: true
-  default_endpoint: null
-  requires_explicit_endpoint: true
-  inventory_mode: dynamic_endpoint
-  dynamic_inventory:
-    discovery_transport: connector_list_models
-    cache_ttl_sec: 300
-    selection_mode: pass_through
-    failure_policy: use_cache_then_fail_closed
-    allowed_capabilities:
-      - text.generate
-      - text.embed
-      - image.generate
-      - video.generate
-      - audio.synthesize
-      - audio.transcribe
+  default_endpoint: https://api.siliconflow.cn/v1
+  requires_explicit_endpoint: false
+  inventory_mode: static_source
+  capabilities:
+    - text.generate
+    - text.embed
+    - image.generate
+    - video.generate
+    - audio.synthesize
+    - audio.transcribe
 defaults:
   provider: siliconflow
   model_type: chat
   capabilities: []
+  context_window_tokens: 8192
   pricing:
     unit: token
     input: unknown
     output: unknown
     currency: CNY
-    as_of: 2026-04-18
-    notes: SiliconFlow publishes a real-time full model list and broad multi-model marketplace, so runtime inventory should be discovered dynamically instead of curated as static source rows.
-
+    as_of: 2026-11-07
+    notes: Reviewed Mainland China API targets. Account availability is verified separately; this is not a full account inventory or an immutable weight identity.
 sources:
-  - source_id: siliconflow_models_doc
-    url: https://docs.siliconflow.cn/quickstart/models
-    retrieved_at: 2026-04-18
-    note: SiliconFlow model list page states that the platform model list is complete and updated in real time, with an API endpoint to view all visible models.
+  - source_id: siliconflow_chat
+    url: https://docs.siliconflow.cn/docs/api/chat-completions-post
+    retrieved_at: 2026-11-07
+    note: Current official contract; origin model facts do not establish SiliconFlow account access.
+  - source_id: siliconflow_reasoning
+    url: https://docs.siliconflow.cn/docs/userguide/capabilities/reasoning
+    retrieved_at: 2026-11-07
+    note: Current official contract; origin model facts do not establish SiliconFlow account access.
+  - source_id: siliconflow_tools
+    url: https://docs.siliconflow.cn/docs/userguide/guides/function-calling
+    retrieved_at: 2026-11-07
+    note: Current official contract; origin model facts do not establish SiliconFlow account access.
+  - source_id: siliconflow_releases
+    url: https://docs.siliconflow.cn/docs/release-notes/overview
+    retrieved_at: 2026-11-07
+    note: Current official contract; origin model facts do not establish SiliconFlow account access.
+  - source_id: siliconflow_qwen38
+    url: https://docs.siliconflow.cn/docs/usercases/use-siliconcloud-in-yan
+    retrieved_at: 2026-11-07
+    note: Current official contract; origin model facts do not establish SiliconFlow account access.
+  - source_id: siliconflow_embedding
+    url: https://docs.siliconflow.cn/docs/api/embeddings-post
+    retrieved_at: 2026-11-07
+    note: Current official contract; origin model facts do not establish SiliconFlow account access.
+  - source_id: qwen3_vl_embedding
+    url: https://huggingface.co/Qwen/Qwen3-VL-Embedding-8B
+    retrieved_at: 2026-11-07
+    note: Current official contract; origin model facts do not establish SiliconFlow account access.
+models:
+  - model_id: deepseek-ai/DeepSeek-V4.1-Flash
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Stable API ID serves the 1017 update since 2026-10-21. Native max_tokens excludes reasoning, so an explicit total output cap is unsupported in thinking mode. Conservative context floor, not a maximum-window claim.
+    source_ids:
+      - siliconflow_chat
+      - siliconflow_reasoning
+      - siliconflow_tools
+      - siliconflow_releases
+  - model_id: deepseek-ai/DeepSeek-V4-Flash
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Native max_tokens excludes reasoning. Only documented model-specific thinking controls are mapped; no summary is manufactured from raw reasoning. Conservative context floor, not a maximum-window claim.
+    source_ids:
+      - siliconflow_chat
+      - siliconflow_reasoning
+      - siliconflow_tools
+      - siliconflow_releases
+  - model_id: deepseek-ai/DeepSeek-V4-Pro
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Native max_tokens excludes reasoning. Only documented model-specific thinking controls are mapped; no summary is manufactured from raw reasoning. Conservative context floor, not a maximum-window claim.
+    source_ids:
+      - siliconflow_chat
+      - siliconflow_reasoning
+      - siliconflow_tools
+      - siliconflow_releases
+  - model_id: Pro/zai-org/GLM-5.2
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Native max_tokens excludes reasoning. Only documented model-specific thinking controls are mapped; no summary is manufactured from raw reasoning. Conservative context floor, not a maximum-window claim.
+    source_ids:
+      - siliconflow_chat
+      - siliconflow_reasoning
+      - siliconflow_tools
+  - model_id: Pro/zai-org/GLM-5.1
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Native max_tokens excludes reasoning. Only documented model-specific thinking controls are mapped; no summary is manufactured from raw reasoning. Conservative context floor, not a maximum-window claim.
+    source_ids:
+      - siliconflow_chat
+      - siliconflow_reasoning
+      - siliconflow_tools
+  - model_id: Qwen/Qwen3.8-27B
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    context_window_tokens: 256000
+    features:
+      - input.image
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Reviewed tool and PNG/JPEG input route. Explicit thinking-off permits a total output cap; exact thinking budgets are 128-32768. No inferred relative-effort mapping.
+    source_ids:
+      - siliconflow_chat
+      - siliconflow_reasoning
+      - siliconflow_tools
+      - siliconflow_qwen38
+  - model_id: moonshotai/Kimi-K2.7-Code
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Native max_tokens excludes reasoning. Only documented model-specific thinking controls are mapped; no summary is manufactured from raw reasoning. Conservative context floor, not a maximum-window claim.
+    source_ids:
+      - siliconflow_chat
+      - siliconflow_reasoning
+      - siliconflow_tools
+  - model_id: Qwen/Qwen3-Embedding-0.6B
+    model_type: embedding
+    updated_at: 2026-11-07
+    capabilities:
+      - text.embed
+    embedding:
+      dimension: 1024
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Text strings only; explicit float output width and reviewed discrete reductions. Original input is preserved for both retrieval intents; no origin instruction prefix, image input or truncation control is injected.
+    source_ids:
+      - siliconflow_embedding
+  - model_id: Qwen/Qwen3-Embedding-4B
+    model_type: embedding
+    updated_at: 2026-11-07
+    capabilities:
+      - text.embed
+    embedding:
+      dimension: 2560
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Text strings only; explicit float output width and reviewed discrete reductions. Original input is preserved for both retrieval intents; no origin instruction prefix, image input or truncation control is injected.
+    source_ids:
+      - siliconflow_embedding
+  - model_id: Qwen/Qwen3-Embedding-8B
+    model_type: embedding
+    updated_at: 2026-11-07
+    capabilities:
+      - text.embed
+    embedding:
+      dimension: 4096
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Text strings only; explicit float output width and reviewed discrete reductions. Original input is preserved for both retrieval intents; no origin instruction prefix, image input or truncation control is injected.
+    source_ids:
+      - siliconflow_embedding
+  - model_id: Qwen/Qwen3-VL-Embedding-8B
+    model_type: embedding
+    updated_at: 2026-11-07
+    capabilities:
+      - text.embed
+    embedding:
+      dimension: 4096
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Text strings only; explicit float output width and reviewed discrete reductions. Original input is preserved for both retrieval intents; no origin instruction prefix, image input or truncation control is injected.
+    source_ids:
+      - siliconflow_embedding
+      - qwen3_vl_embedding

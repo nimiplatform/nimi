@@ -33,7 +33,7 @@ func nativeReasoningAppFixture(t *testing.T, provider, model string, handler htt
 	if provider == "fireworks" {
 		endpoint = server.URL + "/proxy/inference/v1"
 	}
-	if provider == "together" || provider == "openrouter" {
+	if provider == "together" || provider == "openrouter" || provider == "siliconflow" {
 		endpoint = server.URL + "/proxy/openai/v1"
 	}
 	fixture := newManagedCloudScenarioTestFixture(t, provider, model, endpoint, Config{AllowLoopbackEndpoint: true})

@@ -115,6 +115,11 @@ func (p *CloudProvider) EmbedWithTarget(ctx context.Context, modelID string, inp
 		return nil, nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	switch protocol {
+	case capabilitydriver.CloudEmbedProtocolSiliconFlowV1:
+		if target.ProviderType != "siliconflow" || capabilitydriver.SiliconFlowEmbedDimensions(resolvedModelID) == 0 {
+			return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+		}
+		return backend.EmbedSiliconFlow(ctx, resolvedModelID, inputs, dimensions)
 	case capabilitydriver.CloudEmbedProtocolOpenRouterV1:
 		if target.ProviderType != "openrouter" || capabilitydriver.OpenRouterEmbedDimensions(resolvedModelID) == 0 {
 			return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)

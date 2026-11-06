@@ -123,7 +123,9 @@ func (p TogetherTextBehavior) serialize(s *runtimev1.TextGenerateScenarioSpec, s
 			}
 		}
 	}
-	messages, err := chatCompletionMessagesWithReplay(copy, func(m *runtimev1.ChatMessage) (any, error) { return p.content(m, planning) }, p.ContinuityKind(), required)
+	messages, err := chatCompletionMessagesWithReplay(copy, func(m *runtimev1.ChatMessage) (any, error) {
+		return ownedChatRasterContent(m, planning, p.Vision(), togetherRequestBytes, togetherUnsupported)
+	}, p.ContinuityKind(), required)
 	if err != nil {
 		return textbehavior.SerializedRequest{}, err
 	}
