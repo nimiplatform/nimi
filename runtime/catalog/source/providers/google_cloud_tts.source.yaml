@@ -1,6 +1,6 @@
 schema_version: 3
 provider: google_cloud_tts
-catalog_version: 2026-04-18-google-cloud-tts-v2
+catalog_version: 2026-11-06-cloud-tts-native
 generated_target: runtime/catalog/providers/google_cloud_tts.yaml
 runtime:
   inventory_mode: static_source
@@ -13,7 +13,8 @@ resolution_mode: model_anchor_v2
 defaults:
   provider: google_cloud_tts
   model_type: tts
-  capabilities: [audio.synthesize]
+  capabilities:
+    - audio.synthesize
   pricing:
     unit: request
     input: unknown
@@ -21,7 +22,6 @@ defaults:
     currency: USD
     as_of: 2026-04-18
     notes: Google Cloud Text-to-Speech pricing now varies by Chirp character billing versus Gemini-TTS token billing, plus region and quota surface.
-
 sources:
   - source_id: google_tts_doc
     url: https://cloud.google.com/text-to-speech/docs
@@ -29,11 +29,11 @@ sources:
     note: Google Cloud Text-to-Speech documentation.
   - source_id: google_chirp3_hd_doc
     url: https://cloud.google.com/text-to-speech/docs/chirp3-hd
-    retrieved_at: 2026-04-18
+    retrieved_at: 2026-11-06
     note: Chirp 3 HD voices guide and request examples.
   - source_id: google_gemini_tts_doc
     url: https://cloud.google.com/text-to-speech/docs/gemini-tts
-    retrieved_at: 2026-04-18
+    retrieved_at: 2026-11-06
     note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
   - source_id: google_tts_release_notes
     url: https://cloud.google.com/text-to-speech/docs/release-notes
@@ -51,32 +51,116 @@ sources:
     url: https://cloud.google.com/text-to-speech/docs/chirp3-instant-custom-voice
     retrieved_at: 2026-04-18
     note: Instant Custom Voice is tracked as deferred provider extension in this phase.
-
 language_profiles:
-  short_multilingual_v1: [en, zh, de, it, pt, es, ja, ko, fr, ru]
-
+  native_multilingual_v1:
+    - en-US
+    - cmn-CN
+    - de-DE
+    - it-IT
+    - pt-BR
+    - es-ES
+    - ja-JP
+    - ko-KR
+    - fr-FR
+    - ru-RU
 voice_sets:
   - voice_set_id: chirp3-defaults-v1
-    langs_ref: short_multilingual_v1
-    source_ids: [google_tts_doc, google_chirp3_hd_doc, google_gemini_tts_doc]
+    langs_ref: native_multilingual_v1
+    source_ids:
+      - google_tts_doc
+      - google_chirp3_hd_doc
+      - google_gemini_tts_doc
     voices:
       - voice_id: en-US-Chirp3-HD-Charon
         name: Charon
-        langs: [en-US]
+        langs:
+          - en-US
       - voice_id: en-US-Chirp3-HD-Kore
         name: Kore
-        langs: [en-US]
+        langs:
+          - en-US
       - voice_id: ja-JP-Chirp3-HD-Leda
         name: Leda
-        langs: [ja-JP]
+        langs:
+          - ja-JP
       - voice_id: cmn-CN-Chirp3-HD-Orus
         name: Orus
-        langs: [cmn-CN]
-
+        langs:
+          - cmn-CN
+  - voice_set_id: gemini-native-presets-v1
+    langs_ref: native_multilingual_v1
+    source_ids:
+      - google_gemini_tts_doc
+    voices:
+      - voice_id: Achernar
+        name: Achernar
+      - voice_id: Achird
+        name: Achird
+      - voice_id: Algenib
+        name: Algenib
+      - voice_id: Algieba
+        name: Algieba
+      - voice_id: Alnilam
+        name: Alnilam
+      - voice_id: Aoede
+        name: Aoede
+      - voice_id: Autonoe
+        name: Autonoe
+      - voice_id: Callirrhoe
+        name: Callirrhoe
+      - voice_id: Charon
+        name: Charon
+      - voice_id: Despina
+        name: Despina
+      - voice_id: Enceladus
+        name: Enceladus
+      - voice_id: Erinome
+        name: Erinome
+      - voice_id: Fenrir
+        name: Fenrir
+      - voice_id: Gacrux
+        name: Gacrux
+      - voice_id: Iapetus
+        name: Iapetus
+      - voice_id: Kore
+        name: Kore
+      - voice_id: Laomedeia
+        name: Laomedeia
+      - voice_id: Leda
+        name: Leda
+      - voice_id: Orus
+        name: Orus
+      - voice_id: Pulcherrima
+        name: Pulcherrima
+      - voice_id: Puck
+        name: Puck
+      - voice_id: Rasalgethi
+        name: Rasalgethi
+      - voice_id: Sadachbia
+        name: Sadachbia
+      - voice_id: Sadaltager
+        name: Sadaltager
+      - voice_id: Schedar
+        name: Schedar
+      - voice_id: Sulafat
+        name: Sulafat
+      - voice_id: Umbriel
+        name: Umbriel
+      - voice_id: Vindemiatrix
+        name: Vindemiatrix
+      - voice_id: Zephyr
+        name: Zephyr
+      - voice_id: Zubenelgenubi
+        name: Zubenelgenubi
 models:
   - model_id: chirp-3-hd
-    updated_at: 2026-04-18
-    source_ids: [google_tts_doc, google_chirp3_hd_doc, google_tts_release_notes, google_tts_pricing, google_tts_endpoints]
+    updated_at: 2026-11-06
+    source_ids:
+      - google_tts_doc
+      - google_chirp3_hd_doc
+      - google_tts_release_notes
+      - google_tts_pricing
+      - google_tts_endpoints
     pricing:
       unit: char
       input: "30.00"
@@ -87,18 +171,31 @@ models:
     voice:
       discovery_mode: static_catalog
       voice_set_ref: chirp3-defaults-v1
-      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
-      langs_ref: short_multilingual_v1
+      supports_voice_ref_kinds:
+        - preset_voice_id
+        - provider_voice_ref
+      langs_ref: native_multilingual_v1
       request_options:
-        timing_modes: [none]
-        audio_formats: [mp3, ogg, wav, mulaw, alaw]
+        timing_modes:
+          - none
+        audio_formats:
+          - wav
+          - mp3
+          - ogg
+          - pcm
+          - mulaw
+          - alaw
         supports_language: true
+        supports_speed: true
     aliases:
       - chirp3-hd
-
   - model_id: gemini-2.5-flash-tts
-    updated_at: 2026-04-18
-    source_ids: [google_gemini_tts_doc, google_tts_release_notes, google_tts_pricing, google_tts_endpoints]
+    updated_at: 2026-11-06
+    source_ids:
+      - google_gemini_tts_doc
+      - google_tts_release_notes
+      - google_tts_pricing
+      - google_tts_endpoints
     pricing:
       unit: token
       input: "0.50"
@@ -108,17 +205,30 @@ models:
       notes: Gemini 2.5 Flash TTS input text tokens at $0.50 and output audio tokens at $10.00 per 1M tokens.
     voice:
       discovery_mode: static_catalog
-      voice_set_ref: chirp3-defaults-v1
-      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
-      langs_ref: short_multilingual_v1
+      voice_set_ref: gemini-native-presets-v1
+      supports_voice_ref_kinds:
+        - preset_voice_id
+        - provider_voice_ref
+      langs_ref: native_multilingual_v1
       request_options:
-        timing_modes: [none]
-        audio_formats: [mp3, ogg, wav, mulaw, alaw, pcm]
+        timing_modes:
+          - none
+        audio_formats:
+          - wav
+          - mp3
+          - ogg
+          - pcm
+          - mulaw
+          - alaw
         supports_language: true
-
+        supports_emotion: true
   - model_id: gemini-2.5-pro-tts
-    updated_at: 2026-04-18
-    source_ids: [google_gemini_tts_doc, google_tts_release_notes, google_tts_pricing, google_tts_endpoints]
+    updated_at: 2026-11-06
+    source_ids:
+      - google_gemini_tts_doc
+      - google_tts_release_notes
+      - google_tts_pricing
+      - google_tts_endpoints
     pricing:
       unit: token
       input: "1.00"
@@ -128,14 +238,89 @@ models:
       notes: Gemini 2.5 Pro TTS input text tokens at $1.00 and output audio tokens at $20.00 per 1M tokens.
     voice:
       discovery_mode: static_catalog
-      voice_set_ref: chirp3-defaults-v1
-      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
-      langs_ref: short_multilingual_v1
+      voice_set_ref: gemini-native-presets-v1
+      supports_voice_ref_kinds:
+        - preset_voice_id
+        - provider_voice_ref
+      langs_ref: native_multilingual_v1
       request_options:
-        timing_modes: [none]
-        audio_formats: [mp3, ogg, wav, mulaw, alaw, pcm]
+        timing_modes:
+          - none
+        audio_formats:
+          - wav
+          - mp3
+          - ogg
+          - pcm
+          - mulaw
+          - alaw
         supports_language: true
-
+        supports_emotion: true
+  - model_id: gemini-3.1-flash-tts-preview
+    updated_at: 2026-11-06
+    source_ids:
+      - google_gemini_tts_doc
+      - google_tts_release_notes
+      - google_tts_pricing
+      - google_tts_endpoints
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Cloud TTS Preview. Account, region and native quota apply; no usage is invented when omitted by synthesis.
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: gemini-native-presets-v1
+      supports_voice_ref_kinds:
+        - preset_voice_id
+        - provider_voice_ref
+      langs_ref: native_multilingual_v1
+      request_options:
+        timing_modes:
+          - none
+        audio_formats:
+          - wav
+          - mp3
+          - ogg
+          - pcm
+          - mulaw
+          - alaw
+        supports_language: true
+        supports_emotion: true
+  - model_id: gemini-2.5-flash-lite-preview-tts
+    updated_at: 2026-11-06
+    source_ids:
+      - google_gemini_tts_doc
+      - google_tts_release_notes
+      - google_tts_pricing
+      - google_tts_endpoints
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Cloud TTS Preview. Account, region and native quota apply; no usage is invented when omitted by synthesis.
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: gemini-native-presets-v1
+      supports_voice_ref_kinds:
+        - preset_voice_id
+        - provider_voice_ref
+      langs_ref: native_multilingual_v1
+      request_options:
+        timing_modes:
+          - none
+        audio_formats:
+          - wav
+          - mp3
+          - ogg
+          - pcm
+          - mulaw
+          - alaw
+        supports_language: true
+        supports_emotion: true
 overrides:
   models: []
   voices: []

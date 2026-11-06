@@ -1,17 +1,23 @@
 package nimillm
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
 func TestExecuteAWSPollyTTS_MapsCatalogModelToEngine(t *testing.T) {
+	audio, err := os.ReadFile("testdata/tone-24k.mp3")
+	if err != nil {
+		t.Fatal(err)
+	}
 	tests := []struct {
 		name          string
 		modelResolved string
@@ -35,7 +41,7 @@ func TestExecuteAWSPollyTTS_MapsCatalogModelToEngine(t *testing.T) {
 					t.Fatalf("Unmarshal(body): %v", err)
 				}
 				writer.Header().Set("Content-Type", "audio/mpeg")
-				_, _ = writer.Write([]byte("audio-bytes"))
+				_, _ = writer.Write(audio)
 			}))
 			defer func() { server.Close() }()
 
@@ -44,7 +50,7 @@ func TestExecuteAWSPollyTTS_MapsCatalogModelToEngine(t *testing.T) {
 				Spec: &runtimev1.ScenarioSpec{
 					Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
 						SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
-							Text:         "Hello from Polly",
+							Text:         "  Hello from Polly  ",
 							Language:     "en-US",
 							AudioFormat:  "mp3",
 							SampleRateHz: testInt32(24000),
@@ -73,10 +79,13 @@ func TestExecuteAWSPollyTTS_MapsCatalogModelToEngine(t *testing.T) {
 			if got := gotPayload["SampleRate"]; got != "24000" {
 				t.Fatalf("SampleRate must use the native string field: got=%#v", got)
 			}
+			if gotPayload["Text"] != "  Hello from Polly  " || gotPayload["TextType"] != "text" {
+				t.Fatalf("plain text changed: %v", gotPayload)
+			}
 			if _, ok := gotPayload["extensions"]; ok {
 				t.Fatalf("aws polly request must not send raw extensions field")
 			}
-			if len(artifacts) != 1 || string(artifacts[0].GetBytes()) != "audio-bytes" {
+			if len(artifacts) != 1 || !bytes.Equal(artifacts[0].GetBytes(), audio) || artifacts[0].GetSampleRateHz() != 24000 || artifacts[0].GetDurationMs() <= 0 {
 				t.Fatalf("unexpected artifacts: %#v", artifacts)
 			}
 		})

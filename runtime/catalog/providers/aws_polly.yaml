@@ -1,12 +1,12 @@
 version: 1
 provider: aws_polly
-catalog_version: 2026-04-18-aws-polly-v2
+catalog_version: 2026-11-06-native-polly-gateway
 inventory_mode: static_source
 models:
   - model_id: polly-standard-tts
     provider: aws_polly
     model_type: tts
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - audio.synthesize
     pricing:
@@ -22,13 +22,24 @@ models:
       note: Core speech synthesis API contract.
     voice_set_id: aws_polly:standard-defaults-v1
     voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
+        - ogg
+        - ogg_opus
+        - pcm
+        - mulaw
+        - alaw
+      supports_language: true
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
   - model_id: polly-neural-tts
     provider: aws_polly
     model_type: tts
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - audio.synthesize
     pricing:
@@ -44,13 +55,24 @@ models:
       note: Core speech synthesis API contract.
     voice_set_id: aws_polly:neural-defaults-v1
     voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
+        - ogg
+        - ogg_opus
+        - pcm
+        - mulaw
+        - alaw
+      supports_language: true
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
   - model_id: polly-long-form-tts
     provider: aws_polly
     model_type: tts
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - audio.synthesize
     pricing:
@@ -66,13 +88,24 @@ models:
       note: Core speech synthesis API contract.
     voice_set_id: aws_polly:long-form-defaults-v1
     voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
+        - ogg
+        - ogg_opus
+        - pcm
+        - mulaw
+        - alaw
+      supports_language: true
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
   - model_id: polly-generative-tts
     provider: aws_polly
     model_type: tts
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - audio.synthesize
     pricing:
@@ -88,6 +121,17 @@ models:
       note: Core speech synthesis API contract.
     voice_set_id: aws_polly:generative-defaults-v1
     voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
+        - ogg
+        - ogg_opus
+        - pcm
+        - mulaw
+        - alaw
+      supports_language: true
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref

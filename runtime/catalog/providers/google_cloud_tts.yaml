@@ -1,12 +1,12 @@
 version: 1
 provider: google_cloud_tts
-catalog_version: 2026-04-18-google-cloud-tts-v2
+catalog_version: 2026-11-06-cloud-tts-native
 inventory_mode: static_source
 models:
   - model_id: chirp-3-hd
     provider: google_cloud_tts
     model_type: tts
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - audio.synthesize
     pricing:
@@ -26,9 +26,10 @@ models:
       timing_modes:
         - none
       audio_formats:
+        - wav
         - mp3
         - ogg
-        - wav
+        - pcm
         - mulaw
         - alaw
       supports_language: true
@@ -38,7 +39,7 @@ models:
   - model_id: chirp3-hd
     provider: google_cloud_tts
     model_type: tts
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - audio.synthesize
     pricing:
@@ -60,7 +61,7 @@ models:
   - model_id: gemini-2.5-flash-tts
     provider: google_cloud_tts
     model_type: tts
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - audio.synthesize
     pricing:
@@ -72,28 +73,29 @@ models:
       notes: Gemini 2.5 Flash TTS input text tokens at $0.50 and output audio tokens at $10.00 per 1M tokens.
     source_ref:
       url: https://cloud.google.com/text-to-speech/docs/gemini-tts
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-11-06
       note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
-    voice_set_id: google_cloud_tts:chirp3-defaults-v1
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
     voice_discovery_mode: static_catalog
     voice_request_options:
       timing_modes:
         - none
       audio_formats:
+        - wav
         - mp3
         - ogg
-        - wav
+        - pcm
         - mulaw
         - alaw
-        - pcm
       supports_language: true
+      supports_emotion: true
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
   - model_id: gemini-2.5-pro-tts
     provider: google_cloud_tts
     model_type: tts
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - audio.synthesize
     pricing:
@@ -105,21 +107,90 @@ models:
       notes: Gemini 2.5 Pro TTS input text tokens at $1.00 and output audio tokens at $20.00 per 1M tokens.
     source_ref:
       url: https://cloud.google.com/text-to-speech/docs/gemini-tts
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-11-06
       note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
-    voice_set_id: google_cloud_tts:chirp3-defaults-v1
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
     voice_discovery_mode: static_catalog
     voice_request_options:
       timing_modes:
         - none
       audio_formats:
+        - wav
         - mp3
         - ogg
-        - wav
+        - pcm
         - mulaw
         - alaw
-        - pcm
       supports_language: true
+      supports_emotion: true
+    voice_ref_kinds:
+      - preset_voice_id
+      - provider_voice_ref
+  - model_id: gemini-3.1-flash-tts-preview
+    provider: google_cloud_tts
+    model_type: tts
+    updated_at: 2026-11-06
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Cloud TTS Preview. Account, region and native quota apply; no usage is invented when omitted by synthesis.
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - wav
+        - mp3
+        - ogg
+        - pcm
+        - mulaw
+        - alaw
+      supports_language: true
+      supports_emotion: true
+    voice_ref_kinds:
+      - preset_voice_id
+      - provider_voice_ref
+  - model_id: gemini-2.5-flash-lite-preview-tts
+    provider: google_cloud_tts
+    model_type: tts
+    updated_at: 2026-11-06
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Cloud TTS Preview. Account, region and native quota apply; no usage is invented when omitted by synthesis.
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - wav
+        - mp3
+        - ogg
+        - pcm
+        - mulaw
+        - alaw
+      supports_language: true
+      supports_emotion: true
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
@@ -133,8 +204,6 @@ voices:
     model_ids:
       - chirp-3-hd
       - chirp3-hd
-      - gemini-2.5-flash-tts
-      - gemini-2.5-pro-tts
     source_ref:
       url: https://cloud.google.com/text-to-speech/docs
       retrieved_at: 2026-04-18
@@ -148,8 +217,6 @@ voices:
     model_ids:
       - chirp-3-hd
       - chirp3-hd
-      - gemini-2.5-flash-tts
-      - gemini-2.5-pro-tts
     source_ref:
       url: https://cloud.google.com/text-to-speech/docs
       retrieved_at: 2026-04-18
@@ -163,8 +230,6 @@ voices:
     model_ids:
       - chirp-3-hd
       - chirp3-hd
-      - gemini-2.5-flash-tts
-      - gemini-2.5-pro-tts
     source_ref:
       url: https://cloud.google.com/text-to-speech/docs
       retrieved_at: 2026-04-18
@@ -178,9 +243,727 @@ voices:
     model_ids:
       - chirp-3-hd
       - chirp3-hd
-      - gemini-2.5-flash-tts
-      - gemini-2.5-pro-tts
     source_ref:
       url: https://cloud.google.com/text-to-speech/docs
       retrieved_at: 2026-04-18
       note: Google Cloud Text-to-Speech documentation.
+  - voice_id: Achernar
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Achernar
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Achird
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Achird
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Algenib
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Algenib
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Algieba
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Algieba
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Alnilam
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Alnilam
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Aoede
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Aoede
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Autonoe
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Autonoe
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Callirrhoe
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Callirrhoe
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Charon
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Charon
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Despina
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Despina
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Enceladus
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Enceladus
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Erinome
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Erinome
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Fenrir
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Fenrir
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Gacrux
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Gacrux
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Iapetus
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Iapetus
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Kore
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Kore
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Laomedeia
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Laomedeia
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Leda
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Leda
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Orus
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Orus
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Pulcherrima
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Pulcherrima
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Puck
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Puck
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Rasalgethi
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Rasalgethi
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Sadachbia
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Sadachbia
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Sadaltager
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Sadaltager
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Schedar
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Schedar
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Sulafat
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Sulafat
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Umbriel
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Umbriel
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Vindemiatrix
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Vindemiatrix
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Zephyr
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Zephyr
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.
+  - voice_id: Zubenelgenubi
+    voice_set_id: google_cloud_tts:gemini-native-presets-v1
+    provider: google_cloud_tts
+    name: Zubenelgenubi
+    langs:
+      - en-US
+      - cmn-CN
+      - de-DE
+      - it-IT
+      - pt-BR
+      - es-ES
+      - ja-JP
+      - ko-KR
+      - fr-FR
+      - ru-RU
+    model_ids:
+      - gemini-2.5-flash-tts
+      - gemini-2.5-pro-tts
+      - gemini-3.1-flash-tts-preview
+      - gemini-2.5-flash-lite-preview-tts
+    source_ref:
+      url: https://cloud.google.com/text-to-speech/docs/gemini-tts
+      retrieved_at: 2026-11-06
+      note: Gemini-TTS models, voice options, limits, and request examples under Cloud Text-to-Speech.

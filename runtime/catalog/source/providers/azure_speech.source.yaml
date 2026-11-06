@@ -1,6 +1,6 @@
 schema_version: 3
 provider: azure_speech
-catalog_version: 2026-04-18-azure-speech-v2
+catalog_version: 2026-11-06-native-speech-mai21
 generated_target: runtime/catalog/providers/azure_speech.yaml
 runtime:
   inventory_mode: static_source
@@ -13,7 +13,8 @@ resolution_mode: model_anchor_v2
 defaults:
   provider: azure_speech
   model_type: tts
-  capabilities: [audio.synthesize]
+  capabilities:
+    - audio.synthesize
   pricing:
     unit: char
     input: unknown
@@ -21,7 +22,6 @@ defaults:
     currency: USD
     as_of: 2026-04-18
     notes: Azure Speech text-to-speech billing is per character, but public list price varies by voice family, region, and commitment plan.
-
 sources:
   - source_id: azure_tts_doc
     url: https://learn.microsoft.com/azure/ai-services/speech-service/text-to-speech
@@ -41,79 +41,259 @@ sources:
     note: Azure Speech pricing page describing per-character billing and family-level exclusions.
   - source_id: azure_speech_hd_doc
     url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
-    retrieved_at: 2026-04-18
+    retrieved_at: 2026-11-06
     note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
   - source_id: azure_speech_openai_voices_doc
     url: https://learn.microsoft.com/azure/ai-services/speech-service/openai-voices
-    retrieved_at: 2026-04-18
+    retrieved_at: 2026-11-06
     note: OpenAI text-to-speech voices in Azure Speech, including preview region limits and SSML differences.
   - source_id: azure_custom_voice_doc
     url: https://learn.microsoft.com/azure/ai-services/speech-service/custom-neural-voice
     retrieved_at: 2026-04-18
     note: Custom Voice is tracked as deferred provider extension in this phase.
-
+  - source_id: azure_mai21
+    url: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-voices
+    retrieved_at: 2026-11-06
+    note: MAI-Voice-2.1 and Flash Preview, native SSML voice suffixes and per-voice style table. Gated cloning is outside this preset-voice composition.
 language_profiles:
-  short_multilingual_v1: [en, zh, de, it, pt, es, ja, ko, fr, ru]
-
+  native_multilingual_v1:
+    - en-US
+    - zh-CN
+    - de-DE
+    - it-IT
+    - pt-BR
+    - es-ES
+    - ja-JP
+    - ko-KR
+    - fr-FR
+    - ru-RU
+  flash_locales_v1:
+    - en-US
+    - zh-CN
+  mai_reviewed_locales_v1:
+    - en-US
+    - es-MX
+    - fr-FR
+    - ko-KR
+    - zh-CN
 voice_sets:
   - voice_set_id: neural-defaults-v1
-    langs_ref: short_multilingual_v1
-    source_ids: [azure_tts_doc, azure_speech_language_support]
+    langs_ref: native_multilingual_v1
+    source_ids:
+      - azure_tts_doc
+      - azure_speech_language_support
     voices:
       - voice_id: en-US-JennyNeural
         name: Jenny
-        langs: [en-US]
+        langs:
+          - en-US
       - voice_id: en-US-GuyNeural
         name: Guy
-        langs: [en-US]
+        langs:
+          - en-US
       - voice_id: zh-CN-XiaoxiaoNeural
         name: Xiaoxiao
-        langs: [zh-CN]
+        langs:
+          - zh-CN
       - voice_id: ja-JP-NanamiNeural
         name: Nanami
-        langs: [ja-JP]
-
+        langs:
+          - ja-JP
   - voice_set_id: hd-defaults-v1
-    langs_ref: short_multilingual_v1
-    source_ids: [azure_speech_hd_doc, azure_speech_language_support, azure_speech_release_notes]
+    langs_ref: native_multilingual_v1
+    source_ids:
+      - azure_speech_hd_doc
+      - azure_speech_language_support
+      - azure_speech_release_notes
     voices:
       - voice_id: en-US-Ava:DragonHDLatestNeural
         name: Ava DragonHD
-        langs: [en-US]
+        langs:
+          - en-US
       - voice_id: en-US-Jenny:DragonHDLatestNeural
         name: Jenny DragonHD
-        langs: [en-US]
+        langs:
+          - en-US
       - voice_id: ja-JP-Nanami:DragonHDLatestNeural
         name: Nanami DragonHD
-        langs: [ja-JP]
+        langs:
+          - ja-JP
       - voice_id: zh-CN-Xiaochen:DragonHDLatestNeural
         name: Xiaochen DragonHD
-        langs: [zh-CN]
+        langs:
+          - zh-CN
       - voice_id: en-us-ava:DragonHDOmniLatestNeural
         name: Ava DragonHDOmni
-        langs: [en-US]
-
+        langs:
+          - en-US
   - voice_set_id: openai-defaults-preview-v1
-    langs_ref: short_multilingual_v1
-    source_ids: [azure_speech_openai_voices_doc, azure_speech_language_support]
+    langs_ref: native_multilingual_v1
+    source_ids:
+      - azure_speech_openai_voices_doc
+      - azure_speech_language_support
     voices:
       - voice_id: en-US-AlloyMultilingualNeural
         name: Alloy
-        langs: [en-US]
+        langs:
+          - en-US
       - voice_id: en-US-NovaMultilingualNeural
         name: Nova
-        langs: [en-US]
+        langs:
+          - en-US
       - voice_id: en-US-AlloyMultilingualNeuralHD
         name: Alloy HD
-        langs: [en-US]
+        langs:
+          - en-US
       - voice_id: en-US-NovaMultilingualNeuralHD
         name: Nova HD
-        langs: [en-US]
-
+        langs:
+          - en-US
+  - voice_set_id: azure-hd-flash-tts-presets-v1
+    langs_ref: flash_locales_v1
+    source_ids:
+      - azure_speech_hd_doc
+    voices:
+      - voice_id: zh-CN-Xiaoxiao:DragonHDFlashLatestNeural
+        name: Xiaoxiao DragonHDFlashLatestNeural
+        langs:
+          - zh-CN
+      - voice_id: zh-CN-Xiaoxiao2:DragonHDFlashLatestNeural
+        name: Xiaoxiao2 DragonHDFlashLatestNeural
+        langs:
+          - zh-CN
+      - voice_id: zh-CN-Xiaochen:DragonHDFlashLatestNeural
+        name: Xiaochen DragonHDFlashLatestNeural
+        langs:
+          - zh-CN
+      - voice_id: zh-CN-Xiaoyi:DragonHDFlashLatestNeural
+        name: Xiaoyi DragonHDFlashLatestNeural
+        langs:
+          - zh-CN
+      - voice_id: zh-CN-Xiaoyu:DragonHDFlashLatestNeural
+        name: Xiaoyu DragonHDFlashLatestNeural
+        langs:
+          - zh-CN
+      - voice_id: zh-CN-Xiaohan:DragonHDFlashLatestNeural
+        name: Xiaohan DragonHDFlashLatestNeural
+        langs:
+          - zh-CN
+      - voice_id: zh-CN-Xiaoshuang:DragonHDFlashLatestNeural
+        name: Xiaoshuang DragonHDFlashLatestNeural
+        langs:
+          - zh-CN
+      - voice_id: zh-CN-Xiaoyou:DragonHDFlashLatestNeural
+        name: Xiaoyou DragonHDFlashLatestNeural
+        langs:
+          - zh-CN
+      - voice_id: zh-CN-Yunxi:DragonHDFlashLatestNeural
+        name: Yunxi DragonHDFlashLatestNeural
+        langs:
+          - zh-CN
+      - voice_id: zh-CN-Yunyi:DragonHDFlashLatestNeural
+        name: Yunyi DragonHDFlashLatestNeural
+        langs:
+          - zh-CN
+      - voice_id: zh-CN-Yunxiao:DragonHDFlashLatestNeural
+        name: Yunxiao DragonHDFlashLatestNeural
+        langs:
+          - zh-CN
+      - voice_id: zh-CN-Yunhan:DragonHDFlashLatestNeural
+        name: Yunhan DragonHDFlashLatestNeural
+        langs:
+          - zh-CN
+      - voice_id: zh-CN-Yunxia:DragonHDFlashLatestNeural
+        name: Yunxia DragonHDFlashLatestNeural
+        langs:
+          - zh-CN
+      - voice_id: zh-CN-Yunye:DragonHDFlashLatestNeural
+        name: Yunye DragonHDFlashLatestNeural
+        langs:
+          - zh-CN
+      - voice_id: en-US-Tiana:DragonHDFlashLatestNeural
+        name: Tiana DragonHDFlashLatestNeural
+        langs:
+          - en-US
+      - voice_id: en-US-Tyler:DragonHDFlashLatestNeural
+        name: Tyler DragonHDFlashLatestNeural
+        langs:
+          - en-US
+      - voice_id: en-US-Jimmie:DragonHDFlashLatestNeural
+        name: Jimmie DragonHDFlashLatestNeural
+        langs:
+          - en-US
+  - voice_set_id: azure-mai-voice-2.1-presets-v1
+    langs_ref: mai_reviewed_locales_v1
+    source_ids:
+      - azure_mai21
+    voices:
+      - voice_id: en-US-Grant:MAI-Voice-2.1
+        name: Grant MAI-Voice-2.1
+        langs:
+          - en-US
+      - voice_id: en-US-Harper:MAI-Voice-2.1
+        name: Harper MAI-Voice-2.1
+        langs:
+          - en-US
+      - voice_id: es-MX-Valeria:MAI-Voice-2.1
+        name: Valeria MAI-Voice-2.1
+        langs:
+          - es-MX
+      - voice_id: fr-FR-Harper:MAI-Voice-2.1
+        name: Harper MAI-Voice-2.1
+        langs:
+          - fr-FR
+      - voice_id: ko-KR-Harper:MAI-Voice-2.1
+        name: Harper MAI-Voice-2.1
+        langs:
+          - ko-KR
+      - voice_id: zh-CN-Bo:MAI-Voice-2.1
+        name: Bo MAI-Voice-2.1
+        langs:
+          - zh-CN
+      - voice_id: zh-CN-Mei:MAI-Voice-2.1
+        name: Mei MAI-Voice-2.1
+        langs:
+          - zh-CN
+  - voice_set_id: azure-mai-voice-2.1-flash-presets-v1
+    langs_ref: mai_reviewed_locales_v1
+    source_ids:
+      - azure_mai21
+    voices:
+      - voice_id: en-US-Grant:MAI-Voice-2.1-Flash
+        name: Grant MAI-Voice-2.1-Flash
+        langs:
+          - en-US
+      - voice_id: en-US-Harper:MAI-Voice-2.1-Flash
+        name: Harper MAI-Voice-2.1-Flash
+        langs:
+          - en-US
+      - voice_id: es-MX-Valeria:MAI-Voice-2.1-Flash
+        name: Valeria MAI-Voice-2.1-Flash
+        langs:
+          - es-MX
+      - voice_id: fr-FR-Harper:MAI-Voice-2.1-Flash
+        name: Harper MAI-Voice-2.1-Flash
+        langs:
+          - fr-FR
+      - voice_id: ko-KR-Harper:MAI-Voice-2.1-Flash
+        name: Harper MAI-Voice-2.1-Flash
+        langs:
+          - ko-KR
+      - voice_id: zh-CN-Bo:MAI-Voice-2.1-Flash
+        name: Bo MAI-Voice-2.1-Flash
+        langs:
+          - zh-CN
+      - voice_id: zh-CN-Mei:MAI-Voice-2.1-Flash
+        name: Mei MAI-Voice-2.1-Flash
+        langs:
+          - zh-CN
 models:
   - model_id: azure-neural-tts
-    updated_at: 2026-04-18
-    source_ids: [azure_tts_doc, azure_speech_language_support, azure_speech_pricing]
+    updated_at: 2026-11-06
+    source_ids:
+      - azure_tts_doc
+      - azure_speech_language_support
+      - azure_speech_pricing
     pricing:
       unit: char
       input: unknown
@@ -124,16 +304,26 @@ models:
     voice:
       discovery_mode: static_catalog
       voice_set_ref: neural-defaults-v1
-      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
-      langs_ref: short_multilingual_v1
+      supports_voice_ref_kinds:
+        - preset_voice_id
+        - provider_voice_ref
+      langs_ref: native_multilingual_v1
       request_options:
-        timing_modes: [none]
-        audio_formats: [mp3, ogg, wav, pcm]
+        timing_modes:
+          - none
+        audio_formats:
+          - mp3
+          - ogg
+          - wav
+          - pcm
         supports_language: true
-
   - model_id: azure-hd-tts
-    updated_at: 2026-04-18
-    source_ids: [azure_speech_hd_doc, azure_speech_language_support, azure_speech_release_notes, azure_speech_pricing]
+    updated_at: 2026-11-06
+    source_ids:
+      - azure_speech_hd_doc
+      - azure_speech_language_support
+      - azure_speech_release_notes
+      - azure_speech_pricing
     pricing:
       unit: char
       input: unknown
@@ -144,16 +334,25 @@ models:
     voice:
       discovery_mode: static_catalog
       voice_set_ref: hd-defaults-v1
-      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
-      langs_ref: short_multilingual_v1
+      supports_voice_ref_kinds:
+        - preset_voice_id
+        - provider_voice_ref
+      langs_ref: native_multilingual_v1
       request_options:
-        timing_modes: [none]
-        audio_formats: [mp3, ogg, wav, pcm]
+        timing_modes:
+          - none
+        audio_formats:
+          - mp3
+          - ogg
+          - wav
+          - pcm
         supports_language: true
-
   - model_id: azure-openai-tts-preview
-    updated_at: 2026-04-18
-    source_ids: [azure_speech_openai_voices_doc, azure_speech_language_support, azure_speech_pricing]
+    updated_at: 2026-11-06
+    source_ids:
+      - azure_speech_openai_voices_doc
+      - azure_speech_language_support
+      - azure_speech_pricing
     pricing:
       unit: char
       input: unknown
@@ -164,13 +363,106 @@ models:
     voice:
       discovery_mode: static_catalog
       voice_set_ref: openai-defaults-preview-v1
-      supports_voice_ref_kinds: [preset_voice_id, provider_voice_ref]
-      langs_ref: short_multilingual_v1
+      supports_voice_ref_kinds:
+        - preset_voice_id
+        - provider_voice_ref
+      langs_ref: native_multilingual_v1
       request_options:
-        timing_modes: [none]
-        audio_formats: [mp3, ogg, wav, pcm]
+        timing_modes:
+          - none
+        audio_formats:
+          - mp3
+          - ogg
+          - wav
+          - pcm
         supports_language: true
-
+  - model_id: azure-hd-flash-tts
+    updated_at: 2026-11-06
+    source_ids:
+      - azure_speech_hd_doc
+      - azure_tts_doc
+    pricing:
+      unit: char
+      input: unknown
+      output: "0"
+      currency: USD
+      as_of: 2026-11-06
+      notes: Dragon HD Flash voices through native Azure Speech; English and Chinese only. LatestNeural remains a moving provider version.
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: azure-hd-flash-tts-presets-v1
+      supports_voice_ref_kinds:
+        - preset_voice_id
+        - provider_voice_ref
+      langs_ref: flash_locales_v1
+      request_options:
+        timing_modes:
+          - none
+        audio_formats:
+          - mp3
+          - ogg
+          - wav
+          - pcm
+        supports_language: true
+        supports_emotion: true
+  - model_id: azure-mai-voice-2.1
+    updated_at: 2026-11-06
+    source_ids:
+      - azure_mai21
+      - azure_tts_doc
+    pricing:
+      unit: char
+      input: unknown
+      output: "0"
+      currency: USD
+      as_of: 2026-11-06
+      notes: MAI-Voice-2.1 Preview through Azure Speech. This is not a production-readiness claim; preset voices only.
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: azure-mai-voice-2.1-presets-v1
+      supports_voice_ref_kinds:
+        - preset_voice_id
+        - provider_voice_ref
+      langs_ref: mai_reviewed_locales_v1
+      request_options:
+        timing_modes:
+          - none
+        audio_formats:
+          - mp3
+          - ogg
+          - wav
+          - pcm
+        supports_language: true
+        supports_emotion: true
+  - model_id: azure-mai-voice-2.1-flash
+    updated_at: 2026-11-06
+    source_ids:
+      - azure_mai21
+      - azure_tts_doc
+    pricing:
+      unit: char
+      input: unknown
+      output: "0"
+      currency: USD
+      as_of: 2026-11-06
+      notes: MAI-Voice-2.1-Flash Preview through Azure Speech. Preset voices only; region and account availability apply.
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: azure-mai-voice-2.1-flash-presets-v1
+      supports_voice_ref_kinds:
+        - preset_voice_id
+        - provider_voice_ref
+      langs_ref: mai_reviewed_locales_v1
+      request_options:
+        timing_modes:
+          - none
+        audio_formats:
+          - mp3
+          - ogg
+          - wav
+          - pcm
+        supports_language: true
+        supports_emotion: true
 overrides:
   models: []
   voices: []

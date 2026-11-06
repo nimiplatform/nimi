@@ -1,12 +1,12 @@
 version: 1
 provider: azure_speech
-catalog_version: 2026-04-18-azure-speech-v2
+catalog_version: 2026-11-06-native-speech-mai21
 inventory_mode: static_source
 models:
   - model_id: azure-neural-tts
     provider: azure_speech
     model_type: tts
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - audio.synthesize
     pricing:
@@ -37,7 +37,7 @@ models:
   - model_id: azure-hd-tts
     provider: azure_speech
     model_type: tts
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - audio.synthesize
     pricing:
@@ -49,7 +49,7 @@ models:
       notes: Azure Speech HD voices and Dragon HD Omni are billed per character under separate HD pricing terms that vary by region and plan.
     source_ref:
       url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-11-06
       note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
     voice_set_id: azure_speech:hd-defaults-v1
     voice_discovery_mode: static_catalog
@@ -68,7 +68,7 @@ models:
   - model_id: azure-openai-tts-preview
     provider: azure_speech
     model_type: tts
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - audio.synthesize
     pricing:
@@ -80,7 +80,7 @@ models:
       notes: Azure Speech OpenAI voices are currently preview-only and region-limited to North Central US and Sweden Central; pricing is not modeled here as a stable static public rate.
     source_ref:
       url: https://learn.microsoft.com/azure/ai-services/speech-service/openai-voices
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-11-06
       note: OpenAI text-to-speech voices in Azure Speech, including preview region limits and SSML differences.
     voice_set_id: azure_speech:openai-defaults-preview-v1
     voice_discovery_mode: static_catalog
@@ -93,6 +93,102 @@ models:
         - wav
         - pcm
       supports_language: true
+    voice_ref_kinds:
+      - preset_voice_id
+      - provider_voice_ref
+  - model_id: azure-hd-flash-tts
+    provider: azure_speech
+    model_type: tts
+    updated_at: 2026-11-06
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: "0"
+      currency: USD
+      as_of: 2026-11-06
+      notes: Dragon HD Flash voices through native Azure Speech; English and Chinese only. LatestNeural remains a moving provider version.
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
+      retrieved_at: 2026-11-06
+      note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
+    voice_set_id: azure_speech:azure-hd-flash-tts-presets-v1
+    voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
+        - ogg
+        - wav
+        - pcm
+      supports_language: true
+      supports_emotion: true
+    voice_ref_kinds:
+      - preset_voice_id
+      - provider_voice_ref
+  - model_id: azure-mai-voice-2.1
+    provider: azure_speech
+    model_type: tts
+    updated_at: 2026-11-06
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: "0"
+      currency: USD
+      as_of: 2026-11-06
+      notes: MAI-Voice-2.1 Preview through Azure Speech. This is not a production-readiness claim; preset voices only.
+    source_ref:
+      url: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-voices
+      retrieved_at: 2026-11-06
+      note: MAI-Voice-2.1 and Flash Preview, native SSML voice suffixes and per-voice style table. Gated cloning is outside this preset-voice composition.
+    voice_set_id: azure_speech:azure-mai-voice-2.1-presets-v1
+    voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
+        - ogg
+        - wav
+        - pcm
+      supports_language: true
+      supports_emotion: true
+    voice_ref_kinds:
+      - preset_voice_id
+      - provider_voice_ref
+  - model_id: azure-mai-voice-2.1-flash
+    provider: azure_speech
+    model_type: tts
+    updated_at: 2026-11-06
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: "0"
+      currency: USD
+      as_of: 2026-11-06
+      notes: MAI-Voice-2.1-Flash Preview through Azure Speech. Preset voices only; region and account availability apply.
+    source_ref:
+      url: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-voices
+      retrieved_at: 2026-11-06
+      note: MAI-Voice-2.1 and Flash Preview, native SSML voice suffixes and per-voice style table. Gated cloning is outside this preset-voice composition.
+    voice_set_id: azure_speech:azure-mai-voice-2.1-flash-presets-v1
+    voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
+        - ogg
+        - wav
+        - pcm
+      supports_language: true
+      supports_emotion: true
     voice_ref_kinds:
       - preset_voice_id
       - provider_voice_ref
@@ -155,7 +251,7 @@ voices:
       - azure-hd-tts
     source_ref:
       url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-11-06
       note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
   - voice_id: en-US-Jenny:DragonHDLatestNeural
     voice_set_id: azure_speech:hd-defaults-v1
@@ -167,7 +263,7 @@ voices:
       - azure-hd-tts
     source_ref:
       url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-11-06
       note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
   - voice_id: ja-JP-Nanami:DragonHDLatestNeural
     voice_set_id: azure_speech:hd-defaults-v1
@@ -179,7 +275,7 @@ voices:
       - azure-hd-tts
     source_ref:
       url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-11-06
       note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
   - voice_id: zh-CN-Xiaochen:DragonHDLatestNeural
     voice_set_id: azure_speech:hd-defaults-v1
@@ -191,7 +287,7 @@ voices:
       - azure-hd-tts
     source_ref:
       url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-11-06
       note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
   - voice_id: en-us-ava:DragonHDOmniLatestNeural
     voice_set_id: azure_speech:hd-defaults-v1
@@ -203,7 +299,7 @@ voices:
       - azure-hd-tts
     source_ref:
       url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-11-06
       note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
   - voice_id: en-US-AlloyMultilingualNeural
     voice_set_id: azure_speech:openai-defaults-preview-v1
@@ -215,7 +311,7 @@ voices:
       - azure-openai-tts-preview
     source_ref:
       url: https://learn.microsoft.com/azure/ai-services/speech-service/openai-voices
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-11-06
       note: OpenAI text-to-speech voices in Azure Speech, including preview region limits and SSML differences.
   - voice_id: en-US-NovaMultilingualNeural
     voice_set_id: azure_speech:openai-defaults-preview-v1
@@ -227,7 +323,7 @@ voices:
       - azure-openai-tts-preview
     source_ref:
       url: https://learn.microsoft.com/azure/ai-services/speech-service/openai-voices
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-11-06
       note: OpenAI text-to-speech voices in Azure Speech, including preview region limits and SSML differences.
   - voice_id: en-US-AlloyMultilingualNeuralHD
     voice_set_id: azure_speech:openai-defaults-preview-v1
@@ -239,7 +335,7 @@ voices:
       - azure-openai-tts-preview
     source_ref:
       url: https://learn.microsoft.com/azure/ai-services/speech-service/openai-voices
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-11-06
       note: OpenAI text-to-speech voices in Azure Speech, including preview region limits and SSML differences.
   - voice_id: en-US-NovaMultilingualNeuralHD
     voice_set_id: azure_speech:openai-defaults-preview-v1
@@ -251,5 +347,377 @@ voices:
       - azure-openai-tts-preview
     source_ref:
       url: https://learn.microsoft.com/azure/ai-services/speech-service/openai-voices
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-11-06
       note: OpenAI text-to-speech voices in Azure Speech, including preview region limits and SSML differences.
+  - voice_id: zh-CN-Xiaoxiao:DragonHDFlashLatestNeural
+    voice_set_id: azure_speech:azure-hd-flash-tts-presets-v1
+    provider: azure_speech
+    name: Xiaoxiao DragonHDFlashLatestNeural
+    langs:
+      - zh-CN
+    model_ids:
+      - azure-hd-flash-tts
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
+      retrieved_at: 2026-11-06
+      note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
+  - voice_id: zh-CN-Xiaoxiao2:DragonHDFlashLatestNeural
+    voice_set_id: azure_speech:azure-hd-flash-tts-presets-v1
+    provider: azure_speech
+    name: Xiaoxiao2 DragonHDFlashLatestNeural
+    langs:
+      - zh-CN
+    model_ids:
+      - azure-hd-flash-tts
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
+      retrieved_at: 2026-11-06
+      note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
+  - voice_id: zh-CN-Xiaochen:DragonHDFlashLatestNeural
+    voice_set_id: azure_speech:azure-hd-flash-tts-presets-v1
+    provider: azure_speech
+    name: Xiaochen DragonHDFlashLatestNeural
+    langs:
+      - zh-CN
+    model_ids:
+      - azure-hd-flash-tts
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
+      retrieved_at: 2026-11-06
+      note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
+  - voice_id: zh-CN-Xiaoyi:DragonHDFlashLatestNeural
+    voice_set_id: azure_speech:azure-hd-flash-tts-presets-v1
+    provider: azure_speech
+    name: Xiaoyi DragonHDFlashLatestNeural
+    langs:
+      - zh-CN
+    model_ids:
+      - azure-hd-flash-tts
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
+      retrieved_at: 2026-11-06
+      note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
+  - voice_id: zh-CN-Xiaoyu:DragonHDFlashLatestNeural
+    voice_set_id: azure_speech:azure-hd-flash-tts-presets-v1
+    provider: azure_speech
+    name: Xiaoyu DragonHDFlashLatestNeural
+    langs:
+      - zh-CN
+    model_ids:
+      - azure-hd-flash-tts
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
+      retrieved_at: 2026-11-06
+      note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
+  - voice_id: zh-CN-Xiaohan:DragonHDFlashLatestNeural
+    voice_set_id: azure_speech:azure-hd-flash-tts-presets-v1
+    provider: azure_speech
+    name: Xiaohan DragonHDFlashLatestNeural
+    langs:
+      - zh-CN
+    model_ids:
+      - azure-hd-flash-tts
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
+      retrieved_at: 2026-11-06
+      note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
+  - voice_id: zh-CN-Xiaoshuang:DragonHDFlashLatestNeural
+    voice_set_id: azure_speech:azure-hd-flash-tts-presets-v1
+    provider: azure_speech
+    name: Xiaoshuang DragonHDFlashLatestNeural
+    langs:
+      - zh-CN
+    model_ids:
+      - azure-hd-flash-tts
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
+      retrieved_at: 2026-11-06
+      note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
+  - voice_id: zh-CN-Xiaoyou:DragonHDFlashLatestNeural
+    voice_set_id: azure_speech:azure-hd-flash-tts-presets-v1
+    provider: azure_speech
+    name: Xiaoyou DragonHDFlashLatestNeural
+    langs:
+      - zh-CN
+    model_ids:
+      - azure-hd-flash-tts
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
+      retrieved_at: 2026-11-06
+      note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
+  - voice_id: zh-CN-Yunxi:DragonHDFlashLatestNeural
+    voice_set_id: azure_speech:azure-hd-flash-tts-presets-v1
+    provider: azure_speech
+    name: Yunxi DragonHDFlashLatestNeural
+    langs:
+      - zh-CN
+    model_ids:
+      - azure-hd-flash-tts
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
+      retrieved_at: 2026-11-06
+      note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
+  - voice_id: zh-CN-Yunyi:DragonHDFlashLatestNeural
+    voice_set_id: azure_speech:azure-hd-flash-tts-presets-v1
+    provider: azure_speech
+    name: Yunyi DragonHDFlashLatestNeural
+    langs:
+      - zh-CN
+    model_ids:
+      - azure-hd-flash-tts
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
+      retrieved_at: 2026-11-06
+      note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
+  - voice_id: zh-CN-Yunxiao:DragonHDFlashLatestNeural
+    voice_set_id: azure_speech:azure-hd-flash-tts-presets-v1
+    provider: azure_speech
+    name: Yunxiao DragonHDFlashLatestNeural
+    langs:
+      - zh-CN
+    model_ids:
+      - azure-hd-flash-tts
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
+      retrieved_at: 2026-11-06
+      note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
+  - voice_id: zh-CN-Yunhan:DragonHDFlashLatestNeural
+    voice_set_id: azure_speech:azure-hd-flash-tts-presets-v1
+    provider: azure_speech
+    name: Yunhan DragonHDFlashLatestNeural
+    langs:
+      - zh-CN
+    model_ids:
+      - azure-hd-flash-tts
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
+      retrieved_at: 2026-11-06
+      note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
+  - voice_id: zh-CN-Yunxia:DragonHDFlashLatestNeural
+    voice_set_id: azure_speech:azure-hd-flash-tts-presets-v1
+    provider: azure_speech
+    name: Yunxia DragonHDFlashLatestNeural
+    langs:
+      - zh-CN
+    model_ids:
+      - azure-hd-flash-tts
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
+      retrieved_at: 2026-11-06
+      note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
+  - voice_id: zh-CN-Yunye:DragonHDFlashLatestNeural
+    voice_set_id: azure_speech:azure-hd-flash-tts-presets-v1
+    provider: azure_speech
+    name: Yunye DragonHDFlashLatestNeural
+    langs:
+      - zh-CN
+    model_ids:
+      - azure-hd-flash-tts
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
+      retrieved_at: 2026-11-06
+      note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
+  - voice_id: en-US-Tiana:DragonHDFlashLatestNeural
+    voice_set_id: azure_speech:azure-hd-flash-tts-presets-v1
+    provider: azure_speech
+    name: Tiana DragonHDFlashLatestNeural
+    langs:
+      - en-US
+    model_ids:
+      - azure-hd-flash-tts
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
+      retrieved_at: 2026-11-06
+      note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
+  - voice_id: en-US-Tyler:DragonHDFlashLatestNeural
+    voice_set_id: azure_speech:azure-hd-flash-tts-presets-v1
+    provider: azure_speech
+    name: Tyler DragonHDFlashLatestNeural
+    langs:
+      - en-US
+    model_ids:
+      - azure-hd-flash-tts
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
+      retrieved_at: 2026-11-06
+      note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
+  - voice_id: en-US-Jimmie:DragonHDFlashLatestNeural
+    voice_set_id: azure_speech:azure-hd-flash-tts-presets-v1
+    provider: azure_speech
+    name: Jimmie DragonHDFlashLatestNeural
+    langs:
+      - en-US
+    model_ids:
+      - azure-hd-flash-tts
+    source_ref:
+      url: https://learn.microsoft.com/azure/ai-services/speech-service/high-definition-voices
+      retrieved_at: 2026-11-06
+      note: Azure Speech HD voices including DragonHD and Dragon HD Omni.
+  - voice_id: en-US-Grant:MAI-Voice-2.1
+    voice_set_id: azure_speech:azure-mai-voice-2.1-presets-v1
+    provider: azure_speech
+    name: Grant MAI-Voice-2.1
+    langs:
+      - en-US
+    model_ids:
+      - azure-mai-voice-2.1
+    source_ref:
+      url: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-voices
+      retrieved_at: 2026-11-06
+      note: MAI-Voice-2.1 and Flash Preview, native SSML voice suffixes and per-voice style table. Gated cloning is outside this preset-voice composition.
+  - voice_id: en-US-Harper:MAI-Voice-2.1
+    voice_set_id: azure_speech:azure-mai-voice-2.1-presets-v1
+    provider: azure_speech
+    name: Harper MAI-Voice-2.1
+    langs:
+      - en-US
+    model_ids:
+      - azure-mai-voice-2.1
+    source_ref:
+      url: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-voices
+      retrieved_at: 2026-11-06
+      note: MAI-Voice-2.1 and Flash Preview, native SSML voice suffixes and per-voice style table. Gated cloning is outside this preset-voice composition.
+  - voice_id: es-MX-Valeria:MAI-Voice-2.1
+    voice_set_id: azure_speech:azure-mai-voice-2.1-presets-v1
+    provider: azure_speech
+    name: Valeria MAI-Voice-2.1
+    langs:
+      - es-MX
+    model_ids:
+      - azure-mai-voice-2.1
+    source_ref:
+      url: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-voices
+      retrieved_at: 2026-11-06
+      note: MAI-Voice-2.1 and Flash Preview, native SSML voice suffixes and per-voice style table. Gated cloning is outside this preset-voice composition.
+  - voice_id: fr-FR-Harper:MAI-Voice-2.1
+    voice_set_id: azure_speech:azure-mai-voice-2.1-presets-v1
+    provider: azure_speech
+    name: Harper MAI-Voice-2.1
+    langs:
+      - fr-FR
+    model_ids:
+      - azure-mai-voice-2.1
+    source_ref:
+      url: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-voices
+      retrieved_at: 2026-11-06
+      note: MAI-Voice-2.1 and Flash Preview, native SSML voice suffixes and per-voice style table. Gated cloning is outside this preset-voice composition.
+  - voice_id: ko-KR-Harper:MAI-Voice-2.1
+    voice_set_id: azure_speech:azure-mai-voice-2.1-presets-v1
+    provider: azure_speech
+    name: Harper MAI-Voice-2.1
+    langs:
+      - ko-KR
+    model_ids:
+      - azure-mai-voice-2.1
+    source_ref:
+      url: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-voices
+      retrieved_at: 2026-11-06
+      note: MAI-Voice-2.1 and Flash Preview, native SSML voice suffixes and per-voice style table. Gated cloning is outside this preset-voice composition.
+  - voice_id: zh-CN-Bo:MAI-Voice-2.1
+    voice_set_id: azure_speech:azure-mai-voice-2.1-presets-v1
+    provider: azure_speech
+    name: Bo MAI-Voice-2.1
+    langs:
+      - zh-CN
+    model_ids:
+      - azure-mai-voice-2.1
+    source_ref:
+      url: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-voices
+      retrieved_at: 2026-11-06
+      note: MAI-Voice-2.1 and Flash Preview, native SSML voice suffixes and per-voice style table. Gated cloning is outside this preset-voice composition.
+  - voice_id: zh-CN-Mei:MAI-Voice-2.1
+    voice_set_id: azure_speech:azure-mai-voice-2.1-presets-v1
+    provider: azure_speech
+    name: Mei MAI-Voice-2.1
+    langs:
+      - zh-CN
+    model_ids:
+      - azure-mai-voice-2.1
+    source_ref:
+      url: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-voices
+      retrieved_at: 2026-11-06
+      note: MAI-Voice-2.1 and Flash Preview, native SSML voice suffixes and per-voice style table. Gated cloning is outside this preset-voice composition.
+  - voice_id: en-US-Grant:MAI-Voice-2.1-Flash
+    voice_set_id: azure_speech:azure-mai-voice-2.1-flash-presets-v1
+    provider: azure_speech
+    name: Grant MAI-Voice-2.1-Flash
+    langs:
+      - en-US
+    model_ids:
+      - azure-mai-voice-2.1-flash
+    source_ref:
+      url: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-voices
+      retrieved_at: 2026-11-06
+      note: MAI-Voice-2.1 and Flash Preview, native SSML voice suffixes and per-voice style table. Gated cloning is outside this preset-voice composition.
+  - voice_id: en-US-Harper:MAI-Voice-2.1-Flash
+    voice_set_id: azure_speech:azure-mai-voice-2.1-flash-presets-v1
+    provider: azure_speech
+    name: Harper MAI-Voice-2.1-Flash
+    langs:
+      - en-US
+    model_ids:
+      - azure-mai-voice-2.1-flash
+    source_ref:
+      url: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-voices
+      retrieved_at: 2026-11-06
+      note: MAI-Voice-2.1 and Flash Preview, native SSML voice suffixes and per-voice style table. Gated cloning is outside this preset-voice composition.
+  - voice_id: es-MX-Valeria:MAI-Voice-2.1-Flash
+    voice_set_id: azure_speech:azure-mai-voice-2.1-flash-presets-v1
+    provider: azure_speech
+    name: Valeria MAI-Voice-2.1-Flash
+    langs:
+      - es-MX
+    model_ids:
+      - azure-mai-voice-2.1-flash
+    source_ref:
+      url: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-voices
+      retrieved_at: 2026-11-06
+      note: MAI-Voice-2.1 and Flash Preview, native SSML voice suffixes and per-voice style table. Gated cloning is outside this preset-voice composition.
+  - voice_id: fr-FR-Harper:MAI-Voice-2.1-Flash
+    voice_set_id: azure_speech:azure-mai-voice-2.1-flash-presets-v1
+    provider: azure_speech
+    name: Harper MAI-Voice-2.1-Flash
+    langs:
+      - fr-FR
+    model_ids:
+      - azure-mai-voice-2.1-flash
+    source_ref:
+      url: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-voices
+      retrieved_at: 2026-11-06
+      note: MAI-Voice-2.1 and Flash Preview, native SSML voice suffixes and per-voice style table. Gated cloning is outside this preset-voice composition.
+  - voice_id: ko-KR-Harper:MAI-Voice-2.1-Flash
+    voice_set_id: azure_speech:azure-mai-voice-2.1-flash-presets-v1
+    provider: azure_speech
+    name: Harper MAI-Voice-2.1-Flash
+    langs:
+      - ko-KR
+    model_ids:
+      - azure-mai-voice-2.1-flash
+    source_ref:
+      url: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-voices
+      retrieved_at: 2026-11-06
+      note: MAI-Voice-2.1 and Flash Preview, native SSML voice suffixes and per-voice style table. Gated cloning is outside this preset-voice composition.
+  - voice_id: zh-CN-Bo:MAI-Voice-2.1-Flash
+    voice_set_id: azure_speech:azure-mai-voice-2.1-flash-presets-v1
+    provider: azure_speech
+    name: Bo MAI-Voice-2.1-Flash
+    langs:
+      - zh-CN
+    model_ids:
+      - azure-mai-voice-2.1-flash
+    source_ref:
+      url: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-voices
+      retrieved_at: 2026-11-06
+      note: MAI-Voice-2.1 and Flash Preview, native SSML voice suffixes and per-voice style table. Gated cloning is outside this preset-voice composition.
+  - voice_id: zh-CN-Mei:MAI-Voice-2.1-Flash
+    voice_set_id: azure_speech:azure-mai-voice-2.1-flash-presets-v1
+    provider: azure_speech
+    name: Mei MAI-Voice-2.1-Flash
+    langs:
+      - zh-CN
+    model_ids:
+      - azure-mai-voice-2.1-flash
+    source_ref:
+      url: https://learn.microsoft.com/en-us/azure/ai-services/speech-service/mai-voices
+      retrieved_at: 2026-11-06
+      note: MAI-Voice-2.1 and Flash Preview, native SSML voice suffixes and per-voice style table. Gated cloning is outside this preset-voice composition.

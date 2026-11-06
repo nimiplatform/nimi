@@ -2,26 +2,20 @@ package nimillm
 
 import (
 	"context"
-	"encoding/json"
+	"encoding/base64"
 	"net/http"
 	"strings"
 
-	"google.golang.org/grpc/codes"
-
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/grpc/codes"
 )
 
 const AdapterGoogleCloudTTS = "google_cloud_tts_adapter"
 
-// ExecuteGoogleCloudTTS executes a TTS scenario job against the Google Cloud Text-to-Speech API.
-// Uses POST /v1/text:synthesize with JSON body. Auth via Bearer token.
-func ExecuteGoogleCloudTTS(
-	ctx context.Context,
-	cfg MediaAdapterConfig,
-	req *runtimev1.SubmitScenarioJobRequest,
-	modelResolved string,
-) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
+// ExecuteGoogleCloudTTS consumes the Driver-captured single-speaker request.
+// This is Cloud TTS's JSON/Bearer protocol, not the Gemini API dialect.
+func ExecuteGoogleCloudTTS(ctx context.Context, cfg MediaAdapterConfig, req *runtimev1.SubmitScenarioJobRequest, modelResolved string) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
 	if baseURL == "" {
@@ -31,196 +25,49 @@ func ExecuteGoogleCloudTTS(
 	if err != nil {
 		return nil, nil, "", err
 	}
-
-	if scenarioModal(req) != runtimev1.Modal_MODAL_TTS {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
-	}
-	spec := scenarioSpeechSynthesizeSpec(req)
-	if spec == nil {
+	s := req.GetSpec().GetSpeechSynthesize()
+	if s == nil {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
-
-	ext := scenarioExtensionPayloadForScenario(req)
-	voiceRef := strings.TrimSpace(scenarioVoiceRef(spec))
-	language := strings.TrimSpace(spec.GetLanguage())
-	if language == "" {
-		language = "en-US"
+	input := map[string]any{"text": s.GetText()}
+	if s.GetEmotion() != "" {
+		input["prompt"] = s.GetEmotion()
 	}
-	input := resolveGoogleCloudTTSInput(spec, ext)
-	voice := resolveGoogleCloudTTSVoice(spec, ext, modelResolved)
-	audioConfig := resolveGoogleCloudTTSAudioConfig(spec, ext)
-
-	payload := map[string]any{
-		"input":       input,
-		"voice":       voice,
-		"audioConfig": audioConfig,
+	voice := map[string]any{"languageCode": s.GetLanguage(), "name": scenarioVoiceRef(s)}
+	if modelResolved != "chirp-3-hd" {
+		voice["modelName"] = modelResolved
 	}
-	if parent := strings.TrimSpace(ValueAsString(ext["parent"])); parent != "" {
-		payload["parent"] = parent
+	wireEncoding := map[string]string{"wav": "LINEAR16", "mp3": "MP3", "ogg": "OGG_OPUS", "pcm": "PCM", "mulaw": "MULAW", "alaw": "ALAW"}[s.GetAudioFormat()]
+	audioConfig := map[string]any{"audioEncoding": wireEncoding, "sampleRateHertz": s.GetSampleRateHz()}
+	if s.Speed != nil {
+		audioConfig["speakingRate"] = s.GetSpeed()
 	}
-
-	endpoint := firstProviderEndpointPath([]string{"/v1/text:synthesize"})
-	body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, endpoint), apiKey, payload, nil)
+	payload := map[string]any{"input": input, "voice": voice, "audioConfig": audioConfig}
+	var response map[string]any
+	if err := DoJSONRequestWithHeaders(ctx, http.MethodPost, JoinURL(baseURL, "/v1/text:synthesize"), apiKey, payload, &response, cfg.Headers); err != nil {
+		return nil, nil, "", err
+	}
+	encoded, ok := response["audioContent"].(string)
+	if !ok || encoded == "" || base64.StdEncoding.DecodedLen(len(encoded)) > maxJSONOrBinaryResponseBytes {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	audio, err := base64.StdEncoding.Strict().DecodeString(encoded)
+	if err != nil {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	}
+	encoding := s.GetAudioFormat()
+	switch encoding {
+	case "ogg":
+		encoding = "ogg_opus"
+	case "mulaw":
+		encoding = "wav_mulaw"
+	case "alaw":
+		encoding = "wav_alaw"
+	}
+	artifact, err := nativeSpeechArtifact(ctx, audio, encoding, s.GetSampleRateHz(), map[string]any{"adapter": AdapterGoogleCloudTTS, "endpoint": "/v1/text:synthesize", "voice": scenarioVoiceRef(s), "language": s.GetLanguage(), "resolved_model": modelResolved})
 	if err != nil {
 		return nil, nil, "", err
 	}
-	artifactBytes, mimeType := ExtractSpeechArtifactFromResponseBody(ctx, body)
-	if len(artifactBytes) == 0 {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-	}
-	if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(mimeType)), "audio/") {
-		mimeType = ResolveSpeechArtifactMIME(spec, artifactBytes)
-	}
-	artifact := BinaryArtifact(mimeType, artifactBytes, map[string]any{
-		"adapter":        AdapterGoogleCloudTTS,
-		"endpoint":       endpoint,
-		"voice":          voiceRef,
-		"language":       language,
-		"resolved_model": strings.TrimSpace(modelResolved),
-		"extensions":     ext,
-	})
-	ApplySpeechSpecMetadata(artifact, spec)
+	// The native response has no usage report.
 	return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
-}
-
-func resolveGoogleCloudTTSInput(spec *runtimev1.SpeechSynthesizeScenarioSpec, scenarioExtensions map[string]any) map[string]any {
-	input := map[string]any{}
-	mergeGoogleCloudTTSMap(input, MapField(scenarioExtensions, "input"))
-	text := strings.TrimSpace(spec.GetText())
-	if text != "" {
-		input["text"] = text
-	}
-	if prompt := strings.TrimSpace(ValueAsString(scenarioExtensions["prompt"])); prompt != "" {
-		input["prompt"] = prompt
-	}
-	return input
-}
-
-func resolveGoogleCloudTTSVoice(
-	spec *runtimev1.SpeechSynthesizeScenarioSpec,
-	scenarioExtensions map[string]any,
-	modelResolved string,
-) map[string]any {
-	language := strings.TrimSpace(spec.GetLanguage())
-	if language == "" {
-		language = "en-US"
-	}
-	voice := map[string]any{
-		"languageCode": language,
-	}
-	if voiceRef := strings.TrimSpace(scenarioVoiceRef(spec)); voiceRef != "" {
-		voice["name"] = voiceRef
-	}
-	mergeGoogleCloudTTSMap(voice, MapField(scenarioExtensions, "voice"))
-	resolvedModel := strings.TrimSpace(modelResolved)
-	if strings.HasPrefix(strings.ToLower(resolvedModel), "gemini-") {
-		if strings.TrimSpace(ValueAsString(voice["modelName"])) == "" {
-			voice["modelName"] = resolvedModel
-		}
-	}
-	if strings.TrimSpace(ValueAsString(voice["languageCode"])) == "" {
-		voice["languageCode"] = language
-	}
-	return voice
-}
-
-func resolveGoogleCloudTTSAudioConfig(spec *runtimev1.SpeechSynthesizeScenarioSpec, scenarioExtensions map[string]any) map[string]any {
-	audioConfig := map[string]any{
-		"audioEncoding": resolveGoogleCloudAudioEncoding(spec),
-	}
-	if sampleRate := spec.GetSampleRateHz(); sampleRate > 0 {
-		audioConfig["sampleRateHertz"] = sampleRate
-	}
-	if speed := scenarioSpeechSpeed(spec); speed > 0 {
-		audioConfig["speakingRate"] = speed
-	}
-	mergeGoogleCloudTTSMap(audioConfig, MapField(scenarioExtensions, "audio_config"))
-	return audioConfig
-}
-
-func mergeGoogleCloudTTSMap(dst map[string]any, value any) {
-	src, ok := normalizeGoogleCloudTTSValue(value).(map[string]any)
-	if !ok {
-		return
-	}
-	for key, item := range src {
-		dst[key] = item
-	}
-}
-
-func normalizeGoogleCloudTTSValue(value any) any {
-	switch item := value.(type) {
-	case map[string]any:
-		out := make(map[string]any, len(item))
-		for key, nested := range item {
-			out[normalizeGoogleCloudTTSFieldName(key)] = normalizeGoogleCloudTTSValue(nested)
-		}
-		return out
-	case []any:
-		out := make([]any, 0, len(item))
-		for _, nested := range item {
-			out = append(out, normalizeGoogleCloudTTSValue(nested))
-		}
-		return out
-	case []map[string]any:
-		out := make([]any, 0, len(item))
-		for _, nested := range item {
-			out = append(out, normalizeGoogleCloudTTSValue(nested))
-		}
-		return out
-	default:
-		return item
-	}
-}
-
-func normalizeGoogleCloudTTSFieldName(key string) string {
-	switch strings.TrimSpace(key) {
-	case "audio_encoding":
-		return "audioEncoding"
-	case "language_code":
-		return "languageCode"
-	case "model_name":
-		return "modelName"
-	case "multi_speaker_voice_config":
-		return "multiSpeakerVoiceConfig"
-	case "sample_rate_hz":
-		return "sampleRateHertz"
-	case "speaker_alias":
-		return "speakerAlias"
-	case "speaker_id":
-		return "speakerId"
-	case "speaker_voice_configs":
-		return "speakerVoiceConfigs"
-	case "speaking_rate":
-		return "speakingRate"
-	default:
-		return key
-	}
-}
-
-func debugGoogleCloudTTSPayload(payload map[string]any) string {
-	raw, err := json.Marshal(payload)
-	if err != nil {
-		return ""
-	}
-	return string(raw)
-}
-
-func resolveGoogleCloudAudioEncoding(spec *runtimev1.SpeechSynthesizeScenarioSpec) string {
-	if spec == nil {
-		return "MP3"
-	}
-	format := strings.ToLower(strings.TrimSpace(spec.GetAudioFormat()))
-	switch format {
-	case "ogg", "audio/ogg", "opus":
-		return "OGG_OPUS"
-	case "wav", "audio/wav", "linear16":
-		return "LINEAR16"
-	case "mulaw", "audio/mulaw":
-		return "MULAW"
-	case "alaw", "audio/alaw":
-		return "ALAW"
-	default:
-		return "MP3"
-	}
 }

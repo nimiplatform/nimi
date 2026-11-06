@@ -40,14 +40,14 @@ func ExecuteAWSPollyTTS(
 	}
 
 	voiceRef := strings.TrimSpace(scenarioVoiceRef(spec))
-	ext := scenarioExtensionPayloadForScenario(req)
 	engine := resolveAWSPollyEngine(modelResolved)
 	if engine == "" {
-		engine = "neural"
+		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	payload := map[string]any{
-		"Text":   strings.TrimSpace(spec.GetText()),
-		"Engine": engine,
+		"Text":     spec.GetText(),
+		"TextType": "text",
+		"Engine":   engine,
 	}
 	if voiceRef != "" {
 		payload["VoiceId"] = voiceRef
@@ -55,6 +55,9 @@ func ExecuteAWSPollyTTS(
 	outputFormat := "mp3"
 	if af := strings.TrimSpace(spec.GetAudioFormat()); af != "" {
 		outputFormat = af
+	}
+	if outputFormat == "ogg" {
+		outputFormat = "ogg_vorbis"
 	}
 	payload["OutputFormat"] = outputFormat
 	if sampleRate := spec.GetSampleRateHz(); sampleRate > 0 {
@@ -65,40 +68,37 @@ func ExecuteAWSPollyTTS(
 	}
 
 	endpoint := firstProviderEndpointPath([]string{"/v1/speech"})
-	body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, endpoint), apiKey, payload, nil)
+	body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, endpoint), apiKey, payload, cfg.Headers)
 	if err != nil {
 		return nil, nil, "", err
 	}
-	artifactBytes, mimeType := ExtractSpeechArtifactFromResponseBody(ctx, body)
-	if len(artifactBytes) == 0 {
+	if body == nil || len(body.Bytes) == 0 || body.Text != "" || !strings.HasPrefix(strings.ToLower(body.MIME), "audio/") && !strings.HasPrefix(strings.ToLower(body.MIME), "application/octet-stream") && !strings.HasPrefix(strings.ToLower(body.MIME), "application/ogg") {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(mimeType)), "audio/") {
-		mimeType = ResolveSpeechArtifactMIME(spec, artifactBytes)
-	}
-	artifact := BinaryArtifact(mimeType, artifactBytes, map[string]any{
-		"adapter":    AdapterAWSPollyNative,
-		"endpoint":   endpoint,
-		"voice":      voiceRef,
-		"engine":     engine,
-		"extensions": ext,
+	artifact, err := nativeSpeechArtifact(ctx, body.Bytes, outputFormat, spec.GetSampleRateHz(), map[string]any{
+		"adapter":  AdapterAWSPollyNative,
+		"endpoint": endpoint,
+		"voice":    voiceRef,
+		"engine":   engine,
 	})
-	ApplySpeechSpecMetadata(artifact, spec)
+	if err != nil {
+		return nil, nil, "", err
+	}
 	return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 }
 
 func resolveAWSPollyEngine(modelResolved string) string {
 	resolved := strings.ToLower(strings.TrimSpace(modelResolved))
 	switch resolved {
-	case "polly-standard-tts", "standard", "standard-tts":
+	case "polly-standard-tts":
 		return "standard"
-	case "polly-neural-tts", "neural", "neural-tts":
+	case "polly-neural-tts":
 		return "neural"
-	case "polly-long-form-tts", "long-form", "long-form-tts", "longform", "longform-tts":
+	case "polly-long-form-tts":
 		return "long-form"
-	case "polly-generative-tts", "generative", "generative-tts":
+	case "polly-generative-tts":
 		return "generative"
 	default:
-		return resolved
+		return ""
 	}
 }

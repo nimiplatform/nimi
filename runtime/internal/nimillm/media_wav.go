@@ -83,6 +83,11 @@ func inspectFiniteMonoPCMWAV(audio []byte) (uint32, int, uint16, error) {
 }
 
 func inspectFinitePCMWAV(audio []byte) (uint32, int, uint16, uint16, error) {
+	return inspectFiniteWAVEncoding(audio, 1)
+}
+
+// The native Cloud TTS A-law and mu-law encodings also include a RIFF header.
+func inspectFiniteWAVEncoding(audio []byte, expectedEncoding uint16) (uint32, int, uint16, uint16, error) {
 	if len(audio) < 44 || len(audio) > 32*1024*1024 || string(audio[:4]) != "RIFF" || string(audio[8:12]) != "WAVE" || uint64(binary.LittleEndian.Uint32(audio[4:8]))+8 != uint64(len(audio)) {
 		return 0, 0, 0, 0, fmt.Errorf("invalid finite PCM WAV")
 	}
@@ -110,7 +115,8 @@ func inspectFinitePCMWAV(audio []byte) (uint32, int, uint16, uint16, error) {
 			rate = binary.LittleEndian.Uint32(audio[start+4 : start+8])
 			align = binary.LittleEndian.Uint16(audio[start+12 : start+14])
 			bits := binary.LittleEndian.Uint16(audio[start+14 : start+16])
-			if format != 1 || (channels != 1 && channels != 2) || rate == 0 || (bits != 8 && bits != 16 && bits != 24 && bits != 32) || align != channels*bits/8 || uint64(binary.LittleEndian.Uint32(audio[start+8:start+12])) != uint64(rate)*uint64(align) {
+			validBits := format == 1 && (bits == 8 || bits == 16 || bits == 24 || bits == 32) || (format == 6 || format == 7) && bits == 8
+			if format != expectedEncoding || !validBits || (channels != 1 && channels != 2) || rate == 0 || align != channels*bits/8 || uint64(binary.LittleEndian.Uint32(audio[start+8:start+12])) != uint64(rate)*uint64(align) {
 				return 0, 0, 0, 0, fmt.Errorf("invalid finite PCM WAV")
 			}
 		case "data":

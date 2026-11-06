@@ -598,6 +598,21 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 	if err := validateCloudMediaMappedRequest(mapped); err != nil {
 		return nil, err
 	}
+	if d.provider == "google_cloud_tts" {
+		if err := validateGoogleCloudTTSRequest(mapped, target.providerModelID, streamMode); err != nil {
+			return nil, err
+		}
+	}
+	if d.provider == "aws_polly" {
+		if err := validatePollySpeechRequest(mapped, target.providerModelID, streamMode); err != nil {
+			return nil, err
+		}
+	}
+	if d.provider == "azure_speech" {
+		if err := validateAzureSpeechRequest(mapped, target.providerModelID, streamMode); err != nil {
+			return nil, err
+		}
+	}
 	if spec := mapped.GetSpec().GetImageGenerate(); spec != nil && ImageHasExtendedControls(spec) && !SupportsGPTImageOwnedInputs(d.provider, target.providerModelID) && d.provider != "stability" && !(d.provider == "luma" && IsLumaUniImageModel(target.providerModelID)) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}

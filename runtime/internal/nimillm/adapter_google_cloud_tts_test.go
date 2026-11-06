@@ -1,202 +1,128 @@
 package nimillm
 
 import (
+	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
-	"io"
 	"net/http"
 	"net/http/httptest"
-	"strings"
+	"os"
+	"os/exec"
+	"path/filepath"
+	"strconv"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"google.golang.org/protobuf/types/known/structpb"
+	"google.golang.org/protobuf/proto"
 )
 
-func TestExecuteGoogleCloudTTS_ChirpRequestUsesVoiceNameWithoutModelName(t *testing.T) {
-	var (
-		gotMethod  string
-		gotPath    string
-		gotPayload map[string]any
-	)
-	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		gotMethod = request.Method
-		gotPath = request.URL.Path
-		rawBody, err := io.ReadAll(request.Body)
-		if err != nil {
-			t.Fatalf("ReadAll(body): %v", err)
-		}
-		if err := json.Unmarshal(rawBody, &gotPayload); err != nil {
-			t.Fatalf("Unmarshal(body): %v", err)
-		}
-		writer.Header().Set("Content-Type", "audio/mpeg")
-		_, _ = writer.Write([]byte("audio-bytes"))
-	}))
-	defer func() { server.Close() }()
+func googleTTSTestRequest(format string, rate int32) *runtimev1.SubmitScenarioJobRequest {
+	return &runtimev1.SubmitScenarioJobRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE, Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
+		Text: "  Hello, Nimi.  ", Language: "en-US", AudioFormat: format, SampleRateHz: proto.Int32(rate),
+		VoiceRef: &runtimev1.VoiceReference{Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET, Reference: &runtimev1.VoiceReference_PresetVoiceId{PresetVoiceId: "Kore"}},
+	}}}}
+}
 
-	req := &runtimev1.SubmitScenarioJobRequest{
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
-		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
-				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
-					Text:        "Hello from Chirp",
-					Language:    "en-US",
-					AudioFormat: "mp3",
-					VoiceRef: &runtimev1.VoiceReference{
-						Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF,
-						Reference: &runtimev1.VoiceReference_ProviderVoiceRef{
-							ProviderVoiceRef: "en-US-Chirp3-HD-Charon",
-						},
-					},
-				},
-			},
-		},
-	}
-
-	artifacts, usage, _, err := ExecuteGoogleCloudTTS(context.Background(), MediaAdapterConfig{
-		BaseURL:               server.URL,
-		AllowLoopbackEndpoint: true,
-		APIKey:                "google-token",
-	}, req, "chirp-3-hd")
-	if err != nil {
-		t.Fatalf("ExecuteGoogleCloudTTS: %v", err)
-	}
-	if gotMethod != http.MethodPost {
-		t.Fatalf("unexpected method: %q", gotMethod)
-	}
-	if gotPath != "/v1/text:synthesize" {
-		t.Fatalf("unexpected path: %q", gotPath)
-	}
-	voice, ok := gotPayload["voice"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected voice object, got=%T payload=%s", gotPayload["voice"], debugGoogleCloudTTSPayload(gotPayload))
-	}
-	if got := strings.TrimSpace(ValueAsString(voice["name"])); got != "en-US-Chirp3-HD-Charon" {
-		t.Fatalf("unexpected voice.name: %q", got)
-	}
-	if got := strings.TrimSpace(ValueAsString(voice["modelName"])); got != "" {
-		t.Fatalf("chirp request must not set voice.modelName, got=%q", got)
-	}
-	input, ok := gotPayload["input"].(map[string]any)
-	if !ok || strings.TrimSpace(ValueAsString(input["text"])) != "Hello from Chirp" {
-		t.Fatalf("unexpected input payload: %#v", gotPayload["input"])
-	}
-	if _, ok := gotPayload["extensions"]; ok {
-		t.Fatalf("google cloud tts request must not send raw extensions field")
-	}
-	if len(artifacts) != 1 || string(artifacts[0].GetBytes()) != "audio-bytes" {
-		t.Fatalf("unexpected artifacts: %#v", artifacts)
-	}
-	if usage != nil {
-		t.Fatalf("unreported usage must stay absent, got %#v", usage)
+func TestGoogleCloudTTSNativeJSONKeepsExactModelVoiceAndText(t *testing.T) {
+	for _, model := range []string{"chirp-3-hd", "gemini-2.5-flash-tts", "gemini-2.5-pro-tts", "gemini-2.5-flash-lite-preview-tts", "gemini-3.1-flash-tts-preview"} {
+		t.Run(model, func(t *testing.T) {
+			var captured map[string]any
+			audio := testGeminiTTSWAV()
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				if r.Method != "POST" || r.URL.Path != "/v1/text:synthesize" || r.Header.Get("Authorization") != "Bearer fixture" || r.Header.Get("X-Goog-User-Project") != "test-project" {
+					t.Errorf("native request route/auth")
+				}
+				if err := json.NewDecoder(r.Body).Decode(&captured); err != nil {
+					t.Error(err)
+				}
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(map[string]string{"audioContent": base64.StdEncoding.EncodeToString(audio)})
+			}))
+			defer server.Close()
+			req := googleTTSTestRequest("wav", 24000)
+			s := req.GetSpec().GetSpeechSynthesize()
+			if model == "chirp-3-hd" {
+				s.VoiceRef.GetReference().(*runtimev1.VoiceReference_PresetVoiceId).PresetVoiceId = "en-US-Chirp3-HD-Kore"
+				s.Speed = proto.Float32(.5)
+			} else {
+				s.Emotion = "Speak warmly."
+			}
+			out, usage, _, err := ExecuteGoogleCloudTTS(context.Background(), MediaAdapterConfig{BaseURL: server.URL, APIKey: "fixture", Headers: map[string]string{"X-Goog-User-Project": "test-project"}, AllowLoopbackEndpoint: true}, req, model)
+			if err != nil || len(out) != 1 || !bytes.Equal(out[0].GetBytes(), audio) || out[0].GetSampleRateHz() != 24000 || out[0].GetChannels() != 1 || out[0].GetDurationMs() != 100 || usage != nil {
+				t.Fatalf("native result = %v %v %v", out, usage, err)
+			}
+			voice, input, config := captured["voice"].(map[string]any), captured["input"].(map[string]any), captured["audioConfig"].(map[string]any)
+			if input["text"] != s.GetText() || voice["name"] != scenarioVoiceRef(s) || config["audioEncoding"] != "LINEAR16" || config["sampleRateHertz"] != float64(24000) {
+				t.Fatalf("changed captured fields: %#v", captured)
+			}
+			if model == "chirp-3-hd" {
+				if _, ok := voice["modelName"]; ok || config["speakingRate"] != .5 {
+					t.Fatal(captured)
+				}
+			} else if voice["modelName"] != model || input["prompt"] != "Speak warmly." {
+				t.Fatal(captured)
+			}
+		})
 	}
 }
 
-func TestExecuteGoogleCloudTTS_GeminiRequestAddsModelPromptAndProviderOverrides(t *testing.T) {
-	var gotPayload map[string]any
-	server := httptest.NewServer(http.HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
-		rawBody, err := io.ReadAll(request.Body)
-		if err != nil {
-			t.Fatalf("ReadAll(body): %v", err)
+func TestGoogleCloudTTSRejectsMissingMalformedAndMismatchedNativeAudio(t *testing.T) {
+	for _, response := range []any{map[string]string{"audio": base64.StdEncoding.EncodeToString(testGeminiTTSWAV())}, map[string]string{"audioContent": "!invalid!"}, map[string]string{"audioContent": base64.StdEncoding.EncodeToString([]byte("not audio"))}, map[string]string{"audioContent": base64.StdEncoding.EncodeToString(testGeminiTTSWAV())}} {
+		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(response)
+		}))
+		out, _, _, err := ExecuteGoogleCloudTTS(context.Background(), MediaAdapterConfig{BaseURL: server.URL, APIKey: "fixture", AllowLoopbackEndpoint: true}, googleTTSTestRequest("wav", 16000), "gemini-3.1-flash-tts-preview")
+		server.Close()
+		if err == nil || len(out) != 0 {
+			t.Fatalf("invalid audio accepted: %v", response)
 		}
-		if err := json.Unmarshal(rawBody, &gotPayload); err != nil {
-			t.Fatalf("Unmarshal(body): %v", err)
-		}
-		writer.Header().Set("Content-Type", "audio/mpeg")
-		_, _ = writer.Write([]byte("gemini-audio"))
-	}))
-	defer func() { server.Close() }()
-
-	req := &runtimev1.SubmitScenarioJobRequest{
-		ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE,
-		Extensions: []*runtimev1.ScenarioExtension{
-			{
-				Namespace: "nimi.scenario.speech_synthesize.request",
-				Payload: mustStructPBForGoogleCloudTTSTest(t, map[string]any{
-					"parent": "projects/test/locations/us",
-					"prompt": "Say this like a natural podcast conversation.",
-					"voice": map[string]any{
-						"multi_speaker_voice_config": map[string]any{
-							"speaker_voice_configs": []any{
-								map[string]any{
-									"speaker_alias": "Host",
-									"speaker_id":    "Kore",
-								},
-								map[string]any{
-									"speaker_alias": "Guest",
-									"speaker_id":    "Charon",
-								},
-							},
-						},
-					},
-					"audio_config": map[string]any{
-						"sample_rate_hz": 24000,
-					},
-				}),
-			},
-		},
-		Spec: &runtimev1.ScenarioSpec{
-			Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
-				SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
-					Text:         "Host: Hi there.\nGuest: Hello.",
-					Language:     "en-US",
-					AudioFormat:  "wav",
-					SampleRateHz: testInt32(22050),
-				},
-			},
-		},
-	}
-
-	artifacts, _, _, err := ExecuteGoogleCloudTTS(context.Background(), MediaAdapterConfig{
-		BaseURL:               server.URL,
-		AllowLoopbackEndpoint: true,
-		APIKey:                "google-token",
-	}, req, "gemini-2.5-pro-tts")
-	if err != nil {
-		t.Fatalf("ExecuteGoogleCloudTTS: %v", err)
-	}
-	input, ok := gotPayload["input"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected input object, got=%T payload=%s", gotPayload["input"], debugGoogleCloudTTSPayload(gotPayload))
-	}
-	if got := strings.TrimSpace(ValueAsString(input["prompt"])); got != "Say this like a natural podcast conversation." {
-		t.Fatalf("unexpected input.prompt: %q", got)
-	}
-	voice, ok := gotPayload["voice"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected voice object, got=%T", gotPayload["voice"])
-	}
-	if got := strings.TrimSpace(ValueAsString(voice["modelName"])); got != "gemini-2.5-pro-tts" {
-		t.Fatalf("unexpected voice.modelName: %q", got)
-	}
-	msvc, ok := voice["multiSpeakerVoiceConfig"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected multiSpeakerVoiceConfig, got=%T", voice["multiSpeakerVoiceConfig"])
-	}
-	configs, ok := msvc["speakerVoiceConfigs"].([]any)
-	if !ok || len(configs) != 2 {
-		t.Fatalf("unexpected speakerVoiceConfigs: %#v", msvc["speakerVoiceConfigs"])
-	}
-	audioConfig, ok := gotPayload["audioConfig"].(map[string]any)
-	if !ok {
-		t.Fatalf("expected audioConfig object, got=%T", gotPayload["audioConfig"])
-	}
-	if got := ValueAsInt64(audioConfig["sampleRateHertz"]); got != 24000 {
-		t.Fatalf("expected extension override sampleRateHertz=24000, got=%d", got)
-	}
-	if got := strings.TrimSpace(ValueAsString(gotPayload["parent"])); got != "projects/test/locations/us" {
-		t.Fatalf("unexpected parent: %q", got)
-	}
-	if len(artifacts) != 1 || string(artifacts[0].GetBytes()) != "gemini-audio" {
-		t.Fatalf("unexpected artifacts: %#v", artifacts)
 	}
 }
 
-func mustStructPBForGoogleCloudTTSTest(t *testing.T, values map[string]any) *structpb.Struct {
-	t.Helper()
-	out, err := structpb.NewStruct(values)
-	if err != nil {
-		t.Fatalf("structpb.NewStruct: %v", err)
+func TestGoogleCloudTTSNativeCodecFiles(t *testing.T) {
+	dir := os.Getenv("NIMI_TEST_FFMPEG_DIR")
+	if dir == "" {
+		t.Skip("actual codec fixture requires NIMI_TEST_FFMPEG_DIR")
 	}
-	return out
+	ffmpeg := filepath.Join(dir, "ffmpeg.exe")
+	if _, err := os.Stat(ffmpeg); err != nil {
+		ffmpeg = filepath.Join(dir, "ffmpeg")
+	}
+	for _, tc := range []struct {
+		format, codec, mux, mime string
+		rate                     int32
+	}{
+		{"mp3", "libmp3lame", "mp3", "audio/mpeg", 24000}, {"wav", "pcm_s16le", "wav", "audio/wav", 24000},
+		{"ogg", "libopus", "ogg", "audio/ogg", 48000}, {"pcm", "pcm_s16le", "s16le", "audio/pcm", 24000},
+		{"mulaw", "pcm_mulaw", "wav", "audio/wav", 24000}, {"alaw", "pcm_alaw", "wav", "audio/wav", 24000},
+	} {
+		t.Run(tc.format, func(t *testing.T) {
+			file := filepath.Join(t.TempDir(), "audio.bin")
+			args := []string{"-v", "error", "-f", "lavfi", "-i", "sine=frequency=440:duration=0.4", "-ac", "1", "-ar", strconv.FormatInt(int64(tc.rate), 10), "-c:a", tc.codec, "-f", tc.mux, file}
+			if output, err := exec.Command(ffmpeg, args...).CombinedOutput(); err != nil {
+				t.Fatalf("encode: %v %s", err, output)
+			}
+			audio, err := os.ReadFile(file)
+			if err != nil {
+				t.Fatal(err)
+			}
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				w.Header().Set("Content-Type", "application/json")
+				_ = json.NewEncoder(w).Encode(map[string]string{"audioContent": base64.StdEncoding.EncodeToString(audio)})
+			}))
+			defer server.Close()
+			out, _, _, err := ExecuteGoogleCloudTTS(context.Background(), MediaAdapterConfig{BaseURL: server.URL, APIKey: "fixture", AllowLoopbackEndpoint: true}, googleTTSTestRequest(tc.format, tc.rate), "gemini-3.1-flash-tts-preview")
+			if err != nil || len(out) != 1 || out[0].GetMimeType() != tc.mime || out[0].GetSampleRateHz() != tc.rate || out[0].GetDurationMs() < 390 || !bytes.Equal(out[0].GetBytes(), audio) {
+				t.Fatalf("encoded result = %v %v", out, err)
+			}
+			if tc.format == "ogg" {
+				audio[len(audio)-1] ^= 1
+				if _, _, _, err := inspectNativeSpeechOgg(context.Background(), audio, "ogg_opus"); err == nil {
+					t.Fatal("corrupt Ogg page accepted")
+				}
+			}
+		})
+	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"encoding/xml"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -41,18 +42,11 @@ func ExecuteAzureSpeechTTS(
 		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 
-	ext := scenarioExtensionPayloadForScenario(req)
 	voiceRef := strings.TrimSpace(scenarioVoiceRef(spec))
-	if voiceRef == "" {
-		voiceRef = "en-US-JennyNeural"
-	}
 	language := strings.TrimSpace(spec.GetLanguage())
-	if language == "" {
-		language = "en-US"
-	}
-	text := strings.TrimSpace(spec.GetText())
+	text := spec.GetText()
 
-	ssml := buildAzureSSML(language, voiceRef, text)
+	ssml := buildAzureSSML(language, voiceRef, text, spec.GetEmotion())
 	outputFormat := resolveAzureOutputFormat(spec)
 
 	endpoint := firstProviderEndpointPath([]string{"/cognitiveservices/v1"})
@@ -65,23 +59,33 @@ func ExecuteAzureSpeechTTS(
 	if len(bodyBytes) == 0 {
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(mimeType)), "audio/") {
-		mimeType = ResolveSpeechArtifactMIME(spec, bodyBytes)
+	if !strings.HasPrefix(strings.ToLower(mimeType), "audio/") && !strings.HasPrefix(strings.ToLower(mimeType), "application/octet-stream") && !strings.HasPrefix(strings.ToLower(mimeType), "application/ogg") {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	artifact := BinaryArtifact(mimeType, bodyBytes, map[string]any{
-		"adapter":    AdapterAzureSpeechNative,
-		"endpoint":   endpoint,
-		"voice":      voiceRef,
-		"language":   language,
-		"extensions": ext,
+	encoding := spec.GetAudioFormat()
+	if encoding == "ogg" {
+		encoding = "ogg_opus"
+	}
+	artifact, err := nativeSpeechArtifact(ctx, bodyBytes, encoding, spec.GetSampleRateHz(), map[string]any{
+		"adapter":        AdapterAzureSpeechNative,
+		"endpoint":       endpoint,
+		"voice":          voiceRef,
+		"language":       language,
+		"resolved_model": modelResolved,
 	})
-	ApplySpeechSpecMetadata(artifact, spec)
+	if err != nil {
+		return nil, nil, "", err
+	}
 	return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 }
 
-func buildAzureSSML(language, voiceName, text string) string {
-	return "<speak version='1.0' xml:lang='" + xmlEscapeString(language) + "'>" +
-		"<voice name='" + xmlEscapeString(voiceName) + "'>" + xmlEscapeString(text) + "</voice></speak>"
+func buildAzureSSML(language, voiceName, text, emotion string) string {
+	body := xmlEscapeString(text)
+	if emotion != "" {
+		body = "<mstts:express-as style='" + xmlEscapeString(emotion) + "'>" + body + "</mstts:express-as>"
+	}
+	return "<speak version='1.0' xmlns='http://www.w3.org/2001/10/synthesis' xmlns:mstts='http://www.w3.org/2001/mstts' xml:lang='" + xmlEscapeString(language) + "'>" +
+		"<voice name='" + xmlEscapeString(voiceName) + "'>" + body + "</voice></speak>"
 }
 
 func xmlEscapeString(value string) string {
@@ -91,19 +95,23 @@ func xmlEscapeString(value string) string {
 }
 
 func resolveAzureOutputFormat(spec *runtimev1.SpeechSynthesizeScenarioSpec) string {
-	if spec == nil {
-		return "audio-16khz-128kbitrate-mono-mp3"
+	rate := spec.GetSampleRateHz()
+	ratePart := fmt.Sprintf("%dkhz", rate/1000)
+	if rate == 22050 || rate == 44100 {
+		ratePart = fmt.Sprintf("%dhz", rate)
 	}
-	format := strings.ToLower(strings.TrimSpace(spec.GetAudioFormat()))
-	switch format {
-	case "ogg", "audio/ogg":
+	switch spec.GetAudioFormat() {
+	case "ogg":
 		return "ogg-48khz-16bit-mono-opus"
-	case "wav", "audio/wav":
-		return "riff-24khz-16bit-mono-pcm"
-	case "pcm", "audio/pcm":
-		return "raw-24khz-16bit-mono-pcm"
+	case "wav":
+		return "riff-" + ratePart + "-16bit-mono-pcm"
+	case "pcm":
+		return "raw-" + ratePart + "-16bit-mono-pcm"
+	case "mp3":
+		bitrate := map[int32]int{16000: 128, 24000: 160, 48000: 192}[rate]
+		return fmt.Sprintf("audio-%s-%dkbitrate-mono-mp3", ratePart, bitrate)
 	default:
-		return "audio-16khz-128kbitrate-mono-mp3"
+		return ""
 	}
 }
 
