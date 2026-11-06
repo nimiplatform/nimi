@@ -17,6 +17,9 @@ func (r *CloudVoiceInspectionMappedRequest) ProviderVoiceRef() string { return r
 
 // @nimi-authority: rule.nimi.runtime.model-catalog.r029
 func (d providerCloudMediaDriver) MapVoiceInspectRequest(target CloudMediaTarget, providerVoiceRef string) (*CloudVoiceInspectionMappedRequest, error) {
+	if d.provider == "mistral" && target.provider == d.provider && target.capabilityContract == "voice.create" && target.providerModelID == MistralVoxtralTTS3 && ValidMistralVoiceID(providerVoiceRef) {
+		return &CloudVoiceInspectionMappedRequest{provider: d.provider, adapter: CloudMediaAdapterMistralVoiceInspect, providerVoiceRef: providerVoiceRef}, nil
+	}
 	if d.provider != "gemini" || target.provider != d.provider || target.capabilityContract != "voice.create" || target.providerModelID != "gemini-3.8-flash-tts" || strings.TrimSpace(providerVoiceRef) == "" {
 		return nil, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("voice inspection is unsupported for this exact creation target"))
 	}

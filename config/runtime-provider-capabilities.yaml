@@ -420,8 +420,11 @@ providers:
     endpoint_requirement: default_or_explicit
     inventory_mode: static_source
     capabilities:
+      - audio.synthesize
+      - audio.transcribe
       - text.embed
       - text.generate
+      - voice.create
     sources:
       - K-MCAT-027
       - K-CONN-008

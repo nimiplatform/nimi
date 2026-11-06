@@ -1,6 +1,6 @@
 version: 1
 provider: mistral
-catalog_version: 2026-11-06-mistral-native-text
+catalog_version: 2026-11-06-mistral-voxtral3
 inventory_mode: static_source
 default_text_model: mistral-large-4-0
 models:
@@ -101,7 +101,506 @@ models:
       note: Mistral embeddings capability documentation.
     embedding:
       dimension: 1024
-voices: []
+  - model_id: voxtral-mini-transcribe-3-0
+    provider: mistral
+    model_type: asr
+    updated_at: 2026-10-20
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Public Preview. Native billing is based on audio minutes or characters; no synthetic per-request USD cost.
+    source_ref:
+      url: https://docs.mistral.ai/models/voxtral-mini-transcribe-3-0
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - model_id: voxtral-small-transcribe-3-0
+    provider: mistral
+    model_type: asr
+    updated_at: 2026-10-20
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Public Preview. Native billing is based on audio minutes or characters; no synthetic per-request USD cost.
+    source_ref:
+      url: https://docs.mistral.ai/models/voxtral-small-transcribe-3-0
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - model_id: voxtral-mini-tts-3-0
+    provider: mistral
+    model_type: tts
+    updated_at: 2026-10-20
+    capabilities:
+      - audio.synthesize
+      - voice.create
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Public Preview. Native billing is based on audio minutes or characters; no synthetic per-request USD cost.
+    source_ref:
+      url: https://docs.mistral.ai/models/voxtral-mini-tts-3-0
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+    features:
+      - input.audio
+    voice_set_id: mistral:voxtral3-presets
+    voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - wav
+        - mp3
+      supports_native_stream_tts: true
+    voice_ref_kinds:
+      - preset_voice_id
+      - provider_voice_ref
+      - voice_asset_id
+voices:
+  - voice_id: voice_478
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Sheila (US)
+    langs:
+      - en
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_447
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Margaret (US)
+    langs:
+      - en
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_485
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Rob (US)
+    langs:
+      - en
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_3150
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: James (US)
+    langs:
+      - en
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_1787
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Mary (UK)
+    langs:
+      - en
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_1786
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Sky (UK)
+    langs:
+      - en
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_1788
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: David (UK)
+    langs:
+      - en
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_590
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Harriet (UK)
+    langs:
+      - en
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_591
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Fred (UK)
+    langs:
+      - en
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_3149
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Hugo (UK)
+    langs:
+      - en
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_3147
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Howard (UK)
+    langs:
+      - en
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_592
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Marie
+    langs:
+      - fr
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_3137
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Manon
+    langs:
+      - fr
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_589
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Lea
+    langs:
+      - fr
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_3141
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Camille
+    langs:
+      - fr
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_483
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Elena
+    langs:
+      - es
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_481
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Heidi
+    langs:
+      - de
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_482
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Lorenzo
+    langs:
+      - it
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_480
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Gabriela
+    langs:
+      - pt
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_479
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Maryam
+    langs:
+      - ar
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_3143
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Jordi
+    langs:
+      - ca
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_3139
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Ananya
+    langs:
+      - hi
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_3153
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Himanshu
+    langs:
+      - hi
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_3146
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Olivia
+    langs:
+      - hu
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_3133
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Haruto
+    langs:
+      - ja
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_3136
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Sung
+    langs:
+      - ko
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_3135
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Jin
+    langs:
+      - ko
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_3145
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Lotte
+    langs:
+      - nl
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_3134
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Lars
+    langs:
+      - no
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_3154
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Leon
+    langs:
+      - pl
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_3155
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Irina
+    langs:
+      - ro
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_3132
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Tatiana
+    langs:
+      - ru
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_3138
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Oran
+    langs:
+      - tr
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_3140
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Taras
+    langs:
+      - uk
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_3144
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Huong
+    langs:
+      - vi
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - voice_id: voice_3142
+    voice_set_id: mistral:voxtral3-presets
+    provider: mistral
+    name: Mei
+    langs:
+      - zh
+    model_ids:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
 selection_profiles:
   - provider: mistral
     profile_id: text.general
@@ -117,3 +616,65 @@ selection_profiles:
     reviewed_at: 2026-11-06
     freshness_sla_days: 21
     rationale: Current GA Small 4 exact dated target, with native none/high reasoning and efficient 6.5B active parameters; no mutable alias is substituted for the selected model.
+voice_workflow_models:
+  - workflow_model_id: mistral-audio-voices
+    workflow_type: reference_audio
+    workflow_family: mistral-voices
+    input_contract_ref: mistral_voice_clone_input_v1
+    output_persistence: provider_persistent
+    request_options:
+      text_prompt_mode: unsupported
+      supports_language_hints: true
+      supports_preferred_name: true
+      reference_audio_uri_input: false
+      reference_audio_bytes_input: true
+      allowed_reference_audio_mime_types:
+        - audio/wav
+        - audio/mpeg
+    target_model_refs:
+      - voxtral-mini-tts-3-0
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+    langs:
+      - en
+      - fr
+      - es
+      - de
+      - it
+      - pt
+      - ar
+      - ca
+      - hi
+      - hu
+      - ja
+      - ko
+      - nl
+      - no
+      - pl
+      - ro
+      - ru
+      - tr
+      - uk
+      - vi
+      - zh
+model_workflow_bindings:
+  - model_id: voxtral-mini-tts-3-0
+    workflow_model_refs:
+      - mistral-audio-voices
+    workflow_types:
+      - reference_audio
+voice_handle_policies:
+  - policy_id: mistral_stored_voice_v1
+    applies_to_workflow_types:
+      - reference_audio
+    persistence: provider_persistent
+    default_ttl: none
+    scope: user_scoped
+    delete_semantics: best_effort_provider_delete
+    runtime_reconciliation_required: true
+    source_ref:
+      url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+      retrieved_at: 2026-11-06
+      note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.

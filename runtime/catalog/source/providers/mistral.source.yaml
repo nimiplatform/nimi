@@ -1,6 +1,6 @@
 schema_version: 3
 provider: mistral
-catalog_version: 2026-11-06-mistral-native-text
+catalog_version: 2026-11-06-mistral-voxtral3
 generated_target: runtime/catalog/providers/mistral.yaml
 runtime:
   inventory_mode: static_source
@@ -89,6 +89,46 @@ sources:
     url: https://docs.mistral.ai/models/mistral-medium-3-5-26-04
     retrieved_at: 2026-11-06
     note: Medium 3.5 deprecated on 2026-10-31; official replacement Large 4. Not a claim of immediate endpoint shutdown.
+  - source_id: mistral_voxtral_mini3
+    url: https://docs.mistral.ai/models/voxtral-mini-transcribe-3-0
+    retrieved_at: 2026-11-06
+    note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - source_id: mistral_voxtral_small3
+    url: https://docs.mistral.ai/models/voxtral-small-transcribe-3-0
+    retrieved_at: 2026-11-06
+    note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - source_id: mistral_voxtral_tts3
+    url: https://docs.mistral.ai/models/voxtral-mini-tts-3-0
+    retrieved_at: 2026-11-06
+    note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - source_id: mistral_audio_transcription
+    url: https://docs.mistral.ai/studio/audio/speech-to-text/transcribe-files
+    retrieved_at: 2026-11-06
+    note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - source_id: mistral_audio_limits
+    url: https://docs.mistral.ai/studio/audio/specs-and-limits/limits
+    retrieved_at: 2026-11-06
+    note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - source_id: mistral_audio_formats
+    url: https://docs.mistral.ai/studio/audio/specs-and-limits/audio-formats
+    retrieved_at: 2026-11-06
+    note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - source_id: mistral_speech_generation
+    url: https://docs.mistral.ai/studio/audio/text-to-speech/generate-speech
+    retrieved_at: 2026-11-06
+    note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - source_id: mistral_speech_streaming
+    url: https://docs.mistral.ai/studio/audio/text-to-speech/stream-speech
+    retrieved_at: 2026-11-06
+    note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - source_id: mistral_voice_library
+    url: https://docs.mistral.ai/studio/audio/text-to-speech/voices
+    retrieved_at: 2026-11-06
+    note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
+  - source_id: mistral_voice_lifecycle
+    url: https://docs.mistral.ai/studio/audio/concepts/voices
+    retrieved_at: 2026-11-06
+    note: Reviewed native Voxtral3 request/result or voice lifecycle; real account acceptance is separate.
 
 selection_profiles:
   - profile_id: text.general
@@ -108,8 +148,8 @@ models:
   - model_id: mistral-large-4-0
     model_type: chat
     updated_at: 2026-10-06
-    capabilities: [text.generate]
-    features: [input.image]
+    capabilities: [ text.generate ]
+    features: [ input.image ]
     context_window_tokens: 1000000
     pricing:
       unit: token
@@ -118,13 +158,13 @@ models:
       currency: USD
       as_of: 2026-11-06
       notes: Public Preview Large 4 exact major.minor target; upstream may silently update preview weights. Native thinking blocks and signatures are replayed without exposing raw reasoning as an answer. Per 1M tokens; account availability and task quality require live acceptance.
-    source_ids: [mistral_large4_doc, mistral_native_chat_doc, mistral_current_reasoning_doc, mistral_current_vision_doc, mistral_lifecycle_doc]
+    source_ids: [ mistral_large4_doc, mistral_native_chat_doc, mistral_current_reasoning_doc, mistral_current_vision_doc, mistral_lifecycle_doc ]
 
   - model_id: mistral-large-4
     model_type: chat
     updated_at: 2026-10-06
-    capabilities: [text.generate]
-    features: [input.image]
+    capabilities: [ text.generate ]
+    features: [ input.image ]
     context_window_tokens: 1000000
     pricing:
       unit: token
@@ -133,13 +173,13 @@ models:
       currency: USD
       as_of: 2026-11-06
       notes: Public Preview Large 4 major-version API target; not an immutable weight pin. Its replay kind remains separate from the exact major.minor target. Per 1M tokens; account availability and task quality require live acceptance.
-    source_ids: [mistral_large4_doc, mistral_native_chat_doc, mistral_current_reasoning_doc, mistral_current_vision_doc, mistral_lifecycle_doc]
+    source_ids: [ mistral_large4_doc, mistral_native_chat_doc, mistral_current_reasoning_doc, mistral_current_vision_doc, mistral_lifecycle_doc ]
 
   - model_id: mistral-small-2603
     model_type: chat
     updated_at: 2026-03-16
-    capabilities: [text.generate]
-    features: [input.image]
+    capabilities: [ text.generate ]
+    features: [ input.image ]
     context_window_tokens: 256000
     pricing:
       unit: token
@@ -148,12 +188,12 @@ models:
       currency: USD
       as_of: 2026-11-06
       notes: GA Small 4 dated API target, native none/high reasoning and typed thinking replay. Per 1M tokens; account availability and task quality require live acceptance.
-    source_ids: [mistral_small_4_doc, mistral_native_chat_doc, mistral_current_reasoning_doc, mistral_current_vision_doc, mistral_lifecycle_doc]
+    source_ids: [ mistral_small_4_doc, mistral_native_chat_doc, mistral_current_reasoning_doc, mistral_current_vision_doc, mistral_lifecycle_doc ]
 
   - model_id: codestral-latest
     model_type: chat
     updated_at: 2025-07-30
-    capabilities: [text.generate]
+    capabilities: [ text.generate ]
     pricing:
       unit: token
       input: "0.30"
@@ -161,12 +201,12 @@ models:
       currency: USD
       as_of: 2026-04-18
       notes: Current alias-backed code-specialized row aligned to Codestral 2508. Per 1M tokens.
-    source_ids: [mistral_models_doc, mistral_changelog_doc, mistral_codestral_doc]
+    source_ids: [ mistral_models_doc, mistral_changelog_doc, mistral_codestral_doc ]
 
   - model_id: mistral-embed
     model_type: embedding
     updated_at: 2023-12-11
-    capabilities: [text.embed]
+    capabilities: [ text.embed ]
     # K-MEM-004 / K-AIEXEC-006: mistral-embed emits 1024-dim vectors.
     embedding:
       dimension: 1024
@@ -177,4 +217,287 @@ models:
       currency: USD
       as_of: 2026-04-18
       notes: General-purpose text embedding model retained in current source scope. Per 1M tokens.
-    source_ids: [mistral_embeddings_doc, mistral_embed_model_doc, mistral_models_doc]
+    source_ids: [ mistral_embeddings_doc, mistral_embed_model_doc, mistral_models_doc ]
+  - model_id: voxtral-mini-transcribe-3-0
+    model_type: asr
+    updated_at: 2026-10-20
+    capabilities:
+      - audio.transcribe
+    source_ids:
+      - mistral_voxtral_mini3
+      - mistral_audio_transcription
+      - mistral_audio_limits
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Public Preview. Native billing is based on audio minutes or characters; no synthetic per-request USD cost.
+  - model_id: voxtral-small-transcribe-3-0
+    model_type: asr
+    updated_at: 2026-10-20
+    capabilities:
+      - audio.transcribe
+    source_ids:
+      - mistral_voxtral_small3
+      - mistral_audio_transcription
+      - mistral_audio_limits
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Public Preview. Native billing is based on audio minutes or characters; no synthetic per-request USD cost.
+  - model_id: voxtral-mini-tts-3-0
+    model_type: tts
+    updated_at: 2026-10-20
+    capabilities:
+      - audio.synthesize
+      - voice.create
+    features:
+      - input.audio
+    source_ids:
+      - mistral_voxtral_tts3
+      - mistral_speech_generation
+      - mistral_speech_streaming
+      - mistral_voice_library
+      - mistral_audio_formats
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Public Preview. Native billing is based on audio minutes or characters; no synthetic per-request USD cost.
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: voxtral3-presets
+      supports_voice_ref_kinds:
+        - preset_voice_id
+        - provider_voice_ref
+        - voice_asset_id
+      langs_ref: voxtral3_reviewed_languages
+      request_options:
+        timing_modes:
+          - none
+        audio_formats:
+          - wav
+          - mp3
+        supports_language: false
+        supports_native_stream_tts: true
+language_profiles:
+  voxtral3_reviewed_languages:
+    - en
+    - fr
+    - es
+    - de
+    - it
+    - pt
+    - ar
+    - ca
+    - hi
+    - hu
+    - ja
+    - ko
+    - nl
+    - no
+    - pl
+    - ro
+    - ru
+    - tr
+    - uk
+    - vi
+    - zh
+voice_sets:
+  - voice_set_id: voxtral3-presets
+    langs_ref: voxtral3_reviewed_languages
+    source_ids:
+      - mistral_voice_library
+    voices:
+      - voice_id: voice_478
+        name: Sheila (US)
+        langs:
+          - en
+      - voice_id: voice_447
+        name: Margaret (US)
+        langs:
+          - en
+      - voice_id: voice_485
+        name: Rob (US)
+        langs:
+          - en
+      - voice_id: voice_3150
+        name: James (US)
+        langs:
+          - en
+      - voice_id: voice_1787
+        name: Mary (UK)
+        langs:
+          - en
+      - voice_id: voice_1786
+        name: Sky (UK)
+        langs:
+          - en
+      - voice_id: voice_1788
+        name: David (UK)
+        langs:
+          - en
+      - voice_id: voice_590
+        name: Harriet (UK)
+        langs:
+          - en
+      - voice_id: voice_591
+        name: Fred (UK)
+        langs:
+          - en
+      - voice_id: voice_3149
+        name: Hugo (UK)
+        langs:
+          - en
+      - voice_id: voice_3147
+        name: Howard (UK)
+        langs:
+          - en
+      - voice_id: voice_592
+        name: Marie
+        langs:
+          - fr
+      - voice_id: voice_3137
+        name: Manon
+        langs:
+          - fr
+      - voice_id: voice_589
+        name: Lea
+        langs:
+          - fr
+      - voice_id: voice_3141
+        name: Camille
+        langs:
+          - fr
+      - voice_id: voice_483
+        name: Elena
+        langs:
+          - es
+      - voice_id: voice_481
+        name: Heidi
+        langs:
+          - de
+      - voice_id: voice_482
+        name: Lorenzo
+        langs:
+          - it
+      - voice_id: voice_480
+        name: Gabriela
+        langs:
+          - pt
+      - voice_id: voice_479
+        name: Maryam
+        langs:
+          - ar
+      - voice_id: voice_3143
+        name: Jordi
+        langs:
+          - ca
+      - voice_id: voice_3139
+        name: Ananya
+        langs:
+          - hi
+      - voice_id: voice_3153
+        name: Himanshu
+        langs:
+          - hi
+      - voice_id: voice_3146
+        name: Olivia
+        langs:
+          - hu
+      - voice_id: voice_3133
+        name: Haruto
+        langs:
+          - ja
+      - voice_id: voice_3136
+        name: Sung
+        langs:
+          - ko
+      - voice_id: voice_3135
+        name: Jin
+        langs:
+          - ko
+      - voice_id: voice_3145
+        name: Lotte
+        langs:
+          - nl
+      - voice_id: voice_3134
+        name: Lars
+        langs:
+          - no
+      - voice_id: voice_3154
+        name: Leon
+        langs:
+          - pl
+      - voice_id: voice_3155
+        name: Irina
+        langs:
+          - ro
+      - voice_id: voice_3132
+        name: Tatiana
+        langs:
+          - ru
+      - voice_id: voice_3138
+        name: Oran
+        langs:
+          - tr
+      - voice_id: voice_3140
+        name: Taras
+        langs:
+          - uk
+      - voice_id: voice_3144
+        name: Huong
+        langs:
+          - vi
+      - voice_id: voice_3142
+        name: Mei
+        langs:
+          - zh
+voice_workflow_models:
+  - workflow_model_id: mistral-audio-voices
+    workflow_type: reference_audio
+    workflow_family: mistral-voices
+    input_contract_ref: mistral_voice_clone_input_v1
+    output_persistence: provider_persistent
+    request_options:
+      text_prompt_mode: unsupported
+      supports_language_hints: true
+      supports_preferred_name: true
+      reference_audio_uri_input: false
+      reference_audio_bytes_input: true
+      allowed_reference_audio_mime_types:
+        - audio/wav
+        - audio/mpeg
+    target_model_refs:
+      - voxtral-mini-tts-3-0
+    langs_ref: voxtral3_reviewed_languages
+    source_ids:
+      - mistral_voice_library
+      - mistral_voice_lifecycle
+      - mistral_native_chat_doc
+model_workflow_bindings:
+  - model_id: voxtral-mini-tts-3-0
+    workflow_model_refs:
+      - mistral-audio-voices
+    workflow_types:
+      - reference_audio
+voice_handle_policies:
+  - policy_id: mistral_stored_voice_v1
+    applies_to_workflow_types:
+      - reference_audio
+    persistence: provider_persistent
+    default_ttl: none
+    scope: user_scoped
+    delete_semantics: best_effort_provider_delete
+    runtime_reconciliation_required: true
+    source_ids:
+      - mistral_voice_library
+      - mistral_voice_lifecycle
+      - mistral_native_chat_doc

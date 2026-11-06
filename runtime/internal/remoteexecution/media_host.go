@@ -367,7 +367,11 @@ func (h *ProviderMediaHost) StreamSpeech(
 	var reportedUsage *runtimev1.UsageStats
 	defer func() { finishCloudAttempt(attempt, reportedUsage, executionErr) }()
 	if request.StreamMode() == capabilitydriver.CloudMediaStreamNative {
-		usage, finish, streamErr := backend.StreamSynthesizeSpeech(ctx, backendModelID, spec, extensions, func(chunk nimillm.SpeechStreamChunk) error {
+		streamSpeech := backend.StreamSynthesizeSpeech
+		if request.Adapter() == capabilitydriver.CloudMediaAdapterMistralSpeech {
+			streamSpeech = backend.StreamMistralSpeech
+		}
+		usage, finish, streamErr := streamSpeech(ctx, backendModelID, spec, extensions, func(chunk nimillm.SpeechStreamChunk) error {
 			mimeType := strings.TrimSpace(chunk.MIMEType)
 			if mimeType == "" && len(chunk.Bytes) > 0 {
 				mimeType = nimillm.ResolveSpeechArtifactMIME(spec, chunk.Bytes)

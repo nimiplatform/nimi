@@ -57,6 +57,10 @@ func (p *CloudProvider) ExecuteMediaAdapter(
 		err           error
 	)
 	switch strings.TrimSpace(adapter) {
+	case capabilitydriver.CloudMediaAdapterMistralTranscribe:
+		artifacts, usage, providerJobID, err = p.executeMistralTranscriptions(ctx, request, modelID, target)
+	case capabilitydriver.CloudMediaAdapterMistralSpeech:
+		artifacts, usage, providerJobID, err = p.executeMistralSpeech(ctx, request, modelID, target)
 	case "bytedance_openspeech_adapter":
 		artifacts, usage, providerJobID, err = ExecuteBytedanceOpenSpeech(ctx, cfg, request, modelID)
 	case "bytedance_ark_task_adapter":
@@ -224,6 +228,8 @@ func speechAdapterMatchesProvider(adapter string, provider string) bool {
 	adapter = strings.TrimSpace(adapter)
 	provider = strings.ToLower(strings.TrimSpace(provider))
 	switch adapter {
+	case capabilitydriver.CloudMediaAdapterMistralSpeech:
+		return provider == "mistral"
 	case "openai_compat_adapter":
 		return provider != ""
 	case "bytedance_openspeech_adapter":

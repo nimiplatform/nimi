@@ -46,6 +46,8 @@ func ExecuteVoiceWorkflowAdapter(ctx context.Context, adapter string, req VoiceW
 		return VoiceWorkflowResult{}, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
 	switch strings.TrimSpace(adapter) {
+	case "mistral_voice_workflow_adapter":
+		return executeMistralVoiceWorkflow(ctx, req, cfg)
 	case "dashscope_voice_workflow_adapter":
 		return executeDashScopeVoiceWorkflow(ctx, req, cfg)
 	case "elevenlabs_voice_workflow_adapter":
@@ -65,6 +67,8 @@ func ExecuteVoiceWorkflowAdapter(ctx context.Context, adapter string, req VoiceW
 
 func voiceWorkflowProviderForAdapter(adapter string) string {
 	switch strings.TrimSpace(adapter) {
+	case "mistral_voice_workflow_adapter":
+		return "mistral"
 	case "dashscope_voice_workflow_adapter":
 		return "dashscope"
 	case "elevenlabs_voice_workflow_adapter":

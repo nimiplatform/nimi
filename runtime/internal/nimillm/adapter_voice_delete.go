@@ -24,6 +24,8 @@ func DeleteProviderVoiceAdapter(ctx context.Context, adapter string, provider st
 		return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
 	switch strings.TrimSpace(adapter) {
+	case "mistral_voice_delete_adapter":
+		return deleteMistralStoredVoice(ctx, normalizedVoiceRef, cfg)
 	case "elevenlabs_voice_delete_adapter":
 		return deleteElevenLabsVoice(ctx, normalizedVoiceRef, cfg)
 	case "fish_audio_voice_delete_adapter":
@@ -43,6 +45,8 @@ func DeleteProviderVoiceAdapter(ctx context.Context, adapter string, provider st
 
 func voiceDeleteProviderForAdapter(adapter string) string {
 	switch strings.TrimSpace(adapter) {
+	case "mistral_voice_delete_adapter":
+		return "mistral"
 	case "elevenlabs_voice_delete_adapter":
 		return "elevenlabs"
 	case "fish_audio_voice_delete_adapter":

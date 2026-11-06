@@ -60,7 +60,7 @@ func (b *voiceAssetCloudLifecycle) audit(asset *runtimev1.VoiceAsset, operation 
 
 // @nimi-authority: rule.nimi.runtime.model-catalog.r029
 func providerVoiceNeedsInspection(asset *runtimev1.VoiceAsset) bool {
-	return asset != nil && asset.GetPersistence() == runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT && asset.GetExpiresAt() != nil &&
+	return asset != nil && asset.GetPersistence() == runtimev1.VoiceAssetPersistence_VOICE_ASSET_PERSISTENCE_PROVIDER_PERSISTENT && (asset.GetExpiresAt() != nil || asset.GetProvider() == "mistral") &&
 		asset.GetStatus() != runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_DELETED && asset.GetMetadata().GetFields()["voice_handle_policy_runtime_reconciliation_required"].GetBoolValue()
 }
 
@@ -87,12 +87,12 @@ func (s *Service) refreshProviderVoiceAsset(ctx context.Context, asset *runtimev
 	updated := cloneVoiceAsset(asset)
 	if found {
 		result, err := bound.driver.NormalizeVoiceWorkflowResponse(response)
-		if err != nil || result.ProviderVoiceRef != asset.GetProviderVoiceRef() || result.ExpiresAt == nil {
+		if err != nil || result.ProviderVoiceRef != asset.GetProviderVoiceRef() || result.ExpiresAt == nil && asset.GetExpiresAt() != nil {
 			return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
 		updated.ExpiresAt = result.ExpiresAt
 		updated.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_ACTIVE
-		if !result.ExpiresAt.AsTime().After(time.Now().UTC()) {
+		if result.ExpiresAt != nil && !result.ExpiresAt.AsTime().After(time.Now().UTC()) {
 			updated.Status = runtimev1.VoiceAssetStatus_VOICE_ASSET_STATUS_EXPIRED
 		}
 	} else {

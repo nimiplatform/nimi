@@ -19,6 +19,9 @@ import (
 const geminiVoiceDesignModel = "gemini-3.8-flash-tts"
 
 func InspectProviderVoiceAdapter(ctx context.Context, adapter, provider, id string, cfg MediaAdapterConfig) (VoiceWorkflowResult, bool, error) {
+	if adapter == "mistral_voice_inspect_adapter" && provider == "mistral" {
+		return inspectMistralStoredVoice(ctx, id, cfg)
+	}
 	if adapter != "gemini_voice_inspect_adapter" || provider != "gemini" {
 		return VoiceWorkflowResult{}, false, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}

@@ -66,7 +66,12 @@ func (b *Backend) synthesizeOpenAISpeech(ctx context.Context, modelID string, sp
 // openAISpeechMP3 requires nonempty, fully decoded audio. The HTTP byte bound
 // and request cancellation/deadline bound the work; PCM is discarded rather
 // than accumulated. The original compressed bytes are kept.
-func openAISpeechMP3(ctx context.Context, audio []byte) (valid bool) {
+func openAISpeechMP3(ctx context.Context, audio []byte) bool {
+	_, _, valid := inspectCompleteMP3(ctx, audio)
+	return valid
+}
+
+func inspectCompleteMP3(ctx context.Context, audio []byte) (rate int, duration float64, valid bool) {
 	// Invalid compressed bitstreams must not take down the Runtime if the
 	// decoder encounters an invalid internal index.
 	defer func() {
@@ -75,32 +80,32 @@ func openAISpeechMP3(ctx context.Context, audio []byte) (valid bool) {
 		}
 	}()
 	if len(audio) < 4 || len(audio) > maxJSONOrBinaryResponseBytes {
-		return false
+		return 0, 0, false
 	}
 	if string(audio[:3]) == "ID3" {
 		if len(audio) < 10 {
-			return false
+			return 0, 0, false
 		}
 		size := 0
 		for _, value := range audio[6:10] {
 			if value&0x80 != 0 {
-				return false
+				return 0, 0, false
 			}
 			size = size<<7 | int(value)
 		}
 		// The decoder allocates the declared tag, so bound it before decoding.
 		if size > len(audio)-10 {
-			return false
+			return 0, 0, false
 		}
 	} else if audio[0] != 0xFF || audio[1]&0xE0 != 0xE0 {
-		return false
+		return 0, 0, false
 	}
 	decoder, err := mp3.NewDecoder(&completeMP3Reader{Reader: bytes.NewReader(audio), ctx: ctx})
-	if err != nil || decoder.Length() <= 0 {
-		return false
+	if err != nil || decoder.Length() <= 0 || decoder.SampleRate() <= 0 {
+		return 0, 0, false
 	}
 	decoded, err := io.Copy(io.Discard, decoder)
-	return err == nil && decoded > 0 && decoded == decoder.Length() && ctx.Err() == nil
+	return decoder.SampleRate(), float64(decoded) / float64(decoder.SampleRate()*4), err == nil && decoded > 0 && decoded == decoder.Length() && ctx.Err() == nil
 }
 
 // The decoder otherwise treats short reads as EOF and can accept a truncated

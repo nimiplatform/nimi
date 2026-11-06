@@ -672,6 +672,20 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 		}
 	}
 	adapter := cloudMediaAdapterFor(d.provider, target.capabilityContract)
+	if d.provider == "mistral" {
+		if target.capabilityContract == "audio.transcribe" {
+			if err := validateMistralTranscribeRequest(mapped, target.providerModelID); err != nil {
+				return nil, err
+			}
+			adapter = CloudMediaAdapterMistralTranscribe
+		}
+		if target.capabilityContract == "audio.synthesize" {
+			if err := validateMistralSpeechRequest(mapped, target.providerModelID, streamMode); err != nil {
+				return nil, err
+			}
+			adapter = CloudMediaAdapterMistralSpeech
+		}
+	}
 	if d.provider == "stability" {
 		var err error
 		switch target.capabilityContract {
@@ -839,6 +853,11 @@ func (d providerCloudMediaDriver) MapVoiceWorkflowRequest(
 	if spec == nil {
 		return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("cloud voice creation spec is missing"))
 	}
+	if target.provider == "mistral" {
+		if err := validateMistralVoiceCreate(target, request, config); err != nil {
+			return nil, err
+		}
+	}
 	if target.provider == "gemini" {
 		input := spec.GetTextDescription()
 		if target.providerModelID != "gemini-3.8-flash-tts" || catalogModelID != target.providerModelID || workflowModelID != target.providerModelID || workflowType != "text_description" || input == nil || strings.TrimSpace(input.GetInstructionText()) == "" || strings.TrimSpace(input.GetPreviewText()) != "" || extensions != nil {
@@ -909,6 +928,9 @@ func (d providerCloudMediaDriver) MapVoiceDeleteRequest(target CloudMediaTarget,
 		return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("cloud voice delete request mapping input is invalid"))
 	}
 	adapter := cloudVoiceDeleteAdapter(d.provider)
+	if d.provider == "mistral" && (target.ProviderModelID() != MistralVoxtralTTS3 || workflowModelID != MistralVoiceWorkflow || !ValidMistralVoiceID(providerVoiceRef)) {
+		return nil, cloudInvocationError(CloudInvocationFailureTarget, fmt.Errorf("Mistral voice delete requires its captured creation target and voice identity"))
+	}
 	if d.provider == "dashscope" {
 		adapter = dashScopeVoiceDeleteAdapter(target.ProviderModelID(), workflowModelID)
 	}
@@ -961,6 +983,8 @@ func cloudMediaAdapterFor(provider string, capability string) string {
 	}
 	if capability == "voice.create" {
 		switch provider {
+		case "mistral":
+			return CloudMediaAdapterMistralVoiceWorkflow
 		case "dashscope":
 			return CloudMediaAdapterDashScopeVoiceWorkflow
 		case "elevenlabs":
@@ -1077,6 +1101,8 @@ func CloudVoiceDeleteSupported(provider string) bool {
 
 func cloudVoiceDeleteAdapter(provider string) string {
 	switch strings.ToLower(strings.TrimSpace(provider)) {
+	case "mistral":
+		return CloudMediaAdapterMistralVoiceDelete
 	case "elevenlabs":
 		return CloudMediaAdapterElevenLabsVoiceDelete
 	case "fish_audio":
