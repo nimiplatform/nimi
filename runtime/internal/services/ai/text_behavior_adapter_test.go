@@ -44,10 +44,29 @@ func TestGemma4E2BAdmitsOrderedSystemMessagesWithoutWideningOtherCombinations(t 
 
 func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 	registrations := productionTextBehaviorAdapterRegistrations()
-	if len(registrations) != 98 {
-		t.Fatalf("production adapter registrations = %d, want thirteen Local mappings and eighty-five Cloud targets", len(registrations))
+	if len(registrations) != 117 {
+		t.Fatalf("production adapter registrations = %d, want thirteen Local mappings and one hundred and four Cloud targets", len(registrations))
 	}
 	expectedCloudTargets := map[string]string{
+		"openrouter/openai/gpt-6.1-terra":                              "openrouter.openai/gpt-6.1-terra.responses",
+		"openrouter/openai/gpt-6.1-sol":                                "openrouter.openai/gpt-6.1-sol.responses",
+		"openrouter/openai/gpt-6-astra":                                "openrouter.openai/gpt-6-astra.responses",
+		"openrouter/openai/gpt-6-luna":                                 "openrouter.openai/gpt-6-luna.responses",
+		"openrouter/anthropic/claude-fable-5.1":                        "openrouter.anthropic/claude-fable-5.1.responses",
+		"openrouter/anthropic/claude-opus-5.5":                         "openrouter.anthropic/claude-opus-5.5.responses",
+		"openrouter/anthropic/claude-sonnet-5.5":                       "openrouter.anthropic/claude-sonnet-5.5.responses",
+		"openrouter/anthropic/claude-haiku-5.5":                        "openrouter.anthropic/claude-haiku-5.5.responses",
+		"openrouter/google/gemini-4-argon":                             "openrouter.google/gemini-4-argon.responses",
+		"openrouter/google/gemini-3.8-flash":                           "openrouter.google/gemini-3.8-flash.responses",
+		"openrouter/x-ai/grok-4.7":                                     "openrouter.x-ai/grok-4.7.responses",
+		"openrouter/moonshotai/kimi-k3.1-pro":                          "openrouter.moonshotai/kimi-k3.1-pro.responses",
+		"openrouter/moonshotai/kimi-k3":                                "openrouter.moonshotai/kimi-k3.responses",
+		"openrouter/deepseek/deepseek-v4.1-flash-1017":                 "openrouter.deepseek/deepseek-v4.1-flash-1017.responses",
+		"openrouter/z-ai/glm-5.3":                                      "openrouter.z-ai/glm-5.3.responses",
+		"openrouter/z-ai/glm-5.3-flash":                                "openrouter.z-ai/glm-5.3-flash.responses",
+		"openrouter/z-ai/glm-5.3-flashx":                               "openrouter.z-ai/glm-5.3-flashx.responses",
+		"openrouter/z-ai/glm-5.3-flashx-legal":                         "openrouter.z-ai/glm-5.3-flashx-legal.responses",
+		"openrouter/minimax/minimax-m3.1-flash":                        "openrouter.minimax/minimax-m3.1-flash.responses",
 		"fireworks/accounts/fireworks/models/kimi-k3p1-pro":            "fireworks.accounts/fireworks/models/kimi-k3p1-pro.chat",
 		"fireworks/accounts/fireworks/models/deepseek-v4p1-flash":      "fireworks.accounts/fireworks/models/deepseek-v4p1-flash.chat",
 		"fireworks/accounts/fireworks/models/deepseek-v4p1-flash-1017": "fireworks.accounts/fireworks/models/deepseek-v4p1-flash-1017.chat",

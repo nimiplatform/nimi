@@ -71,6 +71,9 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 	for _, model := range capabilitydriver.FireworksTextModels() {
 		registrations = append(registrations, fireworksTextBehaviorRegistration(model))
 	}
+	for _, model := range capabilitydriver.OpenRouterTextModels() {
+		registrations = append(registrations, openRouterTextBehaviorRegistration(model))
+	}
 	return registrations
 }
 

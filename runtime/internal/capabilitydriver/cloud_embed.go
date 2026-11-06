@@ -31,6 +31,7 @@ const (
 	CloudEmbedProtocolCompatibleV1 CloudEmbedProtocol = "openai-compatible/embeddings/v1"
 	CloudEmbedProtocolGeminiV1     CloudEmbedProtocol = "gemini/embed-content/v1"
 	CloudEmbedProtocolCohereV2     CloudEmbedProtocol = "cohere/embed-v5/search/v2"
+	CloudEmbedProtocolOpenRouterV1 CloudEmbedProtocol = "openrouter/embeddings/v1"
 )
 
 // CloudEmbedTarget is one exact provider/model target interpreted by an
@@ -49,6 +50,9 @@ func (t CloudEmbedTarget) RemoteModelCatalogID() string { return t.remoteModelCa
 func (t CloudEmbedTarget) Region() string               { return t.region }
 
 func (t CloudEmbedTarget) Protocol() CloudEmbedProtocol {
+	if t.provider == "openrouter" && OpenRouterEmbedDimensions(t.providerModelID) > 0 {
+		return CloudEmbedProtocolOpenRouterV1
+	}
 	if t.provider == "cohere" && (t.providerModelID == "embed-v5.0-pro" || t.providerModelID == "embed-v5.0-fast") {
 		return CloudEmbedProtocolCohereV2
 	}
@@ -59,6 +63,9 @@ func (t CloudEmbedTarget) Protocol() CloudEmbedProtocol {
 }
 
 func (t CloudEmbedTarget) DefaultDimensions() uint32 {
+	if t.Protocol() == CloudEmbedProtocolOpenRouterV1 {
+		return OpenRouterEmbedDimensions(t.providerModelID)
+	}
 	if t.Protocol() == CloudEmbedProtocolCohereV2 {
 		return 2048
 	}
@@ -264,6 +271,9 @@ func (d providerCloudEmbedDriver) MapRequest(target CloudEmbedTarget, spec *runt
 			return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("text.embed inputs must be non-empty"))
 		}
 		inputs = append(inputs, trimmed)
+		if target.provider == "openrouter" {
+			inputs[len(inputs)-1] = input
+		}
 	}
 	var dimensions *uint32
 	protocol, defaultDimensions := target.Protocol(), target.DefaultDimensions()
@@ -272,7 +282,7 @@ func (d providerCloudEmbedDriver) MapRequest(target CloudEmbedTarget, spec *runt
 		if limit == 0 || spec.GetDimensions() < minimum || spec.GetDimensions() > limit {
 			return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("requested embedding dimensions are unsupported by the selected implementation"))
 		}
-		if protocol == CloudEmbedProtocolCohereV2 {
+		if protocol == CloudEmbedProtocolCohereV2 || protocol == CloudEmbedProtocolOpenRouterV1 && strings.HasPrefix(target.providerModelID, "cohere/") {
 			switch spec.GetDimensions() {
 			case 256, 512, 768, 1024, 1536, 2048:
 			default:
@@ -295,6 +305,13 @@ func (d providerCloudEmbedDriver) MapRequest(target CloudEmbedTarget, spec *runt
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.embedding-output-contract
 func nativeCloudEmbeddingDimensionBounds(provider, modelID string) (uint32, uint32) {
+	if provider == "openrouter" {
+		width := OpenRouterEmbedDimensions(modelID)
+		if strings.HasPrefix(modelID, "cohere/") {
+			return 256, width
+		}
+		return 1, width
+	}
 	if provider == "cohere" && (modelID == "embed-v5.0-pro" || modelID == "embed-v5.0-fast") {
 		return 256, 2048
 	}

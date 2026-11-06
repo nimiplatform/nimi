@@ -99,6 +99,9 @@ func requireNativeTaskPublisher(ctx context.Context) error {
 }
 
 func ValidateNativeTaskReceipt(r *NativeTaskReceipt) error {
+	if r != nil && r.Adapter == AdapterOpenRouterVideo && (!validOpenRouterTaskID(r.TaskID) || r.Model != capabilitydriver.OpenRouterVideoModel || r.Artifact == nil || r.Artifact.GetMimeType() != "video/mp4") {
+		return fmt.Errorf("invalid OpenRouter original video identity")
+	}
 	if r != nil && (r.Adapter == AdapterXAIImage || r.Adapter == AdapterXAIVideo) {
 		if !validXAITaskID(r.TaskID) || r.Artifact == nil || r.Adapter == AdapterXAIImage && (!capabilitydriver.IsXAIImageModel(r.Model) || r.Artifact.GetMimeType() != "image/jpeg") || r.Adapter == AdapterXAIVideo && (!capabilitydriver.IsXAIVideoModel(r.Model) || r.Artifact.GetMimeType() != "video/mp4") {
 			return fmt.Errorf("xAI original media task identity invalid")
@@ -159,6 +162,8 @@ func ValidateNativeTaskReceipt(r *NativeTaskReceipt) error {
 // URL supplied by a provider response or a recovered row.
 func nativeTaskQueryPathAllowed(adapter, path string) bool {
 	switch adapter {
+	case AdapterOpenRouterVideo:
+		return path == openRouterVideoQueryPath
 	case AdapterXAIImage:
 		return path == xaiImageQueryPath
 	case AdapterXAIVideo:
@@ -232,6 +237,9 @@ func ObserveNativeTask(ctx context.Context, cfg MediaAdapterConfig, r *NativeTas
 	}
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	ctx = originalControlRequest(ctx)
+	if r.Adapter == AdapterOpenRouterVideo {
+		return observeOpenRouterVideo(ctx, cfg, r)
+	}
 	if r.Adapter == AdapterXAIImage || r.Adapter == AdapterXAIVideo {
 		return observeXAIMedia(ctx, cfg, r)
 	}
@@ -409,6 +417,14 @@ func OpenNativeTaskArtifacts(ctx context.Context, cfg MediaAdapterConfig, receip
 	}
 	artifacts := observation.Artifacts
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
+	if receipt.Adapter == AdapterOpenRouterVideo {
+		if len(artifacts) != 1 || artifacts[0].GetArtifactId() != receipt.Artifact.GetArtifactId() {
+			return nil, openRouterOutputError()
+		}
+		return detachMediaArtifactBodiesWithOpener(ctx, artifacts, func(ctx context.Context, uri string) (io.ReadCloser, string, int64, error) {
+			return openOpenRouterVideo(ctx, cfg, receipt, uri)
+		})
+	}
 	if receipt.Adapter == AdapterXAIImage {
 		return openXAIImageArtifacts(ctx, artifacts)
 	}

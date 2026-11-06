@@ -1,18 +1,1463 @@
 version: 1
 provider: openrouter
-catalog_version: 2026-03-05-openrouter-v1
-inventory_mode: dynamic_endpoint
-models: []
-voices: []
-dynamic_inventory:
-  discovery_transport: connector_list_models
-  cache_ttl_sec: 300
-  selection_mode: pass_through
-  failure_policy: use_cache_then_fail_closed
-  allowed_capabilities:
-    - text.generate
-    - text.embed
-    - image.generate
-    - video.generate
-    - audio.synthesize
-    - audio.transcribe
+catalog_version: 2026-11-07-openrouter-six-capabilities
+inventory_mode: static_source
+models:
+  - model_id: openai/gpt-6.1-terra
+    provider: openrouter
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ref:
+      url: https://openrouter.ai/openai/gpt-6.1-terra
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    features:
+      - input.image
+    context_window_tokens: 1050000
+  - model_id: openai/gpt-6.1-sol
+    provider: openrouter
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ref:
+      url: https://openrouter.ai/openai/gpt-6.1-sol
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    features:
+      - input.image
+    context_window_tokens: 1050000
+  - model_id: openai/gpt-6-astra
+    provider: openrouter
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ref:
+      url: https://openrouter.ai/openai/gpt-6-astra
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    features:
+      - input.image
+    context_window_tokens: 1050000
+  - model_id: openai/gpt-6-luna
+    provider: openrouter
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ref:
+      url: https://openrouter.ai/openai/gpt-6-luna
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    features:
+      - input.image
+    context_window_tokens: 1050000
+  - model_id: anthropic/claude-fable-5.1
+    provider: openrouter
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ref:
+      url: https://openrouter.ai/anthropic/claude-fable-5.1
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    features:
+      - input.image
+    context_window_tokens: 1000000
+  - model_id: anthropic/claude-opus-5.5
+    provider: openrouter
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ref:
+      url: https://openrouter.ai/anthropic/claude-opus-5.5
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    features:
+      - input.image
+    context_window_tokens: 1000000
+  - model_id: anthropic/claude-sonnet-5.5
+    provider: openrouter
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ref:
+      url: https://openrouter.ai/anthropic/claude-sonnet-5.5
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    features:
+      - input.image
+    context_window_tokens: 1000000
+  - model_id: anthropic/claude-haiku-5.5
+    provider: openrouter
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ref:
+      url: https://openrouter.ai/anthropic/claude-haiku-5.5
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    features:
+      - input.image
+    context_window_tokens: 1000000
+  - model_id: google/gemini-4-argon
+    provider: openrouter
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ref:
+      url: https://openrouter.ai/google/gemini-4-argon
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    features:
+      - input.image
+    context_window_tokens: 1048576
+  - model_id: google/gemini-3.8-flash
+    provider: openrouter
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ref:
+      url: https://openrouter.ai/google/gemini-3.8-flash
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    features:
+      - input.image
+    context_window_tokens: 1048576
+  - model_id: x-ai/grok-4.7
+    provider: openrouter
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ref:
+      url: https://openrouter.ai/x-ai/grok-4.7
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    features:
+      - input.image
+    context_window_tokens: 500000
+  - model_id: moonshotai/kimi-k3.1-pro
+    provider: openrouter
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ref:
+      url: https://openrouter.ai/moonshotai/kimi-k3.1-pro
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    features:
+      - input.image
+    context_window_tokens: 1048576
+  - model_id: moonshotai/kimi-k3
+    provider: openrouter
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ref:
+      url: https://openrouter.ai/moonshotai/kimi-k3
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    features:
+      - input.image
+    context_window_tokens: 1048576
+  - model_id: deepseek/deepseek-v4.1-flash-1017
+    provider: openrouter
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ref:
+      url: https://openrouter.ai/deepseek/deepseek-v4.1-flash-1017
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    features:
+      - input.image
+    context_window_tokens: 1048576
+  - model_id: z-ai/glm-5.3
+    provider: openrouter
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ref:
+      url: https://openrouter.ai/z-ai/glm-5.3
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    context_window_tokens: 1048576
+  - model_id: z-ai/glm-5.3-flash
+    provider: openrouter
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ref:
+      url: https://openrouter.ai/z-ai/glm-5.3-flash
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    features:
+      - input.image
+    context_window_tokens: 1048576
+  - model_id: z-ai/glm-5.3-flashx
+    provider: openrouter
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ref:
+      url: https://openrouter.ai/z-ai/glm-5.3-flashx
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    features:
+      - input.image
+    context_window_tokens: 1048576
+  - model_id: z-ai/glm-5.3-flashx-legal
+    provider: openrouter
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ref:
+      url: https://openrouter.ai/z-ai/glm-5.3-flashx-legal
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    features:
+      - input.image
+    context_window_tokens: 1048576
+  - model_id: minimax/minimax-m3.1-flash
+    provider: openrouter
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ref:
+      url: https://openrouter.ai/minimax/minimax-m3.1-flash
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    features:
+      - input.image
+    context_window_tokens: 1048576
+  - model_id: cohere/embed-5-fast
+    provider: openrouter
+    model_type: embedding
+    updated_at: 2026-11-07
+    capabilities:
+      - text.embed
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Text-only retrieval document/query mapping and exact float output width; no multimodal embedding claim.
+    source_ref:
+      url: https://openrouter.ai/cohere/embed-5-fast
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    embedding:
+      dimension: 2048
+  - model_id: cohere/embed-5-pro
+    provider: openrouter
+    model_type: embedding
+    updated_at: 2026-11-07
+    capabilities:
+      - text.embed
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Text-only retrieval document/query mapping and exact float output width; no multimodal embedding claim.
+    source_ref:
+      url: https://openrouter.ai/cohere/embed-5-pro
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    embedding:
+      dimension: 2048
+  - model_id: openai/text-embedding-3-large
+    provider: openrouter
+    model_type: embedding
+    updated_at: 2026-11-07
+    capabilities:
+      - text.embed
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Text-only retrieval document/query mapping and exact float output width; no multimodal embedding claim.
+    source_ref:
+      url: https://openrouter.ai/openai/text-embedding-3-large
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    embedding:
+      dimension: 3072
+  - model_id: openai/text-embedding-3-small
+    provider: openrouter
+    model_type: embedding
+    updated_at: 2026-11-07
+    capabilities:
+      - text.embed
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Text-only retrieval document/query mapping and exact float output width; no multimodal embedding claim.
+    source_ref:
+      url: https://openrouter.ai/openai/text-embedding-3-small
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    embedding:
+      dimension: 1536
+  - model_id: openai/gpt-image-2.6-sunburst
+    provider: openrouter
+    model_type: image
+    updated_at: 2026-11-07
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Native /images text or single owned reference image; PNG/JPEG/WebP, reviewed pixel sizes, quality low/medium/high/auto and complexity. No mask/markup/SVG/GIF mapping.
+    source_ref:
+      url: https://openrouter.ai/openai/gpt-image-2.6-sunburst
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    features:
+      - input.image
+    image_request_options:
+      response_formats:
+        - b64_json
+      max_images_per_request: 10
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: false
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: true
+      supports_style: false
+  - model_id: openai/gpt-image-2.6-flare
+    provider: openrouter
+    model_type: image
+    updated_at: 2026-11-07
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Native /images text or single owned reference image; PNG/JPEG/WebP, reviewed pixel sizes, quality low/medium/high/auto and complexity. No mask/markup/SVG/GIF mapping.
+    source_ref:
+      url: https://openrouter.ai/openai/gpt-image-2.6-flare
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    features:
+      - input.image
+    image_request_options:
+      response_formats:
+        - b64_json
+      max_images_per_request: 10
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: false
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: true
+      supports_style: false
+  - model_id: google/gemini-nano-banana-2.1
+    provider: openrouter
+    model_type: image
+    updated_at: 2026-11-07
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Native /images text or single owned reference image; 1K/2K/4K tiers, native output encoding.
+    source_ref:
+      url: https://openrouter.ai/google/gemini-nano-banana-2.1
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    features:
+      - input.image
+    image_request_options:
+      response_formats:
+        - b64_json
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: false
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: false
+      supports_style: false
+  - model_id: google/gemini-omni-1.2-flash
+    provider: openrouter
+    model_type: video
+    updated_at: 2026-11-07
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Omni 1.2 with native audio; original async task and authenticated content receipt. Text/first frame 3-15s; first/last 3-10s. No upstream stop/fee cancellation is claimed.
+    source_ref:
+      url: https://openrouter.ai/google/gemini-omni-1.2-flash
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    features:
+      - input.image
+    video_generation:
+      modes:
+        - t2v
+        - i2v_first_frame
+        - i2v_first_last
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+        i2v_first_last:
+          - prompt
+          - first_frame
+          - last_frame
+      limits:
+        resolution:
+          - 360p
+          - 720p
+          - 1080p
+          - 4k
+        ratio:
+          - 16:9
+          - 9:16
+        duration_sec:
+          min: 3
+          max: 15
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+          - generate_audio
+        constraints:
+          generate_audio:
+            allowed:
+              - true
+      outputs:
+        video_url: true
+  - model_id: mistralai/voxtral-mini-tts-3-0
+    provider: openrouter
+    model_type: tts
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Preset voice finite MP3 output. Separate language, speed, pitch, volume, timing and cloning controls are not mapped; inline direction stays original text.
+    source_ref:
+      url: https://openrouter.ai/mistralai/voxtral-mini-tts-3-0
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+    voice_set_id: openrouter:openrouter-voxtral3
+    voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - mp3
+    voice_ref_kinds:
+      - preset_voice_id
+  - model_id: mistralai/voxtral-mini-transcribe-3-0
+    provider: openrouter
+    model_type: stt
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Complete owned WAV/MP3, native transcript and reported usage. Prompt is rejected because this gateway ignores it. Word timestamps and diarization are unsupported through this gateway; no invented no-speech or language.
+    source_ref:
+      url: https://openrouter.ai/mistralai/voxtral-mini-transcribe-3-0
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - model_id: openai/gpt-transcribe
+    provider: openrouter
+    model_type: stt
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Complete owned WAV/MP3, native transcript and reported usage. Prompt is rejected because this gateway ignores it. Word timestamps and diarization are unsupported through this gateway; no invented no-speech or language.
+    source_ref:
+      url: https://openrouter.ai/openai/gpt-transcribe
+      retrieved_at: 2026-11-07
+      note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+voices:
+  - voice_id: voice_3150
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: James (US)
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_478
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Sheila (US)
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_447
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Margaret (US)
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_485
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Rob (US)
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: en_paul_sad
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: en paul sad
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: en_paul_neutral
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: en paul neutral
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: en_paul_happy
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: en paul happy
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: en_paul_frustrated
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: en paul frustrated
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: en_paul_excited
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: en paul excited
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: en_paul_confident
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: en paul confident
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: en_paul_cheerful
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: en paul cheerful
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: en_paul_angry
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: en paul angry
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_3149
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Hugo (UK)
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_3147
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Howard (UK)
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_591
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Fred (UK)
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_590
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Harriet (UK)
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_1788
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: David (UK)
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_1787
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Mary (UK)
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_1786
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Sky (UK)
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: gb_oliver_neutral
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: gb oliver neutral
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: gb_jane_sarcasm
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: gb jane sarcasm
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: gb_jane_confused
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: gb jane confused
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: gb_oliver_sad
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: gb oliver sad
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: gb_oliver_excited
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: gb oliver excited
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: gb_oliver_curious
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: gb oliver curious
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: gb_oliver_confident
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: gb oliver confident
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: gb_oliver_cheerful
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: gb oliver cheerful
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: gb_oliver_angry
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: gb oliver angry
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: gb_jane_shameful
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: gb jane shameful
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: gb_jane_sad
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: gb jane sad
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: gb_jane_neutral
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: gb jane neutral
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: gb_jane_jealousy
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: gb jane jealousy
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: gb_jane_frustrated
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: gb jane frustrated
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: gb_jane_curious
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: gb jane curious
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: gb_jane_confident
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: gb jane confident
+    langs:
+      - en
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_479
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Maryam
+    langs:
+      - ar
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_3143
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Jordi
+    langs:
+      - ca
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_481
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Heidi
+    langs:
+      - de
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_483
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Elena
+    langs:
+      - es
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_592
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Marie
+    langs:
+      - fr
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_3137
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Manon
+    langs:
+      - fr
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_589
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Lea
+    langs:
+      - fr
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_3141
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Camille
+    langs:
+      - fr
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: fr_marie_sad
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: fr marie sad
+    langs:
+      - fr
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: fr_marie_neutral
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: fr marie neutral
+    langs:
+      - fr
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: fr_marie_happy
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: fr marie happy
+    langs:
+      - fr
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: fr_marie_excited
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: fr marie excited
+    langs:
+      - fr
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: fr_marie_curious
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: fr marie curious
+    langs:
+      - fr
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: fr_marie_angry
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: fr marie angry
+    langs:
+      - fr
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_3153
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Himanshu
+    langs:
+      - hi
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_3139
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Ananya
+    langs:
+      - hi
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_3146
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Olivia
+    langs:
+      - hu
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_482
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Lorenzo
+    langs:
+      - it
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_3133
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Haruto
+    langs:
+      - ja
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_3136
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Sung
+    langs:
+      - ko
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_3135
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Jin
+    langs:
+      - ko
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_3145
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Lotte
+    langs:
+      - nl
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_3134
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Lars
+    langs:
+      - no
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_3154
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Leon
+    langs:
+      - pl
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_480
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Gabriela
+    langs:
+      - pt
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_3155
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Irina
+    langs:
+      - ro
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_3132
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Tatiana
+    langs:
+      - ru
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_3138
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Oran
+    langs:
+      - tr
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_3140
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Taras
+    langs:
+      - uk
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_3144
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Huong
+    langs:
+      - vi
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.
+  - voice_id: voice_3142
+    voice_set_id: openrouter:openrouter-voxtral3
+    provider: openrouter
+    name: Mei
+    langs:
+      - zh
+    model_ids:
+      - mistralai/voxtral-mini-tts-3-0
+    source_ref:
+      url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+      retrieved_at: 2026-11-07
+      note: Official gateway request/result contract; account-level inference is verified separately.

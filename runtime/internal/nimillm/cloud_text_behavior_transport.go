@@ -77,6 +77,8 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 		wireStream = true
 	case "perplexity":
 		wireStream = true
+	case "openrouter":
+		wireStream = true
 	default:
 		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
 	}
@@ -107,7 +109,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 		// prefix still needs /v1; Gemini's superficially similar prefix does not.
 		path = backend.compatiblePath("/chat/completions")
 	}
-	if target.ProviderType == "openai" || target.ProviderType == "xai" {
+	if target.ProviderType == "openai" || target.ProviderType == "xai" || target.ProviderType == "openrouter" {
 		path = resolveOpenAICompatiblePath(backend.baseURL, "/responses")
 	}
 	if target.ProviderType == "perplexity" {
@@ -184,7 +186,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 		request.Header.Del("Authorization")
 		request.Header.Set("x-goog-api-key", backend.apiKey)
 	}
-	if miniMaxMessages || target.ProviderType == "mistral" || target.ProviderType == "stepfun" || target.ProviderType == "fireworks" {
+	if miniMaxMessages || target.ProviderType == "mistral" || target.ProviderType == "stepfun" || target.ProviderType == "fireworks" || target.ProviderType == "openrouter" {
 		// These exact protocols use Bearer even when a gateway path contains
 		// /anthropic; generic URL heuristics cannot select credential semantics.
 		request.Header.Del("x-api-key")

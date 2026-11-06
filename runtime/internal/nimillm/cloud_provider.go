@@ -115,6 +115,11 @@ func (p *CloudProvider) EmbedWithTarget(ctx context.Context, modelID string, inp
 		return nil, nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	switch protocol {
+	case capabilitydriver.CloudEmbedProtocolOpenRouterV1:
+		if target.ProviderType != "openrouter" || capabilitydriver.OpenRouterEmbedDimensions(resolvedModelID) == 0 {
+			return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+		}
+		return backend.EmbedOpenRouter(ctx, resolvedModelID, inputs, dimensions, purpose)
 	case capabilitydriver.CloudEmbedProtocolCohereV2:
 		if target.ProviderType != "cohere" || (resolvedModelID != "embed-v5.0-pro" && resolvedModelID != "embed-v5.0-fast") {
 			return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)

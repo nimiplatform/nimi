@@ -603,6 +603,11 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 			return nil, err
 		}
 	}
+	if d.provider == "openrouter" {
+		if err := validateOpenRouterMedia(mapped, target.providerModelID, streamMode); err != nil {
+			return nil, err
+		}
+	}
 	if d.provider == "aws_polly" {
 		if err := validatePollySpeechRequest(mapped, target.providerModelID, streamMode); err != nil {
 			return nil, err
@@ -625,7 +630,7 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 			}
 		}
 	}
-	if spec := mapped.GetSpec().GetImageGenerate(); spec != nil && ImageHasExtendedControls(spec) && !SupportsGPTImageOwnedInputs(d.provider, target.providerModelID) && d.provider != "stability" && !(d.provider == "luma" && IsLumaUniImageModel(target.providerModelID)) {
+	if spec := mapped.GetSpec().GetImageGenerate(); spec != nil && ImageHasExtendedControls(spec) && !SupportsGPTImageOwnedInputs(d.provider, target.providerModelID) && d.provider != "stability" && !(d.provider == "openrouter" && IsOpenRouterImageModel(target.providerModelID)) && !(d.provider == "luma" && IsLumaUniImageModel(target.providerModelID)) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	for _, item := range mapped.GetSpec().GetVideoGenerate().GetContent() {
@@ -637,7 +642,7 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 		return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("provider does not support music iteration mapping"))
 	}
 	if spec := mapped.GetSpec().GetImageGenerate(); spec != nil && strings.TrimSpace(spec.GetReferenceImageArtifactId()) != "" {
-		if (d.provider != "gemini" && !(d.provider == "xai" && target.providerModelID == XAIImage2Model) && !(d.provider == "flux" && IsFlux3ImageModel(target.providerModelID)) && !(d.provider == "ideogram" && target.providerModelID == Ideogram45Model) && !(d.provider == "stability" && StabilityImageReferenceSupported(target.providerModelID)) && !SupportsGPTImageOwnedInputs(d.provider, target.providerModelID) && !(d.provider == "luma" && IsLumaUniImageModel(target.providerModelID))) || len(spec.GetReferenceImages()) != 0 {
+		if (d.provider != "gemini" && !(d.provider == "openrouter" && IsOpenRouterImageModel(target.providerModelID)) && !(d.provider == "xai" && target.providerModelID == XAIImage2Model) && !(d.provider == "flux" && IsFlux3ImageModel(target.providerModelID)) && !(d.provider == "ideogram" && target.providerModelID == Ideogram45Model) && !(d.provider == "stability" && StabilityImageReferenceSupported(target.providerModelID)) && !SupportsGPTImageOwnedInputs(d.provider, target.providerModelID) && !(d.provider == "luma" && IsLumaUniImageModel(target.providerModelID))) || len(spec.GetReferenceImages()) != 0 {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 		}
 	}
@@ -1041,6 +1046,17 @@ func cloudMediaAdapterFor(provider string, capability string) string {
 		}
 	}
 	switch provider {
+	case "openrouter":
+		switch capability {
+		case "image.generate":
+			return CloudMediaAdapterOpenRouterImage
+		case "video.generate":
+			return CloudMediaAdapterOpenRouterVideo
+		case "audio.synthesize":
+			return CloudMediaAdapterOpenRouterSpeech
+		case "audio.transcribe":
+			return CloudMediaAdapterOpenRouterTranscribe
+		}
 	case "xai":
 		if capability == "image.generate" {
 			return CloudMediaAdapterXAIImage

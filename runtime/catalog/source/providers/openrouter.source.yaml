@@ -1,6 +1,6 @@
 schema_version: 3
 provider: openrouter
-catalog_version: 2026-03-05-openrouter-v1
+catalog_version: 2026-11-07-openrouter-six-capabilities
 generated_target: runtime/catalog/providers/openrouter.yaml
 runtime:
   runtime_plane: remote
@@ -8,37 +8,1133 @@ runtime:
   inline_supported: true
   default_endpoint: https://openrouter.ai/api/v1
   requires_explicit_endpoint: false
-  inventory_mode: dynamic_endpoint
-  dynamic_inventory:
-    discovery_transport: connector_list_models
-    cache_ttl_sec: 300
-    selection_mode: pass_through
-    failure_policy: use_cache_then_fail_closed
-    allowed_capabilities:
-      - text.generate
-      - text.embed
-      - image.generate
-      - video.generate
-      - audio.synthesize
-      - audio.transcribe
+  inventory_mode: static_source
 defaults:
   provider: openrouter
   model_type: chat
   capabilities: []
   pricing:
-    unit: token
+    unit: request
     input: unknown
     output: unknown
     currency: USD
-    as_of: 2026-03-05
-    notes: OpenRouter pricing depends on the routed downstream model/provider.
-
+    as_of: 2026-11-07
+    notes: Provider and request dependent pricing; no inferred billing usage.
 sources:
-  - source_id: openrouter_models_doc
-    url: https://openrouter.ai/docs/docs/overview/models
-    retrieved_at: 2026-03-05
-    note: OpenRouter models overview and Models API schema.
-  - source_id: openrouter_auto_router_doc
-    url: https://openrouter.ai/docs/docs/routing/auto-model-selection
-    retrieved_at: 2026-03-05
-    note: OpenRouter Auto Router model ID and routing behavior.
+  - source_id: openrouter_models
+    url: https://openrouter.ai/docs/api/api-reference/models/list-all-models-and-their-properties
+    retrieved_at: 2026-11-07
+    note: Official gateway request/result contract; account-level inference is verified separately.
+  - source_id: openrouter_responses
+    url: https://openrouter.ai/docs/api/api-reference/responses/create-a-response
+    retrieved_at: 2026-11-07
+    note: Official gateway request/result contract; account-level inference is verified separately.
+  - source_id: openrouter_reasoning
+    url: https://openrouter.ai/docs/guides/best-practices/reasoning-tokens
+    retrieved_at: 2026-11-07
+    note: Official gateway request/result contract; account-level inference is verified separately.
+  - source_id: openrouter_routing
+    url: https://openrouter.ai/docs/guides/routing/provider-selection
+    retrieved_at: 2026-11-07
+    note: Official gateway request/result contract; account-level inference is verified separately.
+  - source_id: openrouter_images
+    url: https://openrouter.ai/docs/api/api-reference/images/generate-an-image
+    retrieved_at: 2026-11-07
+    note: Official gateway request/result contract; account-level inference is verified separately.
+  - source_id: openrouter_video
+    url: https://openrouter.ai/docs/guides/overview/multimodal/video-generation
+    retrieved_at: 2026-11-07
+    note: Official gateway request/result contract; account-level inference is verified separately.
+  - source_id: openrouter_embedding
+    url: https://openrouter.ai/docs/api/api-reference/embeddings/submit-an-embedding-request
+    retrieved_at: 2026-11-07
+    note: Official gateway request/result contract; account-level inference is verified separately.
+  - source_id: openrouter_speech
+    url: https://openrouter.ai/docs/api/api-reference/tts/create-speech
+    retrieved_at: 2026-11-07
+    note: Official gateway request/result contract; account-level inference is verified separately.
+  - source_id: openrouter_transcribe
+    url: https://openrouter.ai/docs/api/api-reference/stt/create-transcription
+    retrieved_at: 2026-11-07
+    note: Official gateway request/result contract; account-level inference is verified separately.
+  - source_id: openrouter_model_0
+    url: https://openrouter.ai/openai/gpt-6.1-terra
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_1
+    url: https://openrouter.ai/openai/gpt-6.1-sol
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_2
+    url: https://openrouter.ai/openai/gpt-6-astra
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_3
+    url: https://openrouter.ai/openai/gpt-6-luna
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_4
+    url: https://openrouter.ai/anthropic/claude-fable-5.1
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_5
+    url: https://openrouter.ai/anthropic/claude-opus-5.5
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_6
+    url: https://openrouter.ai/anthropic/claude-sonnet-5.5
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_7
+    url: https://openrouter.ai/anthropic/claude-haiku-5.5
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_8
+    url: https://openrouter.ai/google/gemini-4-argon
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_9
+    url: https://openrouter.ai/google/gemini-3.8-flash
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_10
+    url: https://openrouter.ai/x-ai/grok-4.7
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_11
+    url: https://openrouter.ai/moonshotai/kimi-k3.1-pro
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_12
+    url: https://openrouter.ai/moonshotai/kimi-k3
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_13
+    url: https://openrouter.ai/deepseek/deepseek-v4.1-flash-1017
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_14
+    url: https://openrouter.ai/z-ai/glm-5.3
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_15
+    url: https://openrouter.ai/z-ai/glm-5.3-flash
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_16
+    url: https://openrouter.ai/z-ai/glm-5.3-flashx
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_17
+    url: https://openrouter.ai/z-ai/glm-5.3-flashx-legal
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_18
+    url: https://openrouter.ai/minimax/minimax-m3.1-flash
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_19
+    url: https://openrouter.ai/cohere/embed-5-fast
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_20
+    url: https://openrouter.ai/cohere/embed-5-pro
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_21
+    url: https://openrouter.ai/openai/text-embedding-3-large
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_22
+    url: https://openrouter.ai/openai/text-embedding-3-small
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_23
+    url: https://openrouter.ai/openai/gpt-image-2.6-sunburst
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_24
+    url: https://openrouter.ai/openai/gpt-image-2.6-flare
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_25
+    url: https://openrouter.ai/google/gemini-nano-banana-2.1
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_26
+    url: https://openrouter.ai/mistralai/voxtral-mini-transcribe-3-0
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_27
+    url: https://openrouter.ai/openai/gpt-transcribe
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_28
+    url: https://openrouter.ai/mistralai/voxtral-mini-tts-3-0
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+  - source_id: openrouter_model_29
+    url: https://openrouter.ai/google/gemini-omni-1.2-flash
+    retrieved_at: 2026-11-07
+    note: Exact public gateway model identity; reviewed alongside current official model and endpoint metadata.
+models:
+  - model_id: openai/gpt-6.1-terra
+    model_type: chat
+    updated_at: 2026-11-07
+    context_window_tokens: 1050000
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ids:
+      - openrouter_model_0
+      - openrouter_models
+      - openrouter_responses
+      - openrouter_reasoning
+      - openrouter_routing
+  - model_id: openai/gpt-6.1-sol
+    model_type: chat
+    updated_at: 2026-11-07
+    context_window_tokens: 1050000
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ids:
+      - openrouter_model_1
+      - openrouter_models
+      - openrouter_responses
+      - openrouter_reasoning
+      - openrouter_routing
+  - model_id: openai/gpt-6-astra
+    model_type: chat
+    updated_at: 2026-11-07
+    context_window_tokens: 1050000
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ids:
+      - openrouter_model_2
+      - openrouter_models
+      - openrouter_responses
+      - openrouter_reasoning
+      - openrouter_routing
+  - model_id: openai/gpt-6-luna
+    model_type: chat
+    updated_at: 2026-11-07
+    context_window_tokens: 1050000
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ids:
+      - openrouter_model_3
+      - openrouter_models
+      - openrouter_responses
+      - openrouter_reasoning
+      - openrouter_routing
+  - model_id: anthropic/claude-fable-5.1
+    model_type: chat
+    updated_at: 2026-11-07
+    context_window_tokens: 1000000
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ids:
+      - openrouter_model_4
+      - openrouter_models
+      - openrouter_responses
+      - openrouter_reasoning
+      - openrouter_routing
+  - model_id: anthropic/claude-opus-5.5
+    model_type: chat
+    updated_at: 2026-11-07
+    context_window_tokens: 1000000
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ids:
+      - openrouter_model_5
+      - openrouter_models
+      - openrouter_responses
+      - openrouter_reasoning
+      - openrouter_routing
+  - model_id: anthropic/claude-sonnet-5.5
+    model_type: chat
+    updated_at: 2026-11-07
+    context_window_tokens: 1000000
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ids:
+      - openrouter_model_6
+      - openrouter_models
+      - openrouter_responses
+      - openrouter_reasoning
+      - openrouter_routing
+  - model_id: anthropic/claude-haiku-5.5
+    model_type: chat
+    updated_at: 2026-11-07
+    context_window_tokens: 1000000
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ids:
+      - openrouter_model_7
+      - openrouter_models
+      - openrouter_responses
+      - openrouter_reasoning
+      - openrouter_routing
+  - model_id: google/gemini-4-argon
+    model_type: chat
+    updated_at: 2026-11-07
+    context_window_tokens: 1048576
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ids:
+      - openrouter_model_8
+      - openrouter_models
+      - openrouter_responses
+      - openrouter_reasoning
+      - openrouter_routing
+  - model_id: google/gemini-3.8-flash
+    model_type: chat
+    updated_at: 2026-11-07
+    context_window_tokens: 1048576
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ids:
+      - openrouter_model_9
+      - openrouter_models
+      - openrouter_responses
+      - openrouter_reasoning
+      - openrouter_routing
+  - model_id: x-ai/grok-4.7
+    model_type: chat
+    updated_at: 2026-11-07
+    context_window_tokens: 500000
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ids:
+      - openrouter_model_10
+      - openrouter_models
+      - openrouter_responses
+      - openrouter_reasoning
+      - openrouter_routing
+  - model_id: moonshotai/kimi-k3.1-pro
+    model_type: chat
+    updated_at: 2026-11-07
+    context_window_tokens: 1048576
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ids:
+      - openrouter_model_11
+      - openrouter_models
+      - openrouter_responses
+      - openrouter_reasoning
+      - openrouter_routing
+  - model_id: moonshotai/kimi-k3
+    model_type: chat
+    updated_at: 2026-11-07
+    context_window_tokens: 1048576
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ids:
+      - openrouter_model_12
+      - openrouter_models
+      - openrouter_responses
+      - openrouter_reasoning
+      - openrouter_routing
+  - model_id: deepseek/deepseek-v4.1-flash-1017
+    model_type: chat
+    updated_at: 2026-11-07
+    context_window_tokens: 1048576
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ids:
+      - openrouter_model_13
+      - openrouter_models
+      - openrouter_responses
+      - openrouter_reasoning
+      - openrouter_routing
+  - model_id: z-ai/glm-5.3
+    model_type: chat
+    updated_at: 2026-11-07
+    context_window_tokens: 1048576
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ids:
+      - openrouter_model_14
+      - openrouter_models
+      - openrouter_responses
+      - openrouter_reasoning
+      - openrouter_routing
+  - model_id: z-ai/glm-5.3-flash
+    model_type: chat
+    updated_at: 2026-11-07
+    context_window_tokens: 1048576
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ids:
+      - openrouter_model_15
+      - openrouter_models
+      - openrouter_responses
+      - openrouter_reasoning
+      - openrouter_routing
+  - model_id: z-ai/glm-5.3-flashx
+    model_type: chat
+    updated_at: 2026-11-07
+    context_window_tokens: 1048576
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ids:
+      - openrouter_model_16
+      - openrouter_models
+      - openrouter_responses
+      - openrouter_reasoning
+      - openrouter_routing
+  - model_id: z-ai/glm-5.3-flashx-legal
+    model_type: chat
+    updated_at: 2026-11-07
+    context_window_tokens: 1048576
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ids:
+      - openrouter_model_17
+      - openrouter_models
+      - openrouter_responses
+      - openrouter_reasoning
+      - openrouter_routing
+  - model_id: minimax/minimax-m3.1-flash
+    model_type: chat
+    updated_at: 2026-11-07
+    context_window_tokens: 1048576
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Exact Responses text step. Native reasoning replay can contain signed plaintext and remains hidden unless an actual summary is requested. Parameters and combinations follow the versioned Driver; published upstream multimodality does not extend this text/image cohort.
+    source_ids:
+      - openrouter_model_18
+      - openrouter_models
+      - openrouter_responses
+      - openrouter_reasoning
+      - openrouter_routing
+  - model_id: cohere/embed-5-fast
+    model_type: embedding
+    updated_at: 2026-11-07
+    capabilities:
+      - text.embed
+    embedding:
+      dimension: 2048
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Text-only retrieval document/query mapping and exact float output width; no multimodal embedding claim.
+    source_ids:
+      - openrouter_model_19
+      - openrouter_embedding
+  - model_id: cohere/embed-5-pro
+    model_type: embedding
+    updated_at: 2026-11-07
+    capabilities:
+      - text.embed
+    embedding:
+      dimension: 2048
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Text-only retrieval document/query mapping and exact float output width; no multimodal embedding claim.
+    source_ids:
+      - openrouter_model_20
+      - openrouter_embedding
+  - model_id: openai/text-embedding-3-large
+    model_type: embedding
+    updated_at: 2026-11-07
+    capabilities:
+      - text.embed
+    embedding:
+      dimension: 3072
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Text-only retrieval document/query mapping and exact float output width; no multimodal embedding claim.
+    source_ids:
+      - openrouter_model_21
+      - openrouter_embedding
+  - model_id: openai/text-embedding-3-small
+    model_type: embedding
+    updated_at: 2026-11-07
+    capabilities:
+      - text.embed
+    embedding:
+      dimension: 1536
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Text-only retrieval document/query mapping and exact float output width; no multimodal embedding claim.
+    source_ids:
+      - openrouter_model_22
+      - openrouter_embedding
+  - model_id: openai/gpt-image-2.6-sunburst
+    model_type: image
+    updated_at: 2026-11-07
+    capabilities:
+      - image.generate
+    features:
+      - input.image
+    image_request_options:
+      response_formats:
+        - b64_json
+      max_images_per_request: 10
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: false
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: true
+      supports_style: false
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Native /images text or single owned reference image; PNG/JPEG/WebP, reviewed pixel sizes, quality low/medium/high/auto and complexity. No mask/markup/SVG/GIF mapping.
+    source_ids:
+      - openrouter_model_23
+      - openrouter_images
+  - model_id: openai/gpt-image-2.6-flare
+    model_type: image
+    updated_at: 2026-11-07
+    capabilities:
+      - image.generate
+    features:
+      - input.image
+    image_request_options:
+      response_formats:
+        - b64_json
+      max_images_per_request: 10
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: false
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: true
+      supports_style: false
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Native /images text or single owned reference image; PNG/JPEG/WebP, reviewed pixel sizes, quality low/medium/high/auto and complexity. No mask/markup/SVG/GIF mapping.
+    source_ids:
+      - openrouter_model_24
+      - openrouter_images
+  - model_id: google/gemini-nano-banana-2.1
+    model_type: image
+    updated_at: 2026-11-07
+    capabilities:
+      - image.generate
+    features:
+      - input.image
+    image_request_options:
+      response_formats:
+        - b64_json
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: false
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: false
+      supports_style: false
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Native /images text or single owned reference image; 1K/2K/4K tiers, native output encoding.
+    source_ids:
+      - openrouter_model_25
+      - openrouter_images
+  - model_id: google/gemini-omni-1.2-flash
+    model_type: video
+    updated_at: 2026-11-07
+    capabilities:
+      - video.generate
+    features:
+      - input.image
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Omni 1.2 with native audio; original async task and authenticated content receipt. Text/first frame 3-15s; first/last 3-10s. No upstream stop/fee cancellation is claimed.
+    source_ids:
+      - openrouter_model_29
+      - openrouter_video
+    video_generation:
+      modes:
+        - t2v
+        - i2v_first_frame
+        - i2v_first_last
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+        i2v_first_last:
+          - prompt
+          - first_frame
+          - last_frame
+      limits:
+        resolution:
+          - 360p
+          - 720p
+          - 1080p
+          - 4k
+        ratio:
+          - 16:9
+          - 9:16
+        duration_sec:
+          min: 3
+          max: 15
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+          - generate_audio
+        constraints:
+          generate_audio:
+            allowed:
+              - true
+      outputs:
+        video_url: true
+  - model_id: mistralai/voxtral-mini-tts-3-0
+    model_type: tts
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Preset voice finite MP3 output. Separate language, speed, pitch, volume, timing and cloning controls are not mapped; inline direction stays original text.
+    source_ids:
+      - openrouter_model_28
+      - openrouter_speech
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: openrouter-voxtral3
+      supports_voice_ref_kinds:
+        - preset_voice_id
+      langs_ref: voxtral3_languages
+      request_options:
+        timing_modes:
+          - none
+        audio_formats:
+          - mp3
+        supports_language: false
+        supports_native_stream_tts: false
+  - model_id: mistralai/voxtral-mini-transcribe-3-0
+    model_type: stt
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Complete owned WAV/MP3, native transcript and reported usage. Prompt is rejected because this gateway ignores it. Word timestamps and diarization are unsupported through this gateway; no invented no-speech or language.
+    source_ids:
+      - openrouter_model_26
+      - openrouter_transcribe
+  - model_id: openai/gpt-transcribe
+    model_type: stt
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Complete owned WAV/MP3, native transcript and reported usage. Prompt is rejected because this gateway ignores it. Word timestamps and diarization are unsupported through this gateway; no invented no-speech or language.
+    source_ids:
+      - openrouter_model_27
+      - openrouter_transcribe
+language_profiles:
+  voxtral3_languages:
+    - en
+    - fr
+    - es
+    - de
+    - it
+    - pt
+    - ar
+    - ca
+    - hi
+    - hu
+    - ja
+    - ko
+    - nl
+    - no
+    - pl
+    - ro
+    - ru
+    - tr
+    - uk
+    - vi
+    - zh
+voice_sets:
+  - voice_set_id: openrouter-voxtral3
+    langs_ref: voxtral3_languages
+    source_ids:
+      - openrouter_speech
+      - openrouter_model_28
+    voices:
+      - voice_id: voice_3150
+        name: James (US)
+        langs:
+          - en
+      - voice_id: voice_478
+        name: Sheila (US)
+        langs:
+          - en
+      - voice_id: voice_447
+        name: Margaret (US)
+        langs:
+          - en
+      - voice_id: voice_485
+        name: Rob (US)
+        langs:
+          - en
+      - voice_id: en_paul_sad
+        name: en paul sad
+        langs:
+          - en
+      - voice_id: en_paul_neutral
+        name: en paul neutral
+        langs:
+          - en
+      - voice_id: en_paul_happy
+        name: en paul happy
+        langs:
+          - en
+      - voice_id: en_paul_frustrated
+        name: en paul frustrated
+        langs:
+          - en
+      - voice_id: en_paul_excited
+        name: en paul excited
+        langs:
+          - en
+      - voice_id: en_paul_confident
+        name: en paul confident
+        langs:
+          - en
+      - voice_id: en_paul_cheerful
+        name: en paul cheerful
+        langs:
+          - en
+      - voice_id: en_paul_angry
+        name: en paul angry
+        langs:
+          - en
+      - voice_id: voice_3149
+        name: Hugo (UK)
+        langs:
+          - en
+      - voice_id: voice_3147
+        name: Howard (UK)
+        langs:
+          - en
+      - voice_id: voice_591
+        name: Fred (UK)
+        langs:
+          - en
+      - voice_id: voice_590
+        name: Harriet (UK)
+        langs:
+          - en
+      - voice_id: voice_1788
+        name: David (UK)
+        langs:
+          - en
+      - voice_id: voice_1787
+        name: Mary (UK)
+        langs:
+          - en
+      - voice_id: voice_1786
+        name: Sky (UK)
+        langs:
+          - en
+      - voice_id: gb_oliver_neutral
+        name: gb oliver neutral
+        langs:
+          - en
+      - voice_id: gb_jane_sarcasm
+        name: gb jane sarcasm
+        langs:
+          - en
+      - voice_id: gb_jane_confused
+        name: gb jane confused
+        langs:
+          - en
+      - voice_id: gb_oliver_sad
+        name: gb oliver sad
+        langs:
+          - en
+      - voice_id: gb_oliver_excited
+        name: gb oliver excited
+        langs:
+          - en
+      - voice_id: gb_oliver_curious
+        name: gb oliver curious
+        langs:
+          - en
+      - voice_id: gb_oliver_confident
+        name: gb oliver confident
+        langs:
+          - en
+      - voice_id: gb_oliver_cheerful
+        name: gb oliver cheerful
+        langs:
+          - en
+      - voice_id: gb_oliver_angry
+        name: gb oliver angry
+        langs:
+          - en
+      - voice_id: gb_jane_shameful
+        name: gb jane shameful
+        langs:
+          - en
+      - voice_id: gb_jane_sad
+        name: gb jane sad
+        langs:
+          - en
+      - voice_id: gb_jane_neutral
+        name: gb jane neutral
+        langs:
+          - en
+      - voice_id: gb_jane_jealousy
+        name: gb jane jealousy
+        langs:
+          - en
+      - voice_id: gb_jane_frustrated
+        name: gb jane frustrated
+        langs:
+          - en
+      - voice_id: gb_jane_curious
+        name: gb jane curious
+        langs:
+          - en
+      - voice_id: gb_jane_confident
+        name: gb jane confident
+        langs:
+          - en
+      - voice_id: voice_479
+        name: Maryam
+        langs:
+          - ar
+      - voice_id: voice_3143
+        name: Jordi
+        langs:
+          - ca
+      - voice_id: voice_481
+        name: Heidi
+        langs:
+          - de
+      - voice_id: voice_483
+        name: Elena
+        langs:
+          - es
+      - voice_id: voice_592
+        name: Marie
+        langs:
+          - fr
+      - voice_id: voice_3137
+        name: Manon
+        langs:
+          - fr
+      - voice_id: voice_589
+        name: Lea
+        langs:
+          - fr
+      - voice_id: voice_3141
+        name: Camille
+        langs:
+          - fr
+      - voice_id: fr_marie_sad
+        name: fr marie sad
+        langs:
+          - fr
+      - voice_id: fr_marie_neutral
+        name: fr marie neutral
+        langs:
+          - fr
+      - voice_id: fr_marie_happy
+        name: fr marie happy
+        langs:
+          - fr
+      - voice_id: fr_marie_excited
+        name: fr marie excited
+        langs:
+          - fr
+      - voice_id: fr_marie_curious
+        name: fr marie curious
+        langs:
+          - fr
+      - voice_id: fr_marie_angry
+        name: fr marie angry
+        langs:
+          - fr
+      - voice_id: voice_3153
+        name: Himanshu
+        langs:
+          - hi
+      - voice_id: voice_3139
+        name: Ananya
+        langs:
+          - hi
+      - voice_id: voice_3146
+        name: Olivia
+        langs:
+          - hu
+      - voice_id: voice_482
+        name: Lorenzo
+        langs:
+          - it
+      - voice_id: voice_3133
+        name: Haruto
+        langs:
+          - ja
+      - voice_id: voice_3136
+        name: Sung
+        langs:
+          - ko
+      - voice_id: voice_3135
+        name: Jin
+        langs:
+          - ko
+      - voice_id: voice_3145
+        name: Lotte
+        langs:
+          - nl
+      - voice_id: voice_3134
+        name: Lars
+        langs:
+          - no
+      - voice_id: voice_3154
+        name: Leon
+        langs:
+          - pl
+      - voice_id: voice_480
+        name: Gabriela
+        langs:
+          - pt
+      - voice_id: voice_3155
+        name: Irina
+        langs:
+          - ro
+      - voice_id: voice_3132
+        name: Tatiana
+        langs:
+          - ru
+      - voice_id: voice_3138
+        name: Oran
+        langs:
+          - tr
+      - voice_id: voice_3140
+        name: Taras
+        langs:
+          - uk
+      - voice_id: voice_3144
+        name: Huong
+        langs:
+          - vi
+      - voice_id: voice_3142
+        name: Mei
+        langs:
+          - zh

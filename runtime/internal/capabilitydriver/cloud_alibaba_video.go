@@ -34,6 +34,9 @@ func AlibabaVideoImageReferenceLimit(model string) int {
 }
 
 func SupportsCloudVideoArtifacts(provider, model string) bool {
+	if provider == "openrouter" {
+		return model == OpenRouterVideoModel
+	}
 	return provider == "xai" && IsXAIVideoModel(model) || provider == "luma" && model == LumaRay32Model || provider == "flux" && model == "flux-3-video" || provider == "gemini" && IsGeminiOmniVideoModel(model) || provider == "dashscope" && AlibabaVideoImageReferenceLimit(model) > 0 || provider == "volcengine" && IsCurrentSeedanceVideoModel(model) || provider == "minimax" && IsMiniMaxH3VideoModel(model)
 }
 

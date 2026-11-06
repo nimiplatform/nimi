@@ -17,7 +17,7 @@ const responsesItemTextLimit = 256 * 1024
 
 // responsesProfile fixes what one public Responses route admits. Request
 // serialization, transcript replay and the SSE assembler are otherwise shared,
-// and every route sends a stateless store-false request streamed over SSE.
+// and requests use store=false with SSE. Provider retention remains route-owned.
 type responsesProfile struct {
 	// label names the route in typed error details.
 	label string
@@ -43,6 +43,10 @@ type responsesProfile struct {
 	strictToolSchemas  bool
 	orderedSystemInput bool
 	failure            func(status int, code string) error
+	// Some Responses gateways carry signed plaintext as well as ciphertext.
+	// Their exact adapters own validation and unchanged replay of those items.
+	nativeReasoningCarrier func(json.RawMessage) (*runtimev1.ReasoningContinuityCarrier, error)
+	nativeReasoningReplay  func(*runtimev1.ReasoningContinuityCarrier, []string) (json.RawMessage, error)
 }
 
 func (profile *responsesProfile) inputError(detail string) error {
@@ -339,6 +343,15 @@ func responsesTurnItems(profile *responsesProfile, turnItems []*runtimev1.TextTu
 			if !textbehavior.ValidContinuity(carrier) || carrier.Kind != profile.continuityKind || carrier.Version != 1 {
 				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REASONING_CONTINUITY_INVALID)
 			}
+			if profile.nativeReasoningReplay != nil {
+				native, err := profile.nativeReasoningReplay(carrier, summaries)
+				if err != nil {
+					return nil, err
+				}
+				items = append(items, native)
+				summaries = nil
+				continue
+			}
 			var reasoning responsesEncryptedReasoning
 			decoder := json.NewDecoder(bytes.NewReader(carrier.Payload))
 			decoder.DisallowUnknownFields()
@@ -373,6 +386,7 @@ type responsesSummaryPart struct {
 }
 
 type responsesBehaviorItem struct {
+	native    json.RawMessage
 	Type      string                 `json:"type"`
 	ID        string                 `json:"id"`
 	CallID    string                 `json:"call_id"`
@@ -463,6 +477,13 @@ func (stream *responsesBehaviorStream) Append(payload []byte) ([]textbehavior.Or
 	}
 	if json.Unmarshal(payload, &event) != nil || stream.completed {
 		return nil, profile.outputError("stream event")
+	}
+	if profile.nativeReasoningCarrier != nil {
+		var raw struct {
+			Item json.RawMessage `json:"item"`
+		}
+		_ = json.Unmarshal(payload, &raw)
+		event.Item.native = raw.Item
 	}
 	switch event.Type {
 	case "response.created", "response.in_progress", "response.queued":
@@ -666,10 +687,10 @@ func (stream *responsesBehaviorStream) flush() ([]textbehavior.OrderedDelta, err
 			}
 			summary := block.item.Summary
 			reasoning := responsesEncryptedReasoning{Type: "reasoning", ID: block.item.ID, Encrypted: block.item.Encrypted, Summary: summary}
-			if !reasoning.valid() {
+			if stream.profile.nativeReasoningCarrier == nil && !reasoning.valid() {
 				return nil, stream.profile.outputError("missing encrypted continuity")
 			}
-			if len(reasoning.Summary) > 0 && stream.spec.GetReasoning().GetPresentation() != runtimev1.ReasoningPresentation_REASONING_PRESENTATION_SUMMARY {
+			if stream.profile.nativeReasoningCarrier == nil && len(reasoning.Summary) > 0 && stream.spec.GetReasoning().GetPresentation() != runtimev1.ReasoningPresentation_REASONING_PRESENTATION_SUMMARY {
 				return nil, stream.profile.outputError("unrequested native summary")
 			}
 			if stream.spec.GetReasoning().GetPresentation() == runtimev1.ReasoningPresentation_REASONING_PRESENTATION_SUMMARY {
@@ -685,11 +706,20 @@ func (stream *responsesBehaviorStream) flush() ([]textbehavior.OrderedDelta, err
 				}
 			}
 			fragment.ItemIndex = stream.publicNext
-			payload, err := json.Marshal(reasoning)
-			if err != nil {
-				return nil, stream.profile.outputError("continuity JSON")
+			fragment.Kind = textbehavior.OrderedItemReasoningContinuity
+			if stream.profile.nativeReasoningCarrier != nil {
+				var err error
+				fragment.ReasoningContinuity, err = stream.profile.nativeReasoningCarrier(block.item.native)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				payload, err := json.Marshal(reasoning)
+				if err != nil {
+					return nil, stream.profile.outputError("continuity JSON")
+				}
+				fragment.ReasoningContinuity = &runtimev1.ReasoningContinuityCarrier{Kind: stream.profile.continuityKind, Version: 1, Payload: payload}
 			}
-			fragment.Kind, fragment.ReasoningContinuity = textbehavior.OrderedItemReasoningContinuity, &runtimev1.ReasoningContinuityCarrier{Kind: stream.profile.continuityKind, Version: 1, Payload: payload}
 		}
 		items, err := stream.assembler.AppendFragment(fragment)
 		if err != nil {

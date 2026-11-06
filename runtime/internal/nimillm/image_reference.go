@@ -115,6 +115,9 @@ func ValidateGeminiImageReferenceRequest(spec *runtimev1.ImageGenerateScenarioSp
 }
 
 func ValidateCloudImageReferenceRequest(provider, model string, spec *runtimev1.ImageGenerateScenarioSpec, reference *CapturedMediaReference) error {
+	if provider == "openrouter" && capabilitydriver.IsOpenRouterImageModel(model) {
+		return validateCapturedRasterReference(reference, spec.GetReferenceImageArtifactId(), 16<<20, 8000)
+	}
 	if provider == "xai" && model == capabilitydriver.XAIImage2Model {
 		return validateCapturedXAIImage(reference, spec.GetReferenceImageArtifactId())
 	}

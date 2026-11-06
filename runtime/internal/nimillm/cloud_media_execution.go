@@ -57,6 +57,14 @@ func (p *CloudProvider) ExecuteMediaAdapter(
 		err           error
 	)
 	switch strings.TrimSpace(adapter) {
+	case capabilitydriver.CloudMediaAdapterOpenRouterImage:
+		artifacts, usage, providerJobID, err = ExecuteOpenRouterImage(ctx, cfg, request, modelID)
+	case capabilitydriver.CloudMediaAdapterOpenRouterSpeech:
+		artifacts, usage, providerJobID, err = ExecuteOpenRouterSpeech(ctx, cfg, request, modelID)
+	case capabilitydriver.CloudMediaAdapterOpenRouterTranscribe:
+		artifacts, usage, providerJobID, err = ExecuteOpenRouterTranscribe(ctx, cfg, request, modelID)
+	case AdapterOpenRouterVideo:
+		artifacts, usage, providerJobID, err = ExecuteOpenRouterVideo(ctx, cfg, request, modelID)
 	case capabilitydriver.CloudMediaAdapterGroqSpeech:
 		artifacts, usage, providerJobID, err = p.executeGroqSpeech(ctx, request, modelID, target)
 	case capabilitydriver.CloudMediaAdapterGroqTranscribe:

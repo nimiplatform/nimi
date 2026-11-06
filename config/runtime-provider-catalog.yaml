@@ -231,7 +231,7 @@ providers:
     default_endpoint: https://openrouter.ai/api/v1
     default_text_model: null
     requires_explicit_endpoint: false
-    inventory_mode: dynamic_endpoint
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: perplexity
     default_endpoint: https://api.perplexity.ai/v1

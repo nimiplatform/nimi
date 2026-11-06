@@ -15,6 +15,8 @@ func MediaUsesNativeTask(adapter string, request *runtimev1.SubmitScenarioJobReq
 		return modal == runtimev1.Modal_MODAL_IMAGE && capabilitydriver.IsXAIImageModel(model)
 	case AdapterXAIVideo:
 		return modal == runtimev1.Modal_MODAL_VIDEO && capabilitydriver.IsXAIVideoModel(model)
+	case AdapterOpenRouterVideo:
+		return modal == runtimev1.Modal_MODAL_VIDEO && model == capabilitydriver.OpenRouterVideoModel
 	case AdapterBytedanceARKTask:
 		return modal == runtimev1.Modal_MODAL_VIDEO
 	case AdapterAlibabaNative:
