@@ -3,9 +3,11 @@ package nimillm
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"net/url"
 	"sort"
 	"strings"
+	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -69,6 +71,9 @@ func (b *Backend) ProbeConnector(ctx context.Context) error {
 	if b == nil {
 		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
+	if normalizeProbeProviderToken(strings.TrimPrefix(strings.TrimSpace(b.Name), "cloud-")) == "kling" {
+		return b.probeKlingConnector(ctx)
+	}
 
 	if normalizeProbeProviderToken(strings.TrimPrefix(strings.TrimSpace(b.Name), "cloud-")) == "fireworks" {
 		modelsBaseURL, err := fireworksModelsBaseURL(b.baseURL)
@@ -104,6 +109,34 @@ func (b *Backend) ProbeConnector(ctx context.Context) error {
 		return lastErr
 	}
 	return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+}
+
+func (b *Backend) probeKlingConnector(ctx context.Context) error {
+	client, err := nativeMediaBackend(ctx, MediaAdapterConfig{BaseURL: b.baseURL, APIKey: b.apiKey, Headers: b.headers, AllowLoopbackEndpoint: b.allowLoopbackEndpoint}, "kling")
+	if err != nil {
+		return err
+	}
+	defer client.client.CloseIdleConnections()
+	now := time.Now().UTC()
+	path := fmt.Sprintf("/account/costs?start_time=%d&end_time=%d", now.Add(-24*time.Hour).UnixMilli(), now.UnixMilli())
+	response, err := nativeMediaJSONRequest(ctx, client, http.MethodGet, path, nil)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	var out struct {
+		Code *int `json:"code"`
+		Data struct {
+			Code *int `json:"code"`
+		} `json:"data"`
+	}
+	if err := DecodeResponseJSON(response, &out); err != nil {
+		return err
+	}
+	if err := klingServiceError(out.Code); err != nil {
+		return err
+	}
+	return klingServiceError(out.Data.Code)
 }
 
 // ListModels probes provider model discovery endpoints.

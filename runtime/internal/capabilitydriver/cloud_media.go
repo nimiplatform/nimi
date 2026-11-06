@@ -618,6 +618,11 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 			return nil, err
 		}
 	}
+	if d.provider == "kling" {
+		if err := validateKlingMedia(mapped, target.providerModelID, streamMode); err != nil {
+			return nil, err
+		}
+	}
 	if d.provider == "aws_polly" {
 		if err := validatePollySpeechRequest(mapped, target.providerModelID, streamMode); err != nil {
 			return nil, err
@@ -652,7 +657,7 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 		return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("provider does not support music iteration mapping"))
 	}
 	if spec := mapped.GetSpec().GetImageGenerate(); spec != nil && strings.TrimSpace(spec.GetReferenceImageArtifactId()) != "" {
-		if (d.provider != "gemini" && !(d.provider == "openrouter" && IsOpenRouterImageModel(target.providerModelID)) && !(d.provider == "xai" && target.providerModelID == XAIImage2Model) && !(d.provider == "flux" && IsFlux3ImageModel(target.providerModelID)) && !(d.provider == "ideogram" && target.providerModelID == Ideogram45Model) && !(d.provider == "stability" && StabilityImageReferenceSupported(target.providerModelID)) && !SupportsGPTImageOwnedInputs(d.provider, target.providerModelID) && !(d.provider == "luma" && IsLumaUniImageModel(target.providerModelID)) && !(d.provider == "siliconflow" && target.providerModelID == SiliconFlowImageEditModel)) || len(spec.GetReferenceImages()) != 0 {
+		if (d.provider != "gemini" && !(d.provider == "openrouter" && IsOpenRouterImageModel(target.providerModelID)) && !(d.provider == "xai" && target.providerModelID == XAIImage2Model) && !(d.provider == "flux" && IsFlux3ImageModel(target.providerModelID)) && !(d.provider == "ideogram" && target.providerModelID == Ideogram45Model) && !(d.provider == "stability" && StabilityImageReferenceSupported(target.providerModelID)) && !SupportsGPTImageOwnedInputs(d.provider, target.providerModelID) && !(d.provider == "luma" && IsLumaUniImageModel(target.providerModelID)) && !(d.provider == "siliconflow" && target.providerModelID == SiliconFlowImageEditModel) && !(d.provider == "kling" && IsKlingImageModel(target.providerModelID))) || len(spec.GetReferenceImages()) != 0 {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 		}
 	}

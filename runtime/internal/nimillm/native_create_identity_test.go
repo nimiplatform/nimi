@@ -24,8 +24,8 @@ func TestNativeCreateRequiresReceiptIdentityBeforeAnyBodyAcquisition(t *testing.
 		{"luma", "ray", video, ExecuteLumaTask},
 		{"runway", "gen", video, ExecuteRunwayTask},
 		{"pika", "pika", video, ExecutePikaTask},
-		{"kling-image", "kling", image, ExecuteKlingTask},
-		{"kling-video", "kling", video, ExecuteKlingTask},
+		{"kling-image", "kling-v3", image, ExecuteKlingTask},
+		{"kling-video", "kling-4.0", video, ExecuteKlingTask},
 		{"alibaba-image", "wan2.6-t2i", image, ExecuteAlibabaNative},
 		{"ark-video", "seedance", video, ExecuteBytedanceARKTask},
 	}

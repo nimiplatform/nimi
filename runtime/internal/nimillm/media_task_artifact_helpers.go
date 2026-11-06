@@ -42,14 +42,6 @@ func ExtractTaskIDFromAdapterPayload(adapter string, payload map[string]any) str
 			payloadStringPath{"taskId"},
 			payloadStringPath{"id"},
 		)
-	case AdapterKlingTask:
-		return firstStringAtPayloadPaths(payload,
-			payloadStringPath{"task_id"},
-			payloadStringPath{"taskId"},
-			payloadStringPath{"data", "task_id"},
-			payloadStringPath{"data", "taskId"},
-			payloadStringPath{"data", "id"},
-		)
 	case AdapterBytedanceARKTask:
 		return firstStringAtPayloadPaths(payload,
 			payloadStringPath{"task_id"},

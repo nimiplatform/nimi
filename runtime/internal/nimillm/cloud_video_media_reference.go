@@ -68,6 +68,10 @@ func ValidateCloudVideoMediaReferences(provider, model string, spec *runtimev1.V
 			if err := validateCapturedXAIImage(reference, item.GetArtifactRef().GetArtifactId()); err != nil {
 				return err
 			}
+		} else if provider == "kling" {
+			if err := validateKlingOwnedRaster(reference, item.GetArtifactRef().GetArtifactId(), 30_000_000); err != nil {
+				return err
+			}
 		} else if provider == "luma" {
 			if err := validateCapturedRasterReference(reference, item.GetArtifactRef().GetArtifactId(), 16<<20, 8000); err != nil {
 				return err

@@ -134,6 +134,9 @@ func ValidateCloudImageReferenceRequest(provider, model string, spec *runtimev1.
 	if provider == "luma" && capabilitydriver.IsLumaUniImageModel(model) {
 		return validateCapturedRasterReference(reference, spec.GetReferenceImageArtifactId(), 16<<20, 8000)
 	}
+	if provider == "kling" && capabilitydriver.IsKlingImageModel(model) {
+		return validateKlingOwnedRaster(reference, spec.GetReferenceImageArtifactId(), 10_000_000)
+	}
 	if provider == "siliconflow" && model == capabilitydriver.SiliconFlowImageEditModel {
 		if reference == nil || reference.MIMEType != "image/png" && reference.MIMEType != "image/jpeg" {
 			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_MIME_MISMATCH)
@@ -166,6 +169,23 @@ func validateCapturedXAIImage(reference *CapturedMediaReference, id string) erro
 	geometry, format, err := image.DecodeConfig(bytes.NewReader(reference.Bytes))
 	if err != nil || geometry.Width <= 0 || geometry.Height <= 0 || (format != "png" && format != "jpeg" && format != "webp") || reference.MIMEType != "image/"+format {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_MIME_MISMATCH)
+	}
+	return nil
+}
+
+func validateKlingOwnedRaster(reference *CapturedMediaReference, id string, byteLimit int) error {
+	if reference == nil || reference.MIMEType != "image/png" && reference.MIMEType != "image/jpeg" {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_MIME_MISMATCH)
+	}
+	if len(reference.Bytes) > byteLimit {
+		return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
+	}
+	if err := validateCapturedRasterReference(reference, id, 16<<20, 8000); err != nil {
+		return err
+	}
+	c, _, _ := image.DecodeConfig(bytes.NewReader(reference.Bytes))
+	if c.Width < 300 || c.Height < 300 || c.Width*2 > c.Height*5 || c.Height*2 > c.Width*5 {
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 	}
 	return nil
 }

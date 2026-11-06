@@ -99,6 +99,18 @@ func requireNativeTaskPublisher(ctx context.Context) error {
 }
 
 func ValidateNativeTaskReceipt(r *NativeTaskReceipt) error {
+	if r != nil && r.Adapter == AdapterKlingTask {
+		query, mime := klingVideoQueryPath, "video/mp4"
+		if capabilitydriver.IsKlingImageModel(r.Model) {
+			query, mime = klingImageQueryPath, "image/png"
+			if r.Model == "kling-v3-omni" {
+				query = klingOmniImageQueryPath
+			}
+		}
+		if !validKlingTaskID(r.TaskID) || !capabilitydriver.IsKlingVideoModel(r.Model) && !capabilitydriver.IsKlingImageModel(r.Model) || r.QueryPathTemplate != query || r.Artifact == nil || r.Artifact.GetMimeType() != mime {
+			return fmt.Errorf("invalid Kling original task identity")
+		}
+	}
 	if r != nil && r.Adapter == AdapterOpenRouterVideo && (!validOpenRouterTaskID(r.TaskID) || r.Model != capabilitydriver.OpenRouterVideoModel || r.Artifact == nil || r.Artifact.GetMimeType() != "video/mp4") {
 		return fmt.Errorf("invalid OpenRouter original video identity")
 	}
@@ -178,7 +190,7 @@ func nativeTaskQueryPathAllowed(adapter, path string) bool {
 	case AdapterBytedanceARKTask:
 		return path == resolveBytedanceARKVideoQueryPathTemplate()
 	case AdapterKlingTask:
-		return path == "/v1/images/generations/{task_id}" || path == "/v1/videos/text2video/{task_id}"
+		return path == klingImageQueryPath || path == klingOmniImageQueryPath || path == klingVideoQueryPath
 	case AdapterRunwayTask:
 		return path == "/v1/tasks/{task_id}"
 	case AdapterLumaRay32, AdapterLumaUniImage:
@@ -242,6 +254,9 @@ func ObserveNativeTask(ctx context.Context, cfg MediaAdapterConfig, r *NativeTas
 	}
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	ctx = originalControlRequest(ctx)
+	if r.Adapter == AdapterKlingTask {
+		return observeKlingTask(ctx, cfg, r)
+	}
 	if r.Adapter == AdapterOpenRouterVideo {
 		return observeOpenRouterVideo(ctx, cfg, r)
 	}
