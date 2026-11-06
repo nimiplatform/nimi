@@ -266,7 +266,7 @@ var Records = map[string]ProviderRecord{
 		ManagedConnectorSupported:     true,
 		InlineSupported:               true,
 		DefaultEndpoint:               "",
-		DefaultTextModel:              "gpt-5.6-sol",
+		DefaultTextModel:              "gpt-6.1-sol",
 		RequiresExplicitEndpoint:      true,
 		InventoryMode:                 "static_source",
 		DynamicDiscoveryTransport:     "",

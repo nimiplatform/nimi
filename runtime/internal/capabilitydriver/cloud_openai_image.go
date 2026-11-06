@@ -58,8 +58,12 @@ func openAIImageSizeValid(size string) bool {
 // validateOpenAIImageRequest admits the exact model's documented generation and
 // single-source edit controls. Unsupported combinations fail before publication.
 func validateOpenAIImageRequest(request *runtimev1.SubmitScenarioJobRequest, model string) error {
-	spec := request.GetSpec().GetImageGenerate()
 	rules, admitted := openAIImageModels[model]
+	return validateGPTImageRequest(request, model, rules, admitted)
+}
+
+func validateGPTImageRequest(request *runtimev1.SubmitScenarioJobRequest, model string, rules openAIImageModelRules, admitted bool) error {
+	spec := request.GetSpec().GetImageGenerate()
 	format := strings.ToLower(strings.TrimSpace(spec.GetResponseFormat()))
 	size := strings.TrimSpace(spec.GetSize())
 	quality := strings.TrimSpace(spec.GetQuality())

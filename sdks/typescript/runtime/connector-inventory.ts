@@ -6,6 +6,7 @@ import {
   type Connector,
   type ConnectorMediaStorageUpdate,
   type ConnectorSVGAuthorUpdate,
+  type ConnectorAzureDeployments,
   type ErrorInfo,
   type ConnectorModelDescriptor,
   type ProviderCatalogEntry,
@@ -66,6 +67,7 @@ export interface NimiRuntimeConnectorProjectionInput {
   readonly hasCredential: boolean;
   readonly mediaStorage?: Connector['mediaStorage'];
   readonly svgAuthor?: Connector['svgAuthor'];
+  readonly azureDeployments?: Connector['azureDeployments'];
   readonly authKind?: ConnectorAuthKind;
   readonly providerAuthProfile?: string;
   readonly oauthRegistration?: { readonly accountLabel?: string };
@@ -128,6 +130,7 @@ export interface NimiRuntimeConnectorInventoryClient {
     readonly authMode?: 'api_key';
     readonly mediaStorage?: ConnectorMediaStorageUpdate;
     readonly svgAuthor?: ConnectorSVGAuthorUpdate;
+    readonly azureDeployments?: ConnectorAzureDeployments;
   }): Promise<NimiRuntimeConnectorProjection | null>;
   deleteConnector(connectorId: string): Promise<NimiRuntimeConnectorDeleteResult>;
   testConnector(connectorId: string): Promise<NimiRuntimeConnectorProjection>;
@@ -149,6 +152,7 @@ function cloneConnector(connector: NimiRuntimeConnectorProjection): NimiRuntimeC
     lastCheck: connector.lastCheck ? { ...connector.lastCheck } : undefined,
     ...(connector.mediaStorage ? { mediaStorage: { ...connector.mediaStorage } } : {}),
     ...(connector.svgAuthor ? { svgAuthor: { ...connector.svgAuthor } } : {}),
+    ...(connector.azureDeployments ? { azureDeployments: { deployments: connector.azureDeployments.deployments.map(binding => ({ ...binding })) } } : {}),
     models: [...connector.models],
   };
 }
@@ -349,6 +353,7 @@ export function nimiRuntimeConnectorToProjection(
     hasCredential: Boolean(connector.hasCredential),
     ...(connector.mediaStorage ? { mediaStorage: { region: connector.mediaStorage.region, bucket: connector.mediaStorage.bucket, keyPrefix: connector.mediaStorage.keyPrefix } } : {}),
     ...(connector.svgAuthor ? { svgAuthor: { ...connector.svgAuthor } } : {}),
+    ...(connector.azureDeployments ? { azureDeployments: { deployments: connector.azureDeployments.deployments.map(binding => ({ ...binding })) } } : {}),
     isSystemOwned: scope !== 'user',
     managementStatus: connector.status === ConnectorStatus.ACTIVE ? 'active' : connector.status === ConnectorStatus.DISABLED ? 'disabled' : 'unknown',
     configurationVersion: connector.updatedAt ? `${connector.updatedAt.seconds}:${connector.updatedAt.nanos}` : '',
@@ -493,6 +498,7 @@ export function createNimiRuntimeConnectorInventoryClient(
     readonly authMode?: 'api_key';
     readonly mediaStorage?: ConnectorMediaStorageUpdate;
     readonly svgAuthor?: ConnectorSVGAuthorUpdate;
+    readonly azureDeployments?: ConnectorAzureDeployments;
   }): Promise<NimiRuntimeConnectorProjection | null> {
     assertRendererSafeConnectorMutation(input);
     const credentialValue = normalizeText(input.credentialValue ?? input.apiKey);
@@ -509,6 +515,7 @@ export function createNimiRuntimeConnectorInventoryClient(
       credentialJson: undefined,
       ...(input.mediaStorage === undefined ? {} : { mediaStorage: input.mediaStorage }),
       ...(input.svgAuthor === undefined ? {} : { svgAuthor: input.svgAuthor }),
+      ...(input.azureDeployments === undefined ? {} : { azureDeployments: input.azureDeployments }),
     }, options.callOptions);
     invalidateConnectorInventoryCache();
     if (response.auditDiagnostic) options.onAuditDiagnostic?.(response.auditDiagnostic);

@@ -3301,5 +3301,25 @@
       "securityToken": "STS 安全令牌（可选）"
     },
     "invalid": "OSS 设置无效。请检查地域、小写 Bucket 名称、以 / 结尾的路径前缀及凭据字段。"
+  },
+  "azureDeployments": {
+    "title": "Azure 部署",
+    "configure": "配置部署",
+    "description": "选择每个部署实际使用的型号，并填写从 Azure 控制台复制的部署名称。应用选择该型号时，Nimi 会使用此绑定。",
+    "unconfigured": "先添加部署绑定，再为应用选择模型。",
+    "binding": "绑定 {{index}}",
+    "model": "型号",
+    "modelAt": "型号 {{index}}",
+    "deploymentAt": "部署名称 {{index}}",
+    "choose": "选择型号",
+    "removeAt": "移除绑定 {{index}}",
+    "remove": "移除",
+    "add": "添加绑定",
+    "complete": "为每行选择当前型号并填写唯一的部署名称。每个型号只能绑定一次。",
+    "reselect": "更改或移除绑定后，使用相应型号的应用需要重新选择模型。",
+    "save": "保存绑定",
+    "cancel": "取消",
+    "loadFailed": "无法加载模型目录。",
+    "saveFailed": "无法保存部署绑定，请检查型号和部署名称。"
   }
 }

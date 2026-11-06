@@ -54,6 +54,9 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 	for _, modelID := range openAIResponsesReviewedTextTargets {
 		registrations = append(registrations, openAIResponsesTextBehaviorRegistration(modelID))
 	}
+	for _, modelID := range azureResponsesReviewedTextTargets {
+		registrations = append(registrations, azureResponsesTextBehaviorRegistration(modelID))
+	}
 	return registrations
 }
 

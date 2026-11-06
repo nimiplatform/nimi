@@ -40,14 +40,15 @@ type StreamingSpeechProvider interface {
 	) (*runtimev1.UsageStats, runtimev1.FinishReason, error)
 }
 
-// RemoteTarget provides resolved credentials for a managed or inline remote call.
+// RemoteTarget provides credentials resolved from the exact captured Connector.
 type RemoteTarget struct {
-	SVGAuthorModelID string
-	MediaStorage     *ossmedia.Credentials
-	ProviderType     string // canonical provider ID
-	Endpoint         string // resolved endpoint URL
-	APIKey           string // decrypted API key
-	Headers          map[string]string
+	AzureDeploymentName string
+	SVGAuthorModelID    string
+	MediaStorage        *ossmedia.Credentials
+	ProviderType        string // canonical provider ID
+	Endpoint            string // resolved endpoint URL
+	APIKey              string // decrypted API key
+	Headers             map[string]string
 
 	ConnectorID          string // Runtime-owned connector identity for catalog-bound execution
 	RemoteModelCatalogID string // Runtime-owned remote catalog snapshot identity

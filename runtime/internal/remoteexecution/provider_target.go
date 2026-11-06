@@ -45,6 +45,13 @@ func requestScopedProviderTarget(
 	if connectorRecord.Status != runtimev1.ConnectorStatus_CONNECTOR_STATUS_ACTIVE {
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_DISABLED)
 	}
+	azureDeployment := ""
+	if connectorRecord.Provider == "azure" {
+		azureDeployment = connector.AzureDeploymentForModel(connectorRecord.AzureDeployments, target.ProviderModelID())
+		if azureDeployment == "" {
+			return nil, connector.AzureDeploymentRequiredError()
+		}
+	}
 	secretPayload := ""
 	var err error
 	if isAsyncJob(ctx) && strings.TrimSpace(connectorRecord.CredentialCustodyRef) == "" {
@@ -103,6 +110,7 @@ func requestScopedProviderTarget(
 		author = connectorRecord.SVGAuthor.ProviderModelID
 	}
 	return &nimillm.RemoteTarget{
+		AzureDeploymentName:  azureDeployment,
 		SVGAuthorModelID:     author,
 		ProviderType:         target.Provider(),
 		ProviderModelID:      target.ProviderModelID(),

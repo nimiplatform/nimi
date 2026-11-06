@@ -25,11 +25,14 @@ const maxInlineOpenAIMediaBytes = 32 << 20
 // @nimi-authority: definition.nimi.runtime.ai-provider.nimillm-plane
 // Backend is an OpenAI-compatible HTTP backend for AI inference.
 type Backend struct {
-	Name    string
-	baseURL string
-	apiKey  string
-	headers map[string]string
-	client  *http.Client
+	// Exact provider-native facts captured by CloudProvider, never App flags.
+	azureOpenAI     bool
+	modelDeployment string
+	Name            string
+	baseURL         string
+	apiKey          string
+	headers         map[string]string
+	client          *http.Client
 
 	// Security controls for outbound endpoint validation.
 	enforceEndpointSecurity bool
@@ -393,7 +396,12 @@ func (b *Backend) WithRequestOverridesAndHeadersWithPolicy(endpoint string, apiK
 		return b
 	}
 	if b.enforceEndpointSecurity {
-		return NewSecuredBackendWithHeaders(b.Name, normalizedEndpoint, normalizedAPIKey, resolvedHeaders, b.timeout(), allowLoopback)
+		clone := NewSecuredBackendWithHeaders(b.Name, normalizedEndpoint, normalizedAPIKey, resolvedHeaders, b.timeout(), allowLoopback)
+		if clone != nil {
+			clone.azureOpenAI = b.azureOpenAI
+			clone.modelDeployment = b.modelDeployment
+		}
+		return clone
 	}
 	clone := *b
 	clone.baseURL = normalizedEndpoint
@@ -470,6 +478,12 @@ func (b *Backend) applyAuthenticationHeaders(request *http.Request) {
 	if apiKey == "" {
 		return
 	}
+	if b.azureOpenAI {
+		request.Header.Del("Authorization")
+		request.Header.Del("x-api-key")
+		request.Header.Set("api-key", apiKey)
+		return
+	}
 	if b.supportsAnthropicMessages() {
 		if isAnthropicOAuthToken(apiKey) {
 			request.Header.Set("Authorization", "Bearer "+apiKey)
@@ -517,7 +531,7 @@ func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*run
 	}
 
 	reqBody := chatRequest{
-		Model:    modelID,
+		Model:    b.requestModelID(modelID),
 		Messages: messages,
 		Stream:   false,
 	}
@@ -571,7 +585,7 @@ func (b *Backend) GenerateText(ctx context.Context, modelID string, input []*run
 		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
 	respBody := map[string]any{}
-	if err := b.postJSON(ctx, resolveOpenAICompatiblePath(b.baseURL, "/chat/completions"), wirePayload, &respBody); err != nil {
+	if err := b.postJSON(ctx, b.compatiblePath("/chat/completions"), wirePayload, &respBody); err != nil {
 		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err
 	}
 	choices, ok := respBody["choices"].([]any)
@@ -664,7 +678,7 @@ func (b *Backend) StreamGenerateTextRich(ctx context.Context, modelID string, in
 	}
 
 	reqBody := chatRequest{
-		Model:    modelID,
+		Model:    b.requestModelID(modelID),
 		Messages: messages,
 		Stream:   true,
 	}
@@ -717,7 +731,7 @@ func (b *Backend) StreamGenerateTextRich(ctx context.Context, modelID string, in
 	if err != nil {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, MapProviderRequestError(err)
 	}
-	endpoint := b.baseURL + resolveOpenAICompatiblePath(b.baseURL, "/chat/completions")
+	endpoint := b.baseURL + b.compatiblePath("/chat/completions")
 	request, err := b.newRequest(ctx, http.MethodPost, endpoint, bytes.NewReader(payload))
 	if err != nil {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, err

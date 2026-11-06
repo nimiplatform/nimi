@@ -121,6 +121,7 @@ func recordToProto(r ConnectorRecord) *runtimev1.Connector {
 		LastCheck:           r.LastCheck.projection(),
 		MediaStorage:        mediaStorageProjection(r.MediaStorage),
 		SvgAuthor:           svgAuthorProjection(r.SVGAuthor),
+		AzureDeployments:    azureDeploymentsProjection(r.AzureDeployments),
 	}
 }
 

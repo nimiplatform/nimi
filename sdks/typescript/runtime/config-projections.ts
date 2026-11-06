@@ -34,6 +34,7 @@ export interface NimiRuntimeConnectorProjection {
   readonly hasCredential: boolean;
   readonly mediaStorage?: Readonly<{ region: string; bucket: string; keyPrefix: string }>;
   readonly svgAuthor?: Readonly<{ providerModelId: string; remoteModelCatalogId: string }>;
+  readonly azureDeployments?: Readonly<{ deployments: readonly Readonly<{ providerModelId: string; deploymentName: string }>[] }>;
   readonly isSystemOwned: boolean;
   readonly managementStatus: 'active' | 'disabled' | 'unknown';
   readonly configurationVersion: string;
@@ -62,6 +63,7 @@ export interface NimiRuntimeConfigConnectorProjectionInput {
   readonly hasCredential?: unknown;
   readonly mediaStorage?: NimiRuntimeConnectorProjection['mediaStorage'];
   readonly svgAuthor?: NimiRuntimeConnectorProjection['svgAuthor'];
+  readonly azureDeployments?: NimiRuntimeConnectorProjection['azureDeployments'];
   readonly isSystemOwned?: unknown;
   readonly managementStatus?: unknown;
   readonly configurationVersion?: unknown;
@@ -291,6 +293,7 @@ export function normalizeNimiRuntimeConfigConnectorProjection(
     hasCredential: Boolean(raw.hasCredential),
     ...(raw.mediaStorage ? { mediaStorage: { region: raw.mediaStorage.region, bucket: raw.mediaStorage.bucket, keyPrefix: raw.mediaStorage.keyPrefix } } : {}),
     ...(raw.svgAuthor ? { svgAuthor: { ...raw.svgAuthor } } : {}),
+    ...(raw.azureDeployments ? { azureDeployments: { deployments: raw.azureDeployments.deployments.map(binding => ({ ...binding })) } } : {}),
     isSystemOwned: scope !== 'user' || Boolean(raw.isSystemOwned),
     managementStatus: raw.managementStatus === 'active' || raw.managementStatus === 'disabled' ? raw.managementStatus : 'unknown',
     configurationVersion: normalizeText(raw.configurationVersion),

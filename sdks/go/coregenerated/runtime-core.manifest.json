@@ -7836,6 +7836,8 @@
       "CompleteLoginResponse",
       "CompleteProductControlFirstRunDeviceEnvironmentScanRequest",
       "Connector",
+      "ConnectorAzureDeployment",
+      "ConnectorAzureDeployments",
       "ConnectorCheck",
       "ConnectorMediaStorageUpdate",
       "ConnectorModelDescriptor",
@@ -17872,6 +17874,46 @@
             "repeated": false,
             "optional": false,
             "number": 18
+          },
+          {
+            "name": "azure_deployments",
+            "type": "ConnectorAzureDeployments",
+            "repeated": false,
+            "optional": false,
+            "number": 19
+          }
+        ],
+        "source_file": "proto/runtime/v1/connector.proto"
+      },
+      {
+        "name": "ConnectorAzureDeployment",
+        "fields": [
+          {
+            "name": "provider_model_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "deployment_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/connector.proto"
+      },
+      {
+        "name": "ConnectorAzureDeployments",
+        "fields": [
+          {
+            "name": "deployments",
+            "type": "ConnectorAzureDeployment",
+            "repeated": true,
+            "optional": false,
+            "number": 1
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"
@@ -36343,6 +36385,13 @@
             "repeated": false,
             "optional": false,
             "number": 10
+          },
+          {
+            "name": "supports_azure_deployments",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 11
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"
@@ -44821,6 +44870,13 @@
             "repeated": false,
             "optional": false,
             "number": 12
+          },
+          {
+            "name": "azure_deployments",
+            "type": "ConnectorAzureDeployments",
+            "repeated": false,
+            "optional": false,
+            "number": 13
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"

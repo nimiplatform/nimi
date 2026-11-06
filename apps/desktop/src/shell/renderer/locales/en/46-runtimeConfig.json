@@ -3301,5 +3301,25 @@
       "securityToken": "STS security token (optional)"
     },
     "invalid": "The OSS settings are invalid. Check the region, lowercase Bucket name, path prefix ending with /, and credential fields."
+  },
+  "azureDeployments": {
+    "title": "Azure deployments",
+    "configure": "Configure deployments",
+    "description": "Choose the model used by each deployment and copy its deployment name from Azure. Nimi uses this binding when an App selects that model.",
+    "unconfigured": "Add a deployment binding before configuring an App.",
+    "binding": "Binding {{index}}",
+    "model": "Model",
+    "modelAt": "Model {{index}}",
+    "deploymentAt": "Deployment name {{index}}",
+    "choose": "Choose a model",
+    "removeAt": "Remove binding {{index}}",
+    "remove": "Remove",
+    "add": "Add binding",
+    "complete": "Choose a current model and enter a unique deployment name for each row. Each model can appear once.",
+    "reselect": "After a binding changes or is removed, Apps using that model must select it again.",
+    "save": "Save bindings",
+    "cancel": "Cancel",
+    "loadFailed": "Could not load the model catalog.",
+    "saveFailed": "Could not save the deployment bindings. Check the model choices and deployment names."
   }
 }

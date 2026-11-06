@@ -309,18 +309,22 @@ func remoteModelCatalogIdentityForConnector(rec ConnectorRecord, providerRecord 
 		fmt.Sprintf("%s", providerRecord.Source),
 		strings.TrimSpace(providerRecord.OverlayUpdatedAt),
 	)
+	modelIdentityParts := []string{
+		strings.TrimSpace(rec.ConnectorID),
+		provider,
+		providerModelID,
+		connectorSnapshotID,
+		endpointProfileID,
+		inventorySnapshotID,
+	}
+	if provider == "azure" {
+		modelIdentityParts = append(modelIdentityParts, "azure-deployment", AzureDeploymentForModel(rec.AzureDeployments, providerModelID))
+	}
 	return remoteModelCatalogIdentity{
-		remoteModelCatalogID: stableID("remote-model-catalog",
-			strings.TrimSpace(rec.ConnectorID),
-			provider,
-			providerModelID,
-			connectorSnapshotID,
-			endpointProfileID,
-			inventorySnapshotID,
-		),
-		connectorSnapshotID: connectorSnapshotID,
-		endpointProfileID:   endpointProfileID,
-		inventorySnapshotID: inventorySnapshotID,
+		remoteModelCatalogID: stableID("remote-model-catalog", modelIdentityParts...),
+		connectorSnapshotID:  connectorSnapshotID,
+		endpointProfileID:    endpointProfileID,
+		inventorySnapshotID:  inventorySnapshotID,
 	}
 }
 

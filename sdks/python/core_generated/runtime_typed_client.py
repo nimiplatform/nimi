@@ -2048,6 +2048,16 @@ class Connector:
     last_check: ConnectorCheck | None = None
     media_storage: ConnectorOSSStorage | None = None
     svg_author: ConnectorSVGAuthor | None = None
+    azure_deployments: ConnectorAzureDeployments | None = None
+
+@dataclass(frozen=True)
+class ConnectorAzureDeployment:
+    provider_model_id: str | None = None
+    deployment_name: str | None = None
+
+@dataclass(frozen=True)
+class ConnectorAzureDeployments:
+    deployments: tuple[ConnectorAzureDeployment, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class ConnectorCheck:
@@ -5857,6 +5867,7 @@ class ProviderCatalogEntry:
     inline_supported: bool | None = None
     supports_oss_media_storage: bool | None = None
     supports_svg_author: bool | None = None
+    supports_azure_deployments: bool | None = None
 
 @dataclass(frozen=True)
 class PutAppActivityRequest:
@@ -7662,6 +7673,7 @@ class UpdateConnectorRequest:
     credential_json: str | None = None
     media_storage: ConnectorMediaStorageUpdate | None = None
     svg_author: ConnectorSVGAuthorUpdate | None = None
+    azure_deployments: ConnectorAzureDeployments | None = None
 
 @dataclass(frozen=True)
 class UpdateConnectorResponse:

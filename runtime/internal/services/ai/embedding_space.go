@@ -107,6 +107,9 @@ func cloudEmbeddingSpaceParts(effective *cloudEmbedEffectiveInputs) []proto.Mess
 		"authKind":            structpb.NewStringValue(effective.connector.AuthKind.String()),
 		"providerAuthProfile": structpb.NewStringValue(effective.connector.ProviderAuthProfile),
 	}}
+	if effective.connector.Provider == "azure" {
+		connectorTarget.Fields["azureDeployment"] = structpb.NewStringValue(connector.AzureDeploymentForModel(effective.connector.AzureDeployments, target.GetFields()["providerModelId"].GetStringValue()))
+	}
 	// Native mapping introduces different captured semantics from the earlier
 	// compatible transport, while omission and explicit native width still agree.
 	if protocol := effective.target.Protocol(); protocol == capabilitydriver.CloudEmbedProtocolGeminiV1 || protocol == capabilitydriver.CloudEmbedProtocolCohereV2 {

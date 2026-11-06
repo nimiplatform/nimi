@@ -57,7 +57,7 @@ type anthropicMessageResponse struct {
 }
 
 func (b *Backend) supportsAnthropicMessages() bool {
-	if b == nil {
+	if b == nil || b.azureOpenAI {
 		return false
 	}
 	lowerName := strings.ToLower(strings.TrimSpace(b.Name))

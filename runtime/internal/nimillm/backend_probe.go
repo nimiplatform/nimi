@@ -86,6 +86,9 @@ func (b *Backend) ProbeConnector(ctx context.Context) error {
 	}
 
 	paths := []string{"/v1/models", "/models"}
+	if b.azureOpenAI {
+		paths = []string{b.compatiblePath("/models")}
+	}
 	var lastErr error
 	for _, path := range paths {
 		if err := b.probeGET(ctx, path); err != nil {
@@ -127,6 +130,9 @@ func (b *Backend) ListModels(ctx context.Context) ([]ProbeModel, error) {
 	}
 
 	paths := []string{"/v1/models", "/models"}
+	if b.azureOpenAI {
+		paths = []string{b.compatiblePath("/models")}
+	}
 	var lastErr error
 	for _, path := range paths {
 		var payload openAIModelsResponse

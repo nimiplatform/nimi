@@ -121,7 +121,7 @@ func ValidateCloudImageReferenceRequest(provider, model string, spec *runtimev1.
 	if provider == "ideogram" && model == capabilitydriver.Ideogram45Model {
 		return ValidateIdeogram45OwnedSource(spec, reference)
 	}
-	if provider == "openai" && capabilitydriver.IsOpenAIImage26(model) {
+	if capabilitydriver.SupportsGPTImageOwnedInputs(provider, model) {
 		if err := validateCapturedMediaReferenceIdentity(reference, spec.GetReferenceImageArtifactId()); err != nil {
 			return err
 		}

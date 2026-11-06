@@ -155,3 +155,24 @@ func TestEmbeddingSpaceRequiresConsistentDimensions(t *testing.T) {
 		t.Fatal("different dimensions share a vector space")
 	}
 }
+
+func TestAzureEmbeddingSpaceTracksOnlyItsCapturedDeployment(t *testing.T) {
+	target, _ := structpb.NewStruct(map[string]any{"provider": "azure", "providerModelId": "text-embedding-3-small", "remoteModelCatalogId": "catalog-a"})
+	effective := &cloudEmbedEffectiveInputs{implementation: &runtimev1.CapabilityImplementationIdentity{ImplementationId: "azure", DriverId: "nimillm", DriverDialect: "azure"}, rawTarget: target, connector: connector.ConnectorRecord{ConnectorID: "azure-connector", Provider: "azure", Endpoint: "https://tenant.example/openai/v1", AuthKind: runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_API_KEY, AzureDeployments: &connector.AzureDeploymentsConfig{Deployments: []connector.AzureDeployment{{ProviderModelID: "text-embedding-3-small", DeploymentName: "index-a"}}}}}
+	vectors := []*runtimev1.EmbeddingVector{{Values: []float64{.1, .2}}}
+	first, err := cloudEmbeddingSpaceID(effective, vectors)
+	if err != nil {
+		t.Fatal(err)
+	}
+	effective.connector.AzureDeployments.Deployments = append(effective.connector.AzureDeployments.Deployments, connector.AzureDeployment{ProviderModelID: "gpt-6.1-sol", DeploymentName: "writing"})
+	effective.rawTarget.Fields["remoteModelCatalogId"] = structpb.NewStringValue("catalog-b")
+	same, err := cloudEmbeddingSpaceID(effective, vectors)
+	if err != nil || same != first {
+		t.Fatal("unrelated binding or catalog invalidated embedding space", err)
+	}
+	effective.connector.AzureDeployments.Deployments[0].DeploymentName = "index-b"
+	next, err := cloudEmbeddingSpaceID(effective, vectors)
+	if err != nil || next == first {
+		t.Fatal("different deployment reused vector space", err)
+	}
+}

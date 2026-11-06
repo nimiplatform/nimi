@@ -88,6 +88,29 @@ test('SVG author selection preserves exact catalog identity and explicit removal
   assert.deepEqual(calls, [setup, remove]);
 });
 
+test('Azure deployment bindings preserve names, clone projections and clear explicitly', async () => {
+  const requests: unknown[] = [];
+  const binding = { providerModelId: 'gpt-6.1-sol', deploymentName: 'tenant-writing' };
+  const client = createNimiRuntimeConnectorInventoryClient({ connectors: {
+    async listProviderCatalog() { return { providers: [] }; },
+    async updateConnector(request) {
+      requests.push(request.azureDeployments);
+      return { connector: { connectorId: 'azure-connection', provider: 'azure', endpoint: 'https://tenant.example/openai/v1', label: 'Azure',
+        hasCredential: true, authKind: ConnectorAuthKind.API_KEY, ownerType: ConnectorOwnerType.REALM_USER,
+        kind: ConnectorKind.REMOTE_MANAGED, status: ConnectorStatus.ACTIVE,
+        azureDeployments: request.azureDeployments?.deployments.length ? request.azureDeployments : undefined } };
+    },
+  } as NimiRuntimeConnectorClient });
+  const setup = { deployments: [binding] };
+  const result = await client.updateConnector({ connectorId: 'azure-connection', azureDeployments: setup });
+  assert.deepEqual(result?.azureDeployments, setup);
+  binding.deploymentName = 'changed-after-call';
+  assert.equal(result?.azureDeployments?.deployments[0]?.deploymentName, 'tenant-writing');
+  const cleared = await client.updateConnector({ connectorId: 'azure-connection', azureDeployments: { deployments: [] } });
+  assert.equal(cleared?.azureDeployments, undefined);
+  assert.equal(requests.length, 2);
+});
+
 test('catalog reads preserve unavailable models and never perform a connection check', async () => {
   const requested: string[] = [];
   const inventory = createNimiRuntimeConnectorInventoryClient({ connectors: {

@@ -36,6 +36,7 @@ type responsesProfile struct {
 	reasoningControls bool
 	reasoningDisabled bool
 	jsonObject        bool
+	samplingControls  bool
 	failure           func(status int, code string) error
 }
 
@@ -64,9 +65,12 @@ func serializeResponsesRequest(profile *responsesProfile, spec *runtimev1.TextGe
 	if spec.GetIncludeRawChunks() {
 		return textbehavior.SerializedRequest{}, profile.unsupported("raw provider chunks")
 	}
-	if spec.Temperature != nil || spec.TopP != nil || spec.TopK != nil || spec.Seed != nil || spec.PresencePenalty != nil || spec.FrequencyPenalty != nil || len(spec.Stop) > 0 ||
+	if (spec.Temperature != nil || spec.TopP != nil) && !profile.samplingControls || spec.TopK != nil || spec.Seed != nil || spec.PresencePenalty != nil || spec.FrequencyPenalty != nil || len(spec.Stop) > 0 ||
 		spec.MaxTokens != nil && (!profile.outputLimit || spec.GetMaxTokens() <= 0) {
 		return textbehavior.SerializedRequest{}, profile.unsupported("generation controls")
+	}
+	if spec.Temperature != nil && !(spec.GetTemperature() >= 0 && spec.GetTemperature() <= 2) || spec.TopP != nil && !(spec.GetTopP() >= 0 && spec.GetTopP() <= 1) {
+		return textbehavior.SerializedRequest{}, profile.inputError("sampling bounds")
 	}
 	reasoningWire, err := responsesReasoningConfig(profile, spec.GetReasoning())
 	if err != nil {
@@ -143,6 +147,12 @@ func serializeResponsesRequest(profile *responsesProfile, spec *runtimev1.TextGe
 		return textbehavior.SerializedRequest{}, profile.inputError("empty input")
 	}
 	body := map[string]any{"input": input, "store": false, "stream": true, "include": []string{"reasoning.encrypted_content"}}
+	if spec.Temperature != nil {
+		body["temperature"] = spec.GetTemperature()
+	}
+	if spec.TopP != nil {
+		body["top_p"] = spec.GetTopP()
+	}
 	if reasoningWire != nil {
 		body["reasoning"] = reasoningWire
 	}
@@ -265,6 +275,7 @@ func responsesReasoningConfig(profile *responsesProfile, config *runtimev1.Reaso
 	return wire, nil
 }
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.r088
 func responsesTurnItems(profile *responsesProfile, turnItems []*runtimev1.TextTurnItem) ([]any, error) {
 	items := make([]any, 0, len(turnItems))
 	var summaries []string
@@ -303,13 +314,13 @@ func responsesTurnItems(profile *responsesProfile, turnItems []*runtimev1.TextTu
 		case item.GetOutput().GetReasoningContinuity() != nil:
 			carrier := item.GetOutput().GetReasoningContinuity()
 			if !textbehavior.ValidContinuity(carrier) || carrier.Kind != profile.continuityKind || carrier.Version != 1 {
-				return nil, profile.inputError("continuity identity")
+				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REASONING_CONTINUITY_INVALID)
 			}
 			var reasoning responsesEncryptedReasoning
 			decoder := json.NewDecoder(bytes.NewReader(carrier.Payload))
 			decoder.DisallowUnknownFields()
 			if decoder.Decode(&reasoning) != nil || decoder.Decode(new(any)) != io.EOF || !reasoning.valid() {
-				return nil, profile.inputError("continuity payload")
+				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REASONING_CONTINUITY_INVALID)
 			}
 			{
 				if len(summaries) != len(reasoning.Summary) {

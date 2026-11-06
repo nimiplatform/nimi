@@ -4164,6 +4164,16 @@ type Connector struct {
 	LastCheck           *ConnectorCheck             `json:"last_check,omitempty"`
 	MediaStorage        *ConnectorOSSStorage        `json:"media_storage,omitempty"`
 	SvgAuthor           *ConnectorSVGAuthor         `json:"svg_author,omitempty"`
+	AzureDeployments    *ConnectorAzureDeployments  `json:"azure_deployments,omitempty"`
+}
+
+type ConnectorAzureDeployment struct {
+	ProviderModelId string `json:"provider_model_id,omitempty"`
+	DeploymentName  string `json:"deployment_name,omitempty"`
+}
+
+type ConnectorAzureDeployments struct {
+	Deployments []ConnectorAzureDeployment `json:"deployments,omitempty"`
 }
 
 type ConnectorCheck struct {
@@ -7942,6 +7952,7 @@ type ProviderCatalogEntry struct {
 	InlineSupported          bool   `json:"inline_supported,omitempty"`
 	SupportsOssMediaStorage  bool   `json:"supports_oss_media_storage,omitempty"`
 	SupportsSvgAuthor        bool   `json:"supports_svg_author,omitempty"`
+	SupportsAzureDeployments bool   `json:"supports_azure_deployments,omitempty"`
 }
 
 type PutAppActivityRequest struct {
@@ -9737,6 +9748,7 @@ type UpdateConnectorRequest struct {
 	CredentialJson      *string                      `json:"credential_json,omitempty"`
 	MediaStorage        *ConnectorMediaStorageUpdate `json:"media_storage,omitempty"`
 	SvgAuthor           *ConnectorSVGAuthorUpdate    `json:"svg_author,omitempty"`
+	AzureDeployments    *ConnectorAzureDeployments   `json:"azure_deployments,omitempty"`
 }
 
 type UpdateConnectorResponse struct {

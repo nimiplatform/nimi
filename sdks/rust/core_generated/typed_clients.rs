@@ -7319,6 +7319,18 @@ pub struct Connector {
     pub last_check: Option<Box<ConnectorCheck>>,
     pub media_storage: Option<Box<ConnectorOSSStorage>>,
     pub svg_author: Option<Box<ConnectorSVGAuthor>>,
+    pub azure_deployments: Option<Box<ConnectorAzureDeployments>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ConnectorAzureDeployment {
+    pub provider_model_id: Option<String>,
+    pub deployment_name: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ConnectorAzureDeployments {
+    pub deployments: Vec<Box<ConnectorAzureDeployment>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12777,6 +12789,7 @@ pub struct ProviderCatalogEntry {
     pub inline_supported: Option<bool>,
     pub supports_oss_media_storage: Option<bool>,
     pub supports_svg_author: Option<bool>,
+    pub supports_azure_deployments: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -15676,6 +15689,7 @@ pub struct UpdateConnectorRequest {
     pub credential_json: Option<String>,
     pub media_storage: Option<Box<ConnectorMediaStorageUpdate>>,
     pub svg_author: Option<Box<ConnectorSVGAuthorUpdate>>,
+    pub azure_deployments: Option<Box<ConnectorAzureDeployments>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

@@ -12,6 +12,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"github.com/nimiplatform/nimi/runtime/internal/pagination"
 	"github.com/oklog/ulid/v2"
 )
@@ -88,6 +89,13 @@ func (s *Service) CreateConnector(ctx context.Context, req *runtimev1.CreateConn
 	}
 	if entry, ok := ProviderCatalog[provider]; ok && entry.RequiresExplicitEndpoint && endpoint == "" {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+	}
+	if provider == "azure" {
+		var err error
+		endpoint, err = nimillm.AzureOpenAIEndpoint(endpoint)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	rec := ConnectorRecord{
@@ -338,6 +346,9 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 		if req.SvgAuthor != nil {
 			updatePaths = append(updatePaths, "svg_author")
 		}
+		if req.AzureDeployments != nil {
+			updatePaths = append(updatePaths, "azure_deployments")
+		}
 		if req.GetStatus() != runtimev1.ConnectorStatus_CONNECTOR_STATUS_UNSPECIFIED {
 			updatePaths = append(updatePaths, "status")
 		}
@@ -359,6 +370,12 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 		seenPaths[path] = true
 
 		switch path {
+		case "azure_deployments":
+			if req.AzureDeployments == nil {
+				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+			}
+			mutations.ReplaceAzureDeployments = true
+			hasChange = true
 		case "svg_author":
 			if req.SvgAuthor == nil {
 				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
@@ -388,6 +405,13 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 			value := strings.TrimSpace(req.GetEndpoint())
 			if value == "" {
 				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+			}
+			if rec.Provider == "azure" {
+				var err error
+				value, err = nimillm.AzureOpenAIEndpoint(value)
+				if err != nil {
+					return nil, err
+				}
 			}
 			mutations.Endpoint = &value
 			hasChange = true
@@ -498,6 +522,17 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 		defer storage.Clear()
 		mutations.MediaStorage = storage
 	} else if rec.MediaStorage != nil && nextAuthKind != runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_API_KEY {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+	}
+	if mutations.ReplaceAzureDeployments {
+		selected := rec
+		selected.AuthKind = nextAuthKind
+		config, err := s.resolveAzureDeployments(rec.OwnerID, selected, req.AzureDeployments)
+		if err != nil {
+			return nil, err
+		}
+		mutations.AzureDeployments = config
+	} else if rec.AzureDeployments != nil && nextAuthKind != runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_API_KEY {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
 	if mutations.ReplaceSVGAuthor {

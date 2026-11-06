@@ -71,7 +71,7 @@ func (b *Backend) generateOpenAIImageWithAuthor(ctx context.Context, modelID str
 	if b == nil || spec == nil {
 		return nil, nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
 	}
-	fields := map[string]any{"model": modelID, "prompt": strings.TrimSpace(spec.GetPrompt())}
+	fields := map[string]any{"model": b.requestModelID(modelID), "prompt": strings.TrimSpace(spec.GetPrompt())}
 	if spec.GetOutputFormat() == "svg" {
 		if authorModel == "" {
 			return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)

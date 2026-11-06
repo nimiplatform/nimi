@@ -598,7 +598,7 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 	if err := validateCloudMediaMappedRequest(mapped); err != nil {
 		return nil, err
 	}
-	if spec := mapped.GetSpec().GetImageGenerate(); spec != nil && ImageHasExtendedControls(spec) && !(d.provider == "openai" && IsOpenAIImage26(target.providerModelID)) && !(d.provider == "luma" && IsLumaUniImageModel(target.providerModelID)) {
+	if spec := mapped.GetSpec().GetImageGenerate(); spec != nil && ImageHasExtendedControls(spec) && !SupportsGPTImageOwnedInputs(d.provider, target.providerModelID) && !(d.provider == "luma" && IsLumaUniImageModel(target.providerModelID)) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	for _, item := range mapped.GetSpec().GetVideoGenerate().GetContent() {
@@ -610,7 +610,7 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 		return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("provider does not support music iteration mapping"))
 	}
 	if spec := mapped.GetSpec().GetImageGenerate(); spec != nil && strings.TrimSpace(spec.GetReferenceImageArtifactId()) != "" {
-		if (d.provider != "gemini" && !(d.provider == "flux" && IsFlux3ImageModel(target.providerModelID)) && !(d.provider == "ideogram" && target.providerModelID == Ideogram45Model) && !(d.provider == "openai" && IsOpenAIImage26(target.providerModelID)) && !(d.provider == "luma" && IsLumaUniImageModel(target.providerModelID))) || len(spec.GetReferenceImages()) != 0 {
+		if (d.provider != "gemini" && !(d.provider == "flux" && IsFlux3ImageModel(target.providerModelID)) && !(d.provider == "ideogram" && target.providerModelID == Ideogram45Model) && !SupportsGPTImageOwnedInputs(d.provider, target.providerModelID) && !(d.provider == "luma" && IsLumaUniImageModel(target.providerModelID))) || len(spec.GetReferenceImages()) != 0 {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 		}
 	}
@@ -710,6 +710,12 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 	}
 	if d.provider == "openai" && target.capabilityContract == "image.generate" && openAIImageModelAdmitted(target.providerModelID) {
 		if err := validateOpenAIImageRequest(mapped, target.providerModelID); err != nil {
+			return nil, err
+		}
+		adapter = CloudMediaAdapterOpenAIImages
+	}
+	if d.provider == "azure" && target.capabilityContract == "image.generate" {
+		if err := validateAzureImageRequest(mapped, target.providerModelID); err != nil {
 			return nil, err
 		}
 		adapter = CloudMediaAdapterOpenAIImages

@@ -55,24 +55,27 @@ type ConnectorRecord struct {
 	LastCheck            *ConnectionCheck             `json:"last_check,omitempty"`
 	// OAuthRegistration is the non-secret projection of a managed OAuth
 	// registration; tokens stay only in sealed custody.
-	OAuthRegistration    *OAuthRegistration `json:"oauth_registration,omitempty"`
-	CredentialCustodyRef string             `json:"-"`
-	MediaStorage         *ossmedia.Config   `json:"media_storage,omitempty"`
-	SVGAuthor            *SVGAuthorConfig   `json:"svg_author,omitempty"`
+	OAuthRegistration    *OAuthRegistration      `json:"oauth_registration,omitempty"`
+	CredentialCustodyRef string                  `json:"-"`
+	MediaStorage         *ossmedia.Config        `json:"media_storage,omitempty"`
+	SVGAuthor            *SVGAuthorConfig        `json:"svg_author,omitempty"`
+	AzureDeployments     *AzureDeploymentsConfig `json:"azure_deployments,omitempty"`
 }
 
 // ConnectorMutations describes mutable fields for Update.
 type ConnectorMutations struct {
-	ReplaceSVGAuthor    bool
-	SVGAuthor           *SVGAuthorConfig
-	ReplaceMediaStorage bool
-	MediaStorage        *ossmedia.Credentials
-	Label               *string
-	Endpoint            *string
-	SecretPayload       *string
-	Status              *runtimev1.ConnectorStatus
-	AuthKind            *runtimev1.ConnectorAuthKind
-	ProviderAuthProfile *string
+	ReplaceAzureDeployments bool
+	AzureDeployments        *AzureDeploymentsConfig
+	ReplaceSVGAuthor        bool
+	SVGAuthor               *SVGAuthorConfig
+	ReplaceMediaStorage     bool
+	MediaStorage            *ossmedia.Credentials
+	Label                   *string
+	Endpoint                *string
+	SecretPayload           *string
+	Status                  *runtimev1.ConnectorStatus
+	AuthKind                *runtimev1.ConnectorAuthKind
+	ProviderAuthProfile     *string
 	// SealedCredential derives the replacement sealed payload from the current
 	// one under the store lock, for credentials bound to their registration.
 	SealedCredential func(existing string) (string, *OAuthRegistration, error)
@@ -304,6 +307,9 @@ func (s *ConnectorStore) updateRecord(connectorID string, mutations ConnectorMut
 	}
 
 	rec := &records[idx]
+	if mutations.ReplaceAzureDeployments {
+		rec.AzureDeployments = CloneAzureDeployments(mutations.AzureDeployments)
+	}
 	if mutations.ReplaceSVGAuthor {
 		rec.SVGAuthor = CloneSVGAuthor(mutations.SVGAuthor)
 	}

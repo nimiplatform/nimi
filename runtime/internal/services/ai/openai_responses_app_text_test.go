@@ -293,8 +293,14 @@ func TestOpenAIResponsesAppAdmitsStandardControlsOnly(t *testing.T) {
 	} {
 		if _, err := execute(input); err == nil {
 			t.Fatalf("%s was admitted", name)
-		} else if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED && reason != runtimev1.ReasonCode_AI_INPUT_INVALID {
-			t.Fatalf("%s = %v", name, err)
+		} else {
+			want := runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED
+			if name == "plan carrier" {
+				want = runtimev1.ReasonCode_AI_REASONING_CONTINUITY_INVALID
+			}
+			if reason, _ := grpcerr.ExtractReasonCode(err); reason != want {
+				t.Fatalf("%s = %v, want %v", name, err, want)
+			}
 		}
 	}
 	if requests.Load() != 2 {

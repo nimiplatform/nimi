@@ -183,7 +183,7 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 	intent := composition.intent
 	driver := composition.driver
 	target := composition.target
-	if cloudImageHasLocalOnlyInput(request) && !(composition.target.Provider() == "ideogram" && composition.target.ProviderModelID() == capabilitydriver.Ideogram45Model) && !(composition.target.Provider() == "openai" && capabilitydriver.IsOpenAIImage26(composition.target.ProviderModelID())) {
+	if cloudImageHasLocalOnlyInput(request) && !(composition.target.Provider() == "ideogram" && composition.target.ProviderModelID() == capabilitydriver.Ideogram45Model) && !capabilitydriver.SupportsGPTImageOwnedInputs(composition.target.Provider(), composition.target.ProviderModelID()) {
 		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{
 			Message: "Cloud media execution does not support image masks or Local image strength",
 		})

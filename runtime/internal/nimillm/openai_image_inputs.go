@@ -88,7 +88,7 @@ func ValidateCloudImageMaskReference(provider, model string, s *runtimev1.ImageG
 	if provider == "ideogram" && model == capabilitydriver.Ideogram45Model {
 		return ValidateIdeogram45OwnedMask(s, source, mask)
 	}
-	if provider != "openai" || !capabilitydriver.IsOpenAIImage26(model) || source == nil {
+	if !capabilitydriver.SupportsGPTImageOwnedInputs(provider, model) || source == nil {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	if err := validateCapturedMediaReferenceIdentity(mask, s.GetMaskArtifactId()); err != nil {

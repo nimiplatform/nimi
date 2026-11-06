@@ -75,8 +75,8 @@ func (b *Backend) Embed(ctx context.Context, modelID string, inputs []string, di
 	}
 
 	var respBody embeddingsResponse
-	if err := b.postJSON(ctx, resolveOpenAICompatiblePath(b.baseURL, "/embeddings"), embeddingsRequest{
-		Model:      modelID,
+	if err := b.postJSON(ctx, b.compatiblePath("/embeddings"), embeddingsRequest{
+		Model:      b.requestModelID(modelID),
 		Input:      reqInputs,
 		Dimensions: dimensions,
 	}, &respBody); err != nil {
@@ -324,7 +324,7 @@ func (b *Backend) GenerateImage(ctx context.Context, modelID string, spec *runti
 
 	var respBody imageResponse
 	err = b.postJSON(ctx, "/v1/images/generations", imageRequest{
-		Model:           modelID,
+		Model:           b.requestModelID(modelID),
 		Prompt:          prompt,
 		NegativePrompt:  strings.TrimSpace(spec.GetNegativePrompt()),
 		N:               spec.GetN(),

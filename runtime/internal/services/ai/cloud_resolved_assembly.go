@@ -260,6 +260,9 @@ func validateCloudResolvedAssemblyDraft(assembly *cloudResolvedAssembly) error {
 	if provider == "" || providerModelID == "" || remoteModelCatalogID == "" || provider != assembly.Connector.Provider {
 		return fmt.Errorf("Cloud ResolvedAssembly Connector provider is mismatched")
 	}
+	if provider == "azure" && (!connector.ValidAzureDeployments(assembly.Connector.AzureDeployments) || connector.AzureDeploymentForModel(assembly.Connector.AzureDeployments, providerModelID) == "") {
+		return fmt.Errorf("Cloud Azure target has no captured deployment binding")
+	}
 	if len(assembly.Defaults) > 0 {
 		defaults := &structpb.Struct{}
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(assembly.Defaults, defaults); err != nil {
@@ -529,6 +532,7 @@ func (capture *cloudVoiceWorkflowCapture) resolution() catalog.ResolveVoiceWorkf
 
 func cloneConnectorRecord(input connector.ConnectorRecord) connector.ConnectorRecord {
 	input.SVGAuthor = connector.CloneSVGAuthor(input.SVGAuthor)
+	input.AzureDeployments = connector.CloneAzureDeployments(input.AzureDeployments)
 	if input.MediaStorage != nil {
 		storage := *input.MediaStorage
 		input.MediaStorage = &storage

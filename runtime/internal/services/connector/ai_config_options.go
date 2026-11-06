@@ -103,6 +103,9 @@ func ValidateAIConfigCloudSelection(
 	if capabilityContract == "text.embed" && binding.EmbeddingDimension <= 0 {
 		return ConnectorRecord{}, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_CAPABILITY_CATALOG_MISMATCH)
 	}
+	if record.Provider == "azure" && AzureDeploymentForModel(record.AzureDeployments, ref.ProviderModelID) == "" {
+		return ConnectorRecord{}, nil, AzureDeploymentRequiredError()
+	}
 	return record, binding, nil
 }
 
@@ -236,6 +239,14 @@ func ListAIConfigCloudTargetOptions(
 			modelReasons = append(modelReasons, runtimev1.ReasonCode_CAPABILITY_CATALOG_MISMATCH)
 		}
 		providerModelID := catalogProviderModelID(model.Model)
+		deployment := ""
+		if provider == "azure" {
+			deployment = AzureDeploymentForModel(record.AzureDeployments, providerModelID)
+			if deployment == "" {
+				modelState = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED
+				modelReasons = append(modelReasons, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+			}
+		}
 		if _, offered := listed[providerModelID]; listedKnown && !offered {
 			modelState = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED
 			modelReasons = append(modelReasons, AIConfigAccountModelMissingReason)
@@ -243,6 +254,9 @@ func ListAIConfigCloudTargetOptions(
 		label := strings.TrimSpace(model.Model.ModelID)
 		if label == "" {
 			label = providerModelID
+		}
+		if deployment != "" {
+			label += " · " + deployment
 		}
 		identity := remoteModelCatalogIdentityForConnector(record, providerRecord, model)
 		id := identity.remoteModelCatalogID

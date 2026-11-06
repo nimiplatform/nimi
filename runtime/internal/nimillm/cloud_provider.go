@@ -34,8 +34,17 @@ func NewCloudProvider(cfg CloudConfig) *CloudProvider {
 			continue
 		}
 		backendName := "cloud-" + canonical
-		b := NewSecuredBackendWithHeaders(backendName, creds.BaseURL, creds.APIKey, creds.Headers, cfg.HTTPTimeout, cfg.AllowLoopbackEndpoint)
+		baseURL := creds.BaseURL
+		if canonical == "azure" {
+			var err error
+			baseURL, err = AzureOpenAIEndpoint(baseURL)
+			if err != nil {
+				continue
+			}
+		}
+		b := NewSecuredBackendWithHeaders(backendName, baseURL, creds.APIKey, creds.Headers, cfg.HTTPTimeout, cfg.AllowLoopbackEndpoint)
 		if b != nil {
+			b.azureOpenAI = canonical == "azure"
 			backends[canonical] = b
 		}
 	}
@@ -182,17 +191,32 @@ func (p *CloudProvider) backendFromTarget(target *RemoteTarget) *Backend {
 		return nil
 	}
 	allowLoopback := p.allowLoopbackEndpoint || target.AllowLoopback
+	endpoint := target.Endpoint
+	if target.ProviderType == "azure" {
+		if target.AzureDeploymentName == "" {
+			return nil
+		}
+		var err error
+		endpoint, err = AzureOpenAIEndpoint(endpoint)
+		if err != nil {
+			return nil
+		}
+	}
 	if target.ProviderType == chatGPTPlanProvider && !chatGPTPlanTargetEndpointAllowed(target, p.allowLoopbackEndpoint) {
 		return nil
 	}
 	backend := NewSecuredBackendWithHeaders(
 		"cloud-"+target.ProviderType,
-		target.Endpoint,
+		endpoint,
 		target.APIKey,
 		target.Headers,
 		p.probeTimeout(),
 		allowLoopback,
 	)
+	if backend != nil && target.ProviderType == "azure" {
+		backend.azureOpenAI = true
+		backend.modelDeployment = target.AzureDeploymentName
+	}
 	if target.ProviderType == chatGPTPlanProvider {
 		// SIWC tokens reach only the fixed public resource, never a redirect.
 		return backend.withoutRedirects()

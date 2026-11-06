@@ -60,6 +60,17 @@ message Connector {
   ConnectorOSSStorage media_storage = 17;
   // Explicit model for SVG authoring, separate from the selected image model.
   ConnectorSVGAuthor svg_author = 18;
+  // Non-secret, owner-declared Azure model-to-deployment bindings.
+  ConnectorAzureDeployments azure_deployments = 19;
+}
+
+message ConnectorAzureDeployment {
+  string provider_model_id = 1;
+  string deployment_name = 2;
+}
+
+message ConnectorAzureDeployments {
+  repeated ConnectorAzureDeployment deployments = 1;
 }
 
 message ConnectorSVGAuthor {
@@ -163,6 +174,8 @@ message UpdateConnectorRequest {
   optional string credential_json = 10;
   ConnectorMediaStorageUpdate media_storage = 11;
   ConnectorSVGAuthorUpdate svg_author = 12;
+  // Presence replaces the whole binding set; an empty set removes it.
+  ConnectorAzureDeployments azure_deployments = 13;
 }
 
 message UpdateConnectorResponse {
@@ -231,6 +244,7 @@ message ProviderCatalogEntry {
   bool inline_supported = 8;
   bool supports_oss_media_storage = 9;
   bool supports_svg_author = 10;
+  bool supports_azure_deployments = 11;
 }
 
 message ListProviderCatalogRequest {}
