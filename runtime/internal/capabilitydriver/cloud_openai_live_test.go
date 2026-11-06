@@ -100,7 +100,7 @@ func TestOpenAILivePreservesContinuousFragmentsAndCumulativeUsage(t *testing.T) 
 	readyLiveFixture(t, protocol)
 	for _, kind := range []string{"session.input_transcript.delta", "session.output_transcript.delta"} {
 		events, err := protocol.Normalize(liveWireFixture(map[string]any{"type": kind, "delta": " hello ", "start_ms": 0, "end_ms": 125}))
-		if err != nil || len(events) != 1 || events[0].Kind != CloudRealtimeEventContinuousTranscript || events[0].Text != " hello " || events[0].StartMS != 0 || events[0].EndMS != 125 || events[0].ProviderResponseID != "" {
+		if err != nil || len(events) != 1 || events[0].Kind != CloudRealtimeEventContinuousTranscript || events[0].Text != " hello " || events[0].StartMS == nil || *events[0].StartMS != 0 || events[0].EndMS == nil || *events[0].EndMS != 125 || events[0].ProviderResponseID != "" {
 			t.Fatal(events, err)
 		}
 	}

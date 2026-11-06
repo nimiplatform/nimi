@@ -122,9 +122,15 @@ func materializeRealtimeEndpoint(base string, transport capabilitydriver.CloudRe
 	}
 	parsed.Scheme = "wss"
 	// Preserve a custom proxy prefix and captured origin, including workspace
-	// or region. Replace only the Driver's declared service base path.
+	// or region. Replace only a Driver-declared current service base.
 	basePath := strings.TrimRight(parsed.EscapedPath(), "/")
-	basePath = strings.TrimSuffix(basePath, transport.BasePath)
+	matched := ""
+	for _, candidate := range transport.BasePaths {
+		if len(candidate) > len(matched) && strings.HasSuffix(basePath, candidate) {
+			matched = candidate
+		}
+	}
+	basePath = strings.TrimSuffix(basePath, matched)
 	parsed.RawPath = basePath + transport.Path
 	parsed.Path, err = url.PathUnescape(parsed.RawPath)
 	if err != nil {

@@ -45,7 +45,7 @@ func stalledRealtimeTransport(t *testing.T) *providerRealtimeSession {
 }
 
 func TestRealtimeUsesCapturedConnectionOriginAndProxyPrefix(t *testing.T) {
-	transport := capabilitydriver.CloudRealtimeTransport{BasePath: "/v1", Path: "/v1/realtime", ModelQuery: true}
+	transport := capabilitydriver.CloudRealtimeTransport{BasePaths: []string{"/v1"}, Path: "/v1/realtime", ModelQuery: true}
 	for _, base := range []string{"https://api.openai.com/v1", "https://proxy.example/gateway/v1", "https://proxy.example/gateway"} {
 		got, err := materializeRealtimeEndpoint(base, transport, "captured-model")
 		u, _ := url.Parse(got)
@@ -60,7 +60,7 @@ func TestRealtimeUsesCapturedConnectionOriginAndProxyPrefix(t *testing.T) {
 	if _, err := materializeRealtimeEndpoint("", transport, "model"); err == nil {
 		t.Fatal("empty capture used an ambient endpoint")
 	}
-	dash := capabilitydriver.CloudRealtimeTransport{BasePath: "/compatible-mode/v1", Path: "/api-ws/v1/realtime", ModelQuery: true}
+	dash := capabilitydriver.CloudRealtimeTransport{BasePaths: []string{"/compatible-mode/v1"}, Path: "/api-ws/v1/realtime", ModelQuery: true}
 	got, err := materializeRealtimeEndpoint("https://ws-example.cn-beijing.maas.aliyuncs.com/compatible-mode/v1", dash, "captured")
 	if err != nil || !strings.HasPrefix(got, "wss://ws-example.cn-beijing.maas.aliyuncs.com/api-ws/v1/realtime?") {
 		t.Fatalf("workspace changed: %s %v", got, err)
@@ -68,7 +68,7 @@ func TestRealtimeUsesCapturedConnectionOriginAndProxyPrefix(t *testing.T) {
 }
 
 func TestRealtimePreservesEscapedProxyPrefix(t *testing.T) {
-	transport := capabilitydriver.CloudRealtimeTransport{BasePath: "/v1", Path: "/v1/realtime", ModelQuery: true}
+	transport := capabilitydriver.CloudRealtimeTransport{BasePaths: []string{"/v1"}, Path: "/v1/realtime", ModelQuery: true}
 	for _, path := range []string{"/gateway%2Ftenant", "/gateway%2ftenant", "/percent%25tenant", "/ordinary"} {
 		for _, suffix := range []string{"/v1", "/v1/", ""} {
 			got, err := materializeRealtimeEndpoint("https://proxy.example"+path+suffix+"?scope=a%2Fb", transport, "model")
@@ -79,6 +79,16 @@ func TestRealtimePreservesEscapedProxyPrefix(t *testing.T) {
 			if err != nil || u.RequestURI() != path+"/v1/realtime?model=model&scope=a%2Fb" {
 				t.Fatalf("proxy request-target changed: %s (%v)", got, err)
 			}
+		}
+	}
+}
+
+func TestGeminiLiveUsesBothCurrentAPIBaseFormsWithoutChangingOrigin(t *testing.T) {
+	transport := capabilitydriver.CloudRealtimeTransport{BasePaths: []string{"/v1beta/openai", "/v1beta"}, Path: "/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent", APIKeyHeader: "x-goog-api-key"}
+	for _, suffix := range []string{"", "/v1beta", "/v1beta/openai", "/v1beta/openai/"} {
+		actual, err := materializeRealtimeEndpoint("https://gateway.example/tenant%2Froute"+suffix, transport, "gemini-3.8-live")
+		if err != nil || actual != "wss://gateway.example/tenant%2Froute/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent" {
+			t.Fatal(actual, err)
 		}
 	}
 }

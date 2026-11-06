@@ -63,7 +63,7 @@ func newOpenAILiveSession(target CloudRealtimeTarget, open CloudRealtimeOpen) (C
 }
 
 func (s *openAILiveSession) Transport() CloudRealtimeTransport {
-	return CloudRealtimeTransport{BasePath: "/v1", Path: "/v1/live/sessions"}
+	return CloudRealtimeTransport{BasePaths: []string{"/v1"}, Path: "/v1/live/sessions"}
 }
 
 func (s *openAILiveSession) OpenWire(id string) ([]byte, error) {
@@ -249,7 +249,7 @@ func (s *openAILiveSession) Normalize(raw []byte) ([]CloudRealtimeEvent, error) 
 		if event.Type == "session.output_transcript.delta" {
 			direction = runtimev1.AiRealtimeTranscriptDirection_AI_REALTIME_TRANSCRIPT_DIRECTION_OUTPUT
 		}
-		return []CloudRealtimeEvent{{Kind: CloudRealtimeEventContinuousTranscript, Text: *event.Delta, TranscriptDirection: direction, StartMS: *event.StartMS, EndMS: *event.EndMS}}, nil
+		return []CloudRealtimeEvent{{Kind: CloudRealtimeEventContinuousTranscript, Text: *event.Delta, TranscriptDirection: direction, StartMS: event.StartMS, EndMS: event.EndMS}}, nil
 	case "session.delegation.created":
 		if event.Delegation == nil || !liveOpaqueID(event.Delegation.ID) || event.Delegation.Type != "delegation" || event.Delegation.Target != "client" || event.Delegation.ResponseID != "" || event.OffsetMS == nil || *event.OffsetMS < 0 || *event.OffsetMS > 86_400_000 {
 			return invalid()
@@ -272,7 +272,7 @@ func (s *openAILiveSession) Normalize(raw []byte) ([]CloudRealtimeEvent, error) 
 		default:
 			return invalid()
 		}
-		return []CloudRealtimeEvent{{Kind: CloudRealtimeEventSessionClosed, SessionAudioSeconds: &seconds, SessionCloseReason: event.Reason}}, nil
+		return []CloudRealtimeEvent{{Kind: CloudRealtimeEventSessionClosed, SessionAudioSeconds: &seconds, SessionCloseReason: event.Reason, SessionClosureConfirmed: true}}, nil
 	case "error":
 		return []CloudRealtimeEvent{{Kind: CloudRealtimeEventFailed, ErrorCode: "live-session-error"}}, nil
 	default:

@@ -167,6 +167,7 @@ pub(super) async fn ai_close(
         .into_inner();
     let mut output = project_operation(response.ack, response.control)?;
     if let Some(usage) = response.usage { output["usage"] = project_session_usage(usage)?; }
+    output["closure"] = project_session_closure(response.closure)?;
     Ok(output)
 }
 
@@ -456,13 +457,20 @@ fn project_ai_event(
             json!({"type":"request-terminal","requestId":value.request_id,"finishReason":finish_reason_name(value.finish_reason)?,"usage":project_usage(value.usage),"reasonCode":reason_name(value.reason_code)?})
         }
         AiEvent::SessionTerminal(value) => {
-            let mut output=json!({"type":"session-terminal","reasonCode":reason_name(value.reason_code)?});
+            let mut output=json!({"type":"session-terminal","reasonCode":reason_name(value.reason_code)?,"closure":project_session_closure(value.closure)?});
             if let Some(usage)=value.usage { output["usage"]=project_session_usage(usage)?; } output
         }
         AiEvent::ContinuousTranscript(value) => {
-            if value.start_ms<0 || value.end_ms<value.start_ms || value.end_ms>86_400_000 || value.text_delta.len()>32*1024 {return Err(untrusted());}
-            json!({"type":"continuous-transcript","direction":match value.direction {1=>"input",2=>"output",_=>return Err(untrusted())},"textDelta":value.text_delta,"startMs":value.start_ms,"endMs":value.end_ms})
+            if value.text_delta.len()>32*1024 {return Err(untrusted());}
+            let mut output=json!({"type":"continuous-transcript","direction":match value.direction {1=>"input",2=>"output",_=>return Err(untrusted())},"textDelta":value.text_delta});
+            match (value.start_ms,value.end_ms) {
+                (Some(start),Some(end)) if start>=0 && end>=start && end<=86_400_000 => {output["startMs"]=json!(start);output["endMs"]=json!(end);}
+                (None,None)=>{}
+                _=>return Err(untrusted()),
+            }
+            output
         }
+        AiEvent::ContinuousInterruption(value) => json!({"type":"continuous-interruption","outputTrackId":value.output_track_id}),
         AiEvent::ContextRequest(value) => {
             require_text(&value.context_request_id,MAX_SELECTOR_BYTES,false).map_err(|_|untrusted())?;
             if value.offset_ms<0 || value.offset_ms>86_400_000 {return Err(untrusted());}
@@ -866,10 +874,30 @@ mod tests {
         assert_eq!(projected,json!({"audioSeconds":0.0,"final":true}));
         assert!(project_session_usage(crate::generated::AiRealtimeSessionUsage{audio_seconds:f64::NAN,r#final:true}).is_err());
     }
+
+    #[test]
+    fn untimed_transcripts_and_local_only_closure_keep_their_evidence() {
+        let control=RealtimeControlStatus{realtime_session_id:"session".into(),channel_id:"channel".into(),adapter_kind:3,lifecycle:2,generation:1,sequence:1,backpressure:1,buffer_capacity:64,..Default::default()};
+        let transcript=crate::generated::AiRealtimeContinuousTranscript{direction:2,text_delta:" exact native text ".into(),start_ms:None,end_ms:None};
+        let event=crate::generated::AiRealtimeEvent{control:Some(control.clone()),event:Some(AiEvent::ContinuousTranscript(transcript.clone()))};
+        let value=project_ai_event(event).unwrap();
+        assert!(value["event"].get("startMs").is_none());
+        assert!(value["event"].get("endMs").is_none());
+        assert_eq!(value["event"]["textDelta"]," exact native text ");
+        assert!(project_ai_event(crate::generated::AiRealtimeEvent{control:Some(control),event:Some(AiEvent::ContinuousTranscript(crate::generated::AiRealtimeContinuousTranscript{start_ms:Some(0),..transcript}))}).is_err());
+        let closure=project_session_closure(Some(crate::generated::AiRealtimeSessionClosure{local_resources_released:true,provider_session_closed:false})).unwrap();
+        assert_eq!(closure,json!({"localResourcesReleased":true,"providerSessionClosed":false}));
+        assert!(project_session_closure(None).is_err());
+    }
 }
 
 fn interaction_mode_name(value:i32)->Result<&'static str,LocalAppOperationError> {match value {1=>Ok("owner-controlled"),2=>Ok("continuous"),_=>Err(untrusted())}}
 fn project_session_usage(value:crate::generated::AiRealtimeSessionUsage)->Result<JsonValue,LocalAppOperationError> {
     if !value.audio_seconds.is_finite() || !(0.0..=86400.0).contains(&value.audio_seconds) {return Err(untrusted());}
     Ok(json!({"audioSeconds":value.audio_seconds,"final":value.r#final}))
+}
+
+fn project_session_closure(value:Option<crate::generated::AiRealtimeSessionClosure>)->Result<JsonValue,LocalAppOperationError> {
+    let value=value.ok_or_else(untrusted)?;
+    Ok(json!({"localResourcesReleased":value.local_resources_released,"providerSessionClosed":value.provider_session_closed}))
 }

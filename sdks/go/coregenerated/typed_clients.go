@@ -2934,28 +2934,33 @@ type AiRealtimeContextRequest struct {
 	OffsetMs         int64  `json:"offset_ms,omitempty"`
 }
 
+type AiRealtimeContinuousInterruption struct {
+	OutputTrackId string `json:"output_track_id,omitempty"`
+}
+
 type AiRealtimeContinuousTranscript struct {
 	Direction AiRealtimeTranscriptDirection `json:"direction,omitempty"`
 	TextDelta string                        `json:"text_delta,omitempty"`
-	StartMs   int64                         `json:"start_ms,omitempty"`
-	EndMs     int64                         `json:"end_ms,omitempty"`
+	StartMs   *int64                        `json:"start_ms,omitempty"`
+	EndMs     *int64                        `json:"end_ms,omitempty"`
 }
 
 type AiRealtimeEvent struct {
-	Control              *RealtimeControlStatus          `json:"control,omitempty"`
-	Opened               *AiRealtimeSessionOpened        `json:"opened,omitempty"`
-	InputAccepted        *AiRealtimeInputAccepted        `json:"input_accepted,omitempty"`
-	SpeechStatus         *AiRealtimeSpeechStatus         `json:"speech_status,omitempty"`
-	Transcript           *AiRealtimeTranscript           `json:"transcript,omitempty"`
-	TextOutput           *AiRealtimeTextOutput           `json:"text_output,omitempty"`
-	AudioFrame           *AiRealtimeAudioFrameOutput     `json:"audio_frame,omitempty"`
-	OutputTrack          *AiRealtimeOutputTrackStatus    `json:"output_track,omitempty"`
-	RequestTerminal      *AiRealtimeRequestTerminal      `json:"request_terminal,omitempty"`
-	SessionTerminal      *AiRealtimeSessionTerminal      `json:"session_terminal,omitempty"`
-	Failure              *AiRealtimeFailure              `json:"failure,omitempty"`
-	ContinuousTranscript *AiRealtimeContinuousTranscript `json:"continuous_transcript,omitempty"`
-	ContextRequest       *AiRealtimeContextRequest       `json:"context_request,omitempty"`
-	SessionUsage         *AiRealtimeSessionUsage         `json:"session_usage,omitempty"`
+	Control                *RealtimeControlStatus            `json:"control,omitempty"`
+	Opened                 *AiRealtimeSessionOpened          `json:"opened,omitempty"`
+	InputAccepted          *AiRealtimeInputAccepted          `json:"input_accepted,omitempty"`
+	SpeechStatus           *AiRealtimeSpeechStatus           `json:"speech_status,omitempty"`
+	Transcript             *AiRealtimeTranscript             `json:"transcript,omitempty"`
+	TextOutput             *AiRealtimeTextOutput             `json:"text_output,omitempty"`
+	AudioFrame             *AiRealtimeAudioFrameOutput       `json:"audio_frame,omitempty"`
+	OutputTrack            *AiRealtimeOutputTrackStatus      `json:"output_track,omitempty"`
+	RequestTerminal        *AiRealtimeRequestTerminal        `json:"request_terminal,omitempty"`
+	SessionTerminal        *AiRealtimeSessionTerminal        `json:"session_terminal,omitempty"`
+	Failure                *AiRealtimeFailure                `json:"failure,omitempty"`
+	ContinuousTranscript   *AiRealtimeContinuousTranscript   `json:"continuous_transcript,omitempty"`
+	ContextRequest         *AiRealtimeContextRequest         `json:"context_request,omitempty"`
+	SessionUsage           *AiRealtimeSessionUsage           `json:"session_usage,omitempty"`
+	ContinuousInterruption *AiRealtimeContinuousInterruption `json:"continuous_interruption,omitempty"`
 }
 
 type AiRealtimeFailure struct {
@@ -2992,6 +2997,11 @@ type AiRealtimeRequestTerminal struct {
 	ReasonCode   ReasonCode   `json:"reason_code,omitempty"`
 }
 
+type AiRealtimeSessionClosure struct {
+	LocalResourcesReleased bool `json:"local_resources_released,omitempty"`
+	ProviderSessionClosed  bool `json:"provider_session_closed,omitempty"`
+}
+
 type AiRealtimeSessionOpened struct {
 	InputAudio      *AiRealtimeAudioFormat      `json:"input_audio,omitempty"`
 	OutputAudio     *AiRealtimeAudioFormat      `json:"output_audio,omitempty"`
@@ -3000,8 +3010,9 @@ type AiRealtimeSessionOpened struct {
 }
 
 type AiRealtimeSessionTerminal struct {
-	ReasonCode ReasonCode              `json:"reason_code,omitempty"`
-	Usage      *AiRealtimeSessionUsage `json:"usage,omitempty"`
+	ReasonCode ReasonCode                `json:"reason_code,omitempty"`
+	Usage      *AiRealtimeSessionUsage   `json:"usage,omitempty"`
+	Closure    *AiRealtimeSessionClosure `json:"closure,omitempty"`
 }
 
 type AiRealtimeSessionUsage struct {
@@ -3767,9 +3778,10 @@ type CloseRealtimeSessionRequest struct {
 }
 
 type CloseRealtimeSessionResponse struct {
-	Ack     *Ack                    `json:"ack,omitempty"`
-	Control *RealtimeControlStatus  `json:"control,omitempty"`
-	Usage   *AiRealtimeSessionUsage `json:"usage,omitempty"`
+	Ack     *Ack                      `json:"ack,omitempty"`
+	Control *RealtimeControlStatus    `json:"control,omitempty"`
+	Usage   *AiRealtimeSessionUsage   `json:"usage,omitempty"`
+	Closure *AiRealtimeSessionClosure `json:"closure,omitempty"`
 }
 
 type CloseVideoSessionRequest struct {

@@ -10,6 +10,7 @@ import {
   AiRealtimeInteractionMode,
   AiRealtimeTranscriptDirection,
   type AiRealtimeSessionUsage,
+  type AiRealtimeSessionClosure,
   type AiRealtimeAudioFormat,
   type AiRealtimeEvent,
   type AppendRealtimeInputRequest,
@@ -48,7 +49,8 @@ export type NimiAiRealtimeRuntime = {
   readonly closeRealtimeSession: (request: CloseRealtimeSessionRequest) => Promise<CloseRealtimeSessionResponse>;
 };
 
-// @nimi-authority: rule.nimi.sdks.feature-clients.r105
+// @nimi-authority: rule.nimi.runtime.ai-provider.gpt-live-continuous
+// @nimi-authority: rule.nimi.runtime.ai-provider.gemini-live-owner-controls
 export function createNimiAiRealtimeRuntimeClient(
   runtime: NimiAiRealtimeRuntime,
 ): NimiAiRealtimeClient {
@@ -112,7 +114,7 @@ export function createNimiAiRealtimeRuntimeClient(
     },
     close: async (input) => {
       const response = await runtime.closeRealtimeSession(scope(record(input, 'AI Realtime close input')));
-      return { ...outputOperation(response.ack, response.control), ...(response.usage ? { usage: sessionUsage(response.usage) } : {}) };
+      return { ...outputOperation(response.ack, response.control), closure:sessionClosure(response.closure), ...(response.usage ? { usage: sessionUsage(response.usage) } : {}) };
     },
   };
   return createNimiAiRealtimeClient(shell);
@@ -213,10 +215,13 @@ function outputEvent(value: AiRealtimeEvent) {
       return { control, event: {
         type: 'session-terminal',
         reasonCode: projectRuntimeReasonCode(value.event.sessionTerminal.reasonCode),
+        closure:sessionClosure(value.event.sessionTerminal.closure),
         ...(value.event.sessionTerminal.usage ? { usage: sessionUsage(value.event.sessionTerminal.usage) } : {}),
       } };
     case 'continuousTranscript':
-      return { control, event: { type: 'continuous-transcript', direction: projectRuntimeEnum(value.event.continuousTranscript.direction, { [AiRealtimeTranscriptDirection.INPUT]: 'input', [AiRealtimeTranscriptDirection.OUTPUT]: 'output' }, 'Continuous transcript direction'), textDelta: value.event.continuousTranscript.textDelta, startMs: Number(value.event.continuousTranscript.startMs), endMs: Number(value.event.continuousTranscript.endMs) } };
+      return { control, event: { type: 'continuous-transcript', direction: projectRuntimeEnum(value.event.continuousTranscript.direction, { [AiRealtimeTranscriptDirection.INPUT]: 'input', [AiRealtimeTranscriptDirection.OUTPUT]: 'output' }, 'Continuous transcript direction'), textDelta: value.event.continuousTranscript.textDelta, ...(value.event.continuousTranscript.startMs===undefined?{}:{startMs:Number(value.event.continuousTranscript.startMs)}), ...(value.event.continuousTranscript.endMs===undefined?{}:{endMs:Number(value.event.continuousTranscript.endMs)}) } };
+    case 'continuousInterruption':
+      return {control,event:{type:'continuous-interruption',outputTrackId:value.event.continuousInterruption.outputTrackId}};
     case 'contextRequest':
       return { control, event: { type: 'context-request', contextRequestId: value.event.contextRequest.contextRequestId, offsetMs: Number(value.event.contextRequest.offsetMs) } };
     case 'sessionUsage':
@@ -349,3 +354,4 @@ function interactionModeName(value: AiRealtimeInteractionMode) {
   return projectRuntimeEnum(value, { [AiRealtimeInteractionMode.OWNER_CONTROLLED]: 'owner-controlled', [AiRealtimeInteractionMode.CONTINUOUS]: 'continuous' }, 'Realtime interaction mode');
 }
 function sessionUsage(value: AiRealtimeSessionUsage) { return { audioSeconds: value.audioSeconds, final: value.final }; }
+function sessionClosure(value:AiRealtimeSessionClosure|undefined){if(!value)return invalid('AI Realtime session closure');return{localResourcesReleased:value.localResourcesReleased,providerSessionClosed:value.providerSessionClosed};}

@@ -644,6 +644,7 @@ export function createStudioRunHistoryResultSnapshot(result: StudioCapabilityRun
       ending: output.ending,
       terminalReason: output.terminalReason,
       ...(output.audioUsage ? { audioUsage: { ...output.audioUsage } } : {}),
+      ...(output.closure ? { closure: { ...output.closure } } : {}),
       observed: { ...output.observed },
       ...trace,
     };
@@ -820,6 +821,7 @@ export function restoreStudioCapabilityRunResult(
         ending: snapshot.ending,
         terminalReason: snapshot.terminalReason,
           ...(snapshot.audioUsage ? { audioUsage: { ...snapshot.audioUsage } } : {}),
+          ...(snapshot.closure ? { closure: { ...snapshot.closure } } : {}),
         observed: { ...snapshot.observed },
       },
     };

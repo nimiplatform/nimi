@@ -1,9 +1,27 @@
 version: 1
 provider: gemini
-catalog_version: 2026-11-06-gemini-omni12
+catalog_version: 2026-11-06-gemini-continuous-live
 inventory_mode: static_source
 default_text_model: gemini-3.8-flash
 models:
+  - model_id: gemini-3.8-live
+    provider: gemini
+    model_type: chat
+    updated_at: 2026-11-06
+    capabilities:
+      - realtime.interact
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Requires explicit continuous mode and audio output. Transcripts may have no timestamps; native interruption is delivered. Close confirms local resource release separately from provider closure, with no final session usage claim. No owner-controlled turns, provider tools, video, requested thinking or automatic resumption in this slice.
+    source_ref:
+      url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-live?authuser=5
+      retrieved_at: 2026-11-06
+      note: Stable native audio Live model; proactivity cannot be disabled, thinking controls omitted, clientContent turnComplete false does not force generation.
+    context_window_tokens: 131072
   - model_id: gemini-4-argon
     provider: gemini
     model_type: chat

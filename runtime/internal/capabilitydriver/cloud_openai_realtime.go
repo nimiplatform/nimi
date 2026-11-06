@@ -39,7 +39,7 @@ func (openAIRealtimeDriver) ValidateTarget(identity Identity, raw *structpb.Stru
 }
 
 func (openAIRealtimeDriver) Transport() CloudRealtimeTransport {
-	return CloudRealtimeTransport{BasePath: "/v1", Path: "/v1/realtime", ModelQuery: true}
+	return CloudRealtimeTransport{BasePaths: []string{"/v1"}, Path: "/v1/realtime", ModelQuery: true}
 }
 
 func (openAIRealtimeDriver) MapOpen(eventID string, target CloudRealtimeTarget, input CloudRealtimeOpen) ([]byte, error) {

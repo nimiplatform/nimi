@@ -339,7 +339,7 @@
       "sendRecordingVad": "Send recording",
       "submitRecordingOnly": "Submit recording without responding",
       "recordingSubmitted": "Recording submitted. Select Start response when ready.",
-      "recordingStreamed": "Recording sent as continuous audio.",
+      "recordingStreamed": "Recording sent and input muted. Sending another recording or starting the microphone resumes input.",
       "recordingHint": "Use up to 4 seconds of mono PCM16 WAV matching the Session input rate. Submit without responding to commit it first, then select Start response. Send recording and respond performs both actions.",
       "recordingHintVad": "Send up to 4 seconds of mono PCM16 WAV matching the Session input rate. Include a quiet tail so VAD can detect the end of speech. Sending only supplies audio; wait for the actual transcript, then select Start response when ready.",
       "recordingFormatError": "Choose a non-empty mono PCM16 WAV of at most 4 seconds matching the Session input rate (16 or 24 kHz).",
@@ -415,7 +415,12 @@
       "usagePartial": "Reported cumulative audio so far: {{seconds}} s; finalization is unconfirmed.",
       "transcriptWindow": "Showing the latest 200 continuous transcript fragments.",
       "inputTranscript": "Input transcript",
-      "outputTranscript": "Output transcript"
+      "outputTranscript": "Output transcript",
+      "nativeInterruption": "Provider audio interruption observed",
+      "localClosureUnconfirmed": "The session ended; local resource release is unconfirmed.",
+      "providerClosureConfirmed": "Local resources released and provider session closure confirmed.",
+      "localClosureConfirmed": "Local connection and resources released. No provider session-close receipt; final usage is unconfirmed.",
+      "receptionStopped": "local reception stopped"
     },
     "jobs": {
       "streamEnded": "Job {{jobId}} is still {{status}}; its event stream ended before reaching a terminal state.",

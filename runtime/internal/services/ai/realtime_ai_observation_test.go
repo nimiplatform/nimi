@@ -123,48 +123,21 @@ func TestRealtimeObservationKeepsDisconnectedResponseUnknown(t *testing.T) {
 	}
 }
 
-func TestRealtimeObservationCountsAdmittedNoOutputRoundWithoutOutputTrack(t *testing.T) {
+func TestGeminiContinuousNoOutputDoesNotInventCompletedGeneration(t *testing.T) {
 	_, _, owner := realtimeObservationTestOwner(t)
 	svc, record, _, ctx := geminiRealtimeServiceFixture(t)
 	svc.aiObservation = owner
-	svc.configureRealtimeAIObservation(ctx, record, "google", "gemini-live", "gemini-connector")
-	_, err := svc.AppendRealtimeInput(ctx, &runtimev1.AppendRealtimeInputRequest{RealtimeSessionId: "session", Generation: 1,
-		Input: &runtimev1.AppendRealtimeInputRequest_Text{Text: &runtimev1.AiRealtimeTextInput{RequestId: "input", Text: "Speak"}}})
-	if err != nil {
+	svc.configureRealtimeAIObservation(ctx, record, "gemini", "gemini-3.8-live", "gemini-connector")
+	record.continuousAttempt = record.aiObservation.Begin(record.aiObservationFacts)
+	projectGeminiFrame(t, svc, record, `{"serverContent":{"turnComplete":true,"waitingForInput":true}}`)
+	if len(record.tracksByRuntime) != 0 || len(owner.Snapshot(record.subjectUserID, 50).Executions) != 1 {
+		t.Fatal("silence fabricated a generation or ended the continuous session")
+	}
+	if _, err := svc.CloseRealtimeSession(ctx, &runtimev1.CloseRealtimeSessionRequest{RealtimeSessionId: "session", Generation: 1}); err != nil {
 		t.Fatal(err)
 	}
-	_, err = svc.SubmitRealtimeOwnerControl(ctx, &runtimev1.SubmitRealtimeOwnerControlRequest{RealtimeSessionId: "session", Generation: 1,
-		RequestId: "request", Control: runtimev1.AiRealtimeOwnerControlKind_AI_REALTIME_OWNER_CONTROL_KIND_START_RESPONSE})
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(record.tracksByRuntime) != 0 {
-		t.Fatal("dispatch fabricated an output track")
-	}
-	if len(owner.Snapshot(record.subjectUserID, 50).Executions) != 1 {
-		t.Fatal("actual model dispatch was not observed")
-	}
-	events, err := record.driver.Normalize([]byte(`{"serverContent":{"turnComplete":true,"interactionStatus":"IDLE","waitingForInput":true}}`))
-	if err != nil {
-		t.Fatal(err)
-	}
-	for _, event := range events {
-		svc.projectRealtimeProviderEvent(record, event)
-	}
-	if len(record.tracksByRuntime) != 0 {
-		t.Fatal("no-output terminal fabricated an output track")
-	}
-	if len(owner.Snapshot(record.subjectUserID, 50).Executions) != 0 {
-		t.Fatal("terminal round remained active")
-	}
-	if err := owner.Flush(context.Background()); err != nil {
-		t.Fatal(err)
-	}
-	summary, err := owner.Summary(context.Background(), record.subjectUserID, time.Now().Add(-time.Minute), time.Now().Add(time.Minute))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if summary.GetTotals().GetAttemptCount() != 1 {
-		t.Fatalf("no-output dispatch count = %d", summary.GetTotals().GetAttemptCount())
+	snapshot := owner.Snapshot(record.subjectUserID, 50)
+	if len(snapshot.Executions) != 1 || snapshot.Executions[0].State != runtimev1.DesktopAIExecutionState_DESKTOP_AI_EXECUTION_STATE_OBSERVATION_UNKNOWN || snapshot.WorkCountKnown {
+		t.Fatal("local close fabricated native completion", snapshot)
 	}
 }

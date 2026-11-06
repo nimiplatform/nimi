@@ -396,7 +396,8 @@ function LabAiRealtimeSurface({
         {state.tracks.length === 0 && state.transcripts.length === 0 && !(state.continuousTranscripts?.length) ? <p className="lab-realtime__meta">{t('CapabilityTests.aiRealtime.noOutput')}</p> : null}
         {state.sessionUsage ? <p className="lab-realtime__meta">{t(state.sessionUsage.final ? 'CapabilityTests.aiRealtime.usageFinal' : 'CapabilityTests.aiRealtime.usagePartial', { seconds: state.sessionUsage.audioSeconds })}</p> : null}
         {state.transcriptWindowTrimmed ? <p className="lab-realtime__meta">{t('CapabilityTests.aiRealtime.transcriptWindow')}</p> : null}
-        {state.continuousTranscripts?.map((entry,index)=><p key={index} className="lab-realtime__transcript"><strong>{t(entry.direction==='input'?'CapabilityTests.aiRealtime.inputTranscript':'CapabilityTests.aiRealtime.outputTranscript')} · {entry.startMs}–{entry.endMs} ms</strong> {entry.textDelta}</p>)}
+        {state.closure ? <p className="lab-realtime__meta">{t(!state.closure.localResourcesReleased ? 'CapabilityTests.aiRealtime.localClosureUnconfirmed' : state.closure.providerSessionClosed ? 'CapabilityTests.aiRealtime.providerClosureConfirmed' : 'CapabilityTests.aiRealtime.localClosureConfirmed')}</p> : null}
+        {state.continuousTranscripts?.map((entry,index)=><p key={index} className="lab-realtime__transcript"><strong>{t(entry.direction==='input'?'CapabilityTests.aiRealtime.inputTranscript':'CapabilityTests.aiRealtime.outputTranscript')}{entry.startMs===undefined?'':` · ${entry.startMs}–${entry.endMs} ms`}</strong> {entry.textDelta}</p>)}
         {state.transcripts.map((entry, index) => (
           <p key={`${entry.utteranceId}:${index}`} className="lab-realtime__transcript">
             <strong>{t('CapabilityTests.aiRealtime.transcript', { final: entry.final ? 'final' : 'partial' })}</strong> {entry.text}
@@ -404,7 +405,7 @@ function LabAiRealtimeSurface({
         ))}
         {state.tracks.map((track) => (
           <div key={track.outputTrackId} className="lab-realtime__track">
-            <strong>{t('CapabilityTests.aiRealtime.track', { track: track.outputTrackId, lifecycle: track.lifecycle, frames: track.audioFrames })}</strong>
+            <strong>{t('CapabilityTests.aiRealtime.track', { track: track.outputTrackId, lifecycle: track.lifecycle === 'active' && (phase === 'closed' || phase === 'terminated') ? t('CapabilityTests.aiRealtime.receptionStopped') : track.lifecycle, frames: track.audioFrames })}</strong>
             {track.reasonCode ? <code>{track.reasonCode}</code> : null}
             <p>{track.text || '…'}</p>
           </div>

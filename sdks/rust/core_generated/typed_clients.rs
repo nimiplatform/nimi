@@ -5455,6 +5455,11 @@ pub struct AiRealtimeContextRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AiRealtimeContinuousInterruption {
+    pub output_track_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AiRealtimeContinuousTranscript {
     pub direction: Option<AiRealtimeTranscriptDirection>,
     pub text_delta: Option<String>,
@@ -5478,6 +5483,7 @@ pub struct AiRealtimeEvent {
     pub continuous_transcript: Option<Box<AiRealtimeContinuousTranscript>>,
     pub context_request: Option<Box<AiRealtimeContextRequest>>,
     pub session_usage: Option<Box<AiRealtimeSessionUsage>>,
+    pub continuous_interruption: Option<Box<AiRealtimeContinuousInterruption>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -5520,6 +5526,12 @@ pub struct AiRealtimeRequestTerminal {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct AiRealtimeSessionClosure {
+    pub local_resources_released: Option<bool>,
+    pub provider_session_closed: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct AiRealtimeSessionOpened {
     pub input_audio: Option<Box<AiRealtimeAudioFormat>>,
     pub output_audio: Option<Box<AiRealtimeAudioFormat>>,
@@ -5531,6 +5543,7 @@ pub struct AiRealtimeSessionOpened {
 pub struct AiRealtimeSessionTerminal {
     pub reason_code: Option<ReasonCode>,
     pub usage: Option<Box<AiRealtimeSessionUsage>>,
+    pub closure: Option<Box<AiRealtimeSessionClosure>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -6668,6 +6681,7 @@ pub struct CloseRealtimeSessionResponse {
     pub ack: Option<Box<Ack>>,
     pub control: Option<Box<RealtimeControlStatus>>,
     pub usage: Option<Box<AiRealtimeSessionUsage>>,
+    pub closure: Option<Box<AiRealtimeSessionClosure>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]

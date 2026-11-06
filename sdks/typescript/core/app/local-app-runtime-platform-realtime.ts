@@ -41,6 +41,8 @@ export type NimiRealtimeOperationResult = {
 
 export type NimiRealtimeInteractionMode = 'owner-controlled' | 'continuous';
 export type NimiRealtimeSessionUsage = { readonly audioSeconds: number; readonly final: boolean };
+export type NimiRealtimeSessionClosure = { readonly localResourcesReleased: boolean; readonly providerSessionClosed: boolean };
+export type NimiRealtimeCloseResult = NimiRealtimeOperationResult & { readonly usage?: NimiRealtimeSessionUsage; readonly closure: NimiRealtimeSessionClosure };
 export type NimiAiRealtimeOpenInput = { readonly inputAudio: NimiRealtimeAudioFormat; readonly audioOutputEnabled: boolean; readonly initialInstruction: string } & ({ readonly interactionMode: 'continuous'; readonly turnDetection?: never } | { readonly interactionMode?: 'owner-controlled'; readonly turnDetection: 'server-vad' | 'manual' });
 
 export type NimiAiRealtimeInput =
@@ -62,11 +64,12 @@ type NimiRealtimeEventCommon =
 
 export type NimiAiRealtimeEvent = NimiRealtimeEventCommon
   | { readonly type: 'opened'; readonly inputAudio: NimiRealtimeAudioFormat; readonly outputAudio: NimiRealtimeAudioFormat | null; readonly turnDetection: 'server-vad' | 'manual' | null; readonly interactionMode: NimiRealtimeInteractionMode }
-  | { readonly type: 'continuous-transcript'; readonly direction: 'input' | 'output'; readonly textDelta: string; readonly startMs: number; readonly endMs: number }
+  | ({ readonly type: 'continuous-transcript'; readonly direction: 'input' | 'output'; readonly textDelta: string } & ({ readonly startMs: number; readonly endMs: number } | { readonly startMs?: never; readonly endMs?: never }))
+  | { readonly type: 'continuous-interruption'; readonly outputTrackId: string }
   | { readonly type: 'context-request'; readonly contextRequestId: string; readonly offsetMs: number }
   | { readonly type: 'session-usage'; readonly usage: NimiRealtimeSessionUsage }
   | { readonly type: 'request-terminal'; readonly requestId: string; readonly finishReason: 'stop' | 'length' | 'tool-call' | 'content-filter' | 'error' | 'unspecified'; readonly usage: NimiRealtimeUsage | null; readonly reasonCode: string }
-  | { readonly type: 'session-terminal'; readonly reasonCode: string; readonly usage?: NimiRealtimeSessionUsage }
+  | { readonly type: 'session-terminal'; readonly reasonCode: string; readonly usage?: NimiRealtimeSessionUsage; readonly closure: NimiRealtimeSessionClosure }
   | { readonly type: 'failure'; readonly requestId: string; readonly outputTrackId: string; readonly reasonCode: string };
 
 export type NimiAgentRealtimeEvent = NimiRealtimeEventCommon | { readonly type: 'terminal'; readonly reasonCode: string };
@@ -88,7 +91,7 @@ export type NimiAiRealtimeClient = {
   readonly submitOwnerControl: (input: NimiRealtimeScope & { readonly requestId: string; readonly control: 'commit-input' | 'start-response' | 'continue-response' | 'pause-response' | 'cancel-response' | 'mute-input' | 'unmute-input' }) => Promise<NimiRealtimeOperationResult>;
   readonly subscribe: (input: NimiRealtimeScope) => Promise<NimiRealtimeSubscription<NimiAiRealtimeEvent>>;
   readonly interruptOutput: (input: NimiRealtimeScope & { readonly outputTrackId: string }) => Promise<NimiRealtimeOperationResult>;
-  readonly close: (input: NimiRealtimeScope) => Promise<NimiRealtimeOperationResult & { readonly usage?: NimiRealtimeSessionUsage }>;
+  readonly close: (input: NimiRealtimeScope) => Promise<NimiRealtimeCloseResult>;
 };
 
 export type NimiAgentRealtimeClient = {
@@ -207,11 +210,14 @@ function projectOpen(value: unknown, agent: boolean): NimiRealtimeOpenResult | N
   return Object.freeze(agent ? { conversationAnchorId: selectorProjection(record.conversationAnchorId), ...base } : { ...base, interactionMode: oneOf(record.interactionMode, ['owner-controlled', 'continuous']) });
 }
 
-function projectOperation(value: unknown, allowUsage = false): NimiRealtimeOperationResult & { readonly usage?: NimiRealtimeSessionUsage } {
-  const record = asRecord(value); assertExactProjectionKeys(record, ['ack', 'control', ...(allowUsage && record && Object.hasOwn(record, 'usage') ? ['usage'] : [])], 'Realtime operation');
+function projectOperation(value: unknown, allowUsage: true): NimiRealtimeCloseResult;
+function projectOperation(value: unknown, allowUsage?: false): NimiRealtimeOperationResult;
+function projectOperation(value: unknown, allowUsage = false): NimiRealtimeOperationResult | NimiRealtimeCloseResult {
+  const record = asRecord(value); assertExactProjectionKeys(record, ['ack', 'control', ...(allowUsage ? ['closure', ...(record && Object.hasOwn(record, 'usage') ? ['usage'] : [])] : [])], 'Realtime operation');
   const ack = asRecord(record.ack); assertExactProjectionKeys(ack, ['ok', 'reasonCode', 'actionHint'], 'Realtime ack');
   if (typeof ack.ok !== 'boolean') localAppProjectionError('Realtime ack');
-  return Object.freeze({ ack: Object.freeze({ ok: ack.ok, reasonCode: projectionText(ack.reasonCode, 128, true), actionHint: projectionText(ack.actionHint, 256, true) }), control: projectControl(record.control), ...(record.usage === undefined ? {} : { usage: projectSessionUsage(record.usage) }) });
+  const result = { ack: Object.freeze({ ok: ack.ok, reasonCode: projectionText(ack.reasonCode, 128, true), actionHint: projectionText(ack.actionHint, 256, true) }), control: projectControl(record.control) };
+  return Object.freeze(allowUsage ? { ...result, closure: projectSessionClosure(record.closure), ...(record.usage === undefined ? {} : { usage: projectSessionUsage(record.usage) }) } : result);
 }
 
 function projectControl(value: unknown): NimiRealtimeControlStatus {
@@ -238,15 +244,20 @@ function projectAiEvent(value: unknown): NimiAiRealtimeEvent {
     return Object.freeze({type,inputAudio:projectAudioFormat(record.inputAudio),outputAudio:projectOptionalAudioFormat(record.outputAudio),interactionMode,turnDetection:interactionMode === 'continuous' ? null : oneOf(record.turnDetection,['server-vad','manual'])});
   }
   if (type === 'continuous-transcript') {
-    assertExactProjectionKeys(record,['type','direction','textDelta','startMs','endMs'],type);
-    const startMs=safeInteger(record.startMs), endMs=safeInteger(record.endMs);
+    const timed=Object.hasOwn(record!,'startMs');
+    if(timed!==Object.hasOwn(record!,'endMs'))localAppProjectionError(type);
+    assertExactProjectionKeys(record,['type','direction','textDelta',...(timed?['startMs','endMs']:[])],type);
+    const base={type,direction:oneOf(record.direction,['input','output']),textDelta:projectionContent(record.textDelta,32*1024)} as const;
+    if(!timed)return Object.freeze(base);
+    const startMs=safeInteger(record.startMs),endMs=safeInteger(record.endMs);
     if(endMs<startMs || endMs>86400000)localAppProjectionError(type);
-    return Object.freeze({type,direction:oneOf(record.direction,['input','output']),textDelta:projectionContent(record.textDelta,32*1024),startMs,endMs});
+    return Object.freeze({...base,startMs,endMs});
   }
+  if(type==='continuous-interruption'){assertExactProjectionKeys(record,['type','outputTrackId'],type);return Object.freeze({type,outputTrackId:projectionText(record.outputTrackId,256,true)});}
   if (type === 'context-request') { assertExactProjectionKeys(record,['type','contextRequestId','offsetMs'],type); const offsetMs=safeInteger(record.offsetMs);if(offsetMs>86400000)localAppProjectionError(type);return Object.freeze({type,contextRequestId:selectorProjection(record.contextRequestId),offsetMs}); }
   if (type === 'session-usage') { assertExactProjectionKeys(record,['type','usage'],type);return Object.freeze({type,usage:projectSessionUsage(record.usage)}); }
   if (type === 'request-terminal') { assertExactProjectionKeys(record, ['type','requestId','finishReason','usage','reasonCode'], 'AI Realtime request terminal'); return Object.freeze({type,requestId:selectorProjection(record.requestId),finishReason:oneOf(record.finishReason,['stop','length','tool-call','content-filter','error','unspecified']),usage:record.usage===null?null:projectUsage(record.usage),reasonCode:projectionText(record.reasonCode,128,true)}); }
-  if (type === 'session-terminal') { assertExactProjectionKeys(record,['type','reasonCode',...(record && Object.hasOwn(record,'usage')?['usage']:[])],'AI Realtime session terminal'); return Object.freeze({type,reasonCode:projectionText(record.reasonCode,128,true),...(record.usage===undefined?{}:{usage:projectSessionUsage(record.usage)})}); }
+  if (type === 'session-terminal') { assertExactProjectionKeys(record,['type','reasonCode','closure',...(record && Object.hasOwn(record,'usage')?['usage']:[])],'AI Realtime session terminal'); return Object.freeze({type,reasonCode:projectionText(record.reasonCode,128,true),closure:projectSessionClosure(record.closure),...(record.usage===undefined?{}:{usage:projectSessionUsage(record.usage)})}); }
   if (type === 'failure') { assertExactProjectionKeys(record,['type','requestId','outputTrackId','reasonCode'],'AI Realtime failure'); return Object.freeze({type,requestId:projectionText(record.requestId,256,true),outputTrackId:projectionText(record.outputTrackId,256,true),reasonCode:projectionText(record.reasonCode,128,true)}); }
   return projectCommonEvent(record, true) as NimiAiRealtimeEvent;
 }
@@ -308,3 +319,4 @@ function projectUsage(value:unknown):NimiRealtimeUsage{const r=asRecord(value);a
 function invalidInput(field:string):never{return localAppError(`${field} is invalid.`,'SDK_LOCAL_APP_INPUT_INVALID','provide_valid_realtime_input');}
 
 function projectSessionUsage(value: unknown): NimiRealtimeSessionUsage { const record=asRecord(value);assertExactProjectionKeys(record,['audioSeconds','final'],'Realtime session usage');if(typeof record.audioSeconds!=='number'||!Number.isFinite(record.audioSeconds)||record.audioSeconds<0||record.audioSeconds>86400||typeof record.final!=='boolean')localAppProjectionError('Realtime session usage');return Object.freeze({audioSeconds:record.audioSeconds,final:record.final}); }
+function projectSessionClosure(value:unknown):NimiRealtimeSessionClosure{const r=asRecord(value);assertExactProjectionKeys(r,['localResourcesReleased','providerSessionClosed'],'Realtime session closure');if(typeof r.localResourcesReleased!=='boolean'||typeof r.providerSessionClosed!=='boolean')localAppProjectionError('Realtime session closure');return Object.freeze({localResourcesReleased:r.localResourcesReleased,providerSessionClosed:r.providerSessionClosed});}

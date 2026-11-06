@@ -10,7 +10,7 @@ import (
 )
 
 type CloudRealtimeTransport struct {
-	BasePath     string
+	BasePaths    []string
 	Path         string
 	ModelQuery   bool
 	APIKeyHeader string
@@ -48,6 +48,12 @@ type CloudRealtimeProtocol interface {
 // Finalization arrives as an observed SessionClosed event, never a local ACK.
 type CloudRealtimeSessionCloser interface {
 	CloseWire(string) ([]byte, error)
+}
+
+// A protocol without a native session-close receipt may explicitly terminate
+// by releasing its transport. This never fabricates SessionClosed evidence.
+type CloudRealtimeTransportCloser interface {
+	CloseByTransportRelease() bool
 }
 
 type realtimeWireMapper interface {

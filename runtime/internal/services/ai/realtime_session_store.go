@@ -42,6 +42,8 @@ type realtimeSessionRecord struct {
 	continuousTrack           *realtimeOutputTrack
 	continuousAttempt         *aitelemetry.Attempt
 	continuousUsage           *runtimev1.AiRealtimeSessionUsage
+	closure                   *runtimev1.AiRealtimeSessionClosure
+	providerSessionClosed     bool
 	contextRequests           map[string]*realtimeContextRequest
 	contextRequestsByProvider map[string]string
 	aiObservation             *aitelemetry.Store
@@ -112,6 +114,7 @@ type realtimeSessionTerminal struct {
 	ownerInvalidated     <-chan struct{}
 	control              *runtimev1.RealtimeControlStatus
 	usage                *runtimev1.AiRealtimeSessionUsage
+	closure              *runtimev1.AiRealtimeSessionClosure
 	expiresAt            time.Time
 }
 
@@ -166,7 +169,7 @@ func (s *realtimeSessionStore) finish(record *realtimeSessionRecord, control *ru
 		}
 		delete(s.terminals, oldestID)
 	}
-	s.terminals[record.sessionID] = realtimeSessionTerminal{appID: record.appID, subjectUserID: record.subjectUserID, ownerSessionID: record.ownerSessionID, ownerInvalidated: record.ownerInvalidated, control: proto.Clone(control).(*runtimev1.RealtimeControlStatus), usage: cloneRealtimeSessionUsage(record.continuousUsage), expiresAt: now.Add(realtimeTerminalTTL)}
+	s.terminals[record.sessionID] = realtimeSessionTerminal{appID: record.appID, subjectUserID: record.subjectUserID, ownerSessionID: record.ownerSessionID, ownerInvalidated: record.ownerInvalidated, control: proto.Clone(control).(*runtimev1.RealtimeControlStatus), usage: cloneRealtimeSessionUsage(record.continuousUsage), closure: cloneRealtimeSessionClosure(record.closure), expiresAt: now.Add(realtimeTerminalTTL)}
 	delete(s.sessions, record.sessionID)
 }
 
@@ -177,6 +180,7 @@ func (s *realtimeSessionStore) terminal(id string) (realtimeSessionTerminal, boo
 	terminal, ok := s.terminals[strings.TrimSpace(id)]
 	if ok {
 		terminal.control = proto.Clone(terminal.control).(*runtimev1.RealtimeControlStatus)
+		terminal.closure = cloneRealtimeSessionClosure(terminal.closure)
 		terminal.usage = cloneRealtimeSessionUsage(terminal.usage)
 	}
 	return terminal, ok

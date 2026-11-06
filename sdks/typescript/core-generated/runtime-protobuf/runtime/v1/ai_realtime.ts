@@ -433,6 +433,25 @@ export interface AiRealtimeSessionTerminal {
      * @generated from protobuf field: nimi.runtime.v1.AiRealtimeSessionUsage usage = 2
      */
     usage?: AiRealtimeSessionUsage;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AiRealtimeSessionClosure closure = 3
+     */
+    closure?: AiRealtimeSessionClosure;
+}
+/**
+ * Independent observations, not a guarantee that provider billing stopped.
+ *
+ * @generated from protobuf message nimi.runtime.v1.AiRealtimeSessionClosure
+ */
+export interface AiRealtimeSessionClosure {
+    /**
+     * @generated from protobuf field: bool local_resources_released = 1
+     */
+    localResourcesReleased: boolean;
+    /**
+     * @generated from protobuf field: bool provider_session_closed = 2
+     */
+    providerSessionClosed: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AiRealtimeContinuousTranscript
@@ -447,13 +466,26 @@ export interface AiRealtimeContinuousTranscript {
      */
     textDelta: string;
     /**
-     * @generated from protobuf field: int64 start_ms = 3
+     * Both native timestamps are present, or both are absent. Never inferred.
+     *
+     * @generated from protobuf field: optional int64 start_ms = 3
      */
-    startMs: string;
+    startMs?: string;
     /**
-     * @generated from protobuf field: int64 end_ms = 4
+     * @generated from protobuf field: optional int64 end_ms = 4
      */
-    endMs: string;
+    endMs?: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.AiRealtimeContinuousInterruption
+ */
+export interface AiRealtimeContinuousInterruption {
+    /**
+     * Empty when the native interruption preceded any observed output audio.
+     *
+     * @generated from protobuf field: string output_track_id = 1
+     */
+    outputTrackId: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.AiRealtimeContextRequest
@@ -591,6 +623,12 @@ export interface AiRealtimeEvent {
          */
         sessionUsage: AiRealtimeSessionUsage;
     } | {
+        oneofKind: "continuousInterruption";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.AiRealtimeContinuousInterruption continuous_interruption = 23
+         */
+        continuousInterruption: AiRealtimeContinuousInterruption;
+    } | {
         oneofKind: undefined;
     };
 }
@@ -653,6 +691,10 @@ export interface CloseRealtimeSessionResponse {
      * @generated from protobuf field: nimi.runtime.v1.AiRealtimeSessionUsage usage = 3
      */
     usage?: AiRealtimeSessionUsage;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.AiRealtimeSessionClosure closure = 4
+     */
+    closure?: AiRealtimeSessionClosure;
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.AiRealtimeAudioCodec
@@ -2151,7 +2193,8 @@ class AiRealtimeSessionTerminal$Type extends MessageType<AiRealtimeSessionTermin
     constructor() {
         super("nimi.runtime.v1.AiRealtimeSessionTerminal", [
             { no: 1, name: "reason_code", kind: "enum", T: () => ["nimi.runtime.v1.ReasonCode", ReasonCode] },
-            { no: 2, name: "usage", kind: "message", T: () => AiRealtimeSessionUsage }
+            { no: 2, name: "usage", kind: "message", T: () => AiRealtimeSessionUsage },
+            { no: 3, name: "closure", kind: "message", T: () => AiRealtimeSessionClosure }
         ]);
     }
     create(value?: PartialMessage<AiRealtimeSessionTerminal>): AiRealtimeSessionTerminal {
@@ -2172,6 +2215,9 @@ class AiRealtimeSessionTerminal$Type extends MessageType<AiRealtimeSessionTermin
                 case /* nimi.runtime.v1.AiRealtimeSessionUsage usage */ 2:
                     message.usage = AiRealtimeSessionUsage.internalBinaryRead(reader, reader.uint32(), options, message.usage);
                     break;
+                case /* nimi.runtime.v1.AiRealtimeSessionClosure closure */ 3:
+                    message.closure = AiRealtimeSessionClosure.internalBinaryRead(reader, reader.uint32(), options, message.closure);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -2190,6 +2236,9 @@ class AiRealtimeSessionTerminal$Type extends MessageType<AiRealtimeSessionTermin
         /* nimi.runtime.v1.AiRealtimeSessionUsage usage = 2; */
         if (message.usage)
             AiRealtimeSessionUsage.internalBinaryWrite(message.usage, writer.tag(2, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AiRealtimeSessionClosure closure = 3; */
+        if (message.closure)
+            AiRealtimeSessionClosure.internalBinaryWrite(message.closure, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2201,21 +2250,74 @@ class AiRealtimeSessionTerminal$Type extends MessageType<AiRealtimeSessionTermin
  */
 export const AiRealtimeSessionTerminal = new AiRealtimeSessionTerminal$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class AiRealtimeSessionClosure$Type extends MessageType<AiRealtimeSessionClosure> {
+    constructor() {
+        super("nimi.runtime.v1.AiRealtimeSessionClosure", [
+            { no: 1, name: "local_resources_released", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 2, name: "provider_session_closed", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AiRealtimeSessionClosure>): AiRealtimeSessionClosure {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.localResourcesReleased = false;
+        message.providerSessionClosed = false;
+        if (value !== undefined)
+            reflectionMergePartial<AiRealtimeSessionClosure>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AiRealtimeSessionClosure): AiRealtimeSessionClosure {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* bool local_resources_released */ 1:
+                    message.localResourcesReleased = reader.bool();
+                    break;
+                case /* bool provider_session_closed */ 2:
+                    message.providerSessionClosed = reader.bool();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AiRealtimeSessionClosure, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* bool local_resources_released = 1; */
+        if (message.localResourcesReleased !== false)
+            writer.tag(1, WireType.Varint).bool(message.localResourcesReleased);
+        /* bool provider_session_closed = 2; */
+        if (message.providerSessionClosed !== false)
+            writer.tag(2, WireType.Varint).bool(message.providerSessionClosed);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AiRealtimeSessionClosure
+ */
+export const AiRealtimeSessionClosure = new AiRealtimeSessionClosure$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class AiRealtimeContinuousTranscript$Type extends MessageType<AiRealtimeContinuousTranscript> {
     constructor() {
         super("nimi.runtime.v1.AiRealtimeContinuousTranscript", [
             { no: 1, name: "direction", kind: "enum", T: () => ["nimi.runtime.v1.AiRealtimeTranscriptDirection", AiRealtimeTranscriptDirection, "AI_REALTIME_TRANSCRIPT_DIRECTION_"] },
             { no: 2, name: "text_delta", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 3, name: "start_ms", kind: "scalar", T: 3 /*ScalarType.INT64*/ },
-            { no: 4, name: "end_ms", kind: "scalar", T: 3 /*ScalarType.INT64*/ }
+            { no: 3, name: "start_ms", kind: "scalar", opt: true, T: 3 /*ScalarType.INT64*/ },
+            { no: 4, name: "end_ms", kind: "scalar", opt: true, T: 3 /*ScalarType.INT64*/ }
         ]);
     }
     create(value?: PartialMessage<AiRealtimeContinuousTranscript>): AiRealtimeContinuousTranscript {
         const message = globalThis.Object.create((this.messagePrototype!));
         message.direction = 0;
         message.textDelta = "";
-        message.startMs = "0";
-        message.endMs = "0";
         if (value !== undefined)
             reflectionMergePartial<AiRealtimeContinuousTranscript>(this, message, value);
         return message;
@@ -2231,10 +2333,10 @@ class AiRealtimeContinuousTranscript$Type extends MessageType<AiRealtimeContinuo
                 case /* string text_delta */ 2:
                     message.textDelta = reader.string();
                     break;
-                case /* int64 start_ms */ 3:
+                case /* optional int64 start_ms */ 3:
                     message.startMs = reader.int64().toString();
                     break;
-                case /* int64 end_ms */ 4:
+                case /* optional int64 end_ms */ 4:
                     message.endMs = reader.int64().toString();
                     break;
                 default:
@@ -2255,11 +2357,11 @@ class AiRealtimeContinuousTranscript$Type extends MessageType<AiRealtimeContinuo
         /* string text_delta = 2; */
         if (message.textDelta !== "")
             writer.tag(2, WireType.LengthDelimited).string(message.textDelta);
-        /* int64 start_ms = 3; */
-        if (message.startMs !== "0")
+        /* optional int64 start_ms = 3; */
+        if (message.startMs !== undefined)
             writer.tag(3, WireType.Varint).int64(message.startMs);
-        /* int64 end_ms = 4; */
-        if (message.endMs !== "0")
+        /* optional int64 end_ms = 4; */
+        if (message.endMs !== undefined)
             writer.tag(4, WireType.Varint).int64(message.endMs);
         let u = options.writeUnknownFields;
         if (u !== false)
@@ -2271,6 +2373,53 @@ class AiRealtimeContinuousTranscript$Type extends MessageType<AiRealtimeContinuo
  * @generated MessageType for protobuf message nimi.runtime.v1.AiRealtimeContinuousTranscript
  */
 export const AiRealtimeContinuousTranscript = new AiRealtimeContinuousTranscript$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class AiRealtimeContinuousInterruption$Type extends MessageType<AiRealtimeContinuousInterruption> {
+    constructor() {
+        super("nimi.runtime.v1.AiRealtimeContinuousInterruption", [
+            { no: 1, name: "output_track_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<AiRealtimeContinuousInterruption>): AiRealtimeContinuousInterruption {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.outputTrackId = "";
+        if (value !== undefined)
+            reflectionMergePartial<AiRealtimeContinuousInterruption>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: AiRealtimeContinuousInterruption): AiRealtimeContinuousInterruption {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string output_track_id */ 1:
+                    message.outputTrackId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: AiRealtimeContinuousInterruption, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string output_track_id = 1; */
+        if (message.outputTrackId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.outputTrackId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.AiRealtimeContinuousInterruption
+ */
+export const AiRealtimeContinuousInterruption = new AiRealtimeContinuousInterruption$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class AiRealtimeContextRequest$Type extends MessageType<AiRealtimeContextRequest> {
     constructor() {
@@ -2461,7 +2610,8 @@ class AiRealtimeEvent$Type extends MessageType<AiRealtimeEvent> {
             { no: 19, name: "failure", kind: "message", oneof: "event", T: () => AiRealtimeFailure },
             { no: 20, name: "continuous_transcript", kind: "message", oneof: "event", T: () => AiRealtimeContinuousTranscript },
             { no: 21, name: "context_request", kind: "message", oneof: "event", T: () => AiRealtimeContextRequest },
-            { no: 22, name: "session_usage", kind: "message", oneof: "event", T: () => AiRealtimeSessionUsage }
+            { no: 22, name: "session_usage", kind: "message", oneof: "event", T: () => AiRealtimeSessionUsage },
+            { no: 23, name: "continuous_interruption", kind: "message", oneof: "event", T: () => AiRealtimeContinuousInterruption }
         ]);
     }
     create(value?: PartialMessage<AiRealtimeEvent>): AiRealtimeEvent {
@@ -2557,6 +2707,12 @@ class AiRealtimeEvent$Type extends MessageType<AiRealtimeEvent> {
                         sessionUsage: AiRealtimeSessionUsage.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).sessionUsage)
                     };
                     break;
+                case /* nimi.runtime.v1.AiRealtimeContinuousInterruption continuous_interruption */ 23:
+                    message.event = {
+                        oneofKind: "continuousInterruption",
+                        continuousInterruption: AiRealtimeContinuousInterruption.internalBinaryRead(reader, reader.uint32(), options, (message.event as any).continuousInterruption)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -2611,6 +2767,9 @@ class AiRealtimeEvent$Type extends MessageType<AiRealtimeEvent> {
         /* nimi.runtime.v1.AiRealtimeSessionUsage session_usage = 22; */
         if (message.event.oneofKind === "sessionUsage")
             AiRealtimeSessionUsage.internalBinaryWrite(message.event.sessionUsage, writer.tag(22, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AiRealtimeContinuousInterruption continuous_interruption = 23; */
+        if (message.event.oneofKind === "continuousInterruption")
+            AiRealtimeContinuousInterruption.internalBinaryWrite(message.event.continuousInterruption, writer.tag(23, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -2798,7 +2957,8 @@ class CloseRealtimeSessionResponse$Type extends MessageType<CloseRealtimeSession
         super("nimi.runtime.v1.CloseRealtimeSessionResponse", [
             { no: 1, name: "ack", kind: "message", T: () => Ack },
             { no: 2, name: "control", kind: "message", T: () => RealtimeControlStatus },
-            { no: 3, name: "usage", kind: "message", T: () => AiRealtimeSessionUsage }
+            { no: 3, name: "usage", kind: "message", T: () => AiRealtimeSessionUsage },
+            { no: 4, name: "closure", kind: "message", T: () => AiRealtimeSessionClosure }
         ]);
     }
     create(value?: PartialMessage<CloseRealtimeSessionResponse>): CloseRealtimeSessionResponse {
@@ -2821,6 +2981,9 @@ class CloseRealtimeSessionResponse$Type extends MessageType<CloseRealtimeSession
                 case /* nimi.runtime.v1.AiRealtimeSessionUsage usage */ 3:
                     message.usage = AiRealtimeSessionUsage.internalBinaryRead(reader, reader.uint32(), options, message.usage);
                     break;
+                case /* nimi.runtime.v1.AiRealtimeSessionClosure closure */ 4:
+                    message.closure = AiRealtimeSessionClosure.internalBinaryRead(reader, reader.uint32(), options, message.closure);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -2842,6 +3005,9 @@ class CloseRealtimeSessionResponse$Type extends MessageType<CloseRealtimeSession
         /* nimi.runtime.v1.AiRealtimeSessionUsage usage = 3; */
         if (message.usage)
             AiRealtimeSessionUsage.internalBinaryWrite(message.usage, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.AiRealtimeSessionClosure closure = 4; */
+        if (message.closure)
+            AiRealtimeSessionClosure.internalBinaryWrite(message.closure, writer.tag(4, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

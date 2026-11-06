@@ -118,6 +118,7 @@ export type StudioTextDecisionAnswer =
 
 export type StudioSessionSummary = {
   readonly audioUsage?: { readonly audioSeconds: number; readonly final: boolean };
+  readonly closure?: { readonly localResourcesReleased: boolean; readonly providerSessionClosed: boolean };
   readonly capabilityContract: string;
   readonly startedAt: string;
   readonly endedAt: string;

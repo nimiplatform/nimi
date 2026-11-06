@@ -325,6 +325,9 @@ export function validateStudioHistoryResult(value: unknown, path: string): void 
     return;
   }
   if (kind === 'session') {
+    if (value.closure !== undefined) {
+      if (value.capabilityContract !== 'realtime.interact' || !isJsonObject(value.closure) || Object.keys(value.closure).some(key => !['localResourcesReleased','providerSessionClosed'].includes(key)) || typeof value.closure.localResourcesReleased !== 'boolean' || typeof value.closure.providerSessionClosed !== 'boolean') historyError(`${path}.closure`, 'requires independent closure observations');
+    }
     if (value.audioUsage !== undefined) {
       if (value.capabilityContract !== 'realtime.interact' || !isJsonObject(value.audioUsage) || Object.keys(value.audioUsage).some(key => !['audioSeconds','final'].includes(key)) || typeof value.audioUsage.audioSeconds !== 'number' || !Number.isFinite(value.audioUsage.audioSeconds) || value.audioUsage.audioSeconds < 0 || value.audioUsage.audioSeconds > 86400 || typeof value.audioUsage.final !== 'boolean') historyError(`${path}.audioUsage`, 'requires bounded reported audio seconds and finality');
     }

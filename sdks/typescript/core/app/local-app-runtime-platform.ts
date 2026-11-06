@@ -138,6 +138,8 @@ export type {
   NimiRealtimeUsage,
   NimiRealtimeInteractionMode,
   NimiRealtimeSessionUsage,
+  NimiRealtimeSessionClosure,
+  NimiRealtimeCloseResult,
   NimiAiRealtimeOpenInput,
 } from './local-app-runtime-platform-realtime.js';
 export type {

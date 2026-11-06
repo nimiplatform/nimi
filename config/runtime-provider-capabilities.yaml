@@ -237,6 +237,7 @@ providers:
       - audio.transcribe
       - image.generate
       - music.generate
+      - realtime.interact
       - text.embed
       - text.generate
       - video.generate

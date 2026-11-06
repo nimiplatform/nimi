@@ -815,6 +815,10 @@ class AiRealtimeContextRequest:
     offset_ms: int | None = None
 
 @dataclass(frozen=True)
+class AiRealtimeContinuousInterruption:
+    output_track_id: str | None = None
+
+@dataclass(frozen=True)
 class AiRealtimeContinuousTranscript:
     direction: AiRealtimeTranscriptDirection | None = None
     text_delta: str | None = None
@@ -837,6 +841,7 @@ class AiRealtimeEvent:
     continuous_transcript: AiRealtimeContinuousTranscript | None = None
     context_request: AiRealtimeContextRequest | None = None
     session_usage: AiRealtimeSessionUsage | None = None
+    continuous_interruption: AiRealtimeContinuousInterruption | None = None
 
 @dataclass(frozen=True)
 class AiRealtimeFailure:
@@ -873,6 +878,11 @@ class AiRealtimeRequestTerminal:
     reason_code: ReasonCode | None = None
 
 @dataclass(frozen=True)
+class AiRealtimeSessionClosure:
+    local_resources_released: bool | None = None
+    provider_session_closed: bool | None = None
+
+@dataclass(frozen=True)
 class AiRealtimeSessionOpened:
     input_audio: AiRealtimeAudioFormat | None = None
     output_audio: AiRealtimeAudioFormat | None = None
@@ -883,6 +893,7 @@ class AiRealtimeSessionOpened:
 class AiRealtimeSessionTerminal:
     reason_code: ReasonCode | None = None
     usage: AiRealtimeSessionUsage | None = None
+    closure: AiRealtimeSessionClosure | None = None
 
 @dataclass(frozen=True)
 class AiRealtimeSessionUsage:
@@ -1653,6 +1664,7 @@ class CloseRealtimeSessionResponse:
     ack: Ack | None = None
     control: RealtimeControlStatus | None = None
     usage: AiRealtimeSessionUsage | None = None
+    closure: AiRealtimeSessionClosure | None = None
 
 @dataclass(frozen=True)
 class CloseVideoSessionRequest:

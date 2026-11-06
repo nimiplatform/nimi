@@ -7666,6 +7666,7 @@
       "AiRealtimeAudioFrameInput",
       "AiRealtimeAudioFrameOutput",
       "AiRealtimeContextRequest",
+      "AiRealtimeContinuousInterruption",
       "AiRealtimeContinuousTranscript",
       "AiRealtimeEvent",
       "AiRealtimeFailure",
@@ -7673,6 +7674,7 @@
       "AiRealtimeOutputTrackStatus",
       "AiRealtimeOwnerContextInput",
       "AiRealtimeRequestTerminal",
+      "AiRealtimeSessionClosure",
       "AiRealtimeSessionOpened",
       "AiRealtimeSessionTerminal",
       "AiRealtimeSessionUsage",
@@ -11810,6 +11812,19 @@
         "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
+        "name": "AiRealtimeContinuousInterruption",
+        "fields": [
+          {
+            "name": "output_track_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
         "name": "AiRealtimeContinuousTranscript",
         "fields": [
           {
@@ -11830,14 +11845,14 @@
             "name": "start_ms",
             "type": "int64",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 3
           },
           {
             "name": "end_ms",
             "type": "int64",
             "repeated": false,
-            "optional": false,
+            "optional": true,
             "number": 4
           }
         ],
@@ -11943,6 +11958,13 @@
             "repeated": false,
             "optional": false,
             "number": 22
+          },
+          {
+            "name": "continuous_interruption",
+            "type": "AiRealtimeContinuousInterruption",
+            "repeated": false,
+            "optional": false,
+            "number": 23
           }
         ],
         "source_file": "proto/runtime/v1/ai_realtime.proto"
@@ -12111,6 +12133,26 @@
         "source_file": "proto/runtime/v1/ai_realtime.proto"
       },
       {
+        "name": "AiRealtimeSessionClosure",
+        "fields": [
+          {
+            "name": "local_resources_released",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "provider_session_closed",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai_realtime.proto"
+      },
+      {
         "name": "AiRealtimeSessionOpened",
         "fields": [
           {
@@ -12160,6 +12202,13 @@
             "repeated": false,
             "optional": false,
             "number": 2
+          },
+          {
+            "name": "closure",
+            "type": "AiRealtimeSessionClosure",
+            "repeated": false,
+            "optional": false,
+            "number": 3
           }
         ],
         "source_file": "proto/runtime/v1/ai_realtime.proto"
@@ -15989,6 +16038,13 @@
             "repeated": false,
             "optional": false,
             "number": 3
+          },
+          {
+            "name": "closure",
+            "type": "AiRealtimeSessionClosure",
+            "repeated": false,
+            "optional": false,
+            "number": 4
           }
         ],
         "source_file": "proto/runtime/v1/ai_realtime.proto"

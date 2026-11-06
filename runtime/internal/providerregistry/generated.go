@@ -574,7 +574,7 @@ var Records = map[string]ProviderRecord{
 		SupportsTTS:                   true,
 		SupportsSTT:                   true,
 		SupportsMusic:                 true,
-		SupportsRealtime:              false,
+		SupportsRealtime:              true,
 		SupportsDecide:                false,
 		SupportsVoiceReferenceAudio:   false,
 		SupportsVoiceTextDescription:  true,

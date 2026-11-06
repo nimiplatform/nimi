@@ -623,8 +623,9 @@ func (s *Service) CloseRealtimeSession(ctx context.Context, req *runtimev1.Close
 	record.mu.Lock()
 	control := proto.Clone(record.terminalControl).(*runtimev1.RealtimeControlStatus)
 	usage := cloneRealtimeSessionUsage(record.continuousUsage)
+	closure := cloneRealtimeSessionClosure(record.closure)
 	record.mu.Unlock()
-	return &runtimev1.CloseRealtimeSessionResponse{Ack: &runtimev1.Ack{Ok: true}, Control: control, Usage: usage}, nil
+	return &runtimev1.CloseRealtimeSessionResponse{Ack: &runtimev1.Ack{Ok: true}, Control: control, Usage: usage, Closure: closure}, nil
 }
 
 // ReplayClosedRealtimeSession is an internal owner proof for protected ingress,
@@ -653,7 +654,7 @@ func (s *Service) ReplayClosedRealtimeSession(ctx context.Context, req *runtimev
 	if sessionID != terminal.ownerSessionID {
 		return nil, false
 	}
-	return &runtimev1.CloseRealtimeSessionResponse{Ack: &runtimev1.Ack{Ok: true}, Control: terminal.control, Usage: cloneRealtimeSessionUsage(terminal.usage)}, true
+	return &runtimev1.CloseRealtimeSessionResponse{Ack: &runtimev1.Ack{Ok: true}, Control: terminal.control, Usage: cloneRealtimeSessionUsage(terminal.usage), Closure: cloneRealtimeSessionClosure(terminal.closure)}, true
 }
 
 func (s *Service) runRealtimeProvider(record *realtimeSessionRecord) {
@@ -1322,12 +1323,17 @@ func (s *Service) terminalizeRealtimeSession(record *realtimeSessionRecord, reas
 	if record.cancel != nil {
 		record.cancel()
 	}
+	released := true
 	if record.provider != nil {
-		_ = record.provider.Close()
+		released = record.provider.Close() == nil
 	}
 	if record.driver != nil {
 		record.driver.Close()
 	}
+	record.mu.Lock()
+	record.closure = &runtimev1.AiRealtimeSessionClosure{LocalResourcesReleased: released, ProviderSessionClosed: record.providerSessionClosed}
+	event.GetSessionTerminal().Closure = cloneRealtimeSessionClosure(record.closure)
+	record.mu.Unlock()
 	_ = record.stream.PublishTerminal(record.generation, event, terminal)
 	record.mu.Lock()
 	record.terminalControl = event.Control

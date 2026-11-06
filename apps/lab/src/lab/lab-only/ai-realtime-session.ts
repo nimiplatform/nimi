@@ -5,6 +5,7 @@ import type {
   NimiRealtimeControlStatus,
   NimiRealtimeInteractionMode,
   NimiRealtimeSessionUsage,
+  NimiRealtimeSessionClosure,
 } from '@nimiplatform/sdk/app';
 import type { StudioSessionSummary } from '../../ai-studio-core/runtime-types.js';
 import { t } from '../../shell/i18n/index.js';
@@ -44,7 +45,8 @@ export type LabRealtimeState = {
   readonly interactionMode?: NimiRealtimeInteractionMode;
   readonly inputMuted?: boolean;
   readonly sessionUsage?: NimiRealtimeSessionUsage;
-  readonly continuousTranscripts?: readonly { readonly direction: 'input' | 'output'; readonly textDelta: string; readonly startMs: number; readonly endMs: number }[];
+  readonly closure?: NimiRealtimeSessionClosure;
+  readonly continuousTranscripts?: readonly { readonly direction: 'input' | 'output'; readonly textDelta: string; readonly startMs?: number; readonly endMs?: number }[];
   readonly transcriptWindowTrimmed?: boolean;
   readonly contextRequests?: readonly { readonly contextRequestId: string; readonly offsetMs: number; readonly replied: boolean }[];
   readonly phase: 'idle' | 'opening' | 'open' | 'closing' | 'closed' | 'terminated' | 'interrupted';
@@ -100,7 +102,8 @@ function eventDetail(event: NimiAiRealtimeEvent): string {
     case 'text-output': return event.final ? t(`${LOG}.textOutputFinal`, { track: event.outputTrackId, text: event.text }) : `${event.outputTrackId}: ${event.text}`;
     case 'audio-frame': return t(`${LOG}.audioFrame`, { track: event.outputTrackId, sequence: event.frameSequence, bytes: event.frame.byteLength });
     case 'output-track': return `${event.outputTrackId} ${event.lifecycle}${event.reasonCode ? ` (${event.reasonCode})` : ''}`;
-    case 'continuous-transcript': return `${event.direction} ${event.startMs}–${event.endMs} ms: ${event.textDelta}`;
+    case 'continuous-transcript': return `${event.direction}${event.startMs===undefined?'':` ${event.startMs}–${event.endMs} ms`}: ${event.textDelta}`;
+    case 'continuous-interruption': return t('CapabilityTests.aiRealtime.nativeInterruption');
     case 'context-request': return t(`${LOG}.contextRequest`, { id: event.contextRequestId, offset: event.offsetMs });
     case 'session-usage': return t(`${LOG}.sessionUsage`, { seconds: event.usage.audioSeconds, final: event.usage.final });
     case 'request-terminal': return `${event.requestId} ${event.finishReason}${event.reasonCode ? ` (${event.reasonCode})` : ''}`;
@@ -260,6 +263,16 @@ export function createLabRealtimeController(input: {
           set({ error: describeError(error) });
         });
       }
+    } else if (event.type === 'continuous-interruption') {
+      // A tracked interruption already passed through output-track above.
+      // An untracked native interruption also clears older queued playback.
+      if (!event.outputTrackId) {
+        for (const entry of state.tracks.filter(item => item.playbackPending)) {
+          stoppedPlaybackTracks.add(entry.outputTrackId);
+          await input.playback?.interruptOutputTrack({ outputTrackId: entry.outputTrackId }).catch(() => undefined);
+          track(entry.outputTrackId, entry.requestId, () => ({ playbackPending: false }));
+        }
+      }
     } else if (event.type === 'continuous-transcript') {
       const fragments = [...(state.continuousTranscripts ?? []), { direction: event.direction, textDelta: event.textDelta, startMs: event.startMs, endMs: event.endMs }];
       set({ continuousTranscripts: fragments.slice(-MAX_LOG_ENTRIES), transcriptWindowTrimmed: state.transcriptWindowTrimmed || fragments.length > MAX_LOG_ENTRIES });
@@ -273,6 +286,7 @@ export function createLabRealtimeController(input: {
     } else if (event.type === 'request-terminal' || event.type === 'failure') {
       settleResponse(event.requestId);
     } else if (event.type === 'session-terminal') {
+      set({closure:{...event.closure}});
       if (event.usage) set({ sessionUsage: { ...event.usage } });
       ownerEnded = true;
       if (state.phase !== 'closing') {
@@ -308,7 +322,7 @@ export function createLabRealtimeController(input: {
     void closePlayback().catch(() => undefined);
     try {
       const result = await boundedOwnerClose(scope);
-      set({ control: result.control, ...(result.usage ? { sessionUsage: { ...result.usage } } : {}) });
+      set({ control: result.control, closure:{...result.closure}, ...(result.usage ? { sessionUsage: { ...result.usage } } : {}) });
       log('close', result.ack.ok
         ? t(`${LOG}.ackWithReason`, { reason: result.control.terminalReason || result.control.lifecycle })
         : t(`${LOG}.rejected`, { reasonCode: result.ack.reasonCode }));
@@ -487,6 +501,7 @@ export function labRealtimeSessionSummary(state: LabRealtimeState): StudioSessio
     ending: state.phase === 'closed' ? 'closed' : 'terminated',
     terminalReason: state.terminalReason ?? 'unknown',
     ...(state.sessionUsage ? { audioUsage: { ...state.sessionUsage } } : {}),
+    ...(state.closure ? { closure: { ...state.closure } } : {}),
     observed: Object.fromEntries(Object.entries(state.observed).filter(([key]) => /^[a-z][a-z0-9-]{0,63}$/u.test(key)).slice(0, 32)),
   };
 }

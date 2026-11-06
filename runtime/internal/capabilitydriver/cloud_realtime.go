@@ -66,6 +66,7 @@ const (
 	CloudRealtimeEventContextRequest
 	CloudRealtimeEventSessionUsage
 	CloudRealtimeEventSessionClosed
+	CloudRealtimeEventContinuousInterruption
 )
 
 type CloudRealtimeResponseStatus uint8
@@ -77,25 +78,27 @@ const (
 )
 
 type CloudRealtimeEvent struct {
-	ProviderSessionID   string
-	ProviderContextID   string
-	TranscriptDirection runtimev1.AiRealtimeTranscriptDirection
-	StartMS, EndMS      int64
-	OffsetMS            int64
-	SessionAudioSeconds *float64
-	SessionCloseReason  string
-	CallID              string
-	Kind                CloudRealtimeEventKind
-	ProviderResponseID  string
-	ProviderItemID      string
-	Text                string
-	TranscriptTextDelta bool
-	Audio               []byte
-	Usage               *runtimev1.UsageStats
-	ErrorCode           string
-	ResponseStatus      CloudRealtimeResponseStatus
-	OutputTypes         []string // diagnostic metadata; nil when the provider omits output
-	NoOutput            bool
+	FailureReason           runtimev1.ReasonCode
+	ProviderSessionID       string
+	ProviderContextID       string
+	TranscriptDirection     runtimev1.AiRealtimeTranscriptDirection
+	StartMS, EndMS          *int64
+	OffsetMS                int64
+	SessionAudioSeconds     *float64
+	SessionCloseReason      string
+	SessionClosureConfirmed bool
+	CallID                  string
+	Kind                    CloudRealtimeEventKind
+	ProviderResponseID      string
+	ProviderItemID          string
+	Text                    string
+	TranscriptTextDelta     bool
+	Audio                   []byte
+	Usage                   *runtimev1.UsageStats
+	ErrorCode               string
+	ResponseStatus          CloudRealtimeResponseStatus
+	OutputTypes             []string // diagnostic metadata; nil when the provider omits output
+	NoOutput                bool
 }
 
 type CloudRealtimeDriver interface {
@@ -115,6 +118,9 @@ func NewProductionCloudRealtimeRegistry() *CloudRealtimeRegistry {
 	}
 	if record, ok := providerregistry.Lookup("openai"); ok && record.RuntimePlane == "remote" && record.SupportsRealtime {
 		drivers["openai"] = openAIRealtimeDriver{}
+	}
+	if record, ok := providerregistry.Lookup("gemini"); ok && record.RuntimePlane == "remote" && record.SupportsRealtime {
+		drivers["gemini"] = geminiRealtimeDriver{}
 	}
 	return &CloudRealtimeRegistry{drivers: drivers}
 }
@@ -167,7 +173,7 @@ func (dashScopeRealtimeDriver) ValidateTarget(identity Identity, raw *structpb.S
 }
 
 func (dashScopeRealtimeDriver) Transport() CloudRealtimeTransport {
-	return CloudRealtimeTransport{BasePath: "/compatible-mode/v1", Path: "/api-ws/v1/realtime", ModelQuery: true}
+	return CloudRealtimeTransport{BasePaths: []string{"/compatible-mode/v1"}, Path: "/api-ws/v1/realtime", ModelQuery: true}
 }
 
 func (dashScopeRealtimeDriver) MapOpen(eventID string, target CloudRealtimeTarget, input CloudRealtimeOpen) ([]byte, error) {

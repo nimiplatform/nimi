@@ -120,6 +120,15 @@ test('manual recording can be committed without starting a response', async () =
   assert.deepEqual(calls, ['1', 'commit-input']);
 });
 
+test('a finite continuous recording seals audio input without inventing a response turn', async () => {
+  const { sendLabRealtimeRecordingFrames } = await load('lab/lab-only/ai-realtime-recording.js');
+  const calls=[];
+  await sendLabRealtimeRecordingFrames({interactionMode:'continuous',turnDetection:'manual',inputTrackId:'track',utteranceId:'',frames:[new Uint8Array(640),new Uint8Array(640)],session:{
+    async appendAudioFrame(frame){calls.push(frame.frameSequence);},async ownerControl(control){calls.push(control);},
+  }});
+  assert.deepEqual(calls,['1','2','mute-input']);
+});
+
 test.after(() => {
   if (buildDir) rmSync(buildDir, { recursive: true, force: true });
 });
@@ -1578,7 +1587,7 @@ function fakeRealtime({ events = [], openError, ackOk = true, endStream = false 
         };
       },
       async interruptOutput(input) { calls.interrupt.push(input); return operation(); },
-      async close(input) { calls.close.push(input); release(); return { ack: { ok: true, reasonCode: '', actionHint: '' }, control: control('closed', 'cancelled') }; },
+      async close(input) { calls.close.push(input); release(); return { ack: { ok: true, reasonCode: '', actionHint: '' }, control: control('closed', 'cancelled'), closure:{localResourcesReleased:true,providerSessionClosed:false} }; },
     },
   };
 }
@@ -1692,7 +1701,7 @@ test('direct AI Realtime reports the owner reason for a refused Local route, a r
   const ending = fakeRealtime({ endStream: true, events: [
     { type: 'output-track', requestId: 'done', outputTrackId: 'completed', lifecycle: 'completed', reasonCode: '' },
     { type: 'text-output', requestId: 'active', outputTrackId: 'active', text: 'Actual partial output', final: false },
-    { type: 'session-terminal', reasonCode: 'AI_PROVIDER_UNAVAILABLE' },
+    { type: 'session-terminal', reasonCode: 'AI_PROVIDER_UNAVAILABLE', closure:{localResourcesReleased:true,providerSessionClosed:false} },
   ] });
   const releasedTracks = [];
   const ended = createLabRealtimeController({ client: ending.client, now: () => new Date(), createId: (prefix) => prefix, onState: () => {},
@@ -2443,7 +2452,7 @@ for (const ending of ['eof', 'throw']) {
 test('Realtime confirmed terminal and explicit connection revocation need no duplicate Close', async()=>{
   const { createLabRealtimeController } = await load('lab/lab-only/ai-realtime-session.js');
   for(const revoked of [false,true]){
-    const fake=fakeRealtime({events:[{type:'session-terminal',reasonCode:'owner-ended'}],endStream:true});
+    const fake=fakeRealtime({events:[{type:'session-terminal',reasonCode:'owner-ended',closure:{localResourcesReleased:true,providerSessionClosed:false}}],endStream:true});
     if(revoked)fake.client.subscribe=async()=>({async *[Symbol.asyncIterator](){throw Object.assign(Error('revoked'),{reasonCode:'revoked'});},async cancel(){}});
     const session=createLabRealtimeController({client:fake.client,now:()=>new Date(),createId:p=>p,onState:()=>{}});
     await session.open({instruction:'',turnDetection:'manual',audioOutputEnabled:false});
@@ -2525,7 +2534,7 @@ test('continuous Lab sessions keep one input stream, explicit App context and fi
     {type:'session-usage',usage:{audioSeconds:4.8,final:false}},
   ] });
   const close=fake.client.close;
-  fake.client.close=async scope=>({...await close(scope),usage:{audioSeconds:4.8,final:true}});
+  fake.client.close=async scope=>({...await close(scope),usage:{audioSeconds:4.8,final:true},closure:{localResourcesReleased:true,providerSessionClosed:true}});
   let id=0;
   const session=createLabRealtimeController({client:fake.client,now:()=>new Date(),createId:prefix=>`${prefix}-${++id}`,onState:()=>{}});
   await session.open({interactionMode:'continuous',instruction:'Caller owns work.',turnDetection:'manual',audioOutputEnabled:true});
@@ -2559,7 +2568,7 @@ test('a native completed continuous session is recorded as closed rather than fa
     async *[Symbol.asyncIterator]() {
       await new Promise(resolve => setImmediate(resolve));
       yield { control: { ...opened.control, lifecycle: 'closed', terminalReason: 'completed' },
-        event: { type: 'session-terminal', reasonCode: 'ACTION_EXECUTED', usage: { audioSeconds: 0, final: true } } };
+        event: { type: 'session-terminal', reasonCode: 'ACTION_EXECUTED', usage: { audioSeconds: 0, final: true }, closure:{localResourcesReleased:true,providerSessionClosed:true} } };
     },
     async cancel() {},
   });
@@ -2570,4 +2579,30 @@ test('a native completed continuous session is recorded as closed rather than fa
   assert.equal(labRealtimeSessionSummary(session.getState()).ending, 'closed');
   assert.deepEqual(labRealtimeSessionSummary(session.getState()).audioUsage, { audioSeconds: 0, final: true });
   assert.equal(fake.calls.close.length, 0, 'a native completed session does not require another Close call');
+});
+
+test('untimed continuous interruption discards queued playback and records only local closure', async () => {
+  const { createLabRealtimeController, labRealtimeSessionSummary } = await load('lab/lab-only/ai-realtime-session.js');
+  const fake=fakeRealtime({events:[
+    {type:'continuous-transcript',direction:'output',textDelta:' native untimed '},
+    {type:'audio-frame',requestId:'',outputTrackId:'audio',frameSequence:'1',frame:new Uint8Array([1,0]),format:{codec:'pcm-s16le',sampleRateHz:24000,channelCount:1,frameDurationMs:20,maximumFrameBytes:960}},
+    {type:'output-track',requestId:'',outputTrackId:'audio',lifecycle:'completed',reasonCode:''},
+    {type:'continuous-interruption',outputTrackId:''},
+  ]});
+  let finishPlayback;
+  const pendingPlayback=new Promise(resolve=>{finishPlayback=resolve;});
+  const interrupted=[];
+  const session=createLabRealtimeController({client:fake.client,now:()=>new Date(),createId:p=>p,onState:()=>{},playback:{
+    async writeAudioFrame(){},async finishOutputTrack(){await pendingPlayback;},
+    async interruptOutputTrack(input){interrupted.push(input.outputTrackId);finishPlayback();},async close(){finishPlayback();},
+  }});
+  await session.open({interactionMode:'continuous',instruction:'',audioOutputEnabled:true});
+  await waitFor(()=>interrupted.length===1,'native interruption clears pending audio');
+  assert.deepEqual(interrupted,['audio']);
+  assert.equal(session.getState().continuousTranscripts[0].startMs,undefined);
+  assert.equal(session.getState().continuousTranscripts[0].textDelta,' native untimed ');
+  await session.close();
+  const summary=labRealtimeSessionSummary(session.getState());
+  assert.equal(summary.audioUsage,undefined);
+  assert.deepEqual(summary.closure,{localResourcesReleased:true,providerSessionClosed:false});
 });

@@ -25,6 +25,7 @@ export function SessionSummaryView({ output }: { readonly output: SessionOutput 
         <div><dt>{t('StudioResults.session.terminalReason')}</dt><dd><code>{output.terminalReason}</code></dd></div>
       </dl>
       {output.audioUsage ? <p className="studio-result__hint">{t(output.audioUsage.final ? 'StudioResults.session.audioUsageFinal' : 'StudioResults.session.audioUsagePartial', { seconds: output.audioUsage.audioSeconds })}</p> : null}
+      {output.closure ? <p className="studio-result__hint">{t(!output.closure.localResourcesReleased ? 'StudioResults.session.localClosureUnconfirmed' : output.closure.providerSessionClosed ? 'StudioResults.session.providerClosureConfirmed' : 'StudioResults.session.localClosureConfirmed')}</p> : null}
       {counters.length > 0 ? (
         <ul className="studio-voice-list">
           {counters.map(([name, count]) => (

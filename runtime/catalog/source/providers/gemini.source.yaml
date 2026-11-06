@@ -1,6 +1,6 @@
 schema_version: 3
 provider: gemini
-catalog_version: 2026-11-06-gemini-omni12
+catalog_version: 2026-11-06-gemini-continuous-live
 generated_target: runtime/catalog/providers/gemini.yaml
 runtime:
   inventory_mode: static_source
@@ -22,7 +22,6 @@ defaults:
     currency: USD
     as_of: 2026-04-18
     notes: Gemini public pricing varies by model family, inference tier, and modality mix. This family-scoped refresh only normalizes text and embedding public contract pricing.
-
 sources:
   - source_id: gemini_interactions_thinking_doc
     url: https://aistudio.google.com/docs/thinking
@@ -192,14 +191,27 @@ sources:
     url: https://ai.google.dev/gemini-api/docs/models/gemini-3.1-pro-preview
     retrieved_at: 2026-09-28
     note: Gemini 3.1 Pro preview model card.
-
+  - source_id: gemini38_live_model
+    url: https://ai.google.dev/gemini-api/docs/models/gemini-3.8-live?authuser=5
+    retrieved_at: 2026-11-06
+    note: Stable native audio Live model; proactivity cannot be disabled, thinking controls omitted, clientContent turnComplete false does not force generation.
+  - source_id: gemini_live_protocol
+    url: https://ai.google.dev/api/live?hl=en
+    retrieved_at: 2026-11-06
+    note: Native v1beta BidiGenerateContent, transcription deltas, 16k input/24k output PCM and observed interrupted/turnComplete. No final session-close receipt or cumulative audio-second usage is invented.
 language_profiles:
-  gemini_tts_en_zh_v2: [en, zh]
-
+  gemini_tts_en_zh_v2:
+    - en
+    - zh
 voice_sets:
   - voice_set_id: gemini-3-8-prebuilt-v3
-    langs: [en, zh]
-    source_ids: [gemini_3_8_flash_tts_doc, gemini_3_8_flash_lite_tts_doc, gemini_tts_guide]
+    langs:
+      - en
+      - zh
+    source_ids:
+      - gemini_3_8_flash_tts_doc
+      - gemini_3_8_flash_lite_tts_doc
+      - gemini_tts_guide
     voices:
       - voice_id: Zephyr
         name: Zephyr
@@ -261,7 +273,6 @@ voice_sets:
         name: Sadaltager
       - voice_id: Sulafat
         name: Sulafat
-
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
@@ -281,15 +292,37 @@ selection_profiles:
     reviewed_at: 2026-11-06
     freshness_sla_days: 21
     rationale: Current flagship Gemini reasoning model with a shared 1M context; the exact Runtime adapter admits native reasoning, tool continuity, structured output and owned multimodal input.
-
 models:
+  - model_id: gemini-3.8-live
+    model_type: chat
+    updated_at: 2026-11-06
+    capabilities:
+      - realtime.interact
+    context_window_tokens: 131072
+    source_ids:
+      - gemini38_live_model
+      - gemini_live_protocol
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Requires explicit continuous mode and audio output. Transcripts may have no timestamps; native interruption is delivered. Close confirms local resource release separately from provider closure, with no final session usage claim. No owner-controlled turns, provider tools, video, requested thinking or automatic resumption in this slice.
   - model_id: gemini-4-argon
     model_type: chat
-    capabilities: [text.generate]
-    features: [input.image, input.audio, input.video]
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+      - input.audio
+      - input.video
     context_window_tokens: 983040
     updated_at: 2026-11-04
-    source_ids: [gemini_argon_doc, gemini_interactions_text_doc, gemini_interactions_thinking_doc]
+    source_ids:
+      - gemini_argon_doc
+      - gemini_interactions_text_doc
+      - gemini_interactions_thinking_doc
     pricing:
       unit: token
       input: unknown
@@ -300,10 +333,13 @@ models:
   - model_id: gemini-nano-banana-2.1
     model_type: image
     updated_at: 2026-11-04
-    capabilities: [image.generate]
-    features: [input.image]
+    capabilities:
+      - image.generate
+    features:
+      - input.image
     image_request_options:
-      response_formats: [b64_json]
+      response_formats:
+        - b64_json
       max_images_per_request: 1
       supports_negative_prompt: false
       supports_reference_images: true
@@ -320,12 +356,16 @@ models:
       currency: USD
       as_of: 2026-11-04
       notes: Native one-image generation or reference editing at default 1K or explicit reviewed 1K/2K/4K output sizes; provider usage is preserved when reported.
-    source_ids: [gemini_nano_banana21_doc, gemini_generate_content_image_doc]
+    source_ids:
+      - gemini_nano_banana21_doc
+      - gemini_generate_content_image_doc
   - model_id: gemini-omni-1.2-flash
     model_type: video
     updated_at: 2026-11-06
-    capabilities: [video.generate]
-    features: [input.image]
+    capabilities:
+      - video.generate
+    features:
+      - input.image
     pricing:
       unit: request
       input: unknown
@@ -333,29 +373,59 @@ models:
       currency: USD
       as_of: 2026-11-04
       notes: Current stable Omni target. Text, first-frame and image-reference generation allow 3–15 seconds; first/last interpolation remains 3–10 seconds. Native URI storage and cleanup retain exact original resource custody. Price varies by resolution and duration; measured cost is not inferred.
-    source_ids: [gemini_omni_video_doc, gemini_omni_model_doc, gemini_interactions_video_format_doc]
+    source_ids:
+      - gemini_omni_video_doc
+      - gemini_omni_model_doc
+      - gemini_interactions_video_format_doc
     video_generation:
-      modes: [t2v, i2v_first_frame, i2v_first_last, i2v_reference]
+      modes:
+        - t2v
+        - i2v_first_frame
+        - i2v_first_last
+        - i2v_reference
       input_roles:
-        t2v: [prompt]
-        i2v_first_frame: [prompt, first_frame]
-        i2v_first_last: [prompt, first_frame, last_frame]
-        i2v_reference: [prompt, reference_image]
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+        i2v_first_last:
+          - prompt
+          - first_frame
+          - last_frame
+        i2v_reference:
+          - prompt
+          - reference_image
       limits:
-        reference_images: {min: 1, max: 6}
-        resolution: [360p, 720p, 1080p, 4k]
-        ratio: ["16:9", "9:16"]
-        duration_sec: {min: 3, max: 15}
+        reference_images:
+          min: 1
+          max: 6
+        resolution:
+          - 360p
+          - 720p
+          - 1080p
+          - 4k
+        ratio:
+          - 16:9
+          - 9:16
+        duration_sec:
+          min: 3
+          max: 15
       options:
-        supports: [resolution, ratio, duration_sec]
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
         constraints: {}
       outputs:
         video_url: true
   - model_id: gemini-omni-1.1-flash
     model_type: video
     updated_at: 2026-11-05
-    capabilities: [video.generate]
-    features: [input.image]
+    capabilities:
+      - video.generate
+    features:
+      - input.image
     pricing:
       unit: request
       input: unknown
@@ -363,29 +433,61 @@ models:
       currency: USD
       as_of: 2026-11-04
       notes: Provider pricing varies by output resolution and duration; Runtime does not infer charges from the generated clip.
-    source_ids: [gemini_omni_video_doc, gemini_omni_model_doc, gemini_interactions_video_format_doc]
+    source_ids:
+      - gemini_omni_video_doc
+      - gemini_omni_model_doc
+      - gemini_interactions_video_format_doc
     video_generation:
-      modes: [t2v, i2v_first_frame, i2v_first_last, i2v_reference]
+      modes:
+        - t2v
+        - i2v_first_frame
+        - i2v_first_last
+        - i2v_reference
       input_roles:
-        t2v: [prompt]
-        i2v_first_frame: [prompt, first_frame]
-        i2v_first_last: [prompt, first_frame, last_frame]
-        i2v_reference: [prompt, reference_image]
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+        i2v_first_last:
+          - prompt
+          - first_frame
+          - last_frame
+        i2v_reference:
+          - prompt
+          - reference_image
       limits:
-        reference_images: {min: 1, max: 6}
-        resolution: [360p, 720p, 1080p, 4k]
-        ratio: ["16:9", "9:16"]
-        duration_sec: {min: 3, max: 10}
+        reference_images:
+          min: 1
+          max: 6
+        resolution:
+          - 360p
+          - 720p
+          - 1080p
+          - 4k
+        ratio:
+          - 16:9
+          - 9:16
+        duration_sec:
+          min: 3
+          max: 10
       options:
-        supports: [resolution, ratio, duration_sec]
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
         constraints: {}
       outputs:
         video_url: true
   - model_id: gemini-3.8-flash
     model_type: chat
     updated_at: 2026-10-02
-    capabilities: [text.generate]
-    features: [input.image, input.audio, input.video]
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+      - input.audio
+      - input.video
     pricing:
       unit: token
       input: unknown
@@ -393,13 +495,18 @@ models:
       currency: USD
       as_of: 2026-09-28
       notes: Stable Flash model for long-horizon agentic and software engineering workloads, with text, image, video, audio, and PDF inputs, a 1,048,576-token input limit, and a 65,536-token output limit.
-    source_ids: [gemini_3_8_flash_doc, gemini_models_doc, gemini_deprecations_doc, gemini_pricing_doc]
-
+    source_ids:
+      - gemini_3_8_flash_doc
+      - gemini_models_doc
+      - gemini_deprecations_doc
+      - gemini_pricing_doc
   - model_id: gemini-3.5-flash-lite
     model_type: chat
     updated_at: 2026-07-21
-    capabilities: [text.generate]
-    features: [input.image]
+    capabilities:
+      - text.generate
+    features:
+      - input.image
     pricing:
       unit: token
       input: unknown
@@ -407,13 +514,18 @@ models:
       currency: USD
       as_of: 2026-09-28
       notes: Stable low-latency Flash-Lite model for high-throughput, cost-sensitive workloads, with text, image, video, audio, and PDF inputs, a 1,048,576-token input limit, and a 65,536-token output limit.
-    source_ids: [gemini_3_5_flash_lite_doc, gemini_models_doc, gemini_deprecations_doc, gemini_pricing_doc]
-
+    source_ids:
+      - gemini_3_5_flash_lite_doc
+      - gemini_models_doc
+      - gemini_deprecations_doc
+      - gemini_pricing_doc
   - model_id: gemini-3.5-flash
     model_type: chat
     updated_at: 2026-05-19
-    capabilities: [text.generate]
-    features: [input.image]
+    capabilities:
+      - text.generate
+    features:
+      - input.image
     pricing:
       unit: token
       input: unknown
@@ -421,13 +533,18 @@ models:
       currency: USD
       as_of: 2026-09-28
       notes: Stable model that Google now labels its legacy Flash model, with text, image, video, audio, and PDF inputs, a 1,048,576-token input limit, and a 65,536-token output limit.
-    source_ids: [gemini_3_5_flash_doc, gemini_models_doc, gemini_pricing_doc, gemini_changelog_doc]
-
+    source_ids:
+      - gemini_3_5_flash_doc
+      - gemini_models_doc
+      - gemini_pricing_doc
+      - gemini_changelog_doc
   - model_id: gemini-3.1-flash-lite
     model_type: chat
     updated_at: 2026-05-07
-    capabilities: [text.generate]
-    features: [input.image]
+    capabilities:
+      - text.generate
+    features:
+      - input.image
     pricing:
       unit: token
       input: unknown
@@ -435,13 +552,19 @@ models:
       currency: USD
       as_of: 2026-09-28
       notes: Stable Flash-Lite route with an announced 2027-05-07 shutdown; Google names gemini-3.5-flash-lite as its replacement.
-    source_ids: [gemini_3_1_flash_lite_doc, gemini_models_doc, gemini_deprecations_doc, gemini_pricing_doc, gemini_changelog_doc]
-
+    source_ids:
+      - gemini_3_1_flash_lite_doc
+      - gemini_models_doc
+      - gemini_deprecations_doc
+      - gemini_pricing_doc
+      - gemini_changelog_doc
   - model_id: gemini-2.5-pro
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate]
-    features: [input.image]
+    capabilities:
+      - text.generate
+    features:
+      - input.image
     pricing:
       unit: token
       input: "1.25"
@@ -449,13 +572,18 @@ models:
       currency: USD
       as_of: 2026-04-18
       notes: Standard paid-tier pricing for prompts up to 200K tokens. Higher prompt-length and inference-tier prices also exist. Per 1M tokens.
-    source_ids: [gemini_2_5_pro_doc, gemini_models_doc, gemini_pricing_doc]
-
+    source_ids:
+      - gemini_2_5_pro_doc
+      - gemini_models_doc
+      - gemini_pricing_doc
   - model_id: gemini-2.5-flash
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate, audio.transcribe]
-    features: [input.image]
+    capabilities:
+      - text.generate
+      - audio.transcribe
+    features:
+      - input.image
     pricing:
       unit: token
       input: "0.30"
@@ -463,17 +591,25 @@ models:
       currency: USD
       as_of: 2026-04-18
       notes: Standard paid-tier pricing. Output price includes thinking tokens. Audio input and alternate inference tiers have separate pricing. Per 1M tokens.
-    source_ids: [gemini_2_5_flash_doc, gemini_audio_understanding_doc, gemini_models_doc, gemini_pricing_doc]
+    source_ids:
+      - gemini_2_5_flash_doc
+      - gemini_audio_understanding_doc
+      - gemini_models_doc
+      - gemini_pricing_doc
     transcription:
-      tiers: [core_transcript]
-      response_formats: [text, json]
+      tiers:
+        - core_transcript
+      response_formats:
+        - text
+        - json
       supports_language: true
-
   - model_id: gemini-2.5-flash-lite
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate]
-    features: [input.image]
+    capabilities:
+      - text.generate
+    features:
+      - input.image
     pricing:
       unit: token
       input: "0.10"
@@ -481,15 +617,15 @@ models:
       currency: USD
       as_of: 2026-04-18
       notes: Standard paid-tier pricing for the stable Gemini 2.5 Flash-Lite model. Audio input and alternate inference tiers have separate pricing. Per 1M tokens.
-    source_ids: [gemini_2_5_flash_lite_doc, gemini_models_doc, gemini_pricing_doc]
-
+    source_ids:
+      - gemini_2_5_flash_lite_doc
+      - gemini_models_doc
+      - gemini_pricing_doc
   - model_id: gemini-embedding-001
     model_type: embedding
     updated_at: 2026-04-18
-    capabilities: [text.embed]
-    # K-MEM-004 / K-AIEXEC-006: native (default) output dimension. Gemini
-    # embedding supports Matryoshka truncation (e.g. 1536/768); 3072 is the
-    # native default recorded as profile identity.
+    capabilities:
+      - text.embed
     embedding:
       dimension: 3072
     pricing:
@@ -499,15 +635,15 @@ models:
       currency: USD
       as_of: 2026-04-18
       notes: Standard paid-tier text-only embedding price. Batch price is lower. Per 1M tokens.
-    source_ids: [gemini_embedding_001_doc, gemini_models_doc, gemini_pricing_doc]
-
+    source_ids:
+      - gemini_embedding_001_doc
+      - gemini_models_doc
+      - gemini_pricing_doc
   - model_id: gemini-embedding-2
     model_type: embedding
     updated_at: 2026-09-28
-    capabilities: [text.embed]
-    # This field records the native default width; the exact text-only Driver
-    # owns request-specific output-width admission. Image/audio/video/PDF
-    # inputs require separate contracts and are not implied by this source row.
+    capabilities:
+      - text.embed
     embedding:
       dimension: 3072
     pricing:
@@ -517,12 +653,15 @@ models:
       currency: USD
       as_of: 2026-09-28
       notes: Standard paid-tier text input per 1M tokens; Batch and non-text input have separate rates.
-    source_ids: [gemini_embedding_2_stable_doc, gemini_embeddings_guide, gemini_pricing_doc]
-
+    source_ids:
+      - gemini_embedding_2_stable_doc
+      - gemini_embeddings_guide
+      - gemini_pricing_doc
   - model_id: gemini-embedding-2-preview
     model_type: embedding
     updated_at: 2026-04-18
-    capabilities: [text.embed]
+    capabilities:
+      - text.embed
     pricing:
       unit: token
       input: "0.20"
@@ -530,15 +669,22 @@ models:
       currency: USD
       as_of: 2026-04-18
       notes: Text input price for the multimodal embedding model. Image, audio, and video inputs have separate rates. Supports text, image, video, audio, and PDF inputs. Per 1M text tokens. The lifecycle table lists a shortened embedding-2-preview ID with a 2026-08-10 shutdown, while this exact preview ID was still listed and served on 2026-09-28; the row declares no fixed output dimension.
-    source_ids: [gemini_embedding_2_preview_doc, gemini_models_doc, gemini_deprecations_doc, gemini_pricing_doc, gemini_changelog_doc]
-
+    source_ids:
+      - gemini_embedding_2_preview_doc
+      - gemini_models_doc
+      - gemini_deprecations_doc
+      - gemini_pricing_doc
+      - gemini_changelog_doc
   - model_id: gemini-3.1-flash-image
     model_type: image
     updated_at: 2026-05-28
-    capabilities: [image.generate]
-    features: [input.image]
+    capabilities:
+      - image.generate
+    features:
+      - input.image
     image_request_options:
-      response_formats: [b64_json]
+      response_formats:
+        - b64_json
       max_images_per_request: 1
       supports_negative_prompt: false
       supports_reference_images: true
@@ -555,15 +701,22 @@ models:
       currency: USD
       as_of: 2026-09-28
       notes: Standard paid tier bills $0.067 for each default 1K output image; text and image input tokens bill at $0.50 per 1M. Stable replacement for the retired image previews and for gemini-2.5-flash-image, which shuts down on 2026-10-02.
-    source_ids: [gemini_3_1_flash_image_doc, gemini_generate_content_image_doc, gemini_models_doc, gemini_deprecations_doc, gemini_pricing_doc]
-
+    source_ids:
+      - gemini_3_1_flash_image_doc
+      - gemini_generate_content_image_doc
+      - gemini_models_doc
+      - gemini_deprecations_doc
+      - gemini_pricing_doc
   - model_id: gemini-3.1-flash-lite-image
     model_type: image
     updated_at: 2026-09-28
-    capabilities: [image.generate]
-    features: [input.image]
+    capabilities:
+      - image.generate
+    features:
+      - input.image
     image_request_options:
-      response_formats: [b64_json]
+      response_formats:
+        - b64_json
       max_images_per_request: 1
       supports_negative_prompt: false
       supports_reference_images: true
@@ -580,15 +733,21 @@ models:
       currency: USD
       as_of: 2026-09-28
       notes: Standard paid tier bills $0.0336 for one default 1K image; text/image input tokens have separate charges. The model does not support 2K or 4K output.
-    source_ids: [gemini_3_1_flash_lite_image_doc, gemini_generate_content_image_doc, gemini_models_doc, gemini_pricing_doc]
-
+    source_ids:
+      - gemini_3_1_flash_lite_image_doc
+      - gemini_generate_content_image_doc
+      - gemini_models_doc
+      - gemini_pricing_doc
   - model_id: gemini-3-pro-image
     model_type: image
     updated_at: 2026-09-29
-    capabilities: [image.generate]
-    features: [input.image]
+    capabilities:
+      - image.generate
+    features:
+      - input.image
     image_request_options:
-      response_formats: [b64_json]
+      response_formats:
+        - b64_json
       max_images_per_request: 1
       supports_negative_prompt: false
       supports_reference_images: true
@@ -605,21 +764,32 @@ models:
       currency: USD
       as_of: 2026-09-29
       notes: Standard paid tier for one default 1K/2K output image; input text/image tokens and output thinking/text tokens bill separately. Nimi first admits one image from text, optionally one HTTPS reference, with default, 1:1 or 16:9 aspect ratio; no 2K/4K control.
-    source_ids: [gemini_3_pro_image_doc, gemini_generate_content_image_doc, gemini_models_doc, gemini_deprecations_doc, gemini_pricing_doc]
-
+    source_ids:
+      - gemini_3_pro_image_doc
+      - gemini_generate_content_image_doc
+      - gemini_models_doc
+      - gemini_deprecations_doc
+      - gemini_pricing_doc
   - model_id: gemini-3.8-flash-tts
     model_type: tts
     updated_at: 2026-10-03
-    capabilities: [audio.synthesize, voice.create]
-    features: [input.text]
+    capabilities:
+      - audio.synthesize
+      - voice.create
+    features:
+      - input.text
     voice:
       discovery_mode: mixed
       voice_set_ref: gemini-3-8-prebuilt-v3
-      supports_voice_ref_kinds: [preset_voice_id, voice_asset_id]
+      supports_voice_ref_kinds:
+        - preset_voice_id
+        - voice_asset_id
       langs_ref: gemini_tts_en_zh_v2
       request_options:
-        timing_modes: [none]
-        audio_formats: [wav]
+        timing_modes:
+          - none
+        audio_formats:
+          - wav
         supports_language: true
         supports_emotion: true
     pricing:
@@ -629,20 +799,28 @@ models:
       currency: USD
       as_of: 2026-09-29
       notes: Standard paid tier per 1M text input and audio output tokens through 2026-12-31; the rates double on 2027-01-01. Nimi admits English and Chinese single-speaker prebuilt voices with optional emotion mapped to speech_metadata.style, or an owned stored prompted voice without emotion, as complete 24 kHz WAV. Precise speed, pitch, volume, render hints, timing and streaming remain unsupported. Voice design has its own provider-reported usage; synthesis prices do not estimate creation charges.
-    source_ids: [gemini_3_8_flash_tts_doc, gemini_tts_guide, gemini_pricing_doc, gemini_voices_api, gemini_voice_design_doc]
-
+    source_ids:
+      - gemini_3_8_flash_tts_doc
+      - gemini_tts_guide
+      - gemini_pricing_doc
+      - gemini_voices_api
+      - gemini_voice_design_doc
   - model_id: gemini-3.8-flash-lite-tts
     model_type: tts
     updated_at: 2026-10-03
-    capabilities: [audio.synthesize]
+    capabilities:
+      - audio.synthesize
     voice:
       discovery_mode: static_catalog
       voice_set_ref: gemini-3-8-prebuilt-v3
-      supports_voice_ref_kinds: [preset_voice_id]
+      supports_voice_ref_kinds:
+        - preset_voice_id
       langs_ref: gemini_tts_en_zh_v2
       request_options:
-        timing_modes: [none]
-        audio_formats: [wav]
+        timing_modes:
+          - none
+        audio_formats:
+          - wav
         supports_language: true
         supports_emotion: true
     pricing:
@@ -652,12 +830,15 @@ models:
       currency: USD
       as_of: 2026-09-29
       notes: Standard paid tier per 1M text input and audio output tokens through 2026-12-31; the rates double on 2027-01-01. Nimi admits English and Chinese single-speaker prebuilt voices with optional emotion mapped to speech_metadata.style as complete 24 kHz WAV. Precise speed, pitch, volume, render hints, timing and streaming remain unsupported.
-    source_ids: [gemini_3_8_flash_lite_tts_doc, gemini_tts_guide, gemini_pricing_doc]
-
+    source_ids:
+      - gemini_3_8_flash_lite_tts_doc
+      - gemini_tts_guide
+      - gemini_pricing_doc
   - model_id: gemini-3.5-transcribe
     model_type: stt
     updated_at: 2026-10-03
-    capabilities: [audio.transcribe]
+    capabilities:
+      - audio.transcribe
     pricing:
       unit: token
       input: "2.00"
@@ -665,16 +846,24 @@ models:
       currency: USD
       as_of: 2026-09-29
       notes: Standard paid tier per 1M audio input and text output tokens, about $0.005/minute combined at Google's stated estimate. Nimi admits short inline mono 24 kHz PCM16 WAV up to 30 seconds and 2 MiB with store=false, returning the actual transcript and optional real word timestamps. No guessed detected language or no_speech, Files upload, retained Interaction, language/vocabulary hints or diarization.
-    source_ids: [gemini_3_5_transcribe_doc, gemini_transcribe_guide, gemini_interactions_audio_guide, gemini_interactions_state_guide, gemini_pricing_doc]
+    source_ids:
+      - gemini_3_5_transcribe_doc
+      - gemini_transcribe_guide
+      - gemini_interactions_audio_guide
+      - gemini_interactions_state_guide
+      - gemini_pricing_doc
     transcription:
-      tiers: [core_transcript, timed_transcript]
-      response_formats: [text]
+      tiers:
+        - core_transcript
+        - timed_transcript
+      response_formats:
+        - text
       supports_timestamps: true
-
   - model_id: lyria-3-clip-preview
     model_type: music
     updated_at: 2026-09-29
-    capabilities: [music.generate]
+    capabilities:
+      - music.generate
     pricing:
       unit: request
       input: unknown
@@ -682,12 +871,16 @@ models:
       currency: USD
       as_of: 2026-09-29
       notes: Legacy paid-preview model at $0.04 per nominal 30-second clip; this is an explicit development cell, not a current stable music recommendation. Nimi first admits text prompt only and one inline MP3 mix; a real decoded output measured 30.772 seconds of non-silent audio, so Nimi captures a 35-second upper budget and rejects output beyond it. Generated lyrics text is not a score artifact.
-    source_ids: [lyria_3_clip_model_doc, lyria_generate_content_music_guide, gemini_deprecations_doc, gemini_pricing_doc]
-
+    source_ids:
+      - lyria_3_clip_model_doc
+      - lyria_generate_content_music_guide
+      - gemini_deprecations_doc
+      - gemini_pricing_doc
   - model_id: lyria-3.5
     model_type: music
     updated_at: 2026-09-29
-    capabilities: [music.generate]
+    capabilities:
+      - music.generate
     pricing:
       unit: request
       input: unknown
@@ -695,13 +888,18 @@ models:
       currency: USD
       as_of: 2026-09-29
       notes: Stable full-song Lyria 3.5 paid-tier target at $0.08 per request. Nimi's selected mode is prompt-only native GenerateContent MP3; duration can be steered by prompt but has no numeric provider guarantee. Only an omitted or exact 300-second output ceiling is admitted, and measured audio length is checked before publishing the canonical WAV mix; shorter budgets, independent lyrics, score and prior-audio controls are not admitted.
-    source_ids: [lyria_3_5_model_doc, lyria_generate_content_music_guide, gemini_deprecations_doc, gemini_pricing_doc]
-
+    source_ids:
+      - lyria_3_5_model_doc
+      - lyria_generate_content_music_guide
+      - gemini_deprecations_doc
+      - gemini_pricing_doc
   - model_id: gemini-3.1-pro-preview
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate]
-    features: [input.image]
+    capabilities:
+      - text.generate
+    features:
+      - input.image
     pricing:
       unit: token
       input: "2.00"
@@ -709,13 +907,18 @@ models:
       currency: USD
       as_of: 2026-04-18
       notes: Standard paid-tier pricing for prompts up to 200K tokens. Higher prompt-length and inference-tier prices also exist. Preview pricing may change. Per 1M tokens.
-    source_ids: [gemini_3_1_pro_preview_doc, gemini_models_doc, gemini_pricing_doc, gemini_changelog_doc]
-
+    source_ids:
+      - gemini_3_1_pro_preview_doc
+      - gemini_models_doc
+      - gemini_pricing_doc
+      - gemini_changelog_doc
   - model_id: gemini-3-flash-preview
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [text.generate]
-    features: [input.image]
+    capabilities:
+      - text.generate
+    features:
+      - input.image
     pricing:
       unit: token
       input: "0.50"
@@ -723,8 +926,10 @@ models:
       currency: USD
       as_of: 2026-04-18
       notes: Standard paid-tier pricing. Audio input and alternate inference tiers have separate pricing. Preview pricing may change. Per 1M tokens.
-    source_ids: [gemini_3_flash_preview_doc, gemini_models_doc, gemini_pricing_doc]
-
+    source_ids:
+      - gemini_3_flash_preview_doc
+      - gemini_models_doc
+      - gemini_pricing_doc
 voice_workflow_models:
   - workflow_model_id: gemini-3.8-flash-tts
     workflow_type: text_description
@@ -736,21 +941,27 @@ voice_workflow_models:
       preview_text_mode: unsupported
       supports_language: true
       supports_preferred_name: true
-    target_model_refs: [gemini-3.8-flash-tts]
+    target_model_refs:
+      - gemini-3.8-flash-tts
     langs_ref: gemini_tts_en_zh_v2
-    source_ids: [gemini_voices_api, gemini_voice_design_doc]
-
+    source_ids:
+      - gemini_voices_api
+      - gemini_voice_design_doc
 model_workflow_bindings:
   - model_id: gemini-3.8-flash-tts
-    workflow_model_refs: [gemini-3.8-flash-tts]
-    workflow_types: [text_description]
-
+    workflow_model_refs:
+      - gemini-3.8-flash-tts
+    workflow_types:
+      - text_description
 voice_handle_policies:
   - policy_id: gemini_stored_prompted_voice_v1
-    applies_to_workflow_types: [text_description]
+    applies_to_workflow_types:
+      - text_description
     persistence: provider_persistent
     default_ttl: provider_reported_one_year_inactivity
     scope: user_scoped
     delete_semantics: best_effort_provider_delete
     runtime_reconciliation_required: true
-    source_ids: [gemini_voices_api, gemini_voice_design_doc]
+    source_ids:
+      - gemini_voices_api
+      - gemini_voice_design_doc

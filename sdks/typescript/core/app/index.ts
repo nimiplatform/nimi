@@ -186,6 +186,8 @@ export type {
   NimiRealtimeUsage,
   NimiRealtimeInteractionMode,
   NimiRealtimeSessionUsage,
+  NimiRealtimeSessionClosure,
+  NimiRealtimeCloseResult,
   NimiAiRealtimeOpenInput,
   NimiRealmRealtimeClient,
   NimiRealmRealtimeChatEvent,

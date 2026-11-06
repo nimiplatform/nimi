@@ -682,7 +682,7 @@ test('shared history codec accepts the new typed snapshots and keeps older embed
     'realtime.interact': [runRecord('session', '2026-09-01T00:00:05.000Z', {
       capabilityId: 'realtime.interact',
       status: 'failed',
-      result: { ok: true, kind: 'session', summary: 'terminated', capabilityContract: 'realtime.interact', startedAt: '2026-09-01T00:00:00.000Z', endedAt: '2026-09-01T00:00:05.000Z', ending: 'terminated', terminalReason: 'AI_PROVIDER_UNAVAILABLE', audioUsage: { audioSeconds: 4.8, final: false }, observed: { 'text-input': 1, opened: 1 } },
+      result: { ok: true, kind: 'session', summary: 'terminated', capabilityContract: 'realtime.interact', startedAt: '2026-09-01T00:00:00.000Z', endedAt: '2026-09-01T00:00:05.000Z', ending: 'terminated', terminalReason: 'AI_PROVIDER_UNAVAILABLE', audioUsage: { audioSeconds: 4.8, final: false }, closure:{localResourcesReleased:true,providerSessionClosed:false}, observed: { 'text-input': 1, opened: 1 } },
     })],
     'video.face_swap': [runRecord('video-canceled', '2026-09-01T00:00:06.000Z', {
       capabilityId: 'video.face_swap',

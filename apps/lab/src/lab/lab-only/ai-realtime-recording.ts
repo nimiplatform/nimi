@@ -22,7 +22,11 @@ export async function sendLabRealtimeRecordingFrames(input: {
     });
     if (input.interactionMode === 'continuous') { const delay = started + (index + 1) * 20 - performance.now(); if (delay > 0) await new Promise(resolve => setTimeout(resolve, delay)); }
   }
-  if (input.interactionMode !== 'continuous' && input.turnDetection === 'manual') {
+  if (input.interactionMode === 'continuous') {
+    // A finite recording has ended. The same owner mute used by microphone
+    // capture seals the native input stream without creating a response turn.
+    await input.session.ownerControl('mute-input');
+  } else if (input.turnDetection === 'manual') {
     await input.session.ownerControl('commit-input');
     if (input.startResponse !== false) await input.session.ownerControl('start-response');
   }

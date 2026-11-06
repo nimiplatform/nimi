@@ -35,6 +35,13 @@ func cloneRealtimeSessionUsage(usage *runtimev1.AiRealtimeSessionUsage) *runtime
 	return proto.Clone(usage).(*runtimev1.AiRealtimeSessionUsage)
 }
 
+func cloneRealtimeSessionClosure(value *runtimev1.AiRealtimeSessionClosure) *runtimev1.AiRealtimeSessionClosure {
+	if value == nil {
+		return nil
+	}
+	return proto.Clone(value).(*runtimev1.AiRealtimeSessionClosure)
+}
+
 func validRealtimeCorrelation(value string) bool {
 	return value != "" && len(value) <= 128 && strings.TrimSpace(value) == value && !strings.ContainsFunc(value, unicode.IsControl)
 }
@@ -103,6 +110,7 @@ func markContinuousContextReplied(record *realtimeSessionRecord, req *runtimev1.
 }
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.gpt-live-continuous
+// @nimi-authority: rule.nimi.runtime.ai-provider.gemini-live-owner-controls
 func (s *Service) projectContinuousRealtimeEvent(record *realtimeSessionRecord, source capabilitydriver.CloudRealtimeEvent) bool {
 	record.mu.Lock()
 	closed := record.closed
@@ -145,7 +153,34 @@ func (s *Service) projectContinuousRealtimeEvent(record *realtimeSessionRecord, 
 			}
 		}
 	case capabilitydriver.CloudRealtimeEventContinuousTranscript:
+		if (source.StartMS == nil) != (source.EndMS == nil) {
+			return fail(runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		}
 		return publish(&runtimev1.AiRealtimeEvent{Event: &runtimev1.AiRealtimeEvent_ContinuousTranscript{ContinuousTranscript: &runtimev1.AiRealtimeContinuousTranscript{Direction: source.TranscriptDirection, TextDelta: source.Text, StartMs: source.StartMS, EndMs: source.EndMS}}})
+	case capabilitydriver.CloudRealtimeEventContinuousInterruption, capabilitydriver.CloudRealtimeEventAudioDone:
+		record.mu.Lock()
+		track := record.continuousTrack
+		id := ""
+		if track != nil {
+			id = track.outputTrackID
+			track.terminal = true
+			track.interrupted = source.Kind == capabilitydriver.CloudRealtimeEventContinuousInterruption
+			record.continuousTrack = nil
+			delete(record.tracksByRuntime, id)
+		}
+		record.mu.Unlock()
+		if track != nil {
+			lifecycle := runtimev1.AiRealtimeOutputTrackLifecycle_AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_COMPLETED
+			if track.interrupted {
+				lifecycle = runtimev1.AiRealtimeOutputTrackLifecycle_AI_REALTIME_OUTPUT_TRACK_LIFECYCLE_INTERRUPTED
+			}
+			if publish(realtimeOutputTrackEvent(track, lifecycle, runtimev1.ReasonCode_ACTION_EXECUTED)) {
+				return true
+			}
+		}
+		if source.Kind == capabilitydriver.CloudRealtimeEventContinuousInterruption {
+			return publish(&runtimev1.AiRealtimeEvent{Event: &runtimev1.AiRealtimeEvent_ContinuousInterruption{ContinuousInterruption: &runtimev1.AiRealtimeContinuousInterruption{OutputTrackId: id}}})
+		}
 	case capabilitydriver.CloudRealtimeEventContextRequest:
 		record.mu.Lock()
 		if id := record.contextRequestsByProvider[source.ProviderContextID]; id != "" {
@@ -186,7 +221,7 @@ func (s *Service) projectContinuousRealtimeEvent(record *realtimeSessionRecord, 
 		record.mu.Unlock()
 		return publish(&runtimev1.AiRealtimeEvent{Event: &runtimev1.AiRealtimeEvent_SessionUsage{SessionUsage: cloneRealtimeSessionUsage(usage)}})
 	case capabilitydriver.CloudRealtimeEventSessionClosed:
-		if source.SessionAudioSeconds == nil {
+		if source.SessionAudioSeconds == nil || !source.SessionClosureConfirmed {
 			return fail(runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}
 		reason := runtimev1.ReasonCode_ACTION_EXECUTED
@@ -209,6 +244,7 @@ func (s *Service) projectContinuousRealtimeEvent(record *realtimeSessionRecord, 
 		}
 		record.mu.Lock()
 		record.continuousUsage = &runtimev1.AiRealtimeSessionUsage{AudioSeconds: *source.SessionAudioSeconds, Final: true}
+		record.providerSessionClosed = true
 		attempt := record.continuousAttempt
 		record.continuousAttempt = nil
 		track := record.continuousTrack
@@ -231,6 +267,9 @@ func (s *Service) projectContinuousRealtimeEvent(record *realtimeSessionRecord, 
 		s.terminalizeRealtimeSession(record, reason, terminal)
 		return true
 	case capabilitydriver.CloudRealtimeEventFailed:
+		if source.FailureReason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
+			return fail(source.FailureReason)
+		}
 		return fail(runtimev1.ReasonCode_AI_PROVIDER_INTERNAL)
 	default:
 		return fail(runtimev1.ReasonCode_AI_OUTPUT_INVALID)
@@ -259,6 +298,11 @@ func (s *Service) closeContinuousRealtimeSession(ctx context.Context, record *re
 			return
 		case <-ticker.C:
 		}
+	}
+	if closer, ok := record.driver.(capabilitydriver.CloudRealtimeTransportCloser); ok && closer.CloseByTransportRelease() {
+		record.operationMu.Unlock()
+		s.terminalizeRealtimeSession(record, runtimev1.ReasonCode_ACTION_EXECUTED, realtimecore.TerminalCancelled)
+		return
 	}
 	closer, ok := record.driver.(capabilitydriver.CloudRealtimeSessionCloser)
 	if !ok {

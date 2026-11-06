@@ -15,7 +15,9 @@ test('continuous Realtime preserves explicit mode, session-scoped audio, context
     {control,event:{oneofKind:'contextRequest',contextRequest:{contextRequestId:'runtime-context',offsetMs:'120'}}},
     {control,event:{oneofKind:'audioFrame',audioFrame:{requestId:'',outputTrackId:'stream-output',frameSequence:'1',frame:new Uint8Array([0,0]),format}}},
     {control,event:{oneofKind:'sessionUsage',sessionUsage:{audioSeconds:2.5,final:false}}},
-    {control:{...control,lifecycle:5,terminalReason:12},event:{oneofKind:'sessionTerminal',sessionTerminal:{reasonCode:0,usage:{audioSeconds:4.8,final:true}}}},
+    {control,event:{oneofKind:'continuousTranscript',continuousTranscript:{direction:2,textDelta:' untimed '}}},
+    {control,event:{oneofKind:'continuousInterruption',continuousInterruption:{outputTrackId:''}}},
+    {control:{...control,lifecycle:5,terminalReason:12},event:{oneofKind:'sessionTerminal',sessionTerminal:{reasonCode:0,usage:{audioSeconds:4.8,final:true},closure:{localResourcesReleased:true,providerSessionClosed:true}}}},
   ];
   const client=createNimiAiRealtimeRuntimeClient({
     async openRealtimeSession(request) {calls.push(request);return {...scope,channelId:'channel',negotiatedInputAudio:format,negotiatedOutputAudio:format,interactionMode:request.interactionMode,control};},
@@ -23,7 +25,7 @@ test('continuous Realtime preserves explicit mode, session-scoped audio, context
     async submitRealtimeOwnerControl(request) {calls.push(request);return {ack:{ok:true,reasonCode:0,actionHint:''},control};},
     readRealtimeEvents() {return (async function*(){yield* events;})();},
     async interruptRealtimeOutput() {throw new Error('not admitted');},
-    async closeRealtimeSession() {return {ack:{ok:true,reasonCode:0,actionHint:''},control:{...control,lifecycle:5,terminalReason:12},usage:{audioSeconds:4.8,final:true}};},
+    async closeRealtimeSession() {return {ack:{ok:true,reasonCode:0,actionHint:''},control:{...control,lifecycle:5,terminalReason:12},usage:{audioSeconds:4.8,final:true},closure:{localResourcesReleased:true,providerSessionClosed:true}};},
   });
   const opened=await client.open({interactionMode:'continuous',inputAudio:publicFormat,audioOutputEnabled:true,initialInstruction:'Caller owns actions.'});
   assert.equal(opened.interactionMode,'continuous');
@@ -37,7 +39,12 @@ test('continuous Realtime preserves explicit mode, session-scoped audio, context
   const observed=[];for await(const envelope of await client.subscribe(scope))observed.push(envelope);
   assert.deepEqual(observed[1]!.event,{type:'continuous-transcript',direction:'input',textDelta:' hello ',startMs:0,endMs:120});
   assert.equal(observed[3]!.event.type,'audio-frame');
+  assert.deepEqual(observed[5]!.event,{type:'continuous-transcript',direction:'output',textDelta:' untimed '});
+  assert.deepEqual(observed[6]!.event,{type:'continuous-interruption',outputTrackId:''});
   assert.equal(observed.at(-1)!.control.terminalReason,'completed');
   assert.deepEqual((await client.close(scope)).usage,{audioSeconds:4.8,final:true});
+  assert.deepEqual((await client.close(scope)).closure,{localResourcesReleased:true,providerSessionClosed:true});
+  events.splice(0,events.length,{control,event:{oneofKind:'continuousTranscript',continuousTranscript:{direction:1,textDelta:'incomplete timestamp pair',startMs:'0'}}});
+  await assert.rejects(async()=>{for await(const _ of await client.subscribe(scope)){ /* validation must reject the partial native range */ }});
   await assert.rejects(client.open({interactionMode:'continuous',inputAudio:publicFormat,audioOutputEnabled:true,initialInstruction:'',turnDetection:'manual'} as never));
 });
