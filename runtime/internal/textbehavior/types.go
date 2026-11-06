@@ -314,6 +314,13 @@ func validateAndCloneNormalizedResult(result NormalizedResult, spec *runtimev1.T
 	default:
 		return NormalizedResult{}, invalidOutputError()
 	}
+	if result.FinishReason == runtimev1.FinishReason_FINISH_REASON_CONTENT_FILTER {
+		blocked := NormalizedResult{}
+		if result.Usage != nil {
+			blocked.Usage = proto.Clone(result.Usage).(*runtimev1.UsageStats)
+		}
+		return blocked, contentFilteredOutputError()
+	}
 	if result.FinishReason == runtimev1.FinishReason_FINISH_REASON_LENGTH && reasoningRequested(spec) {
 		return NormalizedResult{}, incompleteOutputError()
 	}

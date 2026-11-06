@@ -298,3 +298,7 @@ func invalidReasoningContinuityError() error {
 func incompleteOutputError() error {
 	return grpcerr.WrapWithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_TEXT_OUTPUT_INCOMPLETE, errors.New("text behavior output has no final text or complete tool call"), grpcerr.ReasonOptions{})
 }
+
+func contentFilteredOutputError() error {
+	return grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED)
+}

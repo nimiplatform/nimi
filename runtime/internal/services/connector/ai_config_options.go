@@ -106,6 +106,9 @@ func ValidateAIConfigCloudSelection(
 	if record.Provider == "azure" && AzureDeploymentForModel(record.AzureDeployments, ref.ProviderModelID) == "" {
 		return ConnectorRecord{}, nil, AzureDeploymentRequiredError()
 	}
+	if record.Provider == "bedrock" && BedrockInvocationForModel(record.BedrockInvocations, ref.ProviderModelID) == "" {
+		return ConnectorRecord{}, nil, BedrockInvocationRequiredError()
+	}
 	return record, binding, nil
 }
 
@@ -242,6 +245,13 @@ func ListAIConfigCloudTargetOptions(
 		deployment := ""
 		if provider == "azure" {
 			deployment = AzureDeploymentForModel(record.AzureDeployments, providerModelID)
+			if deployment == "" {
+				modelState = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED
+				modelReasons = append(modelReasons, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+			}
+		}
+		if provider == "bedrock" {
+			deployment = BedrockInvocationForModel(record.BedrockInvocations, providerModelID)
 			if deployment == "" {
 				modelState = runtimev1.AIConfigEffectiveState_AI_CONFIG_EFFECTIVE_STATE_BLOCKED
 				modelReasons = append(modelReasons, runtimev1.ReasonCode_AI_CONFIG_INVALID)

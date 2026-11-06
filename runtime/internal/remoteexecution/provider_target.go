@@ -46,10 +46,17 @@ func requestScopedProviderTarget(
 		return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONNECTOR_DISABLED)
 	}
 	azureDeployment := ""
+	bedrockInvocation := ""
 	if connectorRecord.Provider == "azure" {
 		azureDeployment = connector.AzureDeploymentForModel(connectorRecord.AzureDeployments, target.ProviderModelID())
 		if azureDeployment == "" {
 			return nil, connector.AzureDeploymentRequiredError()
+		}
+	}
+	if connectorRecord.Provider == "bedrock" {
+		bedrockInvocation = connector.BedrockInvocationForModel(connectorRecord.BedrockInvocations, target.ProviderModelID())
+		if bedrockInvocation == "" {
+			return nil, connector.BedrockInvocationRequiredError()
 		}
 	}
 	secretPayload := ""
@@ -110,17 +117,18 @@ func requestScopedProviderTarget(
 		author = connectorRecord.SVGAuthor.ProviderModelID
 	}
 	return &nimillm.RemoteTarget{
-		AzureDeploymentName:  azureDeployment,
-		SVGAuthorModelID:     author,
-		ProviderType:         target.Provider(),
-		ProviderModelID:      target.ProviderModelID(),
-		RemoteModelCatalogID: target.RemoteModelCatalogID(),
-		ConnectorID:          connectorRecord.ConnectorID,
-		Endpoint:             endpoint,
-		APIKey:               credential.APIKey,
-		Headers:              credential.Headers,
-		MediaStorage:         credential.MediaStorage,
-		AllowLoopback:        allowLoopback,
+		AzureDeploymentName:      azureDeployment,
+		BedrockInvocationModelID: bedrockInvocation,
+		SVGAuthorModelID:         author,
+		ProviderType:             target.Provider(),
+		ProviderModelID:          target.ProviderModelID(),
+		RemoteModelCatalogID:     target.RemoteModelCatalogID(),
+		ConnectorID:              connectorRecord.ConnectorID,
+		Endpoint:                 endpoint,
+		APIKey:                   credential.APIKey,
+		Headers:                  credential.Headers,
+		MediaStorage:             credential.MediaStorage,
+		AllowLoopback:            allowLoopback,
 	}, nil
 }
 

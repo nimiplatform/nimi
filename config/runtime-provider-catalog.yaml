@@ -79,7 +79,7 @@ providers:
     source_rule: K-MCAT-027
   - provider: bedrock
     default_endpoint: null
-    default_text_model: anthropic.claude-sonnet-5
+    default_text_model: anthropic.claude-sonnet-5-5
     requires_explicit_endpoint: true
     inventory_mode: static_source
     source_rule: K-MCAT-027

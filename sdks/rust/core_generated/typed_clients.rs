@@ -7320,6 +7320,7 @@ pub struct Connector {
     pub media_storage: Option<Box<ConnectorOSSStorage>>,
     pub svg_author: Option<Box<ConnectorSVGAuthor>>,
     pub azure_deployments: Option<Box<ConnectorAzureDeployments>>,
+    pub bedrock_invocations: Option<Box<ConnectorBedrockInvocations>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -7331,6 +7332,17 @@ pub struct ConnectorAzureDeployment {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct ConnectorAzureDeployments {
     pub deployments: Vec<Box<ConnectorAzureDeployment>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ConnectorBedrockInvocation {
+    pub provider_model_id: Option<String>,
+    pub invocation_model_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ConnectorBedrockInvocations {
+    pub invocations: Vec<Box<ConnectorBedrockInvocation>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12790,6 +12802,7 @@ pub struct ProviderCatalogEntry {
     pub supports_oss_media_storage: Option<bool>,
     pub supports_svg_author: Option<bool>,
     pub supports_azure_deployments: Option<bool>,
+    pub supports_bedrock_invocations: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -15690,6 +15703,7 @@ pub struct UpdateConnectorRequest {
     pub media_storage: Option<Box<ConnectorMediaStorageUpdate>>,
     pub svg_author: Option<Box<ConnectorSVGAuthorUpdate>>,
     pub azure_deployments: Option<Box<ConnectorAzureDeployments>>,
+    pub bedrock_invocations: Option<Box<ConnectorBedrockInvocations>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

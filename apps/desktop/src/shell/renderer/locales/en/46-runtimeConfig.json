@@ -3321,5 +3321,25 @@
     "cancel": "Cancel",
     "loadFailed": "Could not load the model catalog.",
     "saveFailed": "Could not save the deployment bindings. Check the model choices and deployment names."
+  },
+  "bedrockInvocations": {
+    "title": "Bedrock invocation targets",
+    "configure": "Configure targets",
+    "description": "Select a catalog model and enter its complete model or system inference profile ID from AWS. Prefixes such as us. and eu. route within that geography; global. allows worldwide cross-region processing. Nimi never chooses or changes the route automatically.",
+    "unconfigured": "Configure invocation targets before selecting models for Apps.",
+    "binding": "Target {{index}}",
+    "model": "Catalog model",
+    "modelAt": "Model {{index}}",
+    "choose": "Select a model",
+    "deploymentAt": "Invocation model ID {{index}}",
+    "removeAt": "Remove target {{index}}",
+    "remove": "Remove",
+    "add": "Add target",
+    "complete": "Select a current model and its complete invocation ID for each row. Do not enter an ARN or another model ID.",
+    "reselect": "Changing or removing an invocation ID requires affected Apps to select a model again. AWS still determines regional availability, permissions and model access.",
+    "save": "Save targets",
+    "cancel": "Cancel",
+    "loadFailed": "Could not load the model catalog. Try again.",
+    "saveFailed": "Could not save. Check that each invocation ID names the selected model or its system inference profile."
   }
 }

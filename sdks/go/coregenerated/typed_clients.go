@@ -4147,24 +4147,25 @@ type CompleteProductControlFirstRunDeviceEnvironmentScanRequest struct {
 }
 
 type Connector struct {
-	ConnectorId         string                      `json:"connector_id,omitempty"`
-	Kind                ConnectorKind               `json:"kind,omitempty"`
-	OwnerType           ConnectorOwnerType          `json:"owner_type,omitempty"`
-	OwnerId             string                      `json:"owner_id,omitempty"`
-	Provider            string                      `json:"provider,omitempty"`
-	Endpoint            string                      `json:"endpoint,omitempty"`
-	Label               string                      `json:"label,omitempty"`
-	Status              ConnectorStatus             `json:"status,omitempty"`
-	HasCredential       bool                        `json:"has_credential,omitempty"`
-	CreatedAt           string                      `json:"created_at,omitempty"`
-	UpdatedAt           string                      `json:"updated_at,omitempty"`
-	AuthKind            ConnectorAuthKind           `json:"auth_kind,omitempty"`
-	ProviderAuthProfile string                      `json:"provider_auth_profile,omitempty"`
-	OauthRegistration   *ConnectorOAuthRegistration `json:"oauth_registration,omitempty"`
-	LastCheck           *ConnectorCheck             `json:"last_check,omitempty"`
-	MediaStorage        *ConnectorOSSStorage        `json:"media_storage,omitempty"`
-	SvgAuthor           *ConnectorSVGAuthor         `json:"svg_author,omitempty"`
-	AzureDeployments    *ConnectorAzureDeployments  `json:"azure_deployments,omitempty"`
+	ConnectorId         string                       `json:"connector_id,omitempty"`
+	Kind                ConnectorKind                `json:"kind,omitempty"`
+	OwnerType           ConnectorOwnerType           `json:"owner_type,omitempty"`
+	OwnerId             string                       `json:"owner_id,omitempty"`
+	Provider            string                       `json:"provider,omitempty"`
+	Endpoint            string                       `json:"endpoint,omitempty"`
+	Label               string                       `json:"label,omitempty"`
+	Status              ConnectorStatus              `json:"status,omitempty"`
+	HasCredential       bool                         `json:"has_credential,omitempty"`
+	CreatedAt           string                       `json:"created_at,omitempty"`
+	UpdatedAt           string                       `json:"updated_at,omitempty"`
+	AuthKind            ConnectorAuthKind            `json:"auth_kind,omitempty"`
+	ProviderAuthProfile string                       `json:"provider_auth_profile,omitempty"`
+	OauthRegistration   *ConnectorOAuthRegistration  `json:"oauth_registration,omitempty"`
+	LastCheck           *ConnectorCheck              `json:"last_check,omitempty"`
+	MediaStorage        *ConnectorOSSStorage         `json:"media_storage,omitempty"`
+	SvgAuthor           *ConnectorSVGAuthor          `json:"svg_author,omitempty"`
+	AzureDeployments    *ConnectorAzureDeployments   `json:"azure_deployments,omitempty"`
+	BedrockInvocations  *ConnectorBedrockInvocations `json:"bedrock_invocations,omitempty"`
 }
 
 type ConnectorAzureDeployment struct {
@@ -4174,6 +4175,15 @@ type ConnectorAzureDeployment struct {
 
 type ConnectorAzureDeployments struct {
 	Deployments []ConnectorAzureDeployment `json:"deployments,omitempty"`
+}
+
+type ConnectorBedrockInvocation struct {
+	ProviderModelId   string `json:"provider_model_id,omitempty"`
+	InvocationModelId string `json:"invocation_model_id,omitempty"`
+}
+
+type ConnectorBedrockInvocations struct {
+	Invocations []ConnectorBedrockInvocation `json:"invocations,omitempty"`
 }
 
 type ConnectorCheck struct {
@@ -7942,17 +7952,18 @@ type ProductControlProjectionJson struct {
 }
 
 type ProviderCatalogEntry struct {
-	Provider                 string `json:"provider,omitempty"`
-	DefaultEndpoint          string `json:"default_endpoint,omitempty"`
-	RequiresExplicitEndpoint bool   `json:"requires_explicit_endpoint,omitempty"`
-	RuntimePlane             string `json:"runtime_plane,omitempty"`
-	ExecutionModule          string `json:"execution_module,omitempty"`
-	ManagedSupported         bool   `json:"managed_supported,omitempty"`
-	InventoryMode            string `json:"inventory_mode,omitempty"`
-	InlineSupported          bool   `json:"inline_supported,omitempty"`
-	SupportsOssMediaStorage  bool   `json:"supports_oss_media_storage,omitempty"`
-	SupportsSvgAuthor        bool   `json:"supports_svg_author,omitempty"`
-	SupportsAzureDeployments bool   `json:"supports_azure_deployments,omitempty"`
+	Provider                   string `json:"provider,omitempty"`
+	DefaultEndpoint            string `json:"default_endpoint,omitempty"`
+	RequiresExplicitEndpoint   bool   `json:"requires_explicit_endpoint,omitempty"`
+	RuntimePlane               string `json:"runtime_plane,omitempty"`
+	ExecutionModule            string `json:"execution_module,omitempty"`
+	ManagedSupported           bool   `json:"managed_supported,omitempty"`
+	InventoryMode              string `json:"inventory_mode,omitempty"`
+	InlineSupported            bool   `json:"inline_supported,omitempty"`
+	SupportsOssMediaStorage    bool   `json:"supports_oss_media_storage,omitempty"`
+	SupportsSvgAuthor          bool   `json:"supports_svg_author,omitempty"`
+	SupportsAzureDeployments   bool   `json:"supports_azure_deployments,omitempty"`
+	SupportsBedrockInvocations bool   `json:"supports_bedrock_invocations,omitempty"`
 }
 
 type PutAppActivityRequest struct {
@@ -9749,6 +9760,7 @@ type UpdateConnectorRequest struct {
 	MediaStorage        *ConnectorMediaStorageUpdate `json:"media_storage,omitempty"`
 	SvgAuthor           *ConnectorSVGAuthorUpdate    `json:"svg_author,omitempty"`
 	AzureDeployments    *ConnectorAzureDeployments   `json:"azure_deployments,omitempty"`
+	BedrockInvocations  *ConnectorBedrockInvocations `json:"bedrock_invocations,omitempty"`
 }
 
 type UpdateConnectorResponse struct {

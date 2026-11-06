@@ -81,8 +81,8 @@ func TestAnthropicAdaptiveSerializerRefusesSamplingForcedChoiceAndForeignCarrier
 	}{
 		"sampling":           {sampled, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED},
 		"forced tool choice": {forced, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED},
-		"foreign carrier":    {foreign, runtimev1.ReasonCode_AI_INPUT_INVALID},
-		"thinking text":      {summarized, runtimev1.ReasonCode_AI_INPUT_INVALID},
+		"foreign carrier":    {foreign, runtimev1.ReasonCode_AI_REASONING_CONTINUITY_INVALID},
+		"thinking text":      {summarized, runtimev1.ReasonCode_AI_REASONING_CONTINUITY_INVALID},
 	} {
 		if _, err := AnthropicAdaptiveTextBehaviorRequestSerializer(test.spec, false); !hasReason(err, test.reason) {
 			t.Fatalf("%s = %v", name, err)

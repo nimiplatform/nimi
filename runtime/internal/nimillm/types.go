@@ -42,13 +42,14 @@ type StreamingSpeechProvider interface {
 
 // RemoteTarget provides credentials resolved from the exact captured Connector.
 type RemoteTarget struct {
-	AzureDeploymentName string
-	SVGAuthorModelID    string
-	MediaStorage        *ossmedia.Credentials
-	ProviderType        string // canonical provider ID
-	Endpoint            string // resolved endpoint URL
-	APIKey              string // decrypted API key
-	Headers             map[string]string
+	AzureDeploymentName      string
+	BedrockInvocationModelID string
+	SVGAuthorModelID         string
+	MediaStorage             *ossmedia.Credentials
+	ProviderType             string // canonical provider ID
+	Endpoint                 string // resolved endpoint URL
+	APIKey                   string // decrypted API key
+	Headers                  map[string]string
 
 	ConnectorID          string // Runtime-owned connector identity for catalog-bound execution
 	RemoteModelCatalogID string // Runtime-owned remote catalog snapshot identity

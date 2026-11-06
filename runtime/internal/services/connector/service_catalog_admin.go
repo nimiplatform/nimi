@@ -17,17 +17,18 @@ func (s *Service) ListProviderCatalog(_ context.Context, _ *runtimev1.ListProvid
 	for provider, entry := range ProviderCatalog {
 		cap := ProviderCapabilities[provider]
 		entries = append(entries, &runtimev1.ProviderCatalogEntry{
-			Provider:                 provider,
-			DefaultEndpoint:          entry.DefaultEndpoint,
-			RequiresExplicitEndpoint: entry.RequiresExplicitEndpoint,
-			RuntimePlane:             cap.RuntimePlane,
-			ExecutionModule:          cap.ExecutionModule,
-			ManagedSupported:         cap.ManagedSupported,
-			InventoryMode:            entry.InventoryMode,
-			InlineSupported:          cap.InlineSupported,
-			SupportsOssMediaStorage:  provider == "dashscope",
-			SupportsSvgAuthor:        provider == "openai",
-			SupportsAzureDeployments: provider == "azure",
+			Provider:                   provider,
+			DefaultEndpoint:            entry.DefaultEndpoint,
+			RequiresExplicitEndpoint:   entry.RequiresExplicitEndpoint,
+			RuntimePlane:               cap.RuntimePlane,
+			ExecutionModule:            cap.ExecutionModule,
+			ManagedSupported:           cap.ManagedSupported,
+			InventoryMode:              entry.InventoryMode,
+			InlineSupported:            cap.InlineSupported,
+			SupportsOssMediaStorage:    provider == "dashscope",
+			SupportsSvgAuthor:          provider == "openai",
+			SupportsAzureDeployments:   provider == "azure",
+			SupportsBedrockInvocations: provider == "bedrock",
 		})
 	}
 	return &runtimev1.ListProviderCatalogResponse{Providers: entries}, nil

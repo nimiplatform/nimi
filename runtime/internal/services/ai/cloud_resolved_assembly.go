@@ -263,6 +263,9 @@ func validateCloudResolvedAssemblyDraft(assembly *cloudResolvedAssembly) error {
 	if provider == "azure" && (!connector.ValidAzureDeployments(assembly.Connector.AzureDeployments) || connector.AzureDeploymentForModel(assembly.Connector.AzureDeployments, providerModelID) == "") {
 		return fmt.Errorf("Cloud Azure target has no captured deployment binding")
 	}
+	if provider == "bedrock" && (!connector.ValidBedrockInvocations(assembly.Connector.BedrockInvocations) || connector.BedrockInvocationForModel(assembly.Connector.BedrockInvocations, providerModelID) == "") {
+		return fmt.Errorf("Cloud Bedrock target has no captured invocation binding")
+	}
 	if len(assembly.Defaults) > 0 {
 		defaults := &structpb.Struct{}
 		if err := (protojson.UnmarshalOptions{DiscardUnknown: false}).Unmarshal(assembly.Defaults, defaults); err != nil {
@@ -533,6 +536,7 @@ func (capture *cloudVoiceWorkflowCapture) resolution() catalog.ResolveVoiceWorkf
 func cloneConnectorRecord(input connector.ConnectorRecord) connector.ConnectorRecord {
 	input.SVGAuthor = connector.CloneSVGAuthor(input.SVGAuthor)
 	input.AzureDeployments = connector.CloneAzureDeployments(input.AzureDeployments)
+	input.BedrockInvocations = connector.CloneBedrockInvocations(input.BedrockInvocations)
 	if input.MediaStorage != nil {
 		storage := *input.MediaStorage
 		input.MediaStorage = &storage

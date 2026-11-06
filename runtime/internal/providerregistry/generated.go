@@ -324,7 +324,7 @@ var Records = map[string]ProviderRecord{
 		ManagedConnectorSupported:     true,
 		InlineSupported:               true,
 		DefaultEndpoint:               "",
-		DefaultTextModel:              "anthropic.claude-sonnet-5",
+		DefaultTextModel:              "anthropic.claude-sonnet-5-5",
 		RequiresExplicitEndpoint:      true,
 		InventoryMode:                 "static_source",
 		DynamicDiscoveryTransport:     "",

@@ -57,6 +57,7 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 	for _, modelID := range azureResponsesReviewedTextTargets {
 		registrations = append(registrations, azureResponsesTextBehaviorRegistration(modelID))
 	}
+	registrations = append(registrations, bedrockTextBehaviorRegistrations()...)
 	return registrations
 }
 

@@ -9,6 +9,7 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/bedrocktarget"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/textwire"
@@ -38,6 +39,13 @@ func NewCloudProvider(cfg CloudConfig) *CloudProvider {
 		if canonical == "azure" {
 			var err error
 			baseURL, err = AzureOpenAIEndpoint(baseURL)
+			if err != nil {
+				continue
+			}
+		}
+		if canonical == "bedrock" {
+			var err error
+			baseURL, err = bedrocktarget.Endpoint(baseURL)
 			if err != nil {
 				continue
 			}
@@ -75,6 +83,9 @@ func (p *CloudProvider) GenerateTextScenarioWithTarget(
 	}
 	if target == nil {
 		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+	}
+	if target.ProviderType == "bedrock" {
+		return "", nil, nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
 	}
 	backend, resolvedModelID := p.resolveBackendForTarget(modelID, target)
 	if backend == nil {
@@ -138,6 +149,9 @@ func (p *CloudProvider) StreamGenerateTextScenarioWithTarget(
 	if target == nil {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 	}
+	if target.ProviderType == "bedrock" {
+		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
+	}
 	backend, resolvedModelID := p.resolveBackendForTarget(modelID, target)
 	if backend == nil {
 		return nil, runtimev1.FinishReason_FINISH_REASON_ERROR, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
@@ -192,6 +206,19 @@ func (p *CloudProvider) backendFromTarget(target *RemoteTarget) *Backend {
 	}
 	allowLoopback := p.allowLoopbackEndpoint || target.AllowLoopback
 	endpoint := target.Endpoint
+	if target.ProviderType == "bedrock" {
+		if !bedrocktarget.ValidInvocation(target.ProviderModelID, target.BedrockInvocationModelID) {
+			return nil
+		}
+		var err error
+		endpoint, err = bedrocktarget.Endpoint(endpoint)
+		if err != nil {
+			return nil
+		}
+		if !bedrocktarget.InvocationRegionAllowed(endpoint, target.ProviderModelID, target.BedrockInvocationModelID) {
+			return nil
+		}
+	}
 	if target.ProviderType == "azure" {
 		if target.AzureDeploymentName == "" {
 			return nil
@@ -216,6 +243,9 @@ func (p *CloudProvider) backendFromTarget(target *RemoteTarget) *Backend {
 	if backend != nil && target.ProviderType == "azure" {
 		backend.azureOpenAI = true
 		backend.modelDeployment = target.AzureDeploymentName
+	}
+	if backend != nil && target.ProviderType == "bedrock" {
+		backend.modelDeployment = target.BedrockInvocationModelID
 	}
 	if target.ProviderType == chatGPTPlanProvider {
 		// SIWC tokens reach only the fixed public resource, never a redirect.

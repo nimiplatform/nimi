@@ -97,6 +97,13 @@ func (s *Service) CreateConnector(ctx context.Context, req *runtimev1.CreateConn
 			return nil, err
 		}
 	}
+	if provider == "bedrock" {
+		var err error
+		endpoint, err = normalizeBedrockEndpoint(endpoint)
+		if err != nil {
+			return nil, err
+		}
+	}
 
 	rec := ConnectorRecord{
 		Kind:                runtimev1.ConnectorKind_CONNECTOR_KIND_REMOTE_MANAGED,
@@ -349,6 +356,9 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 		if req.AzureDeployments != nil {
 			updatePaths = append(updatePaths, "azure_deployments")
 		}
+		if req.BedrockInvocations != nil {
+			updatePaths = append(updatePaths, "bedrock_invocations")
+		}
 		if req.GetStatus() != runtimev1.ConnectorStatus_CONNECTOR_STATUS_UNSPECIFIED {
 			updatePaths = append(updatePaths, "status")
 		}
@@ -370,6 +380,12 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 		seenPaths[path] = true
 
 		switch path {
+		case "bedrock_invocations":
+			if req.BedrockInvocations == nil {
+				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+			}
+			mutations.ReplaceBedrockInvocations = true
+			hasChange = true
 		case "azure_deployments":
 			if req.AzureDeployments == nil {
 				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
@@ -409,6 +425,13 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 			if rec.Provider == "azure" {
 				var err error
 				value, err = nimillm.AzureOpenAIEndpoint(value)
+				if err != nil {
+					return nil, err
+				}
+			}
+			if rec.Provider == "bedrock" {
+				var err error
+				value, err = normalizeBedrockEndpoint(value)
 				if err != nil {
 					return nil, err
 				}
@@ -533,6 +556,23 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 		}
 		mutations.AzureDeployments = config
 	} else if rec.AzureDeployments != nil && nextAuthKind != runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_API_KEY {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+	}
+	if mutations.ReplaceBedrockInvocations {
+		selected := rec
+		selected.AuthKind = nextAuthKind
+		if mutations.Endpoint != nil {
+			selected.Endpoint = *mutations.Endpoint
+		}
+		config, err := s.resolveBedrockInvocations(rec.OwnerID, selected, req.BedrockInvocations)
+		if err != nil {
+			return nil, err
+		}
+		mutations.BedrockInvocations = config
+	} else if rec.BedrockInvocations != nil && nextAuthKind != runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_API_KEY {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+	}
+	if rec.Provider == "bedrock" && mutations.Endpoint != nil && !mutations.ReplaceBedrockInvocations && !validBedrockInvocationRegions(*mutations.Endpoint, rec.BedrockInvocations) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 	}
 	if mutations.ReplaceSVGAuthor {

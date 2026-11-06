@@ -20,6 +20,7 @@ const AnthropicThinkingContinuityKind = anthropicThinkingContinuityKind
 // anthropicMessagesProfile fixes what one reviewed Claude cohort admits on
 // the shared Messages adapter.
 type anthropicMessagesProfile struct {
+	continuityKind string
 	// adaptiveThinking sends thinking {type adaptive, display omitted} and
 	// carries each signed thinking or redacted_thinking block as an opaque
 	// continuity carrier that is replayed verbatim; thinking text never
@@ -30,19 +31,19 @@ type anthropicMessagesProfile struct {
 	// forcedToolChoice admits required and named tool choice.
 	forcedToolChoice       bool
 	defaultMaxTokens       int32
-	reasoningControls      bool
+	reasoningControls      func(map[string]any, *runtimev1.ReasoningConfig) error
 	rejectAssistantPrefill bool
 }
 
 // Claude models whose thinking stays off unless requested.
-var anthropicLegacyMessages = &anthropicMessagesProfile{samplingControls: true, forcedToolChoice: true, defaultMaxTokens: 4096}
+var anthropicLegacyMessages = &anthropicMessagesProfile{continuityKind: anthropicThinkingContinuityKind, samplingControls: true, forcedToolChoice: true, defaultMaxTokens: 4096}
 
 // Claude models that always think adaptively: they refuse non-default
 // sampling and forced tool use on every request, and thinking shares the
 // output budget, so the default limit leaves room for both.
-var anthropicAdaptiveMessages = &anthropicMessagesProfile{adaptiveThinking: true, defaultMaxTokens: 16384}
+var anthropicAdaptiveMessages = &anthropicMessagesProfile{continuityKind: anthropicThinkingContinuityKind, adaptiveThinking: true, defaultMaxTokens: 16384}
 
-var anthropicHaiku55Messages = &anthropicMessagesProfile{adaptiveThinking: true, forcedToolChoice: true, defaultMaxTokens: 16384, reasoningControls: true, rejectAssistantPrefill: true}
+var anthropicHaiku55Messages = &anthropicMessagesProfile{continuityKind: anthropicThinkingContinuityKind, adaptiveThinking: true, forcedToolChoice: true, defaultMaxTokens: 16384, reasoningControls: applyAnthropicHaiku55Reasoning, rejectAssistantPrefill: true}
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.anthropic-messages-text-behaviors
 func AnthropicTextBehaviorRequestSerializer(spec *runtimev1.TextGenerateScenarioSpec, stream bool) (textbehavior.SerializedRequest, error) {
@@ -103,7 +104,7 @@ func serializeAnthropicRequest(profile *anthropicMessagesProfile, spec *runtimev
 					}
 					appendBlock("assistant", map[string]any{"type": "tool_use", "id": call.GetId(), "name": call.GetName(), "input": args})
 				} else if carrier := item.GetOutput().GetReasoningContinuity(); carrier != nil && profile.adaptiveThinking {
-					block, err := anthropicThinkingReplay(carrier)
+					block, err := anthropicThinkingReplay(carrier, profile.continuityKind)
 					if err != nil {
 						return textbehavior.SerializedRequest{}, err
 					}
@@ -168,8 +169,8 @@ func serializeAnthropicRequest(profile *anthropicMessagesProfile, spec *runtimev
 	if profile.adaptiveThinking {
 		body["thinking"] = map[string]any{"type": "adaptive", "display": "omitted"}
 	}
-	if profile.reasoningControls {
-		if err := applyAnthropicHaiku55Reasoning(body, spec.GetReasoning()); err != nil {
+	if profile.reasoningControls != nil {
+		if err := profile.reasoningControls(body, spec.GetReasoning()); err != nil {
 			return textbehavior.SerializedRequest{}, err
 		}
 	}
@@ -287,7 +288,7 @@ func (block anthropicThinkingBlock) valid() bool {
 	return false
 }
 
-func anthropicThinkingCarrier(block anthropicThinkingBlock) (*runtimev1.ReasoningContinuityCarrier, error) {
+func anthropicThinkingCarrier(block anthropicThinkingBlock, kind string) (*runtimev1.ReasoningContinuityCarrier, error) {
 	if !block.valid() {
 		return nil, anthropicBehaviorOutput("thinking continuity")
 	}
@@ -295,22 +296,22 @@ func anthropicThinkingCarrier(block anthropicThinkingBlock) (*runtimev1.Reasonin
 	if err != nil {
 		return nil, anthropicBehaviorOutput("thinking continuity JSON")
 	}
-	carrier := &runtimev1.ReasoningContinuityCarrier{Kind: anthropicThinkingContinuityKind, Version: 1, Payload: payload}
+	carrier := &runtimev1.ReasoningContinuityCarrier{Kind: kind, Version: 1, Payload: payload}
 	if !textbehavior.ValidContinuity(carrier) {
 		return nil, anthropicBehaviorOutput("thinking continuity size")
 	}
 	return carrier, nil
 }
 
-func anthropicThinkingReplay(carrier *runtimev1.ReasoningContinuityCarrier) (map[string]any, error) {
-	if !textbehavior.ValidContinuity(carrier) || carrier.GetKind() != anthropicThinkingContinuityKind || carrier.GetVersion() != 1 {
-		return nil, anthropicBehaviorInput("continuity identity")
+func anthropicThinkingReplay(carrier *runtimev1.ReasoningContinuityCarrier, kind string) (map[string]any, error) {
+	if !textbehavior.ValidContinuity(carrier) || carrier.GetKind() != kind || carrier.GetVersion() != 1 {
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REASONING_CONTINUITY_INVALID)
 	}
 	var block anthropicThinkingBlock
 	decoder := json.NewDecoder(bytes.NewReader(carrier.GetPayload()))
 	decoder.DisallowUnknownFields()
 	if decoder.Decode(&block) != nil || decoder.Decode(new(any)) != io.EOF || !block.valid() {
-		return nil, anthropicBehaviorInput("continuity payload")
+		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_REASONING_CONTINUITY_INVALID)
 	}
 	if block.Type == "thinking" {
 		return map[string]any{"type": "thinking", "thinking": "", "signature": block.Signature}, nil
@@ -437,7 +438,7 @@ func parseAnthropicMessage(profile *anthropicMessagesProfile, payload []byte, sp
 			if !profile.adaptiveThinking {
 				return textbehavior.NormalizedResult{}, anthropicBehaviorOutput("content block kind")
 			}
-			carrier, err := anthropicThinkingCarrier(block.thinking())
+			carrier, err := anthropicThinkingCarrier(block.thinking(), profile.continuityKind)
 			if err != nil {
 				return textbehavior.NormalizedResult{}, err
 			}
@@ -583,7 +584,7 @@ func (stream *anthropicBehaviorStream) Append(payload []byte) ([]textbehavior.Or
 				empty := ""
 				thinking.Thinking = &empty
 			}
-			carrier, err := anthropicThinkingCarrier(thinking)
+			carrier, err := anthropicThinkingCarrier(thinking, stream.profile.continuityKind)
 			if err != nil {
 				return nil, err
 			}
@@ -632,6 +633,9 @@ func finishAnthropicBehavior(assembler *textbehavior.OrderedStreamAssembler, sto
 		finish = runtimev1.FinishReason_FINISH_REASON_CONTENT_FILTER
 	default:
 		return textbehavior.NormalizedResult{}, anthropicBehaviorOutput("stop reason")
+	}
+	if finish == runtimev1.FinishReason_FINISH_REASON_CONTENT_FILTER {
+		return textbehavior.NormalizedResult{FinishReason: finish, Usage: usage.Stats()}, nil
 	}
 	items, err := assembler.FinishItems()
 	if err != nil {

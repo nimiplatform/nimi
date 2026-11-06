@@ -111,6 +111,26 @@ test('Azure deployment bindings preserve names, clone projections and clear expl
   assert.equal(requests.length, 2);
 });
 
+test('Bedrock invocation bindings preserve explicit routing and clone projections', async () => {
+  const client = createNimiRuntimeConnectorInventoryClient({ connectors: {
+    async listProviderCatalog() { return { providers: [] }; },
+    async updateConnector(request) {
+      return { connector: { connectorId: 'bedrock-connection', provider: 'bedrock', endpoint: 'https://bedrock-runtime.us-east-1.amazonaws.com', label: 'Bedrock',
+        hasCredential: true, authKind: ConnectorAuthKind.API_KEY, ownerType: ConnectorOwnerType.REALM_USER,
+        kind: ConnectorKind.REMOTE_MANAGED, status: ConnectorStatus.ACTIVE,
+        bedrockInvocations: request.bedrockInvocations?.invocations.length ? request.bedrockInvocations : undefined } };
+    },
+  } as NimiRuntimeConnectorClient });
+  const binding = { providerModelId: 'anthropic.claude-sonnet-5-5', invocationModelId: 'us.anthropic.claude-sonnet-5-5' };
+  const setup = { invocations: [binding] };
+  const saved = await client.updateConnector({ connectorId: 'bedrock-connection', bedrockInvocations: setup });
+  assert.deepEqual(saved?.bedrockInvocations, setup);
+  binding.invocationModelId = 'global.anthropic.claude-sonnet-5-5';
+  assert.equal(saved?.bedrockInvocations?.invocations[0]?.invocationModelId, 'us.anthropic.claude-sonnet-5-5');
+  const cleared = await client.updateConnector({ connectorId: 'bedrock-connection', bedrockInvocations: { invocations: [] } });
+  assert.equal(cleared?.bedrockInvocations, undefined);
+});
+
 test('catalog reads preserve unavailable models and never perform a connection check', async () => {
   const requested: string[] = [];
   const inventory = createNimiRuntimeConnectorInventoryClient({ connectors: {

@@ -2049,6 +2049,7 @@ class Connector:
     media_storage: ConnectorOSSStorage | None = None
     svg_author: ConnectorSVGAuthor | None = None
     azure_deployments: ConnectorAzureDeployments | None = None
+    bedrock_invocations: ConnectorBedrockInvocations | None = None
 
 @dataclass(frozen=True)
 class ConnectorAzureDeployment:
@@ -2058,6 +2059,15 @@ class ConnectorAzureDeployment:
 @dataclass(frozen=True)
 class ConnectorAzureDeployments:
     deployments: tuple[ConnectorAzureDeployment, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class ConnectorBedrockInvocation:
+    provider_model_id: str | None = None
+    invocation_model_id: str | None = None
+
+@dataclass(frozen=True)
+class ConnectorBedrockInvocations:
+    invocations: tuple[ConnectorBedrockInvocation, ...] = field(default_factory=tuple)
 
 @dataclass(frozen=True)
 class ConnectorCheck:
@@ -5868,6 +5878,7 @@ class ProviderCatalogEntry:
     supports_oss_media_storage: bool | None = None
     supports_svg_author: bool | None = None
     supports_azure_deployments: bool | None = None
+    supports_bedrock_invocations: bool | None = None
 
 @dataclass(frozen=True)
 class PutAppActivityRequest:
@@ -7674,6 +7685,7 @@ class UpdateConnectorRequest:
     media_storage: ConnectorMediaStorageUpdate | None = None
     svg_author: ConnectorSVGAuthorUpdate | None = None
     azure_deployments: ConnectorAzureDeployments | None = None
+    bedrock_invocations: ConnectorBedrockInvocations | None = None
 
 @dataclass(frozen=True)
 class UpdateConnectorResponse:

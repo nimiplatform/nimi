@@ -320,6 +320,9 @@ func remoteModelCatalogIdentityForConnector(rec ConnectorRecord, providerRecord 
 	if provider == "azure" {
 		modelIdentityParts = append(modelIdentityParts, "azure-deployment", AzureDeploymentForModel(rec.AzureDeployments, providerModelID))
 	}
+	if provider == "bedrock" {
+		modelIdentityParts = append(modelIdentityParts, "bedrock-invocation", BedrockInvocationForModel(rec.BedrockInvocations, providerModelID))
+	}
 	return remoteModelCatalogIdentity{
 		remoteModelCatalogID: stableID("remote-model-catalog", modelIdentityParts...),
 		connectorSnapshotID:  connectorSnapshotID,

@@ -105,6 +105,34 @@ export interface Connector {
      * @generated from protobuf field: nimi.runtime.v1.ConnectorAzureDeployments azure_deployments = 19
      */
     azureDeployments?: ConnectorAzureDeployments;
+    /**
+     * Explicit base-model or system inference-profile IDs; never an App override.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.ConnectorBedrockInvocations bedrock_invocations = 20
+     */
+    bedrockInvocations?: ConnectorBedrockInvocations;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ConnectorBedrockInvocation
+ */
+export interface ConnectorBedrockInvocation {
+    /**
+     * @generated from protobuf field: string provider_model_id = 1
+     */
+    providerModelId: string;
+    /**
+     * @generated from protobuf field: string invocation_model_id = 2
+     */
+    invocationModelId: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.ConnectorBedrockInvocations
+ */
+export interface ConnectorBedrockInvocations {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ConnectorBedrockInvocation invocations = 1
+     */
+    invocations: ConnectorBedrockInvocation[];
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ConnectorAzureDeployment
@@ -417,6 +445,12 @@ export interface UpdateConnectorRequest {
      * @generated from protobuf field: nimi.runtime.v1.ConnectorAzureDeployments azure_deployments = 13
      */
     azureDeployments?: ConnectorAzureDeployments;
+    /**
+     * Presence replaces the whole set; an empty set explicitly clears it.
+     *
+     * @generated from protobuf field: nimi.runtime.v1.ConnectorBedrockInvocations bedrock_invocations = 14
+     */
+    bedrockInvocations?: ConnectorBedrockInvocations;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.UpdateConnectorResponse
@@ -598,6 +632,10 @@ export interface ProviderCatalogEntry {
      * @generated from protobuf field: bool supports_azure_deployments = 11
      */
     supportsAzureDeployments: boolean;
+    /**
+     * @generated from protobuf field: bool supports_bedrock_invocations = 12
+     */
+    supportsBedrockInvocations: boolean;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ListProviderCatalogRequest
@@ -1404,7 +1442,8 @@ class Connector$Type extends MessageType<Connector> {
             { no: 16, name: "last_check", kind: "message", T: () => ConnectorCheck },
             { no: 17, name: "media_storage", kind: "message", T: () => ConnectorOSSStorage },
             { no: 18, name: "svg_author", kind: "message", T: () => ConnectorSVGAuthor },
-            { no: 19, name: "azure_deployments", kind: "message", T: () => ConnectorAzureDeployments }
+            { no: 19, name: "azure_deployments", kind: "message", T: () => ConnectorAzureDeployments },
+            { no: 20, name: "bedrock_invocations", kind: "message", T: () => ConnectorBedrockInvocations }
         ]);
     }
     create(value?: PartialMessage<Connector>): Connector {
@@ -1483,6 +1522,9 @@ class Connector$Type extends MessageType<Connector> {
                 case /* nimi.runtime.v1.ConnectorAzureDeployments azure_deployments */ 19:
                     message.azureDeployments = ConnectorAzureDeployments.internalBinaryRead(reader, reader.uint32(), options, message.azureDeployments);
                     break;
+                case /* nimi.runtime.v1.ConnectorBedrockInvocations bedrock_invocations */ 20:
+                    message.bedrockInvocations = ConnectorBedrockInvocations.internalBinaryRead(reader, reader.uint32(), options, message.bedrockInvocations);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -1549,6 +1591,9 @@ class Connector$Type extends MessageType<Connector> {
         /* nimi.runtime.v1.ConnectorAzureDeployments azure_deployments = 19; */
         if (message.azureDeployments)
             ConnectorAzureDeployments.internalBinaryWrite(message.azureDeployments, writer.tag(19, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ConnectorBedrockInvocations bedrock_invocations = 20; */
+        if (message.bedrockInvocations)
+            ConnectorBedrockInvocations.internalBinaryWrite(message.bedrockInvocations, writer.tag(20, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1559,6 +1604,108 @@ class Connector$Type extends MessageType<Connector> {
  * @generated MessageType for protobuf message nimi.runtime.v1.Connector
  */
 export const Connector = new Connector$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ConnectorBedrockInvocation$Type extends MessageType<ConnectorBedrockInvocation> {
+    constructor() {
+        super("nimi.runtime.v1.ConnectorBedrockInvocation", [
+            { no: 1, name: "provider_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "invocation_model_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ConnectorBedrockInvocation>): ConnectorBedrockInvocation {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.providerModelId = "";
+        message.invocationModelId = "";
+        if (value !== undefined)
+            reflectionMergePartial<ConnectorBedrockInvocation>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ConnectorBedrockInvocation): ConnectorBedrockInvocation {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string provider_model_id */ 1:
+                    message.providerModelId = reader.string();
+                    break;
+                case /* string invocation_model_id */ 2:
+                    message.invocationModelId = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ConnectorBedrockInvocation, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string provider_model_id = 1; */
+        if (message.providerModelId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.providerModelId);
+        /* string invocation_model_id = 2; */
+        if (message.invocationModelId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.invocationModelId);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ConnectorBedrockInvocation
+ */
+export const ConnectorBedrockInvocation = new ConnectorBedrockInvocation$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class ConnectorBedrockInvocations$Type extends MessageType<ConnectorBedrockInvocations> {
+    constructor() {
+        super("nimi.runtime.v1.ConnectorBedrockInvocations", [
+            { no: 1, name: "invocations", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ConnectorBedrockInvocation }
+        ]);
+    }
+    create(value?: PartialMessage<ConnectorBedrockInvocations>): ConnectorBedrockInvocations {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.invocations = [];
+        if (value !== undefined)
+            reflectionMergePartial<ConnectorBedrockInvocations>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ConnectorBedrockInvocations): ConnectorBedrockInvocations {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.ConnectorBedrockInvocation invocations */ 1:
+                    message.invocations.push(ConnectorBedrockInvocation.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ConnectorBedrockInvocations, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.ConnectorBedrockInvocation invocations = 1; */
+        for (let i = 0; i < message.invocations.length; i++)
+            ConnectorBedrockInvocation.internalBinaryWrite(message.invocations[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ConnectorBedrockInvocations
+ */
+export const ConnectorBedrockInvocations = new ConnectorBedrockInvocations$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ConnectorAzureDeployment$Type extends MessageType<ConnectorAzureDeployment> {
     constructor() {
@@ -2483,7 +2630,8 @@ class UpdateConnectorRequest$Type extends MessageType<UpdateConnectorRequest> {
             { no: 10, name: "credential_json", kind: "scalar", opt: true, T: 9 /*ScalarType.STRING*/ },
             { no: 11, name: "media_storage", kind: "message", T: () => ConnectorMediaStorageUpdate },
             { no: 12, name: "svg_author", kind: "message", T: () => ConnectorSVGAuthorUpdate },
-            { no: 13, name: "azure_deployments", kind: "message", T: () => ConnectorAzureDeployments }
+            { no: 13, name: "azure_deployments", kind: "message", T: () => ConnectorAzureDeployments },
+            { no: 14, name: "bedrock_invocations", kind: "message", T: () => ConnectorBedrockInvocations }
         ]);
     }
     create(value?: PartialMessage<UpdateConnectorRequest>): UpdateConnectorRequest {
@@ -2535,6 +2683,9 @@ class UpdateConnectorRequest$Type extends MessageType<UpdateConnectorRequest> {
                 case /* nimi.runtime.v1.ConnectorAzureDeployments azure_deployments */ 13:
                     message.azureDeployments = ConnectorAzureDeployments.internalBinaryRead(reader, reader.uint32(), options, message.azureDeployments);
                     break;
+                case /* nimi.runtime.v1.ConnectorBedrockInvocations bedrock_invocations */ 14:
+                    message.bedrockInvocations = ConnectorBedrockInvocations.internalBinaryRead(reader, reader.uint32(), options, message.bedrockInvocations);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -2583,6 +2734,9 @@ class UpdateConnectorRequest$Type extends MessageType<UpdateConnectorRequest> {
         /* nimi.runtime.v1.ConnectorAzureDeployments azure_deployments = 13; */
         if (message.azureDeployments)
             ConnectorAzureDeployments.internalBinaryWrite(message.azureDeployments, writer.tag(13, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.ConnectorBedrockInvocations bedrock_invocations = 14; */
+        if (message.bedrockInvocations)
+            ConnectorBedrockInvocations.internalBinaryWrite(message.bedrockInvocations, writer.tag(14, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -3097,7 +3251,8 @@ class ProviderCatalogEntry$Type extends MessageType<ProviderCatalogEntry> {
             { no: 8, name: "inline_supported", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 9, name: "supports_oss_media_storage", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
             { no: 10, name: "supports_svg_author", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 11, name: "supports_azure_deployments", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
+            { no: 11, name: "supports_azure_deployments", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 12, name: "supports_bedrock_invocations", kind: "scalar", T: 8 /*ScalarType.BOOL*/ }
         ]);
     }
     create(value?: PartialMessage<ProviderCatalogEntry>): ProviderCatalogEntry {
@@ -3113,6 +3268,7 @@ class ProviderCatalogEntry$Type extends MessageType<ProviderCatalogEntry> {
         message.supportsOssMediaStorage = false;
         message.supportsSvgAuthor = false;
         message.supportsAzureDeployments = false;
+        message.supportsBedrockInvocations = false;
         if (value !== undefined)
             reflectionMergePartial<ProviderCatalogEntry>(this, message, value);
         return message;
@@ -3154,6 +3310,9 @@ class ProviderCatalogEntry$Type extends MessageType<ProviderCatalogEntry> {
                     break;
                 case /* bool supports_azure_deployments */ 11:
                     message.supportsAzureDeployments = reader.bool();
+                    break;
+                case /* bool supports_bedrock_invocations */ 12:
+                    message.supportsBedrockInvocations = reader.bool();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -3200,6 +3359,9 @@ class ProviderCatalogEntry$Type extends MessageType<ProviderCatalogEntry> {
         /* bool supports_azure_deployments = 11; */
         if (message.supportsAzureDeployments !== false)
             writer.tag(11, WireType.Varint).bool(message.supportsAzureDeployments);
+        /* bool supports_bedrock_invocations = 12; */
+        if (message.supportsBedrockInvocations !== false)
+            writer.tag(12, WireType.Varint).bool(message.supportsBedrockInvocations);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

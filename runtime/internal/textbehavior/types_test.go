@@ -7,6 +7,20 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
+func TestNativeContentFilterIsNotAnIncompleteOrSuccessfulAnswer(t *testing.T) {
+	for _, items := range [][]OrderedItem{nil, {{Kind: OrderedItemText, Text: "partial"}}} {
+		usage := &runtimev1.UsageStats{InputTokens: 10, OutputTokens: 3}
+		result, err := validateAndCloneNormalizedResult(NormalizedResult{Items: items, Usage: usage, FinishReason: runtimev1.FinishReason_FINISH_REASON_CONTENT_FILTER}, &runtimev1.TextGenerateScenarioSpec{})
+		if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED || len(result.Items) != 0 || result.Usage.GetOutputTokens() != 3 {
+			t.Fatal(result, err)
+		}
+		usage.OutputTokens = 20
+		if result.Usage.OutputTokens != 3 {
+			t.Fatal("failure usage aliases native result")
+		}
+	}
+}
+
 func TestOrderedSystemBoundariesCannotFallBackToASinglePrefix(t *testing.T) {
 	for _, test := range []struct {
 		name   string

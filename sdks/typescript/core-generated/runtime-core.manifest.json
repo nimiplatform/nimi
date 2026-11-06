@@ -7993,6 +7993,8 @@
       "Connector",
       "ConnectorAzureDeployment",
       "ConnectorAzureDeployments",
+      "ConnectorBedrockInvocation",
+      "ConnectorBedrockInvocations",
       "ConnectorCheck",
       "ConnectorMediaStorageUpdate",
       "ConnectorModelDescriptor",
@@ -18047,6 +18049,13 @@
             "repeated": false,
             "optional": false,
             "number": 19
+          },
+          {
+            "name": "bedrock_invocations",
+            "type": "ConnectorBedrockInvocations",
+            "repeated": false,
+            "optional": false,
+            "number": 20
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"
@@ -18077,6 +18086,39 @@
           {
             "name": "deployments",
             "type": "ConnectorAzureDeployment",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/connector.proto"
+      },
+      {
+        "name": "ConnectorBedrockInvocation",
+        "fields": [
+          {
+            "name": "provider_model_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "invocation_model_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/connector.proto"
+      },
+      {
+        "name": "ConnectorBedrockInvocations",
+        "fields": [
+          {
+            "name": "invocations",
+            "type": "ConnectorBedrockInvocation",
             "repeated": true,
             "optional": false,
             "number": 1
@@ -36645,6 +36687,13 @@
             "repeated": false,
             "optional": false,
             "number": 11
+          },
+          {
+            "name": "supports_bedrock_invocations",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 12
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"
@@ -45219,6 +45268,13 @@
             "repeated": false,
             "optional": false,
             "number": 13
+          },
+          {
+            "name": "bedrock_invocations",
+            "type": "ConnectorBedrockInvocations",
+            "repeated": false,
+            "optional": false,
+            "number": 14
           }
         ],
         "source_file": "proto/runtime/v1/connector.proto"

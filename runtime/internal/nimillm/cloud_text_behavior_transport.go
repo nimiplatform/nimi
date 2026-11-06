@@ -47,6 +47,9 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	if target == nil || invocation == nil {
 		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
 	}
+	if target.ProviderType == "bedrock" {
+		return p.executeBedrockTextBehavior(ctx, modelID, target, invocation, serialized, onDelta)
+	}
 	path := "/v1/messages"
 	wireStream := onDelta != nil
 	switch target.ProviderType {
@@ -210,6 +213,10 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 		}
 		return invocation.ParseNonStream(body)
 	}
+	return readTextBehaviorSSE(ctx, response.Body, invocation, onDelta, backend.Name, path, started)
+}
+
+func readTextBehaviorSSE(ctx context.Context, body io.Reader, invocation *textbehavior.Invocation, onDelta func(textbehavior.OrderedDelta) error, backendName, path string, started time.Time) (textbehavior.NormalizedResult, error) {
 	assembler, err := invocation.NewStreamAssembler()
 	if err != nil {
 		return textbehavior.NormalizedResult{}, err
@@ -218,7 +225,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 		observed, _ := assembler.Finish()
 		return textbehavior.NormalizedResult{Usage: observed.Usage}, cause
 	}
-	scanner := bufio.NewScanner(response.Body)
+	scanner := bufio.NewScanner(body)
 	scanner.Buffer(make([]byte, 0, 64*1024), anthropicMessageStreamLimit)
 	var data []string
 	consume := func() error {
@@ -251,7 +258,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 		}
 	}
 	if err := scanner.Err(); err != nil {
-		logProviderStreamFailure(backend.Name, path, started, err)
+		logProviderStreamFailure(backendName, path, started, err)
 		return failed(MapProviderRequestError(err))
 	}
 	if err := consume(); err != nil {

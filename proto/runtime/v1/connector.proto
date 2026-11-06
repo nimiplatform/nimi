@@ -62,6 +62,17 @@ message Connector {
   ConnectorSVGAuthor svg_author = 18;
   // Non-secret, owner-declared Azure model-to-deployment bindings.
   ConnectorAzureDeployments azure_deployments = 19;
+  // Explicit base-model or system inference-profile IDs; never an App override.
+  ConnectorBedrockInvocations bedrock_invocations = 20;
+}
+
+message ConnectorBedrockInvocation {
+  string provider_model_id = 1;
+  string invocation_model_id = 2;
+}
+
+message ConnectorBedrockInvocations {
+  repeated ConnectorBedrockInvocation invocations = 1;
 }
 
 message ConnectorAzureDeployment {
@@ -176,6 +187,8 @@ message UpdateConnectorRequest {
   ConnectorSVGAuthorUpdate svg_author = 12;
   // Presence replaces the whole binding set; an empty set removes it.
   ConnectorAzureDeployments azure_deployments = 13;
+  // Presence replaces the whole set; an empty set explicitly clears it.
+  ConnectorBedrockInvocations bedrock_invocations = 14;
 }
 
 message UpdateConnectorResponse {
@@ -245,6 +258,7 @@ message ProviderCatalogEntry {
   bool supports_oss_media_storage = 9;
   bool supports_svg_author = 10;
   bool supports_azure_deployments = 11;
+  bool supports_bedrock_invocations = 12;
 }
 
 message ListProviderCatalogRequest {}

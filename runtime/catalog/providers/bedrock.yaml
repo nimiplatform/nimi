@@ -1,13 +1,13 @@
 version: 1
 provider: bedrock
-catalog_version: 2026-07-20-bedrock-canonical-v4
+catalog_version: 2026-11-06-bedrock-native-current
 inventory_mode: static_source
-default_text_model: anthropic.claude-sonnet-5
+default_text_model: anthropic.claude-sonnet-5-5
 models:
-  - model_id: anthropic.claude-fable-5
+  - model_id: amazon.nova-2-lite-v1:0
     provider: bedrock
     model_type: chat
-    updated_at: 2026-06-09
+    updated_at: 2026-11-06
     capabilities:
       - text.generate
     pricing:
@@ -15,19 +15,20 @@ models:
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-07-20
-      notes: Current canonical Fable 5 id on Bedrock. The model requires provider data sharing and can return HTTP 200 refusals as a primary response path.
+      as_of: 2026-11-06
+      notes: Native Converse and AWS event stream; tools auto/any/named and explicit low/medium/high reasoning. No native structured output or reasoning-summary claim. Owner-authorized inline media stays within the complete 25 MB request; external S3 storage is not introduced. Account availability remains independently verified.
     source_ref:
-      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
-      retrieved_at: 2026-04-18
-      note: Amazon Bedrock supported foundation models overview across providers and families.
+      url: https://docs.aws.amazon.com/bedrock/latest/userguide/model-card-amazon-nova-2-lite.html
+      retrieved_at: 2026-11-06
+      note: Current Nova 2 Lite model, native Converse/Invoke, text/image/video, explicit profile and off-by-default reasoning.
     features:
       - input.image
-    context_window_tokens: 8192
-  - model_id: claude-fable-5
+      - input.video
+    context_window_tokens: 1000000
+  - model_id: anthropic.claude-haiku-5-5
     provider: bedrock
     model_type: chat
-    updated_at: 2026-06-09
+    updated_at: 2026-11-06
     capabilities:
       - text.generate
     pricing:
@@ -35,20 +36,19 @@ models:
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-07-20
-      notes: Current canonical Fable 5 id on Bedrock. The model requires provider data sharing and can return HTTP 200 refusals as a primary response path.
+      as_of: 2026-11-06
+      notes: Native Bedrock Invoke Messages with model-specific opaque thinking replay. Explicit invocation ID, AWS account and model access required; fixture and direct Anthropic success do not establish AWS availability.
     source_ref:
-      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
-      retrieved_at: 2026-04-18
-      note: Amazon Bedrock supported foundation models overview across providers and families.
-    api_model_id: anthropic.claude-fable-5
+      url: https://docs.aws.amazon.com/bedrock/latest/userguide/apis.html
+      retrieved_at: 2026-11-06
+      note: Native Runtime Invoke, Converse and Responses have different request and stream protocols. Mantle is not interchangeable.
     features:
       - input.image
-    context_window_tokens: 8192
-  - model_id: anthropic.claude-sonnet-5
+    context_window_tokens: 1000000
+  - model_id: anthropic.claude-sonnet-5-5
     provider: bedrock
     model_type: chat
-    updated_at: 2026-06-30
+    updated_at: 2026-11-06
     capabilities:
       - text.generate
     pricing:
@@ -56,19 +56,19 @@ models:
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-07-20
-      notes: Current canonical Sonnet 5 id on Bedrock. Geo and global inference ids are intentionally not split into separate source rows.
+      as_of: 2026-11-06
+      notes: Native Bedrock Invoke Messages with model-specific opaque thinking replay. Explicit invocation ID, AWS account and model access required; fixture and direct Anthropic success do not establish AWS availability.
     source_ref:
-      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
-      retrieved_at: 2026-04-18
-      note: Amazon Bedrock supported foundation models overview across providers and families.
+      url: https://docs.aws.amazon.com/bedrock/latest/userguide/apis.html
+      retrieved_at: 2026-11-06
+      note: Native Runtime Invoke, Converse and Responses have different request and stream protocols. Mantle is not interchangeable.
     features:
       - input.image
-    context_window_tokens: 8192
-  - model_id: claude-sonnet-5
+    context_window_tokens: 1000000
+  - model_id: anthropic.claude-opus-5-5
     provider: bedrock
     model_type: chat
-    updated_at: 2026-06-30
+    updated_at: 2026-11-06
     capabilities:
       - text.generate
     pricing:
@@ -76,20 +76,19 @@ models:
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-07-20
-      notes: Current canonical Sonnet 5 id on Bedrock. Geo and global inference ids are intentionally not split into separate source rows.
+      as_of: 2026-11-06
+      notes: Native Bedrock Invoke Messages with model-specific opaque thinking replay. Explicit invocation ID, AWS account and model access required; fixture and direct Anthropic success do not establish AWS availability.
     source_ref:
-      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
-      retrieved_at: 2026-04-18
-      note: Amazon Bedrock supported foundation models overview across providers and families.
-    api_model_id: anthropic.claude-sonnet-5
+      url: https://docs.aws.amazon.com/bedrock/latest/userguide/apis.html
+      retrieved_at: 2026-11-06
+      note: Native Runtime Invoke, Converse and Responses have different request and stream protocols. Mantle is not interchangeable.
     features:
       - input.image
-    context_window_tokens: 8192
-  - model_id: anthropic.claude-opus-4-8
+    context_window_tokens: 1000000
+  - model_id: anthropic.claude-fable-5-1
     provider: bedrock
     model_type: chat
-    updated_at: 2026-06-03
+    updated_at: 2026-11-06
     capabilities:
       - text.generate
     pricing:
@@ -97,19 +96,19 @@ models:
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-06-03
-      notes: Current canonical programmatic Claude Opus 4.8 model id on Bedrock. Bedrock also exposes geo and global inference ids, which are intentionally not split into separate source rows here.
+      as_of: 2026-11-06
+      notes: Native Bedrock Invoke Messages with model-specific opaque thinking replay. Explicit invocation ID, AWS account and model access required; fixture and direct Anthropic success do not establish AWS availability.
     source_ref:
-      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
-      retrieved_at: 2026-04-18
-      note: Amazon Bedrock supported foundation models overview across providers and families.
+      url: https://docs.aws.amazon.com/bedrock/latest/userguide/apis.html
+      retrieved_at: 2026-11-06
+      note: Native Runtime Invoke, Converse and Responses have different request and stream protocols. Mantle is not interchangeable.
     features:
       - input.image
-    context_window_tokens: 8192
-  - model_id: claude-opus-4-8
+    context_window_tokens: 1000000
+  - model_id: openai.gpt-6-astra
     provider: bedrock
     model_type: chat
-    updated_at: 2026-06-03
+    updated_at: 2026-11-06
     capabilities:
       - text.generate
     pricing:
@@ -117,20 +116,19 @@ models:
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-06-03
-      notes: Current canonical programmatic Claude Opus 4.8 model id on Bedrock. Bedrock also exposes geo and global inference ids, which are intentionally not split into separate source rows here.
+      as_of: 2026-11-06
+      notes: Native Bedrock Responses with store=false and model-specific encrypted continuity. Only Sol currently admits streaming JSON Schema; other reviewed models use native non-streaming structured output. Explicit invocation profile and account access required.
     source_ref:
-      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
-      retrieved_at: 2026-04-18
-      note: Amazon Bedrock supported foundation models overview across providers and families.
-    api_model_id: anthropic.claude-opus-4-8
+      url: https://docs.aws.amazon.com/bedrock/latest/userguide/apis.html
+      retrieved_at: 2026-11-06
+      note: Native Runtime Invoke, Converse and Responses have different request and stream protocols. Mantle is not interchangeable.
     features:
       - input.image
-    context_window_tokens: 8192
-  - model_id: anthropic.claude-opus-4-6-v1
+    context_window_tokens: 1000000
+  - model_id: openai.gpt-6-luna
     provider: bedrock
     model_type: chat
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - text.generate
     pricing:
@@ -138,19 +136,19 @@ models:
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-04-18
-      notes: Current canonical programmatic Claude Opus 4.6 model id on Bedrock. Bedrock also exposes geo and global inference ids, which are intentionally not split into separate source rows here.
+      as_of: 2026-11-06
+      notes: Native Bedrock Responses with store=false and model-specific encrypted continuity. Only Sol currently admits streaming JSON Schema; other reviewed models use native non-streaming structured output. Explicit invocation profile and account access required.
     source_ref:
-      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
-      retrieved_at: 2026-04-18
-      note: Amazon Bedrock supported foundation models overview across providers and families.
+      url: https://docs.aws.amazon.com/bedrock/latest/userguide/apis.html
+      retrieved_at: 2026-11-06
+      note: Native Runtime Invoke, Converse and Responses have different request and stream protocols. Mantle is not interchangeable.
     features:
       - input.image
-    context_window_tokens: 8192
-  - model_id: claude-opus-4-6
+    context_window_tokens: 1050000
+  - model_id: openai.gpt-6.1-sol
     provider: bedrock
     model_type: chat
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - text.generate
     pricing:
@@ -158,20 +156,19 @@ models:
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-04-18
-      notes: Current canonical programmatic Claude Opus 4.6 model id on Bedrock. Bedrock also exposes geo and global inference ids, which are intentionally not split into separate source rows here.
+      as_of: 2026-11-06
+      notes: Native Bedrock Responses with store=false and model-specific encrypted continuity. Only Sol currently admits streaming JSON Schema; other reviewed models use native non-streaming structured output. Explicit invocation profile and account access required.
     source_ref:
-      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
-      retrieved_at: 2026-04-18
-      note: Amazon Bedrock supported foundation models overview across providers and families.
-    api_model_id: anthropic.claude-opus-4-6-v1
+      url: https://docs.aws.amazon.com/bedrock/latest/userguide/apis.html
+      retrieved_at: 2026-11-06
+      note: Native Runtime Invoke, Converse and Responses have different request and stream protocols. Mantle is not interchangeable.
     features:
       - input.image
-    context_window_tokens: 8192
-  - model_id: anthropic.claude-sonnet-4-6
+    context_window_tokens: 1000000
+  - model_id: openai.gpt-6.1-terra
     provider: bedrock
     model_type: chat
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - text.generate
     pricing:
@@ -179,204 +176,19 @@ models:
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-04-18
-      notes: Current canonical programmatic Claude Sonnet 4.6 model id on Bedrock. Bedrock also exposes geo and global inference ids, which are intentionally not split into separate source rows here.
+      as_of: 2026-11-06
+      notes: Native Bedrock Responses with store=false and model-specific encrypted continuity. Only Sol currently admits streaming JSON Schema; other reviewed models use native non-streaming structured output. Explicit invocation profile and account access required.
     source_ref:
-      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
-      retrieved_at: 2026-04-18
-      note: Amazon Bedrock supported foundation models overview across providers and families.
+      url: https://docs.aws.amazon.com/bedrock/latest/userguide/apis.html
+      retrieved_at: 2026-11-06
+      note: Native Runtime Invoke, Converse and Responses have different request and stream protocols. Mantle is not interchangeable.
     features:
       - input.image
-    context_window_tokens: 8192
-  - model_id: claude-sonnet-4-6
-    provider: bedrock
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-04-18
-      notes: Current canonical programmatic Claude Sonnet 4.6 model id on Bedrock. Bedrock also exposes geo and global inference ids, which are intentionally not split into separate source rows here.
-    source_ref:
-      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
-      retrieved_at: 2026-04-18
-      note: Amazon Bedrock supported foundation models overview across providers and families.
-    api_model_id: anthropic.claude-sonnet-4-6
-    features:
-      - input.image
-    context_window_tokens: 8192
-  - model_id: anthropic.claude-opus-4-5-20251101-v1:0
-    provider: bedrock
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-04-18
-      notes: Active prior-generation Claude Opus route on Bedrock using the dated canonical programmatic id.
-    source_ref:
-      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
-      retrieved_at: 2026-04-18
-      note: Amazon Bedrock supported foundation models overview across providers and families.
-    features:
-      - input.image
-    context_window_tokens: 8192
-  - model_id: claude-opus-4-5
-    provider: bedrock
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-04-18
-      notes: Active prior-generation Claude Opus route on Bedrock using the dated canonical programmatic id.
-    source_ref:
-      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
-      retrieved_at: 2026-04-18
-      note: Amazon Bedrock supported foundation models overview across providers and families.
-    api_model_id: anthropic.claude-opus-4-5-20251101-v1:0
-    features:
-      - input.image
-    context_window_tokens: 8192
-  - model_id: anthropic.claude-sonnet-4-5-20250929-v1:0
-    provider: bedrock
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-04-18
-      notes: Active prior-generation Claude Sonnet route on Bedrock using the dated canonical programmatic id.
-    source_ref:
-      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
-      retrieved_at: 2026-04-18
-      note: Amazon Bedrock supported foundation models overview across providers and families.
-    features:
-      - input.image
-    context_window_tokens: 8192
-  - model_id: claude-sonnet-4-5
-    provider: bedrock
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-04-18
-      notes: Active prior-generation Claude Sonnet route on Bedrock using the dated canonical programmatic id.
-    source_ref:
-      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
-      retrieved_at: 2026-04-18
-      note: Amazon Bedrock supported foundation models overview across providers and families.
-    api_model_id: anthropic.claude-sonnet-4-5-20250929-v1:0
-    features:
-      - input.image
-    context_window_tokens: 8192
-  - model_id: anthropic.claude-haiku-4-5-20251001-v1:0
-    provider: bedrock
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-04-18
-      notes: Current canonical programmatic Claude Haiku 4.5 model id on Bedrock using the dated model card identifier.
-    source_ref:
-      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
-      retrieved_at: 2026-04-18
-      note: Amazon Bedrock supported foundation models overview across providers and families.
-    features:
-      - input.image
-    context_window_tokens: 8192
-  - model_id: claude-haiku-4-5
-    provider: bedrock
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-04-18
-      notes: Current canonical programmatic Claude Haiku 4.5 model id on Bedrock using the dated model card identifier.
-    source_ref:
-      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
-      retrieved_at: 2026-04-18
-      note: Amazon Bedrock supported foundation models overview across providers and families.
-    api_model_id: anthropic.claude-haiku-4-5-20251001-v1:0
-    features:
-      - input.image
-    context_window_tokens: 8192
-  - model_id: amazon.nova-premier-v1:0
-    provider: bedrock
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-04-18
-      notes: Current high-tier Amazon Nova multimodal route on Bedrock. Geo inference ids exist but are not split into separate source rows.
-    source_ref:
-      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
-      retrieved_at: 2026-04-18
-      note: Amazon Bedrock supported foundation models overview across providers and families.
-    features:
-      - input.image
-    context_window_tokens: 8192
-  - model_id: nova-premier
-    provider: bedrock
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities:
-      - text.generate
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-04-18
-      notes: Current high-tier Amazon Nova multimodal route on Bedrock. Geo inference ids exist but are not split into separate source rows.
-    source_ref:
-      url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
-      retrieved_at: 2026-04-18
-      note: Amazon Bedrock supported foundation models overview across providers and families.
-    api_model_id: amazon.nova-premier-v1:0
-    features:
-      - input.image
-    context_window_tokens: 8192
+    context_window_tokens: 1000000
   - model_id: amazon.nova-pro-v1:0
     provider: bedrock
     model_type: chat
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - text.generate
     pricing:
@@ -385,18 +197,19 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-04-18
-      notes: Active balanced Amazon Nova multimodal route on Bedrock. Geo inference ids exist but are not split into separate source rows.
+      notes: Active native Converse model, with a 10000-token admitted output ceiling and explicit in-region or supported geographic profile binding. Global profiles are not supported. Real account availability is independent.
     source_ref:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
     features:
       - input.image
-    context_window_tokens: 8192
+      - input.video
+    context_window_tokens: 300000
   - model_id: nova-pro
     provider: bedrock
     model_type: chat
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - text.generate
     pricing:
@@ -405,7 +218,7 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-04-18
-      notes: Active balanced Amazon Nova multimodal route on Bedrock. Geo inference ids exist but are not split into separate source rows.
+      notes: Active native Converse model, with a 10000-token admitted output ceiling and explicit in-region or supported geographic profile binding. Global profiles are not supported. Real account availability is independent.
     source_ref:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
@@ -413,11 +226,12 @@ models:
     api_model_id: amazon.nova-pro-v1:0
     features:
       - input.image
-    context_window_tokens: 8192
+      - input.video
+    context_window_tokens: 300000
   - model_id: amazon.nova-lite-v1:0
     provider: bedrock
     model_type: chat
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - text.generate
     pricing:
@@ -426,18 +240,19 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-04-18
-      notes: Active lower-cost Amazon Nova multimodal route on Bedrock. Geo inference ids exist but are not split into separate source rows.
+      notes: Active native Converse model, with a 10000-token admitted output ceiling and explicit in-region or supported geographic profile binding. Global profiles are not supported. Real account availability is independent.
     source_ref:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
     features:
       - input.image
-    context_window_tokens: 8192
+      - input.video
+    context_window_tokens: 300000
   - model_id: nova-lite
     provider: bedrock
     model_type: chat
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - text.generate
     pricing:
@@ -446,7 +261,7 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-04-18
-      notes: Active lower-cost Amazon Nova multimodal route on Bedrock. Geo inference ids exist but are not split into separate source rows.
+      notes: Active native Converse model, with a 10000-token admitted output ceiling and explicit in-region or supported geographic profile binding. Global profiles are not supported. Real account availability is independent.
     source_ref:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
@@ -454,11 +269,12 @@ models:
     api_model_id: amazon.nova-lite-v1:0
     features:
       - input.image
-    context_window_tokens: 8192
+      - input.video
+    context_window_tokens: 300000
   - model_id: amazon.nova-micro-v1:0
     provider: bedrock
     model_type: chat
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - text.generate
     pricing:
@@ -467,16 +283,16 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-04-18
-      notes: Current fastest Amazon Nova text-only route on Bedrock. Geo inference ids exist but are not split into separate source rows.
+      notes: Active native Converse model, with a 10000-token admitted output ceiling and explicit in-region or supported geographic profile binding. Global profiles are not supported. Real account availability is independent.
     source_ref:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
-    context_window_tokens: 8192
+    context_window_tokens: 128000
   - model_id: nova-micro
     provider: bedrock
     model_type: chat
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - text.generate
     pricing:
@@ -485,33 +301,33 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-04-18
-      notes: Current fastest Amazon Nova text-only route on Bedrock. Geo inference ids exist but are not split into separate source rows.
+      notes: Active native Converse model, with a 10000-token admitted output ceiling and explicit in-region or supported geographic profile binding. Global profiles are not supported. Real account availability is independent.
     source_ref:
       url: https://docs.aws.amazon.com/bedrock/latest/userguide/models.html
       retrieved_at: 2026-04-18
       note: Amazon Bedrock supported foundation models overview across providers and families.
     api_model_id: amazon.nova-micro-v1:0
-    context_window_tokens: 8192
+    context_window_tokens: 128000
 voices: []
 selection_profiles:
   - provider: bedrock
     profile_id: text.general
     capability: text.generate
-    model_id: anthropic.claude-sonnet-5
-    reviewed_at: 2026-09-28
+    model_id: anthropic.claude-sonnet-5-5
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: Active Claude Sonnet 5 Bedrock route with end-of-life not before 2027-06-30, and the balanced Anthropic model in the admitted set.
+    rationale: Current balanced Sonnet 5.5 through native Bedrock Invoke; configure an explicit regional or global inference profile in Home.
   - provider: bedrock
     profile_id: text.fast
     capability: text.generate
-    model_id: amazon.nova-micro-v1:0
-    reviewed_at: 2026-09-28
+    model_id: anthropic.claude-haiku-5-5
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: Active Nova Micro, which AWS describes as Amazon's fastest text-only model.
+    rationale: Current Haiku 5.5 for latency-sensitive work; AWS region, profile and model access require independent acceptance.
   - provider: bedrock
     profile_id: text.reasoning
     capability: text.generate
-    model_id: anthropic.claude-fable-5
-    reviewed_at: 2026-09-28
+    model_id: anthropic.claude-fable-5-1
+    reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: Highest-capability admitted Bedrock route, active with end-of-life not before 2027-06-09; callers must handle its documented refusal and retention contract. Claude Fable 5.1 is not admitted in this catalog yet.
+    rationale: Current Fable 5.1 with native adaptive thinking and typed refusal handling; model-specific replay and account-bound provider validation remain mandatory.

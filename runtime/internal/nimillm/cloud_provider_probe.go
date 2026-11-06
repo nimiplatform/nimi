@@ -65,6 +65,9 @@ func (p *CloudProvider) ProbeConnector(ctx context.Context, providerID string, e
 	if strings.TrimSpace(providerID) == "azure" {
 		return p.probeAzureConnector(ctx, endpoint, apiKey, headers)
 	}
+	if strings.TrimSpace(providerID) == "bedrock" {
+		return p.probeBedrockConnector(ctx, endpoint, apiKey)
+	}
 	backend, _, err := p.ResolveProbeBackend(providerID, endpoint, apiKey, headers)
 	if err != nil {
 		return err

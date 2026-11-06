@@ -5,6 +5,7 @@ go 1.26.10
 require (
 	github.com/Microsoft/go-winio v0.6.4
 	github.com/aliyun/alibabacloud-oss-go-sdk-v2 v1.6.1
+	github.com/aws/aws-sdk-go-v2/aws/protocol/eventstream v1.7.26
 	github.com/dlclark/regexp2 v1.12.0
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/gorilla/websocket v1.5.3
@@ -28,6 +29,7 @@ require (
 )
 
 require (
+	github.com/aws/smithy-go v1.28.8 // indirect
 	github.com/dustin/go-humanize v1.1.0 // indirect
 	github.com/gogo/protobuf v1.3.2 // indirect
 	github.com/google/jsonschema-go v0.4.3 // indirect

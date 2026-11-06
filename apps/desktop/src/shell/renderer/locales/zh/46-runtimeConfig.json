@@ -3321,5 +3321,25 @@
     "cancel": "取消",
     "loadFailed": "无法加载模型目录。",
     "saveFailed": "无法保存部署绑定，请检查型号和部署名称。"
+  },
+  "bedrockInvocations": {
+    "title": "Bedrock 调用目标",
+    "configure": "配置调用目标",
+    "description": "选择目录型号，并填写 AWS 控制台中的完整模型或系统推理配置 ID。us.、eu. 等前缀会在对应地理区域内路由；global. 允许全球跨区域处理。Nimi 不会自动选择或更换路由。",
+    "unconfigured": "先配置调用目标，再为应用选择模型。",
+    "binding": "调用目标 {{index}}",
+    "model": "目录型号",
+    "modelAt": "型号 {{index}}",
+    "choose": "选择型号",
+    "deploymentAt": "调用模型 ID {{index}}",
+    "removeAt": "移除调用目标 {{index}}",
+    "remove": "移除",
+    "add": "添加调用目标",
+    "complete": "为每行选择当前型号并填写其唯一的完整调用 ID。不要填写 ARN 或其他型号的 ID。",
+    "reselect": "更改或移除调用 ID 后，使用相应型号的应用需要重新选择模型。区域、权限和模型开通仍由 AWS 决定。",
+    "save": "保存调用目标",
+    "cancel": "取消",
+    "loadFailed": "无法读取当前模型目录，请重试。",
+    "saveFailed": "无法保存。请核对调用 ID 是否对应所选型号及其系统推理配置。"
   }
 }
