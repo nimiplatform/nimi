@@ -1,90 +1,190 @@
 package nimillm
 
 import (
+	"bytes"
 	"context"
+	"image"
+	"io"
+	"mime"
+	"mime/multipart"
 	"net/http"
-	"strings"
-
-	"google.golang.org/grpc/codes"
+	"strconv"
+	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/grpc/codes"
 )
 
 const AdapterStabilityNative = "stability_native_adapter"
 
-// ExecuteStabilityImage executes an image generation scenario job against the Stability AI API.
-// Stability uses POST /v2beta/stable-image/generate/{engine}. Auth via Bearer token.
-func ExecuteStabilityImage(
-	ctx context.Context,
-	cfg MediaAdapterConfig,
-	req *runtimev1.SubmitScenarioJobRequest,
-	modelResolved string,
-) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
+// Stability returns binary media, not an OpenAI image JSON envelope. Catalog
+// model names map to reviewed native engines; callers cannot choose an endpoint.
+func ExecuteStabilityImage(ctx context.Context, cfg MediaAdapterConfig, req *runtimev1.SubmitScenarioJobRequest, model string) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
-	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
-	if baseURL == "" {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+	s := req.GetSpec().GetImageGenerate()
+	engine, nativeModel := capabilitydriver.StabilityImageEngine(model)
+	if s == nil || engine == "" {
+		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
-	apiKey := strings.TrimSpace(cfg.APIKey)
-
-	if scenarioModal(req) != runtimev1.Modal_MODAL_IMAGE {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+	fields := map[string]string{"prompt": s.GetPrompt(), "output_format": s.GetOutputFormat()}
+	if nativeModel != "" {
+		fields["model"] = nativeModel
+		fields["mode"] = "text-to-image"
 	}
-	spec := scenarioImageSpec(req)
-	if spec == nil {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	if s.GetNegativePrompt() != "" {
+		fields["negative_prompt"] = s.GetNegativePrompt()
 	}
-
-	resolvedModel := strings.TrimSpace(modelResolved)
-	payload := map[string]any{
-		"prompt": strings.TrimSpace(spec.GetPrompt()),
+	if s.GetAspectRatio() != "" {
+		fields["aspect_ratio"] = s.GetAspectRatio()
 	}
-	if negPrompt := strings.TrimSpace(spec.GetNegativePrompt()); negPrompt != "" {
-		payload["negative_prompt"] = negPrompt
+	if s.GetStyle() != "" {
+		fields["style_preset"] = s.GetStyle()
 	}
-	if aspectRatio := strings.TrimSpace(spec.GetAspectRatio()); aspectRatio != "" {
-		payload["aspect_ratio"] = aspectRatio
+	if s.Seed != nil {
+		fields["seed"] = strconv.FormatInt(s.GetSeed(), 10)
 	}
-	if style := strings.TrimSpace(spec.GetStyle()); style != "" {
-		payload["style_preset"] = style
+	var reference *CapturedMediaReference
+	if s.GetReferenceImageArtifactId() != "" {
+		reference, _ = ctx.Value(imageReferenceContextKey{}).(*CapturedMediaReference)
+		if reference == nil || reference.ArtifactID != s.GetReferenceImageArtifactId() {
+			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+		}
+		fields["strength"] = strconv.FormatFloat(float64(s.GetStrength()), 'f', -1, 32)
+		if engine == "sd3" {
+			fields["mode"] = "image-to-image"
+		}
 	}
-	if seed := spec.GetSeed(); seed != 0 {
-		payload["seed"] = seed
-	}
-	outputFormat := "png"
-	if rf := strings.TrimSpace(spec.GetResponseFormat()); rf != "" {
-		outputFormat = rf
-	}
-	payload["output_format"] = outputFormat
-
-	engine := "core"
-	if resolvedModel != "" {
-		engine = resolvedModel
-	}
-	endpoint := firstProviderEndpointPath([]string{"/v2beta/stable-image/generate/" + engine})
-
-	resp := map[string]any{}
-	if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, endpoint), apiKey, payload, &resp); err != nil {
+	response, err := stabilityMultipart(ctx, cfg, "/v2beta/stable-image/generate/"+engine, "image/*", fields, func(w *multipart.Writer) error {
+		if reference == nil {
+			return nil
+		}
+		file, err := w.CreateFormFile("image", "reference."+imageExtension(reference.MIMEType))
+		if err != nil {
+			return err
+		}
+		_, err = file.Write(reference.Bytes)
+		return err
+	})
+	if err != nil {
 		return nil, nil, "", err
 	}
-	artifactBytes, mimeType, artifactURI := ExtractTaskArtifactSource(ctx, resp)
-	if len(artifactBytes) == 0 && strings.TrimSpace(artifactURI) == "" {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+	defer response.Body.Close()
+	seed, err := stabilityResultHeaders(response)
+	if err != nil {
+		return nil, nil, "", err
 	}
-	if mimeType == "" {
-		mimeType = ResolveImageArtifactMIME(spec, artifactBytes)
+	if int64(seed) != s.GetSeed() {
+		return nil, nil, "", stabilityInvalidOutput()
 	}
-	artifactMeta := map[string]any{
-		"adapter":  AdapterStabilityNative,
-		"endpoint": endpoint,
-		"prompt":   strings.TrimSpace(spec.GetPrompt()),
-		"response": resp,
+	raw, err := readLimitedResponseBody(response.Body, maxJSONOrBinaryResponseBytes)
+	if err != nil {
+		return nil, nil, "", providerResponseReadError(err)
 	}
-	if artifactURI != "" {
-		artifactMeta["uri"] = artifactURI
+	geometry, format, err := image.DecodeConfig(bytes.NewReader(raw))
+	mimeType, _, mimeErr := mime.ParseMediaType(response.Header.Get("Content-Type"))
+	if err != nil || mimeErr != nil || mimeType != "image/"+format || format != s.GetOutputFormat() || geometry.Width <= 0 || geometry.Height <= 0 {
+		return nil, nil, "", stabilityInvalidOutput()
 	}
-	artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
-	ApplyImageSpecMetadata(artifact, spec)
+	artifact := BinaryArtifact(mimeType, raw, map[string]any{"adapter": AdapterStabilityNative})
+	actualSeed := int32(seed)
+	artifact.Seed = &actualSeed
+	artifact.Width, artifact.Height = int32(geometry.Width), int32(geometry.Height)
 	return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
+}
+
+func imageExtension(mimeType string) string {
+	switch mimeType {
+	case "image/jpeg":
+		return "jpeg"
+	case "image/webp":
+		return "webp"
+	default:
+		return "png"
+	}
+}
+
+func stabilityInvalidOutput() error {
+	return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+}
+
+func stabilityResultHeaders(response *http.Response) (uint32, error) {
+	if response.StatusCode != http.StatusOK {
+		return 0, stabilityResponseError(response)
+	}
+	switch response.Header.Get("finish-reason") {
+	case "CONTENT_FILTERED":
+		return 0, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED)
+	case "SUCCESS":
+	default:
+		return 0, stabilityInvalidOutput()
+	}
+	seed, err := strconv.ParseUint(response.Header.Get("seed"), 10, 32)
+	if err != nil {
+		return 0, stabilityInvalidOutput()
+	}
+	return uint32(seed), nil
+}
+
+func stabilityResponseError(response *http.Response) error {
+	if response.StatusCode >= 200 && response.StatusCode < 400 {
+		return stabilityInvalidOutput()
+	}
+	// Stability's native 403 is content moderation, not an invalid key.
+	// Its 402 specifically identifies missing credits (401 is authentication).
+	switch response.StatusCode {
+	case http.StatusForbidden:
+		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_AI_CONTENT_FILTER_BLOCKED)
+	case http.StatusPaymentRequired:
+		return grpcerr.WithReasonCodeOptions(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED, grpcerr.ReasonOptions{ActionHint: "replenish_provider_balance_or_adjust_quota"})
+	case http.StatusRequestEntityTooLarge:
+		return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
+	}
+	_, err := providerHTTPErrorFromResponse(response, "")
+	return err
+}
+
+// Body ownership stays with the caller. Neither protocol follows redirects.
+func stabilityMultipart(ctx context.Context, cfg MediaAdapterConfig, path, accept string, fields map[string]string, files func(*multipart.Writer) error) (*http.Response, error) {
+	var body bytes.Buffer
+	w := multipart.NewWriter(&body)
+	for key, value := range fields {
+		if err := w.WriteField(key, value); err != nil {
+			return nil, err
+		}
+	}
+	if files != nil {
+		if err := files(w); err != nil {
+			return nil, err
+		}
+	}
+	if err := w.Close(); err != nil {
+		return nil, err
+	}
+	return stabilityRequest(ctx, cfg, http.MethodPost, JoinURL(cfg.BaseURL, path), accept, w.FormDataContentType(), &body)
+}
+
+func stabilityRequest(ctx context.Context, cfg MediaAdapterConfig, method, target, accept, contentType string, body io.Reader) (*http.Response, error) {
+	key, err := requireProviderAPIKey(cfg.APIKey)
+	if err != nil {
+		return nil, err
+	}
+	client, request, err := newSecuredHTTPRequest(ctx, method, target, body)
+	if err != nil {
+		return nil, err
+	}
+	client.Timeout = 5 * time.Minute
+	client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
+	applyProviderRequestHeaders(request, cfg.Headers)
+	request.Header.Set("Authorization", "Bearer "+key)
+	request.Header.Set("Accept", accept)
+	if contentType != "" {
+		request.Header.Set("Content-Type", contentType)
+	}
+	response, err := client.Do(request)
+	if err != nil {
+		return nil, markNativeCreateResponseUnavailable(ctx, MapProviderRequestError(err))
+	}
+	return response, nil
 }

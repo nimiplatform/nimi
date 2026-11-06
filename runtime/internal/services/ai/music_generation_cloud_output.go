@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/audiomedia"
@@ -67,12 +68,25 @@ func (s *Service) commitCloudMusicGeneration(ctx context.Context, jobID string, 
 	}
 	releaseMix()
 	releaseInput()
-	return s.commitMusicGeneration(ctx, jobID, effective.request.GetHead(), musicGenerationPublication{WAV: wav, Termination: runtimev1.MusicGenerationTermination_MUSIC_GENERATION_TERMINATION_UNKNOWN, Usage: result.Usage})
+	var actualSeed *uint32
+	if effective.mapped.Adapter() == capabilitydriver.CloudMediaAdapterStabilityMusic {
+		value, ok := artifact.GetMetadata().GetFields()["actual_seed"]
+		if !ok || math.IsNaN(value.GetNumberValue()) || value.GetNumberValue() < 0 || value.GetNumberValue() > math.MaxUint32 || math.Trunc(value.GetNumberValue()) != value.GetNumberValue() {
+			return fmt.Errorf("Stable Audio result seed is invalid")
+		}
+		seed := uint32(value.GetNumberValue())
+		actualSeed = &seed
+	}
+	return s.commitMusicGeneration(ctx, jobID, effective.request.GetHead(), musicGenerationPublication{WAV: wav, ActualSeed: actualSeed, Termination: runtimev1.MusicGenerationTermination_MUSIC_GENERATION_TERMINATION_UNKNOWN, Usage: result.Usage})
 }
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.music-generation
 func validateCloudMusicMeasuredDuration(adapter string, budgetSeconds int32, durationMS int64) error {
 	switch adapter {
+	case capabilitydriver.CloudMediaAdapterStabilityMusic:
+		if budgetSeconds < 1 || budgetSeconds > 380 || durationMS <= 0 || durationMS > int64(budgetSeconds)*1000 {
+			return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		}
 	case capabilitydriver.CloudMediaAdapterElevenLabsMusic:
 		if budgetSeconds < 3 || budgetSeconds > 600 || durationMS <= 0 || durationMS > int64(budgetSeconds)*1000 {
 			return grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, grpcerr.ReasonOptions{

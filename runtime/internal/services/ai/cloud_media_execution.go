@@ -183,7 +183,7 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 	intent := composition.intent
 	driver := composition.driver
 	target := composition.target
-	if cloudImageHasLocalOnlyInput(request) && !(composition.target.Provider() == "ideogram" && composition.target.ProviderModelID() == capabilitydriver.Ideogram45Model) && !capabilitydriver.SupportsGPTImageOwnedInputs(composition.target.Provider(), composition.target.ProviderModelID()) {
+	if cloudImageHasLocalOnlyInput(request) && !(target.Provider() == "stability" && capabilitydriver.StabilityImageReferenceSupported(target.ProviderModelID())) && !(composition.target.Provider() == "ideogram" && composition.target.ProviderModelID() == capabilitydriver.Ideogram45Model) && !capabilitydriver.SupportsGPTImageOwnedInputs(composition.target.Provider(), composition.target.ProviderModelID()) {
 		return nil, grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED, grpcerr.ReasonOptions{
 			Message: "Cloud media execution does not support image masks or Local image strength",
 		})
@@ -373,8 +373,10 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 			return nil, err
 		}
 	}
-	if err := validateCloudMusicGenerationFields(effectiveRequest.GetSpec().GetMusicGenerate(), mapped.Adapter() == capabilitydriver.CloudMediaAdapterStabilityMusic, mapped.Adapter() == capabilitydriver.CloudMediaAdapterElevenLabsMusic); err != nil {
-		return nil, err
+	if mapped.Adapter() != capabilitydriver.CloudMediaAdapterStabilityMusic {
+		if err := validateCloudMusicGenerationFields(effectiveRequest.GetSpec().GetMusicGenerate(), false, mapped.Adapter() == capabilitydriver.CloudMediaAdapterElevenLabsMusic); err != nil {
+			return nil, err
+		}
 	}
 	if effectiveRequest.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE {
 		// Generated music is stored as canonical audio, so the codec is checked
@@ -400,6 +402,11 @@ func (s *Service) captureCloudMediaEffectiveInputs(
 		musicReference, err = s.captureCloudMusicReference(ctx, effectiveRequest.GetHead(), music.GetAudioReference())
 		if err != nil {
 			return nil, err
+		}
+		if target.Provider() == "stability" {
+			if err := nimillm.ValidateStabilityMusicReference(target.ProviderModelID(), musicReference); err != nil {
+				return nil, err
+			}
 		}
 	}
 

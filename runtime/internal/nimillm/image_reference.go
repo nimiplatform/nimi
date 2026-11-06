@@ -115,6 +115,16 @@ func ValidateGeminiImageReferenceRequest(spec *runtimev1.ImageGenerateScenarioSp
 }
 
 func ValidateCloudImageReferenceRequest(provider, model string, spec *runtimev1.ImageGenerateScenarioSpec, reference *CapturedMediaReference) error {
+	if provider == "stability" && capabilitydriver.StabilityImageReferenceSupported(model) {
+		if err := validateCapturedRasterReference(reference, spec.GetReferenceImageArtifactId(), 16384*16384, 16384); err != nil {
+			return err
+		}
+		geometry, _, _ := image.DecodeConfig(bytes.NewReader(reference.Bytes))
+		if geometry.Width < 64 || geometry.Height < 64 {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+		}
+		return nil
+	}
 	if provider == "luma" && capabilitydriver.IsLumaUniImageModel(model) {
 		return validateCapturedRasterReference(reference, spec.GetReferenceImageArtifactId(), 16<<20, 8000)
 	}

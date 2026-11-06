@@ -49,5 +49,5 @@ func (s *Service) captureCloudMusicReference(ctx context.Context, head *runtimev
 	if err != nil {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
-	return &nimillm.MusicReferenceAudio{ArtifactID: ref.GetArtifactId(), MIMEType: "audio/wav", Bytes: data}, nil
+	return &nimillm.MusicReferenceAudio{ArtifactID: ref.GetArtifactId(), MIMEType: "audio/wav", Bytes: data, DurationSeconds: float64(end-start) / float64(info.SampleRateHz)}, nil
 }

@@ -410,6 +410,11 @@ func validateCloudResolvedAssemblyRequest(assembly *cloudResolvedAssembly, provi
 			if music == nil || music.GetAudioReference() == nil || reference.ArtifactID != music.GetAudioReference().GetArtifactId() || reference.MIMEType != "audio/wav" || len(reference.Bytes) == 0 || len(reference.Bytes) > 32<<20 {
 				return fmt.Errorf("Cloud music reference capture is invalid")
 			}
+			if provider == "stability" {
+				if err := nimillm.ValidateStabilityMusicReference(providerModelID, reference); err != nil {
+					return err
+				}
+			}
 		} else if music != nil && music.GetAudioReference() != nil && assembly.CredentialCustodyRef != "" {
 			return fmt.Errorf("Cloud music reference capture is missing")
 		}

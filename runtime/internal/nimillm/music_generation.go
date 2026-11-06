@@ -11,9 +11,10 @@ import (
 // MusicReferenceAudio is Runtime-captured execution material, never a public
 // request field or a provider/model selector.
 type MusicReferenceAudio struct {
-	ArtifactID string `json:"artifact_id"`
-	MIMEType   string `json:"mime_type"`
-	Bytes      []byte `json:"bytes"`
+	ArtifactID      string  `json:"artifact_id"`
+	MIMEType        string  `json:"mime_type"`
+	Bytes           []byte  `json:"bytes"`
+	DurationSeconds float64 `json:"duration_seconds"`
 }
 type musicReferenceContextKey struct{}
 

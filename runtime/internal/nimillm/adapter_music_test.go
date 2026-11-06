@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
-	"mime"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -14,98 +13,6 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
-
-func TestExecuteStabilityMusicPromptOnly(t *testing.T) {
-	var captured map[string]any
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v2beta/audio/stable-audio-2/text-to-audio" {
-			http.NotFound(w, r)
-			return
-		}
-		captured = decodeMusicJSONBody(t, r)
-		w.Header().Set("Content-Type", "audio/mpeg")
-		_, _ = w.Write([]byte("stable-audio-bytes"))
-	}))
-	defer func() { server.Close() }()
-
-	artifacts, _, _, err := ExecuteStabilityMusic(context.Background(), MediaAdapterConfig{
-		BaseURL:               server.URL,
-		AllowLoopbackEndpoint: true,
-		APIKey:                "token",
-	}, newMusicJobRequest("stable-audio-2", "steady pulse"), "stability/stable-audio-2")
-	if err != nil {
-		t.Fatalf("ExecuteStabilityMusic failed: %v", err)
-	}
-	if got := strings.TrimSpace(ValueAsString(captured["prompt"])); got != "steady pulse" {
-		t.Fatalf("unexpected prompt payload: %q", got)
-	}
-	if len(artifacts) != 1 || string(artifacts[0].GetBytes()) != "stable-audio-bytes" {
-		t.Fatalf("unexpected artifacts: %#v", artifacts)
-	}
-}
-
-func TestExecuteStabilityMusicReferenceMultipart(t *testing.T) {
-	var contentType string
-	var prompt string
-	var fileBytes []byte
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/v2beta/audio/stable-audio-2/audio-to-audio" {
-			http.NotFound(w, r)
-			return
-		}
-		contentType = r.Header.Get("Content-Type")
-		reader, err := r.MultipartReader()
-		if err != nil {
-			t.Fatalf("MultipartReader: %v", err)
-		}
-		for {
-			part, nextErr := reader.NextPart()
-			if nextErr == io.EOF {
-				break
-			}
-			if nextErr != nil {
-				t.Fatalf("NextPart: %v", nextErr)
-			}
-			payload, readErr := io.ReadAll(part)
-			if readErr != nil {
-				t.Fatalf("ReadAll: %v", readErr)
-			}
-			switch part.FormName() {
-			case "prompt":
-				prompt = string(payload)
-			case "audio":
-				fileBytes = payload
-			}
-		}
-		w.Header().Set("Content-Type", "audio/mpeg")
-		_, _ = w.Write([]byte("stable-iteration"))
-	}))
-	defer func() { server.Close() }()
-
-	req := newMusicJobRequest("stable-audio-2", "continue this idea")
-	req.GetSpec().GetMusicGenerate().AudioReference = &runtimev1.MusicAudioInput{ArtifactId: "owned-audio"}
-	ctx := WithMusicReferenceAudio(context.Background(), &MusicReferenceAudio{ArtifactID: "owned-audio", MIMEType: "audio/wav", Bytes: []byte("seed-audio")})
-	artifacts, _, _, err := ExecuteStabilityMusic(ctx, MediaAdapterConfig{
-		BaseURL:               server.URL,
-		AllowLoopbackEndpoint: true,
-		APIKey:                "token",
-	}, req, "stability/stable-audio-2")
-	if err != nil {
-		t.Fatalf("ExecuteStabilityMusic iteration failed: %v", err)
-	}
-	if mediaType, _, _ := mime.ParseMediaType(contentType); mediaType != "multipart/form-data" {
-		t.Fatalf("expected multipart content-type, got %q", contentType)
-	}
-	if prompt != "continue this idea" {
-		t.Fatalf("unexpected multipart prompt: %q", prompt)
-	}
-	if string(fileBytes) != "seed-audio" {
-		t.Fatalf("unexpected multipart audio bytes: %q", string(fileBytes))
-	}
-	if len(artifacts) != 1 || string(artifacts[0].GetBytes()) != "stable-iteration" {
-		t.Fatalf("unexpected artifacts: %#v", artifacts)
-	}
-}
 
 func TestExecuteSoundverseMusicPromptOnly(t *testing.T) {
 	var server *httptest.Server

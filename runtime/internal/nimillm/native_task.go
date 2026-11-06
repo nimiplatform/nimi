@@ -99,6 +99,9 @@ func requireNativeTaskPublisher(ctx context.Context) error {
 }
 
 func ValidateNativeTaskReceipt(r *NativeTaskReceipt) error {
+	if r != nil && r.Adapter == AdapterStabilityMusic && (r.Model != "stable-audio-3" || !validStabilityTaskID(r.TaskID) || r.Artifact == nil || r.Artifact.GetMimeType() != "audio/wav") {
+		return fmt.Errorf("Stable Audio original task identity invalid")
+	}
 	if r != nil && r.Adapter == AdapterLumaUniImage {
 		if !capabilitydriver.IsLumaUniImageModel(r.Model) || (r.LumaGenerationType != "image" && r.LumaGenerationType != "image_edit") || r.Artifact == nil || (r.Artifact.GetMimeType() != "image/png" && r.Artifact.GetMimeType() != "image/jpeg") {
 			return fmt.Errorf("Luma original image identity invalid")
@@ -179,6 +182,8 @@ func nativeTaskQueryPathAllowed(adapter, path string) bool {
 		return path == "/files/{task_id}"
 	case AdapterMubertMusic:
 		return path == "/public/tracks/{task_id}"
+	case AdapterStabilityMusic:
+		return path == stabilityAudioQueryPath
 	case AdapterWorldLabsNative:
 		return path == "/marble/v1/operations/{task_id}"
 	case AdapterSpaitialNative:
@@ -218,6 +223,9 @@ func ObserveNativeTask(ctx context.Context, cfg MediaAdapterConfig, r *NativeTas
 	}
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	ctx = originalControlRequest(ctx)
+	if r.Adapter == AdapterStabilityMusic {
+		return observeStabilityAudio(ctx, cfg, r)
+	}
 	if r.Adapter == AdapterWorldLabsNative || r.Adapter == AdapterSpaitialNative {
 		return observeNativeWorld(ctx, cfg, r)
 	}
@@ -389,6 +397,14 @@ func OpenNativeTaskArtifacts(ctx context.Context, cfg MediaAdapterConfig, receip
 	}
 	artifacts := observation.Artifacts
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
+	if receipt.Adapter == AdapterStabilityMusic {
+		if len(artifacts) != 1 || artifacts[0].GetArtifactId() != receipt.Artifact.GetArtifactId() {
+			return nil, fmt.Errorf("Stable Audio original result slot invalid")
+		}
+		return detachMediaArtifactBodiesWithOpener(ctx, artifacts, func(ctx context.Context, uri string) (io.ReadCloser, string, int64, error) {
+			return openStabilityAudio(ctx, cfg, receipt, uri, uint32(artifacts[0].GetMetadata().GetFields()["actual_seed"].GetNumberValue()))
+		})
+	}
 	if receipt.Adapter == AdapterWorldLabsNative || receipt.Adapter == AdapterSpaitialNative {
 		return openNativeWorld(ctx, cfg, receipt, observation)
 	}

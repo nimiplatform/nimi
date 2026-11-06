@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"sync/atomic"
 	"testing"
 
@@ -45,7 +46,7 @@ func TestLyriaClipChecksMeasuredAudioAgainstCapturedBudget(t *testing.T) {
 			t.Fatalf("budget=%d duration=%d reason=%v present=%v err=%v", tc.budget, tc.duration, reason, ok, err)
 		}
 	}
-	if err := validateCloudMusicMeasuredDuration(capabilitydriver.CloudMediaAdapterStabilityMusic, 30, 35001); err != nil {
+	if err := validateCloudMusicMeasuredDuration(capabilitydriver.CloudMediaAdapterSoundverseMusic, 30, 35001); err != nil {
 		t.Fatalf("unrelated provider inherited Lyria limit: %v", err)
 	}
 }
@@ -75,6 +76,10 @@ func TestNativeMusicOwnsRawAndCanonicalSetAndRecoversFinalCommit(t *testing.T) {
 		t.Skip("exact engineering codec fixture not supplied")
 	}
 	ffmpeg, ffprobe := filepath.Join(codec, "ffmpeg"), filepath.Join(codec, "ffprobe")
+	if runtime.GOOS == "windows" {
+		ffmpeg += ".exe"
+		ffprobe += ".exe"
+	}
 	mp3, err := exec.Command(ffmpeg, "-v", "error", "-f", "lavfi", "-i", "sine=frequency=440:sample_rate=44100", "-t", "1", "-ac", "2", "-f", "mp3", "pipe:1").Output()
 	if err != nil {
 		t.Fatal(err)

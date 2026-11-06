@@ -1,12 +1,12 @@
 version: 1
 provider: stability
-catalog_version: 2026-04-18-stability-image-v3
+catalog_version: 2026-11-06-stability-native-audio3
 inventory_mode: static_source
 models:
   - model_id: stable-image-core
     provider: stability
     model_type: image
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - image.generate
     pricing:
@@ -17,13 +17,12 @@ models:
       as_of: 2026-04-18
       notes: Current Stability task-specific image endpoint optimized for fast and affordable generation; public materials do not expose a single stable per-request price table in this source.
     source_ref:
-      url: https://stability.ai/api-pricing-update-25
-      retrieved_at: 2026-04-18
-      note: Official Stability API pricing and deprecation update highlighting Stable Image Core, Ultra, and SD3.5 family.
+      url: https://docs.stability.ai/api-reference/generate/stable-image-core
+      retrieved_at: 2026-11-06
+      note: Reviewed native API request and response schema; live account acceptance remains separate.
     image_request_options:
       response_formats:
         - b64_json
-        - url
       max_images_per_request: 1
       supports_negative_prompt: true
       supports_reference_images: false
@@ -33,10 +32,14 @@ models:
       supports_aspect_ratio: true
       supports_quality: false
       supports_style: true
+      output_formats:
+        - png
+        - jpeg
+        - webp
   - model_id: stable-image-ultra
     provider: stability
     model_type: image
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - image.generate
     pricing:
@@ -47,26 +50,31 @@ models:
       as_of: 2026-04-18
       notes: Current Stability high-detail image endpoint based on SD3.5 capabilities; public materials do not expose a single stable per-request price table in this source.
     source_ref:
-      url: https://stability.ai/api-pricing-update-25
-      retrieved_at: 2026-04-18
-      note: Official Stability API pricing and deprecation update highlighting Stable Image Core, Ultra, and SD3.5 family.
+      url: https://docs.stability.ai/api-reference/generate/stable-image-ultra
+      retrieved_at: 2026-11-06
+      note: Reviewed native API request and response schema; live account acceptance remains separate.
+    features:
+      - input.image
     image_request_options:
       response_formats:
         - b64_json
-        - url
       max_images_per_request: 1
       supports_negative_prompt: true
-      supports_reference_images: false
+      supports_reference_images: true
       supports_mask: false
       supports_seed: true
       supports_size: false
       supports_aspect_ratio: true
       supports_quality: false
       supports_style: true
+      output_formats:
+        - png
+        - jpeg
+        - webp
   - model_id: stable-diffusion-3.5-large
     provider: stability
     model_type: image
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - image.generate
     pricing:
@@ -77,26 +85,31 @@ models:
       as_of: 2026-04-18
       notes: Active Stable Diffusion 3.5 base-family image model retained alongside newer Stable Image service endpoints.
     source_ref:
-      url: https://stability.ai/api-pricing-update-25
-      retrieved_at: 2026-04-18
-      note: Official Stability API pricing and deprecation update highlighting Stable Image Core, Ultra, and SD3.5 family.
+      url: https://docs.stability.ai/api-reference/generate/stable-diffusion-35
+      retrieved_at: 2026-11-06
+      note: Reviewed native API request and response schema; live account acceptance remains separate.
+    features:
+      - input.image
     image_request_options: &a1
       response_formats:
         - b64_json
-        - url
       max_images_per_request: 1
       supports_negative_prompt: true
-      supports_reference_images: false
+      supports_reference_images: true
       supports_mask: false
       supports_seed: true
       supports_size: false
       supports_aspect_ratio: true
       supports_quality: false
       supports_style: true
+      output_formats:
+        - png
+        - jpeg
+        - webp
   - model_id: sd3.5-large
     provider: stability
     model_type: image
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - image.generate
     pricing:
@@ -107,15 +120,17 @@ models:
       as_of: 2026-04-18
       notes: Active Stable Diffusion 3.5 base-family image model retained alongside newer Stable Image service endpoints.
     source_ref:
-      url: https://stability.ai/api-pricing-update-25
-      retrieved_at: 2026-04-18
-      note: Official Stability API pricing and deprecation update highlighting Stable Image Core, Ultra, and SD3.5 family.
+      url: https://docs.stability.ai/api-reference/generate/stable-diffusion-35
+      retrieved_at: 2026-11-06
+      note: Reviewed native API request and response schema; live account acceptance remains separate.
     api_model_id: stable-diffusion-3.5-large
+    features:
+      - input.image
     image_request_options: *a1
   - model_id: stable-diffusion-3.5-medium
     provider: stability
     model_type: image
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - image.generate
     pricing:
@@ -126,26 +141,31 @@ models:
       as_of: 2026-04-18
       notes: Active Stable Diffusion 3.5 medium base-family image model retained as the lighter parallel SD3.5 row.
     source_ref:
-      url: https://stability.ai/api-pricing-update-25
-      retrieved_at: 2026-04-18
-      note: Official Stability API pricing and deprecation update highlighting Stable Image Core, Ultra, and SD3.5 family.
+      url: https://docs.stability.ai/api-reference/generate/stable-diffusion-35
+      retrieved_at: 2026-11-06
+      note: Reviewed native API request and response schema; live account acceptance remains separate.
+    features:
+      - input.image
     image_request_options: &a2
       response_formats:
         - b64_json
-        - url
       max_images_per_request: 1
       supports_negative_prompt: true
-      supports_reference_images: false
+      supports_reference_images: true
       supports_mask: false
       supports_seed: true
       supports_size: false
       supports_aspect_ratio: true
       supports_quality: false
       supports_style: true
+      output_formats:
+        - png
+        - jpeg
+        - webp
   - model_id: sd3.5-medium
     provider: stability
     model_type: image
-    updated_at: 2026-04-18
+    updated_at: 2026-11-06
     capabilities:
       - image.generate
     pricing:
@@ -156,15 +176,17 @@ models:
       as_of: 2026-04-18
       notes: Active Stable Diffusion 3.5 medium base-family image model retained as the lighter parallel SD3.5 row.
     source_ref:
-      url: https://stability.ai/api-pricing-update-25
-      retrieved_at: 2026-04-18
-      note: Official Stability API pricing and deprecation update highlighting Stable Image Core, Ultra, and SD3.5 family.
+      url: https://docs.stability.ai/api-reference/generate/stable-diffusion-35
+      retrieved_at: 2026-11-06
+      note: Reviewed native API request and response schema; live account acceptance remains separate.
     api_model_id: stable-diffusion-3.5-medium
+    features:
+      - input.image
     image_request_options: *a2
   - model_id: stable-audio-2
     provider: stability
     model_type: music
-    updated_at: 2026-03-13
+    updated_at: 2026-11-06
     capabilities:
       - music.generate
     pricing:
@@ -175,15 +197,15 @@ models:
       as_of: 2026-03-13
       notes: Stable Audio pricing varies by model version, request size, and plan.
     source_ref:
-      url: https://platform.stability.ai/docs/getting-started
-      retrieved_at: 2026-04-18
-      note: Stability AI Platform API getting-started surface.
+      url: https://docs.stability.ai/api-reference/stable-audio-2/text-to-audio
+      retrieved_at: 2026-11-06
+      note: Reviewed native API request and response schema; live account acceptance remains separate.
     features:
       - input.audio
   - model_id: stable-audio-2.0
     provider: stability
     model_type: music
-    updated_at: 2026-03-13
+    updated_at: 2026-11-06
     capabilities:
       - music.generate
     pricing:
@@ -194,16 +216,16 @@ models:
       as_of: 2026-03-13
       notes: Stable Audio pricing varies by model version, request size, and plan.
     source_ref:
-      url: https://platform.stability.ai/docs/getting-started
-      retrieved_at: 2026-04-18
-      note: Stability AI Platform API getting-started surface.
+      url: https://docs.stability.ai/api-reference/stable-audio-2/text-to-audio
+      retrieved_at: 2026-11-06
+      note: Reviewed native API request and response schema; live account acceptance remains separate.
     api_model_id: stable-audio-2
     features:
       - input.audio
   - model_id: stable-audio
     provider: stability
     model_type: music
-    updated_at: 2026-03-13
+    updated_at: 2026-11-06
     capabilities:
       - music.generate
     pricing:
@@ -214,10 +236,104 @@ models:
       as_of: 2026-03-13
       notes: Stable Audio pricing varies by model version, request size, and plan.
     source_ref:
-      url: https://platform.stability.ai/docs/getting-started
-      retrieved_at: 2026-04-18
-      note: Stability AI Platform API getting-started surface.
+      url: https://docs.stability.ai/api-reference/stable-audio-2/text-to-audio
+      retrieved_at: 2026-11-06
+      note: Reviewed native API request and response schema; live account acceptance remains separate.
     api_model_id: stable-audio-2
+    features:
+      - input.audio
+  - model_id: stable-diffusion-3.5-large-turbo
+    provider: stability
+    model_type: image
+    updated_at: 2026-11-06
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Native SD3.5 Large Turbo; independent current four-step model.
+    source_ref:
+      url: https://docs.stability.ai/api-reference/generate/stable-diffusion-35
+      retrieved_at: 2026-11-06
+      note: Reviewed native API request and response schema; live account acceptance remains separate.
+    features:
+      - input.image
+    image_request_options: &a3
+      response_formats:
+        - b64_json
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: true
+      supports_size: false
+      supports_aspect_ratio: true
+      supports_quality: false
+      supports_style: true
+      output_formats:
+        - png
+        - jpeg
+        - webp
+  - model_id: sd3.5-large-turbo
+    provider: stability
+    model_type: image
+    updated_at: 2026-11-06
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-04-18
+      notes: Native SD3.5 Large Turbo; independent current four-step model.
+    source_ref:
+      url: https://docs.stability.ai/api-reference/generate/stable-diffusion-35
+      retrieved_at: 2026-11-06
+      note: Reviewed native API request and response schema; live account acceptance remains separate.
+    api_model_id: stable-diffusion-3.5-large-turbo
+    features:
+      - input.image
+    image_request_options: *a3
+  - model_id: stable-audio-2.5
+    provider: stability
+    model_type: music
+    updated_at: 2026-11-06
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Account credits are not inferred as actual usage. Native audio3 uses asynchronous original-result retrieval.
+    source_ref:
+      url: https://docs.stability.ai/api-reference/stable-audio-2/text-to-audio
+      retrieved_at: 2026-11-06
+      note: Reviewed native API request and response schema; live account acceptance remains separate.
+    features:
+      - input.audio
+  - model_id: stable-audio-3
+    provider: stability
+    model_type: music
+    updated_at: 2026-11-06
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Account credits are not inferred as actual usage. Native audio3 uses asynchronous original-result retrieval.
+    source_ref:
+      url: https://docs.stability.ai/api-reference/stable-audio/text-to-audio
+      retrieved_at: 2026-11-06
+      note: Reviewed native API request and response schema; live account acceptance remains separate.
     features:
       - input.audio
 voices: []
