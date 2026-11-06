@@ -157,9 +157,9 @@ providers:
     source_rule: K-MCAT-027
   - provider: kimi
     default_endpoint: https://api.moonshot.cn/v1
-    default_text_model: null
+    default_text_model: kimi-k3.1-pro
     requires_explicit_endpoint: false
-    inventory_mode: dynamic_endpoint
+    inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: kling
     default_endpoint: null

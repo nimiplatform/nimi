@@ -59,6 +59,9 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 	}
 	registrations = append(registrations, bedrockTextBehaviorRegistrations()...)
 	registrations = append(registrations, xaiGrok47TextBehaviorRegistration())
+	for _, model := range []string{"kimi-k3.1-pro", "kimi-k3.1-pro-highspeed", "kimi-k3"} {
+		registrations = append(registrations, kimiK3TextBehaviorRegistration(model))
+	}
 	return registrations
 }
 

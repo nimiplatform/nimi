@@ -3,6 +3,7 @@ package nimillm
 import (
 	"context"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"google.golang.org/grpc/codes"
@@ -57,7 +58,7 @@ func ExecuteAWSPollyTTS(
 	}
 	payload["OutputFormat"] = outputFormat
 	if sampleRate := spec.GetSampleRateHz(); sampleRate > 0 {
-		payload["SampleRate"] = sampleRate
+		payload["SampleRate"] = strconv.FormatInt(int64(sampleRate), 10)
 	}
 	if language := strings.TrimSpace(spec.GetLanguage()); language != "" {
 		payload["LanguageCode"] = language

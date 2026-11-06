@@ -44,9 +44,10 @@ func TestExecuteAWSPollyTTS_MapsCatalogModelToEngine(t *testing.T) {
 				Spec: &runtimev1.ScenarioSpec{
 					Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{
 						SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{
-							Text:        "Hello from Polly",
-							Language:    "en-US",
-							AudioFormat: "mp3",
+							Text:         "Hello from Polly",
+							Language:     "en-US",
+							AudioFormat:  "mp3",
+							SampleRateHz: testInt32(24000),
 							VoiceRef: &runtimev1.VoiceReference{
 								Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PROVIDER_VOICE_REF,
 								Reference: &runtimev1.VoiceReference_ProviderVoiceRef{
@@ -68,6 +69,9 @@ func TestExecuteAWSPollyTTS_MapsCatalogModelToEngine(t *testing.T) {
 			}
 			if got := ValueAsString(gotPayload["Engine"]); got != tc.wantEngine {
 				t.Fatalf("unexpected Engine: got=%q want=%q payload=%#v", got, tc.wantEngine, gotPayload)
+			}
+			if got := gotPayload["SampleRate"]; got != "24000" {
+				t.Fatalf("SampleRate must use the native string field: got=%#v", got)
 			}
 			if _, ok := gotPayload["extensions"]; ok {
 				t.Fatalf("aws polly request must not send raw extensions field")

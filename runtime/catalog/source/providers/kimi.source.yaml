@@ -1,6 +1,6 @@
 schema_version: 3
 provider: kimi
-catalog_version: 2026-04-18-kimi-v2
+catalog_version: 2026-11-06-kimi-k3-native
 generated_target: runtime/catalog/providers/kimi.yaml
 runtime:
   runtime_plane: remote
@@ -8,14 +8,7 @@ runtime:
   inline_supported: true
   default_endpoint: https://api.moonshot.cn/v1
   requires_explicit_endpoint: false
-  inventory_mode: dynamic_endpoint
-  dynamic_inventory:
-    discovery_transport: connector_list_models
-    cache_ttl_sec: 300
-    selection_mode: pass_through
-    failure_policy: use_cache_then_fail_closed
-    allowed_capabilities:
-      - text.generate
+  inventory_mode: static_source
 defaults:
   provider: kimi
   model_type: chat
@@ -26,7 +19,8 @@ defaults:
     output: unknown
     currency: CNY
     as_of: 2026-04-18
-    notes: Moonshot publishes a live `GET /v1/models` endpoint for current Kimi inventory, so runtime inventory should be discovered dynamically instead of curated as static source rows.
+    notes: Reviewed K3 cohort. Catalog membership is independent of account entitlement; legacy K2.x access is not assumed for new accounts.
+  default_text_model: kimi-k3.1-pro
 
 sources:
   - source_id: kimi_intro_doc
@@ -41,3 +35,128 @@ sources:
     url: https://platform.kimi.com/docs/guide/kimi-k2-5-quickstart
     retrieved_at: 2026-04-18
     note: Kimi K2.5 quickstart showing multimodal text generation with image and video inputs.
+  - source_id: kimi_current_models
+    url: https://platform.kimi.com/docs/models
+    retrieved_at: 2026-11-06
+    note: Current exact K3 request, response or lifecycle contract.
+  - source_id: kimi_k31
+    url: https://platform.kimi.com/docs/guide/kimi-k3-1-pro-quickstart
+    retrieved_at: 2026-11-06
+    note: Current exact K3 request, response or lifecycle contract.
+  - source_id: kimi_k3
+    url: https://platform.kimi.com/docs/guide/kimi-k3-quickstart
+    retrieved_at: 2026-11-06
+    note: Current exact K3 request, response or lifecycle contract.
+  - source_id: kimi_parameters
+    url: https://platform.kimi.com/docs/api/models-overview
+    retrieved_at: 2026-11-06
+    note: Current exact K3 request, response or lifecycle contract.
+  - source_id: kimi_chat_api
+    url: https://platform.kimi.com/docs/api/chat
+    retrieved_at: 2026-11-06
+    note: Current exact K3 request, response or lifecycle contract.
+  - source_id: kimi_reasoning
+    url: https://platform.kimi.com/docs/guide/use-reasoning-effort
+    retrieved_at: 2026-11-06
+    note: Current exact K3 request, response or lifecycle contract.
+  - source_id: kimi_schema
+    url: https://platform.kimi.com/docs/guide/response_format
+    retrieved_at: 2026-11-06
+    note: Current exact K3 request, response or lifecycle contract.
+  - source_id: kimi_vision
+    url: https://platform.kimi.com/docs/guide/use-kimi-vision-model
+    retrieved_at: 2026-11-06
+    note: Current exact K3 request, response or lifecycle contract.
+  - source_id: kimi_tool_choice
+    url: https://platform.kimi.com/docs/guide/use-tool-choice
+    retrieved_at: 2026-11-06
+    note: Current exact K3 request, response or lifecycle contract.
+selection_profiles:
+  - profile_id: text.general
+    capability: text.generate
+    model_id: kimi-k3.1-pro
+    reviewed_at: 2026-11-06
+    freshness_sla_days: 21
+    rationale: Current flagship, always-on preserved reasoning and1M context; account acceptance remains separate.
+  - profile_id: text.fast
+    capability: text.generate
+    model_id: kimi-k3.1-pro-highspeed
+    reviewed_at: 2026-11-06
+    freshness_sla_days: 21
+    rationale: Same reviewed K3.1 behavior with the independent higher-speed API target; no automatic substitution.
+models:
+  - model_id: kimi-k3.1-pro
+    model_type: chat
+    updated_at: 2026-11-06
+    context_window_tokens: 1000000
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+      - input.video
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-06
+      notes: Context, cache tier and exact target affect pricing. Native usage is reported without inferred charges.
+    source_ids:
+      - kimi_current_models
+      - kimi_k31
+      - kimi_parameters
+      - kimi_chat_api
+      - kimi_reasoning
+      - kimi_schema
+      - kimi_vision
+      - kimi_tool_choice
+  - model_id: kimi-k3.1-pro-highspeed
+    model_type: chat
+    updated_at: 2026-11-06
+    context_window_tokens: 1000000
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+      - input.video
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-06
+      notes: Context, cache tier and exact target affect pricing. Native usage is reported without inferred charges.
+    source_ids:
+      - kimi_current_models
+      - kimi_k31
+      - kimi_parameters
+      - kimi_chat_api
+      - kimi_reasoning
+      - kimi_schema
+      - kimi_vision
+      - kimi_tool_choice
+  - model_id: kimi-k3
+    model_type: chat
+    updated_at: 2026-11-06
+    context_window_tokens: 1000000
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+      - input.video
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-06
+      notes: Context, cache tier and exact target affect pricing. Native usage is reported without inferred charges.
+    source_ids:
+      - kimi_current_models
+      - kimi_k3
+      - kimi_parameters
+      - kimi_chat_api
+      - kimi_reasoning
+      - kimi_schema
+      - kimi_vision
+      - kimi_tool_choice

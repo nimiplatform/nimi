@@ -44,10 +44,13 @@ func TestGemma4E2BAdmitsOrderedSystemMessagesWithoutWideningOtherCombinations(t 
 
 func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 	registrations := productionTextBehaviorAdapterRegistrations()
-	if len(registrations) != 66 {
-		t.Fatalf("production adapter registrations = %d, want thirteen Local mappings and fifty-three Cloud targets", len(registrations))
+	if len(registrations) != 69 {
+		t.Fatalf("production adapter registrations = %d, want thirteen Local mappings and fifty-six Cloud targets", len(registrations))
 	}
 	expectedCloudTargets := map[string]string{
+		"kimi/kimi-k3.1-pro":                  "kimi.kimi-k3.1-pro.chat",
+		"kimi/kimi-k3.1-pro-highspeed":        "kimi.kimi-k3.1-pro-highspeed.chat",
+		"kimi/kimi-k3":                        "kimi.kimi-k3.chat",
 		"xai/grok-4.7":                        "xai.grok-4.7.responses",
 		"bedrock/amazon.nova-2-lite-v1:0":     "bedrock.amazon.nova-2-lite-v1:0.converse",
 		"bedrock/amazon.nova-pro-v1:0":        "bedrock.amazon.nova-pro-v1:0.converse",

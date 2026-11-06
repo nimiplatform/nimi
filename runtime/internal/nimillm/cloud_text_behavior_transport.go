@@ -59,6 +59,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	case "gemini":
 	case "mimo":
 	case "mistral":
+	case "kimi":
 	case "stepfun":
 	case "glm":
 	case "minimax":
@@ -94,7 +95,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	if miniMaxMessages && (target.ProviderType != "minimax" || resolvedModelID != "MiniMax-M3.1-Flash" && resolvedModelID != "MiniMax-M3") || target.ProviderType == "minimax" && !miniMaxMessages {
 		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
 	}
-	if target.ProviderType == "deepseek" || target.ProviderType == "dashscope" || target.ProviderType == "gemini" || target.ProviderType == "mimo" || target.ProviderType == "mistral" || target.ProviderType == "stepfun" {
+	if target.ProviderType == "deepseek" || target.ProviderType == "dashscope" || target.ProviderType == "gemini" || target.ProviderType == "mimo" || target.ProviderType == "mistral" || target.ProviderType == "stepfun" || target.ProviderType == "kimi" {
 		path = resolveOpenAICompatiblePath(backend.baseURL, "/chat/completions")
 	}
 	if target.ProviderType == "openai" || target.ProviderType == "xai" {
