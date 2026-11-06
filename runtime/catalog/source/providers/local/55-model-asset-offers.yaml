@@ -1466,12 +1466,12 @@ models:
           size_bytes: 415134867
           root: zh_core_web_trf/zh_core_web_trf-3.8.0
 
-  - model_id: asset-qwen3.8-27b-mmproj-bf16
+  - model_id: asset-qwen3.8-27b-mmproj
     model_type: auxiliary
     family: qwen35
     updated_at: 2026-11-04
     capabilities: []
-    source_ids: [qwen38_27b_author_modelcard, qwen38_27b_ggml_org_gguf]
+    source_ids: [qwen38_27b_ggml_org_gguf, qwen38_27b_author_modelcard]
     install:
       repo: ggml-org/Qwen3.8-27B-GGUF
       revision: a316ea527fde32c12487be7574e2db5ac2ad2a7e # pragma: allowlist secret -- public immutable model revision
@@ -1494,7 +1494,7 @@ models:
     family: gemma4
     updated_at: 2026-11-05
     capabilities: []
-    source_ids: [gemma4_12b_unified_author, gemma4_12b_qat_gguf]
+    source_ids: [gemma4_12b_qat_gguf, gemma4_12b_unified_author]
     install:
       repo: google/gemma-4-12B-it-qat-q4_0-gguf
       revision: 29d097773436b69ff9feafd636ab4cf873786537 # pragma: allowlist secret -- public model revision

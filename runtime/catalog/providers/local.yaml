@@ -6690,7 +6690,7 @@ models:
           sha256: sha256:5c177a1df422ec114b2e83da8b8906cd44890ef27300e9014349dc6efc908c0a
           size_bytes: 415134867
           root: zh_core_web_trf/zh_core_web_trf-3.8.0
-  - model_id: asset-qwen3.8-27b-mmproj-bf16
+  - model_id: asset-qwen3.8-27b-mmproj
     provider: local
     model_type: auxiliary
     updated_at: 2026-11-04
@@ -6703,9 +6703,9 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://huggingface.co/Qwen/Qwen3.8-27B/tree/1d4bf0f2ff6012fd82039f2fa52739d0dd7c60c0c0
+      url: https://huggingface.co/ggml-org/Qwen3.8-27B-GGUF/tree/a316ea527fde32c12487be7574e2db5ac2ad2a7e
       retrieved_at: 2026-11-04
-      note: Official Apache-2.0 Qwen3.8 27B model, independent from the 4B contract. Exact main GGUF stores 26895998464 parameters; optional image understanding requires its separately verified projector.
+      note: Official ggml-org Q4_K_M main and BF16 projector, independently pinned. Windows CUDA b11960 at 8192 context and 99 GPU layers passed base text, sync/stream tools, schema with native low/medium/xhigh reasoning, vision and cancellation. The 32 GiB RAM and 24 GiB VRAM footprints include headroom above observed process peak commit 24734998528 bytes and whole-device 22457 MiB during the paired vision run on a 32 GiB RTX 5090; these are reference-context fit inputs, not universal peak or separate 24 GiB hardware certification.
     family: qwen35
     install:
       repo: ggml-org/Qwen3.8-27B-GGUF
@@ -6739,9 +6739,9 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://ai.google.dev/gemma/docs/core/model_card_4
+      url: https://huggingface.co/google/gemma-4-12B-it-qat-q4_0-gguf/tree/29d097773436b69ff9feafd636ab4cf873786537
       retrieved_at: 2026-11-05
-      note: Official Apache-2.0 Gemma 4 12B Unified model; encoder-free image and audio input, visual video input, text output, 48 layers and 256K authored context. Unified raw audio uses 640-sample frames at 16kHz, independently of the older Gemma audio encoder.
+      note: Exact official QAT Q4_0 main and paired direct projection. Windows CUDA b11960 at 8192 context passed text, sync/stream tools, strict schema with hidden budget, image and visual video input. The Chinese audio transcription sample had substantive content errors; audio transport support is not an ASR quality claim. The 16 GiB main-model RAM/VRAM fit inputs include headroom over paired-process peak commit 12679962624 bytes and observed whole-device 11649 MiB on RTX 5090, with a further 256 MiB projector allowance; these are conservative reference-context estimates, not separate small-device certification or universal peak guarantees. Global f16 KV grows by 16384 bytes/token across eight global layers; sliding-window cache is bounded.
     family: gemma4
     install:
       repo: google/gemma-4-12B-it-qat-q4_0-gguf
