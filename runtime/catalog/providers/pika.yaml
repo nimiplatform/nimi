@@ -1,13 +1,305 @@
 version: 1
 provider: pika
-catalog_version: 2026-04-18-pika-v2
-inventory_mode: dynamic_endpoint
-models: []
+catalog_version: 2026-11-07-pika-native-video
+inventory_mode: static_source
+models:
+  - model_id: pika/pika-2.5/text-to-video
+    provider: pika
+    model_type: video
+    updated_at: 2026-11-07
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: duration_s5/10, native resolution field; no audio toggle. Prompt-only generation. Original task status and complete artifact custody; no upstream cancellation claim until confirmed. Owned input workflow is not yet admitted.
+    source_ref:
+      url: https://dev.pika.art/openapi.json
+      retrieved_at: 2026-11-07
+      note: Current authentication, original job, upload, cancellation and deletion contracts.
+    video_generation:
+      modes:
+        - t2v
+      input_roles:
+        t2v:
+          - prompt
+      limits:
+        resolution:
+          - 480p
+          - 720p
+          - 1080p
+        ratio:
+          - 5:2
+          - 16:9
+          - 4:3
+          - 1:1
+          - 4:5
+          - 9:16
+        duration_sec:
+          min: 5
+          max: 10
+      options:
+        supports:
+          - resolution
+          - duration_sec
+          - seed
+          - ratio
+        constraints:
+          duration_sec:
+            allowed:
+              - 5
+              - 10
+      outputs:
+        video_url: true
+  - model_id: pika/pika-2.5/image-to-video
+    provider: pika
+    model_type: video
+    updated_at: 2026-11-07
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: duration_s5/10, native resolution field; no audio toggle. HTTPS first frame only; no aspect-ratio parameter. Original task status and complete artifact custody; no upstream cancellation claim until confirmed. Owned input workflow is not yet admitted.
+    source_ref:
+      url: https://dev.pika.art/openapi.json
+      retrieved_at: 2026-11-07
+      note: Current authentication, original job, upload, cancellation and deletion contracts.
+    features:
+      - input.image
+    video_generation:
+      modes:
+        - i2v_first_frame
+      input_roles:
+        i2v_first_frame:
+          - prompt
+          - first_frame
+      limits:
+        resolution:
+          - 480p
+          - 720p
+          - 1080p
+        duration_sec:
+          min: 5
+          max: 10
+      options:
+        supports:
+          - resolution
+          - duration_sec
+          - seed
+        constraints:
+          duration_sec:
+            allowed:
+              - 5
+              - 10
+      outputs:
+        video_url: true
+  - model_id: pika/pika-h3-flex/text-to-video
+    provider: pika
+    model_type: video
+    updated_at: 2026-11-07
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Native audio, 480p/768p native; 1080p/2k/4k explicitly upscale. rewrite=false, output_mode=video.Prompt-only generation. Original task status and complete artifact custody; no upstream cancellation claim until confirmed. Owned input workflow is not yet admitted.
+    source_ref:
+      url: https://dev.pika.art/openapi.json
+      retrieved_at: 2026-11-07
+      note: Current authentication, original job, upload, cancellation and deletion contracts.
+    video_generation:
+      modes:
+        - t2v
+      input_roles:
+        t2v:
+          - prompt
+      limits:
+        resolution:
+          - 480p
+          - 768p
+          - 1080p
+          - 2k
+          - 4k
+        ratio:
+          - auto
+          - 21:9
+          - 16:9
+          - 3:2
+          - 4:3
+          - 5:4
+          - 1:1
+          - 4:5
+          - 3:4
+          - 2:3
+          - 9:16
+          - 9:21
+        duration_sec:
+          min: 3
+          max: 15
+      options:
+        supports:
+          - resolution
+          - duration_sec
+          - seed
+          - ratio
+          - generate_audio
+        constraints:
+          generate_audio:
+            allowed:
+              - true
+      outputs:
+        video_url: true
+  - model_id: pika/pika-h3-flex/image-to-video
+    provider: pika
+    model_type: video
+    updated_at: 2026-11-07
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Native audio, 480p/768p native; 1080p/2k/4k explicitly upscale. rewrite=false, output_mode=video.HTTPS first frame and optional last frame. Original task status and complete artifact custody; no upstream cancellation claim until confirmed. Owned input workflow is not yet admitted.
+    source_ref:
+      url: https://dev.pika.art/openapi.json
+      retrieved_at: 2026-11-07
+      note: Current authentication, original job, upload, cancellation and deletion contracts.
+    features:
+      - input.image
+    video_generation:
+      modes:
+        - i2v_first_frame
+        - i2v_first_last
+      input_roles:
+        i2v_first_frame:
+          - prompt
+          - first_frame
+        i2v_first_last:
+          - prompt
+          - first_frame
+          - last_frame
+      limits:
+        resolution:
+          - 480p
+          - 768p
+          - 1080p
+          - 2k
+          - 4k
+        ratio:
+          - auto
+          - 21:9
+          - 16:9
+          - 3:2
+          - 4:3
+          - 5:4
+          - 1:1
+          - 4:5
+          - 3:4
+          - 2:3
+          - 9:16
+          - 9:21
+        duration_sec:
+          min: 3
+          max: 15
+      options:
+        supports:
+          - resolution
+          - duration_sec
+          - seed
+          - ratio
+          - generate_audio
+        constraints:
+          generate_audio:
+            allowed:
+              - true
+      outputs:
+        video_url: true
+  - model_id: pika/pika-h3-flex/reference-to-video
+    provider: pika
+    model_type: video
+    updated_at: 2026-11-07
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Native audio, 480p/768p native; 1080p/2k/4k explicitly upscale. rewrite=false, output_mode=video.Ordered HTTPS image/video/audio references (<=12; image or video required). Native codec/duration/preparation bounds remain provider-enforced. Original task status and complete artifact custody; no upstream cancellation claim until confirmed. Owned input workflow is not yet admitted.
+    source_ref:
+      url: https://dev.pika.art/openapi.json
+      retrieved_at: 2026-11-07
+      note: Current authentication, original job, upload, cancellation and deletion contracts.
+    features:
+      - input.image
+    video_generation:
+      modes:
+        - i2v_reference
+      input_roles:
+        i2v_reference:
+          - prompt
+          - reference_image
+          - reference_video
+          - reference_audio
+      reference_anchor_roles:
+        - reference_image
+        - reference_video
+      limits:
+        reference_images:
+          min: 0
+          max: 9
+        reference_videos:
+          min: 0
+          max: 3
+        reference_audios:
+          min: 0
+          max: 3
+        resolution:
+          - 480p
+          - 768p
+          - 1080p
+          - 2k
+          - 4k
+        ratio:
+          - auto
+          - 21:9
+          - 16:9
+          - 3:2
+          - 4:3
+          - 5:4
+          - 1:1
+          - 4:5
+          - 3:4
+          - 2:3
+          - 9:16
+          - 9:21
+        duration_sec:
+          min: 3
+          max: 15
+      options:
+        supports:
+          - resolution
+          - duration_sec
+          - seed
+          - ratio
+          - generate_audio
+        constraints:
+          generate_audio:
+            allowed:
+              - true
+      outputs:
+        video_url: true
 voices: []
-dynamic_inventory:
-  discovery_transport: connector_list_models
-  cache_ttl_sec: 300
-  selection_mode: pass_through
-  failure_policy: use_cache_then_fail_closed
-  allowed_capabilities:
-    - video.generate

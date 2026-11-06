@@ -49,6 +49,22 @@ func nativeMediaJSONRequest(ctx context.Context, b *Backend, method, path string
 	return nativeMediaHTTPRequest(ctx, b, method, path, "application/json", reader)
 }
 func nativeMediaHTTPRequest(ctx context.Context, b *Backend, method, path, contentType string, body io.Reader) (*http.Response, error) {
+	response, err := sendNativeMediaRequest(ctx, b, method, path, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		defer response.Body.Close()
+		var e map[string]any
+		_ = json.NewDecoder(io.LimitReader(response.Body, 64<<10)).Decode(&e)
+		return nil, MapProviderHTTPError(response.StatusCode, e)
+	}
+	return response, nil
+}
+
+// Some native APIs return an original, failed Job in a non-2xx envelope.
+// Keep transport/authentication shared while that protocol owns its status body.
+func sendNativeMediaRequest(ctx context.Context, b *Backend, method, path, contentType string, body io.Reader) (*http.Response, error) {
 	r, err := b.newRequest(ctx, method, b.baseURL+path, body)
 	if err != nil {
 		return nil, err
@@ -59,12 +75,6 @@ func nativeMediaHTTPRequest(ctx context.Context, b *Backend, method, path, conte
 	response, err := b.do(r)
 	if err != nil {
 		return nil, markNativeCreateResponseUnavailable(ctx, MapProviderRequestError(err))
-	}
-	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		defer response.Body.Close()
-		var e map[string]any
-		_ = json.NewDecoder(io.LimitReader(response.Body, 64<<10)).Decode(&e)
-		return nil, MapProviderHTTPError(response.StatusCode, e)
 	}
 	return response, nil
 }

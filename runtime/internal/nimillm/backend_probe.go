@@ -74,6 +74,9 @@ func (b *Backend) ProbeConnector(ctx context.Context) error {
 	if normalizeProbeProviderToken(strings.TrimPrefix(strings.TrimSpace(b.Name), "cloud-")) == "kling" {
 		return b.probeKlingConnector(ctx)
 	}
+	if normalizeProbeProviderToken(strings.TrimPrefix(strings.TrimSpace(b.Name), "cloud-")) == "pika" {
+		return b.probePikaConnector(ctx)
+	}
 
 	if normalizeProbeProviderToken(strings.TrimPrefix(strings.TrimSpace(b.Name), "cloud-")) == "fireworks" {
 		modelsBaseURL, err := fireworksModelsBaseURL(b.baseURL)
@@ -137,6 +140,32 @@ func (b *Backend) probeKlingConnector(ctx context.Context) error {
 		return err
 	}
 	return klingServiceError(out.Data.Code)
+}
+
+func (b *Backend) probePikaConnector(ctx context.Context) error {
+	client, err := nativeMediaBackend(ctx, MediaAdapterConfig{BaseURL: b.baseURL, APIKey: b.apiKey, Headers: b.headers, AllowLoopbackEndpoint: b.allowLoopbackEndpoint}, "pika")
+	if err != nil {
+		return err
+	}
+	defer client.client.CloseIdleConnections()
+	response, err := nativeMediaJSONRequest(ctx, client, http.MethodGet, "/billing/balance", nil)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	var out struct {
+		Unit     string `json:"unit"`
+		Currency string `json:"currency"`
+		OrgID    string `json:"org_id"`
+		Balance  *int64 `json:"balance_micro_usd"`
+	}
+	if err := DecodeResponseJSON(response, &out); err != nil {
+		return err
+	}
+	if out.Unit != "micro_usd" || out.Currency != "usd" || strings.TrimSpace(out.OrgID) == "" || out.Balance == nil {
+		return pikaOutputInvalid()
+	}
+	return nil
 }
 
 // ListModels probes provider model discovery endpoints.

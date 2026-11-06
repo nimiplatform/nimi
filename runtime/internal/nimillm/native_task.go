@@ -99,6 +99,9 @@ func requireNativeTaskPublisher(ctx context.Context) error {
 }
 
 func ValidateNativeTaskReceipt(r *NativeTaskReceipt) error {
+	if r != nil && r.Adapter == AdapterPikaTask && (!validPikaTaskID(r.TaskID) || !capabilitydriver.IsPikaVideoModel(r.Model) || r.Artifact == nil || r.Artifact.GetMimeType() != "video/mp4") {
+		return fmt.Errorf("invalid Pika original task identity")
+	}
 	if r != nil && r.Adapter == AdapterKlingTask {
 		query, mime := klingVideoQueryPath, "video/mp4"
 		if capabilitydriver.IsKlingImageModel(r.Model) {
@@ -198,7 +201,7 @@ func nativeTaskQueryPathAllowed(adapter, path string) bool {
 	case AdapterLumaTask:
 		return path == "/dream-machine/v1/generations/{task_id}"
 	case AdapterPikaTask:
-		return path == "/v1/generate/{task_id}"
+		return path == pikaQueryPath
 	case AdapterGLMTask:
 		return path == "/async-result/{task_id}" || path == "/api/paas/v4/async-result/{task_id}"
 	case AdapterMiniMaxTask:
@@ -254,6 +257,9 @@ func ObserveNativeTask(ctx context.Context, cfg MediaAdapterConfig, r *NativeTas
 	}
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	ctx = originalControlRequest(ctx)
+	if r.Adapter == AdapterPikaTask {
+		return observePikaTask(ctx, cfg, r)
+	}
 	if r.Adapter == AdapterKlingTask {
 		return observeKlingTask(ctx, cfg, r)
 	}

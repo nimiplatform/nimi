@@ -534,7 +534,7 @@ providers:
     managed_connector_supported: true
     inline_supported: true
     endpoint_requirement: explicit_required
-    inventory_mode: dynamic_endpoint
+    inventory_mode: static_source
     capabilities:
       - video.generate
     sources:

@@ -32,7 +32,9 @@ func MediaUsesNativeTask(adapter string, request *runtimev1.SubmitScenarioJobReq
 		return contract == dashScopeImageRequestContractAsyncTask || contract == dashScopeImageRequestContractAsyncText2Image
 	case AdapterMiniMaxTask, AdapterMiniMaxH3Video:
 		return modal == runtimev1.Modal_MODAL_VIDEO
-	case AdapterGLMTask, AdapterLumaTask, AdapterLumaRay32, AdapterPikaTask, AdapterRunwayTask, AdapterGeminiOmniVideo:
+	case AdapterPikaTask:
+		return modal == runtimev1.Modal_MODAL_VIDEO && capabilitydriver.IsPikaVideoModel(model)
+	case AdapterGLMTask, AdapterLumaTask, AdapterLumaRay32, AdapterRunwayTask, AdapterGeminiOmniVideo:
 		return modal == runtimev1.Modal_MODAL_VIDEO
 	case AdapterKlingTask:
 		return modal == runtimev1.Modal_MODAL_IMAGE && capabilitydriver.IsKlingImageModel(model) || modal == runtimev1.Modal_MODAL_VIDEO && capabilitydriver.IsKlingVideoModel(model)

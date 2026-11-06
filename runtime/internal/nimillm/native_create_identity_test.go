@@ -13,7 +13,8 @@ import (
 
 func TestNativeCreateRequiresReceiptIdentityBeforeAnyBodyAcquisition(t *testing.T) {
 	image := &runtimev1.SubmitScenarioJobRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "cup"}}}}
-	video := &runtimev1.SubmitScenarioJobRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VideoGenerate{VideoGenerate: &runtimev1.VideoGenerateScenarioSpec{Prompt: "pan", Mode: runtimev1.VideoMode_VIDEO_MODE_T2V}}}}
+	duration := int32(5)
+	video := &runtimev1.SubmitScenarioJobRequest{ScenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VideoGenerate{VideoGenerate: &runtimev1.VideoGenerateScenarioSpec{Prompt: "pan", Mode: runtimev1.VideoMode_VIDEO_MODE_T2V, Options: &runtimev1.VideoGenerationOptions{DurationSec: &duration, Resolution: "768p"}}}}}
 	type execute func(context.Context, MediaAdapterConfig, JobStateUpdater, string, *runtimev1.SubmitScenarioJobRequest, string) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error)
 	cases := []struct {
 		name, model string
@@ -23,7 +24,7 @@ func TestNativeCreateRequiresReceiptIdentityBeforeAnyBodyAcquisition(t *testing.
 		{"flux", "flux-pro", image, ExecuteFluxMedia},
 		{"luma", "ray", video, ExecuteLumaTask},
 		{"runway", "gen", video, ExecuteRunwayTask},
-		{"pika", "pika", video, ExecutePikaTask},
+		{"pika", "pika/pika-h3-flex/text-to-video", video, ExecutePikaTask},
 		{"kling-image", "kling-v3", image, ExecuteKlingTask},
 		{"kling-video", "kling-4.0", video, ExecuteKlingTask},
 		{"alibaba-image", "wan2.6-t2i", image, ExecuteAlibabaNative},
