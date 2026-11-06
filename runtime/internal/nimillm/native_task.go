@@ -102,6 +102,9 @@ func ValidateNativeTaskReceipt(r *NativeTaskReceipt) error {
 	if r != nil && r.Adapter == AdapterOpenRouterVideo && (!validOpenRouterTaskID(r.TaskID) || r.Model != capabilitydriver.OpenRouterVideoModel || r.Artifact == nil || r.Artifact.GetMimeType() != "video/mp4") {
 		return fmt.Errorf("invalid OpenRouter original video identity")
 	}
+	if r != nil && r.Adapter == AdapterTogetherVideo && (!validTogetherVideoID(r.TaskID) || !capabilitydriver.IsTogetherVideoModel(r.Model) || r.Artifact == nil || r.Artifact.GetMimeType() != "video/mp4") {
+		return fmt.Errorf("invalid Together original video identity")
+	}
 	if r != nil && (r.Adapter == AdapterXAIImage || r.Adapter == AdapterXAIVideo) {
 		if !validXAITaskID(r.TaskID) || r.Artifact == nil || r.Adapter == AdapterXAIImage && (!capabilitydriver.IsXAIImageModel(r.Model) || r.Artifact.GetMimeType() != "image/jpeg") || r.Adapter == AdapterXAIVideo && (!capabilitydriver.IsXAIVideoModel(r.Model) || r.Artifact.GetMimeType() != "video/mp4") {
 			return fmt.Errorf("xAI original media task identity invalid")
@@ -164,6 +167,8 @@ func nativeTaskQueryPathAllowed(adapter, path string) bool {
 	switch adapter {
 	case AdapterOpenRouterVideo:
 		return path == openRouterVideoQueryPath
+	case AdapterTogetherVideo:
+		return path == togetherVideoQueryPath
 	case AdapterXAIImage:
 		return path == xaiImageQueryPath
 	case AdapterXAIVideo:
@@ -239,6 +244,9 @@ func ObserveNativeTask(ctx context.Context, cfg MediaAdapterConfig, r *NativeTas
 	ctx = originalControlRequest(ctx)
 	if r.Adapter == AdapterOpenRouterVideo {
 		return observeOpenRouterVideo(ctx, cfg, r)
+	}
+	if r.Adapter == AdapterTogetherVideo {
+		return observeTogetherVideo(ctx, cfg, r)
 	}
 	if r.Adapter == AdapterXAIImage || r.Adapter == AdapterXAIVideo {
 		return observeXAIMedia(ctx, cfg, r)

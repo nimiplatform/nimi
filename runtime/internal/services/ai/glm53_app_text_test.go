@@ -33,6 +33,9 @@ func nativeReasoningAppFixture(t *testing.T, provider, model string, handler htt
 	if provider == "fireworks" {
 		endpoint = server.URL + "/proxy/inference/v1"
 	}
+	if provider == "together" || provider == "openrouter" {
+		endpoint = server.URL + "/proxy/openai/v1"
+	}
 	fixture := newManagedCloudScenarioTestFixture(t, provider, model, endpoint, Config{AllowLoopbackEndpoint: true})
 	target, _ := structpb.NewStruct(map[string]any{"provider": provider, "providerModelId": model, "remoteModelCatalogId": fixture.descriptor.GetRemoteModelCatalogId()})
 	config := appAIConfig("app.glm53", &runtimev1.AIConfigCapabilityIntent{CapabilityContract: "text.generate", Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{Implementation: &runtimev1.CapabilityImplementationIdentity{ImplementationId: provider, DriverId: "nimillm", DriverDialect: provider}, ConnectorRef: fixture.connectorID, ProviderModelTarget: target}}})

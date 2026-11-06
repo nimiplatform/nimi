@@ -14,7 +14,7 @@ import (
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.speech-transcription-result
 func ExecuteOpenRouterTranscribe(ctx context.Context, cfg MediaAdapterConfig, req *runtimev1.SubmitScenarioJobRequest, model string) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
-	b, err := openRouterBackend(ctx, cfg)
+	b, err := nativeMediaBackend(ctx, cfg, "openrouter")
 	if err != nil {
 		return nil, nil, "", err
 	}
@@ -30,7 +30,7 @@ func ExecuteOpenRouterTranscribe(ctx context.Context, cfg MediaAdapterConfig, re
 	if s.GetLanguage() != "" {
 		body["language"] = s.GetLanguage()
 	}
-	resp, err := openRouterRequest(ctx, b, http.MethodPost, b.compatiblePath("/audio/transcriptions"), body)
+	resp, err := nativeMediaJSONRequest(ctx, b, http.MethodPost, "/v1/audio/transcriptions", body)
 	if err != nil {
 		return nil, nil, "", err
 	}

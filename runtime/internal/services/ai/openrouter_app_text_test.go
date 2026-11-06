@@ -28,7 +28,7 @@ func TestOpenRouterProtectedTextNativeReplayAndSchema(t *testing.T) {
 						t.Error(err)
 						return
 					}
-					if r.URL.Path != "/v1/responses" || b["model"] != model || b["store"] != false || b["stream"] != true || b["provider"].(map[string]any)["require_parameters"] != true || b["provider"].(map[string]any)["allow_fallbacks"] != false {
+					if r.URL.Path != "/proxy/openai/v1/responses" || b["model"] != model || b["store"] != false || b["stream"] != true || b["provider"].(map[string]any)["require_parameters"] != true || b["provider"].(map[string]any)["allow_fallbacks"] != false {
 						t.Errorf("native request %s %v", r.URL.Path, b)
 					}
 					if calls == 2 {

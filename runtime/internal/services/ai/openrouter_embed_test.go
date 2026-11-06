@@ -34,7 +34,7 @@ func TestOpenRouterProtectedEmbeddingWidthsPurposesAndSpaces(t *testing.T) {
 					t.Error(err)
 					return
 				}
-				if r.URL.Path != "/api/v1/embeddings" || r.Header.Get("Authorization") != "Bearer test-key" || b.Model != model || len(b.Input) != 2 {
+				if r.URL.Path != "/proxy/openai/v1/embeddings" || r.Header.Get("Authorization") != "Bearer test-key" || b.Model != model || len(b.Input) != 2 {
 					t.Error("native target or input changed")
 				}
 				if strings.HasPrefix(model, "cohere/") {
@@ -58,7 +58,7 @@ func TestOpenRouterProtectedEmbeddingWidthsPurposesAndSpaces(t *testing.T) {
 				json.NewEncoder(w).Encode(map[string]any{"model": capabilitydriver.OpenRouterEmbeddingNativeModel(model), "data": []any{map[string]any{"index": 1, "embedding": second}, map[string]any{"index": 0, "embedding": first}}, "usage": map[string]any{"prompt_tokens": 8, "total_tokens": 8}})
 			}))
 			defer server.Close()
-			f := newManagedCloudScenarioTestFixture(t, "openrouter", model, server.URL+"/api/v1", Config{AllowLoopbackEndpoint: true})
+			f := newManagedCloudScenarioTestFixture(t, "openrouter", model, server.URL+"/proxy/openai/v1", Config{AllowLoopbackEndpoint: true})
 			target, _ := structpb.NewStruct(map[string]any{"provider": "openrouter", "providerModelId": model, "remoteModelCatalogId": f.descriptor.GetRemoteModelCatalogId()})
 			config := appAIConfig("app.embed", &runtimev1.AIConfigCapabilityIntent{CapabilityContract: "text.embed", Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{ConnectorRef: f.connectorID, ProviderModelTarget: target, Implementation: &runtimev1.CapabilityImplementationIdentity{ImplementationId: "openrouter", DriverId: "nimillm", DriverDialect: "openrouter"}}}})
 			if err := overwriteAIConfigStoreForTest(context.Background(), f.service.aiConfigStore, "user-001", config); err != nil {

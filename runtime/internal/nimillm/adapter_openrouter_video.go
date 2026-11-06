@@ -20,7 +20,7 @@ func ExecuteOpenRouterVideo(ctx context.Context, cfg MediaAdapterConfig, req *ru
 	if err := requireNativeTaskPublisher(ctx); err != nil {
 		return nil, nil, "", err
 	}
-	b, err := openRouterBackend(ctx, cfg)
+	b, err := nativeMediaBackend(ctx, cfg, "openrouter")
 	if err != nil {
 		return nil, nil, "", err
 	}
@@ -55,7 +55,7 @@ func ExecuteOpenRouterVideo(ctx context.Context, cfg MediaAdapterConfig, req *ru
 		body["frame_images"] = frames
 	}
 	ctx = nativeCreateRequest(ctx)
-	resp, err := openRouterRequest(ctx, b, http.MethodPost, b.compatiblePath("/videos"), body)
+	resp, err := nativeMediaJSONRequest(ctx, b, http.MethodPost, "/v1/videos", body)
 	if err != nil {
 		return nil, nil, "", err
 	}
@@ -79,12 +79,12 @@ func validOpenRouterTaskID(id string) bool {
 	}) < 0
 }
 func observeOpenRouterVideo(ctx context.Context, cfg MediaAdapterConfig, r *NativeTaskReceipt) (*NativeTaskObservation, bool, error) {
-	b, err := openRouterBackend(ctx, cfg)
+	b, err := nativeMediaBackend(ctx, cfg, "openrouter")
 	if err != nil {
 		return nil, false, err
 	}
 	defer b.client.CloseIdleConnections()
-	resp, err := openRouterRequest(ctx, b, http.MethodGet, ResolveTaskQueryPath(openRouterVideoQueryPath, r.TaskID), nil)
+	resp, err := nativeMediaJSONRequest(ctx, b, http.MethodGet, ResolveTaskQueryPath(openRouterVideoQueryPath, r.TaskID), nil)
 	if err != nil {
 		return nil, false, err
 	}
@@ -120,7 +120,7 @@ func observeOpenRouterVideo(ctx context.Context, cfg MediaAdapterConfig, r *Nati
 	a := proto.Clone(r.Artifact).(*runtimev1.ScenarioArtifact)
 	// The original task id selects the authenticated content operation. A
 	// provider-returned URL can never choose where credentials are forwarded.
-	a.Uri = b.baseURL + b.compatiblePath("/videos/"+r.TaskID+"/content?index=0")
+	a.Uri = b.baseURL + "/v1/videos/" + r.TaskID + "/content?index=0"
 	meta := map[string]any{"adapter": AdapterOpenRouterVideo}
 	if out.Usage != nil && out.Usage.Cost != nil {
 		if *out.Usage.Cost < 0 {
@@ -132,16 +132,16 @@ func observeOpenRouterVideo(ctx context.Context, cfg MediaAdapterConfig, r *Nati
 	return &NativeTaskObservation{Artifacts: []*runtimev1.ScenarioArtifact{a}}, true, nil
 }
 func openOpenRouterVideo(ctx context.Context, cfg MediaAdapterConfig, r *NativeTaskReceipt, uri string) (io.ReadCloser, string, int64, error) {
-	b, err := openRouterBackend(ctx, cfg)
+	b, err := nativeMediaBackend(ctx, cfg, "openrouter")
 	if err != nil {
 		return nil, "", 0, err
 	}
 	defer b.client.CloseIdleConnections()
-	path := b.compatiblePath("/videos/" + r.TaskID + "/content?index=0")
+	path := "/v1/videos/" + r.TaskID + "/content?index=0"
 	if uri != b.baseURL+path {
 		return nil, "", 0, openRouterOutputError()
 	}
-	response, err := openRouterRequest(ctx, b, http.MethodGet, path, nil)
+	response, err := nativeMediaJSONRequest(ctx, b, http.MethodGet, path, nil)
 	if err != nil {
 		return nil, "", 0, err
 	}

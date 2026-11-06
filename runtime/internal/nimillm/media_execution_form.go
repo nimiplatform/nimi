@@ -11,6 +11,8 @@ import (
 func MediaUsesNativeTask(adapter string, request *runtimev1.SubmitScenarioJobRequest, model string) bool {
 	modal := scenarioModal(request)
 	switch adapter {
+	case AdapterTogetherVideo:
+		return modal == runtimev1.Modal_MODAL_VIDEO && capabilitydriver.IsTogetherVideoModel(model)
 	case AdapterXAIImage:
 		return modal == runtimev1.Modal_MODAL_IMAGE && capabilitydriver.IsXAIImageModel(model)
 	case AdapterXAIVideo:

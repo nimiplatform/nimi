@@ -1,6 +1,6 @@
 version: 1
 provider: together
-catalog_version: 2026-11-07-together-reviewed-chat
+catalog_version: 2026-11-07-together-reviewed-media
 inventory_mode: static_source
 models:
   - model_id: deepseek-ai/DeepSeek-V4-Pro-0813
@@ -15,7 +15,7 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-11-07
-      notes: Reviewed serverless targets. Other capability declarations retain explicit custom-catalog paths and do not invent built-in models or deployment identities.
+      notes: Reviewed serverless targets. The embedding declaration retains explicit custom-catalog entries with a fixed output contract and captured connection; it does not invent a serverless model or a deployment identity.
     source_ref:
       url: https://docs.together.ai/docs/serverless/models
       retrieved_at: 2026-11-07
@@ -33,7 +33,7 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-11-07
-      notes: Reviewed serverless targets. Other capability declarations retain explicit custom-catalog paths and do not invent built-in models or deployment identities.
+      notes: Reviewed serverless targets. The embedding declaration retains explicit custom-catalog entries with a fixed output contract and captured connection; it does not invent a serverless model or a deployment identity.
     source_ref:
       url: https://docs.together.ai/docs/serverless/models
       retrieved_at: 2026-11-07
@@ -51,7 +51,7 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-11-07
-      notes: Reviewed serverless targets. Other capability declarations retain explicit custom-catalog paths and do not invent built-in models or deployment identities.
+      notes: Reviewed serverless targets. The embedding declaration retains explicit custom-catalog entries with a fixed output contract and captured connection; it does not invent a serverless model or a deployment identity.
     source_ref:
       url: https://docs.together.ai/docs/serverless/models
       retrieved_at: 2026-11-07
@@ -69,7 +69,7 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-11-07
-      notes: Reviewed serverless targets. Other capability declarations retain explicit custom-catalog paths and do not invent built-in models or deployment identities.
+      notes: Reviewed serverless targets. The embedding declaration retains explicit custom-catalog entries with a fixed output contract and captured connection; it does not invent a serverless model or a deployment identity.
     source_ref:
       url: https://docs.together.ai/docs/serverless/models
       retrieved_at: 2026-11-07
@@ -89,7 +89,7 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-11-07
-      notes: Reviewed serverless targets. Other capability declarations retain explicit custom-catalog paths and do not invent built-in models or deployment identities.
+      notes: Reviewed serverless targets. The embedding declaration retains explicit custom-catalog entries with a fixed output contract and captured connection; it does not invent a serverless model or a deployment identity.
     source_ref:
       url: https://docs.together.ai/docs/serverless/models
       retrieved_at: 2026-11-07
@@ -109,7 +109,7 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-11-07
-      notes: Reviewed serverless targets. Other capability declarations retain explicit custom-catalog paths and do not invent built-in models or deployment identities.
+      notes: Reviewed serverless targets. The embedding declaration retains explicit custom-catalog entries with a fixed output contract and captured connection; it does not invent a serverless model or a deployment identity.
     source_ref:
       url: https://docs.together.ai/docs/serverless/models
       retrieved_at: 2026-11-07
@@ -127,7 +127,7 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-11-07
-      notes: Reviewed serverless targets. Other capability declarations retain explicit custom-catalog paths and do not invent built-in models or deployment identities.
+      notes: Reviewed serverless targets. The embedding declaration retains explicit custom-catalog entries with a fixed output contract and captured connection; it does not invent a serverless model or a deployment identity.
     source_ref:
       url: https://docs.together.ai/docs/serverless/models
       retrieved_at: 2026-11-07
@@ -145,7 +145,7 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-11-07
-      notes: Reviewed serverless targets. Other capability declarations retain explicit custom-catalog paths and do not invent built-in models or deployment identities.
+      notes: Reviewed serverless targets. The embedding declaration retains explicit custom-catalog entries with a fixed output contract and captured connection; it does not invent a serverless model or a deployment identity.
     source_ref:
       url: https://docs.together.ai/docs/serverless/models
       retrieved_at: 2026-11-07
@@ -163,7 +163,7 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-11-07
-      notes: Reviewed serverless targets. Other capability declarations retain explicit custom-catalog paths and do not invent built-in models or deployment identities.
+      notes: Reviewed serverless targets. The embedding declaration retains explicit custom-catalog entries with a fixed output contract and captured connection; it does not invent a serverless model or a deployment identity.
     source_ref:
       url: https://docs.together.ai/docs/serverless/models
       retrieved_at: 2026-11-07
@@ -181,7 +181,7 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-11-07
-      notes: Reviewed serverless targets. Other capability declarations retain explicit custom-catalog paths and do not invent built-in models or deployment identities.
+      notes: Reviewed serverless targets. The embedding declaration retains explicit custom-catalog entries with a fixed output contract and captured connection; it does not invent a serverless model or a deployment identity.
     source_ref:
       url: https://docs.together.ai/docs/serverless/models
       retrieved_at: 2026-11-07
@@ -199,7 +199,7 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-11-07
-      notes: Reviewed serverless targets. Other capability declarations retain explicit custom-catalog paths and do not invent built-in models or deployment identities.
+      notes: Reviewed serverless targets. The embedding declaration retains explicit custom-catalog entries with a fixed output contract and captured connection; it does not invent a serverless model or a deployment identity.
     source_ref:
       url: https://docs.together.ai/docs/serverless/models
       retrieved_at: 2026-11-07
@@ -217,7 +217,7 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-11-07
-      notes: Reviewed serverless targets. Other capability declarations retain explicit custom-catalog paths and do not invent built-in models or deployment identities.
+      notes: Reviewed serverless targets. The embedding declaration retains explicit custom-catalog entries with a fixed output contract and captured connection; it does not invent a serverless model or a deployment identity.
     source_ref:
       url: https://docs.together.ai/docs/serverless/models
       retrieved_at: 2026-11-07
@@ -225,4 +225,448 @@ models:
     features:
       - input.image
     context_window_tokens: 262144
-voices: []
+  - model_id: black-forest-labs/FLUX.2-dev
+    provider: together
+    model_type: image
+    updated_at: 2026-11-07
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Finite PNG/JPEG bytes. 256-1920px in multiples of eight; aspect ratio maps to a reviewed size or must match a supplied size. One public HTTPS reference URL; uploaded reference artifacts, masks, markup and negative prompts are not mapped.
+    source_ref:
+      url: https://docs.together.ai/docs/serverless/models
+      retrieved_at: 2026-11-07
+      note: Official Together contract; real account inference is recorded separately.
+    features:
+      - input.image
+    image_request_options:
+      response_formats:
+        - b64_json
+      max_images_per_request: 4
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: false
+      supports_style: false
+  - model_id: black-forest-labs/FLUX.2-pro
+    provider: together
+    model_type: image
+    updated_at: 2026-11-07
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Finite PNG/JPEG bytes. 256-1920px in multiples of eight; aspect ratio maps to a reviewed size or must match a supplied size. One public HTTPS reference URL; uploaded reference artifacts, masks, markup and negative prompts are not mapped.
+    source_ref:
+      url: https://docs.together.ai/docs/serverless/models
+      retrieved_at: 2026-11-07
+      note: Official Together contract; real account inference is recorded separately.
+    features:
+      - input.image
+    image_request_options:
+      response_formats:
+        - b64_json
+      max_images_per_request: 4
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: false
+      supports_style: false
+  - model_id: Wan-AI/wan2.7-t2v
+    provider: together
+    model_type: video
+    updated_at: 2026-11-07
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Original v2 video job; 2-15 seconds, 30fps and native audio. First/last images use owned PNG/JPEG. No upstream cancel or fee-stop claim; continuation, R2V and audio inputs are not mapped.
+    source_ref:
+      url: https://docs.together.ai/docs/serverless/models
+      retrieved_at: 2026-11-07
+      note: Official Together contract; real account inference is recorded separately.
+    video_generation:
+      modes:
+        - t2v
+      input_roles:
+        t2v:
+          - prompt
+      limits:
+        resolution:
+          - 720p
+          - 1080p
+        ratio:
+          - 16:9
+          - 9:16
+          - 1:1
+          - 4:3
+          - 3:4
+        duration_sec:
+          min: 2
+          max: 15
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+          - fps
+          - seed
+          - generate_audio
+        constraints:
+          fps:
+            allowed:
+              - 30
+          generate_audio:
+            allowed:
+              - true
+      outputs:
+        video_url: true
+  - model_id: Wan-AI/wan2.7-i2v
+    provider: together
+    model_type: video
+    updated_at: 2026-11-07
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Original v2 video job; 2-15 seconds, 30fps and native audio. First/last images use owned PNG/JPEG. No upstream cancel or fee-stop claim; continuation, R2V and audio inputs are not mapped.
+    source_ref:
+      url: https://docs.together.ai/docs/serverless/models
+      retrieved_at: 2026-11-07
+      note: Official Together contract; real account inference is recorded separately.
+    features:
+      - input.image
+    video_generation:
+      modes:
+        - i2v_first_frame
+        - i2v_first_last
+      input_roles:
+        i2v_first_frame:
+          - prompt
+          - first_frame
+        i2v_first_last:
+          - prompt
+          - first_frame
+          - last_frame
+      limits:
+        resolution:
+          - 720p
+          - 1080p
+        ratio:
+          - 16:9
+          - 9:16
+          - 1:1
+          - 4:3
+          - 3:4
+        duration_sec:
+          min: 2
+          max: 15
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+          - fps
+          - seed
+          - generate_audio
+        constraints:
+          fps:
+            allowed:
+              - 30
+          generate_audio:
+            allowed:
+              - true
+      outputs:
+        video_url: true
+  - model_id: Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice
+    provider: together
+    model_type: tts
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Finite preset WAV/MP3 at 8000 or 24000Hz. No cloned voice, alignment or separate speed/pitch/emotion controls.
+    source_ref:
+      url: https://docs.together.ai/docs/serverless/models
+      retrieved_at: 2026-11-07
+      note: Official Together contract; real account inference is recorded separately.
+    voice_set_id: together:together-qwen3-customvoice
+    voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - wav
+        - mp3
+      supports_language: true
+    voice_ref_kinds:
+      - preset_voice_id
+  - model_id: openai/whisper-large-v3
+    provider: together
+    model_type: stt
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Finite owned WAV/MP3; native prompt, language and word timing. No diarization or invented no-speech/billing facts.
+    source_ref:
+      url: https://docs.together.ai/docs/serverless/models
+      retrieved_at: 2026-11-07
+      note: Official Together contract; real account inference is recorded separately.
+  - model_id: nvidia/parakeet-tdt-0.6b-v3
+    provider: together
+    model_type: stt
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Finite owned WAV/MP3 transcript only; prompt, explicit language and word timing are not mapped. Streaming in the upstream model name does not declare a Runtime realtime capability.
+    source_ref:
+      url: https://docs.together.ai/docs/serverless/models
+      retrieved_at: 2026-11-07
+      note: Official Together contract; real account inference is recorded separately.
+  - model_id: nvidia/nemotron-3.5-asr-streaming-0.6b
+    provider: together
+    model_type: stt
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Finite owned WAV/MP3 transcript only; prompt, explicit language and word timing are not mapped. Streaming in the upstream model name does not declare a Runtime realtime capability.
+    source_ref:
+      url: https://docs.together.ai/docs/serverless/models
+      retrieved_at: 2026-11-07
+      note: Official Together contract; real account inference is recorded separately.
+voices:
+  - voice_id: vivian
+    voice_set_id: together:together-qwen3-customvoice
+    provider: together
+    name: vivian
+    langs:
+      - zh
+      - en
+      - fr
+      - de
+      - it
+      - ja
+      - ko
+      - pt
+      - ru
+      - es
+    model_ids:
+      - Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice
+    source_ref:
+      url: https://docs.together.ai/docs/inference/text-to-speech/overview
+      retrieved_at: 2026-11-07
+      note: Official exact native media contract; engineering and account acceptance are separate.
+  - voice_id: serena
+    voice_set_id: together:together-qwen3-customvoice
+    provider: together
+    name: serena
+    langs:
+      - zh
+      - en
+      - fr
+      - de
+      - it
+      - ja
+      - ko
+      - pt
+      - ru
+      - es
+    model_ids:
+      - Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice
+    source_ref:
+      url: https://docs.together.ai/docs/inference/text-to-speech/overview
+      retrieved_at: 2026-11-07
+      note: Official exact native media contract; engineering and account acceptance are separate.
+  - voice_id: uncle_fu
+    voice_set_id: together:together-qwen3-customvoice
+    provider: together
+    name: uncle fu
+    langs:
+      - zh
+      - en
+      - fr
+      - de
+      - it
+      - ja
+      - ko
+      - pt
+      - ru
+      - es
+    model_ids:
+      - Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice
+    source_ref:
+      url: https://docs.together.ai/docs/inference/text-to-speech/overview
+      retrieved_at: 2026-11-07
+      note: Official exact native media contract; engineering and account acceptance are separate.
+  - voice_id: dylan
+    voice_set_id: together:together-qwen3-customvoice
+    provider: together
+    name: dylan
+    langs:
+      - zh
+      - en
+      - fr
+      - de
+      - it
+      - ja
+      - ko
+      - pt
+      - ru
+      - es
+    model_ids:
+      - Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice
+    source_ref:
+      url: https://docs.together.ai/docs/inference/text-to-speech/overview
+      retrieved_at: 2026-11-07
+      note: Official exact native media contract; engineering and account acceptance are separate.
+  - voice_id: eric
+    voice_set_id: together:together-qwen3-customvoice
+    provider: together
+    name: eric
+    langs:
+      - zh
+      - en
+      - fr
+      - de
+      - it
+      - ja
+      - ko
+      - pt
+      - ru
+      - es
+    model_ids:
+      - Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice
+    source_ref:
+      url: https://docs.together.ai/docs/inference/text-to-speech/overview
+      retrieved_at: 2026-11-07
+      note: Official exact native media contract; engineering and account acceptance are separate.
+  - voice_id: ryan
+    voice_set_id: together:together-qwen3-customvoice
+    provider: together
+    name: ryan
+    langs:
+      - zh
+      - en
+      - fr
+      - de
+      - it
+      - ja
+      - ko
+      - pt
+      - ru
+      - es
+    model_ids:
+      - Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice
+    source_ref:
+      url: https://docs.together.ai/docs/inference/text-to-speech/overview
+      retrieved_at: 2026-11-07
+      note: Official exact native media contract; engineering and account acceptance are separate.
+  - voice_id: aiden
+    voice_set_id: together:together-qwen3-customvoice
+    provider: together
+    name: aiden
+    langs:
+      - zh
+      - en
+      - fr
+      - de
+      - it
+      - ja
+      - ko
+      - pt
+      - ru
+      - es
+    model_ids:
+      - Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice
+    source_ref:
+      url: https://docs.together.ai/docs/inference/text-to-speech/overview
+      retrieved_at: 2026-11-07
+      note: Official exact native media contract; engineering and account acceptance are separate.
+  - voice_id: ono_anna
+    voice_set_id: together:together-qwen3-customvoice
+    provider: together
+    name: ono anna
+    langs:
+      - zh
+      - en
+      - fr
+      - de
+      - it
+      - ja
+      - ko
+      - pt
+      - ru
+      - es
+    model_ids:
+      - Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice
+    source_ref:
+      url: https://docs.together.ai/docs/inference/text-to-speech/overview
+      retrieved_at: 2026-11-07
+      note: Official exact native media contract; engineering and account acceptance are separate.
+  - voice_id: sohee
+    voice_set_id: together:together-qwen3-customvoice
+    provider: together
+    name: sohee
+    langs:
+      - zh
+      - en
+      - fr
+      - de
+      - it
+      - ja
+      - ko
+      - pt
+      - ru
+      - es
+    model_ids:
+      - Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice
+    source_ref:
+      url: https://docs.together.ai/docs/inference/text-to-speech/overview
+      retrieved_at: 2026-11-07
+      note: Official exact native media contract; engineering and account acceptance are separate.

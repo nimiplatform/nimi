@@ -35,7 +35,7 @@ func TestTogetherProtectedAppNativeReplayImagesAndStrictSchema(t *testing.T) {
 						t.Error(err)
 						return
 					}
-					if r.URL.Path != "/v1/chat/completions" || r.Header.Get("Authorization") != "Bearer test-key" || body["model"] != model || body["stream"] != stream || body["max_tokens"] != float64(4096) || body["context_length_exceeded_behavior"] != "error" || body["reasoning_effort"] != nil || body["reasoning_history"] != nil {
+					if r.URL.Path != "/proxy/openai/v1/chat/completions" || r.Header.Get("Authorization") != "Bearer test-key" || body["model"] != model || body["stream"] != stream || body["max_tokens"] != float64(4096) || body["context_length_exceeded_behavior"] != "error" || body["reasoning_effort"] != nil || body["reasoning_history"] != nil {
 						t.Errorf("wrong native transport %s %v", r.URL.Path, body)
 					}
 					messages := body["messages"].([]any)

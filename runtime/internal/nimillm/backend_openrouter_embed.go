@@ -25,7 +25,7 @@ func (b *Backend) EmbedOpenRouter(ctx context.Context, model string, inputs []st
 		}
 		body["input_type"] = kind
 	}
-	response, err := openRouterRequest(ctx, b, http.MethodPost, b.compatiblePath("/embeddings"), body)
+	response, err := nativeMediaJSONRequest(ctx, b, http.MethodPost, "/v1/embeddings", body)
 	if err != nil {
 		return nil, nil, err
 	}

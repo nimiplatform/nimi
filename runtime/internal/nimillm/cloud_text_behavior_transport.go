@@ -113,6 +113,14 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	if target.ProviderType == "openai" || target.ProviderType == "xai" || target.ProviderType == "openrouter" {
 		path = resolveOpenAICompatiblePath(backend.baseURL, "/responses")
 	}
+	// These native protocols retain /v1 even behind a configured proxy whose
+	// path happens to end in /openai or /api/v3. A path name is not a provider.
+	if target.ProviderType == "together" {
+		path = "/v1/chat/completions"
+	}
+	if target.ProviderType == "openrouter" {
+		path = "/v1/responses"
+	}
 	if target.ProviderType == "perplexity" {
 		path = resolveOpenAICompatiblePath(backend.baseURL, "/agent")
 	}

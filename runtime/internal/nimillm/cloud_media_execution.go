@@ -57,6 +57,14 @@ func (p *CloudProvider) ExecuteMediaAdapter(
 		err           error
 	)
 	switch strings.TrimSpace(adapter) {
+	case capabilitydriver.CloudMediaAdapterTogetherImage:
+		artifacts, usage, providerJobID, err = ExecuteTogetherImage(ctx, cfg, request, modelID)
+	case capabilitydriver.CloudMediaAdapterTogetherSpeech:
+		artifacts, usage, providerJobID, err = ExecuteTogetherSpeech(ctx, cfg, request, modelID)
+	case capabilitydriver.CloudMediaAdapterTogetherTranscribe:
+		artifacts, usage, providerJobID, err = ExecuteTogetherTranscribe(ctx, cfg, request, modelID)
+	case AdapterTogetherVideo:
+		artifacts, usage, providerJobID, err = ExecuteTogetherVideo(ctx, cfg, request, modelID)
 	case capabilitydriver.CloudMediaAdapterOpenRouterImage:
 		artifacts, usage, providerJobID, err = ExecuteOpenRouterImage(ctx, cfg, request, modelID)
 	case capabilitydriver.CloudMediaAdapterOpenRouterSpeech:

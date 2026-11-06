@@ -1,6 +1,6 @@
 schema_version: 3
 provider: together
-catalog_version: 2026-11-07-together-reviewed-chat
+catalog_version: 2026-11-07-together-reviewed-media
 generated_target: runtime/catalog/providers/together.yaml
 runtime:
   runtime_plane: remote
@@ -27,7 +27,7 @@ defaults:
     output: unknown
     currency: USD
     as_of: 2026-11-07
-    notes: Reviewed serverless targets. Other capability declarations retain explicit custom-catalog paths and do not invent built-in models or deployment identities.
+    notes: Reviewed serverless targets. The embedding declaration retains explicit custom-catalog entries with a fixed output contract and captured connection; it does not invent a serverless model or a deployment identity.
 sources:
   - source_id: together_serverless
     url: https://docs.together.ai/docs/serverless/models
@@ -57,6 +57,30 @@ sources:
     url: https://docs.together.ai/docs/deepseek-v4-quickstart
     retrieved_at: 2026-11-07
     note: Official Together contract; real account inference is recorded separately.
+  - source_id: together_images
+    url: https://docs.together.ai/reference/post-images-generations
+    retrieved_at: 2026-11-07
+    note: Official exact native media contract; engineering and account acceptance are separate.
+  - source_id: together_flux
+    url: https://docs.together.ai/docs/quickstart-flux
+    retrieved_at: 2026-11-07
+    note: Official exact native media contract; engineering and account acceptance are separate.
+  - source_id: together_video
+    url: https://docs.together.ai/reference/create-videos
+    retrieved_at: 2026-11-07
+    note: Official exact native media contract; engineering and account acceptance are separate.
+  - source_id: together_wan
+    url: https://docs.together.ai/docs/wan2.7-quickstart
+    retrieved_at: 2026-11-07
+    note: Official exact native media contract; engineering and account acceptance are separate.
+  - source_id: together_speech
+    url: https://docs.together.ai/docs/inference/text-to-speech/overview
+    retrieved_at: 2026-11-07
+    note: Official exact native media contract; engineering and account acceptance are separate.
+  - source_id: together_transcribe
+    url: https://docs.together.ai/reference/audio-transcriptions
+    retrieved_at: 2026-11-07
+    note: Official exact native media contract; engineering and account acceptance are separate.
 models:
   - model_id: deepseek-ai/DeepSeek-V4-Pro-0813
     model_type: chat
@@ -190,3 +214,294 @@ models:
       - together_chat
       - together_reasoning
       - together_structured
+  - model_id: black-forest-labs/FLUX.2-dev
+    model_type: image
+    updated_at: 2026-11-07
+    capabilities:
+      - image.generate
+    features:
+      - input.image
+    image_request_options:
+      response_formats:
+        - b64_json
+      max_images_per_request: 4
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: false
+      supports_style: false
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Finite PNG/JPEG bytes. 256-1920px in multiples of eight; aspect ratio maps to a reviewed size or must match a supplied size. One public HTTPS reference URL; uploaded reference artifacts, masks, markup and negative prompts are not mapped.
+    source_ids:
+      - together_serverless
+      - together_images
+      - together_flux
+  - model_id: black-forest-labs/FLUX.2-pro
+    model_type: image
+    updated_at: 2026-11-07
+    capabilities:
+      - image.generate
+    features:
+      - input.image
+    image_request_options:
+      response_formats:
+        - b64_json
+      max_images_per_request: 4
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: true
+      supports_quality: false
+      supports_style: false
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Finite PNG/JPEG bytes. 256-1920px in multiples of eight; aspect ratio maps to a reviewed size or must match a supplied size. One public HTTPS reference URL; uploaded reference artifacts, masks, markup and negative prompts are not mapped.
+    source_ids:
+      - together_serverless
+      - together_images
+      - together_flux
+  - model_id: Wan-AI/wan2.7-t2v
+    model_type: video
+    updated_at: 2026-11-07
+    capabilities:
+      - video.generate
+    video_generation:
+      modes:
+        - t2v
+      input_roles:
+        t2v:
+          - prompt
+      limits:
+        resolution:
+          - 720p
+          - 1080p
+        ratio:
+          - 16:9
+          - 9:16
+          - 1:1
+          - 4:3
+          - 3:4
+        duration_sec:
+          min: 2
+          max: 15
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+          - fps
+          - seed
+          - generate_audio
+        constraints:
+          fps:
+            allowed:
+              - 30
+          generate_audio:
+            allowed:
+              - true
+      outputs:
+        video_url: true
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Original v2 video job; 2-15 seconds, 30fps and native audio. First/last images use owned PNG/JPEG. No upstream cancel or fee-stop claim; continuation, R2V and audio inputs are not mapped.
+    source_ids:
+      - together_serverless
+      - together_video
+      - together_wan
+  - model_id: Wan-AI/wan2.7-i2v
+    model_type: video
+    updated_at: 2026-11-07
+    capabilities:
+      - video.generate
+    features:
+      - input.image
+    video_generation:
+      modes:
+        - i2v_first_frame
+        - i2v_first_last
+      input_roles:
+        i2v_first_frame:
+          - prompt
+          - first_frame
+        i2v_first_last:
+          - prompt
+          - first_frame
+          - last_frame
+      limits:
+        resolution:
+          - 720p
+          - 1080p
+        ratio:
+          - 16:9
+          - 9:16
+          - 1:1
+          - 4:3
+          - 3:4
+        duration_sec:
+          min: 2
+          max: 15
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+          - fps
+          - seed
+          - generate_audio
+        constraints:
+          fps:
+            allowed:
+              - 30
+          generate_audio:
+            allowed:
+              - true
+      outputs:
+        video_url: true
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Original v2 video job; 2-15 seconds, 30fps and native audio. First/last images use owned PNG/JPEG. No upstream cancel or fee-stop claim; continuation, R2V and audio inputs are not mapped.
+    source_ids:
+      - together_serverless
+      - together_video
+      - together_wan
+  - model_id: Qwen/Qwen3-TTS-12Hz-1.7B-CustomVoice
+    model_type: tts
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.synthesize
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: together-qwen3-customvoice
+      supports_voice_ref_kinds:
+        - preset_voice_id
+      langs_ref: together_qwen3_languages
+      request_options:
+        timing_modes:
+          - none
+        audio_formats:
+          - wav
+          - mp3
+        supports_language: true
+        supports_native_stream_tts: false
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Finite preset WAV/MP3 at 8000 or 24000Hz. No cloned voice, alignment or separate speed/pitch/emotion controls.
+    source_ids:
+      - together_serverless
+      - together_speech
+  - model_id: openai/whisper-large-v3
+    model_type: stt
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Finite owned WAV/MP3; native prompt, language and word timing. No diarization or invented no-speech/billing facts.
+    source_ids:
+      - together_serverless
+      - together_transcribe
+  - model_id: nvidia/parakeet-tdt-0.6b-v3
+    model_type: stt
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Finite owned WAV/MP3 transcript only; prompt, explicit language and word timing are not mapped. Streaming in the upstream model name does not declare a Runtime realtime capability.
+    source_ids:
+      - together_serverless
+      - together_transcribe
+  - model_id: nvidia/nemotron-3.5-asr-streaming-0.6b
+    model_type: stt
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Finite owned WAV/MP3 transcript only; prompt, explicit language and word timing are not mapped. Streaming in the upstream model name does not declare a Runtime realtime capability.
+    source_ids:
+      - together_serverless
+      - together_transcribe
+language_profiles:
+  together_qwen3_languages:
+    - zh
+    - en
+    - fr
+    - de
+    - it
+    - ja
+    - ko
+    - pt
+    - ru
+    - es
+voice_sets:
+  - voice_set_id: together-qwen3-customvoice
+    langs_ref: together_qwen3_languages
+    source_ids:
+      - together_speech
+    voices:
+      - voice_id: vivian
+        name: vivian
+        langs_ref: together_qwen3_languages
+      - voice_id: serena
+        name: serena
+        langs_ref: together_qwen3_languages
+      - voice_id: uncle_fu
+        name: uncle fu
+        langs_ref: together_qwen3_languages
+      - voice_id: dylan
+        name: dylan
+        langs_ref: together_qwen3_languages
+      - voice_id: eric
+        name: eric
+        langs_ref: together_qwen3_languages
+      - voice_id: ryan
+        name: ryan
+        langs_ref: together_qwen3_languages
+      - voice_id: aiden
+        name: aiden
+        langs_ref: together_qwen3_languages
+      - voice_id: ono_anna
+        name: ono anna
+        langs_ref: together_qwen3_languages
+      - voice_id: sohee
+        name: sohee
+        langs_ref: together_qwen3_languages

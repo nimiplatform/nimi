@@ -6,10 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"image"
-	"io"
 	"net/http"
-	"strings"
-	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
@@ -20,57 +17,8 @@ import (
 const AdapterOpenRouterVideo = capabilitydriver.CloudMediaAdapterOpenRouterVideo
 const openRouterVideoQueryPath = "/v1/videos/{task_id}"
 
-func openRouterBackend(ctx context.Context, cfg MediaAdapterConfig) (*Backend, error) {
-	key, err := requireProviderAPIKey(cfg.APIKey)
-	if err != nil {
-		return nil, err
-	}
-	base := strings.TrimSuffix(strings.TrimRight(cfg.BaseURL, "/"), "/v1")
-	transport, err := securedProviderTransport(ctx, base, cfg.AllowLoopbackEndpoint)
-	if err != nil {
-		return nil, err
-	}
-	b := newBackend("cloud-openrouter", base, key, cfg.Headers, 5*time.Minute, transport, true, cfg.AllowLoopbackEndpoint)
-	if b == nil {
-		transport.CloseIdleConnections()
-		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-	}
-	b.client.CheckRedirect = func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }
-	return b, nil
-}
 func openRouterOutputError() error {
 	return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-}
-func openRouterRequest(ctx context.Context, b *Backend, method, path string, body any) (*http.Response, error) {
-	var reader io.Reader
-	if body != nil {
-		data, err := json.Marshal(body)
-		if err != nil {
-			return nil, err
-		}
-		if len(data) > 96<<20 {
-			return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
-		}
-		reader = bytes.NewReader(data)
-	}
-	r, err := b.newRequest(ctx, method, b.baseURL+path, reader)
-	if err != nil {
-		return nil, err
-	}
-	r.Header.Del("x-api-key")
-	r.Header.Set("Authorization", "Bearer "+b.apiKey)
-	r.Header.Set("Content-Type", "application/json")
-	response, err := b.do(r)
-	if err != nil {
-		return nil, markNativeCreateResponseUnavailable(ctx, MapProviderRequestError(err))
-	}
-	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		defer response.Body.Close()
-		var e map[string]any
-		_ = json.NewDecoder(io.LimitReader(response.Body, 64<<10)).Decode(&e)
-		return nil, MapProviderHTTPError(response.StatusCode, e)
-	}
-	return response, nil
 }
 
 type openRouterUsage struct {
@@ -116,7 +64,7 @@ func (u *openRouterUsage) stats() (*runtimev1.UsageStats, error) {
 }
 
 func ExecuteOpenRouterImage(ctx context.Context, cfg MediaAdapterConfig, req *runtimev1.SubmitScenarioJobRequest, model string) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
-	b, err := openRouterBackend(ctx, cfg)
+	b, err := nativeMediaBackend(ctx, cfg, "openrouter")
 	if err != nil {
 		return nil, nil, "", err
 	}
@@ -149,7 +97,7 @@ func ExecuteOpenRouterImage(ctx context.Context, cfg MediaAdapterConfig, req *ru
 		}
 		body["input_references"] = []any{map[string]any{"type": "image_url", "image_url": map[string]any{"url": "data:" + ref.MIMEType + ";base64," + base64.StdEncoding.EncodeToString(ref.Bytes)}}}
 	}
-	resp, err := openRouterRequest(ctx, b, http.MethodPost, b.compatiblePath("/images"), body)
+	resp, err := nativeMediaJSONRequest(ctx, b, http.MethodPost, "/v1/images", body)
 	if err != nil {
 		return nil, nil, "", err
 	}
@@ -193,13 +141,13 @@ func ExecuteOpenRouterImage(ctx context.Context, cfg MediaAdapterConfig, req *ru
 }
 
 func ExecuteOpenRouterSpeech(ctx context.Context, cfg MediaAdapterConfig, req *runtimev1.SubmitScenarioJobRequest, model string) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
-	b, err := openRouterBackend(ctx, cfg)
+	b, err := nativeMediaBackend(ctx, cfg, "openrouter")
 	if err != nil {
 		return nil, nil, "", err
 	}
 	defer b.client.CloseIdleConnections()
 	s := req.GetSpec().GetSpeechSynthesize()
-	resp, err := openRouterRequest(ctx, b, http.MethodPost, b.compatiblePath("/audio/speech"), map[string]any{"model": model, "input": s.GetText(), "voice": s.GetVoiceRef().GetPresetVoiceId(), "response_format": "mp3"})
+	resp, err := nativeMediaJSONRequest(ctx, b, http.MethodPost, "/v1/audio/speech", map[string]any{"model": model, "input": s.GetText(), "voice": s.GetVoiceRef().GetPresetVoiceId(), "response_format": "mp3"})
 	if err != nil {
 		return nil, nil, "", err
 	}

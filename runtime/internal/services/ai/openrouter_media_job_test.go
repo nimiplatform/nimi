@@ -127,16 +127,16 @@ func TestOpenRouterFiniteMediaJobsUseNativeEndpointsAndOwnedResults(t *testing.T
 					t.Error("wrong captured model or credential")
 				}
 				switch r.URL.Path {
-				case "/prefix/api/v1/images":
+				case "/prefix/openai/v1/images":
 					w.Header().Set("Content-Type", "application/json")
 					json.NewEncoder(w).Encode(map[string]any{"created": 1, "data": []any{map[string]any{"b64_json": base64.StdEncoding.EncodeToString(png), "media_type": "image/png"}}, "usage": map[string]any{"prompt_tokens": 3, "completion_tokens": 7, "total_tokens": 10}})
-				case "/prefix/api/v1/audio/speech":
+				case "/prefix/openai/v1/audio/speech":
 					if b["response_format"] != "mp3" || b["input"] != "  A short sentence.\n" || b["voice"] != "voice_478" {
 						t.Error("speech controls changed")
 					}
 					w.Header().Set("Content-Type", "audio/mpeg")
 					w.Write(mp3)
-				case "/prefix/api/v1/audio/transcriptions":
+				case "/prefix/openai/v1/audio/transcriptions":
 					audio := b["input_audio"].(map[string]any)
 					if audio["data"] != base64.StdEncoding.EncodeToString(wav) || audio["format"] != "wav" || b["prompt"] != nil {
 						t.Error("recording or unsupported prompt changed")
@@ -153,7 +153,7 @@ func TestOpenRouterFiniteMediaJobsUseNativeEndpointsAndOwnedResults(t *testing.T
 				}
 			}))
 			defer server.Close()
-			f := newManagedCloudScenarioTestFixture(t, "openrouter", model, server.URL+"/prefix/api/v1", Config{AllowLoopbackEndpoint: true})
+			f := newManagedCloudScenarioTestFixture(t, "openrouter", model, server.URL+"/prefix/openai/v1", Config{AllowLoopbackEndpoint: true})
 			owner := scenarioJobUserContext("app-1", "user-001")
 			request := &runtimev1.SubmitScenarioJobRequest{Head: &runtimev1.ScenarioRequestHead{AppId: "app-1", SubjectUserId: "user-001"}}
 			capability := "image.generate"
