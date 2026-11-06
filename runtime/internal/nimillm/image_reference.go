@@ -134,6 +134,12 @@ func ValidateCloudImageReferenceRequest(provider, model string, spec *runtimev1.
 	if provider == "luma" && capabilitydriver.IsLumaUniImageModel(model) {
 		return validateCapturedRasterReference(reference, spec.GetReferenceImageArtifactId(), 16<<20, 8000)
 	}
+	if provider == "siliconflow" && model == capabilitydriver.SiliconFlowImageEditModel {
+		if reference == nil || reference.MIMEType != "image/png" && reference.MIMEType != "image/jpeg" {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_MIME_MISMATCH)
+		}
+		return validateCapturedRasterReference(reference, spec.GetReferenceImageArtifactId(), 16<<20, 8000)
+	}
 	if provider == "ideogram" && model == capabilitydriver.Ideogram45Model {
 		return ValidateIdeogram45OwnedSource(spec, reference)
 	}

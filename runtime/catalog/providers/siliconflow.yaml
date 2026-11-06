@@ -1,6 +1,6 @@
 version: 1
 provider: siliconflow
-catalog_version: 2026-11-07-siliconflow-reviewed-core
+catalog_version: 2026-11-07-siliconflow-reviewed
 inventory_mode: static_source
 models:
   - model_id: deepseek-ai/DeepSeek-V4.1-Flash
@@ -209,4 +209,389 @@ models:
       note: Current official contract; origin model facts do not establish SiliconFlow account access.
     embedding:
       dimension: 4096
-voices: []
+  - model_id: OpenMOSS-Team/MOSS-Image
+    provider: siliconflow
+    model_type: image
+    updated_at: 2026-11-07
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: One output, explicit width x height (Runtime bounds 4096 per axis / 16MiPixels), actual output dimensions checked. Default provider watermark retained.
+    source_ref:
+      url: https://docs.siliconflow.cn/docs/api/images-generations-post
+      retrieved_at: 2026-11-07
+      note: Reviewed native media contract; account inference verified separately.
+    image_request_options:
+      response_formats:
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+  - model_id: Qwen/Qwen-Image
+    provider: siliconflow
+    model_type: image
+    updated_at: 2026-11-07
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: One output, explicit width x height (Runtime bounds 4096 per axis / 16MiPixels), actual output dimensions checked. Default provider watermark retained.
+    source_ref:
+      url: https://docs.siliconflow.cn/docs/api/images-generations-post
+      retrieved_at: 2026-11-07
+      note: Reviewed native media contract; account inference verified separately.
+    image_request_options:
+      response_formats:
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+  - model_id: Qwen/Qwen-Image-Edit-2509
+    provider: siliconflow
+    model_type: image
+    updated_at: 2026-11-07
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: One owned PNG/JPEG or 1-3 HTTPS references, no size field. Default provider watermark retained; actual PNG/JPEG output.
+    source_ref:
+      url: https://docs.siliconflow.cn/docs/api/images-generations-post
+      retrieved_at: 2026-11-07
+      note: Reviewed native media contract; account inference verified separately.
+    features:
+      - input.image
+    image_request_options:
+      response_formats:
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: true
+      supports_size: false
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+  - model_id: FunAudioLLM/CosyVoice2-0.5B
+    provider: siliconflow
+    model_type: tts
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Single preset finite speech only. Full model-prefixed voice ID, native speed 0.25-4. WAV 8000/16000/24000/32000/44100Hz; MP3 32000/44100Hz. Explicit default 44100Hz; no alignment, multi-speaker or saved voice workflow.
+    source_ref:
+      url: https://docs.siliconflow.cn/docs/api/audio-speech-post
+      retrieved_at: 2026-11-07
+      note: Reviewed native media contract; account inference verified separately.
+    voice_set_id: siliconflow:siliconflow-cosyvoice2
+    voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - wav
+        - mp3
+    voice_ref_kinds:
+      - preset_voice_id
+  - model_id: fnlp/MOSS-TTSD-v0.5
+    provider: siliconflow
+    model_type: tts
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Single preset finite speech only. Full model-prefixed voice ID, native speed 0.25-4. WAV 8000/16000/24000/32000/44100Hz; MP3 32000/44100Hz. Explicit default 44100Hz; no alignment, multi-speaker or saved voice workflow.
+    source_ref:
+      url: https://docs.siliconflow.cn/docs/api/audio-speech-post
+      retrieved_at: 2026-11-07
+      note: Reviewed native media contract; account inference verified separately.
+    voice_set_id: siliconflow:siliconflow-moss-ttsd
+    voice_discovery_mode: static_catalog
+    voice_request_options:
+      timing_modes:
+        - none
+      audio_formats:
+        - wav
+        - mp3
+    voice_ref_kinds:
+      - preset_voice_id
+  - model_id: FunAudioLLM/SenseVoiceSmall
+    provider: siliconflow
+    model_type: stt
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Finite owned WAV/MP3 within 50MB and one hour. Plain transcript; no language/prompt/timing/diarization control or inferred usage.
+    source_ref:
+      url: https://docs.siliconflow.cn/docs/api/audio-transcriptions-post
+      retrieved_at: 2026-11-07
+      note: Reviewed native media contract; account inference verified separately.
+  - model_id: TeleAI/TeleSpeechASR
+    provider: siliconflow
+    model_type: stt
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Finite owned WAV/MP3 within 50MB and one hour. Plain transcript; no language/prompt/timing/diarization control or inferred usage.
+    source_ref:
+      url: https://docs.siliconflow.cn/docs/api/audio-transcriptions-post
+      retrieved_at: 2026-11-07
+      note: Reviewed native media contract; account inference verified separately.
+voices:
+  - voice_id: FunAudioLLM/CosyVoice2-0.5B:alex
+    voice_set_id: siliconflow:siliconflow-cosyvoice2
+    provider: siliconflow
+    name: alex
+    langs:
+      - zh
+      - en
+    model_ids:
+      - FunAudioLLM/CosyVoice2-0.5B
+    source_ref:
+      url: https://docs.siliconflow.cn/docs/userguide/capabilities/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Reviewed native media contract; account inference verified separately.
+  - voice_id: FunAudioLLM/CosyVoice2-0.5B:benjamin
+    voice_set_id: siliconflow:siliconflow-cosyvoice2
+    provider: siliconflow
+    name: benjamin
+    langs:
+      - zh
+      - en
+    model_ids:
+      - FunAudioLLM/CosyVoice2-0.5B
+    source_ref:
+      url: https://docs.siliconflow.cn/docs/userguide/capabilities/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Reviewed native media contract; account inference verified separately.
+  - voice_id: FunAudioLLM/CosyVoice2-0.5B:charles
+    voice_set_id: siliconflow:siliconflow-cosyvoice2
+    provider: siliconflow
+    name: charles
+    langs:
+      - zh
+      - en
+    model_ids:
+      - FunAudioLLM/CosyVoice2-0.5B
+    source_ref:
+      url: https://docs.siliconflow.cn/docs/userguide/capabilities/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Reviewed native media contract; account inference verified separately.
+  - voice_id: FunAudioLLM/CosyVoice2-0.5B:david
+    voice_set_id: siliconflow:siliconflow-cosyvoice2
+    provider: siliconflow
+    name: david
+    langs:
+      - zh
+      - en
+    model_ids:
+      - FunAudioLLM/CosyVoice2-0.5B
+    source_ref:
+      url: https://docs.siliconflow.cn/docs/userguide/capabilities/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Reviewed native media contract; account inference verified separately.
+  - voice_id: FunAudioLLM/CosyVoice2-0.5B:anna
+    voice_set_id: siliconflow:siliconflow-cosyvoice2
+    provider: siliconflow
+    name: anna
+    langs:
+      - zh
+      - en
+    model_ids:
+      - FunAudioLLM/CosyVoice2-0.5B
+    source_ref:
+      url: https://docs.siliconflow.cn/docs/userguide/capabilities/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Reviewed native media contract; account inference verified separately.
+  - voice_id: FunAudioLLM/CosyVoice2-0.5B:bella
+    voice_set_id: siliconflow:siliconflow-cosyvoice2
+    provider: siliconflow
+    name: bella
+    langs:
+      - zh
+      - en
+    model_ids:
+      - FunAudioLLM/CosyVoice2-0.5B
+    source_ref:
+      url: https://docs.siliconflow.cn/docs/userguide/capabilities/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Reviewed native media contract; account inference verified separately.
+  - voice_id: FunAudioLLM/CosyVoice2-0.5B:claire
+    voice_set_id: siliconflow:siliconflow-cosyvoice2
+    provider: siliconflow
+    name: claire
+    langs:
+      - zh
+      - en
+    model_ids:
+      - FunAudioLLM/CosyVoice2-0.5B
+    source_ref:
+      url: https://docs.siliconflow.cn/docs/userguide/capabilities/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Reviewed native media contract; account inference verified separately.
+  - voice_id: FunAudioLLM/CosyVoice2-0.5B:diana
+    voice_set_id: siliconflow:siliconflow-cosyvoice2
+    provider: siliconflow
+    name: diana
+    langs:
+      - zh
+      - en
+    model_ids:
+      - FunAudioLLM/CosyVoice2-0.5B
+    source_ref:
+      url: https://docs.siliconflow.cn/docs/userguide/capabilities/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Reviewed native media contract; account inference verified separately.
+  - voice_id: fnlp/MOSS-TTSD-v0.5:alex
+    voice_set_id: siliconflow:siliconflow-moss-ttsd
+    provider: siliconflow
+    name: alex
+    langs:
+      - zh
+      - en
+    model_ids:
+      - fnlp/MOSS-TTSD-v0.5
+    source_ref:
+      url: https://docs.siliconflow.cn/docs/userguide/capabilities/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Reviewed native media contract; account inference verified separately.
+  - voice_id: fnlp/MOSS-TTSD-v0.5:benjamin
+    voice_set_id: siliconflow:siliconflow-moss-ttsd
+    provider: siliconflow
+    name: benjamin
+    langs:
+      - zh
+      - en
+    model_ids:
+      - fnlp/MOSS-TTSD-v0.5
+    source_ref:
+      url: https://docs.siliconflow.cn/docs/userguide/capabilities/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Reviewed native media contract; account inference verified separately.
+  - voice_id: fnlp/MOSS-TTSD-v0.5:charles
+    voice_set_id: siliconflow:siliconflow-moss-ttsd
+    provider: siliconflow
+    name: charles
+    langs:
+      - zh
+      - en
+    model_ids:
+      - fnlp/MOSS-TTSD-v0.5
+    source_ref:
+      url: https://docs.siliconflow.cn/docs/userguide/capabilities/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Reviewed native media contract; account inference verified separately.
+  - voice_id: fnlp/MOSS-TTSD-v0.5:david
+    voice_set_id: siliconflow:siliconflow-moss-ttsd
+    provider: siliconflow
+    name: david
+    langs:
+      - zh
+      - en
+    model_ids:
+      - fnlp/MOSS-TTSD-v0.5
+    source_ref:
+      url: https://docs.siliconflow.cn/docs/userguide/capabilities/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Reviewed native media contract; account inference verified separately.
+  - voice_id: fnlp/MOSS-TTSD-v0.5:anna
+    voice_set_id: siliconflow:siliconflow-moss-ttsd
+    provider: siliconflow
+    name: anna
+    langs:
+      - zh
+      - en
+    model_ids:
+      - fnlp/MOSS-TTSD-v0.5
+    source_ref:
+      url: https://docs.siliconflow.cn/docs/userguide/capabilities/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Reviewed native media contract; account inference verified separately.
+  - voice_id: fnlp/MOSS-TTSD-v0.5:bella
+    voice_set_id: siliconflow:siliconflow-moss-ttsd
+    provider: siliconflow
+    name: bella
+    langs:
+      - zh
+      - en
+    model_ids:
+      - fnlp/MOSS-TTSD-v0.5
+    source_ref:
+      url: https://docs.siliconflow.cn/docs/userguide/capabilities/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Reviewed native media contract; account inference verified separately.
+  - voice_id: fnlp/MOSS-TTSD-v0.5:claire
+    voice_set_id: siliconflow:siliconflow-moss-ttsd
+    provider: siliconflow
+    name: claire
+    langs:
+      - zh
+      - en
+    model_ids:
+      - fnlp/MOSS-TTSD-v0.5
+    source_ref:
+      url: https://docs.siliconflow.cn/docs/userguide/capabilities/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Reviewed native media contract; account inference verified separately.
+  - voice_id: fnlp/MOSS-TTSD-v0.5:diana
+    voice_set_id: siliconflow:siliconflow-moss-ttsd
+    provider: siliconflow
+    name: diana
+    langs:
+      - zh
+      - en
+    model_ids:
+      - fnlp/MOSS-TTSD-v0.5
+    source_ref:
+      url: https://docs.siliconflow.cn/docs/userguide/capabilities/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Reviewed native media contract; account inference verified separately.

@@ -1,6 +1,6 @@
 schema_version: 3
 provider: siliconflow
-catalog_version: 2026-11-07-siliconflow-reviewed-core
+catalog_version: 2026-11-07-siliconflow-reviewed
 generated_target: runtime/catalog/providers/siliconflow.yaml
 runtime:
   runtime_plane: remote
@@ -57,6 +57,22 @@ sources:
     url: https://huggingface.co/Qwen/Qwen3-VL-Embedding-8B
     retrieved_at: 2026-11-07
     note: Current official contract; origin model facts do not establish SiliconFlow account access.
+  - source_id: siliconflow_images
+    url: https://docs.siliconflow.cn/docs/api/images-generations-post
+    retrieved_at: 2026-11-07
+    note: Reviewed native media contract; account inference verified separately.
+  - source_id: siliconflow_speech
+    url: https://docs.siliconflow.cn/docs/api/audio-speech-post
+    retrieved_at: 2026-11-07
+    note: Reviewed native media contract; account inference verified separately.
+  - source_id: siliconflow_transcribe
+    url: https://docs.siliconflow.cn/docs/api/audio-transcriptions-post
+    retrieved_at: 2026-11-07
+    note: Reviewed native media contract; account inference verified separately.
+  - source_id: siliconflow_speech_guide
+    url: https://docs.siliconflow.cn/docs/userguide/capabilities/text-to-speech
+    retrieved_at: 2026-11-07
+    note: Reviewed native media contract; account inference verified separately.
 models:
   - model_id: deepseek-ai/DeepSeek-V4.1-Flash
     model_type: chat
@@ -244,3 +260,235 @@ models:
     source_ids:
       - siliconflow_embedding
       - qwen3_vl_embedding
+  - model_id: OpenMOSS-Team/MOSS-Image
+    model_type: image
+    updated_at: 2026-11-07
+    capabilities:
+      - image.generate
+    image_request_options:
+      response_formats:
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: One output, explicit width x height (Runtime bounds 4096 per axis / 16MiPixels), actual output dimensions checked. Default provider watermark retained.
+    source_ids:
+      - siliconflow_images
+      - siliconflow_releases
+  - model_id: Qwen/Qwen-Image
+    model_type: image
+    updated_at: 2026-11-07
+    capabilities:
+      - image.generate
+    image_request_options:
+      response_formats:
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: One output, explicit width x height (Runtime bounds 4096 per axis / 16MiPixels), actual output dimensions checked. Default provider watermark retained.
+    source_ids:
+      - siliconflow_images
+      - siliconflow_releases
+  - model_id: Qwen/Qwen-Image-Edit-2509
+    model_type: image
+    updated_at: 2026-11-07
+    capabilities:
+      - image.generate
+    features:
+      - input.image
+    image_request_options:
+      response_formats:
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: true
+      supports_size: false
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: One owned PNG/JPEG or 1-3 HTTPS references, no size field. Default provider watermark retained; actual PNG/JPEG output.
+    source_ids:
+      - siliconflow_images
+      - siliconflow_releases
+  - model_id: FunAudioLLM/CosyVoice2-0.5B
+    model_type: tts
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.synthesize
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: siliconflow-cosyvoice2
+      supports_voice_ref_kinds:
+        - preset_voice_id
+      langs_ref: siliconflow_speech_languages
+      request_options:
+        timing_modes:
+          - none
+        audio_formats:
+          - wav
+          - mp3
+        supports_language: false
+        supports_native_stream_tts: false
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Single preset finite speech only. Full model-prefixed voice ID, native speed 0.25-4. WAV 8000/16000/24000/32000/44100Hz; MP3 32000/44100Hz. Explicit default 44100Hz; no alignment, multi-speaker or saved voice workflow.
+    source_ids:
+      - siliconflow_speech
+      - siliconflow_speech_guide
+  - model_id: fnlp/MOSS-TTSD-v0.5
+    model_type: tts
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.synthesize
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: siliconflow-moss-ttsd
+      supports_voice_ref_kinds:
+        - preset_voice_id
+      langs_ref: siliconflow_speech_languages
+      request_options:
+        timing_modes:
+          - none
+        audio_formats:
+          - wav
+          - mp3
+        supports_language: false
+        supports_native_stream_tts: false
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Single preset finite speech only. Full model-prefixed voice ID, native speed 0.25-4. WAV 8000/16000/24000/32000/44100Hz; MP3 32000/44100Hz. Explicit default 44100Hz; no alignment, multi-speaker or saved voice workflow.
+    source_ids:
+      - siliconflow_speech
+      - siliconflow_speech_guide
+  - model_id: FunAudioLLM/SenseVoiceSmall
+    model_type: stt
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Finite owned WAV/MP3 within 50MB and one hour. Plain transcript; no language/prompt/timing/diarization control or inferred usage.
+    source_ids:
+      - siliconflow_transcribe
+  - model_id: TeleAI/TeleSpeechASR
+    model_type: stt
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Finite owned WAV/MP3 within 50MB and one hour. Plain transcript; no language/prompt/timing/diarization control or inferred usage.
+    source_ids:
+      - siliconflow_transcribe
+language_profiles:
+  siliconflow_speech_languages:
+    - zh
+    - en
+voice_sets:
+  - voice_set_id: siliconflow-cosyvoice2
+    langs_ref: siliconflow_speech_languages
+    source_ids:
+      - siliconflow_speech_guide
+    voices:
+      - voice_id: FunAudioLLM/CosyVoice2-0.5B:alex
+        name: alex
+        langs_ref: siliconflow_speech_languages
+      - voice_id: FunAudioLLM/CosyVoice2-0.5B:benjamin
+        name: benjamin
+        langs_ref: siliconflow_speech_languages
+      - voice_id: FunAudioLLM/CosyVoice2-0.5B:charles
+        name: charles
+        langs_ref: siliconflow_speech_languages
+      - voice_id: FunAudioLLM/CosyVoice2-0.5B:david
+        name: david
+        langs_ref: siliconflow_speech_languages
+      - voice_id: FunAudioLLM/CosyVoice2-0.5B:anna
+        name: anna
+        langs_ref: siliconflow_speech_languages
+      - voice_id: FunAudioLLM/CosyVoice2-0.5B:bella
+        name: bella
+        langs_ref: siliconflow_speech_languages
+      - voice_id: FunAudioLLM/CosyVoice2-0.5B:claire
+        name: claire
+        langs_ref: siliconflow_speech_languages
+      - voice_id: FunAudioLLM/CosyVoice2-0.5B:diana
+        name: diana
+        langs_ref: siliconflow_speech_languages
+  - voice_set_id: siliconflow-moss-ttsd
+    langs_ref: siliconflow_speech_languages
+    source_ids:
+      - siliconflow_speech_guide
+    voices:
+      - voice_id: fnlp/MOSS-TTSD-v0.5:alex
+        name: alex
+        langs_ref: siliconflow_speech_languages
+      - voice_id: fnlp/MOSS-TTSD-v0.5:benjamin
+        name: benjamin
+        langs_ref: siliconflow_speech_languages
+      - voice_id: fnlp/MOSS-TTSD-v0.5:charles
+        name: charles
+        langs_ref: siliconflow_speech_languages
+      - voice_id: fnlp/MOSS-TTSD-v0.5:david
+        name: david
+        langs_ref: siliconflow_speech_languages
+      - voice_id: fnlp/MOSS-TTSD-v0.5:anna
+        name: anna
+        langs_ref: siliconflow_speech_languages
+      - voice_id: fnlp/MOSS-TTSD-v0.5:bella
+        name: bella
+        langs_ref: siliconflow_speech_languages
+      - voice_id: fnlp/MOSS-TTSD-v0.5:claire
+        name: claire
+        langs_ref: siliconflow_speech_languages
+      - voice_id: fnlp/MOSS-TTSD-v0.5:diana
+        name: diana
+        langs_ref: siliconflow_speech_languages
