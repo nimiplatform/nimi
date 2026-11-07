@@ -41,7 +41,6 @@ func validatePikaVideo(req *runtimev1.SubmitScenarioJobRequest, model string, mo
 		}
 		switch item.GetType() {
 		case runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_ARTIFACT_REF:
-			return pikaUnsupported()
 		case runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_IMAGE_URL:
 			if !publicVideoMediaURL(item.GetImageUrl().GetUrl()) {
 				return pikaUnsupported()

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/base64"
+	"image"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
@@ -34,6 +35,8 @@ func ValidateCloudVideoMediaReferences(provider, model string, spec *runtimev1.V
 	limit := 6
 	if provider == "xai" {
 		limit = capabilitydriver.XAIVideoReferenceLimit(model)
+	} else if provider == "pika" {
+		limit = 12
 	} else if provider == "flux" || provider == "luma" {
 		limit = 2
 	} else if provider == "dashscope" {
@@ -67,6 +70,40 @@ func ValidateCloudVideoMediaReferences(provider, model string, spec *runtimev1.V
 			}
 			if err := validateCapturedXAIImage(reference, item.GetArtifactRef().GetArtifactId()); err != nil {
 				return err
+			}
+		} else if provider == "pika" {
+			total += len(reference.Bytes)
+			if total > 64_000_000 {
+				return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
+			}
+			if err := validateCapturedMediaReferenceIdentity(reference, item.GetArtifactRef().GetArtifactId()); err != nil {
+				return err
+			}
+			switch item.GetRole() {
+			case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_AUDIO:
+				if reference.MIMEType != "audio/wav" && reference.MIMEType != "audio/mpeg" {
+					return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_MIME_MISMATCH)
+				}
+				if len(reference.Bytes) > 20_000_000 {
+					return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
+				}
+			case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO:
+				if reference.MIMEType != "video/mp4" {
+					return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_MIME_MISMATCH)
+				}
+			default:
+				if len(reference.Bytes) > 20_000_000 {
+					return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
+				}
+				if err := validateCapturedRasterReference(reference, item.GetArtifactRef().GetArtifactId(), 16<<20, 8000); err != nil {
+					return err
+				}
+				if model == "pika/pika-h3-flex/reference-to-video" {
+					geometry, _, _ := image.DecodeConfig(bytes.NewReader(reference.Bytes))
+					if geometry.Width > geometry.Height*4 || geometry.Height > geometry.Width*4 {
+						return invalid
+					}
+				}
 			}
 		} else if provider == "kling" {
 			if err := validateKlingOwnedRaster(reference, item.GetArtifactRef().GetArtifactId(), 30_000_000); err != nil {

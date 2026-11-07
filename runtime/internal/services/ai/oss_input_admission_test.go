@@ -85,11 +85,11 @@ func TestWanOwnedAudioRequiresCapturedOSSAndCleanupJournalSurvivesRestart(t *tes
 	if !ok || assembly.Connector.MediaStorage == nil || len(assembly.VideoMediaReferences) != 2 || !bytes.Equal(assembly.VideoMediaReferences[1].Reference.Bytes, wav) {
 		t.Fatal("lost frozen storage or audio custody")
 	}
-	result := nimillm.OSSInputCleanup{State: "failed", Failed: 1, ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED}
+	result := nimillm.InputCleanupResult{State: "failed", Failed: 1, ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED}
 	if err := store.recordInputCleanup(id, result); err != nil {
 		t.Fatal(err)
 	}
-	if err := store.recordInputCleanup(id, nimillm.OSSInputCleanup{State: "deleted", Deleted: 1, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}); err != nil {
+	if err := store.recordInputCleanup(id, nimillm.InputCleanupResult{State: "deleted", Deleted: 1, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}); err != nil {
 		t.Fatal(err)
 	}
 	if store.currentInputCleanup(id).State != "failed" {

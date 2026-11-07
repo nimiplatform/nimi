@@ -109,12 +109,14 @@ func ExecutePikaTask(ctx context.Context, cfg MediaAdapterConfig, _ JobStateUpda
 		body["seed"] = o.GetSeed()
 	}
 	refs := []any{}
-	for _, item := range s.GetContent() {
+	uploads, _ := ctx.Value(pikaPreparedInputsKey{}).([]PikaInputUpload)
+	byIndex := map[int]PikaInputUpload{}
+	for _, upload := range uploads {
+		byIndex[upload.ContentIndex] = upload
+	}
+	for index, item := range s.GetContent() {
 		if item.GetType() == runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_TEXT {
 			continue
-		}
-		if item.GetType() == runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_ARTIFACT_REF {
-			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 		}
 		location := item.GetImageUrl().GetUrl()
 		kind := "image"
@@ -125,6 +127,19 @@ func ExecutePikaTask(ctx context.Context, cfg MediaAdapterConfig, _ JobStateUpda
 		if item.GetType() == runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_AUDIO_URL {
 			location = item.GetAudioUrl().GetUrl()
 			kind = "audio"
+		}
+		if item.GetType() == runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_ARTIFACT_REF {
+			upload, ok := byIndex[index]
+			if !ok || !upload.PutComplete {
+				return nil, nil, "", pikaCapturedInputError()
+			}
+			location = upload.URL
+			switch item.GetRole() {
+			case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_VIDEO:
+				kind = "video"
+			case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_AUDIO:
+				kind = "audio"
+			}
 		}
 		switch item.GetRole() {
 		case runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_FIRST_FRAME:

@@ -85,6 +85,29 @@ func (h *ProviderMediaHost) ExecuteMedia(
 		return capabilitydriver.CloudMediaTransportResponse{}, h.auditedError(audit, "error", err)
 	}
 	defer clearRequestScopedProviderTarget(remoteTarget)
+	if target.Provider() == "pika" {
+		// Storage preparation keeps current authority and Connector fencing, but
+		// is not the generation's durable dispatch intent.
+		prepare := h.jobOutboundContext(WithJobDispatchIntent(ctx, nil), connectorRecord, audit)
+		cfg := nimillm.MediaAdapterConfig{BaseURL: remoteTarget.Endpoint, APIKey: remoteTarget.APIKey, Headers: cloneRemoteHeaders(remoteTarget.Headers), AllowLoopbackEndpoint: h.allowLoopback}
+		uploads, err := nimillm.PreparePikaInputs(prepare, cfg)
+		if err != nil {
+			if len(uploads) > 0 {
+				cleanup, cancel := context.WithTimeout(context.WithoutCancel(prepare), 20*time.Second)
+				result := nimillm.CleanupPikaInputs(cleanup, cfg, uploads)
+				cancel()
+				if auditErr := h.recordPikaInputCleanup(audit, result); auditErr != nil {
+					result.State = "unconfirmed"
+					result.ReasonCode = mediaReasonCode(auditErr)
+				}
+				if recordErr := reportInputCleanup(ctx, result); recordErr != nil {
+					return capabilitydriver.CloudMediaTransportResponse{}, recordErr
+				}
+			}
+			return capabilitydriver.CloudMediaTransportResponse{}, h.auditedError(audit, "input_storage_error", err)
+		}
+		ctx = nimillm.WithPikaPreparedInputs(ctx, uploads)
+	}
 	if target.Provider() == "dashscope" && nimillm.AlibabaVideoRequiresOSS(request.Request().GetSpec().GetVideoGenerate()) {
 		jobID, err := connector.JobIDForCredentialCustodyRef(connectorRecord.CredentialCustodyRef)
 		if err != nil {
@@ -477,6 +500,13 @@ func (h *ProviderMediaHost) recordDispatch(audit MediaDispatchAudit, phase strin
 			payload.Fields["oss_inputs_absent"] = structpb.NewNumberValue(float64(resources.Absent))
 			payload.Fields["oss_inputs_failed"] = structpb.NewNumberValue(float64(resources.Failed))
 			payload.Fields["oss_inputs_unconfirmed"] = structpb.NewNumberValue(float64(resources.Unconfirmed))
+		}
+		if resources := cleanup[0].PikaInputs; resources != nil {
+			payload.Fields["provider_input_cleanup"] = structpb.NewStringValue(resources.State)
+			payload.Fields["provider_inputs_deleted"] = structpb.NewNumberValue(float64(resources.Deleted))
+			payload.Fields["provider_inputs_absent"] = structpb.NewNumberValue(float64(resources.Absent))
+			payload.Fields["provider_inputs_failed"] = structpb.NewNumberValue(float64(resources.Failed))
+			payload.Fields["provider_inputs_unconfirmed"] = structpb.NewNumberValue(float64(resources.Unconfirmed))
 		}
 	}
 	traceID := strings.TrimSpace(audit.TraceID)

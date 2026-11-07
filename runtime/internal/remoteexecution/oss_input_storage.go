@@ -11,35 +11,29 @@ import (
 )
 
 type OwnedMediaCleanupHost interface {
-	CleanupOwnedMedia(context.Context, connector.ConnectorRecord, capabilitydriver.CloudMediaTarget, []nimillm.CloudVideoMediaReference, MediaDispatchAudit) nimillm.OSSInputCleanup
+	CleanupOwnedMedia(context.Context, connector.ConnectorRecord, capabilitydriver.CloudMediaTarget, []nimillm.CloudVideoMediaReference, MediaDispatchAudit) nimillm.InputCleanupResult
 }
 
 type inputCleanupObserverKey struct{}
 
-func WithInputCleanupObserver(ctx context.Context, observer func(nimillm.OSSInputCleanup) error) context.Context {
+func WithInputCleanupObserver(ctx context.Context, observer func(nimillm.InputCleanupResult) error) context.Context {
 	return context.WithValue(ctx, inputCleanupObserverKey{}, observer)
 }
 
-func reportInputCleanup(ctx context.Context, result nimillm.OSSInputCleanup) error {
-	if observer, _ := ctx.Value(inputCleanupObserverKey{}).(func(nimillm.OSSInputCleanup) error); observer != nil {
+func reportInputCleanup(ctx context.Context, result nimillm.InputCleanupResult) error {
+	if observer, _ := ctx.Value(inputCleanupObserverKey{}).(func(nimillm.InputCleanupResult) error); observer != nil {
 		return observer(result)
 	}
 	return nil
 }
 
-func (h *ProviderMediaHost) recordOSSInputCleanup(audit MediaDispatchAudit, result nimillm.OSSInputCleanup) error {
-	outcome := nimillm.ProviderTaskCleanupUnconfirmed
-	if result.State == "deleted" || result.State == "not_required" {
-		outcome = nimillm.ProviderTaskCleanupResourcesDeleted
-	} else if result.State == "failed" {
-		outcome = nimillm.ProviderTaskCleanupFailed
-	}
-	return h.recordDispatch(audit, "input_storage_cleanup", result.ReasonCode, false, &nimillm.ProviderTaskCleanupObservation{Outcome: outcome, ReasonCode: result.ReasonCode, OSSInputs: &result})
+func (h *ProviderMediaHost) recordOSSInputCleanup(audit MediaDispatchAudit, result nimillm.InputCleanupResult) error {
+	return h.recordDispatch(audit, "input_storage_cleanup", result.ReasonCode, false, &nimillm.ProviderTaskCleanupObservation{Outcome: result.Outcome(), ReasonCode: result.ReasonCode, OSSInputs: &result})
 }
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.oss-input-storage
-func (h *ProviderMediaHost) CleanupOwnedMedia(ctx context.Context, captured connector.ConnectorRecord, target capabilitydriver.CloudMediaTarget, references []nimillm.CloudVideoMediaReference, audit MediaDispatchAudit) (result nimillm.OSSInputCleanup) {
-	result = nimillm.OSSInputCleanup{State: "unconfirmed", ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE}
+func (h *ProviderMediaHost) CleanupOwnedMedia(ctx context.Context, captured connector.ConnectorRecord, target capabilitydriver.CloudMediaTarget, references []nimillm.CloudVideoMediaReference, audit MediaDispatchAudit) (result nimillm.InputCleanupResult) {
+	result = nimillm.InputCleanupResult{State: "unconfirmed", ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE}
 	defer func() {
 		if err := h.recordOSSInputCleanup(audit, result); err != nil {
 			result.State = "unconfirmed"

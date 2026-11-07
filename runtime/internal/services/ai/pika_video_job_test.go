@@ -17,7 +17,8 @@ import (
 	"google.golang.org/protobuf/proto"
 )
 
-func TestPikaProtectedVideoExactOperations(t *testing.T) {
+func pikaTestVideo(t *testing.T) []byte {
+	t.Helper()
 	ffmpeg, err := exec.LookPath("ffmpeg")
 	if err != nil {
 		t.Skip("native MP4 fixture requires ffmpeg")
@@ -26,6 +27,11 @@ func TestPikaProtectedVideoExactOperations(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	return video
+}
+
+func TestPikaProtectedVideoExactOperations(t *testing.T) {
+	video := pikaTestVideo(t)
 	for _, tc := range []struct {
 		model       string
 		mode        runtimev1.VideoMode

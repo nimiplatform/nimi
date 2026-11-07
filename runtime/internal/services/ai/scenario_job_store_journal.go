@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/nimiplatform/nimi/runtime/internal/nimillm"
 	"sort"
 	"strings"
 
@@ -558,6 +559,7 @@ func scenarioJobDiskRecordFor(jobID string, record *scenarioJobRecord, validate 
 	}
 	return scenarioJobDiskRecord{
 		InputCleanup:     cloneInputCleanup(record.inputCleanup),
+		PikaUploads:      append([]nimillm.PikaInputUpload(nil), record.pikaUploads...),
 		PublicEvicted:    record.publicEvicted,
 		DispatchPossible: cloneScenarioDispatch(record.dispatchPossible), NativeReceipt: receipt, NativeResult: record.nativeResult, BodyArtifactIDs: append([]string(nil), record.bodyArtifactIDs...), ResultCandidate: cloneScenarioResultCandidate(record.resultCandidate), Payload: cloneEmbeddingPayload(record.payload), Job: raw, ResolvedAssembly: assemblyRaw, CloudResolvedAssembly: cloudAssemblyRaw, Owner: cloneLocalAppJobOwner(record.localAppOwner),
 		VoiceAsset: voiceAssetRaw, VoiceReference: voiceReferenceRaw,

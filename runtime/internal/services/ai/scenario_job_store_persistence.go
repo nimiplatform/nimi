@@ -83,7 +83,8 @@ type scenarioJobDiskRecord struct {
 	PublicEvicted         bool                           `json:"public_evicted,omitempty"`
 	NativeReceipt         *nimillm.NativeTaskReceipt     `json:"native_receipt,omitempty"`
 	NativeResult          *nimillm.NativeTaskObservation `json:"native_result,omitempty"`
-	InputCleanup          *nimillm.OSSInputCleanup       `json:"input_cleanup,omitempty"`
+	InputCleanup          *nimillm.InputCleanupResult    `json:"input_cleanup,omitempty"`
+	PikaUploads           []nimillm.PikaInputUpload      `json:"pika_input_uploads,omitempty"`
 	BodyArtifactIDs       []string                       `json:"body_artifact_ids,omitempty"`
 	Payload               *embeddingPayload              `json:"embedding_payload,omitempty"`
 	Job                   json.RawMessage                `json:"job"`
@@ -242,7 +243,7 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 		}
 		if rowErr == nil {
 			validatedRecord := &scenarioJobRecord{
-				job: &job, dispatchPossible: item.DispatchPossible, nativeReceipt: item.NativeReceipt, nativeResult: item.NativeResult, inputCleanup: cloneInputCleanup(item.InputCleanup), bodyArtifactIDs: item.BodyArtifactIDs, resultCandidate: item.ResultCandidate,
+				job: &job, dispatchPossible: item.DispatchPossible, nativeReceipt: item.NativeReceipt, nativeResult: item.NativeResult, inputCleanup: cloneInputCleanup(item.InputCleanup), pikaUploads: append([]nimillm.PikaInputUpload(nil), item.PikaUploads...), bodyArtifactIDs: item.BodyArtifactIDs, resultCandidate: item.ResultCandidate,
 				resolvedAssembly: resolvedAssembly, cloudAssembly: cloudAssembly,
 				localAppOwner: item.Owner, musicSubmission: item.MusicSubmission, payload: item.Payload,
 				voiceAsset: voiceAsset, voiceReference: voiceReference, visionLocate: visionLocate,
@@ -287,7 +288,7 @@ func (s *scenarioJobStore) loadDurableJobs(prune bool) error {
 		}
 		record := &scenarioJobRecord{
 			publicEvicted:    item.PublicEvicted,
-			dispatchPossible: cloneScenarioDispatch(item.DispatchPossible), nativeReceipt: item.NativeReceipt, nativeResult: nimillm.CloneNativeTaskObservation(item.NativeResult), inputCleanup: cloneInputCleanup(item.InputCleanup), bodyArtifactIDs: append([]string(nil), item.BodyArtifactIDs...), resultCandidate: cloneScenarioResultCandidate(item.ResultCandidate), payload: cloneEmbeddingPayload(item.Payload), job: cloneScenarioJob(&job), resolvedAssembly: resolvedAssembly, cloudAssembly: cloudAssembly, localAppOwner: cloneLocalAppJobOwner(item.Owner),
+			dispatchPossible: cloneScenarioDispatch(item.DispatchPossible), nativeReceipt: item.NativeReceipt, nativeResult: nimillm.CloneNativeTaskObservation(item.NativeResult), inputCleanup: cloneInputCleanup(item.InputCleanup), pikaUploads: append([]nimillm.PikaInputUpload(nil), item.PikaUploads...), bodyArtifactIDs: append([]string(nil), item.BodyArtifactIDs...), resultCandidate: cloneScenarioResultCandidate(item.ResultCandidate), payload: cloneEmbeddingPayload(item.Payload), job: cloneScenarioJob(&job), resolvedAssembly: resolvedAssembly, cloudAssembly: cloudAssembly, localAppOwner: cloneLocalAppJobOwner(item.Owner),
 			voiceAsset: cloneVoiceAsset(voiceAsset), voiceReference: cloneVoiceReference(voiceReference),
 			visionLocate: cloneVisionLocateResult(visionLocate),
 			events:       make([]*runtimev1.ScenarioJobEvent, 0, 1), subscribers: make(map[uint64]chan *runtimev1.ScenarioJobEvent),

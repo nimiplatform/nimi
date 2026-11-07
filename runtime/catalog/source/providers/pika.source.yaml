@@ -1,6 +1,6 @@
 schema_version: 3
 provider: pika
-catalog_version: 2026-11-07-pika-native-video
+catalog_version: 2026-11-07-pika-owned-video
 generated_target: runtime/catalog/providers/pika.yaml
 runtime:
   runtime_plane: remote
@@ -19,7 +19,7 @@ defaults:
     output: unknown
     currency: USD
     as_of: 2026-11-07
-    notes: Reviewed first-party video operations on Pika API Club. Public HTTPS references only in this stage; owned upload/retention not yet admitted. Key, paid balance and real inference verified separately.
+    notes: Reviewed first-party Pika API Club video operations with exact URL and owned presigned-upload mappings. API Key, paid balance and real inference are verified separately.
 sources:
   - source_id: pika_openapi
     url: https://dev.pika.art/openapi.json
@@ -111,7 +111,7 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-11-07
-      notes: duration_s5/10, native resolution field; no audio toggle. Prompt-only generation. Original task status and complete artifact custody; no upstream cancellation claim until confirmed. Owned input workflow is not yet admitted.
+      notes: duration_s5/10, native resolution field; no audio toggle. Prompt-only generation. Original task status and complete artifact custody; no upstream cancellation claim until confirmed. Owned PNG/JPEG/WebP images and admitted WAV/MPEG or MP4 references use private presigned uploads. Images/audio <=20MB, MP4 <=32MiB, captured aggregate <=64MB, raster decode <=16MiPixels. Completed PUTs are deleted after original terminal proof or known non-dispatch; unconfirmed cleanup stays explicit and does not imply provider cancellation.
     source_ids:
       - pika_openapi
       - pika_operation_0
@@ -156,7 +156,7 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-11-07
-      notes: duration_s5/10, native resolution field; no audio toggle. HTTPS first frame only; no aspect-ratio parameter. Original task status and complete artifact custody; no upstream cancellation claim until confirmed. Owned input workflow is not yet admitted.
+      notes: duration_s5/10, native resolution field; no audio toggle. Owned or HTTPS first frame only; no aspect-ratio parameter. Original task status and complete artifact custody; no upstream cancellation claim until confirmed. Owned PNG/JPEG/WebP images and admitted WAV/MPEG or MP4 references use private presigned uploads. Images/audio <=20MB, MP4 <=32MiB, captured aggregate <=64MB, raster decode <=16MiPixels. Completed PUTs are deleted after original terminal proof or known non-dispatch; unconfirmed cleanup stays explicit and does not imply provider cancellation.
     source_ids:
       - pika_openapi
       - pika_operation_1
@@ -214,7 +214,7 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-11-07
-      notes: Native audio, 480p/768p native; 1080p/2k/4k explicitly upscale. rewrite=false, output_mode=video.Prompt-only generation. Original task status and complete artifact custody; no upstream cancellation claim until confirmed. Owned input workflow is not yet admitted.
+      notes: Native audio, 480p/768p native; 1080p/2k/4k explicitly upscale. rewrite=false, output_mode=video.Prompt-only generation. Original task status and complete artifact custody; no upstream cancellation claim until confirmed. Owned PNG/JPEG/WebP images and admitted WAV/MPEG or MP4 references use private presigned uploads. Images/audio <=20MB, MP4 <=32MiB, captured aggregate <=64MB, raster decode <=16MiPixels. Completed PUTs are deleted after original terminal proof or known non-dispatch; unconfirmed cleanup stays explicit and does not imply provider cancellation.
     source_ids:
       - pika_openapi
       - pika_operation_2
@@ -280,7 +280,7 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-11-07
-      notes: Native audio, 480p/768p native; 1080p/2k/4k explicitly upscale. rewrite=false, output_mode=video.HTTPS first frame and optional last frame. Original task status and complete artifact custody; no upstream cancellation claim until confirmed. Owned input workflow is not yet admitted.
+      notes: Native audio, 480p/768p native; 1080p/2k/4k explicitly upscale. rewrite=false, output_mode=video.Owned or HTTPS first frame and optional last frame. Original task status and complete artifact custody; no upstream cancellation claim until confirmed. Owned PNG/JPEG/WebP images and admitted WAV/MPEG or MP4 references use private presigned uploads. Images/audio <=20MB, MP4 <=32MiB, captured aggregate <=64MB, raster decode <=16MiPixels. Completed PUTs are deleted after original terminal proof or known non-dispatch; unconfirmed cleanup stays explicit and does not imply provider cancellation.
     source_ids:
       - pika_openapi
       - pika_operation_3
@@ -355,7 +355,7 @@ models:
       output: unknown
       currency: USD
       as_of: 2026-11-07
-      notes: Native audio, 480p/768p native; 1080p/2k/4k explicitly upscale. rewrite=false, output_mode=video.Ordered HTTPS image/video/audio references (<=12; image or video required). Native codec/duration/preparation bounds remain provider-enforced. Original task status and complete artifact custody; no upstream cancellation claim until confirmed. Owned input workflow is not yet admitted.
+      notes: Native audio, 480p/768p native; 1080p/2k/4k explicitly upscale. rewrite=false, output_mode=video.Ordered owned or HTTPS image/video/audio references (<=12; image or video required). Native codec/duration/preparation bounds remain provider-enforced. Original task status and complete artifact custody; no upstream cancellation claim until confirmed. Owned PNG/JPEG/WebP images and admitted WAV/MPEG or MP4 references use private presigned uploads. Images/audio <=20MB, MP4 <=32MiB, captured aggregate <=64MB, raster decode <=16MiPixels. Completed PUTs are deleted after original terminal proof or known non-dispatch; unconfirmed cleanup stays explicit and does not imply provider cancellation.
     source_ids:
       - pika_openapi
       - pika_operation_4

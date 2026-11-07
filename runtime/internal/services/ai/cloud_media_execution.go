@@ -602,12 +602,12 @@ func (s *Service) executeCapturedCloudMedia(ctx context.Context, effective *clou
 		ctx = nimillm.WithImageMarkupReference(ctx, effective.resolvedAssembly.ImageMarkupReference)
 		ctx = nimillm.WithCloudVideoMediaReferences(ctx, effective.resolvedAssembly.VideoMediaReferences)
 	}
-	if effective.connector.MediaStorage != nil && nimillm.AlibabaVideoRequiresOSS(effective.request.GetSpec().GetVideoGenerate()) {
+	if effective.target.Provider() == "pika" || effective.connector.MediaStorage != nil && nimillm.AlibabaVideoRequiresOSS(effective.request.GetSpec().GetVideoGenerate()) {
 		jobID, err := connector.JobIDForCredentialCustodyRef(effective.connector.CredentialCustodyRef)
 		if err != nil {
 			return capabilitydriver.CloudMediaResult{}, err
 		}
-		ctx = remoteexecution.WithInputCleanupObserver(ctx, func(result nimillm.OSSInputCleanup) error { return s.scenarioJobs.recordInputCleanup(jobID, result) })
+		ctx = remoteexecution.WithInputCleanupObserver(ctx, func(result nimillm.InputCleanupResult) error { return s.scenarioJobs.recordInputCleanup(jobID, result) })
 	}
 	response, err := s.remoteMediaHost.ExecuteMedia(ctx, effective.connector, effective.target, effective.mapped, effective.dispatchAudit())
 	if err != nil {

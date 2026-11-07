@@ -25,14 +25,8 @@ type OSSInputClient struct {
 	close  func()
 }
 
-type OSSInputCleanup struct {
-	State                                string
-	Deleted, Absent, Failed, Unconfirmed int
-	ReasonCode                           runtimev1.ReasonCode
-}
-
-func (c *OSSInputClient) Cleanup(ctx context.Context, objects []OSSInputObject) OSSInputCleanup {
-	result := OSSInputCleanup{ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}
+func (c *OSSInputClient) Cleanup(ctx context.Context, objects []OSSInputObject) InputCleanupResult {
+	result := InputCleanupResult{ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}
 	var states []string
 	for _, object := range objects {
 		attempt, cancel := context.WithTimeout(ctx, 5*time.Second)

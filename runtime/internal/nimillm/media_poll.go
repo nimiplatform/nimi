@@ -149,7 +149,8 @@ type ProviderTaskCleanupObservation struct {
 	Outcome         ProviderTaskCleanupOutcome
 	ReasonCode      runtimev1.ReasonCode
 	GeminiResources *GeminiOmniResourceCleanup
-	OSSInputs       *OSSInputCleanup
+	OSSInputs       *InputCleanupResult
+	PikaInputs      *InputCleanupResult
 }
 
 type providerTaskCleanupObserverKey struct{}

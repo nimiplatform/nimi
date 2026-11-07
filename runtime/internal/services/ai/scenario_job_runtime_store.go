@@ -67,7 +67,8 @@ type scenarioJobRecord struct {
 	nativeReceipt           *nimillm.NativeTaskReceipt
 	nativeReceiptPending    bool
 	nativeResult            *nimillm.NativeTaskObservation
-	inputCleanup            *nimillm.OSSInputCleanup
+	inputCleanup            *nimillm.InputCleanupResult
+	pikaUploads             []nimillm.PikaInputUpload
 	bodyArtifactIDs         []string
 	resultCandidate         *scenarioJobResultCandidate
 	nativeObservation       bool
@@ -586,7 +587,7 @@ func (s *scenarioJobStore) get(jobID string) (*runtimev1.ScenarioJob, bool) {
 		return nil, false
 	}
 	job := cloneScenarioJob(record.job)
-	projectInputCleanup(job, record.inputCleanup)
+	projectInputCleanup(job, record)
 	s.mu.RUnlock()
 	return job, true
 }

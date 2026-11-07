@@ -99,6 +99,9 @@ func (s *Service) releaseCloudCredentialCustodyForJobDurably(jobID string) error
 	if canRelease && record.job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED {
 		canRelease = record.job.GetStopOutcome() == runtimev1.ScenarioJobStopOutcome_SCENARIO_JOB_STOP_OUTCOME_NOT_DISPATCHED || record.job.GetStopOutcome() == runtimev1.ScenarioJobStopOutcome_SCENARIO_JOB_STOP_OUTCOME_CONFIRMED || scenarioJobPublicExpired(record, time.Now())
 	}
+	if canRelease && len(record.pikaUploads) > 0 && record.inputCleanup == nil && !scenarioJobPublicExpired(record, time.Now()) {
+		canRelease = false
+	}
 	s.scenarioJobs.mu.RUnlock()
 	if !canRelease {
 		return nil
@@ -112,6 +115,16 @@ func (s *Service) releaseCloudCredentialCustodyForJobDurably(jobID string) error
 	if !ok || assembly == nil || strings.TrimSpace(assembly.CredentialCustodyRef) == "" {
 		return nil
 	}
+	if assembly.Connector.Provider == "pika" && s.scenarioJobs.currentInputCleanup(jobID) == nil {
+		if uploads := s.scenarioJobs.currentPikaUploads(jobID); len(uploads) > 0 {
+			// Fixed public retention ends this sealed cleanup opportunity. Do not
+			// invent deletion or reuse historical App authority at disposal.
+			result := nimillm.InputCleanupResult{State: "unconfirmed", Unconfirmed: len(uploads), ReasonCode: runtimev1.ReasonCode_AI_MEDIA_STORAGE_CLEANUP_UNCONFIRMED}
+			if err := s.scenarioJobs.recordInputCleanup(jobID, result); err != nil {
+				return err
+			}
+		}
+	}
 	if assembly.Connector.MediaStorage != nil && s.scenarioJobs.currentInputCleanup(jobID) == nil {
 		count := 0
 		for _, reference := range assembly.VideoMediaReferences {
@@ -123,9 +136,9 @@ func (s *Service) releaseCloudCredentialCustodyForJobDurably(jobID string) error
 			// Credential release does not restore a Driver or historical App
 			// permission. Record the unresolved disposition using frozen inputs
 			// only; a missing account or retired model cannot block unrelated work.
-			result := nimillm.OSSInputCleanup{State: "unconfirmed", Unconfirmed: count, ReasonCode: runtimev1.ReasonCode_AI_MEDIA_STORAGE_CLEANUP_UNCONFIRMED}
+			result := nimillm.InputCleanupResult{State: "unconfirmed", Unconfirmed: count, ReasonCode: runtimev1.ReasonCode_AI_MEDIA_STORAGE_CLEANUP_UNCONFIRMED}
 			if notDispatched {
-				result = nimillm.OSSInputCleanup{State: "not_required", ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}
+				result = nimillm.InputCleanupResult{State: "not_required", ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}
 			}
 			if err := s.scenarioJobs.recordInputCleanup(jobID, result); err != nil {
 				return err

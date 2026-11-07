@@ -40,6 +40,9 @@ func (s *Service) executeScenarioAsyncJob(
 		return
 	}
 	defer effective.release()
+	if effective.target.Provider() == "pika" {
+		defer func() { s.cleanupPikaExecutionExit(ctx, jobID, effective) }()
+	}
 	if effective.mapped.Adapter() == nimillm.AdapterGeminiOmniVideo {
 		defer s.cleanupCanceledGeminiOmniJob(ctx, jobID, effective)
 	}
@@ -95,6 +98,16 @@ func (s *Service) executeScenarioAsyncJob(
 		}
 		return s.publishScenarioNativeReceipt(jobID, receipt)
 	})
+	if effective.target.Provider() == "pika" {
+		ctx = nimillm.WithPikaUploadRecorder(ctx, func(upload nimillm.PikaInputUpload) error {
+			if !upload.PutComplete {
+				return s.scenarioJobs.withJobWorkAuthority(jobID, func() error { return s.scenarioJobs.recordPikaUpload(jobID, upload) })
+			}
+			// A completed transfer may only update its already-owned private slot,
+			// including after local cancellation. It cannot publish or restart work.
+			return s.scenarioJobs.recordPikaUpload(jobID, upload)
+		})
+	}
 	if !native {
 		ctx = nimillm.WithFiniteMediaResultOwner(ctx, func(artifacts []*runtimev1.ScenarioArtifact, usage *runtimev1.UsageStats) error {
 			return s.retainFiniteScenarioResult(ctx, jobID, req.GetHead(), bodySlots, artifacts, usage)

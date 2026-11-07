@@ -50,7 +50,7 @@ func validateNativeJobClaim(record *scenarioJobRecord, work []context.Context) e
 // without cancelling the admitted work; an in-flight claim prevents a second
 // Get from starting another query or transfer.
 func (s *Service) observeScenarioNativeJob(ctx context.Context, jobID string) error {
-	if s.scenarioJobs.originalNativeReceipt(jobID) == nil && s.scenarioJobs.currentNativeResult(jobID) == nil && !s.scenarioJobs.hasResultCandidate(jobID) {
+	if s.scenarioJobs.originalNativeReceipt(jobID) == nil && s.scenarioJobs.currentNativeResult(jobID) == nil && !s.scenarioJobs.hasResultCandidate(jobID) && !s.scenarioJobs.pikaInputCleanupPending(jobID) {
 		return nil
 	}
 	admitted, releaseUnused, err := s.admitJobSubmissionWork(ctx)
@@ -65,10 +65,11 @@ func (s *Service) observeScenarioNativeJob(ctx context.Context, jobID string) er
 		s.scenarioJobs.mu.Lock()
 		defer s.scenarioJobs.mu.Unlock()
 		r := s.scenarioJobs.jobs[jobID]
-		if r == nil || r.executionStarted || r.pendingTerminal != nil || (r.nativeReceipt == nil && r.nativeResult == nil && r.resultCandidate == nil) || scenarioJobPublicExpired(r, time.Now()) || !scenarioNativeObservationAllowed(r.job) {
+		cleanupPending := pikaInputCleanupPending(r)
+		if r == nil || r.executionStarted || r.pendingTerminal != nil || (r.nativeReceipt == nil && r.nativeResult == nil && r.resultCandidate == nil && !cleanupPending) || scenarioJobPublicExpired(r, time.Now()) || !scenarioNativeObservationAllowed(r.job) && !cleanupPending {
 			return nil
 		}
-		if r.nativeReceipt == nil && isTerminalScenarioJobStatus(r.job.GetStatus()) {
+		if r.nativeReceipt == nil && isTerminalScenarioJobStatus(r.job.GetStatus()) && !cleanupPending {
 			return nil
 		}
 		machine, owner := 0, 0
@@ -155,6 +156,10 @@ func (s *Service) runNativeObservation(ctx context.Context, jobID string, versio
 		return
 	}
 	defer effective.release()
+	if job, ok := s.scenarioJobs.get(jobID); ok && effective.target.Provider() == "pika" && isTerminalScenarioJobStatus(job.GetStatus()) && (job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED || job.GetStopOutcome() != runtimev1.ScenarioJobStopOutcome_SCENARIO_JOB_STOP_OUTCOME_UNCONFIRMED) {
+		s.cleanupPikaJobInputs(ctx, jobID, effective, false)
+		return
+	}
 	ossHandled := false
 	defer func() {
 		if !ossHandled {
@@ -188,6 +193,9 @@ func (s *Service) runNativeObservation(ctx context.Context, jobID string, versio
 		if err != nil {
 			slog.Warn("native media observation failed", "stage", "provider_query", "job_id", jobID, "reason", reasonCodeFromMediaError(err).String(), "terminal", terminal)
 			if terminal && previousResult == nil {
+				if effective.target.Provider() == "pika" {
+					s.cleanupPikaJobInputs(ctx, jobID, effective, true)
+				}
 				if receipt.Adapter == nimillm.AdapterGeminiOmniVideo {
 					s.cleanupGeminiOmniJobResources(ctx, effective, receipt)
 				}
@@ -245,6 +253,21 @@ func (s *Service) runNativeObservation(ctx context.Context, jobID string, versio
 		return
 	}
 	defer capabilitydriver.CloseArtifactBodies(transport.ArtifactBodies)
+	if effective.target.Provider() == "pika" {
+		cleanup := s.cleanupPikaJobInputs(ctx, jobID, effective, true)
+		if cleanup.State != "not_required" {
+			for _, artifact := range transport.Artifacts {
+				if artifact.Metadata == nil {
+					artifact.Metadata = &structpb.Struct{Fields: map[string]*structpb.Value{}}
+				}
+				if artifact.Metadata.Fields == nil {
+					artifact.Metadata.Fields = map[string]*structpb.Value{}
+				}
+				artifact.Metadata.Fields["provider_input_cleanup"] = structpb.NewStringValue(cleanup.State)
+				artifact.Metadata.Fields["provider_input_cleanup_reason"] = structpb.NewStringValue(cleanup.ReasonCode.String())
+			}
+		}
+	}
 	if effective.target.Provider() == "dashscope" && nimillm.AlibabaVideoRequiresOSS(effective.request.GetSpec().GetVideoGenerate()) {
 		cleanup := s.cleanupOSSJobResources(ctx, jobID, effective)
 		ossHandled = true
@@ -293,9 +316,9 @@ func (s *Service) cleanupCanceledGeminiOmniJob(ctx context.Context, jobID string
 	}
 }
 
-func (s *Service) cleanupOSSJobResources(ctx context.Context, jobID string, effective *cloudMediaEffectiveInputs) (result nimillm.OSSInputCleanup) {
+func (s *Service) cleanupOSSJobResources(ctx context.Context, jobID string, effective *cloudMediaEffectiveInputs) (result nimillm.InputCleanupResult) {
 	if effective.target.Provider() != "dashscope" || !nimillm.AlibabaVideoRequiresOSS(effective.request.GetSpec().GetVideoGenerate()) {
-		return nimillm.OSSInputCleanup{State: "not_required", ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}
+		return nimillm.InputCleanupResult{State: "not_required", ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}
 	}
 	if previous := s.scenarioJobs.currentInputCleanup(jobID); previous != nil {
 		return *previous
@@ -309,7 +332,7 @@ func (s *Service) cleanupOSSJobResources(ctx context.Context, jobID string, effe
 	}()
 	host, ok := s.remoteMediaHost.(remoteexecution.OwnedMediaCleanupHost)
 	if !ok || effective.resolvedAssembly == nil {
-		return nimillm.OSSInputCleanup{State: "unconfirmed", ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE}
+		return nimillm.InputCleanupResult{State: "unconfirmed", ReasonCode: runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE}
 	}
 	cleanup, cancel := context.WithTimeout(context.WithoutCancel(ctx), 20*time.Second)
 	defer cancel()
@@ -343,6 +366,9 @@ func (s *Service) runNativeStopObservation(ctx context.Context, jobID string, ve
 		err = s.scenarioJobs.withJobWorkAuthority(jobID, func() error {
 			return s.scenarioJobs.confirmNativeStop(ctx, jobID)
 		})
+	}
+	if effective.target.Provider() == "pika" {
+		s.cleanupPikaJobInputs(ctx, jobID, effective, outcome == nimillm.ProviderTaskCleanupCanceled && err == nil)
 	}
 	s.setNativeObservationIssue(jobID, version, err)
 }

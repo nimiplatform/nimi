@@ -37,6 +37,7 @@ func (s *Service) RunScenarioJobRetentionLoop(ctx context.Context) {
 			if err := s.scenarioJobs.maintainDurableState(now.UTC()); err != nil {
 				s.logScenarioJobPersistenceFailure("ScenarioJob retention maintenance remains pending", "error", err)
 			}
+			s.reconcileExpiredScenarioResources()
 		}
 	}
 }
