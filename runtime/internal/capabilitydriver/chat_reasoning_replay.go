@@ -13,8 +13,9 @@ import (
 )
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.r088
-// These bytes are native plaintext, not encrypted or authenticated. The exact
-// adapter supplies a model-specific kind; callers preserve the payload verbatim.
+// A carrier preserves one native string verbatim; this wrapper does not encrypt
+// or authenticate it. The exact adapter binds the native field and model-specific
+// kind, including whether the provider supplied plaintext or encrypted state.
 func nativeReasoningReplay(kind, reasoning string) (*runtimev1.ReasoningContinuityCarrier, error) {
 	// A JSON string preserves the distinction between an explicitly empty native
 	// reasoning string and an absent field; even an empty native value is replayed.

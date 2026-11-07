@@ -81,6 +81,9 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 		registrations = append(registrations, siliconFlowTextBehaviorRegistration(model))
 	}
 	registrations = append(registrations, qianfanTextBehaviorRegistration())
+	for _, model := range capabilitydriver.VolcengineTextModels() {
+		registrations = append(registrations, volcengineTextBehaviorRegistration(model))
+	}
 	registrations = append(registrations, sparkTextBehaviorRegistration("spark", "4.0Ultra"), sparkTextBehaviorRegistration("spark", "lite"), sparkTextBehaviorRegistration("spark_reasoning", "spark-x"))
 	for _, model := range capabilitydriver.SparkMaaSTextModels() {
 		registrations = append(registrations, sparkMaaSTextBehaviorRegistration(model))

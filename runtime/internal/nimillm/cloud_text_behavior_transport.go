@@ -65,6 +65,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	case "together":
 	case "siliconflow":
 	case "qianfan":
+	case "volcengine":
 	case "spark", "spark_reasoning":
 	case "spark_maas":
 	case "stepfun":
@@ -110,7 +111,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	if sparkMaaSResponses && target.ProviderType != "spark_maas" {
 		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
 	}
-	if target.ProviderType == "deepseek" || target.ProviderType == "dashscope" || target.ProviderType == "gemini" || target.ProviderType == "mimo" || target.ProviderType == "mistral" || target.ProviderType == "stepfun" || target.ProviderType == "kimi" || target.ProviderType == "fireworks" || target.ProviderType == "together" {
+	if target.ProviderType == "deepseek" || target.ProviderType == "dashscope" || target.ProviderType == "gemini" || target.ProviderType == "mimo" || target.ProviderType == "mistral" || target.ProviderType == "stepfun" || target.ProviderType == "kimi" || target.ProviderType == "fireworks" || target.ProviderType == "together" || target.ProviderType == "volcengine" {
 		path = resolveOpenAICompatiblePath(backend.baseURL, "/chat/completions")
 	}
 	if target.ProviderType == "groq" {

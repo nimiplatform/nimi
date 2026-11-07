@@ -44,10 +44,30 @@ func TestGemma4E2BAdmitsOrderedSystemMessagesWithoutWideningOtherCombinations(t 
 
 func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 	registrations := productionTextBehaviorAdapterRegistrations()
-	if len(registrations) != 146 {
-		t.Fatalf("production adapter registrations = %d, want thirteen Local mappings and one hundred and thirty-three Cloud targets", len(registrations))
+	if len(registrations) != 166 {
+		t.Fatalf("production adapter registrations = %d, want thirteen Local mappings and 153 Cloud targets", len(registrations))
 	}
 	expectedCloudTargets := map[string]string{
+		"volcengine/doubao-seed-evolving":                              "volcengine.doubao-seed-evolving.chat",
+		"volcengine/doubao-seed-2-1-pro-260915":                        "volcengine.doubao-seed-2-1-pro-260915.chat",
+		"volcengine/doubao-seed-2-1-lite-260915":                       "volcengine.doubao-seed-2-1-lite-260915.chat",
+		"volcengine/doubao-seed-2-1-turbo-260628":                      "volcengine.doubao-seed-2-1-turbo-260628.chat",
+		"volcengine/doubao-seed-2-1-pro-260628":                        "volcengine.doubao-seed-2-1-pro-260628.chat",
+		"volcengine/doubao-seed-2-0-lite-260428":                       "volcengine.doubao-seed-2-0-lite-260428.chat",
+		"volcengine/doubao-seed-2-0-mini-260428":                       "volcengine.doubao-seed-2-0-mini-260428.chat",
+		"volcengine/doubao-seed-2-0-pro-260215":                        "volcengine.doubao-seed-2-0-pro-260215.chat",
+		"volcengine/doubao-seed-2-0-code-preview-260215":               "volcengine.doubao-seed-2-0-code-preview-260215.chat",
+		"volcengine/doubao-seed-character-260628":                      "volcengine.doubao-seed-character-260628.chat",
+		"volcengine/doubao-seed-character-251128":                      "volcengine.doubao-seed-character-251128.chat",
+		"volcengine/glm-5-3-flash-260828":                              "volcengine.glm-5-3-flash-260828.chat",
+		"volcengine/glm-5-2-260617":                                    "volcengine.glm-5-2-260617.chat",
+		"volcengine/kimi-k3-1-pro-261024":                              "volcengine.kimi-k3-1-pro-261024.chat",
+		"volcengine/deepseek-v4-1-flash-261017":                        "volcengine.deepseek-v4-1-flash-261017.chat",
+		"volcengine/deepseek-v4-1-flash-260910":                        "volcengine.deepseek-v4-1-flash-260910.chat",
+		"volcengine/deepseek-v4-1-flash-economy-261017":                "volcengine.deepseek-v4-1-flash-economy-261017.chat",
+		"volcengine/deepseek-v4-pro-ga-260813":                         "volcengine.deepseek-v4-pro-ga-260813.chat",
+		"volcengine/deepseek-v4-flash-ga-260731":                       "volcengine.deepseek-v4-flash-ga-260731.chat",
+		"volcengine/deepseek-v4-pro-260425":                            "volcengine.deepseek-v4-pro-260425.chat",
 		"spark_maas/spark-x2.6":                                        "spark_maas.spark-x2.6.native",
 		"spark_maas/spark-x2.6-4b":                                     "spark_maas.spark-x2.6-4b.native",
 		"spark_maas/spark-x2.6-preview":                                "spark_maas.spark-x2.6-preview.native",

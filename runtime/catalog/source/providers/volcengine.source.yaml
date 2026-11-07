@@ -1,6 +1,6 @@
 schema_version: 3
 provider: volcengine
-catalog_version: 2026-11-07-volcengine-native-seedream
+catalog_version: 2026-11-07-volcengine-native-chat
 generated_target: runtime/catalog/providers/volcengine.yaml
 runtime:
   inventory_mode: static_source
@@ -14,7 +14,6 @@ defaults:
   default_text_model: doubao-seed-2-1-pro-260915
   model_type: chat
   capabilities: []
-  context_window_tokens: 8192
   pricing:
     unit: token
     input: unknown
@@ -67,25 +66,46 @@ sources:
   - source_id: volcengine_current_video_variants
     url: https://docs.volcengine.com/docs/ark/model-list?lang=zh
     retrieved_at: 2026-11-07
-    note: Current exact Fast/Mini targets and generation-specific480p/720p output support; account access verified separately.
+    note: Current exact Fast/Mini targets and generation-specific480p/720p output
+      support; account access verified separately.
 
   - source_id: volcengine_embedding_native_api
     url: https://docs.volcengine.com/docs/ark/multimodal-vectorization-api?lang=zh
     retrieved_at: 2026-11-07
-    note: Native endpoint returns one dense vector for its input parts; dimensions1024/2048, default2048.
+    note: Native endpoint returns one dense vector for its input parts;
+      dimensions1024/2048, default2048.
   - source_id: volcengine_embedding_retrieval
     url: https://docs.volcengine.com/docs/ark/vectorization?lang=zh
     retrieved_at: 2026-11-07
-    note: 251215 supports separate Query/Corpus instructions;250615 leaves instructions absent. Current Runtime scope is unchanged text-only dense retrieval.
+    note: 251215 supports separate Query/Corpus instructions;250615 leaves
+      instructions absent. Current Runtime scope is unchanged text-only dense
+      retrieval.
 
   - source_id: volcengine_seedream_current_api
     url: https://docs.volcengine.com/docs/ark/image-generation-api?lang=zh
     retrieved_at: 2026-11-07
-    note: Native single-image operation, generation-specific size/output-format controls, image array, dense image bytes and actual output usage.
+    note: Native single-image operation, generation-specific size/output-format
+      controls, image array, dense image bytes and actual output usage.
   - source_id: volcengine_seedream_current_models
     url: https://docs.volcengine.com/docs/ark/model-list?lang=zh
     retrieved_at: 2026-11-07
-    note: Published Pro/Flash and previous5.0Lite/4.5 targets; account access is independent.
+    note: Published Pro/Flash and previous5.0Lite/4.5 targets; account access is
+      independent.
+  - source_id: volcengine_text_current_models
+    url: https://docs.volcengine.com/docs/ark/model-list?lang=zh
+    retrieved_at: 2026-11-07
+    note: Current exact text targets and published context/modalities;
+      already-retired snapshots excluded.
+  - source_id: volcengine_text_current_api
+    url: https://docs.volcengine.com/docs/ark/chat-api?lang=zh
+    retrieved_at: 2026-11-07
+    note: Native Chat completions fields, exact total output budget, function tools,
+      SSE completion/usage and inline media.
+  - source_id: volcengine_text_current_thinking
+    url: https://docs.volcengine.com/docs/ark/deep-thinking?lang=zh
+    retrieved_at: 2026-11-07
+    note: Separate native encrypted reasoning state and authorized summaries on six
+      Seed targets; model-specific activation and exact effort mapping.
 
 selection_profiles:
   - profile_id: text.general
@@ -93,8 +113,8 @@ selection_profiles:
     model_id: doubao-seed-2-1-pro-260915
     reviewed_at: 2026-11-06
     freshness_sla_days: 21
-    rationale: Retained current stable Doubao-Seed 2.1 Pro snapshot with a 1024k context
-      window, verified through Ark chat completions.
+    rationale: Retained current stable Doubao-Seed 2.1 Pro snapshot with a 1024k
+      context window, verified through Ark chat completions.
   - profile_id: text.fast
     capability: text.generate
     model_id: doubao-seed-2-1-turbo-260628
@@ -464,116 +484,6 @@ models:
         video_url: true
         last_frame_url: true
 
-  - model_id: doubao-seed-2-1-pro-260915
-    model_type: chat
-    updated_at: 2026-09-28
-    capabilities: [ text.generate ]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-09-28
-      notes: Recommended Doubao-Seed 2.1 Pro Ark chat snapshot with a 1024k context
-        window; pricing varies by account plan and endpoint tier.
-    source_ids: [ volcengine_model_list_doc ]
-    aliases:
-      - doubao-seed-2.1-pro
-
-  - model_id: doubao-seed-2-1-pro-260628
-    model_type: chat
-    updated_at: 2026-06-28
-    capabilities: [ text.generate ]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-09-28
-      notes: Previous Doubao-Seed 2.1 Pro Ark chat snapshot, now listed under previous
-        models; pricing varies by account plan and endpoint tier.
-    source_ids: [ volcengine_openai_sdk_doc, volcengine_model_list_doc ]
-
-  - model_id: doubao-seed-2-1-turbo-260628
-    model_type: chat
-    updated_at: 2026-06-28
-    capabilities: [ text.generate ]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-06-28
-      notes: Current Doubao-Seed 2.1 Turbo Ark chat model pricing varies by account
-        plan and endpoint tier.
-    source_ids: [ volcengine_openai_sdk_doc, volcengine_model_list_doc ]
-    aliases:
-      - doubao-seed-2.1-turbo
-
-  - model_id: doubao-seed-2-0-pro-260215
-    model_type: chat
-    updated_at: 2026-06-28
-    capabilities: [ text.generate ]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-06-28
-      notes: Prior Doubao-Seed 2.0 Pro Ark chat snapshot remains listed by the live
-        model API; pricing varies by account plan and endpoint tier.
-    source_ids: [ volcengine_openai_sdk_doc, volcengine_model_list_doc ]
-    aliases:
-      - doubao-seed-2.0-pro
-
-  - model_id: doubao-seed-2-0-lite-260428
-    model_type: chat
-    updated_at: 2026-06-28
-    capabilities: [ text.generate ]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-06-28
-      notes: Current Doubao-Seed 2.0 Lite Ark chat snapshot remains listed by the live
-        model API; pricing varies by account plan and endpoint tier.
-    source_ids: [ volcengine_openai_sdk_doc, volcengine_model_list_doc ]
-    aliases:
-      - doubao-seed-2.0-lite
-
-  - model_id: doubao-seed-2-0-mini-260428
-    model_type: chat
-    updated_at: 2026-06-28
-    capabilities: [ text.generate ]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-06-28
-      notes: Current Doubao-Seed 2.0 Mini Ark chat snapshot remains listed by the live
-        model API; pricing varies by account plan and endpoint tier.
-    source_ids: [ volcengine_openai_sdk_doc, volcengine_model_list_doc ]
-    aliases:
-      - doubao-seed-2.0-mini
-
-  - model_id: doubao-seed-2-0-code-preview-260215
-    model_type: chat
-    updated_at: 2026-04-18
-    capabilities: [ text.generate ]
-    pricing:
-      unit: token
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-04-18
-      notes: Code-specialized Ark chat model pricing varies by account plan and
-        endpoint tier.
-    source_ids: [ volcengine_openai_sdk_doc ]
-    aliases:
-      - doubao-seed-2.0-code
-
   - model_id: doubao-embedding-vision-251215
     model_type: embedding
     updated_at: 2026-11-07
@@ -590,7 +500,9 @@ models:
       output: unknown
       currency: CNY
       as_of: 2026-11-07
-      notes: Text-only native dense retrieval. Query/document instruction pair is versioned by the Runtime Driver; sparse, multi-vector and image/video embedding are outside this carrier.
+      notes: Text-only native dense retrieval. Query/document instruction pair is
+        versioned by the Runtime Driver; sparse, multi-vector and image/video
+        embedding are outside this carrier.
   - model_id: doubao-embedding-vision-250615
     model_type: embedding
     updated_at: 2026-11-07
@@ -607,7 +519,8 @@ models:
       output: unknown
       currency: CNY
       as_of: 2026-11-07
-      notes: Existing-access EOM cohort; no forced shutdown of existing endpoints. No251215 instructions inherited. Account access is verified separately.
+      notes: Existing-access EOM cohort; no forced shutdown of existing endpoints.
+        No251215 instructions inherited. Account access is verified separately.
 
   - model_id: doubao-seedream-5-0-pro-260628
     model_type: image
@@ -638,7 +551,9 @@ models:
       output: unknown
       currency: CNY
       as_of: 2026-11-07
-      notes: Native single-image generation/reference edit;1K/1.5K/2K tiers and JPEG/PNG. Separate layers, transparency and group generation are not admitted.
+      notes: Native single-image generation/reference edit;1K/1.5K/2K tiers and
+        JPEG/PNG. Separate layers, transparency and group generation are not
+        admitted.
   - model_id: doubao-seedream-5-0-flash-260915
     model_type: image
     updated_at: 2026-11-07
@@ -668,7 +583,9 @@ models:
       output: unknown
       currency: CNY
       as_of: 2026-11-07
-      notes: Native single-image generation/reference edit;1K/1.5K/2K tiers and JPEG/PNG. Separate layers, transparency and group generation are not admitted.
+      notes: Native single-image generation/reference edit;1K/1.5K/2K tiers and
+        JPEG/PNG. Separate layers, transparency and group generation are not
+        admitted.
   - model_id: doubao-seedream-5-0-260128
     model_type: image
     updated_at: 2026-11-07
@@ -698,7 +615,9 @@ models:
       output: unknown
       currency: CNY
       as_of: 2026-11-07
-      notes: Previous target remains documented until2026-11-24 EOS; no automatic migration. Exact account billing is separate from reported image-output tokens.
+      notes: Previous target remains documented until2026-11-24 EOS; no automatic
+        migration. Exact account billing is separate from reported image-output
+        tokens.
     aliases:
       - seedream-5.0
   - model_id: doubao-seedream-4-5-251128
@@ -730,4 +649,426 @@ models:
       output: unknown
       currency: CNY
       as_of: 2026-11-07
-      notes: Previous target remains documented until2026-11-24 EOS; no automatic migration. Exact account billing is separate from reported image-output tokens.
+      notes: Previous target remains documented until2026-11-24 EOS; no automatic
+        migration. Exact account billing is separate from reported image-output
+        tokens.
+  - model_id: doubao-seed-evolving
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+      - input.video
+    context_window_tokens: 1048576
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Mutable rapid-iteration target; backend revision is provider-owned.
+        Account pricing applies.
+    source_ids:
+      - volcengine_text_current_models
+      - volcengine_text_current_api
+      - volcengine_text_current_thinking
+  - model_id: doubao-seed-2-1-pro-260915
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+      - input.video
+    context_window_tokens: 1048576
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Exact reviewed Ark Chat target. Published context is a provider limit,
+        not a full-context acceptance claim; account pricing applies.
+    source_ids:
+      - volcengine_text_current_models
+      - volcengine_text_current_api
+      - volcengine_text_current_thinking
+    aliases:
+      - doubao-seed-2.1-pro
+  - model_id: doubao-seed-2-1-lite-260915
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+      - input.video
+      - input.audio
+    context_window_tokens: 1048576
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Exact reviewed Ark Chat target. Published context is a provider limit,
+        not a full-context acceptance claim; account pricing applies.
+    source_ids:
+      - volcengine_text_current_models
+      - volcengine_text_current_api
+      - volcengine_text_current_thinking
+  - model_id: doubao-seed-2-1-turbo-260628
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+      - input.video
+    context_window_tokens: 262144
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Exact reviewed Ark Chat target. Published context is a provider limit,
+        not a full-context acceptance claim; account pricing applies.
+    source_ids:
+      - volcengine_text_current_models
+      - volcengine_text_current_api
+      - volcengine_text_current_thinking
+    aliases:
+      - doubao-seed-2.1-turbo
+  - model_id: doubao-seed-2-1-pro-260628
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+      - input.video
+    context_window_tokens: 262144
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Exact reviewed Ark Chat target. Published context is a provider limit,
+        not a full-context acceptance claim; account pricing applies.
+    source_ids:
+      - volcengine_text_current_models
+      - volcengine_text_current_api
+      - volcengine_text_current_thinking
+  - model_id: doubao-seed-2-0-lite-260428
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+      - input.video
+      - input.audio
+    context_window_tokens: 262144
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Exact reviewed Ark Chat target. Published context is a provider limit,
+        not a full-context acceptance claim; account pricing applies.
+    source_ids:
+      - volcengine_text_current_models
+      - volcengine_text_current_api
+      - volcengine_text_current_thinking
+    aliases:
+      - doubao-seed-2.0-lite
+  - model_id: doubao-seed-2-0-mini-260428
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+      - input.video
+      - input.audio
+    context_window_tokens: 262144
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Exact reviewed Ark Chat target. Published context is a provider limit,
+        not a full-context acceptance claim; account pricing applies.
+    source_ids:
+      - volcengine_text_current_models
+      - volcengine_text_current_api
+      - volcengine_text_current_thinking
+    aliases:
+      - doubao-seed-2.0-mini
+  - model_id: doubao-seed-2-0-pro-260215
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+      - input.video
+    context_window_tokens: 262144
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Previous snapshot scheduled for retirement on 2026-11-24; existing
+        account availability must be checked separately.
+    source_ids:
+      - volcengine_text_current_models
+      - volcengine_text_current_api
+      - volcengine_text_current_thinking
+    aliases:
+      - doubao-seed-2.0-pro
+  - model_id: doubao-seed-2-0-code-preview-260215
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+      - input.video
+    context_window_tokens: 262144
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Previous snapshot scheduled for retirement on 2026-11-24; existing
+        account availability must be checked separately.
+    source_ids:
+      - volcengine_text_current_models
+      - volcengine_text_current_api
+      - volcengine_text_current_thinking
+    aliases:
+      - doubao-seed-2.0-code
+  - model_id: doubao-seed-character-260628
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+      - input.video
+    context_window_tokens: 131072
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Exact reviewed Ark Chat target. Published context is a provider limit,
+        not a full-context acceptance claim; account pricing applies.
+    source_ids:
+      - volcengine_text_current_models
+      - volcengine_text_current_api
+      - volcengine_text_current_thinking
+  - model_id: doubao-seed-character-251128
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    context_window_tokens: 131072
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Exact reviewed Ark Chat target. Published context is a provider limit,
+        not a full-context acceptance claim; account pricing applies.
+    source_ids:
+      - volcengine_text_current_models
+      - volcengine_text_current_api
+      - volcengine_text_current_thinking
+  - model_id: glm-5-3-flash-260828
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+      - input.video
+    context_window_tokens: 1048576
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Exact reviewed Ark Chat target. Published context is a provider limit,
+        not a full-context acceptance claim; account pricing applies.
+    source_ids:
+      - volcengine_text_current_models
+      - volcengine_text_current_api
+      - volcengine_text_current_thinking
+  - model_id: glm-5-2-260617
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    context_window_tokens: 1048576
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Exact reviewed Ark Chat target. Published context is a provider limit,
+        not a full-context acceptance claim; account pricing applies.
+    source_ids:
+      - volcengine_text_current_models
+      - volcengine_text_current_api
+      - volcengine_text_current_thinking
+  - model_id: kimi-k3-1-pro-261024
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+      - input.video
+    context_window_tokens: 1048576
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Exact reviewed Ark Chat target. Published context is a provider limit,
+        not a full-context acceptance claim; account pricing applies.
+    source_ids:
+      - volcengine_text_current_models
+      - volcengine_text_current_api
+      - volcengine_text_current_thinking
+  - model_id: deepseek-v4-1-flash-261017
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+      - input.video
+    context_window_tokens: 1048576
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Exact reviewed Ark Chat target. Published context is a provider limit,
+        not a full-context acceptance claim; account pricing applies.
+    source_ids:
+      - volcengine_text_current_models
+      - volcengine_text_current_api
+      - volcengine_text_current_thinking
+  - model_id: deepseek-v4-1-flash-260910
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+      - input.video
+    context_window_tokens: 1048576
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Exact reviewed Ark Chat target. Published context is a provider limit,
+        not a full-context acceptance claim; account pricing applies.
+    source_ids:
+      - volcengine_text_current_models
+      - volcengine_text_current_api
+      - volcengine_text_current_thinking
+  - model_id: deepseek-v4-1-flash-economy-261017
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+      - input.video
+    context_window_tokens: 1048576
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Exact reviewed Ark Chat target. Published context is a provider limit,
+        not a full-context acceptance claim; account pricing applies.
+    source_ids:
+      - volcengine_text_current_models
+      - volcengine_text_current_api
+      - volcengine_text_current_thinking
+  - model_id: deepseek-v4-pro-ga-260813
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    context_window_tokens: 1048576
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Exact reviewed Ark Chat target. Published context is a provider limit,
+        not a full-context acceptance claim; account pricing applies.
+    source_ids:
+      - volcengine_text_current_models
+      - volcengine_text_current_api
+      - volcengine_text_current_thinking
+  - model_id: deepseek-v4-flash-ga-260731
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    context_window_tokens: 1048576
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Exact reviewed Ark Chat target. Published context is a provider limit,
+        not a full-context acceptance claim; account pricing applies.
+    source_ids:
+      - volcengine_text_current_models
+      - volcengine_text_current_api
+      - volcengine_text_current_thinking
+  - model_id: deepseek-v4-pro-260425
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
+    context_window_tokens: 1048576
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Previous snapshot scheduled for retirement on 2026-11-24; existing
+        account availability must be checked separately.
+    source_ids:
+      - volcengine_text_current_models
+      - volcengine_text_current_api
+      - volcengine_text_current_thinking
