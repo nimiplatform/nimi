@@ -29,6 +29,8 @@ const (
 func DeleteProviderAsyncTask(ctx context.Context, adapter string, providerJobID string, cfg MediaAdapterConfig) (ProviderTaskCleanupOutcome, error) {
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	switch strings.TrimSpace(adapter) {
+	case AdapterRunwayTask:
+		return cancelRunwayTask(ctx, providerJobID, cfg)
 	case AdapterPikaTask:
 		return cancelPikaTask(ctx, providerJobID, cfg)
 	case AdapterBytedanceARKTask:

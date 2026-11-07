@@ -48,6 +48,19 @@ func TestPikaProtectedVideoExactOperations(t *testing.T) {
 	} {
 		t.Run(tc.model+"/"+tc.mode.String()+http.StatusText(tc.httpFailure), func(t *testing.T) {
 			flex := strings.Contains(tc.model, "h3-flex")
+			ratio := ""
+			if tc.mode == runtimev1.VideoMode_VIDEO_MODE_T2V {
+				ratio = "5:2"
+				if flex {
+					ratio = "auto"
+				}
+				if tc.httpFailure == 403 {
+					ratio = "3:2"
+				}
+				if tc.httpFailure == 429 {
+					ratio = "2:3"
+				}
+			}
 			var creates, queries, downloads atomic.Int32
 			var endpoint string
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -80,6 +93,9 @@ func TestPikaProtectedVideoExactOperations(t *testing.T) {
 						}
 					} else if b["duration_s"] != float64(5) || b["duration"] != nil || b["rewrite"] != nil {
 						t.Error("2.5 native controls", b)
+					}
+					if ratio != "" && b["aspect_ratio"] != ratio {
+						t.Error("catalog-declared ratio was lost", b["aspect_ratio"])
 					}
 					switch tc.mode {
 					case runtimev1.VideoMode_VIDEO_MODE_T2V:
@@ -129,6 +145,8 @@ func TestPikaProtectedVideoExactOperations(t *testing.T) {
 			defer server.Close()
 			endpoint = server.URL
 			f := newManagedCloudScenarioTestFixture(t, "pika", tc.model, endpoint+"/proxy/anthropic/v1", Config{AllowLoopbackEndpoint: true})
+			f.service.jobWorkAuthorizer = newNativeMediaWorkAuthorizer("user-001", "app.pika", "pika-subject")
+			f.service.requireJobWorkAuthority = true
 			intent := cloudVoiceAIConfigIntent(t, f.connectorID, f.descriptor)
 			intent.CapabilityContract = "video.generate"
 			intent.GetCloud().Implementation = &runtimev1.CapabilityImplementationIdentity{ImplementationId: "cloud.video.generate.pika", DriverId: "nimi.runtime.driver.pika", DriverDialect: "provider/media-v1"}
@@ -139,6 +157,7 @@ func TestPikaProtectedVideoExactOperations(t *testing.T) {
 				return accountservice.ContextWithAuthorizedLocalAppDecision(context.Background(), accountservice.LocalAppCallerDecision{AccountID: "user-001", AppID: "app.pika", RegisteredAppSubject: "pika-subject", Operation: op, AuthorityClass: localappop.AuthorityClassAppAccess, OperationCapability: cap})
 			}
 			s := &runtimev1.LocalAppVideoGenerateJobSpec{Mode: tc.mode, Prompt: "A blue cup", Options: &runtimev1.LocalAppVideoGenerationOptions{DurationSec: proto.Int32(5), Resolution: "1080p", Seed: proto.Int64(0)}}
+			s.Options.Ratio = ratio
 			frame := func(role runtimev1.VideoContentRole, uri string) *runtimev1.VideoContentItem {
 				return &runtimev1.VideoContentItem{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_IMAGE_URL, Role: role, ImageUrl: &runtimev1.VideoContentImageURL{Url: uri}}
 			}

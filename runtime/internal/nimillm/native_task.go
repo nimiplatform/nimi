@@ -99,6 +99,9 @@ func requireNativeTaskPublisher(ctx context.Context) error {
 }
 
 func ValidateNativeTaskReceipt(r *NativeTaskReceipt) error {
+	if r != nil && r.Adapter == AdapterRunwayTask && (!runwayTaskIDPattern.MatchString(r.TaskID) || !capabilitydriver.IsRunwayVideoModel(r.Model) || r.Artifact == nil || r.Artifact.GetMimeType() != "video/mp4") {
+		return fmt.Errorf("invalid Runway original task identity")
+	}
 	if r != nil && r.Adapter == AdapterPikaTask && (!validPikaTaskID(r.TaskID) || !capabilitydriver.IsPikaVideoModel(r.Model) || r.Artifact == nil || r.Artifact.GetMimeType() != "video/mp4") {
 		return fmt.Errorf("invalid Pika original task identity")
 	}
@@ -195,7 +198,7 @@ func nativeTaskQueryPathAllowed(adapter, path string) bool {
 	case AdapterKlingTask:
 		return path == klingImageQueryPath || path == klingOmniImageQueryPath || path == klingVideoQueryPath
 	case AdapterRunwayTask:
-		return path == "/v1/tasks/{task_id}"
+		return path == runwayQueryPath
 	case AdapterLumaRay32, AdapterLumaUniImage:
 		return path == lumaAgentsQueryPath
 	case AdapterLumaTask:
@@ -257,6 +260,9 @@ func ObserveNativeTask(ctx context.Context, cfg MediaAdapterConfig, r *NativeTas
 	}
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	ctx = originalControlRequest(ctx)
+	if r.Adapter == AdapterRunwayTask {
+		return observeRunwayTask(ctx, cfg, r)
+	}
 	if r.Adapter == AdapterPikaTask {
 		return observePikaTask(ctx, cfg, r)
 	}
@@ -302,9 +308,6 @@ func ObserveNativeTask(ctx context.Context, cfg MediaAdapterConfig, r *NativeTas
 	response := map[string]any{}
 	query := ResolveTaskQueryPath(r.QueryPathTemplate, r.TaskID)
 	apiKey, headers := cfg.APIKey, cloneMediaHeaders(cfg.Headers)
-	if r.Adapter == AdapterRunwayTask {
-		headers = runwayRequestHeaders(cfg.Headers)
-	}
 	if r.Adapter == AdapterFluxNative {
 		if !validFluxPollingURL(cfg.BaseURL, r.PollingURL, r.TaskID, cfg.AllowLoopbackEndpoint) {
 			return nil, false, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)

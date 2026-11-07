@@ -235,12 +235,6 @@ func TestExtractTaskIDFromAdapterPayloadUsesAdapterSpecificPaths(t *testing.T) {
 		},
 
 		{
-			name:    "runway uses top level id only",
-			adapter: AdapterRunwayTask,
-			payload: map[string]any{"id": "runway-1", "output": map[string]any{"task_id": "wrong"}},
-			want:    "runway-1",
-		},
-		{
 			name:    "bytedance uses data task id",
 			adapter: AdapterBytedanceARKTask,
 			payload: map[string]any{"data": map[string]any{"task_id": "ark-1"}, "id": "wrong"},

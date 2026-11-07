@@ -23,7 +23,7 @@ func TestNativeCreateRequiresReceiptIdentityBeforeAnyBodyAcquisition(t *testing.
 	}{
 		{"flux", "flux-pro", image, ExecuteFluxMedia},
 		{"luma", "ray", video, ExecuteLumaTask},
-		{"runway", "gen", video, ExecuteRunwayTask},
+		{"runway", "gen4.5", video, ExecuteRunwayTask},
 		{"pika", "pika/pika-h3-flex/text-to-video", video, ExecutePikaTask},
 		{"kling-image", "kling-v3", image, ExecuteKlingTask},
 		{"kling-video", "kling-4.0", video, ExecuteKlingTask},

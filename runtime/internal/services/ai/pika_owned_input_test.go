@@ -14,66 +14,15 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/protobuf/proto"
 )
-
-// Explicit, revocable engineering authority. Production checks remain enabled;
-// an authorized ingress decision alone is not a detached Job work permit.
-type pikaTestWorkAuthorizer struct {
-	mu      sync.Mutex
-	revoked bool
-	live    map[chan struct{}]bool
-}
-
-func (a *pikaTestWorkAuthorizer) AdmitJobWork(_ context.Context, d accountservice.LocalAppCallerDecision) (accountservice.JobWorkAuthority, error) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	denied := func() error {
-		return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_APP_SCOPE_FORBIDDEN)
-	}
-	if a.revoked || d.AccountID != "user-001" || d.AppID != "app.pika-owned" || d.RegisteredAppSubject != "pika-owned-subject" {
-		return accountservice.JobWorkAuthority{}, denied()
-	}
-	if a.live == nil {
-		a.live = map[chan struct{}]bool{}
-	}
-	done := make(chan struct{})
-	a.live[done] = true
-	return accountservice.JobWorkAuthority{Invalidated: done, WithCurrent: func(ctx context.Context, fn func() error) error {
-		a.mu.Lock()
-		defer a.mu.Unlock()
-		if a.revoked || !a.live[done] || ctx.Err() != nil {
-			return denied()
-		}
-		return fn()
-	}, Release: func() {
-		a.mu.Lock()
-		defer a.mu.Unlock()
-		if a.live[done] {
-			delete(a.live, done)
-		}
-	}}, nil
-}
-
-func (a *pikaTestWorkAuthorizer) revoke() {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	a.revoked = true
-	for done := range a.live {
-		delete(a.live, done)
-		close(done)
-	}
-}
 
 func TestPikaOwnedInputsAreDurableBeforePUTAndCleanedAfterOriginalCompletion(t *testing.T) {
 	video := pikaTestVideo(t)
@@ -219,7 +168,7 @@ func TestPikaOwnedInputsAreDurableBeforePUTAndCleanedAfterOriginalCompletion(t *
 			defer server.Close()
 			endpoint = server.URL
 			f = newManagedCloudScenarioTestFixture(t, "pika", model, endpoint, Config{AllowLoopbackEndpoint: true})
-			f.service.jobWorkAuthorizer = &pikaTestWorkAuthorizer{}
+			f.service.jobWorkAuthorizer = newNativeMediaWorkAuthorizer("user-001", "app.pika-owned", "pika-owned-subject")
 			f.service.requireJobWorkAuthority = true
 			statePath := filepath.Join(t.TempDir(), "state.json")
 			store, err := newScenarioJobStoreForLocalStatePath(statePath)

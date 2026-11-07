@@ -31,7 +31,7 @@ func ExtractTaskIDFromAdapterPayload(adapter string, payload map[string]any) str
 			payloadStringPath{"task_id"},
 			payloadStringPath{"taskId"},
 		)
-	case AdapterRunwayTask, AdapterFluxNative, AdapterLumaTask:
+	case AdapterFluxNative, AdapterLumaTask:
 		return firstStringAtPayloadPaths(payload,
 			payloadStringPath{"id"},
 			payloadStringPath{"data", "id"},

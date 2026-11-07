@@ -34,6 +34,9 @@ func AlibabaVideoImageReferenceLimit(model string) int {
 }
 
 func SupportsCloudVideoArtifacts(provider, model string) bool {
+	if provider == "runway" {
+		return IsRunwayVideoModel(model)
+	}
 	if provider == "pika" {
 		return IsPikaVideoModel(model)
 	}

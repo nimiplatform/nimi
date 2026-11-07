@@ -71,6 +71,15 @@ func ValidateCloudVideoMediaReferences(provider, model string, spec *runtimev1.V
 			if err := validateCapturedXAIImage(reference, item.GetArtifactRef().GetArtifactId()); err != nil {
 				return err
 			}
+		} else if provider == "runway" {
+			// The native schema bounds the complete data URI, including its MIME
+			// prefix and Base64 expansion, rather than the binary source alone.
+			if len("data:"+reference.MIMEType+";base64,")+base64.StdEncoding.EncodedLen(len(reference.Bytes)) > 5<<20 {
+				return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_ARTIFACT_TOO_LARGE)
+			}
+			if err := validateCapturedRasterReference(reference, item.GetArtifactRef().GetArtifactId(), 16<<20, 8000); err != nil {
+				return err
+			}
 		} else if provider == "pika" {
 			total += len(reference.Bytes)
 			if total > 64_000_000 {

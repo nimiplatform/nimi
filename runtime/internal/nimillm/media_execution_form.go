@@ -34,7 +34,9 @@ func MediaUsesNativeTask(adapter string, request *runtimev1.SubmitScenarioJobReq
 		return modal == runtimev1.Modal_MODAL_VIDEO
 	case AdapterPikaTask:
 		return modal == runtimev1.Modal_MODAL_VIDEO && capabilitydriver.IsPikaVideoModel(model)
-	case AdapterGLMTask, AdapterLumaTask, AdapterLumaRay32, AdapterRunwayTask, AdapterGeminiOmniVideo:
+	case AdapterRunwayTask:
+		return modal == runtimev1.Modal_MODAL_VIDEO && capabilitydriver.IsRunwayVideoModel(model)
+	case AdapterGLMTask, AdapterLumaTask, AdapterLumaRay32, AdapterGeminiOmniVideo:
 		return modal == runtimev1.Modal_MODAL_VIDEO
 	case AdapterKlingTask:
 		return modal == runtimev1.Modal_MODAL_IMAGE && capabilitydriver.IsKlingImageModel(model) || modal == runtimev1.Modal_MODAL_VIDEO && capabilitydriver.IsKlingVideoModel(model)

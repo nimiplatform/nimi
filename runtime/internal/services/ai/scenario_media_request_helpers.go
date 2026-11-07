@@ -318,14 +318,10 @@ func validateVideoGenerateScenarioSpec(spec *runtimev1.VideoGenerateScenarioSpec
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 
-	ratio := strings.TrimSpace(options.GetRatio())
-	if ratio != "" {
-		switch ratio {
-		case "16:9", "4:3", "1:1", "3:4", "9:16", "21:9", "4:5", "5:4", "9:21", "adaptive":
-		default:
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
-		}
-	}
+	// @nimi-authority: rule.nimi.runtime.ai-provider.r076
+	// Ratio and resolution are validated by the selected model's catalog and
+	// exact Driver. Their vocabularies include native pixel canvases and auto
+	// modes; a second global list can reject declared, executable model options.
 	if mode == runtimev1.VideoMode_VIDEO_MODE_I2V_REFERENCE && options.GetCameraFixed() {
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}

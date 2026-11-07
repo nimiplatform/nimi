@@ -325,7 +325,6 @@ func TestNativeObservationKeepsCompleteOutputSetWithoutAcquiringBodies(t *testin
 		count                  int
 	}{
 		{AdapterAlibabaNative, "/api/v1/tasks/{task_id}", `{"output":{"task_id":"original","task_status":"SUCCEEDED","results":[{"url":"%s/one"},{"url":"%s/two"}]}}`, 2},
-		{AdapterRunwayTask, "/v1/tasks/{task_id}", `{"id":"original","status":"SUCCEEDED","output":["%s/one","%s/two"]}`, 2},
 		{AdapterBytedanceARKTask, "/contents/generations/tasks/{task_id}", `{"id":"original","model":"doubao-seedance-2-5-260628","status":"succeeded","content":{"video_url":"%s/one","last_frame_url":"%s/two"}}`, 2},
 		{AdapterLumaTask, "/dream-machine/v1/generations/{task_id}", `{"id":"original","state":"completed","assets":{"video":"%s/one"},"ignored":"%s"}`, 1},
 	} {

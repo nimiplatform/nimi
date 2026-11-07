@@ -77,6 +77,9 @@ func (b *Backend) ProbeConnector(ctx context.Context) error {
 	if normalizeProbeProviderToken(strings.TrimPrefix(strings.TrimSpace(b.Name), "cloud-")) == "pika" {
 		return b.probePikaConnector(ctx)
 	}
+	if normalizeProbeProviderToken(strings.TrimPrefix(strings.TrimSpace(b.Name), "cloud-")) == "runway" {
+		return b.probeRunwayConnector(ctx)
+	}
 
 	if normalizeProbeProviderToken(strings.TrimPrefix(strings.TrimSpace(b.Name), "cloud-")) == "fireworks" {
 		modelsBaseURL, err := fireworksModelsBaseURL(b.baseURL)
@@ -164,6 +167,36 @@ func (b *Backend) probePikaConnector(ctx context.Context) error {
 	}
 	if out.Unit != "micro_usd" || out.Currency != "usd" || strings.TrimSpace(out.OrgID) == "" || out.Balance == nil {
 		return pikaOutputInvalid()
+	}
+	return nil
+}
+
+func (b *Backend) probeRunwayConnector(ctx context.Context) error {
+	client, err := runwayBackend(ctx, MediaAdapterConfig{BaseURL: b.baseURL, APIKey: b.apiKey, Headers: b.headers, AllowLoopbackEndpoint: b.allowLoopbackEndpoint})
+	if err != nil {
+		return err
+	}
+	defer client.client.CloseIdleConnections()
+	response, err := nativeMediaJSONRequest(ctx, client, http.MethodGet, "/v1/organization", nil)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+	var out struct {
+		Balance *int64 `json:"creditBalance"`
+		Tier    *struct {
+			MaxMonthly *int64         `json:"maxMonthlyCreditSpend"`
+			Models     map[string]any `json:"models"`
+		} `json:"tier"`
+		Usage *struct {
+			Models map[string]any `json:"models"`
+		} `json:"usage"`
+	}
+	if err := DecodeResponseJSON(response, &out); err != nil {
+		return err
+	}
+	if out.Balance == nil || *out.Balance < 0 || *out.Balance > 9007199254740991 || out.Tier == nil || out.Tier.MaxMonthly == nil || out.Tier.Models == nil || out.Usage == nil || out.Usage.Models == nil {
+		return runwayInvalidOutput()
 	}
 	return nil
 }

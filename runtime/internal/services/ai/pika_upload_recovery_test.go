@@ -89,7 +89,7 @@ func TestPikaUnrecordedCleanupKeepsCustodyOnlyUntilFixedRetention(t *testing.T) 
 	if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_COMPLETED || assembly.CredentialCustodyRef == "" || f.service.scenarioJobs.currentInputCleanup(id) != nil || deletes.Load() != 1 {
 		t.Fatal("unrecorded cleanup lost recovery custody", job, deletes.Load())
 	}
-	f.service.jobWorkAuthorizer.(*pikaTestWorkAuthorizer).revoke()
+	f.service.jobWorkAuthorizer.(*nativeMediaWorkAuthorizer).revoke()
 	var disposition atomic.Bool
 	f.service.scenarioJobs.mu.Lock()
 	r := f.service.scenarioJobs.jobs[id]
@@ -118,7 +118,7 @@ func pikaOwnedLifecycleFixture(t *testing.T, endpoint string) (managedCloudScena
 	t.Helper()
 	model := "pika/pika-h3-flex/image-to-video"
 	f := newManagedCloudScenarioTestFixture(t, "pika", model, endpoint, Config{AllowLoopbackEndpoint: true})
-	f.service.jobWorkAuthorizer = &pikaTestWorkAuthorizer{}
+	f.service.jobWorkAuthorizer = newNativeMediaWorkAuthorizer("user-001", "app.pika-owned", "pika-owned-subject")
 	f.service.requireJobWorkAuthority = true
 	store, err := newScenarioJobStoreForLocalStatePath(filepath.Join(t.TempDir(), "state.json"))
 	if err != nil {
@@ -359,7 +359,8 @@ func TestPikaUploadRecoveryRequiresFreshAuthorityAndNeverReplaysPUT(t *testing.T
 	}
 	restarted.scenarioJobs = reopened
 	restarted.requireJobWorkAuthority = true
-	restarted.jobWorkAuthorizer = &pikaTestWorkAuthorizer{revoked: true}
+	restarted.jobWorkAuthorizer = newNativeMediaWorkAuthorizer("user-001", "app.pika-owned", "pika-owned-subject")
+	restarted.jobWorkAuthorizer.(*nativeMediaWorkAuthorizer).revoke()
 	if err := restarted.releaseRecoveredTerminalCloudCredentialCustody(); err != nil {
 		t.Fatal(err)
 	}
@@ -367,7 +368,7 @@ func TestPikaUploadRecoveryRequiresFreshAuthorityAndNeverReplaysPUT(t *testing.T
 	if _, err := restarted.GetLocalAppScenarioJob(get, &runtimev1.GetLocalAppScenarioJobRequest{JobId: id}); err == nil || queries.Load() != 0 || deletes.Load() != 0 {
 		t.Fatal("historical permission opened provider IO", err)
 	}
-	restarted.jobWorkAuthorizer = &pikaTestWorkAuthorizer{}
+	restarted.jobWorkAuthorizer = newNativeMediaWorkAuthorizer("user-001", "app.pika-owned", "pika-owned-subject")
 	var job *runtimev1.LocalAppScenarioJob
 	deadline := time.Now().Add(10 * time.Second)
 	for time.Now().Before(deadline) {

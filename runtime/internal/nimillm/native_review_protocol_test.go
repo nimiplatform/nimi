@@ -128,12 +128,12 @@ func TestRunwayCreateAndQueryUseSameRequiredVersion(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		switch r.URL.Path {
-		case "/v1/image_to_video":
+		case "/v1/text_to_video":
 			creates.Add(1)
-			_, _ = fmt.Fprint(w, `{"id":"runway-original"}`)
-		case "/v1/tasks/runway-original":
+			_, _ = fmt.Fprint(w, `{"id":"17f20503-6c24-4c16-946b-35dbbce2af2f"}`)
+		case "/v1/tasks/17f20503-6c24-4c16-946b-35dbbce2af2f":
 			queries.Add(1)
-			_, _ = fmt.Fprintf(w, `{"id":"runway-original","status":"SUCCEEDED","output":[%q]}`, endpoint+"/asset")
+			_, _ = fmt.Fprintf(w, `{"id":"17f20503-6c24-4c16-946b-35dbbce2af2f","status":"SUCCEEDED","output":[%q],"cost":{"credits":60}}`, endpoint+"/asset")
 		default:
 			http.NotFound(w, r)
 		}
@@ -143,7 +143,7 @@ func TestRunwayCreateAndQueryUseSameRequiredVersion(t *testing.T) {
 	cfg := MediaAdapterConfig{BaseURL: endpoint, APIKey: "original-key", AllowLoopbackEndpoint: true, Headers: map[string]string{"x-runway-version": "not-the-protocol-version"}}
 	var receipt *NativeTaskReceipt
 	ctx := WithNativeTaskPublisher(context.Background(), func(r *NativeTaskReceipt) error { receipt = CloneNativeTaskReceipt(r); return nil })
-	_, _, _, err := ExecuteRunwayTask(ctx, cfg, noopJobStateUpdater{}, "job", newAsyncVideoJobRequest("scene"), "gen4_turbo")
+	_, _, _, err := ExecuteRunwayTask(ctx, cfg, noopJobStateUpdater{}, "job", newAsyncVideoJobRequest("scene"), "gen4.5")
 	if !errors.Is(err, ErrNativeTaskYielded) {
 		t.Fatal(err)
 	}

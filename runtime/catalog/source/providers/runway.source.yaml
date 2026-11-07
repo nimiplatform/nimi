@@ -1,6 +1,6 @@
 schema_version: 3
 provider: runway
-catalog_version: 2026-04-18-runway-video-v2
+catalog_version: 2026-11-07-runway-native-video
 generated_target: runtime/catalog/providers/runway.yaml
 runtime:
   inventory_mode: static_source
@@ -18,46 +18,64 @@ defaults:
     input: unknown
     output: unknown
     currency: USD
-    as_of: 2026-04-18
-    notes: Runway video pricing is published in credits per second and varies by model family; credits are billed through the Runway developer portal.
-
+    as_of: 2026-11-07
+    notes: Reviewed original Runway video generation, explicit account endpoint and model. Actual credits come from the original terminal task; DELETE does not prove generation stopped or a refund.
 sources:
   - source_id: runway_api_doc
-    url: https://docs.dev.runwayml.com/api
-    retrieved_at: 2026-04-18
-    note: Runway API overview and endpoint reference.
+    url: https://docs.dev.runwayml.com/openapi.json
+    retrieved_at: 2026-11-07
+    note: Reviewed current official model/protocol contract. Original provider and gateway capabilities are not interchangeable.
   - source_id: runway_models_doc
-    url: https://docs.dev.runwayml.com/guides/models
-    retrieved_at: 2026-04-18
-    note: Runway model catalog and capability overview.
+    url: https://docs.dev.runwayml.com/guides/models.md
+    retrieved_at: 2026-11-07
+    note: Reviewed current official model/protocol contract. Original provider and gateway capabilities are not interchangeable.
   - source_id: runway_pricing_doc
-    url: https://docs.dev.runwayml.com/guides/pricing/
-    retrieved_at: 2026-04-18
-    note: Runway API pricing page with current credits-per-second pricing for video models.
+    url: https://docs.dev.runwayml.com/guides/pricing.md
+    retrieved_at: 2026-11-07
+    note: Reviewed current official model/protocol contract. Original provider and gateway capabilities are not interchangeable.
   - source_id: runway_input_doc
-    url: https://docs.dev.runwayml.com/assets/inputs/
-    retrieved_at: 2026-04-18
-    note: Runway input constraints and asset-size rules for image, video, and audio references.
-
+    url: https://docs.dev.runwayml.com/assets/inputs.md
+    retrieved_at: 2026-11-07
+    note: Reviewed current official model/protocol contract. Original provider and gateway capabilities are not interchangeable.
+  - source_id: runway_changelog
+    url: https://docs.dev.runwayml.com/api-details/api_changelog.md
+    retrieved_at: 2026-11-07
+    note: Reviewed current official model/protocol contract. Original provider and gateway capabilities are not interchangeable.
+  - source_id: runway_failures
+    url: https://docs.dev.runwayml.com/errors/task-failures.md
+    retrieved_at: 2026-11-07
+    note: Reviewed current official model/protocol contract. Original provider and gateway capabilities are not interchangeable.
 models:
   - model_id: gen4.5
     model_type: video
-    updated_at: 2026-04-18
-    capabilities: [video.generate]
-    features: [input.image]
+    updated_at: 2026-11-07
+    capabilities:
+      - video.generate
+    features:
+      - input.image
     pricing:
       unit: request
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-04-18
-      notes: Runway publishes Gen-4.5 pricing at 12 credits per second. Credits are purchased in the developer portal at $0.01 per credit.
-    source_ids: [runway_api_doc, runway_models_doc, runway_pricing_doc, runway_input_doc]
+      as_of: 2026-11-07
+      notes: 12 credits/second; T2V only1280:720 or720:1280, I2V additionally1104:832/960:960/832:1104/1584:672. Prompt limit1000 UTF16 units. Native-required duration/ratio use explicit Runtime defaults5s and1280:720. Owned PNG/JPEG/WebP data URI <=5MiB including prefix/Base64; no mask, audio toggle, negative prompt, watermark, separate resolution, HDR/ProRes or automatic upload. Account access and real model quality are verified separately.
+    source_ids:
+      - runway_api_doc
+      - runway_models_doc
+      - runway_pricing_doc
+      - runway_input_doc
+      - runway_changelog
     video_generation:
-      modes: [t2v, i2v_first_frame]
+      modes:
+        - t2v
+        - i2v_first_frame
       input_roles:
-        t2v: [prompt]
-        i2v_first_frame: [prompt, first_frame]
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
       limits:
         duration_sec:
           min: 2
@@ -65,31 +83,49 @@ models:
         seed:
           min: 0
           max: 4294967295
-        ratio: ["1280:720", "720:1280", "1104:832", "960:960", "832:1104", "1584:672"]
+        ratio:
+          - 1280:720
+          - 720:1280
+          - 1104:832
+          - 960:960
+          - 832:1104
+          - 1584:672
       options:
-        supports: [ratio, duration_sec, seed, generate_audio]
+        supports:
+          - ratio
+          - duration_sec
+          - seed
         constraints:
           model_mode_compatibility_required: true
       outputs:
         video_url: true
-
   - model_id: gen4_turbo
     model_type: video
-    updated_at: 2026-04-18
-    capabilities: [video.generate]
-    features: [input.image]
+    updated_at: 2026-11-07
+    capabilities:
+      - video.generate
+    features:
+      - input.image
     pricing:
       unit: request
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-04-18
-      notes: Runway publishes Gen-4 Turbo pricing at 5 credits per second. Credits are purchased in the developer portal at $0.01 per credit.
-    source_ids: [runway_api_doc, runway_models_doc, runway_pricing_doc, runway_input_doc]
+      as_of: 2026-11-07
+      notes: 5 credits/second; one first frame is required and prompt may be omitted. Prompt limit1000 UTF16 units. Native-required ratio defaults to1280:720; omitted duration keeps the native default. Owned PNG/JPEG/WebP data URI <=5MiB including prefix/Base64; no mask, audio toggle, negative prompt, watermark, separate resolution, HDR/ProRes or automatic upload. Account access and real model quality are verified separately.
+    source_ids:
+      - runway_api_doc
+      - runway_models_doc
+      - runway_pricing_doc
+      - runway_input_doc
+      - runway_changelog
     video_generation:
-      modes: [i2v_first_frame]
+      modes:
+        - i2v_first_frame
       input_roles:
-        i2v_first_frame: [prompt, first_frame]
+        i2v_first_frame:
+          - prompt
+          - first_frame
       limits:
         duration_sec:
           min: 2
@@ -97,41 +133,18 @@ models:
         seed:
           min: 0
           max: 4294967295
-        ratio: ["1280:720", "720:1280", "1104:832", "960:960", "832:1104", "1584:672"]
+        ratio:
+          - 1280:720
+          - 720:1280
+          - 1104:832
+          - 960:960
+          - 832:1104
+          - 1584:672
       options:
-        supports: [ratio, duration_sec, seed, generate_audio]
-        constraints:
-          model_mode_compatibility_required: true
-      outputs:
-        video_url: true
-
-  - model_id: gen3a_turbo
-    model_type: video
-    updated_at: 2026-04-18
-    capabilities: [video.generate]
-    features: [input.image]
-    pricing:
-      unit: request
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-04-18
-      notes: Runway publishes Gen-3 Alpha Turbo pricing at 5 credits per second. Credits are purchased in the developer portal at $0.01 per credit.
-    source_ids: [runway_api_doc, runway_models_doc, runway_pricing_doc, runway_input_doc]
-    video_generation:
-      modes: [i2v_first_frame]
-      input_roles:
-        i2v_first_frame: [prompt, first_frame]
-      limits:
-        duration_sec:
-          min: 2
-          max: 10
-        seed:
-          min: 0
-          max: 4294967295
-        ratio: ["1280:720", "720:1280", "1104:832", "960:960", "832:1104", "1584:672"]
-      options:
-        supports: [ratio, duration_sec, seed, generate_audio]
+        supports:
+          - ratio
+          - duration_sec
+          - seed
         constraints:
           model_mode_compatibility_required: true
       outputs:

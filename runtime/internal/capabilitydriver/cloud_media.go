@@ -628,6 +628,11 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 			return nil, err
 		}
 	}
+	if d.provider == "runway" {
+		if err := validateRunwayVideo(mapped, target.providerModelID, streamMode); err != nil {
+			return nil, err
+		}
+	}
 	if d.provider == "aws_polly" {
 		if err := validatePollySpeechRequest(mapped, target.providerModelID, streamMode); err != nil {
 			return nil, err
