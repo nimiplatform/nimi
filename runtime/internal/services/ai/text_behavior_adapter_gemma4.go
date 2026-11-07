@@ -80,6 +80,7 @@ func productionTextBehaviorAdapterRegistrations() []textBehaviorAdapterRegistrat
 	for _, model := range capabilitydriver.SiliconFlowTextModels() {
 		registrations = append(registrations, siliconFlowTextBehaviorRegistration(model))
 	}
+	registrations = append(registrations, qianfanTextBehaviorRegistration())
 	return registrations
 }
 

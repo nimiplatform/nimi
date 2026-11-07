@@ -119,8 +119,7 @@ func TestResolveTextContextMetadataPreservesSourceModelOverrides(t *testing.T) {
 		want     uint64
 	}{
 		{provider: "stepfun", model: "step-1-256k", want: 262144},
-		{provider: "qianfan", model: "ernie-4.5-turbo-128k", want: 131072},
-		{provider: "qianfan", model: "ernie-4.5-turbo-32k", want: 32768},
+		{provider: "qianfan", model: "ernie-5.1", want: 131072},
 		{provider: "mimo", model: "mimo-v2.6-pro", want: 1000000},
 		{provider: "mimo", model: "mimo-v2.6-flash", want: 1000000},
 		{provider: "dashscope", model: "qwen3-vl-plus", want: 262144},

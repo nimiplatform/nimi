@@ -32,7 +32,7 @@ func TestCommittedRetiredCloudTextTargetsFailBeforeDispatch(t *testing.T) {
 		active   string
 		retired  []string
 	}{
-		{"qianfan", "ernie-5.1", []string{"ernie-x1.1", "ernie-x1.1-preview"}},
+		{"qianfan", "ernie-5.1", []string{"ernie-x1.1", "ernie-x1.1-preview", "ernie-5.0", "ernie-4.5-turbo-128k", "ernie-4.5-turbo-32k", "ernie-4.5-turbo-vl", "ernie-4.5-turbo-vl-32k"}},
 		{"stepfun", "step-3.7-flash", []string{"step-1-8k", "step-1-32k", "step-1v-8k", "step-1v-32k", "step-2-mini", "step-1o-vision-32k", "step-2-16k", "step-3"}},
 		{"dashscope", "qwen3-vl-plus", []string{"qwen-vl-max-latest"}},
 		{"volcengine", "doubao-seed-2-0-lite-260428", []string{"doubao-seed-2-0-lite-260215", "doubao-seed-2-0-mini-260215"}},

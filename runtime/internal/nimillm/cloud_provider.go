@@ -115,6 +115,11 @@ func (p *CloudProvider) EmbedWithTarget(ctx context.Context, modelID string, inp
 		return nil, nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	switch protocol {
+	case capabilitydriver.CloudEmbedProtocolQianfanV2:
+		if target.ProviderType != "qianfan" || resolvedModelID != "embedding-v1" || dimensions != nil {
+			return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
+		}
+		return backend.EmbedQianfan(ctx, resolvedModelID, inputs)
 	case capabilitydriver.CloudEmbedProtocolSiliconFlowV1:
 		if target.ProviderType != "siliconflow" || capabilitydriver.SiliconFlowEmbedDimensions(resolvedModelID) == 0 {
 			return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
@@ -136,7 +141,7 @@ func (p *CloudProvider) EmbedWithTarget(ctx context.Context, modelID string, inp
 		}
 		return backend.EmbedGeminiNative(ctx, resolvedModelID, inputs, dimensions)
 	case capabilitydriver.CloudEmbedProtocolCompatibleV1:
-		if target.ProviderType == "gemini" && resolvedModelID == capabilitydriver.GeminiEmbedding2ModelID || target.ProviderType == "cohere" && (resolvedModelID == "embed-v5.0-pro" || resolvedModelID == "embed-v5.0-fast") {
+		if target.ProviderType == "qianfan" && resolvedModelID == "embedding-v1" || target.ProviderType == "gemini" && resolvedModelID == capabilitydriver.GeminiEmbedding2ModelID || target.ProviderType == "cohere" && (resolvedModelID == "embed-v5.0-pro" || resolvedModelID == "embed-v5.0-fast") {
 			return nil, nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_CONFIG_INVALID)
 		}
 		return backend.Embed(ctx, resolvedModelID, inputs, dimensions)

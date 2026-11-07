@@ -159,7 +159,7 @@ func validateCloudResolvedAssembly(assembly *cloudResolvedAssembly) error {
 		return fmt.Errorf("Cloud embedding output contract is missing")
 	}
 	if assembly != nil && assembly.RequestKind == cloudResolvedRequestEmbed &&
-		assembly.EmbeddingProtocol != capabilitydriver.CloudEmbedProtocolCompatibleV1 && assembly.EmbeddingProtocol != capabilitydriver.CloudEmbedProtocolGeminiV1 && assembly.EmbeddingProtocol != capabilitydriver.CloudEmbedProtocolCohereV2 && assembly.EmbeddingProtocol != capabilitydriver.CloudEmbedProtocolOpenRouterV1 && assembly.EmbeddingProtocol != capabilitydriver.CloudEmbedProtocolSiliconFlowV1 {
+		assembly.EmbeddingProtocol != capabilitydriver.CloudEmbedProtocolCompatibleV1 && assembly.EmbeddingProtocol != capabilitydriver.CloudEmbedProtocolGeminiV1 && assembly.EmbeddingProtocol != capabilitydriver.CloudEmbedProtocolCohereV2 && assembly.EmbeddingProtocol != capabilitydriver.CloudEmbedProtocolOpenRouterV1 && assembly.EmbeddingProtocol != capabilitydriver.CloudEmbedProtocolSiliconFlowV1 && assembly.EmbeddingProtocol != capabilitydriver.CloudEmbedProtocolQianfanV2 {
 		return fmt.Errorf("Cloud embedding protocol capture is missing or unsupported")
 	}
 	if assembly != nil && assembly.RequestKind != cloudResolvedRequestEmbed && assembly.EmbeddingProtocol != "" {

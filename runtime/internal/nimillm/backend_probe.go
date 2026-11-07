@@ -80,6 +80,9 @@ func (b *Backend) ProbeConnector(ctx context.Context) error {
 	if normalizeProbeProviderToken(strings.TrimPrefix(strings.TrimSpace(b.Name), "cloud-")) == "runway" {
 		return b.probeRunwayConnector(ctx)
 	}
+	if normalizeProbeProviderToken(strings.TrimPrefix(strings.TrimSpace(b.Name), "cloud-")) == "qianfan" {
+		return b.probeQianfanConnector(ctx)
+	}
 
 	if normalizeProbeProviderToken(strings.TrimPrefix(strings.TrimSpace(b.Name), "cloud-")) == "fireworks" {
 		modelsBaseURL, err := fireworksModelsBaseURL(b.baseURL)

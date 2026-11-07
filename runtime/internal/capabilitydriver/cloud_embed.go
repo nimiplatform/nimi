@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -33,6 +34,7 @@ const (
 	CloudEmbedProtocolCohereV2      CloudEmbedProtocol = "cohere/embed-v5/search/v2"
 	CloudEmbedProtocolOpenRouterV1  CloudEmbedProtocol = "openrouter/embeddings/v1"
 	CloudEmbedProtocolSiliconFlowV1 CloudEmbedProtocol = "siliconflow/embeddings/v1"
+	CloudEmbedProtocolQianfanV2     CloudEmbedProtocol = "qianfan/embeddings/v2"
 )
 
 // CloudEmbedTarget is one exact provider/model target interpreted by an
@@ -51,6 +53,9 @@ func (t CloudEmbedTarget) RemoteModelCatalogID() string { return t.remoteModelCa
 func (t CloudEmbedTarget) Region() string               { return t.region }
 
 func (t CloudEmbedTarget) Protocol() CloudEmbedProtocol {
+	if t.provider == "qianfan" && t.providerModelID == "embedding-v1" {
+		return CloudEmbedProtocolQianfanV2
+	}
 	if t.provider == "siliconflow" && SiliconFlowEmbedDimensions(t.providerModelID) > 0 {
 		return CloudEmbedProtocolSiliconFlowV1
 	}
@@ -67,6 +72,9 @@ func (t CloudEmbedTarget) Protocol() CloudEmbedProtocol {
 }
 
 func (t CloudEmbedTarget) DefaultDimensions() uint32 {
+	if t.Protocol() == CloudEmbedProtocolQianfanV2 {
+		return 384
+	}
 	if t.Protocol() == CloudEmbedProtocolSiliconFlowV1 {
 		return SiliconFlowEmbedDimensions(t.providerModelID)
 	}
@@ -278,8 +286,11 @@ func (d providerCloudEmbedDriver) MapRequest(target CloudEmbedTarget, spec *runt
 			return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("text.embed inputs must be non-empty"))
 		}
 		inputs = append(inputs, trimmed)
-		if target.provider == "openrouter" || target.Protocol() == CloudEmbedProtocolSiliconFlowV1 {
+		if target.provider == "openrouter" || target.Protocol() == CloudEmbedProtocolSiliconFlowV1 || target.Protocol() == CloudEmbedProtocolQianfanV2 {
 			inputs[len(inputs)-1] = input
+		}
+		if target.Protocol() == CloudEmbedProtocolQianfanV2 && utf8.RuneCountInString(input) > 1000 {
+			return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("Qianfan Embedding-V1 supports at most 1000 characters per input; native 384-token limit remains provider-enforced"))
 		}
 	}
 	var dimensions *uint32
