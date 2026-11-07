@@ -4,7 +4,6 @@ import (
 	"context"
 	"log/slog"
 	"net/http"
-	"strconv"
 	"strings"
 
 	"google.golang.org/grpc/codes"
@@ -13,10 +12,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
-const (
-	AdapterBytedanceARKTask                = "bytedance_ark_task_adapter"
-	bytedanceARKSeedreamMinImagePixelCount = 3686400
-)
+const AdapterBytedanceARKTask = "bytedance_ark_task_adapter"
 
 func ExecuteBytedanceARKTask(
 	ctx context.Context,
@@ -32,73 +28,8 @@ func ExecuteBytedanceARKTask(
 		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
 	apiKey := strings.TrimSpace(cfg.APIKey)
-	scenarioExtensions := scenarioExtensionPayloadForScenario(req)
 
 	switch scenarioModal(req) {
-	case runtimev1.Modal_MODAL_IMAGE:
-		spec := scenarioImageSpec(req)
-		if spec == nil {
-			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-		}
-		submitPath := resolveBytedanceARKImagePath()
-		submitPayload := map[string]any{
-			"model":           modelResolved,
-			"prompt":          spec.GetPrompt(),
-			"negative_prompt": spec.GetNegativePrompt(),
-			"size":            normalizeBytedanceARKImageSize(modelResolved, spec.GetSize()),
-			"aspect_ratio":    spec.GetAspectRatio(),
-			"quality":         spec.GetQuality(),
-			"style":           spec.GetStyle(),
-		}
-		if spec.GetSeed() != 0 {
-			submitPayload["seed"] = spec.GetSeed()
-		}
-		if len(spec.GetReferenceImages()) > 0 {
-			submitPayload["reference_images"] = append([]string(nil), spec.GetReferenceImages()...)
-		}
-		if strings.TrimSpace(spec.GetMask()) != "" {
-			submitPayload["mask"] = strings.TrimSpace(spec.GetMask())
-		}
-		submitPayload["input"] = map[string]any{
-			"prompt":          spec.GetPrompt(),
-			"negative_prompt": spec.GetNegativePrompt(),
-		}
-		if len(scenarioExtensions) > 0 {
-			submitPayload["extensions"] = scenarioExtensions
-		}
-
-		submitResp := map[string]any{}
-		if err := DoJSONRequest(ctx, http.MethodPost, JoinURL(baseURL, submitPath), apiKey, submitPayload, &submitResp); err != nil {
-			return nil, nil, "", err
-		}
-		artifactBytes, mimeType, artifactURI := ExtractTaskArtifactSource(ctx, submitResp)
-		if len(artifactBytes) == 0 && strings.TrimSpace(artifactURI) == "" {
-			return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-		}
-		if mimeType == "" {
-			mimeType = ResolveImageArtifactMIME(spec, artifactBytes)
-		}
-		artifactMeta := map[string]any{
-			"adapter":          AdapterBytedanceARKTask,
-			"endpoint":         submitPath,
-			"response":         submitResp,
-			"prompt":           strings.TrimSpace(spec.GetPrompt()),
-			"negative_prompt":  strings.TrimSpace(spec.GetNegativePrompt()),
-			"size":             strings.TrimSpace(spec.GetSize()),
-			"aspect_ratio":     strings.TrimSpace(spec.GetAspectRatio()),
-			"quality":          strings.TrimSpace(spec.GetQuality()),
-			"style":            strings.TrimSpace(spec.GetStyle()),
-			"response_format":  strings.TrimSpace(spec.GetResponseFormat()),
-			"reference_images": append([]string(nil), spec.GetReferenceImages()...),
-			"mask":             strings.TrimSpace(spec.GetMask()),
-			"extensions":       scenarioExtensions,
-		}
-		if artifactURI != "" {
-			artifactMeta["uri"] = artifactURI
-		}
-		artifact := BinaryArtifact(mimeType, artifactBytes, artifactMeta)
-		ApplyImageSpecMetadata(artifact, spec)
-		return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
 	case runtimev1.Modal_MODAL_VIDEO:
 		spec := scenarioVideoSpec(req)
 		if spec == nil {
@@ -144,60 +75,10 @@ func ExecuteBytedanceARKTask(
 
 // Provider-specific path resolvers (package-private)
 
-func resolveBytedanceARKImagePath() string {
-	return firstProviderEndpointPath([]string{"/images/generations"})
-}
-
 func resolveBytedanceARKVideoSubmitPath() string {
 	return firstProviderEndpointPath([]string{"/contents/generations/tasks"})
 }
 
 func resolveBytedanceARKVideoQueryPathTemplate() string {
 	return resolveTaskQueryPathTemplate([]string{"/contents/generations/tasks/{task_id}"})
-}
-
-func normalizeBytedanceARKImageSize(modelResolved string, rawSize string) string {
-	size := strings.TrimSpace(rawSize)
-	if !isBytedanceARKSeedreamImageModel(modelResolved) {
-		return size
-	}
-
-	switch strings.ToLower(size) {
-	case "", "auto", "default":
-		return "2k"
-	case "2k", "3k", "4k":
-		return strings.ToLower(size)
-	}
-
-	width, height, normalized, ok := parseBytedanceARKImageDimensions(size)
-	if !ok || width <= 0 || height <= 0 {
-		return size
-	}
-	if int64(width)*int64(height) < bytedanceARKSeedreamMinImagePixelCount {
-		return "2k"
-	}
-	return normalized
-}
-
-func isBytedanceARKSeedreamImageModel(modelResolved string) bool {
-	normalized := strings.ToLower(strings.TrimSpace(modelResolved))
-	return strings.Contains(normalized, "seedream")
-}
-
-func parseBytedanceARKImageDimensions(rawSize string) (int, int, string, bool) {
-	normalized := strings.ToLower(strings.TrimSpace(rawSize))
-	normalized = strings.ReplaceAll(normalized, "*", "x")
-	widthText, heightText, ok := strings.Cut(normalized, "x")
-	if !ok || strings.TrimSpace(widthText) == "" || strings.TrimSpace(heightText) == "" {
-		return 0, 0, "", false
-	}
-	width, err := strconv.Atoi(strings.TrimSpace(widthText))
-	if err != nil {
-		return 0, 0, "", false
-	}
-	height, err := strconv.Atoi(strings.TrimSpace(heightText))
-	if err != nil {
-		return 0, 0, "", false
-	}
-	return width, height, strconv.Itoa(width) + "x" + strconv.Itoa(height), true
 }

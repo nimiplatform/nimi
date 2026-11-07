@@ -1,6 +1,6 @@
 version: 1
 provider: volcengine
-catalog_version: 2026-11-07-volcengine-native-embedding
+catalog_version: 2026-11-07-volcengine-native-seedream
 inventory_mode: static_source
 default_text_model: doubao-seed-2-1-pro-260915
 models:
@@ -708,10 +708,10 @@ models:
       note: Native endpoint returns one dense vector for its input parts; dimensions1024/2048, default2048.
     embedding:
       dimension: 2048
-  - model_id: doubao-seedream-5-0-260128
+  - model_id: doubao-seedream-5-0-pro-260628
     provider: volcengine
     model_type: image
-    updated_at: 2026-04-18
+    updated_at: 2026-11-07
     capabilities:
       - image.generate
     pricing:
@@ -719,83 +719,144 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-04-18
-      notes: Ark image generation pricing varies by quality profile and account tier.
+      as_of: 2026-11-07
+      notes: Native single-image generation/reference edit;1K/1.5K/2K tiers and JPEG/PNG. Separate layers, transparency and group generation are not admitted.
     source_ref:
-      url: https://www.volcengine.com/docs/6492/2172373
-      retrieved_at: 2026-04-18
-      note: Volcengine Seedream image generation documentation.
+      url: https://docs.volcengine.com/docs/ark/image-generation-api?lang=zh
+      retrieved_at: 2026-11-07
+      note: Native single-image operation, generation-specific size/output-format controls, image array, dense image bytes and actual output usage.
     features:
       - input.image
-      - input.mask
-    image_request_options: &a3
-      response_formats:
-        - b64_json
-        - url
-      max_images_per_request: 1
-      supports_negative_prompt: true
-      supports_reference_images: true
-      supports_mask: true
-      supports_seed: true
-      supports_size: true
-      supports_aspect_ratio: true
-      supports_quality: true
-      supports_style: true
-  - model_id: seedream-5.0
-    provider: volcengine
-    model_type: image
-    updated_at: 2026-04-18
-    capabilities:
-      - image.generate
-    pricing:
-      unit: request
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-04-18
-      notes: Ark image generation pricing varies by quality profile and account tier.
-    source_ref:
-      url: https://www.volcengine.com/docs/6492/2172373
-      retrieved_at: 2026-04-18
-      note: Volcengine Seedream image generation documentation.
-    api_model_id: doubao-seedream-5-0-260128
-    features:
-      - input.image
-      - input.mask
-    image_request_options: *a3
-  - model_id: doubao-seedream-4-5-251128
-    provider: volcengine
-    model_type: image
-    updated_at: 2026-04-18
-    capabilities:
-      - image.generate
-    pricing:
-      unit: request
-      input: unknown
-      output: unknown
-      currency: CNY
-      as_of: 2026-04-18
-      notes: Prior Ark image generation pricing varies by quality profile and account tier.
-    source_ref:
-      url: https://www.volcengine.com/docs/6492/2172373
-      retrieved_at: 2026-04-18
-      note: Volcengine Seedream image generation documentation.
-    features:
-      - input.image
-      - input.mask
     image_request_options:
       response_formats:
         - b64_json
         - url
       max_images_per_request: 1
-      supports_negative_prompt: true
+      supports_negative_prompt: false
       supports_reference_images: true
-      supports_mask: true
-      supports_seed: true
+      supports_mask: false
+      supports_seed: false
       supports_size: true
-      supports_aspect_ratio: true
-      supports_quality: true
-      supports_style: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+  - model_id: doubao-seedream-5-0-flash-260915
+    provider: volcengine
+    model_type: image
+    updated_at: 2026-11-07
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Native single-image generation/reference edit;1K/1.5K/2K tiers and JPEG/PNG. Separate layers, transparency and group generation are not admitted.
+    source_ref:
+      url: https://docs.volcengine.com/docs/ark/image-generation-api?lang=zh
+      retrieved_at: 2026-11-07
+      note: Native single-image operation, generation-specific size/output-format controls, image array, dense image bytes and actual output usage.
+    features:
+      - input.image
+    image_request_options:
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: false
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+  - model_id: doubao-seedream-5-0-260128
+    provider: volcengine
+    model_type: image
+    updated_at: 2026-11-07
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Previous target remains documented until2026-11-24 EOS; no automatic migration. Exact account billing is separate from reported image-output tokens.
+    source_ref:
+      url: https://docs.volcengine.com/docs/ark/image-generation-api?lang=zh
+      retrieved_at: 2026-11-07
+      note: Native single-image operation, generation-specific size/output-format controls, image array, dense image bytes and actual output usage.
+    features:
+      - input.image
+    image_request_options: &a3
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: false
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+  - model_id: seedream-5.0
+    provider: volcengine
+    model_type: image
+    updated_at: 2026-11-07
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Previous target remains documented until2026-11-24 EOS; no automatic migration. Exact account billing is separate from reported image-output tokens.
+    source_ref:
+      url: https://docs.volcengine.com/docs/ark/image-generation-api?lang=zh
+      retrieved_at: 2026-11-07
+      note: Native single-image operation, generation-specific size/output-format controls, image array, dense image bytes and actual output usage.
+    api_model_id: doubao-seedream-5-0-260128
+    features:
+      - input.image
+    image_request_options: *a3
+  - model_id: doubao-seedream-4-5-251128
+    provider: volcengine
+    model_type: image
+    updated_at: 2026-11-07
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Previous target remains documented until2026-11-24 EOS; no automatic migration. Exact account billing is separate from reported image-output tokens.
+    source_ref:
+      url: https://docs.volcengine.com/docs/ark/image-generation-api?lang=zh
+      retrieved_at: 2026-11-07
+      note: Native single-image operation, generation-specific size/output-format controls, image array, dense image bytes and actual output usage.
+    features:
+      - input.image
+    image_request_options:
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: false
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
 voices: []
 selection_profiles:
   - provider: volcengine

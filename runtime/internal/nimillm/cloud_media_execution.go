@@ -57,6 +57,8 @@ func (p *CloudProvider) ExecuteMediaAdapter(
 		err           error
 	)
 	switch strings.TrimSpace(adapter) {
+	case capabilitydriver.CloudMediaAdapterSeedreamImage:
+		artifacts, usage, providerJobID, err = ExecuteSeedreamImage(ctx, cfg, request, modelID)
 	case capabilitydriver.CloudMediaAdapterXAISpeech:
 		artifacts, usage, providerJobID, err = ExecuteXAISpeech(ctx, cfg, request)
 	case capabilitydriver.CloudMediaAdapterXAITranscribe:

@@ -115,6 +115,19 @@ func ValidateGeminiImageReferenceRequest(spec *runtimev1.ImageGenerateScenarioSp
 }
 
 func ValidateCloudImageReferenceRequest(provider, model string, spec *runtimev1.ImageGenerateScenarioSpec, reference *CapturedMediaReference) error {
+	if provider == "volcengine" && capabilitydriver.IsSeedreamImageModel(model) {
+		if reference == nil || len(reference.Bytes) > 30_000_000 {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+		}
+		if err := validateCapturedRasterReference(reference, spec.GetReferenceImageArtifactId(), 36_000_000, 24000); err != nil {
+			return err
+		}
+		c, _, _ := image.DecodeConfig(bytes.NewReader(reference.Bytes))
+		if c.Width <= 14 || c.Height <= 14 || c.Width > 16*c.Height || c.Height > 16*c.Width {
+			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+		}
+		return nil
+	}
 	if provider == "openrouter" && capabilitydriver.IsOpenRouterImageModel(model) {
 		return validateCapturedRasterReference(reference, spec.GetReferenceImageArtifactId(), 16<<20, 8000)
 	}

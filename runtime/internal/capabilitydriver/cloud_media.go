@@ -655,7 +655,7 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 			}
 		}
 	}
-	if spec := mapped.GetSpec().GetImageGenerate(); spec != nil && ImageHasExtendedControls(spec) && !SupportsGPTImageOwnedInputs(d.provider, target.providerModelID) && d.provider != "stability" && !(d.provider == "openrouter" && IsOpenRouterImageModel(target.providerModelID)) && !(d.provider == "together" && IsTogetherImageModel(target.providerModelID)) && !(d.provider == "luma" && IsLumaUniImageModel(target.providerModelID)) {
+	if spec := mapped.GetSpec().GetImageGenerate(); spec != nil && ImageHasExtendedControls(spec) && !SupportsGPTImageOwnedInputs(d.provider, target.providerModelID) && d.provider != "stability" && !(d.provider == "openrouter" && IsOpenRouterImageModel(target.providerModelID)) && !(d.provider == "together" && IsTogetherImageModel(target.providerModelID)) && !(d.provider == "luma" && IsLumaUniImageModel(target.providerModelID)) && !(d.provider == "volcengine" && IsSeedreamImageModel(target.providerModelID)) {
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 	}
 	for _, item := range mapped.GetSpec().GetVideoGenerate().GetContent() {
@@ -667,7 +667,7 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 		return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("provider does not support music iteration mapping"))
 	}
 	if spec := mapped.GetSpec().GetImageGenerate(); spec != nil && strings.TrimSpace(spec.GetReferenceImageArtifactId()) != "" {
-		if (d.provider != "gemini" && !(d.provider == "openrouter" && IsOpenRouterImageModel(target.providerModelID)) && !(d.provider == "xai" && target.providerModelID == XAIImage2Model) && !(d.provider == "flux" && IsFlux3ImageModel(target.providerModelID)) && !(d.provider == "ideogram" && target.providerModelID == Ideogram45Model) && !(d.provider == "stability" && StabilityImageReferenceSupported(target.providerModelID)) && !SupportsGPTImageOwnedInputs(d.provider, target.providerModelID) && !(d.provider == "luma" && IsLumaUniImageModel(target.providerModelID)) && !(d.provider == "siliconflow" && target.providerModelID == SiliconFlowImageEditModel) && !(d.provider == "kling" && IsKlingImageModel(target.providerModelID))) || len(spec.GetReferenceImages()) != 0 {
+		if (d.provider != "gemini" && !(d.provider == "openrouter" && IsOpenRouterImageModel(target.providerModelID)) && !(d.provider == "xai" && target.providerModelID == XAIImage2Model) && !(d.provider == "flux" && IsFlux3ImageModel(target.providerModelID)) && !(d.provider == "ideogram" && target.providerModelID == Ideogram45Model) && !(d.provider == "stability" && StabilityImageReferenceSupported(target.providerModelID)) && !SupportsGPTImageOwnedInputs(d.provider, target.providerModelID) && !(d.provider == "luma" && IsLumaUniImageModel(target.providerModelID)) && !(d.provider == "siliconflow" && target.providerModelID == SiliconFlowImageEditModel) && !(d.provider == "kling" && IsKlingImageModel(target.providerModelID)) && !(d.provider == "volcengine" && IsSeedreamImageModel(target.providerModelID))) || len(spec.GetReferenceImages()) != 0 {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 		}
 	}
@@ -720,6 +720,11 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 	}
 	if d.provider == "dashscope" && target.capabilityContract == "video.generate" && IsAlibabaCurrentVideoModel(target.providerModelID) {
 		if err := ValidateAlibabaCurrentVideoRequest(mapped, target.providerModelID); err != nil {
+			return nil, err
+		}
+	}
+	if d.provider == "volcengine" && target.capabilityContract == "image.generate" {
+		if err := validateSeedreamImageRequest(mapped, target.providerModelID); err != nil {
 			return nil, err
 		}
 	}
@@ -1165,7 +1170,10 @@ func cloudMediaAdapterFor(provider string, capability string) string {
 			return CloudMediaAdapterBytedanceOpenSpeech
 		}
 	case "volcengine":
-		if capability == "image.generate" || capability == "video.generate" {
+		if capability == "image.generate" {
+			return CloudMediaAdapterSeedreamImage
+		}
+		if capability == "video.generate" {
 			return CloudMediaAdapterBytedanceARKTask
 		}
 	case "dashscope":
