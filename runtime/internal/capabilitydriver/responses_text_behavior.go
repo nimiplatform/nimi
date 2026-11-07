@@ -37,6 +37,12 @@ type responsesProfile struct {
 	reasoningDisabled bool
 	jsonObject        bool
 	samplingControls  bool
+	// Some routes emit advisory metadata independently of output items. It is
+	// neither model content, usage nor a completion or failure event.
+	responseMetadataEvents bool
+	// SIWC reports terminal error events in error.code rather than the flat
+	// code field used by the standard Responses event schema.
+	nestedStreamErrors bool
 	// Exact native routes may use a different schema subset/defaults. The
 	// original caller schema still validates every completed result.
 	schemaMapper       func(map[string]any) (map[string]any, error)
@@ -463,19 +469,28 @@ func (stream *responsesBehaviorStream) Append(payload []byte) ([]textbehavior.Or
 		return nil, nil
 	}
 	var event struct {
-		Type         string                    `json:"type"`
-		Index        uint32                    `json:"output_index"`
-		ItemID       string                    `json:"item_id"`
-		Delta        string                    `json:"delta"`
-		Text         string                    `json:"text"`
-		SummaryIndex *uint32                   `json:"summary_index"`
-		Part         responsesSummaryPart      `json:"part"`
-		Arguments    string                    `json:"arguments"`
-		Code         string                    `json:"code"`
-		Item         responsesBehaviorItem     `json:"item"`
-		Response     responsesBehaviorResponse `json:"response"`
+		Type         string               `json:"type"`
+		Index        uint32               `json:"output_index"`
+		ItemID       string               `json:"item_id"`
+		Delta        string               `json:"delta"`
+		Text         string               `json:"text"`
+		SummaryIndex *uint32              `json:"summary_index"`
+		Part         responsesSummaryPart `json:"part"`
+		Arguments    string               `json:"arguments"`
+		Code         string               `json:"code"`
+		Error        *struct {
+			Code string `json:"code"`
+		} `json:"error"`
+		Item     responsesBehaviorItem     `json:"item"`
+		Response responsesBehaviorResponse `json:"response"`
 	}
-	if json.Unmarshal(payload, &event) != nil || stream.completed {
+	if json.Unmarshal(payload, &event) != nil {
+		return nil, profile.outputError("stream event")
+	}
+	if profile.responseMetadataEvents && event.Type == "response.metadata" {
+		return nil, nil
+	}
+	if stream.completed {
 		return nil, profile.outputError("stream event")
 	}
 	if profile.nativeReasoningCarrier != nil {
@@ -489,8 +504,15 @@ func (stream *responsesBehaviorStream) Append(payload []byte) ([]textbehavior.Or
 	case "response.created", "response.in_progress", "response.queued":
 		return nil, nil
 	case "error":
-		logProviderStreamErrorEvent(profile.label, event.Code)
-		return nil, profile.failure(0, event.Code)
+		code := event.Code
+		if profile.nestedStreamErrors {
+			code = ""
+			if event.Error != nil {
+				code = event.Error.Code
+			}
+		}
+		logProviderStreamErrorEvent(profile.label, code)
+		return nil, profile.failure(0, code)
 	case "response.failed":
 		code := ""
 		if event.Response.Error != nil {

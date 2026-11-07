@@ -28,6 +28,8 @@ var chatGPTPlanResponses = &responsesProfile{
 	continuityKind:           chatGPTPlanContinuityKind,
 	toolNamespace:            ChatGPTPlanToolNamespace,
 	toolNamespaceDescription: "Functions executed by the requesting Nimi app after it receives the call.",
+	responseMetadataEvents:   true,
+	nestedStreamErrors:       true,
 	failure:                  ChatGPTPlanFailure,
 }
 

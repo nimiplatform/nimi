@@ -252,7 +252,7 @@ const PROVIDER_CATALOG: ProviderCatalogEntry[] = [
   },
 ];
 
-test('connection checks receive the network budget while inventory reads stay bounded locally', async () => {
+test('connection checks receive the network budget while connector records stay bounded locally', async () => {
   const calls: ElectronInvokeCall[] = [];
   const restore = installElectronRuntime(calls);
   clearRuntimeConnectorSdkCaches();
@@ -700,6 +700,7 @@ test('sdkListConnectorModelDescriptors coalesces concurrent model inventory read
       && call.payload.methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels'
     ));
     assert.equal(modelCallsBeforeRefresh.length, 1, 'concurrent model reads must share one runtime call');
+    assert.equal(modelCallsBeforeRefresh[0]?.payload.timeoutMs, 35_000, 'account model inventory needs its outbound network budget');
 
     await sdkListConnectorModelDescriptors('conn-1', true);
     const modelCallsAfterRefresh = calls.filter((call) => (
@@ -707,6 +708,7 @@ test('sdkListConnectorModelDescriptors coalesces concurrent model inventory read
       && call.payload.methodId === '/nimi.runtime.v1.RuntimeConnectorService/ListConnectorModels'
     ));
     assert.equal(modelCallsAfterRefresh.length, 2, 'force refresh must still reach runtime');
+    assert.equal(modelCallsAfterRefresh[1]?.payload.timeoutMs, 35_000);
   } finally {
     restoreElectron();
   }

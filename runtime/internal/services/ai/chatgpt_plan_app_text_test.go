@@ -176,6 +176,11 @@ func chatGPTPlanAppFixtureWithInventory(t *testing.T, modelID string, inventory 
 	}
 }
 
+func writeChatGPTPlanMetadata(w http.ResponseWriter) {
+	w.Header().Set("Content-Type", "text/event-stream")
+	_, _ = fmt.Fprint(w, "event: response.metadata\ndata: {\"type\":\"response.metadata\",\"response_id\":\"resp_plan\",\"sequence_number\":0,\"metadata\":{\"openai_verification_recommendation\":[]}}\n\n")
+}
+
 func writeChatGPTPlanResponse(t *testing.T, w http.ResponseWriter, output []map[string]any, terminal map[string]any) {
 	t.Helper()
 	w.Header().Set("Content-Type", "text/event-stream")
@@ -247,6 +252,7 @@ func TestChatGPTPlanAppImageInputSendsOwnedBytesInOrder(t *testing.T) {
 			t.Error("owned image bytes or input order changed")
 		}
 		output := []map[string]any{{"type": "message", "id": "msg_image", "content": []any{map[string]any{"type": "output_text", "text": "A small diagram."}}}}
+		writeChatGPTPlanMetadata(w)
 		writeChatGPTPlanResponse(t, w, output, chatGPTPlanCompleted(output))
 	})
 	uploaded, err := fixture.service.UploadLocalAppArtifact(decision(accountservice.LocalAppOperationArtifactUpload, localappop.AppOperationIDArtifactUpload), &runtimev1.UploadLocalAppArtifactRequest{Bytes: payload, MimeType: "image/png"})
@@ -287,6 +293,7 @@ func TestChatGPTPlanAppToolRoundTripReplaysReturnedContinuity(t *testing.T) {
 						{"type": "reasoning", "id": "rs_1", "encrypted_content": "opaque-continuity", "summary": []any{}},
 						chatGPTPlanCall("fc_1", "call_1", `{"query":"one"}`),
 					}
+					writeChatGPTPlanMetadata(w)
 					writeChatGPTPlanResponse(t, w, output, chatGPTPlanCompleted(output))
 					return
 				}
@@ -302,6 +309,7 @@ func TestChatGPTPlanAppToolRoundTripReplaysReturnedContinuity(t *testing.T) {
 					t.Errorf("continuity order or call association lost: %v", input)
 				}
 				output := []map[string]any{{"type": "message", "id": "msg_1", "content": []any{map[string]any{"type": "output_text", "text": "Lookup completed."}}}}
+				writeChatGPTPlanMetadata(w)
 				writeChatGPTPlanResponse(t, w, output, chatGPTPlanCompleted(output))
 			})
 			execute := func(input *runtimev1.StreamLocalAppTextTurnRequest) (*runtimev1.ExecuteLocalAppScenarioResponse, error) {
@@ -373,6 +381,7 @@ func TestChatGPTPlanAppContinuesTranscriptWithReturnedContinuity(t *testing.T) {
 					{"type": "reasoning", "id": fmt.Sprintf("rs_%d", number), "encrypted_content": "astra-continuity", "summary": []any{}},
 					{"type": "message", "id": fmt.Sprintf("msg_%d", number), "content": []any{map[string]any{"type": "output_text", "text": test.text}}},
 				}
+				writeChatGPTPlanMetadata(w)
 				writeChatGPTPlanResponse(t, w, output, chatGPTPlanCompleted(output))
 			})
 			input := &runtimev1.StreamLocalAppTextTurnRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "Start"}}, ResponseFormat: test.format}
@@ -479,6 +488,7 @@ func TestChatGPTPlanAppTextAndStrictStructuredOutputUseSSE(t *testing.T) {
 						{"type": "reasoning", "id": "rs_sol", "encrypted_content": "sol-continuity", "summary": []any{}},
 						{"type": "message", "id": "msg_sol", "content": []any{map[string]any{"type": "output_text", "text": test.text}}},
 					}
+					writeChatGPTPlanMetadata(w)
 					writeChatGPTPlanResponse(t, w, output, chatGPTPlanCompleted(output))
 				})
 				input := &runtimev1.StreamLocalAppTextTurnRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "Complete the request"}}, ResponseFormat: test.format}
@@ -583,7 +593,12 @@ func TestChatGPTPlanProviderFailuresStayTyped(t *testing.T) {
 		reason runtimev1.ReasonCode
 		hint   string
 	}{
+		{name: "usage limit in nested error event", reason: runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED, hint: "manage_chatgpt_plan_usage", reply: func(w http.ResponseWriter, _ *http.Request) {
+			writeChatGPTPlanMetadata(w)
+			_, _ = fmt.Fprint(w, "event: error\ndata: {\"type\":\"error\",\"error\":{\"code\":\"subscription_sharing_usage_limit_exceeded\",\"param\":null}}\n\n")
+		}},
 		{name: "usage limit in stream", reason: runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED, hint: "manage_chatgpt_plan_usage", reply: func(w http.ResponseWriter, _ *http.Request) {
+			writeChatGPTPlanMetadata(w)
 			writeChatGPTPlanResponse(t, w, nil, map[string]any{"type": "response.failed", "response": map[string]any{"status": "failed", "error": map[string]any{"code": "subscription_sharing_usage_limit_exceeded"}}})
 		}},
 		{name: "ineligible account before stream", reason: runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED, hint: "chatgpt_plan_not_eligible", reply: func(w http.ResponseWriter, _ *http.Request) {
@@ -596,6 +611,7 @@ func TestChatGPTPlanProviderFailuresStayTyped(t *testing.T) {
 			_, _ = w.Write([]byte(`{"detail":"direct routing unavailable"}`))
 		}},
 		{name: "incomplete response", reason: runtimev1.ReasonCode_AI_TEXT_OUTPUT_INCOMPLETE, reply: func(w http.ResponseWriter, _ *http.Request) {
+			writeChatGPTPlanMetadata(w)
 			writeChatGPTPlanResponse(t, w, nil, map[string]any{"type": "response.incomplete", "response": map[string]any{"status": "incomplete", "incomplete_details": map[string]any{"reason": "max_output_tokens"}}})
 		}},
 		{name: "redirect is not followed", reason: runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN, reply: func(w http.ResponseWriter, r *http.Request) {
@@ -707,6 +723,7 @@ func TestChatGPTPlanRenewsExpiringCredentialBeforeDispatch(t *testing.T) {
 		requests.Add(1)
 		decodeChatGPTPlanRequest(t, r, rotated, "gpt-6.1-sol")
 		output := []map[string]any{{"type": "message", "id": "msg", "content": []any{map[string]any{"type": "output_text", "text": "renewed"}}}}
+		writeChatGPTPlanMetadata(w)
 		writeChatGPTPlanResponse(t, w, output, chatGPTPlanCompleted(output))
 	})
 	fixture.renewer.renew = func(refreshToken string) (connector.ChatGPTPlanTokenSet, error) {
@@ -751,6 +768,7 @@ func TestChatGPTPlanMissingTerminalAndCancelNeverComplete(t *testing.T) {
 		t.Run(fmt.Sprint(cancel), func(t *testing.T) {
 			started, closed := make(chan struct{}), make(chan struct{})
 			fixture, decision := chatGPTPlanAppFixture(t, "gpt-6.1-sol", func(w http.ResponseWriter, r *http.Request) {
+				writeChatGPTPlanMetadata(w)
 				writeChatGPTPlanResponse(t, w, []map[string]any{{"type": "message", "id": "msg_1", "content": []any{map[string]any{"type": "output_text", "text": "partial"}}}}, nil)
 				close(started)
 				if cancel {
@@ -805,6 +823,7 @@ func TestChatGPTPlanCandidateRejectsCarrierOnlyAndSampling(t *testing.T) {
 		if !carrierOnly.Load() {
 			output = append(output, map[string]any{"type": "message", "id": "msg", "content": []any{map[string]any{"type": "output_text", "text": "Candidate text."}}})
 		}
+		writeChatGPTPlanMetadata(w)
 		writeChatGPTPlanResponse(t, w, output, chatGPTPlanCompleted(output))
 	})
 	ctx := decision(accountservice.LocalAppOperationTextCandidateGenerate, localappop.AppOperationIDTextCandidateGenerate)

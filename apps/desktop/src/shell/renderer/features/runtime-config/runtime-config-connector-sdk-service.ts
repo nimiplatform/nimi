@@ -107,7 +107,9 @@ export function createRuntimeConfigConnectorSdkService(
     // The Runtime check owns a 30-second network budget. Leave time for its
     // persisted observation to return without extending ordinary local CRUD.
     testConnector: (request, options) => getConnectors().testConnector(request, { ...options, timeoutMs: 35_000 }),
-    listConnectorModels: (request, options) => getConnectors().listConnectorModels(request, options),
+    // Account-scoped model inventory can perform the same outbound lookup as
+    // a connection check. Do not apply the local CRUD deadline to that read.
+    listConnectorModels: (request, options) => getConnectors().listConnectorModels(request, { ...options, timeoutMs: 35_000 }),
   });
   const inventory = createNimiRuntimeConnectorInventoryClient({
     connectors: runtimeConnectors,
