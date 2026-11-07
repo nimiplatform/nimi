@@ -61,8 +61,12 @@ func TestExecuteMubertMusicUsesHeadersForSeparateCreateQueryAndBody(t *testing.T
 				t.Fatalf("missing mubert submit headers: %#v", r.Header)
 			}
 			postSeen = true
+			body := decodeMusicJSONBody(t, r)
+			if body["duration"] != float64(8) || body["mode"] != "track" || body["format"] != "mp3" || body["prompt"] != "club groove" || len(body) != 4 {
+				t.Error("native parameters changed", body)
+			}
 			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(map[string]any{"id": "track-1"})
+			_ = json.NewEncoder(w).Encode(map[string]any{"data": map[string]any{"id": "track-1", "generations": []any{map[string]any{"session_id": "wave-generation", "format": "wav", "status": "done"}, map[string]any{"session_id": "original-generation", "format": "mp3", "status": "processing"}}}})
 		case "/public/tracks/track-1":
 			if strings.TrimSpace(r.Header.Get("customer-id")) != "cust-1" || strings.TrimSpace(r.Header.Get("access-token")) != "acc-1" {
 				t.Fatalf("missing mubert poll headers: %#v", r.Header)
@@ -71,7 +75,9 @@ func TestExecuteMubertMusicUsesHeadersForSeparateCreateQueryAndBody(t *testing.T
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"data": map[string]any{
-					"generations": []map[string]any{{
+					"id": "track-1",
+					"generations": []map[string]any{{"session_id": "different-generation", "format": "mp3", "status": "done", "url": server.URL + "/wrong.mp3"}, {
+						"session_id": "original-generation", "format": "mp3",
 						"status": "done",
 						"url":    server.URL + "/audio.mp3",
 					}},
@@ -79,6 +85,9 @@ func TestExecuteMubertMusicUsesHeadersForSeparateCreateQueryAndBody(t *testing.T
 			})
 		case "/audio.mp3":
 			audioSeen = true
+			if r.Header.Get("customer-id") != "" || r.Header.Get("access-token") != "" || r.Header.Get("Authorization") != "" {
+				t.Error("artifact credential leak")
+			}
 			w.Header().Set("Content-Type", "audio/mpeg")
 			_, _ = w.Write([]byte("mubert-audio"))
 		default:
@@ -88,6 +97,9 @@ func TestExecuteMubertMusicUsesHeadersForSeparateCreateQueryAndBody(t *testing.T
 	defer func() { server.Close() }()
 
 	var receipt *NativeTaskReceipt
+	request := newMusicJobRequest("mubert-track-v3", "club groove")
+	request.Spec.GetMusicGenerate().Title = ""
+	request.Spec.GetMusicGenerate().DurationSeconds = 8
 	ctx := WithNativeTaskPublisher(context.Background(), func(r *NativeTaskReceipt) error { receipt = CloneNativeTaskReceipt(r); return nil })
 	_, _, providerJobID, err := ExecuteMubertMusic(ctx, MediaAdapterConfig{
 		BaseURL:               server.URL,
@@ -96,7 +108,7 @@ func TestExecuteMubertMusicUsesHeadersForSeparateCreateQueryAndBody(t *testing.T
 			"customer-id":  "cust-1",
 			"access-token": "acc-1",
 		},
-	}, nil, "job-1", newMusicJobRequest("mubert-track-v3", "club groove"), "mubert/mubert-track-v3")
+	}, request, "mubert-track-v3")
 	if !errors.Is(err, ErrNativeTaskYielded) || !postSeen || getSeen || audioSeen {
 		t.Fatalf("create did more than handoff: %v", err)
 	}
@@ -124,7 +136,7 @@ func TestExecuteMubertMusicUsesHeadersForSeparateCreateQueryAndBody(t *testing.T
 	if !postSeen || !getSeen || !audioSeen {
 		t.Fatalf("expected submit/poll/audio download, got post=%v get=%v audio=%v", postSeen, getSeen, audioSeen)
 	}
-	if providerJobID != "track-1" {
+	if providerJobID != "track-1" || receipt.MubertGenerationID != "original-generation" || receipt.Model != "mubert-track-v3" {
 		t.Fatalf("unexpected provider job id: %q", providerJobID)
 	}
 	if len(artifacts) != 1 || string(artifacts[0].GetBytes()) != "mubert-audio" {
@@ -151,7 +163,7 @@ func TestExecuteMubertMusicRejectsMissingJobOwnerBeforeDispatch(t *testing.T) {
 			"customer-id":  "cust-1",
 			"access-token": "acc-1",
 		},
-	}, nil, "job-mubert-cancel", newMusicJobRequest("mubert-track-v3", "cancel me"), "mubert/mubert-track-v3")
+	}, newMusicJobRequest("mubert-track-v3", "cancel me"), "mubert-track-v3")
 	if providerJobID != "" || err == nil {
 		t.Fatalf("unowned create: id=%q err=%v", providerJobID, err)
 	}

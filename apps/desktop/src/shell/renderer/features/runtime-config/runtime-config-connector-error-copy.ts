@@ -3,8 +3,18 @@
  * details. A failed check leaves the saved connection in place, so its
  * fallback never says the connection could not be saved.
  */
-export function humanizeConnectorError(raw: string, t: (key: string) => string, operation: 'save' | 'check'): string {
-  const text = raw.toUpperCase();
+// @nimi-authority: rule.nimi.desktop.shell-ui.r073
+export function connectorCredentialFormatErrorCopy(error: unknown, t: (key: string) => string): string | null {
+  const value = error as { reasonCode?: unknown; details?: { reasonMetadata?: { input_format?: unknown } } } | null;
+  return value?.reasonCode === 'AI_CONNECTOR_INVALID'
+    && value?.details?.reasonMetadata?.input_format === 'mubert-customer-pair-v1'
+    ? t('runtimeConfig.product.errorMubertCredentialFormat') : null;
+}
+
+export function humanizeConnectorError(raw: unknown, t: (key: string) => string, operation: 'save' | 'check'): string {
+  const formatCopy = connectorCredentialFormatErrorCopy(raw, t);
+  if (formatCopy) return formatCopy;
+  const text = (raw instanceof Error ? raw.message : typeof raw === 'string' ? raw : '').toUpperCase();
   // Runtime rejects a Connector whose service or settings it no longer admits,
   // such as a retired provider; a new key cannot repair that.
   if (text.includes('AI_CONNECTOR_INVALID'))

@@ -53,6 +53,9 @@ func (s *Service) CreateConnector(ctx context.Context, req *runtimev1.CreateConn
 		if providerAuthProfile != "" {
 			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
 		}
+		if err := nimillm.ValidateAPIKeyEncoding(provider, apiKey); err != nil {
+			return nil, err
+		}
 		secretPayload = apiKey
 	case runtimev1.ConnectorAuthKind_CONNECTOR_AUTH_KIND_OAUTH_MANAGED:
 		if providerAuthProfile == "" || credentialJSON == "" {
@@ -445,6 +448,9 @@ func (s *Service) UpdateConnector(ctx context.Context, req *runtimev1.UpdateConn
 			value := strings.TrimSpace(req.GetApiKey())
 			if value == "" {
 				return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID)
+			}
+			if err := nimillm.ValidateAPIKeyEncoding(rec.Provider, value); err != nil {
+				return nil, err
 			}
 			mutations.SecretPayload = &value
 			sawAPIKeyUpdate = true

@@ -7,6 +7,14 @@ import { humanizeConnectorError } from '../src/shell/renderer/features/runtime-c
 
 const t = ((key: string) => key) as unknown as TFunction;
 
+test('a bounded owner input-format fact explains credential entry without raw details', () => {
+  const error = Object.assign(new Error('AI_CONNECTOR_INVALID'), { reasonCode: 'AI_CONNECTOR_INVALID', details: { reasonMetadata: { input_format: 'mubert-customer-pair-v1' } } });
+  assert.equal(humanizeConnectorError(error, t, 'save'), 'runtimeConfig.product.errorMubertCredentialFormat');
+  assert.equal(error.message, 'AI_CONNECTOR_INVALID');
+  assert.equal(humanizeConnectorError({ reasonCode: 'AI_PROVIDER_AUTH_FAILED', details: error.details }, t, 'save'), 'runtimeConfig.product.connectionSaveFailed');
+  assert.equal(humanizeConnectorError(Object.assign(new Error('AI_CONNECTOR_INVALID'), { reasonCode: 'AI_CONNECTOR_INVALID', details: { reasonMetadata: { input_format: 'secret-value' } } }), t, 'save'), 'runtimeConfig.product.errorConnectorUnsupported');
+});
+
 test('a failed connection check never reads as an unsaved connection', () => {
   const unclassified = 'provider returned an unexpected inventory shape';
   assert.equal(humanizeConnectorError(unclassified, t, 'check'), 'runtimeConfig.product.connectionCheckFailed');

@@ -20768,6 +20768,16 @@ pub struct AiRealtimeSessionTerminal {
     pub reason_code: i32,
     #[prost(message, optional, tag = "2")]
     pub usage: ::core::option::Option<AiRealtimeSessionUsage>,
+    #[prost(message, optional, tag = "3")]
+    pub closure: ::core::option::Option<AiRealtimeSessionClosure>,
+}
+/// Independent observations, not a guarantee that provider billing stopped.
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiRealtimeSessionClosure {
+    #[prost(bool, tag = "1")]
+    pub local_resources_released: bool,
+    #[prost(bool, tag = "2")]
+    pub provider_session_closed: bool,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AiRealtimeContinuousTranscript {
@@ -20775,10 +20785,17 @@ pub struct AiRealtimeContinuousTranscript {
     pub direction: i32,
     #[prost(string, tag = "2")]
     pub text_delta: ::prost::alloc::string::String,
-    #[prost(int64, tag = "3")]
-    pub start_ms: i64,
-    #[prost(int64, tag = "4")]
-    pub end_ms: i64,
+    /// Both native timestamps are present, or both are absent. Never inferred.
+    #[prost(int64, optional, tag = "3")]
+    pub start_ms: ::core::option::Option<i64>,
+    #[prost(int64, optional, tag = "4")]
+    pub end_ms: ::core::option::Option<i64>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct AiRealtimeContinuousInterruption {
+    /// Empty when the native interruption preceded any observed output audio.
+    #[prost(string, tag = "1")]
+    pub output_track_id: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct AiRealtimeContextRequest {
@@ -20811,7 +20828,7 @@ pub struct AiRealtimeEvent {
     pub control: ::core::option::Option<RealtimeControlStatus>,
     #[prost(
         oneof = "ai_realtime_event::Event",
-        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22"
+        tags = "10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23"
     )]
     pub event: ::core::option::Option<ai_realtime_event::Event>,
 }
@@ -20845,6 +20862,8 @@ pub mod ai_realtime_event {
         ContextRequest(super::AiRealtimeContextRequest),
         #[prost(message, tag = "22")]
         SessionUsage(super::AiRealtimeSessionUsage),
+        #[prost(message, tag = "23")]
+        ContinuousInterruption(super::AiRealtimeContinuousInterruption),
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -20878,6 +20897,8 @@ pub struct CloseRealtimeSessionResponse {
     pub control: ::core::option::Option<RealtimeControlStatus>,
     #[prost(message, optional, tag = "3")]
     pub usage: ::core::option::Option<AiRealtimeSessionUsage>,
+    #[prost(message, optional, tag = "4")]
+    pub closure: ::core::option::Option<AiRealtimeSessionClosure>,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]

@@ -12,6 +12,7 @@ import { useDesktopRendererBindings } from '../../renderer/binding-context.js';
 import { ChatGPTPlanPendingNotice, chatGPTPlanSignInLabel } from './runtime-config-chatgpt-plan.js';
 import { useConnectorOAuthAcquisition } from './runtime-config-connector-oauth-session.js';
 import { useRuntimeConfigConnectorSdk } from './runtime-config-connector-sdk-context.js';
+import { connectorCredentialFormatErrorCopy } from './runtime-config-connector-error-copy.js';
 import {
   defaultConnectorAuthOptionForProvider,
   listConnectorAuthOptionsForProvider,
@@ -166,13 +167,13 @@ export function RuntimeConfigConnectorCreateForm(props: {
       if (mounted.current && currentAuthContext.current === submittedAuthContext) props.onCreated(created.id);
     } catch (error) {
       if (mounted.current && currentAuthContext.current === submittedAuthContext) {
-        setSaveError(error instanceof Error ? error.message : String(error || 'Save failed'));
+        setSaveError(connectorCredentialFormatErrorCopy(error, t) ?? (error instanceof Error ? error.message : String(error || 'Save failed')));
       }
     } finally {
       if (mounted.current) setSaving(false);
       props.onSavingChange?.(false);
     }
-  }, [label, oauthBusy, props, resolvedEndpoint, resolvedProvider, saving, sdkCreateConnector, tokenDraft]);
+  }, [label, oauthBusy, props, resolvedEndpoint, resolvedProvider, saving, sdkCreateConnector, tokenDraft, t]);
 
   const startOAuth = useCallback(() => {
     if (!draftConnectorRef.current || oauthBusy || oauthRequiresAuth) return;

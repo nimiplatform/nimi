@@ -31,6 +31,7 @@ type NativeTaskReceipt struct {
 	Artifact            *runtimev1.ScenarioArtifact `json:"artifact_template"`
 	GeminiInteractionID string                      `json:"gemini_interaction_id,omitempty"`
 	LumaGenerationType  string                      `json:"luma_generation_type,omitempty"`
+	MubertGenerationID  string                      `json:"mubert_generation_id,omitempty"`
 	Usage               *runtimev1.UsageStats       `json:"usage,omitempty"`
 }
 
@@ -99,6 +100,13 @@ func requireNativeTaskPublisher(ctx context.Context) error {
 }
 
 func ValidateNativeTaskReceipt(r *NativeTaskReceipt) error {
+	if r != nil && r.Adapter == AdapterMubertMusic {
+		if !validMubertID(r.TaskID) || !validMubertID(r.MubertGenerationID) || r.Model != capabilitydriver.MubertTrackModel || r.Artifact == nil || r.Artifact.GetMimeType() != "audio/mpeg" {
+			return fmt.Errorf("invalid original Mubert track/generation identity")
+		}
+	} else if r != nil && r.MubertGenerationID != "" {
+		return fmt.Errorf("native receipt contains an inapplicable Mubert generation")
+	}
 	if r != nil && r.Adapter == AdapterRunwayTask && (!runwayTaskIDPattern.MatchString(r.TaskID) || !capabilitydriver.IsRunwayVideoModel(r.Model) || r.Artifact == nil || r.Artifact.GetMimeType() != "video/mp4") {
 		return fmt.Errorf("invalid Runway original task identity")
 	}
@@ -248,7 +256,7 @@ func EqualNativeTaskReceipt(a, b *NativeTaskReceipt) bool {
 	if a == nil || b == nil {
 		return a == b
 	}
-	return a.Version == b.Version && a.Adapter == b.Adapter && a.TaskID == b.TaskID && a.Model == b.Model && a.QueryPathTemplate == b.QueryPathTemplate && a.PollingURL == b.PollingURL && proto.Equal(a.Artifact, b.Artifact) && a.GeminiInteractionID == b.GeminiInteractionID && proto.Equal(a.Usage, b.Usage)
+	return a.Version == b.Version && a.Adapter == b.Adapter && a.TaskID == b.TaskID && a.Model == b.Model && a.QueryPathTemplate == b.QueryPathTemplate && a.PollingURL == b.PollingURL && proto.Equal(a.Artifact, b.Artifact) && a.GeminiInteractionID == b.GeminiInteractionID && a.LumaGenerationType == b.LumaGenerationType && a.MubertGenerationID == b.MubertGenerationID && proto.Equal(a.Usage, b.Usage)
 }
 
 // ObserveNativeTask performs exactly one original-task query. It cannot POST,
@@ -260,6 +268,9 @@ func ObserveNativeTask(ctx context.Context, cfg MediaAdapterConfig, r *NativeTas
 	}
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	ctx = originalControlRequest(ctx)
+	if r.Adapter == AdapterMubertMusic {
+		return observeMubertTrack(ctx, cfg, r)
+	}
 	if r.Adapter == AdapterRunwayTask {
 		return observeRunwayTask(ctx, cfg, r)
 	}
@@ -318,9 +329,6 @@ func ObserveNativeTask(ctx context.Context, cfg MediaAdapterConfig, r *NativeTas
 		}
 		headers["x-key"] = cfg.APIKey
 	}
-	if r.Adapter == AdapterMubertMusic {
-		apiKey, headers = "", mubertHeaders(cfg)
-	}
 	if r.Adapter == AdapterMiniMaxTask {
 		query = strings.ReplaceAll(r.QueryPathTemplate, "{task_id}", url.QueryEscape(r.TaskID))
 	}
@@ -370,14 +378,6 @@ func ObserveNativeTask(ctx context.Context, cfg MediaAdapterConfig, r *NativeTas
 			safeStatus = status
 		}
 		slog.Info("DashScope video task observation", "provider_task_id", providerDiagnosticID(r.TaskID), "status", safeStatus)
-	}
-	if r.Adapter == AdapterMubertMusic {
-		generation := firstMapItem(MapField(MapField(response, "data"), "generations"))
-		status = strings.ToLower(strings.TrimSpace(ValueAsString(MapField(generation, "status"))))
-		if status != "done" && status != "failed" && status != "error" && !IsAsyncTaskCanceledStatus(status) && !IsAsyncTaskExpiredStatus(status) {
-			return nil, false, nil
-		}
-		response = generation
 	}
 	if r.Adapter == AdapterMiniMaxTask && isMiniMaxTaskPendingStatus(status) {
 		return nil, false, nil

@@ -15,6 +15,16 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/textwire"
 )
 
+// ValidateAPIKeyEncoding checks documented compound-secret syntax before a
+// managed connection is written. Actual credential validity remains provider
+// owned. Dispatch still parses restored and inline credentials at its boundary.
+func ValidateAPIKeyEncoding(provider, apiKey string) error {
+	if provider == "mubert" && mubertHeaders(MediaAdapterConfig{APIKey: apiKey}) == nil {
+		return grpcerr.WithReasonCodeOptions(codes.InvalidArgument, runtimev1.ReasonCode_AI_CONNECTOR_INVALID, grpcerr.ReasonOptions{Message: mubertCredentialFormatMessage, ActionHint: "provide_mubert_customer_id_and_access_token", Metadata: map[string]string{"input_format": "mubert-customer-pair-v1"}})
+	}
+	return nil
+}
+
 // CloudProvider executes only an exact caller-owned connector target. The
 // backend map remains probe/configuration substrate; it is never ranked or
 // selected from model text.

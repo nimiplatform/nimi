@@ -67,6 +67,26 @@ function binding(overrides: Partial<NimiElectronDesktopControlBinding> = {}): Ni
   };
 }
 
+it('carries only the admitted connector input format through renderer-safe errors', async () => {
+  const reasonMetadata = { input_format: 'mubert-customer-pair-v1' };
+  const rejected = async () => ({ status: 'error' as const, reasonCode: 'AI_CONNECTOR_INVALID', retryable: false, reasonMetadata });
+  const host = createNimiElectronDesktopControlHostForBinding(binding({ desktopAccountProductUnary: rejected, desktopMachineProductUnary: rejected }));
+  const error = await invokeElectronRuntimeUnary({
+    client: unusedPublicClient(), payload: { methodId: '/nimi.runtime.v1.RuntimeConnectorService/CreateConnector', requestBytesBase64: '' },
+    appId: 'nimi.desktop', event: {}, runtimeEndpoint: 'protected-desktop-control', command: 'runtime_bridge_unary',
+    desktopControlHost: host, desktopSenderAuthorized: true,
+  }).then(() => { throw new Error('expected owner rejection'); }, error => error);
+  const rendered = toShellBridgeNimiError(toSerializedElectronShellError(error));
+  expect(rendered.reasonCode).toBe('AI_CONNECTOR_INVALID');
+  expect(rendered.details).toMatchObject({ reasonMetadata });
+  expect(rendered.message).toBe('AI_CONNECTOR_INVALID');
+  await expect(host.accountProductUnary({ methodId: ACCOUNT_METHOD, requestBytes: new Uint8Array() })).rejects.toMatchObject({ reasonCode: 'AI_CONNECTOR_INVALID', reasonMetadata });
+  for (const [reasonCode, value] of [['AI_PROVIDER_AUTH_FAILED', 'mubert-customer-pair-v1'], ['AI_CONNECTOR_INVALID', 'private-credential-value']]) {
+    const invalid = createNimiElectronDesktopControlHostForBinding(binding({ desktopAccountProductUnary: async () => ({ status: 'error', reasonCode: reasonCode!, retryable: false, reasonMetadata: { input_format: value! } }) }));
+    await expect(invalid.accountProductUnary({ methodId: ACCOUNT_METHOD, requestBytes: new Uint8Array() })).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
+  }
+});
+
 function unusedPublicClient(onUnary?: () => void): RuntimeGrpcBridgeClient {
   return {
     unary: async () => {

@@ -3159,6 +3159,7 @@
     "tryRun": "发送",
     "tryRunning": "生成中…",
     "errorCredentialRejected": "凭证或访问权限验证未通过，请检查授权。",
+    "errorMubertCredentialFormat": "请将 Mubert 客户 ID 和访问令牌按 customer-id::access-token 格式填入 API 密钥字段。",
     "errorConnectorUnsupported": "Nimi 已不再支持此连接的服务或设置。请删除此连接，然后连接受支持的服务。",
     "errorEndpointUnreachable": "无法连接到服务地址。请检查端点和网络。",
     "errorConnectionTimeout": "连接检查超时。请稍后重试，并检查网络连接。",

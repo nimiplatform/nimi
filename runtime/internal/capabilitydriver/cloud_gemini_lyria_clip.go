@@ -43,6 +43,9 @@ func validateGeminiLyriaClipRequest(request *runtimev1.SubmitScenarioJobRequest,
 }
 
 func CloudMusicInputCapabilities(provider, model, capability string) *runtimev1.MusicInputCapabilities {
+	if provider == "mubert" && model == MubertTrackModel && capability == "music.generate" {
+		return mubertMusicInputCapabilities()
+	}
 	if provider == "loudly" && model == "VEGA_2" && capability == "music.generate" {
 		return loudlyMusicInputCapabilities()
 	}

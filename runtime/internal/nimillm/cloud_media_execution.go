@@ -172,7 +172,7 @@ func (p *CloudProvider) ExecuteMediaAdapter(
 	case "soundverse_music_adapter":
 		artifacts, usage, providerJobID, err = ExecuteSoundverseMusic(ctx, cfg, request, modelID)
 	case "mubert_music_adapter":
-		artifacts, usage, providerJobID, err = ExecuteMubertMusic(ctx, cfg, updater, privateJobID, request, modelID)
+		artifacts, usage, providerJobID, err = ExecuteMubertMusic(ctx, cfg, request, modelID)
 	case "loudly_music_adapter":
 		artifacts, usage, providerJobID, err = ExecuteLoudlyMusic(ctx, cfg, request, modelID)
 	case "spaitial_world_adapter":

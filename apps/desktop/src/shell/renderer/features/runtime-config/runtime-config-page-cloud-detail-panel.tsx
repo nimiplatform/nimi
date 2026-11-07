@@ -82,7 +82,7 @@ type CloudConnectorDetailPanelProps = {
   setTokenDraft: (value: string) => void;
   t: TFunction;
   tokenDraft: string;
-  tokenSaveError: string;
+  tokenSaveError: unknown;
   tokenSavedConnectorId: string;
   vendorOptions: CloudConnectorVendorOption[];
 };
@@ -433,7 +433,7 @@ export function CloudConnectorDetailPanel(props: CloudConnectorDetailPanelProps)
                   : t('runtimeConfig.cloud.apiKeySaved', { defaultValue: 'API Key saved successfully' })}
               </p>
             )}
-            {tokenSaveError && (
+            {Boolean(tokenSaveError) && (
               <div className="rounded-[var(--nimi-radius-md)] bg-[var(--nimi-status-danger-soft-bg)] px-3 py-2 text-sm text-[var(--nimi-status-danger-soft-text)]">
                 <p>{humanError}</p>
               </div>

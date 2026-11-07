@@ -79,74 +79,6 @@ func ExecuteSoundverseMusic(
 	return musicArtifactsFromBody(AdapterSoundverseMusic, body, spec, extensions, ""), nil, "", nil
 }
 
-func ExecuteMubertMusic(
-	ctx context.Context,
-	cfg MediaAdapterConfig,
-	updater JobStateUpdater,
-	jobID string,
-	req *runtimev1.SubmitScenarioJobRequest,
-	modelResolved string,
-) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
-	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
-	if scenarioModal(req) != runtimev1.Modal_MODAL_MUSIC {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
-	}
-	spec := scenarioMusicSpec(req)
-	if spec == nil {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
-	extensions := ScenarioExtensionPayloadForType(req.GetScenarioType(), req.GetExtensions())
-	if _, err := validateMusicAdapterInput(ctx, spec, extensions, false); err != nil {
-		return nil, nil, "", err
-	}
-
-	headers := mubertHeaders(cfg)
-	if len(headers) == 0 {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED)
-	}
-	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
-	if baseURL == "" {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-	}
-	payload := map[string]any{
-		"prompt":   strings.TrimSpace(spec.GetPrompt()),
-		"duration": MaxInt64(30, int64(spec.GetDurationSeconds())),
-		"format":   "mp3",
-		"bitrate":  192,
-		"mode":     "track",
-	}
-	if strings.Contains(strings.ToLower(strings.TrimSpace(spec.GetStyle())), "loop") {
-		payload["mode"] = "loop"
-	}
-	if strings.Contains(strings.ToLower(strings.TrimSpace(spec.GetStyle())), "low") {
-		payload["intensity"] = "low"
-	} else if strings.Contains(strings.ToLower(strings.TrimSpace(spec.GetStyle())), "medium") {
-		payload["intensity"] = "medium"
-	} else {
-		payload["intensity"] = "high"
-	}
-
-	ctx = originalControlRequest(ctx)
-	if err := requireNativeTaskPublisher(ctx); err != nil {
-		return nil, nil, "", err
-	}
-	submitResp := map[string]any{}
-	if err := DoJSONRequestWithHeaders(nativeCreateRequest(ctx), http.MethodPost, JoinURL(baseURL, "/public/tracks"), "", payload, &submitResp, headers); err != nil {
-		return nil, nil, "", err
-	}
-	trackID := strings.TrimSpace(FirstNonEmpty(
-		ValueAsString(MapField(submitResp, "id")),
-		ValueAsString(MapField(MapField(submitResp, "data"), "id")),
-	))
-	if trackID == "" {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-	}
-
-	artifact := musicArtifactsFromBody(AdapterMubertMusic, &JSONOrBinaryBody{MIME: "audio/mpeg"}, spec, extensions, "")[0]
-	_, err := publishNativeTask(ctx, &NativeTaskReceipt{Version: 1, Adapter: AdapterMubertMusic, TaskID: trackID, QueryPathTemplate: "/public/tracks/{task_id}", Artifact: artifact})
-	return nil, nil, trackID, err
-}
-
 func ExecuteLlamaMusic(
 	ctx context.Context,
 	cfg MediaAdapterConfig,
@@ -392,25 +324,6 @@ func resolveMusicArtifactMIME(payload []byte) string {
 		return detected
 	}
 	return "audio/mpeg"
-}
-
-func mubertHeaders(cfg MediaAdapterConfig) map[string]string {
-	headers := cloneHeaderMap(cfg.Headers)
-	if len(headers) > 0 {
-		return headers
-	}
-	raw := strings.TrimSpace(cfg.APIKey)
-	if raw == "" {
-		return nil
-	}
-	parts := strings.SplitN(raw, "::", 2)
-	if len(parts) != 2 {
-		return nil
-	}
-	return map[string]string{
-		"customer-id":  strings.TrimSpace(parts[0]),
-		"access-token": strings.TrimSpace(parts[1]),
-	}
 }
 
 func cloneHeaderMap(headers map[string]string) map[string]string {

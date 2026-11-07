@@ -1,12 +1,12 @@
 version: 1
 provider: mubert
-catalog_version: 2026-04-18-mubert-v2
+catalog_version: 2026-11-07-mubert-native-track
 inventory_mode: static_source
 models:
   - model_id: mubert-track-v3
     provider: mubert
     model_type: music
-    updated_at: 2026-04-18
+    updated_at: 2026-11-07
     capabilities:
       - music.generate
     pricing:
@@ -18,42 +18,6 @@ models:
       notes: Mubert's public pricing is plan-and-quota based rather than a stable per-request list price; the v3 generator surface is currently sold through monthly generation tiers.
     source_ref:
       url: https://mubert.com/api
-      retrieved_at: 2026-04-18
+      retrieved_at: 2026-11-07
       note: Mubert API overview and pricing page covering generator, streaming, and library surfaces.
-  - model_id: public-tracks
-    provider: mubert
-    model_type: music
-    updated_at: 2026-04-18
-    capabilities:
-      - music.generate
-    pricing:
-      unit: request
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-04-18
-      notes: Mubert's public pricing is plan-and-quota based rather than a stable per-request list price; the v3 generator surface is currently sold through monthly generation tiers.
-    source_ref:
-      url: https://mubert.com/api
-      retrieved_at: 2026-04-18
-      note: Mubert API overview and pricing page covering generator, streaming, and library surfaces.
-    api_model_id: mubert-track-v3
-  - model_id: mubert-track
-    provider: mubert
-    model_type: music
-    updated_at: 2026-04-18
-    capabilities:
-      - music.generate
-    pricing:
-      unit: request
-      input: unknown
-      output: unknown
-      currency: USD
-      as_of: 2026-04-18
-      notes: Mubert's public pricing is plan-and-quota based rather than a stable per-request list price; the v3 generator surface is currently sold through monthly generation tiers.
-    source_ref:
-      url: https://mubert.com/api
-      retrieved_at: 2026-04-18
-      note: Mubert API overview and pricing page covering generator, streaming, and library surfaces.
-    api_model_id: mubert-track-v3
 voices: []

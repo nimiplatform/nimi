@@ -34,12 +34,19 @@ pub(crate) fn runtime_reason(status: &Status) -> Option<String> {
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040b
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-napp-040e
+// @nimi-authority: rule.nimi.desktop.bridge-ipc.r016
 pub(crate) fn desktop_runtime_reason_metadata(status: &Status) -> BTreeMap<String, String> {
     let Some(info) = runtime_error_info(status) else {
         return BTreeMap::new();
     };
     if info.reason == "AI_CONTENT_FILTER_BLOCKED" {
         return public_reason_metadata(Some(&info));
+    }
+    if info.reason == "AI_CONNECTOR_INVALID" {
+        return info.metadata.get("input_format")
+            .filter(|value| value.as_str() == "mubert-customer-pair-v1")
+            .map(|value| BTreeMap::from([("input_format".to_string(), value.clone())]))
+            .unwrap_or_default();
     }
     if let Some(reason) = integration_reason_metadata(&info) {
         return BTreeMap::from([("integration_reason".to_string(), reason.to_string())]);
@@ -604,6 +611,26 @@ fn integration_reason_metadata(info: &GoogleRpcErrorInfo) -> Option<&str> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn connector_input_format_is_public_bounded_desktop_only_metadata() {
+        for (domain, reason, format, admitted) in [
+            (ERROR_INFO_DOMAIN, "AI_CONNECTOR_INVALID", "mubert-customer-pair-v1", true),
+            (ERROR_INFO_DOMAIN, "AI_PROVIDER_AUTH_FAILED", "mubert-customer-pair-v1", false),
+            ("foreign", "AI_CONNECTOR_INVALID", "mubert-customer-pair-v1", false),
+            (ERROR_INFO_DOMAIN, "AI_CONNECTOR_INVALID", "private-credential-value", false),
+        ] {
+            let info = GoogleRpcErrorInfo { reason: reason.into(), domain: domain.into(), metadata: HashMap::from([
+                ("input_format".into(), format.into()), ("provider_message".into(), "private-body".into()),
+                ("api_key".into(), "private-key".into()),
+            ]) };
+            let details = GoogleRpcStatus { code: Code::InvalidArgument as i32, message: "private-status".into(), details: vec![prost_types::Any { type_url: ERROR_INFO_TYPE_URL.into(), value: info.encode_to_vec() }] };
+            let status = Status::with_details(Code::InvalidArgument, "private-status", details.encode_to_vec().into());
+            let expected = if admitted { BTreeMap::from([("input_format".into(), "mubert-customer-pair-v1".into())]) } else { BTreeMap::new() };
+            assert_eq!(desktop_runtime_reason_metadata(&status), expected);
+            assert!(local_app_error_from_status(status).reason_metadata().is_empty());
+        }
+    }
 
     #[test]
     fn content_refusal_metadata_is_a_closed_set_without_dynamic_details() {

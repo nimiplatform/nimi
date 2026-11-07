@@ -15,7 +15,7 @@ async function withCreateDialog(run: (ui: {
   escape(): Promise<void>;
   account(id: string): Promise<void>;
   settle(): Promise<void>;
-}) => Promise<void>) {
+}) => Promise<void>, providerId = 'openai') {
   const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url: 'http://localhost', pretendToBeVisual: true });
   const values = {
     window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
@@ -41,7 +41,7 @@ async function withCreateDialog(run: (ui: {
   store.setState(state => ({ auth: { ...state.auth, status: 'authenticated', user: { id: 'account-a' } } }));
   const requests: { resolve(): void; reject(error: Error): void }[] = [];
   const service = {
-    sdkListProviderCatalog: async () => [{ provider: 'openai', defaultEndpoint: 'https://api.openai.com/v1', requiresExplicitEndpoint: false, managedSupported: true }],
+    sdkListProviderCatalog: async () => [{ provider: providerId, defaultEndpoint: 'https://provider.example.test', requiresExplicitEndpoint: false, managedSupported: true }],
     sdkCreateConnector: () => new Promise((resolve, reject) => requests.push({
       resolve: () => resolve(normalizeConnectorV11({ id: 'created-connection', provider: 'openai', hasCredential: true })), reject,
     })),
@@ -59,7 +59,7 @@ async function withCreateDialog(run: (ui: {
       <RuntimeConfigConnectorCreateDialog open onClose={() => { closed++; }} onCreated={id => created.push(id)} />
     </RuntimeConfigConnectorSdkProvider></DesktopRendererBindingProvider></DesktopMotionProvider></DesktopI18nResourceProvider></I18nextProvider></AppStoreProvider>));
     await settle();
-    const provider = dom.window.document.querySelector<HTMLButtonElement>('[data-testid="runtime-connector-create-provider:openai"]');
+    const provider = dom.window.document.querySelector<HTMLButtonElement>(`[data-testid="runtime-connector-create-provider:${providerId}"]`);
     assert.ok(provider);
     await act(async () => provider.click());
     await run({
@@ -102,6 +102,18 @@ test('submitted API-key creation blocks dialog dismissal until the mutation reso
     await ui.escape();
     assert.equal(ui.closeCount(), 1);
   });
+});
+
+test('Runtime input-format rejection stays in the form with actionable localized copy', async () => {
+  await withCreateDialog(async ui => {
+    await ui.startCreate('not-a-customer-pair');
+    const error = Object.assign(new Error('AI_CONNECTOR_INVALID'), { reasonCode: 'AI_CONNECTOR_INVALID', details: { reasonMetadata: { input_format: 'mubert-customer-pair-v1' } } });
+    await act(async () => ui.requests[0]!.reject(error));
+    assert.match(ui.document.body.textContent!, /Enter your Mubert customer ID and access token as customer-id::access-token/);
+    assert.deepEqual(ui.created, []);
+    assert.equal(ui.document.querySelector<HTMLInputElement>('input[type="password"]')!.disabled, false);
+    assert.equal(error.message, 'AI_CONNECTOR_INVALID');
+  }, 'mubert');
 });
 
 test('account changes clear the pending key and discard old-account creation results and errors', async () => {

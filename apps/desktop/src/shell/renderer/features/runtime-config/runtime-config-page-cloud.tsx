@@ -67,7 +67,7 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
   const [tokenDraft, setTokenDraft] = useState('');
   const [connectorLabelDraft, setConnectorLabelDraft] = useState('');
   const [savingToken, setSavingToken] = useState(false);
-  const [tokenSaveError, setTokenSaveError] = useState('');
+  const [tokenSaveError, setTokenSaveError] = useState<unknown>('');
   const [tokenSavedConnectorId, setTokenSavedConnectorId] = useState('');
   const [deletingConnectorId, setDeletingConnectorId] = useState('');
   const [chatGPTPlanWelcomeOpen, setChatGPTPlanWelcomeOpen] = useState(false);
@@ -447,7 +447,7 @@ export function CloudServicesPage({ model, state }: CloudPageProps) {
       setTokenSavedConnectorId(credentialValue ? saved.id : '');
       model.onVaultChanged();
     } catch (error) {
-      setTokenSaveError(error instanceof Error ? error.message : String(error));
+      setTokenSaveError(() => error);
       throw error;
     } finally { setSavingToken(false); }
   };

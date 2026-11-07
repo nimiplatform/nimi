@@ -3159,6 +3159,7 @@
     "tryRun": "Send",
     "tryRunning": "Generating…",
     "errorCredentialRejected": "Credential or access verification failed. Check your authorization.",
+    "errorMubertCredentialFormat": "Enter your Mubert customer ID and access token as customer-id::access-token in the API key field.",
     "errorConnectorUnsupported": "Nimi no longer supports this connection's service or settings. Remove this connection, then connect a supported service.",
     "errorEndpointUnreachable": "The service endpoint could not be reached. Check the endpoint and your network.",
     "errorConnectionTimeout": "The connection check timed out. Try again later and check your network connection.",

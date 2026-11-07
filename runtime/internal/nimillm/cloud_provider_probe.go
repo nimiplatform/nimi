@@ -71,6 +71,9 @@ func (p *CloudProvider) ProbeConnector(ctx context.Context, providerID string, e
 	if strings.TrimSpace(providerID) == "loudly" {
 		return p.probeLoudlyConnector(ctx, endpoint, apiKey, headers)
 	}
+	if strings.TrimSpace(providerID) == "mubert" {
+		return p.probeMubertConnector(ctx, endpoint, apiKey, headers)
+	}
 	backend, _, err := p.ResolveProbeBackend(providerID, endpoint, apiKey, headers)
 	if err != nil {
 		return err

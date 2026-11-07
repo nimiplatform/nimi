@@ -525,6 +525,7 @@ function nativeError(value: {
 }
 
 
+// @nimi-authority: rule.nimi.desktop.bridge-ipc.r016
 function boundedReasonMetadata(value: unknown, reasonCode: string): Readonly<Record<string, string>> {
   if (value === undefined) return {};
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw untrusted();
@@ -532,6 +533,11 @@ function boundedReasonMetadata(value: unknown, reasonCode: string): Readonly<Rec
   const contentRefusal = reasonCode === 'AI_CONTENT_FILTER_BLOCKED' || reasonCode === 'ai-content-filter-blocked';
   const metadata: Record<string, string> = {};
   for (const [key, entry] of Object.entries(value)) {
+    if (key === 'input_format') {
+      if (reasonCode !== 'AI_CONNECTOR_INVALID' || entry !== 'mubert-customer-pair-v1') throw untrusted();
+      metadata[key] = entry;
+      continue;
+    }
     if (contentRefusal || ['rule_id', 'failure_stage', 'content_part'].includes(key)) {
       const allowed = key === 'rule_id' ? ['pem-private-key', 'github-classic-pat']
         : key === 'failure_stage' ? ['input', 'output']

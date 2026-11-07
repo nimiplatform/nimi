@@ -91,11 +91,11 @@ func TestNativeMusicOwnsRawAndCanonicalSetAndRecoversFinalCommit(t *testing.T) {
 		case "/public/tracks":
 			creates.Add(1)
 			w.Header().Set("Content-Type", "application/json")
-			_, _ = fmt.Fprint(w, `{"id":"track-original"}`)
+			_, _ = fmt.Fprint(w, `{"data":{"id":"track-original","generations":[{"session_id":"generation-original","format":"mp3","status":"processing"}]}}`)
 		case "/public/tracks/track-original":
 			queries.Add(1)
 			w.Header().Set("Content-Type", "application/json")
-			_, _ = fmt.Fprintf(w, `{"data":{"generations":[{"status":"done","url":"%s/audio.mp3"}]}}`, endpoint)
+			_, _ = fmt.Fprintf(w, `{"data":{"id":"track-original","generations":[{"session_id":"generation-original","format":"mp3","status":"done","url":"%s/audio.mp3"}]}}`, endpoint)
 		case "/audio.mp3":
 			downloads.Add(1)
 			w.Header().Set("Content-Type", "audio/mpeg")

@@ -133,6 +133,8 @@ func TestCommittedRetiredCloudMediaTargetsFailTypedWithoutDispatch(t *testing.T)
 		submitReason runtimev1.ReasonCode
 		activeListed bool
 	}{
+		{name: "mubert endpoint alias", provider: "mubert", activeModel: "mubert-track-v3", retiredModel: "public-tracks", capability: "music.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, spec: musicSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
+		{name: "mubert unversioned alias", provider: "mubert", activeModel: "mubert-track-v3", retiredModel: "mubert-track", capability: "music.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, spec: musicSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
 		{name: "loudly synthetic model", provider: "loudly", activeModel: "VEGA_2", retiredModel: "loudly-vega-2", capability: "music.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, spec: musicSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
 		{name: "loudly endpoint alias", provider: "loudly", activeModel: "VEGA_2", retiredModel: "prompt-songs", capability: "music.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, spec: musicSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
 		// OpenAI keeps no video row, so its Driver no longer implements video.generate.
