@@ -325,7 +325,7 @@ providers:
     inventory_mode: static_source
     source_rule: K-MCAT-027
   - provider: volcengine_openspeech
-    default_endpoint: https://openspeech.bytedance.com/api/v1
+    default_endpoint: https://openspeech.bytedance.com
     default_text_model: null
     requires_explicit_endpoint: false
     inventory_mode: static_source

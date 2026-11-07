@@ -1544,7 +1544,7 @@ var Records = map[string]ProviderRecord{
 		RuntimePlane:                  "remote",
 		ManagedConnectorSupported:     true,
 		InlineSupported:               true,
-		DefaultEndpoint:               "https://openspeech.bytedance.com/api/v1",
+		DefaultEndpoint:               "https://openspeech.bytedance.com",
 		DefaultTextModel:              "",
 		RequiresExplicitEndpoint:      false,
 		InventoryMode:                 "static_source",

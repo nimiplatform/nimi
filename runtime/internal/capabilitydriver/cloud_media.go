@@ -818,6 +818,11 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 			return nil, err
 		}
 	}
+	if d.provider == "volcengine_openspeech" {
+		if err := validateOpenSpeechMedia(mapped, target.providerModelID, streamMode); err != nil {
+			return nil, err
+		}
+	}
 	if d.provider == "openai" && target.capabilityContract == "image.generate" && openAIImageModelAdmitted(target.providerModelID) {
 		if err := validateOpenAIImageRequest(mapped, target.providerModelID); err != nil {
 			return nil, err

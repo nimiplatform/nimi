@@ -7,7 +7,6 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -293,37 +292,11 @@ func TestExecuteBytedanceOpenSpeechRejectsOversizedInlineAudio(t *testing.T) {
 				},
 			},
 		},
-	}, "bytedance/model")
+	}, "volc.bigasr.auc_turbo")
 	if err == nil {
 		t.Fatal("expected oversized audio to fail")
 	}
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_INPUT_INVALID {
-		t.Fatalf("unexpected reason: ok=%v reason=%v err=%v", ok, reason, err)
-	}
-}
-
-func TestResolveBytedanceOpenSpeechWSReadTimeoutClampsToMaximum(t *testing.T) {
-	got := resolveBytedanceOpenSpeechWSReadTimeout(map[string]any{
-		"ws_read_timeout_ms": int64((90 * time.Second) / time.Millisecond),
-	})
-	if got != bytedanceOpenSpeechMaxWSReadTimeout {
-		t.Fatalf("expected clamp to %v, got %v", bytedanceOpenSpeechMaxWSReadTimeout, got)
-	}
-}
-
-func TestResolveBytedanceOpenSpeechWSURLUsesExactTargetOriginAndAdapterPath(t *testing.T) {
-	got := resolveBytedanceOpenSpeechWSURL("https://openspeech.example.com/api/v1")
-	if got != "wss://openspeech.example.com/api/v3/auc/bigmodel/recognize/stream" {
-		t.Fatalf("adapter-owned websocket URL = %q", got)
-	}
-}
-
-func TestValidateBytedanceOpenSpeechWSURLRejectsPlaintextPublicEndpoint(t *testing.T) {
-	err := validateBytedanceOpenSpeechWSURL(context.Background(), "ws://openspeech.example.com/api/v3/auc/bigmodel/recognize/stream")
-	if err == nil {
-		t.Fatal("expected plaintext public websocket endpoint to fail closed")
-	}
-	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN {
 		t.Fatalf("unexpected reason: ok=%v reason=%v err=%v", ok, reason, err)
 	}
 }

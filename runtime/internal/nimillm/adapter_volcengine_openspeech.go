@@ -1,465 +1,308 @@
 package nimillm
 
 import (
+	"bufio"
+	"bytes"
 	"context"
 	"encoding/base64"
-	"errors"
+	"encoding/json"
 	"io"
-	"net"
 	"net/http"
-	"net/url"
+	"strconv"
 	"strings"
-	"time"
 
-	"golang.org/x/net/websocket"
-	"google.golang.org/grpc/codes"
-
+	"github.com/google/uuid"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
-	"github.com/nimiplatform/nimi/runtime/internal/endpointsec"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
-// AdapterBytedanceOpenSpeech is the adapter identifier for Bytedance OpenSpeech TTS/STT.
 const AdapterBytedanceOpenSpeech = "bytedance_openspeech_adapter"
+const bytedanceOpenSpeechMaxInlineAudioBytes = 32 << 20
 
-const bytedanceOpenSpeechMaxInlineAudioBytes = 10 << 20
-const bytedanceOpenSpeechDefaultWSReadTimeout = 4 * time.Second
-const bytedanceOpenSpeechMaxWSReadTimeout = 60 * time.Second
-
-// ExecuteBytedanceOpenSpeech handles TTS and STT scenario jobs via the Bytedance
-// OpenSpeech API. It replaces the former Service.executeBytedanceOpenSpeech
-// method, accepting a MediaAdapterConfig instead of reading from service config.
-func ExecuteBytedanceOpenSpeech(
-	ctx context.Context,
-	cfg MediaAdapterConfig,
-	req *runtimev1.SubmitScenarioJobRequest,
-	modelResolved string,
-) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
-	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
-	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
-	if baseURL == "" {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+func openSpeechError(code string) error {
+	switch code {
+	case "45000001", "45000002", "45000151":
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+	case "40402003":
+		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	default:
+		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
 	}
-	apiKey, err := requireProviderAPIKey(cfg.APIKey)
+}
+func openSpeechOutputError() error {
+	return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+}
+func openSpeechBackend(ctx context.Context, cfg MediaAdapterConfig) (*Backend, error) {
+	b, err := nativeMediaBackend(ctx, cfg, "volcengine_openspeech")
+	if err != nil {
+		return nil, err
+	}
+	b.baseURL = strings.TrimSuffix(strings.TrimRight(cfg.BaseURL, "/"), "/api/v1")
+	return b, nil
+}
+func openSpeechRequest(ctx context.Context, b *Backend, resource, path string, body any) (*http.Response, error) {
+	data, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	r, err := b.newRequest(ctx, http.MethodPost, b.baseURL+path, bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	r.Header.Del("Authorization")
+	r.Header.Del("X-Api-App-Key")
+	r.Header.Del("X-Api-Access-Key")
+	r.Header.Set("X-Api-Key", b.apiKey)
+	r.Header.Set("X-Api-Resource-Id", resource)
+	r.Header.Set("X-Api-Request-Id", uuid.NewString())
+	r.Header.Set("Content-Type", "application/json")
+	if resource == capabilitydriver.OpenSpeechFlashASR {
+		r.Header.Set("X-Api-Sequence", "-1")
+	}
+	response, err := b.do(r)
+	if err != nil {
+		return nil, MapProviderRequestError(err)
+	}
+	if response.StatusCode < 200 || response.StatusCode >= 300 {
+		defer response.Body.Close()
+		return nil, MapProviderHTTPError(response.StatusCode, nil)
+	}
+	return response, nil
+}
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.r051
+func ExecuteBytedanceOpenSpeech(ctx context.Context, cfg MediaAdapterConfig, req *runtimev1.SubmitScenarioJobRequest, model string) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
+	b, err := openSpeechBackend(ctx, cfg)
 	if err != nil {
 		return nil, nil, "", err
 	}
-
-	switch scenarioModal(req) {
-	case runtimev1.Modal_MODAL_TTS:
-		spec := scenarioSpeechSynthesizeSpec(req)
-		if spec == nil {
-			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+	defer b.client.CloseIdleConnections()
+	if s := req.GetSpec().GetSpeechSynthesize(); s != nil {
+		if len(capabilitydriver.OpenSpeechVoices(model)) == 0 {
+			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 		}
-		payload := map[string]any{
-			"model":       modelResolved,
-			"text":        spec.GetText(),
-			"voice":       scenarioVoiceRef(spec),
-			"language":    spec.GetLanguage(),
-			"emotion":     spec.GetEmotion(),
-			"speed":       scenarioSpeechSpeed(spec),
-			"pitch":       spec.GetPitch(),
-			"volume":      spec.GetVolume(),
-			"sample_rate": spec.GetSampleRateHz(),
+		audio := map[string]any{"format": s.GetAudioFormat(), "sample_rate": s.GetSampleRateHz()}
+		if s.Speed != nil {
+			audio["speech_rate"] = (float64(s.GetSpeed()) - 1) * 100
 		}
-		if spec.GetAudioFormat() != "" {
-			payload["format"] = spec.GetAudioFormat()
+		params := map[string]any{"text": s.GetText(), "speaker": s.GetVoiceRef().GetPresetVoiceId(), "audio_params": audio}
+		if s.GetLanguage() != "" {
+			language := s.GetLanguage()
+			if language == "zh" {
+				language = "zh-cn"
+			}
+			extra, _ := json.Marshal(map[string]string{"explicit_language": language})
+			params["additions"] = string(extra)
 		}
-		if opts := scenarioExtensionPayloadForScenario(req); len(opts) > 0 {
-			payload["extensions"] = opts
-		}
-		body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, "/api/v1/tts"), apiKey, payload, nil)
+		response, err := openSpeechRequest(ctx, b, model, "/api/v3/tts/unidirectional/sse", map[string]any{"user": map[string]string{"uid": "nimi-runtime"}, "req_params": params})
 		if err != nil {
 			return nil, nil, "", err
 		}
-		artifactBytes, mimeType := ExtractSpeechArtifactFromResponseBody(ctx, body)
-		if len(artifactBytes) == 0 {
-			return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		defer response.Body.Close()
+		if !strings.HasPrefix(strings.ToLower(response.Header.Get("Content-Type")), "text/event-stream") {
+			return nil, nil, "", openSpeechOutputError()
 		}
-		if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(mimeType)), "audio/") {
-			mimeType = ResolveSpeechArtifactMIME(spec, artifactBytes)
-		}
-		artifact := BinaryArtifact(mimeType, artifactBytes, map[string]any{
-			"adapter":    AdapterBytedanceOpenSpeech,
-			"voice":      scenarioVoiceRef(spec),
-			"language":   spec.GetLanguage(),
-			"emotion":    spec.GetEmotion(),
-			"extensions": scenarioExtensionPayloadForScenario(req),
-			"mime_type":  body.MIME,
-		})
-		ApplySpeechSpecMetadata(artifact, spec)
-		return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
-
-	case runtimev1.Modal_MODAL_STT:
-		spec := scenarioSpeechTranscribeSpec(req)
-		if spec == nil {
-			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-		}
-		audioBytes, mimeType, audioURI, resolveErr := ResolveTranscriptionAudioSource(ctx, spec)
-		if resolveErr != nil {
-			return nil, nil, "", resolveErr
-		}
-		scenarioExtensions := scenarioExtensionPayloadForScenario(req)
-		if shouldUseBytedanceOpenSpeechWS(spec) {
-			text, wsRaw, wsErr := executeBytedanceOpenSpeechWS(ctx, baseURL, apiKey, modelResolved, spec, audioBytes, mimeType, scenarioExtensions)
-			if wsErr != nil {
-				return nil, nil, "", wsErr
-			}
-			artifactMeta := map[string]any{
-				"text":            text,
-				"adapter":         AdapterBytedanceOpenSpeech,
-				"transport":       "ws",
-				"mime_type":       mimeType,
-				"audio_uri":       audioURI,
-				"response_format": spec.GetResponseFormat(),
-				"extensions":      scenarioExtensions,
-			}
-			if len(wsRaw) > 0 {
-				artifactMeta["ws_response"] = wsRaw
-			}
-			artifact := BinaryArtifact(ResolveTranscriptionArtifactMIME(spec), []byte(text), artifactMeta)
-			ApplyTranscriptionSpecMetadata(artifact, spec)
-			return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
-		}
-		payload := map[string]any{
-			"model":           modelResolved,
-			"mime_type":       mimeType,
-			"audio_base":      base64.StdEncoding.EncodeToString(audioBytes),
-			"timestamps":      spec.GetTimestamps(),
-			"diarization":     spec.GetDiarization(),
-			"speaker_count":   spec.GetSpeakerCount(),
-			"prompt":          spec.GetPrompt(),
-			"response_format": spec.GetResponseFormat(),
-		}
-		if spec.GetLanguage() != "" {
-			payload["language"] = spec.GetLanguage()
-		}
-		if len(audioBytes) > bytedanceOpenSpeechMaxInlineAudioBytes {
-			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-		}
-		if len(scenarioExtensions) > 0 {
-			opts := scenarioExtensions
-			payload["extensions"] = opts
-		}
-		body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, "/api/v3/auc/bigmodel/recognize/flash"), apiKey, payload, nil)
+		raw, err := readOpenSpeechSSE(response.Body)
 		if err != nil {
 			return nil, nil, "", err
 		}
-		text := strings.TrimSpace(body.Text)
-		if text == "" {
-			return nil, nil, "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		artifact, err := nativeSpeechArtifact(ctx, raw, s.GetAudioFormat(), s.GetSampleRateHz(), map[string]any{"adapter": AdapterBytedanceOpenSpeech})
+		if err != nil {
+			return nil, nil, "", err
 		}
-		artifact := BinaryArtifact(ResolveTranscriptionArtifactMIME(spec), []byte(text), map[string]any{
-			"text":            text,
-			"adapter":         AdapterBytedanceOpenSpeech,
-			"mime_type":       mimeType,
-			"audio_uri":       audioURI,
-			"response_format": spec.GetResponseFormat(),
-			"extensions":      scenarioExtensions,
-		})
-		ApplyTranscriptionSpecMetadata(artifact, spec)
 		return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
-
-	default:
-		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	}
+	if s := req.GetSpec().GetSpeechTranscribe(); s != nil {
+		if model != capabilitydriver.OpenSpeechFlashASR {
+			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
+		}
+		source := s.GetAudioSource().GetAudioBytes()
+		if len(source) == 0 || len(source) > bytedanceOpenSpeechMaxInlineAudioBytes {
+			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
+		}
+		duration, err := nativeSpeechRecordingDuration(ctx, source, s.GetMimeType())
+		if err != nil {
+			return nil, nil, "", err
+		}
+		if duration <= 0 || duration > 7200 {
+			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_SPEC_INVALID)
+		}
+		audio := map[string]any{"data": base64.StdEncoding.EncodeToString(source), "format": map[string]string{"audio/wav": "wav", "audio/mpeg": "mp3"}[s.GetMimeType()]}
+		if s.GetLanguage() != "" {
+			audio["language"] = s.GetLanguage()
+		}
+		request := map[string]any{"model_name": "bigmodel"}
+		if s.GetTimestamps() {
+			request["show_utterances"] = true
+		}
+		response, err := openSpeechRequest(ctx, b, model, "/api/v3/auc/bigmodel/recognize/flash", map[string]any{"user": map[string]string{"uid": "nimi-runtime"}, "audio": audio, "request": request})
+		if err != nil {
+			return nil, nil, "", err
+		}
+		defer response.Body.Close()
+		raw, err := readLimitedResponseBody(response.Body, 32<<20)
+		if err != nil {
+			return nil, nil, "", err
+		}
+		transcript, err := parseOpenSpeechTranscript(raw, response.Header.Get("X-Api-Status-Code"), s.GetTimestamps(), duration)
+		if err != nil {
+			return nil, nil, "", err
+		}
+		data, err := protojson.Marshal(transcript)
+		if err != nil {
+			return nil, nil, "", err
+		}
+		return []*runtimev1.ScenarioArtifact{BinaryArtifact(localexecution.SpeechTranscriptMIME, data, map[string]any{"adapter": AdapterBytedanceOpenSpeech})}, nil, "", nil
+	}
+	return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 }
 
-// ---------------------------------------------------------------------------
-// WebSocket-based STT helpers (package-private)
-// ---------------------------------------------------------------------------
-
-func shouldUseBytedanceOpenSpeechWS(spec *runtimev1.SpeechTranscribeScenarioSpec) bool {
-	if spec == nil {
-		return false
-	}
-	if source := spec.GetAudioSource(); source != nil {
-		if chunks := source.GetAudioChunks(); chunks != nil && len(chunks.GetChunks()) > 0 {
-			return true
+func readOpenSpeechSSE(body io.Reader) ([]byte, error) {
+	limited := &io.LimitedReader{R: body, N: (64 << 20) + 1}
+	scanner := bufio.NewScanner(limited)
+	scanner.Buffer(make([]byte, 64<<10), 48<<20)
+	var output []byte
+	var data strings.Builder
+	event := ""
+	done := false
+	flush := func() error {
+		if data.Len() == 0 {
+			event = ""
+			return nil
 		}
-	}
-	return false
-}
-
-func executeBytedanceOpenSpeechWS(
-	ctx context.Context,
-	baseURL string,
-	apiKey string,
-	modelResolved string,
-	spec *runtimev1.SpeechTranscribeScenarioSpec,
-	audioBytes []byte,
-	mimeType string,
-	scenarioExtensions map[string]any,
-) (string, map[string]any, error) {
-	targetURL := resolveBytedanceOpenSpeechWSURL(baseURL)
-	if targetURL == "" {
-		return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
-	if err := validateBytedanceOpenSpeechWSURL(ctx, targetURL); err != nil {
-		return "", nil, err
-	}
-	config, err := websocket.NewConfig(targetURL, websocketOrigin(targetURL))
-	if err != nil {
-		return "", nil, grpcerr.WrapWithReasonCode(
-			codes.InvalidArgument,
-			runtimev1.ReasonCode_AI_INPUT_INVALID,
-			err,
-			grpcerr.ReasonOptions{Message: "provider streaming endpoint configuration is invalid"},
-		)
-	}
-	config.Header = http.Header{}
-	config.Header.Set("Content-Type", "application/json")
-	if strings.TrimSpace(apiKey) != "" {
-		config.Header.Set("Authorization", "Bearer "+strings.TrimSpace(apiKey))
-	}
-	connection, transport, err := dialProviderWebSocket(ctx, config, false)
-	if err != nil {
-		return "", nil, MapProviderRequestError(err)
-	}
-	defer func() { _ = transport.Close() }()
-
-	done := make(chan struct{})
-	go func() {
-		select {
-		case <-ctx.Done():
-			_ = transport.Close()
-		case <-done:
+		if done {
+			return openSpeechOutputError()
 		}
-	}()
-	defer close(done)
-
-	if deadline, ok := ctx.Deadline(); ok {
-		_ = connection.SetDeadline(deadline)
+		var packet struct {
+			Code *int64  `json:"code"`
+			Data *string `json:"data"`
+		}
+		if json.Unmarshal([]byte(data.String()), &packet) != nil || packet.Code == nil {
+			return openSpeechOutputError()
+		}
+		switch *packet.Code {
+		case 0:
+			if event != "352" && event != "351" {
+				return openSpeechOutputError()
+			}
+			if packet.Data != nil && *packet.Data != "" {
+				if event != "352" {
+					return openSpeechOutputError()
+				}
+				chunk, err := base64.StdEncoding.Strict().DecodeString(*packet.Data)
+				if err != nil || len(output)+len(chunk) > 32<<20 {
+					return openSpeechOutputError()
+				}
+				output = append(output, chunk...)
+			}
+		case 20000000:
+			if event != "152" || packet.Data != nil && *packet.Data != "" || len(output) == 0 {
+				return openSpeechOutputError()
+			}
+			done = true
+		default:
+			return openSpeechError(strconv.FormatInt(*packet.Code, 10))
+		}
+		data.Reset()
+		event = ""
+		return nil
 	}
-
-	chunks := transcriptionAudioChunks(spec)
-	if len(chunks) == 0 {
-		return "", nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
-	startPayload := map[string]any{
-		"event":           "start",
-		"model":           modelResolved,
-		"mime_type":       mimeType,
-		"language":        strings.TrimSpace(spec.GetLanguage()),
-		"timestamps":      spec.GetTimestamps(),
-		"diarization":     spec.GetDiarization(),
-		"speaker_count":   spec.GetSpeakerCount(),
-		"prompt":          strings.TrimSpace(spec.GetPrompt()),
-		"response_format": strings.TrimSpace(spec.GetResponseFormat()),
-		"extensions":      scenarioExtensions,
-	}
-	if err := websocket.JSON.Send(connection, startPayload); err != nil {
-		return "", nil, MapProviderRequestError(err)
-	}
-	for index, chunk := range chunks {
-		if len(chunk) == 0 {
+	for scanner.Scan() {
+		line := strings.TrimSuffix(scanner.Text(), "\r")
+		if line == "" {
+			if err := flush(); err != nil {
+				return nil, err
+			}
 			continue
 		}
-		frame := map[string]any{
-			"event":        "audio",
-			"seq":          index + 1,
-			"audio_base64": base64.StdEncoding.EncodeToString(chunk),
+		if strings.HasPrefix(line, ":") {
+			continue
 		}
-		if err := websocket.JSON.Send(connection, frame); err != nil {
-			return "", nil, MapProviderRequestError(err)
+		if strings.HasPrefix(line, "event:") {
+			event = strings.TrimSpace(strings.TrimPrefix(line, "event:"))
+			continue
 		}
-	}
-	if err := websocket.JSON.Send(connection, map[string]any{"event": "finish"}); err != nil {
-		return "", nil, MapProviderRequestError(err)
-	}
-
-	readTimeout := resolveBytedanceOpenSpeechWSReadTimeout(scenarioExtensions)
-	messageCount := 0
-	lastStatus := ""
-	finalText := ""
-	var deltaBuilder strings.Builder
-	responsePayload := map[string]any{}
-
-	for {
-		if ctx.Err() != nil {
-			return "", responsePayload, MapProviderRequestError(ctx.Err())
-		}
-		_ = connection.SetReadDeadline(computeWSReadDeadline(ctx, readTimeout))
-		var payload map[string]any
-		if receiveErr := websocket.JSON.Receive(connection, &payload); receiveErr != nil {
-			if errors.Is(receiveErr, io.EOF) {
-				break
+		if strings.HasPrefix(line, "data:") {
+			if data.Len() > 0 {
+				data.WriteByte('\n')
 			}
-			if isNetworkTimeout(receiveErr) {
-				if finalText != "" || strings.TrimSpace(deltaBuilder.String()) != "" {
-					break
-				}
-				return "", responsePayload, grpcerr.WrapWithReasonCode(
-					codes.DeadlineExceeded,
-					runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT,
-					receiveErr,
-					grpcerr.ReasonOptions{Message: "provider stream timed out"},
-				)
-			}
-			return "", responsePayload, MapProviderRequestError(receiveErr)
+			data.WriteString(strings.TrimPrefix(strings.TrimPrefix(line, "data:"), " "))
+			continue
 		}
-		messageCount++
-		responsePayload = payload
-
-		errorMessage := strings.TrimSpace(FirstNonEmpty(
-			ValueAsString(payload["error"]),
-			ValueAsString(payload["error_message"]),
-			ValueAsString(MapField(payload["error"], "message")),
-			ValueAsString(MapField(payload["result"], "error")),
-		))
-		if errorMessage != "" {
-			return "", responsePayload, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
+		if strings.HasPrefix(line, "id:") {
+			continue
 		}
-		if delta := strings.TrimSpace(FirstNonEmpty(
-			ValueAsString(payload["delta"]),
-			ValueAsString(payload["partial_text"]),
-			ValueAsString(MapField(payload["result"], "delta")),
-		)); delta != "" {
-			deltaBuilder.WriteString(delta)
-		}
-		if text := strings.TrimSpace(FirstNonEmpty(
-			ValueAsString(payload["text"]),
-			ValueAsString(payload["final_text"]),
-			ValueAsString(MapField(payload["result"], "text")),
-		)); text != "" {
-			finalText = text
-		}
-		lastStatus = strings.ToLower(strings.TrimSpace(FirstNonEmpty(
-			ValueAsString(payload["status"]),
-			ValueAsString(MapField(payload["result"], "status")),
-		)))
-		doneFlag := ValueAsBool(FirstNonNil(payload["done"], MapField(payload["result"], "done")))
-		if lastStatus == "failed" || lastStatus == "error" {
-			return "", responsePayload, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-		}
-		if doneFlag || lastStatus == "completed" || lastStatus == "finished" || lastStatus == "done" {
-			break
+		return nil, openSpeechOutputError()
+	}
+	if err := scanner.Err(); err != nil {
+		return nil, providerResponseReadError(err)
+	}
+	if limited.N == 0 {
+		return nil, openSpeechOutputError()
+	}
+	if data.Len() > 0 {
+		if err := flush(); err != nil {
+			return nil, err
 		}
 	}
-
-	if strings.TrimSpace(finalText) == "" {
-		finalText = strings.TrimSpace(deltaBuilder.String())
+	if !done {
+		return nil, openSpeechOutputError()
 	}
-	if finalText == "" {
-		return "", responsePayload, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-	}
-	return finalText, map[string]any{
-		"status":        lastStatus,
-		"message_count": messageCount,
-		"transport":     "ws",
-		"response":      responsePayload,
-	}, nil
+	return output, nil
 }
 
-func resolveBytedanceOpenSpeechWSReadTimeout(scenarioExtensions map[string]any) time.Duration {
-	readTimeout := bytedanceOpenSpeechDefaultWSReadTimeout
-	if rawTimeout := ValueAsInt64(FirstNonNil(scenarioExtensions["ws_read_timeout_ms"], scenarioExtensions["read_timeout_ms"])); rawTimeout > 0 {
-		readTimeout = time.Duration(rawTimeout) * time.Millisecond
+// @nimi-authority: rule.nimi.runtime.ai-provider.speech-transcription-result
+func parseOpenSpeechTranscript(data []byte, code string, timing bool, duration float64) (*runtimev1.SpeechTranscript, error) {
+	if code != "20000000" && code != "20000003" {
+		return nil, openSpeechError(code)
 	}
-	if readTimeout > bytedanceOpenSpeechMaxWSReadTimeout {
-		return bytedanceOpenSpeechMaxWSReadTimeout
+	var out struct {
+		Result *struct {
+			Text       *string `json:"text"`
+			Utterances []struct {
+				Words []struct {
+					Text  string `json:"text"`
+					Start *int64 `json:"start_time"`
+					End   *int64 `json:"end_time"`
+				} `json:"words"`
+			} `json:"utterances"`
+		} `json:"result"`
 	}
-	return readTimeout
-}
-
-func computeWSReadDeadline(ctx context.Context, readTimeout time.Duration) time.Time {
-	now := time.Now().UTC()
-	deadline := now.Add(readTimeout)
-	if ctxDeadline, hasDeadline := ctx.Deadline(); hasDeadline && ctxDeadline.Before(deadline) {
-		return ctxDeadline
+	if json.Unmarshal(data, &out) != nil {
+		return nil, openSpeechOutputError()
 	}
-	return deadline
-}
-
-func resolveBytedanceOpenSpeechWSURL(baseURL string) string {
-	parsed, err := url.Parse(strings.TrimSpace(baseURL))
-	if err != nil || parsed == nil || strings.TrimSpace(parsed.Host) == "" {
-		return ""
-	}
-	switch parsed.Scheme {
-	case "wss", "https":
-		parsed.Scheme = "wss"
-	default:
-		parsed.Scheme = "ws"
-	}
-	parsed.Path = "/api/v3/auc/bigmodel/recognize/stream"
-	parsed.RawPath = ""
-	parsed.RawQuery = ""
-	parsed.Fragment = ""
-	return parsed.String()
-}
-
-func validateBytedanceOpenSpeechWSURL(ctx context.Context, targetURL string) error {
-	parsed, err := url.Parse(strings.TrimSpace(targetURL))
-	if err != nil {
-		return grpcerr.WrapWithReasonCode(
-			codes.InvalidArgument,
-			runtimev1.ReasonCode_AI_INPUT_INVALID,
-			err,
-			grpcerr.ReasonOptions{Message: "provider streaming endpoint could not be parsed"},
-		)
-	}
-	if parsed == nil || strings.TrimSpace(parsed.Host) == "" {
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
-	switch strings.ToLower(strings.TrimSpace(parsed.Scheme)) {
-	case "wss":
-		parsed.Scheme = "https"
-	case "ws":
-		parsed.Scheme = "http"
-	default:
-		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
-	if err := endpointsec.ValidateEndpoint(ctx, parsed.String(), allowLoopbackProviderEndpointFromContext(ctx)); err != nil {
-		return grpcerr.WrapWithReasonCode(
-			codes.FailedPrecondition,
-			runtimev1.ReasonCode_AI_PROVIDER_ENDPOINT_FORBIDDEN,
-			err,
-			grpcerr.ReasonOptions{Message: "provider streaming endpoint is not permitted"},
-		)
-	}
-	return nil
-}
-
-func isSecureEndpointScheme(scheme string) bool {
-	return strings.EqualFold(strings.TrimSpace(scheme), "https") || strings.EqualFold(strings.TrimSpace(scheme), "wss")
-}
-
-func websocketOrigin(targetURL string) string {
-	parsed, err := url.Parse(strings.TrimSpace(targetURL))
-	if err != nil || parsed == nil || strings.TrimSpace(parsed.Host) == "" {
-		return "http://localhost/"
-	}
-	if parsed.Scheme == "wss" {
-		return "https://" + parsed.Host + "/"
-	}
-	return "http://" + parsed.Host + "/"
-}
-
-func transcriptionAudioChunks(spec *runtimev1.SpeechTranscribeScenarioSpec) [][]byte {
-	if spec != nil {
-		if source := spec.GetAudioSource(); source != nil {
-			if chunks := source.GetAudioChunks(); chunks != nil {
-				collected := make([][]byte, 0, len(chunks.GetChunks()))
-				for _, chunk := range chunks.GetChunks() {
-					if len(chunk) == 0 {
-						continue
+	result := &runtimev1.SpeechTranscript{}
+	if code == "20000003" {
+		if out.Result != nil && (out.Result.Text != nil && strings.TrimSpace(*out.Result.Text) != "" || len(out.Result.Utterances) > 0) {
+			return nil, openSpeechOutputError()
+		}
+		result.Status = runtimev1.SpeechTranscriptStatus_SPEECH_TRANSCRIPT_STATUS_NO_SPEECH
+	} else {
+		if out.Result == nil || out.Result.Text == nil || strings.TrimSpace(*out.Result.Text) == "" {
+			return nil, openSpeechOutputError()
+		}
+		result.Status = runtimev1.SpeechTranscriptStatus_SPEECH_TRANSCRIPT_STATUS_TRANSCRIBED
+		result.Text = strings.TrimSpace(*out.Result.Text)
+		if timing {
+			for _, utterance := range out.Result.Utterances {
+				for _, word := range utterance.Words {
+					if word.Start == nil || word.End == nil || *word.Start < 0 || *word.End < *word.Start || float64(*word.End)/1000 > duration+.001 {
+						return nil, openSpeechOutputError()
 					}
-					collected = append(collected, append([]byte(nil), chunk...))
+					result.Words = append(result.Words, &runtimev1.SpeechTranscriptWord{Text: word.Text, StartSeconds: float64(*word.Start) / 1000, EndSeconds: float64(*word.End) / 1000})
 				}
-				if len(collected) > 0 {
-					return collected
-				}
+			}
+			if len(result.Words) == 0 {
+				return nil, openSpeechOutputError()
 			}
 		}
 	}
-	return nil
-}
-
-func isNetworkTimeout(err error) bool {
-	if err == nil {
-		return false
+	if err := localexecution.ValidateSpeechTranscript(result, timing); err != nil {
+		return nil, openSpeechOutputError()
 	}
-	timeoutError, ok := err.(net.Error)
-	return ok && timeoutError.Timeout()
+	return result, nil
 }

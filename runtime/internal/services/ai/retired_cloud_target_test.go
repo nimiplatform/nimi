@@ -122,6 +122,7 @@ func TestCommittedRetiredCloudMediaTargetsFailTypedWithoutDispatch(t *testing.T)
 	}}}
 	imageSpec := &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "A harbor at dawn."}}}
 	musicSpec := &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_MusicGenerate{MusicGenerate: &runtimev1.MusicGenerateScenarioSpec{Prompt: "A calm instrumental cue.", DurationSeconds: 30}}}
+	speechSpec := &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "Hello."}}}
 	for _, tc := range []struct {
 		name         string
 		provider     string
@@ -133,6 +134,7 @@ func TestCommittedRetiredCloudMediaTargetsFailTypedWithoutDispatch(t *testing.T)
 		submitReason runtimev1.ReasonCode
 		activeListed bool
 	}{
+		{name: "openspeech billing resource", provider: "volcengine_openspeech", activeModel: "seed-tts-2.0", retiredModel: "volc.service_type.10029", capability: "audio.synthesize", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE, spec: speechSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
 		{name: "soundverse old sync target", provider: "soundverse", activeModel: "v7", retiredModel: "soundverse-song-v5", capability: "music.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, spec: musicSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
 		{name: "mubert endpoint alias", provider: "mubert", activeModel: "mubert-track-v3", retiredModel: "public-tracks", capability: "music.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, spec: musicSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
 		{name: "mubert unversioned alias", provider: "mubert", activeModel: "mubert-track-v3", retiredModel: "mubert-track", capability: "music.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, spec: musicSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},

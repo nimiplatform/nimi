@@ -9,7 +9,7 @@ import (
 func TestResolveSpeechVoicesVolcengineCatalogForBareModel(t *testing.T) {
 	svc := newTestService(slog.New(slog.NewTextHandler(io.Discard, nil)))
 	voices, source, _, err := resolveSpeechVoicesForModelWithProviderType(
-		"volc.service_type.10029",
+		"seed-tts-2.0",
 		"volcengine_openspeech",
 		svc.speechCatalog,
 	)
@@ -19,8 +19,8 @@ func TestResolveSpeechVoicesVolcengineCatalogForBareModel(t *testing.T) {
 	if source != speechVoiceSourceCatalogBuiltin {
 		t.Fatalf("expected catalog source, got=%s", source)
 	}
-	if len(voices) != 2 {
-		t.Fatalf("expected 2 Volcengine OpenSpeech catalog voices, got=%d", len(voices))
+	if len(voices) != 5 {
+		t.Fatalf("expected 5 current Volcengine OpenSpeech catalog voices, got=%d", len(voices))
 	}
 }
 

@@ -178,13 +178,18 @@ func TestResolveVoicesVolcengineOpenSpeechCanonicalModels(t *testing.T) {
 		t.Fatal("expected non-empty volcengine_openspeech models")
 	}
 
-	for _, modelID := range []string{"volc.service_type.10029", "doubao-tts"} {
+	for modelID, count := range map[string]int{"seed-tts-1.0": 2, "seed-tts-2.0": 5} {
 		result, err := resolver.ResolveVoices("volcengine_openspeech", modelID)
 		if err != nil {
 			t.Fatalf("ResolveVoices(%s): %v", modelID, err)
 		}
-		if len(result.Voices) != 2 {
-			t.Fatalf("expected 2 voices for %s, got=%d", modelID, len(result.Voices))
+		if len(result.Voices) != count {
+			t.Fatalf("expected %d voices for %s, got=%d", count, modelID, len(result.Voices))
+		}
+	}
+	for _, old := range []string{"volc.service_type.10029", "doubao-tts"} {
+		if _, err := resolver.ResolveVoices("volcengine_openspeech", old); err == nil {
+			t.Fatal("old synthetic target retained", old)
 		}
 	}
 }

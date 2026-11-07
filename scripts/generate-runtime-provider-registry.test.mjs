@@ -1,6 +1,13 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { capabilityFlags } from './generate-runtime-provider-registry.mjs';
+import { capabilityFlags, composeProviderRecords } from './generate-runtime-provider-registry.mjs';
+
+test('reviewed source metadata cannot be replaced by a supplemental provider', () => {
+  const source = { id: 'volcengine_openspeech', defaultEndpoint: 'https://openspeech.bytedance.com', capabilities: ['audio.synthesize', 'audio.transcribe'], supports: {tts:true, stt:true} };
+  const {recordsByID} = composeProviderRecords([source]);
+  assert.deepEqual(recordsByID.get(source.id), source);
+  assert.throws(() => composeProviderRecords([{id:'nimillm',defaultEndpoint:'https://wrong.example'}]), /must not override a reviewed source/u);
+});
 
 test('static inventory preserves reviewed custom-catalog capabilities without fake model rows', () => {
   const source = { provider: 'scoped-fixture', runtime: { inventory_mode: 'static_source', capabilities: ['text.generate', 'text.embed'] }, models: [{ model_id: 'chat', capabilities: ['text.generate'] }] };

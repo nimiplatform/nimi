@@ -77,6 +77,9 @@ func (p *CloudProvider) ProbeConnector(ctx context.Context, providerID string, e
 	if strings.TrimSpace(providerID) == "soundverse" {
 		return p.probeSoundverseConnector(ctx, endpoint, apiKey, headers)
 	}
+	if strings.TrimSpace(providerID) == "volcengine_openspeech" {
+		return grpcerr.WithReasonCodeOptions(codes.Unimplemented, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED, grpcerr.ReasonOptions{Message: "OpenSpeech does not document a read-only connection check for its speech API Key. Verify the key with an explicitly requested speech task; IAM control APIs use separate credentials", ActionHint: "verify_openspeech_with_explicit_speech_task"})
+	}
 	backend, _, err := p.ResolveProbeBackend(providerID, endpoint, apiKey, headers)
 	if err != nil {
 		return err
