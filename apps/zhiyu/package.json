@@ -21,7 +21,7 @@
     "@nimiplatform/sdk": "workspace:*",
     "fflate": "0.8.3",
     "lucide-react": "1.61.0",
-    "postcss": "8.5.31",
+    "postcss": "8.5.32",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },
