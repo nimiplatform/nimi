@@ -61,8 +61,45 @@ func TestSeedanceExactReferenceCountsAndAnchors(t *testing.T) {
 	}
 }
 
+func TestSeedanceFastMiniKeepExactResolutionAndReferenceBoundaries(t *testing.T) {
+	for _, model := range []string{Seedance20FastVideoModel, Seedance20MiniVideoModel} {
+		t.Run(model, func(t *testing.T) {
+			req := seedanceVideoRequest(runtimev1.VideoMode_VIDEO_MODE_T2V)
+			for _, resolution := range []string{"480p", "720p"} {
+				req.GetSpec().GetVideoGenerate().Options.Resolution = resolution
+				if err := ValidateCurrentSeedanceVideoRequest(req, model); err != nil {
+					t.Fatal(err)
+				}
+			}
+			for _, resolution := range []string{"1080p", "4k"} {
+				req.GetSpec().GetVideoGenerate().Options.Resolution = resolution
+				if ValidateCurrentSeedanceVideoRequest(req, model) == nil {
+					t.Fatal("inherited full-model resolution", resolution)
+				}
+			}
+			s := req.GetSpec().GetVideoGenerate()
+			s.Options.Resolution = "720p"
+			s.Mode = runtimev1.VideoMode_VIDEO_MODE_I2V_REFERENCE
+			s.Content = []*runtimev1.VideoContentItem{{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_AUDIO_URL, Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_AUDIO, AudioUrl: &runtimev1.VideoContentAudioURL{Url: "https://example.test/audio.wav"}}}
+			if ValidateCurrentSeedanceVideoRequest(req, model) == nil {
+				t.Fatal("inherited2.5 audio-only mode")
+			}
+			for range 9 {
+				s.Content = append(s.Content, &runtimev1.VideoContentItem{Type: runtimev1.VideoContentType_VIDEO_CONTENT_TYPE_IMAGE_URL, Role: runtimev1.VideoContentRole_VIDEO_CONTENT_ROLE_REFERENCE_IMAGE, ImageUrl: &runtimev1.VideoContentImageURL{Url: "https://example.test/image.png"}})
+			}
+			if err := ValidateCurrentSeedanceVideoRequest(req, model); err != nil {
+				t.Fatal("valid2.0-family references rejected", err)
+			}
+			s.Content = append(s.Content, proto.Clone(s.Content[1]).(*runtimev1.VideoContentItem))
+			if ValidateCurrentSeedanceVideoRequest(req, model) == nil {
+				t.Fatal("tenth image admitted")
+			}
+		})
+	}
+}
+
 func TestSeedanceRejectsIgnoredControlsAndMixedModes(t *testing.T) {
-	for _, model := range []string{Seedance20VideoModel, Seedance25VideoModel} {
+	for _, model := range []string{Seedance20VideoModel, Seedance25VideoModel, Seedance20FastVideoModel, Seedance20MiniVideoModel} {
 		req := seedanceVideoRequest(runtimev1.VideoMode_VIDEO_MODE_T2V)
 		for _, mutate := range []func(*runtimev1.VideoGenerationOptions){
 			func(o *runtimev1.VideoGenerationOptions) { o.Seed = proto.Int64(0) },

@@ -1,6 +1,6 @@
 schema_version: 3
 provider: volcengine
-catalog_version: 2026-11-05-volcengine-seedance25
+catalog_version: 2026-11-07-volcengine-current-video
 generated_target: runtime/catalog/providers/volcengine.yaml
 runtime:
   inventory_mode: static_source
@@ -63,6 +63,11 @@ sources:
     url: https://www.volcengine.com/docs/6492/2172373
     retrieved_at: 2026-04-18
     note: Volcengine Seedream image generation documentation.
+
+  - source_id: volcengine_current_video_variants
+    url: https://docs.volcengine.com/docs/ark/model-list?lang=zh
+    retrieved_at: 2026-11-07
+    note: Current exact Fast/Mini targets and generation-specific480p/720p output support; account access verified separately.
 
 selection_profiles:
   - profile_id: text.general
@@ -271,6 +276,175 @@ models:
         last_frame_url: true
     aliases:
       - seedance-2.0
+
+  - model_id: doubao-seedance-2-0-mini-260615
+    model_type: video
+    updated_at: 2026-11-07
+    capabilities:
+      - video.generate
+    features:
+      - input.image
+    source_ids:
+      - volcengine_seedance_video_doc
+      - volcengine_seedance_create_task_api
+      - volcengine_seedance_query_task_api
+      - volcengine_current_video_variants
+    video_generation:
+      modes:
+        - t2v
+        - i2v_first_frame
+        - i2v_first_last
+        - i2v_reference
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+        i2v_first_last:
+          - prompt
+          - first_frame
+          - last_frame
+        i2v_reference:
+          - prompt
+          - reference_image
+          - reference_video
+          - reference_audio
+      reference_anchor_roles:
+        - reference_image
+        - reference_video
+      limits:
+        reference_images:
+          min: 0
+          max: 9
+        reference_videos:
+          min: 0
+          max: 3
+        reference_audios:
+          min: 0
+          max: 3
+        resolution:
+          - 480p
+          - 720p
+        duration_sec:
+          - -1
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          - 11
+          - 12
+          - 13
+          - 14
+          - 15
+        ratio:
+          - 16:9
+          - 4:3
+          - 1:1
+          - 3:4
+          - 9:16
+          - 21:9
+          - adaptive
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+          - generate_audio
+          - execution_expires_after_sec
+          - return_last_frame
+          - watermark
+        constraints: {}
+      outputs:
+        video_url: true
+        last_frame_url: true
+  - model_id: doubao-seedance-2-0-fast-260128
+    model_type: video
+    updated_at: 2026-11-07
+    capabilities:
+      - video.generate
+    features:
+      - input.image
+    source_ids:
+      - volcengine_seedance_video_doc
+      - volcengine_seedance_create_task_api
+      - volcengine_seedance_query_task_api
+      - volcengine_current_video_variants
+    video_generation:
+      modes:
+        - t2v
+        - i2v_first_frame
+        - i2v_first_last
+        - i2v_reference
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+        i2v_first_last:
+          - prompt
+          - first_frame
+          - last_frame
+        i2v_reference:
+          - prompt
+          - reference_image
+          - reference_video
+          - reference_audio
+      reference_anchor_roles:
+        - reference_image
+        - reference_video
+      limits:
+        reference_images:
+          min: 0
+          max: 9
+        reference_videos:
+          min: 0
+          max: 3
+        reference_audios:
+          min: 0
+          max: 3
+        resolution:
+          - 480p
+          - 720p
+        duration_sec:
+          - -1
+          - 4
+          - 5
+          - 6
+          - 7
+          - 8
+          - 9
+          - 10
+          - 11
+          - 12
+          - 13
+          - 14
+          - 15
+        ratio:
+          - 16:9
+          - 4:3
+          - 1:1
+          - 3:4
+          - 9:16
+          - 21:9
+          - adaptive
+      options:
+        supports:
+          - resolution
+          - ratio
+          - duration_sec
+          - generate_audio
+          - execution_expires_after_sec
+          - return_last_frame
+          - watermark
+        constraints: {}
+      outputs:
+        video_url: true
+        last_frame_url: true
 
   - model_id: doubao-seed-2-1-pro-260915
     model_type: chat

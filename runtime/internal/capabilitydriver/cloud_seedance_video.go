@@ -13,16 +13,22 @@ import (
 
 const Seedance25VideoModel = "doubao-seedance-2-5-260628"
 const Seedance20VideoModel = "doubao-seedance-2-0-260128"
+const Seedance20FastVideoModel = "doubao-seedance-2-0-fast-260128"
+const Seedance20MiniVideoModel = "doubao-seedance-2-0-mini-260615"
+
+func isSeedance20VideoModel(model string) bool {
+	return model == Seedance20VideoModel || model == Seedance20FastVideoModel || model == Seedance20MiniVideoModel
+}
 
 func IsCurrentSeedanceVideoModel(model string) bool {
-	return model == Seedance25VideoModel || model == Seedance20VideoModel
+	return model == Seedance25VideoModel || isSeedance20VideoModel(model)
 }
 
 func SeedanceVideoReferenceLimits(model string) (images, videos, audios int) {
 	if model == Seedance25VideoModel {
 		return 30, 10, 10
 	}
-	if model == Seedance20VideoModel {
+	if isSeedance20VideoModel(model) {
 		return 9, 3, 3
 	}
 	return 0, 0, 0
@@ -108,7 +114,7 @@ func ValidateCurrentSeedanceVideoRequest(req *runtimev1.SubmitScenarioJobRequest
 			return unsupported()
 		}
 	case runtimev1.VideoMode_VIDEO_MODE_I2V_REFERENCE:
-		if first+last != 0 || images+videos+audios == 0 || (model == Seedance20VideoModel && images+videos == 0) {
+		if first+last != 0 || images+videos+audios == 0 || (isSeedance20VideoModel(model) && images+videos == 0) {
 			return unsupported()
 		}
 	default:
@@ -132,7 +138,7 @@ func ValidateCurrentSeedanceVideoRequest(req *runtimev1.SubmitScenarioJobRequest
 	if o.DurationSec != nil && o.GetDurationSec() != -1 && (o.GetDurationSec() < 4 || o.GetDurationSec() > maxDuration) {
 		return unsupported()
 	}
-	if o.GetResolution() != "" && o.GetResolution() != "480p" && o.GetResolution() != "720p" && o.GetResolution() != "1080p" && !(model == Seedance20VideoModel && o.GetResolution() == "4k") {
+	if o.GetResolution() != "" && o.GetResolution() != "480p" && o.GetResolution() != "720p" && !((model == Seedance25VideoModel || model == Seedance20VideoModel) && o.GetResolution() == "1080p") && !(model == Seedance20VideoModel && o.GetResolution() == "4k") {
 		return unsupported()
 	}
 	switch o.GetRatio() {
