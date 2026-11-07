@@ -26,11 +26,11 @@ func sparkUnsupported(detail string) error {
 func (p SparkTextBehavior) Reasoning() bool     { return p.provider == "spark_reasoning" }
 func (p SparkTextBehavior) Tools() bool         { return p.model != "lite" }
 func (p SparkTextBehavior) OrderedSystem() bool { return p.model == "4.0Ultra" }
-func (p SparkTextBehavior) reasoning(r *runtimev1.ReasoningConfig) (string, error) {
+func nativeSparkThinking(r *runtimev1.ReasoningConfig, supported bool) (string, error) {
 	if r.GetActivation() == runtimev1.ReasoningActivation_REASONING_ACTIVATION_UNSPECIFIED && r.GetIntensity() == nil && (r.GetPresentation() == runtimev1.ReasoningPresentation_REASONING_PRESENTATION_UNSPECIFIED || r.GetPresentation() == runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN) {
 		return "", nil
 	}
-	if !p.Reasoning() || r.GetPresentation() != runtimev1.ReasoningPresentation_REASONING_PRESENTATION_UNSPECIFIED && r.GetPresentation() != runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN {
+	if !supported || r.GetPresentation() != runtimev1.ReasoningPresentation_REASONING_PRESENTATION_UNSPECIFIED && r.GetPresentation() != runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN {
 		return "", sparkUnsupported("reasoning presentation or model")
 	}
 	switch r.GetActivation() {
@@ -57,7 +57,7 @@ func (p SparkTextBehavior) Serialize(s *runtimev1.TextGenerateScenarioSpec, stre
 	if s == nil || s.GetIncludeRawChunks() || s.Seed != nil || len(s.GetStop()) > 0 || s.TopP != nil && s.GetTopP() <= 0 || s.TopK != nil && (s.GetTopK() < 1 || s.GetTopK() > 6) || s.PresencePenalty != nil && s.GetPresencePenalty() < 0 || s.FrequencyPenalty != nil && (s.GetFrequencyPenalty() < 0 || s.GetFrequencyPenalty() > 1) || p.Reasoning() && s.Temperature != nil && s.GetTemperature() <= 0 {
 		return textbehavior.SerializedRequest{}, sparkUnsupported("sampling control")
 	}
-	thinking, err := p.reasoning(s.GetReasoning())
+	thinking, err := nativeSparkThinking(s.GetReasoning(), p.Reasoning())
 	if err != nil {
 		return textbehavior.SerializedRequest{}, err
 	}
@@ -254,7 +254,7 @@ func sparkStop(tools bool) *string {
 	return &v
 }
 func (p SparkTextBehavior) Parse(data []byte, s *runtimev1.TextGenerateScenarioSpec) (textbehavior.NormalizedResult, error) {
-	thinking, err := p.reasoning(s.GetReasoning())
+	thinking, err := nativeSparkThinking(s.GetReasoning(), p.Reasoning())
 	if err != nil {
 		return textbehavior.NormalizedResult{}, err
 	}
@@ -283,7 +283,7 @@ type sparkStream struct {
 }
 
 func (p SparkTextBehavior) Stream(s *runtimev1.TextGenerateScenarioSpec) (textbehavior.StreamFragmentAssembler, error) {
-	thinking, err := p.reasoning(s.GetReasoning())
+	thinking, err := nativeSparkThinking(s.GetReasoning(), p.Reasoning())
 	if err != nil {
 		return nil, err
 	}

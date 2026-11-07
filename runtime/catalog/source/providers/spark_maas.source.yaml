@@ -1,0 +1,157 @@
+schema_version: 3
+provider: spark_maas
+catalog_version: 2026-11-07-spark-maas-native
+generated_target: runtime/catalog/providers/spark_maas.yaml
+runtime:
+  inventory_mode: static_source
+  runtime_plane: remote
+  managed_connector_supported: true
+  inline_supported: true
+  default_endpoint: https://maas-api.cn-huabei-1.xf-yun.com/v2
+  requires_explicit_endpoint: false
+defaults:
+  provider: spark_maas
+  default_text_model: spark-x2.6
+  model_type: chat
+  capabilities: []
+  context_window_tokens: 8192
+  pricing:
+    unit: token
+    input: unknown
+    output: unknown
+    currency: CNY
+    as_of: 2026-11-07
+    notes: Independent Spark MaaS pay-as-you-go API Key. No Spark APIpassword, Token Plan or Coding Plan credential reuse. Prices remain unknown without a verified applicable account rate.
+sources:
+  - source_id: spark_maas_chat
+    url: https://maas.xfyun.cn/doc/guide/3%E3%80%81API%20%E6%8E%A5%E5%8F%A3/3.1%20%E6%98%9F%E7%81%AB%E6%A8%A1%E5%9E%8B%20API/3.1.1%20Chat.html
+    retrieved_at: 2026-11-07
+    note: Native Chat v2 current six exact IDs, fixed sampling values and thinking.type; tool outputs do not establish reasoning replay.
+  - source_id: spark_maas_responses
+    url: https://maas.xfyun.cn/doc/guide/3%E3%80%81API%20%E6%8E%A5%E5%8F%A3/3.1%20%E6%98%9F%E7%81%AB%E6%A8%A1%E5%9E%8B%20API/3.1.2%20Responses.html
+    retrieved_at: 2026-11-07
+    note: Native Responses v1 structured text.format and actual terminal output; no documented store control or retention guarantee.
+  - source_id: spark_maas_x26_models
+    url: https://maas.xfyun.cn/doc/guide/2%E3%80%81%E6%A8%A1%E5%9E%8B%E4%BB%8B%E7%BB%8D/2.1.1%20Spark-X2.6.html
+    retrieved_at: 2026-11-07
+    note: Current X2.6/4B/Preview model table, launch dates and context. The1M context is recorded as a conservative1000000-token floor.
+  - source_id: spark_maas_x25_models
+    url: https://www.xfyun.cn/doc/spark/Spark-X2.5%E6%A8%A1%E5%9E%8B%E4%BB%8B%E7%BB%8D.html
+    retrieved_at: 2026-11-07
+    note: "Current prior X2.5 generation: flagship256K and4B/1.7B1M; retained in the current Chat API list."
+selection_profiles:
+  - profile_id: text.general
+    capability: text.generate
+    model_id: spark-x2.6
+    reviewed_at: 2026-11-07
+    freshness_sla_days: 21
+    rationale: Current stable first-party flagship on the independent MaaS API; excludes preview and subscription products.
+  - profile_id: text.fast
+    capability: text.generate
+    model_id: spark-x2.6-4b
+    reviewed_at: 2026-11-07
+    freshness_sla_days: 21
+    rationale: Current small4B first-party MaaS target; a setup recommendation, not a measured latency guarantee.
+models:
+  - model_id: spark-x2.6
+    model_type: chat
+    updated_at: 2026-10-20
+    capabilities:
+      - text.generate
+    context_window_tokens: 1000000
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Native text-only MaaS target; account pricing and real execution unverified.
+    source_ids:
+      - spark_maas_chat
+      - spark_maas_responses
+      - spark_maas_x26_models
+  - model_id: spark-x2.6-4b
+    model_type: chat
+    updated_at: 2026-10-21
+    capabilities:
+      - text.generate
+    context_window_tokens: 1000000
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Native text-only MaaS target; account pricing and real execution unverified.
+    source_ids:
+      - spark_maas_chat
+      - spark_maas_responses
+      - spark_maas_x26_models
+  - model_id: spark-x2.6-preview
+    model_type: chat
+    updated_at: 2026-10-13
+    capabilities:
+      - text.generate
+    context_window_tokens: 262144
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Explicit preview target; not the default stable recommendation.
+    source_ids:
+      - spark_maas_chat
+      - spark_maas_responses
+      - spark_maas_x26_models
+  - model_id: spark-x2.5
+    model_type: chat
+    updated_at: 2026-09-06
+    capabilities:
+      - text.generate
+    context_window_tokens: 262144
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Native text-only MaaS target; account pricing and real execution unverified.
+    source_ids:
+      - spark_maas_chat
+      - spark_maas_responses
+      - spark_maas_x25_models
+  - model_id: spark-x2.5-4b
+    model_type: chat
+    updated_at: 2026-08-31
+    capabilities:
+      - text.generate
+    context_window_tokens: 1000000
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Native text-only MaaS target; account pricing and real execution unverified.
+    source_ids:
+      - spark_maas_chat
+      - spark_maas_responses
+      - spark_maas_x25_models
+  - model_id: spark-x2.5-1.7b
+    model_type: chat
+    updated_at: 2026-08-31
+    capabilities:
+      - text.generate
+    context_window_tokens: 1000000
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Native text-only MaaS target; account pricing and real execution unverified.
+    source_ids:
+      - spark_maas_chat
+      - spark_maas_responses
+      - spark_maas_x25_models

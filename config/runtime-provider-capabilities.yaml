@@ -53,6 +53,7 @@ entries:
   - providers_46
   - providers_47
   - providers_48
+  - providers_49
 providers:
   - provider: anthropic
     runtime_plane: remote
@@ -613,6 +614,19 @@ providers:
       - K-CONN-008
       - K-KEYSRC-001
   - provider: spark
+    runtime_plane: remote
+    execution_module: nimillm
+    managed_connector_supported: true
+    inline_supported: true
+    endpoint_requirement: default_or_explicit
+    inventory_mode: static_source
+    capabilities:
+      - text.generate
+    sources:
+      - K-MCAT-027
+      - K-CONN-008
+      - K-KEYSRC-001
+  - provider: spark_maas
     runtime_plane: remote
     execution_module: nimillm
     managed_connector_supported: true

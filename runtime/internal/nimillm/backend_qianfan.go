@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
@@ -12,15 +11,8 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
-func qianfanAPIPath(base, resource string) string {
-	if strings.HasSuffix(base, "/v2") {
-		return resource
-	}
-	return "/v2" + resource
-}
-
 func (b *Backend) probeQianfanConnector(ctx context.Context) error {
-	response, err := nativeMediaJSONRequest(ctx, b, http.MethodGet, qianfanAPIPath(b.baseURL, "/models"), nil)
+	response, err := nativeMediaJSONRequest(ctx, b, http.MethodGet, resolveNativeV2Path(b.baseURL, "/models"), nil)
 	if err != nil {
 		return err
 	}
@@ -41,7 +33,7 @@ func (b *Backend) probeQianfanConnector(ctx context.Context) error {
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.embedding-output-contract
 func (b *Backend) EmbedQianfan(ctx context.Context, model string, inputs []string) ([]*structpb.ListValue, *runtimev1.UsageStats, error) {
-	response, err := nativeMediaJSONRequest(ctx, b, http.MethodPost, qianfanAPIPath(b.baseURL, "/embeddings"), map[string]any{"model": model, "input": inputs})
+	response, err := nativeMediaJSONRequest(ctx, b, http.MethodPost, resolveNativeV2Path(b.baseURL, "/embeddings"), map[string]any{"model": model, "input": inputs})
 	if err != nil {
 		return nil, nil, err
 	}

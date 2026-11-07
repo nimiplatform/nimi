@@ -44,14 +44,20 @@ func TestGemma4E2BAdmitsOrderedSystemMessagesWithoutWideningOtherCombinations(t 
 
 func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 	registrations := productionTextBehaviorAdapterRegistrations()
-	if len(registrations) != 140 {
-		t.Fatalf("production adapter registrations = %d, want thirteen Local mappings and one hundred and twenty-seven Cloud targets", len(registrations))
+	if len(registrations) != 146 {
+		t.Fatalf("production adapter registrations = %d, want thirteen Local mappings and one hundred and thirty-three Cloud targets", len(registrations))
 	}
 	expectedCloudTargets := map[string]string{
-		"spark/4.0Ultra":          "spark.4.0Ultra.chat",
-		"spark/lite":              "spark.lite.chat",
-		"spark_reasoning/spark-x": "spark_reasoning.spark-x.chat",
-		"qianfan/ernie-5.1":       "qianfan.ernie-5.1.chat",
+		"spark_maas/spark-x2.6":                                        "spark_maas.spark-x2.6.native",
+		"spark_maas/spark-x2.6-4b":                                     "spark_maas.spark-x2.6-4b.native",
+		"spark_maas/spark-x2.6-preview":                                "spark_maas.spark-x2.6-preview.native",
+		"spark_maas/spark-x2.5":                                        "spark_maas.spark-x2.5.native",
+		"spark_maas/spark-x2.5-4b":                                     "spark_maas.spark-x2.5-4b.native",
+		"spark_maas/spark-x2.5-1.7b":                                   "spark_maas.spark-x2.5-1.7b.native",
+		"spark/4.0Ultra":                                               "spark.4.0Ultra.chat",
+		"spark/lite":                                                   "spark.lite.chat",
+		"spark_reasoning/spark-x":                                      "spark_reasoning.spark-x.chat",
+		"qianfan/ernie-5.1":                                            "qianfan.ernie-5.1.chat",
 		"siliconflow/deepseek-ai/DeepSeek-V4.1-Flash":                  "siliconflow.deepseek-ai/DeepSeek-V4.1-Flash.chat",
 		"siliconflow/deepseek-ai/DeepSeek-V4-Flash":                    "siliconflow.deepseek-ai/DeepSeek-V4-Flash.chat",
 		"siliconflow/deepseek-ai/DeepSeek-V4-Pro":                      "siliconflow.deepseek-ai/DeepSeek-V4-Pro.chat",

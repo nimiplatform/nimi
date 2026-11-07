@@ -341,6 +341,14 @@ func resolveOpenAICompatiblePath(baseURL string, resource string) string {
 	return "/v1" + normalizedResource
 }
 
+// Reviewed native v2 APIs retain the captured proxy prefix and version.
+func resolveNativeV2Path(base, resource string) string {
+	if strings.HasSuffix(base, "/v2") {
+		return resource
+	}
+	return "/v2" + resource
+}
+
 func cloneProviderHeaders(headers map[string]string) map[string]string {
 	if len(headers) == 0 {
 		return nil

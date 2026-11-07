@@ -1,0 +1,130 @@
+version: 1
+provider: spark_maas
+catalog_version: 2026-11-07-spark-maas-native
+inventory_mode: static_source
+default_text_model: spark-x2.6
+models:
+  - model_id: spark-x2.6
+    provider: spark_maas
+    model_type: chat
+    updated_at: 2026-10-20
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Native text-only MaaS target; account pricing and real execution unverified.
+    source_ref:
+      url: https://maas.xfyun.cn/doc/guide/3%E3%80%81API%20%E6%8E%A5%E5%8F%A3/3.1%20%E6%98%9F%E7%81%AB%E6%A8%A1%E5%9E%8B%20API/3.1.1%20Chat.html
+      retrieved_at: 2026-11-07
+      note: Native Chat v2 current six exact IDs, fixed sampling values and thinking.type; tool outputs do not establish reasoning replay.
+    context_window_tokens: 1000000
+  - model_id: spark-x2.6-4b
+    provider: spark_maas
+    model_type: chat
+    updated_at: 2026-10-21
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Native text-only MaaS target; account pricing and real execution unverified.
+    source_ref:
+      url: https://maas.xfyun.cn/doc/guide/3%E3%80%81API%20%E6%8E%A5%E5%8F%A3/3.1%20%E6%98%9F%E7%81%AB%E6%A8%A1%E5%9E%8B%20API/3.1.1%20Chat.html
+      retrieved_at: 2026-11-07
+      note: Native Chat v2 current six exact IDs, fixed sampling values and thinking.type; tool outputs do not establish reasoning replay.
+    context_window_tokens: 1000000
+  - model_id: spark-x2.6-preview
+    provider: spark_maas
+    model_type: chat
+    updated_at: 2026-10-13
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Explicit preview target; not the default stable recommendation.
+    source_ref:
+      url: https://maas.xfyun.cn/doc/guide/3%E3%80%81API%20%E6%8E%A5%E5%8F%A3/3.1%20%E6%98%9F%E7%81%AB%E6%A8%A1%E5%9E%8B%20API/3.1.1%20Chat.html
+      retrieved_at: 2026-11-07
+      note: Native Chat v2 current six exact IDs, fixed sampling values and thinking.type; tool outputs do not establish reasoning replay.
+    context_window_tokens: 262144
+  - model_id: spark-x2.5
+    provider: spark_maas
+    model_type: chat
+    updated_at: 2026-09-06
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Native text-only MaaS target; account pricing and real execution unverified.
+    source_ref:
+      url: https://maas.xfyun.cn/doc/guide/3%E3%80%81API%20%E6%8E%A5%E5%8F%A3/3.1%20%E6%98%9F%E7%81%AB%E6%A8%A1%E5%9E%8B%20API/3.1.1%20Chat.html
+      retrieved_at: 2026-11-07
+      note: Native Chat v2 current six exact IDs, fixed sampling values and thinking.type; tool outputs do not establish reasoning replay.
+    context_window_tokens: 262144
+  - model_id: spark-x2.5-4b
+    provider: spark_maas
+    model_type: chat
+    updated_at: 2026-08-31
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Native text-only MaaS target; account pricing and real execution unverified.
+    source_ref:
+      url: https://maas.xfyun.cn/doc/guide/3%E3%80%81API%20%E6%8E%A5%E5%8F%A3/3.1%20%E6%98%9F%E7%81%AB%E6%A8%A1%E5%9E%8B%20API/3.1.1%20Chat.html
+      retrieved_at: 2026-11-07
+      note: Native Chat v2 current six exact IDs, fixed sampling values and thinking.type; tool outputs do not establish reasoning replay.
+    context_window_tokens: 1000000
+  - model_id: spark-x2.5-1.7b
+    provider: spark_maas
+    model_type: chat
+    updated_at: 2026-08-31
+    capabilities:
+      - text.generate
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Native text-only MaaS target; account pricing and real execution unverified.
+    source_ref:
+      url: https://maas.xfyun.cn/doc/guide/3%E3%80%81API%20%E6%8E%A5%E5%8F%A3/3.1%20%E6%98%9F%E7%81%AB%E6%A8%A1%E5%9E%8B%20API/3.1.1%20Chat.html
+      retrieved_at: 2026-11-07
+      note: Native Chat v2 current six exact IDs, fixed sampling values and thinking.type; tool outputs do not establish reasoning replay.
+    context_window_tokens: 1000000
+voices: []
+selection_profiles:
+  - provider: spark_maas
+    profile_id: text.general
+    capability: text.generate
+    model_id: spark-x2.6
+    reviewed_at: 2026-11-07
+    freshness_sla_days: 21
+    rationale: Current stable first-party flagship on the independent MaaS API; excludes preview and subscription products.
+  - provider: spark_maas
+    profile_id: text.fast
+    capability: text.generate
+    model_id: spark-x2.6-4b
+    reviewed_at: 2026-11-07
+    freshness_sla_days: 21
+    rationale: Current small4B first-party MaaS target; a setup recommendation, not a measured latency guarantee.

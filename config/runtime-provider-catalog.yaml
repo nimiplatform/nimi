@@ -52,6 +52,7 @@ entries:
   - providers_45
   - providers_46
   - providers_47
+  - providers_48
 providers:
   - provider: anthropic
     default_endpoint: https://api.anthropic.com
@@ -278,6 +279,12 @@ providers:
   - provider: spark
     default_endpoint: https://spark-api-open.xf-yun.com/v1
     default_text_model: 4.0Ultra
+    requires_explicit_endpoint: false
+    inventory_mode: static_source
+    source_rule: K-MCAT-027
+  - provider: spark_maas
+    default_endpoint: https://maas-api.cn-huabei-1.xf-yun.com/v2
+    default_text_model: spark-x2.6
     requires_explicit_endpoint: false
     inventory_mode: static_source
     source_rule: K-MCAT-027

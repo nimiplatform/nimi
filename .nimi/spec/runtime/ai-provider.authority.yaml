@@ -2238,3 +2238,17 @@ units:
         target: definition.nimi.runtime.ai-provider.capability-execution-composition-plane
       - type: applies_to
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+  - id: rule.nimi.runtime.ai-provider.spark-maas-native-text
+    kind: rule
+    title: Spark MaaS retains independent connection and exact native text protocols
+    modality: must
+    statement: Spark MaaS is an independent managed service provider spark_maas with its own pay-as-you-go API Key and captured regional endpoint; it does not reuse or migrate spark or spark_reasoning APIpasswords, Token Plan or Coding Plan connections, model targets or credentials. The reviewed text-only targets are spark-x2.6, spark-x2.6-4b, spark-x2.6-preview, spark-x2.5, spark-x2.5-4b and spark-x2.5-1.7b, retaining preview and generation identity. Native v2 Chat maps ordered text messages and declared function tools with documented choice strings and original call/result correlation, and thinking enabled, disabled or auto with native MODEL_DEFAULT intensity. It rejects unreviewed named-tool object shapes, relative efforts, exact thinking budgets, image input, raw summaries or reasoning continuity instead of inheriting another API dialect. Native v1 Responses independently maps JSON object or strict basic JSON Schema requests without tool calls, replay or explicit reasoning controls; actual completed output is checked against the requested schema before publication, and streaming structured output may remain buffered until the original completed response validates. This protocol choice is determined before dispatch from the admitted request combination, never as a fallback after failure. Both preserve explicit total-output token cap semantics, accept only the fixed effective temperature1 and top_p0.95 when supplied, and reject ignored penalties, seed, stop and other unreviewed controls. Native business errors, model or response identity mismatches, failed or incomplete terminal states and invalid actual output cannot become successful completion. Raw reasoning stays hidden and does not become a summary or fabricated replay carrier. The adapter does not send undocumented store or include controls, infer retention guarantees, or expose provider response handles as Runtime state. Captured origin and proxy prefix remain fixed while the Host materializes the exact v2 Chat or v1 Responses resource; provider metadata may initialize a new connection but cannot redirect a captured execution.
+    condition: Whenever a Spark MaaS target is described, configured, serialized, executed, streamed or projected.
+    failure: Never reuse or substitute connection credentials across products; reject unsupported exact behavior before dispatch, report provider credential rejection honestly, preserve the captured connection and target without migration or retry fallback, and fail invalid or incomplete native output instead of fabricating success.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.connector-plane
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.provider-metadata-plane

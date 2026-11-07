@@ -33,6 +33,9 @@ func nativeReasoningAppFixture(t *testing.T, provider, model string, handler htt
 	if provider == "qianfan" {
 		endpoint = server.URL + "/proxy/openai/v2"
 	}
+	if provider == "spark_maas" {
+		endpoint = server.URL + "/proxy/anthropic/v2"
+	}
 	if provider == "spark" {
 		endpoint = server.URL + "/proxy/anthropic/v1"
 	}

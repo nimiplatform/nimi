@@ -66,6 +66,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	case "siliconflow":
 	case "qianfan":
 	case "spark", "spark_reasoning":
+	case "spark_maas":
 	case "stepfun":
 	case "glm":
 	case "minimax":
@@ -93,7 +94,8 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	nativeGemini := serialized.Protocol == capabilitydriver.GeminiNativeBaseProtocol
 	argonGemini := serialized.Protocol == capabilitydriver.GeminiArgonInteractionsProtocol
 	miniMaxMessages := serialized.Protocol == capabilitydriver.MiniMaxMessagesProtocol
-	if serialized.Protocol != "" && !nativeGemini && !argonGemini && !miniMaxMessages {
+	sparkMaaSResponses := serialized.Protocol == capabilitydriver.SparkMaaSResponsesProtocol
+	if serialized.Protocol != "" && !nativeGemini && !argonGemini && !miniMaxMessages && !sparkMaaSResponses {
 		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
 	}
 	if nativeGemini && (target.ProviderType != "gemini" || resolvedModelID != "gemini-3.8-flash") {
@@ -103,6 +105,9 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
 	}
 	if miniMaxMessages && (target.ProviderType != "minimax" || resolvedModelID != "MiniMax-M3.1-Flash" && resolvedModelID != "MiniMax-M3") || target.ProviderType == "minimax" && !miniMaxMessages {
+		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
+	}
+	if sparkMaaSResponses && target.ProviderType != "spark_maas" {
 		return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_TEXT_BEHAVIOR_UNSUPPORTED)
 	}
 	if target.ProviderType == "deepseek" || target.ProviderType == "dashscope" || target.ProviderType == "gemini" || target.ProviderType == "mimo" || target.ProviderType == "mistral" || target.ProviderType == "stepfun" || target.ProviderType == "kimi" || target.ProviderType == "fireworks" || target.ProviderType == "together" {
@@ -134,7 +139,10 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 		path = resolveGLMAPIPath(backend.baseURL, "chat/completions")
 	}
 	if target.ProviderType == "qianfan" {
-		path = qianfanAPIPath(backend.baseURL, "/chat/completions")
+		path = resolveNativeV2Path(backend.baseURL, "/chat/completions")
+	}
+	if target.ProviderType == "spark_maas" {
+		path = resolveNativeV2Path(backend.baseURL, "/chat/completions")
 	}
 	if target.ProviderType == "spark" || target.ProviderType == "spark_reasoning" {
 		var err error
@@ -164,6 +172,10 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 		return textbehavior.NormalizedResult{}, MapProviderRequestError(err)
 	}
 	endpoint := backend.baseURL + path
+	if sparkMaaSResponses {
+		path = "/v1/responses"
+		endpoint = strings.TrimSuffix(backend.baseURL, "/v2") + path
+	}
 	if miniMaxMessages {
 		if len(payload) > capabilitydriver.MiniMaxMessagesMaxRequestBytes {
 			return textbehavior.NormalizedResult{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
@@ -208,7 +220,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 		request.Header.Del("Authorization")
 		request.Header.Set("x-goog-api-key", backend.apiKey)
 	}
-	if miniMaxMessages || target.ProviderType == "mistral" || target.ProviderType == "stepfun" || target.ProviderType == "fireworks" || target.ProviderType == "openrouter" || target.ProviderType == "together" || target.ProviderType == "siliconflow" || target.ProviderType == "qianfan" || target.ProviderType == "spark" || target.ProviderType == "spark_reasoning" {
+	if miniMaxMessages || target.ProviderType == "mistral" || target.ProviderType == "stepfun" || target.ProviderType == "fireworks" || target.ProviderType == "openrouter" || target.ProviderType == "together" || target.ProviderType == "siliconflow" || target.ProviderType == "qianfan" || target.ProviderType == "spark" || target.ProviderType == "spark_reasoning" || target.ProviderType == "spark_maas" {
 		// These exact protocols use Bearer even when a gateway path contains
 		// /anthropic; generic URL heuristics cannot select credential semantics.
 		request.Header.Del("x-api-key")
