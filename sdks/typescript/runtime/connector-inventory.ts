@@ -248,10 +248,14 @@ export function nimiRuntimeConnectorAuthProfileForId(
   return normalized ? (CONNECTOR_AUTH_PROFILES[normalized] || null) : null;
 }
 
+// Auth choices only consume identity and inline-credential admission. A static
+// consumer need not invent unrelated Runtime configuration feature flags.
+type ConnectorAuthCatalogEntry = Pick<ProviderCatalogEntry, 'provider' | 'inlineSupported'>;
+
 function providerCatalogEntryForProvider(
   provider: string,
-  catalog: readonly ProviderCatalogEntry[] | undefined,
-): ProviderCatalogEntry | null {
+  catalog: readonly ConnectorAuthCatalogEntry[] | undefined,
+): ConnectorAuthCatalogEntry | null {
   const normalizedProvider = normalizeLower(provider);
   if (!normalizedProvider || !Array.isArray(catalog)) {
     return null;
@@ -261,7 +265,7 @@ function providerCatalogEntryForProvider(
 
 function providerSupportsInlineCredential(
   provider: string,
-  catalog?: readonly ProviderCatalogEntry[],
+  catalog?: readonly ConnectorAuthCatalogEntry[],
 ): boolean {
   const entry = providerCatalogEntryForProvider(provider, catalog);
   return entry?.inlineSupported !== false;
@@ -292,7 +296,7 @@ export function listNimiRuntimeConnectorAuthProfiles(provider: string): NimiRunt
 
 export function listNimiRuntimeConnectorAuthOptionsForProvider(
   provider: string,
-  catalog?: readonly ProviderCatalogEntry[],
+  catalog?: readonly ConnectorAuthCatalogEntry[],
 ): NimiRuntimeConnectorAuthOption[] {
   const normalizedProvider = normalizeLower(provider);
   const profileOptions = listNimiRuntimeConnectorAuthProfiles(normalizedProvider).map((profile) => ({
@@ -316,7 +320,7 @@ export function listNimiRuntimeConnectorAuthOptionsForProvider(
 
 export function defaultNimiRuntimeConnectorAuthOptionForProvider(
   provider: string,
-  catalog?: readonly ProviderCatalogEntry[],
+  catalog?: readonly ConnectorAuthCatalogEntry[],
 ): NimiRuntimeConnectorAuthOption {
   return listNimiRuntimeConnectorAuthOptionsForProvider(provider, catalog)[0] || {
     value: 'api_key',

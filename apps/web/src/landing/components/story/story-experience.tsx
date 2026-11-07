@@ -1,3 +1,4 @@
+import { Surface } from '@nimiplatform/kit/ui';
 import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
 import { ArrowUpRight, BookOpen, Check, ChevronRight, MessageCircle, Pause, Play, Send, Settings2, Sparkles, Trash2, X } from 'lucide-react';
 import { ChatMarkdownRenderer } from '@nimiplatform/kit/features/chat/ui';
@@ -71,14 +72,14 @@ export function StoryExperience({ t, agent, mode, onMode, onApp, onHome }: {
               {memoryError && <p role="alert">{t('common.actionError')}</p>}
             </div>
           </div> : mode === 'manage' ? <div className="story-manage-scene"><p className="story-life-steps">{t('experience.life')}</p><div className="story-management-control"><div><h3>{t('experience.proactive')}</h3><p>{t('experience.proactiveNote')}</p></div><button type="button" aria-pressed={proactive} disabled={memoryBusy || snapshot?.phase !== 'ready'} onClick={toggle}>{proactive ? <Pause size={18} /> : <Play size={18} />}{t(proactive ? 'experience.enabled' : 'experience.disabled')}</button></div><button className="story-link" type="button" onClick={() => onHome(agent.id)}>{t('common.viewApp')}<ArrowUpRight size={16} /></button>{memoryError && <p role="alert">{t('common.actionError')}</p>}</div>
-          : <div className={`story-conversation ${channel === 'zhiyu' && mode === 'partner' ? 'is-zhiyu' : ''}`}>
+          : <Surface material="glass-regular" padding="none" className={`story-conversation ${channel === 'zhiyu' && mode === 'partner' ? 'is-zhiyu' : ''}`}>
             <header><div className="story-conversation-brand"><img src={mode === 'chat' ? '/logo.svg' : agent.avatarUrl} alt="" /><strong>{mode === 'chat' ? 'Nimi Chat' : agent.name}</strong></div>{mode === 'partner' ? <div className="story-channel"><button type="button" aria-pressed={channel === 'home'} onClick={() => { setChannel('home'); onHome(agent.id); }}>{t('experience.home')}</button><button type="button" aria-pressed={channel === 'zhiyu'} onClick={() => { setChannel('zhiyu'); onApp('nimi.zhiyu'); }}>{t('experience.zhiyu')}</button></div> : <MessageCircle size={18} />}</header>
             <div className="story-transcript" ref={transcript} role="log" aria-live="polite" aria-label={t('experience.chat')}>
               {messages.length ? messages.map(m => <div key={m.id} className={`story-message is-${m.role}`}>{m.role === 'assistant' ? <ChatMarkdownRenderer content={m.text} copy={{ markdownCopyLabel: t('common.copy'), markdownCopiedLabel: t('common.copied') }} /> : m.text}</div>) : <div className="story-empty-message"><Sparkles size={32} /><p>{mode === 'chat' ? t('hero.peek') : agent.bio}</p></div>}
             </div>
             <form onSubmit={e => { e.preventDefault(); submit(); }}><textarea ref={input} aria-label={t('experience.placeholder')} placeholder={t('experience.placeholder')} value={draft} rows={2} onChange={e => setDrafts(old => ({ ...old, [target]: e.target.value }))} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit(); } }} /><button type="submit" disabled={!draft.trim()} aria-label={t('experience.send')}><Send size={19} /></button></form>
             <button type="button" className="story-evidence" onClick={() => mode === 'partner' && channel === 'zhiyu' ? onApp('nimi.zhiyu') : onHome(target)}>{t('common.viewApp')}<ArrowUpRight size={15} /></button>
-          </div>}
+          </Surface>}
         </div>
       <div className="story-journey" role="group" aria-label={t('common.experience')}>
         {modes.map((item, index) => { const Icon = icons[index]!; return <button key={item} type="button" aria-pressed={mode === item} onClick={() => onMode(item)}><span className="story-journey-index">0{index + 1}</span><Icon size={18} /><span>{t(`experience.${item}`)}</span><ChevronRight size={15} /></button>; })}

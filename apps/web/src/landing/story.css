@@ -11,7 +11,7 @@
 .story-site button:disabled { cursor: default; opacity: .45; }
 .story-site :is(a,button,input,textarea,summary):focus-visible { outline: 2px solid #0ea5e9; outline-offset: 4px; }
 .story-container { width: min(1280px, calc(100% - 96px)); margin-inline: auto; position: relative; }
-.story-nav { position: sticky; top: 12px; z-index: 45; width: min(1600px,calc(100% - 48px)); margin: 0 auto; min-height: 62px; padding: 10px 18px 10px 22px; display: flex; gap: 26px; align-items: center; background: #ffffffbf; border: 1px solid #ffffffec; border-radius: 32px; box-shadow: 0 10px 35px -18px #233e6270,0 1px 3px #284a6610; backdrop-filter: blur(22px) saturate(1.3); }
+.story-nav { position: sticky; top: 12px; z-index: 45; width: min(1600px,calc(100% - 48px)); margin: 0 auto; min-height: 62px; padding: 10px 18px 10px 22px; display: flex; gap: 26px; align-items: center; border-width: 1px; border-style: solid; border-radius: 32px; box-shadow: 0 10px 35px -18px #233e6270,0 1px 3px #284a6610; }
 .story-brand { display: flex; align-items: center; gap: 10px; flex: none; color: #0b1220; }
 .story-brand img { width: 29px; height: 29px; }
 .story-brand strong { font: 650 23px var(--font-brand); letter-spacing: -.04em; }
@@ -78,7 +78,7 @@
 .story-experience-stage { grid-column: 2; grid-row: 1 / span 2; min-width: 0; min-height: 570px; position: relative; padding: 15px 8px; align-self: center; }
 
 .story-scene-owner { display: none; }
-.story-conversation { width: min(100%,620px); margin: 12px auto 0; background: #ffffffc9; border: 1px solid #ffffffed; border-radius: 18px; box-shadow: 0 26px 55px -30px #355e874f,0 2px 6px #2d56780a; padding: 22px; transform: perspective(1600px) rotateY(-4deg) rotateZ(-1deg); backdrop-filter: blur(12px); }
+.story-conversation { width: min(100%,620px); margin: 12px auto 0; border-width: 1px; border-style: solid; border-radius: 18px; box-shadow: 0 26px 55px -30px #355e874f,0 2px 6px #2d56780a; padding: 22px; transform: perspective(1600px) rotateY(-4deg) rotateZ(-1deg); }
 .story-conversation.is-zhiyu { background: #f8fbfff0; transform: perspective(1600px) rotateY(3deg) rotateZ(1deg); }
 .story-conversation > header { display: flex; align-items: center; gap: 12px; justify-content: space-between; border-bottom: 1px solid #e1e9f2; padding-bottom: 15px; }
 .story-conversation-brand { display: flex; align-items: center; gap: 9px; font-size: 14px; }
@@ -184,7 +184,7 @@
 .story-model-marks--local { left: 5%; top: 52%; width: 16%; gap: 7px 6px; transform: rotate(5deg) skewX(7deg); }
 .story-model-marks--cloud { left: 63%; top: 13%; width: 30%; }
 .story-model-mark { display: grid; justify-items: center; gap: 4px; width: 44px; color: #36566e; font-size: 8px; font-weight: 600; line-height: 1; text-shadow: 0 1px 4px #fff; }
-.story-model-mark svg { width: 32px; height: 32px; padding: 6px; border: 1px solid #ffffffd9; border-radius: 10px; background: #ffffffe8; color: #17202a; box-shadow: 0 7px 18px -9px #24557780, inset 0 0 0 1px #7fc4de12; backdrop-filter: blur(8px); }
+.story-model-mark svg { width: 32px; height: 32px; padding: 6px; border-width: 1px; border-style: solid; border-radius: 10px; color: #17202a; box-shadow: 0 7px 18px -9px #24557780, inset 0 0 0 1px #7fc4de12; }
 .story-model-marks--local .story-model-mark svg { width: 31px; height: 31px; }
 .story-task-paper { position: absolute; left: calc(45% - 145px); top: 65px; width: 290px; padding: 24px 15px; background: transparent; text-align: center; z-index: 2; }
 .story-task-paper > svg { color: #409cc6; margin: 0 auto 16px; }
@@ -196,7 +196,7 @@
 .story-route-picker button.story-cloud-destination { position: absolute; right: 1%; top: 295px; }
 .story-route-picker button[aria-pressed="true"] { color: #087bb8; translate: 0 -9px; }
 .story-route-picker button > svg:first-child { display: none; }
-.story-route-picker button span { text-align: center; padding: 10px 17px; border: 1px solid #e0ecf5; background: #ffffffd9; border-radius: 12px; backdrop-filter: blur(10px); }
+.story-route-picker button span { text-align: center; padding: 10px 17px; border-width: 1px; border-style: solid; border-radius: 12px; }
 .story-route-picker button[aria-pressed="true"] span { border-color: #68bce2; background: #f1fbfff2; }
 .story-route-picker small { display: block; font-size: 12px; margin-bottom: 5px; }
 .story-route-picker strong { display: block; font-size: 18px; font-weight: 550; }
@@ -261,7 +261,7 @@
 .story-security-boundaries article > svg { color: #69c6d6; margin-bottom: 12px; }
 .story-security-boundaries h3 { margin: 0 0 8px; font-size: 16px; font-weight: 500; }
 .story-security-boundaries p { margin: 0; font-size: 11px; line-height: 1.8; color: #9fb9cf; }
-.story-security-result { border: 1px solid #456a8566; border-radius: 17px; padding: 32px 26px; background: #17314988; min-height: 250px; backdrop-filter: blur(10px); }
+.story-security-result { border: 1px solid #456a8566; border-radius: 17px; padding: 32px 26px; background: #173149; min-height: 250px; }
 .story-security-result > svg { color: #7fd5df; margin-bottom: 26px; }
 .story-security-result h3 { font-size: 18px; font-weight: 500; margin: 0 0 15px; }
 .story-security-result p { margin: 0; font-size: 12px; color: #aec9dc; line-height: 1.8; }
@@ -286,7 +286,7 @@
 .story-build-tabs button { display: flex; gap: 7px; align-items: center; font-size: 11px; color: #8eacc5; padding-bottom: 3px; }
 .story-build-tabs button[aria-pressed="true"] { color: #81e8d5; }
 .story-build-editor pre { padding: 32px; font: 12px/1.9 var(--font-mono); white-space: pre-wrap; overflow-wrap: anywhere; margin: 0; min-height: 320px; }
-.story-build-preview { position: relative; display: flex; align-items: center; flex-direction: column; padding: 38px 32px; background: #ffffffdb; border: 1px solid white; border-radius: 15px; text-align: center; margin-left: -25px; box-shadow: 0 22px 50px -30px #2846664d; transform: translateY(40px) rotate(2deg); backdrop-filter: blur(14px); }
+.story-build-preview { position: relative; display: flex; align-items: center; flex-direction: column; padding: 38px 32px; border-width: 1px; border-style: solid; border-radius: 15px; text-align: center; margin-left: -25px; box-shadow: 0 22px 50px -30px #2846664d; transform: translateY(40px) rotate(2deg); }
 .story-build-preview > img { width: 40px; margin: 22px 0 10px; }
 .story-build-preview small { font-size: 10px; color: #7892aa; }
 .story-build-preview h3 { margin: 14px 0; font-size: 20px; }

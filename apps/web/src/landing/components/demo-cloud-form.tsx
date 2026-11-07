@@ -90,7 +90,7 @@ export function DemoCloudForm({ connection, connected, references, onSave, onRem
           <Button size="sm" tone="secondary" disabled={sampleKey} onClick={() => setSampleKey(true)}><KeyRound size={14} />{sampleKey ? t("已填入预置密钥", "Preset key filled in") : t("使用预置密钥", "Use preset key")}</Button>
           <small>{t('网页只接受内置样例。真实密钥由桌面端的本机 Runtime 管理。', 'Only the built-in sample is used here. The desktop Runtime manages real credentials.')}</small>
         </div> : <div className="cloud-auth-note">
-          <strong>{browserSignIn ? t('在桌面端登录 ChatGPT', 'Sign in to ChatGPT in the desktop app') : t('由宿主管理授权', 'Host-managed authorization')}</strong>
+          <strong>{browserSignIn ? t('打开 Nimi 登录 ChatGPT', 'Open Nimi to sign in to ChatGPT') : t('由宿主管理授权', 'Host-managed authorization')}</strong>
           <p>{t('在 Home 中完成授权后才能使用。这里仅预览待授权的连接，不会启动登录。', 'Authorize the connection in Home before use. This previews a connection awaiting credentials without starting sign-in.')}</p>
         </div>}
         <label className="cloud-field">{t('名称（可选）', 'Name (optional)')}<input value={name} maxLength={100} placeholder={provider.name} onChange={e => setName(e.target.value)} /></label>

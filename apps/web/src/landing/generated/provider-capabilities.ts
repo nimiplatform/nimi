@@ -2,9 +2,9 @@
  * @generated
  * Sources:
  *   config/runtime-provider-capabilities.yaml
- *     sha256: 2254ba94853687242e3f89754095e82c22cd0fc538208a09e890d1c20b27172a
+ *     sha256: 90b40c5728131cbca400b20c5fb231448155b7da8e369b8c18f2f1f53bbc0daf
  *   config/runtime-provider-catalog.yaml
- *     sha256: 075f5f7cdba11e1e0f48623b6c6f72655b3c05afad7fbdf59fa90a2bc0be5c7d
+ *     sha256: 639e1efe3ad8e9f7ee28104301e256f15e712f6c0dae9658e34703868a98427b
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.
@@ -179,8 +179,8 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     executionModule: "nimillm",
     managedConnectorSupported: true,
     inlineSupported: true,
-    endpointRequirement: "explicit_required",
-    inventoryMode: "dynamic_endpoint",
+    endpointRequirement: "default_or_explicit",
+    inventoryMode: "static_source",
     capabilities: ["text.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
@@ -201,9 +201,9 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     executionModule: "nimillm",
     managedConnectorSupported: true,
     inlineSupported: true,
-    endpointRequirement: "explicit_required",
+    endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: ["image.generate"],
+    capabilities: ["image.generate", "video.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -214,7 +214,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "music.generate", "text.embed", "text.generate", "video.generate", "voice.create"],
+    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "music.generate", "realtime.interact", "text.embed", "text.generate", "video.generate", "voice.create"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -246,7 +246,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     managedConnectorSupported: true,
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
-    inventoryMode: "dynamic_endpoint",
+    inventoryMode: "static_source",
     capabilities: ["audio.synthesize", "audio.transcribe", "text.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
@@ -268,7 +268,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     managedConnectorSupported: true,
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
-    inventoryMode: "dynamic_endpoint",
+    inventoryMode: "static_source",
     capabilities: ["text.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
@@ -279,7 +279,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     managedConnectorSupported: true,
     inlineSupported: true,
     endpointRequirement: "explicit_required",
-    inventoryMode: "dynamic_endpoint",
+    inventoryMode: "static_source",
     capabilities: ["image.generate", "video.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
@@ -313,7 +313,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "explicit_required",
     inventoryMode: "static_source",
-    capabilities: ["video.generate"],
+    capabilities: ["image.generate", "video.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -335,7 +335,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: ["image.generate", "text.generate", "video.generate"],
+    capabilities: ["audio.synthesize", "image.generate", "music.generate", "text.generate", "video.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -346,7 +346,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
     inventoryMode: "static_source",
-    capabilities: ["text.embed", "text.generate"],
+    capabilities: ["audio.synthesize", "audio.transcribe", "text.embed", "text.generate", "voice.create"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
   {
@@ -411,7 +411,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     managedConnectorSupported: true,
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
-    inventoryMode: "dynamic_endpoint",
+    inventoryMode: "static_source",
     capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "text.embed", "text.generate", "video.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
@@ -421,8 +421,8 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     executionModule: "nimillm",
     managedConnectorSupported: true,
     inlineSupported: true,
-    endpointRequirement: "explicit_required",
-    inventoryMode: "dynamic_endpoint",
+    endpointRequirement: "default_or_explicit",
+    inventoryMode: "static_source",
     capabilities: ["text.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
@@ -433,7 +433,7 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     managedConnectorSupported: true,
     inlineSupported: true,
     endpointRequirement: "explicit_required",
-    inventoryMode: "dynamic_endpoint",
+    inventoryMode: "static_source",
     capabilities: ["video.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
@@ -465,8 +465,8 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     executionModule: "nimillm",
     managedConnectorSupported: true,
     inlineSupported: true,
-    endpointRequirement: "explicit_required",
-    inventoryMode: "dynamic_endpoint",
+    endpointRequirement: "default_or_explicit",
+    inventoryMode: "static_source",
     capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "text.embed", "text.generate", "video.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
@@ -494,6 +494,17 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
   },
   {
     provider: "spark",
+    runtimePlane: "remote",
+    executionModule: "nimillm",
+    managedConnectorSupported: true,
+    inlineSupported: true,
+    endpointRequirement: "default_or_explicit",
+    inventoryMode: "static_source",
+    capabilities: ["text.generate"],
+    sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
+  },
+  {
+    provider: "spark_maas",
     runtimePlane: "remote",
     executionModule: "nimillm",
     managedConnectorSupported: true,
@@ -542,8 +553,8 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     executionModule: "nimillm",
     managedConnectorSupported: true,
     inlineSupported: true,
-    endpointRequirement: "explicit_required",
-    inventoryMode: "dynamic_endpoint",
+    endpointRequirement: "default_or_explicit",
+    inventoryMode: "static_source",
     capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "text.embed", "text.generate", "video.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
@@ -598,8 +609,8 @@ export const PROVIDER_CAPABILITIES: readonly ProviderCapability[] = [
     managedConnectorSupported: true,
     inlineSupported: true,
     endpointRequirement: "default_or_explicit",
-    inventoryMode: "dynamic_endpoint",
-    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "text.generate", "video.generate"],
+    inventoryMode: "static_source",
+    capabilities: ["audio.synthesize", "audio.transcribe", "image.generate", "realtime.interact", "text.generate", "video.generate"],
     sources: ["K-CONN-008", "K-KEYSRC-001", "K-MCAT-027"],
   },
 ];

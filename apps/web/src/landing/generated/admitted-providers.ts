@@ -1,7 +1,7 @@
 /**
  * @generated
  * Source: config/runtime-provider-catalog.yaml
- *   sha256: 075f5f7cdba11e1e0f48623b6c6f72655b3c05afad7fbdf59fa90a2bc0be5c7d
+ *   sha256: 639e1efe3ad8e9f7ee28104301e256f15e712f6c0dae9658e34703868a98427b
  * Generator: apps/web/scripts/generate-landing-data.mjs
  * DO NOT EDIT MANUALLY. Re-run generator (`pnpm prebuild` or
  * `node scripts/generate-landing-data.mjs` from apps/web/) to refresh.
@@ -38,7 +38,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "azure",
     defaultEndpoint: null,
-    defaultTextModel: "gpt-5.6-sol",
+    defaultTextModel: "gpt-6.1-sol",
     requiresExplicitEndpoint: true,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
@@ -54,7 +54,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "bedrock",
     defaultEndpoint: null,
-    defaultTextModel: "anthropic.claude-sonnet-5",
+    defaultTextModel: "anthropic.claude-sonnet-5-5",
     requiresExplicitEndpoint: true,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
@@ -93,10 +93,10 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   },
   {
     provider: "fireworks",
-    defaultEndpoint: null,
+    defaultEndpoint: "https://api.fireworks.ai/inference/v1",
     defaultTextModel: null,
-    requiresExplicitEndpoint: true,
-    inventoryMode: "dynamic_endpoint",
+    requiresExplicitEndpoint: false,
+    inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
   },
   {
@@ -109,9 +109,9 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   },
   {
     provider: "flux",
-    defaultEndpoint: null,
+    defaultEndpoint: "https://api.bfl.ai",
     defaultTextModel: null,
-    requiresExplicitEndpoint: true,
+    requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
   },
@@ -126,7 +126,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "glm",
     defaultEndpoint: "https://open.bigmodel.cn/api/paas/v4",
-    defaultTextModel: "glm-5.2",
+    defaultTextModel: "glm-5.3",
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
@@ -142,9 +142,9 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "groq",
     defaultEndpoint: "https://api.groq.com/openai/v1",
-    defaultTextModel: null,
+    defaultTextModel: "openai/gpt-oss-120b",
     requiresExplicitEndpoint: false,
-    inventoryMode: "dynamic_endpoint",
+    inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
   },
   {
@@ -158,9 +158,9 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "kimi",
     defaultEndpoint: "https://api.moonshot.cn/v1",
-    defaultTextModel: null,
+    defaultTextModel: "kimi-k3.1-pro",
     requiresExplicitEndpoint: false,
-    inventoryMode: "dynamic_endpoint",
+    inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
   },
   {
@@ -168,7 +168,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
     defaultEndpoint: null,
     defaultTextModel: null,
     requiresExplicitEndpoint: true,
-    inventoryMode: "dynamic_endpoint",
+    inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
   },
   {
@@ -197,8 +197,8 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   },
   {
     provider: "minimax",
-    defaultEndpoint: "https://api.minimaxi.com/v1",
-    defaultTextModel: "MiniMax-M3",
+    defaultEndpoint: "https://api.minimax.cn/v1",
+    defaultTextModel: "MiniMax-M3.1-Flash",
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
@@ -206,7 +206,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "mistral",
     defaultEndpoint: "https://api.mistral.ai/v1",
-    defaultTextModel: "mistral-large-latest",
+    defaultTextModel: "mistral-large-4-0",
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
@@ -230,7 +230,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "openai",
     defaultEndpoint: "https://api.openai.com/v1",
-    defaultTextModel: "gpt-5.6-sol",
+    defaultTextModel: "gpt-6.1-sol",
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
@@ -256,15 +256,15 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
     defaultEndpoint: "https://openrouter.ai/api/v1",
     defaultTextModel: null,
     requiresExplicitEndpoint: false,
-    inventoryMode: "dynamic_endpoint",
+    inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
   },
   {
     provider: "perplexity",
-    defaultEndpoint: null,
+    defaultEndpoint: "https://api.perplexity.ai/v1",
     defaultTextModel: null,
-    requiresExplicitEndpoint: true,
-    inventoryMode: "dynamic_endpoint",
+    requiresExplicitEndpoint: false,
+    inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
   },
   {
@@ -272,7 +272,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
     defaultEndpoint: null,
     defaultTextModel: null,
     requiresExplicitEndpoint: true,
-    inventoryMode: "dynamic_endpoint",
+    inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
   },
   {
@@ -293,15 +293,15 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   },
   {
     provider: "siliconflow",
-    defaultEndpoint: null,
+    defaultEndpoint: "https://api.siliconflow.cn/v1",
     defaultTextModel: null,
-    requiresExplicitEndpoint: true,
-    inventoryMode: "dynamic_endpoint",
+    requiresExplicitEndpoint: false,
+    inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
   },
   {
     provider: "soundverse",
-    defaultEndpoint: "https://api.soundverse.ai",
+    defaultEndpoint: "https://apiv2.soundverse.ai",
     defaultTextModel: null,
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
@@ -319,6 +319,14 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
     provider: "spark",
     defaultEndpoint: "https://spark-api-open.xf-yun.com/v1",
     defaultTextModel: "4.0Ultra",
+    requiresExplicitEndpoint: false,
+    inventoryMode: "static_source",
+    sourceRule: "K-MCAT-027",
+  },
+  {
+    provider: "spark_maas",
+    defaultEndpoint: "https://maas-api.cn-huabei-1.xf-yun.com/v2",
+    defaultTextModel: "spark-x2.6",
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
@@ -349,10 +357,10 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   },
   {
     provider: "together",
-    defaultEndpoint: null,
+    defaultEndpoint: "https://api.together.ai/v1",
     defaultTextModel: null,
-    requiresExplicitEndpoint: true,
-    inventoryMode: "dynamic_endpoint",
+    requiresExplicitEndpoint: false,
+    inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
   },
   {
@@ -373,7 +381,7 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   },
   {
     provider: "volcengine_openspeech",
-    defaultEndpoint: "https://openspeech.bytedance.com/api/v1",
+    defaultEndpoint: "https://openspeech.bytedance.com",
     defaultTextModel: null,
     requiresExplicitEndpoint: false,
     inventoryMode: "static_source",
@@ -390,9 +398,9 @@ export const ADMITTED_PROVIDERS: readonly AdmittedProvider[] = [
   {
     provider: "xai",
     defaultEndpoint: "https://api.x.ai/v1",
-    defaultTextModel: null,
+    defaultTextModel: "grok-4.7",
     requiresExplicitEndpoint: false,
-    inventoryMode: "dynamic_endpoint",
+    inventoryMode: "static_source",
     sourceRule: "K-MCAT-027",
   },
 ];

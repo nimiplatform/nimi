@@ -6,7 +6,10 @@ import { APP_CATALOG, CAPABILITY_LABELS } from '../../pages/informational-conten
 import type { HeroDemo } from './landing-content.js';
 
 export type CloudText = (zh: string, en: string) => string;
-export type CloudProvider = ProviderCatalogEntry & { name: string };
+export type CloudProvider = Pick<ProviderCatalogEntry,
+  'provider' | 'defaultEndpoint' | 'requiresExplicitEndpoint' | 'runtimePlane'
+  | 'executionModule' | 'managedSupported' | 'inventoryMode' | 'inlineSupported'
+> & { name: string };
 export type DemoConnection = {
   id: string; provider: string; name: string; endpoint: string; auth: string;
   status: 'checked' | 'unchecked' | 'credential';

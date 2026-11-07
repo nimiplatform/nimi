@@ -1,3 +1,4 @@
+import { Surface } from '@nimiplatform/kit/ui';
 import { useState } from 'react';
 import { ArrowDown, ArrowRight, ArrowUpRight, Check, Cloud, FileText, Image, Laptop, Mic, RotateCcw, ShieldCheck } from 'lucide-react';
 import type { StoryText, StoryKey } from '../../content/story-copy.js';
@@ -31,7 +32,7 @@ function StoryModelMarks({ route }: { route: 'local' | 'cloud' }) {
   const marks = route === 'local' ? localModelMarks : cloudModelMarks;
   return <div className={`story-model-marks story-model-marks--${route}`} aria-hidden="true">
     {marks.map(mark => <span className="story-model-mark" key={mark.provider}>
-      <svg viewBox="0 0 24 24" focusable="false"><use href={`/demo/cloud-provider-marks.svg#${mark.provider}`} /></svg>
+      <Surface as="svg" material="glass-thin" padding="none" viewBox="0 0 24 24" focusable="false"><use href={`/demo/cloud-provider-marks.svg#${mark.provider}`} /></Surface>
       <small>{mark.label}</small>
     </span>)}
   </div>;
@@ -51,8 +52,8 @@ export function StoryPower({ t, links, onHome }: { t: StoryText; links: LandingL
         <StoryModelMarks route="cloud" />
         <article className="story-task-paper" key={task}><Icon size={28} /><small>{t('power.request')}</small><h3>{t(`power.${task}Task` as StoryKey)}</h3></article>
         <div className="story-route-picker" role="group" aria-label={t('power.title')}>
-          <button className="story-local-destination" type="button" aria-pressed={route === 'local'} onClick={() => setRoute('local')}><Laptop size={64} strokeWidth={1.2} /><span><small>{t('power.local')}</small><strong>{t('power.localTarget')}</strong></span>{route === 'local' && <Check size={18} />}</button>
-          <button className="story-cloud-destination" type="button" aria-pressed={route === 'cloud'} onClick={() => setRoute('cloud')}><Cloud size={76} strokeWidth={1.1} /><span><small>{t('power.cloud')}</small><strong>{t('power.cloudTarget')}</strong></span>{route === 'cloud' && <Check size={18} />}</button>
+          <button className="story-local-destination" type="button" aria-pressed={route === 'local'} onClick={() => setRoute('local')}><Laptop size={64} strokeWidth={1.2} /><Surface as="span" material="glass-thin" padding="none"><small>{t('power.local')}</small><strong>{t('power.localTarget')}</strong></Surface>{route === 'local' && <Check size={18} />}</button>
+          <button className="story-cloud-destination" type="button" aria-pressed={route === 'cloud'} onClick={() => setRoute('cloud')}><Cloud size={76} strokeWidth={1.1} /><Surface as="span" material="glass-thin" padding="none"><small>{t('power.cloud')}</small><strong>{t('power.cloudTarget')}</strong></Surface>{route === 'cloud' && <Check size={18} />}</button>
         </div>
         <div className="story-route-trace" aria-hidden="true" key={`${task}-${route}`}><ArrowDown size={20} /></div>
         <div className="story-route-outcome" aria-live="polite"><p>{t(route === 'local' ? 'power.localDetail' : 'power.cloudDetail')}</p><button type="button" className="story-link" onClick={() => onHome(route === 'local' ? 'runtime' : 'cloud', route === 'local' ? capability : undefined)}>{t('common.openHome')}<ArrowUpRight size={15} /></button></div>

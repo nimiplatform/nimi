@@ -250,11 +250,12 @@ test('Nimi Runtime connector projection normalizes scope, auth, endpoint, and mo
 });
 
 test('Nimi Runtime connector auth options come from generated profile truth', () => {
+  const authCatalog = PROVIDER_CATALOG.map(({ provider, inlineSupported }) => ({ provider, inlineSupported }));
   assert.deepEqual(
-    listNimiRuntimeConnectorAuthOptionsForProvider('openai_chatgpt_plan', PROVIDER_CATALOG).map((item) => item.value),
+    listNimiRuntimeConnectorAuthOptionsForProvider('openai_chatgpt_plan', authCatalog).map((item) => item.value),
     ['oauth:openai_chatgpt_plan'],
   );
-  assert.equal(defaultNimiRuntimeConnectorAuthOptionForProvider('openrouter', PROVIDER_CATALOG).value, 'api_key');
+  assert.equal(defaultNimiRuntimeConnectorAuthOptionForProvider('openrouter', authCatalog).value, 'api_key');
   assert.equal(providerToNimiRuntimeConnectorVendor('OpenRouter'), 'openrouter');
 });
 
