@@ -83,6 +83,13 @@ func (b *Backend) ProbeConnector(ctx context.Context) error {
 	if normalizeProbeProviderToken(strings.TrimPrefix(strings.TrimSpace(b.Name), "cloud-")) == "qianfan" {
 		return b.probeQianfanConnector(ctx)
 	}
+	if provider := normalizeProbeProviderToken(strings.TrimPrefix(strings.TrimSpace(b.Name), "cloud-")); provider == "spark" || provider == "spark_reasoning" {
+		path, err := sparkAPIPath(provider, b.baseURL, "/models")
+		if err != nil {
+			return err
+		}
+		return b.probeGET(ctx, path)
+	}
 
 	if normalizeProbeProviderToken(strings.TrimPrefix(strings.TrimSpace(b.Name), "cloud-")) == "fireworks" {
 		modelsBaseURL, err := fireworksModelsBaseURL(b.baseURL)

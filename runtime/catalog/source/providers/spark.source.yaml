@@ -1,6 +1,6 @@
 schema_version: 3
 provider: spark
-catalog_version: 2026-04-18-spark-general-v2
+catalog_version: 2026-11-07-spark-native
 generated_target: runtime/catalog/providers/spark.yaml
 runtime:
   inventory_mode: static_source
@@ -22,36 +22,34 @@ defaults:
     currency: CNY
     as_of: 2026-04-18
     notes: Spark pricing varies by model edition, package tier, and account plan.
-
 sources:
   - source_id: spark_http_doc
     url: https://www.xfyun.cn/doc/spark/HTTP%E8%B0%83%E7%94%A8%E6%96%87%E6%A1%A3.html
-    retrieved_at: 2026-04-18
+    retrieved_at: 2026-11-07
     note: Official Spark HTTP chat documentation for the current `/v1/chat/completions` general-language surface.
   - source_id: spark_batch_doc
     url: https://www.xfyun.cn/doc/spark/BatchAPI.html
     retrieved_at: 2026-04-18
     note: Official Spark batch API documentation confirming current admitted `/v1` public model ids.
-
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: 4.0Ultra
-    reviewed_at: 2026-11-06
+    reviewed_at: 2026-11-07
     freshness_sla_days: 21
     rationale: The strongest non-reasoning Spark `/v1` model, now running X1.5 in fast mode.
   - profile_id: text.fast
     capability: text.generate
     model_id: lite
-    reviewed_at: 2026-11-06
+    reviewed_at: 2026-11-07
     freshness_sla_days: 21
     rationale: The lightweight Spark `/v1` model with faster responses and free use.
-
 models:
   - model_id: 4.0Ultra
     model_type: chat
-    updated_at: 2026-04-18
-    capabilities: [text.generate]
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
     pricing:
       unit: token
       input: unknown
@@ -59,12 +57,14 @@ models:
       currency: CNY
       as_of: 2026-04-18
       notes: Spark 4.0 Ultra is the current admitted flagship on the stable `/v1` general-chat surface.
-    source_ids: [spark_http_doc, spark_batch_doc]
-
+    source_ids:
+      - spark_http_doc
+      - spark_batch_doc
   - model_id: lite
     model_type: chat
-    updated_at: 2026-04-18
-    capabilities: [text.generate]
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
     pricing:
       unit: token
       input: unknown
@@ -72,4 +72,5 @@ models:
       currency: CNY
       as_of: 2026-04-18
       notes: Lite is the current admitted lightweight public id on the stable `/v1` general-chat surface.
-    source_ids: [spark_http_doc]
+    source_ids:
+      - spark_http_doc

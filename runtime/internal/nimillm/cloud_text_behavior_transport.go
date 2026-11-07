@@ -65,6 +65,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	case "together":
 	case "siliconflow":
 	case "qianfan":
+	case "spark", "spark_reasoning":
 	case "stepfun":
 	case "glm":
 	case "minimax":
@@ -135,6 +136,13 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 	if target.ProviderType == "qianfan" {
 		path = qianfanAPIPath(backend.baseURL, "/chat/completions")
 	}
+	if target.ProviderType == "spark" || target.ProviderType == "spark_reasoning" {
+		var err error
+		path, err = sparkAPIPath(target.ProviderType, backend.baseURL, "/chat/completions")
+		if err != nil {
+			return textbehavior.NormalizedResult{}, err
+		}
+	}
 	if target.ProviderType == chatGPTPlanProvider {
 		// The usable set is the reviewed target intersected with the current
 		// account's list-visible inventory; a registered row alone never runs.
@@ -200,7 +208,7 @@ func (p *CloudProvider) ExecuteTextBehaviorWithTarget(
 		request.Header.Del("Authorization")
 		request.Header.Set("x-goog-api-key", backend.apiKey)
 	}
-	if miniMaxMessages || target.ProviderType == "mistral" || target.ProviderType == "stepfun" || target.ProviderType == "fireworks" || target.ProviderType == "openrouter" || target.ProviderType == "together" || target.ProviderType == "siliconflow" || target.ProviderType == "qianfan" {
+	if miniMaxMessages || target.ProviderType == "mistral" || target.ProviderType == "stepfun" || target.ProviderType == "fireworks" || target.ProviderType == "openrouter" || target.ProviderType == "together" || target.ProviderType == "siliconflow" || target.ProviderType == "qianfan" || target.ProviderType == "spark" || target.ProviderType == "spark_reasoning" {
 		// These exact protocols use Bearer even when a gateway path contains
 		// /anthropic; generic URL heuristics cannot select credential semantics.
 		request.Header.Del("x-api-key")

@@ -20,7 +20,9 @@ func qianfanUnsupported(detail string) error {
 func (p QianfanTextBehavior) Serialize(s *runtimev1.TextGenerateScenarioSpec, stream bool) (textbehavior.SerializedRequest, error) {
 	// ERNIE controls are not the open-source-model defaults documented by the
 	// same platform. Preserve native defaults where exact semantics are absent.
-	if s == nil || s.GetIncludeRawChunks() || s.Temperature != nil || s.TopP != nil || s.TopK != nil || s.FrequencyPenalty != nil || s.PresencePenalty != nil || s.GetReasoning() != nil {
+	r := s.GetReasoning()
+	explicitReasoning := r.GetActivation() != runtimev1.ReasoningActivation_REASONING_ACTIVATION_UNSPECIFIED || r.GetIntensity() != nil || r.GetPresentation() != runtimev1.ReasoningPresentation_REASONING_PRESENTATION_UNSPECIFIED && r.GetPresentation() != runtimev1.ReasoningPresentation_REASONING_PRESENTATION_HIDDEN
+	if s == nil || s.GetIncludeRawChunks() || s.Temperature != nil || s.TopP != nil || s.TopK != nil || s.FrequencyPenalty != nil || s.PresencePenalty != nil || explicitReasoning {
 		return textbehavior.SerializedRequest{}, qianfanUnsupported("unreviewed ERNIE sampling or reasoning control")
 	}
 	if s.MaxTokens != nil && (s.GetMaxTokens() < 1 || s.GetMaxTokens() > 65536) || s.Seed != nil && (s.GetSeed() < 1 || s.GetSeed() >= 2147483647) || len(s.GetStop()) > 4 {

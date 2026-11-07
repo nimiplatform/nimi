@@ -44,11 +44,14 @@ func TestGemma4E2BAdmitsOrderedSystemMessagesWithoutWideningOtherCombinations(t 
 
 func TestTextBehaviorAdapterResolutionIsExactAndClosed(t *testing.T) {
 	registrations := productionTextBehaviorAdapterRegistrations()
-	if len(registrations) != 137 {
-		t.Fatalf("production adapter registrations = %d, want thirteen Local mappings and one hundred and twenty-four Cloud targets", len(registrations))
+	if len(registrations) != 140 {
+		t.Fatalf("production adapter registrations = %d, want thirteen Local mappings and one hundred and twenty-seven Cloud targets", len(registrations))
 	}
 	expectedCloudTargets := map[string]string{
-		"qianfan/ernie-5.1":                                            "qianfan.ernie-5.1.chat",
+		"spark/4.0Ultra":          "spark.4.0Ultra.chat",
+		"spark/lite":              "spark.lite.chat",
+		"spark_reasoning/spark-x": "spark_reasoning.spark-x.chat",
+		"qianfan/ernie-5.1":       "qianfan.ernie-5.1.chat",
 		"siliconflow/deepseek-ai/DeepSeek-V4.1-Flash":                  "siliconflow.deepseek-ai/DeepSeek-V4.1-Flash.chat",
 		"siliconflow/deepseek-ai/DeepSeek-V4-Flash":                    "siliconflow.deepseek-ai/DeepSeek-V4-Flash.chat",
 		"siliconflow/deepseek-ai/DeepSeek-V4-Pro":                      "siliconflow.deepseek-ai/DeepSeek-V4-Pro.chat",

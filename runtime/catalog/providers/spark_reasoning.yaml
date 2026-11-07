@@ -1,13 +1,13 @@
 version: 1
 provider: spark_reasoning
-catalog_version: 2026-07-20-spark-reasoning-v2
+catalog_version: 2026-11-07-spark_reasoning-native
 inventory_mode: static_source
 default_text_model: spark-x
 models:
   - model_id: spark-x
     provider: spark_reasoning
     model_type: chat
-    updated_at: 2026-07-20
+    updated_at: 2026-11-07
     capabilities:
       - text.generate
     pricing:
@@ -16,11 +16,11 @@ models:
       output: unknown
       currency: CNY
       as_of: 2026-07-20
-      notes: Curated to the current X2 reasoning surface. Official docs keep the request model id stable as `spark-x` while endpoint selection chooses X2 or X1.5.
+      notes: Reviewed X2 native HTTP with spark-x at /x2. The same model string at /v2 identifies X1.5 and is rejected by this X2 implementation.
     source_ref:
       url: https://www.xfyun.cn/doc/spark/X1http.html
-      retrieved_at: 2026-07-20
-      note: Official Spark reasoning HTTP documentation for the current `spark-x` public contract and endpoint-scoped X1.5/X2 routing.
+      retrieved_at: 2026-11-07
+      note: Official native X2 HTTP schema, original sid/code/status and thinking controls; /v2 describes distinct X1.5, not a route migration.
     context_window_tokens: 8192
 voices: []
 selection_profiles:
@@ -28,6 +28,6 @@ selection_profiles:
     profile_id: text.general
     capability: text.generate
     model_id: spark-x
-    reviewed_at: 2026-11-06
+    reviewed_at: 2026-11-07
     freshness_sla_days: 21
-    rationale: The current official X2 protocol still takes `spark-x` as its request model id; the newer X2.5 model is served from a separate MaaS host and is not admitted here.
+    rationale: Exact X2 native HTTP target spark-x at /x2; separate MaaS X2.6/X2.5 and its API Key are not this product, and /v2 X1.5 is not admitted as X2.

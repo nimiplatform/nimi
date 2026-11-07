@@ -1,6 +1,6 @@
 schema_version: 3
 provider: spark_reasoning
-catalog_version: 2026-07-20-spark-reasoning-v2
+catalog_version: 2026-11-07-spark_reasoning-native
 generated_target: runtime/catalog/providers/spark_reasoning.yaml
 runtime:
   inventory_mode: static_source
@@ -22,31 +22,30 @@ defaults:
     currency: CNY
     as_of: 2026-04-18
     notes: Spark reasoning pricing varies by package tier and account plan. This surface is curated around the current X2 endpoint-scoped public contract.
-
 sources:
   - source_id: spark_reasoning_http_doc
     url: https://www.xfyun.cn/doc/spark/X1http.html
-    retrieved_at: 2026-07-20
-    note: Official Spark reasoning HTTP documentation for the current `spark-x` public contract and endpoint-scoped X1.5/X2 routing.
-
+    retrieved_at: 2026-11-07
+    note: Official native X2 HTTP schema, original sid/code/status and thinking controls; /v2 describes distinct X1.5, not a route migration.
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: spark-x
-    reviewed_at: 2026-11-06
+    reviewed_at: 2026-11-07
     freshness_sla_days: 21
-    rationale: The current official X2 protocol still takes `spark-x` as its request model id; the newer X2.5 model is served from a separate MaaS host and is not admitted here.
-
+    rationale: Exact X2 native HTTP target spark-x at /x2; separate MaaS X2.6/X2.5 and its API Key are not this product, and /v2 X1.5 is not admitted as X2.
 models:
   - model_id: spark-x
     model_type: chat
-    updated_at: 2026-07-20
-    capabilities: [text.generate]
+    updated_at: 2026-11-07
+    capabilities:
+      - text.generate
     pricing:
       unit: token
       input: unknown
       output: unknown
       currency: CNY
       as_of: 2026-07-20
-      notes: Curated to the current X2 reasoning surface. Official docs keep the request model id stable as `spark-x` while endpoint selection chooses X2 or X1.5.
-    source_ids: [spark_reasoning_http_doc]
+      notes: Reviewed X2 native HTTP with spark-x at /x2. The same model string at /v2 identifies X1.5 and is rejected by this X2 implementation.
+    source_ids:
+      - spark_reasoning_http_doc
