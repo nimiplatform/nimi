@@ -19,6 +19,10 @@ const PreparationTimeout = 60 * time.Second
 
 var ErrCodecUnavailable = errors.New("exact managed audio codec is unavailable")
 
+// ErrInvalidAudio is a verdict on the immutable input or decoded samples, not
+// a missing codec, cancellation, output-storage failure or failed publication.
+var ErrInvalidAudio = errors.New("invalid audio data")
+
 // ChannelMode is the explicit channel-domain conversion requested for an
 // already canonical source. It is never applied implicitly.
 type ChannelMode uint32
@@ -119,8 +123,11 @@ func (p *Processor) PrepareInto(ctx context.Context, input Input, output Canonic
 		return Facts{}, fmt.Errorf("audio snapshot or destination is invalid")
 	}
 	info, err := os.Stat(input.Path)
-	if err != nil || !info.Mode().IsRegular() || info.Size() == 0 || info.Size() > MaxInputBytes {
-		return Facts{}, fmt.Errorf("audio snapshot size or type is invalid")
+	if err != nil {
+		return Facts{}, fmt.Errorf("stat audio snapshot: %w", err)
+	}
+	if !info.Mode().IsRegular() || info.Size() == 0 || info.Size() > MaxInputBytes {
+		return Facts{}, fmt.Errorf("%w: audio snapshot size or type is invalid", ErrInvalidAudio)
 	}
 	mime := strings.ToLower(strings.TrimSpace(input.MIMEType))
 	expectedFormat := map[string]string{"audio/wav": "wav", "audio/mpeg": "mp3", "audio/flac": "flac"}[mime]
@@ -137,7 +144,7 @@ func (p *Processor) PrepareInto(ctx context.Context, input Input, output Canonic
 		return Facts{}, ctx.Err()
 	}
 	if canonicalErr == nil && mime != "audio/wav" {
-		return Facts{}, fmt.Errorf("audio MIME does not match the actual container")
+		return Facts{}, fmt.Errorf("%w: audio MIME does not match the actual container", ErrInvalidAudio)
 	}
 	if (input.TargetSampleRateHz != 0 || channelMode != ChannelPreserve) && canonicalErr != nil {
 		return Facts{}, fmt.Errorf("explicit domain conversion requires an already canonical source")
@@ -214,10 +221,10 @@ func (p *Processor) PrepareInto(ctx context.Context, input Input, output Canonic
 			return Facts{}, fmt.Errorf("%w: managed audio decoder could not run: %w", ErrCodecUnavailable, waitErr)
 		}
 		if waitErr != nil {
-			return Facts{}, fmt.Errorf("managed audio decoder failed: %w", waitErr)
+			return Facts{}, fmt.Errorf("%w: managed audio decoder failed: %w", ErrInvalidAudio, waitErr)
 		}
 		if count == 0 || count%int64(outChannels*4) != 0 {
-			return Facts{}, fmt.Errorf("decoder returned empty audio or incomplete frames")
+			return Facts{}, fmt.Errorf("%w: decoder returned empty audio or incomplete frames", ErrInvalidAudio)
 		}
 		if err := writeHeader(output, rate, outChannels, count); err != nil {
 			return Facts{}, fmt.Errorf("finish canonical WAV header: %w", err)
@@ -293,7 +300,7 @@ func (p *Processor) probe(ctx context.Context, path, expectedFormat string) (uin
 		if CodecCouldNotRun(err) {
 			return 0, 0, fmt.Errorf("%w: managed audio probe could not run: %w", ErrCodecUnavailable, err)
 		}
-		return 0, 0, fmt.Errorf("probe audio snapshot: %w", err)
+		return 0, 0, fmt.Errorf("%w: probe audio snapshot: %w", ErrInvalidAudio, err)
 	}
 	var document struct {
 		Streams []struct {
@@ -306,7 +313,7 @@ func (p *Processor) probe(ctx context.Context, path, expectedFormat string) (uin
 		} `json:"format"`
 	}
 	if output.overflow || json.Unmarshal(output.Bytes(), &document) != nil || document.Format.Name != expectedFormat {
-		return 0, 0, fmt.Errorf("invalid probe result or mismatched audio container")
+		return 0, 0, fmt.Errorf("%w: invalid probe result or mismatched audio container", ErrInvalidAudio)
 	}
 	var rate uint32
 	var channels uint16
@@ -318,12 +325,12 @@ func (p *Processor) probe(ctx context.Context, path, expectedFormat string) (uin
 		count++
 		value, err := strconv.ParseUint(stream.SampleRate, 10, 32)
 		if err != nil || !validFormat(uint32(value), stream.Channels) {
-			return 0, 0, fmt.Errorf("audio sample format is outside the canonical profile")
+			return 0, 0, fmt.Errorf("%w: audio sample format is outside the canonical profile", ErrInvalidAudio)
 		}
 		rate, channels = uint32(value), stream.Channels
 	}
 	if count != 1 {
-		return 0, 0, fmt.Errorf("audio input must contain exactly one audio stream")
+		return 0, 0, fmt.Errorf("%w: audio input must contain exactly one audio stream", ErrInvalidAudio)
 	}
 	return rate, channels, nil
 }

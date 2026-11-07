@@ -139,12 +139,12 @@ func copyFinitePCM(ctx context.Context, writer io.Writer, reader io.Reader, limi
 		}
 		n, err := io.ReadFull(reader, buffer)
 		if n%4 != 0 || int64(n) > limit-total {
-			return total, fmt.Errorf("decoded audio has incomplete samples or exceeds its bound")
+			return total, fmt.Errorf("%w: decoded audio has incomplete samples or exceeds its bound", ErrInvalidAudio)
 		}
 		for offset := 0; offset < n; offset += 4 {
 			bits := binary.LittleEndian.Uint32(buffer[offset : offset+4])
 			if bits&0x7f800000 == 0x7f800000 {
-				return total, fmt.Errorf("decoded audio contains a non-finite sample")
+				return total, fmt.Errorf("%w: decoded audio contains a non-finite sample", ErrInvalidAudio)
 			}
 		}
 		if n != 0 {

@@ -164,9 +164,20 @@ func TestExecuteLoudlyMusicUsesAPIKeyHeader(t *testing.T) {
 		switch r.URL.Path {
 		case "/api/ai/prompt/songs":
 			apiKey = r.Header.Get("API-KEY")
+			if err := r.ParseMultipartForm(1 << 20); err != nil {
+				t.Error(err)
+				return
+			}
+			defer r.MultipartForm.RemoveAll()
+			if r.FormValue("model") != "VEGA_2" || r.FormValue("prompt") != "ad cue" || r.FormValue("duration") != "30" || r.FormValue("test") != "" || r.Header.Get("Authorization") != "" {
+				t.Error("native request changed")
+			}
 			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(map[string]any{"audio_url": server.URL + "/audio.mp3"})
+			_ = json.NewEncoder(w).Encode(map[string]any{"id": "original-song", "model": "VEGA_2", "duration": 33000, "music_file_path_mp3": server.URL + "/audio.mp3"})
 		case "/audio.mp3":
+			if r.Header.Get("API-KEY") != "" || r.Header.Get("Authorization") != "" {
+				t.Error("artifact credential leak")
+			}
 			w.Header().Set("Content-Type", "audio/mpeg")
 			_, _ = w.Write([]byte("loudly-audio"))
 		default:
@@ -175,11 +186,14 @@ func TestExecuteLoudlyMusicUsesAPIKeyHeader(t *testing.T) {
 	}))
 	defer func() { server.Close() }()
 
+	request := newMusicJobRequest("VEGA_2", "ad cue")
+	request.Spec.GetMusicGenerate().Title = ""
+	request.Spec.GetMusicGenerate().DurationSeconds = 30
 	artifacts, _, _, err := ExecuteLoudlyMusic(context.Background(), MediaAdapterConfig{
 		BaseURL:               server.URL,
 		AllowLoopbackEndpoint: true,
 		APIKey:                "loud-token",
-	}, newMusicJobRequest("loudly-vega-2", "ad cue"), "loudly/loudly-vega-2")
+	}, request, "VEGA_2")
 	if err != nil {
 		t.Fatalf("ExecuteLoudlyMusic failed: %v", err)
 	}

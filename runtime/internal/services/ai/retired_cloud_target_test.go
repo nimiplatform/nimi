@@ -121,6 +121,7 @@ func TestCommittedRetiredCloudMediaTargetsFailTypedWithoutDispatch(t *testing.T)
 		Options: &runtimev1.VideoGenerationOptions{DurationSec: testInt32(4)},
 	}}}
 	imageSpec := &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: &runtimev1.ImageGenerateScenarioSpec{Prompt: "A harbor at dawn."}}}
+	musicSpec := &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_MusicGenerate{MusicGenerate: &runtimev1.MusicGenerateScenarioSpec{Prompt: "A calm instrumental cue.", DurationSeconds: 30}}}
 	for _, tc := range []struct {
 		name         string
 		provider     string
@@ -132,6 +133,8 @@ func TestCommittedRetiredCloudMediaTargetsFailTypedWithoutDispatch(t *testing.T)
 		submitReason runtimev1.ReasonCode
 		activeListed bool
 	}{
+		{name: "loudly synthetic model", provider: "loudly", activeModel: "VEGA_2", retiredModel: "loudly-vega-2", capability: "music.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, spec: musicSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
+		{name: "loudly endpoint alias", provider: "loudly", activeModel: "VEGA_2", retiredModel: "prompt-songs", capability: "music.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, spec: musicSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
 		// OpenAI keeps no video row, so its Driver no longer implements video.generate.
 		{name: "openai sora-2", provider: "openai", activeModel: "gpt-image-1.5", retiredModel: "sora-2", capability: "video.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, spec: videoSpec, submitReason: runtimev1.ReasonCode_AI_CONFIG_INVALID, activeListed: false},
 		{name: "gemini image preview", provider: "gemini", activeModel: "gemini-3.1-flash-image", retiredModel: "gemini-3.1-flash-image-preview", capability: "image.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, spec: imageSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},

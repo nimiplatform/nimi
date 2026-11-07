@@ -301,7 +301,10 @@ func (s *Service) runNativeObservation(ctx context.Context, jobID string, versio
 	if err == nil {
 		err = s.commitScenarioAsyncJobResult(context.WithValue(ctx, preparedScenarioBodiesKey{}, jobID), jobID, effective, result)
 	}
-
+	if isInvalidCloudMusicOutput(err) {
+		s.finishScenarioAsyncJobFailure(ctx, jobID, effective, err)
+		return
+	}
 	s.setNativeObservationIssue(jobID, version, err)
 }
 

@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"mime/multipart"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -146,67 +145,6 @@ func ExecuteMubertMusic(
 	artifact := musicArtifactsFromBody(AdapterMubertMusic, &JSONOrBinaryBody{MIME: "audio/mpeg"}, spec, extensions, "")[0]
 	_, err := publishNativeTask(ctx, &NativeTaskReceipt{Version: 1, Adapter: AdapterMubertMusic, TaskID: trackID, QueryPathTemplate: "/public/tracks/{task_id}", Artifact: artifact})
 	return nil, nil, trackID, err
-}
-
-func ExecuteLoudlyMusic(
-	ctx context.Context,
-	cfg MediaAdapterConfig,
-	req *runtimev1.SubmitScenarioJobRequest,
-	modelResolved string,
-) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
-	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
-	if scenarioModal(req) != runtimev1.Modal_MODAL_MUSIC {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
-	}
-	spec := scenarioMusicSpec(req)
-	if spec == nil {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
-	extensions := ScenarioExtensionPayloadForType(req.GetScenarioType(), req.GetExtensions())
-	if _, err := validateMusicAdapterInput(ctx, spec, extensions, false); err != nil {
-		return nil, nil, "", err
-	}
-
-	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
-	if baseURL == "" {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-	}
-	headers := cloneHeaderMap(cfg.Headers)
-	if headers == nil {
-		headers = map[string]string{}
-	}
-	if strings.TrimSpace(cfg.APIKey) != "" {
-		headers["API-KEY"] = strings.TrimSpace(cfg.APIKey)
-	}
-	backend := NewBackend("cloud-loudly", baseURL, "", 5*time.Minute)
-	body, err := doMultipartMusicRequest(
-		ctx,
-		backend,
-		JoinURL(baseURL, "/api/ai/prompt/songs"),
-		headers,
-		func(writer *multipart.Writer) error {
-			if err := writer.WriteField("prompt", strings.TrimSpace(spec.GetPrompt())); err != nil {
-				return err
-			}
-			if spec.GetDurationSeconds() > 0 {
-				if err := writer.WriteField("duration", strconv.FormatInt(int64(spec.GetDurationSeconds()), 10)); err != nil {
-					return err
-				}
-			}
-			model := strings.TrimSpace(modelResolved)
-			if model == "" {
-				model = "VEGA_2"
-			}
-			if err := writer.WriteField("model", model); err != nil {
-				return err
-			}
-			return nil
-		},
-	)
-	if err != nil {
-		return nil, nil, "", err
-	}
-	return musicArtifactsFromBody(AdapterLoudlyMusic, body, spec, extensions, ""), nil, "", nil
 }
 
 func ExecuteLlamaMusic(

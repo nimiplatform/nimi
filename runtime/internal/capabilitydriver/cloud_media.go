@@ -803,6 +803,11 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 			return nil, err
 		}
 	}
+	if d.provider == "loudly" && target.capabilityContract == "music.generate" {
+		if err := validateLoudlyMusicRequest(mapped, target.providerModelID); err != nil {
+			return nil, err
+		}
+	}
 	if d.provider == "openai" && target.capabilityContract == "image.generate" && openAIImageModelAdmitted(target.providerModelID) {
 		if err := validateOpenAIImageRequest(mapped, target.providerModelID); err != nil {
 			return nil, err

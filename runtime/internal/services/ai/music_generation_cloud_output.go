@@ -14,17 +14,31 @@ import (
 	"google.golang.org/grpc/codes"
 )
 
+// Only a definitive verdict on the complete owned mix is terminal. Codec or
+// storage availability and final journal failures keep their original candidate.
+type musicOutputValidationError struct{ cause error }
+
+func (e *musicOutputValidationError) Error() string { return e.cause.Error() }
+func (e *musicOutputValidationError) Unwrap() error { return e.cause }
+func invalidCloudMusicOutput(err error) error {
+	return &musicOutputValidationError{cause: grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{})}
+}
+func isInvalidCloudMusicOutput(err error) bool {
+	var invalid *musicOutputValidationError
+	return errors.As(err, &invalid)
+}
+
 func (s *Service) commitCloudMusicGeneration(ctx context.Context, jobID string, effective *cloudMediaEffectiveInputs, result capabilitydriver.CloudMediaResult) error {
 	defer capabilitydriver.CloseArtifactBodies(result.ArtifactBodies)
 	if len(result.Artifacts) != 1 {
-		return fmt.Errorf("music generation requires one provider mix")
+		return invalidCloudMusicOutput(fmt.Errorf("music generation requires one provider mix"))
 	}
 	artifact := result.Artifacts[0]
 	if artifact == nil {
-		return fmt.Errorf("provider music mix is missing")
+		return invalidCloudMusicOutput(fmt.Errorf("provider music mix is missing"))
 	}
 	if artifact.GetMimeType() != "audio/wav" && artifact.GetMimeType() != "audio/mpeg" && artifact.GetMimeType() != "audio/flac" {
-		return fmt.Errorf("provider music container is unsupported")
+		return invalidCloudMusicOutput(fmt.Errorf("provider music container is unsupported"))
 	}
 	store, ok := s.runtimeArtifacts.(runtimeartifact.JobBodyStore)
 	if !ok {
@@ -51,6 +65,9 @@ func (s *Service) commitCloudMusicGeneration(ctx context.Context, jobID string, 
 			if ctx.Err() == nil && errors.Is(err, audiomedia.ErrCodecUnavailable) {
 				return grpcerr.WrapWithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_MEDIA_CODEC_UNAVAILABLE, err, grpcerr.ReasonOptions{})
 			}
+			if ctx.Err() == nil && errors.Is(err, audiomedia.ErrInvalidAudio) {
+				return invalidCloudMusicOutput(err)
+			}
 			return err
 		}
 	}
@@ -64,7 +81,7 @@ func (s *Service) commitCloudMusicGeneration(ctx context.Context, jobID string, 
 		return err
 	}
 	if err := validateCloudMusicMeasuredDuration(effective.mapped.Adapter(), effective.request.GetSpec().GetMusicGenerate().GetDurationSeconds(), wav.DurationMS); err != nil {
-		return err
+		return invalidCloudMusicOutput(err)
 	}
 	releaseMix()
 	releaseInput()
@@ -83,6 +100,10 @@ func (s *Service) commitCloudMusicGeneration(ctx context.Context, jobID string, 
 // @nimi-authority: rule.nimi.runtime.ai-provider.music-generation
 func validateCloudMusicMeasuredDuration(adapter string, budgetSeconds int32, durationMS int64) error {
 	switch adapter {
+	case capabilitydriver.CloudMediaAdapterLoudlyMusic:
+		if budgetSeconds < 30 || budgetSeconds > 420 || durationMS <= 0 || durationMS > int64(budgetSeconds)*1000 {
+			return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		}
 	case capabilitydriver.CloudMediaAdapterStabilityMusic:
 		if budgetSeconds < 1 || budgetSeconds > 380 || durationMS <= 0 || durationMS > int64(budgetSeconds)*1000 {
 			return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)

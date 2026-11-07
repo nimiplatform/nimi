@@ -245,7 +245,7 @@ func (s *Service) finishScenarioAsyncJobFailure(ctx context.Context, jobID strin
 	if existing, ok := s.scenarioJobs.get(jobID); ok && isTerminalScenarioJobStatus(existing.GetStatus()) {
 		return
 	}
-	if s.scenarioJobs.hasResultCandidate(jobID) || s.scenarioJobs.currentNativeResult(jobID) != nil {
+	if (s.scenarioJobs.hasResultCandidate(jobID) || s.scenarioJobs.currentNativeResult(jobID) != nil) && !isInvalidCloudMusicOutput(err) {
 		s.setNativeObservationIssue(jobID, 0, err)
 		return
 	}
