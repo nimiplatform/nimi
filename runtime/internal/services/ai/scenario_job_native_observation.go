@@ -182,6 +182,12 @@ func (s *Service) runNativeObservation(ctx context.Context, jobID string, versio
 	previousResult := response
 	receipt := s.scenarioJobs.originalNativeReceipt(jobID)
 	refresh := receipt != nil && (response == nil || !s.nativeBodiesComplete(jobID, response))
+	// Soundverse completed results carry stable Library file IDs, not expiring
+	// download URLs. Renew the authorized URL from that captured file on body
+	// acquisition; another status response must not substitute a different file.
+	if receipt != nil && receipt.Adapter == nimillm.AdapterSoundverseMusic && response != nil {
+		refresh = false
+	}
 	if receipt == nil && response == nil {
 		s.setNativeObservationIssue(jobID, version, fmt.Errorf("original result is unavailable"))
 		return

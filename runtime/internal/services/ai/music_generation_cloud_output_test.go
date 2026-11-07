@@ -46,7 +46,7 @@ func TestLyriaClipChecksMeasuredAudioAgainstCapturedBudget(t *testing.T) {
 			t.Fatalf("budget=%d duration=%d reason=%v present=%v err=%v", tc.budget, tc.duration, reason, ok, err)
 		}
 	}
-	if err := validateCloudMusicMeasuredDuration(capabilitydriver.CloudMediaAdapterSoundverseMusic, 30, 35001); err != nil {
+	if err := validateCloudMusicMeasuredDuration(capabilitydriver.CloudMediaAdapterSoundverseMusic, 600, 35001); err != nil {
 		t.Fatalf("unrelated provider inherited Lyria limit: %v", err)
 	}
 }

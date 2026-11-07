@@ -813,6 +813,11 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 			return nil, err
 		}
 	}
+	if d.provider == "soundverse" && target.capabilityContract == "music.generate" {
+		if err := validateSoundverseMusicRequest(mapped, target.providerModelID); err != nil {
+			return nil, err
+		}
+	}
 	if d.provider == "openai" && target.capabilityContract == "image.generate" && openAIImageModelAdmitted(target.providerModelID) {
 		if err := validateOpenAIImageRequest(mapped, target.providerModelID); err != nil {
 			return nil, err

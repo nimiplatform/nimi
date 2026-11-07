@@ -2252,3 +2252,17 @@ units:
         target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
       - type: applies_to
         target: definition.nimi.runtime.model-catalog.provider-metadata-plane
+  - id: rule.nimi.runtime.ai-provider.soundverse-current-music
+    kind: rule
+    title: Soundverse current music retains original tasks and private file custody
+    modality: must
+    statement: "The Soundverse built-in music.generate cohort admits exact v6 and v7 on the current apiv2 Enterprise service through its documented versioned asynchronous generation and status endpoints. This is one selected public provider protocol, not a Nimi compatibility layer: the old synchronous implementation and built-in v5 aliases are removed, no old-domain credentials, endpoint or committed AIConfig target are migrated, and there is no fallback to another API version or a guessed account tool_id. Instrumental intent selects the same captured version music operation; otherwise the song operation consumes prompt and optional lyrics. Requests use exactly one version, preserve original text up to1024 prompt and3000 lyric Unicode characters, and reject style, title, negative prompt, seed, score, audio/video reference and generated-score controls without an admitted mapping. The provider controls track length; omission captures a fixed Runtime upper output budget of600seconds, only that explicit budget is supported, and the complete decoded mix must fit it before publication without truncation or an invented ending claim. Creation retains the original201 job_id and queued state, and later bounded status observations must match that exact original id; no observation creates another generation. Completed output must identify exactly one Library file, not a public browser URL. Runtime keeps a private stable file-id locator and mints a fresh authorized file URL through the documented current /v1/files/{file_id}/url operation under current authorization and the captured credential; the returned file_id must match, the short-lived URL never receives provider credentials, and the complete body is measured and committed as one canonical PCM mix through the existing music owner. Provider blob_hash is not assumed to be Runtime SHA256, native billing tokens are not LLM token usage, and requested length or provider metadata never replaces measured audio facts. Output remains in the provider account Library under its default license and retention; no undocumented remote stop, deletion, refund or cessation of billing is claimed. New default endpoint metadata initializes only new connections and cannot redirect captured execution."
+    condition: Whenever current Soundverse music is described, admitted, submitted, observed, downloaded or published.
+    failure: Reject unsupported inputs before generation, preserve original task and file identity on incomplete observation or unavailable transport, fail invalid complete audio or output budget instead of publishing success, and never regenerate, substitute another result or fetch a private raw storage URL as a fallback.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.connector-plane
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.multimodal-provider-plane
+      - type: applies_to
+        target: definition.nimi.runtime.model-catalog.provider-metadata-plane

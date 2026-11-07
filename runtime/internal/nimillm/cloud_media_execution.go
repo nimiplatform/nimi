@@ -170,7 +170,7 @@ func (p *CloudProvider) ExecuteMediaAdapter(
 	case "stepfun_native_adapter":
 		artifacts, usage, providerJobID, err = ExecuteStepFunMedia(ctx, cfg, request, modelID)
 	case "soundverse_music_adapter":
-		artifacts, usage, providerJobID, err = ExecuteSoundverseMusic(ctx, cfg, request, modelID)
+		artifacts, usage, providerJobID, err = ExecuteSoundverseMusic(ctx, cfg, request, modelID, privateJobID)
 	case "mubert_music_adapter":
 		artifacts, usage, providerJobID, err = ExecuteMubertMusic(ctx, cfg, request, modelID)
 	case "loudly_music_adapter":

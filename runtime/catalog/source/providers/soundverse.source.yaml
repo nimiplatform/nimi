@@ -1,13 +1,13 @@
 schema_version: 3
 provider: soundverse
-catalog_version: 2026-04-18-soundverse-v2
+catalog_version: 2026-11-07-soundverse-current-music
 generated_target: runtime/catalog/providers/soundverse.yaml
 runtime:
   inventory_mode: static_source
   runtime_plane: remote
   managed_connector_supported: true
   inline_supported: true
-  default_endpoint: https://api.soundverse.ai
+  default_endpoint: https://apiv2.soundverse.ai
   requires_explicit_endpoint: false
 defaults:
   provider: soundverse
@@ -18,49 +18,69 @@ defaults:
     input: unknown
     output: unknown
     currency: USD
-    as_of: 2026-04-18
-    notes: Soundverse API pricing is plan- and license-tier based rather than a stable per-request public meter. Current public API plans are Starter $99/month, Growth $599/month, and Scale $5,999/month, with pay-as-you-go purchase options also documented.
-
+    as_of: 2026-11-07
+    notes: Current Enterprise apiv2 prices vary by song/instrumental operation, version and license tier. The native default license is retained; no flat per-model rate or account permission is inferred.
 sources:
-  - source_id: soundverse_api_docs
+  - source_id: soundverse_endpoint_migration
     url: https://help.soundverse.ai/api_documentation
-    retrieved_at: 2026-04-18
-    note: Soundverse enterprise API overview and endpoint index.
-  - source_id: soundverse_api_page
-    url: https://www.soundverse.ai/ai-music-generation-api
-    retrieved_at: 2026-04-18
-    note: Soundverse API overview and pricing page.
-  - source_id: soundverse_song_v5_doc
-    url: https://help.soundverse.ai/enterprise-api/generate/ai-song-gen/ai-song-gen-v5
-    retrieved_at: 2026-04-18
-    note: Current Soundverse v5 song-generation API documentation.
-  - source_id: soundverse_v5_product
-    url: https://www.soundverse.ai/meet-v5
-    retrieved_at: 2026-04-18
-    note: Soundverse v5 product page describing the current flagship music-generation line.
-  - source_id: soundverse_api_pricing
-    url: https://www.soundverse.ai/ai-music-generation-api
-    retrieved_at: 2026-04-18
-    note: Soundverse API pricing page with Starter, Growth, Scale, and pay-as-you-go positioning.
-  - source_id: soundverse_api_faq
-    url: https://help.soundverse.ai/enterprise-api/faqs
-    retrieved_at: 2026-04-18
-    note: Soundverse enterprise API FAQ covering licensing, versioning, and plan semantics.
-
+    retrieved_at: 2026-11-07
+    note: New apiv2 domain and self-serve keys are separate from legacy api domain credentials.
+  - source_id: soundverse_current_api
+    url: https://platform.soundverse.ai/docs
+    retrieved_at: 2026-11-07
+    note: Current async generations, account balance and Library-owned output assets.
+  - source_id: soundverse_versioned_api
+    url: https://platform.soundverse.ai/docs/compat-routes
+    retrieved_at: 2026-11-07
+    note: Current versioned create/status contracts; no sync variant. Nimi uses this one reviewed public protocol without a legacy bridge or fallback.
+  - source_id: soundverse_current_song
+    url: https://platform.soundverse.ai/docs/song-generation
+    retrieved_at: 2026-11-07
+    note: Song versions5/6/7, bounded prompt/lyrics and explicit versions count.
+  - source_id: soundverse_current_music
+    url: https://platform.soundverse.ai/docs/music-generation
+    retrieved_at: 2026-11-07
+    note: Instrumental generation versions5/6/7, prompt and versions count; no numeric duration control.
+  - source_id: soundverse_file_urls
+    url: https://platform.soundverse.ai/docs/agent-one
+    retrieved_at: 2026-11-07
+    note: The file-id /url endpoint returns file_id, authorized short-lived URL, MIME and expiry. It applies to direct tool outputs as well as Agent One.
 models:
-  - model_id: soundverse-song-v5
+  - model_id: v6
     model_type: music
-    updated_at: 2026-04-18
-    capabilities: [music.generate]
+    updated_at: 2026-11-07
+    capabilities:
+      - music.generate
     pricing:
       unit: request
       input: unknown
       output: unknown
       currency: USD
-      as_of: 2026-04-18
-      notes: Soundverse v5 song generation is sold through plan-tier API usage budgets and license tiers rather than a stable per-request public list price.
-    source_ids: [soundverse_api_docs, soundverse_song_v5_doc, soundverse_v5_product, soundverse_api_pricing, soundverse_api_faq]
-    aliases:
-      - soundverse-v5-song
-      - generate-song-sync
-      - v5
+      as_of: 2026-11-07
+      notes: One current-version song or instrumental mix. Runtime enforces a fixed600-second decoded-output ceiling; the provider controls actual track length. Account Library retention and native default license remain provider-owned.
+    source_ids:
+      - soundverse_endpoint_migration
+      - soundverse_current_api
+      - soundverse_versioned_api
+      - soundverse_current_song
+      - soundverse_current_music
+      - soundverse_file_urls
+  - model_id: v7
+    model_type: music
+    updated_at: 2026-11-07
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: One current-version song or instrumental mix. Runtime enforces a fixed600-second decoded-output ceiling; the provider controls actual track length. Account Library retention and native default license remain provider-owned.
+    source_ids:
+      - soundverse_endpoint_migration
+      - soundverse_current_api
+      - soundverse_versioned_api
+      - soundverse_current_song
+      - soundverse_current_music
+      - soundverse_file_urls

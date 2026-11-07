@@ -7,7 +7,6 @@ import (
 	"mime/multipart"
 	"net/http"
 	"strings"
-	"time"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -24,60 +23,6 @@ const (
 	AdapterLlamaMusic      = "llama_music_adapter"
 	AdapterSidecarMusic    = "sidecar_music_adapter"
 )
-
-func ExecuteSoundverseMusic(
-	ctx context.Context,
-	cfg MediaAdapterConfig,
-	req *runtimev1.SubmitScenarioJobRequest,
-	modelResolved string,
-) ([]*runtimev1.ScenarioArtifact, *runtimev1.UsageStats, string, error) {
-	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
-	if scenarioModal(req) != runtimev1.Modal_MODAL_MUSIC {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
-	}
-	spec := scenarioMusicSpec(req)
-	if spec == nil {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-	}
-	extensions := ScenarioExtensionPayloadForType(req.GetScenarioType(), req.GetExtensions())
-	if _, err := validateMusicAdapterInput(ctx, spec, extensions, false); err != nil {
-		return nil, nil, "", err
-	}
-
-	baseURL := strings.TrimSuffix(strings.TrimSpace(cfg.BaseURL), "/")
-	if baseURL == "" {
-		return nil, nil, "", grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_AI_PROVIDER_UNAVAILABLE)
-	}
-	payload := map[string]any{
-		"prompt": strings.TrimSpace(spec.GetPrompt()),
-	}
-	if lyrics := strings.TrimSpace(spec.GetLyrics()); lyrics != "" {
-		payload["lyrics"] = lyrics
-	}
-	if title := strings.TrimSpace(spec.GetTitle()); title != "" {
-		payload["song_name"] = title
-	}
-	if spec.GetDurationSeconds() > 0 {
-		payload["duration"] = spec.GetDurationSeconds()
-	}
-	if spec.GetInstrumental() {
-		payload["instrumental"] = true
-	}
-	if style := strings.TrimSpace(spec.GetStyle()); style != "" {
-		payload["style_prompt"] = style
-	}
-
-	backend := NewBackend("cloud-soundverse", baseURL, strings.TrimSpace(cfg.APIKey), 5*time.Minute)
-	response := map[string]any{}
-	if err := doJSONRequestWithBackendAndHeaders(ctx, backend, http.MethodPost, JoinURL(baseURL, "/v5/generate/song/sync"), payload, &response, cfg.Headers); err != nil {
-		return nil, nil, "", err
-	}
-	body, err := bodyFromMusicResponse(ctx, backend, response)
-	if err != nil {
-		return nil, nil, "", err
-	}
-	return musicArtifactsFromBody(AdapterSoundverseMusic, body, spec, extensions, ""), nil, "", nil
-}
 
 func ExecuteLlamaMusic(
 	ctx context.Context,

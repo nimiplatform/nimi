@@ -48,6 +48,8 @@ func MediaUsesNativeTask(adapter string, request *runtimev1.SubmitScenarioJobReq
 		return modal == runtimev1.Modal_MODAL_IMAGE || modal == runtimev1.Modal_MODAL_VIDEO && model == "flux-3-video"
 	case AdapterMubertMusic:
 		return modal == runtimev1.Modal_MODAL_MUSIC
+	case AdapterSoundverseMusic:
+		return modal == runtimev1.Modal_MODAL_MUSIC && capabilitydriver.IsSoundverseMusicModel(model)
 	case AdapterStabilityMusic:
 		return modal == runtimev1.Modal_MODAL_MUSIC && model == "stable-audio-3"
 	case AdapterWorldLabsNative, AdapterSpaitialNative:

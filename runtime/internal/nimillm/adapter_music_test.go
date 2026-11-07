@@ -14,41 +14,6 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
-func TestExecuteSoundverseMusicPromptOnly(t *testing.T) {
-	var server *httptest.Server
-	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/v5/generate/song/sync":
-			payload := decodeMusicJSONBody(t, r)
-			if got := strings.TrimSpace(ValueAsString(payload["prompt"])); got != "anthemic cue" {
-				t.Fatalf("unexpected prompt payload: %q", got)
-			}
-			w.Header().Set("Content-Type", "application/json")
-			_ = json.NewEncoder(w).Encode(map[string]any{
-				"audio_url": server.URL + "/audio.mp3",
-			})
-		case "/audio.mp3":
-			w.Header().Set("Content-Type", "audio/mpeg")
-			_, _ = w.Write([]byte("soundverse-audio"))
-		default:
-			http.NotFound(w, r)
-		}
-	}))
-	defer func() { server.Close() }()
-
-	artifacts, _, _, err := ExecuteSoundverseMusic(context.Background(), MediaAdapterConfig{
-		BaseURL:               server.URL,
-		AllowLoopbackEndpoint: true,
-		APIKey:                "token",
-	}, newMusicJobRequest("soundverse-song-v5", "anthemic cue"), "soundverse/soundverse-song-v5")
-	if err != nil {
-		t.Fatalf("ExecuteSoundverseMusic failed: %v", err)
-	}
-	if len(artifacts) != 1 || string(artifacts[0].GetBytes()) != "soundverse-audio" {
-		t.Fatalf("unexpected artifacts: %#v", artifacts)
-	}
-}
-
 func TestExecuteMubertMusicUsesHeadersForSeparateCreateQueryAndBody(t *testing.T) {
 	postSeen := false
 	getSeen := false

@@ -100,6 +100,9 @@ func requireNativeTaskPublisher(ctx context.Context) error {
 }
 
 func ValidateNativeTaskReceipt(r *NativeTaskReceipt) error {
+	if r != nil && r.Adapter == AdapterSoundverseMusic && (!validSoundverseID(r.TaskID) || !capabilitydriver.IsSoundverseMusicModel(r.Model) || r.QueryPathTemplate != soundverseQueryPath(r.Model) || r.Artifact == nil || r.Artifact.GetMimeType() != "application/octet-stream") {
+		return fmt.Errorf("invalid original Soundverse task identity")
+	}
 	if r != nil && r.Adapter == AdapterMubertMusic {
 		if !validMubertID(r.TaskID) || !validMubertID(r.MubertGenerationID) || r.Model != capabilitydriver.MubertTrackModel || r.Artifact == nil || r.Artifact.GetMimeType() != "audio/mpeg" {
 			return fmt.Errorf("invalid original Mubert track/generation identity")
@@ -191,6 +194,8 @@ func ValidateNativeTaskReceipt(r *NativeTaskReceipt) error {
 // URL supplied by a provider response or a recovered row.
 func nativeTaskQueryPathAllowed(adapter, path string) bool {
 	switch adapter {
+	case AdapterSoundverseMusic:
+		return path == soundverseQueryPath("v6") || path == soundverseQueryPath("v7")
 	case AdapterOpenRouterVideo:
 		return path == openRouterVideoQueryPath
 	case AdapterTogetherVideo:
@@ -268,6 +273,9 @@ func ObserveNativeTask(ctx context.Context, cfg MediaAdapterConfig, r *NativeTas
 	}
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
 	ctx = originalControlRequest(ctx)
+	if r.Adapter == AdapterSoundverseMusic {
+		return observeSoundverseMusic(ctx, cfg, r)
+	}
 	if r.Adapter == AdapterMubertMusic {
 		return observeMubertTrack(ctx, cfg, r)
 	}
@@ -449,6 +457,9 @@ func OpenNativeTaskArtifacts(ctx context.Context, cfg MediaAdapterConfig, receip
 	}
 	artifacts := observation.Artifacts
 	ctx = mediaAdapterEndpointPolicyContext(ctx, cfg)
+	if receipt.Adapter == AdapterSoundverseMusic {
+		return openSoundverseMusic(ctx, cfg, receipt, observation)
+	}
 	if receipt.Adapter == AdapterOpenRouterVideo {
 		if len(artifacts) != 1 || artifacts[0].GetArtifactId() != receipt.Artifact.GetArtifactId() {
 			return nil, openRouterOutputError()

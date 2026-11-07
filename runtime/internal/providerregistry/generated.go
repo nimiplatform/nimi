@@ -1254,7 +1254,7 @@ var Records = map[string]ProviderRecord{
 		RuntimePlane:                  "remote",
 		ManagedConnectorSupported:     true,
 		InlineSupported:               true,
-		DefaultEndpoint:               "https://api.soundverse.ai",
+		DefaultEndpoint:               "https://apiv2.soundverse.ai",
 		DefaultTextModel:              "",
 		RequiresExplicitEndpoint:      false,
 		InventoryMode:                 "static_source",

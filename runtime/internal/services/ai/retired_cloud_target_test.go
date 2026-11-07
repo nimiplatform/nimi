@@ -133,6 +133,7 @@ func TestCommittedRetiredCloudMediaTargetsFailTypedWithoutDispatch(t *testing.T)
 		submitReason runtimev1.ReasonCode
 		activeListed bool
 	}{
+		{name: "soundverse old sync target", provider: "soundverse", activeModel: "v7", retiredModel: "soundverse-song-v5", capability: "music.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, spec: musicSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
 		{name: "mubert endpoint alias", provider: "mubert", activeModel: "mubert-track-v3", retiredModel: "public-tracks", capability: "music.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, spec: musicSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
 		{name: "mubert unversioned alias", provider: "mubert", activeModel: "mubert-track-v3", retiredModel: "mubert-track", capability: "music.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, spec: musicSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
 		{name: "loudly synthetic model", provider: "loudly", activeModel: "VEGA_2", retiredModel: "loudly-vega-2", capability: "music.generate", scenarioType: runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE, spec: musicSpec, submitReason: runtimev1.ReasonCode_AI_REMOTE_MODEL_CATALOG_STALE, activeListed: true},
