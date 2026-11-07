@@ -63,7 +63,7 @@ func TestLoudlyProtectedMusicOwnsMeasuredMixAndRejectsInvalidOutput(t *testing.T
 				t.Error(err)
 				return
 			}
-			defer r.MultipartForm.RemoveAll()
+			defer func(cleanup func() error) { _ = cleanup() }(r.MultipartForm.RemoveAll)
 			if r.FormValue("model") != "VEGA_2" || r.FormValue("prompt") != "A calm instrumental cue." || r.FormValue("duration") != "30" || r.FormValue("test") != "" || len(r.MultipartForm.Value) != 3 {
 				t.Error("native mapping or dummy mode", r.MultipartForm.Value)
 			}

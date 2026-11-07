@@ -80,7 +80,7 @@ func TestKlingProtectedMediaOriginalTasks(t *testing.T) {
 						t.Error("invalid request")
 						return
 					}
-					data := map[string]any{}
+					var data map[string]any
 					if imageModel {
 						path := "/proxy/anthropic/v1/images/generations"
 						if tc.model == "kling-v3-omni" {

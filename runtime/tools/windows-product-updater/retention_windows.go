@@ -94,7 +94,7 @@ func runningProductVersions(root string) (map[string]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer windows.CloseHandle(snapshot)
+	defer func() { _ = windows.CloseHandle(snapshot) }()
 	entry := windows.ProcessEntry32{Size: uint32(unsafe.Sizeof(windows.ProcessEntry32{}))}
 	for err = windows.Process32First(snapshot, &entry); err == nil; err = windows.Process32Next(snapshot, &entry) {
 		name := strings.ToLower(windows.UTF16ToString(entry.ExeFile[:]))
@@ -177,7 +177,7 @@ func requestProductCleanup(file string) error {
 	if err != nil {
 		return err
 	}
-	defer locked.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(locked.Close)
 	if input.CurrentVersion != identity.Version {
 		return fmt.Errorf("UPDATE_RETENTION_PREVIEW_CHANGED")
 	}
@@ -189,7 +189,7 @@ func requestProductCleanup(file string) error {
 	if err != nil {
 		return err
 	}
-	defer windows.CloseHandle(parent)
+	defer func() { _ = windows.CloseHandle(parent) }()
 	parentImage, err := processPath(parent)
 	if err != nil || !strings.EqualFold(parentImage, filepath.Join(root, "Nimi.exe")) {
 		return fmt.Errorf("UPDATE_CALLER_UNTRUSTED")
@@ -198,7 +198,7 @@ func requestProductCleanup(file string) error {
 	if err := windows.OpenProcessToken(parent, windows.TOKEN_QUERY, &token); err != nil {
 		return err
 	}
-	defer token.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(token.Close)
 	parentUser, err := token.GetTokenUser()
 	if err != nil || parentUser.User.Sid.String() != userSID || token.IsElevated() {
 		return fmt.Errorf("UPDATE_USER_CONTEXT_INVALID")
@@ -207,7 +207,7 @@ func requestProductCleanup(file string) error {
 	if err != nil {
 		return err
 	}
-	defer parentFile.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(parentFile.Close)
 	digest, err := hashLocked(parentFile)
 	if err != nil || digest != identity.Files["Nimi.exe"] {
 		return fmt.Errorf("UPDATE_CALLER_UNTRUSTED")
@@ -272,12 +272,12 @@ func withRetentionMutex(mutexName string, operation func() error) error {
 	if mutex == 0 || (err != nil && err != windows.ERROR_ALREADY_EXISTS) {
 		return fmt.Errorf("UPDATE_HANDOFF_IN_PROGRESS")
 	}
-	defer windows.CloseHandle(mutex)
+	defer func() { _ = windows.CloseHandle(mutex) }()
 	owned, err := windows.WaitForSingleObject(mutex, 0)
 	if err != nil || (owned != windows.WAIT_OBJECT_0 && owned != windows.WAIT_ABANDONED) {
 		return fmt.Errorf("UPDATE_HANDOFF_IN_PROGRESS")
 	}
-	defer windows.ReleaseMutex(mutex)
+	defer func() { _ = windows.ReleaseMutex(mutex) }()
 	return operation()
 }
 
@@ -294,7 +294,7 @@ func executeProductCleanup(pipe, expectedHash string) error {
 	if err != nil {
 		return err
 	}
-	defer authorization.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(authorization.Close)
 	file := captured.JobPath
 	if !strings.EqualFold(filepath.Dir(filepath.Dir(file)), captured.CacheRoot) {
 		return fmt.Errorf("UPDATE_RETENTION_REQUEST_INVALID")
@@ -306,7 +306,7 @@ func executeProductCleanup(pipe, expectedHash string) error {
 	if err != nil {
 		return err
 	}
-	defer locked.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(locked.Close)
 	sum := sha256.Sum256(raw)
 	if hex.EncodeToString(sum[:]) != expectedHash || identity.Version != input.CurrentVersion {
 		return fmt.Errorf("UPDATE_RETENTION_PREVIEW_CHANGED")

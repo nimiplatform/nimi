@@ -82,7 +82,7 @@ func TestDeepseekFlashVisionLimitsAndRoleBoundary(t *testing.T) {
 			t.Fatal("non-user image admitted")
 		}
 	}
-	for _, location := range []string{"https://user:secret@example.com/a.png", "https://example.com/a#part", "http://example.com/a.png", "file:///a.png", "https://example.com/" + strings.Repeat("a", 8192), "data:image/png;base64,YWJj"} {
+	for _, location := range []string{"https://user:secret@example.com/a.png", "https://example.com/a#part", "http://example.com/a.png", "file:///a.png", "https://example.com/" + strings.Repeat("a", 8192), "data:image/png;base64,YWJj"} { // pragma: allowlist secret -- URL userinfo rejection fixture
 		if _, err := mustDeepseekBehavior(t, "deepseek-flash").Serialize(deepseekVisionSpec(location), false); err == nil {
 			t.Fatal("invalid source admitted")
 		}

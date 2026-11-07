@@ -32,7 +32,10 @@ func TestMistralStoredVoiceNativeCreateInspectDelete(t *testing.T) {
 				t.Errorf("create path %s", r.URL.Path)
 			}
 			var payload map[string]any
-			json.NewDecoder(r.Body).Decode(&payload)
+			if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+				t.Error(err)
+				return
+			}
 			decoded, err := base64.StdEncoding.DecodeString(ValueAsString(payload["sample_audio"]))
 			if err != nil || !bytes.Equal(decoded, audio) || payload["name"] != "Nimi fixture" || payload["sample_filename"] != "voice.wav" || payload["retention_notice"] != nil || payload["model"] != nil || payload["voice"] != nil {
 				t.Errorf("native create payload fields invalid")
@@ -50,7 +53,10 @@ func TestMistralStoredVoiceNativeCreateInspectDelete(t *testing.T) {
 			}
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(mistralTestVoiceResult())
+		if err := json.NewEncoder(w).Encode(mistralTestVoiceResult()); err != nil {
+			t.Error(err)
+			return
+		}
 	}))
 	defer server.Close()
 	cfg := MediaAdapterConfig{BaseURL: server.URL + "/gateway/v1", APIKey: "fixture", AllowLoopbackEndpoint: true}
@@ -92,7 +98,10 @@ func TestMistralVoiceDeleteRequiresOriginalResourceReceipt(t *testing.T) {
 					payload["type"] = "preset"
 				}
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(payload)
+				if err := json.NewEncoder(w).Encode(payload); err != nil {
+					t.Error(err)
+					return
+				}
 			}))
 			defer server.Close()
 			cfg := MediaAdapterConfig{BaseURL: server.URL, APIKey: "fixture", AllowLoopbackEndpoint: true}

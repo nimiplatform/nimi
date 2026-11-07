@@ -98,7 +98,7 @@ func ExecuteRunwayTask(ctx context.Context, cfg MediaAdapterConfig, _ JobStateUp
 	if err != nil {
 		return nil, nil, "", err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var out struct {
 		ID string `json:"id"`
 	}
@@ -122,7 +122,7 @@ func observeRunwayTask(ctx context.Context, cfg MediaAdapterConfig, r *NativeTas
 	if err != nil {
 		return nil, false, err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var out struct {
 		ID          string   `json:"id"`
 		Status      string   `json:"status"`
@@ -179,7 +179,7 @@ func cancelRunwayTask(ctx context.Context, id string, cfg MediaAdapterConfig) (P
 	if err != nil {
 		return ProviderTaskCleanupUnconfirmed, err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	if response.StatusCode == http.StatusNoContent || response.StatusCode == http.StatusNotFound {
 		return ProviderTaskCleanupUnconfirmed, nil
 	}

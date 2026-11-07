@@ -20,7 +20,7 @@ func TestLoudlyProbePreservesRootPrefixAndNativeAuth(t *testing.T) {
 				}
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(code)
-				fmt.Fprint(w, `{"id":"account","payg_credits":0,"subscription_credits":0}`)
+				_, _ = fmt.Fprint(w, `{"id":"account","payg_credits":0,"subscription_credits":0}`)
 			}))
 			defer server.Close()
 			p := &CloudProvider{allowLoopbackEndpoint: true}

@@ -50,7 +50,7 @@ func TestOpenAIImage26UsesItsReviewedImageAPIRules(t *testing.T) {
 			{Prompt: "boat", OutputFormat: "png", FrameCount: proto.Int32(3)},
 			{Prompt: "boat", MarkupArtifactId: "overlay"},
 			{Prompt: "boat", ReferenceImageArtifactId: "source", MaskArtifactId: "mask", MarkupArtifactId: "overlay"},
-			{Prompt: "boat", ReferenceImages: []string{"https://user:password@example.com/source.png"}},
+			{Prompt: "boat", ReferenceImages: []string{"https://user:password@example.com/source.png"}}, // pragma: allowlist secret -- URL userinfo rejection fixture
 		} {
 			r := openAIImageTestRequest(nil)
 			r.Spec.Spec = &runtimev1.ScenarioSpec_ImageGenerate{ImageGenerate: spec}

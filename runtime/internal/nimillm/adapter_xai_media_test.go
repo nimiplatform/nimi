@@ -34,7 +34,7 @@ func TestXAIImageDeferredJSONEditingAndCompleteOwnedFiles(t *testing.T) {
 						t.Error("provider credential forwarded to image URL")
 					}
 					w.Header().Set("Content-Type", "application/octet-stream")
-					w.Write(data)
+					_, _ = w.Write(data)
 					return
 				}
 				if r.Header.Get("Authorization") != "Bearer fixture" {
@@ -51,7 +51,10 @@ func TestXAIImageDeferredJSONEditingAndCompleteOwnedFiles(t *testing.T) {
 						t.Errorf("wrong native edit transport %s %s", r.URL.Path, r.Header.Get("Content-Type"))
 					}
 					var body map[string]any
-					json.NewDecoder(r.Body).Decode(&body)
+					if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+						t.Error(err)
+						return
+					}
 					if body["deferred"] != true || body["response_format"] != "url" || body["n"] != float64(2) || body["model"] != capabilitydriver.XAIImage2Model || body["resolution"] != "1k" || body["quality"] != "auto" || body["size"] != nil || body["output"] != nil || body["storage_options"] != nil {
 						t.Errorf("native image payload %+v", body)
 					}
@@ -61,7 +64,10 @@ func TestXAIImageDeferredJSONEditingAndCompleteOwnedFiles(t *testing.T) {
 					if mode == "multi-edit" && len(body["images"].([]any)) != 2 {
 						t.Error("ordered multi-reference edit lost")
 					}
-					json.NewEncoder(w).Encode(map[string]any{"request_id": "image_task_1"})
+					if err := json.NewEncoder(w).Encode(map[string]any{"request_id": "image_task_1"}); err != nil {
+						t.Error(err)
+						return
+					}
 					return
 				}
 				if r.URL.Path != "/gateway/v1/images/image_task_1" {
@@ -69,10 +75,16 @@ func TestXAIImageDeferredJSONEditingAndCompleteOwnedFiles(t *testing.T) {
 				}
 				if queries.Add(1) == 1 {
 					w.WriteHeader(202)
-					json.NewEncoder(w).Encode(map[string]any{"request_id": "image_task_1", "status": "pending"})
+					if err := json.NewEncoder(w).Encode(map[string]any{"request_id": "image_task_1", "status": "pending"}); err != nil {
+						t.Error(err)
+						return
+					}
 					return
 				}
-				json.NewEncoder(w).Encode(map[string]any{"request_id": "image_task_1", "status": "done", "data": []any{map[string]any{"url": endpoint + "/blob/1.png"}, map[string]any{"url": endpoint + "/blob/2.png"}}, "usage": map[string]any{"input_tokens": 2, "output_tokens": 5, "cost_in_usd_ticks": 800000000}})
+				if err := json.NewEncoder(w).Encode(map[string]any{"request_id": "image_task_1", "status": "done", "data": []any{map[string]any{"url": endpoint + "/blob/1.png"}, map[string]any{"url": endpoint + "/blob/2.png"}}, "usage": map[string]any{"input_tokens": 2, "output_tokens": 5, "cost_in_usd_ticks": 800000000}}); err != nil {
+					t.Error(err)
+					return
+				}
 			}))
 			defer server.Close()
 			endpoint = server.URL
@@ -111,7 +123,7 @@ func TestXAIImageDeferredJSONEditingAndCompleteOwnedFiles(t *testing.T) {
 			for _, artifact := range observed.Artifacts {
 				body := bodies[artifact.GetArtifactId()]
 				raw, err := io.ReadAll(body.Stream)
-				body.Stream.Close()
+				_ = body.Stream.Close()
 				if err != nil || !bytes.Equal(raw, data) || artifact.GetUri() != "" || artifact.GetMimeType() != "image/png" || artifact.GetWidth() != 64 || artifact.GetMetadata().GetFields()["provider_cost_in_usd_ticks"].GetStringValue() != "800000000" {
 					t.Fatalf("owned image facts %+v %v", artifact, err)
 				}
@@ -131,17 +143,26 @@ func TestXAIVideoNativeTaskUsesExactModelAndAudioSetting(t *testing.T) {
 				w.Header().Set("Content-Type", "application/json")
 				if r.Method == "POST" {
 					var body map[string]any
-					json.NewDecoder(r.Body).Decode(&body)
+					if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+						t.Error(err)
+						return
+					}
 					if r.URL.Path != "/v1/videos/generations" || body["model"] != model || body["generate_audio"] != false || body["duration"] != float64(8) || body["resolution"] != "720p" {
 						t.Errorf("video native payload %+v", body)
 					}
-					json.NewEncoder(w).Encode(map[string]any{"request_id": "video_task_1"})
+					if err := json.NewEncoder(w).Encode(map[string]any{"request_id": "video_task_1"}); err != nil {
+						t.Error(err)
+						return
+					}
 					return
 				}
 				if r.URL.Path != "/v1/videos/video_task_1" {
 					t.Error("wrong original query")
 				}
-				json.NewEncoder(w).Encode(map[string]any{"status": "done", "model": model, "video": map[string]any{"url": "https://media.example/video.mp4", "duration": 8, "respect_moderation": true}})
+				if err := json.NewEncoder(w).Encode(map[string]any{"status": "done", "model": model, "video": map[string]any{"url": "https://media.example/video.mp4", "duration": 8, "respect_moderation": true}}); err != nil {
+					t.Error(err)
+					return
+				}
 			}))
 			defer server.Close()
 			s := &runtimev1.VideoGenerateScenarioSpec{Prompt: "a boat", Mode: runtimev1.VideoMode_VIDEO_MODE_T2V, Options: &runtimev1.VideoGenerationOptions{DurationSec: proto.Int32(8), Resolution: "720p", GenerateAudio: proto.Bool(false)}}
@@ -178,7 +199,10 @@ func TestXAIMediaQueryRejectsInvalidOrFailedOriginalResults(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(tc.body)
+				if err := json.NewEncoder(w).Encode(tc.body); err != nil {
+					t.Error(err)
+					return
+				}
 			}))
 			defer server.Close()
 			query, mime := xaiVideoQueryPath, "video/mp4"
@@ -205,7 +229,7 @@ func TestXAIImageCustodyRejectsHTMLAndControlRedirectDoesNotFollow(t *testing.T)
 			return
 		}
 		w.Header().Set("Content-Type", "image/png")
-		fmt.Fprint(w, "<html>not an image</html>")
+		_, _ = fmt.Fprint(w, "<html>not an image</html>")
 	}))
 	defer server.Close()
 	cfg := MediaAdapterConfig{BaseURL: server.URL, APIKey: "fixture", AllowLoopbackEndpoint: true}

@@ -78,7 +78,7 @@ func TestXAIProtectedFiniteSpeechAndTranscription(t *testing.T) {
 				}
 				if fail.Load() {
 					w.WriteHeader(http.StatusUnauthorized)
-					fmt.Fprint(w, `{"error":"invalid key"}`)
+					_, _ = fmt.Fprint(w, `{"error":"invalid key"}`)
 					return
 				}
 				if tts {
@@ -139,10 +139,10 @@ func TestXAIProtectedFiniteSpeechAndTranscription(t *testing.T) {
 				}
 				w.Header().Set("Content-Type", "application/json")
 				if tc.silent {
-					fmt.Fprint(w, `{"text":"","language":"en","duration":0.30,"words":[]}`)
+					_, _ = fmt.Fprint(w, `{"text":"","language":"en","duration":0.30,"words":[]}`)
 					return
 				}
-				fmt.Fprint(w, `{"text":"Hello.","language":"en","duration":0.30,"words":[{"text":"Hello.","start":0.01,"end":0.2,"speaker":0}]}`)
+				_, _ = fmt.Fprint(w, `{"text":"Hello.","language":"en","duration":0.30,"words":[{"text":"Hello.","start":0.01,"end":0.2,"speaker":0}]}`)
 			}))
 			defer server.Close()
 			f := newManagedCloudScenarioTestFixture(t, "xai", tc.model, server.URL+"/proxy/v1", Config{AllowLoopbackEndpoint: true})

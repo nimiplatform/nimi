@@ -26,15 +26,18 @@ func TestMistralNativeSpeechStreamUsesFrozenAdapterThroughExecutionHost(t *testi
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var payload map[string]any
-		json.NewDecoder(r.Body).Decode(&payload)
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Error(err)
+			return
+		}
 		if r.URL.Path != "/v1/audio/speech" || r.Header.Get("Authorization") != "Bearer voice-fixture" || payload["voice_id"] != "voice_3142" || payload["voice"] != nil || payload["stream"] != true {
 			t.Errorf("host used a generic dialect: %+v", payload)
 		}
 		w.Header().Set("Content-Type", "text/event-stream")
 		for _, chunk := range [][]byte{audio[:30], audio[30:]} {
-			fmt.Fprintf(w, "data: {\"type\":\"speech.audio.delta\",\"audio_data\":\"%s\"}\n\n", base64.StdEncoding.EncodeToString(chunk))
+			_, _ = fmt.Fprintf(w, "data: {\"type\":\"speech.audio.delta\",\"audio_data\":\"%s\"}\n\n", base64.StdEncoding.EncodeToString(chunk))
 		}
-		fmt.Fprint(w, `data: {"type":"speech.audio.done","usage":{"prompt_tokens":1,"completion_tokens":2,"total_tokens":3}}`+"\n\n")
+		_, _ = fmt.Fprint(w, `data: {"type":"speech.audio.done","usage":{"prompt_tokens":1,"completion_tokens":2,"total_tokens":3}}`+"\n\n")
 	}))
 	defer server.Close()
 	store := connector.NewConnectorStoreWithMemorySecrets(t.TempDir())

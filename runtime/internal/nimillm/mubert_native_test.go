@@ -36,7 +36,7 @@ func TestMubertProbeUsesCustomerPlaylistRead(t *testing.T) {
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(status)
-		fmt.Fprint(w, `{"data":[]}`)
+		_, _ = fmt.Fprint(w, `{"data":[]}`)
 	}))
 	defer server.Close()
 	p := &CloudProvider{allowLoopbackEndpoint: true}
@@ -68,7 +68,7 @@ func TestMubertAcceptedButIncompleteCreateNeverInventsGeneration(t *testing.T) {
 					t.Error("unexpected follow-up request")
 				}
 				w.Header().Set("Content-Type", "application/json")
-				fmt.Fprint(w, body)
+				_, _ = fmt.Fprint(w, body)
 			}))
 			defer server.Close()
 			ctx := WithNativeTaskPublisher(context.Background(), func(*NativeTaskReceipt) error { published++; return nil })
@@ -101,7 +101,7 @@ func TestMubertOriginalGenerationReceiptAndObservation(t *testing.T) {
 			t.Error("wrong original query")
 		}
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, body)
+		_, _ = fmt.Fprint(w, body)
 	}))
 	defer server.Close()
 	cfg := MediaAdapterConfig{BaseURL: server.URL, APIKey: "customer::token", AllowLoopbackEndpoint: true}

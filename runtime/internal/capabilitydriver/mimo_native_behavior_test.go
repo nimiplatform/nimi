@@ -133,7 +133,7 @@ func TestMimoMediaPreservesMIMEAndOrderingAndBounds(t *testing.T) {
 	if len(parts) != 4 || parts[2].(map[string]any)["input_audio"].(map[string]any)["data"] != "data:audio/wav;base64,AQIDBA==" || parts[3].(map[string]any)["video_url"].(map[string]any)["url"] != "https://media.example/clip" {
 		t.Fatal("media changed")
 	}
-	for _, location := range []string{"data:audio/wav;base64," + strings.Repeat("A", 50_000_001), "data:audio/unknown;base64,AQIDBA==", "file:///private.wav", "http://media.example/a", "https://user:secret@media.example/a", "data:audio/wav;base64,!!"} {
+	for _, location := range []string{"data:audio/wav;base64," + strings.Repeat("A", 50_000_001), "data:audio/unknown;base64,AQIDBA==", "file:///private.wav", "http://media.example/a", "https://user:secret@media.example/a", "data:audio/wav;base64,!!"} { // pragma: allowlist secret -- URL userinfo rejection fixture
 		bad := proto.Clone(spec).(*runtimev1.TextGenerateScenarioSpec)
 		bad.Input[0].Parts[2].Content = &runtimev1.ChatContentPart_AudioUrl{AudioUrl: location}
 		if _, err := p.Serialize(bad, false); err == nil {

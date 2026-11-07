@@ -48,7 +48,7 @@ func ExecuteSiliconFlowImage(ctx context.Context, cfg MediaAdapterConfig, req *r
 	if err != nil {
 		return nil, nil, "", err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var out struct {
 		Images []struct {
 			URL string `json:"url"`
@@ -93,7 +93,7 @@ func ExecuteSiliconFlowSpeech(ctx context.Context, cfg MediaAdapterConfig, req *
 	if err != nil {
 		return nil, nil, "", err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	data, err := readLimitedResponseBody(response.Body, 32<<20)
 	if err != nil {
 		return nil, nil, "", err

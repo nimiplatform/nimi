@@ -46,7 +46,7 @@ func TestGroqWhisperUploadsOtherNativeContainersWithoutChangingBytes(t *testing.
 					w.WriteHeader(400)
 					return
 				}
-				defer upload.Close()
+				defer func(cleanup func() error) { _ = cleanup() }(upload.Close)
 				var received bytes.Buffer
 				_, _ = received.ReadFrom(upload)
 				if !bytes.Equal(received.Bytes(), audio) || header.Filename != "recording."+tc.extension {

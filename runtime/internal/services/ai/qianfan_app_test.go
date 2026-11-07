@@ -59,7 +59,7 @@ func TestQianfanProtectedTextToolsAndJSON(t *testing.T) {
 					return
 				}
 				w.Header().Set("Content-Type", "text/event-stream")
-				emit := func(v any) { data, _ := json.Marshal(v); fmt.Fprintf(w, "data: %s\n\n", data) }
+				emit := func(v any) { data, _ := json.Marshal(v); _, _ = fmt.Fprintf(w, "data: %s\n\n", data) }
 				emit(map[string]any{"model": "ernie-5.1", "choices": []any{map[string]any{"index": 0, "delta": map[string]any{"reasoning_content": "private raw thought"}}}})
 				delete(message, "reasoning_content")
 				if tc, ok := message["tool_calls"].([]any); ok {
@@ -69,7 +69,7 @@ func TestQianfanProtectedTextToolsAndJSON(t *testing.T) {
 				}
 				emit(map[string]any{"choices": []any{map[string]any{"index": 0, "delta": message, "finish_reason": finish}}})
 				emit(map[string]any{"choices": []any{}, "usage": usage})
-				fmt.Fprint(w, "data: [DONE]\n\n")
+				_, _ = fmt.Fprint(w, "data: [DONE]\n\n")
 			})
 			schema, _ := structpb.NewStruct(map[string]any{"type": "object", "properties": map[string]any{"city": map[string]any{"type": "string"}}, "required": []any{"city"}, "additionalProperties": false})
 			req := &runtimev1.StreamLocalAppTextTurnRequest{MaxTokens: proto.Int32(4096), Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "system", Text: "Keep source order."}, {Role: "user", Parts: []*runtimev1.ChatContentPart{{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Content: &runtimev1.ChatContentPart_Text{Text: "Use lookup."}}}}}, Tools: []*runtimev1.ToolSpec{{Kind: runtimev1.ToolSpecKind_TOOL_SPEC_KIND_FUNCTION, Name: "lookup", InputSchema: schema}}, ToolChoice: runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_TOOL, ToolChoiceName: "lookup"}

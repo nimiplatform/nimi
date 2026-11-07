@@ -34,7 +34,7 @@ func TestOpenRouterAuthenticatedContentNeverFollowsRedirect(t *testing.T) {
 func TestOpenRouterRejectedCreateIsNotAnUnknownSubmission(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
-		w.Write([]byte(`{"error":{"message":"invalid input"}}`))
+		_, _ = w.Write([]byte(`{"error":{"message":"invalid input"}}`))
 	}))
 	defer server.Close()
 	ctx := WithNativeTaskPublisher(context.Background(), func(*NativeTaskReceipt) error { t.Fatal("rejected create published a receipt"); return nil })

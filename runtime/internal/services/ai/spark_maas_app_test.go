@@ -29,7 +29,7 @@ func TestSparkMaaSProtectedChatAndStructuredProtocols(t *testing.T) {
 					if r.Header.Get("Authorization") != "Bearer test-key" || r.Header.Get("x-api-key") != "" || b["model"] != model || b["stream"] != stream || b["max_tokens"] != nil || b["store"] != nil || b["include"] != nil || b["stream_options"] != nil {
 						t.Errorf("wrong MaaS envelope %v", b)
 					}
-					emit := func(v any) { data, _ := json.Marshal(v); fmt.Fprintf(w, "data: %s\n\n", data) }
+					emit := func(v any) { data, _ := json.Marshal(v); _, _ = fmt.Fprintf(w, "data: %s\n\n", data) }
 					if calls == 3 || calls == 4 {
 						if r.URL.Path != "/proxy/anthropic/v1/responses" || b["max_output_tokens"] != float64(4096) || b["messages"] != nil || b["tools"] != nil || b["thinking"] != nil || b["reasoning"] != nil {
 							t.Errorf("wrong Responses request %s %v", r.URL.Path, b)
@@ -93,7 +93,7 @@ func TestSparkMaaSProtectedChatAndStructuredProtocols(t *testing.T) {
 					}
 					emit(map[string]any{"id": "chat-original", "model": model, "choices": []any{map[string]any{"index": 0, "delta": message, "finish_reason": finish}}})
 					emit(map[string]any{"choices": []any{}, "usage": usage})
-					fmt.Fprint(w, "data: [DONE]\n\n")
+					_, _ = fmt.Fprint(w, "data: [DONE]\n\n")
 				})
 				toolSchema, _ := structpb.NewStruct(map[string]any{"type": "object", "properties": map[string]any{"city": map[string]any{"type": "string"}}, "required": []any{"city"}, "additionalProperties": false})
 				req := &runtimev1.StreamLocalAppTextTurnRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "system", Text: "Keep source order."}, {Role: "user", Text: "Look up Beijing and Shanghai. Return JSON."}}, MaxTokens: proto.Int32(4096), Tools: []*runtimev1.ToolSpec{{Kind: runtimev1.ToolSpecKind_TOOL_SPEC_KIND_FUNCTION, Name: "lookup", Description: "Look up a city", InputSchema: toolSchema}}, ToolChoice: runtimev1.ToolChoiceMode_TOOL_CHOICE_MODE_REQUIRED, Reasoning: &runtimev1.ReasoningConfig{Activation: runtimev1.ReasoningActivation_REASONING_ACTIVATION_REQUIRED, Intensity: &runtimev1.ReasoningConfig_Effort{Effort: runtimev1.ReasoningEffort_REASONING_EFFORT_MODEL_DEFAULT}}}

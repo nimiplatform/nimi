@@ -60,7 +60,7 @@ func verifyCleanupPipePeer(connection net.Conn, serverSide, elevatedPeer bool, u
 	if err != nil {
 		return err
 	}
-	defer windows.CloseHandle(process)
+	defer func() { _ = windows.CloseHandle(process) }()
 	image, err := processPath(process)
 	if err != nil || !strings.EqualFold(image, filepath.Join(root, "NimiProductUpdater.exe")) {
 		return fmt.Errorf("UPDATE_RETENTION_AUTHORIZER_UNTRUSTED")
@@ -69,7 +69,7 @@ func verifyCleanupPipePeer(connection net.Conn, serverSide, elevatedPeer bool, u
 	if err := windows.OpenProcessToken(process, windows.TOKEN_QUERY, &token); err != nil {
 		return err
 	}
-	defer token.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(token.Close)
 	user, err := token.GetTokenUser()
 	if err != nil || (userSID != "" && user.User.Sid.String() != userSID) || token.IsElevated() != elevatedPeer {
 		return fmt.Errorf("UPDATE_RETENTION_AUTHORIZER_UNTRUSTED")
@@ -78,7 +78,7 @@ func verifyCleanupPipePeer(connection net.Conn, serverSide, elevatedPeer bool, u
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(file.Close)
 	digest, err := hashLocked(file)
 	if err != nil || digest != identity.Files["NimiProductUpdater.exe"] {
 		return fmt.Errorf("UPDATE_RETENTION_AUTHORIZER_UNTRUSTED")
@@ -167,12 +167,12 @@ func receiveCleanupAuthorization(pipe, requestHash string, identity productrelea
 	if err != nil {
 		return fail(err)
 	}
-	defer windows.CloseHandle(process)
+	defer func() { _ = windows.CloseHandle(process) }()
 	var token windows.Token
 	if err := windows.OpenProcessToken(process, windows.TOKEN_QUERY, &token); err != nil {
 		return fail(err)
 	}
-	defer token.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(token.Close)
 	user, err := token.GetTokenUser()
 	if err != nil {
 		return fail(err)

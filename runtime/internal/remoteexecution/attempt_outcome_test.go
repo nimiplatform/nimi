@@ -19,9 +19,9 @@ func TestFiniteOwnedResultCompletesOneAttemptWithModelComponents(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer backend.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(backend.Close)
 	owner := aitelemetry.Open(backend, logger)
-	defer owner.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(owner.Close)
 	from := time.Now().Add(-time.Second)
 	models := []*runtimev1.DesktopAIExecutionModel{{ProviderId: "openai", ModelId: "image", Role: "image-render"}, {ProviderId: "openai", ModelId: "author", Role: "svg-author"}}
 	ctx := aitelemetry.WithInvocation(context.Background(), owner, aitelemetry.Facts{AccountID: "account", OperationID: "job", Source: aitelemetry.Source{Kind: "app", ID: "app", ParentID: "job", ParentKind: "scenario-job"}, Capability: "image.generate", Models: models, Route: runtimev1.DesktopAIExecutionRoute_DESKTOP_AI_EXECUTION_ROUTE_CLOUD})

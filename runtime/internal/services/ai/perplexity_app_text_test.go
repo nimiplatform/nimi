@@ -28,7 +28,7 @@ func writePerplexityResponse(t *testing.T, w http.ResponseWriter, model string, 
 			t.Error(err)
 			return
 		}
-		fmt.Fprintf(w, "data: %s\n\n", data)
+		_, _ = fmt.Fprintf(w, "data: %s\n\n", data)
 	}
 	emit(map[string]any{"type": "response.created", "response": map[string]any{"id": "response-native", "model": model, "status": "in_progress"}})
 	emit(map[string]any{"type": "response.reasoning.started", "thought": "PRIVATE THOUGHT NEVER ANSWER"})

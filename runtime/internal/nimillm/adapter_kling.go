@@ -143,7 +143,7 @@ func ExecuteKlingTask(ctx context.Context, cfg MediaAdapterConfig, _ JobStateUpd
 	if err != nil {
 		return nil, nil, "", err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var out struct {
 		Code *int `json:"code"`
 		Data struct {
@@ -185,7 +185,7 @@ func observeKlingTask(ctx context.Context, cfg MediaAdapterConfig, r *NativeTask
 	if err != nil {
 		return nil, false, err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var urls []string
 	if capabilitydriver.IsKlingVideoModel(r.Model) {
 		var out struct {

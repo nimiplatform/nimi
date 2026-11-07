@@ -96,7 +96,7 @@ func (b *Backend) StreamMistralSpeech(ctx context.Context, model string, s *runt
 	if err != nil {
 		return fail(MapProviderRequestError(err))
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	if response.StatusCode != http.StatusOK {
 		_, err := providerHTTPErrorFromResponse(response, request.URL.String())
 		return fail(err)

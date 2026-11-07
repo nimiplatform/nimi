@@ -27,7 +27,7 @@ func TestSoundverseOriginalTaskAndFileURLCustody(t *testing.T) {
 							t.Error("credential leak")
 						}
 						w.Header().Set("Content-Type", "application/octet-stream")
-						fmt.Fprint(w, "fixture body")
+						_, _ = fmt.Fprint(w, "fixture body")
 						return
 					}
 					if r.Header.Get("Authorization") != "Bearer test-key" {
@@ -52,12 +52,12 @@ func TestSoundverseOriginalTaskAndFileURLCustody(t *testing.T) {
 							t.Error("lyrics changed")
 						}
 						w.WriteHeader(201)
-						fmt.Fprint(w, `{"job_id":"job-original","status":"queued"}`)
+						_, _ = fmt.Fprint(w, `{"job_id":"job-original","status":"queued"}`)
 					case "/proxy/v1/" + model + "/status":
 						if r.URL.Query().Get("job_id") != "job-original" {
 							t.Error("wrong original query")
 						}
-						fmt.Fprint(w, `{"job_id":"job-original","status":"completed","output":{"assets":[{"file_id":"file-original","blob_hash":"provider-hash-not-runtime-sha","url":"https://private.invalid/not-fetchable"}]}}`)
+						_, _ = fmt.Fprint(w, `{"job_id":"job-original","status":"completed","output":{"assets":[{"file_id":"file-original","blob_hash":"provider-hash-not-runtime-sha","url":"https://private.invalid/not-fetchable"}]}}`)
 					case "/proxy/v1/v1/files/file-original/url":
 						mints++
 						_ = json.NewEncoder(w).Encode(map[string]any{"file_id": "file-original", "url": endpoint + "/signed", "mime_type": "audio/mpeg", "expires_at": time.Now().Add(time.Minute).UTC().Format(time.RFC3339)})
@@ -112,7 +112,7 @@ func TestSoundverseIncompleteAndMismatchedObservationsNeverSubstitute(t *testing
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		calls++
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, body)
+		_, _ = fmt.Fprint(w, body)
 	}))
 	defer server.Close()
 	cfg := MediaAdapterConfig{BaseURL: server.URL, APIKey: "test-key", AllowLoopbackEndpoint: true}
@@ -143,7 +143,7 @@ func TestSoundverseNativeAccountCheckAndRejectedCreate(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(code)
-		fmt.Fprint(w, body)
+		_, _ = fmt.Fprint(w, body)
 	}))
 	defer server.Close()
 	p := &CloudProvider{allowLoopbackEndpoint: true}
@@ -178,7 +178,7 @@ func TestSoundverseFileMintFailsClosedWithoutFetchingUnownedContent(t *testing.T
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, req *http.Request) {
 		if req.URL.Path == "/signed" {
 			downloads++
-			fmt.Fprint(w, "unexpected")
+			_, _ = fmt.Fprint(w, "unexpected")
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")

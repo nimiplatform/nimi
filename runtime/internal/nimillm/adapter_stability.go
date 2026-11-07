@@ -70,7 +70,7 @@ func ExecuteStabilityImage(ctx context.Context, cfg MediaAdapterConfig, req *run
 	if err != nil {
 		return nil, nil, "", err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	seed, err := stabilityResultHeaders(response)
 	if err != nil {
 		return nil, nil, "", err

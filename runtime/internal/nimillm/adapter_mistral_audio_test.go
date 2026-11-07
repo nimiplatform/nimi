@@ -54,7 +54,7 @@ func TestMistralTranscriptionUsesNativeUploadAndActualSourceDiarization(t *testi
 							t.Error(err)
 							return
 						}
-						defer r.MultipartForm.RemoveAll()
+						defer func(cleanup func() error) { _ = cleanup() }(r.MultipartForm.RemoveAll)
 						if r.FormValue("model") != model || r.FormValue("stream") != "false" || r.FormValue("return_language") != "true" || r.FormValue("context_bias") != " Nimi\n名称。" || r.FormValue("prompt") != "" || r.FormValue("response_format") != "" {
 							t.Errorf("fields: %+v", r.MultipartForm.Value)
 						}
@@ -67,7 +67,7 @@ func TestMistralTranscriptionUsesNativeUploadAndActualSourceDiarization(t *testi
 							return
 						}
 						got, _ := io.ReadAll(f)
-						f.Close()
+						_ = f.Close()
 						if !bytes.Equal(got, audio) {
 							t.Error("original audio changed")
 						}
@@ -76,7 +76,10 @@ func TestMistralTranscriptionUsesNativeUploadAndActualSourceDiarization(t *testi
 							result["segments"] = []any{map[string]any{"type": "transcription_segment", "text": " Hello", "start": 0, "end": 0.05, "speaker_id": "speaker_0"}, map[string]any{"type": "transcription_segment", "text": " Nimi.", "start": 0.02, "end": 0.08, "speaker_id": "speaker_1"}}
 						}
 						w.Header().Set("Content-Type", "application/json")
-						json.NewEncoder(w).Encode(result)
+						if err := json.NewEncoder(w).Encode(result); err != nil {
+							t.Error(err)
+							return
+						}
 					}))
 					defer server.Close()
 					p, target := mistralAudioTestTarget(server.URL, model)
@@ -130,14 +133,17 @@ func TestMistralTranscriptionRejectsUnsupportedNativeResultsAndDoesNotGuessLangu
 					t.Error(err)
 					return
 				}
-				defer r.MultipartForm.RemoveAll()
+				defer func(cleanup func() error) { _ = cleanup() }(r.MultipartForm.RemoveAll)
 				if r.FormValue("language") != "zh" || r.FormValue("return_language") != "" {
 					t.Error("fixed language handling")
 				}
 				result := map[string]any{"model": model, "text": "hi", "language": nil, "usage": map[string]any{"prompt_tokens": 0, "completion_tokens": 0, "total_tokens": 0}, "segments": []any{map[string]any{"type": "transcription_segment", "text": "hi", "start": 0, "end": 0.08, "speaker_id": "speaker"}}}
 				tc.modify(result)
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(result)
+				if err := json.NewEncoder(w).Encode(result); err != nil {
+					t.Error(err)
+					return
+				}
 			}))
 			defer server.Close()
 			p, target := mistralAudioTestTarget(server.URL, model)
@@ -148,7 +154,10 @@ func TestMistralTranscriptionRejectsUnsupportedNativeResultsAndDoesNotGuessLangu
 			}
 			if err == nil {
 				var result runtimev1.SpeechTranscript
-				protojson.Unmarshal(artifacts[0].GetBytes(), &result)
+				if err := protojson.Unmarshal(artifacts[0].GetBytes(), &result); err != nil {
+					t.Error(err)
+					return
+				}
 				if result.GetLanguage() != "" {
 					t.Fatal("caller hint became detected language")
 				}
@@ -169,12 +178,18 @@ func TestMistralSpeechConsumesJSONAudioWithoutInventedUsage(t *testing.T) {
 			}
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				var body map[string]any
-				json.NewDecoder(r.Body).Decode(&body)
+				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+					t.Error(err)
+					return
+				}
 				if r.URL.Path != "/v1/audio/speech" || body["voice_id"] != "voice_3142" || body["voice"] != nil || body["input"] != " [happy]你好，Nimi！ " || body["response_format"] != format || body["stream"] != false || body["model"] != capabilitydriver.MistralVoxtralTTS3 {
 					t.Errorf("native request %+v", body)
 				}
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(map[string]any{"audio_data": base64.StdEncoding.EncodeToString(audio)})
+				if err := json.NewEncoder(w).Encode(map[string]any{"audio_data": base64.StdEncoding.EncodeToString(audio)}); err != nil {
+					t.Error(err)
+					return
+				}
 			}))
 			defer server.Close()
 			p, target := mistralAudioTestTarget(server.URL, capabilitydriver.MistralVoxtralTTS3)
@@ -191,7 +206,10 @@ func TestMistralSpeechNativeSSERequiresDoneAndPreservesFileChunks(t *testing.T) 
 		t.Run(mode, func(t *testing.T) {
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				var body map[string]any
-				json.NewDecoder(r.Body).Decode(&body)
+				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+					t.Error(err)
+					return
+				}
 				if body["stream"] != true || body["voice_id"] != "voice_3142" || r.Header.Get("Accept") != "text/event-stream" {
 					t.Errorf("SSE request %+v", body)
 				}
@@ -209,13 +227,13 @@ func TestMistralSpeechNativeSSERequiresDoneAndPreservesFileChunks(t *testing.T) 
 						eventType = "response.audio.delta"
 					}
 					raw, _ := json.Marshal(map[string]any{"type": eventType, "audio_data": encoded})
-					fmt.Fprintf(w, ": comment\nevent: %s\ndata: %s\n\n", eventType, raw)
+					_, _ = fmt.Fprintf(w, ": comment\nevent: %s\ndata: %s\n\n", eventType, raw)
 					if i == 0 {
 						w.(http.Flusher).Flush()
 					}
 				}
 				if mode != "missing-done" {
-					fmt.Fprint(w, `data: {"type":"speech.audio.done","usage":{"prompt_tokens":4,"completion_tokens":7,"total_tokens":11}}`+"\n\n")
+					_, _ = fmt.Fprint(w, `data: {"type":"speech.audio.done","usage":{"prompt_tokens":4,"completion_tokens":7,"total_tokens":11}}`+"\n\n")
 				}
 			}))
 			defer server.Close()
@@ -263,7 +281,7 @@ func TestMistralSpeechCancellationStopsProviderStream(t *testing.T) {
 	audio := testGeminiTTSWAV()
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/event-stream")
-		fmt.Fprintf(w, "data: {\"type\":\"speech.audio.delta\",\"audio_data\":\"%s\"}\n\n", base64.StdEncoding.EncodeToString(audio[:20]))
+		_, _ = fmt.Fprintf(w, "data: {\"type\":\"speech.audio.delta\",\"audio_data\":\"%s\"}\n\n", base64.StdEncoding.EncodeToString(audio[:20]))
 		w.(http.Flusher).Flush()
 		<-r.Context().Done()
 		close(stopped)

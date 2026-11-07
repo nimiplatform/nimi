@@ -85,7 +85,7 @@ func TestRetentionWindowsMutexExcludesOtherThreadAndReleases(t *testing.T) {
 	<-acquired
 	if err := withRetentionMutex(name, func() error { t.Error("overlapping mutex owner"); return nil }); err == nil {
 		close(finish)
-		<-result
+		_ = <-result
 		t.Fatal("busy mutex admitted")
 	}
 	close(finish)

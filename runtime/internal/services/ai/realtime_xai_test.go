@@ -90,7 +90,7 @@ func TestXAIVoice3ManagedSessionTransportAndLifecycle(t *testing.T) {
 			t.Error(err)
 			return
 		}
-		defer conn.Close()
+		defer func(cleanup func() error) { _ = cleanup() }(conn.Close)
 		defer close(closed)
 		send := func(raw string) {
 			if err := conn.WriteMessage(websocket.TextMessage, []byte(raw)); err != nil {
@@ -175,7 +175,7 @@ func TestXAIVoice3ManagedSessionTransportAndLifecycle(t *testing.T) {
 	}
 	id, generation := open.GetRealtimeSessionId(), open.GetControl().GetGeneration()
 	closeRequest := &runtimev1.CloseRealtimeSessionRequest{RealtimeSessionId: id, Generation: generation}
-	defer f.service.CloseRealtimeSession(context.WithoutCancel(f.context), closeRequest)
+	defer func() { _, _ = f.service.CloseRealtimeSession(context.WithoutCancel(f.context), closeRequest) }()
 	record, ok := f.service.realtimeSessions.get(id)
 	if !ok {
 		t.Fatal("session not retained")

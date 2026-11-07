@@ -55,7 +55,7 @@ func TestSoundverseProtectedOriginalSongAndInstrumentalMix(t *testing.T) {
 						}
 						w.Header().Set("Content-Type", "application/octet-stream")
 						if brokenAudio.Load() {
-							fmt.Fprint(w, "<html>invalid audio</html>")
+							_, _ = fmt.Fprint(w, "<html>invalid audio</html>")
 						} else {
 							_, _ = w.Write(audio)
 						}
@@ -84,13 +84,13 @@ func TestSoundverseProtectedOriginalSongAndInstrumentalMix(t *testing.T) {
 							t.Error("lyrics changed")
 						}
 						w.WriteHeader(201)
-						fmt.Fprint(w, `{"job_id":"original-job","status":"queued"}`)
+						_, _ = fmt.Fprint(w, `{"job_id":"original-job","status":"queued"}`)
 					case "/proxy/" + model + "/status":
 						queries.Add(1)
 						if r.URL.Query().Get("job_id") != "original-job" {
 							t.Error("wrong original job")
 						}
-						fmt.Fprint(w, `{"job_id":"original-job","status":"completed","output":{"assets":[{"file_id":"original-file","blob_hash":"not-a-sha256","url":"https://private.invalid/do-not-fetch"}]}}`)
+						_, _ = fmt.Fprint(w, `{"job_id":"original-job","status":"completed","output":{"assets":[{"file_id":"original-file","blob_hash":"not-a-sha256","url":"https://private.invalid/do-not-fetch"}]}}`)
 					case "/proxy/v1/files/original-file/url":
 						mints.Add(1)
 						fileID := "wrong-file"

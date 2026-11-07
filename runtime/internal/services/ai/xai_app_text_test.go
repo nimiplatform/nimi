@@ -22,7 +22,10 @@ func TestXAIProtectedTextUsesNativeResponsesAndOwnedImageToolRoundTrip(t *testin
 			f, decision := nativeReasoningAppFixture(t, "xai", capabilitydriver.XAIGrok47Model, func(w http.ResponseWriter, r *http.Request) {
 				calls++
 				var body map[string]any
-				json.NewDecoder(r.Body).Decode(&body)
+				if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+					t.Error(err)
+					return
+				}
 				if r.URL.Path != "/v1/responses" || body["model"] != capabilitydriver.XAIGrok47Model || body["stream"] != true || body["store"] != false || body["max_output_tokens"] != nil {
 					t.Errorf("wrong xAI transport: %s %+v", r.URL.Path, body)
 				}

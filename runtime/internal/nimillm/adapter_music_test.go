@@ -145,7 +145,7 @@ func TestExecuteLoudlyMusicUsesAPIKeyHeader(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			defer r.MultipartForm.RemoveAll()
+			defer func(cleanup func() error) { _ = cleanup() }(r.MultipartForm.RemoveAll)
 			if r.FormValue("model") != "VEGA_2" || r.FormValue("prompt") != "ad cue" || r.FormValue("duration") != "30" || r.FormValue("test") != "" || r.Header.Get("Authorization") != "" {
 				t.Error("native request changed")
 			}
@@ -260,7 +260,7 @@ func newMusicJobRequest(modelID string, prompt string) *runtimev1.SubmitScenario
 
 func decodeMusicJSONBody(t *testing.T, r *http.Request) map[string]any {
 	t.Helper()
-	defer func() { _ = r.Body.Close() }()
+	defer func(cleanup func() error) { _ = cleanup() }(r.Body.Close)
 	body := map[string]any{}
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		t.Fatalf("Decode body: %v", err)

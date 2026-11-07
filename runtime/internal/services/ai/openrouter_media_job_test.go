@@ -129,13 +129,16 @@ func TestOpenRouterFiniteMediaJobsUseNativeEndpointsAndOwnedResults(t *testing.T
 				switch r.URL.Path {
 				case "/prefix/openai/v1/images":
 					w.Header().Set("Content-Type", "application/json")
-					json.NewEncoder(w).Encode(map[string]any{"created": 1, "data": []any{map[string]any{"b64_json": base64.StdEncoding.EncodeToString(png), "media_type": "image/png"}}, "usage": map[string]any{"prompt_tokens": 3, "completion_tokens": 7, "total_tokens": 10}})
+					if err := json.NewEncoder(w).Encode(map[string]any{"created": 1, "data": []any{map[string]any{"b64_json": base64.StdEncoding.EncodeToString(png), "media_type": "image/png"}}, "usage": map[string]any{"prompt_tokens": 3, "completion_tokens": 7, "total_tokens": 10}}); err != nil {
+						t.Error(err)
+						return
+					}
 				case "/prefix/openai/v1/audio/speech":
 					if b["response_format"] != "mp3" || b["input"] != "  A short sentence.\n" || b["voice"] != "voice_478" {
 						t.Error("speech controls changed")
 					}
 					w.Header().Set("Content-Type", "audio/mpeg")
-					w.Write(mp3)
+					_, _ = w.Write(mp3)
 				case "/prefix/openai/v1/audio/transcriptions":
 					audio := b["input_audio"].(map[string]any)
 					if audio["data"] != base64.StdEncoding.EncodeToString(wav) || audio["format"] != "wav" || b["prompt"] != nil {
@@ -146,7 +149,10 @@ func TestOpenRouterFiniteMediaJobsUseNativeEndpointsAndOwnedResults(t *testing.T
 					if b["response_format"] != "json" || b["timestamp_granularities"] != nil {
 						t.Error("unsupported gateway timestamp request")
 					}
-					json.NewEncoder(w).Encode(out)
+					if err := json.NewEncoder(w).Encode(out); err != nil {
+						t.Error(err)
+						return
+					}
 				default:
 					t.Errorf("wrong endpoint %s", r.URL.Path)
 					w.WriteHeader(404)
@@ -218,20 +224,29 @@ func TestOpenRouterVideoJobReceivesAuthenticatedOriginalContent(t *testing.T) {
 		case "/api/v1/videos":
 			creates.Add(1)
 			var b map[string]any
-			json.NewDecoder(r.Body).Decode(&b)
+			if err := json.NewDecoder(r.Body).Decode(&b); err != nil {
+				t.Error(err)
+				return
+			}
 			if b["duration"] != float64(3) || b["generate_audio"] != true || b["model"] != capabilitydriver.OpenRouterVideoModel {
 				t.Error(b)
 			}
-			json.NewEncoder(w).Encode(map[string]any{"id": "original-video", "status": "pending", "polling_url": "https://untrusted.invalid/never"})
+			if err := json.NewEncoder(w).Encode(map[string]any{"id": "original-video", "status": "pending", "polling_url": "https://untrusted.invalid/never"}); err != nil {
+				t.Error(err)
+				return
+			}
 		case "/api/v1/videos/original-video":
-			json.NewEncoder(w).Encode(map[string]any{"id": "original-video", "status": "completed", "unsigned_urls": []string{"https://untrusted.invalid/never"}, "usage": map[string]any{"cost": 0.2}})
+			if err := json.NewEncoder(w).Encode(map[string]any{"id": "original-video", "status": "completed", "unsigned_urls": []string{"https://untrusted.invalid/never"}, "usage": map[string]any{"cost": 0.2}}); err != nil {
+				t.Error(err)
+				return
+			}
 		case "/api/v1/videos/original-video/content":
 			downloads.Add(1)
 			if r.URL.Query().Get("index") != "0" {
 				t.Error("wrong output slot")
 			}
 			w.Header().Set("Content-Type", "video/mp4")
-			w.Write(data)
+			_, _ = w.Write(data)
 		default:
 			t.Error(r.URL.Path)
 			w.WriteHeader(404)

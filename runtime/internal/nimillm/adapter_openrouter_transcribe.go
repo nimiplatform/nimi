@@ -34,7 +34,7 @@ func ExecuteOpenRouterTranscribe(ctx context.Context, cfg MediaAdapterConfig, re
 	if err != nil {
 		return nil, nil, "", err
 	}
-	defer resp.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(resp.Body.Close)
 	var out struct {
 		Text     *string `json:"text"`
 		Language *string `json:"language"`

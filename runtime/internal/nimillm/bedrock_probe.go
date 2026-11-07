@@ -35,7 +35,7 @@ func (p *CloudProvider) probeBedrockConnector(ctx context.Context, endpoint, key
 	if err != nil {
 		return MapProviderRequestError(err)
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		var body map[string]any
 		_ = json.NewDecoder(response.Body).Decode(&body)

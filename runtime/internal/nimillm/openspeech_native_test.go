@@ -72,7 +72,7 @@ func TestOpenSpeechNewConsoleHeaderAndCapturedPrefix(t *testing.T) {
 					t.Error("native request", b)
 				}
 				w.Header().Set("Content-Type", "text/event-stream")
-				fmt.Fprint(w, "event: 352\ndata: {\"code\":0,\"data\":\"AQIDBA==\"}\n\nevent: 152\ndata: {\"code\":20000000,\"data\":null}\n\n")
+				_, _ = fmt.Fprint(w, "event: 352\ndata: {\"code\":0,\"data\":\"AQIDBA==\"}\n\nevent: 152\ndata: {\"code\":20000000,\"data\":null}\n\n")
 			}))
 			defer server.Close()
 			req := &runtimev1.SubmitScenarioJobRequest{Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: " 你好\n", Language: "zh", AudioFormat: "pcm", SampleRateHz: proto.Int32(24000), Speed: proto.Float32(.5), VoiceRef: &runtimev1.VoiceReference{Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET, Reference: &runtimev1.VoiceReference_PresetVoiceId{PresetVoiceId: capabilitydriver.OpenSpeechVoices("seed-tts-2.0")[0]}}}}}}

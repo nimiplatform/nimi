@@ -56,7 +56,7 @@ func TestStabilityNativeImagesUseExactMultipartEngineAndOwnedInput(t *testing.T)
 						w.WriteHeader(400)
 						return
 					}
-					defer r.MultipartForm.RemoveAll()
+					defer func(cleanup func() error) { _ = cleanup() }(r.MultipartForm.RemoveAll)
 					if r.FormValue("model") != tc.native || r.FormValue("output_format") != "png" || r.FormValue("seed") != "37" || r.FormValue("prompt") != "灯塔" || r.FormValue("response_format") != "" {
 						t.Errorf("multipart fields %+v", r.MultipartForm.Value)
 					}
@@ -66,14 +66,14 @@ func TestStabilityNativeImagesUseExactMultipartEngineAndOwnedInput(t *testing.T)
 							t.Error(err)
 							return
 						}
-						defer file.Close()
+						defer func(cleanup func() error) { _ = cleanup() }(file.Close)
 						raw, _ := io.ReadAll(file)
 						if !bytes.Equal(raw, data) || r.FormValue("strength") != "0.5" || (tc.engine == "sd3" && r.FormValue("mode") != "image-to-image") {
 							t.Error("owned image condition lost")
 						}
 					}
 					stabilityTestHeaders(w, "image/png")
-					w.Write(data)
+					_, _ = w.Write(data)
 				}))
 				spec := &runtimev1.ImageGenerateScenarioSpec{Prompt: "灯塔", OutputFormat: "png", ResponseFormat: "b64_json", Seed: proto.Int64(37)}
 				ctx := context.Background()
@@ -123,7 +123,7 @@ func TestStabilityAudio2And25UseMultipartAndMeasuredReference(t *testing.T) {
 						t.Error(err)
 						return
 					}
-					defer r.MultipartForm.RemoveAll()
+					defer func(cleanup func() error) { _ = cleanup() }(r.MultipartForm.RemoveAll)
 					if r.FormValue("model") != model || r.FormValue("output_format") != "mp3" || r.FormValue("duration") != "10" || r.FormValue("seed") != "37" || r.FormValue("negative_prompt") != "" {
 						t.Errorf("fields %+v", r.MultipartForm.Value)
 					}
@@ -134,13 +134,13 @@ func TestStabilityAudio2And25UseMultipartAndMeasuredReference(t *testing.T) {
 							return
 						}
 						raw, _ := io.ReadAll(f)
-						f.Close()
+						_ = f.Close()
 						if !bytes.Equal(raw, wav) || r.FormValue("strength") != "0.5" {
 							t.Error("reference ignored")
 						}
 					}
 					stabilityTestHeaders(w, "audio/mpeg")
-					w.Write(mp3)
+					_, _ = w.Write(mp3)
 				}))
 				defer server.Close()
 				req := newMusicJobRequest(model, "piano")
@@ -176,22 +176,28 @@ func TestStabilityAudio3OriginalTaskPollingAndStreamedCustody(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			defer r.MultipartForm.RemoveAll()
+			defer func(cleanup func() error) { _ = cleanup() }(r.MultipartForm.RemoveAll)
 			if r.FormValue("model") != "stable-audio-3" || r.FormValue("output_format") != "wav" || r.FormValue("duration") != "380" {
 				t.Error("audio3 request mapping")
 			}
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(202)
-			json.NewEncoder(w).Encode(map[string]string{"id": id})
+			if err := json.NewEncoder(w).Encode(map[string]string{"id": id}); err != nil {
+				t.Error(err)
+				return
+			}
 		case "GET /v2beta/audio/results/" + id:
 			if gets.Add(1) == 1 {
 				w.Header().Set("Content-Type", "application/json")
 				w.WriteHeader(202)
-				json.NewEncoder(w).Encode(map[string]string{"id": id, "status": "in-progress"})
+				if err := json.NewEncoder(w).Encode(map[string]string{"id": id, "status": "in-progress"}); err != nil {
+					t.Error(err)
+					return
+				}
 				return
 			}
 			stabilityTestHeaders(w, "audio/wav")
-			w.Write(wav)
+			_, _ = w.Write(wav)
 		default:
 			t.Errorf("unexpected operation %s %s", r.Method, r.URL.Path)
 			http.NotFound(w, r)
@@ -229,7 +235,7 @@ func TestStabilityAudio3OriginalTaskPollingAndStreamedCustody(t *testing.T) {
 	}
 	body := bodies[receipt.Artifact.GetArtifactId()]
 	data, err := io.ReadAll(body.Stream)
-	body.Stream.Close()
+	_ = body.Stream.Close()
 	if err != nil || !bytes.Equal(data, wav) || creates.Load() != 1 || gets.Load() != 3 || observed.Artifacts[0].Uri != "" || observed.Artifacts[0].GetMetadata().GetFields()["actual_seed"].GetNumberValue() != 37 {
 		t.Fatal("original result custody lost")
 	}
@@ -264,7 +270,7 @@ func TestStabilityOriginalResultRejectsInvalidTerminalEvidence(t *testing.T) {
 				w.Header().Set("seed", "37")
 				w.Header().Set("Location", "https://attacker.invalid/")
 				w.WriteHeader(tc.status)
-				fmt.Fprint(w, tc.body)
+				_, _ = fmt.Fprint(w, tc.body)
 			}))
 			defer server.Close()
 			_, done, err := ObserveNativeTask(context.Background(), MediaAdapterConfig{BaseURL: server.URL, APIKey: "fixture", AllowLoopbackEndpoint: true}, receipt)
@@ -288,7 +294,7 @@ func TestStabilityResultAcquisitionStreamsAndHonorsCancellation(t *testing.T) {
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		stabilityTestHeaders(w, "audio/wav")
 		w.Header().Set("Content-Length", "40000000")
-		w.Write(header)
+		_, _ = w.Write(header)
 		w.(http.Flusher).Flush()
 		<-r.Context().Done()
 	}))
@@ -312,7 +318,7 @@ func TestStabilityResultAcquisitionStreamsAndHonorsCancellation(t *testing.T) {
 	if _, err := io.Copy(io.Discard, body.Stream); err == nil {
 		t.Fatal("cancellation ignored")
 	}
-	body.Stream.Close()
+	_ = body.Stream.Close()
 }
 
 func TestStabilityOwnedReferenceDurationLimits(t *testing.T) {

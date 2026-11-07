@@ -30,7 +30,7 @@ func TestRetentionAuthorizationPeerChild(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer connection.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(connection.Close)
 	_, _ = io.Copy(io.Discard, connection)
 }
 
@@ -54,23 +54,23 @@ func TestRetentionAuthenticatesActualHelperImageTokenAndPID(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer listener.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(listener.Close)
 	child := exec.Command(childPath, "-test.run=^TestRetentionAuthorizationPeerChild$")
 	child.Env = append(os.Environ(), "NIMI_RETENTION_PEER_TEST_PIPE="+name)
 	if err := child.Start(); err != nil {
 		t.Fatal(err)
 	}
-	defer child.Wait()
+	defer func(cleanup func() error) { _ = cleanup() }(child.Wait)
 	connection, err := listener.Accept()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer connection.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(connection.Close)
 	token, err := windows.OpenCurrentProcessToken()
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer token.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(token.Close)
 	user, err := token.GetTokenUser()
 	if err != nil {
 		t.Fatal(err)
@@ -99,7 +99,7 @@ func TestCleanupAuthorizationUsesActualWindowsPipePeerAndRejectsForgedServer(t *
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer listener.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(listener.Close)
 	accepted := make(chan net.Conn, 1)
 	go func() {
 		connection, err := listener.Accept()
@@ -129,7 +129,7 @@ func TestCleanupAuthorizationUsesActualWindowsPipePeerAndRejectsForgedServer(t *
 		if err != nil {
 			return
 		}
-		defer connection.Close()
+		defer func(cleanup func() error) { _ = cleanup() }(connection.Close)
 		_ = connection.SetDeadline(time.Now().Add(5 * time.Second))
 		_ = json.NewEncoder(connection).Encode(cleanupAuthorization{JobPath: "forged/job.json", RequestHash: strings.Repeat("b", 64)})
 	}()

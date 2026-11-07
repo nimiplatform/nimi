@@ -162,7 +162,7 @@ func ExecutePikaTask(ctx context.Context, cfg MediaAdapterConfig, _ JobStateUpda
 	if err != nil {
 		return nil, nil, "", err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	data, err = readLimitedResponseBody(response.Body, 1<<20)
 	if err != nil {
 		return nil, nil, "", markNativeCreateResponseUnavailable(ctx, err)
@@ -192,7 +192,7 @@ func observePikaTask(ctx context.Context, cfg MediaAdapterConfig, r *NativeTaskR
 	if err != nil {
 		return nil, false, err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var out pikaJob
 	if err := DecodeResponseJSON(response, &out); err != nil {
 		return nil, false, err
@@ -260,7 +260,7 @@ func cancelPikaTask(ctx context.Context, id string, cfg MediaAdapterConfig) (Pro
 	if err != nil {
 		return ProviderTaskCleanupUnconfirmed, err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var out struct {
 		pikaJob
 		CancellationStatus string `json:"cancellation_status"`

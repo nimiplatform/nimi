@@ -72,7 +72,7 @@ func PreparePikaInputs(ctx context.Context, cfg MediaAdapterConfig) ([]PikaInput
 			MaxBytes  int64             `json:"max_bytes"`
 		}
 		err = DecodeResponseJSON(response, &out)
-		response.Body.Close()
+		_ = response.Body.Close()
 		if err != nil {
 			return uploads, err
 		}
@@ -109,7 +109,7 @@ func PreparePikaInputs(ctx context.Context, cfg MediaAdapterConfig) ([]PikaInput
 			client.CloseIdleConnections()
 			return uploads, MapProviderRequestError(err)
 		}
-		put.Body.Close()
+		_ = put.Body.Close()
 		client.CloseIdleConnections()
 		if put.StatusCode < 200 || put.StatusCode >= 300 {
 			return uploads, MapProviderHTTPError(put.StatusCode, nil)
@@ -149,7 +149,7 @@ func CleanupPikaInputs(ctx context.Context, cfg MediaAdapterConfig, uploads []Pi
 			result.Unconfirmed++
 			continue
 		}
-		response.Body.Close()
+		_ = response.Body.Close()
 		switch response.StatusCode {
 		case http.StatusNoContent:
 			result.Deleted++
@@ -188,7 +188,7 @@ func PikaOriginalTaskTerminal(ctx context.Context, cfg MediaAdapterConfig, recei
 	if err != nil {
 		return false, err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var out pikaJob
 	if err := DecodeResponseJSON(response, &out); err != nil {
 		return false, err

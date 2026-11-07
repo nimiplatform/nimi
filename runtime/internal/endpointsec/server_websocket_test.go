@@ -33,7 +33,7 @@ func TestServerWebSocketOmitsOriginAndPinsOriginalTLSHost(t *testing.T) {
 		if err != nil {
 			return
 		}
-		defer conn.Close()
+		defer func(cleanup func() error) { _ = cleanup() }(conn.Close)
 		_ = conn.WriteMessage(websocket.TextMessage, []byte("ready"))
 	}))
 	defer server.Close()
@@ -60,7 +60,7 @@ func TestServerWebSocketOmitsOriginAndPinsOriginalTLSHost(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer raw.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(raw.Close)
 	kind, payload, err := conn.ReadMessage()
 	if err != nil || kind != websocket.TextMessage || string(payload) != "ready" {
 		t.Fatalf("read: %d %q %v", kind, payload, err)
@@ -85,7 +85,7 @@ func TestServerWebSocketRejectsUnsafeAddressAndOriginOverrides(t *testing.T) {
 
 func TestServerWebSocketCancellationInterruptsHandshake(t *testing.T) {
 	client, peer := net.Pipe()
-	defer peer.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(peer.Close)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	started := make(chan struct{})

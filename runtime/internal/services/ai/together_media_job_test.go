@@ -54,14 +54,14 @@ func TestTogetherFiniteMediaNativeContracts(t *testing.T) {
 						t.Error(err)
 						return
 					}
-					defer r.MultipartForm.RemoveAll()
+					defer func(cleanup func() error) { _ = cleanup() }(r.MultipartForm.RemoveAll)
 					file, header, err := r.FormFile("file")
 					if err != nil {
 						t.Error(err)
 						return
 					}
 					data, err := io.ReadAll(file)
-					file.Close()
+					_ = file.Close()
 					if err != nil || !bytes.Equal(data, wav) || header.Header.Get("Content-Type") != "audio/wav" {
 						t.Error("native audio bytes or MIME changed")
 					}
@@ -107,10 +107,10 @@ func TestTogetherFiniteMediaNativeContracts(t *testing.T) {
 					}
 					if tc.format == "mp3" {
 						w.Header().Set("Content-Type", "audio/mpeg")
-						w.Write(mp3)
+						_, _ = w.Write(mp3)
 					} else {
 						w.Header().Set("Content-Type", "audio/wav")
-						w.Write(speechBytes)
+						_, _ = w.Write(speechBytes)
 					}
 				default:
 					t.Error("unexpected native path", r.URL.Path)

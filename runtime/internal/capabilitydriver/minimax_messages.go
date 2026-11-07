@@ -274,7 +274,7 @@ func miniMaxMediaBlock(part *runtimev1.ChatContentPart, planning bool) (map[stri
 	default:
 		return nil, deepseekUnsupported()
 	}
-	source := map[string]any{}
+	var source map[string]any
 	if strings.HasPrefix(location, "data:") {
 		fields := strings.SplitN(location, ",", 2)
 		if len(fields) != 2 || !strings.HasSuffix(fields[0], ";base64") {

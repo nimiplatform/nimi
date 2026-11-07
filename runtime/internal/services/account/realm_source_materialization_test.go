@@ -318,7 +318,7 @@ func TestAcquireRealmSourceMaterializationClassifiesPacketStatusWithoutReadingEr
 			server := httptest.NewServer(http.NotFoundHandler())
 			defer server.Close()
 			service := newRealmSourceMaterializationHarness(t, server, now)
-			secret := "private-realm-error-body-" + strings.ReplaceAll(test.name, " ", "-")
+			secret := "private-realm-error-body-" + strings.ReplaceAll(test.name, " ", "-") // pragma: allowlist secret -- synthetic private-error redaction sentinel
 			errorBody := &realmSourceMaterializationErrorBodyTestReadCloser{reader: strings.NewReader(secret)}
 			var packetCalls int
 			service.realmHTTP = &http.Client{

@@ -59,7 +59,7 @@ func ExecuteOpenRouterVideo(ctx context.Context, cfg MediaAdapterConfig, req *ru
 	if err != nil {
 		return nil, nil, "", err
 	}
-	defer resp.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(resp.Body.Close)
 	var out struct {
 		ID     string `json:"id"`
 		Status string `json:"status"`
@@ -88,7 +88,7 @@ func observeOpenRouterVideo(ctx context.Context, cfg MediaAdapterConfig, r *Nati
 	if err != nil {
 		return nil, false, err
 	}
-	defer resp.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(resp.Body.Close)
 	var out struct {
 		ID     string   `json:"id"`
 		Status string   `json:"status"`
@@ -147,13 +147,13 @@ func openOpenRouterVideo(ctx context.Context, cfg MediaAdapterConfig, r *NativeT
 	}
 	mediaType, _, parseErr := mime.ParseMediaType(response.Header.Get("Content-Type"))
 	if parseErr != nil || mediaType != "video/mp4" || response.ContentLength == 0 || response.ContentLength > maxStreamedMediaArtifactBytes {
-		response.Body.Close()
+		_ = response.Body.Close()
 		return nil, "", 0, openRouterOutputError()
 	}
 	buffered := bufio.NewReaderSize(response.Body, 512)
 	head, err := buffered.Peek(12)
 	if err != nil || string(head[4:8]) != "ftyp" {
-		response.Body.Close()
+		_ = response.Body.Close()
 		return nil, "", 0, openRouterOutputError()
 	}
 	return &boundedMediaArtifactStream{ReadCloser: &peekedMediaArtifactStream{Reader: buffered, Closer: response.Body}, remaining: maxStreamedMediaArtifactBytes + 1}, "video/mp4", response.ContentLength, nil

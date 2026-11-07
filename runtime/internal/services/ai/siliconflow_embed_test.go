@@ -56,7 +56,10 @@ func TestSiliconFlowProtectedEmbeddingWidthsPurposesAndSpaces(t *testing.T) {
 					values[2] = nil
 					nativeFirst = values
 				}
-				json.NewEncoder(w).Encode(map[string]any{"model": model, "data": []any{map[string]any{"index": 1, "embedding": second}, map[string]any{"index": 0, "embedding": nativeFirst}}, "usage": map[string]any{"prompt_tokens": 8, "total_tokens": 8}})
+				if err := json.NewEncoder(w).Encode(map[string]any{"model": model, "data": []any{map[string]any{"index": 1, "embedding": second}, map[string]any{"index": 0, "embedding": nativeFirst}}, "usage": map[string]any{"prompt_tokens": 8, "total_tokens": 8}}); err != nil {
+					t.Error(err)
+					return
+				}
 			}))
 			defer server.Close()
 			f := newManagedCloudScenarioTestFixture(t, "siliconflow", model, server.URL+"/proxy/openai/v1", Config{AllowLoopbackEndpoint: true})

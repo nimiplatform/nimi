@@ -75,7 +75,7 @@ func ExecuteTogetherTranscribe(ctx context.Context, cfg MediaAdapterConfig, req 
 	if err != nil {
 		return nil, nil, "", err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var out struct {
 		Text     *string `json:"text"`
 		Language *string `json:"language"`

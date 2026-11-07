@@ -74,7 +74,7 @@ func ExecuteStabilityMusic(ctx context.Context, cfg MediaAdapterConfig, req *run
 	if err != nil {
 		return nil, nil, "", err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	if async {
 		if response.StatusCode != http.StatusAccepted {
 			return nil, nil, "", stabilityResponseError(response)
@@ -141,7 +141,7 @@ func observeStabilityAudio(ctx context.Context, cfg MediaAdapterConfig, r *Nativ
 	if err != nil {
 		return nil, false, err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	if response.StatusCode == http.StatusAccepted {
 		raw, err := readLimitedResponseBody(response.Body, maxJSONOrBinaryResponseBytes)
 		if err != nil {
@@ -201,22 +201,22 @@ func openStabilityAudio(ctx context.Context, cfg MediaAdapterConfig, r *NativeTa
 	response.Body = &budgetedMediaBody{ReadCloser: response.Body, budget: budget}
 	seed, err := stabilityResultHeaders(response)
 	if err != nil {
-		response.Body.Close()
+		_ = response.Body.Close()
 		return nil, "", -1, err
 	}
 	if seed != expectedSeed {
-		response.Body.Close()
+		_ = response.Body.Close()
 		return nil, "", -1, stabilityInvalidOutput()
 	}
 	mimeType, err := stabilityAudioMIME(response, "audio/wav")
 	if err != nil {
-		response.Body.Close()
+		_ = response.Body.Close()
 		return nil, "", -1, err
 	}
 	buffered := bufio.NewReaderSize(response.Body, 512)
 	head, err := buffered.Peek(12)
 	if err != nil || string(head[:4]) != "RIFF" || string(head[8:12]) != "WAVE" {
-		response.Body.Close()
+		_ = response.Body.Close()
 		return nil, "", -1, stabilityInvalidOutput()
 	}
 	return &boundedMediaArtifactStream{ReadCloser: &peekedMediaArtifactStream{Reader: buffered, Closer: response.Body}, remaining: limits.bytes + 1}, mimeType, response.ContentLength, nil

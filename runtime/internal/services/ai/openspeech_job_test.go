@@ -110,9 +110,9 @@ func TestOpenSpeechProtectedFiniteSynthesisAndTranscription(t *testing.T) {
 					w.Header().Set("Content-Type", "text/event-stream")
 					mid := len(data) / 2
 					for _, chunk := range [][]byte{data[:mid], data[mid:]} {
-						fmt.Fprintf(w, "event: 352\ndata: {\"code\":0,\"data\":\"%s\"}\n\n", base64.StdEncoding.EncodeToString(chunk))
+						_, _ = fmt.Fprintf(w, "event: 352\ndata: {\"code\":0,\"data\":\"%s\"}\n\n", base64.StdEncoding.EncodeToString(chunk))
 					}
-					fmt.Fprint(w, "event: 152\ndata: {\"code\":20000000,\"data\":null,\"usage\":{\"text_words\":19}}\n\n")
+					_, _ = fmt.Fprint(w, "event: 152\ndata: {\"code\":20000000,\"data\":null,\"usage\":{\"text_words\":19}}\n\n")
 					return
 				}
 				if r.URL.Path != "/proxy/api/v3/auc/bigmodel/recognize/flash" || r.Header.Get("X-Api-Sequence") != "-1" {
@@ -126,11 +126,11 @@ func TestOpenSpeechProtectedFiniteSynthesisAndTranscription(t *testing.T) {
 				w.Header().Set("Content-Type", "application/json")
 				if tc.silent {
 					w.Header().Set("X-Api-Status-Code", "20000003")
-					fmt.Fprint(w, `{}`)
+					_, _ = fmt.Fprint(w, `{}`)
 					return
 				}
 				w.Header().Set("X-Api-Status-Code", "20000000")
-				fmt.Fprint(w, `{"result":{"text":"Hello.","utterances":[{"words":[{"text":"Hello.","start_time":0,"end_time":10}]}]}}`)
+				_, _ = fmt.Fprint(w, `{"result":{"text":"Hello.","utterances":[{"words":[{"text":"Hello.","start_time":0,"end_time":10}]}]}}`)
 			}))
 			defer server.Close()
 			f := newManagedCloudScenarioTestFixture(t, "volcengine_openspeech", tc.model, server.URL+"/proxy/api/v1", Config{AllowLoopbackEndpoint: true})

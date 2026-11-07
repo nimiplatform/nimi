@@ -57,14 +57,14 @@ func TestGroqProtectedAppHiddenToolsOwnedImagesAndSeparateStrictSchema(t *testin
 						return
 					}
 					w.Header().Set("Content-Type", "text/event-stream")
-					emit := func(v any) { data, _ := json.Marshal(v); fmt.Fprintf(w, "data: %s\n\n", data) }
+					emit := func(v any) { data, _ := json.Marshal(v); _, _ = fmt.Fprintf(w, "data: %s\n\n", data) }
 					emit(map[string]any{"model": model, "choices": []any{map[string]any{"index": 0, "delta": map[string]any{"reasoning": "PRIVATE NATIVE THOUGHT"}, "finish_reason": nil}}})
 					delta := map[string]any{"content": message["content"]}
 					if calls == 1 {
 						delta["tool_calls"] = []any{map[string]any{"index": 0, "id": "original-call", "type": "function", "function": map[string]any{"name": "lookup", "arguments": `{"city":"北京"}`}}}
 					}
 					emit(map[string]any{"model": model, "choices": []any{map[string]any{"index": 0, "delta": delta, "finish_reason": finish}}, "x_groq": map[string]any{"usage": map[string]any{"prompt_tokens": 3, "completion_tokens": 7}}})
-					fmt.Fprint(w, "data: [DONE]\n\n")
+					_, _ = fmt.Fprint(w, "data: [DONE]\n\n")
 				})
 				parts := []*runtimev1.ChatContentPart{{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Content: &runtimev1.ChatContentPart_Text{Text: "Use lookup, then return a JSON object."}}}
 				if vision {

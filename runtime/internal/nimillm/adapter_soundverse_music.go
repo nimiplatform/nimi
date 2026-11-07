@@ -68,7 +68,7 @@ func soundverseRequest(ctx context.Context, b *Backend, method, path string, bod
 		return nil, markNativeCreateResponseUnavailable(ctx, MapProviderRequestError(err))
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		defer response.Body.Close()
+		defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 		var failure struct {
 			Error string `json:"error"`
 		}
@@ -115,7 +115,7 @@ func ExecuteSoundverseMusic(ctx context.Context, cfg MediaAdapterConfig, req *ru
 	if err != nil {
 		return nil, nil, "", err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var out struct {
 		ID     string `json:"job_id"`
 		Status string `json:"status"`
@@ -140,7 +140,7 @@ func observeSoundverseMusic(ctx context.Context, cfg MediaAdapterConfig, r *Nati
 	if err != nil {
 		return nil, false, err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var out struct {
 		ID     string `json:"job_id"`
 		Status string `json:"status"`
@@ -195,7 +195,7 @@ func openSoundverseMusic(ctx context.Context, cfg MediaAdapterConfig, r *NativeT
 		if err != nil {
 			return nil, "", -1, err
 		}
-		defer response.Body.Close()
+		defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 		var out struct {
 			ID      string `json:"file_id"`
 			URL     string `json:"url"`
@@ -224,7 +224,7 @@ func (p *CloudProvider) probeSoundverseConnector(ctx context.Context, endpoint, 
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var out struct {
 		Total *int64 `json:"total_effective"`
 		Base  *int64 `json:"base_effective"`

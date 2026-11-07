@@ -66,7 +66,7 @@ func TestIdeogram45OwnedMultipartMaskDirectionAndWholeTaskResult(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			defer r.MultipartForm.RemoveAll()
+			defer func(cleanup func() error) { _ = cleanup() }(r.MultipartForm.RemoveAll)
 			if r.FormValue("async") != "true" || r.FormValue("seed") != "0" || r.FormValue("num_images") != "2" || r.FormValue("size") != "" {
 				t.Error("native fields changed")
 			}

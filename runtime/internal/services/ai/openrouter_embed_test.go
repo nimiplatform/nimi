@@ -55,7 +55,10 @@ func TestOpenRouterProtectedEmbeddingWidthsPurposesAndSpaces(t *testing.T) {
 				first, second := make([]float64, width), make([]float64, width)
 				first[0] = 1
 				second[0] = 2
-				json.NewEncoder(w).Encode(map[string]any{"model": capabilitydriver.OpenRouterEmbeddingNativeModel(model), "data": []any{map[string]any{"index": 1, "embedding": second}, map[string]any{"index": 0, "embedding": first}}, "usage": map[string]any{"prompt_tokens": 8, "total_tokens": 8}})
+				if err := json.NewEncoder(w).Encode(map[string]any{"model": capabilitydriver.OpenRouterEmbeddingNativeModel(model), "data": []any{map[string]any{"index": 1, "embedding": second}, map[string]any{"index": 0, "embedding": first}}, "usage": map[string]any{"prompt_tokens": 8, "total_tokens": 8}}); err != nil {
+					t.Error(err)
+					return
+				}
 			}))
 			defer server.Close()
 			f := newManagedCloudScenarioTestFixture(t, "openrouter", model, server.URL+"/proxy/openai/v1", Config{AllowLoopbackEndpoint: true})

@@ -82,7 +82,7 @@ func (d AudioCppTTSDriver) withEmbeddedPresetVoices(binding InvocationExactBindi
 	if err != nil {
 		return d, invocationError(InvocationFailureInvalidBinding, fmt.Errorf("read selected audio.cpp preset catalog: %w", err))
 	}
-	defer file.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(file.Close)
 	voices, defaultID, err := audioCppPresetSpec(io.NewSectionReader(file, 0, MaxAssetFormatProbeBytes), d.spec.family)
 	if err != nil {
 		return d, invocationError(InvocationFailureInvalidBinding, err)

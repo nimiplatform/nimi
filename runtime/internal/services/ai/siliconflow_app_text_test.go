@@ -68,7 +68,7 @@ func TestSiliconFlowProtectedAppNativeReplayImagesAndStrictSchema(t *testing.T) 
 						t.Error("undocumented usage control sent")
 					}
 					w.Header().Set("Content-Type", "text/event-stream")
-					emit := func(v any) { data, _ := json.Marshal(v); fmt.Fprintf(w, "data: %s\n\n", data) }
+					emit := func(v any) { data, _ := json.Marshal(v); _, _ = fmt.Fprintf(w, "data: %s\n\n", data) }
 					emit(map[string]any{"model": model, "choices": []any{map[string]any{"index": 0, "delta": map[string]any{"reasoning_content": "  native reasoning "}}}})
 					emit(map[string]any{"model": model, "choices": []any{map[string]any{"index": 0, "delta": map[string]any{"reasoning_content": "原文\r\n😀  "}}}})
 					delta := map[string]any{"content": message["content"]}
@@ -81,7 +81,7 @@ func TestSiliconFlowProtectedAppNativeReplayImagesAndStrictSchema(t *testing.T) 
 					}
 					emit(map[string]any{"model": model, "choices": []any{map[string]any{"index": 0, "delta": delta, "finish_reason": finish}}})
 					emit(map[string]any{"choices": []any{}, "usage": usage})
-					fmt.Fprint(w, "data: [DONE]\n\n")
+					_, _ = fmt.Fprint(w, "data: [DONE]\n\n")
 				})
 				parts := []*runtimev1.ChatContentPart{{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Content: &runtimev1.ChatContentPart_Text{Text: "Use lookup for Beijing and Shanghai. Return JSON after the tool results."}}}
 				if p.Vision() {

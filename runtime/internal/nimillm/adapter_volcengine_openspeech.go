@@ -68,7 +68,7 @@ func openSpeechRequest(ctx context.Context, b *Backend, resource, path string, b
 		return nil, MapProviderRequestError(err)
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		defer response.Body.Close()
+		defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 		return nil, MapProviderHTTPError(response.StatusCode, nil)
 	}
 	return response, nil
@@ -102,7 +102,7 @@ func ExecuteBytedanceOpenSpeech(ctx context.Context, cfg MediaAdapterConfig, req
 		if err != nil {
 			return nil, nil, "", err
 		}
-		defer response.Body.Close()
+		defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 		if !strings.HasPrefix(strings.ToLower(response.Header.Get("Content-Type")), "text/event-stream") {
 			return nil, nil, "", openSpeechOutputError()
 		}
@@ -143,7 +143,7 @@ func ExecuteBytedanceOpenSpeech(ctx context.Context, cfg MediaAdapterConfig, req
 		if err != nil {
 			return nil, nil, "", err
 		}
-		defer response.Body.Close()
+		defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 		raw, err := readLimitedResponseBody(response.Body, 32<<20)
 		if err != nil {
 			return nil, nil, "", err

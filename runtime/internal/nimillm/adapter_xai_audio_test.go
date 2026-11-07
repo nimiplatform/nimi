@@ -51,7 +51,7 @@ func TestXAISpeechRejectsErrorEnvelopesAndWrongAudio(t *testing.T) {
 	for _, tc := range []struct{ contentType, body string }{{"application/json", `{"error":"failed"}`}, {"audio/wav", "not a wav"}, {"audio/pcm", "raw"}} {
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Content-Type", tc.contentType)
-			fmt.Fprint(w, tc.body)
+			_, _ = fmt.Fprint(w, tc.body)
 		}))
 		req := &runtimev1.SubmitScenarioJobRequest{Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "Hello.", Language: "auto", AudioFormat: "wav", SampleRateHz: proto.Int32(24000)}}}}
 		artifacts, _, _, err := ExecuteXAISpeech(context.Background(), MediaAdapterConfig{BaseURL: server.URL + "/v1", APIKey: "test", AllowLoopbackEndpoint: true}, req)

@@ -68,7 +68,7 @@ func ExecuteTogetherVideo(ctx context.Context, cfg MediaAdapterConfig, req *runt
 	if err != nil {
 		return nil, nil, "", err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var out struct {
 		ID     string `json:"id"`
 		Model  string `json:"model"`
@@ -93,7 +93,7 @@ func observeTogetherVideo(ctx context.Context, cfg MediaAdapterConfig, r *Native
 	if err != nil {
 		return nil, false, err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var out struct {
 		ID      string `json:"id"`
 		Model   string `json:"model"`

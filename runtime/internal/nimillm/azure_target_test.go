@@ -15,7 +15,7 @@ func TestAzureEndpointAndReadOnlyProbeUseNativeNamespaceAndKey(t *testing.T) {
 			t.Fatalf("%s: %s %v", raw, got, err)
 		}
 	}
-	for _, raw := range []string{"https://tenant.example/v1", "https://tenant.example/openai/deployments/name", "https://tenant.example/openai/v1?api-version=old", "https://user:pass@tenant.example", "http://tenant.example"} {
+	for _, raw := range []string{"https://tenant.example/v1", "https://tenant.example/openai/deployments/name", "https://tenant.example/openai/v1?api-version=old", "https://user:pass@tenant.example", "http://tenant.example"} { // pragma: allowlist secret -- URL userinfo rejection fixture
 		if _, err := AzureOpenAIEndpoint(raw); err == nil {
 			t.Fatal("unsupported Azure endpoint admitted")
 		}

@@ -36,7 +36,7 @@ func ExecuteTogetherImage(ctx context.Context, cfg MediaAdapterConfig, req *runt
 	if err != nil {
 		return nil, nil, "", err
 	}
-	defer resp.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(resp.Body.Close)
 	raw, err := readLimitedResponseBody(resp.Body, 128<<20)
 	if err != nil {
 		return nil, nil, "", err
@@ -84,7 +84,7 @@ func ExecuteTogetherSpeech(ctx context.Context, cfg MediaAdapterConfig, req *run
 	if err != nil {
 		return nil, nil, "", err
 	}
-	defer resp.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(resp.Body.Close)
 	data, err := readLimitedResponseBody(resp.Body, 32<<20)
 	if err != nil {
 		return nil, nil, "", err

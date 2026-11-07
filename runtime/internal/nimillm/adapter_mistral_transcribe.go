@@ -89,7 +89,7 @@ func (p *CloudProvider) executeMistralTranscriptions(ctx context.Context, req *r
 	if err != nil {
 		return nil, nil, "", MapProviderRequestError(err)
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var out struct {
 		Model    string             `json:"model"`
 		Text     *string            `json:"text"`

@@ -196,7 +196,7 @@ func (b *Backend) postOpenAIImageEdit(ctx context.Context, fields map[string]any
 	if err != nil {
 		return MapProviderRequestError(err)
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	return DecodeResponseJSON(response, out)
 }
 

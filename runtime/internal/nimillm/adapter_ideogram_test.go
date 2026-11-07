@@ -26,7 +26,7 @@ func TestIdeogramExistingModelsUseTheirNativeProtocols(t *testing.T) {
 					if err := r.ParseMultipartForm(1 << 20); err != nil {
 						t.Fatal(err)
 					}
-					defer r.MultipartForm.RemoveAll()
+					defer func(cleanup func() error) { _ = cleanup() }(r.MultipartForm.RemoveAll)
 					if r.FormValue("prompt") != " a cat " || r.FormValue("aspect_ratio") != "16x9" || r.FormValue("seed") != "0" || r.FormValue("style_type") != "REALISTIC" || r.FormValue("model") != "" || len(r.MultipartForm.Value) != 5 {
 						t.Fatalf("wrong v3 body: %v", r.MultipartForm.Value)
 					}

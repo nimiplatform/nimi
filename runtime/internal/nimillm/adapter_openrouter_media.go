@@ -101,7 +101,7 @@ func ExecuteOpenRouterImage(ctx context.Context, cfg MediaAdapterConfig, req *ru
 	if err != nil {
 		return nil, nil, "", err
 	}
-	defer resp.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(resp.Body.Close)
 	raw, err := readLimitedResponseBody(resp.Body, 256<<20)
 	if err != nil {
 		return nil, nil, "", err
@@ -151,7 +151,7 @@ func ExecuteOpenRouterSpeech(ctx context.Context, cfg MediaAdapterConfig, req *r
 	if err != nil {
 		return nil, nil, "", err
 	}
-	defer resp.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(resp.Body.Close)
 	data, err := readLimitedResponseBody(resp.Body, 32<<20)
 	if err != nil {
 		return nil, nil, "", err

@@ -58,14 +58,17 @@ func TestStabilityNativeMusicPublishesMeasuredCanonicalAudioAndActualSeed(t *tes
 						t.Error(err)
 						return
 					}
-					defer r.MultipartForm.RemoveAll()
+					defer func(cleanup func() error) { _ = cleanup() }(r.MultipartForm.RemoveAll)
 					if r.FormValue("model") != model || r.FormValue("seed") == "" || r.FormValue("duration") != "30" {
 						t.Errorf("request not captured: %v", r.MultipartForm.Value)
 					}
 					if async {
 						w.Header().Set("Content-Type", "application/json")
 						w.WriteHeader(202)
-						json.NewEncoder(w).Encode(map[string]string{"id": id})
+						if err := json.NewEncoder(w).Encode(map[string]string{"id": id}); err != nil {
+							t.Error(err)
+							return
+						}
 						return
 					}
 				} else if r.Method == "GET" && r.URL.Path == "/v2beta/audio/results/"+id {
@@ -78,7 +81,7 @@ func TestStabilityNativeMusicPublishesMeasuredCanonicalAudioAndActualSeed(t *tes
 				w.Header().Set("Content-Type", mimeType)
 				w.Header().Set("finish-reason", "SUCCESS")
 				w.Header().Set("seed", "4294967294")
-				w.Write(audio)
+				_, _ = w.Write(audio)
 			}))
 			defer server.Close()
 			f := newManagedCloudScenarioTestFixture(t, "stability", model, server.URL, Config{AllowLoopbackEndpoint: true, CloudProviders: map[string]nimillm.ProviderCredentials{"stability": {APIKey: "fixture"}}})

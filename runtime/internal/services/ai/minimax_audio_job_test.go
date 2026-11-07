@@ -114,7 +114,7 @@ func TestMiniMaxProtectedNativeFiniteSpeechAndMusic(t *testing.T) {
 				}
 				w.Header().Set("Content-Type", "application/json")
 				if fail.Load() {
-					fmt.Fprint(w, `{"base_resp":{"status_code":1004},"data":null}`)
+					_, _ = fmt.Fprint(w, `{"base_resp":{"status_code":1004},"data":null}`)
 					return
 				}
 				_ = json.NewEncoder(w).Encode(map[string]any{"base_resp": map[string]any{"status_code": 0}, "data": map[string]any{"status": 2, "audio": hex.EncodeToString(audio[tc.format])}, "extra_info": map[string]any{"usage_characters": 19}})

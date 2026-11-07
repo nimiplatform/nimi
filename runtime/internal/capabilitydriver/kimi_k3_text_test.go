@@ -28,7 +28,10 @@ func TestKimiK3NativeControlsAndSchema(t *testing.T) {
 				t.Fatal(err)
 			}
 			var body map[string]any
-			json.Unmarshal(wire.Payload, &body)
+			if err := json.Unmarshal(wire.Payload, &body); err != nil {
+				t.Error(err)
+				return
+			}
 			if body["max_completion_tokens"] != float64(256) || body["max_tokens"] != nil || body["thinking"] != nil || body["reasoning_effort"] != "max" || body["stream_options"].(map[string]any)["include_usage"] != true || body["response_format"].(map[string]any)["type"] != "json_schema" {
 				t.Fatalf("native mapping %+v", body)
 			}
@@ -117,7 +120,10 @@ func TestKimiK3VisionAcceptsInlineMP4AndRejectsRemoteHandles(t *testing.T) {
 		t.Fatal(err)
 	}
 	var body map[string]any
-	json.Unmarshal(wire.Payload, &body)
+	if err := json.Unmarshal(wire.Payload, &body); err != nil {
+		t.Error(err)
+		return
+	}
 	item := body["messages"].([]any)[0].(map[string]any)["content"].([]any)[0].(map[string]any)
 	if item["type"] != "video_url" || item["video_url"].(map[string]any)["url"] != s.Input[0].Parts[0].GetVideoUrl() {
 		t.Fatal("video replaced by summaries or frames")

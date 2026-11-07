@@ -142,7 +142,7 @@ func (b *Backend) probeKlingConnector(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var out struct {
 		Code *int `json:"code"`
 		Data struct {
@@ -168,7 +168,7 @@ func (b *Backend) probePikaConnector(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var out struct {
 		Unit     string `json:"unit"`
 		Currency string `json:"currency"`
@@ -194,7 +194,7 @@ func (b *Backend) probeRunwayConnector(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var out struct {
 		Balance *int64 `json:"creditBalance"`
 		Tier    *struct {

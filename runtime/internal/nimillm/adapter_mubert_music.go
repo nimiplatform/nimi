@@ -100,7 +100,7 @@ func mubertRequest(ctx context.Context, b *Backend, method, path string, body an
 		return nil, markNativeCreateResponseUnavailable(ctx, MapProviderRequestError(err))
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		defer response.Body.Close()
+		defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 		return nil, MapProviderHTTPError(response.StatusCode, nil)
 	}
 	return response, nil
@@ -153,7 +153,7 @@ func ExecuteMubertMusic(ctx context.Context, cfg MediaAdapterConfig, req *runtim
 	if err != nil {
 		return nil, nil, "", err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var out mubertTrackEnvelope
 	if err := DecodeResponseJSON(response, &out); err != nil {
 		return nil, nil, "", markNativeCreateResponseUnavailable(ctx, err)
@@ -187,7 +187,7 @@ func observeMubertTrack(ctx context.Context, cfg MediaAdapterConfig, r *NativeTa
 	if err != nil {
 		return nil, false, err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var out mubertTrackEnvelope
 	if err := DecodeResponseJSON(response, &out); err != nil {
 		return nil, false, err
@@ -234,7 +234,7 @@ func (p *CloudProvider) probeMubertConnector(ctx context.Context, endpoint, key 
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var out struct {
 		Data *[]json.RawMessage `json:"data"`
 	}

@@ -24,7 +24,7 @@ func RetentionDirectoryID(directory string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer windows.CloseHandle(handle)
+	defer func() { _ = windows.CloseHandle(handle) }()
 	return retentionHandleID(handle, true)
 }
 
@@ -228,7 +228,7 @@ func validateLockedRetentionNames(root string, tree retentionTree) error {
 		if err != nil {
 			return err
 		}
-		defer windows.FindClose(search)
+		defer func() { _ = windows.FindClose(search) }()
 		for {
 			base := windows.UTF16ToString(data.FileName[:])
 			if base != "." && base != ".." {

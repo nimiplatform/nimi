@@ -31,13 +31,16 @@ func TestXAIImageJobDoesNotPublishPartialBatchAndKeepsOriginalGeneration(t *test
 				t.Error("credential sent to output URL")
 			}
 			w.Header().Set("Content-Type", "image/png")
-			w.Write(data)
+			_, _ = w.Write(data)
 			return
 		}
 		w.Header().Set("Content-Type", "application/json")
 		if r.Method == "POST" {
 			creates.Add(1)
-			json.NewEncoder(w).Encode(map[string]any{"request_id": "original_images"})
+			if err := json.NewEncoder(w).Encode(map[string]any{"request_id": "original_images"}); err != nil {
+				t.Error(err)
+				return
+			}
 			return
 		}
 		queries.Add(1)
@@ -45,7 +48,10 @@ func TestXAIImageJobDoesNotPublishPartialBatchAndKeepsOriginalGeneration(t *test
 		if !partial.Load() {
 			outputs = append(outputs, map[string]any{"url": endpoint + "/two.png"})
 		}
-		json.NewEncoder(w).Encode(map[string]any{"request_id": "original_images", "status": "done", "data": outputs})
+		if err := json.NewEncoder(w).Encode(map[string]any{"request_id": "original_images", "status": "done", "data": outputs}); err != nil {
+			t.Error(err)
+			return
+		}
 	}))
 	defer server.Close()
 	endpoint = server.URL
@@ -94,14 +100,23 @@ func TestXAIProtectedVideoCapturesFourteenOwnedReferencesAndRejectsForeignSubjec
 		if r.Method == "POST" {
 			creates.Add(1)
 			var body map[string]any
-			json.NewDecoder(r.Body).Decode(&body)
+			if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+				t.Error(err)
+				return
+			}
 			if len(body["reference_images"].([]any)) != 14 || body["model"] != capabilitydriver.XAIVideo15Model {
 				t.Error("reference set or model lost")
 			}
-			json.NewEncoder(w).Encode(map[string]any{"request_id": "video14"})
+			if err := json.NewEncoder(w).Encode(map[string]any{"request_id": "video14"}); err != nil {
+				t.Error(err)
+				return
+			}
 			return
 		}
-		json.NewEncoder(w).Encode(map[string]any{"status": "pending"})
+		if err := json.NewEncoder(w).Encode(map[string]any{"status": "pending"}); err != nil {
+			t.Error(err)
+			return
+		}
 	}))
 	defer server.Close()
 	f := newManagedCloudScenarioTestFixture(t, "xai", capabilitydriver.XAIVideo15Model, server.URL+"/v1", Config{AllowLoopbackEndpoint: true})

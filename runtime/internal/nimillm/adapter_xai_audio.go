@@ -44,7 +44,7 @@ func ExecuteXAISpeech(ctx context.Context, cfg MediaAdapterConfig, req *runtimev
 	if err != nil {
 		return nil, nil, "", err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	contentType, _, err := mime.ParseMediaType(response.Header.Get("Content-Type"))
 	expected := map[string]string{"mp3": "audio/mpeg", "wav": "audio/wav", "pcm": "audio/pcm", "mulaw": "audio/basic", "alaw": "audio/alaw"}[s.GetAudioFormat()]
 	if err != nil || contentType != expected {
@@ -110,7 +110,7 @@ func ExecuteXAITranscribe(ctx context.Context, cfg MediaAdapterConfig, req *runt
 	if err != nil {
 		return nil, nil, "", MapProviderRequestError(err)
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		return nil, nil, "", MapProviderHTTPError(response.StatusCode, nil)
 	}

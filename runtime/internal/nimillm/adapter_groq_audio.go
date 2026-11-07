@@ -90,7 +90,7 @@ func (p *CloudProvider) executeGroqTranscriptions(ctx context.Context, req *runt
 	if err != nil {
 		return nil, nil, "", MapProviderRequestError(err)
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var out struct {
 		Text     *string  `json:"text"`
 		Language *string  `json:"language"`

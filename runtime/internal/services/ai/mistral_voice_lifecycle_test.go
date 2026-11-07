@@ -41,11 +41,17 @@ func TestMistralSavedVoiceCreationInspectionSynthesisAndDeletionUseCapturedBindi
 		if r.URL.Path == "/v1/audio/speech" {
 			syntheses.Add(1)
 			var payload map[string]any
-			json.NewDecoder(r.Body).Decode(&payload)
+			if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+				t.Error(err)
+				return
+			}
 			if payload["voice_id"] != id || payload["model"] != capabilitydriver.MistralVoxtralTTS3 {
 				t.Error("VoiceAsset native handle or model lost")
 			}
-			json.NewEncoder(w).Encode(map[string]any{"audio_data": base64.StdEncoding.EncodeToString(mistralVoiceServiceWAV())})
+			if err := json.NewEncoder(w).Encode(map[string]any{"audio_data": base64.StdEncoding.EncodeToString(mistralVoiceServiceWAV())}); err != nil {
+				t.Error(err)
+				return
+			}
 			return
 		}
 		if r.URL.Path == "/v1/audio/voices" && r.Method == "POST" {
@@ -67,7 +73,10 @@ func TestMistralSavedVoiceCreationInspectionSynthesisAndDeletionUseCapturedBindi
 			w.WriteHeader(400)
 			return
 		}
-		json.NewEncoder(w).Encode(map[string]any{"id": id, "type": "custom", "name": "fixture", "created_at": "2026-11-06T00:00:00Z", "user_id": "workspace", "retention_notice": 30})
+		if err := json.NewEncoder(w).Encode(map[string]any{"id": id, "type": "custom", "name": "fixture", "created_at": "2026-11-06T00:00:00Z", "user_id": "workspace", "retention_notice": 30}); err != nil {
+			t.Error(err)
+			return
+		}
 	}))
 	defer server.Close()
 	f := newManagedCloudScenarioTestFixture(t, "mistral", capabilitydriver.MistralVoxtralTTS3, server.URL+"/v1", Config{AllowLoopbackEndpoint: true})
@@ -131,12 +140,15 @@ func TestMistralTranscriptionJobPublishesNativeSpeakerIntervals(t *testing.T) {
 					t.Error(err)
 					return
 				}
-				defer r.MultipartForm.RemoveAll()
+				defer func(cleanup func() error) { _ = cleanup() }(r.MultipartForm.RemoveAll)
 				if r.FormValue("model") != model || r.FormValue("diarize") != "true" || r.FormValue("timestamp_granularities") != "segment" {
 					t.Error("native ASR options lost")
 				}
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(map[string]any{"model": model, "text": "你好，Nimi。", "language": "zh", "usage": map[string]any{"prompt_tokens": 1, "completion_tokens": 3, "total_tokens": 4, "prompt_audio_seconds": 1}, "segments": []any{map[string]any{"type": "transcription_segment", "text": "你好，Nimi。", "start": 0, "end": 0.08, "speaker_id": "speaker_0"}}})
+				if err := json.NewEncoder(w).Encode(map[string]any{"model": model, "text": "你好，Nimi。", "language": "zh", "usage": map[string]any{"prompt_tokens": 1, "completion_tokens": 3, "total_tokens": 4, "prompt_audio_seconds": 1}, "segments": []any{map[string]any{"type": "transcription_segment", "text": "你好，Nimi。", "start": 0, "end": 0.08, "speaker_id": "speaker_0"}}}); err != nil {
+					t.Error(err)
+					return
+				}
 			}))
 			defer server.Close()
 			f := newManagedCloudScenarioTestFixture(t, "mistral", model, server.URL+"/v1", Config{AllowLoopbackEndpoint: true})
@@ -171,7 +183,10 @@ func TestMistralCanceledKnownVoiceIsDeletedWithoutPublishingAsset(t *testing.T) 
 			deletes.Add(1)
 		}
 		w.Header().Set("Content-Type", "application/json")
-		json.NewEncoder(w).Encode(map[string]any{"id": id, "type": "custom", "created_at": "2026-11-06T00:00:00Z"})
+		if err := json.NewEncoder(w).Encode(map[string]any{"id": id, "type": "custom", "created_at": "2026-11-06T00:00:00Z"}); err != nil {
+			t.Error(err)
+			return
+		}
 	}))
 	defer server.Close()
 	f := newManagedCloudScenarioTestFixture(t, "mistral", capabilitydriver.MistralVoxtralTTS3, server.URL+"/v1", Config{AllowLoopbackEndpoint: true})

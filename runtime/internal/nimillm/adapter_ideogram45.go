@@ -174,7 +174,7 @@ func postIdeogramMultipart(ctx context.Context, endpoint string, body []byte, co
 	if err != nil {
 		return markNativeCreateResponseUnavailable(ctx, MapProviderRequestError(err))
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		_, err := providerHTTPErrorFromResponse(response, endpoint)
 		return err

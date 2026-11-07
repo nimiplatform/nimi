@@ -23,7 +23,7 @@ func (b *Backend) EmbedSiliconFlow(ctx context.Context, model string, inputs []s
 	if err != nil {
 		return nil, nil, err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	raw, err := readLimitedResponseBody(response.Body, 32<<20)
 	if err != nil {
 		return nil, nil, err

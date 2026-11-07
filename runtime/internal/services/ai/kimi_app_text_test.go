@@ -43,7 +43,10 @@ func TestKimiK3ProtectedToolsSchemaAndOwnedMedia(t *testing.T) {
 				f, decision := nativeReasoningAppFixture(t, "kimi", model, func(w http.ResponseWriter, r *http.Request) {
 					calls++
 					var body map[string]any
-					json.NewDecoder(r.Body).Decode(&body)
+					if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+						t.Error(err)
+						return
+					}
 					if r.URL.Path != "/v1/chat/completions" || body["model"] != model || body["thinking"] != nil || body["reasoning_effort"] != "max" || body["max_tokens"] != nil || body["max_completion_tokens"] != float64(256) || body["stream"] != stream {
 						t.Errorf("native K3 request %+v", body)
 					}
@@ -66,11 +69,14 @@ func TestKimiK3ProtectedToolsSchemaAndOwnedMedia(t *testing.T) {
 					}
 					if !stream {
 						w.Header().Set("Content-Type", "application/json")
-						json.NewEncoder(w).Encode(map[string]any{"model": model, "choices": []any{map[string]any{"index": 0, "message": message, "finish_reason": finish}}, "usage": map[string]any{"prompt_tokens": 3, "completion_tokens": 7, "total_tokens": 10}})
+						if err := json.NewEncoder(w).Encode(map[string]any{"model": model, "choices": []any{map[string]any{"index": 0, "message": message, "finish_reason": finish}}, "usage": map[string]any{"prompt_tokens": 3, "completion_tokens": 7, "total_tokens": 10}}); err != nil {
+							t.Error(err)
+							return
+						}
 						return
 					}
 					w.Header().Set("Content-Type", "text/event-stream")
-					emit := func(value any) { data, _ := json.Marshal(value); fmt.Fprintf(w, "data: %s\n\n", data) }
+					emit := func(value any) { data, _ := json.Marshal(value); _, _ = fmt.Fprintf(w, "data: %s\n\n", data) }
 					emit(map[string]any{"model": model, "choices": []any{map[string]any{"index": 0, "delta": map[string]any{"reasoning_content": message["reasoning_content"]}, "finish_reason": nil}}})
 					delta := map[string]any{"content": message["content"]}
 					if calls == 1 {
@@ -78,7 +84,7 @@ func TestKimiK3ProtectedToolsSchemaAndOwnedMedia(t *testing.T) {
 					}
 					emit(map[string]any{"model": model, "choices": []any{map[string]any{"index": 0, "delta": delta, "finish_reason": finish}}})
 					emit(map[string]any{"choices": []any{}, "usage": map[string]any{"prompt_tokens": 3, "completion_tokens": 7, "total_tokens": 10}})
-					fmt.Fprint(w, "data: [DONE]\n\n")
+					_, _ = fmt.Fprint(w, "data: [DONE]\n\n")
 				})
 				parts := []*runtimev1.ChatContentPart{{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Content: &runtimev1.ChatContentPart_Text{Text: "Use lookup"}}}
 				for _, item := range []struct {

@@ -60,7 +60,7 @@ func ExecuteSeedreamImage(ctx context.Context, cfg MediaAdapterConfig, req *runt
 	if err != nil {
 		return nil, nil, "", err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	raw, err := readLimitedResponseBody(response.Body, 128<<20)
 	if err != nil {
 		return nil, nil, "", err

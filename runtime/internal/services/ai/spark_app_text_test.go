@@ -99,7 +99,7 @@ func TestSparkProtectedNativeTextToolsJSONAndThinking(t *testing.T) {
 							v["usage"] = usage
 						}
 						data, _ := json.Marshal(v)
-						fmt.Fprintf(w, "data: %s\n\n", data)
+						_, _ = fmt.Fprintf(w, "data: %s\n\n", data)
 					}
 					if raw, ok := message["reasoning_content"]; ok {
 						emit(map[string]any{"role": "assistant", "reasoning_content": raw}, nil)
@@ -112,7 +112,7 @@ func TestSparkProtectedNativeTextToolsJSONAndThinking(t *testing.T) {
 					}
 					emit(message, nil)
 					emit(map[string]any{"role": "assistant", "content": ""}, usage)
-					fmt.Fprint(w, "data: [DONE]\n\n")
+					_, _ = fmt.Fprint(w, "data: [DONE]\n\n")
 				})
 				req := &runtimev1.StreamLocalAppTextTurnRequest{Messages: []*runtimev1.LocalAppTextCandidateMessage{{Role: "user", Text: "Use lookup for Beijing and Shanghai and return JSON."}}}
 				if p.OrderedSystem() {

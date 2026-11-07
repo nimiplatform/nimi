@@ -92,7 +92,7 @@ func TestVolcengineProtectedAppNativeTextToolsSchemaAndOwnedImage(t *testing.T) 
 					w.Header().Set("Content-Type", "text/event-stream")
 					emit := func(delta map[string]any, finish any, usage any) {
 						raw, _ := json.Marshal(map[string]any{"model": model, "choices": []any{map[string]any{"index": 0, "delta": delta, "finish_reason": finish}}, "usage": usage})
-						fmt.Fprintf(w, "data: %s\n\n", raw)
+						_, _ = fmt.Fprintf(w, "data: %s\n\n", raw)
 					}
 					if p.EncryptedReasoning() {
 						emit(map[string]any{"reasoning_content": summary}, nil, nil)
@@ -106,7 +106,7 @@ func TestVolcengineProtectedAppNativeTextToolsSchemaAndOwnedImage(t *testing.T) 
 						delta["tool_calls"] = tc
 					}
 					emit(delta, finish, usage)
-					fmt.Fprint(w, "data: [DONE]\n\n")
+					_, _ = fmt.Fprint(w, "data: [DONE]\n\n")
 				})
 				parts := []*runtimev1.ChatContentPart{{Type: runtimev1.ChatContentPartType_CHAT_CONTENT_PART_TYPE_TEXT, Content: &runtimev1.ChatContentPart_Text{Text: "Use lookup for Beijing; answer with JSON after receiving its result."}}}
 				if p.Vision() {

@@ -16,7 +16,7 @@ func (b *Backend) probeQianfanConnector(ctx context.Context) error {
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var out struct {
 		Data  *[]json.RawMessage `json:"data"`
 		Error json.RawMessage    `json:"error"`
@@ -37,7 +37,7 @@ func (b *Backend) EmbedQianfan(ctx context.Context, model string, inputs []strin
 	if err != nil {
 		return nil, nil, err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	raw, err := readLimitedResponseBody(response.Body, 32<<20)
 	if err != nil {
 		return nil, nil, err

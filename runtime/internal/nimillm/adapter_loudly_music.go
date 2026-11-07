@@ -48,7 +48,7 @@ func loudlyRequest(ctx context.Context, b *Backend, method, path, contentType st
 		return nil, markNativeCreateResponseUnavailable(ctx, MapProviderRequestError(err))
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		defer response.Body.Close()
+		defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 		return nil, MapProviderHTTPError(response.StatusCode, nil)
 	}
 	return response, nil
@@ -80,7 +80,7 @@ func ExecuteLoudlyMusic(ctx context.Context, cfg MediaAdapterConfig, request *ru
 	if err != nil {
 		return nil, nil, "", err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var song struct {
 		ID       string          `json:"id"`
 		Model    string          `json:"model"`
@@ -114,7 +114,7 @@ func (p *CloudProvider) probeLoudlyConnector(ctx context.Context, endpoint, key 
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var balance struct {
 		ID           string `json:"id"`
 		Payg         *int64 `json:"payg_credits"`

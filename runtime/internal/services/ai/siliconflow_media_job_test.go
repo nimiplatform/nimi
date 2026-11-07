@@ -76,14 +76,14 @@ func TestSiliconFlowFiniteMediaNativeJobs(t *testing.T) {
 						t.Error(err)
 						return
 					}
-					defer r.MultipartForm.RemoveAll()
+					defer func(cleanup func() error) { _ = cleanup() }(r.MultipartForm.RemoveAll)
 					file, header, err := r.FormFile("file")
 					if err != nil {
 						t.Error(err)
 						return
 					}
 					data, err := io.ReadAll(file)
-					file.Close()
+					_ = file.Close()
 					if err != nil || !bytes.Equal(data, wav) || header.Header.Get("Content-Type") != "audio/wav" || len(r.MultipartForm.Value) != 1 || r.FormValue("model") != tc.model {
 						t.Error("native ASR payload changed")
 					}

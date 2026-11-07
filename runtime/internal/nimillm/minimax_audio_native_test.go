@@ -40,7 +40,7 @@ func TestMiniMaxFiniteSpeechUsesNativeFieldsAndSingleCapturedEndpoint(t *testing
 		}
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(status)
-		fmt.Fprint(w, `{"base_resp":{"status_code":0},"data":{"status":2,"audio":"01020304"},"extra_info":{"audio_size":4,"audio_sample_rate":32000,"audio_channel":1,"usage_characters":19}}`)
+		_, _ = fmt.Fprint(w, `{"base_resp":{"status_code":0},"data":{"status":2,"audio":"01020304"},"extra_info":{"audio_size":4,"audio_sample_rate":32000,"audio_channel":1,"usage_characters":19}}`)
 	}))
 	defer server.Close()
 	request := &runtimev1.SubmitScenarioJobRequest{Spec: &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_SpeechSynthesize{SpeechSynthesize: &runtimev1.SpeechSynthesizeScenarioSpec{Text: "  original text\n", Language: "zh", AudioFormat: "pcm", SampleRateHz: proto.Int32(32000), Volume: proto.Float32(1), Pitch: proto.Float32(0), VoiceRef: &runtimev1.VoiceReference{Kind: runtimev1.VoiceReferenceKind_VOICE_REFERENCE_KIND_PRESET, Reference: &runtimev1.VoiceReference_PresetVoiceId{PresetVoiceId: "male-qn-qingse"}}}}}}
@@ -68,7 +68,7 @@ func TestMiniMaxProbeReadsSystemVoicesWithoutGeneration(t *testing.T) {
 			t.Error("non-read-only body")
 		}
 		w.Header().Set("Content-Type", "application/json")
-		fmt.Fprint(w, body)
+		_, _ = fmt.Fprint(w, body)
 	}))
 	defer server.Close()
 	p := &CloudProvider{allowLoopbackEndpoint: true}

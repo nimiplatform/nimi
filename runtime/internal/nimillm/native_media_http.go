@@ -54,7 +54,7 @@ func nativeMediaHTTPRequest(ctx context.Context, b *Backend, method, path, conte
 		return nil, err
 	}
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
-		defer response.Body.Close()
+		defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 		var e map[string]any
 		_ = json.NewDecoder(io.LimitReader(response.Body, 64<<10)).Decode(&e)
 		return nil, MapProviderHTTPError(response.StatusCode, e)

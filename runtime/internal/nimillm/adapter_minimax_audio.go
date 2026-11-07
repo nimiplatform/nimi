@@ -85,7 +85,7 @@ func (p *CloudProvider) probeMiniMaxConnector(ctx context.Context, endpoint, key
 	if err != nil {
 		return err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	var out struct {
 		Voices *[]json.RawMessage `json:"system_voice"`
 		Base   *struct {
@@ -143,7 +143,7 @@ func ExecuteMiniMaxSpeech(ctx context.Context, cfg MediaAdapterConfig, req *runt
 	if err != nil {
 		return nil, nil, "", err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	audio, out, err := readMiniMaxAudio(response, model)
 	if err != nil {
 		return nil, nil, "", err
@@ -176,7 +176,7 @@ func ExecuteMiniMaxMusic(ctx context.Context, cfg MediaAdapterConfig, req *runti
 	if err != nil {
 		return nil, nil, "", err
 	}
-	defer response.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(response.Body.Close)
 	audio, _, err := readMiniMaxAudio(response, model)
 	if err != nil {
 		return nil, nil, "", err

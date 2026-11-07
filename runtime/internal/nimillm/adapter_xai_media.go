@@ -93,7 +93,7 @@ func startXAIMedia(ctx context.Context, cfg MediaAdapterConfig, model, adapter, 
 	if err != nil {
 		return nil, nil, "", markNativeCreateResponseUnavailable(ctx, MapProviderRequestError(err))
 	}
-	defer reply.Body.Close()
+	defer func(cleanup func() error) { _ = cleanup() }(reply.Body.Close)
 	if err := DecodeResponseJSON(reply, &response); err != nil {
 		if reply.StatusCode >= 200 && reply.StatusCode < 300 {
 			err = markNativeCreateResponseUnavailable(ctx, err)
@@ -351,7 +351,7 @@ func openXAIImageArtifacts(ctx context.Context, artifacts []*runtimev1.ScenarioA
 		var prefix bytes.Buffer
 		geometry, format, err := image.DecodeConfig(io.TeeReader(io.LimitReader(stream, 32<<20), &prefix))
 		if err != nil || (format != "jpeg" && format != "png" && format != "webp") || geometry.Width <= 0 || geometry.Height <= 0 || int64(geometry.Width)*int64(geometry.Height) > 16<<20 {
-			stream.Close()
+			_ = stream.Close()
 			return nil, "", -1, xaiMediaInvalid()
 		}
 		mime := "image/" + format

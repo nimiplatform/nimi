@@ -36,7 +36,7 @@ func TestAzureNativeImageGenerationAndOwnedMaskUseCapturedDeployment(t *testing.
 						t.Error(err)
 						return
 					}
-					defer r.MultipartForm.RemoveAll()
+					defer func(cleanup func() error) { _ = cleanup() }(r.MultipartForm.RemoveAll)
 					if r.FormValue("model") != "captured-images" || r.FormValue("response_format") != "" {
 						t.Error("wrong edit fields")
 					}
@@ -46,7 +46,7 @@ func TestAzureNativeImageGenerationAndOwnedMaskUseCapturedDeployment(t *testing.
 							t.Error(err)
 							return nil
 						}
-						defer f.Close()
+						defer func(cleanup func() error) { _ = cleanup() }(f.Close)
 						data, _ := io.ReadAll(f)
 						return data
 					}

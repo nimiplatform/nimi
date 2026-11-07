@@ -223,7 +223,7 @@ func TestRetentionFileHolder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer windows.CloseHandle(handle)
+	defer func() { _ = windows.CloseHandle(handle) }()
 	fmt.Println("locked")
 	_, _ = io.Copy(io.Discard, os.Stdin)
 }
@@ -300,7 +300,7 @@ func TestRetentionActualPartialFailureKeepsIdentityAndCanResume(t *testing.T) {
 	if err := windows.SetFileAttributes(readOnly, windows.FILE_ATTRIBUTE_READONLY); err != nil {
 		t.Fatal(err)
 	}
-	defer windows.SetFileAttributes(readOnly, windows.FILE_ATTRIBUTE_NORMAL)
+	defer func() { _ = windows.SetFileAttributes(readOnly, windows.FILE_ATTRIBUTE_NORMAL) }()
 	result := DeleteRetainedVersion(target, key, retentionTestBoundary(root), func() error { return nil })
 	if result.Removed || result.DeletedBytes == 0 || result.Reason == "" {
 		t.Fatalf("expected real partial failure: %+v", result)

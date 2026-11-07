@@ -94,7 +94,7 @@ func TestSeedanceObservationKeepsExactIdentityJPEGAndReportedUsage(t *testing.T)
 		func(p map[string]any) { p["usage"] = map[string]any{"completion_tokens": -1, "total_tokens": -1} },
 		func(p map[string]any) { p["usage"] = map[string]any{"completion_tokens": 10, "total_tokens": 11} },
 		func(p map[string]any) {
-			p["content"].(map[string]any)["video_url"] = "https://user:password@media.example.test/video.mp4"
+			p["content"].(map[string]any)["video_url"] = "https://user:password@media.example.test/video.mp4" // pragma: allowlist secret -- URL userinfo rejection fixture
 		},
 	} {
 		bad := response()

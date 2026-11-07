@@ -53,7 +53,7 @@ func TestTogetherProtectedVideoOriginalJobAndCredentialFreeArtifact(t *testing.T
 						t.Error("provider credential leaked to artifact URL")
 					}
 					w.Header().Set("Content-Type", "video/mp4")
-					w.Write(video)
+					_, _ = w.Write(video)
 					return
 				}
 				if r.Header.Get("Authorization") != "Bearer test-key" {
