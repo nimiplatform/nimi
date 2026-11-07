@@ -406,7 +406,9 @@ providers:
     endpoint_requirement: default_or_explicit
     inventory_mode: static_source
     capabilities:
+      - audio.synthesize
       - image.generate
+      - music.generate
       - text.generate
       - video.generate
     sources:

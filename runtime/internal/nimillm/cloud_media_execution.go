@@ -57,6 +57,10 @@ func (p *CloudProvider) ExecuteMediaAdapter(
 		err           error
 	)
 	switch strings.TrimSpace(adapter) {
+	case capabilitydriver.CloudMediaAdapterMiniMaxSpeech:
+		artifacts, usage, providerJobID, err = ExecuteMiniMaxSpeech(ctx, cfg, request, modelID)
+	case capabilitydriver.CloudMediaAdapterMiniMaxMusic:
+		artifacts, usage, providerJobID, err = ExecuteMiniMaxMusic(ctx, cfg, request, modelID)
 	case capabilitydriver.CloudMediaAdapterSiliconFlowImage:
 		artifacts, usage, providerJobID, err = ExecuteSiliconFlowImage(ctx, cfg, request, modelID)
 	case capabilitydriver.CloudMediaAdapterSiliconFlowSpeech:

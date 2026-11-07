@@ -1,6 +1,6 @@
 version: 1
 provider: minimax
-catalog_version: 2026-11-05-minimax-h3-v2
+catalog_version: 2026-11-07-minimax-speech-music
 inventory_mode: static_source
 default_text_model: MiniMax-M3.1-Flash
 models:
@@ -449,7 +449,215 @@ models:
       outputs:
         video_url: true
         last_frame_url: false
-voices: []
+  - model_id: speech-2.8-hd
+    provider: minimax
+    model_type: tts
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Native character billing; exact regional/account rate remains unknown. Prior2.6 remains callable but is explicitly legacy in the provider model table.
+    source_ref:
+      url: https://platform.minimax.cn/docs/api-reference/speech-t2a-http
+      retrieved_at: 2026-11-07
+      note: Current finite native T2A schemas, generation-specific emotions, hex audio and terminal status.
+    voice_set_id: minimax:minimax-current-presets
+    voice_discovery_mode: static_catalog
+    voice_ref_kinds:
+      - preset_voice_id
+  - model_id: speech-2.8-turbo
+    provider: minimax
+    model_type: tts
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Native character billing; exact regional/account rate remains unknown. Prior2.6 remains callable but is explicitly legacy in the provider model table.
+    source_ref:
+      url: https://platform.minimax.cn/docs/api-reference/speech-t2a-http
+      retrieved_at: 2026-11-07
+      note: Current finite native T2A schemas, generation-specific emotions, hex audio and terminal status.
+    voice_set_id: minimax:minimax-current-presets
+    voice_discovery_mode: static_catalog
+    voice_ref_kinds:
+      - preset_voice_id
+  - model_id: speech-2.6-hd
+    provider: minimax
+    model_type: tts
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Native character billing; exact regional/account rate remains unknown. Prior2.6 remains callable but is explicitly legacy in the provider model table.
+    source_ref:
+      url: https://platform.minimax.cn/docs/api-reference/speech-t2a-http
+      retrieved_at: 2026-11-07
+      note: Current finite native T2A schemas, generation-specific emotions, hex audio and terminal status.
+    voice_set_id: minimax:minimax-current-presets
+    voice_discovery_mode: static_catalog
+    voice_ref_kinds:
+      - preset_voice_id
+  - model_id: speech-2.6-turbo
+    provider: minimax
+    model_type: tts
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Native character billing; exact regional/account rate remains unknown. Prior2.6 remains callable but is explicitly legacy in the provider model table.
+    source_ref:
+      url: https://platform.minimax.cn/docs/api-reference/speech-t2a-http
+      retrieved_at: 2026-11-07
+      note: Current finite native T2A schemas, generation-specific emotions, hex audio and terminal status.
+    voice_set_id: minimax:minimax-current-presets
+    voice_discovery_mode: static_catalog
+    voice_ref_kinds:
+      - preset_voice_id
+  - model_id: music-3.0
+    provider: minimax
+    model_type: music
+    updated_at: 2026-11-07
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Historical paying accounts only since2026-08-20; not offered to new users. Native generation has no numeric duration control; Runtime enforces a fixed600-second decoded-output ceiling.
+    source_ref:
+      url: https://platform.minimax.cn/docs/api-reference/music-generation
+      retrieved_at: 2026-11-07
+      note: Paid3.0/2.6 music APIs retain existing-paying-user access only since2026-08-20; free rows are discontinued.
+  - model_id: music-2.6
+    provider: minimax
+    model_type: music
+    updated_at: 2026-11-07
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Historical paying accounts only since2026-08-20; not offered to new users. Native generation has no numeric duration control; Runtime enforces a fixed600-second decoded-output ceiling.
+    source_ref:
+      url: https://platform.minimax.cn/docs/api-reference/music-generation
+      retrieved_at: 2026-11-07
+      note: Paid3.0/2.6 music APIs retain existing-paying-user access only since2026-08-20; free rows are discontinued.
+voices:
+  - voice_id: male-qn-qingse
+    voice_set_id: minimax:minimax-current-presets
+    provider: minimax
+    name: 青涩青年
+    langs:
+      - zh
+    model_ids:
+      - speech-2.8-hd
+      - speech-2.8-turbo
+      - speech-2.6-hd
+      - speech-2.6-turbo
+    source_ref:
+      url: https://platform.minimax.cn/docs/faq/system-voice-id
+      retrieved_at: 2026-11-07
+      note: Reviewed system voice subset; newest additional IDs are also explicitly listed in the current T2A schema.
+  - voice_id: female-shaonv
+    voice_set_id: minimax:minimax-current-presets
+    provider: minimax
+    name: 少女
+    langs:
+      - zh
+    model_ids:
+      - speech-2.8-hd
+      - speech-2.8-turbo
+      - speech-2.6-hd
+      - speech-2.6-turbo
+    source_ref:
+      url: https://platform.minimax.cn/docs/faq/system-voice-id
+      retrieved_at: 2026-11-07
+      note: Reviewed system voice subset; newest additional IDs are also explicitly listed in the current T2A schema.
+  - voice_id: English_Graceful_Lady
+    voice_set_id: minimax:minimax-current-presets
+    provider: minimax
+    name: Graceful Lady
+    langs:
+      - en
+    model_ids:
+      - speech-2.8-hd
+      - speech-2.8-turbo
+      - speech-2.6-hd
+      - speech-2.6-turbo
+    source_ref:
+      url: https://platform.minimax.cn/docs/faq/system-voice-id
+      retrieved_at: 2026-11-07
+      note: Reviewed system voice subset; newest additional IDs are also explicitly listed in the current T2A schema.
+  - voice_id: English_Insightful_Speaker
+    voice_set_id: minimax:minimax-current-presets
+    provider: minimax
+    name: Insightful Speaker
+    langs:
+      - en
+    model_ids:
+      - speech-2.8-hd
+      - speech-2.8-turbo
+      - speech-2.6-hd
+      - speech-2.6-turbo
+    source_ref:
+      url: https://platform.minimax.cn/docs/faq/system-voice-id
+      retrieved_at: 2026-11-07
+      note: Reviewed system voice subset; newest additional IDs are also explicitly listed in the current T2A schema.
+  - voice_id: Japanese_Whisper_Belle
+    voice_set_id: minimax:minimax-current-presets
+    provider: minimax
+    name: Whisper Belle
+    langs:
+      - ja
+    model_ids:
+      - speech-2.8-hd
+      - speech-2.8-turbo
+      - speech-2.6-hd
+      - speech-2.6-turbo
+    source_ref:
+      url: https://platform.minimax.cn/docs/faq/system-voice-id
+      retrieved_at: 2026-11-07
+      note: Reviewed system voice subset; newest additional IDs are also explicitly listed in the current T2A schema.
+  - voice_id: Cantonese_GentleLady
+    voice_set_id: minimax:minimax-current-presets
+    provider: minimax
+    name: 温柔女声
+    langs:
+      - yue
+    model_ids:
+      - speech-2.8-hd
+      - speech-2.8-turbo
+      - speech-2.6-hd
+      - speech-2.6-turbo
+    source_ref:
+      url: https://platform.minimax.cn/docs/faq/system-voice-id
+      retrieved_at: 2026-11-07
+      note: Reviewed system voice subset; newest additional IDs are also explicitly listed in the current T2A schema.
 selection_profiles:
   - provider: minimax
     profile_id: text.general

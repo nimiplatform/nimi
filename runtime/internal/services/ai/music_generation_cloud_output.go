@@ -100,7 +100,7 @@ func (s *Service) commitCloudMusicGeneration(ctx context.Context, jobID string, 
 // @nimi-authority: rule.nimi.runtime.ai-provider.music-generation
 func validateCloudMusicMeasuredDuration(adapter string, budgetSeconds int32, durationMS int64) error {
 	switch adapter {
-	case capabilitydriver.CloudMediaAdapterSoundverseMusic:
+	case capabilitydriver.CloudMediaAdapterSoundverseMusic, capabilitydriver.CloudMediaAdapterMiniMaxMusic:
 		if budgetSeconds != 600 || durationMS <= 0 || durationMS > 600000 {
 			return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 		}

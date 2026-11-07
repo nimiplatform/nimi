@@ -823,6 +823,20 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 			return nil, err
 		}
 	}
+	if d.provider == "minimax" {
+		if target.capabilityContract == "audio.synthesize" {
+			if err := validateMiniMaxSpeechRequest(mapped, target.providerModelID, streamMode); err != nil {
+				return nil, err
+			}
+			adapter = CloudMediaAdapterMiniMaxSpeech
+		}
+		if target.capabilityContract == "music.generate" {
+			if err := validateMiniMaxMusicRequest(mapped, target.providerModelID); err != nil {
+				return nil, err
+			}
+			adapter = CloudMediaAdapterMiniMaxMusic
+		}
+	}
 	if d.provider == "openai" && target.capabilityContract == "image.generate" && openAIImageModelAdmitted(target.providerModelID) {
 		if err := validateOpenAIImageRequest(mapped, target.providerModelID); err != nil {
 			return nil, err

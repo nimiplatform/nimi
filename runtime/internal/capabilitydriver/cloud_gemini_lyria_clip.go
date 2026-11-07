@@ -43,6 +43,9 @@ func validateGeminiLyriaClipRequest(request *runtimev1.SubmitScenarioJobRequest,
 }
 
 func CloudMusicInputCapabilities(provider, model, capability string) *runtimev1.MusicInputCapabilities {
+	if provider == "minimax" && IsMiniMaxMusicModel(model) && capability == "music.generate" {
+		return miniMaxMusicInputCapabilities()
+	}
 	if provider == "soundverse" && IsSoundverseMusicModel(model) && capability == "music.generate" {
 		return soundverseMusicInputCapabilities()
 	}

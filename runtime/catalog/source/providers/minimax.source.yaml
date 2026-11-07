@@ -1,6 +1,6 @@
 schema_version: 3
 provider: minimax
-catalog_version: 2026-11-05-minimax-h3-v2
+catalog_version: 2026-11-07-minimax-speech-music
 generated_target: runtime/catalog/providers/minimax.yaml
 runtime:
   inventory_mode: static_source
@@ -21,26 +21,20 @@ defaults:
     output: unknown
     currency: USD
     as_of: 2026-07-20
-    notes: Current MiniMax M3 pricing varies by pay-as-you-go and Token Plan product
-      surface.
-
+    notes: Current MiniMax M3 pricing varies by pay-as-you-go and Token Plan product surface.
 sources:
   - source_id: minimax_m31_messages
     url: https://platform.minimax.cn/docs/api-reference/text-chat-anthropic
     retrieved_at: 2026-11-05
-    note: Exact current M3.1-Flash and M3 Messages API, auto-only tools, native
-      thinking/signature replay, and 512K maximum output.
+    note: Exact current M3.1-Flash and M3 Messages API, auto-only tools, native thinking/signature replay, and 512K maximum output.
   - source_id: minimax_m31_models
     url: https://platform.minimax.cn/docs/guides/text-generation
     retrieved_at: 2026-11-05
-    note: Current M3.1-Flash and separately served M3, each with 1000000 token
-      context, using the current China API origin; account access remains
-      credential-specific.
+    note: Current M3.1-Flash and separately served M3, each with 1000000 token context, using the current China API origin; account access remains credential-specific.
   - source_id: minimax_messages_media
     url: https://platform.minimax.io/docs/api-reference/text-anthropic-api
     retrieved_at: 2026-11-05
-    note: Native image/video media sources, byte/body bounds and ignored controls;
-      precise tool choice follows the API reference.
+    note: Native image/video media sources, byte/body bounds and ignored controls; precise tool choice follows the API reference.
   - source_id: minimax_api_overview
     url: https://platform.minimaxi.com/docs/api-reference/api-overview
     retrieved_at: 2026-07-20
@@ -52,13 +46,11 @@ sources:
   - source_id: minimax_text_models_doc
     url: https://platform.minimaxi.com/docs/guides/text-generation
     retrieved_at: 2026-07-20
-    note: Current MiniMax text model matrix, exact M3 model id, multimodal input
-      contract, and 1M context limit.
+    note: Current MiniMax text model matrix, exact M3 model id, multimodal input contract, and 1M context limit.
   - source_id: minimax_sdk_quickstart_doc
     url: https://platform.minimaxi.com/docs/guides/quickstart-sdk
     retrieved_at: 2026-07-20
-    note: Current SDK quickstart using MiniMax-M3 through the production API
-      endpoint.
+    note: Current SDK quickstart using MiniMax-M3 through the production API endpoint.
   - source_id: minimax_image_intro_doc
     url: https://platform.minimaxi.com/docs/guides/image-generation
     retrieved_at: 2026-07-20
@@ -66,18 +58,15 @@ sources:
   - source_id: minimax_video_intro_doc
     url: https://platform.minimaxi.com/docs/guides/video-generation
     retrieved_at: 2026-07-20
-    note: MiniMax video generation overview with the current Hailuo video model
-      family.
+    note: MiniMax video generation overview with the current Hailuo video model family.
   - source_id: minimax_video_t2v_api
     url: https://platform.minimaxi.com/docs/api-reference/video-generation-t2v
     retrieved_at: 2026-08-12
-    note: Provider-native text-to-video request fields and the exact
-      MiniMax-Hailuo-2.3 model admission.
+    note: Provider-native text-to-video request fields and the exact MiniMax-Hailuo-2.3 model admission.
   - source_id: minimax_video_i2v_api
     url: https://platform.minimaxi.com/docs/api-reference/video-generation-i2v
     retrieved_at: 2026-08-12
-    note: Provider-native image-to-video request fields, including
-      first_frame_image, for MiniMax-Hailuo-2.3.
+    note: Provider-native image-to-video request fields, including first_frame_image, for MiniMax-Hailuo-2.3.
   - source_id: minimax_pricing_paygo
     url: https://platform.minimaxi.com/docs/guides/pricing-paygo
     retrieved_at: 2026-07-20
@@ -85,8 +74,7 @@ sources:
   - source_id: minimax_h3_v2_create
     url: https://platform.minimax.cn/docs/api-reference/video-generation-v2-create
     retrieved_at: 2026-11-05
-    note: Exact H3, Highspeed, Lite and Max media contracts and required native
-      controls.
+    note: Exact H3, Highspeed, Lite and Max media contracts and required native controls.
   - source_id: minimax_h3_v2_query
     url: https://platform.minimax.cn/docs/api-reference/video-generation-v2-query
     retrieved_at: 2026-11-05
@@ -94,63 +82,80 @@ sources:
   - source_id: minimax_h3_v2_delete
     url: https://platform.minimax.cn/docs/api-reference/video-generation-v2-delete
     retrieved_at: 2026-11-05
-    note: Queued cancellation differs from running noncancelability and
-      completed-record deletion.
+    note: Queued cancellation differs from running noncancelability and completed-record deletion.
   - source_id: minimax_h3_v2_schema
     url: https://platform.minimax.cn/docs/api-reference/video/generation/api/v2-video-generation.json
     retrieved_at: 2026-11-05
-    note: Native image/audio/video data URI support and complete 64MB request
-      envelope.
-
+    note: Native image/audio/video data URI support and complete 64MB request envelope.
+  - source_id: minimax_current_speech
+    url: https://platform.minimax.cn/docs/api-reference/speech-t2a-http
+    retrieved_at: 2026-11-07
+    note: Current finite native T2A schemas, generation-specific emotions, hex audio and terminal status.
+  - source_id: minimax_current_voices
+    url: https://platform.minimax.cn/docs/faq/system-voice-id
+    retrieved_at: 2026-11-07
+    note: Reviewed system voice subset; newest additional IDs are also explicitly listed in the current T2A schema.
+  - source_id: minimax_current_music
+    url: https://platform.minimax.cn/docs/api-reference/music-generation
+    retrieved_at: 2026-11-07
+    note: Paid3.0/2.6 music APIs retain existing-paying-user access only since2026-08-20; free rows are discontinued.
+  - source_id: minimax_current_model_matrix
+    url: https://platform.minimax.io/docs/guides/models-intro
+    retrieved_at: 2026-11-07
+    note: Current Speech2.8 and prior2.6, Music3.0/2.6 and historical-paid-account limitation.
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
     model_id: MiniMax-M3.1-Flash
     reviewed_at: 2026-11-05
     freshness_sla_days: 21
-    rationale: Current documented M3.1-Flash target with native image/video inputs,
-      typed adaptive effort and complete thinking replay; account access is
-      verified separately.
-
+    rationale: Current documented M3.1-Flash target with native image/video inputs, typed adaptive effort and complete thinking replay; account access is verified separately.
 models:
   - model_id: MiniMax-M3.1-Flash
     model_type: chat
     updated_at: 2026-11-05
     context_window_tokens: 1000000
-    capabilities: [ text.generate ]
-    features: [ input.image, input.video ]
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+      - input.video
     pricing:
       unit: token
       input: unknown
       output: unknown
       currency: USD
       as_of: 2026-11-05
-      notes: Current exact Messages target; always-adaptive thinking, native default
-        or low/medium/high/xhigh/max effort, and auto function tools. Account
-        and regional availability require separate acceptance.
-    source_ids: [ minimax_m31_messages, minimax_m31_models, minimax_messages_media ]
-
+      notes: Current exact Messages target; always-adaptive thinking, native default or low/medium/high/xhigh/max effort, and auto function tools. Account and regional availability require separate acceptance.
+    source_ids:
+      - minimax_m31_messages
+      - minimax_m31_models
+      - minimax_messages_media
   - model_id: MiniMax-M3
     model_type: chat
     updated_at: 2026-11-05
     context_window_tokens: 1000000
-    capabilities: [ text.generate ]
-    features: [ input.image, input.video ]
+    capabilities:
+      - text.generate
+    features:
+      - input.image
+      - input.video
     pricing:
       unit: token
       input: unknown
       output: unknown
       currency: USD
       as_of: 2026-07-20
-      notes: Exact M3 Messages target with default thinking off or explicit adaptive
-        native-default intensity; arbitrary effort values are not passed because
-        the provider ignores them.
-    source_ids: [ minimax_m31_messages, minimax_m31_models, minimax_messages_media ]
-
+      notes: Exact M3 Messages target with default thinking off or explicit adaptive native-default intensity; arbitrary effort values are not passed because the provider ignores them.
+    source_ids:
+      - minimax_m31_messages
+      - minimax_m31_models
+      - minimax_messages_media
   - model_id: MiniMax-M2.7
     model_type: chat
     updated_at: 2026-04-18
-    capabilities: [ text.generate ]
+    capabilities:
+      - text.generate
     pricing:
       unit: token
       input: 0.3
@@ -158,50 +163,63 @@ models:
       currency: USD
       as_of: 2026-04-18
       notes: Official MiniMax pay-as-you-go pricing for the MiniMax-M2.7 text model.
-    source_ids: [ minimax_api_overview, minimax_text_openai_api, minimax_pricing_paygo ]
-
+    source_ids:
+      - minimax_api_overview
+      - minimax_text_openai_api
+      - minimax_pricing_paygo
   - model_id: MiniMax-Hailuo-2.3
     model_type: video
     updated_at: 2026-04-18
-    capabilities: [ video.generate ]
-    features: [ input.image ]
+    capabilities:
+      - video.generate
+    features:
+      - input.image
     pricing:
       unit: request
       input: unknown
       output: unknown
       currency: USD
       as_of: 2026-04-18
-      notes: Official pricing page exposes MiniMax-Hailuo-2.3-Fast prices clearly, but
-        the non-fast MiniMax-Hailuo-2.3 row is not machine-readable enough to
-        admit a precise stable price here.
+      notes: Official pricing page exposes MiniMax-Hailuo-2.3-Fast prices clearly, but the non-fast MiniMax-Hailuo-2.3 row is not machine-readable enough to admit a precise stable price here.
     source_ids:
-      [
-        minimax_api_overview,
-        minimax_video_intro_doc,
-        minimax_video_t2v_api,
-        minimax_video_i2v_api,
-        minimax_pricing_paygo
-      ]
+      - minimax_api_overview
+      - minimax_video_intro_doc
+      - minimax_video_t2v_api
+      - minimax_video_i2v_api
+      - minimax_pricing_paygo
     video_generation:
-      modes: [ t2v, i2v_first_frame ]
+      modes:
+        - t2v
+        - i2v_first_frame
       input_roles:
-        t2v: [ prompt ]
-        i2v_first_frame: [ prompt, first_frame ]
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
       limits:
-        resolution: [ 768p, 1080p ]
-        duration_sec: [ 6, 10 ]
+        resolution:
+          - 768p
+          - 1080p
+        duration_sec:
+          - 6
+          - 10
       options:
-        supports: [ resolution, duration_sec ]
+        supports:
+          - resolution
+          - duration_sec
         constraints: {}
       outputs:
         video_url: true
-
   - model_id: image-01
     model_type: image
     updated_at: 2026-04-18
-    capabilities: [ image.generate ]
+    capabilities:
+      - image.generate
     image_request_options:
-      response_formats: [ b64_json, url ]
+      response_formats:
+        - b64_json
+        - url
       max_images_per_request: 1
       supports_negative_prompt: true
       supports_reference_images: false
@@ -218,7 +236,10 @@ models:
       currency: USD
       as_of: 2026-04-18
       notes: Official MiniMax pay-as-you-go pricing for image-01.
-    source_ids: [ minimax_api_overview, minimax_image_intro_doc, minimax_pricing_paygo ]
+    source_ids:
+      - minimax_api_overview
+      - minimax_image_intro_doc
+      - minimax_pricing_paygo
   - model_id: MiniMax-H3
     model_type: video
     updated_at: 2026-11-05
@@ -503,3 +524,160 @@ models:
       outputs:
         video_url: true
         last_frame_url: false
+  - model_id: speech-2.8-hd
+    model_type: tts
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Native character billing; exact regional/account rate remains unknown. Prior2.6 remains callable but is explicitly legacy in the provider model table.
+    source_ids:
+      - minimax_current_speech
+      - minimax_current_voices
+      - minimax_current_model_matrix
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: minimax-current-presets
+      supports_voice_ref_kinds:
+        - preset_voice_id
+      langs_ref: speech_languages
+  - model_id: speech-2.8-turbo
+    model_type: tts
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Native character billing; exact regional/account rate remains unknown. Prior2.6 remains callable but is explicitly legacy in the provider model table.
+    source_ids:
+      - minimax_current_speech
+      - minimax_current_voices
+      - minimax_current_model_matrix
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: minimax-current-presets
+      supports_voice_ref_kinds:
+        - preset_voice_id
+      langs_ref: speech_languages
+  - model_id: speech-2.6-hd
+    model_type: tts
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Native character billing; exact regional/account rate remains unknown. Prior2.6 remains callable but is explicitly legacy in the provider model table.
+    source_ids:
+      - minimax_current_speech
+      - minimax_current_voices
+      - minimax_current_model_matrix
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: minimax-current-presets
+      supports_voice_ref_kinds:
+        - preset_voice_id
+      langs_ref: speech_languages
+  - model_id: speech-2.6-turbo
+    model_type: tts
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Native character billing; exact regional/account rate remains unknown. Prior2.6 remains callable but is explicitly legacy in the provider model table.
+    source_ids:
+      - minimax_current_speech
+      - minimax_current_voices
+      - minimax_current_model_matrix
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: minimax-current-presets
+      supports_voice_ref_kinds:
+        - preset_voice_id
+      langs_ref: speech_languages
+  - model_id: music-3.0
+    model_type: music
+    updated_at: 2026-11-07
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Historical paying accounts only since2026-08-20; not offered to new users. Native generation has no numeric duration control; Runtime enforces a fixed600-second decoded-output ceiling.
+    source_ids:
+      - minimax_current_music
+      - minimax_current_model_matrix
+  - model_id: music-2.6
+    model_type: music
+    updated_at: 2026-11-07
+    capabilities:
+      - music.generate
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Historical paying accounts only since2026-08-20; not offered to new users. Native generation has no numeric duration control; Runtime enforces a fixed600-second decoded-output ceiling.
+    source_ids:
+      - minimax_current_music
+      - minimax_current_model_matrix
+language_profiles:
+  speech_zh:
+    - zh
+  speech_en:
+    - en
+  speech_ja:
+    - ja
+  speech_yue:
+    - yue
+  speech_languages:
+    - zh
+    - en
+    - ja
+    - yue
+voice_sets:
+  - voice_set_id: minimax-current-presets
+    source_ids:
+      - minimax_current_voices
+      - minimax_current_speech
+    langs_ref: speech_languages
+    voices:
+      - voice_id: male-qn-qingse
+        name: 青涩青年
+        langs_ref: speech_zh
+      - voice_id: female-shaonv
+        name: 少女
+        langs_ref: speech_zh
+      - voice_id: English_Graceful_Lady
+        name: Graceful Lady
+        langs_ref: speech_en
+      - voice_id: English_Insightful_Speaker
+        name: Insightful Speaker
+        langs_ref: speech_en
+      - voice_id: Japanese_Whisper_Belle
+        name: Whisper Belle
+        langs_ref: speech_ja
+      - voice_id: Cantonese_GentleLady
+        name: 温柔女声
+        langs_ref: speech_yue

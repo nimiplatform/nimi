@@ -78,8 +78,8 @@ func retrieveMiniMaxVideoSource(ctx context.Context, cfg MediaAdapterConfig, que
 
 const AdapterMiniMaxTask = "minimax_task_adapter"
 
-// ExecuteMiniMaxTask handles MiniMax scenario job execution for TTS, STT, image,
-// and video modalities.
+// ExecuteMiniMaxTask executes the selected task dialect. Current finite speech
+// and music use their separately validated native audio adapters.
 func ExecuteMiniMaxTask(
 	ctx context.Context,
 	cfg MediaAdapterConfig,
@@ -100,141 +100,6 @@ func ExecuteMiniMaxTask(
 	switch scenarioModal(req) {
 	case runtimev1.Modal_MODAL_IMAGE:
 		return executeMiniMaxImage(ctx, cfg, req, modelResolved, extractScenarioExtensions)
-	case runtimev1.Modal_MODAL_TTS:
-		spec := scenarioSpeechSynthesizeSpec(req)
-		if spec == nil {
-			return nil, nil, "", grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
-		}
-		scenarioExtensions := StructToMap(extractScenarioExtensions(req))
-		miniMaxPayload := map[string]any{
-			"model":  modelResolved,
-			"text":   strings.TrimSpace(spec.GetText()),
-			"input":  strings.TrimSpace(spec.GetText()),
-			"stream": false,
-		}
-		if len(scenarioExtensions) > 0 {
-			miniMaxPayload["extensions"] = scenarioExtensions
-		}
-		voiceSetting := map[string]any{}
-		if voice := strings.TrimSpace(scenarioVoiceRef(spec)); voice != "" {
-			voiceSetting["voice"] = voice
-		}
-		if language := strings.TrimSpace(spec.GetLanguage()); language != "" {
-			voiceSetting["language"] = language
-		}
-		if emotion := strings.TrimSpace(spec.GetEmotion()); emotion != "" {
-			voiceSetting["emotion"] = emotion
-		}
-		if speed := scenarioSpeechSpeed(spec); speed > 0 {
-			voiceSetting["speed"] = speed
-		}
-		if pitch := spec.GetPitch(); pitch != 0 {
-			voiceSetting["pitch"] = pitch
-		}
-		if volume := spec.GetVolume(); volume > 0 {
-			voiceSetting["volume"] = volume
-		}
-		if len(voiceSetting) > 0 {
-			miniMaxPayload["voice_setting"] = voiceSetting
-		}
-		audioSetting := map[string]any{}
-		if audioFormat := strings.TrimSpace(spec.GetAudioFormat()); audioFormat != "" {
-			audioSetting["format"] = audioFormat
-			miniMaxPayload["audio_format"] = audioFormat
-			miniMaxPayload["response_format"] = audioFormat
-		}
-		if sampleRate := spec.GetSampleRateHz(); sampleRate > 0 {
-			audioSetting["sample_rate"] = sampleRate
-			miniMaxPayload["sample_rate_hz"] = sampleRate
-		}
-		if len(audioSetting) > 0 {
-			miniMaxPayload["audio_setting"] = audioSetting
-		}
-		openAIPayload := map[string]any{
-			"model": modelResolved,
-			"input": strings.TrimSpace(spec.GetText()),
-			"text":  strings.TrimSpace(spec.GetText()),
-		}
-		if voice := strings.TrimSpace(scenarioVoiceRef(spec)); voice != "" {
-			openAIPayload["voice"] = voice
-		}
-		if language := strings.TrimSpace(spec.GetLanguage()); language != "" {
-			openAIPayload["language"] = language
-		}
-		if emotion := strings.TrimSpace(spec.GetEmotion()); emotion != "" {
-			openAIPayload["emotion"] = emotion
-		}
-		if speed := scenarioSpeechSpeed(spec); speed > 0 {
-			openAIPayload["speed"] = speed
-		}
-		if pitch := spec.GetPitch(); pitch != 0 {
-			openAIPayload["pitch"] = pitch
-		}
-		if volume := spec.GetVolume(); volume > 0 {
-			openAIPayload["volume"] = volume
-		}
-		if sampleRate := spec.GetSampleRateHz(); sampleRate > 0 {
-			openAIPayload["sample_rate_hz"] = sampleRate
-		}
-		if audioFormat := strings.TrimSpace(spec.GetAudioFormat()); audioFormat != "" {
-			openAIPayload["audio_format"] = audioFormat
-			openAIPayload["response_format"] = audioFormat
-		}
-		if len(scenarioExtensions) > 0 {
-			openAIPayload["extensions"] = scenarioExtensions
-		}
-		paths := resolveMiniMaxSpeechPaths()
-		var firstNotFoundErr error
-		var firstOtherErr error
-		for _, endpointPath := range paths {
-			payload := openAIPayload
-			if isMiniMaxNativeTTSPath(endpointPath) {
-				payload = miniMaxPayload
-			}
-			body, err := DoJSONOrBinaryRequest(ctx, http.MethodPost, JoinURL(baseURL, endpointPath), apiKey, payload, nil)
-			if err != nil {
-				if status.Code(err) == codes.NotFound {
-					if firstNotFoundErr == nil {
-						firstNotFoundErr = err
-					}
-					continue
-				}
-				return nil, nil, "", err
-			}
-			artifactBytes, mimeType := ExtractSpeechArtifactFromResponseBody(ctx, body)
-			if len(artifactBytes) == 0 {
-				if firstOtherErr == nil {
-					firstOtherErr = grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
-				}
-				continue
-			}
-			if !strings.HasPrefix(strings.ToLower(strings.TrimSpace(mimeType)), "audio/") {
-				mimeType = ResolveSpeechArtifactMIME(spec, artifactBytes)
-			}
-			artifact := BinaryArtifact(mimeType, artifactBytes, map[string]any{
-				"adapter":      AdapterMiniMaxTask,
-				"endpoint":     endpointPath,
-				"voice":        strings.TrimSpace(scenarioVoiceRef(spec)),
-				"language":     strings.TrimSpace(spec.GetLanguage()),
-				"audio_format": strings.TrimSpace(spec.GetAudioFormat()),
-				"emotion":      strings.TrimSpace(spec.GetEmotion()),
-				"extensions":   scenarioExtensions,
-			})
-			ApplySpeechSpecMetadata(artifact, spec)
-			return []*runtimev1.ScenarioArtifact{artifact}, nil, "", nil
-		}
-		if firstOtherErr != nil {
-			return nil, nil, "", firstOtherErr
-		}
-		if firstNotFoundErr != nil {
-			return nil, nil, "", grpcerr.WrapWithReasonCode(
-				codes.FailedPrecondition,
-				runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED,
-				firstNotFoundErr,
-				grpcerr.ReasonOptions{Message: "provider speech endpoint is unsupported"},
-			)
-		}
-		return nil, nil, "", grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 	case runtimev1.Modal_MODAL_STT:
 		spec := scenarioSpeechTranscribeSpec(req)
 		if spec == nil {
@@ -428,15 +293,6 @@ func isMiniMaxTaskFailedStatus(statusText string) bool {
 	}
 }
 
-func resolveMiniMaxSpeechPaths() []string {
-	return providerEndpointPaths([]string{"/v1/t2a_v2"})
-}
-
 func resolveMiniMaxTranscriptionPaths() []string {
 	return providerEndpointPaths([]string{"/v1/audio/transcriptions"})
-}
-
-func isMiniMaxNativeTTSPath(endpointPath string) bool {
-	lower := strings.ToLower(strings.TrimSpace(endpointPath))
-	return strings.Contains(lower, "t2a")
 }
