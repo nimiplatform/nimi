@@ -148,9 +148,9 @@ func TestProtectedLocalAppCommittedCloudEmbeddingWithoutFixedDimensionFailsBefor
 		w.WriteHeader(http.StatusInternalServerError)
 	}))
 	defer server.Close()
-	fixture := newManagedCloudScenarioTestFixture(t, "volcengine", "doubao-embedding", server.URL, Config{AllowLoopbackEndpoint: true})
+	fixture := newManagedCloudScenarioTestFixture(t, "gemini", "gemini-embedding-2-preview", server.URL, Config{AllowLoopbackEndpoint: true})
 	target, err := structpb.NewStruct(map[string]any{
-		"provider": "volcengine", "providerModelId": fixture.descriptor.GetProviderModelId(),
+		"provider": "gemini", "providerModelId": fixture.descriptor.GetProviderModelId(),
 		"remoteModelCatalogId": fixture.descriptor.GetRemoteModelCatalogId(),
 	})
 	if err != nil {
@@ -160,7 +160,7 @@ func TestProtectedLocalAppCommittedCloudEmbeddingWithoutFixedDimensionFailsBefor
 	config := appAIConfig(appID, &runtimev1.AIConfigCapabilityIntent{
 		CapabilityContract: "text.embed",
 		Route: &runtimev1.AIConfigCapabilityIntent_Cloud{Cloud: &runtimev1.AIConfigCloudIntent{
-			Implementation: &runtimev1.CapabilityImplementationIdentity{ImplementationId: "volcengine", DriverId: "nimillm", DriverDialect: "volcengine"},
+			Implementation: &runtimev1.CapabilityImplementationIdentity{ImplementationId: "gemini", DriverId: "nimillm", DriverDialect: "gemini"},
 			ConnectorRef:   fixture.connectorID, ProviderModelTarget: target,
 		}},
 	})

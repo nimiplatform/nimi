@@ -112,7 +112,7 @@ func cloudEmbeddingSpaceParts(effective *cloudEmbedEffectiveInputs) []proto.Mess
 	}
 	// Native mapping introduces different captured semantics from the earlier
 	// compatible transport, while omission and explicit native width still agree.
-	if protocol := effective.target.Protocol(); protocol == capabilitydriver.CloudEmbedProtocolGeminiV1 || protocol == capabilitydriver.CloudEmbedProtocolCohereV2 || protocol == capabilitydriver.CloudEmbedProtocolOpenRouterV1 || protocol == capabilitydriver.CloudEmbedProtocolSiliconFlowV1 || protocol == capabilitydriver.CloudEmbedProtocolQianfanV2 {
+	if protocol := effective.target.Protocol(); protocol == capabilitydriver.CloudEmbedProtocolGeminiV1 || protocol == capabilitydriver.CloudEmbedProtocolCohereV2 || protocol == capabilitydriver.CloudEmbedProtocolOpenRouterV1 || protocol == capabilitydriver.CloudEmbedProtocolSiliconFlowV1 || protocol == capabilitydriver.CloudEmbedProtocolQianfanV2 || protocol == capabilitydriver.CloudEmbedProtocolVolcengineV1 {
 		connectorTarget.Fields["embeddingProtocol"] = structpb.NewStringValue(string(protocol))
 	}
 	return []proto.Message{effective.implementation, target, effective.defaults, connectorTarget}

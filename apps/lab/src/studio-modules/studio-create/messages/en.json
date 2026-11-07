@@ -80,7 +80,7 @@
         "stop": "Stop sequences",
         "retrievalQuery": "Retrieval comparison query (optional)"
       },
-      "embeddingRetrievalHint": "When filled, embed the inputs as documents, then embed this query and rank by cosine similarity. This makes two model calls and may incur cloud usage for each. Leave empty to embed inputs only."
+      "embeddingRetrievalHint": "When filled, embed the inputs as documents, then embed this query and rank by cosine similarity. Both document and query embeddings may incur cloud usage. Leave empty to embed inputs only."
     },
     "embeddingRetrieval": {
       "title": "Retrieval ranking",

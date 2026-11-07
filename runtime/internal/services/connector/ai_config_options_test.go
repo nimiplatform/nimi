@@ -103,7 +103,8 @@ func TestAIConfigCloudEmbeddingRequiresVerifiedFixedDimension(t *testing.T) {
 		model    string
 		ready    bool
 	}{
-		{provider: "volcengine", model: "doubao-embedding"},
+		{provider: "volcengine", model: "doubao-embedding-vision-251215", ready: true},
+		{provider: "volcengine", model: "doubao-embedding-vision-250615", ready: true},
 		{provider: "gemini", model: "gemini-embedding-2-preview"},
 		{provider: "gemini", model: "gemini-embedding-2", ready: true},
 		{provider: "gemini", model: "gemini-embedding-001", ready: true},

@@ -1,6 +1,6 @@
 schema_version: 3
 provider: volcengine
-catalog_version: 2026-11-07-volcengine-current-video
+catalog_version: 2026-11-07-volcengine-native-embedding
 generated_target: runtime/catalog/providers/volcengine.yaml
 runtime:
   inventory_mode: static_source
@@ -68,6 +68,15 @@ sources:
     url: https://docs.volcengine.com/docs/ark/model-list?lang=zh
     retrieved_at: 2026-11-07
     note: Current exact Fast/Mini targets and generation-specific480p/720p output support; account access verified separately.
+
+  - source_id: volcengine_embedding_native_api
+    url: https://docs.volcengine.com/docs/ark/multimodal-vectorization-api?lang=zh
+    retrieved_at: 2026-11-07
+    note: Native endpoint returns one dense vector for its input parts; dimensions1024/2048, default2048.
+  - source_id: volcengine_embedding_retrieval
+    url: https://docs.volcengine.com/docs/ark/vectorization?lang=zh
+    retrieved_at: 2026-11-07
+    note: 251215 supports separate Query/Corpus instructions;250615 leaves instructions absent. Current Runtime scope is unchanged text-only dense retrieval.
 
 selection_profiles:
   - profile_id: text.general
@@ -556,20 +565,40 @@ models:
     aliases:
       - doubao-seed-2.0-code
 
-  - model_id: doubao-embedding
+  - model_id: doubao-embedding-vision-251215
     model_type: embedding
-    updated_at: 2026-04-18
-    capabilities: [ text.embed ]
+    updated_at: 2026-11-07
+    capabilities:
+      - text.embed
+    embedding:
+      dimension: 2048
+    source_ids:
+      - volcengine_embedding_native_api
+      - volcengine_embedding_retrieval
     pricing:
       unit: token
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-04-18
-      notes: Ark embedding pricing varies by account plan and dimension tier. The
-        exact Ark output width for this target is unverified; text.embed
-        AIConfig admission remains blocked until a fixed dimension is verified.
-    source_ids: [ volcengine_embedding_doc ]
+      as_of: 2026-11-07
+      notes: Text-only native dense retrieval. Query/document instruction pair is versioned by the Runtime Driver; sparse, multi-vector and image/video embedding are outside this carrier.
+  - model_id: doubao-embedding-vision-250615
+    model_type: embedding
+    updated_at: 2026-11-07
+    capabilities:
+      - text.embed
+    embedding:
+      dimension: 2048
+    source_ids:
+      - volcengine_embedding_native_api
+      - volcengine_embedding_retrieval
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Existing-access EOM cohort; no forced shutdown of existing endpoints. No251215 instructions inherited. Account access is verified separately.
 
   - model_id: doubao-seedream-5-0-260128
     model_type: image

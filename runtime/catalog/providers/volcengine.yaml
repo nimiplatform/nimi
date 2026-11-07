@@ -1,6 +1,6 @@
 version: 1
 provider: volcengine
-catalog_version: 2026-11-07-volcengine-current-video
+catalog_version: 2026-11-07-volcengine-native-embedding
 inventory_mode: static_source
 default_text_model: doubao-seed-2-1-pro-260915
 models:
@@ -670,10 +670,10 @@ models:
       note: Volcengine Ark OpenAI-compatible SDK documentation and model examples.
     api_model_id: doubao-seed-2-0-code-preview-260215
     context_window_tokens: 8192
-  - model_id: doubao-embedding
+  - model_id: doubao-embedding-vision-251215
     provider: volcengine
     model_type: embedding
-    updated_at: 2026-04-18
+    updated_at: 2026-11-07
     capabilities:
       - text.embed
     pricing:
@@ -681,12 +681,33 @@ models:
       input: unknown
       output: unknown
       currency: CNY
-      as_of: 2026-04-18
-      notes: Ark embedding pricing varies by account plan and dimension tier. The exact Ark output width for this target is unverified; text.embed AIConfig admission remains blocked until a fixed dimension is verified.
+      as_of: 2026-11-07
+      notes: Text-only native dense retrieval. Query/document instruction pair is versioned by the Runtime Driver; sparse, multi-vector and image/video embedding are outside this carrier.
     source_ref:
-      url: https://www.volcengine.com/docs/84716/1288890
-      retrieved_at: 2026-04-18
-      note: Volcengine embedding model documentation.
+      url: https://docs.volcengine.com/docs/ark/multimodal-vectorization-api?lang=zh
+      retrieved_at: 2026-11-07
+      note: Native endpoint returns one dense vector for its input parts; dimensions1024/2048, default2048.
+    embedding:
+      dimension: 2048
+  - model_id: doubao-embedding-vision-250615
+    provider: volcengine
+    model_type: embedding
+    updated_at: 2026-11-07
+    capabilities:
+      - text.embed
+    pricing:
+      unit: token
+      input: unknown
+      output: unknown
+      currency: CNY
+      as_of: 2026-11-07
+      notes: Existing-access EOM cohort; no forced shutdown of existing endpoints. No251215 instructions inherited. Account access is verified separately.
+    source_ref:
+      url: https://docs.volcengine.com/docs/ark/multimodal-vectorization-api?lang=zh
+      retrieved_at: 2026-11-07
+      note: Native endpoint returns one dense vector for its input parts; dimensions1024/2048, default2048.
+    embedding:
+      dimension: 2048
   - model_id: doubao-seedream-5-0-260128
     provider: volcengine
     model_type: image

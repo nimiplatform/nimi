@@ -35,6 +35,7 @@ const (
 	CloudEmbedProtocolOpenRouterV1  CloudEmbedProtocol = "openrouter/embeddings/v1"
 	CloudEmbedProtocolSiliconFlowV1 CloudEmbedProtocol = "siliconflow/embeddings/v1"
 	CloudEmbedProtocolQianfanV2     CloudEmbedProtocol = "qianfan/embeddings/v2"
+	CloudEmbedProtocolVolcengineV1  CloudEmbedProtocol = "volcengine/embedding-vision-retrieval/v1"
 )
 
 // CloudEmbedTarget is one exact provider/model target interpreted by an
@@ -53,6 +54,9 @@ func (t CloudEmbedTarget) RemoteModelCatalogID() string { return t.remoteModelCa
 func (t CloudEmbedTarget) Region() string               { return t.region }
 
 func (t CloudEmbedTarget) Protocol() CloudEmbedProtocol {
+	if t.provider == "volcengine" && IsVolcengineEmbeddingModel(t.providerModelID) {
+		return CloudEmbedProtocolVolcengineV1
+	}
 	if t.provider == "qianfan" && t.providerModelID == "embedding-v1" {
 		return CloudEmbedProtocolQianfanV2
 	}
@@ -72,6 +76,9 @@ func (t CloudEmbedTarget) Protocol() CloudEmbedProtocol {
 }
 
 func (t CloudEmbedTarget) DefaultDimensions() uint32 {
+	if t.Protocol() == CloudEmbedProtocolVolcengineV1 {
+		return 2048
+	}
 	if t.Protocol() == CloudEmbedProtocolQianfanV2 {
 		return 384
 	}
@@ -286,7 +293,7 @@ func (d providerCloudEmbedDriver) MapRequest(target CloudEmbedTarget, spec *runt
 			return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("text.embed inputs must be non-empty"))
 		}
 		inputs = append(inputs, trimmed)
-		if target.provider == "openrouter" || target.Protocol() == CloudEmbedProtocolSiliconFlowV1 || target.Protocol() == CloudEmbedProtocolQianfanV2 {
+		if target.provider == "openrouter" || target.Protocol() == CloudEmbedProtocolSiliconFlowV1 || target.Protocol() == CloudEmbedProtocolQianfanV2 || target.Protocol() == CloudEmbedProtocolVolcengineV1 {
 			inputs[len(inputs)-1] = input
 		}
 		if target.Protocol() == CloudEmbedProtocolQianfanV2 && utf8.RuneCountInString(input) > 1000 {
@@ -303,6 +310,9 @@ func (d providerCloudEmbedDriver) MapRequest(target CloudEmbedTarget, spec *runt
 		if protocol == CloudEmbedProtocolSiliconFlowV1 && !SiliconFlowEmbedDimensionAllowed(target.providerModelID, spec.GetDimensions()) {
 			return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("SiliconFlow model output dimension is unsupported"))
 		}
+		if protocol == CloudEmbedProtocolVolcengineV1 && spec.GetDimensions() != 1024 && spec.GetDimensions() != 2048 {
+			return nil, cloudInvocationError(CloudInvocationFailureRequest, fmt.Errorf("Doubao Embedding Vision supports only 1024 or 2048 dimensions"))
+		}
 		if protocol == CloudEmbedProtocolCohereV2 || protocol == CloudEmbedProtocolOpenRouterV1 && strings.HasPrefix(target.providerModelID, "cohere/") {
 			switch spec.GetDimensions() {
 			case 256, 512, 768, 1024, 1536, 2048:
@@ -318,6 +328,9 @@ func (d providerCloudEmbedDriver) MapRequest(target CloudEmbedTarget, spec *runt
 	// the Host transports its batches under the same captured target.
 	// https://help.aliyun.com/en/model-studio/embedding-interfaces-compatible-with-openai
 	transportBatchSize := CloudEmbedMaxInputsPerRequest
+	if protocol == CloudEmbedProtocolVolcengineV1 {
+		transportBatchSize = 1
+	}
 	if target.provider == "dashscope" && (target.providerModelID == "text-embedding-v3" || target.providerModelID == "text-embedding-v4") {
 		transportBatchSize = 10
 	}
@@ -326,6 +339,9 @@ func (d providerCloudEmbedDriver) MapRequest(target CloudEmbedTarget, spec *runt
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.embedding-output-contract
 func nativeCloudEmbeddingDimensionBounds(provider, modelID string) (uint32, uint32) {
+	if provider == "volcengine" && IsVolcengineEmbeddingModel(modelID) {
+		return 1024, 2048
+	}
 	if provider == "siliconflow" {
 		return 64, SiliconFlowEmbedDimensions(modelID)
 	}

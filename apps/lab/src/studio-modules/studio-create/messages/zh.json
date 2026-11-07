@@ -80,7 +80,7 @@
         "stop": "停止序列",
         "retrievalQuery": "检索比较问题（可选）"
       },
-      "embeddingRetrievalHint": "填写后，将输入作为待检索文档，再以检索问题生成一次向量，按余弦相似度排序。共调用模型两次，云端可能产生两次用量；留空只生成输入向量。"
+      "embeddingRetrievalHint": "填写后，将输入作为待检索文档，再为检索问题生成向量，按余弦相似度排序。文档与查询都可能产生云端用量；留空只生成输入向量。"
     },
     "embeddingRetrieval": {
       "title": "检索排序",
