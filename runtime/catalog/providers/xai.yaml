@@ -1,6 +1,6 @@
 version: 1
 provider: xai
-catalog_version: 2026-11-06-xai-native-current
+catalog_version: 2026-11-07-xai-native-speech
 inventory_mode: static_source
 default_text_model: grok-4.7
 models:
@@ -326,7 +326,860 @@ models:
       outputs:
         video_url: true
         last_frame_url: false
-voices: []
+  - model_id: tts
+    provider: xai
+    model_type: tts
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.synthesize
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Fixed POST /v1/tts service operation identity, not an upstream model version. Native requests have no model parameter. Finite raw audio only; character timestamps are not word timing.
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+    voice_set_id: xai:xai-built-in-speech
+    voice_discovery_mode: static_catalog
+    voice_ref_kinds:
+      - preset_voice_id
+  - model_id: grok-voice-transcribe-2.0
+    provider: xai
+    model_type: stt
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.transcribe
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-06
+      notes: Published native cohort; account entitlement and actual usage are separate from catalog admission.
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/speech-to-text
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+    transcription:
+      tiers:
+        - core_transcript
+        - timed_transcript
+      response_formats:
+        - text
+      supports_language: true
+      supports_timestamps: true
+      supports_diarization: true
+voices:
+  - voice_id: carina
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Carina
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - voice_id: zagan
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Zagan
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - voice_id: helix
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Helix
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - voice_id: orion
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Orion
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - voice_id: luna
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Luna
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - voice_id: iris
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Iris
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - voice_id: altair
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Altair
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - voice_id: zenith
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Zenith
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - voice_id: perseus
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Perseus
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - voice_id: helios
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Helios
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - voice_id: lux
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Lux
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - voice_id: kepler
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Kepler
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - voice_id: rigel
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Rigel
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - voice_id: cosmo
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Cosmo
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - voice_id: celeste
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Celeste
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - voice_id: ursa
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Ursa
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - voice_id: sirius
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Sirius
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - voice_id: lumen
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Lumen
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - voice_id: castor
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Castor
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - voice_id: naksh
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Naksh
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - voice_id: atlas
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Atlas
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - voice_id: ara
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Ara
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - voice_id: eve
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Eve
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - voice_id: leo
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Leo
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - voice_id: rex
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Rex
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - voice_id: sal
+    voice_set_id: xai:xai-built-in-speech
+    provider: xai
+    name: Sal
+    langs:
+      - en
+      - ar-EG
+      - ar-SA
+      - ar-AE
+      - bn
+      - zh
+      - fr
+      - de
+      - hi
+      - id
+      - it
+      - ja
+      - ko
+      - pt-BR
+      - pt-PT
+      - ru
+      - es-MX
+      - es-ES
+      - tr
+      - vi
+    model_ids:
+      - tts
+    source_ref:
+      url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+      retrieved_at: 2026-11-07
+      note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
 selection_profiles:
   - provider: xai
     profile_id: text.general

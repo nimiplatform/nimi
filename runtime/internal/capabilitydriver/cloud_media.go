@@ -730,6 +730,16 @@ func (d providerCloudMediaDriver) MapRequest(target CloudMediaTarget, request *r
 	}
 	adapter := cloudMediaAdapterFor(d.provider, target.capabilityContract)
 	if d.provider == "xai" {
+		if target.capabilityContract == "audio.synthesize" {
+			if err := validateXAISpeechRequest(mapped, target.providerModelID, streamMode); err != nil {
+				return nil, err
+			}
+		}
+		if target.capabilityContract == "audio.transcribe" {
+			if err := validateXAITranscribeRequest(mapped, target.providerModelID); err != nil {
+				return nil, err
+			}
+		}
 		if target.capabilityContract == "image.generate" {
 			if err := validateXAIImageRequest(mapped, target.providerModelID); err != nil {
 				return nil, err
@@ -1137,6 +1147,12 @@ func cloudMediaAdapterFor(provider string, capability string) string {
 			return CloudMediaAdapterOpenRouterTranscribe
 		}
 	case "xai":
+		if capability == "audio.synthesize" {
+			return CloudMediaAdapterXAISpeech
+		}
+		if capability == "audio.transcribe" {
+			return CloudMediaAdapterXAITranscribe
+		}
 		if capability == "image.generate" {
 			return CloudMediaAdapterXAIImage
 		}

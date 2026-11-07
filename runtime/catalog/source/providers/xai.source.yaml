@@ -1,6 +1,6 @@
 schema_version: 3
 provider: xai
-catalog_version: 2026-11-06-xai-native-current
+catalog_version: 2026-11-07-xai-native-speech
 generated_target: runtime/catalog/providers/xai.yaml
 runtime:
   runtime_plane: remote
@@ -78,6 +78,18 @@ sources:
     url: https://docs.x.ai/developers/migration/imagine-image-quality-nov-2
     retrieved_at: 2026-11-06
     note: Official current API or exact model behavior; real account acceptance is separate.
+  - source_id: xai_tts
+    url: https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+    retrieved_at: 2026-11-07
+    note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - source_id: xai_stt
+    url: https://docs.x.ai/developers/model-capabilities/audio/speech-to-text
+    retrieved_at: 2026-11-07
+    note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
+  - source_id: xai_voice_api
+    url: https://docs.x.ai/developers/rest-api-reference/inference/voice
+    retrieved_at: 2026-11-07
+    note: Current standalone speech protocol; preset IDs are reviewed documentation facts, not account access evidence.
 selection_profiles:
   - profile_id: text.general
     capability: text.generate
@@ -372,3 +384,149 @@ models:
       outputs:
         video_url: true
         last_frame_url: false
+  - model_id: tts
+    model_type: tts
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.synthesize
+    source_ids:
+      - xai_tts
+      - xai_voice_api
+    voice:
+      discovery_mode: static_catalog
+      voice_set_ref: xai-built-in-speech
+      supports_voice_ref_kinds:
+        - preset_voice_id
+      langs_ref: speech
+    pricing:
+      unit: char
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Fixed POST /v1/tts service operation identity, not an upstream model version. Native requests have no model parameter. Finite raw audio only; character timestamps are not word timing.
+  - model_id: grok-voice-transcribe-2.0
+    model_type: stt
+    updated_at: 2026-11-07
+    capabilities:
+      - audio.transcribe
+    source_ids:
+      - xai_stt
+      - xai_voice_api
+    transcription:
+      tiers:
+        - core_transcript
+        - timed_transcript
+      response_formats:
+        - text
+      supports_language: true
+      supports_prompt: false
+      supports_timestamps: true
+      supports_diarization: true
+language_profiles:
+  speech:
+    - en
+    - ar-EG
+    - ar-SA
+    - ar-AE
+    - bn
+    - zh
+    - fr
+    - de
+    - hi
+    - id
+    - it
+    - ja
+    - ko
+    - pt-BR
+    - pt-PT
+    - ru
+    - es-MX
+    - es-ES
+    - tr
+    - vi
+voice_sets:
+  - voice_set_id: xai-built-in-speech
+    langs_ref: speech
+    source_ids:
+      - xai_tts
+      - xai_voice_api
+    voices:
+      - voice_id: carina
+        name: Carina
+        langs_ref: speech
+      - voice_id: zagan
+        name: Zagan
+        langs_ref: speech
+      - voice_id: helix
+        name: Helix
+        langs_ref: speech
+      - voice_id: orion
+        name: Orion
+        langs_ref: speech
+      - voice_id: luna
+        name: Luna
+        langs_ref: speech
+      - voice_id: iris
+        name: Iris
+        langs_ref: speech
+      - voice_id: altair
+        name: Altair
+        langs_ref: speech
+      - voice_id: zenith
+        name: Zenith
+        langs_ref: speech
+      - voice_id: perseus
+        name: Perseus
+        langs_ref: speech
+      - voice_id: helios
+        name: Helios
+        langs_ref: speech
+      - voice_id: lux
+        name: Lux
+        langs_ref: speech
+      - voice_id: kepler
+        name: Kepler
+        langs_ref: speech
+      - voice_id: rigel
+        name: Rigel
+        langs_ref: speech
+      - voice_id: cosmo
+        name: Cosmo
+        langs_ref: speech
+      - voice_id: celeste
+        name: Celeste
+        langs_ref: speech
+      - voice_id: ursa
+        name: Ursa
+        langs_ref: speech
+      - voice_id: sirius
+        name: Sirius
+        langs_ref: speech
+      - voice_id: lumen
+        name: Lumen
+        langs_ref: speech
+      - voice_id: castor
+        name: Castor
+        langs_ref: speech
+      - voice_id: naksh
+        name: Naksh
+        langs_ref: speech
+      - voice_id: atlas
+        name: Atlas
+        langs_ref: speech
+      - voice_id: ara
+        name: Ara
+        langs_ref: speech
+      - voice_id: eve
+        name: Eve
+        langs_ref: speech
+      - voice_id: leo
+        name: Leo
+        langs_ref: speech
+      - voice_id: rex
+        name: Rex
+        langs_ref: speech
+      - voice_id: sal
+        name: Sal
+        langs_ref: speech

@@ -57,6 +57,10 @@ func (p *CloudProvider) ExecuteMediaAdapter(
 		err           error
 	)
 	switch strings.TrimSpace(adapter) {
+	case capabilitydriver.CloudMediaAdapterXAISpeech:
+		artifacts, usage, providerJobID, err = ExecuteXAISpeech(ctx, cfg, request)
+	case capabilitydriver.CloudMediaAdapterXAITranscribe:
+		artifacts, usage, providerJobID, err = ExecuteXAITranscribe(ctx, cfg, request, modelID)
 	case capabilitydriver.CloudMediaAdapterMiniMaxSpeech:
 		artifacts, usage, providerJobID, err = ExecuteMiniMaxSpeech(ctx, cfg, request, modelID)
 	case capabilitydriver.CloudMediaAdapterMiniMaxMusic:
