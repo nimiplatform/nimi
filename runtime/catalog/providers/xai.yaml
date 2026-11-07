@@ -1,6 +1,6 @@
 version: 1
 provider: xai
-catalog_version: 2026-11-07-xai-native-speech
+catalog_version: 2026-11-07-xai-native-voice3
 inventory_mode: static_source
 default_text_model: grok-4.7
 models:
@@ -373,6 +373,23 @@ models:
       supports_language: true
       supports_timestamps: true
       supports_diarization: true
+  - model_id: grok-voice-3.0
+    provider: xai
+    model_type: chat
+    updated_at: 2026-11-07
+    capabilities:
+      - realtime.interact
+    pricing:
+      unit: request
+      input: unknown
+      output: unknown
+      currency: USD
+      as_of: 2026-11-07
+      notes: Requires manual owner-controlled turns and audio output;24kHz monoPCM JSON transport with eve voice. No automatic VAD, continuous mode, resumption, SIP or Agent tools. Only actual response token usage is retained; transport close is not a provider finalization receipt.
+    source_ref:
+      url: https://docs.x.ai/developers/models/grok-voice-3.0
+      retrieved_at: 2026-11-07
+      note: Exact current speech-to-speech target; previous2.0 deprecated, latest alias not pinned.
 voices:
   - voice_id: carina
     voice_set_id: xai:xai-built-in-speech

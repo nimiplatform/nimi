@@ -769,6 +769,7 @@ providers:
       - audio.synthesize
       - audio.transcribe
       - image.generate
+      - realtime.interact
       - text.generate
       - video.generate
     sources:

@@ -113,6 +113,9 @@ type CloudRealtimeRegistry struct {
 
 func NewProductionCloudRealtimeRegistry() *CloudRealtimeRegistry {
 	drivers := make(map[string]CloudRealtimeDriver)
+	if record, ok := providerregistry.Lookup("xai"); ok && record.RuntimePlane == "remote" && record.SupportsRealtime {
+		drivers["xai"] = xaiRealtimeDriver{}
+	}
 	if record, ok := providerregistry.Lookup("dashscope"); ok && record.RuntimePlane == "remote" && record.SupportsRealtime {
 		drivers["dashscope"] = dashScopeRealtimeDriver{}
 	}
