@@ -155,7 +155,7 @@ function TextStudioHistoryRecordResult({
   const HistoryActions = registration.historyActions;
   const blocked = snapshot && !snapshot.ok ? snapshot : null;
   const jobState = snapshot?.ok && 'jobState' in snapshot ? snapshot.jobState : undefined;
-  const statusLabel = record.status === 'ready' && snapshot?.ok && (snapshot.kind === 'speaker-embedding' || (snapshot.kind === 'vision-locate' && snapshot.result))
+  const statusLabel = record.status === 'ready' && snapshot?.ok && (snapshot.kind === 'text-exchange' || snapshot.kind === 'speaker-embedding' || (snapshot.kind === 'vision-locate' && snapshot.result))
     ? t('Studio.result.statCompleted')
     : jobState === undefined
     ? rendererHost.app.projection.runStatusLabel(record.status)
