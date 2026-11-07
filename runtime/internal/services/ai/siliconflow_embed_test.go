@@ -20,6 +20,7 @@ func TestSiliconFlowProtectedEmbeddingWidthsPurposesAndSpaces(t *testing.T) {
 	for _, model := range []string{"Qwen/Qwen3-Embedding-0.6B", "Qwen/Qwen3-Embedding-4B", "Qwen/Qwen3-Embedding-8B", "Qwen/Qwen3-VL-Embedding-8B"} {
 		t.Run(model, func(t *testing.T) {
 			var wrong atomic.Bool
+			var nullElement atomic.Bool
 			var calls atomic.Int32
 			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 				calls.Add(1)
@@ -46,7 +47,16 @@ func TestSiliconFlowProtectedEmbeddingWidthsPurposesAndSpaces(t *testing.T) {
 				first, second := make([]float64, width), make([]float64, width)
 				first[0] = 1
 				second[0] = 2
-				json.NewEncoder(w).Encode(map[string]any{"model": model, "data": []any{map[string]any{"index": 1, "embedding": second}, map[string]any{"index": 0, "embedding": first}}, "usage": map[string]any{"prompt_tokens": 8, "total_tokens": 8}})
+				var nativeFirst any = first
+				if nullElement.Load() {
+					values := make([]any, width)
+					for i, n := range first {
+						values[i] = n
+					}
+					values[2] = nil
+					nativeFirst = values
+				}
+				json.NewEncoder(w).Encode(map[string]any{"model": model, "data": []any{map[string]any{"index": 1, "embedding": second}, map[string]any{"index": 0, "embedding": nativeFirst}}, "usage": map[string]any{"prompt_tokens": 8, "total_tokens": 8}})
 			}))
 			defer server.Close()
 			f := newManagedCloudScenarioTestFixture(t, "siliconflow", model, server.URL+"/proxy/openai/v1", Config{AllowLoopbackEndpoint: true})
@@ -87,6 +97,11 @@ func TestSiliconFlowProtectedEmbeddingWidthsPurposesAndSpaces(t *testing.T) {
 			wrong.Store(true)
 			if _, err = f.service.ExecuteLocalAppScenario(ctx, request); err == nil {
 				t.Fatal("wrong native width succeeded")
+			}
+			wrong.Store(false)
+			nullElement.Store(true)
+			if _, err = f.service.ExecuteLocalAppScenario(ctx, request); textBehaviorReason(err) != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
+				t.Fatal("native null vector element silently became zero", err)
 			}
 		})
 	}

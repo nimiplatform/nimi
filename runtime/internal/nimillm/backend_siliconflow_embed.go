@@ -31,8 +31,8 @@ func (b *Backend) EmbedSiliconFlow(ctx context.Context, model string, inputs []s
 	var out struct {
 		Model string `json:"model"`
 		Data  []struct {
-			Index     *int      `json:"index"`
-			Embedding []float64 `json:"embedding"`
+			Index     *int       `json:"index"`
+			Embedding []*float64 `json:"embedding"`
 		} `json:"data"`
 		Usage *struct {
 			Input  *int64 `json:"prompt_tokens"`
@@ -53,7 +53,10 @@ func (b *Backend) EmbedSiliconFlow(ctx context.Context, model string, inputs []s
 		}
 		values := make([]*structpb.Value, len(entry.Embedding))
 		for i, n := range entry.Embedding {
-			values[i] = structpb.NewNumberValue(n)
+			if n == nil {
+				return invalid()
+			}
+			values[i] = structpb.NewNumberValue(*n)
 		}
 		vectors[*entry.Index] = &structpb.ListValue{Values: values}
 	}
