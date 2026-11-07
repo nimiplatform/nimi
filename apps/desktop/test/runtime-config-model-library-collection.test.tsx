@@ -187,12 +187,14 @@ test('parts name the exact model they serve and fall back to their catalog role'
   const unlinkedEncoder = descriptor({ templateId: 'image-textenc.q8', title: 'asset-image-textenc-qwen3-4b-instruct-2507 (Q8_0)', entry: 'Qwen3-4B-Instruct-2507-Q8_0.gguf', contentId: 'sha256:textenc-q8', artifactRoles: ['text_encoder'] });
   const gemma = recipe({ recipeId: 'gemma', title: 'Gemma 4 text generation', capabilityContract: 'text.generate', slots: [
     { slotId: 'main.gguf', variants: [], offers: [catalog[0]!, catalog[2]!] },
-    { slotId: 'companion.mmproj', variants: [], offers: [mmproj], label: 'Vision projector' },
+    { slotId: 'companion.mmproj', variants: [], offers: [mmproj], label: 'Media projector' },
   ] });
   const { parts } = buildNimiCollection({ catalog: [catalog[0]!, catalog[2]!, mmproj, unlinkedEncoder], recipes: [gemma] });
   const projector = parts.find((item) => item.versions[0]?.contentId === 'sha256:mmproj-26b');
   assert.equal(projector?.usedBy, 'Gemma 4 26B');
-  assert.equal(projector?.roleLabelKey, 'runtimeConfig.loadouts.slotLabels.visionProjector');
+  assert.equal(projector?.roleLabelKey, 'runtimeConfig.loadouts.slotLabels.mediaProjector');
+  const unlinkedProjector = buildNimiCollection({ catalog: [mmproj], recipes: [] }).parts[0];
+  assert.equal(unlinkedProjector?.roleLabelKey, 'runtimeConfig.loadouts.slotLabels.mediaProjector');
   const encoder = parts.find((item) => item.versions[0]?.contentId === 'sha256:textenc-q8');
   assert.equal(encoder?.usedBy, '');
   assert.equal(encoder?.roleLabelKey, 'runtimeConfig.loadouts.slotLabels.textEncoder');

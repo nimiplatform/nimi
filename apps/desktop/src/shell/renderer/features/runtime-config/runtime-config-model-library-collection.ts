@@ -157,7 +157,7 @@ const PART_SLOT_LABEL_KEYS: Readonly<Record<string, string>> = Object.freeze({
 /** Part labels from the catalog artifact role, for parts no recipe offers. */
 const PART_ROLE_LABEL_KEYS: Readonly<Record<string, string>> = Object.freeze({
   text_encoder: `${SLOT_LABEL}.textEncoder`,
-  mmproj: `${SLOT_LABEL}.visionProjector`,
+  mmproj: `${SLOT_LABEL}.mediaProjector`,
   vae: `${SLOT_LABEL}.vae`,
   video_vae: `${ROLE_LABEL}.videoVae`,
   audio_vae: `${ROLE_LABEL}.audioVae`,
