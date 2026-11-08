@@ -1,6 +1,6 @@
 import { Surface } from '@nimiplatform/kit/ui';
-import { useState } from 'react';
-import { ArrowDown, ArrowRight, ArrowUpRight, Check, Cloud, FileText, Image, Laptop, Mic, RotateCcw, ShieldCheck } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowUpRight, Check, ChevronRight, Cloud, FileText, Image, KeyRound, Laptop, Layers3, Mic, Search, Send, ShieldCheck } from 'lucide-react';
 import type { StoryText, StoryKey } from '../../content/story-copy.js';
 import { integrationScenarios } from '../../content/story-model.js';
 import { StoryHeading, StoryLink } from './story-shared.js';
@@ -41,45 +41,95 @@ function StoryModelMarks({ route }: { route: 'local' | 'cloud' }) {
 export function StoryPower({ t, links, onHome }: { t: StoryText; links: LandingLinks; onHome: (surface: 'runtime' | 'cloud', target?: string) => void }) {
   const [task, setTask] = useState<'text' | 'image' | 'speech'>('text');
   const [route, setRoute] = useState<'local' | 'cloud'>('local');
+  const [automaticRoute, setAutomaticRoute] = useState(true);
+  useEffect(() => {
+    if (!automaticRoute) return;
+    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
+    let timer: number | undefined;
+    const update = () => {
+      window.clearInterval(timer);
+      if (!media.matches) timer = window.setInterval(() => setRoute(current => current === 'local' ? 'cloud' : 'local'), 3000);
+    };
+    update();
+    media.addEventListener('change', update);
+    return () => { window.clearInterval(timer); media.removeEventListener('change', update); };
+  }, [automaticRoute]);
+  const selectRoute = (nextRoute: 'local' | 'cloud') => {
+    setAutomaticRoute(false);
+    setRoute(nextRoute);
+  };
   const Icon = task === 'text' ? FileText : task === 'image' ? Image : Mic;
   const capability = { text: 'text.generate', image: 'image.generate', speech: 'audio.transcribe' }[task];
-  return <section id="models" className="story-section story-power" aria-labelledby="power-heading" data-story-scene>
+  return <section id="models" className="story-section story-power" aria-labelledby="power-heading" data-story-scene onFocusCapture={() => setAutomaticRoute(false)} onPointerDown={() => setAutomaticRoute(false)}>
     <div className="story-container">
       <div className="story-power-intro"><StoryHeading t={t} section="power"><StoryLink href={links.modelsUrl}>{t('power.catalog')}</StoryLink></StoryHeading><div className="story-task-picker" role="group" aria-label={t('power.request')}>{(['text', 'image', 'speech'] as const).map(type => <button key={type} type="button" aria-pressed={task === type} onClick={() => setTask(type)}>{t(`power.${type}`)}</button>)}</div></div>
       <div className="story-power-scene" data-route={route}>
-        <img className="story-power-landscape" src="/story/power-scene-v3.webp" alt="" loading="lazy" />
-        <StoryModelMarks route="local" />
-        <StoryModelMarks route="cloud" />
-        <article className="story-task-paper" key={task}><Icon size={28} /><small>{t('power.request')}</small><h3>{t(`power.${task}Task` as StoryKey)}</h3></article>
-        <div className="story-route-picker" role="group" aria-label={t('power.title')}>
-          <button className="story-local-destination" type="button" aria-pressed={route === 'local'} onClick={() => setRoute('local')}><Laptop size={64} strokeWidth={1.2} /><Surface as="span" material="glass-thin" padding="none"><small>{t('power.local')}</small><strong>{t('power.localTarget')}</strong></Surface>{route === 'local' && <Check size={18} />}</button>
-          <button className="story-cloud-destination" type="button" aria-pressed={route === 'cloud'} onClick={() => setRoute('cloud')}><Cloud size={76} strokeWidth={1.1} /><Surface as="span" material="glass-thin" padding="none"><small>{t('power.cloud')}</small><strong>{t('power.cloudTarget')}</strong></Surface>{route === 'cloud' && <Check size={18} />}</button>
+        <div className="story-power-artwork" aria-hidden="true">
+          <img className="story-power-landscape" src="/story/power-scene-v3.webp" alt="" loading="lazy" />
+          <StoryModelMarks route="local" />
+          <StoryModelMarks route="cloud" />
         </div>
-        <div className="story-route-trace" aria-hidden="true" key={`${task}-${route}`}><ArrowDown size={20} /></div>
-        <div className="story-route-outcome" aria-live="polite"><p>{t(route === 'local' ? 'power.localDetail' : 'power.cloudDetail')}</p><button type="button" className="story-link" onClick={() => onHome(route === 'local' ? 'runtime' : 'cloud', route === 'local' ? capability : undefined)}>{t('common.openHome')}<ArrowUpRight size={15} /></button></div>
+        <article className="story-task-paper" key={task}><Icon size={28} /><h3>{t(`power.${task}Task` as StoryKey)}</h3></article>
+        <div className="story-route-picker" role="group" aria-label={t('power.title')}>
+          <button className="story-local-destination" type="button" aria-pressed={route === 'local'} onClick={() => selectRoute('local')}><Laptop size={24} strokeWidth={1.6} /><Surface as="span" material="glass-thin" padding="none"><small>{t('power.local')}</small><strong>{t('power.localTarget')}</strong></Surface>{route === 'local' && <Check size={18} />}</button>
+          <button className="story-cloud-destination" type="button" aria-pressed={route === 'cloud'} onClick={() => selectRoute('cloud')}><Cloud size={24} strokeWidth={1.6} /><Surface as="span" material="glass-thin" padding="none"><small>{t('power.cloud')}</small><strong>{t('power.cloudTarget')}</strong></Surface>{route === 'cloud' && <Check size={18} />}</button>
+        </div>
+        <div className="story-route-trace" aria-hidden="true" key={`${task}-${route}`}><svg viewBox="0 0 260 76" preserveAspectRatio="none" focusable="false"><path className="story-route-trace-line" d="M4 0v18c0 26 14 40 40 40h204" /><path className="story-route-trace-head" d="m236 46 14 12-14 12" /><path className="story-route-trace-pulse" pathLength="100" d="M4 0v18c0 26 14 40 40 40h204" /></svg></div>
+        <div className="story-route-outcome" aria-live={automaticRoute ? 'off' : 'polite'}><p>{t(route === 'local' ? 'power.localDetail' : 'power.cloudDetail')}</p><button type="button" className="story-link" onClick={() => onHome(route === 'local' ? 'runtime' : 'cloud', route === 'local' ? capability : undefined)}>{t('common.openHome')}<ArrowUpRight size={15} /></button></div>
       </div>
-      <div className="story-power-notes"><p>{t('power.note')}</p><p>{t('power.cost')}</p></div>
     </div>
   </section>;
 }
 
-export function StoryIntegrations({ t, onHome }: { t: StoryText; onHome: () => void }) {
+const integrationIcons = { mcp: Search, telegram: Send, app: Layers3 } as const;
+
+export function StoryIntegrations({ t, links, onHome }: { t: StoryText; links: LandingLinks; onHome: () => void }) {
   const [scenario, setScenario] = useState<keyof typeof integrationScenarios>('mcp');
-  const [ran, setRan] = useState(false);
   const row = integrationScenarios[scenario];
   return <section id="integrations" className="story-section story-integrations" aria-labelledby="integrations-heading" data-story-scene>
     <div className="story-container">
-      <div className="story-integration-intro"><StoryHeading t={t} section="integrations" /><button type="button" className="story-link" onClick={onHome}>{t('common.openHome')}<ArrowUpRight size={16} /></button></div>
-      <div className="story-connection-tabs" role="group" aria-label={t('common.integrations')}>{(Object.keys(integrationScenarios) as (keyof typeof integrationScenarios)[]).map(key => <button key={key} type="button" aria-pressed={scenario === key} onClick={() => { setScenario(key); setRan(false); }}>{t(`integrations.${key}`)}</button>)}</div>
-      <div className="story-connection-stage" data-state={ran ? 'complete' : 'waiting'} key={scenario}>
-        <div className="story-connection-endpoint is-source"><img src={row.icon} alt="" /><small>{t('integrations.connection')}</small><strong>{row.service}</strong></div>
-        <div className="story-connection-wire is-first" aria-hidden="true"><ArrowRight size={22} /></div>
-        <div className="story-connection-scope"><ShieldCheck size={21} /><small>{t('integrations.permission')}</small><p>{t(`integrations.${scenario}Scope` as StoryKey)}</p><button type="button" className="story-button" onClick={() => setRan(!ran)}>{ran ? <RotateCcw size={16} /> : <ArrowRight size={16} />}{t(ran ? 'integrations.reset' : 'integrations.run')}</button></div>
-        <div className="story-connection-wire is-second" aria-hidden="true"><ArrowRight size={22} /></div>
-        <div className="story-connection-endpoint is-consumer"><img src={row.consumer === 'NimiGo' ? '/story/nimigo-icon.png' : '/story/nimiday-icon.png'} alt="" /><small>{t('integrations.consumer')}</small><strong>{row.consumer}</strong></div>
-        <div className="story-connection-result" aria-live="polite" data-state={ran ? 'complete' : 'waiting'}><span>{ran ? <Check size={18} /> : <ArrowRight size={18} />}{t('integrations.result')}</span><p>{ran ? t(`integrations.${scenario}Result` as StoryKey) : t('integrations.waiting')}</p></div>
+      <div className="story-integration-layout">
+        <div className="story-integration-intro">
+          <StoryHeading t={t} section="integrations" />
+          <div className="story-use-cases" role="group" aria-label={t('integrations.title')}>
+            {(Object.keys(integrationScenarios) as (keyof typeof integrationScenarios)[]).map(key => {
+              const Icon = integrationIcons[key];
+              return <button className="story-use-case" key={key} type="button" aria-pressed={scenario === key} onClick={() => setScenario(key)}>
+                <span className="story-use-case-icon"><Icon size={21} strokeWidth={1.8} /></span>
+                <span><strong>{t(`integrations.${key}`)}</strong><small>{t(`integrations.${key}Detail`)}</small></span>
+                <ChevronRight size={18} />
+              </button>;
+            })}
+          </div>
+        </div>
+        <div className="story-integration-preview" data-scenario={scenario}>
+          <Surface material="glass-thin" padding="none" className="story-integration-card">
+            <header className="story-integration-card-header">
+              <div className="story-integration-pair" aria-hidden="true"><img src={row.consumer === 'NimiGo' ? '/story/nimigo-icon.png' : '/story/nimiday-icon.png'} alt="" /><img src={row.icon} alt="" /></div>
+              <span>{t('integrations.previewLabel')}</span>
+              <small><i />{t('integrations.previewStatus')}</small>
+            </header>
+            <div className="story-integration-example" key={scenario}>
+              <span>{t(`integrations.${scenario}`)}</span>
+              <h3>{t(`integrations.${scenario}Action`)}</h3>
+              <p>{t(`integrations.${scenario}Scope`)}</p>
+            </div>
+            <div className="story-integration-result">
+              <span><Check size={19} /></span>
+              <div><small>{t('integrations.result')}</small><p aria-live="polite">{t(`integrations.${scenario}Result` as StoryKey)}</p></div>
+            </div>
+            <footer><ShieldCheck size={14} />{t('integrations.demoNote')}</footer>
+          </Surface>
+        </div>
       </div>
-      <div className="story-integration-notes"><div><p>{t('integrations.permissions')}</p></div><details><summary>{t('common.details')}</summary><p>{t('integrations.note')}</p><p>{t('integrations.unconfirmed')}</p></details></div>
+      <div className="story-integration-controls">
+        <article><ShieldCheck size={23} /><div><h3>{t('integrations.permissions')}</h3><p>{t('integrations.permissionDetail')}</p></div></article>
+        <article><KeyRound size={23} /><div><h3>{t('security.credentials')}</h3><p>{t('security.credentialDetail')}</p></div></article>
+      </div>
+      <div className="story-integration-management">
+        <p>{t('integrations.footnote')}</p>
+        <div className="story-integration-actions"><button type="button" className="story-link" onClick={onHome}>{t('integrations.openHome')}<ArrowUpRight size={16} /></button><StoryLink href={links.integrationsUrl}>{t('integrations.details')}</StoryLink></div>
+      </div>
     </div>
   </section>;
 }

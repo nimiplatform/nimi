@@ -9831,7 +9831,7 @@
   gap: 12px;
 }
 :scope:lang(en) .shijing-primary-tabbar { min-width: 0; max-width: 100%; margin: 0; overflow-x: auto; }
-:scope:lang(en) .shijing-primary-tabbar button { flex-shrink: 0; white-space: nowrap; }
+.shijing-primary-tabbar button { flex-shrink: 0; white-space: nowrap; }
 .shijing-topbar, .shijing-shell__main, .shijing-tab, .shijing-mirror-header, .shijing-rijing__hero-stage, .shijing-rijing__hero-face { min-width: 0; max-width: 100%; }
 .shijing-rijing__hero-stage { grid-template-columns: minmax(0, 1fr); }
 .shijing-mirror-header { grid-template-columns: minmax(0, 1fr) auto; }
@@ -9844,6 +9844,12 @@
   :scope:lang(en) .shijing-topbar__method select { max-width: 100%; }
 }
 @container demo-shijing (max-width: 600px) {
+  .shijing-topbar { padding: 12px 16px; }
+  .shijing-topbar__brand { flex: 1; }
+  .shijing-topbar__account { order: 0; }
+  .shijing-topbar__method { order: 1; flex: 1 0 100%; min-width: 0; max-width: none; margin-left: 0; }
+  .shijing-primary-tabbar { gap: 4px; }
+  .shijing-primary-tabbar button { padding-inline: 10px; }
   .shijing-mirror-header { grid-template-columns: minmax(0, 1fr); align-items: start; }
   .shijing-mirror-header__meta { flex-wrap: wrap; white-space: normal; }
   .shijing-mirror-header__actions { flex-wrap: wrap; justify-self: start; max-width: 100%; }

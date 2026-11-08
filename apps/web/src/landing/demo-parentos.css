@@ -9,6 +9,7 @@
 
 :scope {
   position: relative;
+  container: demo-parentos / inline-size;
   display: block;
   width: 100%;
   min-width: 0;
@@ -72,6 +73,38 @@
   border-color: color-mix(in srgb, var(--nimi-border-subtle) 58%, transparent);
   background: color-mix(in srgb, var(--nimi-surface-card) 68%, transparent);
   box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03), 0 6px 18px rgba(15, 23, 42, 0.04);
+}
+
+/* Adapt to the preview's available width, rather than the landing viewport. */
+.parentos-overview { display: grid; grid-template-columns: 220px minmax(0,1fr); }
+.parentos-child-context { width: 100%; }
+.parentos-child-avatar { width: 120px; height: 120px; }
+.parentos-stage-groups { grid-template-columns: repeat(2,minmax(0,1fr)); }
+.parentos-stage-card { padding: 24px; }
+.parentos-overview > .parentos-stage-card { grid-column: auto; }
+.parentos-stage-groups > div { padding: 12px; }
+.parentos-dashboard { padding-top: 28px; scrollbar-width: thin; }
+.parentos-reminders > aside { width: 300px; scrollbar-width: thin; }
+@container demo-parentos (max-width: 1150px) {
+  .parentos-overview { grid-template-columns: minmax(0,1fr); }
+  .parentos-child-profile { display: grid; grid-template-columns: 64px minmax(0,1fr); gap: 12px 18px; padding: 18px; }
+  .parentos-child-avatar { width: 64px; height: 64px; }
+  .parentos-child-name { margin-top: 0; text-align: left; }
+  .parentos-child-actions { grid-column: 1 / -1; flex-direction: row; justify-content: space-between; margin-top: 0; padding-top: 0; }
+  .parentos-child-actions > button { width: auto; }
+}
+@container demo-parentos (max-width: 850px) {
+  .parentos-timeline { height: auto; min-height: 100%; flex-direction: column; }
+  .parentos-dashboard { flex: none; overflow: visible; padding: 18px 14px; }
+  .parentos-reminders > aside { width: 100%; height: auto; overflow: visible; border-left: 0; border-top: 1px solid rgba(255,255,255,.6); }
+}
+@container demo-parentos (max-width: 550px) {
+  .parentos-stage-groups { grid-template-columns: minmax(0,1fr); }
+  .parentos-stage-card { padding: 18px; }
+  .parentos-stage-header { flex-direction: column; align-items: start; gap: 8px; margin-bottom: 16px; }
+  .parentos-stage-card h2 { white-space: nowrap; }
+  .parentos-child-actions { align-items: start; flex-direction: column; gap: 8px; }
+  .parentos-child-actions > button { padding-left: 0; }
 }
 
 /* ----- Advisor (顾问) ----- */

@@ -9,6 +9,7 @@ import { StoryPage } from '../src/landing/components/story/story-page.js';
 import { HeroDemoSessionProvider } from '../src/landing/components/hero-demo-session.js';
 import { resolveLandingLinks } from '../src/landing/config/landing-links.js';
 import { createDemoZhiyuAgentClient, createDemoZhiyuAgentCenterSession } from '../src/landing/components/demo-zhiyu-agent-center.js';
+import { wrapShowcaseIndex } from '../src/landing/content/app-showcase.js';
 import { DEMO_PREVIEW_APP_IDS } from '../src/landing/components/demo-app-preview.js';
 
 test('the approved bilingual narrative has complete key and interpolation parity', () => {
@@ -40,7 +41,9 @@ test('the hero contains the full Home entry and leaves the download action to na
     const html = renderToStaticMarkup(createElement(HeroDemoSessionProvider, { demo: content.hero.demo,
       children: createElement(StoryPage, { content, locale, links: resolveLandingLinks({}), onLocale() {} }),
     }));
-    for (const id of ['home-demo', 'apps', 'worlds', 'models', 'integrations', 'risk-control', 'developers']) assert.ok(html.includes(`id="${id}"`), id);
+    for (const id of ['home-demo', 'apps', 'worlds', 'models', 'app-showcase', 'integrations', 'developers']) assert.ok(html.includes(`id="${id}"`), id);
+    assert.ok(html.indexOf('id="models"') < html.indexOf('id="app-showcase"'));
+    assert.ok(html.indexOf('id="app-showcase"') < html.indexOf('id="integrations"'));
     const hero = html.match(/<section class="story-hero"[\s\S]*?<\/section>/)?.[0];
     assert.ok(hero);
     assert.ok(hero.includes('id="home-demo"'));
@@ -50,6 +53,23 @@ test('the hero contains the full Home entry and leaves the download action to na
     assert.ok(html.includes('story-world-print'));
     assert.ok(!html.includes('screen-section'));
     for (const id of STORY_APPS) assert.ok((DEMO_PREVIEW_APP_IDS as readonly string[]).includes(id));
+    const showcase = html.match(/<section id="app-showcase"[\s\S]*?(?=<section id="integrations")/)?.[0];
+    assert.ok(showcase);
+    assert.equal(content.hero.demo.apps.items.length, 23);
+    for (const item of content.hero.demo.apps.items) {
+      assert.ok((DEMO_PREVIEW_APP_IDS as readonly string[]).includes(item.id), item.id);
+    }
+    for (const item of content.hero.demo.apps.items) {
+      assert.ok(showcase.includes(`data-app-id="${item.id}"`), item.id);
+    }
+    assert.equal(showcase.match(/data-app-id=/g)?.length, 46);
+    assert.ok(showcase.includes(getStoryCopy(locale)['showcase.explore']));
+    assert.ok(!showcase.includes('story-app-showcase-window'));
+    const integrations = html.match(/<section id="integrations"[\s\S]*?(?=<section id="developers")/)?.[0];
+    assert.ok(integrations);
+    assert.equal(integrations.match(/class="story-use-case"/g)?.length, 3);
+    assert.ok(integrations.includes(getStoryCopy(locale)['integrations.title']));
+    assert.ok(!integrations.includes('story-content-check'));
   }
 });
 
@@ -69,4 +89,12 @@ test('a memory change refreshes an already-open peer view of the same demo agent
   assert.equal(home.session.getSnapshot().state.cognition.memory?.items[0]?.content, '演示修正：下一次讨论矿物颜料。');
   assert.equal(seed.memories[0]?.content, getStoryCopy('zh')['experience.memorySeed']);
   unsubscribe(); home.session.dispose(); stage.session.dispose();
+});
+
+test('the App carousel wraps in both directions', () => {
+  assert.equal(wrapShowcaseIndex(-1, 23), 22);
+  assert.equal(wrapShowcaseIndex(23, 23), 0);
+  assert.equal(wrapShowcaseIndex(12, 23), 12);
+  assert.equal(wrapShowcaseIndex(47, 23), 1);
+  assert.equal(wrapShowcaseIndex(1, 0), 0);
 });

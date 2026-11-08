@@ -77,6 +77,7 @@ test('resolveLocalizedLinks carries the active locale into site entries', () => 
   assert.equal(localized.createAppUrl, '/apps?lang=zh#create-your-own');
   assert.equal(localized.createGuideUrl, 'https://docs.nimi.ai/zh/start/create-an-app');
   assert.equal(localized.riskControlUrl, 'https://docs.nimi.ai/zh/runtime/ai-risk-control');
+  assert.equal(localized.integrationsUrl, 'https://docs.nimi.ai/zh/runtime/integrations');
   assert.equal(localized.appUrl, 'https://docs.nimi.ai/zh/start/');
   assert.equal(localized.docsSourceUrl, 'https://github.com/nimiplatform/nimi/tree/main/docs/zh');
 
@@ -84,5 +85,6 @@ test('resolveLocalizedLinks carries the active locale into site entries', () => 
   assert.equal(en.downloadUrl, '/download?lang=en');
   assert.equal(en.createGuideUrl, 'https://docs.nimi.ai/start/create-an-app');
   assert.equal(en.riskControlUrl, 'https://docs.nimi.ai/runtime/ai-risk-control');
+  assert.equal(en.integrationsUrl, 'https://docs.nimi.ai/runtime/integrations');
   assert.equal(en.docsSourceUrl, 'https://github.com/nimiplatform/nimi/tree/main/docs');
 });

@@ -149,9 +149,8 @@ function ChildContextCard({
   ].join(', ');
   return (
     <div
-      className="relative z-10 shrink-0"
+      className="parentos-child-context relative z-10 shrink-0"
       style={{
-        width: 'min(240px, 100%)',
         borderRadius: 24,
         background: '#ffffff',
         boxShadow:
@@ -159,7 +158,7 @@ function ChildContextCard({
       }}
     >
       <div
-        className="relative flex h-full flex-col items-center overflow-hidden px-6 pb-6 pt-12"
+        className="parentos-child-profile relative flex h-full flex-col items-center overflow-hidden px-6 pb-6 pt-12"
         style={{ borderRadius: 24, isolation: 'isolate' }}
       >
         <div
@@ -168,10 +167,8 @@ function ChildContextCard({
           style={{ backgroundImage: mesh, filter: 'blur(24px)', zIndex: 0 }}
         />
         <div
-          className="relative nimi-material-glass-regular border border-[var(--nimi-material-glass-regular-border)] bg-[var(--nimi-material-glass-regular-bg)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
+          className="parentos-child-avatar relative nimi-material-glass-regular border border-[var(--nimi-material-glass-regular-border)] bg-[var(--nimi-material-glass-regular-bg)] backdrop-blur-[var(--nimi-backdrop-blur-regular)]"
           style={{
-            width: 120,
-            height: 120,
             padding: 4,
             borderRadius: '50%',
             boxShadow: '0 4px 14px rgba(15,23,42,0.06)',
@@ -183,7 +180,7 @@ function ChildContextCard({
             className="h-full w-full rounded-full object-cover"
           />
         </div>
-        <div className="relative mt-6 max-w-full text-center">
+        <div className="parentos-child-name relative mt-6 max-w-full text-center">
           <h2
             className="truncate text-[24px] font-semibold tracking-tight"
             style={{ color: '#1d1d1f', letterSpacing: '-0.3px' }}
@@ -195,7 +192,7 @@ function ChildContextCard({
             {content.child.genderLabel}
           </p>
         </div>
-        <div className="relative mt-auto flex w-full flex-col items-center gap-3 pt-6">
+        <div className="parentos-child-actions relative mt-auto flex w-full flex-col items-center gap-3 pt-6">
           <span
             className="inline-flex items-center rounded-full px-3 py-[5px] text-[13px] font-medium"
             style={{ background: 'rgba(52,199,89,0.12)', color: '#248a3d' }}
@@ -337,7 +334,7 @@ function TimelinePage({
   );
   const outdoorColor = outdoorPercent >= 100 ? '#4ECCA3' : '#818CF8';
   return (
-    <div className="relative flex h-full min-w-0" style={{ background: 'transparent' }}>
+    <div className="parentos-timeline relative flex h-full min-w-0" style={{ background: 'transparent' }}>
       <div
         aria-hidden="true"
         className="pointer-events-none absolute inset-0 z-0 overflow-hidden"
@@ -351,13 +348,12 @@ function TimelinePage({
         }}
       />
       <div
-        className="hide-scrollbar relative z-[1] min-w-0 flex-1 overflow-y-auto px-3 pb-8 sm:px-6"
-        style={{ paddingTop: 28 }}
+        className="parentos-dashboard relative z-[1] min-w-0 flex-1 overflow-y-auto px-3 pb-8 sm:px-6"
       >
-        <div className="mb-4 flex min-w-0 flex-col gap-4 lg:mb-6 lg:flex-row lg:gap-6">
+        <div className="parentos-overview mb-4 min-w-0 gap-4 lg:mb-6 lg:gap-6">
           <ChildContextCard content={content} onOpenProfile={() => navigate('profile')} />
-          <Cd cls="min-w-0 flex-1" material="glass-thick">
-            <div className="mb-6 flex items-start justify-between gap-3">
+          <Cd cls="parentos-stage-card min-w-0 flex-1" material="glass-thick">
+            <div className="parentos-stage-header mb-6 flex items-start justify-between gap-3">
               <div>
                 <p
                   className="text-[13px] font-medium tracking-[0.08em]"
@@ -381,7 +377,7 @@ function TimelinePage({
                 {home.viewAllReminders}
               </button>
             </div>
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="parentos-stage-groups grid gap-4">
               <StageInsightGroup
                 title={home.healthGroup}
                 items={home.health}
@@ -858,7 +854,7 @@ function TimelinePage({
         </div>
       </div>
 
-      <div className="relative z-[1] hidden xl:block">
+      <div className="parentos-reminders relative z-[1]">
         <ReminderPanel content={content} navigate={navigate} notice={notice} />
       </div>
     </div>
@@ -1109,7 +1105,7 @@ function ReminderPanel({
   return (
     <aside
       ref={asideRef}
-      className="flex h-full w-[320px] shrink-0 flex-col overflow-y-auto border-l px-3 pb-6 pt-7"
+      className="flex h-full shrink-0 flex-col overflow-y-auto border-l px-3 pb-6 pt-7"
       style={{ borderColor: 'rgba(255,255,255,0.6)', background: 'rgba(255,255,255,0.32)' }}
       aria-label={panel.title}
     >
