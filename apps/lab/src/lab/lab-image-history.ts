@@ -1,6 +1,6 @@
 import type { LabCapabilityId } from './lab-capabilities.js';
-import { readLabStandardStorageJson } from './lab-standard-storage.js';
-import { readLabHistoryDocuments, retryLabHistoryChunkCleanup, writeLabHistoryDocuments } from './lab-history-storage.js';
+import { getLabLocalAppClient } from '../shell/local-app-runtime-platform.js';
+import { createNimiAppRecordStore } from '@nimiplatform/kit/core/app-record-storage';
 import { isJsonObject } from '@nimiplatform/sdk/types';
 
 export type LabImageHistoryRecord = {
@@ -32,9 +32,6 @@ function normalizeRecord(record: LabImageHistoryRecord): LabImageHistoryRecord {
     traceState: record.traceState || 'not-captured',
   };
 }
-
-const LAB_IMAGE_HISTORY_STORAGE_PATH = 'lab-image-history.json';
-const imageHistoryMutationQueue = { tail: Promise.resolve() };
 
 function imageHistoryPayloadError(path: string, detail: string): never {
   throw new Error(`Lab image history payload ${detail} at ${path}.`);
@@ -79,12 +76,6 @@ function parseRecord(value: unknown, index: number): LabImageHistoryRecord {
   return normalizeRecord(value as unknown as LabImageHistoryRecord);
 }
 
-function enqueueImageHistoryMutation<T>(operation: () => Promise<T>): Promise<T> {
-  const result = imageHistoryMutationQueue.tail.then(operation, operation);
-  imageHistoryMutationQueue.tail = result.then(() => undefined, () => undefined);
-  return result;
-}
-
 function parseRecords(value: unknown): LabImageHistoryRecord[] {
   if (value === undefined) {
     return [];
@@ -95,49 +86,29 @@ function parseRecords(value: unknown): LabImageHistoryRecord[] {
   return value.map(parseRecord);
 }
 
-async function readRecords(): Promise<LabImageHistoryRecord[]> {
-  await retryLabHistoryChunkCleanup(LAB_IMAGE_HISTORY_STORAGE_PATH, 'media');
-  const root = await readLabStandardStorageJson(LAB_IMAGE_HISTORY_STORAGE_PATH);
-  return root === undefined ? [] : parseRecords(await readLabHistoryDocuments(root, 'media'));
+type HistoryAssets = Parameters<typeof createNimiAppRecordStore>[0];
+function repository(assets: HistoryAssets) {
+  return createNimiAppRecordStore(assets, 'studio/history/media', value => parseRecords([value])[0]!);
 }
-export async function loadLabImageHistory(): Promise<LabImageHistoryRecord[]> {
-  return enqueueImageHistoryMutation(readRecords);
+async function readRecords(store: ReturnType<typeof repository>): Promise<LabImageHistoryRecord[]> {
+  return (await store.list()).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
-async function writeRecords(records: LabImageHistoryRecord[]): Promise<void> {
-  const normalized = parseRecords(JSON.parse(JSON.stringify(records)) as unknown);
-  const previous = await readLabStandardStorageJson(LAB_IMAGE_HISTORY_STORAGE_PATH);
-  await writeLabHistoryDocuments(LAB_IMAGE_HISTORY_STORAGE_PATH, 'media', normalized, previous);
+export async function loadLabImageHistory(assets: HistoryAssets = getLabLocalAppClient().storage.assets): Promise<LabImageHistoryRecord[]> {
+  return readRecords(repository(assets));
 }
-export async function saveLabImageHistory(records: LabImageHistoryRecord[]): Promise<void> {
-  return enqueueImageHistoryMutation(() => writeRecords(records));
+export async function appendLabImageHistoryRecord(record: LabImageHistoryRecord, assets: HistoryAssets = getLabLocalAppClient().storage.assets): Promise<LabImageHistoryRecord[]> {
+  const store = repository(assets);
+  await store.write(normalizeRecord(record));
+  return readRecords(store);
 }
-
-export async function appendLabImageHistoryRecord(record: LabImageHistoryRecord): Promise<LabImageHistoryRecord[]> {
-  return enqueueImageHistoryMutation(async () => {
-    const history = await readRecords();
-    const withoutDuplicate = history.filter((existing) => existing.id !== record.id);
-    const next = [normalizeRecord(record), ...withoutDuplicate];
-    await writeRecords(next);
-    return next;
-  });
+export async function removeLabImageHistoryRecord(runId: string, assets: HistoryAssets = getLabLocalAppClient().storage.assets): Promise<LabImageHistoryRecord[]> {
+  const store = repository(assets);
+  for (const record of await store.list()) if ((record.runId || record.id) === runId) await store.remove(record.id);
+  return readRecords(store);
 }
-
-export async function removeLabImageHistoryRecord(runId: string): Promise<LabImageHistoryRecord[]> {
-  return enqueueImageHistoryMutation(async () => {
-    const history = await readRecords();
-    const next = history.filter((record) => (record.runId || record.id) !== runId);
-    await writeRecords(next);
-    return next;
-  });
-}
-
-export async function clearLabImageHistory(capabilityId?: string): Promise<LabImageHistoryRecord[]> {
-  return enqueueImageHistoryMutation(async () => {
-    const history = await readRecords();
-    const next = capabilityId === undefined
-      ? []
-      : history.filter((record) => record.capabilityId !== capabilityId);
-    await writeRecords(next);
-    return next;
-  });
+export async function clearLabImageHistory(capabilityId?: string, assets: HistoryAssets = getLabLocalAppClient().storage.assets): Promise<LabImageHistoryRecord[]> {
+  const store = repository(assets);
+  const selected = (await store.list()).filter(record => capabilityId === undefined || record.capabilityId === capabilityId);
+  for (const record of selected) await store.remove(record.id);
+  return readRecords(store);
 }

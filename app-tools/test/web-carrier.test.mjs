@@ -1,3 +1,4 @@
+import { createNimiAppRecordStore } from '../../kit/dist/core/app-record-storage.js';
 import assert from 'node:assert/strict';
 import { mkdtempSync, mkdirSync, readFileSync, writeFileSync, rmSync } from 'node:fs';
 import path from 'node:path';
@@ -102,17 +103,23 @@ test('generated services keep an already queued save on its original connection'
   assert.ok(factory);
   let finishRead, currentClient;
   const written = [];
+  const assets = name => ({
+    async list() { return { assets: [], nextCursor: '' }; },
+    async read() { return { body: (async function* () { yield new TextEncoder().encode(JSON.stringify({ id: name, capabilityId: 'text.generate', createdAt: '2026-11-09' })); })() }; },
+    async remove() { written.push(name); return { removed: true }; },
+  });
   const a = { identity: { realmEnvironmentId: 'unit', accountId: 'A', appId: 'unit.web', clientId: 'unit.client' }, primary: { bindingId: 'primary-A' },
-    storage: { assets: {}, readJson: () => new Promise(resolve => { finishRead = resolve; }), writeJson: async () => { written.push('A'); } } };
-  const b = { identity: { ...a.identity, accountId: 'B' }, primary: { bindingId: 'primary-B' },
-    storage: { assets: {}, readJson: async () => ({ value: {} }), writeJson: async () => { written.push('B'); } } };
+    storage: { assets: { ...assets('A'), list: () => new Promise(resolve => { finishRead = resolve; }) } } };
+  const b = { identity: { ...a.identity, accountId: 'B' }, primary: { bindingId: 'primary-B' }, storage: { assets: assets('B') } };
   currentClient = a;
   // Only the history-policy port is replaced: this tests generated lifetime
   // binding, not Runtime authorization or the policy owner's merge algorithm.
   const create = vm.runInNewContext(stripTypeScriptTypes(factory.getText(parsed), { mode: 'transform' }) + '; createGeneratedServices;', {
     getNimiLocalAppClient: () => currentClient,
     appTitle: 'unit', translate: value => value, generatedLocale: 'en', HISTORY_PATH: 'history.json', PROMPT_DRAFT_STORAGE_KEY: 'drafts',
-    createEmptyStudioPromptDraftStore: () => ({}), parseStudioRunHistory: value => value,
+    createNimiAppRecordStore, parseStudioRunHistoryRecord: value => value,
+    createStudioPromptDraftRepository: () => ({ load: async () => ({ prompt: null }), save: async () => {} }),
+    studioHistoryFromRecords: records => ({ 'text.generate': records }),
     createStudioRunTargetSummary: () => ({}), openAssetMediaUrl: async () => { throw new Error('not selected'); },
     clearStudioHistoryWithPolicy: async ({ commit }) => { await commit({}); return {}; },
   });
@@ -123,6 +130,32 @@ test('generated services keep an already queued save on its original connection'
   currentClient = b;
   const servicesB = create(b);
   assert.equal(servicesB.hostValue.sdk.storage, b.storage);
-  finishRead({ value: {} }); await pending;
+  finishRead({ assets: [{ relativePath: 'ai-studio/history/A.json' }], nextCursor: '' }); await pending;
   assert.deepEqual(written, ['A']);
+});
+
+test('two generated Web clients retain independently saved runs in the same owner', async () => {
+  const source = snapshot().filesByPath.get('src/scaffold/generated/host-adapters.tsx').content;
+  const parsed = ts.createSourceFile('host.tsx', source, ts.ScriptTarget.Latest, true, ts.ScriptKind.TSX);
+  const factory = parsed.statements.find(statement => ts.isFunctionDeclaration(statement) && statement.name?.text === 'createGeneratedServices');
+  const records = new Map();
+  const client = { identity: { realmEnvironmentId: 'unit', accountId: 'A', appId: 'unit.web', clientId: 'unit.client' }, primary: { bindingId: 'primary-A' }, storage: { assets: {
+    async write({ relativePath, body }) { await Promise.resolve(); records.set(relativePath, body); },
+    async read({ relativePath }) { const bytes = records.get(relativePath); return { body: (async function* () { yield bytes; })() }; },
+    async list() { return { assets: [...records.keys()].sort().map(relativePath => ({ relativePath })), nextCursor: '' }; },
+  } } };
+  const create = vm.runInNewContext(stripTypeScriptTypes(factory.getText(parsed), { mode: 'transform' }) + '; createGeneratedServices;', {
+    appTitle: 'unit', translate: value => value, generatedLocale: 'en',
+    createNimiAppRecordStore, parseStudioRunHistoryRecord: value => value,
+    createStudioPromptDraftRepository: () => ({ load: async () => ({ prompt: null }), save: async () => {} }),
+    studioHistoryFromRecords: rows => ({ 'text.generate': rows }),
+    projectStudioManagedHistory: ({ runHistory }) => runHistory,
+    createStudioRunTargetSummary: () => ({}), openAssetMediaUrl: async () => { throw new Error('not selected'); },
+  });
+  const a = create(client), b = create(client);
+  await Promise.all([
+    a.historyRepository.appendRecord({ id: 'A', capabilityId: 'text.generate', createdAt: '2026-11-09T00:00:00Z' }),
+    b.historyRepository.appendRecord({ id: 'B', capabilityId: 'text.generate', createdAt: '2026-11-09T00:00:01Z' }),
+  ]);
+  assert.deepEqual(Array.from((await a.historyRepository.load())['text.generate'], row => row.id), ['B', 'A']);
 });

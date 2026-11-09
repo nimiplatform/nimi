@@ -1,28 +1,22 @@
-import { enqueueHistoryMutation, readLabHistoryDocuments, retryLabHistoryChunkCleanup, writeLabHistoryDocuments } from '../lab-history-storage.js';
-import { readLabStandardStorageJson } from '../lab-standard-storage.js';
-
+import { createNimiAppRecordStore } from '@nimiplatform/kit/core/app-record-storage';
+import { getLabLocalAppClient } from '../../shell/local-app-runtime-platform.js';
 import { mergeIntegrationHistoryRecord, parseLabIntegrationHistory, type LabIntegrationHistoryRecord } from './integration-history-model.js';
 export { parseLabIntegrationHistory, integrationHistoryRecord, observeIntegrationHistory, exportLabIntegrationHistory, savedIntegrationHistoryRecord, type LabIntegrationHistoryRecord } from './integration-history-model.js';
-const ROOT = 'lab-integration-history.json';
-async function readSnapshot() {
-  await retryLabHistoryChunkCleanup(ROOT,'integration');
-  const index = await readLabStandardStorageJson(ROOT);
-  return { index, records: index === undefined ? [] : parseLabIntegrationHistory(await readLabHistoryDocuments(index,'integration')) };
+type HistoryAssets = Parameters<typeof createNimiAppRecordStore>[0];
+function repository(assets: HistoryAssets) {
+  return createNimiAppRecordStore(assets, 'studio/history/integration', value => parseLabIntegrationHistory([value])[0]!);
 }
-export function loadLabIntegrationHistory(): Promise<readonly LabIntegrationHistoryRecord[]> {
-  return enqueueHistoryMutation(async () => (await readSnapshot()).records);
+export async function loadLabIntegrationHistory(assets: HistoryAssets = getLabLocalAppClient().storage.assets): Promise<readonly LabIntegrationHistoryRecord[]> {
+  return repository(assets).list();
 }
-export function appendLabIntegrationHistory(record: LabIntegrationHistoryRecord): Promise<readonly LabIntegrationHistoryRecord[]> {
-  return enqueueHistoryMutation(async () => {
-    const previous = await readSnapshot();
-    const merged = mergeIntegrationHistoryRecord(previous.records.find(item => item.id === record.id),record);
-    const records = parseLabIntegrationHistory([merged,...previous.records.filter(item => item.id !== record.id)]);
-    await writeLabHistoryDocuments(ROOT,'integration',records,previous.index); return records;
-  });
+export async function appendLabIntegrationHistory(record: LabIntegrationHistoryRecord, assets: HistoryAssets = getLabLocalAppClient().storage.assets): Promise<readonly LabIntegrationHistoryRecord[]> {
+  const store = repository(assets);
+  const merged = mergeIntegrationHistoryRecord(await store.read(record.id) ?? undefined, record);
+  await store.write(merged);
+  return store.list();
 }
-export function removeLabIntegrationHistory(recordId: string): Promise<readonly LabIntegrationHistoryRecord[]> {
-  return enqueueHistoryMutation(async () => {
-    const previous = await readSnapshot(); const records = previous.records.filter(item => item.id !== recordId);
-    await writeLabHistoryDocuments(ROOT,'integration',records,previous.index); return records;
-  });
+export async function removeLabIntegrationHistory(recordId: string, assets: HistoryAssets = getLabLocalAppClient().storage.assets): Promise<readonly LabIntegrationHistoryRecord[]> {
+  const store = repository(assets);
+  await store.remove(recordId);
+  return store.list();
 }

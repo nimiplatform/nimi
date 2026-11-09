@@ -65,6 +65,7 @@ export {
   createStudioRunTargetSummary,
 } from './run-target.js';
 export {
+  parseStudioRunHistoryRecord,
   DEFAULT_AI_STUDIO_HISTORY_PANEL_PREFERENCES,
   appendStudioRunHistoryRecord,
   cleanupStudioHistoryArtifacts,
@@ -185,6 +186,7 @@ export {
   type StudioRuntimeRunnerSet,
 } from './runtime.js';
 export {
+  createStudioPromptDraftRepository,
   STUDIO_PROMPT_DRAFTS_SCHEMA_VERSION,
   createEmptyStudioPromptDraftStore,
   parseStudioPromptDraftStore,

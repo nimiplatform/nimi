@@ -32,7 +32,7 @@ export type AIStudioHostPort = {
   readonly app: {
     readonly projection: {
       readonly assetExportAction: () => 'reveal' | 'download';
-      readonly promptDraft: (key: StudioPromptDraftKey, enabled: boolean) => { readonly prompt: string | null };
+      readonly promptDraft: (key: StudioPromptDraftKey, enabled: boolean) => Promise<{ readonly prompt: string | null }>;
       readonly projectRunTarget: (input: {
         readonly capability: StudioCapabilityDescriptor;
         readonly runtime: import('./runtime-types.js').StudioRuntimeInspection | null;

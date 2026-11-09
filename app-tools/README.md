@@ -250,6 +250,8 @@ The same CLI supports `create --platform web`, Web `init/sync/check/test/build`,
 
 Use matching complete SDK, Kit and App Tools source archives until the new entries are published; a published package with the same numeric version may not contain this source iteration. No source-directory dependency links are required.
 
+The current workbench uses account-owned prompt drafts with an asynchronous `promptDraft` projection and independent history record documents. For existing unreleased generated prototypes, update the App-owned AI Studio capability source together with the generated host adapters. `sync` intentionally preserves `src/capabilities` and does not migrate or overwrite that business source; running `check` alone is not a substitute for the project's typecheck/build after this source update.
+
 The generated `nimi.app.yaml` has `platform: web` and `local_development.web` with the exact `origin`, `redirect_uri`, `client_id`, `realm_environment_id`, `realm_url`, `official_web_url` and App-owned `command`. Web connection inputs survive sync; the App identity and selected features remain managed. Put `NIMI_WEB_TLS_KEY` and `NIMI_WEB_TLS_CERT` file paths in `.env.local`. Register the real source through the Registry owner and confirm it once in PC Home; the tool does not approve it.
 
 `@nimiplatform/app-tools/web` exports the Node-only `nimiWebViteConfig` helper. Its development proxy only forwards scoped identity and SDP coordination routes and strips official cookies. AI, files, audio and results use the browser-to-PC connection. Built static files need a separately configured production origin and bounded coordination route; the Vite dev server is not production hosting.

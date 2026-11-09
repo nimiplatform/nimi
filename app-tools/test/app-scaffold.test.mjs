@@ -1731,19 +1731,15 @@ test('create accepts candidate studio-create as one shared AI Studio route with 
     'runStudioCapability',
     'createStudioNonSuccess',
     'createStudioRunTargetSummary',
-    'createEmptyStudioPromptDraftStore',
+    'createStudioPromptDraftRepository',
+    'createNimiAppRecordStore',
     'loadStudioAIConfig',
-    'parseStudioPromptDraftStore',
     'projectStudioManagedHistory',
-    'readStudioPromptDraft',
     'subscribeStudioAIConfigRefresh',
-    'updateStudioPromptDraftStore',
     'useAIStudioWorkspaceController',
     'ModelConfigAIConfigSurface',
     'openDesktopIntent',
     'getNimiLocalAppClient',
-    'storage.readJson',
-    'storage.writeJson',
     'storage.assets.remove',
     'storage.assets.stat',
     'ai.voiceAssets.list',
@@ -1780,8 +1776,8 @@ test('create accepts candidate studio-create as one shared AI Studio route with 
   assert.match(host, /exportAsset: async \(relativePath\) => \{ await client\.storage\.assets\.reveal\(relativePath\); \}/);
   assert.doesNotMatch(host, /exportArtifact/);
   assert.match(host, /status: 'unavailable'/);
-  assert.match(host, /remainingCleanupPaths: cleanup\.remainingCleanupPaths/);
-  assert.match(host, /displayFailure: \{ reason: 'runtime-call-failed'/);
+  assert.match(host, /retryRecord: true, remainingCleanupPaths: \[\]/);
+  assert.doesNotMatch(host, /cleanupArtifacts\(paths\)/);
   assert.match(host, /controller=\{controller\}/);
   assert.doesNotMatch(host, /historyRepository=\{historyRepository\}/);
   assert.match(read('src/shell/App.tsx'), /<NimiToaster \/>/);

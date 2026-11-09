@@ -595,6 +595,11 @@ export function parseStudioRunHistory(value: unknown): StudioRunHistory {
   return history;
 }
 
+export function parseStudioRunHistoryRecord(value: unknown): StudioRunHistoryRecord {
+  if (!isJsonObject(value) || typeof value.capabilityId !== 'string') throw new Error('AI Studio history record requires a capability.');
+  return parseStudioRunHistory({ [value.capabilityId]: [value] })[value.capabilityId]![0]!;
+}
+
 export function flattenStudioHistoryRecords(history: StudioRunHistory): StudioRunHistoryRecord[] {
   return Object.values(history).flatMap((records) => records);
 }
@@ -613,8 +618,8 @@ export function studioHistoryFromRecords(records: readonly StudioRunHistoryRecor
   return history;
 }
 
-// Saving a run never removes or shrinks another run. Storage splits complete
-// records across documents; only an explicit user action removes history.
+// Saving a run never removes or shrinks another run. Storage publishes complete
+// records independently; only an explicit user action removes history.
 export function appendStudioRunHistoryRecord(history: StudioRunHistory, record: StudioRunHistoryRecord): StudioRunHistory {
   return studioHistoryFromRecords([record, ...flattenStudioHistoryRecords(history).filter((existing) => existing.id !== record.id)]
     .sort((left, right) => right.createdAt.localeCompare(left.createdAt)));

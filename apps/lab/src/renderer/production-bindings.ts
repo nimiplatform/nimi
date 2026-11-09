@@ -1,3 +1,4 @@
+import { createStudioPromptDraftRepository } from '../ai-studio-core/prompt-drafts.js';
 import { createNimiClientId } from '@nimiplatform/sdk';
 import { requestWithRetry } from '@nimiplatform/sdk/types';
 import type { Realm } from '@nimiplatform/sdk/realm';
@@ -35,9 +36,7 @@ import {
 } from '../lab/lab-image-history.js';
 import {
   loadLabPreferences,
-  loadLabPromptDraft,
   saveLabPreferences,
-  saveLabPromptDraft,
 } from '../lab/lab-preferences.js';
 import { resumeWorldTour, runWorldTour } from '../lab/world-tour/world-tour-runtime.js';
 import {
@@ -103,8 +102,7 @@ export function createLabProductionBindings(
   kit: NimiRendererHostFacadeV1<NimiRendererHostMethodMap>,
 ): LabCanonicalRendererBindings {
   const labLocalAppClient = getLabLocalAppClient();
-  const promptDrafts = new Map<string, string>();
-  const draftKey = (key: Parameters<LabRendererCommandPort['savePromptDraft']>[0]) => JSON.stringify([key.surfaceId, key.capabilityId, key.scenarioId]);
+  const promptDrafts = createStudioPromptDraftRepository(labLocalAppClient.storage);
   const bindings = createNimiCanonicalRendererHostBindings({
     scope: kit.scope,
     capabilities: kit.capabilities,
@@ -144,37 +142,34 @@ export function createLabProductionBindings(
         runtimePlatform: getRuntimePlatformProjection,
         aiConfigSummary: loadLabAIConfigSummary,
         runHistory: () => requestWithRetry({
-          executor: loadLabRunHistory,
+          executor: () => loadLabRunHistory(labLocalAppClient.storage.assets),
           options: { maxAttempts: 2, initialDelayMs: 25, maxDelayMs: 50 },
         }),
-        integrationHistory: loadLabIntegrationHistory,
+        integrationHistory: () => loadLabIntegrationHistory(labLocalAppClient.storage.assets),
         imageHistory: () => requestWithRetry({
-          executor: loadLabImageHistory,
+          executor: () => loadLabImageHistory(labLocalAppClient.storage.assets),
           options: { maxAttempts: 2, initialDelayMs: 25, maxDelayMs: 50 },
         }),
         ecosystemReference: () => null,
         personaReference: () => null,
         preferences: () => loadLabPreferences().preferences,
-        promptDraft: (key: Parameters<typeof loadLabPromptDraft>[0], enabled: boolean) => {
-          const loaded = loadLabPromptDraft(key, enabled);
-          return { ...loaded, prompt: promptDrafts.get(draftKey(key)) ?? loaded.prompt };
-        },
+        promptDraft: promptDrafts.load,
       }),
       commands: Object.freeze({
         async nextRunIdentity() {
           return { runId: createNimiClientId('run'), createdAt: new Date().toISOString() };
         },
-        appendRunHistory: appendLabRunHistory,
-        appendIntegrationHistory: appendLabIntegrationHistory,
-        removeIntegrationHistory: removeLabIntegrationHistory,
-        removeRunHistory: removeLabRunHistoryRecord,
+        appendRunHistory: (input: Parameters<LabRendererCommandPort['appendRunHistory']>[0]) => appendLabRunHistory(input, labLocalAppClient.storage.assets),
+        appendIntegrationHistory: (input: Parameters<LabRendererCommandPort['appendIntegrationHistory']>[0]) => appendLabIntegrationHistory(input, labLocalAppClient.storage.assets),
+        removeIntegrationHistory: (input: Parameters<LabRendererCommandPort['removeIntegrationHistory']>[0]) => removeLabIntegrationHistory(input, labLocalAppClient.storage.assets),
+        removeRunHistory: (input: Parameters<LabRendererCommandPort['removeRunHistory']>[0]) => removeLabRunHistoryRecord(input, labLocalAppClient.storage.assets),
         async clearRunHistory(input: { readonly capabilityId?: string }) {
-          return clearLabRunHistory(input.capabilityId);
+          return clearLabRunHistory(input.capabilityId, labLocalAppClient.storage.assets);
         },
-        appendImageHistory: appendLabImageHistoryRecord,
-        removeImageHistory: removeLabImageHistoryRecord,
+        appendImageHistory: (input: Parameters<LabRendererCommandPort['appendImageHistory']>[0]) => appendLabImageHistoryRecord(input, labLocalAppClient.storage.assets),
+        removeImageHistory: (input: Parameters<LabRendererCommandPort['removeImageHistory']>[0]) => removeLabImageHistoryRecord(input, labLocalAppClient.storage.assets),
         async clearImageHistory(input: { readonly capabilityId?: string }) {
-          return clearLabImageHistory(input.capabilityId);
+          return clearLabImageHistory(input.capabilityId, labLocalAppClient.storage.assets);
         },
         async savePreferences(preferences: Parameters<LabRendererCommandPort['savePreferences']>[0]) {
           const result = saveLabPreferences(preferences);
@@ -182,14 +177,7 @@ export function createLabProductionBindings(
             throw new Error(result.status.error || result.status.message);
           }
         },
-        async savePromptDraft(
-          key: Parameters<LabRendererCommandPort['savePromptDraft']>[0],
-          prompt: string,
-          enabled: boolean,
-        ) {
-          promptDrafts.set(draftKey(key), prompt);
-          return saveLabPromptDraft(key, prompt, enabled);
-        },
+        savePromptDraft: promptDrafts.save,
         async copyText(text: string) {
           if (!navigator.clipboard) return hostFailure<{ readonly copied: boolean }>('unsupported');
           try {

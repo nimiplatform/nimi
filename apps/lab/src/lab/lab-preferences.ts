@@ -4,15 +4,7 @@ import {
   resolveBrowserStorage,
   writeStorageJsonTo,
 } from '@nimiplatform/kit/core/storage-json';
-import {
-  STUDIO_PROMPT_DRAFTS_SCHEMA_VERSION,
-  createEmptyStudioPromptDraftStore,
-  parseStudioPromptDraftStore,
-  readStudioPromptDraft,
-  updateStudioPromptDraftStore,
-  type StudioPromptDraftKey,
-  type StudioPromptDraftStore,
-} from '../ai-studio-core/prompt-drafts.js';
+import type { StudioPromptDraftKey } from '../ai-studio-core/prompt-drafts.js';
 import {
   DEFAULT_AI_STUDIO_HISTORY_PANEL_PREFERENCES,
   parseAIStudioHistoryPanelPreferences,
@@ -20,11 +12,6 @@ import {
 
 export const LAB_PREFERENCES_STORAGE_KEY = 'nimiapp-lab:workbench-preferences:v1';
 export const LAB_PREFERENCES_SCHEMA_VERSION = 1;
-export const LAB_PROMPT_DRAFTS_STORAGE_KEY = 'nimiapp-lab:prompt-drafts:v1';
-export const LAB_PROMPT_DRAFTS_SCHEMA_VERSION = STUDIO_PROMPT_DRAFTS_SCHEMA_VERSION;
-
-export type LabPromptDraftSurfaceId = StudioPromptDraftKey['surfaceId'];
-
 export type LabHistoryPanelScope = 'capability' | 'all' | 'media';
 
 export type LabHistoryPanelPreferences = {
@@ -62,49 +49,13 @@ type PreferenceLoadResult = {
 
 export type LabPromptDraftKey = StudioPromptDraftKey;
 
-export type LabPromptDraftStore = StudioPromptDraftStore;
-
-export type LabPromptDraftStoreState =
-  | 'ready'
-  | 'defaulted'
-  | 'corrupt'
-  | 'unavailable'
-  | 'write-error'
-  | 'disabled';
-
-export type LabPromptDraftStoreStatus = {
-  state: LabPromptDraftStoreState;
-  storageKey: typeof LAB_PROMPT_DRAFTS_STORAGE_KEY;
-  message: string;
-  error?: string;
-};
-
-export type LabPromptDraftLoadResult = {
-  prompt: string | null;
-  status: LabPromptDraftStoreStatus;
-};
-
-export type LabPromptDraftSaveResult = {
-  status: LabPromptDraftStoreStatus;
-};
+export type LabPromptDraftLoadResult = { readonly prompt: string | null };
+export type LabPromptDraftSaveResult = void;
 
 function defaultStatus(state: LabPreferenceStoreState, message: string, error?: string): LabPreferenceStoreStatus {
   return {
     state,
     storageKey: LAB_PREFERENCES_STORAGE_KEY,
-    message,
-    error,
-  };
-}
-
-function defaultDraftStatus(
-  state: LabPromptDraftStoreState,
-  message: string,
-  error?: string,
-): LabPromptDraftStoreStatus {
-  return {
-    state,
-    storageKey: LAB_PROMPT_DRAFTS_STORAGE_KEY,
     message,
     error,
   };
@@ -129,17 +80,6 @@ function storageUnavailableResult(error?: string): PreferenceLoadResult {
     status: defaultStatus(
       'unavailable',
       'Local preference storage is unavailable; defaults are active and controls are read-only.',
-      error,
-    ),
-  };
-}
-
-function draftStorageUnavailableResult(error?: string): LabPromptDraftLoadResult {
-  return {
-    prompt: null,
-    status: defaultDraftStatus(
-      'unavailable',
-      'Prompt draft storage is unavailable; preset prompt is active.',
       error,
     ),
   };
@@ -171,34 +111,6 @@ function parseLabPreferences(value: unknown): LabPreferences {
     draftPersistence: parsed.draftPersistence,
     verboseConsole: parsed.verboseConsole,
     historyPanel: parseHistoryPanelPreferences(parsed.historyPanel),
-  };
-}
-
-function defaultLabPromptDraftStore(): LabPromptDraftStore {
-  return createEmptyStudioPromptDraftStore();
-}
-
-function parseLabPromptDraftStore(value: unknown): LabPromptDraftStore {
-  return parseStudioPromptDraftStore(value);
-}
-
-function loadLabPromptDraftStore(storage: Storage): {
-  store: LabPromptDraftStore;
-  status: LabPromptDraftStoreStatus;
-} {
-  const loaded = readStorageJsonFrom(storage, LAB_PROMPT_DRAFTS_STORAGE_KEY, parseLabPromptDraftStore);
-  if (loaded.state === 'missing') {
-    return {
-      store: defaultLabPromptDraftStore(),
-      status: defaultDraftStatus('defaulted', 'No saved prompt drafts found; preset prompt is active.'),
-    };
-  }
-  if (loaded.state !== 'ready') {
-    throw new Error(loaded.error || `Prompt draft storage ${loaded.state}.`);
-  }
-  return {
-    store: loaded.value,
-    status: defaultDraftStatus('ready', 'Prompt draft store loaded.'),
   };
 }
 
@@ -285,75 +197,6 @@ export function resetLabPreferences(storage: Storage | null = getLocalPreference
         'write-error',
         'Preference reset failed; run and artifact evidence was not changed.',
         error instanceof Error ? error.message : String(error || 'Unknown preference reset error.'),
-      ),
-    };
-  }
-}
-
-export function loadLabPromptDraft(
-  key: LabPromptDraftKey,
-  enabled: boolean,
-  storage: Storage | null = getLocalPreferenceStorage(),
-): LabPromptDraftLoadResult {
-  if (!enabled) {
-    return {
-      prompt: null,
-      status: defaultDraftStatus('disabled', 'Prompt draft persistence is disabled; preset prompt is active.'),
-    };
-  }
-  if (!storage) return draftStorageUnavailableResult();
-
-  try {
-    const { store, status } = loadLabPromptDraftStore(storage);
-    return {
-      prompt: readStudioPromptDraft(store, key, enabled),
-      status,
-    };
-  } catch (error) {
-    return {
-      prompt: null,
-      status: defaultDraftStatus(
-        'corrupt',
-        'Saved prompt drafts could not be trusted; preset prompt is active.',
-        error instanceof Error ? error.message : String(error || 'Unknown prompt draft load error.'),
-      ),
-    };
-  }
-}
-
-export function saveLabPromptDraft(
-  key: LabPromptDraftKey,
-  prompt: string,
-  enabled: boolean,
-  storage: Storage | null = getLocalPreferenceStorage(),
-): LabPromptDraftSaveResult {
-  if (!enabled) {
-    return {
-      status: defaultDraftStatus('disabled', 'Prompt draft persistence is disabled; edit was not saved.'),
-    };
-  }
-  if (!storage) {
-    return {
-      status: draftStorageUnavailableResult().status,
-    };
-  }
-
-  try {
-    const { store } = loadLabPromptDraftStore(storage);
-    const next = updateStudioPromptDraftStore(store, key, prompt, enabled);
-    const write = writeStorageJsonTo(storage, LAB_PROMPT_DRAFTS_STORAGE_KEY, next);
-    if (write.state !== 'saved') {
-      throw new Error(write.error || `Prompt draft storage ${write.state}.`);
-    }
-    return {
-      status: defaultDraftStatus('ready', 'Prompt draft saved.'),
-    };
-  } catch (error) {
-    return {
-      status: defaultDraftStatus(
-        'write-error',
-        'Prompt draft write failed; edit remains local to this view.',
-        error instanceof Error ? error.message : String(error || 'Unknown prompt draft write error.'),
       ),
     };
   }

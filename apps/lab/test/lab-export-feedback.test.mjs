@@ -37,7 +37,7 @@ const unrelated = new Map();
 for (const statement of source.statements) {
   if (!ts.isImportDeclaration(statement) || !statement.moduleSpecifier.text.startsWith('..')) continue;
   const specifier = statement.moduleSpecifier.text;
-  if (specifier.endsWith('/lab-export.js') || specifier.endsWith('/local-app-runtime-platform.js') || specifier.endsWith('/web/download.js')) continue;
+  if (specifier.endsWith('/lab-export.js') || specifier.endsWith('/local-app-runtime-platform.js') || specifier.endsWith('/web/download.js') || specifier.endsWith('/prompt-drafts.js')) continue;
   if (statement.importClause?.isTypeOnly) continue;
   unrelated.set(specifier, statement.importClause.namedBindings.elements.map(item => item.propertyName?.text ?? item.name.text));
 }
@@ -97,7 +97,7 @@ function makeHost(outcome, web = false) {
   globalThis.__EXPORT_FEEDBACK_CLIENT__ = { storage: { assets }, ai: { voiceAssets: {}, artifacts: {} }, aiConfig: {} };
   const production = createLabProductionBindings(kit);
   const host = { appTitle: 'Lab', translate, locale: 'en', clock: { now: () => Date.parse('2026-10-05T10:00:00Z') },
-    app: { commands: production.app.commands, projection: { promptDraft: () => ({ prompt: 'selected prompt' }),
+    app: { commands: production.app.commands, projection: { promptDraft: async () => ({ prompt: 'selected prompt' }),
       projectRunTarget: () => target, runStatusLabel: status => status, assetExportAction: () => web ? 'download' : 'reveal' }, events: { subscribeAIConfigRefresh: () => () => {} } },
     sdk: { assets,
       aiConfig: { get: async () => null, getSnapshot: async () => ({ effectiveSelections: [] }) },

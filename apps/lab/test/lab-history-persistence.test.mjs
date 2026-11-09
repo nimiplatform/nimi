@@ -58,10 +58,14 @@ const historyStorageModuleUrl = compileModule('src/lab/lab-history-storage.ts', 
   ['../shell/i18n/index.js', i18nModuleUrl],
   ['../ai-studio-core/history-policy.js', historyPolicyModuleUrl],
   ['./lab-standard-storage.js', standardStorageModuleUrl],
+  ['../shell/local-app-runtime-platform.js', clientModuleUrl],
+  ['@nimiplatform/kit/core/app-record-storage', import.meta.resolve('@nimiplatform/kit/core/app-record-storage')],
 ]);
 const imageHistoryModuleUrl = compileModule('src/lab/lab-image-history.ts', [
   ['@nimiplatform/sdk/types', jsonTypesModuleUrl],
   ['./lab-standard-storage.js', standardStorageModuleUrl],
+  ['../shell/local-app-runtime-platform.js', clientModuleUrl],
+  ['@nimiplatform/kit/core/app-record-storage', import.meta.resolve('@nimiplatform/kit/core/app-record-storage')],
   ['./lab-history-storage.js', historyStorageModuleUrl],
 ]);
 const standardStorageModule = await import(standardStorageModuleUrl);
@@ -69,33 +73,23 @@ const historyPolicyModule = await import(historyPolicyModuleUrl);
 const historyStorageModule = await import(historyStorageModuleUrl);
 const imageHistoryModule = await import(imageHistoryModuleUrl);
 
-function createStorageClient(seed = {}) {
-  const documents = new Map(Object.entries(seed));
-  const writes = [];
-  return {
-    documents,
-    writes,
-    client: {
-      storage: {
-        async readJson(relativePath) {
-          if (!documents.has(relativePath)) throw { code: 'not-found', reasonCode: 'not-found' };
-          const value = structuredClone(documents.get(relativePath));
-          return { value, sizeBytes: Buffer.byteLength(JSON.stringify(value)) };
-        },
-        // JSON entries and managed files are separate admitted storage surfaces.
-        assets: { async remove() { return { removed: false }; } },
-        async removeJson(relativePath) { return { removed: documents.delete(relativePath) }; },
-        async writeJson(relativePath, value) {
-          const body = JSON.stringify(value);
-          if (Buffer.byteLength(body) > 256 * 1024) throw new Error('public JSON limit');
-          const stored = JSON.parse(body);
-          documents.set(relativePath, stored);
-          writes.push({ relativePath, value: stored });
-          return { value: stored, sizeBytes: Buffer.byteLength(body) };
-        },
+function createStorageClient() {
+  const documents = new Map(), records = new Map(), writes = [];
+  return { documents, records, writes, client: { storage: {
+    async readJson(path) { if (!documents.has(path)) throw { reasonCode: 'APP_STORAGE_ENTRY_NOT_FOUND' }; return { value: structuredClone(documents.get(path)) }; },
+    async writeJson(path, value) { const stored = JSON.parse(JSON.stringify(value)); documents.set(path, stored); return { value: stored }; },
+    async removeJson(path) { return { removed: documents.delete(path) }; },
+    assets: {
+      async list({ prefix }) { return { assets: [...records.keys()].filter(path => path.startsWith(prefix)).sort().map(relativePath => ({ relativePath })), nextCursor: '' }; },
+      async read({ relativePath }) {
+        if (!records.has(relativePath)) throw { reasonCode: 'APP_STORAGE_ENTRY_NOT_FOUND' };
+        const bytes = new TextEncoder().encode(JSON.stringify(records.get(relativePath)));
+        return { body: (async function* () { yield bytes; })() };
       },
+      async write({ relativePath, body }) { const value = JSON.parse(new TextDecoder().decode(body)); records.set(relativePath, value); writes.push({ relativePath, value }); return {}; },
+      async remove(path) { return { removed: records.delete(path) }; },
     },
-  };
+  } } };
 }
 
 test('native reply normal and stop-late facts save, reopen and serialize without unapproved source or draft previews',async()=>{
@@ -115,7 +109,7 @@ test('native reply normal and stop-late facts save, reopen and serialize without
    if(late)assert.equal(controller.send(),null);
    const reopened=await historyStorageModule.loadLabRunHistory();const record=reopened['chat.stream'][0];
    assert.equal(record.id,'actual-run');assert.equal(record.status,'ready');assert.equal(record.result.traceId,'actual-trace');assert.equal(record.result.finishReason,'stop');assert.equal(record.result.charCount,draft.length);assert.equal(record.result.totalTokens,14);
-   const saved=JSON.stringify([...storage.documents.values()]);const exported=JSON.stringify(reopened);
+   const saved=JSON.stringify([...storage.records.values()]);const exported=JSON.stringify(reopened);
    for(const text of [saved,exported]){assert.equal(text.includes('PRIVATE_SOURCE_SENTINEL'),saveBodies);assert.equal(text.includes('PRIVATE_DRAFT_SENTINEL'),saveBodies)}
    assert.deepEqual(historyPolicyModule.parseStudioRunHistory(JSON.parse(exported)),reopened);
    assert.equal(record.result.body,saveBodies?draft:'');assert.equal(record.result.summary,saveBodies?draft:'');
@@ -525,7 +519,7 @@ test('run history preserves every managed artifact from a multi-output video job
   }
 });
 
-test('concurrent run-history appends are serialized and retain both records', async () => {
+test('concurrent run-history appends retain both independent records', async () => {
   const storage = createStorageClient();
   globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__ = storage.client;
   try {
@@ -541,14 +535,13 @@ test('concurrent run-history appends are serialized and retain both records', as
 });
 
 test('run-history loading fails closed on a malformed capability list', async () => {
-  const storage = createStorageClient({
-    'lab-run-history.json': { 'text.generate': {} },
-  });
+  const storage = createStorageClient();
+  storage.records.set('studio/history/run/invalid.json', { id: 'invalid', capabilityId: 'text.generate' });
   globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__ = storage.client;
   try {
     await assert.rejects(
       historyStorageModule.loadLabRunHistory(),
-      /unsupported storage format/u,
+      /history|record/u,
     );
   } finally {
     delete globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__;
@@ -594,7 +587,7 @@ test('clearLabRunHistory clears one capability or the whole store', async () => 
   }
 });
 
-test('image-history append, remove, and clear share the serialized JSON mutation queue', async () => {
+test('image-history append, remove, and clear affect only selected record documents', async () => {
   const storage = createStorageClient();
   globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__ = storage.client;
   const record = (id, capabilityId, relativePath) => ({
@@ -801,8 +794,8 @@ test('a video face swap history summary must keep consistent frame counts', () =
 test('saving annotations never evicts records or cleans their documents', async () => {
   const storage = createStorageClient();
   const removed = [];
-  const failures = [];
   storage.client.storage.assets = {
+    ...storage.client.storage.assets,
     async remove(relativePath) {
       removed.push(relativePath);
       if (relativePath.endsWith('locked.json')) throw new Error('document locked');
@@ -823,11 +816,9 @@ test('saving annotations never evicts records or cleans their documents', async 
     for (let index = 0; index < 40; index += 1) {
       await historyStorageModule.appendLabRunHistory(
         annotationRun(`fresh-${index}`, new Date(Date.UTC(2026, 1, 1, 0, 0, index)).toISOString(), `studio/text-annotate/fresh-${index}.json`),
-        (items) => failures.push(...items),
       );
     }
     assert.equal(removed.some(path=>path.startsWith('studio/text-annotate/')), false);
-    assert.equal(failures.length,0);
     const stored=await historyStorageModule.loadLabRunHistory();
     assert.equal(stored['text.annotate'].length,42);
     assert.equal(stored['image.generate'].length,1);
@@ -837,158 +828,56 @@ test('saving annotations never evicts records or cleans their documents', async 
   }
 });
 
-test('chunked history keeps cross-capability full input and results above 256 KiB', async()=>{
- const storage=createStorageClient();globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__=storage.client;
- try{
-  let history={};for(let i=0;i<180;i++)history=historyPolicyModule.appendStudioRunHistoryRecord(history,runRecord('retained-'+i,new Date(Date.UTC(2026,0,1,0,0,i)).toISOString()));
-  const long=runRecord('large','2026-02-01T00:00:00.000Z',{capabilityId:'text.annotate',prompt:'🍰\\"'.repeat(70000)});
-  history=historyPolicyModule.appendStudioRunHistoryRecord(history,long);
-  await historyStorageModule.saveLabRunHistory(history);
-  await historyStorageModule.appendLabRunHistory(runRecord('new-other','2026-03-01T00:00:00.000Z',{capabilityId:'audio.transcribe'}));
-  const read=await historyStorageModule.loadLabRunHistory();
-  assert.equal(Object.values(read).flat().length,182);assert.equal(read['text.generate'].length,180);assert.equal(read['text.annotate'][0].prompt,long.prompt);
-  assert.equal(read['audio.transcribe'][0].id,'new-other');
-  const index=storage.documents.get('lab-run-history.json');assert.equal(index.format,'lab-history-v1');assert.ok(index.chunks.length>1);
-  const roots=storage.writes.filter(x=>x.relativePath==='lab-run-history.json');
-  const replaced=roots[0].value.chunks;assert.ok(replaced.every(path=>!storage.documents.has(path)), 'replaced JSON chunks are removed via removeJson, not the asset interface');
-  for(const {value}of storage.writes)assert.ok(Buffer.byteLength(JSON.stringify(value))<=256*1024);
- }finally{delete globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__}
-});
-
-test('chunk read/write and index publication failures leave the previous snapshot readable',async()=>{
- const storage=createStorageClient();globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__=storage.client;
- try{
-  await historyStorageModule.appendLabRunHistory(runRecord('old','2026-01-01T00:00:00.000Z'));
-  const original=structuredClone(storage.documents.get('lab-run-history.json'));
-  const write=storage.client.storage.writeJson;
-  for(const where of ['chunk','index']){
-   let parts=0;storage.client.storage.writeJson=async(path,value)=>{
-    if(where==='index'&&path==='lab-run-history.json'||where==='chunk'&&path!=='lab-run-history.json'&&++parts===2)throw Error('injected '+where+' failure');
-    return write(path,value);
-   };
-   await assert.rejects(historyStorageModule.appendLabRunHistory(runRecord('new','2026-02-01T00:00:00.000Z',{prompt:'x'.repeat(300*1024)})),/injected/);
-   assert.deepEqual(storage.documents.get('lab-run-history.json'),original);
-   assert.deepEqual((await historyStorageModule.loadLabRunHistory())['text.generate'].map(x=>x.id),['old']);
-  }
-  storage.client.storage.writeJson=write;
-  const missing=original.chunks[0];const content=storage.documents.get(missing);storage.documents.delete(missing);
-  await assert.rejects(historyStorageModule.loadLabRunHistory(),/missing or invalid/);
-  await assert.rejects(historyStorageModule.appendLabRunHistory(runRecord('later','2026-03-01T00:00:00.000Z')),/missing or invalid/);
-  assert.deepEqual(storage.documents.get('lab-run-history.json'),original);storage.documents.set(missing,content);
-  const read=storage.client.storage.readJson;storage.client.storage.readJson=async path=>{if(path.includes('studio/history/')&&!original.chunks.includes(path))throw Error('staged read failed');return read(path)};
-  await assert.rejects(historyStorageModule.appendLabRunHistory(runRecord('new','2026-02-01T00:00:00.000Z')),/staged read failed/);
-  assert.deepEqual(storage.documents.get('lab-run-history.json'),original);
- }finally{delete globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__}
-});
-
-test('failed chunk writes, verification and root publication reclaim only the unpublished generation', async () => {
-  for (const failure of ['chunk', 'verify', 'root']) {
-    const storage = createStorageClient(); globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__ = storage.client;
-    try {
-      await historyStorageModule.appendLabRunHistory(runRecord('old', '2026-01-01T00:00:00Z'));
-      const prior = structuredClone(storage.documents.get('lab-run-history.json'));
-      storage.documents.set('unrelated.json', { keep: true });
-      const write = storage.client.storage.writeJson, read = storage.client.storage.readJson;
-      storage.client.storage.writeJson = async (path, value) => {
-        if (failure === 'chunk' && path.endsWith('/1.json')) throw Error('chunk fault');
-        if (failure === 'root' && path === 'lab-run-history.json') throw Error('root fault');
-        return write(path, value);
-      };
-      storage.client.storage.readJson = async path => {
-        const value = await read(path);
-        if (failure === 'verify' && /\/\d+\.json$/u.test(path) && !prior.chunks.includes(path)) {
-          return { ...value, value: { ...value.value, text: '!' + value.value.text } };
-        }
-        return value;
-      };
-      await assert.rejects(historyStorageModule.appendLabRunHistory(runRecord('new', '2026-02-01T00:00:00Z', { prompt: 'x'.repeat(100000) })));
-      assert.deepEqual(storage.documents.get('lab-run-history.json'), prior);
-      const chunks = [...storage.documents.keys()].filter(path => /studio\/history\/run\/[^/]+\/\d+\.json$/u.test(path));
-      assert.deepEqual(chunks.sort(), [...prior.chunks].sort());
-      assert.deepEqual(storage.documents.get('unrelated.json'), { keep: true });
-      assert.equal(storage.documents.has('studio/history/run/maintenance.json'), false);
-    } finally { delete globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__; }
-  }
-});
-
-test('a committed root with a lost response is successful and its published chunks survive', async () => {
+test('independent history documents preserve large records without a shared root', async () => {
   const storage = createStorageClient(); globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__ = storage.client;
   try {
-    await historyStorageModule.appendLabRunHistory(runRecord('old', '2026-01-01T00:00:00Z'));
-    const prior = storage.documents.get('lab-run-history.json');
-    const write = storage.client.storage.writeJson;
-    storage.client.storage.writeJson = async (path, value) => {
-      const result = await write(path, value);
-      if (path === 'lab-run-history.json') throw Error('response lost after commit');
-      return result;
-    };
-    await historyStorageModule.appendLabRunHistory(runRecord('new', '2026-02-01T00:00:00Z'));
-    const current = storage.documents.get('lab-run-history.json');
-    assert.notEqual(current.generation, prior.generation);
-    assert.ok(current.chunks.every(path => storage.documents.has(path)));
-    assert.ok(prior.chunks.every(path => !storage.documents.has(path)));
-    assert.equal((await historyStorageModule.loadLabRunHistory())['text.generate'].length, 2);
+    for (let i = 0; i < 90; i++) await historyStorageModule.appendLabRunHistory(runRecord('run-' + i, new Date(Date.UTC(2026, 0, 1, 0, 0, i)).toISOString()));
+    const large = runRecord('large', '2026-02-01T00:00:00Z', { prompt: '中文😀'.repeat(80000) });
+    await historyStorageModule.appendLabRunHistory(large);
+    const read = await historyStorageModule.loadLabRunHistory();
+    assert.equal(Object.values(read).flat().length, 91);
+    assert.equal(read['text.generate'][0].prompt, large.prompt);
+    assert.equal(storage.documents.size, 0);
+    assert.equal(storage.records.size, 91);
   } finally { delete globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__; }
 });
 
-test('unknown root publication retains chunks until a read can identify the published generation', async () => {
+test('two independent history modules retain both successful appends', async () => {
+  const second = await import(historyStorageModuleUrl + '#second-client');
   const storage = createStorageClient(); globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__ = storage.client;
   try {
-    await historyStorageModule.appendLabRunHistory(runRecord('old', '2026-01-01T00:00:00Z'));
-    const write = storage.client.storage.writeJson, read = storage.client.storage.readJson;
-    let unreadable = false;
-    storage.client.storage.writeJson = async (path, value) => {
-      const result = await write(path, value);
-      if (path === 'lab-run-history.json') { unreadable = true; throw Error('response lost'); }
-      return result;
-    };
-    storage.client.storage.readJson = async path => {
-      if (unreadable && path === 'lab-run-history.json') throw Error('read temporarily unavailable');
-      return read(path);
-    };
-    await assert.rejects(historyStorageModule.appendLabRunHistory(runRecord('new', '2026-02-01T00:00:00Z')),
-      error => error.historyPublicationUncertain === true);
-    const current = storage.documents.get('lab-run-history.json');
-    assert.ok(current.chunks.every(path => storage.documents.has(path)));
-    assert.equal(storage.documents.has('studio/history/run/maintenance.json'), true);
-    unreadable = false;
-    assert.equal((await historyStorageModule.loadLabRunHistory())['text.generate'].length, 2);
-    assert.ok(current.chunks.every(path => storage.documents.has(path)));
-    assert.equal(storage.documents.has('studio/history/run/maintenance.json'), false);
+    await Promise.all([historyStorageModule.appendLabRunHistory(runRecord('A', '2026-01-01T00:00:00Z')),
+      second.appendLabRunHistory(runRecord('B', '2026-02-01T00:00:00Z'))]);
+    assert.deepEqual((await second.loadLabRunHistory())['text.generate'].map(record => record.id), ['B', 'A']);
   } finally { delete globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__; }
 });
 
-test('old chunk cleanup and maintenance cleanup failures retry without changing committed history', async () => {
+test('a clear cannot delete another client before its independent record publishes', async () => {
   const storage = createStorageClient(); globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__ = storage.client;
   try {
-    await historyStorageModule.appendLabRunHistory(runRecord('old', '2026-01-01T00:00:00Z'));
-    const prior = storage.documents.get('lab-run-history.json');
-    const remove = storage.client.storage.removeJson;
-    let fail = true;
-    storage.client.storage.removeJson = async path => {
-      if (fail && (prior.chunks.includes(path) || path.endsWith('/maintenance.json'))) throw Error('cleanup fault');
-      return remove(path);
-    };
-    await historyStorageModule.appendLabRunHistory(runRecord('new', '2026-02-01T00:00:00Z'));
-    assert.equal(storage.documents.has('studio/history/run/maintenance.json'), true);
-    assert.ok(prior.chunks.some(path => storage.documents.has(path)));
-    fail = false;
-    assert.equal((await historyStorageModule.loadLabRunHistory())['text.generate'].length, 2);
-    assert.ok(prior.chunks.every(path => !storage.documents.has(path)));
-    assert.equal(storage.documents.has('studio/history/run/maintenance.json'), false);
+    const write = storage.client.storage.assets.write;
+    let publish;
+    storage.client.storage.assets.write = async input => { await new Promise(resolve => { publish = resolve; }); return write(input); };
+    const pending = historyStorageModule.appendLabRunHistory(runRecord('A', '2026-01-01T00:00:00Z'));
+    while (!publish) await new Promise(resolve => setImmediate(resolve));
+    await historyStorageModule.clearLabRunHistory();
+    publish(); await pending;
+    assert.equal((await historyStorageModule.loadLabRunHistory())['text.generate'][0].id, 'A');
   } finally { delete globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__; }
 });
 
-test('image history also keeps more than eighty complete records in bounded chunks',async()=>{
- const storage=createStorageClient();globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__=storage.client;
- try{
-  const records=Array.from({length:90},(_,i)=>({id:'image-'+i,capabilityId:'image.generate',title:'x'.repeat(4000),status:'unavailable',createdAt:new Date(Date.UTC(2026,0,1,0,0,i)).toISOString()}));
-  await imageHistoryModule.saveLabImageHistory(records);
-  await imageHistoryModule.appendLabImageHistoryRecord({...records[0],id:'another'});
-  const all=await imageHistoryModule.loadLabImageHistory();assert.equal(all.length,91);assert.equal(all.find(x=>x.id==='image-89').title,records[89].title);
-  const index=storage.documents.get('lab-image-history.json');assert.ok(index.chunks.length>1);
-  storage.documents.delete(index.chunks[0]);await assert.rejects(imageHistoryModule.loadLabImageHistory(),/missing or invalid/);
- }finally{delete globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__}
+test('publication errors keep prior records and never authorize artifact cleanup', async () => {
+  const storage = createStorageClient(); globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__ = storage.client;
+  try {
+    await historyStorageModule.appendLabRunHistory(runRecord('old', '2026-01-01T00:00:00Z'));
+    const write = storage.client.storage.assets.write;
+    storage.client.storage.assets.write = async () => { throw new Error('write failed'); };
+    await assert.rejects(historyStorageModule.appendLabRunHistory(runRecord('new', '2026-02-01T00:00:00Z')), error => error.historyPublicationUncertain === true);
+    assert.equal(storage.records.size, 1);
+    storage.client.storage.assets.write = async input => { await write(input); throw new Error('response lost'); };
+    await assert.rejects(historyStorageModule.appendLabRunHistory(runRecord('new', '2026-02-01T00:00:00Z')), error => error.historyPublicationUncertain === true);
+    assert.deepEqual((await historyStorageModule.loadLabRunHistory())['text.generate'].map(record => record.id), ['new', 'old']);
+  } finally { delete globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__; }
 });
 
 test('explicit deletion and scoped clear protect artifacts another retained record references',async()=>{

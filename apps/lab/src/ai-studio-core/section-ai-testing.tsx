@@ -1,7 +1,7 @@
 import { StudioJobRecoveryPanel } from './job-recovery-panel.js';
 import { isStudioJobRecoveryCapability } from './job-recovery.js';
 import { Suspense, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { Button, IconButton, LoadingSkeleton, nimiToast, OverlayShell, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
+import { Button, IconButton, LoadingSkeleton, InlineAlert, nimiToast, OverlayShell, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
 import { PanelRight, SquarePen } from 'lucide-react';
 import { createBrowserDataUrlAttachmentAdapter, useChatComposer, type BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
 import { notifyStudioAIConfigChanged } from './ai-config.js';
@@ -70,13 +70,9 @@ function TextStudioShell({
   const ParameterPanel = registration.parameterPanel;
   const profile = registration.profile;
   const preset = registration.preset;
-  const [prompt, setPrompt] = useState(() => (
-    rendererHost.app.projection.promptDraft({
-      surfaceId: 'ai-capabilities',
-      capabilityId: capability.id,
-      scenarioId: preset.id,
-    }, draftPersistence).prompt ?? preset.prompt
-  ));
+  const [prompt, setPrompt] = useState(preset.prompt);
+  const promptEditRevision = useRef(0);
+  const [draftError, setDraftError] = useState<string | null>(null);
   const [context, setContext] = useState('');
   const [executingRun, setExecutingRun] = useState<TextStudioActiveRun | null>(null);
   const [cancelRequested, setCancelRequested] = useState(false);
@@ -209,24 +205,31 @@ function TextStudioShell({
   }, [historyLoad?.error, historyPanel]);
 
   function updatePrompt(nextPrompt: string) {
+    const editRevision = ++promptEditRevision.current;
     setPrompt(nextPrompt);
+    setDraftError(null);
     void rendererHost.app.commands.savePromptDraft({
       surfaceId: 'ai-capabilities',
       capabilityId: capability.id,
       scenarioId: preset.id,
-    }, nextPrompt, draftPersistence);
+    }, nextPrompt, draftPersistence).catch(error => { if (editRevision === promptEditRevision.current) setDraftError(error instanceof Error ? error.message : String(error)); });
   }
 
   useEffect(() => {
     abortControllerRef.current?.observation.abort('studio-capability-changed');
     abortControllerRef.current = null;
-    const draft = rendererHost.app.projection.promptDraft({
+    let active = true;
+    const editRevision = ++promptEditRevision.current;
+    setDraftError(null);
+    void rendererHost.app.projection.promptDraft({
       surfaceId: 'ai-capabilities',
       capabilityId: capability.id,
       scenarioId: preset.id,
-    }, draftPersistence);
+    }, draftPersistence).then(draft => {
+      if (active && editRevision === promptEditRevision.current) setPrompt(draft.prompt ?? preset.prompt);
+    }).catch(error => { if (active) setDraftError(error instanceof Error ? error.message : String(error)); });
     runSeqRef.current += 1;
-    setPrompt(draft.prompt ?? preset.prompt);
+    setPrompt(preset.prompt);
     setContext('');
     setActiveRun(null);
     setSessionRuns({});
@@ -234,9 +237,11 @@ function TextStudioShell({
     setCancelRequested(false);
     setObservationIssue(false);
     setStreamingText(null);
+    return () => { active = false; };
   }, [capability.id, draftPersistence, preset, rendererHost]);
 
   useEffect(() => () => {
+    promptEditRevision.current += 1;
     runSeqRef.current += 1;
     abortControllerRef.current?.observation.abort('studio-view-closed');
   }, []);
@@ -556,6 +561,7 @@ function TextStudioShell({
     <div className={hasActiveRun ? 'studio studio--has-run' : 'studio studio--landing'}>
       <div className="studio__workspace studio__workspace--with-history">
         <div className="studio__primary">
+          {draftError && <InlineAlert tone="warning">{draftError}</InlineAlert>}
           <header className="studio__head">
             <div className="studio__title">
               {showAdmissionBadge ? (

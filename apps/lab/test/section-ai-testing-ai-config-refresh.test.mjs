@@ -82,7 +82,7 @@ async function mountSection(capabilityContract, renderAIConfigPanel) {
   const host = {
     appTitle:'Studio', translate:key=>key, locale:'en', clock:{now:()=>Date.now()},
     app:{
-      projection:{promptDraft:()=>({prompt:null}),projectRunTarget:createStudioRunTargetSummary,runStatusLabel:s=>s},
+      projection:{promptDraft: async () =>({prompt:null}),projectRunTarget:createStudioRunTargetSummary,runStatusLabel:s=>s},
       events:{subscribeAIConfigRefresh:listener=>subscribeStudioAIConfigRefresh(listener, window, document)},
       commands:{savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>{}},
     },

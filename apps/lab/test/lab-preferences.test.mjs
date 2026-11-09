@@ -185,9 +185,9 @@ test('legacy stored preferences gain history panel defaults and keep saved panel
 test('reset removes only the preference key and leaves unrelated app state untouched', () => {
   const {
     LAB_PREFERENCES_STORAGE_KEY,
-    LAB_PROMPT_DRAFTS_STORAGE_KEY,
     resetLabPreferences,
   } = preferencesModule;
+  const LAB_PROMPT_DRAFTS_STORAGE_KEY = 'nimiapp-lab:prompt-drafts:v1';
   const storage = createStorage({
     [LAB_PREFERENCES_STORAGE_KEY]: JSON.stringify({
       schemaVersion: 1,
@@ -211,70 +211,52 @@ test('reset removes only the preference key and leaves unrelated app state untou
   assert.equal(snapshot.unrelated_product_state, 'keep');
 });
 
-test('prompt drafts use versioned localStorage and fail closed to presets', () => {
-  const {
-    LAB_PROMPT_DRAFTS_STORAGE_KEY,
-    LAB_PROMPT_DRAFTS_SCHEMA_VERSION,
-    loadLabPromptDraft,
-    saveLabPromptDraft,
-  } = preferencesModule;
-  const storage = createStorage();
-  const key = {
-    surfaceId: 'app-lab',
-    capabilityId: 'text.generate',
-    scenarioId: 'acceptance-note',
+const { createStudioPromptDraftRepository } = await import(promptDraftModuleUrl);
+function privateDraftOwner() {
+  const documents = new Map();
+  return {
+    documents,
+    async readJson(path) { if (!documents.has(path)) throw { reasonCode: 'APP_STORAGE_ENTRY_NOT_FOUND' }; return { value: documents.get(path) }; },
+    async writeJson(path, value) { documents.set(path, structuredClone(value)); },
   };
+}
+const promptKey = { surfaceId: 'ai-capabilities', capabilityId: 'text.generate', scenarioId: 'note' };
 
-  assert.equal(LAB_PROMPT_DRAFTS_STORAGE_KEY, 'nimiapp-lab:prompt-drafts:v1');
-  assert.equal(LAB_PROMPT_DRAFTS_SCHEMA_VERSION, 1);
-
-  const empty = loadLabPromptDraft(key, true, storage);
-  assert.equal(empty.prompt, null);
-  assert.equal(empty.status.state, 'defaulted');
-
-  const saved = saveLabPromptDraft(key, 'draft body', true, storage);
-  assert.equal(saved.status.state, 'ready');
-
-  const loaded = loadLabPromptDraft(key, true, storage);
-  assert.equal(loaded.prompt, 'draft body');
-  assert.equal(loaded.status.state, 'ready');
-
-  const emptied = saveLabPromptDraft(key, '', true, storage);
-  assert.equal(emptied.status.state, 'ready');
-  assert.equal(loadLabPromptDraft(key, true, storage).prompt, '');
-
-  storage.setItem(LAB_PROMPT_DRAFTS_STORAGE_KEY, '{bad json');
-  const corrupt = loadLabPromptDraft(key, true, storage);
-  assert.equal(corrupt.prompt, null);
-  assert.equal(corrupt.status.state, 'corrupt');
+test('drafts use the captured owner and do not import unowned browser content', async () => {
+  const a = privateDraftOwner(), b = privateDraftOwner();
+  const previous = globalThis.localStorage;
+  globalThis.localStorage = createStorage({ 'nimiapp-lab:prompt-drafts:v1': JSON.stringify({ schemaVersion: 1, drafts: { 'ai-capabilities:text.generate:note': 'unowned' } }) });
+  try {
+    const first = createStudioPromptDraftRepository(a);
+    assert.deepEqual(await first.load(promptKey, true), { prompt: null });
+    await first.save(promptKey, 'private A', true);
+    assert.deepEqual(await createStudioPromptDraftRepository(b).load(promptKey, true), { prompt: null });
+    assert.deepEqual(await createStudioPromptDraftRepository(a).load({ scenarioId: promptKey.scenarioId, surfaceId: promptKey.surfaceId, capabilityId: promptKey.capabilityId }, true), { prompt: 'private A' });
+    await createStudioPromptDraftRepository(b).save(promptKey, 'private B', true);
+    assert.deepEqual(await createStudioPromptDraftRepository(a).load(promptKey, true), { prompt: 'private A' });
+  } finally { globalThis.localStorage = previous; }
 });
 
-test('disabled prompt draft persistence does not save new edits', () => {
-  const {
-    LAB_PROMPT_DRAFTS_STORAGE_KEY,
-    loadLabPromptDraft,
-    saveLabPromptDraft,
-  } = preferencesModule;
-  const storage = createStorage({
-    [LAB_PROMPT_DRAFTS_STORAGE_KEY]: JSON.stringify({
-      schemaVersion: 1,
-      drafts: {
-        'app-lab:text.generate:acceptance-note': 'existing draft',
-      },
-    }),
-  });
-  const key = {
-    surfaceId: 'app-lab',
-    capabilityId: 'text.generate',
-    scenarioId: 'acceptance-note',
-  };
+test('disabled persistence keeps only this view and writes preserve input order', async () => {
+  const owner = privateDraftOwner();
+  const drafts = createStudioPromptDraftRepository(owner);
+  await drafts.save(promptKey, 'session only', false);
+  assert.equal(owner.documents.size, 0);
+  assert.equal((await drafts.load(promptKey, false)).prompt, 'session only');
+  assert.equal((await createStudioPromptDraftRepository(owner).load(promptKey, false)).prompt, null);
+  await Promise.all([drafts.save(promptKey, 'first', true), drafts.save(promptKey, '', true)]);
+  assert.equal((await createStudioPromptDraftRepository(owner).load(promptKey, true)).prompt, '');
+});
 
-  const disabledLoad = loadLabPromptDraft(key, false, storage);
-  assert.equal(disabledLoad.prompt, null);
-  assert.equal(disabledLoad.status.state, 'disabled');
-
-  const disabledSave = saveLabPromptDraft(key, 'new draft', false, storage);
-  assert.equal(disabledSave.status.state, 'disabled');
-  assert.match(storage.snapshot()[LAB_PROMPT_DRAFTS_STORAGE_KEY], /existing draft/);
-  assert.doesNotMatch(storage.snapshot()[LAB_PROMPT_DRAFTS_STORAGE_KEY], /new draft/);
+test('a late persisted draft cannot replace a newer edit and storage errors stay visible', async () => {
+  let finish;
+  const drafts = createStudioPromptDraftRepository({ readJson: () => new Promise(resolve => { finish = resolve; }), writeJson: async () => {} });
+  const loading = drafts.load(promptKey, true);
+  while (!finish) await new Promise(resolve => setImmediate(resolve));
+  await drafts.save(promptKey, 'new edit', false);
+  finish({ value: { schemaVersion: 1, prompt: 'old persisted' } });
+  assert.equal((await loading).prompt, 'new edit');
+  const failed = createStudioPromptDraftRepository({ readJson: async () => { throw new Error('owner unavailable'); }, writeJson: async () => { throw new Error('quota'); } });
+  await assert.rejects(failed.load(promptKey, true), /owner unavailable/);
+  await assert.rejects(failed.save(promptKey, 'retain in view', true), /quota/);
 });

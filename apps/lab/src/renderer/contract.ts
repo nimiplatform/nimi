@@ -59,7 +59,7 @@ export interface LabRendererProjectionPort {
   ecosystemReference(): LabEcosystemReferenceProjection | null;
   personaReference(): LabPersonaReferenceProjection | null;
   preferences(): LabPreferences;
-  promptDraft(key: LabPromptDraftKey, enabled: boolean): LabPromptDraftLoadResult;
+  promptDraft(key: LabPromptDraftKey, enabled: boolean): Promise<LabPromptDraftLoadResult>;
 }
 
 export interface LabRendererCommandPort {
