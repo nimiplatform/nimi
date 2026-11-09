@@ -475,180 +475,14 @@ func (s *Service) AdmitLocalAppIngress(ctx context.Context, ingress localappop.I
 // the Runtime-derived owner handoff. Caller-supplied owner, account, subject,
 // generation, or capability facts never enter this context.
 func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localappop.Ingress) (context.Context, error) {
+	if peer := remoteAppPeerFromContext(ctx); peer != nil {
+		return s.authorizeRemoteAppIngress(ctx, peer, ingress)
+	}
 	admission, session, err := s.admitLocalAppIngress(ctx, ingress)
 	if err != nil {
 		return nil, localAppIngressError(err)
 	}
-	capability := ""
-	ownerSupported := true
-	switch admission.Operation {
-	case localappop.OperationStorageJSONRead, localappop.OperationStorageJSONWrite, localappop.OperationStorageJSONRemove:
-		capability = appstorage.LocalAppPrivateStorageEntitlement
-	case localappop.OperationStorageAssetStat,
-		localappop.OperationStorageAssetList,
-		localappop.OperationStorageAssetWrite,
-		localappop.OperationStorageAssetRead,
-		localappop.OperationStorageAssetRemove,
-		localappop.OperationStorageAssetMove,
-		localappop.OperationStorageAssetReveal:
-		capability = appstorage.LocalAppPrivateStorageEntitlement
-	case localappop.OperationArtifactAdoptToStorage:
-		capability = "runtime.consume"
-	case localappop.OperationAppAIConfigGet,
-		localappop.OperationAppAIConfigOverwrite,
-		localappop.OperationAppAIConfigOptionsList:
-		capability = string(admission.Domain)
-	case localappop.OperationRealmWorldCoreList:
-		capability = "realm.world-core.list"
-	case localappop.OperationRealmWorldCoreCreate:
-		capability = "realm.world-core.create"
-	// @nimi-authority: rule.nimi.platform.core-protocol.world-creator-app-operations
-	case localappop.OperationRealmWorldCreationEligibilityGet,
-		localappop.OperationRealmWorldCoreGet,
-		localappop.OperationRealmWorldCoreReplace,
-		localappop.OperationRealmWorldCharacterList,
-		localappop.OperationRealmWorldCharacterGet,
-		localappop.OperationRealmWorldCharacterCreate,
-		localappop.OperationRealmWorldCharacterReplace,
-		localappop.OperationRealmWorldEntityList,
-		localappop.OperationRealmWorldEntityGet,
-		localappop.OperationRealmWorldEntityCreate,
-		localappop.OperationRealmWorldRelationshipList,
-		localappop.OperationRealmWorldRelationshipGet:
-		capability = string(admission.Domain)
-	case localappop.OperationRealmPersonaCharacterListOwned:
-		capability = localappop.AppOperationIDPersonaListOwned
-	case localappop.OperationRealmPersonaCharacterGetOwned:
-		capability = localappop.AppOperationIDPersonaGetOwned
-	case localappop.OperationRealmPersonaCharacterCreate:
-		capability = localappop.AppOperationIDPersonaCreate
-	case localappop.OperationRealmPersonaCharacterReplace:
-		capability = localappop.AppOperationIDPersonaReplace
-	case localappop.OperationRealmPersonaCharacterDelete:
-		capability = localappop.AppOperationIDPersonaDelete
-	case localappop.OperationRealmChatList:
-		capability = localappop.AppOperationIDRealmChatList
-	case localappop.OperationRealmRealtimeChannelOpen:
-		capability = localappop.AppOperationIDRealmRealtimeChannelOpen
-	case localappop.OperationRealmRealtimeEventsSubscribe:
-		capability = localappop.AppOperationIDRealmRealtimeEventsSubscribe
-	case localappop.OperationRealmRealtimeEventsAck:
-		capability = localappop.AppOperationIDRealmRealtimeEventsAck
-	case localappop.OperationRealmRealtimeSubscriptionClose:
-		capability = localappop.AppOperationIDRealmRealtimeSubscriptionClose
-	case localappop.OperationRealmRealtimeChannelClose:
-		capability = localappop.AppOperationIDRealmRealtimeChannelClose
-	case localappop.OperationTextCandidateGenerate:
-		capability = localappop.AppOperationIDTextCandidateGenerate
-	case localappop.OperationTextTurnStream:
-		capability = localappop.AppOperationIDTextTurnStream
-	case localappop.OperationScenarioExecute:
-		capability = localappop.AppOperationIDScenarioExecute
-	case localappop.OperationScenarioJobSubmit:
-		capability = localappop.AppOperationIDScenarioJobSubmit
-	case localappop.OperationScenarioJobGet:
-		capability = localappop.AppOperationIDScenarioJobGet
-	case localappop.OperationScenarioJobSubscribe:
-		capability = localappop.AppOperationIDScenarioJobSubscribe
-	case localappop.OperationScenarioJobCancel:
-		capability = localappop.AppOperationIDScenarioJobCancel
-	case localappop.OperationArtifactRead:
-		capability = localappop.AppOperationIDArtifactRead
-	case localappop.OperationArtifactUpload:
-		capability = localappop.AppOperationIDArtifactUpload
-	case localappop.OperationVoiceAssetsList:
-		capability = localappop.AppOperationIDVoiceAssetsList
-	case localappop.OperationVoiceAssetsDelete:
-		capability = localappop.AppOperationIDVoiceAssetsDelete
-	case localappop.OperationVideoSessionOpen:
-		capability = localappop.AppOperationIDVideoSessionOpen
-	case localappop.OperationVideoSessionFrameSubmit:
-		capability = localappop.AppOperationIDVideoSessionFrameSubmit
-	case localappop.OperationVideoSessionResultRead:
-		capability = localappop.AppOperationIDVideoSessionResultRead
-	case localappop.OperationVideoSessionClose:
-		capability = localappop.AppOperationIDVideoSessionClose
-	case localappop.OperationAIRealtimeOpen,
-		localappop.OperationAIRealtimeInputAppend,
-		localappop.OperationAIRealtimeOwnerControlSubmit,
-		localappop.OperationAIRealtimeEventsRead,
-		localappop.OperationAIRealtimeOutputInterrupt,
-		localappop.OperationAIRealtimeClose:
-		capability = string(admission.Domain)
-	case localappop.OperationAgentWorkReferenceList,
-		localappop.OperationAgentWorkStart,
-		localappop.OperationAgentWorkGet,
-		localappop.OperationAgentWorkStatusGet,
-		localappop.OperationAgentWorkToolCallsList,
-		localappop.OperationAgentWorkToolResultSubmit,
-		localappop.OperationAgentWorkCancel,
-		localappop.OperationAgentWorkEventsSubscribe,
-		localappop.OperationIntegrationCatalogList,
-		localappop.OperationIntegrationConnectionList,
-		localappop.OperationIntegrationCallInvoke,
-		localappop.OperationIntegrationCallGet,
-		localappop.OperationIntegrationCallList,
-		localappop.OperationIntegrationCallCancel,
-		localappop.OperationIntegrationProviderRegister,
-		localappop.OperationIntegrationProviderUnregister,
-		localappop.OperationIntegrationProviderPoll,
-		localappop.OperationIntegrationProviderComplete,
-		localappop.OperationIntegrationManagementGet,
-		localappop.OperationIntegrationConnectionPut,
-		localappop.OperationIntegrationConnectionRemove,
-		localappop.OperationIntegrationPermissionSet,
-		localappop.OperationIntegrationConnectionSetupStart,
-		localappop.OperationIntegrationConnectionSetupGet,
-		localappop.OperationIntegrationConnectionSetupSubmit,
-		localappop.OperationIntegrationConnectionSetupCancel,
-		localappop.OperationAgentIntroductionGet,
-		localappop.OperationAgentReferenceList,
-		localappop.OperationConversationOpen,
-		localappop.OperationConversationTurnSend,
-		localappop.OperationConversationTurnInterrupt,
-		localappop.OperationConversationEventsSubscribe,
-		localappop.OperationConversationSnapshotGet,
-		localappop.OperationConversationMessageRead,
-		localappop.OperationConversationFollowUpCancel,
-		localappop.OperationConversationAttachmentUpload,
-		localappop.OperationConversationArtifactRead,
-		localappop.OperationConversationVoiceTranscribe,
-		localappop.OperationConversationVoiceRender,
-		localappop.OperationAgentEmbodimentSnapshotGet,
-		localappop.OperationAgentEmbodimentEventsSubscribe,
-		localappop.OperationAgentManagerSnapshotGet,
-		localappop.OperationAgentAIConfigGet,
-		localappop.OperationAgentAIConfigOverwrite,
-		localappop.OperationAgentAIConfigOptionsList,
-		localappop.OperationAgentAutonomySnapshotGet,
-		localappop.OperationAgentAutonomyUpdate,
-		localappop.OperationAgentConversationContextUpdate,
-		localappop.OperationAgentPresentationSnapshotGet,
-		localappop.OperationAgentPresentationCommit,
-		localappop.OperationAgentMemoryInspect,
-		localappop.OperationAgentMemoryCorrect,
-		localappop.OperationAgentMemoryForget,
-		localappop.OperationAgentMemorySwitch,
-		localappop.OperationAgentMemoryDelete,
-		localappop.OperationAgentRealtimeOpen,
-		localappop.OperationAgentRealtimeInputAppend,
-		localappop.OperationAgentRealtimeEventsSubscribe,
-		localappop.OperationAgentRealtimeStatusGet,
-		localappop.OperationAgentRealtimeOutputInterrupt,
-		localappop.OperationAgentRealtimeClose:
-		capability = string(admission.Domain)
-	// @nimi-authority: rule.nimi.runtime.app-surface.r102
-	case localappop.OperationAppActivityPut,
-		localappop.OperationAppActivityList,
-		localappop.OperationAppActivitySubscribe,
-		localappop.OperationAppActivityMarkRead,
-		localappop.OperationAppActivityOpen,
-		localappop.OperationAppActivityOpenRequestSubscribe,
-		localappop.OperationAppActivityOpenRequestComplete:
-		capability = string(admission.Domain)
-	default:
-		ownerSupported = false
-	}
+	capability, ownerSupported := appOperationCapability(admission)
 	if !ownerSupported {
 		return nil, localDevelopmentFailure(codes.Unimplemented, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNSUPPORTED)
 	}
@@ -701,6 +535,9 @@ func (s *Service) CommitLocalAppIngress(ctx context.Context, ingress localappop.
 	defer cancel()
 	if commit == nil {
 		return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
+	}
+	if peer := remoteAppPeerFromContext(ctx); peer != nil {
+		return s.commitRemoteAppIngress(ctx, peer, ingress, commit)
 	}
 	scope, err := s.prepareLocalAppCommit(ctx, ingress)
 	if err != nil {
@@ -935,4 +772,178 @@ func localAppSessionEstablishmentError(err error) error {
 	default:
 		return localDevelopmentFailureFromCause(codes.Unavailable, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE, err)
 	}
+}
+
+func appOperationCapability(admission localappop.Admission) (string, bool) {
+	capability := ""
+	ownerSupported := true
+	switch admission.Operation {
+	case localappop.OperationStorageJSONRead, localappop.OperationStorageJSONWrite, localappop.OperationStorageJSONRemove:
+		capability = appstorage.LocalAppPrivateStorageEntitlement
+	case localappop.OperationStorageAssetStat,
+		localappop.OperationStorageAssetList,
+		localappop.OperationStorageAssetWrite,
+		localappop.OperationStorageAssetRead,
+		localappop.OperationStorageAssetRemove,
+		localappop.OperationStorageAssetMove,
+		localappop.OperationStorageAssetReveal:
+		capability = appstorage.LocalAppPrivateStorageEntitlement
+	case localappop.OperationArtifactAdoptToStorage:
+		capability = "runtime.consume"
+	case localappop.OperationAppAIConfigGet,
+		localappop.OperationAppAIConfigOverwrite,
+		localappop.OperationAppAIConfigOptionsList:
+		capability = string(admission.Domain)
+	case localappop.OperationRealmWorldCoreList:
+		capability = "realm.world-core.list"
+	case localappop.OperationRealmWorldCoreCreate:
+		capability = "realm.world-core.create"
+	// @nimi-authority: rule.nimi.platform.core-protocol.world-creator-app-operations
+	case localappop.OperationRealmWorldCreationEligibilityGet,
+		localappop.OperationRealmWorldCoreGet,
+		localappop.OperationRealmWorldCoreReplace,
+		localappop.OperationRealmWorldCharacterList,
+		localappop.OperationRealmWorldCharacterGet,
+		localappop.OperationRealmWorldCharacterCreate,
+		localappop.OperationRealmWorldCharacterReplace,
+		localappop.OperationRealmWorldEntityList,
+		localappop.OperationRealmWorldEntityGet,
+		localappop.OperationRealmWorldEntityCreate,
+		localappop.OperationRealmWorldRelationshipList,
+		localappop.OperationRealmWorldRelationshipGet:
+		capability = string(admission.Domain)
+	case localappop.OperationRealmPersonaCharacterListOwned:
+		capability = localappop.AppOperationIDPersonaListOwned
+	case localappop.OperationRealmPersonaCharacterGetOwned:
+		capability = localappop.AppOperationIDPersonaGetOwned
+	case localappop.OperationRealmPersonaCharacterCreate:
+		capability = localappop.AppOperationIDPersonaCreate
+	case localappop.OperationRealmPersonaCharacterReplace:
+		capability = localappop.AppOperationIDPersonaReplace
+	case localappop.OperationRealmPersonaCharacterDelete:
+		capability = localappop.AppOperationIDPersonaDelete
+	case localappop.OperationRealmChatList:
+		capability = localappop.AppOperationIDRealmChatList
+	case localappop.OperationRealmRealtimeChannelOpen:
+		capability = localappop.AppOperationIDRealmRealtimeChannelOpen
+	case localappop.OperationRealmRealtimeEventsSubscribe:
+		capability = localappop.AppOperationIDRealmRealtimeEventsSubscribe
+	case localappop.OperationRealmRealtimeEventsAck:
+		capability = localappop.AppOperationIDRealmRealtimeEventsAck
+	case localappop.OperationRealmRealtimeSubscriptionClose:
+		capability = localappop.AppOperationIDRealmRealtimeSubscriptionClose
+	case localappop.OperationRealmRealtimeChannelClose:
+		capability = localappop.AppOperationIDRealmRealtimeChannelClose
+	case localappop.OperationTextCandidateGenerate:
+		capability = localappop.AppOperationIDTextCandidateGenerate
+	case localappop.OperationTextTurnStream:
+		capability = localappop.AppOperationIDTextTurnStream
+	case localappop.OperationScenarioExecute:
+		capability = localappop.AppOperationIDScenarioExecute
+	case localappop.OperationScenarioJobSubmit:
+		capability = localappop.AppOperationIDScenarioJobSubmit
+	case localappop.OperationScenarioJobGet:
+		capability = localappop.AppOperationIDScenarioJobGet
+	case localappop.OperationScenarioJobSubscribe:
+		capability = localappop.AppOperationIDScenarioJobSubscribe
+	case localappop.OperationScenarioJobCancel:
+		capability = localappop.AppOperationIDScenarioJobCancel
+	case localappop.OperationArtifactRead:
+		capability = localappop.AppOperationIDArtifactRead
+	case localappop.OperationArtifactUpload:
+		capability = localappop.AppOperationIDArtifactUpload
+	case localappop.OperationVoiceAssetsList:
+		capability = localappop.AppOperationIDVoiceAssetsList
+	case localappop.OperationVoiceAssetsDelete:
+		capability = localappop.AppOperationIDVoiceAssetsDelete
+	case localappop.OperationVideoSessionOpen:
+		capability = localappop.AppOperationIDVideoSessionOpen
+	case localappop.OperationVideoSessionFrameSubmit:
+		capability = localappop.AppOperationIDVideoSessionFrameSubmit
+	case localappop.OperationVideoSessionResultRead:
+		capability = localappop.AppOperationIDVideoSessionResultRead
+	case localappop.OperationVideoSessionClose:
+		capability = localappop.AppOperationIDVideoSessionClose
+	case localappop.OperationAIRealtimeOpen,
+		localappop.OperationAIRealtimeInputAppend,
+		localappop.OperationAIRealtimeOwnerControlSubmit,
+		localappop.OperationAIRealtimeEventsRead,
+		localappop.OperationAIRealtimeOutputInterrupt,
+		localappop.OperationAIRealtimeClose:
+		capability = string(admission.Domain)
+	case localappop.OperationAgentWorkReferenceList,
+		localappop.OperationAgentWorkStart,
+		localappop.OperationAgentWorkGet,
+		localappop.OperationAgentWorkStatusGet,
+		localappop.OperationAgentWorkToolCallsList,
+		localappop.OperationAgentWorkToolResultSubmit,
+		localappop.OperationAgentWorkCancel,
+		localappop.OperationAgentWorkEventsSubscribe,
+		localappop.OperationIntegrationCatalogList,
+		localappop.OperationIntegrationConnectionList,
+		localappop.OperationIntegrationCallInvoke,
+		localappop.OperationIntegrationCallGet,
+		localappop.OperationIntegrationCallList,
+		localappop.OperationIntegrationCallCancel,
+		localappop.OperationIntegrationProviderRegister,
+		localappop.OperationIntegrationProviderUnregister,
+		localappop.OperationIntegrationProviderPoll,
+		localappop.OperationIntegrationProviderComplete,
+		localappop.OperationIntegrationManagementGet,
+		localappop.OperationIntegrationConnectionPut,
+		localappop.OperationIntegrationConnectionRemove,
+		localappop.OperationIntegrationPermissionSet,
+		localappop.OperationIntegrationConnectionSetupStart,
+		localappop.OperationIntegrationConnectionSetupGet,
+		localappop.OperationIntegrationConnectionSetupSubmit,
+		localappop.OperationIntegrationConnectionSetupCancel,
+		localappop.OperationAgentIntroductionGet,
+		localappop.OperationAgentReferenceList,
+		localappop.OperationConversationOpen,
+		localappop.OperationConversationTurnSend,
+		localappop.OperationConversationTurnInterrupt,
+		localappop.OperationConversationEventsSubscribe,
+		localappop.OperationConversationSnapshotGet,
+		localappop.OperationConversationMessageRead,
+		localappop.OperationConversationFollowUpCancel,
+		localappop.OperationConversationAttachmentUpload,
+		localappop.OperationConversationArtifactRead,
+		localappop.OperationConversationVoiceTranscribe,
+		localappop.OperationConversationVoiceRender,
+		localappop.OperationAgentEmbodimentSnapshotGet,
+		localappop.OperationAgentEmbodimentEventsSubscribe,
+		localappop.OperationAgentManagerSnapshotGet,
+		localappop.OperationAgentAIConfigGet,
+		localappop.OperationAgentAIConfigOverwrite,
+		localappop.OperationAgentAIConfigOptionsList,
+		localappop.OperationAgentAutonomySnapshotGet,
+		localappop.OperationAgentAutonomyUpdate,
+		localappop.OperationAgentConversationContextUpdate,
+		localappop.OperationAgentPresentationSnapshotGet,
+		localappop.OperationAgentPresentationCommit,
+		localappop.OperationAgentMemoryInspect,
+		localappop.OperationAgentMemoryCorrect,
+		localappop.OperationAgentMemoryForget,
+		localappop.OperationAgentMemorySwitch,
+		localappop.OperationAgentMemoryDelete,
+		localappop.OperationAgentRealtimeOpen,
+		localappop.OperationAgentRealtimeInputAppend,
+		localappop.OperationAgentRealtimeEventsSubscribe,
+		localappop.OperationAgentRealtimeStatusGet,
+		localappop.OperationAgentRealtimeOutputInterrupt,
+		localappop.OperationAgentRealtimeClose:
+		capability = string(admission.Domain)
+	// @nimi-authority: rule.nimi.runtime.app-surface.r102
+	case localappop.OperationAppActivityPut,
+		localappop.OperationAppActivityList,
+		localappop.OperationAppActivitySubscribe,
+		localappop.OperationAppActivityMarkRead,
+		localappop.OperationAppActivityOpen,
+		localappop.OperationAppActivityOpenRequestSubscribe,
+		localappop.OperationAppActivityOpenRequestComplete:
+		capability = string(admission.Domain)
+	default:
+		ownerSupported = false
+	}
+	return capability, ownerSupported
 }

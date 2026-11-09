@@ -155,6 +155,25 @@ func (r *activeRPCRegistry) signalChangedLocked() {
 	r.changed = make(chan struct{})
 }
 
+// Direct data-channel calls share this registry with gRPC. The network
+// server's GracefulStop cannot account for those in-process dispatches.
+func (r *activeRPCRegistry) WaitForIdle(ctx context.Context) error {
+	for {
+		r.mu.Lock()
+		if len(r.entries) == 0 {
+			r.mu.Unlock()
+			return nil
+		}
+		changed := r.changed
+		r.mu.Unlock()
+		select {
+		case <-changed:
+		case <-ctx.Done():
+			return ctx.Err()
+		}
+	}
+}
+
 // CloseRootAdmission implements the Product Control root-handoff boundary.
 // It rejects new root-bound RPCs, cancels admitted root-bound work, and waits
 // for those handlers to leave before Product Control may commit a new root.

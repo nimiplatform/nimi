@@ -65,9 +65,16 @@ type StopResult struct {
 
 func (s *Server) BeginShutdown() []activeRPCSnapshot {
 	if s.rpcRegistry == nil {
+		if s.remoteAccessService != nil {
+			s.remoteAccessService.Close()
+		}
 		return []activeRPCSnapshot{}
 	}
-	return s.rpcRegistry.BeginShutdown()
+	snapshot := s.rpcRegistry.BeginShutdown()
+	if s.remoteAccessService != nil {
+		s.remoteAccessService.Close()
+	}
+	return snapshot
 }
 
 // Stop drains the transports and releases every owner.
@@ -88,6 +95,9 @@ func (s *Server) StopWithShutdownRecord(ctx context.Context, record func(StopRes
 }
 
 func (s *Server) releaseOwners() {
+	if s.remoteAccessService != nil {
+		s.remoteAccessService.Close()
+	}
 	if s.appService != nil {
 		s.appService.CloseLocalAppStorage()
 	}
@@ -133,9 +143,7 @@ func (s *Server) releaseOwners() {
 }
 
 func (s *Server) drain(ctx context.Context) StopResult {
-	if s.rpcRegistry != nil {
-		s.rpcRegistry.BeginShutdown()
-	}
+	s.BeginShutdown()
 	done := make(chan struct{})
 	go func() {
 		if s.protectedServer != nil {
@@ -145,6 +153,9 @@ func (s *Server) drain(ctx context.Context) StopResult {
 			s.localAppServer.GracefulStop()
 		}
 		s.grpcServer.GracefulStop()
+		if s.rpcRegistry != nil && s.rpcRegistry.WaitForIdle(ctx) != nil {
+			return
+		}
 		close(done)
 	}()
 

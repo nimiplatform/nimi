@@ -17,6 +17,7 @@ import (
 type RegistrationStore struct{ kernel *Kernel }
 
 type registrationMutation struct {
+	remoteSourceChanged       bool
 	platformSourceDevelopment bool
 	existingHandle            string
 	bindingSlot               string
@@ -146,13 +147,16 @@ func (store *RegistrationStore) registerTx(ctx context.Context, tx *sql.Tx, inpu
 	rawJSON, _ := json.Marshal(raw)
 	activatedJSON, _ := json.Marshal(activated)
 	provenanceJSON, _ := json.Marshal(input.provenanceAttestationRefs)
-	storedProjectRoot, err := store.kernel.encodeBindingLocator(input.projectRoot)
-	if err != nil {
-		return Registration{}, err
-	}
-	storedManifestPath, err := store.kernel.encodeBindingLocator(input.manifestPath)
-	if err != nil {
-		return Registration{}, err
+	var storedProjectRoot, storedManifestPath string
+	if input.sourceClass != SourceClassRemote {
+		storedProjectRoot, err = store.kernel.encodeBindingLocator(input.projectRoot)
+		if err != nil {
+			return Registration{}, err
+		}
+		storedManifestPath, err = store.kernel.encodeBindingLocator(input.manifestPath)
+		if err != nil {
+			return Registration{}, err
+		}
 	}
 
 	if input.existingHandle != "" {
@@ -187,6 +191,9 @@ func (store *RegistrationStore) registerTx(ctx context.Context, tx *sql.Tx, inpu
 				binding.ProjectRoot != input.projectRoot || binding.ManifestPath != input.manifestPath ||
 				binding.HostExecutableDigest != input.hostExecutableFact
 		}
+		if input.sourceClass == SourceClassRemote {
+			sourceChanged = input.remoteSourceChanged
+		}
 		sourceGeneration := canonical.SourceGeneration
 		if sourceChanged {
 			sourceGeneration++
@@ -194,6 +201,12 @@ func (store *RegistrationStore) registerTx(ctx context.Context, tx *sql.Tx, inpu
 		declarationGeneration := canonical.DeclarationGeneration
 		if canonical.DeclarationDigest != declarationDigest {
 			declarationGeneration++
+		}
+		// A newly supported domain cannot activate an unchanged declaration
+		// merely because the same registration is read or rebound again.
+		if !sourceChanged && declarationGeneration == canonical.DeclarationGeneration {
+			activated = append([]string{}, canonical.ActivatedDomains...)
+			activatedJSON, _ = json.Marshal(activated)
 		}
 		now := store.kernel.now().UTC()
 		result, updateErr := tx.ExecContext(ctx, `UPDATE canonical_registration SET
@@ -658,7 +671,7 @@ func registrationFromCanonicalAndBinding(canonical Registration, binding current
 }
 
 func registrationStatusFromCanonical(canonical Registration, bound bool) RegistrationStatus {
-	sourceReady := canonical.SourceClass == SourceClassLocalDevelopment || canonical.ImmutablePackageFactsComplete() || canonical.IsPlatformSourceDevelopment()
+	sourceReady := canonical.SourceClass == SourceClassRemote || canonical.SourceClass == SourceClassLocalDevelopment || canonical.ImmutablePackageFactsComplete() || canonical.IsPlatformSourceDevelopment()
 	return RegistrationStatus{
 		RegistrationHandle: canonical.RegistrationHandle, RegisteredAppSubject: canonical.RegisteredAppSubject,
 		AppID: canonical.AppID, SourceClass: canonical.SourceClass, State: canonical.State,

@@ -11,6 +11,7 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
+	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
@@ -20,10 +21,11 @@ import (
 )
 
 func TestProtectedLocalAppAssetCRUDStreamingRangeAndOwnerIsolation(t *testing.T) {
-	service := newTestService(WithAppStorageDataRoot(t.TempDir()))
+	f, admit := newLocalAppAssetFixture(t)
+	service := f.service
 	payload := bytes.Repeat([]byte("stream-body-"), 150000)
 	write := &localAppAssetWriteTestStream{
-		ctx: localAppAssetTestContext(accountservice.LocalAppOperationStorageAssetWrite, "account-a", "subject-a"),
+		ctx: admit(localappop.IngressStorageAssetWrite),
 		requests: []*runtimev1.WriteLocalAppAssetRequest{
 			{Frame: &runtimev1.WriteLocalAppAssetRequest_Metadata{Metadata: &runtimev1.WriteLocalAppAssetMetadata{RelativePath: "media/run.bin", MediaType: "application/octet-stream"}}},
 			{Frame: &runtimev1.WriteLocalAppAssetRequest_BodyChunk{BodyChunk: payload[:appstorage.AssetChunkBytes]}},
@@ -35,14 +37,14 @@ func TestProtectedLocalAppAssetCRUDStreamingRangeAndOwnerIsolation(t *testing.T)
 	}
 
 	stat, err := service.StatLocalAppAsset(
-		localAppAssetTestContext(accountservice.LocalAppOperationStorageAssetStat, "account-a", "subject-a"),
+		admit(localappop.IngressStorageAssetStat),
 		&runtimev1.StatLocalAppAssetRequest{RelativePath: "media/run.bin"},
 	)
 	if err != nil || stat.GetAsset().GetSha256() != write.response.GetAsset().GetSha256() {
 		t.Fatalf("stat=%+v err=%v", stat, err)
 	}
 	reveal, err := service.RevealLocalAppAsset(
-		localAppAssetTestContext(accountservice.LocalAppOperationStorageAssetReveal, "account-a", "subject-a"),
+		admit(localappop.IngressStorageAssetReveal),
 		&runtimev1.RevealLocalAppAssetRequest{RelativePath: "media/run.bin"},
 	)
 	if err != nil || !filepath.IsAbs(reveal.GetAbsolutePath()) || filepath.Base(reveal.GetAbsolutePath()) != "run.bin" || reveal.GetAsset().GetSha256() != stat.GetAsset().GetSha256() {
@@ -50,7 +52,7 @@ func TestProtectedLocalAppAssetCRUDStreamingRangeAndOwnerIsolation(t *testing.T)
 	}
 
 	list, err := service.ListLocalAppAssets(
-		localAppAssetTestContext(accountservice.LocalAppOperationStorageAssetList, "account-a", "subject-a"),
+		admit(localappop.IngressStorageAssetList),
 		&runtimev1.ListLocalAppAssetsRequest{Prefix: "media/", PageSize: 10},
 	)
 	if err != nil || len(list.GetAssets()) != 1 || list.GetAssets()[0].GetRelativePath() != "media/run.bin" {
@@ -58,7 +60,7 @@ func TestProtectedLocalAppAssetCRUDStreamingRangeAndOwnerIsolation(t *testing.T)
 	}
 
 	offset, length := int64(7), int64(1234567)
-	read := &localAppAssetReadTestStream{ctx: localAppAssetTestContext(accountservice.LocalAppOperationStorageAssetRead, "account-a", "subject-a")}
+	read := &localAppAssetReadTestStream{ctx: admit(localappop.IngressStorageAssetRead)}
 	if err := service.ReadLocalAppAsset(&runtimev1.ReadLocalAppAssetRequest{RelativePath: "media/run.bin", Offset: &offset, Length: &length}, read); err != nil {
 		t.Fatal(err)
 	}
@@ -70,7 +72,7 @@ func TestProtectedLocalAppAssetCRUDStreamingRangeAndOwnerIsolation(t *testing.T)
 		t.Fatalf("ranged body length=%d", len(got))
 	}
 
-	for _, foreign := range []struct{ account, subject string }{{"account-b", "subject-a"}, {"account-a", "subject-b"}} {
+	for _, foreign := range []struct{ account, subject string }{{"account-b", f.registration.RegisteredAppSubject}, {"account-1", "subject-b"}} {
 		_, err := service.StatLocalAppAsset(
 			localAppAssetTestContext(accountservice.LocalAppOperationStorageAssetStat, foreign.account, foreign.subject),
 			&runtimev1.StatLocalAppAssetRequest{RelativePath: "media/run.bin"},
@@ -88,13 +90,13 @@ func TestProtectedLocalAppAssetCRUDStreamingRangeAndOwnerIsolation(t *testing.T)
 	}
 
 	moved, err := service.MoveLocalAppAsset(
-		localAppAssetTestContext(accountservice.LocalAppOperationStorageAssetMove, "account-a", "subject-a"),
+		admit(localappop.IngressStorageAssetMove),
 		&runtimev1.MoveLocalAppAssetRequest{FromRelativePath: "media/run.bin", ToRelativePath: "archive/run.bin"},
 	)
 	if err != nil || moved.GetAsset().GetRelativePath() != "archive/run.bin" {
 		t.Fatalf("move=%+v err=%v", moved, err)
 	}
-	removeContext := localAppAssetTestContext(accountservice.LocalAppOperationStorageAssetRemove, "account-a", "subject-a")
+	removeContext := admit(localappop.IngressStorageAssetRemove)
 	removed, err := service.RemoveLocalAppAsset(removeContext, &runtimev1.RemoveLocalAppAssetRequest{RelativePath: "archive/run.bin"})
 	if err != nil || !removed.GetRemoved() {
 		t.Fatalf("remove=%+v err=%v", removed, err)
@@ -106,12 +108,13 @@ func TestProtectedLocalAppAssetCRUDStreamingRangeAndOwnerIsolation(t *testing.T)
 }
 
 func TestProtectedLocalAppAssetReadHoldsOneCommittedVersion(t *testing.T) {
-	service := newTestService(WithAppStorageDataRoot(t.TempDir()))
-	writeAssetThroughService(t, service, "version.bin", []byte("old-version"), false)
+	f, admit := newLocalAppAssetFixture(t)
+	service := f.service
+	writeAssetThroughService(t, service, admit(localappop.IngressStorageAssetWrite), "version.bin", []byte("old-version"), false)
 	metadataSent := make(chan struct{})
 	release := make(chan struct{})
 	read := &localAppAssetReadTestStream{
-		ctx: localAppAssetTestContext(accountservice.LocalAppOperationStorageAssetRead, "account-a", "subject-a"),
+		ctx: admit(localappop.IngressStorageAssetRead),
 		onSend: func(response *runtimev1.ReadLocalAppAssetResponse) {
 			if response.GetMetadata() != nil {
 				close(metadataSent)
@@ -124,7 +127,7 @@ func TestProtectedLocalAppAssetReadHoldsOneCommittedVersion(t *testing.T) {
 		readErr <- service.ReadLocalAppAsset(&runtimev1.ReadLocalAppAssetRequest{RelativePath: "version.bin"}, read)
 	}()
 	<-metadataSent
-	writeAssetThroughService(t, service, "version.bin", []byte("new-version"), true)
+	writeAssetThroughService(t, service, admit(localappop.IngressStorageAssetWrite), "version.bin", []byte("new-version"), true)
 	close(release)
 	if err := <-readErr; err != nil {
 		t.Fatal(err)
@@ -135,22 +138,23 @@ func TestProtectedLocalAppAssetReadHoldsOneCommittedVersion(t *testing.T) {
 }
 
 func TestProtectedLocalAppAssetFrameRangeAndTypedFailures(t *testing.T) {
-	service := newTestService(WithAppStorageDataRoot(t.TempDir()))
+	f, admit := newLocalAppAssetFixture(t)
+	service := f.service
 	invalidFirst := &localAppAssetWriteTestStream{
-		ctx:      localAppAssetTestContext(accountservice.LocalAppOperationStorageAssetWrite, "account-a", "subject-a"),
+		ctx:      admit(localappop.IngressStorageAssetWrite),
 		requests: []*runtimev1.WriteLocalAppAssetRequest{{Frame: &runtimev1.WriteLocalAppAssetRequest_BodyChunk{BodyChunk: []byte("not-metadata")}}},
 	}
 	assertLocalAppAssetReason(t, service.WriteLocalAppAsset(invalidFirst), codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 
 	invalidMedia := &localAppAssetWriteTestStream{
-		ctx: localAppAssetTestContext(accountservice.LocalAppOperationStorageAssetWrite, "account-a", "subject-a"),
+		ctx: admit(localappop.IngressStorageAssetWrite),
 		requests: []*runtimev1.WriteLocalAppAssetRequest{
 			{Frame: &runtimev1.WriteLocalAppAssetRequest_Metadata{Metadata: &runtimev1.WriteLocalAppAssetMetadata{RelativePath: "media.bin", MediaType: "bad media"}}},
 		},
 	}
 	assertLocalAppAssetReason(t, service.WriteLocalAppAsset(invalidMedia), codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 
-	writeAssetThroughService(t, service, "range.bin", []byte("1234"), false)
+	writeAssetThroughService(t, service, admit(localappop.IngressStorageAssetWrite), "range.bin", []byte("1234"), false)
 	for name, request := range map[string]*runtimev1.ReadLocalAppAssetRequest{
 		"negative offset": {RelativePath: "range.bin", Offset: int64Pointer(-1)},
 		"zero length":     {RelativePath: "range.bin", Length: int64Pointer(0)},
@@ -158,27 +162,27 @@ func TestProtectedLocalAppAssetFrameRangeAndTypedFailures(t *testing.T) {
 		"unsafe":          {RelativePath: "range.bin", Offset: int64Pointer(localAppAssetMaxSafeInteger + 1)},
 	} {
 		t.Run(name, func(t *testing.T) {
-			stream := &localAppAssetReadTestStream{ctx: localAppAssetTestContext(accountservice.LocalAppOperationStorageAssetRead, "account-a", "subject-a")}
+			stream := &localAppAssetReadTestStream{ctx: admit(localappop.IngressStorageAssetRead)}
 			assertLocalAppAssetReason(t, service.ReadLocalAppAsset(request, stream), codes.OutOfRange, runtimev1.ReasonCode_APP_STORAGE_RANGE_INVALID)
 		})
 	}
 	eof := int64(4)
-	empty := &localAppAssetReadTestStream{ctx: localAppAssetTestContext(accountservice.LocalAppOperationStorageAssetRead, "account-a", "subject-a")}
+	empty := &localAppAssetReadTestStream{ctx: admit(localappop.IngressStorageAssetRead)}
 	if err := service.ReadLocalAppAsset(&runtimev1.ReadLocalAppAssetRequest{RelativePath: "range.bin", Offset: &eof}, empty); err != nil || len(empty.responses) != 1 || empty.responses[0].GetMetadata().GetRange().GetLength() != 0 {
 		t.Fatalf("EOF read responses=%+v err=%v", empty.responses, err)
 	}
 
 	_, err := service.ListLocalAppAssets(
-		localAppAssetTestContext(accountservice.LocalAppOperationStorageAssetList, "account-a", "subject-a"),
+		admit(localappop.IngressStorageAssetList),
 		&runtimev1.ListLocalAppAssetsRequest{Prefix: "bad//", PageSize: 10},
 	)
 	assertLocalAppAssetReason(t, err, codes.InvalidArgument, runtimev1.ReasonCode_APP_STORAGE_PATH_INVALID)
 }
 
-func writeAssetThroughService(t *testing.T, service *Service, path string, payload []byte, overwrite bool) *runtimev1.LocalAppAssetRecord {
+func writeAssetThroughService(t *testing.T, service *Service, ctx context.Context, path string, payload []byte, overwrite bool) *runtimev1.LocalAppAssetRecord {
 	t.Helper()
 	stream := &localAppAssetWriteTestStream{
-		ctx: localAppAssetTestContext(accountservice.LocalAppOperationStorageAssetWrite, "account-a", "subject-a"),
+		ctx: ctx,
 		requests: []*runtimev1.WriteLocalAppAssetRequest{
 			{Frame: &runtimev1.WriteLocalAppAssetRequest_Metadata{Metadata: &runtimev1.WriteLocalAppAssetMetadata{RelativePath: path, Overwrite: overwrite}}},
 			{Frame: &runtimev1.WriteLocalAppAssetRequest_BodyChunk{BodyChunk: payload}},
@@ -188,6 +192,47 @@ func writeAssetThroughService(t *testing.T, service *Service, path string, paylo
 		t.Fatal(err)
 	}
 	return stream.response.GetAsset()
+}
+
+func newLocalAppAssetFixture(t *testing.T) (localAppSessionFixture, func(localappop.Ingress) context.Context) {
+	t.Helper()
+	f := newLocalAppSessionFixture(t, nil, WithAppStorageDataRoot(t.TempDir()))
+	t.Cleanup(f.service.CloseLocalAppStorage)
+	account := accountservice.New(nil, accountservice.WithAuditStore(auditlog.New(128, 128)), accountservice.WithNonProductionHarnessMode(), accountservice.WithClock(func() time.Time { return f.now }), accountservice.WithCustody(&localAppRefreshCustody{material: accountservice.AccountMaterial{AccountID: "account-1", RealmEnvironmentID: "realm-1", AccessToken: "access", RefreshToken: "refresh", AccessTokenExpires: f.now.Add(time.Hour)}}))
+	WithRuntimeAccountProjectionProvider(account)(f.service)
+	if _, err := f.service.OpenLocalAppSessionProjection(f.context); err != nil {
+		t.Fatal(err)
+	}
+	return f, func(ingress localappop.Ingress) context.Context {
+		ctx, err := f.service.AuthorizeLocalAppIngress(f.context, ingress)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return ctx
+	}
+}
+
+func TestAssetUploadCannotCommitAfterNativeSessionRevocation(t *testing.T) {
+	f, admit := newLocalAppAssetFixture(t)
+	stream := &localAppAssetWriteTestStream{
+		ctx: admit(localappop.IngressStorageAssetWrite),
+		requests: []*runtimev1.WriteLocalAppAssetRequest{
+			{Frame: &runtimev1.WriteLocalAppAssetRequest_Metadata{Metadata: &runtimev1.WriteLocalAppAssetMetadata{RelativePath: "withdrawn.bin"}}},
+			{Frame: &runtimev1.WriteLocalAppAssetRequest_BodyChunk{BodyChunk: []byte("must not publish")}},
+		},
+		onEOF: func() { f.connection.Revoke() },
+	}
+	if err := f.service.WriteLocalAppAsset(stream); err == nil || stream.response != nil {
+		t.Fatal("revoked upload published a result", err)
+	}
+	store, err := f.service.localAppAssets()
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = store.Stat(context.Background(), appstorage.ManagedOwner{AccountID: "account-1", RegisteredAppSubject: f.registration.RegisteredAppSubject}, "withdrawn.bin")
+	if err != appstorage.ErrAssetNotFound {
+		t.Fatal("revoked upload changed disk", err)
+	}
 }
 
 func localAppAssetTestContext(operation accountservice.LocalAppOperation, accountID, subject string) context.Context {
@@ -224,10 +269,15 @@ type localAppAssetWriteTestStream struct {
 	requests []*runtimev1.WriteLocalAppAssetRequest
 	response *runtimev1.WriteLocalAppAssetResponse
 	index    int
+	onEOF    func()
 }
 
 func (stream *localAppAssetWriteTestStream) Recv() (*runtimev1.WriteLocalAppAssetRequest, error) {
 	if stream.index >= len(stream.requests) {
+		if stream.onEOF != nil {
+			stream.onEOF()
+			stream.onEOF = nil
+		}
 		return nil, io.EOF
 	}
 	request := stream.requests[stream.index]

@@ -24,6 +24,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
 	"github.com/nimiplatform/nimi/runtime/internal/nimiappinstall"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
+	"github.com/nimiplatform/nimi/runtime/internal/remoteaccess"
 	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
 	"github.com/nimiplatform/nimi/runtime/internal/scheduler"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
@@ -74,6 +75,7 @@ type Server struct {
 	localDevelopmentStore interface{ Close() error }
 	localAppKernel        *localappkernel.Kernel
 	appInstallCoordinator *nimiappinstall.Coordinator
+	remoteAccessService   *remoteaccess.Service
 }
 
 const (
@@ -156,6 +158,7 @@ func isSourceMaterializationLoopbackHost(host string) bool {
 // principal, state root, and secure store have been verified. No field is
 // sourced from argv, environment, renderer IPC, or user-writable config.
 type ProtectedServiceBindings struct {
+	PrimarySecrets                   protectedlocal.BinarySecretStore
 	ServiceStateRoot                 string
 	ProductControlRoot               string
 	RuntimeServiceSID                string
@@ -610,6 +613,14 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	var localAppGRPCServer *grpc.Server
 	var accountSvc *accountservice.Service
 	if protected != nil {
+		primaryKeyScope := ""
+		if protected.PrimarySecrets != nil && protected.productControlInstallID != "" {
+			anchor, anchorErr := protected.LocalOSUserIdentity.LocalOSUserAnchor()
+			if anchorErr != nil {
+				return nil, fmt.Errorf("resolve stable primary Runtime identity scope: %w", anchorErr)
+			}
+			primaryKeyScope = protected.productControlInstallID + "\x00" + anchor
+		}
 		accountSvc = accountservice.NewProduction(logger, accountservice.ProductionConfig{
 			RealmBaseURL:     protected.AccountRealmBaseURL,
 			RealmRealtimeURL: protected.AccountRealmRealtimeURL,
@@ -617,6 +628,8 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 			TokenURL:         protected.AccountTokenURL,
 			CustodyPartition: protected.AccountPartition,
 			Custody:          protected.AccountCustody,
+			PrimarySecrets:   protected.PrimarySecrets,
+			PrimaryKeyScope:  primaryKeyScope,
 			AppRegistry:      appRegistry,
 			AuditStore:       auditStore,
 		})
@@ -1021,23 +1034,23 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		logger,
 		runtimeartifactservice.WithProtectedGeneratedVoiceAuthorizer(agentSvc),
 	)
-	if protected != nil {
-		var appOwnerAdmission protectedAppOwnerAdmission
-		if localAppKernel != nil {
-			registrations := localAppKernel.Registrations()
-			appOwnerAdmission = func(ctx context.Context, appID string) bool {
-				statuses, err := registrations.ListStatuses(ctx)
-				if err != nil {
-					return false
-				}
-				for _, status := range statuses {
-					if status.AppID == appID && status.State == localappkernel.RegistrationStateActive && status.CurrentHostBound && status.Available {
-						return true
-					}
-				}
+	var appOwnerAdmission protectedAppOwnerAdmission
+	if localAppKernel != nil {
+		registrations := localAppKernel.Registrations()
+		appOwnerAdmission = func(ctx context.Context, appID string) bool {
+			statuses, err := registrations.ListStatuses(ctx)
+			if err != nil {
 				return false
 			}
+			for _, status := range statuses {
+				if status.AppID == appID && status.State == localappkernel.RegistrationStateActive && status.CurrentHostBound && status.Available {
+					return true
+				}
+			}
+			return false
 		}
+	}
+	if protected != nil {
 		protectedGRPCServer = newProtectedDesktopRPCServer(runtimeControlSvc, authSvc, accountSvc, realmRealtimeSvc, auditSvc, localSvc, aiSvc, agentSvc, connSvc, externalAgentSvc, appSvc, appSvc, artifactSvc, protected.DesktopSessions, accountSvc, appOwnerAdmission, appSvc, rpcRegistry, desktopRefusals)
 		runtimev1.RegisterRuntimeAppPackageServiceServer(protectedGRPCServer, appSvc)
 		localAppGRPCServer = newProtectedLocalAppRPCServer(runtimeControlSvc, authSvc, accountSvc, realmRealtimeSvc, localSvc, aiSvc, agentSvc, appSvc, rpcRegistry, localAppRefusals)
@@ -1058,6 +1071,22 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	runtimev1.RegisterRuntimeDevelopmentServiceServer(g, appSvc)
 
 	runtimev1.RegisterRuntimeArtifactServiceServer(g, artifactSvc)
+	remoteDispatcher := newRemoteDispatcher(appSvc, appOwnerAdmission, rpcRegistry)
+	var remoteInstance protectedlocal.Identifier
+	if protected != nil && protected.DesktopSessions != nil {
+		remoteInstance = protected.DesktopSessions.OperationSessionID()
+	}
+	remoteAccessSvc := remoteaccess.New(accountSvc, localAppKernel, remoteInstance, remoteDispatcher.dispatch, logger, auditStore)
+	remoteDispatcher.register(aiSvc, &runtimev1.RuntimeAiService_ServiceDesc)
+	remoteDispatcher.register(appSvc, &runtimev1.RuntimeAppService_ServiceDesc)
+	remoteDispatcher.register(agentSvc, &runtimev1.RuntimeAgentService_ServiceDesc)
+	remoteDispatcher.register(activitySvc, &runtimev1.RuntimeAppActivityService_ServiceDesc)
+	remoteDispatcher.register(runtimeControlSvc, &runtimev1.RuntimeServiceControlService_ServiceDesc)
+	remoteDispatcher.register(remoteAccessSvc, &runtimev1.RuntimeRemoteAccessService_ServiceDesc)
+	runtimev1.RegisterRuntimeRemoteAccessServiceServer(g, remoteAccessSvc)
+	if protectedGRPCServer != nil {
+		runtimev1.RegisterRuntimeRemoteAccessServiceServer(protectedGRPCServer, remoteAccessSvc)
+	}
 	rootHandoff := &productControlRuntimeRootHandoff{
 		registry: rpcRegistry, ai: aiSvc, agent: agentSvc, cognition: cognitionSvc, backend: backend, appActivity: activitySvc, integrations: integrationSvc,
 	}
@@ -1105,6 +1134,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		localDevelopmentStore: localDevelopmentStore,
 		localAppKernel:        localAppKernel,
 		appInstallCoordinator: appInstallCoordinator,
+		remoteAccessService:   remoteAccessSvc,
 	}
 	s.SyncServingState()
 	if protected != nil && protected.PeerRejections != nil {
@@ -1122,6 +1152,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	keepLocalService = true
 	keepBackend = true
 	keepAIObservation = true
+	remoteAccessSvc.Start()
 	return s, nil
 }
 

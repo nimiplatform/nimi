@@ -1,0 +1,128 @@
+package account
+
+import (
+	"context"
+	"crypto/ed25519"
+	"crypto/rand"
+	"encoding/base64"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
+	"testing"
+	"time"
+
+	realmv1 "github.com/nimiplatform/nimi/runtime/gen/realm/v1"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+)
+
+func TestPrimaryControlProofLeaseClockAndOwnerFence(t *testing.T) {
+	public, private, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	runtimeID := "86ba1c17-84de-4132-bf83-c201b9ef0521"
+	binding := realmv1.PrimaryRuntimeBindingDto{RuntimeId: runtimeID, BindingId: "14e92c91-d872-4a0e-9d72-4ea05bbea917",
+		LeaseVersion: "2893d76e-607e-446c-bb9d-52a634ea3514", PublicKey: base64.RawURLEncoding.EncodeToString(public),
+		DisplayName: "PC", ValidAfter: time.Now().UTC().Format(time.RFC3339Nano)}
+	contextID := "43515b26-263b-40f6-875e-04b022c37039"
+	connectionID := "feb29b08-c6b3-46c4-a1fb-afb0a7344184"
+	wrongOwner := false
+	calls := 0
+	checkProof := func(signature string, fields []any) {
+		t.Helper()
+		payload, _ := json.Marshal(append([]any{"nimi.primary-runtime/v1", "realm-local"}, fields...))
+		proof, _ := base64.RawURLEncoding.DecodeString(signature)
+		if !ed25519.Verify(public, payload, proof) {
+			t.Error("control proof does not bind its actual request")
+		}
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls++
+		if r.Header.Get("Authorization") != "Bearer access-1" {
+			t.Error("owner credential missing")
+		}
+		serverTime := time.Now().Add(30 * time.Second).UTC()
+		switch r.URL.Path {
+		case realmv1.GetMyPrimaryRuntimePath:
+			_ = json.NewEncoder(w).Encode(realmv1.PrimaryRuntimeSnapshotDto{AccountId: "acct-1", Binding: &binding, ServerTime: serverTime.Format(time.RFC3339Nano)})
+		case realmv1.RenewMyPrimaryRuntimeLeasePath:
+			var body realmv1.PrimaryRuntimeLeaseRequestDto
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			checkProof(body.Signature, []any{"lease", "acct-1", runtimeID, binding.BindingId, binding.LeaseVersion, body.SignedAt})
+			binding.LeaseVersion = "3983d76e-607e-446c-bb9d-52a634ea3514"
+			binding.LeaseExpiresAt = serverTime.Add(time.Minute).Format(time.RFC3339Nano)
+			w.WriteHeader(201)
+			_ = json.NewEncoder(w).Encode(realmv1.PrimaryRuntimeSnapshotDto{AccountId: "acct-1", Binding: &binding, ServerTime: serverTime.Format(time.RFC3339Nano)})
+		case realmv1.PollPrimaryRuntimeConnectionsPath:
+			var body realmv1.RuntimeConnectionPollDto
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			checkProof(body.Signature, []any{"signal-poll", "acct-1", runtimeID, binding.BindingId, binding.LeaseVersion, primarySignalHash(body.ContextIds), body.SignedAt})
+			client := realmv1.RuntimeClientContextDto{AccountId: "acct-1", RealmEnvironmentId: "realm-local", AppId: "nimi.reference", ClientId: "nimi.reference.web", ContextId: contextID,
+				ExpiresAt: serverTime.Add(time.Hour).Format(time.RFC3339Nano),
+				Primary:   &realmv1.RuntimeClientPrimaryDto{BindingId: binding.BindingId, RuntimeId: runtimeID, PublicKey: binding.PublicKey},
+				Source:    &realmv1.RuntimeClientSourceDto{AppId: "nimi.reference", ClientId: "nimi.reference.web", SourceRevision: 1, Role: "app", Origin: "https://example.test", RedirectUri: "https://example.test/callback", AppAccess: []string{"runtime.consume"}}}
+			if wrongOwner {
+				client.AccountId = "another-account"
+			}
+			w.WriteHeader(201)
+			_ = json.NewEncoder(w).Encode(realmv1.RuntimeConnectionPollResultDto{ServerTime: serverTime.Format(time.RFC3339Nano), ControlLeaseExpiresAt: binding.LeaseExpiresAt,
+				Contexts: []realmv1.RuntimeClientContextDto{client}, Offers: []realmv1.RuntimeConnectionOfferDto{{ConnectionId: connectionID, OfferSdp: "v=0\r\ns=signaling-fixture\r\n", ExpiresAt: serverTime.Add(time.Minute).Format(time.RFC3339Nano), Context: &client}}})
+		case realmv1.AnswerPrimaryRuntimeConnectionPath:
+			var body realmv1.RuntimeConnectionAnswerDto
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			checkProof(body.Signature, []any{"signal-answer", "acct-1", runtimeID, binding.BindingId, binding.LeaseVersion, primarySignalHash([]string{body.ConnectionId, body.AnswerSdp, body.RejectionReason}), body.SignedAt})
+			w.WriteHeader(201)
+			_ = json.NewEncoder(w).Encode(realmv1.RuntimeConnectionStateDto{ConnectionId: connectionID, BindingId: binding.BindingId, Status: "answered", AnswerSdp: body.AnswerSdp})
+		default:
+			t.Errorf("unexpected owner operation %s", r.URL.Path)
+			w.WriteHeader(404)
+		}
+	}))
+	defer server.Close()
+	secrets := newAccountBinarySecretStore()
+	svc := newHarnessService(t, &memoryCustody{has: true, material: testMaterial("acct-1", "access-1", "refresh-1")}, WithRealmBaseURL(server.URL), WithRealmHTTPClient(server.Client()), func(s *Service) { s.primarySecrets, s.primaryKeyScope = secrets, "install-one\x00os-user-one" })
+	ctx := context.Background()
+	_, name, err := svc.loadPrimaryAccountKeys(ctx, "acct-1", "realm-local")
+	if err != nil {
+		t.Fatal(err)
+	}
+	encoded, _ := json.Marshal(primaryHostKeys{Version: 1, Active: &primaryHostKey{RuntimeID: runtimeID, Seed: private.Seed()}})
+	if err = secrets.Store(ctx, name, encoded); err != nil {
+		t.Fatal(err)
+	}
+	control, err := svc.BindPrimaryRuntimeControl(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !control.State().Deadline.IsZero() {
+		t.Fatal("binding read invented a lease")
+	}
+	if _, err = svc.PollPrimaryRuntimeConnections(ctx, control, nil); status.Code(err) != codes.Unavailable {
+		t.Fatal("poll without lease was admitted")
+	}
+	if err = svc.RenewPrimaryRuntimeControl(ctx, control); err != nil {
+		t.Fatal(err)
+	}
+	remaining := time.Until(control.State().Deadline)
+	if remaining <= 55*time.Second || remaining > time.Minute {
+		t.Fatalf("owner clock extended or lost the lease: %s", remaining)
+	}
+	if _, err = svc.PollPrimaryRuntimeConnections(ctx, control, []string{contextID}); err != nil {
+		t.Fatal(err)
+	}
+	if err = svc.AnswerPrimaryRuntimeConnection(ctx, control, connectionID, "v=0\r\ns=<PC>&\r\n", ""); err != nil {
+		t.Fatal(err)
+	}
+	wrongOwner = true
+	if _, err = svc.PollPrimaryRuntimeConnections(ctx, control, []string{contextID}); status.Code(err) != codes.Internal {
+		t.Fatal("foreign context escaped owner validation")
+	}
+	before := calls
+	svc.mu.Lock()
+	svc.invalidateAuthenticatedRuntimeIdentityLocked()
+	svc.mu.Unlock()
+	if err = svc.RenewPrimaryRuntimeControl(ctx, control); status.Code(err) != codes.Unauthenticated || calls != before {
+		t.Fatal("old Account control remained usable")
+	}
+}

@@ -179,6 +179,16 @@ func (store *AssetStore) Adopt(
 	return store.write(ctx, owner, relativePath, input.MediaType, overwrite, input.Body, verification, nil)
 }
 
+func (store *AssetStore) WriteGuarded(ctx context.Context, owner ManagedOwner, relativePath, mediaType string, overwrite bool, source io.ReadCloser, guard AssetCommitGuard) (AssetRecord, error) {
+	if guard == nil {
+		if source != nil {
+			_ = source.Close()
+		}
+		return AssetRecord{}, ErrAssetUnavailable
+	}
+	return store.write(ctx, owner, relativePath, mediaType, overwrite, source, nil, guard)
+}
+
 // @nimi-authority: rule.nimi.runtime.app-surface.integration-asset-commit
 func (store *AssetStore) AdoptGuarded(ctx context.Context, owner ManagedOwner, relativePath string, input VerifiedAssetInput, guard AssetCommitGuard) (AssetRecord, error) {
 	if guard == nil {

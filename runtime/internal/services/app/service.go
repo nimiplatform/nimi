@@ -154,6 +154,7 @@ type Service struct {
 	localAppRebindVerifier     func(context.Context, *protectedlocal.LocalAppConnection, localAppRuntimeSession) (localappkernel.Registration, error)
 	localAppSessionMu          sync.RWMutex
 	localAppSessions           map[*protectedlocal.LocalAppConnection]localAppRuntimeSession
+	remoteAppSessions          sync.Map
 	localAppSessionEntropy     io.Reader
 	localAppSessionTTL         time.Duration
 	localAppRuntimeGeneration  uint64

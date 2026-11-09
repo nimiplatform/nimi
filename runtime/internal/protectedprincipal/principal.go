@@ -25,6 +25,10 @@ type Principal struct {
 	directTransport   bool
 }
 
+// This profile is constructed only by the verified remote ingress. It is not
+// a native profile, caller metadata value or an App access declaration.
+const RemoteRuntimeOwnerProfileID = "remote_runtime_owner_v1"
+
 type contextKey struct{}
 type authorizedAppOwnerDecisionContextKey struct{}
 
@@ -94,6 +98,14 @@ func (principal Principal) Owns(subject string) bool {
 func (principal Principal) IsDesktopAccountProduct() bool {
 	return principal.AppID == envelope.ProtectedDesktopAppID &&
 		principal.ProfileID == protectedlocal.DesktopAccountProductProfileID
+}
+
+func (principal Principal) IsRemoteRuntimeOwnerManager() bool {
+	return principal.directTransport && principal.ProfileID == RemoteRuntimeOwnerProfileID && principal.Capability == RemoteRuntimeOwnerProfileID
+}
+
+func (principal Principal) IsRuntimeOwnerManager() bool {
+	return principal.IsDesktopAccountProduct() || principal.IsRemoteRuntimeOwnerManager()
 }
 
 func (principal Principal) Done() <-chan struct{} {

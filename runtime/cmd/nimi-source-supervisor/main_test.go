@@ -1,12 +1,53 @@
 package main
 
 import (
+	"context"
+	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
+	"time"
 )
+
+func TestWaitForOwnedRuntimeExitPreservesProcessResult(t *testing.T) {
+	for _, mode := range []string{"clean", "failed"} {
+		t.Run(mode, func(t *testing.T) {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			command := exec.CommandContext(ctx, os.Args[0], "-test.run=^TestSourceRuntimeExitProcessHelper$")
+			command.Env = append(os.Environ(), "NIMI_SOURCE_SUPERVISOR_EXIT_TEST_MODE="+mode)
+			waitErr := command.Run()
+			if command.ProcessState == nil {
+				t.Fatalf("start isolated process: %v", waitErr)
+			}
+			exited := make(chan runtimeExit, 1)
+			exited <- runtimeExit{err: waitErr, code: command.ProcessState.ExitCode()}
+			err := waitForOwnedRuntimeExit(command, exited, nil, nil, nil)
+			if mode == "clean" {
+				if err != nil {
+					t.Fatalf("normal process exit was reported as failure: %v", err)
+				}
+				return
+			}
+			var exitError *exec.ExitError
+			if !errors.As(err, &exitError) || exitError.ExitCode() != 9 {
+				t.Fatalf("abnormal process result was lost: %v", err)
+			}
+		})
+	}
+}
+
+func TestSourceRuntimeExitProcessHelper(t *testing.T) {
+	switch os.Getenv("NIMI_SOURCE_SUPERVISOR_EXIT_TEST_MODE") {
+	case "clean":
+		os.Exit(0)
+	case "failed":
+		os.Exit(9)
+	}
+}
 
 func TestReplaceEnvironmentReplacesCaseInsensitively(t *testing.T) {
 	environment := replaceEnvironment([]string{"Path=one", "OTHER=two", "PATH=three"}, "PATH", "four")

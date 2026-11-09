@@ -7,6 +7,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	"google.golang.org/grpc/codes"
 )
 
@@ -41,7 +42,7 @@ func (service *Service) RequestRuntimeStop(ctx context.Context, _ *runtimev1.Req
 	if service == nil || service.desktopSessions == nil || service.requestStop == nil {
 		return nil, grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE)
 	}
-	if err := service.desktopSessions.AuthorizeContext(ctx, protectedlocal.RoleVerifiedDesktopProcess); err != nil {
+	if err := service.authorizeOwnerControl(ctx); err != nil {
 		return nil, protectedLifecycleAuthorizationError(err)
 	}
 	if !service.requestStop() {
@@ -61,7 +62,7 @@ func (service *Service) GetRuntimeServiceState(ctx context.Context, _ *runtimev1
 			Retryable:  &retryable,
 		})
 	}
-	if err := service.desktopSessions.AuthorizeContext(ctx, protectedlocal.RoleVerifiedDesktopProcess); err != nil {
+	if err := service.authorizeOwnerControl(ctx); err != nil {
 		return nil, protectedLifecycleAuthorizationError(err)
 	}
 	if service.maintenanceReason != runtimev1.ReasonCode_REASON_CODE_UNSPECIFIED {
@@ -92,6 +93,13 @@ func (service *Service) RequestRuntimeRestart(ctx context.Context, _ *runtimev1.
 		})
 	}
 	return &runtimev1.RequestRuntimeRestartResponse{Accepted: true, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
+}
+
+func (service *Service) authorizeOwnerControl(ctx context.Context) error {
+	if principal, valid := protectedprincipal.FromContext(ctx); valid && principal.IsRemoteRuntimeOwnerManager() {
+		return nil
+	}
+	return service.desktopSessions.AuthorizeContext(ctx, protectedlocal.RoleVerifiedDesktopProcess)
 }
 
 func protectedLifecycleAuthorizationError(err error) error {

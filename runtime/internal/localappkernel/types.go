@@ -24,6 +24,7 @@ const (
 	SourceClassVerified         SourceClass = "verified"
 	SourceClassUserImported     SourceClass = "user_imported"
 	SourceClassLocalDevelopment SourceClass = "local_development"
+	SourceClassRemote           SourceClass = "remote"
 )
 
 type RegistrationState string
@@ -120,6 +121,22 @@ type RegisterDevelopmentInput struct {
 	ShellKind                  int32
 	RawDeclaration             []string
 	HostExecutableDigest       string
+}
+
+// Remote source facts come from the verified Realm/Registry control owner.
+// ExistingRegistrationHandle comes only from the host's confirmed source relation.
+type RegisterRemoteInput struct {
+	ExistingRegistrationHandle                       string
+	AppID, DisplayName, RealmEnvironmentID, ClientID string
+	Origin, RedirectURI, Role                        string
+	SourceRevision                                   uint64
+	RawDeclaration, CapabilityContractRefs           []string
+}
+
+type RemoteSource struct {
+	RealmEnvironmentID, ClientID, Origin, RedirectURI, Role string
+	SourceRevision                                          uint64
+	CapabilityContractRefs                                  []string
 }
 
 // RegisterInstalledInput is lifecycle-owner installation truth for one formal

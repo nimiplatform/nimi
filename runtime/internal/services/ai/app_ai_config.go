@@ -202,7 +202,7 @@ func authenticatedAppAIConfigCaller(ctx context.Context) (appAIConfigCaller, err
 			return appAIConfigCaller{}, unauthorizedAppAIConfigCallerError()
 		}
 		caller = candidate
-		caller.managesAppOwners = principal.IsDesktopAccountProduct()
+		caller.managesAppOwners = principal.IsRuntimeOwnerManager()
 		bound = true
 	}
 

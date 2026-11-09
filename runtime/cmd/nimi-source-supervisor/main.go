@@ -130,18 +130,24 @@ func run(args []string) (runErr error) {
 		close(stdinClosed)
 	}()
 
+	return waitForOwnedRuntimeExit(command, exited, shutdown, stdinClosed, control.requests)
+}
+
+func waitForOwnedRuntimeExit(command *exec.Cmd, exited <-chan runtimeExit, shutdown <-chan os.Signal, stdinClosed <-chan struct{}, requests <-chan bool) error {
 	select {
 	case outcome := <-exited:
 		if outcome.err == nil {
-			return errors.New("workspace source Runtime exited unexpectedly with code 0")
+			// Runtime can finish normally through its admitted remote stop operation.
+			// The supervisor observes that exit; it neither reauthorizes nor restarts it.
+			return nil
 		}
 		return fmt.Errorf("workspace source Runtime exited unexpectedly with code %d: %w", outcome.code, outcome.err)
 	case <-shutdown:
-		return stopOwnedRuntime(command, exited, shutdown, control.requests, false)
+		return stopOwnedRuntime(command, exited, shutdown, requests, false)
 	case <-stdinClosed:
-		return stopOwnedRuntime(command, exited, shutdown, control.requests, false)
-	case force := <-control.requests:
-		return stopOwnedRuntime(command, exited, shutdown, control.requests, force)
+		return stopOwnedRuntime(command, exited, shutdown, requests, false)
+	case force := <-requests:
+		return stopOwnedRuntime(command, exited, shutdown, requests, force)
 	}
 }
 

@@ -125,6 +125,7 @@ const (
 	LocalAppTrustClassBuiltIn      LocalAppTrustClass = "built_in"
 	LocalAppTrustClassVerified     LocalAppTrustClass = "verified"
 	LocalAppTrustClassUserImported LocalAppTrustClass = "user_imported"
+	LocalAppTrustClassRemote       LocalAppTrustClass = "remote"
 )
 
 // LocalAppCallerBinding is the Runtime-derived protected-session handoff

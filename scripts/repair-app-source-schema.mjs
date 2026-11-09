@@ -27,19 +27,18 @@ function repairPlan(db) {
     const row = db.prepare("SELECT sql FROM sqlite_master WHERE type = 'table' AND name = ?").get(table);
     if (!row) throw new Error(`Missing ${table}; this tool only repairs an existing App kernel`);
     let repairInstalledShellKind = false;
-    let sql = widenConstraint(row.sql,
-      table === 'canonical_registration' ? "source_class IN ('verified','local_development')" : "source_class IN ('verified')",
-      table === 'canonical_registration' ? "source_class IN ('verified','user_imported','local_development')" : "source_class IN ('verified','user_imported')", table);
+    let sql = row.sql;
     if (table === 'canonical_registration') {
+      const knownSources = ["source_class IN ('verified','local_development')", "source_class IN ('verified','user_imported','local_development')", "source_class IN ('verified','user_imported','local_development','remote')"];
+      if (!knownSources.some(value => compact(sql).includes(compact(value)))) throw new Error('Unsupported canonical registration source constraint');
       const legacyShell = /shell_kind\s+INTEGER\s+NOT\s+NULL\s+CHECK\s*\(\s*shell_kind\s*>\s*0\s*\)/i;
-      if (legacyShell.test(sql)) {
-        sql = sql.replace(legacyShell, 'shell_kind INTEGER NOT NULL')
-          .replace(/\)\s*$/, ", CHECK((source_class IN ('verified','user_imported') AND shell_kind = 0) OR (source_class = 'local_development' AND shell_kind > 0)))");
-        repairInstalledShellKind = true;
-      } else {
-        sql = widenConstraint(sql, "source_class = 'verified' AND shell_kind = 0", "source_class IN ('verified','user_imported') AND shell_kind = 0", table);
-      }
-    }
+      repairInstalledShellKind = legacyShell.test(sql);
+      const source = readFileSync(new URL('../runtime/internal/localappkernel/sqlite.go', import.meta.url), 'utf8');
+      const current = source.match(/const canonicalRegistrationCreateStatement = `([^`]+)`/);
+      if (!current) throw new Error('Current canonical registration owner DDL is unavailable');
+      const equivalent = value => compact(value).replace('ifnotexists', '').replace(/^createtable"canonical_registration"/, 'createtablecanonical_registration');
+      if (equivalent(sql) !== equivalent(current[1])) sql = current[1];
+    } else sql = widenConstraint(sql, "source_class IN ('verified')", "source_class IN ('verified','user_imported')", table);
     if (table === 'app_package_job') {
       if (!sql.includes("'reading-local'")) {
         sql = widenConstraint(sql, "'queued','downloading','verifying'", "'queued','downloading','reading-local','verifying'", table);

@@ -27,6 +27,8 @@ function oldDatabase(t, { legacyShellKind = false, sourceCurrent = false } = {})
     .replaceAll("'paused','completed','failed','canceled'", "'completed','failed','canceled'") : sql;
     if (sourceCurrent) return withoutQueue;
     return withoutQueue
+    .replaceAll("'verified','user_imported','local_development','remote'", "'verified','user_imported','local_development'")
+    .replaceAll("source_class IN ('verified','user_imported','remote')", "source_class IN ('verified','user_imported')")
     .replaceAll("'verified','user_imported','local_development'", "'verified','local_development'")
     .replaceAll("source_class IN ('verified','user_imported') AND shell_kind", "source_class = 'verified' AND shell_kind")
     .replaceAll("'verified','user_imported'", "'verified'")
@@ -34,7 +36,7 @@ function oldDatabase(t, { legacyShellKind = false, sourceCurrent = false } = {})
   };
   const registrationSchema = legacyShellKind
     ? registration.replace('shell_kind INTEGER NOT NULL,', 'shell_kind INTEGER NOT NULL CHECK(shell_kind > 0),')
-      .replace("\tCHECK((source_class IN ('verified','user_imported') AND shell_kind = 0) OR (source_class = 'local_development' AND shell_kind > 0)),\n", '')
+      .replace("\tCHECK((source_class IN ('verified','user_imported','remote') AND shell_kind = 0) OR (source_class = 'local_development' AND shell_kind > 0)),\n", '')
     : oldSchema(registration);
   db.exec(registrationSchema);
   for (const match of `${bindingStatements}\n${packageStatements}`.matchAll(/`([^`]+)`/g)) db.exec(oldSchema(match[1]));

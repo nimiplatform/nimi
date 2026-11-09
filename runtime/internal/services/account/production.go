@@ -22,12 +22,15 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/appregistry"
 	"github.com/nimiplatform/nimi/runtime/internal/auditlog"
 	"github.com/nimiplatform/nimi/runtime/internal/jsonstrict"
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 const freshAccountSelectionPresencePurpose = "nimi.account.switch"
 
 type ProductionConfig struct {
+	PrimarySecrets   protectedlocal.BinarySecretStore
+	PrimaryKeyScope  string
 	RealmBaseURL     string
 	RealmRealtimeURL string
 	AuthorizationURL string
@@ -98,6 +101,9 @@ func NewProduction(logger *slog.Logger, cfg ProductionConfig) *Service {
 	}
 	return New(logger,
 		WithProductionActivation(),
+		func(s *Service) {
+			s.primarySecrets, s.primaryKeyScope = resolved.PrimarySecrets, resolved.PrimaryKeyScope
+		},
 		WithCustody(custody),
 		WithCustodyPartition(resolved.CustodyPartition),
 		WithLoginExchanger(newRealmOAuthExchanger(resolved)),
@@ -150,6 +156,8 @@ func resolveProductionConfig(cfg ProductionConfig) ProductionConfig {
 		httpClient = &http.Client{Timeout: 20 * time.Second}
 	}
 	return ProductionConfig{
+		PrimarySecrets:   cfg.PrimarySecrets,
+		PrimaryKeyScope:  strings.TrimSpace(cfg.PrimaryKeyScope),
 		RealmBaseURL:     realmBaseURL,
 		RealmRealtimeURL: realmRealtimeURL,
 		AuthorizationURL: normalizeOAuthAuthorizeEndpoint(authorizationURL),

@@ -11,6 +11,24 @@ import (
 	"google.golang.org/grpc/status"
 )
 
+func TestRegistryDrainWaitsForDirectDispatchCompletion(t *testing.T) {
+	registry := newActiveRPCRegistry(nil)
+	_, finish, accepted := registry.TrackUnary(context.Background(), "/nimi.runtime.v1.RuntimeAiService/GetAppAIConfig")
+	if !accepted {
+		t.Fatal("direct call was not tracked")
+	}
+	registry.BeginShutdown()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Millisecond)
+	defer cancel()
+	if err := registry.WaitForIdle(ctx); !errors.Is(err, context.DeadlineExceeded) {
+		t.Fatal("drain ignored an active direct call", err)
+	}
+	finish()
+	if err := registry.WaitForIdle(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+}
+
 func TestActivityInterceptorFailsClosedWithoutRegistry(t *testing.T) {
 	unaryCalled := false
 	_, err := newUnaryActivityInterceptor(nil)(

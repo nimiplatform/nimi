@@ -75,6 +75,7 @@ type Kernel struct {
 	registrations    *RegistrationStore
 	keys             *KeyDeriver
 	packageLifecycle *PackageLifecycleStore
+	remoteAccess     *RemoteAccessStore
 	jobAuthorities   map[*jobRegistrationAuthority]struct{}
 
 	// In-package failure injection proves canonical+binding transactionality
@@ -152,6 +153,7 @@ func OpenSQLite(ctx context.Context, databasePath string, identity VerifiedLocal
 	kernel.registrations = &RegistrationStore{kernel: kernel}
 	kernel.keys = &KeyDeriver{kernel: kernel}
 	kernel.packageLifecycle = &PackageLifecycleStore{kernel: kernel}
+	kernel.remoteAccess = &RemoteAccessStore{kernel: kernel}
 	return kernel, nil
 }
 
@@ -199,7 +201,7 @@ const canonicalRegistrationCreateStatement = `CREATE TABLE IF NOT EXISTS canonic
 	registered_app_subject TEXT NOT NULL UNIQUE,
 	app_id TEXT NOT NULL,
 	display_name TEXT NOT NULL,
-	source_class TEXT NOT NULL CHECK(source_class IN ('verified','user_imported','local_development')),
+	source_class TEXT NOT NULL CHECK(source_class IN ('verified','user_imported','local_development','remote')),
 	source_ref TEXT NOT NULL,
 	shell_kind INTEGER NOT NULL,
 	raw_declaration_json TEXT NOT NULL,
@@ -215,7 +217,7 @@ const canonicalRegistrationCreateStatement = `CREATE TABLE IF NOT EXISTS canonic
 	created_unix_nano INTEGER NOT NULL,
 	updated_unix_nano INTEGER NOT NULL,
 	tombstoned_unix_nano INTEGER,
-	CHECK((source_class IN ('verified','user_imported') AND shell_kind = 0) OR (source_class = 'local_development' AND shell_kind > 0)),
+	CHECK((source_class IN ('verified','user_imported','remote') AND shell_kind = 0) OR (source_class = 'local_development' AND shell_kind > 0)),
 	CHECK((state = 'active' AND tombstoned_unix_nano IS NULL) OR (state = 'tombstoned' AND tombstoned_unix_nano IS NOT NULL))
 )`
 
@@ -261,10 +263,10 @@ func (kernel *Kernel) requireCanonicalRegistrationSchema(ctx context.Context) er
 			return fmt.Errorf("initialize registered App schema: unsupported canonical_registration shape")
 		}
 	}
-	if err := requireSQLiteConstraint(ctx, kernel.db, "canonical_registration", "source-class", "check(source_classin('verified','user_imported','local_development'))"); err != nil {
+	if err := requireSQLiteConstraint(ctx, kernel.db, "canonical_registration", "source-class", "check(source_classin('verified','user_imported','local_development','remote'))"); err != nil {
 		return fmt.Errorf("initialize registered App schema: %w", err)
 	}
-	if err := requireSQLiteConstraint(ctx, kernel.db, "canonical_registration", "shell-kind-owner", "check((source_classin('verified','user_imported')andshell_kind=0)or(source_class='local_development'andshell_kind>0))"); err != nil {
+	if err := requireSQLiteConstraint(ctx, kernel.db, "canonical_registration", "shell-kind-owner", "check((source_classin('verified','user_imported','remote')andshell_kind=0)or(source_class='local_development'andshell_kind>0))"); err != nil {
 		return fmt.Errorf("initialize registered App schema: %w", err)
 	}
 	return nil
@@ -295,6 +297,29 @@ func (kernel *Kernel) initialize(ctx context.Context) error {
 		return err
 	}
 	statements := []string{
+		`CREATE TABLE IF NOT EXISTS remote_access_settings (
+			host_install_id TEXT NOT NULL, local_os_user_scope TEXT NOT NULL,
+			realm_environment_id TEXT NOT NULL, account_id TEXT NOT NULL,
+			binding_id TEXT NOT NULL, enabled INTEGER NOT NULL CHECK(enabled IN (0,1)),
+			PRIMARY KEY(host_install_id, local_os_user_scope, realm_environment_id, account_id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS remote_source_access (
+			host_install_id TEXT NOT NULL, local_os_user_scope TEXT NOT NULL,
+			realm_environment_id TEXT NOT NULL, account_id TEXT NOT NULL, binding_id TEXT NOT NULL,
+			client_id TEXT NOT NULL, registration_handle TEXT NOT NULL REFERENCES canonical_registration(registration_handle),
+			approved_revision INTEGER NOT NULL CHECK(approved_revision > 0), paused INTEGER NOT NULL CHECK(paused IN (0,1)),
+			PRIMARY KEY(host_install_id, local_os_user_scope, realm_environment_id, account_id, binding_id, client_id)
+		)`,
+		`CREATE TABLE IF NOT EXISTS remote_app_source (
+			registration_handle TEXT PRIMARY KEY REFERENCES canonical_registration(registration_handle),
+			realm_environment_id TEXT NOT NULL,
+			client_id TEXT NOT NULL,
+			origin TEXT NOT NULL,
+			redirect_uri TEXT NOT NULL,
+			role TEXT NOT NULL CHECK(role IN ('app','official_manager')),
+			source_revision INTEGER NOT NULL CHECK(source_revision > 0),
+			capability_refs_json TEXT NOT NULL
+		)`,
 		`CREATE TABLE IF NOT EXISTS current_host_binding (
 			host_install_id TEXT NOT NULL,
 			local_os_user_scope TEXT NOT NULL,
@@ -387,6 +412,13 @@ func (kernel *Kernel) PackageLifecycle() *PackageLifecycleStore {
 		return nil
 	}
 	return kernel.packageLifecycle
+}
+
+func (kernel *Kernel) RemoteAccess() *RemoteAccessStore {
+	if kernel == nil {
+		return nil
+	}
+	return kernel.remoteAccess
 }
 
 // DataRoot returns the canonical Runtime-owned root already bound to this

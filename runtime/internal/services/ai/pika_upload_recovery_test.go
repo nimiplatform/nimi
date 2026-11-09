@@ -194,6 +194,8 @@ func TestPikaUploadPersistenceFailureCannotDispatchGeneration(t *testing.T) {
 			}
 			job := waitForScenarioJobTerminalForLocalTextTest(t, f.service, response.Job.JobId)
 			waitScenarioJobWorkExit(t, f.service.scenarioJobs, job.JobId)
+			// Credential cleanup persists after executionDone has been closed.
+			waitCompletedScenarioJobCleanup(t, f.service, job.JobId)
 			if job.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_FAILED || job.GetSubmissionOutcome() != runtimev1.ScenarioJobSubmissionOutcome_SCENARIO_JOB_SUBMISSION_OUTCOME_NOT_DISPATCHED || creates.Load() != 0 || !rejected.Load() {
 				t.Fatal(job, creates.Load())
 			}

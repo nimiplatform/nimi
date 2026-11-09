@@ -451,7 +451,7 @@ func withAuthorizedAppOwnerDecision(ctx context.Context, method string, request 
 		return ctx, nil
 	}
 	principal, ok := protectedprincipal.FromContext(ctx)
-	if !ok || !principal.IsDesktopAccountProduct() {
+	if !ok || !principal.IsRuntimeOwnerManager() {
 		return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PRINCIPAL_UNAUTHORIZED)
 	}
 	if appID == principal.AppID {

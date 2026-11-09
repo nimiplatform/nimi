@@ -68,6 +68,7 @@ func (s *Service) ListLocalAppAssets(ctx context.Context, req *runtimev1.ListLoc
 	return &runtimev1.ListLocalAppAssetsResponse{Assets: assets, NextCursor: page.NextCursor, ReasonCode: runtimev1.ReasonCode_ACTION_EXECUTED}, nil
 }
 
+// @nimi-authority: rule.nimi.runtime.remote-access.direct-transport
 func (s *Service) WriteLocalAppAsset(stream runtimev1.RuntimeAppService_WriteLocalAppAssetServer) error {
 	if stream == nil {
 		return localAppAssetFailure(errLocalAppAssetFrameInvalid)
@@ -89,9 +90,17 @@ func (s *Service) WriteLocalAppAsset(stream runtimev1.RuntimeAppService_WriteLoc
 		return localAppAssetFailure(err)
 	}
 	source := &localAppAssetWriteSource{stream: stream}
-	record, err := store.Write(
+	var commitErr error
+	record, err := store.WriteGuarded(
 		stream.Context(), localAppAssetOwner(decision), metadata.GetRelativePath(), metadata.GetMediaType(), metadata.GetOverwrite(), source,
+		func(_ appstorage.AssetRecord, commit func() error) error {
+			commitErr = s.commitLocalAppStorage(stream.Context(), localappop.IngressStorageAssetWrite, decision, commit)
+			return commitErr
+		},
 	)
+	if commitErr != nil {
+		return localAppStorageCommitFailure(commitErr)
+	}
 	if err != nil {
 		return localAppAssetFailure(err)
 	}
