@@ -269,6 +269,8 @@ export function getDesktopAccountProductClient(): DesktopRendererAccountProductC
   const client = getDesktopRuntimeRealmSession().runtimeClients.accountProduct;
   const { resolveDesktopAgentReference: _privateReferenceResolver, ...agents } = client.agents;
   return Object.freeze({
+    primaryRuntime: client.primaryRuntime,
+    remoteAccess: client.remoteAccess,
     appAIConfig: client.appAIConfig,
     audit: client.audit,
     configurationReferences: client.configurationReferences,

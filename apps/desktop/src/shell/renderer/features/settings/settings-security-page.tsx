@@ -6,6 +6,7 @@ import { InlineFeedback } from '../../ui/feedback/inline-feedback';
 import { Button, Card, PageShell, Section } from './settings-layout-components.js';
 import { ShieldIcon } from './settings-assets.js';
 import { HomeLoginSessions } from './home-login-sessions.js';
+import { HomePrimaryRuntime } from './home-primary-runtime.js';
 
 // @nimi-authority: rule.nimi.desktop.shell-runtime.r023
 export function SecurityPage() {
@@ -30,6 +31,7 @@ export function SecurityPage() {
   return (
     <PageShell title={t('SecuritySettings.pageTitle')} description={t('SecuritySettings.pageDescription')}>
       <HomeLoginSessions />
+      <HomePrimaryRuntime />
       <Section title={t('SecuritySettings.accountSecurityTitle')}>
         <Card>
           <div className="flex items-center justify-between gap-6">

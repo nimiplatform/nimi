@@ -407,15 +407,16 @@ function DesktopAdmissionFailedScreen(props: {
 function DesktopAccountUnavailableScreen() {
   const { t } = useTranslation();
   const failureDetail = useAppStore((state) => state.auth.failureDetail);
+  const runtimeUnavailable = useAppStore((state) => state.offlineTier === 'L2');
   return (
     <SharedStatusShell
-      title={t('Auth.runtimeAccountUnavailableTitle')}
-      description={t('Auth.runtimeAccountUnavailableDescription')}
+      title={t(runtimeUnavailable ? 'Auth.localRuntimeUnavailableTitle' : 'Auth.runtimeAccountUnavailableTitle')}
+      description={t(runtimeUnavailable ? 'Auth.localRuntimeUnavailableDescription' : 'Auth.runtimeAccountUnavailableDescription')}
     >
       <DesktopRecoveryActions
         testId="desktop-account-unavailable"
-        status={t('Auth.runtimeAccountReconnecting')}
-        retryLabel={t('Auth.runtimeAccountRetryNow')}
+        status={t(runtimeUnavailable ? 'Auth.localRuntimeCheckingConnection' : 'Auth.runtimeAccountReconnecting')}
+        retryLabel={t(runtimeUnavailable ? 'Auth.localRuntimeCheckConnection' : 'Auth.runtimeAccountRetryNow')}
         onRetry={retryRuntimeAccountConnectionNow}
         technicalDetail={failureDetail}
       />

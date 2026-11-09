@@ -5,7 +5,25 @@ import path from 'node:path';
 import test from 'node:test';
 import { createServer } from 'vite';
 import { publishBuildOutput } from '../../../scripts/lib/build-output-publisher.mjs';
-import { desktopRendererModuleCache } from '../vite.config';
+import desktopViteConfig, { desktopRendererModuleCache } from '../vite.config';
+
+test('Home resolves narrow SDK subpaths without treating a barrel file as a directory', async () => {
+  const config = typeof desktopViteConfig === 'function'
+    ? await desktopViteConfig({ command: 'serve', mode: 'development' }) : await desktopViteConfig;
+  const server = await createServer({ configFile: false, root: path.resolve(import.meta.dirname, '..'),
+    resolve: config.resolve, logLevel: 'silent', server: { middlewareMode: true, hmr: false },
+    optimizeDeps: { noDiscovery: true, include: [] } });
+  try {
+    const importer = path.resolve(import.meta.dirname, '../../../kit/core/src/sdk-contract.ts');
+    for (const [specifier, suffix] of [
+      ['@nimiplatform/sdk/runtime/remote', '/runtime/remote.js'],
+      ['@nimiplatform/sdk/realm/runtime-client', '/realm/runtime-client.js'],
+    ]) {
+      const resolved = await server.environments.client.pluginContainer.resolveId(specifier!, importer);
+      assert.ok(resolved?.id.replaceAll('\\', '/').endsWith(suffix!));
+    }
+  } finally { await server.close(); }
+});
 
 test('renderer serves fresh SDK exports at the same URL after atomic dist replacement with HMR disabled', async () => {
   const workspace = await realpath(await mkdtemp(path.join(os.tmpdir(), 'nimi-renderer-cache-')));
