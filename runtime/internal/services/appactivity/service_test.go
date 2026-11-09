@@ -159,6 +159,35 @@ func TestPutIsRevisionedIdempotentAndPublisherPartitioned(t *testing.T) {
 	}
 }
 
+func TestRemotePublisherKeepsAccountPartitionAndInvalidation(t *testing.T) {
+	h := newHarness(t)
+	h.registrations.set("remote-subject", SourceFacts{AppID: "nimi.remote", DisplayName: "Remote App", Active: true, SourceClass: "remote"})
+	ctx := h.ctx(localappop.OperationAppActivityPut, "remote-account", "remote-subject", 3)
+	decision, _ := accountservice.AuthorizedLocalAppDecisionFromContext(ctx)
+	ended := make(chan struct{})
+	decision.TrustClass = accountservice.LocalAppTrustClassRemote
+	decision.SessionInvalidated = ended
+	ctx = accountservice.ContextWithAuthorizedLocalAppDecision(ctx, decision)
+	request := &runtimev1.PutAppActivityRequest{Key: "daily", Revision: 1, Kind: runtimev1.AppActivityKind_APP_ACTIVITY_KIND_ACTIVITY,
+		Title: "Saved reading", ActivityType: "nimi.remote.reading.v1", OccurredAt: timestamppb.New(h.clock())}
+	result, err := h.service.PutAppActivity(ctx, request)
+	if err != nil || result.GetRecord().GetSource().GetAppId() != "nimi.remote" || !result.GetChanged() {
+		t.Fatalf("remote publication failed: %v %+v", err, result)
+	}
+	list, err := h.service.ListAppActivities(h.ctx(localappop.OperationAppActivityList, "other-account", "remote-subject", 4), &runtimev1.ListAppActivitiesRequest{})
+	if err != nil || len(list.GetRecords()) != 0 {
+		t.Fatal("remote publication escaped its account", err)
+	}
+	if launchableSourceClass("remote") {
+		t.Fatal("remote source acquired Desktop launch semantics")
+	}
+	close(ended)
+	request.Revision = 2
+	if _, err := h.service.PutAppActivity(ctx, request); reasonOf(err) != codes.PermissionDenied {
+		t.Fatal("ended peer published", err)
+	}
+}
+
 func TestPutRejectsInvalidPublication(t *testing.T) {
 	harness := newHarness(t)
 	ctx := harness.ctx(localappop.OperationAppActivityPut, "acct-1", "subject-a", 1)

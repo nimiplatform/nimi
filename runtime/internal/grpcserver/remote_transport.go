@@ -77,7 +77,7 @@ func (d *remoteDispatcher) register(service any, descriptor *grpc.ServiceDesc) {
 // normal registered declaration and exact AppOperation admission still run.
 func remoteAppMethodSupported(method string) bool {
 	switch method {
-	case protectedListAppActivitiesMethod, protectedSubscribeAppActivityChangesMethod, protectedMarkAppActivityReadMethod,
+	case protectedPutAppActivityMethod, protectedListAppActivitiesMethod, protectedSubscribeAppActivityChangesMethod, protectedMarkAppActivityReadMethod,
 		protectedReadLocalAppStorageJSONMethod, protectedWriteLocalAppStorageJSONMethod, protectedRemoveLocalAppStorageJSONMethod,
 		protectedStatLocalAppAssetMethod, protectedListLocalAppAssetsMethod, protectedReadLocalAppAssetMethod, protectedWriteLocalAppAssetMethod,
 		protectedRemoveLocalAppAssetMethod, protectedMoveLocalAppAssetMethod, protectedAdoptLocalAppArtifactMethod,

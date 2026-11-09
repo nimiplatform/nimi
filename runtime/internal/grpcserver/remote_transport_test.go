@@ -44,6 +44,21 @@ func TestRemoteAssetWriteUsesOriginalStreamingOwner(t *testing.T) {
 	}
 }
 
+func TestRemoteActivityPublicationUsesExistingAdmissionAndCannotLaunch(t *testing.T) {
+	ingress, ok := remoteAppIngress(protectedPutAppActivityMethod, &runtimev1.PutAppActivityRequest{}, false)
+	if !ok || ingress != localappop.IngressAppActivityPut {
+		t.Fatal("remote activity publication did not reach its existing owner")
+	}
+	if _, ok := remoteAppIngress(protectedPutAppActivityMethod, &runtimev1.PutAppActivityRequest{}, true); ok {
+		t.Fatal("publication was admitted as a stream")
+	}
+	for _, method := range []string{"/nimi.runtime.v1.RuntimeAppActivityService/OpenAppActivity", "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests"} {
+		if remoteAppMethodSupported(method) {
+			t.Fatal("publication implied Host launch or source-open authority")
+		}
+	}
+}
+
 func TestRemoteLabCarrierDoesNotExposeNativeOrManagerAuthority(t *testing.T) {
 	for _, method := range []string{protectedAgentReferenceListMethod, protectedOpenConversationMethod, protectedReadLocalAppStorageJSONMethod, protectedAgentManagerSnapshotMethod} {
 		if !remoteAppMethodSupported(method) {

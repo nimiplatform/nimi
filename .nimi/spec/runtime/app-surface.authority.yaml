@@ -45,7 +45,7 @@ units:
   - id: definition.nimi.runtime.app-surface.app-activity-plane
     kind: definition
     title: Runtime App activity plane
-    meaning: The Runtime App activity plane owns the account-partitioned App activity record, ordered change, retention, and shared read-state tables in the Runtime persistence backend of the active data root, publisher derivation from the current protected session or the fixed Runtime Agent publisher, admission and execution of the app.activity operations, ordered change delivery, and the Host-private source open request lifecycle, while source Apps own business facts and object navigation, Desktop owns Host launch and focus, and Realm notifications and feeds remain separately owned; it is a purpose-specific publication surface rather than generic App messaging, routing, or command transport.
+    meaning: The Runtime App activity plane owns the account-partitioned App activity record, ordered change, retention, and shared read-state tables in the Runtime persistence backend of the active data root, publisher derivation from the current admitted protected-native or verified-remote App session or the fixed Runtime Agent publisher, admission and execution of the app.activity operations, ordered change delivery, and the Host-private source open request lifecycle, while source Apps own business facts and object navigation, Desktop owns Host launch and focus, and Realm notifications and feeds remain separately owned; it is a purpose-specific publication surface rather than generic App messaging, routing, or command transport.
   - id: rule.nimi.runtime.app-surface.r001
     kind: rule
     title: K-APP ownership boundary is fixed
@@ -793,7 +793,7 @@ units:
     kind: rule
     title: App activity publisher and source facts are session derived
     modality: must
-    statement: Runtime derives the account and Registered App Subject publisher of runtime.app-activity.put from the current protected session, resolves a supplied Agent handle only through that session's existing Agent handle admission into a private Agent association projected as a non-authorizing display reference, derives source appId, display name, and availability from the current registration record, and accepts no account, subject, publisher, source, Runtime-origin, or raw Agent identity from any request; a registration that reuses an app id receives a distinct publisher partition and neither inherits nor overwrites a tombstoned subject's records.
+    statement: Runtime derives the account and Registered App Subject publisher of runtime.app-activity.put from the current admitted protected-native or verified-remote App session, resolves a supplied Agent handle only through that session's existing Agent handle admission into a private Agent association projected as a non-authorizing display reference, derives source appId, display name, and availability from the current registration record, and accepts no account, subject, publisher, source, Runtime-origin, or raw Agent identity from any request; a registration that reuses an app id receives a distinct publisher partition and neither inherits nor overwrites a tombstoned subject's records.
     condition: Whenever an App activity is published or projected with its source and Agent association.
     failure: Reject caller-supplied publisher or source authority and unresolvable or foreign Agent handles before mutation, and never merge partitions by app id.
     relations:

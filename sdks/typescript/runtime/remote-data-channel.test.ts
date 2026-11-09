@@ -11,6 +11,7 @@ import { ErrorInfo, ReasonCode } from '../core-generated/runtime-protobuf/runtim
 import { createRemoteRuntimeAppClients } from './remote-app.js';
 import { WriteLocalAppAssetRequest, WriteLocalAppAssetResponse, WriteLocalAppStorageJsonRequest, WriteLocalAppStorageJsonResponse, ReadLocalAppAssetResponse } from '../core-generated/runtime-protobuf/runtime/v1/app.js';
 import { ListLocalAppAgentReferencesResponse } from '../core-generated/runtime-protobuf/runtime/v1/agent_service.js';
+import { PutAppActivityRequest, PutAppActivityResponse, AppActivityRecord, AppActivityKind, AppActivitySourceKind } from '../core-generated/runtime-protobuf/runtime/v1/app_activity.js';
 
 class Channel implements RuntimeDataChannel {
   readyState = 'open'; bufferedAmount = 0;
@@ -24,6 +25,35 @@ class Channel implements RuntimeDataChannel {
   onOpen() { return () => undefined; } onBufferLow() { return () => undefined; }
   receive(frame: Partial<RemoteTransportFrame>) { const data = RemoteTransportFrame.toBinary(RemoteTransportFrame.create(frame)); for (const next of this.receivers) next(data); }
 }
+
+test('remote activity publication uses the typed owner RPC and preserves denied publication', async () => {
+  const channel = new Channel(), transport = new RuntimeDataChannelTransport(channel, () => true);
+  const app = createRemoteRuntimeAppClients(new RuntimeTypedClient(new CoreClient({ transport })), 'nimi.shijing');
+  const input = { key: 'rijing:2026-11-10:method', revision: 1, kind: 'activity' as const, attention: false,
+    title: 'Saved daily reading', type: 'nimi.shijing.rijing-reading.v1', data: { date: '2026-11-10' }, occurredAt: '2026-11-10T00:00:00Z' };
+  const pending = app.activity.put(input), id = await sent(channel);
+  assert.equal(channel.sent[0].method, '/nimi.runtime.v1.RuntimeAppActivityService/PutAppActivity');
+  const request = PutAppActivityRequest.fromBinary(channel.sent[0].payload);
+  assert.equal(request.key, input.key); assert.equal(request.title, input.title);
+  assert.deepEqual(JSON.parse(request.dataJson), input.data);
+  assert.equal('accountId' in request || 'publisher' in request || 'appId' in request, false);
+  const record = AppActivityRecord.create({ activityId: 'act_' + '0'.repeat(25) + '1', key: request.key, revision: '1',
+    kind: AppActivityKind.ACTIVITY, title: request.title, activityType: request.activityType, dataJson: request.dataJson,
+    source: { kind: AppActivitySourceKind.APP, sourceRef: 'src_' + 'a'.repeat(32), appId: 'nimi.shijing', displayName: 'ShiJing', available: true },
+    occurredAt: request.occurredAt, publishedAt: request.occurredAt, updatedAt: request.occurredAt, changeSeq: '1',
+    userView: { unread: true, readThroughRevision: '0', needsAttention: false } });
+  channel.receive({ kind: Kind.RESPONSE, requestId: id, chunkEnd: true, payload: PutAppActivityResponse.toBinary({ record, changed: true }) });
+  assert.equal((await pending).record.source.displayName, 'ShiJing');
+  channel.sent.length = 0;
+  const denied = assert.rejects(app.activity.put({ ...input, revision: 2 }), { reasonCode: 'APP_SCOPE_FORBIDDEN' });
+  const deniedId = await sent(channel);
+  channel.receive({ kind: Kind.ERROR, requestId: deniedId, chunkEnd: true, grpcCode: 7, errorInfo: ErrorInfo.create({ reasonCode: ReasonCode.APP_SCOPE_FORBIDDEN }) });
+  await denied;
+  const calls = channel.sent.length;
+  await assert.rejects(app.activity.open({ activityId: record.activityId }), { reasonCode: 'SDK_RUNTIME_REMOTE_OPERATION_UNSUPPORTED' });
+  assert.equal(channel.sent.length, calls, 'publication does not expose native launch');
+  transport.close();
+});
 
 for (const bodyKind of ['bytes', 'blob', 'chunks'] as const) test(`incremental remote asset write preserves ${bodyKind} input and the owner response`, async () => {
   const bytes = new TextEncoder().encode('remote 图片 input\n'.repeat(5000));

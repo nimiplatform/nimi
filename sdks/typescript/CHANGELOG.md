@@ -2,6 +2,10 @@
 
 # SDK migration notes
 
+## Unreleased — Remote App activity publication (next 0.x minor)
+
+The shared App client now includes `activity.put`. Remote connections use the existing typed publication, revision and account/publisher rules under declared `app.activity`; a matching Runtime carrier is required. Native App opening and source-open subscriptions remain unavailable remotely. No background business execution or automatic resubmission is added.
+
 ## Unreleased — Registered remote source preflight
 
 Adds `readRuntimeClientSource` to `realm/runtime-client`, returning the selected public source through the existing cookie-free transport. Realm source projections include Web/Android kind and optional Android package/signing metadata; these are not device or business permissions.
