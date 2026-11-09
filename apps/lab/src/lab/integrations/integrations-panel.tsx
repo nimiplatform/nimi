@@ -184,7 +184,7 @@ export function LabIntegrationsPanel({ recordAI }: { recordAI: (record: StudioRu
   };
   const revealExport = async () => {
     if(exported?.destination!=='runtime-asset'||exportBusy.current)return;const path=exported.artifactPath;exportBusy.current=true;setExporting(true);setExportError('');
-    try {await host.sdk.localAppClient.storage.assets.reveal(path);if(active.current&&sameView())setExported({...exported,revealed:true});}
+    try {await host.app.commands.exportAsset(path);if(active.current&&sameView())setExported({...exported,revealed:true});}
     catch {if(active.current&&sameView())setExportError(t('Integrations.exportSavedRevealFailed',{path}));}
     finally {if(active.current&&sameView()){exportBusy.current=false;setExporting(false);}}
   };

@@ -149,6 +149,7 @@ export function ZhiyuAgentChatSurface({
   onDesktopOpenSelectPartner,
   onAvatarLaunch,
 }: ZhiyuAgentChatSurfaceProps) {
+  const boundClient = useMemo(() => getZhiyuLocalAppClient(), []);
   const { navigation, sidebarVisible } = useZhiyuNavigationOwner();
   const destination = useNimiNavigationSnapshot<ZhiyuDestination>().current.destination;
   const openPanel = (panel?: AgentPanelTab) => { const current = navigation.getSnapshot().current.destination; void navigation.push({ ...current, panel }); };
@@ -157,7 +158,7 @@ export function ZhiyuAgentChatSurface({
   const hasCurrentPartner = evidence.localAgent.ready;
   const hasLocalPartners = evidence.inventory.localAgents.length > 0;
   const primaryPartnerName = hasCurrentPartner ? '当前伙伴' : currentPartnerName;
-  const readIntroduction = useCallback<NimiLocalAppAgentIntroductionClient['getIntroduction']>(request => getZhiyuLocalAppClient().agents.getIntroduction(request), []);
+  const readIntroduction = useCallback<NimiLocalAppAgentIntroductionClient['getIntroduction']>(request => boundClient.agents.getIntroduction(request), []);
   const { introduction, unavailable: introductionUnavailable, retry: retryIntroduction } = useAgentIntroduction({ agentHandle: hasCurrentPartner ? evidence.localAgent.agentHandle : null, getIntroduction: readIntroduction });
   const [showNoPartnerGuidance, setShowNoPartnerGuidance] = useState(false);
   const [desktopOpenPending, setDesktopOpenPending] = useState(false);

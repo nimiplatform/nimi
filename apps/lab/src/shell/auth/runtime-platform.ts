@@ -1,6 +1,6 @@
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { NimiAppAuthProjection, NimiAppLocalSessionProjection } from '@nimiplatform/sdk/app';
-import type { RuntimeClientIdentity } from '@nimiplatform/sdk/realm';
+import type { NimiAppIdentity } from '@nimiplatform/kit/core/app-session';
 import { getLabLocalAppClient, getLabRemoteRuntime, isLabRemoteRuntime } from '../local-app-runtime-platform.js';
 import { t } from '../i18n/index.js';
 
@@ -14,7 +14,7 @@ export type RuntimePlatformReadyProjection = {
   readonly status: 'ready';
   readonly mode: 'local-app';
   readonly localAppSession: NimiAppLocalSessionProjection;
-} | { readonly status: 'ready'; readonly mode: 'remote-app'; readonly identity: RuntimeClientIdentity };
+} | { readonly status: 'ready'; readonly mode: 'remote-app'; readonly identity: NimiAppIdentity };
 
 export type RuntimePlatformUnavailableProjection = {
   readonly status: 'unavailable' | 'action-required';
@@ -40,8 +40,8 @@ export function clearRuntimePlatformProjection(): void {
 export function getRuntimePlatformProjection(): Promise<RuntimePlatformProjection> {
   if (isLabRemoteRuntime()) {
     const client = getLabRemoteRuntime();
-    return Promise.resolve(client && !client.closed
-      ? { status: 'ready', mode: 'remote-app', identity: client.identity }
+    return Promise.resolve(client && !client.signal.aborted
+      ? { status: 'ready', mode: 'remote-app', identity: client.user ?? { displayName: 'Nimi' } }
       : { status: 'unavailable', mode: 'remote-app', reasonCode: 'SDK_RUNTIME_REMOTE_UNAVAILABLE', message: t('Auth.web.disconnected'), messageKey: 'Auth.web.disconnected' });
   }
   runtimeProjection ??= resolveLocalAppProjection();

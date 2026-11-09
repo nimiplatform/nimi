@@ -116,7 +116,7 @@ test('generated services keep an already queued save on its original connection'
   // binding, not Runtime authorization or the policy owner's merge algorithm.
   const create = vm.runInNewContext(stripTypeScriptTypes(factory.getText(parsed), { mode: 'transform' }) + '; createGeneratedServices;', {
     getNimiLocalAppClient: () => currentClient,
-    appTitle: 'unit', translate: value => value, generatedLocale: 'en', HISTORY_PATH: 'history.json', PROMPT_DRAFT_STORAGE_KEY: 'drafts',
+    appId: 'unit.app', appTitle: 'unit', translate: value => value, generatedLocale: 'en', HISTORY_PATH: 'history.json', PROMPT_DRAFT_STORAGE_KEY: 'drafts',
     createNimiAppRecordStore, parseStudioRunHistoryRecord: value => value,
     createStudioPromptDraftRepository: () => ({ load: async () => ({ prompt: null }), save: async () => {} }),
     studioHistoryFromRecords: records => ({ 'text.generate': records }),
@@ -145,7 +145,7 @@ test('two generated Web clients retain independently saved runs in the same owne
     async list() { return { assets: [...records.keys()].sort().map(relativePath => ({ relativePath })), nextCursor: '' }; },
   } } };
   const create = vm.runInNewContext(stripTypeScriptTypes(factory.getText(parsed), { mode: 'transform' }) + '; createGeneratedServices;', {
-    appTitle: 'unit', translate: value => value, generatedLocale: 'en',
+    appId: 'unit.app', appTitle: 'unit', translate: value => value, generatedLocale: 'en',
     createNimiAppRecordStore, parseStudioRunHistoryRecord: value => value,
     createStudioPromptDraftRepository: () => ({ load: async () => ({ prompt: null }), save: async () => {} }),
     studioHistoryFromRecords: rows => ({ 'text.generate': rows }),

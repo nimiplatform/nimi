@@ -21,7 +21,7 @@ export async function saveLabExport(input: {
     body: blob, mediaType: input.mimeType || blob.type || undefined, overwrite: false });
   let revealed = false;
   try {
-    await assets.reveal(saved.relativePath);
+    await ('reveal' in assets ? assets : { reveal: async () => { throw new Error('Native file reveal is unavailable.'); } }).reveal(saved.relativePath);
     revealed = true;
   } catch {
     // The write already completed. Preserve its facts even if the host cannot

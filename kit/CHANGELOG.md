@@ -2,11 +2,19 @@
 
 # Changelog
 
+## Unreleased — Session recovery hints (compatible fix)
+
+App session issues retain an optional owner-supplied `actionHint`, including denied Desktop session status. Custom access views and the standard gate's expandable details preserve the owner reason and recovery instruction without decoding private errors or inventing a second authorization state.
+
+## Unreleased — Shared ordinary App account access (breaking, next 0.x minor)
+
+Replaces `core/remote-app-session` with `core/app-session` and adds `auth/app`, `auth/app/web`, `auth/app/desktop`. Identity and Runtime connection are separate; website account binding receives a verified identity result, and SDK invalidation/expiry clears identity-only views too. Migrate Lab, Zhiyu and generated Web entries together. No legacy alias, Mobile carrier or package publication is implied. Runtime connection failures show a user action with expandable technical details; the original error and authentication state remain unchanged.
+
 ## Unreleased — Shared remote App composition (additive, next minor)
 
 Adds `core/app-record-storage` for independent App-owned record documents using existing Runtime asset operations. It replaces client-side whole-history replacement in Lab and generated workbenches; it does not add a storage protocol, transaction system or automatic migration.
 
-Adds `core/remote-app-session`, `core/app-asset-media` and the optional Agent Center browser Resource Pack picker. Lab and Zhiyu share the public SDK contracts and existing UI instead of a synthetic native bridge. These are additive source-build exports; no release or mobile UI support is implied.
+The initial source iteration added the remote-only session helper, `core/app-asset-media` and the optional Agent Center browser Resource Pack picker. The remote-only helper is superseded by the shared App access entry above. Lab and Zhiyu share the public SDK contracts and existing UI instead of a synthetic native bridge. These are additive source-build exports; no release or mobile UI support is implied.
 
 ## Unreleased — Remote App consumers
 

@@ -40,7 +40,7 @@ test('record and MIDI/timeline switches gate previews and export actions before 
 
 for(const outcome of ['success','failure'])test(`an in-flight A export keeps A bytes/MIME and ${outcome} feedback never appears on B`,async()=>{
  const write=Promise.withResolvers();const writes=[];const revealed=[];
- const host={translate:(key,args)=>key+(args?.path?':'+args.path:''),sdk:{assets:{read:async({relativePath:p})=>ownedRead(p.endsWith('.mid')?'A-MIDI':'{"B":true}',p.endsWith('.mid')?'audio/midi':'application/vnd.nimi.music-timeline+json'),write:async request=>{const bytes=[];for await(const chunk of request.body)bytes.push(...chunk);writes.push({...request,body:bytes});return write.promise},reveal:async p=>{revealed.push(p)}}}};
+ const host={app:{commands:{exportAsset:async p=>{revealed.push(p)}}},translate:(key,args)=>key+(args?.path?':'+args.path:''),sdk:{assets:{read:async({relativePath:p})=>ownedRead(p.endsWith('.mid')?'A-MIDI':'{"B":true}',p.endsWith('.mid')?'audio/midi':'application/vnd.nimi.music-timeline+json'),write:async request=>{const bytes=[];for await(const chunk of request.body)bytes.push(...chunk);writes.push({...request,body:bytes});return write.promise},reveal:async p=>{revealed.push(p)}}}};
  const renderer=createRoot(document.getElementById('root'));const render=id=>renderer.render(createElement(AIStudioHostProvider,{value:host},createElement(MusicTranscriptionNotice,{recordId:id,value:value(id)})));
  try{
   await act(async()=>render('a'));await click('Transcription.parts.note-events · MIDI');await click('Transcription.exportMidi');
@@ -54,7 +54,7 @@ for(const outcome of ['success','failure'])test(`an in-flight A export keeps A b
 
 test('MIDI export preserves the saved path when reveal fails and does not write a second copy',async()=>{
  const writes=[];
- const host={translate:(key,args)=>key+(args?.path?':'+args.path:''),sdk:{assets:{
+ const host={app:{commands:{exportAsset:async()=>{throw Error('host unavailable')}}},translate:(key,args)=>key+(args?.path?':'+args.path:''),sdk:{assets:{
   read:async()=>ownedRead('MIDI','audio/midi'),
   write:async request=>{writes.push(request);return{relativePath:'studio/music/exports/saved.mid'}},
   reveal:async()=>{throw Error('host unavailable')},

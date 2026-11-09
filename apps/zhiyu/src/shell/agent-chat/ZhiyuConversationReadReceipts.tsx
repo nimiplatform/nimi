@@ -53,12 +53,13 @@ export function useConversationReadReceipts({ scopeKey, agentHandle, activity, l
 }
 
 export function useZhiyuConversationReadReceipts(scopeKey: string, agentHandle: string | null) {
+  const boundClient = useMemo(() => getZhiyuLocalAppClient(), []);
   const activity = useMemo<ReadClient>(() => ({
-    list: input => getZhiyuLocalAppClient().activity.list(input),
-    subscribe: input => getZhiyuLocalAppClient().activity.subscribe(input),
-    markRead: input => getZhiyuLocalAppClient().activity.markRead(input),
+    list: input => boundClient.activity.list(input),
+    subscribe: input => boundClient.activity.subscribe(input),
+    markRead: input => boundClient.activity.markRead(input),
   }), []);
-  const listReferences = useCallback(() => getZhiyuLocalAppClient().agents.listReferences(), []);
+  const listReferences = useCallback(() => boundClient.agents.listReferences(), []);
   return useConversationReadReceipts({ scopeKey, agentHandle, activity, listReferences });
 }
 

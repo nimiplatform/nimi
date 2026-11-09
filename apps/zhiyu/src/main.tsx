@@ -1,3 +1,5 @@
+import { createDesktopNimiAppSession } from '@nimiplatform/kit/auth/app/desktop';
+import { NimiAppSessionProvider, NimiAppAccessGate, NimiAccountControl } from '@nimiplatform/kit/auth/app';
 import React from 'react';
 import { ZhiyuFrame } from './production/surface.js';
 import { createRoot } from 'react-dom/client';
@@ -14,6 +16,7 @@ import './renderer/styles.css';
 import { ZhiyuNavigationOwner } from './shell/app/navigation.js';
 
 installNimiShellRuntimeBridge();
+const appSession = createDesktopNimiAppSession();
 
 const root = document.getElementById('root');
 if (!root) {
@@ -47,4 +50,26 @@ const rendererHost = createNimiRendererHostBinding<NimiRendererHostMethodMap>({
   surfaceLifecycle: { reportReadyCandidate: () => undefined },
 });
 
-createRoot(root).render(<React.StrictMode><NimiRendererHostProvider binding={rendererHost}><NimiThemeProvider accentPack="nimi-accent" defaultScheme="light"><TooltipProvider><ZhiyuNavigationOwner><ZhiyuFrame host={rendererHost.facade} /></ZhiyuNavigationOwner></TooltipProvider></NimiThemeProvider></NimiRendererHostProvider></React.StrictMode>);
+createRoot(root).render(
+  <React.StrictMode>
+    <NimiRendererHostProvider binding={rendererHost}>
+      <NimiThemeProvider accentPack="nimi-accent" defaultScheme="light">
+        <TooltipProvider>
+          <NimiAppSessionProvider session={appSession}>
+            <NimiAppAccessGate title="织羽">{scope => (
+              <ZhiyuNavigationOwner>
+                <div className="flex h-full min-h-0 flex-col">
+                  <div className="flex shrink-0 justify-end px-4 py-1"><NimiAccountControl hideSignedOut /></div>
+                  <ZhiyuFrame host={rendererHost.facade} client={scope.client} />
+                </div>
+              </ZhiyuNavigationOwner>
+            )}</NimiAppAccessGate>
+          </NimiAppSessionProvider>
+        </TooltipProvider>
+      </NimiThemeProvider>
+    </NimiRendererHostProvider>
+  </React.StrictMode>,
+);
+
+void appSession.start();
+if (import.meta.hot) import.meta.hot.dispose(() => appSession.dispose());

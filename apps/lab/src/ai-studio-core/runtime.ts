@@ -20,7 +20,7 @@ import {
 } from '@nimiplatform/kit/features/generation/runtime';
 import {
   createNimiLocalAppRuntimeScenarioJobClient,
-  type NimiLocalAppClient,
+  type NimiLocalAppClient, type NimiAppRuntimeClient,
 } from '@nimiplatform/sdk/app';
 import type {
   StudioAudioSeparation,
@@ -68,7 +68,7 @@ export type StudioCapabilityNonSuccessFactory = (
   diagnostics?: StudioNonSuccessDiagnostics,
 ) => StudioNonSuccess;
 
-export type StudioRuntimeClient = Pick<NimiLocalAppClient, 'aiConfig' | 'storage'> & {
+export type StudioRuntimeClient = Pick<NimiAppRuntimeClient, 'aiConfig' | 'storage'> & {
   readonly ai: Pick<NimiLocalAppClient['ai'], 'text' | 'scenario' | 'scenarioJobs' | 'artifacts' | 'voiceAssets'>;
 };
 

@@ -23,10 +23,11 @@ test('Web entry never constructs or falls back to a native App client', async ()
   assert.equal(api.zhiyuRuntimeTransport(), 'webrtc');
   assert.throws(() => api.getZhiyuLocalAppClient(), /连接已断开/u);
   assert.throws(() => api.getZhiyuNativeAppClient(), /native/u);
-  const peer = { role: 'app', closed: false };
+  const abort = new AbortController();
+  const peer = { client: {}, signal: abort.signal, viewKey: 'test', user: null };
   api.setZhiyuRemoteRuntime(peer);
-  assert.equal(api.getZhiyuLocalAppClient(), peer);
+  assert.equal(api.getZhiyuLocalAppClient(), peer.client);
   assert.equal(api.hasZhiyuRuntimeCarrier(), true);
-  peer.closed = true;
+  abort.abort();
   assert.throws(() => api.getZhiyuLocalAppClient(), /连接已断开/u);
 });

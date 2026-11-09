@@ -62,24 +62,20 @@ export default defineConfig(({ command, mode }) => mergeConfig({ base: './', plu
 }, nimiWebViteConfig({ root: import.meta.dirname, env: { ...loadEnv(mode, import.meta.dirname, ''), ...process.env }, serve: command === 'serve' })));
 `;
 
-const WEB_CLIENT = `import type { RemoteRuntimeAppConnection } from '@nimiplatform/sdk/runtime/remote';
-let client: RemoteRuntimeAppConnection | null = null;
-export function setNimiRemoteAppClient(value: RemoteRuntimeAppConnection | null) { client = value; }
-export function getNimiLocalAppClient(): RemoteRuntimeAppConnection {
-  if (!client || client.closed) throw new Error('Connect to your primary Runtime before starting work.');
-  return client;
+const WEB_CLIENT = `import type { NimiAppScope } from '@nimiplatform/kit/core/app-session';
+let scope: NimiAppScope | null = null;
+export function setNimiRemoteAppClient(value: NimiAppScope | null) { scope = value; }
+export function getNimiLocalAppClient(): NimiAppScope['client'] {
+  if (!scope || scope.signal.aborted) throw new Error('Connect to your primary Runtime before starting work.');
+  return scope.client;
 }
 `;
 
 const WEB_RUNTIME = `import { getNimiLocalAppClient } from './local-app-client.js';
 export { appId, appTitle, scaffoldProfile } from './app-identity.js';
 export async function getRuntimePlatformProjection() {
-  try {
-    const client = getNimiLocalAppClient();
-    return { status: 'ready' as const, mode: 'remote-app' as const, identity: client.identity };
-  } catch (error) {
-    return { status: 'unavailable' as const, mode: 'remote-app' as const, message: error instanceof Error ? error.message : String(error) };
-  }
+  try { getNimiLocalAppClient(); return { status: 'ready' as const, mode: 'remote-app' as const }; }
+  catch (error) { return { status: 'unavailable' as const, mode: 'remote-app' as const, message: error instanceof Error ? error.message : String(error) }; }
 }
 `;
 
@@ -89,49 +85,27 @@ import { AuthenticatedShell } from './authenticated-shell.js';
 export function App() { return <AppNavigationProvider><AuthenticatedShell /><NimiToaster /></AppNavigationProvider>; }
 `;
 
-const WEB_MAIN = `import React, { useSyncExternalStore } from 'react';
+const WEB_MAIN = `import React from 'react';
 import { createRoot } from 'react-dom/client';
-import { NimiThemeProvider, TooltipProvider, Button } from '@nimiplatform/kit/ui';
-import { createNimiRemoteAppSession, type NimiRemoteAppSessionConfig } from '@nimiplatform/kit/core/remote-app-session';
-import { prepareRuntimeClientLogin, completeRuntimeClientLogin } from '@nimiplatform/sdk/realm/runtime-client';
-import { connectRemoteRuntime } from '@nimiplatform/sdk/runtime/remote';
+import { NimiThemeProvider, TooltipProvider } from '@nimiplatform/kit/ui';
+import { createWebNimiAppSession, type NimiRemoteAppConfig } from '@nimiplatform/kit/auth/app/web';
+import { NimiAppSessionProvider, NimiAccountControl, NimiAppAccessGate } from '@nimiplatform/kit/auth/app';
 import { setNimiRemoteAppClient } from './shell/auth/local-app-client.js';
 import { appTitle } from './shell/auth/app-identity.js';
 import { App } from './shell/App.js';
 import './styles.css';
-declare const __NIMI_APP_WEB_CONFIG__: NimiRemoteAppSessionConfig;
-const config = __NIMI_APP_WEB_CONFIG__;
-const session = createNimiRemoteAppSession(config, { storage: sessionStorage, navigate: url => location.assign(url),
-  clearCallback: () => history.replaceState(null, '', config.redirectUri),
-  prepare: prepareRuntimeClientLogin, complete: completeRuntimeClientLogin, connect: connectRemoteRuntime });
-const off = session.subscribe(() => setNimiRemoteAppClient(session.getSnapshot().connection));
-function WebApp() {
-  const state = useSyncExternalStore(session.subscribe, session.getSnapshot);
-  const connected = state.phase === 'connected' && state.connection;
-  return <div className="flex h-full min-h-0 flex-col">
-    <header className="flex items-center gap-3 border-b p-3"><strong>{appTitle}</strong>
-      <span>{state.identity?.displayName}</span>
-      {connected && <Button onClick={session.disconnect}>Disconnect</Button>}
-      {state.identity && <Button onClick={() => { void session.signOut(); }}>Sign out</Button>}
-    </header>
-    {connected ? <main className="min-h-0 flex-1" key={state.identity?.contextId}><App /></main> : <main className="m-auto max-w-lg space-y-4 p-6">
-      <h1>Connect your Nimi Runtime</h1><p>Keep Nimi Home running on your PC. Confirm this source once in Home, then use your existing partners and AI configuration here.</p>
-      {state.error && <p role="alert">{state.error.message}</p>}
-      <p role="status">{state.stage || state.phase}</p>
-      {state.phase === 'connecting' ? <Button onClick={session.disconnect}>Cancel connection</Button> : state.identity
-        ? <Button onClick={() => { void session.connect(); }}>Connect my Runtime</Button>
-        : <Button disabled={state.phase === 'signing-in' || state.phase === 'signing-out'} onClick={() => { void session.signIn(); }}>Sign in with Nimi</Button>}
-    </main>}
-  </div>;
-}
+declare const __NIMI_APP_WEB_CONFIG__: NimiRemoteAppConfig;
+const session = createWebNimiAppSession(__NIMI_APP_WEB_CONFIG__);
+const off = session.subscribe(() => { const state = session.getSnapshot(); setNimiRemoteAppClient(state.runtime.status === 'connected' ? state.runtime.scope : null); });
 const root = document.getElementById('root')!;
 root.classList.add('nimi-workbench-host', 'nimi-ui-module--lab'); document.body.classList.add('nimi-ui-module--lab');
 const reactRoot = createRoot(root);
-reactRoot.render(<React.StrictMode><NimiThemeProvider accentPack="nimi-accent"><TooltipProvider><WebApp /></TooltipProvider></NimiThemeProvider></React.StrictMode>);
-void session.restore(location.href);
-const pageHide = (event: PageTransitionEvent) => { if (event.persisted) session.disconnect(); else session.dispose(); };
-window.addEventListener('pagehide', pageHide);
-if (import.meta.hot) import.meta.hot.dispose(() => { window.removeEventListener('pagehide', pageHide); session.dispose(); off(); setNimiRemoteAppClient(null); reactRoot.unmount(); });
+reactRoot.render(<React.StrictMode><NimiThemeProvider accentPack="nimi-accent"><TooltipProvider><NimiAppSessionProvider session={session}>
+  <div className="flex h-full min-h-0 flex-col"><header className="flex items-center gap-3 border-b p-3"><strong>{appTitle}</strong><NimiAccountControl hideSignedOut language="en" /></header>
+  <NimiAppAccessGate title={appTitle} language="en">{() => <main className="min-h-0 flex-1"><App /></main>}</NimiAppAccessGate></div>
+</NimiAppSessionProvider></TooltipProvider></NimiThemeProvider></React.StrictMode>);
+void session.start();
+if (import.meta.hot) import.meta.hot.dispose(() => { session.dispose(); off(); setNimiRemoteAppClient(null); reactRoot.unmount(); });
 `;
 
 const WEB_DOWNLOAD = `import { readNimiAppAssetBlob, openNimiAppAssetMediaUrl } from '@nimiplatform/kit/core/app-asset-media';

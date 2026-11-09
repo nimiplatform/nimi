@@ -2166,11 +2166,11 @@ test('the explicit Web carrier never falls back to a previously constructed nati
   assert.throws(() => platform.getLabLocalAppClient());
   assert.equal((await projection.getRuntimePlatformProjection()).mode, 'remote-app');
   assert.equal((await projection.getRuntimePlatformProjection()).status, 'unavailable');
-  const peer = { role: 'app', closed: false, identity: { accountId: 'unit-account', displayName: 'Unit user' } };
+  const controller = new AbortController(); const peer = { client: {}, signal: controller.signal, viewKey: 'test', user: { displayName: 'Unit user' } };
   platform.setLabRemoteRuntime(peer);
-  assert.equal(platform.getLabLocalAppClient(), peer);
-  assert.deepEqual(await projection.getRuntimePlatformProjection(), { status: 'ready', mode: 'remote-app', identity: peer.identity });
-  peer.closed = true;
+  assert.equal(platform.getLabLocalAppClient(), peer.client);
+  assert.deepEqual(await projection.getRuntimePlatformProjection(), { status: 'ready', mode: 'remote-app', identity: peer.user });
+  controller.abort();
   assert.equal((await projection.getRuntimePlatformProjection()).status, 'unavailable');
   assert.throws(() => platform.getLabLocalAppClient());
   platform.setLabRemoteRuntime(null);

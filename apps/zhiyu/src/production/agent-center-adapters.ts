@@ -16,9 +16,9 @@ import { ZHIYU_RESOURCE_PACK_LIMITS } from '../resource-pack/contract.js';
 // @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r009
 export function resolveZhiyuProductionAgentCenterBinding(
   agentHandle: NimiLocalAppAgentHandle | null,
+  localAppClient = getZhiyuLocalAppClient(),
 ): ZhiyuAgentCenterBinding | null {
   if (!agentHandle) return null;
-  const localAppClient = getZhiyuLocalAppClient();
   return Object.freeze({
     agentHandle,
     client: localAppClient.agentConfigure,

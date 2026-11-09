@@ -78,7 +78,7 @@ export function MusicTranscriptionNotice({ value, recordId }: { readonly value?:
       const saved = await host.sdk.assets.write({ relativePath: `studio/music/exports/${crypto.randomUUID()}/${snapshot.filename}`,
         body: chunks(), mediaType: snapshot.mediaType, overwrite: false });
       setFeedback({ sourceKey: snapshot.sourceKey, exportedPath: saved.relativePath });
-      try { await host.sdk.assets.reveal(saved.relativePath); }
+      try { await host.app.commands.exportAsset(saved.relativePath); }
       catch {
         setFeedback({ sourceKey: snapshot.sourceKey, exportedPath: saved.relativePath,
           error: t('Common.exportSavedRevealFailed', { path: saved.relativePath }) });
@@ -92,7 +92,7 @@ export function MusicTranscriptionNotice({ value, recordId }: { readonly value?:
   async function revealSelected() {
     const snapshot = file;
     if (!snapshot || snapshot.sourceKey !== currentSource.current) return;
-    try { await host.sdk.assets.reveal(snapshot.path); }
+    try { await host.app.commands.exportAsset(snapshot.path); }
     catch { setFeedback({ sourceKey: snapshot.sourceKey, error: t('Common.assetRevealFailed', { path: snapshot.path }) }); }
   }
   if (!value) return null;

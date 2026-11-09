@@ -68,6 +68,7 @@ export default defineConfig({
       { find: '@nimiplatform/sdk/realm/runtime-client', replacement: path.resolve(import.meta.dirname, '../../sdks/typescript/realm/runtime-client.ts') },
       { find: '@nimiplatform/sdk/realm/generated', replacement: path.resolve(import.meta.dirname, '../../sdks/typescript/realm/generated.ts') },
       { find: '@nimiplatform/sdk/contracts', replacement: path.resolve(import.meta.dirname, '../../sdks/typescript/core/contracts/index.ts') },
+      { find: '@nimiplatform/sdk/runtime/remote', replacement: path.resolve(import.meta.dirname, '../../sdks/typescript/runtime/remote.ts') },
       { find: '@nimiplatform/sdk/runtime', replacement: path.resolve(import.meta.dirname, '../../sdks/typescript/runtime/index.ts') },
       { find: '@nimiplatform/sdk/realm', replacement: path.resolve(import.meta.dirname, '../../sdks/typescript/realm/index.ts') },
       { find: '@nimiplatform/sdk/types', replacement: path.resolve(import.meta.dirname, '../../sdks/typescript/types/index.ts') },

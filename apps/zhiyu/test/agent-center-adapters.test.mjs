@@ -241,7 +241,7 @@ test('canonical renderer binds the single shared Kit session to the production p
 
   assert.doesNotMatch(adapterSource, /createAppAgentCenterSession/u);
   assert.match(canonicalSource, /createAppAgentCenterSession/u);
-  assert.match(adapterSource, /const localAppClient = getZhiyuLocalAppClient\(\)/u);
+  assert.match(adapterSource, /localAppClient = getZhiyuLocalAppClient\(\)/u);
   assert.match(adapterSource, /client:\s*localAppClient\.agentConfigure/u);
   assert.doesNotMatch(adapterSource, /voiceAssetsClient|localAppClient\.ai\.voiceAssets/u);
   assert.match(canonicalSource, /conversationAnchorId/u);

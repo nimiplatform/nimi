@@ -3,7 +3,7 @@ import { getZhiyuLocalAppClient, hasZhiyuRuntimeCarrier, zhiyuRuntimeTransport }
 
 export type ZhiyuRuntimeAgentInventoryStatus = ZhiyuEvidence['inventory'];
 
-export async function probeZhiyuRuntimeAgentInventory(): Promise<ZhiyuRuntimeAgentInventoryStatus> {
+export async function probeZhiyuRuntimeAgentInventory(client = getZhiyuLocalAppClient()): Promise<ZhiyuRuntimeAgentInventoryStatus> {
   if (!hasZhiyuRuntimeCarrier()) {
     return inventoryUnavailable({
       reasonCode: 'electron-runtime-bridge-unavailable',
@@ -14,7 +14,7 @@ export async function probeZhiyuRuntimeAgentInventory(): Promise<ZhiyuRuntimeAge
   }
 
   try {
-    const localAgents = await getZhiyuLocalAppClient().agents.listReferences();
+    const localAgents = await client.agents.listReferences();
     return {
       transport: zhiyuRuntimeTransport(),
       ready: true,

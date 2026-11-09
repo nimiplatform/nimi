@@ -1,4 +1,4 @@
-import type { RemoteRuntimeAppConnection } from '@nimiplatform/sdk/runtime/remote';
+import type { NimiAppScope, NimiAppIdentity } from '@nimiplatform/kit/core/app-session';
 import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import { createNimiClient } from '@nimiplatform/sdk';
 import type { NimiLocalAppClient } from '@nimiplatform/sdk/app';
@@ -47,19 +47,19 @@ export function getRuntimePlatformProjection(): Promise<RuntimePlatformProjectio
 let localAppClient: ZhiyuLocalAppClient | null = null;
 
 let remoteCarrier = false;
-let remoteConnection: RemoteRuntimeAppConnection | null = null;
+let remoteConnection: (NimiAppScope & { user: NimiAppIdentity | null }) | null = null;
 // @nimi-authority: rule.nimi.zhiyu.local-partner-surface.web-entry
-export function setZhiyuRemoteRuntime(connection: RemoteRuntimeAppConnection | null): void {
+export function setZhiyuRemoteRuntime(connection: (NimiAppScope & { user: NimiAppIdentity | null }) | null): void {
   remoteCarrier = true; remoteConnection = connection;
 }
 export function isZhiyuRemoteCarrier() { return remoteCarrier; }
 export function getZhiyuRemoteRuntime() { return remoteConnection; }
 export function zhiyuRuntimeTransport(): 'electron-ipc' | 'webrtc' { return remoteCarrier ? 'webrtc' : 'electron-ipc'; }
-export function hasZhiyuRuntimeCarrier() { return remoteCarrier ? !!remoteConnection && !remoteConnection.closed : typeof window !== 'undefined' && hasElectronRuntime(); }
-export function getZhiyuLocalAppClient(): ZhiyuLocalAppClient | RemoteRuntimeAppConnection {
+export function hasZhiyuRuntimeCarrier() { return remoteCarrier ? !!remoteConnection && !remoteConnection.signal.aborted : typeof window !== 'undefined' && hasElectronRuntime(); }
+export function getZhiyuLocalAppClient(): ZhiyuLocalAppClient | NimiAppScope['client'] {
   if (remoteCarrier) {
-    if (!remoteConnection || remoteConnection.closed) throw new Error('织羽与主 Runtime 的连接已断开，请重新连接。');
-    return remoteConnection;
+    if (!remoteConnection || remoteConnection.signal.aborted) throw new Error('织羽与主 Runtime 的连接已断开，请重新连接。');
+    return remoteConnection.client;
   }
   return getZhiyuNativeAppClient();
 }

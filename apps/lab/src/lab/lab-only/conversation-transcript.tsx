@@ -32,7 +32,7 @@ export function LabConversationExport(props: {
               body: new TextEncoder().encode(body), mediaType: 'application/json', overwrite: false,
             });
             try {
-              await assets.reveal(asset.relativePath);
+              await ('reveal' in assets ? assets : { reveal: async () => { throw new Error('Native file reveal is unavailable.'); } }).reveal(asset.relativePath);
               setNotice({ ok: true, path: asset.relativePath, revealed: true });
             } catch { setNotice({ ok: true, path: asset.relativePath, revealed: false }); }
           } catch { setNotice({ ok: false }); }
@@ -46,7 +46,7 @@ export function LabConversationExport(props: {
       {notice?.ok && !notice.revealed && notice.path ? <Button type="button" size="sm" tone="ghost" disabled={exporting}
         onClick={async () => {
           setExporting(true);
-          try { await assets.reveal(notice.path!); setNotice({ ...notice, revealed: true }); }
+          try { await ('reveal' in assets ? assets : { reveal: async () => { throw new Error('Native file reveal is unavailable.'); } }).reveal(notice.path!); setNotice({ ...notice, revealed: true }); }
           catch { setNotice({ ...notice, revealed: false }); }
           finally { setExporting(false); }
         }}>{t('CapabilityTests.textConversation.revealExport')}</Button> : null}

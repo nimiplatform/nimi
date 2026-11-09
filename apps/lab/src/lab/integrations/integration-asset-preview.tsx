@@ -31,7 +31,7 @@ export function IntegrationAssetPreview({ relativePath, disabled, report }: {
   return <div className="mt-3 rounded-xl border border-[var(--nimi-border-subtle)] p-3 text-xs">
     <p className="break-all">{relativePath}</p>
     {asset?<><p className="mt-1">{mediaType} · {t('Integrations.assetSize',{size:asset.sizeBytes})}</p><p className="mt-1 break-all">{asset.sha256}</p></>:null}
-    <div className="mt-2 flex gap-2"><Button size="sm" tone="secondary" disabled={disabled||!asset} onClick={()=>void host.sdk.localAppClient.storage.assets.reveal(relativePath).catch(report)}>{t('Integrations.revealAsset')}</Button>{previewable?<Button size="sm" tone="secondary" disabled={disabled||requested} onClick={()=>setRequested(true)}>{t('Integrations.previewAsset')}</Button>:null}</div>
+    <div className="mt-2 flex gap-2"><Button size="sm" tone="secondary" disabled={disabled||!asset} onClick={()=>void host.app.commands.exportAsset(relativePath).catch(report)}>{t('Integrations.revealAsset')}</Button>{previewable?<Button size="sm" tone="secondary" disabled={disabled||requested} onClick={()=>setRequested(true)}>{t('Integrations.previewAsset')}</Button>:null}</div>
     {url&&mediaType.startsWith('image/')?<img className="mt-3 max-h-96 max-w-full object-contain" src={url} alt={relativePath} onError={()=>{setRequested(false);setUrl('');report(new Error(t('Integrations.previewFailed')));}}/>:null}
     {url&&mediaType.startsWith('audio/')?<audio className="mt-3 w-full" controls src={url}/>:null}
     {url&&mediaType.startsWith('video/')?<video className="mt-3 max-h-96 max-w-full" controls src={url}/>:null}

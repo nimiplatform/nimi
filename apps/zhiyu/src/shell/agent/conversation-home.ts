@@ -11,6 +11,7 @@ type LocalAgentIdentity = {
 // @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r003
 export async function probeZhiyuRuntimeConversationHome(
   localAgent: ZhiyuLocalAgentStatus,
+  client = getZhiyuLocalAppClient(),
 ): Promise<ZhiyuConversationHomeStatus> {
   const identity = localAgentIdentity(localAgent);
   if (!identity) {
@@ -32,7 +33,7 @@ export async function probeZhiyuRuntimeConversationHome(
     });
   }
 
-  const conversation = getZhiyuLocalAppClient().conversation;
+  const conversation = client.conversation;
   try {
     const opened = await conversation.open({
       agentHandle: identity.agentHandle,

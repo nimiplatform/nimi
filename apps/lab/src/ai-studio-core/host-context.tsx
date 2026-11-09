@@ -71,7 +71,7 @@ export type AIStudioHostPort = {
       readonly sizeBytes: number;
       readonly mimeType: NimiLocalAppArtifactUploadMime;
     }>;
-    readonly assets: NimiLocalAppClient['storage']['assets'];
+    readonly assets: Omit<NimiLocalAppClient['storage']['assets'], 'reveal'>;
     readonly storage: Pick<NimiLocalAppClient['storage'], 'readJson' | 'writeJson'>;
     readonly aiConfig: {
       readonly getSnapshot: () => Promise<NimiAIConfigSnapshot>;

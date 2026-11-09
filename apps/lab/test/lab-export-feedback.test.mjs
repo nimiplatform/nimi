@@ -55,7 +55,7 @@ await build({
     builder.onResolve({ filter: /^\.\./ }, args => args.importer.endsWith('production-bindings.ts') && unrelated.has(args.path)
       ? { path: args.path, namespace: 'export-unrelated' } : undefined);
     builder.onLoad({ filter: /.*/, namespace: 'export-test' }, () => ({ contents:
-      'export const isLabRemoteRuntime=()=>Boolean(globalThis.__EXPORT_FEEDBACK_WEB__); export const getLabRemoteRuntime=()=>null; export function getLabLocalAppClient(){if(!globalThis.__EXPORT_FEEDBACK_CLIENT__)throw Error("host unavailable");return globalThis.__EXPORT_FEEDBACK_CLIENT__}', loader: 'js' }));
+      'export const requireLabNativeClient=client=>{if(globalThis.__EXPORT_FEEDBACK_WEB__)throw Error("native unavailable");return client;}; export const isLabRemoteRuntime=()=>Boolean(globalThis.__EXPORT_FEEDBACK_WEB__); export const getLabRemoteRuntime=()=>null; export function getLabLocalAppClient(){if(!globalThis.__EXPORT_FEEDBACK_CLIENT__)throw Error("host unavailable");return globalThis.__EXPORT_FEEDBACK_CLIENT__}', loader: 'js' }));
     builder.onLoad({ filter: /.*/, namespace: 'export-unrelated' }, args => ({ contents: unrelated.get(args.path)
       .map(name => `export const ${name} = () => { throw Error('Unexpected unrelated business call'); };`).join('\n'), loader: 'js' }));
   } }],

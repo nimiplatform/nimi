@@ -5,12 +5,13 @@ import type { NimiLocalAppActivityClient } from '@nimiplatform/sdk/app';
 import { getZhiyuLocalAppClient } from '../auth/runtime-platform';
 
 export function ZhiyuAgentActivityReferences({ agentHandle, navigationKey }: { readonly agentHandle: string | null | undefined; readonly navigationKey?: number }) {
+  const boundClient = useMemo(() => getZhiyuLocalAppClient(), []);
   const activity = useMemo<Pick<NimiLocalAppActivityClient, 'list' | 'subscribe' | 'open'>>(() => ({
-    list: input => getZhiyuLocalAppClient().activity.list(input),
-    subscribe: input => getZhiyuLocalAppClient().activity.subscribe(input),
-    open: input => getZhiyuLocalAppClient().activity.open(input),
+    list: input => boundClient.activity.list(input),
+    subscribe: input => boundClient.activity.subscribe(input),
+    open: input => { if ('open' in boundClient.activity) return boundClient.activity.open(input); return Promise.reject(new Error('Opening a native App is unavailable in this browser.')); },
   }), []);
-  const listReferences = useCallback(() => getZhiyuLocalAppClient().agents.listReferences(), []);
+  const listReferences = useCallback(() => boundClient.agents.listReferences(), []);
   const state = useAgentActivityReferences({ agentHandle, listReferences, activity });
   return <AgentActivityReferences key={agentHandle ?? 'none'} {...state} navigationKey={navigationKey} copy={{
     title: '与这位伙伴相关的应用消息', loading: '正在读取应用消息…',

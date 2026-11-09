@@ -9,7 +9,8 @@ import { getCurrentLocale } from '../shell/i18n/index.js';
 import { installDocumentLangSync } from '../shell/i18n/document-lang.js';
 import { setLabRemoteRuntime } from '../shell/local-app-runtime-platform.js';
 import { clearRuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
-import { createLabWebConnection } from './connection.js';
+import { createWebNimiAppSession } from '@nimiplatform/kit/auth/app/web';
+import { appId } from '../shell/auth/app-identity.js';
 import { LabWebApp } from './app.js';
 
 // The browser never installs the native shell bridge or constructs a local Host.
@@ -36,17 +37,14 @@ const rendererHost = createNimiRendererHostBinding<NimiRendererHostMethodMap>({
   overlays: { target: overlays, acquire: async () => ({ ok: false, error: { disposition: 'unsupported' } }) },
   surfaceLifecycle: { reportReadyCandidate: () => undefined },
 });
-const connection = createLabWebConnection(config, { storage: sessionStorage, navigate: url => window.location.assign(url),
-  clearCallback: () => history.replaceState(null, '', config.redirectUri) });
-const unsubscribe = connection.subscribe(() => { setLabRemoteRuntime(connection.getSnapshot().connection); clearRuntimePlatformProjection(); });
+const connection = createWebNimiAppSession({ ...config, appId });
+const unsubscribe = connection.subscribe(() => { const state = connection.getSnapshot();
+  setLabRemoteRuntime(state.runtime.status === 'connected' && state.identity.status === 'signed-in' ? { ...state.runtime.scope, user: state.identity.user } : null);
+  clearRuntimePlatformProjection(); });
 const reactRoot = createRoot(root);
 reactRoot.render(<React.StrictMode><NimiThemeProvider accentPack="nimi-accent" defaultScheme="light"><TooltipProvider>
   <LabWebApp connection={connection} rendererHost={rendererHost} configurationErrors={errors} />
 </TooltipProvider></NimiThemeProvider></React.StrictMode>);
-if (!errors.length) void connection.restore(window.location.href);
+if (!errors.length) void connection.start();
 const dispose = () => { connection.dispose(); unsubscribe(); setLabRemoteRuntime(null); };
-// A back/forward-cache page retains its JS instance. End its peer, but keep
-// the controller usable when Back restores the disconnected page.
-const pageHide = (event: PageTransitionEvent) => { if (event.persisted) connection.disconnect(); else dispose(); };
-window.addEventListener('pagehide', pageHide);
-if (import.meta.hot) import.meta.hot.dispose(() => { window.removeEventListener('pagehide', pageHide); dispose(); reactRoot.unmount(); overlays.remove(); disposeLanguage(); });
+if (import.meta.hot) import.meta.hot.dispose(() => { dispose(); reactRoot.unmount(); overlays.remove(); disposeLanguage(); });

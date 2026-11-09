@@ -36,7 +36,7 @@ const deferred = () => { let resolve; const promise = new Promise(accept => { re
 function fixture(initial = [record('old-A'), record('old-B')]) {
   let records = initial; const queries = new Map(initial.map(row => [row.callId, deferred()])); const io = []; const files = new Map();
   const foreground = deferred();
-  const host = { sdk: { localAppClient: {
+  const host = { sdk: { localAppClient: { auth: {},
     integration: { listConnections: async () => [{ targetRef: 'B', kind: 'mcp', displayName: 'B', available: true, operations: [{ name: 'mcp.echo', description: 'Echo', effect: 'read', inputSchemaJson: '{}' }], permittedOperations: ['mcp.echo'] }], getCall: async ({ callId }) => queries.get(callId).promise, invoke: async () => foreground.promise, cancelCall: async () => assert.fail('unexpected cancellation') },
     storage: { assets: {
       list: async input => { io.push(['list', input]); return { assets: [...files.values()], nextCursor: '' }; },
@@ -49,6 +49,7 @@ function fixture(initial = [record('old-A'), record('old-B')]) {
     removeIntegrationHistory: async id => { records = records.filter(row => row.id !== id); return records; },
     exportText: async () => ({ ok: false }),
   } } };
+  host.app.commands.exportAsset = path => host.sdk.localAppClient.storage.assets.reveal(path);
   return { host, queries, foreground, io, files, records: () => records };
 }
 const button = (root, name) => [...root.querySelectorAll('button')].find(node => node.textContent === name);

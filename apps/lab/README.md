@@ -140,3 +140,7 @@ The Conversation and Session Hook entries preserve original records and native c
 - **Private Drafts**: Prompt drafts use the captured App client's account/registered-subject JSON partition. Browser-local preferences remain separate. Unowned drafts from the earlier browser storage key are not imported into a logged-in user's private storage.
 - **Session Lifecycles**: Realtime audio and video frames exist only for the duration of the active session; closed sessions are not restored and raw media streams are not retained.
 - **Extending Capabilities**: When adding a new canonical AI capability or adapting a third-party workflow to Nimi, include a corresponding Lab testbed entry, regression tests, and Desktop-supervised acceptance verification. Lab entries validate runtime behavior under real execution; public SDK surfaces remain governed by their respective domain contracts.
+
+### Web account access
+
+The Web entry composes the shared `auth/app/web` factory and `auth/app` account control/gate. Identity remains separate from Runtime connectivity. Lab no longer owns a separate remote login controller. Native-only file actions stay outside the portable App operation type; browser results use the existing export/download port.

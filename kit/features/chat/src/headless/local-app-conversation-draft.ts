@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { NimiLocalAppClient, NimiLocalAppConversationQuoteInput } from '@nimiplatform/kit/core/sdk-contract';
+import type { NimiAppRuntimeClient, NimiLocalAppClient, NimiLocalAppConversationQuoteInput } from '@nimiplatform/kit/core/sdk-contract';
 import { extractNimiErrorFields, validateNimiLocalAppConversationQuoteInput } from '@nimiplatform/kit/core/sdk-contract';
 import type { AgentQuoteDraft, AgentQuoteDraftRef } from '../runtime/local-app-conversation-quote.js';
 
@@ -261,7 +261,7 @@ export function useAgentComposerPersistence(input: {
   scopeKey: string;
   agentHandle: string;
   agentBinding?: string;
-  client: () => Pick<NimiLocalAppClient, 'agents' | 'storage'>;
+  client: () => Pick<NimiAppRuntimeClient, 'agents' | 'storage'>;
   draft: DraftRef;
   isCurrent: () => boolean;
   subscribe: (onChange: () => void) => () => void;

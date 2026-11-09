@@ -913,7 +913,7 @@ function renderGeneratedAIStudioHostAdapter(resolution, platform = 'desktop') {
     '',
     'function createGeneratedServices(client: ReturnType<typeof getNimiLocalAppClient>) {',
     platform === 'web'
-      ? 'const storageScope = JSON.stringify([client.identity.realmEnvironmentId, client.identity.accountId, client.identity.appId, client.identity.clientId, client.primary.bindingId]);'
+      ? 'const storageScope = appId; // Only non-sensitive panel preferences use browser storage.'
       : "const storageScope = '';",
     'async function inspectTargetRuntime(): Promise<StudioRuntimeInspection> {',
     '  const projection = await getRuntimePlatformProjection();',

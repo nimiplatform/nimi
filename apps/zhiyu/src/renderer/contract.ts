@@ -9,7 +9,7 @@ import type {
   NimiLocalAppAgentHandle,
 } from '@nimiplatform/sdk/app';
 
-import type { NimiLocalAppClient } from '@nimiplatform/sdk/app';
+import type { NimiAppRuntimeClient, NimiLocalAppClient } from '@nimiplatform/sdk/app';
 import type { LocalAppConversationObservation } from '@nimiplatform/kit/features/chat/headless';
 import type { ZhiyuAvatarLaunchAction } from '../shell/avatar/avatar-launch.js';
 import type { ZhiyuAvatarLaunchResult } from '../shell/avatar/avatar-launch-handoff.js';
@@ -64,7 +64,7 @@ export interface ZhiyuRendererProjectionPort {
 export interface ZhiyuRendererCommandPort {
   allocateTurnRequestId(): Promise<string>;
   conversation(): NimiLocalAppClient['conversation'];
-  draftClient(): Pick<NimiLocalAppClient, 'agents' | 'storage'>;
+  draftClient(): Pick<NimiAppRuntimeClient, 'agents' | 'storage'>;
   transcribeVoice(input: {
     readonly agentHandle: NimiLocalAppAgentHandle;
     readonly conversationAnchorId: string;

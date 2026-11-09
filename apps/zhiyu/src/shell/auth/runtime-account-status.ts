@@ -8,12 +8,12 @@ export type ZhiyuAuthStatus = ZhiyuEvidence['auth'];
 export async function probeZhiyuRuntimeAccountStatus(): Promise<ZhiyuAuthStatus> {
   if (isZhiyuRemoteCarrier()) {
     const peer = getZhiyuRemoteRuntime();
-    const ready = !!peer && !peer.closed;
+    const ready = !!peer && !peer.signal.aborted;
     return { transport: 'webrtc', ready, reasonCode: ready ? 'RUNTIME_CLIENT_CONNECTED' : 'SDK_RUNTIME_REMOTE_UNAVAILABLE',
       actionHint: ready ? '' : 'reconnect_primary_runtime', source: 'sdk',
       message: ready ? '织羽已连接到当前账号的主 Runtime。' : '与主 Runtime 的连接已断开。',
       state: ready ? 'authenticated' : 'unavailable', accountReasonCode: 'RUNTIME_CLIENT_CONTEXT',
-      accountId: ready ? peer.identity.accountId : null, displayName: ready ? peer.identity.displayName : null, productionInert: false,
+      accountId: null, displayName: ready ? peer.user?.displayName ?? null : null, productionInert: false,
     };
   }
   if (typeof window === 'undefined' || !hasElectronRuntime()) {

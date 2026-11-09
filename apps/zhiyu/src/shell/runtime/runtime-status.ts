@@ -8,7 +8,7 @@ export type ZhiyuRuntimeStatus = ZhiyuEvidence['runtime'];
 export async function probeZhiyuRuntimeStatus(): Promise<ZhiyuRuntimeStatus> {
   if (isZhiyuRemoteCarrier()) {
     const peer = getZhiyuRemoteRuntime();
-    const ready = !!peer && !peer.closed;
+    const ready = !!peer && !peer.signal.aborted;
     return { transport: 'webrtc', ready, reasonCode: ready ? 'RUNTIME_CLIENT_CONNECTED' : 'SDK_RUNTIME_REMOTE_UNAVAILABLE',
       actionHint: ready ? '' : 'reconnect_primary_runtime', source: 'sdk',
       message: ready ? '织羽已连接到当前账号的主 Runtime。' : '与主 Runtime 的连接已断开。',

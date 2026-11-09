@@ -1,26 +1,26 @@
 import { createNimiClient } from '@nimiplatform/sdk';
 import type { NimiLocalAppClient } from '@nimiplatform/sdk/app';
-import type { RemoteRuntimeConnection } from '@nimiplatform/sdk/runtime/remote';
+import type { NimiAppScope, NimiAppIdentity } from '@nimiplatform/kit/core/app-session';
 import { createNimiLocalAppStandardShellSurface } from '@nimiplatform/kit/shell/renderer/bridge';
 import { observeLabLocalAppSessionLoss } from './auth/session-loss.js';
 import { t } from './i18n/index.js';
 
 let labLocalAppClient: NimiLocalAppClient | null = null;
-export type LabRemoteAppClient = Extract<RemoteRuntimeConnection, { role: 'app' }>;
+export type LabRemoteAppClient = NimiAppScope['client'];
 export type LabRuntimeClient = NimiLocalAppClient | LabRemoteAppClient;
 let remoteCarrier = false;
-let remoteClient: LabRemoteAppClient | null = null;
+let remoteClient: (NimiAppScope & { user: NimiAppIdentity | null }) | null = null;
 
 /** The Web entry chooses this carrier before mounting shared Lab surfaces.
  * Disconnecting never falls back to the native Host or another identity. */
-export function setLabRemoteRuntime(client: LabRemoteAppClient | null): void {
+export function setLabRemoteRuntime(client: (NimiAppScope & { user: NimiAppIdentity | null }) | null): void {
   remoteCarrier = true;
   remoteClient = client;
 }
 export function isLabRemoteRuntime(): boolean { return remoteCarrier; }
-export function getLabRemoteRuntime(): LabRemoteAppClient | null { return remoteClient; }
+export function getLabRemoteRuntime(): typeof remoteClient { return remoteClient; }
 export function requireLabNativeClient(client: LabRuntimeClient): NimiLocalAppClient {
-  if ('role' in client) throw new Error(t('Auth.web.nativeOperation'));
+  if (!('auth' in client)) throw new Error(t('Auth.web.nativeOperation'));
   return client;
 }
 
@@ -31,8 +31,8 @@ export function requireLabNativeClient(client: LabRuntimeClient): NimiLocalAppCl
  */
 export function getLabLocalAppClient(): LabRuntimeClient {
   if (remoteCarrier) {
-    if (!remoteClient || remoteClient.closed) throw new Error(t('Auth.web.disconnected'));
-    return remoteClient;
+    if (!remoteClient || remoteClient.signal.aborted) throw new Error(t('Auth.web.disconnected'));
+    return remoteClient.client;
   }
   return getLabNativeAppClient();
 }

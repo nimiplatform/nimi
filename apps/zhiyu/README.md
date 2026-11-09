@@ -54,3 +54,9 @@ Web 与 Electron 共用 canonical renderer、伙伴列表、Conversation、伙�
 当前已实际运行文本聊天、读取原会话、伙伴配置投影、皮肤预览／应用／清除及重连后的原结果读取。原生 Avatar 启动与原生 placement 仍属于原生 Host；其它语音／媒体组合及物理外网条件不能据此视为已验收。`zhiyu.nimi.ai` 尚未在本轮部署或发布。
 
 上述原生开发章节仍适用于 Electron。Web 构建可使用 `build:web`，只产生网页资源，不等于部署或 Runtime 调用通过。
+
+### 共享账号接入
+
+Web 入口使用 `@nimiplatform/kit/auth/app/web` 和共享账号控件／Gate；直接使用 Nimi 账号，无第二套账户。身份和 Runtime 连接分开显示；退出此应用不退出 Home 或其它应用。本机入口使用 `auth/app/desktop`，复用 Home 当前账号及正式 Host，会话失效时关闭旧消费 scope。业务回调捕获当前 scope 的客户端。
+
+首次关联的 verified identity 回调只用于远程可选自有账号模式，不是网站后端认证凭据。Mobile 仍需真实原生来源／回调及容器实现，当前没有可用 Mobile 工厂。

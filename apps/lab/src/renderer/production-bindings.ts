@@ -20,7 +20,7 @@ import {
 } from '@nimiplatform/kit/shell/renderer/host';
 
 import { getRuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
-import { getLabLocalAppClient, isLabRemoteRuntime } from '../shell/local-app-runtime-platform.js';
+import { requireLabNativeClient, getLabLocalAppClient, isLabRemoteRuntime } from '../shell/local-app-runtime-platform.js';
 import { downloadLabWebAsset, requestLabWebDownload } from '../web/download.js';
 import { listLabVoiceAssets } from '../ai-studio-core/voice-assets.js';
 import { loadLabAIConfigSummary } from '../lab/lab-ai-config.js';
@@ -205,7 +205,7 @@ export function createLabProductionBindings(
         },
         async exportAsset(relativePath: string) {
           if (isLabRemoteRuntime()) { await downloadLabWebAsset(labLocalAppClient.storage.assets, relativePath); }
-          else { await labLocalAppClient.storage.assets.reveal(relativePath); }
+          else { await requireLabNativeClient(labLocalAppClient).storage.assets.reveal(relativePath); }
         },
         resolveWorldTourFixture,
         openWorldTourWindow,

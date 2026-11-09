@@ -1,3 +1,4 @@
+import type { NimiAppRuntimeClient } from '@nimiplatform/sdk/app';
 import {
   createNimiCanonicalRendererHostBindings,
   type NimiRendererHostFacadeV1,
@@ -98,13 +99,13 @@ function localAgentFromRemintError(error: unknown): ZhiyuLocalAgentStatus {
 async function loadHome(
   input: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['loadHome']>[0],
   avatarHostPort: AvatarHostHandoffPort,
+  client: NimiAppRuntimeClient,
 ): Promise<ZhiyuHomeProjection> {
   const [runtime, auth] = await Promise.all([
     probeZhiyuRuntimeStatus(),
     probeZhiyuRuntimeAccountStatus(),
   ]);
-  const inventory = await probeZhiyuRuntimeAgentInventory();
-  const client = getZhiyuLocalAppClient();
+  const inventory = await probeZhiyuRuntimeAgentInventory(client);
   let localAgent: ZhiyuLocalAgentStatus;
   try {
     const selectedAgentHandle = await resolveCurrentAgentHandle({
@@ -129,7 +130,7 @@ async function loadHome(
       source = projectZhiyuRuntimeSourceProjection({ error });
     }
   }
-  const conversation = await probeZhiyuRuntimeConversationHome(localAgent);
+  const conversation = await probeZhiyuRuntimeConversationHome(localAgent, client);
   const [companion, avatar] = await Promise.all([
     probeZhiyuRuntimeCompanionState(conversation, {
       readEmbodiment: (target) => client.embodiment.snapshot(target),
@@ -153,8 +154,9 @@ async function loadHome(
 
 export function createZhiyuProductionBindings(
   kit: NimiRendererHostFacadeV1<NimiRendererHostMethodMap>,
-  options: { readonly avatarHostPort?: AvatarHostHandoffPort } = {},
+  options: { readonly avatarHostPort?: AvatarHostHandoffPort; readonly client?: NimiAppRuntimeClient } = {},
 ): ZhiyuCanonicalRendererBindings {
+  const client = options.client ?? getZhiyuLocalAppClient();
   const avatarHostPort = options.avatarHostPort ?? createZhiyuAvatarHostHandoffPort();
   return createNimiCanonicalRendererHostBindings({
     scope: kit.scope,
@@ -164,11 +166,11 @@ export function createZhiyuProductionBindings(
     sdk: Object.freeze({}),
     app: {
       projection: Object.freeze({
-        agentCenterBinding: resolveZhiyuProductionAgentCenterBinding,
+        agentCenterBinding: (handle: Parameters<typeof resolveZhiyuProductionAgentCenterBinding>[0]) => resolveZhiyuProductionAgentCenterBinding(handle, client),
         loadHome: (
           input: Parameters<ZhiyuCanonicalRendererBindings['app']['projection']['loadHome']>[0],
-        ) => loadHome(input, avatarHostPort),
-        loadAgentInventory: probeZhiyuRuntimeAgentInventory,
+        ) => loadHome(input, avatarHostPort, client),
+        loadAgentInventory: () => probeZhiyuRuntimeAgentInventory(client),
         projectTurnReadiness: probeZhiyuAgentTurnReadiness,
         resolveResourcePackPlacementTarget: resolveZhiyuResourcePackPlacementTarget,
       }),
@@ -176,10 +178,10 @@ export function createZhiyuProductionBindings(
         async allocateTurnRequestId() {
           return createZhiyuProductionTurnRequestId();
         },
-        conversation: () => getZhiyuLocalAppClient().conversation,
-        draftClient: getZhiyuLocalAppClient,
+        conversation: () => client.conversation,
+        draftClient: () => client,
         async transcribeVoice(input: Parameters<ZhiyuCanonicalRendererBindings['app']['commands']['transcribeVoice']>[0], options?: Parameters<ZhiyuCanonicalRendererBindings['app']['commands']['transcribeVoice']>[1]) {
-          return getZhiyuLocalAppClient().conversation.transcribeVoice(input, options);
+          return client.conversation.transcribeVoice(input, options);
         },
         async openDesktopRuntimeSettings() {
           await requestZhiyuDesktopOpenRuntimeSettings();
@@ -190,7 +192,7 @@ export function createZhiyuProductionBindings(
       }),
       events: Object.freeze({
         subscribeConversation(input: Parameters<ZhiyuCanonicalRendererBindings['app']['events']['subscribeConversation']>[0]) {
-			const conversation = getZhiyuLocalAppClient().conversation;
+			const conversation = client.conversation;
           return subscribeZhiyuAmbientConversation({
             conversation,
             identity: { agentHandle: input.agentHandle, conversationAnchorId: input.conversationAnchorId },

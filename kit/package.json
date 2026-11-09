@@ -387,10 +387,19 @@
       "import": "./dist/features/media/headless.js",
       "default": "./dist/features/media/headless.js"
     },
-    "./core/remote-app-session": {
-      "types": "./dist/core/remote-app-session.d.ts",
-      "import": "./dist/core/remote-app-session.js",
-      "default": "./dist/core/remote-app-session.js"
+    "./auth/app": {
+      "types": "./dist/auth/app/index.d.ts", "import": "./dist/auth/app/index.js", "default": "./dist/auth/app/index.js"
+    },
+    "./auth/app/web": {
+      "types": "./dist/auth/app/web.d.ts", "import": "./dist/auth/app/web.js", "default": "./dist/auth/app/web.js"
+    },
+    "./auth/app/desktop": {
+      "types": "./dist/auth/app/desktop.d.ts", "import": "./dist/auth/app/desktop.js", "default": "./dist/auth/app/desktop.js"
+    },
+    "./core/app-session": {
+      "types": "./dist/core/app-session.d.ts",
+      "import": "./dist/core/app-session.js",
+      "default": "./dist/core/app-session.js"
     },
     "./core/app-record-storage": {
       "types": "./dist/core/app-record-storage.d.ts",
