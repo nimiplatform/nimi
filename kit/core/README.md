@@ -7,6 +7,7 @@ Pure shared logic module providing shell-mode detection, environment helpers, OA
 - `@nimiplatform/kit/core/shell-mode`
 - `@nimiplatform/kit/core/oauth`
 - `@nimiplatform/kit/core/storage-json`
+- `@nimiplatform/kit/core/app-record-storage`: App-owned record documents over an injected SDK asset client. Each record publishes atomically under its own ID; listing is not a snapshot, and explicit removal targets only selected IDs. Schema and retention remain App-owned; each document is bounded to 16 MiB.
 - `@nimiplatform/kit/core/offline-coordinator`
 - `@nimiplatform/kit/core/notifications`
 - `@nimiplatform/kit/core/navigation`: Typed window-local destinations and immutable snapshots via `createNimiNavigation`, supporting `push`, `replace`, `back`, `forward`, a single pending App-leave policy, forced reset/dispose, and a fixed 100-entry history bound.

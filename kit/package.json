@@ -392,6 +392,11 @@
       "import": "./dist/core/remote-app-session.js",
       "default": "./dist/core/remote-app-session.js"
     },
+    "./core/app-record-storage": {
+      "types": "./dist/core/app-record-storage.d.ts",
+      "import": "./dist/core/app-record-storage.js",
+      "default": "./dist/core/app-record-storage.js"
+    },
     "./core/app-asset-media": {
       "types": "./dist/core/app-asset-media.d.ts",
       "import": "./dist/core/app-asset-media.js",

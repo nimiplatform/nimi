@@ -4,6 +4,8 @@
 
 ## Unreleased — Shared remote App composition (additive, next minor)
 
+Adds `core/app-record-storage` for independent App-owned record documents using existing Runtime asset operations. It replaces client-side whole-history replacement in Lab and generated workbenches; it does not add a storage protocol, transaction system or automatic migration.
+
 Adds `core/remote-app-session`, `core/app-asset-media` and the optional Agent Center browser Resource Pack picker. Lab and Zhiyu share the public SDK contracts and existing UI instead of a synthetic native bridge. These are additive source-build exports; no release or mobile UI support is implied.
 
 ## Unreleased — Remote App consumers
