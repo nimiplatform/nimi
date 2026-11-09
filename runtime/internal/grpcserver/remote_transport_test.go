@@ -1,12 +1,10 @@
 package grpcserver
 
 import (
-	"bytes"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
-	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/types/known/structpb"
 )
@@ -37,43 +35,12 @@ func TestRemoteStreamOwnersUseTheNativeStreamAdmissionBoundary(t *testing.T) {
 	}
 }
 
-func TestRemoteFiniteClientStreamUsesOriginalMethodMessages(t *testing.T) {
-	metadata, err := proto.Marshal(&runtimev1.WriteLocalAppAssetRequest{Frame: &runtimev1.WriteLocalAppAssetRequest_Metadata{
-		Metadata: &runtimev1.WriteLocalAppAssetMetadata{RelativePath: "input/photo.jpg", MediaType: "image/jpeg"},
-	}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	body, err := proto.Marshal(&runtimev1.WriteLocalAppAssetRequest{Frame: &runtimev1.WriteLocalAppAssetRequest_BodyChunk{BodyChunk: []byte{1, 2, 3}}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	payload, err := proto.Marshal(&runtimev1.RemoteClientStreamRequest{Messages: [][]byte{metadata, body}})
-	if err != nil {
-		t.Fatal(err)
-	}
-	messages, err := remoteClientStreamMessages(payload)
-	if err != nil || len(messages) != 2 || !bytes.Equal(messages[0], metadata) || !bytes.Equal(messages[1], body) {
-		t.Fatalf("client-stream message order changed: %v", err)
-	}
+func TestRemoteAssetWriteUsesOriginalStreamingOwner(t *testing.T) {
 	dispatcher := newRemoteDispatcher(nil, nil, nil)
 	dispatcher.register(nil, &runtimev1.RuntimeAppService_ServiceDesc)
 	method, ok := dispatcher.methods[protectedWriteLocalAppAssetMethod]
 	if !ok || method.stream == nil || !method.stream.ClientStreams || method.stream.ServerStreams || !remoteAppMethodSupported(protectedWriteLocalAppAssetMethod) {
 		t.Fatal("the existing App asset client-stream owner is unavailable")
-	}
-}
-
-func TestRemoteFiniteClientStreamRejectsMalformedOrUnboundedEnvelopes(t *testing.T) {
-	tooMany, err := proto.Marshal(&runtimev1.RemoteClientStreamRequest{Messages: make([][]byte, 2050)})
-	if err != nil {
-		t.Fatal(err)
-	}
-	unknown := protowire.AppendBytes(protowire.AppendTag(nil, 2, protowire.BytesType), []byte("unknown"))
-	for _, payload := range [][]byte{nil, {0x0a, 0xff}, unknown, tooMany} {
-		if _, err := remoteClientStreamMessages(payload); err == nil {
-			t.Fatal("invalid finite client-stream envelope was accepted")
-		}
 	}
 }
 

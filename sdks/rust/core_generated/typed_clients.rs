@@ -4129,6 +4129,10 @@ pub enum RemoteTransportFrameKind {
     REMOTETRANSPORTFRAMEKINDSTREAMEND,
     REMOTETRANSPORTFRAMEKINDERROR,
     REMOTETRANSPORTFRAMEKINDCANCEL,
+    REMOTETRANSPORTFRAMEKINDCLIENTSTREAMOPEN,
+    REMOTETRANSPORTFRAMEKINDCLIENTSTREAMDATA,
+    REMOTETRANSPORTFRAMEKINDCLIENTSTREAMEND,
+    REMOTETRANSPORTFRAMEKINDCLIENTSTREAMCREDIT,
 }
 
 impl Default for RemoteTransportFrameKind {
@@ -13754,11 +13758,6 @@ pub struct RemoteAccessSource {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RemoteClientStreamRequest {
-    pub messages: Vec<Vec<u8>>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RemoteTransportFrame {
     pub kind: Option<RemoteTransportFrameKind>,
     pub request_id: Option<u32>,
@@ -13771,6 +13770,7 @@ pub struct RemoteTransportFrame {
     pub timeout_ms: Option<u32>,
     pub trace_id: Option<String>,
     pub idempotency_key: Option<String>,
+    pub input_credits: Option<u32>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]

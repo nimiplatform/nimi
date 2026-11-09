@@ -46,12 +46,15 @@ type Call struct {
 	TimeoutMS      uint32
 	TraceID        string
 	IdempotencyKey string
+	// Input receives subsequent method messages; Payload is the first.
+	Input func(context.Context) ([]byte, error)
 }
 type Dispatcher func(context.Context, *Peer, Call, func([]byte) error) (payload []byte, stream bool, err error)
 
 type incomingCall struct {
-	call    Call
-	payload []byte
+	call         Call
+	payload      []byte
+	clientStream bool
 }
 
 // Peer carries an already-confirmed source. Its public protobuf frames cannot
@@ -69,13 +72,14 @@ type Peer struct {
 	lastRequest uint32
 	assembling  *incomingCall
 	calls       map[uint32]context.CancelFunc
+	inputs      map[uint32]*inputStream
 	sendMu      sync.Mutex
 	bufferLow   chan struct{}
 	closeOnce   sync.Once
 }
 
 // @nimi-authority: rule.nimi.runtime.remote-access.direct-transport
-func newPeer(ctx context.Context, negotiation context.Context, info PeerInfo, offer string, stunURLs []string, dispatch Dispatcher) (*Peer, string, error) {
+func newPeer(ctx context.Context, negotiation context.Context, api *webrtc.API, info PeerInfo, offer string, stunURLs []string, dispatch Dispatcher) (*Peer, string, error) {
 	if dispatch == nil || !accountservice.PrimaryRuntimeDeadlineLive(info.Deadline) || relayCandidate(offer) {
 		return nil, "", errors.New("direct connection unavailable")
 	}
@@ -88,7 +92,7 @@ func newPeer(ctx context.Context, negotiation context.Context, info PeerInfo, of
 	if len(stunURLs) > 0 {
 		configuration.ICEServers = []webrtc.ICEServer{{URLs: append([]string(nil), stunURLs...)}}
 	}
-	pc, err := webrtc.NewPeerConnection(configuration)
+	pc, err := api.NewPeerConnection(configuration)
 	if err != nil {
 		return nil, "", fmt.Errorf("create direct peer: %w", err)
 	}
@@ -255,6 +259,10 @@ func (p *Peer) Close() {
 			cancel()
 		}
 		p.calls = make(map[uint32]context.CancelFunc)
+		for _, input := range p.inputs {
+			input.finish()
+		}
+		p.inputs = nil
 		p.mu.Unlock()
 		p.cancel()
 		_ = p.pc.Close()
@@ -262,7 +270,7 @@ func (p *Peer) Close() {
 }
 
 func (p *Peer) receive(frame *runtimev1.RemoteTransportFrame) error {
-	if frame.RequestId == 0 || len(frame.Payload) > chunkBytes || frame.GrpcCode != 0 || frame.ErrorInfo != nil || frame.Message != "" {
+	if frame.RequestId == 0 || len(frame.Payload) > chunkBytes || frame.GrpcCode != 0 || frame.ErrorInfo != nil || frame.Message != "" || frame.InputCredits != 0 {
 		return errors.New("invalid direct frame")
 	}
 	p.mu.Lock()
@@ -280,21 +288,56 @@ func (p *Peer) receive(frame *runtimev1.RemoteTransportFrame) error {
 		if cancel := p.calls[frame.RequestId]; cancel != nil {
 			cancel()
 		}
+		if input := p.inputs[frame.RequestId]; input != nil {
+			input.finish()
+			delete(p.inputs, frame.RequestId)
+		}
 		return nil
 	}
-	if frame.Kind != runtimev1.RemoteTransportFrameKind_REMOTE_TRANSPORT_FRAME_KIND_REQUEST {
+	if frame.Kind == runtimev1.RemoteTransportFrameKind_REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_DATA || frame.Kind == runtimev1.RemoteTransportFrameKind_REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_END {
+		if frame.Method != "" || frame.TimeoutMs != 0 || frame.TraceId != "" || frame.IdempotencyKey != "" {
+			return errors.New("invalid upload control")
+		}
+		input := p.inputs[frame.RequestId]
+		if input == nil {
+			return errors.New("unknown upload input")
+		}
+		if frame.Kind == runtimev1.RemoteTransportFrameKind_REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_DATA {
+			return input.accept(frame.Payload, frame.ChunkEnd)
+		}
+		if !frame.ChunkEnd || len(frame.Payload) != 0 {
+			return errors.New("invalid upload end")
+		}
+		finished, err := input.end()
+		if finished {
+			delete(p.inputs, frame.RequestId)
+		}
+		return err
+	}
+	clientStream := frame.Kind == runtimev1.RemoteTransportFrameKind_REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_OPEN
+	if !clientStream && frame.Kind != runtimev1.RemoteTransportFrameKind_REMOTE_TRANSPORT_FRAME_KIND_REQUEST {
 		return errors.New("client frame kind unavailable")
 	}
+	slots := len(p.calls)
+	for id := range p.inputs {
+		if _, active := p.calls[id]; !active {
+			slots++
+		}
+	}
 	if p.assembling == nil {
-		if frame.RequestId <= p.lastRequest || frame.Method == "" || len(frame.Method) > 256 || len(frame.TraceId) > 128 || len(frame.IdempotencyKey) > 128 || len(p.calls) >= maxActiveCalls {
+		if frame.RequestId <= p.lastRequest || frame.Method == "" || len(frame.Method) > 256 || len(frame.TraceId) > 128 || len(frame.IdempotencyKey) > 128 || slots >= maxActiveCalls || frame.TimeoutMs > 0x7fffffff {
 			return errors.New("invalid or repeated direct request")
 		}
 		p.lastRequest = frame.RequestId
-		p.assembling = &incomingCall{call: Call{Method: frame.Method, RequestID: frame.RequestId, TimeoutMS: frame.TimeoutMs, TraceID: frame.TraceId, IdempotencyKey: frame.IdempotencyKey}}
-	} else if p.assembling.call.RequestID != frame.RequestId || frame.Method != "" || frame.TraceId != "" || frame.TimeoutMs != 0 || frame.IdempotencyKey != "" {
+		p.assembling = &incomingCall{clientStream: clientStream, call: Call{Method: frame.Method, RequestID: frame.RequestId, TimeoutMS: frame.TimeoutMs, TraceID: frame.TraceId, IdempotencyKey: frame.IdempotencyKey}}
+	} else if p.assembling.clientStream != clientStream || p.assembling.call.RequestID != frame.RequestId || frame.Method != "" || frame.TraceId != "" || frame.TimeoutMs != 0 || frame.IdempotencyKey != "" {
 		return errors.New("non-contiguous request fragments")
 	}
-	if len(p.assembling.payload)+len(frame.Payload) > maxMessageBytes {
+	limit := maxMessageBytes
+	if clientStream {
+		limit = maxInputMessageBytes
+	}
+	if len(p.assembling.payload)+len(frame.Payload) > limit {
 		return errors.New("direct request too large")
 	}
 	p.assembling.payload = append(p.assembling.payload, frame.Payload...)
@@ -309,13 +352,31 @@ func (p *Peer) receive(frame *runtimev1.RemoteTransportFrame) error {
 		cancel()
 		ctx, cancel = context.WithTimeout(p.ctx, time.Duration(call.TimeoutMS)*time.Millisecond)
 	}
+	if clientStream {
+		input := newInputStream(func(ctx context.Context, credits uint32) error {
+			return p.sendInputCredit(ctx, call.RequestID, credits)
+		})
+		if p.inputs == nil {
+			p.inputs = make(map[uint32]*inputStream)
+		}
+		p.inputs[call.RequestID] = input
+		call.Input = input.receive
+	}
 	p.calls[call.RequestID] = cancel
 	go p.execute(ctx, cancel, call)
 	return nil
 }
 
 func (p *Peer) execute(ctx context.Context, cancel context.CancelFunc, call Call) {
-	defer func() { cancel(); p.mu.Lock(); delete(p.calls, call.RequestID); p.mu.Unlock() }()
+	defer func() {
+		cancel()
+		p.mu.Lock()
+		defer p.mu.Unlock()
+		delete(p.calls, call.RequestID)
+		if input := p.inputs[call.RequestID]; input != nil && input.finish() {
+			delete(p.inputs, call.RequestID)
+		}
+	}()
 	if !p.Live() {
 		return
 	}
@@ -335,6 +396,12 @@ func (p *Peer) execute(ctx context.Context, cancel context.CancelFunc, call Call
 			p.sendError(call.RequestID, err)
 		}
 	}
+}
+
+func (p *Peer) sendInputCredit(ctx context.Context, id, credits uint32) error {
+	p.sendMu.Lock()
+	defer p.sendMu.Unlock()
+	return p.sendFrame(ctx, &runtimev1.RemoteTransportFrame{Kind: runtimev1.RemoteTransportFrameKind_REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_CREDIT, RequestId: id, ChunkEnd: true, InputCredits: credits})
 }
 
 func (p *Peer) sendError(id uint32, err error) {

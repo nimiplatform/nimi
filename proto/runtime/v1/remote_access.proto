@@ -98,6 +98,12 @@ enum RemoteTransportFrameKind {
   REMOTE_TRANSPORT_FRAME_KIND_STREAM_END = 4;
   REMOTE_TRANSPORT_FRAME_KIND_ERROR = 5;
   REMOTE_TRANSPORT_FRAME_KIND_CANCEL = 6;
+  // OPEN carries the first method message. DATA carries later messages;
+  // chunk_end delimits each encoded method message, not the whole upload.
+  REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_OPEN = 7;
+  REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_DATA = 8;
+  REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_END = 9;
+  REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_CREDIT = 10;
 }
 
 message RemoteTransportFrame {
@@ -114,12 +120,7 @@ message RemoteTransportFrame {
   // Non-authorizing operation control from the existing typed SDK. This is
   // never a caller identity or a promise of automatic request replay.
   string idempotency_key = 11;
-}
-
-// A finite client-stream invocation uses one assembled REQUEST payload. Runtime
-// classifies the method, then decodes each existing method-specific request.
-// Completion of this envelope supplies the request EOF; it is not a live or
-// bidirectional stream and carries no caller authority.
-message RemoteClientStreamRequest {
-  repeated bytes messages = 1;
+  // Runtime-to-client only: additional method messages the owner can accept.
+  // A fixed window bounds queued input without buffering the complete file.
+  uint32 input_credits = 12;
 }

@@ -2032,13 +2032,17 @@ const (
 type RemoteTransportFrameKind string
 
 const (
-	REMOTETRANSPORTFRAMEKINDUNSPECIFIED RemoteTransportFrameKind = "REMOTE_TRANSPORT_FRAME_KIND_UNSPECIFIED"
-	REMOTETRANSPORTFRAMEKINDREQUEST     RemoteTransportFrameKind = "REMOTE_TRANSPORT_FRAME_KIND_REQUEST"
-	REMOTETRANSPORTFRAMEKINDRESPONSE    RemoteTransportFrameKind = "REMOTE_TRANSPORT_FRAME_KIND_RESPONSE"
-	REMOTETRANSPORTFRAMEKINDSTREAMDATA  RemoteTransportFrameKind = "REMOTE_TRANSPORT_FRAME_KIND_STREAM_DATA"
-	REMOTETRANSPORTFRAMEKINDSTREAMEND   RemoteTransportFrameKind = "REMOTE_TRANSPORT_FRAME_KIND_STREAM_END"
-	REMOTETRANSPORTFRAMEKINDERROR       RemoteTransportFrameKind = "REMOTE_TRANSPORT_FRAME_KIND_ERROR"
-	REMOTETRANSPORTFRAMEKINDCANCEL      RemoteTransportFrameKind = "REMOTE_TRANSPORT_FRAME_KIND_CANCEL"
+	REMOTETRANSPORTFRAMEKINDUNSPECIFIED        RemoteTransportFrameKind = "REMOTE_TRANSPORT_FRAME_KIND_UNSPECIFIED"
+	REMOTETRANSPORTFRAMEKINDREQUEST            RemoteTransportFrameKind = "REMOTE_TRANSPORT_FRAME_KIND_REQUEST"
+	REMOTETRANSPORTFRAMEKINDRESPONSE           RemoteTransportFrameKind = "REMOTE_TRANSPORT_FRAME_KIND_RESPONSE"
+	REMOTETRANSPORTFRAMEKINDSTREAMDATA         RemoteTransportFrameKind = "REMOTE_TRANSPORT_FRAME_KIND_STREAM_DATA"
+	REMOTETRANSPORTFRAMEKINDSTREAMEND          RemoteTransportFrameKind = "REMOTE_TRANSPORT_FRAME_KIND_STREAM_END"
+	REMOTETRANSPORTFRAMEKINDERROR              RemoteTransportFrameKind = "REMOTE_TRANSPORT_FRAME_KIND_ERROR"
+	REMOTETRANSPORTFRAMEKINDCANCEL             RemoteTransportFrameKind = "REMOTE_TRANSPORT_FRAME_KIND_CANCEL"
+	REMOTETRANSPORTFRAMEKINDCLIENTSTREAMOPEN   RemoteTransportFrameKind = "REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_OPEN"
+	REMOTETRANSPORTFRAMEKINDCLIENTSTREAMDATA   RemoteTransportFrameKind = "REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_DATA"
+	REMOTETRANSPORTFRAMEKINDCLIENTSTREAMEND    RemoteTransportFrameKind = "REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_END"
+	REMOTETRANSPORTFRAMEKINDCLIENTSTREAMCREDIT RemoteTransportFrameKind = "REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_CREDIT"
 )
 
 type ResponseFormatKind string
@@ -8541,10 +8545,6 @@ type RemoteAccessSource struct {
 	PendingRequestId       string                  `json:"pending_request_id,omitempty"`
 }
 
-type RemoteClientStreamRequest struct {
-	Messages [][]byte `json:"messages,omitempty"`
-}
-
 type RemoteTransportFrame struct {
 	Kind           RemoteTransportFrameKind `json:"kind,omitempty"`
 	RequestId      uint32                   `json:"request_id,omitempty"`
@@ -8557,6 +8557,7 @@ type RemoteTransportFrame struct {
 	TimeoutMs      uint32                   `json:"timeout_ms,omitempty"`
 	TraceId        string                   `json:"trace_id,omitempty"`
 	IdempotencyKey string                   `json:"idempotency_key,omitempty"`
+	InputCredits   uint32                   `json:"input_credits,omitempty"`
 }
 
 type RemoveIntegrationConnectionRequest struct {

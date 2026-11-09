@@ -61,7 +61,9 @@ export async function runLabCapability(
     createScenarioJobClient: dependencies.createScenarioJobClient,
     runners: dependencies.runners,
     nonSuccess: capabilityNonSuccess,
-    onMissingHandler: (context) => context.capability.id === 'world.generate'
+    onMissingHandler: (context) => context.capability.id === 'app.assets'
+      ? capabilityNonSuccess(context.capability, 'sdk-method-unavailable', t('CapabilityTests.appFiles.usePage'))
+      : context.capability.id === 'world.generate'
       ? capabilityNonSuccess(
           context.capability,
           'sdk-method-unavailable',

@@ -1,3 +1,4 @@
+import { labAppFilesCapability } from './lab-only/app-files-registration.js';
 import { composeAIStudioModules, type StudioCapabilityRegistration } from '../ai-studio-core/module-registration.js';
 import type { StudioParameterState } from '../ai-studio-core/parameters.js';
 import { studioCreateModule } from '../studio-modules/studio-create/registration.js';
@@ -18,6 +19,7 @@ const allCapabilities = Object.freeze([
   ...labAIStudioComposition.capabilities,
   labWorldTourCapability,
   ...labCapabilityTestRegistrations,
+  labAppFilesCapability,
 ]);
 
 export const labStudioComposition = Object.freeze({

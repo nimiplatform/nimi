@@ -56,7 +56,7 @@ and native sources do not automatically merge their files or workspaces.
 - Native App Access diagnostics, Integration/activity pages, realtime media
   sessions and World Tour remain unavailable in this first browser carrier.
   Uploaded inputs and text annotation documents use managed App asset storage;
-  each remote write is a finite upload of at most 32 MiB, without upload resumption.
+  remote writes stream within bounded owner-issued input credits; existing Runtime storage limits apply, without upload resumption.
   Web exports text and existing owned assets through the
   browser's download flow; it does not open folders on the PC Runtime host.
   The native capability coverage below is unchanged.
@@ -144,3 +144,10 @@ The Conversation and Session Hook entries preserve original records and native c
 ### Web account access
 
 The Web entry composes the shared `auth/app/web` factory and `auth/app` account control/gate. Identity remains separate from Runtime connectivity. Lab no longer owns a separate remote login controller. Native-only file actions stay outside the portable App operation type; browser results use the existing export/download port.
+
+
+### Direct App file transfers
+
+The Lab-only **App files** page under Image, video & files uses the same public `storage.assets.write/read` operations in native and Web entries. It streams the selected file into a new private Lab asset, waits for the owner commit, then compares every read-back byte with the original file. The visible upload counter is source bytes read, not a commit acknowledgement. Results and errors stay in the current page; binary content is not written to AI run history, and this entry adds no model capability or public scaffold feature.
+
+For interrupted transfers, keep the displayed App-relative path, disconnect the Web connection, reconnect through the existing account flow, select the original file and choose **Verify existing file**. That action never re-uploads. A canceled upload must not leave a committed prefix. Test assets use `lab-transfer-tests/`; this is App-private Runtime storage, not a new persistence service or proof ledger.

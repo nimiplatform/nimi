@@ -143,27 +143,41 @@ const (
 	RemoteTransportFrameKind_REMOTE_TRANSPORT_FRAME_KIND_STREAM_END  RemoteTransportFrameKind = 4
 	RemoteTransportFrameKind_REMOTE_TRANSPORT_FRAME_KIND_ERROR       RemoteTransportFrameKind = 5
 	RemoteTransportFrameKind_REMOTE_TRANSPORT_FRAME_KIND_CANCEL      RemoteTransportFrameKind = 6
+	// OPEN carries the first method message. DATA carries later messages;
+	// chunk_end delimits each encoded method message, not the whole upload.
+	RemoteTransportFrameKind_REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_OPEN   RemoteTransportFrameKind = 7
+	RemoteTransportFrameKind_REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_DATA   RemoteTransportFrameKind = 8
+	RemoteTransportFrameKind_REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_END    RemoteTransportFrameKind = 9
+	RemoteTransportFrameKind_REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_CREDIT RemoteTransportFrameKind = 10
 )
 
 // Enum value maps for RemoteTransportFrameKind.
 var (
 	RemoteTransportFrameKind_name = map[int32]string{
-		0: "REMOTE_TRANSPORT_FRAME_KIND_UNSPECIFIED",
-		1: "REMOTE_TRANSPORT_FRAME_KIND_REQUEST",
-		2: "REMOTE_TRANSPORT_FRAME_KIND_RESPONSE",
-		3: "REMOTE_TRANSPORT_FRAME_KIND_STREAM_DATA",
-		4: "REMOTE_TRANSPORT_FRAME_KIND_STREAM_END",
-		5: "REMOTE_TRANSPORT_FRAME_KIND_ERROR",
-		6: "REMOTE_TRANSPORT_FRAME_KIND_CANCEL",
+		0:  "REMOTE_TRANSPORT_FRAME_KIND_UNSPECIFIED",
+		1:  "REMOTE_TRANSPORT_FRAME_KIND_REQUEST",
+		2:  "REMOTE_TRANSPORT_FRAME_KIND_RESPONSE",
+		3:  "REMOTE_TRANSPORT_FRAME_KIND_STREAM_DATA",
+		4:  "REMOTE_TRANSPORT_FRAME_KIND_STREAM_END",
+		5:  "REMOTE_TRANSPORT_FRAME_KIND_ERROR",
+		6:  "REMOTE_TRANSPORT_FRAME_KIND_CANCEL",
+		7:  "REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_OPEN",
+		8:  "REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_DATA",
+		9:  "REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_END",
+		10: "REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_CREDIT",
 	}
 	RemoteTransportFrameKind_value = map[string]int32{
-		"REMOTE_TRANSPORT_FRAME_KIND_UNSPECIFIED": 0,
-		"REMOTE_TRANSPORT_FRAME_KIND_REQUEST":     1,
-		"REMOTE_TRANSPORT_FRAME_KIND_RESPONSE":    2,
-		"REMOTE_TRANSPORT_FRAME_KIND_STREAM_DATA": 3,
-		"REMOTE_TRANSPORT_FRAME_KIND_STREAM_END":  4,
-		"REMOTE_TRANSPORT_FRAME_KIND_ERROR":       5,
-		"REMOTE_TRANSPORT_FRAME_KIND_CANCEL":      6,
+		"REMOTE_TRANSPORT_FRAME_KIND_UNSPECIFIED":          0,
+		"REMOTE_TRANSPORT_FRAME_KIND_REQUEST":              1,
+		"REMOTE_TRANSPORT_FRAME_KIND_RESPONSE":             2,
+		"REMOTE_TRANSPORT_FRAME_KIND_STREAM_DATA":          3,
+		"REMOTE_TRANSPORT_FRAME_KIND_STREAM_END":           4,
+		"REMOTE_TRANSPORT_FRAME_KIND_ERROR":                5,
+		"REMOTE_TRANSPORT_FRAME_KIND_CANCEL":               6,
+		"REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_OPEN":   7,
+		"REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_DATA":   8,
+		"REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_END":    9,
+		"REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_CREDIT": 10,
 	}
 )
 
@@ -861,8 +875,11 @@ type RemoteTransportFrame struct {
 	// Non-authorizing operation control from the existing typed SDK. This is
 	// never a caller identity or a promise of automatic request replay.
 	IdempotencyKey string `protobuf:"bytes,11,opt,name=idempotency_key,json=idempotencyKey,proto3" json:"idempotency_key,omitempty"`
-	unknownFields  protoimpl.UnknownFields
-	sizeCache      protoimpl.SizeCache
+	// Runtime-to-client only: additional method messages the owner can accept.
+	// A fixed window bounds queued input without buffering the complete file.
+	InputCredits  uint32 `protobuf:"varint,12,opt,name=input_credits,json=inputCredits,proto3" json:"input_credits,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *RemoteTransportFrame) Reset() {
@@ -972,52 +989,11 @@ func (x *RemoteTransportFrame) GetIdempotencyKey() string {
 	return ""
 }
 
-// A finite client-stream invocation uses one assembled REQUEST payload. Runtime
-// classifies the method, then decodes each existing method-specific request.
-// Completion of this envelope supplies the request EOF; it is not a live or
-// bidirectional stream and carries no caller authority.
-type RemoteClientStreamRequest struct {
-	state         protoimpl.MessageState `protogen:"open.v1"`
-	Messages      [][]byte               `protobuf:"bytes,1,rep,name=messages,proto3" json:"messages,omitempty"`
-	unknownFields protoimpl.UnknownFields
-	sizeCache     protoimpl.SizeCache
-}
-
-func (x *RemoteClientStreamRequest) Reset() {
-	*x = RemoteClientStreamRequest{}
-	mi := &file_runtime_v1_remote_access_proto_msgTypes[12]
-	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-	ms.StoreMessageInfo(mi)
-}
-
-func (x *RemoteClientStreamRequest) String() string {
-	return protoimpl.X.MessageStringOf(x)
-}
-
-func (*RemoteClientStreamRequest) ProtoMessage() {}
-
-func (x *RemoteClientStreamRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_runtime_v1_remote_access_proto_msgTypes[12]
+func (x *RemoteTransportFrame) GetInputCredits() uint32 {
 	if x != nil {
-		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
-		if ms.LoadMessageInfo() == nil {
-			ms.StoreMessageInfo(mi)
-		}
-		return ms
+		return x.InputCredits
 	}
-	return mi.MessageOf(x)
-}
-
-// Deprecated: Use RemoteClientStreamRequest.ProtoReflect.Descriptor instead.
-func (*RemoteClientStreamRequest) Descriptor() ([]byte, []int) {
-	return file_runtime_v1_remote_access_proto_rawDescGZIP(), []int{12}
-}
-
-func (x *RemoteClientStreamRequest) GetMessages() [][]byte {
-	if x != nil {
-		return x.Messages
-	}
-	return nil
+	return 0
 }
 
 var File_runtime_v1_remote_access_proto protoreflect.FileDescriptor
@@ -1071,7 +1047,7 @@ const file_runtime_v1_remote_access_proto_rawDesc = "" +
 	"\x13expected_binding_id\x18\x03 \x01(\tR\x11expectedBindingId\"\xab\x01\n" +
 	"\x1dSetRemoteSourcePausedResponse\x12C\n" +
 	"\x05state\x18\x01 \x01(\v2-.nimi.runtime.v1.GetRemoteAccessStateResponseR\x05state\x12E\n" +
-	"\x10audit_diagnostic\x18\x02 \x01(\v2\x1a.nimi.runtime.v1.ErrorInfoR\x0fauditDiagnostic\"\x98\x03\n" +
+	"\x10audit_diagnostic\x18\x02 \x01(\v2\x1a.nimi.runtime.v1.ErrorInfoR\x0fauditDiagnostic\"\xbd\x03\n" +
 	"\x14RemoteTransportFrame\x12=\n" +
 	"\x04kind\x18\x01 \x01(\x0e2).nimi.runtime.v1.RemoteTransportFrameKindR\x04kind\x12\x1d\n" +
 	"\n" +
@@ -1087,9 +1063,8 @@ const file_runtime_v1_remote_access_proto_rawDesc = "" +
 	"timeout_ms\x18\t \x01(\rR\ttimeoutMs\x12\x19\n" +
 	"\btrace_id\x18\n" +
 	" \x01(\tR\atraceId\x12'\n" +
-	"\x0fidempotency_key\x18\v \x01(\tR\x0eidempotencyKey\"7\n" +
-	"\x19RemoteClientStreamRequest\x12\x1a\n" +
-	"\bmessages\x18\x01 \x03(\fR\bmessages*\x87\x02\n" +
+	"\x0fidempotency_key\x18\v \x01(\tR\x0eidempotencyKey\x12#\n" +
+	"\rinput_credits\x18\f \x01(\rR\finputCredits*\x87\x02\n" +
 	"\x1bRemoteAccessConnectionState\x12.\n" +
 	"*REMOTE_ACCESS_CONNECTION_STATE_UNSPECIFIED\x10\x00\x12+\n" +
 	"'REMOTE_ACCESS_CONNECTION_STATE_DISABLED\x10\x01\x12-\n" +
@@ -1101,7 +1076,7 @@ const file_runtime_v1_remote_access_proto_rawDesc = "" +
 	"\"REMOTE_SOURCE_ACCESS_STATE_PENDING\x10\x01\x12&\n" +
 	"\"REMOTE_SOURCE_ACCESS_STATE_ALLOWED\x10\x02\x12%\n" +
 	"!REMOTE_SOURCE_ACCESS_STATE_PAUSED\x10\x03\x12&\n" +
-	"\"REMOTE_SOURCE_ACCESS_STATE_CHANGED\x10\x04*\xc2\x02\n" +
+	"\"REMOTE_SOURCE_ACCESS_STATE_CHANGED\x10\x04*\x93\x04\n" +
 	"\x18RemoteTransportFrameKind\x12+\n" +
 	"'REMOTE_TRANSPORT_FRAME_KIND_UNSPECIFIED\x10\x00\x12'\n" +
 	"#REMOTE_TRANSPORT_FRAME_KIND_REQUEST\x10\x01\x12(\n" +
@@ -1109,7 +1084,12 @@ const file_runtime_v1_remote_access_proto_rawDesc = "" +
 	"'REMOTE_TRANSPORT_FRAME_KIND_STREAM_DATA\x10\x03\x12*\n" +
 	"&REMOTE_TRANSPORT_FRAME_KIND_STREAM_END\x10\x04\x12%\n" +
 	"!REMOTE_TRANSPORT_FRAME_KIND_ERROR\x10\x05\x12&\n" +
-	"\"REMOTE_TRANSPORT_FRAME_KIND_CANCEL\x10\x062\xe5\x04\n" +
+	"\"REMOTE_TRANSPORT_FRAME_KIND_CANCEL\x10\x06\x122\n" +
+	".REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_OPEN\x10\a\x122\n" +
+	".REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_DATA\x10\b\x121\n" +
+	"-REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_END\x10\t\x124\n" +
+	"0REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_CREDIT\x10\n" +
+	"2\xe5\x04\n" +
 	"\x1aRuntimeRemoteAccessService\x12s\n" +
 	"\x14GetRemoteAccessState\x12,.nimi.runtime.v1.GetRemoteAccessStateRequest\x1a-.nimi.runtime.v1.GetRemoteAccessStateResponse\x12y\n" +
 	"\x16SetRemoteAccessEnabled\x12..nimi.runtime.v1.SetRemoteAccessEnabledRequest\x1a/.nimi.runtime.v1.SetRemoteAccessEnabledResponse\x12p\n" +
@@ -1130,7 +1110,7 @@ func file_runtime_v1_remote_access_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_remote_access_proto_enumTypes = make([]protoimpl.EnumInfo, 3)
-var file_runtime_v1_remote_access_proto_msgTypes = make([]protoimpl.MessageInfo, 13)
+var file_runtime_v1_remote_access_proto_msgTypes = make([]protoimpl.MessageInfo, 12)
 var file_runtime_v1_remote_access_proto_goTypes = []any{
 	(RemoteAccessConnectionState)(0),       // 0: nimi.runtime.v1.RemoteAccessConnectionState
 	(RemoteSourceAccessState)(0),           // 1: nimi.runtime.v1.RemoteSourceAccessState
@@ -1147,22 +1127,21 @@ var file_runtime_v1_remote_access_proto_goTypes = []any{
 	(*SetRemoteSourcePausedRequest)(nil),   // 12: nimi.runtime.v1.SetRemoteSourcePausedRequest
 	(*SetRemoteSourcePausedResponse)(nil),  // 13: nimi.runtime.v1.SetRemoteSourcePausedResponse
 	(*RemoteTransportFrame)(nil),           // 14: nimi.runtime.v1.RemoteTransportFrame
-	(*RemoteClientStreamRequest)(nil),      // 15: nimi.runtime.v1.RemoteClientStreamRequest
-	(*ErrorInfo)(nil),                      // 16: nimi.runtime.v1.ErrorInfo
+	(*ErrorInfo)(nil),                      // 15: nimi.runtime.v1.ErrorInfo
 }
 var file_runtime_v1_remote_access_proto_depIdxs = []int32{
 	1,  // 0: nimi.runtime.v1.RemoteAccessSource.state:type_name -> nimi.runtime.v1.RemoteSourceAccessState
 	0,  // 1: nimi.runtime.v1.GetRemoteAccessStateResponse.connection_state:type_name -> nimi.runtime.v1.RemoteAccessConnectionState
 	3,  // 2: nimi.runtime.v1.GetRemoteAccessStateResponse.sources:type_name -> nimi.runtime.v1.RemoteAccessSource
 	5,  // 3: nimi.runtime.v1.SetRemoteAccessEnabledResponse.state:type_name -> nimi.runtime.v1.GetRemoteAccessStateResponse
-	16, // 4: nimi.runtime.v1.SetRemoteAccessEnabledResponse.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
+	15, // 4: nimi.runtime.v1.SetRemoteAccessEnabledResponse.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
 	5,  // 5: nimi.runtime.v1.ConfirmRemoteSourceResponse.state:type_name -> nimi.runtime.v1.GetRemoteAccessStateResponse
-	16, // 6: nimi.runtime.v1.ConfirmRemoteSourceResponse.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
+	15, // 6: nimi.runtime.v1.ConfirmRemoteSourceResponse.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
 	5,  // 7: nimi.runtime.v1.RejectRemoteSourceResponse.state:type_name -> nimi.runtime.v1.GetRemoteAccessStateResponse
 	5,  // 8: nimi.runtime.v1.SetRemoteSourcePausedResponse.state:type_name -> nimi.runtime.v1.GetRemoteAccessStateResponse
-	16, // 9: nimi.runtime.v1.SetRemoteSourcePausedResponse.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
+	15, // 9: nimi.runtime.v1.SetRemoteSourcePausedResponse.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
 	2,  // 10: nimi.runtime.v1.RemoteTransportFrame.kind:type_name -> nimi.runtime.v1.RemoteTransportFrameKind
-	16, // 11: nimi.runtime.v1.RemoteTransportFrame.error_info:type_name -> nimi.runtime.v1.ErrorInfo
+	15, // 11: nimi.runtime.v1.RemoteTransportFrame.error_info:type_name -> nimi.runtime.v1.ErrorInfo
 	4,  // 12: nimi.runtime.v1.RuntimeRemoteAccessService.GetRemoteAccessState:input_type -> nimi.runtime.v1.GetRemoteAccessStateRequest
 	6,  // 13: nimi.runtime.v1.RuntimeRemoteAccessService.SetRemoteAccessEnabled:input_type -> nimi.runtime.v1.SetRemoteAccessEnabledRequest
 	8,  // 14: nimi.runtime.v1.RuntimeRemoteAccessService.ConfirmRemoteSource:input_type -> nimi.runtime.v1.ConfirmRemoteSourceRequest
@@ -1192,7 +1171,7 @@ func file_runtime_v1_remote_access_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_remote_access_proto_rawDesc), len(file_runtime_v1_remote_access_proto_rawDesc)),
 			NumEnums:      3,
-			NumMessages:   13,
+			NumMessages:   12,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

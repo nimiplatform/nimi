@@ -246,20 +246,13 @@ export interface RemoteTransportFrame {
      * @generated from protobuf field: string idempotency_key = 11
      */
     idempotencyKey: string;
-}
-/**
- * A finite client-stream invocation uses one assembled REQUEST payload. Runtime
- * classifies the method, then decodes each existing method-specific request.
- * Completion of this envelope supplies the request EOF; it is not a live or
- * bidirectional stream and carries no caller authority.
- *
- * @generated from protobuf message nimi.runtime.v1.RemoteClientStreamRequest
- */
-export interface RemoteClientStreamRequest {
     /**
-     * @generated from protobuf field: repeated bytes messages = 1
+     * Runtime-to-client only: additional method messages the owner can accept.
+     * A fixed window bounds queued input without buffering the complete file.
+     *
+     * @generated from protobuf field: uint32 input_credits = 12
      */
-    messages: Uint8Array[];
+    inputCredits: number;
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.RemoteAccessConnectionState
@@ -345,7 +338,26 @@ export enum RemoteTransportFrameKind {
     /**
      * @generated from protobuf enum value: REMOTE_TRANSPORT_FRAME_KIND_CANCEL = 6;
      */
-    CANCEL = 6
+    CANCEL = 6,
+    /**
+     * OPEN carries the first method message. DATA carries later messages;
+     * chunk_end delimits each encoded method message, not the whole upload.
+     *
+     * @generated from protobuf enum value: REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_OPEN = 7;
+     */
+    CLIENT_STREAM_OPEN = 7,
+    /**
+     * @generated from protobuf enum value: REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_DATA = 8;
+     */
+    CLIENT_STREAM_DATA = 8,
+    /**
+     * @generated from protobuf enum value: REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_END = 9;
+     */
+    CLIENT_STREAM_END = 9,
+    /**
+     * @generated from protobuf enum value: REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_CREDIT = 10;
+     */
+    CLIENT_STREAM_CREDIT = 10
 }
 // @generated message type with reflection information, may provide speed optimized methods
 class RemoteAccessSource$Type extends MessageType<RemoteAccessSource> {
@@ -1038,7 +1050,8 @@ class RemoteTransportFrame$Type extends MessageType<RemoteTransportFrame> {
             { no: 8, name: "error_info", kind: "message", T: () => ErrorInfo },
             { no: 9, name: "timeout_ms", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
             { no: 10, name: "trace_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 11, name: "idempotency_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 11, name: "idempotency_key", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 12, name: "input_credits", kind: "scalar", T: 13 /*ScalarType.UINT32*/ }
         ]);
     }
     create(value?: PartialMessage<RemoteTransportFrame>): RemoteTransportFrame {
@@ -1053,6 +1066,7 @@ class RemoteTransportFrame$Type extends MessageType<RemoteTransportFrame> {
         message.timeoutMs = 0;
         message.traceId = "";
         message.idempotencyKey = "";
+        message.inputCredits = 0;
         if (value !== undefined)
             reflectionMergePartial<RemoteTransportFrame>(this, message, value);
         return message;
@@ -1094,6 +1108,9 @@ class RemoteTransportFrame$Type extends MessageType<RemoteTransportFrame> {
                     break;
                 case /* string idempotency_key */ 11:
                     message.idempotencyKey = reader.string();
+                    break;
+                case /* uint32 input_credits */ 12:
+                    message.inputCredits = reader.uint32();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -1140,6 +1157,9 @@ class RemoteTransportFrame$Type extends MessageType<RemoteTransportFrame> {
         /* string idempotency_key = 11; */
         if (message.idempotencyKey !== "")
             writer.tag(11, WireType.LengthDelimited).string(message.idempotencyKey);
+        /* uint32 input_credits = 12; */
+        if (message.inputCredits !== 0)
+            writer.tag(12, WireType.Varint).uint32(message.inputCredits);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -1150,50 +1170,3 @@ class RemoteTransportFrame$Type extends MessageType<RemoteTransportFrame> {
  * @generated MessageType for protobuf message nimi.runtime.v1.RemoteTransportFrame
  */
 export const RemoteTransportFrame = new RemoteTransportFrame$Type();
-// @generated message type with reflection information, may provide speed optimized methods
-class RemoteClientStreamRequest$Type extends MessageType<RemoteClientStreamRequest> {
-    constructor() {
-        super("nimi.runtime.v1.RemoteClientStreamRequest", [
-            { no: 1, name: "messages", kind: "scalar", repeat: 2 /*RepeatType.UNPACKED*/, T: 12 /*ScalarType.BYTES*/ }
-        ]);
-    }
-    create(value?: PartialMessage<RemoteClientStreamRequest>): RemoteClientStreamRequest {
-        const message = globalThis.Object.create((this.messagePrototype!));
-        message.messages = [];
-        if (value !== undefined)
-            reflectionMergePartial<RemoteClientStreamRequest>(this, message, value);
-        return message;
-    }
-    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: RemoteClientStreamRequest): RemoteClientStreamRequest {
-        let message = target ?? this.create(), end = reader.pos + length;
-        while (reader.pos < end) {
-            let [fieldNo, wireType] = reader.tag();
-            switch (fieldNo) {
-                case /* repeated bytes messages */ 1:
-                    message.messages.push(reader.bytes());
-                    break;
-                default:
-                    let u = options.readUnknownField;
-                    if (u === "throw")
-                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
-                    let d = reader.skip(wireType);
-                    if (u !== false)
-                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
-            }
-        }
-        return message;
-    }
-    internalBinaryWrite(message: RemoteClientStreamRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
-        /* repeated bytes messages = 1; */
-        for (let i = 0; i < message.messages.length; i++)
-            writer.tag(1, WireType.LengthDelimited).bytes(message.messages[i]);
-        let u = options.writeUnknownFields;
-        if (u !== false)
-            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
-        return writer;
-    }
-}
-/**
- * @generated MessageType for protobuf message nimi.runtime.v1.RemoteClientStreamRequest
- */
-export const RemoteClientStreamRequest = new RemoteClientStreamRequest$Type();

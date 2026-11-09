@@ -5,7 +5,7 @@
     "capabilityNavigationDescription": "按能力分类浏览与测试",
     "groups": {
       "textConversation": "文本与对话",
-      "imageVideo": "图像与视频",
+      "imageVideo": "图像、视频与文件",
       "voiceMusic": "语音与音乐",
       "worlds": "世界与 3D",
       "agents": "Agent 工作流",

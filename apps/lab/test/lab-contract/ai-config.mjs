@@ -131,6 +131,7 @@ test('every canonical capability has a formal Lab entry through the existing inv
 test('lab-only capability tests join the existing section-based navigation without public scaffold admission', async () => {
   const { workbenchNavGroups } = await importBehaviorModule('lab/workbench/workbench-context.js');
   const groupOf = (id) => workbenchNavGroups.find((group) => group.capabilityIds.includes(id))?.id;
+  assert.equal(groupOf('app.assets'), 'image-video');
   assert.equal(groupOf('text.annotate'), 'text');
   assert.equal(groupOf('text.tools'), 'text');
   assert.equal(groupOf('text.decide'), 'text');
@@ -140,7 +141,7 @@ test('lab-only capability tests join the existing section-based navigation witho
   assert.equal(groupOf('video.face_swap'), 'image-video');
   assert.equal(groupOf('realtime.interact'), 'voice-music');
   const scaffold = readFileSync(path.join(root, '../../app-tools/lib/app-scaffold-capabilities.mjs'), 'utf8');
-  for (const id of ['text.annotate', 'text.tools', 'text.decide', 'text.conversation', 'text.chat-session', 'image.face_swap', 'video.face_swap', 'realtime.interact']) {
+  for (const id of ['app.assets', 'text.annotate', 'text.tools', 'text.decide', 'text.conversation', 'text.chat-session', 'image.face_swap', 'video.face_swap', 'realtime.interact']) {
     assert.equal(scaffold.includes(`'${id}'`), false, `${id} stays out of public scaffold admission`);
   }
   for (const relative of ['src/ai-studio-core', 'src/studio-modules']) {

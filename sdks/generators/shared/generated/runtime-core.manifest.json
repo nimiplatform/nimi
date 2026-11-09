@@ -8641,7 +8641,6 @@
       "RejectRemoteSourceRequest",
       "RejectRemoteSourceResponse",
       "RemoteAccessSource",
-      "RemoteClientStreamRequest",
       "RemoteTransportFrame",
       "RemoveIntegrationConnectionRequest",
       "RemoveIntegrationConnectionResponse",
@@ -39223,19 +39222,6 @@
         "source_file": "proto/runtime/v1/remote_access.proto"
       },
       {
-        "name": "RemoteClientStreamRequest",
-        "fields": [
-          {
-            "name": "messages",
-            "type": "bytes",
-            "repeated": true,
-            "optional": false,
-            "number": 1
-          }
-        ],
-        "source_file": "proto/runtime/v1/remote_access.proto"
-      },
-      {
         "name": "RemoteTransportFrame",
         "fields": [
           {
@@ -39314,6 +39300,13 @@
             "repeated": false,
             "optional": false,
             "number": 11
+          },
+          {
+            "name": "input_credits",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 12
           }
         ],
         "source_file": "proto/runtime/v1/remote_access.proto"
@@ -50100,7 +50093,11 @@
           "REMOTE_TRANSPORT_FRAME_KIND_STREAM_DATA",
           "REMOTE_TRANSPORT_FRAME_KIND_STREAM_END",
           "REMOTE_TRANSPORT_FRAME_KIND_ERROR",
-          "REMOTE_TRANSPORT_FRAME_KIND_CANCEL"
+          "REMOTE_TRANSPORT_FRAME_KIND_CANCEL",
+          "REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_OPEN",
+          "REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_DATA",
+          "REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_END",
+          "REMOTE_TRANSPORT_FRAME_KIND_CLIENT_STREAM_CREDIT"
         ],
         "source_file": "proto/runtime/v1/remote_access.proto"
       },

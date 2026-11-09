@@ -440,6 +440,21 @@
       "pending": "Extracting speaker representation…",
       "completed": "Created a {{dimensions}}-dimensional speaker representation.",
       "resultInvalid": "Runtime did not return a valid vector and representation space."
+    },
+    "appFiles": {
+      "title": "App files",
+      "intro": "Write a file through the current App client, then compare its streamed read-back byte for byte. Runtime owns file limits, quotas and final commit.",
+      "file": "Selected file",
+      "path": "App asset path",
+      "upload": "Upload and verify",
+      "verify": "Verify existing file",
+      "uploading": "Reading for upload (not committed yet)",
+      "checking": "Comparing read-back",
+      "bytes": "bytes",
+      "passed": "The complete read-back matches the selected file.",
+      "failed": "The transfer or verification did not complete.",
+      "footnote": "These are private Lab test assets. To check an interrupted upload, keep its path, reconnect, select the same file and verify the existing path. Verification never resubmits it. This page does not save binary content in AI run history.",
+      "usePage": "Use the App files page to write and verify an owned asset."
     }
   }
 }

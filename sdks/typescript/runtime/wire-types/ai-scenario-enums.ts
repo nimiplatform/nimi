@@ -415,6 +415,10 @@ export enum RemoteTransportFrameKind {
   STREAM_END = 4,
   ERROR = 5,
   CANCEL = 6,
+  CLIENT_STREAM_OPEN = 7,
+  CLIENT_STREAM_DATA = 8,
+  CLIENT_STREAM_END = 9,
+  CLIENT_STREAM_CREDIT = 10,
 }
 
 export enum ResponseFormatKind {

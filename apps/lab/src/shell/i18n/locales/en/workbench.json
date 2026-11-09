@@ -5,7 +5,7 @@
     "capabilityNavigationDescription": "Explore and test by capability",
     "groups": {
       "textConversation": "Text & conversation",
-      "imageVideo": "Image & video",
+      "imageVideo": "Image, video & files",
       "voiceMusic": "Voice & music",
       "worlds": "Worlds & 3D",
       "agents": "Agent workflows",

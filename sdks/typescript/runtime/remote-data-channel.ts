@@ -2,7 +2,7 @@ import type { CoreTransport } from '../core-client/index.js';
 import type { CoreUnaryRequest, CoreStreamRequest, CoreClientStreamRequest } from '../types/index.js';
 import { createNimiError } from '../types/index.js';
 import { getRuntimeWireCodec, type RuntimeWireCodec } from '../core-generated/runtime-wire-codecs.js';
-import { RemoteClientStreamRequest, RemoteTransportFrame, RemoteTransportFrameKind as Kind } from '../core-generated/runtime-protobuf/runtime/v1/remote_access.js';
+import { RemoteTransportFrame, RemoteTransportFrameKind as Kind } from '../core-generated/runtime-protobuf/runtime/v1/remote_access.js';
 import { ReasonCode } from '../core-generated/runtime-protobuf/runtime/v1/common.js';
 
 /** A platform adapter carries bytes and events only. It supplies no Runtime
@@ -20,11 +20,13 @@ export interface RuntimeDataChannel {
 
 const CHUNK_BYTES = 16 * 1024;
 const MAX_MESSAGE_BYTES = 33 * 1024 * 1024;
-const MAX_CLIENT_STREAM_MESSAGES = 1 + (32 * 1024 * 1024 / CHUNK_BYTES);
+const INPUT_WINDOW = 4;
+const MAX_INPUT_MESSAGE_BYTES = (1024 * 1024) + 8192;
 type Request = CoreUnaryRequest | CoreStreamRequest | CoreClientStreamRequest;
 type Pending = {
   id: number; request: Request; codec: RuntimeWireCodec; stream: boolean; sent: boolean; done: boolean; error?: unknown;
   pieces: Uint8Array[]; size: number; queue: Uint8Array[]; queuedBytes: number; wake?: () => void; cleanup: () => void; stop: AbortController;
+  input?: { credits: number; wake?: () => void; ended: boolean };
 };
 
 // @nimi-authority: rule.nimi.runtime.remote-access.direct-transport
@@ -103,7 +105,7 @@ export class RuntimeDataChannelTransport implements CoreTransport {
     if (codec.kind !== (clientStream ? 'client_stream' : stream ? 'server_stream' : 'unary')) throw protocolError('Unsupported direct call kind.');
     const encoded = clientStream ? undefined : codec.encodeRequest(request.body);
     if (encoded && encoded.byteLength > MAX_MESSAGE_BYTES) throw protocolError('Direct request is too large.');
-    const pending: Pending = { id: this.#nextId++, request, codec, stream, sent: false, done: false, pieces: [], size: 0, queue: [], queuedBytes: 0, cleanup: () => undefined, stop: new AbortController() };
+    const pending: Pending = { id: this.#nextId++, request, codec, stream, sent: false, done: false, pieces: [], size: 0, queue: [], queuedBytes: 0, cleanup: () => undefined, stop: new AbortController(), ...(clientStream ? { input: { credits: 0, ended: false } } : {}) };
     const abort = () => this.#cancel(pending);
     request.signal?.addEventListener('abort', abort, { once: true });
     const timer = request.timeoutMs ? setTimeout(() => this.#cancel(pending, createNimiError({ message: 'Runtime call timed out; its business outcome may need to be queried.', reasonCode: 'SDK_RUNTIME_REQUEST_TIMEOUT', source: 'sdk' })), request.timeoutMs) : undefined;
@@ -111,51 +113,82 @@ export class RuntimeDataChannelTransport implements CoreTransport {
     this.#pending.set(pending.id, pending);
     this.#sending = this.#sending.then(async () => {
       if (pending.done || this.#closed) return;
-      const payload = encoded ?? await this.#clientStreamPayload(pending);
-      for (let offset = 0;;) {
-        if (pending.done || this.#closed) return;
-        if (!this.#current()) { this.close(); return; }
-        await this.#drain();
-        if (pending.done || this.#closed) return;
-        if (!this.#current()) { this.close(); return; }
-        const end = Math.min(offset + CHUNK_BYTES, payload.byteLength);
-        const frame = RemoteTransportFrame.create({ kind: Kind.REQUEST, requestId: pending.id, method: offset === 0 ? request.methodId : '',
-          payload: payload.subarray(offset, end), chunkEnd: end === payload.byteLength,
-          timeoutMs: offset === 0 ? request.timeoutMs ?? 0 : 0, traceId: offset === 0 ? traceId ?? '' : '', idempotencyKey: offset === 0 ? idempotencyKey ?? '' : '' });
-        this.#channel.send(RemoteTransportFrame.toBinary(frame)); pending.sent = true;
-        if (end === payload.byteLength) return; offset = end;
-      }
-    }).catch(reason => this.#finish(pending, reason));
+      if (clientStream) await this.#openInput(pending, traceId, idempotencyKey);
+      else await this.#sendMessage(pending, Kind.REQUEST, encoded!, true, traceId, idempotencyKey);
+    }).catch(reason => this.#cancel(pending, reason));
     return pending;
   }
 
-  async #clientStreamPayload(pending: Pending): Promise<Uint8Array> {
+  async #sendMessage(pending: Pending, kind: Kind, payload: Uint8Array, opening = false, traceId?: string, idempotencyKey?: string): Promise<void> {
+    for (let offset = 0;;) {
+      if (pending.done || this.#closed) return;
+      if (!this.#current()) { this.close(); return; }
+      await this.#drain();
+      if (pending.done || this.#closed) return;
+      if (!this.#current()) { this.close(); return; }
+      const end = Math.min(offset + CHUNK_BYTES, payload.byteLength);
+      const first = opening && offset === 0;
+      const frame = RemoteTransportFrame.create({ kind, requestId: pending.id, method: first ? pending.request.methodId : '',
+        payload: payload.subarray(offset, end), chunkEnd: end === payload.byteLength,
+        timeoutMs: first ? pending.request.timeoutMs ?? 0 : 0, traceId: first ? traceId ?? '' : '', idempotencyKey: first ? idempotencyKey ?? '' : '' });
+      pending.sent = true;
+      this.#channel.send(RemoteTransportFrame.toBinary(frame));
+      if (end === payload.byteLength) return; offset = end;
+    }
+  }
+
+  async #openInput(pending: Pending, traceId?: string, idempotencyKey?: string): Promise<void> {
     const body = (pending.request as CoreClientStreamRequest).body;
     if (!body || typeof body[Symbol.asyncIterator] !== 'function') throw protocolError('Client-stream input must be async iterable.');
     const iterator = body[Symbol.asyncIterator]();
-    const messages: Uint8Array[] = [];
-    let size = 0;
     try {
-      for (;;) {
-        if (!this.#current()) { this.close(); throw unavailable(); }
+      const first = await clientStreamNext(iterator, pending);
+      if (first.done) throw protocolError('Empty client-stream request.');
+      const message = pending.codec.encodeRequest(first.value);
+      if (message.byteLength > MAX_INPUT_MESSAGE_BYTES) throw protocolError('Upload method message is too large.');
+      await this.#sendMessage(pending, Kind.CLIENT_STREAM_OPEN, message, true, traceId, idempotencyKey);
+    } catch (error) { closeInput(iterator); throw error; }
+    // Only an individual encoded message holds the shared send queue. A slow
+    // file producer or owner does not block unrelated RPCs on this channel.
+    void this.#pumpInput(pending, iterator).catch(error => this.#cancel(pending, error));
+  }
+
+  async #pumpInput(pending: Pending, iterator: AsyncIterator<unknown>): Promise<void> {
+    try {
+      while (!pending.done) {
+        await this.#inputCredit(pending);
         const next = await clientStreamNext(iterator, pending);
-        if (!this.#current()) { this.close(); throw unavailable(); }
-        if (next.done) break;
-        if (messages.length >= MAX_CLIENT_STREAM_MESSAGES) throw protocolError('Too many client-stream messages.');
+        if (!this.#current()) { this.close(); return; }
+        if (next.done) {
+          const end = this.#sending.then(async () => {
+            if (pending.done || this.#closed) return;
+            await this.#drain();
+            if (pending.done || this.#closed) return;
+            if (!this.#current()) { this.close(); return; }
+            pending.input!.ended = true;
+            this.#channel.send(RemoteTransportFrame.toBinary(RemoteTransportFrame.create({ kind: Kind.CLIENT_STREAM_END, requestId: pending.id, chunkEnd: true })));
+          });
+          this.#sending = end.catch(error => this.#cancel(pending, error));
+          await end; return;
+        }
         const message = pending.codec.encodeRequest(next.value);
-        let lengthBytes = 1;
-        for (let length = message.byteLength; length >= 128; length >>>= 7) lengthBytes++;
-        size += 1 + lengthBytes + message.byteLength;
-        if (size > MAX_MESSAGE_BYTES) throw protocolError('Direct client-stream request is too large.');
-        messages.push(message);
+        if (message.byteLength > MAX_INPUT_MESSAGE_BYTES) throw protocolError('Upload method message is too large.');
+        pending.input!.credits--;
+        const send = this.#sending.then(() => this.#sendMessage(pending, Kind.CLIENT_STREAM_DATA, message));
+        this.#sending = send.catch(error => this.#cancel(pending, error));
+        await send;
       }
-    } finally {
-      // A producer's return may wait behind its pending next. Do not let it
-      // hold the peer's send queue after this call was canceled.
-      void Promise.resolve().then(() => iterator.return?.()).catch(() => undefined);
+    } finally { closeInput(iterator); }
+  }
+
+  async #inputCredit(pending: Pending): Promise<void> {
+    for (;;) {
+      if (pending.done || this.#closed) throw pending.error ?? cancelled();
+      if (!this.#current()) { this.close(); throw unavailable(); }
+      if (pending.input!.credits > 0) return;
+      await new Promise<void>(resolve => { pending.input!.wake = resolve; });
+      pending.input!.wake = undefined;
     }
-    if (!messages.length) throw protocolError('Empty client-stream request.');
-    return RemoteClientStreamRequest.toBinary({ messages });
   }
 
   async #drain(): Promise<void> {
@@ -181,7 +214,7 @@ export class RuntimeDataChannelTransport implements CoreTransport {
   #finish(pending: Pending, error?: unknown): void {
     if (pending.done) return;
     pending.done = true; pending.error = error; pending.pieces = []; pending.size = 0; pending.cleanup(); pending.stop.abort();
-    this.#pending.delete(pending.id); pending.wake?.();
+    this.#pending.delete(pending.id); pending.wake?.(); pending.input?.wake?.();
   }
   async #next(pending: Pending): Promise<IteratorResult<Uint8Array>> {
     for (;;) {
@@ -202,13 +235,20 @@ export class RuntimeDataChannelTransport implements CoreTransport {
       if (!frame.requestId || frame.requestId >= this.#nextId || frame.method || frame.timeoutMs || frame.traceId || frame.idempotencyKey || frame.payload.byteLength > CHUNK_BYTES) throw protocolError('Invalid direct response.');
       const pending = this.#pending.get(frame.requestId); if (!pending) return;
       if (frame.kind === Kind.ERROR) {
-        if (!frame.chunkEnd || frame.payload.byteLength) throw protocolError('Invalid direct error.');
-        this.#finish(pending, createNimiError({ message: frame.errorInfo?.message || frame.message || 'Runtime request failed.',
+        if (!frame.chunkEnd || frame.payload.byteLength || frame.inputCredits) throw protocolError('Invalid direct error.');
+        const error = createNimiError({ message: frame.errorInfo?.message || frame.message || 'Runtime request failed.',
           reasonCode: frame.errorInfo ? ReasonCode[frame.errorInfo.reasonCode] || 'SDK_RUNTIME_REQUEST_FAILED' : 'SDK_RUNTIME_REQUEST_FAILED',
-          actionHint: frame.errorInfo?.actionHint || undefined, source: 'runtime', details: { grpcCode: frame.grpcCode } }));
+          actionHint: frame.errorInfo?.actionHint || undefined, source: 'runtime', details: { grpcCode: frame.grpcCode } });
+        if (pending.input) this.#cancel(pending, error); else this.#finish(pending, error);
         return;
       }
       if (frame.grpcCode || frame.errorInfo || frame.message) throw protocolError('Unexpected response error fields.');
+      if (frame.kind === Kind.CLIENT_STREAM_CREDIT) {
+        if (!pending.input || !frame.chunkEnd || frame.payload.byteLength || !frame.inputCredits || pending.input.credits + frame.inputCredits > INPUT_WINDOW) throw protocolError('Invalid upload input credit.');
+        pending.input.credits += frame.inputCredits; pending.input.wake?.(); return;
+      }
+      if (frame.inputCredits) throw protocolError('Unexpected upload credit.');
+      if (frame.kind === Kind.RESPONSE && pending.input && !pending.input.ended) throw protocolError('Upload response preceded input EOF.');
       if (frame.kind === Kind.STREAM_END) {
         if (!pending.stream || !frame.chunkEnd || frame.payload.byteLength || pending.size) throw protocolError('Incomplete direct stream.');
         this.#finish(pending); return;
@@ -223,6 +263,10 @@ export class RuntimeDataChannelTransport implements CoreTransport {
       if (!pending.stream) this.#finish(pending); else pending.wake?.();
     } catch (reason) { this.close(reason); }
   }
+}
+
+function closeInput(iterator: AsyncIterator<unknown>): void {
+  void Promise.resolve().then(() => iterator.return?.()).catch(() => undefined);
 }
 
 function clientStreamNext(iterator: AsyncIterator<unknown>, pending: Pending): Promise<IteratorResult<unknown>> {

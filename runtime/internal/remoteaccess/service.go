@@ -15,6 +15,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 	"github.com/nimiplatform/nimi/runtime/internal/protectedprincipal"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	"github.com/pion/webrtc/v4"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
@@ -333,7 +334,7 @@ func (s *Service) connect(run *hostRun, ctx context.Context, cancel context.Canc
 	bound := control.State()
 	info := PeerInfo{Scope: run.scope, ContextID: pending.offer.Context.ContextId, AccountGeneration: bound.AccountGeneration, AccountInvalidated: bound.Invalidated,
 		Registration: registration, Source: source, RuntimeInstanceID: s.instance, Deadline: pending.deadline}
-	peer, answer, err := newPeer(run.ctx, ctx, info, pending.offer.OfferSdp, pending.stunURLs, s.dispatch)
+	peer, answer, err := newPeer(run.ctx, ctx, webrtc.NewAPI(), info, pending.offer.OfferSdp, pending.stunURLs, s.dispatch)
 	if err != nil {
 		if ctx.Err() == nil {
 			_ = s.account.AnswerPrimaryRuntimeConnection(ctx, control, pending.offer.ConnectionId, "", "DIRECT_CONNECTION_UNAVAILABLE")

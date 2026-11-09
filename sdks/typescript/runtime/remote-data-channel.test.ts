@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { RuntimeDataChannelTransport, type RuntimeDataChannel } from './remote-data-channel.js';
-import { RemoteClientStreamRequest, RemoteTransportFrame, RemoteTransportFrameKind as Kind } from '../core-generated/runtime-protobuf/runtime/v1/remote_access.js';
+import { RemoteTransportFrame, RemoteTransportFrameKind as Kind } from '../core-generated/runtime-protobuf/runtime/v1/remote_access.js';
 import { GetAppAIConfigResponse, OverwriteAppAIConfigRequest, OverwriteAppAIConfigResponse } from '../core-generated/runtime-protobuf/runtime/v1/capability_configuration.js';
 import { CoreClient } from '../core-client/index.js';
 import { RuntimeTypedClient } from '../core-generated/runtime-typed-client.js';
@@ -16,7 +16,8 @@ class Channel implements RuntimeDataChannel {
   readyState = 'open'; bufferedAmount = 0;
   sent: RemoteTransportFrame[] = [];
   receivers = new Set<(bytes: Uint8Array) => void>(); closers = new Set<() => void>();
-  send(bytes: Uint8Array) { this.sent.push(RemoteTransportFrame.fromBinary(bytes)); }
+  onSend?: (frame: RemoteTransportFrame) => void;
+  send(bytes: Uint8Array) { const frame = RemoteTransportFrame.fromBinary(bytes); this.sent.push(frame); this.onSend?.(frame); }
   close() { if (this.readyState === 'closed') return; this.readyState = 'closed'; for (const close of this.closers) close(); }
   onMessage(listener: (bytes: Uint8Array) => void) { this.receivers.add(listener); return () => { this.receivers.delete(listener); }; }
   onClose(listener: () => void) { this.closers.add(listener); return () => { this.closers.delete(listener); }; }
@@ -24,28 +25,23 @@ class Channel implements RuntimeDataChannel {
   receive(frame: Partial<RemoteTransportFrame>) { const data = RemoteTransportFrame.toBinary(RemoteTransportFrame.create(frame)); for (const next of this.receivers) next(data); }
 }
 
-for (const bodyKind of ['bytes', 'blob', 'chunks'] as const) test(`finite remote asset write preserves ${bodyKind} input and the owner response`, async () => {
+for (const bodyKind of ['bytes', 'blob', 'chunks'] as const) test(`incremental remote asset write preserves ${bodyKind} input and the owner response`, async () => {
   const bytes = new TextEncoder().encode('remote 图片 input\n'.repeat(5000));
   const body = bodyKind === 'bytes' ? bytes : bodyKind === 'blob' ? new Blob([bytes])
     : (async function* () { yield bytes.subarray(0, 13); yield bytes.subarray(13, 20000); yield bytes.subarray(20000); })();
   const channel = new Channel(), transport = new RuntimeDataChannelTransport(channel, () => true);
   const app = createRemoteRuntimeAppClients(new RuntimeTypedClient(new CoreClient({ transport })), 'nimi.lab');
+  const received = receiveUpload(channel);
   const pending = app.storage.assets.write({ relativePath: 'inputs/sample.txt', body, mediaType: 'text/plain' });
   const id = await sent(channel);
-  const deadline = Date.now() + 5000;
-  while (!channel.sent.some(frame => frame.requestId === id && frame.chunkEnd)) {
-    if (Date.now() > deadline) throw new Error('Asset envelope was not completed.');
-    await new Promise(resolve => setImmediate(resolve));
-  }
+  const frames = await received;
   assert.equal(channel.sent[0].method, '/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset');
   assert.ok(channel.sent.length > 1);
-  const batch = RemoteClientStreamRequest.fromBinary(Buffer.concat(channel.sent.map(frame => frame.payload)));
-  const frames = batch.messages.map(message => WriteLocalAppAssetRequest.fromBinary(message));
   assert.deepEqual(frames[0].frame, { oneofKind: 'metadata', metadata: { relativePath: 'inputs/sample.txt', mediaType: 'text/plain', overwrite: false } });
   const data = frames.slice(1).map(frame => {
     assert.equal(frame.frame.oneofKind, 'bodyChunk');
     if (frame.frame.oneofKind !== 'bodyChunk') throw new Error('Expected a data frame.');
-    assert.ok(frame.frame.bodyChunk.byteLength <= 16 * 1024);
+    assert.ok(frame.frame.bodyChunk.byteLength <= 256 * 1024);
     return frame.frame.bodyChunk;
   });
   assert.deepEqual(Buffer.concat(data), Buffer.from(bytes));
@@ -55,6 +51,71 @@ for (const bodyKind of ['bytes', 'blob', 'chunks'] as const) test(`finite remote
   const saved = await pending;
   assert.equal(saved.sizeBytes, bytes.byteLength); assert.equal(saved.relativePath, 'inputs/sample.txt');
   transport.close();
+});
+
+// This peer stand-in acknowledges bounded method messages. It does not claim
+// Runtime admission, durable storage, or real network acceptance.
+function receiveUpload(channel: Channel, observe?: (message: WriteLocalAppAssetRequest) => void, keep = true): Promise<WriteLocalAppAssetRequest[]> {
+  const completion = Promise.withResolvers<WriteLocalAppAssetRequest[]>();
+  const messages: WriteLocalAppAssetRequest[] = []; let pieces: Uint8Array[] = [];
+  channel.onSend = frame => {
+    if (frame.kind === Kind.CLIENT_STREAM_END) { completion.resolve(messages); return; }
+    if (frame.kind !== Kind.CLIENT_STREAM_OPEN && frame.kind !== Kind.CLIENT_STREAM_DATA) return;
+    pieces.push(frame.payload);
+    if (!frame.chunkEnd) return;
+    const message = WriteLocalAppAssetRequest.fromBinary(Buffer.concat(pieces)); pieces = [];
+    if (keep) messages.push(message); observe?.(message);
+    channel.receive({ kind: Kind.CLIENT_STREAM_CREDIT, requestId: frame.requestId, chunkEnd: true,
+      inputCredits: frame.kind === Kind.CLIENT_STREAM_OPEN ? 4 : 1 });
+    if (!keep) channel.sent = [];
+  };
+  return completion.promise;
+}
+
+async function until(check: () => boolean): Promise<void> {
+  const deadline = Date.now() + 3000;
+  while (!check()) { if (Date.now() > deadline) throw new Error('Direct transport progress timed out.'); await new Promise(resolve => setImmediate(resolve)); }
+}
+
+test('asset input exceeds 32 MiB without being accumulated before first delivery', { timeout: 10000 }, async () => {
+  const channel = new Channel(), transport = new RuntimeDataChannelTransport(channel, () => true);
+  const runtime = new RuntimeTypedClient(new CoreClient({ transport }));
+  const app = createRemoteRuntimeAppClients(runtime, 'nimi.lab');
+  let produced = 0, observed = 0, firstDeliveredAt = 0;
+  const received = receiveUpload(channel, message => {
+    if (message.frame.oneofKind === 'bodyChunk') { if (!observed) firstDeliveredAt = produced; observed += message.frame.bodyChunk.byteLength; }
+  }, false);
+  const body = (async function* () { for (let n = 0; n < 140; n++) { produced++; yield new Uint8Array(256 * 1024); } })();
+  const pending = app.storage.assets.write({ relativePath: 'large.bin', body });
+  await received;
+  assert.equal(firstDeliveredAt, 1); assert.equal(produced, 140); assert.equal(observed, 140 * 256 * 1024);
+  const end = channel.sent.find(frame => frame.kind === Kind.CLIENT_STREAM_END)!;
+  channel.receive({ kind: Kind.RESPONSE, requestId: end.requestId, chunkEnd: true,
+    payload: WriteLocalAppAssetResponse.toBinary({ asset: { relativePath: 'large.bin', sizeBytes: String(observed), sha256: 'sha256:' + '0'.repeat(64), createdAt: { seconds: '1', nanos: 0 }, updatedAt: { seconds: '1', nanos: 0 } }, reasonCode: ReasonCode.ACTION_EXECUTED }) });
+  assert.equal((await pending).sizeBytes, observed); transport.close();
+});
+
+test('owner credits bound input pulls while unrelated calls continue and cancel stops the producer', { timeout: 5000 }, async () => {
+  const channel = new Channel(), transport = new RuntimeDataChannelTransport(channel, () => true);
+  const runtime = new RuntimeTypedClient(new CoreClient({ transport }));
+  let pulled = 0, returned = false;
+  const controller = new AbortController();
+  const body = (async function* () { try {
+    pulled++; yield WriteLocalAppAssetRequest.create({ frame: { oneofKind: 'metadata', metadata: { relativePath: 'bounded.bin', mediaType: '', overwrite: false } } });
+    for (;;) { pulled++; yield WriteLocalAppAssetRequest.create({ frame: { oneofKind: 'bodyChunk', bodyChunk: new Uint8Array(10) } }); }
+  } finally { returned = true; } })();
+  const uploading = runtime.writeLocalAppAsset(body, { signal: controller.signal });
+  const rejected = assert.rejects(uploading, { reasonCode: 'SDK_RUNTIME_REQUEST_CANCELLED' });
+  const id = await sent(channel); assert.equal(pulled, 1);
+  channel.receive({ kind: Kind.CLIENT_STREAM_CREDIT, requestId: id, inputCredits: 4, chunkEnd: true });
+  await until(() => channel.sent.filter(frame => frame.kind === Kind.CLIENT_STREAM_DATA && frame.chunkEnd).length === 4);
+  assert.equal(pulled, 5);
+  const unrelated = runtime.getAppAIConfig({ appId: 'nimi.lab' });
+  await until(() => channel.sent.some(frame => frame.requestId !== id && frame.kind === Kind.REQUEST));
+  const other = channel.sent.find(frame => frame.requestId !== id && frame.kind === Kind.REQUEST)!;
+  channel.receive({ kind: Kind.RESPONSE, requestId: other.requestId, chunkEnd: true, payload: GetAppAIConfigResponse.toBinary(GetAppAIConfigResponse.create()) });
+  await unrelated; controller.abort(); await rejected; await until(() => returned);
+  assert.equal(pulled, 5); assert.ok(channel.sent.some(frame => frame.kind === Kind.CANCEL && frame.requestId === id)); transport.close();
 });
 
 test('canceling a pending input producer releases the send queue without replay or waiting for return', { timeout: 5000 }, async () => {
@@ -80,17 +141,34 @@ test('canceling a pending input producer releases the send queue without replay 
   transport.close();
 });
 
-test('finite remote uploads reject excess content and message counts before dispatch', async () => {
+test('oversized method messages and invalid owner credit fail without reading the whole upload', { timeout: 5000 }, async () => {
   const channel = new Channel(), transport = new RuntimeDataChannelTransport(channel, () => true);
   const runtime = new RuntimeTypedClient(new CoreClient({ transport }));
-  const app = createRemoteRuntimeAppClients(runtime, 'nimi.lab');
-  await assert.rejects(app.storage.assets.write({ relativePath: 'too-large.bin', body: new Uint8Array(32 * 1024 * 1024 + 1) }),
-    { reasonCode: 'SDK_RUNTIME_REMOTE_PROTOCOL_INVALID' });
   await assert.rejects(runtime.writeLocalAppAsset((async function* () {
-    for (let index = 0; index < 2050; index++) yield WriteLocalAppAssetRequest.create();
+    yield WriteLocalAppAssetRequest.create({ frame: { oneofKind: 'bodyChunk', bodyChunk: new Uint8Array(1024 * 1024 + 8192) } });
   })()), { reasonCode: 'SDK_RUNTIME_REMOTE_PROTOCOL_INVALID' });
   assert.equal(channel.sent.length, 0);
-  transport.close();
+  const body = (async function* () { yield WriteLocalAppAssetRequest.create({ frame: { oneofKind: 'metadata', metadata: { relativePath: 'bounded.bin', mediaType: '', overwrite: false } } }); throw new Error('Must not pull input without valid credit'); })();
+  const pending = runtime.writeLocalAppAsset(body); const rejected = assert.rejects(pending, { reasonCode: 'SDK_RUNTIME_REMOTE_PROTOCOL_INVALID' });
+  const id = await sent(channel); channel.receive({ kind: Kind.CLIENT_STREAM_CREDIT, requestId: id, inputCredits: 5, chunkEnd: true });
+  await rejected; assert.equal(transport.closed, true);
+});
+
+test('owner rejection preserves its reason and cancels an unopened body instead of replaying it', { timeout: 5000 }, async () => {
+  const channel = new Channel(), transport = new RuntimeDataChannelTransport(channel, () => true);
+  const runtime = new RuntimeTypedClient(new CoreClient({ transport }));
+  let pulled = false, returned = false;
+  const body = (async function* () { try {
+    yield WriteLocalAppAssetRequest.create({ frame: { oneofKind: 'metadata', metadata: { relativePath: 'denied.bin', mediaType: '', overwrite: false } } });
+    pulled = true; yield WriteLocalAppAssetRequest.create();
+  } finally { returned = true; } })();
+  const pending = runtime.writeLocalAppAsset(body);
+  const rejected = assert.rejects(pending, { reasonCode: 'APP_SCOPE_FORBIDDEN' });
+  const id = await sent(channel);
+  channel.receive({ kind: Kind.ERROR, requestId: id, chunkEnd: true, grpcCode: 7, errorInfo: ErrorInfo.create({ reasonCode: ReasonCode.APP_SCOPE_FORBIDDEN }) });
+  await rejected; await until(() => returned);
+  assert.equal(pulled, false); assert.equal(channel.sent.filter(frame => frame.kind === Kind.CLIENT_STREAM_OPEN).length, 1);
+  assert.equal(channel.sent.filter(frame => frame.kind === Kind.CANCEL).length, 1); transport.close();
 });
 
 test('remote App storage and Agent clients reuse real protobuf projection and omit caller identity', async () => {

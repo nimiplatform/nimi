@@ -14,7 +14,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/encoding/protowire"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/reflect/protoreflect"
 	"google.golang.org/protobuf/reflect/protoregistry"
@@ -146,16 +145,10 @@ func (d *remoteDispatcher) dispatch(ctx context.Context, peer *remoteaccess.Peer
 	if !admitted {
 		return nil, serverStreaming, status.Error(codes.Unavailable, "Runtime is not accepting new calls.")
 	}
-	var inputMessages [][]byte
-	first := call.Payload
-	if clientStreaming {
-		var err error
-		inputMessages, err = remoteClientStreamMessages(call.Payload)
-		if err != nil {
-			return nil, false, err
-		}
-		first = inputMessages[0]
+	if clientStreaming != (call.Input != nil) {
+		return nil, false, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
 	}
+	first := call.Payload
 	request := method.input.New().Interface()
 	if err := proto.Unmarshal(first, request); err != nil {
 		return nil, false, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
@@ -194,7 +187,6 @@ func (d *remoteDispatcher) dispatch(ctx context.Context, peer *remoteaccess.Peer
 		return nil, serverStreaming, err
 	}
 	received := 0
-	fileBytes := 0
 	decode := func(target any) error {
 		message, ok := target.(proto.Message)
 		if !ok || message.ProtoReflect().Descriptor().FullName() != request.ProtoReflect().Descriptor().FullName() {
@@ -203,22 +195,19 @@ func (d *remoteDispatcher) dispatch(ctx context.Context, peer *remoteaccess.Peer
 		if received == 0 {
 			proto.Reset(message)
 			proto.Merge(message, request)
-		} else if !clientStreaming || received >= len(inputMessages) {
+		} else if !clientStreaming {
 			return io.EOF
-		} else if err := proto.Unmarshal(inputMessages[received], message); err != nil {
-			return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+		} else {
+			payload, err := call.Input(ctx)
+			if err != nil {
+				return err
+			}
+			if err := proto.Unmarshal(payload, message); err != nil {
+				return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
+			}
 		}
 		received++
 		if clientStreaming {
-			assetFrame, ok := message.(*runtimev1.WriteLocalAppAssetRequest)
-			if !ok {
-				return remoteDispatchDenied()
-			}
-			fileBytes += len(assetFrame.GetBodyChunk())
-			if fileBytes > 32<<20 {
-				return grpcerr.WithReasonCodeOptions(codes.ResourceExhausted, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID,
-					grpcerr.ReasonOptions{Message: "Remote asset uploads are limited to 32 MiB.", ActionHint: "reduce_remote_asset_upload"})
-			}
 			if touch != nil {
 				touch()
 			}
@@ -296,36 +285,6 @@ func (stream *remoteServerStream) SendMsg(value any) error {
 		return err
 	}
 	return stream.emit(data)
-}
-
-// Decode the transport envelope without first allocating an unbounded repeated
-// field. These slices retain the already bounded request payload; the original
-// RPC handler still validates each method-specific message and commits storage.
-func remoteClientStreamMessages(payload []byte) ([][]byte, error) {
-	invalid := func() ([][]byte, error) {
-		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_PROTOCOL_ENVELOPE_INVALID)
-	}
-	if len(payload) > 33<<20 {
-		return invalid()
-	}
-	var messages [][]byte
-	for len(payload) > 0 {
-		field, kind, n := protowire.ConsumeTag(payload)
-		if n < 0 || field != 1 || kind != protowire.BytesType || len(messages) >= 2049 {
-			return invalid()
-		}
-		payload = payload[n:]
-		message, n := protowire.ConsumeBytes(payload)
-		if n < 0 {
-			return invalid()
-		}
-		messages = append(messages, message)
-		payload = payload[n:]
-	}
-	if len(messages) == 0 {
-		return invalid()
-	}
-	return messages, nil
 }
 
 // URLs inside business JSON or prompt text remain content. Only actual typed

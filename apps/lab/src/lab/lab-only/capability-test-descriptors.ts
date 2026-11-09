@@ -3,6 +3,7 @@
 // the formal Local App client; public scaffold admission stays a separate
 // decision in App Tools.
 export type LabCapabilityTestId =
+  | 'app.assets'
   | 'audio.speaker.embed'
   | 'text.annotate'
   | 'text.tools'
@@ -12,6 +13,12 @@ export type LabCapabilityTestId =
   | 'image.face_swap'
   | 'video.face_swap'
   | 'realtime.interact';
+
+export const labAppFilesDescriptor = Object.freeze({
+  id: 'app.assets', label: 'App files', labelKey: 'CapabilityTests.appFiles.title', group: 'media', section: 'image',
+  summary: 'Write an owned App asset and compare its streamed read-back with the selected file.', summaryKey: 'CapabilityTests.appFiles.intro',
+  surface: 'sdk.app.storage.assets.write/read', execution: 'runtime-sdk', capabilityContract: undefined,
+} as const);
 
 export const labSpeakerEmbeddingDescriptor = Object.freeze({
   id: 'audio.speaker.embed', label: 'Speaker representation', labelKey: 'CapabilityTests.speakerEmbedding.label', group: 'audio', section: 'voice',
@@ -94,6 +101,7 @@ export const labAiRealtimeDescriptor = Object.freeze({
 } as const);
 
 export const labCapabilityTestDescriptors = Object.freeze([
+  labAppFilesDescriptor,
   labSpeakerEmbeddingDescriptor,
   labTextAnnotateDescriptor,
   labTextToolsDescriptor,

@@ -51,6 +51,7 @@ const AgentConversationCapability = lazy(async () => ({
 const AgentRealtimeCapability = lazy(async () => ({
   default: (await import('../product-modules/agent-realtime/index.js')).AgentRealtimeCapability,
 }));
+const LabAppFilesPage = lazy(async () => ({ default: (await import('./lab-only/app-files-page.js')).LabAppFilesPage }));
 const LabAiRealtimePage = lazy(async () => ({
   default: (await import('./lab-only/ai-realtime-page.js')).LabAiRealtimePage,
 }));
@@ -242,6 +243,8 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
             <LabChatSessionPage runtime={summary?.runtime ?? null} />
           </div>
         </Suspense>
+      ) : view.kind === 'capability' && view.capabilityId === 'app.assets' ? (
+        <Suspense fallback={<LoadingFallback />}><div className="h-full overflow-y-auto p-5"><LabAppFilesPage /></div></Suspense>
       ) : view.kind === 'ui-recipes' ? (
         <Suspense fallback={<LoadingFallback />}>
           <KitComponentGallery

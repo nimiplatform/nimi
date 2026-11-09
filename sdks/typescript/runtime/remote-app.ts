@@ -101,19 +101,16 @@ async function* remoteAssetFrames(input: Parameters<NimiLocalAppAssetsClient['wr
   const source = body instanceof Uint8Array
     ? (async function* () { if (body.byteLength) yield body; })()
     : typeof Blob !== 'undefined' && body instanceof Blob ? blobChunks(body) : body as AsyncIterable<Uint8Array>;
-  let total = 0, filled = 0, buffer = new Uint8Array(16 * 1024);
+  let filled = 0, buffer = new Uint8Array(256 * 1024);
   for await (const chunk of source) {
     if (!isNimiLocalAppByteView(chunk) || !chunk.byteLength) throw createNimiError({
       message: 'Asset upload chunks must be non-empty byte arrays.', reasonCode: 'SDK_LOCAL_APP_INPUT_INVALID', source: 'sdk' });
-    total += chunk.byteLength;
-    if (total > 32 * 1024 * 1024) throw createNimiError({
-      message: 'Remote asset uploads are limited to 32 MiB.', reasonCode: 'SDK_RUNTIME_REMOTE_PROTOCOL_INVALID', source: 'sdk' });
     for (let offset = 0; offset < chunk.byteLength;) {
       const length = Math.min(buffer.byteLength - filled, chunk.byteLength - offset);
       buffer.set(chunk.subarray(offset, offset + length), filled); filled += length; offset += length;
       if (filled === buffer.byteLength) {
         yield { frame: { oneofKind: 'bodyChunk', bodyChunk: buffer } };
-        buffer = new Uint8Array(16 * 1024); filled = 0;
+        buffer = new Uint8Array(256 * 1024); filled = 0;
       }
     }
   }
