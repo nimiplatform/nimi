@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { openNimiLocalAppAssetMediaUrl } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { StudioTypedOutput } from './runtime-types.js';
 import { useAIStudioHost } from './host-context.js';
 
@@ -13,15 +12,16 @@ export function VisionLocateResultView({ output }: { output: Extract<StudioTyped
   useEffect(() => {
     setRetained(null); setImageFailed(false);
     if (!source) return undefined;
+    const controller = new AbortController();
     let active = true; let revoke: (() => Promise<void>) | undefined;
     void (async () => {
       const stat = await host.sdk.assets.stat(source.relativePath);
       if (stat.sha256 !== source.sha256 || stat.sizeBytes !== source.sizeBytes || stat.mediaType !== source.mediaType) throw new Error('Saved source image changed');
-      const handle = await openNimiLocalAppAssetMediaUrl(source.relativePath);
+      const handle = await host.app.commands.openAssetMediaUrl(source.relativePath, controller.signal);
       revoke = handle.revoke;
       if (active) setRetained({ sourceKey, url: handle.url }); else await handle.revoke();
     })().catch(() => { if (active) setImageFailed(true); });
-    return () => { active = false; if (revoke) void revoke(); };
+    return () => { active = false; controller.abort(); if (revoke) void revoke(); };
   }, [source, sourceKey, host]);
   const imageUrl = source ? retained?.sourceKey === sourceKey ? retained.url : null : output.imagePreviewUrl;
   const { width, height, locations, imageArtifactId } = output.result;

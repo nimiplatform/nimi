@@ -3,6 +3,7 @@ import { Button, InlineAlert, SelectField, Surface } from '@nimiplatform/kit/ui'
 import { openDesktopIntent } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { NimiIntegrationCall, NimiIntegrationTarget } from '@nimiplatform/sdk/app';
 import { useLabRendererHost } from '../../renderer/context.js';
+import { requireLabNativeClient } from '../../shell/local-app-runtime-platform.js';
 import { useTranslation } from '../../shell/i18n/index.js';
 import { exportLabIntegrationHistory, integrationHistoryRecord, observeIntegrationHistory, type LabIntegrationHistoryRecord } from './integration-history.js';
 import { runLabIntegrationCall } from './integration-run.js';
@@ -13,6 +14,7 @@ import { IntegrationAssetsPanel } from './integration-assets-panel.js';
 import { HistoricalIntegrationAssets, IntegrationSavedRecord } from './integration-saved-record.js';
 import { subscribeLabLocalAppSessionLoss } from '../../shell/auth/session-loss.js';
 import type { StudioRunHistoryRecord } from '../../ai-studio-core/history.js';
+import type { StudioTextExportResult } from '../../ai-studio-core/host-context.js';
 
 const field = 'w-full rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3 text-sm';
 type Waiting = { controller: AbortController };
@@ -22,7 +24,7 @@ type ReceivedBatch = { target:NimiIntegrationTarget; input:string; call:NimiInte
 // This App consumes only the public protected carrier. Home owns connections,
 // credentials and grants; Lab owns its finite waiting and saved business facts.
 export function LabIntegrationsPanel({ recordAI }: { recordAI: (record: StudioRunHistoryRecord) => Promise<void> }) {
-  const host = useLabRendererHost(); const client = host.sdk.localAppClient.integration; const { t, i18n } = useTranslation();
+  const host = useLabRendererHost(); const client = requireLabNativeClient(host.sdk.localAppClient).integration; const { t, i18n } = useTranslation();
   const [targets,setTargets] = useState<readonly NimiIntegrationTarget[]>([]);
   const [targetRef,setTargetRef] = useState(''); const [operation,setOperation] = useState(''); const [input,setInput] = useState('{}');
   const [history,setHistory] = useState<readonly LabIntegrationHistoryRecord[]>([]); const [call,setCall] = useState<NimiIntegrationCall | null>(null);
@@ -39,7 +41,7 @@ export function LabIntegrationsPanel({ recordAI }: { recordAI: (record: StudioRu
   const [callInput,setCallInput] = useState('');
   const [savedRecordId,setSavedRecordId] = useState('');
   const savedDetail = useRef<HTMLDivElement>(null); const savedTrigger = useRef<HTMLButtonElement | null>(null);
-  const [exported,setExported] = useState<{path:string;revealed:boolean} | null>(null); const [exporting,setExporting] = useState(false);
+  const [exported,setExported] = useState<Extract<StudioTextExportResult,{ok:true}>['value'] | null>(null); const [exporting,setExporting] = useState(false);
   const [exportError,setExportError] = useState('');
   const exportBusy = useRef(false); const displayVersion = useRef(0);
 	const [events,setEvents] = useState<readonly NativeEvent[]>([]);
@@ -176,13 +178,13 @@ export function LabIntegrationsPanel({ recordAI }: { recordAI: (record: StudioRu
       const result=await host.app.commands.exportText({filename:'nimi-lab-integrations.json',body:exportLabIntegrationHistory(history)});
       if(!active.current||!sameView())return;
       if(!result.ok){setExportError(t('Integrations.exportFailed'));return;}
-      setExported({path:result.value.artifactPath,revealed:result.value.revealed});
+      setExported(result.value);
     }catch {if(active.current&&sameView())setExportError(t('Integrations.exportFailed'));}
     finally {if(active.current&&sameView()){exportBusy.current=false;setExporting(false);}}
   };
   const revealExport = async () => {
-    if(!exported||exportBusy.current)return;const path=exported.path;exportBusy.current=true;setExporting(true);setExportError('');
-    try {await host.sdk.localAppClient.storage.assets.reveal(path);if(active.current&&sameView())setExported({path,revealed:true});}
+    if(exported?.destination!=='runtime-asset'||exportBusy.current)return;const path=exported.artifactPath;exportBusy.current=true;setExporting(true);setExportError('');
+    try {await host.sdk.localAppClient.storage.assets.reveal(path);if(active.current&&sameView())setExported({...exported,revealed:true});}
     catch {if(active.current&&sameView())setExportError(t('Integrations.exportSavedRevealFailed',{path}));}
     finally {if(active.current&&sameView()){exportBusy.current=false;setExporting(false);}}
   };
@@ -213,7 +215,10 @@ export function LabIntegrationsPanel({ recordAI }: { recordAI: (record: StudioRu
     <Surface tone="panel"><div className="flex items-center justify-between gap-3"><h2 className="font-semibold">{t('Integrations.history')}</h2><Button tone="secondary" disabled={!history.length||exporting} onClick={()=>void exportHistory()}>{t('Integrations.export')}</Button></div>
       {exportError?<InlineAlert className="mt-3" tone="warning" data-testid="integration-export-error" aria-live="polite" aria-atomic="true">{exportError}</InlineAlert>:null}
       {historyError?<InlineAlert tone="warning">{t('Integrations.historyLoadFailed',{detail:historyError})}</InlineAlert>:null}
-      {exported?<div className="mt-3 text-sm" data-testid="integration-export-result"><p role="status">{t(exported.revealed?'Integrations.exportSaved':'Integrations.exportSavedRevealFailed',{path:exported.path})}</p><p className="mt-1 break-all">{exported.path}</p><Button className="mt-2" size="sm" tone="secondary" disabled={exporting} onClick={()=>void revealExport()}>{t('Integrations.revealAsset')}</Button></div>:null}
+      {exported?<div className="mt-3 text-sm" data-testid="integration-export-result">{exported.destination==='browser-download'
+        ? <p role="status">{t('Common.downloadRequested')}</p>
+        : <><p role="status">{t(exported.revealed?'Integrations.exportSaved':'Integrations.exportSavedRevealFailed',{path:exported.artifactPath})}</p><p className="mt-1 break-all">{exported.artifactPath}</p><Button className="mt-2" size="sm" tone="secondary" disabled={exporting} onClick={()=>void revealExport()}>{t('Integrations.revealAsset')}</Button></>}
+      </div>:null}
       {!history.length&&!historyError?<p className="mt-3 text-sm">{t('Integrations.noHistory')}</p>:null}
       <p className="mt-3 text-xs">{t('Integrations.historyRemoveHelp')}</p>
       {history.map(record=><div key={record.id} className="mt-4 border-t border-[var(--nimi-border-subtle)] pt-3 text-sm" data-testid="integration-history-row"><p>{record.targetDisplayName} · {record.operation} · {t(`Integrations.states.${record.status}`)}</p><p className="mt-1 break-all text-xs"><time dateTime={record.createdAt}>{new Date(record.createdAt).toLocaleString(i18n.language)}</time> · {record.callId}</p>{historyBusy.includes(record.id)?<p className="mt-1 text-xs">{t('Integrations.historyUpdating')}</p>:null}<div className="mt-2 flex gap-2"><Button size="sm" tone="secondary" aria-expanded={savedRecordId===record.id} aria-controls={`saved-${record.id}`} onClick={event=>{savedTrigger.current=event.currentTarget;setSavedRecordId(record.id);}}>{t('Integrations.viewSaved')}</Button><Button size="sm" tone="secondary" disabled={locked||historyBusy.includes(record.id)} onClick={()=>void observe(record)}>{t('Integrations.observe')}</Button><Button size="sm" tone="danger" disabled={locked||historyBusy.includes(record.id)} onClick={()=>void remove(record)}>{t('Integrations.remove')}</Button></div>

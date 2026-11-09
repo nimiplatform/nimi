@@ -1,5 +1,4 @@
-import { useMemo } from 'react';
-import type { NimiLocalAppClient } from '@nimiplatform/sdk/app';
+import { useMemo, type ComponentProps } from 'react';
 import {
   AppAgentCenterEntry,
   createAgentCenterShellHostMechanics,
@@ -11,7 +10,7 @@ import {
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-019c
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-agid-014a
-export function AgentCenterCapability(props: { readonly client: NimiLocalAppClient }) {
+export function AgentCenterCapability(props: { readonly client: ComponentProps<typeof AppAgentCenterEntry>['client'] }) {
   const hostMechanics = useMemo(() => (
     hasElectronInvoke()
       ? createAgentCenterShellHostMechanics(createAgentCenterShellBridge())

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { NimiIntegrationCall, NimiIntegrationTarget } from '@nimiplatform/sdk/app';
 import { Button, InlineAlert } from '@nimiplatform/kit/ui';
 import { useLabRendererHost } from '../../renderer/context.js';
+import { requireLabNativeClient } from '../../shell/local-app-runtime-platform.js';
 import { subscribeLabLocalAppSessionLoss } from '../../shell/auth/session-loss.js';
 import { useTranslation } from '../../shell/i18n/index.js';
 import { getLabCapability } from '../lab-capabilities.js';
@@ -35,7 +36,7 @@ export function NativeReplyPanel({ target, event, externalBusy, setBusy, recordA
       targetRef: target.targetRef, adapter: target.kind, event,
       currentScope: () => currentHost.current === host,
       holdIntegrationFact: callId => integrationHistoryWork(host).hold(callId),
-      authStatus: () => host.sdk.localAppClient.auth.status(),
+      authStatus: () => requireLabNativeClient(host.sdk.localAppClient).auth.status(),
       prepareAI: async () => {
         const [config, summary, identity] = await Promise.all([
           loadLabAIConfig(host.sdk.aiConfig), host.app.projection.aiConfigSummary(), host.app.commands.nextRunIdentity(),
@@ -46,7 +47,7 @@ export function NativeReplyPanel({ target, event, externalBusy, setBusy, recordA
       },
       generate: request => host.sdk.runCapability(request),
       recordAI: record => callbacks.current.recordAI(record),
-      integration: host.sdk.localAppClient.integration,
+      integration: requireLabNativeClient(host.sdk.localAppClient).integration,
       recordIntegration: (inputJson, call) => callbacks.current.recordCall(inputJson, call),
       onState: next => {
         if (controller.current !== session) return;

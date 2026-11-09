@@ -19,7 +19,8 @@ import {
 } from '@nimiplatform/kit/shell/renderer/host';
 
 import { getRuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
-import { getLabLocalAppClient } from '../shell/local-app-runtime-platform.js';
+import { getLabLocalAppClient, isLabRemoteRuntime } from '../shell/local-app-runtime-platform.js';
+import { downloadLabWebAsset, requestLabWebDownload } from '../web/download.js';
 import { listLabVoiceAssets } from '../ai-studio-core/voice-assets.js';
 import { loadLabAIConfigSummary } from '../lab/lab-ai-config.js';
 import { runLabConversationJourney } from '../lab/local-app-conversation-journey.js';
@@ -200,16 +201,23 @@ export function createLabProductionBindings(
         },
         async exportText(input: { readonly filename: string; readonly body: string }): ReturnType<LabRendererCommandPort['exportText']> {
           try {
+            if (isLabRemoteRuntime()) {
+              return { ok: true, value: requestLabWebDownload(input.filename, new Blob([input.body], { type: 'text/plain' })) };
+            }
             const saved = await saveLabExport({
               filename: input.filename,
               mimeType: 'text/plain',
               body: input.body,
             });
-            return { ok: true, value: { filename: saved.filename, artifactPath: saved.artifactPath,
+            return { ok: true, value: { destination: 'runtime-asset', filename: saved.filename, artifactPath: saved.artifactPath,
               byteSize: saved.byteSize, revealed: saved.revealed } };
           } catch {
             return { ok: false, error: { disposition: 'host-unavailable' } };
           }
+        },
+        async exportAsset(relativePath: string) {
+          if (isLabRemoteRuntime()) { await downloadLabWebAsset(labLocalAppClient.storage.assets, relativePath); }
+          else { await labLocalAppClient.storage.assets.reveal(relativePath); }
         },
         resolveWorldTourFixture,
         openWorldTourWindow,
@@ -217,8 +225,10 @@ export function createLabProductionBindings(
         claimWorldTourViewerLaunch,
         saveWorldTourViewerPreset,
         async localAppSessionStatus() {
-          const status = await labLocalAppClient.auth.status();
-          return { state: status.state, sessionBound: status.sessionBound };
+          const status = await getRuntimePlatformProjection();
+          if (status.status === 'ready' && status.mode === 'remote-app') return { state: 'connected', sessionBound: true };
+          if (status.status === 'ready') return { state: status.localAppSession.state, sessionBound: status.localAppSession.sessionBound };
+          return { state: status.status, sessionBound: false };
         },
         async localAppConversationJourney(input: Parameters<LabRendererCommandPort['localAppConversationJourney']>[0]) {
           return runLabConversationJourney({

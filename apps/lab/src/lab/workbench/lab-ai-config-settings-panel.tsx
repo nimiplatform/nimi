@@ -9,6 +9,7 @@ import { openDesktopIntent } from '@nimiplatform/kit/shell/renderer/bridge';
 import { Button, StatusBadge } from '@nimiplatform/kit/ui';
 
 import { useLabRendererHost } from '../../renderer/context.js';
+import { isLabRemoteRuntime } from '../../shell/local-app-runtime-platform.js';
 import { useTranslation } from '../../shell/i18n/index.js';
 import { appId } from '../../shell/auth/app-identity.js';
 import {
@@ -95,6 +96,7 @@ export function LabAiConfigSettingsPanel({
   onCommitted,
 }: LabAiConfigSettingsPanelProps) {
   const rendererHost = useLabRendererHost();
+  const remote = isLabRemoteRuntime();
   const { t, i18n } = useTranslation();
   const copy = useLabModelConfigCopy();
   const scope = useMemo(() => ({ active: false, readSequence: 0 }), [rendererHost]);
@@ -180,7 +182,7 @@ export function LabAiConfigSettingsPanel({
             else void refresh();
             return result;
           }}
-          onOpenOwnerConfiguration={() => {
+          onOpenOwnerConfiguration={remote ? undefined : () => {
             void openDesktopIntent({
               intent: {
                 kind: 'open-apps',
@@ -201,7 +203,7 @@ export function LabAiConfigSettingsPanel({
               </p>
             </div>
           )}
-          footer={(
+          footer={remote ? null : (
             <p className="m-0 border-t border-[var(--nimi-border-subtle)] pt-4 text-xs leading-5 text-[var(--nimi-text-muted)]">
               {t('ModelConfig.footerNote')}
               <Button onClick={() => { void openDesktopIntent({ intent: { kind: 'open-apps', appId, section: 'ai-models' } }); }}>

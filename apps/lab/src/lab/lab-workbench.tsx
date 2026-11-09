@@ -1,7 +1,8 @@
 import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
 import { useNimiNavigationSnapshot } from '@nimiplatform/kit/ui/app-chrome';
 import { useLabNavigationOwner, type LabDestination } from '../shell/routes/app-navigation.js';
-import { LoadingSkeleton, StatusBadge } from '@nimiplatform/kit/ui';
+import { InlineAlert, LoadingSkeleton, StatusBadge } from '@nimiplatform/kit/ui';
+import { requireLabNativeClient } from '../shell/local-app-runtime-platform.js';
 import { AudioLines, Bot, Boxes, Cable, Inbox, MessagesSquare } from 'lucide-react';
 
 import { useAIStudioWorkspaceController } from '../ai-studio-core/index.js';
@@ -200,7 +201,10 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
       accountSlot={<NimiLabAccountMenu onOpenSettings={() => { void owner.navigation.push({ id: 'settings' }); }} />}
       rootTestId={labTestIds.root}
     >
-      {view.kind === 'settings' ? (
+      {'role' in rendererHost.sdk.localAppClient && (
+        ['app-access', 'integrations', 'activity', 'agent-realtime'].includes(view.kind)
+        || (view.kind === 'capability' && ['realtime.interact', 'world.generate'].includes(view.capabilityId))
+      ) ? <div className="p-5"><InlineAlert tone="info">{t('Auth.web.nativeSurface')}</InlineAlert></div> : view.kind === 'settings' ? (
         <Suspense fallback={<LoadingFallback />}><SettingsRoute /></Suspense>
       ) : view.kind === 'agent-center' ? (
         <Suspense fallback={<LoadingFallback />}>
@@ -212,7 +216,7 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
         </Suspense>
       ) : view.kind === 'agent-realtime' ? (
         <Suspense fallback={<LoadingFallback />}>
-          <div className="h-full overflow-y-auto p-5"><AgentRealtimeCapability client={rendererHost.sdk.localAppClient} /></div>
+          <div className="h-full overflow-y-auto p-5"><AgentRealtimeCapability client={requireLabNativeClient(rendererHost.sdk.localAppClient)} /></div>
         </Suspense>
       ) : view.kind === 'integrations' ? (
         <Suspense fallback={<LoadingFallback />}><LabIntegrationsPanel recordAI={studioController.appendHistoryRecord} /></Suspense>
@@ -261,7 +265,7 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
           )}
           headerActions={(
             <>
-              {activeCapabilityId === 'video.face_swap' ? (
+              {!('role' in rendererHost.sdk.localAppClient) && activeCapabilityId === 'video.face_swap' ? (
                 <Suspense fallback={null}>
                   <LabVideoFaceSwapSessionLauncher controller={studioController} runtime={summary?.runtime ?? null} />
                 </Suspense>

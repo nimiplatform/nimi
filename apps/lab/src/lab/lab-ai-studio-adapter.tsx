@@ -1,5 +1,7 @@
 import { useMemo, type ReactNode } from 'react';
-import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
+import { hasElectronRuntime, openNimiLocalAppAssetMediaUrl } from '@nimiplatform/kit/shell/renderer/bridge';
+import { isLabRemoteRuntime } from '../shell/local-app-runtime-platform.js';
+import { openNimiAppAssetMediaUrl as openLabWebAssetMediaUrl } from '@nimiplatform/kit/core/app-asset-media';
 import {
   AIStudioHostProvider,
   type AIStudioHostPort,
@@ -25,6 +27,7 @@ export function LabAIStudioAdapter({ children }: { readonly children: ReactNode 
     clock: { now: () => rendererHost.clock.now() },
     app: {
       projection: {
+        assetExportAction: () => isLabRemoteRuntime() ? 'download' : 'reveal',
         promptDraft: (key, enabled) => rendererHost.app.projection.promptDraft(key, enabled),
         projectRunTarget: (input) => createLabRunTargetSummary({
             capability: input.capability,
@@ -50,6 +53,10 @@ export function LabAIStudioAdapter({ children }: { readonly children: ReactNode 
         savePromptDraft: (key, prompt, enabled) => rendererHost.app.commands.savePromptDraft(key, prompt, enabled),
         copyText: (text) => rendererHost.app.commands.copyText(text),
         exportText: (input) => rendererHost.app.commands.exportText(input),
+        exportAsset: (relativePath) => rendererHost.app.commands.exportAsset(relativePath),
+        openAssetMediaUrl: (relativePath, signal) => isLabRemoteRuntime()
+          ? openLabWebAssetMediaUrl(rendererHost.sdk.storage.assets, relativePath, signal)
+          : openNimiLocalAppAssetMediaUrl(relativePath),
       },
     },
     sdk: {
@@ -63,7 +70,6 @@ export function LabAIStudioAdapter({ children }: { readonly children: ReactNode 
         getSnapshot: () => loadLabAIConfig(rendererHost.sdk.aiConfig),
         get: async () => (await loadLabAIConfig(rendererHost.sdk.aiConfig)).config,
       },
-      revealLocalAppAsset: (relativePath) => rendererHost.sdk.storage.assets.reveal(relativePath),
     },
   }), [i18n.language, rendererHost, t]);
   return <AIStudioHostProvider value={value}>{children}</AIStudioHostProvider>;

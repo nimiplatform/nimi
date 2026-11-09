@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { resolveObjectURL } from 'node:buffer';
 import { mkdirSync, mkdtempSync, readFileSync } from 'node:fs';
 import { rm } from 'node:fs/promises';
 import { createRequire } from 'node:module';
@@ -36,7 +37,7 @@ const unrelated = new Map();
 for (const statement of source.statements) {
   if (!ts.isImportDeclaration(statement) || !statement.moduleSpecifier.text.startsWith('..')) continue;
   const specifier = statement.moduleSpecifier.text;
-  if (specifier.endsWith('/lab-export.js') || specifier.endsWith('/local-app-runtime-platform.js')) continue;
+  if (specifier.endsWith('/lab-export.js') || specifier.endsWith('/local-app-runtime-platform.js') || specifier.endsWith('/web/download.js')) continue;
   if (statement.importClause?.isTypeOnly) continue;
   unrelated.set(specifier, statement.importClause.namedBindings.elements.map(item => item.propertyName?.text ?? item.name.text));
 }
@@ -54,14 +55,14 @@ await build({
     builder.onResolve({ filter: /^\.\./ }, args => args.importer.endsWith('production-bindings.ts') && unrelated.has(args.path)
       ? { path: args.path, namespace: 'export-unrelated' } : undefined);
     builder.onLoad({ filter: /.*/, namespace: 'export-test' }, () => ({ contents:
-      'export function getLabLocalAppClient(){if(!globalThis.__EXPORT_FEEDBACK_CLIENT__)throw Error("host unavailable");return globalThis.__EXPORT_FEEDBACK_CLIENT__}', loader: 'js' }));
+      'export const isLabRemoteRuntime=()=>Boolean(globalThis.__EXPORT_FEEDBACK_WEB__); export const getLabRemoteRuntime=()=>null; export function getLabLocalAppClient(){if(!globalThis.__EXPORT_FEEDBACK_CLIENT__)throw Error("host unavailable");return globalThis.__EXPORT_FEEDBACK_CLIENT__}', loader: 'js' }));
     builder.onLoad({ filter: /.*/, namespace: 'export-unrelated' }, args => ({ contents: unrelated.get(args.path)
       .map(name => `export const ${name} = () => { throw Error('Unexpected unrelated business call'); };`).join('\n'), loader: 'js' }));
   } }],
 });
 const { createLabProductionBindings, SectionAITesting, TextStudioResultState, RuntimeDiagnosticsActions,
   MusicGenerationNotice, AIStudioHostProvider, labStudioComposition, downloadTextFile } = await import(pathToFileURL(path.join(dir, 'view.mjs')).href);
-test.after(async () => { delete globalThis.__EXPORT_FEEDBACK_CLIENT__; dom.window.close(); await rm(dir, { recursive: true, force: true }); });
+test.after(async () => { delete globalThis.__EXPORT_FEEDBACK_CLIENT__; delete globalThis.__EXPORT_FEEDBACK_WEB__; dom.window.close(); await rm(dir, { recursive: true, force: true }); });
 
 const capabilities = { size: 0, has: () => false, values: () => [][Symbol.iterator](), [Symbol.iterator]: () => [][Symbol.iterator]() };
 const kit = { protocol: NIMI_RENDERER_HOST_PROTOCOL, scope: { domId: id => id, globalName: id => id }, capabilities,
@@ -77,7 +78,8 @@ const record = { id: 'export-selected', capabilityId: 'text.generate', createdAt
 const button = key => [...document.querySelectorAll('button')].find(item => item.getAttribute('aria-label') === translate(key) || item.textContent.trim() === translate(key));
 const click = async key => { const item = button(key); assert.ok(item, key); await act(async () => { item.click(); }); };
 
-function makeHost(outcome) {
+function makeHost(outcome, web = false) {
+  globalThis.__EXPORT_FEEDBACK_WEB__ = web;
   const writes = [], reveals = [];
   const assets = {
     async write(input) {
@@ -96,8 +98,8 @@ function makeHost(outcome) {
   const production = createLabProductionBindings(kit);
   const host = { appTitle: 'Lab', translate, locale: 'en', clock: { now: () => Date.parse('2026-10-05T10:00:00Z') },
     app: { commands: production.app.commands, projection: { promptDraft: () => ({ prompt: 'selected prompt' }),
-      projectRunTarget: () => target, runStatusLabel: status => status }, events: { subscribeAIConfigRefresh: () => () => {} } },
-    sdk: { assets, revealLocalAppAsset: relativePath => production.sdk.storage.assets.reveal(relativePath),
+      projectRunTarget: () => target, runStatusLabel: status => status, assetExportAction: () => web ? 'download' : 'reveal' }, events: { subscribeAIConfigRefresh: () => () => {} } },
+    sdk: { assets,
       aiConfig: { get: async () => null, getSnapshot: async () => ({ effectiveSelections: [] }) },
       runCapability: async () => ({ ok: true, capabilityId: 'text.generate', output: { kind: 'text', text } }) } };
   return { host, writes, reveals };
@@ -172,4 +174,29 @@ for (const outcome of ['saved-and-revealed', 'reveal-rejected']) test(`saved man
     assert.equal(writes.length, 0); assert.deepEqual(reveals, [asset.relativePath]);
     assert.equal(getNimiToastSnapshot().at(-1).message, translate(outcome === 'reveal-rejected' ? 'Common.assetRevealFailed' : 'Common.assetRevealed', { path: asset.relativePath }));
   } finally { await act(async () => { renderer.unmount(); }); nimiToast.clear(); }
+});
+
+for (const kind of ['text', 'asset']) test(`Web saved ${kind} exports through the browser without native writes or reveal`, async () => {
+  const { host, writes, reveals } = makeHost('write-rejected', true);
+  const downloads = [];
+  const priorClick = dom.window.HTMLAnchorElement.prototype.click;
+  dom.window.HTMLAnchorElement.prototype.click = function () { downloads.push({ filename: this.download, blob: resolveObjectURL(this.href) }); };
+  const asset = { relativePath: 'saved/score.abc', sizeBytes: 18, mediaType: 'text/vnd.abc' };
+  const selected = kind === 'text' ? record : { ...record, result: { ok: true, kind: 'artifacts', firstArtifact: asset, artifacts: [asset], summary: '' } };
+  const renderer = createRoot(document.getElementById('root'));
+  try {
+    await act(async () => renderer.render(createElement(TooltipProvider, null, createElement(AIStudioHostProvider, { value: host },
+      createElement(TextStudioResultState, { registration: labStudioComposition.getCapability('text.generate'),
+        activeRun: { id: selected.id, prompt: '', context: '', createdAt: selected.createdAt, record: selected, result: null },
+        admission: { label: 'configured' }, intentLabel: 'Cloud', running: false, canRegenerate: false,
+        cancelRequested: false, streamingText: null, verboseConsole: false, composer: null,
+        onCopy() {}, onDownload() {}, onRegenerate() {}, onUseAsDraft() {} })))));
+    assert.equal(button('StudioShell.revealGeneration'), undefined);
+    assert.equal(button('StudioShell.copyGeneration').disabled, kind === 'asset');
+    await click('StudioShell.downloadGeneration');
+    assert.equal(downloads.length, 1); assert.equal(writes.length, 0); assert.equal(reveals.length, 0);
+    assert.equal(await downloads[0].blob.text(), kind === 'text' ? text : 'X:1\nK:C\nC D E F|');
+    if (kind === 'asset') assert.equal(downloads[0].filename, 'score.abc');
+    assert.equal(getNimiToastSnapshot().at(-1).message, translate('Common.downloadRequested'));
+  } finally { await act(async () => renderer.unmount()); dom.window.HTMLAnchorElement.prototype.click = priorClick; nimiToast.clear(); }
 });

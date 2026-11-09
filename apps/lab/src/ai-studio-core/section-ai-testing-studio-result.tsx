@@ -248,7 +248,8 @@ export function StudioResult({
     && result.reason !== 'runtime-timeout' ? result : null;
   const plainText = ready ? resultPlainText(ready, t) : '';
   const canExport = Boolean(ready && plainText);
-  const revealsManagedAsset = ready?.output.kind === 'artifacts' || ready?.output.kind === 'text-annotation';
+  const revealsManagedAsset = (ready?.output.kind === 'artifacts' || ready?.output.kind === 'text-annotation')
+    && rendererHost.app.projection.assetExportAction() === 'reveal';
   const displayIntentLabel = studioResultIntentLabel(result, capability, intentLabel, t);
   const [requestSettingsOpen, setRequestSettingsOpen] = useState(false);
   const hasRequestSettings = Boolean(requestSettings);

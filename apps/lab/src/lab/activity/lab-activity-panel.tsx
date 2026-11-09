@@ -9,6 +9,7 @@ import {
 } from '@nimiplatform/sdk/app';
 
 import { useLabRendererHost } from '../../renderer/context.js';
+import { requireLabNativeClient } from '../../shell/local-app-runtime-platform.js';
 import { useTranslation } from '../../shell/i18n/index.js';
 import {
   labActivityBusinessDetail,
@@ -38,7 +39,7 @@ function sourceLabel(record: NimiAppActivityRecord): string {
  */
 export function LabActivityPanel() {
   const host = useLabRendererHost();
-  const client = host.sdk.localAppClient;
+  const client = requireLabNativeClient(host.sdk.localAppClient);
   const { t, i18n } = useTranslation();
   const [scope, setScope] = useState<LabActivityScope>('open-todos');
   const [snapshot, setSnapshot] = useState<NimiAppActivityViewSnapshot>(INITIAL);

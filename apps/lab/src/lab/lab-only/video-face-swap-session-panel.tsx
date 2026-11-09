@@ -7,6 +7,7 @@ import type { StudioCapabilityRunResult, StudioRuntimeInspection } from '../../a
 import { createRunConfigSnapshot, useStudioRunTargetSummary } from '../../ai-studio-core/section-ai-testing-run.js';
 import { studioNonSuccessDiagnostics } from '../../ai-studio-core/runtime.js';
 import { useLabRendererHost } from '../../renderer/context.js';
+import { requireLabNativeClient } from '../../shell/local-app-runtime-platform.js';
 import { t as translate, useTranslation } from '../../shell/i18n/index.js';
 import { capabilityNonSuccess } from '../lab-non-success.js';
 import { labVideoFaceSwapCapability } from './capability-test-registrations.js';
@@ -188,7 +189,7 @@ function LabVideoFaceSwapSessionPanel({
     if (!reference || !canOpen) return;
     setBusy(true);
     setNotice('');
-    const session = createLabVideoSessionController({ client: client.ai.videoSessions, now: () => new Date(), onState: setSessionState });
+    const session = createLabVideoSessionController({ client: requireLabNativeClient(client).ai.videoSessions, now: () => new Date(), onState: setSessionState });
     sessionRef.current = session;
     try {
       // The reference must be an artifact owned by this App before Open.

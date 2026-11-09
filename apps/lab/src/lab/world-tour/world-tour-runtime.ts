@@ -41,7 +41,13 @@ export function parsePendingWorld(value: unknown): PendingWorld {
 }
 async function pendingWorld(storage: Pick<ReturnType<typeof getLabLocalAppClient>['storage'], 'readJson'> = getLabLocalAppClient().storage): Promise<PendingWorld | null> {
   try { return parsePendingWorld((await storage.readJson(PENDING_WORLD_PATH)).value); }
-  catch (cause) { if (cause && typeof cause === 'object' && 'code' in cause && cause.code === 'not-found') return null; throw cause; }
+  catch (cause) {
+    if (cause && typeof cause === 'object' && (
+      ('reasonCode' in cause && cause.reasonCode === 'APP_STORAGE_ENTRY_NOT_FOUND')
+      || ('code' in cause && cause.code === 'not-found')
+    )) return null;
+    throw cause;
+  }
 }
 export async function worldTourRecoveryReferences(storage: ReturnType<typeof getLabLocalAppClient>['storage']) {
   const pending = await pendingWorld(storage);

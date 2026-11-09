@@ -1,4 +1,4 @@
-import { recoverStudioJobAction, submitStudioLocalJob } from '../../ai-studio-core/runtime.js';
+import { recoverStudioJobAction, submitStudioLocalJob, studioNonSuccessDiagnostics } from '../../ai-studio-core/runtime.js';
 import { verifyStudioManagedAsset } from '../../ai-studio-core/managed-result-references.js';
 import { ScenarioType } from '@nimiplatform/sdk/runtime/generated';
 import {
@@ -99,14 +99,14 @@ async function finishTextAnnotation(context: StudioCapabilityRuntimeContext, job
     catch (cause) {
       const error = cause as { reasonCode?: string; code?: string };
       const code = String(error?.reasonCode ?? error?.code ?? '').toLowerCase().replaceAll('-', '_');
-      if (!['not_found', 'app_asset_not_found'].includes(code)) throw cause;
+      if (!['not_found', 'app_asset_not_found', 'app_storage_entry_not_found'].includes(code)) throw cause;
     }
     if (saved) await verifyStudioManagedAsset(host.client.storage.assets, { relativePath, sha256, sizeBytes: bytes.byteLength, mediaType: STUDIO_TEXT_ANNOTATION_DOCUMENT_MEDIA_TYPE }, context.input.observationSignal);
     else saved = await host.client.storage.assets.write({ relativePath, body: bytes, mediaType: STUDIO_TEXT_ANNOTATION_DOCUMENT_MEDIA_TYPE, overwrite: false });
   } catch (error) {
-    return labJobNonSuccess(jobRef, 'runtime-call-failed', host.translate('CapabilityTests.textAnnotate.saveFailed', {
+    return { ...host.nonSuccess(capability, 'runtime-call-failed', host.translate('CapabilityTests.textAnnotate.saveFailed', {
       detail: error instanceof Error ? error.message : String(error),
-    }), completed).result;
+    }), studioNonSuccessDiagnostics(error)), jobId: completed.jobId };
   }
   if (saved.sha256 !== sha256 || saved.sizeBytes !== bytes.byteLength) {
     await host.client.storage.assets.remove(saved.relativePath).catch(() => undefined);

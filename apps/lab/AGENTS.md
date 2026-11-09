@@ -9,6 +9,7 @@
 - Consume Runtime and Realm only through SDK and reusable UI through Kit; do not create app-local platform truth, private transport, provider/model constants, or admission truth.
 - Do not add app-local persistence commands or modules; history, export, artifacts, and storage use admitted Kit shell capabilities.
 - Nimi Lab is local-development-only and must not carry public admission, listing, release, registry, or install truth.
+- The native and HTTPS Web entries share Lab business surfaces. The Web entry uses the public remote Runtime SDK and a separately admitted source; it never installs a native shell bridge or substitutes another App's identity. Keep actual unsupported carrier operations explicit. Source admission, certificate trust, official login and first Home confirmation are operator prerequisites, not test fixtures.
 
 ## Capability Coverage
 - A new canonical capability or important contract behavior from a third-party App adaptation ships with its Lab entry, a focused regression, and the real Desktop-supervised Lab acceptance path in the same task; if Lab cannot host it, record the specific lifecycle or input reason. See the README section "AI capability coverage".

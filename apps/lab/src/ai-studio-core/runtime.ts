@@ -68,12 +68,16 @@ export type StudioCapabilityNonSuccessFactory = (
   diagnostics?: StudioNonSuccessDiagnostics,
 ) => StudioNonSuccess;
 
+export type StudioRuntimeClient = Pick<NimiLocalAppClient, 'aiConfig' | 'storage'> & {
+  readonly ai: Pick<NimiLocalAppClient['ai'], 'text' | 'scenario' | 'scenarioJobs' | 'artifacts' | 'voiceAssets'>;
+};
+
 export type StudioRuntimeHost = {
   readonly appId: string;
   readonly surfaceId: string;
   readonly abortReason: string;
   readonly translate: (key: string, values?: Readonly<Record<string, unknown>>) => string;
-  readonly client: NimiLocalAppClient;
+  readonly client: StudioRuntimeClient;
   readonly createScenarioJobClient: typeof createNimiLocalAppRuntimeScenarioJobClient;
   readonly runners: StudioRuntimeRunnerSet;
   readonly nonSuccess: StudioCapabilityNonSuccessFactory;
@@ -101,7 +105,7 @@ export type StudioCapabilityRuntimeOrchestrator = {
   readonly handlers: StudioCapabilityRuntimeHandlers;
   readonly resolveCapability: (capabilityId: string) => StudioRuntimeCapabilityDescriptor;
   readonly inspectRuntime: () => Promise<StudioRuntimeInspection>;
-  readonly getClient: () => NimiLocalAppClient;
+  readonly getClient: () => StudioRuntimeClient;
   readonly createScenarioId: (capability: StudioRuntimeCapabilityDescriptor) => string;
   readonly createScenarioJobClient?: typeof createNimiLocalAppRuntimeScenarioJobClient;
   readonly runners?: Partial<StudioRuntimeRunnerSet>;

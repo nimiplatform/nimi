@@ -10,12 +10,12 @@ import { AuthGate } from './auth/auth-gate.js';
 import { useTranslation } from './i18n/index.js';
 import { LabNavigationOwner, LabNavigationScope, useLabNavigationOwner } from './routes/app-navigation.js';
 
-export function App(props: { readonly rendererHost: NimiRendererHostBindingV1<NimiRendererHostMethodMap> }) {
+export function App(props: { readonly rendererHost: NimiRendererHostBindingV1<NimiRendererHostMethodMap>; readonly webCarrier?: boolean }) {
   return <NimiRendererHostProvider binding={props.rendererHost}><NimiThemeProvider accentPack="nimi-accent" defaultScheme="light"><TooltipProvider>
-    <LabNavigationOwner><LabFrame rendererHost={props.rendererHost} /></LabNavigationOwner>
+    <LabNavigationOwner><LabFrame rendererHost={props.rendererHost} webCarrier={props.webCarrier} /></LabNavigationOwner>
   </TooltipProvider></NimiThemeProvider></NimiRendererHostProvider>;
 }
-function LabFrame(props: { readonly rendererHost: NimiRendererHostBindingV1<NimiRendererHostMethodMap> }) {
+function LabFrame(props: { readonly rendererHost: NimiRendererHostBindingV1<NimiRendererHostMethodMap>; readonly webCarrier?: boolean }) {
   const owner = useLabNavigationOwner();
   const { t, i18n } = useTranslation();
   const [canonical, setCanonical] = useState<{ instance: ReturnType<typeof labCanonicalRendererFactory.createInstance>; viewer: boolean } | null>(null);
@@ -27,10 +27,10 @@ function LabFrame(props: { readonly rendererHost: NimiRendererHostBindingV1<Nimi
   }, [props.rendererHost, owner.setReady]);
   const viewer = canonical?.viewer ?? false;
   const content = <div className="flex h-full min-h-0 flex-col overflow-hidden">
-    <NimiAppChrome metadata={{ name: viewer ? 'World Tour' : 'Nimi Lab', version: appPackage.version }} locale={i18n.language.startsWith('zh') ? 'zh' : 'en'}
+    {!props.webCarrier && <NimiAppChrome metadata={{ name: viewer ? 'World Tour' : 'Nimi Lab', version: appPackage.version }} locale={i18n.language.startsWith('zh') ? 'zh' : 'en'}
       navigation={viewer ? undefined : owner.navigation} navigationEnabled={owner.ready}
       sidebar={!viewer && owner.ready ? { visible: owner.sidebarVisible, onVisibleChange: owner.setSidebarVisible } : undefined}
-      commands={viewer ? [] : [{ id: 'lab.open-settings', label: t('Settings.title'), menu: 'file', state: () => ({ visible: true, enabled: owner.ready }), execute: () => { void owner.navigation.push({ id: 'settings' }); } }]} />
+      commands={viewer ? [] : [{ id: 'lab.open-settings', label: t('Settings.title'), menu: 'file', state: () => ({ visible: true, enabled: owner.ready }), execute: () => { void owner.navigation.push({ id: 'settings' }); } }]} />}
     <div className="min-h-0 flex-1 overflow-hidden"><AuthGate>{owner.ready ? canonical?.instance.surfaces.main.render() ?? null : null}</AuthGate></div>
     <NimiToaster />
   </div>;

@@ -4,6 +4,7 @@ import { Button, ConfirmDialog, FieldShell, InlineAlert, SelectField, Statistic,
 import type { NimiLocalAppAgentReference } from '@nimiplatform/sdk/app';
 
 import { useLabRendererHost } from '../../renderer/context.js';
+import { requireLabNativeClient } from '../../shell/local-app-runtime-platform.js';
 import { useTranslation } from '../../shell/i18n/index.js';
 import {
   appAccessGroups,
@@ -60,7 +61,7 @@ function boundedError(error: unknown): string {
 
 export function AppAccessPanel() {
   const { t } = useTranslation();
-  const client = useLabRendererHost().sdk.localAppClient;
+  const client = requireLabNativeClient(useLabRendererHost().sdk.localAppClient);
   const [facts, setFacts] = useState<AppAccessSessionFacts>(() => ({
     'app-process': { state: 'ready', detail: t('AppAccess.factDetails.rendererSince', { time: new Date(performance.timeOrigin).toISOString() }) },
     session: { state: 'checking', detail: t('AppAccess.factDetails.checkingSession') },

@@ -14,11 +14,12 @@ export type StudioHostCommandResult<TValue extends object = Record<string, never
 
 export type StudioTextExportResult =
   | { readonly ok: true; readonly value: {
+      readonly destination: 'runtime-asset';
       readonly filename: string;
       readonly artifactPath: string;
       readonly byteSize: number;
       readonly revealed: boolean;
-    } }
+    } | { readonly destination: 'browser-download'; readonly filename: string; readonly byteSize: number } }
   | { readonly ok: false; readonly error?: unknown };
 
 export type AIStudioHostPort = {
@@ -30,6 +31,7 @@ export type AIStudioHostPort = {
   };
   readonly app: {
     readonly projection: {
+      readonly assetExportAction: () => 'reveal' | 'download';
       readonly promptDraft: (key: StudioPromptDraftKey, enabled: boolean) => { readonly prompt: string | null };
       readonly projectRunTarget: (input: {
         readonly capability: StudioCapabilityDescriptor;
@@ -47,6 +49,10 @@ export type AIStudioHostPort = {
       readonly savePromptDraft: (key: StudioPromptDraftKey, prompt: string, enabled: boolean) => Promise<unknown>;
       readonly copyText: (text: string) => Promise<StudioHostCommandResult<{ readonly copied: boolean }>>;
       readonly exportText: (input: { readonly filename: string; readonly body: string }) => Promise<StudioTextExportResult>;
+      readonly exportAsset: (relativePath: string) => Promise<void>;
+      readonly openAssetMediaUrl: (relativePath: string, signal?: AbortSignal) => Promise<{
+        readonly url: string; readonly revoke: () => Promise<void>;
+      }>;
     };
   };
   readonly sdk: {
@@ -71,7 +77,6 @@ export type AIStudioHostPort = {
       readonly getSnapshot: () => Promise<NimiAIConfigSnapshot>;
       readonly get: () => Promise<NimiPortableAppAIConfig | null>;
     };
-    readonly revealLocalAppAsset: (relativePath: string) => Promise<{ readonly revealed: true }>;
   };
 };
 

@@ -52,6 +52,13 @@ const ownerBuild = await build({ entryPoints: [fileURLToPath(new URL('../src/lab
 });
 const worldOwner = await import(`data:text/javascript;base64,${Buffer.from(ownerBuild.outputFiles[0].text).toString('base64')}`);
 
+test('shared history treats an absent remote World recovery record as empty without hiding access failures', async () => {
+  const missing = Object.assign(new Error('storage entry absent'), { reasonCode: 'APP_STORAGE_ENTRY_NOT_FOUND' });
+  assert.deepEqual(await worldOwner.worldTourRecoveryReferences({ readJson: async () => { throw missing; } }), []);
+  const denied = Object.assign(new Error('access denied'), { reasonCode: 'APP_SCOPE_FORBIDDEN' });
+  await assert.rejects(() => worldOwner.worldTourRecoveryReferences({ readJson: async () => { throw denied; } }), error => error === denied);
+});
+
 test('World run and Resume cannot finalize A twice; a later B keeps its own unresolved record', async () => {
   const documents = new Map(); let submits = 0, gets = 0, histories = 0;
   const enteredHistory = Promise.withResolvers(), history = Promise.withResolvers();

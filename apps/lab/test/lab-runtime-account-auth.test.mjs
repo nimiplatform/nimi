@@ -2158,3 +2158,20 @@ test('Lab video preserves promptless media, automatic duration and explicit fals
     assert.equal(calls[0].options.watermark, false);
   }
 });
+
+test('the explicit Web carrier never falls back to a previously constructed native client', async () => {
+  const platform = await importLocalAppRuntimePlatform();
+  const projection = await importRuntimePlatform();
+  platform.setLabRemoteRuntime(null);
+  assert.throws(() => platform.getLabLocalAppClient());
+  assert.equal((await projection.getRuntimePlatformProjection()).mode, 'remote-app');
+  assert.equal((await projection.getRuntimePlatformProjection()).status, 'unavailable');
+  const peer = { role: 'app', closed: false, identity: { accountId: 'unit-account', displayName: 'Unit user' } };
+  platform.setLabRemoteRuntime(peer);
+  assert.equal(platform.getLabLocalAppClient(), peer);
+  assert.deepEqual(await projection.getRuntimePlatformProjection(), { status: 'ready', mode: 'remote-app', identity: peer.identity });
+  peer.closed = true;
+  assert.equal((await projection.getRuntimePlatformProjection()).status, 'unavailable');
+  assert.throws(() => platform.getLabLocalAppClient());
+  platform.setLabRemoteRuntime(null);
+});

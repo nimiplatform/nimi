@@ -2,9 +2,79 @@
 
 # Nimi Lab
 
+## Browser workbench
+
+Lab now has a separate HTTPS browser entry. It reuses the existing workbench,
+AIConfig editor, AI runners, Runtime-backed history, Agent Center and Agent
+Conversation components. The native entry still runs through Desktop supervision.
+Lab remains a development application; neither entry grants Registry admission.
+
+The browser signs in directly through the official Nimi page. Lab needs no
+separate website password or backend account database. The scoped session stays
+in memory; session storage holds only the one-shot PKCE transaction. Returning
+from login starts the connection once. Disconnect keeps the current sign-in for
+an explicit reconnect; signing out ends this Lab context without globally logging
+out other Nimi applications. No AI operation is automatically replayed.
+
+### Configure and run
+
+1. Copy `.env.web.example` to `.env.web.local` and fill the deployment values.
+2. Use a browser-trusted certificate for the exact HTTPS origin. The default is
+   `https://127.0.0.1:4468`, separate from official development login on `localhost`.
+3. Have the Registry maintainer review the remote source for canonical App ID
+   `nimi.lab`, the chosen client ID, exact origin and callback `<origin>/`.
+   The browser entry needs `runtime.consume`, `agent.local`, and `agent.configure`;
+   it is an ordinary `app`, never an `official_manager`. A source candidate or
+   environment variable is not admission. Do not copy another application's grant.
+4. Start with `pnpm --filter @nimiplatform/lab dev:web`. Enable remote access in
+   the primary PC's Home, log in on the official site, and confirm the Lab source
+   in Home once. Changing browsers or devices does not require another approval.
+5. Configure this App's AIConfig and use the shared workbench or Agent pages.
+
+`pnpm --filter @nimiplatform/lab build:web` builds `dist-web`; the ordinary
+`build` command builds both native and Web renderer outputs so CI covers both. A static deployment
+must serve the same scoped Realm coordination routes as the development server,
+or provide an equivalent deployment-owned reverse proxy. The proxy is limited
+to Runtime-client identity and connection coordination; it strips cookies and
+does not expose account login, generic Realm APIs, AI, files or Agent traffic.
+All business calls travel on the direct browser-to-PC DataChannel.
+App files and history retain their existing registered-subject ownership; Web
+and native sources do not automatically merge their files or workspaces.
+
+### Current carrier scope
+
+- AI text, embedding/Scenario/Job operations, App AIConfig, App-private JSON
+  history and supported asset read/write/adoption use the existing typed SDK clients.
+  Each model/operation still requires its actual Runtime configuration.
+- Managed media previews use the same UI in both entries. Native Apps retain
+  their Host media handles; Web reads authorized App assets into revocable Blob
+  URLs. Leaving the view cancels its reader and releases the preview URL.
+- LocalAgent references, introductions, conversations, embodiment observation
+  and `agent.configure` use the same operation and resource permissions as native
+  Apps. A fresh connection obtains fresh Agent handles. The browser cannot create
+  a native Host witness or use Desktop management methods.
+- Native App Access diagnostics, Integration/activity pages, realtime media
+  sessions and World Tour remain unavailable in this first browser carrier.
+  Uploaded inputs and text annotation documents use managed App asset storage;
+  each remote write is a finite upload of at most 32 MiB, without upload resumption.
+  Web exports text and existing owned assets through the
+  browser's download flow; it does not open folders on the PC Runtime host.
+  The native capability coverage below is unchanged.
+- Web media inputs must use inline bytes or uploaded App-owned artifacts. Raw
+  media URLs do not authorize the PC to fetch arbitrary network locations.
+- Home must remain running. A network that cannot connect directly reports
+  unavailable. No Relay, transparent stream recovery or background wake agent
+  is provided.
+
+Automated controller, codec, admission and build checks do not certify an AI
+execution. The local development source has exercised Local/Cloud text, streaming
+cancellation, saved history, LocalAgent conversation and a generated image Job
+through the browser. This covers those concrete paths, not every model, modality,
+network or platform. Remaining acceptance scope belongs in the local plan packet.
+
 Nimi Lab is a hand-authored, local-development-only workspace App.
 
-Nimi Lab is the incubation and capability testing application within the Nimi ecosystem. It serves as a comprehensive testbed for developers to exercise, benchmark, and validate new SDK capabilities, AI models, and multimodal pipelines under the supervised Electron development environment.
+Nimi Lab is the incubation and capability testing application within the Nimi ecosystem. Developers use its supervised Electron entry and explicit browser entry to exercise SDK capabilities, AI models, and multimodal pipelines within each carrier's supported scope.
 
 ## Development
 

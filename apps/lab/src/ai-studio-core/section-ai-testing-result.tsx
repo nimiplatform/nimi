@@ -17,7 +17,7 @@ import type { StudioCapabilityRegistration } from './module-registration.js';
 import { getStudioRunHistoryExportText, formatStudioRunTimestamp, getStudioRunConfigParamRows, getStudioRunIntentLabel, getStudioRunPromptControlFacts, getStudioRunResultTags, getStudioRunStatusTone, type StudioRunConfigParamRow, type StudioRunHistoryRecord, type StudioRunHistoryResultSnapshot, type StudioRunPromptControlFact } from './history.js';
 import { studioNonSuccessReasonTitle, studioNonSuccessReasonUserAction, studioNonSuccessReasonUserMessage } from './non-success-presentation.js';
 import { ArtifactMediaPreview, ArtifactMediaResult, RuntimeDiagnosticsActions, StudioResult, TextStudioOutputBody, downloadTextFile, statusForCapability } from './section-ai-testing-surface.js';
-import { EmbeddingResultBody, SpeakerEmbeddingResultBody, KnownJobNotice, revealStudioAsset } from './section-ai-testing-output.js';
+import { EmbeddingResultBody, SpeakerEmbeddingResultBody, KnownJobNotice, exportStudioAsset } from './section-ai-testing-output.js';
 import type { TextStudioActiveRun } from './section-ai-testing-run.js';
 
 function TextStudioPromptControlFacts({ facts }: { facts: readonly StudioRunPromptControlFact[] }) {
@@ -177,8 +177,8 @@ function TextStudioHistoryRecordResult({
     && Number(record.runConfig?.target.params.additionalDocuments ?? 0) > 0;
   const canUseAsDraft = !sessionOnly && !faceSwapNeedsMedia && !speakerNeedsMedia && !record.inputTruncated;
   const canReplay = canUseAsDraft && !additionalDocumentsNotRetained;
-  const revealsManagedAsset = Boolean(managedArtifact?.relativePath);
-  const canExport = !blocked && (revealsManagedAsset || Boolean(exportText.trim()));
+  const revealsManagedAsset = Boolean(managedArtifact?.relativePath) && rendererHost.app.projection.assetExportAction() === 'reveal';
+  const canExport = !blocked && (Boolean(managedArtifact?.relativePath) || Boolean(exportText.trim()));
   const hasRequestSettings = hasTextStudioRequestSettings(record);
   const [requestSettingsOpen, setRequestSettingsOpen] = useState(false);
   function handleCopy() {
@@ -197,7 +197,7 @@ function TextStudioHistoryRecordResult({
   }
   function handleDownload() {
     if (managedArtifact?.relativePath) {
-      void revealStudioAsset(rendererHost, managedArtifact.relativePath);
+      void exportStudioAsset(rendererHost, managedArtifact.relativePath);
       return;
     }
     const stamp = record.createdAt.replace(/[:.]/g, '-');
@@ -251,7 +251,7 @@ function TextStudioHistoryRecordResult({
           {!blocked ? (
             <>
               <Tooltip content={t('Common.copy')} placement="top">
-                <IconButton type="button" className="studio-result__action" onClick={handleCopy} disabled={!canExport} aria-label={t('StudioShell.copyGeneration')} icon={<CopyIcon size={16} aria-hidden="true" />} />
+                <IconButton type="button" className="studio-result__action" onClick={handleCopy} disabled={blocked !== null || !exportText.trim()} aria-label={t('StudioShell.copyGeneration')} icon={<CopyIcon size={16} aria-hidden="true" />} />
               </Tooltip>
               <Tooltip content={t(revealsManagedAsset ? 'StudioShell.revealAsset' : 'StudioShell.download')} placement="top">
                 <IconButton type="button" className="studio-result__action" onClick={handleDownload} disabled={!canExport} aria-label={t(revealsManagedAsset ? 'StudioShell.revealGeneration' : 'StudioShell.downloadGeneration')} icon={revealsManagedAsset ? <FolderOpen size={16} aria-hidden="true" /> : <DownloadIcon size={16} aria-hidden="true" />} />

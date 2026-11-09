@@ -186,7 +186,7 @@ export function recordedStudioScenarioJobClient(context: import('./runtime.js').
   } });
 }
 
-export async function recoverStudioJobId(client: NimiLocalAppClient, entry: StudioJobRecoveryEntry, capability: StudioJobRecoveryCapability): Promise<string> {
+export async function recoverStudioJobId(client: { readonly ai: Pick<NimiLocalAppClient['ai'], 'scenarioJobs'>; readonly storage: Storage }, entry: StudioJobRecoveryEntry, capability: StudioJobRecoveryCapability): Promise<string> {
   const response = entry.jobId ? await client.ai.scenarioJobs.get(entry.jobId) : await client.ai.scenarioJobs.lookupSubmission(entry.clientSubmissionId);
   await captureStudioJobRecoveryJobId(client.storage, entry.clientSubmissionId, response.job.jobId, capability);
   return response.job.jobId;

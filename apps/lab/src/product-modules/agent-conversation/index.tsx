@@ -1,5 +1,4 @@
-import { useMemo } from 'react';
-import type { NimiLocalAppClient } from '@nimiplatform/sdk/app';
+import { useMemo, type ComponentProps } from 'react';
 import {
   AppConversationEntry,
   createBrowserAppConversationHostPort,
@@ -7,7 +6,7 @@ import {
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-019c
 // @nimi-authority: rule.nimi.runtime.agent-participation.r093
-export function AgentConversationCapability(props: { readonly client: NimiLocalAppClient }) {
+export function AgentConversationCapability(props: { readonly client: ComponentProps<typeof AppConversationEntry>['client'] }) {
   const hostPort = useMemo(() => createBrowserAppConversationHostPort(), []);
   return (
     <AppConversationEntry

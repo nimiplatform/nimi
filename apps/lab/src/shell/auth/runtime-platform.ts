@@ -1,18 +1,20 @@
 import { ReasonCode } from '@nimiplatform/sdk/types';
 import type { NimiAppAuthProjection, NimiAppLocalSessionProjection } from '@nimiplatform/sdk/app';
-import { getLabLocalAppClient } from '../local-app-runtime-platform.js';
+import type { RuntimeClientIdentity } from '@nimiplatform/sdk/realm';
+import { getLabLocalAppClient, getLabRemoteRuntime, isLabRemoteRuntime } from '../local-app-runtime-platform.js';
+import { t } from '../i18n/index.js';
 
 export { appId, appTitle, scaffoldProfile } from './app-identity.js';
 
 export const runtimeAccountLoginEnabled = false;
 
-export type RuntimeAuthMode = 'local-app';
+export type RuntimeAuthMode = 'local-app' | 'remote-app';
 
 export type RuntimePlatformReadyProjection = {
   readonly status: 'ready';
-  readonly mode: RuntimeAuthMode;
+  readonly mode: 'local-app';
   readonly localAppSession: NimiAppLocalSessionProjection;
-};
+} | { readonly status: 'ready'; readonly mode: 'remote-app'; readonly identity: RuntimeClientIdentity };
 
 export type RuntimePlatformUnavailableProjection = {
   readonly status: 'unavailable' | 'action-required';
@@ -36,13 +38,21 @@ export function clearRuntimePlatformProjection(): void {
 }
 
 export function getRuntimePlatformProjection(): Promise<RuntimePlatformProjection> {
+  if (isLabRemoteRuntime()) {
+    const client = getLabRemoteRuntime();
+    return Promise.resolve(client && !client.closed
+      ? { status: 'ready', mode: 'remote-app', identity: client.identity }
+      : { status: 'unavailable', mode: 'remote-app', reasonCode: 'SDK_RUNTIME_REMOTE_UNAVAILABLE', message: t('Auth.web.disconnected'), messageKey: 'Auth.web.disconnected' });
+  }
   runtimeProjection ??= resolveLocalAppProjection();
   return runtimeProjection;
 }
 
 async function resolveLocalAppProjection(): Promise<RuntimePlatformProjection> {
   try {
-    const status = await getLabLocalAppClient().auth.status();
+    const client = getLabLocalAppClient();
+    if (!('auth' in client)) throw new Error('Native App session is unavailable.');
+    const status = await client.auth.status();
     if (!status.sessionBound) {
       return unavailableFromAuth(status);
     }

@@ -9,6 +9,7 @@ import test from 'node:test';
 import { build } from 'esbuild';
 
 const root = path.resolve(import.meta.dirname, '..');
+const unavailableMedia = async () => { throw new Error('isolated test media boundary'); };
 const kitRequire = createRequire(path.resolve(root, '../../kit/package.json'));
 const { JSDOM } = kitRequire('jsdom');
 const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url:'http://localhost/' });
@@ -116,9 +117,9 @@ test(`Text Studio exposes Stop for ${media.type} and cancels its own running req
   const host = {
     appTitle: 'Lab', translate: key => key, locale: 'en', clock: { now: () => Date.now() },
     app: {
-      projection: { promptDraft: () => ({ prompt: 'Describe the image' }), projectRunTarget: () => target, runStatusLabel: s => s },
+      projection: { assetExportAction: () => 'reveal', promptDraft: () => ({ prompt: 'Describe the image' }), projectRunTarget: () => target, runStatusLabel: s => s },
       events: { subscribeAIConfigRefresh: () => () => {} },
-      commands: { savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => {} },
+      commands: { openAssetMediaUrl: unavailableMedia, savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => {} },
     },
     sdk: {
       aiConfig: { get: async () => null, getSnapshot: async () => ({ effectiveSelections: [{
@@ -185,8 +186,8 @@ test('text history reruns its saved media and never borrows the current composer
   let completion = Promise.withResolvers();
   const host = {
     appTitle: 'Lab', translate: key => key, locale: 'en', clock: { now: () => Date.now() },
-    app: { projection: { promptDraft: () => ({ prompt: 'new draft' }), projectRunTarget: () => target, runStatusLabel: s => s },
-      events: { subscribeAIConfigRefresh: () => () => {} }, commands: { savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => {} } },
+    app: { projection: { assetExportAction: () => 'reveal', promptDraft: () => ({ prompt: 'new draft' }), projectRunTarget: () => target, runStatusLabel: s => s },
+      events: { subscribeAIConfigRefresh: () => () => {} }, commands: { openAssetMediaUrl: unavailableMedia, savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => {} } },
     sdk: { aiConfig: { get: async () => null, getSnapshot: async () => ({ effectiveSelections: [{ capabilityContract: 'text.generate', state: 'ready',
       resource: { oneofKind: 'cloud', cloud: { target: { state: 'ready', supportedFeatures: ['input.image', 'input.audio', 'input.video'] } } } }] }) },
       assets: { read: async ({ relativePath }) => { reads.push(relativePath); return { asset: source, body: { async *[Symbol.asyncIterator]() { yield bytes; } } }; } },
@@ -275,9 +276,9 @@ test('history previews do not inherit another run status or cancellation target'
   const host = {
     appTitle:'Lab', translate:key=>key, locale:'en', clock:{now:()=>Date.now()},
     app:{
-      projection:{promptDraft:()=>({prompt:'the button'}),projectRunTarget:()=>target,runStatusLabel:s=>s},
+      projection:{ assetExportAction: () => 'reveal',promptDraft:()=>({prompt:'the button'}),projectRunTarget:()=>target,runStatusLabel:s=>s},
       events:{subscribeAIConfigRefresh:()=>()=>{}},
-      commands:{savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>{}},
+      commands:{ openAssetMediaUrl: unavailableMedia,savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>{}},
     },
     sdk:{aiConfig:{get:async()=>null},assets:{stat:async()=>savedSource,read:async()=>({asset:savedSource,body:{async *[Symbol.asyncIterator](){yield savedBytes}}})},runCapability(input){
       const deferred=Promise.withResolvers(); calls.push({input,...deferred}); if(calls.length===2)secondStarted.resolve(); if(calls.length===3)thirdStarted.resolve(); return deferred.promise;
@@ -365,9 +366,9 @@ test('text annotation submits and records the exact composer document', async ()
   const host = {
     appTitle: 'Lab', translate: key => key, locale: 'en', clock: { now: () => Date.now() },
     app: {
-      projection: { promptDraft: () => ({ prompt: '' }), projectRunTarget: () => target, runStatusLabel: s => s },
+      projection: { assetExportAction: () => 'reveal', promptDraft: () => ({ prompt: '' }), projectRunTarget: () => target, runStatusLabel: s => s },
       events: { subscribeAIConfigRefresh: () => () => {} },
-      commands: { savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => {} },
+      commands: { openAssetMediaUrl: unavailableMedia, savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => {} },
     },
     sdk: {
       aiConfig: { get: async () => null },
@@ -487,9 +488,9 @@ test('Decisions run the request from Parameters, stop the one call and replay or
   const host = {
     appTitle: 'Lab', translate: key => key, locale: 'en', clock: { now: () => Date.now() },
     app: {
-      projection: { promptDraft: () => ({ prompt: '' }), projectRunTarget: () => target, runStatusLabel: s => s },
+      projection: { assetExportAction: () => 'reveal', promptDraft: () => ({ prompt: '' }), projectRunTarget: () => target, runStatusLabel: s => s },
       events: { subscribeAIConfigRefresh: () => () => {} },
-      commands: { savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => {} },
+      commands: { openAssetMediaUrl: unavailableMedia, savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => {} },
     },
     sdk: {
       aiConfig: { get: async () => null },
@@ -596,7 +597,7 @@ test('saved speech replay and draft restore keep the recorded voice and complete
   const target = { capabilityId: 'audio.synthesize', capabilityContract: 'audio.synthesize', section: 'tts', source: 'cloud', status: 'configured', canDispatch: true, intentLabel: 'Cloud', detail: 'configured', params: {}, paramsSummary: [], profileOrigin: null };
   const record = { id: 'saved-speech', capabilityId: 'audio.synthesize', createdAt: '2026-10-03T00:00:00Z', prompt: 'Saved speech text', status: 'failed', message: 'previous failure', result: { ok: false, kind: 'non-success', reason: 'runtime-call-failed', message: 'previous failure', summary: 'previous failure' }, runConfig: { target: { ...target, params: saved }, promptControls: { contextAttached: false, context: '', attachmentCount: 0 } } };
   const calls = [];
-  const host = { appTitle: 'Lab', translate: key => key, locale: 'en', clock: { now: () => Date.now() }, app: { projection: { promptDraft: () => ({ prompt: 'Current draft' }), projectRunTarget: () => target, runStatusLabel: s => s }, events: { subscribeAIConfigRefresh: () => () => {} }, commands: { savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => {} } }, sdk: { aiConfig: { get: async () => null }, listLocalAppPresetVoices: async () => [], listLocalAppVoiceAssets: async () => [{ voiceAssetId: 'saved-voice', creationSource: 'text-description', status: 'active' }], runCapability: async input => { calls.push(input); return { ok: false, capabilityId: 'audio.synthesize', reason: 'runtime-call-failed', message: 'fixture observes request only', actionHint: '' }; } } };
+  const host = { appTitle: 'Lab', translate: key => key, locale: 'en', clock: { now: () => Date.now() }, app: { projection: { assetExportAction: () => 'reveal', promptDraft: () => ({ prompt: 'Current draft' }), projectRunTarget: () => target, runStatusLabel: s => s }, events: { subscribeAIConfigRefresh: () => () => {} }, commands: { openAssetMediaUrl: unavailableMedia, savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => {} } }, sdk: { aiConfig: { get: async () => null }, listLocalAppPresetVoices: async () => [], listLocalAppVoiceAssets: async () => [{ voiceAssetId: 'saved-voice', creationSource: 'text-description', status: 'active' }], runCapability: async input => { calls.push(input); return { ok: false, capabilityId: 'audio.synthesize', reason: 'runtime-call-failed', message: 'fixture observes request only', actionHint: '' }; } } };
   let parameters = { voiceKind: 'preset', voicePreset: 'live-voice', language: 'en', speed: 2 };
   const renderer = createRoot(document.getElementById('root'));
   const props = { registration, registrations: [registration], runtime: { status: 'connected', detail: 'connected' }, lastResult: null, history: { 'audio.synthesize': [record] }, historySelectionRequest: { requestId: 1, record }, onSelectHistoryRun: () => {}, onResult: async () => null, verboseConsole: false, draftPersistence: false };
@@ -632,7 +633,7 @@ test('saved separation range stays with its own submission across history, whole
       artifactCount: 2, artifacts: [separation.vocals, separation.background], audioSeparation: separation },
     runConfig: { target: { ...draftTarget, params: parameters }, promptControls: { context: '', contextAttached: false, attachmentCount: 0 } } });
   const host = { translate: (key, values) => key + (values ? JSON.stringify(values) : ''), locale: 'en', clock: { now: () => Date.now() },
-    app: { projection: { projectRunTarget: () => draftTarget, runStatusLabel: status => status }, commands: {} }, sdk: {} };
+    app: { projection: { assetExportAction: () => 'reveal', projectRunTarget: () => draftTarget, runStatusLabel: status => status }, commands: { openAssetMediaUrl: unavailableMedia,} }, sdk: {} };
   const props = { registration, activeRun: { prompt: '', context: '', record: record({ sourceRelativePath: 'saved.wav', startSeconds: 2, endSeconds: 9 }) },
     admission: {}, intentLabel: 'Local', running: false, canRegenerate: false, canRestoreInputs: false, cancelRequested: false,
     streamingText: null, verboseConsole: false, composer: null, onCopy() {}, onDownload() {}, onRegenerate() {}, onUseAsDraft() {} };
@@ -716,8 +717,8 @@ test('speaker extraction exposes Stop and keeps a later request independent', as
   const calls = [], recorded = [];
   const host = {
     appTitle: 'Lab', translate: key => key, locale: 'en', clock: { now: () => Date.now() },
-    app: { projection: { promptDraft: () => ({ prompt: '' }), projectRunTarget: () => target, runStatusLabel: s => s },
-      events: { subscribeAIConfigRefresh: () => () => {} }, commands: { savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => {} } },
+    app: { projection: { assetExportAction: () => 'reveal', promptDraft: () => ({ prompt: '' }), projectRunTarget: () => target, runStatusLabel: s => s },
+      events: { subscribeAIConfigRefresh: () => () => {} }, commands: { openAssetMediaUrl: unavailableMedia, savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => {} } },
     sdk: { aiConfig: { get: async () => null }, storage: { readJson: async () => ({ value: [] }) },
       runCapability(input) { const deferred = Promise.withResolvers(); calls.push({ input, ...deferred }); return deferred.promise; } },
   };
@@ -761,7 +762,7 @@ test('saved synthesis alignment survives production history and exposes every ty
   const record=savedReplayRecord(id,target,{voiceKind:'preset',voicePreset:'longanyang',timingMode:'word'}, {kind:'artifacts',jobId:'saved-word-job',jobState:'completed',artifactCount:1,artifacts:[artifact],firstArtifact:artifact},'Hello Nimi.');
   const result=restoreStudioCapabilityRunResult(record,()=>id);
   assert.deepEqual(result.output.firstArtifact.speechAlignment,alignment);
-  const exports=[];const host={translate:key=>key,app:{commands:{exportText:async payload=>{exports.push(payload);return {ok:false,retryable:true,message:'isolated save boundary'}}}}};
+  const exports=[];const host={translate:key=>key,app:{commands:{ openAssetMediaUrl: unavailableMedia,exportText:async payload=>{exports.push(payload);return {ok:false,retryable:true,message:'isolated save boundary'}}}}};
   const container=document.getElementById('root'),renderer=createRoot(container);
   try {
     await act(async()=>renderer.render(createElement(AIStudioHostProvider,{value:host},createElement(SpeechAlignmentResultView,{alignment:result.output.firstArtifact.speechAlignment}))));
@@ -783,7 +784,7 @@ for (const item of [
   const registration=labStudioComposition.getCapability(item.id), calls=[];let sourcePresent=true;
   const target={capabilityId:item.id,capabilityContract:item.id,section:'music',source:'local',status:'configured',canDispatch:true,intentLabel:'Local',detail:'configured',params:{},paramsSummary:[],profileOrigin:null};
   const record=savedReplayRecord(item.id,target,item.saved);let parameters={...item.live};
-  const host={appTitle:'Lab',translate:key=>key,locale:'en',clock:{now:()=>Date.now()},app:{projection:{promptDraft:()=>({prompt:''}),projectRunTarget:()=>target,runStatusLabel:s=>s},events:{subscribeAIConfigRefresh:()=>()=>{}},commands:{savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>({ok:false})}},sdk:{aiConfig:{get:async()=>null,getSnapshot:async()=>({effectiveSelections:[{capabilityContract:item.id,state:'ready',resource:{oneofKind:'local',local:{musicInput:{transcription:[{parts:['note-events'],formats:['midi'],supportsRange:true,maxSourceBytes:536870912,maxDurationSeconds:600}]}}}}]})},assets:{stat:async path=>{if(!sourcePresent || path!=='owned/A.wav')throw Error('unexpected source');return {relativePath:path}}},runCapability:input=>{const d=Promise.withResolvers();calls.push({input,...d});return d.promise}}};
+  const host={appTitle:'Lab',translate:key=>key,locale:'en',clock:{now:()=>Date.now()},app:{projection:{ assetExportAction: () => 'reveal',promptDraft:()=>({prompt:''}),projectRunTarget:()=>target,runStatusLabel:s=>s},events:{subscribeAIConfigRefresh:()=>()=>{}},commands:{ openAssetMediaUrl: unavailableMedia,savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>({ok:false})}},sdk:{aiConfig:{get:async()=>null,getSnapshot:async()=>({effectiveSelections:[{capabilityContract:item.id,state:'ready',resource:{oneofKind:'local',local:{musicInput:{transcription:[{parts:['note-events'],formats:['midi'],supportsRange:true,maxSourceBytes:536870912,maxDurationSeconds:600}]}}}}]})},assets:{stat:async path=>{if(!sourcePresent || path!=='owned/A.wav')throw Error('unexpected source');return {relativePath:path}}},runCapability:input=>{const d=Promise.withResolvers();calls.push({input,...d});return d.promise}}};
   const props={registration,registrations:[registration],runtime:{status:'connected',detail:'connected'},lastResult:null,history:{[item.id]:[record]},historySelectionRequest:{requestId:1,record},onSelectHistoryRun:()=>{},onResult:async()=>null,verboseConsole:false,draftPersistence:false};
   const container=document.getElementById('root'),renderer=createRoot(container);
   const render=()=>renderer.render(createElement(TooltipProvider,null,createElement(AIStudioHostProvider,{value:host},createElement(StudioCapabilityParameterContext.Provider,{value:{state:{[item.id]:parameters},setParameters:(_id,next)=>{parameters=next;render()}}},createElement(SectionAITesting,props)))));
@@ -802,7 +803,7 @@ test('ASR File history cannot borrow a newly selected file',async()=>{
  const target={capabilityId:id,capabilityContract:id,section:'voice',source:'local',status:'configured',canDispatch:true,intentLabel:'Local',detail:'configured',params:{},paramsSummary:[],profileOrigin:null};
  const record=savedReplayRecord(id,target,{audioFile:'A.wav (128 bytes)',mimeType:'audio/wav',timestamps:true});
  const parameters={audioFile:{name:'B.wav',mimeType:'audio/wav',sizeBytes:128,bytes:new Uint8Array(128)},mimeType:'audio/wav',timestamps:false};
- const host={appTitle:'Lab',translate:key=>key,locale:'en',clock:{now:()=>Date.now()},app:{projection:{promptDraft:()=>({prompt:''}),projectRunTarget:()=>target,runStatusLabel:s=>s},events:{subscribeAIConfigRefresh:()=>()=>{}},commands:{savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>({ok:false})}},sdk:{aiConfig:{get:async()=>null},runCapability:input=>{calls.push(input);throw Error('historical File must not dispatch')}}};
+ const host={appTitle:'Lab',translate:key=>key,locale:'en',clock:{now:()=>Date.now()},app:{projection:{ assetExportAction: () => 'reveal',promptDraft:()=>({prompt:''}),projectRunTarget:()=>target,runStatusLabel:s=>s},events:{subscribeAIConfigRefresh:()=>()=>{}},commands:{ openAssetMediaUrl: unavailableMedia,savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>({ok:false})}},sdk:{aiConfig:{get:async()=>null},runCapability:input=>{calls.push(input);throw Error('historical File must not dispatch')}}};
  const props={registration,registrations:[registration],runtime:{status:'connected',detail:'connected'},lastResult:null,history:{[id]:[record]},historySelectionRequest:{requestId:1,record},onSelectHistoryRun:()=>{},onResult:async()=>null,verboseConsole:false,draftPersistence:false};
  const container=document.getElementById('root'),renderer=createRoot(container);
  try{await act(async()=>renderer.render(createElement(TooltipProvider,null,createElement(AIStudioHostProvider,{value:host},createElement(StudioCapabilityParameterContext.Provider,{value:{state:{[id]:parameters},setParameters:()=>{}}},createElement(SectionAITesting,props))))));const b=container.querySelector('button[aria-label="StudioShell.regenerate"]');assert.equal(b.disabled,true);await act(async()=>b.click());assert.equal(calls.length,0);assert.match(container.textContent,/StudioShell.historyInputsUnavailable/)}finally{await act(async()=>renderer.unmount())}
@@ -818,9 +819,9 @@ test('a live ASR file can be replayed without borrowing the draft or persisting 
     mimeType:'audio/wav', language:'en', timestamps:true };
   const host = {
     appTitle:'Lab', translate:key=>key, locale:'en', clock:{now:()=>Date.now()},
-    app:{projection:{promptDraft:()=>({prompt:''}), projectRunTarget:()=>target, runStatusLabel:s=>s},
+    app:{projection:{ assetExportAction: () => 'reveal',promptDraft:()=>({prompt:''}), projectRunTarget:()=>target, runStatusLabel:s=>s},
       events:{subscribeAIConfigRefresh:()=>()=>{}},
-      commands:{savePromptDraft:async()=>{}, copyText:async()=>({ok:true}), exportText:async()=>({ok:false})}},
+      commands:{ openAssetMediaUrl: unavailableMedia,savePromptDraft:async()=>{}, copyText:async()=>({ok:true}), exportText:async()=>({ok:false})}},
     sdk:{aiConfig:{get:async()=>null}, runCapability:input=>{
       const deferred = Promise.withResolvers(); calls.push({input,...deferred}); return deferred.promise;
     }},
@@ -888,8 +889,8 @@ test('parsed ASR URL history restores URL A and all saved controls while File B 
     mimeType:'audio/wav',language:'zh',timestamps:false,diarization:true,speakerCount:3,prompt:'Draft B context',responseFormat:'text' };
   let parameters = draft;
   const host = { appTitle:'Lab',translate:key=>key,locale:'en',clock:{now:()=>Date.now()},
-    app:{projection:{promptDraft:()=>({prompt:'https://audio.example.test/draft-B.wav'}),projectRunTarget:()=>target,runStatusLabel:s=>s},
-      events:{subscribeAIConfigRefresh:()=>()=>{}},commands:{savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>({ok:false})}},
+    app:{projection:{ assetExportAction: () => 'reveal',promptDraft:()=>({prompt:'https://audio.example.test/draft-B.wav'}),projectRunTarget:()=>target,runStatusLabel:s=>s},
+      events:{subscribeAIConfigRefresh:()=>()=>{}},commands:{ openAssetMediaUrl: unavailableMedia,savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>({ok:false})}},
     sdk:{aiConfig:{get:async()=>null},runCapability:async input=>{
       calls.push(input);
       return studioVoiceRuntimeHandlers[id]({capability:registration.descriptor,input,prompt:input.prompt,scenarioId:'isolated-asr',host:{
@@ -981,8 +982,8 @@ test('parsed media histories require complete saved requests and distinguish abs
     requestedPart:'lead-sheet',requestedFormats:['abc'],targetKind:'reference-audio',targetRelativePath:'owned/B-target.wav',targetMimeType:'audio/wav',semitoneShift:4};
   const container=document.getElementById('root'),renderer=createRoot(container);
   const host={appTitle:'Lab',translate:key=>key,locale:'en',clock:{now:()=>Date.now()},
-    app:{projection:{promptDraft:()=>({prompt:''}),projectRunTarget:()=>target,runStatusLabel:s=>s},events:{subscribeAIConfigRefresh:()=>()=>{}},
-      commands:{savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>({ok:false})}},
+    app:{projection:{ assetExportAction: () => 'reveal',promptDraft:()=>({prompt:''}),projectRunTarget:()=>target,runStatusLabel:s=>s},events:{subscribeAIConfigRefresh:()=>()=>{}},
+      commands:{ openAssetMediaUrl: unavailableMedia,savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>({ok:false})}},
     sdk:{aiConfig:{get:async()=>null,getSnapshot:async()=>({effectiveSelections:[]})},listLocalAppVoiceAssets:async()=>[],listLocalAppPresetVoices:async()=>[],
       assets:{stat:async path=>{if(!sourcePresent)throw Error('missing source');return {relativePath:path}}},
       runCapability:async input=>{calls.push(input);return {ok:false,capabilityId:input.capabilityId,reason:'runtime-call-failed',message:'isolated request boundary',actionHint:''}}}};
@@ -1022,7 +1023,7 @@ for(const transcript of [
   const target={capabilityId:id,capabilityContract:id,section:'voice',source:'local',status:'configured',canDispatch:true,intentLabel:'Local',detail:'configured',params:{},paramsSummary:[],profileOrigin:null};
   const record=savedReplayRecord(id,target,{timestamps:true},{kind:'transcript',text:transcript.text,transcription:transcript,jobId:'saved-asr-job',jobState:'completed',artifactCount:0});
   assert.equal(record.result.charCount,transcript.text.length);assert.equal(record.result.transcription.words.length,transcript.words.length);
-  const host={appTitle:'Lab',translate:key=>key,locale:'en',clock:{now:()=>Date.now()},app:{projection:{promptDraft:()=>({prompt:''}),projectRunTarget:()=>target,runStatusLabel:s=>s},events:{subscribeAIConfigRefresh:()=>()=>{}},commands:{savePromptDraft:async()=>{},copyText:async text=>{copies.push(text);return {ok:true}},exportText:async input=>{exports.push(input);return {ok:false,error:Error('isolated native export boundary')}}}},sdk:{aiConfig:{get:async()=>null},runCapability:()=>{throw Error('export never runs a model')}}};
+  const host={appTitle:'Lab',translate:key=>key,locale:'en',clock:{now:()=>Date.now()},app:{projection:{ assetExportAction: () => 'reveal',promptDraft:()=>({prompt:''}),projectRunTarget:()=>target,runStatusLabel:s=>s},events:{subscribeAIConfigRefresh:()=>()=>{}},commands:{ openAssetMediaUrl: unavailableMedia,savePromptDraft:async()=>{},copyText:async text=>{copies.push(text);return {ok:true}},exportText:async input=>{exports.push(input);return {ok:false,error:Error('isolated native export boundary')}}}},sdk:{aiConfig:{get:async()=>null},runCapability:()=>{throw Error('export never runs a model')}}};
   const props={registration,registrations:[registration],runtime:{status:'connected',detail:'connected'},lastResult:null,history:{[id]:[record]},historySelectionRequest:{requestId:1,record},onSelectHistoryRun:()=>{},onResult:async()=>null,verboseConsole:false,draftPersistence:false};
   const container=document.getElementById('root'),renderer=createRoot(container);
   try{await act(async()=>renderer.render(createElement(TooltipProvider,null,createElement(AIStudioHostProvider,{value:host},createElement(SectionAITesting,props)))));assert.equal(container.querySelectorAll('tbody tr').length,Math.min(400,transcript.words.length));
@@ -1039,7 +1040,7 @@ for(const item of [{id:'audio.separate',kind:'source'},{id:'audio.voice.convert'
   let parameters={sourceRelativePath:'owned/source-A.wav',sourceName:'source-A.wav',sourceMimeType:'audio/wav',...(item.id==='audio.voice.convert'?{targetKind:'reference-audio',targetRelativePath:'owned/target-A.wav',targetName:'target-A.wav',targetMimeType:'audio/wav',sourceStartSeconds:2,sourceEndSeconds:5,targetStartSeconds:1,targetEndSeconds:4}:{startSeconds:2,endSeconds:5,includeInstrumentParts:false})};
   const target={capabilityId:item.id,capabilityContract:item.id,section:'music',source:'local',status:'configured',canDispatch:true,intentLabel:'Local',detail:'configured',params:{},paramsSummary:[],profileOrigin:null};
   const profile={sourceKinds:['singing'],targetKinds:['reference-audio'],maxSourceBytes:536870912,maxTargetBytes:536870912,maxSourceSeconds:600,maxTargetSeconds:25,supportsRange:true,supportsSemitoneShift:true,minSemitoneShift:-12,maxSemitoneShift:12};
-  const host={appTitle:'Lab',translate:key=>key,locale:'en',clock:{now:()=>Date.now()},app:{projection:{promptDraft:()=>({prompt:''}),projectRunTarget:()=>target,runStatusLabel:s=>s},events:{subscribeAIConfigRefresh:()=>()=>{}},commands:{savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>({ok:false})}},sdk:{aiConfig:{get:async()=>null,getSnapshot:async()=>({effectiveSelections:[{capabilityContract:item.id,state:'ready',resource:{oneofKind:'local',local:{musicInput:{voiceConvert:[profile]}}}}]})},listLocalAppVoiceAssets:async()=>[],assets:{write:input=>{writes.push(input);return transfer.promise},remove:async()=>{throw Error('existing input assets must not be deleted')}},runCapability:input=>{calls.push(input);throw Error('a pending or failed replacement must not dispatch')}}};
+  const host={appTitle:'Lab',translate:key=>key,locale:'en',clock:{now:()=>Date.now()},app:{projection:{ assetExportAction: () => 'reveal',promptDraft:()=>({prompt:''}),projectRunTarget:()=>target,runStatusLabel:s=>s},events:{subscribeAIConfigRefresh:()=>()=>{}},commands:{ openAssetMediaUrl: unavailableMedia,savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>({ok:false})}},sdk:{aiConfig:{get:async()=>null,getSnapshot:async()=>({effectiveSelections:[{capabilityContract:item.id,state:'ready',resource:{oneofKind:'local',local:{musicInput:{voiceConvert:[profile]}}}}]})},listLocalAppVoiceAssets:async()=>[],assets:{write:input=>{writes.push(input);return transfer.promise},remove:async()=>{throw Error('existing input assets must not be deleted')}},runCapability:input=>{calls.push(input);throw Error('a pending or failed replacement must not dispatch')}}};
   const props={registration,registrations:[registration],runtime:{status:'connected',detail:'connected'},lastResult:null,history:{},historySelectionRequest:null,onSelectHistoryRun:()=>{},onResult:async()=>null,verboseConsole:false,draftPersistence:false};
   const container=document.getElementById('root'),renderer=createRoot(container);
   const render=()=>renderer.render(createElement(TooltipProvider,null,createElement(AIStudioHostProvider,{value:host},createElement(StudioCapabilityParameterContext.Provider,{value:{state:{[item.id]:parameters},setParameters:(_id,next)=>{parameters=next;render()}}},createElement(SectionAITesting,props)))));
@@ -1071,7 +1072,7 @@ for(const geometry of ['box','point']) for(const withDraft of [false,true]) {
    runConfig:{target,promptControls:{context:'',contextAttached:false,attachmentCount:1}}};
   const calls=[],reads=[];const complete=Promise.withResolvers();
   const host={appTitle:'Lab',translate:k=>k,locale:'en',clock:{now:()=>Date.now()},
-   app:{projection:{promptDraft:()=>({prompt:'draft B'}),projectRunTarget:()=>target,runStatusLabel:s=>s},events:{subscribeAIConfigRefresh:()=>()=>{}},commands:{savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>{}}},
+   app:{projection:{ assetExportAction: () => 'reveal',promptDraft:()=>({prompt:'draft B'}),projectRunTarget:()=>target,runStatusLabel:s=>s},events:{subscribeAIConfigRefresh:()=>()=>{}},commands:{ openAssetMediaUrl: unavailableMedia,savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>{}}},
    sdk:{aiConfig:{get:async()=>null,getSnapshot:async()=>({})},assets:{stat:async()=>source,read:async({relativePath})=>{reads.push(relativePath);return{asset:source,body:{async *[Symbol.asyncIterator](){yield bytes}}}}},runCapability:async input=>{calls.push(input);return{ok:false,capabilityId:'vision.locate',reason:'runtime-call-failed',message:'test transport boundary',actionHint:''}}}};
   const props={registration,registrations:[registration],runtime:{status:'connected',detail:'connected'},lastResult:null,history:{'vision.locate':[record]},historySelectionRequest:{requestId:1,record},onSelectHistoryRun:()=>{},onResult:async()=>{complete.resolve();return null},verboseConsole:false,draftPersistence:false};
   const container=document.getElementById('root'),renderer=createRoot(container),previousReader=globalThis.FileReader;
@@ -1149,7 +1150,7 @@ for (const stop of ['leave-view', 'cancel-open']) {
 
 test('World Resume respects the main run disabled state', async () => {
   let resumes = 0;
-  const host = { app: { commands: { resumeWorldTour: async () => { resumes++; } } } };
+  const host = { app: { commands: { openAssetMediaUrl: unavailableMedia, resumeWorldTour: async () => { resumes++; } } } };
   const renderer = createRoot(document.getElementById('root'));
   try {
     await act(async () => renderer.render(createElement(LabRendererProvider, { bindings: host }, createElement(WorldTourActions, { disabled: true, parameters: { inputMode: 'text' }, onChange: () => {} }))));

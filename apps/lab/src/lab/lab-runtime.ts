@@ -1,6 +1,5 @@
 import {
   createNimiLocalAppRuntimeScenarioJobClient,
-  type NimiLocalAppClient,
 } from '@nimiplatform/sdk/app';
 import { appId } from '../shell/auth/app-identity.js';
 import type { getRuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
@@ -12,6 +11,7 @@ import {
 import {
   runStudioCapability,
   type StudioRuntimeRunnerSet,
+  type StudioRuntimeClient,
 } from '../ai-studio-core/runtime.js';
 import type {
   StudioCapabilityRunInput,
@@ -39,7 +39,7 @@ const LAB_STUDIO_RUNTIME_HANDLERS = composeStudioCapabilityRuntimeHandlers([
 
 export type LabRuntimeDependencies = {
   readonly getRuntimeProjection?: typeof getRuntimePlatformProjection;
-  readonly getLocalAppClient?: () => NimiLocalAppClient;
+  readonly getLocalAppClient?: () => StudioRuntimeClient;
   readonly createScenarioJobClient?: typeof createNimiLocalAppRuntimeScenarioJobClient;
   readonly runners?: Partial<StudioRuntimeRunnerSet>;
 };

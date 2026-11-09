@@ -1,7 +1,8 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'node:path';
+import { labWebDevelopment } from './scripts/web-config.mjs';
 
 const repoRoot = path.resolve(import.meta.dirname, '../..');
 
@@ -130,21 +131,32 @@ function chunkName(id: string) {
   return undefined;
 }
 
-export default defineConfig({
+export default defineConfig(({ command, mode }) => {
+  const web = mode === 'web';
+  const development = web && command === 'serve' ? labWebDevelopment({ ...loadEnv(mode, import.meta.dirname, ''), ...process.env }) : null;
+  return {
   base: './',
   plugins: [
-    react({ exclude: [/\/node_modules\//, /\/src\/(?:shell\/renderer\/)?main\.tsx$/] }),
+    react({ exclude: [/\/node_modules\//, /\/src\/(?:(?:shell\/renderer|web)\/)?main\.tsx$/] }),
     tailwindcss(),
+    ...(web ? [{ name: 'lab-web-entry', transformIndexHtml: { order: 'pre' as const,
+      handler(html: string) { return html.replace('/src/main.tsx', '/src/web/main.tsx'); } } }] : []),
+    ...(development ? [development.plugin] : []),
   ],
   resolve: {
     dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
   },
   server: {
+    ...development?.server,
+    // Test builds write HTML fixtures here; they are not live App inputs.
+    watch: { ignored: ['**/.tmp/**'] },
     fs: {
       allow: [repoRoot],
+      deny: ['**/.env*', '**/.git/**', '**/.nimi/local/**', '**/*.key', '**/*.pem', '**/*.pfx', '**/*.p12'],
     },
   },
   build: {
+    ...(web ? { outDir: 'dist-web' } : {}),
     rolldownOptions: {
       output: {
         strictExecutionOrder: true,
@@ -155,4 +167,5 @@ export default defineConfig({
       },
     },
   },
+  };
 });

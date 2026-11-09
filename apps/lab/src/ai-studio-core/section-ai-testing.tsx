@@ -21,7 +21,7 @@ import {
 } from './section-ai-testing-input.js';
 import { TextStudioResultState } from './section-ai-testing-result.js';
 import { readStudioTextReplayMedia, readStudioLocateReplayImage } from './text-media-replay.js';
-import { revealStudioAsset } from './section-ai-testing-output.js';
+import { exportStudioAsset } from './section-ai-testing-output.js';
 import { canConfigureRunTarget, createRunConfigSnapshot, effectiveTextStudioPromptStyle, textStudioDirectiveForTarget, textStudioRunTargetIntentSummary, textStudioRuntimePrompt, useStudioRunTargetSummary, type TextStudioActiveRun } from './section-ai-testing-run.js';
 import { StudioCapabilityParameterContext, StudioHistoryLoadContext, StudioHistoryPanelContext } from './contexts.js';
 
@@ -428,12 +428,12 @@ function TextStudioShell({
     if (currentResult.ok && currentResult.output.kind === 'artifacts') {
       const artifact = currentResult.output.firstArtifact;
       if (artifact?.relativePath) {
-        await revealStudioAsset(rendererHost, artifact.relativePath);
+        await exportStudioAsset(rendererHost, artifact.relativePath);
       }
       return;
     }
     if (currentResult.ok && currentResult.output.kind === 'text-annotation') {
-      await revealStudioAsset(rendererHost, currentResult.output.document.relativePath);
+      await exportStudioAsset(rendererHost, currentResult.output.document.relativePath);
       return;
     }
     const stamp = new Date(rendererHost.clock.now()).toISOString().replace(/[:.]/g, '-');

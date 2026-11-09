@@ -37,6 +37,7 @@ export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) 
   const rootRef = useRef<HTMLDivElement>(null);
   const [open, setOpen] = useState(false);
   const [localAppSessionReady, setLocalAppSessionReady] = useState(false);
+  const [remoteDisplayName, setRemoteDisplayName] = useState<string | null>(null);
   const [loadingUser, setLoadingUser] = useState(true);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
 
@@ -46,8 +47,8 @@ export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) 
       throw new Error(projection.messageKey || projection.message || 'Auth.account.sessionUnavailable');
     }
     setLocalAppSessionReady(true);
-    setStatusMessage(t('Auth.account.sessionBoundDetail'));
-    return projection.localAppSession;
+    setRemoteDisplayName(projection.mode === 'remote-app' ? projection.identity.displayName : null);
+    setStatusMessage(t(projection.mode === 'remote-app' ? 'Auth.web.connectedIdentity' : 'Auth.account.sessionBoundDetail'));
   }, [rendererHost, t]);
 
   useEffect(() => {
@@ -77,14 +78,14 @@ export function NimiLabAccountMenu({ onOpenSettings }: NimiLabAccountMenuProps) 
     return () => document.removeEventListener('pointerdown', onPointerDown);
   }, [open]);
 
-  const displayName = localAppSessionReady
+  const displayName = remoteDisplayName || (localAppSessionReady
     ? t('Auth.account.displayReady')
-    : (loadingUser ? t('Auth.account.displayChecking') : t('Auth.account.displayUnavailable'));
+    : (loadingUser ? t('Auth.account.displayChecking') : t('Auth.account.displayUnavailable')));
   const fallback = 'N';
   const items = [
     {
       id: 'desktop-account-owner',
-      label: localAppSessionReady ? t('Auth.account.identityProtected') : t('Auth.account.openDesktop'),
+      label: remoteDisplayName !== null ? t('Auth.web.identityLabel') : localAppSessionReady ? t('Auth.account.identityProtected') : t('Auth.account.openDesktop'),
       icon: <LogIn size={18} strokeWidth={1.8} aria-hidden="true" />,
       disabled: true,
     },

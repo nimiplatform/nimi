@@ -21,6 +21,7 @@ import { SessionSummaryView } from '../../ai-studio-core/section-ai-testing-sess
 import { KnownJobNotice } from '../../ai-studio-core/section-ai-testing-output.js';
 import { formatStudioRunHistoryTimestamp, restoreStudioCapabilityRunResult, type StudioRunHistoryRecord } from '../../ai-studio-core/history.js';
 import { useLabRendererHost } from '../../renderer/context.js';
+import { requireLabNativeClient } from '../../shell/local-app-runtime-platform.js';
 import { useTranslation } from '../../shell/i18n/index.js';
 import { LabAIStudioAdapter } from '../lab-ai-studio-adapter.js';
 import { capabilityNonSuccess } from '../lab-non-success.js';
@@ -170,7 +171,7 @@ function LabAiRealtimeSurface({
     recordedRef.current = false;
     setRecorded(null);
     const session = createLabRealtimeController({
-      client: rendererHost.sdk.localAppClient.ai.realtime,
+      client: requireLabNativeClient(rendererHost.sdk.localAppClient).ai.realtime,
       now: () => new Date(),
       createId: (prefix) => createNimiClientId(prefix),
       onState: setState,

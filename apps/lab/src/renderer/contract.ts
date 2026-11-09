@@ -17,6 +17,7 @@ import type {
 } from '@nimiplatform/kit/shell/renderer/host';
 
 import type { RuntimePlatformProjection } from '../shell/auth/runtime-platform.js';
+import type { LabRuntimeClient } from '../shell/local-app-runtime-platform.js';
 import type { StudioCapabilityRunInput, StudioCapabilityRunResult } from '../ai-studio-core/runtime-types.js';
 import type { LabAIConfigSummary } from '../lab/lab-ai-config.js';
 import type { LabImageHistoryRecord } from '../lab/lab-image-history.js';
@@ -75,6 +76,7 @@ export interface LabRendererCommandPort {
   savePromptDraft(key: LabPromptDraftKey, prompt: string, enabled: boolean): Promise<LabPromptDraftSaveResult>;
   copyText(text: string): Promise<NimiRendererHostResult<{ readonly copied: boolean }>>;
   exportText(input: { readonly filename: string; readonly body: string }): Promise<StudioTextExportResult>;
+  exportAsset(relativePath: string): Promise<void>;
   resolveWorldTourFixture(input: ResolveWorldTourFixtureInput): Promise<ResolvedWorldTourFixture>;
   openWorldTourWindow(input: OpenWorldTourWindowInput): Promise<OpenWorldTourWindowResponse>;
   resumeWorldTour(signal: AbortSignal, onPartial: (message: string) => void, observationSignal?: AbortSignal): Promise<StudioCapabilityRunResult>;
@@ -93,7 +95,7 @@ export interface LabRendererEventPort {
 }
 
 export interface LabRendererSdkPort {
-  readonly localAppClient: NimiLocalAppClient;
+  readonly localAppClient: LabRuntimeClient;
   runCapability(input: StudioCapabilityRunInput): Promise<StudioCapabilityRunResult>;
   deleteLocalAppVoiceAsset(voiceAssetId: string): Promise<{ readonly deleted: true }>;
   listLocalAppVoiceAssets(): Promise<readonly {

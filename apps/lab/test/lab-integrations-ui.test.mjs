@@ -150,7 +150,7 @@ test('history detail is inline and focused; closing returns to its trigger and e
 
 test('export exposes fulfilled failure and retained file path; location retries never export again', async () => {
   const f = fixture(); let exports = 0; let reveals = 0;
-  f.host.app.commands.exportText = async () => ++exports === 1 ? { ok: false, error: { disposition: 'host-unavailable' } } : { ok: true, value: { artifactPath: 'exports/owned/history.json', filename: 'history.json', byteSize: 5, revealed: false } };
+  f.host.app.commands.exportText = async () => ++exports === 1 ? { ok: false, error: { disposition: 'host-unavailable' } } : { ok: true, value: { destination: 'runtime-asset', artifactPath: 'exports/owned/history.json', filename: 'history.json', byteSize: 5, revealed: false } };
   f.host.sdk.localAppClient.storage.assets.reveal = async path => { assert.equal(path, 'exports/owned/history.json'); if (++reveals === 1) throw new Error('fixture-reveal-failed'); return { revealed: true }; };
   await panel(f.host, async document => {
     await click(button(document, 'Export JSON'));

@@ -188,7 +188,7 @@ function fakeClient(overrides = {}) {
       async writeJson(key, value) { documents.set(key, structuredClone(value)); return { value }; },
       assets: {
         async list({ prefix }) { return { assets: [...assets.values()].map(value => value.record).filter(asset => asset.relativePath.startsWith(prefix)), nextCursor: '' }; },
-        async stat(relativePath) { if (!assets.has(relativePath)) throw { code: 'not-found' }; return assets.get(relativePath).record; },
+        async stat(relativePath) { if (!assets.has(relativePath)) throw (overrides.statError ?? { code: 'not-found' }); return assets.get(relativePath).record; },
         async write(input) {
           calls.write.push(input);
           if (overrides.writeFails) throw new Error('disk full');
@@ -399,11 +399,13 @@ function sampleAnnotation(text = SAMPLE) {
   };
 }
 
-test('text.annotate submits the exact documents, observes the known Job and saves the complete result as an App document', async () => {
+for (const statError of [{ code: 'not-found' }, { reasonCode: 'APP_STORAGE_ENTRY_NOT_FOUND' }]) {
+test(`text.annotate saves and reopens the complete document after ${statError.reasonCode ?? statError.code}`, async () => {
   const { runLabCapability } = await load('lab/lab-runtime.js');
   const { readStudioTextAnnotationDocument } = await load('ai-studio-core/text-annotation-document.js');
   const annotation = sampleAnnotation();
   const fake = fakeClient({
+    statError,
     submit: () => ({ job: job('job-annotate', 'queued') }),
     get: async () => ({ job: job('job-annotate', 'running'), asset: null, voiceReference: null }),
     subscribe: async () => subscription([{ eventType: 'completed', sequence: '2', traceId: 't', timestamp: null, job: job('job-annotate', 'completed', { textAnnotation: annotation }) }]),
@@ -423,6 +425,23 @@ test('text.annotate submits the exact documents, observes the known Job and save
   const reopened = await readStudioTextAnnotationDocument(fake.client.storage.assets, result.output.document);
   assert.equal(reopened.documents[0].tokens[4].start, 17);
   assert.equal(Array.from(reopened.documents[0].text).slice(17, 21).join(''), 'cake');
+});
+
+}
+
+test('annotation storage refusal is not treated as a missing file or a successful Job result', async () => {
+  const { runLabCapability } = await load('lab/lab-runtime.js');
+  const fake = fakeClient({
+    statError: Object.assign(new Error('source revoked'), { reasonCode: 'LOCAL_APP_SESSION_REVOKED', source: 'runtime' }),
+    submit: () => ({ job: job('job-save-refused', 'queued') }),
+    get: async () => ({ job: job('job-save-refused', 'completed', { textAnnotation: sampleAnnotation(), reasonCode: 'ACTION_EXECUTED' }), asset: null, voiceReference: null }),
+  });
+  const result = await runLabCapability({ capabilityId: 'text.annotate', prompt: SAMPLE, parameters: { language: 'en' } }, ready(fake.client));
+  assert.equal(result.ok, false);
+  assert.equal(result.jobId, 'job-save-refused');
+  assert.equal(result.diagnostics.reasonCode, 'LOCAL_APP_SESSION_REVOKED');
+  assert.equal(fake.calls.write.length, 0);
+  assert.equal(fake.calls.submit.length, 1);
 });
 
 test('text.annotate refuses a result whose documents differ from the submitted text and keeps the Job ID', async () => {
