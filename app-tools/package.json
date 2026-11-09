@@ -63,7 +63,7 @@
     "prepublishOnly": "pnpm run build",
     "test": "node ../scripts/with-workspace-surfaces.mjs -- pnpm run test:prepared",
     "test:large-archive": "node --test test/app-pack-large.test.mjs",
-    "test:prepared": "node scripts/sync-scaffold-versions.mjs --check && node --test test/dev-shell.test.mjs && node --test test/app-icons.test.mjs test/app-dependency-combinations.test.mjs test/app-safety-profile.test.mjs test/app-project-lifecycle.test.mjs test/app-pack.test.mjs test/app-pack-large.test.mjs test/app-scaffold.test.mjs test/web-carrier.test.mjs"
+    "test:prepared": "node scripts/sync-scaffold-versions.mjs --check && node --test test/dev-shell.test.mjs && node --test test/app-icons.test.mjs test/app-dependency-combinations.test.mjs test/app-safety-profile.test.mjs test/app-project-lifecycle.test.mjs test/app-pack.test.mjs test/app-pack-large.test.mjs test/app-scaffold.test.mjs test/web-carrier.test.mjs test/mobile-development.test.mjs"
   },
   "files": [
     "bin",

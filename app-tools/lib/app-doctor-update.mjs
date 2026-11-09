@@ -1,4 +1,5 @@
 import { readWebDevelopment } from './web-development.mjs';
+import { readMobileDevelopment } from './mobile-development.mjs';
 import { APP_AUTHOR_DECLARATION_FIELDS, hashScaffoldManagedContent } from './app-scaffold.mjs';
 import { readAppIntroduction } from './app-info.mjs';
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
@@ -592,6 +593,7 @@ function assertNimicodingProjectionCurrent(targetDir, runners) {
 }
 
 function assertCarrierDevelopmentInputs(targetDir, manifest, packageJson, managed, plannedSources) {
+  if (manifest.local_development && Object.hasOwn(manifest.local_development, 'mobile')) readMobileDevelopment(manifest, packageJson);
   if (manifest.platform === 'web') {
     const web = readWebDevelopment(manifest);
     if (!packageJson.scripts?.[web.script] || /\bnimi-app\s+dev\b/u.test(packageJson.scripts[web.script])) throw new Error('Web dev requires a non-recursive App-owned renderer script.');
@@ -721,6 +723,7 @@ export function initApp(cwd, options = {}, versions, runners = {}) {
       const next = parseYaml(content);
       for (const field of APP_AUTHOR_DECLARATION_FIELDS) if (Object.hasOwn(currentManifest, field)) next[field] = currentManifest[field];
       if (next.platform === 'web') next.local_development = { web: currentManifest.local_development?.web };
+      if (currentManifest.local_development?.mobile) next.local_development = { ...next.local_development, mobile: currentManifest.local_development.mobile };
       content = stringifyYaml(next, { lineWidth: 0 });
     }
     return plannedFile(targetDir, file.path, content);
@@ -894,6 +897,7 @@ export function planManagedAppSync(cwd, options = {}, versions) {
       const next = parseYaml(content);
       for (const field of APP_AUTHOR_DECLARATION_FIELDS) if (Object.hasOwn(currentManifest, field)) next[field] = currentManifest[field];
       if (next.platform === 'web') next.local_development = { web: currentManifest.local_development?.web };
+      if (currentManifest.local_development?.mobile) next.local_development = { ...next.local_development, mobile: currentManifest.local_development.mobile };
       content = stringifyYaml(next, { lineWidth: 0 });
     }
     return plannedFile(targetDir, file.path, content);

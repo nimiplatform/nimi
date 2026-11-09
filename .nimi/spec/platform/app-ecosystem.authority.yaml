@@ -1592,7 +1592,7 @@ units:
   - id: definition.nimi.platform.app-ecosystem.scaffold-custody
     kind: definition
     title: Scaffold authoring and custody boundary
-    meaning: App Tools owns third-party repository creation and initialization, scaffold synchronization and checks, packaged lifecycle guidance, Desktop-supervised native development and explicitly configured HTTPS Web development, test and build orchestration, deterministic per-target packaging and aggregate candidate input, production preflight, and managed tag-only GitHub workflow source while the App owns product code and repository, the publisher repository and GitHub own protected-tag Actions, attestation, and immutable Release execution, Platform registry maintainers own review and main, Runtime owns source-qualified installation and protected access, and Desktop owns exact Host processes; current availability follows P-ARCH-001a and the exact lifecycle owners rather than creating another availability promise in scaffold guidance, and a publisher GitHub Release alone creates none of those later truths.
+    meaning: App Tools owns third-party repository creation and initialization, scaffold synchronization and checks, packaged lifecycle guidance, Desktop-supervised native development, explicitly configured HTTPS Web development and declared App-owned mobile development commands, test and build orchestration, deterministic per-target packaging and aggregate candidate input, production preflight, and managed tag-only GitHub workflow source while the App owns product code and repository, the publisher repository and GitHub own protected-tag Actions, attestation, and immutable Release execution, Platform registry maintainers own review and main, Runtime owns source-qualified installation and protected access, and Desktop owns exact Host processes; current availability follows P-ARCH-001a and the exact lifecycle owners rather than creating another availability promise in scaffold guidance, and a publisher GitHub Release alone creates none of those later truths.
   - id: definition.nimi.platform.app-ecosystem.nimi-lab
     kind: definition
     title: Nimi Lab full-capability development App
@@ -2204,3 +2204,13 @@ units:
         target: definition.nimi.platform.app-ecosystem.nimi-lab
       - type: applies_to
         target: definition.nimi.runtime.remote-access.source-plane
+  - id: rule.nimi.platform.app-ecosystem.mobile-development-entry
+    kind: rule
+    title: App-owned mobile development command entry
+    modality: must
+    statement: The existing nimi-app dev command may explicitly select the mobile development entry of an existing App and execute only its declared local_development.mobile.command, naming a real non-recursive pnpm script. Mobile native project code, platform source inputs and build or device tools remain App-owned and use the admitted SDK and Kit platform adapter; no local Desktop supervisor, protected-local registration, native identity claim, Registry approval or permission is fabricated by this dispatch. Desktop shell, registration-selector and Desktop CDP options are rejected for the mobile entry. The mobile command declaration is App-authored and retained across otherwise-supported init and sync operations without changing their authoring carrier or build-owner contract. This bounded dev entry does not add mobile scaffolding, feature admission, unified multi-carrier check/test/build, native packaging, store publication or a claim that command completion proves a verified callback or Runtime execution.
+    condition: When an existing App opts into an App-owned mobile development command.
+    failure: Reject missing or malformed command declarations, recursive developer commands and Desktop-only options before execution; report child failure and preserve App-owned inputs, without presenting delegated execution as mobile product acceptance.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.scaffold-custody

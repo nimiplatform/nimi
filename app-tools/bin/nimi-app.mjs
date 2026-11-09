@@ -187,7 +187,7 @@ function printUsage() {
       '  nimi-app init [--adopt [--input json-path]] [--dry-run] [--dir path] [--json]',
       '  nimi-app sync [--dry-run] [--dir path] [--json]',
       '  nimi-app check [--dir path] [--production] [--json]',
-      '  nimi-app dev [--dir path] [--platform desktop|web] [--shell electron] [--list-registrations | --resume <selector> | --new-registration] [--cdp-port 1024..65535 | --no-cdp]',
+      '  nimi-app dev [--dir path] [--platform desktop|web|mobile] [--shell electron] [--list-registrations | --resume <selector> | --new-registration] [--cdp-port 1024..65535 | --no-cdp]',
       '  nimi-app test [--dir path] [--json]',
       '  nimi-app build [--dir path] [--target target-id] [--production] [--json]',
       '  nimi-app pack [--dir path] (--target target-id [--production] | --aggregate) [--json]',

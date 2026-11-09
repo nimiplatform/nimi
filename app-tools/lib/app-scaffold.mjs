@@ -1680,5 +1680,6 @@ export function hashScaffoldManagedContent(relativePath, content) {
   const manifest = YAML.parse(content.toString());
   for (const field of APP_AUTHOR_DECLARATION_FIELDS) delete manifest[field];
   if (manifest.platform === 'web' && manifest.local_development) delete manifest.local_development.web;
+  if (manifest.local_development) delete manifest.local_development.mobile;
   return hashScaffoldContent(YAML.stringify(manifest, { lineWidth: 0 }));
 }

@@ -23,6 +23,7 @@ import { runDevShell } from '../scripts/dev-shell.mjs';
 export { runDevShell };
 import { parse as parseYaml } from 'yaml';
 import { readWebDevelopment } from './web-development.mjs';
+import { readMobileDevelopment } from './mobile-development.mjs';
 export { APP_SCAFFOLD_FEATURE_IDS } from './app-scaffold-capabilities.mjs';
 
 const APP_TOOLS_PACKAGE_MANIFEST = JSON.parse(
@@ -224,18 +225,26 @@ export function packApp(cwd, options = {}) {
 }
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.scaffold-web-carrier
+// @nimi-authority: rule.nimi.platform.app-ecosystem.mobile-development-entry
 export async function runAppDevelopment(cwd, options = {}) {
   const root = path.resolve(cwd, options.dir || '.');
   if (!existsSync(path.join(root, 'nimi.app.yaml'))) throw new Error('nimi.app.yaml is required for App development.');
   const manifest = parseYaml(readFileSync(path.join(root, 'nimi.app.yaml'), 'utf8'));
   const platform = options.platform || manifest.platform || 'desktop';
-  if (!['desktop', 'web'].includes(platform)) throw new Error(`Unsupported App development platform: ${platform}`);
+  if (!['desktop', 'web', 'mobile'].includes(platform)) throw new Error(`Unsupported App development platform: ${platform}`);
   if (platform === 'desktop') return runDevShell(cwd, options);
   if (options.shell || options.cdpPort !== undefined || options.noCdp || options.resume || options.newRegistration || options.listRegistrations) {
-    throw new Error('Native shell, registration and CDP launch options do not apply to Web dev. Use the configured browser origin.');
+    throw new Error('Desktop shell, registration and CDP launch options do not apply to remote Web or Mobile dev.');
+  }
+  const pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));
+  if (platform === 'mobile') {
+    const mobile = readMobileDevelopment(manifest, pkg);
+    process.stdout.write('[nimi-app] Running the App-owned mobile command; native source admission and verified OS callback remain required.\n');
+    const result = runAppCommand(root, mobile.command);
+    if (result.status !== 0) throw new Error(`Mobile development command exited with ${result.status}: ${result.stderr}`);
+    return;
   }
   const web = readWebDevelopment(manifest);
-  const pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));
   if (!pkg.scripts?.[web.script] || /\bnimi-app\s+dev\b/u.test(pkg.scripts[web.script])) throw new Error('Web dev requires a real, non-recursive App-owned renderer script.');
   process.stdout.write(`[nimi-app] Web source: ${web.site.origin}; official sign-in and first Home source confirmation are required.\n`);
   const result = runAppCommand(root, web.command);

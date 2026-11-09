@@ -261,3 +261,10 @@ For an existing website, keep its product entry and actual commands. Use a `web-
 Native-only guidance such as Electron installation, native signatures and `pack --production` above does not apply to the Web carrier. The initial generated test command typechecks the project; App business tests and real task acceptance belong to the application iteration.
 
 The current Web bootstrap uses Kit `auth/app/web` plus its shared Provider, account control and access gate. The old `core/remote-app-session` entry was removed in this unreleased hard cut. Existing App-owned Web entries must be updated explicitly with their selected SDK/Kit source package combination; sync does not take ownership of the application entry. Generated business callbacks retain their captured client; identity-only views use their own identity lifetime rather than a Runtime connection key.
+
+
+### Existing mobile development entry
+
+An existing App can add `local_development.mobile.command: pnpm run dev:android` to `nimi.app.yaml`, define that real App-owned script in `package.json`, and select it with `nimi-app dev --platform mobile`. Desktop shell, registration selectors and Desktop CDP flags do not apply. App Tools delegates the native command; it does not create a local Home session or native source qualification. The additional command survives supported init/sync updates as App-owned configuration.
+
+The initial reference is Zhiyu's Android Capacitor container using Kit `auth/app/mobile`. Its native project, package/signing identity, verified HTTPS App Link and build/device tools remain explicit prerequisites. This dev entry does not enable `create --platform mobile`, mobile scaffold features, unified multi-carrier check/test/build, APK packaging or store publication. Keep those operations in the App's own scripts until their separate contracts are implemented; a child process exiting successfully is not mobile Runtime acceptance.
