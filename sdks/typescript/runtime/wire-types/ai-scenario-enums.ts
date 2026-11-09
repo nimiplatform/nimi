@@ -391,6 +391,32 @@ export enum ReasoningPresentation {
   SUMMARY = 2,
 }
 
+export enum RemoteAccessConnectionState {
+  UNSPECIFIED = 0,
+  DISABLED = 1,
+  CONNECTING = 2,
+  LISTENING = 3,
+  UNAVAILABLE = 4,
+}
+
+export enum RemoteSourceAccessState {
+  UNSPECIFIED = 0,
+  PENDING = 1,
+  ALLOWED = 2,
+  PAUSED = 3,
+  CHANGED = 4,
+}
+
+export enum RemoteTransportFrameKind {
+  UNSPECIFIED = 0,
+  REQUEST = 1,
+  RESPONSE = 2,
+  STREAM_DATA = 3,
+  STREAM_END = 4,
+  ERROR = 5,
+  CANCEL = 6,
+}
+
 export enum ResponseFormatKind {
   UNSPECIFIED = 0,
   TEXT = 1,

@@ -1542,6 +1542,75 @@ class PPSlotItemDto:
 PresenceStatus = Literal["online", "invisible"]
 
 @dataclass(frozen=True)
+class PrimaryRuntimeBindDto:
+    displayName: str
+    expectedAccountId: str
+    expectedBindingId: str
+    publicKey: str
+    runtimeId: str
+    signature: str
+    signedAt: float
+
+@dataclass(frozen=True)
+class PrimaryRuntimeBindingDto:
+    bindingId: str
+    displayName: str
+    leaseExpiresAt: str | None
+    leaseVersion: str
+    publicKey: str
+    runtimeId: str
+    validAfter: str
+
+@dataclass(frozen=True)
+class PrimaryRuntimeConfirmDto:
+    expectedAccountId: str
+    intentId: str
+
+@dataclass(frozen=True)
+class PrimaryRuntimeIntentDto:
+    confirmationUrl: str
+    displayName: str
+    expectedAccountId: str
+    expiresAt: str
+    intentId: str
+    operation: Literal["bind", "reinitialize"]
+    runtimeId: str
+
+@dataclass(frozen=True)
+class PrimaryRuntimeLeaseRequestDto:
+    bindingId: str
+    expectedAccountId: str
+    leaseVersion: str
+    runtimeId: str
+    signature: str
+    signedAt: float
+
+@dataclass(frozen=True)
+class PrimaryRuntimeMutationDto:
+    accountId: str
+    binding: PrimaryRuntimeBindingDto | None
+    dataMigrated: Literal[False]
+    reconfigurationRequired: Literal[True]
+    serverTime: str
+
+@dataclass(frozen=True)
+class PrimaryRuntimePrepareDto:
+    displayName: str
+    expectedAccountId: str
+    expectedBindingId: str
+    operation: Literal["bind", "reinitialize"]
+    publicKey: str
+    runtimeId: str
+    signature: str
+    signedAt: float
+
+@dataclass(frozen=True)
+class PrimaryRuntimeSnapshotDto:
+    accountId: str
+    binding: PrimaryRuntimeBindingDto | None
+    serverTime: str
+
+@dataclass(frozen=True)
 class ProfileCoverageManifestV1Dto:
     aggregateStatus: Literal["complete", "incomplete", "invalid"]
     diagnostics: tuple[ProfileCoverageManifestV1DtoDiagnosticsItem, ...]
@@ -1785,6 +1854,127 @@ class RevenueSourceOriginRequestDto:
 class RevokeAccountSessionsResultDto:
     currentRevoked: bool
     revokedCount: float
+
+@dataclass(frozen=True)
+class RuntimeClientAuthorizationDto:
+    clientId: str
+    codeChallenge: str
+    codeChallengeMethod: Literal["S256"]
+    expectedAccountId: str
+    redirectUri: str
+    state: str
+
+@dataclass(frozen=True)
+class RuntimeClientCodeDto:
+    expiresAt: str
+    redirectUrl: str
+
+@dataclass(frozen=True)
+class RuntimeClientContextDto:
+    accountId: str
+    appId: str
+    clientId: str
+    contextId: str
+    displayName: str
+    expiresAt: str
+    primary: RuntimeClientPrimaryDto | None
+    realmEnvironmentId: str
+    source: RuntimeClientSourceDto
+    stunUrls: tuple[str, ...]
+
+@dataclass(frozen=True)
+class RuntimeClientEndDto:
+    ended: Literal[True]
+
+@dataclass(frozen=True)
+class RuntimeClientExchangeDto:
+    authorizationCode: str
+    clientId: str
+    codeVerifier: str
+    redirectUri: str
+
+@dataclass(frozen=True)
+class RuntimeClientPrimaryDto:
+    bindingId: str
+    displayName: str
+    leaseExpiresAt: str | None
+    publicKey: str
+    runtimeId: str
+    validAfter: str
+
+@dataclass(frozen=True)
+class RuntimeClientSourceDto:
+    appAccess: tuple[str, ...]
+    appId: str
+    capabilityContractRefs: tuple[str, ...]
+    clientId: str
+    displayName: str
+    origin: str
+    redirectUri: str
+    role: Literal["app", "official_manager"]
+    sourceRevision: float
+
+@dataclass(frozen=True)
+class RuntimeClientTokenDto:
+    accountId: str
+    appId: str
+    clientId: str
+    contextId: str
+    contextToken: str
+    displayName: str
+    expiresAt: str
+    realmEnvironmentId: str
+
+@dataclass(frozen=True)
+class RuntimeConnectionAnswerDto:
+    answerSdp: str
+    bindingId: str
+    connectionId: str
+    expectedAccountId: str
+    leaseVersion: str
+    rejectionReason: Literal["", "SOURCE_NOT_ALLOWED", "DIRECT_CONNECTION_UNAVAILABLE"]
+    runtimeId: str
+    signature: str
+    signedAt: float
+
+@dataclass(frozen=True)
+class RuntimeConnectionCreateDto:
+    bindingId: str
+    offerSdp: str
+
+@dataclass(frozen=True)
+class RuntimeConnectionOfferDto:
+    connectionId: str
+    context: RuntimeClientContextDto
+    expiresAt: str
+    offerSdp: str
+
+@dataclass(frozen=True)
+class RuntimeConnectionPollDto:
+    bindingId: str
+    contextIds: tuple[str, ...]
+    expectedAccountId: str
+    leaseVersion: str
+    runtimeId: str
+    signature: str
+    signedAt: float
+
+@dataclass(frozen=True)
+class RuntimeConnectionPollResultDto:
+    contexts: tuple[RuntimeClientContextDto, ...]
+    controlLeaseExpiresAt: str
+    offers: tuple[RuntimeConnectionOfferDto, ...]
+    serverTime: str
+    stunUrls: tuple[str, ...]
+
+@dataclass(frozen=True)
+class RuntimeConnectionStateDto:
+    answerSdp: str | None
+    bindingId: str
+    connectionId: str
+    expiresAt: str
+    rejectionReason: str | None
+    status: Literal["pending", "answered", "rejected"]
 
 @dataclass(frozen=True)
 class SendMessageInputDto:
@@ -3104,6 +3294,28 @@ class RealmAddFriendByHandleOperationRequest:
     body: AddFriendBodyDto | None = None
 
 @dataclass(frozen=True)
+class RealmAnswerPrimaryRuntimeConnectionOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmAnswerPrimaryRuntimeConnectionOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmAnswerPrimaryRuntimeConnectionOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmAnswerPrimaryRuntimeConnectionOperationRequest:
+    path: RealmAnswerPrimaryRuntimeConnectionOperationPath
+    query: RealmAnswerPrimaryRuntimeConnectionOperationQuery | None = None
+    headers: RealmAnswerPrimaryRuntimeConnectionOperationHeaders | None = None
+    body: RuntimeConnectionAnswerDto | None = None
+
+@dataclass(frozen=True)
 class RealmApplyFriendshipActionOperationPath:
     id: str
 
@@ -3170,6 +3382,28 @@ class RealmArchiveBundleOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
+class RealmAuthorizeRuntimeClientOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmAuthorizeRuntimeClientOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmAuthorizeRuntimeClientOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmAuthorizeRuntimeClientOperationRequest:
+    path: RealmAuthorizeRuntimeClientOperationPath
+    query: RealmAuthorizeRuntimeClientOperationQuery | None = None
+    headers: RealmAuthorizeRuntimeClientOperationHeaders | None = None
+    body: RuntimeClientAuthorizationDto | None = None
+
+@dataclass(frozen=True)
 class RealmBindEmailOperationPath:
     pass
 
@@ -3190,6 +3424,28 @@ class RealmBindEmailOperationRequest:
     query: RealmBindEmailOperationQuery | None = None
     headers: RealmBindEmailOperationHeaders | None = None
     body: BindEmailDto | None = None
+
+@dataclass(frozen=True)
+class RealmBindMyPrimaryRuntimeOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmBindMyPrimaryRuntimeOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmBindMyPrimaryRuntimeOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmBindMyPrimaryRuntimeOperationRequest:
+    path: RealmBindMyPrimaryRuntimeOperationPath
+    query: RealmBindMyPrimaryRuntimeOperationQuery | None = None
+    headers: RealmBindMyPrimaryRuntimeOperationHeaders | None = None
+    body: PrimaryRuntimeBindDto | None = None
 
 @dataclass(frozen=True)
 class RealmBindWalletOperationPath:
@@ -3346,6 +3602,28 @@ class RealmCloneAssetOperationRequest:
     body: CloneAssetDto | None = None
 
 @dataclass(frozen=True)
+class RealmConfirmMyPrimaryRuntimeOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmConfirmMyPrimaryRuntimeOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmConfirmMyPrimaryRuntimeOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmConfirmMyPrimaryRuntimeOperationRequest:
+    path: RealmConfirmMyPrimaryRuntimeOperationPath
+    query: RealmConfirmMyPrimaryRuntimeOperationQuery | None = None
+    headers: RealmConfirmMyPrimaryRuntimeOperationHeaders | None = None
+    body: PrimaryRuntimeConfirmDto | None = None
+
+@dataclass(frozen=True)
 class RealmCreateAssetOperationPath:
     pass
 
@@ -3432,6 +3710,28 @@ class RealmCreateImageDirectUploadOperationRequest:
     query: RealmCreateImageDirectUploadOperationQuery | None = None
     headers: RealmCreateImageDirectUploadOperationHeaders | None = None
     body: CreateMediaDirectUploadDto | None = None
+
+@dataclass(frozen=True)
+class RealmCreateRuntimeConnectionOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmCreateRuntimeConnectionOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmCreateRuntimeConnectionOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmCreateRuntimeConnectionOperationRequest:
+    path: RealmCreateRuntimeConnectionOperationPath
+    query: RealmCreateRuntimeConnectionOperationQuery | None = None
+    headers: RealmCreateRuntimeConnectionOperationHeaders | None = None
+    body: RuntimeConnectionCreateDto | None = None
 
 @dataclass(frozen=True)
 class RealmCreateTextResourceOperationPath:
@@ -4054,6 +4354,50 @@ class RealmEnable2FaOperationRequest:
     body: Me2faEnableDto | None = None
 
 @dataclass(frozen=True)
+class RealmEndRuntimeClientContextOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmEndRuntimeClientContextOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmEndRuntimeClientContextOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmEndRuntimeClientContextOperationRequest:
+    path: RealmEndRuntimeClientContextOperationPath
+    query: RealmEndRuntimeClientContextOperationQuery | None = None
+    headers: RealmEndRuntimeClientContextOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmExchangeRuntimeClientCodeOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmExchangeRuntimeClientCodeOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmExchangeRuntimeClientCodeOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmExchangeRuntimeClientCodeOperationRequest:
+    path: RealmExchangeRuntimeClientCodeOperationPath
+    query: RealmExchangeRuntimeClientCodeOperationQuery | None = None
+    headers: RealmExchangeRuntimeClientCodeOperationHeaders | None = None
+    body: RuntimeClientExchangeDto | None = None
+
+@dataclass(frozen=True)
 class RealmExportMyAccountOperationPath:
     pass
 
@@ -4455,6 +4799,50 @@ class RealmGetMyPPConfigOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
+class RealmGetMyPrimaryRuntimeOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetMyPrimaryRuntimeOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetMyPrimaryRuntimeOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetMyPrimaryRuntimeOperationRequest:
+    path: RealmGetMyPrimaryRuntimeOperationPath
+    query: RealmGetMyPrimaryRuntimeOperationQuery | None = None
+    headers: RealmGetMyPrimaryRuntimeOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmGetMyPrimaryRuntimeIntentOperationPath:
+    intentId: str
+
+
+@dataclass(frozen=True)
+class RealmGetMyPrimaryRuntimeIntentOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetMyPrimaryRuntimeIntentOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetMyPrimaryRuntimeIntentOperationRequest:
+    path: RealmGetMyPrimaryRuntimeIntentOperationPath
+    query: RealmGetMyPrimaryRuntimeIntentOperationQuery | None = None
+    headers: RealmGetMyPrimaryRuntimeIntentOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
 class RealmGetMyRelationshipWithUserOperationPath:
     id: str
 
@@ -4562,6 +4950,72 @@ class RealmGetResourceOperationRequest:
     path: RealmGetResourceOperationPath
     query: RealmGetResourceOperationQuery | None = None
     headers: RealmGetResourceOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmGetRuntimeClientContextOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetRuntimeClientContextOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetRuntimeClientContextOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetRuntimeClientContextOperationRequest:
+    path: RealmGetRuntimeClientContextOperationPath
+    query: RealmGetRuntimeClientContextOperationQuery | None = None
+    headers: RealmGetRuntimeClientContextOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmGetRuntimeClientSourceOperationPath:
+    clientId: str
+
+
+@dataclass(frozen=True)
+class RealmGetRuntimeClientSourceOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetRuntimeClientSourceOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetRuntimeClientSourceOperationRequest:
+    path: RealmGetRuntimeClientSourceOperationPath
+    query: RealmGetRuntimeClientSourceOperationQuery | None = None
+    headers: RealmGetRuntimeClientSourceOperationHeaders | None = None
+    body: None | None = None
+
+@dataclass(frozen=True)
+class RealmGetRuntimeConnectionOperationPath:
+    connectionId: str
+
+
+@dataclass(frozen=True)
+class RealmGetRuntimeConnectionOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetRuntimeConnectionOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmGetRuntimeConnectionOperationRequest:
+    path: RealmGetRuntimeConnectionOperationPath
+    query: RealmGetRuntimeConnectionOperationQuery | None = None
+    headers: RealmGetRuntimeConnectionOperationHeaders | None = None
     body: None | None = None
 
 @dataclass(frozen=True)
@@ -5189,6 +5643,28 @@ class RealmPasswordRegisterOperationRequest:
     body: PasswordRegisterDto | None = None
 
 @dataclass(frozen=True)
+class RealmPollPrimaryRuntimeConnectionsOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmPollPrimaryRuntimeConnectionsOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmPollPrimaryRuntimeConnectionsOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmPollPrimaryRuntimeConnectionsOperationRequest:
+    path: RealmPollPrimaryRuntimeConnectionsOperationPath
+    query: RealmPollPrimaryRuntimeConnectionsOperationQuery | None = None
+    headers: RealmPollPrimaryRuntimeConnectionsOperationHeaders | None = None
+    body: RuntimeConnectionPollDto | None = None
+
+@dataclass(frozen=True)
 class RealmPrepare2FaOperationPath:
     pass
 
@@ -5231,6 +5707,28 @@ class RealmPrepareBindWalletOperationRequest:
     query: RealmPrepareBindWalletOperationQuery | None = None
     headers: RealmPrepareBindWalletOperationHeaders | None = None
     body: WalletPrepareBindDto | None = None
+
+@dataclass(frozen=True)
+class RealmPrepareMyPrimaryRuntimeOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmPrepareMyPrimaryRuntimeOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmPrepareMyPrimaryRuntimeOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmPrepareMyPrimaryRuntimeOperationRequest:
+    path: RealmPrepareMyPrimaryRuntimeOperationPath
+    query: RealmPrepareMyPrimaryRuntimeOperationQuery | None = None
+    headers: RealmPrepareMyPrimaryRuntimeOperationHeaders | None = None
+    body: PrimaryRuntimePrepareDto | None = None
 
 @dataclass(frozen=True)
 class RealmPublishBundleOperationPath:
@@ -5364,6 +5862,50 @@ class RealmRefreshTokenOperationRequest:
     query: RealmRefreshTokenOperationQuery | None = None
     headers: RealmRefreshTokenOperationHeaders | None = None
     body: RefreshTokenDto | None = None
+
+@dataclass(frozen=True)
+class RealmReinitializeMyPrimaryRuntimeOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmReinitializeMyPrimaryRuntimeOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmReinitializeMyPrimaryRuntimeOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmReinitializeMyPrimaryRuntimeOperationRequest:
+    path: RealmReinitializeMyPrimaryRuntimeOperationPath
+    query: RealmReinitializeMyPrimaryRuntimeOperationQuery | None = None
+    headers: RealmReinitializeMyPrimaryRuntimeOperationHeaders | None = None
+    body: PrimaryRuntimeBindDto | None = None
+
+@dataclass(frozen=True)
+class RealmRenewMyPrimaryRuntimeLeaseOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmRenewMyPrimaryRuntimeLeaseOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmRenewMyPrimaryRuntimeLeaseOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmRenewMyPrimaryRuntimeLeaseOperationRequest:
+    path: RealmRenewMyPrimaryRuntimeLeaseOperationPath
+    query: RealmRenewMyPrimaryRuntimeLeaseOperationQuery | None = None
+    headers: RealmRenewMyPrimaryRuntimeLeaseOperationHeaders | None = None
+    body: PrimaryRuntimeLeaseRequestDto | None = None
 
 @dataclass(frozen=True)
 class RealmReportControllerCreateReportOperationPath:
@@ -6967,6 +7509,16 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="addFriendByHandle", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(FriendRequestResultDto, raw)
 
+    async def answer_primary_runtime_connection(self, request: RealmAnswerPrimaryRuntimeConnectionOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAnswerPrimaryRuntimeConnectionOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="answerPrimaryRuntimeConnection", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RuntimeConnectionStateDto, raw)
+
     async def apply_friendship_action(self, request: RealmApplyFriendshipActionOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmApplyFriendshipActionOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -6997,6 +7549,16 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="archiveBundle", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(BundleDetailDto, raw)
 
+    async def authorize_runtime_client(self, request: RealmAuthorizeRuntimeClientOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmAuthorizeRuntimeClientOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="authorizeRuntimeClient", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RuntimeClientCodeDto, raw)
+
     async def bind_email(self, request: RealmBindEmailOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmBindEmailOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -7006,6 +7568,16 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="bindEmail", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
+
+    async def bind_my_primary_runtime(self, request: RealmBindMyPrimaryRuntimeOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmBindMyPrimaryRuntimeOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="bindMyPrimaryRuntime", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(PrimaryRuntimeMutationDto, raw)
 
     async def bind_wallet(self, request: RealmBindWalletOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmBindWalletOperationResponse:
         envelope: dict[str, object] = {
@@ -7077,6 +7649,16 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="cloneAsset", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AssetDetailDto, raw)
 
+    async def confirm_my_primary_runtime(self, request: RealmConfirmMyPrimaryRuntimeOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmConfirmMyPrimaryRuntimeOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="confirmMyPrimaryRuntime", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(PrimaryRuntimeMutationDto, raw)
+
     async def create_asset(self, request: RealmCreateAssetOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreateAssetOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -7116,6 +7698,16 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="createImageDirectUpload", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResourceDirectUploadSessionDto, raw)
+
+    async def create_runtime_connection(self, request: RealmCreateRuntimeConnectionOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreateRuntimeConnectionOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="createRuntimeConnection", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RuntimeConnectionStateDto, raw)
 
     async def create_text_resource(self, request: RealmCreateTextResourceOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmCreateTextResourceOperationResponse:
         envelope: dict[str, object] = {
@@ -7397,6 +7989,26 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="enable2Fa", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(Me2faOperationResultDto, raw)
 
+    async def end_runtime_client_context(self, request: RealmEndRuntimeClientContextOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmEndRuntimeClientContextOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="endRuntimeClientContext", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RuntimeClientEndDto, raw)
+
+    async def exchange_runtime_client_code(self, request: RealmExchangeRuntimeClientCodeOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmExchangeRuntimeClientCodeOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="exchangeRuntimeClientCode", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RuntimeClientTokenDto, raw)
+
     async def export_my_account(self, request: RealmExportMyAccountOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmExportMyAccountOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -7577,6 +8189,26 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMyPPConfig", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(PPSlotConfigResponseDto, raw)
 
+    async def get_my_primary_runtime(self, request: RealmGetMyPrimaryRuntimeOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMyPrimaryRuntimeOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMyPrimaryRuntime", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(PrimaryRuntimeSnapshotDto, raw)
+
+    async def get_my_primary_runtime_intent(self, request: RealmGetMyPrimaryRuntimeIntentOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMyPrimaryRuntimeIntentOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getMyPrimaryRuntimeIntent", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(PrimaryRuntimeIntentDto, raw)
+
     async def get_my_relationship_with_user(self, request: RealmGetMyRelationshipWithUserOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetMyRelationshipWithUserOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -7626,6 +8258,36 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="getResource", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ResourceDetailDto, raw)
+
+    async def get_runtime_client_context(self, request: RealmGetRuntimeClientContextOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetRuntimeClientContextOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getRuntimeClientContext", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RuntimeClientContextDto, raw)
+
+    async def get_runtime_client_source(self, request: RealmGetRuntimeClientSourceOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetRuntimeClientSourceOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getRuntimeClientSource", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RuntimeClientSourceDto, raw)
+
+    async def get_runtime_connection(self, request: RealmGetRuntimeConnectionOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetRuntimeConnectionOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="getRuntimeConnection", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RuntimeConnectionStateDto, raw)
 
     async def get_unread_count(self, request: RealmGetUnreadCountOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmGetUnreadCountOperationResponse:
         envelope: dict[str, object] = {
@@ -7897,6 +8559,16 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="passwordRegister", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OAuthLoginResultDto, raw)
 
+    async def poll_primary_runtime_connections(self, request: RealmPollPrimaryRuntimeConnectionsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmPollPrimaryRuntimeConnectionsOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="pollPrimaryRuntimeConnections", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RuntimeConnectionPollResultDto, raw)
+
     async def prepare2_fa(self, request: RealmPrepare2FaOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmPrepare2FaOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -7916,6 +8588,16 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="prepareBindWallet", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(WalletPrepareBindResponseDto, raw)
+
+    async def prepare_my_primary_runtime(self, request: RealmPrepareMyPrimaryRuntimeOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmPrepareMyPrimaryRuntimeOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="prepareMyPrimaryRuntime", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(PrimaryRuntimeIntentDto, raw)
 
     async def publish_bundle(self, request: RealmPublishBundleOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmPublishBundleOperationResponse:
         envelope: dict[str, object] = {
@@ -7976,6 +8658,26 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="refreshToken", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AuthTokensDto, raw)
+
+    async def reinitialize_my_primary_runtime(self, request: RealmReinitializeMyPrimaryRuntimeOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmReinitializeMyPrimaryRuntimeOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="reinitializeMyPrimaryRuntime", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(PrimaryRuntimeMutationDto, raw)
+
+    async def renew_my_primary_runtime_lease(self, request: RealmRenewMyPrimaryRuntimeLeaseOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmRenewMyPrimaryRuntimeLeaseOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="renewMyPrimaryRuntimeLease", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(PrimaryRuntimeSnapshotDto, raw)
 
     async def report_controller_create_report(self, request: RealmReportControllerCreateReportOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmReportControllerCreateReportOperationResponse:
         envelope: dict[str, object] = {

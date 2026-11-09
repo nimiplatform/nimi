@@ -83,6 +83,13 @@ profiles:
     identity_class: account
     native_profile_marker: desktop-account-product-v1
     methods:
+      - method_id: /nimi.runtime.v1.RuntimeAccountService/GetPrimaryRuntimeState
+      - method_id: /nimi.runtime.v1.RuntimeAccountService/PreparePrimaryRuntime
+      - method_id: /nimi.runtime.v1.RuntimeRemoteAccessService/GetRemoteAccessState
+      - method_id: /nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteAccessEnabled
+      - method_id: /nimi.runtime.v1.RuntimeRemoteAccessService/ConfirmRemoteSource
+      - method_id: /nimi.runtime.v1.RuntimeRemoteAccessService/RejectRemoteSource
+      - method_id: /nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteSourcePaused
       - method_id: /nimi.runtime.v1.RuntimeAuditService/GetDesktopAIActivitySnapshot
       - method_id: /nimi.runtime.v1.RuntimeAuditService/SubscribeDesktopAIActivity
       - method_id: /nimi.runtime.v1.RuntimeAuditService/GetDesktopAIUsageSummary

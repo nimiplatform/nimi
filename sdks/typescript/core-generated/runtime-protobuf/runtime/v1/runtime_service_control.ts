@@ -36,8 +36,8 @@ export interface RequestRuntimeRestartResponse {
     reasonCode: ReasonCode;
 }
 /**
- * The verified Home host requests an orderly product exit. Acceptance is not
- * proof of process termination; the native carrier must observe it separately.
+ * The verified Home host or current remote owner manager requests an orderly
+ * product exit. Acceptance is not proof of process termination.
  *
  * @generated from protobuf message nimi.runtime.v1.RequestRuntimeStopRequest
  */
@@ -58,7 +58,8 @@ export interface RequestRuntimeStopResponse {
 }
 /**
  * GetRuntimeServiceStateRequest is intentionally empty; the verified
- * desktop_control connection is the complete authority input.
+ * desktop_control connection or verified remote owner-manager session supplies
+ * the authority input. No caller-selected account or role is accepted.
  *
  * @generated from protobuf message nimi.runtime.v1.GetRuntimeServiceStateRequest
  */

@@ -4547,6 +4547,223 @@ components:
         - online
         - invisible
       type: string
+    PrimaryRuntimeBindDto:
+      properties:
+        displayName:
+          maxLength: 80
+          type: string
+        expectedAccountId:
+          type: string
+        expectedBindingId:
+          description: Empty for first bind; exact current generation for reinitialization.
+          type: string
+        publicKey:
+          description: Ed25519 raw public key, canonical unpadded base64url.
+          type: string
+        runtimeId:
+          format: uuid
+          type: string
+        signature:
+          description: Ed25519 proof over the canonical binding tuple.
+          type: string
+        signedAt:
+          description: Unix milliseconds; signed as a JSON number.
+          type: number
+      required:
+        - expectedAccountId
+        - expectedBindingId
+        - runtimeId
+        - displayName
+        - publicKey
+        - signedAt
+        - signature
+      type: object
+    PrimaryRuntimeBindingDto:
+      properties:
+        bindingId:
+          format: uuid
+          type: string
+        displayName:
+          type: string
+        leaseExpiresAt:
+          format: date-time
+          nullable: true
+          type: string
+        leaseVersion:
+          format: uuid
+          type: string
+        publicKey:
+          type: string
+        runtimeId:
+          format: uuid
+          type: string
+        validAfter:
+          format: date-time
+          type: string
+      required:
+        - runtimeId
+        - bindingId
+        - displayName
+        - publicKey
+        - validAfter
+        - leaseVersion
+        - leaseExpiresAt
+      type: object
+    PrimaryRuntimeConfirmDto:
+      properties:
+        expectedAccountId:
+          type: string
+        intentId:
+          format: uuid
+          type: string
+      required:
+        - intentId
+        - expectedAccountId
+      type: object
+    PrimaryRuntimeIntentDto:
+      properties:
+        confirmationUrl:
+          format: uri
+          type: string
+        displayName:
+          type: string
+        expectedAccountId:
+          type: string
+        expiresAt:
+          format: date-time
+          type: string
+        intentId:
+          format: uuid
+          type: string
+        operation:
+          enum:
+            - bind
+            - reinitialize
+          type: string
+        runtimeId:
+          format: uuid
+          type: string
+      required:
+        - intentId
+        - operation
+        - displayName
+        - runtimeId
+        - expectedAccountId
+        - expiresAt
+        - confirmationUrl
+      type: object
+    PrimaryRuntimeLeaseRequestDto:
+      properties:
+        bindingId:
+          format: uuid
+          type: string
+        expectedAccountId:
+          type: string
+        leaseVersion:
+          format: uuid
+          type: string
+        runtimeId:
+          format: uuid
+          type: string
+        signature:
+          type: string
+        signedAt:
+          type: number
+      required:
+        - expectedAccountId
+        - runtimeId
+        - bindingId
+        - leaseVersion
+        - signedAt
+        - signature
+      type: object
+    PrimaryRuntimeMutationDto:
+      properties:
+        accountId:
+          description: >-
+            Current authenticated owner; consumers compare it with their
+            captured account context.
+          type: string
+        binding:
+          allOf:
+            - $ref: '#/components/schemas/PrimaryRuntimeBindingDto'
+          nullable: true
+          type: object
+        dataMigrated:
+          enum:
+            - false
+          type: boolean
+        reconfigurationRequired:
+          enum:
+            - true
+          type: boolean
+        serverTime:
+          format: date-time
+          type: string
+      required:
+        - accountId
+        - binding
+        - serverTime
+        - dataMigrated
+        - reconfigurationRequired
+      type: object
+    PrimaryRuntimePrepareDto:
+      properties:
+        displayName:
+          maxLength: 80
+          type: string
+        expectedAccountId:
+          type: string
+        expectedBindingId:
+          description: Empty for first bind; exact current generation for reinitialization.
+          type: string
+        operation:
+          enum:
+            - bind
+            - reinitialize
+          type: string
+        publicKey:
+          description: Ed25519 raw public key, canonical unpadded base64url.
+          type: string
+        runtimeId:
+          format: uuid
+          type: string
+        signature:
+          description: Ed25519 proof over the canonical binding tuple.
+          type: string
+        signedAt:
+          description: Unix milliseconds; signed as a JSON number.
+          type: number
+      required:
+        - expectedAccountId
+        - expectedBindingId
+        - runtimeId
+        - displayName
+        - publicKey
+        - signedAt
+        - signature
+        - operation
+      type: object
+    PrimaryRuntimeSnapshotDto:
+      properties:
+        accountId:
+          description: >-
+            Current authenticated owner; consumers compare it with their
+            captured account context.
+          type: string
+        binding:
+          allOf:
+            - $ref: '#/components/schemas/PrimaryRuntimeBindingDto'
+          nullable: true
+          type: object
+        serverTime:
+          format: date-time
+          type: string
+      required:
+        - accountId
+        - binding
+        - serverTime
+      type: object
     ProfileCoverageManifestV1Dto:
       additionalProperties: false
       properties:
@@ -5284,6 +5501,363 @@ components:
       required:
         - revokedCount
         - currentRevoked
+      type: object
+    RuntimeClientAuthorizationDto:
+      properties:
+        clientId:
+          type: string
+        codeChallenge:
+          type: string
+        codeChallengeMethod:
+          enum:
+            - S256
+          type: string
+        expectedAccountId:
+          type: string
+        redirectUri:
+          type: string
+        state:
+          type: string
+      required:
+        - expectedAccountId
+        - clientId
+        - redirectUri
+        - codeChallenge
+        - codeChallengeMethod
+        - state
+      type: object
+    RuntimeClientCodeDto:
+      properties:
+        expiresAt:
+          format: date-time
+          type: string
+        redirectUrl:
+          type: string
+      required:
+        - redirectUrl
+        - expiresAt
+      type: object
+    RuntimeClientContextDto:
+      properties:
+        accountId:
+          type: string
+        appId:
+          type: string
+        clientId:
+          type: string
+        contextId:
+          format: uuid
+          type: string
+        displayName:
+          type: string
+        expiresAt:
+          format: date-time
+          type: string
+        primary:
+          allOf:
+            - $ref: '#/components/schemas/RuntimeClientPrimaryDto'
+          nullable: true
+          type: object
+        realmEnvironmentId:
+          type: string
+        source:
+          $ref: '#/components/schemas/RuntimeClientSourceDto'
+        stunUrls:
+          description: STUN-only direct-candidate discovery; no TURN or relay fallback.
+          items:
+            type: string
+          type: array
+      required:
+        - realmEnvironmentId
+        - accountId
+        - displayName
+        - appId
+        - clientId
+        - contextId
+        - expiresAt
+        - stunUrls
+        - source
+        - primary
+      type: object
+    RuntimeClientEndDto:
+      properties:
+        ended:
+          enum:
+            - true
+          type: boolean
+      required:
+        - ended
+      type: object
+    RuntimeClientExchangeDto:
+      properties:
+        authorizationCode:
+          type: string
+        clientId:
+          type: string
+        codeVerifier:
+          type: string
+        redirectUri:
+          type: string
+      required:
+        - clientId
+        - redirectUri
+        - authorizationCode
+        - codeVerifier
+      type: object
+    RuntimeClientPrimaryDto:
+      properties:
+        bindingId:
+          type: string
+        displayName:
+          type: string
+        leaseExpiresAt:
+          format: date-time
+          nullable: true
+          type: string
+        publicKey:
+          type: string
+        runtimeId:
+          type: string
+        validAfter:
+          format: date-time
+          type: string
+      required:
+        - runtimeId
+        - bindingId
+        - displayName
+        - publicKey
+        - validAfter
+        - leaseExpiresAt
+      type: object
+    RuntimeClientSourceDto:
+      properties:
+        appAccess:
+          items:
+            type: string
+          type: array
+        appId:
+          type: string
+        capabilityContractRefs:
+          items:
+            type: string
+          type: array
+        clientId:
+          type: string
+        displayName:
+          type: string
+        origin:
+          type: string
+        redirectUri:
+          type: string
+        role:
+          enum:
+            - app
+            - official_manager
+          type: string
+        sourceRevision:
+          type: number
+      required:
+        - clientId
+        - appId
+        - displayName
+        - origin
+        - redirectUri
+        - sourceRevision
+        - role
+        - appAccess
+        - capabilityContractRefs
+      type: object
+    RuntimeClientTokenDto:
+      properties:
+        accountId:
+          type: string
+        appId:
+          type: string
+        clientId:
+          type: string
+        contextId:
+          format: uuid
+          type: string
+        contextToken:
+          description: >-
+            Opaque current-context token. Grants no Account or Runtime business
+            API access.
+          type: string
+        displayName:
+          type: string
+        expiresAt:
+          format: date-time
+          type: string
+        realmEnvironmentId:
+          type: string
+      required:
+        - realmEnvironmentId
+        - accountId
+        - displayName
+        - appId
+        - clientId
+        - contextId
+        - expiresAt
+        - contextToken
+      type: object
+    RuntimeConnectionAnswerDto:
+      properties:
+        answerSdp:
+          maxLength: 32768
+          type: string
+        bindingId:
+          format: uuid
+          type: string
+        connectionId:
+          format: uuid
+          type: string
+        expectedAccountId:
+          type: string
+        leaseVersion:
+          format: uuid
+          type: string
+        rejectionReason:
+          enum:
+            - ''
+            - SOURCE_NOT_ALLOWED
+            - DIRECT_CONNECTION_UNAVAILABLE
+          type: string
+        runtimeId:
+          format: uuid
+          type: string
+        signature:
+          type: string
+        signedAt:
+          type: number
+      required:
+        - expectedAccountId
+        - runtimeId
+        - bindingId
+        - leaseVersion
+        - signedAt
+        - signature
+        - connectionId
+        - answerSdp
+        - rejectionReason
+      type: object
+    RuntimeConnectionCreateDto:
+      properties:
+        bindingId:
+          format: uuid
+          type: string
+        offerSdp:
+          maxLength: 32768
+          type: string
+      required:
+        - bindingId
+        - offerSdp
+      type: object
+    RuntimeConnectionOfferDto:
+      properties:
+        connectionId:
+          format: uuid
+          type: string
+        context:
+          $ref: '#/components/schemas/RuntimeClientContextDto'
+        expiresAt:
+          format: date-time
+          type: string
+        offerSdp:
+          type: string
+      required:
+        - connectionId
+        - offerSdp
+        - context
+        - expiresAt
+      type: object
+    RuntimeConnectionPollDto:
+      properties:
+        bindingId:
+          format: uuid
+          type: string
+        contextIds:
+          items:
+            type: string
+          maxItems: 64
+          type: array
+        expectedAccountId:
+          type: string
+        leaseVersion:
+          format: uuid
+          type: string
+        runtimeId:
+          format: uuid
+          type: string
+        signature:
+          type: string
+        signedAt:
+          type: number
+      required:
+        - expectedAccountId
+        - runtimeId
+        - bindingId
+        - leaseVersion
+        - signedAt
+        - signature
+        - contextIds
+      type: object
+    RuntimeConnectionPollResultDto:
+      properties:
+        contexts:
+          items:
+            $ref: '#/components/schemas/RuntimeClientContextDto'
+          type: array
+        controlLeaseExpiresAt:
+          format: date-time
+          type: string
+        offers:
+          items:
+            $ref: '#/components/schemas/RuntimeConnectionOfferDto'
+          type: array
+        serverTime:
+          format: date-time
+          type: string
+        stunUrls:
+          items:
+            type: string
+          type: array
+      required:
+        - stunUrls
+        - serverTime
+        - controlLeaseExpiresAt
+        - offers
+        - contexts
+      type: object
+    RuntimeConnectionStateDto:
+      properties:
+        answerSdp:
+          nullable: true
+          type: string
+        bindingId:
+          format: uuid
+          type: string
+        connectionId:
+          format: uuid
+          type: string
+        expiresAt:
+          format: date-time
+          type: string
+        rejectionReason:
+          nullable: true
+          type: string
+        status:
+          enum:
+            - pending
+            - answered
+            - rejected
+          type: string
+      required:
+        - connectionId
+        - bindingId
+        - status
+        - answerSdp
+        - rejectionReason
+        - expiresAt
       type: object
     SendMessageInputDto:
       properties:
@@ -10458,6 +11032,197 @@ paths:
       summary: Password register
       tags:
         - Auth
+  /api/auth/primary-runtime:
+    get:
+      operationId: getMyPrimaryRuntime
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrimaryRuntimeSnapshotDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Read my primary Runtime binding
+      tags:
+        - Runtime access
+  /api/auth/primary-runtime/bind:
+    post:
+      operationId: bindMyPrimaryRuntime
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrimaryRuntimeBindDto'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrimaryRuntimeMutationDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Bind my first primary Runtime
+      tags:
+        - Runtime access
+  /api/auth/primary-runtime/confirm:
+    post:
+      operationId: confirmMyPrimaryRuntime
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrimaryRuntimeConfirmDto'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrimaryRuntimeMutationDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Confirm a primary Runtime binding or no-data reinitialization
+      tags:
+        - Runtime access
+  /api/auth/primary-runtime/connections/answer:
+    post:
+      operationId: answerPrimaryRuntimeConnection
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuntimeConnectionAnswerDto'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuntimeConnectionStateDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Answer an exact pending direct connection with my primary host proof
+      tags:
+        - Runtime access
+  /api/auth/primary-runtime/connections/poll:
+    post:
+      operationId: pollPrimaryRuntimeConnections
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuntimeConnectionPollDto'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuntimeConnectionPollResultDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Read my primary host offers and revalidate its active client contexts
+      tags:
+        - Runtime access
+  /api/auth/primary-runtime/intent/{intentId}:
+    get:
+      operationId: getMyPrimaryRuntimeIntent
+      parameters:
+        - in: path
+          name: intentId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrimaryRuntimeIntentDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Read my pending primary Runtime confirmation
+      tags:
+        - Runtime access
+  /api/auth/primary-runtime/lease:
+    post:
+      operationId: renewMyPrimaryRuntimeLease
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrimaryRuntimeLeaseRequestDto'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrimaryRuntimeSnapshotDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Renew the current primary Runtime control lease
+      tags:
+        - Runtime access
+  /api/auth/primary-runtime/prepare:
+    post:
+      operationId: prepareMyPrimaryRuntime
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrimaryRuntimePrepareDto'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrimaryRuntimeIntentDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Prepare a primary Runtime confirmation on the official website
+      tags:
+        - Runtime access
+  /api/auth/primary-runtime/reinitialize:
+    post:
+      operationId: reinitializeMyPrimaryRuntime
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrimaryRuntimeBindDto'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PrimaryRuntimeMutationDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Explicitly replace my primary Runtime without migrating data
+      tags:
+        - Runtime access
   /api/auth/refresh:
     post:
       operationId: refreshToken
@@ -10502,6 +11267,47 @@ paths:
       summary: Renew explicit bearer credentials
       tags:
         - Auth
+  /api/auth/runtime-clients/authorize:
+    post:
+      operationId: authorizeRuntimeClient
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuntimeClientAuthorizationDto'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuntimeClientCodeDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Confirm my identity for a registered Runtime client
+      tags:
+        - Runtime access
+  /api/auth/runtime-clients/{clientId}:
+    get:
+      operationId: getRuntimeClientSource
+      parameters:
+        - in: path
+          name: clientId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuntimeClientSourceDto'
+          description: ''
+      summary: Read the registered source shown by official Nimi sign-in
+      tags:
+        - Runtime access
   /api/auth/sessions/introspect:
     post:
       operationId: introspectSession
@@ -13556,6 +14362,101 @@ paths:
       summary: Submit immutable upload for verification and publication
       tags:
         - Resources
+  /api/runtime-access/connections:
+    post:
+      operationId: createRuntimeConnection
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuntimeConnectionCreateDto'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuntimeConnectionStateDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Propose a direct peer connection to my leased primary Runtime
+      tags:
+        - Runtime access
+  /api/runtime-access/connections/{connectionId}:
+    get:
+      operationId: getRuntimeConnection
+      parameters:
+        - in: path
+          name: connectionId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuntimeConnectionStateDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Read the answer to my bounded connection attempt
+      tags:
+        - Runtime access
+  /api/runtime-access/context:
+    get:
+      operationId: getRuntimeClientContext
+      parameters: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuntimeClientContextDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Read my current client identity and unique primary Runtime
+      tags:
+        - Runtime access
+  /api/runtime-access/context/end:
+    post:
+      operationId: endRuntimeClientContext
+      parameters: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuntimeClientEndDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: End this client context without ending other logins
+      tags:
+        - Runtime access
+  /api/runtime-access/token:
+    post:
+      operationId: exchangeRuntimeClientCode
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuntimeClientExchangeDto'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuntimeClientTokenDto'
+          description: ''
+      summary: Exchange a single-use PKCE code for a current Runtime client context
+      tags:
+        - Runtime access
   /api/support/feedback:
     get:
       operationId: FeedbackController_getMyFeedbacks

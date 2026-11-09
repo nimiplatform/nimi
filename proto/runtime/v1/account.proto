@@ -322,7 +322,33 @@ message SwitchAccountResponse {
   ErrorInfo audit_diagnostic = 7;
 }
 
+message GetPrimaryRuntimeStateRequest {}
+
+message GetPrimaryRuntimeStateResponse {
+  string runtime_id = 1;
+  string primary_runtime_id = 2;
+  string binding_id = 3;
+  string display_name = 4;
+  bool this_runtime = 5;
+  string valid_after = 6;
+  string lease_expires_at = 7;
+}
+
+message PreparePrimaryRuntimeRequest {
+  string action = 1;
+  string expected_binding_id = 2;
+  string display_name = 3;
+}
+
+message PreparePrimaryRuntimeResponse {
+  string intent_id = 1;
+  string confirmation_url = 2;
+  string expires_at = 3;
+}
+
 service RuntimeAccountService {
+  rpc GetPrimaryRuntimeState(GetPrimaryRuntimeStateRequest) returns (GetPrimaryRuntimeStateResponse);
+  rpc PreparePrimaryRuntime(PreparePrimaryRuntimeRequest) returns (PreparePrimaryRuntimeResponse);
   rpc GetAccountSessionStatus(GetAccountSessionStatusRequest) returns (GetAccountSessionStatusResponse);
   rpc SubscribeAccountSessionEvents(SubscribeAccountSessionEventsRequest) returns (stream AccountSessionEvent);
   rpc BeginLogin(BeginLoginRequest) returns (BeginLoginResponse);

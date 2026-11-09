@@ -2009,6 +2009,38 @@ const (
 	REASONINGPRESENTATIONSUMMARY     ReasoningPresentation = "REASONING_PRESENTATION_SUMMARY"
 )
 
+type RemoteAccessConnectionState string
+
+const (
+	REMOTEACCESSCONNECTIONSTATEUNSPECIFIED RemoteAccessConnectionState = "REMOTE_ACCESS_CONNECTION_STATE_UNSPECIFIED"
+	REMOTEACCESSCONNECTIONSTATEDISABLED    RemoteAccessConnectionState = "REMOTE_ACCESS_CONNECTION_STATE_DISABLED"
+	REMOTEACCESSCONNECTIONSTATECONNECTING  RemoteAccessConnectionState = "REMOTE_ACCESS_CONNECTION_STATE_CONNECTING"
+	REMOTEACCESSCONNECTIONSTATELISTENING   RemoteAccessConnectionState = "REMOTE_ACCESS_CONNECTION_STATE_LISTENING"
+	REMOTEACCESSCONNECTIONSTATEUNAVAILABLE RemoteAccessConnectionState = "REMOTE_ACCESS_CONNECTION_STATE_UNAVAILABLE"
+)
+
+type RemoteSourceAccessState string
+
+const (
+	REMOTESOURCEACCESSSTATEUNSPECIFIED RemoteSourceAccessState = "REMOTE_SOURCE_ACCESS_STATE_UNSPECIFIED"
+	REMOTESOURCEACCESSSTATEPENDING     RemoteSourceAccessState = "REMOTE_SOURCE_ACCESS_STATE_PENDING"
+	REMOTESOURCEACCESSSTATEALLOWED     RemoteSourceAccessState = "REMOTE_SOURCE_ACCESS_STATE_ALLOWED"
+	REMOTESOURCEACCESSSTATEPAUSED      RemoteSourceAccessState = "REMOTE_SOURCE_ACCESS_STATE_PAUSED"
+	REMOTESOURCEACCESSSTATECHANGED     RemoteSourceAccessState = "REMOTE_SOURCE_ACCESS_STATE_CHANGED"
+)
+
+type RemoteTransportFrameKind string
+
+const (
+	REMOTETRANSPORTFRAMEKINDUNSPECIFIED RemoteTransportFrameKind = "REMOTE_TRANSPORT_FRAME_KIND_UNSPECIFIED"
+	REMOTETRANSPORTFRAMEKINDREQUEST     RemoteTransportFrameKind = "REMOTE_TRANSPORT_FRAME_KIND_REQUEST"
+	REMOTETRANSPORTFRAMEKINDRESPONSE    RemoteTransportFrameKind = "REMOTE_TRANSPORT_FRAME_KIND_RESPONSE"
+	REMOTETRANSPORTFRAMEKINDSTREAMDATA  RemoteTransportFrameKind = "REMOTE_TRANSPORT_FRAME_KIND_STREAM_DATA"
+	REMOTETRANSPORTFRAMEKINDSTREAMEND   RemoteTransportFrameKind = "REMOTE_TRANSPORT_FRAME_KIND_STREAM_END"
+	REMOTETRANSPORTFRAMEKINDERROR       RemoteTransportFrameKind = "REMOTE_TRANSPORT_FRAME_KIND_ERROR"
+	REMOTETRANSPORTFRAMEKINDCANCEL      RemoteTransportFrameKind = "REMOTE_TRANSPORT_FRAME_KIND_CANCEL"
+)
+
 type ResponseFormatKind string
 
 const (
@@ -4158,6 +4190,16 @@ type CompleteLoginResponse struct {
 type CompleteProductControlFirstRunDeviceEnvironmentScanRequest struct {
 }
 
+type ConfirmRemoteSourceRequest struct {
+	PendingRequestId  string `json:"pending_request_id,omitempty"`
+	ExpectedBindingId string `json:"expected_binding_id,omitempty"`
+}
+
+type ConfirmRemoteSourceResponse struct {
+	State           *GetRemoteAccessStateResponse `json:"state,omitempty"`
+	AuditDiagnostic *ErrorInfo                    `json:"audit_diagnostic,omitempty"`
+}
+
 type Connector struct {
 	ConnectorId         string                       `json:"connector_id,omitempty"`
 	Kind                ConnectorKind                `json:"kind,omitempty"`
@@ -5136,6 +5178,19 @@ type GetModelAssetResponse struct {
 	Asset *ModelAssetRecord `json:"asset,omitempty"`
 }
 
+type GetPrimaryRuntimeStateRequest struct {
+}
+
+type GetPrimaryRuntimeStateResponse struct {
+	RuntimeId        string `json:"runtime_id,omitempty"`
+	PrimaryRuntimeId string `json:"primary_runtime_id,omitempty"`
+	BindingId        string `json:"binding_id,omitempty"`
+	DisplayName      string `json:"display_name,omitempty"`
+	ThisRuntime      bool   `json:"this_runtime,omitempty"`
+	ValidAfter       string `json:"valid_after,omitempty"`
+	LeaseExpiresAt   string `json:"lease_expires_at,omitempty"`
+}
+
 type GetProductControlCheckSyncRequest struct {
 }
 
@@ -5155,6 +5210,18 @@ type GetPublicChatSessionSnapshotRequest struct {
 
 type GetPublicChatSessionSnapshotResponse struct {
 	Snapshot map[string]any `json:"snapshot,omitempty"`
+}
+
+type GetRemoteAccessStateRequest struct {
+}
+
+type GetRemoteAccessStateResponse struct {
+	Enabled         bool                        `json:"enabled,omitempty"`
+	BindingId       string                      `json:"binding_id,omitempty"`
+	ConnectionState RemoteAccessConnectionState `json:"connection_state,omitempty"`
+	Sources         []RemoteAccessSource        `json:"sources,omitempty"`
+	ConnectedPeers  uint32                      `json:"connected_peers,omitempty"`
+	ReasonCode      string                      `json:"reason_code,omitempty"`
 }
 
 type GetRuntimeHealthRequest struct {
@@ -7949,6 +8016,18 @@ type PrepareLocalAppPackageResponse struct {
 	ReasonCode ReasonCode              `json:"reason_code,omitempty"`
 }
 
+type PreparePrimaryRuntimeRequest struct {
+	Action            string `json:"action,omitempty"`
+	ExpectedBindingId string `json:"expected_binding_id,omitempty"`
+	DisplayName       string `json:"display_name,omitempty"`
+}
+
+type PreparePrimaryRuntimeResponse struct {
+	IntentId        string `json:"intent_id,omitempty"`
+	ConfirmationUrl string `json:"confirmation_url,omitempty"`
+	ExpiresAt       string `json:"expires_at,omitempty"`
+}
+
 type PreviewSharedLocalAgentAIProfileRequest struct {
 	Context     *AgentRequestContext `json:"context,omitempty"`
 	ProfileJson []byte               `json:"profile_json,omitempty"`
@@ -8438,6 +8517,46 @@ type RegisterLocalDevelopmentProjectRequest struct {
 type RegisterLocalDevelopmentProjectResponse struct {
 	Registration *LocalDevelopmentRegistrationProjection `json:"registration,omitempty"`
 	ReasonCode   ReasonCode                              `json:"reason_code,omitempty"`
+}
+
+type RejectRemoteSourceRequest struct {
+	PendingRequestId  string `json:"pending_request_id,omitempty"`
+	ExpectedBindingId string `json:"expected_binding_id,omitempty"`
+}
+
+type RejectRemoteSourceResponse struct {
+	State *GetRemoteAccessStateResponse `json:"state,omitempty"`
+}
+
+type RemoteAccessSource struct {
+	ClientId               string                  `json:"client_id,omitempty"`
+	AppId                  string                  `json:"app_id,omitempty"`
+	DisplayName            string                  `json:"display_name,omitempty"`
+	Origin                 string                  `json:"origin,omitempty"`
+	SourceRevision         uint64                  `json:"source_revision,omitempty"`
+	OfficialManager        bool                    `json:"official_manager,omitempty"`
+	AppAccess              []string                `json:"app_access,omitempty"`
+	CapabilityContractRefs []string                `json:"capability_contract_refs,omitempty"`
+	State                  RemoteSourceAccessState `json:"state,omitempty"`
+	PendingRequestId       string                  `json:"pending_request_id,omitempty"`
+}
+
+type RemoteClientStreamRequest struct {
+	Messages [][]byte `json:"messages,omitempty"`
+}
+
+type RemoteTransportFrame struct {
+	Kind           RemoteTransportFrameKind `json:"kind,omitempty"`
+	RequestId      uint32                   `json:"request_id,omitempty"`
+	Method         string                   `json:"method,omitempty"`
+	Payload        []byte                   `json:"payload,omitempty"`
+	ChunkEnd       bool                     `json:"chunk_end,omitempty"`
+	GrpcCode       uint32                   `json:"grpc_code,omitempty"`
+	Message        string                   `json:"message,omitempty"`
+	ErrorInfo      *ErrorInfo               `json:"error_info,omitempty"`
+	TimeoutMs      uint32                   `json:"timeout_ms,omitempty"`
+	TraceId        string                   `json:"trace_id,omitempty"`
+	IdempotencyKey string                   `json:"idempotency_key,omitempty"`
 }
 
 type RemoveIntegrationConnectionRequest struct {
@@ -8993,6 +9112,27 @@ type SetLocalAppAgentMemoryEnabledResponse struct {
 type SetProductControlFirstRunInstallLevelRequest struct {
 	InstallLevel   string `json:"install_level,omitempty"`
 	AiProfileAlias string `json:"ai_profile_alias,omitempty"`
+}
+
+type SetRemoteAccessEnabledRequest struct {
+	Enabled           bool   `json:"enabled,omitempty"`
+	ExpectedBindingId string `json:"expected_binding_id,omitempty"`
+}
+
+type SetRemoteAccessEnabledResponse struct {
+	State           *GetRemoteAccessStateResponse `json:"state,omitempty"`
+	AuditDiagnostic *ErrorInfo                    `json:"audit_diagnostic,omitempty"`
+}
+
+type SetRemoteSourcePausedRequest struct {
+	ClientId          string `json:"client_id,omitempty"`
+	Paused            bool   `json:"paused,omitempty"`
+	ExpectedBindingId string `json:"expected_binding_id,omitempty"`
+}
+
+type SetRemoteSourcePausedResponse struct {
+	State           *GetRemoteAccessStateResponse `json:"state,omitempty"`
+	AuditDiagnostic *ErrorInfo                    `json:"audit_diagnostic,omitempty"`
 }
 
 type SharedLocalAgentPresetVoiceOption struct {
@@ -10321,6 +10461,14 @@ func (c RuntimeTypedClient) GetAccountSessionStatus(ctx context.Context, request
 	return decodeRuntimeTypedResponse[GetAccountSessionStatusResponse](raw, "GetAccountSessionStatusResponse")
 }
 
+func (c RuntimeTypedClient) GetPrimaryRuntimeState(ctx context.Context, request GetPrimaryRuntimeStateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetPrimaryRuntimeStateResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/GetPrimaryRuntimeState", request, metadata, timeoutMS)
+	if err != nil {
+		return GetPrimaryRuntimeStateResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetPrimaryRuntimeStateResponse](raw, "GetPrimaryRuntimeStateResponse")
+}
+
 func (c RuntimeTypedClient) InvokeRealmUnary(ctx context.Context, request InvokeRealmUnaryRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (InvokeRealmUnaryResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary", request, metadata, timeoutMS)
 	if err != nil {
@@ -10335,6 +10483,14 @@ func (c RuntimeTypedClient) Logout(ctx context.Context, request LogoutRequest, m
 		return LogoutResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[LogoutResponse](raw, "LogoutResponse")
+}
+
+func (c RuntimeTypedClient) PreparePrimaryRuntime(ctx context.Context, request PreparePrimaryRuntimeRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PreparePrimaryRuntimeResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAccountService/PreparePrimaryRuntime", request, metadata, timeoutMS)
+	if err != nil {
+		return PreparePrimaryRuntimeResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[PreparePrimaryRuntimeResponse](raw, "PreparePrimaryRuntimeResponse")
 }
 
 func (c RuntimeTypedClient) RequestPresenceVerification(ctx context.Context, request RequestPresenceVerificationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RequestPresenceVerificationResponse, error) {
@@ -12559,6 +12715,46 @@ func (c RuntimeTypedClient) SubscribeRealmRealtimeEvents(ctx context.Context, re
 		return nil, err
 	}
 	return &RuntimeTypedStream[SubscribeRealmRealtimeEventsResponse]{reader: reader}, nil
+}
+
+func (c RuntimeTypedClient) ConfirmRemoteSource(ctx context.Context, request ConfirmRemoteSourceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ConfirmRemoteSourceResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeRemoteAccessService/ConfirmRemoteSource", request, metadata, timeoutMS)
+	if err != nil {
+		return ConfirmRemoteSourceResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[ConfirmRemoteSourceResponse](raw, "ConfirmRemoteSourceResponse")
+}
+
+func (c RuntimeTypedClient) GetRemoteAccessState(ctx context.Context, request GetRemoteAccessStateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetRemoteAccessStateResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeRemoteAccessService/GetRemoteAccessState", request, metadata, timeoutMS)
+	if err != nil {
+		return GetRemoteAccessStateResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetRemoteAccessStateResponse](raw, "GetRemoteAccessStateResponse")
+}
+
+func (c RuntimeTypedClient) RejectRemoteSource(ctx context.Context, request RejectRemoteSourceRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RejectRemoteSourceResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeRemoteAccessService/RejectRemoteSource", request, metadata, timeoutMS)
+	if err != nil {
+		return RejectRemoteSourceResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[RejectRemoteSourceResponse](raw, "RejectRemoteSourceResponse")
+}
+
+func (c RuntimeTypedClient) SetRemoteAccessEnabled(ctx context.Context, request SetRemoteAccessEnabledRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SetRemoteAccessEnabledResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteAccessEnabled", request, metadata, timeoutMS)
+	if err != nil {
+		return SetRemoteAccessEnabledResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[SetRemoteAccessEnabledResponse](raw, "SetRemoteAccessEnabledResponse")
+}
+
+func (c RuntimeTypedClient) SetRemoteSourcePaused(ctx context.Context, request SetRemoteSourcePausedRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (SetRemoteSourcePausedResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteSourcePaused", request, metadata, timeoutMS)
+	if err != nil {
+		return SetRemoteSourcePausedResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[SetRemoteSourcePausedResponse](raw, "SetRemoteSourcePausedResponse")
 }
 
 func (c RuntimeTypedClient) GetRuntimeServiceState(ctx context.Context, request GetRuntimeServiceStateRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetRuntimeServiceStateResponse, error) {
@@ -18869,6 +19065,336 @@ func (value *PresenceStatus) UnmarshalJSON(data []byte) error {
 	}
 }
 
+type PrimaryRuntimeBindDto struct {
+	DisplayName       string  `json:"displayName"`
+	ExpectedAccountId string  `json:"expectedAccountId"`
+	ExpectedBindingId string  `json:"expectedBindingId"`
+	PublicKey         string  `json:"publicKey"`
+	RuntimeId         string  `json:"runtimeId"`
+	Signature         string  `json:"signature"`
+	SignedAt          float64 `json:"signedAt"`
+}
+
+func (value *PrimaryRuntimeBindDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeBindDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "displayName", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeBindDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "expectedAccountId", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeBindDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "expectedBindingId", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeBindDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "publicKey", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeBindDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "runtimeId", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeBindDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "signature", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeBindDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "signedAt", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeBindDto: %w", err)
+	}
+	type modelAlias PrimaryRuntimeBindDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeBindDto: %w", err)
+	}
+	*value = PrimaryRuntimeBindDto(decoded)
+	return nil
+}
+
+type PrimaryRuntimeBindingDto struct {
+	BindingId      string  `json:"bindingId"`
+	DisplayName    string  `json:"displayName"`
+	LeaseExpiresAt *string `json:"leaseExpiresAt"`
+	LeaseVersion   string  `json:"leaseVersion"`
+	PublicKey      string  `json:"publicKey"`
+	RuntimeId      string  `json:"runtimeId"`
+	ValidAfter     string  `json:"validAfter"`
+}
+
+func (value *PrimaryRuntimeBindingDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeBindingDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "bindingId", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeBindingDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "displayName", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeBindingDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "leaseExpiresAt", true); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeBindingDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "leaseVersion", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeBindingDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "publicKey", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeBindingDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "runtimeId", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeBindingDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "validAfter", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeBindingDto: %w", err)
+	}
+	type modelAlias PrimaryRuntimeBindingDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeBindingDto: %w", err)
+	}
+	*value = PrimaryRuntimeBindingDto(decoded)
+	return nil
+}
+
+type PrimaryRuntimeConfirmDto struct {
+	ExpectedAccountId string `json:"expectedAccountId"`
+	IntentId          string `json:"intentId"`
+}
+
+func (value *PrimaryRuntimeConfirmDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeConfirmDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "expectedAccountId", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeConfirmDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "intentId", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeConfirmDto: %w", err)
+	}
+	type modelAlias PrimaryRuntimeConfirmDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeConfirmDto: %w", err)
+	}
+	*value = PrimaryRuntimeConfirmDto(decoded)
+	return nil
+}
+
+type PrimaryRuntimeIntentDto struct {
+	ConfirmationUrl   string `json:"confirmationUrl"`
+	DisplayName       string `json:"displayName"`
+	ExpectedAccountId string `json:"expectedAccountId"`
+	ExpiresAt         string `json:"expiresAt"`
+	IntentId          string `json:"intentId"`
+	Operation         string `json:"operation"`
+	RuntimeId         string `json:"runtimeId"`
+}
+
+func (value *PrimaryRuntimeIntentDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeIntentDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "confirmationUrl", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeIntentDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "displayName", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeIntentDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "expectedAccountId", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeIntentDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "expiresAt", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeIntentDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "intentId", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeIntentDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "operation", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeIntentDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "runtimeId", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeIntentDto: %w", err)
+	}
+	type modelAlias PrimaryRuntimeIntentDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeIntentDto: %w", err)
+	}
+	*value = PrimaryRuntimeIntentDto(decoded)
+	return nil
+}
+
+type PrimaryRuntimeLeaseRequestDto struct {
+	BindingId         string  `json:"bindingId"`
+	ExpectedAccountId string  `json:"expectedAccountId"`
+	LeaseVersion      string  `json:"leaseVersion"`
+	RuntimeId         string  `json:"runtimeId"`
+	Signature         string  `json:"signature"`
+	SignedAt          float64 `json:"signedAt"`
+}
+
+func (value *PrimaryRuntimeLeaseRequestDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeLeaseRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "bindingId", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeLeaseRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "expectedAccountId", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeLeaseRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "leaseVersion", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeLeaseRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "runtimeId", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeLeaseRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "signature", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeLeaseRequestDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "signedAt", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeLeaseRequestDto: %w", err)
+	}
+	type modelAlias PrimaryRuntimeLeaseRequestDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeLeaseRequestDto: %w", err)
+	}
+	*value = PrimaryRuntimeLeaseRequestDto(decoded)
+	return nil
+}
+
+type PrimaryRuntimeMutationDto struct {
+	AccountId               string                    `json:"accountId"`
+	Binding                 *PrimaryRuntimeBindingDto `json:"binding"`
+	DataMigrated            bool                      `json:"dataMigrated"`
+	ReconfigurationRequired bool                      `json:"reconfigurationRequired"`
+	ServerTime              string                    `json:"serverTime"`
+}
+
+func (value *PrimaryRuntimeMutationDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeMutationDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "accountId", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeMutationDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "binding", true); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeMutationDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "dataMigrated", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeMutationDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "reconfigurationRequired", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeMutationDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "serverTime", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeMutationDto: %w", err)
+	}
+	type modelAlias PrimaryRuntimeMutationDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeMutationDto: %w", err)
+	}
+	if _, present := raw["dataMigrated"]; present {
+		switch decoded.DataMigrated {
+		case false:
+		default:
+			return fmt.Errorf("decode PrimaryRuntimeMutationDto: field dataMigrated has unknown literal %v", decoded.DataMigrated)
+		}
+	}
+	if _, present := raw["reconfigurationRequired"]; present {
+		switch decoded.ReconfigurationRequired {
+		case true:
+		default:
+			return fmt.Errorf("decode PrimaryRuntimeMutationDto: field reconfigurationRequired has unknown literal %v", decoded.ReconfigurationRequired)
+		}
+	}
+	*value = PrimaryRuntimeMutationDto(decoded)
+	return nil
+}
+
+type PrimaryRuntimePrepareDto struct {
+	DisplayName       string  `json:"displayName"`
+	ExpectedAccountId string  `json:"expectedAccountId"`
+	ExpectedBindingId string  `json:"expectedBindingId"`
+	Operation         string  `json:"operation"`
+	PublicKey         string  `json:"publicKey"`
+	RuntimeId         string  `json:"runtimeId"`
+	Signature         string  `json:"signature"`
+	SignedAt          float64 `json:"signedAt"`
+}
+
+func (value *PrimaryRuntimePrepareDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimePrepareDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "displayName", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimePrepareDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "expectedAccountId", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimePrepareDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "expectedBindingId", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimePrepareDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "operation", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimePrepareDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "publicKey", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimePrepareDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "runtimeId", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimePrepareDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "signature", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimePrepareDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "signedAt", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimePrepareDto: %w", err)
+	}
+	type modelAlias PrimaryRuntimePrepareDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimePrepareDto: %w", err)
+	}
+	*value = PrimaryRuntimePrepareDto(decoded)
+	return nil
+}
+
+type PrimaryRuntimeSnapshotDto struct {
+	AccountId  string                    `json:"accountId"`
+	Binding    *PrimaryRuntimeBindingDto `json:"binding"`
+	ServerTime string                    `json:"serverTime"`
+}
+
+func (value *PrimaryRuntimeSnapshotDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeSnapshotDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "accountId", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeSnapshotDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "binding", true); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeSnapshotDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "serverTime", false); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeSnapshotDto: %w", err)
+	}
+	type modelAlias PrimaryRuntimeSnapshotDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode PrimaryRuntimeSnapshotDto: %w", err)
+	}
+	*value = PrimaryRuntimeSnapshotDto(decoded)
+	return nil
+}
+
 type ProfileCoverageManifestV1Dto struct {
 	AggregateStatus       string                                             `json:"aggregateStatus"`
 	Diagnostics           []ProfileCoverageManifestV1DtoDiagnosticsItem      `json:"diagnostics"`
@@ -19924,6 +20450,574 @@ func (value *RevokeAccountSessionsResultDto) UnmarshalJSON(data []byte) error {
 		return fmt.Errorf("decode RevokeAccountSessionsResultDto: %w", err)
 	}
 	*value = RevokeAccountSessionsResultDto(decoded)
+	return nil
+}
+
+type RuntimeClientAuthorizationDto struct {
+	ClientId            string `json:"clientId"`
+	CodeChallenge       string `json:"codeChallenge"`
+	CodeChallengeMethod string `json:"codeChallengeMethod"`
+	ExpectedAccountId   string `json:"expectedAccountId"`
+	RedirectUri         string `json:"redirectUri"`
+	State               string `json:"state"`
+}
+
+func (value *RuntimeClientAuthorizationDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode RuntimeClientAuthorizationDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "clientId", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientAuthorizationDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "codeChallenge", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientAuthorizationDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "codeChallengeMethod", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientAuthorizationDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "expectedAccountId", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientAuthorizationDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "redirectUri", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientAuthorizationDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "state", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientAuthorizationDto: %w", err)
+	}
+	type modelAlias RuntimeClientAuthorizationDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode RuntimeClientAuthorizationDto: %w", err)
+	}
+	if _, present := raw["codeChallengeMethod"]; present {
+		switch decoded.CodeChallengeMethod {
+		case "S256":
+		default:
+			return fmt.Errorf("decode RuntimeClientAuthorizationDto: field codeChallengeMethod has unknown literal %v", decoded.CodeChallengeMethod)
+		}
+	}
+	*value = RuntimeClientAuthorizationDto(decoded)
+	return nil
+}
+
+type RuntimeClientCodeDto struct {
+	ExpiresAt   string `json:"expiresAt"`
+	RedirectUrl string `json:"redirectUrl"`
+}
+
+func (value *RuntimeClientCodeDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode RuntimeClientCodeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "expiresAt", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientCodeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "redirectUrl", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientCodeDto: %w", err)
+	}
+	type modelAlias RuntimeClientCodeDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode RuntimeClientCodeDto: %w", err)
+	}
+	*value = RuntimeClientCodeDto(decoded)
+	return nil
+}
+
+type RuntimeClientContextDto struct {
+	AccountId          string                   `json:"accountId"`
+	AppId              string                   `json:"appId"`
+	ClientId           string                   `json:"clientId"`
+	ContextId          string                   `json:"contextId"`
+	DisplayName        string                   `json:"displayName"`
+	ExpiresAt          string                   `json:"expiresAt"`
+	Primary            *RuntimeClientPrimaryDto `json:"primary"`
+	RealmEnvironmentId string                   `json:"realmEnvironmentId"`
+	Source             *RuntimeClientSourceDto  `json:"source"`
+	StunUrls           []string                 `json:"stunUrls"`
+}
+
+func (value *RuntimeClientContextDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode RuntimeClientContextDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "accountId", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientContextDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "appId", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientContextDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "clientId", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientContextDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "contextId", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientContextDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "displayName", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientContextDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "expiresAt", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientContextDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "primary", true); err != nil {
+		return fmt.Errorf("decode RuntimeClientContextDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "realmEnvironmentId", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientContextDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "source", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientContextDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "stunUrls", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientContextDto: %w", err)
+	}
+	type modelAlias RuntimeClientContextDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode RuntimeClientContextDto: %w", err)
+	}
+	*value = RuntimeClientContextDto(decoded)
+	return nil
+}
+
+type RuntimeClientEndDto struct {
+	Ended bool `json:"ended"`
+}
+
+func (value *RuntimeClientEndDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode RuntimeClientEndDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "ended", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientEndDto: %w", err)
+	}
+	type modelAlias RuntimeClientEndDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode RuntimeClientEndDto: %w", err)
+	}
+	if _, present := raw["ended"]; present {
+		switch decoded.Ended {
+		case true:
+		default:
+			return fmt.Errorf("decode RuntimeClientEndDto: field ended has unknown literal %v", decoded.Ended)
+		}
+	}
+	*value = RuntimeClientEndDto(decoded)
+	return nil
+}
+
+type RuntimeClientExchangeDto struct {
+	AuthorizationCode string `json:"authorizationCode"`
+	ClientId          string `json:"clientId"`
+	CodeVerifier      string `json:"codeVerifier"`
+	RedirectUri       string `json:"redirectUri"`
+}
+
+func (value *RuntimeClientExchangeDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode RuntimeClientExchangeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "authorizationCode", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientExchangeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "clientId", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientExchangeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "codeVerifier", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientExchangeDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "redirectUri", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientExchangeDto: %w", err)
+	}
+	type modelAlias RuntimeClientExchangeDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode RuntimeClientExchangeDto: %w", err)
+	}
+	*value = RuntimeClientExchangeDto(decoded)
+	return nil
+}
+
+type RuntimeClientPrimaryDto struct {
+	BindingId      string  `json:"bindingId"`
+	DisplayName    string  `json:"displayName"`
+	LeaseExpiresAt *string `json:"leaseExpiresAt"`
+	PublicKey      string  `json:"publicKey"`
+	RuntimeId      string  `json:"runtimeId"`
+	ValidAfter     string  `json:"validAfter"`
+}
+
+func (value *RuntimeClientPrimaryDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode RuntimeClientPrimaryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "bindingId", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientPrimaryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "displayName", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientPrimaryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "leaseExpiresAt", true); err != nil {
+		return fmt.Errorf("decode RuntimeClientPrimaryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "publicKey", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientPrimaryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "runtimeId", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientPrimaryDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "validAfter", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientPrimaryDto: %w", err)
+	}
+	type modelAlias RuntimeClientPrimaryDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode RuntimeClientPrimaryDto: %w", err)
+	}
+	*value = RuntimeClientPrimaryDto(decoded)
+	return nil
+}
+
+type RuntimeClientSourceDto struct {
+	AppAccess              []string `json:"appAccess"`
+	AppId                  string   `json:"appId"`
+	CapabilityContractRefs []string `json:"capabilityContractRefs"`
+	ClientId               string   `json:"clientId"`
+	DisplayName            string   `json:"displayName"`
+	Origin                 string   `json:"origin"`
+	RedirectUri            string   `json:"redirectUri"`
+	Role                   string   `json:"role"`
+	SourceRevision         float64  `json:"sourceRevision"`
+}
+
+func (value *RuntimeClientSourceDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode RuntimeClientSourceDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "appAccess", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientSourceDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "appId", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientSourceDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "capabilityContractRefs", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientSourceDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "clientId", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientSourceDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "displayName", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientSourceDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "origin", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientSourceDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "redirectUri", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientSourceDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "role", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientSourceDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "sourceRevision", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientSourceDto: %w", err)
+	}
+	type modelAlias RuntimeClientSourceDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode RuntimeClientSourceDto: %w", err)
+	}
+	*value = RuntimeClientSourceDto(decoded)
+	return nil
+}
+
+type RuntimeClientTokenDto struct {
+	AccountId          string `json:"accountId"`
+	AppId              string `json:"appId"`
+	ClientId           string `json:"clientId"`
+	ContextId          string `json:"contextId"`
+	ContextToken       string `json:"contextToken"`
+	DisplayName        string `json:"displayName"`
+	ExpiresAt          string `json:"expiresAt"`
+	RealmEnvironmentId string `json:"realmEnvironmentId"`
+}
+
+func (value *RuntimeClientTokenDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode RuntimeClientTokenDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "accountId", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientTokenDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "appId", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientTokenDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "clientId", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientTokenDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "contextId", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientTokenDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "contextToken", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientTokenDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "displayName", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientTokenDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "expiresAt", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientTokenDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "realmEnvironmentId", false); err != nil {
+		return fmt.Errorf("decode RuntimeClientTokenDto: %w", err)
+	}
+	type modelAlias RuntimeClientTokenDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode RuntimeClientTokenDto: %w", err)
+	}
+	*value = RuntimeClientTokenDto(decoded)
+	return nil
+}
+
+type RuntimeConnectionAnswerDto struct {
+	AnswerSdp         string  `json:"answerSdp"`
+	BindingId         string  `json:"bindingId"`
+	ConnectionId      string  `json:"connectionId"`
+	ExpectedAccountId string  `json:"expectedAccountId"`
+	LeaseVersion      string  `json:"leaseVersion"`
+	RejectionReason   string  `json:"rejectionReason"`
+	RuntimeId         string  `json:"runtimeId"`
+	Signature         string  `json:"signature"`
+	SignedAt          float64 `json:"signedAt"`
+}
+
+func (value *RuntimeConnectionAnswerDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionAnswerDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "answerSdp", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionAnswerDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "bindingId", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionAnswerDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "connectionId", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionAnswerDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "expectedAccountId", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionAnswerDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "leaseVersion", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionAnswerDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "rejectionReason", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionAnswerDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "runtimeId", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionAnswerDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "signature", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionAnswerDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "signedAt", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionAnswerDto: %w", err)
+	}
+	type modelAlias RuntimeConnectionAnswerDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionAnswerDto: %w", err)
+	}
+	*value = RuntimeConnectionAnswerDto(decoded)
+	return nil
+}
+
+type RuntimeConnectionCreateDto struct {
+	BindingId string `json:"bindingId"`
+	OfferSdp  string `json:"offerSdp"`
+}
+
+func (value *RuntimeConnectionCreateDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionCreateDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "bindingId", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionCreateDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "offerSdp", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionCreateDto: %w", err)
+	}
+	type modelAlias RuntimeConnectionCreateDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionCreateDto: %w", err)
+	}
+	*value = RuntimeConnectionCreateDto(decoded)
+	return nil
+}
+
+type RuntimeConnectionOfferDto struct {
+	ConnectionId string                   `json:"connectionId"`
+	Context      *RuntimeClientContextDto `json:"context"`
+	ExpiresAt    string                   `json:"expiresAt"`
+	OfferSdp     string                   `json:"offerSdp"`
+}
+
+func (value *RuntimeConnectionOfferDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionOfferDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "connectionId", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionOfferDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "context", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionOfferDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "expiresAt", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionOfferDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "offerSdp", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionOfferDto: %w", err)
+	}
+	type modelAlias RuntimeConnectionOfferDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionOfferDto: %w", err)
+	}
+	*value = RuntimeConnectionOfferDto(decoded)
+	return nil
+}
+
+type RuntimeConnectionPollDto struct {
+	BindingId         string   `json:"bindingId"`
+	ContextIds        []string `json:"contextIds"`
+	ExpectedAccountId string   `json:"expectedAccountId"`
+	LeaseVersion      string   `json:"leaseVersion"`
+	RuntimeId         string   `json:"runtimeId"`
+	Signature         string   `json:"signature"`
+	SignedAt          float64  `json:"signedAt"`
+}
+
+func (value *RuntimeConnectionPollDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionPollDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "bindingId", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionPollDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "contextIds", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionPollDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "expectedAccountId", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionPollDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "leaseVersion", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionPollDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "runtimeId", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionPollDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "signature", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionPollDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "signedAt", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionPollDto: %w", err)
+	}
+	type modelAlias RuntimeConnectionPollDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionPollDto: %w", err)
+	}
+	*value = RuntimeConnectionPollDto(decoded)
+	return nil
+}
+
+type RuntimeConnectionPollResultDto struct {
+	Contexts              []RuntimeClientContextDto   `json:"contexts"`
+	ControlLeaseExpiresAt string                      `json:"controlLeaseExpiresAt"`
+	Offers                []RuntimeConnectionOfferDto `json:"offers"`
+	ServerTime            string                      `json:"serverTime"`
+	StunUrls              []string                    `json:"stunUrls"`
+}
+
+func (value *RuntimeConnectionPollResultDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionPollResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "contexts", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionPollResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "controlLeaseExpiresAt", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionPollResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "offers", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionPollResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "serverTime", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionPollResultDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "stunUrls", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionPollResultDto: %w", err)
+	}
+	type modelAlias RuntimeConnectionPollResultDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionPollResultDto: %w", err)
+	}
+	*value = RuntimeConnectionPollResultDto(decoded)
+	return nil
+}
+
+type RuntimeConnectionStateDto struct {
+	AnswerSdp       *string `json:"answerSdp"`
+	BindingId       string  `json:"bindingId"`
+	ConnectionId    string  `json:"connectionId"`
+	ExpiresAt       string  `json:"expiresAt"`
+	RejectionReason *string `json:"rejectionReason"`
+	Status          string  `json:"status"`
+}
+
+func (value *RuntimeConnectionStateDto) UnmarshalJSON(data []byte) error {
+	var raw map[string]json.RawMessage
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionStateDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "answerSdp", true); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionStateDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "bindingId", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionStateDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "connectionId", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionStateDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "expiresAt", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionStateDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "rejectionReason", true); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionStateDto: %w", err)
+	}
+	if err := requireRealmJSONField(raw, "status", false); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionStateDto: %w", err)
+	}
+	type modelAlias RuntimeConnectionStateDto
+	var decoded modelAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return fmt.Errorf("decode RuntimeConnectionStateDto: %w", err)
+	}
+	*value = RuntimeConnectionStateDto(decoded)
 	return nil
 }
 
@@ -25085,6 +26179,22 @@ type RealmAddFriendByHandleOperationRequest struct {
 	Body    AddFriendBodyDto                       `json:"body,omitempty"`
 }
 
+type RealmAnswerPrimaryRuntimeConnectionOperationPath struct {
+}
+
+type RealmAnswerPrimaryRuntimeConnectionOperationQuery struct {
+}
+
+type RealmAnswerPrimaryRuntimeConnectionOperationHeaders struct {
+}
+
+type RealmAnswerPrimaryRuntimeConnectionOperationRequest struct {
+	Path    RealmAnswerPrimaryRuntimeConnectionOperationPath    `json:"path,omitempty"`
+	Query   RealmAnswerPrimaryRuntimeConnectionOperationQuery   `json:"query,omitempty"`
+	Headers RealmAnswerPrimaryRuntimeConnectionOperationHeaders `json:"headers,omitempty"`
+	Body    RuntimeConnectionAnswerDto                          `json:"body,omitempty"`
+}
+
 type RealmApplyFriendshipActionOperationPath struct {
 	Id string `json:"id,omitempty"`
 }
@@ -25136,6 +26246,22 @@ type RealmArchiveBundleOperationRequest struct {
 	Body    struct{}                           `json:"body,omitempty"`
 }
 
+type RealmAuthorizeRuntimeClientOperationPath struct {
+}
+
+type RealmAuthorizeRuntimeClientOperationQuery struct {
+}
+
+type RealmAuthorizeRuntimeClientOperationHeaders struct {
+}
+
+type RealmAuthorizeRuntimeClientOperationRequest struct {
+	Path    RealmAuthorizeRuntimeClientOperationPath    `json:"path,omitempty"`
+	Query   RealmAuthorizeRuntimeClientOperationQuery   `json:"query,omitempty"`
+	Headers RealmAuthorizeRuntimeClientOperationHeaders `json:"headers,omitempty"`
+	Body    RuntimeClientAuthorizationDto               `json:"body,omitempty"`
+}
+
 type RealmBindEmailOperationPath struct {
 }
 
@@ -25150,6 +26276,22 @@ type RealmBindEmailOperationRequest struct {
 	Query   RealmBindEmailOperationQuery   `json:"query,omitempty"`
 	Headers RealmBindEmailOperationHeaders `json:"headers,omitempty"`
 	Body    BindEmailDto                   `json:"body,omitempty"`
+}
+
+type RealmBindMyPrimaryRuntimeOperationPath struct {
+}
+
+type RealmBindMyPrimaryRuntimeOperationQuery struct {
+}
+
+type RealmBindMyPrimaryRuntimeOperationHeaders struct {
+}
+
+type RealmBindMyPrimaryRuntimeOperationRequest struct {
+	Path    RealmBindMyPrimaryRuntimeOperationPath    `json:"path,omitempty"`
+	Query   RealmBindMyPrimaryRuntimeOperationQuery   `json:"query,omitempty"`
+	Headers RealmBindMyPrimaryRuntimeOperationHeaders `json:"headers,omitempty"`
+	Body    PrimaryRuntimeBindDto                     `json:"body,omitempty"`
 }
 
 type RealmBindWalletOperationPath struct {
@@ -25268,6 +26410,22 @@ type RealmCloneAssetOperationRequest struct {
 	Body    CloneAssetDto                   `json:"body,omitempty"`
 }
 
+type RealmConfirmMyPrimaryRuntimeOperationPath struct {
+}
+
+type RealmConfirmMyPrimaryRuntimeOperationQuery struct {
+}
+
+type RealmConfirmMyPrimaryRuntimeOperationHeaders struct {
+}
+
+type RealmConfirmMyPrimaryRuntimeOperationRequest struct {
+	Path    RealmConfirmMyPrimaryRuntimeOperationPath    `json:"path,omitempty"`
+	Query   RealmConfirmMyPrimaryRuntimeOperationQuery   `json:"query,omitempty"`
+	Headers RealmConfirmMyPrimaryRuntimeOperationHeaders `json:"headers,omitempty"`
+	Body    PrimaryRuntimeConfirmDto                     `json:"body,omitempty"`
+}
+
 type RealmCreateAssetOperationPath struct {
 }
 
@@ -25330,6 +26488,22 @@ type RealmCreateImageDirectUploadOperationRequest struct {
 	Query   RealmCreateImageDirectUploadOperationQuery   `json:"query,omitempty"`
 	Headers RealmCreateImageDirectUploadOperationHeaders `json:"headers,omitempty"`
 	Body    CreateMediaDirectUploadDto                   `json:"body,omitempty"`
+}
+
+type RealmCreateRuntimeConnectionOperationPath struct {
+}
+
+type RealmCreateRuntimeConnectionOperationQuery struct {
+}
+
+type RealmCreateRuntimeConnectionOperationHeaders struct {
+}
+
+type RealmCreateRuntimeConnectionOperationRequest struct {
+	Path    RealmCreateRuntimeConnectionOperationPath    `json:"path,omitempty"`
+	Query   RealmCreateRuntimeConnectionOperationQuery   `json:"query,omitempty"`
+	Headers RealmCreateRuntimeConnectionOperationHeaders `json:"headers,omitempty"`
+	Body    RuntimeConnectionCreateDto                   `json:"body,omitempty"`
 }
 
 type RealmCreateTextResourceOperationPath struct {
@@ -25791,6 +26965,38 @@ type RealmEnable2FaOperationRequest struct {
 	Body    Me2faEnableDto                 `json:"body,omitempty"`
 }
 
+type RealmEndRuntimeClientContextOperationPath struct {
+}
+
+type RealmEndRuntimeClientContextOperationQuery struct {
+}
+
+type RealmEndRuntimeClientContextOperationHeaders struct {
+}
+
+type RealmEndRuntimeClientContextOperationRequest struct {
+	Path    RealmEndRuntimeClientContextOperationPath    `json:"path,omitempty"`
+	Query   RealmEndRuntimeClientContextOperationQuery   `json:"query,omitempty"`
+	Headers RealmEndRuntimeClientContextOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                                     `json:"body,omitempty"`
+}
+
+type RealmExchangeRuntimeClientCodeOperationPath struct {
+}
+
+type RealmExchangeRuntimeClientCodeOperationQuery struct {
+}
+
+type RealmExchangeRuntimeClientCodeOperationHeaders struct {
+}
+
+type RealmExchangeRuntimeClientCodeOperationRequest struct {
+	Path    RealmExchangeRuntimeClientCodeOperationPath    `json:"path,omitempty"`
+	Query   RealmExchangeRuntimeClientCodeOperationQuery   `json:"query,omitempty"`
+	Headers RealmExchangeRuntimeClientCodeOperationHeaders `json:"headers,omitempty"`
+	Body    RuntimeClientExchangeDto                       `json:"body,omitempty"`
+}
+
 type RealmExportMyAccountOperationPath struct {
 }
 
@@ -26094,6 +27300,39 @@ type RealmGetMyPPConfigOperationRequest struct {
 	Body    struct{}                           `json:"body,omitempty"`
 }
 
+type RealmGetMyPrimaryRuntimeOperationPath struct {
+}
+
+type RealmGetMyPrimaryRuntimeOperationQuery struct {
+}
+
+type RealmGetMyPrimaryRuntimeOperationHeaders struct {
+}
+
+type RealmGetMyPrimaryRuntimeOperationRequest struct {
+	Path    RealmGetMyPrimaryRuntimeOperationPath    `json:"path,omitempty"`
+	Query   RealmGetMyPrimaryRuntimeOperationQuery   `json:"query,omitempty"`
+	Headers RealmGetMyPrimaryRuntimeOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                                 `json:"body,omitempty"`
+}
+
+type RealmGetMyPrimaryRuntimeIntentOperationPath struct {
+	IntentId string `json:"intentId,omitempty"`
+}
+
+type RealmGetMyPrimaryRuntimeIntentOperationQuery struct {
+}
+
+type RealmGetMyPrimaryRuntimeIntentOperationHeaders struct {
+}
+
+type RealmGetMyPrimaryRuntimeIntentOperationRequest struct {
+	Path    RealmGetMyPrimaryRuntimeIntentOperationPath    `json:"path,omitempty"`
+	Query   RealmGetMyPrimaryRuntimeIntentOperationQuery   `json:"query,omitempty"`
+	Headers RealmGetMyPrimaryRuntimeIntentOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                                       `json:"body,omitempty"`
+}
+
 type RealmGetMyRelationshipWithUserOperationPath struct {
 	Id string `json:"id,omitempty"`
 }
@@ -26174,6 +27413,56 @@ type RealmGetResourceOperationRequest struct {
 	Query   RealmGetResourceOperationQuery   `json:"query,omitempty"`
 	Headers RealmGetResourceOperationHeaders `json:"headers,omitempty"`
 	Body    struct{}                         `json:"body,omitempty"`
+}
+
+type RealmGetRuntimeClientContextOperationPath struct {
+}
+
+type RealmGetRuntimeClientContextOperationQuery struct {
+}
+
+type RealmGetRuntimeClientContextOperationHeaders struct {
+}
+
+type RealmGetRuntimeClientContextOperationRequest struct {
+	Path    RealmGetRuntimeClientContextOperationPath    `json:"path,omitempty"`
+	Query   RealmGetRuntimeClientContextOperationQuery   `json:"query,omitempty"`
+	Headers RealmGetRuntimeClientContextOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                                     `json:"body,omitempty"`
+}
+
+type RealmGetRuntimeClientSourceOperationPath struct {
+	ClientId string `json:"clientId,omitempty"`
+}
+
+type RealmGetRuntimeClientSourceOperationQuery struct {
+}
+
+type RealmGetRuntimeClientSourceOperationHeaders struct {
+}
+
+type RealmGetRuntimeClientSourceOperationRequest struct {
+	Path    RealmGetRuntimeClientSourceOperationPath    `json:"path,omitempty"`
+	Query   RealmGetRuntimeClientSourceOperationQuery   `json:"query,omitempty"`
+	Headers RealmGetRuntimeClientSourceOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                                    `json:"body,omitempty"`
+}
+
+type RealmGetRuntimeConnectionOperationPath struct {
+	ConnectionId string `json:"connectionId,omitempty"`
+}
+
+type RealmGetRuntimeConnectionOperationQuery struct {
+}
+
+type RealmGetRuntimeConnectionOperationHeaders struct {
+}
+
+type RealmGetRuntimeConnectionOperationRequest struct {
+	Path    RealmGetRuntimeConnectionOperationPath    `json:"path,omitempty"`
+	Query   RealmGetRuntimeConnectionOperationQuery   `json:"query,omitempty"`
+	Headers RealmGetRuntimeConnectionOperationHeaders `json:"headers,omitempty"`
+	Body    struct{}                                  `json:"body,omitempty"`
 }
 
 type RealmGetUnreadCountOperationPath struct {
@@ -26655,6 +27944,22 @@ type RealmPasswordRegisterOperationRequest struct {
 	Body    PasswordRegisterDto                   `json:"body,omitempty"`
 }
 
+type RealmPollPrimaryRuntimeConnectionsOperationPath struct {
+}
+
+type RealmPollPrimaryRuntimeConnectionsOperationQuery struct {
+}
+
+type RealmPollPrimaryRuntimeConnectionsOperationHeaders struct {
+}
+
+type RealmPollPrimaryRuntimeConnectionsOperationRequest struct {
+	Path    RealmPollPrimaryRuntimeConnectionsOperationPath    `json:"path,omitempty"`
+	Query   RealmPollPrimaryRuntimeConnectionsOperationQuery   `json:"query,omitempty"`
+	Headers RealmPollPrimaryRuntimeConnectionsOperationHeaders `json:"headers,omitempty"`
+	Body    RuntimeConnectionPollDto                           `json:"body,omitempty"`
+}
+
 type RealmPrepare2FaOperationPath struct {
 }
 
@@ -26685,6 +27990,22 @@ type RealmPrepareBindWalletOperationRequest struct {
 	Query   RealmPrepareBindWalletOperationQuery   `json:"query,omitempty"`
 	Headers RealmPrepareBindWalletOperationHeaders `json:"headers,omitempty"`
 	Body    WalletPrepareBindDto                   `json:"body,omitempty"`
+}
+
+type RealmPrepareMyPrimaryRuntimeOperationPath struct {
+}
+
+type RealmPrepareMyPrimaryRuntimeOperationQuery struct {
+}
+
+type RealmPrepareMyPrimaryRuntimeOperationHeaders struct {
+}
+
+type RealmPrepareMyPrimaryRuntimeOperationRequest struct {
+	Path    RealmPrepareMyPrimaryRuntimeOperationPath    `json:"path,omitempty"`
+	Query   RealmPrepareMyPrimaryRuntimeOperationQuery   `json:"query,omitempty"`
+	Headers RealmPrepareMyPrimaryRuntimeOperationHeaders `json:"headers,omitempty"`
+	Body    PrimaryRuntimePrepareDto                     `json:"body,omitempty"`
 }
 
 type RealmPublishBundleOperationPath struct {
@@ -26786,6 +28107,38 @@ type RealmRefreshTokenOperationRequest struct {
 	Query   RealmRefreshTokenOperationQuery   `json:"query,omitempty"`
 	Headers RealmRefreshTokenOperationHeaders `json:"headers,omitempty"`
 	Body    RefreshTokenDto                   `json:"body,omitempty"`
+}
+
+type RealmReinitializeMyPrimaryRuntimeOperationPath struct {
+}
+
+type RealmReinitializeMyPrimaryRuntimeOperationQuery struct {
+}
+
+type RealmReinitializeMyPrimaryRuntimeOperationHeaders struct {
+}
+
+type RealmReinitializeMyPrimaryRuntimeOperationRequest struct {
+	Path    RealmReinitializeMyPrimaryRuntimeOperationPath    `json:"path,omitempty"`
+	Query   RealmReinitializeMyPrimaryRuntimeOperationQuery   `json:"query,omitempty"`
+	Headers RealmReinitializeMyPrimaryRuntimeOperationHeaders `json:"headers,omitempty"`
+	Body    PrimaryRuntimeBindDto                             `json:"body,omitempty"`
+}
+
+type RealmRenewMyPrimaryRuntimeLeaseOperationPath struct {
+}
+
+type RealmRenewMyPrimaryRuntimeLeaseOperationQuery struct {
+}
+
+type RealmRenewMyPrimaryRuntimeLeaseOperationHeaders struct {
+}
+
+type RealmRenewMyPrimaryRuntimeLeaseOperationRequest struct {
+	Path    RealmRenewMyPrimaryRuntimeLeaseOperationPath    `json:"path,omitempty"`
+	Query   RealmRenewMyPrimaryRuntimeLeaseOperationQuery   `json:"query,omitempty"`
+	Headers RealmRenewMyPrimaryRuntimeLeaseOperationHeaders `json:"headers,omitempty"`
+	Body    PrimaryRuntimeLeaseRequestDto                   `json:"body,omitempty"`
 }
 
 type RealmReportControllerCreateReportOperationPath struct {
@@ -28031,6 +29384,14 @@ func (c RealmTypedClient) AddFriendByHandle(ctx context.Context, request RealmAd
 	return decodeTypedResponse[FriendRequestResultDto](raw)
 }
 
+func (c RealmTypedClient) AnswerPrimaryRuntimeConnection(ctx context.Context, request RealmAnswerPrimaryRuntimeConnectionOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RuntimeConnectionStateDto, error) {
+	raw, err := c.operationTyped(ctx, "answerPrimaryRuntimeConnection", request, metadata, timeoutMS)
+	if err != nil {
+		return RuntimeConnectionStateDto{}, err
+	}
+	return decodeTypedResponse[RuntimeConnectionStateDto](raw)
+}
+
 func (c RealmTypedClient) ApplyFriendshipAction(ctx context.Context, request RealmApplyFriendshipActionOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (FriendshipActionResultDto, error) {
 	raw, err := c.operationTyped(ctx, "applyFriendshipAction", request, metadata, timeoutMS)
 	if err != nil {
@@ -28055,12 +29416,28 @@ func (c RealmTypedClient) ArchiveBundle(ctx context.Context, request RealmArchiv
 	return decodeTypedResponse[BundleDetailDto](raw)
 }
 
+func (c RealmTypedClient) AuthorizeRuntimeClient(ctx context.Context, request RealmAuthorizeRuntimeClientOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RuntimeClientCodeDto, error) {
+	raw, err := c.operationTyped(ctx, "authorizeRuntimeClient", request, metadata, timeoutMS)
+	if err != nil {
+		return RuntimeClientCodeDto{}, err
+	}
+	return decodeTypedResponse[RuntimeClientCodeDto](raw)
+}
+
 func (c RealmTypedClient) BindEmail(ctx context.Context, request RealmBindEmailOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
 	raw, err := c.operationTyped(ctx, "bindEmail", request, metadata, timeoutMS)
 	if err != nil {
 		return struct{}{}, err
 	}
 	return decodeTypedResponse[struct{}](raw)
+}
+
+func (c RealmTypedClient) BindMyPrimaryRuntime(ctx context.Context, request RealmBindMyPrimaryRuntimeOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PrimaryRuntimeMutationDto, error) {
+	raw, err := c.operationTyped(ctx, "bindMyPrimaryRuntime", request, metadata, timeoutMS)
+	if err != nil {
+		return PrimaryRuntimeMutationDto{}, err
+	}
+	return decodeTypedResponse[PrimaryRuntimeMutationDto](raw)
 }
 
 func (c RealmTypedClient) BindWallet(ctx context.Context, request RealmBindWalletOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserWalletDto, error) {
@@ -28119,6 +29496,14 @@ func (c RealmTypedClient) CloneAsset(ctx context.Context, request RealmCloneAsse
 	return decodeTypedResponse[AssetDetailDto](raw)
 }
 
+func (c RealmTypedClient) ConfirmMyPrimaryRuntime(ctx context.Context, request RealmConfirmMyPrimaryRuntimeOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PrimaryRuntimeMutationDto, error) {
+	raw, err := c.operationTyped(ctx, "confirmMyPrimaryRuntime", request, metadata, timeoutMS)
+	if err != nil {
+		return PrimaryRuntimeMutationDto{}, err
+	}
+	return decodeTypedResponse[PrimaryRuntimeMutationDto](raw)
+}
+
 func (c RealmTypedClient) CreateAsset(ctx context.Context, request RealmCreateAssetOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AssetDetailDto, error) {
 	raw, err := c.operationTyped(ctx, "createAsset", request, metadata, timeoutMS)
 	if err != nil {
@@ -28149,6 +29534,14 @@ func (c RealmTypedClient) CreateImageDirectUpload(ctx context.Context, request R
 		return ResourceDirectUploadSessionDto{}, err
 	}
 	return decodeTypedResponse[ResourceDirectUploadSessionDto](raw)
+}
+
+func (c RealmTypedClient) CreateRuntimeConnection(ctx context.Context, request RealmCreateRuntimeConnectionOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RuntimeConnectionStateDto, error) {
+	raw, err := c.operationTyped(ctx, "createRuntimeConnection", request, metadata, timeoutMS)
+	if err != nil {
+		return RuntimeConnectionStateDto{}, err
+	}
+	return decodeTypedResponse[RuntimeConnectionStateDto](raw)
 }
 
 func (c RealmTypedClient) CreateTextResource(ctx context.Context, request RealmCreateTextResourceOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ResourceDetailDto, error) {
@@ -28375,6 +29768,22 @@ func (c RealmTypedClient) Enable2Fa(ctx context.Context, request RealmEnable2FaO
 	return decodeTypedResponse[Me2faOperationResultDto](raw)
 }
 
+func (c RealmTypedClient) EndRuntimeClientContext(ctx context.Context, request RealmEndRuntimeClientContextOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RuntimeClientEndDto, error) {
+	raw, err := c.operationTyped(ctx, "endRuntimeClientContext", request, metadata, timeoutMS)
+	if err != nil {
+		return RuntimeClientEndDto{}, err
+	}
+	return decodeTypedResponse[RuntimeClientEndDto](raw)
+}
+
+func (c RealmTypedClient) ExchangeRuntimeClientCode(ctx context.Context, request RealmExchangeRuntimeClientCodeOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RuntimeClientTokenDto, error) {
+	raw, err := c.operationTyped(ctx, "exchangeRuntimeClientCode", request, metadata, timeoutMS)
+	if err != nil {
+		return RuntimeClientTokenDto{}, err
+	}
+	return decodeTypedResponse[RuntimeClientTokenDto](raw)
+}
+
 func (c RealmTypedClient) ExportMyAccount(ctx context.Context, request RealmExportMyAccountOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (AccountExportDto, error) {
 	raw, err := c.operationTyped(ctx, "exportMyAccount", request, metadata, timeoutMS)
 	if err != nil {
@@ -28519,6 +29928,22 @@ func (c RealmTypedClient) GetMyPPConfig(ctx context.Context, request RealmGetMyP
 	return decodeTypedResponse[PPSlotConfigResponseDto](raw)
 }
 
+func (c RealmTypedClient) GetMyPrimaryRuntime(ctx context.Context, request RealmGetMyPrimaryRuntimeOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PrimaryRuntimeSnapshotDto, error) {
+	raw, err := c.operationTyped(ctx, "getMyPrimaryRuntime", request, metadata, timeoutMS)
+	if err != nil {
+		return PrimaryRuntimeSnapshotDto{}, err
+	}
+	return decodeTypedResponse[PrimaryRuntimeSnapshotDto](raw)
+}
+
+func (c RealmTypedClient) GetMyPrimaryRuntimeIntent(ctx context.Context, request RealmGetMyPrimaryRuntimeIntentOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PrimaryRuntimeIntentDto, error) {
+	raw, err := c.operationTyped(ctx, "getMyPrimaryRuntimeIntent", request, metadata, timeoutMS)
+	if err != nil {
+		return PrimaryRuntimeIntentDto{}, err
+	}
+	return decodeTypedResponse[PrimaryRuntimeIntentDto](raw)
+}
+
 func (c RealmTypedClient) GetMyRelationshipWithUser(ctx context.Context, request RealmGetMyRelationshipWithUserOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UserRelationshipDto, error) {
 	raw, err := c.operationTyped(ctx, "getMyRelationshipWithUser", request, metadata, timeoutMS)
 	if err != nil {
@@ -28557,6 +29982,30 @@ func (c RealmTypedClient) GetResource(ctx context.Context, request RealmGetResou
 		return ResourceDetailDto{}, err
 	}
 	return decodeTypedResponse[ResourceDetailDto](raw)
+}
+
+func (c RealmTypedClient) GetRuntimeClientContext(ctx context.Context, request RealmGetRuntimeClientContextOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RuntimeClientContextDto, error) {
+	raw, err := c.operationTyped(ctx, "getRuntimeClientContext", request, metadata, timeoutMS)
+	if err != nil {
+		return RuntimeClientContextDto{}, err
+	}
+	return decodeTypedResponse[RuntimeClientContextDto](raw)
+}
+
+func (c RealmTypedClient) GetRuntimeClientSource(ctx context.Context, request RealmGetRuntimeClientSourceOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RuntimeClientSourceDto, error) {
+	raw, err := c.operationTyped(ctx, "getRuntimeClientSource", request, metadata, timeoutMS)
+	if err != nil {
+		return RuntimeClientSourceDto{}, err
+	}
+	return decodeTypedResponse[RuntimeClientSourceDto](raw)
+}
+
+func (c RealmTypedClient) GetRuntimeConnection(ctx context.Context, request RealmGetRuntimeConnectionOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RuntimeConnectionStateDto, error) {
+	raw, err := c.operationTyped(ctx, "getRuntimeConnection", request, metadata, timeoutMS)
+	if err != nil {
+		return RuntimeConnectionStateDto{}, err
+	}
+	return decodeTypedResponse[RuntimeConnectionStateDto](raw)
 }
 
 func (c RealmTypedClient) GetUnreadCount(ctx context.Context, request RealmGetUnreadCountOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UnreadNotificationCountDto, error) {
@@ -28775,6 +30224,14 @@ func (c RealmTypedClient) PasswordRegister(ctx context.Context, request RealmPas
 	return decodeTypedResponse[OAuthLoginResultDto](raw)
 }
 
+func (c RealmTypedClient) PollPrimaryRuntimeConnections(ctx context.Context, request RealmPollPrimaryRuntimeConnectionsOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RuntimeConnectionPollResultDto, error) {
+	raw, err := c.operationTyped(ctx, "pollPrimaryRuntimeConnections", request, metadata, timeoutMS)
+	if err != nil {
+		return RuntimeConnectionPollResultDto{}, err
+	}
+	return decodeTypedResponse[RuntimeConnectionPollResultDto](raw)
+}
+
 func (c RealmTypedClient) Prepare2Fa(ctx context.Context, request RealmPrepare2FaOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (Me2faPrepareResponseDto, error) {
 	raw, err := c.operationTyped(ctx, "prepare2Fa", request, metadata, timeoutMS)
 	if err != nil {
@@ -28789,6 +30246,14 @@ func (c RealmTypedClient) PrepareBindWallet(ctx context.Context, request RealmPr
 		return WalletPrepareBindResponseDto{}, err
 	}
 	return decodeTypedResponse[WalletPrepareBindResponseDto](raw)
+}
+
+func (c RealmTypedClient) PrepareMyPrimaryRuntime(ctx context.Context, request RealmPrepareMyPrimaryRuntimeOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PrimaryRuntimeIntentDto, error) {
+	raw, err := c.operationTyped(ctx, "prepareMyPrimaryRuntime", request, metadata, timeoutMS)
+	if err != nil {
+		return PrimaryRuntimeIntentDto{}, err
+	}
+	return decodeTypedResponse[PrimaryRuntimeIntentDto](raw)
 }
 
 func (c RealmTypedClient) PublishBundle(ctx context.Context, request RealmPublishBundleOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (BundleDetailDto, error) {
@@ -28837,6 +30302,22 @@ func (c RealmTypedClient) RefreshToken(ctx context.Context, request RealmRefresh
 		return AuthTokensDto{}, err
 	}
 	return decodeTypedResponse[AuthTokensDto](raw)
+}
+
+func (c RealmTypedClient) ReinitializeMyPrimaryRuntime(ctx context.Context, request RealmReinitializeMyPrimaryRuntimeOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PrimaryRuntimeMutationDto, error) {
+	raw, err := c.operationTyped(ctx, "reinitializeMyPrimaryRuntime", request, metadata, timeoutMS)
+	if err != nil {
+		return PrimaryRuntimeMutationDto{}, err
+	}
+	return decodeTypedResponse[PrimaryRuntimeMutationDto](raw)
+}
+
+func (c RealmTypedClient) RenewMyPrimaryRuntimeLease(ctx context.Context, request RealmRenewMyPrimaryRuntimeLeaseOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (PrimaryRuntimeSnapshotDto, error) {
+	raw, err := c.operationTyped(ctx, "renewMyPrimaryRuntimeLease", request, metadata, timeoutMS)
+	if err != nil {
+		return PrimaryRuntimeSnapshotDto{}, err
+	}
+	return decodeTypedResponse[PrimaryRuntimeSnapshotDto](raw)
 }
 
 func (c RealmTypedClient) ReportControllerCreateReport(ctx context.Context, request RealmReportControllerCreateReportOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (ReportResponseDto, error) {

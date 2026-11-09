@@ -222,6 +222,25 @@ Long-running generation tasks (audio transcription, separation, voice cloning) a
 
 ---
 
+## Remote primary Runtime access
+
+`prepareRuntimeClientLogin` and `completeRuntimeClientLogin` from `@nimiplatform/sdk/realm` establish an app-scoped identity through the official Nimi login page. The application owns its current authenticated user context and persistent user-to-Nimi association. Keep the PKCE transaction in that initiating user's session, pass the existing Nimi association when reconnecting, and call `session.end()` on sign-out, switch or unlink. A failed remote revocation is reported; the local session remains closed.
+
+`connectRemoteRuntime(session)` from `@nimiplatform/sdk/runtime` discovers the one primary binding and coordinates a direct WebRTC connection. It starts no local Runtime and supports no relay. An ordinary App receives `aiConfig` and the existing `ai` clients; a qualified official manager receives the implemented `management` client. Runtime independently verifies source confirmation and each operation's permissions. `connection.close()` ends that connection without stopping the PC.
+
+Browser WebRTC is built in. Native shells supply the exported `RuntimePeerFactory` and `RuntimeDataChannel` interfaces for their platform, preserving the same wire protocol and admission. Native source qualification is a separate required carrier, not a self-reported `client_type`. Raw typed media URLs are unavailable in the initial remote carrier; use inline content or App-owned artifact references. Failed live streams are not resumed automatically and an unanswered business request is never retried automatically.
+
+The executable reference website lives at `examples/remote-runtime-web` in the repository. Its server uses the SDK only for identity and signaling; AI content travels browser-to-PC. Builds and transport tests do not establish a reachable network, an admitted source or successful AI inference.
+
 ## License
 
 Licensed under [Apache-2.0](LICENSE).
+
+
+## Remote ecosystem clients (current source build)
+
+Use `@nimiplatform/sdk/realm/runtime-client` for `prepareRuntimeClientLogin` / `completeRuntimeClientLogin`, and `@nimiplatform/sdk/runtime/remote` for `connectRemoteRuntime`. They reuse the same SDK contracts while avoiding the broad native Host composition imports. A `RemoteRuntimeAppConnection` exposes the implemented ordinary-App operations; it is not a `NimiLocalAppClient` with simulated native proof. Platform peer adapters carry bytes only and cannot grant permissions.
+
+Official login and a separately admitted source establish the current user's context. A client with its own account system must supply that verified user context and end the connection on user switch or unlink. Ordinary connections provide AI, own AIConfig, managed storage, LocalAgent operations and admitted activity listing/subscription/read markers. Native App opening/activity publishing and other unavailable carrier operations fail explicitly. Remote finite asset writes are limited to 32 MiB; no Relay, transparent continuation or automatic business resubmission is supplied.
+
+Native Desktop still uses the verified Host-injected carrier described above. These additive remote subpaths require this source build until a matching SDK package is published. Shared protocol codecs remain in the bundle; narrow public entrypoints are not a claim of per-method codec splitting.

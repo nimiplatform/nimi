@@ -35,6 +35,7 @@
     "proto/runtime/v1/local_runtime_recommendation.proto",
     "proto/runtime/v1/realm_realtime.proto",
     "proto/runtime/v1/realtime_control.proto",
+    "proto/runtime/v1/remote_access.proto",
     "proto/runtime/v1/runtime_service_control.proto",
     "proto/runtime/v1/voice.proto",
     "config/realm-openapi-source.json",

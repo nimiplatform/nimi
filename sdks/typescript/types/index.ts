@@ -28,6 +28,10 @@ export interface CoreStreamRequest<Body = unknown> {
   readonly responseMetadataObserver?: CoreResponseMetadataObserver;
 }
 
+export interface CoreClientStreamRequest<Body = unknown> extends Omit<CoreUnaryRequest<Body>, 'body'> {
+  readonly body: AsyncIterable<Body>;
+}
+
 export interface CoreErrorShape {
   readonly code: string;
   readonly message: string;

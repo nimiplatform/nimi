@@ -32,6 +32,14 @@ RUNTIME_METHODS = [
     "response_type": "GetAccountSessionStatusResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetPrimaryRuntimeState",
+    "service": "RuntimeAccountService",
+    "method": "GetPrimaryRuntimeState",
+    "kind": "unary",
+    "request_type": "GetPrimaryRuntimeStateRequest",
+    "response_type": "GetPrimaryRuntimeStateResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
     "service": "RuntimeAccountService",
     "method": "InvokeRealmUnary",
@@ -46,6 +54,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "LogoutRequest",
     "response_type": "LogoutResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAccountService/PreparePrimaryRuntime",
+    "service": "RuntimeAccountService",
+    "method": "PreparePrimaryRuntime",
+    "kind": "unary",
+    "request_type": "PreparePrimaryRuntimeRequest",
+    "response_type": "PreparePrimaryRuntimeResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
@@ -2278,6 +2294,46 @@ RUNTIME_METHODS = [
     "kind": "server_stream",
     "request_type": "SubscribeRealmRealtimeEventsRequest",
     "response_type": "SubscribeRealmRealtimeEventsResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/ConfirmRemoteSource",
+    "service": "RuntimeRemoteAccessService",
+    "method": "ConfirmRemoteSource",
+    "kind": "unary",
+    "request_type": "ConfirmRemoteSourceRequest",
+    "response_type": "ConfirmRemoteSourceResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/GetRemoteAccessState",
+    "service": "RuntimeRemoteAccessService",
+    "method": "GetRemoteAccessState",
+    "kind": "unary",
+    "request_type": "GetRemoteAccessStateRequest",
+    "response_type": "GetRemoteAccessStateResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/RejectRemoteSource",
+    "service": "RuntimeRemoteAccessService",
+    "method": "RejectRemoteSource",
+    "kind": "unary",
+    "request_type": "RejectRemoteSourceRequest",
+    "response_type": "RejectRemoteSourceResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteAccessEnabled",
+    "service": "RuntimeRemoteAccessService",
+    "method": "SetRemoteAccessEnabled",
+    "kind": "unary",
+    "request_type": "SetRemoteAccessEnabledRequest",
+    "response_type": "SetRemoteAccessEnabledResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteSourcePaused",
+    "service": "RuntimeRemoteAccessService",
+    "method": "SetRemoteSourcePaused",
+    "kind": "unary",
+    "request_type": "SetRemoteSourcePausedRequest",
+    "response_type": "SetRemoteSourcePausedResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState",

@@ -3,7 +3,7 @@
 
 import { CoreClient } from '../core-client';
 import type { CoreMetadata, CoreResponseMetadataObserver } from '../types';
-import type { AccountSessionEvent, BeginLoginRequest, BeginLoginResponse, CompleteLoginRequest, CompleteLoginResponse, GetAccountSessionStatusRequest, GetAccountSessionStatusResponse, InvokeRealmUnaryRequest, InvokeRealmUnaryResponse, LogoutRequest, LogoutResponse, RequestPresenceVerificationRequest, RequestPresenceVerificationResponse, SubscribeAccountSessionEventsRequest, SwitchAccountRequest, SwitchAccountResponse } from "./runtime-protobuf/runtime/v1/account";
+import type { AccountSessionEvent, BeginLoginRequest, BeginLoginResponse, CompleteLoginRequest, CompleteLoginResponse, GetAccountSessionStatusRequest, GetAccountSessionStatusResponse, GetPrimaryRuntimeStateRequest, GetPrimaryRuntimeStateResponse, InvokeRealmUnaryRequest, InvokeRealmUnaryResponse, LogoutRequest, LogoutResponse, PreparePrimaryRuntimeRequest, PreparePrimaryRuntimeResponse, RequestPresenceVerificationRequest, RequestPresenceVerificationResponse, SubscribeAccountSessionEventsRequest, SwitchAccountRequest, SwitchAccountResponse } from "./runtime-protobuf/runtime/v1/account";
 import type { CommitLocalAppAgentPresentationRequest, GetLocalAppAgentAutonomySnapshotRequest, GetLocalAppAgentPresentationSnapshotRequest, GetLocalAppSharedLocalAgentAIConfigRequest, GetLocalAppSharedLocalAgentAIConfigResponse, ListLocalAppSharedLocalAgentAIConfigOptionsRequest, ListLocalAppSharedLocalAgentAIConfigOptionsResponse, LocalAppAgentAutonomySnapshotResponse, LocalAppAgentCommitPresentationResponse, LocalAppAgentPresentationSnapshotResponse, LocalAppAgentUpdateAutonomyResponse, OverwriteLocalAppSharedLocalAgentAIConfigRequest, OverwriteLocalAppSharedLocalAgentAIConfigResponse, UpdateLocalAppAgentAutonomyRequest, UpdateLocalAppAgentConversationContextRequest, UpdateLocalAppAgentConversationContextResponse } from "./runtime-protobuf/runtime/v1/agent_configure";
 import type { GetLocalAppEmbodimentSnapshotRequest, GetLocalAppEmbodimentSnapshotResponse, LocalAppEmbodimentEvent, SubscribeLocalAppEmbodimentEventsRequest } from "./runtime-protobuf/runtime/v1/agent_embodiment";
 import type { AppendLocalAppAgentRealtimeInputRequest, AppendLocalAppAgentRealtimeInputResponse, ApplySharedLocalAgentAIProfileRequest, ApplySharedLocalAgentAIProfileResponse, CancelLocalAppConversationFollowUpRequest, CancelLocalAppConversationFollowUpResponse, CloseLocalAppAgentRealtimeRequest, CloseLocalAppAgentRealtimeResponse, DeletePortableAIProfileRequest, DeletePortableAIProfileResponse, DisableAutonomyRequest, DisableAutonomyResponse, EnableAutonomyRequest, EnableAutonomyResponse, GetAgentPresentationAssetRequest, GetAgentPresentationAssetResponse, GetAgentRequest, GetAgentResponse, GetAgentStateRequest, GetAgentStateResponse, GetConversationAnchorSnapshotRequest, GetConversationAnchorSnapshotResponse, GetLocalAppAgentIntroductionRequest, GetLocalAppAgentIntroductionResponse, GetLocalAppAgentManagerSnapshotRequest, GetLocalAppAgentManagerSnapshotResponse, GetLocalAppAgentRealtimeStatusRequest, GetLocalAppAgentRealtimeStatusResponse, GetLocalAppConversationSnapshotRequest, GetLocalAppConversationSnapshotResponse, GetPublicChatSessionSnapshotRequest, GetPublicChatSessionSnapshotResponse, GetSharedLocalAgentAIConfigRequest, GetSharedLocalAgentAIConfigResponse, ImportPortableAIProfileRequest, ImportPortableAIProfileResponse, InterruptLocalAppAgentRealtimeOutputRequest, InterruptLocalAppAgentRealtimeOutputResponse, InterruptLocalAppConversationTurnRequest, InterruptLocalAppConversationTurnResponse, ListAgentConversationSummariesRequest, ListAgentConversationSummariesResponse, ListAgentsRequest, ListAgentsResponse, ListLocalAppAgentReferencesRequest, ListLocalAppAgentReferencesResponse, ListPortableAIProfilesRequest, ListPortableAIProfilesResponse, ListSharedLocalAgentAIConfigOptionsRequest, ListSharedLocalAgentAIConfigOptionsResponse, LocalAppAgentRealtimeEvent, LocalAppConversationEvent, OpenConversationAnchorRequest, OpenConversationAnchorResponse, OpenLocalAppAgentRealtimeRequest, OpenLocalAppAgentRealtimeResponse, OpenLocalAppConversationRequest, OpenLocalAppConversationResponse, OverwriteSharedLocalAgentAIConfigRequest, OverwriteSharedLocalAgentAIConfigResponse, PreviewSharedLocalAgentAIProfileRequest, PreviewSharedLocalAgentAIProfileResponse, ReadConversationArtifactRequest, ReadConversationArtifactResponse, ReadLocalAppConversationArtifactRequest, ReadLocalAppConversationArtifactResponse, ReadLocalAppConversationMessageRequest, ReadLocalAppConversationMessageResponse, RenderLocalAppConversationVoiceRequest, RenderLocalAppConversationVoiceResponse, ResolveDesktopAgentReferenceRequest, ResolveDesktopAgentReferenceResponse, ResolveLocalAppAvatarHostTargetRequest, ResolveLocalAppAvatarHostTargetResponse, RevalidateLocalAppAvatarHostTargetRequest, RevalidateLocalAppAvatarHostTargetResponse, SendLocalAppConversationTurnRequest, SendLocalAppConversationTurnResponse, SetAgentPresentationProfileRequest, SetAgentPresentationProfileResponse, SetAutonomyConfigRequest, SetAutonomyConfigResponse, SubscribeLocalAppAgentRealtimeEventsRequest, SubscribeLocalAppConversationEventsRequest, TerminateAgentRequest, TerminateAgentResponse, TranscribeAgentVoiceInputRequest, TranscribeAgentVoiceInputResponse, TranscribeLocalAppConversationVoiceRequest, TranscribeLocalAppConversationVoiceResponse, UpdateAgentStateRequest, UpdateAgentStateResponse, UploadLocalAppConversationAttachmentRequest, UploadLocalAppConversationAttachmentResponse } from "./runtime-protobuf/runtime/v1/agent_service";
@@ -28,6 +28,7 @@ import type { CancelIntegrationCallRequest, CancelIntegrationCallResponse, Cance
 import type { AdmitProductControlReadyForUseRequest, AppendInferenceAuditRequest, AppendRuntimeAuditRequest, ApplyLocalEnvironmentPlanRequest, ApplyLocalEnvironmentPlanResponse, CancelLocalEnvironmentDependencyJobRequest, CancelLocalEnvironmentDependencyJobResponse, CancelLocalTransferRequest, CancelLocalTransferResponse, CheckSyncProjectionJson, CollectDeviceProfileRequest, CollectDeviceProfileResponse, CompleteProductControlFirstRunDeviceEnvironmentScanRequest, EnsureProductControlRecordCreatedRequest, GetCatalogModelCardRequest, GetCatalogModelCardResponse, GetModelAssetRequest, GetModelAssetResponse, GetProductControlCheckSyncRequest, GetProductControlRecordRequest, GetProductControlSelectedDataRootRequest, ImportModelAssetRequest, ImportModelAssetResponse, InitializeProductControlRootActivationRequest, InstallModelFromPlanRequest, InstallModelFromPlanResponse, ListCatalogVariantsRequest, ListCatalogVariantsResponse, ListLocalAuditsRequest, ListLocalAuditsResponse, ListLocalEnvironmentDependencyJobsRequest, ListLocalEnvironmentDependencyJobsResponse, ListLocalEnvironmentSelectedSourcesRequest, ListLocalEnvironmentSelectedSourcesResponse, ListLocalTransfersRequest, ListLocalTransfersResponse, ListModelAssetsRequest, ListModelAssetsResponse, ListVerifiedAssetsRequest, ListVerifiedAssetsResponse, LocalTransferProgressEvent, PauseLocalTransferRequest, PauseLocalTransferResponse, ProductControlProjectionJson, ReconcileProductControlFirstRunSetupStateRequest, RemoveModelAssetRequest, RemoveModelAssetResponse, RepairLocalEnvironmentDependencyRequest, RepairLocalEnvironmentDependencyResponse, ReplaceProductControlDataRootRequest, ResolveLocalEnvironmentActivationGateRequest, ResolveLocalEnvironmentActivationGateResponse, ResolveLocalEnvironmentPlanRequest, ResolveLocalEnvironmentPlanResponse, ResolveModelInstallPlanRequest, ResolveModelInstallPlanResponse, ResumeLocalTransferRequest, ResumeLocalTransferResponse, RetryLocalEnvironmentDependencyJobRequest, RetryLocalEnvironmentDependencyJobResponse, SearchCatalogModelsRequest, SearchCatalogModelsResponse, SelectProductControlDataRootRequest, SetProductControlFirstRunInstallLevelRequest, StartLocalEnvironmentDependencyJobRequest, StartLocalEnvironmentDependencyJobResponse, StartProductControlCheckSyncRequest, WatchLocalTransfersRequest } from "./runtime-protobuf/runtime/v1/local_runtime";
 import type { ListFactoryProfileRecommendationsRequest, ListFactoryProfileRecommendationsResponse, ListFeaturedModelAssetsRequest, ListFeaturedModelAssetsResponse } from "./runtime-protobuf/runtime/v1/local_runtime_recommendation";
 import type { AckRealmRealtimeEventsRequest, AckRealmRealtimeEventsResponse, CloseRealmRealtimeChannelRequest, CloseRealmRealtimeChannelResponse, CloseRealmRealtimeSubscriptionRequest, CloseRealmRealtimeSubscriptionResponse, ListRealmChatsRequest, ListRealmChatsResponse, OpenRealmRealtimeChannelRequest, OpenRealmRealtimeChannelResponse, SubscribeRealmRealtimeEventsRequest, SubscribeRealmRealtimeEventsResponse } from "./runtime-protobuf/runtime/v1/realm_realtime";
+import type { ConfirmRemoteSourceRequest, ConfirmRemoteSourceResponse, GetRemoteAccessStateRequest, GetRemoteAccessStateResponse, RejectRemoteSourceRequest, RejectRemoteSourceResponse, SetRemoteAccessEnabledRequest, SetRemoteAccessEnabledResponse, SetRemoteSourcePausedRequest, SetRemoteSourcePausedResponse } from "./runtime-protobuf/runtime/v1/remote_access";
 import type { GetRuntimeServiceStateRequest, GetRuntimeServiceStateResponse, RequestRuntimeRestartRequest, RequestRuntimeRestartResponse, RequestRuntimeStopRequest, RequestRuntimeStopResponse } from "./runtime-protobuf/runtime/v1/runtime_service_control";
 import type { DeleteVoiceAssetRequest, DeleteVoiceAssetResponse, GetVoiceAssetRequest, GetVoiceAssetResponse, ListPresetVoicesRequest, ListPresetVoicesResponse, ListVoiceAssetsRequest, ListVoiceAssetsResponse } from "./runtime-protobuf/runtime/v1/voice";
 
@@ -38,7 +39,7 @@ export interface RuntimeTypedCallOptions {
   readonly responseMetadataObserver?: CoreResponseMetadataObserver;
 }
 
-export type { AccountCaller, AccountProjection, AccountSessionEvent, AccountSessionSnapshot, BeginLoginRequest, BeginLoginResponse, CompleteLoginRequest, CompleteLoginResponse, DeletedAccountOwner, GetAccountSessionStatusRequest, GetAccountSessionStatusResponse, InvokeRealmUnaryRequest, InvokeRealmUnaryResponse, LogoutRequest, LogoutResponse, RequestPresenceVerificationRequest, RequestPresenceVerificationResponse, SubscribeAccountSessionEventsRequest, SwitchAccountRequest, SwitchAccountResponse, WorkspaceMembershipProjection } from "./runtime-protobuf/runtime/v1/account";
+export type { AccountCaller, AccountProjection, AccountSessionEvent, AccountSessionSnapshot, BeginLoginRequest, BeginLoginResponse, CompleteLoginRequest, CompleteLoginResponse, DeletedAccountOwner, GetAccountSessionStatusRequest, GetAccountSessionStatusResponse, GetPrimaryRuntimeStateRequest, GetPrimaryRuntimeStateResponse, InvokeRealmUnaryRequest, InvokeRealmUnaryResponse, LogoutRequest, LogoutResponse, PreparePrimaryRuntimeRequest, PreparePrimaryRuntimeResponse, RequestPresenceVerificationRequest, RequestPresenceVerificationResponse, SubscribeAccountSessionEventsRequest, SwitchAccountRequest, SwitchAccountResponse, WorkspaceMembershipProjection } from "./runtime-protobuf/runtime/v1/account";
 export type { AgentRequestContext } from "./runtime-protobuf/runtime/v1/agent_common";
 export type { AgentContactQuietHours, CommitLocalAppAgentPresentationRequest, GetLocalAppAgentAutonomySnapshotRequest, GetLocalAppAgentPresentationSnapshotRequest, GetLocalAppSharedLocalAgentAIConfigRequest, GetLocalAppSharedLocalAgentAIConfigResponse, ListLocalAppSharedLocalAgentAIConfigOptionsRequest, ListLocalAppSharedLocalAgentAIConfigOptionsResponse, LocalAgentCapabilityParticipation, LocalAppAgentAutonomyConfig, LocalAppAgentAutonomyIntent, LocalAppAgentAutonomyProjection, LocalAppAgentAutonomySnapshotResponse, LocalAppAgentCommitPresentationResponse, LocalAppAgentConversationContextProjection, LocalAppAgentPresentationIntent, LocalAppAgentPresentationProjection, LocalAppAgentPresentationSnapshotResponse, LocalAppAgentUpdateAutonomyResponse, LocalAppSharedLocalAgentAIConfigProjection, OverwriteLocalAppSharedLocalAgentAIConfigRequest, OverwriteLocalAppSharedLocalAgentAIConfigResponse, SharedLocalAgentPresetVoiceOption, SharedLocalAgentPresetVoiceOptions, SharedLocalAgentPresetVoiceOptionsQuery, SharedLocalAgentVoiceAssetOption, SharedLocalAgentVoiceAssetOptions, SharedLocalAgentVoiceAssetOptionsQuery, UpdateLocalAppAgentAutonomyRequest, UpdateLocalAppAgentConversationContextRequest, UpdateLocalAppAgentConversationContextResponse } from "./runtime-protobuf/runtime/v1/agent_configure";
 export type { GetLocalAppEmbodimentSnapshotRequest, GetLocalAppEmbodimentSnapshotResponse, LocalAppEmbodimentActivity, LocalAppEmbodimentEmotion, LocalAppEmbodimentEvent, LocalAppEmbodimentPosture, LocalAppEmbodimentSnapshot, LocalAppEmbodimentVoiceTiming, SubscribeLocalAppEmbodimentEventsRequest } from "./runtime-protobuf/runtime/v1/agent_embodiment";
@@ -70,6 +71,7 @@ export type { LocalAuditEvent, LocalAuditTimeRange } from "./runtime-protobuf/ru
 export type { FactoryProfileCapabilityApplicability, FactoryProfileRecommendation, ListFactoryProfileRecommendationsRequest, ListFactoryProfileRecommendationsResponse, ListFeaturedModelAssetsRequest, ListFeaturedModelAssetsResponse, ModelAssetCatalogSearchResult, ModelAssetFeaturedSourceObservation, ModelAssetMarketCandidate } from "./runtime-protobuf/runtime/v1/local_runtime_recommendation";
 export type { AckRealmRealtimeEventsRequest, AckRealmRealtimeEventsResponse, CloseRealmRealtimeChannelRequest, CloseRealmRealtimeChannelResponse, CloseRealmRealtimeSubscriptionRequest, CloseRealmRealtimeSubscriptionResponse, ListRealmChatsRequest, ListRealmChatsResponse, OpenRealmRealtimeChannelRequest, OpenRealmRealtimeChannelResponse, RealmChatAttachmentPayload, RealmChatDurableEvent, RealmChatFriendRequestPayload, RealmChatInboxEvent, RealmChatInboxSubscriptionTarget, RealmChatLinkRefPayload, RealmChatListItem, RealmChatMessage, RealmChatMessageMutation, RealmChatMessagePayload, RealmChatMessageRecalled, RealmChatMessageReply, RealmChatPostRefPayload, RealmChatRead, RealmChatSnapshot, RealmChatSubscriptionTarget, RealmChatSystemPayload, RealmChatTextPayload, RealmChatTypingEvent, RealmChatUserRefPayload, RealmChatUserSnapshot, RealmChatUserSummary, RealmMediaDelivery, RealmMediaImageFamily, RealmMediaImageSet, RealmMediaImageSource, RealmMediaVideo, RealmPresenceEvent, RealmPresenceSubscriptionTarget, SubscribeRealmRealtimeEventsRequest, SubscribeRealmRealtimeEventsResponse } from "./runtime-protobuf/runtime/v1/realm_realtime";
 export type { RealtimeControlStatus } from "./runtime-protobuf/runtime/v1/realtime_control";
+export type { ConfirmRemoteSourceRequest, ConfirmRemoteSourceResponse, GetRemoteAccessStateRequest, GetRemoteAccessStateResponse, RejectRemoteSourceRequest, RejectRemoteSourceResponse, RemoteAccessSource, RemoteClientStreamRequest, RemoteTransportFrame, SetRemoteAccessEnabledRequest, SetRemoteAccessEnabledResponse, SetRemoteSourcePausedRequest, SetRemoteSourcePausedResponse } from "./runtime-protobuf/runtime/v1/remote_access";
 export type { GetRuntimeServiceStateRequest, GetRuntimeServiceStateResponse, RequestRuntimeRestartRequest, RequestRuntimeRestartResponse, RequestRuntimeStopRequest, RequestRuntimeStopResponse } from "./runtime-protobuf/runtime/v1/runtime_service_control";
 export type { DeleteVoiceAssetRequest, DeleteVoiceAssetResponse, GetVoiceAssetRequest, GetVoiceAssetResponse, ListPresetVoicesRequest, ListPresetVoicesResponse, ListVoiceAssetsRequest, ListVoiceAssetsResponse, VoiceAsset, VoicePresetDescriptor, VoiceReference, VoiceT2VInput, VoiceV2VInput } from "./runtime-protobuf/runtime/v1/voice";
 
@@ -101,6 +103,7 @@ export { GpuMemoryModel } from "./runtime-protobuf/runtime/v1/local_runtime_devi
 export { LocalRecommendationApplicability, ModelAssetSourceAvailability, ModelAssetSourceFreshness } from "./runtime-protobuf/runtime/v1/local_runtime_recommendation";
 export { RealmAttachmentDisplayKind, RealmAttachmentTargetType, RealmChatMessageType } from "./runtime-protobuf/runtime/v1/realm_realtime";
 export { RealtimeAdapterKind, RealtimeBackpressureState, RealtimeLifecycle, RealtimeTerminalReason } from "./runtime-protobuf/runtime/v1/realtime_control";
+export { RemoteAccessConnectionState, RemoteSourceAccessState, RemoteTransportFrameKind } from "./runtime-protobuf/runtime/v1/remote_access";
 export { RuntimeServiceMode } from "./runtime-protobuf/runtime/v1/runtime_service_control";
 export { VoiceAssetPersistence, VoiceAssetStatus, VoiceCreationSource, VoiceOutputMode, VoiceReferenceKind } from "./runtime-protobuf/runtime/v1/voice";
 
@@ -140,6 +143,17 @@ export class RuntimeTypedClient {
     });
   }
 
+  async getPrimaryRuntimeState(request: GetPrimaryRuntimeStateRequest, options: RuntimeTypedCallOptions = {}): Promise<GetPrimaryRuntimeStateResponse> {
+    return this.core.unary<GetPrimaryRuntimeStateResponse, GetPrimaryRuntimeStateRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAccountService/GetPrimaryRuntimeState",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
   async invokeRealmUnary(request: InvokeRealmUnaryRequest, options: RuntimeTypedCallOptions = {}): Promise<InvokeRealmUnaryResponse> {
     return this.core.unary<InvokeRealmUnaryResponse, InvokeRealmUnaryRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
@@ -154,6 +168,17 @@ export class RuntimeTypedClient {
   async logout(request: LogoutRequest, options: RuntimeTypedCallOptions = {}): Promise<LogoutResponse> {
     return this.core.unary<LogoutResponse, LogoutRequest>({
       methodId: "/nimi.runtime.v1.RuntimeAccountService/Logout",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async preparePrimaryRuntime(request: PreparePrimaryRuntimeRequest, options: RuntimeTypedCallOptions = {}): Promise<PreparePrimaryRuntimeResponse> {
+    return this.core.unary<PreparePrimaryRuntimeResponse, PreparePrimaryRuntimeRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAccountService/PreparePrimaryRuntime",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,
@@ -1405,9 +1430,14 @@ export class RuntimeTypedClient {
     });
   }
 
-  async uploadArtifact(_request: UploadArtifactRequest, _options: RuntimeTypedCallOptions = {}): Promise<UploadArtifactResponse> {
-    throw Object.assign(new Error("Runtime method kind is not supported by the unary/server-stream core transport: /nimi.runtime.v1.RuntimeAiService/UploadArtifact"), {
-      code: 'SDK_RUNTIME_METHOD_UNAVAILABLE',
+  async uploadArtifact(request: AsyncIterable<UploadArtifactRequest>, options: RuntimeTypedCallOptions = {}): Promise<UploadArtifactResponse> {
+    return this.core.clientStream<UploadArtifactResponse, UploadArtifactRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAiService/UploadArtifact",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -1939,9 +1969,14 @@ export class RuntimeTypedClient {
     });
   }
 
-  async writeLocalAppAsset(_request: WriteLocalAppAssetRequest, _options: RuntimeTypedCallOptions = {}): Promise<WriteLocalAppAssetResponse> {
-    throw Object.assign(new Error("Runtime method kind is not supported by the unary/server-stream core transport: /nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset"), {
-      code: 'SDK_RUNTIME_METHOD_UNAVAILABLE',
+  async writeLocalAppAsset(request: AsyncIterable<WriteLocalAppAssetRequest>, options: RuntimeTypedCallOptions = {}): Promise<WriteLocalAppAssetResponse> {
+    return this.core.clientStream<WriteLocalAppAssetResponse, WriteLocalAppAssetRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
     });
   }
 
@@ -3268,6 +3303,61 @@ export class RuntimeTypedClient {
   subscribeRealmRealtimeEvents(request: SubscribeRealmRealtimeEventsRequest, options: RuntimeTypedCallOptions = {}): AsyncIterable<SubscribeRealmRealtimeEventsResponse> {
     return this.core.serverStream<SubscribeRealmRealtimeEventsResponse, SubscribeRealmRealtimeEventsRequest>({
       methodId: "/nimi.runtime.v1.RuntimeRealmRealtimeService/SubscribeRealmRealtimeEvents",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async confirmRemoteSource(request: ConfirmRemoteSourceRequest, options: RuntimeTypedCallOptions = {}): Promise<ConfirmRemoteSourceResponse> {
+    return this.core.unary<ConfirmRemoteSourceResponse, ConfirmRemoteSourceRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeRemoteAccessService/ConfirmRemoteSource",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async getRemoteAccessState(request: GetRemoteAccessStateRequest, options: RuntimeTypedCallOptions = {}): Promise<GetRemoteAccessStateResponse> {
+    return this.core.unary<GetRemoteAccessStateResponse, GetRemoteAccessStateRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeRemoteAccessService/GetRemoteAccessState",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async rejectRemoteSource(request: RejectRemoteSourceRequest, options: RuntimeTypedCallOptions = {}): Promise<RejectRemoteSourceResponse> {
+    return this.core.unary<RejectRemoteSourceResponse, RejectRemoteSourceRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeRemoteAccessService/RejectRemoteSource",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async setRemoteAccessEnabled(request: SetRemoteAccessEnabledRequest, options: RuntimeTypedCallOptions = {}): Promise<SetRemoteAccessEnabledResponse> {
+    return this.core.unary<SetRemoteAccessEnabledResponse, SetRemoteAccessEnabledRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteAccessEnabled",
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }
+
+  async setRemoteSourcePaused(request: SetRemoteSourcePausedRequest, options: RuntimeTypedCallOptions = {}): Promise<SetRemoteSourcePausedResponse> {
+    return this.core.unary<SetRemoteSourcePausedResponse, SetRemoteSourcePausedRequest>({
+      methodId: "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteSourcePaused",
       body: request,
       metadata: options.metadata,
       timeoutMs: options.timeoutMs,

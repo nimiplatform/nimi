@@ -16,6 +16,7 @@ surfaces:
   - RuntimeServiceControlService
   - RuntimeExternalAgentService
   - RuntimeAccountService
+  - RuntimeRemoteAccessService
   - RuntimeAuditService
   - RuntimeAppService
   - RuntimeAppActivityService
@@ -25,6 +26,24 @@ surfaces:
   - RuntimeDevelopmentService
 authority_pending_methods: []
 services:
+  - name: RuntimeRemoteAccessService
+    source_rule: K-RPC-002
+    methods:
+      - name: GetRemoteAccessState
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeRemoteAccessService/GetRemoteAccessState
+      - name: SetRemoteAccessEnabled
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteAccessEnabled
+      - name: ConfirmRemoteSource
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeRemoteAccessService/ConfirmRemoteSource
+      - name: RejectRemoteSource
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeRemoteAccessService/RejectRemoteSource
+      - name: SetRemoteSourcePaused
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteSourcePaused
   - name: AIService
     source_rule: K-RPC-002
     methods:
@@ -375,6 +394,12 @@ services:
   - name: RuntimeAccountService
     source_rule: K-ACCSVC-002
     methods:
+      - name: GetPrimaryRuntimeState
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/GetPrimaryRuntimeState
+      - name: PreparePrimaryRuntime
+        type: unary
+        protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/PreparePrimaryRuntime
       - name: GetAccountSessionStatus
         type: unary
         protected_transport_ref: /nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus

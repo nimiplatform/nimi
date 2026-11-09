@@ -594,6 +594,78 @@ export interface SwitchAccountResponse {
     auditDiagnostic?: ErrorInfo;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.GetPrimaryRuntimeStateRequest
+ */
+export interface GetPrimaryRuntimeStateRequest {
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.GetPrimaryRuntimeStateResponse
+ */
+export interface GetPrimaryRuntimeStateResponse {
+    /**
+     * @generated from protobuf field: string runtime_id = 1
+     */
+    runtimeId: string;
+    /**
+     * @generated from protobuf field: string primary_runtime_id = 2
+     */
+    primaryRuntimeId: string;
+    /**
+     * @generated from protobuf field: string binding_id = 3
+     */
+    bindingId: string;
+    /**
+     * @generated from protobuf field: string display_name = 4
+     */
+    displayName: string;
+    /**
+     * @generated from protobuf field: bool this_runtime = 5
+     */
+    thisRuntime: boolean;
+    /**
+     * @generated from protobuf field: string valid_after = 6
+     */
+    validAfter: string;
+    /**
+     * @generated from protobuf field: string lease_expires_at = 7
+     */
+    leaseExpiresAt: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.PreparePrimaryRuntimeRequest
+ */
+export interface PreparePrimaryRuntimeRequest {
+    /**
+     * @generated from protobuf field: string action = 1
+     */
+    action: string;
+    /**
+     * @generated from protobuf field: string expected_binding_id = 2
+     */
+    expectedBindingId: string;
+    /**
+     * @generated from protobuf field: string display_name = 3
+     */
+    displayName: string;
+}
+/**
+ * @generated from protobuf message nimi.runtime.v1.PreparePrimaryRuntimeResponse
+ */
+export interface PreparePrimaryRuntimeResponse {
+    /**
+     * @generated from protobuf field: string intent_id = 1
+     */
+    intentId: string;
+    /**
+     * @generated from protobuf field: string confirmation_url = 2
+     */
+    confirmationUrl: string;
+    /**
+     * @generated from protobuf field: string expires_at = 3
+     */
+    expiresAt: string;
+}
+/**
  * @generated from protobuf enum nimi.runtime.v1.AccountSessionState
  */
 export enum AccountSessionState {
@@ -2716,3 +2788,262 @@ class SwitchAccountResponse$Type extends MessageType<SwitchAccountResponse> {
  * @generated MessageType for protobuf message nimi.runtime.v1.SwitchAccountResponse
  */
 export const SwitchAccountResponse = new SwitchAccountResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetPrimaryRuntimeStateRequest$Type extends MessageType<GetPrimaryRuntimeStateRequest> {
+    constructor() {
+        super("nimi.runtime.v1.GetPrimaryRuntimeStateRequest", []);
+    }
+    create(value?: PartialMessage<GetPrimaryRuntimeStateRequest>): GetPrimaryRuntimeStateRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        if (value !== undefined)
+            reflectionMergePartial<GetPrimaryRuntimeStateRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetPrimaryRuntimeStateRequest): GetPrimaryRuntimeStateRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetPrimaryRuntimeStateRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetPrimaryRuntimeStateRequest
+ */
+export const GetPrimaryRuntimeStateRequest = new GetPrimaryRuntimeStateRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class GetPrimaryRuntimeStateResponse$Type extends MessageType<GetPrimaryRuntimeStateResponse> {
+    constructor() {
+        super("nimi.runtime.v1.GetPrimaryRuntimeStateResponse", [
+            { no: 1, name: "runtime_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "primary_runtime_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "binding_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 4, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 5, name: "this_runtime", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
+            { no: 6, name: "valid_after", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 7, name: "lease_expires_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<GetPrimaryRuntimeStateResponse>): GetPrimaryRuntimeStateResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.runtimeId = "";
+        message.primaryRuntimeId = "";
+        message.bindingId = "";
+        message.displayName = "";
+        message.thisRuntime = false;
+        message.validAfter = "";
+        message.leaseExpiresAt = "";
+        if (value !== undefined)
+            reflectionMergePartial<GetPrimaryRuntimeStateResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: GetPrimaryRuntimeStateResponse): GetPrimaryRuntimeStateResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string runtime_id */ 1:
+                    message.runtimeId = reader.string();
+                    break;
+                case /* string primary_runtime_id */ 2:
+                    message.primaryRuntimeId = reader.string();
+                    break;
+                case /* string binding_id */ 3:
+                    message.bindingId = reader.string();
+                    break;
+                case /* string display_name */ 4:
+                    message.displayName = reader.string();
+                    break;
+                case /* bool this_runtime */ 5:
+                    message.thisRuntime = reader.bool();
+                    break;
+                case /* string valid_after */ 6:
+                    message.validAfter = reader.string();
+                    break;
+                case /* string lease_expires_at */ 7:
+                    message.leaseExpiresAt = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: GetPrimaryRuntimeStateResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string runtime_id = 1; */
+        if (message.runtimeId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.runtimeId);
+        /* string primary_runtime_id = 2; */
+        if (message.primaryRuntimeId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.primaryRuntimeId);
+        /* string binding_id = 3; */
+        if (message.bindingId !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.bindingId);
+        /* string display_name = 4; */
+        if (message.displayName !== "")
+            writer.tag(4, WireType.LengthDelimited).string(message.displayName);
+        /* bool this_runtime = 5; */
+        if (message.thisRuntime !== false)
+            writer.tag(5, WireType.Varint).bool(message.thisRuntime);
+        /* string valid_after = 6; */
+        if (message.validAfter !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.validAfter);
+        /* string lease_expires_at = 7; */
+        if (message.leaseExpiresAt !== "")
+            writer.tag(7, WireType.LengthDelimited).string(message.leaseExpiresAt);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.GetPrimaryRuntimeStateResponse
+ */
+export const GetPrimaryRuntimeStateResponse = new GetPrimaryRuntimeStateResponse$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class PreparePrimaryRuntimeRequest$Type extends MessageType<PreparePrimaryRuntimeRequest> {
+    constructor() {
+        super("nimi.runtime.v1.PreparePrimaryRuntimeRequest", [
+            { no: 1, name: "action", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "expected_binding_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<PreparePrimaryRuntimeRequest>): PreparePrimaryRuntimeRequest {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.action = "";
+        message.expectedBindingId = "";
+        message.displayName = "";
+        if (value !== undefined)
+            reflectionMergePartial<PreparePrimaryRuntimeRequest>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PreparePrimaryRuntimeRequest): PreparePrimaryRuntimeRequest {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string action */ 1:
+                    message.action = reader.string();
+                    break;
+                case /* string expected_binding_id */ 2:
+                    message.expectedBindingId = reader.string();
+                    break;
+                case /* string display_name */ 3:
+                    message.displayName = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: PreparePrimaryRuntimeRequest, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string action = 1; */
+        if (message.action !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.action);
+        /* string expected_binding_id = 2; */
+        if (message.expectedBindingId !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.expectedBindingId);
+        /* string display_name = 3; */
+        if (message.displayName !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.displayName);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.PreparePrimaryRuntimeRequest
+ */
+export const PreparePrimaryRuntimeRequest = new PreparePrimaryRuntimeRequest$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class PreparePrimaryRuntimeResponse$Type extends MessageType<PreparePrimaryRuntimeResponse> {
+    constructor() {
+        super("nimi.runtime.v1.PreparePrimaryRuntimeResponse", [
+            { no: 1, name: "intent_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "confirmation_url", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "expires_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<PreparePrimaryRuntimeResponse>): PreparePrimaryRuntimeResponse {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.intentId = "";
+        message.confirmationUrl = "";
+        message.expiresAt = "";
+        if (value !== undefined)
+            reflectionMergePartial<PreparePrimaryRuntimeResponse>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: PreparePrimaryRuntimeResponse): PreparePrimaryRuntimeResponse {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string intent_id */ 1:
+                    message.intentId = reader.string();
+                    break;
+                case /* string confirmation_url */ 2:
+                    message.confirmationUrl = reader.string();
+                    break;
+                case /* string expires_at */ 3:
+                    message.expiresAt = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: PreparePrimaryRuntimeResponse, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string intent_id = 1; */
+        if (message.intentId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.intentId);
+        /* string confirmation_url = 2; */
+        if (message.confirmationUrl !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.confirmationUrl);
+        /* string expires_at = 3; */
+        if (message.expiresAt !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.expiresAt);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.PreparePrimaryRuntimeResponse
+ */
+export const PreparePrimaryRuntimeResponse = new PreparePrimaryRuntimeResponse$Type();

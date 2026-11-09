@@ -28,6 +28,11 @@
       "import": "./dist/runtime/index.js",
       "default": "./dist/runtime/index.js"
     },
+    "./runtime/remote": {
+      "types": "./dist/runtime/remote.d.ts",
+      "import": "./dist/runtime/remote.js",
+      "default": "./dist/runtime/remote.js"
+    },
     "./runtime/generated": {
       "types": "./dist/runtime/generated.d.ts",
       "import": "./dist/runtime/generated.js",
@@ -47,6 +52,11 @@
       "types": "./dist/realm/index.d.ts",
       "import": "./dist/realm/index.js",
       "default": "./dist/realm/index.js"
+    },
+    "./realm/runtime-client": {
+      "types": "./dist/realm/runtime-client.d.ts",
+      "import": "./dist/realm/runtime-client.js",
+      "default": "./dist/realm/runtime-client.js"
     },
     "./realm/generated": {
       "types": "./dist/realm/generated.d.ts",

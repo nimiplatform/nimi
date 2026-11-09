@@ -4091,6 +4091,53 @@ impl Default for ReasoningPresentation {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum RemoteAccessConnectionState {
+    REMOTEACCESSCONNECTIONSTATEUNSPECIFIED,
+    REMOTEACCESSCONNECTIONSTATEDISABLED,
+    REMOTEACCESSCONNECTIONSTATECONNECTING,
+    REMOTEACCESSCONNECTIONSTATELISTENING,
+    REMOTEACCESSCONNECTIONSTATEUNAVAILABLE,
+}
+
+impl Default for RemoteAccessConnectionState {
+    fn default() -> Self {
+        Self::REMOTEACCESSCONNECTIONSTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum RemoteSourceAccessState {
+    REMOTESOURCEACCESSSTATEUNSPECIFIED,
+    REMOTESOURCEACCESSSTATEPENDING,
+    REMOTESOURCEACCESSSTATEALLOWED,
+    REMOTESOURCEACCESSSTATEPAUSED,
+    REMOTESOURCEACCESSSTATECHANGED,
+}
+
+impl Default for RemoteSourceAccessState {
+    fn default() -> Self {
+        Self::REMOTESOURCEACCESSSTATEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum RemoteTransportFrameKind {
+    REMOTETRANSPORTFRAMEKINDUNSPECIFIED,
+    REMOTETRANSPORTFRAMEKINDREQUEST,
+    REMOTETRANSPORTFRAMEKINDRESPONSE,
+    REMOTETRANSPORTFRAMEKINDSTREAMDATA,
+    REMOTETRANSPORTFRAMEKINDSTREAMEND,
+    REMOTETRANSPORTFRAMEKINDERROR,
+    REMOTETRANSPORTFRAMEKINDCANCEL,
+}
+
+impl Default for RemoteTransportFrameKind {
+    fn default() -> Self {
+        Self::REMOTETRANSPORTFRAMEKINDUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ResponseFormatKind {
     RESPONSEFORMATKINDUNSPECIFIED,
     RESPONSEFORMATKINDTEXT,
@@ -7315,6 +7362,18 @@ impl CompleteProductControlFirstRunDeviceEnvironmentScanRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ConfirmRemoteSourceRequest {
+    pub pending_request_id: Option<String>,
+    pub expected_binding_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ConfirmRemoteSourceResponse {
+    pub state: Option<Box<GetRemoteAccessStateResponse>>,
+    pub audit_diagnostic: Option<Box<ErrorInfo>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct Connector {
     pub connector_id: Option<String>,
     pub kind: Option<ConnectorKind>,
@@ -8900,6 +8959,99 @@ pub struct GetModelAssetResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct GetPrimaryRuntimeStateRequest {
+
+}
+
+impl GetPrimaryRuntimeStateRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
+    }
+
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "GetPrimaryRuntimeStateRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        json_object(raw, Self::decode_error("<body>"))?;
+        Ok(Self::default())
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct GetPrimaryRuntimeStateResponse {
+    #[serde(rename = "runtime_id", skip_serializing_if = "Option::is_none")]
+    pub runtime_id: Option<String>,
+    #[serde(rename = "primary_runtime_id", skip_serializing_if = "Option::is_none")]
+    pub primary_runtime_id: Option<String>,
+    #[serde(rename = "binding_id", skip_serializing_if = "Option::is_none")]
+    pub binding_id: Option<String>,
+    #[serde(rename = "display_name", skip_serializing_if = "Option::is_none")]
+    pub display_name: Option<String>,
+    #[serde(rename = "this_runtime", skip_serializing_if = "Option::is_none")]
+    pub this_runtime: Option<bool>,
+    #[serde(rename = "valid_after", skip_serializing_if = "Option::is_none")]
+    pub valid_after: Option<String>,
+    #[serde(rename = "lease_expires_at", skip_serializing_if = "Option::is_none")]
+    pub lease_expires_at: Option<String>,
+}
+
+impl GetPrimaryRuntimeStateResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
+    }
+
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "GetPrimaryRuntimeStateResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
+        let mut out = Self::default();
+        out.runtime_id = match object.get("runtime_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("runtime_id"))?),
+            None => None,
+        };
+        out.primary_runtime_id = match object.get("primary_runtime_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("primary_runtime_id"))?),
+            None => None,
+        };
+        out.binding_id = match object.get("binding_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("binding_id"))?),
+            None => None,
+        };
+        out.display_name = match object.get("display_name") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("display_name"))?),
+            None => None,
+        };
+        out.this_runtime = match object.get("this_runtime") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_bool().ok_or_else(|| Self::decode_error("this_runtime"))?),
+            None => None,
+        };
+        out.valid_after = match object.get("valid_after") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("valid_after"))?),
+            None => None,
+        };
+        out.lease_expires_at = match object.get("lease_expires_at") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("lease_expires_at"))?),
+            None => None,
+        };
+        Ok(out)
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct GetProductControlCheckSyncRequest {
 
 }
@@ -8971,6 +9123,21 @@ pub struct GetPublicChatSessionSnapshotRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetPublicChatSessionSnapshotResponse {
     pub snapshot: Option<BTreeMap<String, String>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetRemoteAccessStateRequest {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetRemoteAccessStateResponse {
+    pub enabled: Option<bool>,
+    pub binding_id: Option<String>,
+    pub connection_state: Option<RemoteAccessConnectionState>,
+    pub sources: Vec<Box<RemoteAccessSource>>,
+    pub connected_peers: Option<u32>,
+    pub reason_code: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
@@ -12760,6 +12927,96 @@ pub struct PrepareLocalAppPackageResponse {
     pub reason_code: Option<ReasonCode>,
 }
 
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct PreparePrimaryRuntimeRequest {
+    #[serde(rename = "action", skip_serializing_if = "Option::is_none")]
+    pub action: Option<String>,
+    #[serde(rename = "expected_binding_id", skip_serializing_if = "Option::is_none")]
+    pub expected_binding_id: Option<String>,
+    #[serde(rename = "display_name", skip_serializing_if = "Option::is_none")]
+    pub display_name: Option<String>,
+}
+
+impl PreparePrimaryRuntimeRequest {
+    pub fn to_transport(&self) -> Vec<u8> {
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
+    }
+
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "PreparePrimaryRuntimeRequest", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
+        let mut out = Self::default();
+        out.action = match object.get("action") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("action"))?),
+            None => None,
+        };
+        out.expected_binding_id = match object.get("expected_binding_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("expected_binding_id"))?),
+            None => None,
+        };
+        out.display_name = match object.get("display_name") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("display_name"))?),
+            None => None,
+        };
+        Ok(out)
+    }
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct PreparePrimaryRuntimeResponse {
+    #[serde(rename = "intent_id", skip_serializing_if = "Option::is_none")]
+    pub intent_id: Option<String>,
+    #[serde(rename = "confirmation_url", skip_serializing_if = "Option::is_none")]
+    pub confirmation_url: Option<String>,
+    #[serde(rename = "expires_at", skip_serializing_if = "Option::is_none")]
+    pub expires_at: Option<String>,
+}
+
+impl PreparePrimaryRuntimeResponse {
+    pub fn to_transport(&self) -> Vec<u8> {
+        serde_json::to_vec(self).expect("typed client JSON serialization cannot fail")
+    }
+
+    fn decode_error(field: &'static str) -> RuntimeResponseDecodeError {
+        RuntimeResponseDecodeError { type_name: "PreparePrimaryRuntimeResponse", field }
+    }
+
+    pub fn from_transport(raw: &[u8]) -> Result<Self, RuntimeResponseDecodeError> {
+        let object = json_object(raw, Self::decode_error("<body>"))?;
+        Self::from_json_object(&object)
+    }
+
+    fn from_json_object(object: &serde_json::Map<String, serde_json::Value>) -> Result<Self, RuntimeResponseDecodeError> {
+        let mut out = Self::default();
+        out.intent_id = match object.get("intent_id") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("intent_id"))?),
+            None => None,
+        };
+        out.confirmation_url = match object.get("confirmation_url") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("confirmation_url"))?),
+            None => None,
+        };
+        out.expires_at = match object.get("expires_at") {
+            Some(value) if value.is_null() => None,
+            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("expires_at"))?),
+            None => None,
+        };
+        Ok(out)
+    }
+}
+
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct PreviewSharedLocalAgentAIProfileRequest {
     pub context: Option<Box<AgentRequestContext>>,
@@ -13469,6 +13726,51 @@ pub struct RegisterLocalDevelopmentProjectRequest {
 pub struct RegisterLocalDevelopmentProjectResponse {
     pub registration: Option<Box<LocalDevelopmentRegistrationProjection>>,
     pub reason_code: Option<ReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RejectRemoteSourceRequest {
+    pub pending_request_id: Option<String>,
+    pub expected_binding_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RejectRemoteSourceResponse {
+    pub state: Option<Box<GetRemoteAccessStateResponse>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RemoteAccessSource {
+    pub client_id: Option<String>,
+    pub app_id: Option<String>,
+    pub display_name: Option<String>,
+    pub origin: Option<String>,
+    pub source_revision: Option<u64>,
+    pub official_manager: Option<bool>,
+    pub app_access: Vec<String>,
+    pub capability_contract_refs: Vec<String>,
+    pub state: Option<RemoteSourceAccessState>,
+    pub pending_request_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RemoteClientStreamRequest {
+    pub messages: Vec<Vec<u8>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RemoteTransportFrame {
+    pub kind: Option<RemoteTransportFrameKind>,
+    pub request_id: Option<u32>,
+    pub method: Option<String>,
+    pub payload: Option<Vec<u8>>,
+    pub chunk_end: Option<bool>,
+    pub grpc_code: Option<u32>,
+    pub message: Option<String>,
+    pub error_info: Option<Box<ErrorInfo>>,
+    pub timeout_ms: Option<u32>,
+    pub trace_id: Option<String>,
+    pub idempotency_key: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
@@ -14595,6 +14897,31 @@ impl SetProductControlFirstRunInstallLevelRequest {
         };
         Ok(out)
     }
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SetRemoteAccessEnabledRequest {
+    pub enabled: Option<bool>,
+    pub expected_binding_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SetRemoteAccessEnabledResponse {
+    pub state: Option<Box<GetRemoteAccessStateResponse>>,
+    pub audit_diagnostic: Option<Box<ErrorInfo>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SetRemoteSourcePausedRequest {
+    pub client_id: Option<String>,
+    pub paused: Option<bool>,
+    pub expected_binding_id: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct SetRemoteSourcePausedResponse {
+    pub state: Option<Box<GetRemoteAccessStateResponse>>,
+    pub audit_diagnostic: Option<Box<ErrorInfo>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -16269,6 +16596,14 @@ impl TryFrom<Vec<u8>> for BeginLoginResponse {
     }
 }
 
+impl TryFrom<Vec<u8>> for GetPrimaryRuntimeStateResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
+        Self::from_transport(&body)
+    }
+}
+
 impl TryFrom<Vec<u8>> for InvokeRealmUnaryResponse {
     type Error = RuntimeResponseDecodeError;
 
@@ -16278,6 +16613,14 @@ impl TryFrom<Vec<u8>> for InvokeRealmUnaryResponse {
 }
 
 impl TryFrom<Vec<u8>> for LogoutResponse {
+    type Error = RuntimeResponseDecodeError;
+
+    fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
+        Self::from_transport(&body)
+    }
+}
+
+impl TryFrom<Vec<u8>> for PreparePrimaryRuntimeResponse {
     type Error = RuntimeResponseDecodeError;
 
     fn try_from(body: Vec<u8>) -> Result<Self, Self::Error> {
@@ -16540,6 +16883,20 @@ where
         })
     }
 
+    pub fn get_primary_runtime_state(&self, request: GetPrimaryRuntimeStateRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<GetPrimaryRuntimeStateResponse, RuntimeTypedClientError<T::Error>> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/GetPrimaryRuntimeState".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        GetPrimaryRuntimeStateResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/GetPrimaryRuntimeState",
+            type_name: error.type_name,
+            field: error.field,
+        })
+    }
+
     pub fn invoke_realm_unary(&self, request: InvokeRealmUnaryRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<InvokeRealmUnaryResponse, RuntimeTypedClientError<T::Error>> {
         let raw = self.core.unary(CoreUnaryRequest {
             method_id: "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary".to_string(),
@@ -16563,6 +16920,20 @@ where
         }).map_err(RuntimeTypedClientError::Transport)?;
         LogoutResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
             method_id: "/nimi.runtime.v1.RuntimeAccountService/Logout",
+            type_name: error.type_name,
+            field: error.field,
+        })
+    }
+
+    pub fn prepare_primary_runtime(&self, request: PreparePrimaryRuntimeRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PreparePrimaryRuntimeResponse, RuntimeTypedClientError<T::Error>> {
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/PreparePrimaryRuntime".to_string(),
+            metadata,
+            body: request.to_transport(),
+            timeout,
+        }).map_err(RuntimeTypedClientError::Transport)?;
+        PreparePrimaryRuntimeResponse::from_transport(&raw).map_err(|error| RuntimeTypedClientError::ResponseDecode {
+            method_id: "/nimi.runtime.v1.RuntimeAccountService/PreparePrimaryRuntime",
             type_name: error.type_name,
             field: error.field,
         })
@@ -18787,6 +19158,83 @@ pub struct PPSlotItemDto {
 pub type PresenceStatus = String;
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct PrimaryRuntimeBindDto {
+    pub display_name: String,
+    pub expected_account_id: String,
+    pub expected_binding_id: String,
+    pub public_key: String,
+    pub runtime_id: String,
+    pub signature: String,
+    pub signed_at: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PrimaryRuntimeBindingDto {
+    pub binding_id: String,
+    pub display_name: String,
+    pub lease_expires_at: Option<String>,
+    pub lease_version: String,
+    pub public_key: String,
+    pub runtime_id: String,
+    pub valid_after: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PrimaryRuntimeConfirmDto {
+    pub expected_account_id: String,
+    pub intent_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PrimaryRuntimeIntentDto {
+    pub confirmation_url: String,
+    pub display_name: String,
+    pub expected_account_id: String,
+    pub expires_at: String,
+    pub intent_id: String,
+    pub operation: String,
+    pub runtime_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PrimaryRuntimeLeaseRequestDto {
+    pub binding_id: String,
+    pub expected_account_id: String,
+    pub lease_version: String,
+    pub runtime_id: String,
+    pub signature: String,
+    pub signed_at: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PrimaryRuntimeMutationDto {
+    pub account_id: String,
+    pub binding: Option<Box<PrimaryRuntimeBindingDto>>,
+    pub data_migrated: bool,
+    pub reconfiguration_required: bool,
+    pub server_time: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PrimaryRuntimePrepareDto {
+    pub display_name: String,
+    pub expected_account_id: String,
+    pub expected_binding_id: String,
+    pub operation: String,
+    pub public_key: String,
+    pub runtime_id: String,
+    pub signature: String,
+    pub signed_at: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct PrimaryRuntimeSnapshotDto {
+    pub account_id: String,
+    pub binding: Option<Box<PrimaryRuntimeBindingDto>>,
+    pub server_time: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ProfileCoverageManifestV1Dto {
     pub aggregate_status: String,
     pub diagnostics: Vec<ProfileCoverageManifestV1DtoDiagnosticsItem>,
@@ -19058,6 +19506,141 @@ pub struct RevenueSourceOriginRequestDto {
 pub struct RevokeAccountSessionsResultDto {
     pub current_revoked: bool,
     pub revoked_count: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RuntimeClientAuthorizationDto {
+    pub client_id: String,
+    pub code_challenge: String,
+    pub code_challenge_method: String,
+    pub expected_account_id: String,
+    pub redirect_uri: String,
+    pub state: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RuntimeClientCodeDto {
+    pub expires_at: String,
+    pub redirect_url: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RuntimeClientContextDto {
+    pub account_id: String,
+    pub app_id: String,
+    pub client_id: String,
+    pub context_id: String,
+    pub display_name: String,
+    pub expires_at: String,
+    pub primary: Option<Box<RuntimeClientPrimaryDto>>,
+    pub realm_environment_id: String,
+    pub source: Box<RuntimeClientSourceDto>,
+    pub stun_urls: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RuntimeClientEndDto {
+    pub ended: bool,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RuntimeClientExchangeDto {
+    pub authorization_code: String,
+    pub client_id: String,
+    pub code_verifier: String,
+    pub redirect_uri: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RuntimeClientPrimaryDto {
+    pub binding_id: String,
+    pub display_name: String,
+    pub lease_expires_at: Option<String>,
+    pub public_key: String,
+    pub runtime_id: String,
+    pub valid_after: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RuntimeClientSourceDto {
+    pub app_access: Vec<String>,
+    pub app_id: String,
+    pub capability_contract_refs: Vec<String>,
+    pub client_id: String,
+    pub display_name: String,
+    pub origin: String,
+    pub redirect_uri: String,
+    pub role: String,
+    pub source_revision: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RuntimeClientTokenDto {
+    pub account_id: String,
+    pub app_id: String,
+    pub client_id: String,
+    pub context_id: String,
+    pub context_token: String,
+    pub display_name: String,
+    pub expires_at: String,
+    pub realm_environment_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RuntimeConnectionAnswerDto {
+    pub answer_sdp: String,
+    pub binding_id: String,
+    pub connection_id: String,
+    pub expected_account_id: String,
+    pub lease_version: String,
+    pub rejection_reason: String,
+    pub runtime_id: String,
+    pub signature: String,
+    pub signed_at: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RuntimeConnectionCreateDto {
+    pub binding_id: String,
+    pub offer_sdp: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RuntimeConnectionOfferDto {
+    pub connection_id: String,
+    pub context: Box<RuntimeClientContextDto>,
+    pub expires_at: String,
+    pub offer_sdp: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RuntimeConnectionPollDto {
+    pub binding_id: String,
+    pub context_ids: Vec<String>,
+    pub expected_account_id: String,
+    pub lease_version: String,
+    pub runtime_id: String,
+    pub signature: String,
+    pub signed_at: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RuntimeConnectionPollResultDto {
+    pub contexts: Vec<RuntimeClientContextDto>,
+    pub control_lease_expires_at: String,
+    pub offers: Vec<RuntimeConnectionOfferDto>,
+    pub server_time: String,
+    pub stun_urls: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RuntimeConnectionStateDto {
+    pub answer_sdp: Option<String>,
+    pub binding_id: String,
+    pub connection_id: String,
+    pub expires_at: String,
+    pub rejection_reason: Option<String>,
+    pub status: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -20652,6 +21235,29 @@ pub struct RealmEconomyControllerGetWithdrawalConfigOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct RealmEndRuntimeClientContextOperationPath {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct RealmEndRuntimeClientContextOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct RealmEndRuntimeClientContextOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmEndRuntimeClientContextOperationRequest {
+    pub path: RealmEndRuntimeClientContextOperationPath,
+    pub query: RealmEndRuntimeClientContextOperationQuery,
+    pub headers: RealmEndRuntimeClientContextOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmGetMutualFriendsCountOperationPath {
     #[serde(rename = "id")]
     pub id: String,
@@ -20722,6 +21328,30 @@ pub struct RealmGetMyHandleChangeEligibilityOperationRequest {
 }
 
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct RealmGetMyPrimaryRuntimeIntentOperationPath {
+    #[serde(rename = "intentId")]
+    pub intent_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct RealmGetMyPrimaryRuntimeIntentOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct RealmGetMyPrimaryRuntimeIntentOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetMyPrimaryRuntimeIntentOperationRequest {
+    pub path: RealmGetMyPrimaryRuntimeIntentOperationPath,
+    pub query: RealmGetMyPrimaryRuntimeIntentOperationQuery,
+    pub headers: RealmGetMyPrimaryRuntimeIntentOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct RealmGetMyRelationshipWithUserOperationPath {
     #[serde(rename = "id")]
     pub id: String,
@@ -20765,6 +21395,30 @@ pub struct RealmGetMyTiersOperationRequest {
     pub path: RealmGetMyTiersOperationPath,
     pub query: RealmGetMyTiersOperationQuery,
     pub headers: RealmGetMyTiersOperationHeaders,
+    pub body: (),
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct RealmGetRuntimeConnectionOperationPath {
+    #[serde(rename = "connectionId")]
+    pub connection_id: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct RealmGetRuntimeConnectionOperationQuery {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
+pub struct RealmGetRuntimeConnectionOperationHeaders {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RealmGetRuntimeConnectionOperationRequest {
+    pub path: RealmGetRuntimeConnectionOperationPath,
+    pub query: RealmGetRuntimeConnectionOperationQuery,
+    pub headers: RealmGetRuntimeConnectionOperationHeaders,
     pub body: (),
 }
 
@@ -21118,6 +21772,31 @@ where
         })
     }
 
+    pub fn end_runtime_client_context(&self, request: RealmEndRuntimeClientContextOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeClientEndDto, RealmTypedClientError<T::Error>> {
+        let body = serde_json::to_vec(&serde_json::json!({
+            "path": request.path,
+            "query": request.query,
+            "headers": request.headers,
+            "body": serde_json::json!({}),
+        })).expect("Realm typed request JSON serialization cannot fail");
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "endRuntimeClientContext".to_string(),
+            metadata,
+            body,
+            timeout,
+        }).map_err(RealmTypedClientError::Transport)?;
+        let object = json_object(&raw, RealmTypedClientError::ResponseDecode {
+            operation_id: "endRuntimeClientContext",
+            field: "<body>",
+        })?;
+        Ok(RuntimeClientEndDto {
+            ended: object.get("ended").and_then(|value| value.as_bool().filter(|decoded| *decoded == true)).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "endRuntimeClientContext",
+                field: "ended",
+            })?,
+        })
+    }
+
     pub fn get_mutual_friends_count(&self, request: RealmGetMutualFriendsCountOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<MutualFriendCountDto, RealmTypedClientError<T::Error>> {
         if request.path.id.is_empty() {
             return Err(RealmTypedClientError::RequestEncode {
@@ -21183,11 +21862,11 @@ where
                 operation_id: "getMyCreatorEligibility",
                 field: "message",
             })?,
-            status: object.get("status").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
+            status: object.get("status").and_then(|value| value.as_str().map(String::from).filter(|decoded| decoded.as_str() == "ACTIVE" || decoded.as_str() == "CANCELED" || decoded.as_str() == "PAST_DUE" || decoded.as_str() == "PAUSED")).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "getMyCreatorEligibility",
                 field: "status",
             })?,
-            tier: object.get("tier").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
+            tier: object.get("tier").and_then(|value| value.as_str().map(String::from).filter(|decoded| decoded.as_str() == "FREE" || decoded.as_str() == "PRO" || decoded.as_str() == "MAX")).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "getMyCreatorEligibility",
                 field: "tier",
             })?,
@@ -21246,6 +21925,61 @@ where
         })
     }
 
+    pub fn get_my_primary_runtime_intent(&self, request: RealmGetMyPrimaryRuntimeIntentOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<PrimaryRuntimeIntentDto, RealmTypedClientError<T::Error>> {
+        if request.path.intent_id.is_empty() {
+            return Err(RealmTypedClientError::RequestEncode {
+                operation_id: "getMyPrimaryRuntimeIntent",
+                field: "path.intentId",
+            });
+        }
+        let body = serde_json::to_vec(&serde_json::json!({
+            "path": request.path,
+            "query": request.query,
+            "headers": request.headers,
+            "body": serde_json::json!({}),
+        })).expect("Realm typed request JSON serialization cannot fail");
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "getMyPrimaryRuntimeIntent".to_string(),
+            metadata,
+            body,
+            timeout,
+        }).map_err(RealmTypedClientError::Transport)?;
+        let object = json_object(&raw, RealmTypedClientError::ResponseDecode {
+            operation_id: "getMyPrimaryRuntimeIntent",
+            field: "<body>",
+        })?;
+        Ok(PrimaryRuntimeIntentDto {
+            confirmation_url: object.get("confirmationUrl").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "getMyPrimaryRuntimeIntent",
+                field: "confirmationUrl",
+            })?,
+            display_name: object.get("displayName").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "getMyPrimaryRuntimeIntent",
+                field: "displayName",
+            })?,
+            expected_account_id: object.get("expectedAccountId").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "getMyPrimaryRuntimeIntent",
+                field: "expectedAccountId",
+            })?,
+            expires_at: object.get("expiresAt").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "getMyPrimaryRuntimeIntent",
+                field: "expiresAt",
+            })?,
+            intent_id: object.get("intentId").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "getMyPrimaryRuntimeIntent",
+                field: "intentId",
+            })?,
+            operation: object.get("operation").and_then(|value| value.as_str().map(String::from).filter(|decoded| decoded.as_str() == "bind" || decoded.as_str() == "reinitialize")).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "getMyPrimaryRuntimeIntent",
+                field: "operation",
+            })?,
+            runtime_id: object.get("runtimeId").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "getMyPrimaryRuntimeIntent",
+                field: "runtimeId",
+            })?,
+        })
+    }
+
     pub fn get_my_relationship_with_user(&self, request: RealmGetMyRelationshipWithUserOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<UserRelationshipDto, RealmTypedClientError<T::Error>> {
         if request.path.id.is_empty() {
             return Err(RealmTypedClientError::RequestEncode {
@@ -21293,7 +22027,7 @@ where
                 field: "relationshipId",
             }),
             },
-            state: object.get("state").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
+            state: object.get("state").and_then(|value| value.as_str().map(String::from).filter(|decoded| decoded.as_str() == "none" || decoded.as_str() == "pending_incoming" || decoded.as_str() == "pending_outgoing" || decoded.as_str() == "active")).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "getMyRelationshipWithUser",
                 field: "state",
             })?,
@@ -21348,6 +22082,71 @@ where
             vitality_score: object.get("vitalityScore").and_then(|value| value.as_f64()).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "getMyTiers",
                 field: "vitalityScore",
+            })?,
+        })
+    }
+
+    pub fn get_runtime_connection(&self, request: RealmGetRuntimeConnectionOperationRequest, metadata: CoreMetadata, timeout: Option<std::time::Duration>) -> Result<RuntimeConnectionStateDto, RealmTypedClientError<T::Error>> {
+        if request.path.connection_id.is_empty() {
+            return Err(RealmTypedClientError::RequestEncode {
+                operation_id: "getRuntimeConnection",
+                field: "path.connectionId",
+            });
+        }
+        let body = serde_json::to_vec(&serde_json::json!({
+            "path": request.path,
+            "query": request.query,
+            "headers": request.headers,
+            "body": serde_json::json!({}),
+        })).expect("Realm typed request JSON serialization cannot fail");
+        let raw = self.core.unary(CoreUnaryRequest {
+            method_id: "getRuntimeConnection".to_string(),
+            metadata,
+            body,
+            timeout,
+        }).map_err(RealmTypedClientError::Transport)?;
+        let object = json_object(&raw, RealmTypedClientError::ResponseDecode {
+            operation_id: "getRuntimeConnection",
+            field: "<body>",
+        })?;
+        Ok(RuntimeConnectionStateDto {
+            answer_sdp: match object.get("answerSdp") {
+                Some(value) if value.is_null() => None,
+                Some(value) => Some(value.as_str().map(String::from).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "getRuntimeConnection",
+                field: "answerSdp",
+            })?),
+                None => return Err(RealmTypedClientError::ResponseDecode {
+                operation_id: "getRuntimeConnection",
+                field: "answerSdp",
+            }),
+            },
+            binding_id: object.get("bindingId").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "getRuntimeConnection",
+                field: "bindingId",
+            })?,
+            connection_id: object.get("connectionId").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "getRuntimeConnection",
+                field: "connectionId",
+            })?,
+            expires_at: object.get("expiresAt").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "getRuntimeConnection",
+                field: "expiresAt",
+            })?,
+            rejection_reason: match object.get("rejectionReason") {
+                Some(value) if value.is_null() => None,
+                Some(value) => Some(value.as_str().map(String::from).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "getRuntimeConnection",
+                field: "rejectionReason",
+            })?),
+                None => return Err(RealmTypedClientError::ResponseDecode {
+                operation_id: "getRuntimeConnection",
+                field: "rejectionReason",
+            }),
+            },
+            status: object.get("status").and_then(|value| value.as_str().map(String::from).filter(|decoded| decoded.as_str() == "pending" || decoded.as_str() == "answered" || decoded.as_str() == "rejected")).ok_or(RealmTypedClientError::ResponseDecode {
+                operation_id: "getRuntimeConnection",
+                field: "status",
             })?,
         })
     }
@@ -21499,43 +22298,43 @@ where
             field: "<body>",
         })?;
         Ok(UserVisibilitySettingsDto {
-            account_visibility: object.get("accountVisibility").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
+            account_visibility: object.get("accountVisibility").and_then(|value| value.as_str().map(String::from).filter(|decoded| decoded.as_str() == "PUBLIC" || decoded.as_str() == "FRIENDS" || decoded.as_str() == "PRIVATE")).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "VisibilityController_getUserSettings",
                 field: "accountVisibility",
             })?,
-            default_post_visibility: object.get("defaultPostVisibility").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
+            default_post_visibility: object.get("defaultPostVisibility").and_then(|value| value.as_str().map(String::from).filter(|decoded| decoded.as_str() == "PUBLIC" || decoded.as_str() == "FRIENDS" || decoded.as_str() == "PRIVATE")).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "VisibilityController_getUserSettings",
                 field: "defaultPostVisibility",
             })?,
-            dm_visibility: object.get("dmVisibility").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
+            dm_visibility: object.get("dmVisibility").and_then(|value| value.as_str().map(String::from).filter(|decoded| decoded.as_str() == "PUBLIC" || decoded.as_str() == "FRIENDS" || decoded.as_str() == "PRIVATE")).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "VisibilityController_getUserSettings",
                 field: "dmVisibility",
             })?,
-            friend_list_visibility: object.get("friendListVisibility").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
+            friend_list_visibility: object.get("friendListVisibility").and_then(|value| value.as_str().map(String::from).filter(|decoded| decoded.as_str() == "PUBLIC" || decoded.as_str() == "FRIENDS" || decoded.as_str() == "PRIVATE")).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "VisibilityController_getUserSettings",
                 field: "friendListVisibility",
             })?,
-            friend_request_visibility: object.get("friendRequestVisibility").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
+            friend_request_visibility: object.get("friendRequestVisibility").and_then(|value| value.as_str().map(String::from).filter(|decoded| decoded.as_str() == "PUBLIC" || decoded.as_str() == "FRIENDS" || decoded.as_str() == "PRIVATE")).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "VisibilityController_getUserSettings",
                 field: "friendRequestVisibility",
             })?,
-            mention_visibility: object.get("mentionVisibility").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
+            mention_visibility: object.get("mentionVisibility").and_then(|value| value.as_str().map(String::from).filter(|decoded| decoded.as_str() == "PUBLIC" || decoded.as_str() == "FRIENDS" || decoded.as_str() == "PRIVATE")).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "VisibilityController_getUserSettings",
                 field: "mentionVisibility",
             })?,
-            online_status_visibility: object.get("onlineStatusVisibility").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
+            online_status_visibility: object.get("onlineStatusVisibility").and_then(|value| value.as_str().map(String::from).filter(|decoded| decoded.as_str() == "PUBLIC" || decoded.as_str() == "FRIENDS" || decoded.as_str() == "PRIVATE")).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "VisibilityController_getUserSettings",
                 field: "onlineStatusVisibility",
             })?,
-            profile_visibility: object.get("profileVisibility").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
+            profile_visibility: object.get("profileVisibility").and_then(|value| value.as_str().map(String::from).filter(|decoded| decoded.as_str() == "PUBLIC" || decoded.as_str() == "FRIENDS" || decoded.as_str() == "PRIVATE")).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "VisibilityController_getUserSettings",
                 field: "profileVisibility",
             })?,
-            social_visibility: object.get("socialVisibility").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
+            social_visibility: object.get("socialVisibility").and_then(|value| value.as_str().map(String::from).filter(|decoded| decoded.as_str() == "PUBLIC" || decoded.as_str() == "FRIENDS" || decoded.as_str() == "PRIVATE")).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "VisibilityController_getUserSettings",
                 field: "socialVisibility",
             })?,
-            wallet_visibility: object.get("walletVisibility").and_then(|value| value.as_str().map(String::from)).ok_or(RealmTypedClientError::ResponseDecode {
+            wallet_visibility: object.get("walletVisibility").and_then(|value| value.as_str().map(String::from).filter(|decoded| decoded.as_str() == "PUBLIC" || decoded.as_str() == "FRIENDS" || decoded.as_str() == "PRIVATE")).ok_or(RealmTypedClientError::ResponseDecode {
                 operation_id: "VisibilityController_getUserSettings",
                 field: "walletVisibility",
             })?,

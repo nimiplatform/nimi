@@ -787,4 +787,6 @@ function runtimeHealthStatusLabel(status: GetRuntimeHealthResponse['status'] | u
   return String(status ?? RuntimeHealthStatus.UNSPECIFIED);
 }
 export { SpeechTranscriptStatus } from '../core-generated/runtime-typed-client';
+export { connectRemoteRuntime, createBrowserRuntimePeer, type RuntimePeerConnection, type RuntimePeerFactory, type RemoteRuntimeConnectOptions, type RemoteRuntimeConnection } from './remote.js';
+export type { RuntimeDataChannel } from './remote-data-channel.js';
 export type { SpeechTranscript, SpeechTranscriptWord } from '../core-generated/runtime-typed-client';

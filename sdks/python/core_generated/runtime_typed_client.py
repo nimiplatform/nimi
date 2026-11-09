@@ -213,6 +213,9 @@ ReasonCode = Literal["REASON_CODE_UNSPECIFIED", "ACTION_EXECUTED", "PROTOCOL_ENV
 ReasoningActivation = Literal["REASONING_ACTIVATION_UNSPECIFIED", "REASONING_ACTIVATION_DISABLED", "REASONING_ACTIVATION_ADAPTIVE", "REASONING_ACTIVATION_REQUIRED"]
 ReasoningEffort = Literal["REASONING_EFFORT_UNSPECIFIED", "REASONING_EFFORT_MINIMAL", "REASONING_EFFORT_LOW", "REASONING_EFFORT_MEDIUM", "REASONING_EFFORT_HIGH", "REASONING_EFFORT_MAXIMUM", "REASONING_EFFORT_XHIGH", "REASONING_EFFORT_MODEL_DEFAULT"]
 ReasoningPresentation = Literal["REASONING_PRESENTATION_UNSPECIFIED", "REASONING_PRESENTATION_HIDDEN", "REASONING_PRESENTATION_SUMMARY"]
+RemoteAccessConnectionState = Literal["REMOTE_ACCESS_CONNECTION_STATE_UNSPECIFIED", "REMOTE_ACCESS_CONNECTION_STATE_DISABLED", "REMOTE_ACCESS_CONNECTION_STATE_CONNECTING", "REMOTE_ACCESS_CONNECTION_STATE_LISTENING", "REMOTE_ACCESS_CONNECTION_STATE_UNAVAILABLE"]
+RemoteSourceAccessState = Literal["REMOTE_SOURCE_ACCESS_STATE_UNSPECIFIED", "REMOTE_SOURCE_ACCESS_STATE_PENDING", "REMOTE_SOURCE_ACCESS_STATE_ALLOWED", "REMOTE_SOURCE_ACCESS_STATE_PAUSED", "REMOTE_SOURCE_ACCESS_STATE_CHANGED"]
+RemoteTransportFrameKind = Literal["REMOTE_TRANSPORT_FRAME_KIND_UNSPECIFIED", "REMOTE_TRANSPORT_FRAME_KIND_REQUEST", "REMOTE_TRANSPORT_FRAME_KIND_RESPONSE", "REMOTE_TRANSPORT_FRAME_KIND_STREAM_DATA", "REMOTE_TRANSPORT_FRAME_KIND_STREAM_END", "REMOTE_TRANSPORT_FRAME_KIND_ERROR", "REMOTE_TRANSPORT_FRAME_KIND_CANCEL"]
 ResponseFormatKind = Literal["RESPONSE_FORMAT_KIND_UNSPECIFIED", "RESPONSE_FORMAT_KIND_TEXT", "RESPONSE_FORMAT_KIND_JSON_OBJECT", "RESPONSE_FORMAT_KIND_JSON_SCHEMA"]
 RoutePolicy = Literal["ROUTE_POLICY_UNSPECIFIED", "ROUTE_POLICY_LOCAL", "ROUTE_POLICY_CLOUD"]
 RuntimeHealthStatus = Literal["RUNTIME_HEALTH_STATUS_UNSPECIFIED", "RUNTIME_HEALTH_STATUS_STOPPED", "RUNTIME_HEALTH_STATUS_STARTING", "RUNTIME_HEALTH_STATUS_READY", "RUNTIME_HEALTH_STATUS_DEGRADED", "RUNTIME_HEALTH_STATUS_STOPPING"]
@@ -2042,6 +2045,16 @@ class CompleteProductControlFirstRunDeviceEnvironmentScanRequest:
     pass
 
 @dataclass(frozen=True)
+class ConfirmRemoteSourceRequest:
+    pending_request_id: str | None = None
+    expected_binding_id: str | None = None
+
+@dataclass(frozen=True)
+class ConfirmRemoteSourceResponse:
+    state: GetRemoteAccessStateResponse | None = None
+    audit_diagnostic: ErrorInfo | None = None
+
+@dataclass(frozen=True)
 class Connector:
     connector_id: str | None = None
     kind: ConnectorKind | None = None
@@ -3028,6 +3041,20 @@ class GetModelAssetResponse:
     asset: ModelAssetRecord | None = None
 
 @dataclass(frozen=True)
+class GetPrimaryRuntimeStateRequest:
+    pass
+
+@dataclass(frozen=True)
+class GetPrimaryRuntimeStateResponse:
+    runtime_id: str | None = None
+    primary_runtime_id: str | None = None
+    binding_id: str | None = None
+    display_name: str | None = None
+    this_runtime: bool | None = None
+    valid_after: str | None = None
+    lease_expires_at: str | None = None
+
+@dataclass(frozen=True)
 class GetProductControlCheckSyncRequest:
     pass
 
@@ -3050,6 +3077,19 @@ class GetPublicChatSessionSnapshotRequest:
 @dataclass(frozen=True)
 class GetPublicChatSessionSnapshotResponse:
     snapshot: Mapping[str, object] | None = None
+
+@dataclass(frozen=True)
+class GetRemoteAccessStateRequest:
+    pass
+
+@dataclass(frozen=True)
+class GetRemoteAccessStateResponse:
+    enabled: bool | None = None
+    binding_id: str | None = None
+    connection_state: RemoteAccessConnectionState | None = None
+    sources: tuple[RemoteAccessSource, ...] = field(default_factory=tuple)
+    connected_peers: int | None = None
+    reason_code: str | None = None
 
 @dataclass(frozen=True)
 class GetRuntimeHealthRequest:
@@ -5864,6 +5904,18 @@ class PrepareLocalAppPackageResponse:
     reason_code: ReasonCode | None = None
 
 @dataclass(frozen=True)
+class PreparePrimaryRuntimeRequest:
+    action: str | None = None
+    expected_binding_id: str | None = None
+    display_name: str | None = None
+
+@dataclass(frozen=True)
+class PreparePrimaryRuntimeResponse:
+    intent_id: str | None = None
+    confirmation_url: str | None = None
+    expires_at: str | None = None
+
+@dataclass(frozen=True)
 class PreviewSharedLocalAgentAIProfileRequest:
     context: AgentRequestContext | None = None
     profile_json: bytes | None = None
@@ -6356,6 +6408,46 @@ class RegisterLocalDevelopmentProjectRequest:
 class RegisterLocalDevelopmentProjectResponse:
     registration: LocalDevelopmentRegistrationProjection | None = None
     reason_code: ReasonCode | None = None
+
+@dataclass(frozen=True)
+class RejectRemoteSourceRequest:
+    pending_request_id: str | None = None
+    expected_binding_id: str | None = None
+
+@dataclass(frozen=True)
+class RejectRemoteSourceResponse:
+    state: GetRemoteAccessStateResponse | None = None
+
+@dataclass(frozen=True)
+class RemoteAccessSource:
+    client_id: str | None = None
+    app_id: str | None = None
+    display_name: str | None = None
+    origin: str | None = None
+    source_revision: int | None = None
+    official_manager: bool | None = None
+    app_access: tuple[str, ...] = field(default_factory=tuple)
+    capability_contract_refs: tuple[str, ...] = field(default_factory=tuple)
+    state: RemoteSourceAccessState | None = None
+    pending_request_id: str | None = None
+
+@dataclass(frozen=True)
+class RemoteClientStreamRequest:
+    messages: tuple[bytes, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class RemoteTransportFrame:
+    kind: RemoteTransportFrameKind | None = None
+    request_id: int | None = None
+    method: str | None = None
+    payload: bytes | None = None
+    chunk_end: bool | None = None
+    grpc_code: int | None = None
+    message: str | None = None
+    error_info: ErrorInfo | None = None
+    timeout_ms: int | None = None
+    trace_id: str | None = None
+    idempotency_key: str | None = None
 
 @dataclass(frozen=True)
 class RemoveIntegrationConnectionRequest:
@@ -6913,6 +7005,27 @@ class SetLocalAppAgentMemoryEnabledResponse:
 class SetProductControlFirstRunInstallLevelRequest:
     install_level: str | None = None
     ai_profile_alias: str | None = None
+
+@dataclass(frozen=True)
+class SetRemoteAccessEnabledRequest:
+    enabled: bool | None = None
+    expected_binding_id: str | None = None
+
+@dataclass(frozen=True)
+class SetRemoteAccessEnabledResponse:
+    state: GetRemoteAccessStateResponse | None = None
+    audit_diagnostic: ErrorInfo | None = None
+
+@dataclass(frozen=True)
+class SetRemoteSourcePausedRequest:
+    client_id: str | None = None
+    paused: bool | None = None
+    expected_binding_id: str | None = None
+
+@dataclass(frozen=True)
+class SetRemoteSourcePausedResponse:
+    state: GetRemoteAccessStateResponse | None = None
+    audit_diagnostic: ErrorInfo | None = None
 
 @dataclass(frozen=True)
 class SharedLocalAgentPresetVoiceOption:
@@ -8174,6 +8287,10 @@ class RuntimeTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(GetAccountSessionStatusResponse, raw)
 
+    async def get_primary_runtime_state(self, request: GetPrimaryRuntimeStateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetPrimaryRuntimeStateResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/GetPrimaryRuntimeState", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetPrimaryRuntimeStateResponse, raw)
+
     async def invoke_realm_unary(self, request: InvokeRealmUnaryRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> InvokeRealmUnaryResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(InvokeRealmUnaryResponse, raw)
@@ -8181,6 +8298,10 @@ class RuntimeTypedClient:
     async def logout(self, request: LogoutRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> LogoutResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/Logout", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(LogoutResponse, raw)
+
+    async def prepare_primary_runtime(self, request: PreparePrimaryRuntimeRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> PreparePrimaryRuntimeResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/PreparePrimaryRuntime", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(PreparePrimaryRuntimeResponse, raw)
 
     async def request_presence_verification(self, request: RequestPresenceVerificationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RequestPresenceVerificationResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
@@ -9275,6 +9396,26 @@ class RuntimeTypedClient:
 
     def subscribe_realm_realtime_events(self, request: SubscribeRealmRealtimeEventsRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> AsyncIterator[SubscribeRealmRealtimeEventsResponse]:
         return self._stream("/nimi.runtime.v1.RuntimeRealmRealtimeService/SubscribeRealmRealtimeEvents", _model_body(request), SubscribeRealmRealtimeEventsResponse, metadata=metadata, timeout_ms=timeout_ms)
+
+    async def confirm_remote_source(self, request: ConfirmRemoteSourceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> ConfirmRemoteSourceResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeRemoteAccessService/ConfirmRemoteSource", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(ConfirmRemoteSourceResponse, raw)
+
+    async def get_remote_access_state(self, request: GetRemoteAccessStateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetRemoteAccessStateResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeRemoteAccessService/GetRemoteAccessState", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(GetRemoteAccessStateResponse, raw)
+
+    async def reject_remote_source(self, request: RejectRemoteSourceRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RejectRemoteSourceResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeRemoteAccessService/RejectRemoteSource", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RejectRemoteSourceResponse, raw)
+
+    async def set_remote_access_enabled(self, request: SetRemoteAccessEnabledRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SetRemoteAccessEnabledResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteAccessEnabled", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(SetRemoteAccessEnabledResponse, raw)
+
+    async def set_remote_source_paused(self, request: SetRemoteSourcePausedRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> SetRemoteSourcePausedResponse:
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteSourcePaused", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(SetRemoteSourcePausedResponse, raw)
 
     async def get_runtime_service_state(self, request: GetRuntimeServiceStateRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> GetRuntimeServiceStateResponse:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState", body=_model_body(request), metadata=metadata, timeout_ms=timeout_ms))

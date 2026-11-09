@@ -2,6 +2,16 @@ format: nimicoding.authority/v2
 owner: team.sdks
 scope: sdks.realm-consumer
 units:
+  - id: rule.nimi.sdks.realm-consumer.runtime-client-context
+    kind: rule
+    title: Remote client sign-in binds the application user and exposes a narrow context
+    modality: must
+    statement: The SDK prepares an S256 authorization-code transaction for the configured official Nimi website, exact registered client and callback, canonical App and Realm environment, and an opaque generation supplied by the application's authenticated local user session. A Nimi-only application instead supplies a local sign-in-attempt generation, which proves no identity; only the verified Nimi exchange establishes its user. Secure randomness comes from the platform CSPRNG and the existing platform-independent SHA-256 supports native shells without a browser SubtleCrypto dependency. The SDK checks callback state and origin, expected existing Nimi association when supplied, and the captured application generation both before and after code exchange. The application owns persistent association and transaction custody; a username or unverified user field is not authentication. The resulting session holds only the opaque Runtime-client context, exposes typed identity and primary discovery, uses cookie-free generated Realm carriers without redirects, and never exposes a generic account client, Account bearer or AI-ready state. Local end immediately prevents further calls and late-result acceptance and requests exact Realm context revocation; account switch or unlink must end the old session. Lost responses do not replay authorization or business work.
+    condition: When Web or another remote client establishes or uses the current application user's Nimi context.
+    failure: Reject mismatched, canceled, stale or expired context, discard a late response and end any returned old context without applying it to a different application user; report remote revocation failures without making the closed local session usable again.
+    relations:
+      - type: applies_to
+        target: definition.nimi.sdks.realm-consumer.facade-plane
   - id: definition.nimi.sdks.realm-consumer.external-authority-plane
     kind: definition
     title: Realm external authority consumption plane
@@ -49,7 +59,7 @@ units:
     kind: rule
     title: Generated carriers are the consumer floor
     modality: must
-    statement: Stable Realm API consumption starts from a generated Realm carrier sourced from the configured Realm OpenAPI input, public SDK consumption starts from the generated Realm SDK core while Runtime's constructor-injected private RealmMaterializationIssuer starts from the sibling generated Runtime-private carrier because Runtime never imports SDK packages, both projections are emitted by the same SDK generator invocation from the same OpenAPI input, the closed Runtime-operation inventory is owned by the realm-private-operation-carriers table whose rows independently declare runtime_projection and public_sdk_disposition so Runtime generation never implies removal from the public SDK, account-auth operations including current-Account deletion plus typed deleted-Account login or refresh results and authn operations are generated for Runtime and retained in the public Web SDK while source-materialization packet and JWKS operations are generated for Runtime and forbidden in the public SDK, and Runtime output remains split into account-auth, authn, and source-materialization files so no generated carrier becomes a mixed-domain context sink.
+    statement: Stable Realm API consumption starts from a generated Realm carrier sourced from the configured Realm OpenAPI input, public SDK consumption starts from the generated Realm SDK core while Runtime's constructor-injected private RealmMaterializationIssuer starts from the sibling generated Runtime-private carrier because Runtime never imports SDK packages, both projections are emitted by the same SDK generator invocation from the same OpenAPI input, the closed Runtime-operation inventory is owned by the realm-private-operation-carriers table whose rows independently declare runtime_projection and public_sdk_disposition so Runtime generation never implies removal from the public SDK, account-auth operations including current-Account deletion plus typed deleted-Account login or refresh results and authn operations are generated for Runtime and retained in the public Web SDK while source-materialization packet and JWKS operations are generated for Runtime and forbidden in the public SDK, and Runtime output remains split into account-auth, authn, primary-runtime and source-materialization files so no generated carrier becomes a mixed-domain context sink.
     condition: Whenever Realm API carriers are generated or consumed.
     failure: Reject bypasses of generated Realm clients including app-local REST helpers, hand-authored endpoint strings, global OpenAPI singleton mutation, and duplicated response-shape declarations; handwritten SDK facades are admitted only when they wrap generated operations with typed fail-closed behavior and restore no second Realm contract.
     relations:

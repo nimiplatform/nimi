@@ -1,10 +1,11 @@
-import type { CoreResponseMetadataObserver, CoreStreamRequest, CoreUnaryRequest } from '../types';
+import type { CoreClientStreamRequest, CoreResponseMetadataObserver, CoreStreamRequest, CoreUnaryRequest } from '../types';
 
 export interface CoreTransport {
   unary<Response = unknown, Body = unknown>(request: CoreUnaryRequest<Body>): Promise<Response>;
   serverStream<Response = unknown, Body = unknown>(
     request: CoreStreamRequest<Body>,
   ): AsyncIterable<Response>;
+  clientStream?<Response = unknown, Body = unknown>(request: CoreClientStreamRequest<Body>): Promise<Response>;
 }
 
 export interface CoreClientOptions {
@@ -19,7 +20,7 @@ export class NimiCoreTransportRequiredError extends Error {
   readonly code = 'SDK_CORE_TRANSPORT_REQUIRED';
 
   constructor() {
-    super('CoreClient requires an explicit transport with unary and serverStream methods');
+    super('CoreClient requires unary and serverStream methods; clientStream, when present, must be a function');
     this.name = 'NimiCoreTransportRequiredError';
   }
 }
@@ -72,6 +73,17 @@ export class CoreClient {
       ...(this.#authMetadata ? await this.#authMetadata() : {}),
       ...(metadata ?? {}),
     };
+  }
+
+  // @nimi-authority: rule.nimi.sdks.client-core.remote-runtime-carrier
+  async clientStream<Response = unknown, Body = unknown>(request: CoreClientStreamRequest<Body>): Promise<Response> {
+    if (!this.#transport.clientStream) {
+      throw Object.assign(new Error('This transport does not support client-stream calls'), { code: 'SDK_RUNTIME_METHOD_UNAVAILABLE' });
+    }
+    return this.#transport.clientStream<Response, Body>({ ...request,
+      metadata: await this.#metadata(request.metadata),
+      responseMetadataObserver: combineResponseMetadataObservers(this.#responseMetadataObserver, request.responseMetadataObserver),
+    });
   }
 }
 
@@ -166,5 +178,6 @@ function isCoreTransport(value: unknown): value is CoreTransport {
     return false;
   }
   const candidate = value as Readonly<Record<string, unknown>>;
-  return typeof candidate.unary === 'function' && typeof candidate.serverStream === 'function';
+  return typeof candidate.unary === 'function' && typeof candidate.serverStream === 'function'
+    && (candidate.clientStream === undefined || typeof candidate.clientStream === 'function');
 }

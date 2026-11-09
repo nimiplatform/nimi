@@ -1,5 +1,23 @@
 format: nimicoding.scope-bindings/v1
 scopes:
+  - scope: runtime.remote-access
+    bindings:
+      - kind: path_glob
+        value: "runtime/internal/services/account/primary_*.go"
+      - kind: path_glob
+        value: "runtime/internal/localappkernel/remote_*.go"
+      - kind: path_glob
+        value: "runtime/internal/remoteaccess/**/*.go"
+      - kind: path_glob
+        value: "runtime/internal/grpcserver/remote_transport*.go"
+      - kind: path_glob
+        value: "runtime/internal/services/app/remote_app_session*.go"
+      - kind: path_glob
+        value: "proto/runtime/v1/remote_access.proto"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/features/settings/home-remote-access.tsx"
+      - kind: path_glob
+        value: "apps/desktop/src/shell/renderer/features/settings/home-primary-runtime.tsx"
   - scope: desktop.command-execution
     bindings:
       - kind: path_glob

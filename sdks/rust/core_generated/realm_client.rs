@@ -26,6 +26,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/human/handle/{handle}/friends"),
     },
     RealmOperationDescriptor {
+        operation_id: "answerPrimaryRuntimeConnection",
+        service: "Runtime access",
+        method: "POST",
+        path: Some("/api/auth/primary-runtime/connections/answer"),
+    },
+    RealmOperationDescriptor {
         operation_id: "applyFriendshipAction",
         service: "User",
         method: "POST",
@@ -44,10 +50,22 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/bundles/{bundleId}/archive"),
     },
     RealmOperationDescriptor {
+        operation_id: "authorizeRuntimeClient",
+        service: "Runtime access",
+        method: "POST",
+        path: Some("/api/auth/runtime-clients/authorize"),
+    },
+    RealmOperationDescriptor {
         operation_id: "bindEmail",
         service: "Auth",
         method: "POST",
         path: Some("/api/auth/me/email"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "bindMyPrimaryRuntime",
+        service: "Runtime access",
+        method: "POST",
+        path: Some("/api/auth/primary-runtime/bind"),
     },
     RealmOperationDescriptor {
         operation_id: "bindWallet",
@@ -92,6 +110,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/assets/{assetId}/clone"),
     },
     RealmOperationDescriptor {
+        operation_id: "confirmMyPrimaryRuntime",
+        service: "Runtime access",
+        method: "POST",
+        path: Some("/api/auth/primary-runtime/confirm"),
+    },
+    RealmOperationDescriptor {
         operation_id: "createAsset",
         service: "Assets",
         method: "POST",
@@ -114,6 +138,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Resources",
         method: "POST",
         path: Some("/api/resources/images/direct-upload"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "createRuntimeConnection",
+        service: "Runtime access",
+        method: "POST",
+        path: Some("/api/runtime-access/connections"),
     },
     RealmOperationDescriptor {
         operation_id: "createTextResource",
@@ -284,6 +314,18 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/auth/me/2fa/enable"),
     },
     RealmOperationDescriptor {
+        operation_id: "endRuntimeClientContext",
+        service: "Runtime access",
+        method: "POST",
+        path: Some("/api/runtime-access/context/end"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "exchangeRuntimeClientCode",
+        service: "Runtime access",
+        method: "POST",
+        path: Some("/api/runtime-access/token"),
+    },
+    RealmOperationDescriptor {
         operation_id: "exportMyAccount",
         service: "User",
         method: "POST",
@@ -392,6 +434,18 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/human/me/pp-config"),
     },
     RealmOperationDescriptor {
+        operation_id: "getMyPrimaryRuntime",
+        service: "Runtime access",
+        method: "GET",
+        path: Some("/api/auth/primary-runtime"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "getMyPrimaryRuntimeIntent",
+        service: "Runtime access",
+        method: "GET",
+        path: Some("/api/auth/primary-runtime/intent/{intentId}"),
+    },
+    RealmOperationDescriptor {
         operation_id: "getMyRelationshipWithUser",
         service: "User",
         method: "GET",
@@ -420,6 +474,24 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Resources",
         method: "GET",
         path: Some("/api/resources/{resourceId}"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "getRuntimeClientContext",
+        service: "Runtime access",
+        method: "GET",
+        path: Some("/api/runtime-access/context"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "getRuntimeClientSource",
+        service: "Runtime access",
+        method: "GET",
+        path: Some("/api/auth/runtime-clients/{clientId}"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "getRuntimeConnection",
+        service: "Runtime access",
+        method: "GET",
+        path: Some("/api/runtime-access/connections/{connectionId}"),
     },
     RealmOperationDescriptor {
         operation_id: "getUnreadCount",
@@ -584,6 +656,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/auth/password/register"),
     },
     RealmOperationDescriptor {
+        operation_id: "pollPrimaryRuntimeConnections",
+        service: "Runtime access",
+        method: "POST",
+        path: Some("/api/auth/primary-runtime/connections/poll"),
+    },
+    RealmOperationDescriptor {
         operation_id: "prepare2Fa",
         service: "Me2fa",
         method: "POST",
@@ -594,6 +672,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Me",
         method: "POST",
         path: Some("/api/human/me/wallets/prepare-bind"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "prepareMyPrimaryRuntime",
+        service: "Runtime access",
+        method: "POST",
+        path: Some("/api/auth/primary-runtime/prepare"),
     },
     RealmOperationDescriptor {
         operation_id: "publishBundle",
@@ -630,6 +714,18 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Auth",
         method: "POST",
         path: Some("/api/auth/refresh"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "reinitializeMyPrimaryRuntime",
+        service: "Runtime access",
+        method: "POST",
+        path: Some("/api/auth/primary-runtime/reinitialize"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "renewMyPrimaryRuntimeLease",
+        service: "Runtime access",
+        method: "POST",
+        path: Some("/api/auth/primary-runtime/lease"),
     },
     RealmOperationDescriptor {
         operation_id: "ReportController_createReport",

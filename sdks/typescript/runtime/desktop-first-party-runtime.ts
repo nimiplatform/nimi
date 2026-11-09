@@ -124,6 +124,8 @@ export type NimiDesktopMachineProductRuntimeClient = {
 };
 
 export type NimiDesktopAccountProductRuntimeClient = {
+  readonly primaryRuntime: Pick<DesktopAccountProductRuntimeMethods, 'getPrimaryRuntimeState' | 'preparePrimaryRuntime'>;
+  readonly remoteAccess: Pick<DesktopAccountProductRuntimeMethods, 'getRemoteAccessState' | 'setRemoteAccessEnabled' | 'confirmRemoteSource' | 'rejectRemoteSource' | 'setRemoteSourcePaused'>;
   readonly audit: Pick<DesktopAccountProductRuntimeMethods,
     | 'getDesktopAIActivitySnapshot'
     | 'subscribeDesktopAIActivity'
@@ -543,6 +545,17 @@ export function createNimiDesktopFirstPartyRuntimeClients(
       }),
     }),
     accountProduct: Object.freeze({
+      primaryRuntime: Object.freeze({
+        getPrimaryRuntimeState: protectedGenerated.getPrimaryRuntimeState.bind(protectedGenerated),
+        preparePrimaryRuntime: protectedGenerated.preparePrimaryRuntime.bind(protectedGenerated),
+      }),
+      remoteAccess: Object.freeze({
+        getRemoteAccessState: protectedGenerated.getRemoteAccessState.bind(protectedGenerated),
+        setRemoteAccessEnabled: protectedGenerated.setRemoteAccessEnabled.bind(protectedGenerated),
+        confirmRemoteSource: protectedGenerated.confirmRemoteSource.bind(protectedGenerated),
+        rejectRemoteSource: protectedGenerated.rejectRemoteSource.bind(protectedGenerated),
+        setRemoteSourcePaused: protectedGenerated.setRemoteSourcePaused.bind(protectedGenerated),
+      }),
       audit: accountAudit,
       configurationReferences: Object.freeze({
         listDesktopConnectorReferences: (request: Parameters<DesktopAccountProductRuntimeMethods['listDesktopConnectorReferences']>[0], options?: RuntimeTypedCallOptions) => protectedGenerated.listDesktopConnectorReferences(validateConnectorReferencesRequest(request), options),

@@ -1,0 +1,28 @@
+format: nimicoding.authority/v2
+owner: team.platform
+scope: platform.app-ecosystem
+units:
+  - id: definition.nimi.platform.remote-clients.registration
+    kind: definition
+    title: Registry admitted remote application source
+    meaning: A remote client registration belongs to the same Git-reviewed nimiplatform/nimi-app-registry authority as native package admission. Its remote-clients.json document maps a stable client identifier to one canonical App identity, publisher, display name, source kind and exact source, callback, source revision, App access declaration, capability references, current active or paused status, and human review. A website is a mutable deployment and requires no fictitious package, immutable release or byte digest. Explicit App identity mapping determines whether Web and native clients share the current user's App configuration; branding or publisher equality does not. Registration confers neither user identity nor Runtime admission.
+  - id: rule.nimi.platform.remote-clients.web-registration
+    kind: rule
+    title: Web sources use exact registered origins and callbacks
+    modality: must
+    statement: The first remote registration carrier admits Web sources with an exact canonical HTTPS origin and one exact same-origin HTTPS callback without userinfo, query or fragment. Wildcards, caller-supplied callbacks and client secrets are absent. A client identifier cannot be reassigned to a different canonical App. Source, callback, role, declaration or capability changes advance the source revision by one and require new Runtime source confirmation; ordinary website content updates need no byte proof. Display changes and pause or resume retain the source revision, and pausing preserves application data and the owner's prior source decision. Unsupported native source carriers remain unavailable until their own source proof is implemented, without creating a different business permission model.
+    condition: When a remote Web source is registered, changed or consumed.
+    failure: Reject malformed or unreviewed entries, callback or origin mismatch, identifier reassignment, wrong revision or paused source before issuing a current use context; never infer native process identity from a Web origin.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.remote-clients.registration
+  - id: rule.nimi.platform.remote-clients.review-and-role
+    kind: rule
+    title: Registry review establishes source qualification only
+    modality: must
+    statement: Remote registration changes use a human Registry maintainer decision and the existing Git review boundary. Deterministic validation checks shape, exact identity, changed source revision and the actual maintainer actor; it never authors an approval. The Registry's app or official_manager role is maintainer-owned qualification, not a publisher declaration or a request field. Official manager qualification does not itself authorize Runtime management; each connection still needs the current primary owner's verified identity and management session, and the PC Home confirms once per Account, primary Runtime and management application/source rather than per browser or device. App access declaration and resource decisions retain their existing Runtime owners. Registry publication never asserts a completed or reachable remote AI path.
+    condition: When a remote source is admitted, paused, resumed or used to establish client qualification.
+    failure: Reject automated or self-reported approval and role elevation, unrelated App identity and any attempt to treat source qualification as owner consent or Runtime operation permission.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.remote-clients.registration

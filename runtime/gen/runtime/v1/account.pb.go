@@ -2290,6 +2290,254 @@ func (x *SwitchAccountResponse) GetAuditDiagnostic() *ErrorInfo {
 	return nil
 }
 
+type GetPrimaryRuntimeStateRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *GetPrimaryRuntimeStateRequest) Reset() {
+	*x = GetPrimaryRuntimeStateRequest{}
+	mi := &file_runtime_v1_account_proto_msgTypes[21]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPrimaryRuntimeStateRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPrimaryRuntimeStateRequest) ProtoMessage() {}
+
+func (x *GetPrimaryRuntimeStateRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_account_proto_msgTypes[21]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPrimaryRuntimeStateRequest.ProtoReflect.Descriptor instead.
+func (*GetPrimaryRuntimeStateRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{21}
+}
+
+type GetPrimaryRuntimeStateResponse struct {
+	state            protoimpl.MessageState `protogen:"open.v1"`
+	RuntimeId        string                 `protobuf:"bytes,1,opt,name=runtime_id,json=runtimeId,proto3" json:"runtime_id,omitempty"`
+	PrimaryRuntimeId string                 `protobuf:"bytes,2,opt,name=primary_runtime_id,json=primaryRuntimeId,proto3" json:"primary_runtime_id,omitempty"`
+	BindingId        string                 `protobuf:"bytes,3,opt,name=binding_id,json=bindingId,proto3" json:"binding_id,omitempty"`
+	DisplayName      string                 `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	ThisRuntime      bool                   `protobuf:"varint,5,opt,name=this_runtime,json=thisRuntime,proto3" json:"this_runtime,omitempty"`
+	ValidAfter       string                 `protobuf:"bytes,6,opt,name=valid_after,json=validAfter,proto3" json:"valid_after,omitempty"`
+	LeaseExpiresAt   string                 `protobuf:"bytes,7,opt,name=lease_expires_at,json=leaseExpiresAt,proto3" json:"lease_expires_at,omitempty"`
+	unknownFields    protoimpl.UnknownFields
+	sizeCache        protoimpl.SizeCache
+}
+
+func (x *GetPrimaryRuntimeStateResponse) Reset() {
+	*x = GetPrimaryRuntimeStateResponse{}
+	mi := &file_runtime_v1_account_proto_msgTypes[22]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *GetPrimaryRuntimeStateResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*GetPrimaryRuntimeStateResponse) ProtoMessage() {}
+
+func (x *GetPrimaryRuntimeStateResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_account_proto_msgTypes[22]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use GetPrimaryRuntimeStateResponse.ProtoReflect.Descriptor instead.
+func (*GetPrimaryRuntimeStateResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{22}
+}
+
+func (x *GetPrimaryRuntimeStateResponse) GetRuntimeId() string {
+	if x != nil {
+		return x.RuntimeId
+	}
+	return ""
+}
+
+func (x *GetPrimaryRuntimeStateResponse) GetPrimaryRuntimeId() string {
+	if x != nil {
+		return x.PrimaryRuntimeId
+	}
+	return ""
+}
+
+func (x *GetPrimaryRuntimeStateResponse) GetBindingId() string {
+	if x != nil {
+		return x.BindingId
+	}
+	return ""
+}
+
+func (x *GetPrimaryRuntimeStateResponse) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+func (x *GetPrimaryRuntimeStateResponse) GetThisRuntime() bool {
+	if x != nil {
+		return x.ThisRuntime
+	}
+	return false
+}
+
+func (x *GetPrimaryRuntimeStateResponse) GetValidAfter() string {
+	if x != nil {
+		return x.ValidAfter
+	}
+	return ""
+}
+
+func (x *GetPrimaryRuntimeStateResponse) GetLeaseExpiresAt() string {
+	if x != nil {
+		return x.LeaseExpiresAt
+	}
+	return ""
+}
+
+type PreparePrimaryRuntimeRequest struct {
+	state             protoimpl.MessageState `protogen:"open.v1"`
+	Action            string                 `protobuf:"bytes,1,opt,name=action,proto3" json:"action,omitempty"`
+	ExpectedBindingId string                 `protobuf:"bytes,2,opt,name=expected_binding_id,json=expectedBindingId,proto3" json:"expected_binding_id,omitempty"`
+	DisplayName       string                 `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
+	unknownFields     protoimpl.UnknownFields
+	sizeCache         protoimpl.SizeCache
+}
+
+func (x *PreparePrimaryRuntimeRequest) Reset() {
+	*x = PreparePrimaryRuntimeRequest{}
+	mi := &file_runtime_v1_account_proto_msgTypes[23]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PreparePrimaryRuntimeRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PreparePrimaryRuntimeRequest) ProtoMessage() {}
+
+func (x *PreparePrimaryRuntimeRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_account_proto_msgTypes[23]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PreparePrimaryRuntimeRequest.ProtoReflect.Descriptor instead.
+func (*PreparePrimaryRuntimeRequest) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{23}
+}
+
+func (x *PreparePrimaryRuntimeRequest) GetAction() string {
+	if x != nil {
+		return x.Action
+	}
+	return ""
+}
+
+func (x *PreparePrimaryRuntimeRequest) GetExpectedBindingId() string {
+	if x != nil {
+		return x.ExpectedBindingId
+	}
+	return ""
+}
+
+func (x *PreparePrimaryRuntimeRequest) GetDisplayName() string {
+	if x != nil {
+		return x.DisplayName
+	}
+	return ""
+}
+
+type PreparePrimaryRuntimeResponse struct {
+	state           protoimpl.MessageState `protogen:"open.v1"`
+	IntentId        string                 `protobuf:"bytes,1,opt,name=intent_id,json=intentId,proto3" json:"intent_id,omitempty"`
+	ConfirmationUrl string                 `protobuf:"bytes,2,opt,name=confirmation_url,json=confirmationUrl,proto3" json:"confirmation_url,omitempty"`
+	ExpiresAt       string                 `protobuf:"bytes,3,opt,name=expires_at,json=expiresAt,proto3" json:"expires_at,omitempty"`
+	unknownFields   protoimpl.UnknownFields
+	sizeCache       protoimpl.SizeCache
+}
+
+func (x *PreparePrimaryRuntimeResponse) Reset() {
+	*x = PreparePrimaryRuntimeResponse{}
+	mi := &file_runtime_v1_account_proto_msgTypes[24]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *PreparePrimaryRuntimeResponse) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*PreparePrimaryRuntimeResponse) ProtoMessage() {}
+
+func (x *PreparePrimaryRuntimeResponse) ProtoReflect() protoreflect.Message {
+	mi := &file_runtime_v1_account_proto_msgTypes[24]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use PreparePrimaryRuntimeResponse.ProtoReflect.Descriptor instead.
+func (*PreparePrimaryRuntimeResponse) Descriptor() ([]byte, []int) {
+	return file_runtime_v1_account_proto_rawDescGZIP(), []int{24}
+}
+
+func (x *PreparePrimaryRuntimeResponse) GetIntentId() string {
+	if x != nil {
+		return x.IntentId
+	}
+	return ""
+}
+
+func (x *PreparePrimaryRuntimeResponse) GetConfirmationUrl() string {
+	if x != nil {
+		return x.ConfirmationUrl
+	}
+	return ""
+}
+
+func (x *PreparePrimaryRuntimeResponse) GetExpiresAt() string {
+	if x != nil {
+		return x.ExpiresAt
+	}
+	return ""
+}
+
 var File_runtime_v1_account_proto protoreflect.FileDescriptor
 
 const file_runtime_v1_account_proto_rawDesc = "" +
@@ -2457,7 +2705,28 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"reasonCode\x12R\n" +
 	"\x13account_reason_code\x18\x05 \x01(\x0e2\".nimi.runtime.v1.AccountReasonCodeR\x11accountReasonCode\x12)\n" +
 	"\x10production_inert\x18\x06 \x01(\bR\x0fproductionInert\x12E\n" +
-	"\x10audit_diagnostic\x18\a \x01(\v2\x1a.nimi.runtime.v1.ErrorInfoR\x0fauditDiagnostic*\x9f\x03\n" +
+	"\x10audit_diagnostic\x18\a \x01(\v2\x1a.nimi.runtime.v1.ErrorInfoR\x0fauditDiagnostic\"\x1f\n" +
+	"\x1dGetPrimaryRuntimeStateRequest\"\x9d\x02\n" +
+	"\x1eGetPrimaryRuntimeStateResponse\x12\x1d\n" +
+	"\n" +
+	"runtime_id\x18\x01 \x01(\tR\truntimeId\x12,\n" +
+	"\x12primary_runtime_id\x18\x02 \x01(\tR\x10primaryRuntimeId\x12\x1d\n" +
+	"\n" +
+	"binding_id\x18\x03 \x01(\tR\tbindingId\x12!\n" +
+	"\fdisplay_name\x18\x04 \x01(\tR\vdisplayName\x12!\n" +
+	"\fthis_runtime\x18\x05 \x01(\bR\vthisRuntime\x12\x1f\n" +
+	"\vvalid_after\x18\x06 \x01(\tR\n" +
+	"validAfter\x12(\n" +
+	"\x10lease_expires_at\x18\a \x01(\tR\x0eleaseExpiresAt\"\x89\x01\n" +
+	"\x1cPreparePrimaryRuntimeRequest\x12\x16\n" +
+	"\x06action\x18\x01 \x01(\tR\x06action\x12.\n" +
+	"\x13expected_binding_id\x18\x02 \x01(\tR\x11expectedBindingId\x12!\n" +
+	"\fdisplay_name\x18\x03 \x01(\tR\vdisplayName\"\x86\x01\n" +
+	"\x1dPreparePrimaryRuntimeResponse\x12\x1b\n" +
+	"\tintent_id\x18\x01 \x01(\tR\bintentId\x12)\n" +
+	"\x10confirmation_url\x18\x02 \x01(\tR\x0fconfirmationUrl\x12\x1d\n" +
+	"\n" +
+	"expires_at\x18\x03 \x01(\tR\texpiresAt*\x9f\x03\n" +
 	"\x13AccountSessionState\x12%\n" +
 	"!ACCOUNT_SESSION_STATE_UNSPECIFIED\x10\x00\x12#\n" +
 	"\x1fACCOUNT_SESSION_STATE_ANONYMOUS\x10\x01\x12'\n" +
@@ -2553,8 +2822,10 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"!WORKSPACE_MEMBERSHIP_STATE_ACTIVE\x10\x01\x12(\n" +
 	"$WORKSPACE_MEMBERSHIP_STATE_SUSPENDED\x10\x02\x12&\n" +
 	"\"WORKSPACE_MEMBERSHIP_STATE_REVOKED\x10\x03\x12&\n" +
-	"\"WORKSPACE_MEMBERSHIP_STATE_UNKNOWN\x10\x042\xeb\x06\n" +
-	"\x15RuntimeAccountService\x12|\n" +
+	"\"WORKSPACE_MEMBERSHIP_STATE_UNKNOWN\x10\x042\xde\b\n" +
+	"\x15RuntimeAccountService\x12y\n" +
+	"\x16GetPrimaryRuntimeState\x12..nimi.runtime.v1.GetPrimaryRuntimeStateRequest\x1a/.nimi.runtime.v1.GetPrimaryRuntimeStateResponse\x12v\n" +
+	"\x15PreparePrimaryRuntime\x12-.nimi.runtime.v1.PreparePrimaryRuntimeRequest\x1a..nimi.runtime.v1.PreparePrimaryRuntimeResponse\x12|\n" +
 	"\x17GetAccountSessionStatus\x12/.nimi.runtime.v1.GetAccountSessionStatusRequest\x1a0.nimi.runtime.v1.GetAccountSessionStatusResponse\x12~\n" +
 	"\x1dSubscribeAccountSessionEvents\x125.nimi.runtime.v1.SubscribeAccountSessionEventsRequest\x1a$.nimi.runtime.v1.AccountSessionEvent0\x01\x12U\n" +
 	"\n" +
@@ -2578,7 +2849,7 @@ func file_runtime_v1_account_proto_rawDescGZIP() []byte {
 }
 
 var file_runtime_v1_account_proto_enumTypes = make([]protoimpl.EnumInfo, 8)
-var file_runtime_v1_account_proto_msgTypes = make([]protoimpl.MessageInfo, 22)
+var file_runtime_v1_account_proto_msgTypes = make([]protoimpl.MessageInfo, 26)
 var file_runtime_v1_account_proto_goTypes = []any{
 	(AccountSessionState)(0),                     // 0: nimi.runtime.v1.AccountSessionState
 	(AccountEventType)(0),                        // 1: nimi.runtime.v1.AccountEventType
@@ -2609,82 +2880,90 @@ var file_runtime_v1_account_proto_goTypes = []any{
 	(*LogoutResponse)(nil),                       // 26: nimi.runtime.v1.LogoutResponse
 	(*SwitchAccountRequest)(nil),                 // 27: nimi.runtime.v1.SwitchAccountRequest
 	(*SwitchAccountResponse)(nil),                // 28: nimi.runtime.v1.SwitchAccountResponse
-	nil,                                          // 29: nimi.runtime.v1.WorkspaceMembershipProjection.DisplayMetadataEntry
-	(*timestamppb.Timestamp)(nil),                // 30: google.protobuf.Timestamp
-	(ReasonCode)(0),                              // 31: nimi.runtime.v1.ReasonCode
-	(*ErrorInfo)(nil),                            // 32: nimi.runtime.v1.ErrorInfo
+	(*GetPrimaryRuntimeStateRequest)(nil),        // 29: nimi.runtime.v1.GetPrimaryRuntimeStateRequest
+	(*GetPrimaryRuntimeStateResponse)(nil),       // 30: nimi.runtime.v1.GetPrimaryRuntimeStateResponse
+	(*PreparePrimaryRuntimeRequest)(nil),         // 31: nimi.runtime.v1.PreparePrimaryRuntimeRequest
+	(*PreparePrimaryRuntimeResponse)(nil),        // 32: nimi.runtime.v1.PreparePrimaryRuntimeResponse
+	nil,                                          // 33: nimi.runtime.v1.WorkspaceMembershipProjection.DisplayMetadataEntry
+	(*timestamppb.Timestamp)(nil),                // 34: google.protobuf.Timestamp
+	(ReasonCode)(0),                              // 35: nimi.runtime.v1.ReasonCode
+	(*ErrorInfo)(nil),                            // 36: nimi.runtime.v1.ErrorInfo
 }
 var file_runtime_v1_account_proto_depIdxs = []int32{
 	7,  // 0: nimi.runtime.v1.WorkspaceMembershipProjection.membership_state:type_name -> nimi.runtime.v1.WorkspaceMembershipState
-	30, // 1: nimi.runtime.v1.WorkspaceMembershipProjection.observed_at:type_name -> google.protobuf.Timestamp
-	29, // 2: nimi.runtime.v1.WorkspaceMembershipProjection.display_metadata:type_name -> nimi.runtime.v1.WorkspaceMembershipProjection.DisplayMetadataEntry
+	34, // 1: nimi.runtime.v1.WorkspaceMembershipProjection.observed_at:type_name -> google.protobuf.Timestamp
+	33, // 2: nimi.runtime.v1.WorkspaceMembershipProjection.display_metadata:type_name -> nimi.runtime.v1.WorkspaceMembershipProjection.DisplayMetadataEntry
 	8,  // 3: nimi.runtime.v1.AccountProjection.workspace_memberships:type_name -> nimi.runtime.v1.WorkspaceMembershipProjection
 	0,  // 4: nimi.runtime.v1.AccountSessionSnapshot.state:type_name -> nimi.runtime.v1.AccountSessionState
-	31, // 5: nimi.runtime.v1.AccountSessionSnapshot.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	35, // 5: nimi.runtime.v1.AccountSessionSnapshot.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3,  // 6: nimi.runtime.v1.AccountSessionSnapshot.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
 	9,  // 7: nimi.runtime.v1.AccountSessionSnapshot.account_projection:type_name -> nimi.runtime.v1.AccountProjection
-	32, // 8: nimi.runtime.v1.AccountSessionSnapshot.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
+	36, // 8: nimi.runtime.v1.AccountSessionSnapshot.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
 	10, // 9: nimi.runtime.v1.AccountSessionSnapshot.deleted_owner:type_name -> nimi.runtime.v1.DeletedAccountOwner
 	6,  // 10: nimi.runtime.v1.AccountCaller.mode:type_name -> nimi.runtime.v1.AccountCallerMode
-	30, // 11: nimi.runtime.v1.AccountSessionEvent.emitted_at:type_name -> google.protobuf.Timestamp
+	34, // 11: nimi.runtime.v1.AccountSessionEvent.emitted_at:type_name -> google.protobuf.Timestamp
 	1,  // 12: nimi.runtime.v1.AccountSessionEvent.event_type:type_name -> nimi.runtime.v1.AccountEventType
 	2,  // 13: nimi.runtime.v1.AccountSessionEvent.delivery_kind:type_name -> nimi.runtime.v1.AccountSessionDeliveryKind
 	11, // 14: nimi.runtime.v1.AccountSessionEvent.snapshot:type_name -> nimi.runtime.v1.AccountSessionSnapshot
 	12, // 15: nimi.runtime.v1.GetAccountSessionStatusRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	31, // 16: nimi.runtime.v1.GetAccountSessionStatusResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	35, // 16: nimi.runtime.v1.GetAccountSessionStatusResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3,  // 17: nimi.runtime.v1.GetAccountSessionStatusResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
 	11, // 18: nimi.runtime.v1.GetAccountSessionStatusResponse.snapshot:type_name -> nimi.runtime.v1.AccountSessionSnapshot
 	12, // 19: nimi.runtime.v1.SubscribeAccountSessionEventsRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
 	12, // 20: nimi.runtime.v1.BeginLoginRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	30, // 21: nimi.runtime.v1.BeginLoginResponse.expires_at:type_name -> google.protobuf.Timestamp
-	31, // 22: nimi.runtime.v1.BeginLoginResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	34, // 21: nimi.runtime.v1.BeginLoginResponse.expires_at:type_name -> google.protobuf.Timestamp
+	35, // 22: nimi.runtime.v1.BeginLoginResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3,  // 23: nimi.runtime.v1.BeginLoginResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	32, // 24: nimi.runtime.v1.BeginLoginResponse.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
+	36, // 24: nimi.runtime.v1.BeginLoginResponse.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
 	12, // 25: nimi.runtime.v1.CompleteLoginRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
 	0,  // 26: nimi.runtime.v1.CompleteLoginResponse.state:type_name -> nimi.runtime.v1.AccountSessionState
 	9,  // 27: nimi.runtime.v1.CompleteLoginResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
-	31, // 28: nimi.runtime.v1.CompleteLoginResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	35, // 28: nimi.runtime.v1.CompleteLoginResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3,  // 29: nimi.runtime.v1.CompleteLoginResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	32, // 30: nimi.runtime.v1.CompleteLoginResponse.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
+	36, // 30: nimi.runtime.v1.CompleteLoginResponse.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
 	12, // 31: nimi.runtime.v1.RequestPresenceVerificationRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
 	4,  // 32: nimi.runtime.v1.RequestPresenceVerificationResponse.state:type_name -> nimi.runtime.v1.PresenceVerificationState
 	5,  // 33: nimi.runtime.v1.RequestPresenceVerificationResponse.method:type_name -> nimi.runtime.v1.PresenceVerificationMethod
-	30, // 34: nimi.runtime.v1.RequestPresenceVerificationResponse.verified_until:type_name -> google.protobuf.Timestamp
+	34, // 34: nimi.runtime.v1.RequestPresenceVerificationResponse.verified_until:type_name -> google.protobuf.Timestamp
 	9,  // 35: nimi.runtime.v1.RequestPresenceVerificationResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
-	31, // 36: nimi.runtime.v1.RequestPresenceVerificationResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	35, // 36: nimi.runtime.v1.RequestPresenceVerificationResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3,  // 37: nimi.runtime.v1.RequestPresenceVerificationResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
 	12, // 38: nimi.runtime.v1.InvokeRealmUnaryRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
-	31, // 39: nimi.runtime.v1.InvokeRealmUnaryResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	35, // 39: nimi.runtime.v1.InvokeRealmUnaryResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3,  // 40: nimi.runtime.v1.InvokeRealmUnaryResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
 	12, // 41: nimi.runtime.v1.LogoutRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
 	0,  // 42: nimi.runtime.v1.LogoutResponse.state:type_name -> nimi.runtime.v1.AccountSessionState
-	31, // 43: nimi.runtime.v1.LogoutResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	35, // 43: nimi.runtime.v1.LogoutResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3,  // 44: nimi.runtime.v1.LogoutResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	32, // 45: nimi.runtime.v1.LogoutResponse.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
+	36, // 45: nimi.runtime.v1.LogoutResponse.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
 	12, // 46: nimi.runtime.v1.SwitchAccountRequest.caller:type_name -> nimi.runtime.v1.AccountCaller
 	0,  // 47: nimi.runtime.v1.SwitchAccountResponse.state:type_name -> nimi.runtime.v1.AccountSessionState
 	9,  // 48: nimi.runtime.v1.SwitchAccountResponse.account_projection:type_name -> nimi.runtime.v1.AccountProjection
-	31, // 49: nimi.runtime.v1.SwitchAccountResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
+	35, // 49: nimi.runtime.v1.SwitchAccountResponse.reason_code:type_name -> nimi.runtime.v1.ReasonCode
 	3,  // 50: nimi.runtime.v1.SwitchAccountResponse.account_reason_code:type_name -> nimi.runtime.v1.AccountReasonCode
-	32, // 51: nimi.runtime.v1.SwitchAccountResponse.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
-	14, // 52: nimi.runtime.v1.RuntimeAccountService.GetAccountSessionStatus:input_type -> nimi.runtime.v1.GetAccountSessionStatusRequest
-	16, // 53: nimi.runtime.v1.RuntimeAccountService.SubscribeAccountSessionEvents:input_type -> nimi.runtime.v1.SubscribeAccountSessionEventsRequest
-	17, // 54: nimi.runtime.v1.RuntimeAccountService.BeginLogin:input_type -> nimi.runtime.v1.BeginLoginRequest
-	19, // 55: nimi.runtime.v1.RuntimeAccountService.CompleteLogin:input_type -> nimi.runtime.v1.CompleteLoginRequest
-	21, // 56: nimi.runtime.v1.RuntimeAccountService.RequestPresenceVerification:input_type -> nimi.runtime.v1.RequestPresenceVerificationRequest
-	23, // 57: nimi.runtime.v1.RuntimeAccountService.InvokeRealmUnary:input_type -> nimi.runtime.v1.InvokeRealmUnaryRequest
-	25, // 58: nimi.runtime.v1.RuntimeAccountService.Logout:input_type -> nimi.runtime.v1.LogoutRequest
-	27, // 59: nimi.runtime.v1.RuntimeAccountService.SwitchAccount:input_type -> nimi.runtime.v1.SwitchAccountRequest
-	15, // 60: nimi.runtime.v1.RuntimeAccountService.GetAccountSessionStatus:output_type -> nimi.runtime.v1.GetAccountSessionStatusResponse
-	13, // 61: nimi.runtime.v1.RuntimeAccountService.SubscribeAccountSessionEvents:output_type -> nimi.runtime.v1.AccountSessionEvent
-	18, // 62: nimi.runtime.v1.RuntimeAccountService.BeginLogin:output_type -> nimi.runtime.v1.BeginLoginResponse
-	20, // 63: nimi.runtime.v1.RuntimeAccountService.CompleteLogin:output_type -> nimi.runtime.v1.CompleteLoginResponse
-	22, // 64: nimi.runtime.v1.RuntimeAccountService.RequestPresenceVerification:output_type -> nimi.runtime.v1.RequestPresenceVerificationResponse
-	24, // 65: nimi.runtime.v1.RuntimeAccountService.InvokeRealmUnary:output_type -> nimi.runtime.v1.InvokeRealmUnaryResponse
-	26, // 66: nimi.runtime.v1.RuntimeAccountService.Logout:output_type -> nimi.runtime.v1.LogoutResponse
-	28, // 67: nimi.runtime.v1.RuntimeAccountService.SwitchAccount:output_type -> nimi.runtime.v1.SwitchAccountResponse
-	60, // [60:68] is the sub-list for method output_type
-	52, // [52:60] is the sub-list for method input_type
+	36, // 51: nimi.runtime.v1.SwitchAccountResponse.audit_diagnostic:type_name -> nimi.runtime.v1.ErrorInfo
+	29, // 52: nimi.runtime.v1.RuntimeAccountService.GetPrimaryRuntimeState:input_type -> nimi.runtime.v1.GetPrimaryRuntimeStateRequest
+	31, // 53: nimi.runtime.v1.RuntimeAccountService.PreparePrimaryRuntime:input_type -> nimi.runtime.v1.PreparePrimaryRuntimeRequest
+	14, // 54: nimi.runtime.v1.RuntimeAccountService.GetAccountSessionStatus:input_type -> nimi.runtime.v1.GetAccountSessionStatusRequest
+	16, // 55: nimi.runtime.v1.RuntimeAccountService.SubscribeAccountSessionEvents:input_type -> nimi.runtime.v1.SubscribeAccountSessionEventsRequest
+	17, // 56: nimi.runtime.v1.RuntimeAccountService.BeginLogin:input_type -> nimi.runtime.v1.BeginLoginRequest
+	19, // 57: nimi.runtime.v1.RuntimeAccountService.CompleteLogin:input_type -> nimi.runtime.v1.CompleteLoginRequest
+	21, // 58: nimi.runtime.v1.RuntimeAccountService.RequestPresenceVerification:input_type -> nimi.runtime.v1.RequestPresenceVerificationRequest
+	23, // 59: nimi.runtime.v1.RuntimeAccountService.InvokeRealmUnary:input_type -> nimi.runtime.v1.InvokeRealmUnaryRequest
+	25, // 60: nimi.runtime.v1.RuntimeAccountService.Logout:input_type -> nimi.runtime.v1.LogoutRequest
+	27, // 61: nimi.runtime.v1.RuntimeAccountService.SwitchAccount:input_type -> nimi.runtime.v1.SwitchAccountRequest
+	30, // 62: nimi.runtime.v1.RuntimeAccountService.GetPrimaryRuntimeState:output_type -> nimi.runtime.v1.GetPrimaryRuntimeStateResponse
+	32, // 63: nimi.runtime.v1.RuntimeAccountService.PreparePrimaryRuntime:output_type -> nimi.runtime.v1.PreparePrimaryRuntimeResponse
+	15, // 64: nimi.runtime.v1.RuntimeAccountService.GetAccountSessionStatus:output_type -> nimi.runtime.v1.GetAccountSessionStatusResponse
+	13, // 65: nimi.runtime.v1.RuntimeAccountService.SubscribeAccountSessionEvents:output_type -> nimi.runtime.v1.AccountSessionEvent
+	18, // 66: nimi.runtime.v1.RuntimeAccountService.BeginLogin:output_type -> nimi.runtime.v1.BeginLoginResponse
+	20, // 67: nimi.runtime.v1.RuntimeAccountService.CompleteLogin:output_type -> nimi.runtime.v1.CompleteLoginResponse
+	22, // 68: nimi.runtime.v1.RuntimeAccountService.RequestPresenceVerification:output_type -> nimi.runtime.v1.RequestPresenceVerificationResponse
+	24, // 69: nimi.runtime.v1.RuntimeAccountService.InvokeRealmUnary:output_type -> nimi.runtime.v1.InvokeRealmUnaryResponse
+	26, // 70: nimi.runtime.v1.RuntimeAccountService.Logout:output_type -> nimi.runtime.v1.LogoutResponse
+	28, // 71: nimi.runtime.v1.RuntimeAccountService.SwitchAccount:output_type -> nimi.runtime.v1.SwitchAccountResponse
+	62, // [62:72] is the sub-list for method output_type
+	52, // [52:62] is the sub-list for method input_type
 	52, // [52:52] is the sub-list for extension type_name
 	52, // [52:52] is the sub-list for extension extendee
 	0,  // [0:52] is the sub-list for field type_name
@@ -2702,7 +2981,7 @@ func file_runtime_v1_account_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_runtime_v1_account_proto_rawDesc), len(file_runtime_v1_account_proto_rawDesc)),
 			NumEnums:      8,
-			NumMessages:   22,
+			NumMessages:   26,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

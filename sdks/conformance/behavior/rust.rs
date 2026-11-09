@@ -7,6 +7,7 @@ use crate::core_generated::typed_clients::{
     RealmCheckHandleOperationPath, RealmCheckHandleOperationQuery,
     RealmCheckHandleOperationRequest, RealmGetMutualFriendsCountOperationRequest,
     RealmGetMyTiersOperationRequest, RealmTypedClient, RealmTypedClientError, RuntimeTypedClient,
+    RealmEndRuntimeClientContextOperationRequest,
     RuntimeTypedClientError, ReasonCode,
 };
 use crate::types::{CoreErrorShape, CoreMetadata, CoreStreamRequest, CoreUnaryRequest};
@@ -49,6 +50,13 @@ impl CoreTransport for FakeTransport {
 
     fn unary(&self, request: CoreUnaryRequest) -> Result<Vec<u8>, Self::Error> {
         let body = body_json(&request.body);
+        if request.method_id == "endRuntimeClientContext" {
+            return Ok(match request.metadata.get("x-boolean-enum-case").map(String::as_str) {
+                Some("wrong-type") => br#"{"ended":"true"}"#.to_vec(),
+                Some("outside-enum") => br#"{"ended":false}"#.to_vec(),
+                _ => br#"{"ended":true}"#.to_vec(),
+            });
+        }
         if json_text(&body, &["redirect_uri"]) == Some("force-error") {
             return Err(CoreErrorShape {
                 code: "SDK_RUNTIME_METHOD_UNAVAILABLE".to_string(),
@@ -161,6 +169,23 @@ fn auth_metadata() -> CoreMetadata {
         "conformance-token-id".to_string(),
     );
     metadata
+}
+
+#[test]
+fn realm_boolean_enum_preserves_type_and_rejects_other_values() {
+    let core = crate::core_client::CoreClient::new(FakeTransport, Some(auth_metadata));
+    let client = RealmTypedClient::new(core);
+    let response = client.end_runtime_client_context(
+        RealmEndRuntimeClientContextOperationRequest::default(), BTreeMap::new(), None,
+    ).expect("boolean enum response");
+    assert!(response.ended);
+    for case in ["wrong-type", "outside-enum"] {
+        let mut metadata = BTreeMap::new();
+        metadata.insert("x-boolean-enum-case".to_string(), case.to_string());
+        assert!(matches!(client.end_runtime_client_context(
+            RealmEndRuntimeClientContextOperationRequest::default(), metadata, None,
+        ), Err(RealmTypedClientError::ResponseDecode { field: "ended", .. })));
+    }
 }
 
 fn account_caller() -> AccountCaller {

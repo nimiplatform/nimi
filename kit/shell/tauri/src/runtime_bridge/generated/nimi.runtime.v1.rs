@@ -2056,8 +2056,8 @@ pub struct RequestRuntimeRestartResponse {
     #[prost(enumeration = "ReasonCode", tag = "2")]
     pub reason_code: i32,
 }
-/// The verified Home host requests an orderly product exit. Acceptance is not
-/// proof of process termination; the native carrier must observe it separately.
+/// The verified Home host or current remote owner manager requests an orderly
+/// product exit. Acceptance is not proof of process termination.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct RequestRuntimeStopRequest {}
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -2068,7 +2068,8 @@ pub struct RequestRuntimeStopResponse {
     pub reason_code: i32,
 }
 /// GetRuntimeServiceStateRequest is intentionally empty; the verified
-/// desktop_control connection is the complete authority input.
+/// desktop_control connection or verified remote owner-manager session supplies
+/// the authority input. No caller-selected account or role is accepted.
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct GetRuntimeServiceStateRequest {}
 #[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
@@ -2606,6 +2607,43 @@ pub struct SwitchAccountResponse {
     pub production_inert: bool,
     #[prost(message, optional, tag = "7")]
     pub audit_diagnostic: ::core::option::Option<ErrorInfo>,
+}
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetPrimaryRuntimeStateRequest {}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetPrimaryRuntimeStateResponse {
+    #[prost(string, tag = "1")]
+    pub runtime_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub primary_runtime_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub binding_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(bool, tag = "5")]
+    pub this_runtime: bool,
+    #[prost(string, tag = "6")]
+    pub valid_after: ::prost::alloc::string::String,
+    #[prost(string, tag = "7")]
+    pub lease_expires_at: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PreparePrimaryRuntimeRequest {
+    #[prost(string, tag = "1")]
+    pub action: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub expected_binding_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub display_name: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct PreparePrimaryRuntimeResponse {
+    #[prost(string, tag = "1")]
+    pub intent_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub confirmation_url: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub expires_at: ::prost::alloc::string::String,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
@@ -3171,6 +3209,64 @@ pub mod runtime_account_service_client {
         pub fn max_encoding_message_size(mut self, limit: usize) -> Self {
             self.inner = self.inner.max_encoding_message_size(limit);
             self
+        }
+        pub async fn get_primary_runtime_state(
+            &mut self,
+            request: impl tonic::IntoRequest<super::GetPrimaryRuntimeStateRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::GetPrimaryRuntimeStateResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAccountService/GetPrimaryRuntimeState",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAccountService",
+                        "GetPrimaryRuntimeState",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn prepare_primary_runtime(
+            &mut self,
+            request: impl tonic::IntoRequest<super::PreparePrimaryRuntimeRequest>,
+        ) -> std::result::Result<
+            tonic::Response<super::PreparePrimaryRuntimeResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAccountService/PreparePrimaryRuntime",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAccountService",
+                        "PreparePrimaryRuntime",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
         }
         pub async fn get_account_session_status(
             &mut self,

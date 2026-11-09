@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { CoreClient, type CoreTransport, NimiCoreTransportRequiredError } from './index';
-import type { CoreStreamRequest, CoreUnaryRequest } from '../types';
+import type { CoreClientStreamRequest, CoreStreamRequest, CoreUnaryRequest } from '../types';
 
 async function expectWithin<T>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
@@ -148,4 +148,37 @@ test('CoreClient serverStream return cancels pending transport streams', async (
   assert.deepEqual(returned, { done: true, value: undefined });
   assert.equal(returnCalled, true);
   assert.deepEqual(pendingNextResult, { done: true, value: undefined });
+});
+
+test('CoreClient clientStream preserves its source, controls and metadata observers', async () => {
+  const chunks = (async function* () { yield { part: 1 }; yield { part: 2 }; })();
+  const controller = new AbortController();
+  const metadata: unknown[] = [];
+  class UploadTransport extends FakeCoreTransport {
+    async clientStream<Response>(request: CoreClientStreamRequest): Promise<Response> {
+      assert.equal(request.body, chunks);
+      assert.equal(request.signal, controller.signal);
+      assert.equal(request.timeoutMs, 500);
+      assert.deepEqual(request.metadata, { authorization: 'core-fixture', traceId: 'upload' });
+      request.responseMetadataObserver?.({ revision: '1' });
+      const values = [];
+      for await (const value of request.body) values.push(value);
+      return values as Response;
+    }
+  }
+  const client = new CoreClient({ transport: new UploadTransport(), authMetadata: () => ({ authorization: 'core-fixture' }),
+    responseMetadataObserver: value => metadata.push(value) });
+  assert.deepEqual(await client.clientStream({ methodId: '/example/Upload', body: chunks, signal: controller.signal,
+    timeoutMs: 500, metadata: { traceId: 'upload' }, responseMetadataObserver: value => metadata.push(value) }), [{ part: 1 }, { part: 2 }]);
+  assert.deepEqual(metadata, [{ revision: '1' }, { revision: '1' }]);
+});
+
+test('CoreClient rejects an unavailable client-stream carrier before reading the source', async () => {
+  let consumed = false;
+  const body = (async function* () { consumed = true; yield {}; })();
+  await assert.rejects(new CoreClient({ transport: new FakeCoreTransport() }).clientStream({ methodId: '/example/Upload', body }),
+    { code: 'SDK_RUNTIME_METHOD_UNAVAILABLE' });
+  assert.equal(consumed, false);
+  const invalid = Object.assign(new FakeCoreTransport(), { clientStream: true });
+  assert.throws(() => new CoreClient({ transport: invalid as unknown as CoreTransport }), NimiCoreTransportRequiredError);
 });

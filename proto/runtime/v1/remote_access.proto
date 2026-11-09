@@ -1,0 +1,125 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "runtime/v1/common.proto";
+
+enum RemoteAccessConnectionState {
+  REMOTE_ACCESS_CONNECTION_STATE_UNSPECIFIED = 0;
+  REMOTE_ACCESS_CONNECTION_STATE_DISABLED = 1;
+  REMOTE_ACCESS_CONNECTION_STATE_CONNECTING = 2;
+  REMOTE_ACCESS_CONNECTION_STATE_LISTENING = 3;
+  REMOTE_ACCESS_CONNECTION_STATE_UNAVAILABLE = 4;
+}
+
+enum RemoteSourceAccessState {
+  REMOTE_SOURCE_ACCESS_STATE_UNSPECIFIED = 0;
+  REMOTE_SOURCE_ACCESS_STATE_PENDING = 1;
+  REMOTE_SOURCE_ACCESS_STATE_ALLOWED = 2;
+  REMOTE_SOURCE_ACCESS_STATE_PAUSED = 3;
+  REMOTE_SOURCE_ACCESS_STATE_CHANGED = 4;
+}
+
+message RemoteAccessSource {
+  string client_id = 1;
+  string app_id = 2;
+  string display_name = 3;
+  string origin = 4;
+  uint64 source_revision = 5;
+  bool official_manager = 6;
+  repeated string app_access = 7;
+  repeated string capability_contract_refs = 8;
+  RemoteSourceAccessState state = 9;
+  string pending_request_id = 10;
+}
+
+message GetRemoteAccessStateRequest {}
+
+message GetRemoteAccessStateResponse {
+  bool enabled = 1;
+  string binding_id = 2;
+  RemoteAccessConnectionState connection_state = 3;
+  repeated RemoteAccessSource sources = 4;
+  uint32 connected_peers = 5;
+  string reason_code = 6;
+}
+
+message SetRemoteAccessEnabledRequest {
+  bool enabled = 1;
+  string expected_binding_id = 2;
+}
+message SetRemoteAccessEnabledResponse {
+  GetRemoteAccessStateResponse state = 1;
+  ErrorInfo audit_diagnostic = 2;
+}
+
+message ConfirmRemoteSourceRequest {
+  string pending_request_id = 1;
+  string expected_binding_id = 2;
+}
+message ConfirmRemoteSourceResponse {
+  GetRemoteAccessStateResponse state = 1;
+  ErrorInfo audit_diagnostic = 2;
+}
+
+message RejectRemoteSourceRequest {
+  string pending_request_id = 1;
+  string expected_binding_id = 2;
+}
+message RejectRemoteSourceResponse { GetRemoteAccessStateResponse state = 1; }
+
+message SetRemoteSourcePausedRequest {
+  string client_id = 1;
+  bool paused = 2;
+  string expected_binding_id = 3;
+}
+message SetRemoteSourcePausedResponse {
+  GetRemoteAccessStateResponse state = 1;
+  ErrorInfo audit_diagnostic = 2;
+}
+
+service RuntimeRemoteAccessService {
+  rpc GetRemoteAccessState(GetRemoteAccessStateRequest) returns (GetRemoteAccessStateResponse);
+  rpc SetRemoteAccessEnabled(SetRemoteAccessEnabledRequest) returns (SetRemoteAccessEnabledResponse);
+  rpc ConfirmRemoteSource(ConfirmRemoteSourceRequest) returns (ConfirmRemoteSourceResponse);
+  rpc RejectRemoteSource(RejectRemoteSourceRequest) returns (RejectRemoteSourceResponse);
+  rpc SetRemoteSourcePaused(SetRemoteSourcePausedRequest) returns (SetRemoteSourcePausedResponse);
+}
+
+// Direct data-channel framing contains no caller identity, bearer, native
+// profile or authorization input. Runtime binds those facts to the peer.
+enum RemoteTransportFrameKind {
+  REMOTE_TRANSPORT_FRAME_KIND_UNSPECIFIED = 0;
+  REMOTE_TRANSPORT_FRAME_KIND_REQUEST = 1;
+  REMOTE_TRANSPORT_FRAME_KIND_RESPONSE = 2;
+  REMOTE_TRANSPORT_FRAME_KIND_STREAM_DATA = 3;
+  REMOTE_TRANSPORT_FRAME_KIND_STREAM_END = 4;
+  REMOTE_TRANSPORT_FRAME_KIND_ERROR = 5;
+  REMOTE_TRANSPORT_FRAME_KIND_CANCEL = 6;
+}
+
+message RemoteTransportFrame {
+  RemoteTransportFrameKind kind = 1;
+  uint32 request_id = 2;
+  string method = 3;
+  bytes payload = 4;
+  bool chunk_end = 5;
+  uint32 grpc_code = 6;
+  string message = 7;
+  ErrorInfo error_info = 8;
+  uint32 timeout_ms = 9;
+  string trace_id = 10;
+  // Non-authorizing operation control from the existing typed SDK. This is
+  // never a caller identity or a promise of automatic request replay.
+  string idempotency_key = 11;
+}
+
+// A finite client-stream invocation uses one assembled REQUEST payload. Runtime
+// classifies the method, then decodes each existing method-specific request.
+// Completion of this envelope supplies the request EOF; it is not a live or
+// bidirectional stream and carries no caller authority.
+message RemoteClientStreamRequest {
+  repeated bytes messages = 1;
+}

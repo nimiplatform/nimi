@@ -157,6 +157,43 @@
       ]
     },
     {
+      "operation_id": "answerPrimaryRuntimeConnection",
+      "method": "POST",
+      "path": "/api/auth/primary-runtime/connections/answer",
+      "service": "Runtime access",
+      "tags": [
+        "Runtime access"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/RuntimeConnectionAnswerDto",
+        "ref_name": "RuntimeConnectionAnswerDto"
+      },
+      "request_schema_ref": "#/components/schemas/RuntimeConnectionAnswerDto",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "201",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/RuntimeConnectionStateDto",
+            "ref_name": "RuntimeConnectionStateDto"
+          },
+          "schema_ref": "#/components/schemas/RuntimeConnectionStateDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/RuntimeConnectionStateDto"
+        }
+      ]
+    },
+    {
       "operation_id": "applyFriendshipAction",
       "method": "POST",
       "path": "/api/human/accounts/{id}/friendship-actions",
@@ -360,6 +397,43 @@
       ]
     },
     {
+      "operation_id": "authorizeRuntimeClient",
+      "method": "POST",
+      "path": "/api/auth/runtime-clients/authorize",
+      "service": "Runtime access",
+      "tags": [
+        "Runtime access"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/RuntimeClientAuthorizationDto",
+        "ref_name": "RuntimeClientAuthorizationDto"
+      },
+      "request_schema_ref": "#/components/schemas/RuntimeClientAuthorizationDto",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "201",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/RuntimeClientCodeDto",
+            "ref_name": "RuntimeClientCodeDto"
+          },
+          "schema_ref": "#/components/schemas/RuntimeClientCodeDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/RuntimeClientCodeDto"
+        }
+      ]
+    },
+    {
       "operation_id": "bindEmail",
       "method": "POST",
       "path": "/api/auth/me/email",
@@ -458,6 +532,43 @@
         {
           "status": "503",
           "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "bindMyPrimaryRuntime",
+      "method": "POST",
+      "path": "/api/auth/primary-runtime/bind",
+      "service": "Runtime access",
+      "tags": [
+        "Runtime access"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/PrimaryRuntimeBindDto",
+        "ref_name": "PrimaryRuntimeBindDto"
+      },
+      "request_schema_ref": "#/components/schemas/PrimaryRuntimeBindDto",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "201",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/PrimaryRuntimeMutationDto",
+            "ref_name": "PrimaryRuntimeMutationDto"
+          },
+          "schema_ref": "#/components/schemas/PrimaryRuntimeMutationDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/PrimaryRuntimeMutationDto"
         }
       ]
     },
@@ -988,6 +1099,43 @@
       ]
     },
     {
+      "operation_id": "confirmMyPrimaryRuntime",
+      "method": "POST",
+      "path": "/api/auth/primary-runtime/confirm",
+      "service": "Runtime access",
+      "tags": [
+        "Runtime access"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/PrimaryRuntimeConfirmDto",
+        "ref_name": "PrimaryRuntimeConfirmDto"
+      },
+      "request_schema_ref": "#/components/schemas/PrimaryRuntimeConfirmDto",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "201",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/PrimaryRuntimeMutationDto",
+            "ref_name": "PrimaryRuntimeMutationDto"
+          },
+          "schema_ref": "#/components/schemas/PrimaryRuntimeMutationDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/PrimaryRuntimeMutationDto"
+        }
+      ]
+    },
+    {
       "operation_id": "createAsset",
       "method": "POST",
       "path": "/api/assets",
@@ -1132,6 +1280,43 @@
         {
           "status": "201",
           "schema_ref": "#/components/schemas/ResourceDirectUploadSessionDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "createRuntimeConnection",
+      "method": "POST",
+      "path": "/api/runtime-access/connections",
+      "service": "Runtime access",
+      "tags": [
+        "Runtime access"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/RuntimeConnectionCreateDto",
+        "ref_name": "RuntimeConnectionCreateDto"
+      },
+      "request_schema_ref": "#/components/schemas/RuntimeConnectionCreateDto",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "201",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/RuntimeConnectionStateDto",
+            "ref_name": "RuntimeConnectionStateDto"
+          },
+          "schema_ref": "#/components/schemas/RuntimeConnectionStateDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/RuntimeConnectionStateDto"
         }
       ]
     },
@@ -2625,6 +2810,78 @@
       ]
     },
     {
+      "operation_id": "endRuntimeClientContext",
+      "method": "POST",
+      "path": "/api/runtime-access/context/end",
+      "service": "Runtime access",
+      "tags": [
+        "Runtime access"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "201",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/RuntimeClientEndDto",
+            "ref_name": "RuntimeClientEndDto"
+          },
+          "schema_ref": "#/components/schemas/RuntimeClientEndDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/RuntimeClientEndDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "exchangeRuntimeClientCode",
+      "method": "POST",
+      "path": "/api/runtime-access/token",
+      "service": "Runtime access",
+      "tags": [
+        "Runtime access"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/RuntimeClientExchangeDto",
+        "ref_name": "RuntimeClientExchangeDto"
+      },
+      "request_schema_ref": "#/components/schemas/RuntimeClientExchangeDto",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "201",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/RuntimeClientTokenDto",
+            "ref_name": "RuntimeClientTokenDto"
+          },
+          "schema_ref": "#/components/schemas/RuntimeClientTokenDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/RuntimeClientTokenDto"
+        }
+      ]
+    },
+    {
       "operation_id": "exportMyAccount",
       "method": "POST",
       "path": "/api/human/me/export",
@@ -3739,6 +3996,108 @@
       ]
     },
     {
+      "operation_id": "getMyPrimaryRuntime",
+      "method": "GET",
+      "path": "/api/auth/primary-runtime",
+      "service": "Runtime access",
+      "tags": [
+        "Runtime access"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/PrimaryRuntimeSnapshotDto",
+            "ref_name": "PrimaryRuntimeSnapshotDto"
+          },
+          "schema_ref": "#/components/schemas/PrimaryRuntimeSnapshotDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/PrimaryRuntimeSnapshotDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getMyPrimaryRuntimeIntent",
+      "method": "GET",
+      "path": "/api/auth/primary-runtime/intent/{intentId}",
+      "service": "Runtime access",
+      "tags": [
+        "Runtime access"
+      ],
+      "parameters": [
+        {
+          "name": "intentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "intentId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/PrimaryRuntimeIntentDto",
+            "ref_name": "PrimaryRuntimeIntentDto"
+          },
+          "schema_ref": "#/components/schemas/PrimaryRuntimeIntentDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/PrimaryRuntimeIntentDto"
+        }
+      ]
+    },
+    {
       "operation_id": "getMyRelationshipWithUser",
       "method": "GET",
       "path": "/api/human/accounts/{id}/relationship",
@@ -3974,6 +4333,175 @@
         {
           "status": "200",
           "schema_ref": "#/components/schemas/ResourceDetailDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getRuntimeClientContext",
+      "method": "GET",
+      "path": "/api/runtime-access/context",
+      "service": "Runtime access",
+      "tags": [
+        "Runtime access"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/RuntimeClientContextDto",
+            "ref_name": "RuntimeClientContextDto"
+          },
+          "schema_ref": "#/components/schemas/RuntimeClientContextDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/RuntimeClientContextDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getRuntimeClientSource",
+      "method": "GET",
+      "path": "/api/auth/runtime-clients/{clientId}",
+      "service": "Runtime access",
+      "tags": [
+        "Runtime access"
+      ],
+      "parameters": [
+        {
+          "name": "clientId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "clientId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/RuntimeClientSourceDto",
+            "ref_name": "RuntimeClientSourceDto"
+          },
+          "schema_ref": "#/components/schemas/RuntimeClientSourceDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/RuntimeClientSourceDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "getRuntimeConnection",
+      "method": "GET",
+      "path": "/api/runtime-access/connections/{connectionId}",
+      "service": "Runtime access",
+      "tags": [
+        "Runtime access"
+      ],
+      "parameters": [
+        {
+          "name": "connectionId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "path_parameters": [
+        {
+          "name": "connectionId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "kind": "scalar",
+            "type": "string",
+            "format": null,
+            "minimum": null,
+            "maximum": null,
+            "min_length": null,
+            "max_length": null,
+            "pattern": null
+          }
+        }
+      ],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "unknown"
+      },
+      "request_schema_ref": null,
+      "request_content_type": null,
+      "response_schemas": [
+        {
+          "status": "200",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/RuntimeConnectionStateDto",
+            "ref_name": "RuntimeConnectionStateDto"
+          },
+          "schema_ref": "#/components/schemas/RuntimeConnectionStateDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "200",
+          "schema_ref": "#/components/schemas/RuntimeConnectionStateDto"
         }
       ]
     },
@@ -6541,6 +7069,43 @@
       ]
     },
     {
+      "operation_id": "pollPrimaryRuntimeConnections",
+      "method": "POST",
+      "path": "/api/auth/primary-runtime/connections/poll",
+      "service": "Runtime access",
+      "tags": [
+        "Runtime access"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/RuntimeConnectionPollDto",
+        "ref_name": "RuntimeConnectionPollDto"
+      },
+      "request_schema_ref": "#/components/schemas/RuntimeConnectionPollDto",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "201",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/RuntimeConnectionPollResultDto",
+            "ref_name": "RuntimeConnectionPollResultDto"
+          },
+          "schema_ref": "#/components/schemas/RuntimeConnectionPollResultDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/RuntimeConnectionPollResultDto"
+        }
+      ]
+    },
+    {
       "operation_id": "prepare2Fa",
       "method": "POST",
       "path": "/api/auth/me/2fa/prepare",
@@ -6741,6 +7306,43 @@
         {
           "status": "429",
           "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "prepareMyPrimaryRuntime",
+      "method": "POST",
+      "path": "/api/auth/primary-runtime/prepare",
+      "service": "Runtime access",
+      "tags": [
+        "Runtime access"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/PrimaryRuntimePrepareDto",
+        "ref_name": "PrimaryRuntimePrepareDto"
+      },
+      "request_schema_ref": "#/components/schemas/PrimaryRuntimePrepareDto",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "201",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/PrimaryRuntimeIntentDto",
+            "ref_name": "PrimaryRuntimeIntentDto"
+          },
+          "schema_ref": "#/components/schemas/PrimaryRuntimeIntentDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/PrimaryRuntimeIntentDto"
         }
       ]
     },
@@ -7222,6 +7824,80 @@
         {
           "status": "503",
           "schema_ref": "#/components/schemas/AuthErrorDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "reinitializeMyPrimaryRuntime",
+      "method": "POST",
+      "path": "/api/auth/primary-runtime/reinitialize",
+      "service": "Runtime access",
+      "tags": [
+        "Runtime access"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/PrimaryRuntimeBindDto",
+        "ref_name": "PrimaryRuntimeBindDto"
+      },
+      "request_schema_ref": "#/components/schemas/PrimaryRuntimeBindDto",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "201",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/PrimaryRuntimeMutationDto",
+            "ref_name": "PrimaryRuntimeMutationDto"
+          },
+          "schema_ref": "#/components/schemas/PrimaryRuntimeMutationDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/PrimaryRuntimeMutationDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "renewMyPrimaryRuntimeLease",
+      "method": "POST",
+      "path": "/api/auth/primary-runtime/lease",
+      "service": "Runtime access",
+      "tags": [
+        "Runtime access"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/PrimaryRuntimeLeaseRequestDto",
+        "ref_name": "PrimaryRuntimeLeaseRequestDto"
+      },
+      "request_schema_ref": "#/components/schemas/PrimaryRuntimeLeaseRequestDto",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "201",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/PrimaryRuntimeSnapshotDto",
+            "ref_name": "PrimaryRuntimeSnapshotDto"
+          },
+          "schema_ref": "#/components/schemas/PrimaryRuntimeSnapshotDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/PrimaryRuntimeSnapshotDto"
         }
       ]
     },
@@ -12953,6 +13629,12 @@
       "path": "/api/human/handle/{handle}/friends"
     },
     {
+      "operation_id": "answerPrimaryRuntimeConnection",
+      "service": "Runtime access",
+      "method": "POST",
+      "path": "/api/auth/primary-runtime/connections/answer"
+    },
+    {
       "operation_id": "applyFriendshipAction",
       "service": "User",
       "method": "POST",
@@ -12971,10 +13653,22 @@
       "path": "/api/bundles/{bundleId}/archive"
     },
     {
+      "operation_id": "authorizeRuntimeClient",
+      "service": "Runtime access",
+      "method": "POST",
+      "path": "/api/auth/runtime-clients/authorize"
+    },
+    {
       "operation_id": "bindEmail",
       "service": "Auth",
       "method": "POST",
       "path": "/api/auth/me/email"
+    },
+    {
+      "operation_id": "bindMyPrimaryRuntime",
+      "service": "Runtime access",
+      "method": "POST",
+      "path": "/api/auth/primary-runtime/bind"
     },
     {
       "operation_id": "bindWallet",
@@ -13019,6 +13713,12 @@
       "path": "/api/assets/{assetId}/clone"
     },
     {
+      "operation_id": "confirmMyPrimaryRuntime",
+      "service": "Runtime access",
+      "method": "POST",
+      "path": "/api/auth/primary-runtime/confirm"
+    },
+    {
       "operation_id": "createAsset",
       "service": "Assets",
       "method": "POST",
@@ -13041,6 +13741,12 @@
       "service": "Resources",
       "method": "POST",
       "path": "/api/resources/images/direct-upload"
+    },
+    {
+      "operation_id": "createRuntimeConnection",
+      "service": "Runtime access",
+      "method": "POST",
+      "path": "/api/runtime-access/connections"
     },
     {
       "operation_id": "createTextResource",
@@ -13211,6 +13917,18 @@
       "path": "/api/auth/me/2fa/enable"
     },
     {
+      "operation_id": "endRuntimeClientContext",
+      "service": "Runtime access",
+      "method": "POST",
+      "path": "/api/runtime-access/context/end"
+    },
+    {
+      "operation_id": "exchangeRuntimeClientCode",
+      "service": "Runtime access",
+      "method": "POST",
+      "path": "/api/runtime-access/token"
+    },
+    {
       "operation_id": "exportMyAccount",
       "service": "User",
       "method": "POST",
@@ -13319,6 +14037,18 @@
       "path": "/api/human/me/pp-config"
     },
     {
+      "operation_id": "getMyPrimaryRuntime",
+      "service": "Runtime access",
+      "method": "GET",
+      "path": "/api/auth/primary-runtime"
+    },
+    {
+      "operation_id": "getMyPrimaryRuntimeIntent",
+      "service": "Runtime access",
+      "method": "GET",
+      "path": "/api/auth/primary-runtime/intent/{intentId}"
+    },
+    {
       "operation_id": "getMyRelationshipWithUser",
       "service": "User",
       "method": "GET",
@@ -13347,6 +14077,24 @@
       "service": "Resources",
       "method": "GET",
       "path": "/api/resources/{resourceId}"
+    },
+    {
+      "operation_id": "getRuntimeClientContext",
+      "service": "Runtime access",
+      "method": "GET",
+      "path": "/api/runtime-access/context"
+    },
+    {
+      "operation_id": "getRuntimeClientSource",
+      "service": "Runtime access",
+      "method": "GET",
+      "path": "/api/auth/runtime-clients/{clientId}"
+    },
+    {
+      "operation_id": "getRuntimeConnection",
+      "service": "Runtime access",
+      "method": "GET",
+      "path": "/api/runtime-access/connections/{connectionId}"
     },
     {
       "operation_id": "getUnreadCount",
@@ -13511,6 +14259,12 @@
       "path": "/api/auth/password/register"
     },
     {
+      "operation_id": "pollPrimaryRuntimeConnections",
+      "service": "Runtime access",
+      "method": "POST",
+      "path": "/api/auth/primary-runtime/connections/poll"
+    },
+    {
       "operation_id": "prepare2Fa",
       "service": "Me2fa",
       "method": "POST",
@@ -13521,6 +14275,12 @@
       "service": "Me",
       "method": "POST",
       "path": "/api/human/me/wallets/prepare-bind"
+    },
+    {
+      "operation_id": "prepareMyPrimaryRuntime",
+      "service": "Runtime access",
+      "method": "POST",
+      "path": "/api/auth/primary-runtime/prepare"
     },
     {
       "operation_id": "publishBundle",
@@ -13557,6 +14317,18 @@
       "service": "Auth",
       "method": "POST",
       "path": "/api/auth/refresh"
+    },
+    {
+      "operation_id": "reinitializeMyPrimaryRuntime",
+      "service": "Runtime access",
+      "method": "POST",
+      "path": "/api/auth/primary-runtime/reinitialize"
+    },
+    {
+      "operation_id": "renewMyPrimaryRuntimeLease",
+      "service": "Runtime access",
+      "method": "POST",
+      "path": "/api/auth/primary-runtime/lease"
     },
     {
       "operation_id": "ReportController_createReport",
@@ -14182,6 +14954,27 @@
         "getResource",
         "listResources",
         "updateResource"
+      ]
+    },
+    {
+      "name": "Runtime access",
+      "operation_ids": [
+        "answerPrimaryRuntimeConnection",
+        "authorizeRuntimeClient",
+        "bindMyPrimaryRuntime",
+        "confirmMyPrimaryRuntime",
+        "createRuntimeConnection",
+        "endRuntimeClientContext",
+        "exchangeRuntimeClientCode",
+        "getMyPrimaryRuntime",
+        "getMyPrimaryRuntimeIntent",
+        "getRuntimeClientContext",
+        "getRuntimeClientSource",
+        "getRuntimeConnection",
+        "pollPrimaryRuntimeConnections",
+        "prepareMyPrimaryRuntime",
+        "reinitializeMyPrimaryRuntime",
+        "renewMyPrimaryRuntimeLease"
       ]
     },
     {
@@ -14842,6 +15635,30 @@
       "name": "PresenceStatus"
     },
     {
+      "name": "PrimaryRuntimeBindDto"
+    },
+    {
+      "name": "PrimaryRuntimeBindingDto"
+    },
+    {
+      "name": "PrimaryRuntimeConfirmDto"
+    },
+    {
+      "name": "PrimaryRuntimeIntentDto"
+    },
+    {
+      "name": "PrimaryRuntimeLeaseRequestDto"
+    },
+    {
+      "name": "PrimaryRuntimeMutationDto"
+    },
+    {
+      "name": "PrimaryRuntimePrepareDto"
+    },
+    {
+      "name": "PrimaryRuntimeSnapshotDto"
+    },
+    {
       "name": "ProfileCoverageManifestV1Dto"
     },
     {
@@ -14942,6 +15759,48 @@
     },
     {
       "name": "RevokeAccountSessionsResultDto"
+    },
+    {
+      "name": "RuntimeClientAuthorizationDto"
+    },
+    {
+      "name": "RuntimeClientCodeDto"
+    },
+    {
+      "name": "RuntimeClientContextDto"
+    },
+    {
+      "name": "RuntimeClientEndDto"
+    },
+    {
+      "name": "RuntimeClientExchangeDto"
+    },
+    {
+      "name": "RuntimeClientPrimaryDto"
+    },
+    {
+      "name": "RuntimeClientSourceDto"
+    },
+    {
+      "name": "RuntimeClientTokenDto"
+    },
+    {
+      "name": "RuntimeConnectionAnswerDto"
+    },
+    {
+      "name": "RuntimeConnectionCreateDto"
+    },
+    {
+      "name": "RuntimeConnectionOfferDto"
+    },
+    {
+      "name": "RuntimeConnectionPollDto"
+    },
+    {
+      "name": "RuntimeConnectionPollResultDto"
+    },
+    {
+      "name": "RuntimeConnectionStateDto"
     },
     {
       "name": "SendMessageInputDto"
@@ -31722,6 +32581,760 @@
       }
     },
     {
+      "name": "PrimaryRuntimeBindDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "displayName",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": 80,
+              "pattern": null
+            }
+          },
+          {
+            "name": "expectedAccountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "expectedBindingId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "publicKey",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "runtimeId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "signature",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "signedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "expectedAccountId",
+          "expectedBindingId",
+          "runtimeId",
+          "displayName",
+          "publicKey",
+          "signedAt",
+          "signature"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "PrimaryRuntimeBindingDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "bindingId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "displayName",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "leaseExpiresAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "leaseVersion",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "publicKey",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "runtimeId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "validAfter",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "runtimeId",
+          "bindingId",
+          "displayName",
+          "publicKey",
+          "validAfter",
+          "leaseVersion",
+          "leaseExpiresAt"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "PrimaryRuntimeConfirmDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "expectedAccountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "intentId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "intentId",
+          "expectedAccountId"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "PrimaryRuntimeIntentDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "confirmationUrl",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uri",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "displayName",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "expectedAccountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "expiresAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "intentId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "operation",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "bind",
+                "reinitialize"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "runtimeId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "intentId",
+          "operation",
+          "displayName",
+          "runtimeId",
+          "expectedAccountId",
+          "expiresAt",
+          "confirmationUrl"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "PrimaryRuntimeLeaseRequestDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "bindingId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "expectedAccountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "leaseVersion",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "runtimeId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "signature",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "signedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "expectedAccountId",
+          "runtimeId",
+          "bindingId",
+          "leaseVersion",
+          "signedAt",
+          "signature"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "PrimaryRuntimeMutationDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "accountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "binding",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/PrimaryRuntimeBindingDto",
+              "ref_name": "PrimaryRuntimeBindingDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "dataMigrated",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                false
+              ],
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "reconfigurationRequired",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                true
+              ],
+              "type": "boolean"
+            }
+          },
+          {
+            "name": "serverTime",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "accountId",
+          "binding",
+          "serverTime",
+          "dataMigrated",
+          "reconfigurationRequired"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "PrimaryRuntimePrepareDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "displayName",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": 80,
+              "pattern": null
+            }
+          },
+          {
+            "name": "expectedAccountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "expectedBindingId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "operation",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "bind",
+                "reinitialize"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "publicKey",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "runtimeId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "signature",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "signedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "expectedAccountId",
+          "expectedBindingId",
+          "runtimeId",
+          "displayName",
+          "publicKey",
+          "signedAt",
+          "signature",
+          "operation"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "PrimaryRuntimeSnapshotDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "accountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "binding",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/PrimaryRuntimeBindingDto",
+              "ref_name": "PrimaryRuntimeBindingDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "serverTime",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "accountId",
+          "binding",
+          "serverTime"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
       "name": "ProfileCoverageManifestV1Dto",
       "schema": {
         "kind": "object",
@@ -34221,6 +35834,1363 @@
         "required_properties": [
           "revokedCount",
           "currentRevoked"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "RuntimeClientAuthorizationDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "codeChallenge",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "codeChallengeMethod",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "S256"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "expectedAccountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "redirectUri",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "state",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "expectedAccountId",
+          "clientId",
+          "redirectUri",
+          "codeChallenge",
+          "codeChallengeMethod",
+          "state"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "RuntimeClientCodeDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "expiresAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "redirectUrl",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "redirectUrl",
+          "expiresAt"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "RuntimeClientContextDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "accountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "appId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "contextId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "displayName",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "expiresAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "primary",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/RuntimeClientPrimaryDto",
+              "ref_name": "RuntimeClientPrimaryDto",
+              "nullable": true
+            }
+          },
+          {
+            "name": "realmEnvironmentId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "source",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/RuntimeClientSourceDto",
+              "ref_name": "RuntimeClientSourceDto"
+            }
+          },
+          {
+            "name": "stunUrls",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          }
+        ],
+        "required_properties": [
+          "realmEnvironmentId",
+          "accountId",
+          "displayName",
+          "appId",
+          "clientId",
+          "contextId",
+          "expiresAt",
+          "stunUrls",
+          "source",
+          "primary"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "RuntimeClientEndDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "ended",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                true
+              ],
+              "type": "boolean"
+            }
+          }
+        ],
+        "required_properties": [
+          "ended"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "RuntimeClientExchangeDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "authorizationCode",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "codeVerifier",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "redirectUri",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "clientId",
+          "redirectUri",
+          "authorizationCode",
+          "codeVerifier"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "RuntimeClientPrimaryDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "bindingId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "displayName",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "leaseExpiresAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "publicKey",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "runtimeId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "validAfter",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "runtimeId",
+          "bindingId",
+          "displayName",
+          "publicKey",
+          "validAfter",
+          "leaseExpiresAt"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "RuntimeClientSourceDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "appAccess",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "appId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "capabilityContractRefs",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "displayName",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "origin",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "redirectUri",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "role",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "app",
+                "official_manager"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "sourceRevision",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "clientId",
+          "appId",
+          "displayName",
+          "origin",
+          "redirectUri",
+          "sourceRevision",
+          "role",
+          "appAccess",
+          "capabilityContractRefs"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "RuntimeClientTokenDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "accountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "appId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "clientId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "contextId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "contextToken",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "displayName",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "expiresAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "realmEnvironmentId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "realmEnvironmentId",
+          "accountId",
+          "displayName",
+          "appId",
+          "clientId",
+          "contextId",
+          "expiresAt",
+          "contextToken"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "RuntimeConnectionAnswerDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "answerSdp",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": 32768,
+              "pattern": null
+            }
+          },
+          {
+            "name": "bindingId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "connectionId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "expectedAccountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "leaseVersion",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "rejectionReason",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "",
+                "SOURCE_NOT_ALLOWED",
+                "DIRECT_CONNECTION_UNAVAILABLE"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "name": "runtimeId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "signature",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "signedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "expectedAccountId",
+          "runtimeId",
+          "bindingId",
+          "leaseVersion",
+          "signedAt",
+          "signature",
+          "connectionId",
+          "answerSdp",
+          "rejectionReason"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "RuntimeConnectionCreateDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "bindingId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "offerSdp",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": 32768,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "bindingId",
+          "offerSdp"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "RuntimeConnectionOfferDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "connectionId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "context",
+            "required": true,
+            "schema": {
+              "kind": "ref",
+              "ref": "#/components/schemas/RuntimeClientContextDto",
+              "ref_name": "RuntimeClientContextDto"
+            }
+          },
+          {
+            "name": "expiresAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "offerSdp",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "connectionId",
+          "offerSdp",
+          "context",
+          "expiresAt"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "RuntimeConnectionPollDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "bindingId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "contextIds",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": null,
+              "max_items": 64
+            }
+          },
+          {
+            "name": "expectedAccountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "leaseVersion",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "runtimeId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "signature",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "signedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "expectedAccountId",
+          "runtimeId",
+          "bindingId",
+          "leaseVersion",
+          "signedAt",
+          "signature",
+          "contextIds"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "RuntimeConnectionPollResultDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "contexts",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/RuntimeClientContextDto",
+                "ref_name": "RuntimeClientContextDto"
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "controlLeaseExpiresAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "offers",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/RuntimeConnectionOfferDto",
+                "ref_name": "RuntimeConnectionOfferDto"
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "serverTime",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "stunUrls",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          }
+        ],
+        "required_properties": [
+          "stunUrls",
+          "serverTime",
+          "controlLeaseExpiresAt",
+          "offers",
+          "contexts"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "RuntimeConnectionStateDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "answerSdp",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "bindingId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "connectionId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "expiresAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "rejectionReason",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null,
+              "nullable": true
+            }
+          },
+          {
+            "name": "status",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "pending",
+                "answered",
+                "rejected"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "required_properties": [
+          "connectionId",
+          "bindingId",
+          "status",
+          "answerSdp",
+          "rejectionReason",
+          "expiresAt"
         ],
         "closed": false,
         "additional_properties": null

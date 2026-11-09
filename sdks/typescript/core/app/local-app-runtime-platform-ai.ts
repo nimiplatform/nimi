@@ -2193,7 +2193,7 @@ function projectRuntimeLocalJob(job: LocalAppScenarioJob): unknown {
     updatedAt: plainRuntimeTimestamp(job.updatedAt),
     ...(job.recoveryExpiresAt ? { recoveryExpiresAt: plainRuntimeTimestamp(job.recoveryExpiresAt) } : {}),
     transcriptionText: job.transcriptionText,
-    ...(job.textAnnotation ? { textAnnotation: job.textAnnotation } : {}),
+    ...(job.textAnnotation ? { textAnnotation: copyTextAnnotationResult(job.textAnnotation) } : {}),
     ...(job.speakerEmbedding ? { speakerEmbedding: validateNimiLocalAppSpeakerEmbedding({ vector: job.speakerEmbedding.vector?.values, spaceId: job.speakerEmbedding.spaceId }) } : {}),
     ...(job.audioSeparation ? { audioSeparation: localAudioSeparation(job.audioSeparation) } : {}),
     ...(job.musicGeneration ? { musicGeneration: localMusicGeneration(job.musicGeneration) } : {}),
@@ -2576,7 +2576,7 @@ function runtimeJobFromLocal(job: NimiLocalAppScenarioJob): ScenarioJob {
     musicGeneration: runtimeMusicGeneration(job.musicGeneration),
     musicTranscription: runtimeMusicTranscription(job.musicTranscription),
     voiceConversion: runtimeVoiceConversion(job.voiceConversion),
-    textAnnotation: runtimeAnnotationFromLocal(job.textAnnotation),
+    textAnnotation: copyTextAnnotationResult(job.textAnnotation),
   };
 }
 
@@ -2618,7 +2618,7 @@ function runtimeOutput(type: NimiLocalAppScenarioJob['scenarioType'], artifacts:
       if ((!transcriptionText.trim() && transcription?.status !== 'no-speech') || utf8Length(transcriptionText) > (1 << 20)) localAppProjectionError('speech transcription text');
       return { output: { oneofKind: 'speechTranscribe', speechTranscribe: { text: transcriptionText, artifacts, transcription: runtimeTranscriptionFromLocal(transcription) } } };
     }
-    case 'text-annotate': return { output: { oneofKind: 'textAnnotation', textAnnotation: runtimeAnnotationFromLocal(textAnnotation)! } };
+    case 'text-annotate': return { output: { oneofKind: 'textAnnotation', textAnnotation: copyTextAnnotationResult(textAnnotation)! } };
     case 'audio-speaker-embed': return speakerEmbedding ? { output: { oneofKind: 'audioSpeakerEmbed', audioSpeakerEmbed: { vector: { values: [...speakerEmbedding.vector] }, spaceId: speakerEmbedding.spaceId } } } : undefined;
     case 'audio-separate': return { output: { oneofKind: 'audioSeparate', audioSeparate: { artifacts, separation: runtimeAudioSeparation(audioSeparation) } } };
     case 'music-transcribe': return { output: { oneofKind: 'musicTranscribe', musicTranscribe: { artifacts, transcription: runtimeMusicTranscription(musicTranscription) } } };
@@ -2837,7 +2837,7 @@ function runtimeTranscriptionFromLocal(value: NimiLocalAppSpeechTranscript | und
     ...(value.diarization?{diarization:{status:value.diarization.status==='diarized'?SpeechDiarizationStatus.DIARIZED:SpeechDiarizationStatus.NO_SPEAKERS,durationSeconds:value.diarization.durationSeconds,intervals:value.diarization.intervals.map((interval)=>({...interval}))}}:{}) } : undefined;
 }
 
-function runtimeAnnotationFromLocal(value?: NimiLocalAppTextAnnotationResult) {
+function copyTextAnnotationResult(value?: NimiLocalAppTextAnnotationResult) {
   return value ? { documents: value.documents.map((doc) => ({ text: doc.text, language: doc.language,
     tokens: doc.tokens.map((token) => ({ ...token })), sentences: doc.sentences.map((sentence) => ({ ...sentence })) })) } : undefined;
 }

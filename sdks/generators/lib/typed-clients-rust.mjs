@@ -191,13 +191,19 @@ function rustRealmScalarDecoder(schema, property, operationId) {
                 operation_id: ${quote(operationId)},
                 field: ${quote(property.name)},
             }`;
-  const extract = schema.kind === 'enum' || schema.type === 'string'
+  const targetType = rustOpenApiType(schema);
+  const scalar = targetType === 'String'
     ? 'value.as_str().map(String::from)'
     : schema.type === 'boolean'
       ? 'value.as_bool()'
       : schema.type === 'integer'
         ? 'value.as_i64()'
         : 'value.as_f64()';
+  const extract = schema.kind === 'enum'
+    ? `${scalar}.filter(|decoded| ${schema.values.map((value) => targetType === 'String'
+      ? `decoded.as_str() == ${quote(value)}`
+      : `*decoded == ${targetType === 'f64' && Number.isInteger(value) ? `${value}.0` : String(value)}`).join(' || ') || 'false'})`
+    : scalar;
   if (schema.nullable === true) {
     const missingValue = property.required ? `return Err(${decodeError})` : 'None';
     return `match ${lookup} {

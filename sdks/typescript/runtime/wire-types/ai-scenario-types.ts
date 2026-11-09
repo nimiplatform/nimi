@@ -962,6 +962,38 @@ export type {
 };
 
 import type {
+  ConfirmRemoteSourceRequest,
+  ConfirmRemoteSourceResponse,
+  GetRemoteAccessStateRequest,
+  GetRemoteAccessStateResponse,
+  RejectRemoteSourceRequest,
+  RejectRemoteSourceResponse,
+  RemoteAccessSource,
+  RemoteClientStreamRequest,
+  RemoteTransportFrame,
+  SetRemoteAccessEnabledRequest,
+  SetRemoteAccessEnabledResponse,
+  SetRemoteSourcePausedRequest,
+  SetRemoteSourcePausedResponse,
+} from "../../core-generated/runtime-protobuf/runtime/v1/remote_access";
+
+export type {
+  ConfirmRemoteSourceRequest,
+  ConfirmRemoteSourceResponse,
+  GetRemoteAccessStateRequest,
+  GetRemoteAccessStateResponse,
+  RejectRemoteSourceRequest,
+  RejectRemoteSourceResponse,
+  RemoteAccessSource,
+  RemoteClientStreamRequest,
+  RemoteTransportFrame,
+  SetRemoteAccessEnabledRequest,
+  SetRemoteAccessEnabledResponse,
+  SetRemoteSourcePausedRequest,
+  SetRemoteSourcePausedResponse,
+};
+
+import type {
   GetRuntimeServiceStateRequest,
   GetRuntimeServiceStateResponse,
   RequestRuntimeRestartRequest,

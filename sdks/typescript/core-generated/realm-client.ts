@@ -25,6 +25,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/human/handle/{handle}/friends"
   },
   {
+    "operationId": "answerPrimaryRuntimeConnection",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/auth/primary-runtime/connections/answer"
+  },
+  {
     "operationId": "applyFriendshipAction",
     "service": "User",
     "method": "POST",
@@ -43,10 +49,22 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/bundles/{bundleId}/archive"
   },
   {
+    "operationId": "authorizeRuntimeClient",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/auth/runtime-clients/authorize"
+  },
+  {
     "operationId": "bindEmail",
     "service": "Auth",
     "method": "POST",
     "path": "/api/auth/me/email"
+  },
+  {
+    "operationId": "bindMyPrimaryRuntime",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/auth/primary-runtime/bind"
   },
   {
     "operationId": "bindWallet",
@@ -91,6 +109,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/assets/{assetId}/clone"
   },
   {
+    "operationId": "confirmMyPrimaryRuntime",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/auth/primary-runtime/confirm"
+  },
+  {
     "operationId": "createAsset",
     "service": "Assets",
     "method": "POST",
@@ -113,6 +137,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Resources",
     "method": "POST",
     "path": "/api/resources/images/direct-upload"
+  },
+  {
+    "operationId": "createRuntimeConnection",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/runtime-access/connections"
   },
   {
     "operationId": "createTextResource",
@@ -283,6 +313,18 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/auth/me/2fa/enable"
   },
   {
+    "operationId": "endRuntimeClientContext",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/runtime-access/context/end"
+  },
+  {
+    "operationId": "exchangeRuntimeClientCode",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/runtime-access/token"
+  },
+  {
     "operationId": "exportMyAccount",
     "service": "User",
     "method": "POST",
@@ -391,6 +433,18 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/human/me/pp-config"
   },
   {
+    "operationId": "getMyPrimaryRuntime",
+    "service": "Runtime access",
+    "method": "GET",
+    "path": "/api/auth/primary-runtime"
+  },
+  {
+    "operationId": "getMyPrimaryRuntimeIntent",
+    "service": "Runtime access",
+    "method": "GET",
+    "path": "/api/auth/primary-runtime/intent/{intentId}"
+  },
+  {
     "operationId": "getMyRelationshipWithUser",
     "service": "User",
     "method": "GET",
@@ -419,6 +473,24 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Resources",
     "method": "GET",
     "path": "/api/resources/{resourceId}"
+  },
+  {
+    "operationId": "getRuntimeClientContext",
+    "service": "Runtime access",
+    "method": "GET",
+    "path": "/api/runtime-access/context"
+  },
+  {
+    "operationId": "getRuntimeClientSource",
+    "service": "Runtime access",
+    "method": "GET",
+    "path": "/api/auth/runtime-clients/{clientId}"
+  },
+  {
+    "operationId": "getRuntimeConnection",
+    "service": "Runtime access",
+    "method": "GET",
+    "path": "/api/runtime-access/connections/{connectionId}"
   },
   {
     "operationId": "getUnreadCount",
@@ -583,6 +655,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/auth/password/register"
   },
   {
+    "operationId": "pollPrimaryRuntimeConnections",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/auth/primary-runtime/connections/poll"
+  },
+  {
     "operationId": "prepare2Fa",
     "service": "Me2fa",
     "method": "POST",
@@ -593,6 +671,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Me",
     "method": "POST",
     "path": "/api/human/me/wallets/prepare-bind"
+  },
+  {
+    "operationId": "prepareMyPrimaryRuntime",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/auth/primary-runtime/prepare"
   },
   {
     "operationId": "publishBundle",
@@ -629,6 +713,18 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Auth",
     "method": "POST",
     "path": "/api/auth/refresh"
+  },
+  {
+    "operationId": "reinitializeMyPrimaryRuntime",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/auth/primary-runtime/reinitialize"
+  },
+  {
+    "operationId": "renewMyPrimaryRuntimeLease",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/auth/primary-runtime/lease"
   },
   {
     "operationId": "ReportController_createReport",

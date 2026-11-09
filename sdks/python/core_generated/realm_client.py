@@ -20,6 +20,12 @@ REALM_OPERATIONS = [
     "path": "/api/human/handle/{handle}/friends"
   },
   {
+    "operation_id": "answerPrimaryRuntimeConnection",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/auth/primary-runtime/connections/answer"
+  },
+  {
     "operation_id": "applyFriendshipAction",
     "service": "User",
     "method": "POST",
@@ -38,10 +44,22 @@ REALM_OPERATIONS = [
     "path": "/api/bundles/{bundleId}/archive"
   },
   {
+    "operation_id": "authorizeRuntimeClient",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/auth/runtime-clients/authorize"
+  },
+  {
     "operation_id": "bindEmail",
     "service": "Auth",
     "method": "POST",
     "path": "/api/auth/me/email"
+  },
+  {
+    "operation_id": "bindMyPrimaryRuntime",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/auth/primary-runtime/bind"
   },
   {
     "operation_id": "bindWallet",
@@ -86,6 +104,12 @@ REALM_OPERATIONS = [
     "path": "/api/assets/{assetId}/clone"
   },
   {
+    "operation_id": "confirmMyPrimaryRuntime",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/auth/primary-runtime/confirm"
+  },
+  {
     "operation_id": "createAsset",
     "service": "Assets",
     "method": "POST",
@@ -108,6 +132,12 @@ REALM_OPERATIONS = [
     "service": "Resources",
     "method": "POST",
     "path": "/api/resources/images/direct-upload"
+  },
+  {
+    "operation_id": "createRuntimeConnection",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/runtime-access/connections"
   },
   {
     "operation_id": "createTextResource",
@@ -278,6 +308,18 @@ REALM_OPERATIONS = [
     "path": "/api/auth/me/2fa/enable"
   },
   {
+    "operation_id": "endRuntimeClientContext",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/runtime-access/context/end"
+  },
+  {
+    "operation_id": "exchangeRuntimeClientCode",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/runtime-access/token"
+  },
+  {
     "operation_id": "exportMyAccount",
     "service": "User",
     "method": "POST",
@@ -386,6 +428,18 @@ REALM_OPERATIONS = [
     "path": "/api/human/me/pp-config"
   },
   {
+    "operation_id": "getMyPrimaryRuntime",
+    "service": "Runtime access",
+    "method": "GET",
+    "path": "/api/auth/primary-runtime"
+  },
+  {
+    "operation_id": "getMyPrimaryRuntimeIntent",
+    "service": "Runtime access",
+    "method": "GET",
+    "path": "/api/auth/primary-runtime/intent/{intentId}"
+  },
+  {
     "operation_id": "getMyRelationshipWithUser",
     "service": "User",
     "method": "GET",
@@ -414,6 +468,24 @@ REALM_OPERATIONS = [
     "service": "Resources",
     "method": "GET",
     "path": "/api/resources/{resourceId}"
+  },
+  {
+    "operation_id": "getRuntimeClientContext",
+    "service": "Runtime access",
+    "method": "GET",
+    "path": "/api/runtime-access/context"
+  },
+  {
+    "operation_id": "getRuntimeClientSource",
+    "service": "Runtime access",
+    "method": "GET",
+    "path": "/api/auth/runtime-clients/{clientId}"
+  },
+  {
+    "operation_id": "getRuntimeConnection",
+    "service": "Runtime access",
+    "method": "GET",
+    "path": "/api/runtime-access/connections/{connectionId}"
   },
   {
     "operation_id": "getUnreadCount",
@@ -578,6 +650,12 @@ REALM_OPERATIONS = [
     "path": "/api/auth/password/register"
   },
   {
+    "operation_id": "pollPrimaryRuntimeConnections",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/auth/primary-runtime/connections/poll"
+  },
+  {
     "operation_id": "prepare2Fa",
     "service": "Me2fa",
     "method": "POST",
@@ -588,6 +666,12 @@ REALM_OPERATIONS = [
     "service": "Me",
     "method": "POST",
     "path": "/api/human/me/wallets/prepare-bind"
+  },
+  {
+    "operation_id": "prepareMyPrimaryRuntime",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/auth/primary-runtime/prepare"
   },
   {
     "operation_id": "publishBundle",
@@ -624,6 +708,18 @@ REALM_OPERATIONS = [
     "service": "Auth",
     "method": "POST",
     "path": "/api/auth/refresh"
+  },
+  {
+    "operation_id": "reinitializeMyPrimaryRuntime",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/auth/primary-runtime/reinitialize"
+  },
+  {
+    "operation_id": "renewMyPrimaryRuntimeLease",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/auth/primary-runtime/lease"
   },
   {
     "operation_id": "ReportController_createReport",

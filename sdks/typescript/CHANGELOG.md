@@ -2,6 +2,36 @@
 
 # SDK migration notes
 
+## Unreleased — Remote consumer entrypoints (additive, next minor)
+
+Use `@nimiplatform/sdk/runtime/remote` for direct Runtime connections and
+`@nimiplatform/sdk/realm/runtime-client` for the official Runtime-client login.
+Both reuse existing contracts and avoid the broad Host/management import surface.
+`RemoteRuntimeAppConnection` names the verified ordinary-App connection subset;
+it does not fabricate a native Host or grant management operations.
+Protocol codecs remain shared; this change does not promise a minimal per-method
+bundle or split the SDK into platform packages. These entries require this source
+build until a matching package is published.
+
+## Unreleased — Direct App storage and LocalAgent clients
+
+The next coordinated 0.x minor extends ordinary `connectRemoteRuntime` App
+connections with App-private JSON storage, supported asset operations, Agent
+references/introduction, Conversation, embodiment and `agentConfigure` clients.
+Existing AI and self-AIConfig members remain unchanged. Use a matching Runtime
+with these operations and an independently reviewed source declaration; a new
+client method never grants App Access. Finite asset writes now carry up to 32 MiB
+through the original Runtime client-stream handler and commit boundary. Native
+file reveal and bidirectional streaming remain unavailable. The official-manager
+surface is unchanged. No package publication is implied.
+
+Low-level TypeScript client-stream methods, previously unavailable stubs, now
+take `AsyncIterable<Request>` through the optional `CoreTransport.clientStream`
+method. A transport without it still rejects the operation explicitly. The
+direct carrier buffers a bounded request envelope; this is not a live upload
+or upload-resumption contract. High-level `storage.assets.write` keeps its existing
+byte, Blob and async-byte-source inputs.
+
 ## Unreleased — Explicit SVG author selection
 
 OpenAI SVG output now requires a Home-owned `svgAuthor` selection on its existing

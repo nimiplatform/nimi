@@ -18,8 +18,8 @@ message RequestRuntimeRestartResponse {
   ReasonCode reason_code = 2;
 }
 
-// The verified Home host requests an orderly product exit. Acceptance is not
-// proof of process termination; the native carrier must observe it separately.
+// The verified Home host or current remote owner manager requests an orderly
+// product exit. Acceptance is not proof of process termination.
 message RequestRuntimeStopRequest {}
 
 message RequestRuntimeStopResponse {
@@ -40,7 +40,8 @@ enum RuntimeServiceMode {
 }
 
 // GetRuntimeServiceStateRequest is intentionally empty; the verified
-// desktop_control connection is the complete authority input.
+// desktop_control connection or verified remote owner-manager session supplies
+// the authority input. No caller-selected account or role is accepted.
 message GetRuntimeServiceStateRequest {
 }
 

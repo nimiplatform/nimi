@@ -172,6 +172,20 @@ func FirstPartyProfileMethod(profileID, methodID string) (FirstPartyMethodKind, 
 		}
 	case "desktop_account_product_v1":
 		switch methodID {
+		case "/nimi.runtime.v1.RuntimeAccountService/GetPrimaryRuntimeState":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeAccountService/PreparePrimaryRuntime":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeRemoteAccessService/GetRemoteAccessState":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteAccessEnabled":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeRemoteAccessService/ConfirmRemoteSource":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeRemoteAccessService/RejectRemoteSource":
+			return FirstPartyMethodUnary, true
+		case "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteSourcePaused":
+			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIActivitySnapshot":
 			return FirstPartyMethodUnary, true
 		case "/nimi.runtime.v1.RuntimeAuditService/SubscribeDesktopAIActivity":
@@ -730,6 +744,13 @@ func FirstPartyProfileMethods(profileID string) []FirstPartyProfileMethodEntry {
 		}
 	case "desktop_account_product_v1":
 		return []FirstPartyProfileMethodEntry{
+			{MethodID: "/nimi.runtime.v1.RuntimeAccountService/GetPrimaryRuntimeState", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeAccountService/PreparePrimaryRuntime", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeRemoteAccessService/GetRemoteAccessState", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteAccessEnabled", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeRemoteAccessService/ConfirmRemoteSource", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeRemoteAccessService/RejectRemoteSource", Kind: FirstPartyMethodUnary},
+			{MethodID: "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteSourcePaused", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIActivitySnapshot", Kind: FirstPartyMethodUnary},
 			{MethodID: "/nimi.runtime.v1.RuntimeAuditService/SubscribeDesktopAIActivity", Kind: FirstPartyMethodServerStream},
 			{MethodID: "/nimi.runtime.v1.RuntimeAuditService/GetDesktopAIUsageSummary", Kind: FirstPartyMethodUnary},

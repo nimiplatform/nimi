@@ -13,6 +13,11 @@ surfaces:
   - introspectSession
   - WorldCoreController_createSourceMaterializationPacket
   - getSourceMaterializationJwks
+  - getMyPrimaryRuntime
+  - prepareMyPrimaryRuntime
+  - renewMyPrimaryRuntimeLease
+  - pollPrimaryRuntimeConnections
+  - answerPrimaryRuntimeConnection
 owner: .nimi/spec/sdks
 source_rule: S-REALMAPI-002
 status: active
@@ -65,3 +70,33 @@ operations:
     path: /api/auth/jwks/source-materialization
     runtime_projection: generated_carrier
     public_sdk_disposition: forbidden
+  - operation_id: getMyPrimaryRuntime
+    family: primary_runtime
+    method: GET
+    path: /api/auth/primary-runtime
+    runtime_projection: generated_carrier
+    public_sdk_disposition: retained
+  - operation_id: prepareMyPrimaryRuntime
+    family: primary_runtime
+    method: POST
+    path: /api/auth/primary-runtime/prepare
+    runtime_projection: generated_carrier
+    public_sdk_disposition: retained
+  - operation_id: renewMyPrimaryRuntimeLease
+    family: primary_runtime
+    method: POST
+    path: /api/auth/primary-runtime/lease
+    runtime_projection: generated_carrier
+    public_sdk_disposition: retained
+  - operation_id: pollPrimaryRuntimeConnections
+    family: primary_runtime
+    method: POST
+    path: /api/auth/primary-runtime/connections/poll
+    runtime_projection: generated_carrier
+    public_sdk_disposition: retained
+  - operation_id: answerPrimaryRuntimeConnection
+    family: primary_runtime
+    method: POST
+    path: /api/auth/primary-runtime/connections/answer
+    runtime_projection: generated_carrier
+    public_sdk_disposition: retained

@@ -200,6 +200,18 @@ export function writeTypescriptTypedClients(runtime, publicRuntime, realm) {
     });
   }`;
     }
+    if (method.kind === 'client_stream') {
+      return `  async ${name}(request: AsyncIterable<${method.request_type}>, options: RuntimeTypedCallOptions = {}): Promise<${method.response_type}> {
+    return this.core.clientStream<${method.response_type}, ${method.request_type}>({
+      methodId: ${descriptorId},
+      body: request,
+      metadata: options.metadata,
+      timeoutMs: options.timeoutMs,
+      signal: options.signal,
+      responseMetadataObserver: options.responseMetadataObserver,
+    });
+  }`;
+    }
     return `  async ${name}(_request: ${method.request_type}, _options: RuntimeTypedCallOptions = {}): Promise<${method.response_type}> {
     throw Object.assign(new Error(${quote(`Runtime method kind is not supported by the unary/server-stream core transport: ${method.method_id}`)}), {
       code: 'SDK_RUNTIME_METHOD_UNAVAILABLE',

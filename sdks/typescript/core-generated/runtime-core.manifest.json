@@ -35,6 +35,7 @@
     "proto/runtime/v1/local_runtime_recommendation.proto",
     "proto/runtime/v1/realm_realtime.proto",
     "proto/runtime/v1/realtime_control.proto",
+    "proto/runtime/v1/remote_access.proto",
     "proto/runtime/v1/runtime_service_control.proto",
     "proto/runtime/v1/voice.proto"
   ],
@@ -49,6 +50,24 @@
       "name": "RuntimeAccountService",
       "source_file": "proto/runtime/v1/account.proto",
       "methods": [
+        {
+          "name": "GetPrimaryRuntimeState",
+          "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetPrimaryRuntimeState",
+          "kind": "unary",
+          "request_type": "GetPrimaryRuntimeStateRequest",
+          "response_type": "GetPrimaryRuntimeStateResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "PreparePrimaryRuntime",
+          "method_id": "/nimi.runtime.v1.RuntimeAccountService/PreparePrimaryRuntime",
+          "kind": "unary",
+          "request_type": "PreparePrimaryRuntimeRequest",
+          "response_type": "PreparePrimaryRuntimeResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
         {
           "name": "GetAccountSessionStatus",
           "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
@@ -2749,6 +2768,57 @@
       ]
     },
     {
+      "name": "RuntimeRemoteAccessService",
+      "source_file": "proto/runtime/v1/remote_access.proto",
+      "methods": [
+        {
+          "name": "GetRemoteAccessState",
+          "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/GetRemoteAccessState",
+          "kind": "unary",
+          "request_type": "GetRemoteAccessStateRequest",
+          "response_type": "GetRemoteAccessStateResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "SetRemoteAccessEnabled",
+          "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteAccessEnabled",
+          "kind": "unary",
+          "request_type": "SetRemoteAccessEnabledRequest",
+          "response_type": "SetRemoteAccessEnabledResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "ConfirmRemoteSource",
+          "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/ConfirmRemoteSource",
+          "kind": "unary",
+          "request_type": "ConfirmRemoteSourceRequest",
+          "response_type": "ConfirmRemoteSourceResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "RejectRemoteSource",
+          "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/RejectRemoteSource",
+          "kind": "unary",
+          "request_type": "RejectRemoteSourceRequest",
+          "response_type": "RejectRemoteSourceResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "SetRemoteSourcePaused",
+          "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteSourcePaused",
+          "kind": "unary",
+          "request_type": "SetRemoteSourcePausedRequest",
+          "response_type": "SetRemoteSourcePausedResponse",
+          "request_stream": false,
+          "response_stream": false
+        }
+      ]
+    },
+    {
       "name": "RuntimeServiceControlService",
       "source_file": "proto/runtime/v1/runtime_service_control.proto",
       "methods": [
@@ -2786,8 +2856,10 @@
     "/nimi.runtime.v1.RuntimeAccountService/BeginLogin",
     "/nimi.runtime.v1.RuntimeAccountService/CompleteLogin",
     "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus",
+    "/nimi.runtime.v1.RuntimeAccountService/GetPrimaryRuntimeState",
     "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
     "/nimi.runtime.v1.RuntimeAccountService/Logout",
+    "/nimi.runtime.v1.RuntimeAccountService/PreparePrimaryRuntime",
     "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
     "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents",
     "/nimi.runtime.v1.RuntimeAccountService/SwitchAccount",
@@ -3072,6 +3144,11 @@
     "/nimi.runtime.v1.RuntimeRealmRealtimeService/ListRealmChats",
     "/nimi.runtime.v1.RuntimeRealmRealtimeService/OpenRealmRealtimeChannel",
     "/nimi.runtime.v1.RuntimeRealmRealtimeService/SubscribeRealmRealtimeEvents",
+    "/nimi.runtime.v1.RuntimeRemoteAccessService/ConfirmRemoteSource",
+    "/nimi.runtime.v1.RuntimeRemoteAccessService/GetRemoteAccessState",
+    "/nimi.runtime.v1.RuntimeRemoteAccessService/RejectRemoteSource",
+    "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteAccessEnabled",
+    "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteSourcePaused",
     "/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState",
     "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeRestart",
     "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeStop"
@@ -3102,6 +3179,14 @@
       "response_type": "GetAccountSessionStatusResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetPrimaryRuntimeState",
+      "service": "RuntimeAccountService",
+      "method": "GetPrimaryRuntimeState",
+      "kind": "unary",
+      "request_type": "GetPrimaryRuntimeStateRequest",
+      "response_type": "GetPrimaryRuntimeStateResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
       "service": "RuntimeAccountService",
       "method": "InvokeRealmUnary",
@@ -3116,6 +3201,14 @@
       "kind": "unary",
       "request_type": "LogoutRequest",
       "response_type": "LogoutResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/PreparePrimaryRuntime",
+      "service": "RuntimeAccountService",
+      "method": "PreparePrimaryRuntime",
+      "kind": "unary",
+      "request_type": "PreparePrimaryRuntimeRequest",
+      "response_type": "PreparePrimaryRuntimeResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
@@ -5388,6 +5481,46 @@
       "kind": "server_stream",
       "request_type": "SubscribeRealmRealtimeEventsRequest",
       "response_type": "SubscribeRealmRealtimeEventsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/ConfirmRemoteSource",
+      "service": "RuntimeRemoteAccessService",
+      "method": "ConfirmRemoteSource",
+      "kind": "unary",
+      "request_type": "ConfirmRemoteSourceRequest",
+      "response_type": "ConfirmRemoteSourceResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/GetRemoteAccessState",
+      "service": "RuntimeRemoteAccessService",
+      "method": "GetRemoteAccessState",
+      "kind": "unary",
+      "request_type": "GetRemoteAccessStateRequest",
+      "response_type": "GetRemoteAccessStateResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/RejectRemoteSource",
+      "service": "RuntimeRemoteAccessService",
+      "method": "RejectRemoteSource",
+      "kind": "unary",
+      "request_type": "RejectRemoteSourceRequest",
+      "response_type": "RejectRemoteSourceResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteAccessEnabled",
+      "service": "RuntimeRemoteAccessService",
+      "method": "SetRemoteAccessEnabled",
+      "kind": "unary",
+      "request_type": "SetRemoteAccessEnabledRequest",
+      "response_type": "SetRemoteAccessEnabledResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteSourcePaused",
+      "service": "RuntimeRemoteAccessService",
+      "method": "SetRemoteSourcePaused",
+      "kind": "unary",
+      "request_type": "SetRemoteSourcePausedRequest",
+      "response_type": "SetRemoteSourcePausedResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState",
@@ -5440,6 +5573,14 @@
       "response_type": "GetAccountSessionStatusResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/GetPrimaryRuntimeState",
+      "service": "RuntimeAccountService",
+      "method": "GetPrimaryRuntimeState",
+      "kind": "unary",
+      "request_type": "GetPrimaryRuntimeStateRequest",
+      "response_type": "GetPrimaryRuntimeStateResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/InvokeRealmUnary",
       "service": "RuntimeAccountService",
       "method": "InvokeRealmUnary",
@@ -5454,6 +5595,14 @@
       "kind": "unary",
       "request_type": "LogoutRequest",
       "response_type": "LogoutResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAccountService/PreparePrimaryRuntime",
+      "service": "RuntimeAccountService",
+      "method": "PreparePrimaryRuntime",
+      "kind": "unary",
+      "request_type": "PreparePrimaryRuntimeRequest",
+      "response_type": "PreparePrimaryRuntimeResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAccountService/RequestPresenceVerification",
@@ -7726,6 +7875,46 @@
       "kind": "server_stream",
       "request_type": "SubscribeRealmRealtimeEventsRequest",
       "response_type": "SubscribeRealmRealtimeEventsResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/ConfirmRemoteSource",
+      "service": "RuntimeRemoteAccessService",
+      "method": "ConfirmRemoteSource",
+      "kind": "unary",
+      "request_type": "ConfirmRemoteSourceRequest",
+      "response_type": "ConfirmRemoteSourceResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/GetRemoteAccessState",
+      "service": "RuntimeRemoteAccessService",
+      "method": "GetRemoteAccessState",
+      "kind": "unary",
+      "request_type": "GetRemoteAccessStateRequest",
+      "response_type": "GetRemoteAccessStateResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/RejectRemoteSource",
+      "service": "RuntimeRemoteAccessService",
+      "method": "RejectRemoteSource",
+      "kind": "unary",
+      "request_type": "RejectRemoteSourceRequest",
+      "response_type": "RejectRemoteSourceResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteAccessEnabled",
+      "service": "RuntimeRemoteAccessService",
+      "method": "SetRemoteAccessEnabled",
+      "kind": "unary",
+      "request_type": "SetRemoteAccessEnabledRequest",
+      "response_type": "SetRemoteAccessEnabledResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteSourcePaused",
+      "service": "RuntimeRemoteAccessService",
+      "method": "SetRemoteSourcePaused",
+      "kind": "unary",
+      "request_type": "SetRemoteSourcePausedRequest",
+      "response_type": "SetRemoteSourcePausedResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeServiceControlService/GetRuntimeServiceState",
@@ -7992,6 +8181,8 @@
       "CompleteLoginRequest",
       "CompleteLoginResponse",
       "CompleteProductControlFirstRunDeviceEnvironmentScanRequest",
+      "ConfirmRemoteSourceRequest",
+      "ConfirmRemoteSourceResponse",
       "Connector",
       "ConnectorAzureDeployment",
       "ConnectorAzureDeployments",
@@ -8153,11 +8344,15 @@
       "GetMachineLoadoutsResponse",
       "GetModelAssetRequest",
       "GetModelAssetResponse",
+      "GetPrimaryRuntimeStateRequest",
+      "GetPrimaryRuntimeStateResponse",
       "GetProductControlCheckSyncRequest",
       "GetProductControlRecordRequest",
       "GetProductControlSelectedDataRootRequest",
       "GetPublicChatSessionSnapshotRequest",
       "GetPublicChatSessionSnapshotResponse",
+      "GetRemoteAccessStateRequest",
+      "GetRemoteAccessStateResponse",
       "GetRuntimeHealthRequest",
       "GetRuntimeHealthResponse",
       "GetRuntimeServiceStateRequest",
@@ -8527,6 +8722,8 @@
       "PrepareLocalAppLaunchResponse",
       "PrepareLocalAppPackageRequest",
       "PrepareLocalAppPackageResponse",
+      "PreparePrimaryRuntimeRequest",
+      "PreparePrimaryRuntimeResponse",
       "PreviewSharedLocalAgentAIProfileRequest",
       "PreviewSharedLocalAgentAIProfileResponse",
       "ProductControlProjectionJson",
@@ -8601,6 +8798,11 @@
       "RegisterIntegrationProviderResponse",
       "RegisterLocalDevelopmentProjectRequest",
       "RegisterLocalDevelopmentProjectResponse",
+      "RejectRemoteSourceRequest",
+      "RejectRemoteSourceResponse",
+      "RemoteAccessSource",
+      "RemoteClientStreamRequest",
+      "RemoteTransportFrame",
       "RemoveIntegrationConnectionRequest",
       "RemoveIntegrationConnectionResponse",
       "RemoveLocalAppAssetRequest",
@@ -8689,6 +8891,10 @@
       "SetLocalAppAgentMemoryEnabledRequest",
       "SetLocalAppAgentMemoryEnabledResponse",
       "SetProductControlFirstRunInstallLevelRequest",
+      "SetRemoteAccessEnabledRequest",
+      "SetRemoteAccessEnabledResponse",
+      "SetRemoteSourcePausedRequest",
+      "SetRemoteSourcePausedResponse",
       "SharedLocalAgentPresetVoiceOption",
       "SharedLocalAgentPresetVoiceOptions",
       "SharedLocalAgentPresetVoiceOptionsQuery",
@@ -9047,6 +9253,9 @@
       "ReasoningActivation",
       "ReasoningEffort",
       "ReasoningPresentation",
+      "RemoteAccessConnectionState",
+      "RemoteSourceAccessState",
+      "RemoteTransportFrameKind",
       "ResponseFormatKind",
       "RoutePolicy",
       "RuntimeHealthStatus",
@@ -17978,6 +18187,46 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
+        "name": "ConfirmRemoteSourceRequest",
+        "fields": [
+          {
+            "name": "pending_request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "expected_binding_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/remote_access.proto"
+      },
+      {
+        "name": "ConfirmRemoteSourceResponse",
+        "fields": [
+          {
+            "name": "state",
+            "type": "GetRemoteAccessStateResponse",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "audit_diagnostic",
+            "type": "ErrorInfo",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/remote_access.proto"
+      },
+      {
         "name": "Connector",
         "fields": [
           {
@@ -22548,6 +22797,66 @@
         "source_file": "proto/runtime/v1/local_runtime.proto"
       },
       {
+        "name": "GetPrimaryRuntimeStateRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
+        "name": "GetPrimaryRuntimeStateResponse",
+        "fields": [
+          {
+            "name": "runtime_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "primary_runtime_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "binding_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "this_runtime",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "valid_after",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "lease_expires_at",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          }
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
         "name": "GetProductControlCheckSyncRequest",
         "fields": [],
         "source_file": "proto/runtime/v1/local_runtime.proto"
@@ -22615,6 +22924,59 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_service.proto"
+      },
+      {
+        "name": "GetRemoteAccessStateRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/remote_access.proto"
+      },
+      {
+        "name": "GetRemoteAccessStateResponse",
+        "fields": [
+          {
+            "name": "enabled",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "binding_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "connection_state",
+            "type": "RemoteAccessConnectionState",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "sources",
+            "type": "RemoteAccessSource",
+            "repeated": true,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "connected_peers",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "reason_code",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/remote_access.proto"
       },
       {
         "name": "GetRuntimeHealthRequest",
@@ -36612,6 +36974,60 @@
         "source_file": "proto/runtime/v1/app.proto"
       },
       {
+        "name": "PreparePrimaryRuntimeRequest",
+        "fields": [
+          {
+            "name": "action",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "expected_binding_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
+        "name": "PreparePrimaryRuntimeResponse",
+        "fields": [
+          {
+            "name": "intent_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "confirmation_url",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "expires_at",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/account.proto"
+      },
+      {
         "name": "PreviewSharedLocalAgentAIProfileRequest",
         "fields": [
           {
@@ -38954,6 +39370,211 @@
           }
         ],
         "source_file": "proto/runtime/v1/development.proto"
+      },
+      {
+        "name": "RejectRemoteSourceRequest",
+        "fields": [
+          {
+            "name": "pending_request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "expected_binding_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/remote_access.proto"
+      },
+      {
+        "name": "RejectRemoteSourceResponse",
+        "fields": [
+          {
+            "name": "state",
+            "type": "GetRemoteAccessStateResponse",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/remote_access.proto"
+      },
+      {
+        "name": "RemoteAccessSource",
+        "fields": [
+          {
+            "name": "client_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "app_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "origin",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "source_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "official_manager",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "app_access",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "capability_contract_refs",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "state",
+            "type": "RemoteSourceAccessState",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "pending_request_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          }
+        ],
+        "source_file": "proto/runtime/v1/remote_access.proto"
+      },
+      {
+        "name": "RemoteClientStreamRequest",
+        "fields": [
+          {
+            "name": "messages",
+            "type": "bytes",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/remote_access.proto"
+      },
+      {
+        "name": "RemoteTransportFrame",
+        "fields": [
+          {
+            "name": "kind",
+            "type": "RemoteTransportFrameKind",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "request_id",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "method",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "payload",
+            "type": "bytes",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "chunk_end",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "grpc_code",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "message",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "error_info",
+            "type": "ErrorInfo",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "timeout_ms",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          },
+          {
+            "name": "trace_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 10
+          },
+          {
+            "name": "idempotency_key",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 11
+          }
+        ],
+        "source_file": "proto/runtime/v1/remote_access.proto"
       },
       {
         "name": "RemoveIntegrationConnectionRequest",
@@ -41693,6 +42314,93 @@
           }
         ],
         "source_file": "proto/runtime/v1/local_runtime.proto"
+      },
+      {
+        "name": "SetRemoteAccessEnabledRequest",
+        "fields": [
+          {
+            "name": "enabled",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "expected_binding_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/remote_access.proto"
+      },
+      {
+        "name": "SetRemoteAccessEnabledResponse",
+        "fields": [
+          {
+            "name": "state",
+            "type": "GetRemoteAccessStateResponse",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "audit_diagnostic",
+            "type": "ErrorInfo",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/remote_access.proto"
+      },
+      {
+        "name": "SetRemoteSourcePausedRequest",
+        "fields": [
+          {
+            "name": "client_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "paused",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "expected_binding_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/remote_access.proto"
+      },
+      {
+        "name": "SetRemoteSourcePausedResponse",
+        "fields": [
+          {
+            "name": "state",
+            "type": "GetRemoteAccessStateResponse",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "audit_diagnostic",
+            "type": "ErrorInfo",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/remote_access.proto"
       },
       {
         "name": "SharedLocalAgentPresetVoiceOption",
@@ -49702,6 +50410,41 @@
           "REASONING_PRESENTATION_SUMMARY"
         ],
         "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "RemoteAccessConnectionState",
+        "values": [
+          "REMOTE_ACCESS_CONNECTION_STATE_UNSPECIFIED",
+          "REMOTE_ACCESS_CONNECTION_STATE_DISABLED",
+          "REMOTE_ACCESS_CONNECTION_STATE_CONNECTING",
+          "REMOTE_ACCESS_CONNECTION_STATE_LISTENING",
+          "REMOTE_ACCESS_CONNECTION_STATE_UNAVAILABLE"
+        ],
+        "source_file": "proto/runtime/v1/remote_access.proto"
+      },
+      {
+        "name": "RemoteSourceAccessState",
+        "values": [
+          "REMOTE_SOURCE_ACCESS_STATE_UNSPECIFIED",
+          "REMOTE_SOURCE_ACCESS_STATE_PENDING",
+          "REMOTE_SOURCE_ACCESS_STATE_ALLOWED",
+          "REMOTE_SOURCE_ACCESS_STATE_PAUSED",
+          "REMOTE_SOURCE_ACCESS_STATE_CHANGED"
+        ],
+        "source_file": "proto/runtime/v1/remote_access.proto"
+      },
+      {
+        "name": "RemoteTransportFrameKind",
+        "values": [
+          "REMOTE_TRANSPORT_FRAME_KIND_UNSPECIFIED",
+          "REMOTE_TRANSPORT_FRAME_KIND_REQUEST",
+          "REMOTE_TRANSPORT_FRAME_KIND_RESPONSE",
+          "REMOTE_TRANSPORT_FRAME_KIND_STREAM_DATA",
+          "REMOTE_TRANSPORT_FRAME_KIND_STREAM_END",
+          "REMOTE_TRANSPORT_FRAME_KIND_ERROR",
+          "REMOTE_TRANSPORT_FRAME_KIND_CANCEL"
+        ],
+        "source_file": "proto/runtime/v1/remote_access.proto"
       },
       {
         "name": "ResponseFormatKind",

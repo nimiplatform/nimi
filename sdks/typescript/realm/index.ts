@@ -15,6 +15,7 @@ export * from './social';
 export * from './world-public';
 export * from './notifications';
 export * from './fetch-transport';
+export * from './runtime-client.js';
 
 type RealmTypedMethodName = {
   readonly [Key in keyof RealmTypedClient]: RealmTypedClient[Key] extends (...args: never[]) => unknown ? Key : never;

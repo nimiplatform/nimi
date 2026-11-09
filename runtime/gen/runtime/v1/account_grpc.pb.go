@@ -19,6 +19,8 @@ import (
 const _ = grpc.SupportPackageIsVersion9
 
 const (
+	RuntimeAccountService_GetPrimaryRuntimeState_FullMethodName        = "/nimi.runtime.v1.RuntimeAccountService/GetPrimaryRuntimeState"
+	RuntimeAccountService_PreparePrimaryRuntime_FullMethodName         = "/nimi.runtime.v1.RuntimeAccountService/PreparePrimaryRuntime"
 	RuntimeAccountService_GetAccountSessionStatus_FullMethodName       = "/nimi.runtime.v1.RuntimeAccountService/GetAccountSessionStatus"
 	RuntimeAccountService_SubscribeAccountSessionEvents_FullMethodName = "/nimi.runtime.v1.RuntimeAccountService/SubscribeAccountSessionEvents"
 	RuntimeAccountService_BeginLogin_FullMethodName                    = "/nimi.runtime.v1.RuntimeAccountService/BeginLogin"
@@ -33,6 +35,8 @@ const (
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type RuntimeAccountServiceClient interface {
+	GetPrimaryRuntimeState(ctx context.Context, in *GetPrimaryRuntimeStateRequest, opts ...grpc.CallOption) (*GetPrimaryRuntimeStateResponse, error)
+	PreparePrimaryRuntime(ctx context.Context, in *PreparePrimaryRuntimeRequest, opts ...grpc.CallOption) (*PreparePrimaryRuntimeResponse, error)
 	GetAccountSessionStatus(ctx context.Context, in *GetAccountSessionStatusRequest, opts ...grpc.CallOption) (*GetAccountSessionStatusResponse, error)
 	SubscribeAccountSessionEvents(ctx context.Context, in *SubscribeAccountSessionEventsRequest, opts ...grpc.CallOption) (grpc.ServerStreamingClient[AccountSessionEvent], error)
 	BeginLogin(ctx context.Context, in *BeginLoginRequest, opts ...grpc.CallOption) (*BeginLoginResponse, error)
@@ -49,6 +53,26 @@ type runtimeAccountServiceClient struct {
 
 func NewRuntimeAccountServiceClient(cc grpc.ClientConnInterface) RuntimeAccountServiceClient {
 	return &runtimeAccountServiceClient{cc}
+}
+
+func (c *runtimeAccountServiceClient) GetPrimaryRuntimeState(ctx context.Context, in *GetPrimaryRuntimeStateRequest, opts ...grpc.CallOption) (*GetPrimaryRuntimeStateResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(GetPrimaryRuntimeStateResponse)
+	err := c.cc.Invoke(ctx, RuntimeAccountService_GetPrimaryRuntimeState_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *runtimeAccountServiceClient) PreparePrimaryRuntime(ctx context.Context, in *PreparePrimaryRuntimeRequest, opts ...grpc.CallOption) (*PreparePrimaryRuntimeResponse, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(PreparePrimaryRuntimeResponse)
+	err := c.cc.Invoke(ctx, RuntimeAccountService_PreparePrimaryRuntime_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *runtimeAccountServiceClient) GetAccountSessionStatus(ctx context.Context, in *GetAccountSessionStatusRequest, opts ...grpc.CallOption) (*GetAccountSessionStatusResponse, error) {
@@ -144,6 +168,8 @@ func (c *runtimeAccountServiceClient) SwitchAccount(ctx context.Context, in *Swi
 // All implementations should embed UnimplementedRuntimeAccountServiceServer
 // for forward compatibility.
 type RuntimeAccountServiceServer interface {
+	GetPrimaryRuntimeState(context.Context, *GetPrimaryRuntimeStateRequest) (*GetPrimaryRuntimeStateResponse, error)
+	PreparePrimaryRuntime(context.Context, *PreparePrimaryRuntimeRequest) (*PreparePrimaryRuntimeResponse, error)
 	GetAccountSessionStatus(context.Context, *GetAccountSessionStatusRequest) (*GetAccountSessionStatusResponse, error)
 	SubscribeAccountSessionEvents(*SubscribeAccountSessionEventsRequest, grpc.ServerStreamingServer[AccountSessionEvent]) error
 	BeginLogin(context.Context, *BeginLoginRequest) (*BeginLoginResponse, error)
@@ -161,6 +187,12 @@ type RuntimeAccountServiceServer interface {
 // pointer dereference when methods are called.
 type UnimplementedRuntimeAccountServiceServer struct{}
 
+func (UnimplementedRuntimeAccountServiceServer) GetPrimaryRuntimeState(context.Context, *GetPrimaryRuntimeStateRequest) (*GetPrimaryRuntimeStateResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method GetPrimaryRuntimeState not implemented")
+}
+func (UnimplementedRuntimeAccountServiceServer) PreparePrimaryRuntime(context.Context, *PreparePrimaryRuntimeRequest) (*PreparePrimaryRuntimeResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "method PreparePrimaryRuntime not implemented")
+}
 func (UnimplementedRuntimeAccountServiceServer) GetAccountSessionStatus(context.Context, *GetAccountSessionStatusRequest) (*GetAccountSessionStatusResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "method GetAccountSessionStatus not implemented")
 }
@@ -203,6 +235,42 @@ func RegisterRuntimeAccountServiceServer(s grpc.ServiceRegistrar, srv RuntimeAcc
 		t.testEmbeddedByValue()
 	}
 	s.RegisterService(&RuntimeAccountService_ServiceDesc, srv)
+}
+
+func _RuntimeAccountService_GetPrimaryRuntimeState_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetPrimaryRuntimeStateRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAccountServiceServer).GetPrimaryRuntimeState(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAccountService_GetPrimaryRuntimeState_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAccountServiceServer).GetPrimaryRuntimeState(ctx, req.(*GetPrimaryRuntimeStateRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _RuntimeAccountService_PreparePrimaryRuntime_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(PreparePrimaryRuntimeRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(RuntimeAccountServiceServer).PreparePrimaryRuntime(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: RuntimeAccountService_PreparePrimaryRuntime_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(RuntimeAccountServiceServer).PreparePrimaryRuntime(ctx, req.(*PreparePrimaryRuntimeRequest))
+	}
+	return interceptor(ctx, in, info, handler)
 }
 
 func _RuntimeAccountService_GetAccountSessionStatus_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -349,6 +417,14 @@ var RuntimeAccountService_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "nimi.runtime.v1.RuntimeAccountService",
 	HandlerType: (*RuntimeAccountServiceServer)(nil),
 	Methods: []grpc.MethodDesc{
+		{
+			MethodName: "GetPrimaryRuntimeState",
+			Handler:    _RuntimeAccountService_GetPrimaryRuntimeState_Handler,
+		},
+		{
+			MethodName: "PreparePrimaryRuntime",
+			Handler:    _RuntimeAccountService_PreparePrimaryRuntime_Handler,
+		},
 		{
 			MethodName: "GetAccountSessionStatus",
 			Handler:    _RuntimeAccountService_GetAccountSessionStatus_Handler,

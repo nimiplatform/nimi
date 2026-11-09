@@ -2,6 +2,16 @@
 # Normative authority: .nimi/spec/runtime/security-core.authority.yaml
 version: 1
 methods:
+  - method_id: /nimi.runtime.v1.RuntimeRemoteAccessService/GetRemoteAccessState
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteAccessEnabled
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeRemoteAccessService/ConfirmRemoteSource
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeRemoteAccessService/RejectRemoteSource
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeRemoteAccessService/SetRemoteSourcePaused
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/GetDeveloperModeStatus
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeDevelopmentService/SetDeveloperMode
@@ -186,4 +196,9 @@ methods:
   - method_id: /nimi.runtime.v1.RuntimeIntegrationService/SubmitIntegrationConnectionSetup
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationConnectionSetup
+    posture: protected_origin_required
+
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/GetPrimaryRuntimeState
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAccountService/PreparePrimaryRuntime
     posture: protected_origin_required
