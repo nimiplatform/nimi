@@ -6,6 +6,10 @@
 
 App session issues retain an optional owner-supplied `actionHint`, including denied Desktop session status. Custom access views and the standard gate's expandable details preserve the owner reason and recovery instruction without decoding private errors or inventing a second authorization state.
 
+## Unreleased — Android container access (next 0.x minor)
+
+Adds `auth/app/mobile` and the packaged Android Capacitor plugin. Ordinary Web factories now require Realm source kind `web`; Android uses its reviewed App Link source and real installed/OS qualification. Warm callbacks, asynchronous handoff and foreground lifecycle reuse core `app-session`. Android 12+ is the first supported build target; real device acceptance remains separate.
+
 ## Unreleased — Shared ordinary App account access (breaking, next 0.x minor)
 
 Replaces `core/remote-app-session` with `core/app-session` and adds `auth/app`, `auth/app/web`, `auth/app/desktop`. Identity and Runtime connection are separate; website account binding receives a verified identity result, and SDK invalidation/expiry clears identity-only views too. Migrate Lab, Zhiyu and generated Web entries together. No legacy alias, Mobile carrier or package publication is implied. Runtime connection failures show a user action with expandable technical details; the original error and authentication state remain unchanged.

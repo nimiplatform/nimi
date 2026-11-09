@@ -16,19 +16,20 @@ const copy = {
     connecting: '正在连接主 Runtime；首次使用此来源时，请在 PC Home 确认。', cancel: '取消连接', check: '重新检查连接',
     signedIn: '已登录 Nimi', disconnect: '断开连接', disconnected: '尚未连接主 Runtime。请保持 PC 上的 Nimi Home 运行。',
     signedOut: '使用你的 Nimi 账号继续，无需创建另一个应用账号。', unavailable: '暂时无法确认当前账号，请检查 Nimi Home。',
-    checking: '正在检查当前账号…', revocation: '重试结束此应用会话', connectionFailed: '连接未成功。',
+    cancelLogin: '取消登录', checking: '正在检查当前账号…', revocation: '重试结束此应用会话', connectionFailed: '连接未成功。',
     connectionHelp: '请确认主机上的 Nimi Home 正在运行，并检查远程接入后重试。', details: '技术详情' },
   en: { login: 'Sign in with Nimi', logout: 'Sign out of this App', owner: 'Manage account in Nimi Home', connect: 'Connect my Runtime',
     connecting: 'Connecting to your Runtime. For a new source, confirm it in PC Home.', cancel: 'Cancel connection', check: 'Check connection again',
     signedIn: 'Signed in to Nimi', disconnect: 'Disconnect', disconnected: 'Runtime is not connected. Keep Nimi Home running on your PC.',
     signedOut: 'Continue with your Nimi account. No separate App account is needed.', unavailable: 'Your account cannot be confirmed. Check Nimi Home.',
-    checking: 'Checking your account…', revocation: 'Retry ending this App session', connectionFailed: 'Connection failed.',
+    cancelLogin: 'Cancel sign-in', checking: 'Checking your account…', revocation: 'Retry ending this App session', connectionFailed: 'Connection failed.',
     connectionHelp: 'Check that Nimi Home is running on your PC and review remote access, then try again.', details: 'Technical details' },
 };
 export function NimiAccountControl({ language = 'zh', hideSignedOut = false }: { language?: 'zh' | 'en'; hideSignedOut?: boolean }) {
   const { session, snapshot } = useNimiAppSession(); const text = copy[language];
   if (hideSignedOut && snapshot.identity.status !== 'signed-in') return null;
   return <div className="flex items-center gap-3 text-sm">
+    {snapshot.busy === 'sign-in' && <Button size="sm" tone="secondary" onClick={session.cancelSignIn}>{text.cancelLogin}</Button>}
     {snapshot.identity.status === 'signed-in' && <span>{snapshot.identity.user?.displayName || text.signedIn}</span>}
     {snapshot.runtime.status === 'connected' && session.account.kind === 'app-session' && <>
       {snapshot.runtime.displayName && <span>{snapshot.runtime.displayName}</span>}

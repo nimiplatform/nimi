@@ -28,9 +28,11 @@ export type NimiRemoteAppConfig = Omit<RuntimeClientLoginOptions, 'currentUserCo
 };
 export type NimiRemoteAppPlatform = {
   kind: 'remote'; config: NimiRemoteAppConfig;
+  sourceKind: 'web' | 'android-app-link';
+  verifySource?(source: Awaited<ReturnType<RuntimeClientSession['read']>>['source']): Promise<void>;
   storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
   callbackUrl(): string;
-  navigate(url: string): void;
+  navigate(url: string): void | Promise<void>;
   clearCallback(): void;
   prepare: typeof prepareRuntimeClientLogin;
   complete: typeof completeRuntimeClientLogin;
@@ -53,6 +55,7 @@ export function createNimiAppSession(platform: NimiRemoteAppPlatform | NimiDeskt
   let expiry: ReturnType<typeof setTimeout> | undefined;
   let removeInvalidation: (() => void) | undefined;
   let started: Promise<void> | undefined;
+  let completingCallback: number | null = null;
   const listeners = new Set<() => void>();
   const transactionKey = platform.kind === 'remote' ? `nimi.remote-app.${platform.config.clientId}.login` : '';
   const currentUser = () => disposed ? null : platform.kind === 'remote' && platform.config.accountBinding
@@ -142,7 +145,7 @@ export function createNimiAppSession(platform: NimiRemoteAppPlatform | NimiDeskt
       const prepared = await platform.prepare(options(), platform.config.accountBinding?.current()?.expectedNimiAccountId);
       if (disposed || current !== operation) return;
       platform.storage.setItem(transactionKey, JSON.stringify(prepared.transaction));
-      platform.navigate(prepared.authorizationUrl);
+      await platform.navigate(prepared.authorizationUrl);
     } catch (error) {
       if (!disposed && current === operation) { publish({ busy: 'none', pendingRevocation: session !== null }); report(error, 'identity'); }
     }
@@ -177,31 +180,51 @@ export function createNimiAppSession(platform: NimiRemoteAppPlatform | NimiDeskt
       const state = await verified.read();
       if (disposed || current !== operation || read !== readOperation || verified !== session) return;
       publish({ issue: null });
-      if (state.source.role !== 'app') { await signOut(); throw createNimiError({ message: 'This entry requires an ordinary App source.', reasonCode: 'KIT_REMOTE_APP_SOURCE_REQUIRED', source: 'sdk' }); }
+      if (state.source.role !== 'app' || state.source.kind !== platform.sourceKind) { await signOut(); throw createNimiError({ message: 'This entry requires an ordinary App source.', reasonCode: 'KIT_REMOTE_APP_SOURCE_REQUIRED', source: 'sdk' }); }
     } catch (error) { if (!disposed && session === verified && read === readOperation) { if (!verified.active) clearIdentity(); report(error, 'identity'); } }
   }
   async function initialize() {
     if (platform.kind === 'desktop') { await recheck(); return; }
-    const url = platform.callbackUrl(), callback = new URL(url);
-    if (!callback.searchParams.has('code') && !callback.searchParams.has('error')) { publish({ identity: { status: 'signed-out' } }); return; }
+    if (!await acceptCallback(platform.callbackUrl()) && snapshot.identity.status === 'checking' && completingCallback !== operation) publish({ identity: { status: 'signed-out' } });
+  }
+  /** Receives an OS callback without reloading the renderer. A handled URL is
+   * not an authenticated identity; consumers observe the verified snapshot. */
+  async function acceptCallback(url: string): Promise<boolean> {
+    if (disposed || platform.kind !== 'remote' || completingCallback === operation || snapshot.identity.status === 'signed-in') return false;
+    let callback: URL;
+    try { callback = new URL(url); } catch { return false; }
+    const expected = new URL(platform.config.redirectUri);
+    if (callback.origin !== expected.origin || callback.pathname !== expected.pathname
+      || (!callback.searchParams.has('code') && !callback.searchParams.has('error'))) return false;
     const saved = platform.storage.getItem(transactionKey);
+    // A previous browser attempt can return while a new native preflight is
+    // still preparing. There is no current callback to consume yet.
+    if (!saved && snapshot.busy === 'sign-in') return false;
+    // Unrelated deep links and delayed callbacks must not consume the current attempt.
+    let transaction: unknown;
+    try { transaction = saved ? JSON.parse(saved) : null; } catch { transaction = null; }
+    if (transaction && typeof transaction === 'object' && 'state' in transaction
+      && callback.searchParams.get('state') !== transaction.state) return false;
     platform.storage.removeItem(transactionKey); platform.clearCallback();
     const current = ++operation;
+    completingCallback = current;
     publish({ busy: 'sign-in', issue: null });
     try {
       if (!saved) throw createNimiError({ message: 'The sign-in attempt expired. Sign in again.', reasonCode: 'KIT_REMOTE_APP_LOGIN_EXPIRED', source: 'sdk' });
       const transaction = JSON.parse(saved);
       if (!platform.config.accountBinding) generation = transaction.applicationUserContext;
       const verified = await platform.complete(options(), transaction, url);
-      if (disposed || current !== operation) { await verified.end(); return; }
+      if (disposed || current !== operation) { await verified.end(); return true; }
       session = verified;
       watchIdentity(verified);
       // Source qualification is checked even for identity-only consumers.
       const state = await verified.read();
-      if (state.source.role !== 'app') throw createNimiError({ message: 'This entry requires an ordinary App source.', reasonCode: 'KIT_REMOTE_APP_SOURCE_REQUIRED', source: 'sdk' });
+      if (state.source.role !== 'app' || state.source.kind !== platform.sourceKind) throw createNimiError({ message: 'This entry requires an ordinary App source.', reasonCode: 'KIT_REMOTE_APP_SOURCE_REQUIRED', source: 'sdk' });
       const owner = currentUser();
+      await platform.verifySource?.(state.source);
+      if (disposed || current !== operation || !verified.active || owner !== currentUser()) { await verified.end(); return true; }
       if (platform.config.accountBinding?.onVerifiedIdentity && owner) await platform.config.accountBinding.onVerifiedIdentity(verified.identity, owner);
-      if (disposed || current !== operation || !verified.active || owner !== currentUser()) { await verified.end(); return; }
+      if (disposed || current !== operation || !verified.active || owner !== currentUser()) { await verified.end(); return true; }
       identify({ displayName: verified.identity.displayName });
       if (platform.config.autoConnect !== false) await connectRuntime();
     } catch (error) {
@@ -210,7 +233,8 @@ export function createNimiAppSession(platform: NimiRemoteAppPlatform | NimiDeskt
         try { await session?.end(); session = null; } catch { publish({ pendingRevocation: true }); }
         publish({ busy: 'none' }); report(error, 'identity');
       }
-    }
+    } finally { if (completingCallback === current) completingCallback = null; }
+    return true;
   }
   const unsubscribe = platform.kind === 'remote' ? platform.config.accountBinding?.subscribe(() => {
     const next = platform.config.accountBinding?.current();
@@ -219,7 +243,7 @@ export function createNimiAppSession(platform: NimiRemoteAppPlatform | NimiDeskt
   return Object.freeze({
     getSnapshot: () => snapshot,
     subscribe(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },
-    start: () => started ??= initialize(), recheck, connectRuntime,
+    start: () => started ??= initialize(), acceptCallback, recheck, connectRuntime,
     cancelSignIn() {
       if (platform.kind !== 'remote' || snapshot.busy !== 'sign-in') return;
       clearIdentity(); generation = null; platform.storage.removeItem(transactionKey);

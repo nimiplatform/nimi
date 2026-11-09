@@ -3,7 +3,7 @@ import { createNimiAppSession, type NimiRemoteAppConfig } from '@nimiplatform/ki
 
 // @nimi-authority: rule.nimi.platform.ui-design-system.remote-app-session
 export function createWebNimiAppSession(config: NimiRemoteAppConfig) {
-  const session = createNimiAppSession({ kind: 'remote', config, storage: window.sessionStorage,
+  const session = createNimiAppSession({ kind: 'remote', sourceKind: 'web', config, storage: window.sessionStorage,
     callbackUrl: () => window.location.href, navigate: url => window.location.assign(url),
     clearCallback: () => window.history.replaceState(null, '', config.redirectUri),
     prepare: prepareRuntimeClientLogin, complete: completeRuntimeClientLogin, connect: connectRemoteRuntime });

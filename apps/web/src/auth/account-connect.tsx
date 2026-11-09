@@ -61,6 +61,7 @@ export function AccountConnect({ accountId, displayName }: { accountId: string; 
     {source && <section className="ac-section">
       <h2>{source.displayName}</h2>
       <p>{source.origin}</p>
+      {source.kind === 'android-app-link' && <p>Android · {source.androidPackageName}</p>}
       <p>{c('connectIdentity')} <strong>{displayName}</strong></p>
       <p>{c(source.role === 'official_manager' ? 'connectManager' : 'connectConsumer')}</p>
       <div className="ac-actions">

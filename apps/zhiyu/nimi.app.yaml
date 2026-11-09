@@ -19,3 +19,5 @@ local_development:
     realm_url: http://127.0.0.1:3002
     official_web_url: http://localhost:3000
     command: pnpm run dev:web-renderer
+  mobile:
+    command: pnpm run dev:android

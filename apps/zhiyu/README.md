@@ -67,3 +67,26 @@ pnpm dev:desktop
 Web 使用 Kit `auth/app/web`，Desktop 使用 `auth/app/desktop`；两者共享 Provider、AccountControl 和 AccessGate。业务组件捕获当前 scope 的客户端，身份失效或断开时卸载旧视图。可选自有账号关联通过 Kit 输出当前上下文的 verified identity，网站自己的后端仍负责正式验证；织羽默认无需此关联层。
 
 已有 Web 版本实际运行过文本聊天、既有会话重读、伙伴配置和 skin 预览／应用／清除。共享接入与公开包迁移后的真实页面复验单独记录，工程检查通过不能代替新版产品路径。原生 Avatar 启动／placement 不被网页模拟；其它语音／媒体组合及公网条件按实际应用任务验证。Mobile 仍待原生来源、系统回调和容器实现，没有空的 Mobile 工厂。
+
+
+## Android 容器开发（实施中）
+
+`src/mobile/main.tsx` 与 Web 共用 `production/remote-entry` 和同一 renderer。Capacitor 配置位于 `capacitor.config.ts`；当前 Android 包名为 `ai.nimi.apps.zhiyu.dev`，候选 Nimi 客户端为 `nimi.zhiyu.android.dev`，回调为 `https://zhiyu.nimi.ai/nimi/android/callback`。这些是开发输入，尚未写入新的 Registry 接纳记录，也没有部署域名关联文件。
+
+首个宿主使用 Android 12+，以公开 DomainVerificationManager 检查系统已验证链接。必须由 Registry 单独接纳 Android package／签名指纹／HTTPS callback，并在该域名提供匹配的 Digital Asset Links。手工把未验证域名设为默认打开或复用网页 clientId，不构成该资格。普通同签名安装更新和换设备不重复申请 Home 许可；首次来源接入仍按原规则确认。
+
+安装所选公共 SDK／Kit 和 Capacitor 包后，在应用目录运行：
+
+```sh
+pnpm build:mobile
+pnpm sync:android
+pnpm dev:mobile
+```
+
+前两项生成 WebView 资源并同步真实 Android 工程；`dev:mobile` 经 App Tools 调用应用自己的 `dev:android`，再由 Capacitor 构建和运行。它需要 Android SDK/JDK 与设备条件，不受本机 Desktop supervisor 托管。当前人工真机验收暂停，因此不能用这两项编译／同步结果声明手机登录或 AI 可用。
+
+`loggingBehavior: 'none'` 是凭据边界的一部分：Capacitor 默认调试桥接日志会记录请求参数。Kit 在登录前拒绝不安全日志配置，并用无 Cookie、无重定向及无自动重试的窄协调 HTTP 端口调用 Realm；AI／文件仍走同一直接 peer。后台关闭旧连接，恢复时先核对身份并重新建立此前活跃的技术连接；不会重放业务或续接旧实时流。进程丢失临时登录事务时重新登录，不建立长期 refresh-token 存储。
+
+开发 Realm 地址仅为手机 loopback；恢复设备测试时可显式通过 adb reverse 对接当前 PC 的 3000／3002 服务。Debug 的明文网络例外仅覆盖 localhost／127.0.0.1；其余目标仍要求 TLS。普通构建由本机工具环境配置 SDK/JDK；可通过 Gradle `-PnimiDebugKeystore=<path>` 选择自己的开发签名文件。未配置生产来源与发布签名，本轮没有生产 APK／商店上架流程。
+
+本轮已通过移动资源编译、Capacitor 三个插件发现、适配层回归及真实 Android debug APK 编译／签名校验。构建使用 JDK 21、compileSdk 37、AGP 9.1.1／Gradle 9.3.1；targetSdk 36、minSdk 31，保留当前 OkHttp 的证书修复。先前 Maven 403 在用户确认访问恢复后正常重试解决，没有改代理或换源。手机 App Link、原生 HTTP／WebRTC、媒体和生命周期真实旅程仍为 **NOT-VERIFIED**；APK 编译或浏览器视口不能代替设备结果。

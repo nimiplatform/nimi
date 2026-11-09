@@ -6,7 +6,7 @@ export const accountCenterCopy = {
   connect: ['Connect an application', '连接应用'],
   connectIntro: ['Confirm which Nimi identity this application will use.', '确认这个应用将使用的 Nimi 身份。'],
   connectIdentity: ['Continue as', '继续使用账号'],
-  connectConsumer: ['This website will receive your Nimi identity and can request a connection to your primary Runtime. First access still needs confirmation in PC Home; this sign-in grants no AI or account-management permission.', '网站将获得你的 Nimi 身份，并可请求连接你的主 Runtime。首次接入仍需在 PC Home 确认；本次登录不会直接授予 AI 或账号管理权限。'],
+  connectConsumer: ['This app will receive your Nimi identity and can request a connection to your primary Runtime. First access still needs confirmation in PC Home; this sign-in grants no AI or account-management permission.', '此应用将获得你的 Nimi 身份，并可请求连接你的主 Runtime。首次接入仍需在 PC Home 确认；本次登录不会直接授予 AI 或账号管理权限。'],
   connectManager: ['This is a registered official management client. Managing your Runtime still requires its owner session and the source’s confirmation in PC Home.', '这是已登记的官方管理端。管理 Runtime 仍需验证所有者会话，并在 PC Home 确认该来源。'],
   connectContinue: ['Continue and return', '继续并返回'],
   connectInvalid: ['This connection request is invalid. Start again from the application.', '连接请求无效，请从应用重新发起。'],

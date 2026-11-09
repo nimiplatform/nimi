@@ -14,10 +14,14 @@ const nativeConfig = {
     dedupe: ['react', 'react-dom', 'react/jsx-runtime', 'react/jsx-dev-runtime'],
   },
   server: {
-    watch: { ignored: ['**/dist-web/**', '**/.tmp/**'] },
+    watch: { ignored: ['**/dist-web/**', '**/dist-mobile/**', '**/android/**', '**/.tmp/**'] },
   },
 };
 export default defineConfig(({ command, mode }) => {
+  if (mode === 'mobile') return mergeConfig(nativeConfig, {
+    plugins: [{ name: 'zhiyu-mobile-entry', transformIndexHtml: { order: 'pre' as const, handler: (html: string) => html.replace('/src/main.tsx', '/src/mobile/main.tsx') } }],
+    build: { outDir: 'dist-mobile' },
+  });
   if (mode !== 'web') return nativeConfig;
   const web = nimiWebViteConfig({ root: __dirname, env: { ...loadEnv(mode, __dirname, ''), ...process.env }, serve: command === 'serve' });
   return mergeConfig(nativeConfig, {

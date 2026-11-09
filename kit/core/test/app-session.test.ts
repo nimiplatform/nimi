@@ -10,13 +10,13 @@ function fixture(binding?: NimiAppAccountBinding, autoConnect = true) {
   const token = { realmEnvironmentId: 'unit', appId: 'unit.app', clientId: 'unit.web', contextId: 'ctx', accountId: 'A', displayName: 'Alice',
     contextToken: 't'.repeat(43), expiresAt: new Date(Date.now() + 10000).toISOString() };
   const platform: NimiRemoteAppPlatform = {
-    kind: 'remote', config: { appId: token.appId, clientId: token.clientId, realmEnvironmentId: 'unit', realmBaseUrl: 'https://site.example',
+    kind: 'remote', sourceKind: 'web', config: { appId: token.appId, clientId: token.clientId, realmEnvironmentId: 'unit', realmBaseUrl: 'https://site.example',
       officialWebBaseUrl: 'https://nimi.example', redirectUri: callback, accountBinding: binding, autoConnect,
       fetch: async input => {
         if (String(input).endsWith('/token')) return Response.json(token);
         if (outage) return Response.json({ reasonCode: 'REALM_UNAVAILABLE' }, { status: 503 });
         if (invalid) return Response.json({ reasonCode: 'RUNTIME_CLIENT_CONTEXT_INVALID' }, { status: 401 });
-        return Response.json(String(input).endsWith('/end') ? { ended: true } : { ...token, stunUrls: [], source: { role: sourceRole, appId: token.appId, clientId: token.clientId, displayName: 'Test App', origin: 'https://site.example', redirectUri: 'https://site.example/', sourceRevision: 1, appAccess: ['runtime.consume'], capabilityContractRefs: ['text.generate'] }, primary: null });
+        return Response.json(String(input).endsWith('/end') ? { ended: true } : { ...token, stunUrls: [], source: { kind: 'web', role: sourceRole, appId: token.appId, clientId: token.clientId, displayName: 'Test App', origin: 'https://site.example', redirectUri: 'https://site.example/', sourceRevision: 1, appAccess: ['runtime.consume'], capabilityContractRefs: ['text.generate'] }, primary: null });
       } },
     storage: { getItem: () => saved, setItem: (_, value) => { saved = value; }, removeItem: () => { saved = null; } },
     callbackUrl: () => callback, clearCallback() {}, navigate: url => { navigation.push(url); },
@@ -168,4 +168,45 @@ it('initial page resume cannot cancel an in-flight callback; explicitly abandoni
     expect(session.getSnapshot().identity.status).toBe(abandon ? 'signed-out' : 'signed-in');
     expect(session.getSnapshot().busy).toBe('none'); session.dispose();
   }
+});
+
+it('receives a warm native callback without a new controller and leaves unrelated callbacks unconsumed', async () => {
+  const f = fixture(undefined, false), session = f.create(); await session.start();
+  if (session.account.kind !== 'app-session') throw new Error('wrong mode');
+  await session.account.signIn();
+  const transaction = JSON.parse(f.platform.storage.getItem('unused')!);
+  const matching = `https://site.example/?code=${'c'.repeat(43)}&state=${transaction.state}`;
+  expect(await session.acceptCallback(`https://unrelated.example/?code=${'c'.repeat(43)}&state=${transaction.state}`)).toBe(false);
+  expect(await session.acceptCallback(`https://site.example/?code=${'c'.repeat(43)}&state=${'x'.repeat(43)}`)).toBe(false);
+  expect(f.platform.storage.getItem('unused')).not.toBeNull();
+  const results = await Promise.all([session.acceptCallback(matching), session.acceptCallback(matching)]);
+  expect(results.sort()).toEqual([false, true]);
+  expect(session.getSnapshot().identity.status).toBe('signed-in'); session.dispose();
+});
+it('never emits an old identity after asynchronous platform source verification', async () => {
+  let user = 'A', notify = () => {}; const gate = Promise.withResolvers<void>(); let entered = false;
+  const verified = vi.fn();
+  const f = fixture({ current: () => ({ contextKey: user }), subscribe: listener => { notify = listener; return () => {}; }, onVerifiedIdentity: verified });
+  f.platform.verifySource = async () => { entered = true; await gate.promise; };
+  const result = f.login(); while (!entered) await new Promise(resolve => setImmediate(resolve));
+  user = 'B'; notify(); gate.resolve(); const session = await result;
+  expect(verified).not.toHaveBeenCalled(); expect(session.getSnapshot().identity.status).toBe('signed-out'); session.dispose();
+});
+it('rejects a Web source in an Android platform adapter before mounting identity', async () => {
+  const f = fixture(undefined, false); f.platform.sourceKind = 'android-app-link';
+  const session = await f.login();
+  expect(session.getSnapshot().identity.status).toBe('signed-out');
+  expect(f.stats().connects).toBe(0); session.dispose();
+});
+
+it('ignores an old callback while a new native login preflight has not stored its transaction', async () => {
+  const f = fixture(undefined, false), session = f.create(); await session.start();
+  const ready = Promise.withResolvers<void>();
+  f.platform.prepare = async (...args) => { await ready.promise; return prepareRuntimeClientLogin(...args); };
+  if (session.account.kind !== 'app-session') throw new Error('wrong mode');
+  const signingIn = session.account.signIn();
+  expect(await session.acceptCallback(`https://site.example/?code=${'c'.repeat(43)}&state=${'s'.repeat(43)}`)).toBe(false);
+  expect(session.getSnapshot().busy).toBe('sign-in');
+  ready.resolve(); await signingIn;
+  expect(f.navigation).toHaveLength(1); expect(f.platform.storage.getItem('unused')).not.toBeNull(); session.dispose();
 });

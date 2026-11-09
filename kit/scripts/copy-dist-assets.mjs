@@ -1,5 +1,6 @@
 import {
   copyFileSync,
+  cpSync,
   mkdirSync,
   readFileSync,
   readdirSync,
@@ -88,3 +89,7 @@ for (const relativePath of [
   mkdirSync(path.dirname(target), { recursive: true });
   copyDistAsset(source, target, normalizedRelativePath);
 }
+
+// Native plugin source is built by the consuming Android project. Preserve its
+// Gradle src/main layout instead of applying the TypeScript flattening rule.
+cpSync(path.join(kitRoot, 'auth/android'), path.join(distRoot, 'auth/android'), { recursive: true });

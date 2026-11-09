@@ -388,13 +388,19 @@
       "default": "./dist/features/media/headless.js"
     },
     "./auth/app": {
-      "types": "./dist/auth/app/index.d.ts", "import": "./dist/auth/app/index.js", "default": "./dist/auth/app/index.js"
+      "types": "./dist/auth/app/index.d.ts",
+      "import": "./dist/auth/app/index.js",
+      "default": "./dist/auth/app/index.js"
     },
     "./auth/app/web": {
-      "types": "./dist/auth/app/web.d.ts", "import": "./dist/auth/app/web.js", "default": "./dist/auth/app/web.js"
+      "types": "./dist/auth/app/web.d.ts",
+      "import": "./dist/auth/app/web.js",
+      "default": "./dist/auth/app/web.js"
     },
     "./auth/app/desktop": {
-      "types": "./dist/auth/app/desktop.d.ts", "import": "./dist/auth/app/desktop.js", "default": "./dist/auth/app/desktop.js"
+      "types": "./dist/auth/app/desktop.d.ts",
+      "import": "./dist/auth/app/desktop.js",
+      "default": "./dist/auth/app/desktop.js"
     },
     "./core/app-session": {
       "types": "./dist/core/app-session.d.ts",
@@ -410,6 +416,11 @@
       "types": "./dist/core/app-asset-media.d.ts",
       "import": "./dist/core/app-asset-media.js",
       "default": "./dist/core/app-asset-media.js"
+    },
+    "./auth/app/mobile": {
+      "types": "./dist/auth/app/mobile.d.ts",
+      "import": "./dist/auth/app/mobile.js",
+      "default": "./dist/auth/app/mobile.js"
     }
   },
   "scripts": {
@@ -456,7 +467,10 @@
     "electron": "^45.0.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-i18next": "^17.0.0"
+    "react-i18next": "^17.0.0",
+    "@capacitor/core": "^8.0.0",
+    "@capacitor/app": "^8.0.0",
+    "@capacitor/browser": "^8.0.0"
   },
   "peerDependenciesMeta": {
     "react-dom": {
@@ -466,6 +480,15 @@
       "optional": true
     },
     "electron": {
+      "optional": true
+    },
+    "@capacitor/core": {
+      "optional": true
+    },
+    "@capacitor/app": {
+      "optional": true
+    },
+    "@capacitor/browser": {
       "optional": true
     }
   },
@@ -483,6 +506,14 @@
     "tsx": "4.23.15",
     "typescript": "6.0.3",
     "vite": "8.3.5",
-    "vitest": "5.0.5"
+    "vitest": "5.0.5",
+    "@capacitor/core": "8.6.0",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/browser": "8.0.5"
+  },
+  "capacitor": {
+    "android": {
+      "src": "dist/auth/android"
+    }
   }
 }
