@@ -45,7 +45,7 @@ Official account authentication keeps Web Account Auth for Realm-owned browser s
 
 `@nimiplatform/kit/auth/app` provides `NimiAppSessionProvider`, `NimiAccountControl`, `NimiAppAccessGate` and `useNimiAppSession`. Runtime-required children receive the current scope and must capture its client and respect its signal. Identity-only children are independently unmounted when identity ends. Display customization does not grant permissions.
 
-`@nimiplatform/kit/auth/app/desktop` provides `createDesktopNimiAppSession()` over the verified Host. It reuses `auth.status()` and `currentUser.get()`; account changes remain Nimi Home-owned. It provides no ordinary-App Account token or global logout.
+`@nimiplatform/kit/auth/app/desktop` provides `createDesktopNimiAppSession()` over the verified Host. It reuses `auth.status()` and `currentUser.get()`; account changes remain Nimi Home-owned. Its connected snapshot preserves the actual native App client type, including native-only operations; the common scope type remains the default for platform-neutral UI. It provides no ordinary-App Account token or global logout.
 
 Optional remote `accountBinding` supplies the current verified website context and expected existing association. `onVerifiedIdentity(identity, contextKey)` receives only a current SDK result; the website owns durable association and any backend verification. Network-uncertain logout remains explicit; Realm-confirmed invalid contexts and known expiry end local identity.
 

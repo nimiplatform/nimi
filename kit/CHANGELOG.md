@@ -6,6 +6,10 @@
 
 App session issues retain an optional owner-supplied `actionHint`, including denied Desktop session status. Custom access views and the standard gate's expandable details preserve the owner reason and recovery instruction without decoding private errors or inventing a second authorization state.
 
+## Unreleased — Native scope type preservation (next 0.x minor)
+
+The shared App session/snapshot/scope types accept the actual client type, with the common remote-safe client as the default. The Desktop factory retains the existing full native App client in its connected snapshot; Web and Android remain on the common operation subset. No runtime permission or account behavior changes. Generated Desktop Apps can adopt the same Kit session/gate as Web without a second native client or a fabricated native type.
+
 ## Unreleased — Android container access (next 0.x minor)
 
 Adds `auth/app/mobile` and the packaged Android Capacitor plugin. Ordinary Web factories now require Realm source kind `web`; Android uses its reviewed App Link source and real installed/OS qualification. Warm callbacks, asynchronous handoff and foreground lifecycle reuse core `app-session`. Android 12+ is the first supported build target; real device acceptance remains separate.

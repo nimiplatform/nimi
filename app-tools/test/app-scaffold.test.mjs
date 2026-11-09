@@ -467,7 +467,7 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     assert.match(generated.read('nimi.app.yaml'), /app_id: acme\.widget/);
     assert.match(generated.read('nimi.app.yaml'), /profile: standalone/);
     assert.match(generated.read('src/shell/auth/app-identity.ts'), /appId = "acme\.widget"/);
-    assert.match(generated.read('src/shell/auth/runtime-platform.ts'), /import \{ appId \} from '\.\/app-identity\.js'/);
+    assert.match(generated.read('src/shell/auth/runtime-platform.ts'), /export \{ appId, appTitle, scaffoldProfile \} from '\.\/app-identity\.js'/);
     const tauri = JSON.parse(generated.read('src-tauri/tauri.conf.json'));
     assert.equal(tauri.identifier, 'ai.nimi.apps.acme.widget');
     assert.equal(tauri.productName, 'Acme Widget');
@@ -782,10 +782,9 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
 
     assertTauriIconSupport(generated);
     const runtimePlatform = generated.read('src/shell/auth/runtime-platform.ts');
-    assert.match(runtimePlatform, /getNimiLocalAppClient/);
-    assert.match(runtimePlatform, /\.auth\.status\(\)/);
-    assert.match(runtimePlatform, /!status\.sessionBound/);
-    assert.match(runtimePlatform, /runtimeAccountLoginEnabled = false/);
+    assert.match(runtimePlatform, /getTargetAppSession/);
+    assert.match(runtimePlatform, /snapshot\.runtime\.status === 'connected'/);
+    assert.doesNotMatch(runtimePlatform, /auth\.status|runtimeProjection|runtimeAccountLoginEnabled/);
     assert.doesNotMatch(runtimePlatform, /createNimiClient|developerRegistration|developer-registered-local-app/);
   } finally {
     generated.cleanup();
@@ -3223,12 +3222,12 @@ test('default profiles generate local-app carrier boundaries without Lab-only or
 
       assert.doesNotMatch(runtimePlatform, /developer-registered-local-app|developerRegistration/, `${profile} must not retain developer registration`);
       assert.match(runtimePlatform, /'local-app'/, `${profile} keeps the final local-app mode`);
-      assert.match(runtimePlatform, /getNimiLocalAppClient/, `${profile} must consume the final SDK client`);
-      assert.match(localAppClient, /createNimiClient/, `${profile} must consume the SDK local-app owner surface`);
-      assert.match(localAppClient, /createNimiLocalAppStandardShellSurface/, `${profile} must compose the Kit local-app shell`);
-      assert.match(runtimePlatform, /!status\.sessionBound/, `${profile} must require a bound local-app session without conflating permissions`);
-      assert.match(targetAdapter, /resolveTargetRuntimeGate/, `${profile} must keep Runtime wiring in the target adapter`);
-      assert.match(runtimeGate, /WorkbenchRuntimeGate/, `${profile} must consume the shared visible gate`);
+      assert.match(runtimePlatform, /getTargetAppSession/, `${profile} observes the shared Kit session`);
+      assert.match(localAppClient, /runtime\.scope\.client/, `${profile} uses the actual current native client`);
+      assert.match(targetAdapter, /createDesktopNimiAppSession/, `${profile} delegates Host composition to Kit`);
+      assert.match(localAppClient, /runtime\.status !== 'connected'/, `${profile} requires a current connected scope`);
+      assert.doesNotMatch(runtimePlatform, /runtimeProjection|auth\.status/, `${profile} keeps no second startup posture cache`);
+      assert.match(generated.read('src/shell/App.tsx'), /NimiAppAccessGate/, `${profile} consumes the shared account gate`);
       assert.doesNotMatch(runtimePlatform, /createNimiClient|RuntimeOptions|runtime\.account|runtime\.ai|bootstrapArtifact/i, `${profile} must keep non-carrier operations absent`);
 
     } finally {
@@ -3273,91 +3272,69 @@ test('generated Studio export reports actual saved facts, write failure and reve
 });
 
 
-test('generated connection gate shows plain guidance, opens Nimi and folds reason codes into technical details', async () => {
+test('generated Desktop access reuses one Kit session, rejects stale scope and recreates only after disposal', async () => {
   const snapshot = buildAppScaffoldSnapshot({ profile: 'standalone', versions, appId: 'acme.gate', appTitle: 'Gate App', packageName: 'gate-app' });
-  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-gate-adapter-'));
+  const tempRoot = mkdtempSync(path.join(os.tmpdir(), 'nimi-app-session-adapter-'));
   try {
-    writeFileSync(path.join(tempRoot, 'bridge.mjs'), 'export const openDesktopIntent = (request) => globalThis.__gateTest.openDesktopIntent(request);\n');
-    writeFileSync(path.join(tempRoot, 'runtime-platform.mjs'), [
-      "export const appId = 'acme.gate';",
-      "export const appTitle = 'Gate App';",
-      'export const getRuntimePlatformProjection = () => globalThis.__gateTest.projection();',
-      'export const clearRuntimePlatformProjection = () => { globalThis.__gateTest.cleared += 1; };',
-      '',
-    ].join('\n'));
+    writeFileSync(path.join(tempRoot, 'factory.mjs'), 'export const createDesktopNimiAppSession = () => globalThis.__sessionTest.create();');
+    const instances = [];
+    globalThis.__sessionTest = { create() {
+      const instance = { value: { runtime: { status: 'disconnected' }, issue: null }, disposed: 0,
+        getSnapshot() { return this.value; }, dispose() { this.disposed++; } };
+      instances.push(instance); return instance;
+    } };
     const source = stripTypeScriptTypes(snapshot.filesByPath.get('src/shell/workbench-target-adapter.ts').content, { mode: 'strip' })
-      .replace("'@nimiplatform/kit/shell/renderer/bridge'", "'./bridge.mjs'")
-      .replace("'./auth/runtime-platform.js'", "'./runtime-platform.mjs'");
-    assert.doesNotMatch(source, /from '(?!\.\/(?:bridge|runtime-platform)\.mjs')/u, 'the adapter reaches only the Kit bridge and its runtime platform');
+      .replace("'@nimiplatform/kit/auth/app/desktop'", "'./factory.mjs'");
     writeFileSync(path.join(tempRoot, 'adapter.mjs'), source);
-    const openRequests = [];
-    let openResult;
-    globalThis.__gateTest = {
-      cleared: 0,
-      projection: async () => ({ status: 'ready', mode: 'local-app' }),
-      openDesktopIntent: async (request) => { openRequests.push(request); return openResult(); },
-    };
+    const clientSource = stripTypeScriptTypes(snapshot.filesByPath.get('src/shell/auth/local-app-client.ts').content, { mode: 'strip' })
+      .replace("'../workbench-target-adapter.js'", "'./adapter.mjs'");
+    writeFileSync(path.join(tempRoot, 'client.mjs'), clientSource);
     const adapter = await import(pathToFileURL(path.join(tempRoot, 'adapter.mjs')).href);
+    const { getNimiLocalAppClient } = await import(pathToFileURL(path.join(tempRoot, 'client.mjs')).href);
+    assert.equal(instances.length, 0, 'importing the module does not establish a session');
+    const first = adapter.getTargetAppSession();
+    assert.equal(adapter.getTargetAppSession(), first);
+    assert.throws(getNimiLocalAppClient, /Connect through Nimi Home/);
+    const controller = new AbortController(), client = { native: true };
+    first.value.runtime = { status: 'connected', scope: { client, signal: controller.signal, viewKey: 'one' } };
+    assert.equal(getNimiLocalAppClient(), client);
+    controller.abort(); assert.throws(getNimiLocalAppClient, { name: 'AbortError' });
+    adapter.endTargetAppSession(first);
+    const second = adapter.getTargetAppSession();
+    assert.notEqual(second, first);
+    adapter.endTargetAppSession(first);
+    assert.equal(adapter.getTargetAppSession(), second, 'late cleanup never clears the replacement');
+    assert.equal(second.disposed, 0);
+    adapter.endTargetAppSession(second);
+  } finally { delete globalThis.__sessionTest; rmSync(tempRoot, { recursive: true, force: true }); }
+});
 
-    const copyText = Object.values(adapter.targetRuntimeGateCopy).filter((value) => typeof value === 'string');
-    assert.deepEqual(copyText, ['Connecting to Nimi…', 'Not connected', 'Sign in to Nimi to continue', 'This App needs Nimi', 'Try again', 'Technical details']);
-    assert.equal(adapter.targetRuntimeGateCopy.nextAction('Plain step.'), 'Plain step.');
-    assert.doesNotMatch(adapter.targetRuntimeGateErrorMessage(new Error('socket hang up')), /socket|Error/u);
-    assert.deepEqual(await adapter.resolveTargetRuntimeGate(), { status: 'ready' });
-    adapter.clearTargetRuntimeGate();
-    assert.equal(globalThis.__gateTest.cleared, 1);
-
-    const cases = [
-      { reasonCode: 'runtime-unauthenticated', actionHint: 'establish_fresh_app_access_session', signIn: true, next: /sign in/u },
-      { reasonCode: 'renderer-standard-shell-host-unavailable', actionHint: 'start_fixed_runtime_service', signIn: false, next: /Make sure Nimi is open/u },
-      { reasonCode: 'runtime-service-unavailable', actionHint: 'open_nimi_desktop_and_retry', signIn: false, next: /Make sure Nimi is open/u },
-      { reasonCode: 'local-app-denied', actionHint: 'establish_fresh_app_access_session', signIn: false, next: /Wait a moment/u },
-      { reasonCode: 'runtime-restarted', actionHint: 'reopen_local_app_session', signIn: false, next: /open it again from Nimi/u },
-      { reasonCode: 'account-changed', actionHint: 'establish_session_for_current_account', signIn: false, next: /open it again from Nimi/u },
-      { reasonCode: 'local-development-project-changed', actionHint: 'restore_registered_project_identity', signIn: false, next: /pnpm dev/u },
-      { reasonCode: 'unlisted-reason', actionHint: 'unlisted_hint', signIn: false, next: /Make sure Nimi is open/u },
-    ];
-    for (const testCase of cases) {
-      globalThis.__gateTest.projection = async () => ({
-        status: 'action-required', mode: 'local-app', reasonCode: testCase.reasonCode, actionHint: testCase.actionHint,
-        message: 'The protected Nimi local-app carrier is unavailable.',
-      });
-      const gate = await adapter.resolveTargetRuntimeGate();
-      assert.equal(gate.status, 'unavailable');
-      assert.equal(gate.signInRequired, testCase.signIn, testCase.reasonCode);
-      assert.match(gate.nextAction, testCase.next, testCase.reasonCode);
-      for (const primary of [gate.body, gate.nextAction]) {
-        // Primary text names no reason code, hint slug, carrier or Runtime term.
-        assert.doesNotMatch(primary, /_|carrier|Runtime|local-app/u, `${testCase.reasonCode}: ${primary}`);
-        assert.equal(primary.includes(testCase.reasonCode), false);
-      }
-      assert.deepEqual(gate.technicalDetails, [
-        { label: 'Reason', value: testCase.reasonCode },
-        { label: 'Suggested action', value: testCase.actionHint },
-        { label: 'Details', value: 'The protected Nimi local-app carrier is unavailable.' },
-      ]);
-      assert.equal(gate.recoveryAction.label, 'Open Nimi');
-    }
-
-    const { recoveryAction } = await adapter.resolveTargetRuntimeGate();
-    const outcomes = [
-      [() => ({ status: 'accepted', confirmation: 'desktop-accepted', bridgeId: 'bridge', requestId: 'desktop-open-1', appliedTarget: 'open-apps' }), /^Nimi is open\./u],
-      [() => ({ status: 'rejected', reasonCode: 'desktop-open-desktop-not-running', actionHint: 'open_desktop_first' }), /^Nimi isn't running\. Start Nimi/u],
-      [() => ({ status: 'rejected', reasonCode: 'desktop-open-desktop-not-ready', actionHint: 'wait_for_desktop_ready' }), /^Nimi is still starting\./u],
-      [() => ({ status: 'rejected', reasonCode: 'desktop-open-target-unsupported', actionHint: 'fix_desktop_open_intent' }), /^This App couldn't open Nimi\./u],
-      [() => { throw Object.assign(new Error('bridge missing'), { reasonCode: 'renderer-standard-shell-host-unavailable' }); }, /^This App couldn't open Nimi\./u],
-    ];
-    for (const [result, message] of outcomes) {
-      openResult = result;
-      const text = await recoveryAction.run();
-      assert.match(text, message);
-      assert.doesNotMatch(text, /_|desktop-open|bridge/u);
-    }
-    assert.deepEqual(openRequests.map((request) => JSON.stringify(request)), Array(outcomes.length).fill('{"intent":{"kind":"open-apps","appId":"acme.gate"}}'));
-  } finally {
-    delete globalThis.__gateTest;
-    rmSync(tempRoot, { recursive: true, force: true });
-  }
+test('Desktop sync preserves and validates an App-owned Web entry without changing its native platform', () => {
+  const generated = cliScaffold('standalone');
+  try {
+    const manifestPath = path.join(generated.target, 'nimi.app.yaml');
+    const manifest = parseYaml(generated.read('nimi.app.yaml'));
+    const originalElectron = manifest.local_development.electron;
+    manifest.local_development.web = { origin: 'https://127.0.0.1:4475', redirect_uri: 'https://127.0.0.1:4475/', client_id: 'unit.app.web', realm_environment_id: 'dev', realm_url: 'http://127.0.0.1:3002', official_web_url: 'http://localhost:3000', command: 'pnpm run dev:web-renderer' };
+    writeFileSync(manifestPath, stringifyYaml(manifest));
+    const packagePath = path.join(generated.target, 'package.json');
+    const pkg = JSON.parse(generated.read('package.json'));
+    pkg.scripts['dev:web-renderer'] = 'vite --config vite.web.config.ts';
+    writeFileSync(packagePath, JSON.stringify(pkg, null, 2));
+    const synced = runNimiApp(['sync', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    assert.equal(synced.status, 0, synced.stderr);
+    const actual = parseYaml(generated.read('nimi.app.yaml'));
+    assert.deepEqual(actual.local_development.web, manifest.local_development.web);
+    assert.deepEqual(actual.local_development.electron, originalElectron);
+    assert.equal(actual.platform, manifest.platform);
+    const checked = runNimiApp(['check', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    assert.equal(checked.status, 0, checked.stderr);
+    actual.local_development.web.origin = 'http://127.0.0.1:4475';
+    writeFileSync(manifestPath, stringifyYaml(actual));
+    const invalid = runNimiApp(['check', '--dir', generated.target], generated.tempRoot, { env: generated.env });
+    assert.notEqual(invalid.status, 0);
+    assert.match(invalid.stderr, /HTTPS|https/);
+  } finally { generated.cleanup(); }
 });
 
 test('generated Host destroys old renderer state on invalidation before creating a fresh renderer', async () => {
@@ -3394,6 +3371,9 @@ test('generated Host destroys old renderer state on invalidation before creating
   await new Promise(resolve => setImmediate(resolve));
   // Options are created inside the vm realm; compare their plain fields.
   assert.equal(chromeRequests[0].metadata.name, 'Scope App');
+  assert.deepEqual(JSON.parse(JSON.stringify(chromeRequests[0].appCommands)), [
+    { id: 'app.nimi-account', menu: 'file', labels: { en: 'Nimi account', zh: 'Nimi 账号' } },
+  ]);
   assert.deepEqual(boundWindows, windows, 'each actual Host window is bound before loading');
   assert.equal(windows.length, 1); const old = windows[0]; old.oldBusinessState = { dirty: 'account A private' };
   assert.equal(typeof invalidated, 'function'); invalidated();

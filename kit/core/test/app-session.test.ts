@@ -1,6 +1,7 @@
+import type { NimiAppRuntimeClient, NimiLocalAppClient } from '@nimiplatform/sdk/app';
 // @vitest-environment node
-import { expect, it, vi } from 'vitest';
-import { createNimiAppSession, type NimiAppAccountBinding, type NimiRemoteAppPlatform } from '../src/app-session.js';
+import { expect, expectTypeOf, it, vi } from 'vitest';
+import { createNimiAppSession, type NimiAppAccountBinding, type NimiRemoteAppPlatform, type NimiAppSession, type NimiAppSessionSnapshot } from '../src/app-session.js';
 import { prepareRuntimeClientLogin, completeRuntimeClientLogin } from '@nimiplatform/sdk/realm/runtime-client';
 
 // Real SDK protocol and Kit composition; network/peer fixtures are not product acceptance.
@@ -209,4 +210,21 @@ it('ignores an old callback while a new native login preflight has not stored it
   expect(session.getSnapshot().busy).toBe('sign-in');
   ready.resolve(); await signingIn;
   expect(f.navigation).toHaveLength(1); expect(f.platform.storage.getItem('unused')).not.toBeNull(); session.dispose();
+});
+
+it('retains the actual native client type and keeps the default session surface portable', async () => {
+  const client = {
+    auth: { status: async () => ({ sessionBound: true }) },
+    currentUser: { get: async () => ({ displayName: 'Native owner', handle: 'native', avatarUrl: null }) },
+  } as unknown as NimiLocalAppClient;
+  const session = createNimiAppSession({ kind: 'desktop', client, openAccountOwner: async () => {} });
+  await session.start();
+  const snapshot = session.getSnapshot();
+  if (snapshot.runtime.status !== 'connected') throw new Error('native fixture did not connect');
+  expectTypeOf(snapshot.runtime.scope.client).toEqualTypeOf<NimiLocalAppClient>();
+  expect(snapshot.runtime.scope.client).toBe(client);
+  type CommonClient = Extract<NimiAppSessionSnapshot['runtime'], { status: 'connected' }>['scope']['client'];
+  expectTypeOf<CommonClient>().toEqualTypeOf<NimiAppRuntimeClient>();
+  expectTypeOf(session).toExtend<NimiAppSession>();
+  session.dispose(); expect(snapshot.runtime.scope.signal.aborted).toBe(true);
 });

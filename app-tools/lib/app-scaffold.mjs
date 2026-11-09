@@ -63,6 +63,7 @@ const LOCKFILE_POLICY = 'author-install-generates-lockfile';
 const GENERATED_GITIGNORE = [
   'node_modules/',
   'dist/',
+  'dist-web/',
   'dist-electron/',
   'dist-electron-package/',
   'src-tauri/target/',
@@ -1679,7 +1680,7 @@ export function hashScaffoldManagedContent(relativePath, content) {
   if (relativePath !== 'nimi.app.yaml') return hashScaffoldContent(content);
   const manifest = YAML.parse(content.toString());
   for (const field of APP_AUTHOR_DECLARATION_FIELDS) delete manifest[field];
-  if (manifest.platform === 'web' && manifest.local_development) delete manifest.local_development.web;
+  if (manifest.local_development) delete manifest.local_development.web;
   if (manifest.local_development) delete manifest.local_development.mobile;
   return hashScaffoldContent(YAML.stringify(manifest, { lineWidth: 0 }));
 }

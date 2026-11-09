@@ -256,6 +256,8 @@ The generated `nimi.app.yaml` has `platform: web` and `local_development.web` wi
 
 `@nimiplatform/app-tools/web` exports the Node-only `nimiWebViteConfig` helper. Its development proxy only forwards scoped identity and SDP coordination routes and strips official cookies. AI, files, audio and results use the browser-to-PC connection. Built static files need a separately configured production origin and bounded coordination route; the Vite dev server is not production hosting.
 
+A Desktop project can also declare an App-owned `local_development.web` entry and use `dev --platform web`. Init/sync preserve it and check validates both entries. This does not change the project's managed platform, native feature selection or build profile: its Web renderer, tests and build remain App-owned. Update retained capability modules alongside the selected tool package when their generated Host interface changes; sync deliberately preserves those App-owned files.
+
 For an existing website, keep its product entry and actual commands. Use a `web-pnpm` build profile with the real `test_command` / `build_command`, and a `web` target describing the browser output directory and `payload/index.html` entry. The identity-free configuration does not replace a site's own account system. SDK current-user context must follow its verified account session; never use an operator account or a front-end asserted Nimi account ID as another user's identity.
 
 Native-only guidance such as Electron installation, native signatures and `pack --production` above does not apply to the Web carrier. The initial generated test command typechecks the project; App business tests and real task acceptance belong to the application iteration.

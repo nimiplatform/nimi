@@ -4,13 +4,13 @@ import type { prepareRuntimeClientLogin, completeRuntimeClientLogin, connectRemo
   NimiAppRuntimeClient, RemoteRuntimeAppConnection, RemoteRuntimeConnectOptions } from './sdk-contract.js';
 
 export type NimiAppIdentity = Readonly<{ displayName: string; handle?: string; avatarUrl?: string | null }>;
-export type NimiAppScope = Readonly<{ client: NimiAppRuntimeClient; signal: AbortSignal; viewKey: string }>;
-export type NimiAppSessionSnapshot = Readonly<{
+export type NimiAppScope<TClient extends NimiAppRuntimeClient = NimiAppRuntimeClient> = Readonly<{ client: TClient; signal: AbortSignal; viewKey: string }>;
+export type NimiAppSessionSnapshot<TClient extends NimiAppRuntimeClient = NimiAppRuntimeClient> = Readonly<{
   identity: { status: 'checking' | 'signed-out' | 'unavailable' } | {
     status: 'signed-in'; user: NimiAppIdentity | null; viewKey: string; signal: AbortSignal;
   };
   runtime: { status: 'disconnected' | 'unavailable' } | { status: 'connecting'; stage?: Parameters<NonNullable<RemoteRuntimeConnectOptions['onState']>>[0] }
-    | { status: 'connected'; scope: NimiAppScope; displayName?: string };
+    | { status: 'connected'; scope: NimiAppScope<TClient>; displayName?: string };
   busy: 'none' | 'sign-in' | 'sign-out';
   issue: { area: 'identity' | 'runtime'; message: string; reasonCode: string; actionHint?: string } | null;
   pendingRevocation: boolean;
@@ -43,10 +43,27 @@ export type NimiDesktopAppPlatform = {
   openAccountOwner(): Promise<void>;
 };
 
+export type NimiAppSession<TClient extends NimiAppRuntimeClient = NimiAppRuntimeClient> = Readonly<{
+  getSnapshot(): NimiAppSessionSnapshot<TClient>;
+  subscribe(listener: () => void): () => void;
+  start(): Promise<void>;
+  acceptCallback(url: string): Promise<boolean>;
+  recheck(): Promise<void>;
+  connectRuntime(): Promise<void>;
+  cancelSignIn(): void;
+  disconnectRuntime(): void;
+  account: { kind: 'app-session'; signIn(): Promise<void>; signOut(): Promise<void> }
+    | { kind: 'home-managed'; openAccountOwner(): Promise<void> };
+  dispose(): void;
+}>;
+
 // @nimi-authority: rule.nimi.platform.ui-design-system.remote-app-session
 /** One consumer lifetime; SDK/Host own identity and permissions. Platform
  * factories supply these ports so ordinary Apps do not implement them. */
-export function createNimiAppSession(platform: NimiRemoteAppPlatform | NimiDesktopAppPlatform) {
+export function createNimiAppSession(platform: NimiDesktopAppPlatform): NimiAppSession<NimiLocalAppClient>;
+export function createNimiAppSession(platform: NimiRemoteAppPlatform): NimiAppSession;
+export function createNimiAppSession(platform: NimiRemoteAppPlatform | NimiDesktopAppPlatform): NimiAppSession;
+export function createNimiAppSession(platform: NimiRemoteAppPlatform | NimiDesktopAppPlatform): NimiAppSession {
   let snapshot: NimiAppSessionSnapshot = { identity: { status: 'checking' }, runtime: { status: 'disconnected' }, busy: 'none', issue: null, pendingRevocation: false };
   let session: RuntimeClientSession | null = null;
   let peer: RemoteRuntimeAppConnection | null = null;
@@ -254,4 +271,3 @@ export function createNimiAppSession(platform: NimiRemoteAppPlatform | NimiDeskt
     dispose() { clearIdentity(); disposed = true; generation = null; unsubscribe?.(); listeners.clear(); void session?.end().catch(() => undefined); },
   });
 }
-export type NimiAppSession = ReturnType<typeof createNimiAppSession>;

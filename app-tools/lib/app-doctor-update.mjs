@@ -594,10 +594,11 @@ function assertNimicodingProjectionCurrent(targetDir, runners) {
 
 function assertCarrierDevelopmentInputs(targetDir, manifest, packageJson, managed, plannedSources) {
   if (manifest.local_development && Object.hasOwn(manifest.local_development, 'mobile')) readMobileDevelopment(manifest, packageJson);
-  if (manifest.platform === 'web') {
+  if (manifest.platform === 'web' || (manifest.local_development && Object.hasOwn(manifest.local_development, 'web'))) {
     const web = readWebDevelopment(manifest);
     if (!packageJson.scripts?.[web.script] || /\bnimi-app\s+dev\b/u.test(packageJson.scripts[web.script])) throw new Error('Web dev requires a non-recursive App-owned renderer script.');
-  } else {
+  }
+  if (manifest.platform !== 'web') {
     if (manifest.platform !== undefined && manifest.platform !== 'desktop') throw new Error('Unsupported App platform.');
     const rendererOrigin = assertElectronLocalDevelopmentManifest(manifest);
     assertDeclaredHostSourceDirectory(targetDir, manifest);
@@ -722,7 +723,7 @@ export function initApp(cwd, options = {}, versions, runners = {}) {
     if (file.path === 'nimi.app.yaml' && currentManifest) {
       const next = parseYaml(content);
       for (const field of APP_AUTHOR_DECLARATION_FIELDS) if (Object.hasOwn(currentManifest, field)) next[field] = currentManifest[field];
-      if (next.platform === 'web') next.local_development = { web: currentManifest.local_development?.web };
+      if (currentManifest.local_development?.web) next.local_development = { ...next.local_development, web: currentManifest.local_development.web };
       if (currentManifest.local_development?.mobile) next.local_development = { ...next.local_development, mobile: currentManifest.local_development.mobile };
       content = stringifyYaml(next, { lineWidth: 0 });
     }
@@ -896,7 +897,7 @@ export function planManagedAppSync(cwd, options = {}, versions) {
     if (file.path === 'nimi.app.yaml' && currentManifest) {
       const next = parseYaml(content);
       for (const field of APP_AUTHOR_DECLARATION_FIELDS) if (Object.hasOwn(currentManifest, field)) next[field] = currentManifest[field];
-      if (next.platform === 'web') next.local_development = { web: currentManifest.local_development?.web };
+      if (currentManifest.local_development?.web) next.local_development = { ...next.local_development, web: currentManifest.local_development.web };
       if (currentManifest.local_development?.mobile) next.local_development = { ...next.local_development, mobile: currentManifest.local_development.mobile };
       content = stringifyYaml(next, { lineWidth: 0 });
     }

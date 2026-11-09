@@ -1,20 +1,15 @@
-import { WorkbenchRuntimeGate } from '../workbench-core/index.js';
+import { NimiAppSessionProvider, NimiAppAccessGate } from '@nimiplatform/kit/auth/app';
 import { NimiToaster } from '@nimiplatform/kit/ui';
 import { NimiAppChrome } from '@nimiplatform/kit/ui/app-chrome';
 import appPackage from '../../package.json';
 import { hasGeneratedViews } from '../scaffold/generated/navigation.js';
 import { AppNavigationProvider, useAppNavigation } from './routes/app-navigation.js';
 import { AuthenticatedShell } from './authenticated-shell.js';
-import {
-  appTitle,
-  clearTargetRuntimeGate,
-  resolveTargetRuntimeGate,
-  targetRuntimeGateCopy,
-  targetRuntimeGateErrorMessage,
-} from './workbench-target-adapter.js';
+import { appTitle } from './auth/app-identity.js';
+import { getTargetAppSession } from './workbench-target-adapter.js';
 
 export function App() {
-  return <AppNavigationProvider><AppFrame /></AppNavigationProvider>;
+  return <NimiAppSessionProvider session={getTargetAppSession()}><AppNavigationProvider><AppFrame /></AppNavigationProvider></NimiAppSessionProvider>;
 }
 function AppFrame() {
   const owner = useAppNavigation();
@@ -25,17 +20,10 @@ function AppFrame() {
   return (
     <div className="flex h-full min-h-0 flex-col overflow-hidden">
       <NimiAppChrome metadata={{ name: appTitle, version: appPackage.version, license: 'license' in appPackage && typeof appPackage.license === 'string' ? appPackage.license : undefined }} locale={locale} navigation={owner.navigation} navigationEnabled={owner.ready}
+        commands={[{ id: 'app.nimi-account', label: locale === 'zh' ? 'Nimi 账号' : 'Nimi account', menu: 'file', state: () => ({ visible: true, enabled: true }), execute: async () => { const account = getTargetAppSession().account; if (account.kind === 'home-managed') await account.openAccountOwner(); } }]}
         sidebar={sidebarAvailable && owner.ready ? { visible: owner.sidebarVisible, onVisibleChange: owner.setSidebarVisible } : undefined} />
       <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <WorkbenchRuntimeGate
-        appTitle={appTitle}
-        copy={targetRuntimeGateCopy}
-        resolve={resolveTargetRuntimeGate}
-        clear={clearTargetRuntimeGate}
-        toErrorMessage={targetRuntimeGateErrorMessage}
-      >
-        <AuthenticatedShell />
-      </WorkbenchRuntimeGate>
+      <NimiAppAccessGate title={appTitle} language={locale}>{() => <AuthenticatedShell />}</NimiAppAccessGate>
       </div>
       <NimiToaster />
     </div>
