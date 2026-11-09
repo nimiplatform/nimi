@@ -1777,7 +1777,7 @@ test('create accepts candidate studio-create as one shared AI Studio route with 
   assert.match(host, /cleanupArtifacts,/);
   assert.match(host, /loadPanelPreferences,/);
   assert.match(host, /savePanelPreferences,/);
-  assert.match(host, /revealLocalAppAsset: \(relativePath\) => getNimiLocalAppClient\(\)\.storage\.assets\.reveal\(relativePath\)/);
+  assert.match(host, /exportAsset: async \(relativePath\) => \{ await client\.storage\.assets\.reveal\(relativePath\); \}/);
   assert.doesNotMatch(host, /exportArtifact/);
   assert.match(host, /status: 'unavailable'/);
   assert.match(host, /remainingCleanupPaths: cleanup\.remainingCleanupPaths/);
@@ -3252,7 +3252,7 @@ test('generated Studio export reports actual saved facts, write failure and reve
   const source = stripTypeScriptTypes(adapter.slice(start, end), { mode: 'strip' });
   for (const outcome of ['success', 'write-failed', 'reveal-failed']) {
     const writes = [], reveals = [];
-    const run = vm.runInNewContext(`${source}\nexportText;`, { Blob, crypto, getNimiLocalAppClient: () => ({ storage: { assets: {
+    const run = vm.runInNewContext(`${source}\nexportText;`, { Blob, crypto, client: { storage: { assets: {
       async write(input) {
         if (outcome === 'write-failed') throw Error('storage rejected');
         assert.equal(input.mediaType, 'text/plain');
@@ -3262,7 +3262,7 @@ test('generated Studio export reports actual saved facts, write failure and reve
         return { relativePath: input.relativePath, sizeBytes: bytes.length };
       },
       async reveal(relativePath) { reveals.push(relativePath); if (outcome === 'reveal-failed') throw Error('host unavailable'); return { revealed: true }; },
-    } } }) });
+    } } } });
     const result = await run({ filename: 'selected.txt', body: '真实已选结果' });
     assert.equal(result.ok, outcome !== 'write-failed');
     if (result.ok) {

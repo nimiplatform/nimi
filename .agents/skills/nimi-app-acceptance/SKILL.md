@@ -9,11 +9,15 @@ Verify the requested behavior in the real supported Home or App. Start from the 
 
 ## Launch and target
 
-- Launch Home through its guarded Desktop package script and Apps through their guarded scripts with Desktop-supervised Electron. Attach to the exact product being tested: Home's CDP is valid for Home acceptance, but cannot substitute for an App's own renderer and permissions. Do not open a direct Vite renderer or use another product's target as a substitute.
+- Launch Home through its guarded Desktop package script and native Apps through their guarded scripts with Desktop-supervised Electron. Attach to the exact product being tested: Home's CDP is valid for Home acceptance, but cannot substitute for an App's own renderer and permissions. Do not open a direct Vite renderer or use another product's target as a substitute.
 - Generic `nimi-app dev` selects and prints an ephemeral loopback CDP port. When a stable port is needed, use `pnpm --filter <app-package> dev -- --cdp-port <free-port>` with the actual package and an available port.
 - Root `pnpm dev:desktop`, `dev:zhiyu`, `dev:lab`, and `dev:avatar` own deterministic default ports. Generic dev may read the exact `NIMI_APP_DEV_CDP_PORT` override from the project `.env`; `--cdp-port` overrides either path and `--no-cdp` disables CDP.
 - Keep CDP loopback-only, development-only, and ephemeral. Prefer the matching CDP target for Home and App web UI, including Home's trusted management pages. Use Computer Use for native windows, system dialogs, and behavior CDP cannot cover; being an owner UI alone is not a reason to exclude CDP.
 - To resume existing development data, use the exact registration selected from Desktop's current registration list. After Desktop restarts, refresh that list to obtain its new selector; an expired selector does not mean the registration is gone. A plain `dev` launch requires an explicit selection when registrations already exist; non-interactive runs must pass `--resume`. Use `--new-registration` only when the task calls for separate App data. Never replace a rejected resume with new registration.
+
+## Web Apps
+
+Use the declared Web entry (`nimi-app dev --platform web` when supported) and its exact HTTPS origin. Official Runtime-client login, source admission and first PC Home confirmation remain real prerequisites. Operate the browser UI with DOM/CDP and reuse existing source approval; never inject a native bridge or treat local startup/build as successful AI consumption. Native registration selectors, installers and native launch checks do not apply to the Web carrier.
 
 ## Observe and complete
 

@@ -44,7 +44,7 @@
 
 ## Nimi App acceptance
 
-- For real Nimi Home or App acceptance or renderer debugging, read `.agents/skills/nimi-app-acceptance/SKILL.md`. Prefer each product's exact loopback development CDP target for its web UI, including Home; launch Apps through Desktop-supervised Electron. Use Computer Use for native windows, system dialogs, and behavior CDP cannot cover. Direct Vite, another product's renderer, private-interface calls, or permission bypasses do not establish acceptance.
+- For real Nimi Home or App acceptance or renderer debugging, read `.agents/skills/nimi-app-acceptance/SKILL.md`. Prefer each product's exact loopback development CDP target for its web UI, including Home; launch native Apps through Desktop-supervised Electron. Web Apps use their declared HTTPS entry, official Runtime-client login and admitted direct carrier; a browser tab does not establish native Host proof. Use Computer Use for native windows, system dialogs, and behavior CDP cannot cover. Direct Vite, another product's renderer, private-interface calls, or permission bypasses do not establish acceptance.
 
 <!-- nimicoding:managed:agents:start -->
 # Nimi Coding Managed Block

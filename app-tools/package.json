@@ -48,7 +48,13 @@
   "bin": {
     "nimi-app": "./bin/nimi-app.mjs"
   },
-  "exports": {},
+  "exports": {
+    "./web": {
+      "types": "./lib/web-development.d.mts",
+      "import": "./lib/web-development.mjs",
+      "default": "./lib/web-development.mjs"
+    }
+  },
   "scripts": {
     "build": "node scripts/sync-scaffold-versions.mjs --apply && node scripts/sync-app-source.mjs --apply",
     "sync:versions": "node scripts/sync-scaffold-versions.mjs --apply",
@@ -57,7 +63,7 @@
     "prepublishOnly": "pnpm run build",
     "test": "node ../scripts/with-workspace-surfaces.mjs -- pnpm run test:prepared",
     "test:large-archive": "node --test test/app-pack-large.test.mjs",
-    "test:prepared": "node scripts/sync-scaffold-versions.mjs --check && node --test test/dev-shell.test.mjs && node --test test/app-icons.test.mjs test/app-dependency-combinations.test.mjs test/app-safety-profile.test.mjs test/app-project-lifecycle.test.mjs test/app-pack.test.mjs test/app-pack-large.test.mjs test/app-scaffold.test.mjs"
+    "test:prepared": "node scripts/sync-scaffold-versions.mjs --check && node --test test/dev-shell.test.mjs && node --test test/app-icons.test.mjs test/app-dependency-combinations.test.mjs test/app-safety-profile.test.mjs test/app-project-lifecycle.test.mjs test/app-pack.test.mjs test/app-pack-large.test.mjs test/app-scaffold.test.mjs test/web-carrier.test.mjs"
   },
   "files": [
     "bin",

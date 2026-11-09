@@ -10,7 +10,7 @@ import {
   packApp,
   resolveAppCreateInput,
   resolveAppCreatePlan,
-  runDevShell,
+  runAppDevelopment,
   syncApp,
   testApp,
 } from '../lib/index.mjs';
@@ -21,7 +21,7 @@ import { createInterface } from 'node:readline/promises';
 function parseArgs(argv) {
   const [command = '', ...rest] = argv;
   const values = {
-    dir: '', profile: '', appId: '', version: '', title: '', packageName: '', author: '',
+    dir: '', profile: '', platform: '', appId: '', version: '', title: '', packageName: '', author: '',
     features: undefined, shell: '', cdpPort: undefined, noCdp: false, listRegistrations: false, resume: '', newRegistration: false, target: '', aggregate: false, production: false, json: false,
     adopt: false, dryRun: false, input: '',
   };
@@ -79,6 +79,10 @@ function parseArgs(argv) {
     }
     if (rest[index] === '--author') {
       index = readValue(index, '--author', 'author', true);
+      continue;
+    }
+    if (rest[index] === '--platform') {
+      index = readValue(index, '--platform', 'platform');
       continue;
     }
     if (rest[index] === '--features') {
@@ -148,11 +152,11 @@ function parseArgs(argv) {
 
 function assertCommandOptions(command, providedOptions) {
   const allowed = {
-    create: new Set(['dir', 'profile', 'appId', 'version', 'title', 'packageName', 'author', 'features', 'json']),
+    create: new Set(['dir', 'profile', 'platform', 'appId', 'version', 'title', 'packageName', 'author', 'features', 'json']),
     init: new Set(['dir', 'json', 'adopt', 'input', 'dryRun']),
     sync: new Set(['dir', 'json', 'dryRun']),
     check: new Set(['dir', 'json', 'production']),
-    dev: new Set(['dir', 'shell', 'cdpPort', 'noCdp', 'listRegistrations', 'resume', 'newRegistration']),
+    dev: new Set(['dir', 'platform', 'shell', 'cdpPort', 'noCdp', 'listRegistrations', 'resume', 'newRegistration']),
     test: new Set(['dir', 'json']),
     build: new Set(['dir', 'target', 'production', 'json']),
     pack: new Set(['dir', 'target', 'aggregate', 'production', 'json']),
@@ -179,11 +183,11 @@ function printUsage() {
       'Nimi App developer tools',
       '',
       'Usage:',
-      '  nimi-app create [--dir path] [--profile standalone] [--features admitted-ids|all] [--app-id dotted.id] [--version semver] [--title title] [--package-name name] [--author person-or-team] [--json]',
+      '  nimi-app create [--dir path] [--profile standalone] [--platform desktop|web] [--features admitted-ids|all] [--app-id dotted.id] [--version semver] [--title title] [--package-name name] [--author person-or-team] [--json]',
       '  nimi-app init [--adopt [--input json-path]] [--dry-run] [--dir path] [--json]',
       '  nimi-app sync [--dry-run] [--dir path] [--json]',
       '  nimi-app check [--dir path] [--production] [--json]',
-      '  nimi-app dev [--dir path] [--shell electron] [--list-registrations | --resume <selector> | --new-registration] [--cdp-port 1024..65535 | --no-cdp]',
+      '  nimi-app dev [--dir path] [--platform desktop|web] [--shell electron] [--list-registrations | --resume <selector> | --new-registration] [--cdp-port 1024..65535 | --no-cdp]',
       '  nimi-app test [--dir path] [--json]',
       '  nimi-app build [--dir path] [--target target-id] [--production] [--json]',
       '  nimi-app pack [--dir path] (--target target-id [--production] | --aggregate) [--json]',
@@ -197,6 +201,7 @@ function printUsage() {
       '',
       'Current module registry:',
       `  Admitted features: ${featureList(admitted)}`,
+      `  Web features: ${featureList(admitted.filter(entry => entry.carriers.includes('web')))}`,
       `  Candidate features (not public-selectable): ${featureList(candidates)}`,
       `  Internal modules (dependency-only): ${internalList}`,
       admitted.length > 0
@@ -224,7 +229,7 @@ function printUsage() {
       '  create -> dependency install -> init -> sync -> check -> dev/test/build -> pack',
       '  Run init and later commands only after dependency installation.',
       `  Before init, read the packaged lifecycle skill: ${LIFECYCLE_SKILL_PATH}`,
-      '  Existing adoption requires pnpm, a supervised Electron Host, an App-owned renderer command and real build/test inputs.',
+      '  Existing adoption requires pnpm and real App-owned dev/build/test inputs: use a supervised Electron Host for Desktop, or the Web carrier and an admitted HTTPS source.',
       '  Use electron-pnpm for an existing renderer framework; no fresh scaffold lock is created.',
       '',
       'Development CDP:',
@@ -311,6 +316,7 @@ try {
     command,
     dir,
     profile,
+    platform,
     appId,
     version,
     title,
@@ -351,6 +357,7 @@ try {
         const rawInput = {
           dir,
           profile,
+          platform,
           appId,
           version,
           title,
@@ -419,9 +426,10 @@ try {
       }
       break;
     case 'dev':
-      await runDevShell(process.cwd(), {
+      await runAppDevelopment(process.cwd(), {
         dir,
-        shell: shell || 'electron',
+        shell,
+        platform,
         cdpPort,
         noCdp,
         listRegistrations,

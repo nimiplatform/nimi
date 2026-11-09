@@ -1,3 +1,4 @@
+import { readWebDevelopment } from './web-development.mjs';
 import { APP_AUTHOR_DECLARATION_FIELDS, hashScaffoldManagedContent } from './app-scaffold.mjs';
 import { readAppIntroduction } from './app-info.mjs';
 import { existsSync, readdirSync, readFileSync, realpathSync, statSync } from 'node:fs';
@@ -444,6 +445,7 @@ function assertRequiredSupportFiles(targetDir, snapshot) {
     throw new Error(`Missing required scaffold support files: ${missing.join(', ')}`);
   }
 
+  if (snapshot.lock.platform === 'web') return;
   const tauriConfig = JSON.parse(readFileSync(path.join(targetDir, 'src-tauri/tauri.conf.json'), 'utf8'));
   const icons = tauriConfig?.bundle?.icon;
   if (!Array.isArray(icons) || icons.join(',') !== 'icons/icon.png,icons/icon.ico') {
@@ -485,10 +487,8 @@ function assertProjectConfiguration(targetDir, parsedManifest = null, managed = 
       throw new Error(`Submitted manifest YAML cannot be parsed: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
-  const rendererOrigin = assertElectronLocalDevelopmentManifest(document);
   readAppIntroduction(targetDir, document);
-  assertDeclaredHostSourceDirectory(targetDir, document);
-  assertOfficialDevelopmentEntrypoints(targetDir, rendererOrigin, undefined, managed || !usesAppOwnedRenderer(targetDir));
+  assertCarrierDevelopmentInputs(targetDir, document, readJsonFile(path.join(targetDir, 'package.json')), managed);
 }
 
 function assertElectronLocalDevelopmentManifest(document) {
@@ -591,12 +591,22 @@ function assertNimicodingProjectionCurrent(targetDir, runners) {
   }
 }
 
+function assertCarrierDevelopmentInputs(targetDir, manifest, packageJson, managed, plannedSources) {
+  if (manifest.platform === 'web') {
+    const web = readWebDevelopment(manifest);
+    if (!packageJson.scripts?.[web.script] || /\bnimi-app\s+dev\b/u.test(packageJson.scripts[web.script])) throw new Error('Web dev requires a non-recursive App-owned renderer script.');
+  } else {
+    if (manifest.platform !== undefined && manifest.platform !== 'desktop') throw new Error('Unsupported App platform.');
+    const rendererOrigin = assertElectronLocalDevelopmentManifest(manifest);
+    assertDeclaredHostSourceDirectory(targetDir, manifest);
+    assertOfficialDevelopmentEntrypoints(targetDir, rendererOrigin, packageJson, managed || !usesAppOwnedRenderer(targetDir, plannedSources));
+  }
+}
+
 export function validateAppProjectInputs(targetDir, manifest, packageJson, managed = false, plannedSources) {
   assertManifestAppAccessDeclaration(stringifyYaml(manifest), 'nimi.app.yaml');
   readAppIntroduction(targetDir, manifest);
-  const rendererOrigin = assertElectronLocalDevelopmentManifest(manifest);
-  assertDeclaredHostSourceDirectory(targetDir, manifest);
-  assertOfficialDevelopmentEntrypoints(targetDir, rendererOrigin, packageJson, managed || !usesAppOwnedRenderer(targetDir, plannedSources));
+  assertCarrierDevelopmentInputs(targetDir, manifest, packageJson, managed, plannedSources);
   const findings = scanForbiddenPatterns(targetDir, manifest.profile, managed ? null : LOCAL_DEVELOPMENT_BYPASS_LABELS, plannedSources);
   if (findings.length) throw new Error(`Forbidden App source patterns: ${findings.join('; ')}`);
 }
@@ -710,6 +720,7 @@ export function initApp(cwd, options = {}, versions, runners = {}) {
     if (file.path === 'nimi.app.yaml' && currentManifest) {
       const next = parseYaml(content);
       for (const field of APP_AUTHOR_DECLARATION_FIELDS) if (Object.hasOwn(currentManifest, field)) next[field] = currentManifest[field];
+      if (next.platform === 'web') next.local_development = { web: currentManifest.local_development?.web };
       content = stringifyYaml(next, { lineWidth: 0 });
     }
     return plannedFile(targetDir, file.path, content);
@@ -882,6 +893,7 @@ export function planManagedAppSync(cwd, options = {}, versions) {
     if (file.path === 'nimi.app.yaml' && currentManifest) {
       const next = parseYaml(content);
       for (const field of APP_AUTHOR_DECLARATION_FIELDS) if (Object.hasOwn(currentManifest, field)) next[field] = currentManifest[field];
+      if (next.platform === 'web') next.local_development = { web: currentManifest.local_development?.web };
       content = stringifyYaml(next, { lineWidth: 0 });
     }
     return plannedFile(targetDir, file.path, content);

@@ -242,3 +242,18 @@ During release, the managed GitHub Actions workflow uploads this sidecar to the 
 ## License
 
 Licensed under [Apache-2.0](../licenses/Apache-2.0.txt).
+
+
+## Web development (current source build)
+
+The same CLI supports `create --platform web`, Web `init/sync/check/test/build`, existing-site `init --adopt`, and `dev --platform web`. `standalone` is still the repository topology. Web `--features all` currently resolves to `studio-create` (text, streaming chat and embeddings); other feature selections fail explicitly until their Web carrier is admitted. Mobile generation and Web pack/publication are not implemented.
+
+Use matching complete SDK, Kit and App Tools source archives until the new entries are published; a published package with the same numeric version may not contain this source iteration. No source-directory dependency links are required.
+
+The generated `nimi.app.yaml` has `platform: web` and `local_development.web` with the exact `origin`, `redirect_uri`, `client_id`, `realm_environment_id`, `realm_url`, `official_web_url` and App-owned `command`. Web connection inputs survive sync; the App identity and selected features remain managed. Put `NIMI_WEB_TLS_KEY` and `NIMI_WEB_TLS_CERT` file paths in `.env.local`. Register the real source through the Registry owner and confirm it once in PC Home; the tool does not approve it.
+
+`@nimiplatform/app-tools/web` exports the Node-only `nimiWebViteConfig` helper. Its development proxy only forwards scoped identity and SDP coordination routes and strips official cookies. AI, files, audio and results use the browser-to-PC connection. Built static files need a separately configured production origin and bounded coordination route; the Vite dev server is not production hosting.
+
+For an existing website, keep its product entry and actual commands. Use a `web-pnpm` build profile with the real `test_command` / `build_command`, and a `web` target describing the browser output directory and `payload/index.html` entry. The identity-free configuration does not replace a site's own account system. SDK current-user context must follow its verified account session; never use an operator account or a front-end asserted Nimi account ID as another user's identity.
+
+Native-only guidance such as Electron installation, native signatures and `pack --production` above does not apply to the Web carrier. The initial generated test command typechecks the project; App business tests and real task acceptance belong to the application iteration.

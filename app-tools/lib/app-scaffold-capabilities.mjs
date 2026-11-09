@@ -23,6 +23,7 @@ function frozenModule(definition) {
   );
   return Object.freeze({
     ...definition,
+    carriers: Object.freeze([...(definition.carriers || ['desktop'])]),
     requires: Object.freeze([...(definition.requires || [])]),
     sourceMappings: Object.freeze([...(definition.sourceMappings || [])]),
     appAccessItems: Object.freeze([...(definition.appAccessItems || [])]),
@@ -40,6 +41,7 @@ function frozenModule(definition) {
 export const APP_SCAFFOLD_MODULE_REGISTRY = Object.freeze({
   'ai-studio-core': frozenModule({
     id: 'ai-studio-core',
+    carriers: ['desktop', 'web'],
     kind: 'internal',
     order: 0,
     requires: [],
@@ -64,6 +66,7 @@ export const APP_SCAFFOLD_MODULE_REGISTRY = Object.freeze({
   }),
   'studio-create': frozenModule({
     id: 'studio-create',
+    carriers: ['desktop', 'web'],
     kind: 'feature',
     lifecycle: 'admitted',
     order: 10,
@@ -775,3 +778,13 @@ export const APP_SCAFFOLD_REFERENCE_APP_FEATURE_IDS = Object.freeze([
 export const APP_SCAFFOLD_ADMITTED_MODULE_IDS = resolveAdmittedModuleIds(
   APP_SCAFFOLD_MODULE_REGISTRY,
 );
+
+// @nimi-authority: rule.nimi.platform.app-ecosystem.scaffold-web-carrier
+export function resolveWebAppScaffoldFeatures(selection, resolver = resolveAppScaffoldFeatures) {
+  const selected = selection === 'all' || (Array.isArray(selection) && selection.length === 1 && selection[0] === 'all')
+    ? Object.values(APP_SCAFFOLD_MODULE_REGISTRY).filter(module => module.kind === 'feature' && module.lifecycle === 'admitted' && module.carriers.includes('web')).map(module => module.id)
+    : selection;
+  const resolution = resolver(selected);
+  for (const module of resolution.modules) if (!module.carriers.includes('web')) throw new Error(`Feature ${module.id} has no admitted Web carrier.`);
+  return resolution;
+}

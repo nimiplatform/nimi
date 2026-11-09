@@ -1,5 +1,7 @@
 # Existing project
 
+Choose the actual carrier first. For an existing website, keep its UI, business services, website accounts and renderer/build owners. Declare `platform: web`, the exact `local_development.web` inputs and a `web-pnpm` build profile, then use the same `init --adopt` flow. It adds tool-owned inputs and guidance without replacing the product or adding Electron. The Desktop Host paragraphs below apply to native Desktop projects. Web clients use official scoped Runtime-client login; a site with its own accounts supplies its current verified user-context generation and ends the Nimi context on account switch or unlink.
+
 When starting from an earlier assessment, apply [Audit handoff](audit.md#handoff-to-implementation): reuse confirmed user decisions and sufficient evidence, and check the assumptions relevant to the next consequential change. An audit recommendation does not become a platform contract or a reason to preserve a disproved design.
 
 Before changing code, identify the upstream URL and baseline commit, license, user journeys, actual AI/auth/storage entry points, business services, helper processes and active instruction loaders. Record a short upstream/range note in the existing App README or product document; do not create another integration state file.

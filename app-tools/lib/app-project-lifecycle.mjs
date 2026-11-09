@@ -1,3 +1,4 @@
+import { readWebDevelopment } from './web-development.mjs';
 import { readAppInfo } from './app-info.mjs';
 import { CANONICAL_CAPABILITY_IDS } from './canonical-capability-ids.generated.mjs';
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-018c
@@ -51,7 +52,7 @@ const BUILD_PROFILE_PATH = '.nimi/config/build-profile.yaml';
 const ELECTRON_BUILD_PROFILE_REF = 'electron-packager-pnpm-vite';
 const APP_OWNED_ELECTRON_BUILD_PROFILE_REF = 'electron-pnpm';
 const TAURI_BUILD_PROFILE_REF = 'tauri-pnpm-vite';
-const SUPPORTED_BUILD_PROFILE_REFS = new Set([ELECTRON_BUILD_PROFILE_REF, APP_OWNED_ELECTRON_BUILD_PROFILE_REF, TAURI_BUILD_PROFILE_REF]);
+const SUPPORTED_BUILD_PROFILE_REFS = new Set([ELECTRON_BUILD_PROFILE_REF, APP_OWNED_ELECTRON_BUILD_PROFILE_REF, TAURI_BUILD_PROFILE_REF, 'web-pnpm']);
 const MANAGED_WORKFLOW_PATH = '.github/workflows/nimi-app-release.yml';
 const APP_IDENTITY_PATH = '.nimi/config/app-identity.yaml';
 const SUBMISSION_PATH = '.nimi/admission/submission.yaml';
@@ -113,7 +114,9 @@ function readSubmittedManifest(targetDir, sources) {
   if (document?.manifest_role !== 'submitted-input') {
     throw new Error('Submitted manifest marker missing');
   }
-  const rendererOrigin = document?.local_development?.electron?.renderer_origin;
+  const platform = document.platform || 'desktop';
+  if (!['desktop', 'web'].includes(platform)) throw new Error('Unsupported App platform.');
+  const rendererOrigin = platform === 'web' ? readWebDevelopment(document).site.origin : document?.local_development?.electron?.renderer_origin;
   let parsedOrigin;
   try {
     parsedOrigin = new URL(rendererOrigin);
@@ -123,9 +126,7 @@ function readSubmittedManifest(targetDir, sources) {
   if (
     typeof rendererOrigin !== 'string'
     || rendererOrigin.trim() !== rendererOrigin
-    || parsedOrigin.protocol !== 'http:'
-    || parsedOrigin.hostname !== '127.0.0.1'
-    || !parsedOrigin.port
+    || (platform === 'desktop' && (parsedOrigin.protocol !== 'http:' || parsedOrigin.hostname !== '127.0.0.1' || !parsedOrigin.port))
     || parsedOrigin.username
     || parsedOrigin.password
     || parsedOrigin.pathname !== '/'
@@ -150,7 +151,7 @@ function readSubmittedManifest(targetDir, sources) {
       throw new Error(`nimi.app.yaml ${error instanceof Error ? error.message : String(error)}`, { cause: error });
     }
   }
-  return Object.freeze({ appId, displayName, profile, version, rendererOrigin: parsedOrigin.origin, capabilityContractRefs: document.capability_contract_refs, requiredStandardizedFeatureRefs: document.required_standardized_feature_refs, storagePolicy: document.storage_policy, safetyProfile });
+  return Object.freeze({ appId, displayName, profile, platform, version, rendererOrigin: parsedOrigin.origin, capabilityContractRefs: document.capability_contract_refs, requiredStandardizedFeatureRefs: document.required_standardized_feature_refs, storagePolicy: document.storage_policy, safetyProfile });
 }
 
 function assertNoRetiredScaffoldState(targetDir) {
@@ -255,7 +256,7 @@ function assertPublicNimiDependencySpecs(packageJson) {
   }
 }
 
-function assertPackageManifestCurrent(packageJson, versions, combination) {
+function assertPackageManifestCurrent(packageJson, versions, combination, platform = 'desktop') {
   if (packageJson.private !== true || Object.hasOwn(packageJson, 'publishConfig')) {
     throw new Error('Nimi App package.json must be private and must not declare npm publishConfig');
   }
@@ -296,10 +297,10 @@ function assertPackageManifestCurrent(packageJson, versions, combination) {
       throw new Error(`package.json scripts.${name} must not mutate managed App state during dependency installation`);
     }
   }
-  if (scripts.pack !== 'nimi-app pack') {
+  if (platform === 'desktop' && scripts.pack !== 'nimi-app pack') {
     throw new Error('package.json scripts.pack must use the canonical nimi-app pack owner');
   }
-  if (scripts.publish !== undefined) {
+  if (platform === 'desktop' && scripts.publish !== undefined) {
     throw new Error('package.json scripts.publish is unavailable until publisher GitHub and registry orchestration is implemented');
   }
   return combination;
@@ -332,6 +333,11 @@ function normalizePackageManifest(packageJson, descriptor, versions, buildProfil
   if (!normalized.scripts || typeof normalized.scripts !== 'object' || Array.isArray(normalized.scripts)) {
     throw new Error('package.json scripts must be an object');
   }
+  if (descriptor.platform === 'web') {
+    normalized.scripts.dev = 'nimi-app dev --platform web';
+    normalized.scripts.sync ||= 'nimi-app sync';
+    if (normalized.scripts.pack === 'nimi-app pack') delete normalized.scripts.pack;
+  } else {
   if (typeof normalized.scripts['build:electron'] !== 'string' || !normalized.scripts['build:electron'].trim()) {
     throw new Error('package.json build:electron must build the Desktop-supervised Electron host');
   }
@@ -344,6 +350,7 @@ function normalizePackageManifest(packageJson, descriptor, versions, buildProfil
   normalized.scripts.sync ||= 'nimi-app sync';
   normalized.scripts.pack = 'nimi-app pack';
   delete normalized.scripts.publish;
+  }
   for (const name of ['doctor', 'update']) {
     if (/^nimi-app\s+(?:doctor|update)$/u.test(String(normalized.scripts[name] || '').trim())) {
       delete normalized.scripts[name];
@@ -355,7 +362,7 @@ function normalizePackageManifest(packageJson, descriptor, versions, buildProfil
       .replace(/\bpnpm\s+run\s+doctor\s*&&\s*/gu, '')
       .replace(/\bnimi-app\s+doctor\s*&&\s*/gu, '');
   }
-  assertPackageManifestCurrent(normalized, versions, combination);
+  assertPackageManifestCurrent(normalized, versions, combination, descriptor.platform);
   // Project formatters may use different whitespace or key order. Only managed
   // value changes require rewriting this App-owned manifest.
   if (stableInputJson(normalized) === stableInputJson(packageJson)) return packageSource;
@@ -918,12 +925,13 @@ function assertCanonicalAuthoringInputs(targetDir, descriptor, files, version, n
     'support_manifest',
     'review_inputs',
     'admission_truth',
-  ], ['ai_profile_recommendation_ref', SAFETY_PROFILE_FIELD]);
+  ], ['ai_profile_recommendation_ref', SAFETY_PROFILE_FIELD, 'platform']);
   const expectedSubmissionIdentity = {
     app_id: descriptor.appId,
     display_name: descriptor.displayName,
     version,
     profile: descriptor.profile,
+    ...(descriptor.platform === 'web' ? { platform: 'web' } : {}),
     npm_package_name: expectedIdentity.npm_package_name,
     cargo_package_name: expectedIdentity.cargo_package_name,
     tauri_identifier: expectedIdentity.tauri_identifier,
@@ -1064,11 +1072,11 @@ function readBuildProfile(targetDir, sources) {
     throw new Error(`${BUILD_PROFILE_PATH} must declare at least one target`);
   }
   for (const [targetId, target] of Object.entries(targets)) {
-    const expected = CURRENT_APP_TARGETS[targetId];
+    const expected = buildProfileRef === 'web-pnpm' ? (targetId === 'web' ? {} : null) : CURRENT_APP_TARGETS[targetId];
     if (!expected || !target || typeof target !== 'object' || Array.isArray(target)) {
       throw new Error(`${BUILD_PROFILE_PATH} declares unsupported target: ${targetId}`);
     }
-    if (target.os !== expected.os || target.arch !== expected.arch) {
+    if (buildProfileRef !== 'web-pnpm' && (target.os !== expected.os || target.arch !== expected.arch)) {
       throw new Error(`${BUILD_PROFILE_PATH} target identity mismatch: ${targetId}`);
     }
   }
@@ -1087,7 +1095,7 @@ function currentTargetId() {
 }
 
 function selectBuildOwner(profile, requestedTarget) {
-  const target = String(requestedTarget || '').trim() || currentTargetId();
+  const target = String(requestedTarget || '').trim() || (profile.buildProfileRef === 'web-pnpm' ? 'web' : currentTargetId());
   const targetProfile = profile.targets[target];
   if (Object.keys(profile.targets).length > 0 && (!targetProfile || typeof targetProfile !== 'object' || Array.isArray(targetProfile))) {
     throw new Error(`Unsupported App build target: ${target}`);
@@ -1147,9 +1155,10 @@ function assertProjectLifecycleCurrent(targetDir, versions, options = {}) {
   const sources = options.sources;
   const descriptor = readSubmittedManifest(targetDir, sources);
   const buildProfile = readBuildProfile(targetDir, sources);
+  if ((descriptor.platform === 'web') !== (buildProfile.buildProfileRef === 'web-pnpm')) throw new Error('Manifest platform and build owner disagree.');
   const files = readProjectLifecycleFiles(targetDir, buildProfile.buildProfileRef, sources);
   const combination = selectDependencyCombination(files.packageJson, versions, options.managed === true);
-  assertPackageManifestCurrent(files.packageJson, versions, combination);
+  assertPackageManifestCurrent(files.packageJson, versions, combination, descriptor.platform);
   const version = assertVersionLockstep(files, descriptor, buildProfile.buildProfileRef);
   let nativeIdentity = {
     cargoPackageName: cargoPackageNameFromNpmPackageName(files.packageJson.name),
@@ -1165,7 +1174,7 @@ function assertProjectLifecycleCurrent(targetDir, versions, options = {}) {
   }
   assertNoStandaloneParentSources(targetDir, sources);
   const authoring = assertCanonicalAuthoringInputs(targetDir, descriptor, files, version, nativeIdentity, sources);
-  assertManagedWorkflowCurrent(targetDir, sources);
+  if (descriptor.platform !== 'web') assertManagedWorkflowCurrent(targetDir, sources);
   const localPackages = assertPnpmWorkspaceCurrent(targetDir, sources, options.production === true);
   if (options.requireInstalledLock === true) {
     assertPnpmLockCurrent(targetDir, files.packageJson, localPackages, versions, combination);
@@ -1179,6 +1188,7 @@ function assertProjectLifecycleCurrent(targetDir, versions, options = {}) {
 function buildExistingSubmittedAppSyncPlan(targetDir, versions, sources, managed = false) {
   const descriptor = readSubmittedManifest(targetDir, sources);
   const buildProfile = readBuildProfile(targetDir, sources);
+  if ((descriptor.platform === 'web') !== (buildProfile.buildProfileRef === 'web-pnpm')) throw new Error('Manifest platform and build owner disagree.');
   const files = readProjectLifecycleFiles(targetDir, buildProfile.buildProfileRef, sources);
   const version = files.packageJson.version;
   if (typeof version !== 'string' || !SEMVER_PATTERN.test(version)) {
@@ -1191,6 +1201,7 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions, sources, managed
     appTitle: descriptor.displayName,
     version,
     profile: descriptor.profile,
+    ...(descriptor.platform === 'web' ? { platform: 'web' } : {}),
     packageName: files.packageJson.name,
     cargoPackageName: requiresTauri
       ? readCargoPackageName(files.cargoSource)
@@ -1238,7 +1249,7 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions, sources, managed
       'support_manifest',
       'review_inputs',
       'admission_truth',
-    ], ['ai_profile_recommendation_ref', SAFETY_PROFILE_FIELD]);
+    ], ['ai_profile_recommendation_ref', SAFETY_PROFILE_FIELD, 'platform']);
     canonicalInputList(currentSubmission.capability_contract_refs, `${SUBMISSION_PATH} capability_contract_refs`);
     canonicalInputList(currentSubmission.required_standardized_feature_refs, `${SUBMISSION_PATH} required_standardized_feature_refs`);
     normalizeStorageInput(currentSubmission.storage_policy, `${SUBMISSION_PATH} storage_policy`);
@@ -1281,12 +1292,14 @@ function buildExistingSubmittedAppSyncPlan(targetDir, versions, sources, managed
     content: normalizedBuildProfile,
     previous: currentBuildProfile,
   });
-  const workflowPath = path.join(targetDir, MANAGED_WORKFLOW_PATH);
-  planned.push({
-    path: workflowPath,
-    content: managedAppReleaseWorkflowSource(),
-    previous: existsSync(workflowPath) ? readFileSync(workflowPath, 'utf8') : '',
-  });
+  if (descriptor.platform !== 'web') {
+    const workflowPath = path.join(targetDir, MANAGED_WORKFLOW_PATH);
+    planned.push({
+      path: workflowPath,
+      content: managedAppReleaseWorkflowSource(),
+      previous: existsSync(workflowPath) ? readFileSync(workflowPath, 'utf8') : '',
+    });
+  }
   const workspace = normalizePnpmWorkspace(targetDir);
   if (workspace) planned.push(workspace);
   return { descriptor, planned: planned.map((file) => plannedFile(targetDir, path.relative(targetDir, file.path), file.content)), buildProfileRef: buildProfile.buildProfileRef, combination };
@@ -1435,7 +1448,7 @@ export function adoptAppProject(cwd, options = {}, versions, runners = {}) {
   } catch (cause) {
     throw new Error(`${cause.message}. Prepare the real App-owned Host and build/test inputs using ${LIFECYCLE_SKILL_PATH}`, { cause });
   }
-  if (![ELECTRON_BUILD_PROFILE_REF, APP_OWNED_ELECTRON_BUILD_PROFILE_REF].includes(plan.buildProfileRef)) throw new Error('Existing-App init supports electron-pnpm and electron-packager-pnpm-vite; existing Tauri projects retain their sync path.');
+  if (![ELECTRON_BUILD_PROFILE_REF, APP_OWNED_ELECTRON_BUILD_PROFILE_REF, 'web-pnpm'].includes(plan.buildProfileRef)) throw new Error('Existing-App init supports web-pnpm, electron-pnpm and electron-packager-pnpm-vite; existing Tauri projects retain their sync path.');
   const files = readProjectLifecycleFiles(targetDir, plan.buildProfileRef);
   const profile = readBuildProfile(targetDir, sources);
   for (const command of [profile.testCommand, profile.buildCommand, ...Object.keys(profile.targets).map((target) => selectBuildOwner(profile, target).command)]) {
@@ -1466,6 +1479,7 @@ export function checkAppProject(cwd, options = {}, versions, runners = {}) {
   if (!managed) nimicoding = runNimicodingSync(targetDir, 'check', runners);
   const { descriptor, buildProfile, combination } = existingState || assertProjectLifecycleCurrent(targetDir, effective, { requireInstalledLock: true, production: options.production === true, managed });
   if (options.production === true) {
+    if (descriptor.platform === 'web') throw new Error('Web release preflight is not implemented; use development check.');
     for (const target of Object.keys(buildProfile.targets)) readAppInfo(targetDir, target);
   }
   const safetyProfile = descriptor.safetyProfile ? 'declared' : 'undeclared';
@@ -1480,6 +1494,7 @@ export function checkAppProject(cwd, options = {}, versions, runners = {}) {
     managed,
     appId: descriptor.appId,
     profile: descriptor.profile,
+    ...(descriptor.platform === 'web' ? { platform: 'web' } : {}),
     safetyProfile,
     dependencyCombination: describeCombination(combination, versions),
     targets: Object.keys(buildProfile.targets).sort(),
@@ -1506,6 +1521,7 @@ export function buildAppProject(cwd, options = {}, runners = {}) {
   const targetDir = resolveTargetDir(cwd, options);
   const profile = readBuildProfile(targetDir);
   const selected = selectBuildOwner(profile, options.target);
+  if (options.production === true && profile.buildProfileRef === 'web-pnpm') throw new Error('Web release preflight is not implemented; build produces website files only.');
   if (options.production === true) readAppInfo(targetDir, selected.target);
   const result = runOwnerCommand(targetDir, 'build', selected.command, options, runners);
   assertBuiltRuntimeEntry(targetDir, selected);

@@ -1,3 +1,5 @@
+import { WEB_BASE_TEMPLATE_PATHS, webDevelopmentInput, webBuildProfile, webPackage, webDependencyMatrix } from './web-scaffold.mjs';
+import { resolveWebAppScaffoldFeatures } from './app-scaffold-capabilities.mjs';
 import path from 'node:path';
 import { createHash } from 'node:crypto';
 import YAML from 'yaml';
@@ -528,12 +530,15 @@ function buildAppIdentity(
   accentPack = 'nimi-accent',
   features = undefined,
   featureResolver = resolveAppScaffoldFeatures,
+  platform = 'desktop',
 ) {
   const resolvedPackageName = packageName || packageSafeName(appId);
-  const capabilityResolution = featureResolver(features);
+  if (!['desktop', 'web'].includes(platform)) throw new Error(`Unsupported App platform: ${platform}`);
+  const capabilityResolution = platform === 'web' ? resolveWebAppScaffoldFeatures(features, featureResolver) : featureResolver(features);
   const identity = {
     appId,
     appTitle,
+    platform,
     version: normalizeAppVersion(version),
     profile,
     packageName: resolvedPackageName,
@@ -583,8 +588,10 @@ function resolveAppScaffoldCreateInputWithResolver(
     options.accentPack,
     options.features,
     featureResolver,
+    options.platform || 'desktop',
   );
   return Object.freeze({
+    ...(identity.platform === 'web' ? { platform: 'web' } : {}),
     profile,
     appId,
     appTitle,
@@ -666,7 +673,7 @@ function buildPackageJson(profile, versions, identity) {
   if (identity.author) {
     packageJson.author = identity.author;
   }
-  return packageJson;
+  return identity.platform === 'web' ? webPackage(packageJson) : packageJson;
 }
 
 function buildRuntimeDependencies(profile, versions, capabilityResolution) {
@@ -891,6 +898,7 @@ function buildNimiAppManifest(identity) {
     display_name: identity.appTitle,
     version: identity.version,
     profile: identity.profile,
+    ...(identity.platform === 'web' ? { platform: 'web' } : {}),
     manifest_role: 'submitted-input',
     app_access: identity.appAccessItems,
     capability_contract_refs: identity.capabilityResolution.capabilityContractRefs,
@@ -901,10 +909,8 @@ function buildNimiAppManifest(identity) {
       icon: 'assets/app-icon.png',
       release_notes: 'RELEASE_NOTES.md',
     },
-    local_development: {
-      electron: {
-        renderer_origin: `http://127.0.0.1:${identity.devPort}`,
-      },
+    local_development: identity.platform === 'web' ? { web: webDevelopmentInput(identity) } : {
+      electron: { renderer_origin: `http://127.0.0.1:${identity.devPort}` },
     },
   }, { lineWidth: 0 });
 }
@@ -972,7 +978,8 @@ function applyProfileSeam(relativePath, content, profile, versions, manifest, id
 function buildDefaultStarterTemplateFiles(identity, profile, versions) {
   const { baseDir, manifest } = loadDefaultStarterSource();
   const target = targetIdentityMap(identity);
-  return manifest.files.map((entry) => {
+  const entries = identity.platform === 'web' ? manifest.files.filter(entry => WEB_BASE_TEMPLATE_PATHS.has(entry.path)) : manifest.files;
+  return entries.map((entry) => {
     const raw = readDefaultStarterSourceFile(baseDir, entry.path);
     const identityApplied = renderIdentitySensitiveStarterFile(entry.path, raw, manifest, identity);
     return {
@@ -1056,6 +1063,7 @@ export function renderAppIdentityInput(identity) {
 
 export function renderAppBuildProfile(options = {}) {
   const identity = options.identity || null;
+  if (identity?.platform === 'web') return YAML.stringify(webBuildProfile(), { lineWidth: 0 });
   const targets = options.targets || (identity ? {
     'windows-x86_64': {
       os: 'windows',
@@ -1103,6 +1111,7 @@ export function renderAppSubmissionInput(identity, options = {}) {
     display_name: identity.appTitle,
     version: identity.version,
     profile: identity.profile,
+    ...(identity.platform === 'web' ? { platform: 'web' } : {}),
     npm_package_name: identity.packageName,
     cargo_package_name: identity.cargoPackageName,
     tauri_identifier: identity.tauriIdentifier,
@@ -1219,6 +1228,10 @@ function buildStructuredFiles(identity, profile, versions) {
       mutationClass: 'scaffold-managed glue',
     },
   ];
+  if (identity.platform === 'web') {
+    const webPaths = new Set(['.gitignore', 'LICENSE', SCAFFOLD_TEMPLATE_LICENSE_NOTICE_PATH, 'package.json', 'nimi.app.yaml', '.nimi/config/app-identity.yaml', '.nimi/config/build-profile.yaml', '.nimi/admission/submission.yaml', '.nimi/contracts/scaffold-boundary.yaml']);
+    return files.filter(file => webPaths.has(file.path));
+  }
   return files;
 }
 
@@ -1235,7 +1248,7 @@ function buildIdentityMapping(identity, targetDir = '') {
     appSlug: identity.appSlug,
     rendererEntryId: identity.rendererEntryId,
     devPort: identity.devPort,
-    devRendererOrigin: `http://127.0.0.1:${identity.devPort}`,
+    devRendererOrigin: `${identity.platform === 'web' ? 'https' : 'http'}://127.0.0.1:${identity.devPort}`,
     appOwnedNamespace: identity.appOwnedNamespace,
     // Checkout location belongs to CLI diagnostics, not persisted identity.
     targetDir: null,
@@ -1250,6 +1263,7 @@ function buildScaffoldIntent(identity, versions, targetDir = '') {
     initCommand: 'pnpm exec nimi-app init',
     initOrder: ['nimi-app create', 'pnpm install', 'pnpm exec nimi-app init'],
     profile: identity.profile,
+    ...(identity.platform === 'web' ? { platform: 'web' } : {}),
     appId: identity.appId,
     appTitle: identity.appTitle,
     version: identity.version,
@@ -1271,7 +1285,7 @@ function buildScaffoldIntent(identity, versions, targetDir = '') {
     requiredStandardizedFeatureRefs: identity.capabilityResolution.requiredStandardizedFeatureRefs,
     devPort: identity.devPort,
     appIdentity: buildIdentityMapping(identity, targetDir),
-    dependencyMatrix: buildDependencyMatrix(identity.profile, versions, identity.capabilityResolution),
+    dependencyMatrix: buildDependencyMatrix(identity.profile, versions, identity.capabilityResolution, identity.platform),
     semantics: {
       role: 'app-scaffold-init-input',
       authority: 'app-tools-orchestration-input-not-platform-admission',
@@ -1367,8 +1381,8 @@ export function hashScaffoldContent(content) {
   return createHash('sha256').update(content).digest('hex');
 }
 
-function buildDependencyMatrix(profile, versions, capabilityResolution) {
-  return {
+function buildDependencyMatrix(profile, versions, capabilityResolution, platform = 'desktop') {
+  const matrix = {
     npm: {
       '@nimiplatform/app-tools': versions.appToolsVersion,
       '@nimiplatform/nimi-coding': versions.nimicodingVersion,
@@ -1393,6 +1407,7 @@ function buildDependencyMatrix(profile, versions, capabilityResolution) {
       tauri: '2',
     },
   };
+  return platform === 'web' ? webDependencyMatrix(matrix) : matrix;
 }
 
 function buildScaffoldLock(identity, versions, files, targetDir = '') {
@@ -1425,6 +1440,7 @@ function buildScaffoldLock(identity, versions, files, targetDir = '') {
     lockVersion: SCAFFOLD_LOCK_VERSION,
     scaffoldVersion: SCAFFOLD_VERSION,
     profile: identity.profile,
+    ...(identity.platform === 'web' ? { platform: 'web' } : {}),
     appId: identity.appId,
     appTitle: identity.appTitle,
     version: identity.version,
@@ -1452,7 +1468,7 @@ function buildScaffoldLock(identity, versions, files, targetDir = '') {
     },
     managedFileHashes,
     appOwnedInitialHashes,
-    dependencyMatrix: buildDependencyMatrix(identity.profile, versions, identity.capabilityResolution),
+    dependencyMatrix: buildDependencyMatrix(identity.profile, versions, identity.capabilityResolution, identity.platform),
     semantics: {
       initRole: 'developer-scaffold-initialization-after-install',
       nimicodingProjectionOwner: '@nimiplatform/nimi-coding',
@@ -1467,7 +1483,7 @@ function buildScaffoldLock(identity, versions, files, targetDir = '') {
 }
 
 function buildAppScaffoldSnapshotWithResolver(
-  { profile, versions, appId, appTitle, version = DEFAULT_APP_VERSION, packageName, author, accentPack, features, targetDir = '' },
+  { profile, platform = 'desktop', versions, appId, appTitle, version = DEFAULT_APP_VERSION, packageName, author, accentPack, features, targetDir = '' },
   featureResolver,
 ) {
   const identity = buildAppIdentity(
@@ -1480,6 +1496,7 @@ function buildAppScaffoldSnapshotWithResolver(
     accentPack,
     features,
     featureResolver,
+    platform,
   );
   const createFiles = [
     ...buildScaffoldFiles(identity, versions),
@@ -1509,6 +1526,7 @@ function buildAppScaffoldSnapshotWithResolver(
     appTitle: identity.appTitle,
     version: identity.version,
     profile: identity.profile,
+    ...(identity.platform === 'web' ? { platform: 'web' } : {}),
     packageName: identity.packageName,
     packageAuthor: identity.author || null,
     cargoPackageName: identity.cargoPackageName,
@@ -1544,6 +1562,7 @@ export function buildAppScaffoldSnapshotFromIntent({ intent, versions, targetDir
   const canonicalTargetDir = targetDir || intent?.appIdentity?.targetDir || '';
   const snapshot = buildAppScaffoldSnapshotWithResolver({
     profile: intent.profile,
+    platform: intent.platform || 'desktop',
     versions,
     appId: intent.appId,
     appTitle: intent.appTitle,
@@ -1556,7 +1575,7 @@ export function buildAppScaffoldSnapshotFromIntent({ intent, versions, targetDir
   }, resolveAppScaffoldIntentFeatures);
   const expectedIntent = JSON.parse(snapshot.filesByPath.get(SCAFFOLD_INTENT_PATH).content);
   // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-018c
-  const immutableInputs = new Set(['intentVersion', 'scaffoldVersion', 'initRequired', 'initCommand', 'initOrder', 'profile', 'appId', 'appTitle', 'version', 'packageName', 'packageAuthor', 'cargoPackageName', 'tauriIdentifier', 'accentPack', 'directFeatures', 'devPort', 'semantics']);
+  const immutableInputs = new Set(['intentVersion', 'scaffoldVersion', 'initRequired', 'initCommand', 'initOrder', 'profile', 'platform', 'appId', 'appTitle', 'version', 'packageName', 'packageAuthor', 'cargoPackageName', 'tauriIdentifier', 'accentPack', 'directFeatures', 'devPort', 'semantics']);
   if (canonicalJson(Object.keys(intent).sort()) !== canonicalJson(Object.keys(expectedIntent).sort())) {
     throw new Error('Scaffold intent fields do not match the current canonical resolved intent');
   }
@@ -1578,6 +1597,7 @@ function buildAppScaffoldCreatePlanWithResolver(
   const resolvedInput = resolveAppScaffoldCreateInputWithResolver({ cwd, options }, featureResolver);
   const snapshot = buildAppScaffoldSnapshotWithResolver({
     profile: resolvedInput.profile,
+    platform: resolvedInput.platform || 'desktop',
     versions,
     appId: resolvedInput.appId,
     appTitle: resolvedInput.appTitle,
@@ -1659,5 +1679,6 @@ export function hashScaffoldManagedContent(relativePath, content) {
   if (relativePath !== 'nimi.app.yaml') return hashScaffoldContent(content);
   const manifest = YAML.parse(content.toString());
   for (const field of APP_AUTHOR_DECLARATION_FIELDS) delete manifest[field];
+  if (manifest.platform === 'web' && manifest.local_development) delete manifest.local_development.web;
   return hashScaffoldContent(YAML.stringify(manifest, { lineWidth: 0 }));
 }
