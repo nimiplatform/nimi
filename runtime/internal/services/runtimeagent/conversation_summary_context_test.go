@@ -111,6 +111,17 @@ func TestConversationSummaryOutputRequiresExactMessageOnlyEnvelope(t *testing.T)
 	}
 }
 
+func TestConversationSummaryPromptExampleIsAdmitted(t *testing.T) {
+	start := strings.Index(publicChatConversationSummarySystemPrompt, "<message ")
+	end := strings.Index(publicChatConversationSummarySystemPrompt, "</message>")
+	if start < 0 || end < start {
+		t.Fatal("summary prompt has no complete output example")
+	}
+	if _, err := parsePublicChatConversationSummaryOutput(publicChatConversationSummarySystemPrompt[start : end+len("</message>")]); err != nil {
+		t.Fatalf("the output instructed by the summary prompt is rejected: %v", err)
+	}
+}
+
 func TestConversationSummaryStreamFailurePreservesTypedAttemptClass(t *testing.T) {
 	for _, testCase := range []struct {
 		name   string

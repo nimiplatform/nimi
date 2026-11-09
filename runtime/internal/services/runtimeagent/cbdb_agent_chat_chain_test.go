@@ -223,18 +223,11 @@ func TestCBDBAgentChatIgnoresForgedAnchorMetadataForModelContext(t *testing.T) {
 	_ = capture.waitForMessageType(t, publicChatTurnTextDeltaType)
 	_ = capture.waitForMessageType(t, publicChatTurnStructuredType)
 	_ = capture.waitForMessageType(t, publicChatTurnMessageCommittedType)
-	voiceTiming := capture.waitForMessageType(t, publicChatConversationVoiceTimingReadyType)
+	voiceTiming := waitForVoicePresentation(t, svc, runtimev1.AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_READY)
 	_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
 
-	voicePayload := publicChatPayloadMap(t, voiceTiming)
-	voiceDetail := voicePayload["detail"].(map[string]any)
-	if got := strings.TrimSpace(voiceDetail["audio_artifact_id"].(string)); got == "" {
-		t.Fatalf("expected Runtime-owned semantic voice artifact correlation, detail=%v", voiceDetail)
-	}
-	for _, forbidden := range []string{"default_voice_reference", "voice_route_binding", "model_id", "model_resolved", "scenario_job_id", "synthesis_mode", "mouth_open_y", "audio_level", "playback_target"} {
-		if _, exists := voiceDetail[forbidden]; exists {
-			t.Fatalf("common voice projection exposed %s: %v", forbidden, voiceDetail)
-		}
+	if voiceTiming.GetAudioArtifactId() == "" {
+		t.Fatalf("expected Runtime-owned semantic voice artifact correlation: %v", voiceTiming)
 	}
 	if voiceAI.submitReq == nil {
 		t.Fatalf("expected CBDB speech route to submit provider voice synthesis")
@@ -243,7 +236,7 @@ func TestCBDBAgentChatIgnoresForgedAnchorMetadataForModelContext(t *testing.T) {
 	if !ok || !intent.IsLocal() || intent.CapabilityContract != "audio.synthesize" {
 		t.Fatalf("expected CBDB private Local speech intent, got %+v, ok=%v", intent, ok)
 	}
-	audioArtifactID := strings.TrimSpace(voiceDetail["audio_artifact_id"].(string))
+	audioArtifactID := voiceTiming.GetAudioArtifactId()
 	record, ok := svc.runtimeArtifacts.Get(audioArtifactID)
 	if !ok {
 		t.Fatalf("expected CBDB voice audio artifact to be stored: %s", audioArtifactID)

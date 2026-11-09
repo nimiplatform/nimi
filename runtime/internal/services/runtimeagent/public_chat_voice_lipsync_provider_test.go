@@ -82,12 +82,7 @@ func TestPublicChatCommittedTurnSkipsVoiceProjectionWithoutVoiceConfiguration(t 
 
 	committedPayload := publicChatPayloadMap(t, committed)
 	requirePublicChatTimelineEnvelope(t, committedPayload, turnID, streamID, publicChatTimelineChannelText)
-	for _, messageType := range capture.messageTypes() {
-		if messageType == publicChatConversationVoiceTimingReadyType ||
-			messageType == publicChatConversationVoiceArtifactAvailableType {
-			t.Fatalf("default text-only turn must not emit voice projection, got message types %v", capture.messageTypes())
-		}
-	}
+	requireNoReadyVoicePresentation(t, svc)
 }
 
 func TestPublicChatCommittedTurnEmitsProviderVoiceProjectionWithoutAvatarAutoplay(t *testing.T) {
@@ -185,94 +180,34 @@ func TestPublicChatCommittedTurnEmitsProviderVoiceProjectionWithoutAvatarAutopla
 
 	accepted := capture.waitForMessageType(t, publicChatTurnAcceptedType)
 	committed := capture.waitForMessageType(t, publicChatTurnMessageCommittedType)
-	voiceChunk := capture.waitForMessageType(t, publicChatConversationVoiceArtifactAvailableType)
-	voicePlayback := capture.waitForMessageType(t, publicChatConversationVoiceTimingReadyType)
-	voiceTerminal := capture.waitForMessageType(t, publicChatConversationVoiceTimingTerminalType)
-
-	voicePayload := publicChatPayloadMap(t, voicePlayback)
+	artifact := waitForVoicePresentation(t, svc, runtimev1.AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_VOICE_ARTIFACT_AVAILABLE)
+	ready := waitForVoicePresentation(t, svc, runtimev1.AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_READY)
+	terminal := waitForVoicePresentation(t, svc, runtimev1.AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_TERMINAL)
 	acceptedPayload := publicChatPayloadMap(t, accepted)
 	turnID := strings.TrimSpace(acceptedPayload["turn_id"].(string))
 	streamID := strings.TrimSpace(acceptedPayload["stream_id"].(string))
 	committedPayload := publicChatPayloadMap(t, committed)
 	messageID := strings.TrimSpace(committedPayload["message_id"].(string))
 	requirePublicChatTimelineEnvelope(t, committedPayload, turnID, streamID, publicChatTimelineChannelText)
-	chunkPayload := publicChatPayloadMap(t, voiceChunk)
-	requirePublicChatTimelineEnvelope(t, chunkPayload, turnID, streamID, publicChatTimelineChannelVoice, "K-AGCORE-133")
-	chunkDetail := chunkPayload["detail"].(map[string]any)
-	if got := strings.TrimSpace(chunkDetail["message_id"].(string)); got != messageID {
-		t.Fatalf("expected semantic voice artifact message_id %s, got %s", messageID, got)
-	}
-	if got := strings.TrimSpace(chunkDetail["audio_artifact_id"].(string)); got != expectedAudioArtifactID {
-		t.Fatalf("expected semantic voice artifact id %s, got %s", expectedAudioArtifactID, got)
-	}
-	if got := strings.TrimSpace(chunkDetail["audio_mime_type"].(string)); got != "audio/wav" {
-		t.Fatalf("expected semantic voice artifact mime type audio/wav, got %s", got)
-	}
-	if got, _ := chunkDetail["artifact_sequence"].(float64); got != 1 {
-		t.Fatalf("expected semantic voice artifact_sequence=1, got %v", chunkDetail["artifact_sequence"])
-	}
-	if got, ok := chunkDetail["artifact_complete"].(bool); !ok || !got {
-		t.Fatalf("expected artifact_complete=true, got %v", chunkDetail["artifact_complete"])
-	}
-	if got := strings.TrimSpace(chunkDetail["voice_timing_phase"].(string)); got != "active" {
-		t.Fatalf("expected semantic voice timing phase active, got %s", got)
-	}
-	requirePublicChatTimelineEnvelope(t, voicePayload, turnID, streamID, publicChatTimelineChannelVoice)
-	voiceDetail := voicePayload["detail"].(map[string]any)
-	if got := strings.TrimSpace(voiceDetail["message_id"].(string)); got != messageID {
-		t.Fatalf("expected semantic voice timing message_id %s, got %s", messageID, got)
-	}
-	audioArtifactID := strings.TrimSpace(voiceDetail["audio_artifact_id"].(string))
-	if audioArtifactID != expectedAudioArtifactID {
-		t.Fatalf("expected provider audio artifact id %s, got %s", expectedAudioArtifactID, voiceDetail["audio_artifact_id"])
-	}
-	if got := strings.TrimSpace(voiceDetail["audio_mime_type"].(string)); got != "audio/wav" {
-		t.Fatalf("expected provider audio mime type audio/wav, got %s", got)
-	}
-	record, ok := svc.runtimeArtifacts.Get(audioArtifactID)
-	if !ok {
-		t.Fatalf("expected provider audio artifact to remain readable before emit")
-	}
-	if string(record.Bytes) != string(audioBytes) {
-		t.Fatalf("audio artifact bytes must not be overwritten by lipsync metadata, got %q", string(record.Bytes))
-	}
-	if got := strings.TrimSpace(record.MimeType); got != "audio/wav" {
-		t.Fatalf("expected stored audio mime type audio/wav, got %s", got)
-	}
-	if record.GeneratedVoice == nil {
-		t.Fatalf("expected generated voice retention metadata")
-	}
-	if got, want := strings.TrimSpace(record.GeneratedVoice.AgentID), strings.TrimSpace(voicePayload["agent_id"].(string)); got != want {
-		t.Fatalf("expected generated voice agent_id %s, got %s", want, got)
-	}
-	if got, want := strings.TrimSpace(record.GeneratedVoice.ConversationAnchorID), strings.TrimSpace(voicePayload["conversation_anchor_id"].(string)); got != want {
-		t.Fatalf("expected generated voice conversation_anchor_id %s, got %s", want, got)
-	}
-	if got := strings.TrimSpace(record.GeneratedVoice.MessageID); got != messageID {
-		t.Fatalf("expected generated voice message_id %s, got %s", messageID, got)
-	}
-	if got := strings.TrimSpace(voiceDetail["voice_timing_phase"].(string)); got != "active" {
-		t.Fatalf("expected semantic voice timing phase active, got %s", got)
-	}
-	terminalPayload := publicChatPayloadMap(t, voiceTerminal)
-	requirePublicChatTimelineEnvelope(t, terminalPayload, turnID, streamID, publicChatTimelineChannelVoice, "K-AGCORE-133")
-	terminalDetail := terminalPayload["detail"].(map[string]any)
-	if got := strings.TrimSpace(terminalDetail["voice_timing_phase"].(string)); got != "completed" {
-		t.Fatalf("expected semantic voice terminal phase completed, got %s", got)
-	}
-	if got := strings.TrimSpace(terminalDetail["terminal_reason"].(string)); got != "final_artifact_completed" {
-		t.Fatalf("expected semantic voice terminal reason final_artifact_completed, got %s", got)
-	}
-	if got := strings.TrimSpace(terminalDetail["message_id"].(string)); got != messageID {
-		t.Fatalf("expected semantic voice terminal message_id %s, got %s", messageID, got)
-	}
-	if got := strings.TrimSpace(terminalDetail["audio_artifact_id"].(string)); got != expectedAudioArtifactID {
-		t.Fatalf("expected semantic voice terminal artifact id %s, got %s", expectedAudioArtifactID, got)
-	}
-	for _, forbidden := range []string{"playback_state", "voice_playback_state", "voice_output_mode", "voice_stream_id", "playback_target", "voice_route_binding", "mouth_open_y", "audio_level", "frames", "chunk_transport_ref"} {
-		if _, exists := voiceDetail[forbidden]; exists {
-			t.Fatalf("common voice projection exposed %s: %v", forbidden, voiceDetail)
+	for _, detail := range []*runtimev1.AgentPresentationEventDetail{artifact, ready, terminal} {
+		if detail.GetTurnId() != turnID || detail.GetStreamId() != streamID || detail.GetMessageId() != messageID || detail.GetConversationAnchorId() != anchorID || detail.GetAudioArtifactId() != expectedAudioArtifactID || detail.GetAudioMimeType() != "audio/wav" {
+			t.Fatalf("voice presentation lost correlation or audio identity: %v", detail)
 		}
+	}
+	if ready.GetVoiceTimingPhase() != runtimev1.AgentVoiceTimingPhase_AGENT_VOICE_TIMING_PHASE_ACTIVE || terminal.GetVoiceTimingPhase() != runtimev1.AgentVoiceTimingPhase_AGENT_VOICE_TIMING_PHASE_COMPLETED || terminal.GetTerminalReason() != "final_artifact_completed" {
+		t.Fatalf("invalid voice lifecycle: ready=%v terminal=%v", ready, terminal)
+	}
+	for _, messageType := range capture.messageTypes() {
+		if strings.HasPrefix(messageType, "runtime.agent.conversation.voice_") {
+			t.Fatalf("voice was duplicated onto obsolete AppMessage delivery: %s", messageType)
+		}
+	}
+	record, ok := svc.runtimeArtifacts.Get(expectedAudioArtifactID)
+	if !ok || string(record.Bytes) != string(audioBytes) || record.MimeType != "audio/wav" {
+		t.Fatalf("provider audio artifact is not retained unchanged: %v", record)
+	}
+	if record.GeneratedVoice == nil || record.GeneratedVoice.AgentID != testRuntimeAgentLocalRef("agent-alpha") || record.GeneratedVoice.ConversationAnchorID != anchorID || record.GeneratedVoice.MessageID != messageID {
+		t.Fatalf("voice retention lost its owner: %v", record.GeneratedVoice)
 	}
 	if voiceAI.submitReq == nil {
 		t.Fatalf("expected provider voice synthesis submit")
@@ -367,24 +302,16 @@ func TestPublicChatCommittedTurnEmitsTypedVoiceFailureWithoutRollingBackText(t *
 	}
 
 	committed := capture.waitForMessageType(t, publicChatTurnMessageCommittedType)
-	terminal := capture.waitForMessageType(t, publicChatConversationVoiceTimingTerminalType)
+	terminal := waitForVoicePresentation(t, svc, runtimev1.AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_TERMINAL)
 	_ = capture.waitForMessageType(t, publicChatTurnCompletedType)
 	committedDetail := publicChatPayloadMap(t, committed)["detail"].(map[string]any)
 	if got := strings.TrimSpace(committedDetail["text"].(string)); got != "Text remains committed after voice failure." {
 		t.Fatalf("committed text = %q", got)
 	}
-	terminalDetail := publicChatPayloadMap(t, terminal)["detail"].(map[string]any)
-	if got := strings.TrimSpace(terminalDetail["voice_timing_phase"].(string)); got != "failed" {
-		t.Fatalf("semantic voice terminal phase = %q, want failed", got)
+	if terminal.GetVoiceTimingPhase() != runtimev1.AgentVoiceTimingPhase_AGENT_VOICE_TIMING_PHASE_FAILED || terminal.GetTerminalReason() != "AI_LOCAL_EXECUTION_LOAD_FAILED" || terminal.GetAudioArtifactId() != "" {
+		t.Fatalf("failure presentation lost its reason or invented audio: %v", terminal)
 	}
-	if got := strings.TrimSpace(terminalDetail["terminal_reason"].(string)); got != "AI_LOCAL_EXECUTION_LOAD_FAILED" {
-		t.Fatalf("voice terminal reason = %q, want AI_LOCAL_EXECUTION_LOAD_FAILED", got)
-	}
-	for _, messageType := range capture.messageTypes() {
-		if messageType == publicChatConversationVoiceTimingReadyType {
-			t.Fatalf("failed synthesis must not emit semantic timing ready: %v", capture.messageTypes())
-		}
-	}
+	requireNoReadyVoicePresentation(t, svc)
 }
 
 func TestAgentVoicePolicyReportsMissingProductionLocalSelection(t *testing.T) {

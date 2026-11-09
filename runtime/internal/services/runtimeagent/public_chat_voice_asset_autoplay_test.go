@@ -200,12 +200,11 @@ func TestPublicChatVoiceAssetPreservesVoiceDemoOwnerAndDashScopeTarget(t *testin
 		t.Fatalf("ConsumePublicChatAppMessage(request): %v", err)
 	}
 
-	_ = capture.waitForMessageType(t, publicChatConversationVoiceArtifactAvailableType)
-	_ = capture.waitForMessageType(t, publicChatConversationVoiceTimingReadyType)
-	terminal := capture.waitForMessageType(t, publicChatConversationVoiceTimingTerminalType)
-	terminalDetail := publicChatPayloadMap(t, terminal)["detail"].(map[string]any)
-	if got := strings.TrimSpace(terminalDetail["voice_timing_phase"].(string)); got != "completed" {
-		t.Fatalf("semantic voice terminal phase = %q, want completed", got)
+	_ = waitForVoicePresentation(t, svc, runtimev1.AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_VOICE_ARTIFACT_AVAILABLE)
+	_ = waitForVoicePresentation(t, svc, runtimev1.AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_READY)
+	terminal := waitForVoicePresentation(t, svc, runtimev1.AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_TERMINAL)
+	if terminal.GetVoiceTimingPhase() != runtimev1.AgentVoiceTimingPhase_AGENT_VOICE_TIMING_PHASE_COMPLETED {
+		t.Fatalf("semantic voice terminal phase = %v", terminal.GetVoiceTimingPhase())
 	}
 
 	if voiceAI.streamReq != nil || voiceAI.submitReq == nil {

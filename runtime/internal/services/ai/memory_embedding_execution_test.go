@@ -191,6 +191,44 @@ func TestMemoryEmbeddingLocalCaptureIgnoresLaterSelection(t *testing.T) {
 	}
 }
 
+// Exercise description, capture and canonical Job execution together: a valid
+// result must agree with the space advertised before executing the model.
+func TestMemoryEmbeddingLocalRetrievalSpaceMatchesExecution(t *testing.T) {
+	for _, protocol := range []string{capabilitydriver.EmbeddingInputNativeV1, capabilitydriver.EmbeddingInputNomicV1, capabilitydriver.EmbeddingInputGemma2V1} {
+		t.Run(protocol, func(t *testing.T) {
+			ctx := scenarioJobUserContext("nimi.runtime.memory", "user-001")
+			s, resolver, host, _, initial, _ := newCapturedLocalMemoryTest(t, ctx)
+			if err := s.DiscardMemoryEmbedding(ctx, initial); err != nil {
+				t.Fatal(err)
+			}
+			selected := resolver.projection
+			selected.ExactBindings[0].EmbeddingInputProtocol = protocol
+			if protocol == capabilitydriver.EmbeddingInputGemma2V1 {
+				selected.RecipeID = capabilitydriver.LlamaEmbeddingGemma2RecipeID
+				selected.DriverIdentity.DriverDialect = capabilitydriver.LlamaEmbeddingGemma2Dialect
+				selected.ExactBindings[0].VerifiedContentID = capabilitydriver.EmbeddingGemma2Q8ContentID
+				selected.ExactBindings[0].EntrySHA256 = strings.TrimPrefix(capabilitydriver.EmbeddingGemma2Q8ContentID, "sha256:")
+			}
+			host.embedResult.Vectors[0].Values[0] = 1
+			description, err := s.DescribeMemoryEmbedding(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			for _, purpose := range []runtimev1.TextEmbedPurpose{runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_RETRIEVAL_DOCUMENT, runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_RETRIEVAL_QUERY} {
+				owner := EmbeddingOwner{Kind: "memory", AgentRef: "agent-a", OperationID: purpose.String(), BankRef: "bank-a", LifecycleRef: "life-a"}
+				_, raw, err := s.CaptureMemoryEmbedding(ctx, []string{"retrieval text"}, description.SpaceID, owner, purpose)
+				if err != nil {
+					t.Fatal(err)
+				}
+				result, err := s.ExecuteMemoryEmbedding(ctx, raw)
+				if err != nil || result.SpaceID != description.SpaceID || result.Dimension != 768 || len(result.Vectors) != 1 {
+					t.Fatalf("%s: described=%+v executed=%+v err=%v", purpose, description, result, err)
+				}
+			}
+		})
+	}
+}
+
 func TestMemoryEmbeddingCaptureReportsPartialBatchCleanupFailure(t *testing.T) {
 	ctx := scenarioJobUserContext("nimi.runtime.memory", "user-001")
 	s, _, _, description, initial, _ := newCapturedLocalMemoryTest(t, ctx)

@@ -95,10 +95,5 @@ func TestPublicChatCommittedTurnDoesNotExposeReadyVoiceWithoutArtifactStore(t *t
 			Text:      "artifact custody is required before Conversation voice becomes ready",
 		},
 	})
-	for _, messageType := range capture.messageTypes() {
-		if messageType == publicChatConversationVoiceTimingReadyType ||
-			messageType == publicChatConversationVoiceArtifactAvailableType {
-			t.Fatalf("voice without artifact custody became ready: %v", capture.messageTypes())
-		}
-	}
+	requireNoReadyVoicePresentation(t, svc)
 }

@@ -135,16 +135,12 @@ func TestPublicChatVoiceTimelineEventsRequireRuntimeOwnedPayload(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("emitVoiceTimingReadyTimelineEvent: %v", err)
 	}
-	voicePayload := publicChatPayloadMap(t, capture.waitForMessageType(t, publicChatConversationVoiceTimingReadyType))
-	requirePublicChatTimelineEnvelope(t, voicePayload, turn.TurnID, turn.StreamID, publicChatTimelineChannelVoice)
-	voiceDetail := voicePayload["detail"].(map[string]any)
-	if got := strings.TrimSpace(voiceDetail["audio_artifact_id"].(string)); got != "artifact-voice-1" {
-		t.Fatalf("expected voice audio artifact identity, got %s", got)
+	voice := waitForVoicePresentation(t, svc, runtimev1.AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_READY)
+	if voice.GetAudioArtifactId() != "artifact-voice-1" || voice.GetAudioMimeType() != "audio/wav" || voice.GetMessageId() != "message-voice-1" || voice.GetTurnId() != turn.TurnID || voice.GetStreamId() != turn.StreamID || voice.GetDurationMs() != 1200 || voice.GetDeadlineOffsetMs() != 1500 {
+		t.Fatalf("voice presentation lost its captured identity or timing: %v", voice)
 	}
-	for _, forbidden := range []string{"mouth_open_y", "audio_level", "frames", "playback_target", "playback_state", "voice_playback_state", "voice_output_mode", "voice_stream_id", "voice_route_binding", "chunk_transport_ref"} {
-		if _, exists := voiceDetail[forbidden]; exists {
-			t.Fatalf("common voice detail exposed %s: %v", forbidden, voiceDetail)
-		}
+	if len(capture.messageTypes()) != 0 {
+		t.Fatalf("voice presentation was copied to AppMessage: %v", capture.messageTypes())
 	}
 }
 

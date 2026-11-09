@@ -21,6 +21,42 @@ type idempotentVoiceLipsyncScenarioExecutor struct {
 	artifactIDs   []string
 }
 
+func waitForVoicePresentation(t *testing.T, svc *Service, family runtimev1.AgentPresentationEventFamily) *runtimev1.AgentPresentationEventDetail {
+	t.Helper()
+	deadline := time.Now().Add(2 * time.Second)
+	for {
+		svc.mu.RLock()
+		var found *runtimev1.AgentPresentationEventDetail
+		for _, event := range svc.events {
+			if detail := event.GetPresentation(); detail != nil && detail.GetFamily() == family {
+				found = proto.Clone(detail).(*runtimev1.AgentPresentationEventDetail)
+				break
+			}
+		}
+		svc.mu.RUnlock()
+		if found != nil {
+			return found
+		}
+		if time.Now().After(deadline) {
+			t.Fatalf("no committed voice presentation event: %s", family)
+		}
+		time.Sleep(time.Millisecond)
+	}
+}
+
+func requireNoReadyVoicePresentation(t *testing.T, svc *Service) {
+	t.Helper()
+	svc.mu.RLock()
+	defer svc.mu.RUnlock()
+	for _, event := range svc.events {
+		switch event.GetPresentation().GetFamily() {
+		case runtimev1.AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_VOICE_TIMING_READY,
+			runtimev1.AgentPresentationEventFamily_AGENT_PRESENTATION_EVENT_FAMILY_VOICE_ARTIFACT_AVAILABLE:
+			t.Fatalf("unexpected ready voice presentation: %v", event)
+		}
+	}
+}
+
 func (f *idempotentVoiceLipsyncScenarioExecutor) SubmitScenarioJob(_ context.Context, req *runtimev1.SubmitScenarioJobRequest) (*runtimev1.SubmitScenarioJobResponse, error) {
 	if f.jobsByKey == nil {
 		f.jobsByKey = make(map[string]string)

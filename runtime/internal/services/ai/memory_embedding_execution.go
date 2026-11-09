@@ -15,8 +15,6 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 	"google.golang.org/grpc/codes"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/types/known/structpb"
 )
 
 const memoryEmbeddingBatchSize = 10
@@ -88,15 +86,13 @@ func (s *Service) resolveMemoryEmbeddingSelection(ctx context.Context) (*memoryE
 			return nil, memoryEmbeddingUnavailable()
 		}
 		selected.Dimension = int(dimension)
-		identity := normalizedEmbeddingIdentity(projectLoadoutEffectiveInputIdentity(selected.local))
-		parts := []proto.Message{identity}
-		if selected.local.ExactBindings[0].EmbeddingInputProtocol == capabilitydriver.EmbeddingInputNomicV1 {
-			family, _, familyErr := capabilitydriver.EmbeddingRepresentation(capabilitydriver.EmbeddingInputNomicV1, runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_RETRIEVAL_DOCUMENT)
-			if familyErr != nil {
-				return nil, familyErr
-			}
-			semantics, _ := structpb.NewStruct(map[string]any{"embeddingRepresentation": family})
-			parts = append(parts, semantics)
+		family, _, familyErr := capabilitydriver.EmbeddingRepresentation(selected.local.ExactBindings[0].EmbeddingInputProtocol, runtimev1.TextEmbedPurpose_TEXT_EMBED_PURPOSE_RETRIEVAL_DOCUMENT)
+		if familyErr != nil {
+			return nil, familyErr
+		}
+		parts, partsErr := localEmbeddingSpaceParts(projectLoadoutEffectiveInputIdentity(selected.local), family)
+		if partsErr != nil {
+			return nil, partsErr
 		}
 		selected.SpaceID, err = embeddingSpaceIDForDimensions("local", "", selected.Dimension, parts...)
 	} else if intent.IsCloud() {

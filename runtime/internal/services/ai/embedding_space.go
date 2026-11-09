@@ -65,16 +65,24 @@ func localEmbeddingSpaceID(effective *localEmbedEffectiveInputs, vectors []*runt
 	if effective == nil || effective.effectiveInputIdentity == nil {
 		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	identity := normalizedEmbeddingIdentity(effective.effectiveInputIdentity)
-	family := effective.plan.RepresentationFamily()
+	parts, err := localEmbeddingSpaceParts(effective.effectiveInputIdentity, effective.plan.RepresentationFamily())
+	if err != nil {
+		return "", err
+	}
+	return embeddingSpaceID("local", "", vectors, parts...)
+}
+
+// Description and execution must hash the same representation semantics.
+func localEmbeddingSpaceParts(input *runtimev1.LoadoutEffectiveInputIdentity, family string) ([]proto.Message, error) {
+	identity := normalizedEmbeddingIdentity(input)
 	if family == capabilitydriver.EmbeddingRepresentationNomicRetrievalV1 || family == capabilitydriver.EmbeddingRepresentationGemma2V1 {
 		semantics, _ := structpb.NewStruct(map[string]any{"embeddingRepresentation": family})
-		return embeddingSpaceID("local", "", vectors, identity, semantics)
+		return []proto.Message{identity, semantics}, nil
 	}
 	if family != capabilitydriver.EmbeddingRepresentationNativeV1 {
-		return "", grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
+		return nil, grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID)
 	}
-	return embeddingSpaceID("local", "", vectors, identity)
+	return []proto.Message{identity}, nil
 }
 
 func localEmbeddingIdentitySpaceID(input *runtimev1.LoadoutEffectiveInputIdentity, vectors []*runtimev1.EmbeddingVector) (string, error) {

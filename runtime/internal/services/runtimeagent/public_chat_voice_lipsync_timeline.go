@@ -169,22 +169,13 @@ func (r publicChatRuntime) emitTimelineEventForChannel(session publicChatAnchorS
 		return status.Error(codes.FailedPrecondition, "runtime.agent.timeline stream identity unavailable")
 	}
 	sequence := r.svc.nextPublicChatStreamSequence(trimmedTurnID)
-	timeline, err := r.svc.publicChatTurnTimelineEnvelopeForChannel(trimmedTurnID, channel, sequence, time.Now())
+	_, err := r.svc.publicChatTurnTimelineEnvelopeForChannel(trimmedTurnID, channel, sequence, time.Now())
 	if err != nil {
 		return err
 	}
-	timeline["projection_rule_id"] = publicChatProjectionRuleIDForTimelineMessage(messageType)
-	out := map[string]any{
-		"agent_id":               session.AgentID,
-		"conversation_anchor_id": session.ConversationAnchorID,
-		"turn_id":                trimmedTurnID,
-		"stream_id":              streamID,
-		"timeline":               timeline,
-		"detail":                 detail,
-	}
-	if err := r.emitEvent(session.SubjectUserID, messageType, out); err != nil {
-		return err
-	}
+	// @nimi-authority: rule.nimi.runtime.agent-participation.r181
+	// Conversation already publishes its committed typed voice sidecar. Timing
+	// belongs to Agent presentation; do not duplicate it onto AppMessage.
 	return r.emitSemanticVoiceAgentEvent(session, trimmedTurnID, streamID, messageType, detail, time.Now().UTC())
 }
 

@@ -310,7 +310,7 @@ const publicChatConversationSummarySystemPrompt = `Write a short continuity note
 The transcript label user is the visitor; assistant is the character. Keep their statements and intentions separate. Names used to address assistant refer to the character, not the visitor. Input marked "Runtime-admitted follow-up instruction" is a Runtime cue, not a visitor's statement.
 Keep claims attributed and preserve conditions and uncertainty without strengthening them. Retained dates, quantities, names, and quoted words keep their original notation. Apply explicit corrections from committed turns; a prior summary is derived context, not independent truth.
 Use compact prose rather than a transcript audit, self-check, keyword list, or repeated quotations and explanations. The note should compress the covered turns, not expand them or add commentary.
-Return only <message id="conversation-summary">plain text continuity note</message>. The body is plain text with no other tags, cues, or actions.`
+Return only <message intent="reply" id="conversation-summary">plain text continuity note</message>. The body is plain text with no other tags, cues, or actions.`
 
 func publicChatConversationSummaryResolutionRequest(input string) publicChatTurnRequestPayload {
 	return publicChatTurnRequestPayload{
