@@ -122,7 +122,7 @@ function runtimeGateStubPlugin() {
       }
     `,
     '@nimiplatform/sdk/types': "export const ReasonCode = { RUNTIME_UNAVAILABLE: 'RUNTIME_UNAVAILABLE' };",
-    '@nimiplatform/kit/shell/renderer/bridge': 'export function createNimiLocalAppStandardShellSurface() { return {}; }',
+    '@nimiplatform/kit/shell/renderer/bridge': 'export function createNimiLocalAppStandardShellSurface() { return {}; } export function hasElectronRuntime() { return true; }',
     '@nimiplatform/kit/ui': `
       import { createElement } from 'react';
       export function Button({ tone, size, loading, leadingIcon, children, ...props }) {

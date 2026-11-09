@@ -191,6 +191,8 @@ function zhiyuRuntimePlatformStubPlugin() {
       buildApi.onLoad({ filter: /.*/, namespace: 'zhiyu-runtime-platform-stub' }, () => ({
         loader: 'js',
         contents: `
+          export function hasZhiyuRuntimeCarrier() { return typeof window !== 'undefined'; }
+          export function zhiyuRuntimeTransport() { return 'electron-ipc'; }
           export function getZhiyuLocalAppClient() {
             return {
               conversation: {

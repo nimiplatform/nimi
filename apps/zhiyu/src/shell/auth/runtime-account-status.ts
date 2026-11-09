@@ -1,11 +1,21 @@
 import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { ZhiyuEvidence } from '../app/evidence';
 import { normalizeZhiyuElectronRuntimeUnavailableError } from '../runtime/electron-runtime-unavailable';
-import { getZhiyuLocalAppClient } from './runtime-platform';
+import { getZhiyuNativeAppClient, getZhiyuRemoteRuntime, isZhiyuRemoteCarrier } from './runtime-platform';
 
 export type ZhiyuAuthStatus = ZhiyuEvidence['auth'];
 
 export async function probeZhiyuRuntimeAccountStatus(): Promise<ZhiyuAuthStatus> {
+  if (isZhiyuRemoteCarrier()) {
+    const peer = getZhiyuRemoteRuntime();
+    const ready = !!peer && !peer.closed;
+    return { transport: 'webrtc', ready, reasonCode: ready ? 'RUNTIME_CLIENT_CONNECTED' : 'SDK_RUNTIME_REMOTE_UNAVAILABLE',
+      actionHint: ready ? '' : 'reconnect_primary_runtime', source: 'sdk',
+      message: ready ? '织羽已连接到当前账号的主 Runtime。' : '与主 Runtime 的连接已断开。',
+      state: ready ? 'authenticated' : 'unavailable', accountReasonCode: 'RUNTIME_CLIENT_CONTEXT',
+      accountId: ready ? peer.identity.accountId : null, displayName: ready ? peer.identity.displayName : null, productionInert: false,
+    };
+  }
   if (typeof window === 'undefined' || !hasElectronRuntime()) {
     return authUnavailable({
       reasonCode: 'electron-runtime-bridge-unavailable',
@@ -16,7 +26,7 @@ export async function probeZhiyuRuntimeAccountStatus(): Promise<ZhiyuAuthStatus>
   }
 
   try {
-    const session = await getZhiyuLocalAppClient().auth.status();
+    const session = await getZhiyuNativeAppClient().auth.status();
     return {
       transport: 'electron-ipc',
       ready: session.sessionBound,

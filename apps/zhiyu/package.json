@@ -14,7 +14,11 @@
     "build": "node ../../scripts/with-workspace-surfaces.mjs -- pnpm run build:prepared",
     "build:electron": "node ../../scripts/build-supervised-app-electron.mjs --consumer zhiyu",
     "test:unit:prepared": "node --import tsx --test test/*.test.mjs test/*.test.ts",
-    "test": "node ../../scripts/with-workspace-surfaces.mjs -- pnpm run test:unit:prepared"
+    "test": "node ../../scripts/with-workspace-surfaces.mjs -- pnpm run test:unit:prepared",
+    "dev:web": "nimi-app dev --platform web",
+    "dev:web-renderer": "vite --mode web",
+    "build:web:prepared": "tsc --noEmit && vite build --mode web",
+    "build:web": "node ../../scripts/with-workspace-surfaces.mjs -- pnpm run build:web:prepared"
   },
   "dependencies": {
     "@nimiplatform/kit": "workspace:*",

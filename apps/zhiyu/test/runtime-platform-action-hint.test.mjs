@@ -144,7 +144,7 @@ function sdkStubPlugin() {
       }));
       buildApi.onLoad({ filter: /.*/, namespace: 'kit-bridge-stub' }, () => ({
         loader: 'js',
-        contents: 'export function createNimiLocalAppStandardShellSurface() { return {}; }',
+        contents: 'export function createNimiLocalAppStandardShellSurface() { return {}; } export function hasElectronRuntime() { return true; }',
       }));
       buildApi.onResolve({ filter: /^@nimiplatform\/sdk\/types$/ }, () => ({
         path: 'sdk-types-stub',

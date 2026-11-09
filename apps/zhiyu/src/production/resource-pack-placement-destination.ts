@@ -1,5 +1,5 @@
 import type { NimiLocalAppAgentHandle, NimiLocalAppClient } from '@nimiplatform/sdk/app';
-import { getZhiyuLocalAppClient } from '../shell/auth/runtime-platform.js';
+import { getZhiyuNativeAppClient } from '../shell/auth/runtime-platform.js';
 
 export type ZhiyuResourcePackPlacementTarget = Readonly<{
   agentHandle: NimiLocalAppAgentHandle;
@@ -12,7 +12,7 @@ export async function resolveZhiyuResourcePackPlacementTarget(input: {
   readonly isCurrent?: () => boolean;
   readonly client?: Pick<NimiLocalAppClient, 'agents' | 'auth' | 'conversation'>;
 }): Promise<ZhiyuResourcePackPlacementTarget> {
-  const client = input.client ?? getZhiyuLocalAppClient();
+  const client = input.client ?? getZhiyuNativeAppClient();
   const session = await client.auth.status();
   if (!session.sessionBound) {
     throw Object.assign(new Error('Zhiyu protected App session is unavailable for Resource Pack placement.'), {

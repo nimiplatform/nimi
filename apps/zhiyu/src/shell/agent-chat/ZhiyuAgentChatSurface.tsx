@@ -380,7 +380,10 @@ export function ZhiyuAgentChatSurface({
     && typeof MediaRecorder !== 'undefined'
     ? { status: voiceStatus, onToggle: toggleVoiceCapture, onCancel: cancelVoiceCapture }
     : undefined;
-  const chatRuntimeHint = isZhiyuAgentBusyReason(evidence.chat.reasonCode)
+  const chatRuntimeHint = submitting
+    ? '正在提交消息，请稍候。'
+    : pendingSubmission ? null
+    : isZhiyuAgentBusyReason(evidence.chat.reasonCode)
     ? '伙伴正在处理另一项请求。输入已保留，请稍后重试。'
     : chatDisabled && (hasCurrentPartner || evidence.chat.state === 'streaming')
     ? (

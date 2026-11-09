@@ -36,6 +36,8 @@ async function loadInventoryModule(hasElectronRuntime = true) {
         buildApi.onLoad({ filter: /runtime-platform-stub/, namespace: 'stub' }, () => ({
           loader: 'js',
           contents: `
+            export function hasZhiyuRuntimeCarrier() { return ${String(hasElectronRuntime)} && typeof window !== 'undefined'; }
+            export function zhiyuRuntimeTransport() { return 'electron-ipc'; }
             export function getZhiyuLocalAppClient() {
               return { agents: { listReferences: () => globalThis.__zhiyuListAgentReferences() } };
             }

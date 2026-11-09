@@ -2,6 +2,18 @@ format: nimicoding.authority/v2
 owner: team.zhiyu
 scope: zhiyu.local-partner-surface
 units:
+  - id: rule.nimi.zhiyu.local-partner-surface.web-entry
+    kind: rule
+    title: Zhiyu remote browser entry
+    modality: must
+    statement: Zhiyu may run its same canonical Conversation, partner projection, Agent configuration and Experience Resource Pack renderer in an HTTPS browser entry using its separately admitted ordinary App source, official scoped Runtime-client login and direct SDK connection to the current user's primary Runtime. Shared Kit session orchestration carries transient connection state and callback handling; Zhiyu owns no credential store, new permission system, model route or LocalAgent loop. Verified remote identity and connection state are displayed as remote facts without constructing native Host session or process evidence. App-private UI data retains its actual registered-source scope and canonical Conversation remains Runtime owned. Disconnect, account-context loss and disposal unmount the active product and fence late results; reconnect creates current handles without replaying business work. Native Avatar launch and native placement mechanics remain explicitly unavailable in a browser; imported resource packs retain the same non-executable target validation and user-facing selected/effective distinction. The local development source does not publish the production domain.
+    condition: Whenever the Zhiyu Web entry is built or used.
+    failure: Reject a copied native proof, direct model execution, synthetic partner or Conversation state, automatic business retry, unvalidated pack or an unimplemented native action presented as available.
+    relations:
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.product-surface
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.resource-pack-target
   - id: definition.nimi.zhiyu.local-partner-surface.product-surface
     kind: definition
     title: Zhiyu LocalAgent partner surface

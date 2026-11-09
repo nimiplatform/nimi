@@ -1,11 +1,10 @@
-import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { ZhiyuEvidence } from '../app/evidence';
-import { getZhiyuLocalAppClient } from '../auth/runtime-platform';
+import { getZhiyuLocalAppClient, hasZhiyuRuntimeCarrier, zhiyuRuntimeTransport } from '../auth/runtime-platform';
 
 export type ZhiyuRuntimeAgentInventoryStatus = ZhiyuEvidence['inventory'];
 
 export async function probeZhiyuRuntimeAgentInventory(): Promise<ZhiyuRuntimeAgentInventoryStatus> {
-  if (typeof window === 'undefined' || !hasElectronRuntime()) {
+  if (!hasZhiyuRuntimeCarrier()) {
     return inventoryUnavailable({
       reasonCode: 'electron-runtime-bridge-unavailable',
       actionHint: 'restart_zhiyu_electron_shell',
@@ -17,7 +16,7 @@ export async function probeZhiyuRuntimeAgentInventory(): Promise<ZhiyuRuntimeAge
   try {
     const localAgents = await getZhiyuLocalAppClient().agents.listReferences();
     return {
-      transport: 'electron-ipc',
+      transport: zhiyuRuntimeTransport(),
       ready: true,
       reasonCode: 'runtime-agent-references-ready',
       actionHint: localAgents.length > 0 ? 'select_runtime_local_agent' : 'open_desktop_agent_center',
@@ -50,7 +49,7 @@ function inventoryUnavailable(input: {
   readonly message: string;
 }): ZhiyuRuntimeAgentInventoryStatus {
   return {
-    transport: 'electron-ipc',
+    transport: zhiyuRuntimeTransport(),
     ready: false,
     reasonCode: input.reasonCode,
     actionHint: input.actionHint,

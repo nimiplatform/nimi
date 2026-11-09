@@ -26,7 +26,7 @@ import { probeZhiyuAvatarPresence } from '../shell/avatar/avatar-presence.js';
 import { createZhiyuAvatarHostHandoffPort } from '../shell/avatar/avatar-host-handoff-port.js';
 import { launchZhiyuAvatar } from '../shell/avatar/avatar-launch-handoff.js';
 import { probeZhiyuRuntimeAccountStatus } from '../shell/auth/runtime-account-status.js';
-import { getZhiyuLocalAppClient } from '../shell/auth/runtime-platform.js';
+import { getZhiyuLocalAppClient, zhiyuRuntimeTransport } from '../shell/auth/runtime-platform.js';
 import {
   requestZhiyuDesktopOpenRuntimeSettings,
   requestZhiyuDesktopOpenSelectPartner,
@@ -77,7 +77,7 @@ async function resolveCurrentAgentHandle(input: {
 function localAgentFromRemintError(error: unknown): ZhiyuLocalAgentStatus {
   const record = error && typeof error === 'object' ? error as Record<string, unknown> : {};
   return {
-    transport: 'electron-ipc',
+    transport: zhiyuRuntimeTransport(),
     ready: false,
     reasonCode: typeof record.reasonCode === 'string'
       ? record.reasonCode
@@ -140,12 +140,12 @@ async function loadHome(
   return {
     runtime,
     auth,
-    source,
+    source: { ...source, transport: zhiyuRuntimeTransport() },
     inventory,
-    localAgent,
+    localAgent: { ...localAgent, transport: zhiyuRuntimeTransport() },
     conversation,
-    companion,
-    delegation,
+    companion: { ...companion, transport: zhiyuRuntimeTransport() },
+    delegation: { ...delegation, transport: zhiyuRuntimeTransport() },
     proposal: projectZhiyuProposalIntakeStatus({ conversation }),
     avatar,
   };
@@ -194,7 +194,7 @@ export function createZhiyuProductionBindings(
           return subscribeZhiyuAmbientConversation({
             conversation,
             identity: { agentHandle: input.agentHandle, conversationAnchorId: input.conversationAnchorId },
-            onChat: input.onChat,
+            onChat: chat => input.onChat({ ...chat, transport: zhiyuRuntimeTransport() }),
             onStatus: input.onStatus,
           });
         },

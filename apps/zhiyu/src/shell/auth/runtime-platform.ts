@@ -1,3 +1,5 @@
+import type { RemoteRuntimeAppConnection } from '@nimiplatform/sdk/runtime/remote';
+import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import { createNimiClient } from '@nimiplatform/sdk';
 import type { NimiLocalAppClient } from '@nimiplatform/sdk/app';
 import { ReasonCode } from '@nimiplatform/sdk/types';
@@ -44,7 +46,25 @@ export function getRuntimePlatformProjection(): Promise<RuntimePlatformProjectio
 
 let localAppClient: ZhiyuLocalAppClient | null = null;
 
-export function getZhiyuLocalAppClient(): ZhiyuLocalAppClient {
+let remoteCarrier = false;
+let remoteConnection: RemoteRuntimeAppConnection | null = null;
+// @nimi-authority: rule.nimi.zhiyu.local-partner-surface.web-entry
+export function setZhiyuRemoteRuntime(connection: RemoteRuntimeAppConnection | null): void {
+  remoteCarrier = true; remoteConnection = connection;
+}
+export function isZhiyuRemoteCarrier() { return remoteCarrier; }
+export function getZhiyuRemoteRuntime() { return remoteConnection; }
+export function zhiyuRuntimeTransport(): 'electron-ipc' | 'webrtc' { return remoteCarrier ? 'webrtc' : 'electron-ipc'; }
+export function hasZhiyuRuntimeCarrier() { return remoteCarrier ? !!remoteConnection && !remoteConnection.closed : typeof window !== 'undefined' && hasElectronRuntime(); }
+export function getZhiyuLocalAppClient(): ZhiyuLocalAppClient | RemoteRuntimeAppConnection {
+  if (remoteCarrier) {
+    if (!remoteConnection || remoteConnection.closed) throw new Error('织羽与主 Runtime 的连接已断开，请重新连接。');
+    return remoteConnection;
+  }
+  return getZhiyuNativeAppClient();
+}
+export function getZhiyuNativeAppClient(): ZhiyuLocalAppClient {
+  if (remoteCarrier) throw new Error('This action requires the native Zhiyu Host.');
   if (!localAppClient) {
     localAppClient = createNimiClient({
       localApp: {
@@ -69,7 +89,7 @@ async function createLocalAppRuntimeProjection(
   mode: RuntimeAuthMode,
 ): Promise<RuntimePlatformProjection> {
   try {
-    const client = getZhiyuLocalAppClient();
+    const client = getZhiyuNativeAppClient();
     const session = await client.auth.status();
     if (!session.sessionBound) {
       throw Object.assign(new Error('Zhiyu local-app session is not bound.'), {

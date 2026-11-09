@@ -1,7 +1,6 @@
-import { hasElectronRuntime } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 import type { ZhiyuEvidence } from '../app/evidence';
-import { getZhiyuLocalAppClient } from '../auth/runtime-platform';
+import { getZhiyuLocalAppClient, hasZhiyuRuntimeCarrier, zhiyuRuntimeTransport } from '../auth/runtime-platform';
 import type { ZhiyuLocalAgentStatus } from './local-agent-status';
 
 export type ZhiyuConversationHomeStatus = ZhiyuEvidence['conversation'];
@@ -23,7 +22,7 @@ export async function probeZhiyuRuntimeConversationHome(
       agentHandle: localAgent.agentHandle,
     });
   }
-  if (typeof window === 'undefined' || !hasElectronRuntime()) {
+  if (!hasZhiyuRuntimeCarrier()) {
     return conversationUnavailable({
       reasonCode: 'electron-runtime-bridge-unavailable',
       actionHint: 'restart_zhiyu_electron_shell',
@@ -49,7 +48,7 @@ function conversationReady(
   conversationAnchorId: string,
 ): ZhiyuConversationHomeStatus {
   return {
-    transport: 'electron-ipc',
+    transport: zhiyuRuntimeTransport(),
     ready: true,
     reasonCode: 'conversation-anchor-open',
     actionHint: 'send_runtime_agent_turn',
@@ -85,7 +84,7 @@ function conversationUnavailable(input: {
   readonly agentHandle?: NimiLocalAppAgentHandle | null;
 }): ZhiyuConversationHomeStatus {
   return {
-    transport: 'electron-ipc', ready: false,
+    transport: zhiyuRuntimeTransport(), ready: false,
     reasonCode: input.reasonCode, actionHint: input.actionHint, source: input.source, message: input.message,
     agentHandle: input.agentHandle ?? null,
     conversationAnchorId: null,

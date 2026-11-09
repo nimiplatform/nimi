@@ -81,7 +81,7 @@ export type ZhiyuDelegationScopeEvidence = {
 };
 
 export type ZhiyuDelegationUxStatus = {
-  readonly transport: 'electron-ipc';
+  readonly transport: 'electron-ipc' | 'webrtc';
   readonly ready: boolean;
   readonly state: ZhiyuDelegationUxState;
   readonly reasonCode: string;

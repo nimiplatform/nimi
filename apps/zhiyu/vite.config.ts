@@ -1,4 +1,5 @@
-import { defineConfig } from 'vite';
+import { defineConfig, loadEnv, mergeConfig } from 'vite';
+import { nimiWebViteConfig } from '@nimiplatform/app-tools/web';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'node:path';
@@ -7,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(__dirname, '../..');
 
-export default defineConfig({
+const nativeConfig = {
   base: './',
   plugins: [react({ exclude: [/\/node_modules\//, /\/src\/(?:shell\/renderer\/)?main\.tsx$/] }), tailwindcss()],
   resolve: {
@@ -29,5 +30,16 @@ export default defineConfig({
     fs: {
       allow: [repoRoot],
     },
+    watch: { ignored: ['**/dist-web/**', '**/.tmp/**'] },
   },
+};
+export default defineConfig(({ command, mode }) => {
+  if (mode !== 'web') return nativeConfig;
+  const web = nimiWebViteConfig({ root: __dirname, env: { ...loadEnv(mode, __dirname, ''), ...process.env }, serve: command === 'serve' });
+  return mergeConfig(nativeConfig, {
+    ...web,
+    plugins: [...(web.plugins || []),
+      { name: 'zhiyu-web-entry', transformIndexHtml: { order: 'pre' as const, handler: (html: string) => html.replace('/src/main.tsx', '/src/web/main.tsx') } }],
+    build: { outDir: 'dist-web' },
+  });
 });

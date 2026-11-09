@@ -41,7 +41,7 @@ export type ZhiyuConversationActionProjection = {
 
 export type ZhiyuRuntimeAgentChatStatus = {
   readonly canonicalProjection?: import('@nimiplatform/kit/features/chat/headless').CanonicalConversationProjection;
-  readonly transport: 'electron-ipc';
+  readonly transport: 'electron-ipc' | 'webrtc';
   readonly ready: boolean;
   readonly state: 'idle' | 'streaming' | 'media-pending' | 'completed' | 'failed' | 'canceled';
   readonly reasonCode: string;
@@ -72,7 +72,7 @@ export type ZhiyuEvidence = {
   readonly phase: 'electron-bootstrap';
   readonly screen: 'home';
   readonly runtime: {
-    readonly transport: 'electron-ipc';
+    readonly transport: 'electron-ipc' | 'webrtc';
     readonly ready: boolean;
     readonly reasonCode: string;
     readonly actionHint: string;
@@ -80,7 +80,7 @@ export type ZhiyuEvidence = {
     readonly message: string;
   };
   readonly auth: {
-    readonly transport: 'electron-ipc';
+    readonly transport: 'electron-ipc' | 'webrtc';
     readonly ready: boolean;
     readonly state: string;
     readonly reasonCode: string;
@@ -93,7 +93,7 @@ export type ZhiyuEvidence = {
     readonly productionInert: boolean;
   };
   readonly source: {
-    readonly transport: 'electron-ipc';
+    readonly transport: 'electron-ipc' | 'webrtc';
     readonly ready: boolean;
     readonly reasonCode: string;
     readonly actionHint: string;
@@ -102,7 +102,7 @@ export type ZhiyuEvidence = {
     readonly projectionState: 'ready' | 'blocked' | 'truncated' | 'failed' | 'unknown';
   };
   readonly inventory: {
-    readonly transport: 'electron-ipc';
+    readonly transport: 'electron-ipc' | 'webrtc';
     readonly ready: boolean;
     readonly reasonCode: string;
     readonly actionHint: string;
@@ -116,7 +116,7 @@ export type ZhiyuEvidence = {
     }[];
   };
   readonly localAgent: {
-    readonly transport: 'electron-ipc';
+    readonly transport: 'electron-ipc' | 'webrtc';
     readonly ready: boolean;
     readonly reasonCode: string;
     readonly actionHint: string;
@@ -125,7 +125,7 @@ export type ZhiyuEvidence = {
     readonly agentHandle: NimiLocalAppAgentHandle | null;
   };
   readonly conversation: {
-    readonly transport: 'electron-ipc';
+    readonly transport: 'electron-ipc' | 'webrtc';
     readonly ready: boolean;
     readonly reasonCode: string;
     readonly actionHint: string;
@@ -136,7 +136,7 @@ export type ZhiyuEvidence = {
     readonly threadId: string | null;
   };
   readonly companion: {
-    readonly transport: 'electron-ipc';
+    readonly transport: 'electron-ipc' | 'webrtc';
     readonly ready: boolean;
     readonly state: 'blocked' | 'projected';
     readonly reasonCode: string;
@@ -182,7 +182,7 @@ export type ZhiyuEvidence = {
     readonly createdAt: string | null;
   };
   readonly avatar: {
-    readonly transport: 'electron-ipc';
+    readonly transport: 'electron-ipc' | 'webrtc';
     readonly ready: boolean;
     readonly state: 'blocked' | 'projected';
     readonly reasonCode: string;
@@ -196,7 +196,7 @@ export type ZhiyuEvidence = {
   };
   readonly chat: ZhiyuRuntimeAgentChatStatus;
   readonly turn: {
-    readonly transport: 'electron-ipc';
+    readonly transport: 'electron-ipc' | 'webrtc';
     readonly ready: boolean;
     readonly reasonCode: string;
     readonly actionHint: string;

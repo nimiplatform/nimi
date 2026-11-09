@@ -1,5 +1,6 @@
 import {
   createAgentCenterShellHostMechanics,
+  createAgentCenterBrowserHostMechanics,
 } from '@nimiplatform/kit/features/agent-center';
 import {
   createAgentCenterShellBridge,
@@ -8,7 +9,8 @@ import {
 import type { NimiLocalAppAgentHandle } from '@nimiplatform/sdk/app';
 
 import type { ZhiyuAgentCenterBinding } from '../renderer/contract.js';
-import { getZhiyuLocalAppClient } from '../shell/auth/runtime-platform.js';
+import { getZhiyuLocalAppClient, isZhiyuRemoteCarrier } from '../shell/auth/runtime-platform.js';
+import { ZHIYU_RESOURCE_PACK_LIMITS } from '../resource-pack/contract.js';
 
 // @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r008
 // @nimi-authority: rule.nimi.zhiyu.local-partner-surface.r009
@@ -20,7 +22,9 @@ export function resolveZhiyuProductionAgentCenterBinding(
   return Object.freeze({
     agentHandle,
     client: localAppClient.agentConfigure,
-    hostMechanics: hasElectronInvoke()
+    hostMechanics: isZhiyuRemoteCarrier()
+      ? createAgentCenterBrowserHostMechanics({ maxResourcePackBytes: ZHIYU_RESOURCE_PACK_LIMITS.archiveBytes })
+      : hasElectronInvoke()
       ? createAgentCenterShellHostMechanics(createAgentCenterShellBridge())
       : null,
   });

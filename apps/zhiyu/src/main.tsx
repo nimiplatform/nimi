@@ -1,4 +1,5 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
+import { ZhiyuFrame } from './production/surface.js';
 import { createRoot } from 'react-dom/client';
 import {
   NimiRendererHostProvider,
@@ -7,15 +8,10 @@ import {
   type NimiRendererHostMethodMap,
 } from '@nimiplatform/kit/shell/renderer/host';
 import { installNimiShellRuntimeBridge } from '@nimiplatform/kit/shell/renderer/bridge';
-import { NimiToaster, NimiThemeProvider, TooltipProvider } from '@nimiplatform/kit/ui';
+import { NimiThemeProvider, TooltipProvider } from '@nimiplatform/kit/ui';
 import './styles.css';
 import './renderer/styles.css';
-import { zhiyuCanonicalRendererFactory } from './renderer/factory';
-import { createZhiyuProductionBindings } from './production/renderer-bindings';
-import { AuthGate } from './shell/auth/auth-gate';
-import { NimiAppChrome } from '@nimiplatform/kit/ui/app-chrome';
-import appPackage from '../package.json';
-import { ZhiyuNavigationOwner, useZhiyuNavigationOwner } from './shell/app/navigation.js';
+import { ZhiyuNavigationOwner } from './shell/app/navigation.js';
 
 installNimiShellRuntimeBridge();
 
@@ -51,26 +47,4 @@ const rendererHost = createNimiRendererHostBinding<NimiRendererHostMethodMap>({
   surfaceLifecycle: { reportReadyCandidate: () => undefined },
 });
 
-function ZhiyuProductionSurface() {
-  const [canonical, setCanonical] = useState<ReturnType<
-    typeof zhiyuCanonicalRendererFactory.createInstance
-  > | null>(null);
-  useEffect(() => {
-    const instance = zhiyuCanonicalRendererFactory.createInstance(
-      createZhiyuProductionBindings(rendererHost.facade),
-    );
-    setCanonical(instance);
-    return () => instance.dispose();
-  }, []);
-  return canonical?.surfaces.main.render() ?? null;
-}
-
-function ZhiyuFrame() {
-  const owner = useZhiyuNavigationOwner();
-  return <div className="flex h-full min-h-0 flex-col overflow-hidden">
-    <NimiAppChrome metadata={{ name: '织羽', version: appPackage.version }} locale="zh" navigation={owner.navigation} navigationEnabled={owner.ready}
-      sidebar={owner.ready && owner.hasSidebar ? { visible: owner.sidebarVisible, onVisibleChange: owner.setSidebarVisible } : undefined} />
-    <div className="min-h-0 flex-1 overflow-hidden"><AuthGate><ZhiyuProductionSurface /></AuthGate></div><NimiToaster />
-  </div>;
-}
-createRoot(root).render(<React.StrictMode><NimiRendererHostProvider binding={rendererHost}><NimiThemeProvider accentPack="nimi-accent" defaultScheme="light"><TooltipProvider><ZhiyuNavigationOwner><ZhiyuFrame /></ZhiyuNavigationOwner></TooltipProvider></NimiThemeProvider></NimiRendererHostProvider></React.StrictMode>);
+createRoot(root).render(<React.StrictMode><NimiRendererHostProvider binding={rendererHost}><NimiThemeProvider accentPack="nimi-accent" defaultScheme="light"><TooltipProvider><ZhiyuNavigationOwner><ZhiyuFrame host={rendererHost.facade} /></ZhiyuNavigationOwner></TooltipProvider></NimiThemeProvider></NimiRendererHostProvider></React.StrictMode>);
