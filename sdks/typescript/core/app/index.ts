@@ -522,3 +522,4 @@ export { projectLocalAppSpeechAlignment as validateNimiLocalAppSpeechAlignment }
 
 export type { NimiLocalAppConversationState, NimiLocalAppConversationFollowUpCancelInput, NimiLocalAppScheduledTime } from './local-app-runtime-platform-proactive.js';
 export type { NimiLocalAppAgentLifePhase, NimiLocalAppAgentLifeFrame, NimiLocalAppAgentLifeActivity, NimiLocalAppAgentLife } from './local-app-runtime-platform-life.js';
+export type { NimiAppRuntimeClient } from './portable-client.js';

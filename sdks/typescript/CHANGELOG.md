@@ -2,6 +2,10 @@
 
 # SDK migration notes
 
+## Unreleased — Ordinary App consumption and context invalidation
+
+Adds the `NimiAppRuntimeClient` type for actual shared operations, excluding native actions and unsupported realtime. Context reads and connection operations now terminate their local session signal on Realm's exact `RUNTIME_CLIENT_CONTEXT_INVALID`; network uncertainty remains an error without inventing revocation.
+
 ## Unreleased — End missing Runtime-client contexts
 
 `RuntimeClientSession.end()` now treats Realm's exact `RUNTIME_CLIENT_CONTEXT_INVALID` response as a terminal context, including records removed by expiry cleanup. Local use is still fenced immediately. Network failures and unrelated authorization errors remain explicit, and an explicit retry remains possible; they are not converted to successful revocation.

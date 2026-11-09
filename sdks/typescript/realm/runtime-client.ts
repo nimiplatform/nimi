@@ -135,7 +135,7 @@ class CurrentRuntimeClientSession implements RuntimeClientSession {
 
   async createConnection(offerSdp: string, expectedBindingId: string): Promise<RuntimeConnectionStateDto> {
     this.#assertCurrent();
-    const result = await this.#api.createRuntimeConnection({ path: {}, body: { offerSdp, bindingId: expectedBindingId } }, { signal: this.#abort.signal });
+    const result = await this.#request(() => this.#api.createRuntimeConnection({ path: {}, body: { offerSdp, bindingId: expectedBindingId } }, { signal: this.#abort.signal }));
     this.#assertCurrent();
     if (result.bindingId !== expectedBindingId || result.status !== 'pending') throw invalidLogin();
     return result;
@@ -143,7 +143,7 @@ class CurrentRuntimeClientSession implements RuntimeClientSession {
 
   async readConnection(connectionId: string, expectedBindingId: string): Promise<RuntimeConnectionStateDto> {
     this.#assertCurrent();
-    const result = await this.#api.getRuntimeConnection({ path: { connectionId } }, { signal: this.#abort.signal });
+    const result = await this.#request(() => this.#api.getRuntimeConnection({ path: { connectionId } }, { signal: this.#abort.signal }));
     this.#assertCurrent();
     if (result.bindingId !== expectedBindingId || result.connectionId !== connectionId) throw invalidLogin();
     return result;
@@ -151,7 +151,7 @@ class CurrentRuntimeClientSession implements RuntimeClientSession {
 
   async read(): Promise<RuntimeClientContextDto> {
     this.#assertCurrent();
-    const result = await this.#api.getRuntimeClientContext({ path: {} }, { signal: this.#abort.signal });
+    const result = await this.#request(() => this.#api.getRuntimeClientContext({ path: {} }, { signal: this.#abort.signal }));
     this.#assertCurrent();
     if (result.contextId !== this.identity.contextId || result.accountId !== this.identity.accountId
       || result.appId !== this.identity.appId || result.clientId !== this.identity.clientId
@@ -179,6 +179,16 @@ class CurrentRuntimeClientSession implements RuntimeClientSession {
 
   #assertCurrent(): void {
     if (!this.active) throw contextChanged();
+  }
+
+  async #request<T>(execute: () => Promise<T>): Promise<T> {
+    try { return await execute(); }
+    catch (error) {
+      if (extractNimiErrorFields(error).reasonCode === 'RUNTIME_CLIENT_CONTEXT_INVALID') {
+        this.#closed = true; this.#revoked = true; this.#abort.abort();
+      }
+      throw error;
+    }
   }
 }
 

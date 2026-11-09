@@ -96,3 +96,18 @@ test('ending a Realm-cleaned context is terminal while unrelated authorization f
     assert.equal(session.active, false);
   }
 });
+
+test('Realm-confirmed invalid context closes every context operation, but outages do not revoke identity', async () => {
+  for (const operation of ['read', 'create', 'poll'] as const) for (const invalid of [true, false]) {
+    const f = fixture(), prepared = await prepareRuntimeClientLogin(f.options);
+    const session = await completeRuntimeClientLogin(f.options, prepared.transaction, callback(prepared.transaction));
+    const reasonCode = invalid ? 'RUNTIME_CLIENT_CONTEXT_INVALID' : 'REALM_UNAVAILABLE';
+    f.respond(() => Promise.resolve(Response.json({ reasonCode }, { status: invalid ? 401 : 503 })));
+    const call = operation === 'read' ? session.read() : operation === 'create' ? session.createConnection('offer', 'binding') : session.readConnection('connection', 'binding');
+    await assert.rejects(call, { reasonCode });
+    assert.equal(session.closed, invalid); assert.equal(session.signal.aborted, invalid);
+    assert.equal(session.active, !invalid);
+    f.respond(() => Promise.resolve(Response.json({ ended: true })));
+    await session.end();
+  }
+});
