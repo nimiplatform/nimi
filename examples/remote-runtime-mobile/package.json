@@ -1,0 +1,15 @@
+{
+  "name": "@nimiplatform/remote-runtime-mobile-reference",
+  "private": true,
+  "packageManager": "pnpm@10.34.7",
+  "type": "module",
+  "scripts": { "check": "tsc --noEmit" },
+  "dependencies": {
+    "@nimiplatform/sdk": "0.22.2",
+    "react": "19.3.1",
+    "react-native": "0.88.1",
+    "react-native-get-random-values": "2.1.0",
+    "react-native-webrtc": "155.0.1"
+  },
+  "devDependencies": { "@types/react": "19.3.0", "typescript": "6.0.3" }
+}

@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>远程写作台 · Nimi 接入示例</title><link rel="stylesheet" href="/styles.css"></head>
+<body>
+  <header><a href="/" class="brand">远程写作台</a><span>独立网站 · Nimi 接入示例</span></header>
+  <main>
+    <aside aria-label="账号和连接">
+      <section id="sign-in"><h1>登录写作台</h1><p>这是网站自己的账号。登录后，再关联你选择的 Nimi 账号。</p>
+        <form id="credentials"><label>网站用户名<input name="username" autocomplete="username" required minlength="3" maxlength="40" pattern="[A-Za-z0-9_-]+"></label>
+          <label>网站密码<input name="password" type="password" autocomplete="current-password" required minlength="12" maxlength="128"></label>
+          <p class="help">用户名用字母、数字、下划线或短横线；密码至少 12 位。不要填写 Nimi 密码。</p>
+          <div class="actions"><button type="submit" name="action" value="login">登录</button><button type="submit" name="action" value="register" class="secondary">创建网站账号</button></div>
+        </form>
+      </section>
+      <section id="account" hidden><h2 id="site-user"></h2><button id="logout" class="text-button">退出网站账号</button>
+        <div class="connection"><h3>Nimi 连接</h3><p id="nimi-user">尚未关联</p><button id="link">通过 Nimi 登录</button>
+          <button id="unlink" class="text-button" hidden>解除关联</button>
+          <p id="connection-state" role="status">未连接主 Runtime</p><div class="actions"><button id="connect" hidden>连接我的 PC</button><button id="disconnect" class="secondary" hidden>断开连接</button></div>
+          <p id="pc-help" class="help" hidden>请在主机 Home 中启用远程接入；首次接入需确认此网站。主机必须保持运行，当前网络也需允许直连。</p>
+        </div>
+      </section>
+      <section id="configuration" hidden><h2>此网站的 AI 配置</h2><p id="effective-config"></p>
+        <label>执行方式<select id="route"><option value="local">PC 本地模型</option><option value="cloud">PC 上的 Cloud Connector</option></select></label>
+        <div id="cloud-fields" hidden><label>连接<select id="connector"></select></label><label>模型<select id="target"></select></label></div>
+        <div class="actions"><button id="save-config" class="secondary">保存此网站的配置</button><button id="refresh-config" class="secondary">刷新配置</button></div><p class="help">选择变更保存后生效。本地模型选择和云服务凭据在 Nimi 管理端配置。</p>
+      </section>
+    </aside>
+    <article>
+      <div class="workspace-heading"><h1>把想法写下来</h1><p>连接自己的 PC，让本地或已配置的云模型帮你起草文字。</p></div>
+      <form id="compose"><label for="prompt">你想写什么？</label><textarea id="prompt" rows="7" required maxlength="24000" placeholder="例如：为周末的家庭聚会写一份轻松的邀请。"></textarea>
+        <div class="actions"><button id="generate" disabled>开始生成</button><button id="cancel" type="button" class="secondary" hidden>停止本次生成</button><span id="generation-state" role="status">先连接主 Runtime</span></div>
+      </form>
+      <section class="result" aria-label="生成内容"><h2>草稿</h2><div id="output" aria-live="polite">生成的内容会出现在这里。当前草稿仅保留在此页面。</div></section>
+      <details class="tasks"><summary>文本标注任务</summary>
+        <p>演示可在断线后查询的 AI 任务。PC 需要配置可用的本地文本标注能力；此处只修改写作台自己的 AI 配置。</p>
+        <button id="prepare-job" class="secondary" disabled>为此网站使用 Local 文本标注</button>
+        <p id="job-config" class="help">先连接主 Runtime</p>
+        <label>待标注文本<textarea id="job-text" rows="3" maxlength="12000"></textarea></label>
+        <label>文本语言<input id="job-language" value="en" maxlength="16" aria-describedby="job-language-help"></label><p id="job-language-help" class="help">填写当前本地能力支持的语言代码，例如 en。语言支持由 PC 的配置决定。</p>
+        <div class="actions"><button id="submit-job" disabled>提交新任务</button></div>
+        <label>提交编号<input id="job-reference" maxlength="128" autocomplete="off" spellcheck="false"></label>
+        <p class="help">每次提交创建一个新任务。若响应中断，保存此编号并查询状态；页面不会自动重提。切换账号会清除本页显示，任务仍由其原账号持有。</p>
+        <div class="actions"><button id="read-job" class="secondary" disabled>查询任务</button><button id="cancel-job" class="secondary" disabled>请求取消任务</button></div>
+        <p id="job-state" role="status">尚未查询任务。</p><pre id="job-result"></pre>
+      </details>
+      <p class="privacy">AI 输入和生成内容由浏览器与 PC 直接传输。写作台服务器只保存网站账号、Nimi 关联，并协调连接。</p>
+    </article>
+  </main>
+  <div id="notice" role="alert" hidden></div>
+  <script type="module" src="/client.js"></script>
+</body>
+</html>

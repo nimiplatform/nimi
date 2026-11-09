@@ -5,6 +5,7 @@ packages:
   - 'kit/shell/protected-local-node/npm/darwin-arm64'
   - 'docs'
   - 'examples'
+  - 'examples/remote-runtime-web'
   - 'app-tools'
   - 'gateways/*'
   - 'nimi2d'
