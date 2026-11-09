@@ -97,6 +97,10 @@
   "showcase.title": "Find your Nimi App.",
   "showcase.body": "Explore 23 app previews. Choose an icon or browse the apps to see how each can help.",
   "showcase.explore": "Explore app",
+  "showcase.previous": "Previous app",
+  "showcase.next": "Next app",
+  "showcase.pause": "Pause slideshow",
+  "showcase.play": "Resume slideshow",
   "integrations.eyebrow": "Apps working together",
   "integrations.title": "Pick up the tools and results you need.",
   "integrations.body": "Find information, send a message, or build on another app’s work without copying and pasting between windows. You decide which apps can use each connection.",
@@ -185,9 +189,5 @@
   "integrations.openHome": "Manage my connections",
   "integrations.details": "Connections and permissions guide",
   "security.demoNote": "The demo responds only to the example marker. It does not detect real keys or call a model.",
-  "security.requestLabel": "Example request",
-  "showcase.previous": "Previous app",
-  "showcase.next": "Next app",
-  "showcase.pause": "Pause slideshow",
-  "showcase.play": "Play slideshow"
+  "security.requestLabel": "Example request"
 }

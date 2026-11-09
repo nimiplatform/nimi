@@ -97,6 +97,10 @@
   "showcase.title": "找到适合你的 Nimi App。",
   "showcase.body": "浏览 23 个应用预览。选择图标或切换应用，看看它如何帮助你。",
   "showcase.explore": "探索 App",
+  "showcase.previous": "上一个应用",
+  "showcase.next": "下一个应用",
+  "showcase.pause": "暂停轮播",
+  "showcase.play": "继续轮播",
   "integrations.eyebrow": "应用协作",
   "integrations.title": "需要的工具和成果，都能接着用。",
   "integrations.body": "查资料、发消息，或继续处理其他应用的成果，不必来回复制粘贴。你能随时决定哪些应用可以使用这些连接。",
@@ -185,9 +189,5 @@
   "integrations.openHome": "管理我的连接",
   "integrations.details": "连接与权限指南",
   "security.demoNote": "下方演示仅根据示例标记展示拦截流程，不会检测真实密钥或调用模型。",
-  "security.requestLabel": "示例请求",
-  "showcase.previous": "上一个应用",
-  "showcase.next": "下一个应用",
-  "showcase.pause": "暂停轮播",
-  "showcase.play": "播放轮播"
+  "security.requestLabel": "示例请求"
 }

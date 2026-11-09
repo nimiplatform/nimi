@@ -9,7 +9,7 @@ import { StoryPage } from '../src/landing/components/story/story-page.js';
 import { HeroDemoSessionProvider } from '../src/landing/components/hero-demo-session.js';
 import { resolveLandingLinks } from '../src/landing/config/landing-links.js';
 import { createDemoZhiyuAgentClient, createDemoZhiyuAgentCenterSession } from '../src/landing/components/demo-zhiyu-agent-center.js';
-import { wrapShowcaseIndex } from '../src/landing/content/app-showcase.js';
+import { findCenteredShowcaseIndex, wrapShowcaseIndex } from '../src/landing/content/app-showcase.js';
 import { DEMO_PREVIEW_APP_IDS } from '../src/landing/components/demo-app-preview.js';
 
 test('the approved bilingual narrative has complete key and interpolation parity', () => {
@@ -60,9 +60,11 @@ test('the hero contains the full Home entry and leaves the download action to na
       assert.ok((DEMO_PREVIEW_APP_IDS as readonly string[]).includes(item.id), item.id);
     }
     for (const item of content.hero.demo.apps.items) {
+      assert.ok(item.iconSrc, `${item.id} has a source App icon`);
       assert.ok(showcase.includes(`data-app-id="${item.id}"`), item.id);
     }
     assert.equal(showcase.match(/data-app-id=/g)?.length, 46);
+    assert.equal(showcase.match(/story-app-showcase-logo-name/g)?.length, 46);
     assert.ok(showcase.includes(getStoryCopy(locale)['showcase.explore']));
     assert.ok(!showcase.includes('story-app-showcase-window'));
     const integrations = html.match(/<section id="integrations"[\s\S]*?(?=<section id="developers")/)?.[0];
@@ -97,4 +99,18 @@ test('the App carousel wraps in both directions', () => {
   assert.equal(wrapShowcaseIndex(12, 23), 12);
   assert.equal(wrapShowcaseIndex(47, 23), 1);
   assert.equal(wrapShowcaseIndex(1, 0), 0);
+});
+
+test('the App carousel identifies the visible logo nearest the center, including its duplicate', () => {
+  const bounds = { left: 0, right: 390 };
+  const logos = [
+    { left: -100, right: -20 },
+    { left: 20, right: 80 },
+    { left: 160, right: 220 },
+    { left: 410, right: 470 },
+    { left: 154, right: 214 },
+  ];
+  assert.equal(findCenteredShowcaseIndex(logos, bounds, 4), 2);
+  assert.equal(findCenteredShowcaseIndex([logos[0]!, logos[1]!, { left: -200, right: -160 }, logos[3]!, logos[4]!], bounds, 4), 0);
+  assert.equal(findCenteredShowcaseIndex([{ left: 500, right: 560 }], bounds, 4), null);
 });

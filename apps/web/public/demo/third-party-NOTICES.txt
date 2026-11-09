@@ -12,6 +12,8 @@ VoiceStudio — ./third-party-licenses/VoiceStudio.txt
 The landing replicas are independently implemented for this website. Example text, rankings, browser actions, subtitles and tracks are illustrative, not live model results. The harbor image and pre-recorded voice clip reuse this landing page's existing Storybook and Zhiyu demonstration assets.
 
 Additional App previews (source icons and retained licenses):
+ShiJing — ./third-party-licenses/shijing.txt
+Odd Bureau — ./third-party-licenses/odd-bureau.txt
 Inscape — ./third-party-licenses/inscape.txt
 Nimi Overtone — ./third-party-licenses/overtone.txt
 PolyAgent — ./third-party-licenses/polyagent.txt
