@@ -988,7 +988,7 @@ export interface CreateAppAgentCenterSessionInput {
   readonly handle: NimiLocalAppAgentHandle;
   readonly client: NimiLocalAppAgentConfigureClient;
   /** The same canonical covered App client; only the reference-voice journey uses its AI operations. */
-  readonly referenceVoiceClient?: Pick<NimiLocalAppClient, 'agents' | 'ai' | 'aiConfig' | 'agentConfigure'>;
+  readonly referenceVoiceClient?: Pick<NimiLocalAppClient, 'agents' | 'aiConfig' | 'agentConfigure'> & { readonly ai: Pick<NimiLocalAppClient['ai'], 'scenarioJobs'> };
   readonly conversationAnchorId?: string;
   readonly hostMechanics?: AgentCenterHostMechanics | null;
   readonly resourcePackTargetController?: AgentCenterResourcePackTargetController | null;

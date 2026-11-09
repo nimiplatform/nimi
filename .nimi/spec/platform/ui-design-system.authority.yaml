@@ -902,6 +902,30 @@ units:
         target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
       - type: applies_to
         target: definition.nimi.platform.ui-design-system.kit-module-family
+  - id: rule.nimi.platform.ui-design-system.agent-center-browser-picker
+    kind: rule
+    title: Browser Resource Pack selection for Agent Center
+    modality: must
+    statement: Agent Center may supply an explicitly selected browser file-picker adapter for its existing identity-free Resource Pack material port. It reads only the file chosen through the browser, enforces the target-supplied finite read bound, and returns a copied byte snapshot, file name, media role and actual digest without a PC path, native custody token, Agent identity or permission. Cancel returns no selection. The existing Manager and target renderer retain archive validation, revision binding, preview, manual Apply and Runtime commit; the browser adapter neither applies a preview nor fabricates native Host or Avatar-launch mechanics.
+    condition: Whenever a browser consumer opts into Agent Center Resource Pack selection.
+    failure: Reject silent selection, unbounded file reading, authority-bearing metadata, automatic application or a native mechanic presented as browser support.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.kit-module-family
+  - id: rule.nimi.platform.ui-design-system.remote-app-session
+    kind: rule
+    title: Shared remote App session orchestration
+    modality: must
+    statement: Kit core may coordinate one ordinary remote App UI session through injected public SDK prepare-login, complete-login and connect operations plus explicit transaction-storage and navigation ports. It owns only transient connection state and subscriptions; verified identity, current-user validity, source admission and protocol remain SDK, Realm and Runtime owned. The caller supplies its authenticated user-context generation when it has a separate account; a Nimi-only consumer may use a sign-in-attempt generation, never an unverified identity. Scoped sessions stay in memory, only the initiating PKCE transaction may be stored for callback completion, and sign-out, account change or disposal fences old results and ends the peer without stopping Runtime or replaying business work. Missing sources, failed revocation and unsupported roles remain explicit errors, with no global client or fabricated native Host.
+    condition: Whenever Lab, an ecosystem website or an adopted App shares remote connection UI orchestration.
+    failure: Reject hidden account or endpoint defaults, an owner credential store, synthetic native identity, automatic business retries or a parallel permission system.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.kit-dependency-boundary
+      - type: applies_to
+        target: definition.nimi.platform.ui-design-system.kit-module-family
   - id: rule.nimi.platform.ui-design-system.p-kit-030
     kind: rule
     title: P-KIT-030 pure core logic boundary

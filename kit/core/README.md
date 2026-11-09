@@ -62,3 +62,8 @@ Pass the Worker to `createPcmWorkerClient`, `await` each block, and call `close(
 ## Verification
 - `pnpm --filter @nimiplatform/kit build`
 - `pnpm check:nimi-kit`
+
+
+`@nimiplatform/kit/core/remote-app-session` shares UI-free remote App connection state through injected public SDK and platform ports. It keeps the scoped session in memory, stores only the initiating PKCE transaction, and fences disconnected or stale work without replaying AI. Use `currentUserContext` for an App with its own verified account; otherwise it uses a Nimi-only sign-in attempt generation. It does not establish identity or authorize operations itself.
+
+`@nimiplatform/kit/core/app-asset-media` reads an admitted App asset into a Blob and provides a revocable object URL. The reader and URL port are supplied to it; it has no file path, native Host or alternate network access. Browser download UI remains App-owned.

@@ -447,3 +447,11 @@ export type MediaImageFamilyDto = import('@nimiplatform/sdk/realm').RealmModel<'
 export type MediaImageSourceDto = import('@nimiplatform/sdk/realm').RealmModel<'MediaImageSourceDto'>;
 export type MediaVideoDto = import('@nimiplatform/sdk/realm').RealmModel<'MediaVideoDto'>;
 export type MediaDeliveryStateDto = import('@nimiplatform/sdk/realm').RealmModel<'MediaDeliveryStateDto'>;
+
+// Shared remote-session orchestration consumes the same public SDK contracts.
+export type { prepareRuntimeClientLogin, completeRuntimeClientLogin } from '@nimiplatform/sdk/realm/runtime-client';
+export type { RuntimeClientIdentity, RuntimeClientLoginOptions, RuntimeClientLoginTransaction, RuntimeClientSession } from '@nimiplatform/sdk/realm/runtime-client';
+export type { connectRemoteRuntime } from '@nimiplatform/sdk/runtime/remote';
+export type { RemoteRuntimeAppConnection, RemoteRuntimeConnectOptions } from '@nimiplatform/sdk/runtime/remote';
+
+export type { NimiLocalAppAssetsClient } from '@nimiplatform/sdk/app';

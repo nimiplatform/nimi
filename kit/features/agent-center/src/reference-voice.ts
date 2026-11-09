@@ -1,7 +1,9 @@
 import { asNimiError, type NimiLocalAppClient } from '@nimiplatform/kit/core/sdk-contract';
 import type { AgentCenterReferenceVoiceProjection } from './types.js';
 
-type Client = Pick<NimiLocalAppClient, 'agents' | 'ai' | 'aiConfig' | 'agentConfigure'>;
+type Client = Pick<NimiLocalAppClient, 'agents' | 'aiConfig' | 'agentConfigure'> & {
+  readonly ai: Pick<NimiLocalAppClient['ai'], 'scenarioJobs'>;
+};
 type Handle = Parameters<Client['agents']['getIntroduction']>[0]['agentHandle'];
 type Presentation = Awaited<ReturnType<Client['agentConfigure']['presentation']['snapshot']>>;
 type JobResult = Awaited<ReturnType<Client['ai']['scenarioJobs']['get']>>;

@@ -1210,8 +1210,12 @@ function createFormalAppResourceScope(
           ...realmChannels.map(record => async () => {
             try { await closeHost.realmRealtimeChannelClose(record); }
             catch (error) {
-              // Restarting Runtime removes its old channel. Its exact not-found result settles this cleanup.
-              if (!(error instanceof NimiElectronDesktopControlHostError && error.reasonCode === 'REALM_NOT_FOUND')) throw error;
+              // @nimi-authority: rule.nimi.runtime.protected-session.r016
+              // Runtime revokes the old session's owned channels before rejecting
+              // later calls after an account change. This is cleanup of a captured
+              // old handle, not permission to replay work in the new account.
+              if (!(error instanceof NimiElectronDesktopControlHostError
+                && ['REALM_NOT_FOUND', 'LOCAL_APP_ACCOUNT_CHANGED', 'LOCAL_APP_SESSION_REVOKED'].includes(error.reasonCode))) throw error;
             }
           }),
           ...aiSessions.map((record) => () => closeHost.aiRealtimeClose(record)),

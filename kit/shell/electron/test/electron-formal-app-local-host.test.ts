@@ -284,10 +284,26 @@ describe('Electron formal App local host', () => {
   });
   it.each(['desktop', 'avatar'] as const)('recovers account change on %s without replaying the old business read', async (profile) => {
     const calls: string[] = [];
+    let businessCalls = 0;
     const unary = vi.fn(async (input: { methodId: string }) => {
       calls.push(input.methodId);
+      if (input.methodId.endsWith('/OpenRealmRealtimeChannel')) {
+        return OpenRealmRealtimeChannelResponse.toBinary(OpenRealmRealtimeChannelResponse.create({
+          realtimeSessionId: 'old-account-session', channelId: 'old-account-channel', generation: '1',
+          status: RealtimeControlStatus.create({
+            realtimeSessionId: 'old-account-session', channelId: 'old-account-channel',
+            adapterKind: RealtimeAdapterKind.REALM, lifecycle: RealtimeLifecycle.READY,
+            generation: '1', sequence: '0', correlationId: 'old-account-correlation',
+            backpressure: RealtimeBackpressureState.NORMAL, bufferCapacity: 32,
+            occurredAt: { seconds: '1', nanos: 0 },
+          }),
+        }));
+      }
+      if (input.methodId.endsWith('/CloseRealmRealtimeChannel')) {
+        throw new NimiElectronDesktopControlHostError('LOCAL_APP_SESSION_REVOKED', false);
+      }
       if (input.methodId.endsWith('/ListLocalAppAgentReferences')) {
-        if (calls.length === 1) throw new NimiElectronDesktopControlHostError('LOCAL_APP_ACCOUNT_CHANGED', false);
+        if (++businessCalls === 1) throw new NimiElectronDesktopControlHostError('LOCAL_APP_ACCOUNT_CHANGED', false);
         return new Uint8Array();
       }
       if (input.methodId.endsWith('/RebindLocalAppSession') || input.methodId.endsWith('/OpenLocalAppSession')) {
@@ -303,9 +319,12 @@ describe('Electron formal App local host', () => {
       control: { [profile === 'desktop' ? 'accountProductUnary' : 'bundledAvatarUnary']: unary } as unknown as NimiElectronDesktopControlHost,
     });
     try {
+      await owner.host.realmRealtimeOpen();
       await expect(owner.host.agentReferenceList()).rejects.toMatchObject({ reasonCode: 'account-changed' });
       expect(calls).toEqual([
+        '/nimi.runtime.v1.RuntimeRealmRealtimeService/OpenRealmRealtimeChannel',
         '/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences',
+        '/nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeChannel',
         '/nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession',
       ]);
       await expect(owner.host.sessionStatus()).resolves.toMatchObject({ state: 'ready' });
@@ -1392,7 +1411,7 @@ describe('Electron formal App local host', () => {
     await owner.dispose();
   });
 
-  it.each(['delayed', 'rejected', 'already-closed'] as const)('blocks shutdown until a %s native close is confirmed and then permits exit', async mode => {
+  it.each(['delayed', 'rejected', 'already-closed', 'account-changed', 'revoked', 'access-denied'] as const)('settles owned channel cleanup only for a completed or revoked scope (%s)', async mode => {
     let closeCalls = 0;
     let finishClose!: (bytes: Uint8Array) => void;
     const pendingClose = new Promise<Uint8Array>(resolve => { finishClose = resolve; });
@@ -1423,6 +1442,9 @@ describe('Electron formal App local host', () => {
       if (input.methodId.endsWith('/CloseRealmRealtimeChannel')) {
         closeCalls += 1;
         if (mode === 'already-closed') throw new NimiElectronDesktopControlHostError('REALM_NOT_FOUND', false);
+        if (mode === 'account-changed') throw new NimiElectronDesktopControlHostError('LOCAL_APP_ACCOUNT_CHANGED', false);
+        if (mode === 'revoked') throw new NimiElectronDesktopControlHostError('LOCAL_APP_SESSION_REVOKED', false);
+        if (mode === 'access-denied') throw new NimiElectronDesktopControlHostError('LOCAL_APP_ACCESS_DENIED', false);
         if (mode === 'rejected' && closeCalls === 1) throw new Error('temporary close failure');
         return pendingClose;
       }
@@ -1435,8 +1457,13 @@ describe('Electron formal App local host', () => {
     });
     const candidate = owner.createResourceScope();
     await candidate.host.realmRealtimeOpen();
-    if (mode === 'already-closed') {
+    if (mode === 'already-closed' || mode === 'account-changed' || mode === 'revoked') {
       await expect(owner.shutdown()).resolves.toBeUndefined();
+      expect(closeCalls).toBe(1);
+      return;
+    }
+    if (mode === 'access-denied') {
+      await expect(owner.shutdown()).rejects.toThrow('formal-app-critical-cleanup-failed');
       expect(closeCalls).toBe(1);
       return;
     }

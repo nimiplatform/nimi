@@ -2,6 +2,17 @@
 
 # Changelog
 
+## Unreleased — Shared remote App composition (additive, next minor)
+
+Adds `core/remote-app-session`, `core/app-asset-media` and the optional Agent Center browser Resource Pack picker. Lab and Zhiyu share the public SDK contracts and existing UI instead of a synthetic native bridge. These are additive source-build exports; no release or mobile UI support is implied.
+
+## Unreleased — Remote App consumers
+
+The next coordinated 0.x minor widens Agent Center's optional AI input to the
+Scenario Job operations it actually uses. Native and direct remote App clients
+can share the same Agent Center and conversation components without a fabricated
+native shell. No new operation permission or package publication is implied.
+
 ## Unreleased — Explicit SVG author selection
 
 OpenAI SVG output now requires a Home-owned `svgAuthor` selection on its existing

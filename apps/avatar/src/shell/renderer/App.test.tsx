@@ -535,11 +535,11 @@ describe('App composition state machine', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('avatar-degraded-surface')).toBeTruthy();
+      expect(screen.getByTestId('avatar-root').getAttribute('data-composition'))
+        .toBe('degraded_runtime_unavailable');
     });
     expect(screen.queryByTestId('avatar-embodiment-stage')).toBeNull();
     expect(screen.queryByTestId('avatar-companion-surface')).toBeNull();
-    expect(screen.getByTestId('avatar-root').getAttribute('data-composition'))
-      .toBe('degraded_runtime_unavailable');
   });
 
   it('does not register the Agent Center Host preview handoff for fixture mode', async () => {
@@ -569,11 +569,11 @@ describe('App composition state machine', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('avatar-degraded-surface')).toBeTruthy();
+      expect(screen.getByTestId('avatar-root').getAttribute('data-composition'))
+        .toBe('degraded_runtime_unavailable');
     });
     expect(screen.queryByTestId('avatar-embodiment-stage')).toBeNull();
     expect(screen.queryByTestId('avatar-companion-surface')).toBeNull();
-    const root = screen.getByTestId('avatar-root');
-    expect(root.getAttribute('data-composition')).toBe('degraded_runtime_unavailable');
   });
 
   it('mounts ONLY degraded-surface under degraded:reauth-required', async () => {
@@ -587,8 +587,9 @@ describe('App composition state machine', () => {
 
     await waitFor(() => {
       expect(screen.getByTestId('avatar-degraded-surface')).toBeTruthy();
+      // Loading uses this surface too; wait for the actual terminal posture.
+      expect(screen.getByTestId('avatar-root').getAttribute('data-composition')).toBe('degraded_reauth_required');
     });
-    expect(screen.getByTestId('avatar-root').getAttribute('data-composition')).toBe('degraded_reauth_required');
   });
 
   it('mounts degraded-surface (error variant) when bootstrap throws untyped error', async () => {

@@ -17,7 +17,7 @@ import { AgentCenter } from './AgentCenter.js';
 
 type AppAgentCenterEntryClient = Pick<NimiLocalAppClient, 'agentConfigure'> & {
   readonly agents?: NimiLocalAppClient['agents'];
-  readonly ai?: NimiLocalAppClient['ai'];
+  readonly ai?: Pick<NimiLocalAppClient['ai'], 'scenarioJobs'>;
   readonly aiConfig?: NimiLocalAppClient['aiConfig'];
 };
 

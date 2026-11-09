@@ -386,6 +386,16 @@
       "types": "./dist/features/media/headless.d.ts",
       "import": "./dist/features/media/headless.js",
       "default": "./dist/features/media/headless.js"
+    },
+    "./core/remote-app-session": {
+      "types": "./dist/core/remote-app-session.d.ts",
+      "import": "./dist/core/remote-app-session.js",
+      "default": "./dist/core/remote-app-session.js"
+    },
+    "./core/app-asset-media": {
+      "types": "./dist/core/app-asset-media.d.ts",
+      "import": "./dist/core/app-asset-media.js",
+      "default": "./dist/core/app-asset-media.js"
     }
   },
   "scripts": {
