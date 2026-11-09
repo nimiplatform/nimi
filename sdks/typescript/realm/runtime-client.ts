@@ -1,7 +1,7 @@
 import { CoreClient } from '../core-client/index.js';
 import { RealmTypedClient, type RuntimeClientContextDto, type RuntimeClientTokenDto, type RuntimeConnectionStateDto } from '../core-generated/realm-typed-client.js';
 import { createRealmFetchTransport } from './fetch-transport.js';
-import { createNimiError } from '../types/index.js';
+import { createNimiError, extractNimiErrorFields } from '../types/index.js';
 import { sha256Hex } from '../types/sha256.js';
 
 export interface RuntimeClientLoginOptions {
@@ -162,12 +162,16 @@ class CurrentRuntimeClientSession implements RuntimeClientSession {
   }
 
   /** Call immediately on local sign-out, account switch or unlink. Local use
-   * ends before the request; a failed remote revocation remains an error. */
+   * ends before the request. Realm-confirmed absence is terminal; an uncertain
+   * revocation still fails and can be explicitly retried. */
   async end(): Promise<void> {
     this.#closed = true; this.#abort.abort();
     if (this.#revoked) return;
     if (!this.#ending) {
       this.#ending = this.#api.endRuntimeClientContext({ path: {} }, { signal: AbortSignal.timeout(5000) })
+        .catch((error: unknown) => {
+          if (extractNimiErrorFields(error).reasonCode !== 'RUNTIME_CLIENT_CONTEXT_INVALID') throw error;
+        })
         .then(() => { this.#revoked = true; }).finally(() => { this.#ending = undefined; });
     }
     await this.#ending;

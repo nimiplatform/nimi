@@ -2,6 +2,10 @@
 
 # SDK migration notes
 
+## Unreleased — End missing Runtime-client contexts
+
+`RuntimeClientSession.end()` now treats Realm's exact `RUNTIME_CLIENT_CONTEXT_INVALID` response as a terminal context, including records removed by expiry cleanup. Local use is still fenced immediately. Network failures and unrelated authorization errors remain explicit, and an explicit retry remains possible; they are not converted to successful revocation.
+
 ## Unreleased — Remote consumer entrypoints (additive, next minor)
 
 Use `@nimiplatform/sdk/runtime/remote` for direct Runtime connections and

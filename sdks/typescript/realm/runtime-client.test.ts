@@ -79,3 +79,20 @@ test('a late discovery result is discarded after user switch and local closure s
   f.respond(() => Promise.resolve(Response.json({ ended: true }, { status: 201 })));
   await session.end();
 });
+
+test('ending a Realm-cleaned context is terminal while unrelated authorization failures remain errors', async () => {
+  for (const reasonCode of ['RUNTIME_CLIENT_CONTEXT_INVALID', 'PRINCIPAL_UNAUTHORIZED']) {
+    const f = fixture(), prepared = await prepareRuntimeClientLogin(f.options);
+    const session = await completeRuntimeClientLogin(f.options, prepared.transaction, callback(prepared.transaction));
+    f.respond(() => Promise.resolve(Response.json({ reasonCode }, { status: 401 })));
+    if (reasonCode === 'RUNTIME_CLIENT_CONTEXT_INVALID') {
+      await session.end();
+      await session.end();
+      assert.equal(f.requests.filter(request => request.path.endsWith('/end')).length, 1);
+    } else {
+      await assert.rejects(session.end(), { reasonCode });
+    }
+    assert.equal(session.closed, true);
+    assert.equal(session.active, false);
+  }
+});

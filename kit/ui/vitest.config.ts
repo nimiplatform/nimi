@@ -65,6 +65,7 @@ export default defineConfig({
       { find: '@nimiplatform/sdk/runtime/generated', replacement: path.resolve(import.meta.dirname, '../../sdks/typescript/runtime/generated.ts') },
       { find: '@nimiplatform/sdk/runtime/host', replacement: path.resolve(import.meta.dirname, '../../sdks/typescript/runtime/host.ts') },
       { find: '@nimiplatform/sdk/runtime/wire-types', replacement: path.resolve(import.meta.dirname, '../../sdks/typescript/runtime/wire-types/index.ts') },
+      { find: '@nimiplatform/sdk/realm/runtime-client', replacement: path.resolve(import.meta.dirname, '../../sdks/typescript/realm/runtime-client.ts') },
       { find: '@nimiplatform/sdk/realm/generated', replacement: path.resolve(import.meta.dirname, '../../sdks/typescript/realm/generated.ts') },
       { find: '@nimiplatform/sdk/contracts', replacement: path.resolve(import.meta.dirname, '../../sdks/typescript/core/contracts/index.ts') },
       { find: '@nimiplatform/sdk/runtime', replacement: path.resolve(import.meta.dirname, '../../sdks/typescript/runtime/index.ts') },
