@@ -1,9 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createRequire } from 'node:module';
 import React, { act } from 'react';
 
-const { JSDOM } = createRequire(new URL('../../../kit/package.json', import.meta.url))('jsdom');
+import { JSDOM } from 'jsdom';
 
 test('partner previews preserve rail selection and exact panel targets, and discard late old-partner reads', async () => {
   const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost', pretendToBeVisual: true });

@@ -1,2 +1,7 @@
-
 dist-web/
+dist/
+dist-electron/
+node_modules/
+.tmp/
+.local/
+.env*.local

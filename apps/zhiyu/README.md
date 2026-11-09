@@ -1,62 +1,69 @@
 [App introduction and usage](NIMI_APP.md)
 
-# 织羽
+# 织羽开发
 
-中文名：织羽。英文名：Zhiyu。
+织羽默认使用 Nimi 账号，与既有伙伴的身份、Conversation、记忆及配置交互。Web 和 Desktop 共享产品 renderer，通过 SDK／Kit 的不同平台入口接入；应用不保管 Nimi 账号凭据，也不建立另一套伙伴或用户系统。
 
-织羽是 Nimi 中的本地伙伴体验中心，通过受保护的 App 会话与当前伙伴交互。伙伴的身份、对话和长期记忆由各自所属的系统组件管理，织羽专注于交互呈现与操作入口。
+## Web 开发
 
-## 开发前提
+需要 Node/pnpm、已安装且包含本分支共享接入出口的 SDK／Kit／App Tools，以及运行中的 Realm 官方登录服务。服务主机上的 Nimi Home 需登录、启用远程接入并准备好伙伴；网页所在设备不要求再安装 Runtime。当前本机联调使用以下已接纳来源：
 
-请先参照 [LOCAL_DEVELOPMENT.md](../../LOCAL_DEVELOPMENT.md) 准备好 Node/pnpm、源码 Realm/Web 及系统依赖。先在 Nimi 仓库根目录安装工作区依赖：
+- App：`nimi.zhiyu`；客户端：`nimi.zhiyu.web.dev`。
+- 来源：`https://127.0.0.1:4472`；回调：同来源 `/`。
+- 环境与官方服务地址位于 `nimi.app.yaml` 的 `local_development.web`。
+
+新来源需要 Registry 接纳和主机 Home 一次确认；原来源正常重连、开发重启或包更新复用既有许可。更改域名或回调不能沿用旧来源假装已接纳。
+
+1. 将 `.env.web.example` 复制为 `.env.web.local`，填写浏览器已信任证书的 key/cert 路径。现有本机文件可直接复用，不提交私钥。
+2. 在织羽目录执行 `pnpm dev:web`，由 App Tools 的 Web 载体启动正式 HTTPS 入口。
+3. 点击“使用 Nimi 账号登录”，完成官方页面流程后连接主 Runtime；首次使用来源时在主机 Home 确认。
+
+浏览器已登录与 PC 在线是两个状态。断开只关闭当前 Runtime 连接；“退出此应用”结束当前应用上下文，不退出 Home 或其它应用。重新连接不会重复提交旧业务。真实功能验证必须走此入口，不能以直接 Vite 页面或构建成功代替。
+
+常用命令在织羽目录运行：
+
+```sh
+pnpm typecheck
+pnpm test
+pnpm build:web
+pnpm dev:web
+```
+
+`typecheck`、`test` 和两种 renderer 构建只消费已安装的公开包，不调用 Nimi 父仓脚本。输出 `dist-web/` 是网页资源，不是已部署网站。App Tools 提供的开发服务只协调身份和连接；生产托管需要相同的正式协调路由，AI／文件仍直达 PC，不加入 Relay 或网站后端业务转发。
+
+## 工作区源码联调
+
+在 Nimi 仓库根目录安装依赖并准备当前 SDK／Kit，然后启动 Home：
 
 ```sh
 pnpm install
-```
-
-随后在两个独立终端中分别启动 Runtime 和 Nimi Home：
-
-```sh
-# 终端 1
-pnpm dev:runtime
-
-# 终端 2
+pnpm dev:prepare
 pnpm dev:desktop
 ```
 
-待 Nimi Home 启动后，在浏览器中完成登录。织羽依赖 Desktop supervisor 托管与有效的 App 会话，仅启动前端渲染器无法满足正式运行条件。
+在另一终端运行 `pnpm --filter @nimiplatform/zhiyu dev:web`。更新 SDK／Kit 源码后重新准备包，必要时重启 App 开发服务；织羽没有源码 alias 或仓库 CSS 扫描兜底。工作区的 `workspace:*` 只负责选择包，仍通过公开 exports 消费构建产物。
 
-## 启动织羽
+## 独立目录消费与更新
 
-保持 Runtime 与 Nimi Home 运行，在第三个终端执行：
+复制同一份织羽源码到独立目录，排除 `node_modules`、构建目录和本机 `.env*.local`；不要重新生成一个业务不同的样例。
 
-```sh
-pnpm dev:zhiyu
-```
+1. 将 `package.json` 中 SDK、Kit 和 App Tools 的 `workspace:*` 改成所选完整包的版本。当前开发组合为 SDK `0.22.2`、Kit `0.22.1`、App Tools `0.14.0`；这些数字本身不保证 npm 上已有本分支新增接口。
+2. 若使用本地源码包，在该目录的 `pnpm-workspace.yaml` 中通过 `overrides` 选定完整 `.tgz`，包括 Kit 需要的同版本 native optional 包。三者必须是兼容的目标组合；不得改成指向父仓源码目录的依赖。
+3. 执行 `pnpm install`，保留实际 lockfile。随后运行上面的类型检查、测试和 Web 构建；复制 TLS 示例并填写本机路径后，通过原已批准来源启动。
+4. 更新时先检查当前 Git 修改，再更换选定包／override，重新安装并按 package migration notes 修改应用调用。查看 diff，确认业务源码、App ID、来源、回调和用户自有修改未被覆盖，再运行受影响检查与真实业务。
 
-该命令会先准备工作区中的 SDK 与 Kit，再通过 Desktop 拉起织羽的 Electron 开发宿主。若依赖与宿主均已就绪，也可直接运行 `pnpm --filter @nimiplatform/zhiyu dev`。
+同一开发版本号的两个 tarball 可以包含不同源码；保留所选文件路径和 lock integrity，不只按版本号判断更新成功。织羽是手写应用，没有 scaffold-managed glue，不通过伪造 scaffold lock 或 `sync` 来覆盖业务入口。当前没有宣称同目录 Desktop/Web 的 `init/sync/check/test/build` 全部由 App Tools 统一选择。
 
-如果仅需调试纯前端布局，可运行：
+`build:electron` 是 Nimi 仓库内的受监督 Host 构建脚本，独立 Web 迭代不调用它。本轮不提供独立原生分发／安装流程，也不发布 `zhiyu.nimi.ai`。
 
-```sh
-pnpm --filter @nimiplatform/zhiyu dev:renderer
-```
+## Desktop 联调
 
-注意：`dev:renderer` 仅用于界面布局预览，不会建立受保护的 App 会话，不能用于验证伙伴对话、语音或 Avatar 等实际产品链路。完整环境配置说明见 [LOCAL_DEVELOPMENT.md](../../LOCAL_DEVELOPMENT.md)。
+主机 Home 就绪后，在仓库根目录执行 `pnpm dev:zhiyu -- --list-registrations`，按返回的当前 selector 用 `pnpm dev:zhiyu -- --resume <selector>` 继续原登记。原生 App 经 Desktop supervisor 和正式 Host 接入，账号登录、切换与全局退出仍在 Home 管理。
 
+`pnpm build` 检查共享 TypeScript 并构建原生 renderer；`dev:renderer` 只供纯布局调试，不能建立受保护 App 会话或证明伙伴调用成功。工作区环境说明见 [LOCAL_DEVELOPMENT.md](../../LOCAL_DEVELOPMENT.md)。
 
-## 本机 Web 开发入口
+## 共享接入与验证边界
 
-源码分支已增加 `pnpm --filter @nimiplatform/zhiyu dev:web`，由 App Tools 的 Web 载体启动。`nimi.app.yaml` 的 `local_development.web` 声明精确来源／回调与官方登录地址；TLS 文件路径在未提交的 `.env.web.local` 中配置。当前本机来源为 `https://127.0.0.1:4472`。来源需要 Registry 接纳和 PC Home 一次确认；正常重连与开发迭代复用许可。
+Web 使用 Kit `auth/app/web`，Desktop 使用 `auth/app/desktop`；两者共享 Provider、AccountControl 和 AccessGate。业务组件捕获当前 scope 的客户端，身份失效或断开时卸载旧视图。可选自有账号关联通过 Kit 输出当前上下文的 verified identity，网站自己的后端仍负责正式验证；织羽默认无需此关联层。
 
-Web 与 Electron 共用 canonical renderer、伙伴列表、Conversation、伙伴配置和资源包呈现。浏览器通过同一 SDK／Kit 连接当前账号的主 Runtime，不安装原生 bridge，也不把网页当作本机 Host。Resource Pack 使用浏览器选文件，沿用原预览、手动应用、Runtime 保存和重读流程。跨来源 App 私有文件不自动合并；当前伙伴的 canonical Conversation 与 presentation 由 Runtime 管理。
-
-当前已实际运行文本聊天、读取原会话、伙伴配置投影、皮肤预览／应用／清除及重连后的原结果读取。原生 Avatar 启动与原生 placement 仍属于原生 Host；其它语音／媒体组合及物理外网条件不能据此视为已验收。`zhiyu.nimi.ai` 尚未在本轮部署或发布。
-
-上述原生开发章节仍适用于 Electron。Web 构建可使用 `build:web`，只产生网页资源，不等于部署或 Runtime 调用通过。
-
-### 共享账号接入
-
-Web 入口使用 `@nimiplatform/kit/auth/app/web` 和共享账号控件／Gate；直接使用 Nimi 账号，无第二套账户。身份和 Runtime 连接分开显示；退出此应用不退出 Home 或其它应用。本机入口使用 `auth/app/desktop`，复用 Home 当前账号及正式 Host，会话失效时关闭旧消费 scope。业务回调捕获当前 scope 的客户端。
-
-首次关联的 verified identity 回调只用于远程可选自有账号模式，不是网站后端认证凭据。Mobile 仍需真实原生来源／回调及容器实现，当前没有可用 Mobile 工厂。
+已有 Web 版本实际运行过文本聊天、既有会话重读、伙伴配置和 skin 预览／应用／清除。共享接入与公开包迁移后的真实页面复验单独记录，工程检查通过不能代替新版产品路径。原生 Avatar 启动／placement 不被网页模拟；其它语音／媒体组合及公网条件按实际应用任务验证。Mobile 仍待原生来源、系统回调和容器实现，没有空的 Mobile 工厂。

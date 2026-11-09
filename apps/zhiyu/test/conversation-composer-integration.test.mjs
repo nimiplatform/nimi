@@ -1,12 +1,11 @@
 // Scripted public bindings exercise the real App, Surface and Composer. This is
 // deterministic UI regression coverage, not a Runtime/model acceptance run.
 import assert from 'node:assert/strict';
-import { createRequire, registerHooks } from 'node:module';
+import { registerHooks } from 'node:module';
 import test from 'node:test';
 import React, { act } from 'react';
 
-const requireKitTestDependency = createRequire(new URL('../../../kit/package.json', import.meta.url));
-const { JSDOM } = requireKitTestDependency('jsdom');
+import { JSDOM } from 'jsdom';
 registerHooks({
   resolve(specifier, context, nextResolve) {
     if (specifier.endsWith('.png')) {

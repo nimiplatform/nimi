@@ -7,14 +7,8 @@
 @import "@nimiplatform/kit/auth/styles.css";
 @import "tailwindcss" source(none);
 
-/* Keep Tailwind scanning bounded while including the app composition and the
-   Kit source utilities consumed through dist package exports. */
+/* Kit's public stylesheet supplies its own package scanning paths. */
 @source "./**/*.{ts,tsx}";
-@source "../../../kit/ui/src/**/*.{ts,tsx}";
-@source "../../../kit/auth/src/**/*.{ts,tsx}";
-@source "../../../kit/features/chat/src/**/*.{ts,tsx}";
-@source "../../../kit/features/agent-center/src/**/*.{ts,tsx}";
-@source "../../../kit/features/avatar/src/**/*.{ts,tsx}";
 
 :root {
   color-scheme: light;

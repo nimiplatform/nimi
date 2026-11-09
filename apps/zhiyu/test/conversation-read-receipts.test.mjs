@@ -1,9 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { createRequire } from 'node:module';
 import React, { act } from 'react';
 
-const { JSDOM } = createRequire(new URL('../../../kit/package.json', import.meta.url))('jsdom');
+import { JSDOM } from 'jsdom';
 
 test('Zhiyu loads replies beyond multiple activity page budgets before acknowledging visible history', async () => {
   const dom = new JSDOM('<div id="root"></div>', { pretendToBeVisual: true });
