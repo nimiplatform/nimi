@@ -1909,10 +1909,13 @@ class RuntimeClientSourceDto:
     capabilityContractRefs: tuple[str, ...]
     clientId: str
     displayName: str
+    kind: Literal["web", "android-app-link"]
     origin: str
     redirectUri: str
     role: Literal["app", "official_manager"]
     sourceRevision: float
+    androidCertificateSha256: str | None = None
+    androidPackageName: str | None = None
 
 @dataclass(frozen=True)
 class RuntimeClientTokenDto:

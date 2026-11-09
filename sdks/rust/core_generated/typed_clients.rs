@@ -19563,11 +19563,14 @@ pub struct RuntimeClientPrimaryDto {
 
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct RuntimeClientSourceDto {
+    pub android_certificate_sha256: String,
+    pub android_package_name: String,
     pub app_access: Vec<String>,
     pub app_id: String,
     pub capability_contract_refs: Vec<String>,
     pub client_id: String,
     pub display_name: String,
+    pub kind: String,
     pub origin: String,
     pub redirect_uri: String,
     pub role: String,

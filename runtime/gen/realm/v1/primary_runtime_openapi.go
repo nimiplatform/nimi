@@ -128,15 +128,18 @@ type RuntimeClientPrimaryDto struct {
 }
 
 type RuntimeClientSourceDto struct {
-	AppAccess              []string `json:"appAccess"`
-	AppId                  string   `json:"appId"`
-	CapabilityContractRefs []string `json:"capabilityContractRefs"`
-	ClientId               string   `json:"clientId"`
-	DisplayName            string   `json:"displayName"`
-	Origin                 string   `json:"origin"`
-	RedirectUri            string   `json:"redirectUri"`
-	Role                   string   `json:"role"`
-	SourceRevision         float64  `json:"sourceRevision"`
+	AndroidCertificateSha256 string   `json:"androidCertificateSha256,omitempty"`
+	AndroidPackageName       string   `json:"androidPackageName,omitempty"`
+	AppAccess                []string `json:"appAccess"`
+	AppId                    string   `json:"appId"`
+	CapabilityContractRefs   []string `json:"capabilityContractRefs"`
+	ClientId                 string   `json:"clientId"`
+	DisplayName              string   `json:"displayName"`
+	Kind                     string   `json:"kind"`
+	Origin                   string   `json:"origin"`
+	RedirectUri              string   `json:"redirectUri"`
+	Role                     string   `json:"role"`
+	SourceRevision           float64  `json:"sourceRevision"`
 }
 
 type RuntimeConnectionAnswerDto struct {

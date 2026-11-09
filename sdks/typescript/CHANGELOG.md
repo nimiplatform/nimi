@@ -2,6 +2,10 @@
 
 # SDK migration notes
 
+## Unreleased — Registered remote source preflight
+
+Adds `readRuntimeClientSource` to `realm/runtime-client`, returning the selected public source through the existing cookie-free transport. Realm source projections include Web/Android kind and optional Android package/signing metadata; these are not device or business permissions.
+
 ## Unreleased — Ordinary App consumption and context invalidation
 
 Adds the `NimiAppRuntimeClient` type for actual shared operations, excluding native actions and unsupported realtime. Context reads and connection operations now terminate their local session signal on Realm's exact `RUNTIME_CLIENT_CONTEXT_INVALID`; network uncertainty remains an error without inventing revocation.

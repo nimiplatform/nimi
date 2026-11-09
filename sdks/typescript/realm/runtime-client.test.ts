@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { createHash } from 'node:crypto';
-import { completeRuntimeClientLogin, prepareRuntimeClientLogin, type RuntimeClientLoginOptions, type RuntimeClientLoginTransaction } from '@nimiplatform/sdk/realm/runtime-client';
+import { completeRuntimeClientLogin, prepareRuntimeClientLogin, readRuntimeClientSource, type RuntimeClientLoginOptions, type RuntimeClientLoginTransaction } from '@nimiplatform/sdk/realm/runtime-client';
 
 function fixture() {
   let user = 'verified-app-session-A';
@@ -9,7 +9,7 @@ function fixture() {
   const token = { realmEnvironmentId: 'test-realm', accountId: 'nimi-user-A', displayName: 'A',
     appId: 'publisher.editor', clientId: 'publisher.editor.web', contextId: 'd214aa08-6e81-4a49-af85-d71bed06dcd8',
     expiresAt: new Date(Date.now() + 60000).toISOString(), contextToken: 't'.repeat(43) };
-  const state = { ...token, stunUrls: [], source: { appId: token.appId, clientId: token.clientId, displayName: 'Editor', origin: 'https://editor.test',
+  const state = { ...token, stunUrls: [], source: { kind: 'web', appId: token.appId, clientId: token.clientId, displayName: 'Editor', origin: 'https://editor.test',
     redirectUri: 'https://editor.test/callback', sourceRevision: 1, role: 'app', appAccess: ['runtime.consume'], capabilityContractRefs: ['text.generate'] }, primary: null };
   let respond = (path: string): Promise<Response> => Promise.resolve(Response.json(path.endsWith('/token') ? token : path.endsWith('/end') ? { ended: true } : state,
     { status: path.endsWith('/context') ? 200 : 201 }));
@@ -110,4 +110,14 @@ test('Realm-confirmed invalid context closes every context operation, but outage
     f.respond(() => Promise.resolve(Response.json({ ended: true })));
     await session.end();
   }
+});
+
+test('source preflight exposes only the selected public source and preserves the cookie-free transport', async () => {
+  const f = fixture(); f.respond(async () => Response.json(f.state.source));
+  const source = await readRuntimeClientSource(f.options);
+  assert.equal(source.clientId, f.options.clientId); assert.equal(source.kind, 'web');
+  assert.equal(f.requests[0].init.credentials, 'omit'); assert.equal(f.requests[0].init.redirect, 'error');
+  assert.equal(new Headers(f.requests[0].init.headers).has('authorization'), false);
+  f.respond(async () => Response.json({ ...f.state.source, appId: 'another.app' }));
+  await assert.rejects(readRuntimeClientSource(f.options), { reasonCode: 'RUNTIME_CLIENT_INPUT_INVALID' });
 });

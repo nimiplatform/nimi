@@ -36442,6 +36442,34 @@
         "kind": "object",
         "properties": [
           {
+            "name": "androidCertificateSha256",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "androidPackageName",
+            "required": false,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
             "name": "appAccess",
             "required": true,
             "schema": {
@@ -36522,6 +36550,18 @@
             }
           },
           {
+            "name": "kind",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "web",
+                "android-app-link"
+              ],
+              "type": "string"
+            }
+          },
+          {
             "name": "origin",
             "required": true,
             "schema": {
@@ -36577,6 +36617,7 @@
           }
         ],
         "required_properties": [
+          "kind",
           "clientId",
           "appId",
           "displayName",

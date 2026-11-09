@@ -1,5 +1,5 @@
 import { CoreClient } from '../core-client/index.js';
-import { RealmTypedClient, type RuntimeClientContextDto, type RuntimeClientTokenDto, type RuntimeConnectionStateDto } from '../core-generated/realm-typed-client.js';
+import { RealmTypedClient, type RuntimeClientContextDto, type RuntimeClientSourceDto, type RuntimeClientTokenDto, type RuntimeConnectionStateDto } from '../core-generated/realm-typed-client.js';
 import { createRealmFetchTransport } from './fetch-transport.js';
 import { createNimiError, extractNimiErrorFields } from '../types/index.js';
 import { sha256Hex } from '../types/sha256.js';
@@ -33,6 +33,16 @@ export interface RuntimeClientLoginTransaction {
   readonly state: string;
   readonly codeVerifier: string;
   readonly expectedAccountId?: string;
+}
+
+/** Read the admitted source before handing off to a native login browser.
+ * This returns public source facts, never a user identity or permission. */
+// @nimi-authority: rule.nimi.sdks.realm-consumer.runtime-client-context
+export async function readRuntimeClientSource(options: Pick<RuntimeClientLoginOptions,
+  'realmBaseUrl' | 'appId' | 'clientId' | 'redirectUri' | 'fetch'>): Promise<RuntimeClientSourceDto> {
+  const source = await client(options).getRuntimeClientSource({ path: { clientId: options.clientId } });
+  if (source.appId !== options.appId || source.clientId !== options.clientId || source.redirectUri !== options.redirectUri) throw invalidLogin();
+  return source;
 }
 
 // @nimi-authority: rule.nimi.sdks.realm-consumer.runtime-client-context
@@ -192,7 +202,7 @@ class CurrentRuntimeClientSession implements RuntimeClientSession {
   }
 }
 
-function client(options: RuntimeClientLoginOptions, token?: string): RealmTypedClient {
+function client(options: Pick<RuntimeClientLoginOptions, 'realmBaseUrl' | 'fetch'>, token?: string): RealmTypedClient {
   const fetchImpl = options.fetch ?? globalThis.fetch.bind(globalThis);
   return new RealmTypedClient(new CoreClient({ transport: createRealmFetchTransport({ baseUrl: trustedOrigin(options.realmBaseUrl),
     credentials: 'omit', fetch: (input, init) => fetchImpl(input, { ...init, redirect: 'error', credentials: 'omit' }),

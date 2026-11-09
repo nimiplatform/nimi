@@ -5631,6 +5631,10 @@ components:
       type: object
     RuntimeClientSourceDto:
       properties:
+        androidCertificateSha256:
+          type: string
+        androidPackageName:
+          type: string
         appAccess:
           items:
             type: string
@@ -5645,6 +5649,11 @@ components:
           type: string
         displayName:
           type: string
+        kind:
+          enum:
+            - web
+            - android-app-link
+          type: string
         origin:
           type: string
         redirectUri:
@@ -5657,6 +5666,7 @@ components:
         sourceRevision:
           type: number
       required:
+        - kind
         - clientId
         - appId
         - displayName
