@@ -28,6 +28,7 @@ const navigation = [
   ['/account/privacy', 'privacy', SlidersHorizontal],
   ['/account/security', 'security', ShieldCheck],
   ['/account/sessions', 'sessions', Monitor],
+  ['/account/runtime', 'runtime', Monitor],
   ['/account/data', 'data', Database],
 ] as const;
 

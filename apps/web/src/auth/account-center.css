@@ -452,7 +452,7 @@
   color: var(--ac-muted);
   font-size: 13px;
 }
-.ac-field :is(input, textarea),
+.ac-field :is(input, textarea, select),
 .ac-privacy-row select {
   width: 100%;
   border: 1px solid #c7d4d7;
@@ -1193,3 +1193,10 @@
     scroll-behavior: auto !important;
   }
 }
+
+.ac-runtime-subheading { margin-top: 28px; font-size: 16px; }
+.ac-runtime-source { display: flex; gap: 20px; justify-content: space-between; align-items: center; padding: 18px 0; border-bottom: 1px solid var(--ac-line); }
+.ac-runtime-source p { color: var(--ac-muted); margin-top: 6px; overflow-wrap: anywhere; }
+.ac-runtime-stop { margin-top: 32px; padding-top: 24px; border-top: 1px solid var(--ac-line); }
+.ac-runtime-stop p { color: var(--ac-muted); margin: 12px 0 18px; }
+@media (max-width: 600px) { .ac-runtime-source { align-items: flex-start; flex-direction: column; gap: 12px; } }

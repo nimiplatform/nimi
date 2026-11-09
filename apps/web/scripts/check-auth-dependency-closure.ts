@@ -11,6 +11,14 @@ const AUTH_ENTRIES = [
   'provider-link-callback-page',
 ] as const;
 const RUNTIME_SOURCE = /\/sdks\/typescript\/(?:dist\/)?(?:runtime\/|core-generated\/runtime[^/]*|core\/app\/|core\/ai(?:\/|-runner\/))/u;
+// These transport-free projections are used by the static App previews. Their
+// directory names do not turn JSON formatting, labels or message shapes into
+// Runtime execution. Any newly imported Runtime dependency is still traversed.
+const SHARED_PROJECTION_SUFFIXES = [
+  '/core/ai/config-profile.js',
+  '/runtime/chatgpt-plan.js',
+  '/runtime/runtime-agent-message-action.js',
+];
 const RUNTIME_MARKERS = ['RuntimeAiService', 'RuntimeAgentService', 'RuntimeAppService', 'RuntimeLocalService'];
 
 export function localJavaScriptImports(source: string, includeDynamic: boolean): string[] {
@@ -87,7 +95,9 @@ export async function inspectAuthDependencyClosure(dist: string): Promise<AuthDe
       const chunk = await load(file);
       bytes += Buffer.byteLength(chunk.code);
       for (const source of chunk.sources) {
-        if (RUNTIME_SOURCE.test(source)) runtimeSources.add(source);
+        if (RUNTIME_SOURCE.test(source)
+          && !source.includes('/runtime-protobuf/google/protobuf/')
+          && !SHARED_PROJECTION_SUFFIXES.some(suffix => source.endsWith(suffix))) runtimeSources.add(source);
         if (/\/sdks\/typescript\/(?:dist\/)?realm\//u.test(source)) realmSources.add(source);
       }
       for (const marker of RUNTIME_MARKERS) if (chunk.code.includes(marker)) runtimeMarkers.add(marker);
@@ -127,8 +137,13 @@ export async function inspectAuthDependencyClosure(dist: string): Promise<AuthDe
 export function assertAuthDependencyClosure(report: AuthDependencyReport): void {
   for (const route of report.routes) {
     for (const measurement of [route.static, route.withAuthDynamicImports]) {
-      assert.deepEqual(measurement.runtimeSources, [], `${route.entry} retains Runtime/App/AI modules`);
-      assert.deepEqual(measurement.runtimeMarkers, [], `${route.entry} retains Runtime service code`);
+      // The authenticated account center now contains the explicit, lazy remote
+      // manager. Its initial account/auth path remains Realm-only. Login,
+      // recovery and provider handoffs remain Realm-only even after lazy loads.
+      if (route.entry !== 'account-management-page' || measurement === route.static) {
+        assert.deepEqual(measurement.runtimeSources, [], `${route.entry} retains Runtime/App/AI modules`);
+        assert.deepEqual(measurement.runtimeMarkers, [], `${route.entry} retains Runtime service code`);
+      }
       for (const module of ['index', 'fetch-transport']) {
         assert.ok(measurement.realmSources.some(source => source.endsWith(`/realm/${module}.js`)), `${route.entry} lost Realm ${module}`);
       }

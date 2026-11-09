@@ -2,7 +2,7 @@
 
 ## Scope
 - Applies to `apps/web/**`.
-- Web is the independent first-party public site and account-interaction surface: landing, authentication, personal profile, friendship and privacy management, account security, sessions and data, static Nimi Home and App introductions, legal, download, and navigation pages.
+- Web is the independent first-party public site and account-interaction surface: landing, authentication, personal profile, friendship and privacy management, account security, sessions and data, verified direct owner management of the primary Runtime, static Nimi Home and App introductions, legal, download, and navigation pages.
 
 ## Hard Boundaries
 - Keep landing-specific code under `apps/web/src/landing/**`; do not split the landing surface back out into a separate app.

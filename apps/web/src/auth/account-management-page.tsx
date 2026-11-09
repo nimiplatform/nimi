@@ -24,6 +24,8 @@ import { AccountProfile } from './account-profile.js';
 import { AccountPrivacy } from './account-privacy.js';
 import { AccountFriends } from './account-friends.js';
 import { AccountCredentials } from './account-credentials.js';
+import { AccountRuntime } from './account-runtime.js';
+import { AccountConnect } from './account-connect.js';
 import { accountLoginUrl } from './account-center-model.js';
 import { accountReadProblem, useAccountCopy, type AccountCopyKey } from './account-center-copy.js';
 import './account-center.css';
@@ -109,7 +111,7 @@ export function AccountManagementPage() {
   useEffect(() => {
     const route = location.pathname.split('/')[2] || '';
     const key = (
-      ['profile', 'friends', 'privacy', 'security', 'sessions', 'data', 'delete'].includes(route)
+      ['profile', 'friends', 'privacy', 'security', 'sessions', 'runtime', 'connect', 'data', 'delete'].includes(route)
         ? route
         : 'overview'
     ) as AccountCopyKey;
@@ -230,6 +232,8 @@ export function AccountManagementPage() {
       ) : null}
       <Routes>
         <Route index element={<AccountOverview user={user} />} />
+        <Route path="connect" element={<AccountConnect key={owner} accountId={owner} displayName={String(user.displayName || user.handle || owner)} />} />
+        <Route path="runtime" element={<AccountRuntime key={owner} accountId={owner} onVerifyAgain={() => void signOut(true)} />} />
         <Route
           path="profile"
           element={<AccountProfile key={owner} user={user} onSaved={setUser} onDirty={setDirty} />}

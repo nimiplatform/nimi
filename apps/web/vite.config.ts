@@ -18,6 +18,10 @@ function chunkName(id: string): string | undefined {
     const copy = /\/([^/]+)\.(en|zh)\.ts$/u.exec(normalized);
     if (copy) return `landing-copy-${copy[1]}-${copy[2]}`;
   }
+  if (normalized.startsWith(`${repoRootNormalized}/apps/web/src/landing/content/`)) {
+    const authored = /\/(landing-content\.[a-z-]+)\.ts$/u.exec(normalized);
+    if (authored) return authored[1];
+  }
 
   if (
     normalized.includes('/node_modules/react/')
@@ -45,6 +49,18 @@ function chunkName(id: string): string | undefined {
     || normalized.includes('/node_modules/@nimiplatform/sdk/');
   if (isNimiSdk && /\/core-generated\/realm-(?:client|typed-client)\.js$/u.test(normalized)) {
     return 'vendor-nimi-sdk-realm';
+  }
+  // Keep protobuf owners separate: grouping every SDK helper with Runtime
+  // would make static App previews eagerly load the remote transport.
+  if (isNimiSdk) {
+    // Keep the existing App operation owners separately cacheable when remote
+    // Apps add their clients. Do not collapse all helpers into an eager SDK bundle.
+    if (/\/core\/app\/local-app-runtime-platform-ai\.js$/u.test(normalized)) return 'vendor-nimi-app-ai';
+    if (/\/core\/app\/local-app-runtime-platform-configure\.js$/u.test(normalized)) return 'vendor-nimi-app-agent-configure';
+    const wire = /\/core-generated\/runtime-protobuf\/(?:.+\/)?([^/]+)\.js$/u.exec(normalized);
+    if (wire) return `vendor-nimi-proto-${wire[1]}`;
+    if (/\/core-generated\/runtime-(?:client|typed-client|wire-codecs)\.js$/u.test(normalized)) return 'vendor-nimi-runtime-client';
+    if (/\/runtime\/remote(?:-data-channel)?\.js$/u.test(normalized)) return 'vendor-nimi-runtime-remote';
   }
   if (
     normalized.includes('/node_modules/framer-motion/')
@@ -123,6 +139,9 @@ export default defineConfig(({ mode }) => {
   const realmProxyTarget = httpOrigin(env.NIMI_REALM_URL || process.env.NIMI_REALM_URL);
   const publicEnv = resolveWebPublicEnv({ source: { ...process.env, ...env }, realmProxyTarget, mode });
   const sdkDist = path.resolve(import.meta.dirname, '../../sdks/typescript/dist');
+  const tlsCert = String(env.NIMI_WEB_DEV_TLS_CERT || process.env.NIMI_WEB_DEV_TLS_CERT || '').trim();
+  const tlsKey = String(env.NIMI_WEB_DEV_TLS_KEY || process.env.NIMI_WEB_DEV_TLS_KEY || '').trim();
+  if (Boolean(tlsCert) !== Boolean(tlsKey)) throw new Error('NIMI_WEB_DEV_TLS_CERT and NIMI_WEB_DEV_TLS_KEY must be configured together.');
   return {
     plugins: [react({ exclude: [/\/node_modules\//, /\/src\/(?:shell\/renderer\/)?main\.tsx$/] }), tailwindcss()],
     envPrefix: [],
@@ -137,6 +156,7 @@ export default defineConfig(({ mode }) => {
       ],
     },
     server: {
+      ...(tlsCert ? { https: { cert: fs.readFileSync(tlsCert), key: fs.readFileSync(tlsKey) } } : {}),
       host: '127.0.0.1',
       port: 3000,
       strictPort: true,

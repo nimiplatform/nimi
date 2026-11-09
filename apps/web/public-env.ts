@@ -1,5 +1,7 @@
 export const WEB_PUBLIC_ENV_KEYS = Object.freeze([
   'VITE_NIMI_REALM_BASE_URL',
+  'VITE_NIMI_REALM_ENVIRONMENT_ID',
+  'VITE_NIMI_RUNTIME_MANAGER_CLIENT_ID',
   'VITE_NIMI_GOOGLE_CLIENT_ID',
   'VITE_GOOGLE_CLIENT_ID',
   'VITE_NIMI_TIKTOK_CLIENT_ID',
@@ -34,7 +36,11 @@ export function resolveWebPublicEnv(input: {
   readonly mode: string;
 }): WebPublicEnv {
   const resolved: Partial<Record<WebPublicEnvKey, string>> = {};
-  if (input.realmProxyTarget) {
+  const sameOriginHttpsDevelopment = input.mode === 'development'
+    && Boolean(input.source.NIMI_WEB_DEV_TLS_CERT && input.source.NIMI_WEB_DEV_TLS_KEY);
+  // A secure development page must not send SameSite=Lax account cookies to
+  // an HTTP backend origin. The existing Vite /api proxy keeps this same-origin.
+  if (input.realmProxyTarget && !sameOriginHttpsDevelopment) {
     resolved.VITE_NIMI_REALM_BASE_URL = input.realmProxyTarget;
   }
   for (const key of WEB_PUBLIC_ENV_KEYS) {

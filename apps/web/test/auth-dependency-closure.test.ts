@@ -35,4 +35,6 @@ test('the Auth gate rejects Runtime hidden behind renamed chunks or a later dyna
   assert.throws(() => assertAuthDependencyClosure({ ...report, routes: [{ ...report.routes[0]!, withAuthDynamicImports: runtime }] }), /retains Runtime/u);
   const missingRealm = { ...clean, realmSources: [] };
   assert.throws(() => assertAuthDependencyClosure({ ...report, routes: [{ ...report.routes[0]!, static: missingRealm }] }), /lost Realm/u);
+  assert.doesNotThrow(() => assertAuthDependencyClosure({ ...report, routes: [{ entry: 'account-management-page', static: clean, withAuthDynamicImports: runtime }] }));
+  assert.throws(() => assertAuthDependencyClosure({ ...report, routes: [{ entry: 'account-management-page', static: runtime, withAuthDynamicImports: runtime }] }), /retains Runtime/u);
 });

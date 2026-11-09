@@ -35,6 +35,14 @@ test('sign-in returns to an admitted account page and preserves the selected req
   assert.equal(accountReturnTo('?next=https%3A%2F%2Frealm.test%2Fauthorize'), '/account');
 });
 
+test('manager callback survives ordinary login only with the exact bounded code and state', () => {
+  const callback = `?code=${'c'.repeat(43)}&state=${'s'.repeat(43)}`;
+  const login = accountLoginUrl('/account/runtime', callback);
+  assert.equal(accountReturnTo(new URL(login, 'https://nimi.test').search), '/account/runtime' + callback);
+  assert.equal(accountReturnTo(`?returnTo=${encodeURIComponent('/account/runtime' + callback + '&token=unsafe')}`), '/account/runtime');
+  assert.equal(accountReturnTo(`?returnTo=${encodeURIComponent('/account/runtime?code=invalid&state=invalid')}`), '/account/runtime');
+});
+
 test('profile editing sends only changed fields and explicitly clears optional information', () => {
   const original = {
     displayName: 'Alice',
@@ -63,6 +71,13 @@ test('profile editing sends only changed fields and explicitly clears optional i
   );
   assert.equal(accountHandle('@alice'), 'alice');
   assert.equal(accountHandle('alice'), 'alice');
+});
+
+test('primary Runtime sign-in keeps only a well-formed intent in the account destination', () => {
+  const id = '6b05fd00-4c98-40dd-9c0c-2ca0d9d60ab7';
+  const link = accountLoginUrl('/account/runtime', `?intent=${id}&token=never-forward`);
+  assert.equal(accountReturnTo(new URL(link, 'https://nimi.test').search), `/account/runtime?intent=${id}`);
+  assert.equal(accountReturnTo(`?returnTo=${encodeURIComponent('/account/runtime?intent=invalid')}`), '/account/runtime');
 });
 
 test('request pages retain exact relationship identities and read only the requested direction', async () => {
