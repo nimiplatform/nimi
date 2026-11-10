@@ -5,7 +5,7 @@
 
 format_version: 1
 maintained_on: 2026-11-10
-evidence_cutoff: 2026-11-07
+evidence_cutoff: 2026-11-10
 purpose: Versioned engineering acceptance summary. Not an input to Runtime catalog loading, routing,
   admission, or product authority.
 scope:
@@ -13,12 +13,12 @@ scope:
   capability_count: 19
   imported_campaign: 2026-11-04-runtime-model-release-audit
   new_model_calls_during_import: false
-  current_checkout_acceptance: NOT-VERIFIED
+  current_checkout_acceptance: SCENARIO-SPECIFIC
   notes:
-    - This file consolidates observations through evidence_cutoff. maintained_on is the editorial date, not a
-      new acceptance run.
-    - These observations do not verify commits after 2026-11-07 or unrelated changes in the current working
-      tree.
+    - This file consolidates observations through evidence_cutoff. maintained_on alone does not establish a
+      new acceptance run; read each scenario date and environment.
+    - Imported Windows observations do not verify commits after 2026-11-07. New macOS observations identify
+      their actual source and Runtime revision; unrelated working-tree changes remain unverified.
     - Unlisted models, inputs, formats, parameters, platforms, architectures and distributions remain
       NOT-VERIFIED.
     - Commit concise reusable findings and necessary references only. Keep raw logs, media, credentials,
@@ -54,8 +54,8 @@ interpretation:
   model_identity: Cloud models use exact IDs on their reviewed route. Local models retain the observed filenames
     or display labels; record weights and engine only when established. Missing historical identities are
     explicit.
-  platform_summary: SCENARIO-SPECIFIC is not PASS. Read execution and quality per Windows development scenario;
-    the other three platform/distribution combinations remain NOT-VERIFIED.
+  platform_summary: SCENARIO-SPECIFIC is not PASS. Read execution and quality per exact environment and scenario.
+    Neither development distribution establishes installed acceptance.
   provenance: Source labels identify historical notes imported into this matrix, not repository-accessible
     evidence. Trace and Job IDs are diagnostic references, not public links. Commit and CI links are
     independently inspectable where access permits.
@@ -80,8 +80,21 @@ environments:
     arch: arm64
     distribution: development
     default_status: NOT-VERIFIED
-    reason: The imported records contain no model execution on a physical macOS host. Metal and CPU results must
-      also remain distinct.
+    os_version: 26.6.2
+    os_build: 25G83
+    hardware: Apple M4 Max; 128 GiB unified memory
+    entry: Guarded pnpm dev:desktop; pnpm dev:lab with the refreshed selector for the existing registration;
+      exact Home and Lab loopback CDP targets. No direct Vite launch or private service calls.
+    observed_on: 2026-11-10
+    source_revision: 60d7cb0f3855a63ebd0fcec0938800f1a8a5bffe # pragma: allowlist secret -- recorded public revision or artifact digest
+    runtime_revision: 60d7cb0f3855a63ebd0fcec0938800f1a8a5bffe # pragma: allowlist secret -- recorded public revision or artifact digest
+    runtime_modified: true
+    home_version: 0.2.5-rc.6
+    lab_version: 0.1.0
+    electron_version: 45.0.0
+    reason: Scenario-specific physical Mac acceptance started on this source snapshot. Unrun exact models,
+      CPU and Metal combinations remain NOT-VERIFIED; existing local data is not historical acceptance proof.
+    working_tree_note: Pre-existing Web landing changes were retained and excluded from this acceptance scope.
   macos_installed:
     os: macOS
     arch: arm64
@@ -90,6 +103,12 @@ environments:
     reason: No installed Home/Lab model acceptance on macOS. A successful macOS CI candidate is engineering
       evidence only.
 evidence_sources:
+  macos_20261110:
+    availability: scenario-summary-in-repository
+    description: Physical macOS arm64 development observations through Home configuration and the original
+      Desktop-supervised Lab registration. Raw local media and logs are not public evidence links.
+    period_start: 2026-11-10
+    period_end: 2026-11-10
   release_execution:
     availability: not-in-repository
     description: Imported campaign observations. The original logs and notes are not committed; scenario summaries
@@ -122,6 +141,13 @@ evidence_sources:
     title: AI capability expansion historical acceptance details
     record_snapshot_on: 2026-10-02
 engineering_evidence:
+  - id: macos-20261110-development-launch
+    status: PASS
+    source_revision: 60d7cb0f3855a63ebd0fcec0938800f1a8a5bffe # pragma: allowlist secret -- recorded public revision or artifact digest
+    scope: Guarded Desktop rebuild, source Runtime restart and supervised Lab rebuild/resume on macOS arm64.
+      Runtime Go build metadata directly identified this revision and modified=true; native admission reached ready.
+    model_acceptance: NOT-VERIFIED
+    note: Launch and build success do not establish any model result. Read the separate macOS scenarios.
   - id: ci-20261107
     status: PASS
     source_revision: 0ddc105801267c8e500c534a887ca564ce67b258 # pragma: allowlist secret -- recorded public revision or artifact digest
@@ -2605,9 +2631,97 @@ capabilities:
     platform_status:
       windows_development: SCENARIO-SPECIFIC
       windows_installed: NOT-VERIFIED
-      macos_development: NOT-VERIFIED
+      macos_development: SCENARIO-SPECIFIC
       macos_installed: NOT-VERIFIED
     scenarios:
+      - id: macos-20261110-spacy-en-medium
+        route: local
+        models: [ en_core_web_md-3.8.0 F32 ]
+        environment: macos_development
+        scenario: One and two documents with accented text, Chinese text and emoji; Unicode scalar offsets,
+          sentence boundaries, POS/dependency rendering and saved JSON reopening after a Lab renderer reload
+        result: { execution: PASS, quality: PASS }
+        summary: The first document returned 11 tokens and two sentences. The two-document run returned 27 tokens
+          and four sentences, saved 3435 bytes of managed JSON, and reopened both original documents and their
+          complete token tables. The emoji spans were [15,16) and [38,39), with subsequent offsets preserved.
+        observed_on: 2026-11-10
+        version:
+          implementation_commit: 60d7cb0f3855
+          runtime_revision: 60d7cb0f3855; modified=true
+          home: 0.2.5-rc.6
+          lab: 0.1.0
+          engine: Runtime text-annotation-host; spaCy 3.8.16; CPython 3.12.15
+          accelerator: CPU
+        traces: [ 01M71V0XZ30EPPPN4Q53JJAEVY, 01M71V3P41D4XXNZ2DVK7B534W ]
+        jobs: [ 01M71V0XZ30EPPPN4Q539AV571, 01M71V3P41D4XXNZ2DVFJDTKRV ]
+        evidence:
+          - { source: macos_20261110 }
+        limitations:
+          - Quality covers input preservation, offsets and rendered structure; multilingual POS correctness,
+            general language accuracy, cancellation and transformer pipelines are not established by this sample.
+          - CPU is enforced by the observed worker composition; the exact weight digest was not exposed in
+            the inspected execution details.
+          - Reopening restores the complete saved output; the UI explicitly requires re-adding the second
+            input document before a new run.
+      - id: macos-20261110-spacy-other-medium
+        route: local
+        models: [ de_core_news_md-3.8.0, es_core_news_md-3.8.0, fr_core_news_md-3.8.0,
+          it_core_news_md-3.8.0, ru_core_news_md-3.8.0, zh_core_web_md-3.8.0, ja_core_news_md-3.8.0 ]
+        environment: macos_development
+        scenario: Home selection of each existing medium pipeline; two native-language documents containing an
+          emoji, complete Lab token/sentence tables and automatic managed JSON persistence
+        result: { execution: PASS, quality: FAIL }
+        summary: All seven pipelines completed two documents and four sentences with preserved Unicode scalar
+          offsets. Semantic annotation errors remain visible in the Spanish, Russian and Chinese samples.
+          Structural success does not establish linguistic correctness.
+        observed_on: 2026-11-10
+        version:
+          implementation_commit: 60d7cb0f3855
+          runtime_revision: 60d7cb0f3855; modified=true
+          home: 0.2.5-rc.6
+          lab: 0.1.0
+          engine: Runtime text-annotation-host; spaCy 3.8.16; CPython 3.12.15
+          accelerator: CPU
+        observations:
+          de: { tokens: 21, saved_json_bytes: 2722, job: 01M71V68F5A8K9ZZVB2P7ZMWNV }
+          es: { tokens: 21, saved_json_bytes: 2735, job: 01M71V907Q9Z1R0TQNV03H8RSR }
+          fr: { tokens: 23, saved_json_bytes: 2989, job: 01M71V9M85WMMWZT5ZJA2JQQCV }
+          it: { tokens: 20, saved_json_bytes: 2613, job: 01M71VA1T9GNEKWFK7F0001A07 }
+          ru: { tokens: 18, saved_json_bytes: 2542, job: 01M71VAHWSA3BP6C3J99P316YJ }
+          zh: { tokens: 22, saved_json_bytes: 2885, job: 01M71VB1WHQ7XA6QKXKD2FW96Y }
+          ja: { tokens: 34, saved_json_bytes: 4288, job: 01M71VBJ2WEGQT9068MKVHRMA7 }
+        observed_output:
+          es: 'El café vende 🍰 pasteles. => pasteles: ADJ / obj (expected noun).'
+          ru: 'Кафе продаёт 🍰 торты. => Кафе: NOUN / ROOT; продаёт: VERB / obj (expected verb as root).'
+          zh: '它每天九点开门。 => 九点: NOUN / dobj (expected temporal modifier).'
+        traces: [ 01M71V68F5A8K9ZZVB2RN3GYBD, 01M71V907Q9Z1R0TQNV2SHR16A,
+          01M71V9M85WMMWZT5ZJB7X9P63, 01M71VA1T9GNEKWFK7F182D51S, 01M71VAHWSA3BP6C3J9C8491YJ,
+          01M71VB1WHQ7XA6QKXKEQWWFH7, 01M71VBJ2WEGQT9068MPVBPR5M ]
+        evidence:
+          - { source: macos_20261110 }
+        limitations:
+          - Sample-level structure and content review only, not a multilingual accuracy benchmark.
+          - Each model ran separately; English history reopening does not certify every other language's
+            separate reopen or cancellation journey. Exact weight digests remain unobserved.
+      - id: macos-20261110-spacy-transformer-prerequisite
+        route: local
+        models: [ en_core_web_trf-3.8.0, de_dep_news_trf-3.8.0, zh_core_web_trf-3.8.0 ]
+        environment: macos_development
+        scenario: Inspect each exact transformer pipeline through Home selection and preparation
+        result: { execution: NOT-VERIFIED, quality: NOT-VERIFIED }
+        summary: All three preparation pages reported no managed execution environment for this device and
+          disabled download/use. No weights were downloaded and no transformer inference was attempted.
+        observed_on: 2026-11-10
+        version:
+          implementation_commit: 60d7cb0f3855
+          runtime_revision: 60d7cb0f3855; modified=true
+          home: 0.2.5-rc.6
+          lab: 0.1.0
+          engine: null
+        evidence:
+          - { source: macos_20261110 }
+        limitations:
+          - Medium-pipeline CPU success does not substitute for these transformer execution profiles.
       - id: spacy-multilingual
         route: local
         models:
