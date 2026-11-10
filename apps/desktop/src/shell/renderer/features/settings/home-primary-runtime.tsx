@@ -70,7 +70,7 @@ function OwnedPrimaryRuntime({ account, realm }: { account: string; realm: strin
           {primaryStateKnown && state.data && !state.data.thisRuntime && <Button disabled={busy || !name.trim()} onClick={() => void prepare()}>{busy ? c.opening : state.data.bindingId ? c.replace : c.bind}</Button>}
           <Button variant="secondary" disabled={busy || state.isFetching} onClick={() => void state.refetch()}>{c.refresh}</Button>
         </div>
-        {feedback && !(feedback.kind === 'info' && state.data?.thisRuntime) && <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />}
+        {feedback && !state.data?.thisRuntime && <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />}
       </div>
     </Card>
   </Section><HomeRemoteAccess account={account} realm={realm} primaryStateKnown={primaryStateKnown} primaryBindingId={primaryStateKnown ? state.data?.bindingId || '' : ''} thisRuntime={primaryStateKnown && Boolean(state.data?.thisRuntime)} /></>;

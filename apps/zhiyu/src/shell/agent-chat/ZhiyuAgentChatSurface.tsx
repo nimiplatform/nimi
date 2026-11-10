@@ -1,4 +1,5 @@
 import { useZhiyuConversationReadReceipts, ZhiyuConversationReadReceipt } from './ZhiyuConversationReadReceipts';
+import { agentConfigurationErrorMessage } from './agent-configuration-error';
 import { useNimiNavigationSnapshot } from '@nimiplatform/kit/ui/app-chrome';
 import { useZhiyuNavigationOwner, type ZhiyuDestination } from '../app/navigation.js';
 import { AgentIntroduction } from '@nimiplatform/kit/features/chat/ui';
@@ -427,10 +428,12 @@ export function ZhiyuAgentChatSurface({
       {connectionStatus === 'error' ? <div role="status">连接暂时中断，已有内容已保留。<button type="button" onClick={onRefreshConversation}>重新连接</button></div> : null}
       {pendingSubmission && !submitting && evidence.conversation.agentHandle ? <LocalAppConversationSubmissionRecovery
         submission={pendingSubmission} agentHandle={evidence.conversation.agentHandle} conversation={conversation}
-        acknowledge={onAcknowledgeSubmission} onRestore={onRestoreSubmission} onResolved={onSubmissionResolved} translate={submissionCopy} /> : null}
+        acknowledge={onAcknowledgeSubmission} onRestore={onRestoreSubmission} onResolved={onSubmissionResolved} translate={submissionCopy}
+        describeError={agentConfigurationErrorMessage} isConfigurationError={reason => Boolean(agentConfigurationErrorMessage(reason))}
+        onOpenAgentCenter={() => openPanel('ai-config')} /> : null}
       {evidence.chat.regenerateTurnId && !pendingSubmission ? <button type="button" disabled={submitting} onClick={onRegenerate}>重新回答原问题</button> : null}
       {evidence.chat.state === 'failed' ? (
-        <RuntimeChatFailureNotice chat={evidence.chat} onOpenSettings={onDesktopOpenRuntimeSettings}
+        <RuntimeChatFailureNotice chat={evidence.chat} onOpenSettings={() => openPanel('ai-config')}
           onReopen={evidence.localAgent.agentHandle ? () => onSelectLocalAgent(evidence.localAgent.agentHandle!) : undefined} />
       ) : null}
       {evidence.chat.actionHint === 'reselect_local_partner' ? (
@@ -808,6 +811,7 @@ function submissionCopy(key: string, values?: Record<string, string | number>): 
     'Chat.agentSubmissionRecoverNotice': "若伙伴已收到，会直接同步原有进度；若尚未收到，则会继续发送，可能产生模型费用。",
     'Chat.agentSubmissionAttachments': `已保留 ${values?.count ?? ''} 个附件。`, 'Chat.agentSubmissionUnknown': "暂未查到结果，可在「详情」中继续处理",
     'Chat.agentSubmissionCheckFailed': '暂时无法确认，请稍后重试。', 'Feedback.technicalDetails': '技术详情',
+    'Chat.agentOpenConfiguration': '检查伙伴模型',
     'Chat.agentSubmissionWorking': '正在确认状态…', 'Chat.agentSubmissionRetryRecover': '继续上次重新回答', 'Chat.agentSubmissionRecover': '继续这条消息',
     'Chat.agentSubmissionQuoteRetained': '原请求包含一条引用。',
     'Chat.agentSubmissionOtherOptions': '详情', 'Chat.agentSubmissionCheck': "检查状态", 'Chat.agentSubmissionKeepAsDraft': '取回文字作为草稿',

@@ -11,6 +11,7 @@ import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
 import { turnStatusFromChat } from './app-evidence-transitions';
 import { zhiyuRuntimeChatApplyIdentity, type ZhiyuRuntimeChatApplyIdentity } from './chat-turn-apply-guard';
 import { ZhiyuAgentChatSurface } from '../agent-chat/ZhiyuAgentChatSurface';
+import { agentConfigurationErrorMessage } from '../agent-chat/agent-configuration-error';
 import type { ZhiyuRuntimeAgentChatAttachment, ZhiyuConversationSubmitIntent } from '../agent-chat/agent-conversation-state';
 import { projectZhiyuHomeProductState } from './home-product-state';
 import { projectZhiyuAvatarLaunchAction } from '../avatar/avatar-launch';
@@ -398,7 +399,8 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
     } catch (error) {
       if (scope !== currentScope.current) return;
       markAccessDenied(error);
-      if (isZhiyuAgentBusyReason(extractNimiErrorFields(error).reasonCode)) {
+      const reasonCode = extractNimiErrorFields(error).reasonCode;
+      if (isZhiyuAgentBusyReason(reasonCode)) {
         // Runtime explicitly rejected admission. The original input remains a draft.
         if (!submission.retryOfTurnId) {
           setDraft(submission.text);
@@ -406,7 +408,12 @@ export function ZhiyuCanonicalApp(props: { readonly bindings: ZhiyuCanonicalRend
         }
         await persistence.acknowledge(submission.requestId);
         throw new Error('伙伴正在处理另一条消息，输入已保留，请稍后再发送。', { cause: error });
-      } else setSubmissionError('暂未确认消息是否已受理。原内容已保留，可按原请求继续查回或发送。');
+      } else {
+        const configurationError = agentConfigurationErrorMessage(reasonCode);
+        setSubmissionError(configurationError
+          ? `${configurationError}原消息已保留，完成设置后可继续发送。`
+          : '暂未确认消息是否已受理。原内容已保留，可按原请求继续查回或发送。');
+      }
     } finally {
       if (submissionBusy.current === scope) submissionBusy.current = null;
       if (scope === currentScope.current) setSubmitting(false);

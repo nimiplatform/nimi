@@ -445,6 +445,32 @@ test('Zhiyu keeps original input and scopes its shared conversation controls', a
       } finally { await view.close(); }
     });
 
+    await t.test('missing local AI configuration explains setup and recovers the original request', async () => {
+      let configured = false;
+      const view = await mount({ send: async () => {
+        if (!configured) throw Object.assign(new Error('ai-local-configuration-not-configured'), { reasonCode: 'ai-local-configuration-not-configured' });
+        return { turnId: 'accepted-after-setup' };
+      } });
+      try {
+        await act(async () => view.node.querySelector('[data-chat-composer-send]').click());
+        await settle(() => view.node.textContent.includes('原消息已保留，完成设置后可继续发送。'));
+        assert.doesNotMatch(view.node.textContent, /暂未确认消息是否已受理/u);
+        const original = view.records.get(draftPath(agents[0])).submission;
+        assert.equal(original.text, '原来的问题');
+        await clickText(view.node, '继续这条消息');
+        await settle(() => view.node.textContent.includes('检查伙伴模型'));
+        await clickText(view.node, '检查伙伴模型');
+        assert.ok(view.node.querySelector('[data-zhiyu-agent-panel-tab="ai-config"]'));
+        assert.equal(view.calls.openSettings, 0, 'configuration recovery stays in the partner model settings');
+        assert.equal(view.calls.send.length, 2, 'opening setup must not send again');
+        assert.deepEqual(view.records.get(draftPath(agents[0])).submission, original);
+        configured = true;
+        await clickText(view.node, '继续这条消息');
+        await settle(() => view.records.get(draftPath(agents[0])).submission === null);
+        assert.deepEqual(view.calls.send.map(request => request.requestId), [original.requestId, original.requestId, original.requestId]);
+      } finally { await view.close(); }
+    });
+
     await t.test('an in-flight send stays separate from unknown-admission recovery', async () => {
       const admission = deferred();
       const view = await mount({ send: () => admission.promise });
