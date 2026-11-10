@@ -15,14 +15,18 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
+	"google.golang.org/protobuf/proto"
 )
 
 type localMusicHostStub struct {
-	mu      sync.Mutex
-	plans   []*capabilitydriver.MusicInvocationPlan
-	entered chan struct{}
-	block   bool
-	write   func(string) error
+	mu             sync.Mutex
+	plans          []*capabilitydriver.MusicInvocationPlan
+	entered        chan struct{}
+	block          bool
+	write          func(string) error
+	cancelObserved chan struct{}
+	exitGate       <-chan struct{}
+	stopEvidence   bool
 }
 
 func (h *localMusicHostStub) ExecuteMusic(ctx context.Context, plan *capabilitydriver.MusicInvocationPlan, onStart localexecution.MusicExecutionStartFunc) (localexecution.MusicResult, error) {
@@ -42,7 +46,13 @@ func (h *localMusicHostStub) ExecuteMusic(ctx context.Context, plan *capabilityd
 	}
 	if h.block {
 		<-ctx.Done()
-		return localexecution.MusicResult{}, &localexecution.ExecutionError{Kind: localexecution.FailureCanceled, Err: ctx.Err()}
+		if h.cancelObserved != nil {
+			close(h.cancelObserved)
+		}
+		if h.exitGate != nil {
+			<-h.exitGate
+		}
+		return localexecution.MusicResult{}, &localexecution.ExecutionError{Kind: localexecution.FailureCanceled, Err: ctx.Err(), ProcessExitConfirmed: h.stopEvidence}
 	}
 	write := h.write
 	if write == nil {
@@ -53,6 +63,90 @@ func (h *localMusicHostStub) ExecuteMusic(ctx context.Context, plan *capabilityd
 	}
 	info, _ := os.Stat(plan.StagingWAVPath())
 	return localexecution.MusicResult{StagingWAVPath: plan.StagingWAVPath(), SizeBytes: info.Size(), SampleRate: 44100, Channels: 2, BitsPerSample: 32, DurationMS: 1000, ComputeMS: 7}, nil
+}
+
+func TestLocalMusicCancellationOnlyConfirmsObservedExit(t *testing.T) {
+	for _, tc := range []struct {
+		name     string
+		evidence bool
+	}{
+		{name: "observed exit", evidence: true},
+		{name: "context cancellation only"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			svc := newTestService(nil)
+			path := filepath.Join(t.TempDir(), "state.json")
+			store, err := newScenarioJobStoreForLocalStatePath(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			svc.scenarioJobs = store
+			svc.localMusicStagingRoot = t.TempDir()
+			exit := make(chan struct{})
+			release := sync.OnceFunc(func() { close(exit) })
+			t.Cleanup(release)
+			host := &localMusicHostStub{entered: make(chan struct{}, 1), block: true, cancelObserved: make(chan struct{}), exitGate: exit, stopEvidence: tc.evidence}
+			svc.SetLocalExecutionResolver(&mutableLocalExecutionResolver{projection: selectedMusicExecutionForTest(t)})
+			svc.SetLocalMusicExecutionHost(host)
+			ctx, cancel := context.WithTimeout(localMusicIntentContext(scenarioJobUserContext("app.local", "music-owner")), 5*time.Second)
+			defer cancel()
+			request := localMusicJobRequestForTest()
+			request.Head.SubjectUserId = "music-owner"
+			submitted, err := svc.SubmitScenarioJob(ctx, request)
+			if err != nil {
+				t.Fatal(err)
+			}
+			select {
+			case <-host.entered:
+			case <-ctx.Done():
+				t.Fatal("local music did not enter execution")
+			}
+			id := submitted.GetJob().GetJobId()
+			type cancelResult struct {
+				job *runtimev1.ScenarioJob
+				err error
+			}
+			result := make(chan cancelResult, 1)
+			go func() {
+				response, err := svc.CancelScenarioJob(ctx, &runtimev1.CancelScenarioJobRequest{JobId: id, Reason: "stop music"})
+				result <- cancelResult{job: response.GetJob(), err: err}
+			}()
+			select {
+			case <-host.cancelObserved:
+			case premature := <-result:
+				t.Fatalf("cancellation returned before reaching the host: %v, %v", premature.job, premature.err)
+			case <-ctx.Done():
+				t.Fatal("music process did not receive cancellation")
+			}
+			before, ok := store.get(id)
+			if !ok || before.GetStatus() != runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED ||
+				before.GetStopOutcome() != runtimev1.ScenarioJobStopOutcome_SCENARIO_JOB_STOP_OUTCOME_UNCONFIRMED {
+				t.Fatalf("cancellation before process exit = %v", before)
+			}
+			release()
+			var returned cancelResult
+			select {
+			case returned = <-result:
+			case <-ctx.Done():
+				t.Fatal("music cancellation did not return")
+			}
+			want := cloneScenarioJob(before)
+			if tc.evidence {
+				want.StopOutcome = runtimev1.ScenarioJobStopOutcome_SCENARIO_JOB_STOP_OUTCOME_CONFIRMED
+			}
+			if returned.err != nil || !proto.Equal(returned.job, want) {
+				t.Fatalf("cancellation = %v, err=%v, want %v", returned.job, returned.err, want)
+			}
+			reopened, err := newScenarioJobStoreForLocalStatePath(path)
+			if err != nil {
+				t.Fatal(err)
+			}
+			persisted, ok := reopened.get(id)
+			if !ok || !proto.Equal(persisted, want) {
+				t.Fatalf("reopened terminal Job = %v, want %v", persisted, want)
+			}
+		})
+	}
 }
 
 func selectedMusicExecutionForTest(t *testing.T) *localexecution.SelectedLocalExecution {

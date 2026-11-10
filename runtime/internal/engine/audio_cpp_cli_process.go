@@ -154,6 +154,11 @@ func runAudioCppProcess(ctx context.Context, spec audioCppProcessSpec) (audioCpp
 		waitAudioCppProcessTreeExit(lifecycle)
 		ownerRelease.release()
 		cleanupAudioCppStaging(output, tempOutput)
+		if errors.Is(ctx.Err(), context.Canceled) {
+			return audioCppProcessOutcome{}, &localexecution.ExecutionError{
+				Kind: localexecution.FailureCanceled, Err: context.Canceled, ProcessExitConfirmed: true,
+			}
+		}
 		return audioCppProcessOutcome{}, audioCppContextFailure(ctx.Err())
 	}
 	waitAudioCppProcessTreeExit(lifecycle)

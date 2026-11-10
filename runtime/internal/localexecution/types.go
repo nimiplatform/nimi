@@ -386,6 +386,8 @@ const (
 type ExecutionError struct {
 	Kind FailureKind
 	Err  error
+	// ProcessExitConfirmed requires observed exit of the invocation's owned process tree.
+	ProcessExitConfirmed bool
 }
 
 func (e *ExecutionError) Error() string {

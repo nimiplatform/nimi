@@ -162,6 +162,17 @@ func (s *Service) runLocalMusicScenarioJob(ctx context.Context, jobID string, ti
 	result, err := s.executeCapturedLocalMusic(ctx, effective, onStart)
 	budget.stop()
 	if err != nil {
+		var failure *localexecution.ExecutionError
+		if errors.As(err, &failure) && failure.Kind == localexecution.FailureCanceled && failure.ProcessExitConfirmed {
+			for attempt := 1; attempt <= maxScenarioJobTerminalPersistenceAttempts; attempt++ {
+				persistErr := s.scenarioJobs.confirmLocalMusicStop(jobID)
+				if persistErr == nil {
+					break
+				}
+				s.logScenarioJobPersistenceFailure("local music stop proof could not be persisted",
+					"job_id", jobID, "attempt", attempt, "error", persistErr)
+			}
+		}
 		s.finishLocalMusicJobFailure(ctx, jobID, err)
 		return
 	}
@@ -186,6 +197,62 @@ func (s *Service) runLocalMusicScenarioJob(ctx context.Context, jobID string, ti
 		s.finishLocalMusicJobFailure(ctx, jobID, grpcerr.WrapWithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID, err, grpcerr.ReasonOptions{}))
 	}
 
+}
+
+func localMusicStopPending(job *runtimev1.ScenarioJob) bool {
+	return job.GetScenarioType() == runtimev1.ScenarioType_SCENARIO_TYPE_MUSIC_GENERATE &&
+		job.GetRouteDecision() == runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL &&
+		job.GetStatus() == runtimev1.ScenarioJobStatus_SCENARIO_JOB_STATUS_CANCELED &&
+		job.GetSubmissionOutcome() == runtimev1.ScenarioJobSubmissionOutcome_SCENARIO_JOB_SUBMISSION_OUTCOME_ACCEPTED &&
+		job.GetStopOutcome() == runtimev1.ScenarioJobStopOutcome_SCENARIO_JOB_STOP_OUTCOME_UNCONFIRMED
+}
+
+// @nimi-authority: rule.nimi.runtime.service-operations.scenario-job-observation
+func (s *scenarioJobStore) confirmLocalMusicStop(jobID string) error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	record := s.jobs[jobID]
+	if record == nil || !record.cancelRequested || !record.executionStarted || !localMusicStopPending(record.job) {
+		return nil
+	}
+	// Refine the existing terminal fact after process exit. Publication and
+	// the terminal timestamp stay at the original cancellation.
+	record.job.StopOutcome = runtimev1.ScenarioJobStopOutcome_SCENARIO_JOB_STOP_OUTCOME_CONFIRMED
+	if err := s.persistDurableJobsLocked(scenarioJobPersistenceAttempt{Operation: scenarioJobPersistTransition, JobID: jobID, Status: record.job.GetStatus()}); err != nil {
+		record.job.StopOutcome = runtimev1.ScenarioJobStopOutcome_SCENARIO_JOB_STOP_OUTCOME_UNCONFIRMED
+		return err
+	}
+	return nil
+}
+
+func (s *scenarioJobStore) awaitLocalMusicStop(ctx context.Context, job *runtimev1.ScenarioJob) *runtimev1.ScenarioJob {
+	if !localMusicStopPending(job) {
+		return job
+	}
+	jobID := job.GetJobId()
+	s.mu.RLock()
+	var done <-chan struct{}
+	if record := s.jobs[jobID]; record != nil && record.executionStarted {
+		done = record.executionDone
+	}
+	s.mu.RUnlock()
+	if done != nil {
+		// The cancellation is already durable. A bounded wait can include
+		// promptly observed exit in the response while Get remains available
+		// to read proof that arrives later.
+		timer := time.NewTimer(2 * time.Second)
+		defer timer.Stop()
+		select {
+		case <-ctx.Done():
+			return job
+		case <-timer.C:
+		case <-done:
+		}
+	}
+	if current, ok := s.get(jobID); ok {
+		return current
+	}
+	return job
 }
 
 func (s *Service) finishLocalMusicJobFailure(ctx context.Context, jobID string, err error) {

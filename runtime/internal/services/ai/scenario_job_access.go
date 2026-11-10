@@ -175,7 +175,7 @@ func (s *Service) CancelScenarioJob(ctx context.Context, req *runtimev1.CancelSc
 			}
 			s.releaseCloudCredentialCustodyForJob(jobID)
 		}
-		return &runtimev1.CancelScenarioJobResponse{Job: job}, nil
+		return &runtimev1.CancelScenarioJobResponse{Job: s.scenarioJobs.awaitLocalMusicStop(ctx, job)}, nil
 	}
 	return nil, grpcerr.WithReasonCode(codes.NotFound, runtimev1.ReasonCode_AI_MEDIA_JOB_NOT_FOUND)
 }

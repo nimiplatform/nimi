@@ -4,12 +4,14 @@ import (
 	"context"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"os"
 	"path/filepath"
 	"testing"
 	"time"
 
 	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
+	"github.com/nimiplatform/nimi/runtime/internal/localexecution"
 )
 
 func TestAudioCppInvocationOwnsAndCleansWindowsTemp(t *testing.T) {
@@ -59,6 +61,10 @@ func TestAudioCppInvocationOwnsAndCleansWindowsTemp(t *testing.T) {
 			case err := <-done:
 				if (err == nil) != (mode == "success") {
 					t.Fatalf("mode=%s err=%v", mode, err)
+				}
+				var executionErr *localexecution.ExecutionError
+				if confirmed := errors.As(err, &executionErr) && executionErr.ProcessExitConfirmed; confirmed != (mode == "cancel") {
+					t.Fatalf("mode=%s confirmed process exit=%t err=%v", mode, confirmed, err)
 				}
 			case <-time.After(5 * time.Second):
 				t.Fatal("child did not finish")
