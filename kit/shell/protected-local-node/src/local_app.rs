@@ -715,6 +715,7 @@ pub async fn local_app_asset_write_open(input: NativeAssetWriteOpenInput) -> Nat
         relative_path: input.relative_path,
         media_type: input.media_type,
         overwrite: input.overwrite,
+        expected_sha256: input.expected_sha256,
     };
     let task = tokio::spawn(async move { session.storage_asset_write(request, body).await });
     streams.insert(stream_id.clone(), AssetWriteStream { sender, task });

@@ -353,7 +353,7 @@ export type NimiLocalAppAssetReadResult = {
 export type NimiLocalAppAssetShell = {
   readonly stat: (relativePath: string) => Promise<NimiLocalAppAssetRecord>;
   readonly list: (input: { readonly prefix: string; readonly cursor?: string; readonly pageSize?: number }) => Promise<{ readonly assets: readonly NimiLocalAppAssetRecord[]; readonly nextCursor: string }>;
-  readonly write: (input: { readonly relativePath: string; readonly body: NimiLocalAppAssetBody; readonly mediaType?: string; readonly overwrite?: boolean }) => Promise<NimiLocalAppAssetRecord>;
+  readonly write: (input: { readonly relativePath: string; readonly body: NimiLocalAppAssetBody; readonly mediaType?: string; readonly overwrite?: boolean; readonly expectedSha256?: string }) => Promise<NimiLocalAppAssetRecord>;
   readonly read: (input: { readonly relativePath: string; readonly offset?: number; readonly length?: number }) => Promise<NimiLocalAppAssetReadResult>;
   readonly remove: (relativePath: string) => Promise<NimiLocalAppStorageRemoveResult>;
   readonly move: (input: { readonly from: string; readonly to: string; readonly overwrite?: boolean }) => Promise<NimiLocalAppAssetRecord>;
@@ -2282,13 +2282,13 @@ export function listNimiLocalAppAssets(input: {
 }
 
 export async function writeNimiLocalAppAsset(input: {
-  readonly relativePath: string; readonly body: NimiLocalAppAssetBody; readonly mediaType?: string; readonly overwrite?: boolean;
+  readonly relativePath: string; readonly body: NimiLocalAppAssetBody; readonly mediaType?: string; readonly overwrite?: boolean; readonly expectedSha256?: string;
 }): Promise<NimiLocalAppAssetRecord> {
   const openCommand = NIMI_STANDARD_SHELL_COMMANDS['storage.assetWriteOpen'];
   const relativePath = canonicalAssetPath(input.relativePath, openCommand);
   const mediaType = input.mediaType === undefined ? '' : canonicalMediaType(input.mediaType, openCommand);
   if (input.overwrite !== undefined && typeof input.overwrite !== 'boolean') throw new Error(`${openCommand}: overwrite is invalid`);
-  const opened = await invokeChecked(openCommand, { payload: { relativePath, mediaType, overwrite: input.overwrite ?? false } },
+  const opened = await invokeChecked(openCommand, { payload: { relativePath, mediaType, overwrite: input.overwrite ?? false, ...(input.expectedSha256 === undefined ? {} : { expectedSha256: input.expectedSha256 }) } },
     (value) => parseStreamId(value, openCommand));
   let committed = false;
   try {

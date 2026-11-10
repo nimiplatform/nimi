@@ -35,10 +35,16 @@ export function readWebDevelopment(manifest) {
   }) });
 }
 
-export function isWebCoordinationPath(url) {
+export function isWebCoordinationPath(method, url) {
   const pathname = url.split('?')[0];
-  return /^\/api\/runtime-access\/(?:token|context(?:\/end)?|connections(?:\/[A-Za-z0-9_-]+)?)$/u.test(pathname)
-    || /^\/api\/auth\/runtime-clients\/[A-Za-z0-9_.-]+$/u.test(pathname);
+  if (method === 'GET') {
+    return pathname === '/api/runtime-access/context'
+      || /^\/api\/runtime-access\/connections\/[A-Za-z0-9_-]+$/u.test(pathname)
+      || /^\/api\/auth\/runtime-clients\/[A-Za-z0-9_.-]+$/u.test(pathname);
+  }
+  return method === 'POST' && (pathname === '/api/runtime-access/token'
+    || pathname === '/api/runtime-access/context/end'
+    || pathname === '/api/runtime-access/connections');
 }
 
 export function webOriginGuard(site) {
@@ -50,7 +56,7 @@ export function webOriginGuard(site) {
       response.writeHead(421, { 'Content-Type': 'text/plain', 'Cache-Control': 'no-store' });
       response.end('Use the configured App origin.'); return;
     }
-    if (request.url?.startsWith('/api/') && !isWebCoordinationPath(request.url)) {
+    if (request.url?.startsWith('/api/') && !isWebCoordinationPath(request.method, request.url)) {
       response.writeHead(404); response.end(); return;
     }
     next();

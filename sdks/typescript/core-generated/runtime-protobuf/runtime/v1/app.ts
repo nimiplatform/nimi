@@ -401,6 +401,23 @@ export interface WriteLocalAppAssetMetadata {
     overwrite: boolean;
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.ReplaceLocalAppAssetMetadata
+ */
+export interface ReplaceLocalAppAssetMetadata {
+    /**
+     * @generated from protobuf field: string relative_path = 1
+     */
+    relativePath: string;
+    /**
+     * @generated from protobuf field: string media_type = 2
+     */
+    mediaType: string;
+    /**
+     * @generated from protobuf field: string expected_sha256 = 3
+     */
+    expectedSha256: string;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.WriteLocalAppAssetRequest
  */
 export interface WriteLocalAppAssetRequest {
@@ -419,6 +436,12 @@ export interface WriteLocalAppAssetRequest {
          * @generated from protobuf field: bytes body_chunk = 2
          */
         bodyChunk: Uint8Array;
+    } | {
+        oneofKind: "replaceMetadata";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.ReplaceLocalAppAssetMetadata replace_metadata = 3
+         */
+        replaceMetadata: ReplaceLocalAppAssetMetadata;
     } | {
         oneofKind: undefined;
     };
@@ -3255,11 +3278,75 @@ class WriteLocalAppAssetMetadata$Type extends MessageType<WriteLocalAppAssetMeta
  */
 export const WriteLocalAppAssetMetadata = new WriteLocalAppAssetMetadata$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class ReplaceLocalAppAssetMetadata$Type extends MessageType<ReplaceLocalAppAssetMetadata> {
+    constructor() {
+        super("nimi.runtime.v1.ReplaceLocalAppAssetMetadata", [
+            { no: 1, name: "relative_path", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "media_type", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 3, name: "expected_sha256", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ReplaceLocalAppAssetMetadata>): ReplaceLocalAppAssetMetadata {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.relativePath = "";
+        message.mediaType = "";
+        message.expectedSha256 = "";
+        if (value !== undefined)
+            reflectionMergePartial<ReplaceLocalAppAssetMetadata>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ReplaceLocalAppAssetMetadata): ReplaceLocalAppAssetMetadata {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string relative_path */ 1:
+                    message.relativePath = reader.string();
+                    break;
+                case /* string media_type */ 2:
+                    message.mediaType = reader.string();
+                    break;
+                case /* string expected_sha256 */ 3:
+                    message.expectedSha256 = reader.string();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ReplaceLocalAppAssetMetadata, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string relative_path = 1; */
+        if (message.relativePath !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.relativePath);
+        /* string media_type = 2; */
+        if (message.mediaType !== "")
+            writer.tag(2, WireType.LengthDelimited).string(message.mediaType);
+        /* string expected_sha256 = 3; */
+        if (message.expectedSha256 !== "")
+            writer.tag(3, WireType.LengthDelimited).string(message.expectedSha256);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ReplaceLocalAppAssetMetadata
+ */
+export const ReplaceLocalAppAssetMetadata = new ReplaceLocalAppAssetMetadata$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class WriteLocalAppAssetRequest$Type extends MessageType<WriteLocalAppAssetRequest> {
     constructor() {
         super("nimi.runtime.v1.WriteLocalAppAssetRequest", [
             { no: 1, name: "metadata", kind: "message", oneof: "frame", T: () => WriteLocalAppAssetMetadata },
-            { no: 2, name: "body_chunk", kind: "scalar", oneof: "frame", T: 12 /*ScalarType.BYTES*/ }
+            { no: 2, name: "body_chunk", kind: "scalar", oneof: "frame", T: 12 /*ScalarType.BYTES*/ },
+            { no: 3, name: "replace_metadata", kind: "message", oneof: "frame", T: () => ReplaceLocalAppAssetMetadata }
         ]);
     }
     create(value?: PartialMessage<WriteLocalAppAssetRequest>): WriteLocalAppAssetRequest {
@@ -3286,6 +3373,12 @@ class WriteLocalAppAssetRequest$Type extends MessageType<WriteLocalAppAssetReque
                         bodyChunk: reader.bytes()
                     };
                     break;
+                case /* nimi.runtime.v1.ReplaceLocalAppAssetMetadata replace_metadata */ 3:
+                    message.frame = {
+                        oneofKind: "replaceMetadata",
+                        replaceMetadata: ReplaceLocalAppAssetMetadata.internalBinaryRead(reader, reader.uint32(), options, (message.frame as any).replaceMetadata)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -3304,6 +3397,9 @@ class WriteLocalAppAssetRequest$Type extends MessageType<WriteLocalAppAssetReque
         /* bytes body_chunk = 2; */
         if (message.frame.oneofKind === "bodyChunk")
             writer.tag(2, WireType.LengthDelimited).bytes(message.frame.bodyChunk);
+        /* nimi.runtime.v1.ReplaceLocalAppAssetMetadata replace_metadata = 3; */
+        if (message.frame.oneofKind === "replaceMetadata")
+            ReplaceLocalAppAssetMetadata.internalBinaryWrite(message.frame.replaceMetadata, writer.tag(3, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

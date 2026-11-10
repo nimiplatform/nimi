@@ -6,7 +6,7 @@
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="ai.nimi.apps.zhiyu.dev" android:path="/oauth/callback" />
+                <data android:scheme="ai.nimi.apps.zhiyu.dev" />
             </intent-filter>
         </activity>
     </application>

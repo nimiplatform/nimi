@@ -46,11 +46,13 @@ test('Web source config binds HTTPS callback and prevents credential-cookie shar
   assert.equal(web.config.realmBaseUrl, web.site.origin);
   assert.throws(() => readWebDevelopment({ ...manifest, local_development: { web: { ...manifest.local_development.web, redirect_uri: 'https://other.example/' } } }), /callback/u);
   assert.throws(() => readWebDevelopment({ ...manifest, local_development: { web: { ...manifest.local_development.web, official_web_url: 'https://127.0.0.1:3000' } } }), /different hostnames/u);
-  assert.equal(isWebCoordinationPath('/api/runtime-access/context'), true);
-  assert.equal(isWebCoordinationPath('/api/runtime-access/context/ai'), false);
-  assert.equal(isWebCoordinationPath('/api/ai/generate'), false);
+  assert.equal(isWebCoordinationPath('GET', '/api/runtime-access/context'), true);
+  assert.equal(isWebCoordinationPath('POST', '/api/runtime-access/context/end'), true);
+  assert.equal(isWebCoordinationPath('GET', '/api/auth/runtime-clients/unit.web'), true);
+  assert.equal(isWebCoordinationPath('GET', '/api/runtime-access/context/ai'), false);
+  assert.equal(isWebCoordinationPath('POST', '/api/runtime-access/context'), false);
   let code, next = 0;
-  webOriginGuard(web.site)({ headers: { host: web.site.host }, url: '/api/ai/generate' }, { writeHead(value) { code = value; }, end() {} }, () => next++);
+  webOriginGuard(web.site)({ method: 'POST', headers: { host: web.site.host }, url: '/api/auth/runtime-clients/authorize' }, { writeHead(value) { code = value; }, end() {} }, () => next++);
   assert.equal(code, 404); assert.equal(next, 0);
 });
 
@@ -105,7 +107,7 @@ test('generated services keep an already queued save on its original connection'
   const written = [];
   const assets = name => ({
     async list() { return { assets: [], nextCursor: '' }; },
-    async read() { return { body: (async function* () { yield new TextEncoder().encode(JSON.stringify({ id: name, capabilityId: 'text.generate', createdAt: '2026-11-09' })); })() }; },
+    async read() { return { asset: { sha256: 'sha256:' + '0'.repeat(64) }, body: (async function* () { yield new TextEncoder().encode(JSON.stringify({ id: name, capabilityId: 'text.generate', createdAt: '2026-11-09' })); })() }; },
     async remove() { written.push(name); return { removed: true }; },
   });
   const a = { identity: { realmEnvironmentId: 'unit', accountId: 'A', appId: 'unit.web', clientId: 'unit.client' }, primary: { bindingId: 'primary-A' },
@@ -141,7 +143,7 @@ test('two generated Web clients retain independently saved runs in the same owne
   const records = new Map();
   const client = { identity: { realmEnvironmentId: 'unit', accountId: 'A', appId: 'unit.web', clientId: 'unit.client' }, primary: { bindingId: 'primary-A' }, storage: { assets: {
     async write({ relativePath, body }) { await Promise.resolve(); records.set(relativePath, body); },
-    async read({ relativePath }) { const bytes = records.get(relativePath); return { body: (async function* () { yield bytes; })() }; },
+    async read({ relativePath }) { const bytes = records.get(relativePath); return { asset: { sha256: 'sha256:' + '0'.repeat(64) }, body: (async function* () { yield bytes; })() }; },
     async list() { return { assets: [...records.keys()].sort().map(relativePath => ({ relativePath })), nextCursor: '' }; },
   } } };
   const create = vm.runInNewContext(stripTypeScriptTypes(factory.getText(parsed), { mode: 'transform' }) + '; createGeneratedServices;', {

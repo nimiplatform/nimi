@@ -175,10 +175,17 @@ message WriteLocalAppAssetMetadata {
   bool overwrite = 3;
 }
 
+message ReplaceLocalAppAssetMetadata {
+  string relative_path = 1;
+  string media_type = 2;
+  string expected_sha256 = 3;
+}
+
 message WriteLocalAppAssetRequest {
   oneof frame {
     WriteLocalAppAssetMetadata metadata = 1;
     bytes body_chunk = 2;
+    ReplaceLocalAppAssetMetadata replace_metadata = 3;
   }
 }
 

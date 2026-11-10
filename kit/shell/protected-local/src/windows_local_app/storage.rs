@@ -9,7 +9,7 @@ use crate::generated::{
     LocalAppAssetRecord as ProtoAssetRecord, MoveLocalAppAssetRequest, ReadLocalAppAssetRequest,
     ReadLocalAppStorageJsonRequest, RemoveLocalAppAssetRequest, RemoveLocalAppStorageJsonRequest,
     RemoveLocalAppStorageJsonResponse, RevealLocalAppAssetRequest, StatLocalAppAssetRequest,
-    WriteLocalAppAssetMetadata, WriteLocalAppAssetRequest, WriteLocalAppStorageJsonRequest,
+    ReplaceLocalAppAssetMetadata, WriteLocalAppAssetMetadata, WriteLocalAppAssetRequest, WriteLocalAppStorageJsonRequest,
 };
 use crate::grpc_status::local_app_error_from_status;
 use crate::{
@@ -160,13 +160,20 @@ pub(super) async fn write_local_app_asset(
     validate_asset_path(&request.relative_path)?;
     validate_media_type(&request.media_type)?;
     let metadata = WriteLocalAppAssetRequest {
-        frame: Some(write_local_app_asset_request::Frame::Metadata(
-            WriteLocalAppAssetMetadata {
+        frame: Some(match request.expected_sha256 {
+            Some(expected_sha256) => write_local_app_asset_request::Frame::ReplaceMetadata(
+                ReplaceLocalAppAssetMetadata {
+                    relative_path: request.relative_path,
+                    media_type: request.media_type,
+                    expected_sha256,
+                },
+            ),
+            None => write_local_app_asset_request::Frame::Metadata(WriteLocalAppAssetMetadata {
                 relative_path: request.relative_path,
                 media_type: request.media_type,
                 overwrite: request.overwrite,
-            },
-        )),
+            }),
+        }),
     };
     let stream = tokio_stream::once(metadata).chain(ReceiverStream::new(body).map(|body_chunk| {
         WriteLocalAppAssetRequest {

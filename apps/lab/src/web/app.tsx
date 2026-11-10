@@ -11,6 +11,6 @@ export function LabWebApp({ connection, rendererHost, configurationErrors }: {
   if (configurationErrors.length) return <InlineAlert tone="warning">{t('Auth.web.configure')} {configurationErrors.join(', ')}</InlineAlert>;
   return <NimiAppSessionProvider session={connection}><div className="lab-web-shell">
     <header className="lab-web-connection-bar"><strong>{t('Auth.web.title')}</strong><NimiAccountControl hideSignedOut language={language} /></header>
-    <NimiAppAccessGate title={t('Auth.web.title')} language={language}>{() => <div className="lab-web-workbench"><Suspense fallback={<LoadingSkeleton lines={4} />}><Lab rendererHost={rendererHost} webCarrier /></Suspense></div>}</NimiAppAccessGate>
+    <NimiAppAccessGate title={t('Auth.web.title')} language={language} externalAccountControl>{() => <div className="lab-web-workbench"><Suspense fallback={<LoadingSkeleton lines={4} />}><Lab rendererHost={rendererHost} webCarrier /></Suspense></div>}</NimiAppAccessGate>
   </div></NimiAppSessionProvider>;
 }

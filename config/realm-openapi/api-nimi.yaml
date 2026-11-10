@@ -5526,17 +5526,6 @@ components:
         - codeChallengeMethod
         - state
       type: object
-    RuntimeClientCodeDto:
-      properties:
-        expiresAt:
-          format: date-time
-          type: string
-        redirectUrl:
-          type: string
-      required:
-        - redirectUrl
-        - expiresAt
-      type: object
     RuntimeClientContextDto:
       properties:
         accountId:
@@ -11284,19 +11273,13 @@ paths:
       parameters: []
       requestBody:
         content:
-          application/json:
+          application/x-www-form-urlencoded:
             schema:
               $ref: '#/components/schemas/RuntimeClientAuthorizationDto'
         required: true
       responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RuntimeClientCodeDto'
-          description: ''
-      security:
-        - bearer: []
+        '303':
+          description: Navigate to the registered callback or official sign-in
       summary: Confirm my identity for a registered Runtime client
       tags:
         - Runtime access

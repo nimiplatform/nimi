@@ -56,6 +56,30 @@ func writeAssetBytes(t *testing.T, store *AssetStore, owner ManagedOwner, path s
 	return record
 }
 
+func TestAssetConditionalWriteCommitsOnlyOneWriterFromSameHash(t *testing.T) {
+	store, err := NewAssetStore(t.TempDir(), assetTestPolicy())
+	if err != nil {
+		t.Fatal(err)
+	}
+	owner := assetTestOwner("account", "app")
+	base := writeAssetBytes(t, store, owner, "draft.json", []byte("base"), false)
+	results := make(chan error, 2)
+	start := make(chan struct{})
+	for _, body := range []string{"first", "second"} {
+		go func(body string) {
+			<-start
+			_, err := store.WriteGuarded(context.Background(), owner, "draft.json", "application/json", true,
+				io.NopCloser(strings.NewReader(body)), func(_ AssetRecord, commit func() error) error { return commit() }, base.SHA256)
+			results <- err
+		}(body)
+	}
+	close(start)
+	first, second := <-results, <-results
+	if !((first == nil && errors.Is(second, ErrAssetContentConflict)) || (second == nil && errors.Is(first, ErrAssetContentConflict))) {
+		t.Fatalf("expected one commit and one conflict, got %v and %v", first, second)
+	}
+}
+
 func TestNormalizeAssetRelativePathAndEncodingArePortableAndCollisionProof(t *testing.T) {
 	valid := []string{"media/video/run-123.mp4", "Images/头像.webp", strings.Repeat("a", 255) + "/index.bin"}
 	for _, value := range valid {

@@ -1616,7 +1616,11 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT = 775;
      */
-    AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT = 775
+    AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT = 775,
+    /**
+     * @generated from protobuf enum value: APP_STORAGE_CONTENT_CONFLICT = 776;
+     */
+    APP_STORAGE_CONTENT_CONFLICT = 776
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

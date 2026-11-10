@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { completeRuntimeClientLogin, prepareRuntimeClientLogin, type RuntimeClientLoginOptions, type RuntimeClientLoginTransaction, type RuntimeClientSession } from '@nimiplatform/sdk/realm/runtime-client';
+import { completeRuntimeClientLogin, matchesRuntimeClientCallback, prepareRuntimeClientLogin, type RuntimeClientLoginOptions, type RuntimeClientLoginTransaction, type RuntimeClientSession } from '@nimiplatform/sdk/realm/runtime-client';
 import type { RemoteRuntimeConnection } from '@nimiplatform/sdk/runtime/remote';
 import { RemoteSourceAccessState, RuntimeServiceMode, type GetRemoteAccessStateResponse } from '@nimiplatform/sdk/runtime/wire-types';
 import type { NimiAIConfigSnapshot } from '@nimiplatform/sdk/ai';
@@ -57,13 +57,17 @@ export function AccountRuntimeManager({ accountId }: { accountId: string }) {
     await verifyOwner();
     const callback = new URL(window.location.href);
     if (!session.current && (callback.searchParams.has('code') || callback.searchParams.has('error'))) {
-      const stored = sessionStorage.getItem(storageKey); sessionStorage.removeItem(storageKey);
+      const stored = sessionStorage.getItem(storageKey);
       navigate('/account/runtime', { replace: true });
       if (!stored) throw new Error(say('管理登录已失效，请重新验证。', 'Management sign-in expired. Verify again.'));
       const saved = JSON.parse(stored) as Login;
       if (saved.accountId !== accountId || saved.options.realmEnvironmentId !== realmEnvironmentId || saved.options.clientId !== clientId
         || saved.options.realmBaseUrl !== webRealmOrigin() || saved.options.officialWebBaseUrl !== window.location.origin
         || saved.options.redirectUri !== new URL('/account/runtime', window.location.origin).href) throw new Error('Management sign-in context changed.');
+      if (!matchesRuntimeClientCallback(callback.href, saved.transaction.redirectUri) || callback.searchParams.get('state') !== saved.transaction.state) {
+        throw new Error(say('此回调与当前管理登录不匹配。', 'This callback does not match the current management sign-in.'));
+      }
+      sessionStorage.removeItem(storageKey);
       generation.current = saved.transaction.applicationUserContext;
       session.current = await completeRuntimeClientLogin({ ...saved.options, currentUserContext: () => mounted.current ? generation.current : null }, saved.transaction, callback.href);
     }

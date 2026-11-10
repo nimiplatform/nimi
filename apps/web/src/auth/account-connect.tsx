@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import { createWebBrowserRealm } from './browser-realm.js';
+import { createWebBrowserRealm, webRealmOrigin } from './browser-realm.js';
 import { AccountFeedback, AccountHeading } from './account-center-layout.js';
 import { useAccountCopy } from './account-center-copy.js';
 import { readRuntimeConnectRequest } from './runtime-connect-request.js';
-import { matchesRuntimeClientCallback } from '@nimiplatform/sdk/realm/runtime-client';
+import { runtimeClientConfirmationUrl } from '@nimiplatform/sdk/realm/runtime-client';
 
 type Source = Awaited<ReturnType<ReturnType<typeof createWebBrowserRealm>['generated']['getRuntimeClientSource']>>;
 
@@ -31,21 +31,6 @@ export function AccountConnect({ accountId, displayName }: { accountId: string; 
     return () => { generation.current++; };
   }, [request, c]);
 
-  async function confirm() {
-    if (!request || !source || busy) return;
-    const current = generation.current;
-    setBusy(true); setError(null);
-    try {
-      const result = await createWebBrowserRealm().generated.authorizeRuntimeClient({ path: {}, body: { ...request, expectedAccountId: accountId } });
-      if (current !== generation.current) return;
-      const callback = new URL(result.redirectUrl);
-      if (!matchesRuntimeClientCallback(result.redirectUrl, source.redirectUri) || callback.searchParams.get('state') !== request.state
-        || !/^[A-Za-z0-9_-]{43}$/.test(callback.searchParams.get('code') || '') || [...callback.searchParams].length !== 2) throw new Error('Invalid authorization response');
-      window.location.assign(callback.href);
-    } catch {
-      if (current === generation.current) { setError(c('connectFailed')); setBusy(false); }
-    }
-  }
   function cancel() {
     if (!request || !source || busy) return;
     const callback = new URL(source.redirectUri);
@@ -57,16 +42,19 @@ export function AccountConnect({ accountId, displayName }: { accountId: string; 
     <AccountHeading title={c('connect')} description={c('connectIntro')} />
     <AccountFeedback error={error} />
     {loading && <p role="status">{c('loading')}</p>}
-    {source && <section className="ac-section">
+    {source && request && <section className="ac-section">
       <h2>{source.displayName}</h2>
       <p>{source.origin}</p>
       {source.kind !== 'web' && <p>Android · {source.androidPackageName}{source.kind === 'android-dev-scheme' ? ' · 本机开发' : ''}</p>}
       <p>{c('connectIdentity')} <strong>{displayName}</strong></p>
       <p>{c(source.role === 'official_manager' ? 'connectManager' : 'connectConsumer')}</p>
-      <div className="ac-actions">
-        <button type="button" className="ac-button" disabled={busy} onClick={() => void confirm()}>{c(busy ? 'sending' : 'connectContinue')}</button>
+      <form className="ac-actions" method="post" action={runtimeClientConfirmationUrl(webRealmOrigin())} onSubmit={() => setBusy(true)}>
+        {Object.entries({ ...request, expectedAccountId: accountId }).map(([name, value]) => (
+          <input key={name} type="hidden" name={name} value={value} />
+        ))}
+        <button type="submit" className="ac-button" disabled={busy}>{c(busy ? 'sending' : 'connectContinue')}</button>
         <button type="button" className="ac-button ac-button--secondary" disabled={busy} onClick={cancel}>{c('cancel')}</button>
-      </div>
+      </form>
     </section>}
   </>;
 }

@@ -3391,6 +3391,8 @@ pub enum ReasonCode {
     AIPROVIDERTASKEXPIRED,
     #[serde(rename = "AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT")]
     AGENTCONVERSATIONCONTEXTREVISIONCONFLICT,
+    #[serde(rename = "APP_STORAGE_CONTENT_CONFLICT")]
+    APPSTORAGECONTENTCONFLICT,
 }
 
 impl Default for ReasonCode {
@@ -4040,6 +4042,8 @@ impl ReasonCode {
             "AIPROVIDERTASKEXPIRED" => Some(Self::AIPROVIDERTASKEXPIRED),
             "AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT" => Some(Self::AGENTCONVERSATIONCONTEXTREVISIONCONFLICT),
             "AGENTCONVERSATIONCONTEXTREVISIONCONFLICT" => Some(Self::AGENTCONVERSATIONCONTEXTREVISIONCONFLICT),
+            "APP_STORAGE_CONTENT_CONFLICT" => Some(Self::APPSTORAGECONTENTCONFLICT),
+            "APPSTORAGECONTENTCONFLICT" => Some(Self::APPSTORAGECONTENTCONFLICT),
             _ => None,
         }
     }
@@ -14048,6 +14052,13 @@ pub struct RepairLocalEnvironmentDependencyResponse {
     pub job: Option<Box<LocalEnvironmentDependencyJob>>,
 }
 
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct ReplaceLocalAppAssetMetadata {
+    pub relative_path: Option<String>,
+    pub media_type: Option<String>,
+    pub expected_sha256: Option<String>,
+}
+
 #[derive(Clone, Debug, Default, PartialEq, serde::Serialize)]
 pub struct ReplaceProductControlDataRootRequest {
     #[serde(rename = "target_root", skip_serializing_if = "Option::is_none")]
@@ -16545,6 +16556,7 @@ pub struct WriteLocalAppAssetMetadata {
 pub struct WriteLocalAppAssetRequest {
     pub metadata: Option<Box<WriteLocalAppAssetMetadata>>,
     pub body_chunk: Option<Vec<u8>>,
+    pub replace_metadata: Option<Box<ReplaceLocalAppAssetMetadata>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -19516,12 +19528,6 @@ pub struct RuntimeClientAuthorizationDto {
     pub expected_account_id: String,
     pub redirect_uri: String,
     pub state: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RuntimeClientCodeDto {
-    pub expires_at: String,
-    pub redirect_url: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

@@ -573,6 +573,7 @@ pub struct LocalAppAssetWriteRequest {
     pub relative_path: String,
     pub media_type: String,
     pub overwrite: bool,
+    pub expected_sha256: Option<String>,
 }
 
 pub type LocalAppAssetWriteReceiver = tokio::sync::mpsc::Receiver<Vec<u8>>;

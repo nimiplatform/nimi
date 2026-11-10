@@ -3,7 +3,7 @@ import type { IncomingMessage, ServerResponse } from 'node:http';
 import { readFile, mkdir } from 'node:fs/promises';
 import { randomBytes } from 'node:crypto';
 import { resolve } from 'node:path';
-import { prepareRuntimeClientLogin, completeRuntimeClientLogin,
+import { prepareRuntimeClientLogin, completeRuntimeClientLogin, matchesRuntimeClientCallback,
   type RuntimeClientLoginOptions, type RuntimeClientLoginTransaction, type RuntimeClientSession } from '@nimiplatform/sdk/realm/runtime-client';
 import { Accounts } from './accounts.ts';
 import { resolveReferenceNetwork } from './server-network.ts';
@@ -104,6 +104,12 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
   if (req.method === 'GET' && url.pathname === '/nimi/callback') {
     const session = sessionFor(req), transaction = session?.transaction;
     if (!session || !transaction || session.busy) throw new HttpError(409, '登录请求已失效，请从网站重新发起。');
+    const code = url.searchParams.get('code') ?? '';
+    const cancelled = url.searchParams.get('error') === 'access_denied';
+    if (!matchesRuntimeClientCallback(url.href, transaction.redirectUri) || url.searchParams.get('state') !== transaction.state
+      || url.searchParams.size !== 2 || (!cancelled && !/^[A-Za-z0-9_-]{43}$/.test(code))) {
+      throw new HttpError(400, '登录回调与当前请求不匹配。');
+    }
     const context = session.context; session.transaction = undefined; session.busy = true;
     try {
       const nimi = await completeRuntimeClientLogin(loginOptions(session), transaction, url.href);

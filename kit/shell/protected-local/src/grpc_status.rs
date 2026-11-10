@@ -353,6 +353,7 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "OPERATION_CANCELED" | "CANCELED" => LocalAppReasonCode::Canceled,
         "APP_STORAGE_ENTRY_NOT_FOUND" | "ARTIFACT_NOT_FOUND" => LocalAppReasonCode::NotFound,
         "APP_ACTIVITY_INPUT_INVALID" => LocalAppReasonCode::InvalidPayload,
+        "APP_STORAGE_CONTENT_CONFLICT" => LocalAppReasonCode::ContentConflict,
         "APP_ACTIVITY_REVISION_CONFLICT" => LocalAppReasonCode::ContentConflict,
         "AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT" => {
             LocalAppReasonCode::AgentConversationContextRevisionConflict

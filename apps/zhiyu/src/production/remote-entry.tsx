@@ -20,7 +20,7 @@ const off = session.subscribe(() => {
 function WebEntry() {
   return <NimiAppSessionProvider session={session}><div className="flex h-full min-h-0 flex-col">
     <header className="flex shrink-0 items-center gap-3 border-b px-4 py-2 text-sm"><strong>{title}</strong><NimiAccountControl hideSignedOut /></header>
-    <NimiAppAccessGate title="与 Nimi 伙伴继续交流">{scope => <div className="min-h-0 flex-1"><ZhiyuNavigationOwner><ZhiyuFrame host={rendererHost.facade} client={scope.client} /></ZhiyuNavigationOwner></div>}</NimiAppAccessGate>
+    <NimiAppAccessGate title="与 Nimi 伙伴继续交流" externalAccountControl>{scope => <div className="min-h-0 flex-1"><ZhiyuNavigationOwner><ZhiyuFrame host={rendererHost.facade} client={scope.client} /></ZhiyuNavigationOwner></div>}</NimiAppAccessGate>
   </div></NimiAppSessionProvider>;
 }
 const root = document.getElementById('root')!;

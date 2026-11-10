@@ -64,6 +64,7 @@ type FormalAssetWrite = {
   readonly relativePath: string;
   readonly mediaType: string;
   readonly overwrite: boolean;
+  readonly expectedSha256?: string;
   readonly chunks: Uint8Array[];
   totalBytes: number;
 };
@@ -382,6 +383,7 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
         relativePath: requiredText(record.relativePath),
         mediaType: typeof record.mediaType === 'string' ? record.mediaType : '',
         overwrite: record.overwrite === true,
+        expectedSha256: typeof record.expectedSha256 === 'string' ? record.expectedSha256 : undefined,
         chunks: [],
         totalBytes: 0,
       });
@@ -411,14 +413,9 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
       }
       const frames: WriteLocalAppAssetRequest[] = [
         {
-          frame: {
-            oneofKind: 'metadata',
-            metadata: {
-              relativePath: stream.relativePath,
-              mediaType: stream.mediaType,
-              overwrite: stream.overwrite,
-            },
-          },
+          frame: stream.expectedSha256 === undefined
+            ? { oneofKind: 'metadata', metadata: { relativePath: stream.relativePath, mediaType: stream.mediaType, overwrite: stream.overwrite } }
+            : { oneofKind: 'replaceMetadata', replaceMetadata: { relativePath: stream.relativePath, mediaType: stream.mediaType, expectedSha256: stream.expectedSha256 } },
         },
         ...stream.chunks.map((bodyChunk) => ({
           frame: { oneofKind: 'bodyChunk' as const, bodyChunk },

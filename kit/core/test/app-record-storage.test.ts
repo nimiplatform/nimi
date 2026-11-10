@@ -10,7 +10,7 @@ function ownerFixture() {
     async read({ relativePath }: { relativePath: string }) {
       const body = records.get(relativePath)?.slice();
       if (!body) throw { reasonCode: 'APP_STORAGE_ENTRY_NOT_FOUND' };
-      return { body: (async function* () { yield body; })() };
+      return { asset: { sha256: 'sha256:' + '0'.repeat(64) }, body: (async function* () { yield body; })() };
     },
     async remove(path: string) { return { removed: records.delete(path) }; },
   };

@@ -359,6 +359,7 @@ pub struct NativeAssetWriteOpenInput {
     pub relative_path: String,
     pub media_type: String,
     pub overwrite: bool,
+    pub expected_sha256: Option<String>,
 }
 
 #[napi(object)]

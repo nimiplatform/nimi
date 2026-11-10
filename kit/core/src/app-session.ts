@@ -198,7 +198,15 @@ export function createNimiAppSession(platform: NimiRemoteAppPlatform | NimiDeskt
       if (disposed || current !== operation || read !== readOperation || verified !== session) return;
       publish({ issue: null });
       if (state.source.role !== 'app' || state.source.kind !== platform.sourceKind) { await signOut(); throw createNimiError({ message: 'This entry requires an ordinary App source.', reasonCode: 'KIT_REMOTE_APP_SOURCE_REQUIRED', source: 'sdk' }); }
-    } catch (error) { if (!disposed && session === verified && read === readOperation) { if (!verified.active) clearIdentity(); report(error, 'identity'); } }
+    } catch (error) {
+      if (disposed || session !== verified || read !== readOperation) return;
+      if (!verified.active) clearIdentity();
+      if (extractNimiErrorFields(error).reasonCode === 'RUNTIME_CLIENT_SOURCE_PAUSED') {
+        clearRuntime();
+        publish({ runtime: { status: 'unavailable' } });
+        report(error, 'runtime');
+      } else report(error, 'identity');
+    }
   }
   async function initialize() {
     if (platform.kind === 'desktop') { await recheck(); return; }

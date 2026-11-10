@@ -405,6 +405,7 @@ pub struct LocalAppAssetWriteOpenPayload {
     relative_path: String,
     media_type: String,
     overwrite: bool,
+    expected_sha256: Option<String>,
 }
 
 #[derive(Debug, Deserialize)]
@@ -1744,6 +1745,7 @@ pub async fn asset_write_open_for_host(
             relative_path: payload.relative_path,
             media_type: payload.media_type,
             overwrite: payload.overwrite,
+            expected_sha256: payload.expected_sha256,
         })
         .await
         .map_err(map_local_app_error)?;

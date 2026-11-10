@@ -13,18 +13,24 @@ export function useNimiAppSession() {
 }
 const copy = {
   zh: { login: '使用 Nimi 账号登录', logout: '退出此应用', owner: '在 Nimi Home 管理账号', connect: '连接我的 Runtime',
-    connecting: '正在连接主 Runtime；首次使用此来源时，请在 PC Home 确认。', cancel: '取消连接', check: '重新检查连接',
+    connecting: '正在连接主 Runtime…', waitingForPc: '等待主机响应。首次使用此来源时，请在电脑的 Nimi Home 确认。', cancel: '取消连接', check: '重新检查连接',
     signedIn: '已登录 Nimi', disconnect: '断开连接', disconnected: '尚未连接主 Runtime。请保持 PC 上的 Nimi Home 运行。',
     signedOut: '使用你的 Nimi 账号继续，无需创建另一个应用账号。', unavailable: '暂时无法确认当前账号，请检查 Nimi Home。',
     cancelLogin: '取消登录', checking: '正在检查当前账号…', revocation: '重试结束此应用会话', connectionFailed: '连接未成功。',
     connectionHelp: '请确认主机上的 Nimi Home 正在运行，并检查远程接入后重试。',
+    primaryNotBound: '请先在电脑的 Nimi Home 绑定此账号的主 Runtime。',
+    sourceNotAllowed: '请在电脑的 Nimi Home 检查此应用的来源许可。',
+    sourcePaused: '此应用的来源已暂停。请联系应用开发者，恢复后可重新连接。',
     sourceNotAdmitted: '此应用当前未获准接入 Nimi。请联系应用开发者检查接入配置。', details: '技术详情' },
   en: { login: 'Sign in with Nimi', logout: 'Sign out of this App', owner: 'Manage account in Nimi Home', connect: 'Connect my Runtime',
-    connecting: 'Connecting to your Runtime. For a new source, confirm it in PC Home.', cancel: 'Cancel connection', check: 'Check connection again',
+    connecting: 'Connecting to your Runtime…', waitingForPc: 'Waiting for the PC. For a new source, confirm it in Nimi Home on your PC.', cancel: 'Cancel connection', check: 'Check connection again',
     signedIn: 'Signed in to Nimi', disconnect: 'Disconnect', disconnected: 'Runtime is not connected. Keep Nimi Home running on your PC.',
     signedOut: 'Continue with your Nimi account. No separate App account is needed.', unavailable: 'Your account cannot be confirmed. Check Nimi Home.',
     cancelLogin: 'Cancel sign-in', checking: 'Checking your account…', revocation: 'Retry ending this App session', connectionFailed: 'Connection failed.',
     connectionHelp: 'Check that Nimi Home is running on your PC and review remote access, then try again.',
+    primaryNotBound: 'Bind a primary Runtime for this account in Nimi Home on your PC.',
+    sourceNotAllowed: 'Check this App’s source permission in Nimi Home on your PC.',
+    sourcePaused: 'This App’s source is paused. Contact its developer and reconnect after it is restored.',
     sourceNotAdmitted: 'This App is not currently approved to connect to Nimi. Contact its developer to check the access configuration.', details: 'Technical details' },
 };
 export function NimiAccountControl({ language = 'zh', hideSignedOut = false }: { language?: 'zh' | 'en'; hideSignedOut?: boolean }) {
@@ -47,7 +53,7 @@ export function NimiAccountControl({ language = 'zh', hideSignedOut = false }: {
       </Button>}
   </div>;
 }
-type GateProps = { language?: 'zh' | 'en'; title?: string; fallback?: (snapshot: NimiAppSessionSnapshot) => ReactNode } & (
+type GateProps = { language?: 'zh' | 'en'; title?: string; externalAccountControl?: boolean; fallback?: (snapshot: NimiAppSessionSnapshot) => ReactNode } & (
   { requireRuntime?: true; children: (scope: NimiAppScope) => ReactNode } |
   { requireRuntime: false; children: ReactNode }
 );
@@ -59,12 +65,20 @@ export function NimiAppAccessGate(props: GateProps) {
     if (snapshot.runtime.status === 'connected') return <div key={`${snapshot.identity.viewKey}/${snapshot.runtime.scope.viewKey}`} className="contents">{props.children(snapshot.runtime.scope)}</div>;
   }
   if (props.fallback) return <>{props.fallback(snapshot)}</>;
-  const issueHelp = snapshot.issue?.reasonCode === 'RUNTIME_CLIENT_NOT_ADMITTED' ? text.sourceNotAdmitted
-    : snapshot.issue?.area === 'runtime' && session.account.kind === 'app-session' ? text.connectionHelp : null;
+  const sourceHelp: Record<string, string> = {
+    RUNTIME_CLIENT_NOT_ADMITTED: text.sourceNotAdmitted,
+    RUNTIME_CLIENT_SOURCE_PAUSED: text.sourcePaused,
+    PRIMARY_RUNTIME_NOT_BOUND: text.primaryNotBound,
+    SOURCE_NOT_ALLOWED: text.sourceNotAllowed,
+  };
+  const issueHelp = snapshot.issue && (Object.hasOwn(sourceHelp, snapshot.issue.reasonCode)
+    ? sourceHelp[snapshot.issue.reasonCode]
+    : snapshot.issue.area === 'runtime' && session.account.kind === 'app-session' ? text.connectionHelp : null);
   return <main className="m-auto flex max-w-xl flex-col gap-4 p-6"><Surface tone="panel" className="flex flex-col gap-4 p-6">
     {props.title && <h1 className="text-2xl font-semibold">{props.title}</h1>}
     <p role="status">{snapshot.identity.status === 'checking' ? text.checking : snapshot.identity.status === 'unavailable' ? text.unavailable
-      : snapshot.identity.status === 'signed-out' ? text.signedOut : snapshot.runtime.status === 'connecting' ? text.connecting
+      : snapshot.identity.status === 'signed-out' ? text.signedOut : snapshot.runtime.status === 'connecting'
+        ? (snapshot.runtime.stage === 'waiting-for-pc' ? text.waitingForPc : text.connecting)
         : snapshot.issue?.area === 'runtime' ? text.connectionFailed : text.disconnected}</p>
     {snapshot.issue && <InlineAlert tone="warning">
       <p>{issueHelp ?? snapshot.issue.message}</p>
@@ -78,7 +92,7 @@ export function NimiAppAccessGate(props: GateProps) {
       if (snapshot.runtime.status === 'connecting') session.disconnectRuntime(); else void session.connectRuntime();
     }}>{snapshot.runtime.status === 'connecting' ? text.cancel : text.connect}</Button> : snapshot.identity.status === 'unavailable'
       ? <Button onClick={() => void session.recheck()}>{text.check}</Button> : null}
-    {snapshot.identity.status !== 'signed-in' && <NimiAccountControl language={props.language} />}
+    {(snapshot.identity.status !== 'signed-in' || !props.externalAccountControl) && <NimiAccountControl language={props.language} />}
   </Surface></main>;
 }
 export type { NimiAppSession, NimiAppSessionSnapshot, NimiAppScope } from '@nimiplatform/kit/core/app-session';

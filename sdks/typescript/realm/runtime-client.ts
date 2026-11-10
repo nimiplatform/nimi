@@ -21,6 +21,12 @@ export interface RuntimeClientLoginOptions {
 
 export type RuntimeClientIdentity = Omit<RuntimeClientTokenDto, 'contextToken'>;
 
+/** The official confirmation page submits a navigation form to this Realm endpoint. */
+// @nimi-authority: rule.nimi.platform.product-lifecycle.remote-client-sign-in
+export function runtimeClientConfirmationUrl(realmBaseUrl: string): string {
+  return new URL('/api/auth/runtime-clients/authorize', trustedOrigin(realmBaseUrl)).href;
+}
+
 // @nimi-authority: rule.nimi.platform.remote-clients.android-development
 /** URI syntax only. Realm still owns exact source admission and environment. */
 export function isRuntimeClientRedirectUri(value: string): boolean {

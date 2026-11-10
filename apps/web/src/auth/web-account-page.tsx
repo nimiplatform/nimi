@@ -48,6 +48,12 @@ export function WebAccountPage() {
   useEffect(() => {
     let active = true;
     void (async () => {
+      const search = window.location.search;
+      if (new URLSearchParams(search).get('runtime_confirmation') === '1' && accountReturnTo(search).startsWith('/account/connect?')) {
+        setCurrentUser(null);
+        setChecking(false);
+        return;
+      }
       const user = await adapter.loadCurrentUser();
       if (!active) return;
       const oauthNext = readValidatedOauthNext(window.location.search);

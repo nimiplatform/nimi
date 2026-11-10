@@ -1977,6 +1977,7 @@ const (
 	AIPROVIDERTASKCANCELED                          ReasonCode = "AI_PROVIDER_TASK_CANCELED"
 	AIPROVIDERTASKEXPIRED                           ReasonCode = "AI_PROVIDER_TASK_EXPIRED"
 	AGENTCONVERSATIONCONTEXTREVISIONCONFLICT        ReasonCode = "AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT"
+	APPSTORAGECONTENTCONFLICT                       ReasonCode = "APP_STORAGE_CONTENT_CONFLICT"
 )
 
 type ReasoningActivation string
@@ -8643,6 +8644,12 @@ type RepairLocalEnvironmentDependencyResponse struct {
 	Job *LocalEnvironmentDependencyJob `json:"job,omitempty"`
 }
 
+type ReplaceLocalAppAssetMetadata struct {
+	RelativePath   string `json:"relative_path,omitempty"`
+	MediaType      string `json:"media_type,omitempty"`
+	ExpectedSha256 string `json:"expected_sha256,omitempty"`
+}
+
 type ReplaceProductControlDataRootRequest struct {
 	TargetRoot string `json:"target_root,omitempty"`
 }
@@ -10349,8 +10356,9 @@ type WriteLocalAppAssetMetadata struct {
 }
 
 type WriteLocalAppAssetRequest struct {
-	Metadata  *WriteLocalAppAssetMetadata `json:"metadata,omitempty"`
-	BodyChunk []byte                      `json:"body_chunk,omitempty"`
+	Metadata        *WriteLocalAppAssetMetadata   `json:"metadata,omitempty"`
+	BodyChunk       []byte                        `json:"body_chunk,omitempty"`
+	ReplaceMetadata *ReplaceLocalAppAssetMetadata `json:"replace_metadata,omitempty"`
 }
 
 type WriteLocalAppAssetResponse struct {
@@ -20502,31 +20510,6 @@ func (value *RuntimeClientAuthorizationDto) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-type RuntimeClientCodeDto struct {
-	ExpiresAt   string `json:"expiresAt"`
-	RedirectUrl string `json:"redirectUrl"`
-}
-
-func (value *RuntimeClientCodeDto) UnmarshalJSON(data []byte) error {
-	var raw map[string]json.RawMessage
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return fmt.Errorf("decode RuntimeClientCodeDto: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "expiresAt", false); err != nil {
-		return fmt.Errorf("decode RuntimeClientCodeDto: %w", err)
-	}
-	if err := requireRealmJSONField(raw, "redirectUrl", false); err != nil {
-		return fmt.Errorf("decode RuntimeClientCodeDto: %w", err)
-	}
-	type modelAlias RuntimeClientCodeDto
-	var decoded modelAlias
-	if err := json.Unmarshal(data, &decoded); err != nil {
-		return fmt.Errorf("decode RuntimeClientCodeDto: %w", err)
-	}
-	*value = RuntimeClientCodeDto(decoded)
-	return nil
-}
-
 type RuntimeClientContextDto struct {
 	AccountId          string                   `json:"accountId"`
 	AppId              string                   `json:"appId"`
@@ -29423,12 +29406,12 @@ func (c RealmTypedClient) ArchiveBundle(ctx context.Context, request RealmArchiv
 	return decodeTypedResponse[BundleDetailDto](raw)
 }
 
-func (c RealmTypedClient) AuthorizeRuntimeClient(ctx context.Context, request RealmAuthorizeRuntimeClientOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (RuntimeClientCodeDto, error) {
+func (c RealmTypedClient) AuthorizeRuntimeClient(ctx context.Context, request RealmAuthorizeRuntimeClientOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {
 	raw, err := c.operationTyped(ctx, "authorizeRuntimeClient", request, metadata, timeoutMS)
 	if err != nil {
-		return RuntimeClientCodeDto{}, err
+		return struct{}{}, err
 	}
-	return decodeTypedResponse[RuntimeClientCodeDto](raw)
+	return decodeTypedResponse[struct{}](raw)
 }
 
 func (c RealmTypedClient) BindEmail(ctx context.Context, request RealmBindEmailOperationRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (struct{}, error) {

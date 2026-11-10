@@ -414,24 +414,9 @@
         "ref_name": "RuntimeClientAuthorizationDto"
       },
       "request_schema_ref": "#/components/schemas/RuntimeClientAuthorizationDto",
-      "request_content_type": "application/json",
-      "response_schemas": [
-        {
-          "status": "201",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/RuntimeClientCodeDto",
-            "ref_name": "RuntimeClientCodeDto"
-          },
-          "schema_ref": "#/components/schemas/RuntimeClientCodeDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "201",
-          "schema_ref": "#/components/schemas/RuntimeClientCodeDto"
-        }
-      ]
+      "request_content_type": "application/x-www-form-urlencoded",
+      "response_schemas": [],
+      "response_schema_refs": []
     },
     {
       "operation_id": "bindEmail",
@@ -15762,9 +15747,6 @@
     },
     {
       "name": "RuntimeClientAuthorizationDto"
-    },
-    {
-      "name": "RuntimeClientCodeDto"
     },
     {
       "name": "RuntimeClientContextDto"
@@ -35933,48 +35915,6 @@
           "codeChallenge",
           "codeChallengeMethod",
           "state"
-        ],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "RuntimeClientCodeDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "expiresAt",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": "date-time",
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "redirectUrl",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          }
-        ],
-        "required_properties": [
-          "redirectUrl",
-          "expiresAt"
         ],
         "closed": false,
         "additional_properties": null

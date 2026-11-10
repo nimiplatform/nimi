@@ -1865,11 +1865,6 @@ class RuntimeClientAuthorizationDto:
     state: str
 
 @dataclass(frozen=True)
-class RuntimeClientCodeDto:
-    expiresAt: str
-    redirectUrl: str
-
-@dataclass(frozen=True)
 class RuntimeClientContextDto:
     accountId: str
     appId: str
@@ -7560,7 +7555,7 @@ class RealmTypedClient:
             "body": {} if request.body is None else _model_body(request.body),
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="authorizeRuntimeClient", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RuntimeClientCodeDto, raw)
+        return _decode_model(None, raw)
 
     async def bind_email(self, request: RealmBindEmailOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmBindEmailOperationResponse:
         envelope: dict[str, object] = {

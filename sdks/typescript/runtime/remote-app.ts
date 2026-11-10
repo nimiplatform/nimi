@@ -97,8 +97,10 @@ function createRemoteRuntimeStorage(runtime: RuntimeTypedClient) {
 }
 
 async function* remoteAssetFrames(input: Parameters<NimiLocalAppAssetsClient['write']>[0]): AsyncIterable<WriteLocalAppAssetRequest> {
-  yield { frame: { oneofKind: 'metadata', metadata: { relativePath: input.relativePath,
-    mediaType: input.mediaType ?? '', overwrite: input.overwrite ?? false } } };
+  const target = { relativePath: input.relativePath, mediaType: input.mediaType ?? '' };
+  yield { frame: input.expectedSha256 === undefined
+    ? { oneofKind: 'metadata', metadata: { ...target, overwrite: input.overwrite ?? false } }
+    : { oneofKind: 'replaceMetadata', replaceMetadata: { ...target, expectedSha256: input.expectedSha256 } } };
   const body = input.body;
   const source = body instanceof Uint8Array
     ? (async function* () { if (body.byteLength) yield body; })()

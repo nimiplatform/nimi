@@ -6,6 +6,7 @@ import (
 	"io"
 	"math"
 	"path"
+	"regexp"
 	"strings"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -82,6 +83,14 @@ func (s *Service) WriteLocalAppAsset(stream runtimev1.RuntimeAppService_WriteLoc
 		return localAppAssetFailure(errLocalAppAssetFrameInvalid)
 	}
 	metadata := first.GetMetadata()
+	expectedSHA256 := ""
+	if replace := first.GetReplaceMetadata(); replace != nil {
+		expectedSHA256 = replace.GetExpectedSha256()
+		if valid, _ := regexp.MatchString(`^sha256:[0-9a-f]{64}$`, expectedSHA256); !valid {
+			return localAppAssetFailure(errLocalAppAssetFrameInvalid)
+		}
+		metadata = &runtimev1.WriteLocalAppAssetMetadata{RelativePath: replace.GetRelativePath(), MediaType: replace.GetMediaType(), Overwrite: true}
+	}
 	if metadata == nil {
 		return localAppAssetFailure(errLocalAppAssetFrameInvalid)
 	}
@@ -96,7 +105,7 @@ func (s *Service) WriteLocalAppAsset(stream runtimev1.RuntimeAppService_WriteLoc
 		func(_ appstorage.AssetRecord, commit func() error) error {
 			commitErr = s.commitLocalAppStorage(stream.Context(), localappop.IngressStorageAssetWrite, decision, commit)
 			return commitErr
-		},
+		}, expectedSHA256,
 	)
 	if commitErr != nil {
 		return localAppStorageCommitFailure(commitErr)
@@ -478,6 +487,8 @@ func localAppAssetFailure(err error) error {
 		return grpcerr.WrapWithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_APP_STORAGE_PATH_INVALID, err, options)
 	case errors.Is(err, appstorage.ErrAssetNotFound):
 		return grpcerr.WrapWithReasonCode(codes.NotFound, runtimev1.ReasonCode_APP_STORAGE_ENTRY_NOT_FOUND, err, options)
+	case errors.Is(err, appstorage.ErrAssetContentConflict):
+		return grpcerr.WrapWithReasonCode(codes.Aborted, runtimev1.ReasonCode_APP_STORAGE_CONTENT_CONFLICT, err, options)
 	case errors.Is(err, appstorage.ErrAssetAlreadyExists):
 		return grpcerr.WrapWithReasonCode(codes.AlreadyExists, runtimev1.ReasonCode_APP_STORAGE_ENTRY_ALREADY_EXISTS, err, options)
 	case errors.Is(err, appstorage.ErrAssetQuota):

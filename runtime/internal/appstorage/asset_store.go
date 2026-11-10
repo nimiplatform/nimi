@@ -40,14 +40,15 @@ const (
 )
 
 var (
-	ErrAssetNotFound      = errors.New("managed App asset not found")
-	ErrAssetAlreadyExists = errors.New("managed App asset already exists")
-	ErrAssetQuota         = errors.New("managed App asset quota exceeded")
-	ErrAssetTooLarge      = errors.New("managed App asset is too large")
-	ErrAssetUnavailable   = errors.New("managed App asset storage is unavailable")
-	ErrAssetCorrupt       = errors.New("managed App asset is corrupt")
-	ErrAssetCursorInvalid = errors.New("managed App asset cursor is invalid")
-	ErrAssetMediaInvalid  = errors.New("managed App asset media type is invalid")
+	ErrAssetNotFound        = errors.New("managed App asset not found")
+	ErrAssetContentConflict = errors.New("managed App asset content changed")
+	ErrAssetAlreadyExists   = errors.New("managed App asset already exists")
+	ErrAssetQuota           = errors.New("managed App asset quota exceeded")
+	ErrAssetTooLarge        = errors.New("managed App asset is too large")
+	ErrAssetUnavailable     = errors.New("managed App asset storage is unavailable")
+	ErrAssetCorrupt         = errors.New("managed App asset is corrupt")
+	ErrAssetCursorInvalid   = errors.New("managed App asset cursor is invalid")
+	ErrAssetMediaInvalid    = errors.New("managed App asset media type is invalid")
 )
 
 type AssetPolicy struct {
@@ -165,7 +166,7 @@ func (store *AssetStore) Write(
 	overwrite bool,
 	source io.ReadCloser,
 ) (AssetRecord, error) {
-	return store.write(ctx, owner, relativePath, mediaType, overwrite, source, nil, nil)
+	return store.write(ctx, owner, relativePath, mediaType, overwrite, source, nil, nil, "")
 }
 
 func (store *AssetStore) Adopt(
@@ -176,17 +177,17 @@ func (store *AssetStore) Adopt(
 	input VerifiedAssetInput,
 ) (AssetRecord, error) {
 	verification := &assetVerification{SizeBytes: input.SizeBytes, SHA256: strings.ToLower(strings.TrimSpace(input.SHA256))}
-	return store.write(ctx, owner, relativePath, input.MediaType, overwrite, input.Body, verification, nil)
+	return store.write(ctx, owner, relativePath, input.MediaType, overwrite, input.Body, verification, nil, "")
 }
 
-func (store *AssetStore) WriteGuarded(ctx context.Context, owner ManagedOwner, relativePath, mediaType string, overwrite bool, source io.ReadCloser, guard AssetCommitGuard) (AssetRecord, error) {
+func (store *AssetStore) WriteGuarded(ctx context.Context, owner ManagedOwner, relativePath, mediaType string, overwrite bool, source io.ReadCloser, guard AssetCommitGuard, expectedSHA256 string) (AssetRecord, error) {
 	if guard == nil {
 		if source != nil {
 			_ = source.Close()
 		}
 		return AssetRecord{}, ErrAssetUnavailable
 	}
-	return store.write(ctx, owner, relativePath, mediaType, overwrite, source, nil, guard)
+	return store.write(ctx, owner, relativePath, mediaType, overwrite, source, nil, guard, expectedSHA256)
 }
 
 // @nimi-authority: rule.nimi.runtime.app-surface.integration-asset-commit
@@ -198,7 +199,7 @@ func (store *AssetStore) AdoptGuarded(ctx context.Context, owner ManagedOwner, r
 		return AssetRecord{}, ErrAssetUnavailable
 	}
 	verification := &assetVerification{SizeBytes: input.SizeBytes, SHA256: strings.ToLower(strings.TrimSpace(input.SHA256))}
-	return store.write(ctx, owner, relativePath, input.MediaType, false, input.Body, verification, guard)
+	return store.write(ctx, owner, relativePath, input.MediaType, false, input.Body, verification, guard, "")
 }
 
 type assetVerification struct {
@@ -215,6 +216,7 @@ func (store *AssetStore) write(
 	source io.ReadCloser,
 	verification *assetVerification,
 	guard AssetCommitGuard,
+	expectedSHA256 string,
 ) (AssetRecord, error) {
 	if ctx == nil || source == nil {
 		return AssetRecord{}, ErrAssetUnavailable
@@ -267,6 +269,11 @@ func (store *AssetStore) write(
 	}
 	if existingErr != nil && !errors.Is(existingErr, ErrAssetNotFound) {
 		return AssetRecord{}, existingErr
+	}
+
+	// @nimi-authority: rule.nimi.runtime.app-surface.r043
+	if expectedSHA256 != "" && (existingErr != nil || existing.SHA256 != expectedSHA256) {
+		return AssetRecord{}, ErrAssetContentConflict
 	}
 
 	candidate, err := os.CreateTemp(candidatesRoot, ".asset-candidate-*")

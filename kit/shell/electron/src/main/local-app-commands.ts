@@ -1072,11 +1072,15 @@ function validatePayload(
       return { prefix, cursor: payload.cursor, pageSize };
     }
     case 'assetWriteOpen': {
-      assertExactKeys(payload, ['relativePath', 'mediaType', 'overwrite'], command);
+      assertAllowedKeys(payload, ['relativePath', 'mediaType', 'overwrite', 'expectedSha256'], ['relativePath', 'mediaType', 'overwrite'], command);
       const path = assetPathPayload({ relativePath: payload.relativePath }, command);
       const mediaType = payload.mediaType === '' ? '' : validAssetMediaType(payload.mediaType, command);
       if (typeof payload.overwrite !== 'boolean') throw invalidPayload(command, 'overwrite is invalid');
-      return { ...path, mediaType, overwrite: payload.overwrite };
+      const expectedSha256 = payload.expectedSha256;
+      if (expectedSha256 !== undefined && (typeof expectedSha256 !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(expectedSha256) || payload.overwrite)) {
+        throw invalidPayload(command, 'expectedSha256 is invalid');
+      }
+      return { ...path, mediaType, overwrite: payload.overwrite, ...(expectedSha256 === undefined ? {} : { expectedSha256 }) };
     }
     case 'assetWriteChunk': {
       assertExactKeys(payload, ['streamId', 'bodyChunk'], command);

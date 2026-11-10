@@ -13,7 +13,7 @@ export function createNimiAppRecordStore<T extends { readonly id: string }>(
   parse: (value: unknown) => T,
 ) {
   const path = (id: string) => `${prefix}/${encodeURIComponent(id)}.json`;
-  async function readPath(relativePath: string): Promise<T | null> {
+  async function readPath(relativePath: string): Promise<{ record: T; sha256: string } | null> {
     try {
       const source = await assets.read({ relativePath });
       const decoder = new TextDecoder('utf-8', { fatal: true });
@@ -27,7 +27,7 @@ export function createNimiAppRecordStore<T extends { readonly id: string }>(
       text += decoder.decode();
       const record = parse(JSON.parse(text));
       if (path(record.id) !== relativePath) throw new Error('Stored record identity does not match its path.');
-      return record;
+      return { record, sha256: source.asset.sha256 };
     } catch (error) {
       const code = (error as { reasonCode?: string; code?: string } | null)?.reasonCode
         ?? (error as { code?: string } | null)?.code;
@@ -36,27 +36,32 @@ export function createNimiAppRecordStore<T extends { readonly id: string }>(
       throw error;
     }
   }
+  async function listVersions() {
+    const records: { record: T; sha256: string }[] = [];
+    let cursor = '';
+    do {
+      const page = await assets.list({ prefix: `${prefix}/`, ...(cursor ? { cursor } : {}) });
+      for (const asset of page.assets) {
+        const record = await readPath(asset.relativePath);
+        if (record) records.push(record);
+      }
+      cursor = page.nextCursor;
+    } while (cursor);
+    return records;
+  }
   return {
-    read: (id: string) => readPath(path(id)),
-    async list(): Promise<T[]> {
-      const records: T[] = [];
-      let cursor = '';
-      do {
-        const page = await assets.list({ prefix: `${prefix}/`, ...(cursor ? { cursor } : {}) });
-        for (const asset of page.assets) {
-          const record = await readPath(asset.relativePath);
-          if (record) records.push(record);
-        }
-        cursor = page.nextCursor;
-      } while (cursor);
-      return records;
-    },
-    async write(record: T): Promise<void> {
+    read: async (id: string) => (await readPath(path(id)))?.record ?? null,
+    readVersion: (id: string) => readPath(path(id)),
+    list: async () => (await listVersions()).map(value => value.record),
+    listVersions,
+    // Omitted replaces unconditionally; null creates only; a digest replaces its exact content.
+    async write(record: T, expectedSha256?: string | null): Promise<void> {
       const normalized = parse(JSON.parse(JSON.stringify(record)));
       const body = new TextEncoder().encode(JSON.stringify(normalized));
       if (body.byteLength > MAX_RECORD_BYTES) throw new Error('App record exceeds 16 MiB.');
       await assets.write({ relativePath: path(normalized.id), mediaType: 'application/json',
-        body, overwrite: true });
+        body, overwrite: expectedSha256 === undefined,
+        ...(typeof expectedSha256 === 'string' ? { expectedSha256 } : {}) });
     },
     async remove(id: string): Promise<void> { await assets.remove(path(id)); },
   };

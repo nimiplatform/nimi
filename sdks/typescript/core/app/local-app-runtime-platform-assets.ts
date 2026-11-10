@@ -33,7 +33,7 @@ export type NimiLocalAppAssetReadResult = {
 export type NimiLocalAppAssetsShell = {
   readonly stat: (relativePath: string) => Promise<unknown>;
   readonly list: (input: { readonly prefix: string; readonly cursor?: string; readonly pageSize?: number }) => Promise<unknown>;
-  readonly write: (input: { readonly relativePath: string; readonly body: NimiLocalAppAssetBody; readonly mediaType?: string; readonly overwrite?: boolean }) => Promise<unknown>;
+  readonly write: (input: { readonly relativePath: string; readonly body: NimiLocalAppAssetBody; readonly mediaType?: string; readonly overwrite?: boolean; readonly expectedSha256?: string }) => Promise<unknown>;
   readonly read: (input: { readonly relativePath: string; readonly offset?: number; readonly length?: number }) => Promise<unknown>;
   readonly remove: (relativePath: string) => Promise<unknown>;
   readonly move: (input: { readonly from: string; readonly to: string; readonly overwrite?: boolean }) => Promise<unknown>;
@@ -44,7 +44,7 @@ export type NimiLocalAppAssetsShell = {
 export type NimiLocalAppAssetsClient = {
   readonly stat: (relativePath: string) => Promise<NimiLocalAppAssetRecord>;
   readonly list: (input: { readonly prefix: string; readonly cursor?: string; readonly pageSize?: number }) => Promise<{ readonly assets: readonly NimiLocalAppAssetRecord[]; readonly nextCursor: string }>;
-  readonly write: (input: { readonly relativePath: string; readonly body: NimiLocalAppAssetBody; readonly mediaType?: string; readonly overwrite?: boolean }) => Promise<NimiLocalAppAssetRecord>;
+  readonly write: (input: { readonly relativePath: string; readonly body: NimiLocalAppAssetBody; readonly mediaType?: string; readonly overwrite?: boolean; readonly expectedSha256?: string }) => Promise<NimiLocalAppAssetRecord>;
   readonly read: (input: { readonly relativePath: string; readonly offset?: number; readonly length?: number }) => Promise<NimiLocalAppAssetReadResult>;
   readonly remove: (relativePath: string) => Promise<{ readonly removed: boolean }>;
   readonly move: (input: { readonly from: string; readonly to: string; readonly overwrite?: boolean }) => Promise<NimiLocalAppAssetRecord>;
@@ -65,12 +65,14 @@ export function createNimiLocalAppAssetsClient(shell: NimiLocalAppAssetsShell): 
       return projectAssetList(await shell.list({ prefix, ...(cursor === undefined ? {} : { cursor }), ...(pageSize === undefined ? {} : { pageSize }) }));
     },
     write: async (input) => {
-      allowedKeys(input, ['relativePath', 'body', 'mediaType', 'overwrite'], ['relativePath', 'body']);
+      allowedKeys(input, ['relativePath', 'body', 'mediaType', 'overwrite', 'expectedSha256'], ['relativePath', 'body']);
       const relativePath = assetPath(input.relativePath);
       const body = assetBody(input.body);
       const mediaType = input.mediaType === undefined ? undefined : canonicalMediaType(input.mediaType);
       const overwrite = optionalBoolean(input.overwrite, 'overwrite');
-      return projectAssetRecord(await shell.write({ relativePath, body, ...(mediaType === undefined ? {} : { mediaType }), ...(overwrite === undefined ? {} : { overwrite }) }));
+      const expectedSha256 = input.expectedSha256;
+      if (expectedSha256 !== undefined && (typeof expectedSha256 !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(expectedSha256) || overwrite)) inputError('expectedSha256');
+      return projectAssetRecord(await shell.write({ relativePath, body, ...(expectedSha256 === undefined ? {} : { expectedSha256 }), ...(mediaType === undefined ? {} : { mediaType }), ...(overwrite === undefined ? {} : { overwrite }) }));
     },
     read: async (input) => {
       allowedKeys(input, ['relativePath', 'offset', 'length'], ['relativePath']);
