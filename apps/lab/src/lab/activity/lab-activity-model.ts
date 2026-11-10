@@ -37,8 +37,10 @@ export function labActivityBusinessDetail(record: NimiAppActivityRecord): LabAct
   return { kind: 'world-coauthor', worldName: worldName.trim(), task, suggestions: suggestionCount, notes: noteCount, adopted: adoptedCount };
 }
 
-export type LabActivityScope = 'open-todos' | 'all';
+export type LabActivityScope = 'open-todos' | 'updates' | 'all';
 
 export function labActivityFilter(scope: LabActivityScope) {
-  return scope === 'open-todos' ? { kind: 'todo' as const, todoStates: ['open' as const] } : {};
+  if (scope === 'open-todos') return { kind: 'todo' as const, todoStates: ['open' as const] };
+  if (scope === 'updates') return { kind: 'activity' as const };
+  return {};
 }

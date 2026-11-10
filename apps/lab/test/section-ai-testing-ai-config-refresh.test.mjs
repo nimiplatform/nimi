@@ -159,8 +159,8 @@ test('mounted media parameter fields refresh readiness after the in-app AIConfig
     assert.equal(button('AudioSeparate.chooseSource').disabled,false);
     assert.match(fields(), /StudioShell\.statusConfigured/);
     assert.deepEqual(reads, {
-      snapshot:beforeClose.snapshot+1,
-      config:beforeClose.config+1,
+      snapshot:beforeClose.snapshot+2,
+      config:beforeClose.config,
       recovery:beforeClose.recovery+1,
     });
 
@@ -201,8 +201,8 @@ test('a write that commits after the drawer closed still makes mounted fields ex
     assert.equal(button('AudioSeparate.chooseSource').disabled,false);
     assert.match(fields(), /StudioShell\.statusConfigured/);
     assert.deepEqual(reads, {
-      snapshot:afterClose.snapshot+1,
-      config:afterClose.config+1,
+      snapshot:afterClose.snapshot+2,
+      config:afterClose.config,
       recovery:afterClose.recovery+1,
     });
   } finally {
@@ -255,10 +255,10 @@ async function settleNewerReadFirst(section, write, ready) {
   await openDrawer();
   await act(async()=>{ drawerPanel().click(); await flush(); });
   const olderRead = deferred();
-  section.state.pendingSnapshots.push(olderRead);
+  section.state.pendingSnapshots.push(olderRead, olderRead);
   await closeDrawer();
   const newerRead = deferred();
-  section.state.pendingSnapshots.push(newerRead);
+  section.state.pendingSnapshots.push(newerRead, newerRead);
   section.state.snapshot = ready;
   await act(async()=>{ write.resolve({ outcome:'committed', config:ready.config, revision:ready.revision }); await flush(); });
   await act(async()=>{ newerRead.resolve(ready); await flush(); });

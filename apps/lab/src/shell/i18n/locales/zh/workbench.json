@@ -1,20 +1,25 @@
 {
   "Workbench": {
     "sideNavAriaLabel": "Nimi Lab 工作区导航",
-    "capabilityNavigationTitle": "AI 能力",
-    "capabilityNavigationDescription": "按能力分类浏览与测试",
+    "capabilityNavigationTitle": "实验目录",
+    "capabilityNavigationDescription": "AI 能力与伙伴工作流",
+    "searchCapabilities": "搜索功能或契约 ID",
+    "noMatchingCapabilities": "没有匹配的功能。",
+    "recentCapabilities": "最近使用",
+    "openRecentCapability": "打开最近使用的{{capability}}",
+    "nativeOnly": "仅原生",
     "groups": {
       "textConversation": "文本与对话",
       "imageVideo": "图像、视频与文件",
       "voiceMusic": "语音与音乐",
       "worlds": "世界与 3D",
-      "agents": "Agent 工作流",
+      "agents": "伙伴工作台",
       "workspace": "工作区"
     },
     "uiRecipes": "UI Recipes",
-    "agentCenter": "Agent 中心",
-    "agentConversation": "Agent 对话",
-    "agentRealtime": "Agent 实时交互"
+    "agentCenter": "伙伴中心",
+    "agentConversation": "伙伴对话",
+    "agentRealtime": "实时语音"
   },
   "Capabilities": {
     "worldGenerate": {
@@ -54,7 +59,7 @@
     "canceled": "生成已取消。",
     "noPendingWorld": "没有需要继续的世界生成任务。",
     "pendingInvalid": "已保存的世界任务标识无效。",
-    "pendingExists": "已有世界生成任务。请在“参数”中点击“继续上次生成”获取结果。",
+    "pendingExists": "已有世界生成任务。请点击「继续上次生成」获取结果。",
     "noSavedWorld": "请先生成一个世界，保存后可以随时重新打开。",
     "inputMode": "输入方式",
     "textInput": "文本",

@@ -18,6 +18,9 @@ export type StudioRunTargetSnapshot = {
   readonly status: StudioRunTargetStatus;
   readonly source: StudioRunTargetSource;
   readonly intentLabel: string;
+  readonly targetLabel?: string;
+  readonly targetRef?: string;
+  readonly configuredDefaults?: Readonly<Record<string, unknown>>;
   readonly detail: string;
   readonly params: Readonly<Record<string, unknown>>;
   readonly paramsSummary: readonly string[];
@@ -985,19 +988,19 @@ function hasRunConfigParam(value: unknown): boolean {
   return Boolean(value);
 }
 
-function runConfigParamDefinitions(runConfig: StudioRunConfigSnapshot): ReadonlyArray<{ key: string; label: string; group: string }> {
-  if (runConfig.target.capabilityId === 'text.generate' || runConfig.target.capabilityId === 'chat.stream') {
-    return TEXT_REQUEST_PARAM_ORDER;
-  }
-  return Object.keys(runConfig.target.params)
+function runConfigParamDefinitions(runConfig: StudioRunConfigSnapshot, params: Readonly<Record<string, unknown>>): ReadonlyArray<{ key: string; label: string; group: string }> {
+  const definitions = Object.keys(params)
     .filter((key) => !HIDDEN_REQUEST_PARAM_KEYS.includes(key as (typeof HIDDEN_REQUEST_PARAM_KEYS)[number]))
     .map((key) => ({ key, label: key, group: 'Request parameters' }));
+  if (runConfig.target.capabilityId === 'text.generate' || runConfig.target.capabilityId === 'chat.stream') {
+    return [...TEXT_REQUEST_PARAM_ORDER, ...definitions.filter(item => !TEXT_REQUEST_PARAM_ORDER.some(known => known.key === item.key))];
+  }
+  return definitions;
 }
 
-export function getStudioRunConfigParamRows(runConfig: StudioRunConfigSnapshot): StudioRunConfigParamRow[] {
-  const params = runConfig.target.params;
+export function getStudioRunConfigParamRows(runConfig: StudioRunConfigSnapshot, params = runConfig.target.params): StudioRunConfigParamRow[] {
   if (!isJsonObject(params)) return [];
-  return runConfigParamDefinitions(runConfig).flatMap((definition) => {
+  return runConfigParamDefinitions(runConfig, params).flatMap((definition) => {
     const value = params[definition.key];
     if (!hasRunConfigParam(value)) return [];
     const formatted = formatStudioRunConfigValue(value);
@@ -1014,7 +1017,7 @@ export function getStudioRunConfigParamRows(runConfig: StudioRunConfigSnapshot):
 export function getStudioRunIntentLabel(record: StudioRunHistoryRecord): string {
   const label = record.runConfig?.target.intentLabel?.trim();
   if (label) return label;
-  return getStudioRunStatusLabel(record.status);
+  return 'Unknown';
 }
 
 export function getStudioRunIntentSource(record: StudioRunHistoryRecord): StudioRunIntentSource {

@@ -1,11 +1,12 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNimiNavigationSnapshot } from '@nimiplatform/kit/ui/app-chrome';
 import { useLabNavigationOwner, type LabDestination } from '../shell/routes/app-navigation.js';
-import { InlineAlert, LoadingSkeleton, StatusBadge } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, LoadingSkeleton, StatusBadge, TextField } from '@nimiplatform/kit/ui';
 import { requireLabNativeClient } from '../shell/local-app-runtime-platform.js';
 import { AudioLines, Bot, Boxes, Cable, Inbox, MessagesSquare } from 'lucide-react';
 
 import { useAIStudioWorkspaceController } from '../ai-studio-core/index.js';
+import { STUDIO_AI_CONFIG_CHANGED_EVENT } from '../ai-studio-core/ai-config.js';
 import { useLabRendererHost } from '../renderer/context.js';
 import type { LabEcosystemReferenceProjection } from '../renderer/contract.js';
 import { NimiLabAccountMenu } from '../shell/account/account-panel.js';
@@ -75,6 +76,8 @@ type LabWorkbenchNavigationId = LabCapabilityId
   | 'integrations'
   | 'ui-recipes';
 
+const nativeOnlyNavigation = Object.freeze(['app-access', 'integrations', 'activity', 'agent-realtime', 'realtime.interact', 'world.generate']);
+
 export function LabWorkbench(_props: LabWorkbenchProps) {
   const rendererHost = useLabRendererHost();
   const { t } = useTranslation();
@@ -82,11 +85,16 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
   const owner = useLabNavigationOwner();
   const snapshot = useNimiNavigationSnapshot<LabDestination>();
   const destination = snapshot.current.destination;
+  const remoteCarrier = 'role' in rendererHost.sdk.localAppClient;
   const view: WorkbenchView = labCapabilities.some(item => item.id === destination.id)
     ? { kind: 'capability', capabilityId: destination.id as LabCapabilityId }
     : { kind: destination.id as Exclude<WorkbenchView['kind'], 'capability'> };
   const activeCapabilityId: LabCapabilityId = view.kind === 'capability' ? view.capabilityId : initialCapabilityId;
   const [summary, setSummary] = useState<LabAIConfigSummary | null>(null);
+  const summaryRequest = useRef(0);
+  const [navigationQuery, setNavigationQuery] = useState('');
+  const [collapsedGroups, setCollapsedGroups] = useState<Readonly<Record<string, boolean>>>({});
+  const [recentViews, setRecentViews] = useState<readonly LabWorkbenchNavigationId[]>([]);
   const [ecosystemReference, setEcosystemReference] = useState<LabEcosystemReferenceProjection | null>(
     () => rendererHost.app.projection.ecosystemReference(),
   );
@@ -105,9 +113,12 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
   });
 
   const refreshSummary = useCallback(async () => {
+    const request = ++summaryRequest.current;
     try {
-      setSummary(await rendererHost.app.projection.aiConfigSummary());
+      const next = await rendererHost.app.projection.aiConfigSummary();
+      if (request === summaryRequest.current) setSummary(next);
     } catch (error) {
+      if (request !== summaryRequest.current) return;
       setSummary({
         runtime: {
           status: 'unavailable',
@@ -118,7 +129,15 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
     }
   }, [rendererHost]);
 
-  useEffect(() => { void refreshSummary(); }, [refreshSummary]);
+  useEffect(() => {
+    const refresh = () => { void refreshSummary(); };
+    refresh();
+    window.addEventListener(STUDIO_AI_CONFIG_CHANGED_EVENT, refresh);
+    return () => {
+      summaryRequest.current += 1;
+      window.removeEventListener(STUDIO_AI_CONFIG_CHANGED_EVENT, refresh);
+    };
+  }, [refreshSummary]);
   useEffect(() => rendererHost.app.events.subscribe(
     'lab.ecosystem.reference-updated',
     (payload) => {
@@ -173,6 +192,11 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
       || view.kind === 'agent-realtime'
       ? view.kind
       : null;
+  useEffect(() => {
+    if (!activeNavigationId || !navigationGroups.some(group => group.items.some(item => item.id === activeNavigationId))) return;
+    setRecentViews((recent) => [activeNavigationId, ...recent.filter(id => id !== activeNavigationId)].slice(0, 4));
+  }, [activeNavigationId, navigationGroups]);
+
   const selectNavigationView = (id: LabWorkbenchNavigationId) => {
     if (id === 'app-access'
       || id === 'activity'
@@ -187,6 +211,25 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
     selectCapabilityView(id);
   };
 
+  const withCarrierAvailability = (item: WorkbenchNavigationItem<LabWorkbenchNavigationId>) => (
+    remoteCarrier && nativeOnlyNavigation.includes(item.id)
+      ? { ...item, detail: [item.detail, t('Workbench.nativeOnly')].filter(Boolean).join(' · ') }
+      : item
+  );
+  const query = navigationQuery.trim().toLocaleLowerCase();
+  const filteredNavigation = navigationGroups.flatMap(group => {
+    const items = group.items.filter(item => !query || [item.label, item.id, item.detail, group.label]
+      .some(value => value?.toLocaleLowerCase().includes(query)));
+    if (items.length === 0) return [];
+    return [{
+      ...group,
+      items: items.map(withCarrierAvailability),
+      collapsed: !query && collapsedGroups[group.id] === true,
+      onToggle: query ? undefined : () => setCollapsedGroups(current => ({ ...current, [group.id]: !current[group.id] })),
+    }];
+  });
+  const recentItems = recentViews.flatMap(id => navigationGroups.flatMap(group => group.items).filter(item => item.id === id));
+
   return (
     <WorkbenchCore
       sidebarVisible={owner.sidebarVisible}
@@ -195,29 +238,53 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
       navigationPresentation="catalog"
       navigationTitle={t('Workbench.capabilityNavigationTitle')}
       navigationDescription={t('Workbench.capabilityNavigationDescription')}
-      navigationGroups={navigationGroups}
-      bottomNavigationItems={bottomNavigationItems}
+      navigationToolbar={(
+        <>
+          <TextField
+            type="search"
+            value={navigationQuery}
+            aria-label={t('Workbench.searchCapabilities')}
+            placeholder={t('Workbench.searchCapabilities')}
+            onChange={event => setNavigationQuery(event.currentTarget.value)}
+          />
+          {!query && recentItems.length > 1 ? (
+            <details className="lab-navigation-recent">
+              <summary>{t('Workbench.recentCapabilities')}</summary>
+              <div>
+                {recentItems.map(item => (
+                  <Button key={item.id} type="button" size="sm" tone="ghost"
+                    aria-label={t('Workbench.openRecentCapability', { capability: item.label })}
+                    onClick={() => selectNavigationView(item.id)}>
+                    {item.label}
+                  </Button>
+                ))}
+              </div>
+            </details>
+          ) : null}
+        </>
+      )}
+      navigationEmpty={<p className="lab-navigation-empty" role="status">{t('Workbench.noMatchingCapabilities')}</p>}
+      navigationGroups={filteredNavigation}
+      bottomNavigationItems={bottomNavigationItems.map(withCarrierAvailability)}
       bottomNavigationLabel={t('Workbench.groups.workspace')}
       onSelectView={selectNavigationView}
       accountSlot={<NimiLabAccountMenu onOpenSettings={() => { void owner.navigation.push({ id: 'settings' }); }} />}
       rootTestId={labTestIds.root}
     >
-      {'role' in rendererHost.sdk.localAppClient && (
-        ['app-access', 'integrations', 'activity', 'agent-realtime'].includes(view.kind)
-        || (view.kind === 'capability' && ['realtime.interact', 'world.generate'].includes(view.capabilityId))
-      ) ? <div className="p-5"><InlineAlert tone="info">{t('Auth.web.nativeSurface')}</InlineAlert></div> : view.kind === 'settings' ? (
+      {remoteCarrier && activeNavigationId && nativeOnlyNavigation.includes(activeNavigationId)
+        ? <div className="p-5"><InlineAlert tone="info">{t('Auth.web.nativeSurface')}</InlineAlert></div> : view.kind === 'settings' ? (
         <Suspense fallback={<LoadingFallback />}><SettingsRoute /></Suspense>
       ) : view.kind === 'agent-center' ? (
         <Suspense fallback={<LoadingFallback />}>
-          <div className="h-full overflow-y-auto p-5"><AgentCenterCapability client={rendererHost.sdk.localAppClient} /></div>
+          <div className="lab-agent-route"><AgentCenterCapability client={rendererHost.sdk.localAppClient} /></div>
         </Suspense>
       ) : view.kind === 'agent-conversation' ? (
         <Suspense fallback={<LoadingFallback />}>
-          <div className="h-full overflow-y-auto p-5"><AgentConversationCapability client={rendererHost.sdk.localAppClient} /></div>
+          <div className="lab-agent-route"><AgentConversationCapability client={rendererHost.sdk.localAppClient} /></div>
         </Suspense>
       ) : view.kind === 'agent-realtime' ? (
         <Suspense fallback={<LoadingFallback />}>
-          <div className="h-full overflow-y-auto p-5"><AgentRealtimeCapability client={requireLabNativeClient(rendererHost.sdk.localAppClient)} /></div>
+          <div className="lab-agent-route"><AgentRealtimeCapability client={requireLabNativeClient(rendererHost.sdk.localAppClient)} /></div>
         </Suspense>
       ) : view.kind === 'integrations' ? (
         <Suspense fallback={<LoadingFallback />}><LabIntegrationsPanel recordAI={studioController.appendHistoryRecord} /></Suspense>

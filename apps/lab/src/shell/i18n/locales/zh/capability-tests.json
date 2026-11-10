@@ -330,6 +330,7 @@
       },
       "control": "{{lifecycle}} · 背压 {{backpressure}} · 缓冲 {{buffered}}/{{capacity}}",
       "inputSection": "输入与控制",
+      "openToSendInput": "打开会话后可发送文本、使用麦克风或提交所选录音。",
       "textInput": "文本输入",
       "sendText": "发送文本",
       "startMic": "开启麦克风",

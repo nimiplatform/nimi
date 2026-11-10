@@ -10,7 +10,7 @@ export const studioVoiceDescriptors = Object.freeze([
   {
     id: 'audio.transcribe', label: 'Speech Transcribe', labelKey: 'Capabilities.audioTranscribe.label', group: 'audio',
     section: 'stt',
-    summary: 'Audio URL → audio.transcribe Scenario Job → typed transcript result.', summaryKey: 'Capabilities.audioTranscribe.summary',
+    summary: 'Audio file or HTTPS URL → audio.transcribe Scenario Job → typed transcript result.', summaryKey: 'Capabilities.audioTranscribe.summary',
     surface: 'kit.runRuntimeSpeechTranscribe → sdk.localApp.ai.scenarioJobs + artifacts', execution: 'runtime-sdk', capabilityContract: 'audio.transcribe',
   },
   {

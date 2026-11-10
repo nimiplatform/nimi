@@ -27,6 +27,7 @@ export type CapabilityStudioProfile = {
   readonly footnoteKey: string;
   readonly statusLabelKey?: string;
   readonly pendingLabelKey?: string;
+  readonly primaryParameters?: 'all' | 'partial';
   // The capability runs only when its parameter panel supplies the input
   // (for example selected media) rather than the composer prompt.
   readonly requiresParameterInput?: boolean;

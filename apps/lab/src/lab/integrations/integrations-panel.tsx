@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Button, InlineAlert, SelectField, Surface } from '@nimiplatform/kit/ui';
+import { Button, InlineAlert, LoadingSkeleton, SelectField, Surface } from '@nimiplatform/kit/ui';
+import { Cable, RefreshCw } from 'lucide-react';
 import { openDesktopIntent } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { NimiIntegrationCall, NimiIntegrationTarget } from '@nimiplatform/sdk/app';
 import { useLabRendererHost } from '../../renderer/context.js';
@@ -26,6 +27,7 @@ type ReceivedBatch = { target:NimiIntegrationTarget; input:string; call:NimiInte
 export function LabIntegrationsPanel({ recordAI }: { recordAI: (record: StudioRunHistoryRecord) => Promise<void> }) {
   const host = useLabRendererHost(); const client = requireLabNativeClient(host.sdk.localAppClient).integration; const { t, i18n } = useTranslation();
   const [targets,setTargets] = useState<readonly NimiIntegrationTarget[]>([]);
+  const [connectionsLoading,setConnectionsLoading] = useState(true);
   const [targetRef,setTargetRef] = useState(''); const [operation,setOperation] = useState(''); const [input,setInput] = useState('{}');
   const [history,setHistory] = useState<readonly LabIntegrationHistoryRecord[]>([]); const [call,setCall] = useState<NimiIntegrationCall | null>(null);
   const [busy,setBusy] = useState(false); const [error,setError] = useState(''); const [notice,setNotice] = useState('');
@@ -68,8 +70,9 @@ export function LabIntegrationsPanel({ recordAI }: { recordAI: (record: StudioRu
   const refresh = async () => {
     const request = ++refreshVersion.current;
     const current = () => active.current&&sameView()&&refreshVersion.current===request;
+    setConnectionsLoading(true);
     await Promise.all([
-      client.listConnections().then(next=>{if(current()){setTargets(next);setRefreshError('');setScopeNotice(false);}},cause=>{if(current())setRefreshError(errorText(cause));}),
+      client.listConnections().then(next=>{if(current()){setTargets(next);setRefreshError('');setScopeNotice(false);}},cause=>{if(current())setRefreshError(errorText(cause));}).finally(()=>{if(current())setConnectionsLoading(false);}),
       host.app.projection.integrationHistory().then(saved=>{if(current()){setHistory(saved);setHistoryError('');}},cause=>{if(current())setHistoryError(errorText(cause));}),
     ]);
   };
@@ -79,6 +82,7 @@ export function LabIntegrationsPanel({ recordAI }: { recordAI: (record: StudioRu
       if(currentHost.current!==host)return;
       scopeVersion.current++;displayVersion.current++;exportBusy.current=false;setExported(null);setExporting(false);setExportError('');waiting.current?.controller.abort();receiving.current?.controller.abort();waiting.current=null;receiving.current=null;
       if(!active.current)return;
+      setConnectionsLoading(false);
       setBusy(false);setReceivingBusy(false);setAssetBusy(false);receivedBatches.current.clear();
       historyWork.invalidate();setHistoryBusy([]);
       setEvents([]);setReceivedCount(0);setCall(null);setReceiveCall(null);setReceiveNotice('');setReceiveError('');setCallInput('');setTargets([]);setTargetRef('');setOperation('');setInput('{}');setHistory([]);setSavedRecordId('');setError('');setNotice('');setRefreshError('');setHistoryError('');setScopeNotice(true);
@@ -188,27 +192,45 @@ export function LabIntegrationsPanel({ recordAI }: { recordAI: (record: StudioRu
     catch {if(active.current&&sameView())setExportError(t('Integrations.exportSavedRevealFailed',{path}));}
     finally {if(active.current&&sameView()){exportBusy.current=false;setExporting(false);}}
   };
-  return <div className="h-full overflow-y-auto p-5" data-testid="lab-integrations-panel"><div className="mx-auto flex max-w-5xl flex-col gap-5">
-    <header><h1 className="text-2xl font-semibold">{t('Integrations.title')}</h1><p className="mt-2 text-sm text-[var(--nimi-text-secondary)]">{t('Integrations.description')}</p></header>
+  const manageConnections = () => {
+    setError('');
+    setNotice('');
+    void openDesktopIntent({intent:{kind:'open-integrations'}}).then(result=>{
+      if(result.status==='rejected')throw new Error(t('Integrations.openRejected',{reason:result.reasonCode}));
+      setNotice(t('Integrations.returnRefresh'));
+    }).catch(report);
+  };
+  return <div className="lab-workspace-route" data-testid="lab-integrations-panel"><div className="mx-auto flex max-w-5xl flex-col gap-5">
+    <header className="lab-workspace-heading">
+      <span className="lab-workspace-heading__icon" aria-hidden="true"><Cable size={22} /></span>
+      <div><h1>{t('Integrations.title')}</h1><p>{t('Integrations.description')}</p></div>
+    </header>
     {scopeNotice?<InlineAlert tone="warning">{t('Integrations.sessionEnded')}</InlineAlert>:null}
     {refreshError?<InlineAlert tone="warning">{refreshError}</InlineAlert>:null}
     {error?<InlineAlert tone="warning">{error}</InlineAlert>:null}{notice?<InlineAlert tone="info">{notice}</InlineAlert>:null}
-    <div className="flex flex-wrap gap-3"><Button tone="secondary" disabled={locked} onClick={()=>void refresh()}>{t('Integrations.refresh')}</Button><Button tone="secondary" onClick={()=>{setError('');setNotice('');void openDesktopIntent({intent:{kind:'open-integrations'}}).then(result=>{if(result.status==='rejected')throw new Error(t('Integrations.openRejected',{reason:result.reasonCode}));setNotice(t('Integrations.returnRefresh'));}).catch(report);}}>{t('Integrations.manageInHome')}</Button></div>
-    {!targets.length?<InlineAlert tone="info">{t('Integrations.empty')}</InlineAlert>:null}
     <Surface tone="panel" className="flex flex-col gap-4">
-      <label className="text-sm">{t('Integrations.target')}<SelectField data-testid="integration-target" placeholder={t('Integrations.selectTarget')} disabled={locked} value={targetRef} options={targets.map(item=>({value:item.targetRef,label:`${item.displayName}${item.accountLabel&&!item.displayName.includes(item.accountLabel)?` · ${item.accountLabel}`:''}`}))} onValueChange={changeTarget}/></label>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h2 className="m-0 text-lg font-semibold">{t('Integrations.connectionsTitle')}</h2>
+        <div className="flex flex-wrap gap-2">
+          <Button size="sm" tone="ghost" leadingIcon={<RefreshCw size={14} aria-hidden="true" />} disabled={locked || connectionsLoading} onClick={()=>void refresh()}>{t('Integrations.refresh')}</Button>
+          <Button size="sm" tone={targets.length ? 'secondary' : 'primary'} onClick={manageConnections}>{t('Integrations.manageInHome')}</Button>
+        </div>
+      </div>
+      {!targets.length && connectionsLoading ? <LoadingSkeleton lines={2} label={t('Integrations.loadingConnections')} /> : null}
+      {!targets.length && !connectionsLoading && !refreshError && !scopeNotice ? <p className="m-0 text-sm text-[var(--nimi-text-secondary)]">{t('Integrations.empty')}</p> : null}
+      {targets.length ? <label className="text-sm">{t('Integrations.target')}<SelectField data-testid="integration-target" placeholder={t('Integrations.selectTarget')} disabled={locked} value={targetRef} options={targets.map(item=>({value:item.targetRef,label:`${item.displayName}${item.accountLabel&&!item.displayName.includes(item.accountLabel)?` · ${item.accountLabel}`:''}`}))} onValueChange={changeTarget}/></label> : null}
       {target&&!target.available?<InlineAlert tone="warning">{t('Integrations.connectionUnavailable')}</InlineAlert>:null}
       {target&&!target.permittedOperations.length?<InlineAlert tone="info">{t('Integrations.permissionRequired')}</InlineAlert>:null}
       {target&&['weixin','feishu','qq-official','onebot-v11'].includes(target.kind)?<NativeMessagePanel key={target.targetRef} target={target} busy={locked} receiving={receivingBusy} stopping={receiveStopping} stopReceiving={stopReceiving} receiveStatus={receiveCall?`${t(`Integrations.states.${receiveCall.status}`)} · ${receiveCall.callId}${receiveCall.errorCode?` · ${t(`Integrations.errors.${receiveCall.errorCode}`,{defaultValue:receiveCall.errorCode})}`:''}`:''} receiveNotice={receiveNotice} receiveError={receiveError} receivedCount={receivedCount} events={events} saveReceived={saveReceived} setSaveReceived={setSaveReceived} setAssetBusy={setAssetBusy} saveEvent={saveReceivedBatch} invoke={invoke} recordAI={recordAI} recordReplyCall={(inputJson,next)=>save(target,inputJson,next)} report={report}/>:null}
-      <details className="text-sm"><summary>{t('Integrations.advancedOperations')}</summary>
+      {target ? <details className="text-sm"><summary className="cursor-pointer">{t('Integrations.advancedOperations')}</summary>
       <label className="mt-3 block text-sm">{t('Integrations.operation')}<SelectField data-testid="integration-operation" placeholder={t('Integrations.selectOperation')} disabled={locked} value={operation} options={(target?.operations??[]).map(item=>({value:item.name,label:`${item.name} · ${t(`Integrations.effects.${item.effect}`)}`,disabled:!target?.permittedOperations.includes(item.name)}))} onValueChange={value=>{setOperation(value);setInput('{}');}}/></label>
       {descriptor?<><p className="text-sm">{descriptor.description}</p><details className="text-sm"><summary>{t('Integrations.inputSchema')}</summary><pre className="mt-2 overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(JSON.parse(descriptor.inputSchemaJson),null,2)}</pre></details></>:null}
       <label className="text-sm">{t('Integrations.input')}<textarea className={`${field} min-h-40 font-mono`} value={input} maxLength={256*1024} disabled={locked} onChange={event=>setInput(event.target.value)}/></label>
       <p className="text-xs text-[var(--nimi-text-secondary)]">{t('Integrations.noResend')}</p>
       <p className="text-xs text-[var(--nimi-text-secondary)]">{t('Integrations.bodyPrivacy')}</p>
       <Button className="mt-3" disabled={busy || !target?.available || !descriptor || !target.permittedOperations.includes(operation)} onClick={()=>void invoke()}>{t('Integrations.invoke')}</Button>
-      </details>
-      <Button tone="secondary" disabled={!busy} onClick={()=>void stop()}>{t('Integrations.stop')}</Button>
+      </details> : null}
+      {busy ? <div><Button size="sm" tone="secondary" onClick={()=>void stop()}>{t('Integrations.stop')}</Button></div> : null}
       {call?<div data-testid="integration-call"><p className="text-sm" role="status" aria-live="polite" aria-atomic="true">{t(`Integrations.states.${call.status}`)} · {call.callId}{call.errorCode?` · ${t(`Integrations.errors.${call.errorCode}`,{defaultValue:call.errorCode})}`:''}</p>{receipt?<div className="mt-2 text-sm"><p>{t(`Integrations.confirmations.${receipt.confirmation}`)}</p><p>{receipt.messageId?`${t('Integrations.nativeMessageId')}: ${receipt.messageId}`:t('Integrations.noNativeMessageId')}</p><p className="mt-1 text-xs">{t('Integrations.receiptBoundary')}</p></div>:null}{call.status==='unconfirmed'?<InlineAlert tone="warning">{t('Integrations.noResend')}</InlineAlert>:null}{call.resultJson?<pre className="mt-3 max-h-96 overflow-auto whitespace-pre-wrap text-xs">{JSON.stringify(JSON.parse(call.resultJson),null,2)}</pre>:null}{history.find(record=>record.callId===call.callId)?<HistoricalIntegrationAssets record={history.find(record=>record.callId===call.callId)!}/>:null}<Button className="mt-3" size="sm" tone="secondary" disabled={locked} onClick={()=>void savePrivateBody()}>{t('Integrations.saveBody')}</Button></div>:null}
     </Surface>
     <IntegrationAssetsPanel busy={locked} setAssetBusy={setAssetBusy}/>

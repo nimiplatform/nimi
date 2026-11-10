@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
@@ -84,7 +85,15 @@ function createStorageClient() {
       async read({ relativePath }) {
         if (!records.has(relativePath)) throw { reasonCode: 'APP_STORAGE_ENTRY_NOT_FOUND' };
         const bytes = new TextEncoder().encode(JSON.stringify(records.get(relativePath)));
-        return { body: (async function* () { yield bytes; })() };
+        return {
+          asset: {
+            relativePath,
+            mediaType: 'application/json',
+            sizeBytes: bytes.byteLength,
+            sha256: `sha256:${createHash('sha256').update(bytes).digest('hex')}`,
+          },
+          body: (async function* () { yield bytes; })(),
+        };
       },
       async write({ relativePath, body }) { const value = JSON.parse(new TextDecoder().decode(body)); records.set(relativePath, value); writes.push({ relativePath, value }); return {}; },
       async remove(path) { return { removed: records.delete(path) }; },
@@ -365,7 +374,11 @@ test('run history persists optional snapshots, reloads them, and retries idempot
   const storage = createStorageClient();
   globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__ = storage.client;
   try {
-    const record = runRecord('run-1', '2026-08-08T08:00:00.000Z');
+    const base = runRecord('run-1', '2026-08-08T08:00:00.000Z');
+    const record = { ...base, runConfig: {
+      ...base.runConfig,
+      target: { ...base.runConfig.target, targetRef: 'test-model', configuredDefaults: { temperature: 0, topP: 0.8 } },
+    } };
     await historyStorageModule.appendLabRunHistory(record);
     await historyStorageModule.appendLabRunHistory({ ...record, message: 'updated-message' });
 
@@ -379,6 +392,9 @@ test('run history persists optional snapshots, reloads them, and retries idempot
     const reloaded = await historyStorageModule.loadLabRunHistory();
     assert.equal(reloaded['text.generate'].length, 1);
     assert.equal(reloaded['text.generate'][0].id, 'run-1');
+    assert.equal(reloaded['text.generate'][0].runConfig.target.targetRef, 'test-model');
+    assert.deepEqual(reloaded['text.generate'][0].runConfig.target.configuredDefaults, { temperature: 0, topP: 0.8 });
+    assert.deepEqual(reloaded['text.generate'][0].runConfig.target.params, { temperature: 0.7 });
   } finally {
     delete globalThis.__NIMI_LAB_HISTORY_STORAGE_CLIENT__;
   }

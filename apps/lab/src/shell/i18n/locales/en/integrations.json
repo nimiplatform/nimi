@@ -6,8 +6,10 @@
       "root": "Root message"
     },
     "title": "Integrations",
-    "description": "Use shared connections as an ordinary App. Home configures accounts and permissions; Lab sends only the request you enter.",
-    "refresh": "Refresh",
+    "description": "Test the connections configured and granted in Nimi Home.",
+    "refresh": "Refresh connections",
+    "connectionsTitle": "Available connections",
+    "loadingConnections": "Checking connections…",
     "sessionEnded": "This App session ended. Refresh to load the current connections and history. Previous operations won't retry automatically.",
     "manageInHome": "Manage connections in Home",
     "returnRefresh": "Home accepted the navigation. Return here and refresh after granting access.",

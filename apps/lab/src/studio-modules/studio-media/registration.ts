@@ -59,6 +59,7 @@ export const studioMediaModule = Object.freeze({
       descriptor: studioMediaDescriptors[1],
       icon: Video,
       profile: {
+        primaryParameters: 'partial',
         studioTag: 'Video', inputTitleKey: 'Studio.profiles.videoGenerate.inputTitle', inputPlaceholderKey: 'Studio.profiles.videoGenerate.inputPlaceholder', inputKind: 'prompt', supportsAttachments: false, controls: [], primaryLabelKey: 'Studio.profiles.videoGenerate.primaryLabel', primaryRunningLabelKey: 'Studio.profiles.videoGenerate.primaryRunningLabel', resultTitle: 'Generated clip', emptyTitleKey: 'Studio.profiles.videoGenerate.emptyTitle', emptyHintKey: 'Studio.profiles.videoGenerate.emptyHint', resultKind: 'artifacts', footnoteKey: 'Studio.profiles.videoGenerate.footnote',
       },
       preset: { id: 'clip-sample', label: 'Clip sample', prompt: 'Create a short inspection clip for a Nimi App glass UI workflow.' },

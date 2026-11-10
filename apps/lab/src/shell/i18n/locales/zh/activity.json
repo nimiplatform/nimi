@@ -1,22 +1,27 @@
 {
   "Activity": {
     "title": "应用活动",
-    "blurb": "这里汇总了各应用发往当前账户的活动与待办，通过所有应用共用的公共客户端读取。在此浏览不会将任何内容标为已读。",
+    "blurb": "查看当前 Nimi 账号收到的待办、应用更新和伙伴回复。",
+    "readHint": "浏览不会自动标为已读。",
     "scopeLabel": "活动范围",
     "scope": {
       "openTodos": "未完成待办",
+      "updates": "动态",
       "all": "全部活动"
     },
     "unavailable": "暂时无法读取应用活动。",
     "retry": "重试",
     "emptyOpen": "应用里没有未完成的待办。",
+    "emptyUpdates": "暂无动态。",
     "emptyAll": "暂无应用活动。",
     "loadMore": "加载更多",
+    "loadMoreFailed": "未能读取更早的活动，已显示的记录仍可查看。",
     "unread": "未读",
     "needsAttention": "需要关注",
     "markRead": "标为已读",
     "readFailed": "未能标为已读，请重试。",
-    "open": "在 {{source}} 中打开",
+    "open": "打开原应用：{{source}}",
+    "openSource": "打开原应用",
     "technicalDetails": "技术详情",
     "runtimeTurnTitle": "在对话中回复了你",
     "state": {

@@ -15,11 +15,29 @@ function errorMessage(error: unknown): string {
 
 export function SettingsRoute() {
   const rendererHost = useLabRendererHost();
-  const [localDrafts, setLocalDrafts] = useState(true);
+  const [draftPersistence, setDraftPersistence] = useState(() => rendererHost.app.projection.preferences().draftPersistence);
+  const [savingDraftPreference, setSavingDraftPreference] = useState(false);
+  const [draftPreferenceError, setDraftPreferenceError] = useState<string | null>(null);
   const [notificationProjection, setNotificationProjection] = useState<NotificationProjectionState>({ status: 'idle', unread: null, error: null });
   const [notificationListProjection, setNotificationListProjection] = useState<NotificationListProjectionState>({ status: 'idle', list: null, error: null });
   const [accountSettingsProjection, setAccountSettingsProjection] = useState<AccountSettingsProjectionState>({ status: 'idle', eligibility: null, error: null });
   const [humanChatProjection, setHumanChatProjection] = useState<HumanChatProjectionState>({ status: 'idle', chats: null, error: null });
+
+  const saveDraftPreference = async (enabled: boolean) => {
+    setSavingDraftPreference(true);
+    setDraftPreferenceError(null);
+    try {
+      await rendererHost.app.commands.savePreferences({
+        ...rendererHost.app.projection.preferences(),
+        draftPersistence: enabled,
+      });
+      setDraftPersistence(enabled);
+    } catch {
+      setDraftPreferenceError(t('Settings.draftPreferenceError'));
+    } finally {
+      setSavingDraftPreference(false);
+    }
+  };
 
   const refreshNotificationProjection = async () => {
     setNotificationProjection((current) => ({ status: 'loading', unread: current.unread, error: null }));
@@ -67,8 +85,10 @@ export function SettingsRoute() {
 
   return (
     <SettingsRouteView
-      localDrafts={localDrafts}
-      setLocalDrafts={setLocalDrafts}
+      draftPersistence={draftPersistence}
+      savingDraftPreference={savingDraftPreference}
+      draftPreferenceError={draftPreferenceError}
+      onDraftPersistenceChange={saveDraftPreference}
       notificationProjection={notificationProjection}
       refreshNotificationProjection={refreshNotificationProjection}
       notificationListProjection={notificationListProjection}

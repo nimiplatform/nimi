@@ -6,7 +6,12 @@ import type { StudioCapabilityRunResult } from './runtime-types.js';
 import type { StudioRunHistoryRecord } from './history.js';
 import { forgetStudioJobRecovery, readStudioJobRecovery, type StudioJobRecoveryEntry, type StudioJobRecoveryCapability } from './job-recovery.js';
 
-export function StudioJobRecoveryPanel({ disabled, capability = 'music.generate', onSelectHistoryRun }: { readonly disabled: boolean; readonly capability?: StudioJobRecoveryCapability; readonly onSelectHistoryRun?: (record: StudioRunHistoryRecord) => void }) {
+export function StudioJobRecoveryPanel({ disabled, capability = 'music.generate', history, onSelectHistoryRun }: {
+  readonly disabled: boolean;
+  readonly capability?: StudioJobRecoveryCapability;
+  readonly history?: readonly StudioRunHistoryRecord[];
+  readonly onSelectHistoryRun?: (record: StudioRunHistoryRecord) => void;
+}) {
   const host = useAIStudioHost();
   const { translate: t } = host;
   const commitResult = useContext(StudioHistoryResultContext);
@@ -75,19 +80,22 @@ export function StudioJobRecoveryPanel({ disabled, capability = 'music.generate'
     }
     finally { if (observation.current === view) { abort.current = null; observation.current = null; if (!view.signal.aborted) setBusy(false); } }
   }
-  if (!entries.length && !error) return null;
+  const visibleEntries = entries.filter((entry) => !entry.result?.ok || !history?.some((record) => (
+    record.result?.ok && 'jobId' in record.result && record.result.jobId === entry.jobId
+  )));
+  if (!visibleEntries.length && !error && !busy) return null;
   const summaryState = busy ? t('Music.recovering')
     : error || (result && !result.ok) ? t('Music.recoveryNeedsAttention')
     : result?.ok ? t('Music.recovered') : '';
   return <details ref={panel} className="studio-recovery" aria-label={t('Music.recoveryTitle')}>
     <summary>
-      {t('Music.recoveryTitle')} <span>({entries.length})</span>
+      {t('Music.recoveryTitle')} <span>({visibleEntries.length})</span>
       {summaryState ? <span className="studio-recovery__state" role="status" title={summaryState}>{summaryState}</span> : null}
     </summary>
     <div className="studio-recovery__body">
     <p className="text-sm opacity-70">{t('Music.recoveryHint')}</p>
     <div className="max-h-48 space-y-2 overflow-y-auto">
-      {[...entries].reverse().map((entry) => <div key={entry.clientSubmissionId} className="flex flex-wrap items-center gap-2">
+      {[...visibleEntries].reverse().map((entry) => <div key={entry.clientSubmissionId} className="flex flex-wrap items-center gap-2">
         <time dateTime={entry.createdAt}>{new Date(entry.createdAt).toLocaleString(host.locale)}</time>
         <Button disabled={disabled || busy} onClick={() => void recover(entry)}>{t(entry.result ? 'Music.openSaved' : 'Music.recover')}</Button>
         <Button disabled={disabled || busy} onClick={() => void forgetStudioJobRecovery(host.sdk.storage, entry.clientSubmissionId, capability).then(() => {

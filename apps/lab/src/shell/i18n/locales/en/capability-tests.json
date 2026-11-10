@@ -330,6 +330,7 @@
       },
       "control": "{{lifecycle}} · backpressure {{backpressure}} · buffer {{buffered}}/{{capacity}}",
       "inputSection": "Input and controls",
+      "openToSendInput": "Open a session to send text, use the microphone, or submit the selected recording.",
       "textInput": "Text input",
       "sendText": "Send text",
       "startMic": "Start microphone",

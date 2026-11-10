@@ -89,11 +89,11 @@ async function runSpeechTranscribe(context: StudioCapabilityRuntimeContext) {
   }
   const parameters = context.input.parameters as StudioSpeechTranscribeParameters | undefined;
   if (!context.prompt && !parameters?.audioFile) return inputRequired(context);
-  if (parameters?.audioFile && parameters.audioFile.sizeBytes > MAX_STUDIO_AUDIO_UPLOAD_BYTES) {
+  if (parameters?.audioFile && (parameters.audioFile.bytes.byteLength === 0 || parameters.audioFile.bytes.byteLength > MAX_STUDIO_AUDIO_UPLOAD_BYTES)) {
     return context.host.nonSuccess(
       context.capability,
       'input-invalid',
-      'Speech transcription audio files must not exceed 32 MiB.',
+      'Speech transcription requires a non-empty audio file up to 32 MiB.',
     );
   }
   const inferredMimeType = context.prompt ? audioMimeTypeFromUrl(context.prompt) : null;

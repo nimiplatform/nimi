@@ -32,22 +32,27 @@ export function StudioParameterPanelFrame({
   translate,
   disabled,
   onReset,
+  primary,
   children,
 }: {
   readonly translate: StudioParameterTranslate;
   readonly disabled: boolean;
   readonly onReset: () => void;
+  readonly primary?: ReactNode;
   readonly children: ReactNode;
 }) {
   return (
     <section className="studio-parameters" aria-label={translate('Studio.parameters.title')}>
-      <div className="studio-parameters__head">
-        <span>{translate('Studio.parameters.presenceHint')}</span>
-        <Button type="button" tone="ghost" size="sm" disabled={disabled} onClick={onReset}>
-          {translate('Studio.parameters.reset')}
-        </Button>
+      {primary}
+      <div className="studio-parameters__advanced">
+        <div className="studio-parameters__head">
+          <span>{translate('Studio.parameters.presenceHint')}</span>
+          <Button type="button" tone="ghost" size="sm" disabled={disabled} onClick={onReset}>
+            {translate('Studio.parameters.reset')}
+          </Button>
+        </div>
+        {children}
       </div>
-      {children}
     </section>
   );
 }

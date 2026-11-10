@@ -6,8 +6,10 @@
       "root": "会话根消息"
     },
     "title": "Integrations",
-    "description": "作为普通 App 使用共享连接。账号和权限由 Home 管理，Lab 只执行你填写的请求。",
-    "refresh": "刷新",
+    "description": "用 Lab 测试在 Nimi Home 配置并授权的连接。",
+    "refresh": "刷新连接",
+    "connectionsTitle": "可用连接",
+    "loadingConnections": "正在检查连接…",
     "sessionEnded": "本次 App 会话已结束。请刷新以加载当前连接与历史；原操作不会自动重试。",
     "manageInHome": "在 Home 管理连接",
     "returnRefresh": "Home 已响应跳转。完成授权后请返回此处刷新。",

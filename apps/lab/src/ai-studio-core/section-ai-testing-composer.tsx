@@ -1,5 +1,5 @@
 import { useId, useState, type ChangeEvent, type ReactNode } from 'react';
-import { Button, IconButton, InlineAlert, NimiText, TextareaField, Tooltip } from '@nimiplatform/kit/ui';
+import { Button, IconButton, InlineAlert, NimiText, TextareaField } from '@nimiplatform/kit/ui';
 import { ArrowUp, Paperclip, Play, Plus, RefreshCw, ScanSearch, SlidersHorizontal, X } from 'lucide-react';
 import type { BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
 import { useAIStudioHost } from './host-context.js';
@@ -37,6 +37,7 @@ function IntentSummaryChip({
       leadingIcon={<SlidersHorizontal size={15} aria-hidden="true" />}
       onClick={onOpen}
       aria-label={t('Studio.composer.openIntentConfig')}
+      title={label}
     >
       {label}
     </Button>
@@ -61,6 +62,8 @@ export function TextStudioComposer({
   parameterPanel,
   parametersActive = false,
   hasAlternativeInput = false,
+  promptEnabled = true,
+  inputIssue,
   onPromptChange,
   onContextChange,
   onOpenIntentConfig,
@@ -83,6 +86,8 @@ export function TextStudioComposer({
   parameterPanel?: ReactNode;
   parametersActive?: boolean;
   hasAlternativeInput?: boolean;
+  promptEnabled?: boolean;
+  inputIssue?: string;
   onPromptChange: (value: string) => void;
   onContextChange: (value: string) => void;
   onOpenIntentConfig?: () => void;
@@ -93,13 +98,14 @@ export function TextStudioComposer({
   const profile = registration.profile;
   const isVisionLocate = capability.id === 'vision.locate';
   const queryInputId = useId();
+  const inputIssueId = useId();
   const isReadOnlyComposer = profile.inputKind === 'none';
   const requiresPrompt = !isReadOnlyComposer;
   const contextAttached = Boolean(context.trim());
   const supportsContext = requiresPrompt && !usesVerbatimStudioPrompt(capability.id) && !profile.rawPrompt;
   const [contextOpen, setContextOpen] = useState(false);
   const [parametersOpen, setParametersOpen] = useState(false);
-  const promptReady = hasStudioCapabilityRunInput({ requiresPrompt, prompt, hasAlternativeInput })
+  const promptReady = !inputIssue && hasStudioCapabilityRunInput({ requiresPrompt, prompt: promptEnabled ? prompt : '', hasAlternativeInput })
     && ((capability.id !== 'music.transcribe' && capability.id !== 'audio.voice.convert' && capability.id !== 'audio.separate') || hasAlternativeInput)
     && (!profile.requiresParameterInput || hasAlternativeInput)
     && (!isVisionLocate || (attachments.length === 1 && attachments[0]?.kind === 'image'));
@@ -112,6 +118,10 @@ export function TextStudioComposer({
     : intentConfigAction
       ? t('Studio.composer.configureIntent')
       : t(profile.primaryLabelKey);
+  const visibleInputIssue = running ? undefined : inputIssue ?? (!promptReady ? t('Studio.composer.inputRequired') : undefined);
+  const hasPromptField = !isReadOnlyComposer && promptEnabled;
+  const hasAttachmentControls = profile.supportsAttachments && !isVisionLocate;
+  const canRunFromPrompt = hasPromptField && !intentConfigAction && !generateDisabled;
   const composerBar = (
     <div className="studio-composer__bar">
       <div className="studio-composer__controls">
@@ -128,7 +138,7 @@ export function TextStudioComposer({
             {contextAttached ? t('Studio.composer.contextAttached') : t('Studio.composer.context')}
           </Button>
         ) : null}
-        {parameterPanel && !isVisionLocate ? (
+        {parameterPanel && !isVisionLocate && profile.primaryParameters !== 'all' ? (
           <Button
             type="button"
             tone="ghost"
@@ -141,74 +151,38 @@ export function TextStudioComposer({
             {t('Studio.parameters.title')}
           </Button>
         ) : null}
-      </div>
-      <div className="studio-composer__actions">
-        <IntentSummaryChip
-          label={intentLabel}
-          onOpen={onOpenIntentConfig}
-          configurable={intentConfigurable && Boolean(onOpenIntentConfig)}
-        />
-        {profile.supportsAttachments && !isVisionLocate && (attachmentPickerEnabled || attachments.length > 0) ? (
-          <div className="studio-attachment-strip studio-attachment-strip--icon">
-            {attachmentPickerEnabled ? <Tooltip content={t('Studio.composer.attachContext')} placement="top">
-              <Button
-                type="button"
-                className="h-8 w-8 rounded-full px-0"
-                size="sm"
-                tone="ghost"
-                onClick={onOpenAttachmentPicker}
-                disabled={running}
-                aria-label={t('Studio.composer.attachContext')}
-              >
-                <Paperclip size={15} aria-hidden="true" />
-              </Button>
-            </Tooltip> : null}
-            {attachments.map((item, index) => (
-              <span key={item.id} className="studio-attachment-chip">
-                {item.kind === 'image' ? (
-                  <img src={item.dataUrl} alt={item.name} />
-                ) : (
-                  <span className="studio-attachment-chip__video" aria-hidden="true">
-                    <Play size={13} />
-                  </span>
-                )}
-                <span className="studio-attachment-chip__name">{item.name}</span>
-                <IconButton
-                  aria-label={t('Studio.composer.removeAttachment', { name: item.name })}
-                  onClick={() => onRemoveAttachment(index)}
-                  icon={<X size={13} aria-hidden="true" />}
-                  size="sm"
-                  tone="ghost"
-                  className="h-6 w-6"
-                />
-              </span>
-            ))}
-          </div>
-        ) : null}
-        {isVisionLocate ? (
+        {hasAttachmentControls && attachmentPickerEnabled ? (
           <Button
             type="button"
-            tone="primary"
-            disabled={generateDisabled}
-            onClick={intentConfigAction ? onOpenIntentConfig : onSubmit}
-            leadingIcon={running
-              ? <RefreshCw size={16} aria-hidden="true" className="studio-spin" />
-              : <ScanSearch size={16} aria-hidden="true" />}
-          >
-            {generateLabel}
-          </Button>
-        ) : <Tooltip content={generateLabel} placement="top">
-          <IconButton
-            type="button"
-            className={intentConfigAction ? 'studio-generate-action studio-generate-action--configure' : 'studio-generate-action'}
-            tone="primary"
+            tone="ghost"
             size="sm"
-            aria-label={generateLabel}
-            disabled={generateDisabled}
-            onClick={intentConfigAction ? onOpenIntentConfig : onSubmit}
-            icon={running ? <RefreshCw size={15} aria-hidden="true" className="studio-spin" /> : <ArrowUp size={16} aria-hidden="true" />}
-          />
-        </Tooltip>}
+            className="studio-context-chip"
+            leadingIcon={<Paperclip size={15} aria-hidden="true" />}
+            onClick={onOpenAttachmentPicker}
+            disabled={running}
+            aria-label={t('Studio.composer.attachContext')}
+          >
+            {t('Studio.composer.attachContext')}
+          </Button>
+        ) : null}
+      </div>
+      <div className="studio-composer__actions">
+        {canRunFromPrompt ? <kbd className="studio-composer__shortcut">{t('Studio.composer.runShortcut')}</kbd> : null}
+        <Button
+          type="button"
+          tone="primary"
+          size="sm"
+          disabled={generateDisabled}
+          aria-label={generateLabel}
+          aria-describedby={visibleInputIssue ? inputIssueId : undefined}
+          aria-keyshortcuts={canRunFromPrompt ? 'Control+Enter Meta+Enter' : undefined}
+          onClick={intentConfigAction ? onOpenIntentConfig : onSubmit}
+          leadingIcon={running
+            ? <RefreshCw size={16} aria-hidden="true" className="studio-spin" />
+            : isVisionLocate ? <ScanSearch size={16} aria-hidden="true" /> : <ArrowUp size={16} aria-hidden="true" />}
+        >
+          {generateLabel}
+        </Button>
       </div>
     </div>
   );
@@ -222,26 +196,59 @@ export function TextStudioComposer({
         onRemove={() => onRemoveAttachment(0)}
       /> : null}
       <div className={isReadOnlyComposer ? 'studio-input studio-input--readonly' : 'studio-input'}>
-        {isVisionLocate ? <label className="studio-locate-input__label" htmlFor={queryInputId}>{t('VisionLocate.queryLabel')}</label> : null}
+        <div className="studio-composer__heading">
+          <h3>{t('Studio.composer.inputTitle')}</h3>
+          <IntentSummaryChip label={intentLabel} onOpen={onOpenIntentConfig} configurable={intentConfigurable} />
+        </div>
         {isReadOnlyComposer ? (
           <NimiText role="body" className="studio-input__note">
             {profile.inputNoteKey ? t(profile.inputNoteKey) : ''}
           </NimiText>
-        ) : (
-          <TextareaField
-            id={queryInputId}
-            tone="quiet"
-            className="rounded-none focus-within:border-transparent focus-within:ring-0"
-            textareaClassName="min-h-[calc(2*1.55em)] resize-none px-0 py-0 text-[15px] leading-[1.55]"
-            rows={2}
-            wrap="soft"
-            maxLength={2000}
-            aria-label={isVisionLocate ? t('VisionLocate.queryLabel') : t('Studio.composer.requestAriaLabel', { capability: t(capability.labelKey) })}
-            placeholder={capability.id === 'text.generate' ? t('Studio.composer.textGeneratePlaceholder') : t(profile.inputPlaceholderKey)}
-            value={prompt}
-            onChange={(event: ChangeEvent<HTMLTextAreaElement>) => onPromptChange(event.currentTarget.value)}
-          />
-        )}
+        ) : hasPromptField ? (
+          <div className="studio-composer__field">
+            <label htmlFor={queryInputId}>
+              {t(isVisionLocate ? 'VisionLocate.queryLabel' : profile.inputKind === 'url' ? 'Studio.composer.sourceUrl' : 'StudioShell.promptLabel')}
+            </label>
+            <TextareaField
+              id={queryInputId}
+              tone="quiet"
+              className="rounded-none focus-within:border-transparent focus-within:ring-0"
+              textareaClassName="resize-none px-0 py-0 text-[14px] font-normal leading-relaxed"
+              rows={compact ? 2 : 3}
+              wrap="soft"
+              maxLength={2000}
+              aria-label={isVisionLocate ? t('VisionLocate.queryLabel') : t('Studio.composer.requestAriaLabel', { capability: t(capability.labelKey) })}
+              placeholder={capability.id === 'text.generate' ? t('Studio.composer.textGeneratePlaceholder') : t(profile.inputPlaceholderKey)}
+              value={prompt}
+              onChange={(event: ChangeEvent<HTMLTextAreaElement>) => onPromptChange(event.currentTarget.value)}
+              onKeyDown={(event) => {
+                if (event.key !== 'Enter' || !(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey || event.nativeEvent.isComposing) return;
+                event.preventDefault();
+                if (canRunFromPrompt && !event.repeat) onSubmit();
+              }}
+            />
+          </div>
+        ) : null}
+        {hasAttachmentControls && attachments.length > 0 ? (
+          <div className="studio-attachment-strip">
+            {attachments.map((item, index) => (
+              <span key={item.id} className="studio-attachment-chip">
+                {item.kind === 'image' ? <img src={item.dataUrl} alt="" /> : (
+                  <span className="studio-attachment-chip__video" aria-hidden="true"><Play size={13} /></span>
+                )}
+                <span className="studio-attachment-chip__name" title={item.name}>{item.name}</span>
+                <IconButton
+                  aria-label={t('Studio.composer.removeAttachment', { name: item.name })}
+                  onClick={() => onRemoveAttachment(index)}
+                  icon={<X size={13} aria-hidden="true" />}
+                  size="sm"
+                  tone="ghost"
+                  className="h-6 w-6"
+                />
+              </span>
+            ))}
+          </div>
+        ) : null}
         {supportsContext ? (
           <div className={contextOpen ? 'studio-context studio-context--open' : 'studio-context'}>
             <TextareaField
@@ -261,10 +268,15 @@ export function TextStudioComposer({
         {parameterPanel && isVisionLocate ? (
           <div className="studio-locate-parameters">{parameterPanel}</div>
         ) : parameterPanel ? (
-          <div className={parametersOpen ? 'studio-parameters-drawer studio-parameters-drawer--open' : 'studio-parameters-drawer'}>
+          <div className={[
+            'studio-parameters-drawer',
+            profile.primaryParameters ? 'studio-parameters-drawer--with-primary' : '',
+            parametersOpen ? 'studio-parameters-drawer--open' : '',
+          ].filter(Boolean).join(' ')}>
             {parameterPanel}
           </div>
         ) : null}
+        {visibleInputIssue ? <p id={inputIssueId} className="studio-parameters__note" role="status">{visibleInputIssue}</p> : null}
         {composerBar}
       </div>
     </div>
@@ -280,13 +292,9 @@ export function TextStudioStartState({
 }) {
   const { translate: t } = useAIStudioHost();
   const capability = registration.descriptor;
-  const profile = registration.profile;
   return (
-    <section className={capability.id === 'vision.locate' ? 'studio-start studio-start--vision' : 'studio-start'} aria-label={t('Studio.composer.startAriaLabel', { capability: t(capability.labelKey) })}>
-      <div className="studio-start__center">
-        <h2>{t(profile.inputTitleKey)}</h2>
-        <div className="studio-start__composer">{composer}</div>
-      </div>
+    <section className="studio-start" tabIndex={-1} aria-label={t('Studio.composer.startAriaLabel', { capability: t(capability.labelKey) })}>
+      {composer}
     </section>
   );
 }

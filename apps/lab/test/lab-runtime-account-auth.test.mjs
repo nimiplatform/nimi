@@ -1253,6 +1253,23 @@ test('Lab audio.transcribe forwards local bytes and the complete transcription p
   assert.equal(calls[0].responseFormat, 'verbose_json');
 });
 
+test('Lab audio.transcribe rejects empty file bytes before submitting a Job', async () => {
+  const { runLabCapability } = await importLabRuntime();
+  let submissions = 0;
+  const result = await runLabCapability({
+    capabilityId: 'audio.transcribe',
+    prompt: '',
+    parameters: {
+      audioFile: { name: 'empty.wav', mimeType: 'audio/wav', sizeBytes: 0, bytes: new Uint8Array() },
+    },
+  }, readyRuntimeDependencies(fakeLocalAppClient(), {
+    runners: { async speechTranscribe() { submissions++; } },
+  }));
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, 'input-invalid');
+  assert.equal(submissions, 0);
+});
+
 test('Lab voice.create submits reference audio, waits for the Job, and verifies the VoiceAsset catalog projection', async () => {
   const { runLabCapability } = await importLabRuntime();
   const source = 'reference-audio';

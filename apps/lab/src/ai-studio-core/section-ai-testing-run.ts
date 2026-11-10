@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import type { NimiPortableAppAIConfig } from '@nimiplatform/sdk/ai';
+import { runtimeAIConfigStructToJson, type NimiAIConfigSnapshot } from '@nimiplatform/sdk/ai';
 
+import { findStudioCapabilityIntent } from './ai-config.js';
 import { useAIStudioHost } from './host-context.js';
 import type { StudioCapabilityRegistration, CapabilityStudioProfile } from './module-registration.js';
 import type { StudioCapabilityRunResult, StudioManagedArtifact, StudioRuntimeInspection } from './runtime-types.js';
@@ -30,6 +31,7 @@ export type TextStudioActiveRun = {
   prompt: string;
   context: string;
   createdAt: string;
+  configuredTarget?: Pick<StudioRunTargetSummary, 'source' | 'targetLabel'>;
   result: StudioCapabilityRunResult | null;
   record: StudioRunHistoryRecord | null;
   error: string | null;
@@ -58,7 +60,17 @@ export function textStudioRunTargetIntentSummary(
   runTarget: StudioRunTargetSummary,
   translate: StudioTranslate,
 ): string {
-  return translate('Studio.composer.intentSummary', { intent: runTarget.intentLabel });
+  return translate('Studio.composer.intentSummary', { intent: studioConfiguredTargetLabel(runTarget, translate) });
+}
+
+export function studioConfiguredTargetLabel(
+  target: Pick<StudioRunTargetSummary, 'source' | 'targetLabel'> | undefined,
+  translate: StudioTranslate,
+): string {
+  const route = target?.source === 'local' ? translate('Studio.composer.routeLocal')
+    : target?.source === 'cloud' ? translate('Studio.composer.routeCloud')
+      : translate('Studio.composer.routeUnknown');
+  return target?.targetLabel ? `${route} · ${target.targetLabel}` : route;
 }
 
 export function canConfigureRunTarget(runTarget: StudioRunTargetSummary): boolean {
@@ -68,31 +80,31 @@ export function canConfigureRunTarget(runTarget: StudioRunTargetSummary): boolea
 export function useStudioRunTargetSummary(
   registration: StudioCapabilityRegistration,
   runtime: StudioRuntimeInspection | null,
-): StudioRunTargetSummary {
+): StudioRunTargetSummary & { readonly snapshot: NimiAIConfigSnapshot | null; readonly configReadFailed: boolean } {
   const host = useAIStudioHost();
   const [configProjection, setConfigProjection] = useState<{
     state: 'loading' | 'loaded' | 'failed';
-    config: NimiPortableAppAIConfig | null;
+    snapshot: NimiAIConfigSnapshot | null;
     error: string | null;
-  }>({ state: 'loading', config: null, error: null });
+  }>({ state: 'loading', snapshot: null, error: null });
 
   useEffect(() => {
     let cancelled = false;
     let requestGeneration = 0;
     const refresh = () => {
       const generation = ++requestGeneration;
-      setConfigProjection({ state: 'loading', config: null, error: null });
-      void host.sdk.aiConfig.get()
+      setConfigProjection({ state: 'loading', snapshot: null, error: null });
+      void host.sdk.aiConfig.getSnapshot()
         .then((next) => {
           if (!cancelled && generation === requestGeneration) {
-            setConfigProjection({ state: 'loaded', config: next, error: null });
+            setConfigProjection({ state: 'loaded', snapshot: next, error: null });
           }
         })
         .catch((cause) => {
           if (!cancelled && generation === requestGeneration) {
             setConfigProjection({
               state: 'failed',
-              config: null,
+              snapshot: null,
               error: cause instanceof Error ? cause.message : String(cause || host.translate('Studio.run.aiConfigLoadFailed')),
             });
           }
@@ -107,13 +119,41 @@ export function useStudioRunTargetSummary(
     };
   }, [host]);
 
-  return useMemo(() => host.app.projection.projectRunTarget({
-    capability: registration.descriptor,
-    runtime,
-    config: configProjection.config,
-    configState: configProjection.state,
-    configError: configProjection.error,
-  }), [configProjection, host, registration.descriptor, runtime]);
+  return useMemo(() => {
+    const { snapshot } = configProjection;
+    const config = snapshot?.config ?? null;
+    const target = host.app.projection.projectRunTarget({
+      capability: registration.descriptor,
+      runtime,
+      config,
+      configState: configProjection.state,
+      configError: configProjection.error,
+    });
+    const readState = { snapshot, configReadFailed: configProjection.state === 'failed' };
+    if (!target.capabilityContract || !target.canDispatch) return { ...target, ...readState };
+    const selection = snapshot?.effectiveSelections.find((item) => item.capabilityContract === target.capabilityContract);
+    const resource = selection?.resource;
+    const intent = findStudioCapabilityIntent(config, target.capabilityContract);
+    const configuredCloudModel = intent?.route.oneofKind === 'cloud'
+      ? runtimeAIConfigStructToJson(intent.route.cloud.providerModelTarget).providerModelId
+      : undefined;
+    const label = resource?.oneofKind === 'local' ? resource.local.label
+      : resource?.oneofKind === 'cloud' ? resource.cloud.target.label
+        : configuredCloudModel;
+    const targetLabel = typeof label === 'string' && label.trim() ? label : undefined;
+    const targetRef = resource?.oneofKind === 'local' ? resource.local.loadoutRef
+      : typeof configuredCloudModel === 'string' ? configuredCloudModel : undefined;
+    const recordedConfig = {
+      targetLabel,
+      targetRef,
+      configuredDefaults: intent ? runtimeAIConfigStructToJson(intent.defaults) : undefined,
+    };
+    if (selection && selection.state !== 'ready') {
+      return { ...target, ...readState, ...recordedConfig, status: 'blocked', canDispatch: false,
+        detail: host.translate('Studio.run.effectiveTargetUnavailable') };
+    }
+    return { ...target, ...readState, ...recordedConfig };
+  }, [configProjection, host, registration.descriptor, runtime]);
 }
 
 export type TextStudioPromptStyle = { tone: string; length: string };
@@ -166,6 +206,9 @@ export function createRunConfigSnapshot(input: {
       status: target.status,
       source: target.source,
       intentLabel: target.intentLabel,
+      ...(target.targetLabel ? { targetLabel: target.targetLabel } : {}),
+      ...(target.targetRef ? { targetRef: target.targetRef } : {}),
+      ...(target.configuredDefaults ? { configuredDefaults: target.configuredDefaults } : {}),
       detail: target.detail,
       params,
       paramsSummary: [...target.paramsSummary],

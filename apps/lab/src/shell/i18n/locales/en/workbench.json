@@ -1,8 +1,13 @@
 {
   "Workbench": {
     "sideNavAriaLabel": "Nimi Lab workspace navigation",
-    "capabilityNavigationTitle": "AI capabilities",
-    "capabilityNavigationDescription": "Explore and test by capability",
+    "capabilityNavigationTitle": "Lab catalog",
+    "capabilityNavigationDescription": "AI capabilities and Agent workflows",
+    "searchCapabilities": "Search by name or contract ID",
+    "noMatchingCapabilities": "No matching features.",
+    "recentCapabilities": "Recently used",
+    "openRecentCapability": "Open recent capability {{capability}}",
+    "nativeOnly": "Desktop only",
     "groups": {
       "textConversation": "Text & conversation",
       "imageVideo": "Image, video & files",
@@ -54,7 +59,7 @@
     "canceled": "Generation canceled.",
     "noPendingWorld": "There is no unfinished world generation to continue.",
     "pendingInvalid": "The saved world task reference is invalid.",
-    "pendingExists": "A world task has already been submitted. Use \"Continue last generation\" in Parameters to retrieve its result.",
+    "pendingExists": "A world task has already been submitted. Use \"Continue last generation\" to retrieve its result.",
     "noSavedWorld": "Generate a world first. It will be saved here for your next visit.",
     "inputMode": "Input method",
     "textInput": "Text",

@@ -1,4 +1,4 @@
-import { ProgressIndicator, SelectField, Surface, Toggle } from '@nimiplatform/kit/ui';
+import { InlineAlert, SelectField, Surface, Toggle } from '@nimiplatform/kit/ui';
 import type {
   AccountSettingsProjectionState,
   HumanChatProjectionState,
@@ -16,8 +16,10 @@ import {
 export type SettingsRefreshAction = () => void | Promise<void>;
 
 export type SettingsRouteViewProps = {
-  readonly localDrafts: boolean;
-  readonly setLocalDrafts: (value: boolean) => void;
+  readonly draftPersistence: boolean;
+  readonly savingDraftPreference: boolean;
+  readonly draftPreferenceError: string | null;
+  readonly onDraftPersistenceChange: (value: boolean) => void | Promise<void>;
   readonly notificationProjection: NotificationProjectionState;
   readonly refreshNotificationProjection: SettingsRefreshAction;
   readonly notificationListProjection: NotificationListProjectionState;
@@ -32,14 +34,20 @@ export function SettingsRouteView(props: SettingsRouteViewProps) {
   const { t } = useTranslation();
   return (
     <Surface className="grid content-start gap-3" material="glass-thin" tone="panel">
-      <div className="flex min-w-0 items-start justify-between gap-3">
-        <h2 className="m-0 text-sm font-semibold tracking-normal text-[var(--nimi-text-primary)]">{t('Settings.title')}</h2>
-        <ProgressIndicator value={props.localDrafts ? 72 : 46} showValue className="w-40 shrink-0" />
+      <h2 className="m-0 text-sm font-semibold text-[var(--nimi-text-primary)]">{t('Settings.title')}</h2>
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
+        <div>
+          <strong className="font-medium text-[var(--nimi-text-primary)]">{t('Settings.localDrafts')}</strong>
+          <p className="m-0">{t('Settings.draftPersistenceHint')}</p>
+        </div>
+        <Toggle
+          ariaLabel={t('Settings.localDrafts')}
+          checked={props.draftPersistence}
+          disabled={props.savingDraftPreference}
+          onChange={(enabled) => void props.onDraftPersistenceChange(enabled)}
+        />
       </div>
-      <label className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
-        <span>{t('Settings.localDrafts')}</span>
-        <Toggle checked={props.localDrafts} onChange={props.setLocalDrafts} />
-      </label>
+      {props.draftPreferenceError ? <InlineAlert tone="warning">{props.draftPreferenceError}</InlineAlert> : null}
       <label className="flex min-w-0 flex-wrap items-center justify-between gap-3 text-sm text-[var(--nimi-text-secondary)]">
         <span>{t('Common.language')}</span>
         <SelectField

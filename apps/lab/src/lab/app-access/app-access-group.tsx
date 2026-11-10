@@ -39,6 +39,7 @@ export function AppAccessGroup({
   gateFor,
   activeRun,
   anyRunActive,
+  sessionBound,
   onRunProbe,
   onRunGroup,
   renderExtras,
@@ -48,8 +49,9 @@ export function AppAccessGroup({
   readonly gateFor: (id: AppAccessProbeId) => AppAccessGate;
   /** This group is the one currently executing (including a run-all pass). */
   readonly activeRun: boolean;
-  /** Some group is executing; sibling group runs stay disabled meanwhile. */
+  /** A probe or group is executing. */
   readonly anyRunActive: boolean;
+  readonly sessionBound: boolean;
   readonly onRunProbe: (id: AppAccessProbeId) => void;
   readonly onRunGroup: () => void;
   readonly renderExtras?: (id: AppAccessProbeId) => ReactNode;
@@ -80,7 +82,7 @@ export function AppAccessGroup({
             size="sm"
             leadingIcon={<Play size={13} strokeWidth={2.2} aria-hidden="true" />}
             data-testid={definition.runTestId}
-            disabled={anyRunActive}
+            disabled={anyRunActive || !sessionBound}
             loading={activeRun}
             onClick={onRunGroup}
           >
@@ -95,6 +97,7 @@ export function AppAccessGroup({
             definition={appAccessProbeById[id]}
             state={states[id]}
             gate={gateFor(id)}
+            runActive={anyRunActive}
             onRun={() => onRunProbe(id)}
           >
             {renderExtras ? renderExtras(id) : undefined}

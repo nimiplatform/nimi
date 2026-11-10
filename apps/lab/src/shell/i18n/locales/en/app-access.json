@@ -3,10 +3,12 @@
     "page": {
       "title": "App Access",
       "eyebrow": "Nimi Lab",
-      "blurb": "Verify a third-party local App contract against the real Runtime link: session and identity posture, app-private storage, Realm data, AI consumption, Agent conversation, and boundary rejections. Every probe runs the real path; nothing is simulated.",
+      "blurb": "Check which app capabilities Lab can use through Runtime under the current account.",
       "refreshSession": "Refresh session",
-      "runAll": "Run all probes",
-      "runGroup": "Run group",
+      "runAll": "Run standard checks",
+      "checksTitle": "Choose a check",
+      "runAllImpact": "Writes temporary data, sends real AI requests, and sends test messages if a partner is available. Persistent Realm writes require separate confirmation.",
+      "runGroup": "Run standard checks in group",
       "signedOut": "Sign in to Nimi from the account menu to run App Access probes.",
       "sessionLost": "The Nimi session was lost. Probe evidence from the previous session has been cleared.",
       "noAgentReferences": "No active Agent under the current account. Create and activate one in Nimi Desktop, then re-run Active Agent references.",
@@ -16,6 +18,7 @@
       "noSession": "No session",
       "agentSelectAriaLabel": "Current active Agent",
       "agentSelectPlaceholder": "No active Agent",
+      "agentSelectBeforeRun": "Run the check to load partners",
       "summaryAriaLabel": "Probe result summary",
       "groupProgress": "{{passed}}/{{total}} passed"
     },
@@ -49,7 +52,7 @@
       "toolingHmrActive": "Vite HMR client active",
       "toolingHmrMissing": "No official HMR client observed",
       "checkingCurrentUser": "Checking the current user…",
-      "sessionLostRecheck": "Session lost — refresh to re-check",
+      "sessionLostRecheck": "Session unavailable — refresh to try again",
       "currentUserSummary": "{{name}} · @{{handle}} · avatar {{avatar}}",
       "avatarSet": "set",
       "avatarNone": "none",
@@ -65,36 +68,37 @@
     "sessionBar": {
       "ariaLabel": "Session and identity",
       "title": "Session & Identity",
-      "blurb": "Each fact is queried independently — none is inferred from another."
+      "blurb": "Each fact is queried independently — none is inferred from another.",
+      "developerDetails": "Developer diagnostics"
     },
     "nav": {
       "ariaLabel": "Probe groups",
       "label": "Groups",
-      "overview": "Overview"
+      "overview": "Back to checks"
     },
     "index": {
       "probeCount": "{{count}} probe{{plural}}"
     },
     "groups": {
       "storage": {
-        "title": "App Storage (Base)",
-        "blurb": "App-private JSON storage, isolated per App."
+        "title": "App storage",
+        "blurb": "Write, read back, and clean up private app data."
       },
       "realm": {
         "title": "Realm Data",
-        "blurb": "Declared Realm data access: list/create WorldCores, and list/get/create/replace owner PersonaCharacter records. These probes do not delete their test records."
+        "blurb": "Read allowed worlds and characters. Creating test records requires confirmation."
       },
       "aiConsumption": {
-        "title": "AI Consumption",
-        "blurb": "Text generation through the current owner-managed App AI configuration."
+        "title": "AI requests",
+        "blurb": "Generate text with the current app’s model settings."
       },
       "agentConversation": {
-        "title": "Agent Conversation",
-        "blurb": "Active Agent references, typed conversation, and turn interrupt — in dependency order."
+        "title": "Partner conversation",
+        "blurb": "Find available partners, send test messages, and check that a reply can be interrupted."
       },
       "boundary": {
-        "title": "Boundary Probes",
-        "blurb": "App-private storage escapes must be rejected."
+        "title": "Access boundaries",
+        "blurb": "Check that out-of-scope paths and oversized writes are rejected."
       }
     },
     "probes": {
@@ -169,7 +173,8 @@
       "notRun": "Not run"
     },
     "probeCard": {
-      "run": "Run",
+      "run": "Run check",
+      "runNamed": "Run check: {{name}}",
       "requires": "Requires: {{requires}}"
     },
     "details": {

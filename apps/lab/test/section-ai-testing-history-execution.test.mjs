@@ -12,7 +12,14 @@ const root = path.resolve(import.meta.dirname, '..');
 const unavailableMedia = async () => { throw new Error('isolated test media boundary'); };
 const kitRequire = createRequire(path.resolve(root, '../../kit/package.json'));
 const { JSDOM } = kitRequire('jsdom');
-const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url:'http://localhost/' });
+const dom = new JSDOM('<!doctype html><html><body><div id="root"></div></body></html>', { url:'http://localhost/', pretendToBeVisual: true });
+const domErrors = [];
+dom.window.addEventListener('error', event => domErrors.push(event.error ?? event.message));
+const nextFrame = () => new Promise(resolve => dom.window.requestAnimationFrame(resolve));
+test.afterEach(async () => {
+  await nextFrame();
+  assert.deepEqual(domErrors.splice(0), [], 'rendered interactions must not raise unhandled DOM errors');
+});
 for (const key of ['window', 'document', 'HTMLElement', 'HTMLFormElement', 'HTMLInputElement', 'HTMLSelectElement', 'Element', 'Node', 'Event', 'CustomEvent', 'DocumentFragment', 'MutationObserver', 'getComputedStyle', 'FileReader', 'File', 'Blob']) {
   globalThis[key] = dom.window[key];
 }
@@ -62,7 +69,7 @@ test('a late private draft cannot replace a newer edit or another host view', as
     app: { projection: { assetExportAction: () => 'reveal', promptDraft: load, projectRunTarget: () => target, runStatusLabel: value => value },
       events: { subscribeAIConfigRefresh: () => () => {} },
       commands: { savePromptDraft: async () => {}, openAssetMediaUrl: unavailableMedia, copyText: async () => ({ ok: true }), exportText: async () => {} } },
-    sdk: { aiConfig: { get: async () => null } },
+    sdk: { aiConfig: { getSnapshot: async () => ({ config: null, effectiveSelections: [] }) } },
   });
   const container = document.getElementById('root'), renderer = createRoot(container);
   const render = async host => act(async () => renderer.render(createElement(TooltipProvider, null,
@@ -315,7 +322,7 @@ test('history previews do not inherit another run status or cancellation target'
       events:{subscribeAIConfigRefresh:()=>()=>{}},
       commands:{ openAssetMediaUrl: unavailableMedia,savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>{}},
     },
-    sdk:{aiConfig:{get:async()=>null},assets:{stat:async()=>savedSource,read:async()=>({asset:savedSource,body:{async *[Symbol.asyncIterator](){yield savedBytes}}})},runCapability(input){
+    sdk:{aiConfig: { getSnapshot: async () => ({ config: null, effectiveSelections: [] }) },assets:{stat:async()=>savedSource,read:async()=>({asset:savedSource,body:{async *[Symbol.asyncIterator](){yield savedBytes}}})},runCapability(input){
       const deferred=Promise.withResolvers(); calls.push({input,...deferred}); if(calls.length===2)secondStarted.resolve(); if(calls.length===3)thirdStarted.resolve(); return deferred.promise;
     }},
   };
@@ -365,7 +372,7 @@ test('history previews do not inherit another run status or cancellation target'
     // A persisted record takes a different rendering branch than session B.
     props.historySelectionRequest={requestId:2,record:{...record,id:'older-history'}};
     await act(async()=>{render();});
-    assert.ok(container.textContent.includes('Studio.result.statCompleted'), 'the saved complete BOX result is completed, not Runtime readiness');
+    assert.ok(container.textContent.includes('Studio.result.status.runtimeResult'), 'the saved BOX result retains its completed run state');
     assert.equal(container.querySelector('.studio-result__pending'),null);
     assert.equal(button('StudioShell.cancelGeneration'),undefined);
     assert.equal(button('StudioShell.regenerate').disabled,true);
@@ -383,7 +390,11 @@ test('history previews do not inherit another run status or cancellation target'
     await act(async()=>{button('StudioShell.regenerate').click();await thirdStarted.promise;});
     assert.equal(calls.length,3);
     assert.equal(calls[2].input.attachments[0].name,'saved-b.png');
+    props.historySelectionRequest={requestId:4,record:{...record,id:'older-during-completion'}};
+    await act(async()=>{render();});
     await act(async()=>calls[2].resolve({ok:false,capabilityId:'vision.locate',reason:'runtime-canceled',message:'test end'}));
+    assert.ok(container.querySelector('.studio-history-result .studio-locate-result'), 'the saved result remains open when the other run finishes');
+    assert.equal(button('StudioShell.returnToRunning'),undefined);
   } finally {
     await act(async()=>{renderer.unmount();});
   }
@@ -406,7 +417,7 @@ test('text annotation submits and records the exact composer document', async ()
       commands: { openAssetMediaUrl: unavailableMedia, savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => {} },
     },
     sdk: {
-      aiConfig: { get: async () => null },
+      aiConfig: { getSnapshot: async () => ({ config: null, effectiveSelections: [] }) },
       async runCapability(input) {
         submitted.push(input);
         return { ok: false, capabilityId: 'text.annotate', reason: 'runtime-call-failed', message: 'test stop', actionHint: '' };
@@ -528,7 +539,7 @@ test('Decisions run the request from Parameters, stop the one call and replay or
       commands: { openAssetMediaUrl: unavailableMedia, savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => {} },
     },
     sdk: {
-      aiConfig: { get: async () => null },
+      aiConfig: { getSnapshot: async () => ({ config: null, effectiveSelections: [] }) },
       runCapability(input) {
         const deferred = Promise.withResolvers();
         calls.push({ input, ...deferred });
@@ -565,7 +576,12 @@ test('Decisions run the request from Parameters, stop the one call and replay or
     assert.equal(calls.length, 1);
     assert.deepEqual(calls[0].input.parameters, relevance);
     assert.equal(calls[0].input.prompt, relevancePrompt);
-    assert.equal(container.querySelector('.studio-turn__request pre').textContent, relevancePrompt);
+    const recordedInput = [...container.querySelectorAll('.studio-review-disclosure')].find((details) =>
+      details.querySelector('summary').textContent === 'StudioShell.recordedInput');
+    assert.equal(recordedInput.open, false);
+    await act(async () => { recordedInput.querySelector('summary').click(); });
+    assert.equal(recordedInput.open, true);
+    assert.equal(recordedInput.querySelector('pre').textContent, relevancePrompt);
     await act(async () => { button('StudioShell.cancelGeneration').click(); });
     assert.equal(calls[0].input.signal.aborted, true);
     assert.equal(calls[0].input.signal.reason, 'studio-user-canceled');
@@ -577,6 +593,9 @@ test('Decisions run the request from Parameters, stop the one call and replay or
     assert.ok(!container.textContent.includes('Studio.result.status.operationAborted'));
 
     // An example from Parameters replaces the form; the next run sends it.
+    const nextRun = [...container.querySelectorAll('.studio-review-disclosure')].find((details) =>
+      details.querySelector('summary').textContent === 'StudioShell.editNextRun');
+    await act(async () => { nextRun.querySelector('summary').click(); });
     await act(async () => { button(labTranslate('CapabilityTests.textDecide.exampleIntent')).click(); });
     assert.equal(parameters.stateFormat, 'text');
     await act(async () => { button('CapabilityTests.textDecide.primaryLabel').click(); });
@@ -606,7 +625,10 @@ test('Decisions run the request from Parameters, stop the one call and replay or
     props.history = { 'text.decide': [record] };
     props.historySelectionRequest = { requestId: 1, record };
     await act(async () => { render(); });
-    assert.equal(container.querySelector('.studio-turn__request pre').textContent, relevancePrompt);
+    const savedInput = [...container.querySelectorAll('.studio-review-disclosure')].find((details) =>
+      details.querySelector('summary').textContent === 'StudioShell.recordedInput');
+    assert.equal(savedInput.open, false);
+    assert.equal(savedInput.querySelector('pre').textContent, relevancePrompt);
     assert.equal(container.querySelectorAll('.studio-decision__bar').length, 2);
     await act(async () => { button('StudioShell.regenerate').click(); });
     assert.equal(calls.length, 3);
@@ -617,6 +639,8 @@ test('Decisions run the request from Parameters, stop the one call and replay or
     props.historySelectionRequest = { requestId: 2, record };
     await act(async () => { render(); });
     await act(async () => { button('StudioShell.useAsDraft').click(); });
+    await nextFrame();
+    assert.equal(document.activeElement, container.querySelector('.studio-start'), 'restoring a parameter-owned request focuses the draft');
     assert.equal(parameters.stateFormat, 'json');
     assert.deepEqual(JSON.parse(parameters.state), JSON.parse(relevance.state));
     assert.deepEqual(parameters.questions, relevance.questions);
@@ -632,7 +656,7 @@ test('saved speech replay and draft restore keep the recorded voice and complete
   const target = { capabilityId: 'audio.synthesize', capabilityContract: 'audio.synthesize', section: 'tts', source: 'cloud', status: 'configured', canDispatch: true, intentLabel: 'Cloud', detail: 'configured', params: {}, paramsSummary: [], profileOrigin: null };
   const record = { id: 'saved-speech', capabilityId: 'audio.synthesize', createdAt: '2026-10-03T00:00:00Z', prompt: 'Saved speech text', status: 'failed', message: 'previous failure', result: { ok: false, kind: 'non-success', reason: 'runtime-call-failed', message: 'previous failure', summary: 'previous failure' }, runConfig: { target: { ...target, params: saved }, promptControls: { contextAttached: false, context: '', attachmentCount: 0 } } };
   const calls = [];
-  const host = { appTitle: 'Lab', translate: key => key, locale: 'en', clock: { now: () => Date.now() }, app: { projection: { assetExportAction: () => 'reveal', promptDraft: async () => ({ prompt: 'Current draft' }), projectRunTarget: () => target, runStatusLabel: s => s }, events: { subscribeAIConfigRefresh: () => () => {} }, commands: { openAssetMediaUrl: unavailableMedia, savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => {} } }, sdk: { aiConfig: { get: async () => null }, listLocalAppPresetVoices: async () => [], listLocalAppVoiceAssets: async () => [{ voiceAssetId: 'saved-voice', creationSource: 'text-description', status: 'active' }], runCapability: async input => { calls.push(input); return { ok: false, capabilityId: 'audio.synthesize', reason: 'runtime-call-failed', message: 'fixture observes request only', actionHint: '' }; } } };
+  const host = { appTitle: 'Lab', translate: key => key, locale: 'en', clock: { now: () => Date.now() }, app: { projection: { assetExportAction: () => 'reveal', promptDraft: async () => ({ prompt: 'Current draft' }), projectRunTarget: () => target, runStatusLabel: s => s }, events: { subscribeAIConfigRefresh: () => () => {} }, commands: { openAssetMediaUrl: unavailableMedia, savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => {} } }, sdk: { aiConfig: { getSnapshot: async () => ({ config: null, effectiveSelections: [] }) }, listLocalAppPresetVoices: async () => [], listLocalAppVoiceAssets: async () => [{ voiceAssetId: 'saved-voice', creationSource: 'text-description', status: 'active' }], runCapability: async input => { calls.push(input); return { ok: false, capabilityId: 'audio.synthesize', reason: 'runtime-call-failed', message: 'fixture observes request only', actionHint: '' }; } } };
   let parameters = { voiceKind: 'preset', voicePreset: 'live-voice', language: 'en', speed: 2 };
   const renderer = createRoot(document.getElementById('root'));
   const props = { registration, registrations: [registration], runtime: { status: 'connected', detail: 'connected' }, lastResult: null, history: { 'audio.synthesize': [record] }, historySelectionRequest: { requestId: 1, record }, onSelectHistoryRun: () => {}, onResult: async () => null, verboseConsole: false, draftPersistence: false };
@@ -640,14 +664,23 @@ test('saved speech replay and draft restore keep the recorded voice and complete
   const button = label => [...document.getElementById('root').querySelectorAll('button')].find(x => x.getAttribute('aria-label') === label || x.textContent.trim() === label);
   try {
     await act(async () => { render(); });
+    await act(async () => { button('StudioShell.newRun').click(); });
+    await nextFrame();
+    assert.equal(document.activeElement, document.querySelector('.studio-start'), 'returning from history focuses the current draft');
+    assert.equal(document.querySelector('.studio-input textarea').value, 'Current draft', 'returning leaves the current draft unchanged');
+    props.historySelectionRequest = { requestId: 2, record };
+    await act(async () => { render(); });
     await act(async () => { button('StudioShell.regenerate').click(); });
     assert.equal(calls.length, 1);
     assert.equal(calls[0].prompt, record.prompt);
     assert.deepEqual(calls[0].parameters, saved);
     assert.equal(parameters.speed, 2, 'replay leaves the live draft unchanged');
-    props.historySelectionRequest = { requestId: 2, record };
+    props.historySelectionRequest = { requestId: 3, record };
     await act(async () => { render(); });
     await act(async () => { button('StudioShell.useAsDraft').click(); });
+    await nextFrame();
+    assert.equal(document.activeElement, document.querySelector('.studio-start'), 'reusing a recorded prompt focuses the restored draft');
+    assert.equal(document.querySelector('.studio-input textarea').value, record.prompt);
     assert.deepEqual(parameters, saved, 'draft restore must remove omitted live controls');
     assert.equal(registration.parameters.restoreRecordedParameters({ voiceKind: 'unknown' }), null);
     assert.equal(registration.parameters.restoreRecordedParameters({ language: { bad: true } }), null);
@@ -754,7 +787,7 @@ test('speaker extraction exposes Stop and keeps a later request independent', as
     appTitle: 'Lab', translate: key => key, locale: 'en', clock: { now: () => Date.now() },
     app: { projection: { assetExportAction: () => 'reveal', promptDraft: async () => ({ prompt: '' }), projectRunTarget: () => target, runStatusLabel: s => s },
       events: { subscribeAIConfigRefresh: () => () => {} }, commands: { openAssetMediaUrl: unavailableMedia, savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => {} } },
-    sdk: { aiConfig: { get: async () => null }, storage: { readJson: async () => ({ value: [] }) },
+    sdk: { aiConfig: { getSnapshot: async () => ({ config: null, effectiveSelections: [] }) }, storage: { readJson: async () => ({ value: [] }) },
       runCapability(input) { const deferred = Promise.withResolvers(); calls.push({ input, ...deferred }); return deferred.promise; } },
   };
   const container = document.getElementById('root'), renderer = createRoot(container);
@@ -838,7 +871,7 @@ test('ASR File history cannot borrow a newly selected file',async()=>{
  const target={capabilityId:id,capabilityContract:id,section:'voice',source:'local',status:'configured',canDispatch:true,intentLabel:'Local',detail:'configured',params:{},paramsSummary:[],profileOrigin:null};
  const record=savedReplayRecord(id,target,{audioFile:'A.wav (128 bytes)',mimeType:'audio/wav',timestamps:true});
  const parameters={audioFile:{name:'B.wav',mimeType:'audio/wav',sizeBytes:128,bytes:new Uint8Array(128)},mimeType:'audio/wav',timestamps:false};
- const host={appTitle:'Lab',translate:key=>key,locale:'en',clock:{now:()=>Date.now()},app:{projection:{ assetExportAction: () => 'reveal',promptDraft: async () =>({prompt:''}),projectRunTarget:()=>target,runStatusLabel:s=>s},events:{subscribeAIConfigRefresh:()=>()=>{}},commands:{ openAssetMediaUrl: unavailableMedia,savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>({ok:false})}},sdk:{aiConfig:{get:async()=>null},runCapability:input=>{calls.push(input);throw Error('historical File must not dispatch')}}};
+ const host={appTitle:'Lab',translate:key=>key,locale:'en',clock:{now:()=>Date.now()},app:{projection:{ assetExportAction: () => 'reveal',promptDraft: async () =>({prompt:''}),projectRunTarget:()=>target,runStatusLabel:s=>s},events:{subscribeAIConfigRefresh:()=>()=>{}},commands:{ openAssetMediaUrl: unavailableMedia,savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>({ok:false})}},sdk:{aiConfig: { getSnapshot: async () => ({ config: null, effectiveSelections: [] }) },runCapability:input=>{calls.push(input);throw Error('historical File must not dispatch')}}};
  const props={registration,registrations:[registration],runtime:{status:'connected',detail:'connected'},lastResult:null,history:{[id]:[record]},historySelectionRequest:{requestId:1,record},onSelectHistoryRun:()=>{},onResult:async()=>null,verboseConsole:false,draftPersistence:false};
  const container=document.getElementById('root'),renderer=createRoot(container);
  try{await act(async()=>renderer.render(createElement(TooltipProvider,null,createElement(AIStudioHostProvider,{value:host},createElement(StudioCapabilityParameterContext.Provider,{value:{state:{[id]:parameters},setParameters:()=>{}}},createElement(SectionAITesting,props))))));const b=container.querySelector('button[aria-label="StudioShell.regenerate"]');assert.equal(b.disabled,true);await act(async()=>b.click());assert.equal(calls.length,0);assert.match(container.textContent,/StudioShell.historyInputsUnavailable/)}finally{await act(async()=>renderer.unmount())}
@@ -847,7 +880,7 @@ test('ASR File history cannot borrow a newly selected file',async()=>{
 test('a live ASR file can be replayed without borrowing the draft or persisting its bytes', async () => {
   const id = 'audio.transcribe', registration = labStudioComposition.getCapability(id);
   const calls = [], records = [];
-  const target = { capabilityId:id, capabilityContract:id, section:'voice', source:'local', status:'configured',
+  let target = { capabilityId:id, capabilityContract:id, section:'voice', source:'local', status:'configured',
     canDispatch:true, intentLabel:'Local', detail:'configured', params:{}, paramsSummary:[], profileOrigin:null };
   const originalBytes = new Uint8Array([1, 2, 3]);
   let parameters = { audioFile:{name:'A.wav', mimeType:'audio/wav', sizeBytes:3, bytes:originalBytes},
@@ -857,7 +890,7 @@ test('a live ASR file can be replayed without borrowing the draft or persisting 
     app:{projection:{ assetExportAction: () => 'reveal',promptDraft: async () =>({prompt:''}), projectRunTarget:()=>target, runStatusLabel:s=>s},
       events:{subscribeAIConfigRefresh:()=>()=>{}},
       commands:{ openAssetMediaUrl: unavailableMedia,savePromptDraft:async()=>{}, copyText:async()=>({ok:true}), exportText:async()=>({ok:false})}},
-    sdk:{aiConfig:{get:async()=>null}, runCapability:input=>{
+    sdk:{aiConfig: { getSnapshot: async () => ({ config: null, effectiveSelections: [] }) }, runCapability:input=>{
       const deferred = Promise.withResolvers(); calls.push({input,...deferred}); return deferred.promise;
     }},
   };
@@ -889,10 +922,12 @@ test('a live ASR file can be replayed without borrowing the draft or persisting 
     await act(async()=>render());
     assert.equal(button('StudioShell.regenerate').disabled,false, 'the current run still owns its source');
     assert.ok(!container.textContent.includes('StudioShell.historyInputsUnavailable'));
-    target.canDispatch = false;
+    target = { ...target, canDispatch: false };
+    props.runtime = { ...props.runtime };
     await act(async()=>render());
     assert.equal(button('StudioShell.regenerate').disabled,true, 'replay observes the same admission gate as a new request');
-    target.canDispatch = true;
+    target = { ...target, canDispatch: true };
+    props.runtime = { ...props.runtime };
     await act(async()=>render());
     await act(async()=>button('StudioShell.regenerate').click());
     assert.equal(calls.length,2);
@@ -926,7 +961,7 @@ test('parsed ASR URL history restores URL A and all saved controls while File B 
   const host = { appTitle:'Lab',translate:key=>key,locale:'en',clock:{now:()=>Date.now()},
     app:{projection:{ assetExportAction: () => 'reveal',promptDraft: async () =>({prompt:'https://audio.example.test/draft-B.wav'}),projectRunTarget:()=>target,runStatusLabel:s=>s},
       events:{subscribeAIConfigRefresh:()=>()=>{}},commands:{ openAssetMediaUrl: unavailableMedia,savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>({ok:false})}},
-    sdk:{aiConfig:{get:async()=>null},runCapability:async input=>{
+    sdk:{aiConfig: { getSnapshot: async () => ({ config: null, effectiveSelections: [] }) },runCapability:async input=>{
       calls.push(input);
       return studioVoiceRuntimeHandlers[id]({capability:registration.descriptor,input,prompt:input.prompt,scenarioId:'isolated-asr',host:{
         appId:'lab',surfaceId:'ai-capabilities',client:{ai:{}},createScenarioJobClient:()=>({}),
@@ -1058,7 +1093,7 @@ for(const transcript of [
   const target={capabilityId:id,capabilityContract:id,section:'voice',source:'local',status:'configured',canDispatch:true,intentLabel:'Local',detail:'configured',params:{},paramsSummary:[],profileOrigin:null};
   const record=savedReplayRecord(id,target,{timestamps:true},{kind:'transcript',text:transcript.text,transcription:transcript,jobId:'saved-asr-job',jobState:'completed',artifactCount:0});
   assert.equal(record.result.charCount,transcript.text.length);assert.equal(record.result.transcription.words.length,transcript.words.length);
-  const host={appTitle:'Lab',translate:key=>key,locale:'en',clock:{now:()=>Date.now()},app:{projection:{ assetExportAction: () => 'reveal',promptDraft: async () =>({prompt:''}),projectRunTarget:()=>target,runStatusLabel:s=>s},events:{subscribeAIConfigRefresh:()=>()=>{}},commands:{ openAssetMediaUrl: unavailableMedia,savePromptDraft:async()=>{},copyText:async text=>{copies.push(text);return {ok:true}},exportText:async input=>{exports.push(input);return {ok:false,error:Error('isolated native export boundary')}}}},sdk:{aiConfig:{get:async()=>null},runCapability:()=>{throw Error('export never runs a model')}}};
+  const host={appTitle:'Lab',translate:key=>key,locale:'en',clock:{now:()=>Date.now()},app:{projection:{ assetExportAction: () => 'reveal',promptDraft: async () =>({prompt:''}),projectRunTarget:()=>target,runStatusLabel:s=>s},events:{subscribeAIConfigRefresh:()=>()=>{}},commands:{ openAssetMediaUrl: unavailableMedia,savePromptDraft:async()=>{},copyText:async text=>{copies.push(text);return {ok:true}},exportText:async input=>{exports.push(input);return {ok:false,error:Error('isolated native export boundary')}}}},sdk:{aiConfig: { getSnapshot: async () => ({ config: null, effectiveSelections: [] }) },runCapability:()=>{throw Error('export never runs a model')}}};
   const props={registration,registrations:[registration],runtime:{status:'connected',detail:'connected'},lastResult:null,history:{[id]:[record]},historySelectionRequest:{requestId:1,record},onSelectHistoryRun:()=>{},onResult:async()=>null,verboseConsole:false,draftPersistence:false};
   const container=document.getElementById('root'),renderer=createRoot(container);
   try{await act(async()=>renderer.render(createElement(TooltipProvider,null,createElement(AIStudioHostProvider,{value:host},createElement(SectionAITesting,props)))));assert.equal(container.querySelectorAll('tbody tr').length,Math.min(400,transcript.words.length));
@@ -1108,7 +1143,7 @@ for(const geometry of ['box','point']) for(const withDraft of [false,true]) {
   const calls=[],reads=[];const complete=Promise.withResolvers();
   const host={appTitle:'Lab',translate:k=>k,locale:'en',clock:{now:()=>Date.now()},
    app:{projection:{ assetExportAction: () => 'reveal',promptDraft: async () =>({prompt:'draft B'}),projectRunTarget:()=>target,runStatusLabel:s=>s},events:{subscribeAIConfigRefresh:()=>()=>{}},commands:{ openAssetMediaUrl: unavailableMedia,savePromptDraft:async()=>{},copyText:async()=>({ok:true}),exportText:async()=>{}}},
-   sdk:{aiConfig:{get:async()=>null,getSnapshot:async()=>({})},assets:{stat:async()=>source,read:async({relativePath})=>{reads.push(relativePath);return{asset:source,body:{async *[Symbol.asyncIterator](){yield bytes}}}}},runCapability:async input=>{calls.push(input);return{ok:false,capabilityId:'vision.locate',reason:'runtime-call-failed',message:'test transport boundary',actionHint:''}}}};
+   sdk:{aiConfig:{get:async()=>null,getSnapshot: async () => ({ config: null, effectiveSelections: [] })},assets:{stat:async()=>source,read:async({relativePath})=>{reads.push(relativePath);return{asset:source,body:{async *[Symbol.asyncIterator](){yield bytes}}}}},runCapability:async input=>{calls.push(input);return{ok:false,capabilityId:'vision.locate',reason:'runtime-call-failed',message:'test transport boundary',actionHint:''}}}};
   const props={registration,registrations:[registration],runtime:{status:'connected',detail:'connected'},lastResult:null,history:{'vision.locate':[record]},historySelectionRequest:{requestId:1,record},onSelectHistoryRun:()=>{},onResult:async()=>{complete.resolve();return null},verboseConsole:false,draftPersistence:false};
   const container=document.getElementById('root'),renderer=createRoot(container),previousReader=globalThis.FileReader;
   const parameterStore={state:{'vision.locate':{geometry:geometry==='box'?'point':'box'}},setParameters(){}};

@@ -122,19 +122,37 @@ function SpeechTranscribeFields(props: StudioParameterPanelProps) {
   const parameters = props.parameters as StudioSpeechTranscribeParameters;
   const update = props.onChange as (next: StudioSpeechTranscribeParameters) => void;
   const inputRef = useRef<HTMLInputElement>(null);
+  const fileSelection = useRef(0);
+  const latestParameters = useRef(parameters);
+  latestParameters.current = parameters;
   const [fileError, setFileError] = useState('');
+  useEffect(() => () => { fileSelection.current += 1; }, []);
+
   async function selectFile(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0];
     event.currentTarget.value = '';
     if (!file) return;
-    if (file.size > MAX_STUDIO_AUDIO_UPLOAD_BYTES) {
-      setFileError(t('Studio.parameters.audioFileTooLarge'));
+    const selection = ++fileSelection.current;
+    if (file.size === 0 || file.size > MAX_STUDIO_AUDIO_UPLOAD_BYTES) {
+      setFileError(t('Studio.parameters.transcriptionAudioFileSize'));
       return;
     }
     const mimeType = file.type || 'application/octet-stream';
-    const bytes = new Uint8Array(await file.arrayBuffer());
     setFileError('');
-    update({ ...parameters, audioFile: { name: file.name, mimeType, sizeBytes: file.size, bytes }, mimeType });
+    try {
+      const bytes = new Uint8Array(await file.arrayBuffer());
+      if (selection !== fileSelection.current) return;
+      update({ ...latestParameters.current, audioFile: { name: file.name, mimeType, sizeBytes: file.size, bytes }, mimeType });
+    } catch {
+      if (selection === fileSelection.current) setFileError(t('Studio.parameters.transcriptionAudioFileUnreadable'));
+    }
+  }
+  function removeFile() {
+    fileSelection.current += 1;
+    const next = { ...parameters };
+    delete next.audioFile;
+    update(next);
+    setFileError('');
   }
   const textField = (field: keyof StudioSpeechTranscribeParameters, label: string): StudioParameterFieldDefinition => ({
     field,
@@ -148,23 +166,6 @@ function SpeechTranscribeFields(props: StudioParameterPanelProps) {
   });
   const audioFileLabel = t('Studio.parameters.fields.audioFile');
   const fields: StudioParameterFieldDefinition[] = [
-    {
-      field: 'audioFile',
-      label: audioFileLabel,
-      render: (routeDisabled) => (
-        <StudioParameterField label={audioFileLabel}>
-          <input ref={inputRef} className="studio-parameters__file-input" type="file" accept="audio/*,.wav,.mp3,.m4a,.ogg,.webm,.flac" disabled={props.disabled || routeDisabled} onChange={(event) => void selectFile(event)} />
-          <div className="studio-parameters__file-row">
-            <Button type="button" tone="ghost" size="sm" disabled={props.disabled || routeDisabled} leadingIcon={<Upload size={14} aria-hidden="true" />} onClick={() => inputRef.current?.click()}>
-              {t('Studio.parameters.chooseAudioFile')}
-            </Button>
-            {parameters.audioFile ? <span>{parameters.audioFile.name}</span> : null}
-            {parameters.audioFile ? <Button type="button" tone="ghost" size="sm" disabled={props.disabled || routeDisabled} onClick={() => { const next = { ...parameters }; delete next.audioFile; update(next); }}>{t('Studio.parameters.removeFile')}</Button> : null}
-          </div>
-          {fileError ? <small>{fileError}</small> : null}
-        </StudioParameterField>
-      ),
-    },
     textField('mimeType', t('Studio.parameters.fields.mimeType')),
     textField('language', t('Studio.parameters.fields.language')),
     booleanField('timestamps', t('Studio.parameters.fields.timestamps')),
@@ -177,7 +178,29 @@ function SpeechTranscribeFields(props: StudioParameterPanelProps) {
     textField('prompt', t('Studio.parameters.fields.transcriptionPrompt')),
     textField('responseFormat', t('Studio.parameters.fields.responseFormat')),
   ];
-  return <StudioRouteAwareParameterFields contract={props.contract} source={props.source} fields={fields} translate={translate} />;
+  return (
+    <StudioParameterPanelFrame
+      translate={translate}
+      disabled={props.disabled}
+      onReset={() => update(parameters.audioFile ? { audioFile: parameters.audioFile, mimeType: parameters.audioFile.mimeType } : {})}
+      primary={(
+        <fieldset className="studio-parameters__field">
+          <legend className="studio-parameters__label">{audioFileLabel}</legend>
+          <input ref={inputRef} className="studio-parameters__file-input" type="file" accept="audio/*,.wav,.mp3,.m4a,.ogg,.webm,.flac" disabled={props.disabled} onChange={(event) => void selectFile(event)} />
+          <div className="studio-parameters__file-row">
+            <Button type="button" tone="secondary" size="sm" disabled={props.disabled} leadingIcon={<Upload size={14} aria-hidden="true" />} onClick={() => inputRef.current?.click()}>
+              {t('Studio.parameters.chooseAudioFile')}
+            </Button>
+            {parameters.audioFile ? <span>{parameters.audioFile.name}</span> : null}
+            {parameters.audioFile ? <Button type="button" tone="ghost" size="sm" disabled={props.disabled} onClick={removeFile}>{t('Studio.parameters.removeFile')}</Button> : null}
+          </div>
+          {fileError ? <small role="alert">{fileError}</small> : null}
+        </fieldset>
+      )}
+    >
+      <StudioRouteAwareParameterFields contract={props.contract} source={props.source} fields={fields} translate={translate} />
+    </StudioParameterPanelFrame>
+  );
 }
 
 function VoiceCreateFields(props: StudioParameterPanelProps) {
@@ -267,9 +290,9 @@ function VoiceCreateFields(props: StudioParameterPanelProps) {
 export function StudioVoiceParameterPanel(props: StudioParameterPanelProps) {
   const { translate: t } = useAIStudioHost();
   const translate: StudioParameterTranslate = (key, values) => t(key, values);
+  if (props.capabilityId === 'audio.transcribe') return <SpeechTranscribeFields {...props} />;
   let fields = null;
   if (props.capabilityId === 'audio.synthesize') fields = <SpeechSynthesizeFields {...props} />;
-  else if (props.capabilityId === 'audio.transcribe') fields = <SpeechTranscribeFields {...props} />;
   else if (props.capabilityId === 'voice.create') fields = <VoiceCreateFields {...props} />;
   if (!fields) return null;
   return (

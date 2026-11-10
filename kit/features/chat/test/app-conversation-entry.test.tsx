@@ -159,10 +159,7 @@ describe('AppConversationEntry', () => {
     await act(async () => root!.render(<AppConversationEntry client={harness.client} hostPort={harness.hostPort} language="en" />));
     await flush();
     const select = () => (container!.querySelector(`[data-nimi-app-conversation-agent-handle="${HANDLE_A}"]`) as HTMLButtonElement).click();
-    await act(async () => {
-      select();
-      await import('../src/components/canonical-character-rail.js');
-    }); await flush();
+    await act(async () => select()); await flush();
     const settings = () => [...container!.querySelectorAll('button')].find(b => b.textContent === 'Review conversation settings in Nimi')!;
     expect(settings()).toBeTruthy();
     expect(harness.client.conversation.send).not.toHaveBeenCalled();
@@ -171,7 +168,8 @@ describe('AppConversationEntry', () => {
     await act(async () => rejectOpen(new Error('Home unavailable')));
     expect(container.textContent).toContain('Could not open Nimi.');
     await act(async () => settings().click());
-    await act(async () => (container!.querySelector('[aria-label="Back to character space"]') as HTMLButtonElement).click());
+    const back = [...container!.querySelectorAll('button')].find(b => b.textContent === 'All partners')!;
+    await act(async () => back.click());
     await act(async () => select()); await flush();
     await act(async () => rejectOpen(new Error('Late Home failure')));
     expect(settings()).toBeTruthy();
@@ -202,7 +200,7 @@ describe('AppConversationEntry', () => {
     expect((container!.querySelector('textarea') as HTMLTextAreaElement).value).toBe('Earlier failed input');
     expect(harness.client.conversation.send).toHaveBeenCalledTimes(1);
   });
-  it('uses Kit-owned Chinese copy, requires explicit reference selection, and mounts the canonical shell', async () => {
+  it('uses Kit-owned Chinese copy, requires explicit partner selection, and shows the canonical transcript', async () => {
     const harness = entryHarness();
     container = document.createElement('div');
     document.body.appendChild(container);
@@ -219,19 +217,15 @@ describe('AppConversationEntry', () => {
     });
     await flush();
 
-    expect(container.textContent).toContain('请先选择当前 Agent，打开它的对话。');
-    expect(container.textContent).toContain('打开对话');
+    expect(container.textContent).toContain('选择一位伙伴，接着之前的话题聊，或发一条消息开始。');
+    expect(container.querySelector('button[aria-label$="打开对话"]')).toBeTruthy();
     expect(harness.calls.some((call) => call.method === 'open')).toBe(false);
 
     const select = container.querySelector(`[data-nimi-app-conversation-agent-handle="${HANDLE_A}"]`) as HTMLButtonElement;
     await act(async () => {
       select.click();
-      await Promise.all([
-        import('../src/components/canonical-character-rail.js'),
-        import('../src/components/canonical-stage-panel.js'),
-      ]);
     });
-    expect(container?.querySelector('[data-canonical-stage-root="true"]')).toBeTruthy();
+    expect(container?.querySelector('[data-canonical-transcript-root="true"]')).toBeTruthy();
     expect(harness.calls.map((call) => call.method).filter((method) => (
       method === 'open' || method === 'subscribe' || method === 'snapshot'
     ))).toEqual(['open', 'subscribe', 'snapshot']);
@@ -251,6 +245,10 @@ describe('AppConversationEntry', () => {
     await vi.waitFor(() => expect(harness.hostPort.voiceInput.record).toHaveBeenCalledTimes(1));
     expect(container.textContent).toContain('录音不可用');
     expect(container.textContent).toContain('录制语音');
+
+    const back = Array.from(container.querySelectorAll('button')).find((button) => button.textContent === '全部伙伴')!;
+    await act(async () => { back.click(); });
+    expect(container.querySelector('[data-nimi-app-conversation-selector="true"]')).toBeTruthy();
   });
 
   it('keeps voice mechanics behind render/read and the supplied Host playback port', async () => {

@@ -36,6 +36,16 @@ export function isStoppedDirectCall(reason: string, capabilityId?: string): bool
   return reason === 'operation-aborted' && capabilityId !== undefined && DIRECT_CALL_CAPABILITIES.has(capabilityId);
 }
 
+export function studioTerminalStatusKey(reason?: StudioNonSuccessReason, capabilityId?: string): string {
+  if (!reason) return 'Studio.result.status.runtimeResult';
+  if (reason === 'runtime-canceled') return 'Studio.result.status.runtimeCanceled';
+  if (reason === 'runtime-timeout') return 'Studio.result.status.runtimeTimedOut';
+  if (reason === 'operation-aborted') return isStoppedDirectCall(reason, capabilityId)
+    ? 'Studio.result.status.stoppedDirectCall'
+    : 'Studio.result.status.operationAborted';
+  return 'Studio.result.status.runtimeBlocked';
+}
+
 export function studioNonSuccessReasonTitle(reason: StudioNonSuccessReason, translate: StudioTranslate, capabilityId?: string): string {
   if (isStoppedDirectCall(reason, capabilityId)) return translate('NonSuccess.title.stoppedDirectCall');
   return translate(`NonSuccess.title.${reasonKeySegment(reason)}`);

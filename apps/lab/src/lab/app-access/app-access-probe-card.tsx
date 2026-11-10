@@ -25,12 +25,14 @@ export function AppAccessProbeCard({
   definition,
   state,
   gate,
+  runActive,
   onRun,
   children,
 }: {
   readonly definition: AppAccessProbeDefinition;
   readonly state: AppAccessProbeState;
   readonly gate: AppAccessGate;
+  readonly runActive: boolean;
   readonly onRun: () => void;
   readonly children?: ReactNode;
 }) {
@@ -49,26 +51,16 @@ export function AppAccessProbeCard({
       data-state={state.status}
     >
       <div className="app-access-probe-card__head">
+        <h3 className="app-access-probe-card__title">{t(definition.titleKey)}</h3>
         <StatusBadge tone={badge.tone} shape="soft" className="app-access-probe-card__status">{t(badge.labelKey)}</StatusBadge>
-        <Button
-          type="button"
-          tone="secondary"
-          size="sm"
-          className="app-access-probe-card__run"
-          data-testid={definition.runTestId}
-          disabled={gated || state.status === 'running'}
-          loading={state.status === 'running'}
-          onClick={onRun}
-        >
-          {t('AppAccess.probeCard.run')}
-        </Button>
       </div>
-      <h3 className="app-access-probe-card__title">{t(definition.titleKey)}</h3>
       <p className="app-access-probe-card__proves">{t(definition.provesKey)}</p>
-      {definition.requiresKey ? (
+      {definition.requiresKey && definition.requiresExplicitConfirmation ? (
         <InlineAlert role="note" tone="warning" icon={<ShieldAlert size={14} strokeWidth={2} aria-hidden="true" />}>
-          {t('AppAccess.probeCard.requires', { requires: t(definition.requiresKey) })}
+          {t(definition.requiresKey)}
         </InlineAlert>
+      ) : definition.requiresKey && !definition.gate ? (
+        <p className="app-access-probe-card__proves">{t('AppAccess.probeCard.requires', { requires: t(definition.requiresKey) })}</p>
       ) : null}
       {children}
       <div
@@ -97,19 +89,36 @@ export function AppAccessProbeCard({
               </dl>
             </details>
           </>
-        ) : (
+        ) : state.status !== 'not-run' ? (
           <>
             <p className={`app-access-probe-card__headline app-access-probe-card__headline--${state.status}`}>
               {state.status === 'passed' ? <CheckCircle2 size={14} strokeWidth={2.2} aria-hidden="true" /> : null}
               <span>{headline}</span>
             </p>
             {state.facts.length > 0 ? (
-              <ul className="app-access-probe-card__facts">
-                {state.facts.map((fact) => <li key={fact}>{fact}</li>)}
-              </ul>
+              <details className="app-access-diag">
+                <summary>{t(appAccessPageCopy.technicalDetails)}</summary>
+                <ul className="app-access-probe-card__facts">
+                  {state.facts.map((fact) => <li key={fact}>{fact}</li>)}
+                </ul>
+              </details>
             ) : null}
           </>
-        )}
+        ) : null}
+      </div>
+      <div className="app-access-probe-card__actions">
+        <Button
+          type="button"
+          tone="secondary"
+          size="sm"
+          aria-label={t('AppAccess.probeCard.runNamed', { name: t(definition.titleKey) })}
+          data-testid={definition.runTestId}
+          disabled={gated || runActive}
+          loading={state.status === 'running'}
+          onClick={onRun}
+        >
+          {t('AppAccess.probeCard.run')}
+        </Button>
       </div>
     </AppCardSurface>
   );

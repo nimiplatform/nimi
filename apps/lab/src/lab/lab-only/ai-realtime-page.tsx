@@ -14,7 +14,7 @@ import { createNimiClientId } from '@nimiplatform/sdk';
 
 import type { AIStudioWorkspaceController } from '../../ai-studio-core/workspace.js';
 import type { StudioCapabilityRunResult, StudioRuntimeInspection } from '../../ai-studio-core/runtime-types.js';
-import { createRunConfigSnapshot, useStudioRunTargetSummary } from '../../ai-studio-core/section-ai-testing-run.js';
+import { createRunConfigSnapshot, studioConfiguredTargetLabel, useStudioRunTargetSummary } from '../../ai-studio-core/section-ai-testing-run.js';
 import { studioNonSuccessDiagnostics } from '../../ai-studio-core/runtime.js';
 import { notifyStudioAIConfigChanged } from '../../ai-studio-core/ai-config.js';
 import { SessionSummaryView } from '../../ai-studio-core/section-ai-testing-session-result.js';
@@ -284,7 +284,7 @@ function LabAiRealtimeSurface({
           <p>{t('CapabilityTests.aiRealtime.intro')}</p>
         </div>
         <div className="lab-realtime__head-actions">
-          <StatusBadge tone={runTarget.canDispatch ? 'success' : 'warning'} shape="dot">{runTarget.intentLabel}</StatusBadge>
+          <StatusBadge tone={runTarget.canDispatch ? 'info' : 'warning'} shape="dot">{studioConfiguredTargetLabel(runTarget, t)}</StatusBadge>
           <Button type="button" size="sm" tone="secondary" onClick={() => setConfigOpen(true)}>{t('CapabilityTests.aiRealtime.configure')}</Button>
         </div>
       </header>
@@ -295,40 +295,59 @@ function LabAiRealtimeSurface({
       <section className="lab-realtime__card" aria-label={t('CapabilityTests.aiRealtime.openSection')}>
         <TextareaField rows={2} value={instruction} disabled={phase !== 'idle' && phase !== 'closed' && phase !== 'terminated'} aria-label={t('CapabilityTests.aiRealtime.instruction')} onChange={(event) => setInstruction(event.currentTarget.value)} />
         <div className="lab-realtime__row">
-          <SelectField value={interactionMode} aria-label={t('CapabilityTests.aiRealtime.interactionMode')}
-            disabled={['open','opening','closing','interrupted'].includes(phase)}
-            options={[{value:'owner-controlled',label:t('CapabilityTests.aiRealtime.ownerControlled')},{value:'continuous',label:t('CapabilityTests.aiRealtime.continuous')}]}
-            onValueChange={value => { const mode=value==='continuous'?'continuous':'owner-controlled';setInteractionMode(mode);if(mode==='continuous')setAudioOutputEnabled(true); }} />
-          {interactionMode === 'owner-controlled' ? <SelectField
-            value={turnDetection}
-            disabled={['open', 'opening', 'closing', 'interrupted'].includes(phase)}
-            aria-label={t('CapabilityTests.aiRealtime.turnDetection')}
-            options={[
-              { value: 'manual', label: t('CapabilityTests.aiRealtime.manual') },
-              { value: 'server-vad', label: t('CapabilityTests.aiRealtime.serverVad') },
-            ]}
-            onValueChange={(value) => setTurnDetection(value === 'server-vad' ? 'server-vad' : 'manual')}
-          /> : null}
+          <label className="lab-realtime__field">
+            <span>{t('CapabilityTests.aiRealtime.interactionMode')}</span>
+            <SelectField value={interactionMode} aria-label={t('CapabilityTests.aiRealtime.interactionMode')}
+              disabled={['open','opening','closing','interrupted'].includes(phase)}
+              options={[
+                { value: 'owner-controlled', label: t('CapabilityTests.aiRealtime.ownerControlled') },
+                { value: 'continuous', label: t('CapabilityTests.aiRealtime.continuous') },
+              ]}
+              onValueChange={value => {
+                const mode = value === 'continuous' ? 'continuous' : 'owner-controlled';
+                setInteractionMode(mode);
+                if (mode === 'continuous') setAudioOutputEnabled(true);
+              }} />
+          </label>
+          {interactionMode === 'owner-controlled' ? <label className="lab-realtime__field">
+            <span>{t('CapabilityTests.aiRealtime.turnDetection')}</span>
+            <SelectField
+              value={turnDetection}
+              disabled={['open', 'opening', 'closing', 'interrupted'].includes(phase)}
+              aria-label={t('CapabilityTests.aiRealtime.turnDetection')}
+              options={[
+                { value: 'manual', label: t('CapabilityTests.aiRealtime.manual') },
+                { value: 'server-vad', label: t('CapabilityTests.aiRealtime.serverVad') },
+              ]}
+              onValueChange={(value) => setTurnDetection(value === 'server-vad' ? 'server-vad' : 'manual')}
+            />
+          </label> : null}
           <label className="lab-realtime__toggle">
             <Toggle checked={audioOutputEnabled} disabled={interactionMode === 'continuous' || phase === 'open' || phase === 'opening'} onValueChange={setAudioOutputEnabled} ariaLabel={t('CapabilityTests.aiRealtime.audioOutput')} />
             <span>{t('CapabilityTests.aiRealtime.audioOutput')}</span>
           </label>
-          <SelectField
-            value={String(inputSampleRate)}
-            disabled={phase === 'open' || phase === 'opening'}
-            aria-label={t('CapabilityTests.aiRealtime.inputSampleRate')}
-            options={[{ value: '16000', label: '16 kHz' }, { value: '24000', label: '24 kHz' }]}
-            onValueChange={(value) => setInputSampleRate(value === '24000' ? 24000 : 16000)}
-          />
+          <label className="lab-realtime__field">
+            <span>{t('CapabilityTests.aiRealtime.inputSampleRate')}</span>
+            <SelectField
+              value={String(inputSampleRate)}
+              disabled={phase === 'open' || phase === 'opening'}
+              aria-label={t('CapabilityTests.aiRealtime.inputSampleRate')}
+              options={[{ value: '16000', label: '16 kHz' }, { value: '24000', label: '24 kHz' }]}
+              onValueChange={(value) => setInputSampleRate(value === '24000' ? 24000 : 16000)}
+            />
+          </label>
           <span className="lab-realtime__meta">{t('CapabilityTests.aiRealtime.inputFormat', { rate: inputSampleRate / 1000, bytes: inputSampleRate * 2 * 20 / 1000 })}</span>
         </div>
         <div className="lab-realtime__row">
-          <Button type="button" size="sm" tone="primary" disabled={busy || phase === 'open' || phase === 'opening' || phase === 'closing' || phase === 'interrupted' || !runTarget.canDispatch} onClick={() => void openSession()}>
-            {t(phase === 'opening' ? 'CapabilityTests.aiRealtime.opening' : 'CapabilityTests.aiRealtime.open')}
-          </Button>
-          <Button type="button" size="sm" tone="ghost" disabled={(!open && phase !== 'interrupted') || busy} onClick={() => void run(closeSession)}>
-            {t('CapabilityTests.aiRealtime.close')}
-          </Button>
+          {open || phase === 'closing' || phase === 'interrupted' ? (
+            <Button type="button" size="sm" tone="secondary" disabled={busy || phase === 'closing'} onClick={() => void run(closeSession)}>
+              {t('CapabilityTests.aiRealtime.close')}
+            </Button>
+          ) : (
+            <Button type="button" size="sm" tone="primary" disabled={busy || phase === 'opening' || !runTarget.canDispatch} onClick={() => void openSession()}>
+              {t(phase === 'opening' ? 'CapabilityTests.aiRealtime.opening' : 'CapabilityTests.aiRealtime.open')}
+            </Button>
+          )}
           <StatusBadge tone={open ? 'success' : phase === 'terminated' || phase === 'interrupted' ? 'warning' : 'neutral'} shape="dot">{t(`CapabilityTests.aiRealtime.phase.${phase === 'terminated' && !state.scope ? 'openFailed' : phase}`)}</StatusBadge>
           {state.control ? (
             <span className="lab-realtime__meta">
@@ -346,6 +365,14 @@ function LabAiRealtimeSurface({
       </section>
 
       <section className="lab-realtime__card" aria-label={t('CapabilityTests.aiRealtime.inputSection')}>
+        <label className="lab-realtime__field">
+          <span>{t('CapabilityTests.aiRealtime.recordingFile')}</span>
+          <input type="file" accept=".wav,audio/wav" aria-label={t('CapabilityTests.aiRealtime.recordingFile')}
+            disabled={busy || !!capture || (interactionMode === 'owner-controlled' && recordingSubmitted)}
+            onChange={(event) => { setRecording(event.currentTarget.files?.[0] ?? null); setRecordingSubmitted(false); }} />
+        </label>
+        {!open ? <p className="lab-realtime__meta">{t('CapabilityTests.aiRealtime.openToSendInput')}</p> : null}
+        {open ? <>
         {interactionMode === 'continuous' ? <InlineAlert tone="info">{t('CapabilityTests.aiRealtime.continuousHelp')}</InlineAlert> : null}
         {interactionMode === 'owner-controlled' ? <TextareaField rows={2} value={text} disabled={!open} aria-label={t('CapabilityTests.aiRealtime.textInput')} onChange={(event) => setText(event.currentTarget.value)} /> : null}
         <div className="lab-realtime__row">
@@ -355,8 +382,6 @@ function LabAiRealtimeSurface({
           <Button type="button" size="sm" tone="secondary" disabled={!open || busy} onClick={() => void (capture ? stopCapture() : startCapture()).catch((error: unknown) => setNotice(error instanceof Error ? error.message : String(error)))}>
             {t(capture ? 'CapabilityTests.aiRealtime.stopMic' : 'CapabilityTests.aiRealtime.startMic')}
           </Button>
-          <input type="file" accept=".wav,audio/wav" aria-label={t('CapabilityTests.aiRealtime.recordingFile')}
-            disabled={busy || !!capture || (interactionMode === 'owner-controlled' && recordingSubmitted)} onChange={(event) => {setRecording(event.currentTarget.files?.[0] ?? null);setRecordingSubmitted(false);}} />
           <Button type="button" size="sm" tone="secondary"
             disabled={!open || busy || !!capture || !recording || recordingSubmitted || (interactionMode === 'owner-controlled' && (state.responsePending || activeTracks.length > 0))}
             onClick={() => void run(sendRecording)}>{t(interactionMode === 'continuous' ? 'CapabilityTests.aiRealtime.sendContinuousRecording' : turnDetection === 'manual' ? 'CapabilityTests.aiRealtime.sendRecording' : 'CapabilityTests.aiRealtime.sendRecordingVad')}</Button>
@@ -378,10 +403,11 @@ function LabAiRealtimeSurface({
         {recordingSubmitted ? <p role="status">{t(interactionMode === 'continuous' ? 'CapabilityTests.aiRealtime.recordingStreamed' : 'CapabilityTests.aiRealtime.recordingSubmitted')}</p> : null}
         <p className="lab-realtime__meta">{t(interactionMode === 'continuous' ? 'CapabilityTests.aiRealtime.continuousAudioHint' : 'CapabilityTests.aiRealtime.audioHint')}</p>
         <p className="lab-realtime__meta">{t(interactionMode === 'continuous' ? 'CapabilityTests.aiRealtime.continuousRecordingHint' : turnDetection === 'manual' ? 'CapabilityTests.aiRealtime.recordingHint' : 'CapabilityTests.aiRealtime.recordingHintVad')}</p>
+        </> : null}
         {notice ? <InlineAlert tone="warning">{notice}</InlineAlert> : null}
       </section>
 
-      {interactionMode === 'continuous' ? <section className="lab-realtime__card" aria-label={t('CapabilityTests.aiRealtime.contextSection')}>
+      {open && interactionMode === 'continuous' ? <section className="lab-realtime__card" aria-label={t('CapabilityTests.aiRealtime.contextSection')}>
         <strong>{t('CapabilityTests.aiRealtime.contextSection')}</strong>
         <p className="lab-realtime__meta">{t('CapabilityTests.aiRealtime.contextHelp')}</p>
         <div className="lab-realtime__row">
@@ -393,7 +419,7 @@ function LabAiRealtimeSurface({
         <Button type="button" size="sm" tone="secondary" disabled={!open || busy || !contextText.trim() || new TextEncoder().encode(contextText.trim()).byteLength>500} onClick={()=>void run(async()=>{await sessionRef.current!.appendOwnerContext(contextText.trim(),contextKind,contextRequestId==='general'?undefined:contextRequestId);setContextText('');setContextRequestId('general');})}>{t('CapabilityTests.aiRealtime.sendContext')}</Button>
       </section> : null}
 
-      <section className="lab-realtime__card" aria-label={t('CapabilityTests.aiRealtime.outputSection')}>
+      {phase !== 'idle' ? <section className="lab-realtime__card" aria-label={t('CapabilityTests.aiRealtime.outputSection')}>
         {state.tracks.length === 0 && state.transcripts.length === 0 && !(state.continuousTranscripts?.length) ? <p className="lab-realtime__meta">{t('CapabilityTests.aiRealtime.noOutput')}</p> : null}
         {state.sessionUsage ? <p className="lab-realtime__meta">{t(state.sessionUsage.final ? 'CapabilityTests.aiRealtime.usageFinal' : 'CapabilityTests.aiRealtime.usagePartial', { seconds: state.sessionUsage.audioSeconds })}</p> : null}
         {state.transcriptWindowTrimmed ? <p className="lab-realtime__meta">{t('CapabilityTests.aiRealtime.transcriptWindow')}</p> : null}
@@ -411,9 +437,9 @@ function LabAiRealtimeSurface({
             <p>{track.text || '…'}</p>
           </div>
         ))}
-      </section>
+      </section> : null}
 
-      <details className="lab-realtime__card" open>
+      <details className="lab-realtime__card">
         <summary>{t('CapabilityTests.aiRealtime.events', { count: state.log.length })}</summary>
         <ol className="lab-realtime__log">
           {state.log.map((entry) => (

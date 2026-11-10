@@ -25,6 +25,7 @@ const publishedStyleSourceReplacements = [
   ['./lib/**/*.{ts,tsx}', './lib/**/*.js'],
   ['../../auth/src/**/*.{ts,tsx}', '../auth/**/*.js'],
   ['../../features/agent-center/src/**/*.{ts,tsx}', '../features/agent-center/**/*.js'],
+  ['../../features/agent-realtime/src/**/*.{ts,tsx}', '../features/agent-realtime/**/*.js'],
   ['../../features/chat/src/**/*.{ts,tsx}', '../features/chat/**/*.js'],
   ['../../features/generation/src/**/*.{ts,tsx}', '../features/generation/**/*.js'],
   ['../../features/model-config/src/**/*.{ts,tsx}', '../features/model-config/**/*.js'],

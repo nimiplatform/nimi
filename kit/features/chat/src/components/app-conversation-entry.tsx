@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { ArrowLeft, ChevronRight, MessagesSquare } from 'lucide-react';
 import type { NimiLocalAppAgentHandle, } from '@nimiplatform/kit/core/sdk-contract';
-import { Avatar, Button, InlineAlert, LoadingSkeleton, Surface } from '@nimiplatform/kit/ui';
+import { Avatar, Button, InlineAlert, LoadingSkeleton, Surface, cn } from '@nimiplatform/kit/ui';
 import { openDesktopIntent } from '@nimiplatform/kit/shell/renderer/bridge';
 import type { ChatCopy } from '../copy.js';
-import type { ConversationCanonicalMessage, ConversationViewMode } from '../types.js';
+import type { ConversationCanonicalMessage } from '../types.js';
 import {
   createAppConversationEntrySession,
   type AppConversationEntryClient,
@@ -12,7 +13,7 @@ import {
   type AppConversationHostPort,
 } from '../headless/app-conversation-entry-session.js';
 import { CanonicalComposer } from './canonical-composer.js';
-import { CanonicalConversationShell } from './canonical-conversation-shell.js';
+import { CanonicalTranscriptView } from './canonical-transcript-view.js';
 
 export type AppConversationEntryProps = Readonly<{
   client: AppConversationEntryClient;
@@ -24,6 +25,7 @@ export type AppConversationEntryProps = Readonly<{
 type AppConversationEntryCopy = Readonly<{
   title: string;
   description: string;
+  back: string;
   loadingReferences: string;
   empty: string;
   select: string;
@@ -31,6 +33,7 @@ type AppConversationEntryCopy = Readonly<{
   retry: string;
   reload: string;
   composerPlaceholder: string;
+  send: string;
   playVoice: string;
   attachImage: string;
   recordVoice: string;
@@ -55,7 +58,8 @@ type AppConversationEntryCopy = Readonly<{
 export const APP_CONVERSATION_ENTRY_COPY = Object.freeze({
   en: Object.freeze<AppConversationEntryCopy>({
     title: 'Agent Conversation',
-    description: 'Choose a current Agent explicitly to open its canonical Conversation.',
+    description: 'Choose a partner to pick up where you left off, or start a new conversation.',
+    back: 'All partners',
     loadingReferences: 'Loading current Agents…',
     empty: 'No current Agent is available for this App session.',
     select: 'Open Conversation',
@@ -63,6 +67,7 @@ export const APP_CONVERSATION_ENTRY_COPY = Object.freeze({
     retry: 'Retry',
     reload: 'Reload current Agents',
     composerPlaceholder: 'Message this Agent…',
+    send: 'Send message',
     playVoice: 'Play voice',
     attachImage: 'Attach image',
     recordVoice: 'Record voice',
@@ -72,8 +77,8 @@ export const APP_CONVERSATION_ENTRY_COPY = Object.freeze({
     stopTurn: 'Stop current turn',
     transcriptLoading: 'Loading committed messages…',
     transcriptEmptyEyebrow: 'Conversation',
-    transcriptEmptyTitle: 'Start the first turn',
-    transcriptEmptyDescription: 'Only committed Conversation messages appear here.',
+    transcriptEmptyTitle: 'Start a conversation',
+    transcriptEmptyDescription: 'Send a message below to get started.',
     requestIdUnavailable: 'This App session cannot create a Conversation request identifier.',
     reuseInput: 'Edit the failed input',
     preserveDraft: 'Your new draft is kept. Clear it first to reuse the earlier input.',
@@ -84,15 +89,17 @@ export const APP_CONVERSATION_ENTRY_COPY = Object.freeze({
     chatCopy: {},
   }),
   zh: Object.freeze<AppConversationEntryCopy>({
-    title: 'Agent 对话',
-    description: "请先选择当前 Agent，打开它的对话。",
-    loadingReferences: '正在加载当前 Agent…',
-    empty: '当前 App session 没有可用 Agent。',
+    title: '伙伴对话',
+    description: '选择一位伙伴，接着之前的话题聊，或发一条消息开始。',
+    back: '全部伙伴',
+    loadingReferences: '正在加载伙伴…',
+    empty: '当前应用没有可对话的伙伴。',
     select: '打开对话',
     opening: '正在打开当前对话…',
     retry: '重试',
     reload: '重新加载当前 Agent',
-    composerPlaceholder: '给这个 Agent 发消息…',
+    composerPlaceholder: '输入消息…',
+    send: '发送消息',
     playVoice: '播放语音',
     attachImage: '添加图片',
     recordVoice: '录制语音',
@@ -102,8 +109,8 @@ export const APP_CONVERSATION_ENTRY_COPY = Object.freeze({
     stopTurn: '停止当前回合',
     transcriptLoading: '正在加载已提交消息…',
     transcriptEmptyEyebrow: '对话',
-    transcriptEmptyTitle: '开始第一个回合',
-    transcriptEmptyDescription: '这里只显示已经提交的 Conversation 消息。',
+    transcriptEmptyTitle: '开始对话',
+    transcriptEmptyDescription: '在下方输入一条消息。',
     requestIdUnavailable: '当前 App session 无法创建 Conversation request identifier。',
     reuseInput: '取回失败输入并编辑',
     preserveDraft: '已保留新草稿。如需取回之前的输入，请先清空当前草稿。',
@@ -168,10 +175,7 @@ function SessionStatusSurface(props: {
   return (
     <Surface tone="panel" className="space-y-3 p-4" data-nimi-app-conversation-status={state?.status ?? 'loading-references'}>
       <div>
-        <h2 className="m-0 text-[length:var(--nimi-type-section-title-size)] font-semibold text-[var(--nimi-text-primary)]">
-          {copy.title}
-        </h2>
-        <p className="m-0 mt-1 text-sm text-[var(--nimi-text-secondary)]">{copy.description}</p>
+        <h1 className="m-0 text-2xl font-semibold tracking-tight">{copy.title}</h1>
       </div>
       {loading || opening ? (
         <LoadingSkeleton lines={2} label={opening ? copy.opening : copy.loadingReferences} />
@@ -194,7 +198,6 @@ export function AppConversationEntry(props: AppConversationEntryProps) {
   const copy = useMemo(() => resolveEntryCopy(props.language), [props.language]);
   const sessionRef = useRef<AppConversationEntrySession | null>(null);
   const [state, setState] = useState<AppConversationEntryState | null>(null);
-  const [viewMode, setViewMode] = useState<ConversationViewMode>('stage');
   const [composerText, setComposerText] = useState('');
   const [submittedInput, setSubmittedInput] = useState<{ turnId: string; text: string } | null>(null);
   const [settingsOpenFailed, setSettingsOpenFailed] = useState(false);
@@ -217,7 +220,6 @@ export function AppConversationEntry(props: AppConversationEntryProps) {
   }, [props.client, props.hostPort]);
 
   useEffect(() => {
-    setViewMode('stage');
     setComposerText('');
     setSubmittedInput(null);
     setSettingsOpenFailed(false);
@@ -264,36 +266,42 @@ export function AppConversationEntry(props: AppConversationEntryProps) {
   if (state.status === 'select-reference') {
     return (
       <div className={props.className} data-nimi-app-conversation-entry="true">
-        <Surface tone="panel" className="space-y-3 p-4">
-          <div>
-            <h2 className="m-0 text-[length:var(--nimi-type-section-title-size)] font-semibold text-[var(--nimi-text-primary)]">
-              {copy.title}
-            </h2>
-            <p className="m-0 mt-1 text-sm text-[var(--nimi-text-secondary)]">{copy.description}</p>
-          </div>
+        <div className="space-y-5">
+          <header className="flex items-start gap-4 py-2">
+            <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]">
+              <MessagesSquare className="size-5" aria-hidden="true" />
+            </span>
+            <div className="min-w-0">
+              <h1 className="m-0 text-2xl font-semibold tracking-tight">{copy.title}</h1>
+              <p className="m-0 mt-1 text-sm leading-relaxed text-[var(--nimi-text-secondary)]">{copy.description}</p>
+            </div>
+          </header>
           {state.references.length === 0 ? <InlineAlert tone="warning">{copy.empty}</InlineAlert> : null}
-          <div className="grid gap-2" data-nimi-app-conversation-selector="true">
+          <div className="grid grid-cols-[repeat(auto-fill,minmax(min(100%,13rem),1fr))] gap-2" data-nimi-app-conversation-selector="true">
             {state.references.map((reference) => (
               <Button
                 key={reference.agentHandle}
                 tone="secondary"
+                aria-label={`${reference.displayName} · ${copy.select}`}
+                title={reference.displayName}
+                className="min-h-14 min-w-0 justify-start px-3 text-left [&>span]:w-full [&>span]:justify-start"
                 onClick={() => {
                   void sessionRef.current?.selectReference(reference.agentHandle);
                 }}
                 data-nimi-app-conversation-agent-handle={reference.agentHandle}
               >
                 <Avatar
-                  size="sm"
+                  size="md"
                   src={reference.avatarUrl || undefined}
-                  alt={reference.displayName}
+                  alt=""
                   fallback={reference.displayName.slice(0, 1)}
                 />
-                <span>{reference.displayName}</span>
-                <span className="text-xs opacity-70">{copy.select}</span>
+                <span className="min-w-0 flex-1 truncate">{reference.displayName}</span>
+                <ChevronRight className="size-4 shrink-0 opacity-60" aria-hidden="true" />
               </Button>
             ))}
           </div>
-        </Surface>
+        </div>
       </div>
     );
   }
@@ -303,15 +311,6 @@ export function AppConversationEntry(props: AppConversationEntryProps) {
   }
 
   const reference = state.selectedReference;
-  const target = {
-    id: reference.agentHandle,
-    source: 'agent' as const,
-    canonicalSessionId: state.conversationAnchorId,
-    title: reference.displayName,
-    avatarUrl: reference.avatarUrl,
-    avatarFallback: reference.displayName.slice(0, 1),
-    isOnline: null,
-  };
   const playVoice = (message: ConversationCanonicalMessage) => {
     const session = sessionRef.current;
     if (!session) return;
@@ -351,31 +350,27 @@ export function AppConversationEntry(props: AppConversationEntryProps) {
   };
 
   return (
-    <div className={props.className} data-nimi-app-conversation-entry="true">
-      <CanonicalConversationShell
-        chrome="card"
-        copy={copy.chatCopy}
-        sourceFilter="agent"
-        availableSources={['agent']}
-        targets={[target]}
-        selectedTargetId={target.id}
-        selectedTarget={target}
-        onSelectTarget={(targetId) => {
-          if (targetId === null) void sessionRef.current?.clearSelection();
-        }}
-        viewMode={viewMode}
-        onViewModeChange={setViewMode}
-        setupState={{ mode: 'agent', status: 'ready', issues: [], primaryAction: null }}
-        characterData={{
-          name: reference.displayName,
-          avatarUrl: reference.avatarUrl,
-          avatarFallback: reference.displayName.slice(0, 1),
-        }}
-        messages={state.messages}
-        pendingFirstBeat={state.activeTurnId !== null}
-        topContent={(
-          <div className="flex flex-wrap items-center gap-2 px-5 pt-3">
+    <div className={cn('h-full min-h-[28rem]', props.className)} data-nimi-app-conversation-entry="true">
+      <Surface tone="panel" className="flex h-full min-h-[inherit] min-w-0 flex-col overflow-hidden">
+        <header className="flex shrink-0 flex-wrap items-center justify-between gap-3 border-b border-[var(--nimi-border-subtle)] px-4 py-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
+            <Button size="sm" tone="ghost" onClick={() => { void sessionRef.current?.clearSelection(); }}>
+              <ArrowLeft className="size-4" aria-hidden="true" />{copy.back}
+            </Button>
+            <Avatar size="md" src={reference.avatarUrl || undefined} alt="" fallback={reference.displayName.slice(0, 1)} />
+            <h1 className="m-0 min-w-0 text-base font-semibold break-words">{reference.displayName}</h1>
+          </div>
+          <div className="flex flex-wrap items-center gap-1">
             <Button size="sm" tone="ghost" onClick={openSettings}>{copy.conversationSettings}</Button>
+            {voiceMessage ? (
+              <Button size="sm" tone="ghost" onClick={() => playVoice(voiceMessage)} data-nimi-app-conversation-play-voice={voiceMessage.id}>
+                {copy.playVoice}
+              </Button>
+            ) : null}
+          </div>
+        </header>
+        {settingsOpenFailed || state.actionError || (submittedInput?.text && state.lastTurnFailure?.turnId === submittedInput.turnId) ? (
+          <div className="flex shrink-0 flex-wrap items-center gap-2 px-4 py-2">
             {settingsOpenFailed ? <InlineAlert tone="warning">{copy.conversationSettingsUnavailable}</InlineAlert> : null}
             {state.actionError ? <InlineAlert tone="warning">{state.actionError}</InlineAlert> : null}
             {submittedInput?.text && state.lastTurnFailure?.turnId === submittedInput.turnId ? <div className="text-sm">
@@ -384,35 +379,31 @@ export function AppConversationEntry(props: AppConversationEntryProps) {
               }}>{copy.reuseInput}</Button>
               {composerText ? <p className="mt-1 text-[var(--nimi-text-secondary)]">{copy.preserveDraft}</p> : null}
             </div> : null}
-            {voiceMessage ? (
-              <Button
-                size="sm"
-                tone="ghost"
-                onClick={() => playVoice(voiceMessage)}
-                data-nimi-app-conversation-play-voice={voiceMessage.id}
-              >
-                {copy.playVoice}
-              </Button>
-            ) : null}
           </div>
-        )}
-        transcriptProps={{
-          loading: false,
-          loadingLabel: copy.transcriptLoading,
-          emptyEyebrow: copy.transcriptEmptyEyebrow,
-          emptyTitle: copy.transcriptEmptyTitle,
-          emptyDescription: copy.transcriptEmptyDescription,
-          pendingStopLabel: copy.stopTurn,
-          onStopGenerating: interrupt,
-        }}
-        composer={(
+        ) : null}
+        <CanonicalTranscriptView
+          messages={state.messages}
+          copy={copy.chatCopy}
+          activeConversationId={state.conversationAnchorId}
+          agentAvatarUrl={reference.avatarUrl}
+          agentName={reference.displayName}
+          pendingFirstBeat={state.activeTurnId !== null}
+          emptyEyebrow={copy.transcriptEmptyEyebrow}
+          emptyTitle={copy.transcriptEmptyTitle}
+          emptyDescription={copy.transcriptEmptyDescription}
+          pendingStopLabel={copy.stopTurn}
+          onStopGenerating={interrupt}
+          widthClassName="w-full max-w-[52rem]"
+          contentPaddingBottomClassName="pb-4"
+        />
+        <div className="shrink-0 border-t border-[var(--nimi-border-subtle)]">
           <CanonicalComposer
             adapter={composerAdapter}
-            mode={viewMode}
             text={composerText}
             onTextChange={setComposerText}
             placeholder={copy.composerPlaceholder}
-            disabled={state.status !== 'ready'}
+            sendLabel={copy.send}
+            widthClassName="w-full max-w-[52rem]"
             layout="stacked"
             toolbarSlot={(
               <div className="flex flex-wrap items-center gap-2">
@@ -433,8 +424,8 @@ export function AppConversationEntry(props: AppConversationEntryProps) {
               </div>
             )}
           />
-        )}
-      />
+        </div>
+      </Surface>
     </div>
   );
 }

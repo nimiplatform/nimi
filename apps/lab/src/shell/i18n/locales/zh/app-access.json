@@ -3,10 +3,12 @@
     "page": {
       "title": "App 访问",
       "eyebrow": "Nimi Lab",
-      "blurb": "基于真实 Runtime 链路，验证第三方本地 App 的各项契约：会话与身份状态、App 私有存储、Realm 数据、AI 调用、Agent 会话及越界拒绝。所有探针均执行真实调用，不使用模拟数据。",
+      "blurb": "检查当前账号下，Lab 能通过 Runtime 使用哪些应用能力。",
       "refreshSession": "刷新会话",
-      "runAll": "运行全部探针",
-      "runGroup": "运行分组",
+      "runAll": "运行常规检查",
+      "checksTitle": "选择检查",
+      "runAllImpact": "会写入临时数据、发起真实 AI 请求，并在可用伙伴的对话中发送测试消息。持久 Realm 写入需单独确认。",
+      "runGroup": "运行本组常规检查",
       "signedOut": "请通过账户菜单登录 Nimi 后再运行 App 访问探针。",
       "sessionLost": "Nimi 会话已丢失，此前会话的探针证据已清除。",
       "noAgentReferences": "当前账户下没有已激活的 Agent。请先在 Nimi Desktop 中创建并激活 Agent，再重新运行“激活的 Agent 引用”探针。",
@@ -16,6 +18,7 @@
       "noSession": "无会话",
       "agentSelectAriaLabel": "当前激活的 Agent",
       "agentSelectPlaceholder": "无激活的 Agent",
+      "agentSelectBeforeRun": "先运行检查以加载伙伴",
       "summaryAriaLabel": "探针结果汇总",
       "groupProgress": "{{passed}}/{{total}} 通过"
     },
@@ -49,7 +52,7 @@
       "toolingHmrActive": "Vite HMR 客户端已激活",
       "toolingHmrMissing": "未检测到官方 HMR 客户端",
       "checkingCurrentUser": "正在检查当前用户…",
-      "sessionLostRecheck": "会话丢失 — 请刷新以重新检查",
+      "sessionLostRecheck": "会话不可用 — 请刷新以重新检查",
       "currentUserSummary": "{{name}} · @{{handle}} · 头像{{avatar}}",
       "avatarSet": "已设置",
       "avatarNone": "未设置",
@@ -65,36 +68,37 @@
     "sessionBar": {
       "ariaLabel": "会话与身份",
       "title": "会话与身份",
-      "blurb": "各项事实独立查询，互不派生。"
+      "blurb": "各项事实独立查询，互不派生。",
+      "developerDetails": "开发诊断"
     },
     "nav": {
       "ariaLabel": "探针分组",
       "label": "分组",
-      "overview": "概览"
+      "overview": "返回检查概览"
     },
     "index": {
       "probeCount": "{{count}} 个探针"
     },
     "groups": {
       "storage": {
-        "title": "App 存储（基础）",
-        "blurb": "App 私有 JSON 存储，按 App 隔离。"
+        "title": "应用存储",
+        "blurb": "写入、回读和清理应用私有数据。"
       },
       "realm": {
         "title": "Realm 数据",
-        "blurb": "已声明的 Realm 数据访问：列出/创建 WorldCore，以及对 owner PersonaCharacter 执行 list/get/create/replace。这些探针不会删除测试记录。"
+        "blurb": "读取获准的世界和角色；创建测试数据需单独确认。"
       },
       "aiConsumption": {
-        "title": "AI 消费",
-        "blurb": "使用当前 App 由 owner 托管的 AI 配置执行文本生成。"
+        "title": "AI 调用",
+        "blurb": "使用当前应用的模型设置生成文本。"
       },
       "agentConversation": {
-        "title": "Agent 会话",
-        "blurb": "依次验证激活的 Agent 引用、输入式会话与回合中断（按依赖顺序执行）。"
+        "title": "伙伴会话",
+        "blurb": "查找可用伙伴，发送测试消息并检查能否中断回复。"
       },
       "boundary": {
-        "title": "边界探针",
-        "blurb": "App 私有存储越界必须被拒绝。"
+        "title": "访问边界",
+        "blurb": "验证越界路径和超限写入会被拒绝。"
       }
     },
     "probes": {
@@ -169,7 +173,8 @@
       "notRun": "未运行"
     },
     "probeCard": {
-      "run": "运行",
+      "run": "运行检查",
+      "runNamed": "运行检查：{{name}}",
       "requires": "前提：{{requires}}"
     },
     "details": {

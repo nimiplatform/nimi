@@ -16,7 +16,7 @@ import { VisionLocateResultView } from './section-ai-testing-vision-result.js';
 import type { StudioCapabilityRunResult } from './runtime-types.js';
 import type { StudioCapabilityDescriptor, StudioCapabilityRegistration } from './module-registration.js';
 import { formatStudioRunTimestamp } from './history.js';
-import { isStoppedDirectCall, studioNonSuccessNeedsTargetReselection, studioNonSuccessReasonUserAction, studioNonSuccessReasonUserMessage, type StudioTranslate } from './non-success-presentation.js';
+import { isStoppedDirectCall, studioNonSuccessNeedsTargetReselection, studioNonSuccessReasonUserAction, studioNonSuccessReasonUserMessage, studioTerminalStatusKey, type StudioTranslate } from './non-success-presentation.js';
 import { countStudioWords } from './studio-directives.js';
 import type { CapabilityStatus } from './section-ai-testing-admission.js';
 import { ArtifactMediaPreview, ArtifactMediaResult, EmbeddingResultBody, SpeakerEmbeddingResultBody, KnownJobNotice, RuntimeDiagnosticsActions, formatTypedOutput, formatNonSuccessOutput, resultPlainText, TextStudioOutputBody } from './section-ai-testing-output.js';
@@ -239,7 +239,6 @@ export function StudioResult({
   const profile = registration.profile;
   const ready = result?.ok ? result : null;
   const operationAborted = result && !result.ok && result.reason === 'operation-aborted' ? result : null;
-  const stoppedDirectCall = Boolean(operationAborted && isStoppedDirectCall(operationAborted.reason, capability.id));
   const canceled = result && !result.ok && result.reason === 'runtime-canceled' ? result : null;
   const timedOut = result && !result.ok && result.reason === 'runtime-timeout' ? result : null;
   const blocked = result && !result.ok
@@ -256,8 +255,10 @@ export function StudioResult({
   const runTimeLabel = createdAt
     ? formatStudioRunTimestamp(createdAt, new Date(rendererHost.clock.now()))
     : running ? t('Studio.result.statRunning') : t('Studio.result.notRecorded');
-  const statusTitleKey = cancelRequested ? 'stopping' : running ? 'runtimeRunning' : operationAborted ? (stoppedDirectCall ? 'stoppedDirectCall' : 'operationAborted') : canceled ? 'runtimeCanceled' : timedOut ? 'runtimeTimedOut' : blocked ? 'runtimeBlocked' : ready ? 'runtimeResult' : 'runtimeWaiting';
-  const statusTitle = t(`Studio.result.status.${statusTitleKey}`);
+  const statusTitle = t(cancelRequested ? 'Studio.result.status.stopping'
+    : running ? 'Studio.result.status.runtimeRunning'
+      : result ? studioTerminalStatusKey(result.ok ? undefined : result.reason, capability.id)
+        : 'Studio.result.status.runtimeWaiting');
   const statusTone = blocked || operationAborted || canceled || timedOut ? 'warning' : ready ? 'success' : running ? 'info' : 'neutral';
   useEffect(() => {
     if (!hasRequestSettings) setRequestSettingsOpen(false);
@@ -455,23 +456,12 @@ export function StudioResult({
   }
 
   return (
-    <Surface className="studio-result" material="glass-regular" tone="panel" elevation="floating" padding="none">
+    <Surface className="studio-result" tone="card" padding="none">
       <div className="studio-result__top">
         <div className="studio-result__identity">
-          <StatusBadge
-            tone={statusTone}
-            shape="soft"
-            className="grid h-11 w-11 place-items-center rounded-[var(--nimi-radius-md)] p-0"
-            aria-hidden="true"
-          >
-            <Sparkles size={20} />
-          </StatusBadge>
-          <span className="studio-result__title-stack">
-            <strong>{statusTitle}</strong>
-            <span className="studio-result__time">
-              <Clock size={14} aria-hidden="true" />
-              <time dateTime={createdAt}>{t('Studio.result.runTimeLabel', { time: runTimeLabel })}</time>
-            </span>
+          <StatusBadge tone={statusTone} shape="dot">{statusTitle}</StatusBadge>
+          <span className="studio-result__time">
+            <time dateTime={createdAt}>{t('Studio.result.runTimeLabel', { time: runTimeLabel })}</time>
           </span>
         </div>
         <div className="studio-result__actions">

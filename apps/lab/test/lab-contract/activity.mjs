@@ -38,8 +38,9 @@ test('unknown, foreign or malformed extension data falls back to the generic car
   assert.equal(labActivityBusinessDetail(record({ data: null })), null);
 });
 
-test('the open to-do scope asks Runtime only for open todos', async () => {
+test('Lab asks Runtime for the selected activity scope before paging', async () => {
   const { labActivityFilter } = await model();
   assert.deepEqual(labActivityFilter('open-todos'), { kind: 'todo', todoStates: ['open'] });
+  assert.deepEqual(labActivityFilter('updates'), { kind: 'activity' });
   assert.deepEqual(labActivityFilter('all'), {});
 });

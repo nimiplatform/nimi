@@ -1,7 +1,9 @@
 {
   "Settings": {
     "title": "Settings",
-    "localDrafts": "Local draft data",
+    "localDrafts": "Save prompt drafts",
+    "draftPersistenceHint": "When enabled, this Lab can restore prompt drafts for this account the next time it opens.",
+    "draftPreferenceError": "Could not save the draft preference. Try again.",
     "liveBadge": "Live",
     "refresh": "Refresh",
     "request": "Request",

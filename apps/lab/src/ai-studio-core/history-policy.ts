@@ -544,6 +544,11 @@ export function validateRunConfig(value: unknown, path: string): void {
   requiredString(target.capabilityId, `${path}.target.capabilityId`);
   if (target.capabilityContract !== null) requiredString(target.capabilityContract, `${path}.target.capabilityContract`);
   for (const field of ['section', 'status', 'source', 'intentLabel', 'detail'] as const) requiredString(target[field], `${path}.target.${field}`);
+  optionalString(target.targetLabel, `${path}.target.targetLabel`);
+  optionalString(target.targetRef, `${path}.target.targetRef`);
+  if (target.configuredDefaults !== undefined && !isJsonObject(target.configuredDefaults)) {
+    historyError(`${path}.target.configuredDefaults`, 'requires an object');
+  }
   if (!isJsonObject(target.params)) historyError(`${path}.target.params`, 'requires an object');
   if (!Array.isArray(target.paramsSummary) || target.paramsSummary.some((entry) => typeof entry !== 'string')) historyError(`${path}.target.paramsSummary`, 'requires strings');
   if (target.profileOrigin !== null) historyError(`${path}.target.profileOrigin`, 'requires null');

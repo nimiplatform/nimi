@@ -6,7 +6,7 @@
     },
     "audioTranscribe": {
       "label": "Speech Transcribe",
-      "summary": "Audio URL → audio.transcribe Scenario Job → typed transcript result."
+      "summary": "Audio file or HTTPS URL → audio.transcribe Scenario Job → typed transcript result."
     },
     "voiceCreate": {
       "label": "Voice Create",
@@ -64,7 +64,8 @@
       "noVoiceAssets": "No created voices",
       "chooseAudioFile": "Choose audio file",
       "removeFile": "Remove",
-      "audioFileTooLarge": "Audio files must not exceed 32 MiB.",
+      "transcriptionAudioFileSize": "Choose a non-empty audio file up to 32 MiB.",
+      "transcriptionAudioFileUnreadable": "Could not read the selected audio file. Choose it again or use another file.",
       "voiceReferenceFileTooLarge": "Reference audio must be non-empty and not exceed 20 MiB.",
       "voiceReferenceMimeUnsupported": "Choose a file with an audio MIME type.",
       "voiceSourceReferenceAudio": "Reference audio",

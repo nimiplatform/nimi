@@ -8,17 +8,17 @@ import { SpeechTranscriptResultView } from './section-ai-testing-transcript-resu
 import { TextExchangeResultView } from './section-ai-testing-exchange-result.js';
 import { TextDecisionResultView } from './section-ai-testing-decision-result.js';
 import { FaceSwapNotice, SessionSummaryView } from './section-ai-testing-session-result.js';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { IconButton, nimiToast, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
-import { AlertTriangle, ChevronRight, Copy as CopyIcon, Download as DownloadIcon, FileText, FolderOpen, MessageSquare, RefreshCw, SlidersHorizontal, SquarePen } from 'lucide-react';
+import { AlertTriangle, Copy as CopyIcon, Download as DownloadIcon, FileText, FolderOpen, MessageSquare, RefreshCw, SlidersHorizontal, SquarePen } from 'lucide-react';
 import { useAIStudioHost } from './host-context.js';
 import { VisionLocateResultView } from './section-ai-testing-vision-result.js';
 import type { StudioCapabilityRegistration } from './module-registration.js';
-import { getStudioRunHistoryExportText, formatStudioRunTimestamp, getStudioRunConfigParamRows, getStudioRunIntentLabel, getStudioRunPromptControlFacts, getStudioRunResultTags, getStudioRunStatusTone, type StudioRunConfigParamRow, type StudioRunHistoryRecord, type StudioRunHistoryResultSnapshot, type StudioRunPromptControlFact } from './history.js';
-import { studioNonSuccessReasonTitle, studioNonSuccessReasonUserAction, studioNonSuccessReasonUserMessage } from './non-success-presentation.js';
+import { getStudioRunHistoryExportText, formatStudioRunTimestamp, getStudioRunConfigParamRows, getStudioRunPromptControlFacts, getStudioRunResultTags, getStudioRunStatusTone, type StudioRunConfigParamRow, type StudioRunHistoryRecord, type StudioRunHistoryResultSnapshot, type StudioRunPromptControlFact } from './history.js';
+import { studioNonSuccessReasonTitle, studioNonSuccessReasonUserAction, studioNonSuccessReasonUserMessage, studioTerminalStatusKey } from './non-success-presentation.js';
 import { ArtifactMediaPreview, ArtifactMediaResult, RuntimeDiagnosticsActions, StudioResult, TextStudioOutputBody, downloadTextFile, statusForCapability } from './section-ai-testing-surface.js';
 import { EmbeddingResultBody, SpeakerEmbeddingResultBody, KnownJobNotice, exportStudioAsset } from './section-ai-testing-output.js';
-import type { TextStudioActiveRun } from './section-ai-testing-run.js';
+import { studioConfiguredTargetLabel, type TextStudioActiveRun } from './section-ai-testing-run.js';
 
 function TextStudioPromptControlFacts({ facts }: { facts: readonly StudioRunPromptControlFact[] }) {
   if (facts.length === 0) return null;
@@ -69,16 +69,13 @@ function groupParamRows(rows: readonly StudioRunConfigParamRow[]): Array<{ group
 function TextStudioRequestSettings({ record }: { record: StudioRunHistoryRecord }) {
   const { translate: t } = useAIStudioHost();
   const runConfig = record.runConfig;
-  if (!runConfig) {
-    return null;
-  }
-
-  const paramRows = getStudioRunConfigParamRows(runConfig);
-  const fallbackSummary = runConfig.target.paramsSummary.join(' / ');
-  if (paramRows.length === 0 && !fallbackSummary) {
-    return null;
-  }
-  const paramGroups = groupParamRows(paramRows);
+  const target = runConfig?.target;
+  const paramGroups = runConfig ? groupParamRows(getStudioRunConfigParamRows(runConfig)) : [];
+  const defaults = runConfig && target?.configuredDefaults
+    ? getStudioRunConfigParamRows(runConfig, target.configuredDefaults) : [];
+  const snapshot = record.result;
+  const jobId = snapshot && 'jobId' in snapshot ? snapshot.jobId : undefined;
+  const traceId = runConfig?.traceId ?? (snapshot?.ok ? snapshot.traceId : snapshot?.diagnostics?.traceId);
 
   return (
     <section className="studio-history-settings" aria-label={t('StudioShell.requestSettings')}>
@@ -86,6 +83,30 @@ function TextStudioRequestSettings({ record }: { record: StudioRunHistoryRecord 
         <SlidersHorizontal size={14} aria-hidden="true" />
         <strong>{t('StudioShell.requestSettings')}</strong>
       </div>
+      <dl className="studio-history-settings__params">
+        <div>
+          <dt>{t('StudioShell.intentLabel')}</dt>
+          <dd>
+            {target ? studioConfiguredTargetLabel(target, t) : t('History.compareUnknown')}
+            {target && !target.targetLabel ? ` · ${t('StudioShell.modelNotRecorded')}` : null}
+            {target?.targetRef && target.targetRef !== target.targetLabel ? <><br /><code>{target.targetRef}</code></> : null}
+          </dd>
+        </div>
+        {jobId ? <div><dt>{t('Studio.result.jobLabel')}</dt><dd><code>{jobId}</code></dd></div> : null}
+        {traceId ? <div><dt>{t('Studio.result.traceLabel')}</dt><dd><code>{traceId}</code></dd></div> : null}
+      </dl>
+      <p className="studio-result__hint">{t('StudioShell.recordedConfigScope')}</p>
+      {paramGroups.length === 0 ? <p className="studio-result__hint">
+        {target?.paramsSummary.join(' / ') || t(runConfig ? 'History.compareNoParameters' : 'StudioShell.parametersNotRecorded')}
+      </p> : null}
+      {defaults.length ? (
+        <div className="studio-history-settings__group">
+          <strong className="studio-history-settings__group-title">{t('StudioShell.configuredDefaults')}</strong>
+          <dl className="studio-history-settings__params">
+            {defaults.map((row) => <div key={row.key}><dt>{row.label}</dt><dd>{row.value}</dd></div>)}
+          </dl>
+        </div>
+      ) : null}
       {paramGroups.map((group) => (
         <div key={group.group} className="studio-history-settings__group">
           <strong className="studio-history-settings__group-title">{group.group}</strong>
@@ -101,12 +122,6 @@ function TextStudioRequestSettings({ record }: { record: StudioRunHistoryRecord 
       ))}
     </section>
   );
-}
-
-function hasTextStudioRequestSettings(record: StudioRunHistoryRecord): boolean {
-  const runConfig = record.runConfig;
-  if (!runConfig) return false;
-  return getStudioRunConfigParamRows(runConfig).length > 0 || Boolean(runConfig.target.paramsSummary.join(' / '));
 }
 
 function historyNonSuccessDiagnosticsText(snapshot: Extract<StudioRunHistoryResultSnapshot, { ok: false }>): string {
@@ -154,15 +169,15 @@ function TextStudioHistoryRecordResult({
   const snapshot = record.result;
   const HistoryActions = registration.historyActions;
   const blocked = snapshot && !snapshot.ok ? snapshot : null;
-  const jobState = snapshot?.ok && 'jobState' in snapshot ? snapshot.jobState : undefined;
-  const statusLabel = record.status === 'ready' && snapshot?.ok && (snapshot.kind === 'text-exchange' || snapshot.kind === 'speaker-embedding' || (snapshot.kind === 'vision-locate' && snapshot.result))
-    ? t('Studio.result.statCompleted')
-    : jobState === undefined
-    ? rendererHost.app.projection.runStatusLabel(record.status)
-    : jobState.toUpperCase() === 'COMPLETED' ? t('Studio.result.statCompleted')
-      : jobState || t('Studio.result.stateUnknown');
-  const tags = blocked ? [studioNonSuccessReasonTitle(blocked.reason, t, record.capabilityId)] : getStudioRunResultTags(record);
-  const intentLabel = getStudioRunIntentLabel(record);
+  const statusLabel = snapshot || record.status === 'ready'
+    ? t(studioTerminalStatusKey(blocked?.reason, record.capabilityId))
+    : rendererHost.app.projection.runStatusLabel(record.status);
+  const tags = blocked
+    ? [studioNonSuccessReasonTitle(blocked.reason, t, record.capabilityId)]
+    : snapshot?.ok && snapshot.kind === 'text'
+      ? [t('Studio.result.runtimeChip'), t('Studio.result.metricCharacters', { count: snapshot.body.length })]
+      : getStudioRunResultTags(record);
+  const intentLabel = studioConfiguredTargetLabel(record.runConfig?.target, t);
   const toneClass = historyResultToneClass(record);
   const exportText = getStudioRunHistoryExportText(record);
   const managedArtifact = snapshot?.ok && snapshot.kind === 'artifacts'
@@ -179,8 +194,6 @@ function TextStudioHistoryRecordResult({
   const canReplay = canUseAsDraft && !additionalDocumentsNotRetained;
   const revealsManagedAsset = Boolean(managedArtifact?.relativePath) && rendererHost.app.projection.assetExportAction() === 'reveal';
   const canExport = !blocked && (Boolean(managedArtifact?.relativePath) || Boolean(exportText.trim()));
-  const hasRequestSettings = hasTextStudioRequestSettings(record);
-  const [requestSettingsOpen, setRequestSettingsOpen] = useState(false);
   function handleCopy() {
     if (!exportText.trim()) return;
     void rendererHost.app.commands.copyText(exportText)
@@ -241,7 +254,7 @@ function TextStudioHistoryRecordResult({
       <div className="studio-history-result__head">
         <div className="studio-history-result__line">
           <StatusBadge tone={getStudioRunStatusTone(record.status)} shape="dot">
-            {blocked ? studioNonSuccessReasonTitle(blocked.reason, t) : statusLabel}
+            {statusLabel}
           </StatusBadge>
           <span className="studio-history-result__title-stack">
             <time dateTime={record.createdAt}>{t('StudioShell.runLabel')} / {formatStudioRunTimestamp(record.createdAt, new Date(rendererHost.clock.now()))}</time>
@@ -276,26 +289,13 @@ function TextStudioHistoryRecordResult({
         </div>
         <div className="studio-history-result__intent">
           <span>{t('StudioShell.intentLabel')}</span>
-          <div className={hasRequestSettings ? 'studio-intent-pill__box' : 'studio-intent-pill__box studio-intent-pill__box--static'}>
+          <div className="studio-intent-pill__box studio-intent-pill__box--static">
             <Tooltip content={intentLabel} placement="top" className="min-w-0">
               <strong>{intentLabel}</strong>
             </Tooltip>
-            {hasRequestSettings ? (
-              <Tooltip content={requestSettingsOpen ? t('StudioShell.hideRequestSettings') : t('StudioShell.showRequestSettings')} placement="top">
-                <IconButton
-                  type="button"
-                  className={requestSettingsOpen ? 'studio-intent-pill__trigger studio-intent-pill__trigger--open' : 'studio-intent-pill__trigger'}
-                  aria-label={requestSettingsOpen ? t('StudioShell.hideRequestSettings') : t('StudioShell.showRequestSettings')}
-                  aria-expanded={requestSettingsOpen}
-                  onClick={() => setRequestSettingsOpen((value) => !value)}
-                  icon={<ChevronRight size={15} aria-hidden="true" />}
-                />
-              </Tooltip>
-            ) : null}
           </div>
         </div>
       </div>
-      {requestSettingsOpen && hasRequestSettings ? <TextStudioRequestSettings record={record} /> : null}
       {HistoryActions ? <HistoryActions key={record.id} record={record} /> : null}
       {body}
       {additionalDocumentsNotRetained ? <p className="studio-result__hint">{t('StudioShell.historyAdditionalDocumentsNotRetained')}</p> : null}
@@ -449,28 +449,23 @@ export function TextStudioResultState({
 }) {
   const { translate: t } = useAIStudioHost();
   const capability = registration.descriptor;
+  const parameterOwnedInput = Boolean(registration.parameters.recordedInput);
+  const hasRecordedInput = Boolean(activeRun.prompt) && (parameterOwnedInput || registration.profile.inputKind !== 'none');
+  const resultScroll = useRef<HTMLDivElement>(null);
+  const draftDisclosure = useRef<HTMLDetailsElement>(null);
+  useEffect(() => {
+    if (resultScroll.current) resultScroll.current.scrollTop = 0;
+  }, [activeRun.id]);
+  useEffect(() => {
+    if (!running) return;
+    if (draftDisclosure.current?.open) {
+      draftDisclosure.current.open = false;
+      resultScroll.current?.focus({ preventScroll: true });
+    }
+  }, [running]);
   return (
     <section className="studio-thread" aria-label={t('StudioShell.resultAriaLabel', { capability: t(capability.labelKey) })}>
-      <div className="studio-thread__scroll">
-        {regenerateHint ? <p className="studio-result__hint" role="status">{regenerateHint}</p> : null}
-        {registration.parameters.recordedInput ? (
-          // A parameter-owned input is shown as the complete request it recorded.
-          <article className="studio-turn studio-turn--user">
-            <details className="studio-diag studio-turn__request">
-              <summary>{t('StudioShell.requestLabel')}</summary>
-              <pre className="studio-diag__json">{activeRun.prompt}</pre>
-            </details>
-            {activeRun.record?.inputTruncated ? <p className="studio-result__hint">{t('StudioShell.historyInputTruncated')}</p> : null}
-          </article>
-        ) : registration.profile.inputKind !== 'none' && activeRun.prompt ? <article className="studio-turn studio-turn--user">
-          <div className="studio-turn__label">
-            <MessageSquare size={14} aria-hidden="true" />
-            <span>{t('StudioShell.promptLabel')}</span>
-          </div>
-          <p>{activeRun.prompt}</p>
-          {activeRun.record?.inputTruncated ? <p className="studio-result__hint">{t('StudioShell.historyInputTruncated')}</p> : null}
-          <TextStudioPromptSettings activeRun={activeRun} />
-        </article> : null}
+      <div ref={resultScroll} className="studio-thread__scroll" tabIndex={-1}>
         <article className="studio-turn studio-turn--assistant">
           <div className="studio-turn__label">
             <FileText size={14} aria-hidden="true" />
@@ -489,7 +484,6 @@ export function TextStudioResultState({
                 admission={admission}
                 createdAt={activeRun.createdAt}
                 intentLabel={intentLabel}
-                requestSettings={activeRun.record && hasTextStudioRequestSettings(activeRun.record) ? <TextStudioRequestSettings record={activeRun.record} /> : null}
                 streamingText={streamingText}
                 jobStatus={activeRun.jobStatus}
                 verboseConsole={verboseConsole}
@@ -503,9 +497,36 @@ export function TextStudioResultState({
           ) : activeRun.record ? (
             <TextStudioHistoryRecordResult registration={registration} record={activeRun.record} canRegenerate={canRegenerate} canRestoreInputs={canRestoreInputs} onRegenerate={onRegenerate} onUseAsDraft={onUseAsDraft} />
           ) : null}
+          {regenerateHint ? <p className="studio-result__hint" role="status">{regenerateHint}</p> : null}
         </article>
+        {activeRun.record ? (
+          <div className="studio-turn"><TextStudioRequestSettings record={activeRun.record} /></div>
+        ) : null}
+        {hasRecordedInput ? (
+          <details key={activeRun.id} className="studio-review-disclosure">
+            <summary>
+              <MessageSquare size={15} aria-hidden="true" />
+              <span>{t('StudioShell.recordedInput')}</span>
+            </summary>
+            <div className="studio-review-disclosure__body">
+              {parameterOwnedInput ? <pre className="studio-diag__json">{activeRun.prompt}</pre> : (
+                <>
+                  <p className="studio-review-disclosure__prompt">{activeRun.prompt}</p>
+                  <TextStudioPromptSettings activeRun={activeRun} />
+                </>
+              )}
+              {activeRun.record?.inputTruncated ? <p className="studio-result__hint">{t('StudioShell.historyInputTruncated')}</p> : null}
+            </div>
+          </details>
+        ) : null}
+        <details ref={draftDisclosure} className="studio-review-disclosure">
+          <summary>
+            <SquarePen size={15} aria-hidden="true" />
+            <span>{t('StudioShell.editNextRun')}</span>
+          </summary>
+          <div className="studio-review-disclosure__body">{composer}</div>
+        </details>
       </div>
-      <div className="studio-thread__composer">{composer}</div>
     </section>
   );
 }

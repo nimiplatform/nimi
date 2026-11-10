@@ -1,22 +1,27 @@
 {
   "Activity": {
     "title": "App activity",
-    "blurb": "Activity and to-dos published to this account by your apps, read through the same public client every app uses. Viewing items here never marks them as read.",
+    "blurb": "See to-dos, app updates, and partner replies for this Nimi account.",
+    "readHint": "Browsing keeps unread items unread.",
     "scopeLabel": "Activity scope",
     "scope": {
       "openTodos": "Open to-dos",
+      "updates": "Updates",
       "all": "All activity"
     },
     "unavailable": "App activity is unavailable right now.",
     "retry": "Try again",
     "emptyOpen": "No open to-dos from your apps.",
+    "emptyUpdates": "No updates yet.",
     "emptyAll": "No activity from your apps yet.",
     "loadMore": "Load more",
+    "loadMoreFailed": "Older activity could not be loaded. The items shown are still available.",
     "unread": "Unread",
     "needsAttention": "Needs attention",
     "markRead": "Mark as read",
     "readFailed": "Couldn't mark this item as read. Try again.",
-    "open": "Open in {{source}}",
+    "open": "Open original app: {{source}}",
+    "openSource": "Open original app",
     "technicalDetails": "Technical details",
     "runtimeTurnTitle": "Replied in a conversation",
     "state": {

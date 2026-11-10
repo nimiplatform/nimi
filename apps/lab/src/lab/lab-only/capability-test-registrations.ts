@@ -60,6 +60,7 @@ export const labTextToolsCapability = Object.freeze({
   descriptor: labTextToolsDescriptor,
   icon: Wrench,
   profile: {
+    primaryParameters: 'partial',
     studioTag: 'Tools', inputTitleKey: k('textTools', 'inputTitle'), inputPlaceholderKey: k('textTools', 'inputPlaceholder'), inputKind: 'prompt', supportsAttachments: false, controls: [], primaryLabelKey: k('textTools', 'primaryLabel'), primaryRunningLabelKey: k('textTools', 'primaryRunningLabel'), resultTitle: 'Exchange', emptyTitleKey: k('textTools', 'emptyTitle'), emptyHintKey: k('textTools', 'emptyHint'), resultKind: 'text-exchange', footnoteKey: k('textTools', 'footnote'), rawPrompt: true,
   },
   preset: { id: 'fixed-tool', label: 'Fixed tool', prompt: `Use the ${LAB_TEST_TOOL_NAME} tool to convert 30 centimeters to inches, then write a one-line release note about the result.` },

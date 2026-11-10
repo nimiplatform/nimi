@@ -1,11 +1,12 @@
-import { useContext, useMemo, useState } from 'react';
-import { Button, IconButton, InlineAlert, nimiToast, Popover, PopoverContent, PopoverTrigger, Tooltip } from '@nimiplatform/kit/ui';
-import { Check, ChevronRight, FileX, Funnel, RefreshCw, Search, Sparkles, Trash2 } from 'lucide-react';
+import { useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { Button, IconButton, InlineAlert, nimiToast, OverlayShell, Popover, PopoverContent, PopoverTrigger } from '@nimiplatform/kit/ui';
+import { Check, ChevronRight, Ellipsis, FileX, Funnel, GitCompareArrows, RefreshCw, Search, Sparkles, Trash2, X } from 'lucide-react';
 import { useAIStudioHost } from './host-context.js';
 import type { StudioCapabilityRegistration } from './module-registration.js';
 import {
   flattenStudioRunHistory,
   formatStudioRunHistoryTimestamp,
+  getStudioRunConfigParamRows,
   getStudioRunMetricSummary,
   getStudioRunIntentLabel,
   getStudioRunIntentSource,
@@ -16,6 +17,7 @@ import {
   type StudioRunHistory,
   type StudioRunHistoryRecord,
 } from './history.js';
+import { studioConfiguredTargetLabel } from './section-ai-testing-run.js';
 import {
   StudioHistoryActionsContext,
   StudioHistoryLoadContext,
@@ -27,6 +29,7 @@ import { studioHistoryDocumentPaths } from './history-policy.js';
 import { isStoppedDirectCall } from './non-success-presentation.js';
 
 type HistoryStatusFilter = 'all' | StudioRunHistoryRecord['status'];
+const HISTORY_PAGE_SIZE = 24;
 type HistoryEnvironmentFilter = 'all' | 'local' | 'cloud' | 'remote-control';
 type HistoryActivityFilter = 'all' | 'today' | '7d' | '30d';
 type HistoryGroupBy = 'none' | 'date' | 'capability';
@@ -124,6 +127,8 @@ function matchesHistorySearch(record: StudioRunHistoryRecord, query: string): bo
     record.message,
     record.result?.summary ?? '',
     getStudioRunIntentLabel(record),
+    record.runConfig?.target.targetLabel ?? '',
+    record.runConfig?.target.targetRef ?? '',
   ];
   return haystacks.some((value) => value.toLowerCase().includes(query));
 }
@@ -178,6 +183,7 @@ export function CapabilityRunHistory({
   history,
   activeRunId,
   onSelectRun,
+  onClose,
   collapsed,
   currentCapabilityId,
   registrations,
@@ -185,6 +191,7 @@ export function CapabilityRunHistory({
   history: StudioRunHistory | null;
   activeRunId: string | null;
   onSelectRun: (record: StudioRunHistoryRecord) => void;
+  onClose?: () => void;
   collapsed: boolean;
   currentCapabilityId: string;
   registrations: readonly StudioCapabilityRegistration[];
@@ -194,6 +201,10 @@ export function CapabilityRunHistory({
   const historyLoad = useContext(StudioHistoryLoadContext);
   const historyActions = useContext(StudioHistoryActionsContext);
   const historyPanel = useContext(StudioHistoryPanelContext);
+  const closeButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (!collapsed) closeButton.current?.focus();
+  }, [collapsed]);
   const locale = rendererHost.locale.startsWith('zh') ? 'zh-CN' : 'en-US';
   const runtimeHistoryCapabilities = useMemo(() => registrations.filter((item) => (
     item.descriptor.execution === 'runtime-sdk' || item.descriptor.execution === 'standalone-electron'
@@ -204,11 +215,18 @@ export function CapabilityRunHistory({
   const [filterOpen, setFilterOpen] = useState(false);
   const [activeMenu, setActiveMenu] = useState<HistoryFilterMenuId | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [visibleLimit, setVisibleLimit] = useState(HISTORY_PAGE_SIZE);
   const [clearArmed, setClearArmed] = useState(false);
+  const [historyActionsOpen, setHistoryActionsOpen] = useState(false);
+  const [comparing, setComparing] = useState(false);
+  const [comparisonIds, setComparisonIds] = useState<readonly string[]>([]);
+  const [comparisonOpen, setComparisonOpen] = useState(false);
   const scope: StudioHistoryPanelScope = historyPanel?.scope ?? 'capability';
   const hideFailures = historyPanel?.hideFailures ?? false;
   const setScope = (next: StudioHistoryPanelScope) => {
     setClearArmed(false);
+    setComparing(false);
+    setComparisonIds([]);
     historyPanel?.setScope(next);
   };
   const setHideFailures = (next: boolean) => historyPanel?.setHideFailures(next);
@@ -220,7 +238,15 @@ export function CapabilityRunHistory({
   const [sortBy, setSortBy] = useState<HistorySortBy>('recency');
   const now = useMemo(() => new Date(rendererHost.clock.now()), [history, rendererHost]);
   const query = searchQuery.trim().toLowerCase();
-  const records = useMemo(() => flattenStudioRunHistory(history, resolveCapabilityLabel)
+  useEffect(() => {
+    setVisibleLimit(HISTORY_PAGE_SIZE);
+  }, [collapsed, currentCapabilityId, scope, query, hideFailures, statusFilter, capabilityFilter, environmentFilter, activityFilter, groupBy, sortBy]);
+  const allRecords = useMemo(() => flattenStudioRunHistory(history, resolveCapabilityLabel), [history, registrations]);
+  const comparisonRecords = comparisonIds.flatMap((id) => {
+    const record = allRecords.find((item) => item.id === id);
+    return record ? [record] : [];
+  });
+  const records = useMemo(() => allRecords
     .filter((record) => (scope === 'capability'
       ? record.capabilityId === currentCapabilityId
       : capabilityFilter === 'all' || record.capabilityId === capabilityFilter))
@@ -231,7 +257,7 @@ export function CapabilityRunHistory({
     .filter((record) => matchesHistoryActivity(record, activityFilter, now))
     .sort((left, right) => sortBy === 'recency'
       ? right.createdAt.localeCompare(left.createdAt)
-       : left.createdAt.localeCompare(right.createdAt)), [activityFilter, capabilityFilter, currentCapabilityId, environmentFilter, hideFailures, history, now, query, registrations, scope, sortBy, statusFilter]);
+       : left.createdAt.localeCompare(right.createdAt)), [activityFilter, allRecords, capabilityFilter, currentCapabilityId, environmentFilter, hideFailures, now, query, scope, sortBy, statusFilter]);
   const mediaRecords = useMemo(() => (historyPanel?.imageRecords ?? [])
     .filter((record) => !hideFailures || record.status === 'ready')
     .filter((record) => matchesMediaSearch(record, query))
@@ -239,7 +265,7 @@ export function CapabilityRunHistory({
 
   function handleSelectMediaRecord(record: StudioMediaHistoryRecord) {
     const linkageId = record.runId || record.id;
-    const runRecord = flattenStudioRunHistory(history, resolveCapabilityLabel).find((entry) => entry.id === linkageId);
+    const runRecord = allRecords.find((entry) => entry.id === linkageId);
     if (!runRecord) {
       nimiToast.warning(t('History.linkedRunMissing'));
       return;
@@ -257,6 +283,7 @@ export function CapabilityRunHistory({
 
   function handleClearScope(deleteAssets: boolean) {
     setClearArmed(false);
+    setHistoryActionsOpen(false);
     void historyActions?.clearScope(scope === 'capability' ? currentCapabilityId : null, deleteAssets);
   }
 
@@ -268,20 +295,21 @@ export function CapabilityRunHistory({
   }
 
   function historySubtitleForRun(record: StudioRunHistoryRecord): string {
-    const intent = getStudioRunIntentLabel(record);
-    const source = historySourceLabelForRun(record);
+    const target = studioConfiguredTargetLabel(record.runConfig?.target, t);
+    const capability = scope === 'all' ? historyCapabilityLabel(record.capabilityId) : '';
     if (record.status === 'canceled') {
       const reason = historyFailureReasonForRun(record);
       const stoppedLabel = reason !== 'operation-aborted' ? 'History.canceled' : isStoppedDirectCall(reason, record.capabilityId) ? 'History.stopped' : 'History.stoppedWaiting';
-      return [t(stoppedLabel), intent, source, reason].filter(Boolean).join(' / ');
+      return [t(stoppedLabel), capability, target, reason].filter(Boolean).join(' / ');
     }
     if (record.status === 'timed-out') {
-      return [t('History.timedOut'), intent, source, historyFailureReasonForRun(record)].filter(Boolean).join(' / ');
+      return [t('History.timedOut'), capability, target, historyFailureReasonForRun(record)].filter(Boolean).join(' / ');
     }
     if (isFailureHistoryStatus(record)) {
-      return [t('History.failed'), intent, source, historyFailureReasonForRun(record)].filter(Boolean).join(' / ');
+      return [t('History.failed'), capability, target, historyFailureReasonForRun(record)].filter(Boolean).join(' / ');
     }
-    return [intent, source].filter(Boolean).join(' / ');
+    const state = record.status === 'ready' ? t('Studio.result.status.runtimeResult') : rendererHost.app.projection.runStatusLabel(record.status);
+    return [state, target, capability].filter(Boolean).join(' / ');
   }
 
   function historyLabelForRun(record: StudioFlatRunRecord): string {
@@ -321,9 +349,10 @@ export function CapabilityRunHistory({
   }
 
   const groups = useMemo(() => {
-    if (groupBy === 'none') return [{ id: 'all', label: '', records }];
+    const visibleRecords = records.slice(0, visibleLimit);
+    if (groupBy === 'none') return [{ id: 'all', label: '', records: visibleRecords }];
     const grouped = new Map<string, { id: string; label: string; records: StudioFlatRunRecord[] }>();
-    for (const record of records) {
+    for (const record of visibleRecords) {
       const label = groupBy === 'date' ? historyDateGroupLabel(record.createdAt) : historyCapabilityLabel(record.capabilityId as string);
       const id = groupBy === 'date' ? `date:${label}` : `capability:${record.capabilityId}`;
       const existing = grouped.get(id);
@@ -334,7 +363,7 @@ export function CapabilityRunHistory({
       }
     }
     return [...grouped.values()];
-  }, [groupBy, now, records, locale, t]);
+  }, [groupBy, now, records, locale, t, visibleLimit]);
   const activeMenuLabel = {
     status: optionLabel(HISTORY_STATUS_OPTIONS, statusFilter),
     capability: historyCapabilityLabel(capabilityFilter),
@@ -398,14 +427,32 @@ export function CapabilityRunHistory({
     setActiveMenu(null);
   }
 
+  if (collapsed) return <div className="studio-history-shell studio-history-shell--collapsed" inert />;
+
   return (
-    <div className={collapsed ? 'studio-history-shell studio-history-shell--collapsed' : 'studio-history-shell'}>
-      <aside className={collapsed ? 'studio-history studio-history--collapsed' : 'studio-history'} aria-label={t('History.panelAriaLabel')}>
+    <div className={collapsed ? 'studio-history-shell studio-history-shell--collapsed' : 'studio-history-shell'} inert={collapsed}>
+      <aside
+        className={collapsed ? 'studio-history studio-history--collapsed' : 'studio-history'}
+        aria-label={t('History.panelAriaLabel')}
+        onKeyDown={onClose ? (event) => { if (event.key === 'Escape' && !filterOpen && !historyActionsOpen) onClose(); } : undefined}
+      >
         <div className="studio-recent__head">
           <div className="studio-history__title">
             <strong>{t('History.title')}</strong>
           </div>
           <div className="studio-history__actions">
+            {scope !== 'media' && !comparing && records.length > 1 ? (
+              <Button
+                type="button"
+                size="sm"
+                tone="ghost"
+                className="studio-history__compare-trigger"
+                leadingIcon={<GitCompareArrows size={14} aria-hidden="true" />}
+                onClick={() => setComparing(true)}
+              >
+                {t('History.compareRuns')}
+              </Button>
+            ) : null}
             {scope !== 'media' ? (
             <Popover
               open={filterOpen && !collapsed}
@@ -473,6 +520,52 @@ export function CapabilityRunHistory({
               </PopoverContent>
             </Popover>
             ) : null}
+            {scope !== 'media' && historyActions ? (
+              <Popover open={historyActionsOpen && !collapsed} onOpenChange={(open) => {
+                setHistoryActionsOpen(open);
+                if (!open) setClearArmed(false);
+              }}>
+                <PopoverTrigger asChild>
+                  <IconButton
+                    type="button"
+                    size="sm"
+                    tone="ghost"
+                    aria-label={t('History.moreActions')}
+                    icon={<Ellipsis size={17} aria-hidden="true" />}
+                  />
+                </PopoverTrigger>
+                <PopoverContent align="end" sideOffset={8} className="grid gap-2 p-2" aria-label={t('History.moreActions')}>
+                  {clearArmed ? (
+                    <div className="grid justify-items-start gap-2 p-1" role="group" aria-label={t('History.clearChoiceAriaLabel')}>
+                      <Button type="button" tone="ghost" size="sm" onClick={() => handleClearScope(false)}>
+                        {t('History.clearRecordsOnly')}
+                      </Button>
+                      <Button type="button" tone="danger" size="sm" onClick={() => handleClearScope(true)}>
+                        {t('History.clearRecordsAndAssets')}
+                      </Button>
+                      <Button type="button" tone="ghost" size="sm" onClick={() => setClearArmed(false)}>
+                        {t('Common.close')}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button type="button" tone="ghost" size="sm" onClick={() => setClearArmed(true)}>
+                      {t('History.clearScope')}
+                    </Button>
+                  )}
+                </PopoverContent>
+              </Popover>
+            ) : null}
+            {onClose ? (
+              <IconButton
+                ref={closeButton}
+                type="button"
+                tone="ghost"
+                size="sm"
+                aria-label={t('History.closePanel')}
+                icon={<X size={17} aria-hidden="true" />}
+                onClick={onClose}
+              />
+            ) : null}
           </div>
         </div>
         <div className="studio-history__search">
@@ -528,21 +621,16 @@ export function CapabilityRunHistory({
           >
             {hideFailures ? t('History.showFailures') : t('History.hideFailures')}
           </Button>
-          {scope !== 'media' && historyActions ? (
-            clearArmed ? (
-              <div role="group" aria-label={t('History.clearChoiceAriaLabel')}>
-                <Button type="button" tone="ghost" size="sm" className="studio-history__scope-option" onClick={() => handleClearScope(false)}>
-                  {t('History.clearRecordsOnly')}
-                </Button>
-                <Button type="button" tone="ghost" size="sm" className="studio-history__scope-option studio-history__scope-option--danger" onClick={() => handleClearScope(true)}>
-                  {t('History.clearRecordsAndAssets')}
-                </Button>
-              </div>
-            ) : (
-              <Button type="button" tone="ghost" size="sm" className="studio-history__scope-option" onClick={() => setClearArmed(true)}>
-                {t('History.clearScope')}
-              </Button>
-            )
+          {scope !== 'media' && comparing ? (
+            <div className="studio-history__comparison">
+              <span role="status">{t('History.compareCount', { count: comparisonRecords.length })}</span>
+              <Button type="button" size="sm" tone="secondary" disabled={comparisonRecords.length !== 2}
+                onClick={() => setComparisonOpen(true)}>{t('History.openComparison')}</Button>
+              <Button type="button" size="sm" tone="ghost" onClick={() => {
+                setComparing(false);
+                setComparisonIds([]);
+              }}>{t('Common.close')}</Button>
+            </div>
           ) : null}
         </div>
         <div className="studio-history__runs">
@@ -564,7 +652,7 @@ export function CapabilityRunHistory({
           ) : scope === 'media' ? (
             mediaRecords.length > 0 ? (
               <ul className="studio-recent__rows">
-                {mediaRecords.map((record) => (
+                {mediaRecords.slice(0, visibleLimit).map((record) => (
                   <li key={record.id}>
                     <Button
                       type="button"
@@ -581,9 +669,9 @@ export function CapabilityRunHistory({
                       <span className="studio-recent__copy">
                         <span className="studio-recent__summary">
                           <span className="studio-recent__title">
-                            <Tooltip content={record.title} placement="top" className="studio-recent__intent-tooltip">
+                            <span title={record.title} className="studio-recent__intent-tooltip">
                               <span className="studio-recent__intent-name">{record.title}</span>
-                            </Tooltip>
+                            </span>
                             <time dateTime={record.createdAt}>{formatStudioRunHistoryTimestamp(record.createdAt, now)}</time>
                           </span>
                         </span>
@@ -593,17 +681,16 @@ export function CapabilityRunHistory({
                       </span>
                     </Button>
                     {historyActions ? (
-                      <Tooltip content={t('History.deleteRecordAndAsset')} placement="left">
                         <IconButton
                           type="button"
                           tone="ghost"
                           size="sm"
                           className="studio-recent__row-delete"
                           aria-label={t('History.deleteRecordAndAsset')}
+                          title={t('History.deleteRecordAndAsset')}
                           onClick={() => handleRemoveMediaRecord(record)}
                           icon={<Trash2 size={13} strokeWidth={1.9} aria-hidden="true" />}
                         />
-                      </Tooltip>
                     ) : null}
                   </li>
                 ))}
@@ -619,8 +706,23 @@ export function CapabilityRunHistory({
                   {group.records.map((record) => {
                     const capability = runtimeHistoryCapabilities.find((item) => item.descriptor.id === record.capabilityId);
                     const Icon = capability?.icon ?? Sparkles;
+                    const selected = comparisonRecords.some(item => item.id === record.id);
+                    const selectable = comparisonRecords.length < 2 && comparisonRecords.every(item => item.capabilityId === record.capabilityId);
+                    const title = historyTitleForRun(record);
+                    const subtitle = historySubtitleForRun(record);
                     return (
-                      <li key={record.id}>
+                      <li key={record.id} className={comparing ? 'studio-recent__compare-row' : undefined}>
+                        {comparing ? (
+                          <input
+                            type="checkbox"
+                            checked={selected}
+                            disabled={!selected && !selectable}
+                            aria-label={t('History.selectComparisonRun', { run: historyLabelForRun(record) })}
+                            onChange={() => setComparisonIds(selected
+                              ? comparisonRecords.filter(item => item.id !== record.id).map(item => item.id)
+                              : [...comparisonRecords.map(item => item.id), record.id])}
+                          />
+                        ) : null}
                         <Button
                           type="button"
                           tone="ghost"
@@ -637,44 +739,42 @@ export function CapabilityRunHistory({
                           <span className="studio-recent__copy">
                             <span className="studio-recent__summary">
                               <span className="studio-recent__title">
-                                <Tooltip content={historyTitleForRun(record)} placement="top" className="studio-recent__intent-tooltip">
-                                  <span className="studio-recent__intent-name">{historyTitleForRun(record)}</span>
-                                </Tooltip>
+                                <span title={title} className="studio-recent__intent-tooltip">
+                                  <span className="studio-recent__intent-name">{title}</span>
+                                </span>
                                 <time dateTime={record.createdAt}>{formatStudioRunHistoryTimestamp(record.createdAt, now)}</time>
                               </span>
                             </span>
-                            <Tooltip content={historySubtitleForRun(record)} placement="top" className="studio-recent__detail-tooltip">
+                            <span title={subtitle} className="studio-recent__detail-tooltip">
                               <span className={isFailureHistoryStatus(record) ? 'studio-recent__detail studio-recent__detail--failed' : 'studio-recent__detail'}>
-                                {historySubtitleForRun(record)}
+                                {subtitle}
                               </span>
-                            </Tooltip>
+                            </span>
                           </span>
                         </Button>
                         {historyActions ? (
-                          <Tooltip content={t('History.deleteRecordOnly')} placement="left">
                             <IconButton
                               type="button"
                               tone="ghost"
                               size="sm"
                               className="studio-recent__row-delete"
                               aria-label={t('History.deleteRecordOnly')}
+                              title={t('History.deleteRecordOnly')}
                               onClick={() => handleRemoveRecord(record)}
                               icon={<Trash2 size={13} strokeWidth={1.9} aria-hidden="true" />}
                             />
-                          </Tooltip>
                         ) : null}
                         {historyActions && studioHistoryDocumentPaths(record).length > 0 ? (
-                          <Tooltip content={t('History.deleteRecordAndDocument')} placement="left">
                             <IconButton
                               type="button"
                               tone="ghost"
                               size="sm"
                               className="studio-recent__row-delete studio-recent__row-delete--document"
                               aria-label={t('History.deleteRecordAndDocument')}
+                              title={t('History.deleteRecordAndDocument')}
                               onClick={() => handleRemoveRecord(record, true)}
                               icon={<FileX size={13} strokeWidth={1.9} aria-hidden="true" />}
                             />
-                          </Tooltip>
                         ) : null}
                       </li>
                     );
@@ -685,8 +785,65 @@ export function CapabilityRunHistory({
           ) : (
             <p className="studio-history__empty">{history ? t('History.emptyFiltered') : t('History.emptyNone')}</p>
           )}
+          {(scope === 'media' ? mediaRecords.length : records.length) > visibleLimit && (scope === 'media' || !historyLoad?.error) ? (
+            <Button type="button" tone="ghost" size="sm" onClick={() => setVisibleLimit(limit => limit + HISTORY_PAGE_SIZE)}>
+              {t('History.showMoreRuns')}
+            </Button>
+          ) : null}
         </div>
       </aside>
+      <OverlayShell
+        open={comparisonOpen && comparisonRecords.length === 2}
+        kind="dialog"
+        size="L"
+        title={t('History.compareRuns')}
+        description={t('History.comparisonDescription')}
+        footer={<Button type="button" tone="secondary" onClick={() => setComparisonOpen(false)}>{t('Common.close')}</Button>}
+        onClose={() => setComparisonOpen(false)}
+      >
+        <div className="grid min-w-0 gap-4 sm:grid-cols-2">
+          {comparisonRecords.map(record => {
+            const snapshot = record.result;
+            const params = record.runConfig ? getStudioRunConfigParamRows(record.runConfig) : [];
+            const defaults = record.runConfig?.target.configuredDefaults
+              ? getStudioRunConfigParamRows(record.runConfig, record.runConfig.target.configuredDefaults) : [];
+            const jobId = snapshot && 'jobId' in snapshot ? snapshot.jobId : undefined;
+            const traceId = record.runConfig?.traceId ?? (snapshot?.ok ? snapshot.traceId : snapshot?.diagnostics?.traceId);
+            const output = snapshot?.ok && (snapshot.kind === 'text' || snapshot.kind === 'transcript')
+              ? snapshot.body : getStudioRunResultSummary(record);
+            return (
+              <section key={record.id} className="grid min-w-0 content-start gap-2 rounded-lg border border-[var(--nimi-border-subtle)] p-3">
+                <h3 className="m-0 text-sm font-semibold">{historyCapabilityLabel(record.capabilityId)} · {formatStudioRunHistoryTimestamp(record.createdAt, now)}</h3>
+                <p className="m-0 text-sm">{historySubtitleForRun(record)}</p>
+                <strong className="text-sm">{t('History.compareInput')}</strong>
+                <p className="m-0 whitespace-pre-wrap break-words text-sm">{record.prompt || t('History.compareUnknown')}</p>
+                {record.inputTruncated ? <p className="m-0 text-xs">{t('StudioShell.historyInputTruncated')}</p> : null}
+                {record.runConfig?.promptControls.context ? <p className="m-0 whitespace-pre-wrap break-words text-sm">
+                  {t('StudioShell.contextLabel')} · {record.runConfig.promptControls.context}
+                </p> : null}
+                <strong className="text-sm">{t('StudioShell.requestSettings')}</strong>
+                {params.length ? <dl className="m-0 space-y-1 break-words text-sm">{params.map(row => (
+                  <div key={row.key}><dt className="inline">{row.label} · </dt><dd className="m-0 inline">{row.value}</dd></div>
+                ))}</dl> : <p className="m-0 text-sm">{t(record.runConfig ? 'History.compareNoParameters' : 'History.compareUnknown')}</p>}
+                {defaults.length ? <>
+                  <strong className="text-sm">{t('StudioShell.configuredDefaults')}</strong>
+                  <dl className="m-0 space-y-1 break-words text-sm">{defaults.map(row => (
+                    <div key={row.key}><dt className="inline">{row.label} · </dt><dd className="m-0 inline">{row.value}</dd></div>
+                  ))}</dl>
+                </> : null}
+                <strong className="text-sm">{t('History.compareOutput')}</strong>
+                <p className="m-0 max-h-48 overflow-y-auto whitespace-pre-wrap break-words text-sm">{output || t('History.compareUnknown')}</p>
+                {jobId ? <p className="m-0 break-all text-xs">{t('Studio.result.jobLabel')} · <code>{jobId}</code></p> : null}
+                {traceId ? <p className="m-0 break-all text-xs">{t('Studio.result.traceLabel')} · <code>{traceId}</code></p> : null}
+                <Button type="button" size="sm" tone="secondary" onClick={() => {
+                  setComparisonOpen(false);
+                  onSelectRun(record);
+                }}>{t('History.openRun')}</Button>
+              </section>
+            );
+          })}
+        </div>
+      </OverlayShell>
     </div>
   );
 }

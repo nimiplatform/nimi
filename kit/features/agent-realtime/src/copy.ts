@@ -40,7 +40,7 @@ export const NIMI_AGENT_REALTIME_BASE_COPY: Readonly<
 > = Object.freeze({
   en: Object.freeze({
     title: 'Live conversation',
-    description: 'Choose a current Agent, then use the same live conversation available to every covered App.',
+    description: 'Choose a partner and open a live session. You can talk using the microphone or send a message.',
     agentsLoading: 'Loading current Agents…',
     agentsLoadFailed: 'Current Agents could not be loaded.',
     agentsRetry: 'Retry',
@@ -73,8 +73,8 @@ export const NIMI_AGENT_REALTIME_BASE_COPY: Readonly<
     sendText: 'Send text',
   }),
   zh: Object.freeze({
-    title: '实时对话',
-    description: '选择当前角色，开启跨应用的实时双向语音交互。',
+    title: '实时语音',
+    description: '选择一位伙伴，开启实时会话后，可以打开麦克风，也可以发文字。',
     agentsLoading: '正在加载可用角色…',
     agentsLoadFailed: '无法加载当前角色列表。',
     agentsRetry: '重试',

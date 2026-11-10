@@ -166,7 +166,7 @@ describe('Agent Realtime public entry', () => {
     });
     expect(fixture.sources[0]!.stop).toHaveBeenCalledTimes(ending === 'interrupt' ? 1 : 0);
     expect(client.agentRealtime.interruptOutput).not.toHaveBeenCalled();
-    expect(interrupt.disabled).toBe(true);
+    expect(node.contains(interrupt)).toBe(false);
   });
 
   it('owns bounded English and Chinese selector copy', () => {
@@ -188,7 +188,7 @@ describe('Agent Realtime public entry', () => {
     );
 
     expect(html).toContain('data-nimi-app-agent-realtime-entry="true"');
-    expect(html).toContain('实时对话');
+    expect(html).toContain('实时语音');
     expect(client.agents.listReferences).not.toHaveBeenCalled();
     expect(client.agentRealtime.open).not.toHaveBeenCalled();
   });
@@ -241,7 +241,7 @@ describe('Agent Realtime public entry', () => {
     // The existing finite subscription ends after open, as a canceled event stream does.
     await act(async () => { button('Open live conversation').click(); });
     expect(node.textContent).toContain('Live conversation is unavailable.');
-    expect((node.querySelector('textarea') as HTMLTextAreaElement).disabled).toBe(true);
+    expect(node.querySelector('textarea')).toBeNull();
 
     vi.mocked(client.agents.listReferences).mockResolvedValueOnce([
       { agentHandle: HANDLE_B, agentBinding: `agent_binding_${'B'.repeat(43)}`, activityAgentRef: 'agr_B', displayName: 'Agent A', avatarUrl: null },

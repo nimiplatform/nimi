@@ -27,9 +27,10 @@ export const studioVoiceModule = Object.freeze({
       descriptor: studioVoiceDescriptors[1],
       icon: Captions,
       profile: {
+        primaryParameters: 'partial',
         studioTag: 'Transcribe', inputTitleKey: 'Studio.profiles.audioTranscribe.inputTitle', inputPlaceholderKey: 'Studio.profiles.audioTranscribe.inputPlaceholder', inputKind: 'url', supportsAttachments: false, controls: [], primaryLabelKey: 'Studio.profiles.audioTranscribe.primaryLabel', primaryRunningLabelKey: 'Studio.profiles.audioTranscribe.primaryRunningLabel', resultTitle: 'Transcript', emptyTitleKey: 'Studio.profiles.audioTranscribe.emptyTitle', emptyHintKey: 'Studio.profiles.audioTranscribe.emptyHint', resultKind: 'transcript', footnoteKey: 'Studio.profiles.audioTranscribe.footnote',
       },
-      preset: { id: 'audio-url', label: 'Audio URL', prompt: 'https://example.test/sample.wav' },
+      preset: { id: 'audio-url', label: 'Audio input', prompt: '' },
       runtimeMethod: 'kit.generation.runRuntimeSpeechTranscribe',
       parameters: studioSpeechTranscribeParameters,
       parameterPanel: StudioVoiceParameterPanel,

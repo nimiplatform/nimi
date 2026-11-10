@@ -6,7 +6,7 @@
     },
     "audioTranscribe": {
       "label": "语音转写",
-      "summary": "音频 URL → audio.transcribe 场景任务 → 类型化转写结果。"
+      "summary": "音频文件或 HTTPS 链接 → audio.transcribe 场景任务 → 类型化转写结果。"
     },
     "voiceCreate": {
       "label": "创建语音",
@@ -64,7 +64,8 @@
       "noVoiceAssets": "暂无已创建音色",
       "chooseAudioFile": "选择音频文件",
       "removeFile": "移除",
-      "audioFileTooLarge": "音频文件不得超过 32 MiB。",
+      "transcriptionAudioFileSize": "请选择不超过 32 MiB 的非空音频文件。",
+      "transcriptionAudioFileUnreadable": "无法读取所选音频，请重新选择或换一个文件。",
       "voiceReferenceFileTooLarge": "参考音频必须非空且不得超过 20 MiB。",
       "voiceReferenceMimeUnsupported": "请选择具有音频 MIME 类型的文件。",
       "voiceSourceReferenceAudio": "参考音频",

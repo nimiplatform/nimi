@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { Check, ChevronRight, Settings2 } from 'lucide-react';
 import type {
   NimiLocalAppAgentHandle,
   NimiLocalAppAgentReference,
   NimiLocalAppClient,
 } from '@nimiplatform/kit/core/sdk-contract';
-import { Avatar, Button, InlineAlert, LoadingSkeleton, Surface } from '@nimiplatform/kit/ui';
+import { Avatar, Button, InlineAlert, LoadingSkeleton, Surface, cn } from '@nimiplatform/kit/ui';
 import { createAgentCenterI18n } from '../locales/index.js';
 import { createAppAgentCenterSession } from '../session.js';
 import type {
@@ -50,7 +51,7 @@ type EntryCopy = Readonly<{
 const ENTRY_COPY = Object.freeze({
   en: Object.freeze({
     title: 'Agent Center',
-    description: "Choose a current Agent to manage settings shared across all supported apps.",
+    description: 'Manage a partner’s appearance, models, and behavior. Changes apply in every App that uses this partner.',
     loading: 'Loading current Agents…',
     loadFailed: 'Current Agents could not be loaded.',
     retry: 'Retry',
@@ -60,11 +61,11 @@ const ENTRY_COPY = Object.freeze({
   }),
   zh: Object.freeze({
     title: '伙伴中心',
-    description: "选择当前 Agent，统一管理在所有支持的 App 中通用的设定。",
-    loading: '正在加载当前 Agent…',
-    loadFailed: '无法加载当前 Agent。',
+    description: '管理伙伴的外观、模型和行为。更改会应用到使用这位伙伴的所有应用。',
+    loading: '正在加载伙伴…',
+    loadFailed: '无法加载伙伴。',
     retry: '重试',
-    empty: '当前 App session 没有可用 Agent。',
+    empty: '当前应用没有可管理的伙伴。',
     select: '管理此伙伴',
     selected: '正在管理',
   }),
@@ -172,12 +173,17 @@ export function AppAgentCenterEntry(props: AppAgentCenterEntryProps) {
   const label = (reference: NimiLocalAppAgentReference) => references && references.filter(entry => entry.displayName === reference.displayName).length > 1
     ? `${reference.displayName} · ${reference.agentBinding.slice(-6)}` : reference.displayName;
   return (
-    <div className={props.className} data-nimi-app-agent-center-entry="true">
-      <Surface tone="panel" className="space-y-3 p-4">
-        <div>
-          <h2 className="m-0 text-[length:var(--nimi-type-section-title-size)] font-semibold text-[var(--nimi-text-primary)]">{copy.title}</h2>
-          <p className="m-0 mt-1 text-sm text-[var(--nimi-text-secondary)]">{copy.description}</p>
+    <div className={cn('@container mx-auto max-w-[76rem] space-y-5', props.className)} data-nimi-app-agent-center-entry="true">
+      <header className="flex items-start gap-4 py-2">
+        <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]">
+          <Settings2 className="size-5" aria-hidden="true" />
+        </span>
+        <div className="min-w-0">
+          <h1 className="m-0 text-2xl font-semibold tracking-tight text-[var(--nimi-text-primary)]">{copy.title}</h1>
+          <p className="m-0 mt-1 max-w-xl text-sm leading-relaxed text-[var(--nimi-text-secondary)]">{copy.description}</p>
         </div>
+      </header>
+      <div className={cn('grid items-start gap-4', session && references && references.length > 1 && '@min-[50rem]:grid-cols-[14rem_minmax(0,1fr)]')}>
         {loading ? <LoadingSkeleton lines={2} label={copy.loading} /> : null}
         {failure ? (
           <div className="space-y-2">
@@ -187,13 +193,17 @@ export function AppAgentCenterEntry(props: AppAgentCenterEntryProps) {
         ) : null}
         {!loading && !failure && references?.length === 0 ? <InlineAlert tone="warning">{copy.empty}</InlineAlert> : null}
         {!loading && !failure && references && references.length > 1 ? (
-          <div className="flex flex-wrap gap-2" data-nimi-app-agent-center-selector="true">
+          <div className={cn('grid gap-2', session
+            ? 'grid-cols-[repeat(auto-fill,minmax(min(100%,10rem),1fr))] @min-[50rem]:grid-cols-1'
+            : 'grid-cols-[repeat(auto-fill,minmax(min(100%,13rem),1fr))]')} data-nimi-app-agent-center-selector="true">
             {references.map((reference) => (
               <Button
                 key={reference.agentHandle}
                 tone={reference.agentHandle === selectedHandle ? 'primary' : 'secondary'}
                 aria-pressed={reference.agentHandle === selectedHandle}
-                className="max-w-full justify-start"
+                aria-label={`${label(reference)} · ${reference.agentHandle === selectedHandle ? copy.selected : copy.select}`}
+                title={label(reference)}
+                className="min-h-14 min-w-0 justify-start gap-3 px-3 text-left [&>span]:w-full [&>span]:justify-start"
                 onClick={() => {
                   if (reference.agentHandle === selectedHandle) return;
                   setSelectedHandle(reference.agentHandle);
@@ -202,33 +212,33 @@ export function AppAgentCenterEntry(props: AppAgentCenterEntryProps) {
                 data-nimi-app-agent-center-agent-handle={reference.agentHandle}
               >
                 <Avatar
-                  size="sm"
+                  size="md"
                   src={reference.avatarUrl || undefined}
-                  alt={reference.displayName}
+                  alt=""
                   fallback={reference.displayName.slice(0, 1)}
                 />
-                <span>{label(reference)}</span>
-                <span className="text-xs opacity-70">
-                  {reference.agentHandle === selectedHandle ? copy.selected : copy.select}
-                </span>
+                <span className="min-w-0 flex-1 truncate">{label(reference)}</span>
+                {reference.agentHandle === selectedHandle
+                  ? <Check className="size-4 shrink-0" aria-hidden="true" />
+                  : <ChevronRight className="size-4 shrink-0 opacity-60" aria-hidden="true" />}
               </Button>
             ))}
           </div>
         ) : null}
-      </Surface>
-      {session ? (
-        <section className="min-w-0">
-        {selected ? <p className="sticky top-0 z-10 border-b border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-panel)] px-4 py-3 text-sm font-medium" role="status">{copy.selected}: {label(selected)}</p> : null}
-        <AgentCenter
-          session={session}
-          i18n={i18n}
-          identity={selected ? { displayName: selected.displayName, avatarUrl: selected.avatarUrl } : null}
-          chrome="embedded"
-          placementActions={props.placementActions}
-          showResourcePack={props.showResourcePack}
-        />
-        </section>
-      ) : null}
+        {session ? (
+          <Surface tone="panel" className="min-w-0 px-3 pb-3 @min-[36rem]:px-5 @min-[36rem]:pb-5">
+          {selected ? <p className="m-0 border-b border-[var(--nimi-border-subtle)] px-1.5 py-4 text-base font-semibold" role="status">{label(selected)}</p> : null}
+          <AgentCenter
+            session={session}
+            i18n={i18n}
+            identity={selected ? { displayName: selected.displayName, avatarUrl: selected.avatarUrl } : null}
+            chrome="embedded"
+            placementActions={props.placementActions}
+            showResourcePack={props.showResourcePack}
+          />
+          </Surface>
+        ) : null}
+      </div>
     </div>
   );
 }

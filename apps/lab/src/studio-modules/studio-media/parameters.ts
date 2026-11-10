@@ -1,3 +1,4 @@
+import type { NimiRuntimeVideoContentPart } from '@nimiplatform/sdk/features/generation';
 import {
   CLOUD_ONLY_STUDIO_PARAMETER,
   LOCAL_AND_CLOUD_STUDIO_PARAMETER,
@@ -258,11 +259,53 @@ export const studioImageGenerateParameters = defineStudioParameters<StudioImageG
   },
 });
 
+export function studioVideoInput(parameters: StudioVideoGenerationParameters = {}):
+  | { ok: true; content: readonly NimiRuntimeVideoContentPart[] }
+  | { ok: false; issue: string } {
+  const content: NimiRuntimeVideoContentPart[] = [];
+  if (parameters.mode === 'i2v-first-frame' || parameters.mode === 'i2v-first-last') {
+    const frames = [
+      { role: 'first-frame' as const, artifactId: parameters.firstFrameArtifactId, url: parameters.firstFrameImageUrl, issue: 'Studio.parameters.videoFirstFrameRequired' },
+      ...(parameters.mode === 'i2v-first-last'
+        ? [{ role: 'last-frame' as const, artifactId: parameters.lastFrameArtifactId, url: parameters.lastFrameImageUrl, issue: 'Studio.parameters.videoLastFrameRequired' }]
+        : []),
+    ];
+    for (const frame of frames) {
+      const artifactId = frame.artifactId?.trim();
+      const url = frame.url?.trim();
+      if (Boolean(artifactId) === Boolean(url)) return { ok: false, issue: frame.issue };
+      content.push(artifactId ? { type: 'artifact-ref', role: frame.role, artifactId } : { type: 'image-url', role: frame.role, url: url! });
+    }
+  } else if (parameters.mode === 'i2v-reference') {
+    const imageIds = [
+      ...(parameters.referenceArtifactId?.trim() ? [parameters.referenceArtifactId] : []),
+      ...(parameters.additionalReferenceArtifactIds ?? []),
+    ];
+    content.push(
+      ...imageIds.map((artifactId) => ({ type: 'artifact-ref' as const, role: 'reference-image' as const, artifactId })),
+      ...(parameters.referenceVideoArtifactIds ?? []).map((artifactId) => ({ type: 'artifact-ref' as const, role: 'reference-video' as const, artifactId })),
+      ...(parameters.referenceVideoUrls ?? []).map((url) => ({ type: 'video-url' as const, role: 'reference-video' as const, url })),
+      ...(parameters.referenceAudioArtifactIds ?? []).map((artifactId) => ({ type: 'artifact-ref' as const, role: 'reference-audio' as const, artifactId })),
+      ...(parameters.referenceAudioUrls ?? []).map((url) => ({ type: 'audio-url' as const, role: 'reference-audio' as const, url })),
+    );
+    if (!content.length || content.some((part) => {
+      const value = 'artifactId' in part ? part.artifactId : 'url' in part ? part.url : '';
+      return typeof value !== 'string' || !value.trim();
+    })) return { ok: false, issue: 'Studio.parameters.videoReferencesRequired' };
+  }
+  return { ok: true, content };
+}
+
 export const studioVideoGenerateParameters = defineStudioParameters<StudioVideoGenerationParameters>({
 	initial: () => ({ mode: 't2v' }),
-  hasAlternativeInput: (value) => value.mode === 'i2v-first-frame' ? Boolean(value.firstFrameArtifactId || value.firstFrameImageUrl)
-    : value.mode === 'i2v-first-last' ? Boolean((value.firstFrameArtifactId || value.firstFrameImageUrl) && (value.lastFrameArtifactId || value.lastFrameImageUrl))
-      : value.mode === 'i2v-reference' ? Boolean(value.referenceArtifactId || value.additionalReferenceArtifactIds?.length || value.referenceVideoUrls?.length || value.referenceAudioUrls?.length || value.referenceAudioArtifactIds?.length || value.referenceVideoArtifactIds?.length) : false,
+  hasAlternativeInput: (value) => {
+    const input = studioVideoInput(value);
+    return input.ok && input.content.length > 0;
+  },
+  requiredInputIssue: (value) => {
+    const input = studioVideoInput(value);
+    return input.ok ? undefined : input.issue;
+  },
   restoreRecordedParameters: (snapshot) => {
     if (!snapshot) return null;
     const strings = new Set(['mode', 'firstFrameImageUrl', 'firstFrameArtifactId', 'lastFrameImageUrl', 'lastFrameArtifactId', 'referenceArtifactId', 'negativePrompt', 'resolution', 'ratio', 'serviceTier']);

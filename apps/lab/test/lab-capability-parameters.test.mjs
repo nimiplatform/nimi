@@ -41,6 +41,21 @@ test('video generation does not send an audio control before the user chooses on
   });
 });
 
+test('video input preflight requires both frames for the first-and-last mode', () => {
+  const contract = labStudioComposition.getCapability('video.generate').parameters;
+  const prepare = (parameters) => contract.project('cloud', { mode: 'i2v-first-last', ...parameters });
+  assert.equal(contract.requiredInputIssue(prepare({})), 'Studio.parameters.videoFirstFrameRequired');
+  assert.equal(contract.requiredInputIssue(prepare({ firstFrameArtifactId: 'first' })), 'Studio.parameters.videoLastFrameRequired');
+  assert.equal(contract.requiredInputIssue(prepare({
+    firstFrameArtifactId: 'first',
+    firstFrameImageUrl: 'https://example.test/first.png',
+    lastFrameArtifactId: 'last',
+  })), 'Studio.parameters.videoFirstFrameRequired');
+  const complete = prepare({ firstFrameArtifactId: 'first', lastFrameArtifactId: 'last' });
+  assert.equal(contract.requiredInputIssue(complete), undefined);
+  assert.equal(contract.hasAlternativeInput(complete), true);
+});
+
 test('embedding purpose remains optional and survives the existing parameter projection', () => {
   const contract = labStudioComposition.getCapability('text.embed').parameters;
   assert.deepEqual(contract.initial(), {});

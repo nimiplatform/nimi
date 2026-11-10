@@ -22,13 +22,19 @@ import type { LabTextAnnotateParameters } from './text-annotate.js';
 import type { LabTextExchangeParameters } from './text-exchange.js';
 import { LabReasoningControls } from './reasoning-controls.js';
 
-function Frame(props: StudioParameterPanelProps & { readonly children: ReactNode; readonly localRouteOnly?: boolean }) {
+function Frame(props: StudioParameterPanelProps & {
+  readonly children: ReactNode;
+  readonly localRouteOnly?: boolean;
+  readonly primary?: ReactNode;
+  readonly onReset?: () => void;
+}) {
   const { t } = useTranslation();
   return (
     <StudioParameterPanelFrame
       translate={(key, values) => t(key, values)}
       disabled={props.disabled}
-      onReset={() => props.onChange(props.contract.initial())}
+      onReset={props.onReset ?? (() => props.onChange(props.contract.initial()))}
+      primary={props.primary}
     >
       <div className="studio-parameters__stack">
         {props.children}
@@ -206,8 +212,8 @@ export function LabTextExchangeParameterPanel(props: StudioParameterPanelProps) 
   const parameters = props.parameters as LabTextExchangeParameters;
   const scenario = parameters.scenario === 'structured-output' || parameters.scenario === 'json-object' ? parameters.scenario : 'tool-call';
   const delivery = parameters.delivery === 'stream' ? 'stream' : 'sync';
-  return (
-    <Frame {...props}>
+  const primary = (
+    <div className="studio-parameters__stack">
       <StudioParameterField label={t('CapabilityTests.textTools.scenario')}>
         <SelectField
           value={scenario}
@@ -232,6 +238,10 @@ export function LabTextExchangeParameterPanel(props: StudioParameterPanelProps) 
         />
       </StudioParameterField>
       <p className="text-sm opacity-70">{t(scenario === 'tool-call' ? 'CapabilityTests.textTools.toolHint' : scenario === 'json-object' ? 'CapabilityTests.textTools.jsonObjectHint' : 'CapabilityTests.textTools.structuredHint')}</p>
+    </div>
+  );
+  return (
+    <Frame {...props} primary={primary} onReset={() => props.onChange({ scenario, delivery })}>
       <LabReasoningControls value={parameters.reasoning} disabled={props.disabled} onChange={(reasoning) => props.onChange({ ...parameters, reasoning })} />
     </Frame>
   );

@@ -9,6 +9,7 @@ export const labWorldTourCapability = Object.freeze({
   descriptor: labWorldTourDescriptor,
   icon: Compass,
   profile: {
+    primaryParameters: 'all',
     studioTag: 'World', inputTitleKey: 'Studio.profiles.worldGenerate.inputTitle', inputPlaceholderKey: 'Studio.profiles.worldGenerate.inputPlaceholder', inputKind: 'prompt', inputNoteKey: 'Studio.profiles.worldGenerate.inputNote', supportsAttachments: false, controls: [], primaryLabelKey: 'Studio.profiles.worldGenerate.primaryLabel', primaryRunningLabelKey: 'Studio.profiles.worldGenerate.primaryRunningLabel', resultTitle: 'Viewer', emptyTitleKey: 'Studio.profiles.worldGenerate.emptyTitle', emptyHintKey: 'Studio.profiles.worldGenerate.emptyHint', resultKind: 'artifacts', footnoteKey: 'Studio.profiles.worldGenerate.footnote',
   },
   preset: { id: 'conservatory', label: 'Conservatory', prompt: 'A sunlit botanical conservatory with tall glass windows, leafy plants, stone pathways, and an open central walkway. A coherent immersive interior at human eye level.' },

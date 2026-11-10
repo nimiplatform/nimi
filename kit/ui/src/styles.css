@@ -7,6 +7,7 @@
 @source "./lib/**/*.{ts,tsx}";
 @source "../../auth/src/**/*.{ts,tsx}";
 @source "../../features/agent-center/src/**/*.{ts,tsx}";
+@source "../../features/agent-realtime/src/**/*.{ts,tsx}";
 @source "../../features/chat/src/**/*.{ts,tsx}";
 @source "../../features/generation/src/**/*.{ts,tsx}";
 @source "../../features/model-config/src/**/*.{ts,tsx}";

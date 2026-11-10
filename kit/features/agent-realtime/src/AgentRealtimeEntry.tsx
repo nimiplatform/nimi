@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AudioLines, Check, ChevronRight, Mic, MicOff, PhoneOff } from 'lucide-react';
 import type {
   NimiLocalAppAgentHandle,
   NimiLocalAppAgentReference,
@@ -12,6 +13,7 @@ import {
   NimiText,
   Surface,
   TextareaField,
+  cn,
 } from '@nimiplatform/kit/ui';
 
 import { resolveNimiAgentRealtimeCopy } from './copy.js';
@@ -103,12 +105,17 @@ export function AgentRealtimeEntry(props: AgentRealtimeEntryProps) {
     ? references?.find((reference) => reference.agentHandle === selectedHandle) ?? null
     : null;
   return (
-    <div className={props.className} data-nimi-app-agent-realtime-entry="true">
-      <Surface tone="panel" className="space-y-3 p-4">
-        <div className="space-y-1">
-          <NimiText role="section-title">{copy.title}</NimiText>
-          <NimiText role="helper">{copy.description}</NimiText>
+    <div className={cn('@container mx-auto max-w-[76rem] space-y-5', props.className)} data-nimi-app-agent-realtime-entry="true">
+      <header className="flex items-start gap-4 py-2">
+        <span className="grid size-12 shrink-0 place-items-center rounded-2xl bg-[var(--nimi-surface-active)] text-[var(--nimi-action-primary-bg)]">
+          <AudioLines className="size-5" aria-hidden="true" />
+        </span>
+        <div className="min-w-0">
+          <h1 className="m-0 text-2xl font-semibold tracking-tight">{copy.title}</h1>
+          <p className="m-0 mt-1 max-w-xl text-sm leading-relaxed text-[var(--nimi-text-secondary)]">{copy.description}</p>
         </div>
+      </header>
+      <div className={cn('grid items-start gap-4', selected && '@min-[50rem]:grid-cols-[14rem_minmax(0,1fr)]')}>
         {loading ? <LoadingSkeleton lines={2} label={copy.agentsLoading} /> : null}
         {failure ? (
           <div className="space-y-2">
@@ -125,13 +132,19 @@ export function AgentRealtimeEntry(props: AgentRealtimeEntryProps) {
           <InlineAlert tone="warning">{copy.initialAgentUnavailable}</InlineAlert>
         ) : null}
         {!loading && !failure && referencesReady && references && references.length > 0 ? (
-          <div className="grid gap-2" data-nimi-app-agent-realtime-selector="true">
+          <div className={cn('grid gap-2', selected
+            ? 'grid-cols-[repeat(auto-fill,minmax(min(100%,10rem),1fr))] @min-[50rem]:grid-cols-1'
+            : 'grid-cols-[repeat(auto-fill,minmax(min(100%,13rem),1fr))]')} data-nimi-app-agent-realtime-selector="true">
             {references.map((reference) => (
               <Button
                 key={reference.agentHandle}
                 tone={reference.agentHandle === selectedHandle ? 'primary' : 'secondary'}
-                disabled={reference.agentHandle === selectedHandle}
+                aria-pressed={reference.agentHandle === selectedHandle}
+                aria-label={`${reference.displayName} · ${reference.agentHandle === selectedHandle ? copy.selectedAgent : copy.selectAgent}`}
+                title={reference.displayName}
+                className="min-h-14 min-w-0 justify-start px-3 text-left [&>span]:w-full [&>span]:justify-start"
                 onClick={() => {
+                  if (reference.agentHandle === selectedHandle) return;
                   setSelectedExplicitly(true);
                   setInitialUnavailable(false);
                   setSelectedHandle(reference.agentHandle);
@@ -139,46 +152,48 @@ export function AgentRealtimeEntry(props: AgentRealtimeEntryProps) {
                 data-nimi-app-agent-realtime-agent-handle={reference.agentHandle}
               >
                 <Avatar
-                  size="sm"
+                  size="md"
                   src={reference.avatarUrl || undefined}
-                  alt={reference.displayName}
+                  alt=""
                   fallback={reference.displayName.slice(0, 1)}
                 />
-                <span>{reference.displayName}</span>
-                <span className="text-xs opacity-70">
-                  {reference.agentHandle === selectedHandle
-                    ? copy.selectedAgent
-                    : copy.selectAgent}
-                </span>
+                <span className="min-w-0 flex-1 truncate">{reference.displayName}</span>
+                {reference.agentHandle === selectedHandle
+                  ? <Check className="size-4 shrink-0" aria-hidden="true" />
+                  : <ChevronRight className="size-4 shrink-0 opacity-60" aria-hidden="true" />}
               </Button>
             ))}
           </div>
         ) : null}
-      </Surface>
-      {selected ? (
-        <BoundAgentRealtimeEntry
-          agentRealtime={props.client.agentRealtime}
-          agentHandle={selected.agentHandle}
-          {...(props.conversationAnchorId
-            && props.initialAgentHandle === selected.agentHandle
-            && !selectedExplicitly
-            ? { conversationAnchorId: props.conversationAnchorId }
-            : {})}
-          inputAudio={props.inputAudio}
-          turnDetection={props.turnDetection}
-          host={props.host}
-          locale={props.locale}
-          onEvent={props.onEvent}
-          onStateChange={props.onStateChange}
-          onReloadAgents={() => { void loadReferences(); }}
-        />
-      ) : null}
+        {selected ? (
+          <BoundAgentRealtimeEntry
+            agentRealtime={props.client.agentRealtime}
+            agentHandle={selected.agentHandle}
+            displayName={selected.displayName}
+            avatarUrl={selected.avatarUrl}
+            {...(props.conversationAnchorId
+              && props.initialAgentHandle === selected.agentHandle
+              && !selectedExplicitly
+              ? { conversationAnchorId: props.conversationAnchorId }
+              : {})}
+            inputAudio={props.inputAudio}
+            turnDetection={props.turnDetection}
+            host={props.host}
+            locale={props.locale}
+            onEvent={props.onEvent}
+            onStateChange={props.onStateChange}
+            onReloadAgents={() => { void loadReferences(); }}
+          />
+        ) : null}
+      </div>
     </div>
   );
 }
 
 function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps & {
   readonly onReloadAgents: () => void;
+  readonly displayName: string;
+  readonly avatarUrl: string | null;
 }) {
   const {
     agentRealtime,
@@ -278,7 +293,10 @@ function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps & {
   const openPending = state.lifecycle === 'opening';
   const closePending = state.lifecycle === 'closing';
   const active = ['ready', 'degraded', 'reconnecting'].includes(state.lifecycle);
+  const switching = requestedSession !== session;
   const outputTrackId = state.activeOutputTrackIds[0] ?? null;
+  const staleModelCatalog = state.error?.reasonCode === 'ai-remote-model-catalog-stale';
+  const chinese = props.locale?.trim().toLowerCase().startsWith('zh');
   const statusText = state.capture === 'active'
     ? copy.capturing
     : state.pressure === 'blocked'
@@ -288,119 +306,136 @@ function BoundAgentRealtimeEntry(props: BoundAgentRealtimeEntryProps & {
         : lifecycleCopy(state, copy);
 
   return (
-    <Surface tone="panel" className={props.className}>
-      <div className="space-y-4" data-nimi-agent-realtime-entry="true">
-        <div className="space-y-1">
-          <NimiText role="section-title">{copy.title}</NimiText>
-          <NimiText role="helper" aria-live="polite">{statusText}</NimiText>
-        </div>
+    <Surface tone="panel" className="min-w-0 overflow-hidden">
+      <div data-nimi-agent-realtime-entry="true">
+        <header className="flex items-center gap-3 border-b border-[var(--nimi-border-subtle)] px-5 py-4">
+          {!switching ? <Avatar size="lg" src={props.avatarUrl || undefined} alt="" fallback={props.displayName.slice(0, 1)} /> : null}
+          <div className="min-w-0">
+            <h2 className="m-0 text-base font-semibold break-words">{switching ? copy.title : props.displayName}</h2>
+            <NimiText role="helper" aria-live="polite">{statusText}</NimiText>
+          </div>
+        </header>
+        <div className="space-y-4 p-5">
+          {state.error ? (
+            <InlineAlert tone="danger">
+              {state.closeUnconfirmed ? <p>{copy.closeUnconfirmed}</p> : null}
+              {staleModelCatalog ? (
+                <>
+                  <p>{chinese
+                    ? '云端模型列表已更新。请在伙伴中心的「模型 → 实时语音」重新选择并保存模型，然后回来重试。'
+                    : 'The cloud model list has changed. Open Agent Center, choose and save a model under Models → Realtime voice, then try again.'}</p>
+                  <details className="mt-2 text-xs">
+                    <summary className="cursor-pointer">{chinese ? '技术详情' : 'Technical details'}</summary>
+                    <p>{state.error.message}</p>
+                  </details>
+                </>
+              ) : <p>{state.error.message}</p>}
+            </InlineAlert>
+          ) : null}
 
-        {state.error ? (
-          <InlineAlert tone="danger">
-            {state.closeUnconfirmed ? <p>{copy.closeUnconfirmed}</p> : null}
-            <p>{state.error.message}</p>
-          </InlineAlert>
-        ) : null}
-
-        <div className="flex flex-wrap gap-2">
-          <Button
-            type="button"
-            size="sm"
-            tone="primary"
-            loading={openPending}
-            disabled={openPending || closePending || active || state.closeUnconfirmed}
-            onClick={() => {
-              if (state.lifecycle === 'failed') props.onReloadAgents();
-              else void session.open().catch(() => undefined);
-            }}
-          >
-            {state.lifecycle === 'failed' ? copy.agentsRetry : copy.open}
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            disabled={state.lifecycle !== 'ready' || state.capture === 'requesting'}
-            onClick={() => {
-              if (state.capture === 'active') {
-                void session.stopCapture().catch(() => undefined);
-              } else {
-                void session.requestCapture().catch(() => undefined);
-              }
-            }}
-          >
-            {state.capture === 'active' ? copy.stop : copy.start}
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            tone="ghost"
-            disabled={!outputTrackId}
-            onClick={() => {
-              if (!outputTrackId) return;
-              void session.interruptOutput({
-                outputTrackId,
-                interruptAgentTurn: true,
-              }).catch(() => undefined);
-            }}
-          >
-            {copy.interrupt}
-          </Button>
-          <Button
-            type="button"
-            size="sm"
-            tone="ghost"
-            loading={closePending}
-            disabled={closePending || (!active && state.lifecycle !== 'opening' && !state.closeUnconfirmed)}
-            onClick={() => {
-              void session.close().then(() => {
-                if (requestedSession !== session) setSession(requestedSession);
-              }).catch(() => undefined);
-            }}
-          >
-            {state.closeUnconfirmed && !closePending ? copy.retryClose : copy.close}
-          </Button>
-        </div>
-
-        {replyText ? (
-          <NimiText role="body" className="whitespace-pre-wrap break-words" data-nimi-agent-realtime-reply="true">
-            {replyText}
-          </NimiText>
-        ) : null}
-
-        <div className="space-y-2">
-          <TextareaField
-            value={text}
-            rows={3}
-            aria-label={copy.textInputLabel}
-            disabled={!active || state.pressure === 'blocked'}
-            onChange={(event) => {
-              draftRevision.current += 1;
-              setText(event.currentTarget.value);
-            }}
-          />
-          <Button
-            type="button"
-            size="sm"
-            disabled={!active || state.pressure === 'blocked' || text.trim().length === 0}
-            onClick={() => {
-              const value = text.trim();
-              if (!value) return;
-              const revision = draftRevision.current;
-              const epoch = session.getState().sessionEpoch;
-              void session.sendText({
-                requestId: createRequestId(),
-                text: value,
-              }).then((result) => {
-                if (result.ack.ok && currentSession.current === session
-                  && session.getState().sessionEpoch === epoch && draftRevision.current === revision) {
-                  draftRevision.current += 1;
-                  setText('');
+          <div className="flex flex-wrap gap-2">
+            {!active && !closePending && !state.closeUnconfirmed && !switching ? <Button
+              type="button"
+              size="sm"
+              tone="primary"
+              loading={openPending}
+              disabled={openPending}
+              onClick={() => {
+                if (state.lifecycle === 'failed') props.onReloadAgents();
+                else void session.open().catch(() => undefined);
+              }}
+            >
+              {state.lifecycle === 'failed' ? copy.agentsRetry : copy.open}
+            </Button> : null}
+            {active && !switching ? <Button
+              type="button"
+              tone="primary"
+              disabled={state.lifecycle !== 'ready' || state.capture === 'requesting'}
+              onClick={() => {
+                if (state.capture === 'active') {
+                  void session.stopCapture().catch(() => undefined);
+                } else {
+                  void session.requestCapture().catch(() => undefined);
                 }
-              }).catch(() => undefined);
-            }}
-          >
-            {copy.sendText}
-          </Button>
+              }}
+            >
+              {state.capture === 'active' ? <MicOff className="size-4" aria-hidden="true" /> : <Mic className="size-4" aria-hidden="true" />}
+              {state.capture === 'active' ? copy.stop : copy.start}
+            </Button> : null}
+            {outputTrackId && !switching ? <Button
+              type="button"
+              size="sm"
+              tone="ghost"
+              onClick={() => {
+                if (!outputTrackId) return;
+                void session.interruptOutput({
+                  outputTrackId,
+                  interruptAgentTurn: true,
+                }).catch(() => undefined);
+              }}
+            >
+              {copy.interrupt}
+            </Button> : null}
+            {active || openPending || closePending || state.closeUnconfirmed ? <Button
+              type="button"
+              size="sm"
+              tone="ghost"
+              loading={closePending}
+              disabled={closePending}
+              onClick={() => {
+                void session.close().then(() => {
+                  if (requestedSession !== session) setSession(requestedSession);
+                }).catch(() => undefined);
+              }}
+            >
+              <PhoneOff className="size-4" aria-hidden="true" />
+              {state.closeUnconfirmed && !closePending ? copy.retryClose : copy.close}
+            </Button> : null}
+          </div>
+
+          {replyText && !switching ? (
+            <NimiText role="body" className="rounded-xl border border-[var(--nimi-border-subtle)] p-4 whitespace-pre-wrap break-words" data-nimi-agent-realtime-reply="true">
+              {replyText}
+            </NimiText>
+          ) : null}
+
+          {active && !switching ? <div className="grid gap-2 border-t border-[var(--nimi-border-subtle)] pt-4">
+            <TextareaField
+              value={text}
+              rows={3}
+              aria-label={copy.textInputLabel}
+              placeholder={copy.textInputLabel}
+              disabled={state.pressure === 'blocked'}
+              onChange={(event) => {
+                draftRevision.current += 1;
+                setText(event.currentTarget.value);
+              }}
+            />
+            <Button
+              type="button"
+              size="sm"
+              className="justify-self-end"
+              disabled={state.pressure === 'blocked' || text.trim().length === 0}
+              onClick={() => {
+                const value = text.trim();
+                if (!value) return;
+                const revision = draftRevision.current;
+                const epoch = session.getState().sessionEpoch;
+                void session.sendText({
+                  requestId: createRequestId(),
+                  text: value,
+                }).then((result) => {
+                  if (result.ack.ok && currentSession.current === session
+                    && session.getState().sessionEpoch === epoch && draftRevision.current === revision) {
+                    draftRevision.current += 1;
+                    setText('');
+                  }
+                }).catch(() => undefined);
+              }}
+            >
+              {copy.sendText}
+            </Button>
+          </div> : null}
         </div>
       </div>
     </Surface>

@@ -9,7 +9,7 @@ import { useAIStudioHost } from './host-context.js';
 import type { StudioCapabilityRegistration } from './module-registration.js';
 import type { StudioParameterValue } from './parameters.js';
 import type { StudioCapabilityRunResult, StudioRuntimeInspection } from './runtime-types.js';
-import { getStudioRunIntentLabel, restoreStudioCapabilityRunResult, type StudioRunConfigSnapshot, type StudioRunHistory, type StudioRunHistoryRecord } from './history.js';
+import { restoreStudioCapabilityRunResult, type StudioRunConfigSnapshot, type StudioRunHistory, type StudioRunHistoryRecord } from './history.js';
 import { CapabilityRunHistory, DrawerErrorBoundary, downloadTextFile, resultPlainText, statusForCapability, type CapabilityStatus, type SectionAITestingProps } from './section-ai-testing-surface.js';
 import { TextStudioComposer, TextStudioStartState } from './section-ai-testing-composer.js';
 import { ScenarioJobStatus } from '@nimiplatform/sdk/runtime/generated';
@@ -22,7 +22,7 @@ import {
 import { TextStudioResultState } from './section-ai-testing-result.js';
 import { readStudioTextReplayMedia, readStudioLocateReplayImage } from './text-media-replay.js';
 import { exportStudioAsset } from './section-ai-testing-output.js';
-import { canConfigureRunTarget, createRunConfigSnapshot, effectiveTextStudioPromptStyle, textStudioDirectiveForTarget, textStudioRunTargetIntentSummary, textStudioRuntimePrompt, useStudioRunTargetSummary, type TextStudioActiveRun } from './section-ai-testing-run.js';
+import { canConfigureRunTarget, createRunConfigSnapshot, effectiveTextStudioPromptStyle, studioConfiguredTargetLabel, textStudioDirectiveForTarget, textStudioRunTargetIntentSummary, textStudioRuntimePrompt, useStudioRunTargetSummary, type TextStudioActiveRun } from './section-ai-testing-run.js';
 import { StudioCapabilityParameterContext, StudioHistoryLoadContext, StudioHistoryPanelContext } from './contexts.js';
 
 // Admission pill labels are keyed by the typed status so locale changes do not
@@ -77,11 +77,14 @@ function TextStudioShell({
   const [executingRun, setExecutingRun] = useState<TextStudioActiveRun | null>(null);
   const [cancelRequested, setCancelRequested] = useState(false);
   const [streamingText, setStreamingText] = useState<string | null>(null);
-  const [mediaInputState, setMediaInputState] = useState<'checking' | 'supported' | 'unsupported' | 'unavailable'>('checking');
   const [activeRun, setActiveRun] = useState<TextStudioActiveRun | null>(null);
   const [sessionRuns, setSessionRuns] = useState<Record<string, TextStudioActiveRun>>({});
   const historyPanel = useContext(StudioHistoryPanelContext);
-  const historyCollapsed = historyPanel?.collapsed ?? true;
+  const workspaceRef = useRef<HTMLDivElement>(null);
+  const historyToggleRef = useRef<HTMLButtonElement>(null);
+  const [compactHistory, setCompactHistory] = useState(false);
+  const [compactHistoryOpen, setCompactHistoryOpen] = useState(false);
+  const historyCollapsed = compactHistory ? !compactHistoryOpen : historyPanel?.collapsed ?? true;
   const runSeqRef = useRef(0);
   const [observationIssue, setObservationIssue] = useState(false);
   const abortControllerRef = useRef<{ runId: string; controller: AbortController; observation: AbortController } | null>(null);
@@ -100,25 +103,6 @@ function TextStudioShell({
     onTextChange: updatePrompt,
     disabled: running,
   });
-  useEffect(() => {
-    if (capability.id !== 'text.generate') return;
-    let disposed = false;
-    let generation = 0;
-    const refresh = () => {
-      const current = ++generation;
-      setMediaInputState('checking');
-      void rendererHost.sdk.aiConfig.getSnapshot().then((snapshot) => {
-        if (!disposed && generation === current) {
-          setMediaInputState(textStudioMediaInputAvailable(snapshot, composerState.attachments[0]?.mimeType) ? 'supported' : 'unsupported');
-        }
-      }, () => {
-        if (!disposed && generation === current) setMediaInputState('unavailable');
-      });
-    };
-    refresh();
-    const unsubscribe = rendererHost.app.events.subscribeAIConfigRefresh(refresh);
-    return () => { disposed = true; generation += 1; unsubscribe(); };
-  }, [capability.id, rendererHost, composerState.attachments[0]?.mimeType]);
   const hasRequiredImage = capability.id !== 'vision.locate'
     || (composerState.attachments.length === 1 && composerState.attachments[0]?.kind === 'image');
   const hasActiveRun = Boolean(displayedRun);
@@ -129,7 +113,6 @@ function TextStudioShell({
       ))
       : null)
     : lastResult?.capabilityId === capability.id ? lastResult : null;
-  const headerResult = hasActiveRun ? currentResult : null;
   const savedTextMedia = (currentResult?.ok && (currentResult.output.kind === 'text' || currentResult.output.kind === 'vision-locate') ? currentResult.output.sourceImage : undefined)
     ?? displayedRun?.replayMedia;
   const displayedAttachmentCount = displayedRun?.record?.runConfig?.promptControls.attachmentCount
@@ -140,7 +123,12 @@ function TextStudioShell({
     (displayedAttachmentCount === 0 && !savedTextMedia) ||
     (displayedAttachmentCount <= 1 && Boolean(savedTextMedia) && displayedRun?.record?.status !== 'unavailable');
   const runTarget = useStudioRunTargetSummary(registration, runtime);
-  const admission = statusForCapability(registration, runTarget, headerResult, t);
+  const admission = statusForCapability(registration, runTarget, null, t);
+  const mediaInputState = runTarget.snapshot
+    ? (textStudioMediaInputAvailable(runTarget.snapshot, composerState.attachments[0]?.mimeType) ? 'supported' : 'unsupported')
+    : (runTarget.configReadFailed ? 'unavailable' : 'checking');
+  const canRetryPreparation = capability.execution === 'runtime-sdk'
+    && (runTarget.status === 'checking' || runTarget.status === 'not-admitted' || runTarget.configReadFailed);
   const requiresPrompt = profile.inputKind !== 'none';
   const supportsMedia = profile.supportsAttachments;
   const attachmentBlocked = capability.id === 'text.generate' && composerState.attachments.length > 0 && mediaInputState !== 'supported';
@@ -150,7 +138,9 @@ function TextStudioShell({
     capabilityParameters,
   ), [capabilityParameters, registration.parameters, runTarget.source]);
   const parameterSummary = registration.parameters.summarize(effectiveCapabilityParameters);
-  const hasAlternativeInput = registration.parameters.hasAlternativeInput(capabilityParameters);
+  const hasAlternativeInput = registration.parameters.hasAlternativeInput(effectiveCapabilityParameters);
+  const promptEnabled = profile.inputKind !== 'url' || runtime?.mode !== 'remote-app';
+  const inputIssueKey = registration.parameters.requiredInputIssue?.(effectiveCapabilityParameters);
   const recordedInput = registration.parameters.recordedInput;
   const displayedRunPrompt = displayedRun?.prompt;
   // A parameter-owned input reruns the displayed run's recorded request, which
@@ -194,6 +184,19 @@ function TextStudioShell({
     || (replayAssets?.key === replayAssetKey && replayAssets.available);
 
   useEffect(() => {
+    const workspace = workspaceRef.current;
+    if (!workspace || typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(([entry]) => {
+      if (!entry) return;
+      const compact = entry.contentRect.width <= 1080;
+      setCompactHistory(compact);
+      if (!compact) setCompactHistoryOpen(false);
+    });
+    observer.observe(workspace);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
     const error = historyLoad?.error ?? null;
     if (!error) {
       expandedHistoryErrorRef.current = null;
@@ -201,8 +204,9 @@ function TextStudioShell({
     }
     if (expandedHistoryErrorRef.current === error) return;
     expandedHistoryErrorRef.current = error;
-    historyPanel?.setCollapsed(false);
-  }, [historyLoad?.error, historyPanel]);
+    if (compactHistory) setCompactHistoryOpen(true);
+    else historyPanel?.setCollapsed(false);
+  }, [historyLoad?.error, historyPanel, compactHistory]);
 
   function updatePrompt(nextPrompt: string) {
     const editRevision = ++promptEditRevision.current;
@@ -264,13 +268,14 @@ function TextStudioShell({
     const runEffectiveParameters = replay && registration.parameters.restoreRecordedParameters
       ? runParameters
       : registration.parameters.project(runTarget.source, runParameters);
-    const runHasAlternativeInput = registration.parameters.hasAlternativeInput(runParameters);
+    if (registration.parameters.requiredInputIssue?.(runEffectiveParameters)) return;
+    const runHasAlternativeInput = registration.parameters.hasAlternativeInput(runEffectiveParameters);
     // Raw document inputs retain their original whitespace so annotation
     // offsets refer to the exact text the user entered. A parameter-owned input
     // records its complete encoded request.
     const displayPrompt = recordedInput
       ? (runHasAlternativeInput ? recordedInput.encode(runEffectiveParameters) : '')
-      : profile.rawPrompt ? nextPrompt : nextPrompt.trim();
+      : !promptEnabled ? '' : profile.rawPrompt ? nextPrompt : nextPrompt.trim();
     if (!hasStudioCapabilityRunInput({ requiresPrompt, prompt: displayPrompt, hasAlternativeInput: runHasAlternativeInput })) return;
     if ((capability.id === 'music.transcribe' || capability.id === 'audio.voice.convert' || capability.id === 'audio.separate') && !runHasAlternativeInput) return;
     if (profile.requiresParameterInput && !runHasAlternativeInput) return;
@@ -292,6 +297,7 @@ function TextStudioShell({
       prompt: displayPrompt || (runHasAlternativeInput ? '' : preset.prompt),
       context: nextContext.trim(),
       createdAt: new Date(startedAt).toISOString(),
+      configuredTarget: { source: runTarget.source, targetLabel: runTarget.targetLabel },
       result: null,
       record: null,
       error: null,
@@ -395,11 +401,11 @@ function TextStudioShell({
         next[finishedRun.id] = finishedRun;
         return next;
       });
-      setActiveRun(finishedRun);
+      setActiveRun(current => current?.id === pendingRun.id ? finishedRun : current);
     } catch (error) {
       if (runSeq !== runSeqRef.current) return;
       const message = error instanceof Error ? error.message : String(error || 'Runtime call failed.');
-      setActiveRun({ ...pendingRun, error: message });
+      setActiveRun(current => current?.id === pendingRun.id ? { ...pendingRun, error: message } : current);
     } finally {
       if (runSeq === runSeqRef.current) {
         if (abortControllerRef.current?.controller === abortController) abortControllerRef.current = null;
@@ -481,12 +487,12 @@ function TextStudioShell({
       const restored = recordedInput.decode(record.prompt);
       if (!restored || !parameterStore) return;
       parameterStore.setParameters(capability.id, { ...capabilityParameters, ...restored });
-      setActiveRun(null);
+      handleNewRun();
       return;
     }
     updatePrompt(record.prompt);
     setContext(record.runConfig?.promptControls.context ?? '');
-    setActiveRun(null);
+    handleNewRun();
   }
 
   const historyPreviewId = useRef<string | null>(null);
@@ -519,7 +525,7 @@ function TextStudioShell({
       onOpenAttachmentPicker={composerState.openAttachmentPicker}
       onRemoveAttachment={composerState.removeAttachment}
       canDispatch={runTarget.canDispatch}
-      canConfigureIntent={canConfigureRunTarget(runTarget)}
+      canConfigureIntent={!runTarget.configReadFailed && canConfigureRunTarget(runTarget)}
       intentConfigurable={capability.execution === 'runtime-sdk'}
       compact={Boolean(activeRun)}
       parameterPanel={parameterStore && capability.execution === 'runtime-sdk' && ParameterPanel ? (
@@ -534,20 +540,34 @@ function TextStudioShell({
       ) : undefined}
       parametersActive={Object.keys(parameterSummary).length > 0}
       hasAlternativeInput={hasAlternativeInput}
+      promptEnabled={promptEnabled}
+      inputIssue={inputIssueKey ? t(inputIssueKey) : undefined}
       onPromptChange={updatePrompt}
       onContextChange={setContext}
       onOpenIntentConfig={onOpenConfig}
       onSubmit={() => void run()}
     />
   );
-  const showAdmissionBadge = true;
-
   function handleHistoryCollapseToggle() {
-    historyPanel?.setCollapsed(!historyCollapsed);
+    if (compactHistory) setCompactHistoryOpen((open) => !open);
+    else historyPanel?.setCollapsed(!historyCollapsed);
+  }
+
+  function closeCompactHistory() {
+    setCompactHistoryOpen(false);
+    historyToggleRef.current?.focus();
+  }
+
+  function selectHistoryRecord(record: StudioRunHistoryRecord) {
+    onSelectHistoryRun(record);
+    if (compactHistory) closeCompactHistory();
   }
 
   function handleNewRun() {
     setActiveRun(null);
+    workspaceRef.current?.ownerDocument.defaultView?.requestAnimationFrame(() => {
+      workspaceRef.current?.querySelector<HTMLElement>('.studio-start')?.focus();
+    });
   }
 
   function handleCancel() {
@@ -559,18 +579,43 @@ function TextStudioShell({
 
   return (
     <div className={hasActiveRun ? 'studio studio--has-run' : 'studio studio--landing'}>
-      <div className="studio__workspace studio__workspace--with-history">
+      <div
+        ref={workspaceRef}
+        className={compactHistory ? 'studio__workspace studio__workspace--overlay-history' : 'studio__workspace studio__workspace--with-history'}
+      >
         <div className="studio__primary">
-          {draftError && <InlineAlert tone="warning">{draftError}</InlineAlert>}
           <header className="studio__head">
-            <div className="studio__title">
-              {showAdmissionBadge ? (
+            <div className="studio__heading">
+              <div className="studio__title">
+                <h2>{t(capability.labelKey)}</h2>
+                {capability.capabilityContract ? <code>{capability.capabilityContract}</code> : null}
+              </div>
+              <div className="studio__status" role="status">
+                {capability.execution === 'runtime-sdk' ? (
+                  <span className="studio__runtime-state">
+                    {t(runtime?.status === 'connected' ? 'Studio.run.runtimeConnected'
+                      : runtime ? 'Studio.run.runtimeUnavailable' : 'Studio.run.runtimeChecking')}
+                  </span>
+                ) : null}
                 <StatusBadge tone={admission.tone} shape="dot">
                   {t(registration.profile.statusLabelKey ?? ADMISSION_STATUS_LABEL_KEY[admission.label] ?? admission.label)}
                 </StatusBadge>
-              ) : null}
+                {runTarget.configReadFailed && runtime?.status === 'connected' ? (
+                  <span className="studio__runtime-state">{t('Studio.run.aiConfigLoadFailed')}</span>
+                ) : null}
+                {runTarget.status === 'blocked' && runTarget.source !== 'unknown' ? (
+                  <span className="studio__runtime-state">{runTarget.detail}</span>
+                ) : null}
+              </div>
             </div>
             <div className="studio__head-actions">
+              {canRetryPreparation ? (
+                <Button type="button" size="sm" tone="secondary" onClick={() => {
+                  if (workspaceRef.current) notifyStudioAIConfigChanged(workspaceRef.current);
+                }}>
+                  {t('Studio.run.retryPreparation')}
+                </Button>
+              ) : null}
               {headerActions}
               {executingRun && !displayingExecution ? (
                 <Button size="sm" tone="secondary" onClick={() => setActiveRun(executingRun)}>
@@ -578,22 +623,23 @@ function TextStudioShell({
                 </Button>
               ) : null}
               {hasActiveRun ? (
-                <Tooltip content={t('StudioShell.newRun')} placement="bottom">
-                  <IconButton
-                    type="button"
-                    className="studio-history-toggle"
-                    aria-label={t('StudioShell.newRun')}
-                    onClick={handleNewRun}
-                    disabled={running}
-                    icon={<SquarePen size={17} strokeWidth={1.8} aria-hidden="true" />}
-                  />
-                </Tooltip>
+                <Button
+                  type="button"
+                  size="sm"
+                  tone="secondary"
+                  onClick={handleNewRun}
+                  disabled={running}
+                  leadingIcon={<SquarePen size={15} aria-hidden="true" />}
+                >
+                  {t('StudioShell.newRun')}
+                </Button>
               ) : null}
               <Tooltip
                 content={historyCollapsed ? t('StudioShell.showHistory') : t('StudioShell.hideHistory')}
                 placement="bottom"
               >
                 <IconButton
+                  ref={historyToggleRef}
                   type="button"
                   className={historyCollapsed ? 'studio-history-toggle' : 'studio-history-toggle studio-history-toggle--expanded'}
                   aria-label={historyCollapsed ? t('StudioShell.showHistory') : t('StudioShell.hideHistory')}
@@ -603,6 +649,7 @@ function TextStudioShell({
                 />
               </Tooltip>
             </div>
+            {draftError ? <InlineAlert className="studio__head-alert" tone="warning">{draftError}</InlineAlert> : null}
           </header>
           <main className="studio__stage">
             {hasActiveRun && displayedRun ? (
@@ -610,7 +657,7 @@ function TextStudioShell({
                 registration={registration}
                 activeRun={displayedRun}
                 admission={admission}
-                intentLabel={displayedRun.record ? getStudioRunIntentLabel(displayedRun.record) : runTarget.intentLabel}
+                intentLabel={studioConfiguredTargetLabel(displayedRun.record?.runConfig?.target ?? displayedRun.configuredTarget, t)}
                 running={displayingExecution}
                 canRestoreInputs={displayedRunParameters !== null}
                 canRegenerate={!running && runTarget.canDispatch && (capability.id !== 'vision.locate' || Boolean(savedTextMedia)) && textMediaReplayable && displayedRunReplayable && replayAssetsAvailable}
@@ -642,13 +689,22 @@ function TextStudioShell({
               />
             )}
             {displayingExecution && observationIssue ? <p role="status">{t('Music.observationIssue')}</p> : null}
-            {isStudioJobRecoveryCapability(capability.id) ? <StudioJobRecoveryPanel key={capability.id} capability={capability.id} disabled={running} onSelectHistoryRun={onSelectHistoryRun} /> : null}
+            {isStudioJobRecoveryCapability(capability.id) ? (
+              <StudioJobRecoveryPanel
+                key={capability.id}
+                capability={capability.id}
+                disabled={running}
+                history={history?.[capability.id]}
+                onSelectHistoryRun={selectHistoryRecord}
+              />
+            ) : null}
           </main>
         </div>
         <CapabilityRunHistory
           history={history}
           activeRunId={displayedRun?.id ?? null}
-          onSelectRun={onSelectHistoryRun}
+          onSelectRun={selectHistoryRecord}
+          onClose={compactHistory ? closeCompactHistory : undefined}
           collapsed={historyCollapsed}
           currentCapabilityId={capability.id}
           registrations={registrations}

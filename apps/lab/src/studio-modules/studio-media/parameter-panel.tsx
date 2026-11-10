@@ -166,7 +166,7 @@ function ImageFields(props: StudioParameterPanelProps) {
 
 type VideoArtifactField = 'firstFrameArtifactId' | 'lastFrameArtifactId' | 'referenceArtifactId' | 'referenceAudioArtifactIds' | 'referenceVideoArtifactIds';
 
-function VideoFields(props: StudioParameterPanelProps & { readonly onUploadBusyChange: (busy: boolean) => void }) {
+function VideoParameterPanel(props: StudioParameterPanelProps) {
   const host = useAIStudioHost();
   const { translate: t } = host;
   const translate: StudioParameterTranslate = (key, values) => t(key, values);
@@ -197,7 +197,6 @@ function VideoFields(props: StudioParameterPanelProps & { readonly onUploadBusyC
       uploads.push({ file, mimeType });
     }
     setUploading(true);
-    props.onUploadBusyChange(true);
     setUploadError(null);
     try {
       const ids: string[] = [];
@@ -217,7 +216,6 @@ function VideoFields(props: StudioParameterPanelProps & { readonly onUploadBusyC
       setUploadError({ field, message: error instanceof Error ? error.message : String(error) });
     } finally {
       setUploading(false);
-      props.onUploadBusyChange(false);
     }
   }
   const textField = (field: keyof StudioVideoGenerationParameters, label: string, placeholder?: string): StudioParameterFieldDefinition => ({
@@ -291,7 +289,7 @@ function VideoFields(props: StudioParameterPanelProps & { readonly onUploadBusyC
   };
   const firstFrame = parameters.mode === 'i2v-first-frame' || parameters.mode === 'i2v-first-last';
   const modeLabel = t('Studio.parameters.fields.mode');
-  const fields: StudioParameterFieldDefinition[] = [
+  const primaryFields: StudioParameterFieldDefinition[] = [
     { field: 'mode', label: modeLabel, render: (routeDisabled) => <StudioParameterField label={modeLabel}>
       <SelectField value={parameters.mode ?? 't2v'} disabled={props.disabled || routeDisabled || uploading}
         options={[
@@ -308,6 +306,8 @@ function VideoFields(props: StudioParameterPanelProps & { readonly onUploadBusyC
         <TextareaField value={(parameters.additionalReferenceArtifactIds ?? []).join('\n')} rows={2} disabled={props.disabled || routeDisabled || uploading} onChange={(event) => update({ ...parameters, additionalReferenceArtifactIds: event.target.value.split('\n').map((value) => value.trim()).filter(Boolean) })} />
       </StudioParameterField>,
     }, mediaReferences('referenceVideoArtifactIds'), mediaReferences('referenceAudioArtifactIds'), referenceUrls('referenceVideoUrls', t('Studio.parameters.fields.referenceVideoUrls')), referenceUrls('referenceAudioUrls', t('Studio.parameters.fields.referenceAudioUrls'))] : []),
+  ];
+  const fields: StudioParameterFieldDefinition[] = [
     textField('negativePrompt', t('Studio.parameters.fields.negativePrompt')),
     textField('resolution', t('Studio.parameters.fields.resolution'), '720p'),
     numberField('frames', t('Studio.parameters.fields.frames'), 1),
@@ -326,22 +326,41 @@ function VideoFields(props: StudioParameterPanelProps & { readonly onUploadBusyC
     textField('serviceTier', t('Studio.parameters.fields.serviceTier')),
     numberField('executionExpiresAfterSec', t('Studio.parameters.fields.executionExpiresAfterSec'), 0),
   ];
-  return <StudioRouteAwareParameterFields contract={props.contract} source={props.source} fields={fields} translate={translate} />;
-}
-
-export function StudioMediaParameterPanel(props: StudioParameterPanelProps) {
-  const [videoUploading, setVideoUploading] = useState(false);
-  const { translate: t } = useAIStudioHost();
-  const translate: StudioParameterTranslate = (key, values) => t(key, values);
-  const fields = props.capabilityId === 'image.generate'
-    ? <ImageFields {...props} />
-    : props.capabilityId === 'video.generate'
-      ? <VideoFields {...props} disabled={props.disabled || videoUploading} onUploadBusyChange={setVideoUploading} />
-      : <MusicFields {...props} />;
   return (
     <StudioParameterPanelFrame
       translate={translate}
-      disabled={props.disabled || videoUploading}
+      disabled={props.disabled || uploading}
+      onReset={() => update({
+        mode: parameters.mode,
+        firstFrameImageUrl: parameters.firstFrameImageUrl,
+        firstFrameArtifactId: parameters.firstFrameArtifactId,
+        lastFrameImageUrl: parameters.lastFrameImageUrl,
+        lastFrameArtifactId: parameters.lastFrameArtifactId,
+        referenceArtifactId: parameters.referenceArtifactId,
+        additionalReferenceArtifactIds: parameters.additionalReferenceArtifactIds,
+        referenceVideoUrls: parameters.referenceVideoUrls,
+        referenceAudioUrls: parameters.referenceAudioUrls,
+        referenceAudioArtifactIds: parameters.referenceAudioArtifactIds,
+        referenceVideoArtifactIds: parameters.referenceVideoArtifactIds,
+      })}
+      primary={<StudioRouteAwareParameterFields contract={props.contract} source={props.source} fields={primaryFields} translate={translate} />}
+    >
+      <StudioRouteAwareParameterFields contract={props.contract} source={props.source} fields={fields} translate={translate} />
+    </StudioParameterPanelFrame>
+  );
+}
+
+export function StudioMediaParameterPanel(props: StudioParameterPanelProps) {
+  const { translate: t } = useAIStudioHost();
+  const translate: StudioParameterTranslate = (key, values) => t(key, values);
+  if (props.capabilityId === 'video.generate') return <VideoParameterPanel {...props} />;
+  const fields = props.capabilityId === 'image.generate'
+    ? <ImageFields {...props} />
+    : <MusicFields {...props} />;
+  return (
+    <StudioParameterPanelFrame
+      translate={translate}
+      disabled={props.disabled}
       onReset={() => props.onChange(props.contract.initial())}
     >
       {fields}

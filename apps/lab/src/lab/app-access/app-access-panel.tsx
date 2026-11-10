@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { ChevronRight, LayoutDashboard, RefreshCw } from 'lucide-react';
-import { Button, ConfirmDialog, FieldShell, InlineAlert, SelectField, Statistic, StatisticGroup, StatusBadge, Surface } from '@nimiplatform/kit/ui';
+import { ArrowLeft, ChevronRight, Play, RefreshCw, ShieldCheck } from 'lucide-react';
+import { Button, ConfirmDialog, FieldShell, InlineAlert, SelectField, Statistic, StatisticGroup, StatusBadge } from '@nimiplatform/kit/ui';
 import type { NimiLocalAppAgentReference } from '@nimiplatform/sdk/app';
 
 import { useLabRendererHost } from '../../renderer/context.js';
@@ -86,6 +86,7 @@ export function AppAccessPanel() {
   // Refs mirror the latest committed values so sequential group/run-all loops
   // read fresh state synchronously instead of waiting for re-renders.
   const runtimeLossLatched = useRef(false);
+  const sessionRevisionRef = useRef(0);
   const probeStatesRef = useRef(probeStates);
   const sessionBoundRef = useRef(sessionBound);
   const agentReferencesRef = useRef(agentReferences);
@@ -112,16 +113,23 @@ export function AppAccessPanel() {
   }, []);
 
   const markSessionLost = useCallback((technical: string) => {
+    const wasBound = sessionBoundRef.current;
+    sessionRevisionRef.current += 1;
     runtimeLossLatched.current = true;
     sessionBoundRef.current = false;
     setSessionBound(false);
-    setSessionLost(technical);
+    if (wasBound) setSessionLost(technical);
+    agentReferencesRef.current = [];
+    selectedAgentHandleRef.current = '';
+    setAgentReferences([]);
+    setSelectedAgentHandle('');
     updateProbeStates((current) => applySessionLoss(current));
     setFacts((current) => ({
       ...current,
       session: { state: 'unavailable', detail: t('AppAccess.factDetails.sessionLostRecheck'), technical },
+      'current-user': { state: 'unavailable', detail: t('AppAccess.factDetails.currentUserUnavailable') },
     }));
-  }, [updateProbeStates]);
+  }, [t, updateProbeStates]);
 
   // Session and current-user facts are queried independently; neither is
   // derived from the other.
@@ -147,8 +155,10 @@ export function AppAccessPanel() {
     } catch (error) {
       markSessionLost(boundedError(error));
     }
+    const revision = sessionRevisionRef.current;
     try {
       const user = await client.currentUser.get();
+      if (revision !== sessionRevisionRef.current) return;
       setFacts((current) => ({
         ...current,
         'current-user': {
@@ -161,6 +171,7 @@ export function AppAccessPanel() {
         },
       }));
     } catch (error) {
+      if (revision !== sessionRevisionRef.current) return;
       setFacts((current) => ({
         ...current,
         'current-user': { state: 'unavailable', detail: t('AppAccess.factDetails.currentUserUnavailable'), technical: boundedError(error) },
@@ -172,25 +183,25 @@ export function AppAccessPanel() {
     void refreshSession();
   }, [refreshSession]);
 
-  // Runtime-loss watchdog, same semantics as the original panel: a short
-  // interval re-checks the session until a loss is latched; after that only a
-  // manual refresh re-arms it.
+  // Keep the visible result scoped to the current App session without polling
+  // the native bridge ten times a second while the diagnostic page is idle.
   useEffect(() => {
     let disposed = false;
     let checking = false;
     const checkRuntime = async () => {
-      if (disposed || checking || runtimeLossLatched.current) return;
+      if (disposed || checking || runtimeLossLatched.current || document.visibilityState === 'hidden') return;
       checking = true;
+      const revision = sessionRevisionRef.current;
       try {
         const status = await client.auth.status();
-        if (!status.sessionBound) markSessionLost(`${status.state} · ${status.reasonCode}`);
+        if (!disposed && revision === sessionRevisionRef.current && !status.sessionBound) markSessionLost(`${status.state} · ${status.reasonCode}`);
       } catch (error) {
-        markSessionLost(boundedError(error));
+        if (!disposed && revision === sessionRevisionRef.current) markSessionLost(boundedError(error));
       } finally {
         checking = false;
       }
     };
-    const timer = window.setInterval(() => void checkRuntime(), 100);
+    const timer = window.setInterval(() => void checkRuntime(), 1_200);
     return () => {
       disposed = true;
       window.clearInterval(timer);
@@ -217,9 +228,11 @@ export function AppAccessPanel() {
   const runProbe = useCallback(async (id: AppAccessProbeId): Promise<boolean> => {
     const gate = resolveProbeGate(id, probeStatesRef.current, gateContext());
     if (!gate.runnable || probeStatesRef.current[id].status === 'running') return false;
+    const revision = sessionRevisionRef.current;
     updateProbeStates((current) => applyProbeStart(current, id));
     if (id === 'agent-references') {
       const run = await runAgentReferencesProbe(client);
+      if (revision !== sessionRevisionRef.current) return false;
       agentReferencesRef.current = run.references;
       setAgentReferences(run.references);
       const currentHandle = selectedAgentHandleRef.current;
@@ -238,17 +251,19 @@ export function AppAccessPanel() {
       client,
       agentReference: reference,
     });
+    if (revision !== sessionRevisionRef.current) return false;
     updateProbeStates((current) => applyProbeOutcome(current, id, outcome));
     return outcome.ok;
   }, [client, gateContext, updateProbeStates]);
 
   const requestProbeRun = useCallback((id: AppAccessProbeId) => {
+    if (runningGroup || Object.values(probeStatesRef.current).some(state => state.status === 'running')) return;
     if (appAccessProbeById[id].requiresExplicitConfirmation) {
       setExplicitProbe(id);
       return;
     }
     void runProbe(id);
-  }, [runProbe]);
+  }, [runProbe, runningGroup]);
 
   const confirmExplicitProbe = useCallback(async () => {
     if (!explicitProbe || explicitProbeRunning) return;
@@ -264,7 +279,7 @@ export function AppAccessPanel() {
   // Automatic plans walk probes in dependency order but deliberately omit
   // operations that require a per-run confirmation.
   const runGroup = useCallback(async (groupId: AppAccessGroupId) => {
-    if (runningGroup) return;
+    if (runningGroup || Object.values(probeStatesRef.current).some(state => state.status === 'running')) return;
     setRunningGroup(groupId);
     try {
       for (const id of planGroupRun(groupId)) {
@@ -279,7 +294,7 @@ export function AppAccessPanel() {
   }, [gateContext, runProbe, runningGroup]);
 
   const runAll = useCallback(async () => {
-    if (runningGroup) return;
+    if (runningGroup || Object.values(probeStatesRef.current).some(state => state.status === 'running')) return;
     setRunningGroup('all');
     try {
       await refreshSession();
@@ -306,6 +321,7 @@ export function AppAccessPanel() {
     agentReferenceSelected: agentReferences.some((reference) => reference.agentHandle === selectedAgentHandle),
   };
   const gateFor = (id: AppAccessProbeId) => resolveProbeGate(id, probeStates, currentGateContext);
+  const currentGroup = appAccessGroups.find((group) => group.id === section);
   const explicitConfirmationCopy = explicitProbe === 'world-create'
     ? 'AppAccess.confirmPersistentWorld'
     : 'AppAccess.confirmPersistentPersona';
@@ -332,7 +348,8 @@ export function AppAccessPanel() {
               aria-label={t('AppAccess.page.agentSelectAriaLabel')}
               data-testid={appAccessPageIds.agentSelect}
               value={selectedAgentHandle}
-              placeholder={t('AppAccess.page.agentSelectPlaceholder')}
+              disabled={agentReferences.length === 0 || runningGroup !== null || probeSummary.running > 0}
+              placeholder={t(probeStates[id].status === 'passed' ? 'AppAccess.page.agentSelectPlaceholder' : 'AppAccess.page.agentSelectBeforeRun')}
               options={agentReferences.map((reference) => ({
                 value: reference.agentHandle,
                 label: reference.displayName,
@@ -353,91 +370,39 @@ export function AppAccessPanel() {
   };
 
   return (
-    <section ref={panelRef} className="app-access" data-testid={appAccessPageIds.page} aria-labelledby="app-access-title">
-      <Surface as="aside" material="glass-regular" tone="panel" elevation="raised" padding="none" className="app-access__sidebar">
-        <div className="app-access__brand">
-          <p className="app-access__eyebrow">{t(appAccessPageCopy.eyebrow)}</p>
-          <h1 id="app-access-title" className="app-access__title">{t(appAccessPageCopy.title)}</h1>
-          <div>
-            <StatusBadge tone={sessionBound ? 'success' : 'neutral'} shape="soft">
-              {sessionBound ? t('AppAccess.page.sessionBound') : t('AppAccess.page.noSession')}
-            </StatusBadge>
-          </div>
-        </div>
-        <nav className="app-access__nav" aria-label={t('AppAccess.nav.ariaLabel')}>
-          <p className="app-access__nav-label">{t('AppAccess.nav.label')}</p>
-          <button
-            type="button"
-            className="app-access__nav-item"
-            data-active={section === 'overview' ? '' : undefined}
-            aria-current={section === 'overview' ? 'page' : undefined}
-            onClick={() => selectSection('overview')}
-          >
-            <span className="app-access__nav-symbol" aria-hidden="true"><LayoutDashboard size={17} strokeWidth={1.8} /></span>
-            <span className="app-access__nav-copy"><strong>{t('AppAccess.nav.overview')}</strong></span>
-          </button>
-          {appAccessGroups.map((group) => {
-            const Icon = appAccessGroupIcon(group.id);
-            const progress = groupProgress(group);
-            return (
-              <button
-                key={group.id}
-                type="button"
-                className="app-access__nav-item"
-                data-active={section === group.id ? '' : undefined}
-                aria-current={section === group.id ? 'page' : undefined}
-                onClick={() => selectSection(group.id)}
-              >
-                <span className="app-access__nav-symbol" aria-hidden="true"><Icon size={17} strokeWidth={1.8} /></span>
-                <span className="app-access__nav-copy"><strong>{t(group.titleKey)}</strong></span>
-                <span className="app-access__nav-count">
-                  {progress.touched > 0 ? `${progress.passed}/${progress.total}` : progress.total}
-                </span>
-              </button>
-            );
-          })}
-        </nav>
-      </Surface>
-
+    <section ref={panelRef} className="lab-workspace-route app-access" data-testid={appAccessPageIds.page} aria-labelledby="app-access-title">
       <div className="app-access__canvas">
-        {sessionLost ? (
-          <InlineAlert tone="info" className="app-access__banner">{t(appAccessPageCopy.sessionLost)}</InlineAlert>
-        ) : null}
-        {!sessionBound ? (
-          <InlineAlert tone="info" className="app-access__banner">{t(appAccessPageCopy.signedOut)}</InlineAlert>
-        ) : null}
+        <header className="lab-workspace-heading">
+          <span className="lab-workspace-heading__icon" aria-hidden="true"><ShieldCheck size={22} /></span>
+          <div>
+            <h1 id="app-access-title" tabIndex={-1} data-app-access-section-title={currentGroup ? undefined : ''}>{t(appAccessPageCopy.title)}</h1>
+            <p>{t(appAccessPageCopy.blurb)}</p>
+          </div>
+        </header>
+        {sessionLost ? <InlineAlert tone="warning">{t(appAccessPageCopy.sessionLost)}</InlineAlert> : null}
 
-        {section === 'overview' ? (
+        {!currentGroup ? (
           <>
-            <header className="app-access__canvas-head">
-              <div className="app-access__canvas-head-text">
-                <h2 className="app-access__canvas-title" tabIndex={-1} data-app-access-section-title>{t('AppAccess.nav.overview')}</h2>
-                <p className="app-access__blurb">{t(appAccessPageCopy.blurb)}</p>
+            <AppAccessSessionBar facts={facts} onRefresh={() => void refreshSession()} />
+            <div className="app-access__checks-head">
+              <div>
+                <h2 className="app-access-group__title">{t('AppAccess.page.checksTitle')}</h2>
+                <p id="app-access-run-all-impact" className="app-access__blurb">{t('AppAccess.page.runAllImpact')}</p>
               </div>
-              <div className="app-access__head-actions">
-                <Button
-                  type="button"
-                  tone="ghost"
-                  size="sm"
-                  leadingIcon={<RefreshCw size={14} aria-hidden="true" />}
-                  data-testid={appAccessPageIds.refreshSession}
-                  onClick={() => void refreshSession()}
-                >
-                  {t(appAccessPageCopy.refreshSession)}
-                </Button>
-                <Button
-                  type="button"
-                  tone="primary"
-                  size="sm"
-                  data-testid={appAccessPageIds.runAll}
-                  disabled={!sessionBound || runningGroup !== null}
-                  loading={runningGroup === 'all'}
-                  onClick={() => void runAll()}
-                >
-                  {t(appAccessPageCopy.runAll)}
-                </Button>
-              </div>
-            </header>
+              <Button
+                type="button"
+                tone="primary"
+                size="sm"
+                leadingIcon={<Play size={14} aria-hidden="true" />}
+                data-testid={appAccessPageIds.runAll}
+                aria-describedby="app-access-run-all-impact"
+                disabled={!sessionBound || runningGroup !== null || probeSummary.running > 0}
+                loading={runningGroup === 'all'}
+                onClick={() => void runAll()}
+              >
+                {t(appAccessPageCopy.runAll)}
+              </Button>
+            </div>
 
             {probeSummary.touched > 0 ? (
               <section className="app-access-summary" aria-label={t('AppAccess.page.summaryAriaLabel')}>
@@ -455,9 +420,7 @@ export function AppAccessPanel() {
               </section>
             ) : null}
 
-            <AppAccessSessionBar facts={facts} />
-
-            <Surface as="div" tone="panel" material="glass-regular" elevation="base" padding="none" className="app-access-index">
+            <div className="app-access-index">
               {appAccessGroups.map((group) => {
                 const Icon = appAccessGroupIcon(group.id);
                 const progress = groupProgress(group);
@@ -471,33 +434,47 @@ export function AppAccessPanel() {
                     <span className="app-access-group__icon" aria-hidden="true"><Icon size={17} strokeWidth={1.9} /></span>
                     <span className="app-access-index__copy">
                       <strong>{t(group.titleKey)}</strong>
-                      <span>{t('AppAccess.index.probeCount', { count: progress.total, plural: progress.total === 1 ? '' : 's' })}</span>
+                      <span>{t(group.blurbKey)}</span>
+                      <span className="app-access-index__count">
+                        {progress.touched > 0
+                          ? t('AppAccess.page.groupProgress', { passed: progress.passed, total: progress.total })
+                          : t('AppAccess.index.probeCount', { count: progress.total, plural: progress.total === 1 ? '' : 's' })}
+                      </span>
                     </span>
-                    {progress.touched > 0 ? (
-                      <StatusBadge tone={progress.passed === progress.total ? 'success' : 'neutral'} shape="soft">
-                        {t('AppAccess.page.groupProgress', { passed: progress.passed, total: progress.total })}
-                      </StatusBadge>
-                    ) : null}
                     <ChevronRight size={16} strokeWidth={2} aria-hidden="true" className="app-access-index__chevron" />
                   </button>
                 );
               })}
-            </Surface>
+            </div>
           </>
         ) : (
-          appAccessGroups.filter((group) => group.id === section).map((group) => (
+          <>
+            <div className="app-access__detail-tools">
+              <Button type="button" tone="ghost" size="sm" leadingIcon={<ArrowLeft size={15} aria-hidden="true" />} onClick={() => selectSection('overview')}>
+                {t('AppAccess.nav.overview')}
+              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusBadge tone={sessionBound ? 'success' : facts.session.state === 'checking' ? 'info' : 'warning'} shape="soft">
+                  {facts.session.detail}
+                </StatusBadge>
+                {!sessionBound && <Button type="button" tone="ghost" size="sm" leadingIcon={<RefreshCw size={14} aria-hidden="true" />} onClick={() => void refreshSession()}>
+                  {t(appAccessPageCopy.refreshSession)}
+                </Button>}
+              </div>
+            </div>
             <AppAccessGroup
-              key={group.id}
-              definition={group}
+              key={currentGroup.id}
+              definition={currentGroup}
               states={probeStates}
               gateFor={gateFor}
-              activeRun={runningGroup === group.id || runningGroup === 'all'}
-              anyRunActive={runningGroup !== null}
+              activeRun={runningGroup === currentGroup.id || (runningGroup === 'all' && currentGroup.probes.some(id => probeStates[id].status === 'running'))}
+              anyRunActive={runningGroup !== null || probeSummary.running > 0}
+              sessionBound={sessionBound}
               onRunProbe={requestProbeRun}
-              onRunGroup={() => void runGroup(group.id)}
+              onRunGroup={() => void runGroup(currentGroup.id)}
               renderExtras={renderExtras}
             />
-          ))
+          </>
         )}
       </div>
 
