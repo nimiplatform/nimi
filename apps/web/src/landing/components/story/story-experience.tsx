@@ -1,136 +1,109 @@
-import { Surface } from '@nimiplatform/kit/ui';
-import { useEffect, useMemo, useRef, useState, useSyncExternalStore } from 'react';
-import { ArrowRight, ArrowUpRight, BookOpen, Check, Cpu, MessageCircle, Pencil, Send, Trash2, X } from 'lucide-react';
-import { ChatMarkdownRenderer } from '@nimiplatform/kit/features/chat/ui';
+import { lazy, Suspense, useEffect, useRef, useState } from 'react';
+import { ArrowUpRight } from 'lucide-react';
 import type { StoryText } from '../../content/story-copy.js';
-import { DEFAULT_STORY_AGENT } from '../../content/story-model.js';
-import type { HeroDemoAgent } from '../../content/landing-content.js';
+import { AppPreviewLocaleProvider } from '../../i18n/app-preview-locale.js';
+import type { DemoNavigate } from '../demo-home.js';
+import { DemoWindowHeader } from '../demo-window-header.js';
 import { useHeroDemoSession } from '../hero-demo-context.js';
-import { createChatAgentClient } from '../demo-chat-agent-center.js';
-import { createDemoZhiyuAgentCenterSession, type DemoZhiyuAgentCenterSession } from '../demo-zhiyu-agent-center.js';
 import { StoryHeading } from './story-shared.js';
 
-const steps = ['home', 'zhiyu', 'memory'] as const;
-type ExperienceStep = typeof steps[number];
-const explanations = [
-  { key: 'models', Icon: Cpu },
-  { key: 'memory', Icon: BookOpen },
-  { key: 'continuity', Icon: MessageCircle },
-] as const;
-const noopSubscribe = () => () => {};
-const emptySnapshot = () => null;
+const LocalModels = lazy(async () => ({ default: (await import('../demo-runtime.js')).DemoRuntimeSurface }));
+const Zhiyu = lazy(async () => ({ default: (await import('../demo-zhiyu-preview.js')).DemoZhiyuPreview }));
+const chapters = ['models', 'memory', 'continuity'] as const;
+const localCapability = 'text.generate';
+const panelId = (chapter: typeof chapters[number]) => `ownership-${chapter}`;
 
-// @nimi-authority: rule.nimi.cognition.memory.r007
-// @nimi-authority: rule.nimi.cognition.memory.r008
-/** A guided preview using the same in-browser conversations and memory client as Home and Zhiyu. */
-export function StoryExperience({ t, agent, onApp, onHome }: {
-  t: StoryText; agent: HeroDemoAgent;
-  onApp: (id: string) => void; onHome: (id: string) => void;
+export function StoryExperience({ t, partnerId, onHome }: {
+  t: StoryText;
+  partnerId: string;
+  onHome: DemoNavigate;
 }) {
-  const session = useHeroDemoSession();
-  const [step, setStep] = useState<ExperienceStep>('home');
-  const prompt = t(agent.id === DEFAULT_STORY_AGENT ? 'experience.prompt' : 'experience.genericPrompt');
-  const [draft, setDraft] = useState(prompt);
-  const messages = [...(session.baseMessages[agent.id] ?? []), ...(session.localMessages[agent.id] ?? [])];
-  const transcript = useRef<HTMLDivElement>(null);
-  const input = useRef<HTMLTextAreaElement>(null);
-  useEffect(() => {
-    if (transcript.current) transcript.current.scrollTop = transcript.current.scrollHeight;
-  }, [messages.length, step]);
+  const { demo, openPreview } = useHeroDemoSession();
+  const preview = demo.appPreview;
+  const panels = useRef<HTMLDivElement>(null);
+  const [activeChapter, setActiveChapter] = useState<typeof chapters[number]>('models');
 
-  const client = useMemo(() => session.agentClients.get(agent.id, () => createChatAgentClient(agent, session.demo)), [agent, session.demo, session.agentClients]);
-  const [center, setCenter] = useState<DemoZhiyuAgentCenterSession | null>(null);
   useEffect(() => {
-    const created = createDemoZhiyuAgentCenterSession(client);
-    setCenter(created);
-    const unsubscribe = client.subscribeChanges(() => { void created.session.refresh(); });
-    return () => { unsubscribe(); created.session.dispose(); };
-  }, [client]);
-  const snapshot = useSyncExternalStore(center?.session.subscribe ?? noopSubscribe, center?.session.getSnapshot ?? emptySnapshot, emptySnapshot);
-  const memories = snapshot?.state.cognition.memory?.items ?? [];
-  const hasExampleMemory = session.demo.appPreview.zhiyu.partners.some(partner => partner.id === agent.id && partner.memories.length > 0);
-  const [edit, setEdit] = useState<{ id: string; text: string } | null>(null);
-  const [memoryBusy, setMemoryBusy] = useState(false);
-  const [memoryError, setMemoryError] = useState(false);
-  const [memoryNotice, setMemoryNotice] = useState('');
-  const act = async (fn: () => Promise<unknown>, notice: string) => {
-    setMemoryBusy(true); setMemoryError(false); setMemoryNotice('');
-    try { await fn(); setMemoryNotice(notice); }
-    catch { setMemoryError(true); }
-    finally { setMemoryBusy(false); }
-  };
-  const submit = () => {
-    const text = draft.trim();
-    if (!text) return;
-    session.submitTo(agent.id, { text }, text === prompt ? t('experience.sampleReply') : session.demo.chat.scriptedReply);
-    client.noteConversationTurn();
-    setDraft('');
-    input.current?.focus({ preventScroll: true });
-  };
-  const openPreview = () => step === 'zhiyu' ? onApp('nimi.zhiyu') : onHome(agent.id);
+    const track = panels.current;
+    if (!track) return;
+    const items = [...track.querySelectorAll<HTMLElement>('[data-ownership-chapter]')];
+    let frame = 0;
+    const update = () => {
+      frame = 0;
+      // Read the chapter that has reached the upper part of the viewport.
+      const readingLine = Math.max(128, window.innerHeight * 0.38);
+      let current = 0;
+      for (const [index, item] of items.entries()) {
+        if (item.getBoundingClientRect().top > readingLine) break;
+        current = index;
+      }
+      setActiveChapter(chapters[current]!);
+    };
+    const schedule = () => {
+      if (!frame) frame = window.requestAnimationFrame(update);
+    };
+    update();
+    window.addEventListener('scroll', schedule, { passive: true });
+    window.addEventListener('resize', schedule);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', schedule);
+      window.removeEventListener('resize', schedule);
+    };
+  }, []);
 
-  return <section className="story-section story-experience" id="apps" aria-labelledby="experience-heading" data-story-scene>
-    <div className="story-container story-experience-composition">
+  return <section className="story-section story-experience" id="apps" aria-labelledby="experience-heading">
+    <div className="story-container story-experience-container">
       <div className="story-experience-intro">
         <StoryHeading t={t} section="experience" />
-        <ul className="story-ownership-points">
-          {explanations.map(({ key, Icon }) => <li key={key}>
-            <Icon size={21} aria-hidden="true" />
-            <div><h3>{t(`experience.${key}Title`)}</h3><p>{t(`experience.${key}Body`)}</p>
-              {key === 'models' && <a href="#models">{t('experience.modelsLink')}<ArrowUpRight size={13} aria-hidden="true" /></a>}
-            </div>
-          </li>)}
-        </ul>
+        <small>{t('experience.demoLabel')}</small>
       </div>
-
-      <div className="story-ownership-demo" aria-label={t('experience.demoTitle')}>
-        <div className="story-demo-heading"><span>{t('experience.demoTitle')}</span><small>{t('experience.demoLabel')}</small></div>
-        <ol className="story-ownership-steps" aria-label={t('experience.demoTitle')}>
-          {steps.map((item, index) => <li key={item}><button type="button" aria-current={step === item ? 'step' : undefined}
-            aria-controls="ownership-demo-panel" onClick={() => setStep(item)}>
-            <span>0{index + 1}</span>{t(`experience.${item}Step`)}
-          </button></li>)}
+      <div className="story-experience-composition">
+        <ol className="story-ownership-index" aria-label={t('experience.title')}>
+          {chapters.map((chapter, index) => <li key={chapter} data-active={activeChapter === chapter}>
+            <a href={`#${panelId(chapter)}`} aria-current={activeChapter === chapter ? 'location' : undefined}>
+              <span className="story-ownership-number">0{index + 1}</span>
+              <span>{t(`experience.${chapter}Title`)}</span>
+            </a>
+            <div className="story-ownership-summary"><p>{t(`experience.${chapter}Body`)}</p></div>
+          </li>)}
         </ol>
-        <div className="story-experience-stage" id="ownership-demo-panel" data-step={step}>
-          <p className="story-demo-caption" aria-live="polite">{t(`experience.${step}Caption`)}</p>
-          <Surface material="glass-regular" padding="none" className={`story-conversation${step === 'zhiyu' ? ' is-zhiyu' : ''}`}>
-            <header>
-              <div className="story-conversation-brand"><img src={step === 'zhiyu' ? '/demo/zhiyu-icon.png' : '/logo.svg'} alt="" /><strong>{step === 'zhiyu' ? t('experience.zhiyuApp') : 'Nimi Home'}</strong></div>
-              <button type="button" className="story-evidence" onClick={openPreview}>{t('experience.expand')}<ArrowUpRight size={14} aria-hidden="true" /></button>
-            </header>
-            <div className="story-scene-owner"><img src={agent.avatarUrl} alt="" /><span><strong>{agent.name}</strong><small>{agent.worldName}</small></span><span className="story-owner-label">{t('experience.sameCompanion')}</span></div>
-            {step === 'memory' ? <div className="story-memory-scene">
-              <h3><BookOpen size={18} aria-hidden="true" />{t('experience.memory')}</h3>
-              <p className="story-memory-note">{t('experience.memoryNote')}</p>
-              {snapshot?.phase !== 'ready' ? <p role="status">{t('common.loading')}</p> : memories.length ? memories.map(memory => <div className="story-memory-item" key={memory.memoryId}>
-                {edit?.id === memory.memoryId ? <>
-                  <textarea aria-label={t('experience.editMemory')} value={edit.text} onChange={e => setEdit({ ...edit, text: e.target.value })} />
-                  <div className="story-inline-actions"><button disabled={memoryBusy || !edit.text.trim()} type="button" onClick={() => act(async () => {
-                    await center!.session.correctMemory({ memoryId: edit.id, correctedContent: edit.text.trim() }); setEdit(null);
-                  }, t('experience.memorySaved'))}><Check size={15} aria-hidden="true" />{t('experience.save')}</button>
-                    <button type="button" disabled={memoryBusy} aria-label={t('common.close')} onClick={() => setEdit(null)}><X size={15} aria-hidden="true" /></button></div>
-                </> : <><p>{memory.content}</p><small>{memory.sourceExplanation}</small>
-                  <div className="story-inline-actions"><button type="button" disabled={memoryBusy} onClick={() => { setEdit({ id: memory.memoryId, text: memory.content }); setMemoryNotice(''); }}><Pencil size={14} aria-hidden="true" />{t('experience.editMemory')}</button>
-                    <button type="button" disabled={memoryBusy} onClick={() => act(() => center!.session.forgetMemory({ memoryIds: [memory.memoryId], confirmed: true }), t('experience.memoryRemoved'))}><Trash2 size={14} aria-hidden="true" />{t('experience.forgetMemory')}</button></div>
-                </>}
-              </div>) : <><p>{t('experience.memoryEmpty')}</p>{hasExampleMemory && <button className="story-link" type="button" disabled={memoryBusy} onClick={() => act(async () => { client.resetExampleMemory(); await center!.session.refresh(); }, '')}>{t('experience.restoreMemory')}</button>}</>}
-              {memoryError && <p role="alert">{t('common.actionError')}</p>}
-              <p className="story-memory-notice" role="status">{memoryNotice}</p>
-            </div> : <>
-              <div className="story-transcript" ref={transcript} role="log" aria-live="polite" aria-label={t('experience.conversation')}>
-                {messages.length ? messages.map(message => <div key={message.id} className={`story-message is-${message.role}`}>
-                  {message.role === 'assistant' ? <ChatMarkdownRenderer content={message.text} copy={{ markdownCopyLabel: t('common.copy'), markdownCopiedLabel: t('common.copied') }} /> : message.text}
-                </div>) : <p className="story-empty-message">{t('experience.emptyConversation')}</p>}
+        <div className="story-ownership-panels" ref={panels}>
+          {chapters.map((chapter, index) => {
+            const title = t(`experience.${chapter}Window`);
+            const open = () => {
+              if (chapter === 'models') onHome('runtime', localCapability);
+              else openPreview('nimi.zhiyu', chapter === 'memory' ? 'memory' : 'companion', partnerId);
+            };
+            return <article key={chapter} className="story-ownership-panel" id={panelId(chapter)}
+              data-ownership-chapter={chapter} data-active={activeChapter === chapter} aria-labelledby={`${panelId(chapter)}-heading`}>
+              <div className="story-ownership-panel-heading">
+                <span className="story-ownership-number">0{index + 1}</span>
+                <h3 id={`${panelId(chapter)}-heading`}>{t(`experience.${chapter}Title`)}</h3>
+                <p>{t(`experience.${chapter}Body`)}</p>
               </div>
-              <form onSubmit={e => { e.preventDefault(); submit(); }}><textarea ref={input} aria-label={t('experience.placeholder')} placeholder={t('experience.placeholder')} value={draft} rows={2} onChange={e => setDraft(e.target.value)} onKeyDown={e => {
-                if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); submit(); }
-              }} /><button type="submit" disabled={!draft.trim()} aria-label={t('experience.send')}><Send size={18} aria-hidden="true" /></button></form>
-            </>}
-          </Surface>
+              <div className={`hero-demo-frame story-ownership-window${chapter === 'models' ? ' demo-home-frame' : ''}`}>
+                <DemoWindowHeader title={title} iconSrc={chapter === 'models' ? '/logo.svg' : '/demo/zhiyu-icon.png'}>
+                  <button type="button" className="story-ownership-open" onClick={open}
+                    aria-label={`${t('experience.expand')} · ${title}`}>{t('experience.expand')}<ArrowUpRight size={15} aria-hidden="true" /></button>
+                </DemoWindowHeader>
+                <div className="story-ownership-window-body" aria-hidden="true" inert>
+                  <Suspense fallback={<div className="story-ownership-loading">{t('common.loading')}</div>}>
+                    {chapter === 'models'
+                      ? <LocalModels demo={demo} initialCapability={localCapability} onNavigate={onHome} />
+                      : <AppPreviewLocaleProvider locale={preview.locale} messages={preview.messages}>
+                        <Zhiyu key={partnerId} content={preview.zhiyu} initialPartnerId={partnerId}
+                          initialPanel={chapter === 'memory' ? 'cognition' : undefined} />
+                      </AppPreviewLocaleProvider>}
+                  </Suspense>
+                </div>
+              </div>
+              {chapter === 'models' && <a href="#models" className="story-link story-ownership-related">{t('experience.modelsLink')}<ArrowUpRight size={14} aria-hidden="true" /></a>}
+              {chapter === 'memory' && <p className="story-ownership-note">{t('experience.memoryNote')}</p>}
+              {chapter === 'continuity' && <button type="button" onClick={() => onHome('chat', partnerId)} className="story-link story-ownership-related">{t('experience.homeChat')}<ArrowUpRight size={14} aria-hidden="true" /></button>}
+            </article>;
+          })}
         </div>
-        <div className="story-demo-next"><span>{t('experience.browserOnly')}</span><button type="button" onClick={() => setStep(step === 'home' ? 'zhiyu' : step === 'zhiyu' ? 'memory' : 'home')}>
-          {t(step === 'home' ? 'experience.nextZhiyu' : step === 'zhiyu' ? 'experience.nextMemory' : 'experience.backHome')}<ArrowRight size={16} aria-hidden="true" />
-        </button></div>
       </div>
       <p className="story-ownership-scope">{t('experience.scope')}</p>
     </div>

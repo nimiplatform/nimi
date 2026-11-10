@@ -51,14 +51,16 @@ test('the hero contains the full Home entry and leaves the download action to na
     assert.ok(!/href="[^"]*\/download/.test(hero));
     const ownership = html.match(/<section class="story-section story-experience"[\s\S]*?(?=<section class="story-section story-worlds")/)?.[0];
     assert.ok(ownership);
-    // Visitors can read all three explanations before interacting with the demo.
+    // Each chapter names and links to its corresponding app preview.
     for (const key of ['models', 'memory', 'continuity'] as const) {
       assert.ok(ownership.includes(getStoryCopy(locale)[`experience.${key}Title`]));
       assert.ok(ownership.includes(getStoryCopy(locale)[`experience.${key}Body`]));
+      assert.ok(ownership.includes(getStoryCopy(locale)[`experience.${key}Window`]));
+      assert.ok(ownership.includes(`href="#ownership-${key}"`));
+      assert.ok(ownership.includes(`id="ownership-${key}"`));
     }
     assert.ok(ownership.includes(getStoryCopy(locale)['experience.demoLabel']));
-    assert.ok(ownership.includes(getStoryCopy(locale)['experience.prompt']));
-    assert.ok(ownership.includes('aria-current="step"'));
+    assert.match(ownership, /href="#ownership-models" aria-current="location"/);
 
     assert.ok(!/交互示例|演示记忆|Interactive example|example memor/i.test(html));
     assert.ok(html.includes('story-world-print'));

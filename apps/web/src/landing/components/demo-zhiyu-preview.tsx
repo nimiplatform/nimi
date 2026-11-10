@@ -565,6 +565,20 @@ export function DemoZhiyuPreview({ content, initialPartnerId = null, initialPane
     session?.getSnapshot ?? readNoSnapshot,
     readNoSnapshot,
   );
+  const previewRoot = useRef<HTMLDivElement>(null);
+  const centerPhase = agentCenterSnapshot?.phase;
+  useLayoutEffect(() => {
+    if (initialPanel !== 'cognition' || activeAgentTab !== 'cognition' || centerPhase !== 'ready') return;
+    const memory = previewRoot.current?.querySelector<HTMLElement>('[data-agent-center-cognition-memory]');
+    const scrollport = memory?.closest<HTMLElement>('[role="tabpanel"]');
+    if (!memory || !scrollport) return;
+    // The memory entry starts at the memory controls within the Agent Center.
+    const bounds = scrollport.getBoundingClientRect();
+    if (bounds.height > 0) {
+      const scale = bounds.height / scrollport.offsetHeight;
+      scrollport.scrollTop += (memory.getBoundingClientRect().top - bounds.top) / scale;
+    }
+  }, [initialPanel, activeAgentTab, centerPhase, session]);
   const resourcePack = useSyncExternalStore(
     agentCenter?.resourcePackController.subscribe ?? subscribeNoop,
     agentCenter?.resourcePackController.getSnapshot ?? readNoSnapshot,
@@ -795,7 +809,7 @@ export function DemoZhiyuPreview({ content, initialPartnerId = null, initialPane
     ) : null;
 
   return (
-    <div className="demo-zhiyu-preview">
+    <div className="demo-zhiyu-preview" ref={previewRoot}>
       <header className="demo-zhiyu-chrome">
         <button
           type="button"

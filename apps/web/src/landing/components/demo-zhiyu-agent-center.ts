@@ -518,8 +518,6 @@ export type DemoZhiyuAgentClient = {
   createResourcePackController(): DemoZhiyuResourcePackController;
   /** Reflects the visitor's conversation activity into the manager snapshot. */
   noteConversationTurn(): void;
-  /** Explicitly reset the illustrative memory, not a Runtime operation. */
-  resetExampleMemory(): void;
   subscribeChanges(listener: () => void): () => void;
 };
 
@@ -906,7 +904,6 @@ export function createDemoZhiyuAgentClient(
       return new DemoZhiyuResourcePackController(resourcePackFileNames);
     },
     subscribeChanges(listener) { listeners.add(listener); return () => { listeners.delete(listener); }; },
-    resetExampleMemory() { memory = seedMemory(partner, now()); changed(); },
     noteConversationTurn() {
       extraTurns += 1;
     },
