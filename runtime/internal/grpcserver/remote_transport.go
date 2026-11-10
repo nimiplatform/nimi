@@ -79,6 +79,7 @@ func remoteAppMethodSupported(method string) bool {
 	switch method {
 	case protectedInvokeRealmUnaryMethod,
 		protectedPutAppActivityMethod, protectedListAppActivitiesMethod, protectedSubscribeAppActivityChangesMethod, protectedMarkAppActivityReadMethod,
+		protectedOpenAppActivityMethod, protectedSubscribeAppActivityOpenRequests, protectedCompleteAppActivityOpenRequest,
 		protectedReadLocalAppStorageJSONMethod, protectedWriteLocalAppStorageJSONMethod, protectedRemoveLocalAppStorageJSONMethod,
 		protectedStatLocalAppAssetMethod, protectedListLocalAppAssetsMethod, protectedReadLocalAppAssetMethod, protectedWriteLocalAppAssetMethod,
 		protectedRemoveLocalAppAssetMethod, protectedMoveLocalAppAssetMethod, protectedAdoptLocalAppArtifactMethod,

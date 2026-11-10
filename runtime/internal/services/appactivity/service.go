@@ -41,6 +41,7 @@ const (
 	SourceClassVerified         = "verified"
 	SourceClassUserImported     = "user_imported"
 	SourceClassLocalDevelopment = "local_development"
+	SourceClassRemote           = "remote"
 )
 
 // RegistrationResolver resolves the trusted source display, availability, and

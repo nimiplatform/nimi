@@ -52,9 +52,9 @@ func TestRemoteActivityPublicationUsesExistingAdmissionAndCannotLaunch(t *testin
 	if _, ok := remoteAppIngress(protectedPutAppActivityMethod, &runtimev1.PutAppActivityRequest{}, true); ok {
 		t.Fatal("publication was admitted as a stream")
 	}
-	for _, method := range []string{"/nimi.runtime.v1.RuntimeAppActivityService/OpenAppActivity", "/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests"} {
+	for _, method := range []string{"/nimi.runtime.v1.RuntimeAppActivityService/ResolveAppActivityOpenLaunch", "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeStop"} {
 		if remoteAppMethodSupported(method) {
-			t.Fatal("publication implied Host launch or source-open authority")
+			t.Fatal("publication implied Host launch authority")
 		}
 	}
 }

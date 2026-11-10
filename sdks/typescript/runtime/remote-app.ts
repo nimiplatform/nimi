@@ -141,8 +141,6 @@ function invalidStorage() { return createNimiError({ message: 'Runtime returned 
 function unsupported(message: string) { return createNimiError({ message, reasonCode: 'SDK_RUNTIME_REMOTE_OPERATION_UNSUPPORTED', source: 'sdk' }); }
 
 function createRemoteActivity(runtime: RuntimeTypedClient) {
-  const unavailable = async (): Promise<never> => { throw unsupported('Native App opening is not available on this remote carrier.'); };
-  const shell = createNimiLocalAppActivityRuntimeShell(runtime, unavailable);
-  return createNimiLocalAppActivityClient({ ...shell, open: unavailable,
-    openRequests: { subscribe: unavailable, complete: unavailable } });
+  const shell = createNimiLocalAppActivityRuntimeShell(runtime, undefined);
+  return createNimiLocalAppActivityClient(shell);
 }

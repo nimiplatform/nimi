@@ -622,7 +622,7 @@ export type NimiLocalAppActivityHostLaunch = (openRequestId: string) => Promise<
  */
 export function createNimiLocalAppActivityRuntimeShell(
   runtime: NimiLocalAppActivityRuntime,
-  launch: NimiLocalAppActivityHostLaunch,
+  launch: NimiLocalAppActivityHostLaunch | undefined,
 ): NimiLocalAppActivityShell {
   return {
     put: async (input) => {
@@ -701,7 +701,7 @@ export const NIMI_APP_ACTIVITY_LAUNCH_FAILURE_GRACE_MS = 5_000;
 
 export async function runNimiLocalAppActivityOpen(
   runtime: Pick<NimiLocalAppActivityRuntime, 'openAppActivity'>,
-  launch: NimiLocalAppActivityHostLaunch,
+  launch: NimiLocalAppActivityHostLaunch | undefined,
   activityIdValue: string,
   launchFailureGraceMs = NIMI_APP_ACTIVITY_LAUNCH_FAILURE_GRACE_MS,
 ): Promise<{ readonly outcome: string; readonly reason: string }> {
@@ -732,6 +732,7 @@ export async function runNimiLocalAppActivityOpen(
       if (next.done) return launchFailure ?? { outcome: 'failed', reason: 'source-not-ready' };
       const event = next.value.event;
       if (event.oneofKind === 'openRequestId') {
+        if (!launch) return localAppProjectionError('Activity open cannot request a native launch on this carrier');
         launching = launch(event.openRequestId)
           .catch(() => ({ status: 'failed' as const, reason: 'launch-failed' as const }))
           .then(value => ({ kind: 'launch' as const, value }));

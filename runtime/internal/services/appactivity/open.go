@@ -39,7 +39,10 @@ type openRequest struct {
 	result              chan *runtimev1.AppActivityOpenResult
 	resolved            bool
 	launchResolved      bool
-	deliveredTo         *openSubscriber
+	// A remote participant can only navigate an already-subscribed source;
+	// it never receives or creates Desktop launch authority.
+	onlineOnly  bool
+	deliveredTo *openSubscriber
 }
 
 type openSubscriber struct {
@@ -109,6 +112,9 @@ func (broker *openBroker) dispatch(request *openRequest) {
 		}
 	}
 	if target == nil {
+		if request.onlineOnly {
+			broker.resolveLocked(request, openResult(runtimev1.AppActivityOpenOutcome_APP_ACTIVITY_OPEN_OUTCOME_UNAVAILABLE, runtimev1.AppActivityOpenReason_APP_ACTIVITY_OPEN_REASON_SOURCE_UNAVAILABLE))
+		}
 		return
 	}
 	deliveryID, err := randomRef("aod_")
@@ -121,6 +127,9 @@ func (broker *openBroker) dispatch(request *openRequest) {
 		request.deliveryID = deliveryID
 		broker.deliveries[deliveryID] = request
 	default:
+		if request.onlineOnly {
+			broker.resolveLocked(request, openResult(runtimev1.AppActivityOpenOutcome_APP_ACTIVITY_OPEN_OUTCOME_UNAVAILABLE, runtimev1.AppActivityOpenReason_APP_ACTIVITY_OPEN_REASON_SOURCE_NOT_READY))
+		}
 	}
 }
 
@@ -202,7 +211,7 @@ func (broker *openBroker) resolveLaunch(openRequestID, accountID string) *openRe
 	broker.mu.Lock()
 	defer broker.mu.Unlock()
 	request := broker.requests[openRequestID]
-	if request == nil || request.resolved || request.launchResolved || request.accountID != accountID {
+	if request == nil || request.resolved || request.onlineOnly || request.launchResolved || request.accountID != accountID {
 		return nil
 	}
 	request.launchResolved = true
@@ -314,7 +323,11 @@ func (s *Service) OpenAppActivity(req *runtimev1.OpenAppActivityRequest, stream 
 		return sendOpenResult(stream, openResult(runtimev1.AppActivityOpenOutcome_APP_ACTIVITY_OPEN_OUTCOME_UNAVAILABLE, runtimev1.AppActivityOpenReason_APP_ACTIVITY_OPEN_REASON_NOT_OPENABLE))
 	}
 	source, err := s.registrations.ActivitySource(ctx, record.PublisherRef)
-	if err != nil || !source.Active || !launchableSourceClass(source.SourceClass) || len(source.LaunchSelector) == 0 {
+	if err != nil || !source.Active || (!launchableSourceClass(source.SourceClass) && source.SourceClass != SourceClassRemote) {
+		return sendOpenResult(stream, openResult(runtimev1.AppActivityOpenOutcome_APP_ACTIVITY_OPEN_OUTCOME_UNAVAILABLE, runtimev1.AppActivityOpenReason_APP_ACTIVITY_OPEN_REASON_SOURCE_UNAVAILABLE))
+	}
+	onlineOnly := source.SourceClass == SourceClassRemote || decision.TrustClass == accountservice.LocalAppTrustClassRemote
+	if !onlineOnly && len(source.LaunchSelector) == 0 {
 		return sendOpenResult(stream, openResult(runtimev1.AppActivityOpenOutcome_APP_ACTIVITY_OPEN_OUTCOME_UNAVAILABLE, runtimev1.AppActivityOpenReason_APP_ACTIVITY_OPEN_REASON_SOURCE_UNAVAILABLE))
 	}
 	request := &openRequest{
@@ -322,13 +335,16 @@ func (s *Service) OpenAppActivity(req *runtimev1.OpenAppActivityRequest, stream 
 		consumerCtx: ctx, consumerExpiresAt: decision.ExpiresAt, consumerInvalidated: decision.SessionInvalidated,
 		sourceSubject: record.PublisherRef, source: source, activityID: record.ActivityID, objectRef: record.ObjectRef,
 		activityType: record.ActivityType, deadline: s.now().Add(OpenRequestTimeout),
+		onlineOnly: onlineOnly,
 	}
 	if err := s.opens.create(request); err != nil {
 		return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_APP_ACTIVITY_UNAVAILABLE)
 	}
-	if err := stream.Send(&runtimev1.OpenAppActivityResponse{Event: &runtimev1.OpenAppActivityResponse_OpenRequestId{OpenRequestId: request.id}}); err != nil {
-		s.opens.resolve(request, nil)
-		return err
+	if !onlineOnly {
+		if err := stream.Send(&runtimev1.OpenAppActivityResponse{Event: &runtimev1.OpenAppActivityResponse_OpenRequestId{OpenRequestId: request.id}}); err != nil {
+			s.opens.resolve(request, nil)
+			return err
+		}
 	}
 	timer := time.NewTimer(request.deadline.Sub(s.now()))
 	defer timer.Stop()

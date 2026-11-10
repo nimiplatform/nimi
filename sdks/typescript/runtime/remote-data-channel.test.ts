@@ -11,7 +11,7 @@ import { ErrorInfo, ReasonCode } from '../core-generated/runtime-protobuf/runtim
 import { createRemoteRuntimeAppClients } from './remote-app.js';
 import { WriteLocalAppAssetRequest, WriteLocalAppAssetResponse, WriteLocalAppStorageJsonRequest, WriteLocalAppStorageJsonResponse, ReadLocalAppAssetResponse } from '../core-generated/runtime-protobuf/runtime/v1/app.js';
 import { ListLocalAppAgentReferencesResponse } from '../core-generated/runtime-protobuf/runtime/v1/agent_service.js';
-import { PutAppActivityRequest, PutAppActivityResponse, AppActivityRecord, AppActivityKind, AppActivitySourceKind } from '../core-generated/runtime-protobuf/runtime/v1/app_activity.js';
+import { PutAppActivityRequest, PutAppActivityResponse, AppActivityRecord, AppActivityKind, AppActivitySourceKind, OpenAppActivityResponse, AppActivityOpenOutcome, AppActivityOpenReason, SubscribeAppActivityOpenRequestsResponse, CompleteAppActivityOpenRequestRequest, CompleteAppActivityOpenRequestResponse, AppActivityOpenCompletion } from '../core-generated/runtime-protobuf/runtime/v1/app_activity.js';
 
 class Channel implements RuntimeDataChannel {
   readyState = 'open'; bufferedAmount = 0;
@@ -49,9 +49,42 @@ test('remote activity publication uses the typed owner RPC and preserves denied 
   const deniedId = await sent(channel);
   channel.receive({ kind: Kind.ERROR, requestId: deniedId, chunkEnd: true, grpcCode: 7, errorInfo: ErrorInfo.create({ reasonCode: ReasonCode.APP_SCOPE_FORBIDDEN }) });
   await denied;
-  const calls = channel.sent.length;
-  await assert.rejects(app.activity.open({ activityId: record.activityId }), { reasonCode: 'SDK_RUNTIME_REMOTE_OPERATION_UNSUPPORTED' });
-  assert.equal(channel.sent.length, calls, 'publication does not expose native launch');
+  channel.sent.length = 0;
+  const opening = app.activity.open({ activityId: record.activityId });
+  const openId = await sent(channel);
+  channel.receive({ kind: Kind.STREAM_DATA, requestId: openId, chunkEnd: true, payload: OpenAppActivityResponse.toBinary({ event: { oneofKind: 'result', result: { outcome: AppActivityOpenOutcome.UNAVAILABLE, reason: AppActivityOpenReason.SOURCE_UNAVAILABLE } } }) });
+  assert.deepEqual(await opening, { outcome: 'unavailable', reason: 'source-unavailable' });
+  transport.close();
+});
+
+test('remote activity source confirms only its delivered navigation and stops with its registration', async () => {
+  const channel = new Channel(), transport = new RuntimeDataChannelTransport(channel, () => true);
+  const app = createRemoteRuntimeAppClients(new RuntimeTypedClient(new CoreClient({ transport })), 'nimi.test');
+  const handled: unknown[] = [];
+  const registration = app.activity.onOpenRequest(async request => { handled.push(request); return 'opened'; });
+  const subscriptionId = await sent(channel);
+  assert.equal(channel.sent[0].method, '/nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests');
+  const deliveryId = 'aod_' + 'a'.repeat(43), activityId = 'act_' + '0'.repeat(25) + '2';
+  channel.receive({ kind: Kind.STREAM_DATA, requestId: subscriptionId, chunkEnd: true,
+    payload: SubscribeAppActivityOpenRequestsResponse.toBinary({ deliveryId, activityId, objectRef: 'draft:2', activityType: 'nimi.test.review.v1' }) });
+  await until(() => channel.sent.some(frame => frame.method.endsWith('/CompleteAppActivityOpenRequest')));
+  const completion = channel.sent.find(frame => frame.method.endsWith('/CompleteAppActivityOpenRequest'))!;
+  assert.deepEqual(handled, [{ activityId, objectRef: 'draft:2', type: 'nimi.test.review.v1' }]);
+  assert.deepEqual(CompleteAppActivityOpenRequestRequest.fromBinary(completion.payload), { deliveryId, completion: AppActivityOpenCompletion.OPENED });
+  channel.receive({ kind: Kind.RESPONSE, requestId: completion.requestId, chunkEnd: true, payload: CompleteAppActivityOpenRequestResponse.toBinary({ accepted: true }) });
+  await registration.stop();
+  assert.ok(channel.sent.some(frame => frame.kind === Kind.CANCEL && frame.requestId === subscriptionId));
+  transport.close();
+});
+
+test('a remote activity consumer rejects a native launch event instead of fabricating Host authority', async () => {
+  const channel = new Channel(), transport = new RuntimeDataChannelTransport(channel, () => true);
+  const app = createRemoteRuntimeAppClients(new RuntimeTypedClient(new CoreClient({ transport })), 'nimi.test');
+  const opening = assert.rejects(app.activity.open({ activityId: 'act_' + '0'.repeat(25) + '3' }), { reasonCode: 'SDK_LOCAL_APP_PROJECTION_INVALID' });
+  const id = await sent(channel);
+  channel.receive({ kind: Kind.STREAM_DATA, requestId: id, chunkEnd: true, payload: OpenAppActivityResponse.toBinary({ event: { oneofKind: 'openRequestId', openRequestId: 'aor_' + 'a'.repeat(43) } }) });
+  await opening;
+  assert.equal(channel.sent.some(frame => frame.method.includes('ResolveAppActivityOpenLaunch')), false);
   transport.close();
 });
 

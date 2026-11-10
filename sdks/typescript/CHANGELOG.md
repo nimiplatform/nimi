@@ -2,9 +2,9 @@
 
 # SDK migration notes
 
-## Unreleased — World authoring (next 0.x minor)
+## Unreleased — World authoring and live activity navigation (next 0.x minor)
 
-Remote App clients add the existing WorldCore creator operations. Realm retains independent world-creation authorization and write CAS.
+Remote App clients add the existing WorldCore creator operations and activity open/onOpenRequest. Realm retains independent world-creation authorization and write CAS. Activity navigation with a remote participant requires an already-online source handler; it never launches a PC app or stores a request for reconnect. Apps must stop source handlers with their connection scope.
 
 ## Unreleased — Remote Realm resource clients (next 0.x minor)
 
