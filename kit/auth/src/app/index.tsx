@@ -17,13 +17,15 @@ const copy = {
     signedIn: '已登录 Nimi', disconnect: '断开连接', disconnected: '尚未连接主 Runtime。请保持 PC 上的 Nimi Home 运行。',
     signedOut: '使用你的 Nimi 账号继续，无需创建另一个应用账号。', unavailable: '暂时无法确认当前账号，请检查 Nimi Home。',
     cancelLogin: '取消登录', checking: '正在检查当前账号…', revocation: '重试结束此应用会话', connectionFailed: '连接未成功。',
-    connectionHelp: '请确认主机上的 Nimi Home 正在运行，并检查远程接入后重试。', details: '技术详情' },
+    connectionHelp: '请确认主机上的 Nimi Home 正在运行，并检查远程接入后重试。',
+    sourceNotAdmitted: '此应用当前未获准接入 Nimi。请联系应用开发者检查接入配置。', details: '技术详情' },
   en: { login: 'Sign in with Nimi', logout: 'Sign out of this App', owner: 'Manage account in Nimi Home', connect: 'Connect my Runtime',
     connecting: 'Connecting to your Runtime. For a new source, confirm it in PC Home.', cancel: 'Cancel connection', check: 'Check connection again',
     signedIn: 'Signed in to Nimi', disconnect: 'Disconnect', disconnected: 'Runtime is not connected. Keep Nimi Home running on your PC.',
     signedOut: 'Continue with your Nimi account. No separate App account is needed.', unavailable: 'Your account cannot be confirmed. Check Nimi Home.',
     cancelLogin: 'Cancel sign-in', checking: 'Checking your account…', revocation: 'Retry ending this App session', connectionFailed: 'Connection failed.',
-    connectionHelp: 'Check that Nimi Home is running on your PC and review remote access, then try again.', details: 'Technical details' },
+    connectionHelp: 'Check that Nimi Home is running on your PC and review remote access, then try again.',
+    sourceNotAdmitted: 'This App is not currently approved to connect to Nimi. Contact its developer to check the access configuration.', details: 'Technical details' },
 };
 export function NimiAccountControl({ language = 'zh', hideSignedOut = false }: { language?: 'zh' | 'en'; hideSignedOut?: boolean }) {
   const { session, snapshot } = useNimiAppSession(); const text = copy[language];
@@ -57,15 +59,17 @@ export function NimiAppAccessGate(props: GateProps) {
     if (snapshot.runtime.status === 'connected') return <div key={`${snapshot.identity.viewKey}/${snapshot.runtime.scope.viewKey}`} className="contents">{props.children(snapshot.runtime.scope)}</div>;
   }
   if (props.fallback) return <>{props.fallback(snapshot)}</>;
+  const issueHelp = snapshot.issue?.reasonCode === 'RUNTIME_CLIENT_NOT_ADMITTED' ? text.sourceNotAdmitted
+    : snapshot.issue?.area === 'runtime' && session.account.kind === 'app-session' ? text.connectionHelp : null;
   return <main className="m-auto flex max-w-xl flex-col gap-4 p-6"><Surface tone="panel" className="flex flex-col gap-4 p-6">
     {props.title && <h1 className="text-2xl font-semibold">{props.title}</h1>}
     <p role="status">{snapshot.identity.status === 'checking' ? text.checking : snapshot.identity.status === 'unavailable' ? text.unavailable
       : snapshot.identity.status === 'signed-out' ? text.signedOut : snapshot.runtime.status === 'connecting' ? text.connecting
         : snapshot.issue?.area === 'runtime' ? text.connectionFailed : text.disconnected}</p>
     {snapshot.issue && <InlineAlert tone="warning">
-      <p>{snapshot.issue.area === 'runtime' && session.account.kind === 'app-session' ? text.connectionHelp : snapshot.issue.message}</p>
+      <p>{issueHelp ?? snapshot.issue.message}</p>
       <details className="mt-2"><summary>{text.details}</summary>
-        {snapshot.issue.area === 'runtime' && session.account.kind === 'app-session' && <p className="mt-2 break-words">{snapshot.issue.message}</p>}
+        {issueHelp && <p className="mt-2 break-words">{snapshot.issue.message}</p>}
         <code className="block break-words">{snapshot.issue.reasonCode}</code>
         {snapshot.issue.actionHint && <code className="block break-words">{snapshot.issue.actionHint}</code>}
       </details>

@@ -10,6 +10,22 @@ import { createNimiAppSession } from '../../core/src/app-session.js';
 import type { NimiAppSession, NimiAppSessionSnapshot } from '../../core/src/app-session.js';
 
 afterEach(cleanup);
+for (const language of ['zh', 'en'] as const) it(language + ' source admission failure directs users to the developer and keeps the raw error in details', () => {
+  const message = 'Realm operation getRuntimeClientSource failed with HTTP 400.';
+  const snapshot: NimiAppSessionSnapshot = { identity: { status: 'signed-out' }, runtime: { status: 'disconnected' },
+    busy: 'none', pendingRevocation: false,
+    issue: { area: 'identity', message, reasonCode: 'RUNTIME_CLIENT_NOT_ADMITTED', actionHint: 'inspect_realm_http_response' } };
+  const session = { getSnapshot: () => snapshot, subscribe: () => () => {}, account: { kind: 'app-session' } } as unknown as NimiAppSession;
+  render(<NimiAppSessionProvider session={session}><NimiAppAccessGate language={language}>{() => <p>Private view</p>}</NimiAppAccessGate></NimiAppSessionProvider>);
+  const details = document.querySelector('details')!;
+  expect(details.open).toBe(false);
+  expect(details.textContent).toContain(message);
+  expect(details.textContent).toContain('RUNTIME_CLIENT_NOT_ADMITTED');
+  const visibleCopy = Array.from(document.querySelectorAll('p')).filter(node => !node.closest('details')).map(node => node.textContent).join(' ');
+  expect(visibleCopy).toContain(language === 'zh' ? '请联系应用开发者检查接入配置' : 'Contact its developer');
+  expect(visibleCopy).not.toContain('HTTP 400');
+  expect(text('Private view')).toBe(false);
+});
 for (const area of ['identity', 'runtime'] as const) it(area + ' failure details preserve the owner hint without mounting private content', () => {
   const snapshot: NimiAppSessionSnapshot = { identity: { status: 'signed-in', user: null, viewKey: 'fixture', signal: new AbortController().signal },
     runtime: { status: 'unavailable' }, busy: 'none', pendingRevocation: false,
