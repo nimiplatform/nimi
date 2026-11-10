@@ -68,7 +68,7 @@ test('Home and Zhiyu share published character identities, introductions and ope
       assert.deepEqual(partner.replies, home.replies);
       for (const memory of partner.memories) {
         assert.doesNotMatch(memory.content, /演示记忆|demo memory/);
-        assert.match(memory.sourceExplanation, /手动记录|Manual record/);
+        assert.match(memory.sourceExplanation, /预置示例记录|Preloaded sample record/);
       }
       assert.ok(partner.introduction?.voicePreviewUrl);
       if (partner.messages.length) {

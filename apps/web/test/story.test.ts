@@ -49,6 +49,17 @@ test('the hero contains the full Home entry and leaves the download action to na
     assert.ok(hero.includes('id="home-demo"'));
     assert.ok(hero.includes(getStoryCopy(locale)['hero.title']));
     assert.ok(!/href="[^"]*\/download/.test(hero));
+    const ownership = html.match(/<section class="story-section story-experience"[\s\S]*?(?=<section class="story-section story-worlds")/)?.[0];
+    assert.ok(ownership);
+    // Visitors can read all three explanations before interacting with the demo.
+    for (const key of ['models', 'memory', 'continuity'] as const) {
+      assert.ok(ownership.includes(getStoryCopy(locale)[`experience.${key}Title`]));
+      assert.ok(ownership.includes(getStoryCopy(locale)[`experience.${key}Body`]));
+    }
+    assert.ok(ownership.includes(getStoryCopy(locale)['experience.demoLabel']));
+    assert.ok(ownership.includes(getStoryCopy(locale)['experience.prompt']));
+    assert.ok(ownership.includes('aria-current="step"'));
+
     assert.ok(!/交互示例|演示记忆|Interactive example|example memor/i.test(html));
     assert.ok(html.includes('story-world-print'));
     assert.ok(!html.includes('screen-section'));
@@ -66,6 +77,7 @@ test('the hero contains the full Home entry and leaves the download action to na
     assert.equal(showcase.match(/data-app-id=/g)?.length, 46);
     assert.equal(showcase.match(/story-app-showcase-logo-name/g)?.length, 46);
     assert.ok(showcase.includes(getStoryCopy(locale)['showcase.explore']));
+    assert.ok(!showcase.includes('story-app-showcase-controls'));
     assert.ok(!showcase.includes('story-app-showcase-window'));
     const integrations = html.match(/<section id="integrations"[\s\S]*?(?=<section id="developers")/)?.[0];
     assert.ok(integrations);

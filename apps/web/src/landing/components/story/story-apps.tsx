@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ChevronLeft, ChevronRight, Expand, Pause, Play } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Expand } from 'lucide-react';
 import type { StoryText } from '../../content/story-copy.js';
 import { findCenteredShowcaseIndex, wrapShowcaseIndex } from '../../content/app-showcase.js';
 import { useHeroDemoSession } from '../hero-demo-context.js';
@@ -17,11 +17,10 @@ export function StoryApps({ t, onApp }: { t: StoryText; onApp: (id: string) => v
   const [reducedMotion, setReducedMotion] = useState(() => typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   const [hovered, setHovered] = useState(false);
   const [keyboardFocused, setKeyboardFocused] = useState(false);
-  const [playing, setPlaying] = useState(true);
   const [inView, setInView] = useState(false);
   const [pageVisible, setPageVisible] = useState(() => typeof document === 'undefined' || !document.hidden);
   const app = apps[selectedIndex] ?? apps[0]!;
-  const paused = !playing || reducedMotion || hovered || keyboardFocused || !inView || !pageVisible || Boolean(session.preview);
+  const paused = reducedMotion || hovered || keyboardFocused || !inView || !pageVisible || Boolean(session.preview);
 
   useEffect(() => {
     const track = trackRef.current;
@@ -106,7 +105,6 @@ export function StoryApps({ t, onApp }: { t: StoryText; onApp: (id: string) => v
     const nextIndex = wrapShowcaseIndex(index, apps.length);
     const from = positionRef.current;
     const distance = wrapShowcaseIndex(nextIndex - from + apps.length / 2, apps.length) - apps.length / 2;
-    setPlaying(false);
     setSelectedIndex(nextIndex);
     setNavigation({ from, to: from + distance, startedAt: performance.now() });
   };
@@ -126,12 +124,6 @@ export function StoryApps({ t, onApp }: { t: StoryText; onApp: (id: string) => v
       if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setKeyboardFocused(false);
     }}>
     <div className="story-container"><StoryHeading t={t} section="showcase" /></div>
-    {!reducedMotion && <div className="story-app-showcase-controls">
-      <button type="button" aria-controls="story-app-showcase-logos" onClick={() => {
-        setPlaying(current => !current);
-        setKeyboardFocused(false);
-      }}>{playing ? <Pause size={16} /> : <Play size={16} />}{t(playing ? 'showcase.pause' : 'showcase.play')}</button>
-    </div>}
     <div className="story-container story-app-showcase-carousel"
       onPointerEnter={event => { if (event.pointerType !== 'touch') setHovered(true); }} onPointerLeave={() => setHovered(false)}>
       <div className="story-app-showcase-marquee" id="story-app-showcase-logos">
