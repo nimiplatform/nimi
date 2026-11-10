@@ -126,3 +126,29 @@ func TestPrimaryControlProofLeaseClockAndOwnerFence(t *testing.T) {
 		t.Fatal("old Account control remained usable")
 	}
 }
+
+func TestPrimaryControlAdmitsExactDevelopmentSchemeContext(t *testing.T) {
+	now := time.Now().UTC()
+	control := &PrimaryRuntimeControl{accountID: "owner", realmID: "dev", binding: realmv1.PrimaryRuntimeBindingDto{RuntimeId: "runtime", BindingId: "binding", PublicKey: "key"}}
+	source := realmv1.RuntimeClientSourceDto{Kind: "android-dev-scheme", AppId: "nimi.editor", ClientId: "nimi.editor.android.dev", SourceRevision: 1, Role: "app", Origin: "ai.nimi.editor.dev:/", RedirectUri: "ai.nimi.editor.dev:/oauth/callback"}
+	item := realmv1.RuntimeClientContextDto{AccountId: "owner", RealmEnvironmentId: "dev", AppId: source.AppId, ClientId: source.ClientId,
+		ContextId: "43515b26-263b-40f6-875e-04b022c37039", ExpiresAt: now.Add(time.Hour).Format(time.RFC3339Nano), Source: &source,
+		Primary: &realmv1.RuntimeClientPrimaryDto{RuntimeId: "runtime", BindingId: "binding", PublicKey: "key"}}
+	if !validRemoteClientContext(control, &item, now) {
+		t.Fatal("registered development source was rejected")
+	}
+	for _, change := range []func(*realmv1.RuntimeClientSourceDto){
+		func(s *realmv1.RuntimeClientSourceDto) { s.Role = "official_manager" },
+		func(s *realmv1.RuntimeClientSourceDto) { s.Origin = "ai.nimi.other:/" },
+		func(s *realmv1.RuntimeClientSourceDto) { s.RedirectUri = "ai.nimi.editor.dev://host/oauth/callback" },
+		func(s *realmv1.RuntimeClientSourceDto) { s.RedirectUri = "ai.nimi.editor.dev:/oauth/callback?" },
+		func(s *realmv1.RuntimeClientSourceDto) { s.Kind = "web" },
+	} {
+		candidate := source
+		change(&candidate)
+		item.Source = &candidate
+		if validRemoteClientContext(control, &item, now) {
+			t.Fatal("invalid development source was admitted")
+		}
+	}
+}

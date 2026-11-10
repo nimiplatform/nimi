@@ -6,7 +6,7 @@ import { prepareRuntimeClientLogin, completeRuntimeClientLogin, readRuntimeClien
 
 type Source = Awaited<ReturnType<typeof readRuntimeClientSource>>;
 interface AndroidAccess {
-  verifySource(source: { origin: string; redirectUri: string; packageName: string; certificateSha256: string }): Promise<void>;
+  verifySource(source: { kind: string; origin: string; redirectUri: string; packageName: string; certificateSha256: string }): Promise<void>;
   request(input: { id: string; url: string; method: string; headers: Record<string, string>; body?: string }): Promise<{
     status: number; headers: Record<string, string>; body: string;
   }>;
@@ -40,22 +40,24 @@ const nativeFetch: typeof fetch = async (input, init) => {
 };
 
 // @nimi-authority: rule.nimi.platform.remote-clients.android-registration
+// @nimi-authority: rule.nimi.platform.remote-clients.android-development
 // @nimi-authority: rule.nimi.platform.ui-design-system.remote-app-session
-/** Android 12+ container adapter. Requires the packaged NimiAppAccess plugin
- * and a genuinely verified App Link; Web and unsupported native hosts fail. */
+/** Android 12+ container adapter. Uses the registered App Link or explicitly
+ * admitted local-development callback; Web and unsupported native hosts fail. */
 export function createMobileNimiAppSession(config: Omit<NimiRemoteAppConfig, 'fetch'>) {
   if (Capacitor.getPlatform() !== 'android' || !['NimiAppAccess', 'App', 'Browser'].every(name => Capacitor.isPluginAvailable(name))) {
     throw createNimiError({ message: 'This entry requires the NimiAppAccess, App and Browser Android plugins.', reasonCode: 'KIT_MOBILE_HOST_REQUIRED', source: 'sdk' });
   }
+  const sourceKind = new URL(config.redirectUri).protocol === 'https:' ? 'android-app-link' : 'android-dev-scheme';
   async function verifySource(source: Source) {
-    if (source.kind !== 'android-app-link' || source.role !== 'app' || !source.androidPackageName || !source.androidCertificateSha256) {
-      throw createNimiError({ message: 'An admitted Android App Link source is required.', reasonCode: 'KIT_MOBILE_SOURCE_REQUIRED', source: 'sdk' });
+    if (source.kind !== sourceKind || source.role !== 'app' || !source.androidPackageName || !source.androidCertificateSha256) {
+      throw createNimiError({ message: 'An admitted Android source matching this callback is required.', reasonCode: 'KIT_MOBILE_SOURCE_REQUIRED', source: 'sdk' });
     }
-    try { await access.verifySource({ origin: source.origin, redirectUri: source.redirectUri,
+    try { await access.verifySource({ kind: source.kind, origin: source.origin, redirectUri: source.redirectUri,
       packageName: source.androidPackageName, certificateSha256: source.androidCertificateSha256 }); }
     catch (error) { throw platformError(error); }
   }
-  const session = createNimiAppSession({ kind: 'remote', sourceKind: 'android-app-link', config: { ...config, fetch: nativeFetch },
+  const session = createNimiAppSession({ kind: 'remote', sourceKind, config: { ...config, fetch: nativeFetch },
     storage: window.sessionStorage, callbackUrl: () => '', clearCallback() {}, verifySource,
     async prepare(options, expectedAccountId) {
       await verifySource(await readRuntimeClientSource(options));

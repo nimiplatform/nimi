@@ -20,3 +20,14 @@ test('official sign-in preserves only the client PKCE request and never a bearer
     assert.equal(accountReturnTo('?returnTo=' + encodeURIComponent('/account/connect' + bad)), '/account');
   }
 });
+
+test('official sign-in accepts canonical private-use callbacks without treating an arbitrary scheme as admitted', () => {
+  const local = { ...request, redirectUri: 'ai.nimi.editor.dev:/oauth/callback' };
+  assert.deepEqual(readRuntimeConnectRequest('?' + runtimeConnectSearch(local)), local);
+  assert.equal(accountReturnTo('?returnTo=' + encodeURIComponent('/account/connect?' + runtimeConnectSearch(local))),
+    '/account/connect?' + runtimeConnectSearch(local));
+  for (const uri of ['javascript:alert(1)', 'myapp:/callback', 'ai.nimi.editor.dev://host/callback',
+    'ai.nimi.editor.dev:/callback#fragment', 'ai.nimi.editor.dev:/callback?next=other']) {
+    assert.equal(readRuntimeConnectRequest('?' + runtimeConnectSearch({ ...request, redirectUri: uri })), null);
+  }
+});

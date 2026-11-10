@@ -5653,6 +5653,7 @@ components:
           enum:
             - web
             - android-app-link
+            - android-dev-scheme
           type: string
         origin:
           type: string

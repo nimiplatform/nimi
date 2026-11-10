@@ -1,3 +1,5 @@
+import { isRuntimeClientRedirectUri } from '@nimiplatform/sdk/realm/runtime-client';
+
 export type RuntimeConnectRequest = {
   clientId: string;
   redirectUri: string;
@@ -15,10 +17,7 @@ export function readRuntimeConnectRequest(search: string): RuntimeConnectRequest
   if (!/^[a-z][a-z0-9]*(?:[._-][a-z0-9]+)+$/.test(clientId) || clientId.length > 120
     || params.get('code_challenge_method') !== 'S256' || !/^[A-Za-z0-9_-]{43}$/.test(codeChallenge)
     || !/^[A-Za-z0-9_-]{32,128}$/.test(state) || redirectUri.length > 2048) return null;
-  try {
-    const callback = new URL(redirectUri);
-    if (callback.protocol !== 'https:' || callback.username || callback.password || callback.search || callback.hash) return null;
-  } catch { return null; }
+  if (!isRuntimeClientRedirectUri(redirectUri)) return null;
   return { clientId, redirectUri, codeChallenge, codeChallengeMethod: 'S256', state };
 }
 

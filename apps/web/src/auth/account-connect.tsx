@@ -4,6 +4,7 @@ import { createWebBrowserRealm } from './browser-realm.js';
 import { AccountFeedback, AccountHeading } from './account-center-layout.js';
 import { useAccountCopy } from './account-center-copy.js';
 import { readRuntimeConnectRequest } from './runtime-connect-request.js';
+import { matchesRuntimeClientCallback } from '@nimiplatform/sdk/realm/runtime-client';
 
 type Source = Awaited<ReturnType<ReturnType<typeof createWebBrowserRealm>['generated']['getRuntimeClientSource']>>;
 
@@ -38,9 +39,7 @@ export function AccountConnect({ accountId, displayName }: { accountId: string; 
       const result = await createWebBrowserRealm().generated.authorizeRuntimeClient({ path: {}, body: { ...request, expectedAccountId: accountId } });
       if (current !== generation.current) return;
       const callback = new URL(result.redirectUrl);
-      const destination = new URL(source.redirectUri);
-      if (callback.origin !== destination.origin || callback.pathname !== destination.pathname || callback.hash
-        || callback.username || callback.password || callback.searchParams.get('state') !== request.state
+      if (!matchesRuntimeClientCallback(result.redirectUrl, source.redirectUri) || callback.searchParams.get('state') !== request.state
         || !/^[A-Za-z0-9_-]{43}$/.test(callback.searchParams.get('code') || '') || [...callback.searchParams].length !== 2) throw new Error('Invalid authorization response');
       window.location.assign(callback.href);
     } catch {
@@ -61,7 +60,7 @@ export function AccountConnect({ accountId, displayName }: { accountId: string; 
     {source && <section className="ac-section">
       <h2>{source.displayName}</h2>
       <p>{source.origin}</p>
-      {source.kind === 'android-app-link' && <p>Android · {source.androidPackageName}</p>}
+      {source.kind !== 'web' && <p>Android · {source.androidPackageName}{source.kind === 'android-dev-scheme' ? ' · 本机开发' : ''}</p>}
       <p>{c('connectIdentity')} <strong>{displayName}</strong></p>
       <p>{c(source.role === 'official_manager' ? 'connectManager' : 'connectConsumer')}</p>
       <div className="ac-actions">

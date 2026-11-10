@@ -1,6 +1,7 @@
 package ai.nimi.kit.auth;
 
 import android.content.pm.PackageManager;
+import android.content.pm.ApplicationInfo;
 import android.content.Intent;
 import android.net.Uri;
 import android.content.pm.Signature;
@@ -38,13 +39,22 @@ public class NimiAppAccessPlugin extends Plugin {
     @PluginMethod
     public void verifySource(PluginCall call) {
         try {
+            String kind = call.getString("kind", "");
+            boolean development = "android-dev-scheme".equals(kind);
             String packageName = call.getString("packageName");
             String expectedCertificate = call.getString("certificateSha256");
             URI origin = new URI(call.getString("origin", ""));
             URI callback = new URI(call.getString("redirectUri", ""));
+            boolean destinationMatches = development
+                ? callback.getScheme() != null && callback.getScheme().matches("[a-z][a-z0-9-]*(?:\\.[a-z][a-z0-9-]*)+")
+                    && origin.toString().equals(callback.getScheme() + ":/") && callback.getRawAuthority() == null
+                    && callback.getRawPath() != null && callback.getRawPath().startsWith("/")
+                    && !callback.getRawPath().startsWith("//")
+                    && (getContext().getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0
+                : "android-app-link".equals(kind) && "https".equals(origin.getScheme())
+                    && origin.getHost() != null && sameOrigin(origin, callback);
             if (!getContext().getPackageName().equals(packageName) || expectedCertificate == null
-                || !"https".equals(origin.getScheme()) || origin.getHost() == null
-                || !sameOrigin(origin, callback) || callback.getRawUserInfo() != null
+                || !destinationMatches || callback.getRawUserInfo() != null
                 || callback.getRawQuery() != null || callback.getRawFragment() != null) {
                 call.reject("This installed application does not match the registered Android source.", "NIMI_MOBILE_SOURCE_MISMATCH"); return;
             }
@@ -62,6 +72,9 @@ public class NimiAppAccessPlugin extends Plugin {
             if (getContext().getPackageManager().resolveActivity(callbackIntent, PackageManager.MATCH_DEFAULT_ONLY) == null) {
                 call.reject("The installed application does not declare this sign-in callback.", "NIMI_MOBILE_SOURCE_MISMATCH"); return;
             }
+            // @nimi-authority: rule.nimi.platform.remote-clients.android-development
+            // The registered development carrier has no domain-verification claim.
+            if (development) { call.resolve(); return; }
             DomainVerificationManager manager = getContext().getSystemService(DomainVerificationManager.class);
             DomainVerificationUserState state = manager.getDomainVerificationUserState(packageName);
             Integer status = state == null ? null : state.getHostToStateMap().get(origin.getHost());

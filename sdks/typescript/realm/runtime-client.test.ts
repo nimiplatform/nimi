@@ -121,3 +121,18 @@ test('source preflight exposes only the selected public source and preserves the
   f.respond(async () => Response.json({ ...f.state.source, appId: 'another.app' }));
   await assert.rejects(readRuntimeClientSource(f.options), { reasonCode: 'RUNTIME_CLIENT_INPUT_INVALID' });
 });
+
+test('private-use callbacks use the same PKCE exchange and reject another scheme with an opaque origin', async () => {
+  const f = fixture();
+  const options = { ...f.options, redirectUri: 'ai.nimi.editor.dev:/oauth/callback' };
+  const prepared = await prepareRuntimeClientLogin(options);
+  for (const wrong of ['ai.nimi.other.dev:/oauth/callback', 'ai.nimi.editor.dev:/other', 'ai.nimi.editor.dev://host/oauth/callback']) {
+    await assert.rejects(completeRuntimeClientLogin(options, prepared.transaction,
+      `${wrong}?code=${'c'.repeat(43)}&state=${prepared.transaction.state}`));
+  }
+  assert.equal(f.requests.length, 0);
+  const session = await completeRuntimeClientLogin(options, prepared.transaction, callback(prepared.transaction));
+  assert.equal(session.identity.accountId, f.token.accountId);
+  assert.equal(JSON.parse(String(f.requests[0].init.body)).redirectUri, options.redirectUri);
+  await session.end();
+});

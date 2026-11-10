@@ -1,4 +1,4 @@
-import { createNimiError, extractNimiErrorFields } from './sdk-contract.js';
+import { createNimiError, extractNimiErrorFields, matchesRuntimeClientCallback } from './sdk-contract.js';
 import type { prepareRuntimeClientLogin, completeRuntimeClientLogin, connectRemoteRuntime,
   RuntimeClientIdentity, RuntimeClientLoginOptions, RuntimeClientSession, NimiLocalAppClient,
   NimiAppRuntimeClient, RemoteRuntimeAppConnection, RemoteRuntimeConnectOptions } from './sdk-contract.js';
@@ -28,7 +28,7 @@ export type NimiRemoteAppConfig = Omit<RuntimeClientLoginOptions, 'currentUserCo
 };
 export type NimiRemoteAppPlatform = {
   kind: 'remote'; config: NimiRemoteAppConfig;
-  sourceKind: 'web' | 'android-app-link';
+  sourceKind: 'web' | 'android-app-link' | 'android-dev-scheme';
   verifySource?(source: Awaited<ReturnType<RuntimeClientSession['read']>>['source']): Promise<void>;
   storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
   callbackUrl(): string;
@@ -210,8 +210,7 @@ export function createNimiAppSession(platform: NimiRemoteAppPlatform | NimiDeskt
     if (disposed || platform.kind !== 'remote' || completingCallback === operation || snapshot.identity.status === 'signed-in') return false;
     let callback: URL;
     try { callback = new URL(url); } catch { return false; }
-    const expected = new URL(platform.config.redirectUri);
-    if (callback.origin !== expected.origin || callback.pathname !== expected.pathname
+    if (!matchesRuntimeClientCallback(url, platform.config.redirectUri)
       || (!callback.searchParams.has('code') && !callback.searchParams.has('error'))) return false;
     const saved = platform.storage.getItem(transactionKey);
     // A previous browser attempt can return while a new native preflight is

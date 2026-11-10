@@ -25,17 +25,18 @@ const source = { ...config, kind: 'android-app-link', role: 'app', origin: 'http
   appAccess: ['runtime.consume'], capabilityContractRefs: [], sourceRevision: 1 };
 const identity = { ...config, accountId: 'user-A', displayName: 'A', contextId: 'context', contextToken: 't'.repeat(43) };
 let invalid = false;
+let activeSource = source;
 let active: ReturnType<typeof createMobileNimiAppSession> | undefined;
 beforeEach(() => {
-  vi.clearAllMocks(); host.events.clear(); sessionStorage.clear(); invalid = false;
+  vi.clearAllMocks(); host.events.clear(); sessionStorage.clear(); invalid = false; activeSource = source;
   host.verifySource.mockResolvedValue(undefined); host.open.mockResolvedValue(undefined); host.close.mockResolvedValue(undefined);
   host.request.mockImplementation(async (input: { url: string }) => {
     const path = new URL(input.url).pathname;
     const token = { ...identity, expiresAt: new Date(Date.now() + 60_000).toISOString() };
     const denied = invalid && path.endsWith('/context');
     return { status: denied ? 401 : 200, headers: { 'content-type': 'application/json' }, body: JSON.stringify(
-      denied ? { reasonCode: 'RUNTIME_CLIENT_CONTEXT_INVALID' } : path.includes('/auth/runtime-clients/') ? source
-        : path.endsWith('/token') ? token : path.endsWith('/end') ? { ended: true } : { ...token, source, primary: null, stunUrls: [] }),
+      denied ? { reasonCode: 'RUNTIME_CLIENT_CONTEXT_INVALID' } : path.includes('/auth/runtime-clients/') ? activeSource
+        : path.endsWith('/token') ? token : path.endsWith('/end') ? { ended: true } : { ...token, source: activeSource, primary: null, stunUrls: [] }),
     };
   });
   host.connect.mockImplementation(async (_session, options) => ({ role: 'app', primary: { displayName: 'PC' }, closed: false,
@@ -74,4 +75,19 @@ it('receives a warm callback, replaces the backgrounded scope, and stops reconne
   host.events.get('appStateChange')!({ isActive: true });
   await vi.waitFor(() => expect(active!.getSnapshot().identity.status).toBe('signed-out'));
   expect(host.connect).toHaveBeenCalledTimes(2); expect(host.open).toHaveBeenCalledTimes(1);
+});
+
+it('uses an admitted development scheme in the existing native flow and ignores a different scheme before exchanging', async () => {
+  const configDev = { ...config, redirectUri: 'unit.mobile.dev:/oauth/callback' };
+  activeSource = { ...source, kind: 'android-dev-scheme', origin: 'unit.mobile.dev:/', redirectUri: configDev.redirectUri };
+  active = createMobileNimiAppSession(configDev); await active.start();
+  if (active.account.kind !== 'app-session') throw new Error('wrong account owner');
+  await active.account.signIn();
+  const state = new URL(host.open.mock.calls[0][0].url).searchParams.get('state');
+  expect(host.verifySource).toHaveBeenCalledWith(expect.objectContaining({ kind: 'android-dev-scheme', redirectUri: configDev.redirectUri }));
+  expect(await active.acceptCallback(`unit.other.dev:/oauth/callback?code=${'c'.repeat(43)}&state=${state}`)).toBe(false);
+  expect(host.request.mock.calls.some(([input]) => input.url.endsWith('/token'))).toBe(false);
+  host.events.get('appUrlOpen')!({ url: `${configDev.redirectUri}?code=${'c'.repeat(43)}&state=${state}` });
+  await vi.waitFor(() => expect(active!.getSnapshot().runtime.status).toBe('connected'));
+  expect(host.close).toHaveBeenCalledTimes(1);
 });

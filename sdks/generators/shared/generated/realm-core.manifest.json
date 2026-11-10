@@ -36556,7 +36556,8 @@
               "kind": "enum",
               "values": [
                 "web",
-                "android-app-link"
+                "android-app-link",
+                "android-dev-scheme"
               ],
               "type": "string"
             }

@@ -1909,7 +1909,7 @@ class RuntimeClientSourceDto:
     capabilityContractRefs: tuple[str, ...]
     clientId: str
     displayName: str
-    kind: Literal["web", "android-app-link"]
+    kind: Literal["web", "android-app-link", "android-dev-scheme"]
     origin: str
     redirectUri: str
     role: Literal["app", "official_manager"]

@@ -2,6 +2,11 @@
 
 # SDK migration notes
 
+## Unreleased — Android local private-use callbacks (additive, next minor)
+
+Adds the explicitly admitted `android-dev-scheme` carrier for local non-production Realm development. It shares PKCE, context lifetime, Home source consent and the direct Runtime client with the App Link carrier. SDK callback helpers match the entire registered destination, including private-use scheme; Kit's Android adapter requires the installed debug package/signature and declared callback. Production source admission and verified App Links remain unchanged. Update the complete SDK/Kit packages and official login surface together; this is not package publication or a new permission system.
+
+
 ## Unreleased — World authoring and live activity navigation (next 0.x minor)
 
 Remote App clients add the existing WorldCore creator operations and activity open/onOpenRequest. Realm retains independent world-creation authorization and write CAS. Activity navigation with a remote participant requires an already-online source handler; it never launches a PC app or stores a request for reconnect. Apps must stop source handlers with their connection scope.

@@ -21,6 +21,31 @@ export interface RuntimeClientLoginOptions {
 
 export type RuntimeClientIdentity = Omit<RuntimeClientTokenDto, 'contextToken'>;
 
+// @nimi-authority: rule.nimi.platform.remote-clients.android-development
+/** URI syntax only. Realm still owns exact source admission and environment. */
+export function isRuntimeClientRedirectUri(value: string): boolean {
+  try {
+    const url = new URL(value);
+    if (url.href !== value || url.username || url.password || url.search || url.hash) return false;
+    if (url.protocol === 'https:') return true;
+    return /^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+:$/.test(url.protocol)
+      && !url.host && url.pathname.startsWith('/') && !url.pathname.startsWith('//')
+      && url.href === url.protocol + url.pathname;
+  } catch { return false; }
+}
+
+/** Match the registered destination before consuming a transaction. Private-use
+ * URLs have the same opaque `origin`, so origin/path comparison is insufficient. */
+export function matchesRuntimeClientCallback(value: string, redirectUri: string): boolean {
+  if (!isRuntimeClientRedirectUri(redirectUri)) return false;
+  try {
+    const url = new URL(value);
+    if (url.username || url.password || url.hash) return false;
+    url.search = '';
+    return url.href === redirectUri;
+  } catch { return false; }
+}
+
 /** Store only in the initiating application's own session. It contains a PKCE
  * secret and is never a Nimi identity result or reusable Runtime permission. */
 export interface RuntimeClientLoginTransaction {
@@ -54,8 +79,7 @@ export async function prepareRuntimeClientLogin(options: RuntimeClientLoginOptio
   if (!owner) throw contextChanged();
   const realmBaseUrl = trustedOrigin(options.realmBaseUrl);
   const officialWebBaseUrl = trustedOrigin(options.officialWebBaseUrl);
-  const callback = new URL(options.redirectUri);
-  if (callback.protocol !== 'https:' || callback.username || callback.password || callback.search || callback.hash) throw invalidLogin();
+  if (!isRuntimeClientRedirectUri(options.redirectUri)) throw invalidLogin();
   if (!options.appId || !options.clientId || !options.realmEnvironmentId || expectedAccountId === '') throw invalidLogin();
   const verifier = randomSecret();
   const state = randomSecret();
@@ -83,9 +107,9 @@ export async function completeRuntimeClientLogin(options: RuntimeClientLoginOpti
     || transaction.redirectUri !== options.redirectUri || transaction.realmBaseUrl !== trustedOrigin(options.realmBaseUrl)
     || transaction.realmEnvironmentId !== options.realmEnvironmentId
     || !/^[A-Za-z0-9_-]{43}$/.test(transaction.codeVerifier) || !/^[A-Za-z0-9_-]{43}$/.test(transaction.state)) throw invalidLogin();
-  const callback = new URL(callbackUrl), expected = new URL(transaction.redirectUri);
-  if (callback.origin !== expected.origin || callback.pathname !== expected.pathname || callback.username || callback.password
-    || callback.hash || callback.searchParams.get('state') !== transaction.state) throw invalidLogin();
+  if (!matchesRuntimeClientCallback(callbackUrl, transaction.redirectUri)) throw invalidLogin();
+  const callback = new URL(callbackUrl);
+  if (callback.searchParams.get('state') !== transaction.state) throw invalidLogin();
   if (callback.searchParams.get('error') === 'access_denied') throw createNimiError({ message: 'Nimi sign-in was canceled.',
     reasonCode: 'RUNTIME_CLIENT_LOGIN_CANCELLED', source: 'sdk' });
   const code = callback.searchParams.get('code') || '';

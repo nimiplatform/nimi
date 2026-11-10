@@ -9,6 +9,7 @@ import (
 	"encoding/json"
 	"math"
 	"net/url"
+	"regexp"
 	"strings"
 	"sync"
 	"time"
@@ -288,6 +289,19 @@ func validRemoteClientContext(c *PrimaryRuntimeControl, item *realmv1.RuntimeCli
 		return false
 	}
 	origin, err := url.Parse(source.Origin)
+	// @nimi-authority: rule.nimi.platform.remote-clients.android-development
+	// Realm owns development-only admission. This boundary validates its exact
+	// source projection without interpreting a private-use scheme as a Web origin.
+	if source.Kind == "android-dev-scheme" {
+		callback, callbackErr := url.Parse(source.RedirectUri)
+		if err != nil || callbackErr != nil || source.Role != "app" {
+			return false
+		}
+		validScheme, _ := regexp.MatchString(`^[a-z][a-z0-9-]*(?:\.[a-z][a-z0-9-]*)+$`, callback.Scheme)
+		return validScheme && source.Origin == callback.Scheme+":/" && origin.String() == source.Origin &&
+			callback.Host == "" && callback.User == nil && callback.Opaque == "" && callback.RawQuery == "" && !callback.ForceQuery && callback.Fragment == "" &&
+			strings.HasPrefix(callback.Path, "/") && !strings.HasPrefix(callback.Path, "//") && callback.String() == source.RedirectUri
+	}
 	if err != nil || origin.Scheme != "https" || origin.Host == "" || origin.User != nil || origin.Path != "" || origin.RawQuery != "" || origin.Fragment != "" {
 		return false
 	}
