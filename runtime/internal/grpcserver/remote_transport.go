@@ -77,7 +77,8 @@ func (d *remoteDispatcher) register(service any, descriptor *grpc.ServiceDesc) {
 // normal registered declaration and exact AppOperation admission still run.
 func remoteAppMethodSupported(method string) bool {
 	switch method {
-	case protectedPutAppActivityMethod, protectedListAppActivitiesMethod, protectedSubscribeAppActivityChangesMethod, protectedMarkAppActivityReadMethod,
+	case protectedInvokeRealmUnaryMethod,
+		protectedPutAppActivityMethod, protectedListAppActivitiesMethod, protectedSubscribeAppActivityChangesMethod, protectedMarkAppActivityReadMethod,
 		protectedReadLocalAppStorageJSONMethod, protectedWriteLocalAppStorageJSONMethod, protectedRemoveLocalAppStorageJSONMethod,
 		protectedStatLocalAppAssetMethod, protectedListLocalAppAssetsMethod, protectedReadLocalAppAssetMethod, protectedWriteLocalAppAssetMethod,
 		protectedRemoveLocalAppAssetMethod, protectedMoveLocalAppAssetMethod, protectedAdoptLocalAppArtifactMethod,
@@ -178,6 +179,9 @@ func (d *remoteDispatcher) dispatch(ctx context.Context, peer *remoteaccess.Peer
 				grpcerr.ReasonOptions{ActionHint: "upload_app_artifact", Message: "Remote media input requires inline content or an App-owned artifact reference."})
 		}
 		ingress, ownerEnabled := remoteAppIngress(call.Method, request, method.stream != nil)
+		if call.Method == protectedInvokeRealmUnaryMethod && !ownerEnabled {
+			return nil, false, grpcerr.WithReasonCode(codes.Unimplemented, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNSUPPORTED)
+		}
 		ctx, err = d.app.AuthorizeRemoteAppIngress(ctx, peer, ingress)
 		if err == nil && !ownerEnabled {
 			err = grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_LOCAL_APP_OWNER_UNAVAILABLE)
@@ -256,6 +260,19 @@ func remoteAppIngress(method string, request proto.Message, streamRPC bool) (loc
 		return ingress, ingress != localappop.IngressUnknown
 	}
 	ingress := protectedLocalAppUnaryIngress(method, request)
+	if method == protectedInvokeRealmUnaryMethod {
+		switch ingress {
+		case localappop.IngressRealmWorldCoreList, localappop.IngressRealmWorldCoreGet,
+			localappop.IngressRealmWorldCreationEligibilityGet, localappop.IngressRealmWorldCoreCreate, localappop.IngressRealmWorldCoreReplace,
+			localappop.IngressRealmWorldCharacterList, localappop.IngressRealmWorldCharacterGet, localappop.IngressRealmWorldCharacterCreate, localappop.IngressRealmWorldCharacterReplace,
+			localappop.IngressRealmWorldEntityList, localappop.IngressRealmWorldEntityGet, localappop.IngressRealmWorldEntityCreate,
+			localappop.IngressRealmWorldRelationshipList, localappop.IngressRealmWorldRelationshipGet,
+			localappop.IngressRealmPersonaCharacterListOwned, localappop.IngressRealmPersonaCharacterGetOwned,
+			localappop.IngressRealmPersonaCharacterCreate, localappop.IngressRealmPersonaCharacterReplace, localappop.IngressRealmPersonaCharacterDelete:
+		default:
+			return localappop.IngressUnknown, false
+		}
+	}
 	return ingress, protectedLocalAppOwnerEnabled(method, request, ingress)
 }
 

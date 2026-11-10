@@ -686,23 +686,25 @@ function createAIClient(
   });
 }
 
+function worldCoreListReader(shell: Pick<NimiLocalAppStandardShell['realm']['worldCore'], 'list'>) {
+  return async (input: NimiLocalAppWorldCoreListInput = {}): Promise<readonly RealmModel<'WorldCoreDto'>[]> => {
+    assertExactKeys(input, ['take', 'visibility'], 'WorldCore list input');
+    const normalized: NimiLocalAppWorldCoreListInput = {
+      ...(input.take === undefined ? {} : { take: requireWorldCoreTake(input.take) }),
+      ...(input.visibility === undefined ? {} : { visibility: requireWorldVisibility(input.visibility) }),
+    };
+    const value = await shell.list(normalized);
+    if (!Array.isArray(value)) localAppProjectionError('WorldCore list');
+    return Object.freeze(value.map((entry) => projectWorldCore(entry)));
+  };
+}
+
 export function createNimiLocalAppWorldCoreClient(
   shell: NimiLocalAppStandardShell['realm']['worldCore'],
 ): NimiLocalAppClient['realm']['worldCore'] {
   return Object.freeze({
     ...createNimiLocalAppWorldCreatorClient(shell),
-    list: async (
-      input: NimiLocalAppWorldCoreListInput = {},
-    ): Promise<readonly RealmModel<'WorldCoreDto'>[]> => {
-      assertExactKeys(input, ['take', 'visibility'], 'WorldCore list input');
-      const normalized: NimiLocalAppWorldCoreListInput = {
-        ...(input.take === undefined ? {} : { take: requireWorldCoreTake(input.take) }),
-        ...(input.visibility === undefined ? {} : { visibility: requireWorldVisibility(input.visibility) }),
-      };
-      const value = await shell.list(normalized);
-      if (!Array.isArray(value)) localAppProjectionError('WorldCore list');
-      return Object.freeze(value.map((entry) => projectWorldCore(entry)));
-    },
+    list: worldCoreListReader(shell),
     create: async (
       input: RealmModel<'CreateWorldCoreDto'>,
     ): Promise<RealmModel<'WorldCoreDto'>> => {

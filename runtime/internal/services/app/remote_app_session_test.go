@@ -135,6 +135,11 @@ func TestRemoteAppRevalidationAndStorageNeverNeedNativeProcessProof(t *testing.T
 			if _, err := service.AuthorizeLocalAppIngress(admitted, localappop.IngressAppActivityPut); err == nil {
 				t.Fatal("remote peer without app.activity obtained publication access")
 			}
+			for _, ingress := range []localappop.Ingress{localappop.IngressRealmWorldCoreGet, localappop.IngressRealmPersonaCharacterGetOwned} {
+				if _, err := service.AuthorizeLocalAppIngress(admitted, ingress); err == nil {
+					t.Fatal("remote peer without realm.data obtained Realm resource access")
+				}
+			}
 			if _, err := service.AuthorizeLocalAppIngress(admitted, localappop.IngressAgentReferenceList); err != nil {
 				t.Fatal("declared remote Agent access was unavailable", err)
 			}

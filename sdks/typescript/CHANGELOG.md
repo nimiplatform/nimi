@@ -2,6 +2,14 @@
 
 # SDK migration notes
 
+## Unreleased — World authoring (next 0.x minor)
+
+Remote App clients add the existing WorldCore creator operations. Realm retains independent world-creation authorization and write CAS.
+
+## Unreleased — Remote Realm resource clients (next 0.x minor)
+
+The shared ordinary App client adds `realm.worldCore.list/get` and the five owner `realm.personaCharacter` operations, with existing DTO validation and `toProfileInput`. They use the matching Runtime's fixed `realm.data` broker operations. No account credential, endpoint choice, general Realm invocation, world creation or publication lifecycle is exposed by this resource surface.
+
 ## Unreleased — Remote App activity publication (next 0.x minor)
 
 The shared App client now includes `activity.put`. Remote connections use the existing typed publication, revision and account/publisher rules under declared `app.activity`; a matching Runtime carrier is required. Native App opening and source-open subscriptions remain unavailable remotely. No background business execution or automatic resubmission is added.

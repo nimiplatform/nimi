@@ -1077,6 +1077,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		remoteInstance = protected.DesktopSessions.OperationSessionID()
 	}
 	remoteAccessSvc := remoteaccess.New(accountSvc, localAppKernel, remoteInstance, remoteDispatcher.dispatch, logger, auditStore)
+	remoteDispatcher.register(accountSvc, &runtimev1.RuntimeAccountService_ServiceDesc)
 	remoteDispatcher.register(aiSvc, &runtimev1.RuntimeAiService_ServiceDesc)
 	remoteDispatcher.register(appSvc, &runtimev1.RuntimeAppService_ServiceDesc)
 	remoteDispatcher.register(agentSvc, &runtimev1.RuntimeAgentService_ServiceDesc)

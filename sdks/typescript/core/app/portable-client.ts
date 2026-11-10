@@ -10,4 +10,8 @@ export type NimiAppRuntimeClient = Pick<NimiLocalAppClient,
     readonly assets: Omit<NimiLocalAppClient['storage']['assets'], 'reveal'>;
   };
   readonly activity: Pick<NimiLocalAppClient['activity'], 'put' | 'list' | 'subscribe' | 'markRead'>;
+  readonly realm: {
+    readonly worldCore: NimiLocalAppClient['realm']['worldCore'];
+    readonly personaCharacter: NimiLocalAppClient['realm']['personaCharacter'];
+  };
 };

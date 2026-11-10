@@ -13,6 +13,7 @@ import { createNimiLocalAppAgentIntroductionRuntimeClient } from '../core/app/lo
 import { createNimiLocalAppConversationRuntimeClient } from '../core/app/local-app-runtime-platform-direct-conversation.js';
 import { createNimiLocalAppEmbodimentRuntimeClient } from '../core/app/local-app-runtime-platform-embodiment.js';
 import { createNimiLocalAppAgentConfigureClient, createNimiLocalAppAgentConfigureRuntimeShell } from '../core/app/local-app-runtime-platform-configure.js';
+import { createRemoteAppRealmClients } from './remote-realm.js';
 
 // @nimi-authority: rule.nimi.sdks.client-core.remote-runtime-carrier
 // These are the same operation clients used by native Apps. The direct carrier
@@ -34,6 +35,7 @@ export function createRemoteRuntimeAppClients(runtime: RuntimeTypedClient, appId
     conversation: createNimiLocalAppConversationRuntimeClient(runtime),
     embodiment: createNimiLocalAppEmbodimentRuntimeClient(runtime),
     activity: createRemoteActivity(runtime),
+    realm: createRemoteAppRealmClients(runtime),
     agentConfigure: createNimiLocalAppAgentConfigureClient(createNimiLocalAppAgentConfigureRuntimeShell(runtime)),
   });
 }

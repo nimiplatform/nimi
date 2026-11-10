@@ -60,12 +60,7 @@ export function createNimiLocalAppWorldCreatorClient(shell: NimiLocalAppWorldCre
       if (typeof value.canCreateWorld !== 'boolean') localAppProjectionError('world creation eligibility');
       return Object.freeze({ canCreateWorld: value.canCreateWorld });
     },
-    get: async (worldId: string): Promise<RealmModel<'WorldCoreDto'>> => {
-      creatorId(worldId, 'worldId');
-      const value = await shell.get(worldId);
-      const record = creatorResult(value, 'world', worldId, undefined);
-      return record as unknown as RealmModel<'WorldCoreDto'>;
-    },
+    get: (worldId: string) => readNimiLocalAppWorldCore(shell, worldId),
     replace: async (worldId: string, input: RealmModel<'ReplaceWorldCoreDto'>): Promise<RealmModel<'WorldCoreDto'>> => {
       creatorId(worldId, 'worldId');
       validateCreatorWrite(input, 'world', true, worldId);
@@ -139,6 +134,15 @@ export function createNimiLocalAppWorldCreatorClient(shell: NimiLocalAppWorldCre
       return record as unknown as RealmModel<'WorldRelationshipCoreDto'>;
     },
   });
+}
+
+
+/** Shared exact WorldCore read; callers expose only their admitted methods. */
+export async function readNimiLocalAppWorldCore(shell: Pick<NimiLocalAppWorldCreatorShell, 'get'>, worldId: string): Promise<RealmModel<'WorldCoreDto'>> {
+  creatorId(worldId, 'worldId');
+  const value = await shell.get(worldId);
+  const record = creatorResult(value, 'world', worldId, undefined);
+  return record as unknown as RealmModel<'WorldCoreDto'>;
 }
 
 type CreatorFamily = 'world' | 'character' | 'entity' | 'relationship';

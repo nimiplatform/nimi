@@ -59,6 +59,43 @@ func TestRemoteActivityPublicationUsesExistingAdmissionAndCannotLaunch(t *testin
 	}
 }
 
+func TestRemoteRealmCarrierAdmitsOnlyImplementedResourceOperations(t *testing.T) {
+	for method, expected := range map[string]localappop.Ingress{
+		"WorldCoreController_getWorldCreationEligibility": localappop.IngressRealmWorldCreationEligibilityGet,
+		"WorldCoreController_createWorldCore":             localappop.IngressRealmWorldCoreCreate,
+		"WorldCoreController_replaceWorldCore":            localappop.IngressRealmWorldCoreReplace,
+		"WorldCoreController_listWorldCharacters":         localappop.IngressRealmWorldCharacterList,
+		"WorldCoreController_getWorldCharacter":           localappop.IngressRealmWorldCharacterGet,
+		"WorldCoreController_createWorldCharacter":        localappop.IngressRealmWorldCharacterCreate,
+		"WorldCoreController_replaceWorldCharacter":       localappop.IngressRealmWorldCharacterReplace,
+		"WorldCoreController_listWorldEntities":           localappop.IngressRealmWorldEntityList,
+		"WorldCoreController_getWorldEntity":              localappop.IngressRealmWorldEntityGet,
+		"WorldCoreController_createWorldEntity":           localappop.IngressRealmWorldEntityCreate,
+		"WorldCoreController_listWorldRelationships":      localappop.IngressRealmWorldRelationshipList,
+		"WorldCoreController_getWorldRelationship":        localappop.IngressRealmWorldRelationshipGet,
+		"WorldCoreController_listWorldCores":              localappop.IngressRealmWorldCoreList,
+		"WorldCoreController_getWorldCore":                localappop.IngressRealmWorldCoreGet,
+		"WorldCoreController_listPersonaCharacters":       localappop.IngressRealmPersonaCharacterListOwned,
+		"WorldCoreController_getPersonaCharacter":         localappop.IngressRealmPersonaCharacterGetOwned,
+		"WorldCoreController_createPersonaCharacter":      localappop.IngressRealmPersonaCharacterCreate,
+		"WorldCoreController_replacePersonaCharacter":     localappop.IngressRealmPersonaCharacterReplace,
+		"WorldCoreController_deletePersonaCharacter":      localappop.IngressRealmPersonaCharacterDelete,
+	} {
+		ingress, enabled := remoteAppIngress(protectedInvokeRealmUnaryMethod, &runtimev1.InvokeRealmUnaryRequest{MethodId: method}, false)
+		if !enabled || ingress != expected {
+			t.Fatalf("resource method %s lost its original admission", method)
+		}
+	}
+	for _, method := range []string{"AuthController_login", "PostsController_createPost", "not-a-method"} {
+		if _, enabled := remoteAppIngress(protectedInvokeRealmUnaryMethod, &runtimev1.InvokeRealmUnaryRequest{MethodId: method}, false); enabled {
+			t.Fatalf("unimplemented Realm operation exposed remotely: %s", method)
+		}
+	}
+	if _, enabled := remoteAppIngress(protectedInvokeRealmUnaryMethod, &runtimev1.InvokeRealmUnaryRequest{MethodId: "WorldCoreController_listWorldCores"}, true); enabled {
+		t.Fatal("Realm unary acquired a stream carrier")
+	}
+}
+
 func TestRemoteLabCarrierDoesNotExposeNativeOrManagerAuthority(t *testing.T) {
 	for _, method := range []string{protectedAgentReferenceListMethod, protectedOpenConversationMethod, protectedReadLocalAppStorageJSONMethod, protectedAgentManagerSnapshotMethod} {
 		if !remoteAppMethodSupported(method) {
