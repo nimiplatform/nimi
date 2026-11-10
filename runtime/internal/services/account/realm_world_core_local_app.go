@@ -201,7 +201,10 @@ func (validation *worldCoreDTOValidation) core(value any, depth int) bool {
 	}
 	if value, exists := object["narrative"]; exists {
 		narrative, valid := validation.object(value, depth+1, []string{"setting"}, []string{"setting"})
-		if !valid || !worldCoreProfileText(narrative["setting"], true, localAppWorldCoreMaxTextBytes) {
+		// Realm admits complete setting prose without a separate field-size cap.
+		// The operation's request/response envelope already bounds these bytes.
+		setting, isText := narrative["setting"].(string)
+		if !valid || !isText || strings.TrimSpace(setting) == "" || strings.ContainsRune(setting, '\x00') {
 			return false
 		}
 	}

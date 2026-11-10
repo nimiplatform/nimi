@@ -10,7 +10,10 @@ import (
 )
 
 func TestLocalAppWorldCoreListPreservesLargeCanonicalSettingsAndDiscovery(t *testing.T) {
-	setting := strings.Repeat("A fictional harbor. ", 1800)
+	setting := strings.Repeat("雨", 24_000)
+	if len(setting) <= 64*1024 {
+		t.Fatal("regression prose must exceed the former UTF-8 field limit")
+	}
 	rows := make([]string, 50)
 	for index := range rows {
 		rows[index] = strings.Replace(validLocalAppWorldCoreJSON(fmt.Sprintf("world-%d", index)),
