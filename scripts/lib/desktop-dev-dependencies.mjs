@@ -233,7 +233,10 @@ export async function prepareDesktopDevDependencies(root, { signal } = {}) {
       if (state.state === 'ready') { log(`Reusing ${service.name}.`); continue; }
       if (state.state !== 'missing') throw new Error(`${service.name} is listening but not ready (${state.detail || state.state}). Stop or repair the occupying service; it will not be replaced.`);
       log(`Starting ${service.name}…`);
-      const child = launchDevService(service.external ? realmRoot : root, service, service.external ? process.env : { ...env, NIMI_REALM_URL: realmOrigin }, logRoot);
+      // The probe can use a numeric loopback address. Browser authentication
+      // must keep the configured Realm origin so its session cookies stay same-site.
+      const serviceEnv = service.external ? process.env : { ...env, NIMI_REALM_URL: env.NIMI_REALM_URL || realmOrigin };
+      const child = launchDevService(service.external ? realmRoot : root, service, serviceEnv, logRoot);
       owned.push(child);
       log(`${service.name} log: ${child.logPath}`);
       await waitForDevDependency(service, { signal, failure: child.failure });

@@ -1,11 +1,12 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useEffectEvent, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { completeRuntimeClientLogin, matchesRuntimeClientCallback, prepareRuntimeClientLogin, type RuntimeClientLoginOptions, type RuntimeClientLoginTransaction, type RuntimeClientSession } from '@nimiplatform/sdk/realm/runtime-client';
 import type { RemoteRuntimeConnection } from '@nimiplatform/sdk/runtime/remote';
 import { RemoteSourceAccessState, RuntimeServiceMode, type GetRemoteAccessStateResponse } from '@nimiplatform/sdk/runtime/wire-types';
-import type { NimiAIConfigSnapshot } from '@nimiplatform/sdk/ai';
+import type { NimiAIConfigOverwriteInput, NimiAIConfigSnapshot } from '@nimiplatform/sdk/ai';
 import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
+import { ModelConfigAIConfigSurface, type ModelConfigCopy } from '@nimiplatform/kit/features/model-config';
 import { createWebBrowserRealm, webRealmOrigin } from './browser-realm.js';
 import { loadWebCurrentAccount } from './web-account-adapter.js';
 import { AccountFeedback } from './account-center-layout.js';
@@ -13,13 +14,76 @@ import { AccountFeedback } from './account-center-layout.js';
 type ManagerConnection = Extract<RemoteRuntimeConnection, { role: 'official_manager' }>;
 type Login = { accountId: string; options: Omit<RuntimeClientLoginOptions, 'currentUserContext' | 'fetch'>; transaction: RuntimeClientLoginTransaction };
 const storageKey = 'nimi:runtime-manager:login';
+const remoteModelConfigCopy: ModelConfigCopy = {
+  localChoiceDescription: 'Use the model selected on the primary PC.',
+  localSelectedLabel: 'Selected on the primary PC',
+  localMissingLabel: 'No on-device model is selected for this capability on the primary PC.',
+  cloudNoticeDescription: 'The primary Runtime sends the request to the selected cloud provider, which may charge for it.',
+};
+const remoteModelConfigCopyZh: ModelConfigCopy = {
+  description: '为此应用选择运行方式和模型。',
+  backLabel: '返回能力列表',
+  detailTitle: capability => `${capability}设置`,
+  capabilityLabel: (contract, fallback) => ({
+    'text.generate': '文本生成', 'text.annotate': '文本标注', 'image.generate': '图像生成',
+    'speech.synthesize': '语音合成', 'speech.transcribe': '语音转写', 'music.generate': '音乐生成',
+  } as Record<string, string>)[contract] ?? fallback,
+  activeModelLabel: '当前模型',
+  activeModelHint: '更换模型',
+  activeModelConfiguredLabel: '已配置',
+  activeModelSetupPendingLabel: '待配置',
+  modelPickerTitle: '选择模型',
+  modelPickerSearchPlaceholder: '搜索模型',
+  modelPickerLoadingLabel: '正在读取可用模型…',
+  modelPickerEmptyLabel: '此能力暂无可用模型。',
+  configuredSummary: '模型已配置',
+  emptySummary: '尚未选择模型',
+  routeLabel: '运行方式',
+  localLabel: '主机本地',
+  cloudLabel: '云端',
+  localChoiceDescription: '使用主 PC 已选定的本地模型。',
+  localSelectedLabel: '主 PC 当前选择',
+  localMissingLabel: '主 PC 尚未为此能力选定本地模型。',
+  localBrokenLabel: '主 PC 选定的本地模型不可用。',
+  localUnavailableLabel: '无法读取主 PC 的本地模型选择。',
+  cloudConnectorPickerLabel: '云连接',
+  cloudConnectorPickerPlaceholder: '选择已配置的云连接',
+  cloudNoConnectorsLabel: '主 PC 暂无可用的云连接。',
+  cloudLoadFailed: '无法读取主 PC 的云连接或模型选项。',
+  cloudNoticeLabel: '云端执行',
+  cloudNoticeDescription: '主 Runtime 会向所选云服务商发送请求，服务商可能收费。',
+  saveLocalLabel: '保存设置',
+  saveCloudLabel: '保存设置',
+  savingLabel: '正在保存…',
+  savedLabel: '已保存',
+  clearLabel: '清除配置',
+  clearingLabel: '正在清除…',
+  advancedLabel: '高级设置',
+  defaultsLabel: '默认参数',
+  defaultsPlaceholder: '留空则不为该参数指定默认值。',
+  defaultsListPlaceholder: '每行一个值',
+  conflictLabel: '配置已在其他页面修改',
+  conflictDescription: '已保留当前草稿。请核对最新配置后再保存。',
+  conflictCurrentLabel: (revision, summary) => `当前版本 ${revision}：${summary}`,
+  retryLabel: '重试',
+  saveFailed: '无法保存模型设置。',
+  notConfiguredLabel: '未配置',
+  configuredLabel: '已配置',
+  selectionRequiredLabel: '待选择',
+  blockedLabel: '暂不可用',
+  unavailableLabel: '不可用',
+  cancelLabel: '取消',
+  confirmSelectionLabel: '使用所选模型',
+};
 
 // @nimi-authority: rule.nimi.platform.product-lifecycle.remote-runtime-management
 export function AccountRuntimeManager({ accountId }: { accountId: string }) {
   const { i18n } = useTranslation(), navigate = useNavigate();
+  const { search } = useLocation();
   const zh = i18n.language.startsWith('zh'), say = (cn: string, en: string) => zh ? cn : en;
   const clientId = String(import.meta.env.VITE_NIMI_RUNTIME_MANAGER_CLIENT_ID || '').trim();
   const realmEnvironmentId = String(import.meta.env.VITE_NIMI_REALM_ENVIRONMENT_ID || '').trim();
+  const ready = !!clientId && !!realmEnvironmentId && window.location.protocol === 'https:';
   const [connection, setConnection] = useState<ManagerConnection | null>(null);
   const [access, setAccess] = useState<GetRemoteAccessStateResponse | null>(null);
   const [state, setState] = useState('');
@@ -27,7 +91,7 @@ export function AccountRuntimeManager({ accountId }: { accountId: string }) {
   const [busy, setBusy] = useState(false);
   const [appId, setAppId] = useState('');
   const [config, setConfig] = useState<NimiAIConfigSnapshot | null>(null);
-  const [configSaved, setConfigSaved] = useState(false);
+  const [configError, setConfigError] = useState<string | null>(null);
   const mounted = useRef(true), generation = useRef<string | null>(null), session = useRef<RuntimeClientSession | null>(null);
   const peer = useRef<ManagerConnection | null>(null), connecting = useRef<AbortController | null>(null), working = useRef(false);
   const selectedApp = useRef('');
@@ -36,12 +100,20 @@ export function AccountRuntimeManager({ accountId }: { accountId: string }) {
     peer.current?.close(); peer.current = null;
     if (session.current) void session.current.end().catch(reason => { if (mounted.current) setError(String(reason.message)); });
     session.current = null;
-    if (mounted.current) { setConnection(null); setAccess(null); setConfig(null); setConfigSaved(false); }
+    if (mounted.current) { setConnection(null); setAccess(null); clearConfig(); }
+  }
+  function clearConfig() {
+    selectedApp.current = ''; setAppId(''); setConfig(null); setConfigError(null);
   }
   useEffect(() => {
     mounted.current = true;
     return () => { mounted.current = false; close(); };
   }, [accountId]);
+  const finishLogin = useEffectEvent(() => { if (ready) void action(connect); });
+  useEffect(() => {
+    const callback = new URLSearchParams(search);
+    if (callback.has('code') || callback.has('error')) finishLogin();
+  }, [search]);
   async function action(work: () => Promise<void>) {
     if (working.current) return;
     working.current = true; setBusy(true); setError(null);
@@ -90,7 +162,7 @@ export function AccountRuntimeManager({ accountId }: { accountId: string }) {
       const connected = await connectRemoteRuntime(session.current, { signal: controller.signal, onState(next) {
         if (!mounted.current) return;
         setState(next);
-        if (next === 'closed') { peer.current = null; setConnection(null); setAccess(null); setConfig(null); setConfigSaved(false); }
+        if (next === 'closed') { peer.current = null; setConnection(null); setAccess(null); clearConfig(); }
       } });
       if (!mounted.current || connected.role !== 'official_manager') { connected.close(); throw new Error('A verified owner-management session is required.'); }
       peer.current = connected; setConnection(connected); await readState(connected);
@@ -103,24 +175,29 @@ export function AccountRuntimeManager({ accountId }: { accountId: string }) {
     if (!mounted.current || peer.current !== current || current.closed) return;
     setState(service.mode === RuntimeServiceMode.ORDINARY ? 'connected' : 'maintenance'); setAccess(sources);
   }
-  async function readConfig(id: string) {
-    selectedApp.current = id; setAppId(id); setConfig(null); setConfigSaved(false);
-    const current = peer.current;
-    if (!id || !current || current.closed) return;
-    const next = await current.management.appAIConfig(id).get();
-    if (mounted.current && peer.current === current && selectedApp.current === id) setConfig(next);
+  function isSelected(current: ManagerConnection, id: string) {
+    return mounted.current && peer.current === current && !current.closed && selectedApp.current === id;
   }
-  async function saveLocal() {
-    const current = peer.current, previous = config, id = selectedApp.current;
-    if (!current || !previous || !id) return;
-    setConfigSaved(false);
+  async function refreshConfig(current: ManagerConnection, id: string) {
+    try {
+      const next = await current.management.appAIConfig(id).get();
+      if (isSelected(current, id)) { setConfig(next); setConfigError(null); }
+    } catch {
+      if (isSelected(current, id)) setConfigError(say('无法读取最新的应用配置，请重试。', 'Could not read the latest app configuration. Try again.'));
+    }
+  }
+  async function readConfig(id: string) {
+    clearConfig();
+    selectedApp.current = id; setAppId(id);
+    const current = peer.current;
+    if (id && current && !current.closed) await refreshConfig(current, id);
+  }
+  async function overwriteConfig(current: ManagerConnection, id: string, input: NimiAIConfigOverwriteInput) {
     await verifyOwner();
-    const { createNimiLocalAIConfigCapabilityIntent } = await import('@nimiplatform/sdk/ai');
-    const result = await current.management.appAIConfig(id).overwrite({ expectedRevision: previous.revision,
-      capabilities: [...(previous.config?.capabilities ?? []).filter(item => item.capabilityContract !== 'text.generate'), createNimiLocalAIConfigCapabilityIntent({ capabilityContract: 'text.generate' })] });
-    if (result.outcome === 'conflict') throw new Error(say('配置已改变，请重新读取后再保存。', 'The configuration changed. Read it again before saving.'));
-    await readConfig(id);
-    if (mounted.current && peer.current === current && !current.closed && selectedApp.current === id) setConfigSaved(true);
+    if (!isSelected(current, id)) throw new Error(say('连接或应用已改变。', 'The connection or selected app changed.'));
+    const result = await current.management.appAIConfig(id).overwrite(input);
+    if (isSelected(current, id)) await refreshConfig(current, id);
+    return result;
   }
   const labels: Record<string, string> = {
     gathering: say('正在准备直连…', 'Preparing a direct connection…'), 'waiting-for-pc': say('等待 PC 响应；首次接入请在 Home 确认此管理来源。', 'Waiting for the PC. Confirm this management source in Home on first use.'),
@@ -128,8 +205,14 @@ export function AccountRuntimeManager({ accountId }: { accountId: string }) {
     closed: say('连接已关闭。需要时重新连接。', 'The connection closed. Connect again when needed.'), maintenance: say('Runtime 处于维护状态。', 'Runtime is in maintenance mode.'),
     stop: say('停止请求已接受。连接关闭不单独证明主机进程已退出；停止后需在 PC 上重新启动。', 'The stop request was accepted. A closed connection alone does not prove process exit. Restart from the PC after it stops.'),
   };
-  const apps = [...new Map((access?.sources ?? []).filter(item => !item.officialManager).map(item => [item.appId, item.displayName])).entries()];
-  const ready = !!clientId && !!realmEnvironmentId && window.location.protocol === 'https:';
+  const apps = new Map<string, { name: string; capabilities: Set<string> }>();
+  for (const source of access?.sources ?? []) {
+    if (source.officialManager || (source.state !== RemoteSourceAccessState.ALLOWED && source.state !== RemoteSourceAccessState.PAUSED)) continue;
+    const app = apps.get(source.appId) ?? { name: source.displayName, capabilities: new Set<string>() };
+    for (const capability of source.capabilityContractRefs) app.capabilities.add(capability);
+    apps.set(source.appId, app);
+  }
+  const selected = apps.get(appId);
   return <section className="ac-section">
     <h2>{say('远程管理', 'Remote management')}</h2>
     <p>{say('通过此官方管理端连接你的主 Runtime。首次使用在 PC Home 确认此来源，换浏览器或设备不重复确认。', 'Connect your primary Runtime from this official manager. Confirm this source once in PC Home; another browser or device does not require another approval.')}</p>
@@ -157,11 +240,26 @@ export function AccountRuntimeManager({ accountId }: { accountId: string }) {
             if (!connection.closed) await readState(connection);
           })}>{source.state === RemoteSourceAccessState.PAUSED ? say('恢复访问', 'Resume access') : say('暂停访问', 'Pause access')}</button>}</div>)}
       <h3 className="ac-runtime-subheading">{say('远程应用的 AI 配置', 'Remote application AI configuration')}</h3>
-      <label className="ac-field"><span>{say('已登记应用', 'Registered application')}</span><select value={appId} disabled={busy} onChange={event => void action(() => readConfig(event.target.value))}>
-        <option value="">{say('选择应用', 'Choose an application')}</option>{apps.map(([id, name]) => <option key={id} value={id}>{name}</option>)}</select></label>
-      {config && <><p>{config.effectiveSelections.map(item => `${item.capabilityContract}: ${item.state}`).join(' · ') || say('尚未配置能力。', 'No capability is configured.')}</p>
-        <button className="ac-button ac-button--secondary" disabled={busy} onClick={() => void action(saveLocal)}>{say('将此应用的文本生成设为 Local', 'Use Local text generation for this app')}</button>
-        <AccountFeedback message={configSaved ? say('已保存：此应用的文本生成使用 Local。', 'Saved: this app uses Local text generation.') : null} /></>}
+      <p>{say('本地模型和云连接由主 PC 配置。这里的更改只影响所选应用。', 'The primary PC manages on-device models and cloud connectors. Changes here apply only to the selected app.')}</p>
+      <label className="ac-field"><span>{say('已接入应用', 'Admitted application')}</span><select value={selected ? appId : ''} disabled={busy} onChange={event => void action(() => readConfig(event.target.value))}>
+        <option value="">{say('选择应用', 'Choose an application')}</option>{Array.from(apps, ([id, app]) => <option key={id} value={id}>{app.name}</option>)}</select></label>
+      {selected && <ModelConfigAIConfigSurface
+        key={appId}
+        context={{ owner: 'app-ai-config', appId }}
+        capabilityContracts={[...selected.capabilities]}
+        capabilities={config ? config.config?.capabilities ?? null : undefined}
+        revision={config?.revision}
+        effectiveSelections={config?.effectiveSelections}
+        loading={busy && !config}
+        loadError={configError}
+        onRetry={() => void action(() => refreshConfig(connection, appId))}
+        listOptions={query => connection.management.appAIConfig(appId).listOptions(query)}
+        onOverwrite={input => overwriteConfig(connection, appId, input)}
+        disabled={busy}
+        copy={zh ? remoteModelConfigCopyZh : remoteModelConfigCopy}
+        language={i18n.language}
+        showTitle={false}
+      />}
       <div className="ac-runtime-stop"><h3>{say('停止主 Runtime', 'Stop the primary Runtime')}</h3><p>{say('所有远程连接将关闭。网页无法再次启动已停止的 Runtime；需要在 PC 上启动 Nimi。', 'All remote connections will close. This website cannot restart a stopped Runtime; start Nimi on the PC.')}</p>
         <button className="ac-button ac-button--danger" disabled={busy} onClick={() => {
           if (window.confirm(say('停止主 Runtime 并关闭所有远程连接？', 'Stop the primary Runtime and close all remote connections?'))) void action(async () => {

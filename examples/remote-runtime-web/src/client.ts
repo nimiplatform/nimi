@@ -19,19 +19,27 @@ let cloudTargets: readonly NimiAIConfigCloudTargetOption[] = [];
 let cancelGeneration: (() => Promise<void>) | undefined;
 let lastJob: NimiLocalAppScenarioJob | undefined;
 const changes = new BroadcastChannel('website-account');
-const performing = new Set<HTMLButtonElement>();
+const performing = new Map<HTMLButtonElement, () => boolean>();
 let refreshSequence = 0;
 
 function notice(error: unknown): void { text('notice', error instanceof Error ? error.message : String(error)); show('notice', true); }
 function clearNotice(): void { show('notice', false); }
-function closeConnection(): void {
-  connecting?.abort(); connecting = undefined; connection?.close(); connection = undefined;
-  sessionAbort?.abort(); session = undefined; snapshot = undefined;
-  if (cancelGeneration) void cancelGeneration().catch(() => undefined); cancelGeneration = undefined;
+function resetConnectionView(status: string): void {
+  connection = undefined; snapshot = undefined; cancelGeneration = undefined;
   show('configuration', false); show('disconnect', false); show('cancel', false);
   element<HTMLButtonElement>('generate').disabled = true;
-  text('connection-state', '未连接主 Runtime'); text('generation-state', '先连接主 Runtime');
+  text('connection-state', status); text('generation-state', '先连接主 Runtime');
   updateTaskControls();
+}
+function closeConnection(): void {
+  const cancel = cancelGeneration;
+  connecting?.abort(); connecting = undefined; connection?.close();
+  sessionAbort?.abort(); sessionAbort = undefined; session = undefined;
+  if (cancel) void cancel().catch(() => undefined);
+  resetConnectionView('未连接主 Runtime');
+}
+function isCurrentConnection(active: RemoteRuntimeConnection | undefined): boolean {
+  return !!active && connection === active && !active.closed && !!session?.active;
 }
 async function refresh(): Promise<void> {
   const sequence = ++refreshSequence;
@@ -40,7 +48,9 @@ async function refresh(): Promise<void> {
   const next = await response.json() as SiteState;
   if (sequence !== refreshSequence) return;
   if (next.context !== state.context || next.nimi?.contextId !== state.nimi?.contextId) {
-    closeConnection(); text('output', '生成的内容会出现在这里。当前草稿仅保留在此页面。'); element<HTMLTextAreaElement>('prompt').value = '';
+    closeConnection();
+    if (next.user?.id !== state.user?.id) clearNotice();
+    text('output', '生成的内容会出现在这里。当前草稿仅保留在此页面。'); element<HTMLTextAreaElement>('prompt').value = '';
     lastJob = undefined; element<HTMLInputElement>('job-reference').value = ''; element<HTMLTextAreaElement>('job-text').value = '';
     text('job-state', '尚未查询任务。'); text('job-result', '');
   }
@@ -60,13 +70,32 @@ async function api<T>(path: string, body: Record<string, string> = {}, expected 
   if (expected !== state.context) throw new Error('网站账号已改变，旧请求的结果已丢弃。');
   return result as T;
 }
-function action(id: string, run: () => Promise<void>): void {
-  element<HTMLButtonElement>(id).addEventListener('click', () => { void perform(element<HTMLButtonElement>(id), run); });
+function action(id: string, run: () => Promise<void>, scope: 'site' | 'runtime' = 'site'): void {
+  const button = element<HTMLButtonElement>(id);
+  button.addEventListener('click', () => {
+    const active = connection;
+    void perform(button, run, () => scope === 'site' || isCurrentConnection(active));
+  });
 }
-async function perform(button: HTMLButtonElement, run: () => Promise<void>): Promise<void> {
-  if (performing.has(button)) return;
-  performing.add(button); button.disabled = true; clearNotice();
-  try { await run(); } catch (error) { notice(error); } finally { performing.delete(button); button.disabled = false; await refresh().catch(notice); }
+async function perform(button: HTMLButtonElement, run: () => Promise<void>, current = () => true): Promise<void> {
+  if (performing.get(button)?.()) return;
+  const owner = state.context;
+  performing.set(button, current); button.disabled = true; clearNotice();
+  const report = (error: unknown) => { if (state.context === owner && current()) notice(error); };
+  try {
+    await run();
+  } catch (error) {
+    report(error);
+  } finally {
+    if (performing.get(button) === current) {
+      performing.delete(button);
+      if (current()) {
+        button.disabled = false;
+        updateTaskControls();
+        await refresh().catch(report);
+      }
+    }
+  }
 }
 element<HTMLFormElement>('credentials').addEventListener('submit', event => {
   event.preventDefault();
@@ -101,11 +130,14 @@ action('connect', async () => {
   const attempt = new AbortController(); connecting = attempt; show('connect', false);
   try {
     const connected = await connectRemoteRuntime(session, { signal: attempt.signal, onState(value) {
+      if (sessionAbort !== abort) return;
       const labels = { gathering: '正在准备直连…', 'waiting-for-pc': '正在等待 PC；首次接入请在 Home 确认。', connecting: '正在建立直连…', connected: '已直连主 Runtime', closed: '连接已关闭；需要时重新连接。' };
-      text('connection-state', labels[value]);
-      if (value === 'closed') { connection = undefined; snapshot = undefined; element<HTMLButtonElement>('generate').disabled = true;
-        text('generation-state', '先连接主 Runtime'); updateTaskControls();
-        show('configuration', false); show('disconnect', false); show('connect', !!state.nimi); }
+      if (value === 'closed') {
+        resetConnectionView(labels.closed);
+        show('connect', !!state.nimi);
+      } else {
+        text('connection-state', labels[value]);
+      }
     } });
     if (!current()) { connected.close(); throw new Error('网站账号上下文已改变。'); }
     if (connected.role !== 'app') { connected.close(); throw new Error('此网站需要普通生态应用身份，不能使用管理客户端登记。'); }
@@ -198,39 +230,51 @@ action('save-config', async () => {
   if (result.outcome === 'conflict') notice(new Error('配置已被其它管理入口修改。已读取最新状态，请检查后再保存。'));
   await readConfig();
 });
+async function generate(): Promise<void> {
+  const active = appConnection(), prompt = element<HTMLTextAreaElement>('prompt').value.trim();
+  if (!prompt) return;
+  element<HTMLButtonElement>('generate').disabled = true; text('output', ''); text('generation-state', '正在生成…');
+  let canceled = false;
+  try {
+    const stream = await active.ai.text.streamTurn({ messages: [{ role: 'user', text: prompt }] });
+    if (!isCurrentConnection(active)) { await stream.cancel(); return; }
+    cancelGeneration = async () => { canceled = true; await stream.cancel(); }; show('cancel', true);
+    for await (const event of stream) {
+      if (!isCurrentConnection(active)) break;
+      if (event.type === 'delta') element('output').append(document.createTextNode(event.text));
+      if (event.type === 'failed') throw new Error(`生成失败：${event.reasonCode}。${event.actionHint}`);
+      if (event.type === 'completed') text('generation-state', '生成完成');
+    }
+  } catch (error) {
+    if (isCurrentConnection(active) && !canceled) {
+      notice(error);
+      text('generation-state', '生成未完成；不会自动重试');
+    }
+  } finally {
+    if (isCurrentConnection(active)) {
+      if (canceled) text('generation-state', '已停止本次生成');
+      cancelGeneration = undefined;
+      show('cancel', false);
+      element<HTMLButtonElement>('generate').disabled = false;
+    }
+  }
+}
 element<HTMLFormElement>('compose').addEventListener('submit', event => {
   event.preventDefault(); clearNotice();
-  void (async () => {
-    const active = appConnection(), prompt = element<HTMLTextAreaElement>('prompt').value.trim();
-    if (!prompt) return;
-    element<HTMLButtonElement>('generate').disabled = true; text('output', ''); text('generation-state', '正在生成…');
-    const stream = await active.ai.text.streamTurn({ messages: [{ role: 'user', text: prompt }] });
-    if (connection !== active || active.closed) { await stream.cancel(); return; }
-    let canceled = false;
-    cancelGeneration = async () => { canceled = true; await stream.cancel(); }; show('cancel', true);
-    try {
-      for await (const event of stream) {
-        if (connection !== active || active.closed) break;
-        if (event.type === 'delta') element('output').append(document.createTextNode(event.text));
-        if (event.type === 'failed') throw new Error(`生成失败：${event.reasonCode}。${event.actionHint}`);
-        if (event.type === 'completed') text('generation-state', '生成完成');
-      }
-    } catch (error) {
-      if (!canceled) throw error;
-      if (connection === active) text('generation-state', '已停止本次生成');
-    } finally {
-      if (connection === active) { cancelGeneration = undefined; show('cancel', false); element<HTMLButtonElement>('generate').disabled = active.closed; }
-    }
-  })().catch(error => { notice(error); text('generation-state', '生成未完成；不会自动重试'); show('cancel', false);
-    element<HTMLButtonElement>('generate').disabled = !connection || connection.closed; });
+  void generate().catch(notice);
 });
-action('cancel', async () => { await cancelGeneration?.(); cancelGeneration = undefined; text('generation-state', '已停止本次生成'); });
+element<HTMLButtonElement>('cancel').addEventListener('click', () => {
+  const active = connection, cancel = cancelGeneration;
+  void cancel?.().catch(error => {
+    if (isCurrentConnection(active) && cancelGeneration === cancel) notice(error);
+  });
+});
 
 function updateTaskControls(): void {
   const available = !!connection && !connection.closed && connection.role === 'app' && !!session?.active;
   const annotation = snapshot?.effectiveSelections.find(item => item.capabilityContract === 'text.annotate');
   const annotationLabel = annotation?.resource?.oneofKind === 'local' ? annotation.resource.local.label : '';
-  const disable = (id: string, unavailable: boolean) => { const button = element<HTMLButtonElement>(id); button.disabled = unavailable || performing.has(button); };
+  const disable = (id: string, unavailable: boolean) => { const button = element<HTMLButtonElement>(id); button.disabled = unavailable || !!performing.get(button)?.(); };
   disable('prepare-job', !available);
   disable('submit-job', !available || annotation?.state !== 'ready');
   disable('read-job', !available || !element<HTMLInputElement>('job-reference').value.trim());
@@ -251,11 +295,12 @@ action('prepare-job', async () => {
   const intent = createNimiLocalAIConfigCapabilityIntent({ capabilityContract: 'text.annotate' });
   const saved = await active.aiConfig.overwrite({ expectedRevision: current.revision,
     capabilities: [...(current.config?.capabilities ?? []).filter(item => item.capabilityContract !== intent.capabilityContract), intent] });
+  if (!isCurrentConnection(active)) return;
   if (saved.outcome === 'conflict') notice(new Error('配置已改变。请检查当前配置后再保存。'));
-  if (connection === active) await readConfig();
-});
+  await readConfig();
+}, 'runtime');
 action('submit-job', async () => {
-  const active = appConnection(), owner = state.context;
+  const active = appConnection();
   const content = element<HTMLTextAreaElement>('job-text').value.trim(), language = element<HTMLInputElement>('job-language').value.trim();
   if (!content || !language) throw new Error('请填写待标注文本和语言。');
   const clientSubmissionId = createNimiClientId('web-annotation');
@@ -263,24 +308,24 @@ action('submit-job', async () => {
   text('job-state', '正在提交；若响应中断，请用此编号查询。'); updateTaskControls();
   try {
     const result = await active.ai.scenarioJobs.submit({ type: 'text-annotate', language, texts: [content] }, { clientSubmissionId });
-    if (state.context === owner && connection === active && !active.closed) displayJob(result.job);
+    if (isCurrentConnection(active)) displayJob(result.job);
   } catch (error) {
-    if (state.context === owner) text('job-state', '未取得任务结果。可按此提交编号查询；不会自动重新提交。');
+    if (isCurrentConnection(active)) text('job-state', '未取得任务结果。可按此提交编号查询；不会自动重新提交。');
     throw error;
   }
-});
+}, 'runtime');
 action('read-job', async () => {
-  const active = appConnection(), owner = state.context, reference = element<HTMLInputElement>('job-reference').value.trim();
+  const active = appConnection(), reference = element<HTMLInputElement>('job-reference').value.trim();
   if (!reference) throw new Error('请填写提交编号。');
   const result = await active.ai.scenarioJobs.lookupSubmission(reference);
-  if (state.context === owner && connection === active && reference === element<HTMLInputElement>('job-reference').value.trim()) displayJob(result.job);
-});
+  if (isCurrentConnection(active) && reference === element<HTMLInputElement>('job-reference').value.trim()) displayJob(result.job);
+}, 'runtime');
 action('cancel-job', async () => {
-  const active = appConnection(), owner = state.context, job = lastJob;
+  const active = appConnection(), job = lastJob;
   if (!job) return;
   const result = await active.ai.scenarioJobs.cancel(job.jobId, 'User requested cancellation in the reference website.');
-  if (state.context === owner && connection === active && lastJob === job) displayJob(result.job);
-});
+  if (isCurrentConnection(active) && lastJob === job) displayJob(result.job);
+}, 'runtime');
 changes.onmessage = () => { closeConnection(); void refresh().catch(notice); };
 window.addEventListener('pagehide', closeConnection);
 document.addEventListener('visibilitychange', () => { if (!document.hidden) void refresh().catch(notice); });

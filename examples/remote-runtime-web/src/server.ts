@@ -5,6 +5,7 @@ import { randomBytes } from 'node:crypto';
 import { resolve } from 'node:path';
 import { prepareRuntimeClientLogin, completeRuntimeClientLogin, matchesRuntimeClientCallback,
   type RuntimeClientLoginOptions, type RuntimeClientLoginTransaction, type RuntimeClientSession } from '@nimiplatform/sdk/realm/runtime-client';
+import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
 import { Accounts } from './accounts.ts';
 import { resolveReferenceNetwork } from './server-network.ts';
 
@@ -156,7 +157,16 @@ async function route(req: IncomingMessage, res: ServerResponse): Promise<void> {
     let result: unknown;
     if (url.pathname === '/api/runtime/context') { await body(req, []); result = await nimi.read(); }
     else if (url.pathname === '/api/runtime/offer') {
-      const input = await body(req, ['offerSdp', 'bindingId']); result = await nimi.createConnection(input.offerSdp, input.bindingId);
+      const input = await body(req, ['offerSdp', 'bindingId']);
+      try {
+        result = await nimi.createConnection(input.offerSdp, input.bindingId);
+      } catch (error) {
+        assertUnchanged(session, context);
+        if (extractNimiErrorFields(error).reasonCode === 'PRIMARY_RUNTIME_UNAVAILABLE') {
+          throw new HttpError(409, '当前账号的主 Runtime 不可用。请在主机上启动 Home 并启用远程接入，然后重试。');
+        }
+        throw error;
+      }
     } else {
       const input = await body(req, ['connectionId', 'bindingId']); result = await nimi.readConnection(input.connectionId, input.bindingId);
     }
