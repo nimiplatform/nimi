@@ -6,7 +6,7 @@ import type { NimiRemoteAppConfig } from '@nimiplatform/kit/core/app-session';
 export const mobileAccess: Omit<NimiRemoteAppConfig, 'fetch'> = {
   appId: 'nimi.zhiyu', clientId: 'nimi.zhiyu.android.dev', realmEnvironmentId: 'dev',
   realmBaseUrl: 'http://127.0.0.1:3002', officialWebBaseUrl: 'http://localhost:3000',
-  redirectUri: 'https://zhiyu.nimi.ai/nimi/android/callback',
+  redirectUri: 'ai.nimi.apps.zhiyu.dev:/oauth/callback',
 };
 const config: CapacitorConfig = {
   appId: 'ai.nimi.apps.zhiyu.dev', appName: '织羽', webDir: 'dist-mobile', loggingBehavior: 'none',

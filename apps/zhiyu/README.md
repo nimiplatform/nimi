@@ -69,24 +69,24 @@ Web 使用 Kit `auth/app/web`，Desktop 使用 `auth/app/desktop`；两者共享
 已有 Web 版本实际运行过文本聊天、既有会话重读、伙伴配置和 skin 预览／应用／清除。共享接入与公开包迁移后的真实页面复验单独记录，工程检查通过不能代替新版产品路径。原生 Avatar 启动／placement 不被网页模拟；其它语音／媒体组合及公网条件按实际应用任务验证。Mobile 仍待原生来源、系统回调和容器实现，没有空的 Mobile 工厂。
 
 
-## Android 容器开发（实施中）
+## Android 本机开发
 
-`src/mobile/main.tsx` 与 Web 共用 `production/remote-entry` 和同一 renderer。Capacitor 配置位于 `capacitor.config.ts`；当前 Android 包名为 `ai.nimi.apps.zhiyu.dev`，候选 Nimi 客户端为 `nimi.zhiyu.android.dev`，回调为 `https://zhiyu.nimi.ai/nimi/android/callback`。这些是开发输入，尚未写入新的 Registry 接纳记录，也没有部署域名关联文件。
+`src/mobile/main.tsx` 与 Web 共用 `production/remote-entry` 和同一 renderer。当前 Android 12+ 开发包为 `ai.nimi.apps.zhiyu.dev`，Nimi 客户端为 `nimi.zhiyu.android.dev`，配置位于 `capacitor.config.ts`。开发回调使用 `ai.nimi.apps.zhiyu.dev:/oauth/callback`，由 debug Manifest 声明，无需部署公网域名。
 
-首个宿主使用 Android 12+，以公开 DomainVerificationManager 检查系统已验证链接。必须由 Registry 单独接纳 Android package／签名指纹／HTTPS callback，并在该域名提供匹配的 Digital Asset Links。手工把未验证域名设为默认打开或复用网页 clientId，不构成该资格。普通同签名安装更新和换设备不重复申请 Home 许可；首次来源接入仍按原规则确认。
+先在本机开发 Realm 使用的 Registry 登记 `android-dev-scheme` 来源、精确回调、包名和实际 debug 签名指纹，沿用维护者接纳和 Home 首次确认。Realm 只从显式本地 Registry 在非生产环境接受此类型；生产和公共 Registry 响应拒绝。Kit 核对 debug 宿主、安装包签名和回调，登录仍由系统浏览器完成，授权码/PKCE/state 与业务权限完全复用。它不提供 App Link 的域名证明，也不自动降级正式来源。
 
-安装所选公共 SDK／Kit 和 Capacitor 包后，在应用目录运行：
+安装所选完整 SDK/Kit 与 Capacitor 包并配置 JDK/Android SDK 后，启动本机 Realm、官方登录 Web 和 Nimi Home。USB 设备允许调试后，可在 Android SDK 的 adb 命令目录准备登录与协调端口：
 
 ```sh
+adb -d reverse tcp:3000 tcp:3000
+adb -d reverse tcp:3002 tcp:3002
 pnpm build:mobile
 pnpm sync:android
 pnpm dev:mobile
 ```
 
-前两项生成 WebView 资源并同步真实 Android 工程；`dev:mobile` 经 App Tools 调用应用自己的 `dev:android`，再由 Capacitor 构建和运行。它需要 Android SDK/JDK 与设备条件，不受本机 Desktop supervisor 托管。当前人工真机验收暂停，因此不能用这两项编译／同步结果声明手机登录或 AI 可用。
+`dev:mobile` 经 App Tools 调用应用自己的 `dev:android`，由 Capacitor 构建和运行。它不受 Desktop supervisor 托管。首次使用新来源时，用户在系统浏览器完成 Nimi 登录，并在 PC Home 确认该来源；普通同签名更新与重连不重复批准。
 
-`loggingBehavior: 'none'` 是凭据边界的一部分：Capacitor 默认调试桥接日志会记录请求参数。Kit 在登录前拒绝不安全日志配置，并用无 Cookie、无重定向及无自动重试的窄协调 HTTP 端口调用 Realm；AI／文件仍走同一直接 peer。后台关闭旧连接，恢复时先核对身份并重新建立此前活跃的技术连接；不会重放业务或续接旧实时流。进程丢失临时登录事务时重新登录，不建立长期 refresh-token 存储。
+USB reverse 仅提供本机开发登录和 Realm 协调，AI/文件仍由手机与 Runtime 的既有直接 peer 传输；PC 与手机需要具备直连条件。保留 `loggingBehavior: 'none'`，防止原生桥接调试日志记录登录参数。后台结束旧连接，恢复时重新核对当前身份和技术连接，不重放业务或续接旧流。
 
-开发 Realm 地址仅为手机 loopback；恢复设备测试时可显式通过 adb reverse 对接当前 PC 的 3000／3002 服务。Debug 的明文网络例外仅覆盖 localhost／127.0.0.1；其余目标仍要求 TLS。普通构建由本机工具环境配置 SDK/JDK；可通过 Gradle `-PnimiDebugKeystore=<path>` 选择自己的开发签名文件。未配置生产来源与发布签名，本轮没有生产 APK／商店上架流程。
-
-本轮已通过移动资源编译、Capacitor 三个插件发现、适配层回归及真实 Android debug APK 编译／签名校验。构建使用 JDK 21、compileSdk 37、AGP 9.1.1／Gradle 9.3.1；targetSdk 36、minSdk 31，保留当前 OkHttp 的证书修复。先前 Maven 403 在用户确认访问恢复后正常重试解决，没有改代理或换源。手机 App Link、原生 HTTP／WebRTC、媒体和生命周期真实旅程仍为 **NOT-VERIFIED**；APK 编译或浏览器视口不能代替设备结果。
+Debug 明文网络例外仅覆盖 localhost/127.0.0.1；其它目标仍要求 TLS。可通过 Gradle `-PnimiDebugKeystore=<path>` 使用自己的开发签名；该指纹须与来源登记一致。当前本机工具为 JDK 21、compileSdk 37、targetSdk 36、minSdk 31。正式分发使用单独接纳的 `android-app-link` 来源、HTTPS 回调与 Android Digital Asset Links；debug Scheme 只编入 debug Manifest。完整 App Link 分发验证不由本地 Scheme 结果代替。
