@@ -439,7 +439,7 @@ models:
     family: minimax-h3-image-vae
     updated_at: 2026-11-11
     capabilities: []
-    source_ids: [minimax_h3_image_modelcard, minimax_h3_image_comfy_weights]
+    source_ids: [minimax_h3_image_comfy_weights, minimax_h3_image_modelcard]
     install:
       repo: Comfy-Org/MiniMax-H3-Image
       revision: 892de7cb61df49753bf15145a711154803a355cb # pragma: allowlist secret -- public immutable model revision

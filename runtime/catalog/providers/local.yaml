@@ -5483,9 +5483,9 @@ models:
       as_of: 2026-03-18
       notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
     source_ref:
-      url: https://huggingface.co/MiniMaxAI/MiniMax-H3-Image
+      url: https://huggingface.co/Comfy-Org/MiniMax-H3-Image/tree/892de7cb61df49753bf15145a711154803a355cb
       retrieved_at: 2026-11-11
-      note: Original MiniMax-H3-Image model and territory-limited Community License Agreement.
+      note: Combined pruned INT8 ConvRot transformer with PDD output heads and the dedicated image VAE.
     family: minimax-h3-image-vae
     install:
       repo: Comfy-Org/MiniMax-H3-Image

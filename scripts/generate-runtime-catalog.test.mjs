@@ -257,9 +257,9 @@ test('local companion assets have variant-neutral names and cite their artifact 
   const sourceDir = path.join(import.meta.dirname, '..', 'runtime', 'catalog', 'source', 'providers', 'local');
   const source = readYamlResource(sourceDir, { merge: true });
   const generated = generateProviderCatalog(source);
-  const companions = readYamlResource(path.join(sourceDir, '55-model-asset-offers.yaml')).models.filter(
-    (model) => model.install.artifact_roles.some((role) => ['vae', 'video_vae', 'audio_vae', 'text_encoder', 'mmproj'].includes(role)),
-  );
+  const companions = ['55-model-asset-offers.yaml', '65-models-upscale.yaml']
+    .flatMap((file) => readYamlResource(path.join(sourceDir, file)).models)
+    .filter((model) => model.install.artifact_roles.some((role) => ['vae', 'video_vae', 'audio_vae', 'text_encoder', 'mmproj'].includes(role)));
   assert.ok(companions.length > 0);
   for (const companion of companions) {
     const row = generated.models.find((model) => model.model_id === companion.model_id);
