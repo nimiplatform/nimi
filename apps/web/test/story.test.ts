@@ -63,7 +63,11 @@ test('the hero contains the full Home entry and leaves the download action to na
     assert.match(ownership, /href="#ownership-models" aria-current="location"/);
 
     assert.ok(!/交互示例|演示记忆|Interactive example|example memor/i.test(html));
-    assert.ok(html.includes('story-world-print'));
+    const worlds = html.match(/<section class="story-section story-worlds"[\s\S]*?(?=<section id="app-showcase")/)?.[0];
+    assert.ok(worlds);
+    assert.ok(worlds.includes('story-world-print'));
+    assert.equal(worlds.match(/story-app-showcase-arrow story-app-showcase-arrow--(?:previous|next)/g)?.length, 2);
+    assert.ok(!worlds.includes('story-gallery-controls'));
     assert.ok(!html.includes('screen-section'));
     for (const id of STORY_APPS) assert.ok((DEMO_PREVIEW_APP_IDS as readonly string[]).includes(id));
     const showcase = html.match(/<section id="app-showcase"[\s\S]*?(?=<section id="integrations")/)?.[0];

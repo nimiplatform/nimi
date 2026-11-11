@@ -1,5 +1,5 @@
 import { useRef, useState, type CSSProperties } from 'react';
-import { ArrowLeft, ArrowRight, ChevronRight, Hand } from 'lucide-react';
+import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
 import { exploreWorlds } from '../../content/explore-demo-data.js';
 import { galleryDragSelection, wrapGalleryIndex } from '../../content/story-model.js';
 import type { StoryText } from '../../content/story-copy.js';
@@ -18,7 +18,7 @@ export function StoryWorlds({ t, onOpenWorld, locale }: { locale: 'zh' | 'en'; t
   return <section className="story-section story-worlds" id="worlds" aria-labelledby="worlds-heading" data-story-scene>
     <img key={world.id} className="story-world-atmosphere" src={world.image} alt="" loading="lazy" />
     <div className="story-container"><StoryHeading t={t} section="worlds" /></div>
-    <div className="story-world-reel" ref={reel} data-dragging={drag.current?.active || undefined} tabIndex={0} role="region" aria-label={t('worlds.drag')}
+    <div className="story-world-reel" id="story-world-reel" ref={reel} data-dragging={drag.current?.active || undefined} tabIndex={0} role="region" aria-label={t('worlds.title')}
       onKeyDown={e => { if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); selectIndex(index + (e.key === 'ArrowLeft' ? -1 : 1)); reel.current?.focus({ preventScroll: true }); } if (e.key === 'Enter' && e.target === e.currentTarget) { e.preventDefault(); openWorld(); } }}
       onPointerDown={e => { if (e.button !== 0) return; drag.current = { x: e.clientX, y: e.clientY, active: false }; }}
       onPointerMove={e => {
@@ -43,9 +43,12 @@ export function StoryWorlds({ t, onOpenWorld, locale }: { locale: 'zh' | 'en'; t
           <span><small>{item.topics.map(id => { const topic = exploreTopics.find(topic => topic.id === id)!; return locale === 'zh' ? topic.zh : topic.en; }).join(' · ')}</small><strong>{item.name}</strong><ChevronRight size={22} /></span>
         </button>;
       })}
+      <button type="button" className="story-app-showcase-arrow story-app-showcase-arrow--previous"
+        aria-label={t('common.previous')} aria-controls="story-world-reel" onClick={() => selectIndex(index - 1)}><ChevronLeft size={22} /></button>
+      <button type="button" className="story-app-showcase-arrow story-app-showcase-arrow--next"
+        aria-label={t('common.next')} aria-controls="story-world-reel" onClick={() => selectIndex(index + 1)}><ChevronRight size={22} /></button>
     </div>
     <div className="story-container">
-      <div className="story-gallery-controls"><button type="button" aria-label={t('common.previous')} onClick={() => selectIndex(index - 1)}><ArrowLeft size={20} /></button><span><Hand size={17} />{t('worlds.drag')}</span><button type="button" aria-label={t('common.next')} onClick={() => selectIndex(index + 1)}><ArrowRight size={20} /></button></div>
       <div className="story-world-caption" aria-live="polite"><div><small>{t('worlds.selectedWorld')} · {String(index + 1).padStart(2, '0')} / {String(exploreWorlds.length).padStart(2, '0')}</small><h3>{world.name}</h3></div><p>{world.description ?? world.summary}</p><div className="story-world-preview-people" aria-hidden="true">{world.people.map(person => <img key={person.id} src={person.image} alt="" />)}</div><button className="story-button" type="button" aria-haspopup="dialog" onClick={openWorld}>{t('worlds.open')}<ArrowRight size={16} /></button></div>
 
     </div>
