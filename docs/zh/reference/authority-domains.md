@@ -25,7 +25,7 @@ Nimi 采用明确的权威域（Authority Domains）划分体系，在分布式�
 | **Runtime → SDK** | Runtime 将标准化的生成流与交互状态投影给 SDK |
 | **SDK → App** | 应用消费 SDK 提供的公共能力，享受平台受保护通道与本地加速支持 |
 | **Runtime → Avatar** | Runtime 输出标准化的呈现事件流，Avatar 在本地 GPU 环境中驱动虚拟形象动效 |
-| **Nimi Home → App** | Home 在受保护的 Electron 开发容器中托管应用，Runtime 统一校验权限与会话 |
+| **Nimi Home → App** | Home 通过经验证的 Host 托管原生 App；远程 App 按独立来源接入，Runtime 校验会话与权限 |
 
 ## 相关文档
 

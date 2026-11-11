@@ -7,15 +7,15 @@ hero:
   tagline: 构建 Nimi App，通过 SDK 与 Runtime 接入本地或云端 AI 能力。
   actions:
     - theme: brand
-      text: 快速创建 App
-      link: /zh/start/create-an-app
+      text: 选择 App 接入方式
+      link: /zh/start/
     - theme: alt
       text: SDK 开发指南
       link: /zh/sdk/
 
 features:
   - title: 快速搭建与运行
-    details: 检查开发前置依赖、初始化项目骨架，并在 Nimi Home 中启动与调试应用。
+    details: 选择 Desktop、Web 或 Android，准备匹配制品并连接 Runtime。
     link: /zh/start/
   - title: 接入 AI 能力
     details: 使用强类型 SDK 声明能力偏好，调用端侧或云端模型执行推理。

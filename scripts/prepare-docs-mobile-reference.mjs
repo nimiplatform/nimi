@@ -1,0 +1,20 @@
+#!/usr/bin/env node
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { spawnSync } from 'node:child_process';
+const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const parent = path.join(root, '.nimi/local/docs-mobile-reference');
+fs.mkdirSync(parent, { recursive: true });
+const directory = fs.mkdtempSync(path.join(parent, 'run-'));
+const archives = path.join(directory, 'packages');
+fs.mkdirSync(archives);
+const packed = spawnSync('pnpm', ['--filter', '@nimiplatform/sdk', 'pack', '--pack-destination', archives], { cwd: root, encoding: 'utf8' });
+if (packed.status !== 0) throw new Error(packed.stderr || packed.stdout || 'SDK packing failed');
+const tarballs = fs.readdirSync(archives).filter(file => file.endsWith('.tgz'));
+if (tarballs.length !== 1) throw new Error('Expected one complete SDK archive');
+const source = path.join(root, 'examples/remote-runtime-mobile');
+for (const file of ['package.json', 'tsconfig.json', 'src']) fs.cpSync(path.join(source, file), path.join(directory, file), { recursive: true });
+fs.writeFileSync(path.join(directory, 'pnpm-workspace.yaml'), `packages:\n  - .\noverrides:\n  '@nimiplatform/sdk': ${JSON.stringify('file:./packages/' + tarballs[0])}\n`);
+if (process.env.GITHUB_OUTPUT) fs.appendFileSync(process.env.GITHUB_OUTPUT, `directory=${directory}\n`);
+console.log(JSON.stringify({ directory, next: ['pnpm install --no-frozen-lockfile', 'pnpm check'], scope: 'React Native peer declarations only; not Android product acceptance' }));

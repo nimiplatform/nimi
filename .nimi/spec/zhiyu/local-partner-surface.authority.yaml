@@ -258,3 +258,19 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.zhiyu.local-partner-surface.product-surface
+  - id: rule.nimi.zhiyu.local-partner-surface.android-entry
+    kind: rule
+    title: Zhiyu Android entry shares the remote partner experience
+    modality: must
+    statement: Zhiyu’s Android container uses the public Kit mobile App-session factory and its admitted Android source to connect to the current account’s primary PC Runtime. It reuses the remote product renderer for the same partner selection, Conversation, Agent configuration and non-executable Experience Resource Pack behavior; it creates no Android-specific Agent, memory, permissions or credential owner. Source qualification, system-browser callback and foreground/background connection lifetime remain with the Platform, SDK and Kit owners. App views capture the current connection scope and discard stale handles and results on scope loss; resumed access does not replay business work. Native Desktop Avatar launch and native package placement remain unavailable on this remote carrier. Local development uses the separately admitted debug Scheme; successful local development does not establish distributed App Link or store-release acceptance.
+    condition: Whenever the Zhiyu Android entry is built or used.
+    failure: Reject synthetic native Desktop proof, a private credential store, stale-scope writes, replayed work or an unavailable native action shown as usable.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.remote-clients.registration
+      - type: applies_to
+        target: definition.nimi.runtime.remote-access.source-plane
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.conversation-surface
+      - type: applies_to
+        target: definition.nimi.zhiyu.local-partner-surface.product-surface

@@ -1,3 +1,5 @@
+<!-- nimi-docs: {"authority":["rule.nimi.runtime.remote-access.source-admission","rule.nimi.runtime.remote-access.primary-control"],"sources":["sdks/typescript/realm/runtime-client.ts","kit/core/src/app-session.ts"]} -->
+
 # Account Authentication and Protected App Sessions
 
 In the Nimi architecture, universal user identity and account authorizations are authoritatively issued by Realm. The local `RuntimeAccountService` coordinates browser authorization flows, authorization code exchanges, session refreshes, and protected credential custody. Desktop launches the system browser and assists with loopback callbacks, keeping bearer credentials confined to protected Runtime custody rather than exposing them to frontend renderers.
@@ -25,9 +27,18 @@ Apps launched through Nimi Home establish a protected session binding through th
 - **Technical Session Changes**: Session rotation or detaching an observer does not by itself revoke work already admitted under a finite Job permit. Reading results still requires current authorization.
 - **Authority Withdrawal**: Signing out, switching accounts, or withdrawing the relevant App access or policy invalidates that work permit. Runtime fences further outbound work and result publication and cancels local work; it cannot undo external effects that already occurred.
 
+## Remote App Identity and Source Confirmation
+
+Web and Android use official Runtime-client browser login to establish a scoped App context, then discover the account-bound primary Runtime. Registry owns source qualification; Runtime owns first source confirmation and per-operation access. A website domain, App name or self-declared role cannot substitute for those decisions.
+
+Kit separates identity views from Runtime connection scopes: an unavailable PC does not mean the user signed out. Account switch, confirmed identity invalidation, source pause and connection loss retire the corresponding old scope. Confirmation is bound to Account, primary Runtime and source revision, not a separate per-device business grant. Ordinary Apps receive no generic Account bearer; Android retains only the short login transaction and keeps current context in memory. See [Shared App Sessions](/platform/kit/use-kit-in-app).
+
 ## Source Basis
 
 - [`.nimi/spec/runtime/protected-session.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/protected-session.authority.yaml)
 - [`.nimi/spec/runtime/app-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/app-surface.authority.yaml)
 - [`.nimi/spec/runtime/security-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/security-core.authority.yaml)
 - [`proto/runtime/v1/account.proto`](https://github.com/nimiplatform/nimi/blob/main/proto/runtime/v1/account.proto)
+- [`.nimi/spec/platform/remote-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/remote-clients.authority.yaml)
+- [`.nimi/spec/runtime/remote-access.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/remote-access.authority.yaml)
+- [`kit/auth/README.md`](https://github.com/nimiplatform/nimi/blob/main/kit/auth/README.md)

@@ -1,3 +1,5 @@
+<!-- nimi-docs: {"authority":["rule.nimi.platform.ui-design-system.remote-app-session","rule.nimi.platform.ui-design-system.android-app-session"],"sources":["kit/package.json","kit/core/src/app-session.ts","kit/auth/src/app","kit/auth/android"]} -->
+
 # 在 App 中使用 Kit
 
 当应用需要接入 Nimi 标准 UI、用户认证界面、Shell 宿主集成胶水、遥测能力、AI 配置面板或可复用的业务功能界面时，推荐使用 `@nimiplatform/kit`。
@@ -8,9 +10,7 @@
 
 通过官方脚手架创建的 Nimi App 已默认预置 Kit 依赖。若是为已有独立项目引入，请与 SDK 一同安装：
 
-```bash
-pnpm add @nimiplatform/kit @nimiplatform/sdk
-```
+[按环境准备选择公开包或完整源码归档](/zh/start/install)，保留所选组合与 lockfile。下文的 `auth/app/*` 入口需要当前源码交付。
 
 Kit 核心基于 React 19 构建。`react-dom`、`react-i18next` 与 `electron` 作为可选 Peer Dependencies，仅在引入特定子路径时按需安装。
 
@@ -111,9 +111,27 @@ pnpm run check
 pnpm run test
 ```
 
+## Desktop、Web 与 Android 的共享 App 会话
+
+普通 App 使用 `@nimiplatform/kit/auth/app` 的 `NimiAppSessionProvider`、`NimiAccountControl`、`NimiAppAccessGate` 和 `useNimiAppSession`。`@nimiplatform/kit/auth` 的官方账号适配器面向 Home/官网，不是普通 App 的账号客户端。以下新增入口需要[源码包组合](/zh/start/install)。
+
+| 工厂 | 用途 |
+| --- | --- |
+| `createDesktopNimiAppSession`，来自 `auth/app/desktop` | 复用真实 Host 客户端；账号操作仍由 Home 管理，保留原生客户端类型 |
+| `createWebNimiAppSession`，来自 `auth/app/web` | 配置已准入 HTTPS 来源，处理浏览器登录回调与直连 |
+| `createMobileNimiAppSession`，来自 `auth/app/mobile` | Android 12+ Capacitor 容器，消费已验证的 App Link 或开发 Scheme |
+
+启动时调用 `session.start()`，应用退出时调用 `session.dispose()`。有身份但没有 Runtime 连接仍是有效的独立状态；可使用 `autoConnect: false` 展示仅需身份的内容。AccessGate 为依赖 Runtime 的子视图提供当前 scope；业务动作捕获它的 client、signal 和 viewKey，scope 结束后不写回结果，也不重放旧操作。普通 App 的远程退出只结束自身上下文。
+
+准备步骤见 [Web](/zh/start/connect-web-app)和 [Android](/zh/start/connect-android-app)。已有自有账号的网站通过 `accountBinding` 提供已验证的当前上下文；SDK 的身份回调不是网站后端认证凭据。
+
 ## Source Basis
 
 - [`kit/README.md`](https://github.com/nimiplatform/nimi/blob/main/kit/README.md)
 - [`kit/package.json`](https://github.com/nimiplatform/nimi/blob/main/kit/package.json)
 - [`.nimi/spec/platform/ui-design-system.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/ui-design-system.authority.yaml)
 - [`apps/lab/src/lab/lab-ai-config-store.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-ai-config-store.ts)
+- [`kit/auth/README.md`](https://github.com/nimiplatform/nimi/blob/main/kit/auth/README.md)
+- [`kit/core/src/app-session.ts`](https://github.com/nimiplatform/nimi/blob/main/kit/core/src/app-session.ts)
+- [`kit/auth/src/app/web.ts`](https://github.com/nimiplatform/nimi/blob/main/kit/auth/src/app/web.ts)
+- [`kit/auth/src/app/mobile.ts`](https://github.com/nimiplatform/nimi/blob/main/kit/auth/src/app/mobile.ts)

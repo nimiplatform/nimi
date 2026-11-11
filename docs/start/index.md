@@ -1,6 +1,16 @@
+<!-- nimi-docs: {"authority":["rule.nimi.platform.app-ecosystem.scaffold-web-carrier","rule.nimi.platform.app-ecosystem.mobile-development-entry"],"sources":["app-tools/package.json","app-tools/README.md"]} -->
+
 # Getting Started with Nimi App Development
 
-Welcome to the Nimi developer ecosystem! Whether you want to craft a private, on-device AI utility for your personal workflow or build an ecosystem application for the global Nimi desktop audience, these guides will walk you through scaffolding, local debugging, and distribution.
+Choose the entry for the device where your App runs. The current PC Runtime executes AI, while Desktop, Web and Android consume it through their supported carriers. Start with [artifacts and environment](/start/install), then follow the matching guide.
+
+## Choose an App Carrier
+
+| Carrier | Guide | Current scope |
+| --- | --- | --- |
+| Desktop | [Create a native App](/start/create-an-app) | Desktop-supervised native Host with matching released or source packages |
+| Web | [Connect a website](/start/connect-web-app) | Current source: HTTPS source, official login and direct primary Runtime access |
+| Android | [Connect an existing App](/start/connect-android-app) | Current source: Kit Capacitor; development Scheme and distributed App Link verified separately |
 
 ---
 
@@ -17,9 +27,9 @@ Welcome to the Nimi developer ecosystem! Whether you want to craft a private, on
 
 ---
 
-## Three App Lifecycle Modes
+## Native App Lifecycle Modes {#three-app-lifecycle-modes}
 
-Nimi supports three distinct ways to develop, install, and discover apps:
+Native package and local-development paths have three distinct lifecycle modes:
 
 - **Developer Mode**: Run live, unbundled source code directly under Nimi Desktop supervision, with instant frontend hot-reloading and interactive inspection.
 - **Local Package Import**: Import an immutable packaged archive into Nimi Desktop for local verification (implemented on macOS arm64 and Windows x86_64). Local import lets you verify packaged builds on your machine, while full product acceptance and public release readiness are evaluated separately.

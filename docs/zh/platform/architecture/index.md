@@ -1,17 +1,15 @@
+<!-- nimi-docs: {"authority":["rule.nimi.platform.core-protocol.p-arch-001a","rule.nimi.sdks.client-core.remote-runtime-carrier","rule.nimi.platform.core-protocol.p-arch-002","rule.nimi.platform.core-protocol.p-arch-020"],"sources":["sdks/typescript/runtime/remote.ts","runtime/internal/grpcserver/remote_transport.go"]} -->
+
 # 系统架构总览
 
 Nimi 围绕平级对等的架构域（Sibling Domains）组织，各域之间通过类型化投影进行连接。
 
 ```text
-Realm 角色持久化身份与世界权威状态
-            │
-            │ Character Source（角色源描述） / World Source（世界源描述）
-            ▼
-Runtime LocalAgent 运行态与本地/云端 AI 执行
-            │
-            │ SDK 标准化受控能力视图
-            ▼
-Nimi Home / Desktop 宿主 / Avatar 具身渲染 / 第三方应用（Apps）
+Desktop App ── 原生 Host ──┐
+Web / Android ── WebRTC ─────┼── PC Runtime ── 本地 / 云端 AI
+Nimi Home ── 宿主管理 ───┘       │
+                                    └── Cognition（长期记忆）
+Realm: 身份、资源、主 Runtime 绑定与连接协调
 ```
 
 Realm 与 Runtime 彼此保持解耦的平级对等关系：Runtime 绝不会演变为 Realm 的内部子系统，Realm 也不会介入本地推理执行。SDK 是面向消费方的接口契约，而非拥有独立裁量权的第三方管理机构。
@@ -30,9 +28,14 @@ Avatar 系统依据结构化呈现流渲染具身形象，独立管理视线与�
 - **安全由声明式目标约束**：平台安全以不变的规范要求为准；底层操作系统特定的隔离机制属于各子系统的内部实现细节，除非有正式契约约定，否则不对外暴露。
 - **非阻塞架构**：远期规划项绝不阻塞当前本地产品的生命周期。
 
+当前 PC Runtime 是执行主机。Desktop App 通过本机受保护会话接入；获准的 Web 和 Android App 通过公共 SDK 直连账号绑定的主 Runtime，无需在消费设备上安装 Runtime。远程来源先完成官方登录、来源准入和 Home 确认；只有载体已实现且权限允许的操作可用。详见[本地与远程接入](/zh/platform/architecture/local-first-with-federation)。
+
 ## Source Basis
 
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
 - [`.nimi/spec/platform/product-lifecycle.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/product-lifecycle.authority.yaml)
 - [`.nimi/spec/runtime/app-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/app-surface.authority.yaml)
 - [`.nimi/spec/runtime/protected-session.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/protected-session.authority.yaml)
+- [`.nimi/spec/runtime/remote-access.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/remote-access.authority.yaml)
+- [`.nimi/spec/platform/remote-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/remote-clients.authority.yaml)
+- [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)

@@ -1,3 +1,5 @@
+<!-- nimi-docs: {"authority":["rule.nimi.platform.app-ecosystem.lab-web-carrier"],"sources":["apps/lab/README.md","apps/lab/NIMI_APP.md","apps/lab/package.json"]} -->
+
 # 使用 Nimi Lab
 
 `apps/lab/` 是 Nimi 官方的能力实验台（Capability Workbench）。作为一个完整的 Nimi App，它集成了 SDK、Kit、Runtime、Realm 与 App Tools 的最新能力，方便开发者在新特性正式纳入项目模板前，先行体验端到端流程并验证集成方案。
@@ -52,9 +54,17 @@ pnpm run test       # 运行单元测试与集成测试
 | `sdk-method-unavailable` | 当前构建版本未暴露该能力。 | 提示更新 SDK 依赖包版本。 |
 | `runtime-call-failed` | 请求处理过程中发生底层错误。 | 展示清晰的错误说明，并保留诊断日志供排查。 |
 
+## 浏览器中的 Lab
+
+Lab 也有已声明的 HTTPS Web 入口，复用工作台，通过普通远程 App 准入连接主 PC Runtime。配置与启动步骤见 [Lab README](https://github.com/nimiplatform/nimi/blob/main/apps/lab/README.md)及 [Web 指南](/zh/start/connect-web-app)。需要匹配源码包、正式登录、来源确认和可直连网络。
+
+Web 提供其已实现的 AI 工作台、App AIConfig、运行记录、Agent Center、对话和受限文件操作。原生 App Access 诊断、集成、实时媒体、World Tour 和 PC 文件定位等功能仍需原生 Lab；以当前 App 入口显示的支持范围为准。关闭页面结束实时调用，持久 Job 通过原标识查询。
+
 ## Source Basis
 
 - [`apps/lab/README.md`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/README.md)
 - [`apps/lab/src/lab/lab-runtime.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-runtime.ts)
 - [`apps/lab/src/lab/lab-ai-config-store.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-ai-config-store.ts)
 - [`apps/lab/src/lab/lab-non-success.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-non-success.ts)
+- [`apps/lab/NIMI_APP.md`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/NIMI_APP.md)
+- [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)

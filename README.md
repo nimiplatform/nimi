@@ -2,7 +2,7 @@
 
 **让 AI 真正属于你。** Make AI truly yours.
 
-Nimi 是一个可安装、开源、本地优先的个人 AI 产品：在同一个桌面空间里使用专注场景的 AI 应用、与有生命力的 AI 角色对话，以及探索不同故事背景的世界。你可以自由选择运行本地模型或云端模型，也可以使用统一的 SDK 构建专属自己的 AI 工具。
+Nimi 致力于构建覆盖移动端、Web、PC、嵌入式设备与智能家居的 AI 基础设施，让能力、应用与交互在用户授权的终端之间连接起来。当前交付以 PC Runtime 为执行中心，通过可安装、开源、本地优先的个人 AI 产品和公共 SDK／Kit，让 Desktop、Web 与 Android 应用消费本地或云端 AI。工作、创作、角色陪伴与故事世界都是这套底座上的体验。
 
 [下载与发布状态](https://nimi.ai/download) · [官方网站](https://nimi.ai) · [开发文档](https://docs.nimi.ai) · [版本发布](https://github.com/nimiplatform/nimi/releases) · [Discord 社区](https://discord.gg/BQwHJvPn)
 
@@ -39,7 +39,7 @@ Nimi 是一个可安装、开源、本地优先的个人 AI 产品：在同一�
 
 ### 应用运行与生命周期
 
-应用由 Nimi Desktop 统一监管运行，并通过受保护会话访问本地 Runtime，涵盖三种分发与开发形态：
+本机原生应用由 Nimi Desktop 监管，并通过受保护会话访问 Runtime，涵盖三种分发与开发形态：
 1. **官方 Registry 目录应用**：经过 Registry 准入审核的不可变安装包，用户可在 Desktop 的「应用」中一键发现、安装、启动与更新。
 2. **本地包导入（Local Import）**：导入用户明确选择的不可变应用包。macOS arm64 与 Windows x86_64 已有实现，整体产品验收与公开发布准备仍需单独确认。
 3. **开发者模式（Developer Mode）**：面向本地开发调试，支持热重载，直接连接本地正在开发的 App 工程。
@@ -47,6 +47,8 @@ Nimi 是一个可安装、开源、本地优先的个人 AI 产品：在同一�
 *注：当前版本应用安装包生命周期支持 macOS (arm64) 与 Windows (x86_64)，其他平台及常规自动修复通道暂未开放。更多生态应用与提交标准请参阅 [nimi.ai/apps](https://nimi.ai/apps)。*
 
 ---
+
+获准的 Web 和 Android 来源通过官方登录与 Home 首次确认，直连账号绑定的主 Runtime，不要求消费设备另装 Runtime。当前新增接入入口需要匹配源码包；Android 本机开发与正式 App Link 分发、公网连通性需分别验证。见 [Web 接入](https://docs.nimi.ai/start/connect-web-app)与 [Android 接入](https://docs.nimi.ai/start/connect-android-app)。
 
 ## 开发者起步
 
@@ -57,8 +59,10 @@ Nimi 是一个可安装、开源、本地优先的个人 AI 产品：在同一�
 - **一键脚手架工具**：使用 `@nimiplatform/app-tools` 几秒内生成标准应用模板：
 
 ```bash
-pnpm dlx --package @nimiplatform/app-tools nimi-app create --dir my-ai-app --profile standalone
+pnpm dlx --package @nimiplatform/app-tools@0.14.0 nimi-app create --dir my-ai-app --profile standalone
 ```
+
+上述已发布 CLI 用于原生应用。当前 Web/Android 接入需完整且匹配的源码 SDK、Kit、App Tools 与 Runtime；相同数字版本的 npm 包尚不包含这些新增入口。制品选择与依赖组合集中见[开发环境准备](https://docs.nimi.ai/start/install)。
 
 推荐阅读：
 - [快速创建第一个 App 指南](https://docs.nimi.ai/start/create-an-app)
@@ -72,14 +76,13 @@ pnpm dlx --package @nimiplatform/app-tools nimi-app create --dir my-ai-app --pro
 Nimi 采用清晰解耦的分层设计，保障安全性与扩展性：
 
 ```text
-Nimi — 可安装的个人 AI 产品
-└─ Nimi Home — 使用入口，当前由 Desktop 承载
-   └─ Nimi Apps / Kit / SDK
-      ├─ Runtime — 本地与云端 AI 执行、LocalAgent、会话与受保护访问
-      └─ Realm   — 生态身份、角色资产、世界与社交关系
-
-Cognition 独立管理长期记忆；Runtime 负责授权访问与调用协调。
-Avatar 负责 2D/3D 表现，消费角色状态，不决定角色行为。
+Desktop App ── 本机受保护 Host ──┐
+Web / Android App ── 直接连接 ───┼── PC Runtime ── 本地 / 云端 AI
+Nimi Home ── 本机管理入口 ───────┘       │
+                                        └── Cognition 长期记忆
+Realm：生态身份、资源、主 Runtime 绑定与连接协调
+SDK / Kit：跨载体的公共接口、会话与共享组件
+Avatar：消费角色状态并呈现 2D / 3D 形象
 ```
 
 Runtime 与 Realm 各自拥有其领域的数据和行为，互不充当对方的下层实现。

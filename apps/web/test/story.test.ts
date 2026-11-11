@@ -41,7 +41,7 @@ test('the hero contains the full Home entry and leaves the download action to na
     const html = renderToStaticMarkup(createElement(HeroDemoSessionProvider, { demo: content.hero.demo,
       children: createElement(StoryPage, { content, locale, links: resolveLandingLinks({}), onLocale() {} }),
     }));
-    for (const id of ['home-demo', 'apps', 'worlds', 'app-showcase', 'integrations', 'developers']) assert.ok(html.includes(`id="${id}"`), id);
+    for (const id of ['home-demo', 'apps', 'worlds', 'app-showcase', 'integrations', 'devices', 'developers']) assert.ok(html.includes(`id="${id}"`), id);
     assert.ok(!html.includes('story-power'));
     assert.ok(!html.includes('href="#models"'));
     assert.ok(html.indexOf('id="app-showcase"') < html.indexOf('id="integrations"'));
@@ -92,11 +92,19 @@ test('the hero contains the full Home entry and leaves the download action to na
     assert.ok(showcase.includes(getStoryCopy(locale)['showcase.explore']));
     assert.ok(!showcase.includes('story-app-showcase-controls'));
     assert.ok(!showcase.includes('story-app-showcase-window'));
-    const integrations = html.match(/<section id="integrations"[\s\S]*?(?=<section id="developers")/)?.[0];
+    const integrations = html.match(/<section id="integrations"[\s\S]*?(?=<section id="devices")/)?.[0];
     assert.ok(integrations);
     assert.equal(integrations.match(/class="story-use-case"/g)?.length, 3);
     assert.ok(integrations.includes(getStoryCopy(locale)['integrations.title']));
     assert.ok(!integrations.includes('story-content-check'));
+    const devices = html.match(/<section id="devices"[\s\S]*?(?=<section id="developers")/)?.[0];
+    assert.ok(devices);
+    assert.match(html, /href="#devices"/);
+    const devicesText = devices.replace(/<[^>]*>/g, '');
+    for (const key of ['devices.title', 'devices.androidNote', 'devices.requirements', 'devices.vision', 'devices.futureNote'] as const) {
+      assert.ok(devicesText.includes(getStoryCopy(locale)[key]), key);
+    }
+    assert.doesNotMatch(devices, /<details\b/);
   }
 });
 

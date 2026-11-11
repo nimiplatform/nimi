@@ -1,3 +1,5 @@
+<!-- nimi-docs: {"authority":["rule.nimi.runtime.remote-access.operation-carrier","rule.nimi.runtime.remote-access.asset-write-stream"],"sources":["runtime/internal/grpcserver/remote_transport.go","sdks/typescript/runtime/remote-data-channel.ts"]} -->
+
 # Multimodal Capabilities and Asset Custody
 
 Nimi provides unified, type-safe APIs and lifecycle custody for image generation, video rendering, speech synthesis, music composition, and visual reasoning. Capabilities adapt dynamically based on local loaded models and configured cloud connectors.
@@ -7,7 +9,7 @@ Nimi provides unified, type-safe APIs and lifecycle custody for image generation
 When dispatching multimodal requests, use standard SDK client interfaces:
 
 - **Clean Inputs**: Pass structured prompt text, media byte buffers, or secured asset references without embedding vendor-specific proprietary headers in application logic.
-- **Media Adapters**: Tasks accept tailored multimedia payloads conforming to specific operation contracts. For example, text and vision turns accept remote HTTP/HTTPS image URLs or uploaded artifact references (`artifact-ref` obtained via the SDK artifact upload API), while operations such as vision-locate require an `imageArtifactId`; voice cloning tasks accept reference audio buffers subject to duration and format constraints. Direct `file://` URIs are not accepted for local image inputs.
+- **Media Adapters**: Tasks accept tailored multimedia payloads conforming to specific operation contracts. For example, on carriers that admit URL inputs, text and vision turns accept HTTP/HTTPS image URLs or uploaded artifact references (`artifact-ref` obtained via the SDK artifact upload API), while operations such as vision-locate require an `imageArtifactId`; voice cloning tasks accept reference audio buffers subject to duration and format constraints. Direct `file://` URIs are not accepted for local image inputs.
 
 ## Asynchronous Outcomes and Structured Data
 
@@ -21,9 +23,16 @@ Multimodal operations typically run as asynchronous scenario jobs:
 - **Integrity & Access Control**: Managed media assets are stored with verified MIME types, SHA-256 integrity checksums, and strict inter-app isolation.
 - **Persistence Best Practices**: Runtime maintains transient caching policies for generated artifacts. If your app requires long-term persistence for projects, copy finalized assets into app-local storage upon job completion.
 
+## Remote Web/Android Media
+
+The current remote carrier rejects raw URL/URI values in typed media fields. Use inline bytes or artifact/asset references the App is authorized to read; do not ask the PC to fetch arbitrary client-selected addresses. A capability contract does not establish remote carrier coverage. Native file reveal and unimplemented bidirectional realtime sessions remain explicitly unavailable.
+
+App asset writes use incremental input within bounded credits, while the existing owner handles total limits, quotas and atomic commit. Cancellation or disconnect cannot publish a partial file or trigger automatic resumption. Query accepted durable Jobs by their existing identifiers rather than resubmitting after a disconnect.
+
 ## Source Basis
 
 - [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)
 - [`.nimi/spec/runtime/model-catalog.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/model-catalog.authority.yaml)
 - [`.nimi/spec/runtime/service-operations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/service-operations.authority.yaml)
 - [`.nimi/spec/sdks/feature-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/feature-clients.authority.yaml)
+- [`.nimi/spec/runtime/remote-access.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/remote-access.authority.yaml)

@@ -192,3 +192,32 @@ report. A claim of original Chinese does not require a grep receipt.
 Missing lexical output is not pseudo-success. Verify factual accuracy,
 applicable commands, and the affected reader task; report unexecuted paths
 honestly. Lexical checks can assist this judgment but never replace it.
+
+## Source reference checks
+
+`pnpm check:docs-source` validates this site's Source Basis links to current
+repository paths and code includes. External repositories and released artifact
+URLs remain with their owners; an unresolved external reference is not an
+automatic missing-source finding.
+
+Mapped architecture and carrier guides use one non-rendered JSON comment:
+
+```html
+<!-- nimi-docs: {"authority":["rule.nimi.sdks.client-core.remote-runtime-carrier"],"sources":["sdks/typescript/runtime/remote.ts"]} -->
+```
+
+Place it before the H1, after any VitePress front matter. `authority` lists exact
+active unit IDs; `sources` lists repository files or narrowly scoped directories.
+These are navigation references only, never copied product statements or task
+status. Keep the English and Chinese bindings equal, while writing each language
+naturally. Retain the reader-facing Source Basis links.
+
+The added remote Web and mobile checks run for shared SDK/Kit or carrier changes
+and mapped remote guides; unrelated prose keeps the ordinary docs checks.
+CI uses these references to select candidate pages when an authority file or
+source changes. Selection is conservative at file/directory granularity, not an
+exact semantic dependency proof. Review the actual owner behavior, commands,
+versions and availability in both languages. A passing reference check or site
+build does not establish semantic correctness or product acceptance. Add bindings
+when a changed guide needs them; do not create a separate progress ledger or a
+mandatory rewrite for unrelated pages.

@@ -56,7 +56,7 @@ const platformGroups: DefaultTheme.SidebarItem[] = [
     items: [
       { text: 'Architecture Overview', link: '/platform/architecture/' },
       { text: 'Realm And Runtime As Siblings', link: '/platform/architecture/realm-runtime-siblings' },
-      { text: 'Local-First With Federation', link: '/platform/architecture/local-first-with-federation' },
+      { text: 'Local and Remote Runtime', link: '/platform/architecture/local-first-with-federation' },
       { text: 'Cross-Domain Product Stories', link: '/platform/architecture/cross-domain-product-stories' },
     ],
   },
@@ -309,6 +309,8 @@ export const sidebarEn: DefaultTheme.Sidebar = {
         { text: 'Personas', link: '/start/personas' },
         { text: 'Installation And Availability', link: '/start/install' },
         { text: 'Create A Nimi App', link: '/start/create-an-app' },
+        { text: 'Connect a Web App', link: '/start/connect-web-app' },
+        { text: 'Connect an Android App', link: '/start/connect-android-app' },
         { text: 'Use Nimi Lab', link: '/start/use-nimi-lab' },
         { text: 'Troubleshooting', link: '/start/troubleshooting' },
       ],

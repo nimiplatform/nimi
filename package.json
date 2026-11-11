@@ -193,7 +193,9 @@
     "build:windows:product": "pnpm --filter @nimiplatform/desktop build:windows:release",
     "release:product:prepare-target": "node scripts/release/prepare-product-release-target.mjs",
     "release:product:validate": "node scripts/release/validate-product-release.mjs",
-    "release:product:publish": "node scripts/release/publish-product-release.mjs"
+    "release:product:publish": "node scripts/release/publish-product-release.mjs",
+    "check:docs-source": "node scripts/check-docs-source.mjs",
+    "check:examples:remote": "pnpm --filter @nimiplatform/remote-runtime-web-reference check && pnpm --filter @nimiplatform/remote-runtime-web-reference test && pnpm --filter @nimiplatform/remote-runtime-web-reference build"
   },
   "dependencies": {
     "yaml": "2.9.1"

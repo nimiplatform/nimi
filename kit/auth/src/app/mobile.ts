@@ -41,6 +41,7 @@ const nativeFetch: typeof fetch = async (input, init) => {
 
 // @nimi-authority: rule.nimi.platform.remote-clients.android-registration
 // @nimi-authority: rule.nimi.platform.remote-clients.android-development
+// @nimi-authority: rule.nimi.platform.ui-design-system.android-app-session
 // @nimi-authority: rule.nimi.platform.ui-design-system.remote-app-session
 /** Android 12+ container adapter. Uses the registered App Link or explicitly
  * admitted local-development callback; Web and unsupported native hosts fail. */

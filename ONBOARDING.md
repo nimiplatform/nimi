@@ -107,36 +107,22 @@ pnpm build
 
 ---
 
-## 4. 启动与验证本地 Runtime
+## 4. 启动源码环境与判断状态
 
-Runtime 是支撑本地 AI 任务与受保护 App 调用的核心引擎。本节适用于独立调试 Runtime；只开发 Desktop 时可直接跳到第 5 节，由启动器准备依赖。
+首日联调从仓库根目录运行 `pnpm dev:desktop`，由启动器检查并准备已配置的 Realm/Web、源码 Runtime 与 Home。登录所需的 Realm 服务必须已配置；公开 Nimi 仓库不包含服务端实现。具体步骤见下一节和 [LOCAL_DEVELOPMENT.md](LOCAL_DEVELOPMENT.md)。
 
-### 步骤 1：启动本地 Runtime
-启动本地 Runtime 无需预先配置云端 API 密钥，直接运行：
+独立调试 Runtime 时，在专用终端运行 `pnpm dev:runtime`，从前台日志判断 supervisor 的启动或失败；Home 会复用这个源码进程。
 
-```bash
-pnpm dev:runtime
-```
+按实际层次检查：
 
-该命令会在前台启动源码模式的 Runtime supervisor 并持续输出日志。
+| 层次 | 查看什么 |
+| --- | --- |
+| 开发服务与进程 | 启动终端及 `.nimi/local/dev-services/` 日志中的实际错误 |
+| Home 接入 | 正式 Home 窗口是否完成数据目录设置、Runtime 接入和浏览器登录 |
+| App Access | 目标 App 通过正式入口启动后显示的当前访问状态；Developer Mode 本身不授予权限 |
+| 模型执行 | 在主机准备 Local Loadout 或 Cloud Connector，保存对应 AIConfig 后执行一次真实调用 |
 
-> **联调前置条件**：
-> - **本地 Realm 服务**：当前源码启动器固定连接 `http://127.0.0.1:3002` 的本地 Realm，需另行准备可用的 Realm 服务才能完成账号登录。
-> - **首次数据目录初始化**：首次使用时需在 Nimi Home 中选择数据存储位置；若遇到「未完成设置」提示，在客户端完成设置后重试即可。
-
-### 步骤 2：检查健康状态
-新开一个终端窗口，运行健康检查命令：
-
-```bash
-pnpm runtime:health
-```
-
-如果输出健康状态（`ok` 或 `serving`），说明 Runtime 已正常监听在默认端口：
-- **gRPC 服务**：`127.0.0.1:46371`
-- **HTTP 控制面**：`127.0.0.1:46372`
-
-**（可选）配置云端模型连接器**：
-如需调用 Gemini 或 OpenAI 等云端模型，可在启动 Desktop 客户端后，在 Nimi Home 的「云服务」中添加对应的 Connector，再为所需能力选择模型。标准 App 通过受保护会话调用模型能力，不会直接接管云端凭据。
+`pnpm runtime:health` 和 `nimi health --json` 查询受支持的固定服务控制器，返回 `service-running` 或 `stopped`。它们不检测源码 supervisor、普通端口或 AI 就绪；在没有该控制器的系统（包括当前 macOS 路径）会明确失败。Windows 已安装固定服务的诊断见 [Runtime CLI](docs/runtime/cli-and-daemon.md)。
 
 ---
 
@@ -249,12 +235,12 @@ pnpm spec:authority:check
 Runtime 目前以守护进程方式运行，配置更新后需要重启 Runtime 进程以使新配置生效。
 
 ### Q2：调用 AI 接口报凭据或连接错误？
-1. 检查本地 Runtime 是否正常运行（`pnpm runtime:health`）。
+1. 查看 `pnpm dev:desktop` 的启动日志和 Home 当前接入状态；独立 Runtime 调试查看 `pnpm dev:runtime` 前台日志。先区分进程、账号与 App Access 是否就绪。
 2. 在 Nimi Home 的「云服务」中确认已添加对应的 Connector，且该模型提供商处于正常可用状态。
 3. 如果调用的是本地模型，请在 Nimi 的 AI 能力设置中确认对应的本地运行方案与依赖已经就绪。
 
 ### Q3：想使用统一的 Runtime CLI 调试底层？
-可以使用根目录提供的命令透传工具：
+可以使用根目录提供的命令透传工具。以下健康检查与 doctor 中的服务检查仅适用于已安装且受支持的固定服务；它们不管理源码 supervisor，在缺少控制器的系统会失败：
 ```bash
 pnpm runtime:cmd -- health --json
 pnpm runtime:cmd -- doctor --json

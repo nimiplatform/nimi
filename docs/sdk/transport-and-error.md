@@ -1,54 +1,31 @@
+<!-- nimi-docs: {"authority":["rule.nimi.runtime.remote-access.direct-transport","rule.nimi.runtime.remote-access.asset-write-stream","rule.nimi.runtime.remote-access.connection-lifetime"],"sources":["sdks/typescript/runtime/remote-data-channel.ts","runtime/internal/remoteaccess/peer.go"]} -->
+
 # Transport and Error Handling
 
-The SDK Transport and Error handling mechanisms govern how the SDK communicates with Runtime over supported physical transports (such as Desktop IPC or gRPC), and how low-level runtime errors translate into predictable, strongly-typed SDK errors for applications.
+Local native Apps use their real Host's protected carrier; remote Web/Android Apps use a direct WebRTC data channel to the primary Runtime. Shared public types do not imply identical operation coverage or recovery behavior across carriers.
 
-## Transport Management
+## Connection Lifetime
 
-| Concern | Specification & Rule |
-| --- | --- |
-| Transport bindings | `.nimi/spec/sdks/client-core.authority.yaml` |
-| Connection lifecycle | Managed independently per supported transport (heartbeats, state machines) |
-| Reconnect strategy | Restricted strictly to transport-level recovery (never rescues business contract errors) |
+A remote connection needs current identity, primary binding, valid source confirmation and a reachable direct network. STUN provides candidate discovery; the current carrier has no TURN/Relay. Connection, source or identity loss ends the corresponding live calls with an actual error.
 
-The transport layer guarantees reliable byte transmission; it maintains socket connectivity and never silently attempts to patch business contract violations.
+Kit may recheck identity and establish a new technical connection in its defined browser/Android resume paths. It does not continue an ended stream or resubmit messages, files or Jobs. Native technical-session maintenance likewise does not change a business operation's idempotency or permission contract.
 
-## Error Projection Architecture
+## Errors and Uncertain Outcomes
 
-| Concern | Specification & Rule |
-| --- | --- |
-| Error translation from Runtime to SDK | `.nimi/spec/sdks/client-core.authority.yaml` |
-| Structured Reason Code preservation | Strongly-typed; never silently dropped or swallowed |
-| Decode failures / Content-Type / Schema violations | Surfaces as typed validation errors; retries are forbidden |
-| Authentication expiration / Transport disconnects | Surfaces as typed connection errors; retried per transport policy |
+Preserve Runtime reason codes, error source and diagnostics. Undecodable or schema-invalid responses fail explicitly; reconnecting cannot repair a contract error.
 
-> [!IMPORTANT]
-> **Automatic retries and token refreshes are transport and authentication recovery mechanisms only**. They cannot resolve payload decode failures, Content-Type mismatches, schema violations, or business contract breaches. A schema-invalid response will never become valid by being retried.
+A disconnect does not prove the server rejected the request. Query durable Jobs with saved Job IDs; where submission lookup is supported, use the original submission ID with `lookupSubmission`. If the result is unknown, show that uncertainty rather than blindly replaying a side effect. Inspect the owner's actual state after cancellation as well.
 
-## Typical Scenario: A Schema-Invalid Response
+## Media and Resource Boundaries
 
-A Runtime API returns a response that fails SDK schema validation:
+Remote typed media inputs use inline content or App-authorized asset references; raw URL/URI inputs are unavailable. Asset writes send incrementally within Runtime-issued bounded credits. Disconnect, cancellation and source loss are errors, not normal EOF, and cannot commit a partial file. There is no upload resumption. The existing storage owner retains file size, path, quota and final-commit decisions.
 
-1. **Typed error projection**: The SDK wraps the failure into a structured SDK error containing a precise schema failure reason code.
-2. **No silent retry**: Transport retries handle physical network drops; semantic contract failures are rejected immediately.
-3. **Application handling**: The application catches the typed error and displays user-friendly diagnostic information without fabricating success.
-
-## Typical Scenario: Transport Disconnect
-
-The Runtime daemon enters a stopping state or restarts, causing the SDK transport connection to drop:
-
-1. **Failure detection**: The SDK captures the connection drop via protocol events (`runtime.disconnected` or gRPC status codes).
-2. **Reconnect strategy**: The client triggers exponential backoff reconnection according to transport policy.
-3. **Notify application**: The SDK surfaces a typed transport error, allowing the application to decide whether to replay the business call upon reconnection.
-4. **No fake success**: Transport drops never synthesize mock data or pretend success.
-
-## Architectural Boundaries
-
-- **Retries never cross boundary layers**: Automatic retries may handle transient transport failures only when the operation’s retry policy permits replay; they must never be used to mask schema, decoding, or contract failures.
-- **Preserve structured error context**: Structured reason codes and diagnostic metadata must never be discarded or swallowed during error translation.
-- **Authentication recovery is scope-limited**: Token refreshes recover authentication sessions; they cannot be abused to circumvent data validation errors.
-- **Faithful failure propagation**: Real failures must be surfaced transparently without synthesizing mock data or faking successful outcomes.
+Use [Troubleshooting](/start/troubleshooting) to distinguish login, source confirmation, host connection and model execution.
 
 ## Source Basis
 
 - [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
 - [`.nimi/spec/runtime/rpc-foundations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/rpc-foundations.authority.yaml)
+- [`.nimi/spec/runtime/remote-access.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/remote-access.authority.yaml)
+- [`kit/core/src/app-session.ts`](https://github.com/nimiplatform/nimi/blob/main/kit/core/src/app-session.ts)
+- [`sdks/typescript/runtime/remote-data-channel.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/runtime/remote-data-channel.ts)

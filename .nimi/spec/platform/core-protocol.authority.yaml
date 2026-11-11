@@ -1693,7 +1693,7 @@ units:
   - id: definition.nimi.platform.core-protocol.architecture-layer-model
     kind: definition
     title: P-ARCH execution layer model
-    meaning: The platform layer model places the installable Nimi product and its Nimi Home entry shell above Nimi Apps, SDK bridges, parallel Realm and Runtime authority surfaces, and independently owned cognition authority without exposing private implementation topology.
+    meaning: Nimi combines its installable personal AI product, Nimi Home entry and App ecosystem with public SDK and Kit contracts over independently owned Realm, Runtime and Cognition domains. Product composition and domain ownership are distinct from host deployment and client device topology; a client need not be launched by the Home process or run its own Runtime.
   - id: definition.nimi.platform.core-protocol.cognition-domain
     kind: definition
     title: P-ARCH cognition authority domain
@@ -1701,7 +1701,7 @@ units:
   - id: definition.nimi.platform.core-protocol.desktop-home-shell
     kind: definition
     title: P-ARCH Desktop-hosted Nimi Home shell
-    meaning: Desktop is the current replaceable host implementation of the Nimi Home entry shell while Nimi is the installable product name and Nimi App is the canonical local product unit whose lifecycle contract covers discovery, installation, update, launch, repair, and uninstall through distinct Registry-approved verified package, explicitly selected immutable local-import package, and non-package Developer-Mode local-development paths; the current pre-release exposes Developer-Mode local development, protected-tag GitHub Actions and immutable GitHub Release publication for explicitly configured pilot App repositories, protected static Registry onboarding and human-approved descriptor admission, and verified Catalog discovery, installation, update, installed launch/focus/stop, protected App session Access and uninstall on Windows x86_64 and macOS arm64, while explicit immutable local-import package management has a source-qualified implementation through Desktop and Runtime on those targets, its combined product acceptance and public release readiness remain separate from implementation and operation results, and other-platform package lifecycle and ordinary repair remain unavailable, and bundled or platform App paths remain separately governed.
+    meaning: Nimi is the installable product name and Nimi Home is its currently Desktop-hosted replaceable entry shell. Desktop owns exact native App Host launch and supervision; remote App entry and native package lifecycle remain distinct carriers of the Nimi App product unit and do not turn the official Web site into a browser-hosted Home.
   - id: definition.nimi.platform.core-protocol.world-domain-facade
     kind: definition
     title: P-ARCH sdk world facade
@@ -1730,12 +1730,18 @@ units:
     kind: rule
     title: P-ARCH-001 public product and layer framing
     modality: must
-    statement: Public architecture identifies Nimi as the installable long-term user product, Nimi Home as its currently Desktop-hosted replaceable entry shell, Nimi App as the canonical local product unit with distinct Registry-approved verified package, explicitly selected immutable local-import package, and non-package Developer-Mode local-development paths, and the canonical public authority entry as nimi/.nimi/spec/**; current pre-release positioning exposes Developer-Mode local development, protected-tag GitHub Actions and immutable GitHub Release publication for explicitly configured pilot App repositories, protected static Registry onboarding and human-approved descriptor admission, and verified Catalog discovery, installation, update, installed launch/focus/stop, protected App session Access and uninstall on Windows x86_64 and macOS arm64, describes explicit immutable local-import package management as a source-qualified Desktop and Runtime implementation on those targets without treating implementation as combined product acceptance or public release readiness, and must state that other-platform package lifecycle and ordinary repair remain unavailable.
+    statement: Public architecture identifies Nimi as the user-controlled cross-terminal AI foundation delivered today through its installable, open-source, local-first personal AI product and App ecosystem, Nimi Home as the currently Desktop-hosted replaceable entry, and Nimi App as a product unit with separately governed native and remote carriers. It distinguishes the current PC Runtime host, verified local native sessions and admitted Web/Android direct clients, preserves the independent Realm, Runtime and Cognition owners, and identifies nimi/.nimi/spec/** as the canonical public authority entry. Native lifecycle availability follows its App ecosystem definition and exact lifecycle owners; remote source admission, operation subsets and delivery availability follow their respective owners. Future terminal coverage, local compilation and a source implementation never imply a released or accepted end-to-end path.
     condition: Whenever the public top-layer architecture is described.
     failure: Reject a product, shell, app-unit, lifecycle-stage, availability, or canonical-entry description that changes this layer framing or presents an unavailable App path as current behavior.
     relations:
       - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.native-lifecycle-availability
+      - type: applies_to
         target: definition.nimi.platform.core-protocol.architecture-layer-model
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.cross-terminal-platform
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.current-runtime-topology
       - type: applies_to
         target: definition.nimi.platform.core-protocol.desktop-home-shell
   - id: rule.nimi.platform.core-protocol.p-arch-001b
@@ -1764,7 +1770,7 @@ units:
     kind: rule
     title: P-ARCH-002 parallel layers and fixed protocols
     modality: must
-    statement: Realm and Runtime remain parallel and mutually independent, communicate through SDK bridging, expose Realm through REST and WebSocket and Runtime through gRPC, and give Nimi Apps one @nimiplatform/sdk entry.
+    statement: Realm and Runtime remain parallel and mutually independent authority domains. Apps use the public @nimiplatform/sdk package and its admitted subpaths; Realm-facing REST and WebSocket interactions retain their Realm owners, while Runtime uses its canonical protobuf operation contracts through verified native carriers or the separately admitted direct WebRTC carrier. A remote byte carrier does not replace the operation contract, move AI execution into Realm or expose owner-private services to an App.
     condition: Whenever layers communicate or an app accesses the platform.
     failure: Reject a direct Realm-to-Runtime dependency, non-SDK app entry, or substituted canonical protocol.
     relations:
@@ -1828,7 +1834,7 @@ units:
     kind: rule
     title: P-ARCH-020 sole SDK developer entry
     modality: must
-    statement: Desktop and third-party apps use the same SDK API as the sole developer platform entry, with node-grpc and tauri-ipc transport profiles and local-broker reserved as future.
+    statement: Desktop and third-party Apps use public SDK contracts as the sole developer platform entry for their actual build carrier. Native Apps use verified Host sessions; remote Web and admitted Android Apps use scoped Runtime-client identity and direct Runtime connection entries with the implemented operation subset. Transport selection does not create another business API, caller role, account credential or permission system. Low-level native transport profiles remain governed by their SDK owners, and the reserved local-broker profile remains unavailable.
     condition: Whenever a developer client or transport profile accesses platform capabilities.
     failure: Reject a second developer entry, a Desktop-private API variant, or present use of the future local-broker profile.
     relations:
@@ -2144,3 +2150,11 @@ units:
         target: definition.nimi.platform.core-protocol.app-activity-open
       - type: applies_to
         target: definition.nimi.platform.core-protocol.app-activity-record
+  - id: definition.nimi.platform.core-protocol.cross-terminal-platform
+    kind: definition
+    title: Nimi cross-terminal AI foundation
+    meaning: Nimi is a user-controlled AI foundation whose long-term direction spans mobile, Web, PC, embedded devices and smart homes, connecting authorized AI applications, persistent agents and device interactions through explicit capability and ownership contracts. Personal assistance, creation, characters and worlds are experiences within that foundation. This direction does not itself admit a terminal, device action, network carrier, Runtime deployment, synchronization mechanism or release promise; each usable path has its own current owner contract and delivery boundary.
+  - id: definition.nimi.platform.core-protocol.current-runtime-topology
+    kind: definition
+    title: Current Runtime host and client topology
+    meaning: A Runtime host owns AI execution and its local state; an App client consumes admitted operations; a management surface consumes separately authorized owner operations. The current host is a PC Runtime. Desktop-hosted native Apps use verified local Host sessions, while admitted Web and Android clients use scoped identity and a direct connection to the account-bound primary Runtime without running a Runtime on the client device. Realm owns identity and primary binding coordination, Runtime owns source confirmation and operation admission, SDK and Kit carry public contracts, and Cognition remains the long-term Memory owner behind the Runtime bridge. Access to the same host is distinct from cross-Runtime state synchronization or compute federation; the current direct carrier has no relay or automatic business replay.

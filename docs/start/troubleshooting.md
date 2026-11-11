@@ -1,3 +1,5 @@
+<!-- nimi-docs: {"authority":["rule.nimi.runtime.remote-access.source-admission","rule.nimi.runtime.remote-access.connection-lifetime","rule.nimi.runtime.service-operations.r086"],"sources":["runtime/cmd/nimi/runtime_health_commands.go","scripts/dev-app.mjs","kit/core/src/app-session.ts"]} -->
+
 # Troubleshooting Nimi App Integration
 
 Running into issues while developing a Nimi App, invoking SDK methods, running Nimi Lab tests, or launching local Runtime? This guide covers the most common integration hurdles, explains their root causes, and walks through how to resolve them.
@@ -9,11 +11,10 @@ Running into issues while developing a Nimi App, invoking SDK methods, running N
 Choose the Runtime startup method that matches your environment:
 
 ### Source Code Development (Recommended)
-Open a dedicated terminal at the root of the Nimi repository:
-```bash
-pnpm dev:runtime
-```
-In a second terminal, run `pnpm dev:desktop` and sign in to Nimi Home. This launches the standard two-process developer supervisor workflow.
+
+Complete [Environment Setup](/start/install), then run `pnpm dev:desktop` from the Nimi root. The launcher checks and starts missing configured services and Runtime before opening Home. Inspect startup errors in the terminal and `.nimi/local/dev-services/`. For independent Runtime debugging, run `pnpm dev:runtime` in a separate terminal and use its foreground logs.
+
+Check Home connection and sign-in, the target App's Nimi Access, and an actual model call after configuration separately. A running process does not establish App admission or model readiness.
 
 ### Windows Background Service
 If you installed the official Nimi desktop installer and registered the Windows system service:
@@ -22,6 +23,8 @@ If you installed the official Nimi desktop installer and registered the Windows 
 - Run `nimi doctor` to verify system prerequisites.
 - Run `nimi health --json` for a structured health summary.
 
+`nimi health --json` reports only the fixed-service controller state, `service-running/stopped`. It does not establish RPC or AI readiness or inspect the source supervisor. Systems without that controller, including the current macOS path, return an unavailable error.
+
 > [!NOTE] Startup Caveat
 > `nimi serve` is reserved for background daemon execution and is rejected by design when run in a standard developer shell. During local development, use `pnpm dev:runtime` instead. For packaged builds, always use the supported launcher for your platform (package lifecycle support is currently limited to macOS arm64 and Windows x86_64).
 
@@ -29,7 +32,7 @@ If you installed the official Nimi desktop installer and registered the Windows 
 
 ## 2. Check Host-Bound Client Session
 
-Nimi Apps must communicate with Runtime through the scaffolded host-bound client:
+Native Desktop Apps communicate with Runtime through their scaffolded host-bound client:
 
 ```ts
 import { getNimiLocalAppClient } from './shell/auth/local-app-client';
@@ -66,7 +69,7 @@ When running validation suites in Nimi Lab, standard error states indicate speci
 
 | Error State | Root Cause | Recommended Action |
 | :--- | :--- | :--- |
-| `runtime-unavailable` | Cannot connect to the local Runtime service. | Ensure `pnpm dev:runtime` is running and local port connectivity is normal. |
+| `runtime-unavailable` | Cannot connect to the local Runtime service. | Inspect Home connection and startup logs; use foreground logs for a separate source Runtime, and host/direct-connection state for a remote client. |
 | `principal-unauthorized` | The current session or caller is not authorized for this operation. | Check sign-in and this app’s Nimi Access status in Nimi Home, then verify the required access declarations in `nimi.app.yaml`; AI calls require `runtime.consume`. |
 | `input-invalid` | Prompt or parameter schema is missing or invalid. | Check your request parameters and ensure `messages` follow the required schema. |
 | `sdk-method-unavailable` | The installed SDK version lacks the invoked method. | Check the `@nimiplatform/sdk` version in `package.json` and upgrade to the matching release. |
@@ -106,6 +109,24 @@ pnpm run check
 1. **Stick to the host-bound client**: Reuse `getNimiLocalAppClient()` rather than creating multiple client instances.
 2. **Program against capability intents**: Never hardcode model names or remote endpoints in your app logic.
 3. **Provide actionable UI feedback**: Clearly distinguish between "waiting for inference", "service disconnected", and "access unavailable", and give users direct links to the relevant settings.
+
+## Diagnose Remote Access by Layer
+
+| Observed state | Next step |
+| --- | --- |
+| Signed out or expired login transaction | Sign in through this App's official browser entry; check exact source and callback |
+| No primary Runtime | Start binding in PC Home and confirm on the official account website |
+| Source pending, paused or revised | Inspect that source in primary PC Home; reuse valid confirmation and confirm/resume only as needed |
+| Signed in but direct connection fails | Check host process, remote-access setting, matching Realm environment, trusted TLS and direct network reachability; no relay fallback exists |
+| Connected but operation unavailable | Check actual package exports, carrier operation subset and App declaration; do not synthesize native identity |
+| Missing AIConfig or model not ready | Save App intent, prepare model/cloud resources on the PC and submit a real call |
+| Connection lost after Job submission | Query the saved Job/submission identifier and display the actual outcome; do not automatically resubmit |
+
+Android development Scheme and distributed App Link have distinct package, signature, callback and environment requirements. The former applies only to explicitly admitted local development. See [Android setup](/start/connect-android-app).
+
+## CDP Configuration Conflict for a Running Development App
+
+If Home already launched the same development App, a launch requesting different CDP settings returns `local-development-cdp-configuration-conflict`. Stop that App normally in Home, then resume the same registration with its current selector and desired port. Do not create another registration to bypass the conflict or use Home's CDP target as the App acceptance target.
 
 ## Source Basis
 

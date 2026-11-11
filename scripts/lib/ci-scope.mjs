@@ -11,7 +11,7 @@ export const CI_LANES = {
   'desktop-web-quality': 'desktop_changed',
 };
 
-export function selectCiScope(files, { full = false } = {}) {
+export function selectCiScope(files, { full = false, docsReviewTargets = [] } = {}) {
   const paths = files.map((file) => file.replaceAll('\\', '/'));
   const codePaths = paths.filter((file) => !/\.(?:md|mdx)$/u.test(file) || file.endsWith('.authority.md'));
   const touches = (pattern) => full || codePaths.some((file) => pattern.test(file));
@@ -55,8 +55,17 @@ export function selectCiScope(files, { full = false } = {}) {
     if (file.startsWith('nimi2d/')) filters.add('./nimi2d');
   }
 
+  const remoteGuide = /^docs\/(?:zh\/)?(?:sdk\/|start\/(?:connect-|install\.|troubleshooting\.|use-nimi-lab\.)|runtime\/(?:account-and-session|multimodal)|platform\/(?:kit\/|architecture\/))/u;
+  const remoteClients = full || sdk || kit || touches(/^app-tools\//u)
+    || touches(/^scripts\/prepare-docs-mobile-reference\.mjs$/u)
+    || paths.some(file => /^examples\/remote-runtime-/u.test(file))
+    || docsReviewTargets.some(file => remoteGuide.test(file));
+  const docsSourceChecks = touches(/^scripts\/(?:check-docs-source|docs-source\.test|ci-scope\.test|lib\/docs-source)\.mjs$/u);
+
   return {
-    docs_changed: full || paths.some((file) => /^(?:docs\/|examples\/)|\.(?:md|mdx)$/u.test(file)),
+    remote_clients_changed: remoteClients,
+    docs_changed: full || remoteClients || docsSourceChecks || docsReviewTargets.length > 0
+      || paths.some((file) => /^(?:docs\/|examples\/)|\.(?:md|mdx)$/u.test(file)),
     core_changed: shared || scripts || config || authority || filters.size > 0
       || touches(/^(?:\.github\/|licenses\/|LICENSE$|\.gitignore$|\.gitattributes$|\.editorconfig$)/u),
     workspace_changed: filters.size > 0,

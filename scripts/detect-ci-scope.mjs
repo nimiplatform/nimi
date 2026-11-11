@@ -5,6 +5,7 @@ import { appendFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { selectCiScope } from './lib/ci-scope.mjs';
+import { selectDocsReview } from './lib/docs-source.mjs';
 
 function isCommitOid(value) {
   return /^[a-f0-9]{40}$/u.test(value || '') && !/^0+$/u.test(value);
@@ -24,7 +25,8 @@ export function detectCiScope({ repoRoot = process.cwd(), eventName, baseSha, he
     throw new Error('CI comparison base is unavailable or equals the head');
   }
   const files = full ? [] : git(['diff', '--name-only', '-z', comparisonBase, headSha]).split('\0').filter(Boolean);
-  return { comparison_base_sha: comparisonBase, ...selectCiScope(files, { full }) };
+  const docsReview = selectDocsReview(repoRoot, files);
+  return { comparison_base_sha: comparisonBase, docs_review_targets: docsReview, ...selectCiScope(files, { full, docsReviewTargets: docsReview }) };
 }
 
 if (process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

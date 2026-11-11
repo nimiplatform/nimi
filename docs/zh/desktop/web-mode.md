@@ -1,3 +1,5 @@
+<!-- nimi-docs: {"authority":["rule.nimi.platform.product-lifecycle.remote-runtime-management","rule.nimi.platform.product-lifecycle.p-web-005a"],"sources":["apps/web/README.md","sdks/typescript/runtime/remote.ts"]} -->
+
 # 网页端与桌面端 Nimi Home
 
 Nimi 官方网站与桌面端 Nimi Home 各司其职、相互配合。公开网站负责展示产品概览、各平台发布状态与政策条款，并提供基于 Realm 的统一账户认证；安装到本机的 Nimi Home 则是本地执行环境，提供本地 AI 推理与受控的应用托管。
@@ -21,6 +23,14 @@ Nimi 官方网站与桌面端 Nimi Home 各司其职、相互配合。公开网�
 2. **安全验证**：使用网页提供的认证方式登录，并完成所需的双因素验证。
 3. **授权交接**：验证通过后，浏览器通过本次会话配置的本地环回回调（loopback callback）将授权码传回桌面端。
 4. **激活会话**：Desktop 将回调信息转交本地 Runtime，由 Runtime 校验响应、用授权码换取凭据并安全托管会话令牌，从而激活本地会话。
+
+## 官方 Web 的远程主机管理
+
+配置了已审核的 official_manager 来源与精确 HTTPS 回调后，官网 `/account/runtime` 可通过同一直接载体管理当前账号的主 Runtime。PC Home 首次确认该来源；网站品牌、域名或 caller 参数不授予管理权限。
+
+当前管理子集包括实际服务状态、已确认来源的暂停/恢复、已有 App 的 AIConfig，以及显式停止 Runtime。关闭网页只结束当前客户端会话；停止主机后需从 PC 启动，接受停止请求不等于已经确认进程退出。未配置或非 HTTPS 部署仍可显示绑定信息，但管理操作不可用。
+
+第三方 Web App 使用普通 App 来源和已实现的消费操作，不因同在浏览器中运行就获得管理权限。官网不承载浏览器版 Home。
 
 ## Source Basis
 

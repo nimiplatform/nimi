@@ -166,3 +166,26 @@ test('SDK and adapter changes compile the SDK examples; example edits run the do
   const edited = selectCiScope(['examples/sdk/01-first-call.ts']);
   assert.equal(edited.docs_changed, true);
 });
+
+test('remote client checks follow shared contracts and mapped guides without every prose edit', () => {
+  assert.equal(selectCiScope(['docs/avatar/index.md'], { docsReviewTargets: ['docs/avatar/index.md'] }).remote_clients_changed, false);
+  for (const file of ['sdks/typescript/runtime/remote.ts', 'kit/auth/src/app/mobile.ts', 'examples/remote-runtime-web/src/client.ts']) {
+    const scope = selectCiScope([file]);
+    assert.equal(scope.docs_changed, true);
+    assert.equal(scope.remote_clients_changed, true);
+  }
+  const scope = selectCiScope(['.nimi/spec/runtime/remote-access.authority.yaml'], { docsReviewTargets: ['docs/sdk/runtime-client.md'] });
+  assert.equal(scope.remote_clients_changed, true);
+});
+
+test('docs checks run when their own scripts change', () => {
+  const preparation = selectCiScope(['scripts/prepare-docs-mobile-reference.mjs']);
+  assert.equal(preparation.docs_changed, true);
+  assert.equal(preparation.remote_clients_changed, true);
+
+  for (const file of ['scripts/check-docs-source.mjs', 'scripts/docs-source.test.mjs', 'scripts/ci-scope.test.mjs', 'scripts/lib/docs-source.mjs']) {
+    const scope = selectCiScope([file]);
+    assert.equal(scope.docs_changed, true);
+    assert.equal(scope.remote_clients_changed, false);
+  }
+});

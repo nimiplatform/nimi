@@ -1,3 +1,5 @@
+<!-- nimi-docs: {"authority":["rule.nimi.platform.ui-design-system.remote-app-session","rule.nimi.platform.ui-design-system.android-app-session"],"sources":["kit/package.json","kit/core/src/app-session.ts","kit/auth/src/app","kit/auth/android"]} -->
+
 # Use Kit in an App
 
 Use `@nimiplatform/kit` when an application needs shared Nimi UI components, authentication surfaces, Shell host integration glue, telemetry, AI capability configuration, or reusable feature surfaces.
@@ -8,9 +10,7 @@ Application code should import Kit exclusively through public subpaths declared 
 
 Applications scaffolded via official templates already include Kit dependencies. To add Kit to an existing project alongside the SDK:
 
-```bash
-pnpm add @nimiplatform/kit @nimiplatform/sdk
-```
+[Select published artifacts or complete source archives](/start/install), retaining that combination and lockfile. The `auth/app/*` entries below require the current source delivery.
 
 Kit is built atop React 19. `react-dom`, `react-i18next`, and `electron` are peer dependencies used on demand by specific subpaths.
 
@@ -111,9 +111,27 @@ pnpm run check
 pnpm run test
 ```
 
+## Shared App Sessions for Desktop, Web and Android
+
+Ordinary Apps use `NimiAppSessionProvider`, `NimiAccountControl`, `NimiAppAccessGate` and `useNimiAppSession` from `@nimiplatform/kit/auth/app`. Official Account adapters under `@nimiplatform/kit/auth` serve Home/the official site; they are not ordinary-App Account clients. These added entries require the [source package combination](/start/install).
+
+| Factory | Purpose |
+| --- | --- |
+| `createDesktopNimiAppSession` from `auth/app/desktop` | Reuses the real Host client and preserves its native type; Home owns account actions |
+| `createWebNimiAppSession` from `auth/app/web` | Configures an admitted HTTPS source, browser callback and direct connection |
+| `createMobileNimiAppSession` from `auth/app/mobile` | Android 12+ Capacitor container consuming a verified App Link or development Scheme |
+
+Call `session.start()` on startup and `session.dispose()` on teardown. Identity without a Runtime connection is a separate valid state; `autoConnect: false` supports identity-only UI. AccessGate provides the current scope to Runtime-dependent children. Capture its client, signal and viewKey for business work; retire results when that scope ends and never replay old operations. Remote sign-out ends only this App context.
+
+Follow the [Web](/start/connect-web-app) or [Android](/start/connect-android-app) setup. A website with its own accounts supplies a verified current context through `accountBinding`; the SDK identity callback is not a backend authentication credential.
+
 ## Source Basis
 
 - [`kit/README.md`](https://github.com/nimiplatform/nimi/blob/main/kit/README.md)
 - [`kit/package.json`](https://github.com/nimiplatform/nimi/blob/main/kit/package.json)
 - [`.nimi/spec/platform/ui-design-system.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/ui-design-system.authority.yaml)
 - [`apps/lab/src/lab/lab-ai-config-store.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-ai-config-store.ts)
+- [`kit/auth/README.md`](https://github.com/nimiplatform/nimi/blob/main/kit/auth/README.md)
+- [`kit/core/src/app-session.ts`](https://github.com/nimiplatform/nimi/blob/main/kit/core/src/app-session.ts)
+- [`kit/auth/src/app/web.ts`](https://github.com/nimiplatform/nimi/blob/main/kit/auth/src/app/web.ts)
+- [`kit/auth/src/app/mobile.ts`](https://github.com/nimiplatform/nimi/blob/main/kit/auth/src/app/mobile.ts)

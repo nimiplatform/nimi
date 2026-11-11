@@ -11,6 +11,7 @@ import { StoryHome } from './story-home.js';
 import { StoryExperience } from './story-experience.js';
 import { StoryWorlds } from './story-worlds.js';
 import { StoryIntegrations } from './story-capabilities.js';
+import { StoryDevices } from './story-devices.js';
 import { StoryApps } from './story-apps.js';
 import { StoryBuilder } from './story-builder.js';
 import { StoryLink } from './story-shared.js';
@@ -36,7 +37,7 @@ export function StoryPage({ content, links, locale, onLocale }: { content: Landi
   const [selectedId, setSelectedId] = useState(DEFAULT_STORY_AGENT);
   const [expandedHome, setExpandedHome] = useState(false);
   const agent = storyAgent(session.demo, selectedId);
-  const labels: StoryKey[] = ['common.experience','common.worlds','common.showcase','common.integrations','common.build'];
+  const labels: StoryKey[] = ['common.experience','common.worlds','common.showcase','common.integrations','common.devices','common.build'];
   const openHome = (surface: HeroDemoSurface, target?: string) => { session.navigate(surface, target); setExpandedHome(true); };
   const openApp = (id: string) => session.openPreview(id, id === 'nimi.zhiyu' ? 'companion' : 'home', id === 'nimi.zhiyu' ? agent.id : undefined);
   useEffect(() => {
@@ -66,6 +67,7 @@ export function StoryPage({ content, links, locale, onLocale }: { content: Landi
       <StoryWorlds t={t} locale={locale} onOpenWorld={id => openHome('explore', `world:${id}`)} />
       <StoryApps t={t} onApp={openApp} />
       <StoryIntegrations t={t} links={links} onHome={() => openHome('integrations')} />
+      <StoryDevices t={t} />
       <StoryBuilder t={t} links={links} />
       <section className="story-ending"><div className="story-container"><span className="story-eyebrow">NIMI</span><h2>{t('footer.heading')}</h2><p>{t('footer.body')}</p><StoryLink href={links.downloadUrl} primary>{t('common.download')}</StoryLink><small>{t('footer.cost')}</small></div></section>
     </main>

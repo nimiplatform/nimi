@@ -1,3 +1,5 @@
+<!-- nimi-docs: {"authority":[],"sources":["package.json",".nimi/methodology/authority-authoring.yaml","scripts/check-docs-source.mjs","scripts/lib/docs-source.mjs","scripts/detect-ci-scope.mjs"]} -->
+
 # Nimi Coding CLI 命令参考
 
 `nimicoding` CLI 是 Nimi Coding 的标准调用入口。在脚本或自动化流程中调用时，请同时检查命令退出码与返回的 JSON 结构化数据：空结果仅表示在其限定查询边界内未命中任何条目，并不代表对代码正确性、规范合规性或范围外情况的评价。
@@ -35,6 +37,12 @@
     ```
   - 标记扫描采用精确的逐行文本匹配。标记应审慎标注于关键领域归属模块（Domain Owner），避免散落标注在常规辅助函数或测试文件中。
 - **受管工具维护**：`start`、`sync` 与 `doctor` 仅用于维护受管配置与环境健康度，不拦截正常开发流程，亦不会干预 AI 任务状态。
+
+## 文档消费者复核
+
+本仓库的 `pnpm check:docs-source` 检查 Source Basis 路径、代码引用以及试点页的精确 authority ID。页面中的 `nimi-docs` JSON 注释只记录引用；格式见 `docs/AGENTS.md`。CI 根据这些引用列出候选页面并触发文档检查，不要求先升级 Nimi Coding。
+
+需要查看某个提交之后的候选页面时，给仓库脚本传入 `--changed-from` 和完整的 40 位提交 SHA。它按 authority 文件和源码路径保守选择，不能证明具体语义已同步。`authority diff`、`impact`、`review` 与读者路径核对各自保留原有职责。
 
 ## Source Basis
 

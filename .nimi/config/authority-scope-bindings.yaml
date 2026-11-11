@@ -116,6 +116,12 @@ scopes:
     bindings:
       - kind: path_glob
         value: "apps/zhiyu/**"
+      - kind: path_glob
+        value: "apps/zhiyu/src/mobile/**/*"
+      - kind: path_glob
+        value: "apps/zhiyu/src/production/**/*"
+      - kind: path_glob
+        value: "apps/zhiyu/android/**/*"
   - scope: cognition.memory
     bindings:
       - kind: path_glob
@@ -382,6 +388,16 @@ scopes:
         value: "kit/tailwind-theme.css"
       - kind: path_glob
         value: "config/desktop-shell-ui-*.yaml"
+      - kind: path_glob
+        value: "kit/core/src/app-session.ts"
+      - kind: path_glob
+        value: "kit/core/test/app-session.test.ts"
+      - kind: path_glob
+        value: "kit/auth/src/app/**/*"
+      - kind: path_glob
+        value: "kit/auth/test/*app-session*.test.ts"
+      - kind: path_glob
+        value: "kit/auth/android/**/*"
   - scope: platform.app-ecosystem
     bindings:
       - kind: path_glob
@@ -406,6 +422,12 @@ scopes:
         value: "kit/shell/protected-local/src/**/*"
       - kind: path_glob
         value: "sdks/typescript/**/*.ts"
+      - kind: path_glob
+        value: "app-tools/lib/**/*.mjs"
+      - kind: path_glob
+        value: "app-tools/bin/**/*.mjs"
+      - kind: path_glob
+        value: "app-tools/test/**/*.mjs"
   - scope: platform.product-lifecycle
     bindings:
       - kind: path_glob
@@ -426,6 +448,10 @@ scopes:
         value: "runtime/internal/services/localservice/product_control*.go"
       - kind: path_glob
         value: "runtime/internal/engine/*materializer*.go"
+      - kind: path_glob
+        value: "apps/web/src/auth/**/*"
+      - kind: path_glob
+        value: "apps/web/src/pages/**/*"
   - scope: platform.governance-release
     bindings:
       - kind: path_glob

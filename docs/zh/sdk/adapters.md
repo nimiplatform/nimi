@@ -1,20 +1,14 @@
+<!-- nimi-docs: {"authority":[],"sources":["sdks/typescript/adapters/vercel-ai/package.json","sdks/typescript/adapters/vercel-ai/index.ts",".nimi/spec/sdks/feature-clients.authority.yaml"]} -->
+
 # 框架适配器
 
 适配器负责将第三方生态框架的调用桥接至 Nimi AI 客户端。Runtime 继续负责模型路由与执行，App 则专注于工具回调、界面交互与自身业务状态。
 
-## 区分发布包与源码开发包
+## 选择适配器与依赖
 
-| 制品 | 版本与配对关系 | 在本指南中的定位 |
-| --- | --- | --- |
-| npm 已发布的 Vercel 适配器 | 0.1.0；AI SDK 6、provider 3、SDK ^0.13.0 | 早期公开发布制品，不可与当前源码示例混用 |
-| 当前工作区 Vercel 适配器源码 | 0.5.0；AI SDK ^7.0.0、provider ^4.0.0、SDK ^0.21.0 | 下方示例采用此组合，通过本地开发归档或开发交付包提供 |
-| OpenAI-compatible 适配器 | 仅存在于源码，未公开发布至 npm | 仅用于内部测试及明确支持的兼容子集 |
+已发布的 `@nimiplatform/sdk-adapter-vercel-ai@0.6.2` 声明 SDK `^0.22.2`、AI SDK `^7.0.0`、`@ai-sdk/provider` `^4.0.0`，返回 `LanguageModelV4`。完整制品选择与源码入口限制见[环境准备](/zh/start/install)。历史适配器 `0.1.0` 面向 AI SDK 6，不适用于本页示例。
 
-已发布的 0.1.0 版本声明请参阅 [npm 制品元数据](https://registry.npmjs.org/@nimiplatform%2fsdk-adapter-vercel-ai/0.1.0)。源码清单中的版本号并不代表该版本已正式发布。当前 App 的开发环境准备请参考[开发环境准备](/zh/start/install)。
-
-## 在当前源码 App 中使用 Vercel AI SDK 7
-
-请确保具备 SDK 0.21.0、配套的 Kit/Runtime 构建产物，以及适配器 0.5.0 源码的本地开发归档。直接复用 App 宿主绑定的客户端实例：
+安装所选组合后，复用原生 App 的当前宿主客户端：
 
 ```ts
 import { stepCountIs, streamText } from 'ai';

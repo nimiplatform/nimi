@@ -249,6 +249,7 @@ func (p *Peer) watchLifetime() {
 		}
 	}
 }
+// @nimi-authority: rule.nimi.runtime.remote-access.connection-lifetime
 func (p *Peer) Close() {
 	p.closeOnce.Do(func() {
 		p.mu.Lock()

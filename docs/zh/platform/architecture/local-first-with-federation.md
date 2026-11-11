@@ -1,24 +1,36 @@
-# 本地优先与多设备协同
+<!-- nimi-docs: {"authority":["rule.nimi.platform.core-protocol.p-arch-001a","rule.nimi.runtime.remote-access.direct-transport","rule.nimi.runtime.remote-access.source-admission"],"sources":["sdks/typescript/runtime/remote.ts","runtime/internal/remoteaccess","proto/runtime/v1/remote_access.proto"]} -->
 
-Nimi 既支持完全使用配置好的本地模型在用户设备上独立运行，也支持按需调用用户明确配置的云端大模型服务。「本地优先」（Local-First）并不等同于匿名或无限制的离线运行：Nimi 依然建立在账号体系之上，受保护的安全会话与授权策略在任何模式下均严格生效。
+# 本地优先与远程 Runtime 接入
 
-## 本地模型执行机制
+当前 Nimi 由 PC 上的 Runtime 执行本地或云端 AI，桌面 App 以及获准的 Web、Android 客户端消费这些能力。手机或浏览器不必另装 Runtime。这里的**本地执行指 Runtime 主机上的执行**，主机可能与用户正在操作的屏幕位于不同设备。
 
-在本地执行 AI 任务前，需要准备好运行环境与模型权重，配置并选用对应的本地推理后端（Local Loadout），并在应用或全局 LocalAgent AIConfig 中指定 `Local` 路由。在任务提交阶段，Runtime 会严格锁定当前所选的推理配置；若本地推理失败，系统不会隐式或自动回退到云端模型，以确保用户对隐私、数据流向和 API 成本拥有完全掌控。
+## 当前连接方式
 
-Cognition 通过与 Runtime 的结构化桥接，在本地持久化管理各个智能体的私有长期记忆。长期记忆功能按智能体独立开启；Knowledge V1 目前没有活跃的数据写入或检索接口。实时会话流与本地审计日志分别由 Runtime 独立存储。
+```text
+桌面 App ── 经验证的原生 Host ──┐
+                               ├── PC Runtime ── 本地模型 / 云端服务商
+Web / Android ── WebRTC 直连 ───┘       │
+                                        └── Conversation、App 数据、Cognition 桥接
+Realm：账号身份、主 Runtime 绑定、来源资格与连接协调
+```
 
-## 离线环境与网络边界
+远程客户端通过 Nimi 官方浏览器流程登录，再发现该账号绑定的主 Runtime。用户在 PC Home 开启远程接入，并确认已准入的来源。连接期间主机需要保持运行，账号与来源仍然有效，两端网络也必须能够直连。首次确认按账号、主 Runtime 和来源版本保存；只更换浏览器或设备，不需要增加长期审批记录。
 
-现有的本地工作流在所需的安全会话、能力令牌、本地模型资产及安全策略依然有效的前提下可顺畅进行。冷启动初始化、新账号登录、拉取最新 Realm 角色资产源、刷新授权凭据或发起云端模型推理，自然仍需网络连接。本地缓存仅用作性能优化，无法凭空伪造出已提交生效的 Realm 状态变更。
+Realm 和 App 的协调后端处理身份与连接协调；远程 AI 输入、结果和文件直接在客户端与 PC 之间传输。当前载体允许 STUN 发现，拒绝 TURN 和中继候选；不能直连时明确显示连接不可用，不自动启动另一个 Runtime，也不改走 AI 代理。应用应使用公共 SDK 载体，私有 Runtime 端口不属于接入方式。
 
-权威的世界历史、角色持久身份资产、社交图谱与经济状态由 Realm 统一掌管。本地未决的操作意图并不等同于已提交的 Realm 变更。在本地运行也不意味着系统会自动上传审计日志或自发进行跨设备记忆同步。
+## 模型执行与数据位置
 
-## 多设备运行与远期算力联邦
+先在主机准备模型资源，再在 App 或共享 LocalAgent AIConfig 中选择 `Local` 或 `Cloud`。Runtime 接受任务时固定本次生效配置。本地请求失败不会自动转为云端请求；选择云端后，该请求需要的上下文会发送给所选服务商。
 
-每一台设备均运行独立的本地 Runtime 守护进程，并维护各自特定的硬件 Loadout。即使通过同一个 Realm 账号在多台设备间共享角色身份，也不会自动同步本地硬件 Loadout、进行中的活跃会话流或智能体本地记忆。
+获准的客户端连接同一个 LocalAgent 时，通过同一主机访问 Runtime 管理的 Conversation 和 Cognition 管理的记忆。App 私有数据仍遵循原有存储隔离。访问主机上已有的状态不等于跨 Runtime 复制；相同账号或 App 名称不会自动合并其他 Runtime 的数据库、硬件 Loadout 或记忆库。
 
-点对点算力联邦（Compute Federation）属于前瞻性架构探索，并非现阶段的网络层协议或安装前置条件。应用程序绝不能通过直接连接远程机器的私有 Runtime 调试端口来模拟分布式能力；请始终使用官方支持的受保护宿主接口。
+关闭客户端只结束当前连接，不会停止 PC Runtime。连接断开后旧流结束；重连获取当前句柄，不重放业务请求。已经接受的持久 Job 继续遵循原有查询和取消合同。
+
+## 联网条件与后续联邦方向
+
+本地推理可否继续，取决于会话、授权、模型资产及策略是否仍然有效。新登录、主 Runtime 发现、建立连接、续期、Realm 操作和云端推理各自需要相应网络服务。远程接入不代表整个产品可以离线运行。
+
+更多 Runtime 主机、自动跨主机同步和算力联邦需要独立的架构设计。当前多设备路径是多个客户端消费同一主 Runtime，尚不提供分布式执行调度。
 
 ## Source Basis
 
@@ -29,3 +41,6 @@ Cognition 通过与 Runtime 的结构化桥接，在本地持久化管理各个�
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
 - [`.nimi/spec/runtime/memory-world.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/memory-world.authority.yaml)
 - [`.nimi/spec/cognition/memory.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/memory.authority.yaml)
+- [`.nimi/spec/runtime/remote-access.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/remote-access.authority.yaml)
+- [`.nimi/spec/platform/remote-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/remote-clients.authority.yaml)
+- [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)

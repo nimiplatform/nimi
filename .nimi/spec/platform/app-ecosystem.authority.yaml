@@ -633,8 +633,8 @@ units:
     kind: rule
     title: P-NAPP-035 local development uses the common App path
     modality: must
-    statement: local_development is the sole mutable third-party provenance class and uses the same registered subject, declaration, Desktop exact-Host launch, fresh Runtime session, Effective App Access Snapshot, and exact operation admission path as other Third-party Apps; Developer Mode controls official development-source registration, evaluation, launch, supervision, and tooling, but neither grants App access nor creates project consent or durable access state, and disabling it stops the local-development Host and tooling without affecting a separately admitted local-import source.
-    condition: Whenever a mutable Third-party App project is registered, launched, or given protected access.
+    statement: local_development is the sole mutable native local third-party provenance class and uses the same registered subject, declaration, Desktop exact-Host launch, fresh Runtime session, Effective App Access Snapshot, and exact operation admission path as other Third-party Apps; Developer Mode controls official development-source registration, evaluation, launch, supervision, and tooling, but neither grants App access nor creates project consent or durable access state, and disabling it stops the local-development Host and tooling without affecting a separately admitted local-import source.
+    condition: Whenever a mutable native local Third-party App project is registered, launched, or given protected access through the Desktop-supervised local-development carrier.
     failure: Refuse official development-source registration, evaluation, launch, supervision, and tooling while Developer Mode is disabled, keep protected access independently unavailable whenever its own current prerequisites are absent, and create no run_once, allow_project, project approval, permission, capability fingerprint, or durable access state.
     relations:
       - type: applies_to
@@ -2214,3 +2214,7 @@ units:
     relations:
       - type: applies_to
         target: definition.nimi.platform.app-ecosystem.scaffold-custody
+  - id: definition.nimi.platform.app-ecosystem.native-lifecycle-availability
+    kind: definition
+    title: Current native App lifecycle availability
+    meaning: The native App lifecycle distinguishes Registry-approved verified packages, explicitly selected immutable local-import packages and non-package Developer-Mode local development. Current Windows x86_64 and macOS arm64 paths expose Developer-Mode development, protected-tag GitHub Actions and immutable GitHub Release publication for explicitly configured pilot App repositories, protected static Registry onboarding and human-approved descriptor admission, and verified Catalog discovery, installation, update, installed launch/focus/stop, protected App session Access and uninstall. Explicit immutable local-import package management has a source-qualified Desktop and Runtime implementation on those targets; combined product acceptance and public release readiness remain separate from implementation and operation results. Other-platform package lifecycle and ordinary repair remain unavailable. Bundled and platform Apps retain separate owners. Remote Web and Android source admission and development carriers follow their own exact contracts and do not inherit native package availability.

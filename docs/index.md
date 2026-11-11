@@ -7,15 +7,15 @@ hero:
   tagline: Build Nimi Apps and integrate local or cloud AI capabilities through the SDK and Runtime.
   actions:
     - theme: brand
-      text: Create an App
-      link: /start/create-an-app
+      text: Choose Your App Carrier
+      link: /start/
     - theme: alt
       text: SDK Reference
       link: /sdk/
 
 features:
   - title: Quick Start & Execution
-    details: Check prerequisites, scaffold a project, and run your app in Nimi Home.
+    details: Choose Desktop, Web or Android, prepare the matching artifacts, and connect to Runtime.
     link: /start/
   - title: Connect AI Capabilities
     details: Call local or cloud models through the typed SDK and configure routing for your requests.

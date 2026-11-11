@@ -1,20 +1,14 @@
+<!-- nimi-docs: {"authority":[],"sources":["sdks/typescript/adapters/vercel-ai/package.json","sdks/typescript/adapters/vercel-ai/index.ts",".nimi/spec/sdks/feature-clients.authority.yaml"]} -->
+
 # Framework Adapters
 
 Adapters bridge third-party framework interfaces with Nimi AI client operations. Runtime handles model routing and execution, while the application manages tool callbacks, presentation, and its own business state.
 
-## Published Packages vs. Source Development Packages
+## Choose the Adapter and Dependencies
 
-| Artifact | Version and pairing | Role in this guide |
-| --- | --- | --- |
-| Published npm Vercel adapter | 0.1.0; AI SDK 6, provider 3, SDK ^0.13.0 | Earlier public artifact; not interchangeable with the current source workspace example |
-| Current workspace Vercel adapter source | 0.5.0; AI SDK ^7.0.0, provider ^4.0.0, SDK ^0.21.0 | Used in the example below, loaded via matching local archives or a development delivery bundle |
-| OpenAI-compatible adapter | Source only; not distributed as a public npm package | Intended for internal testing and explicitly supported compatibility subsets |
+Published `@nimiplatform/sdk-adapter-vercel-ai@0.6.2` declares SDK `^0.22.2`, AI SDK `^7.0.0` and `@ai-sdk/provider` `^4.0.0`, and returns a `LanguageModelV4`. See [Environment Setup](/start/install) for complete artifact selection and source-only entry restrictions. Historical adapter `0.1.0` targets AI SDK 6 and is not the version used here.
 
-The published 0.1.0 declarations are documented in the [npm artifact metadata](https://registry.npmjs.org/@nimiplatform%2fsdk-adapter-vercel-ai/0.1.0). A version specified in a source manifest does not establish that the package has been published to npm. To set up the current application environment, follow [Development Environment Setup](/start/install).
-
-## Using Vercel AI SDK 7 in the Current Source App
-
-Ensure you have SDK 0.21.0, matching Kit and Runtime builds, and local development archives for source adapter 0.5.0. Reuse the host-bound client from your shell:
+After installing the selected combination, reuse the native App's current host client:
 
 ```ts
 import { stepCountIs, streamText } from 'ai';

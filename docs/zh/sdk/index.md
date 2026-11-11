@@ -2,11 +2,13 @@
 aside: false
 ---
 
+<!-- nimi-docs: {"authority":["rule.nimi.sdks.client-core.remote-runtime-carrier"],"sources":["sdks/typescript/package.json","kit/package.json","sdks/typescript/adapters/vercel-ai/package.json"]} -->
+
 # SDK 开发指南
 
 Nimi SDK 是 App 面向 Runtime、Realm、AI 推理、Agent 协作、扩展 Feature 以及共享类型的官方集成边界。当前核心实现在 `sdks/typescript`，即公开发布的 `@nimiplatform/sdk` npm 包。
 
-以下宿主绑定示例使用 SDK 0.21.0 的源码开发组合及匹配 Kit/Runtime。先按[环境准备](/zh/start/install)提供本地归档或开发交付包；Vercel 示例使用源码 adapter 0.5.0 和 AI SDK 7，已发布制品的不同配对见[适配器](/zh/sdk/adapters)。
+本指南使用的制品组合见[环境准备](/zh/start/install)。原生 App 示例需要配套的 SDK、Kit 与 Runtime；远程 Web/Android 入口需要当前源码交付。Vercel 示例使用已发布的适配器 `0.6.2` 与 AI SDK 7，具体依赖见[适配器](/zh/sdk/adapters)。
 
 ## 快速上手：Nimi App 开发
 
@@ -65,6 +67,8 @@ TypeScript SDK 保持单一基础包设计，针对外部框架的适配层作�
 | `@nimiplatform/sdk/app` | 宿主绑定 App 客户端类型、标准 Shell 契约与高阶强类型操作 |
 | `@nimiplatform/sdk/ai` | AI Model 基础接口与文本模型绑定工具 |
 | `@nimiplatform/sdk/runtime` | 强类型 Runtime 客户端；用于受信任场景，无法绕过 App 权限约束 |
+| `@nimiplatform/sdk/runtime/remote` | 当前源码：主 Runtime 直连与远程客户端类型 |
+| `@nimiplatform/sdk/realm/runtime-client` | 当前源码：正式远程来源登录、受限身份和连接协调 |
 | `@nimiplatform/sdk/realm` | 独立 Realm 客户端，供外部脚本使用；App 内通常通过宿主客户端访问 Realm |
 | `@nimiplatform/sdk/types` | 全局通用类型定义与标准化 SDK 错误模型 |
 | `@nimiplatform/sdk/contracts` | 开放的协议契约描述符 (Contract Descriptors) |
@@ -91,6 +95,10 @@ Nimi 系统拥有清晰的所有权域划分：Runtime 管理执行环境与本�
 5. **规范处理异常**：根据标准错误中的 Reason Code 编写健壮的容错逻辑，并保留必要信息供用户排查。
 
 App 无需、也不应该直接拼接内部 gRPC 地址或 Realm REST 路由，遵循标准 SDK 即可获得最佳的稳定性与跨版本兼容保障。
+
+## 远程 App 入口
+
+Web 与 Android 使用受限的远程客户端，不构造假的原生宿主会话。当前源码的公共入口为 `@nimiplatform/sdk/runtime/remote`、`@nimiplatform/sdk/realm/runtime-client`；共享产品界面通常从 Kit 的 `auth/app/web` 或 `auth/app/mobile` 开始。依赖选择见[环境准备](/zh/start/install)，实际接入见 [Web](/zh/start/connect-web-app)、[Android](/zh/start/connect-android-app)及 [Runtime 客户端](/zh/sdk/runtime-client)。
 
 ## Source Basis
 

@@ -1,4 +1,10 @@
+<!-- nimi-docs: {"authority":["rule.nimi.sdks.client-core.remote-runtime-carrier","rule.nimi.runtime.remote-access.operation-carrier"],"sources":["sdks/typescript/package.json","sdks/typescript/runtime/remote.ts","sdks/typescript/runtime/remote-app.ts","examples/sdk/08-remote-runtime.ts"]} -->
+
 # Runtime 客户端
+
+本页分别介绍本机原生与远程 App 的客户端。当前远程入口需要[源码制品组合](/zh/start/install)。
+
+## 本机原生客户端
 
 标准的 Nimi App 使用单一的宿主绑定客户端 `NimiLocalAppClient`，通常由官方脚手架在初始化时通过 Kit 自动创建。业务代码应通过 `client.ai`、`client.aiConfig` 以及规范授权的功能接口与底层交互；App 无需手动指定当前用户账号、App 所有者身份、Runtime 监听端口或安全传输细节。
 
@@ -18,7 +24,23 @@ SDK 会忠实保留 Runtime 返回的强类型错误码、结构化原因码 (Re
 
 推荐阅读路径：从[第一次 AI 调用](/zh/sdk/first-ai-call)、[AI 配置](/zh/sdk/ai-config-surface)以及 [App 授权机制](/zh/platform/agents/participation-authority)开始。
 
+## 远程 Web 与 Android 客户端
+
+官方登录使用 `@nimiplatform/sdk/realm/runtime-client`；`@nimiplatform/sdk/runtime/remote` 的 `connectRemoteRuntime` 连接当前账号绑定的主 Runtime。App 通常通过 [Kit 会话工厂](/zh/platform/kit/use-kit-in-app)组合这些步骤，不自行保管通用账号凭据。
+
+普通 App 得到 `RemoteRuntimeAppConnection`。它提供已实现的 AI、自己的 AIConfig、App 私有 JSON/资产、LocalAgent Conversation 与管理、动态和固定 Realm 资源操作。实际权限由 Runtime 对每次调用验证。原生文件定位、远程启动 PC App、未实现的双向实时流，以及管理端操作不属于这个客户端。
+
+以下类型检查示例接收正式登录得到的当前 session，并在一次调用后关闭自己的连接。长驻 UI 应复用当前连接 scope，身份或连接变化时结束旧 scope。
+
+<<< ../../../examples/sdk/08-remote-runtime.ts
+
+`official_manager` 是单独审核并验证的来源角色，仅暴露已实现的管理操作；普通 App 不能通过参数声明该角色。来源暂停、账号失效和断线结束对应访问；签出、断开客户端与停止主机是不同动作。
+
 ## Source Basis
 
 - [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)
 - [`.nimi/spec/sdks/feature-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/feature-clients.authority.yaml)
+- [`.nimi/spec/runtime/remote-access.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/remote-access.authority.yaml)
+- [`sdks/typescript/runtime/remote.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/runtime/remote.ts)
+- [`sdks/typescript/realm/runtime-client.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/realm/runtime-client.ts)
+- [`examples/sdk/08-remote-runtime.ts`](https://github.com/nimiplatform/nimi/blob/main/examples/sdk/08-remote-runtime.ts)

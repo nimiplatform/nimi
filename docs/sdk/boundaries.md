@@ -31,8 +31,8 @@ Maintaining clear module boundaries is not academic pedantry; it ensures applica
 
 Attempting to bypass the SDK in pursuit of perceived performance gains or quick debugging:
 
-1. **Missing security context**: The standard SDK client automatically carries security session credentials injected by the Desktop host. Bypassing the SDK results in direct RPC calls lacking origin authentication, causing immediate rejection by Runtime interceptors.
-2. **Proper resolution**: Route requests through the host-bound client. If performance or streaming bottlenecks arise, address them by tuning SDK transport parameters or proposing official SDK API enhancements.
+1. **Missing security context**: A native App uses its verified Desktop Host session; a remote App uses its officially established scoped identity and admitted direct peer. Bypassing the SDK results in direct RPC calls lacking origin authentication, causing immediate rejection by Runtime interceptors.
+2. **Proper resolution**: Route requests through the public client for that carrier. If performance or streaming bottlenecks arise, address them by tuning SDK transport parameters or proposing official SDK API enhancements.
 
 ## Demarcation: Inside vs. Outside the Boundary
 

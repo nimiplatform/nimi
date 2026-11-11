@@ -1,3 +1,5 @@
+<!-- nimi-docs: {"authority":[],"sources":["package.json",".nimi/methodology/authority-authoring.yaml","scripts/check-docs-source.mjs","scripts/lib/docs-source.mjs","scripts/detect-ci-scope.mjs"]} -->
+
 # Nimi Coding
 
 Nimi Coding 为 AI 宿主环境与工程工具链提供确定性的规范权威（Canonical Authority）检索与校验能力。它负责规范文件的格式化、静态结构校验、关系图谱查询、依赖导航与变更影响审查；其定位是专注的底层规范效能工具，而非自主决策的 AI Agent、代码生成器或产品设计生成器。
@@ -37,6 +39,12 @@ Nimi Coding 保持严格的单一真实源（Single Source of Truth）：任何�
 
 - [宿主环境集成](/zh/nimicoding/installation)
 - [CLI 命令参考速查](/zh/nimicoding/cli-reference)
+
+## 文档消费者复核
+
+本仓库的 `pnpm check:docs-source` 检查 Source Basis 路径、代码引用以及试点页的精确 authority ID。页面中的 `nimi-docs` JSON 注释只记录引用；格式见 `docs/AGENTS.md`。CI 根据这些引用列出候选页面并触发文档检查，不要求先升级 Nimi Coding。
+
+需要查看某个提交之后的候选页面时，给仓库脚本传入 `--changed-from` 和完整的 40 位提交 SHA。它按 authority 文件和源码路径保守选择，不能证明具体语义已同步。`authority diff`、`impact`、`review` 与读者路径核对各自保留原有职责。
 
 ## Source Basis
 

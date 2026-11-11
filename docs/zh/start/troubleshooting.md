@@ -1,3 +1,5 @@
+<!-- nimi-docs: {"authority":["rule.nimi.runtime.remote-access.source-admission","rule.nimi.runtime.remote-access.connection-lifetime","rule.nimi.runtime.service-operations.r086"],"sources":["runtime/cmd/nimi/runtime_health_commands.go","scripts/dev-app.mjs","kit/core/src/app-session.ts"]} -->
+
 # 常见问题与故障排查
 
 在开发 Nimi App、调用 SDK、运行 Nimi Lab 测试或启动本地 Runtime 时遇到异常？本文整理了最常见的接入问题、原因分析与排查步骤。
@@ -9,11 +11,10 @@
 请根据当前的运行环境，选择对应的 Runtime 启动方式：
 
 ### 源码开发环境（推荐）
-在 Nimi 仓库根目录下打开终端并执行：
-```bash
-pnpm dev:runtime
-```
-接着在第二个终端运行 `pnpm dev:desktop` 并登录 Nimi Home。这是源码开发与联调阶段推荐的双进程托管流程。
+
+完成[环境准备](/zh/start/install)，在 Nimi 根目录运行 `pnpm dev:desktop`。启动器检查并启动已配置但缺失的服务与 Runtime，再打开 Home；从终端和 `.nimi/local/dev-services/` 查看启动失败的具体原因。独立调试 Runtime 才需要另开终端执行 `pnpm dev:runtime` 并查看其前台日志。
+
+分别确认 Home 接入与登录、目标 App 的 Nimi Access，以及保存配置后的真实模型调用。进程运行不代表 App 已获准，也不代表模型就绪。
 
 ### Windows 系统服务
 如果你安装了 Nimi 官方桌面客户端并注册了 Windows 后台服务，可通过以下命令管理：
@@ -22,6 +23,8 @@ pnpm dev:runtime
 - `nimi doctor`：运行本地环境体检。
 - `nimi health --json`：获取结构化的服务健康指标摘要。
 
+`nimi health --json` 只报告固定服务控制器的 `service-running/stopped` 状态，不证明 RPC 或 AI 就绪，也不检测源码 supervisor。当前 macOS 等没有对应控制器的路径会返回不可用错误。
+
 > [!NOTE] 启动注意事项
 > `nimi serve` 仅供后台守护进程（daemon）调用，在普通开发终端中直接运行会被系统拒绝；源码开发请使用 `pnpm dev:runtime`。日常运行请使用对应平台受支持的启动器（目前应用包生命周期仅支持 macOS arm64 与 Windows x86_64）。
 
@@ -29,7 +32,7 @@ pnpm dev:runtime
 
 ## 2. 检查 App 与桌面宿主的会话绑定
 
-Nimi App 必须通过脚手架生成的宿主绑定客户端与底层 Runtime 通信：
+本机原生 Nimi App 通过脚手架生成的宿主绑定客户端与 Runtime 通信：
 
 ```ts
 import { getNimiLocalAppClient } from './shell/auth/local-app-client';
@@ -66,7 +69,7 @@ const client = getNimiLocalAppClient();
 
 | 错误状态 | 产生原因 | 推荐解决步骤 |
 | :--- | :--- | :--- |
-| `runtime-unavailable` | 无法连接到本地 Runtime 服务。 | 检查 `pnpm dev:runtime` 是否正在运行，并确认本地服务端口通信正常。 |
+| `runtime-unavailable` | 无法连接到本地 Runtime 服务。 | 检查 Home 接入与启动日志；独立源码 Runtime 查看前台日志，远程客户端另查主机和直连状态。 |
 | `principal-unauthorized` | 当前会话或调用主体未获准执行该操作。 | 检查 Nimi Home 的登录与该应用的 Nimi Access 状态，并核对 `nimi.app.yaml` 中所需的访问声明；AI 调用需要 `runtime.consume`。 |
 | `input-invalid` | 传入的 Prompt、消息体或参数格式不合法。 | 检查调用传参，确保 messages 结构完整且包含必需字段。 |
 | `sdk-method-unavailable` | 当前安装的 SDK 版本未导出或不支持该方法。 | 检查 `package.json` 中的 `@nimiplatform/sdk` 版本，升级至匹配的发布版本。 |
@@ -106,6 +109,24 @@ pnpm run check
 1. **复用单一宿主客户端**：始终使用脚手架生成的 `getNimiLocalAppClient()`，不要重复创建客户端实例。
 2. **面向能力意图编程**：通过能力意图请求 AI 服务，不在业务代码中硬编码模型名称或远端地址。
 3. **提供清晰的状态反馈**：在界面上明确区分“等待推理”、“服务未连接”与“访问未就绪”等状态，并提供直达设置页的操作入口。
+
+## 远程接入按层排查
+
+| 当前状态 | 下一步 |
+| --- | --- |
+| 未登录或登录事务失效 | 通过当前 App 的官方浏览器入口重新登录，核对精确来源与回调 |
+| 没有主 Runtime | 在 PC Home 发起绑定，并在官方账号网站确认 |
+| 来源待确认、暂停或版本变化 | 在主 PC Home 查看该来源；复用有效确认，按实际状态确认或恢复 |
+| 已登录但直连失败 | 检查主机运行、远程接入开关、同一 Realm 环境、可信 TLS 和两端直连条件；没有中继兜底 |
+| 已连接但操作不可用 | 核对实际包入口、载体操作子集与 App 声明，不用自造原生身份绕过 |
+| AIConfig 缺失或模型未就绪 | 在 App 保存意图，在 PC 准备对应模型资源或云服务，再提交真实调用 |
+| 已提交 Job 后失联 | 查询已保存的 Job/提交标识，展示实际结果；不自动重提 |
+
+Android 开发 Scheme 与正式 App Link 的包名、签名、回调及环境条件不同；前者只适用于明确接纳的本机开发。排查步骤见 [Android 指南](/zh/start/connect-android-app)。
+
+## 已运行开发 App 的 CDP 配置冲突
+
+如果 Home 已启动同一个开发 App，再使用不同 CDP 配置启动会返回 `local-development-cdp-configuration-conflict`。先在 Home 正常停止这个 App，再用同一登记的当前 `--resume` selector 和所需端口续开。不要创建新登记来绕过冲突，也不要把 Home 的 CDP 当作 App 的验收目标。
 
 ## Source Basis
 

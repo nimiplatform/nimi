@@ -2,55 +2,30 @@
 
 > **让 AI 真正属于你。** / **Make AI truly yours.**
 
-Today, most AI experiences isolate you inside a rented browser tab. Your prompts vanish into distant server farms, context is hard to carry from one tool to another, and your digital life is scattered across closed gardens.
+Nimi is building a user-controlled AI foundation that connects mobile, Web, PC, embedded devices and smart homes. The aim is for AI to participate in everyday life across the tools and devices people use: helping with work and creation, carrying an authorized conversation across screens, and eventually interacting with the physical environment through explicit device contracts.
 
-Nimi was born from a simple belief: **your AI should live with you, work for you, and belong to you.**
+## The Foundation We Have Today
 
-You install Nimi on your own machine. It unites focused AI applications, persistent characters, shared narrative worlds, and continuity across authorized apps. The device is yours, the model choice is yours, the memory is yours, and the tools you create remain yours.
+The current implementation centers execution on a user's PC Runtime. Native Desktop Apps use verified local Host sessions; admitted Web and Android clients connect directly to the account-bound primary Runtime through the public SDK and Kit. The client device does not need to run its own Runtime. Nimi Home, currently hosted by Desktop, provides the local product entry and management experience.
 
----
+This brings local and cloud models behind shared capability contracts. Users choose the route; Apps concentrate on their tasks. A Local route executes on the PC host. A Cloud route sends the request's required context to the selected provider. Account login, source coordination, downloads and online resources still have their own network dependencies.
 
-## Two Horizons
+Authorized surfaces can continue the same LocalAgent Conversation and use its Cognition-managed memory on that host. App-private work retains its own access boundary. This continuity does not imply cross-Runtime replication or automatic sharing of other Apps' data.
 
-### 1. The Foundation: A Local-First Personal AI Workstation
-At its core, Nimi is an installable personal AI operating environment. It replaces the single, generic chat window with purpose-built applications tailored for real human tasks:
-- **Local Sovereignty**: Supported local models run directly on your hardware without cloud inference charges. Choosing local inference keeps model execution on-device without cutting off the rest of the product—online features and optional cloud inference continue to work through their own dedicated data flows.
-- **Fluid Continuity**: Authorized apps attached to the same LocalAgent share its presence and can carry its conversation forward across tools. Sharing a LocalAgent does not grant automatic access to another app’s private work.
-- **Freedom of Compute**: Seamlessly switch between efficient on-device small models and heavy cloud reasoning engines. You decide when on-device privacy matters and when raw cloud scale is required.
+## A Broader Everyday AI Environment
 
-### 2. The Horizon: An Open World Ecosystem
-Looking further ahead, Nimi is building towards long-lived, shared semantic worlds.
+More mobile platforms, embedded interfaces and smart-home devices extend the direction beyond screens. Some endpoints may only provide interaction or sensing; others may execute capabilities. Their role, permissions, state owner, resource limits and behavior after connection loss must be defined for the concrete user task before support is promised.
 
-In these worlds, people, autonomous characters, specialized applications, and runtime services coexist in a persistent social and semantic fabric. Instead of summoning a stateless model that forgets you the moment a tab closes, you step into worlds that remember history, respect timeflow, and enable genuine creative collaboration.
+The present direct connection has no relay fallback, and current Android development is separate from distributed App Link acceptance. Future networking, additional Runtime hosts, synchronization and compute federation require their own contracts. Source code, a successful build and a released end-to-end product remain distinct delivery facts.
 
-*Crucially, this open world ecosystem is an experiential dimension inside Nimi—it enriches the personal AI product without diluting its local-first, user-sovereign foundation.*
+Characters, persistent stories and shared semantic worlds are another dimension of this foundation. They enrich the experience alongside focused tools, creative applications and device interactions; they do not define the entire platform's category.
 
----
+## Lasting Commitments
 
-## Core Product Commitments
+- **User control:** choose supported local or cloud execution and retain meaningful control over data and access.
+- **Explicit permission:** source admission, current identity and Runtime operation checks apply across carriers; a new device does not invent a separate business permission system.
+- **Clear data ownership:** Realm owns ecosystem identity and shared resources; Runtime owns execution and Conversation; Cognition owns per-Agent long-term Memory; Apps own their business workflows and private data; Avatar owns presentation.
+- **Open building blocks:** Runtime, SDK, Kit and Proto provide public contracts and open-source implementation without requiring Apps to depend on private internals.
+- **Honest outcomes:** unavailable capabilities and uncertain results remain visible. Connectivity and recovery never fabricate success or silently replay business work.
 
-1. **Local-First Execution**: Keep local inference available and let users choose supported local or cloud routes for each capability.
-2. **Tools You Can Use and Build**: Bring focused ecosystem apps and developer tools together—whether you are running available ecosystem apps across supported platforms and releases, or building your own private tools with the SDK.
-3. **Private, Contextual Continuity**: Memory lives with the individual LocalAgent on your device, and separate LocalAgents maintain separate memories. When relevant context is recalled for a task, it travels with the model request—including to a cloud provider when a cloud route is selected.
-4. **Radical Openness**: The platform core (Runtime, SDK, Kit, Proto) is open source. Every admitted ecosystem app maintains a public repository and clear licensing.
-
----
-
-## Architectural Harmony
-
-Nimi maintains strict, dignified boundaries between its subsystems:
-
-- **Nimi Home** (currently hosted by Desktop): The calm, cohesive workstation where your daily work and explorations begin.
-- **Runtime**: The deterministic local engine orchestrating model execution, conversations, and protected capability access.
-- **Realm**: The social and semantic backbone stewarding persistent characters, shared world history, and ecosystem identity.
-- **Cognition**: The guardian of long-term memory, ensuring contextual recall without sacrificing privacy.
-- **Kit & SDK**: The expressive bridge allowing creators to turn ideas into native Nimi experiences with shared interfaces and components.
-
----
-
-## Guiding Principles
-
-- **Explicit contracts over hidden magic**: Predictable, declared interfaces beat opaque, speculative guessing.
-- **Deterministic safety over loose fallbacks**: When a secure channel or capability cannot be guaranteed, fail clearly and cleanly—never simulate false success.
-- **Single source of truth**: Documentation and code reflect canonical product authority, not scattered working notes.
-- **Privacy and auditability as defaults**: Security is not an afterthought or an enterprise add-on; it is the prerequisite of personal computing.
+Current artifact choices and platform-specific setup are described in the [developer guides](https://docs.nimi.ai/start/). Product availability is listed on the [download page](https://nimi.ai/download).

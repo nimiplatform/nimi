@@ -56,7 +56,7 @@ const platformGroups: DefaultTheme.SidebarItem[] = [
     items: [
       { text: '架构总览', link: '/zh/platform/architecture/' },
       { text: 'Realm 与 Runtime 是同侪', link: '/zh/platform/architecture/realm-runtime-siblings' },
-      { text: '本地优先 + 联邦', link: '/zh/platform/architecture/local-first-with-federation' },
+      { text: '本地与远程 Runtime', link: '/zh/platform/architecture/local-first-with-federation' },
       { text: '跨域产品故事', link: '/zh/platform/architecture/cross-domain-product-stories' },
     ],
   },
@@ -309,6 +309,8 @@ export const sidebarZh: DefaultTheme.Sidebar = {
         { text: '用户画像', link: '/zh/start/personas' },
         { text: '安装与可用性', link: '/zh/start/install' },
         { text: '创建 Nimi App', link: '/zh/start/create-an-app' },
+        { text: '接入 Web App', link: '/zh/start/connect-web-app' },
+        { text: '接入 Android App', link: '/zh/start/connect-android-app' },
         { text: '使用 Nimi Lab', link: '/zh/start/use-nimi-lab' },
         { text: '故障排查', link: '/zh/start/troubleshooting' },
       ],

@@ -23,9 +23,9 @@ Nimi divides its architecture into explicit Authority Domains. Every category of
 | **Realm → Runtime** | Realm issues certified Character Sources; Runtime instantiates and runs LocalAgents |
 | **Realm → Runtime** | Realm supplies World context to ground LocalAgent dialogue |
 | **Runtime → SDK** | Runtime streams normalized generation output and structured events to the SDK |
-| **SDK → App** | Apps invoke explicitly admitted SDK operations over protected host sessions |
+| **SDK → App** | Apps invoke admitted SDK operations over verified native sessions or remote peers |
 | **Runtime → Avatar** | Runtime streams presentation events; Avatar drives character visuals on the local GPU |
-| **Nimi Home → App** | Home (hosted in Desktop) launches apps within protected host sessions verified by Runtime |
+| **Nimi Home → App** | Home (hosted in Desktop) launches native Apps through verified Host sessions; remote Apps have their separately admitted sources |
 
 ## Related Documentation
 

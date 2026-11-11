@@ -2,13 +2,15 @@
 aside: false
 ---
 
+<!-- nimi-docs: {"authority":["rule.nimi.sdks.client-core.remote-runtime-carrier"],"sources":["sdks/typescript/package.json","kit/package.json","sdks/typescript/adapters/vercel-ai/package.json"]} -->
+
 # SDK Guide
 
 The Nimi SDK is the official boundary for applications integrating Runtime, Realm, AI inference, Agent collaboration, feature modules, and shared type definitions. The core implementation lives under `sdks/typescript` and is published as `@nimiplatform/sdk`.
 
-The host-bound examples across this guide target the SDK 0.21.0 source development baseline with matching Kit and Runtime versions. Prepare local archives or the development bundle through [Environment Setup](/start/install). The Vercel example targets source adapter 0.5.0 and AI SDK 7; see [Adapters](/sdk/adapters) for published-artifact version pairings.
+Choose the package and host combination in [Environment Setup](/start/install). Native App examples require matching SDK, Kit and Runtime artifacts; remote Web/Android entries require the current source delivery. The Vercel example uses published adapter `0.6.2` with AI SDK 7; see [Adapters](/sdk/adapters).
 
-## Quick Start: Building a Nimi App
+## Quick Start: Building a Native Nimi App
 
 For standard Nimi Apps, development requires **a single host-bound client**. When Nimi Home launches an application in a supervised host, the host automatically injects a standard Shell bridge. The underlying Runtime resolves the signed-in user, application identity, and access boundaries directly from this protected session. Declare the App ID in the project manifest; individual client calls derive identity from the host and do not take user credentials, tokens, or Runtime host endpoints.
 
@@ -65,6 +67,8 @@ The TypeScript SDK adopts a single foundation package design; third-party framew
 | `@nimiplatform/sdk/app` | Host-bound App client types, standard shell contracts, and typed operations |
 | `@nimiplatform/sdk/ai` | AI model interfaces and text model binding utilities |
 | `@nimiplatform/sdk/runtime` | Strongly-typed Runtime client for supported environments; strictly respects authorization boundaries |
+| `@nimiplatform/sdk/runtime/remote` | Current source: direct primary Runtime connection and remote client types |
+| `@nimiplatform/sdk/realm/runtime-client` | Current source: official source login, scoped identity and connection coordination |
 | `@nimiplatform/sdk/realm` | Standalone Realm client for independent scripts; Apps access Realm via their host-bound client |
 | `@nimiplatform/sdk/types` | Portable public interfaces, schema types, and SDK error models |
 | `@nimiplatform/sdk/contracts` | Open platform contract descriptors |
@@ -91,6 +95,10 @@ An application requiring Realm world data alongside local AI inference should:
 5. **Handle structured errors**: Inspect standard error reason codes for robust error handling while preserving diagnostics for troubleshooting.
 
 Applications should never craft raw gRPC calls or bypass SDK contracts to invoke REST routes directly.
+
+## Remote App Entries
+
+Web and Android use a bounded remote client without fabricating a native Host session. Current source exports are `@nimiplatform/sdk/runtime/remote` and `@nimiplatform/sdk/realm/runtime-client`; shared product UI normally starts with Kit `auth/app/web` or `auth/app/mobile`. Choose packages in [Environment Setup](/start/install), then follow [Web](/start/connect-web-app), [Android](/start/connect-android-app) and [Runtime Client](/sdk/runtime-client).
 
 ## Source Basis
 

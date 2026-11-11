@@ -1,3 +1,5 @@
+<!-- nimi-docs: {"authority":["rule.nimi.platform.app-ecosystem.p-napp-035a"],"sources":["app-tools/bin/nimi-app.mjs","app-tools/package.json","app-tools/lib/app-project-lifecycle.mjs"]} -->
+
 # 创建你的第一个 Nimi App
 
 欢迎来到 Nimi App 开发世界！借助 Nimi 工具链，你可以快速构建现代化桌面应用，在受管宿主环境中安全调用本地与云端 AI 能力。
@@ -12,7 +14,7 @@
 
 ```bash
 # 使用已发布的 App Tools（请选用与当前宿主匹配的发布版本）：
-pnpm dlx --package @nimiplatform/app-tools nimi-app create \
+pnpm dlx --package @nimiplatform/app-tools@0.14.0 nimi-app create \
   --dir my-nimi-app \
   --profile standalone \
   --features studio-create \
@@ -41,38 +43,16 @@ cd my-nimi-app
 ### 关键参数说明
 
 - `--profile standalone`：生成独立的单应用工程结构。
-- `--features studio-create`：引入创作套件并自动声明 `runtime.consume` 权限，使应用能够通过本地 Runtime 请求文本与多模态生成能力。
+- `--features studio-create`：加入文本生成、流式聊天和向量计算，并为这些 Runtime 操作声明 `runtime.consume`。
 - `--app-id`：全局唯一的应用标识符（推荐使用反向域名格式，如 `com.mycompany.myapp` 或 `example.app`）。
 
 ---
 
 ## 2. 检查与配置依赖
 
-打开生成的 `package.json`，保持脚手架生成的配套依赖版本组合。以下示例展示了当前源码仓库脚手架模板中的依赖配置（仅作结构参考，不代表 npm 上的实时发布状态）：
+按[环境准备](/zh/start/install)选择制品，并保留所选 App Tools 生成的依赖组合。使用源码工具归档时，必须同时选择完整、匹配的 SDK、Kit 和目标原生包，配置方式见[源码包归档](/zh/start/install#source-package-archives)。不要将新版源码工具与同数字版本的旧 npm 包混用。
 
-```json
-{
-  "dependencies": {
-    "@nimiplatform/sdk": "^0.22.2",
-    "@nimiplatform/kit": "^0.22.1"
-  }
-}
-```
-
-如果你在本地源码环境中开发，或使用预打包的离线 `.tgz` 归档包，请在项目根目录的 `pnpm-workspace.yaml` 中配置 `overrides` 路径：
-
-```yaml
-packages:
-  - .
-overrides:
-  '@nimiplatform/app-tools': file:../nimi-packages/nimiplatform-app-tools-0.14.0.tgz
-  '@nimiplatform/sdk': file:../nimi-packages/nimiplatform-sdk-0.22.2.tgz
-  '@nimiplatform/kit': file:../nimi-packages/nimiplatform-kit-0.22.1.tgz
-  '@nimiplatform/kit-protected-local-darwin-arm64': file:../nimi-packages/nimiplatform-kit-protected-local-darwin-arm64-0.22.1.tgz
-```
-
-> [!TIP] 系统架构说明
-> 上述原生扩展包适用于 macOS arm64（Apple Silicon）。如果在 Windows x86_64 环境下开发，请将其替换为对应版本的 `@nimiplatform/kit-protected-local-win32-x64`。该原生包作为 Kit 的底层可选扩展自动加载，无需在业务代码中手动 `import`。
+本页的公开包命令用于原生 App。当前 Web 与 Android 新入口需要源码交付；数字版本相同不能证明包含相同接口。
 
 ---
 

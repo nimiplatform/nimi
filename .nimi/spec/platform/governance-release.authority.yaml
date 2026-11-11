@@ -18,10 +18,16 @@ units:
     kind: rule
     title: Nimi public product positioning
     modality: must
-    statement: Public release positioning identifies Nimi as the installable, open-source, local-first personal AI product, Nimi Home as its entry, Realm as the owner of ecosystem identity, and the multi-provider Runtime as the executor of local and cloud AI capabilities; characters, conversations, creations, stories, and worlds are experiences within Nimi rather than the canonical product category, while Nimi Apps defines distinct Registry-approved verified package, explicitly selected immutable local-import package, and non-package Developer-Mode local-development lifecycles, the current pre-release exposes Developer-Mode local development, protected-tag GitHub Actions and immutable GitHub Release publication for explicitly configured pilot App repositories, protected static Registry onboarding and human-approved descriptor admission, and verified Catalog discovery, installation, update, installed launch/focus/stop, protected App session Access and uninstall on Windows x86_64 and macOS arm64; explicit immutable local-import package management has a source-qualified Desktop and Runtime implementation on those targets, but public release readiness for that path requires combined product acceptance and cannot be inferred from implementation, builds or unit tests, while other-platform package lifecycle and ordinary repair remain unavailable.
+    statement: Public positioning connects Nimi’s cross-terminal AI foundation direction to its current installable, open-source, local-first personal AI product and App ecosystem, with Home as an entry, Realm as ecosystem identity owner and Runtime as executor of local and cloud capabilities. Characters, conversations, creations, stories and worlds remain experiences within Nimi. Public claims distinguish the current PC Runtime and native/remote consumers, current native App lifecycle availability and exact remote carrier availability, without copying another domain’s capability or lifecycle truth into this release-promise index. A source implementation, dependency version or build does not establish product acceptance or released artifact support; supported, partial, unsupported and deferred claims retain their existing owner, login, failure and verification requirements.
     condition: Whenever public Nimi positioning is published for the release.
     failure: Correct copy that collapses Nimi into Runtime, equates Nimi Home with Desktop, promotes one experience to the product category, omits an admitted App lifecycle path, presents an unavailable App path as current behavior, or assigns its owner truth to the release-promise index.
     relations:
+      - type: applies_to
+        target: definition.nimi.platform.app-ecosystem.native-lifecycle-availability
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.cross-terminal-platform
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.current-runtime-topology
       - type: applies_to
         target: definition.nimi.platform.governance-release.release-promise
   - id: rule.nimi.platform.governance-release.p-gov-026-posture-values

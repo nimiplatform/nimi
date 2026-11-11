@@ -342,6 +342,61 @@
 .story-integration-management > p { color: #7a8da0; font-size: 11px; margin: 0; }
 .story-integration-actions { display: flex; align-items: center; gap: 24px; flex: none; }
 .story-integration-actions .story-link { font-size: 12px; white-space: nowrap; }
+.story-devices { background: linear-gradient(180deg, #edf6fc, #f6fbff 65%, #eef8f7); }
+.story-devices > .story-container > .story-heading { max-width: 860px; margin-inline: auto; text-align: center; }
+.story-devices > .story-container > .story-heading > p { max-width: 760px; margin-inline: auto; }
+.story-devices-present { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); align-items: center; gap: clamp(32px, 6vw, 90px); margin-top: 60px; }
+.story-devices-copy { max-width: 450px; }
+.story-devices-copy .story-eyebrow { color: #087b93; margin-bottom: 12px; }
+.story-devices-copy h3, .story-devices-future h3 { margin: 0 0 18px; font: 620 clamp(24px, 2.3vw, 32px)/1.3 var(--font-display); letter-spacing: -.025em; text-wrap: balance; }
+.story-devices-copy p, .story-devices-future p { color: var(--story-body); font-size: 14px; line-height: 1.9; margin: 0 0 16px; }
+.story-devices-copy > small { display: block; color: #61778b; font-size: 12px; line-height: 1.8; }
+.story-devices-map { position: relative; isolation: isolate; min-width: 0; margin: 0; padding: 24px 12px 0; }
+.story-devices-map::before { content: ''; position: absolute; z-index: -1; inset: -25px -20px 0; background: radial-gradient(ellipse at 50% 40%, #c4eee59c, #cce8f77a 45%, transparent 72%); pointer-events: none; }
+.story-devices-host { width: min(270px, 70%); margin-inline: auto; }
+.story-devices-screen { display: flex; flex-direction: column; align-items: center; padding: 20px 16px 24px; border: 1px solid #b8d4e0; border-radius: 18px; background: linear-gradient(145deg, #ffffffeb, #ebfaffd9); box-shadow: 0 24px 48px -24px #24597752, inset 0 0 0 5px #ffffffb3; }
+.story-devices-screen > span { color: #526f83; font-size: 11px; }
+.story-devices-screen > img { width: 41px; height: 41px; margin: 18px 0 10px; }
+.story-devices-screen > strong { font: 600 21px/1.4 var(--font-brand); letter-spacing: -.025em; }
+.story-devices-screen > small { color: #4d7b8d; font-size: 11px; margin-top: 5px; }
+.story-devices-stand { width: 75px; height: 25px; margin: 0 auto; border-bottom: 4px solid #afcbd8; background: linear-gradient(90deg, transparent 32%, #c8dce5 32%, #dceaf0 68%, transparent 68%); border-radius: 0 0 4px 4px; }
+.story-devices-branches { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); height: 53px; padding-top: 24px; position: relative; }
+.story-devices-branches::before { content: ''; position: absolute; top: 0; left: 50%; height: 24px; border-left: 1px solid #71b6bc; }
+.story-devices-branches > i { border-top: 1px solid #71b6bc; position: relative; }
+.story-devices-branches > i::after { content: ''; position: absolute; top: 0; left: 50%; height: 28px; border-left: 1px solid #71b6bc; }
+.story-devices-branches > i:first-child { margin-left: 50%; border-top-left-radius: 12px; border-left: 1px solid #71b6bc; }
+.story-devices-branches > i:last-child { margin-right: 50%; border-top-right-radius: 12px; border-right: 1px solid #71b6bc; }
+.story-devices-branches > i:first-child::after, .story-devices-branches > i:last-child::after { display: none; }
+.story-devices-clients, .story-devices-horizon ul { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); list-style: none; padding: 0; margin: 0; gap: 10px; }
+.story-devices-clients > li { display: flex; flex-direction: column; align-items: center; text-align: center; min-width: 0; }
+.story-device-icon { display: grid; place-items: center; width: 62px; height: 62px; border: 1px solid #c8e2e9; border-radius: 19px; background: #f9feffdb; color: #177e95; box-shadow: 0 12px 28px -17px #2a687d70; }
+.story-devices-clients strong { margin-top: 12px; font-size: 14px; font-weight: 600; }
+.story-devices-clients small { color: #57758a; font-size: 11px; line-height: 1.5; margin-top: 3px; }
+.story-devices-clients > li:last-child small { color: #77612f; }
+.story-devices-map figcaption { margin-top: 26px; color: #627d91; text-align: center; font-size: 11px; line-height: 1.7; }
+.story-devices-requirements { max-width: 960px; margin: 40px auto 0; color: #61778b; font-size: 12px; line-height: 1.8; text-align: center; }
+.story-devices-future { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: 60px; margin-top: 46px; padding-top: 40px; border-top: 1px solid #cfe3e8; }
+.story-devices-future .story-eyebrow { margin-bottom: 12px; }
+.story-devices-future h3 { font-size: clamp(22px, 2vw, 28px); }
+.story-devices-future p { margin-bottom: 0; max-width: 530px; }
+.story-devices-horizon li { display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; color: #54778a; font-size: 12px; line-height: 1.6; }
+.story-devices-horizon svg { box-sizing: content-box; padding: 15px; border: 1px dashed #a9c7ce; border-radius: 50%; }
+.story-devices-horizon > small { display: block; color: #657c8d; font-size: 11px; line-height: 1.7; text-align: center; margin-top: 24px; }
+@media (max-width: 980px) {
+  .story-devices-present { gap: 28px; }
+  .story-devices-future { gap: 32px; }
+}
+@media (max-width: 700px) {
+  .story-devices-present { grid-template-columns: 1fr; gap: 16px; margin-top: 38px; }
+  .story-devices-copy { max-width: none; }
+  .story-devices-map { width: min(100%, 500px); margin-inline: auto; padding-inline: 0; }
+  .story-devices-map::before { inset-inline: -10px; }
+  .story-devices-screen { padding-block: 16px 20px; }
+  .story-devices-clients { gap: 8px; }
+  .story-device-icon { width: 56px; height: 56px; border-radius: 17px; }
+  .story-devices-requirements { margin-top: 28px; text-align: left; }
+  .story-devices-future { grid-template-columns: 1fr; gap: 30px; margin-top: 32px; padding-top: 30px; }
+}
 /* Code is a work surface; the real Kit preview is its smaller live result. */
 .story-builder { background: #f3f8ff; }
 .story-builder .story-heading { max-width: 850px; }

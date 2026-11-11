@@ -1,6 +1,6 @@
 import type { HeroDemo } from './landing-content.js';
 
-export const STORY_SECTIONS = ['apps', 'worlds', 'app-showcase', 'integrations', 'developers'] as const;
+export const STORY_SECTIONS = ['apps', 'worlds', 'app-showcase', 'integrations', 'devices', 'developers'] as const;
 export const STORY_APPS = ['nimi.parentos', 'ai.nimi.videolingo', 'io.github.nimiplatform.next-ai-draw-io'] as const;
 export const DEFAULT_STORY_AGENT = 'demo:emberware-court:character-0';
 export const wrapGalleryIndex = (index: number, size: number) => ((index % size) + size) % size;

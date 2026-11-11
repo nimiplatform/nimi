@@ -1,3 +1,5 @@
+<!-- nimi-docs: {"authority":["rule.nimi.runtime.remote-access.source-admission","rule.nimi.runtime.remote-access.primary-control"],"sources":["sdks/typescript/realm/runtime-client.ts","kit/core/src/app-session.ts"]} -->
+
 # 账户认证与受保护应用会话
 
 在 Nimi 架构中，全平台通用的用户身份认证与账号权限均由 Realm 权威签发。本地 `RuntimeAccountService` 负责协调浏览器授权流程、授权码（OAuth Code）交换、会话静默刷新与受保护凭据的本地托管。Desktop 负责拉起系统默认浏览器并协助处理本地回环回调（Loopback Callback），确保凭据由受保护的 Runtime 托管，避免泄露至前端渲染进程。
@@ -25,9 +27,18 @@
 - **技术性会话变更**：会话轮换（Session Rotation）或解绑观察者本身不会撤销已在有效 Job 许可下接纳的工作；但读取任务执行结果仍需当前具备有效授权；
 - **权限撤销与失效边界**：退出登录、切换账号或撤销相关应用访问权限/策略会立即使对应的任务许可失效。Runtime 会拦截后续的外发工作与结果发布，并取消正在运行的本地工作；但无法撤销外部已经产生的既成影响。
 
+## 远程 App 身份与来源确认
+
+Web 和 Android 使用官方 Runtime-client 浏览器登录得到受限的 App 上下文，再发现账号绑定的主 Runtime。来源资格来自 Registry，首次来源确认和逐操作权限来自 Runtime；网站域名、App 名称或自报角色不能代替这些判断。
+
+Kit 分开管理身份视图和 Runtime 连接 scope：PC 暂时不可达不等于退出账号。账号切换、已确认的身份失效、来源暂停或连接结束会使相应旧 scope 失效。来源确认按账号、主 Runtime 与来源版本保存，不按设备建立另一套业务许可。普通 App 不取得通用 Account bearer；Android 只保存短期登录事务，当前上下文留在内存。详见[共享 App 会话](/zh/platform/kit/use-kit-in-app)。
+
 ## Source Basis
 
 - [`.nimi/spec/runtime/protected-session.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/protected-session.authority.yaml)
 - [`.nimi/spec/runtime/app-surface.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/app-surface.authority.yaml)
 - [`.nimi/spec/runtime/security-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/security-core.authority.yaml)
 - [`proto/runtime/v1/account.proto`](https://github.com/nimiplatform/nimi/blob/main/proto/runtime/v1/account.proto)
+- [`.nimi/spec/platform/remote-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/remote-clients.authority.yaml)
+- [`.nimi/spec/runtime/remote-access.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/remote-access.authority.yaml)
+- [`kit/auth/README.md`](https://github.com/nimiplatform/nimi/blob/main/kit/auth/README.md)

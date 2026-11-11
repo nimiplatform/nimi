@@ -1,24 +1,36 @@
-# Local-First Architecture & Multi-Device Execution
+<!-- nimi-docs: {"authority":["rule.nimi.platform.core-protocol.p-arch-001a","rule.nimi.runtime.remote-access.direct-transport","rule.nimi.runtime.remote-access.source-admission"],"sources":["sdks/typescript/runtime/remote.ts","runtime/internal/remoteaccess","proto/runtime/v1/remote_access.proto"]} -->
 
-Nimi can run AI workloads on-device with local models or route requests to cloud providers that the user explicitly configures. "Local-first" does not mean anonymous or whole-product offline operation: Nimi is grounded in account identity, and protected sessions and authorization policies apply in every mode.
+# Local-First and Remote Runtime Access
 
-## Local Inference Execution
+Nimi currently uses a PC Runtime to execute local or cloud AI for native Desktop Apps and admitted remote Web and Android clients. A phone or browser consuming that Runtime does not need its own Runtime installation. Here, **local execution means execution on the Runtime host**, which may be a different device from the screen you are using.
 
-To run AI tasks locally, prepare the runtime environment and model weights, select the capability's local Loadout, and set the `Local` route in the app or shared LocalAgent `AIConfig`. When a job is submitted, Runtime locks that configuration. If local inference fails, Runtime never silently falls back to a cloud provider—keeping privacy, data flow, and API spend predictable. When a `Cloud` route is selected instead, requests may send relevant context to the configured provider.
+## Current Topology
 
-Cognition stores each agent's long-term memory locally through Runtime's typed bridge. Memory is enabled per agent, while `Knowledge V1` currently has no active ingestion or query interface. Active conversation streams and local audit logs are maintained separately by Runtime.
+```text
+Desktop App ── verified native Host ──┐
+                                     ├── PC Runtime ── local models / cloud provider
+Web / Android ── direct WebRTC ───────┘       │
+                                             └── Conversation, App data, Cognition bridge
+Realm: account identity, primary binding, source qualification and connection coordination
+```
 
-## Offline Operational Boundaries
+The remote client signs in through the official Nimi browser flow and discovers the account's primary Runtime. The owner enables remote access and confirms the admitted source in PC Home. The host must remain running, the account and source must remain valid, and the devices must have a reachable direct network path. First confirmation is scoped to Account, primary Runtime and source revision; changing browser or device does not create another lasting approval.
 
-Ongoing local workflows can continue offline as long as the required protected session, capability tokens, local model assets, and security policies remain valid. Cold starts, new sign-ins, fetching fresh Realm character sources, renewing authorization tokens, and calling cloud models require network access. Local caches only optimize performance; they cannot forge committed Realm updates.
+Realm and an App's coordination backend carry identity and connection coordination. Remote AI input, results and files travel directly between client and PC. The current carrier accepts STUN discovery, rejects TURN and relay candidates, and reports an unavailable connection when direct access fails. It does not fall back to a local Runtime or an AI proxy. Use the public SDK carrier; private Runtime ports are not an integration path.
 
-Character identity assets, social graphs, economic state, and world definitions (including planned World State/History contracts) belong to Realm. Unsynced local intents are not committed Realm changes. Running locally also does not trigger automatic audit log uploads or unprompted cross-device memory sync.
+## Model Execution and Data
 
-## Multi-Device Topology & Compute Federation
+Prepare the host's model resources and choose `Local` or `Cloud` in the App or shared LocalAgent AIConfig. Runtime captures the effective configuration when accepting work. A failed Local request does not silently switch to Cloud. With Cloud selected, the context needed for the request goes to the configured provider.
 
-Each device runs its own Runtime daemon and hardware-specific loadouts. Signing into the same Realm account across machines shares character identities, but does not automatically sync local hardware loadouts, live conversation streams, or per-agent local memory.
+Authorized clients attached to the same LocalAgent consume its Runtime-owned Conversation and Cognition-managed memory through the same host. App-private storage retains its owner-defined partition. Accessing that existing state is not cross-Runtime replication. A shared account or App name does not automatically merge other Runtime databases, hardware Loadouts or memory banks.
 
-Peer-to-peer compute federation is a future architectural direction, not a current networking layer or installation requirement. Applications must never connect directly to private Runtime debugging ports on remote machines to simulate distributed execution; always use supported protected host interfaces.
+Closing a client ends its live connection, not the PC Runtime. A disconnected stream ends; reconnection obtains current handles and does not replay business requests. Already accepted durable Jobs follow their existing observation and cancellation contracts.
+
+## Connectivity and Future Federation
+
+Local inference can continue only while the applicable session, authorization, model assets and policies remain valid. New login, primary discovery, connection establishment, authorization renewal, Realm operations and cloud inference depend on their network services. Remote access does not promise whole-product offline operation.
+
+Additional Runtime hosts, automatic cross-host synchronization and compute federation are separate architectural questions. The current multi-device journey is clients consuming one primary Runtime, not a distributed execution scheduler.
 
 ## Source Basis
 
@@ -29,3 +41,6 @@ Peer-to-peer compute federation is a future architectural direction, not a curre
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
 - [`.nimi/spec/runtime/memory-world.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/memory-world.authority.yaml)
 - [`.nimi/spec/cognition/memory.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/cognition/memory.authority.yaml)
+- [`.nimi/spec/runtime/remote-access.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/remote-access.authority.yaml)
+- [`.nimi/spec/platform/remote-clients.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/remote-clients.authority.yaml)
+- [`.nimi/spec/sdks/client-core.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/sdks/client-core.authority.yaml)

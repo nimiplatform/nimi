@@ -1,6 +1,16 @@
+<!-- nimi-docs: {"authority":["rule.nimi.platform.app-ecosystem.scaffold-web-carrier","rule.nimi.platform.app-ecosystem.mobile-development-entry"],"sources":["app-tools/package.json","app-tools/README.md"]} -->
+
 # Nimi App 开发快速入门
 
-欢迎来到 Nimi 开发者生态！无论你是想打造一个专注特定场景的私有本地 AI 助手，还是计划为广大的 Nimi 桌面端用户构建一款功能丰富的生态应用，这组指南都能带你从零起步，走完从创建、本地调试到打包分发的完整流程。
+从你要运行 App 的终端选择接入路径。当前由 PC Runtime 执行 AI，Desktop、Web 和 Android 通过各自受支持的载体使用能力。先选[制品与开发环境](/zh/start/install)，再进入对应指南。
+
+## 选择接入路径
+
+| 载体 | 指南 | 当前范围 |
+| --- | --- | --- |
+| Desktop | [创建原生 App](/zh/start/create-an-app) | 受 Desktop 监管的原生 Host；匹配的发布版或源码包 |
+| Web | [接入网站](/zh/start/connect-web-app) | 当前源码：HTTPS 来源、官方登录、主 Runtime 直连 |
+| Android | [接入已有 App](/zh/start/connect-android-app) | 当前源码：Kit Capacitor；开发 Scheme 与正式 App Link 分别验证 |
 
 ---
 
@@ -17,9 +27,9 @@
 
 ---
 
-## 三种运行与分发形态
+## 原生 App 的运行与分发形态 {#三种运行与分发形态}
 
-Nimi 提供三种运行与分发路径，分别服务于源码开发、本地安装和目录发现：
+本机原生 App 有三种运行与分发路径，分别服务于源码开发、本地安装和目录发现：
 
 - **开发者模式 (Developer Mode)**：直接运行本地未打包的源码工程，由 Nimi Desktop 托管进程生命周期，支持前端热重载与实时调试。
 - **本地包导入 (Local Import)**：手动选择打包后的不可变应用归档包，导入 Nimi Desktop 进行本地验证（macOS arm64 与 Windows x86_64 已有实现；整体产品验收与公开发布准备仍需单独确认）。

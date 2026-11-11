@@ -4,6 +4,8 @@ A separate ecosystem website with real website passwords, verified per-user Nimi
 
 The reference defaults to loopback and can bind an explicitly selected LAN address for cross-device acceptance. It is not an internet-ready account service: there is no email recovery, deployment automation or general identity product. Website passwords use salted scrypt; website users and associations persist in SQLite, while website and Nimi sessions remain in process memory. A server restart requires signing in again. Nimi context tokens never enter the browser. Logout/unlink report failed Realm revocation and allow an explicit retry without reopening the old local context.
 
+For the complete source-package setup and first-call journey, see [Connect a Web App](../../docs/start/connect-web-app.md). The published SDK `0.22.2` artifact lacks this branch’s remote entrypoints; select the complete source archive.
+
 ## Prerequisites
 
 - Node 24, pnpm and a complete SDK build containing remote Runtime access.
@@ -38,4 +40,4 @@ For isolated acceptance, replace the workspace SDK dependency with its public ve
 
 Verify the registered website journey: own account → official Nimi login → Home source confirmation → direct connection → own AIConfig read/write → real Local/Cloud stream. The source declares `text.generate` and `text.annotate`. The text-annotation section uses the existing durable Job API with an App-generated submission ID; after a lost response, use `lookupSubmission` instead of replaying Submit. Local annotation preparation belongs to the PC manager, while the reference changes only its own App intent. Queries and explicit cancellation show the owner's actual state.
 
-Check switching/unlink, explicit disconnect and unavailable direct networks. Website authentication tests only prove website identity and association persistence; they do not certify Realm, WebRTC, AI or Home acceptance. Unrun product paths remain **NOT-VERIFIED** in the existing RRA plan packet.
+Check switching/unlink, explicit disconnect and unavailable direct networks. Website authentication tests only prove website identity and association persistence; they do not certify Realm, WebRTC, AI or Home acceptance. Record the actual source/build and network conditions used for acceptance; unrun product paths remain **NOT-VERIFIED**.

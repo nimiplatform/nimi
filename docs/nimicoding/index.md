@@ -1,3 +1,5 @@
+<!-- nimi-docs: {"authority":[],"sources":["package.json",".nimi/methodology/authority-authoring.yaml","scripts/check-docs-source.mjs","scripts/lib/docs-source.mjs","scripts/detect-ci-scope.mjs"]} -->
+
 # Nimi Coding
 
 Nimi Coding provides deterministic access to project-owned canonical authority for AI hosts and repository tooling. It handles authority formatting, schema validation, relationship queries, dependency navigation, and impact review; it is designed as a focused specification tool rather than an autonomous AI agent, code generator, or product-spec synthesizer.
@@ -37,6 +39,12 @@ The repository instructions in `AGENTS.md` and `.nimi/methodology/authority-auth
 
 - [Host Integration Guide](/nimicoding/installation)
 - [CLI Reference](/nimicoding/cli-reference)
+
+## Review Documentation Consumers
+
+This repository's `pnpm check:docs-source` checks Source Basis paths, code includes and exact authority IDs on mapped pages. The `nimi-docs` JSON comment contains references only; see `docs/AGENTS.md` for its format. CI uses these references to list candidate pages and select documentation checks without requiring a Nimi Coding upgrade.
+
+To list candidates after a commit, pass `--changed-from` and its full 40-character SHA to that repository script. Selection conservatively follows authority files and source paths; it does not prove semantic synchronization. `authority diff`, `impact`, `review` and reader-journey verification retain their separate responsibilities.
 
 ## Source Basis
 

@@ -33,6 +33,10 @@ When you launch your app with `pnpm dev`, it executes inside Desktop's supervise
 
 ---
 
+## Remote Apps
+
+[`sdk/08-remote-runtime.ts`](sdk/08-remote-runtime.ts) is a typechecked one-shot recipe using an officially established Runtime-client session. The executable [Web reference](remote-runtime-web/README.md) has its own `check`, `test` and `build`; the [React Native peer adapter](remote-runtime-mobile/README.md) stays in its independent dependency workspace. The maintained Android product entry is [Zhiyu with Kit Capacitor](../apps/zhiyu/README.md#android-本机开发). These checks do not establish source admission or real AI acceptance.
+
 ## Creating a Fresh App
 
 To scaffold a complete standalone application containing these primitives and UI wiring:

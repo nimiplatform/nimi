@@ -1,29 +1,24 @@
-# Vision & Architecture Philosophy
+<!-- nimi-docs: {"authority":["rule.nimi.platform.core-protocol.p-arch-001a","rule.nimi.platform.governance-release.p-gov-026-positioning"],"sources":["VISION.md"]} -->
 
-Nimi is built on a simple conviction: your personal AI should belong to you. It should run on your device, remember what matters to you, and stay accountable to you rather than a centralized platform.
+# A Cross-Terminal AI Foundation
 
-That is why Nimi is local-first by design:
-- You install Nimi on your own machine, where your AI characters run locally and use either local models or the cloud providers you configure (with cloud requests sending only the context required for those calls).
-- Characters and digital worlds keep a consistent identity across surfaces.
-- Every subsystem has a clear boundary: who a character is (identity), how it thinks and acts (runtime execution), and how it appears on screen (embodiment) are separate responsibilities with distinct owners.
+Nimi's direction is user-controlled AI infrastructure across mobile, Web, PC, embedded devices and smart homes. Apps focus on real tasks, devices offer suitable interaction, and shared contracts connect AI capabilities with the state each consumer is authorized to use.
 
-For users, this means a personal AI companion with clear privacy and data boundaries. For developers, it provides a stable foundation with explicit contracts.
+## Starting from Today's Primary Runtime
 
-## Persistent Identity, Local Execution
+The current PC Runtime executes local and cloud AI. Desktop Apps use verified local Hosts; admitted Web and Android sources connect directly to the account-bound primary Runtime after official login and Home confirmation. The phone or browser does not need its own Runtime. Nimi Home is currently Desktop-hosted and provides local entry and management.
 
-Each AI character has a durable identity maintained by Realm across the worlds you visit. When you start an interaction, Runtime—operating independently of Realm—instantiates that character on your device as a LocalAgent from Realm's Character Source. A single character identity can back multiple local experiences, with each LocalAgent managing its own active runtime state on your machine.
+For example, a person can continue the same partner Conversation on another screen, while a creative App can submit work from a browser and query results retained by the host. These paths consume the same host's state; they do not imply cross-Runtime synchronization or access to another App's private work.
 
-## Scoped, Session-Bound Access
+## Capability and Data Ownership
 
-Applications call platform capabilities through typed SDK contracts. Instead of relying on broad persistent app grants or first-launch permission popups, access is governed by a protected host session and explicitly admitted SDK operations. Runtime verifies the user, calling app, and operation scope from the active session, and apps never receive Realm credentials, model provider API keys, or internal Runtime tokens.
+Users choose Local or Cloud. Local runs on the Runtime host; Cloud sends the request's required context to the selected provider. Realm owns ecosystem identity and shared resources, Runtime owns execution, Conversation and access, and Cognition owns per-Agent long-term Memory. Apps retain business workflows and private data; Avatar owns presentation. Knowledge V1 has no public read/write entry.
 
-## Structured Projections & Views
+## Extending to More Devices
 
-Conversations, speech synthesis, presentation state, and per-agent long-term memory in Cognition (accessed through Runtime) are coordinated by Runtime and its sibling subsystems. Applications receive bounded, structured read-only projections. Avatar renders character expressions, gaze, and motion without taking over the LocalAgent decision loop.
+Embedded and smart-home endpoints may provide input, output or physical actions; additional mobile platforms need real carriers. Each requires a defined role, permission, state owner, resource limits and behavior after connection loss before becoming a deliverable path. Companions, worlds, everyday tools and creation are all experiences within this foundation.
 
-## Incremental Platform Evolution
-
-The core platform loop does not depend on general workflow orchestration, external protocol bridges (MCP), autonomous world evolution, public app marketplaces, or commercial settlement. As new capabilities are introduced within their own bounded contracts, the core invariant remains unchanged: characters are instantiated locally as LocalAgents.
+Current remote access has no relay fallback, and Android source development does not establish distributed App Link acceptance. Wider network coverage, additional Runtime hosts and compute federation evolve separately; see the [roadmap](/platform/roadmap) and [integration guides](/start/).
 
 ## Source Basis
 

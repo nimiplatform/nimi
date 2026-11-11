@@ -2,7 +2,7 @@ import { ArrowUpRight, ArrowRight } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { StoryText } from '../../content/story-copy.js';
 
-export function StoryHeading({ t, section, children }: { t: StoryText; section: 'experience' | 'worlds' | 'showcase' | 'integrations' | 'builder'; children?: ReactNode }) {
+export function StoryHeading({ t, section, children }: { t: StoryText; section: 'experience' | 'worlds' | 'showcase' | 'integrations' | 'devices' | 'builder'; children?: ReactNode }) {
   const title = t(`${section}.title`);
   const hasIntro = section !== 'experience';
   return <header className="story-heading">

@@ -1,3 +1,5 @@
+<!-- nimi-docs: {"authority":["rule.nimi.platform.app-ecosystem.lab-web-carrier"],"sources":["apps/lab/README.md","apps/lab/NIMI_APP.md","apps/lab/package.json"]} -->
+
 # Use Nimi Lab
 
 `apps/lab/` is Nimi's local capability workbench. Built as a fully functional Nimi App, it integrates the latest SDK, Kit, Runtime, Realm, and App Tools capabilities so developers can evaluate and test new features before they are broadly exposed through project templates.
@@ -52,9 +54,17 @@ On Windows and macOS, Nimi Lab runs inside Desktop's supervised Electron develop
 | `sdk-method-unavailable` | Capability is not exposed in the current build. | Prompt the user to update the SDK package. |
 | `runtime-call-failed` | An error occurred during request processing. | Display a descriptive error message and retain diagnostic logs. |
 
+## Lab in a Browser
+
+Lab also has a declared HTTPS Web entry that reuses the workbench through ordinary remote App admission to the primary PC Runtime. Follow the [Lab README](https://github.com/nimiplatform/nimi/blob/main/apps/lab/README.md) and [Web guide](/start/connect-web-app), using matching source packages, official login, source confirmation and a reachable direct network.
+
+Web provides its implemented AI workbench, App AIConfig, run history, Agent Center, Conversation and bounded file operations. Native App Access diagnostics, integrations, realtime media, World Tour and PC file reveal still need native Lab; use the current App entry's actual coverage. Closing the page ends live calls; durable Jobs remain observable through their original identifiers.
+
 ## Source Basis
 
 - [`apps/lab/README.md`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/README.md)
 - [`apps/lab/src/lab/lab-runtime.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-runtime.ts)
 - [`apps/lab/src/lab/lab-ai-config-store.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-ai-config-store.ts)
 - [`apps/lab/src/lab/lab-non-success.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-non-success.ts)
+- [`apps/lab/NIMI_APP.md`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/NIMI_APP.md)
+- [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)

@@ -75,6 +75,7 @@ func (d *remoteDispatcher) register(service any, descriptor *grpc.ServiceDesc) {
 
 // This is the implemented carrier subset, not an App permission table. The
 // normal registered declaration and exact AppOperation admission still run.
+// @nimi-authority: rule.nimi.runtime.remote-access.operation-carrier
 func remoteAppMethodSupported(method string) bool {
 	switch method {
 	case protectedInvokeRealmUnaryMethod,
@@ -287,6 +288,7 @@ func (stream *remoteServerStream) Context() context.Context     { return stream.
 func (stream *remoteServerStream) SetHeader(metadata.MD) error  { return nil }
 func (stream *remoteServerStream) SendHeader(metadata.MD) error { return nil }
 func (stream *remoteServerStream) SetTrailer(metadata.MD)       {}
+// @nimi-authority: rule.nimi.runtime.remote-access.asset-write-stream
 func (stream *remoteServerStream) RecvMsg(value any) error {
 	if err := stream.ctx.Err(); err != nil {
 		return status.FromContextError(err).Err()
