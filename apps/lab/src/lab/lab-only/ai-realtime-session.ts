@@ -65,6 +65,18 @@ export type LabRealtimeState = {
   readonly observed: Readonly<Record<string, number>>;
 };
 
+// While a Session owns input, its negotiated tuple governs both the controls
+// shown to the user and media consumption. Closing does not replace the
+// caller's selection for the next Open.
+export function labRealtimeCurrentInputAudio(
+  state: Pick<LabRealtimeState, 'phase' | 'negotiatedInputAudio'>,
+  requestedSampleRate: 16000 | 24000,
+): NimiRealtimeAudioFormat {
+  return state.negotiatedInputAudio && ['open', 'closing', 'interrupted'].includes(state.phase)
+    ? state.negotiatedInputAudio
+    : labRealtimeInputAudio(requestedSampleRate);
+}
+
 const MAX_LOG_ENTRIES = 200;
 
 function describeError(error: unknown): string {

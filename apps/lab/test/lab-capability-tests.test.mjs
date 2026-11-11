@@ -2396,6 +2396,36 @@ test('Realtime controller sends the explicit neutral PCM tuple and retains the n
  await controller.close();
 });
 
+test('Realtime input display and recording use the negotiated tuple without changing the next Open preference', async () => {
+  const { createLabRealtimeController, labRealtimeInputAudio, labRealtimeCurrentInputAudio } = await load('lab/lab-only/ai-realtime-session.js');
+  const { readLabRealtimeRecording } = await load('lab/lab-only/ai-realtime-recording.js');
+  const fake = fakeRealtime();
+  const negotiated = labRealtimeInputAudio(24000);
+  const requests = [];
+  const client = { ...fake.client, async open(input) {
+    requests.push(input.inputAudio);
+    return { ...await fake.client.open(input), negotiatedInputAudio: negotiated };
+  } };
+  const controller = createLabRealtimeController({ client, now: () => new Date(), createId: prefix => prefix, onState: () => {} });
+  assert.equal(labRealtimeCurrentInputAudio(controller.getState(), 16000).sampleRateHz, 16000);
+  await controller.open({ instruction: '', turnDetection: 'manual', audioOutputEnabled: true, inputAudio: labRealtimeInputAudio(16000) });
+  const current = labRealtimeCurrentInputAudio(controller.getState(), 16000);
+  assert.equal(requests[0].sampleRateHz, 16000);
+  assert.equal(current.sampleRateHz, 24000);
+  assert.equal(current.maximumFrameBytes, 960);
+  const wav = new ArrayBuffer(44 + 960);
+  const view = new DataView(wav);
+  const bytes = new Uint8Array(wav);
+  for (const [offset, text] of [[0, 'RIFF'], [8, 'WAVE'], [12, 'fmt '], [36, 'data']]) bytes.set(new TextEncoder().encode(text), offset);
+  view.setUint32(4, wav.byteLength - 8, true); view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true); view.setUint16(22, 1, true); view.setUint32(24, 24000, true);
+  view.setUint32(28, 48000, true); view.setUint16(32, 2, true); view.setUint16(34, 16, true); view.setUint32(40, 960, true);
+  assert.equal(readLabRealtimeRecording(wav, current.sampleRateHz)[0].byteLength, 960);
+  assert.throws(() => readLabRealtimeRecording(wav, requests[0].sampleRateHz));
+  await controller.close();
+  assert.equal(labRealtimeCurrentInputAudio(controller.getState(), 16000).sampleRateHz, 16000);
+});
+
 test('Realtime interruption releases its request while a late old terminal cannot unlock the next response', async () => {
  const {createLabRealtimeController} = await load('lab/lab-only/ai-realtime-session.js');
  const fake=fakeRealtime();

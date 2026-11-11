@@ -27,8 +27,8 @@ import { LabAIStudioAdapter } from '../lab-ai-studio-adapter.js';
 import { capabilityNonSuccess } from '../lab-non-success.js';
 import { labAiRealtimeCapability } from './capability-test-registrations.js';
 import {
-  LAB_AI_REALTIME_INPUT_AUDIO,
   createLabRealtimeController,
+  labRealtimeCurrentInputAudio,
   labRealtimeInputAudio,
   labRealtimeSessionSummary,
   type LabRealtimeController,
@@ -160,6 +160,7 @@ function LabAiRealtimeSurface({
 
   const phase = state.phase;
   const open = phase === 'open';
+  const currentInputAudio = labRealtimeCurrentInputAudio(state, inputSampleRate);
   useEffect(() => {
     if (phase === 'closed' || phase === 'terminated' || phase === 'interrupted') setRecordingSubmitted(false);
   }, [phase]);
@@ -204,7 +205,7 @@ function LabAiRealtimeSurface({
     if (!session || !open || captureRef.current) return;
     if (interactionMode === 'continuous' && state.inputMuted) await session.ownerControl('unmute-input');
     const started = await media.microphone.beginCapture({
-      format: state.negotiatedInputAudio ?? LAB_AI_REALTIME_INPUT_AUDIO,
+      format: currentInputAudio,
       onFrame: async (frame) => {
         const active = captureRef.current;
         if (!active) return;
@@ -240,7 +241,7 @@ function LabAiRealtimeSurface({
     if (recording.size > LAB_AI_REALTIME_MAX_RECORDING_BYTES + 4_096) {
       throw new Error(t('CapabilityTests.aiRealtime.recordingFormatError'));
     }
-    const frames = readLabRealtimeRecording(await recording.arrayBuffer(), state.negotiatedInputAudio?.sampleRateHz === 24000 ? 24000 : 16000);
+    const frames = readLabRealtimeRecording(await recording.arrayBuffer(), currentInputAudio.sampleRateHz === 24000 ? 24000 : 16000);
     const inputTrackId = createNimiClientId('lab-recording-track');
     const utteranceId = createNimiClientId('lab-recording-utterance');
     try {
@@ -329,14 +330,14 @@ function LabAiRealtimeSurface({
           <label className="lab-realtime__field">
             <span>{t('CapabilityTests.aiRealtime.inputSampleRate')}</span>
             <SelectField
-              value={String(inputSampleRate)}
-              disabled={phase === 'open' || phase === 'opening'}
+              value={String(currentInputAudio.sampleRateHz)}
+              disabled={['open', 'opening', 'closing', 'interrupted'].includes(phase)}
               aria-label={t('CapabilityTests.aiRealtime.inputSampleRate')}
               options={[{ value: '16000', label: '16 kHz' }, { value: '24000', label: '24 kHz' }]}
               onValueChange={(value) => setInputSampleRate(value === '24000' ? 24000 : 16000)}
             />
           </label>
-          <span className="lab-realtime__meta">{t('CapabilityTests.aiRealtime.inputFormat', { rate: inputSampleRate / 1000, bytes: inputSampleRate * 2 * 20 / 1000 })}</span>
+          <span className="lab-realtime__meta">{t('CapabilityTests.aiRealtime.inputFormat', { rate: currentInputAudio.sampleRateHz / 1000, bytes: currentInputAudio.maximumFrameBytes })}</span>
         </div>
         <div className="lab-realtime__row">
           {open || phase === 'closing' || phase === 'interrupted' ? (
