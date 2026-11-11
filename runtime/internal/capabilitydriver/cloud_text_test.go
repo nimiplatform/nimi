@@ -8,6 +8,7 @@ import (
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/textwire"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
@@ -38,6 +39,7 @@ func TestCloudTextDriverReasonNormalizationTable(t *testing.T) {
 	}{
 		{http.StatusUnauthorized, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED},
 		{http.StatusForbidden, runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED},
+		{http.StatusPaymentRequired, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED},
 		{http.StatusTooManyRequests, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED},
 		{http.StatusInternalServerError, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL},
 		{http.StatusBadGateway, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL},
@@ -49,6 +51,26 @@ func TestCloudTextDriverReasonNormalizationTable(t *testing.T) {
 		if got := CloudTextReasonForHTTPStatus(tc.status); got != tc.want {
 			t.Fatalf("HTTP %d reason = %s, want %s", tc.status, got, tc.want)
 		}
+	}
+}
+
+func TestCloudTextDriverPreservesPaymentRefusal(t *testing.T) {
+	driver := providerCloudTextDriver{provider: "stepfun"}
+	for _, reason := range []runtimev1.ReasonCode{runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED} {
+		rejected := grpcerr.WithReasonCodeOptions(codes.ResourceExhausted, reason, grpcerr.ReasonOptions{
+			ActionHint: "replenish_provider_balance_or_adjust_quota",
+			Metadata:   map[string]string{"provider_http_status": "402"},
+		})
+		if got := driver.NormalizeReason(rejected); got != rejected {
+			t.Fatalf("classified payment refusal and recovery hint lost: %v", got)
+		}
+	}
+	unclassified := grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_PROVIDER_INTERNAL, grpcerr.ReasonOptions{
+		Metadata: map[string]string{"provider_http_status": "402"},
+	})
+	got := driver.NormalizeReason(unclassified)
+	if reason, ok := grpcerr.ExtractReasonCode(got); !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED || status.Code(got) != codes.ResourceExhausted {
+		t.Fatalf("unclassified payment refusal = %v", got)
 	}
 }
 

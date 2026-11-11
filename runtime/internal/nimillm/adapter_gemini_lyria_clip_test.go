@@ -6,10 +6,12 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
+	"google.golang.org/grpc/status"
 )
 
 func TestGeminiLyriaClipUsesNativeTextAndInlineMP3(t *testing.T) {
@@ -49,5 +51,37 @@ func TestGeminiLyriaClipRejectsMultipleAudioParts(t *testing.T) {
 	_, err := geminiLyriaInlineMP3(map[string]any{"candidates": []any{map[string]any{"finishReason": "STOP", "content": map[string]any{"parts": []any{part, part}}}}})
 	if reason, ok := grpcerr.ExtractReasonCode(err); !ok || reason != runtimev1.ReasonCode_AI_OUTPUT_INVALID {
 		t.Fatalf("ambiguous Lyria output reason=%v present=%v err=%v", reason, ok, err)
+	}
+}
+
+func TestGeminiLyriaInvalidOutputHasSafeActionableDiagnostics(t *testing.T) {
+	inline := func(mime, data string) any {
+		return map[string]any{"inlineData": map[string]any{"mimeType": mime, "data": data}}
+	}
+	valid := inline("audio/mpeg", base64.StdEncoding.EncodeToString([]byte("audio")))
+	for _, tc := range []struct {
+		name, finish, want string
+		parts              []any
+	}{
+		{"incomplete", "MAX_TOKENS", "completed candidate", []any{valid}},
+		{"text-only", "STOP", "no inline audio", []any{map[string]any{"text": "private provider content"}}},
+		{"wrong-format", "STOP", "MP3 format", []any{inline("private provider MIME", "private provider bytes")}},
+		{"empty", "STOP", "encoded size limit", []any{inline("audio/mpeg", "")}},
+		{"invalid-base64", "STOP", "valid nonempty base64", []any{inline("audio/mpeg", "private provider bytes")}},
+		{"ambiguous", "STOP", "multiple inline audio parts", []any{valid, valid}},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			audio, err := geminiLyriaInlineMP3(map[string]any{"candidates": []any{map[string]any{
+				"finishReason": tc.finish, "content": map[string]any{"parts": tc.parts},
+			}}})
+			reason, ok := grpcerr.ExtractReasonCode(err)
+			metadata, _ := grpcerr.ExtractReasonMetadata(err)
+			message := status.Convert(err).Message()
+			if audio != nil || !ok || reason != runtimev1.ReasonCode_AI_OUTPUT_INVALID ||
+				!strings.Contains(message, tc.want) || strings.Contains(message, "private provider") ||
+				!strings.HasPrefix(metadata["action_hint"], "inspect_lyria_") {
+				t.Fatalf("unsafe or missing diagnostic: audio=%v reason=%v message=%q", audio, reason, message)
+			}
+		})
 	}
 }

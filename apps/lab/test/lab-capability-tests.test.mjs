@@ -1033,7 +1033,7 @@ test('a committed target Runtime can no longer run names its cause and leads bac
   assert.notEqual(t('NonSuccess.openAIConfig'), 'NonSuccess.openAIConfig');
 });
 
-test('a provider rate or plan usage limit explains the limit instead of a blind retry', async () => {
+test('a provider rate, usage or credit limit stays with the selected account instead of a blind retry', async () => {
   const { runLabCapability } = await load('lab/lab-runtime.js');
   const { studioNonSuccessNeedsTargetReselection, studioNonSuccessReasonUserMessage, studioNonSuccessReasonUserAction } = await load('ai-studio-core/non-success-presentation.js');
   const { t } = await load('shell/i18n/index.js');
@@ -1045,7 +1045,8 @@ test('a provider rate or plan usage limit explains the limit instead of a blind 
   assert.equal(studioNonSuccessNeedsTargetReselection(limited.diagnostics), false);
   assert.equal(studioNonSuccessReasonUserMessage(limited.reason, t, limited.capabilityId, limited.diagnostics), t('NonSuccess.message.providerRateLimited'));
   const action = studioNonSuccessReasonUserAction(limited.reason, t, limited.capabilityId, limited.diagnostics);
-  assert.match(action, /https:\/\/chatgpt\.com\/settings\/usage/u);
+  assert.match(action, /balance|余额/u);
+  assert.doesNotMatch(action, /chatgpt/iu, 'a shared reason cannot identify a different provider account');
   assert.notEqual(action, t('NonSuccess.action.runtimeCallFailed'));
 });
 

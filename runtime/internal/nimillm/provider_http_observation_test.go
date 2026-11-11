@@ -14,6 +14,7 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 )
 
 func captureProviderLogs(t *testing.T) *bytes.Buffer {
@@ -47,6 +48,17 @@ func TestWorldLabsJSONObservationIdentifiesTransportStageWithoutSensitiveData(t 
 		err := doJSONRequestWithHeadersAndObservation(ctx, http.MethodPost, server.URL+path+"?token=private-query", "", map[string]any{"world_prompt": "private prompt"}, &result, map[string]string{"WLT-Api-Key": "private-credential"}, time.Second, AdapterWorldLabsNative)
 		if err == nil {
 			t.Fatal("failed provider request succeeded")
+		}
+		if path == "/credits" {
+			reason, ok := grpcerr.ExtractReasonCode(err)
+			if !ok || reason != runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED {
+				t.Fatalf("HTTP 402 must retain its payment refusal even with an unfamiliar body: %v", err)
+			}
+			metadata := extractErrorInfoMetadata(err)
+			if metadata["action_hint"] != "replenish_provider_balance_or_adjust_quota" {
+				t.Fatalf("payment refusal lost its account recovery action: %v", metadata)
+			}
+			assertProviderMessageAbsent(t, metadata)
 		}
 	}
 	text := logs.String()

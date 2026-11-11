@@ -341,10 +341,14 @@ func MapProviderHTTPError(statusCode int, payload map[string]any) error {
 			Metadata:   providerHTTPStatusMetadata(statusCode),
 		})
 	case http.StatusPaymentRequired:
-		if providerMessage == "" {
-			return grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED)
-		}
 		grpcCode, reasonCode, actionHint := classifyProviderBadRequest(providerMessage)
+		// A payment-required response remains an account prerequisite even
+		// when its body uses unfamiliar wording. Keep known account causes.
+		if reasonCode != runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED && reasonCode != runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED {
+			grpcCode = codes.ResourceExhausted
+			reasonCode = runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED
+			actionHint = "replenish_provider_balance_or_adjust_quota"
+		}
 		return grpcerr.WithReasonCodeOptions(grpcCode, reasonCode, grpcerr.ReasonOptions{
 			ActionHint: actionHint,
 			Message:    genericProviderFailure,

@@ -56,10 +56,13 @@ func ExecuteGeminiLyriaClipGenerateContent(
 }
 
 func geminiLyriaInlineMP3(response map[string]any) ([]byte, error) {
-	invalid := func() error { return grpcerr.WithReasonCode(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID) }
+	invalid := func(message, actionHint string) error {
+		return grpcerr.WithReasonCodeOptions(codes.Internal, runtimev1.ReasonCode_AI_OUTPUT_INVALID,
+			grpcerr.ReasonOptions{Message: message, ActionHint: actionHint})
+	}
 	parts, ok := geminiCompletedCandidateParts(response["candidates"])
 	if !ok {
-		return nil, invalid()
+		return nil, invalid("Lyria response did not contain exactly one completed candidate with content parts", "inspect_lyria_candidate_completion")
 	}
 	var audio []byte
 	for _, item := range parts {
@@ -75,17 +78,23 @@ func geminiLyriaInlineMP3(response map[string]any) ([]byte, error) {
 			mime = strings.ToLower(strings.TrimSpace(ValueAsString(MapField(part, "mime_type"))))
 		}
 		encoded := ValueAsString(MapField(part, "data"))
-		if (mime != "audio/mpeg" && mime != "audio/mp3") || len(encoded) == 0 || len(encoded) > maxGeminiLyriaInlineBase64Bytes || len(audio) > 0 {
-			return nil, invalid()
+		if mime != "audio/mpeg" && mime != "audio/mp3" {
+			return nil, invalid("Lyria inline audio did not declare the requested MP3 format", "inspect_lyria_inline_audio_format")
+		}
+		if len(encoded) == 0 || len(encoded) > maxGeminiLyriaInlineBase64Bytes {
+			return nil, invalid("Lyria inline audio was empty or exceeded the encoded size limit", "inspect_lyria_inline_audio_size")
+		}
+		if len(audio) > 0 {
+			return nil, invalid("Lyria response contained multiple inline audio parts", "inspect_lyria_audio_part_count")
 		}
 		decoded, err := base64.StdEncoding.DecodeString(encoded)
 		if err != nil || len(decoded) == 0 {
-			return nil, invalid()
+			return nil, invalid("Lyria inline audio was not valid nonempty base64", "inspect_lyria_audio_encoding")
 		}
 		audio = decoded
 	}
 	if len(audio) == 0 {
-		return nil, invalid()
+		return nil, invalid("Lyria completed response contained no inline audio", "inspect_lyria_missing_audio")
 	}
 	return audio, nil
 }

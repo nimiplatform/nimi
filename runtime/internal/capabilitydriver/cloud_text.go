@@ -434,6 +434,11 @@ func (providerCloudTextDriver) NormalizeReason(err error) error {
 	}
 	if metadata, ok := grpcerr.ExtractReasonMetadata(err); ok {
 		if statusCode, parseErr := strconv.Atoi(metadata["provider_http_status"]); parseErr == nil && statusCode > 0 {
+			if statusCode == http.StatusPaymentRequired {
+				if classified, ok := grpcerr.ExtractReasonCode(err); ok && (classified == runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED || classified == runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED) {
+					return err
+				}
+			}
 			// The transport has already classified a rejected request from its
 			// bounded provider response. Do not turn that actionable 4xx cause
 			// into a server fault merely because it also carries HTTP metadata.
@@ -500,7 +505,7 @@ func CloudTextReasonForHTTPStatus(statusCode int) runtimev1.ReasonCode {
 	switch {
 	case statusCode == http.StatusUnauthorized || statusCode == http.StatusForbidden:
 		return runtimev1.ReasonCode_AI_PROVIDER_AUTH_FAILED
-	case statusCode == http.StatusTooManyRequests:
+	case statusCode == http.StatusPaymentRequired || statusCode == http.StatusTooManyRequests:
 		return runtimev1.ReasonCode_AI_PROVIDER_RATE_LIMITED
 	case statusCode == http.StatusRequestTimeout || statusCode == http.StatusGatewayTimeout:
 		return runtimev1.ReasonCode_AI_PROVIDER_TIMEOUT

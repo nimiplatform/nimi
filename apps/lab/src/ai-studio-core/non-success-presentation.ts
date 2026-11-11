@@ -1,4 +1,3 @@
-import { NIMI_CHATGPT_PLAN_USAGE_URL } from '@nimiplatform/sdk/runtime';
 import type {
   StudioNonSuccess,
   StudioNonSuccessDiagnostics,
@@ -64,8 +63,8 @@ const CONTENT_FILTER_BLOCKED_REASON_CODE = 'AI_CONTENT_FILTER_BLOCKED';
 const VOICE_INPUT_INVALID_REASON_CODE = 'AI_VOICE_INPUT_INVALID';
 const VOICE_TARGET_MISMATCH_REASON_CODE = 'AI_VOICE_TARGET_MODEL_MISMATCH';
 const UNAVAILABLE_VOICE_REASON_CODES: ReadonlySet<string> = new Set(['AI_VOICE_ASSET_NOT_FOUND', 'AI_VOICE_ASSET_EXPIRED']);
-// The cloud service refused the request under its rate or usage limit, which
-// for a ChatGPT plan Connector is the plan's usage limit for this app.
+// This reason covers rate, usage and credit limits. It does not identify a
+// provider or account, so recovery guidance must stay with the selected service.
 const PROVIDER_RATE_LIMITED_REASON_CODE = 'AI_PROVIDER_RATE_LIMITED';
 
 // A committed target that Runtime can no longer run is recovered by choosing a
@@ -150,7 +149,7 @@ export function studioNonSuccessReasonUserAction(reason: string, translate: Stud
   if (capabilityId === 'text.embed' && diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.action.embeddingPurposeUnsupported');
   if (diagnostics?.reasonCode === MEDIA_OPTION_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.action.mediaOptionUnsupported');
   if (diagnostics?.reasonCode === MODALITY_UNSUPPORTED_REASON_CODE) return translate('NonSuccess.action.modalityUnsupported');
-  if (diagnostics?.reasonCode === PROVIDER_RATE_LIMITED_REASON_CODE) return translate('NonSuccess.action.providerRateLimited', { usageUrl: NIMI_CHATGPT_PLAN_USAGE_URL });
+  if (diagnostics?.reasonCode === PROVIDER_RATE_LIMITED_REASON_CODE) return translate('NonSuccess.action.providerRateLimited');
   const reselection = targetReselectionKeySegment(diagnostics);
   if (reselection) return translate(`NonSuccess.action.${reselection}`);
   if (reason === 'input-invalid' && capabilityId === 'vision.locate') return translate('VisionLocate.correctInput');
