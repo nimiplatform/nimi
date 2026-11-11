@@ -25,7 +25,7 @@ func ValidateImageControls(s *runtimev1.ImageGenerateScenarioSpec) error {
 	default:
 		return invalid
 	}
-	if s.FrameCount != nil && (s.GetFrameCount() < 2 || s.GetFrameCount() > 64) || s.FrameDurationMs != nil && (s.GetFrameDurationMs() < 20 || s.GetFrameDurationMs() > 2000) {
+	if s.FrameCount != nil && (s.GetFrameCount() < 2 || s.GetFrameCount() > 16) || s.FrameDurationMs != nil && (s.GetFrameDurationMs() < 20 || s.GetFrameDurationMs() > 2000) {
 		return invalid
 	}
 	if (s.FrameCount != nil || s.FrameDurationMs != nil) && s.GetOutputFormat() != "gif" {

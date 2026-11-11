@@ -172,6 +172,13 @@ func TestOpenAIImage26OutputBoundsAndTiming(t *testing.T) {
 	if _, err := validateOpenAIImageOutput(valid, s); err != nil {
 		t.Fatal(err)
 	}
+	for _, count := range []int32{16, 17, 64} {
+		spec := &runtimev1.ImageGenerateScenarioSpec{OutputFormat: "gif", FrameCount: proto.Int32(count), FrameDurationMs: proto.Int32(36)}
+		_, err := validateOpenAIImageOutput(image26GIF(t, int(count), 4), spec)
+		if (err == nil) != (count == 16) {
+			t.Fatalf("%d-frame native output boundary: %v", count, err)
+		}
+	}
 	oversized := bytes.Clone(valid)
 	binary.LittleEndian.PutUint16(oversized[6:], 65535)
 	binary.LittleEndian.PutUint16(oversized[8:], 65535)

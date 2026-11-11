@@ -1,6 +1,6 @@
 schema_version: 3
 provider: openai
-catalog_version: 2026-11-05-openai-live-and-image26
+catalog_version: 2026-11-10-openai-image26-gif-bound
 generated_target: runtime/catalog/providers/openai.yaml
 runtime:
   inventory_mode: static_source
@@ -47,8 +47,8 @@ sources:
     note: Exact current GPT Image2.6 Sunburst generation/edit target; no dated snapshot published on the model card.
   - source_id: openai_gpt_image_26_guide
     url: https://developers.openai.com/api/docs/guides/image-generation#gpt-image-26
-    retrieved_at: 2026-11-05
-    note: Independent low/medium/high complexity defaultshigh; markup,SVG and GIF require their own typed carrier and artifact admission, not ignored extension fields.
+    retrieved_at: 2026-11-10
+    note: Independent low/medium/high complexity defaults high; current GIF frame_count is 2-16. The reviewed Runtime cell retains generation-only GIF with native auto size. Markup, SVG and GIF require typed carriers and actual artifact validation.
   - source_id: openai_gpt_6_1_terra_doc
     url: https://developers.openai.com/api/docs/models/gpt-6.1-terra
     retrieved_at: 2026-11-04
@@ -265,7 +265,7 @@ models:
       complexity_levels: [low, medium, high]
       output_formats: [png, jpeg, webp, gif, svg]
       supports_markup: true
-      max_animation_frames: 64
+      max_animation_frames: 16
       response_formats: [b64_json]
       max_images_per_request: 1
       supports_negative_prompt: false
@@ -293,7 +293,7 @@ models:
       complexity_levels: [low, medium, high]
       output_formats: [png, jpeg, webp, gif, svg]
       supports_markup: true
-      max_animation_frames: 64
+      max_animation_frames: 16
       response_formats: [b64_json]
       max_images_per_request: 1
       supports_negative_prompt: false

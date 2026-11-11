@@ -51,6 +51,7 @@ function ImageLayerField(props: { parameters: StudioImageGenerationParameters; f
   </StudioParameterField>;
 }
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.openai-image26
 function ImageFields(props: StudioParameterPanelProps) {
   const host = useAIStudioHost();
   const { translate: t } = useAIStudioHost();
@@ -158,7 +159,7 @@ function ImageFields(props: StudioParameterPanelProps) {
     { field: 'outputFormat', label: t('Studio.parameters.fields.outputFormat'), render: disabled => <StudioParameterField label={t('Studio.parameters.fields.outputFormat')}><SelectField value={parameters.outputFormat || 'model-default'} options={[{value:'model-default',label:t('Studio.parameters.useDefault')},...['png','jpeg','webp','gif','svg'].map(value=>({value,label:value.toUpperCase()}))]} onChange={event => { const next = {...parameters, outputFormat: (event.target.value === 'model-default' ? '' : event.target.value) as StudioImageGenerationParameters['outputFormat']}; if (next.outputFormat !== 'gif') { delete next.frameCount; delete next.frameDurationMs; } update(next); }} disabled={props.disabled || disabled} /><small>{t('Studio.parameters.imageFormatHint')}</small></StudioParameterField> },
     textField('markup', t('Studio.parameters.fields.markup'), 'https://…'),
     { field: 'markupArtifactId', label: t('Studio.parameters.fields.markupFile'), render: disabled => <ImageLayerField parameters={parameters} field="markupArtifactId" urlField="markup" label={t('Studio.parameters.fields.markupFile')} hint={t('Studio.parameters.markupFileHint')} onChange={update} disabled={props.disabled || disabled} /> },
-    { field: 'frameCount', label: t('Studio.parameters.fields.animationFrames'), render: disabled => <StudioNumberParameter current={parameters} field="frameCount" label={t('Studio.parameters.fields.animationFrames')} onChange={update} min={2} max={64} step={1} disabled={props.disabled || disabled || parameters.outputFormat !== 'gif'} /> },
+    { field: 'frameCount', label: t('Studio.parameters.fields.animationFrames'), render: disabled => <StudioNumberParameter current={parameters} field="frameCount" label={t('Studio.parameters.fields.animationFrames')} onChange={update} min={2} step={1} disabled={props.disabled || disabled || parameters.outputFormat !== 'gif'} /> },
     { field: 'frameDurationMs', label: t('Studio.parameters.fields.frameDurationMs'), render: disabled => <StudioNumberParameter current={parameters} field="frameDurationMs" label={t('Studio.parameters.fields.frameDurationMs')} onChange={update} min={20} max={2000} step={10} disabled={props.disabled || disabled || parameters.outputFormat !== 'gif'} /> },
   ];
   return <StudioRouteAwareParameterFields contract={props.contract} source={props.source} fields={fields} translate={translate} />;

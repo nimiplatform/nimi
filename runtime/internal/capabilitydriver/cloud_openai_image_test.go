@@ -28,7 +28,7 @@ func TestOpenAIImage26UsesItsReviewedImageAPIRules(t *testing.T) {
 			{Prompt: "A paper boat", Size: "auto", Quality: "medium"},
 			{Prompt: "Change the cup blue", Size: "1024x1024", ReferenceImages: []string{"https://example.com/source.png"}},
 			{Prompt: "vector boat", OutputFormat: "svg", Complexity: "high", Quality: "low"},
-			{Prompt: "moving boat", OutputFormat: "gif", FrameCount: proto.Int32(64), FrameDurationMs: proto.Int32(2000)},
+			{Prompt: "moving boat", OutputFormat: "gif", FrameCount: proto.Int32(16), FrameDurationMs: proto.Int32(2000)},
 			{Prompt: "change annotated area", ReferenceImageArtifactId: "source", MarkupArtifactId: "overlay"},
 			{Prompt: "change white area", ReferenceImageArtifactId: "source", MaskArtifactId: "mask"},
 		} {
@@ -46,7 +46,8 @@ func TestOpenAIImage26UsesItsReviewedImageAPIRules(t *testing.T) {
 			{Prompt: "boat", Seed: proto.Int64(0)},
 			{Prompt: "boat", OutputFormat: "svg", ReferenceImageArtifactId: "source"},
 			{Prompt: "boat", OutputFormat: "gif", Size: "1024x1024"},
-			{Prompt: "boat", OutputFormat: "gif", FrameCount: proto.Int32(65)},
+			{Prompt: "boat", OutputFormat: "gif", FrameCount: proto.Int32(17)},
+			{Prompt: "boat", OutputFormat: "gif", FrameCount: proto.Int32(64)},
 			{Prompt: "boat", OutputFormat: "png", FrameCount: proto.Int32(3)},
 			{Prompt: "boat", MarkupArtifactId: "overlay"},
 			{Prompt: "boat", ReferenceImageArtifactId: "source", MaskArtifactId: "mask", MarkupArtifactId: "overlay"},

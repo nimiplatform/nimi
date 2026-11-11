@@ -1,6 +1,6 @@
 version: 1
 provider: openai
-catalog_version: 2026-11-05-openai-live-and-image26
+catalog_version: 2026-11-10-openai-image26-gif-bound
 inventory_mode: static_source
 default_text_model: gpt-6.1-sol
 models:
@@ -47,7 +47,7 @@ models:
         - gif
         - svg
       supports_markup: true
-      max_animation_frames: 64
+      max_animation_frames: 16
   - model_id: gpt-image-2.6-sunburst
     provider: openai
     model_type: image
@@ -91,7 +91,7 @@ models:
         - gif
         - svg
       supports_markup: true
-      max_animation_frames: 64
+      max_animation_frames: 16
   - model_id: gpt-6.1-terra
     provider: openai
     model_type: chat

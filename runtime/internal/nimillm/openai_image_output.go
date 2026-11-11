@@ -126,7 +126,7 @@ func boundedGIFFrameCount(data []byte) (int, error) {
 				return 0, bad
 			}
 			count++
-			if count > 64 || int64(width)*int64(height)*int64(count) > 64<<20 {
+			if count > 16 || int64(width)*int64(height)*int64(count) > 64<<20 {
 				return 0, bad
 			}
 			if packed&0x80 != 0 {
