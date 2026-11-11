@@ -19,7 +19,7 @@ test('different ports cannot make the official login and ecosystem website cooki
 });
 
 test('network setup rejects insecure or non-origin URLs and ambiguous listeners', () => {
-  for (const websiteOrigin of ['http://writer.test', 'https://user:password@writer.test', 'https://writer.test/path', 'https://writer.test/?query=1']) {
+  for (const websiteOrigin of ['http://writer.test', 'https://user:password@writer.test', 'https://writer.test/path', 'https://writer.test/?query=1']) { // pragma: allowlist secret -- intentional rejected URL credential fixture
     assert.throws(() => resolveReferenceNetwork({ websiteOrigin, officialWebOrigin: 'https://nimi.test' }));
   }
   assert.throws(() => resolveReferenceNetwork({ officialWebOrigin: 'http://nimi.test' }));

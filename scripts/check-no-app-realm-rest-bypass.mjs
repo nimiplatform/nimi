@@ -11,6 +11,8 @@ const SCANNED_ROOTS = ['apps', 'gateways'];
 const SOURCE_EXTENSIONS = new Set(['.ts', '.tsx', '.js', '.mjs', '.cjs']);
 const IGNORED_DIRS = new Set([
   'dist',
+  'dist-web',
+  'dist-electron',
   'build',
   'coverage',
   'node_modules',

@@ -236,7 +236,6 @@ The executable reference website lives at `examples/remote-runtime-web` in the r
 
 Licensed under [Apache-2.0](LICENSE).
 
-
 ## Remote ecosystem clients (current source build)
 
 Use `@nimiplatform/sdk/realm/runtime-client` for `prepareRuntimeClientLogin` / `completeRuntimeClientLogin`, and `@nimiplatform/sdk/runtime/remote` for `connectRemoteRuntime`. They reuse the same SDK contracts while avoiding the broad native Host composition imports. A `RemoteRuntimeAppConnection` exposes the implemented ordinary-App operations; it is not a `NimiLocalAppClient` with simulated native proof. Platform peer adapters carry bytes only and cannot grant permissions.

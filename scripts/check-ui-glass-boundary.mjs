@@ -50,7 +50,7 @@ const EXT_CSS = new Set(['.css', '.scss']);
 
 // Directories skipped during walk
 const SKIP_DIRS = new Set([
-  'node_modules', 'dist', 'build', '.next', '.turbo', 'target',
+  'node_modules', 'dist', 'dist-web', 'dist-electron', 'build', '.next', '.turbo', 'target',
   '__generated__', 'generated', 'gen', 'e2e-results', 'playwright-report',
   'storybook-static', // generated Storybook build output
   'src-tauri', // Rust layer — not in scope

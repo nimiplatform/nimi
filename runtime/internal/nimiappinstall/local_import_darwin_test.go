@@ -170,6 +170,7 @@ func realLocalDarwinPackage(t *testing.T, version string) string {
 		t.Fatal(err)
 	}
 	info := nimiapppackage.AppInfo{Format: "nimi.app-info/v1", AppID: "test.imported", Version: version, TargetID: "macos-aarch64", DisplayName: "Local example", Summary: "Local import fixture",
+		ReadmeMarkdown: "# Local example\n\nA local import fixture.\n",
 		Icon: nimiapppackage.AppInfoIcon{MediaType: "image/png", DataBase64: base64.StdEncoding.EncodeToString(icon.Bytes())}, License: nimiapppackage.AppInfoLicense{Identifier: "MIT", Text: "MIT\n"},
 		AppAccess: []string{}, CapabilityContractRefs: []string{}, RequiredStandardizedFeatureRefs: []string{}, StoragePolicy: nimiapppackage.AppInfoStoragePolicy{Kind: "nimi-mediated-default"}}
 	marshal := func(value any) []byte {

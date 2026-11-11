@@ -145,7 +145,6 @@ The Conversation and Session Hook entries preserve original records and native c
 
 The Web entry composes the shared `auth/app/web` factory and `auth/app` account control/gate. Identity remains separate from Runtime connectivity. Lab no longer owns a separate remote login controller. Native-only file actions stay outside the portable App operation type; browser results use the existing export/download port.
 
-
 ### Direct App file transfers
 
 The Lab-only **App files** page under Image, video & files uses the same public `storage.assets.write/read` operations in native and Web entries. It streams the selected file into a new private Lab asset, waits for the owner commit, then compares every read-back byte with the original file. The visible upload counter is source bytes read, not a commit acknowledgement. Results and errors stay in the current page; binary content is not written to AI run history, and this entry adds no model capability or public scaffold feature.

@@ -64,7 +64,6 @@ Pass the Worker to `createPcmWorkerClient`, `await` each block, and call `close(
 - `pnpm --filter @nimiplatform/kit build`
 - `pnpm check:nimi-kit`
 
-
 `@nimiplatform/kit/core/app-session` coordinates ordinary App identity and Runtime consumption through explicit platform ports. Browser Apps use `@nimiplatform/kit/auth/app/web`; protected Desktop uses `auth/app/desktop`. The shared `auth/app` Provider, account control and gate keep identity separate from Runtime availability. Each identity and connection has an abort signal and local view key. Optional website account binding receives verified remote identity for the captured website context; it is not a backend credential. The previous remote-only entry was removed in this unreleased hard cut; migrate consumers rather than retaining a second state machine.
 
 `@nimiplatform/kit/core/app-asset-media` reads an admitted App asset into a Blob and provides a revocable object URL. The reader and URL port are supplied to it; it has no file path, native Host or alternate network access. Browser download UI remains App-owned.

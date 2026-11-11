@@ -68,7 +68,6 @@ Web 使用 Kit `auth/app/web`，Desktop 使用 `auth/app/desktop`；两者共享
 
 已有 Web 版本实际运行过文本聊天、既有会话重读、伙伴配置和 skin 预览／应用／清除。共享接入与公开包迁移后的真实页面复验单独记录，工程检查通过不能代替新版产品路径。原生 Avatar 启动／placement 不被网页模拟；其它语音／媒体组合及公网条件按实际应用任务验证。Mobile 仍待原生来源、系统回调和容器实现，没有空的 Mobile 工厂。
 
-
 ## Android 本机开发
 
 `src/mobile/main.tsx` 与 Web 共用 `production/remote-entry` 和同一 renderer。当前 Android 12+ 开发包为 `ai.nimi.apps.zhiyu.dev`，Nimi 客户端为 `nimi.zhiyu.android.dev`，配置位于 `capacitor.config.ts`。开发回调使用 `ai.nimi.apps.zhiyu.dev:/oauth/callback`，由 debug Manifest 声明，无需部署公网域名。

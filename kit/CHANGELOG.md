@@ -6,7 +6,6 @@
 
 Adds the explicitly admitted `android-dev-scheme` carrier for local non-production Realm development. It shares PKCE, context lifetime, Home source consent and the direct Runtime client with the App Link carrier. SDK callback helpers match the entire registered destination, including private-use scheme; Kit's Android adapter requires the installed debug package/signature and declared callback. Production source admission and verified App Links remain unchanged. Update the complete SDK/Kit packages and official login surface together; this is not package publication or a new permission system.
 
-
 ## Unreleased — Session recovery hints (compatible fix)
 
 App session issues retain an optional owner-supplied `actionHint`, including denied Desktop session status. Custom access views and the standard gate's expandable details preserve the owner reason and recovery instruction without decoding private errors or inventing a second authorization state.

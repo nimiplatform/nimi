@@ -128,5 +128,4 @@ Agent Center ships its typed `en` and `zh` catalogs through the headless surface
 
 Read `DESIGN.md`, `kit/DESIGN.md`, and the nearest owner contract before changing this feature. Runtime SDK consumption must stay behind `@nimiplatform/kit/core/sdk-contract`; app-specific surfaces belong in the host app placement outside Kit Agent Center.
 
-
 Browser mounts can opt into `createAgentCenterBrowserHostMechanics` with their target's finite Resource Pack size limit. This supplies only browser file selection and actual content/digest; it does not claim native custody or Avatar launch. The same Manager and target renderer perform preview, manual Apply and owner-backed commit. Native Avatar/background selection and Host launch remain separate mechanics.

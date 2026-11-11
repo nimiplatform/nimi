@@ -559,7 +559,7 @@ engineering_evidence:
       metadata channels. Do not log provider text/media, relax validation or add retry/fallback behavior.
     checks: The complete nimillm Go package and the existing Job reason-metadata/sanitization tests passed.
       Added parser cases verify typed failure, fixed diagnostic categories and exclusion of provider content.
-    implementation_commit: 984d63ace
+    implementation_commit: 984d63ace # pragma: allowlist secret -- recorded revision or artifact digest
     runtime_rebuild: Guarded pnpm dev:desktop rebuilt Runtime at directly observed revision
       984d63ace48e75c9d1d85b3f41ef06f2d28d647b with modified=false. The original Lab registration resumed
       with its refreshed selector.
@@ -1278,7 +1278,7 @@ capabilities:
         summary: The speaker encoder slot was empty. Home provided no direct download; the installed-model
           selector contained no CampPlus speaker encoder. No extraction or comparison was attempted.
         observed_on: 2026-11-10
-        version: { runtime_revision: 60d7cb0f3855; modified=true, home: 0.2.5-rc.6, engine: null }
+        version: { runtime_revision: 60d7cb0f3855; modified=true, home: 0.2.5-rc.6, engine: null } # pragma: allowlist secret -- recorded revision or artifact digest
         evidence:
           - { source: macos_20261110 }
         limitations:
@@ -2635,8 +2635,8 @@ capabilities:
           tags from the strict Schema result, and answer=43/platform=macos from both JSON modes.
         observed_on: 2026-11-10
         version:
-          implementation_commit: 60d7cb0f3855
-          runtime_revision: 60d7cb0f3855; modified=true
+          implementation_commit: 60d7cb0f3855 # pragma: allowlist secret -- recorded revision or artifact digest
+          runtime_revision: 60d7cb0f3855; modified=true # pragma: allowlist secret -- recorded revision or artifact digest
           home: 0.2.5-rc.6
           lab: 0.1.0
           engine: OpenAI Responses API via Runtime; provider backend build not exposed
@@ -2662,7 +2662,7 @@ capabilities:
         observed_on: 2026-11-10
         version:
           implementation_commit: aadf45727
-          runtime_revision: 60d7cb0f3855; modified=true
+          runtime_revision: 60d7cb0f3855; modified=true # pragma: allowlist secret -- recorded revision or artifact digest
           home: 0.2.5-rc.6
           lab: 0.1.0; live-preview repair from aadf45727
           engine: OpenAI Responses API via Runtime; provider backend build not exposed
@@ -4585,8 +4585,8 @@ capabilities:
           complete token tables. The emoji spans were [15,16) and [38,39), with subsequent offsets preserved.
         observed_on: 2026-11-10
         version:
-          implementation_commit: 60d7cb0f3855
-          runtime_revision: 60d7cb0f3855; modified=true
+          implementation_commit: 60d7cb0f3855 # pragma: allowlist secret -- recorded revision or artifact digest
+          runtime_revision: 60d7cb0f3855; modified=true # pragma: allowlist secret -- recorded revision or artifact digest
           home: 0.2.5-rc.6
           lab: 0.1.0
           engine: Runtime text-annotation-host; spaCy 3.8.16; CPython 3.12.15
@@ -4615,8 +4615,8 @@ capabilities:
           Structural success does not establish linguistic correctness.
         observed_on: 2026-11-10
         version:
-          implementation_commit: 60d7cb0f3855
-          runtime_revision: 60d7cb0f3855; modified=true
+          implementation_commit: 60d7cb0f3855 # pragma: allowlist secret -- recorded revision or artifact digest
+          runtime_revision: 60d7cb0f3855; modified=true # pragma: allowlist secret -- recorded revision or artifact digest
           home: 0.2.5-rc.6
           lab: 0.1.0
           engine: Runtime text-annotation-host; spaCy 3.8.16; CPython 3.12.15
@@ -4652,8 +4652,8 @@ capabilities:
           disabled download/use. No weights were downloaded and no transformer inference was attempted.
         observed_on: 2026-11-10
         version:
-          implementation_commit: 60d7cb0f3855
-          runtime_revision: 60d7cb0f3855; modified=true
+          implementation_commit: 60d7cb0f3855 # pragma: allowlist secret -- recorded revision or artifact digest
+          runtime_revision: 60d7cb0f3855; modified=true # pragma: allowlist secret -- recorded revision or artifact digest
           home: 0.2.5-rc.6
           lab: 0.1.0
           engine: null
@@ -4729,8 +4729,8 @@ capabilities:
           remains unacceptable, independently of the similar Windows observation.
         observed_on: 2026-11-10
         version:
-          implementation_commit: 60d7cb0f3855
-          runtime_revision: 60d7cb0f3855; modified=true
+          implementation_commit: 60d7cb0f3855 # pragma: allowlist secret -- recorded revision or artifact digest
+          runtime_revision: 60d7cb0f3855; modified=true # pragma: allowlist secret -- recorded revision or artifact digest
           home: 0.2.5-rc.6
           lab: 0.1.0
           engine: Runtime text-decision-host; laya 0.4.13; torch 2.14.1
@@ -4964,7 +4964,7 @@ capabilities:
         observed_on: 2026-11-10
         version:
           implementation_commit: aadf45727
-          runtime_revision: 60d7cb0f3855; modified=true
+          runtime_revision: 60d7cb0f3855; modified=true # pragma: allowlist secret -- recorded revision or artifact digest
           home: 0.2.5-rc.6
           lab: 0.1.0; stream-preview source aadf45727
           engine: llama.cpp b11960; Runtime-launched llama-server
@@ -5296,7 +5296,7 @@ capabilities:
         version: { implementation_commit: d432b2a2f, runtime_revision: b9c095e29; modified=true,
           home: 0.2.5-rc.6, lab: 0.1.0, engine: Managed Qwen3 Python CPU; qwen-tts 0.1.1;
             CPython 3.12.15; PyTorch 2.14.1 CPU, accelerator: CPU }
-        weight_revision: 5d83992436eae1d760afd27aff78a71d676296fc
+        weight_revision: 5d83992436eae1d760afd27aff78a71d676296fc # pragma: allowlist secret -- recorded revision or artifact digest
         entry_sha256: 180b3b10eb1c9f1b4db7806d5475bae3071c0243c299d49926bab1da3b6946f6 # pragma: allowlist secret -- public weight digest
         voice_asset: 01M72KVWY2H1G32RA36M74JWB7
         jobs: [ 01M72M3YH87XVC17Y8P4YCT7CK ]
@@ -5472,7 +5472,7 @@ capabilities:
         observed_on: 2026-11-10
         version:
           implementation_commit: aadf45727
-          runtime_revision: 60d7cb0f3855; modified=true
+          runtime_revision: 60d7cb0f3855; modified=true # pragma: allowlist secret -- recorded revision or artifact digest
           home: 0.2.5-rc.6
           lab: 0.1.0; stream-preview source aadf45727
           engine: Runtime speech-http-v3; qwen-tts 0.1.1; torch 2.14.1; transformers 4.57.6; CPython 3.12.15
@@ -5495,7 +5495,7 @@ capabilities:
         summary: Home marked these audio.cpp recipes unsuitable for this device, with no direct download and
           disabled setup/file-selection controls. No inference was attempted through another engine.
         observed_on: 2026-11-10
-        version: { runtime_revision: 60d7cb0f3855; modified=true, home: 0.2.5-rc.6, engine: null }
+        version: { runtime_revision: 60d7cb0f3855; modified=true, home: 0.2.5-rc.6, engine: null } # pragma: allowlist secret -- recorded revision or artifact digest
         evidence:
           - { source: macos_20261110 }
         limitations:
@@ -5934,7 +5934,7 @@ capabilities:
         observed_on: 2026-11-10
         version:
           implementation_commit: aadf45727
-          runtime_revision: 60d7cb0f3855; modified=true
+          runtime_revision: 60d7cb0f3855; modified=true # pragma: allowlist secret -- recorded revision or artifact digest
           home: 0.2.5-rc.6
           lab: 0.1.0; live-preview repair present
           engine: Runtime Python speech host; Qwen3 ASR Transformers and forced aligner
@@ -5961,7 +5961,7 @@ capabilities:
         observed_on: 2026-11-10
         version:
           implementation_commit: aadf45727
-          runtime_revision: 60d7cb0f3855; modified=true
+          runtime_revision: 60d7cb0f3855; modified=true # pragma: allowlist secret -- recorded revision or artifact digest
           home: 0.2.5-rc.6
           lab: 0.1.0; stream-preview source aadf45727
           engine: Runtime speech-http-v3; faster-whisper 1.2.1; ctranslate2 4.8.3; CPython 3.12.15
@@ -6212,7 +6212,7 @@ capabilities:
         summary: Both Spleeter CPU recipes were marked unsuitable for this device. The prepared Demucs
           configuration was not used as substitute evidence, and existing weight-license limitations remain.
         observed_on: 2026-11-10
-        version: { runtime_revision: 60d7cb0f3855; modified=true, home: 0.2.5-rc.6, engine: null }
+        version: { runtime_revision: 60d7cb0f3855; modified=true, home: 0.2.5-rc.6, engine: null } # pragma: allowlist secret -- recorded revision or artifact digest
         evidence:
           - { source: macos_20261110 }
         limitations:
@@ -6286,7 +6286,7 @@ capabilities:
         version: { implementation_commit: d432b2a2f, runtime_revision: b9c095e29; modified=true,
           home: 0.2.5-rc.6, lab: 0.1.0, engine: Managed Qwen3 Python CPU; qwen-tts 0.1.1;
             CPython 3.12.15; PyTorch 2.14.1 CPU, accelerator: CPU }
-        weight_revision: 5d83992436eae1d760afd27aff78a71d676296fc
+        weight_revision: 5d83992436eae1d760afd27aff78a71d676296fc # pragma: allowlist secret -- recorded revision or artifact digest
         bundle_content_id: sha256:121345dd05106a89df64676c7632528bb89c19cc5f3c70387a009466f21c6f8d
         entry: model.safetensors
         entry_bytes: 1829344272
@@ -6364,7 +6364,7 @@ capabilities:
         observed_on: 2026-11-10
         version:
           implementation_commit: aadf45727
-          runtime_revision: 60d7cb0f3855; modified=true
+          runtime_revision: 60d7cb0f3855; modified=true # pragma: allowlist secret -- recorded revision or artifact digest
           home: 0.2.5-rc.6
           lab: 0.1.0; live-preview repair present
           engine: Runtime speech-http-v3; qwen-tts 0.1.1; torch 2.14.1; CPython 3.12.15
@@ -6828,7 +6828,7 @@ capabilities:
         observed_on: 2026-11-10
         version:
           implementation_commit: aadf45727
-          runtime_revision: 60d7cb0f3855; modified=true
+          runtime_revision: 60d7cb0f3855; modified=true # pragma: allowlist secret -- recorded revision or artifact digest
           home: 0.2.5-rc.6
           lab: 0.1.0; stream-preview source aadf45727
           engine: sd-macos-metal-arm64-stablediffusion-ggml-58bb3c1; Runtime image execution host
@@ -7307,7 +7307,7 @@ capabilities:
           Natural playback reached ended=true with zero dropped frames and no media error. The saved result
           reopened after reload with the same dimensions and duration.
         observed_on: 2026-11-10
-        version: { runtime_revision: 984d63ace; modified=false, home: 0.2.5-rc.6, lab: 0.1.0,
+        version: { runtime_revision: 984d63ace; modified=false, home: 0.2.5-rc.6, lab: 0.1.0, # pragma: allowlist secret -- recorded revision or artifact digest
           engine: Native Gemini Interactions video adapter; provider build not exposed }
         jobs: [ 01M72S6RSJ310GB4Q19EXNDQ31 ]
         traces: [ 01M72S6RTX3QZ4NVR2VD0MQHJV ]
@@ -7329,7 +7329,7 @@ capabilities:
           to orange while retaining the table/background. Natural playback ended without media error or
           dropped frames, and the saved result reopened after reload.
         observed_on: 2026-11-10
-        version: { runtime_revision: 984d63ace; modified=false, home: 0.2.5-rc.6, lab: 0.1.0,
+        version: { runtime_revision: 984d63ace; modified=false, home: 0.2.5-rc.6, lab: 0.1.0, # pragma: allowlist secret -- recorded revision or artifact digest
           engine: Native Gemini Interactions video adapter; provider build not exposed }
         jobs: [ 01M72S2W3EVH1GY4ZWCP86CXEA ]
         traces: [ 01M72S2W4MVTGQ6T1JS02HG2CW ]
@@ -7350,7 +7350,7 @@ capabilities:
           crossed from the left to the right over calm water. Lab played naturally to ended=true with no
           media error or dropped frames, and reopened the saved video after reload.
         observed_on: 2026-11-10
-        version: { runtime_revision: 984d63ace; modified=false, home: 0.2.5-rc.6, lab: 0.1.0,
+        version: { runtime_revision: 984d63ace; modified=false, home: 0.2.5-rc.6, lab: 0.1.0, # pragma: allowlist secret -- recorded revision or artifact digest
           engine: Native DashScope video adapter; provider build not exposed }
         jobs: [ 01M72RQ8NY038MDVWRJ24E6X8V ]
         traces: [ 01M72RQ8NY038MDVWRJ4GJ379Q ]
@@ -7369,7 +7369,7 @@ capabilities:
           AI_MEDIA_OPTION_UNSUPPORTED before issuing a Job. No suitable owned HTTPS first-frame source was
           available for the historical URL-based scenario. Wan3.0 owned-image success is a different adapter.
         observed_on: 2026-11-10
-        version: { runtime_revision: 984d63ace; modified=false, home: 0.2.5-rc.6, lab: 0.1.0,
+        version: { runtime_revision: 984d63ace; modified=false, home: 0.2.5-rc.6, lab: 0.1.0, # pragma: allowlist secret -- recorded revision or artifact digest
           engine: Native DashScope Wan 2.7 image-to-video admission }
         evidence:
           - { source: macos_20261110 }
@@ -7447,7 +7447,7 @@ capabilities:
         observed_on: 2026-11-10
         version: { implementation_commit: d432b2a2f, runtime_revision: b9c095e29; modified=true,
           home: 0.2.5-rc.6, lab: 0.1.0, engine: Native Ark Seedance asynchronous video adapter }
-        recovered_t2v: { job: null, trace: null, video_sha256: bc534b1ccd7c6e96e8fef67021120468eb3ac61f46b1421d86e13101e4f24f36 }
+        recovered_t2v: { job: null, trace: null, video_sha256: bc534b1ccd7c6e96e8fef67021120468eb3ac61f46b1421d86e13101e4f24f36 } # pragma: allowlist secret -- recorded revision or artifact digest
         jobs: [ 01M72J6M2R2BR7M7R8GSAXW1KZ ]
         traces: [ 01M72J6M3295S8F7771N3BSBKR ]
         downstream_asr: { model: gemini-3.5-transcribe, route: gemini,
@@ -8184,7 +8184,7 @@ capabilities:
         observed_on: 2026-11-10
         version:
           implementation_commit: aadf45727
-          runtime_revision: 60d7cb0f3855; modified=true
+          runtime_revision: 60d7cb0f3855; modified=true # pragma: allowlist secret -- recorded revision or artifact digest
           home: 0.2.5-rc.6
           lab: 0.1.0; stream-preview source aadf45727
           engine: World Labs native Marble adapter; provider backend build not exposed
@@ -8514,7 +8514,7 @@ capabilities:
           reopened the saved audio after reload. Runtime correctly retained termination unknown rather than
           inventing a complete ending.
         observed_on: 2026-11-10
-        version: { implementation_commit: 984d63ace, runtime_revision: 984d63ace; modified=false,
+        version: { implementation_commit: 984d63ace, runtime_revision: 984d63ace; modified=false, # pragma: allowlist secret -- recorded revision or artifact digest
           home: 0.2.5-rc.6, lab: 0.1.0, engine: Native Gemini Lyria 3.5 GenerateContent adapter }
         jobs: [ 01M72RHZZRFFCWGAN4N33D32S5 ]
         traces: [ 01M72RJ023RZVM9B75AVQRP57T ]
@@ -8579,7 +8579,7 @@ capabilities:
         observed_on: 2026-11-10
         version:
           implementation_commit: aadf45727
-          runtime_revision: 60d7cb0f3855; modified=true
+          runtime_revision: 60d7cb0f3855; modified=true # pragma: allowlist secret -- recorded revision or artifact digest
           home: 0.2.5-rc.6
           lab: 0.1.0; stream-preview source aadf45727
           engine: Gemini native music adapter; provider backend build not exposed
@@ -9183,7 +9183,7 @@ capabilities:
           The historical Windows record does not identify enough weight detail to reconstruct that tuple.
           Actual macOS HyperSwap execution is retained separately and does not verify INSwapper.
         observed_on: 2026-11-10
-        version: { runtime_revision: 984d63ace; modified=false, home: 0.2.5-rc.6, lab: 0.1.0, engine: null }
+        version: { runtime_revision: 984d63ace; modified=false, home: 0.2.5-rc.6, lab: 0.1.0, engine: null } # pragma: allowlist secret -- recorded revision or artifact digest
         weights: null
         evidence:
           - { source: macos_20261110 }

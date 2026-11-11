@@ -577,6 +577,7 @@ pub enum ReasonCode {
     AiProviderTaskCanceled = 773,
     AiProviderTaskExpired = 774,
     AgentConversationContextRevisionConflict = 775,
+    AppStorageContentConflict = 776,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -992,6 +993,7 @@ impl ReasonCode {
             Self::AgentConversationContextRevisionConflict => {
                 "AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT"
             }
+            Self::AppStorageContentConflict => "APP_STORAGE_CONTENT_CONFLICT",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -1476,6 +1478,7 @@ impl ReasonCode {
             "AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT" => {
                 Some(Self::AgentConversationContextRevisionConflict)
             }
+            "APP_STORAGE_CONTENT_CONFLICT" => Some(Self::AppStorageContentConflict),
             _ => None,
         }
     }
@@ -14083,8 +14086,17 @@ pub struct WriteLocalAppAssetMetadata {
     pub overwrite: bool,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct ReplaceLocalAppAssetMetadata {
+    #[prost(string, tag = "1")]
+    pub relative_path: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub media_type: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub expected_sha256: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct WriteLocalAppAssetRequest {
-    #[prost(oneof = "write_local_app_asset_request::Frame", tags = "1, 2")]
+    #[prost(oneof = "write_local_app_asset_request::Frame", tags = "1, 2, 3")]
     pub frame: ::core::option::Option<write_local_app_asset_request::Frame>,
 }
 /// Nested message and enum types in `WriteLocalAppAssetRequest`.
@@ -14095,6 +14107,8 @@ pub mod write_local_app_asset_request {
         Metadata(super::WriteLocalAppAssetMetadata),
         #[prost(bytes, tag = "2")]
         BodyChunk(::prost::alloc::vec::Vec<u8>),
+        #[prost(message, tag = "3")]
+        ReplaceMetadata(super::ReplaceLocalAppAssetMetadata),
     }
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]

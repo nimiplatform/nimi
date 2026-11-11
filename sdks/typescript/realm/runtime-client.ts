@@ -251,7 +251,7 @@ function randomSecret(): string {
   return base64url(globalThis.crypto.getRandomValues(new Uint8Array(32)));
 }
 function base64url(bytes: Uint8Array): string {
-  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_'; // pragma: allowlist secret -- standard base64url alphabet, not a credential
   let result = '', value = 0, bits = 0;
   for (const byte of bytes) {
     value = (value << 8) | byte; bits += 8;

@@ -243,7 +243,6 @@ During release, the managed GitHub Actions workflow uploads this sidecar to the 
 
 Licensed under [Apache-2.0](../licenses/Apache-2.0.txt).
 
-
 ## Web development (current source build)
 
 The same CLI supports `create --platform web`, Web `init/sync/check/test/build`, existing-site `init --adopt`, and `dev --platform web`. `standalone` is still the repository topology. Web `--features all` currently resolves to `studio-create` (text, streaming chat and embeddings); other feature selections fail explicitly until their Web carrier is admitted. Mobile generation and Web pack/publication are not implemented.
@@ -263,7 +262,6 @@ For an existing website, keep its product entry and actual commands. Use a `web-
 Native-only guidance such as Electron installation, native signatures and `pack --production` above does not apply to the Web carrier. The initial generated test command typechecks the project; App business tests and real task acceptance belong to the application iteration.
 
 The current Web bootstrap uses Kit `auth/app/web` plus its shared Provider, account control and access gate. The old `core/remote-app-session` entry was removed in this unreleased hard cut. Existing App-owned Web entries must be updated explicitly with their selected SDK/Kit source package combination; sync does not take ownership of the application entry. Generated business callbacks retain their captured client; identity-only views use their own identity lifetime rather than a Runtime connection key.
-
 
 ### Existing mobile development entry
 
