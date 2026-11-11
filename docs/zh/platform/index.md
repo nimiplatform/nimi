@@ -16,7 +16,7 @@ Nimi Home 是用户的统一交互入口，当前由桌面客户端承载。它�
 
 用户在 Realm 中创建或选择一个角色实体（Character）。Realm 负责签发一份结构化的角色源描述（Character Source）；Runtime 则根据这份定义，在用户本地设备上将其初始化并运行为专属于当前用户的本地智能体（LocalAgent）。LocalAgent 在交互过程中可以读取 Realm 共享的世界上下文，但绝不会反向篡改或接管角色的核心身份定义与世界的客观状态——这些事实始终受 Realm 权威保护。
 
-第三方应用通过 SDK 调用 LocalAgent 的各项能力。Runtime 依据当前安全会话自动完成用户身份验证与权限判定。应用无需且无法获取 Realm 账号凭据、Runtime 内部运行凭证或大模型厂商 API Key，也无法越权遍历账号下的全量智能体清单。
+App 通过 SDK，经已验证的本机 Host 会话或已准入的远程连接访问能力，每次调用仍由 Runtime 核对当前身份与操作权限。远程来源首次使用还需用户在 Home 确认；这不授予通用账号凭据、模型服务密钥或对其他 App 私有数据的访问权，应用也不能越权遍历账号下的智能体清单。
 
 详见 [Character 与 LocalAgent](/zh/platform/agents/) 以及 [Realm 与 Runtime 同侪架构](/zh/platform/architecture/realm-runtime-siblings)。
 

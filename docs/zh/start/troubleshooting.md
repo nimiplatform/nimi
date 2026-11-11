@@ -21,7 +21,7 @@
 - `nimi status`：查看服务运行状态。
 - `nimi start`：启动后台服务。
 - `nimi doctor`：运行本地环境体检。
-- `nimi health --json`：获取结构化的服务健康指标摘要。
+- `nimi health --json`：以 JSON 查看固定服务控制器的状态。
 
 `nimi health --json` 只报告固定服务控制器的 `service-running/stopped` 状态，不证明 RPC 或 AI 就绪，也不检测源码 supervisor。当前 macOS 等没有对应控制器的路径会返回不可用错误。
 
@@ -69,10 +69,10 @@ const client = getNimiLocalAppClient();
 
 | 错误状态 | 产生原因 | 推荐解决步骤 |
 | :--- | :--- | :--- |
-| `runtime-unavailable` | 无法连接到本地 Runtime 服务。 | 检查 Home 接入与启动日志；独立源码 Runtime 查看前台日志，远程客户端另查主机和直连状态。 |
+| `runtime-unavailable` | 无法连接到 Runtime 服务。 | 检查 Home 的接入与启动日志；独立源码 Runtime 请查看前台日志，远程客户端还需检查主机运行与直连状态。 |
 | `principal-unauthorized` | 当前会话或调用主体未获准执行该操作。 | 检查 Nimi Home 的登录与该应用的 Nimi Access 状态，并核对 `nimi.app.yaml` 中所需的访问声明；AI 调用需要 `runtime.consume`。 |
 | `input-invalid` | 传入的 Prompt、消息体或参数格式不合法。 | 检查调用传参，确保 messages 结构完整且包含必需字段。 |
-| `sdk-method-unavailable` | 当前安装的 SDK 版本未导出或不支持该方法。 | 检查 `package.json` 中的 `@nimiplatform/sdk` 版本，升级至匹配的发布版本。 |
+| `sdk-method-unavailable` | 当前安装的 SDK 版本未导出或不支持该方法。 | 检查 `package.json` 中的 `@nimiplatform/sdk` 版本，选择匹配的发布包或源码包；远程入口的版本要求见[环境准备](/zh/start/install)。 |
 | `runtime-call-failed` | Runtime 执行过程中遇到底层模型异常或网络中断。 | 查看 Runtime 终端日志或 Nimi Desktop 控制台，获取详细错误堆栈。 |
 
 ---
@@ -114,19 +114,19 @@ pnpm run check
 
 | 当前状态 | 下一步 |
 | --- | --- |
-| 未登录或登录事务失效 | 通过当前 App 的官方浏览器入口重新登录，核对精确来源与回调 |
-| 没有主 Runtime | 在 PC Home 发起绑定，并在官方账号网站确认 |
-| 来源待确认、暂停或版本变化 | 在主 PC Home 查看该来源；复用有效确认，按实际状态确认或恢复 |
-| 已登录但直连失败 | 检查主机运行、远程接入开关、同一 Realm 环境、可信 TLS 和两端直连条件；没有中继兜底 |
-| 已连接但操作不可用 | 核对实际包入口、载体操作子集与 App 声明，不用自造原生身份绕过 |
-| AIConfig 缺失或模型未就绪 | 在 App 保存意图，在 PC 准备对应模型资源或云服务，再提交真实调用 |
-| 已提交 Job 后失联 | 查询已保存的 Job/提交标识，展示实际结果；不自动重提 |
+| 未登录或登录事务失效 | 通过当前 App 的官方浏览器入口重新登录，并核对精确来源与回调地址 |
+| 没有主 Runtime | 在 PC Home 发起绑定，再到官方账号网站完成确认 |
+| 来源待确认、已暂停或版本变化 | 在主 PC Home 查看该来源状态；有效确认可直接复用，其余按实际状态完成确认或恢复 |
+| 已登录但直连失败 | 检查主机运行状态、远程接入开关、同一 Realm 环境、可信 TLS 及两端直连条件；不支持中继兜底 |
+| 已连接但操作不可用 | 核对实际包入口、当前载体支持的操作子集与 App 声明，切勿伪造原生身份绕过限制 |
+| AIConfig 缺失或模型未就绪 | 先在 App 保存配置意图，再到 PC 准备对应的模型资源或云服务，就绪后再发起实际调用 |
+| 已提交 Job 后失联 | 使用已保存的 Job 或提交标识查询并展示实际结果，不要自动重新提交 |
 
-Android 开发 Scheme 与正式 App Link 的包名、签名、回调及环境条件不同；前者只适用于明确接纳的本机开发。排查步骤见 [Android 指南](/zh/start/connect-android-app)。
+Android 开发 Scheme 与正式 App Link 的包名、签名、回调及环境条件不同；开发 Scheme 仅适用于明确准入的本机开发。排查步骤见 [Android 指南](/zh/start/connect-android-app)。
 
 ## 已运行开发 App 的 CDP 配置冲突
 
-如果 Home 已启动同一个开发 App，再使用不同 CDP 配置启动会返回 `local-development-cdp-configuration-conflict`。先在 Home 正常停止这个 App，再用同一登记的当前 `--resume` selector 和所需端口续开。不要创建新登记来绕过冲突，也不要把 Home 的 CDP 当作 App 的验收目标。
+如果 Home 已启动同一个开发 App，再使用不同 CDP 配置启动会返回 `local-development-cdp-configuration-conflict`。请先在 Home 中正常停止该 App，再使用同一登记项当前的 `--resume` selector 和所需端口恢复启动。不要通过新建登记来绕过冲突，也不要把 Home 的 CDP 当作 App 的验收目标。
 
 ## Source Basis
 

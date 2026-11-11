@@ -10,7 +10,7 @@
 
 通过官方脚手架创建的 Nimi App 已默认预置 Kit 依赖。若是为已有独立项目引入，请与 SDK 一同安装：
 
-[按环境准备选择公开包或完整源码归档](/zh/start/install)，保留所选组合与 lockfile。下文的 `auth/app/*` 入口需要当前源码交付。
+请[按环境准备选择公开包或完整源码归档](/zh/start/install)，并保留所选组合与 lockfile。下文的 `auth/app/*` 入口需要使用当前的源码交付版本。
 
 Kit 核心基于 React 19 构建。`react-dom`、`react-i18next` 与 `electron` 作为可选 Peer Dependencies，仅在引入特定子路径时按需安装。
 
@@ -79,9 +79,9 @@ import { installNimiElectronRuntimeBridge } from '@nimiplatform/kit/shell/electr
 import { ModelConfigAIConfigSurface } from '@nimiplatform/kit/features/model-config';
 ```
 
-标准设置面板会自动将 `client.aiConfig.get()`、`client.aiConfig.listOptions(query)` 与 `client.aiConfig.overwrite(input)` 绑定至交互界面：
+先通过 `client.aiConfig.get()` 读取配置，再将配置、版本及有效选择传给面板，并把 `client.aiConfig.listOptions(query)` 和 `client.aiConfig.overwrite(input)` 接到相应回调。只有提供版本和读写回调后，面板才开放编辑；否则显示只读视图。
 
-- **本地能力 (Local)**：仅保存路由标记，自动复用当前设备为该能力配置的本地模型组 (Loadout)。
+- **本地能力 (Local)**：仅保存路由标记，复用 Runtime 主机为该能力选定的本地模型组 (Loadout)。
 - **云端能力 (Cloud)**：用户可从 Runtime 安全选项中为当前账号选择合规的 Connector 与授权目标模型，并将确切的 `connectorRef`、`implementation` 与 `providerModelTarget` 保存至 AIConfig。
 - **职责划分**：这是持久化的配置选择，而非每次推理执行时的动态覆盖；Runtime 会在提交时校验并固化输入配置，模型就绪状态与实际推理执行依然分别独立判定。详见 [AI 配置](/zh/sdk/ai-config-surface)。
 
@@ -121,9 +121,9 @@ pnpm run test
 | `createWebNimiAppSession`，来自 `auth/app/web` | 配置已准入 HTTPS 来源，处理浏览器登录回调与直连 |
 | `createMobileNimiAppSession`，来自 `auth/app/mobile` | Android 12+ Capacitor 容器，消费已验证的 App Link 或开发 Scheme |
 
-启动时调用 `session.start()`，应用退出时调用 `session.dispose()`。有身份但没有 Runtime 连接仍是有效的独立状态；可使用 `autoConnect: false` 展示仅需身份的内容。AccessGate 为依赖 Runtime 的子视图提供当前 scope；业务动作捕获它的 client、signal 和 viewKey，scope 结束后不写回结果，也不重放旧操作。普通 App 的远程退出只结束自身上下文。
+应用启动时调用 `session.start()`，退出时调用 `session.dispose()`。已获取身份但尚未连接 Runtime 仍是有效的独立状态，可通过 `autoConnect: false` 展示仅需身份的内容。AccessGate 会为依赖 Runtime 的子视图提供当前 scope；业务动作应捕获其 client、signal 和 viewKey，在 scope 结束后不再写回结果，也不重放旧操作。普通 App 的远程退出仅结束自身上下文。
 
-准备步骤见 [Web](/zh/start/connect-web-app)和 [Android](/zh/start/connect-android-app)。已有自有账号的网站通过 `accountBinding` 提供已验证的当前上下文；SDK 的身份回调不是网站后端认证凭据。
+具体准备步骤见 [Web](/zh/start/connect-web-app) 和 [Android](/zh/start/connect-android-app)。拥有自有账号体系的网站可通过 `accountBinding` 提供已验证的当前上下文；请勿将 SDK 的身份回调当作网站后端的认证凭据。
 
 ## Source Basis
 

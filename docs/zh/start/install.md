@@ -8,11 +8,11 @@
 
 | 制品 | 内容与适用方式 |
 | --- | --- |
-| [Nimi Beta `nimi/v0.2.4`](https://github.com/nimiplatform/nimi/releases/tag/nimi%2Fv0.2.4) | macOS arm64 与 Windows x86_64 安装版。遵循该版本的兼容性和恢复说明；安装版版本号不能证明它支持后续源码接口。 |
-| [npm SDK `0.22.2`](https://registry.npmjs.org/@nimiplatform%2fsdk/0.22.2) | 已发布的原生 App 接口；该制品没有 `runtime/remote` 和 `realm/runtime-client` 入口。 |
-| [npm Kit `0.22.1`](https://registry.npmjs.org/@nimiplatform%2fkit/0.22.1) | 该制品没有 `auth/app/*` 和 `core/app-session` 入口。 |
-| [npm App Tools `0.14.0`](https://registry.npmjs.org/@nimiplatform%2fapp-tools/0.14.0) | 原生应用开发 CLI；该制品没有 Web 出口或 `--platform` 入口。 |
-| [npm Vercel 适配器 `0.6.2`](https://registry.npmjs.org/@nimiplatform%2fsdk-adapter-vercel-ai/0.6.2) | 已发布，声明依赖 SDK `^0.22.2`、AI SDK `^7.0.0` 与 provider `^4.0.0`。依赖范围本身不能证明与某个宿主组合已经走通。 |
+| [Nimi Beta `nimi/v0.2.4`](https://github.com/nimiplatform/nimi/releases/tag/nimi%2Fv0.2.4) | macOS arm64 与 Windows x86_64 安装版。请遵循该版本的兼容性与恢复说明；该安装版不包含后续源码新增的接口。 |
+| [npm SDK `0.22.2`](https://registry.npmjs.org/@nimiplatform%2fsdk/0.22.2) | 已发布的原生 App 接口；该制品不包含 `runtime/remote` 和 `realm/runtime-client` 入口。 |
+| [npm Kit `0.22.1`](https://registry.npmjs.org/@nimiplatform%2fkit/0.22.1) | 已发布的组件与工具包；该制品不包含 `auth/app/*` 和 `core/app-session` 入口。 |
+| [npm App Tools `0.14.0`](https://registry.npmjs.org/@nimiplatform%2fapp-tools/0.14.0) | 原生应用开发 CLI；该制品不包含 Web 导出或 `--platform` 入口。 |
+| [npm Vercel 适配器 `0.6.2`](https://registry.npmjs.org/@nimiplatform%2fsdk-adapter-vercel-ai/0.6.2) | 已发布，声明依赖 SDK `^0.22.2`、AI SDK `^7.0.0` 与 provider `^4.0.0`。实际兼容性仍需在目标宿主组合中验证，不能仅凭依赖范围推定。 |
 
 使用公开原生开发路径时，选择与目标宿主匹配的 App Tools 发布版，并沿用它生成的依赖组合。当前 Web 和 Android 指南需要同一源码交付中的完整 SDK、Kit、App Tools 归档，以及匹配的源码 Runtime 和 Home。只安装上表中的 npm 版本不会得到新增入口。
 
@@ -47,7 +47,7 @@ overrides:
 
 Windows x86_64 请将 Darwin 包换为匹配版本的 `kit-protected-local-win32-x64` 归档。原生可选包必须与 Kit 配套；Web App 不会因安装这些包而获得原生 Host 身份。
 
-执行 `pnpm install`，再运行 App 的 init/check、类型检查、测试与构建。保留所选交付的源码 revision 和 lockfile integrity；即使数字版本相同，更换归档后也需重新安装。不要补丁式修改已安装文件或改成源码目录依赖。生成归档不等于发布到 npm，也不等于真实 Runtime 调用成功。
+执行 `pnpm install`，再依次运行 App 的 init/check、类型检查、测试与构建。请保留所选源码交付的 revision 和 lockfile integrity；即使版本号相同，更换归档文件后也必须重新安装。切勿直接修补已安装的依赖文件或改为源码目录依赖。注意，生成本地归档并不代表已发布至 npm，也不等同于真实 Runtime 调用已走通。
 
 ## 启动源码主机
 

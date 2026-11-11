@@ -14,7 +14,7 @@
 
 ---
 
-## 4 步走通你的第一个应用
+## 4 步走通第一个原生 App
 
 1. **[准备开发环境](/zh/start/install)**：安装 Node.js 与 pnpm，启动作为调试宿主的 Nimi Desktop 与本地 Runtime 守护进程。
 2. **[快速创建 App](/zh/start/create-an-app)**：使用 `@nimiplatform/app-tools` 脚手架生成具备受保护宿主访问能力的标准工程，在热重载环境下高效开发。

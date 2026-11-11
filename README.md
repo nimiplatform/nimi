@@ -48,7 +48,7 @@ Nimi 致力于构建覆盖移动端、Web、PC、嵌入式设备与智能家居�
 
 ---
 
-获准的 Web 和 Android 来源通过官方登录与 Home 首次确认，直连账号绑定的主 Runtime，不要求消费设备另装 Runtime。当前新增接入入口需要匹配源码包；Android 本机开发与正式 App Link 分发、公网连通性需分别验证。见 [Web 接入](https://docs.nimi.ai/start/connect-web-app)与 [Android 接入](https://docs.nimi.ai/start/connect-android-app)。
+获准的 Web 和 Android 来源在完成官方登录并经 Home 首次确认后，可在支持直连的网络中连接账号绑定的主 Runtime，消费设备无需另行安装 Runtime。目前这两类新增接入入口需要使用相互匹配的源码包；Android 本机开发、正式 App Link 分发与公网连通性需分别验证。见 [Web 接入](https://docs.nimi.ai/start/connect-web-app)与 [Android 接入](https://docs.nimi.ai/start/connect-android-app)。
 
 ## 开发者起步
 
@@ -62,7 +62,7 @@ Nimi 致力于构建覆盖移动端、Web、PC、嵌入式设备与智能家居�
 pnpm dlx --package @nimiplatform/app-tools@0.14.0 nimi-app create --dir my-ai-app --profile standalone
 ```
 
-上述已发布 CLI 用于原生应用。当前 Web/Android 接入需完整且匹配的源码 SDK、Kit、App Tools 与 Runtime；相同数字版本的 npm 包尚不包含这些新增入口。制品选择与依赖组合集中见[开发环境准备](https://docs.nimi.ai/start/install)。
+上述已发布的 CLI 适用于原生应用。当前接入 Web 或 Android 需使用完整且相互匹配的源码 SDK、Kit、App Tools 与 Runtime；相同数字版本的 npm 包尚不包含这些新增入口。制品选择与依赖组合集中见[开发环境准备](https://docs.nimi.ai/start/install)。
 
 推荐阅读：
 - [快速创建第一个 App 指南](https://docs.nimi.ai/start/create-an-app)

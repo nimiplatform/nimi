@@ -9,7 +9,7 @@
 本地开发时，应用通过受保护的宿主会话访问 Nimi 能力，遵循四项核心原则：
 
 - **桌面宿主监督**：本机原生生态应用由 Nimi Desktop 作为 Supervisor 监督启动，运行在独立的 Electron 宿主中。获准的 Web 和 Android 客户端通过远程 SDK 直连主 Runtime，不受本机 Electron supervisor 托管。
-- **受控安全信道**：应用通过 Kit 标准 Bridge 与 Runtime 通信；前端渲染层**绝不直接持有**敏感 Token、系统 RPC 端点或底层凭据。
+- **受控安全信道**：本机原生 App 通过 Kit 标准 Bridge 接入；Web/Android 使用公共 SDK 的直连通道。远程客户端持有受限的当前接入上下文，不取得通用账号凭据或模型服务密钥。
 - **确定性错误反馈**：通信断开或未获授权时，接口会返回结构化错误码，严禁静默吞错或伪造成功状态。
 - **权限解耦**：开发者模式（Developer Mode）仅负责开启本地联调通道，具体的数据与 AI 能力调用仍由运行时权限系统按需鉴权。
 
@@ -32,7 +32,7 @@
 
 ## Web 与 Android 消费端
 
-本页的 Electron/CDP 和原生 Host 命令针对本机原生开发。Web 使用已准入的 HTTPS 来源、官方登录和主 Runtime 直连，见 [Web 指南](docs/zh/start/connect-web-app.md)。Android 使用 Kit Capacitor 和 App 自己的原生工程，见 [Android 指南](docs/zh/start/connect-android-app.md)。两者需要匹配源码制品，不使用 Desktop 登记 selector 伪造原生会话。
+本页的 Electron/CDP 和原生 Host 命令仅适用于本机原生开发。Web 应用通过已准入的 HTTPS 来源与官方登录直连主 Runtime，见 [Web 指南](docs/zh/start/connect-web-app.md)；Android 应用使用 Kit Capacitor 和 App 自身的原生工程接入，见 [Android 指南](docs/zh/start/connect-android-app.md)。这两类接入都需要使用相互匹配的源码制品，请勿借用 Desktop 登记的 selector 伪造原生会话。
 
 ## CDP 调试端口分配
 

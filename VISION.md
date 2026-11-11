@@ -2,30 +2,30 @@
 
 > **让 AI 真正属于你。** / **Make AI truly yours.**
 
-Nimi is building a user-controlled AI foundation that connects mobile, Web, PC, embedded devices and smart homes. The aim is for AI to participate in everyday life across the tools and devices people use: helping with work and creation, carrying an authorized conversation across screens, and eventually interacting with the physical environment through explicit device contracts.
+Today's AI is often trapped inside isolated apps or distant cloud accounts—each tool locks away its own context, and users have little say over where models run or who holds their memory. Nimi is building a user-controlled AI foundation designed to connect PC, Web, mobile, embedded devices, and smart homes. Our goal is to let AI participate naturally in everyday life across the tools and screens you already use: helping with focused work and creation, carrying an authorized conversation from your desk to your phone, and eventually interacting with your physical space through explicit device contracts.
 
-## The Foundation We Have Today
+## What Works Today: Your PC as the Personal AI Hub
 
-The current implementation centers execution on a user's PC Runtime. Native Desktop Apps use verified local Host sessions; admitted Web and Android clients connect directly to the account-bound primary Runtime through the public SDK and Kit. The client device does not need to run its own Runtime. Nimi Home, currently hosted by Desktop, provides the local product entry and management experience.
+Today, Nimi centers execution on your PC Runtime, with Nimi Home (currently hosted by Desktop) serving as your local product entry point and management center. Instead of forcing every application or lightweight device to bundle its own heavy engine, the PC Runtime places both Local and Cloud models behind shared capability contracts. Apps focus on their tasks, while you decide how each capability runs:
 
-This brings local and cloud models behind shared capability contracts. Users choose the route; Apps concentrate on their tasks. A Local route executes on the PC host. A Cloud route sends the request's required context to the selected provider. Account login, source coordination, downloads and online resources still have their own network dependencies.
+- **Choose where models run:** Pick a Local route to execute directly on your PC host, or choose a Cloud route to send only the context a request requires to your selected provider. Standard network dependencies still apply when signing into accounts, coordinating sources, or fetching downloads and online resources.
+- **Move across screens without running a second engine:** Native Desktop Apps connect through verified local Host sessions. Admitted Web and Android clients can also connect directly to your account-bound primary Runtime through the public SDK and Kit—without needing to run a Runtime on the browser or phone. (Today this relies on a direct connection without relay fallback, and Android has a local development entry; distributed App Link support needs separate validation.)
+- **Share what you authorize, isolate what stays private:** Because connected surfaces work with the same PC host, you can pick up an ongoing LocalAgent Conversation on another screen with its available Cognition-managed memories in supported, authorized apps, or check on a creative task from your browser. At the same time, every App retains its own access boundary; connecting to the same Runtime does not automatically expose another App's private data or implies automatic replication across multiple Runtimes.
 
-Authorized surfaces can continue the same LocalAgent Conversation and use its Cognition-managed memory on that host. App-private work retains its own access boundary. This continuity does not imply cross-Runtime replication or automatic sharing of other Apps' data.
+## Where We Are Going: Beyond the Desk
 
-## A Broader Everyday AI Environment
+A personal AI foundation should not stop at the desktop. Looking ahead, we aim to extend Nimi across more mobile platforms, embedded interfaces, and smart-home devices. Some endpoints may simply sense the environment or offer a lightweight voice or screen interface, while others execute capabilities or trigger physical actions.
 
-More mobile platforms, embedded interfaces and smart-home devices extend the direction beyond screens. Some endpoints may only provide interaction or sensing; others may execute capabilities. Their role, permissions, state owner, resource limits and behavior after connection loss must be defined for the concrete user task before support is promised.
+Bringing AI into additional devices and network environments requires clear boundaries. Broader network coverage, additional Runtime hosts, cross-host synchronization, compute federation, and new hardware carriers are future directions rather than capabilities shipped today. Before we promise support for any new endpoint, we will define its role, permissions, state owner, resource limits, and behavior when connections drop around concrete user tasks.
 
-The present direct connection has no relay fallback, and current Android development is separate from distributed App Link acceptance. Future networking, additional Runtime hosts, synchronization and compute federation require their own contracts. Source code, a successful build and a released end-to-end product remain distinct delivery facts.
-
-Characters, persistent stories and shared semantic worlds are another dimension of this foundation. They enrich the experience alongside focused tools, creative applications and device interactions; they do not define the entire platform's category.
+This foundation is built to support a wide spectrum of everyday experiences. Focused productivity tools, creative applications, and device workflows live alongside lifelike characters, persistent stories, and shared semantic worlds—enriching daily life together without any single category defining the entire platform.
 
 ## Lasting Commitments
 
-- **User control:** choose supported local or cloud execution and retain meaningful control over data and access.
-- **Explicit permission:** source admission, current identity and Runtime operation checks apply across carriers; a new device does not invent a separate business permission system.
-- **Clear data ownership:** Realm owns ecosystem identity and shared resources; Runtime owns execution and Conversation; Cognition owns per-Agent long-term Memory; Apps own their business workflows and private data; Avatar owns presentation.
-- **Open building blocks:** Runtime, SDK, Kit and Proto provide public contracts and open-source implementation without requiring Apps to depend on private internals.
-- **Honest outcomes:** unavailable capabilities and uncertain results remain visible. Connectivity and recovery never fabricate success or silently replay business work.
+- **User control:** You choose between supported Local and Cloud execution and keep meaningful control over your data, models, and access.
+- **Explicit permission:** Source admission, identity verification, and Runtime operation checks apply consistently across carriers; adding a new device never invents a separate business permission bypass.
+- **Clear data ownership:** Every layer has an explicit steward—Realm owns ecosystem identity and shared resources; Runtime owns execution and Conversation; Cognition owns per-Agent long-term Memory; Apps own their business workflows and private data; and Avatar owns presentation.
+- **Open building blocks:** Runtime, SDK, Kit, and Proto provide public contracts and open-source implementations so Apps can build on stable interfaces rather than private internals.
+- **Honest outcomes:** Unavailable capabilities and uncertain results stay visible. Connectivity and recovery paths never fabricate success or silently replay business work.
 
-Current artifact choices and platform-specific setup are described in the [developer guides](https://docs.nimi.ai/start/). Product availability is listed on the [download page](https://nimi.ai/download).
+Explore the [developer guides](https://docs.nimi.ai/start/) for current artifact choices and platform-specific setup, or visit the [download page](https://nimi.ai/download) for current product availability.

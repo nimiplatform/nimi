@@ -2,23 +2,29 @@
 
 # A Cross-Terminal AI Foundation
 
-Nimi's direction is user-controlled AI infrastructure across mobile, Web, PC, embedded devices and smart homes. Apps focus on real tasks, devices offer suitable interaction, and shared contracts connect AI capabilities with the state each consumer is authorized to use.
+People move across multiple screens and tools every day, yet AI capabilities and personal context are usually siloed inside separate applications. Nimi is building a user-controlled AI foundation designed to span PC, Web, mobile, embedded devices, and smart homes. By connecting AI capabilities and authorized state through shared contracts, Nimi lets applications focus on real tasks while each device offers the most natural way to interact.
 
-## Starting from Today's Primary Runtime
+## Starting from Today's PC Runtime
 
-The current PC Runtime executes local and cloud AI. Desktop Apps use verified local Hosts; admitted Web and Android sources connect directly to the account-bound primary Runtime after official login and Home confirmation. The phone or browser does not need its own Runtime. Nimi Home is currently Desktop-hosted and provides local entry and management.
+Today, your PC Runtime serves as the execution hub for both Local and Cloud AI, while Nimi Home (currently hosted by Desktop) provides the local entry point and management experience. Native Desktop Apps connect through verified local Host sessions. After official login and Home confirmation, admitted Web and Android sources can also connect directly to your account-bound primary Runtime—so a phone or browser does not need to run its own Runtime.
 
-For example, a person can continue the same partner Conversation on another screen, while a creative App can submit work from a browser and query results retained by the host. These paths consume the same host's state; they do not imply cross-Runtime synchronization or access to another App's private work.
+In practice, this lets you step away from your desk and continue the same partner Conversation on another screen, or use a creative App in your browser to submit work and inspect results saved on the PC host. Because these surfaces talk to the same host, they share the state you have authorized on that machine, without implying cross-Runtime synchronization or granting access to another App's private work. (Current remote access uses a direct connection without relay fallback, and Android has a local development entry; distributed App Link support needs separate validation.)
 
-## Capability and Data Ownership
+## Clear Ownership of Capabilities and Data
 
-Users choose Local or Cloud. Local runs on the Runtime host; Cloud sends the request's required context to the selected provider. Realm owns ecosystem identity and shared resources, Runtime owns execution, Conversation and access, and Cognition owns per-Agent long-term Memory. Apps retain business workflows and private data; Avatar owns presentation. Knowledge V1 has no public read/write entry.
+You decide how capabilities run: choosing Local executes tasks on your Runtime host, while choosing Cloud sends only the context required for that request to your selected provider. Across the stack, capabilities and data stay with explicit owners rather than blending into a single black box:
 
-## Extending to More Devices
+- **Realm** owns ecosystem identity and shared resources.
+- **Runtime** governs execution, Conversation, and access checks.
+- **Cognition** manages per-Agent isolated long-term Memory (while Knowledge V1 does not yet expose a public read/write entry).
+- **Apps** retain their own business workflows and private data.
+- **Avatar** handles presentation.
 
-Embedded and smart-home endpoints may provide input, output or physical actions; additional mobile platforms need real carriers. Each requires a defined role, permission, state owner, resource limits and behavior after connection loss before becoming a deliverable path. Companions, worlds, everyday tools and creation are all experiences within this foundation.
+## Looking Ahead: Extending to More Devices
 
-Current remote access has no relay fallback, and Android source development does not establish distributed App Link acceptance. Wider network coverage, additional Runtime hosts and compute federation evolve separately; see the [roadmap](/platform/roadmap) and [integration guides](/start/).
+Beyond desktops, browsers, and phones, Nimi aims to reach additional mobile platforms, embedded hardware, and smart-home endpoints—whether a device provides sensing and ambient interaction or carries out physical actions. AI companions, shared worlds, everyday utilities, and creative studios are all experiences that grow on this same foundation.
+
+These additional device carriers, broader network coverage, extra Runtime hosts, and compute federation are future steps rather than current features. Before any new endpoint becomes a supported path, Nimi defines its role, permissions, state owner, resource limits, and disconnection behavior around real user tasks. For current availability and upcoming milestones, see the [roadmap](/platform/roadmap) and [integration guides](/start/).
 
 ## Source Basis
 

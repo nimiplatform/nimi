@@ -1,6 +1,6 @@
 # Platform Architecture Overview
 
-Nimi is building a user-controlled AI foundation across mobile, Web, PC, embedded devices and smart homes. Its current installable personal AI product and App ecosystem center execution on a PC Runtime, with Desktop, Web and Android consuming local or cloud AI through their supported carriers. Focused tools, creation, companions and worlds are experiences built on that foundation.
+Nimi is building a user-controlled AI foundation designed to span mobile, Web, PC, and future embedded devices and smart homes. Today, its installable personal AI product and App ecosystem center execution on a PC Runtime, with Desktop, Web, and Android consuming local or cloud AI through their supported carriers. Focused tools, creation, companions, and worlds are experiences built on that foundation.
 
 Nimi Home is the primary user entry point, currently hosted by the Desktop app. It brings the user experience together and coordinates the underlying subsystems without taking over their domains:
 
@@ -16,7 +16,7 @@ These subsystems are deliberately decoupled. The system that defines who a chara
 
 When you create or select a character, Realm issues a structured Character Source that defines its persona and traits. Runtime uses this definition to initialize and run a dedicated LocalAgent on your device. A LocalAgent can read world context shared by Realm, while canonical character identity and authoritative world state/history contracts remain within Realm's domain.
 
-Apps access capabilities through the SDK over a verified local Host session or admitted remote peer and explicitly admitted operations, without generic persistent app grants or first-launch permission prompts. Apps never receive Realm account credentials, internal Runtime proofs, or AI provider API keys, and they cannot enumerate unpermitted account-wide agents.
+Apps access capabilities through the SDK over a verified local Host session or an admitted remote peer, with Runtime checking the current identity and permitted operations on each call. Remote sources also need the user’s first-use confirmation in Home; that confirmation does not grant unrestricted App access. Apps never receive Realm account credentials, internal Runtime proofs, or AI provider API keys, and they cannot enumerate unpermitted account-wide agents.
 
 For deeper architectural context, see [Character and LocalAgent](/platform/agents/) and [Realm and Runtime as Siblings](/platform/architecture/realm-runtime-siblings).
 

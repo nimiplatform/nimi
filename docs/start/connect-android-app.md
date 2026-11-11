@@ -39,7 +39,7 @@ Complete system-browser login and the callback on the actual device. Connect to 
 
 Backgrounding ends the old connection. Returning to the foreground rechecks identity before reconnecting an earlier active connection; it never replays a message or resumes the old stream. Losing the short login transaction or in-memory context can require a new sign-in. Signing out ends this App context, not the PC Home account.
 
-Verify login/callback, direct connection, an actual Conversation result, source pause or disconnect, and foreground/background behavior with the selected source and device. Record package/source revision, signature, Android version, host and network conditions. Typechecking, a built APK or a successful development Scheme does not establish distributed App Link acceptance. Keep unrun App Link, production-source and public-network paths `NOT-VERIFIED` until tested; iOS requires its own implemented adapter.
+On the target device and source, verify login and callback, direct connection, an actual Conversation result, source pause or disconnect, and foreground/background transitions. Record the package and source revision, signature, Android version, host state, and network conditions. Passing typechecks, building an APK, or succeeding with the development Scheme does not establish distributed App Link acceptance. Keep untested App Link, production-source, and public-network paths `NOT-VERIFIED` until tested; iOS requires its own implemented adapter.
 
 ## Source Basis
 

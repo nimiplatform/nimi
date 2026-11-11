@@ -10,7 +10,7 @@ Application code should import Kit exclusively through public subpaths declared 
 
 Applications scaffolded via official templates already include Kit dependencies. To add Kit to an existing project alongside the SDK:
 
-[Select published artifacts or complete source archives](/start/install), retaining that combination and lockfile. The `auth/app/*` entries below require the current source delivery.
+[Select published artifacts or complete source archives](/start/install), keeping that delivery mode and your lockfile consistent. The `auth/app/*` entries below require the current source delivery.
 
 Kit is built atop React 19. `react-dom`, `react-i18next`, and `electron` are peer dependencies used on demand by specific subpaths.
 
@@ -79,7 +79,7 @@ Applications can render AI settings out of the box using standard model-config c
 import { ModelConfigAIConfigSurface } from '@nimiplatform/kit/features/model-config';
 ```
 
-The standard configuration panel binds `client.aiConfig.get()`, `client.aiConfig.listOptions(query)`, and `client.aiConfig.overwrite(input)`:
+Read the configuration with `client.aiConfig.get()`, pass its values, revision and effective selections to the panel, and supply `client.aiConfig.listOptions(query)` and `client.aiConfig.overwrite(input)` as callbacks. Editing requires the revision and both callbacks; without them, the panel is read-only.
 
 - **Local capabilities**: Saves route markers and adheres to the host machine's selected Loadout for that capability.
 - **Cloud capabilities**: Allows selecting an authorized connector and target model, persisting exact `connectorRef`, `implementation`, and `providerModelTarget` settings in AIConfig.
@@ -113,7 +113,7 @@ pnpm run test
 
 ## Shared App Sessions for Desktop, Web and Android
 
-Ordinary Apps use `NimiAppSessionProvider`, `NimiAccountControl`, `NimiAppAccessGate` and `useNimiAppSession` from `@nimiplatform/kit/auth/app`. Official Account adapters under `@nimiplatform/kit/auth` serve Home/the official site; they are not ordinary-App Account clients. These added entries require the [source package combination](/start/install).
+Ordinary Apps use `NimiAppSessionProvider`, `NimiAccountControl`, `NimiAppAccessGate`, and `useNimiAppSession` from `@nimiplatform/kit/auth/app`. Official Account adapters under `@nimiplatform/kit/auth` serve Home and the official site rather than ordinary-App Account clients. These entries require the [source package combination](/start/install).
 
 | Factory | Purpose |
 | --- | --- |

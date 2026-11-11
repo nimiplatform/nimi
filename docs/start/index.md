@@ -9,12 +9,12 @@ Choose the entry for the device where your App runs. The current PC Runtime exec
 | Carrier | Guide | Current scope |
 | --- | --- | --- |
 | Desktop | [Create a native App](/start/create-an-app) | Desktop-supervised native Host with matching released or source packages |
-| Web | [Connect a website](/start/connect-web-app) | Current source: HTTPS source, official login and direct primary Runtime access |
-| Android | [Connect an existing App](/start/connect-android-app) | Current source: Kit Capacitor; development Scheme and distributed App Link verified separately |
+| Web | [Connect a website](/start/connect-web-app) | Source delivery: HTTPS source, official login, and direct primary Runtime access |
+| Android | [Connect an existing App](/start/connect-android-app) | Source delivery: Kit Capacitor; development Scheme and distributed App Link verified separately |
 
 ---
 
-## 4 Steps to Your First App
+## 4 Steps to Your First Native App
 
 1. **[Development Setup](/start/install)**: Install Node.js and pnpm, and launch the Nimi Desktop supervisor alongside the local Runtime daemon.
 2. **[Create an App](/start/create-an-app)**: Use the `@nimiplatform/app-tools` CLI to scaffold a project with protected host access and frontend hot reload.

@@ -28,7 +28,7 @@ To get started, review [First AI Call](/sdk/first-ai-call), [AI Config](/sdk/ai-
 
 Official login uses `@nimiplatform/sdk/realm/runtime-client`; `connectRemoteRuntime` from `@nimiplatform/sdk/runtime/remote` connects to the current account's primary Runtime. Apps usually compose these steps through the [Kit session factories](/platform/kit/use-kit-in-app), without holding generic Account credentials.
 
-An ordinary App receives `RemoteRuntimeAppConnection`: implemented AI, own AIConfig, App-private JSON/assets, LocalAgent Conversation and management, activity and fixed Realm resource operations. Runtime validates actual permission on every call. Native file reveal, remote PC App launch, unimplemented bidirectional realtime streams and manager operations are not part of that client.
+A standard App receives `RemoteRuntimeAppConnection`, which covers implemented AI operations, its own AIConfig, App-private JSON and assets, LocalAgent Conversation and management, activity, and fixed Realm resource operations. The Runtime validates actual permissions on every call. Native file reveal, remote PC App launch, unimplemented bidirectional realtime streams, and manager operations are not part of that client.
 
 This typechecked recipe receives a current session from official login and closes only its own connection after one call. Persistent UI should reuse the current connection scope and retire it when identity or connection changes.
 

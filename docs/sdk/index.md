@@ -98,7 +98,7 @@ Applications should never craft raw gRPC calls or bypass SDK contracts to invoke
 
 ## Remote App Entries
 
-Web and Android use a bounded remote client without fabricating a native Host session. Current source exports are `@nimiplatform/sdk/runtime/remote` and `@nimiplatform/sdk/realm/runtime-client`; shared product UI normally starts with Kit `auth/app/web` or `auth/app/mobile`. Choose packages in [Environment Setup](/start/install), then follow [Web](/start/connect-web-app), [Android](/start/connect-android-app) and [Runtime Client](/sdk/runtime-client).
+Web and Android connect through a bounded remote client rather than a native Host session. Current source exports are `@nimiplatform/sdk/runtime/remote` and `@nimiplatform/sdk/realm/runtime-client`, while shared product UI normally starts with Kit `auth/app/web` or `auth/app/mobile`. Choose your package combination in [Environment Setup](/start/install), then follow [Web](/start/connect-web-app), [Android](/start/connect-android-app), and [Runtime Client](/sdk/runtime-client).
 
 ## Source Basis
 

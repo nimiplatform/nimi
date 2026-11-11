@@ -2,7 +2,7 @@
 
 # Current Capabilities and Direction
 
-Nimi starts from the primary PC Runtime and multi-device consumption paths to extend a user-controlled everyday AI environment. See [downloads](https://nimi.ai/download) for product artifacts and [Environment Setup](/start/install) for source versus published packages.
+Starting from a primary PC Runtime and multi-device consumption paths, Nimi is building toward a user-controlled AI environment for everyday use. See [downloads](https://nimi.ai/download) for product artifacts and [Environment Setup](/start/install) for source versus published packages.
 
 | Direction | Current boundary | Conditions for further delivery |
 | --- | --- | --- |
@@ -13,9 +13,9 @@ Nimi starts from the primary PC Runtime and multi-device consumption paths to ex
 | Embedded and smart-home devices | Long-term direction, not a current general device-control promise | Select a real task and define device role, resource limits, action permission, outcome feedback and connection-loss behavior |
 | Additional Runtime hosts and federation | Current direct access targets one primary Runtime without automatic cross-host sync | Separate execution ownership, consistency, network and failure contracts |
 
-The direction does not require every terminal to host a Runtime or grant clients management permission. Saved configuration, connected transport, successful work and a public release remain distinct facts.
+Expanding across devices does not require every terminal to host a Runtime or grant management permissions to client Apps. Saved configuration, connected transport, successful execution, and a public release remain distinct states—none automatically implies the others.
 
-Cognition continues to isolate long-term Memory per Agent. Knowledge V1, general Workflow, autonomous world evolution and marketplace settlement retain their own future boundaries rather than becoming callable through a roadmap mention. Build against current public types and show explicit outcomes for unsupported operations and unavailable networks.
+Cognition continues to isolate long-term Memory per Agent. Knowledge V1, general Workflow, autonomous world evolution, and marketplace settlement remain future directions and are not yet callable capabilities. Build against current public types and surface explicit outcomes for unsupported operations and unavailable networks.
 
 ## Source Basis
 

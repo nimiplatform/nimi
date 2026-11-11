@@ -58,7 +58,7 @@ On Windows and macOS, Nimi Lab runs inside Desktop's supervised Electron develop
 
 Lab also has a declared HTTPS Web entry that reuses the workbench through ordinary remote App admission to the primary PC Runtime. Follow the [Lab README](https://github.com/nimiplatform/nimi/blob/main/apps/lab/README.md) and [Web guide](/start/connect-web-app), using matching source packages, official login, source confirmation and a reachable direct network.
 
-Web provides its implemented AI workbench, App AIConfig, run history, Agent Center, Conversation and bounded file operations. Native App Access diagnostics, integrations, realtime media, World Tour and PC file reveal still need native Lab; use the current App entry's actual coverage. Closing the page ends live calls; durable Jobs remain observable through their original identifiers.
+The Web entry provides the AI workbench, App AIConfig, run history, Agent Center, Conversation, and bounded file operations. Native App Access diagnostics, integrations, realtime media, World Tour, and PC file reveal still require native Lab. Closing the page ends live calls, while durable Jobs remain observable through their original identifiers.
 
 ## Source Basis
 

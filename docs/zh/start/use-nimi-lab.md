@@ -56,9 +56,9 @@ pnpm run test       # 运行单元测试与集成测试
 
 ## 浏览器中的 Lab
 
-Lab 也有已声明的 HTTPS Web 入口，复用工作台，通过普通远程 App 准入连接主 PC Runtime。配置与启动步骤见 [Lab README](https://github.com/nimiplatform/nimi/blob/main/apps/lab/README.md)及 [Web 指南](/zh/start/connect-web-app)。需要匹配源码包、正式登录、来源确认和可直连网络。
+Lab 也提供已声明的 HTTPS Web 入口，复用同一套工作台，并按普通远程 App 的准入流程连接主 PC Runtime。配置与启动步骤见 [Lab README](https://github.com/nimiplatform/nimi/blob/main/apps/lab/README.md) 及 [Web 指南](/zh/start/connect-web-app)。使用时需满足匹配的源码包、正式登录、来源确认以及可直连网络等条件。
 
-Web 提供其已实现的 AI 工作台、App AIConfig、运行记录、Agent Center、对话和受限文件操作。原生 App Access 诊断、集成、实时媒体、World Tour 和 PC 文件定位等功能仍需原生 Lab；以当前 App 入口显示的支持范围为准。关闭页面结束实时调用，持久 Job 通过原标识查询。
+Web 端提供已实现的 AI 工作台、App AIConfig、运行记录、Agent Center、对话和受限文件操作。原生 App Access 诊断、集成、实时媒体、World Tour 和 PC 文件定位等功能仍需使用原生 Lab；具体以当前 App 入口显示的支持范围为准。关闭页面会结束实时调用，已提交的持久 Job 可通过原标识查询。
 
 ## Source Basis
 

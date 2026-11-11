@@ -14,7 +14,7 @@ Web / Android ── direct WebRTC ───────┘       │
 Realm: account identity, primary binding, source qualification and connection coordination
 ```
 
-The remote client signs in through the official Nimi browser flow and discovers the account's primary Runtime. The owner enables remote access and confirms the admitted source in PC Home. The host must remain running, the account and source must remain valid, and the devices must have a reachable direct network path. First confirmation is scoped to Account, primary Runtime and source revision; changing browser or device does not create another lasting approval.
+The remote client signs in through the official Nimi browser flow and discovers the account's primary Runtime. In PC Home, the owner enables remote access and confirms the admitted source. The host must remain running, the account and source must remain valid, and the devices must have a reachable direct network path. First confirmation is scoped to the Account, primary Runtime, and source revision—using another browser or device reuses that confirmation rather than creating a separate lasting approval.
 
 Realm and an App's coordination backend carry identity and connection coordination. Remote AI input, results and files travel directly between client and PC. The current carrier accepts STUN discovery, rejects TURN and relay candidates, and reports an unavailable connection when direct access fails. It does not fall back to a local Runtime or an AI proxy. Use the public SDK carrier; private Runtime ports are not an integration path.
 

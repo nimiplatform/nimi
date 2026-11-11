@@ -25,7 +25,7 @@ Applications work with both through the SDK, but client projections and binding 
 
 ## Application Access Constraints
 
-Applications use Runtime capabilities through a verified local Host session or admitted remote peer and explicitly accepted SDK operations—without generic persistent app grants or first-launch permission prompts. Apps scaffolded from standard templates do not receive raw Realm JWTs or maintain private Runtime credentials. Realm data access flows through validated SDK operations (such as WorldCore for world editing), while model inference, conversation state, and memory routing stay inside Runtime.
+Applications access Runtime capabilities over a verified local Host session or an admitted remote peer, with Runtime checking the current identity and permitted operations on each call. Remote sources also need the user’s first-use confirmation in Home; that confirmation does not grant unrestricted App access. Apps scaffolded from standard templates do not receive raw Realm JWTs or maintain private Runtime credentials. Realm data access flows through validated SDK operations (such as WorldCore for world editing), while model inference, conversation state, and memory routing stay inside the Runtime.
 
 Direct SDK integration and scaffolded standalone apps are developer integration paths, not end-user configuration modes. Kit provides reusable UI components for concrete product needs rather than speculative widget catalogs.
 

@@ -26,15 +26,15 @@ SDK 会忠实保留 Runtime 返回的强类型错误码、结构化原因码 (Re
 
 ## 远程 Web 与 Android 客户端
 
-官方登录使用 `@nimiplatform/sdk/realm/runtime-client`；`@nimiplatform/sdk/runtime/remote` 的 `connectRemoteRuntime` 连接当前账号绑定的主 Runtime。App 通常通过 [Kit 会话工厂](/zh/platform/kit/use-kit-in-app)组合这些步骤，不自行保管通用账号凭据。
+官方登录通过 `@nimiplatform/sdk/realm/runtime-client` 完成，再由 `@nimiplatform/sdk/runtime/remote` 的 `connectRemoteRuntime` 连接当前账号绑定的主 Runtime。App 通常使用 [Kit 会话工厂](/zh/platform/kit/use-kit-in-app)组合这些步骤，无需自行保管通用账号凭据。
 
-普通 App 得到 `RemoteRuntimeAppConnection`。它提供已实现的 AI、自己的 AIConfig、App 私有 JSON/资产、LocalAgent Conversation 与管理、动态和固定 Realm 资源操作。实际权限由 Runtime 对每次调用验证。原生文件定位、远程启动 PC App、未实现的双向实时流，以及管理端操作不属于这个客户端。
+普通 App 连接后会获得 `RemoteRuntimeAppConnection`，可使用已实现的 AI、自身的 AIConfig、App 私有 JSON/资产、LocalAgent Conversation 与管理，以及动态和固定 Realm 资源操作。每次调用的实际权限均由 Runtime 验证。该客户端不包含原生文件定位、远程启动 PC App、未实现的双向实时流以及管理端操作。
 
 以下类型检查示例接收正式登录得到的当前 session，并在一次调用后关闭自己的连接。长驻 UI 应复用当前连接 scope，身份或连接变化时结束旧 scope。
 
 <<< ../../../examples/sdk/08-remote-runtime.ts
 
-`official_manager` 是单独审核并验证的来源角色，仅暴露已实现的管理操作；普通 App 不能通过参数声明该角色。来源暂停、账号失效和断线结束对应访问；签出、断开客户端与停止主机是不同动作。
+`official_manager` 是经单独审核并验证的来源角色，仅暴露已实现的管理操作，普通 App 不能通过参数声明该角色。来源暂停、账号失效或断线都会结束对应的访问；签出、断开客户端与停止主机是三个不同的动作。
 
 ## Source Basis
 

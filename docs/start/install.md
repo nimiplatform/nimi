@@ -33,7 +33,7 @@ The current source scaffold declares:
 
 ## Source Package Archives
 
-Build and package the complete owners using the [App Tools local package workflow](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md#local-development-packages). Select actual archive paths in the standalone App's `pnpm-workspace.yaml`; the following example assumes a sibling `nimi-packages` directory:
+Build and package the required local archives using the [App Tools local package workflow](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md#local-development-packages). Point your standalone App's `pnpm-workspace.yaml` to the actual archive paths; the following example assumes a sibling `nimi-packages` directory:
 
 ```yaml
 packages:
@@ -47,7 +47,7 @@ overrides:
 
 On Windows x86_64, use the matching `kit-protected-local-win32-x64` archive instead of the Darwin package. Native optional packages must match Kit. A Web-only App does not acquire a native Host from these packages.
 
-Run `pnpm install`, then the App's init/check, typecheck, tests and build. Keep the source revision and lockfile integrity with the selected delivery. Reinstall when an archive changes, even if its numeric version stays the same. Do not patch installed files or replace public packages with source-directory links. Creating an archive does not publish it to npm or prove a real Runtime call.
+Run `pnpm install`, then run the App's `init`/`check`, typecheck, tests, and build. Keep the source revision and lockfile integrity with the selected delivery, and reinstall whenever an archive changes—even if its numeric version stays the same. Do not patch installed files or replace public packages with source-directory links. Creating an archive locally does not publish it to npm or verify a live Runtime call.
 
 ## Start the Source Host
 

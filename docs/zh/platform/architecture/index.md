@@ -28,7 +28,7 @@ Avatar 系统依据结构化呈现流渲染具身形象，独立管理视线与�
 - **安全由声明式目标约束**：平台安全以不变的规范要求为准；底层操作系统特定的隔离机制属于各子系统的内部实现细节，除非有正式契约约定，否则不对外暴露。
 - **非阻塞架构**：远期规划项绝不阻塞当前本地产品的生命周期。
 
-当前 PC Runtime 是执行主机。Desktop App 通过本机受保护会话接入；获准的 Web 和 Android App 通过公共 SDK 直连账号绑定的主 Runtime，无需在消费设备上安装 Runtime。远程来源先完成官方登录、来源准入和 Home 确认；只有载体已实现且权限允许的操作可用。详见[本地与远程接入](/zh/platform/architecture/local-first-with-federation)。
+目前由 PC Runtime 担任执行主机。Desktop App 通过本机受保护会话接入；获准的 Web 和 Android App 则通过公共 SDK 直连账号绑定的主 Runtime，无需在消费设备上另装 Runtime。远程来源需先完成官方登录、来源准入和 Home 确认，且仅能调用当前载体已实现、权限也允许的操作。详见[本地与远程接入](/zh/platform/architecture/local-first-with-federation)。
 
 ## Source Basis
 

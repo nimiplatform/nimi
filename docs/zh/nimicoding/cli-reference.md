@@ -42,7 +42,7 @@
 
 本仓库的 `pnpm check:docs-source` 检查 Source Basis 路径、代码引用以及试点页的精确 authority ID。页面中的 `nimi-docs` JSON 注释只记录引用；格式见 `docs/AGENTS.md`。CI 根据这些引用列出候选页面并触发文档检查，不要求先升级 Nimi Coding。
 
-需要查看某个提交之后的候选页面时，给仓库脚本传入 `--changed-from` 和完整的 40 位提交 SHA。它按 authority 文件和源码路径保守选择，不能证明具体语义已同步。`authority diff`、`impact`、`review` 与读者路径核对各自保留原有职责。
+需要查看某个提交之后的候选页面时，可向仓库脚本传入 `--changed-from` 和完整的 40 位提交 SHA。脚本会根据 authority 文件和源码路径保守筛出候选页面，但不能证明具体语义已同步。`authority diff`、`impact`、`review` 与读者路径核对各自保留原有职责。
 
 ## Source Basis
 

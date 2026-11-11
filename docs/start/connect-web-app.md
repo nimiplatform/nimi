@@ -26,7 +26,7 @@ Select the matching SDK, Kit and App Tools archives through the [standalone over
 
 In `nimi.app.yaml`, configure `local_development.web`: `origin`, `redirect_uri`, `client_id`, `realm_environment_id`, `realm_url`, `official_web_url` and the real App-owned `command`. These values must identify the admitted source and the same Realm environment as the PC. Set `NIMI_WEB_TLS_KEY` and `NIMI_WEB_TLS_CERT` in the App's `.env.local` to paths of the trusted certificate files.
 
-Prepare the existing website’s real `nimi.app.yaml` and `.nimi/config/build-profile.yaml`: use `platform: web` and a `web-pnpm` build profile with actual test/build commands. If either file is absent, `nimi-adoption.json` contains only `manifest` and/or `build_profile` objects; follow the [existing-App adoption guide](https://github.com/nimiplatform/nimi/blob/main/app-tools/skills/nimi-app-lifecycle/references/adapt.md). Omit `--input` when the files already exist.
+Prepare the existing website's real `nimi.app.yaml` and `.nimi/config/build-profile.yaml` using `platform: web` and a `web-pnpm` build profile with actual test and build commands. If either file is absent, provide a `nimi-adoption.json` containing only the `manifest` and/or `build_profile` objects as described in the [existing-App adoption guide](https://github.com/nimiplatform/nimi/blob/main/app-tools/skills/nimi-app-lifecycle/references/adapt.md). Omit `--input` when both files already exist.
 
 For an existing website, use the selected source tool's `init --adopt --input ./nimi-adoption.json --dry-run --json` to review managed changes, then apply the same adoption without `--dry-run`. Preserve the website's actual product entry, test/build commands and account system. See [App Tools](https://github.com/nimiplatform/nimi/blob/main/app-tools/README.md) for the `web-pnpm` build owner. A native project may instead declare an additional App-owned Web development entry; that does not convert its native build profile.
 
@@ -39,7 +39,7 @@ pnpm run app:build
 pnpm dev
 ```
 
-The Web development carrier opens the configured HTTPS source. Use its Nimi sign-in control, complete the official browser flow, confirm the source in PC Home if needed, and connect to the primary Runtime. Sign-in can succeed while the PC is unavailable; report those states separately.
+After the development server starts, open its configured HTTPS address from the terminal in your browser. Use its Nimi sign-in control, complete the official browser flow, confirm the source in PC Home if needed, and connect to the primary Runtime. Sign-in can succeed while the PC is unavailable; report those states separately.
 
 In AI Studio, select and save the App's AIConfig, then submit a text request. Verify the actual returned text or stream and any owner error. App configuration selects intent; host model preparation remains a PC management task. [Runtime Client](/sdk/runtime-client) describes the typed operations.
 
@@ -47,9 +47,9 @@ Kit `auth/app/web` supplies the session factory, and `auth/app` supplies the Pro
 
 ## Disconnect, Jobs and Delivery
 
-Closing the page or disconnecting ends its live calls, not the PC Runtime. A lost stream is not resumed and an uncertain Submit is not replayed. Keep a durable Job/submission identifier and query its actual state; use the supported `lookupSubmission` operation where that workflow provides it.
+Closing the page or disconnecting ends active calls from the browser without stopping the PC Runtime. Interrupted streams do not resume, and uncertain `Submit` calls are not replayed automatically. Save a durable Job or submission identifier so you can query its actual state, using the supported `lookupSubmission` operation where the workflow provides it.
 
-The development server coordinates identity and connection signaling only. AI content, files and results travel directly to the PC. A production website needs its own admitted origin, trusted HTTPS and bounded coordination routes. A browser build is static output; Web `pack`, automatic publication and native package installation are not provided by this carrier.
+The development server coordinates identity and connection signaling only; AI content, files, and results travel directly between the browser and the PC. A production website requires its own admitted origin, trusted HTTPS, and bounded coordination routes. A browser build produces static output. This Web carrier does not provide `pack`, automatic publication, or native package installation.
 
 ## Source Basis
 

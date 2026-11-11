@@ -21,7 +21,7 @@ If you installed the official Nimi desktop installer and registered the Windows 
 - Run `nimi status` to check service state.
 - Run `nimi start` to start the background service.
 - Run `nimi doctor` to verify system prerequisites.
-- Run `nimi health --json` for a structured health summary.
+- Run `nimi health --json` to read the fixed service controller’s status as JSON.
 
 `nimi health --json` reports only the fixed-service controller state, `service-running/stopped`. It does not establish RPC or AI readiness or inspect the source supervisor. Systems without that controller, including the current macOS path, return an unavailable error.
 
@@ -72,7 +72,7 @@ When running validation suites in Nimi Lab, standard error states indicate speci
 | `runtime-unavailable` | Cannot connect to the local Runtime service. | Inspect Home connection and startup logs; use foreground logs for a separate source Runtime, and host/direct-connection state for a remote client. |
 | `principal-unauthorized` | The current session or caller is not authorized for this operation. | Check sign-in and this app’s Nimi Access status in Nimi Home, then verify the required access declarations in `nimi.app.yaml`; AI calls require `runtime.consume`. |
 | `input-invalid` | Prompt or parameter schema is missing or invalid. | Check your request parameters and ensure `messages` follow the required schema. |
-| `sdk-method-unavailable` | The installed SDK version lacks the invoked method. | Check the `@nimiplatform/sdk` version in `package.json` and upgrade to the matching release. |
+| `sdk-method-unavailable` | The installed SDK version lacks the invoked method. | Choose matching published or source packages; see [Environment Setup](/start/install) for the remote entry requirements. |
 | `runtime-call-failed` | An unhandled error occurred during model execution or network request. | Inspect Runtime terminal logs or the Desktop console for detailed stack traces. |
 
 ---

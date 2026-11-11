@@ -29,9 +29,9 @@
 
 ## 远程 App 身份与来源确认
 
-Web 和 Android 使用官方 Runtime-client 浏览器登录得到受限的 App 上下文，再发现账号绑定的主 Runtime。来源资格来自 Registry，首次来源确认和逐操作权限来自 Runtime；网站域名、App 名称或自报角色不能代替这些判断。
+Web 和 Android 通过官方 Runtime-client 浏览器登录获取受限的 App 上下文，进而发现账号绑定的主 Runtime。来源资格由 Registry 判定，首次来源确认和逐操作权限则由 Runtime 控制；网站域名、App 名称或客户端自报角色均不能代替这些判断。
 
-Kit 分开管理身份视图和 Runtime 连接 scope：PC 暂时不可达不等于退出账号。账号切换、已确认的身份失效、来源暂停或连接结束会使相应旧 scope 失效。来源确认按账号、主 Runtime 与来源版本保存，不按设备建立另一套业务许可。普通 App 不取得通用 Account bearer；Android 只保存短期登录事务，当前上下文留在内存。详见[共享 App 会话](/zh/platform/kit/use-kit-in-app)。
+Kit 将身份视图与 Runtime 连接 scope 分开管理：PC 暂时不可达并不等于退出账号；但当账号切换、已确认的身份失效、来源暂停或连接结束时，对应的旧 scope 会随之失效。来源确认按账号、主 Runtime 与来源版本保存，不会按设备另建一套业务许可。普通 App 不获取通用 Account bearer；Android 端仅保存短期登录事务，当前上下文留在内存中。详见[共享 App 会话](/zh/platform/kit/use-kit-in-app)。
 
 ## Source Basis
 

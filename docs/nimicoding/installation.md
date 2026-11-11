@@ -50,12 +50,6 @@ When modifying authority specifications, follow the workflow defined in `.nimi/m
 - **`.nimi/methodology/**`**: Contains authoritative methodology documentation.
 - **Root `config/**`**: Reserved for product-level schemas, generator inputs, and platform static maps; referencing a canonical authority ID does not turn a product file into an alternate authority source.
 
-## Review Documentation Consumers
-
-This repository's `pnpm check:docs-source` checks Source Basis paths, code includes and exact authority IDs on mapped pages. The `nimi-docs` JSON comment contains references only; see `docs/AGENTS.md` for its format. CI uses these references to list candidate pages and select documentation checks without requiring a Nimi Coding upgrade.
-
-To list candidates after a commit, pass `--changed-from` and its full 40-character SHA to that repository script. Selection conservatively follows authority files and source paths; it does not prove semantic synchronization. `authority diff`, `impact`, `review` and reader-journey verification retain their separate responsibilities.
-
 ## Source Basis
 
 - [`package.json`](https://github.com/nimiplatform/nimi/blob/main/package.json)

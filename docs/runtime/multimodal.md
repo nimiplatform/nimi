@@ -25,7 +25,7 @@ Multimodal operations typically run as asynchronous scenario jobs:
 
 ## Remote Web/Android Media
 
-The current remote carrier rejects raw URL/URI values in typed media fields. Use inline bytes or artifact/asset references the App is authorized to read; do not ask the PC to fetch arbitrary client-selected addresses. A capability contract does not establish remote carrier coverage. Native file reveal and unimplemented bidirectional realtime sessions remain explicitly unavailable.
+The current remote carrier rejects raw URL or URI values in typed media fields. Pass inline bytes or artifact/asset references that the App is authorized to read, and do not ask the PC Runtime to fetch arbitrary client-selected addresses. Even when a general capability contract defines an input mode, it is only available remotely if the remote carrier supports it; native file reveal and unimplemented bidirectional realtime sessions remain explicitly unavailable.
 
 App asset writes use incremental input within bounded credits, while the existing owner handles total limits, quotas and atomic commit. Cancellation or disconnect cannot publish a partial file or trigger automatic resumption. Query accepted durable Jobs by their existing identifiers rather than resubmitting after a disconnect.
 
