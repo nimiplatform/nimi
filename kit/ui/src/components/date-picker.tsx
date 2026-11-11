@@ -570,8 +570,9 @@ export function DatePicker({
   labels,
   autoOpenNonce,
 }: DatePickerProps) {
-  const [open, setOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [phase, setPhase] = useState<'closed' | 'opening' | 'open' | 'closing'>('closed');
+  const open = phase === 'open';
+  const mounted = phase !== 'closed';
   const parsedMax = maxDate ? parseDateValue(maxDate) : null;
   const parsedMin = minDate ? parseDateValue(minDate) : undefined;
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -579,14 +580,22 @@ export function DatePicker({
   const inputRef = useRef<HTMLInputElement>(null);
   const text = resolveLabels(labels);
 
+  // @nimi-authority: rule.nimi.platform.ui-design-system.p-design-013a
   useEffect(() => {
-    if (!mounted || open) return;
-    const timer = setTimeout(() => setMounted(false), 220);
-    return () => clearTimeout(timer);
-  }, [mounted, open]);
+    if (phase === 'opening') {
+      let frame = requestAnimationFrame(() => {
+        frame = requestAnimationFrame(() => setPhase('open'));
+      });
+      return () => cancelAnimationFrame(frame);
+    }
+    if (phase === 'closing') {
+      const timer = setTimeout(() => setPhase('closed'), 220);
+      return () => clearTimeout(timer);
+    }
+  }, [phase]);
 
   const closePanel = useCallback(() => {
-    setOpen(false);
+    setPhase(current => current === 'closed' ? current : 'closing');
     inputRef.current?.focus();
   }, []);
 
@@ -620,8 +629,7 @@ export function DatePicker({
   }, [open, closePanel]);
 
   const openPanel = () => {
-    setMounted(true);
-    requestAnimationFrame(() => requestAnimationFrame(() => setOpen(true)));
+    setPhase(current => current === 'open' ? current : 'opening');
   };
 
   useEffect(() => {
@@ -630,7 +638,7 @@ export function DatePicker({
   }, [autoOpenNonce]);
 
   const toggle = () => {
-    if (open) closePanel();
+    if (open || phase === 'opening') closePanel();
     else openPanel();
   };
 

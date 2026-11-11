@@ -41,10 +41,12 @@ async function openPanel(input: HTMLInputElement) {
   await act(async () => { input.click(); });
   // Observe the real two-frame transition instead of assuming a loaded CI host
   // will run both animation frames within a fixed 60 ms sleep.
-  await vi.waitFor(async () => {
+  const deadline = Date.now() + 1000;
+  while (Date.now() < deadline) {
     await act(async () => { await flush(20); });
-    expect(panel()?.style.opacity).toBe('1');
-  }, { timeout: 1000 });
+    if (panel()?.style.opacity === '1') return;
+  }
+  expect(panel()?.style.opacity).toBe('1');
 }
 
 afterEach(async () => {
@@ -323,4 +325,48 @@ test('legacy size aliases normal/small normalize onto the md/sm layouts', async 
   expect(inputOf('legacy-normal').className).toContain('pl-3');
   expect(inputOf('new-md').className).toContain('pl-3');
   expect(inputOf('new-md').className).toContain('text-[length:var(--nimi-type-body-size)]');
+});
+
+test('delayed opening frames keep the panel mounted and cancellation cannot reopen it', async () => {
+  await mount(<DatePicker value="2024-05-20" onChange={() => undefined} />);
+  const input = container?.querySelector('input') as HTMLInputElement;
+  let nextFrame = 0;
+  const frames = new Map<number, FrameRequestCallback>();
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+    const id = ++nextFrame;
+    frames.set(id, callback);
+    return id;
+  });
+  vi.stubGlobal('cancelAnimationFrame', (id: number) => { frames.delete(id); });
+  vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+  const frame = async () => {
+    const pending = [...frames.values()];
+    frames.clear();
+    await act(async () => { pending.forEach(callback => callback(0)); });
+  };
+  try {
+    await act(async () => { input.click(); });
+    await act(async () => { vi.advanceTimersByTime(500); });
+    expect(panel()).not.toBeNull();
+    expect(panel()?.style.opacity).toBe('0');
+    await frame();
+    await frame();
+    expect(panel()?.style.opacity).toBe('1');
+
+    await act(async () => { input.click(); });
+    await act(async () => { vi.advanceTimersByTime(500); });
+    expect(panel()).toBeNull();
+    await act(async () => { input.click(); });
+    await frame();
+    await act(async () => {
+      document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+    });
+    await frame();
+    await act(async () => { vi.advanceTimersByTime(500); });
+    expect(panel()).toBeNull();
+    expect(frames.size).toBe(0);
+  } finally {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  }
 });
