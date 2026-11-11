@@ -592,6 +592,7 @@ export function DatePicker({
       const timer = setTimeout(() => setPhase('closed'), 220);
       return () => clearTimeout(timer);
     }
+    return undefined;
   }, [phase]);
 
   const closePanel = useCallback(() => {
