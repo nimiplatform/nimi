@@ -143,7 +143,7 @@ func localEnvironmentTargetForDriver(driver capabilitydriver.Driver, host localE
 			return "local-text", "llama.cpp.metal", true
 		}
 		return "", "", false
-	case capabilitydriver.Wan22VideoDriver:
+	case capabilitydriver.Wan22VideoDriver, capabilitydriver.SDXLControlNetDriver, capabilitydriver.UpscaleDriver:
 		if strings.EqualFold(strings.TrimSpace(host.OS), "windows") && strings.EqualFold(strings.TrimSpace(host.Arch), "amd64") && localEnvironmentHostSupportsCUDA(host) {
 			return "local-image-native", stableDiffusionCUDAConsumerID, true
 		}

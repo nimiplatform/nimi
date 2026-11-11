@@ -20,10 +20,10 @@ func (s *Service) submitLocalFaceSwapJob(ctx context.Context, req *runtimev1.Sub
 	if err != nil {
 		return nil, err
 	}
-	return s.submitCapturedFaceSwapJob(ctx, req, mode, ignored, assembly, identity, displayName, s.runLocalFaceSwapJob)
+	return s.submitCapturedLocalArtifactJob(ctx, req, mode, ignored, assembly, identity, displayName, s.runLocalFaceSwapJob)
 }
 
-func (s *Service) submitCapturedFaceSwapJob(ctx context.Context, req *runtimev1.SubmitScenarioJobRequest, mode runtimev1.ExecutionMode, ignored []*runtimev1.IgnoredScenarioExtension, assembly *localResolvedAssembly, identity *runtimev1.LoadoutEffectiveInputIdentity, displayName string, run func(context.Context, string, *localMediaSubmissionTicket)) (*runtimev1.SubmitScenarioJobResponse, error) {
+func (s *Service) submitCapturedLocalArtifactJob(ctx context.Context, req *runtimev1.SubmitScenarioJobRequest, mode runtimev1.ExecutionMode, ignored []*runtimev1.IgnoredScenarioExtension, assembly *localResolvedAssembly, identity *runtimev1.LoadoutEffectiveInputIdentity, displayName string, run func(context.Context, string, *localMediaSubmissionTicket)) (*runtimev1.SubmitScenarioJobResponse, error) {
 	if err := ctx.Err(); err != nil {
 		return nil, err
 	}
@@ -40,13 +40,13 @@ func (s *Service) submitCapturedFaceSwapJob(ctx context.Context, req *runtimev1.
 	stored, created, err := s.scenarioJobs.createOwnedAndBindCapturedInputsChecked(job, cancel, localAppJobOwnerFromContext(ctx), scope, assembly, nil, false, localAppMusicSubmissionFromContext(ctx))
 	if err != nil {
 		cancel()
-		return nil, scenarioJobSubmissionError(err, "Face replacement Job could not be persisted")
+		return nil, scenarioJobSubmissionError(err, "Local media Job could not be persisted")
 	}
 	if !created {
 		cancel()
 		return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 	}
-	ticket := s.localFaceSwapJobOrder.reserve()
+	ticket := s.localArtifactJobOrder.reserve()
 	go run(s.scenarioObservationContext(jobCtx, job.JobId), job.JobId, ticket)
 	return &runtimev1.SubmitScenarioJobResponse{Job: stored}, nil
 }

@@ -58,12 +58,12 @@ entries:
     dependency_family: native-engine-package.stablediffusion-ggml
     package_source: canonical_runtime_wrapper
     package_format: direct_archive
-    release_tag: master-1050-58bb3c1
-    source_commit: 58bb3c1b1cd4749e94e39f537e9adfce295dcaee # pragma: allowlist secret
-    install_dir_name: sd-win-cuda12-x64-stablediffusion-ggml-58bb3c1
+    release_tag: master-1088-32d516c
+    source_commit: 32d516c0197ed5ca31305b8575e14eb1451fad33 # pragma: allowlist secret
+    install_dir_name: sd-win-cuda12-x64-stablediffusion-ggml-32d516c
     image_ref: ""
-    archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-1050-58bb3c1/sd-master-58bb3c1-bin-win-cuda12-x64.zip
-    archive_sha256: 2767f24655b7bbd1290f7cb307e05c988cda388108b7d83b502cf95276df3b50 # pragma: allowlist secret
+    archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-1088-32d516c/sd-master-32d516c-bin-win-cuda12-x64.zip
+    archive_sha256: e76d90e0ad0aedb3bcd9e24e7ecb20e7c3e0be9700a7e9e94fbd26226e67f597 # pragma: allowlist secret
     dependency_requirements:
       - dependency_id: nvidia-cuda-user-space-runtime
         consumer_id: stable-diffusion.cpp.cuda
@@ -72,12 +72,12 @@ entries:
         accelerator_projection_table: shared-accelerator-dependencies.yaml
         first_network_materialization_requires_confirmation: true
     executable_candidates: [sd.exe, sd-cli.exe]
-    supported_model_families: [wan22, flux3, flux, ideogram4, minimax-h3, qwen-image, sdxl, z-image]
+    supported_model_families: [wan22, flux3, flux, ideogram4, minimax-h3, minimax-h3-image, hyperflow-h3-flash, qwen-image, sdxl, sdxl-controlnet-union, relayvsr, seedvr2, z-image]
     launch_mode: runtime_wrapper
     wrapper_driver: stable-diffusion.cpp
     product_state: supported
     detail: >-
-      The minimax-h3 family marker denotes engine-package compatibility for the
+      The minimax-h3 and minimax-h3-image family markers denote engine-package compatibility for the
       Runtime-controlled Windows subset only. It is not a statement of
       unconditional global product availability or licensing eligibility;
       model acquisition and use remain subject to the applicable model terms

@@ -116,6 +116,30 @@ function ImageFields(props: StudioParameterPanelProps) {
   const fields: StudioParameterFieldDefinition[] = [
     textField('negativePrompt', t('Studio.parameters.fields.negativePrompt')),
     {
+      field: 'controlImageArtifactId',
+      label: t('Studio.parameters.fields.controlImage'),
+      render: disabled => <ControlImageField parameters={parameters} onChange={update} onInputPreparationStart={props.onInputPreparationStart} disabled={props.disabled || disabled} />,
+    },
+    {
+      field: 'controlType',
+      label: t('Studio.parameters.fields.controlType'),
+      render: disabled => <StudioParameterField label={t('Studio.parameters.fields.controlType')}>
+        <SelectField value={String(parameters.controlType ?? '')} disabled={props.disabled || disabled}
+          options={[{ value: '', label: t('Studio.parameters.chooseControlType') }, ...['openpose', 'depth', 'scribble', 'canny', 'normal', 'segment', 'tile', 'repaint'].map((key, index) => ({ value: String(index + 1), label: t('Studio.parameters.controlTypes.' + key) }))]}
+          onChange={event => {
+            const next = { ...parameters };
+            if (event.target.value) next.controlType = Number(event.target.value) as StudioImageGenerationParameters['controlType'];
+            else delete next.controlType;
+            update(next);
+          }} />
+      </StudioParameterField>,
+    },
+    {
+      field: 'controlStrength',
+      label: t('Studio.parameters.fields.controlStrength'),
+      render: disabled => <StudioNumberParameter current={parameters} field="controlStrength" label={t('Studio.parameters.fields.controlStrength')} min={0} max={2} step={0.1} onChange={update} disabled={props.disabled || disabled} />,
+    },
+    {
       field: 'count',
       label: t('Studio.parameters.fields.count'),
       render: (routeDisabled) => <StudioNumberParameter current={parameters} field="count" label={t('Studio.parameters.fields.count')} onChange={update} disabled={props.disabled || routeDisabled} min={1} step={1} />,
@@ -166,6 +190,60 @@ function ImageFields(props: StudioParameterPanelProps) {
     { field: 'frameDurationMs', label: t('Studio.parameters.fields.frameDurationMs'), render: disabled => <StudioNumberParameter current={parameters} field="frameDurationMs" label={t('Studio.parameters.fields.frameDurationMs')} onChange={update} min={20} max={2000} step={10} disabled={props.disabled || disabled || parameters.outputFormat !== 'gif'} /> },
   ];
   return <StudioRouteAwareParameterFields contract={props.contract} source={props.source} fields={fields} translate={translate} />;
+}
+
+function ControlImageField(props: {
+  parameters: StudioImageGenerationParameters;
+  onChange: (next: StudioImageGenerationParameters) => void;
+  onInputPreparationStart?: StudioParameterPanelProps['onInputPreparationStart'];
+  disabled?: boolean;
+}) {
+  const host = useAIStudioHost();
+  const input = useRef<HTMLInputElement>(null);
+  const [busy, setBusy] = useState(false);
+  const [name, setName] = useState('');
+  const [error, setError] = useState('');
+  async function upload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = '';
+    if (!file) return;
+    if (!['image/png', 'image/jpeg'].includes(file.type) || file.size < 1 || file.size > MAX_STUDIO_ARTIFACT_UPLOAD_BYTES) {
+      setError(host.translate('Studio.parameters.controlImageFileRequired'));
+      return;
+    }
+    const finish = props.onInputPreparationStart?.();
+    setBusy(true);
+    setError('');
+    try {
+      const asset = await host.sdk.uploadLocalAppArtifact({ bytes: new Uint8Array(await file.arrayBuffer()), mimeType: file.type as 'image/png' | 'image/jpeg' });
+      props.onChange({ ...props.parameters, controlImageArtifactId: asset.artifactId });
+      setName(file.name);
+    } catch (failure) {
+      setError(failure instanceof Error ? failure.message : String(failure));
+    } finally {
+      setBusy(false);
+      finish?.();
+    }
+  }
+  return <StudioParameterField label={host.translate('Studio.parameters.fields.controlImage')}>
+    <input ref={input} type="file" aria-label={host.translate('Studio.parameters.fields.controlImage')} accept="image/png,image/jpeg" className="studio-parameters__file-input" disabled={props.disabled || busy} onChange={event => void upload(event)} />
+    <div className="studio-parameters__file-row">
+      <Button type="button" tone="ghost" size="sm" disabled={props.disabled || busy} onClick={() => input.current?.click()}>{host.translate(busy ? 'Studio.parameters.uploadingImage' : 'Studio.parameters.chooseImageFile')}</Button>
+      {props.parameters.controlImageArtifactId ? <>
+        <span>{name}</span>
+        <Button type="button" tone="ghost" size="sm" disabled={props.disabled || busy} onClick={() => {
+          const next = { ...props.parameters };
+          delete next.controlImageArtifactId;
+          delete next.controlType;
+          delete next.controlStrength;
+          props.onChange(next);
+          setName('');
+        }}>{host.translate('Studio.parameters.clearLayer')}</Button>
+      </> : null}
+    </div>
+    {error ? <small>{error}</small> : null}
+    <small>{host.translate('Studio.parameters.controlImageHint')}</small>
+  </StudioParameterField>;
 }
 
 type VideoArtifactField = 'firstFrameArtifactId' | 'lastFrameArtifactId' | 'referenceArtifactId' | 'referenceAudioArtifactIds' | 'referenceVideoArtifactIds';

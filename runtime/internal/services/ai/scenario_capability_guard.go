@@ -42,6 +42,10 @@ func unsupportedCapabilityReasonCode(scenarioType runtimev1.ScenarioType) runtim
 
 func localScenarioCapability(scenarioType runtimev1.ScenarioType) (string, bool) {
 	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_UPSCALE:
+		return "image.upscale", true
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_UPSCALE:
+		return "video.upscale", true
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_ANNOTATE:
 		return "text.annotate", true
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_DECIDE:

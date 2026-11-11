@@ -99,6 +99,7 @@ export type RuntimeImageGenerateInput = {
   readonly markupArtifactId?: string;
   readonly frameCount?: number;
   readonly frameDurationMs?: number;
+  readonly controlImage?: Parameters<typeof runNimiRuntimeImageGeneration>[0]['controlImage'];
   readonly responseFormat?: string;
   readonly scenarioId: string;
   readonly subjectUserId?: string;
@@ -151,6 +152,7 @@ export async function runRuntimeImageGenerate(
       ...(input.markupArtifactId !== undefined ? { markupArtifactId: input.markupArtifactId } : {}),
       ...(input.frameCount !== undefined ? { frameCount: input.frameCount } : {}),
       ...(input.frameDurationMs !== undefined ? { frameDurationMs: input.frameDurationMs } : {}),
+      ...(input.controlImage !== undefined ? { controlImage: input.controlImage } : {}),
       ...(input.responseFormat !== undefined ? { responseFormat: input.responseFormat } : {}),
       requestId: identity.requestId,
       idempotencyKey: identity.idempotencyKey,

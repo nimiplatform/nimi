@@ -401,7 +401,7 @@ func cloneTextBehaviorCapabilityProjections(values []*runtimev1.TextBehaviorCapa
 }
 
 func loadoutNeedsLlamaVideoCodec(loadout *runtimev1.Loadout) bool {
-	return loadout.GetRecipeId() == capabilitydriver.LlamaGemma412BRecipeID && stringSliceContains(loadout.GetConfiguredFeatures(), "input.video")
+	return loadout.GetCapabilityContract() == capabilitydriver.VideoUpscaleContract || (loadout.GetRecipeId() == capabilitydriver.LlamaGemma412BRecipeID && stringSliceContains(loadout.GetConfiguredFeatures(), "input.video"))
 }
 
 func (s *Service) captureLlamaMediaCodecSource(ctx context.Context) (localexecution.ExactDependencySource, error) {
@@ -520,7 +520,7 @@ func (s *Service) resolveSelectedLocalExecutionDependencySources(capabilityContr
 		if consumer == audioCppCUDAConsumerID {
 			required = append(required, requiredDependency{family: localEnvironmentFamilyCUDA, dependencyID: cuda13UserSpaceRuntimeDependencyID})
 		}
-	case capabilitydriver.StableDiffusionImageDriver, capabilitydriver.StableDiffusionVideoDriver, capabilitydriver.Wan22VideoDriver:
+	case capabilitydriver.StableDiffusionImageDriver, capabilitydriver.StableDiffusionVideoDriver, capabilitydriver.Wan22VideoDriver, capabilitydriver.SDXLControlNetDriver, capabilitydriver.UpscaleDriver:
 		_, resolvedConsumer, ok := localEnvironmentTargetForDriver(typed, host)
 		if !ok {
 			return nil, loadoutError(codes.FailedPrecondition, runtimev1.ReasonCode_AI_LOCAL_CONFIGURATION_NOT_CONFIGURED, "stable-diffusion.cpp Runtime package is unsupported on the exact host tuple", nil)

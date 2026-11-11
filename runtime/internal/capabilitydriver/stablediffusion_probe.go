@@ -234,12 +234,12 @@ func sdProbeContextErr(source io.ReaderAt) error {
 	return nil
 }
 
-func (StableDiffusionVideoDriver) ProbeModelAsset(input ModelAssetFormatProbeInput, source io.ReaderAt, size int64) ([]byte, error) {
+func (driver StableDiffusionVideoDriver) ProbeModelAsset(input ModelAssetFormatProbeInput, source io.ReaderAt, size int64) ([]byte, error) {
 	if !input.Entry {
 		return nil, nil
 	}
-	slot, ok := stableDiffusionVideoSlot(input.RequirementID)
-	if !ok || input.RecipeID != StableDiffusionVideoRecipeID || filepath.Ext(strings.ToLower(input.RelativePath)) != "."+slot.format {
+	slot, ok := driver.slot(input.RequirementID)
+	if !ok || input.RecipeID != driver.recipeID() || filepath.Ext(strings.ToLower(input.RelativePath)) != "."+slot.format {
 		return nil, fmt.Errorf("video probe contract mismatch")
 	}
 	if slot.format == "safetensors" {

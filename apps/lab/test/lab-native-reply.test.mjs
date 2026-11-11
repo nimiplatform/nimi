@@ -95,7 +95,18 @@ test('mounted workbench shows Integration completion and cancellation in its exi
  const renderer=createRoot(document.getElementById('root'));
  try{
   await act(async()=>renderer.render(createElement(TooltipProvider,null,createElement(LabNavigationOwner,null,createElement(LabNavigationScope,null,createElement(LabRendererProvider,{bindings:host},createElement(LabWorkbench,{title:'Nimi Lab'})))))));
-  await click('Integrations');
+  const search = document.querySelector('input[type="search"]');
+  assert.ok(search);
+  const setSearch = async (value) => act(async () => {
+    Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, 'value').set.call(search, value);
+    search.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+  });
+  await setSearch('integrations');
+  const matches = [...document.querySelectorAll('button[data-workbench-rail-item]')];
+  assert.deepEqual(matches.map(item => item.getAttribute('aria-label')), ['Integrations']);
+  await act(async () => search.dispatchEvent(new dom.window.KeyboardEvent('keydown', { key: 'Enter', bubbles: true })));
+  assert.ok(document.querySelector('[data-testid="lab-integrations-panel"]'));
+  await setSearch('');
   await pick('integration-target','QQ');
   // One explicit read fixture supplies the source; it never invokes a message write.
   const advanced=[...document.querySelectorAll('details')].find(e=>e.querySelector('summary')?.textContent===i18n.t('Integrations.advancedOperations'));

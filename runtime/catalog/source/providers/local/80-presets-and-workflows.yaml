@@ -2,6 +2,24 @@
 # parameters to exact slots projected by the versioned Driver dialect. It does
 # not own a second slot topology and never causes acquisition.
 loadout_recipes:
+  - recipe_id: sdxl-controlnet-union
+    revision: "1"
+    title: SDXL ControlNet Union ProMax
+    capability_contract: image.generate
+    implementation_id: local.image.generate.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp
+    driver_dialect: stable-diffusion.cpp/sdxl-controlnet-union/v1
+    default_options: {}
+    supported_features: [input.image]
+    slot_metadata:
+      - slot_id: main.diffusion
+        display_label: SDXL Base checkpoint
+        recommended_variant_ids: [local.image.sdxl-base-1.0.f16.cuda]
+        model_contract: {format: safetensors, tensor_contract: sdxl-base-checkpoint}
+      - slot_id: companion.controlnet
+        display_label: ControlNet Union ProMax
+        recommended_variant_ids: [local.controlnet.sdxl-union-promax.f16.cuda]
+        model_contract: {format: safetensors, tensor_contract: sdxl-controlnet-union-promax}
   - recipe_id: faster-whisper-sherpa-diarized
     revision: "1"
     title: Whisper transcription with source-local speaker intervals
@@ -939,6 +957,46 @@ loadout_recipes:
         display_label: Wan2.2 48-channel video VAE
         recommended_variant_ids: [local.video-vae.wan22-ti2v.f16.cuda]
         model_contract: {format: safetensors}
+  - recipe_id: hyperflow-h3-flash
+    revision: "1"
+    title: HyperFlow H3 Flash video generation
+    capability_contract: video.generate
+    implementation_id: local.image.generate.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp
+    driver_dialect: stable-diffusion.cpp/hyperflow-h3-flash-video-generate/v1
+    default_options: {}
+    supported_features: [input.image]
+    slot_metadata:
+      - slot_id: diffusion.fl2va
+        display_label: HyperFlow H3 Flash FL2VA transformer
+        recommended_variant_ids: [local.video.hyperflow-h3-flash-fl2va.int8-convrot.cuda]
+        model_contract:
+          format: safetensors
+          artifact_role: diffusion_transformer
+      - slot_id: diffusion.ref2va
+        display_label: HyperFlow H3 Flash Ref2VA transformer
+        recommended_variant_ids: [local.video.hyperflow-h3-flash-ref2va.int8-convrot.cuda]
+        model_contract:
+          format: safetensors
+          artifact_role: diffusion_transformer
+      - slot_id: encoder.h3-combined
+        display_label: MiniMax-H3 combined Qwen3-VL encoder
+        recommended_variant_ids: [local.video-encoder.minimax-h3-qwen3-vl-32b.q4-k-m.cuda]
+        model_contract:
+          format: gguf
+          artifact_role: llm
+      - slot_id: vae.video
+        display_label: MiniMax-H3 video VAE
+        recommended_variant_ids: [local.video-vae.sol-h3.f16.cuda, local.video-vae.minimax-h3.f16.cuda]
+        model_contract:
+          format: safetensors
+          tensor_contract: minimax-h3-video-vae
+      - slot_id: vae.audio
+        display_label: MiniMax-H3 audio VAE
+        recommended_variant_ids: [local.audio-vae.minimax-h3.f32.cuda]
+        model_contract:
+          format: safetensors
+          tensor_contract: minimax-h3-audio-vae
   - recipe_id: minimax-h3
     revision: "1"
     title: MiniMax-H3 video generation
@@ -1109,6 +1167,36 @@ loadout_recipes:
         model_contract:
           format: safetensors
           tensor_contract: qwen-image-vae-3d
+  - recipe_id: minimax-h3-image
+    revision: "1"
+    title: MiniMax-H3-Image
+    capability_contract: image.generate
+    implementation_id: local.image.generate.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp
+    driver_dialect: stable-diffusion.cpp/image-generate/v4
+    default_options: {}
+    supported_features: [input.image]
+    slot_metadata:
+      - slot_id: main.diffusion
+        display_label: Diffusion model
+        recommended_variant_ids: [local.image.minimax-h3-image.pruned-int8-convrot.cuda]
+        model_contract:
+          format: safetensors
+          artifact_role: diffusion_model
+          tensor_contract: minimax-h3-image-pdd
+      - slot_id: companion.text-encoder
+        display_label: MiniMax-H3 Qwen3-VL text encoder
+        recommended_variant_ids: [local.video-encoder.minimax-h3-qwen3-vl-32b.q4-k-m.cuda]
+        model_contract:
+          format: gguf
+          artifact_role: llm
+          tensor_contract: minimax-h3-qwen3-vl-encoder
+      - slot_id: companion.vae
+        display_label: MiniMax-H3-Image VAE
+        recommended_variant_ids: [local.image-vae.minimax-h3-image.f16.cuda]
+        model_contract:
+          format: safetensors
+          tensor_contract: minimax-h3-image-vae
   - recipe_id: qwen-image-edit-2511
     revision: "1"
     title: Qwen Image Edit 2511

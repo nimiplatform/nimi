@@ -21,6 +21,7 @@ import {
 import type { LabTextAnnotateParameters } from './text-annotate.js';
 import type { LabTextExchangeParameters } from './text-exchange.js';
 import { LabReasoningControls } from './reasoning-controls.js';
+import { isLabUpscaleSource, type LabUpscaleParameters } from './upscale.js';
 
 function Frame(props: StudioParameterPanelProps & {
   readonly children: ReactNode;
@@ -172,6 +173,38 @@ export function LabImageFaceSwapParameterPanel(props: StudioParameterPanelProps)
       <MediaFilePicker label={t('StudioResults.faceSwap.role.reference-image')} accept={LAB_FACE_SWAP_IMAGE_MIME_TYPES.join(',')} file={parameters.reference} disabled={locked} valid={isLabFaceSwapImage} invalidMessage={t('CapabilityTests.faceSwap.imageFileInvalid')} onChange={(reference) => set({ reference })} />
       <MediaFilePicker label={t('StudioResults.faceSwap.role.target-image')} accept={LAB_FACE_SWAP_IMAGE_MIME_TYPES.join(',')} file={parameters.target} disabled={locked} valid={isLabFaceSwapImage} invalidMessage={t('CapabilityTests.faceSwap.imageFileInvalid')} onChange={(target) => set({ target })} />
       <p className="text-sm opacity-70">{t('CapabilityTests.faceSwap.imageHint')}</p>
+    </Frame>
+  );
+}
+
+export function LabImageUpscaleParameterPanel(props: StudioParameterPanelProps) {
+  return <LabUpscaleParameterPanel {...props} video={false} />;
+}
+
+export function LabVideoUpscaleParameterPanel(props: StudioParameterPanelProps) {
+  return <LabUpscaleParameterPanel {...props} video />;
+}
+
+function LabUpscaleParameterPanel(props: StudioParameterPanelProps & { readonly video: boolean }) {
+  const { t } = useTranslation();
+  const parameters = props.parameters as LabUpscaleParameters;
+  const locked = localInputsLocked(props);
+  const update = (patch: Partial<LabUpscaleParameters>) => {
+    const next = { ...parameters, ...patch };
+    if (!next.source) delete next.source;
+    if (next.seed === undefined) delete next.seed;
+    props.onChange(next);
+  };
+  return (
+    <Frame {...props} localRouteOnly>
+      <MediaFilePicker label={t('CapabilityTests.upscale.source')} accept={props.video ? 'video/mp4' : 'image/png,image/jpeg'} file={parameters.source} disabled={locked} valid={(file) => isLabUpscaleSource(file, props.video)} invalidMessage={t('CapabilityTests.upscale.invalidInput')} onChange={(source) => update({ source })} />
+      <StudioParameterField label={t('CapabilityTests.upscale.scale')}>
+        <SelectField value={String(parameters.scale)} disabled={locked} options={[{ value: '2', label: '2×' }, { value: '4', label: '4×' }]} onValueChange={(value) => update({ scale: value === '4' ? 4 : 2 })} />
+      </StudioParameterField>
+      <StudioParameterField label={t('CapabilityTests.upscale.seed')}>
+        <TextField type="number" min={0} max={2147483647} value={parameters.seed ?? ''} placeholder="42" disabled={locked} onChange={(event) => update({ seed: event.currentTarget.value === '' ? undefined : Number(event.currentTarget.value) })} />
+      </StudioParameterField>
+      <p className="text-sm opacity-70">{t(props.video ? 'CapabilityTests.upscale.videoHint' : 'CapabilityTests.upscale.imageHint')}</p>
     </Frame>
   );
 }

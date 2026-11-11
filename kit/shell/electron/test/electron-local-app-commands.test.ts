@@ -630,6 +630,23 @@ describe('Electron local-app standard-shell operations', () => {
     expect(calls).toHaveLength(3);
   });
 
+  it('forwards one typed control map and rejects malformed control metadata', async () => {
+    const calls: unknown[] = [];
+    const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];
+    const spec = { type: 'image-generate', prompt: 'yellow cup', negativePrompt: '', size: '1024x1024', aspectRatio: '', quality: '', style: '', referenceImages: [], referenceImageArtifactId: '', mask: '', responseFormat: '', controlImage: { imageArtifactId: 'owned-control', type: 4, strength: 0.75 } };
+    await dispatchElectronLocalAppCommand({ host: localAppHost(calls), command, payload: { spec, timeoutMs: 0 } });
+    expect(calls).toEqual([['scenarioJobSubmit', { spec, timeoutMs: 0 }]]);
+    for (const controlImage of [
+      { imageArtifactId: 'owned-control', type: 0 },
+      { imageArtifactId: 'owned-control', type: 9 },
+      { imageArtifactId: 'owned-control', type: 4, strength: 3 },
+      { imageArtifactId: 'owned-control', type: 4, path: 'C:/private.png' },
+    ]) {
+      await expect(dispatchElectronLocalAppCommand({ host: localAppHost(calls), command, payload: { spec: { ...spec, controlImage }, timeoutMs: 0 } })).rejects.toMatchObject({ reasonCode: 'invalid-payload' });
+    }
+    expect(calls).toHaveLength(1);
+  });
+
   it('admits one bounded artifact-owned image reference and rejects mixed carriers', async () => {
     const calls: unknown[] = [];
     const command = NIMI_STANDARD_SHELL_COMMANDS['local-app.scenarioJobSubmit'];

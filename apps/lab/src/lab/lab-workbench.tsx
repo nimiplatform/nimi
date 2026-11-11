@@ -3,7 +3,7 @@ import { useNimiNavigationSnapshot } from '@nimiplatform/kit/ui/app-chrome';
 import { useLabNavigationOwner, type LabDestination } from '../shell/routes/app-navigation.js';
 import { Button, InlineAlert, LoadingSkeleton, StatusBadge, TextField } from '@nimiplatform/kit/ui';
 import { requireLabNativeClient } from '../shell/local-app-runtime-platform.js';
-import { AudioLines, Bot, Boxes, Cable, Inbox, MessagesSquare } from 'lucide-react';
+import { AudioLines, Bot, Boxes, Cable, Inbox, MessagesSquare, ShieldCheck } from 'lucide-react';
 
 import { useAIStudioWorkspaceController } from '../ai-studio-core/index.js';
 import { STUDIO_AI_CONFIG_CHANGED_EVENT } from '../ai-studio-core/ai-config.js';
@@ -173,7 +173,7 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
   const bottomNavigationItems = useMemo<readonly WorkbenchNavigationItem<LabWorkbenchNavigationId>[]>(() => [
     { id: 'integrations', label: t('Integrations.title'), icon: Cable },
     { id: 'activity', label: t('Activity.title'), icon: Inbox },
-    { id: 'app-access', label: t('AppAccess.page.title'), icon: Cable },
+    { id: 'app-access', label: t('AppAccess.page.title'), icon: ShieldCheck },
     { id: 'ui-recipes', label: t('Workbench.uiRecipes'), icon: Boxes },
   ], [t]);
 
@@ -217,7 +217,10 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
       : item
   );
   const query = navigationQuery.trim().toLocaleLowerCase();
-  const filteredNavigation = navigationGroups.flatMap(group => {
+  const searchableGroups: readonly WorkbenchNavigationGroup<LabWorkbenchNavigationId>[] = query
+    ? [...navigationGroups, { id: 'workspace', label: t('Workbench.groups.workspace'), items: bottomNavigationItems }]
+    : navigationGroups;
+  const filteredNavigation = searchableGroups.flatMap(group => {
     const items = group.items.filter(item => !query || [item.label, item.id, item.detail, group.label]
       .some(value => value?.toLocaleLowerCase().includes(query)));
     if (items.length === 0) return [];
@@ -228,6 +231,7 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
       onToggle: query ? undefined : () => setCollapsedGroups(current => ({ ...current, [group.id]: !current[group.id] })),
     }];
   });
+  const searchMatches = query ? filteredNavigation.flatMap(group => group.items) : [];
   const recentItems = recentViews.flatMap(id => navigationGroups.flatMap(group => group.items).filter(item => item.id === id));
 
   return (
@@ -246,6 +250,13 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
             aria-label={t('Workbench.searchCapabilities')}
             placeholder={t('Workbench.searchCapabilities')}
             onChange={event => setNavigationQuery(event.currentTarget.value)}
+            onKeyDown={event => {
+              const [match] = searchMatches;
+              if (event.key === 'Enter' && !event.nativeEvent.isComposing && searchMatches.length === 1 && match) {
+                event.preventDefault();
+                selectNavigationView(match.id);
+              }
+            }}
           />
           {!query && recentItems.length > 1 ? (
             <details className="lab-navigation-recent">
@@ -265,7 +276,7 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
       )}
       navigationEmpty={<p className="lab-navigation-empty" role="status">{t('Workbench.noMatchingCapabilities')}</p>}
       navigationGroups={filteredNavigation}
-      bottomNavigationItems={bottomNavigationItems.map(withCarrierAvailability)}
+      bottomNavigationItems={query ? [] : bottomNavigationItems.map(withCarrierAvailability)}
       bottomNavigationLabel={t('Workbench.groups.workspace')}
       onSelectView={selectNavigationView}
       accountSlot={<NimiLabAccountMenu onOpenSettings={() => { void owner.navigation.push({ id: 'settings' }); }} />}
@@ -311,7 +322,7 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
           </div>
         </Suspense>
       ) : view.kind === 'capability' && view.capabilityId === 'app.assets' ? (
-        <Suspense fallback={<LoadingFallback />}><div className="h-full overflow-y-auto p-5"><LabAppFilesPage /></div></Suspense>
+          <Suspense fallback={<LoadingFallback />}><LabAppFilesPage /></Suspense>
       ) : view.kind === 'ui-recipes' ? (
         <Suspense fallback={<LoadingFallback />}>
           <KitComponentGallery

@@ -129,7 +129,7 @@ func (engine *stableDiffusionVideoFFI) Load(request VideoModelRequest) (bool, er
 		}
 	}
 	wan := request.RecipeID == "wan22-ti2v-5b"
-	if request.RecipeID != "minimax-h3" && !wan || wan && request.ConditioningMode != "wan22-text" && request.ConditioningMode != "wan22-first-image" || !wan && request.ConditioningMode != "fl2va-t2va" && request.ConditioningMode != "ref2va-image" {
+	if request.RecipeID != "minimax-h3" && request.RecipeID != "hyperflow-h3-flash" && !wan || wan && request.ConditioningMode != "wan22-text" && request.ConditioningMode != "wan22-first-image" || !wan && request.ConditioningMode != "fl2va-t2va" && request.ConditioningMode != "ref2va-image" {
 		return false, videoError(VideoErrorLoad, fmt.Errorf("managed H3 video conditioning mode is unsupported"))
 	}
 	paths := map[string]string{
@@ -262,6 +262,13 @@ func (engine *stableDiffusionVideoFFI) Generate(request VideoGenerateRequest, pr
 	}); err != nil {
 		return VideoCandidate{}, err
 	}
+	// HyperFlow's fixed six-step schedule already includes video flow shift.
+	var customSigmas []float32
+	if model.RecipeID == "hyperflow-h3-flash" {
+		customSigmas = []float32{1, 0.982655942, 0.914642572, 0.674755692, 0.385223746, 0.159055337, 0}
+		params.SampleParams.CustomSigmas = uintptr(unsafe.Pointer(&customSigmas[0]))
+		params.SampleParams.CustomSigmasCount = int32(len(customSigmas))
+	}
 	wan := model.RecipeID == "wan22-ti2v-5b"
 	if request.AudioRequired == wan || ((model.ConditioningMode == "ref2va-image" || model.ConditioningMode == "wan22-first-image") != (len(request.ReferenceImage) > 0)) {
 		return VideoCandidate{}, videoError(VideoErrorInference, fmt.Errorf("video conditioning payload does not match loaded route"))
@@ -286,6 +293,7 @@ func (engine *stableDiffusionVideoFFI) Generate(request VideoGenerateRequest, pr
 	success, _, _ := engine.generateVideo.Call(contextPointer, uintptr(unsafe.Pointer(&params)), uintptr(unsafe.Pointer(&resultOut)))
 	runtime.KeepAlive(prompt)
 	runtime.KeepAlive(negative)
+	runtime.KeepAlive(customSigmas)
 	if resultOut != nil {
 		defer callVideoVoid(engine.freeVideoResult, uintptr(unsafe.Pointer(resultOut)))
 	}

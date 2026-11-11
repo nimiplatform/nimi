@@ -1544,6 +1544,8 @@ export function loadoutCapabilityLabelKey(capabilityContract: string): string {
   switch (capabilityContract) {
     case 'image.face_swap': return 'runtimeConfig.loadouts.capability.imageFaceSwap';
     case 'video.face_swap': return 'runtimeConfig.loadouts.capability.videoFaceSwap';
+    case 'image.upscale': return 'runtimeConfig.loadouts.capability.imageUpscale';
+    case 'video.upscale': return 'runtimeConfig.loadouts.capability.videoUpscale';
     case 'vision.locate': return 'runtimeConfig.loadouts.capability.visionLocate';
     case 'text.generate': return 'runtimeConfig.loadouts.capability.textGenerate';
     case 'text.embed': return 'runtimeConfig.loadouts.capability.textEmbed';

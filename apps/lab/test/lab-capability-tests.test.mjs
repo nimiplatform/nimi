@@ -501,6 +501,30 @@ const png = { name: 'ref.png', mimeType: 'image/png', sizeBytes: 4, bytes: new U
 const jpeg = { name: 'target.jpg', mimeType: 'image/jpeg', sizeBytes: 3, bytes: new Uint8Array([5, 6, 7]) };
 const mp4 = { name: 'clip.mp4', mimeType: 'video/mp4', sizeBytes: 5, bytes: new Uint8Array([8, 9, 10, 11, 12]) };
 
+for (const [capabilityId, type, source, mimeType] of [
+  ['image.upscale', 'image-upscale', png, 'image/png'],
+  ['video.upscale', 'video-upscale', mp4, 'video/mp4'],
+]) {
+  test(capabilityId + ' uploads one owned source, submits a typed Job and adopts its output', async () => {
+    const { runLabCapability } = await load('lab/lab-runtime.js');
+    const fake = fakeClient({
+      adoptedMediaType: mimeType,
+      submit: () => ({ job: job('job-upscale', 'queued', { scenarioType: type }) }),
+      get: async () => ({ job: job('job-upscale', 'completed', { scenarioType: type, artifacts: [{ artifactId: 'out-1', mimeType, bytes: [], sizeBytes: 1234, sha256: 'f'.repeat(64), durationMs: 0, width: 64, height: 64, sampleRateHz: 0, channels: 0 }] }), asset: null, voiceReference: null }),
+    });
+    const result = await runLabCapability({ capabilityId, prompt: '', parameters: { source, scale: 2 } }, ready(fake.client));
+    assert.equal(result.ok, true, result.message);
+    assert.equal(fake.calls.upload.length, 1);
+    assert.deepEqual(fake.calls.submit[0].spec, { type, sourceArtifactId: 'upload-1', scale: 2 });
+    assert.equal(fake.calls.adopt[0].artifactId, 'out-1');
+    assert.equal(result.output.artifacts[0].mediaType, mimeType);
+    const invalid = fakeClient();
+    const rejected = await runLabCapability({ capabilityId, prompt: '', parameters: { source, scale: 3 } }, ready(invalid.client));
+    assert.equal(rejected.ok, false);
+    assert.equal(invalid.calls.submit.length, 0);
+  });
+}
+
 test('image.face_swap uploads both roles, adopts the single PNG and records per-role input facts', async () => {
   const { runLabCapability } = await load('lab/lab-runtime.js');
   const fake = fakeClient({

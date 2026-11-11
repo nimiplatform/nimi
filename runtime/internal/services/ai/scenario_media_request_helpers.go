@@ -56,6 +56,10 @@ func validateSubmitScenarioAsyncJobRequest(req *runtimev1.SubmitScenarioJobReque
 		return validateVideoFaceSwapSpec(req.GetSpec().GetVideoFaceSwap())
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP:
 		return validateImageFaceSwapSpec(req.GetSpec().GetImageFaceSwap())
+	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_UPSCALE:
+		return validateMediaUpscaleSpec(req.GetSpec().GetImageUpscale())
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_UPSCALE:
+		return validateMediaUpscaleSpec(req.GetSpec().GetVideoUpscale())
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE:
 		return validateVisionLocateSpec(req.GetSpec().GetVisionLocate())
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VOICE_CREATE:

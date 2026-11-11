@@ -86,7 +86,7 @@ func NewVideoExecutionHost(manager *Manager, logger *slog.Logger, config VideoEx
 		if family == capabilitydriver.Wan22VideoRecipeID {
 			family = "wan22"
 		}
-		if plan.RecipeID() != capabilitydriver.StableDiffusionVideoRecipeID && plan.RecipeID() != capabilitydriver.Wan22VideoRecipeID {
+		if plan.RecipeID() != capabilitydriver.StableDiffusionVideoRecipeID && plan.RecipeID() != capabilitydriver.HyperFlowH3VideoRecipeID && plan.RecipeID() != capabilitydriver.Wan22VideoRecipeID {
 			return fmt.Errorf("video invocation recipe %q has no managed package family", plan.RecipeID())
 		}
 		return admitManagedImageRecipeForCurrentHost(family, config.PackageSource)
@@ -400,7 +400,7 @@ func validateVideoInvocationPlan(plan *capabilitydriver.VideoInvocationPlan) err
 		return fmt.Errorf("video invocation plan has invalid dimensions")
 	}
 	paths := []string{plan.DiffusionModelPath(), plan.EncoderPath(), plan.VideoVAEPath()}
-	if plan.RecipeID() == capabilitydriver.StableDiffusionVideoRecipeID && plan.AudioRequired() {
+	if (plan.RecipeID() == capabilitydriver.StableDiffusionVideoRecipeID || plan.RecipeID() == capabilitydriver.HyperFlowH3VideoRecipeID) && plan.AudioRequired() {
 		paths = append(paths, plan.AudioVAEPath())
 	} else if plan.RecipeID() != capabilitydriver.Wan22VideoRecipeID || plan.AudioRequired() || plan.AudioVAEPath() != "" {
 		return fmt.Errorf("video invocation audio contract is invalid")

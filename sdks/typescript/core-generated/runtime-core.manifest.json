@@ -8373,6 +8373,7 @@
       "HookTriggerTimeDetail",
       "HostStorageProjection",
       "IgnoredScenarioExtension",
+      "ImageControlInput",
       "ImageFaceSwapResult",
       "ImageFaceSwapScenarioSpec",
       "ImageGenerateResult",
@@ -8653,6 +8654,8 @@
       "MarkAppActivityReadResponse",
       "MaterializeRealmSourceRequest",
       "MaterializeRealmSourceResponse",
+      "MediaUpscaleResult",
+      "MediaUpscaleScenarioSpec",
       "MemoryEmbeddingCloudBindingRef",
       "MemoryEmbeddingProfile",
       "ModelAssetCatalogSearchResult",
@@ -9191,6 +9194,7 @@
       "HookAdmissionState",
       "HookEffect",
       "HookTriggerFamily",
+      "ImageControlType",
       "IntegrationConnectionSetupAction",
       "LoadoutValidationState",
       "LocalAgentCapabilityParticipationRole",
@@ -23474,6 +23478,33 @@
         "source_file": "proto/runtime/v1/ai.proto"
       },
       {
+        "name": "ImageControlInput",
+        "fields": [
+          {
+            "name": "image_artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "type",
+            "type": "ImageControlType",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "strength",
+            "type": "float",
+            "repeated": false,
+            "optional": true,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "ImageFaceSwapResult",
         "fields": [
           {
@@ -23661,6 +23692,13 @@
             "repeated": false,
             "optional": true,
             "number": 20
+          },
+          {
+            "name": "control_image",
+            "type": "ImageControlInput",
+            "repeated": false,
+            "optional": false,
+            "number": 21
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -30903,6 +30941,13 @@
             "repeated": false,
             "optional": true,
             "number": 20
+          },
+          {
+            "name": "control_image",
+            "type": "ImageControlInput",
+            "repeated": false,
+            "optional": false,
+            "number": 21
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -34440,6 +34485,46 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_source_materialization.proto"
+      },
+      {
+        "name": "MediaUpscaleResult",
+        "fields": [
+          {
+            "name": "artifacts",
+            "type": "ScenarioArtifact",
+            "repeated": true,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
+        "name": "MediaUpscaleScenarioSpec",
+        "fields": [
+          {
+            "name": "source_artifact_id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "scale",
+            "type": "uint32",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "seed",
+            "type": "int64",
+            "repeated": false,
+            "optional": true,
+            "number": 3
+          }
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
       },
       {
         "name": "MemoryEmbeddingCloudBindingRef",
@@ -41300,6 +41385,20 @@
             "repeated": false,
             "optional": false,
             "number": 16
+          },
+          {
+            "name": "image_upscale",
+            "type": "MediaUpscaleResult",
+            "repeated": false,
+            "optional": false,
+            "number": 17
+          },
+          {
+            "name": "video_upscale",
+            "type": "MediaUpscaleResult",
+            "repeated": false,
+            "optional": false,
+            "number": 18
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -41486,6 +41585,20 @@
             "repeated": false,
             "optional": false,
             "number": 20
+          },
+          {
+            "name": "image_upscale",
+            "type": "MediaUpscaleScenarioSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 21
+          },
+          {
+            "name": "video_upscale",
+            "type": "MediaUpscaleScenarioSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 22
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -43913,6 +44026,20 @@
             "repeated": false,
             "optional": false,
             "number": 19
+          },
+          {
+            "name": "image_upscale",
+            "type": "MediaUpscaleScenarioSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 20
+          },
+          {
+            "name": "video_upscale",
+            "type": "MediaUpscaleScenarioSpec",
+            "repeated": false,
+            "optional": false,
+            "number": 21
           }
         ],
         "source_file": "proto/runtime/v1/ai.proto"
@@ -49432,6 +49559,21 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "ImageControlType",
+        "values": [
+          "IMAGE_CONTROL_TYPE_UNSPECIFIED",
+          "IMAGE_CONTROL_TYPE_OPENPOSE",
+          "IMAGE_CONTROL_TYPE_DEPTH",
+          "IMAGE_CONTROL_TYPE_SCRIBBLE",
+          "IMAGE_CONTROL_TYPE_CANNY",
+          "IMAGE_CONTROL_TYPE_NORMAL",
+          "IMAGE_CONTROL_TYPE_SEGMENT",
+          "IMAGE_CONTROL_TYPE_TILE",
+          "IMAGE_CONTROL_TYPE_REPAINT"
+        ],
+        "source_file": "proto/runtime/v1/ai.proto"
+      },
+      {
         "name": "IntegrationConnectionSetupAction",
         "values": [
           "INTEGRATION_CONNECTION_SETUP_ACTION_UNSPECIFIED",
@@ -50589,7 +50731,9 @@
           "SCENARIO_TYPE_MUSIC_TRANSCRIBE",
           "SCENARIO_TYPE_AUDIO_VOICE_CONVERT",
           "SCENARIO_TYPE_TEXT_DECIDE",
-          "SCENARIO_TYPE_AUDIO_SPEAKER_EMBED"
+          "SCENARIO_TYPE_AUDIO_SPEAKER_EMBED",
+          "SCENARIO_TYPE_IMAGE_UPSCALE",
+          "SCENARIO_TYPE_VIDEO_UPSCALE"
         ],
         "source_file": "proto/runtime/v1/ai.proto"
       },

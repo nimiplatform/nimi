@@ -22,6 +22,8 @@ const (
 	StableDiffusionVideoDriverDialect      = "stable-diffusion.cpp/minimax-h3-video-generate/v1"
 	StableDiffusionVideoCapabilityContract = "video.generate"
 	StableDiffusionVideoRecipeID           = "minimax-h3"
+	HyperFlowH3VideoRecipeID               = "hyperflow-h3-flash"
+	HyperFlowH3VideoDialect                = "stable-diffusion.cpp/hyperflow-h3-flash-video-generate/v1"
 
 	StableDiffusionVideoFL2VARequirementID   = "diffusion.fl2va"
 	StableDiffusionVideoRef2VARequirementID  = "diffusion.ref2va"
@@ -37,16 +39,49 @@ const stableDiffusionVideoReferenceImageFeature = "input.image"
 // StableDiffusionVideoDriver owns the stable-diffusion.cpp MiniMax-H3 video
 // dialect. Configuration always binds both diffusion routes and all shared
 // components; each invocation loads exactly one route transformer.
-type StableDiffusionVideoDriver struct{}
+type StableDiffusionVideoDriver struct{ hyperFlow bool }
 
-func (StableDiffusionVideoDriver) ImplementationSupportedFeatures(recipeID string) ([]string, runtimev1.LocalCapabilityReason) {
-	if strings.TrimSpace(recipeID) != StableDiffusionVideoRecipeID {
+func (driver StableDiffusionVideoDriver) recipeID() string {
+	if driver.hyperFlow {
+		return HyperFlowH3VideoRecipeID
+	}
+	return StableDiffusionVideoRecipeID
+}
+
+func (driver StableDiffusionVideoDriver) dialect() string {
+	if driver.hyperFlow {
+		return HyperFlowH3VideoDialect
+	}
+	return StableDiffusionVideoDriverDialect
+}
+
+func (driver StableDiffusionVideoDriver) slots() []stableDiffusionVideoSlotSpec {
+	slots := append([]stableDiffusionVideoSlotSpec(nil), stableDiffusionVideoSlots...)
+	if driver.hyperFlow {
+		slots[0].format, slots[1].format = "safetensors", "safetensors"
+		slots[0].displayLabel = "HyperFlow H3 Flash FL2VA transformer"
+		slots[1].displayLabel = "HyperFlow H3 Flash Ref2VA transformer"
+	}
+	return slots
+}
+
+func (driver StableDiffusionVideoDriver) slot(id string) (stableDiffusionVideoSlotSpec, bool) {
+	for _, slot := range driver.slots() {
+		if slot.id == id {
+			return slot, true
+		}
+	}
+	return stableDiffusionVideoSlotSpec{}, false
+}
+
+func (driver StableDiffusionVideoDriver) ImplementationSupportedFeatures(recipeID string) ([]string, runtimev1.LocalCapabilityReason) {
+	if strings.TrimSpace(recipeID) != driver.recipeID() {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
 	}
 	return []string{stableDiffusionVideoReferenceImageFeature}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }
 
-func (StableDiffusionVideoDriver) EffectiveRequestDefaults(_ string, _ *structpb.Struct) map[string]string {
+func (driver StableDiffusionVideoDriver) EffectiveRequestDefaults(_ string, _ *structpb.Struct) map[string]string {
 	return map[string]string{
 		"options.resolution": "512x288",
 		"options.frames":     "22",
@@ -58,14 +93,14 @@ func (StableDiffusionVideoDriver) EffectiveRequestDefaults(_ string, _ *structpb
 // dialect. Catalog metadata decorates the five projected slots but cannot
 // create a second topology or pin a model content identity.
 func (driver StableDiffusionVideoDriver) ProjectRecipe(recipeID string, options *structpb.Struct, supportedFeatures []string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
-	if strings.TrimSpace(recipeID) != StableDiffusionVideoRecipeID {
+	if strings.TrimSpace(recipeID) != driver.recipeID() {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_PORTABLE_CONFIG_INVALID
 	}
 	return driver.Interpret(InterpretInput{RecipeID: recipeID, PortableConfig: options, SupportedFeatures: supportedFeatures})
 }
 
 func (driver StableDiffusionVideoDriver) ProjectModelAssetBinding(input ModelAssetBindingInput) (ModelAssetBindingProjection, runtimev1.LocalCapabilityReason) {
-	slot, ok := stableDiffusionVideoSlot(input.Requirement.GetRequirementId())
+	slot, ok := driver.slot(input.Requirement.GetRequirementId())
 	if !ok || filepath.Ext(strings.ToLower(input.Entry.RelativePath)) != "."+slot.format {
 		return ModelAssetBindingProjection{}, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
 	}
@@ -138,8 +173,15 @@ func defaultStableDiffusionVideoRecipe() stableDiffusionVideoRecipe {
 	}
 }
 
-func (StableDiffusionVideoDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
-	_, reason := parseStableDiffusionVideoPortableConfig(input.PortableConfig)
+func (driver StableDiffusionVideoDriver) sampleSteps() int {
+	if driver.hyperFlow {
+		return 6
+	}
+	return 0
+}
+
+func (driver StableDiffusionVideoDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	_, reason := driver.parseConfig(input.PortableConfig)
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return nil, reason
 	}
@@ -149,7 +191,7 @@ func (StableDiffusionVideoDriver) Interpret(input InterpretInput) ([]*runtimev1.
 		}
 	}
 	requirements := make([]*runtimev1.LocalCapabilityRequirement, 0, len(stableDiffusionVideoSlots))
-	for _, slot := range stableDiffusionVideoSlots {
+	for _, slot := range driver.slots() {
 		constraintValues := map[string]any{
 			"asset_kind": slot.resourceKind,
 			"format":     slot.format,
@@ -179,7 +221,7 @@ func (StableDiffusionVideoDriver) Interpret(input InterpretInput) ([]*runtimev1.
 	return requirements, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
 }
 
-func (StableDiffusionVideoDriver) ValidateBinding(
+func (driver StableDiffusionVideoDriver) ValidateBinding(
 	requirement *runtimev1.LocalCapabilityRequirement,
 	binding *runtimev1.ModelAssetExactBinding,
 	asset ModelAssetDescriptor,
@@ -187,7 +229,7 @@ func (StableDiffusionVideoDriver) ValidateBinding(
 	if requirement == nil || binding == nil || binding.GetRequirementId() != requirement.GetRequirementId() {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS
 	}
-	slot, ok := stableDiffusionVideoSlot(requirement.GetRequirementId())
+	slot, ok := driver.slot(requirement.GetRequirementId())
 	if !ok || !validStableDiffusionVideoRequirement(requirement, slot) {
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
 	}
@@ -221,7 +263,7 @@ func (driver StableDiffusionVideoDriver) ValidateCombination(
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_BINDING_AMBIGUOUS
 	}
 	byRequirement := make(map[string]*runtimev1.LocalCapabilityRequirement, len(requirements))
-	for index, slot := range stableDiffusionVideoSlots {
+	for index, slot := range driver.slots() {
 		requirement := requirements[index]
 		if !validStableDiffusionVideoRequirement(requirement, slot) {
 			return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_LOCAL_ASSET_INCOMPATIBLE
@@ -245,15 +287,6 @@ func (driver StableDiffusionVideoDriver) ValidateCombination(
 		return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_REQUIRED_BINDING_MISSING
 	}
 	return runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED
-}
-
-func stableDiffusionVideoSlot(requirementID string) (stableDiffusionVideoSlotSpec, bool) {
-	for _, slot := range stableDiffusionVideoSlots {
-		if slot.id == requirementID {
-			return slot, true
-		}
-	}
-	return stableDiffusionVideoSlotSpec{}, false
 }
 
 func validStableDiffusionVideoRequirement(requirement *runtimev1.LocalCapabilityRequirement, slot stableDiffusionVideoSlotSpec) bool {
@@ -309,9 +342,13 @@ func stableDiffusionVideoSlotFormatValid(requirementID, format string, probe []b
 			return false
 		}
 		switch requirementID {
+		case StableDiffusionVideoFL2VARequirementID, StableDiffusionVideoRef2VARequirementID:
+			return hyperFlowH3TransformerProbeValid(probe)
 		case StableDiffusionVideoVAERequirementID:
-			_, ok := header["decoder.mask_token"]
-			return ok
+			if _, ok := header["decoder.mask_token"]; ok {
+				return true
+			}
+			return solH3VAEProbeValid(probe)
 		case StableDiffusionAudioVAERequirementID:
 			for name := range header {
 				if strings.HasPrefix(name, "dec_in_proj.") {
@@ -447,11 +484,11 @@ func stableDiffusionVideoEngineOptionIdentity(value string) string {
 	return value
 }
 
-func (StableDiffusionVideoDriver) PlanVideoInvocation(input VideoInvocationInput) (*VideoInvocationPlan, error) {
+func (driver StableDiffusionVideoDriver) PlanVideoInvocation(input VideoInvocationInput) (*VideoInvocationPlan, error) {
 	if input.LoadoutID == "" || input.LoadoutID != strings.TrimSpace(input.LoadoutID) {
 		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("stable-diffusion video Loadout identity is required"))
 	}
-	portable, reason := parseStableDiffusionVideoPortableConfig(input.PortableConfig)
+	portable, reason := driver.parseConfig(input.PortableConfig)
 	if reason != runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_UNSPECIFIED {
 		return nil, invocationError(InvocationFailureInvalidConfig, fmt.Errorf("stable-diffusion video portable config: %s", reason.String()))
 	}
@@ -486,7 +523,7 @@ func (StableDiffusionVideoDriver) PlanVideoInvocation(input VideoInvocationInput
 	identity := Identity{
 		ImplementationID: StableDiffusionVideoImplementationID,
 		DriverID:         StableDiffusionVideoDriverID,
-		DriverDialect:    StableDiffusionVideoDriverDialect,
+		DriverDialect:    driver.dialect(),
 	}
 	hasher := sha256.New()
 	for _, value := range []string{
@@ -521,7 +558,7 @@ func (StableDiffusionVideoDriver) PlanVideoInvocation(input VideoInvocationInput
 	return &VideoInvocationPlan{
 		processKey:              hex.EncodeToString(hasher.Sum(nil)),
 		loadoutID:               input.LoadoutID,
-		recipeID:                StableDiffusionVideoRecipeID,
+		recipeID:                driver.recipeID(),
 		driverIdentity:          identity,
 		portableConfig:          cloneStruct(input.PortableConfig),
 		exactBindings:           allBindings,
@@ -545,6 +582,7 @@ func (StableDiffusionVideoDriver) PlanVideoInvocation(input VideoInvocationInput
 		cfgScale:                portable.recipe.cfgScale,
 		flowShift:               portable.recipe.flowShift,
 		sampleMethod:            portable.recipe.sampleMethod,
+		sampleSteps:             driver.sampleSteps(),
 		scheduler:               portable.recipe.scheduler,
 		diffusionFlashAttention: portable.recipe.diffusionFlashAttention,
 		offloadToCPU:            portable.recipe.offloadToCPU,

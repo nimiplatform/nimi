@@ -44,6 +44,9 @@ async function runImageGenerate(context: StudioCapabilityRuntimeContext) {
   if (parameters?.referenceImage?.trim() && parameters.referenceImageArtifactId?.trim()) {
     return context.host.nonSuccess(context.capability, 'input-invalid', context.host.translate('Studio.parameters.imageReferenceExclusive'));
   }
+	if ((parameters?.controlImageArtifactId || parameters?.controlType !== undefined || parameters?.controlStrength !== undefined) && (!parameters?.controlImageArtifactId || !parameters?.controlType)) {
+		return context.host.nonSuccess(context.capability, 'input-invalid', context.host.translate('Studio.parameters.controlImageRequired'));
+	}
   const result = await context.host.runners.imageGenerate({
     runtime: { ai: createStudioScenarioJobClient(context) },
     appId: context.host.appId,
@@ -65,6 +68,9 @@ async function runImageGenerate(context: StudioCapabilityRuntimeContext) {
     ...(parameters?.markupArtifactId !== undefined ? { markupArtifactId: parameters.markupArtifactId } : {}),
     ...(parameters?.frameCount !== undefined ? { frameCount: parameters.frameCount } : {}),
     ...(parameters?.frameDurationMs !== undefined ? { frameDurationMs: parameters.frameDurationMs } : {}),
+    ...(parameters?.controlImageArtifactId && parameters.controlType ? {
+      controlImage: { imageArtifactId: parameters.controlImageArtifactId, type: parameters.controlType, ...(parameters.controlStrength === undefined ? {} : { strength: parameters.controlStrength }) },
+    } : {}),
     scenarioId: context.scenarioId,
     surfaceId: context.host.surfaceId,
     observationSignal: context.input.observationSignal,

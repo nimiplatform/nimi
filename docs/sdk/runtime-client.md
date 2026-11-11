@@ -1,4 +1,4 @@
-<!-- nimi-docs: {"authority":["rule.nimi.sdks.client-core.remote-runtime-carrier","rule.nimi.runtime.remote-access.operation-carrier"],"sources":["sdks/typescript/package.json","sdks/typescript/runtime/remote.ts","sdks/typescript/runtime/remote-app.ts","examples/sdk/08-remote-runtime.ts"]} -->
+<!-- nimi-docs: {"authority":["rule.nimi.sdks.client-core.remote-runtime-carrier","rule.nimi.runtime.remote-access.operation-carrier","rule.nimi.runtime.ai-provider.media-upscale-contract","rule.nimi.runtime.ai-provider.sdxl-controlnet-union"],"sources":["sdks/typescript/package.json","sdks/typescript/runtime/remote.ts","sdks/typescript/runtime/remote-app.ts","examples/sdk/08-remote-runtime.ts","examples/sdk/09-media-jobs.ts","sdks/typescript/core/app/local-app-runtime-platform-ai.ts"]} -->
 
 # Runtime Client
 
@@ -17,6 +17,23 @@ AI generation requests carry prompt contents and supported execution parameters.
 - **Streaming responses**: Emit ordered, strongly-typed event chunks ending with an explicit terminal outcome.
 - **Asynchronous Jobs**: Follow standard lifecycle operations: Submit, poll Get, fetch complete results, or invoke Cancel. If client observation is interrupted, resume queries using the original Job ID rather than resubmitting duplicate workloads. See [Streaming](/runtime/streaming).
 - **LocalAgent operations**: Agent interactions execute through session-scoped authorized handles. Conversations, task execution, shared configurations, memory controls, and realtime streams are each protected by specific capability scopes. Cognition manages long-term memory via Runtime mediation; Knowledge V1 does not expose a public client surface.
+
+## Local Media Job Example
+
+The new media recipes require matching source-built SDK, Kit and Runtime. Prepare the model through Home before configuring the App. Only `image.upscale` and `video.upscale` are new capability IDs: H3 Image and ControlNet use `image.generate`, while HyperFlow and Sol-H3-VAE use `video.generate`.
+
+This function saves one Local intent without changing the machine's model selection or removing the App's other capability preferences. Continue only when the overwrite succeeds; a revision conflict needs an explicit user decision.
+
+<<< ../../examples/sdk/09-media-jobs.ts#configure
+
+The [multimodal guide](/runtime/multimodal) includes the same typechecked example's upload, submission, result-retention and cancellation functions:
+
+- Upload via `client.ai.artifacts.upload`; pass the returned artifact ID rather than a host file path.
+- Submit `image-upscale` or `video-upscale` with `sourceArtifactId`, `scale: 2 | 4` and optional `seed`.
+- Submit ControlNet through `image-generate` with `controlImage: { imageArtifactId, type, strength? }`. Ordinary H3 editing uses `referenceImageArtifactId` instead.
+- Save the submission ID before Submit and the Job ID after it returns. Recover uncertain submission with `lookupSubmission`, query status with `get`, explicitly `cancel` when requested, and adopt completed artifacts through `client.storage.assets.adoptArtifact`.
+
+The example's native Windows path does not establish remote Web/Android or installed-distribution acceptance. Supported models, media limits and exercised combinations are listed in [Local models](/runtime/local-models#local-image-and-video-models).
 
 ## Error Handling and Fault Tolerance
 
@@ -44,3 +61,6 @@ This typechecked recipe receives a current session from official login and close
 - [`sdks/typescript/runtime/remote.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/runtime/remote.ts)
 - [`sdks/typescript/realm/runtime-client.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/realm/runtime-client.ts)
 - [`examples/sdk/08-remote-runtime.ts`](https://github.com/nimiplatform/nimi/blob/main/examples/sdk/08-remote-runtime.ts)
+- [`examples/sdk/09-media-jobs.ts`](https://github.com/nimiplatform/nimi/blob/main/examples/sdk/09-media-jobs.ts)
+- [`.nimi/spec/runtime/media-upscale.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/media-upscale.authority.yaml)
+- [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)

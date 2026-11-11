@@ -1,5 +1,29 @@
 {
   "CapabilityTests": {
+    "upscale": {
+      "title": "Super-resolution",
+      "inputNote": "Choose one source file and an enlargement factor.",
+      "primaryLabel": "Upscale",
+      "primaryRunningLabel": "Upscaling",
+      "footnote": "Uses the selected local super-resolution model.",
+      "pending": "Super-resolution is running.",
+      "source": "Source file",
+      "scale": "Enlargement factor",
+      "seed": "Seed",
+      "invalidInput": "Choose a supported source file up to 32 MiB, a factor of 2 or 4, and a seed from 0 to 2147483647.",
+      "invalidOutput": "Runtime returned an unexpected super-resolution artifact.",
+      "completed": "Super-resolution completed.",
+      "imageHint": "PNG or JPEG up to 32 MiB. Output axes must not exceed 4096 pixels. RelayVSR requires its matching 2x or 4x model.",
+      "videoHint": "MP4 with one H264 video stream and optional AAC audio, up to 32 MiB, 10 seconds and 300 frames. Original frame timing and audio are preserved. Output decoded RGB frames must fit within 512 MiB."
+    },
+    "imageUpscale": {
+      "label": "Image super-resolution",
+      "summary": "Enlarge an owned image and save its complete PNG."
+    },
+    "videoUpscale": {
+      "label": "Video super-resolution",
+      "summary": "Enlarge a complete MP4 while retaining frame timing and audio."
+    },
     "common": {
       "stoppedBeforeSubmit": "Stopped before the request was submitted.",
       "recordFailed": "The run finished, but its history record was not saved: {{detail}}",
@@ -444,17 +468,24 @@
     },
     "appFiles": {
       "title": "App files",
-      "intro": "Write a file through the current App client, then compare its streamed read-back byte for byte. Runtime owns file limits, quotas and final commit.",
+      "intro": "Save a file in Lab’s private test assets or compare an original with a saved copy byte for byte.",
       "file": "Selected file",
       "path": "App asset path",
-      "upload": "Upload and verify",
+      "pathHelp": "An upload creates a new path. Enter a saved path to verify an existing file.",
+      "copyPath": "Copy path",
+      "upload": "Upload new file and verify",
       "verify": "Verify existing file",
-      "uploading": "Reading for upload (not committed yet)",
+      "uploading": "Uploading and waiting for Runtime to confirm the write",
       "checking": "Comparing read-back",
       "bytes": "bytes",
       "passed": "The complete read-back matches the selected file.",
-      "failed": "The transfer or verification did not complete.",
-      "footnote": "These are private Lab test assets. To check an interrupted upload, keep its path, reconnect, select the same file and verify the existing path. Verification never resubmits it. This page does not save binary content in AI run history.",
+      "uploadConfirmed": "Runtime confirmed the write at this path.",
+      "uploadUnconfirmed": "The write was not confirmed. Copy the path, then reconnect, select the same file, and verify the existing path.",
+      "readFailed": "Could not read back the complete file. Check the path and connection, then verify the existing file again.",
+      "mismatch": "The saved file differs from the selected file. Check the path and the selected file.",
+      "technicalDetails": "Technical details",
+      "footnote": "Verifying an existing file only reads that path. Manage saved test files under Current Lab files in Integrations.",
+      "footnoteWeb": "Verifying an existing file only reads that path. Test files are saved in this Web Lab’s private assets.",
       "usePage": "Use the App files page to write and verify an owned asset."
     }
   }

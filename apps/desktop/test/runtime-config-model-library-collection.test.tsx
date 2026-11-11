@@ -243,6 +243,26 @@ test('All lists every model in category order; a category narrows models and par
   assert.equal(nimiCollectionForCategory(collection, 'all'), collection);
 });
 
+test('a super-resolution deep link uses Runtime capabilities and preserves shared model names', () => {
+  const model = descriptor({
+    templateId: 'upscale.shared', title: 'example-7b-sharp-local (INT8)', logicalModelId: 'example-7b-sharp-local',
+    contentId: 'sha256:upscale', capabilities: ['image.upscale', 'video.upscale'], entry: 'model.safetensors',
+  });
+  const unrelated = descriptor({
+    templateId: 'embed.other', title: 'embedding-local (F16)', logicalModelId: 'embedding-local',
+    contentId: 'sha256:embedding', capabilities: ['text.embed'], entry: 'embedding.gguf',
+  });
+  const collection = buildNimiCollection({ catalog: [model, unrelated], recipes: [
+    recipe({ recipeId: 'upscale.image', title: 'Example 7B Sharp (experimental) image upscaling', capabilityContract: 'image.upscale', slots: [{ slotId: 'upscale.transformer', variants: ['upscale.shared'], offers: [model] }] }),
+    recipe({ recipeId: 'upscale.video', title: 'Example 7B Sharp (experimental) video upscaling', capabilityContract: 'video.upscale', slots: [{ slotId: 'upscale.transformer', variants: ['upscale.shared'], offers: [model] }] }),
+  ] });
+  const video = nimiCollectionForCategory(collection, 'video', 'video.upscale');
+  assert.deepEqual(video.models.map((item) => item.title), ['Example 7B Sharp (experimental)']);
+  assert.equal(video.models[0]?.capability, 'video.upscale');
+  assert.equal(nimiCollectionForCategory(collection, 'image', 'image.upscale').models.length, 1);
+  assert.deepEqual(communityFeedCategories('video', 'video.upscale'), []);
+});
+
 test('categories: capability deep links open their category and only chat, image and video have community picks', () => {
   assert.equal(initialModelLibraryCategory(undefined), 'all');
   assert.equal(initialModelLibraryCategory('text.generate'), 'chat');

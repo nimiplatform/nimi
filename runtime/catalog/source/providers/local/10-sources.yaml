@@ -1,4 +1,16 @@
 sources:
+  - source_id: sdxl_base_official
+    url: https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/tree/462165984030d82259a11f4367a4eed129e94a7b
+    retrieved_at: 2026-11-11
+    note: Complete SDXL Base 1.0 checkpoint with both text encoders and VAE, under CreativeML Open RAIL++-M.
+  - source_id: sdxl_controlnet_union_official
+    url: https://huggingface.co/xinsir/controlnet-union-sdxl-1.0/tree/801a4a3fa3d4c936f4feea95b98607bc6726f80c
+    retrieved_at: 2026-11-11
+    note: Official ControlNet Union ProMax safetensors checkpoint with eight task embeddings, under Apache-2.0.
+  - source_id: stable_diffusion_cpp_controlnet_union
+    url: https://github.com/leejet/stable-diffusion.cpp/commit/fdfc913c515ad749cedd84a118e7c23a05ac1c65
+    retrieved_at: 2026-11-11
+    note: Native SDXL ControlNet Union control-type support, including ProMax tile and repaint.
   - source_id: wan22_ti2v_gguf
     url: https://huggingface.co/QuantStack/Wan2.2-TI2V-5B-GGUF/tree/57437632ddd08bdcbd1508c866aa22e126ed51d2
     retrieved_at: 2026-11-06
@@ -147,6 +159,18 @@ sources:
     url: https://huggingface.co/black-forest-labs/FLUX.2-dev/tree/26afe3a78bb242c0a8bb181dcc8937bb16e5c66c
     retrieved_at: 2026-08-16
     note: Canonical FLUX.2 VAE source used by the Ideogram4 recipe.
+  - source_id: minimax_h3_image_modelcard
+    url: https://huggingface.co/MiniMaxAI/MiniMax-H3-Image
+    retrieved_at: 2026-11-11
+    note: Original MiniMax-H3-Image model and territory-limited Community License Agreement.
+  - source_id: minimax_h3_image_comfy_weights
+    url: https://huggingface.co/Comfy-Org/MiniMax-H3-Image/tree/892de7cb61df49753bf15145a711154803a355cb
+    retrieved_at: 2026-11-11
+    note: Combined pruned INT8 ConvRot transformer with PDD output heads and the dedicated image VAE.
+  - source_id: stable_diffusion_cpp_minimax_h3_image_guide
+    url: https://github.com/leejet/stable-diffusion.cpp/blob/32d516c0197ed5ca31305b8575e14eb1451fad33/docs/minimax_h3_image.md
+    retrieved_at: 2026-11-11
+    note: Six-step MiniMax-H3-Image execution with the shared H3 text encoder.
   - source_id: minimax_h3_gguf_modelcard
     url: https://huggingface.co/leejet/MiniMax-H3-GGUF/tree/d31b8066b4f7c036e7d10d5685567f8f54c8be54
     retrieved_at: 2026-08-16
@@ -383,3 +407,20 @@ sources:
     url: https://huggingface.co/google/gemma-4-12B-it-qat-q4_0-gguf/tree/29d097773436b69ff9feafd636ab4cf873786537
     retrieved_at: 2026-11-05
     note: Exact official QAT Q4_0 main and paired direct projection. Windows CUDA b11960 at 8192 context passed text, sync/stream tools, strict schema with hidden budget, image and visual video input. The Chinese audio transcription sample had substantive content errors; audio transport support is not an ASR quality claim. The 16 GiB main-model RAM/VRAM fit inputs include headroom over paired-process peak commit 12679962624 bytes and observed whole-device 11649 MiB on RTX 5090, with a further 256 MiB projector allowance; these are conservative reference-context estimates, not separate small-device certification or universal peak guarantees. Global f16 KV grows by 16384 bytes/token across eight global layers; sliding-window cache is bounded.
+
+  - source_id: hyperflow_h3_flash_official
+    url: https://huggingface.co/VideoRebirthAI/hyperflow-h3-flash
+    retrieved_at: 2026-11-11
+    note: HyperFlow H3 Flash distilled video and audio transformer, with MiniMax H3 license lineage.
+  - source_id: hyperflow_h3_flash_comfy
+    url: https://huggingface.co/BennyDaBall/HyperFlow-H3-Flash-INT8-ComfyUI/tree/b5d22a34bfb159b0bc559458aac3412d0647f743
+    retrieved_at: 2026-11-11
+    note: Community conversion into the native combined H3 tensor layout; preserved INT8 weights and scales with low-rank factors.
+  - source_id: sol_h3_vae_comfy
+    url: https://huggingface.co/Comfy-Org/MiniMax-H3/tree/54472221d27c695fca9621b0c3ed52f06c4af707/vae
+    retrieved_at: 2026-11-11
+    note: Sol-H3 distilled video decoder bundled with the original H3 encoder.
+  - source_id: stable_diffusion_cpp_hyperflow_sol
+    url: https://github.com/leejet/stable-diffusion.cpp/blob/32d516c0197ed5ca31305b8575e14eb1451fad33/docs/minimax_h3.md
+    retrieved_at: 2026-11-11
+    note: HyperFlow six-step sampling and Sol-H3 VAE decoder support.

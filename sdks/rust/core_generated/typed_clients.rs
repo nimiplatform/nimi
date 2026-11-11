@@ -1870,6 +1870,25 @@ impl Default for HookTriggerFamily {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ImageControlType {
+    IMAGECONTROLTYPEUNSPECIFIED,
+    IMAGECONTROLTYPEOPENPOSE,
+    IMAGECONTROLTYPEDEPTH,
+    IMAGECONTROLTYPESCRIBBLE,
+    IMAGECONTROLTYPECANNY,
+    IMAGECONTROLTYPENORMAL,
+    IMAGECONTROLTYPESEGMENT,
+    IMAGECONTROLTYPETILE,
+    IMAGECONTROLTYPEREPAINT,
+}
+
+impl Default for ImageControlType {
+    fn default() -> Self {
+        Self::IMAGECONTROLTYPEUNSPECIFIED
+    }
+}
+
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum IntegrationConnectionSetupAction {
     INTEGRATIONCONNECTIONSETUPACTIONUNSPECIFIED,
     INTEGRATIONCONNECTIONSETUPACTIONCREATENEWTARGET,
@@ -4330,6 +4349,8 @@ pub enum ScenarioType {
     SCENARIOTYPEAUDIOVOICECONVERT,
     SCENARIOTYPETEXTDECIDE,
     SCENARIOTYPEAUDIOSPEAKEREMBED,
+    SCENARIOTYPEIMAGEUPSCALE,
+    SCENARIOTYPEVIDEOUPSCALE,
 }
 
 impl Default for ScenarioType {
@@ -9431,6 +9452,13 @@ pub struct IgnoredScenarioExtension {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct ImageControlInput {
+    pub image_artifact_id: Option<String>,
+    pub r#type: Option<ImageControlType>,
+    pub strength: Option<f32>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct ImageFaceSwapResult {
     pub artifacts: Vec<Box<ScenarioArtifact>>,
 }
@@ -9468,6 +9496,7 @@ pub struct ImageGenerateScenarioSpec {
     pub markup_artifact_id: Option<String>,
     pub frame_count: Option<i32>,
     pub frame_duration_ms: Option<i32>,
+    pub control_image: Option<Box<ImageControlInput>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -11416,6 +11445,7 @@ pub struct LocalAppImageGenerateScenarioSpec {
     pub markup_artifact_id: Option<String>,
     pub frame_count: Option<i32>,
     pub frame_duration_ms: Option<i32>,
+    pub control_image: Option<Box<ImageControlInput>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -12199,6 +12229,18 @@ pub struct MaterializeRealmSourceResponse {
     pub source_context_status: Option<Box<LocalAgentSourceContextStatus>>,
     pub idempotent_replay: Option<bool>,
     pub reason_code: Option<RealmSourceMaterializationReasonCode>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MediaUpscaleResult {
+    pub artifacts: Vec<Box<ScenarioArtifact>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct MediaUpscaleScenarioSpec {
+    pub source_artifact_id: Option<String>,
+    pub scale: Option<u32>,
+    pub seed: Option<i64>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -14532,6 +14574,8 @@ pub struct ScenarioOutput {
     pub audio_voice_convert: Option<Box<AudioVoiceConvertResult>>,
     pub text_decision: Option<Box<TextDecisionResult>>,
     pub audio_speaker_embed: Option<Box<AudioSpeakerEmbedResult>>,
+    pub image_upscale: Option<Box<MediaUpscaleResult>>,
+    pub video_upscale: Option<Box<MediaUpscaleResult>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -14568,6 +14612,8 @@ pub struct ScenarioSpec {
     pub audio_voice_convert: Option<Box<AudioVoiceConvertScenarioSpec>>,
     pub text_decide: Option<Box<TextDecideScenarioSpec>>,
     pub audio_speaker_embed: Option<Box<AudioSpeakerEmbedScenarioSpec>>,
+    pub image_upscale: Option<Box<MediaUpscaleScenarioSpec>>,
+    pub video_upscale: Option<Box<MediaUpscaleScenarioSpec>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -15398,6 +15444,8 @@ pub struct SubmitLocalAppScenarioJobRequest {
     pub music_transcribe: Option<Box<MusicTranscribeScenarioSpec>>,
     pub audio_voice_convert: Option<Box<AudioVoiceConvertScenarioSpec>>,
     pub audio_speaker_embed: Option<Box<AudioSpeakerEmbedScenarioSpec>>,
+    pub image_upscale: Option<Box<MediaUpscaleScenarioSpec>>,
+    pub video_upscale: Option<Box<MediaUpscaleScenarioSpec>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

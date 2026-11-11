@@ -74,6 +74,12 @@ export async function answerWithTools(
 
 ## 3. Advanced Capabilities
 
+### Local Image and Video Jobs (current source build)
+
+`image.upscale` and `video.upscale` accept an uploaded `sourceArtifactId`, `scale: 2 | 4` and optional `seed`. SDXL ControlNet Union extends `image.generate` with `controlImage`, while ordinary H3 image editing uses `referenceImageArtifactId`. Import the public `ImageControlType` enum from `@nimiplatform/sdk/runtime/wire-types`.
+
+The typechecked [media Job example](https://github.com/nimiplatform/nimi/blob/main/examples/sdk/09-media-jobs.ts) uses the existing App client for AIConfig, upload, submission, observation, cancellation and artifact adoption. Follow the [English guide](https://github.com/nimiplatform/nimi/blob/main/docs/runtime/multimodal.md) or [中文指南](https://github.com/nimiplatform/nimi/blob/main/docs/zh/runtime/multimodal.md) for complete inputs and limits. Prepare models through Home and use matching source-built SDK, Kit and Runtime. These new recipes currently use Windows amd64 NVIDIA sd.cpp 1088; SeedVR2 is experimental. Native Lab observations do not establish remote or installed-distribution acceptance.
+
 ### Audio Transcription (`audio.transcribe`)
 Read completed speech-to-text results. Word timing is available only when the selected resource supports alignment:
 

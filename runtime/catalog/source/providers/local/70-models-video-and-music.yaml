@@ -40,6 +40,91 @@ models:
   # are independent video ModelAssets; the combined encoder is a reusable
   # chat-kind ModelAsset; both VAEs are passive assets. No version grouping is
   # implied by these catalog recommendations.
+  - model_id: hyperflow-h3-flash-fl2va-local
+    model_type: video
+    family: hyperflow-h3-flash
+    updated_at: 2026-11-11
+    capabilities: [video.generate]
+    features: [input.image]
+    source_ids: [hyperflow_h3_flash_official, hyperflow_h3_flash_comfy, stable_diffusion_cpp_hyperflow_sol]
+    video_generation:
+      modes: [t2v, i2v_first_frame]
+      input_roles:
+        t2v: [prompt]
+        i2v_first_frame: [prompt, first_frame]
+      limits:
+        resolution: [288p, 480p]
+      options:
+        supports: [resolution, duration_sec]
+        constraints: {}
+      outputs:
+        video_url: true
+    install:
+      repo: BennyDaBall/HyperFlow-H3-Flash-INT8-ComfyUI # pragma: allowlist secret -- public model repository ID
+      revision: b5d22a34bfb159b0bc559458aac3412d0647f743 # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      license: MiniMax H3 Community License Agreement
+      provenance: Community INT8 conversion by BennyDaBall of VideoRebirthAI HyperFlow H3 Flash, preserving the original weight license.
+      entry: minimax_h3_fl2va_hyperflow_flash_int8_convrot.safetensors
+      artifact_roles: [diffusion_transformer]
+      preferred_engine: media
+    variants:
+      - variant_id: local.video.hyperflow-h3-flash-fl2va.int8-convrot.cuda
+        quant: INT8 ConvRot
+        entry: minimax_h3_fl2va_hyperflow_flash_int8_convrot.safetensors
+        files: [minimax_h3_fl2va_hyperflow_flash_int8_convrot.safetensors]
+        hashes:
+          minimax_h3_fl2va_hyperflow_flash_int8_convrot.safetensors: "sha256:6fcd9b13b7c3bf33e03bb49b10b02a7a60f5051ce8837e583be1452ba7289274"
+        total_size_bytes: 15894225896
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 25769803776
+    fitness:
+      param_count: 13719355040
+      context_length: 0
+  - model_id: hyperflow-h3-flash-ref2va-local
+    model_type: video
+    family: hyperflow-h3-flash
+    updated_at: 2026-11-11
+    capabilities: [video.generate]
+    features: [input.image]
+    source_ids: [hyperflow_h3_flash_official, hyperflow_h3_flash_comfy, stable_diffusion_cpp_hyperflow_sol]
+    video_generation:
+      modes: [i2v_first_frame]
+      input_roles:
+        i2v_first_frame: [prompt, first_frame]
+      limits:
+        resolution: [288p, 480p]
+      options:
+        supports: [resolution, duration_sec]
+        constraints: {}
+      outputs:
+        video_url: true
+    install:
+      repo: BennyDaBall/HyperFlow-H3-Flash-INT8-ComfyUI # pragma: allowlist secret -- public model repository ID
+      revision: b5d22a34bfb159b0bc559458aac3412d0647f743 # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      license: MiniMax H3 Community License Agreement
+      provenance: Community INT8 conversion by BennyDaBall of VideoRebirthAI HyperFlow H3 Flash, preserving the original weight license.
+      entry: minimax_h3_ref2va_hyperflow_flash_int8_convrot.safetensors
+      artifact_roles: [diffusion_transformer]
+      preferred_engine: media
+    variants:
+      - variant_id: local.video.hyperflow-h3-flash-ref2va.int8-convrot.cuda
+        quant: INT8 ConvRot
+        entry: minimax_h3_ref2va_hyperflow_flash_int8_convrot.safetensors
+        files: [minimax_h3_ref2va_hyperflow_flash_int8_convrot.safetensors]
+        hashes:
+          minimax_h3_ref2va_hyperflow_flash_int8_convrot.safetensors: "sha256:3a60ba89db6c5b84a792b0a0bd911bf0126e5ff9dce99c6727ff61e961210b7e"
+        total_size_bytes: 16324655176
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 25769803776
+    fitness:
+      param_count: 13934567584
+      context_length: 0
   - model_id: minimax-h3-fl2va-local
     model_type: video
     family: minimax-h3

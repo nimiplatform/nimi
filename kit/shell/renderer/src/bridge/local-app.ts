@@ -164,6 +164,11 @@ export type NimiLocalAppScenarioExecuteOptions = {
 };
 
 export type NimiLocalAppImageGenerateSpec = {
+  readonly controlImage?: {
+    readonly imageArtifactId: string;
+    readonly type: number;
+    readonly strength?: number;
+  };
   readonly type: 'image-generate';
   readonly prompt: string;
   readonly negativePrompt: string;
@@ -197,6 +202,7 @@ export type NimiLocalAppVideoContentRole =
 export type NimiLocalAppScenarioJobSpec =
   | NimiLocalAppImageGenerateSpec
   | { readonly type: 'image-face-swap'; readonly referenceImageArtifactId: string; readonly targetImageArtifactId: string }
+  | { readonly type: 'image-upscale' | 'video-upscale'; readonly sourceArtifactId: string; readonly scale: 2 | 4; readonly seed?: number }
   | { readonly type: 'video-face-swap'; readonly referenceImageArtifactId: string; readonly targetVideoArtifactId: string; readonly noFacePolicy: 'fail' | 'preserve-frame' }
   | { readonly type: 'vision-locate'; readonly imageArtifactId: string; readonly query: string; readonly geometry: 'box' | 'point' }
   | {
@@ -275,7 +281,7 @@ export type NimiLocalAppScenarioJob = {
   readonly recoveryExpiresAt?: NimiLocalAppScenarioTimestamp;
   readonly videoFaceSwapSummary?: { readonly totalFrames: number; readonly transformedFrames: number; readonly preservedFrames: number; readonly durationUs: number; readonly frameRate: 24 | 25 | 30; readonly audioPreserved: boolean };
   readonly jobId: string;
-  readonly scenarioType: 'image-generate' | 'image-face-swap' | 'video-face-swap' | 'vision-locate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'text-annotate' | 'audio-speaker-embed' | 'audio-separate' | 'voice-create' | 'music-generate' | 'music-transcribe' | 'audio-voice-convert' | 'world-generate';
+  readonly scenarioType: 'image-generate' | 'image-upscale' | 'video-upscale' | 'image-face-swap' | 'video-face-swap' | 'vision-locate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'text-annotate' | 'audio-speaker-embed' | 'audio-separate' | 'voice-create' | 'music-generate' | 'music-transcribe' | 'audio-voice-convert' | 'world-generate';
   readonly status: 'submitted' | 'queued' | 'running' | 'completed' | 'failed' | 'canceled' | 'timeout';
   readonly progressPercent: number; readonly progressCurrentStep: number; readonly progressTotalSteps: number;
   readonly reasonCode: string; readonly reasonDetail: string;
@@ -2810,7 +2816,7 @@ function parseScenarioJob(value: unknown, command: string): NimiLocalAppScenario
     ...(Object.hasOwn(record, 'interruption') ? ['interruption'] : []),
     ...(Object.hasOwn(record, 'videoFaceSwapSummary') ? ['videoFaceSwapSummary'] : []),
   ], command, 'scenario Job');
-  if (!['image-generate', 'image-face-swap', 'video-face-swap', 'vision-locate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'text-annotate', 'audio-speaker-embed', 'audio-separate', 'voice-create', 'music-generate', 'music-transcribe', 'audio-voice-convert', 'world-generate'].includes(String(record.scenarioType))
+  if (!['image-generate', 'image-upscale', 'video-upscale', 'image-face-swap', 'video-face-swap', 'vision-locate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'text-annotate', 'audio-speaker-embed', 'audio-separate', 'voice-create', 'music-generate', 'music-transcribe', 'audio-voice-convert', 'world-generate'].includes(String(record.scenarioType))
     || !['submitted', 'queued', 'running', 'completed', 'failed', 'canceled', 'timeout'].includes(String(record.status))) {
     throw new Error(`${command}: Job enum is invalid`);
   }

@@ -10,6 +10,7 @@ export const CANONICAL_CAPABILITY_IDS = Object.freeze([
   "audio.voice.convert",
   "image.face_swap",
   "image.generate",
+  "image.upscale",
   "music.generate",
   "music.transcribe",
   "realtime.interact",
@@ -19,6 +20,7 @@ export const CANONICAL_CAPABILITY_IDS = Object.freeze([
   "text.generate",
   "video.face_swap",
   "video.generate",
+  "video.upscale",
   "vision.locate",
   "voice.create",
   "world.generate"

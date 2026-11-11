@@ -16,7 +16,7 @@ import (
 // The model-family marker alone cannot establish compatibility with the C
 // struct layouts and function signatures compiled into the Windows bridge.
 // Reuse the materializer's existing verified archive identity.
-const stableDiffusionVideoArchiveSHA256 = "2767f24655b7bbd1290f7cb307e05c988cda388108b7d83b502cf95276df3b50" // pragma: allowlist secret -- public archive checksum
+const stableDiffusionVideoArchiveSHA256 = "e76d90e0ad0aedb3bcd9e24e7ecb20e7c3e0be9700a7e9e94fbd26226e67f597" // pragma: allowlist secret -- public archive checksum
 
 type videoPackageIdentity struct {
 	Name                   string   `json:"name,omitempty"`
@@ -40,7 +40,7 @@ func (identity videoPackageIdentity) supportsRecipe(recipe string) bool {
 	// support contract. The Host admits the recipe against its current package
 	// catalog and verifies the installed payload before starting this wrapper.
 	// Bind the wrapper's implemented recipes to the exact native ABI instead.
-	return recipe == "minimax-h3" || recipe == "wan22-ti2v-5b"
+	return recipe == "minimax-h3" || recipe == "hyperflow-h3-flash" || recipe == "wan22-ti2v-5b"
 }
 
 func resolveVideoPackageIdentity(executablePath string) videoPackageIdentity {

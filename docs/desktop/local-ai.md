@@ -1,3 +1,5 @@
+<!-- nimi-docs: {"authority":["rule.nimi.runtime.local-compute.r067","rule.nimi.runtime.ai-provider.r064","rule.nimi.runtime.ai-provider.media-upscale-contract"],"sources":["config/runtime-managed-image-backend-packages.yaml","apps/desktop/src/shell/renderer/features/runtime-config/runtime-capability-inventory.ts"]} -->
+
 # Local AI in Nimi Home
 
 The **AI Capabilities** section in Nimi Home is your control center for local models and execution profiles (Loadouts). From here, you can browse curated recommendations and community configurations, import local model weights, check hardware readiness, and set machine-wide defaults.
@@ -21,6 +23,12 @@ Here is the typical workflow from importing a model to running your first local 
 3. **Set as Capability Default**: In the **AI Capabilities** panel, set this Loadout as the machine default for that capability.
 4. **Run a Query**: In any Nimi App or Desktop Chat that supports the capability, select **Local** mode to run requests through your configured local model. Selecting Local only routes that capability to local compute—the App's online features, external connections, and other cloud capabilities keep their own independent data flows, and the App itself does not become an offline client.
 
+## Prepare Image and Video Models
+
+For H3 Image, HyperFlow, ControlNet or upscaling, start from the corresponding capability in **AI Capabilities**. Select a model configuration, download its missing components and bind compatible existing files. Keep image and video super-resolution defaults separate. RelayVSR needs the transformer and VAE matching its 2×/4× multiplier; Sol-H3-VAE belongs in the H3 video VAE slot.
+
+These new recipes currently use the Runtime-managed sd.cpp 1088 Windows amd64 NVIDIA package. macOS retains 1050; the Windows acceptance does not establish support on that host. SeedVR2 remains experimental. See [model requirements](/runtime/local-models#local-image-and-video-models) before downloading and the [Lab walkthrough](/start/use-nimi-lab#try-local-image-and-video-models) to confirm an actual output after preparation. Ordinary Apps consume the configured capability; they do not install the engine themselves.
+
 ## Understanding Status Indicators
 
 - **File Integrity**: Confirms that downloaded bytes match registered checksums so you don't run corrupted weights.
@@ -34,3 +42,5 @@ For a technical deep dive into local inference mechanics and loadouts, see [Loca
 - [`.nimi/spec/desktop/ai-consumption.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/ai-consumption.authority.yaml)
 - [`.nimi/spec/desktop/shell-ui.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/shell-ui.authority.yaml)
 - [`.nimi/spec/runtime/local-compute.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/local-compute.authority.yaml)
+- [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)
+- [`.nimi/spec/runtime/media-upscale.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/media-upscale.authority.yaml)

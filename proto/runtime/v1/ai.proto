@@ -46,6 +46,8 @@ enum ScenarioType {
   SCENARIO_TYPE_AUDIO_VOICE_CONVERT = 18;
   SCENARIO_TYPE_TEXT_DECIDE = 19;
   SCENARIO_TYPE_AUDIO_SPEAKER_EMBED = 20;
+  SCENARIO_TYPE_IMAGE_UPSCALE = 21;
+  SCENARIO_TYPE_VIDEO_UPSCALE = 22;
 }
 
 enum ExecutionMode {
@@ -405,6 +407,26 @@ message TextEmbedScenarioSpec {
   TextEmbedPurpose purpose = 3;
 }
 
+enum ImageControlType {
+  IMAGE_CONTROL_TYPE_UNSPECIFIED = 0;
+  IMAGE_CONTROL_TYPE_OPENPOSE = 1;
+  IMAGE_CONTROL_TYPE_DEPTH = 2;
+  IMAGE_CONTROL_TYPE_SCRIBBLE = 3;
+  IMAGE_CONTROL_TYPE_CANNY = 4;
+  IMAGE_CONTROL_TYPE_NORMAL = 5;
+  IMAGE_CONTROL_TYPE_SEGMENT = 6;
+  IMAGE_CONTROL_TYPE_TILE = 7;
+  IMAGE_CONTROL_TYPE_REPAINT = 8;
+}
+
+// An already-prepared control map owned by the requesting App. Runtime does
+// not infer the map type or run an implicit image preprocessor.
+message ImageControlInput {
+  string image_artifact_id = 1;
+  ImageControlType type = 2;
+  optional float strength = 3;
+}
+
 message ImageGenerateScenarioSpec {
   string prompt = 1;
   string negative_prompt = 2;
@@ -426,6 +448,7 @@ message ImageGenerateScenarioSpec {
   string markup_artifact_id = 18;
   optional int32 frame_count = 19;
   optional int32 frame_duration_ms = 20;
+  ImageControlInput control_image = 21;
 }
 
 message VideoGenerateScenarioSpec {
@@ -698,6 +721,13 @@ enum VisionLocateGeometry {
   VISION_LOCATE_GEOMETRY_UNSPECIFIED = 0;
   VISION_LOCATE_GEOMETRY_BOX = 1;
   VISION_LOCATE_GEOMETRY_POINT = 2;
+}
+
+// The source artifact belongs to the current protected App caller.
+message MediaUpscaleScenarioSpec {
+  string source_artifact_id = 1;
+  uint32 scale = 2;
+  optional int64 seed = 3;
 }
 
 // Both artifacts belong to the current protected App caller.
@@ -973,6 +1003,8 @@ message ScenarioSpec {
     AudioVoiceConvertScenarioSpec audio_voice_convert = 18;
     TextDecideScenarioSpec text_decide = 19;
     AudioSpeakerEmbedScenarioSpec audio_speaker_embed = 20;
+    MediaUpscaleScenarioSpec image_upscale = 21;
+    MediaUpscaleScenarioSpec video_upscale = 22;
   }
   reserved 7, 8;
   reserved "voice_clone", "voice_design";
@@ -1178,6 +1210,10 @@ message WorldGenerateResult {
   repeated ScenarioArtifact artifacts = 11;
 }
 
+message MediaUpscaleResult {
+  repeated ScenarioArtifact artifacts = 1;
+}
+
 message ScenarioOutput {
   oneof output {
     TextGenerateOutput text_generate = 1;
@@ -1196,6 +1232,8 @@ message ScenarioOutput {
     AudioVoiceConvertResult audio_voice_convert = 14;
     TextDecisionResult text_decision = 15;
     AudioSpeakerEmbedResult audio_speaker_embed = 16;
+    MediaUpscaleResult image_upscale = 17;
+    MediaUpscaleResult video_upscale = 18;
   }
 }
 
@@ -1300,6 +1338,7 @@ message LocalAppImageGenerateScenarioSpec {
   string markup_artifact_id = 18;
   optional int32 frame_count = 19;
   optional int32 frame_duration_ms = 20;
+  ImageControlInput control_image = 21;
 }
 
 message ExecuteLocalAppScenarioRequest {
@@ -1442,6 +1481,8 @@ message SubmitLocalAppScenarioJobRequest {
     MusicTranscribeScenarioSpec music_transcribe = 17;
     AudioVoiceConvertScenarioSpec audio_voice_convert = 18;
     AudioSpeakerEmbedScenarioSpec audio_speaker_embed = 19;
+    MediaUpscaleScenarioSpec image_upscale = 20;
+    MediaUpscaleScenarioSpec video_upscale = 21;
   }
   // Withdrawn Job control: absent/0 only; every nonzero value is rejected
   // before route/capture/dispatch. Never controls a technical call budget.

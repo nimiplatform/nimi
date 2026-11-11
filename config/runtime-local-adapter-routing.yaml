@@ -15,6 +15,14 @@ surfaces:
   - routes_7
   - routes_8
 routes:
+  - provider: media
+    capability: image.upscale
+    adapter: upscale_execution_host
+    source_rule: rule.nimi.runtime.ai-provider.media-upscale-contract
+  - provider: media
+    capability: video.upscale
+    adapter: upscale_execution_host
+    source_rule: rule.nimi.runtime.ai-provider.media-upscale-contract
   - provider: speech
     capability: audio.speaker.embed
     adapter: speaker_representation_execution_host

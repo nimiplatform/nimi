@@ -1063,6 +1063,20 @@ const (
 	HOOKTRIGGERFAMILYUNSPECIFIED HookTriggerFamily = "HOOK_TRIGGER_FAMILY_UNSPECIFIED"
 )
 
+type ImageControlType string
+
+const (
+	IMAGECONTROLTYPEUNSPECIFIED ImageControlType = "IMAGE_CONTROL_TYPE_UNSPECIFIED"
+	IMAGECONTROLTYPEOPENPOSE    ImageControlType = "IMAGE_CONTROL_TYPE_OPENPOSE"
+	IMAGECONTROLTYPEDEPTH       ImageControlType = "IMAGE_CONTROL_TYPE_DEPTH"
+	IMAGECONTROLTYPESCRIBBLE    ImageControlType = "IMAGE_CONTROL_TYPE_SCRIBBLE"
+	IMAGECONTROLTYPECANNY       ImageControlType = "IMAGE_CONTROL_TYPE_CANNY"
+	IMAGECONTROLTYPENORMAL      ImageControlType = "IMAGE_CONTROL_TYPE_NORMAL"
+	IMAGECONTROLTYPESEGMENT     ImageControlType = "IMAGE_CONTROL_TYPE_SEGMENT"
+	IMAGECONTROLTYPETILE        ImageControlType = "IMAGE_CONTROL_TYPE_TILE"
+	IMAGECONTROLTYPEREPAINT     ImageControlType = "IMAGE_CONTROL_TYPE_REPAINT"
+)
+
 type IntegrationConnectionSetupAction string
 
 const (
@@ -2149,6 +2163,8 @@ const (
 	SCENARIOTYPEAUDIOVOICECONVERT ScenarioType = "SCENARIO_TYPE_AUDIO_VOICE_CONVERT"
 	SCENARIOTYPETEXTDECIDE        ScenarioType = "SCENARIO_TYPE_TEXT_DECIDE"
 	SCENARIOTYPEAUDIOSPEAKEREMBED ScenarioType = "SCENARIO_TYPE_AUDIO_SPEAKER_EMBED"
+	SCENARIOTYPEIMAGEUPSCALE      ScenarioType = "SCENARIO_TYPE_IMAGE_UPSCALE"
+	SCENARIOTYPEVIDEOUPSCALE      ScenarioType = "SCENARIO_TYPE_VIDEO_UPSCALE"
 )
 
 type SchedulingState string
@@ -5343,6 +5359,12 @@ type IgnoredScenarioExtension struct {
 	Reason    string `json:"reason,omitempty"`
 }
 
+type ImageControlInput struct {
+	ImageArtifactId string           `json:"image_artifact_id,omitempty"`
+	Type            ImageControlType `json:"type,omitempty"`
+	Strength        *float32         `json:"strength,omitempty"`
+}
+
 type ImageFaceSwapResult struct {
 	Artifacts []ScenarioArtifact `json:"artifacts,omitempty"`
 }
@@ -5357,26 +5379,27 @@ type ImageGenerateResult struct {
 }
 
 type ImageGenerateScenarioSpec struct {
-	Prompt                   string   `json:"prompt,omitempty"`
-	NegativePrompt           string   `json:"negative_prompt,omitempty"`
-	N                        *int32   `json:"n,omitempty"`
-	Size                     string   `json:"size,omitempty"`
-	AspectRatio              string   `json:"aspect_ratio,omitempty"`
-	Quality                  string   `json:"quality,omitempty"`
-	Style                    string   `json:"style,omitempty"`
-	Seed                     *int64   `json:"seed,omitempty"`
-	ReferenceImages          []string `json:"reference_images,omitempty"`
-	Mask                     string   `json:"mask,omitempty"`
-	ResponseFormat           string   `json:"response_format,omitempty"`
-	ReferenceImageArtifactId string   `json:"reference_image_artifact_id,omitempty"`
-	MaskArtifactId           string   `json:"mask_artifact_id,omitempty"`
-	Strength                 *float32 `json:"strength,omitempty"`
-	Complexity               string   `json:"complexity,omitempty"`
-	OutputFormat             string   `json:"output_format,omitempty"`
-	Markup                   string   `json:"markup,omitempty"`
-	MarkupArtifactId         string   `json:"markup_artifact_id,omitempty"`
-	FrameCount               *int32   `json:"frame_count,omitempty"`
-	FrameDurationMs          *int32   `json:"frame_duration_ms,omitempty"`
+	Prompt                   string             `json:"prompt,omitempty"`
+	NegativePrompt           string             `json:"negative_prompt,omitempty"`
+	N                        *int32             `json:"n,omitempty"`
+	Size                     string             `json:"size,omitempty"`
+	AspectRatio              string             `json:"aspect_ratio,omitempty"`
+	Quality                  string             `json:"quality,omitempty"`
+	Style                    string             `json:"style,omitempty"`
+	Seed                     *int64             `json:"seed,omitempty"`
+	ReferenceImages          []string           `json:"reference_images,omitempty"`
+	Mask                     string             `json:"mask,omitempty"`
+	ResponseFormat           string             `json:"response_format,omitempty"`
+	ReferenceImageArtifactId string             `json:"reference_image_artifact_id,omitempty"`
+	MaskArtifactId           string             `json:"mask_artifact_id,omitempty"`
+	Strength                 *float32           `json:"strength,omitempty"`
+	Complexity               string             `json:"complexity,omitempty"`
+	OutputFormat             string             `json:"output_format,omitempty"`
+	Markup                   string             `json:"markup,omitempty"`
+	MarkupArtifactId         string             `json:"markup_artifact_id,omitempty"`
+	FrameCount               *int32             `json:"frame_count,omitempty"`
+	FrameDurationMs          *int32             `json:"frame_duration_ms,omitempty"`
+	ControlImage             *ImageControlInput `json:"control_image,omitempty"`
 }
 
 type ImportModelAssetRequest struct {
@@ -6865,26 +6888,27 @@ type LocalAppEmbodimentVoiceTiming struct {
 }
 
 type LocalAppImageGenerateScenarioSpec struct {
-	Prompt                   string   `json:"prompt,omitempty"`
-	NegativePrompt           string   `json:"negative_prompt,omitempty"`
-	N                        *int32   `json:"n,omitempty"`
-	Size                     string   `json:"size,omitempty"`
-	AspectRatio              string   `json:"aspect_ratio,omitempty"`
-	Quality                  string   `json:"quality,omitempty"`
-	Style                    string   `json:"style,omitempty"`
-	Seed                     *int64   `json:"seed,omitempty"`
-	ReferenceImages          []string `json:"reference_images,omitempty"`
-	Mask                     string   `json:"mask,omitempty"`
-	ResponseFormat           string   `json:"response_format,omitempty"`
-	ReferenceImageArtifactId string   `json:"reference_image_artifact_id,omitempty"`
-	MaskArtifactId           string   `json:"mask_artifact_id,omitempty"`
-	Strength                 *float32 `json:"strength,omitempty"`
-	Complexity               string   `json:"complexity,omitempty"`
-	OutputFormat             string   `json:"output_format,omitempty"`
-	Markup                   string   `json:"markup,omitempty"`
-	MarkupArtifactId         string   `json:"markup_artifact_id,omitempty"`
-	FrameCount               *int32   `json:"frame_count,omitempty"`
-	FrameDurationMs          *int32   `json:"frame_duration_ms,omitempty"`
+	Prompt                   string             `json:"prompt,omitempty"`
+	NegativePrompt           string             `json:"negative_prompt,omitempty"`
+	N                        *int32             `json:"n,omitempty"`
+	Size                     string             `json:"size,omitempty"`
+	AspectRatio              string             `json:"aspect_ratio,omitempty"`
+	Quality                  string             `json:"quality,omitempty"`
+	Style                    string             `json:"style,omitempty"`
+	Seed                     *int64             `json:"seed,omitempty"`
+	ReferenceImages          []string           `json:"reference_images,omitempty"`
+	Mask                     string             `json:"mask,omitempty"`
+	ResponseFormat           string             `json:"response_format,omitempty"`
+	ReferenceImageArtifactId string             `json:"reference_image_artifact_id,omitempty"`
+	MaskArtifactId           string             `json:"mask_artifact_id,omitempty"`
+	Strength                 *float32           `json:"strength,omitempty"`
+	Complexity               string             `json:"complexity,omitempty"`
+	OutputFormat             string             `json:"output_format,omitempty"`
+	Markup                   string             `json:"markup,omitempty"`
+	MarkupArtifactId         string             `json:"markup_artifact_id,omitempty"`
+	FrameCount               *int32             `json:"frame_count,omitempty"`
+	FrameDurationMs          *int32             `json:"frame_duration_ms,omitempty"`
+	ControlImage             *ImageControlInput `json:"control_image,omitempty"`
 }
 
 type LocalAppMusicGenerateJobSpec struct {
@@ -7509,6 +7533,16 @@ type MaterializeRealmSourceResponse struct {
 	SourceContextStatus *LocalAgentSourceContextStatus       `json:"source_context_status,omitempty"`
 	IdempotentReplay    bool                                 `json:"idempotent_replay,omitempty"`
 	ReasonCode          RealmSourceMaterializationReasonCode `json:"reason_code,omitempty"`
+}
+
+type MediaUpscaleResult struct {
+	Artifacts []ScenarioArtifact `json:"artifacts,omitempty"`
+}
+
+type MediaUpscaleScenarioSpec struct {
+	SourceArtifactId string `json:"source_artifact_id,omitempty"`
+	Scale            uint32 `json:"scale,omitempty"`
+	Seed             *int64 `json:"seed,omitempty"`
 }
 
 type MemoryEmbeddingCloudBindingRef struct {
@@ -8904,6 +8938,8 @@ type ScenarioOutput struct {
 	AudioVoiceConvert *AudioVoiceConvertResult `json:"audio_voice_convert,omitempty"`
 	TextDecision      *TextDecisionResult      `json:"text_decision,omitempty"`
 	AudioSpeakerEmbed *AudioSpeakerEmbedResult `json:"audio_speaker_embed,omitempty"`
+	ImageUpscale      *MediaUpscaleResult      `json:"image_upscale,omitempty"`
+	VideoUpscale      *MediaUpscaleResult      `json:"video_upscale,omitempty"`
 }
 
 type ScenarioProfile struct {
@@ -8937,6 +8973,8 @@ type ScenarioSpec struct {
 	AudioVoiceConvert *AudioVoiceConvertScenarioSpec `json:"audio_voice_convert,omitempty"`
 	TextDecide        *TextDecideScenarioSpec        `json:"text_decide,omitempty"`
 	AudioSpeakerEmbed *AudioSpeakerEmbedScenarioSpec `json:"audio_speaker_embed,omitempty"`
+	ImageUpscale      *MediaUpscaleScenarioSpec      `json:"image_upscale,omitempty"`
+	VideoUpscale      *MediaUpscaleScenarioSpec      `json:"video_upscale,omitempty"`
 }
 
 type ScenarioStreamCompleted struct {
@@ -9462,6 +9500,8 @@ type SubmitLocalAppScenarioJobRequest struct {
 	MusicTranscribe    *MusicTranscribeScenarioSpec       `json:"music_transcribe,omitempty"`
 	AudioVoiceConvert  *AudioVoiceConvertScenarioSpec     `json:"audio_voice_convert,omitempty"`
 	AudioSpeakerEmbed  *AudioSpeakerEmbedScenarioSpec     `json:"audio_speaker_embed,omitempty"`
+	ImageUpscale       *MediaUpscaleScenarioSpec          `json:"image_upscale,omitempty"`
+	VideoUpscale       *MediaUpscaleScenarioSpec          `json:"video_upscale,omitempty"`
 }
 
 type SubmitLocalAppScenarioJobResponse struct {

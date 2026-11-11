@@ -652,7 +652,7 @@ func TestResolveManagedImageBackendPackageSpecForHostWindowsNvidiaCUDA(t *testin
 		managedImageBackendStringSliceContains(spec.SupportedModelFamilies, "z-image-turbo") {
 		t.Fatalf("expected Windows managed image backend package to declare only the canonical z-image family, got %v", spec.SupportedModelFamilies)
 	}
-	if !strings.Contains(spec.InstallDirName, "58bb3c1") {
+	if !strings.Contains(spec.InstallDirName, "32d516c") {
 		t.Fatalf("expected release-qualified Windows install dir, got %q", spec.InstallDirName)
 	}
 }

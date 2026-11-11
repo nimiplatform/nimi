@@ -33,6 +33,7 @@ func decodeLoadModelState(message *dynamicpb.Message) (loadModelState, error) {
 		return loadModelState{}, fmt.Errorf("managed image flow shift must be non-negative")
 	}
 	options := managedImageOptions{
+		Checkpoint:         dynamicMessageBoolField(message, "checkpoint"),
 		Components:         components,
 		DiffusionFA:        &diffusionFA,
 		OffloadParamsToCPU: &offloadToCPU,
@@ -112,19 +113,21 @@ func decodeGenerateImageState(message *dynamicpb.Message) (imageGenerateState, e
 		return imageGenerateState{}, fmt.Errorf("managed image results use Runtime-owned byte custody")
 	}
 	return imageGenerateState{
-		Mode:           ImageRequestMode(strings.TrimSpace(dynamicMessageStringField(message, "mode"))),
-		Width:          dynamicMessageInt32Field(message, "width"),
-		Height:         dynamicMessageInt32Field(message, "height"),
-		Step:           dynamicMessageInt32Field(message, "step"),
-		Seed:           dynamicMessageInt32Field(message, "seed"),
-		PositivePrompt: strings.TrimSpace(dynamicMessageStringField(message, "positive_prompt")),
-		NegativePrompt: strings.TrimSpace(dynamicMessageStringField(message, "negative_prompt")),
-		Src:            strings.TrimSpace(dynamicMessageStringField(message, "src")),
-		Mask:           strings.TrimSpace(dynamicMessageStringField(message, "mask")),
-		ReferenceImage: readBytesField(message, "reference_image"),
-		CFGScale:       dynamicMessageFloat32Field(message, "cfg_scale"),
-		Sampler:        strings.TrimSpace(dynamicMessageStringField(message, "sampler")),
-		Scheduler:      strings.TrimSpace(dynamicMessageStringField(message, "scheduler")),
+		ControlType:     dynamicMessageStringField(message, "control_type"),
+		ControlStrength: dynamicMessageFloat32Field(message, "control_strength"),
+		Mode:            ImageRequestMode(strings.TrimSpace(dynamicMessageStringField(message, "mode"))),
+		Width:           dynamicMessageInt32Field(message, "width"),
+		Height:          dynamicMessageInt32Field(message, "height"),
+		Step:            dynamicMessageInt32Field(message, "step"),
+		Seed:            dynamicMessageInt32Field(message, "seed"),
+		PositivePrompt:  strings.TrimSpace(dynamicMessageStringField(message, "positive_prompt")),
+		NegativePrompt:  strings.TrimSpace(dynamicMessageStringField(message, "negative_prompt")),
+		Src:             strings.TrimSpace(dynamicMessageStringField(message, "src")),
+		Mask:            strings.TrimSpace(dynamicMessageStringField(message, "mask")),
+		ReferenceImage:  readBytesField(message, "reference_image"),
+		CFGScale:        dynamicMessageFloat32Field(message, "cfg_scale"),
+		Sampler:         strings.TrimSpace(dynamicMessageStringField(message, "sampler")),
+		Scheduler:       strings.TrimSpace(dynamicMessageStringField(message, "scheduler")),
 	}, nil
 }
 

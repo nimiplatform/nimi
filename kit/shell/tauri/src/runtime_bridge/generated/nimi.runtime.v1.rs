@@ -5927,6 +5927,17 @@ pub struct TextEmbedScenarioSpec {
     #[prost(enumeration = "TextEmbedPurpose", tag = "3")]
     pub purpose: i32,
 }
+/// An already-prepared control map owned by the requesting App. Runtime does
+/// not infer the map type or run an implicit image preprocessor.
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ImageControlInput {
+    #[prost(string, tag = "1")]
+    pub image_artifact_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "ImageControlType", tag = "2")]
+    pub r#type: i32,
+    #[prost(float, optional, tag = "3")]
+    pub strength: ::core::option::Option<f32>,
+}
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ImageGenerateScenarioSpec {
     #[prost(string, tag = "1")]
@@ -5969,6 +5980,8 @@ pub struct ImageGenerateScenarioSpec {
     pub frame_count: ::core::option::Option<i32>,
     #[prost(int32, optional, tag = "20")]
     pub frame_duration_ms: ::core::option::Option<i32>,
+    #[prost(message, optional, tag = "21")]
+    pub control_image: ::core::option::Option<ImageControlInput>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct VideoGenerateScenarioSpec {
@@ -6307,6 +6320,16 @@ pub mod world_generate_scenario_spec {
         #[prost(message, tag = "7")]
         VideoPrompt(super::WorldGenerateVideoPrompt),
     }
+}
+/// The source artifact belongs to the current protected App caller.
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct MediaUpscaleScenarioSpec {
+    #[prost(string, tag = "1")]
+    pub source_artifact_id: ::prost::alloc::string::String,
+    #[prost(uint32, tag = "2")]
+    pub scale: u32,
+    #[prost(int64, optional, tag = "3")]
+    pub seed: ::core::option::Option<i64>,
 }
 /// Both artifacts belong to the current protected App caller.
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
@@ -6678,7 +6701,7 @@ pub struct VisionLocateResult {
 pub struct ScenarioSpec {
     #[prost(
         oneof = "scenario_spec::Spec",
-        tags = "1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20"
+        tags = "1, 2, 3, 4, 5, 6, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22"
     )]
     pub spec: ::core::option::Option<scenario_spec::Spec>,
 }
@@ -6722,6 +6745,10 @@ pub mod scenario_spec {
         TextDecide(super::TextDecideScenarioSpec),
         #[prost(message, tag = "20")]
         AudioSpeakerEmbed(super::AudioSpeakerEmbedScenarioSpec),
+        #[prost(message, tag = "21")]
+        ImageUpscale(super::MediaUpscaleScenarioSpec),
+        #[prost(message, tag = "22")]
+        VideoUpscale(super::MediaUpscaleScenarioSpec),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -6968,10 +6995,15 @@ pub struct WorldGenerateResult {
     pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MediaUpscaleResult {
+    #[prost(message, repeated, tag = "1")]
+    pub artifacts: ::prost::alloc::vec::Vec<ScenarioArtifact>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ScenarioOutput {
     #[prost(
         oneof = "scenario_output::Output",
-        tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16"
+        tags = "1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18"
     )]
     pub output: ::core::option::Option<scenario_output::Output>,
 }
@@ -7011,6 +7043,10 @@ pub mod scenario_output {
         TextDecision(super::TextDecisionResult),
         #[prost(message, tag = "16")]
         AudioSpeakerEmbed(super::AudioSpeakerEmbedResult),
+        #[prost(message, tag = "17")]
+        ImageUpscale(super::MediaUpscaleResult),
+        #[prost(message, tag = "18")]
+        VideoUpscale(super::MediaUpscaleResult),
     }
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
@@ -7160,6 +7196,8 @@ pub struct LocalAppImageGenerateScenarioSpec {
     pub frame_count: ::core::option::Option<i32>,
     #[prost(int32, optional, tag = "20")]
     pub frame_duration_ms: ::core::option::Option<i32>,
+    #[prost(message, optional, tag = "21")]
+    pub control_image: ::core::option::Option<ImageControlInput>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct ExecuteLocalAppScenarioRequest {
@@ -7377,7 +7415,7 @@ pub struct SubmitLocalAppScenarioJobRequest {
     pub client_submission_id: ::prost::alloc::string::String,
     #[prost(
         oneof = "submit_local_app_scenario_job_request::Spec",
-        tags = "1, 2, 3, 4, 7, 8, 10, 11, 12, 13, 14, 15, 17, 18, 19"
+        tags = "1, 2, 3, 4, 7, 8, 10, 11, 12, 13, 14, 15, 17, 18, 19, 20, 21"
     )]
     pub spec: ::core::option::Option<submit_local_app_scenario_job_request::Spec>,
 }
@@ -7415,6 +7453,10 @@ pub mod submit_local_app_scenario_job_request {
         AudioVoiceConvert(super::AudioVoiceConvertScenarioSpec),
         #[prost(message, tag = "19")]
         AudioSpeakerEmbed(super::AudioSpeakerEmbedScenarioSpec),
+        #[prost(message, tag = "20")]
+        ImageUpscale(super::MediaUpscaleScenarioSpec),
+        #[prost(message, tag = "21")]
+        VideoUpscale(super::MediaUpscaleScenarioSpec),
     }
 }
 /// Trimmed Job projection for Local App consumption: status, progress, typed
@@ -8364,6 +8406,8 @@ pub enum ScenarioType {
     AudioVoiceConvert = 18,
     TextDecide = 19,
     AudioSpeakerEmbed = 20,
+    ImageUpscale = 21,
+    VideoUpscale = 22,
 }
 impl ScenarioType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -8391,6 +8435,8 @@ impl ScenarioType {
             Self::AudioVoiceConvert => "SCENARIO_TYPE_AUDIO_VOICE_CONVERT",
             Self::TextDecide => "SCENARIO_TYPE_TEXT_DECIDE",
             Self::AudioSpeakerEmbed => "SCENARIO_TYPE_AUDIO_SPEAKER_EMBED",
+            Self::ImageUpscale => "SCENARIO_TYPE_IMAGE_UPSCALE",
+            Self::VideoUpscale => "SCENARIO_TYPE_VIDEO_UPSCALE",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -8415,6 +8461,8 @@ impl ScenarioType {
             "SCENARIO_TYPE_AUDIO_VOICE_CONVERT" => Some(Self::AudioVoiceConvert),
             "SCENARIO_TYPE_TEXT_DECIDE" => Some(Self::TextDecide),
             "SCENARIO_TYPE_AUDIO_SPEAKER_EMBED" => Some(Self::AudioSpeakerEmbed),
+            "SCENARIO_TYPE_IMAGE_UPSCALE" => Some(Self::ImageUpscale),
+            "SCENARIO_TYPE_VIDEO_UPSCALE" => Some(Self::VideoUpscale),
             _ => None,
         }
     }
@@ -9025,6 +9073,53 @@ impl TextEmbedPurpose {
             "TEXT_EMBED_PURPOSE_UNSPECIFIED" => Some(Self::Unspecified),
             "TEXT_EMBED_PURPOSE_RETRIEVAL_DOCUMENT" => Some(Self::RetrievalDocument),
             "TEXT_EMBED_PURPOSE_RETRIEVAL_QUERY" => Some(Self::RetrievalQuery),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum ImageControlType {
+    Unspecified = 0,
+    Openpose = 1,
+    Depth = 2,
+    Scribble = 3,
+    Canny = 4,
+    Normal = 5,
+    Segment = 6,
+    Tile = 7,
+    Repaint = 8,
+}
+impl ImageControlType {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Unspecified => "IMAGE_CONTROL_TYPE_UNSPECIFIED",
+            Self::Openpose => "IMAGE_CONTROL_TYPE_OPENPOSE",
+            Self::Depth => "IMAGE_CONTROL_TYPE_DEPTH",
+            Self::Scribble => "IMAGE_CONTROL_TYPE_SCRIBBLE",
+            Self::Canny => "IMAGE_CONTROL_TYPE_CANNY",
+            Self::Normal => "IMAGE_CONTROL_TYPE_NORMAL",
+            Self::Segment => "IMAGE_CONTROL_TYPE_SEGMENT",
+            Self::Tile => "IMAGE_CONTROL_TYPE_TILE",
+            Self::Repaint => "IMAGE_CONTROL_TYPE_REPAINT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "IMAGE_CONTROL_TYPE_UNSPECIFIED" => Some(Self::Unspecified),
+            "IMAGE_CONTROL_TYPE_OPENPOSE" => Some(Self::Openpose),
+            "IMAGE_CONTROL_TYPE_DEPTH" => Some(Self::Depth),
+            "IMAGE_CONTROL_TYPE_SCRIBBLE" => Some(Self::Scribble),
+            "IMAGE_CONTROL_TYPE_CANNY" => Some(Self::Canny),
+            "IMAGE_CONTROL_TYPE_NORMAL" => Some(Self::Normal),
+            "IMAGE_CONTROL_TYPE_SEGMENT" => Some(Self::Segment),
+            "IMAGE_CONTROL_TYPE_TILE" => Some(Self::Tile),
+            "IMAGE_CONTROL_TYPE_REPAINT" => Some(Self::Repaint),
             _ => None,
         }
     }

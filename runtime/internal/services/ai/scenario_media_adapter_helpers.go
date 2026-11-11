@@ -32,9 +32,9 @@ func scenarioModalFromType(scenarioType runtimev1.ScenarioType) runtimev1.Modal 
 		return runtimev1.Modal_MODAL_TEXT
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE:
 		return runtimev1.Modal_MODAL_VISION
-	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP:
+	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE, runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP, runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_UPSCALE:
 		return runtimev1.Modal_MODAL_IMAGE
-	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP:
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP, runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_UPSCALE:
 		return runtimev1.Modal_MODAL_VIDEO
 	case runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE:
 		return runtimev1.Modal_MODAL_TTS

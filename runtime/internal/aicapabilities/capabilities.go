@@ -30,6 +30,8 @@ const (
 	VisionLocate      = "vision.locate"
 	ImageFaceSwap     = "image.face_swap"
 	VideoFaceSwap     = "video.face_swap"
+	ImageUpscale      = "image.upscale"
+	VideoUpscale      = "video.upscale"
 )
 
 var ErrUnknownCatalogCapability = errors.New("unknown catalog capability")
@@ -57,6 +59,8 @@ var canonicalCatalog = []string{
 	VisionLocate,
 	ImageFaceSwap,
 	VideoFaceSwap,
+	ImageUpscale,
+	VideoUpscale,
 }
 
 var standardizedFeaturesByCapability = map[string]map[string]struct{}{

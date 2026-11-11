@@ -23,6 +23,8 @@ entries:
   - vision.locate
   - image.face_swap
   - video.face_swap
+  - image.upscale
+  - video.upscale
   - chat
   - vision
   - audio_chat
@@ -92,6 +94,8 @@ canonical_tokens:
   - vision.locate
   - image.face_swap
   - video.face_swap
+  - image.upscale
+  - video.upscale
 
 # Local runtime tokens (K-LOCAL-026 manifest capabilities field)
 local_manifest_tokens:

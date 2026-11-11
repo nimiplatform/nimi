@@ -56,12 +56,12 @@
 ## 推荐的开发流程
 
 ### 平台通用步骤
-1. **配置 Realm 启动位置**：在根目录 `.env` 中设置 `NIMI_DEV_REALM_DIR`，指向已配置好数据库和环境变量的 Realm 开发工程。该工程需提供 `dev:infra`、`dev:api`、`dev:realtime` 三个 package 脚本。若自行管理 Realm 服务，可不设置，但 API `3002` 和实时服务 `3003` 必须已运行。
+1. **准备 Realm 开发服务**：如果 Realm 工作区提供 `dev:infra`、`dev:api` 和 `dev:realtime`，在 Nimi 根目录 `.env` 中设置 `NIMI_DEV_REALM_DIR` 指向该工作区。如果 Realm 工作区采用 `docker:dev:up`，按其 `ONBOARDING.md` 准备本机数据服务，再在 Realm 根目录分别运行 `pnpm dev:api` 和 `pnpm dev:realtime`。API `3002` 和实时服务 `3003` 已就绪时，Nimi 启动器可以直接复用，此时可将 `NIMI_DEV_REALM_DIR` 留空。
 2. **启动 Nimi Desktop**：运行 `pnpm dev:desktop`。启动器先检查数据服务、Realm API、实时服务、Web 登录代理和源码 Runtime，再启动 Electron。已就绪的服务会复用，无需逐个打开终端。
 3. **完成登录与授权**：首次启动 Desktop 时，选择数据根目录，并通过浏览器完成 Nimi 账号登录。
 4. **启动目标生态应用**：在 Desktop 保持运行的前提下，在新的终端窗口启动对应应用（如 `pnpm dev:zhiyu`，或在第三方 App 目录下运行 `pnpm dev`）。
 
-Realm 启动位置是本机配置，不提交到 Git；启动器不会猜测其他仓库的位置。Realm 的 `dev:infra` 负责检查 PostgreSQL、Redis 和 OpenSearch，并启动与配置相符的本地开发容器。Docker 未运行、镜像未准备或数据库尚未初始化时，启动明确报错，不自动安装软件、重建容器、迁移或重置数据库。
+Realm 启动位置是本机配置。使用自动启动时，Realm 的 `dev:infra` 负责准备其开发配置所需的数据服务。Docker、开发镜像或数据库未就绪时，按对应 Realm 工作区的开发说明处理。
 
 Web 固定使用 `127.0.0.1:3000`，API 使用 `127.0.0.1:3002`，实时服务使用 `127.0.0.1:3003`。端口被其他服务占用、Web 属于其他工作区或服务启动失败时，Electron 不会继续打开。依赖日志位于 `.nimi/local/dev-services/`，终端会打印具体日志路径。源码 Runtime 仍由正式 supervisor 启动，并由 Desktop 的原生受保护连接完成准入检查。
 

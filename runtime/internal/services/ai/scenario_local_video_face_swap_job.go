@@ -19,7 +19,7 @@ func (s *Service) submitLocalVideoFaceSwapJob(ctx context.Context, req *runtimev
 	if err != nil {
 		return nil, err
 	}
-	return s.submitCapturedFaceSwapJob(ctx, req, mode, ignored, assembly, identity, displayName, s.runLocalVideoFaceSwapJob)
+	return s.submitCapturedLocalArtifactJob(ctx, req, mode, ignored, assembly, identity, displayName, s.runLocalVideoFaceSwapJob)
 }
 
 // @nimi-authority: rule.nimi.runtime.ai-provider.face-swap-video-job

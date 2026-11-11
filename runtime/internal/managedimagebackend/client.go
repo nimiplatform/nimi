@@ -26,28 +26,31 @@ const (
 )
 
 type ImageRequest struct {
-	BackendAddress string
-	Protocol       Protocol
-	Mode           ImageRequestMode
-	ModelsRoot     string
-	ModelPath      string
-	CFGScale       float32
-	Sampler        string
-	Scheduler      string
-	Width          int32
-	Height         int32
-	Step           int32
-	Seed           int32
-	PositivePrompt string
-	NegativePrompt string
-	Dst            string
-	Src            string
-	Mask           string
-	ReferenceImage []byte
-	OnProgress     func(ImageGenerateProgress) error
+	ControlType     string
+	ControlStrength float32
+	BackendAddress  string
+	Protocol        Protocol
+	Mode            ImageRequestMode
+	ModelsRoot      string
+	ModelPath       string
+	CFGScale        float32
+	Sampler         string
+	Scheduler       string
+	Width           int32
+	Height          int32
+	Step            int32
+	Seed            int32
+	PositivePrompt  string
+	NegativePrompt  string
+	Dst             string
+	Src             string
+	Mask            string
+	ReferenceImage  []byte
+	OnProgress      func(ImageGenerateProgress) error
 }
 
 type LoadModelRequest struct {
+	Checkpoint         bool
 	BackendAddress     string
 	Protocol           Protocol
 	ModelsRoot         string
@@ -75,6 +78,7 @@ const (
 	ImageRequestModeTextToImage     ImageRequestMode = "text-to-image"
 	ImageRequestModeImageToImage    ImageRequestMode = "image-to-image"
 	ImageRequestModeInstructionEdit ImageRequestMode = "instruction-edit"
+	ImageRequestModeControl         ImageRequestMode = "control-image"
 )
 
 // ComponentBinding is the ordered, Runtime-resolved component description
@@ -139,10 +143,10 @@ func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateResult,
 	if req.Protocol != ProtocolDirectGOSD && req.Protocol != ProtocolManagedWrapper {
 		return nil, fmt.Errorf("managed image protocol is required")
 	}
-	if req.Mode != ImageRequestModeTextToImage && req.Mode != ImageRequestModeImageToImage && req.Mode != ImageRequestModeInstructionEdit {
+	if req.Mode != ImageRequestModeTextToImage && req.Mode != ImageRequestModeImageToImage && req.Mode != ImageRequestModeInstructionEdit && req.Mode != ImageRequestModeControl {
 		return nil, fmt.Errorf("managed image request mode is required")
 	}
-	if req.Protocol == ProtocolDirectGOSD && req.Mode == ImageRequestModeInstructionEdit {
+	if req.Protocol == ProtocolDirectGOSD && (req.Mode == ImageRequestModeInstructionEdit || req.Mode == ImageRequestModeControl) {
 		return nil, fmt.Errorf("direct gosd does not expose the stable-diffusion.cpp instruction-edit route")
 	}
 	switch req.Mode {
@@ -157,6 +161,10 @@ func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateResult,
 	case ImageRequestModeInstructionEdit:
 		if strings.TrimSpace(req.Src) != "" || strings.TrimSpace(req.Mask) != "" || len(req.ReferenceImage) == 0 {
 			return nil, fmt.Errorf("instruction-edit request requires one resolved source image and no path or mask")
+		}
+	case ImageRequestModeControl:
+		if req.Src != "" || req.Mask != "" || len(req.ReferenceImage) == 0 || !validManagedControlType(req.ControlType) {
+			return nil, fmt.Errorf("control-image request requires one typed control map")
 		}
 	}
 	if err := ensureDescriptors(); err != nil {
@@ -195,6 +203,8 @@ func GenerateImage(ctx context.Context, req ImageRequest) (*ImageGenerateResult,
 	setStringField(generateReq, "dst", req.Dst)
 	setStringField(generateReq, "src", req.Src)
 	setBytesField(generateReq, "reference_image", req.ReferenceImage)
+	setStringField(generateReq, "control_type", req.ControlType)
+	setFloatField(generateReq, "control_strength", req.ControlStrength)
 	if req.Protocol == ProtocolDirectGOSD {
 		if strings.TrimSpace(req.Mask) != "" {
 			setStringField(generateReq, "EnableParameters", "mask:"+req.Mask)
@@ -366,6 +376,7 @@ func LoadModel(ctx context.Context, req LoadModelRequest) (*LoadModelDiagnostics
 	setBoolField(loadReq, "offload_to_cpu", req.OffloadToCPU)
 	setFloatField(loadReq, "flow_shift", req.FlowShift)
 	setBoolField(loadReq, "qwen_image_zero_cond_t", req.QwenImageZeroCondT)
+	setBoolField(loadReq, "checkpoint", req.Checkpoint)
 
 	loadResp := dynamicpb.NewMessage(resultMessageDescriptor)
 	invokeStartedAt := time.Now()
@@ -432,6 +443,7 @@ func FreeModel(ctx context.Context, req LoadModelRequest) error {
 	setBoolField(freeReq, "offload_to_cpu", req.OffloadToCPU)
 	setFloatField(freeReq, "flow_shift", req.FlowShift)
 	setBoolField(freeReq, "qwen_image_zero_cond_t", req.QwenImageZeroCondT)
+	setBoolField(freeReq, "checkpoint", req.Checkpoint)
 
 	freeResp := dynamicpb.NewMessage(resultMessageDescriptor)
 	if err := conn.Invoke(ctx, backendFreeModelMethod, freeReq, freeResp); err != nil {
@@ -563,6 +575,7 @@ func ensureDescriptors() error {
 						{Name: stringPtr("offload_to_cpu"), Number: int32Ptr(65), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_BOOL.Enum()},
 						{Name: stringPtr("flow_shift"), Number: int32Ptr(66), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_FLOAT.Enum()},
 						{Name: stringPtr("qwen_image_zero_cond_t"), Number: int32Ptr(67), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_BOOL.Enum()},
+						{Name: stringPtr("checkpoint"), Number: int32Ptr(68), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_BOOL.Enum()},
 					},
 				},
 				{
@@ -628,6 +641,8 @@ func ensureDescriptors() error {
 						{Name: stringPtr("scheduler"), Number: int32Ptr(15), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum()},
 						{Name: stringPtr("mask"), Number: int32Ptr(16), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum()},
 						{Name: stringPtr("reference_image"), Number: int32Ptr(17), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_BYTES.Enum()},
+						{Name: stringPtr("control_type"), Number: int32Ptr(18), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_STRING.Enum()},
+						{Name: stringPtr("control_strength"), Number: int32Ptr(19), Label: descriptorpb.FieldDescriptorProto_LABEL_OPTIONAL.Enum(), Type: descriptorpb.FieldDescriptorProto_TYPE_FLOAT.Enum()},
 					},
 				},
 				{

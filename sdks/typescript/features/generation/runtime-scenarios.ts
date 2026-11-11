@@ -5,6 +5,7 @@ import {
   VideoContentType,
   VideoMode,
   type ImageGenerateScenarioSpec,
+  type ImageControlInput,
   type ScenarioSpec,
   type SpeechSynthesizeScenarioSpec,
   type SpeechTranscribeScenarioSpec,
@@ -20,6 +21,7 @@ export type NimiRuntimeGenerationScenario =
   | {
     readonly kind: 'image';
     readonly prompt: string;
+    readonly controlImage?: ImageControlInput;
     readonly negativePrompt?: string;
     readonly count?: number;
     readonly size?: string;
@@ -275,6 +277,7 @@ function toRuntimeImageGenerationSpec(
     strength,
     responseFormat: normalizeScenarioText(input.responseFormat),
     complexity, outputFormat, markup, markupArtifactId, frameCount, frameDurationMs,
+    ...(input.controlImage === undefined ? {} : { controlImage: { ...input.controlImage } }),
   };
 }
 

@@ -1,0 +1,18 @@
+format: nimicoding.authority/v2
+owner: team.runtime
+scope: runtime.ai-provider
+units:
+  - id: definition.nimi.runtime.ai-provider.media-upscale
+    kind: definition
+    title: Image and video super-resolution
+    meaning: image.upscale and video.upscale enlarge an owned image or complete owned video by an exact integer factor through a selected Runtime implementation, preserving framing and video timing while allowing learned reconstruction of fine detail.
+  - id: rule.nimi.runtime.ai-provider.media-upscale-contract
+    kind: rule
+    title: Super-resolution uses owned media and complete artifacts
+    modality: must
+    statement: image.upscale and video.upscale use the existing protected ScenarioJob, AIConfig, cancellation and artifact ownership contracts. Apps submit one owned source artifact, an exact scale of two or four and an optional nonnegative signed-int32 seed. An omitted seed resolves to 42. The image form accepts one PNG or JPEG, at most 32 MiB, and returns a decoded PNG with exact multiplied dimensions bounded to 4096 on each axis. The video form accepts one complete MP4, at most 32 MiB, with one H264 video stream, a bounded strictly increasing zero-origin timeline with nominal 24, 25 or 30 FPS, at most 300 frames and ten seconds, and zero or one AAC audio stream. It preserves frame count, order, frame rate and the complete source audio stream, returns an independently inspected MP4, and bounds the output frame dimensions to 4096 with at most 512 MiB of decoded RGB frames. Failed, canceled, malformed or partial outputs never publish success. The first implementation is Windows NVIDIA stable-diffusion.cpp with independent transformer and VAE slots for RelayVSR 2x, RelayVSR 4x, SeedVR2 3B and SeedVR2 7B Sharp. Native inference and codecs run under Runtime-owned captured dependencies; RelayVSR VAE admission jointly checks its tensor architecture and model-authored upscale_factor for the exact requested scale, model sources and filenames never bypass architecture checks, and Apps receive no arbitrary command, path or provider interface.
+    condition: Whenever an image.upscale or video.upscale Job is admitted or executed.
+    failure: Reject unsupported routes, factors, model contracts or media limits and preserve the typed failure and publish no partial completed artifact.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.ai-provider.media-upscale

@@ -41,6 +41,7 @@ import {
   VisionLocateGeometry,
   WorldImageProjection,
   type CancelLocalAppScenarioJobRequest,
+  type ImageControlInput,
   type ChatContentPart,
   type CancelLocalAppScenarioJobResponse,
   type ExecuteLocalAppScenarioRequest,
@@ -110,6 +111,7 @@ import type {
 } from './local-app-runtime-platform.js';
 
 export type NimiLocalAppImageGenerateSpec = {
+  readonly controlImage?: ImageControlInput;
   readonly type: 'image-generate';
   readonly prompt: string;
   readonly negativePrompt: string;
@@ -169,6 +171,7 @@ export type NimiLocalAppVideoContent =
 export type NimiLocalAppScenarioJobSpec =
   | NimiLocalAppImageGenerateSpec
   | { readonly type: 'image-face-swap'; readonly referenceImageArtifactId: string; readonly targetImageArtifactId: string }
+  | { readonly type: 'image-upscale' | 'video-upscale'; readonly sourceArtifactId: string; readonly scale: 2 | 4; readonly seed?: number }
   | { readonly type: 'video-face-swap'; readonly referenceImageArtifactId: string; readonly targetVideoArtifactId: string; readonly noFacePolicy: 'fail' | 'preserve-frame' }
   | { readonly type: 'vision-locate'; readonly imageArtifactId: string; readonly query: string; readonly geometry: 'box' | 'point' }
   | { readonly type: 'world-generate'; readonly prompt?: string; readonly displayName: string; readonly image?: { readonly artifactId: string; readonly projection: 'ordinary' | 'equirectangular-360' } }
@@ -313,7 +316,7 @@ export type NimiLocalAppScenarioJob = {
 	readonly recoveryExpiresAt?: NimiLocalAppScenarioTimestamp;
   readonly videoFaceSwapSummary?: NimiLocalAppVideoFaceSwapSummary;
   readonly jobId: string;
-  readonly scenarioType: 'image-generate' | 'image-face-swap' | 'video-face-swap' | 'vision-locate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'text-annotate' | 'audio-speaker-embed' | 'audio-separate' | 'voice-create' | 'music-generate' | 'music-transcribe' | 'audio-voice-convert' | 'world-generate';
+  readonly scenarioType: 'image-generate' | 'image-upscale' | 'video-upscale' | 'image-face-swap' | 'video-face-swap' | 'vision-locate' | 'video-generate' | 'speech-synthesize' | 'speech-transcribe' | 'text-annotate' | 'audio-speaker-embed' | 'audio-separate' | 'voice-create' | 'music-generate' | 'music-transcribe' | 'audio-voice-convert' | 'world-generate';
   readonly status: 'submitted' | 'queued' | 'running' | 'completed' | 'failed' | 'canceled' | 'timeout';
   readonly progressPercent: number;
   readonly progressCurrentStep: number;
@@ -960,6 +963,15 @@ function validateScenarioSpec<T extends NimiLocalAppScenarioExecuteSpec | NimiLo
   }
   assertNoAuthorityMaterial(record);
   switch (record.type) {
+    // @nimi-authority: rule.nimi.runtime.ai-provider.media-upscale-contract
+    case 'image-upscale':
+    case 'video-upscale':
+      if (execute) invalidAIInput('super-resolution requires an async Job');
+      assertExactKeys(record, ['type', 'sourceArtifactId', 'scale', 'seed'], 'super-resolution spec');
+      boundedIdentifier(record.sourceArtifactId, 'sourceArtifactId');
+      if (record.scale !== 2 && record.scale !== 4) invalidAIInput('super-resolution scale must be 2 or 4');
+      optionalBoundedInteger(record.seed, 'super-resolution seed', 0, 2147483647);
+      break;
     // @nimi-authority: rule.nimi.runtime.ai-provider.face-swap-video-job
     case 'video-face-swap':
       if (execute) invalidAIInput('video-face-swap requires an async Job');
@@ -999,7 +1011,14 @@ function validateScenarioSpec<T extends NimiLocalAppScenarioExecuteSpec | NimiLo
       }) as T;
     case 'image-generate':
       if (execute) invalidAIInput('image-generate requires an async Job');
-      assertExactKeys(record, ['type', 'prompt', 'negativePrompt', 'n', 'size', 'aspectRatio', 'quality', 'style', 'seed', 'referenceImages', 'referenceImageArtifactId', 'mask', 'maskArtifactId', 'strength', 'responseFormat', 'complexity', 'outputFormat', 'markup', 'markupArtifactId', 'frameCount', 'frameDurationMs'], 'image spec');
+      assertExactKeys(record, ['type', 'prompt', 'negativePrompt', 'n', 'size', 'aspectRatio', 'quality', 'style', 'seed', 'referenceImages', 'referenceImageArtifactId', 'mask', 'maskArtifactId', 'strength', 'responseFormat', 'complexity', 'outputFormat', 'markup', 'markupArtifactId', 'frameCount', 'frameDurationMs', 'controlImage'], 'image spec');
+      if (record.controlImage !== undefined) {
+        const control = asRecord(record.controlImage);
+        assertExactKeys(control, ['imageArtifactId', 'type', 'strength'], 'image control');
+        boundedIdentifier(control.imageArtifactId, 'control image artifact');
+        if (typeof control.type !== 'number' || !Number.isInteger(control.type) || control.type < 1 || control.type > 8) invalidAIInput('image control type is invalid');
+        if (control.strength !== undefined && (typeof control.strength !== 'number' || !Number.isFinite(control.strength) || control.strength < 0 || control.strength > 2)) invalidAIInput('image control strength is invalid');
+      }
       boundedContent(record.prompt, 'image prompt', 32 * 1024);
       optionalBoundedText(record.negativePrompt, 'image negativePrompt', 32 * 1024);
       optionalBoundedInteger(record.n, 'image n', 0, 4);
@@ -1905,6 +1924,10 @@ function runtimeLocalJobSpec(
       return { oneofKind: 'videoFaceSwap', videoFaceSwap: { referenceImageArtifactId: spec.referenceImageArtifactId, targetVideoArtifactId: spec.targetVideoArtifactId, noFacePolicy: spec.noFacePolicy === 'fail' ? FaceSwapNoFacePolicy.FAIL : FaceSwapNoFacePolicy.PRESERVE_FRAME } };
     case 'image-face-swap':
       return { oneofKind: 'imageFaceSwap', imageFaceSwap: { referenceImageArtifactId: spec.referenceImageArtifactId, targetImageArtifactId: spec.targetImageArtifactId } };
+    case 'image-upscale':
+      return { oneofKind: 'imageUpscale', imageUpscale: { sourceArtifactId: spec.sourceArtifactId, scale: spec.scale, seed: spec.seed === undefined ? undefined : String(spec.seed) } };
+    case 'video-upscale':
+      return { oneofKind: 'videoUpscale', videoUpscale: { sourceArtifactId: spec.sourceArtifactId, scale: spec.scale, seed: spec.seed === undefined ? undefined : String(spec.seed) } };
     case 'vision-locate':
       return { oneofKind: 'visionLocate', visionLocate: { imageArtifactId: spec.imageArtifactId, query: spec.query, geometry: spec.geometry === 'box' ? VisionLocateGeometry.BOX : VisionLocateGeometry.POINT } };
     case 'image-generate':
@@ -2042,6 +2065,7 @@ function runtimeLocalJobSpec(
 
 function runtimeImageSpec(spec: NimiLocalAppImageGenerateSpec) {
   return {
+    ...(spec.controlImage === undefined ? {} : { controlImage: { ...spec.controlImage } }),
     prompt: spec.prompt,
     negativePrompt: spec.negativePrompt,
     ...(spec.n === undefined ? {} : { n: spec.n }),
@@ -2248,6 +2272,8 @@ function runtimeScenarioTypeName(value: ScenarioType): NimiLocalAppScenarioJob['
   const types: Partial<Record<ScenarioType, NimiLocalAppScenarioJob['scenarioType']>> = {
     [ScenarioType.VIDEO_FACE_SWAP]: 'video-face-swap',
     [ScenarioType.IMAGE_FACE_SWAP]: 'image-face-swap',
+    [ScenarioType.IMAGE_UPSCALE]: 'image-upscale',
+    [ScenarioType.VIDEO_UPSCALE]: 'video-upscale',
     [ScenarioType.VISION_LOCATE]: 'vision-locate',
     [ScenarioType.IMAGE_GENERATE]: 'image-generate',
     [ScenarioType.VIDEO_GENERATE]: 'video-generate',
@@ -2340,7 +2366,7 @@ function localVoiceCreationSource(source: VoiceCreationSource): NimiLocalAppVoic
   return localAppProjectionError('voice asset creationSource');
 }
 
-const LOCAL_SCENARIO_TYPES = ['image-generate', 'image-face-swap', 'video-face-swap', 'vision-locate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'text-annotate', 'audio-speaker-embed', 'audio-separate', 'voice-create', 'music-generate', 'music-transcribe', 'audio-voice-convert', 'world-generate'] as const;
+const LOCAL_SCENARIO_TYPES = ['image-generate', 'image-upscale', 'video-upscale', 'image-face-swap', 'video-face-swap', 'vision-locate', 'video-generate', 'speech-synthesize', 'speech-transcribe', 'text-annotate', 'audio-speaker-embed', 'audio-separate', 'voice-create', 'music-generate', 'music-transcribe', 'audio-voice-convert', 'world-generate'] as const;
 const LOCAL_JOB_STATUSES = ['submitted', 'queued', 'running', 'completed', 'failed', 'canceled', 'timeout'] as const;
 
 export function validateNimiLocalAppSpeakerEmbedSpec(value: unknown): Extract<NimiLocalAppScenarioJobSpec, { type: 'audio-speaker-embed' }> {
@@ -2381,6 +2407,14 @@ function localJobSpecFromRuntimeRequest(request: SubmitScenarioJobRequest): Nimi
     case 'imageFaceSwap':
       requireScenarioType(request, ScenarioType.IMAGE_FACE_SWAP);
       return validateScenarioSpec({ type: 'image-face-swap', referenceImageArtifactId: spec.imageFaceSwap.referenceImageArtifactId, targetImageArtifactId: spec.imageFaceSwap.targetImageArtifactId }, false);
+    case 'imageUpscale':
+      requireScenarioType(request, ScenarioType.IMAGE_UPSCALE);
+      if (spec.imageUpscale.scale !== 2 && spec.imageUpscale.scale !== 4) invalidAIInput('super-resolution scale must be 2 or 4');
+      return validateScenarioSpec({ type: 'image-upscale', sourceArtifactId: spec.imageUpscale.sourceArtifactId, scale: spec.imageUpscale.scale, ...(spec.imageUpscale.seed === undefined ? {} : { seed: Number(spec.imageUpscale.seed) }) }, false);
+    case 'videoUpscale':
+      requireScenarioType(request, ScenarioType.VIDEO_UPSCALE);
+      if (spec.videoUpscale.scale !== 2 && spec.videoUpscale.scale !== 4) invalidAIInput('super-resolution scale must be 2 or 4');
+      return validateScenarioSpec({ type: 'video-upscale', sourceArtifactId: spec.videoUpscale.sourceArtifactId, scale: spec.videoUpscale.scale, ...(spec.videoUpscale.seed === undefined ? {} : { seed: Number(spec.videoUpscale.seed) }) }, false);
     case 'visionLocate':
       requireScenarioType(request, ScenarioType.VISION_LOCATE);
       return validateScenarioSpec({ type: 'vision-locate', imageArtifactId: spec.visionLocate.imageArtifactId, query: spec.visionLocate.query, geometry: localLocateGeometry(spec.visionLocate.geometry) }, false);
@@ -2407,6 +2441,7 @@ function localJobSpecFromRuntimeRequest(request: SubmitScenarioJobRequest): Nimi
         ...(spec.imageGenerate.markupArtifactId === '' || spec.imageGenerate.markupArtifactId === undefined ? {} : { markupArtifactId: spec.imageGenerate.markupArtifactId }),
         ...(spec.imageGenerate.frameCount === undefined ? {} : { frameCount: spec.imageGenerate.frameCount }),
         ...(spec.imageGenerate.frameDurationMs === undefined ? {} : { frameDurationMs: spec.imageGenerate.frameDurationMs }),
+        ...(spec.imageGenerate.controlImage === undefined ? {} : { controlImage: { ...spec.imageGenerate.controlImage } }),
       }, false);
     case 'videoGenerate':
       requireScenarioType(request, ScenarioType.VIDEO_GENERATE);
@@ -2611,6 +2646,8 @@ function runtimeOutput(type: NimiLocalAppScenarioJob['scenarioType'], artifacts:
   switch (type) {
     case 'video-face-swap': return videoFaceSwapSummary ? { output: { oneofKind: 'videoFaceSwap', videoFaceSwap: { artifacts, summary: { ...videoFaceSwapSummary, durationUs: String(videoFaceSwapSummary.durationUs) } } } } : undefined;
     case 'image-face-swap': return { output: { oneofKind: 'imageFaceSwap', imageFaceSwap: { artifacts } } };
+    case 'image-upscale': return { output: { oneofKind: 'imageUpscale', imageUpscale: { artifacts } } };
+    case 'video-upscale': return { output: { oneofKind: 'videoUpscale', videoUpscale: { artifacts } } };
     case 'image-generate': return { output: { oneofKind: 'imageGenerate', imageGenerate: { artifacts } } };
     case 'video-generate': return { output: { oneofKind: 'videoGenerate', videoGenerate: { artifacts } } };
     case 'speech-synthesize': return { output: { oneofKind: 'speechSynthesize', speechSynthesize: { artifacts } } };
@@ -2629,6 +2666,8 @@ function runtimeOutput(type: NimiLocalAppScenarioJob['scenarioType'], artifacts:
 }
 
 function runtimeScenarioType(type: NimiLocalAppScenarioJob['scenarioType']): ScenarioType {
+  if (type === 'image-upscale') return ScenarioType.IMAGE_UPSCALE;
+  if (type === 'video-upscale') return ScenarioType.VIDEO_UPSCALE;
   return ({ 'image-generate': ScenarioType.IMAGE_GENERATE, 'image-face-swap': ScenarioType.IMAGE_FACE_SWAP, 'video-face-swap': ScenarioType.VIDEO_FACE_SWAP, 'vision-locate': ScenarioType.VISION_LOCATE, 'video-generate': ScenarioType.VIDEO_GENERATE, 'speech-synthesize': ScenarioType.SPEECH_SYNTHESIZE, 'speech-transcribe': ScenarioType.SPEECH_TRANSCRIBE, 'text-annotate': ScenarioType.TEXT_ANNOTATE, 'audio-speaker-embed': ScenarioType.AUDIO_SPEAKER_EMBED, 'audio-separate': ScenarioType.AUDIO_SEPARATE, 'voice-create': ScenarioType.VOICE_CREATE, 'music-generate': ScenarioType.MUSIC_GENERATE, 'music-transcribe': ScenarioType.MUSIC_TRANSCRIBE, 'audio-voice-convert': ScenarioType.AUDIO_VOICE_CONVERT, 'world-generate': ScenarioType.WORLD_GENERATE })[type];
 }
 

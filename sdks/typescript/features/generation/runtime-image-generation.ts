@@ -1,5 +1,6 @@
 import {
   type RuntimeTypedCallOptions,
+  type ImageControlInput,
   type ScenarioArtifact,
   type ScenarioExtension,
   type ScenarioJob,
@@ -16,6 +17,7 @@ export interface NimiRuntimeImageGenerationInput {
   readonly runtime: NimiRuntimeImageScenarioRuntime;
   readonly head: NimiRuntimeGenerationHeadInput;
   readonly prompt: string;
+  readonly controlImage?: ImageControlInput;
   readonly negativePrompt?: string;
   readonly count?: number;
   readonly size?: string;
@@ -87,6 +89,7 @@ export async function runNimiRuntimeImageGeneration(
         markupArtifactId: input.markupArtifactId,
         frameCount: input.frameCount,
         frameDurationMs: input.frameDurationMs,
+        controlImage: input.controlImage,
         strength: input.strength,
         responseFormat: input.responseFormat,
       }),

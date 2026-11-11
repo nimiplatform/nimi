@@ -7,6 +7,8 @@ import {
   LabTextAnnotateParameterPanel,
   LabTextExchangeParameterPanel,
   LabVideoFaceSwapParameterPanel,
+  LabImageUpscaleParameterPanel,
+  LabVideoUpscaleParameterPanel,
 } from './capability-test-panels.js';
 import {
   labSpeakerEmbeddingDescriptor,
@@ -18,9 +20,12 @@ import {
   labTextDecideDescriptor,
   labTextToolsDescriptor,
   labVideoFaceSwapDescriptor,
+  labImageUpscaleDescriptor,
+  labVideoUpscaleDescriptor,
   type LabCapabilityTestId,
 } from './capability-test-descriptors.js';
 import { labImageFaceSwapParameters, labVideoFaceSwapParameters } from './face-swap.js';
+import { labUpscaleParameters } from './upscale.js';
 import { labTextAnnotateParameters } from './text-annotate.js';
 import { labTextDecideParameters } from './text-decide.js';
 import { LabTextDecideParameterPanel } from './text-decide-panel.js';
@@ -145,7 +150,31 @@ export const labAiRealtimeCapability = Object.freeze({
   parameters: EMPTY_STUDIO_PARAMETERS,
 } as const satisfies StudioCapabilityRegistration<LabCapabilityTestId>);
 
+const upscaleProfile = {
+  studioTag: 'Super-resolution', inputTitleKey: k('upscale', 'title'), inputPlaceholderKey: k('upscale', 'title'), inputKind: 'none',
+  inputNoteKey: k('upscale', 'inputNote'), supportsAttachments: false, controls: [],
+  primaryLabelKey: k('upscale', 'primaryLabel'), primaryRunningLabelKey: k('upscale', 'primaryRunningLabel'),
+  resultTitle: 'Super-resolution', emptyTitleKey: k('upscale', 'title'), emptyHintKey: k('upscale', 'inputNote'),
+  resultKind: 'artifacts', footnoteKey: k('upscale', 'footnote'), pendingLabelKey: k('upscale', 'pending'), requiresParameterInput: true,
+} as const;
+
+export const labImageUpscaleCapability = Object.freeze({
+  descriptor: labImageUpscaleDescriptor, icon: ScanFace, profile: upscaleProfile,
+  preset: { id: 'source-image', label: 'Source image', prompt: '' },
+  runtimeMethod: 'sdk.localApp.ai.scenarioJobs.submit:image-upscale',
+  parameters: labUpscaleParameters, parameterPanel: LabImageUpscaleParameterPanel,
+} as const satisfies StudioCapabilityRegistration<LabCapabilityTestId>);
+
+export const labVideoUpscaleCapability = Object.freeze({
+  descriptor: labVideoUpscaleDescriptor, icon: Clapperboard, profile: upscaleProfile,
+  preset: { id: 'source-video', label: 'Source video', prompt: '' },
+  runtimeMethod: 'sdk.localApp.ai.scenarioJobs.submit:video-upscale',
+  parameters: labUpscaleParameters, parameterPanel: LabVideoUpscaleParameterPanel,
+} as const satisfies StudioCapabilityRegistration<LabCapabilityTestId>);
+
 export const labCapabilityTestRegistrations = Object.freeze([
+  labImageUpscaleCapability,
+  labVideoUpscaleCapability,
   labSpeakerEmbeddingCapability,
   labTextAnnotateCapability,
   labTextToolsCapability,

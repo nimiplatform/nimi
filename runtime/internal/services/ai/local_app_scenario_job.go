@@ -253,6 +253,8 @@ func projectLocalAppScenarioJob(job *runtimev1.ScenarioJob) (*runtimev1.LocalApp
 	}
 	switch job.GetScenarioType() {
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_UPSCALE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_UPSCALE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP,
 		runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP,
 		runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE,
@@ -471,6 +473,16 @@ func validateLocalAppScenarioJobRequest(req *runtimev1.SubmitLocalAppScenarioJob
 			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err
 		}
 		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageFaceSwap{ImageFaceSwap: proto.Clone(spec.ImageFaceSwap).(*runtimev1.ImageFaceSwapScenarioSpec)}}, runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP, nil
+	case *runtimev1.SubmitLocalAppScenarioJobRequest_ImageUpscale:
+		if err := validateMediaUpscaleSpec(spec.ImageUpscale); err != nil {
+			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err
+		}
+		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_ImageUpscale{ImageUpscale: proto.Clone(spec.ImageUpscale).(*runtimev1.MediaUpscaleScenarioSpec)}}, runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_UPSCALE, nil
+	case *runtimev1.SubmitLocalAppScenarioJobRequest_VideoUpscale:
+		if err := validateMediaUpscaleSpec(spec.VideoUpscale); err != nil {
+			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err
+		}
+		return &runtimev1.ScenarioSpec{Spec: &runtimev1.ScenarioSpec_VideoUpscale{VideoUpscale: proto.Clone(spec.VideoUpscale).(*runtimev1.MediaUpscaleScenarioSpec)}}, runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_UPSCALE, nil
 	case *runtimev1.SubmitLocalAppScenarioJobRequest_VisionLocate:
 		if err := validateVisionLocateSpec(spec.VisionLocate); err != nil {
 			return nil, runtimev1.ScenarioType_SCENARIO_TYPE_UNSPECIFIED, err

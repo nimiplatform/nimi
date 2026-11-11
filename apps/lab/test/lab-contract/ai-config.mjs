@@ -104,6 +104,8 @@ test('lab shared Model Config inventory covers every Lab entry and deduplicates 
     'audio.transcribe',
     'voice.create',
     'world.generate',
+    'image.upscale',
+    'video.upscale',
     'audio.speaker.embed',
     'text.annotate',
     'text.decide',
@@ -139,9 +141,11 @@ test('lab-only capability tests join the existing section-based navigation witho
   assert.equal(groupOf('text.chat-session'), 'text');
   assert.equal(groupOf('image.face_swap'), 'image-video');
   assert.equal(groupOf('video.face_swap'), 'image-video');
+  assert.equal(groupOf('image.upscale'), 'image-video');
+  assert.equal(groupOf('video.upscale'), 'image-video');
   assert.equal(groupOf('realtime.interact'), 'voice-music');
   const scaffold = readFileSync(path.join(root, '../../app-tools/lib/app-scaffold-capabilities.mjs'), 'utf8');
-  for (const id of ['app.assets', 'text.annotate', 'text.tools', 'text.decide', 'text.conversation', 'text.chat-session', 'image.face_swap', 'video.face_swap', 'realtime.interact']) {
+  for (const id of ['app.assets', 'text.annotate', 'text.tools', 'text.decide', 'text.conversation', 'text.chat-session', 'image.face_swap', 'video.face_swap', 'image.upscale', 'video.upscale', 'realtime.interact']) {
     assert.equal(scaffold.includes(`'${id}'`), false, `${id} stays out of public scaffold admission`);
   }
   for (const relative of ['src/ai-studio-core', 'src/studio-modules']) {

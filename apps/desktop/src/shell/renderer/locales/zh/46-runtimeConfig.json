@@ -598,7 +598,9 @@
       "textAnnotate": "语言分析",
       "textDecide": "决策判断",
       "audioSeparate": "人声与背景分离",
-      "audioSpeakerEmbed": "说话人特征"
+      "audioSpeakerEmbed": "说话人特征",
+      "imageUpscale": "图像超分辨率",
+      "videoUpscale": "视频超分辨率"
     },
     "capabilityDescription": {
       "imageFaceSwap": "使用参考人脸替换目标图片中的单个人脸",
@@ -618,7 +620,9 @@
       "textAnnotate": "识别词语、词性、依存关系和句子边界",
       "textDecide": "从应用提供的选项中挑选一项，或判断某个说法是否成立，并给出概率",
       "audioSeparate": "分离人声和背景音，保留原有时间轴",
-      "audioSpeakerEmbed": "提取短音频的说话人特征向量，不推断身份"
+      "audioSpeakerEmbed": "提取短音频的说话人特征向量，不推断身份",
+      "imageUpscale": "放大已有图像并保存完整 PNG。",
+      "videoUpscale": "放大完整 MP4，保留帧时间与音轨。"
     },
     "required": "必需",
     "optional": "可选",
@@ -1978,7 +1982,9 @@
     "textAnnotate": "语言分析",
     "textDecide": "决策判断",
     "audioSeparate": "人声与背景分离",
-    "audioSpeakerEmbed": "说话人特征"
+    "audioSpeakerEmbed": "说话人特征",
+    "imageUpscale": "图像超分辨率",
+    "videoUpscale": "视频超分辨率"
   },
   "common": {
     "noModelsDiscovered": "尚未发现任何模型。",
@@ -2561,7 +2567,8 @@
     "community": {
       "title": "社区热门",
       "description": "Hugging Face 下载量最高的模型。",
-      "notInCategory": "社区热门暂时只有对话、图像、视频；搜索会同时查 Hugging Face。"
+      "notInCategory": "社区热门暂时只有对话、图像、视频；搜索会同时查 Hugging Face。",
+      "notForCapability": "社区精选尚未声明此能力。请使用 Nimi 收录模型，或搜索文件并查看其详情。"
     }
   },
   "advanced": {
@@ -2618,7 +2625,9 @@
       "image-face-swap": "使用支持的输入和模型替换图像中的人脸。",
       "video-face-swap": "在支持的应用中对视频进行人脸替换。",
       "vision-locate": "为视觉工具定位图像中的对象或区域。",
-      "audio-speaker-embed": "提取短音频的说话人特征向量，不推断身份。"
+      "audio-speaker-embed": "提取短音频的说话人特征向量，不推断身份。",
+      "image-upscale": "放大已有图像并保存完整 PNG。",
+      "video-upscale": "放大完整 MP4，保留帧时间与音轨。"
     },
     "downloadedModels": "已下载并配置的模型",
     "customizeCurrent": "调整当前模型与参数",
@@ -2976,7 +2985,7 @@
     "downloadedLead": "推荐模型文件已在本机。点击启用以完成设置；若还需其他准备，Nimi 会再提示你。",
     "enableModel": "启用",
     "localScopeHelp": "使用本机模型的应用会共享此选择。应用自己的专属设置会保留。",
-    "supportsImageInput": "支持参考图片输入",
+    "supportsImageInput": "支持图片输入",
     "customize": "自定义版本与参数",
     "settings": {
       "models": "模型",
@@ -3138,7 +3147,7 @@
     "showOtherModelFiles": "选择其他本机文件（{{count}}）",
     "hideOtherModelFiles": "仅显示相关模型",
     "feature": {
-      "input-image": "支持参考图片",
+      "input-image": "支持图片输入",
       "input-audio": "支持参考音频",
       "input-mask": "支持遮罩编辑"
     },

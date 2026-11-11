@@ -598,7 +598,9 @@
       "textAnnotate": "Language analysis",
       "textDecide": "Decisions",
       "audioSeparate": "Vocal and background separation",
-      "audioSpeakerEmbed": "Speaker representation"
+      "audioSpeakerEmbed": "Speaker representation",
+      "imageUpscale": "Image super-resolution",
+      "videoUpscale": "Video super-resolution"
     },
     "capabilityDescription": {
       "imageFaceSwap": "Replace one face in an image using a reference face",
@@ -618,7 +620,9 @@
       "textAnnotate": "Identify tokens, parts of speech, dependencies, and sentence boundaries",
       "textDecide": "Pick one of an app's options or judge whether a statement holds, with probabilities",
       "audioSeparate": "Separate vocals from background audio while preserving timing",
-      "audioSpeakerEmbed": "Extract speaker vectors from short audio without inferring identity"
+      "audioSpeakerEmbed": "Extract speaker vectors from short audio without inferring identity",
+      "imageUpscale": "Enlarge an owned image and save its complete PNG.",
+      "videoUpscale": "Enlarge a complete MP4 while retaining frame timing and audio."
     },
     "required": "Required",
     "optional": "Optional",
@@ -1978,7 +1982,9 @@
     "textAnnotate": "Language analysis",
     "textDecide": "Decisions",
     "audioSeparate": "Vocal and background separation",
-    "audioSpeakerEmbed": "Speaker representation"
+    "audioSpeakerEmbed": "Speaker representation",
+    "imageUpscale": "Image super-resolution",
+    "videoUpscale": "Video super-resolution"
   },
   "common": {
     "noModelsDiscovered": "No models discovered yet.",
@@ -2561,7 +2567,8 @@
     "community": {
       "title": "Popular in the community",
       "description": "The most downloaded models on Hugging Face.",
-      "notInCategory": "Community picks currently cover chat, image, and video. Search still includes results from Hugging Face."
+      "notInCategory": "Community picks currently cover chat, image, and video. Search still includes results from Hugging Face.",
+      "notForCapability": "Community picks do not declare this capability. Use a model in the Nimi collection, or search for a file to inspect its details."
     }
   },
   "advanced": {
@@ -2618,7 +2625,9 @@
       "image-face-swap": "Replace faces in images using supported inputs and models.",
       "video-face-swap": "Apply face replacement to video in supported apps.",
       "vision-locate": "Locate objects or regions in images for visual tools.",
-      "audio-speaker-embed": "Extract speaker vectors from short audio without inferring identity."
+      "audio-speaker-embed": "Extract speaker vectors from short audio without inferring identity.",
+      "image-upscale": "Enlarge an owned image and save its complete PNG.",
+      "video-upscale": "Enlarge a complete MP4 while retaining frame timing and audio."
     },
     "downloadedModels": "Downloaded and configured models",
     "customizeCurrent": "Customize current models and options",
@@ -2976,7 +2985,7 @@
     "downloadedLead": "The recommended model files are already on this device. Enable the model to finish setup; Nimi will ask if anything else is needed.",
     "enableModel": "Enable",
     "localScopeHelp": "Apps using this device’s models share this choice. App-specific settings are kept.",
-    "supportsImageInput": "Supports reference-image input",
+    "supportsImageInput": "Supports image input",
     "customize": "Customize versions & options",
     "settings": {
       "models": "Models",
@@ -3138,7 +3147,7 @@
     "showOtherModelFiles": "Choose other local files ({{count}})",
     "hideOtherModelFiles": "Show related models only",
     "feature": {
-      "input-image": "Reference image input",
+      "input-image": "Supports image input",
       "input-audio": "Reference audio input",
       "input-mask": "Mask editing"
     },

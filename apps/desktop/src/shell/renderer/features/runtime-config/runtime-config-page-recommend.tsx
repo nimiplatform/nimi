@@ -132,7 +132,9 @@ export function RecommendPage(props: RecommendPageProps) {
   // Collection details opened from one another; back returns to the previous one.
   const [openedItems, setOpenedItems] = useState<readonly NimiCollectionItem[]>([]);
   const normalizedQuery = query.trim();
-  const feedCategories = communityFeedCategories(category);
+  const scopedCapability = props.context?.kind === 'browse' && category === initialModelLibraryCategory(props.context.capabilityContract)
+    ? props.context.capabilityContract : undefined;
+  const feedCategories = communityFeedCategories(category, scopedCapability);
   // Runtime search narrows only by the community feed categories.
   const searchCategory = category !== 'all' ? feedCategories[0] : undefined;
 
@@ -180,7 +182,7 @@ export function RecommendPage(props: RecommendPageProps) {
     () => buildNimiCollection({ catalog: catalogQuery.data ?? [], recipes: recipesQuery.data ?? [] }),
     [catalogQuery.data, recipesQuery.data],
   );
-  const categoryCollection = useMemo(() => nimiCollectionForCategory(collection, category), [collection, category]);
+  const categoryCollection = useMemo(() => nimiCollectionForCategory(collection, category, scopedCapability), [collection, category, scopedCapability]);
   const collectionItems = useMemo(
     () => new Map([...collection.models, ...collection.parts].map((item) => [item.key, item])),
     [collection],
@@ -249,7 +251,7 @@ export function RecommendPage(props: RecommendPageProps) {
     );
   }
 
-  const featured = featuredQuery.data;
+  const featured = feedCategories.length > 0 ? featuredQuery.data : undefined;
   const showSearch = normalizedQuery.length > 0;
   const rawRows = showSearch ? searchQuery.data?.items ?? [] : featured?.items ?? [];
   const huggingFaceUnavailable = showSearch && Boolean(searchQuery.data?.huggingFaceUnavailable);
@@ -392,6 +394,7 @@ export function RecommendPage(props: RecommendPageProps) {
           />
           <CommunitySection
             inCategory={feedCategories.length > 0}
+            capabilityScoped={scopedCapability !== undefined && communityFeedCategories(category).length > 0}
             featured={featured}
             pending={featuredQuery.isPending}
             failed={featuredQuery.isError}
@@ -442,6 +445,7 @@ function ModelMarketLoadingState() {
 function CommunitySection(props: {
   /** The community feeds serve the selected category. */
   readonly inCategory: boolean;
+  readonly capabilityScoped: boolean;
   readonly featured: NimiRuntimeFeaturedModelAssets | undefined;
   readonly pending: boolean;
   readonly failed: boolean;
@@ -453,7 +457,7 @@ function CommunitySection(props: {
 }) {
   const { t } = useTranslation();
   if (!props.inCategory) {
-    return <p className="text-xs text-[var(--nimi-text-muted)]">{t('runtimeConfig.modelLibrary.community.notInCategory')}</p>;
+    return <p className="text-xs text-[var(--nimi-text-muted)]">{t(props.capabilityScoped ? 'runtimeConfig.modelLibrary.community.notForCapability' : 'runtimeConfig.modelLibrary.community.notInCategory')}</p>;
   }
   return (
     <section data-testid="model-library-community" className="space-y-3" aria-labelledby="model-library-community-title">

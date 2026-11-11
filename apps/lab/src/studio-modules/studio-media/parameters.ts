@@ -50,6 +50,9 @@ function recordedRangeValid(restored: Record<string, unknown>, start: string, en
 }
 
 export type StudioImageGenerationParameters = {
+  controlImageArtifactId?: string;
+  controlType?: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8;
+  controlStrength?: number;
   negativePrompt?: string;
   count?: number;
   size?: string;
@@ -228,8 +231,8 @@ export const studioImageGenerateParameters = defineStudioParameters<StudioImageG
   initial: () => ({}),
   restoreRecordedParameters: (snapshot) => {
     if (!snapshot) return null;
-    const strings = new Set(['negativePrompt', 'size', 'aspectRatio', 'quality', 'style', 'referenceImage', 'referenceImageArtifactId', 'mask', 'maskArtifactId', 'complexity', 'outputFormat', 'markup', 'markupArtifactId']);
-    const numbers = new Set(['count', 'seed', 'frameCount', 'frameDurationMs']);
+    const strings = new Set(['negativePrompt', 'size', 'aspectRatio', 'quality', 'style', 'referenceImage', 'referenceImageArtifactId', 'mask', 'maskArtifactId', 'complexity', 'outputFormat', 'markup', 'markupArtifactId', 'controlImageArtifactId']);
+    const numbers = new Set(['count', 'seed', 'frameCount', 'frameDurationMs', 'controlType', 'controlStrength']);
     const restored: Record<string, unknown> = {};
     for (const [key,value] of Object.entries(snapshot)) {
       if (value === undefined) continue;
@@ -256,6 +259,9 @@ export const studioImageGenerateParameters = defineStudioParameters<StudioImageG
     markupArtifactId: CLOUD_ONLY_STUDIO_PARAMETER,
     frameCount: CLOUD_ONLY_STUDIO_PARAMETER,
     frameDurationMs: CLOUD_ONLY_STUDIO_PARAMETER,
+    controlImageArtifactId: LOCAL_ONLY_STUDIO_PARAMETER,
+    controlType: LOCAL_ONLY_STUDIO_PARAMETER,
+    controlStrength: LOCAL_ONLY_STUDIO_PARAMETER,
   },
 });
 

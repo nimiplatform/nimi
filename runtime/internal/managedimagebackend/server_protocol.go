@@ -17,6 +17,9 @@ func defaultStableDiffusionCPPGenerateRequester(ctx context.Context, client *htt
 	if client == nil {
 		client = &http.Client{}
 	}
+	if req.Mode == ImageRequestModeControl {
+		return generateNativeControlImage(ctx, client, endpoint, loaded, req)
+	}
 	path, payload, err := buildStableDiffusionCPPGenerateRequest(loaded, req)
 	if err != nil {
 		return nil, err
@@ -227,37 +230,45 @@ func defaultManagedImageString(value string, fallback string) string {
 	return strings.TrimSpace(fallback)
 }
 
-func emitManagedImageProgressUpdates(
-	capture *managedImageLogCapture,
-	cursor int,
-	onProgress func(imageGenerateProgress) error,
-	last imageGenerateProgress,
-	haveLast bool,
-) (int, imageGenerateProgress, bool, error) {
+type managedImageSamplingProgress struct {
+	cursor   int
+	sampling bool
+	last     imageGenerateProgress
+}
+
+func (state *managedImageSamplingProgress) emit(capture *managedImageLogCapture, onProgress func(imageGenerateProgress) error) error {
 	if capture == nil {
-		return cursor, last, haveLast, nil
+		return nil
 	}
-	lines, nextCursor := capture.LinesSince(cursor)
-	if len(lines) == 0 {
-		return nextCursor, last, haveLast, nil
-	}
+	lines, nextCursor := capture.LinesSince(state.cursor)
+	state.cursor = nextCursor
 	for _, line := range lines {
-		progress, ok := parseManagedImageProgressLine(line)
-		if !ok {
+		// VAE encoding and decoding also print progress bars. Only the bars
+		// emitted between the upstream sampling markers count as denoising steps.
+		switch {
+		case strings.HasPrefix(line, "[I] generating image: "):
+			state.sampling = true
+			state.last = imageGenerateProgress{}
+			continue
+		case strings.HasPrefix(line, "[I] sampling completed,"):
+			state.sampling = false
 			continue
 		}
-		if haveLast && progress == last {
+		if !state.sampling {
+			continue
+		}
+		progress, ok := parseManagedImageProgressLine(line)
+		if !ok || progress == state.last {
 			continue
 		}
 		if onProgress != nil {
 			if err := onProgress(progress); err != nil {
-				return nextCursor, last, haveLast, err
+				return err
 			}
 		}
-		last = progress
-		haveLast = true
+		state.last = progress
 	}
-	return nextCursor, last, haveLast, nil
+	return nil
 }
 
 func parseManagedImageProgressLine(line string) (imageGenerateProgress, bool) {

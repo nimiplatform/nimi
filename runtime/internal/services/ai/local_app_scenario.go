@@ -376,7 +376,8 @@ func validateLocalAppImageGenerateSpec(spec *runtimev1.LocalAppImageGenerateScen
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	return &runtimev1.ImageGenerateScenarioSpec{
-		Complexity: spec.GetComplexity(), OutputFormat: spec.GetOutputFormat(), Markup: spec.GetMarkup(), MarkupArtifactId: spec.GetMarkupArtifactId(), FrameCount: localAppOptionalInt32(spec.FrameCount), FrameDurationMs: localAppOptionalInt32(spec.FrameDurationMs),
+		ControlImage: cloneImageControlInput(spec.GetControlImage()),
+		Complexity:   spec.GetComplexity(), OutputFormat: spec.GetOutputFormat(), Markup: spec.GetMarkup(), MarkupArtifactId: spec.GetMarkupArtifactId(), FrameCount: localAppOptionalInt32(spec.FrameCount), FrameDurationMs: localAppOptionalInt32(spec.FrameDurationMs),
 		Prompt:                   spec.GetPrompt(),
 		NegativePrompt:           spec.GetNegativePrompt(),
 		N:                        localAppOptionalInt32(spec.N),
@@ -392,4 +393,11 @@ func validateLocalAppImageGenerateSpec(spec *runtimev1.LocalAppImageGenerateScen
 		Strength:                 localAppOptionalFloat32(spec.Strength),
 		ResponseFormat:           format,
 	}, nil
+}
+
+func cloneImageControlInput(input *runtimev1.ImageControlInput) *runtimev1.ImageControlInput {
+	if input == nil {
+		return nil
+	}
+	return proto.Clone(input).(*runtimev1.ImageControlInput)
 }

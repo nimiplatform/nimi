@@ -91,7 +91,8 @@ type Service struct {
 	localAnnotationJobOrder                localMediaSubmissionOrder
 	localVisionJobOrder                    localMediaSubmissionOrder
 	localFaceSwapHost                      localexecution.FaceSwapExecutionHost
-	localFaceSwapJobOrder                  localMediaSubmissionOrder
+	localUpscaleHost                       localexecution.UpscaleExecutionHost
+	localArtifactJobOrder                  localMediaSubmissionOrder
 	localImageJobOrder                     localMediaSubmissionOrder
 	localMusicJobOrder                     localMediaSubmissionOrder
 	localVideoJobOrder                     localMediaSubmissionOrder
@@ -366,6 +367,12 @@ func (s *Service) SetLocalVisionExecutionHost(host localexecution.VisionExecutio
 func (s *Service) SetLocalFaceSwapExecutionHost(host localexecution.FaceSwapExecutionHost) {
 	if s != nil {
 		s.localFaceSwapHost = host
+	}
+}
+
+func (s *Service) SetLocalUpscaleExecutionHost(host localexecution.UpscaleExecutionHost) {
+	if s != nil {
+		s.localUpscaleHost = host
 	}
 }
 

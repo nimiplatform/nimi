@@ -13,6 +13,7 @@ import (
 )
 
 type stableDiffusionCPPResidentConfig struct {
+	Checkpoint         bool                    `json:"checkpoint,omitempty"`
 	ModelPath          string                  `json:"model_path"`
 	Components         []managedImageComponent `json:"components,omitempty"`
 	DiffusionFA        bool                    `json:"diffusion_fa,omitempty"`
@@ -47,6 +48,7 @@ func stableDiffusionCPPResidentConfigFromLoad(state loadModelState) (stableDiffu
 		return stableDiffusionCPPResidentConfig{}, err
 	}
 	return stableDiffusionCPPResidentConfig{
+		Checkpoint:         state.Options.Checkpoint,
 		ModelPath:          strings.TrimSpace(state.ModelPath),
 		Components:         components,
 		DiffusionFA:        state.Options.DiffusionFA != nil && *state.Options.DiffusionFA,
@@ -86,6 +88,9 @@ func stableDiffusionCPPResidentStartupArgs(config stableDiffusionCPPResidentConf
 		"--listen-ip", "127.0.0.1",
 		"--listen-port", strconv.Itoa(port),
 		"--diffusion-model", modelPath,
+	}
+	if config.Checkpoint {
+		args[4] = "--model"
 	}
 	if config.Threads != 0 {
 		args = append(args, "--threads", strconv.Itoa(int(config.Threads)))

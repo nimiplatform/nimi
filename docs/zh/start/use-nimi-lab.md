@@ -1,4 +1,4 @@
-<!-- nimi-docs: {"authority":["rule.nimi.platform.app-ecosystem.lab-web-carrier"],"sources":["apps/lab/README.md","apps/lab/NIMI_APP.md","apps/lab/package.json"]} -->
+<!-- nimi-docs: {"authority":["rule.nimi.platform.app-ecosystem.lab-web-carrier","rule.nimi.runtime.ai-provider.media-upscale-contract","rule.nimi.runtime.ai-provider.sdxl-controlnet-union","rule.nimi.runtime.ai-provider.minimax-h3-local-image","rule.nimi.runtime.ai-provider.hyperflow-h3-local-video"],"sources":["apps/lab/README.md","apps/lab/NIMI_APP.md","apps/lab/package.json","apps/lab/src/lab/lab-only/upscale.ts","apps/lab/src/studio-modules/studio-media/parameter-panel.tsx"]} -->
 
 # 使用 Nimi Lab
 
@@ -24,6 +24,29 @@ pnpm run test       # 运行单元测试与集成测试
 ```
 
 在 Windows 和 macOS 上，Nimi Lab 运行在桌面端监管的 Electron 开发环境中。本地开发构建可通过 Nimi Home 的开发者模式（Developer Mode）完成注册并检查访问就绪状态。Lab 直接在根工作区维护，不运行脚手架 init/sync，也没有公开发布流程。
+
+## 实测本地图像与视频模型
+
+请使用配套源码构建的 Desktop/Runtime、SDK、Kit 和 Lab。本次新增 sd.cpp 配方目前要求 Windows amd64 NVIDIA 主机，macOS 引擎包仍为 1050。按上文的监管启动命令打开原生 Lab；这些新模型路径尚未在远程浏览器或安装版中验收。
+
+1. 在 Home 的 **AI 能力** 中选择 **图像生成**、**视频生成**、**图像超分辨率** 或 **视频超分辨率**。选好模型，下载缺少的组件，并选择可复用的本机兼容文件。等待准备完成，再将配置设为本机当前模型。文件下载完成不等于模型已就绪。
+2. 在 Lab 打开对应入口，把该能力的 AI 意图设为 **本地**，核对“下次运行”显示的模型。图像超分和视频超分各有独立的能力配置，切换其中一项不会替另一项选模型。
+3. 打开 **参数**，按任务准备输入：
+
+| 任务 | 输入与操作 |
+| --- | --- |
+| H3 文生图 | 在图像生成中输入场景提示词，参考图、控制图、蒙版和负向提示词均留空，然后生成 |
+| H3 单参考图编辑 | 在普通 **参考图文件** 中上传一张图片，描述修改要求；控制图和蒙版留空 |
+| RelayVSR 或 SeedVR2 超分 | 图像超分上传 PNG/JPEG，视频超分上传完整 H264/AAC MP4；选择 2× 或 4×，RelayVSR 必须与配方倍率一致；种子可留空 |
+| SDXL ControlNet Union | 上传预处理后的 **控制图文件**，选择控制类型，输出画布尺寸与控制图一致；Canny、Tile 已实测，强度留空时为 1 |
+| HyperFlow 视频 | 在视频生成中使用文本提示词或受支持的参考图模式；在 Home 准备 FL2VA/Ref2VA 组件，并选择原视频 VAE 或 Sol-H3-VAE |
+
+4. 发起任务，完成后查看图片或播放视频。排队、运行中、已下载模型或旧历史记录，都不等于这次生成成功。失败和取消会保留实际状态。停止推理请使用任务的取消操作，离开页面或停止观察并不等于取消。
+5. 从历史中重新打开已保存结果。更换源文件时需重新选择输入。切换 ControlNet 和普通编辑前，先重置参数，确保下一次请求只包含需要的输入方式。
+
+建议先用小图或短视频测试。超分输入最大 32 MiB；视频还须满足不超过 10 秒/300 帧、标称 24/25/30 FPS，以及最多一路 AAC 音轨。完整限制见[多模态指南](/zh/runtime/multimodal)。ControlNet 不会自动预处理控制图，重绘也不保证蒙版外像素保持不变。
+
+2026-11-11 的 Windows RTX 5090 原生开发环境已实际生成 H3 文生图/编辑、HyperFlow FL2VA 与搭配 Sol 的 Ref2VA、RelayVSR 2x/4x、SeedVR2 3B/7B Sharp 和 ControlNet Canny/Tile 结果。SeedVR2 仍属实验性支持；其余 ControlNet 类型、HyperFlow 四步/八步配置、其他平台和安装版仍为 **NOT-VERIFIED**，详见[模型支持范围](/zh/runtime/local-models#本地图像与视频模型)。
 
 ## 关键代码与架构参考
 
@@ -68,3 +91,7 @@ Web 端提供已实现的 AI 工作台、App AIConfig、运行记录、Agent Cen
 - [`apps/lab/src/lab/lab-non-success.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-non-success.ts)
 - [`apps/lab/NIMI_APP.md`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/NIMI_APP.md)
 - [`.nimi/spec/platform/app-ecosystem.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/app-ecosystem.authority.yaml)
+- [`.nimi/spec/runtime/media-upscale.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/media-upscale.authority.yaml)
+- [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)
+- [`apps/lab/src/lab/lab-only/upscale.ts`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/lab/lab-only/upscale.ts)
+- [`apps/lab/src/studio-modules/studio-media/parameter-panel.tsx`](https://github.com/nimiplatform/nimi/blob/main/apps/lab/src/studio-modules/studio-media/parameter-panel.tsx)

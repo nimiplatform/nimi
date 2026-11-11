@@ -29,6 +29,7 @@ When you launch your app with `pnpm dev`, it executes inside Desktop's supervise
 | [`sdk/05-scenario-job.ts`](sdk/05-scenario-job.ts) | Async Scenario Jobs | Submitting background tasks (`text-annotate`), observing status, and polling results |
 | [`sdk/06-errors.ts`](sdk/06-errors.ts) | Structured Error Handling | Catching and inspecting typed errors using `isNimiError` and reason codes |
 | [`sdk/07-voice-create.ts`](sdk/07-voice-create.ts) | Voice Cloning & Persona | Creating a voice asset from a text description via async job submission |
+| [`sdk/09-media-jobs.ts`](sdk/09-media-jobs.ts) | Local Media Jobs | Configure Local intent; upload and submit image/video upscaling, a prepared Canny control map or an ordinary reference edit; observe, cancel and retain complete results |
 | [`sdk/advanced/app-access.ts`](sdk/advanced/app-access.ts) | Session Posture | Inspecting authorization and active session boundaries via `client.auth.status()` |
 
 ---
@@ -36,6 +37,10 @@ When you launch your app with `pnpm dev`, it executes inside Desktop's supervise
 ## Remote Apps
 
 [`sdk/08-remote-runtime.ts`](sdk/08-remote-runtime.ts) is a typechecked one-shot recipe using an officially established Runtime-client session. The executable [Web reference](remote-runtime-web/README.md) has its own `check`, `test` and `build`; the [React Native peer adapter](remote-runtime-mobile/README.md) stays in its independent dependency workspace. The maintained Android product entry is [Zhiyu with Kit Capacitor](../apps/zhiyu/README.md#android-本机开发). These checks do not establish source admission or real AI acceptance.
+
+## Local Media Example
+
+`sdk/09-media-jobs.ts` receives the existing native App client and real input bytes. Prepare models in Home and use matching source-built SDK, Kit and Runtime. The new recipes currently target Windows amd64 NVIDIA with sd.cpp 1088. The [English guide](../docs/runtime/multimodal.md) and [中文指南](../docs/zh/runtime/multimodal.md) describe inputs, supported model combinations and the scope of actual Lab acceptance. Typechecking this example does not execute a model or establish remote/installed support. It adds no public scaffold feature.
 
 ## Creating a Fresh App
 

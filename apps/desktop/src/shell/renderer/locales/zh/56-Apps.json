@@ -324,6 +324,14 @@
       "audioSpeakerEmbed": {
         "label": "说话人特征",
         "description": "从短音频提取同一表示空间内可比较的特征向量，不用于身份认证。"
+      },
+      "imageUpscale": {
+        "label": "图像超分辨率",
+        "description": "放大已有图像并保存完整 PNG。"
+      },
+      "videoUpscale": {
+        "label": "视频超分辨率",
+        "description": "放大完整 MP4，保留帧时间与音轨。"
       }
     },
     "profileSource": {

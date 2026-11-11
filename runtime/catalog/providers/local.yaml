@@ -4860,6 +4860,42 @@ models:
         total_size_bytes: 934349912
         host_requirement:
           accelerator: cuda
+  - model_id: asset-sdxl-controlnet-union-promax
+    provider: local
+    model_type: auxiliary
+    updated_at: 2026-11-11
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/xinsir/controlnet-union-sdxl-1.0/tree/801a4a3fa3d4c936f4feea95b98607bc6726f80c
+      retrieved_at: 2026-11-11
+      note: Official ControlNet Union ProMax safetensors checkpoint with eight task embeddings, under Apache-2.0.
+    family: sdxl-controlnet-union-promax
+    install:
+      repo: xinsir/controlnet-union-sdxl-1.0
+      revision: 801a4a3fa3d4c936f4feea95b98607bc6726f80c
+      install_kind: weights
+      entry: diffusion_pytorch_model_promax.safetensors
+      artifact_roles:
+        - controlnet
+      license: Apache-2.0
+    variants:
+      - variant_id: local.controlnet.sdxl-union-promax.f16.cuda
+        quant: F16
+        entry: diffusion_pytorch_model_promax.safetensors
+        files:
+          - diffusion_pytorch_model_promax.safetensors
+        hashes:
+          diffusion_pytorch_model_promax.safetensors: sha256:9fae2e50cb431bfcbe05822b59ec2228df545ef27f711dea8949e9f4ed9f7cdc
+        total_size_bytes: 2513342408
+        host_requirement:
+          accelerator: cuda
   - model_id: asset-video-vae-wan22-ti2v
     provider: local
     model_type: vae
@@ -5430,6 +5466,79 @@ models:
         hashes:
           Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf: sha256:0f00a930ba3108b6861ddadf74d8ebbd82e257c63eba728e62c3e8970f5eed94
         total_size_bytes: 4683072512
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 17179869184
+          min_vram_bytes: 8589934592
+  - model_id: asset-image-vae-minimax-h3-image
+    provider: local
+    model_type: vae
+    updated_at: 2026-11-11
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/MiniMaxAI/MiniMax-H3-Image
+      retrieved_at: 2026-11-11
+      note: Original MiniMax-H3-Image model and territory-limited Community License Agreement.
+    family: minimax-h3-image-vae
+    install:
+      repo: Comfy-Org/MiniMax-H3-Image
+      revision: 892de7cb61df49753bf15145a711154803a355cb
+      install_kind: weights
+      entry: vae/minimax_h3_image_vae_fp16.safetensors
+      artifact_roles:
+        - vae
+      license: MiniMax-H3-Image Community License Agreement
+    variants:
+      - variant_id: local.image-vae.minimax-h3-image.f16.cuda
+        quant: F16
+        entry: vae/minimax_h3_image_vae_fp16.safetensors
+        files:
+          - vae/minimax_h3_image_vae_fp16.safetensors
+        hashes:
+          vae/minimax_h3_image_vae_fp16.safetensors: sha256:d80e9c2e5cfc9844869961ff5a58c9a9e52182df6bfb30b26018dd7f348721af
+        total_size_bytes: 1168505312
+        host_requirement:
+          accelerator: cuda
+  - model_id: asset-video-vae-sol-h3
+    provider: local
+    model_type: vae
+    updated_at: 2026-11-11
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/Comfy-Org/MiniMax-H3/tree/54472221d27c695fca9621b0c3ed52f06c4af707/vae
+      retrieved_at: 2026-11-11
+      note: Sol-H3 distilled video decoder bundled with the original H3 encoder.
+    family: minimax-h3-video-vae
+    install:
+      repo: Comfy-Org/MiniMax-H3
+      revision: 54472221d27c695fca9621b0c3ed52f06c4af707
+      install_kind: weights
+      entry: vae/minimax_h3_sol_vae_fp16.safetensors
+      artifact_roles:
+        - video_vae
+    variants:
+      - variant_id: local.video-vae.sol-h3.f16.cuda
+        quant: F16
+        entry: vae/minimax_h3_sol_vae_fp16.safetensors
+        files:
+          - vae/minimax_h3_sol_vae_fp16.safetensors
+        hashes:
+          vae/minimax_h3_sol_vae_fp16.safetensors: sha256:61eaab3d7ca1659f20bce4d02bbc5bd5e5af608c73328d30cda96c8dc4d033e0
+        total_size_bytes: 3596335728
         host_requirement:
           accelerator: cuda
           min_ram_bytes: 17179869184
@@ -6899,6 +7008,124 @@ models:
         host_requirement:
           accelerator: cpu
           min_ram_bytes: 8589934592
+  - model_id: sdxl-base-1.0-local
+    provider: local
+    model_type: image
+    updated_at: 2026-11-11
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/stabilityai/stable-diffusion-xl-base-1.0/tree/462165984030d82259a11f4367a4eed129e94a7b
+      retrieved_at: 2026-11-11
+      note: Complete SDXL Base 1.0 checkpoint with both text encoders and VAE, under CreativeML Open RAIL++-M.
+    features:
+      - input.image
+    family: sdxl-controlnet-union
+    image_request_options:
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+    install:
+      repo: stabilityai/stable-diffusion-xl-base-1.0
+      revision: 462165984030d82259a11f4367a4eed129e94a7b
+      install_kind: weights
+      entry: sd_xl_base_1.0.safetensors
+      artifact_roles:
+        - diffusion_model
+      license: CreativeML Open RAIL++-M
+      provenance: Official complete SDXL Base checkpoint with embedded CLIP-L, OpenCLIP-G and VAE; ControlNet generation requires an independent Union ProMax asset and a prepared typed control map.
+      preferred_engine: media
+    variants:
+      - variant_id: local.image.sdxl-base-1.0.f16.cuda
+        quant: F16
+        entry: sd_xl_base_1.0.safetensors
+        files:
+          - sd_xl_base_1.0.safetensors
+        hashes:
+          sd_xl_base_1.0.safetensors: sha256:31e35c80fc4829d14f90153f4c74cd59c90b779f6afe05a74cd6120b893f7e5b
+        total_size_bytes: 6938078334
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 17179869184
+          min_vram_bytes: 8589934592
+    fitness:
+      param_count: 3500000000
+      context_length: 0
+  - model_id: minimax-h3-image-local
+    provider: local
+    model_type: image
+    updated_at: 2026-11-11
+    capabilities:
+      - image.generate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/MiniMaxAI/MiniMax-H3-Image
+      retrieved_at: 2026-11-11
+      note: Original MiniMax-H3-Image model and territory-limited Community License Agreement.
+    features:
+      - input.image
+    family: minimax-h3-image
+    image_request_options:
+      response_formats:
+        - b64_json
+        - url
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+    install:
+      repo: Comfy-Org/MiniMax-H3-Image
+      revision: 892de7cb61df49753bf15145a711154803a355cb
+      install_kind: weights
+      entry: diffusion_models/minimax_h3_image_pruned_int8_convrot.safetensors
+      artifact_roles:
+        - diffusion_model
+      license: MiniMax-H3-Image Community License Agreement
+      provenance: Comfy-Org combined pruned INT8 ConvRot checkpoint with six-step PDD heads; use is subject to the original model license and its territory restrictions.
+      preferred_engine: media
+    variants:
+      - variant_id: local.image.minimax-h3-image.pruned-int8-convrot.cuda
+        quant: INT8 ConvRot
+        entry: diffusion_models/minimax_h3_image_pruned_int8_convrot.safetensors
+        files:
+          - diffusion_models/minimax_h3_image_pruned_int8_convrot.safetensors
+        hashes:
+          diffusion_models/minimax_h3_image_pruned_int8_convrot.safetensors: sha256:83eb140f1ff95c068f8a6886e6d3f3d0d4ab2e07bb2fe6d2ef992a51146ee622
+        total_size_bytes: 20979314802
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 68719476736
+          min_vram_bytes: 25769803776
+    fitness:
+      param_count: 20000000000
+      context_length: 0
   - model_id: flux3-image-klein-local
     provider: local
     model_type: image
@@ -7536,6 +7763,275 @@ models:
     fitness:
       param_count: 20000000000
       context_length: 0
+  - model_id: relayvsr-2x-local
+    provider: local
+    model_type: image
+    updated_at: 2026-11-11
+    capabilities:
+      - image.upscale
+      - video.upscale
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/Comfy-Org/RelayVSR/tree/ba556c9fab83606eb82285b7eb3a9375232744b6
+      retrieved_at: 2026-11-11
+      note: Engine-referenced combined safetensors and matching VAE components.
+    family: relayvsr
+    install:
+      repo: Comfy-Org/RelayVSR
+      revision: ba556c9fab83606eb82285b7eb3a9375232744b6
+      install_kind: weights
+      entry: diffusion_models/relayvsr_x2_lightx2v_int8_convrot.safetensors
+      artifact_roles:
+        - diffusion_model
+      preferred_engine: media
+    variants:
+      - variant_id: local.upscale.relayvsr-2x.cuda
+        quant: INT8 ConvRot
+        entry: diffusion_models/relayvsr_x2_lightx2v_int8_convrot.safetensors
+        files:
+          - diffusion_models/relayvsr_x2_lightx2v_int8_convrot.safetensors
+        hashes:
+          diffusion_models/relayvsr_x2_lightx2v_int8_convrot.safetensors: sha256:240e75e0c17cf2845d559b25254a230ff7458f81449d7a8c5e7e3fb8275c7b3c
+        total_size_bytes: 5163295248
+        host_requirement:
+          accelerator: cuda
+    fitness:
+      param_count: 5000000000
+      context_length: 0
+  - model_id: relayvsr-4x-local
+    provider: local
+    model_type: image
+    updated_at: 2026-11-11
+    capabilities:
+      - image.upscale
+      - video.upscale
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/Comfy-Org/RelayVSR/tree/ba556c9fab83606eb82285b7eb3a9375232744b6
+      retrieved_at: 2026-11-11
+      note: Engine-referenced combined safetensors and matching VAE components.
+    family: relayvsr
+    install:
+      repo: Comfy-Org/RelayVSR
+      revision: ba556c9fab83606eb82285b7eb3a9375232744b6
+      install_kind: weights
+      entry: diffusion_models/relayvsr_x4_int8_convrot.safetensors
+      artifact_roles:
+        - diffusion_model
+      preferred_engine: media
+    variants:
+      - variant_id: local.upscale.relayvsr-4x.cuda
+        quant: INT8 ConvRot
+        entry: diffusion_models/relayvsr_x4_int8_convrot.safetensors
+        files:
+          - diffusion_models/relayvsr_x4_int8_convrot.safetensors
+        hashes:
+          diffusion_models/relayvsr_x4_int8_convrot.safetensors: sha256:21303b3c5f9ab4e1fd3fe00df5dd2e0b343f0cf2e3d269e03a9872000a313a2e
+        total_size_bytes: 5164179952
+        host_requirement:
+          accelerator: cuda
+    fitness:
+      param_count: 5000000000
+      context_length: 0
+  - model_id: seedvr2-3b-local
+    provider: local
+    model_type: image
+    updated_at: 2026-11-11
+    capabilities:
+      - image.upscale
+      - video.upscale
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/Comfy-Org/SeedVR2/tree/df48879708206a403d2a61acd55578c2e80fd233
+      retrieved_at: 2026-11-11
+      note: Engine-referenced combined safetensors and matching VAE components.
+    family: seedvr2
+    install:
+      repo: Comfy-Org/SeedVR2
+      revision: df48879708206a403d2a61acd55578c2e80fd233
+      install_kind: weights
+      entry: diffusion_models/seedvr2_3b_int8_convrot.safetensors
+      artifact_roles:
+        - diffusion_model
+      preferred_engine: media
+    variants:
+      - variant_id: local.upscale.seedvr2-3b.cuda
+        quant: INT8 ConvRot
+        entry: diffusion_models/seedvr2_3b_int8_convrot.safetensors
+        files:
+          - diffusion_models/seedvr2_3b_int8_convrot.safetensors
+        hashes:
+          diffusion_models/seedvr2_3b_int8_convrot.safetensors: sha256:c3dec8bcc5916843a8a858572970597462e1f2dc598d6dfd818f6cd40f53a157
+        total_size_bytes: 3458259704
+        host_requirement:
+          accelerator: cuda
+    fitness:
+      param_count: 3000000000
+      context_length: 0
+  - model_id: seedvr2-7b-sharp-local
+    provider: local
+    model_type: image
+    updated_at: 2026-11-11
+    capabilities:
+      - image.upscale
+      - video.upscale
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/Comfy-Org/SeedVR2/tree/df48879708206a403d2a61acd55578c2e80fd233
+      retrieved_at: 2026-11-11
+      note: Engine-referenced combined safetensors and matching VAE components.
+    family: seedvr2
+    install:
+      repo: Comfy-Org/SeedVR2
+      revision: df48879708206a403d2a61acd55578c2e80fd233
+      install_kind: weights
+      entry: diffusion_models/seedvr2_7b_sharp_int8_convrot.safetensors
+      artifact_roles:
+        - diffusion_model
+      preferred_engine: media
+    variants:
+      - variant_id: local.upscale.seedvr2-7b-sharp.cuda
+        quant: INT8 ConvRot
+        entry: diffusion_models/seedvr2_7b_sharp_int8_convrot.safetensors
+        files:
+          - diffusion_models/seedvr2_7b_sharp_int8_convrot.safetensors
+        hashes:
+          diffusion_models/seedvr2_7b_sharp_int8_convrot.safetensors: sha256:db48be2f1cc7e36b01a2aa529810f5d9c6a971edd29be225cf1b0eb18d51c366
+        total_size_bytes: 8334897976
+        host_requirement:
+          accelerator: cuda
+    fitness:
+      param_count: 7000000000
+      context_length: 0
+  - model_id: asset-relayvsr-2x-vae-local
+    provider: local
+    model_type: vae
+    updated_at: 2026-11-11
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/Comfy-Org/RelayVSR/tree/ba556c9fab83606eb82285b7eb3a9375232744b6
+      retrieved_at: 2026-11-11
+      note: Engine-referenced combined safetensors and matching VAE components.
+    family: relayvsr-2x-vae
+    install:
+      repo: Comfy-Org/RelayVSR
+      revision: ba556c9fab83606eb82285b7eb3a9375232744b6
+      install_kind: weights
+      entry: vae/relayvsr_flash_vae_x2_fp32.safetensors
+      artifact_roles:
+        - vae
+    variants:
+      - variant_id: local.upscale.asset-relayvsr-2x-vae.cuda
+        quant: F32
+        entry: vae/relayvsr_flash_vae_x2_fp32.safetensors
+        files:
+          - vae/relayvsr_flash_vae_x2_fp32.safetensors
+        hashes:
+          vae/relayvsr_flash_vae_x2_fp32.safetensors: sha256:b5bb0339acb5b52545911ea29a51b4c5b805776a779222b5a14591571f42e21c
+        total_size_bytes: 127759464
+        host_requirement:
+          accelerator: cuda
+  - model_id: asset-relayvsr-4x-vae-local
+    provider: local
+    model_type: vae
+    updated_at: 2026-11-11
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/Comfy-Org/RelayVSR/tree/ba556c9fab83606eb82285b7eb3a9375232744b6
+      retrieved_at: 2026-11-11
+      note: Engine-referenced combined safetensors and matching VAE components.
+    family: relayvsr-4x-vae
+    install:
+      repo: Comfy-Org/RelayVSR
+      revision: ba556c9fab83606eb82285b7eb3a9375232744b6
+      install_kind: weights
+      entry: vae/relayvsr_flash_vae_x4_fp32.safetensors
+      artifact_roles:
+        - vae
+    variants:
+      - variant_id: local.upscale.asset-relayvsr-4x-vae.cuda
+        quant: F32
+        entry: vae/relayvsr_flash_vae_x4_fp32.safetensors
+        files:
+          - vae/relayvsr_flash_vae_x4_fp32.safetensors
+        hashes:
+          vae/relayvsr_flash_vae_x4_fp32.safetensors: sha256:7b8b8c99275fd5c4501b0589cc7b4c4506456a5df83160ef4e207e147b30f714
+        total_size_bytes: 127759784
+        host_requirement:
+          accelerator: cuda
+  - model_id: asset-seedvr2-vae-local
+    provider: local
+    model_type: vae
+    updated_at: 2026-11-11
+    capabilities: []
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/Comfy-Org/SeedVR2/tree/df48879708206a403d2a61acd55578c2e80fd233
+      retrieved_at: 2026-11-11
+      note: Engine-referenced combined safetensors and matching VAE components.
+    family: seedvr2-vae
+    install:
+      repo: Comfy-Org/SeedVR2
+      revision: df48879708206a403d2a61acd55578c2e80fd233
+      install_kind: weights
+      entry: vae/seedvr2_ema_vae_fp16.safetensors
+      artifact_roles:
+        - vae
+    variants:
+      - variant_id: local.upscale.asset-seedvr2-vae.cuda
+        quant: F16
+        entry: vae/seedvr2_ema_vae_fp16.safetensors
+        files:
+          - vae/seedvr2_ema_vae_fp16.safetensors
+        hashes:
+          vae/seedvr2_ema_vae_fp16.safetensors: sha256:20678548f420d98d26f11442d3528f8b8c94e57ee046ef93dbb7633da8612ca1
+        total_size_bytes: 501324814
+        host_requirement:
+          accelerator: cuda
   - model_id: wan2.2-ti2v-5b-local
     provider: local
     model_type: video
@@ -7603,6 +8099,137 @@ models:
           min_vram_bytes: 25769803776
     fitness:
       param_count: 5000000000
+      context_length: 0
+  - model_id: hyperflow-h3-flash-fl2va-local
+    provider: local
+    model_type: video
+    updated_at: 2026-11-11
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/VideoRebirthAI/hyperflow-h3-flash
+      retrieved_at: 2026-11-11
+      note: HyperFlow H3 Flash distilled video and audio transformer, with MiniMax H3 license lineage.
+    features:
+      - input.image
+    family: hyperflow-h3-flash
+    video_generation:
+      modes:
+        - t2v
+        - i2v_first_frame
+      input_roles:
+        t2v:
+          - prompt
+        i2v_first_frame:
+          - prompt
+          - first_frame
+      limits:
+        resolution:
+          - 288p
+          - 480p
+      options:
+        supports:
+          - resolution
+          - duration_sec
+        constraints: {}
+      outputs:
+        video_url: true
+    install:
+      repo: BennyDaBall/HyperFlow-H3-Flash-INT8-ComfyUI
+      revision: b5d22a34bfb159b0bc559458aac3412d0647f743
+      install_kind: weights
+      entry: minimax_h3_fl2va_hyperflow_flash_int8_convrot.safetensors
+      artifact_roles:
+        - diffusion_transformer
+      license: MiniMax H3 Community License Agreement
+      provenance: Community INT8 conversion by BennyDaBall of VideoRebirthAI HyperFlow H3 Flash, preserving the original weight license.
+      preferred_engine: media
+    variants:
+      - variant_id: local.video.hyperflow-h3-flash-fl2va.int8-convrot.cuda
+        quant: INT8 ConvRot
+        entry: minimax_h3_fl2va_hyperflow_flash_int8_convrot.safetensors
+        files:
+          - minimax_h3_fl2va_hyperflow_flash_int8_convrot.safetensors
+        hashes:
+          minimax_h3_fl2va_hyperflow_flash_int8_convrot.safetensors: sha256:6fcd9b13b7c3bf33e03bb49b10b02a7a60f5051ce8837e583be1452ba7289274
+        total_size_bytes: 15894225896
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 25769803776
+    fitness:
+      param_count: 13719355040
+      context_length: 0
+  - model_id: hyperflow-h3-flash-ref2va-local
+    provider: local
+    model_type: video
+    updated_at: 2026-11-11
+    capabilities:
+      - video.generate
+    pricing:
+      unit: request
+      input: "0"
+      output: "0"
+      currency: none
+      as_of: 2026-03-18
+      notes: Local execution uses self-hosted compute cost and has no provider-side public pricing.
+    source_ref:
+      url: https://huggingface.co/VideoRebirthAI/hyperflow-h3-flash
+      retrieved_at: 2026-11-11
+      note: HyperFlow H3 Flash distilled video and audio transformer, with MiniMax H3 license lineage.
+    features:
+      - input.image
+    family: hyperflow-h3-flash
+    video_generation:
+      modes:
+        - i2v_first_frame
+      input_roles:
+        i2v_first_frame:
+          - prompt
+          - first_frame
+      limits:
+        resolution:
+          - 288p
+          - 480p
+      options:
+        supports:
+          - resolution
+          - duration_sec
+        constraints: {}
+      outputs:
+        video_url: true
+    install:
+      repo: BennyDaBall/HyperFlow-H3-Flash-INT8-ComfyUI
+      revision: b5d22a34bfb159b0bc559458aac3412d0647f743
+      install_kind: weights
+      entry: minimax_h3_ref2va_hyperflow_flash_int8_convrot.safetensors
+      artifact_roles:
+        - diffusion_transformer
+      license: MiniMax H3 Community License Agreement
+      provenance: Community INT8 conversion by BennyDaBall of VideoRebirthAI HyperFlow H3 Flash, preserving the original weight license.
+      preferred_engine: media
+    variants:
+      - variant_id: local.video.hyperflow-h3-flash-ref2va.int8-convrot.cuda
+        quant: INT8 ConvRot
+        entry: minimax_h3_ref2va_hyperflow_flash_int8_convrot.safetensors
+        files:
+          - minimax_h3_ref2va_hyperflow_flash_int8_convrot.safetensors
+        hashes:
+          minimax_h3_ref2va_hyperflow_flash_int8_convrot.safetensors: sha256:3a60ba89db6c5b84a792b0a0bd911bf0126e5ff9dce99c6727ff61e961210b7e
+        total_size_bytes: 16324655176
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 25769803776
+    fitness:
+      param_count: 13934567584
       context_length: 0
   - model_id: minimax-h3-fl2va-local
     provider: local
@@ -10794,6 +11421,230 @@ voice_handle_policies:
       retrieved_at: 2026-04-17
       note: Default local voice clone checkpoint for first-wave local admission.
 loadout_recipes:
+  - recipe_id: relayvsr-2x.image.upscale
+    revision: "1"
+    title: RelayVSR 2x image upscaling
+    capability_contract: image.upscale
+    implementation_id: local.media.upscale.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp.upscale
+    driver_dialect: stable-diffusion.cpp/media-upscale/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: upscale.transformer
+        display_label: Super-resolution model
+        recommended_variant_ids:
+          - local.upscale.relayvsr-2x.cuda
+        recommended_content_ids:
+          - sha256:240e75e0c17cf2845d559b25254a230ff7458f81449d7a8c5e7e3fb8275c7b3c
+        model_contract:
+          format: safetensors
+          tensor_contract: relayvsr-2x
+      - slot_id: upscale.vae
+        display_label: Super-resolution VAE
+        recommended_variant_ids:
+          - local.upscale.asset-relayvsr-2x-vae.cuda
+        recommended_content_ids:
+          - sha256:b5bb0339acb5b52545911ea29a51b4c5b805776a779222b5a14591571f42e21c
+        model_contract:
+          format: safetensors
+          tensor_contract: relayvsr-2x-vae
+  - recipe_id: relayvsr-2x.video.upscale
+    revision: "1"
+    title: RelayVSR 2x video upscaling
+    capability_contract: video.upscale
+    implementation_id: local.media.upscale.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp.upscale
+    driver_dialect: stable-diffusion.cpp/media-upscale/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: upscale.transformer
+        display_label: Super-resolution model
+        recommended_variant_ids:
+          - local.upscale.relayvsr-2x.cuda
+        recommended_content_ids:
+          - sha256:240e75e0c17cf2845d559b25254a230ff7458f81449d7a8c5e7e3fb8275c7b3c
+        model_contract:
+          format: safetensors
+          tensor_contract: relayvsr-2x
+      - slot_id: upscale.vae
+        display_label: Super-resolution VAE
+        recommended_variant_ids:
+          - local.upscale.asset-relayvsr-2x-vae.cuda
+        recommended_content_ids:
+          - sha256:b5bb0339acb5b52545911ea29a51b4c5b805776a779222b5a14591571f42e21c
+        model_contract:
+          format: safetensors
+          tensor_contract: relayvsr-2x-vae
+  - recipe_id: relayvsr-4x.image.upscale
+    revision: "1"
+    title: RelayVSR 4x image upscaling
+    capability_contract: image.upscale
+    implementation_id: local.media.upscale.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp.upscale
+    driver_dialect: stable-diffusion.cpp/media-upscale/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: upscale.transformer
+        display_label: Super-resolution model
+        recommended_variant_ids:
+          - local.upscale.relayvsr-4x.cuda
+        recommended_content_ids:
+          - sha256:21303b3c5f9ab4e1fd3fe00df5dd2e0b343f0cf2e3d269e03a9872000a313a2e
+        model_contract:
+          format: safetensors
+          tensor_contract: relayvsr-4x
+      - slot_id: upscale.vae
+        display_label: Super-resolution VAE
+        recommended_variant_ids:
+          - local.upscale.asset-relayvsr-4x-vae.cuda
+        recommended_content_ids:
+          - sha256:7b8b8c99275fd5c4501b0589cc7b4c4506456a5df83160ef4e207e147b30f714
+        model_contract:
+          format: safetensors
+          tensor_contract: relayvsr-4x-vae
+  - recipe_id: relayvsr-4x.video.upscale
+    revision: "1"
+    title: RelayVSR 4x video upscaling
+    capability_contract: video.upscale
+    implementation_id: local.media.upscale.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp.upscale
+    driver_dialect: stable-diffusion.cpp/media-upscale/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: upscale.transformer
+        display_label: Super-resolution model
+        recommended_variant_ids:
+          - local.upscale.relayvsr-4x.cuda
+        recommended_content_ids:
+          - sha256:21303b3c5f9ab4e1fd3fe00df5dd2e0b343f0cf2e3d269e03a9872000a313a2e
+        model_contract:
+          format: safetensors
+          tensor_contract: relayvsr-4x
+      - slot_id: upscale.vae
+        display_label: Super-resolution VAE
+        recommended_variant_ids:
+          - local.upscale.asset-relayvsr-4x-vae.cuda
+        recommended_content_ids:
+          - sha256:7b8b8c99275fd5c4501b0589cc7b4c4506456a5df83160ef4e207e147b30f714
+        model_contract:
+          format: safetensors
+          tensor_contract: relayvsr-4x-vae
+  - recipe_id: seedvr2-3b.image.upscale
+    revision: "1"
+    title: SeedVR2 3B (experimental) image upscaling
+    capability_contract: image.upscale
+    implementation_id: local.media.upscale.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp.upscale
+    driver_dialect: stable-diffusion.cpp/media-upscale/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: upscale.transformer
+        display_label: Super-resolution model
+        recommended_variant_ids:
+          - local.upscale.seedvr2-3b.cuda
+        recommended_content_ids:
+          - sha256:c3dec8bcc5916843a8a858572970597462e1f2dc598d6dfd818f6cd40f53a157
+        model_contract:
+          format: safetensors
+          tensor_contract: seedvr2-3b
+      - slot_id: upscale.vae
+        display_label: Super-resolution VAE
+        recommended_variant_ids:
+          - local.upscale.asset-seedvr2-vae.cuda
+        recommended_content_ids:
+          - sha256:20678548f420d98d26f11442d3528f8b8c94e57ee046ef93dbb7633da8612ca1
+        model_contract:
+          format: safetensors
+          tensor_contract: seedvr2-vae
+  - recipe_id: seedvr2-3b.video.upscale
+    revision: "1"
+    title: SeedVR2 3B (experimental) video upscaling
+    capability_contract: video.upscale
+    implementation_id: local.media.upscale.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp.upscale
+    driver_dialect: stable-diffusion.cpp/media-upscale/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: upscale.transformer
+        display_label: Super-resolution model
+        recommended_variant_ids:
+          - local.upscale.seedvr2-3b.cuda
+        recommended_content_ids:
+          - sha256:c3dec8bcc5916843a8a858572970597462e1f2dc598d6dfd818f6cd40f53a157
+        model_contract:
+          format: safetensors
+          tensor_contract: seedvr2-3b
+      - slot_id: upscale.vae
+        display_label: Super-resolution VAE
+        recommended_variant_ids:
+          - local.upscale.asset-seedvr2-vae.cuda
+        recommended_content_ids:
+          - sha256:20678548f420d98d26f11442d3528f8b8c94e57ee046ef93dbb7633da8612ca1
+        model_contract:
+          format: safetensors
+          tensor_contract: seedvr2-vae
+  - recipe_id: seedvr2-7b-sharp.image.upscale
+    revision: "1"
+    title: SeedVR2 7B Sharp (experimental) image upscaling
+    capability_contract: image.upscale
+    implementation_id: local.media.upscale.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp.upscale
+    driver_dialect: stable-diffusion.cpp/media-upscale/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: upscale.transformer
+        display_label: Super-resolution model
+        recommended_variant_ids:
+          - local.upscale.seedvr2-7b-sharp.cuda
+        recommended_content_ids:
+          - sha256:db48be2f1cc7e36b01a2aa529810f5d9c6a971edd29be225cf1b0eb18d51c366
+        model_contract:
+          format: safetensors
+          tensor_contract: seedvr2-7b-sharp
+      - slot_id: upscale.vae
+        display_label: Super-resolution VAE
+        recommended_variant_ids:
+          - local.upscale.asset-seedvr2-vae.cuda
+        recommended_content_ids:
+          - sha256:20678548f420d98d26f11442d3528f8b8c94e57ee046ef93dbb7633da8612ca1
+        model_contract:
+          format: safetensors
+          tensor_contract: seedvr2-vae
+  - recipe_id: seedvr2-7b-sharp.video.upscale
+    revision: "1"
+    title: SeedVR2 7B Sharp (experimental) video upscaling
+    capability_contract: video.upscale
+    implementation_id: local.media.upscale.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp.upscale
+    driver_dialect: stable-diffusion.cpp/media-upscale/v1
+    default_options: {}
+    supported_features: []
+    slot_metadata:
+      - slot_id: upscale.transformer
+        display_label: Super-resolution model
+        recommended_variant_ids:
+          - local.upscale.seedvr2-7b-sharp.cuda
+        recommended_content_ids:
+          - sha256:db48be2f1cc7e36b01a2aa529810f5d9c6a971edd29be225cf1b0eb18d51c366
+        model_contract:
+          format: safetensors
+          tensor_contract: seedvr2-7b-sharp
+      - slot_id: upscale.vae
+        display_label: Super-resolution VAE
+        recommended_variant_ids:
+          - local.upscale.asset-seedvr2-vae.cuda
+        recommended_content_ids:
+          - sha256:20678548f420d98d26f11442d3528f8b8c94e57ee046ef93dbb7633da8612ca1
+        model_contract:
+          format: safetensors
+          tensor_contract: seedvr2-vae
   - recipe_id: basic-pitch.onnx-cpu.v1
     revision: "1"
     title: Basic Pitch note estimates
@@ -10854,6 +11705,35 @@ loadout_recipes:
         model_contract:
           format: tensorflow-checkpoint
           artifact_role: music_model
+  - recipe_id: sdxl-controlnet-union
+    revision: "1"
+    title: SDXL ControlNet Union ProMax
+    capability_contract: image.generate
+    implementation_id: local.image.generate.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp
+    driver_dialect: stable-diffusion.cpp/sdxl-controlnet-union/v1
+    default_options: {}
+    supported_features:
+      - input.image
+    slot_metadata:
+      - slot_id: main.diffusion
+        display_label: SDXL Base checkpoint
+        recommended_variant_ids:
+          - local.image.sdxl-base-1.0.f16.cuda
+        recommended_content_ids:
+          - sha256:31e35c80fc4829d14f90153f4c74cd59c90b779f6afe05a74cd6120b893f7e5b
+        model_contract:
+          format: safetensors
+          tensor_contract: sdxl-base-checkpoint
+      - slot_id: companion.controlnet
+        display_label: ControlNet Union ProMax
+        recommended_variant_ids:
+          - local.controlnet.sdxl-union-promax.f16.cuda
+        recommended_content_ids:
+          - sha256:9fae2e50cb431bfcbe05822b59ec2228df545ef27f711dea8949e9f4ed9f7cdc
+        model_contract:
+          format: safetensors
+          tensor_contract: sdxl-controlnet-union-promax
   - recipe_id: faster-whisper-sherpa-diarized
     revision: "1"
     title: Whisper transcription with source-local speaker intervals
@@ -12055,6 +12935,64 @@ loadout_recipes:
           - sha256:e40321bd36b9709991dae2530eb4ac303dd168276980d3e9bc4b6e2b75fed156
         model_contract:
           format: safetensors
+  - recipe_id: hyperflow-h3-flash
+    revision: "1"
+    title: HyperFlow H3 Flash video generation
+    capability_contract: video.generate
+    implementation_id: local.image.generate.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp
+    driver_dialect: stable-diffusion.cpp/hyperflow-h3-flash-video-generate/v1
+    default_options: {}
+    supported_features:
+      - input.image
+    slot_metadata:
+      - slot_id: diffusion.fl2va
+        display_label: HyperFlow H3 Flash FL2VA transformer
+        recommended_variant_ids:
+          - local.video.hyperflow-h3-flash-fl2va.int8-convrot.cuda
+        recommended_content_ids:
+          - sha256:6fcd9b13b7c3bf33e03bb49b10b02a7a60f5051ce8837e583be1452ba7289274
+        model_contract:
+          format: safetensors
+          artifact_role: diffusion_transformer
+      - slot_id: diffusion.ref2va
+        display_label: HyperFlow H3 Flash Ref2VA transformer
+        recommended_variant_ids:
+          - local.video.hyperflow-h3-flash-ref2va.int8-convrot.cuda
+        recommended_content_ids:
+          - sha256:3a60ba89db6c5b84a792b0a0bd911bf0126e5ff9dce99c6727ff61e961210b7e
+        model_contract:
+          format: safetensors
+          artifact_role: diffusion_transformer
+      - slot_id: encoder.h3-combined
+        display_label: MiniMax-H3 combined Qwen3-VL encoder
+        recommended_variant_ids:
+          - local.video-encoder.minimax-h3-qwen3-vl-32b.q4-k-m.cuda
+        recommended_content_ids:
+          - sha256:11e6efe70a57ce7f4838c47bdbd1a1c4b8ce10e2b7747f1b065990b70f4b05fc
+        model_contract:
+          format: gguf
+          artifact_role: llm
+      - slot_id: vae.video
+        display_label: MiniMax-H3 video VAE
+        recommended_variant_ids:
+          - local.video-vae.sol-h3.f16.cuda
+          - local.video-vae.minimax-h3.f16.cuda
+        recommended_content_ids:
+          - sha256:61eaab3d7ca1659f20bce4d02bbc5bd5e5af608c73328d30cda96c8dc4d033e0
+          - sha256:7c1f131492e7eddacaac9069a61b81bdd39de5cc96561e677c5eab1cdce5e522
+        model_contract:
+          format: safetensors
+          tensor_contract: minimax-h3-video-vae
+      - slot_id: vae.audio
+        display_label: MiniMax-H3 audio VAE
+        recommended_variant_ids:
+          - local.audio-vae.minimax-h3.f32.cuda
+        recommended_content_ids:
+          - sha256:8e505d95dd1561d47abd43d4238fd40d9bb1ae9e147ed0a4cba778d76ae4db48
+        model_contract:
+          format: safetensors
+          tensor_contract: minimax-h3-audio-vae
   - recipe_id: minimax-h3
     revision: "1"
     title: MiniMax-H3 video generation
@@ -12268,6 +13206,46 @@ loadout_recipes:
         model_contract:
           format: safetensors
           tensor_contract: qwen-image-vae-3d
+  - recipe_id: minimax-h3-image
+    revision: "1"
+    title: MiniMax-H3-Image
+    capability_contract: image.generate
+    implementation_id: local.image.generate.stable-diffusion-cpp
+    driver_id: nimi.runtime.driver.stable-diffusion-cpp
+    driver_dialect: stable-diffusion.cpp/image-generate/v4
+    default_options: {}
+    supported_features:
+      - input.image
+    slot_metadata:
+      - slot_id: main.diffusion
+        display_label: Diffusion model
+        recommended_variant_ids:
+          - local.image.minimax-h3-image.pruned-int8-convrot.cuda
+        recommended_content_ids:
+          - sha256:83eb140f1ff95c068f8a6886e6d3f3d0d4ab2e07bb2fe6d2ef992a51146ee622
+        model_contract:
+          format: safetensors
+          artifact_role: diffusion_model
+          tensor_contract: minimax-h3-image-pdd
+      - slot_id: companion.text-encoder
+        display_label: MiniMax-H3 Qwen3-VL text encoder
+        recommended_variant_ids:
+          - local.video-encoder.minimax-h3-qwen3-vl-32b.q4-k-m.cuda
+        recommended_content_ids:
+          - sha256:11e6efe70a57ce7f4838c47bdbd1a1c4b8ce10e2b7747f1b065990b70f4b05fc
+        model_contract:
+          format: gguf
+          artifact_role: llm
+          tensor_contract: minimax-h3-qwen3-vl-encoder
+      - slot_id: companion.vae
+        display_label: MiniMax-H3-Image VAE
+        recommended_variant_ids:
+          - local.image-vae.minimax-h3-image.f16.cuda
+        recommended_content_ids:
+          - sha256:d80e9c2e5cfc9844869961ff5a58c9a9e52182df6bfb30b26018dd7f348721af
+        model_contract:
+          format: safetensors
+          tensor_contract: minimax-h3-image-vae
   - recipe_id: qwen-image-edit-2511
     revision: "1"
     title: Qwen Image Edit 2511

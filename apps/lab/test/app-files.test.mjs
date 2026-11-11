@@ -3,9 +3,11 @@ import test from 'node:test';
 import { mkdir, mkdtemp, open, readFile, writeFile, rm } from 'node:fs/promises';
 import { createReadStream } from 'node:fs';
 import { createHash } from 'node:crypto';
+import { setTimeout as delay } from 'node:timers/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { build } from 'esbuild';
+import { JSDOM } from 'jsdom';
 const root = path.resolve(import.meta.dirname, '..');
 const local = path.join(root, '.nimi/local'); await mkdir(local, { recursive: true });
 const directory = await mkdtemp(path.join(local, 'app-files-test-'));
@@ -58,4 +60,82 @@ test('metadata mismatch closes before reading and never starts another upload', 
   await assert.rejects(verifyLabFile(assets, new File(['short'], 'other.bin'), meta.relativePath, signal, () => {}), { message: LAB_FILE_MISMATCH });
   assert.equal(assets.closed, 1); assert.equal(assets.opens, 1);
   assert.equal((await readFile(assets.target)).length, original.size);
+});
+
+test('the App files page retries a confirmed upload as a read and clears the result on a path edit', async () => {
+  const uiModule = path.join(directory, 'files-ui.mjs');
+  await build({
+    stdin: { contents: `
+      export { LabAppFilesPage } from './src/lab/lab-only/app-files-page.tsx';
+      export { LabRendererProvider } from './src/renderer/context.tsx';
+      export { i18n } from './src/shell/i18n/index.ts';
+    `, resolveDir: root, loader: 'ts' },
+    bundle: true, packages: 'external', format: 'esm', platform: 'node', jsx: 'automatic', outfile: uiModule, logLevel: 'silent',
+  });
+  const dom = new JSDOM('<div id="root"></div>', { url: 'http://localhost', pretendToBeVisual: true });
+  const globals = {
+    window: dom.window, document: dom.window.document, navigator: dom.window.navigator,
+    HTMLElement: dom.window.HTMLElement, HTMLInputElement: dom.window.HTMLInputElement, IS_REACT_ACT_ENVIRONMENT: true,
+  };
+  const previous = Object.fromEntries(Object.keys(globals).map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  for (const [key, value] of Object.entries(globals)) Object.defineProperty(globalThis, key, { configurable: true, writable: true, value });
+  const { act, createElement } = await import('react');
+  const { createRoot } = await import('react-dom/client');
+  const { LabAppFilesPage, LabRendererProvider, i18n } = await import(pathToFileURL(uiModule).href);
+  await i18n.changeLanguage('en');
+  const container = dom.window.document.getElementById('root');
+  const renderer = createRoot(container);
+  const stored = filesystemAsset('ui-recover.bin');
+  const writes = [];
+  const reads = [];
+  const assets = {
+    write: async (input) => { writes.push(input.relativePath); return stored.write(input); },
+    read: async (input) => {
+      reads.push(input.relativePath);
+      if (reads.length === 1) throw new Error('read-interrupted');
+      return stored.read();
+    },
+  };
+  const click = async (label) => {
+    const button = [...container.querySelectorAll('button')].find(node => node.textContent === label);
+    assert.ok(button && !button.disabled, label);
+    await act(async () => button.click());
+  };
+  const waitForText = async (expression) => {
+    for (let attempt = 0; attempt < 50 && !expression.test(container.textContent); attempt += 1) {
+      await act(async () => delay(10));
+    }
+    assert.match(container.textContent, expression);
+  };
+  try {
+    await act(async () => renderer.render(createElement(LabRendererProvider, {
+      bindings: { sdk: { localAppClient: { storage: { assets } } } },
+    }, createElement(LabAppFilesPage))));
+    const fileInput = container.querySelector('input[type="file"]');
+    const pathInput = container.querySelector('input[aria-label="App asset path"]');
+    Object.defineProperty(fileInput, 'files', { value: [original] });
+    await act(async () => fileInput.dispatchEvent(new dom.window.Event('change', { bubbles: true })));
+    await click('Upload new file and verify');
+    await waitForText(/Runtime confirmed the write at this path/u);
+    assert.match(container.textContent, /Could not read back the complete file/u);
+    assert.equal(pathInput.value, writes[0]);
+
+    await click('Verify existing file');
+    await waitForText(/The complete read-back matches the selected file/u);
+    assert.deepEqual(reads, [writes[0], writes[0]]);
+    assert.equal(writes.length, 1);
+
+    await act(async () => {
+      Object.getOwnPropertyDescriptor(dom.window.HTMLInputElement.prototype, 'value').set.call(pathInput, 'another.bin');
+      pathInput.dispatchEvent(new dom.window.Event('input', { bubbles: true }));
+    });
+    assert.doesNotMatch(container.textContent, /The complete read-back matches the selected file/u);
+  } finally {
+    await act(async () => renderer.unmount());
+    dom.window.close();
+    for (const [key, descriptor] of Object.entries(previous)) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else Reflect.deleteProperty(globalThis, key);
+    }
+  }
 });

@@ -130,6 +130,11 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
 		}
 		return s.submitLocalFaceSwapJob(ctx, req, mode, ignored)
+	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_UPSCALE, runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_UPSCALE:
+		if !intent.IsLocal() {
+			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
+		}
+		return s.submitLocalUpscaleJob(ctx, req, mode, ignored)
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE:
 		if !intent.IsLocal() {
 			return nil, grpcerr.WithReasonCode(codes.FailedPrecondition, runtimev1.ReasonCode_AI_ROUTE_UNSUPPORTED)
@@ -141,6 +146,9 @@ func (s *Service) SubmitScenarioJob(ctx context.Context, req *runtimev1.SubmitSc
 	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_GENERATE:
 		if localImage {
 			return s.submitLocalImageScenarioJob(ctx, req, mode, ignored)
+		}
+		if req.GetSpec().GetImageGenerate().GetControlImage() != nil {
+			return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_MEDIA_OPTION_UNSUPPORTED)
 		}
 		return s.submitScenarioAsyncJob(ctx, req, mode, ignored)
 

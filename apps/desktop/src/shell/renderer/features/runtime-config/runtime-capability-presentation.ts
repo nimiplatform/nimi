@@ -50,6 +50,8 @@ const CAPABILITY_ICONS: Readonly<Record<string, LucideIcon>> = {
   'text.decide': ListChecks,
   'image.face_swap': ScanFace,
   'video.face_swap': ScanFace,
+  'image.upscale': Image,
+  'video.upscale': Video,
   'vision.locate': ScanSearch,
   'text.embed': FileSearch,
 };
@@ -90,7 +92,7 @@ export function modelDisplayTitle(title: string): string {
   // ("Gemma 4 text generation"); a capitalized one is part of the name
   // ("Qwen Image generation" stays "Qwen Image").
   const stripped = trimmed.replace(
-    /(?:\s+(?:text|image|video|music|speech|audio))?\s+(?:generation|synthesis|transcription)$/u,
+    /(?:\s+(?:text|image|video|music|speech|audio))?\s+(?:generation|synthesis|transcription|upscaling)$/u,
     '',
   );
   return stripped.trim() || trimmed;

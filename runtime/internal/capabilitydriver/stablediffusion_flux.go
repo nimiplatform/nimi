@@ -28,7 +28,11 @@ func stableDiffusionCLIPLRequirementValid(requirement *runtimev1.LocalCapability
 }
 
 func stableDiffusionSafetensorsContractFamily(contract string, probe []byte) (string, bool) {
-	if contract != "clip-l-768" {
+	switch contract {
+	case "minimax-h3-image-pdd", "minimax-h3-image-vae":
+		return stableDiffusionMiniMaxH3SafetensorsFamily(contract, probe)
+	case "clip-l-768":
+	default:
 		return stableDiffusionVAETensorContractFamily(contract, probe)
 	}
 	tensors, ok := safetensorsTensorFacts(probe)
@@ -56,6 +60,8 @@ func stableDiffusionSafetensorsContractFamily(contract string, probe []byte) (st
 // @nimi-authority: rule.nimi.runtime.ai-provider.flux3-local-image
 func stableDiffusionGGUFTensorContractValid(contract string, summary ggufmeta.Summary) bool {
 	switch contract {
+	case "minimax-h3-qwen3-vl-encoder":
+		return stableDiffusionMiniMaxH3EncoderValid(summary)
 	case "flux3-klein":
 		// This GGUF has no general.architecture metadata. The distilled flow-map
 		// tensors and exact encoder/latent dimensions establish the model contract.

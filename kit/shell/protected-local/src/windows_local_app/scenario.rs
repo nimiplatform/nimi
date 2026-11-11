@@ -18,7 +18,7 @@ use crate::generated::{
     ExecuteLocalAppScenarioRequest as ProtoExecuteRequest, ExecutionInterruption,
     ExecutionInterruptionCause, ExecutionResubmitDisposition,
     GetLocalAppScenarioJobRequest as ProtoGetJobRequest,
-    ImageFaceSwapScenarioSpec,
+    ImageFaceSwapScenarioSpec, ImageControlInput, MediaUpscaleScenarioSpec,
     VideoFaceSwapScenarioSpec, FaceSwapNoFacePolicy,
     ListLocalAppVoiceAssetsRequest as ProtoListVoiceAssetsRequest,
     LocalAppImageGenerateScenarioSpec, LocalAppMusicGenerateJobSpec, LocalAppScenarioArtifact,
@@ -581,6 +581,21 @@ fn parse_job_spec(value: JsonValue) -> Result<JobSpec, LocalAppOperationError> {
             };
             Ok(JobSpec::VideoFaceSwap(VideoFaceSwapScenarioSpec { reference_image_artifact_id, target_video_artifact_id, no_face_policy: no_face_policy as i32 }))
         }
+        "image-upscale" | "video-upscale" => {
+            allowed_keys(&object, &["type", "sourceArtifactId", "scale", "seed"], &["type", "sourceArtifactId", "scale"])?;
+            let source_artifact_id = required_text_field(&object, "sourceArtifactId", MAX_IDENTIFIER_BYTES)?;
+            require_identifier(&source_artifact_id)?;
+            let scale = optional_integer_field(&object, "scale")?.ok_or_else(invalid_payload)?;
+            if scale != 2 && scale != 4 { return Err(invalid_payload()); }
+            let seed = optional_integer_field(&object, "seed")?;
+            if seed.is_some_and(|value| value < 0 || value > i32::MAX as i64) { return Err(invalid_payload()); }
+            let spec = MediaUpscaleScenarioSpec { source_artifact_id, scale: scale as u32, seed };
+            if string_field(&object, "type")? == "image-upscale" {
+                Ok(JobSpec::ImageUpscale(spec))
+            } else {
+                Ok(JobSpec::VideoUpscale(spec))
+            }
+        }
         "image-face-swap" => {
             exact_keys(&object, &["type", "referenceImageArtifactId", "targetImageArtifactId"])?;
             let reference_image_artifact_id = required_text_field(&object, "referenceImageArtifactId", MAX_IDENTIFIER_BYTES)?;
@@ -735,6 +750,7 @@ fn parse_image_spec(
             "markupArtifactId",
             "frameCount",
             "frameDurationMs",
+            "controlImage",
         ],
         &[
             "type",
@@ -800,7 +816,29 @@ fn parse_image_spec(
         || frame_duration_ms.is_some_and(|v| !(20..=2000).contains(&v))
         || ((frame_count.is_some() || frame_duration_ms.is_some()) && output_format != "gif")
     { return Err(invalid_payload()); }
+    let control_image = if let Some(value) = object.get("controlImage") {
+        let fields = value.as_object().ok_or_else(invalid_payload)?;
+        allowed_keys(
+            fields,
+            &["imageArtifactId", "type", "strength"],
+            &["imageArtifactId", "type"],
+        )?;
+        let image_artifact_id = required_text_field(fields, "imageArtifactId", MAX_IDENTIFIER_BYTES)?;
+        require_identifier(&image_artifact_id)?;
+        let kind = optional_integer_field(fields, "type")?.ok_or_else(invalid_payload)?;
+        if !(1..=8).contains(&kind) {
+            return Err(invalid_payload());
+        }
+        Some(ImageControlInput {
+            image_artifact_id,
+            r#type: kind as i32,
+            strength: optional_float_field(fields, "strength", 0.0, 2.0)?,
+        })
+    } else {
+        None
+    };
     Ok(LocalAppImageGenerateScenarioSpec {
+        control_image,
         complexity,
         output_format,
         markup,
@@ -1293,6 +1331,8 @@ fn project_job(job: LocalAppScenarioJob) -> Result<JsonValue, LocalAppOperationE
     let scenario_type = match ScenarioType::try_from(job.scenario_type).map_err(|_| untrusted())? {
         ScenarioType::ImageGenerate => "image-generate",
         ScenarioType::ImageFaceSwap => "image-face-swap",
+        ScenarioType::ImageUpscale => "image-upscale",
+        ScenarioType::VideoUpscale => "video-upscale",
         ScenarioType::VideoFaceSwap => "video-face-swap",
         ScenarioType::VisionLocate => "vision-locate",
         ScenarioType::VideoGenerate => "video-generate",
@@ -2184,6 +2224,35 @@ mod tests {
     }
 
     #[test]
+    fn super_resolution_jobs_keep_the_owned_source_and_reject_authority_fields() {
+        for kind in ["image-upscale", "video-upscale"] {
+            let input = json!({"type":kind,"sourceArtifactId":"owned-source","scale":2,"seed":0});
+            let parsed = parse_job_spec(input.clone()).expect("admitted super-resolution input");
+            let spec = match parsed {
+                JobSpec::ImageUpscale(spec) if kind == "image-upscale" => spec,
+                JobSpec::VideoUpscale(spec) if kind == "video-upscale" => spec,
+                _ => panic!("unexpected scenario variant"),
+            };
+            assert_eq!(spec.source_artifact_id, "owned-source");
+            assert_eq!(spec.scale, 2);
+            assert_eq!(spec.seed, Some(0));
+            let mut omitted_seed = input.clone();
+            omitted_seed.as_object_mut().unwrap().remove("seed");
+            let parsed = parse_job_spec(omitted_seed).expect("seed is optional");
+            let spec = match parsed {
+                JobSpec::ImageUpscale(spec) | JobSpec::VideoUpscale(spec) => spec,
+                _ => panic!("unexpected scenario variant"),
+            };
+            assert_eq!(spec.seed, None);
+            for (key, value) in [("scale", json!(3)), ("seed", json!(-1)), ("sourceArtifactId", json!("")), ("modelPath", json!("/unowned/model"))] {
+                let mut invalid = input.clone();
+                invalid[key] = value;
+                assert!(parse_job_spec(invalid).is_err());
+            }
+        }
+    }
+
+    #[test]
     fn the_caller_deadline_travels_with_the_call_in_milliseconds() {
         use std::time::Duration;
         assert_eq!(execute_deadline_millis(Duration::from_millis(100)), 100);
@@ -2328,6 +2397,60 @@ mod tests {
         let JobSpec::ImageGenerate(parsed) = parse_job_spec(gif.clone()).unwrap() else { panic!("expected animation"); };
         assert_eq!(parsed.frame_count,Some(64));assert_eq!(parsed.frame_duration_ms,Some(36));
         gif["frameCount"]=json!(65);assert!(parse_job_spec(gif).is_err());
+    }
+
+    #[test]
+    fn image_control_map_preserves_type_strength_and_rejects_unknown_fields() {
+        let input = json!({
+            "type":"image-generate", "prompt":"yellow cup", "negativePrompt":"", "size":"1024x1024", "aspectRatio":"", "quality":"", "style":"",
+            "referenceImages":[], "referenceImageArtifactId":"", "mask":"", "responseFormat":"",
+            "controlImage":{"imageArtifactId":"owned-map","type":4,"strength":0.75}
+        });
+        let JobSpec::ImageGenerate(parsed) = parse_job_spec(input.clone()).unwrap() else { panic!("expected image"); };
+        let control = parsed.control_image.unwrap();
+        assert_eq!(control.image_artifact_id, "owned-map");
+        assert_eq!(control.r#type, 4);
+        assert_eq!(control.strength, Some(0.75));
+        for kind in [0, 9] {
+            let mut invalid = input.clone();
+            invalid["controlImage"]["type"] = json!(kind);
+            assert!(parse_job_spec(invalid).is_err());
+        }
+        let mut invalid = input;
+        invalid["controlImage"]["path"] = json!("C:/private.png");
+        assert!(parse_job_spec(invalid).is_err());
+    }
+
+    #[test]
+    fn image_control_map_preserves_optional_strength_presence() {
+        let input = json!({
+            "type": "image-generate", "prompt": "yellow cup", "negativePrompt": "",
+            "size": "1024x1024", "aspectRatio": "", "quality": "", "style": "",
+            "referenceImages": [], "referenceImageArtifactId": "", "mask": "", "responseFormat": "",
+            "controlImage": {"imageArtifactId": "owned-map", "type": 7}
+        });
+        let JobSpec::ImageGenerate(parsed) = parse_job_spec(input.clone()).expect("omitted control strength") else {
+            panic!("expected image");
+        };
+        let control = parsed.control_image.expect("control image");
+        assert_eq!(control.image_artifact_id, "owned-map");
+        assert_eq!(control.r#type, 7);
+        assert_eq!(control.strength, None);
+
+        for strength in [0.0, 1.0, 2.0] {
+            let mut explicit = input.clone();
+            explicit["controlImage"]["strength"] = json!(strength);
+            let JobSpec::ImageGenerate(parsed) = parse_job_spec(explicit).expect("explicit control strength") else {
+                panic!("expected image");
+            };
+            assert_eq!(parsed.control_image.unwrap().strength, Some(strength as f32));
+        }
+
+        for missing in ["imageArtifactId", "type"] {
+            let mut invalid = input.clone();
+            invalid["controlImage"].as_object_mut().unwrap().remove(missing);
+            assert!(parse_job_spec(invalid).is_err(), "missing {missing} was accepted");
+        }
     }
 
     #[test]

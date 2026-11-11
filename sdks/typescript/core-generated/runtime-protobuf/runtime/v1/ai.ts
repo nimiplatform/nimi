@@ -667,6 +667,26 @@ export interface TextEmbedScenarioSpec {
     purpose: TextEmbedPurpose;
 }
 /**
+ * An already-prepared control map owned by the requesting App. Runtime does
+ * not infer the map type or run an implicit image preprocessor.
+ *
+ * @generated from protobuf message nimi.runtime.v1.ImageControlInput
+ */
+export interface ImageControlInput {
+    /**
+     * @generated from protobuf field: string image_artifact_id = 1
+     */
+    imageArtifactId: string;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ImageControlType type = 2
+     */
+    type: ImageControlType;
+    /**
+     * @generated from protobuf field: optional float strength = 3
+     */
+    strength?: number;
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.ImageGenerateScenarioSpec
  */
 export interface ImageGenerateScenarioSpec {
@@ -750,6 +770,10 @@ export interface ImageGenerateScenarioSpec {
      * @generated from protobuf field: optional int32 frame_duration_ms = 20
      */
     frameDurationMs?: number;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ImageControlInput control_image = 21
+     */
+    controlImage?: ImageControlInput;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.VideoGenerateScenarioSpec
@@ -1371,6 +1395,25 @@ export interface WorldGenerateScenarioSpec {
     } | {
         oneofKind: undefined;
     };
+}
+/**
+ * The source artifact belongs to the current protected App caller.
+ *
+ * @generated from protobuf message nimi.runtime.v1.MediaUpscaleScenarioSpec
+ */
+export interface MediaUpscaleScenarioSpec {
+    /**
+     * @generated from protobuf field: string source_artifact_id = 1
+     */
+    sourceArtifactId: string;
+    /**
+     * @generated from protobuf field: uint32 scale = 2
+     */
+    scale: number;
+    /**
+     * @generated from protobuf field: optional int64 seed = 3
+     */
+    seed?: string;
 }
 /**
  * Both artifacts belong to the current protected App caller.
@@ -2156,6 +2199,18 @@ export interface ScenarioSpec {
          */
         audioSpeakerEmbed: AudioSpeakerEmbedScenarioSpec;
     } | {
+        oneofKind: "imageUpscale";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.MediaUpscaleScenarioSpec image_upscale = 21
+         */
+        imageUpscale: MediaUpscaleScenarioSpec;
+    } | {
+        oneofKind: "videoUpscale";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.MediaUpscaleScenarioSpec video_upscale = 22
+         */
+        videoUpscale: MediaUpscaleScenarioSpec;
+    } | {
         oneofKind: undefined;
     };
 }
@@ -2615,6 +2670,15 @@ export interface WorldGenerateResult {
     artifacts: ScenarioArtifact[];
 }
 /**
+ * @generated from protobuf message nimi.runtime.v1.MediaUpscaleResult
+ */
+export interface MediaUpscaleResult {
+    /**
+     * @generated from protobuf field: repeated nimi.runtime.v1.ScenarioArtifact artifacts = 1
+     */
+    artifacts: ScenarioArtifact[];
+}
+/**
  * @generated from protobuf message nimi.runtime.v1.ScenarioOutput
  */
 export interface ScenarioOutput {
@@ -2717,6 +2781,18 @@ export interface ScenarioOutput {
          * @generated from protobuf field: nimi.runtime.v1.AudioSpeakerEmbedResult audio_speaker_embed = 16
          */
         audioSpeakerEmbed: AudioSpeakerEmbedResult;
+    } | {
+        oneofKind: "imageUpscale";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.MediaUpscaleResult image_upscale = 17
+         */
+        imageUpscale: MediaUpscaleResult;
+    } | {
+        oneofKind: "videoUpscale";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.MediaUpscaleResult video_upscale = 18
+         */
+        videoUpscale: MediaUpscaleResult;
     } | {
         oneofKind: undefined;
     };
@@ -3007,6 +3083,10 @@ export interface LocalAppImageGenerateScenarioSpec {
      * @generated from protobuf field: optional int32 frame_duration_ms = 20
      */
     frameDurationMs?: number;
+    /**
+     * @generated from protobuf field: nimi.runtime.v1.ImageControlInput control_image = 21
+     */
+    controlImage?: ImageControlInput;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.ExecuteLocalAppScenarioRequest
@@ -3477,6 +3557,18 @@ export interface SubmitLocalAppScenarioJobRequest {
          * @generated from protobuf field: nimi.runtime.v1.AudioSpeakerEmbedScenarioSpec audio_speaker_embed = 19
          */
         audioSpeakerEmbed: AudioSpeakerEmbedScenarioSpec;
+    } | {
+        oneofKind: "imageUpscale";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.MediaUpscaleScenarioSpec image_upscale = 20
+         */
+        imageUpscale: MediaUpscaleScenarioSpec;
+    } | {
+        oneofKind: "videoUpscale";
+        /**
+         * @generated from protobuf field: nimi.runtime.v1.MediaUpscaleScenarioSpec video_upscale = 21
+         */
+        videoUpscale: MediaUpscaleScenarioSpec;
     } | {
         oneofKind: undefined;
     };
@@ -5258,7 +5350,15 @@ export enum ScenarioType {
     /**
      * @generated from protobuf enum value: SCENARIO_TYPE_AUDIO_SPEAKER_EMBED = 20;
      */
-    AUDIO_SPEAKER_EMBED = 20
+    AUDIO_SPEAKER_EMBED = 20,
+    /**
+     * @generated from protobuf enum value: SCENARIO_TYPE_IMAGE_UPSCALE = 21;
+     */
+    IMAGE_UPSCALE = 21,
+    /**
+     * @generated from protobuf enum value: SCENARIO_TYPE_VIDEO_UPSCALE = 22;
+     */
+    VIDEO_UPSCALE = 22
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExecutionMode
@@ -5676,6 +5776,47 @@ export enum TextEmbedPurpose {
      * @generated from protobuf enum value: TEXT_EMBED_PURPOSE_RETRIEVAL_QUERY = 2;
      */
     RETRIEVAL_QUERY = 2
+}
+/**
+ * @generated from protobuf enum nimi.runtime.v1.ImageControlType
+ */
+export enum ImageControlType {
+    /**
+     * @generated from protobuf enum value: IMAGE_CONTROL_TYPE_UNSPECIFIED = 0;
+     */
+    UNSPECIFIED = 0,
+    /**
+     * @generated from protobuf enum value: IMAGE_CONTROL_TYPE_OPENPOSE = 1;
+     */
+    OPENPOSE = 1,
+    /**
+     * @generated from protobuf enum value: IMAGE_CONTROL_TYPE_DEPTH = 2;
+     */
+    DEPTH = 2,
+    /**
+     * @generated from protobuf enum value: IMAGE_CONTROL_TYPE_SCRIBBLE = 3;
+     */
+    SCRIBBLE = 3,
+    /**
+     * @generated from protobuf enum value: IMAGE_CONTROL_TYPE_CANNY = 4;
+     */
+    CANNY = 4,
+    /**
+     * @generated from protobuf enum value: IMAGE_CONTROL_TYPE_NORMAL = 5;
+     */
+    NORMAL = 5,
+    /**
+     * @generated from protobuf enum value: IMAGE_CONTROL_TYPE_SEGMENT = 6;
+     */
+    SEGMENT = 6,
+    /**
+     * @generated from protobuf enum value: IMAGE_CONTROL_TYPE_TILE = 7;
+     */
+    TILE = 7,
+    /**
+     * @generated from protobuf enum value: IMAGE_CONTROL_TYPE_REPAINT = 8;
+     */
+    REPAINT = 8
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.MusicScoreFormat
@@ -7918,6 +8059,68 @@ class TextEmbedScenarioSpec$Type extends MessageType<TextEmbedScenarioSpec> {
  */
 export const TextEmbedScenarioSpec = new TextEmbedScenarioSpec$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class ImageControlInput$Type extends MessageType<ImageControlInput> {
+    constructor() {
+        super("nimi.runtime.v1.ImageControlInput", [
+            { no: 1, name: "image_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "type", kind: "enum", T: () => ["nimi.runtime.v1.ImageControlType", ImageControlType, "IMAGE_CONTROL_TYPE_"] },
+            { no: 3, name: "strength", kind: "scalar", opt: true, T: 2 /*ScalarType.FLOAT*/ }
+        ]);
+    }
+    create(value?: PartialMessage<ImageControlInput>): ImageControlInput {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.imageArtifactId = "";
+        message.type = 0;
+        if (value !== undefined)
+            reflectionMergePartial<ImageControlInput>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: ImageControlInput): ImageControlInput {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string image_artifact_id */ 1:
+                    message.imageArtifactId = reader.string();
+                    break;
+                case /* nimi.runtime.v1.ImageControlType type */ 2:
+                    message.type = reader.int32();
+                    break;
+                case /* optional float strength */ 3:
+                    message.strength = reader.float();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: ImageControlInput, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string image_artifact_id = 1; */
+        if (message.imageArtifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.imageArtifactId);
+        /* nimi.runtime.v1.ImageControlType type = 2; */
+        if (message.type !== 0)
+            writer.tag(2, WireType.Varint).int32(message.type);
+        /* optional float strength = 3; */
+        if (message.strength !== undefined)
+            writer.tag(3, WireType.Bit32).float(message.strength);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.ImageControlInput
+ */
+export const ImageControlInput = new ImageControlInput$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class ImageGenerateScenarioSpec$Type extends MessageType<ImageGenerateScenarioSpec> {
     constructor() {
         super("nimi.runtime.v1.ImageGenerateScenarioSpec", [
@@ -7940,7 +8143,8 @@ class ImageGenerateScenarioSpec$Type extends MessageType<ImageGenerateScenarioSp
             { no: 17, name: "markup", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 18, name: "markup_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 19, name: "frame_count", kind: "scalar", opt: true, T: 5 /*ScalarType.INT32*/ },
-            { no: 20, name: "frame_duration_ms", kind: "scalar", opt: true, T: 5 /*ScalarType.INT32*/ }
+            { no: 20, name: "frame_duration_ms", kind: "scalar", opt: true, T: 5 /*ScalarType.INT32*/ },
+            { no: 21, name: "control_image", kind: "message", T: () => ImageControlInput }
         ]);
     }
     create(value?: PartialMessage<ImageGenerateScenarioSpec>): ImageGenerateScenarioSpec {
@@ -8029,6 +8233,9 @@ class ImageGenerateScenarioSpec$Type extends MessageType<ImageGenerateScenarioSp
                 case /* optional int32 frame_duration_ms */ 20:
                     message.frameDurationMs = reader.int32();
                     break;
+                case /* nimi.runtime.v1.ImageControlInput control_image */ 21:
+                    message.controlImage = ImageControlInput.internalBinaryRead(reader, reader.uint32(), options, message.controlImage);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -8101,6 +8308,9 @@ class ImageGenerateScenarioSpec$Type extends MessageType<ImageGenerateScenarioSp
         /* optional int32 frame_duration_ms = 20; */
         if (message.frameDurationMs !== undefined)
             writer.tag(20, WireType.Varint).int32(message.frameDurationMs);
+        /* nimi.runtime.v1.ImageControlInput control_image = 21; */
+        if (message.controlImage)
+            ImageControlInput.internalBinaryWrite(message.controlImage, writer.tag(21, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -9981,6 +10191,68 @@ class WorldGenerateScenarioSpec$Type extends MessageType<WorldGenerateScenarioSp
  * @generated MessageType for protobuf message nimi.runtime.v1.WorldGenerateScenarioSpec
  */
 export const WorldGenerateScenarioSpec = new WorldGenerateScenarioSpec$Type();
+// @generated message type with reflection information, may provide speed optimized methods
+class MediaUpscaleScenarioSpec$Type extends MessageType<MediaUpscaleScenarioSpec> {
+    constructor() {
+        super("nimi.runtime.v1.MediaUpscaleScenarioSpec", [
+            { no: 1, name: "source_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 2, name: "scale", kind: "scalar", T: 13 /*ScalarType.UINT32*/ },
+            { no: 3, name: "seed", kind: "scalar", opt: true, T: 3 /*ScalarType.INT64*/ }
+        ]);
+    }
+    create(value?: PartialMessage<MediaUpscaleScenarioSpec>): MediaUpscaleScenarioSpec {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.sourceArtifactId = "";
+        message.scale = 0;
+        if (value !== undefined)
+            reflectionMergePartial<MediaUpscaleScenarioSpec>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MediaUpscaleScenarioSpec): MediaUpscaleScenarioSpec {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* string source_artifact_id */ 1:
+                    message.sourceArtifactId = reader.string();
+                    break;
+                case /* uint32 scale */ 2:
+                    message.scale = reader.uint32();
+                    break;
+                case /* optional int64 seed */ 3:
+                    message.seed = reader.int64().toString();
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: MediaUpscaleScenarioSpec, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* string source_artifact_id = 1; */
+        if (message.sourceArtifactId !== "")
+            writer.tag(1, WireType.LengthDelimited).string(message.sourceArtifactId);
+        /* uint32 scale = 2; */
+        if (message.scale !== 0)
+            writer.tag(2, WireType.Varint).uint32(message.scale);
+        /* optional int64 seed = 3; */
+        if (message.seed !== undefined)
+            writer.tag(3, WireType.Varint).int64(message.seed);
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.MediaUpscaleScenarioSpec
+ */
+export const MediaUpscaleScenarioSpec = new MediaUpscaleScenarioSpec$Type();
 // @generated message type with reflection information, may provide speed optimized methods
 class ImageFaceSwapScenarioSpec$Type extends MessageType<ImageFaceSwapScenarioSpec> {
     constructor() {
@@ -12275,7 +12547,9 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
             { no: 17, name: "music_transcribe", kind: "message", oneof: "spec", T: () => MusicTranscribeScenarioSpec },
             { no: 18, name: "audio_voice_convert", kind: "message", oneof: "spec", T: () => AudioVoiceConvertScenarioSpec },
             { no: 19, name: "text_decide", kind: "message", oneof: "spec", T: () => TextDecideScenarioSpec },
-            { no: 20, name: "audio_speaker_embed", kind: "message", oneof: "spec", T: () => AudioSpeakerEmbedScenarioSpec }
+            { no: 20, name: "audio_speaker_embed", kind: "message", oneof: "spec", T: () => AudioSpeakerEmbedScenarioSpec },
+            { no: 21, name: "image_upscale", kind: "message", oneof: "spec", T: () => MediaUpscaleScenarioSpec },
+            { no: 22, name: "video_upscale", kind: "message", oneof: "spec", T: () => MediaUpscaleScenarioSpec }
         ]);
     }
     create(value?: PartialMessage<ScenarioSpec>): ScenarioSpec {
@@ -12398,6 +12672,18 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
                         audioSpeakerEmbed: AudioSpeakerEmbedScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).audioSpeakerEmbed)
                     };
                     break;
+                case /* nimi.runtime.v1.MediaUpscaleScenarioSpec image_upscale */ 21:
+                    message.spec = {
+                        oneofKind: "imageUpscale",
+                        imageUpscale: MediaUpscaleScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).imageUpscale)
+                    };
+                    break;
+                case /* nimi.runtime.v1.MediaUpscaleScenarioSpec video_upscale */ 22:
+                    message.spec = {
+                        oneofKind: "videoUpscale",
+                        videoUpscale: MediaUpscaleScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).videoUpscale)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -12464,6 +12750,12 @@ class ScenarioSpec$Type extends MessageType<ScenarioSpec> {
         /* nimi.runtime.v1.AudioSpeakerEmbedScenarioSpec audio_speaker_embed = 20; */
         if (message.spec.oneofKind === "audioSpeakerEmbed")
             AudioSpeakerEmbedScenarioSpec.internalBinaryWrite(message.spec.audioSpeakerEmbed, writer.tag(20, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.MediaUpscaleScenarioSpec image_upscale = 21; */
+        if (message.spec.oneofKind === "imageUpscale")
+            MediaUpscaleScenarioSpec.internalBinaryWrite(message.spec.imageUpscale, writer.tag(21, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.MediaUpscaleScenarioSpec video_upscale = 22; */
+        if (message.spec.oneofKind === "videoUpscale")
+            MediaUpscaleScenarioSpec.internalBinaryWrite(message.spec.videoUpscale, writer.tag(22, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -14028,6 +14320,53 @@ class WorldGenerateResult$Type extends MessageType<WorldGenerateResult> {
  */
 export const WorldGenerateResult = new WorldGenerateResult$Type();
 // @generated message type with reflection information, may provide speed optimized methods
+class MediaUpscaleResult$Type extends MessageType<MediaUpscaleResult> {
+    constructor() {
+        super("nimi.runtime.v1.MediaUpscaleResult", [
+            { no: 1, name: "artifacts", kind: "message", repeat: 2 /*RepeatType.UNPACKED*/, T: () => ScenarioArtifact }
+        ]);
+    }
+    create(value?: PartialMessage<MediaUpscaleResult>): MediaUpscaleResult {
+        const message = globalThis.Object.create((this.messagePrototype!));
+        message.artifacts = [];
+        if (value !== undefined)
+            reflectionMergePartial<MediaUpscaleResult>(this, message, value);
+        return message;
+    }
+    internalBinaryRead(reader: IBinaryReader, length: number, options: BinaryReadOptions, target?: MediaUpscaleResult): MediaUpscaleResult {
+        let message = target ?? this.create(), end = reader.pos + length;
+        while (reader.pos < end) {
+            let [fieldNo, wireType] = reader.tag();
+            switch (fieldNo) {
+                case /* repeated nimi.runtime.v1.ScenarioArtifact artifacts */ 1:
+                    message.artifacts.push(ScenarioArtifact.internalBinaryRead(reader, reader.uint32(), options));
+                    break;
+                default:
+                    let u = options.readUnknownField;
+                    if (u === "throw")
+                        throw new globalThis.Error(`Unknown field ${fieldNo} (wire type ${wireType}) for ${this.typeName}`);
+                    let d = reader.skip(wireType);
+                    if (u !== false)
+                        (u === true ? UnknownFieldHandler.onRead : u)(this.typeName, message, fieldNo, wireType, d);
+            }
+        }
+        return message;
+    }
+    internalBinaryWrite(message: MediaUpscaleResult, writer: IBinaryWriter, options: BinaryWriteOptions): IBinaryWriter {
+        /* repeated nimi.runtime.v1.ScenarioArtifact artifacts = 1; */
+        for (let i = 0; i < message.artifacts.length; i++)
+            ScenarioArtifact.internalBinaryWrite(message.artifacts[i], writer.tag(1, WireType.LengthDelimited).fork(), options).join();
+        let u = options.writeUnknownFields;
+        if (u !== false)
+            (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
+        return writer;
+    }
+}
+/**
+ * @generated MessageType for protobuf message nimi.runtime.v1.MediaUpscaleResult
+ */
+export const MediaUpscaleResult = new MediaUpscaleResult$Type();
+// @generated message type with reflection information, may provide speed optimized methods
 class ScenarioOutput$Type extends MessageType<ScenarioOutput> {
     constructor() {
         super("nimi.runtime.v1.ScenarioOutput", [
@@ -14046,7 +14385,9 @@ class ScenarioOutput$Type extends MessageType<ScenarioOutput> {
             { no: 13, name: "music_transcribe", kind: "message", oneof: "output", T: () => MusicTranscribeResult },
             { no: 14, name: "audio_voice_convert", kind: "message", oneof: "output", T: () => AudioVoiceConvertResult },
             { no: 15, name: "text_decision", kind: "message", oneof: "output", T: () => TextDecisionResult },
-            { no: 16, name: "audio_speaker_embed", kind: "message", oneof: "output", T: () => AudioSpeakerEmbedResult }
+            { no: 16, name: "audio_speaker_embed", kind: "message", oneof: "output", T: () => AudioSpeakerEmbedResult },
+            { no: 17, name: "image_upscale", kind: "message", oneof: "output", T: () => MediaUpscaleResult },
+            { no: 18, name: "video_upscale", kind: "message", oneof: "output", T: () => MediaUpscaleResult }
         ]);
     }
     create(value?: PartialMessage<ScenarioOutput>): ScenarioOutput {
@@ -14157,6 +14498,18 @@ class ScenarioOutput$Type extends MessageType<ScenarioOutput> {
                         audioSpeakerEmbed: AudioSpeakerEmbedResult.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).audioSpeakerEmbed)
                     };
                     break;
+                case /* nimi.runtime.v1.MediaUpscaleResult image_upscale */ 17:
+                    message.output = {
+                        oneofKind: "imageUpscale",
+                        imageUpscale: MediaUpscaleResult.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).imageUpscale)
+                    };
+                    break;
+                case /* nimi.runtime.v1.MediaUpscaleResult video_upscale */ 18:
+                    message.output = {
+                        oneofKind: "videoUpscale",
+                        videoUpscale: MediaUpscaleResult.internalBinaryRead(reader, reader.uint32(), options, (message.output as any).videoUpscale)
+                    };
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -14217,6 +14570,12 @@ class ScenarioOutput$Type extends MessageType<ScenarioOutput> {
         /* nimi.runtime.v1.AudioSpeakerEmbedResult audio_speaker_embed = 16; */
         if (message.output.oneofKind === "audioSpeakerEmbed")
             AudioSpeakerEmbedResult.internalBinaryWrite(message.output.audioSpeakerEmbed, writer.tag(16, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.MediaUpscaleResult image_upscale = 17; */
+        if (message.output.oneofKind === "imageUpscale")
+            MediaUpscaleResult.internalBinaryWrite(message.output.imageUpscale, writer.tag(17, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.MediaUpscaleResult video_upscale = 18; */
+        if (message.output.oneofKind === "videoUpscale")
+            MediaUpscaleResult.internalBinaryWrite(message.output.videoUpscale, writer.tag(18, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -14755,7 +15114,8 @@ class LocalAppImageGenerateScenarioSpec$Type extends MessageType<LocalAppImageGe
             { no: 17, name: "markup", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 18, name: "markup_artifact_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 19, name: "frame_count", kind: "scalar", opt: true, T: 5 /*ScalarType.INT32*/ },
-            { no: 20, name: "frame_duration_ms", kind: "scalar", opt: true, T: 5 /*ScalarType.INT32*/ }
+            { no: 20, name: "frame_duration_ms", kind: "scalar", opt: true, T: 5 /*ScalarType.INT32*/ },
+            { no: 21, name: "control_image", kind: "message", T: () => ImageControlInput }
         ]);
     }
     create(value?: PartialMessage<LocalAppImageGenerateScenarioSpec>): LocalAppImageGenerateScenarioSpec {
@@ -14844,6 +15204,9 @@ class LocalAppImageGenerateScenarioSpec$Type extends MessageType<LocalAppImageGe
                 case /* optional int32 frame_duration_ms */ 20:
                     message.frameDurationMs = reader.int32();
                     break;
+                case /* nimi.runtime.v1.ImageControlInput control_image */ 21:
+                    message.controlImage = ImageControlInput.internalBinaryRead(reader, reader.uint32(), options, message.controlImage);
+                    break;
                 default:
                     let u = options.readUnknownField;
                     if (u === "throw")
@@ -14916,6 +15279,9 @@ class LocalAppImageGenerateScenarioSpec$Type extends MessageType<LocalAppImageGe
         /* optional int32 frame_duration_ms = 20; */
         if (message.frameDurationMs !== undefined)
             writer.tag(20, WireType.Varint).int32(message.frameDurationMs);
+        /* nimi.runtime.v1.ImageControlInput control_image = 21; */
+        if (message.controlImage)
+            ImageControlInput.internalBinaryWrite(message.controlImage, writer.tag(21, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
@@ -15885,6 +16251,8 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
             { no: 17, name: "music_transcribe", kind: "message", oneof: "spec", T: () => MusicTranscribeScenarioSpec },
             { no: 18, name: "audio_voice_convert", kind: "message", oneof: "spec", T: () => AudioVoiceConvertScenarioSpec },
             { no: 19, name: "audio_speaker_embed", kind: "message", oneof: "spec", T: () => AudioSpeakerEmbedScenarioSpec },
+            { no: 20, name: "image_upscale", kind: "message", oneof: "spec", T: () => MediaUpscaleScenarioSpec },
+            { no: 21, name: "video_upscale", kind: "message", oneof: "spec", T: () => MediaUpscaleScenarioSpec },
             { no: 9, name: "timeout_ms", kind: "scalar", T: 5 /*ScalarType.INT32*/ },
             { no: 16, name: "client_submission_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
@@ -15993,6 +16361,18 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
                         audioSpeakerEmbed: AudioSpeakerEmbedScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).audioSpeakerEmbed)
                     };
                     break;
+                case /* nimi.runtime.v1.MediaUpscaleScenarioSpec image_upscale */ 20:
+                    message.spec = {
+                        oneofKind: "imageUpscale",
+                        imageUpscale: MediaUpscaleScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).imageUpscale)
+                    };
+                    break;
+                case /* nimi.runtime.v1.MediaUpscaleScenarioSpec video_upscale */ 21:
+                    message.spec = {
+                        oneofKind: "videoUpscale",
+                        videoUpscale: MediaUpscaleScenarioSpec.internalBinaryRead(reader, reader.uint32(), options, (message.spec as any).videoUpscale)
+                    };
+                    break;
                 case /* int32 timeout_ms = 9 [deprecated = true] */ 9:
                     message.timeoutMs = reader.int32();
                     break;
@@ -16062,6 +16442,12 @@ class SubmitLocalAppScenarioJobRequest$Type extends MessageType<SubmitLocalAppSc
         /* nimi.runtime.v1.AudioSpeakerEmbedScenarioSpec audio_speaker_embed = 19; */
         if (message.spec.oneofKind === "audioSpeakerEmbed")
             AudioSpeakerEmbedScenarioSpec.internalBinaryWrite(message.spec.audioSpeakerEmbed, writer.tag(19, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.MediaUpscaleScenarioSpec image_upscale = 20; */
+        if (message.spec.oneofKind === "imageUpscale")
+            MediaUpscaleScenarioSpec.internalBinaryWrite(message.spec.imageUpscale, writer.tag(20, WireType.LengthDelimited).fork(), options).join();
+        /* nimi.runtime.v1.MediaUpscaleScenarioSpec video_upscale = 21; */
+        if (message.spec.oneofKind === "videoUpscale")
+            MediaUpscaleScenarioSpec.internalBinaryWrite(message.spec.videoUpscale, writer.tag(21, WireType.LengthDelimited).fork(), options).join();
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

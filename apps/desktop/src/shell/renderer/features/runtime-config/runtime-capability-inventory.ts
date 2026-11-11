@@ -28,6 +28,8 @@ const CAPABILITY_PRESENTATION_ORDER = [
   'text.decide',
   'image.face_swap',
   'video.face_swap',
+  'image.upscale',
+  'video.upscale',
   'vision.locate',
   'text.embed',
 ];

@@ -31,6 +31,53 @@ import {
 } from './local-app-runtime-platform.js';
 import { createNimiLocalAppVoiceAssetsClient, createNimiLocalAppVoiceAssetsRuntimeClient } from './local-app-runtime-platform-ai.js';
 
+for (const type of ['image-upscale', 'video-upscale'] as const) {
+  test(`${type} keeps one owned source and exact scale through the Runtime adapter`, async () => {
+    const base = standardShell([]);
+    const captured: unknown[] = [];
+    const job = { jobId: 'upscale-job', scenarioType: type, status: 'submitted' as const,
+      progressPercent: 0, progressCurrentStep: 0, progressTotalSteps: 0, reasonCode: '', reasonDetail: '', artifacts: [], traceId: '',
+      createdAt: null, updatedAt: null, transcriptionText: '' };
+    const client = createNimiLocalAppClient({ standardShell: {
+      ...base, ai: { ...base.ai, scenarioJobs: { ...base.ai.scenarioJobs,
+        async submit(spec) { captured.push(spec); return { job }; },
+      } },
+    } });
+    const spec = { type, sourceArtifactId: 'owned-source', scale: 2 as const, seed: 0 };
+    assert.equal((await client.ai.scenarioJobs.submit(spec)).job.scenarioType, type);
+    const adapter = createNimiLocalAppRuntimeScenarioJobClient(client.ai);
+    const request: Parameters<typeof adapter.submitScenarioJob>[0] = {
+      scenarioType: type === 'image-upscale' ? ScenarioType.IMAGE_UPSCALE : ScenarioType.VIDEO_UPSCALE,
+      executionMode: ExecutionMode.ASYNC_JOB,
+      spec: { spec: type === 'image-upscale'
+        ? { oneofKind: 'imageUpscale', imageUpscale: { sourceArtifactId: 'owned-source', scale: 2, seed: '0' } }
+        : { oneofKind: 'videoUpscale', videoUpscale: { sourceArtifactId: 'owned-source', scale: 2, seed: '0' } } },
+      requestId: '', idempotencyKey: '', labels: {}, extensions: [],
+    };
+    await adapter.submitScenarioJob(request);
+    await assert.rejects(() => adapter.submitScenarioJob({
+      ...request,
+      scenarioType: type === 'image-upscale' ? ScenarioType.VIDEO_UPSCALE : ScenarioType.IMAGE_UPSCALE,
+    }), /scenario type/i);
+    assert.deepEqual(captured, [spec, spec]);
+    const withoutSeed = { type, sourceArtifactId: 'owned-source', scale: 2 as const };
+    await client.ai.scenarioJobs.submit(withoutSeed);
+    await adapter.submitScenarioJob({
+      scenarioType: type === 'image-upscale' ? ScenarioType.IMAGE_UPSCALE : ScenarioType.VIDEO_UPSCALE,
+      executionMode: ExecutionMode.ASYNC_JOB,
+      spec: { spec: type === 'image-upscale'
+        ? { oneofKind: 'imageUpscale', imageUpscale: { sourceArtifactId: 'owned-source', scale: 2 } }
+        : { oneofKind: 'videoUpscale', videoUpscale: { sourceArtifactId: 'owned-source', scale: 2 } } },
+      requestId: '', idempotencyKey: '', labels: {}, extensions: [],
+    });
+    assert.deepEqual(captured.slice(2), [withoutSeed, withoutSeed]);
+    for (const invalid of [{ ...spec, scale: 3 }, { ...spec, seed: -1 }, { ...spec, sourceArtifactId: '' }, { ...spec, modelPath: '/unowned/model' }]) {
+      await assert.rejects(() => client.ai.scenarioJobs.submit(invalid as never));
+    }
+    assert.equal(captured.length, 4);
+  });
+}
+
 test('protected speaker representation carries complete input and terminal vector space without authority selectors', async () => {
   const base = standardShell([]);
   let calls = 0;

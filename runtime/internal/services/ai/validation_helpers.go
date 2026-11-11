@@ -44,6 +44,10 @@ func validateBaseRequestWithOptions(appID string, subjectUserID string, modelID 
 
 func scenarioTargetCapability(scenarioType runtimev1.ScenarioType) string {
 	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_UPSCALE:
+		return capabilitydriver.ImageUpscaleContract
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_UPSCALE:
+		return capabilitydriver.VideoUpscaleContract
 	case runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SPEAKER_EMBED:
 		return capabilitydriver.SpeakerEmbedContract
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_ANNOTATE:

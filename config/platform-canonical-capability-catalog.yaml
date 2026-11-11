@@ -397,4 +397,37 @@ capabilities:
       auditSource: scenario-job-and-video-session-lifecycle
     source_rule: P-CAPCAT-001
 
+  - capabilityId: image.upscale
+    section: image
+    editorKind: null
+    sourceRef: {table: local-adapter-routing, capability: image.upscale}
+    i18nKeys:
+      title: AIConfig.capability.imageUpscale.title
+      subtitle: AIConfig.capability.imageUpscale.subtitle
+      detail: AIConfig.capability.imageUpscale.detail
+    runtimeEvidenceClass: job
+    governance:
+      owner: runtime-image-route
+      dataMovement: local-by-selected-route
+      retention: runtime-scenario-job-policy
+      revocation: route-or-job-owner
+      auditSource: runtime-scenario-job-evidence
+    source_rule: P-CAPCAT-001
+  - capabilityId: video.upscale
+    section: video
+    editorKind: null
+    sourceRef: {table: local-adapter-routing, capability: video.upscale}
+    i18nKeys:
+      title: AIConfig.capability.videoUpscale.title
+      subtitle: AIConfig.capability.videoUpscale.subtitle
+      detail: AIConfig.capability.videoUpscale.detail
+    runtimeEvidenceClass: job
+    governance:
+      owner: runtime-video-route
+      dataMovement: local-by-selected-route
+      retention: runtime-scenario-job-policy
+      revocation: route-or-job-owner
+      auditSource: runtime-scenario-job-evidence
+    source_rule: P-CAPCAT-001
+
 deferred: []

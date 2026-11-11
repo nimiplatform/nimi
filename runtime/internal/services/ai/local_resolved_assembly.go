@@ -278,6 +278,8 @@ type localResolvedAssemblyImageModelFile struct {
 }
 
 type localResolvedAssemblyImagePlan struct {
+	Checkpoint         bool                                     `json:"checkpoint,omitempty"`
+	ControlNet         *localResolvedAssemblyImageModelFile     `json:"control_net,omitempty"`
 	ProcessKey         string                                   `json:"process_key"`
 	ModelFiles         []localResolvedAssemblyInvocationBinding `json:"model_files"`
 	RecipeID           string                                   `json:"recipe_id"`
@@ -298,19 +300,21 @@ type localResolvedAssemblyImagePlan struct {
 }
 
 type localResolvedAssemblyImageRequestPlan struct {
-	Kind           string  `json:"kind"`
-	Prompt         string  `json:"prompt"`
-	NegativePrompt string  `json:"negative_prompt"`
-	Width          int     `json:"width"`
-	Height         int     `json:"height"`
-	Steps          int     `json:"steps"`
-	CFGScale       float64 `json:"cfg_scale"`
-	Seed           int64   `json:"seed"`
-	ImageCount     int     `json:"image_count"`
-	Sampler        string  `json:"sampler"`
-	Scheduler      string  `json:"scheduler"`
-	SourceIdentity string  `json:"source_identity,omitempty"`
-	SourceImage    []byte  `json:"source_image,omitempty"`
+	ControlType     string  `json:"control_type,omitempty"`
+	ControlStrength float64 `json:"control_strength,omitempty"`
+	Kind            string  `json:"kind"`
+	Prompt          string  `json:"prompt"`
+	NegativePrompt  string  `json:"negative_prompt"`
+	Width           int     `json:"width"`
+	Height          int     `json:"height"`
+	Steps           int     `json:"steps"`
+	CFGScale        float64 `json:"cfg_scale"`
+	Seed            int64   `json:"seed"`
+	ImageCount      int     `json:"image_count"`
+	Sampler         string  `json:"sampler"`
+	Scheduler       string  `json:"scheduler"`
+	SourceIdentity  string  `json:"source_identity,omitempty"`
+	SourceImage     []byte  `json:"source_image,omitempty"`
 }
 
 type localResolvedAssemblyImageResult struct {
@@ -745,6 +749,7 @@ func localResolvedAssemblyForImage(selected *localexecution.SelectedLocalExecuti
 		return nil, fmt.Errorf("image ResolvedAssembly request/result plan is incomplete")
 	}
 	imagePlan := &localResolvedAssemblyImagePlan{
+		Checkpoint: loadPlan.Checkpoint(),
 		ProcessKey: plan.ProcessKey(), ModelFiles: resolvedAssemblyInvocationBindings(plan.ModelFiles()),
 		RecipeID: loadPlan.RecipeID(), Main: resolvedAssemblyImageModelFile(loadPlan.Main()),
 		TextEncoder: resolvedAssemblyImageModelFile(loadPlan.TextEncoder()), VAE: resolvedAssemblyImageModelFile(loadPlan.VAE()),
@@ -764,6 +769,10 @@ func localResolvedAssemblyForImage(selected *localexecution.SelectedLocalExecuti
 		converted := resolvedAssemblyImageModelFile(uncond)
 		imagePlan.UncondDiffusion = &converted
 	}
+	if controlNet, present := loadPlan.ControlNet(); present {
+		converted := resolvedAssemblyImageModelFile(controlNet)
+		imagePlan.ControlNet = &converted
+	}
 	switch typed := requestPlan.(type) {
 	case capabilitydriver.StableDiffusionCPPTextToImageRequestPlan:
 		imagePlan.Request.Kind = "text-to-image"
@@ -773,6 +782,14 @@ func localResolvedAssemblyForImage(selected *localexecution.SelectedLocalExecuti
 		source := typed.SourceImage()
 		imagePlan.Request.SourceIdentity = source.SourceIdentity
 		imagePlan.Request.SourceImage = source.ImageBytes
+	case capabilitydriver.StableDiffusionCPPControlRequestPlan:
+		imagePlan.Request.Kind = "control-image"
+		assembly.AdmittedFeatures = append(assembly.AdmittedFeatures, "input.image")
+		control := typed.ControlImage()
+		imagePlan.Request.SourceIdentity = control.SourceIdentity
+		imagePlan.Request.SourceImage = control.ImageBytes
+		imagePlan.Request.ControlType = typed.ControlType()
+		imagePlan.Request.ControlStrength = typed.ControlStrength()
 	default:
 		return nil, fmt.Errorf("unsupported image ResolvedAssembly request plan %T", requestPlan)
 	}
@@ -1011,6 +1028,10 @@ func validateLocalResolvedAssembly(assembly *localResolvedAssembly) error {
 		return fmt.Errorf("non-text ResolvedAssembly carries admitted text behaviors")
 	}
 	switch assembly.LoadPlan.Kind {
+	case "image-upscale", "video-upscale":
+		if _, err := upscalePlanFromResolvedAssembly(assembly); err != nil {
+			return err
+		}
 	case "speaker-embedding":
 		if _, err := speakerEmbeddingPlanFromResolvedAssembly(assembly); err != nil {
 			return err

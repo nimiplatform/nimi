@@ -208,6 +208,18 @@ export enum FinishReason {
   ERROR = 5,
 }
 
+export enum ImageControlType {
+  UNSPECIFIED = 0,
+  OPENPOSE = 1,
+  DEPTH = 2,
+  SCRIBBLE = 3,
+  CANNY = 4,
+  NORMAL = 5,
+  SEGMENT = 6,
+  TILE = 7,
+  REPAINT = 8,
+}
+
 export enum IntegrationConnectionSetupAction {
   UNSPECIFIED = 0,
   CREATE_NEW_TARGET = 1,
@@ -497,6 +509,8 @@ export enum ScenarioType {
   AUDIO_VOICE_CONVERT = 18,
   TEXT_DECIDE = 19,
   AUDIO_SPEAKER_EMBED = 20,
+  IMAGE_UPSCALE = 21,
+  VIDEO_UPSCALE = 22,
 }
 
 export enum SchedulingState {

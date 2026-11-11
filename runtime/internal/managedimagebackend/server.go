@@ -39,19 +39,21 @@ type loadModelState struct {
 }
 
 type imageGenerateState struct {
-	Mode           ImageRequestMode
-	Width          int32
-	Height         int32
-	Step           int32
-	Seed           int32
-	PositivePrompt string
-	NegativePrompt string
-	Src            string
-	Mask           string
-	ReferenceImage []byte
-	CFGScale       float32
-	Sampler        string
-	Scheduler      string
+	ControlType     string
+	ControlStrength float32
+	Mode            ImageRequestMode
+	Width           int32
+	Height          int32
+	Step            int32
+	Seed            int32
+	PositivePrompt  string
+	NegativePrompt  string
+	Src             string
+	Mask            string
+	ReferenceImage  []byte
+	CFGScale        float32
+	Sampler         string
+	Scheduler       string
 }
 
 type imageGenerateProgress struct {
@@ -61,6 +63,7 @@ type imageGenerateProgress struct {
 }
 
 type managedImageOptions struct {
+	Checkpoint         bool
 	Components         []managedImageComponent
 	DiffusionFA        *bool
 	OffloadParamsToCPU *bool

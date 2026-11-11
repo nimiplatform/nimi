@@ -6,6 +6,10 @@ type stableDiffusionCPPSlotBinding struct {
 }
 
 var stableDiffusionCPPSlotBindings = map[string]stableDiffusionCPPSlotBinding{
+	"control_net_path": {
+		EngineSlot: "control_net_path",
+		Argument:   "--control-net",
+	},
 	"vae_path": {
 		EngineSlot: "vae_path",
 		Argument:   "--vae",

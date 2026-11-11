@@ -1,4 +1,80 @@
 models:
+  - model_id: sdxl-base-1.0-local
+    model_type: image
+    family: sdxl-controlnet-union
+    updated_at: 2026-11-11
+    capabilities: [image.generate]
+    features: [input.image]
+    image_request_options:
+      response_formats: [b64_json, url]
+      max_images_per_request: 1
+      supports_negative_prompt: true
+      supports_reference_images: false
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+    source_ids: [sdxl_base_official, sdxl_controlnet_union_official, stable_diffusion_cpp_controlnet_union]
+    install:
+      repo: stabilityai/stable-diffusion-xl-base-1.0
+      revision: 462165984030d82259a11f4367a4eed129e94a7b # pragma: allowlist secret -- public model revision
+      install_kind: weights
+      license: CreativeML Open RAIL++-M
+      provenance: Official complete SDXL Base checkpoint with embedded CLIP-L, OpenCLIP-G and VAE; ControlNet generation requires an independent Union ProMax asset and a prepared typed control map.
+      entry: sd_xl_base_1.0.safetensors
+      artifact_roles: [diffusion_model]
+      preferred_engine: media
+    variants:
+      - variant_id: local.image.sdxl-base-1.0.f16.cuda
+        quant: F16
+        entry: sd_xl_base_1.0.safetensors
+        files: [sd_xl_base_1.0.safetensors]
+        hashes:
+          sd_xl_base_1.0.safetensors: sha256:31e35c80fc4829d14f90153f4c74cd59c90b779f6afe05a74cd6120b893f7e5b
+        total_size_bytes: 6938078334
+        host_requirement: {accelerator: cuda, min_ram_bytes: 17179869184, min_vram_bytes: 8589934592}
+    fitness: {param_count: 3500000000, context_length: 0}
+  - model_id: minimax-h3-image-local
+    model_type: image
+    family: minimax-h3-image
+    updated_at: 2026-11-11
+    capabilities: [image.generate]
+    features: [input.image]
+    image_request_options:
+      response_formats: [b64_json, url]
+      max_images_per_request: 1
+      supports_negative_prompt: false
+      supports_reference_images: true
+      supports_mask: false
+      supports_seed: true
+      supports_size: true
+      supports_aspect_ratio: false
+      supports_quality: false
+      supports_style: false
+    source_ids: [minimax_h3_image_modelcard, minimax_h3_image_comfy_weights, stable_diffusion_cpp_minimax_h3_image_guide]
+    install:
+      repo: Comfy-Org/MiniMax-H3-Image
+      revision: 892de7cb61df49753bf15145a711154803a355cb # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      license: MiniMax-H3-Image Community License Agreement
+      provenance: Comfy-Org combined pruned INT8 ConvRot checkpoint with six-step PDD heads; use is subject to the original model license and its territory restrictions.
+      entry: diffusion_models/minimax_h3_image_pruned_int8_convrot.safetensors
+      artifact_roles: [diffusion_model]
+      preferred_engine: media
+    variants:
+      - variant_id: local.image.minimax-h3-image.pruned-int8-convrot.cuda
+        quant: INT8 ConvRot
+        entry: diffusion_models/minimax_h3_image_pruned_int8_convrot.safetensors
+        files: [diffusion_models/minimax_h3_image_pruned_int8_convrot.safetensors]
+        hashes:
+          diffusion_models/minimax_h3_image_pruned_int8_convrot.safetensors: sha256:83eb140f1ff95c068f8a6886e6d3f3d0d4ab2e07bb2fe6d2ef992a51146ee622
+        total_size_bytes: 20979314802
+        host_requirement: {accelerator: cuda, min_ram_bytes: 68719476736, min_vram_bytes: 25769803776}
+
+    fitness: {param_count: 20000000000, context_length: 0}
+
   - model_id: flux3-image-klein-local
     model_type: image
     family: flux3

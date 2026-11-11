@@ -38,6 +38,8 @@ func scenarioAllowedModes(scenarioType runtimev1.ScenarioType) []runtimev1.Execu
 			runtimev1.ExecutionMode_EXECUTION_MODE_ASYNC_JOB,
 		}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_UPSCALE,
+		runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_UPSCALE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SPEAKER_EMBED,
 		runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_ANNOTATE,
 		runtimev1.ScenarioType_SCENARIO_TYPE_AUDIO_SEPARATE,
@@ -68,6 +70,10 @@ func scenarioAllowedModes(scenarioType runtimev1.ScenarioType) []runtimev1.Execu
 // markers and resolved by the catalog layer.
 func scenarioRequiredCapabilities(scenarioType runtimev1.ScenarioType) []string {
 	switch scenarioType {
+	case runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_UPSCALE:
+		return []string{aicapabilities.ImageUpscale}
+	case runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_UPSCALE:
+		return []string{aicapabilities.VideoUpscale}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_ANNOTATE:
 		return []string{aicapabilities.TextAnnotate}
 	case runtimev1.ScenarioType_SCENARIO_TYPE_TEXT_DECIDE:

@@ -1384,6 +1384,13 @@ function assertScenarioSpec(value: unknown, command: string, execute: boolean): 
       validateSpeechTranscribeSpec({ type: value.type, mimeType: value.mimeType, language: '', prompt: '', responseFormat: '', audioSource: value.audioSource }, command);
       return;
     }
+    // @nimi-authority: rule.nimi.runtime.ai-provider.media-upscale-contract
+    case 'image-upscale':
+    case 'video-upscale':
+      assertAllowedKeys(value, ['type', 'sourceArtifactId', 'scale', 'seed'], ['type', 'sourceArtifactId', 'scale'], command);
+      if (!optionalBoundedIdentifier(value.sourceArtifactId, 'sourceArtifactId', command) || (value.scale !== 2 && value.scale !== 4)) throw invalidPayload(command, 'Super-resolution requires a source artifact and scale 2 or 4');
+      if (value.seed !== undefined && (typeof value.seed !== 'number' || !Number.isInteger(value.seed) || value.seed < 0 || value.seed > 2147483647)) throw invalidPayload(command, 'Super-resolution seed is invalid');
+      return;
     // @nimi-authority: rule.nimi.runtime.ai-provider.face-swap-video-job
     case 'video-face-swap':
       assertExactKeys(value, ['type', 'referenceImageArtifactId', 'targetVideoArtifactId', 'noFacePolicy'], command);
@@ -1435,11 +1442,21 @@ function validateMusicSpec(value: Record<string, unknown>, command: string): voi
 function validateImageSpec(value: Record<string, unknown>, command: string): void {
   assertAllowedKeys(
     value,
-    ['type', 'prompt', 'negativePrompt', 'n', 'size', 'aspectRatio', 'quality', 'style', 'seed', 'referenceImages', 'referenceImageArtifactId', 'mask', 'responseFormat', 'maskArtifactId', 'strength', 'complexity', 'outputFormat', 'markup', 'markupArtifactId', 'frameCount', 'frameDurationMs'],
+    ['type', 'prompt', 'negativePrompt', 'n', 'size', 'aspectRatio', 'quality', 'style', 'seed', 'referenceImages', 'referenceImageArtifactId', 'mask', 'responseFormat', 'maskArtifactId', 'strength', 'complexity', 'outputFormat', 'markup', 'markupArtifactId', 'frameCount', 'frameDurationMs', 'controlImage'],
     ['type', 'prompt', 'negativePrompt', 'size', 'aspectRatio', 'quality', 'style', 'referenceImages', 'referenceImageArtifactId', 'mask', 'responseFormat'],
     command,
   );
   requiredUtf8Text(value.prompt, 'prompt', command, 32 * 1024);
+  if (value.controlImage !== undefined) {
+    if (!isPlainRecord(value.controlImage)) throw invalidPayload(command, 'controlImage must be an object');
+    const control = value.controlImage;
+    assertAllowedKeys(control, ['imageArtifactId', 'type', 'strength'], ['imageArtifactId', 'type'], command);
+    if (!optionalBoundedIdentifier(control.imageArtifactId, 'control image artifact', command)) throw invalidPayload(command, 'control image artifact is required');
+    boundedSafeInteger(control.type, 'control image type', command, 1, 8);
+    if (control.strength !== undefined && (typeof control.strength !== 'number' || !Number.isFinite(control.strength) || control.strength < 0 || control.strength > 2)) {
+      throw invalidPayload(command, 'control image strength must be between zero and two');
+    }
+  }
   optionalExactText(value.negativePrompt, 'negativePrompt', command, 32 * 1024);
   for (const key of ['size', 'aspectRatio', 'quality', 'style']) optionalExactText(value[key], key, command, 128);
   if (value.n !== undefined) boundedSafeInteger(value.n, 'n', command, 0, 4);

@@ -131,6 +131,9 @@ func (s *Service) captureLocalImageEffectiveInputs(
 	// receives only the already-authorized immutable bytes.
 	capturedRequest.ReferenceImageArtifactId = ""
 	capturedRequest.MaskArtifactId = ""
+	if capturedRequest.ControlImage != nil {
+		capturedRequest.ControlImage.ImageArtifactId = ""
+	}
 	plan, err := imageDriver.PlanImageInvocation(capabilitydriver.ImageInvocationInput{
 		RecipeID:               selected.RecipeID,
 		PortableConfig:         portable,
@@ -222,6 +225,12 @@ func (s *Service) localImageEffectiveInputsFromResolvedAssembly(assembly *localR
 			SourceIdentity: assembly.LoadPlan.Image.Request.SourceIdentity,
 			ImageBytes:     append([]byte(nil), assembly.LoadPlan.Image.Request.SourceImage...),
 		}}
+	case "control-image":
+		inputs = []capabilitydriver.ImageResolvedInput{{
+			Role:           capabilitydriver.ImageResolvedInputRoleControl,
+			SourceIdentity: assembly.LoadPlan.Image.Request.SourceIdentity,
+			ImageBytes:     append([]byte(nil), assembly.LoadPlan.Image.Request.SourceImage...),
+		}}
 	default:
 		return nil, fmt.Errorf("captured local image request variant %q is unsupported", assembly.LoadPlan.Image.Request.Kind)
 	}
@@ -279,11 +288,15 @@ func (s *Service) resolveLocalImageConsumerIntent(
 }
 
 func validSelectedImageExecution(selected *localexecution.SelectedLocalExecution) bool {
+	minimumSlots := 3
+	if selected != nil && selected.DriverIdentity.GetDriverDialect() == capabilitydriver.SDXLControlNetDialect {
+		minimumSlots = 2
+	}
 	return selected != nil && selected.Configured &&
 		strings.TrimSpace(selected.LoadoutID) != "" &&
 		selected.CapabilityContract == capabilitydriver.StableDiffusionCapabilityContract &&
 		selected.DriverIdentity != nil &&
-		len(selected.Requirements) >= 3 && len(selected.Requirements) == len(selected.ExactBindings)
+		len(selected.Requirements) >= minimumSlots && len(selected.Requirements) == len(selected.ExactBindings)
 }
 
 func requireSelectedImageRequestFeatures(spec *runtimev1.ImageGenerateScenarioSpec, supported []string) error {
@@ -291,7 +304,7 @@ func requireSelectedImageRequestFeatures(spec *runtimev1.ImageGenerateScenarioSp
 		return grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	}
 	required := make([]string, 0, 2)
-	if len(spec.GetReferenceImages()) > 0 || strings.TrimSpace(spec.GetReferenceImageArtifactId()) != "" {
+	if len(spec.GetReferenceImages()) > 0 || strings.TrimSpace(spec.GetReferenceImageArtifactId()) != "" || spec.GetControlImage() != nil {
 		required = append(required, aicapabilities.FeatureInputImage)
 	}
 	if strings.TrimSpace(spec.GetMask()) != "" || strings.TrimSpace(spec.GetMaskArtifactId()) != "" {
@@ -324,6 +337,13 @@ func (s *Service) resolveLocalImageInputs(
 		return nil, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT)
 	}
 	inputs := make([]capabilitydriver.ImageResolvedInput, 0, 2)
+	if control := spec.GetControlImage(); control != nil {
+		input, err := s.resolveLocalImageArtifactInput(ctx, head, control.GetImageArtifactId(), capabilitydriver.ImageResolvedInputRoleControl)
+		if err != nil {
+			return nil, err
+		}
+		inputs = append(inputs, input)
+	}
 	if artifactID != "" {
 		input, err := s.resolveLocalImageArtifactInput(ctx, head, artifactID, capabilitydriver.ImageResolvedInputRoleSource)
 		if err != nil {
@@ -350,7 +370,7 @@ func (s *Service) resolveLocalImageArtifactInput(
 	artifactID string,
 	role capabilitydriver.ImageResolvedInputRole,
 ) (capabilitydriver.ImageResolvedInput, error) {
-	if role != capabilitydriver.ImageResolvedInputRoleSource && role != capabilitydriver.ImageResolvedInputRoleMask {
+	if role != capabilitydriver.ImageResolvedInputRoleSource && role != capabilitydriver.ImageResolvedInputRoleMask && role != capabilitydriver.ImageResolvedInputRoleControl {
 		return capabilitydriver.ImageResolvedInput{}, grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_ARTIFACT_INVALID_INPUT)
 	}
 	payload, _, err := s.resolveOwnedMediaArtifactBytes(ctx, head, artifactID, "image/", runtimeartifact.MaxInlineBytes)

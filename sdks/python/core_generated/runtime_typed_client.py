@@ -151,6 +151,7 @@ GpuMemoryModel = Literal["GPU_MEMORY_MODEL_UNSPECIFIED", "GPU_MEMORY_MODEL_DISCR
 HookAdmissionState = Literal["HOOK_ADMISSION_STATE_UNSPECIFIED"]
 HookEffect = Literal["HOOK_EFFECT_UNSPECIFIED"]
 HookTriggerFamily = Literal["HOOK_TRIGGER_FAMILY_UNSPECIFIED"]
+ImageControlType = Literal["IMAGE_CONTROL_TYPE_UNSPECIFIED", "IMAGE_CONTROL_TYPE_OPENPOSE", "IMAGE_CONTROL_TYPE_DEPTH", "IMAGE_CONTROL_TYPE_SCRIBBLE", "IMAGE_CONTROL_TYPE_CANNY", "IMAGE_CONTROL_TYPE_NORMAL", "IMAGE_CONTROL_TYPE_SEGMENT", "IMAGE_CONTROL_TYPE_TILE", "IMAGE_CONTROL_TYPE_REPAINT"]
 IntegrationConnectionSetupAction = Literal["INTEGRATION_CONNECTION_SETUP_ACTION_UNSPECIFIED", "INTEGRATION_CONNECTION_SETUP_ACTION_CREATE_NEW_TARGET"]
 LoadoutValidationState = Literal["LOADOUT_VALIDATION_STATE_UNSPECIFIED", "LOADOUT_VALIDATION_STATE_CONFIGURED", "LOADOUT_VALIDATION_STATE_UNRESOLVED", "LOADOUT_VALIDATION_STATE_BLOCKED"]
 LocalAgentCapabilityParticipationRole = Literal["LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_UNSPECIFIED", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_PRIMARY", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_MEMORY_EMBEDDING", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_INPUT_VOICE", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_OUTPUT_VOICE", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_ACTION_IMAGE", "LOCAL_AGENT_CAPABILITY_PARTICIPATION_ROLE_CONVERSATION_REALTIME"]
@@ -224,7 +225,7 @@ ScenarioJobEventType = Literal["SCENARIO_JOB_EVENT_TYPE_UNSPECIFIED", "SCENARIO_
 ScenarioJobStatus = Literal["SCENARIO_JOB_STATUS_UNSPECIFIED", "SCENARIO_JOB_STATUS_SUBMITTED", "SCENARIO_JOB_STATUS_QUEUED", "SCENARIO_JOB_STATUS_RUNNING", "SCENARIO_JOB_STATUS_COMPLETED", "SCENARIO_JOB_STATUS_FAILED", "SCENARIO_JOB_STATUS_CANCELED", "SCENARIO_JOB_STATUS_TIMEOUT"]
 ScenarioJobStopOutcome = Literal["SCENARIO_JOB_STOP_OUTCOME_UNSPECIFIED", "SCENARIO_JOB_STOP_OUTCOME_NOT_DISPATCHED", "SCENARIO_JOB_STOP_OUTCOME_CONFIRMED", "SCENARIO_JOB_STOP_OUTCOME_UNCONFIRMED"]
 ScenarioJobSubmissionOutcome = Literal["SCENARIO_JOB_SUBMISSION_OUTCOME_UNSPECIFIED", "SCENARIO_JOB_SUBMISSION_OUTCOME_NOT_DISPATCHED", "SCENARIO_JOB_SUBMISSION_OUTCOME_UNKNOWN", "SCENARIO_JOB_SUBMISSION_OUTCOME_ACCEPTED", "SCENARIO_JOB_SUBMISSION_OUTCOME_REJECTED"]
-ScenarioType = Literal["SCENARIO_TYPE_UNSPECIFIED", "SCENARIO_TYPE_TEXT_GENERATE", "SCENARIO_TYPE_TEXT_EMBED", "SCENARIO_TYPE_IMAGE_GENERATE", "SCENARIO_TYPE_VIDEO_GENERATE", "SCENARIO_TYPE_SPEECH_SYNTHESIZE", "SCENARIO_TYPE_SPEECH_TRANSCRIBE", "SCENARIO_TYPE_MUSIC_GENERATE", "SCENARIO_TYPE_WORLD_GENERATE", "SCENARIO_TYPE_VOICE_CREATE", "SCENARIO_TYPE_VISION_LOCATE", "SCENARIO_TYPE_IMAGE_FACE_SWAP", "SCENARIO_TYPE_VIDEO_FACE_SWAP", "SCENARIO_TYPE_AUDIO_SEPARATE", "SCENARIO_TYPE_TEXT_ANNOTATE", "SCENARIO_TYPE_MUSIC_TRANSCRIBE", "SCENARIO_TYPE_AUDIO_VOICE_CONVERT", "SCENARIO_TYPE_TEXT_DECIDE", "SCENARIO_TYPE_AUDIO_SPEAKER_EMBED"]
+ScenarioType = Literal["SCENARIO_TYPE_UNSPECIFIED", "SCENARIO_TYPE_TEXT_GENERATE", "SCENARIO_TYPE_TEXT_EMBED", "SCENARIO_TYPE_IMAGE_GENERATE", "SCENARIO_TYPE_VIDEO_GENERATE", "SCENARIO_TYPE_SPEECH_SYNTHESIZE", "SCENARIO_TYPE_SPEECH_TRANSCRIBE", "SCENARIO_TYPE_MUSIC_GENERATE", "SCENARIO_TYPE_WORLD_GENERATE", "SCENARIO_TYPE_VOICE_CREATE", "SCENARIO_TYPE_VISION_LOCATE", "SCENARIO_TYPE_IMAGE_FACE_SWAP", "SCENARIO_TYPE_VIDEO_FACE_SWAP", "SCENARIO_TYPE_AUDIO_SEPARATE", "SCENARIO_TYPE_TEXT_ANNOTATE", "SCENARIO_TYPE_MUSIC_TRANSCRIBE", "SCENARIO_TYPE_AUDIO_VOICE_CONVERT", "SCENARIO_TYPE_TEXT_DECIDE", "SCENARIO_TYPE_AUDIO_SPEAKER_EMBED", "SCENARIO_TYPE_IMAGE_UPSCALE", "SCENARIO_TYPE_VIDEO_UPSCALE"]
 SchedulingState = Literal["SCHEDULING_STATE_UNSPECIFIED", "SCHEDULING_STATE_RUNNABLE", "SCHEDULING_STATE_QUEUE_REQUIRED", "SCHEDULING_STATE_PREEMPTION_RISK", "SCHEDULING_STATE_SLOWDOWN_RISK", "SCHEDULING_STATE_DENIED", "SCHEDULING_STATE_UNKNOWN"]
 SensitivityClass = Literal["SENSITIVITY_CLASS_UNSPECIFIED", "SENSITIVITY_CLASS_NONE", "SENSITIVITY_CLASS_USER_PRIVATE", "SENSITIVITY_CLASS_CREDENTIAL_LIKE", "SENSITIVITY_CLASS_ORG_PRIVATE", "SENSITIVITY_CLASS_REGULATED", "SENSITIVITY_CLASS_UNKNOWN_SENSITIVE"]
 SpeechAlignmentUnit = Literal["SPEECH_ALIGNMENT_UNIT_UNSPECIFIED", "SPEECH_ALIGNMENT_UNIT_WORD", "SPEECH_ALIGNMENT_UNIT_CHAR"]
@@ -3209,6 +3210,12 @@ class IgnoredScenarioExtension:
     reason: str | None = None
 
 @dataclass(frozen=True)
+class ImageControlInput:
+    image_artifact_id: str | None = None
+    type: ImageControlType | None = None
+    strength: float | None = None
+
+@dataclass(frozen=True)
 class ImageFaceSwapResult:
     artifacts: tuple[ScenarioArtifact, ...] = field(default_factory=tuple)
 
@@ -3243,6 +3250,7 @@ class ImageGenerateScenarioSpec:
     markup_artifact_id: str | None = None
     frame_count: int | None = None
     frame_duration_ms: int | None = None
+    control_image: ImageControlInput | None = None
 
 @dataclass(frozen=True)
 class ImportModelAssetRequest:
@@ -4765,6 +4773,7 @@ class LocalAppImageGenerateScenarioSpec:
     markup_artifact_id: str | None = None
     frame_count: int | None = None
     frame_duration_ms: int | None = None
+    control_image: ImageControlInput | None = None
 
 @dataclass(frozen=True)
 class LocalAppMusicGenerateJobSpec:
@@ -5389,6 +5398,16 @@ class MaterializeRealmSourceResponse:
     source_context_status: LocalAgentSourceContextStatus | None = None
     idempotent_replay: bool | None = None
     reason_code: RealmSourceMaterializationReasonCode | None = None
+
+@dataclass(frozen=True)
+class MediaUpscaleResult:
+    artifacts: tuple[ScenarioArtifact, ...] = field(default_factory=tuple)
+
+@dataclass(frozen=True)
+class MediaUpscaleScenarioSpec:
+    source_artifact_id: str | None = None
+    scale: int | None = None
+    seed: int | None = None
 
 @dataclass(frozen=True)
 class MemoryEmbeddingCloudBindingRef:
@@ -6792,6 +6811,8 @@ class ScenarioOutput:
     audio_voice_convert: AudioVoiceConvertResult | None = None
     text_decision: TextDecisionResult | None = None
     audio_speaker_embed: AudioSpeakerEmbedResult | None = None
+    image_upscale: MediaUpscaleResult | None = None
+    video_upscale: MediaUpscaleResult | None = None
 
 @dataclass(frozen=True)
 class ScenarioProfile:
@@ -6825,6 +6846,8 @@ class ScenarioSpec:
     audio_voice_convert: AudioVoiceConvertScenarioSpec | None = None
     text_decide: TextDecideScenarioSpec | None = None
     audio_speaker_embed: AudioSpeakerEmbedScenarioSpec | None = None
+    image_upscale: MediaUpscaleScenarioSpec | None = None
+    video_upscale: MediaUpscaleScenarioSpec | None = None
 
 @dataclass(frozen=True)
 class ScenarioStreamCompleted:
@@ -7353,6 +7376,8 @@ class SubmitLocalAppScenarioJobRequest:
     music_transcribe: MusicTranscribeScenarioSpec | None = None
     audio_voice_convert: AudioVoiceConvertScenarioSpec | None = None
     audio_speaker_embed: AudioSpeakerEmbedScenarioSpec | None = None
+    image_upscale: MediaUpscaleScenarioSpec | None = None
+    video_upscale: MediaUpscaleScenarioSpec | None = None
 
 @dataclass(frozen=True)
 class SubmitLocalAppScenarioJobResponse:

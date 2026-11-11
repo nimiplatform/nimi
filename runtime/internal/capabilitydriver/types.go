@@ -435,8 +435,9 @@ type EmbedInvocationInput struct {
 type ImageResolvedInputRole string
 
 const (
-	ImageResolvedInputRoleSource ImageResolvedInputRole = "source"
-	ImageResolvedInputRoleMask   ImageResolvedInputRole = "mask"
+	ImageResolvedInputRoleSource  ImageResolvedInputRole = "source"
+	ImageResolvedInputRoleMask    ImageResolvedInputRole = "mask"
+	ImageResolvedInputRoleControl ImageResolvedInputRole = "control"
 )
 
 // ImageResolvedInput is one already-authorized, immutable image input captured
@@ -795,6 +796,8 @@ type ImageLoadPlan interface {
 // StableDiffusionCPPLoadPlan contains only named stable-diffusion.cpp load
 // decisions. Backend slots and raw options are physical-adapter vocabulary.
 type StableDiffusionCPPLoadPlan struct {
+	checkpoint              bool
+	controlNet              *ImageModelFile
 	recipeID                string
 	main                    ImageModelFile
 	textEncoder             ImageModelFile
@@ -816,6 +819,13 @@ func (p StableDiffusionCPPLoadPlan) RecipeID() string            { return p.reci
 func (p StableDiffusionCPPLoadPlan) Main() ImageModelFile        { return p.main }
 func (p StableDiffusionCPPLoadPlan) TextEncoder() ImageModelFile { return p.textEncoder }
 func (p StableDiffusionCPPLoadPlan) VAE() ImageModelFile         { return p.vae }
+func (p StableDiffusionCPPLoadPlan) Checkpoint() bool            { return p.checkpoint }
+func (p StableDiffusionCPPLoadPlan) ControlNet() (ImageModelFile, bool) {
+	if p.controlNet == nil {
+		return ImageModelFile{}, false
+	}
+	return *p.controlNet, true
+}
 func (p StableDiffusionCPPLoadPlan) CLIPL() (ImageModelFile, bool) {
 	if p.clipL == nil {
 		return ImageModelFile{}, false
@@ -896,6 +906,20 @@ func (p StableDiffusionCPPInstructionEditRequestPlan) SourceImage() ImageResolve
 	result.ImageBytes = append([]byte(nil), p.sourceImage.ImageBytes...)
 	return result
 }
+
+type StableDiffusionCPPControlRequestPlan struct {
+	stableDiffusionCPPRequestFields
+	controlImage    ImageResolvedInput
+	controlType     string
+	controlStrength float64
+}
+
+func (StableDiffusionCPPControlRequestPlan) imageRequestPlanVariant() {}
+func (p StableDiffusionCPPControlRequestPlan) ControlImage() ImageResolvedInput {
+	return cloneImageResolvedInput(p.controlImage)
+}
+func (p StableDiffusionCPPControlRequestPlan) ControlType() string      { return p.controlType }
+func (p StableDiffusionCPPControlRequestPlan) ControlStrength() float64 { return p.controlStrength }
 
 // ImageResultConstraints is a closed Driver-owned result contract.
 type ImageResultConstraints interface {
@@ -1669,7 +1693,11 @@ func NewProductionRegistry() *Registry {
 		{CapabilityContract: TextEmbedCapabilityContract, Identity: Identity{ImplementationID: LlamaEmbedImplementationID, DriverID: LlamaDriverID, DriverDialect: LlamaQwen3EmbedDialect}}:                                                LlamaEmbedDriver{},
 		{CapabilityContract: TextEmbedCapabilityContract, Identity: Identity{ImplementationID: LlamaEmbedImplementationID, DriverID: LlamaDriverID, DriverDialect: LlamaEmbeddingGemma2Dialect}}:                                           LlamaEmbedDriver{},
 		{CapabilityContract: StableDiffusionCapabilityContract, Identity: Identity{ImplementationID: StableDiffusionImplementationID, DriverID: StableDiffusionDriverID, DriverDialect: StableDiffusionDriverDialect}}:                     StableDiffusionImageDriver{},
+		{CapabilityContract: StableDiffusionCapabilityContract, Identity: Identity{ImplementationID: StableDiffusionImplementationID, DriverID: StableDiffusionDriverID, DriverDialect: SDXLControlNetDialect}}:                            SDXLControlNetDriver{},
+		{CapabilityContract: ImageUpscaleContract, Identity: Identity{ImplementationID: UpscaleImplementationID, DriverID: UpscaleDriverID, DriverDialect: UpscaleDriverDialect}}:                                                          UpscaleDriver{},
+		{CapabilityContract: VideoUpscaleContract, Identity: Identity{ImplementationID: UpscaleImplementationID, DriverID: UpscaleDriverID, DriverDialect: UpscaleDriverDialect}}:                                                          UpscaleDriver{Video: true},
 		{CapabilityContract: StableDiffusionVideoCapabilityContract, Identity: Identity{ImplementationID: StableDiffusionVideoImplementationID, DriverID: StableDiffusionVideoDriverID, DriverDialect: StableDiffusionVideoDriverDialect}}: StableDiffusionVideoDriver{},
+		{CapabilityContract: StableDiffusionVideoCapabilityContract, Identity: Identity{ImplementationID: StableDiffusionVideoImplementationID, DriverID: StableDiffusionVideoDriverID, DriverDialect: HyperFlowH3VideoDialect}}:           StableDiffusionVideoDriver{hyperFlow: true},
 		{CapabilityContract: StableDiffusionVideoCapabilityContract, Identity: Identity{ImplementationID: Wan22VideoImplementationID, DriverID: StableDiffusionVideoDriverID, DriverDialect: Wan22VideoDialect}}:                           Wan22VideoDriver{},
 		{CapabilityContract: AudioSynthesizeContract, Identity: Identity{ImplementationID: Qwen3TTSImplementationID, DriverID: Qwen3TTSDriverID, DriverDialect: Qwen3TTSDriverDialect}}:                                                    Qwen3TTSDriver{},
 		{CapabilityContract: AudioSynthesizeContract, Identity: Identity{ImplementationID: Qwen3TTSAudioCppImplementationID, DriverID: Qwen3TTSAudioCppDriverID, DriverDialect: Qwen3TTSAudioCppDriverDialect}}:                            Qwen3TTSAudioCppDriver{},

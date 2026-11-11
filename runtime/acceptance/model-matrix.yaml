@@ -10,7 +10,7 @@ purpose: Versioned engineering acceptance summary. Not an input to Runtime catal
   admission, or product authority.
 scope:
   catalog_snapshot: 0ddc105801267c8e500c534a887ca564ce67b258 # pragma: allowlist secret -- recorded public revision or artifact digest
-  capability_count: 19
+  capability_count: 21
   imported_campaign: 2026-11-04-runtime-model-release-audit
   new_model_calls_during_import: false
   current_checkout_acceptance: SCENARIO-SPECIFIC
@@ -150,6 +150,13 @@ environments:
       - The selected data root and offline backups are retained. The supervised Lab uses rebuilt workspace
         packages; this does not establish a separately packaged Lab distribution or every signed Home consumer.
 evidence_sources:
+  windows_sdcpp_20261111:
+    availability: scenario-summary-in-repository
+    description: Windows RTX 5090 source-development observations using guarded Desktop and supervised Lab,
+      exact loopback CDP controls, verified Desktop model acquisition and Runtime-owned native execution.
+      Raw logs and media remain local.
+    period_start: 2026-11-11
+    period_end: 2026-11-11
   macos_installed_20261111:
     availability: scenario-summary-in-repository
     description: Signed installed Home and Runtime with the supervised Lab registration on physical macOS
@@ -194,6 +201,29 @@ evidence_sources:
     title: AI capability expansion historical acceptance details
     record_snapshot_on: 2026-10-02
 engineering_evidence:
+  - id: windows-20261111-sdcpp-1050-to-1088
+    status: PASS
+    observed_on: 2026-11-11
+    environment: windows_development
+    scope: Integrate the Windows stable-diffusion.cpp master-1050-58bb3c1 to master-1088-32d516c model delta.
+    result: The upstream revision comparison identified MiniMax-H3-Image, HyperFlow H3 Flash,
+      Sol-H3-VAE, RelayVSR, SeedVR2 and SDXL ControlNet Union support. Packed INT4 ConvRot,
+      Metal INT8 ConvRot and H3 performance or LoRA changes are format and execution changes,
+      not additional model families. Windows now uses the exact official 1088 CUDA archive;
+      macOS retains its independently admitted 1050 package.
+    repair: Integrated independent model slots and content contracts, public image and video upscale
+      scenarios, typed owned ControlNet input, protected native carriers and Desktop/Lab controls.
+      Real acceptance exposed and repaired optional seed and strength validation, missing upscale Job
+      response projection, RelayVSR scale-specific VAE admission, source-video timing preservation
+      and H3 VAE progress being misread as diffusion progress.
+    checks: Runtime full Go suite passed. The affected AI package passed its final full rerun;
+      an intermediate Realtime observation test failure was not reproduced in the isolated or full rerun.
+      SDK tests, focused Kit/Lab/Desktop and Rust tests, typed-core conformance for all four SDK
+      languages, typechecks, proto lint/breaking/drift, catalog/package drift, Kit checks and complete
+      authority validation passed. Canonical diff and impact obligations were reviewed against these
+      owners and scenario-specific product acceptance.
+    limitations: Engineering checks do not establish model output quality. Exact product results,
+      parameters and limitations are recorded in the capability scenarios below.
   - id: macos-20261111-installed-realtime-negotiated-format
     status: PASS
     observed_on: 2026-11-11
@@ -6519,6 +6549,52 @@ capabilities:
       macos_development: SCENARIO-SPECIFIC
       macos_installed: SCENARIO-SPECIFIC
     scenarios:
+      - id: windows-20261111-minimax-h3-image
+        route: local
+        models: [ MiniMax-H3-Image pruned INT8 ConvRot, MiniMax-H3 Qwen3-VL Q4_K_M, MiniMax-H3-Image VAE F16 ]
+        environment: windows_development
+        scenario: Desktop acquisition and preparation, Lab 1024x1024 text generation, then one owned PNG reference edit
+        result: { execution: PASS, quality: PASS }
+        summary: Lab saved a 1641089-byte PNG of a blue ceramic mug beside a window and a 1780108-byte PNG
+          changing the mug to warm orange while preserving its handle, framing and background.
+          Both decoded at 1024x1024 after real six-step Euler generation.
+          After integrating upscale and ControlNet and restarting Desktop, a new ordinary single-reference
+          edit returned a 1779004-byte 1024x1024 PNG with the same requested orange-mug change.
+        observed_on: 2026-11-11
+        version: { implementation_commit: 270ced7e7, runtime_revision: working-tree (modified),
+          home: 0.2.5-rc.6, lab: 0.1.0, engine: stable-diffusion.cpp master-1088-32d516c }
+        jobs: [ 01M74TWCA1CY5Q3KWZ5WX9GK56, 01M74TYNGJVWX31VA80A27Y7K6, 01M75HC7VGT74DZJB88SCKQ31C ]
+        traces: [ 01M74TWCA1CY5Q3KWZ5X4BR7C1, 01M74TYNGJVWX31VA80DCFH8JJ, 01M75HC7VGT74DZJB88VRPQ49R ]
+        evidence:
+          - { source: windows_sdcpp_20261111 }
+        limitations:
+          - The initial 1086 archive lacked H3 Image. An earlier 1088 edit failed when VAE tile progress
+            was interpreted as denoising progress; the recorded successful runs include the sampling-phase fix.
+          - Windows development, the listed quantization and one-reference edit only. Other hosts,
+            installed packages, multi-reference editing and general image quality remain NOT-VERIFIED.
+      - id: windows-20261111-sdxl-controlnet-union
+        route: local
+        models: [ SDXL Base 1.0 F16, SDXL ControlNet Union ProMax F16 ]
+        environment: windows_development
+        scenario: Desktop downloaded and prepared independent SDXL and ProMax assets; Lab generated
+          one 1024x1024 image from a Canny control map and another from a Tile control image
+        result: { execution: PASS, quality: PASS }
+        summary: Canny with explicit strength 1 returned a 2391313-byte PNG showing a yellow ceramic mug
+          with the supplied edge silhouette, handle and window. Tile with omitted strength returned
+          a 2136449-byte PNG preserving the source blue mug, table, window and framing.
+          Both outputs decoded at 1024x1024 after actual twenty-step Euler generation.
+        observed_on: 2026-11-11
+        version: { implementation_commit: 270ced7e7, runtime_revision: working-tree (modified),
+          home: 0.2.5-rc.6, lab: 0.1.0, engine: stable-diffusion.cpp master-1088-32d516c }
+        jobs: [ 01M75FC8K2W88TR6ZDWA3VVYZR, 01M75GM0C38WC8YGZT07NQJDZZ ]
+        traces: [ 01M75FC8K2W88TR6ZDWBHFFMYT, 01M75GM0C38WC8YGZT09ATVZWK ]
+        evidence:
+          - { source: windows_sdcpp_20261111 }
+        limitations:
+          - The original omitted-strength Tile request was rejected by the Rust carrier. The successful
+            Tile run includes the fix and exercises the Runtime default strength of 1.
+          - OpenPose, depth, scribble, normal, segment and repaint are implemented typed inputs but their
+            real model execution remains NOT-VERIFIED. Other weights, canvas sizes and hosts remain NOT-VERIFIED.
       - id: macos-20261111-installed-openai-flare
         route: openai-api
         models: [ gpt-image-2.6-flare ]
@@ -7247,6 +7323,30 @@ capabilities:
       macos_development: SCENARIO-SPECIFIC
       macos_installed: SCENARIO-SPECIFIC
     scenarios:
+      - id: windows-20261111-hyperflow-and-sol
+        route: local
+        models: [ HyperFlow H3 Flash FL2VA INT8 ConvRot, HyperFlow H3 Flash Ref2VA INT8 ConvRot,
+          MiniMax-H3 Qwen3-VL Q4_K_M, MiniMax-H3 video VAE F16, Sol-H3-VAE F16, MiniMax-H3 audio VAE F32 ]
+        environment: windows_development
+        scenario: Desktop download and preparation followed by Lab text-to-video using the original H3 VAE,
+          then an owned reference image through Ref2VA with independently selected Sol-H3-VAE
+        result: { execution: PASS, quality: PASS }
+        summary: Both MP4 outputs showed the red paper boat on blue water and decoded as 512x288 H264
+          with 22 frames, nominal 24 fps and stereo 32 kHz AAC. Outputs were 59648 and 44073 bytes and
+          each lasted 0.948730 seconds including the audio-priming first-frame extension.
+          The captured second Job bound the Ref2VA transformer and Sol-H3-VAE.
+        observed_on: 2026-11-11
+        version: { implementation_commit: 270ced7e7, runtime_revision: working-tree (modified),
+          home: 0.2.5-rc.6, lab: 0.1.0, engine: stable-diffusion.cpp master-1088-32d516c }
+        jobs: [ 01M751DSRC374ZGM514Y1ZAM8D, 01M751NJEH855QEHA70ZZSYM1E ]
+        traces: [ 01M751DSRC374ZGM514ZGCB7HP, 01M751NJEH855QEHA712SKQARE ]
+        evidence:
+          - { source: windows_sdcpp_20261111 }
+        limitations:
+          - HyperFlow used the pinned BennyDaBall combined INT8 conversion and the six-step schedule.
+            Four/eight-step presets, longer or larger clips, other quantizations and platforms remain NOT-VERIFIED.
+          - Visual checks cover the short boat samples. Audio stream presence and decoding were checked;
+            sound quality remains NOT-VERIFIED.
       - id: macos-20261111-installed-ark-seedance25
         route: volcengine
         models: [ doubao-seedance-2-5-260628 ]
@@ -9317,6 +9417,91 @@ capabilities:
           - Image face-swap results do not establish video results. Performance and broad weight distribution
             remain unverified.
         validity: HISTORICAL-SCOPED; current checkout/package NOT-VERIFIED
+  - capability: image.upscale
+    platform_status:
+      windows_development: SCENARIO-SPECIFIC
+      windows_installed: NOT-VERIFIED
+      macos_development: NOT-VERIFIED
+      macos_installed: NOT-VERIFIED
+    scenarios:
+      - id: windows-20261111-sdcpp-image-upscale
+        route: local
+        models: [ RelayVSR 2x INT8 ConvRot, RelayVSR 4x INT8 ConvRot,
+          SeedVR2 3B INT8 ConvRot, SeedVR2 7B Sharp INT8 ConvRot ]
+        environment: windows_development
+        scenario: Four independently prepared Desktop configurations consumed an owned 256x256 PNG through
+          Lab image.upscale, with omitted seed and the exact recipe-compatible transformer and VAE
+        result: { execution: PASS, quality: PASS }
+        summary: RelayVSR 2x returned 512x512/487337 bytes, RelayVSR 4x returned 1024x1024/1330579 bytes,
+          SeedVR2 3B at 4x returned 1024x1024/1832144 bytes and SeedVR2 7B Sharp at 2x returned 512x512/457351 bytes.
+          Every result decoded as PNG and visually retained the blue mug, handle, window and table.
+          RelayVSR VAE selection used the model-authored scale metadata after the shared-shape admission defect was repaired.
+        observed_on: 2026-11-11
+        version: { implementation_commit: 270ced7e7, runtime_revision: working-tree (modified),
+          home: 0.2.5-rc.6, lab: 0.1.0, engine: stable-diffusion.cpp master-1088-32d516c }
+        jobs: [ 01M75DMRJ5XS87ASXT0ZMA3K89, 01M75DT674Q5EDEDBGQFTVERN4,
+          01M75DZZ29QWEDF3Y5Y1TGFHWB, 01M75E55Q5X375Y1W2RK1TKV59 ]
+        traces: [ 01M75DMRJ5XS87ASXT0ZNQFCTW, 01M75DT674Q5EDEDBGQG9C3E0C,
+          01M75DZZ29QWEDF3Y5Y5470VPZ, 01M75E55Q5X375Y1W2RQ1G2HBS ]
+        evidence:
+          - { source: windows_sdcpp_20261111 }
+        limitations:
+          - These samples establish the listed model, scale and host combinations. Other inputs, maximum
+            dimensions, other scales and broad reconstruction quality remain NOT-VERIFIED.
+          - SeedVR2 retains the upstream experimental designation.
+  - capability: video.upscale
+    platform_status:
+      windows_development: SCENARIO-SPECIFIC
+      windows_installed: NOT-VERIFIED
+      macos_development: NOT-VERIFIED
+      macos_installed: NOT-VERIFIED
+    scenarios:
+      - id: windows-20261111-sdcpp-video-upscale
+        route: local
+        models: [ RelayVSR 2x INT8 ConvRot, RelayVSR 4x INT8 ConvRot,
+          SeedVR2 3B INT8 ConvRot, SeedVR2 7B Sharp INT8 ConvRot ]
+        environment: windows_development
+        scenario: Lab video.upscale consumed the actual HyperFlow and Sol-H3 MP4 with 22 frames and an
+          AAC-priming first-frame extension, using each independently prepared model configuration
+        result: { execution: PASS, quality: PASS }
+        summary: RelayVSR 2x returned 1024x576/297313 bytes, RelayVSR 4x returned 2048x1152/673362 bytes,
+          SeedVR2 3B at 2x returned 1024x576/507785 bytes and SeedVR2 7B Sharp at 2x returned 1024x576/429784 bytes.
+          All four outputs had 22 H264 frames at nominal 24 FPS, retained every source PTS exactly,
+          and preserved the 32 kHz stereo AAC packet bytes. Output duration was 0.948731 seconds,
+          differing from the source by one microsecond. The visible boat and water scene were retained.
+          RelayVSR and 7B Sharp videos played to completion in the foreground Lab renderer without media errors.
+        observed_on: 2026-11-11
+        version: { implementation_commit: 270ced7e7, runtime_revision: working-tree (modified),
+          home: 0.2.5-rc.6, lab: 0.1.0, engine: stable-diffusion.cpp master-1088-32d516c }
+        jobs: [ 01M75E8XMZ1QG6XM817HNWSAEX, 01M75ENKNGS5Y921F9NDH9BXV2,
+          01M75D2ACQCQ5XH3AC5HHMG1XC, 01M75EW4TB1S1483S2A24YVEQ9 ]
+        traces: [ 01M75E8XMZ1QG6XM817MXK80XG, 01M75ENKNGS5Y921F9NEW4C5YH,
+          01M75D2ACQCQ5XH3AC5J9Z9SYF, 01M75EW4TB1S1483S2A56HJRBH ]
+        evidence:
+          - { source: windows_sdcpp_20261111 }
+        limitations:
+          - Before repair, omitted seed failed at the Rust boundary and the new Job types were rejected by
+            the LocalApp response projection. The listed successful Jobs include both repairs.
+          - Results cover this short source, the listed scales and Windows development. Longer clips,
+            other frame rates, larger canvases, other platforms and general video restoration quality remain NOT-VERIFIED.
+      - id: windows-20261111-upscale-cancel-and-next-job
+        route: local
+        models: [ SeedVR2 3B INT8 ConvRot ]
+        environment: windows_development
+        scenario: Cancel through Lab after observing the actual native sd-cli process, then rerun the same
+          owned video request with an omitted seed
+        result: { execution: PASS, quality: NOT-VERIFIED }
+        summary: Lab reported CANCELED without a completed media artifact and the observed native process exited.
+          A new independent Job then completed and displayed a video result.
+        observed_on: 2026-11-11
+        version: { implementation_commit: 270ced7e7, runtime_revision: working-tree (modified),
+          home: 0.2.5-rc.6, lab: 0.1.0, engine: stable-diffusion.cpp master-1088-32d516c }
+        jobs: [ 01M75D7VXA5KGBFGCD97TJJ445, 01M75D9D85HFY1XXPHT4FFGN25 ]
+        traces: [ 01M75D7VXA5KGBFGCD98B763X2, 01M75D9D85HFY1XXPHT7DGE3VV ]
+        evidence:
+          - { source: windows_sdcpp_20261111 }
+        limitations:
+          - This cancellation observation applies to the exercised native upscale Host and request.
 unadmitted_candidates:
   - capability: text.generate
     provider: volcengine

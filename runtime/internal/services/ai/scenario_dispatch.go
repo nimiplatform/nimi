@@ -85,6 +85,8 @@ func (s *Service) ListScenarioProfiles(_ context.Context, _ *runtimev1.ListScena
 		{runtimev1.ScenarioType_SCENARIO_TYPE_VISION_LOCATE, "Visual localization"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_FACE_SWAP, "Image face replacement"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_FACE_SWAP, "Video face replacement"},
+		{runtimev1.ScenarioType_SCENARIO_TYPE_IMAGE_UPSCALE, "Image super-resolution"},
+		{runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_UPSCALE, "Video super-resolution"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_VIDEO_GENERATE, "Video generation"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_SYNTHESIZE, "Speech synthesis"},
 		{runtimev1.ScenarioType_SCENARIO_TYPE_SPEECH_TRANSCRIBE, "Speech transcription"},

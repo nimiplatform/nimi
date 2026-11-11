@@ -57,6 +57,8 @@ const canonicalModelCapabilities = new Set([
   'text.generate',
   'text.embed',
   'image.generate',
+  'image.upscale',
+  'video.upscale',
   'vision.locate',
   'video.generate',
   'world.generate',

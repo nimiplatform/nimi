@@ -1,3 +1,5 @@
+<!-- nimi-docs: {"authority":["rule.nimi.runtime.local-compute.r067","rule.nimi.runtime.ai-provider.r064","rule.nimi.runtime.ai-provider.media-upscale-contract"],"sources":["config/runtime-managed-image-backend-packages.yaml","apps/desktop/src/shell/renderer/features/runtime-config/runtime-capability-inventory.ts"]} -->
+
 # Nimi Home 中的本地 AI 配置
 
 在 Nimi Home 的「AI 能力」工作区中，你可以集中管理本机的 AI 模型资源与执行方案。该模块提供精选推荐配置、社区方案参考、本地模型导入、运行环境检测，以及整机默认运行方案（Loadout）的设定。
@@ -21,6 +23,12 @@
 3. **设为能力默认项**：在「AI 能力」面板中，将该 Loadout 标记为当前机器该能力的默认运行方案。
 4. **发起调用验证**：在支持该能力的 App 或桌面聊天中选择「本地（Local）」模式，该能力将交由已配置的本机模型执行。App 的在线功能、其他云端能力及外部连接仍保持各自独立的数据流；选择 Local 不会将整个 App 变为离线应用。
 
+## 准备图像与视频模型
+
+使用 H3 Image、HyperFlow、ControlNet 或超分模型时，从 **AI 能力** 中的对应能力开始。选择模型配置，下载缺少的组件，并绑定本机已有的兼容文件。图像超分和视频超分分别设置默认模型；RelayVSR 的主模型与 VAE 必须对应 2×/4× 倍率，Sol-H3-VAE 则放在 H3 的视频 VAE 槽位。
+
+这些新增配方目前使用 Runtime 管理的 Windows amd64 NVIDIA sd.cpp 1088 引擎包。macOS 仍为 1050，不能依据 Windows 验收认定它也支持这些模型。SeedVR2 仍属实验性支持。下载前请查看[模型要求](/zh/runtime/local-models#本地图像与视频模型)，准备完成后按 [Lab 步骤](/zh/start/use-nimi-lab#实测本地图像与视频模型)确认实际出图。普通 App 使用已配置的能力，不自行安装推理引擎。
+
 ## 状态指标说明
 
 - **文件完整性**：校验已下载文件的哈希值与登记校验码是否一致，防止模型权重损坏。
@@ -34,3 +42,5 @@
 - [`.nimi/spec/desktop/ai-consumption.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/ai-consumption.authority.yaml)
 - [`.nimi/spec/desktop/shell-ui.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/shell-ui.authority.yaml)
 - [`.nimi/spec/runtime/local-compute.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/local-compute.authority.yaml)
+- [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)
+- [`.nimi/spec/runtime/media-upscale.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/media-upscale.authority.yaml)

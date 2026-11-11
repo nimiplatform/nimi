@@ -7,6 +7,8 @@ export function displayRuntimeConfigCapabilityLabel(
   if (capabilityContract === 'world.generate') return t('Apps.aiConfig.capability.worldGenerate.label');
   if (capabilityContract === 'image.face_swap') return t('runtimeConfig.capabilityLabels.imageFaceSwap');
   if (capabilityContract === 'video.face_swap') return t('runtimeConfig.capabilityLabels.videoFaceSwap');
+  if (capabilityContract === 'image.upscale') return t('runtimeConfig.capabilityLabels.imageUpscale');
+  if (capabilityContract === 'video.upscale') return t('runtimeConfig.capabilityLabels.videoUpscale');
   if (capabilityContract === 'vision.locate') return t('runtimeConfig.capabilityLabels.visionLocate');
   if (capabilityContract === 'text.generate') {
     return t('runtimeConfig.capabilityLabels.textGenerate');

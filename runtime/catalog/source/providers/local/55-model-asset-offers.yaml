@@ -1,6 +1,28 @@
 # Independent passive ModelAsset offers. Recipe slot metadata may recommend
 # their variant IDs; no row has a parent model, inherited binding, or download claim.
 models:
+  - model_id: asset-sdxl-controlnet-union-promax
+    model_type: auxiliary
+    family: sdxl-controlnet-union-promax
+    updated_at: 2026-11-11
+    capabilities: []
+    source_ids: [sdxl_controlnet_union_official, stable_diffusion_cpp_controlnet_union]
+    install:
+      repo: xinsir/controlnet-union-sdxl-1.0
+      revision: 801a4a3fa3d4c936f4feea95b98607bc6726f80c # pragma: allowlist secret -- public model revision
+      install_kind: weights
+      license: Apache-2.0
+      entry: diffusion_pytorch_model_promax.safetensors
+      artifact_roles: [controlnet]
+    variants:
+      - variant_id: local.controlnet.sdxl-union-promax.f16.cuda
+        quant: F16
+        entry: diffusion_pytorch_model_promax.safetensors
+        files: [diffusion_pytorch_model_promax.safetensors]
+        hashes:
+          diffusion_pytorch_model_promax.safetensors: sha256:9fae2e50cb431bfcbe05822b59ec2228df545ef27f711dea8949e9f4ed9f7cdc
+        total_size_bytes: 2513342408
+        host_requirement: {accelerator: cuda}
   - model_id: asset-video-vae-wan22-ti2v
     model_type: vae
     family: wan22-vae
@@ -408,6 +430,54 @@ models:
         hashes:
           Qwen2.5-VL-7B-Instruct.Q4_K_M.gguf: sha256:0f00a930ba3108b6861ddadf74d8ebbd82e257c63eba728e62c3e8970f5eed94
         total_size_bytes: 4683072512
+        host_requirement:
+          accelerator: cuda
+          min_ram_bytes: 17179869184
+          min_vram_bytes: 8589934592
+  - model_id: asset-image-vae-minimax-h3-image
+    model_type: vae
+    family: minimax-h3-image-vae
+    updated_at: 2026-11-11
+    capabilities: []
+    source_ids: [minimax_h3_image_modelcard, minimax_h3_image_comfy_weights]
+    install:
+      repo: Comfy-Org/MiniMax-H3-Image
+      revision: 892de7cb61df49753bf15145a711154803a355cb # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      license: MiniMax-H3-Image Community License Agreement
+      entry: vae/minimax_h3_image_vae_fp16.safetensors
+      artifact_roles: [vae]
+    variants:
+      - variant_id: local.image-vae.minimax-h3-image.f16.cuda
+        quant: F16
+        entry: vae/minimax_h3_image_vae_fp16.safetensors
+        files: [vae/minimax_h3_image_vae_fp16.safetensors]
+        hashes:
+          vae/minimax_h3_image_vae_fp16.safetensors: sha256:d80e9c2e5cfc9844869961ff5a58c9a9e52182df6bfb30b26018dd7f348721af
+        total_size_bytes: 1168505312
+        host_requirement: {accelerator: cuda}
+  - model_id: asset-video-vae-sol-h3
+    model_type: vae
+    family: minimax-h3-video-vae
+    updated_at: 2026-11-11
+    capabilities: []
+    source_ids: [sol_h3_vae_comfy, stable_diffusion_cpp_hyperflow_sol]
+    install:
+      repo: Comfy-Org/MiniMax-H3
+      revision: 54472221d27c695fca9621b0c3ed52f06c4af707 # pragma: allowlist secret -- public immutable model revision
+      install_kind: weights
+      entry: vae/minimax_h3_sol_vae_fp16.safetensors
+      artifact_roles:
+        - video_vae
+    variants:
+      - variant_id: local.video-vae.sol-h3.f16.cuda
+        quant: F16
+        entry: vae/minimax_h3_sol_vae_fp16.safetensors
+        files:
+          - vae/minimax_h3_sol_vae_fp16.safetensors
+        hashes:
+          vae/minimax_h3_sol_vae_fp16.safetensors: sha256:61eaab3d7ca1659f20bce4d02bbc5bd5e5af608c73328d30cda96c8dc4d033e0
+        total_size_bytes: 3596335728
         host_requirement:
           accelerator: cuda
           min_ram_bytes: 17179869184

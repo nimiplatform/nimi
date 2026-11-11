@@ -12,6 +12,8 @@ export type LabCapabilityTestId =
   | 'text.chat-session'
   | 'image.face_swap'
   | 'video.face_swap'
+  | 'image.upscale'
+  | 'video.upscale'
   | 'realtime.interact';
 
 export const labAppFilesDescriptor = Object.freeze({
@@ -100,6 +102,18 @@ export const labAiRealtimeDescriptor = Object.freeze({
   execution: 'runtime-sdk', capabilityContract: 'realtime.interact',
 } as const);
 
+export const labImageUpscaleDescriptor = Object.freeze({
+  id: 'image.upscale', label: 'Image super-resolution', labelKey: 'CapabilityTests.imageUpscale.label', group: 'media', section: 'image',
+  summary: 'Enlarge an owned image by an exact factor and save its complete PNG.', summaryKey: 'CapabilityTests.imageUpscale.summary',
+  surface: 'sdk.localApp.ai.scenarioJobs:image-upscale', execution: 'runtime-sdk', capabilityContract: 'image.upscale',
+} as const);
+
+export const labVideoUpscaleDescriptor = Object.freeze({
+  id: 'video.upscale', label: 'Video super-resolution', labelKey: 'CapabilityTests.videoUpscale.label', group: 'media', section: 'video',
+  summary: 'Enlarge a complete owned MP4 while preserving its timeline and audio.', summaryKey: 'CapabilityTests.videoUpscale.summary',
+  surface: 'sdk.localApp.ai.scenarioJobs:video-upscale', execution: 'runtime-sdk', capabilityContract: 'video.upscale',
+} as const);
+
 export const labCapabilityTestDescriptors = Object.freeze([
   labAppFilesDescriptor,
   labSpeakerEmbeddingDescriptor,
@@ -110,6 +124,8 @@ export const labCapabilityTestDescriptors = Object.freeze([
   labChatSessionDescriptor,
   labImageFaceSwapDescriptor,
   labVideoFaceSwapDescriptor,
+  labImageUpscaleDescriptor,
+  labVideoUpscaleDescriptor,
   labAiRealtimeDescriptor,
 ] as const);
 
@@ -117,7 +133,7 @@ export const labCapabilityTestDescriptors = Object.freeze([
 // annotation, speaker representation, both face swap Jobs and the video Session refuse a Cloud intent
 // with AI_ROUTE_UNSUPPORTED. AI Realtime is not listed; its Local refusal is a
 // missing driver that Runtime reports when a Session opens.
-const labLocalRouteOnlyTestIds: ReadonlySet<string> = new Set<LabCapabilityTestId>(['audio.speaker.embed', 'text.annotate', 'image.face_swap', 'video.face_swap']);
+const labLocalRouteOnlyTestIds: ReadonlySet<string> = new Set<LabCapabilityTestId>(['audio.speaker.embed', 'text.annotate', 'image.face_swap', 'video.face_swap', 'image.upscale', 'video.upscale']);
 
 export function isLabLocalRouteOnlyCapability(capabilityId: string): boolean {
   return labLocalRouteOnlyTestIds.has(capabilityId);

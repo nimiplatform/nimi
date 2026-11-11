@@ -3,7 +3,7 @@ package managedimagebackend
 import "unsafe"
 
 // @nimi-authority: rule.nimi.runtime.local-compute.r067
-// The following types mirror stable-diffusion.h at master-1050-58bb3c1.
+// The following types mirror stable-diffusion.h at master-1088-32d516c.
 // C enums/int are int32, C bool is one byte, and pointers/size_t use MSVC x64
 // eight-byte alignment. Update these layouts with the exact package cohort.
 type sdCtxParams struct {

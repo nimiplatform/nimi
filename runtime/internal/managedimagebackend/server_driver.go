@@ -153,9 +153,9 @@ func (d *stableDiffusionCPPDriver) GenerateImage(ctx context.Context, loaded loa
 		)
 	}
 
-	progressCursor := 0
+	progress := managedImageSamplingProgress{}
 	if resident.logCapture != nil {
-		progressCursor = resident.logCapture.SnapshotCursor()
+		progress.cursor = resident.logCapture.SnapshotCursor()
 	}
 	type generateResult struct {
 		payload []byte
@@ -169,29 +169,23 @@ func (d *stableDiffusionCPPDriver) GenerateImage(ctx context.Context, loaded loa
 	ticker := time.NewTicker(100 * time.Millisecond)
 	defer ticker.Stop()
 	var (
-		payload      []byte
-		err          error
-		lastProgress imageGenerateProgress
-		haveProgress bool
+		payload []byte
+		err     error
 	)
 	for {
 		select {
 		case <-ctx.Done():
 			return nil, ctx.Err()
 		case <-ticker.C:
-			progressCursor, lastProgress, haveProgress, err = emitManagedImageProgressUpdates(resident.logCapture, progressCursor, onProgress, lastProgress, haveProgress)
-			if err != nil {
+			if err := progress.emit(resident.logCapture, onProgress); err != nil {
 				return nil, err
 			}
 		case result := <-resultCh:
 			payload = result.payload
 			err = result.err
-			var emitErr error
-			progressCursor, _, _, emitErr = emitManagedImageProgressUpdates(resident.logCapture, progressCursor, onProgress, lastProgress, haveProgress)
-			if emitErr != nil {
-				return nil, emitErr
+			if err := progress.emit(resident.logCapture, onProgress); err != nil {
+				return nil, err
 			}
-			_ = progressCursor
 			goto completed
 		}
 	}

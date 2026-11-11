@@ -444,18 +444,49 @@
     },
     "appFiles": {
       "title": "应用文件",
-      "intro": "通过当前 App 客户端写入文件，再逐字节核对读回内容。大小、配额和最终提交由 Runtime 校验。",
+      "intro": "将文件保存到 Lab 的私有测试资产，或将原文件与已保存的内容逐字节核对。",
       "file": "选择文件",
       "path": "App 资产路径",
-      "upload": "上传并核对",
+      "pathHelp": "上传会生成新路径。核对已有文件时，填入之前保存的路径。",
+      "copyPath": "复制路径",
+      "upload": "上传新文件并核对",
       "verify": "核对已有文件",
-      "uploading": "正在读取上传内容（尚未提交）",
+      "uploading": "正在上传，等待 Runtime 确认写入",
       "checking": "正在核对读回内容",
       "bytes": "字节",
       "passed": "完整读回内容与所选文件一致。",
-      "failed": "传输或核对未完成。",
-      "footnote": "文件存放在 Lab 的私有测试资产中。检查中断上传时，记下路径，重新连接并选择同一文件，再核对已有路径；核对不会重新上传。此页不把二进制内容写入 AI 运行历史。",
+      "uploadConfirmed": "Runtime 已确认写入此路径。",
+      "uploadUnconfirmed": "没有收到写入确认。请先复制路径，连接恢复后选择同一文件并核对已有文件。",
+      "readFailed": "未能读回完整文件。请检查路径和连接，再核对已有文件。",
+      "mismatch": "此路径的文件与所选文件不一致。请核对路径和所选文件。",
+      "technicalDetails": "技术详情",
+      "footnote": "核对已有文件只读取该路径。测试文件由 Lab 保存，可在应用集成的「当前 Lab 文件」中管理。",
+      "footnoteWeb": "核对已有文件只读取该路径。测试文件保存在当前 Web Lab 的私有资产中。",
       "usePage": "请在应用文件页面写入并核对资产。"
+    },
+    "upscale": {
+      "title": "超分辨率",
+      "inputNote": "选择一个源文件和放大倍率。",
+      "primaryLabel": "开始放大",
+      "primaryRunningLabel": "正在放大",
+      "footnote": "使用当前选择的本地超分辨率模型。",
+      "pending": "超分辨率任务正在运行。",
+      "source": "源文件",
+      "scale": "放大倍率",
+      "seed": "种子",
+      "invalidInput": "请选择不超过 32 MiB 的受支持文件、2 或 4 倍放大，以及 0 到 2147483647 的种子。",
+      "invalidOutput": "Runtime 返回了不符合契约的超分辨率产物。",
+      "completed": "超分辨率处理已完成。",
+      "imageHint": "支持不超过 32 MiB 的 PNG 或 JPEG。输出单轴不超过 4096 像素，RelayVSR 需使用对应的 2x 或 4x 模型。",
+      "videoHint": "支持单路 H264 视频及可选 AAC 音轨的 MP4，不超过 32 MiB、10 秒和 300 帧。保留原始帧时间与音轨，输出 RGB 帧总量不超过 512 MiB。"
+    },
+    "imageUpscale": {
+      "label": "图像超分辨率",
+      "summary": "放大已有图像并保存完整 PNG。"
+    },
+    "videoUpscale": {
+      "label": "视频超分辨率",
+      "summary": "放大完整 MP4，保留帧时间与音轨。"
     }
   }
 }

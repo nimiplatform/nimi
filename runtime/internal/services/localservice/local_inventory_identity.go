@@ -69,7 +69,7 @@ func inferAssetKindFromCapabilities(capabilities []string) runtimev1.LocalAssetK
 			kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_CHAT
 		case "text.embed":
 			kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_EMBEDDING
-		case "image.generate":
+		case "image.generate", "image.upscale", "video.upscale":
 			kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_IMAGE
 		case "video.generate":
 			kind = runtimev1.LocalAssetKind_LOCAL_ASSET_KIND_VIDEO

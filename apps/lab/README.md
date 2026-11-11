@@ -124,6 +124,9 @@ Every canonical AI capability has a formal Lab entry that invokes the SDK Local 
 | **Text Annotation** | `text.annotate` | Scenario Job outputting tokens with Unicode scalar offsets and sentence boundaries. Saved as an App JSON document linked to history. |
 | **Tools & Structured Output** | `text.generate` | Exercises side-effect-free test tools with ordered items and matching `ToolResult`, JSON object output, or fixed JSON Schema constraints. The JSON modes are explicit choices and both validate the complete final result. |
 | **Video Generation** | `video.generate` | Text, one first frame, ordered first/last frames, and ordered reference images through the existing protected Job carrier. Frames accept an uploaded App-owned artifact or an HTTPS URL; reference uploads retain their order. Runtime decides each exact target's admitted modes and limits. |
+| **Image Generation and Control Maps** | `image.generate` | Text or ordinary owned reference-image input for compatible models; a separate typed control-image field for SDXL ControlNet Union, with explicit type and optional strength. The selected recipe decides which modes can be used together. |
+| **Image Super-resolution** | `image.upscale` | Uploads one PNG/JPEG of at most 32 MiB, submits a 2×/4× Job with optional seed, and retains the complete PNG in App-private assets and history. |
+| **Video Super-resolution** | `video.upscale` | Uploads one complete MP4 of at most 32 MiB, submits a 2×/4× Job, and retains the validated MP4 with source frame timing and AAC audio. Runtime enforces duration, frame-count, codec and decoded-size limits. |
 | **Decision Logic** | `text.decide` | Synchronous Scenario calls via Local or Cloud routes. Evaluates choice and yes/no prompts, returning candidate probabilities and execution traces. Stop requests cancellation; late responses are discarded. |
 | **Multi-turn Conversation** | `text.generate` | Multi-turn text dialogue using Kit's `simple-ai` provider and `createModelConversationRuntimeAdapter`. Replays compatible turns on model switch, while incompatible routes establish a clean context boundary. Oversized history is safely rejected without corrupting earlier turns. |
 | **Session Hook** | `text.generate` | Multi-turn dialogue using Kit's `useAppAiChatSession({ model })` hook. The App builds request history directly from completed exchanges and respects Runtime compatibility boundaries. |
@@ -132,6 +135,27 @@ Every canonical AI capability has a formal Lab entry that invokes the SDK Local 
 | **Realtime Interaction** | `realtime.interact` | Direct App session with explicit owner-controlled or continuous mode. Uses the negotiated 16/24 kHz mono PCM tuple, microphone or paced recording input, typed lifecycle events and bounded continuous transcript fragments. Continuous context requests require caller-prepared context/results; no backend calls run automatically. |
 
 The Conversation and Session Hook entries preserve original records and native continuity. Native replay may contain plaintext reasoning; preserve its bytes without interpreting or displaying them, and do not treat the carrier as an encryption guarantee. Model switching waits for the active turn to settle, saves a context boundary, and uses the current Runtime compatibility facts; media or capacity mismatches fail explicitly rather than silently dropping history.
+
+### Local media setup and observed model coverage
+
+Use Home's AI Capabilities workspace to download missing components, reuse compatible installed files and prepare the current model for each capability. Lab consumes that model through its Local AI intent. Image and video upscaling have separate configurations. In Parameters, select the source file and 2×/4× multiplier; RelayVSR must match its recipe's multiplier and VAE. An omitted upscale seed uses 42; zero is valid. SeedVR2 remains experimental.
+
+For ordinary H3 editing, use Reference image file. For ControlNet, use Control image file, select a type and match the output canvas to the prepared map. There is no implicit control-map preprocessor. Strength defaults to 1 and accepts 0 through 2. Reset parameters when switching input modes; ControlNet rejects ordinary references and masks, while H3 Image rejects control maps, masks and negative prompts. Sol-H3-VAE is selected in the video VAE slot in Home, not as a separate Lab capability.
+
+The [English walkthrough](../../docs/start/use-nimi-lab.md) and [中文操作指南](../../docs/zh/start/use-nimi-lab.md) cover the UI journey. [Multimodal contracts and SDK examples](../../docs/runtime/multimodal.md) document source limits, typed inputs, explicit cancellation and retaining complete results. Native source-built SDK, Kit, Runtime and Lab must match. The new recipes are Windows amd64 NVIDIA only; Windows uses sd.cpp `master-1088-32d516c`, while macOS retains its independent 1050 package.
+
+Real acceptance on 2026-11-11 used Windows RTX 5090, guarded Desktop startup and Desktop-supervised native Lab through its exact CDP target. The Runtime was the modified `270ced7e7` source snapshot, before the subsequent pull; documentation checks do not turn that record into a new run of later revisions. The [model acceptance matrix](../../runtime/acceptance/model-matrix.yaml) retains exact model identities, Job IDs and limitations.
+
+| Model/component | Actual exercised scenario |
+| --- | --- |
+| MiniMax-H3-Image | 1024×1024 text-to-image and one-reference blue-to-orange mug edit; final edit regression after integration |
+| HyperFlow H3 Flash | FL2VA text-to-video with the original H3 VAE and Ref2VA reference-to-video with Sol; pinned combined BennyDaBall INT8 conversion, six steps, 512×288, 22 frames at nominal 24 FPS |
+| Sol-H3-VAE | Actual decoder binding in the HyperFlow Ref2VA run; not an independent capability or a test of every H3/VAE combination |
+| RelayVSR 2x / 4x | Both image and video variants; 256² images became 512²/1024², and 512×288 video became 1024×576/2048×1152 |
+| SeedVR2 3B / 7B Sharp | 3B image at 4× and video at 2×; 7B Sharp image and video at 2×; experimental |
+| SDXL ControlNet Union ProMax | 1024² Canny with explicit strength 1 and Tile with omitted strength, both producing actual PNGs |
+
+All four upscale video outputs preserved the 22 source frame timestamps and AAC packet bytes; container duration differed by one microsecond. SeedVR2 3B cancellation was observed after native inference started, the process exited, and a new request completed. Visual checks concern the tested samples; HyperFlow audio quality was not assessed. Other ControlNet types, HyperFlow four/eight-step presets, unlisted scales or inputs, remote Web/Android, other platforms and installed distributions remain **NOT-VERIFIED**. Earlier failed runs remain recorded separately from the repaired successful runs.
 
 ### Execution Guarantees & Constraints
 

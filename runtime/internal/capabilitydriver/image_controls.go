@@ -4,6 +4,7 @@ import (
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"google.golang.org/grpc/codes"
+	"math"
 	"net/url"
 	"strings"
 	"unicode"
@@ -14,6 +15,16 @@ func ValidateImageControls(s *runtimev1.ImageGenerateScenarioSpec) error {
 	invalid := grpcerr.WithReasonCode(codes.InvalidArgument, runtimev1.ReasonCode_AI_INPUT_INVALID)
 	if s == nil {
 		return invalid
+	}
+	if control := s.GetControlImage(); control != nil {
+		id := control.GetImageArtifactId()
+		if id == "" || len(id) > 128 || strings.TrimSpace(id) != id || strings.IndexFunc(id, unicode.IsControl) >= 0 || control.GetType() < runtimev1.ImageControlType_IMAGE_CONTROL_TYPE_OPENPOSE || control.GetType() > runtimev1.ImageControlType_IMAGE_CONTROL_TYPE_REPAINT || len(control.ProtoReflect().GetUnknown()) != 0 {
+			return invalid
+		}
+		strength := float64(control.GetStrength())
+		if math.IsNaN(strength) || math.IsInf(strength, 0) || strength < 0 || strength > 2 {
+			return invalid
+		}
 	}
 	switch s.GetComplexity() {
 	case "", "low", "medium", "high":
@@ -54,7 +65,7 @@ func ValidateImageControls(s *runtimev1.ImageGenerateScenarioSpec) error {
 }
 
 func ImageHasExtendedControls(s *runtimev1.ImageGenerateScenarioSpec) bool {
-	return s.GetComplexity() != "" || s.GetOutputFormat() != "" || s.GetMarkup() != "" || s.GetMarkupArtifactId() != "" || s.FrameCount != nil || s.FrameDurationMs != nil
+	return s.GetControlImage() != nil || s.GetComplexity() != "" || s.GetOutputFormat() != "" || s.GetMarkup() != "" || s.GetMarkupArtifactId() != "" || s.FrameCount != nil || s.FrameDurationMs != nil
 }
 
 func IsOpenAIImage26(model string) bool {

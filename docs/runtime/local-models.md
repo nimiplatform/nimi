@@ -1,3 +1,5 @@
+<!-- nimi-docs: {"authority":["rule.nimi.runtime.local-compute.r067","rule.nimi.runtime.ai-provider.r064","rule.nimi.runtime.ai-provider.media-upscale-contract","rule.nimi.runtime.ai-provider.sdxl-controlnet-union","rule.nimi.runtime.ai-provider.minimax-h3-local-image","rule.nimi.runtime.ai-provider.hyperflow-h3-local-video"],"sources":["config/runtime-managed-image-backend-packages.yaml","runtime/catalog/source/providers/local"]} -->
+
 # Local Models and Loadout Architecture
 
 In Nimi's local compute architecture, model weight files represent static assets on disk. Turning weights into an active capability requires assembling them with an inference engine driver, execution recipes, and runtime parameters into a complete **Loadout**. Runtime maintains a global default Loadout for each capability, serving all applications that declare Local capability intents.
@@ -5,10 +7,29 @@ In Nimi's local compute architecture, model weight files represent static assets
 ## Recommended Local Setup Workflow
 
 1. **Review Capabilities**: Browse supported capabilities and operational parameters in Nimi Home under "AI Capabilities".
-2. **Acquire Model Weights**: Import local GGUF models via the Model Library or download curated weights through the Download Manager. Files are verified with SHA-256 checksums.
-3. **Assemble a Loadout**: Pair the model with optimized runtime parameters (e.g., context window size, GPU offload layers) tailored to specific workloads, saving it as a named Loadout.
+2. **Acquire Model Weights**: Use the selected model's setup flow to download missing weights or select existing verified files. Formats depend on the recipe and include GGUF and safetensors. Downloads verify the declared SHA-256 checksums.
+3. **Assemble a Loadout**: Bind every required component and review its workload-specific settings. Image and video models can require separate transformers, encoders and VAEs; a chat model's context-window settings do not apply to every capability.
 4. **Set Global Default**: Designate this Loadout as the machine default for that capability. This setting automatically applies to all apps routed to local execution.
 5. **Verify Inference**: Configure an app's AIConfig with Local intent and run an actual query to verify end-to-end performance.
+
+## Local Image and Video Models
+
+The current Windows amd64 NVIDIA package is sd.cpp `master-1088-32d516c`, replacing `master-1050-58bb3c1`. Home prepares the exact Runtime-managed engine and dependencies; an arbitrary system `sd-cli` or manually replaced DLL does not update the selected Loadout. macOS arm64 retains its separately admitted `master-1050-58bb3c1` Metal package. The new recipes below are Windows-only in this implementation; the Windows results do not establish macOS support, and there is no admitted Linux NVIDIA package for them.
+
+| Model or component | Capability | Components and supported use |
+| --- | --- | --- |
+| MiniMax-H3-Image | `image.generate` | Independent PDD image transformer, combined MiniMax-H3 Qwen3-VL GGUF encoder and dedicated image VAE; text generation or one reference-image edit, one output, no mask or negative prompt |
+| HyperFlow H3 Flash | `video.generate` | Combined FL2VA and Ref2VA safetensors transformers, combined H3 encoder, video VAE and audio VAE; the implemented distilled schedule uses six Euler steps and CFG 1 |
+| Sol-H3-VAE | `video.generate` component | An independently selectable video VAE for the H3 video path, including HyperFlow; it is not a separate generation capability and does not replace the dedicated H3 Image VAE |
+| RelayVSR 2x / 4x | `image.upscale`, `video.upscale` | Independent transformer and VAE for the requested multiplier; the 2x and 4x VAEs are not interchangeable |
+| SeedVR2 3B / 7B Sharp | `image.upscale`, `video.upscale` | Selected transformer plus SeedVR2 VAE; 2× or 4× output; experimental support |
+| SDXL ControlNet Union ProMax | `image.generate` | Complete SDXL Base checkpoint, including its encoders and VAE, plus an independent Union ProMax checkpoint; one prepared control map matching the output canvas |
+
+H3 Image can reuse a compatible installed H3 encoder. HyperFlow can reuse compatible H3 encoder/audio-VAE assets and select either the original video VAE or Sol-H3-VAE. Choose each component in Home: matching filenames or a shared download source do not establish compatibility. Runtime checks model structure; RelayVSR additionally checks the VAE's declared upscale factor. A valid download hash establishes file integrity, not compatibility with every recipe.
+
+The 2026-11-11 Windows RTX 5090 development runs used H3 Image INT8 ConvRot, HyperFlow's pinned BennyDaBall combined INT8 conversion, RelayVSR/SeedVR2 INT8 ConvRot, and SDXL/ProMax F16. H3 text generation and one-reference editing, HyperFlow FL2VA and Ref2VA with Sol, all four upscale variants, and ControlNet Canny/Tile produced real outputs in native Lab. HyperFlow four/eight-step presets, the other six ControlNet types, other quantizations and installed distributions remain **NOT-VERIFIED**. These observations cover the tested samples, not general reconstruction or audio quality.
+
+Use [multimodal requests](/runtime/multimodal) for media limits and typed fields, and [the Lab walkthrough](/start/use-nimi-lab#try-local-image-and-video-models) for a first run. New source capabilities require matching SDK, Kit and Runtime builds; they are not a promise that a previously published package contains the same implementation.
 
 ## Status Indicators and Diagnostics
 
@@ -36,3 +57,7 @@ When an application submits an inference task:
 - [`.nimi/spec/platform/core-protocol.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/platform/core-protocol.authority.yaml)
 - [`.nimi/spec/desktop/ai-consumption.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/desktop/ai-consumption.authority.yaml)
 - [`.nimi/spec/runtime/rpc-foundations.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/rpc-foundations.authority.yaml)
+- [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)
+- [`.nimi/spec/runtime/media-upscale.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/media-upscale.authority.yaml)
+- [`config/runtime-managed-image-backend-packages.yaml`](https://github.com/nimiplatform/nimi/blob/main/config/runtime-managed-image-backend-packages.yaml)
+- [`runtime/catalog/source/providers/local`](https://github.com/nimiplatform/nimi/blob/main/runtime/catalog/source/providers/local)

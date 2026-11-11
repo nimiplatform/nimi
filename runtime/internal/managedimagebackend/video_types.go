@@ -82,8 +82,11 @@ type VideoModelRequest struct {
 
 func validateVideoModelRecipe(request VideoModelRequest) error {
 	wan := request.RecipeID == "wan22-ti2v-5b"
-	if request.RecipeID != "minimax-h3" && !wan || request.SampleSteps < 0 || request.SampleSteps > 100 || wan && request.SampleSteps == 0 {
+	if request.RecipeID != "minimax-h3" && request.RecipeID != "hyperflow-h3-flash" && !wan || request.SampleSteps < 0 || request.SampleSteps > 100 || wan && request.SampleSteps == 0 {
 		return videoError(VideoErrorLoad, fmt.Errorf("managed video recipe or steps are invalid"))
+	}
+	if request.RecipeID == "hyperflow-h3-flash" && (request.SampleSteps != 6 || request.CFGScale != 1 || request.FlowShift != 12 || request.SampleMethod != "euler" || request.Scheduler != "") {
+		return videoError(VideoErrorLoad, fmt.Errorf("HyperFlow H3 Flash requires its six-step Euler schedule"))
 	}
 	if wan {
 		if request.AudioVAEPath != "" || request.ConditioningMode != "wan22-text" && request.ConditioningMode != "wan22-first-image" {

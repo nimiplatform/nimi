@@ -158,7 +158,7 @@ test('Local audio separation admits its source range and instrument-part request
   assert.deepEqual(parameters.initial(), {});
 });
 
-test('Cloud enables carrier fields but not private Local App scheduling fields', () => {
+test('Cloud enables its carrier fields and disables Local-only controls', () => {
   for (const capabilityId of [
     'text.generate',
     'chat.stream',
@@ -172,6 +172,9 @@ test('Cloud enables carrier fields but not private Local App scheduling fields',
     for (const [field, item] of states(capabilityId, 'cloud')) {
       if (capabilityId === 'video.generate' && ['serviceTier', 'executionExpiresAfterSec'].includes(field)) {
         assert.deepEqual(item, { field, state: 'disabled', unavailableBecause: 'local-app-surface' });
+      } else if (capabilityId === 'image.generate' && ['controlImageArtifactId', 'controlType', 'controlStrength'].includes(field)) {
+        assert.deepEqual(item, { field, state: 'disabled', unavailableBecause: 'route' });
+        assert.equal(states(capabilityId, 'local').get(field)?.state, 'enabled');
       } else {
         assert.equal(item.state, 'enabled', `${capabilityId}.${field}`);
       }

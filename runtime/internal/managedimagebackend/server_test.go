@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"slices"
 	"strings"
 	"sync"
 	"testing"
@@ -192,6 +193,45 @@ func TestParseManagedImageProgressLineAcceptsCurrentStableDiffusionCPPOutput(t *
 
 	if _, ok := parseManagedImageProgressLine("stable-diffusion.cpp 13/20 - 1.34s/it"); ok {
 		t.Fatal("expected unrelated prefixed output to fail closed")
+	}
+}
+
+func TestManagedImageSamplingProgressExcludesVAEProgress(t *testing.T) {
+	capture := &managedImageLogCapture{}
+	state := managedImageSamplingProgress{}
+	var observed []imageGenerateProgress
+	collect := func(progress imageGenerateProgress) error {
+		observed = append(observed, progress)
+		return nil
+	}
+	for _, line := range []string{
+		"|==>                     | 1/25 - 1.47s/it",
+		"[I] encode_first_stage completed, taking 19.72s --- image.cpp:507",
+		"[I] generating image: 1/1 - seed 42 --- image.cpp:1004",
+		"|====>                   | 1/6 - 1.34s/it",
+	} {
+		capture.Append(line)
+	}
+	if err := state.emit(capture, collect); err != nil {
+		t.Fatal(err)
+	}
+	for _, line := range []string{
+		"|====>                   | 1/6 - 1.34s/it",
+		"|========================| 6/6 - 1.19s/it",
+		"[I] sampling completed, taking 8.28s --- image.cpp:1037",
+		"|====>                   | 1/6 - 1.31s/it",
+	} {
+		capture.Append(line)
+	}
+	if err := state.emit(capture, collect); err != nil {
+		t.Fatal(err)
+	}
+	want := []imageGenerateProgress{
+		{CurrentStep: 1, TotalSteps: 6, ProgressPercent: 16},
+		{CurrentStep: 6, TotalSteps: 6, ProgressPercent: 100},
+	}
+	if !slices.Equal(observed, want) {
+		t.Fatalf("sampling progress = %+v, want %+v", observed, want)
 	}
 }
 

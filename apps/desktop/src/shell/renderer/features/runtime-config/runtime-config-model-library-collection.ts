@@ -25,6 +25,8 @@ const CATEGORY_BY_CAPABILITY: Readonly<Record<string, ModelLibraryItemCategory>>
   'text.generate': 'chat',
   'image.generate': 'image',
   'video.generate': 'video',
+  'image.upscale': 'image',
+  'video.upscale': 'video',
   'audio.synthesize': 'voice',
   'audio.transcribe': 'voice',
   'voice.create': 'voice',
@@ -52,7 +54,9 @@ export function initialModelLibraryCategory(capability?: string): ModelLibraryCa
   return capability ? modelLibraryCategoryForCapability(capability) : 'all';
 }
 
-export function communityFeedCategories(category: ModelLibraryCategory): readonly CommunityFeedCategory[] {
+export function communityFeedCategories(category: ModelLibraryCategory, capability?: string): readonly CommunityFeedCategory[] {
+  const feedCapabilities: Readonly<Record<CommunityFeedCategory, string>> = { chat: 'text.generate', image: 'image.generate', video: 'video.generate' };
+  if (capability && !Object.values(feedCapabilities).includes(capability)) return [];
   if (category === 'all') return COMMUNITY_FEED_CATEGORIES;
   return (COMMUNITY_FEED_CATEGORIES as readonly string[]).includes(category) ? [category as CommunityFeedCategory] : [];
 }
@@ -125,6 +129,8 @@ export type NimiCollectionItem = {
   readonly seed: string;
   /** Capability the item is labeled with: a model's first capability, or the one a part serves. */
   readonly capability: string;
+  /** All declared model capabilities or exact recipe uses of a shared part. */
+  readonly capabilities: readonly string[];
   readonly category: ModelLibraryItemCategory;
   readonly repo: string;
   readonly revision: string;
@@ -418,6 +424,7 @@ export function buildNimiCollection(input: {
         usedBy: '',
         seed: modelFamilySeed(title),
         capability,
+        capabilities,
         category: modelLibraryCategoryForCapability(capability),
       });
       continue;
@@ -441,6 +448,7 @@ export function buildNimiCollection(input: {
       usedBy,
       seed: modelFamilySeed(usedBy || roleLabel),
       capability,
+      capabilities: [...new Set(draft.references.map((item) => item.recipe.capabilityContract))],
       category: capability ? modelLibraryCategoryForCapability(capability) : 'other',
     });
   }
@@ -461,11 +469,20 @@ export function buildNimiCollection(input: {
   };
 }
 
-export function nimiCollectionForCategory(collection: NimiCollection, category: ModelLibraryCategory): NimiCollection {
-  if (category === 'all') return collection;
+export function nimiCollectionForCategory(collection: NimiCollection, category: ModelLibraryCategory, capability?: string): NimiCollection {
+  if (category === 'all' && !capability) return collection;
+  const matches = (item: NimiCollectionItem) => capability
+    ? item.capabilities.includes(capability)
+    : item.category === category || item.capabilities.some((value) => modelLibraryCategoryForCapability(value) === category);
+  const forSelectedUse = (item: NimiCollectionItem): NimiCollectionItem => {
+    const selected = capability ?? item.capabilities.find((value) => modelLibraryCategoryForCapability(value) === category);
+    return selected && selected !== item.capability
+      ? { ...item, capability: selected, category: modelLibraryCategoryForCapability(selected) }
+      : item;
+  };
   return {
-    models: collection.models.filter((item) => item.category === category),
-    parts: collection.parts.filter((item) => item.category === category),
+    models: collection.models.filter(matches).map(forSelectedUse),
+    parts: collection.parts.filter(matches).map(forSelectedUse),
   };
 }
 

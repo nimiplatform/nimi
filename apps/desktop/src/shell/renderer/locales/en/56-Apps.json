@@ -324,6 +324,14 @@
       "audioSpeakerEmbed": {
         "label": "Speaker representation",
         "description": "Extract comparable speaker vectors from short audio in the same representation space; not for identity authentication."
+      },
+      "imageUpscale": {
+        "label": "Image super-resolution",
+        "description": "Enlarge an owned image and save its complete PNG."
+      },
+      "videoUpscale": {
+        "label": "Video super-resolution",
+        "description": "Enlarge a complete MP4 while retaining frame timing and audio."
       }
     },
     "profileSource": {

@@ -1,6 +1,7 @@
 import { runLabSpeakerEmbedding } from './speaker-embedding.js';
 import type { StudioCapabilityRuntimeHandlers } from '../../ai-studio-core/runtime-dispatcher.js';
 import { runLabImageFaceSwap, runLabVideoFaceSwap } from './face-swap.js';
+import { runLabUpscale } from './upscale.js';
 import { runLabTextAnnotate } from './text-annotate.js';
 import { runLabTextDecide } from './text-decide.js';
 import { runLabTextExchange } from './text-exchange.js';
@@ -14,4 +15,6 @@ export const labCapabilityTestRuntimeHandlers: StudioCapabilityRuntimeHandlers =
   'text.decide': runLabTextDecide,
   'image.face_swap': runLabImageFaceSwap,
   'video.face_swap': runLabVideoFaceSwap,
+  'image.upscale': runLabUpscale,
+  'video.upscale': runLabUpscale,
 });

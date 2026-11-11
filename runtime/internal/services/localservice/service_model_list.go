@@ -258,9 +258,9 @@ func marketCategoriesForCatalogItem(item *runtimev1.LocalCatalogModelDescriptor)
 	categories := make([]string, 0, 3)
 	for _, capability := range item.GetCapabilities() {
 		switch normalizeLocalCapabilityToken(capability) {
-		case "image.generate":
+		case "image.generate", "image.upscale":
 			categories = append(categories, "image")
-		case "video.generate":
+		case "video.generate", "video.upscale":
 			categories = append(categories, "video")
 		case "text.generate", "text.embed":
 			categories = append(categories, "chat")

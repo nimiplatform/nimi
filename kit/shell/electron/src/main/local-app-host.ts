@@ -2548,6 +2548,8 @@ function validateScenarioJob(value: unknown): NimiElectronLocalAppRecord {
     ...(Object.hasOwn(value, 'videoFaceSwapSummary') ? ['videoFaceSwapSummary'] : []),
   ])) throw untrustedRuntimeError();
   const scenarioTypes = [
+    'image-upscale',
+    'video-upscale',
     'video-face-swap',
     'image-face-swap',
     'vision-locate',

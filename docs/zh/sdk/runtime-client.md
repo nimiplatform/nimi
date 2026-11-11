@@ -1,4 +1,4 @@
-<!-- nimi-docs: {"authority":["rule.nimi.sdks.client-core.remote-runtime-carrier","rule.nimi.runtime.remote-access.operation-carrier"],"sources":["sdks/typescript/package.json","sdks/typescript/runtime/remote.ts","sdks/typescript/runtime/remote-app.ts","examples/sdk/08-remote-runtime.ts"]} -->
+<!-- nimi-docs: {"authority":["rule.nimi.sdks.client-core.remote-runtime-carrier","rule.nimi.runtime.remote-access.operation-carrier","rule.nimi.runtime.ai-provider.media-upscale-contract","rule.nimi.runtime.ai-provider.sdxl-controlnet-union"],"sources":["sdks/typescript/package.json","sdks/typescript/runtime/remote.ts","sdks/typescript/runtime/remote-app.ts","examples/sdk/08-remote-runtime.ts","examples/sdk/09-media-jobs.ts","sdks/typescript/core/app/local-app-runtime-platform-ai.ts"]} -->
 
 # Runtime 客户端
 
@@ -17,6 +17,23 @@ AI 生成请求仅需携带业务提示词内容与标准参数。持久化的 A
 - **流式响应**：返回严格按序生成的强类型事件分块 (chunks)，并以明确的终态结果结束。
 - **异步 Job 任务**：遵循清晰的状态轮询契约（提交 Submit、状态查询 Get、拉取完整产物结果及显式取消 Cancel）。当网络观察中断时，应使用原 Job ID 恢复查询，切勿盲目重复提交任务。详见[流式设计](/zh/runtime/streaming)。
 - **LocalAgent 交互**：智能体操作基于会话级授权句柄。对话状态、任务执行、共享配置、记忆管理与实时音视频分别受各自的权限范围保护。长期记忆由 Cognition 统一归口管理并由 Runtime 中介访问；Knowledge V1 暂不对外提供公开客户端接口。
+
+## 本地媒体任务示例
+
+新的媒体配方需要配套的源码构建 SDK、Kit 和 Runtime。配置 App 前，先在 Home 准备模型。本次新增的能力 ID 只有 `image.upscale` 和 `video.upscale`；H3 Image、ControlNet 仍使用 `image.generate`，HyperFlow 和 Sol-H3-VAE 使用 `video.generate`。
+
+下面的函数保存一项 Local 意图，保留 App 的其他能力配置，也不改变本机选中的模型。只有保存成功后才能继续提交；若出现版本冲突，应交由用户明确决定。
+
+<<< ../../../examples/sdk/09-media-jobs.ts#configure
+
+[多模态指南](/zh/runtime/multimodal)引用同一个经过类型检查的示例文件，展示上传、提交、保存结果和取消操作：
+
+- 使用 `client.ai.artifacts.upload` 上传输入，传递返回的产物 ID，不传主机文件路径。
+- 提交 `image-upscale` 或 `video-upscale`，字段为 `sourceArtifactId`、`scale: 2 | 4` 和可选 `seed`。
+- ControlNet 使用 `image-generate` 的 `controlImage: { imageArtifactId, type, strength? }`；普通 H3 编辑则使用 `referenceImageArtifactId`。
+- Submit 前保存提交标识，返回后保存 Job ID。提交结果不明确时用 `lookupSubmission` 查询原请求，通过 `get` 观察任务，在用户要求时显式 `cancel`，完成后用 `client.storage.assets.adoptArtifact` 保存产物。
+
+示例对应的原生 Windows 路径不代表远程 Web/Android 或安装版已通过验收。模型范围、媒体限制及已实测组合见[本地模型指南](/zh/runtime/local-models#本地图像与视频模型)。
 
 ## 错误处理与容错机制
 
@@ -44,3 +61,6 @@ SDK 会忠实保留 Runtime 返回的强类型错误码、结构化原因码 (Re
 - [`sdks/typescript/runtime/remote.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/runtime/remote.ts)
 - [`sdks/typescript/realm/runtime-client.ts`](https://github.com/nimiplatform/nimi/blob/main/sdks/typescript/realm/runtime-client.ts)
 - [`examples/sdk/08-remote-runtime.ts`](https://github.com/nimiplatform/nimi/blob/main/examples/sdk/08-remote-runtime.ts)
+- [`examples/sdk/09-media-jobs.ts`](https://github.com/nimiplatform/nimi/blob/main/examples/sdk/09-media-jobs.ts)
+- [`.nimi/spec/runtime/media-upscale.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/media-upscale.authority.yaml)
+- [`.nimi/spec/runtime/ai-provider.authority.yaml`](https://github.com/nimiplatform/nimi/blob/main/.nimi/spec/runtime/ai-provider.authority.yaml)

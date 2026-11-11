@@ -830,6 +830,7 @@ func (d *Daemon) startSupervisedEngines(_ context.Context) {
 		aiSvc.SetLocalVisionExecutionHost(visionHost)
 		aiSvc.SetLocalTextAnnotationExecutionHost(annotationHost)
 		aiSvc.SetLocalFaceSwapExecutionHost(faceSwapHost)
+		aiSvc.SetLocalUpscaleExecutionHost(engine.NewUpscaleExecutionHost(mgr, svc.ResolveMediaCodecDependency))
 		modelAssetHosts = append(modelAssetHosts, d.imageExecutionHost, visionHost, annotationHost, faceSwapHost)
 		decisionHost := engine.NewTextDecisionExecutionHost(mgr)
 		aiSvc.SetLocalTextDecisionExecutionHost(decisionHost)

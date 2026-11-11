@@ -79,6 +79,19 @@ func TestValidateLocalAppImageGenerateSpecPreservesBoundedParameters(t *testing.
 	}
 }
 
+func TestLocalAppImageControlInputPreservesOwnedTypedMap(t *testing.T) {
+	strength := float32(0.75)
+	input := &runtimev1.LocalAppImageGenerateScenarioSpec{Prompt: "yellow cup", ControlImage: &runtimev1.ImageControlInput{ImageArtifactId: "control-map", Type: runtimev1.ImageControlType_IMAGE_CONTROL_TYPE_CANNY, Strength: &strength}}
+	got, err := validateLocalAppImageGenerateSpec(input)
+	if err != nil || got.GetControlImage().GetImageArtifactId() != "control-map" || got.GetControlImage().GetType() != runtimev1.ImageControlType_IMAGE_CONTROL_TYPE_CANNY || got.GetControlImage().GetStrength() != strength {
+		t.Fatalf("typed control map was lost: %v %v", got, err)
+	}
+	input.ControlImage.ImageArtifactId = "changed"
+	if got.GetControlImage().GetImageArtifactId() != "control-map" {
+		t.Fatal("control map alias escaped the request boundary")
+	}
+}
+
 func TestValidateLocalAppImageGenerateSpecPreservesRouteNeutralSeed(t *testing.T) {
 	for _, seed := range []int64{math.MinInt64, math.MaxInt64} {
 		got, err := validateLocalAppImageGenerateSpec(&runtimev1.LocalAppImageGenerateScenarioSpec{

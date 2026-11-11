@@ -35,6 +35,10 @@ const CAPABILITY_COPY_KEYS: Readonly<Record<string, {
     label: 'Apps.aiConfig.capability.imageGenerate.label',
     description: 'Apps.aiConfig.capability.imageGenerate.description',
   },
+  'image.upscale': {
+    label: 'Apps.aiConfig.capability.imageUpscale.label',
+    description: 'Apps.aiConfig.capability.imageUpscale.description',
+  },
   'music.generate': {
     label: 'Apps.aiConfig.capability.musicGenerate.label',
     description: 'Apps.aiConfig.capability.musicGenerate.description',
@@ -66,6 +70,10 @@ const CAPABILITY_COPY_KEYS: Readonly<Record<string, {
   'video.generate': {
     label: 'Apps.aiConfig.capability.videoGenerate.label',
     description: 'Apps.aiConfig.capability.videoGenerate.description',
+  },
+  'video.upscale': {
+    label: 'Apps.aiConfig.capability.videoUpscale.label',
+    description: 'Apps.aiConfig.capability.videoUpscale.description',
   },
   'voice.create': {
     label: 'Apps.aiConfig.capability.voiceCreate.label',

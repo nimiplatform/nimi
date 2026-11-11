@@ -337,7 +337,7 @@ func defaultLocalEngine(raw string, capabilities []string) string {
 		switch normalizeLocalCapabilityToken(capability) {
 		case "text.generate", "text.embed":
 			return "llama"
-		case "image.generate", "video.generate", "world.generate":
+		case "image.generate", "video.generate", "world.generate", "image.upscale", "video.upscale":
 			return "media"
 		case "audio.synthesize", "audio.transcribe", "music.generate", "music.transcribe", "voice.create", "realtime.interact":
 			return "speech"
