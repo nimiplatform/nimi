@@ -221,7 +221,11 @@ func TestDirectPeerStreamsLargeInputBeforeEOFWithoutBlockingOtherCalls(t *testin
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			t.Errorf("close peer connection: %v", err)
+		}
+	}()
 	protocol := channelProtocol
 	channel, err := client.CreateDataChannel(channelLabel, &webrtc.DataChannelInit{Protocol: &protocol})
 	if err != nil {

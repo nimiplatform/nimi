@@ -2309,12 +2309,7 @@ test('dev accepts the package-manager argument separator used by dev:shell', () 
     assert.notEqual(result.status, 0);
     assert.doesNotMatch(result.stderr, /Unknown option: --/);
     assert.doesNotMatch(result.stderr, /Unknown option: --cdp-port/);
-    assert.match(
-      result.stderr,
-      process.platform === 'win32' || process.platform === 'darwin'
-        ? /nimi\.app\.yaml is required/
-        : /not admitted on this platform/,
-    );
+    assert.match(result.stderr, /nimi\.app\.yaml is required/);
   } finally {
     rmSync(tempRoot, { recursive: true, force: true });
   }
