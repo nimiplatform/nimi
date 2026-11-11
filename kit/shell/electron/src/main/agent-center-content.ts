@@ -1,5 +1,4 @@
 import path from 'node:path';
-import sharp from 'sharp';
 
 export type ImageMime = 'image/png' | 'image/jpeg' | 'image/webp';
 
@@ -18,6 +17,7 @@ export async function decodeImageDimensions(
 ): Promise<{ readonly width: number; readonly height: number } | undefined> {
   const expectedFormat = mime === 'image/png' ? 'png' : mime === 'image/jpeg' ? 'jpeg' : 'webp';
   if (!hasCompleteImageContainer(bytes, mime)) return undefined;
+  const { default: sharp } = await import('sharp');
   try {
     const image = sharp(Buffer.from(bytes), {
       failOn: 'warning',

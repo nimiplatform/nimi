@@ -63,6 +63,9 @@ const publicProductRelease = production && macOSPublicProductRelease(selectedRea
 if (process.platform !== 'darwin' || process.arch !== 'arm64') {
   throw new Error('macOS Electron release must be built natively on Apple Silicon');
 }
+// The Installer makes the bundle root-owned. Keep its installed resources
+// readable by Home and the Runtime service, independently of the caller's umask.
+if (production) process.umask(0o022);
 const desktopPackage = JSON.parse(await readFile(path.join(desktopRoot, 'package.json'), 'utf8'));
 const electronPackage = JSON.parse(await readFile(path.join(desktopRoot, 'node_modules', 'electron', 'package.json'), 'utf8'));
 const version = exactVersion(desktopPackage.version);

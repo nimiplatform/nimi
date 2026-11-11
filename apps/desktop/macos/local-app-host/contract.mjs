@@ -5,6 +5,27 @@ import { URL } from 'node:url';
 
 export const MACOS_LOCAL_APP_HOST_EXECUTABLE = '/Applications/Nimi.app/Contents/Frameworks/Nimi Local App Host.app/Contents/MacOS/Nimi Local App Host';
 
+export function describeMacOSLocalAppHostFailure(error, stage, argumentCount, ready) {
+  const knownCodes = new Set([
+    'ERR_MODULE_NOT_FOUND', 'ERR_PACKAGE_PATH_NOT_EXPORTED', 'ERR_DLOPEN_FAILED',
+    'ERR_REQUIRE_ESM', 'ERR_UNSUPPORTED_ESM_URL_SCHEME',
+    'electron-app-host-profile-after-ready', 'electron-app-host-profile-missing',
+    'electron-app-host-profile-unavailable',
+  ]);
+  const candidate = error?.reasonCode ?? error?.code;
+  const code = knownCodes.has(candidate) ? candidate : 'unclassified';
+  const phase = stage === 'app-import' ? stage : 'launch-contract';
+  const count = Number.isSafeInteger(argumentCount) && argumentCount >= 0 && argumentCount <= 16 ? argumentCount : 'invalid';
+  const names = new Set(['Error', 'TypeError', 'SyntaxError', 'ReferenceError', 'NimiElectronShellHostError']);
+  const name = names.has(error?.name) ? error.name : 'Error';
+  const boundary = error?.message === 'protected-carrier-required' ? 'protected-carrier-required' : 'unclassified';
+  const frame = typeof error?.stack === 'string'
+    ? error.stack.split('\n').slice(1).map(line => line.match(/\/([a-zA-Z0-9_.-]+\.[cm]?js):(\d+):(\d+)/u)).find(Boolean)
+    : undefined;
+  const location = frame ? `${frame[1]}:${frame[2]}:${frame[3]}` : 'unavailable';
+  return `local-app-host-launch-untrusted stage=${phase} code=${code} argc=${count} ready=${ready === true} error=${name} boundary=${boundary} location=${location}`;
+}
+
 export function resolveMacOSLocalAppHostLaunch(input) {
   const argv = Array.isArray(input?.argv) ? input.argv.map(exactText) : fail();
   const cdpPort = optionalCdpPort(argv);

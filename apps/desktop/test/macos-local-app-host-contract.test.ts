@@ -6,8 +6,19 @@ import test from 'node:test';
 
 import {
   MACOS_LOCAL_APP_HOST_EXECUTABLE,
+  describeMacOSLocalAppHostFailure,
   resolveMacOSLocalAppHostLaunch,
 } from '../macos/local-app-host/contract.mjs';
+
+test('installed Host failure diagnostics identify the phase without copying App text or paths', () => {
+  assert.equal(describeMacOSLocalAppHostFailure({ code: 'ERR_MODULE_NOT_FOUND', message: 'private path' }, 'app-import', 6, false),
+    'local-app-host-launch-untrusted stage=app-import code=ERR_MODULE_NOT_FOUND argc=6 ready=false error=Error boundary=unclassified location=unavailable');
+  const diagnostic = describeMacOSLocalAppHostFailure({ code: 'private-secret', message: 'private path' }, 'private phase', 99, true);
+  assert.equal(diagnostic, 'local-app-host-launch-untrusted stage=launch-contract code=unclassified argc=invalid ready=true error=Error boundary=unclassified location=unavailable');
+  const bounded = describeMacOSLocalAppHostFailure({ name: 'TypeError', stack: 'private message\n at load (/private/account/module.js:12:4)' }, 'app-import', 6, false);
+  assert.ok(bounded.endsWith('error=TypeError boundary=unclassified location=module.js:12:4'));
+  assert.ok(!bounded.includes('/private/') && !bounded.includes('private message'));
+});
 
 test('macOS local-app host accepts only the exact supervised production launch shape', {
   skip: process.platform !== 'darwin',
