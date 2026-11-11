@@ -9,7 +9,7 @@ import { DemoExploreSurface } from './demo-explore.js';
 import { DemoRail, DemoSurfaceSwitcher } from './demo-rail.js';
 import { DemoRuntimeSurface } from './demo-runtime.js';
 import { DemoAppPreview } from './demo-app-preview.js';
-import { lazy, Suspense, type ReactNode } from 'react';
+import { lazy, Suspense, useCallback, useRef, type ReactNode, type Ref } from 'react';
 import type { LandingContent } from '../content/landing-content.js';
 import { EXAMPLE_LOG } from '../content/demo-tour.js';
 import { DemoSettingsSurface } from './demo-settings.js';
@@ -26,12 +26,13 @@ export type HeroDemoProps = {
   riskCopy?: LandingContent['riskControl'];
   previewCaption?: ReactNode;
   onPreviewBody?: (node: HTMLDivElement | null) => void;
+  openChatRef?: Ref<HTMLButtonElement>;
 };
 
 const DemoCloudSurface = lazy(async () => ({ default: (await import('./demo-cloud.js')).DemoCloudSurface }));
 const DemoCloudSetup = lazy(async () => ({ default: (await import('./demo-cloud-setup.js')).DemoCloudSetup }));
 
-export function HeroDemoView({ expanded, windowTitle, windowActions, windowClose, inlinePreview, riskCopy, previewCaption, onPreviewBody }: HeroDemoProps) {
+export function HeroDemoView({ expanded, windowTitle, windowActions, windowClose, inlinePreview, riskCopy, previewCaption, onPreviewBody, openChatRef }: HeroDemoProps) {
   const {
     demo,
     preview,
@@ -63,6 +64,12 @@ export function HeroDemoView({ expanded, windowTitle, windowActions, windowClose
     handleSubmit,
     createThread,
   } = useHeroDemoSession();
+  const focusChatComposer = useRef(false);
+  const chatSurfaceRef = useCallback((node: HTMLDivElement | null) => {
+    if (!node || !focusChatComposer.current) return;
+    focusChatComposer.current = false;
+    node.querySelector('textarea')?.focus({ preventScroll: true });
+  }, []);
 
   if (inlinePreview && preview) return <DemoAppPreview opened={preview} inline
     guiding={guideStep !== undefined} apps={demo.apps} preview={demo.appPreview}
@@ -128,6 +135,7 @@ export function HeroDemoView({ expanded, windowTitle, windowActions, windowClose
         <div className="demo-window-content min-w-0 flex-1">
           <div
             key={`${homeRevision}:${surface}:${surface === 'explore' || surface === 'chat' ? '' : current.target ?? ''}`}
+            ref={surface === 'chat' ? chatSurfaceRef : undefined}
             data-demo-surface
             className="demo-surface-enter h-full min-h-0"
           >
@@ -135,6 +143,11 @@ export function HeroDemoView({ expanded, windowTitle, windowActions, windowClose
               <DemoHomeSurface
                 demo={demo}
                 messages={messages}
+                openChatRef={openChatRef}
+                onOpenChat={(event) => {
+                  focusChatComposer.current = event.detail === 0;
+                  navigate('chat');
+                }}
                 onNavigate={navigate}
                 onRead={readMessage}
                 onHide={hideMessage}

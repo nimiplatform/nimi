@@ -22,12 +22,5 @@
     "reference": "apps/web/public/demo/explore/emberware-court-character-0.png",
     "createdAt": "2026-11-04",
     "sha256": "46c1b1441149847492854ce841450848f2b31dc3cb6bff7e9b9f469bfabb16a1"
-  },
-  {
-    "file": "/story/power-scene-v3.webp",
-    "source": "Built-in image_gen",
-    "reference": "Existing Nimi blue/green visual identity; local/cloud capability scene",
-    "createdAt": "2026-11-04",
-    "sha256": "17504ba42e03be680a4b21cb106d3e875a8063bd0ba1b787cf1b06e3dc3f5bf9"
   }
 ]

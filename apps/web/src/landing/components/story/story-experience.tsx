@@ -13,6 +13,15 @@ const chapters = ['models', 'memory', 'continuity'] as const;
 const localCapability = 'text.generate';
 const panelId = (chapter: typeof chapters[number]) => `ownership-${chapter}`;
 
+export function findActiveOwnershipChapter(centers: readonly number[], readingLine: number) {
+  let current = 0;
+  for (const [index, center] of centers.entries()) {
+    if (center > readingLine) break;
+    current = index;
+  }
+  return current;
+}
+
 export function StoryExperience({ t, partnerId, onHome }: {
   t: StoryText;
   partnerId: string;
@@ -20,24 +29,24 @@ export function StoryExperience({ t, partnerId, onHome }: {
 }) {
   const { demo, openPreview } = useHeroDemoSession();
   const preview = demo.appPreview;
-  const panels = useRef<HTMLDivElement>(null);
+  const copies = useRef<HTMLOListElement>(null);
   const [activeChapter, setActiveChapter] = useState<typeof chapters[number]>('models');
 
   useEffect(() => {
-    const track = panels.current;
+    const track = copies.current;
     if (!track) return;
-    const items = [...track.querySelectorAll<HTMLElement>('[data-ownership-chapter]')];
+    const items = [...track.querySelectorAll<HTMLElement>('[data-ownership-copy]')];
+    const desktop = window.matchMedia('(min-width: 861px) and (min-height: 700px)');
     let frame = 0;
     const update = () => {
       frame = 0;
-      // Read the chapter that has reached the upper part of the viewport.
-      const readingLine = Math.max(128, window.innerHeight * 0.38);
-      let current = 0;
-      for (const [index, item] of items.entries()) {
-        if (item.getBoundingClientRect().top > readingLine) break;
-        current = index;
-      }
-      setActiveChapter(chapters[current]!);
+      if (!desktop.matches) return;
+      const centers = items.map(item => {
+        const rect = item.getBoundingClientRect();
+        return rect.top + rect.height / 2;
+      });
+      const readingLine = Math.max(160, window.innerHeight * 0.55);
+      setActiveChapter(chapters[findActiveOwnershipChapter(centers, readingLine)]!);
     };
     const schedule = () => {
       if (!frame) frame = window.requestAnimationFrame(update);
@@ -45,10 +54,12 @@ export function StoryExperience({ t, partnerId, onHome }: {
     update();
     window.addEventListener('scroll', schedule, { passive: true });
     window.addEventListener('resize', schedule);
+    desktop.addEventListener('change', schedule);
     return () => {
       window.cancelAnimationFrame(frame);
       window.removeEventListener('scroll', schedule);
       window.removeEventListener('resize', schedule);
+      desktop.removeEventListener('change', schedule);
     };
   }, []);
 
@@ -56,19 +67,23 @@ export function StoryExperience({ t, partnerId, onHome }: {
     <div className="story-container story-experience-container">
       <div className="story-experience-intro">
         <StoryHeading t={t} section="experience" />
-        <small>{t('experience.demoLabel')}</small>
       </div>
       <div className="story-experience-composition">
-        <ol className="story-ownership-index" aria-label={t('experience.title')}>
-          {chapters.map((chapter, index) => <li key={chapter} data-active={activeChapter === chapter}>
-            <a href={`#${panelId(chapter)}`} aria-current={activeChapter === chapter ? 'location' : undefined}>
-              <span className="story-ownership-number">0{index + 1}</span>
-              <span>{t(`experience.${chapter}Title`)}</span>
-            </a>
-            <div className="story-ownership-summary"><p>{t(`experience.${chapter}Body`)}</p></div>
-          </li>)}
+        <ol className="story-ownership-index" aria-label={t('experience.title')} ref={copies}>
+          {chapters.map((chapter, index) => {
+            const copyId = `${panelId(chapter)}-copy`;
+            return <li key={chapter} data-active={activeChapter === chapter}>
+              <div className="story-ownership-copy" id={copyId} data-ownership-copy={chapter}>
+                <a href={`#${panelId(chapter)}`} aria-current={activeChapter === chapter ? 'location' : undefined}>
+                  <span className="story-ownership-number">0{index + 1}</span>
+                  <span>{t(`experience.${chapter}Title`)}</span>
+                </a>
+                <div className="story-ownership-summary"><p>{t(`experience.${chapter}Body`)}</p></div>
+              </div>
+            </li>;
+          })}
         </ol>
-        <div className="story-ownership-panels" ref={panels}>
+        <div className="story-ownership-panels">
           {chapters.map((chapter, index) => {
             const title = t(`experience.${chapter}Window`);
             const open = () => {
@@ -76,7 +91,8 @@ export function StoryExperience({ t, partnerId, onHome }: {
               else openPreview('nimi.zhiyu', chapter === 'memory' ? 'memory' : 'companion', partnerId);
             };
             return <article key={chapter} className="story-ownership-panel" id={panelId(chapter)}
-              data-ownership-chapter={chapter} data-active={activeChapter === chapter} aria-labelledby={`${panelId(chapter)}-heading`}>
+              data-ownership-chapter={chapter} data-active={activeChapter === chapter} data-hash-target={`${panelId(chapter)}-copy`}
+              aria-labelledby={`${panelId(chapter)}-heading`}>
               <div className="story-ownership-panel-heading">
                 <span className="story-ownership-number">0{index + 1}</span>
                 <h3 id={`${panelId(chapter)}-heading`}>{t(`experience.${chapter}Title`)}</h3>
@@ -98,7 +114,6 @@ export function StoryExperience({ t, partnerId, onHome }: {
                   </Suspense>
                 </div>
               </div>
-              {chapter === 'models' && <a href="#models" className="story-link story-ownership-related">{t('experience.modelsLink')}<ArrowUpRight size={14} aria-hidden="true" /></a>}
               {chapter === 'memory' && <p className="story-ownership-note">{t('experience.memoryNote')}</p>}
               {chapter === 'continuity' && <button type="button" onClick={() => onHome('chat', partnerId)} className="story-link story-ownership-related">{t('experience.homeChat')}<ArrowUpRight size={14} aria-hidden="true" /></button>}
             </article>;

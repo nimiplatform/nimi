@@ -41,25 +41,32 @@ test('the hero contains the full Home entry and leaves the download action to na
     const html = renderToStaticMarkup(createElement(HeroDemoSessionProvider, { demo: content.hero.demo,
       children: createElement(StoryPage, { content, locale, links: resolveLandingLinks({}), onLocale() {} }),
     }));
-    for (const id of ['home-demo', 'apps', 'worlds', 'models', 'app-showcase', 'integrations', 'developers']) assert.ok(html.includes(`id="${id}"`), id);
-    assert.ok(html.indexOf('id="models"') < html.indexOf('id="app-showcase"'));
+    for (const id of ['home-demo', 'apps', 'worlds', 'app-showcase', 'integrations', 'developers']) assert.ok(html.includes(`id="${id}"`), id);
+    assert.ok(!html.includes('story-power'));
+    assert.ok(!html.includes('href="#models"'));
     assert.ok(html.indexOf('id="app-showcase"') < html.indexOf('id="integrations"'));
     const hero = html.match(/<section class="story-hero"[\s\S]*?<\/section>/)?.[0];
     assert.ok(hero);
     assert.ok(hero.includes('id="home-demo"'));
+    assert.match(hero, /<a class="story-hero-continue" href="#home-demo">/);
     assert.ok(hero.includes(getStoryCopy(locale)['hero.title']));
     assert.ok(!/href="[^"]*\/download/.test(hero));
     const ownership = html.match(/<section class="story-section story-experience"[\s\S]*?(?=<section class="story-section story-worlds")/)?.[0];
     assert.ok(ownership);
-    // Each chapter names and links to its corresponding app preview.
+    const ownershipIntro = ownership.match(/<div class="story-experience-intro">[\s\S]*?<\/div>/)?.[0];
+    assert.ok(ownershipIntro);
+    assert.match(ownershipIntro, /<h2 id="experience-heading">/);
+    assert.doesNotMatch(ownershipIntro, /<(?:p|small)\b|class="story-eyebrow"/);
+    // Each chapter links its scrolling copy to the corresponding app preview.
     for (const key of ['models', 'memory', 'continuity'] as const) {
       assert.ok(ownership.includes(getStoryCopy(locale)[`experience.${key}Title`]));
       assert.ok(ownership.includes(getStoryCopy(locale)[`experience.${key}Body`]));
       assert.ok(ownership.includes(getStoryCopy(locale)[`experience.${key}Window`]));
       assert.ok(ownership.includes(`href="#ownership-${key}"`));
+      assert.ok(ownership.includes(`id="ownership-${key}-copy"`));
       assert.ok(ownership.includes(`id="ownership-${key}"`));
+      assert.ok(ownership.includes(`data-ownership-chapter="${key}" data-active="${key === 'models'}"`));
     }
-    assert.ok(ownership.includes(getStoryCopy(locale)['experience.demoLabel']));
     assert.match(ownership, /href="#ownership-models" aria-current="location"/);
 
     assert.ok(!/交互示例|演示记忆|Interactive example|example memor/i.test(html));
@@ -131,4 +138,27 @@ test('the App carousel identifies the visible logo nearest the center, including
   assert.equal(findCenteredShowcaseIndex(logos, bounds, 4), 2);
   assert.equal(findCenteredShowcaseIndex([logos[0]!, logos[1]!, { left: -200, right: -160 }, logos[3]!, logos[4]!], bounds, 4), 0);
   assert.equal(findCenteredShowcaseIndex([{ left: 500, right: 560 }], bounds, 4), null);
+});
+
+test('the ownership preview follows the copy across the reading line in both directions', async () => {
+  const { findActiveOwnershipChapter } = await import('../src/landing/components/story/story-experience.js');
+  const centers = [180, 620, 1100];
+  assert.equal(findActiveOwnershipChapter(centers, 100), 0);
+  assert.equal(findActiveOwnershipChapter(centers, 620), 1);
+  assert.equal(findActiveOwnershipChapter(centers, 900), 1);
+  assert.equal(findActiveOwnershipChapter(centers, 1200), 2);
+  assert.equal(findActiveOwnershipChapter(centers, 500), 0);
+});
+
+test('the Home to ownership transition follows scroll in both directions and hands off near the destination', async () => {
+  const { storyHomeTransitionState } = await import('../src/landing/components/story/story-motion.js');
+  const start = 1200, end = 2400;
+  assert.deepEqual(storyHomeTransitionState(start, start, end), { progress: 0, travel: 0, targetOpacity: 0 });
+  assert.deepEqual(storyHomeTransitionState((start + end) / 2, start, end), { progress: 0.5, travel: 0.5, targetOpacity: 0 });
+  assert.deepEqual(storyHomeTransitionState(end, start, end), { progress: 1, travel: 1, targetOpacity: 1 });
+  assert.equal(storyHomeTransitionState(start - 300, start, end).progress, 0);
+  assert.equal(storyHomeTransitionState(end + 300, start, end).progress, 1);
+  assert.equal(storyHomeTransitionState(start + 300, start, end).travel, storyHomeTransitionState(end - 900, start, end).travel);
+  const handoff = storyHomeTransitionState(start + (end - start) * 0.86, start, end);
+  assert.ok(Math.abs(handoff.targetOpacity - 0.5) < 1e-10);
 });

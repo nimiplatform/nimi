@@ -1,85 +1,10 @@
 import { Surface } from '@nimiplatform/kit/ui';
-import { useEffect, useState } from 'react';
-import { ArrowUpRight, Check, ChevronRight, Cloud, FileText, Image, KeyRound, Laptop, Layers3, Mic, Search, Send, ShieldCheck } from 'lucide-react';
+import { useState } from 'react';
+import { ArrowUpRight, Check, ChevronRight, KeyRound, Layers3, Search, Send, ShieldCheck } from 'lucide-react';
 import type { StoryText, StoryKey } from '../../content/story-copy.js';
 import { integrationScenarios } from '../../content/story-model.js';
 import { StoryHeading, StoryLink } from './story-shared.js';
 import type { LandingLinks } from '../../config/landing-links.js';
-
-const localModelMarks = [
-  { provider: 'dashscope', label: 'Qwen' },
-  { provider: 'google_veo', label: 'Gemma' },
-  { provider: 'openai', label: 'Whisper' },
-  { provider: 'deepseek', label: 'DeepSeek' },
-  { provider: 'mistral', label: 'Mistral' },
-  { provider: 'glm', label: 'GLM' },
-] as const;
-
-const cloudModelMarks = [
-  { provider: 'openai_chatgpt_plan', label: 'ChatGPT' },
-  { provider: 'kimi', label: 'Kimi' },
-  { provider: 'anthropic', label: 'Claude' },
-  { provider: 'gemini', label: 'Gemini' },
-  { provider: 'deepseek', label: 'DeepSeek' },
-  { provider: 'dashscope', label: 'Qwen' },
-  { provider: 'xai', label: 'Grok' },
-  { provider: 'mistral', label: 'Mistral' },
-  { provider: 'minimax', label: 'MiniMax' },
-  { provider: 'glm', label: 'GLM' },
-] as const;
-
-function StoryModelMarks({ route }: { route: 'local' | 'cloud' }) {
-  const marks = route === 'local' ? localModelMarks : cloudModelMarks;
-  return <div className={`story-model-marks story-model-marks--${route}`} aria-hidden="true">
-    {marks.map(mark => <span className="story-model-mark" key={mark.provider}>
-      <Surface as="svg" material="glass-thin" padding="none" viewBox="0 0 24 24" focusable="false"><use href={`/demo/cloud-provider-marks.svg#${mark.provider}`} /></Surface>
-      <small>{mark.label}</small>
-    </span>)}
-  </div>;
-}
-
-export function StoryPower({ t, links, onHome }: { t: StoryText; links: LandingLinks; onHome: (surface: 'runtime' | 'cloud', target?: string) => void }) {
-  const [task, setTask] = useState<'text' | 'image' | 'speech'>('text');
-  const [route, setRoute] = useState<'local' | 'cloud'>('local');
-  const [automaticRoute, setAutomaticRoute] = useState(true);
-  useEffect(() => {
-    if (!automaticRoute) return;
-    const media = window.matchMedia('(prefers-reduced-motion: reduce)');
-    let timer: number | undefined;
-    const update = () => {
-      window.clearInterval(timer);
-      if (!media.matches) timer = window.setInterval(() => setRoute(current => current === 'local' ? 'cloud' : 'local'), 3000);
-    };
-    update();
-    media.addEventListener('change', update);
-    return () => { window.clearInterval(timer); media.removeEventListener('change', update); };
-  }, [automaticRoute]);
-  const selectRoute = (nextRoute: 'local' | 'cloud') => {
-    setAutomaticRoute(false);
-    setRoute(nextRoute);
-  };
-  const Icon = task === 'text' ? FileText : task === 'image' ? Image : Mic;
-  const capability = { text: 'text.generate', image: 'image.generate', speech: 'audio.transcribe' }[task];
-  return <section id="models" className="story-section story-power" aria-labelledby="power-heading" data-story-scene onFocusCapture={() => setAutomaticRoute(false)} onPointerDown={() => setAutomaticRoute(false)}>
-    <div className="story-container">
-      <div className="story-power-intro"><StoryHeading t={t} section="power"><StoryLink href={links.modelsUrl}>{t('power.catalog')}</StoryLink></StoryHeading><div className="story-task-picker" role="group" aria-label={t('power.request')}>{(['text', 'image', 'speech'] as const).map(type => <button key={type} type="button" aria-pressed={task === type} onClick={() => setTask(type)}>{t(`power.${type}`)}</button>)}</div></div>
-      <div className="story-power-scene" data-route={route}>
-        <div className="story-power-artwork" aria-hidden="true">
-          <img className="story-power-landscape" src="/story/power-scene-v3.webp" alt="" loading="lazy" />
-          <StoryModelMarks route="local" />
-          <StoryModelMarks route="cloud" />
-        </div>
-        <article className="story-task-paper" key={task}><Icon size={28} /><h3>{t(`power.${task}Task` as StoryKey)}</h3></article>
-        <div className="story-route-picker" role="group" aria-label={t('power.title')}>
-          <button className="story-local-destination" type="button" aria-pressed={route === 'local'} onClick={() => selectRoute('local')}><Laptop size={24} strokeWidth={1.6} /><Surface as="span" material="glass-thin" padding="none"><small>{t('power.local')}</small><strong>{t('power.localTarget')}</strong></Surface>{route === 'local' && <Check size={18} />}</button>
-          <button className="story-cloud-destination" type="button" aria-pressed={route === 'cloud'} onClick={() => selectRoute('cloud')}><Cloud size={24} strokeWidth={1.6} /><Surface as="span" material="glass-thin" padding="none"><small>{t('power.cloud')}</small><strong>{t('power.cloudTarget')}</strong></Surface>{route === 'cloud' && <Check size={18} />}</button>
-        </div>
-        <div className="story-route-trace" aria-hidden="true" key={`${task}-${route}`}><svg viewBox="0 0 260 76" preserveAspectRatio="none" focusable="false"><path className="story-route-trace-line" d="M4 0v18c0 26 14 40 40 40h204" /><path className="story-route-trace-head" d="m236 46 14 12-14 12" /><path className="story-route-trace-pulse" pathLength="100" d="M4 0v18c0 26 14 40 40 40h204" /></svg></div>
-        <div className="story-route-outcome" aria-live={automaticRoute ? 'off' : 'polite'}><p>{t(route === 'local' ? 'power.localDetail' : 'power.cloudDetail')}</p><button type="button" className="story-link" onClick={() => onHome(route === 'local' ? 'runtime' : 'cloud', route === 'local' ? capability : undefined)}>{t('common.openHome')}<ArrowUpRight size={15} /></button></div>
-      </div>
-    </div>
-  </section>;
-}
 
 const integrationIcons = { mcp: Search, telegram: Send, app: Layers3 } as const;
 

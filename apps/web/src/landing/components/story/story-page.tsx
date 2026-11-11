@@ -1,6 +1,6 @@
 import { Surface } from '@nimiplatform/kit/ui';
 import { useEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowRight, ArrowUpRight, Menu, UserRound, X } from 'lucide-react';
+import { ArrowDown, ArrowRight, Menu, UserRound, X } from 'lucide-react';
 import type { LandingContent, HeroDemoSurface } from '../../content/landing-content.js';
 import type { LandingLinks } from '../../config/landing-links.js';
 import { getStoryCopy, type StoryKey, type StoryText } from '../../content/story-copy.js';
@@ -10,7 +10,7 @@ import { LanguageToggle } from '../language-toggle.js';
 import { StoryHome } from './story-home.js';
 import { StoryExperience } from './story-experience.js';
 import { StoryWorlds } from './story-worlds.js';
-import { StoryPower, StoryIntegrations } from './story-capabilities.js';
+import { StoryIntegrations } from './story-capabilities.js';
 import { StoryApps } from './story-apps.js';
 import { StoryBuilder } from './story-builder.js';
 import { StoryLink } from './story-shared.js';
@@ -36,7 +36,7 @@ export function StoryPage({ content, links, locale, onLocale }: { content: Landi
   const [selectedId, setSelectedId] = useState(DEFAULT_STORY_AGENT);
   const [expandedHome, setExpandedHome] = useState(false);
   const agent = storyAgent(session.demo, selectedId);
-  const labels: StoryKey[] = ['common.experience','common.worlds','common.power','common.showcase','common.integrations','common.build'];
+  const labels: StoryKey[] = ['common.experience','common.worlds','common.showcase','common.integrations','common.build'];
   const openHome = (surface: HeroDemoSurface, target?: string) => { session.navigate(surface, target); setExpandedHome(true); };
   const openApp = (id: string) => session.openPreview(id, id === 'nimi.zhiyu' ? 'companion' : 'home', id === 'nimi.zhiyu' ? agent.id : undefined);
   useEffect(() => {
@@ -50,13 +50,13 @@ export function StoryPage({ content, links, locale, onLocale }: { content: Landi
     <a className="skip-link" href="#main-content">{t('common.skip')}</a>
     <Surface as="header" material="glass-chrome" padding="none" className="story-nav"><a className="story-brand" href="#top"><img src="/logo.svg" alt="" /><strong>Nimi</strong></a>
       <nav id="story-navigation" ref={menuPanel} aria-label="Nimi" className={menu ? 'is-open' : ''}>{STORY_SECTIONS.map((id,index) => <a key={id} href={`#${id}`} onClick={() => setMenu(false)}>{t(labels[index]!)}</a>)}</nav>
-      <div className="story-nav-actions"><LanguageToggle locale={locale} label={t('common.language')} options={content.localeOptions} onChange={value => { setMenu(false); onLocale(value); }} /><a className="story-account" href={`/account?lang=${locale}`} aria-label={t('common.account')}><UserRound size={19} /></a><a className="story-download" href={links.downloadUrl}>{t('common.download')}<ArrowUpRight size={15} /></a><button ref={menuButton} className="story-menu-toggle" type="button" aria-controls="story-navigation" aria-expanded={menu} aria-label={t(menu ? 'common.closeMenu' : 'common.openMenu')} onClick={() => setMenu(!menu)}>{menu ? <X size={21} /> : <Menu size={21} />}</button></div>
+      <div className="story-nav-actions"><LanguageToggle locale={locale} label={t('common.language')} options={content.localeOptions} onChange={value => { setMenu(false); onLocale(value); }} /><a className="story-account" href={`/account?lang=${locale}`} aria-label={t('common.account')}><UserRound size={19} /></a><a className="story-download" href={links.downloadUrl}>{t('common.download')}</a><button ref={menuButton} className="story-menu-toggle" type="button" aria-controls="story-navigation" aria-expanded={menu} aria-label={t(menu ? 'common.closeMenu' : 'common.openMenu')} onClick={() => setMenu(!menu)}>{menu ? <X size={21} /> : <Menu size={21} />}</button></div>
     </Surface>
     <main id="main-content">
       <section className="story-hero" aria-labelledby="story-title">
         <div className="story-hero-copy">
           <h1 id="story-title" aria-label={t('hero.title')}>{headline ? <>{headline[1]}<span className="story-title-accent">{headline[2]}</span></> : t('hero.title')}</h1>
-          <a className="story-hero-continue" href="#apps"><span>{t('hero.continue')}</span><ArrowDown size={16} /></a>
+          <a className="story-hero-continue" href="#home-demo"><span>{t('hero.continue')}</span><ArrowDown size={16} /></a>
         </div>
         <div className="story-home-stage">
           <StoryHome t={t} expanded={expandedHome} onExpanded={setExpandedHome} />
@@ -64,7 +64,6 @@ export function StoryPage({ content, links, locale, onLocale }: { content: Landi
       </section>
       <StoryExperience t={t} partnerId={agent.id} onHome={openHome} />
       <StoryWorlds t={t} locale={locale} onOpenWorld={id => openHome('explore', `world:${id}`)} />
-      <StoryPower t={t} links={links} onHome={openHome} />
       <StoryApps t={t} onApp={openApp} />
       <StoryIntegrations t={t} links={links} onHome={() => openHome('integrations')} />
       <StoryBuilder t={t} links={links} />

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type MouseEventHandler, type Ref } from 'react';
 import { ArrowRight, ChevronRight, Cpu, Filter, Send } from 'lucide-react';
 import { Button } from '@nimiplatform/kit/ui';
 import type { HeroDemo, HeroDemoSurface } from '../content/landing-content.js';
@@ -23,7 +23,13 @@ export function DemoHomeSurface({
   onRead,
   onHide,
   onReply,
-}: DemoMessageProps & { onReply: (agentId: string, text: string) => void }) {
+  onOpenChat,
+  openChatRef,
+}: DemoMessageProps & {
+  onReply: (agentId: string, text: string) => void;
+  onOpenChat: MouseEventHandler<HTMLButtonElement>;
+  openChatRef?: Ref<HTMLButtonElement>;
+}) {
   const c = demo.home;
   const t = demoText(demo);
   const [selectedId, setSelectedId] = useState(demo.chat.agents[0]!.id);
@@ -104,7 +110,7 @@ export function DemoHomeSurface({
               <>
                 <p className="demo-muted my-3">{c.startBody}</p>
                 <div className="demo-actions">
-                  <Button tone="primary" size="sm" onClick={() => onNavigate('chat')}>
+                  <Button ref={openChatRef} className="demo-home-open-chat" tone="primary" size="sm" onClick={onOpenChat}>
                     {c.openChat}
                     <ArrowRight size={14} />
                   </Button>

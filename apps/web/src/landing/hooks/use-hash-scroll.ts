@@ -27,7 +27,10 @@ export function scrollHashIntoView(hash: string): boolean {
     return false;
   }
 
-  target.scrollIntoView({ block: 'start' });
+  const delegatedId = target.dataset.hashTarget;
+  const delegated = delegatedId ? document.getElementById(delegatedId) : null;
+  const destination = delegated && delegated.getClientRects().length > 0 ? delegated : target;
+  destination.scrollIntoView({ block: destination === target ? 'start' : 'center' });
   return true;
 }
 
