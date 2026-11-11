@@ -117,6 +117,9 @@ func preflightProtectedStoredData(cfg config.Config) *storedformat.Refusal {
 	if strings.TrimSpace(cfg.DataRootRef) == "" || strings.TrimSpace(cfg.LocalStatePath) == "" {
 		return nil
 	}
+	if refusal := runtimepersistence.PreflightStoredMemoryExecution(cfg.LocalStatePath); refusal != nil {
+		return refusal
+	}
 	return runtimeagentservice.PreflightStoredConversation(cfg.LocalStatePath)
 }
 

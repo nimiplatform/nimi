@@ -2,6 +2,7 @@ package grpcserver
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"io"
 	"log/slog"
@@ -25,6 +26,24 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 )
+
+func TestProtectedStoredDataPreflightIncludesMemoryExecutionSchema(t *testing.T) {
+	root := t.TempDir()
+	db, err := sql.Open("sqlite", filepath.Join(root, "memory.db"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := db.Exec(`CREATE TABLE runtime_cognition_memory_ai_job (operation_id TEXT PRIMARY KEY)`); err != nil {
+		t.Fatal(err)
+	}
+	if err := db.Close(); err != nil {
+		t.Fatal(err)
+	}
+	refusal := preflightProtectedStoredData(config.Config{DataRootRef: root, LocalStatePath: filepath.Join(root, "local-state.json")})
+	if refusal == nil || refusal.Owner() != "runtimepersistence.memory-execution" || refusal.Handling() != storedformat.OfflineRepair {
+		t.Fatalf("protected startup lost the Memory owner refusal: %v", refusal)
+	}
+}
 
 func TestMaintenanceServerServesOnlyTheBoundedSurfaceWithTheTypedReason(t *testing.T) {
 	manager, connection := newProtectedRPCFixture(t)
