@@ -4,12 +4,20 @@ import { retireLocalAgentTurnSidecars, retireDisabledFollowUpPreferences } from 
 
 test('retire only known old display sidecars, retaining every canonical field and a no-op on repetition', () => {
   const sidecar = { CanceledHookIDs: ['old-hook'], Message: '', ReasonCode: 0, ScheduledHookID: 'retained-hook', Status: 'applied', StatusText: 'historical projection' };
-  const canonical = { conversationAnchorId: 'anchor', version: 19, committedTranscript: [{ text: 'verbatim user and Agent content', memoryRefs: ['memory'] }], lastTurnSnapshot: { text: 'reply', audioUri: 'retained-audio' }, completedTurnSnapshots: { turn: { text: 'reply', sourceHash: 'retained-hash' } } };
+  const canonical = {
+    conversationAnchorId: 'anchor',
+    version: 19,
+    committedTranscript: [{ text: 'verbatim user and Agent content', memoryRefs: ['memory'] }],
+    activeTurnSnapshot: { turnId: 'active-turn', status: 'running', assistantText: 'retained partial reply' },
+    lastTurnSnapshot: { text: 'reply', audioUri: 'retained-audio' },
+    completedTurnSnapshots: { turn: { text: 'reply', sourceHash: 'retained-hash' } },
+  };
   const old = structuredClone(canonical);
+  old.activeTurnSnapshot.sidecar = sidecar;
   old.lastTurnSnapshot.sidecar = sidecar;
   old.completedTurnSnapshots.turn.sidecar = sidecar;
   const result = retireLocalAgentTurnSidecars(JSON.stringify(old));
-  assert.equal(result.removed, 2);
+  assert.equal(result.removed, 3);
   assert.deepEqual(JSON.parse(result.after), canonical);
   assert.deepEqual(retireLocalAgentTurnSidecars(result.after), { removed: 0, after: result.after });
   assert.equal(old.lastTurnSnapshot.sidecar.StatusText, 'historical projection');

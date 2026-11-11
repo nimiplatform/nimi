@@ -1,7 +1,7 @@
 // Offline removal of a retired turn-display projection, never a runtime reader.
 export function retireLocalAgentTurnSidecars(raw) {
   const anchor = JSON.parse(raw);
-  const snapshots = [anchor.lastTurnSnapshot, ...Object.values(anchor.completedTurnSnapshots ?? {})];
+  const snapshots = [anchor.activeTurnSnapshot, anchor.lastTurnSnapshot, ...Object.values(anchor.completedTurnSnapshots ?? {})];
   let removed = 0;
   const keys = ['CanceledHookIDs', 'Message', 'ReasonCode', 'ScheduledHookID', 'Status', 'StatusText'];
   for (const snapshot of snapshots) {

@@ -6,7 +6,7 @@ import { retireLocalAgentTurnSidecars, retireDisabledFollowUpPreferences } from 
 
 const args = process.argv.slice(2);
 if (args.includes('--help')) {
-  console.log('Add --retire-turn-sidecars only for the known retired last/completed turn display projection. Canonical chat text, media and follow-up records stay unchanged; the full backup retains original metadata.');
+  console.log('Add --retire-turn-sidecars only for the known retired active, last and completed turn display projections. Canonical chat text, media and follow-up records stay unchanged; the full backup retains original metadata.');
   console.log('Add --retire-disabled-follow-up-preferences only for obsolete per-anchor OFF controls. Agent contact permission is not changed; active/unknown old preferences are refused.');
   console.log('Optional explicit retirement: --retire-redacted-intentions <ref,ref>. Only named unfinished historical Activity placeholders qualify; current frames still require review. No automatic eviction or Memory deletion.');
   console.log('One-time cut for the known pre-release life-frame control format.\nPreview: pnpm runtime:retire-local-agent-controls --db <absolute memory.db>\nApply after reviewing the listed objects: add --apply --confirm-runtime-stopped --backup <new absolute backup.db>\nAdd --include-historical-contact only to reclassify the retired origin metadata. Chat text, Memory and established history are preserved.\nThis tool does not initialize older databases that have no life-frame storage.');
