@@ -58,7 +58,7 @@ async function refresh(): Promise<void> {
   show('sign-in', !state.user); show('account', !!state.user);
   text('site-user', state.user?.username ?? '');
   text('nimi-user', state.nimi ? `${state.nimi.displayName || state.nimi.accountId} · 已验证`
-    : state.user?.nimiAccountId ? '已有 Nimi 关联；请重新验证身份以连接。' : '尚未关联 Nimi');
+    : state.user?.nimiAccountId ? '已关联 Nimi 账号，请重新验证身份以连接。' : '尚未关联 Nimi');
   show('link', !state.nimi); show('unlink', !!state.user?.nimiAccountId); show('connect', !!state.nimi && !connection && !connecting);
   show('pc-help', !!state.nimi && !connection);
   updateTaskControls();
@@ -131,7 +131,7 @@ action('connect', async () => {
   try {
     const connected = await connectRemoteRuntime(session, { signal: attempt.signal, onState(value) {
       if (sessionAbort !== abort) return;
-      const labels = { gathering: '正在准备直连…', 'waiting-for-pc': '正在等待 PC；首次接入请在 Home 确认。', connecting: '正在建立直连…', connected: '已直连主 Runtime', closed: '连接已关闭；需要时重新连接。' };
+      const labels = { gathering: '正在准备直连…', 'waiting-for-pc': '正在等待 PC；首次接入请在 Home 确认。', connecting: '正在建立直连…', connected: '已直连主 Runtime', closed: '连接已关闭，需要时可重新连接。' };
       if (value === 'closed') {
         resetConnectionView(labels.closed);
         show('connect', !!state.nimi);

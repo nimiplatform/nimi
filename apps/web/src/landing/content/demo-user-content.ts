@@ -78,7 +78,7 @@ export function createDemoUsers(locale: 'zh' | 'en') {
           'assistant',
           t(
             '我把新的分镜思路整理好了，晚点一起看看？',
-            'I have organized the new storyboard ideas. Shall we review them later?',
+            'I’ve put together the new storyboard ideas. Want to go over them later?',
           ),
           185,
         ],

@@ -7,7 +7,7 @@
       "refreshSession": "刷新会话",
       "runAll": "运行常规检查",
       "checksTitle": "选择检查",
-      "runAllImpact": "会写入临时数据、发起真实 AI 请求，并在可用伙伴的对话中发送测试消息。持久 Realm 写入需单独确认。",
+      "runAllImpact": "会写入临时数据、发起真实 AI 请求，并在有可用伙伴时发送测试消息。持久 Realm 写入需单独确认。",
       "runGroup": "运行本组常规检查",
       "signedOut": "请通过账户菜单登录 Nimi 后再运行 App 访问探针。",
       "sessionLost": "Nimi 会话已丢失，此前会话的探针证据已清除。",
@@ -86,7 +86,7 @@
       },
       "realm": {
         "title": "Realm 数据",
-        "blurb": "读取获准的世界和角色；创建测试数据需单独确认。"
+        "blurb": "读取允许访问的世界和角色；创建测试数据需单独确认。"
       },
       "aiConsumption": {
         "title": "AI 调用",

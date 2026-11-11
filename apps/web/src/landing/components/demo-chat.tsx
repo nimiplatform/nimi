@@ -513,7 +513,7 @@ export function DemoChatSurface({
                     )
                   : panel === 'identity'
                     ? (profileTarget?.worldName ?? profileTarget?.handle)
-                    : t('Nimi Chat 的专属配置', 'Configuration for Nimi Chat')}
+                    : t('用于 Nimi Chat 的配置', 'Configuration for Nimi Chat')}
               </small>
             </div>
             <Tool label={t('关闭面板', 'Close panel')} onClick={() => setPanel(null)}>

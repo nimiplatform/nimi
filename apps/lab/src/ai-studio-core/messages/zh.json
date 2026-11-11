@@ -194,7 +194,7 @@
       "runtimeCallFailed": "先重试一次；如果仍然失败，再展开 Runtime 详情查看原因。",
       "contentFilterBlocked": "请尝试移除或脱敏受限内容，或调整所选上下文后重新提交。",
       "inputLimitExceeded": "请缩短输入，或配置可接受更长输入的模型，然后重新运行。",
-      "textBehaviorUnsupported": "打开参数并重置此模型不接受的设置，或在本应用的 AI 配置中选择支持此行为的模型，再重新运行。",
+      "textBehaviorUnsupported": "打开「参数」并重置此模型不支持的设置，或在本 App 的 AI 配置中改选支持该行为的模型，再重新运行。",
       "mediaOptionUnsupported": "打开「参数」重置不受支持的设置后重新运行，也可以在 App AI 配置中选择支持这些设置的模型。",
       "embeddingPurposeUnsupported": "打开「参数」，按任务选择「待检索内容」（建立索引）或「检索问题」（搜索），再重新运行。如果仍不支持该用途，可在 App AI 配置中选择支持它的模型。",
       "modalityUnsupported": "请先修改输入，或在「参数」中重置不受支持的设置后再运行，也可以选择支持这次请求的配置。",
@@ -275,7 +275,7 @@
     "downloadGeneration": "下载生成结果",
     "revealAsset": "在文件夹中显示",
     "revealGeneration": "在文件夹中显示生成文件",
-    "regenerate": "按当前配置再运行",
+    "regenerate": "按当前配置再次运行",
     "newRun": "返回草稿",
     "useAsDraft": "复用输入",
     "intentLabel": "当次配置",
@@ -510,10 +510,10 @@
       "stateClosed": "已关闭",
       "stateTerminated": "已终止",
       "audioUsageFinal": "供方最终报告的累计音频：{{seconds}} 秒。此值不是 token 数或费用估算。",
-      "audioUsagePartial": "供方目前报告的累计音频：{{seconds}} 秒；尚未确认最终结束。",
+      "audioUsagePartial": "服务商目前报告的累计音频：{{seconds}} 秒。该用量尚未标为最终值。",
       "localClosureUnconfirmed": "会话已结束，本地资源释放尚未确认。",
       "providerClosureConfirmed": "本地资源已释放，并已收到供方会话关闭回执。",
-      "localClosureConfirmed": "本地连接与资源已释放。供方未提供会话关闭回执，最终用量未确认。"
+      "localClosureConfirmed": "本地连接与资源已释放。服务商尚未确认会话已关闭。"
     },
     "faceSwap": {
       "inputs": "换脸输入",

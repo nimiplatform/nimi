@@ -86,8 +86,8 @@ export function DemoCloudForm({ connection, connected, references, onSave, onRem
         </details>
         {!managed ? <div className="cloud-key-example">
           <label className="cloud-field">{t('API 密钥', 'API key')}<input type="password" readOnly value={sampleKey ? 'demo-only' : ''} autoComplete="off"
-            placeholder={connection ? t('留空保留已有凭据', 'Leave blank to keep the credential') : t("请使用下方的预置密钥", "Use the preset key below")} /></label>
-          <Button size="sm" tone="secondary" disabled={sampleKey} onClick={() => setSampleKey(true)}><KeyRound size={14} />{sampleKey ? t("已填入预置密钥", "Preset key filled in") : t("使用预置密钥", "Use preset key")}</Button>
+            placeholder={connection ? t('留空保留已有凭据', 'Leave blank to keep the credential') : t('请使用下方的示例值', 'Use the sample value below')} /></label>
+          <Button size="sm" tone="secondary" disabled={sampleKey} onClick={() => setSampleKey(true)}><KeyRound size={14} />{sampleKey ? t('已填入示例值', 'Sample value filled in') : t('填入示例值', 'Use sample value')}</Button>
           <small>{t('网页只接受内置样例。真实密钥由桌面端的本机 Runtime 管理。', 'Only the built-in sample is used here. The desktop Runtime manages real credentials.')}</small>
         </div> : <div className="cloud-auth-note">
           <strong>{browserSignIn ? t('打开 Nimi 登录 ChatGPT', 'Open Nimi to sign in to ChatGPT') : t('由宿主管理授权', 'Host-managed authorization')}</strong>

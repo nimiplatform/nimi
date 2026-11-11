@@ -510,10 +510,10 @@
       "stateClosed": "Closed",
       "stateTerminated": "Terminated",
       "audioUsageFinal": "Final reported cumulative audio: {{seconds}} s. This is not a token count or price estimate.",
-      "audioUsagePartial": "Reported cumulative audio so far: {{seconds}} s; finalization is unconfirmed.",
+      "audioUsagePartial": "Audio reported so far: {{seconds}} s. The provider has not marked this total as final.",
       "localClosureUnconfirmed": "The session ended; local resource release is unconfirmed.",
       "providerClosureConfirmed": "Local resources released and provider session closure confirmed.",
-      "localClosureConfirmed": "Local connection and resources released. No provider session-close receipt; final usage is unconfirmed."
+      "localClosureConfirmed": "Local connection and resources released. The provider has not confirmed that its session closed."
     },
     "faceSwap": {
       "inputs": "Face replacement inputs",

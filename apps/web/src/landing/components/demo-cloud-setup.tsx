@@ -55,7 +55,7 @@ export function DemoCloudSetup({ target, demo }: { target: string; demo: HeroDem
         ? t(`待保存：${selected.label}`, `Selected model: ${selected.label}`)
         : t(`已保存：${selected.label}`, `Saved model: ${selected.label}`)}</p>
       <small>{t("离开后会保留这份草稿。保存仅更新配置，不会发起 AI 请求；使用云服务时可能产生服务商费用。", "Leaving keeps this draft. Saving only updates the configuration and sends no AI request. Using cloud services may incur provider charges.")}</small>
-      {connection?.status === 'credential' && <small>{t('该连接仍需要凭据。', 'This connection still needs a credential.')}</small>}
+      {connection?.status === 'credential' && <small>{t('此连接仍需添加凭据。', 'This connection still needs credentials.')}</small>}
       <Button size="sm" tone="primary" disabled={!draft || !selected || !connection || connection.status === 'credential'} onClick={save}>
         {t(`保存到 ${owner?.name}`, `Save for ${owner?.name}`)}
       </Button>

@@ -413,14 +413,14 @@
       "contextBytes": "{{bytes}} / 500 UTF-8 bytes",
       "sendContext": "Send context",
       "usageFinal": "Final reported cumulative audio: {{seconds}} s. This is not a token count or price estimate.",
-      "usagePartial": "Reported cumulative audio so far: {{seconds}} s; finalization is unconfirmed.",
+      "usagePartial": "Audio reported so far: {{seconds}} s. The provider has not marked this total as final.",
       "transcriptWindow": "Showing the latest 200 continuous transcript fragments.",
       "inputTranscript": "Input transcript",
       "outputTranscript": "Output transcript",
       "nativeInterruption": "Provider audio interruption observed",
       "localClosureUnconfirmed": "The session ended; local resource release is unconfirmed.",
       "providerClosureConfirmed": "Local resources released and provider session closure confirmed.",
-      "localClosureConfirmed": "Local connection and resources released. No provider session-close receipt; final usage is unconfirmed.",
+      "localClosureConfirmed": "Local connection and resources released. The provider has not confirmed that its session closed.",
       "receptionStopped": "local reception stopped"
     },
     "jobs": {

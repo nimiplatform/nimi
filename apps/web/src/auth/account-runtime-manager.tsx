@@ -123,7 +123,7 @@ export function AccountRuntimeManager({ accountId }: { accountId: string }) {
   }
   async function verifyOwner() {
     const owner = await loadWebCurrentAccount();
-    if (!mounted.current || owner?.id !== accountId) { close(); throw new Error(say('账号已改变，请重新登录。', 'The account changed. Sign in again.')); }
+    if (!mounted.current || owner?.id !== accountId) { close(); throw new Error(say('账号已变更，请重新登录。', 'The account changed. Sign in again.')); }
   }
   async function connect() {
     await verifyOwner();
@@ -135,7 +135,9 @@ export function AccountRuntimeManager({ accountId }: { accountId: string }) {
       const saved = JSON.parse(stored) as Login;
       if (saved.accountId !== accountId || saved.options.realmEnvironmentId !== realmEnvironmentId || saved.options.clientId !== clientId
         || saved.options.realmBaseUrl !== webRealmOrigin() || saved.options.officialWebBaseUrl !== window.location.origin
-        || saved.options.redirectUri !== new URL('/account/runtime', window.location.origin).href) throw new Error('Management sign-in context changed.');
+        || saved.options.redirectUri !== new URL('/account/runtime', window.location.origin).href) {
+        throw new Error(say('管理端登录条件已变化，请重新验证。', 'The management sign-in context changed. Verify again.'));
+      }
       if (!matchesRuntimeClientCallback(callback.href, saved.transaction.redirectUri) || callback.searchParams.get('state') !== saved.transaction.state) {
         throw new Error(say('此回调与当前管理登录不匹配。', 'This callback does not match the current management sign-in.'));
       }
@@ -164,7 +166,10 @@ export function AccountRuntimeManager({ accountId }: { accountId: string }) {
         setState(next);
         if (next === 'closed') { peer.current = null; setConnection(null); setAccess(null); clearConfig(); }
       } });
-      if (!mounted.current || connected.role !== 'official_manager') { connected.close(); throw new Error('A verified owner-management session is required.'); }
+      if (!mounted.current || connected.role !== 'official_manager') {
+        connected.close();
+        throw new Error(say('请验证 Runtime 所有者身份后再连接。', 'Verify that you own this Runtime before connecting.'));
+      }
       peer.current = connected; setConnection(connected); await readState(connected);
     } finally { if (connecting.current === controller) connecting.current = null; }
   }
@@ -194,7 +199,7 @@ export function AccountRuntimeManager({ accountId }: { accountId: string }) {
   }
   async function overwriteConfig(current: ManagerConnection, id: string, input: NimiAIConfigOverwriteInput) {
     await verifyOwner();
-    if (!isSelected(current, id)) throw new Error(say('连接或应用已改变。', 'The connection or selected app changed.'));
+    if (!isSelected(current, id)) throw new Error(say('连接或所选应用已变更。', 'The connection or selected app changed.'));
     const result = await current.management.appAIConfig(id).overwrite(input);
     if (isSelected(current, id)) await refreshConfig(current, id);
     return result;
@@ -202,8 +207,8 @@ export function AccountRuntimeManager({ accountId }: { accountId: string }) {
   const labels: Record<string, string> = {
     gathering: say('正在准备直连…', 'Preparing a direct connection…'), 'waiting-for-pc': say('等待 PC 响应；首次接入请在 Home 确认此管理来源。', 'Waiting for the PC. Confirm this management source in Home on first use.'),
     connecting: say('正在连接…', 'Connecting…'), connected: say('已直连主 Runtime；普通服务正在运行。', 'Connected directly; ordinary Runtime services are running.'),
-    closed: say('连接已关闭。需要时重新连接。', 'The connection closed. Connect again when needed.'), maintenance: say('Runtime 处于维护状态。', 'Runtime is in maintenance mode.'),
-    stop: say('停止请求已接受。连接关闭不单独证明主机进程已退出；停止后需在 PC 上重新启动。', 'The stop request was accepted. A closed connection alone does not prove process exit. Restart from the PC after it stops.'),
+    closed: say('连接已关闭，需要时可重新连接。', 'The connection closed. Connect again when needed.'), maintenance: say('Runtime 处于维护状态。', 'Runtime is in maintenance mode.'),
+    stop: say('停止请求已接受。仅凭连接关闭不足以证明主机进程已退出；停止后需在 PC 上重新启动。', 'The stop request was accepted. A closed connection alone does not prove process exit. Restart from the PC after it stops.'),
   };
   const apps = new Map<string, { name: string; capabilities: Set<string> }>();
   for (const source of access?.sources ?? []) {
@@ -215,7 +220,7 @@ export function AccountRuntimeManager({ accountId }: { accountId: string }) {
   const selected = apps.get(appId);
   return <section className="ac-section">
     <h2>{say('远程管理', 'Remote management')}</h2>
-    <p>{say('通过此官方管理端连接你的主 Runtime。首次使用在 PC Home 确认此来源，换浏览器或设备不重复确认。', 'Connect your primary Runtime from this official manager. Confirm this source once in PC Home; another browser or device does not require another approval.')}</p>
+    <p>{say('首次使用此管理端时，请在 PC 上的 Nimi Home 确认来源。账号、主 Runtime 和来源版本未变时，换浏览器或设备不必重新确认。', 'Confirm this management source in Nimi Home on your PC the first time. You can switch browsers or devices without confirming again if the account, primary Runtime, and source version stay the same.')}</p>
     <p>{say('主机 Home 需保持运行并开启远程接入。当前网络必须允许直连。', 'Keep Home running with remote access enabled. The current network must allow a direct connection.')}</p>
     <AccountFeedback error={error} message={labels[state]} />
     {!ready && <p>{say('此部署尚未配置 HTTPS 官方管理来源。绑定信息仍可正常查看。', 'This deployment has no configured HTTPS manager source. Primary binding information remains available.')}</p>}
@@ -227,7 +232,7 @@ export function AccountRuntimeManager({ accountId }: { accountId: string }) {
     {connection && <>
       <p>{say('断开此客户端不会停止主 Runtime。', 'Disconnecting this client does not stop the primary Runtime.')}</p>
       <h3 className="ac-runtime-subheading">{say('应用访问', 'Application access')}</h3>
-      {!access?.sources.length && <p>{say('尚无已登记的远程来源。', 'No remote sources are registered yet.')}</p>}
+      {access?.sources.length === 0 && <p>{say('尚无远程接入记录。', 'No remote access sources are recorded yet.')}</p>}
       {access?.sources.map(source => <div className="ac-runtime-source" key={source.clientId}><div><strong>{source.displayName}</strong><p>{source.origin}</p></div>
         {source.state === RemoteSourceAccessState.PENDING || source.state === RemoteSourceAccessState.CHANGED
           ? <span>{say('在 PC Home 确认', 'Confirm in PC Home')}</span>

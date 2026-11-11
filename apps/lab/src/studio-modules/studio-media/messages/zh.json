@@ -235,7 +235,7 @@
       "videoModeFirstLast": "首尾帧生成视频",
       "videoFirstFrameRequired": "请为首帧选择一个来源：已上传的图像资源或 HTTPS URL。",
       "videoLastFrameRequired": "请为末帧选择一个来源：已上传的图像资源或 HTTPS URL。",
-      "videoReferencesRequired": "请添加所选模型支持的参考图片、视频链接或音频链接。",
+      "videoReferencesRequired": "请添加至少一项所选模型支持的参考图片、视频或音频。",
       "videoModeT2v": "文生视频",
       "videoModeReference": "参考素材",
       "chooseImageFile": "选择并上传图片",
@@ -244,7 +244,7 @@
       "imageFileTooLarge": "图片文件必须非空且不超过 32 MiB。",
       "imageFileMimeUnsupported": "请选择 PNG、JPEG、WebP 或 GIF 图片。",
       "cloudImageFileMimeUnsupported": "请选择 PNG、JPEG 或 WebP 参考图。",
-      "cloudImageReferenceHint": "文件参考与网址参考二选一。PNG、JPEG 和 WebP 文件由所选 Runtime 实现校验。",
+      "cloudImageReferenceHint": "文件参考与链接参考二选一。PNG、JPEG 和 WebP 文件由所选 Runtime 校验。",
       "imageReferenceHint": "文件参考与网址参考二选一。Runtime 会校验所选实现及上传的图片。",
       "imageReferenceExclusive": "请在参考图文件和网址中选择一种，再重新运行。",
       "fields": {
@@ -299,13 +299,13 @@
       "uploadingReference": "正在上传参考素材…",
       "chooseAudioReference": "选择并上传音频（WAV/MP3）",
       "clearAudioReference": "清除参考音频",
-      "audioReferenceOrderHint": "上传音频按列表顺序排列在音频链接之前。",
+      "audioReferenceOrderHint": "上传的音频会按此列表顺序排在音频链接之前。",
       "videoReferenceFileTooLarge": "视频不能为空，且单个文件不能超过 32 MiB。",
       "videoReferenceMimeUnsupported": "请选择 MP4 视频。",
       "videoReferenceFiles": "参考视频文件",
       "chooseVideoReference": "选择并上传视频（MP4）",
       "clearVideoReference": "清除参考视频",
-      "videoReferenceOrderHint": "上传视频按列表顺序排列在视频链接之前。",
+      "videoReferenceOrderHint": "已上传的视频按列表顺序排在视频链接之前。",
       "useDefault": "沿用模型默认",
       "maskFileHint": "不透明黑白 PNG：白色编辑、黑色保留，尺寸须与参考图一致。",
       "markupFileHint": "与参考图尺寸一致的独立透明 PNG 标注图层，不能与蒙版同时使用。",
@@ -357,6 +357,6 @@
     "observationIssue": "暂时无法更新进度，正在继续查询原任务…",
     "recoveryNeedsAttention": "恢复遇到问题",
     "requiredLyricsLabel": "歌词（必填）",
-    "lyricsRequired": "所选模型需要歌词。请填写歌词；如需纯配乐，请选择支持该输入方式的模型。"
+    "lyricsRequired": "所选模型需要歌词。请填写歌词；如需纯配乐，请改选支持无歌词生成的模型。"
   }
 }

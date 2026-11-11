@@ -12,7 +12,7 @@ import { HomeRemoteAccess } from './home-remote-access.js';
 
 const copy = {
   en: { title: 'Primary Runtime', loading: 'Reading your primary binding…', none: 'No primary Runtime is bound.', here: 'This PC is your primary Runtime.', other: 'Another Runtime is bound to your account.', name: 'PC name', bind: 'Bind this PC', replace: 'Reinitialize on this PC', refresh: 'Refresh', opening: 'Opening confirmation…', warning: 'Reinitialization ends the previous binding. Old configuration and data are not migrated. You must configure this PC again.', waiting: 'Confirm the request in the official Nimi account page, then refresh here. Binding does not by itself establish remote AI access.', failed: 'Could not read or prepare the primary binding. Check your login and Realm connection.' },
-  zh: { title: '主 Runtime', loading: '正在读取主绑定…', none: '此账号尚未绑定主 Runtime。', here: '这台 PC 是你的主 Runtime。', other: '此账号已绑定另一台 Runtime。', name: '主机名称', bind: '绑定这台 PC', replace: '在此主机重新初始化', refresh: '刷新', opening: '正在打开确认页面…', warning: '重新初始化将使旧绑定失效。旧配置和数据不会迁移，需要在此主机重新配置。', waiting: '请在 Nimi 官方账号页确认，然后返回刷新。绑定本身不代表远程 AI 已经可用。', failed: '无法读取或准备主绑定，请检查登录与 Realm 连接。' },
+  zh: { title: '主 Runtime', loading: '正在读取主 Runtime 绑定状态…', none: '此账号尚未绑定主 Runtime。', here: '这台 PC 是你的主 Runtime。', other: '此账号已绑定另一台 Runtime。', name: '主机名称', bind: '绑定这台 PC', replace: '在这台 PC 上重新初始化', refresh: '刷新', opening: '正在打开确认页面…', warning: '重新初始化会使原有绑定失效。旧配置和数据不会迁移，需要在这台 PC 上重新配置。', waiting: '请在 Nimi 官方账号页确认，然后返回刷新。绑定本身不代表远程 AI 已经可用。', failed: '无法读取或准备主 Runtime 绑定，请检查登录状态与 Realm 连接。' },
 };
 
 export function HomePrimaryRuntime() {

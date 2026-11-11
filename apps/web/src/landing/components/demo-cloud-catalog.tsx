@@ -41,7 +41,7 @@ export function DemoCloudCatalog({ connection, demo, t, onConfigure }: {
     {filtered.length > 20 && <div className="cloud-title-row"><small>{t(`已显示 ${Math.min(limit, filtered.length)} / ${filtered.length} 个模型`, `Showing ${Math.min(limit, filtered.length)} of ${filtered.length} models`)}</small>
       {limit < filtered.length && <Button size="sm" tone="ghost" onClick={() => setLimit(limit + 20)}>{t('加载更多', 'Load more')}</Button>}</div>}
     <details className="cloud-explanation"><summary>{t('关于此目录', 'About this catalog')}</summary>
-      <p>{t('此处展示 Nimi 随附的模型资料。目录条目不代表账户权限或调用成功。桌面端从 Runtime 读取当前连接的实际目录。', 'These examples use the catalog bundled with Nimi. An entry does not establish account access or a successful call. Home reads the actual catalog from Runtime.')}</p></details>
+      <p>{t('此处展示 Nimi 随附的模型目录。列出模型不代表账户具备权限或调用必定成功；Home 会从 Runtime 读取当前连接的实际目录。', 'These examples use the catalog bundled with Nimi. An entry does not establish account access or a successful call. Home reads the actual catalog from Runtime.')}</p></details>
   </div>;
 }
 

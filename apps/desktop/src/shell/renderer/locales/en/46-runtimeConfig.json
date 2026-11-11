@@ -3336,7 +3336,7 @@
     "removeAt": "Remove target {{index}}",
     "remove": "Remove",
     "add": "Add target",
-    "complete": "Select a current model and its complete invocation ID for each row. Do not enter an ARN or another model ID.",
+    "complete": "Select a different catalog model and enter a unique, complete invocation ID in each row. Use the model ID or its system inference profile ID; do not enter an ARN.",
     "reselect": "Changing or removing an invocation ID requires affected Apps to select a model again. AWS still determines regional availability, permissions and model access.",
     "save": "Save targets",
     "cancel": "Cancel",

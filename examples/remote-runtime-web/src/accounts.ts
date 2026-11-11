@@ -47,7 +47,7 @@ export class Accounts {
     if (!verifiedNimiAccountId) throw new Error('缺少已验证的 Nimi 身份。');
     const result = this.#db.prepare(`UPDATE website_user SET nimi_account_id=?
       WHERE id=? AND (nimi_account_id IS NULL OR nimi_account_id=?)`).run(verifiedNimiAccountId, id, verifiedNimiAccountId);
-    if (result.changes !== 1) throw new Error('此网站账号已关联其它 Nimi 账号；请先解除关联。');
+    if (result.changes !== 1) throw new Error('此网站账号已关联其他 Nimi 账号，请先解除关联。');
   }
   unlink(id: string): void { this.#db.prepare('UPDATE website_user SET nimi_account_id=NULL WHERE id=?').run(id); }
   close(): void { this.#db.close(); }

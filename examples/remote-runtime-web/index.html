@@ -22,7 +22,7 @@
       <section id="configuration" hidden><h2>此网站的 AI 配置</h2><p id="effective-config"></p>
         <label>执行方式<select id="route"><option value="local">PC 本地模型</option><option value="cloud">PC 上的 Cloud Connector</option></select></label>
         <div id="cloud-fields" hidden><label>连接<select id="connector"></select></label><label>模型<select id="target"></select></label></div>
-        <div class="actions"><button id="save-config" class="secondary">保存此网站的配置</button><button id="refresh-config" class="secondary">刷新配置</button></div><p class="help">选择变更保存后生效。本地模型选择和云服务凭据在 Nimi 管理端配置。</p>
+        <div class="actions"><button id="save-config" class="secondary">保存此网站的配置</button><button id="refresh-config" class="secondary">刷新配置</button></div><p class="help">更改保存后生效。本地模型选择和云服务凭据在 Nimi 管理端配置。</p>
       </section>
     </aside>
     <article>
@@ -39,7 +39,7 @@
         <label>文本语言<input id="job-language" value="en" maxlength="16" aria-describedby="job-language-help"></label><p id="job-language-help" class="help">填写当前本地能力支持的语言代码，例如 en。语言支持由 PC 的配置决定。</p>
         <div class="actions"><button id="submit-job" disabled>提交新任务</button></div>
         <label>提交编号<input id="job-reference" maxlength="128" autocomplete="off" spellcheck="false"></label>
-        <p class="help">每次提交创建一个新任务。若响应中断，保存此编号并查询状态；页面不会自动重提。切换账号会清除本页显示，任务仍由其原账号持有。</p>
+        <p class="help">每次提交都会使用新的编号。若未收到响应，请保留编号并查询状态，页面不会自动重提。切换账号会清除本页显示，已提交的任务仍归原账号所有。</p>
         <div class="actions"><button id="read-job" class="secondary" disabled>查询任务</button><button id="cancel-job" class="secondary" disabled>请求取消任务</button></div>
         <p id="job-state" role="status">尚未查询任务。</p><pre id="job-result"></pre>
       </details>

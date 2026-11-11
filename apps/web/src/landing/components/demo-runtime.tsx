@@ -110,7 +110,7 @@ export function DemoRuntimeSurface({ demo, onNavigate, initialCapability }: { de
               <div className="mt-4 border-t border-slate-200 pt-4">
                 <h3>{t('模型配置', 'Model configuration')}</h3>
                 <p className="demo-muted mt-2">
-                  {capability.model} · {t('本地', 'Local')}
+                  {capability.model} · {t('本机', 'Local')}
                 </p>
               </div>
             )}

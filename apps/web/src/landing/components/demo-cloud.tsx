@@ -112,7 +112,7 @@ export function DemoCloudSurface({ demo, target }: { demo: HeroDemo; target?: st
           <div className="cloud-heading-buttons">
             <Button size="sm" tone="ghost" onClick={() => setPanel({ type: 'edit' })}><PencilLine size={14} />{t('编辑连接', 'Edit connection')}</Button>
             {current.status === 'credential' ? <Button size="sm" tone="primary" onClick={() => setPanel({ type: 'edit' })}>{t('添加凭据', 'Add credentials')}</Button> :
-              <Button size="sm" tone="ghost" onClick={() => setFeedback(t('此处展示连接检查的入口。真实检查需要在 Home 使用已保存的凭据，本页没有发送请求。', 'In Home this checks the saved credential. This preview did not send a request.'))}>
+              <Button size="sm" tone="ghost" onClick={() => setFeedback(t('在 Home 中会检查已保存的凭据；当前预览未发送请求。', 'In Home this checks the saved credential. This preview did not send a request.'))}>
                 {current.status === 'checked' ? t('再次检查', 'Check again') : t('检查连接', 'Check connection')}</Button>}
           </div>
         </header>
@@ -137,7 +137,7 @@ export function DemoCloudSurface({ demo, target }: { demo: HeroDemo; target?: st
             {tab === 'models' ? <DemoCloudCatalog connection={current} demo={demo} t={t} onConfigure={model => setPanel({ type: 'use', model })} /> :
               tab === 'usage' ? <DemoCloudUsage connection={current} t={t} openHistory={days => setPanel({ type: 'history', scoped: true, days })} /> :
               <div className="cloud-pane"><h3>{t('已保存的应用配置', 'Saved app configurations')}</h3>
-                <p className="cloud-muted">{t("已保存的配置。存在引用不代表正在调用模型。", "Saved configurations. A reference does not mean the model is running.")}</p>
+                <p className="cloud-muted">{t("仅列出已保存的配置，不代表当前正在调用模型。", "Shows saved configurations only. A listed configuration does not mean the model is currently being called.")}</p>
                 {refs.length ? <ul className="cloud-rows">{refs.map(use => {
                   const owner = ownerOptions(use.capability, t).find(o => o.id === use.owner);
                   return <li key={use.owner + use.capability}><div><strong>{owner?.name}</strong><small>{capabilityLabel(use.capability, demo)} · {use.model}</small></div>
