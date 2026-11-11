@@ -595,6 +595,7 @@ test('text.tools returns every ordered item and a ToolResult with the same call 
 
 test('text.tools streaming delivery assembles the same ordered items from the text-turn stream and replays them exactly', async () => {
   const { runLabCapability } = await load('lab/lab-runtime.js');
+  const partials = [];
   const toolCall = { id: 'call-7', name: 'lab_convert_centimeters', arguments: { centimeters: 30 } };
   const fake = fakeClient({
     streamTurn: (_input, call) => call === 1
@@ -610,7 +611,7 @@ test('text.tools streaming delivery assembles the same ordered items from the te
           { type: 'completed', sequence: '2', traceId: 'trace-2', finishReason: 'stop' },
         ],
   });
-  const result = await runLabCapability({ capabilityId: 'text.tools', prompt: 'Convert 30 cm.', parameters: { scenario: 'tool-call', delivery: 'stream' } }, ready(fake.client));
+  const result = await runLabCapability({ capabilityId: 'text.tools', prompt: 'Convert 30 cm.', parameters: { scenario: 'tool-call', delivery: 'stream' }, onPartial: text => partials.push(text) }, ready(fake.client));
   assert.equal(result.ok, true, result.message);
   assert.equal(fake.calls.execute.length, 0, 'the streaming delivery never falls back to execute');
   const [first, second] = fake.calls.streamTurn;
@@ -626,6 +627,7 @@ test('text.tools streaming delivery assembles the same ordered items from the te
   assert.deepEqual(result.output.steps.map((step) => step.traceId), ['trace-1', undefined, 'trace-2']);
   assert.equal(result.output.text, '30 cm is 11.811 inches.');
   assert.equal(fake.calls.streamCancel, 2, 'each finished stream is released');
+  assert.deepEqual(partials, ['Convert', 'Converting.', '30 cm is 11.811 inches.'], 'preview accumulates real text per model step without exposing opaque reasoning or tools');
 
   const { t } = await load('shell/i18n/index.js');
   for (const [events, expected] of [
@@ -780,6 +782,7 @@ test('text.tools Stop settles as stopped wherever a model step is pending and ne
   {
     const fake = fakeClient({});
     const controller = new AbortController();
+    const partials = [];
     let released = 0;
     fake.client.ai.text.streamTurn = async () => ({
       async *[Symbol.asyncIterator]() {
@@ -790,9 +793,10 @@ test('text.tools Stop settles as stopped wherever a model step is pending and ne
       },
       async cancel() { released += 1; },
     });
-    const result = await runLabCapability({ capabilityId: 'text.tools', prompt: 'x', parameters: { scenario: 'structured-output', delivery: 'stream' }, signal: controller.signal }, ready(fake.client));
+    const result = await runLabCapability({ capabilityId: 'text.tools', prompt: 'x', parameters: { scenario: 'structured-output', delivery: 'stream' }, signal: controller.signal, onPartial: text => partials.push(text) }, ready(fake.client));
     expectStopped(result, 'mid-stream');
     assert.equal(released, 1, 'the stopped stream is released once');
+    assert.deepEqual(partials, ['{"title":"part'], 'cancellation suppresses late preview text as well as the final result');
   }
 
   // Tool round trips: a tool call that arrives after Stop is never executed and

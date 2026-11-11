@@ -163,6 +163,7 @@ async function streamLabTextStep(context: StudioCapabilityRuntimeContext, input:
   try {
     const items: NimiLocalAppTextOutputItem[] = [];
     let traceId = '';
+    let partialText = '';
     if (signal?.aborted) throw studioAbortError();
     for await (const event of subscription) {
       if (signal?.aborted) throw studioAbortError();
@@ -179,6 +180,10 @@ async function streamLabTextStep(context: StudioCapabilityRuntimeContext, input:
         if (event.itemIndex === items.length) items.push({ type, text: event.text });
         else if (current?.type === type && event.itemIndex === items.length - 1) items[event.itemIndex] = { type, text: current.text + event.text };
         else throw new Error(t('CapabilityTests.textTools.streamOrder'));
+        if (event.type === 'delta') {
+          partialText += event.text;
+          context.input.onPartial?.(partialText);
+        }
         continue;
       }
       if (event.itemIndex !== items.length) throw new Error(t('CapabilityTests.textTools.streamOrder'));

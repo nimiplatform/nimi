@@ -20,6 +20,7 @@ export type StudioParameterPanelProps = {
   readonly parameters: StudioParameterValue;
   readonly disabled: boolean;
   readonly onChange: (parameters: StudioParameterValue) => void;
+  readonly onInputPreparationStart?: () => () => void;
 };
 
 export type StudioParameterFieldDefinition = {

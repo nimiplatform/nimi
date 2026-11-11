@@ -1,6 +1,6 @@
 import { StudioJobRecoveryPanel } from './job-recovery-panel.js';
 import { isStudioJobRecoveryCapability } from './job-recovery.js';
-import { Suspense, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Suspense, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Button, IconButton, LoadingSkeleton, InlineAlert, nimiToast, OverlayShell, StatusBadge, Tooltip } from '@nimiplatform/kit/ui';
 import { PanelRight, SquarePen } from 'lucide-react';
 import { createBrowserDataUrlAttachmentAdapter, useChatComposer, type BrowserDataUrlAttachment } from '@nimiplatform/kit/features/chat/headless';
@@ -77,6 +77,22 @@ function TextStudioShell({
   const [executingRun, setExecutingRun] = useState<TextStudioActiveRun | null>(null);
   const [cancelRequested, setCancelRequested] = useState(false);
   const [streamingText, setStreamingText] = useState<string | null>(null);
+  const inputPreparationsRef = useRef(new Map<string, number>());
+  const [inputPreparations, setInputPreparations] = useState<ReadonlyMap<string, number>>(inputPreparationsRef.current);
+  const startInputPreparation = useCallback(() => {
+    const id = capability.id;
+    const update = (delta: number) => {
+      const next = new Map(inputPreparationsRef.current);
+      const count = (next.get(id) ?? 0) + delta;
+      if (count > 0) next.set(id, count);
+      else next.delete(id);
+      inputPreparationsRef.current = next;
+      setInputPreparations(next);
+    };
+    update(1);
+    return () => update(-1);
+  }, [capability.id]);
+  const preparingInput = inputPreparations.has(capability.id);
   const [activeRun, setActiveRun] = useState<TextStudioActiveRun | null>(null);
   const [sessionRuns, setSessionRuns] = useState<Record<string, TextStudioActiveRun>>({});
   const historyPanel = useContext(StudioHistoryPanelContext);
@@ -258,6 +274,7 @@ function TextStudioShell({
 
   async function run(nextPrompt = prompt, nextContext = context, replay = false) {
     if (abortControllerRef.current) return;
+    if (!replay && inputPreparationsRef.current.has(capability.id)) return;
     if (replay && !textMediaReplayable) return;
     if (replay && (!displayedRunReplayable || !replayAssetsAvailable)) return;
     const replayTextMedia = replay && (capability.id === 'text.generate' || capability.id === 'vision.locate');
@@ -327,7 +344,8 @@ function TextStudioShell({
           }
         }
         abortController.signal.throwIfAborted();
-        const isStreaming = capability.id === 'chat.stream';
+        const isStreaming = capability.id === 'chat.stream'
+          || (capability.id === 'text.tools' && submittedParameters.delivery === 'stream');
         if (isStreaming) setStreamingText('');
         const directive = textStudioDirectiveForTarget(runTarget, profile);
         if (capability.id === 'text.generate' && runAttachments.length > 0 &&
@@ -524,7 +542,7 @@ function TextStudioShell({
           : 'Studio.profiles.textGenerate.imageTargetUnsupported') : undefined}
       onOpenAttachmentPicker={composerState.openAttachmentPicker}
       onRemoveAttachment={composerState.removeAttachment}
-      canDispatch={runTarget.canDispatch}
+      canDispatch={runTarget.canDispatch && !preparingInput}
       canConfigureIntent={!runTarget.configReadFailed && canConfigureRunTarget(runTarget)}
       intentConfigurable={capability.execution === 'runtime-sdk'}
       compact={Boolean(activeRun)}
@@ -534,8 +552,9 @@ function TextStudioShell({
           contract={registration.parameters}
           source={runTarget.source}
           parameters={capabilityParameters}
-          disabled={running}
+          disabled={running || preparingInput}
           onChange={(next) => parameterStore.setParameters(capability.id, next)}
+          onInputPreparationStart={startInputPreparation}
         />
       ) : undefined}
       parametersActive={Object.keys(parameterSummary).length > 0}

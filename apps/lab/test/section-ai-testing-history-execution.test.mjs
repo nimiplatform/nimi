@@ -214,6 +214,46 @@ test(`Text Studio exposes Stop for ${media.type} and cancels its own running req
 });
 }
 
+test('streamed tools expose live text before completion and clear it after Stop', async () => {
+  const registration = labStudioComposition.getCapability('text.tools');
+  const calls = [];
+  const target = { capabilityId: 'text.tools', capabilityContract: 'text.generate', section: 'text',
+    source: 'cloud', status: 'configured', canDispatch: true, intentLabel: 'Cloud', detail: 'configured', params: {}, paramsSummary: [] };
+  const host = {
+    appTitle: 'Lab', translate: key => key, locale: 'en', clock: { now: () => Date.now() },
+    app: {
+      projection: { assetExportAction: () => 'reveal', promptDraft: async () => ({ prompt: 'Convert 42 cm.' }), projectRunTarget: () => target, runStatusLabel: s => s },
+      events: { subscribeAIConfigRefresh: () => () => {} },
+      commands: { openAssetMediaUrl: unavailableMedia, savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => {} },
+    },
+    sdk: { aiConfig: { getSnapshot: async () => ({ config: null, effectiveSelections: [] }) }, runCapability(input) {
+      const deferred = Promise.withResolvers(); calls.push({ input, ...deferred }); return deferred.promise;
+    } },
+  };
+  const container = document.getElementById('root'), renderer = createRoot(container);
+  const button = label => Array.from(container.querySelectorAll('button')).find(el => el.getAttribute('aria-label') === label || el.textContent.trim() === label);
+  try {
+    await act(async () => renderer.render(createElement(LabRendererProvider, { bindings: { sdk: { localAppClient: { aiConfig: { get: async () => ({ effectiveSelections: [] }) } } } } },
+      createElement(TooltipProvider, null, createElement(AIStudioHostProvider, { value: host },
+      createElement(StudioCapabilityParameterContext.Provider, { value: { state: { 'text.tools': { scenario: 'tool-call', delivery: 'stream' } }, setParameters() {} } },
+        createElement(SectionAITesting, {
+          registration, registrations: [registration], runtime: { status: 'connected', detail: 'connected' },
+          lastResult: null, history: {}, historySelectionRequest: null, onSelectHistoryRun() {}, onResult: async () => null,
+          verboseConsole: false, draftPersistence: false,
+        })))))));
+    await act(async () => button('CapabilityTests.textTools.primaryLabel').click());
+    assert.equal(calls.length, 1);
+    assert.equal(typeof calls[0].input.onPartial, 'function');
+    await act(async () => calls[0].input.onPartial('42 cm is 16.5354 inches.'));
+    assert.equal(container.querySelector('.studio-result__text--stream')?.textContent, '42 cm is 16.5354 inches.');
+    await act(async () => button('StudioShell.cancelGeneration').click());
+    assert.equal(calls[0].input.signal.aborted, true);
+    await act(async () => calls[0].resolve({ ok: false, capabilityId: 'text.tools', reason: 'operation-aborted', message: 'stopped', actionHint: '' }));
+    assert.equal(container.querySelector('.studio-result__text--stream'), null);
+    assert.ok(container.textContent.includes('Studio.result.status.stoppedDirectCall'));
+  } finally { await act(async () => renderer.unmount()); }
+});
+
 test('text history reruns its saved media and never borrows the current composer attachment', { timeout: 10_000 }, async () => {
   const registration = labStudioComposition.getCapability('text.generate');
   const target = { capabilityId: 'text.generate', capabilityContract: 'text.generate', section: 'text', source: 'cloud',
@@ -1130,6 +1170,85 @@ for(const item of [{id:'audio.separate',kind:'source'},{id:'audio.voice.convert'
   }finally{await act(async()=>renderer.unmount())}
  });
  }
+}
+
+for (const item of [
+  { id: 'video.generate', input: 0, field: 'referenceArtifactId', count: 10,
+    initial: { mode: 'i2v-reference', referenceArtifactId: 'old-first', additionalReferenceArtifactIds: Array.from({ length: 8 }, (_, i) => `old-${i}`) } },
+  { id: 'image.generate', input: 0, field: 'referenceImageArtifactId', count: 1, initial: { referenceImageArtifactId: 'old-source' } },
+  { id: 'image.generate', input: 1, field: 'maskArtifactId', count: 1, initial: { referenceImageArtifactId: 'source', maskArtifactId: 'old-mask' } },
+  { id: 'image.generate', input: 2, field: 'markupArtifactId', count: 1, initial: { referenceImageArtifactId: 'source', markupArtifactId: 'old-markup' } },
+]) {
+  test(`${item.id} ${item.field} upload blocks draft submission until all new references commit`, async () => {
+    const registration = labStudioComposition.getCapability(item.id), calls = [], uploads = [];
+    const transfer = Promise.withResolvers();
+    let parameters = structuredClone(item.initial);
+    const target = { capabilityId: item.id, capabilityContract: item.id, section: 'media', source: 'cloud',
+      status: 'configured', canDispatch: true, intentLabel: 'Cloud', detail: 'configured', params: {}, paramsSummary: [] };
+    const host = {
+      appTitle: 'Lab', translate: key => key, locale: 'en', clock: { now: () => Date.now() },
+      app: { projection: { assetExportAction: () => 'reveal', promptDraft: async () => ({ prompt: 'Use the selected media.' }),
+        projectRunTarget: () => target, runStatusLabel: value => value }, events: { subscribeAIConfigRefresh: () => () => {} },
+        commands: { openAssetMediaUrl: unavailableMedia, savePromptDraft: async () => {}, copyText: async () => ({ ok: true }), exportText: async () => ({ ok: false }) } },
+      sdk: { aiConfig: { getSnapshot: async () => ({ config: null, effectiveSelections: [] }) },
+        uploadLocalAppArtifact: async input => {
+          const index = uploads.length;
+          uploads.push(input);
+          if (index === 0) await transfer.promise;
+          return { artifactId: `new-${index}` };
+        },
+        runCapability: async input => {
+          calls.push(input);
+          return { ok: false, capabilityId: item.id, reason: 'runtime-canceled', message: 'isolated dispatch boundary' };
+        },
+      },
+    };
+    const props = { registration, registrations: [registration], runtime: { status: 'connected', detail: 'connected' },
+      lastResult: null, history: {}, historySelectionRequest: null, onSelectHistoryRun() {}, onResult: async () => null,
+      verboseConsole: false, draftPersistence: false };
+    const container = document.getElementById('root'), renderer = createRoot(container);
+    const render = () => renderer.render(createElement(TooltipProvider, null,
+      createElement(AIStudioHostProvider, { value: host }, createElement(StudioCapabilityParameterContext.Provider,
+        { value: { state: { [item.id]: parameters }, setParameters: (_id, next) => { parameters = next; render(); } } },
+        createElement(SectionAITesting, props)))));
+    const primary = () => container.querySelector(`button[aria-label="${registration.profile.primaryLabelKey}"]`);
+    try {
+      await act(async () => render());
+      assert.equal(primary().disabled, false);
+      const files = Array.from({ length: item.count }, (_, i) => {
+        const file = new File([new Uint8Array(4)], `replacement-${i}.png`, { type: 'image/png' });
+        Object.defineProperty(file, 'arrayBuffer', { value: async () => new ArrayBuffer(4) });
+        return file;
+      });
+      const input = container.querySelectorAll('input[type=file]')[item.input];
+      Object.defineProperty(input, 'files', { configurable: true, value: files });
+      await act(async () => input.dispatchEvent(new Event('change', { bubbles: true })));
+      assert.equal(uploads.length, 1);
+      assert.equal(primary().disabled, true);
+      await act(async () => container.querySelector('.studio-composer').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+      assert.equal(calls.length, 0, 'the previous selection must not be dispatched while its replacement uploads');
+      if (item.id === 'video.generate') {
+        const other = labStudioComposition.getCapability('text.embed');
+        props.registration = other;
+        await act(async () => render());
+        assert.equal(container.querySelector(`button[aria-label="${other.profile.primaryLabelKey}"]`).disabled, false,
+          'another capability must not inherit this upload gate');
+        props.registration = registration;
+        await act(async () => render());
+        assert.equal(primary().disabled, true, 'returning to the pending capability retains its upload gate');
+      }
+      await act(async () => transfer.resolve());
+      assert.equal(uploads.length, item.count);
+      assert.equal(primary().disabled, false);
+      await act(async () => primary().click());
+      assert.equal(calls.length, 1);
+      assert.equal(calls[0].parameters[item.field], 'new-0');
+      if (item.count > 1) assert.deepEqual(calls[0].parameters.additionalReferenceArtifactIds,
+        Array.from({ length: item.count - 1 }, (_, i) => `new-${i + 1}`));
+    } finally {
+      await act(async () => renderer.unmount());
+    }
+  });
 }
 
 for(const geometry of ['box','point']) for(const withDraft of [false,true]) {

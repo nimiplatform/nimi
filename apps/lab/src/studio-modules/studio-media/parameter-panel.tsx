@@ -28,7 +28,7 @@ function isStudioImageMimeType(value: string): value is StudioImageMimeType {
 }
 
 
-function ImageLayerField(props: { parameters: StudioImageGenerationParameters; field: 'maskArtifactId' | 'markupArtifactId'; urlField: 'mask' | 'markup'; label: string; hint: string; disabled?: boolean; onChange: (next: StudioImageGenerationParameters) => void }) {
+function ImageLayerField(props: { parameters: StudioImageGenerationParameters; field: 'maskArtifactId' | 'markupArtifactId'; urlField: 'mask' | 'markup'; label: string; hint: string; disabled?: boolean; onChange: (next: StudioImageGenerationParameters) => void; onInputPreparationStart?: StudioParameterPanelProps['onInputPreparationStart'] }) {
   const host = useAIStudioHost();
   const input = useRef<HTMLInputElement>(null);
   const [busy,setBusy] = useState(false);
@@ -37,12 +37,13 @@ function ImageLayerField(props: { parameters: StudioImageGenerationParameters; f
   async function choose(event: ChangeEvent<HTMLInputElement>) {
     const file = event.currentTarget.files?.[0]; event.currentTarget.value=''; if (!file) return;
     if (file.type !== 'image/png' || file.size < 1 || file.size > MAX_STUDIO_ARTIFACT_UPLOAD_BYTES) { setError(host.translate('Studio.parameters.layerPngRequired')); return; }
+    const finishPreparation = props.onInputPreparationStart?.();
     setBusy(true); setError('');
     try {
       const asset = await host.sdk.uploadLocalAppArtifact({bytes:new Uint8Array(await file.arrayBuffer()),mimeType:'image/png'});
       const next = {...props.parameters,[props.field]:asset.artifactId}; delete next[props.urlField]; props.onChange(next); setUploaded({artifactId:asset.artifactId,name:file.name});
     } catch (failure) { setError(failure instanceof Error ? failure.message : String(failure)); }
-    finally { setBusy(false); }
+    finally { setBusy(false); finishPreparation?.(); }
   }
   return <StudioParameterField label={props.label}>
     <input ref={input} aria-label={props.label} className="studio-parameters__file-input" type="file" accept="image/png" disabled={props.disabled || busy} onChange={event=>void choose(event)} />
@@ -75,6 +76,7 @@ function ImageFields(props: StudioParameterPanelProps) {
       setUploadError(t(props.source === 'cloud' ? 'Studio.parameters.cloudImageFileMimeUnsupported' : 'Studio.parameters.imageFileMimeUnsupported'));
       return;
     }
+    const finishPreparation = props.onInputPreparationStart?.();
     setUploading(true);
     setUploadError('');
     try {
@@ -90,6 +92,7 @@ function ImageFields(props: StudioParameterPanelProps) {
       setUploadError(error instanceof Error ? error.message : String(error));
     } finally {
       setUploading(false);
+      finishPreparation?.();
     }
   }
   const updateReferenceUrl = (next: StudioImageGenerationParameters) => {
@@ -154,11 +157,11 @@ function ImageFields(props: StudioParameterPanelProps) {
       ),
     },
     textField('mask', t('Studio.parameters.fields.mask'), 'https://…'),
-    { field: 'maskArtifactId', label: t('Studio.parameters.fields.maskFile'), render: disabled => <ImageLayerField parameters={parameters} field="maskArtifactId" urlField="mask" label={t('Studio.parameters.fields.maskFile')} hint={t('Studio.parameters.maskFileHint')} onChange={update} disabled={props.disabled || disabled} /> },
+    { field: 'maskArtifactId', label: t('Studio.parameters.fields.maskFile'), render: disabled => <ImageLayerField parameters={parameters} field="maskArtifactId" urlField="mask" label={t('Studio.parameters.fields.maskFile')} hint={t('Studio.parameters.maskFileHint')} onChange={update} onInputPreparationStart={props.onInputPreparationStart} disabled={props.disabled || disabled} /> },
     { field: 'complexity', label: t('Studio.parameters.fields.complexity'), render: disabled => <StudioParameterField label={t('Studio.parameters.fields.complexity')}><SelectField value={parameters.complexity || 'model-default'} options={[{value:'model-default',label:t('Studio.parameters.useDefault')},{value:'low',label:'low'},{value:'medium',label:'medium'},{value:'high',label:'high'}]} onChange={event => update({...parameters, complexity: (event.target.value === 'model-default' ? '' : event.target.value) as StudioImageGenerationParameters['complexity']})} disabled={props.disabled || disabled} /></StudioParameterField> },
     { field: 'outputFormat', label: t('Studio.parameters.fields.outputFormat'), render: disabled => <StudioParameterField label={t('Studio.parameters.fields.outputFormat')}><SelectField value={parameters.outputFormat || 'model-default'} options={[{value:'model-default',label:t('Studio.parameters.useDefault')},...['png','jpeg','webp','gif','svg'].map(value=>({value,label:value.toUpperCase()}))]} onChange={event => { const next = {...parameters, outputFormat: (event.target.value === 'model-default' ? '' : event.target.value) as StudioImageGenerationParameters['outputFormat']}; if (next.outputFormat !== 'gif') { delete next.frameCount; delete next.frameDurationMs; } update(next); }} disabled={props.disabled || disabled} /><small>{t('Studio.parameters.imageFormatHint')}</small></StudioParameterField> },
     textField('markup', t('Studio.parameters.fields.markup'), 'https://…'),
-    { field: 'markupArtifactId', label: t('Studio.parameters.fields.markupFile'), render: disabled => <ImageLayerField parameters={parameters} field="markupArtifactId" urlField="markup" label={t('Studio.parameters.fields.markupFile')} hint={t('Studio.parameters.markupFileHint')} onChange={update} disabled={props.disabled || disabled} /> },
+    { field: 'markupArtifactId', label: t('Studio.parameters.fields.markupFile'), render: disabled => <ImageLayerField parameters={parameters} field="markupArtifactId" urlField="markup" label={t('Studio.parameters.fields.markupFile')} hint={t('Studio.parameters.markupFileHint')} onChange={update} onInputPreparationStart={props.onInputPreparationStart} disabled={props.disabled || disabled} /> },
     { field: 'frameCount', label: t('Studio.parameters.fields.animationFrames'), render: disabled => <StudioNumberParameter current={parameters} field="frameCount" label={t('Studio.parameters.fields.animationFrames')} onChange={update} min={2} step={1} disabled={props.disabled || disabled || parameters.outputFormat !== 'gif'} /> },
     { field: 'frameDurationMs', label: t('Studio.parameters.fields.frameDurationMs'), render: disabled => <StudioNumberParameter current={parameters} field="frameDurationMs" label={t('Studio.parameters.fields.frameDurationMs')} onChange={update} min={20} max={2000} step={10} disabled={props.disabled || disabled || parameters.outputFormat !== 'gif'} /> },
   ];
@@ -167,6 +170,7 @@ function ImageFields(props: StudioParameterPanelProps) {
 
 type VideoArtifactField = 'firstFrameArtifactId' | 'lastFrameArtifactId' | 'referenceArtifactId' | 'referenceAudioArtifactIds' | 'referenceVideoArtifactIds';
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.alibaba-current-video
 function VideoParameterPanel(props: StudioParameterPanelProps) {
   const host = useAIStudioHost();
   const { translate: t } = host;
@@ -197,6 +201,7 @@ function VideoParameterPanel(props: StudioParameterPanelProps) {
       }
       uploads.push({ file, mimeType });
     }
+    const finishPreparation = props.onInputPreparationStart?.();
     setUploading(true);
     setUploadError(null);
     try {
@@ -217,6 +222,7 @@ function VideoParameterPanel(props: StudioParameterPanelProps) {
       setUploadError({ field, message: error instanceof Error ? error.message : String(error) });
     } finally {
       setUploading(false);
+      finishPreparation?.();
     }
   }
   const textField = (field: keyof StudioVideoGenerationParameters, label: string, placeholder?: string): StudioParameterFieldDefinition => ({
