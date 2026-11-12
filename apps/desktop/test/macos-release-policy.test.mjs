@@ -11,6 +11,7 @@ test('packaging inputs survive a subsequent build replacing the shared outputs',
   try {
     const desktopRoot = path.join(directory, 'desktop');
     const avatarRoot = path.join(directory, 'avatar');
+    const zhiyuRoot = path.join(directory, 'zhiyu');
     const nativeRoot = path.join(directory, 'native');
     const sourceRoot = path.join(directory, 'transaction');
     const files = [
@@ -20,8 +21,12 @@ test('packaging inputs survive a subsequent build replacing the shared outputs',
       [desktopRoot, 'dist-electron/chat-ai-store-worker.js', 'desktop-app/dist-electron/chat-ai-store-worker.js'],
       [desktopRoot, 'dist-electron/preload.cjs', 'desktop-app/dist-electron/preload.cjs'],
       [desktopRoot, 'dist-electron/system-entry-preload.cjs', 'desktop-app/dist-electron/system-entry-preload.cjs'],
+      [desktopRoot, 'dist-electron/zhiyu-preload.cjs', 'desktop-app/dist-electron/zhiyu-preload.cjs'],
       [desktopRoot, 'dist/system-entry.html', 'desktop-app/dist/system-entry.html'],
       [avatarRoot, 'dist/index.html', 'desktop-app/avatar/dist/index.html'],
+      [avatarRoot, 'NIMI_APP.md', 'desktop-app/avatar/NIMI_APP.md'],
+      [zhiyuRoot, 'dist/index.html', 'desktop-app/zhiyu/dist/index.html'],
+      [zhiyuRoot, 'NIMI_APP.md', 'desktop-app/zhiyu/NIMI_APP.md'],
       [nativeRoot, 'index.cjs', 'native-carrier/index.cjs'],
       [nativeRoot, 'nimi_shell_protected_local.node', 'native-carrier/nimi_shell_protected_local.node'],
       [nativeRoot, 'package.json', 'native-carrier/package.json'],
@@ -31,7 +36,7 @@ test('packaging inputs survive a subsequent build replacing the shared outputs',
       mkdirSync(path.dirname(file), { recursive: true });
       writeFileSync(file, `first-build:${relative}`);
     }
-    await stageMacOSBuiltInputs({ sourceRoot, desktopRoot, avatarRoot, nativeRoot, debugRoot: path.join(directory, 'debug') });
+    await stageMacOSBuiltInputs({ sourceRoot, desktopRoot, avatarRoot, zhiyuRoot, nativeRoot, debugRoot: path.join(directory, 'debug') });
     for (const [root, relative] of files) writeFileSync(path.join(root, relative), `next-build:${relative}`);
     for (const [, relative, staged] of files) {
       assert.equal(readFileSync(path.join(sourceRoot, staged), 'utf8'), `first-build:${relative}`);

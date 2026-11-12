@@ -56,7 +56,7 @@ function shutdownFixture(stopLocal: () => Promise<void> = async () => {}) {
       exit(code: number) { exits.push(code); },
     },
     localDevelopmentHost: { shutdown: stopLocal }, installedAppHost: undefined,
-    desktopOpenIntentHost: undefined, bundledAvatarHost: undefined, chatAiStoreHost: undefined,
+    desktopOpenIntentHost: undefined, bundledAvatarHost: undefined, bundledZhiyuHost: undefined, chatAiStoreHost: undefined,
     systemEntryHost: undefined, connectorAuthAcquisitionHost: undefined,
     registeredRuntimeBridge: bridge, productUpdateHost: undefined,
     DESKTOP_FORMAL_RESOURCE_SHUTDOWN_TIMEOUT_MS: 100,
@@ -108,6 +108,22 @@ test('resource cleanup retains the IPC owner while Home can still send its final
   fixture.finishNativeQuit();
   assert.equal(fixture.state.registeredRuntimeBridge, undefined);
   assert.equal(fixture.unregisterCount(), 1);
+});
+
+test('Home waits for bundled Zhiyu cleanup before disposing its formal bridge', async () => {
+  const fixture = shutdownFixture();
+  let entered!: () => void;
+  let release!: () => void;
+  let closed = false;
+  const started = new Promise<void>(resolve => { entered = resolve; });
+  const pending = new Promise<void>(resolve => { release = resolve; });
+  fixture.state.bundledZhiyuHost = { shutdown: async () => { entered(); await pending; closed = true; } };
+  fixture.bridge.disposeFormalAppResources = async () => { assert.equal(closed, true); };
+  const stopping = fixture.shutdown();
+  await started;
+  assert.equal(fixture.state.registeredRuntimeBridge, fixture.bridge);
+  release();
+  await stopping;
 });
 
 test('late quit failure replaces stopped formal owners and reloads Home before resuming App launches', async () => {

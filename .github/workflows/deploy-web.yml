@@ -106,12 +106,14 @@ jobs:
       - name: Record deployment result
         if: always()
         run: |
-          echo 'Cloudflare Pages project: nimi (nimi-6jb.pages.dev)' >> "$GITHUB_STEP_SUMMARY"
-          echo 'Official portal, account and manager: https://nimi.ai' >> "$GITHUB_STEP_SUMMARY"
-          for result in "$RUNNER_TEMP"/web-*.jsonl; do
-            if [[ -f "$result" ]]; then
-              echo '```json' >> "$GITHUB_STEP_SUMMARY"
-              cat "$result" >> "$GITHUB_STEP_SUMMARY"
-              echo '```' >> "$GITHUB_STEP_SUMMARY"
-            fi
-          done
+          {
+            echo 'Cloudflare Pages project: nimi (nimi-6jb.pages.dev)'
+            echo 'Official portal, account and manager: https://nimi.ai'
+            for result in "$RUNNER_TEMP"/web-*.jsonl; do
+              if [[ -f "$result" ]]; then
+                echo '```json'
+                cat "$result"
+                echo '```'
+              fi
+            done
+          } >> "$GITHUB_STEP_SUMMARY"
