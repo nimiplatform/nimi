@@ -42,6 +42,12 @@ pnpm -C apps/install-gateway run test
 
 ## Deployment
 
+Production uses `.github/workflows/deploy-install-gateway.yml` with an exact SHA already on `main`. Its build runner installs, tests, copies the install script and bundles the Worker without production secrets. A separate runner receives that run's immutable artifact ID, validates a configuration limited to this Worker's current fields, and prepares pinned Wrangler `4.127.1` without credentials. Only the secret-sync and version-publication steps receive `CLOUDFLARE_WORKERS_API_TOKEN`; the optional GitHub release credential is confined to secret-sync.
+
+Publication uploads the prebuilt version with `--no-bundle --keep-vars`, then deploys that exact version at 100%. It does not reconcile Routes or Custom Domains, so the existing `install.nimi.ai` connection remains unchanged and a token scoped to the existing Worker can be used. Initial connection changes are a separate owner operation. The Pages workflow uses a different token. Routine publication does not change Beta/stable channel metadata or publish product releases.
+
+For local owner-operated deployment, the existing command is:
+
 ```bash
 pnpm -C apps/install-gateway run deploy
 ```

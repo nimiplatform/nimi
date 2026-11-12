@@ -38,11 +38,13 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  release:
+  build:
+    if: inputs.rollback_deployment_id == ''
     runs-on: ubuntu-latest
+    outputs:
+      artifact_id: ${{ steps.artifact.outputs.artifact-id }}
+      source_sha: ${{ steps.source.outputs.sha }}
     env:
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       NIMI_REALM_URL: https://realm.nimi.ai
       VITE_NIMI_REALM_ENVIRONMENT_ID: production
       VITE_NIMI_RUNTIME_MANAGER_CLIENT_ID: nimiplatform.runtime-manager.web
@@ -53,56 +55,82 @@ jobs:
           fetch-depth: 0
           persist-credentials: false
       - name: Verify release source
+        id: source
         env:
           SOURCE_SHA: ${{ inputs.commit_sha || github.sha }}
-          ROLLBACK_ID: ${{ inputs.rollback_deployment_id }}
-          REQUESTED_SHA: ${{ inputs.commit_sha }}
         run: |
           set -euo pipefail
           [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]]
           test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
           git merge-base --is-ancestor "$SOURCE_SHA" origin/main
-          if [[ -n "$ROLLBACK_ID" ]]; then test -z "$REQUESTED_SHA"; fi
+          echo "sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24.22.3
           package-manager-cache: false
-      - name: Roll back an existing production deployment
-        if: inputs.rollback_deployment_id != ''
-        env:
-          ROLLBACK_ID: ${{ inputs.rollback_deployment_id }}
-        run: node apps/web/scripts/cloudflare-release.mjs rollback "$ROLLBACK_ID"
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
-        if: inputs.rollback_deployment_id == ''
         with:
           version: 10.34.7
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
-        if: inputs.rollback_deployment_id == ''
         with:
           go-version-file: runtime/go.mod
           cache: false
       - name: Install, test and build
-        if: inputs.rollback_deployment_id == ''
         run: |
           pnpm install --frozen-lockfile
           node scripts/with-workspace-surfaces.mjs -- pnpm --filter @nimiplatform/web exec sh -c 'pnpm test && pnpm build'
+      - name: Upload the built Web
+        id: artifact
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: official-web
+          path: apps/web/dist
+          if-no-files-found: error
+          retention-days: 7
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release tooling only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+          sparse-checkout: apps/web/scripts/cloudflare-release.mjs
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.22.3
+          package-manager-cache: false
+      - name: Download this run's built Web
+        uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          artifact-ids: ${{ needs.build.outputs.artifact_id }}
+          path: ${{ runner.temp }}/web-dist
+          merge-multiple: true
+      - name: Prepare pinned deployment CLI without production credentials
+        run: npm install --prefix "$RUNNER_TEMP/cloudflare-cli" --no-audit --no-fund --no-package-lock wrangler@4.127.1
       - name: Deploy and verify preview
-        if: inputs.rollback_deployment_id == ''
         env:
-          SOURCE_SHA: ${{ inputs.commit_sha || github.sha }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PAGES_API_TOKEN }}
+          SOURCE_SHA: ${{ needs.build.outputs.source_sha }}
           WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/web-preview.jsonl
         run: |
-          pnpm dlx wrangler@4.127.1 pages deploy apps/web/dist --project-name nimi --branch "release-${SOURCE_SHA:0:12}" --commit-hash "$SOURCE_SHA" --commit-dirty=false
-          node apps/web/scripts/cloudflare-release.mjs deployment "$WRANGLER_OUTPUT_FILE_PATH"
+          "$RUNNER_TEMP/cloudflare-cli/node_modules/.bin/wrangler" pages deploy "$RUNNER_TEMP/web-dist" --project-name nimi --branch "release-${SOURCE_SHA:0:12}" --commit-hash "$SOURCE_SHA" --commit-dirty=false --no-bundle
+          node apps/web/scripts/cloudflare-release.mjs deployment "$WRANGLER_OUTPUT_FILE_PATH" "$RUNNER_TEMP/web-dist"
       - name: Deploy the same build to production
-        if: inputs.rollback_deployment_id == '' && (github.event_name == 'push' || inputs.publish)
+        if: github.event_name == 'push' || inputs.publish
         env:
-          SOURCE_SHA: ${{ inputs.commit_sha || github.sha }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PAGES_API_TOKEN }}
+          SOURCE_SHA: ${{ needs.build.outputs.source_sha }}
           WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/web-production.jsonl
         run: |
-          pnpm dlx wrangler@4.127.1 pages deploy apps/web/dist --project-name nimi --branch main --commit-hash "$SOURCE_SHA" --commit-dirty=false
-          node apps/web/scripts/cloudflare-release.mjs deployment "$WRANGLER_OUTPUT_FILE_PATH"
-          node apps/web/scripts/cloudflare-release.mjs verify https://nimi.ai
+          "$RUNNER_TEMP/cloudflare-cli/node_modules/.bin/wrangler" pages deploy "$RUNNER_TEMP/web-dist" --project-name nimi --branch main --commit-hash "$SOURCE_SHA" --commit-dirty=false --no-bundle
+          node apps/web/scripts/cloudflare-release.mjs deployment "$WRANGLER_OUTPUT_FILE_PATH" "$RUNNER_TEMP/web-dist"
+          node apps/web/scripts/cloudflare-release.mjs verify https://nimi.ai "$RUNNER_TEMP/web-dist"
       - name: Record deployment result
         if: always()
         run: |
@@ -117,3 +145,32 @@ jobs:
               fi
             done
           } >> "$GITHUB_STEP_SUMMARY"
+
+  rollback:
+    if: inputs.rollback_deployment_id != ''
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout release tooling only
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+          sparse-checkout: apps/web/scripts/cloudflare-release.mjs
+          sparse-checkout-cone-mode: false
+      - name: Verify rollback workflow source
+        env:
+          REQUESTED_SHA: ${{ inputs.commit_sha }}
+        run: |
+          test -z "$REQUESTED_SHA"
+          git merge-base --is-ancestor HEAD origin/main
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.22.3
+          package-manager-cache: false
+      - name: Roll back an existing production deployment
+        env:
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_PAGES_API_TOKEN }}
+          ROLLBACK_ID: ${{ inputs.rollback_deployment_id }}
+        run: node apps/web/scripts/cloudflare-release.mjs rollback "$ROLLBACK_ID"
