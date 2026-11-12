@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { parse as parseYaml } from 'yaml';
+import { isWebCoordinationPath as isCoordinationPath } from './web-coordination.mjs';
 
 function exactOrigin(value, label, requireHttps = false) {
   let url;
@@ -13,38 +14,38 @@ function exactOrigin(value, label, requireHttps = false) {
   return url;
 }
 
-export function readWebDevelopment(manifest) {
-  const web = manifest?.local_development?.web;
-  if (!web || typeof web !== 'object' || Array.isArray(web)) throw new Error('Declare local_development.web in nimi.app.yaml.');
+function readWebSource(appId, web, release = false) {
   const site = exactOrigin(web.origin, 'Web origin', true);
-  const realm = exactOrigin(web.realm_url, 'Realm URL');
-  const official = exactOrigin(web.official_web_url, 'Official Web URL');
+  const official = exactOrigin(web.official_web_url, 'Official Web URL', release);
+  if (release && [site, official].some(url => /^(?:localhost|.+\.localhost|127\.\d+\.\d+\.\d+|\[::1\])$/u.test(url.hostname))) {
+    throw new Error('Web release requires deployed HTTPS origins.');
+  }
   if (site.hostname === official.hostname) throw new Error('Use different hostnames for the App and official sign-in; ports do not isolate cookies.');
   const callback = new URL(web.redirect_uri);
   if (callback.origin !== site.origin || callback.username || callback.password || callback.search || callback.hash || callback.href !== web.redirect_uri) {
     throw new Error('Web callback must be an exact URL on the configured HTTPS App origin.');
   }
-  for (const [label, value] of [['app_id', manifest.app_id], ['client_id', web.client_id], ['realm_environment_id', web.realm_environment_id]]) {
+  for (const [label, value] of [['app_id', appId], ['client_id', web.client_id], ['realm_environment_id', web.realm_environment_id]]) {
     if (typeof value !== 'string' || !/^[A-Za-z0-9][A-Za-z0-9_.-]{0,127}$/u.test(value)) throw new Error(`Invalid Web ${label}.`);
   }
+  return { site, official, config: Object.freeze({
+    appId, clientId: web.client_id, realmEnvironmentId: web.realm_environment_id,
+    officialWebBaseUrl: official.origin, realmBaseUrl: site.origin, redirectUri: callback.href,
+  }) };
+}
+
+export function readWebDevelopment(manifest) {
+  const web = manifest?.local_development?.web;
+  if (!web || typeof web !== 'object' || Array.isArray(web)) throw new Error('Declare local_development.web in nimi.app.yaml.');
+  const source = readWebSource(manifest.app_id, web);
+  const realm = exactOrigin(web.realm_url, 'Realm URL');
   const match = typeof web.command === 'string' && /^pnpm run ([A-Za-z0-9][A-Za-z0-9:_.-]*)$/u.exec(web.command);
   if (!match) throw new Error('Web command must name an App-owned pnpm script.');
-  return Object.freeze({ site, realm, official, command: web.command, script: match[1], config: Object.freeze({
-    appId: manifest.app_id, clientId: web.client_id, realmEnvironmentId: web.realm_environment_id,
-    officialWebBaseUrl: official.origin, realmBaseUrl: site.origin, redirectUri: callback.href,
-  }) });
+  return Object.freeze({ ...source, realm, command: web.command, script: match[1] });
 }
 
 export function isWebCoordinationPath(method, url) {
-  const pathname = url.split('?')[0];
-  if (method === 'GET') {
-    return pathname === '/api/runtime-access/context'
-      || /^\/api\/runtime-access\/connections\/[A-Za-z0-9_-]+$/u.test(pathname)
-      || /^\/api\/auth\/runtime-clients\/[A-Za-z0-9_.-]+$/u.test(pathname);
-  }
-  return method === 'POST' && (pathname === '/api/runtime-access/token'
-    || pathname === '/api/runtime-access/context/end'
-    || pathname === '/api/runtime-access/connections');
+  return isCoordinationPath(method, url.split('?')[0]);
 }
 
 export function webOriginGuard(site) {
@@ -63,11 +64,26 @@ export function webOriginGuard(site) {
   };
 }
 
-/** Vite configuration for a declared development source. No credentials or
- * admission decision are generated. Production hosting must supply the same
- * bounded coordination routes independently of this development server. */
-export function nimiWebViteConfig({ root, env = process.env, serve = true }) {
+/** Vite configuration for a declared source. Release hosting owns the same
+ * bounded coordination routes independently of the development server. */
+export function nimiWebViteConfig({ root, env = process.env, serve = true, release = false }) {
   const manifest = parseYaml(readFileSync(path.join(root, 'nimi.app.yaml'), 'utf8'));
+  if (release) {
+    if (serve) throw new Error('Web release configuration requires a build.');
+    const required = key => {
+      const value = env[key];
+      if (typeof value !== 'string' || !value || value !== value.trim()) throw new Error(`Set ${key} for the Web release.`);
+      return value;
+    };
+    const { config } = readWebSource(manifest.app_id, {
+      origin: required('NIMI_WEB_ORIGIN'),
+      redirect_uri: required('NIMI_WEB_REDIRECT_URI'),
+      client_id: required('NIMI_WEB_CLIENT_ID'),
+      realm_environment_id: required('NIMI_WEB_REALM_ENVIRONMENT_ID'),
+      official_web_url: required('NIMI_WEB_OFFICIAL_WEB_URL'),
+    }, true);
+    return { define: { __NIMI_APP_WEB_CONFIG__: JSON.stringify(config) } };
+  }
   const { site, realm, config } = readWebDevelopment(manifest);
   const define = { __NIMI_APP_WEB_CONFIG__: JSON.stringify(config) };
   if (!serve) return { define };

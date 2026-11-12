@@ -17,7 +17,7 @@ The browser must trust the website's TLS certificate, and the client and PC must
 From a directory containing your selected complete source archives:
 
 ```bash
-pnpm dlx --package="file:$PWD/nimi-packages/nimiplatform-app-tools-0.14.0.tgz" nimi-app create \
+pnpm dlx --package="file:$PWD/nimi-packages/nimiplatform-app-tools-0.15.0.tgz" nimi-app create \
   --dir my-web-app --profile standalone --platform web \
   --features studio-create --app-id com.example.web --title "My Web App"
 ```

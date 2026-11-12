@@ -72,7 +72,7 @@ validation; the example above is not a tested support promise.
 
 ## Build and prepare on each actual platform
 
-Use locked workspace dependencies, Node 24.22.1 or newer Node 24 LTS, pnpm 10.34.7, the pinned Runtime Go version,
+Use locked workspace dependencies, Node 24.22.3 or newer Node 24 LTS, pnpm 10.34.7, the pinned Runtime Go version,
 and required Rust/native tools. Mac builds require Apple Silicon, admitted signing identities,
 and notary credentials. Windows builds require native x64, MSVC/native build tools, Sharp
 x64 dependencies, and NSIS (the workflow pins Chocolatey NSIS 3.13.0). Windows

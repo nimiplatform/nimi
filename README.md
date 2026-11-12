@@ -62,7 +62,7 @@ Nimi 致力于构建覆盖移动端、Web、PC、嵌入式设备与智能家居�
 pnpm dlx --package @nimiplatform/app-tools@0.14.0 nimi-app create --dir my-ai-app --profile standalone
 ```
 
-上述已发布的 CLI 适用于原生应用。当前接入 Web 或 Android 需使用完整且相互匹配的源码 SDK、Kit、App Tools 与 Runtime；相同数字版本的 npm 包尚不包含这些新增入口。制品选择与依赖组合集中见[开发环境准备](https://docs.nimi.ai/start/install)。
+上述已发布的 CLI 适用于原生应用。当前接入 Web 或 Android 需使用完整且相互匹配的源码 SDK、Kit、App Tools 与 Runtime。制品选择与依赖组合见[开发环境准备](https://docs.nimi.ai/start/install)。
 
 推荐阅读：
 - [快速创建第一个 App 指南](https://docs.nimi.ai/start/create-an-app)

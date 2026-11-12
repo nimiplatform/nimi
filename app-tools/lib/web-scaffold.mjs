@@ -26,7 +26,8 @@ export function webPackage(pkg) {
   result.pnpm = { onlyBuiltDependencies: ['esbuild'] };
   result.scripts = { dev: 'nimi-app dev --platform web', 'dev:web-renderer': 'vite',
     init: 'nimi-app init', sync: 'nimi-app sync', check: 'nimi-app check', test: 'nimi-app test',
-    'test:app': 'tsc --noEmit', 'app:build': 'nimi-app build', typecheck: 'tsc --noEmit', build: 'tsc --noEmit && vite build' };
+    'test:app': 'tsc --noEmit', 'app:build': 'nimi-app build', typecheck: 'tsc --noEmit', build: 'tsc --noEmit && vite build',
+    'build:release': 'tsc --noEmit && vite build --mode web-release' };
   return result;
 }
 
@@ -59,7 +60,7 @@ import { nimiWebViteConfig } from '@nimiplatform/app-tools/web';
 export default defineConfig(({ command, mode }) => mergeConfig({ base: './', plugins: [react(), tailwindcss()],
   server: { watch: { ignored: ['**/.nimi/local/**', '**/.tmp/**'] } },
   resolve: { dedupe: ['react', 'react-dom', 'react/jsx-runtime'] },
-}, nimiWebViteConfig({ root: import.meta.dirname, env: { ...loadEnv(mode, import.meta.dirname, ''), ...process.env }, serve: command === 'serve' })));
+}, nimiWebViteConfig({ root: import.meta.dirname, env: { ...loadEnv(mode, import.meta.dirname, ''), ...process.env }, serve: command === 'serve', release: mode === 'web-release' })));
 `;
 
 const WEB_CLIENT = `import type { NimiAppScope } from '@nimiplatform/kit/core/app-session';

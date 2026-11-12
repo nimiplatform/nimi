@@ -18,17 +18,17 @@ Use a published App Tools release and its generated dependency set for the match
 
 ## Toolchain and Source Combination
 
-Use Node `>=24.22.1 <25` and pnpm `10.34.7`. Native source builds additionally need the target OS build tools. Android has its own JDK, Android SDK, native project and device prerequisites.
+Use Node `>=24.22.3 <25` and pnpm `10.34.7`. Native source builds additionally need the target OS build tools. Android has its own JDK, Android SDK, native project and device prerequisites.
 
 The current source scaffold declares:
 
 | Package | Source version |
 | --- | --- |
-| `@nimiplatform/sdk` | `^0.22.2` |
-| `@nimiplatform/kit` | `^0.22.1` |
-| `@nimiplatform/app-tools` | `^0.14.0` |
-| `@nimiplatform/sdk-adapter-vercel-ai` | `^0.6.2` |
-| `nimi-shell-tauri` | `0.11.1` |
+| `@nimiplatform/sdk` | `^0.23.0` |
+| `@nimiplatform/kit` | `^0.23.0` |
+| `@nimiplatform/app-tools` | `^0.15.0` |
+| `@nimiplatform/sdk-adapter-vercel-ai` | `^0.7.0` |
+| `nimi-shell-tauri` | `0.12.0` |
 | Project-local Nimi Coding | `0.7.0` |
 
 ## Source Package Archives
@@ -39,10 +39,10 @@ Build and package the required local archives using the [App Tools local package
 packages:
   - .
 overrides:
-  '@nimiplatform/app-tools': file:../nimi-packages/nimiplatform-app-tools-0.14.0.tgz
-  '@nimiplatform/sdk': file:../nimi-packages/nimiplatform-sdk-0.22.2.tgz
-  '@nimiplatform/kit': file:../nimi-packages/nimiplatform-kit-0.22.1.tgz
-  '@nimiplatform/kit-protected-local-darwin-arm64': file:../nimi-packages/nimiplatform-kit-protected-local-darwin-arm64-0.22.1.tgz
+  '@nimiplatform/app-tools': file:../nimi-packages/nimiplatform-app-tools-0.15.0.tgz
+  '@nimiplatform/sdk': file:../nimi-packages/nimiplatform-sdk-0.23.0.tgz
+  '@nimiplatform/kit': file:../nimi-packages/nimiplatform-kit-0.23.0.tgz
+  '@nimiplatform/kit-protected-local-darwin-arm64': file:../nimi-packages/nimiplatform-kit-protected-local-darwin-arm64-0.23.0.tgz
 ```
 
 On Windows x86_64, use the matching `kit-protected-local-win32-x64` archive instead of the Darwin package. Native optional packages must match Kit. A Web-only App does not acquire a native Host from these packages.

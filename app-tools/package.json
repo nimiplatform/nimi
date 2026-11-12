@@ -1,11 +1,11 @@
 {
   "name": "@nimiplatform/app-tools",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "description": "Public app-authoring CLI for Nimi App projects.",
   "license": "Apache-2.0",
   "type": "module",
   "engines": {
-    "node": ">=24.22.1 <25.0.0"
+    "node": ">=24.22.3 <25.0.0"
   },
   "private": false,
   "repository": {
@@ -18,11 +18,11 @@
     "provenance": true
   },
   "nimiScaffoldVersions": {
-    "sdkVersion": "^0.22.2",
-    "appToolsVersion": "^0.14.0",
+    "sdkVersion": "^0.23.0",
+    "appToolsVersion": "^0.15.0",
     "nimicodingVersion": "0.7.0",
     "aiSdkVersion": "^7.0.150",
-    "kitVersion": "^0.22.1",
+    "kitVersion": "^0.23.0",
     "reactVersion": "^19.3.1",
     "reactDomVersion": "^19.3.1",
     "i18nextVersion": "^26.5.6",
@@ -39,7 +39,7 @@
     "tauriCliVersion": "^2.11.4",
     "yamlVersion": "^2.9.1",
     "pngjsVersion": "^7.0.0",
-    "nimiShellTauriVersion": "0.11.1",
+    "nimiShellTauriVersion": "0.12.0",
     "electronPackagerVersion": "^20.3.0",
     "electronVersion": "^45.0.0",
     "esbuildVersion": "^0.28.2",
@@ -49,6 +49,7 @@
     "nimi-app": "./bin/nimi-app.mjs"
   },
   "exports": {
+    "./web/coordination": "./lib/web-coordination.mjs",
     "./web": {
       "types": "./lib/web-development.d.mts",
       "import": "./lib/web-development.mjs",

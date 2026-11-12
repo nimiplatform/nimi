@@ -18,17 +18,17 @@
 
 ## 工具链与源码组合
 
-使用 Node `>=24.22.1 <25`、pnpm `10.34.7`。原生源码构建还需目标系统的构建工具；Android 另需 JDK、Android SDK、原生工程与设备条件。
+使用 Node `>=24.22.3 <25`、pnpm `10.34.7`。原生源码构建还需目标系统的构建工具；Android 另需 JDK、Android SDK、原生工程与设备条件。
 
 当前源码脚手架声明的组合如下：
 
 | 包 | 源码版本 |
 | --- | --- |
-| `@nimiplatform/sdk` | `^0.22.2` |
-| `@nimiplatform/kit` | `^0.22.1` |
-| `@nimiplatform/app-tools` | `^0.14.0` |
-| `@nimiplatform/sdk-adapter-vercel-ai` | `^0.6.2` |
-| `nimi-shell-tauri` | `0.11.1` |
+| `@nimiplatform/sdk` | `^0.23.0` |
+| `@nimiplatform/kit` | `^0.23.0` |
+| `@nimiplatform/app-tools` | `^0.15.0` |
+| `@nimiplatform/sdk-adapter-vercel-ai` | `^0.7.0` |
+| `nimi-shell-tauri` | `0.12.0` |
 | 项目级 Nimi Coding | `0.7.0` |
 
 ## 源码包归档 {#source-package-archives}
@@ -39,10 +39,10 @@
 packages:
   - .
 overrides:
-  '@nimiplatform/app-tools': file:../nimi-packages/nimiplatform-app-tools-0.14.0.tgz
-  '@nimiplatform/sdk': file:../nimi-packages/nimiplatform-sdk-0.22.2.tgz
-  '@nimiplatform/kit': file:../nimi-packages/nimiplatform-kit-0.22.1.tgz
-  '@nimiplatform/kit-protected-local-darwin-arm64': file:../nimi-packages/nimiplatform-kit-protected-local-darwin-arm64-0.22.1.tgz
+  '@nimiplatform/app-tools': file:../nimi-packages/nimiplatform-app-tools-0.15.0.tgz
+  '@nimiplatform/sdk': file:../nimi-packages/nimiplatform-sdk-0.23.0.tgz
+  '@nimiplatform/kit': file:../nimi-packages/nimiplatform-kit-0.23.0.tgz
+  '@nimiplatform/kit-protected-local-darwin-arm64': file:../nimi-packages/nimiplatform-kit-protected-local-darwin-arm64-0.23.0.tgz
 ```
 
 Windows x86_64 请将 Darwin 包换为匹配版本的 `kit-protected-local-win32-x64` 归档。原生可选包必须与 Kit 配套；Web App 不会因安装这些包而获得原生 Host 身份。

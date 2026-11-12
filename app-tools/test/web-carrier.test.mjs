@@ -10,7 +10,8 @@ import ts from 'typescript';
 import { parse as yaml, stringify as stringifyYaml } from 'yaml';
 import { buildAppScaffoldSnapshot, buildAppScaffoldSnapshotFromIntent, hashScaffoldManagedContent } from '../lib/app-scaffold.mjs';
 import { appScaffoldVersions, resolveAppCreatePlan } from '../lib/index.mjs';
-import { readWebDevelopment, isWebCoordinationPath, webOriginGuard } from '../lib/web-development.mjs';
+import { readWebDevelopment, isWebCoordinationPath, nimiWebViteConfig, webOriginGuard } from '../lib/web-development.mjs';
+import { handleNimiWebCoordination } from '../lib/web-coordination.mjs';
 import { validateAppProjectInputs } from '../lib/app-doctor-update.mjs';
 import { buildAppProject } from '../lib/app-project-lifecycle.mjs';
 
@@ -54,6 +55,53 @@ test('Web source config binds HTTPS callback and prevents credential-cookie shar
   let code, next = 0;
   webOriginGuard(web.site)({ method: 'POST', headers: { host: web.site.host }, url: '/api/auth/runtime-clients/authorize' }, { writeHead(value) { code = value; }, end() {} }, () => next++);
   assert.equal(code, 404); assert.equal(next, 0);
+});
+
+test('Web release builds require an explicit deployed source and embed its same-origin coordination URL', () => {
+  const root = mkdtempSync(path.join(os.tmpdir(), 'nimi-web-release-'));
+  try {
+    writeFileSync(path.join(root, 'nimi.app.yaml'), snapshot().filesByPath.get('nimi.app.yaml').content);
+    const options = { root, serve: false, release: true };
+    const env = {
+      NIMI_WEB_ORIGIN: 'https://app.example',
+      NIMI_WEB_REDIRECT_URI: 'https://app.example/callback',
+      NIMI_WEB_CLIENT_ID: 'unit.web.release',
+      NIMI_WEB_REALM_ENVIRONMENT_ID: 'production',
+      NIMI_WEB_OFFICIAL_WEB_URL: 'https://account.example',
+    };
+    assert.throws(() => nimiWebViteConfig({ ...options, env: {} }), /NIMI_WEB_ORIGIN/u);
+    assert.throws(() => nimiWebViteConfig({ ...options, env, serve: true }), /requires a build/u);
+    assert.throws(() => nimiWebViteConfig({ ...options, env: { ...env, NIMI_WEB_OFFICIAL_WEB_URL: 'http://localhost:3000' } }), /HTTPS/u);
+    assert.throws(() => nimiWebViteConfig({ ...options, env: { ...env, NIMI_WEB_REDIRECT_URI: 'https://other.example/callback' } }), /callback/u);
+    assert.deepEqual(JSON.parse(nimiWebViteConfig({ ...options, env }).define.__NIMI_APP_WEB_CONFIG__), {
+      appId: 'unit.web', clientId: 'unit.web.release', realmEnvironmentId: 'production',
+      officialWebBaseUrl: 'https://account.example', realmBaseUrl: 'https://app.example', redirectUri: 'https://app.example/callback',
+    });
+  } finally { rmSync(root, { recursive: true, force: true }); }
+});
+
+test('Pages coordination forwards only same-origin allowlisted calls without cookies or upstream redirects', async t => {
+  const env = { NIMI_WEB_ORIGIN: 'https://app.example', NIMI_REALM_URL: 'https://realm.example' };
+  const upstream = t.mock.method(globalThis, 'fetch', async () => new Response('{"ok":true}', {
+    headers: { 'Content-Type': 'application/json', 'Set-Cookie': 'account=example' },
+  }));
+  const invoke = (path, options) => handleNimiWebCoordination({ request: new Request(new URL(path, env.NIMI_WEB_ORIGIN), options), env });
+  assert.equal((await invoke('/api/runtime-access/context', { headers: { Origin: 'https://other.example' } })).status, 403);
+  assert.equal((await invoke('/api/auth/login', { method: 'POST' })).status, 404);
+  assert.equal(upstream.mock.callCount(), 0);
+  const result = await invoke('/api/runtime-access/context?current=1', {
+    headers: { Authorization: 'Bearer context', Cookie: 'account=example', Origin: env.NIMI_WEB_ORIGIN },
+  });
+  assert.equal(await result.text(), '{"ok":true}');
+  assert.equal(result.headers.get('set-cookie'), null);
+  assert.equal(result.headers.get('cache-control'), 'no-store');
+  const [target, options] = upstream.mock.calls[0].arguments;
+  assert.equal(target.href, 'https://realm.example/api/runtime-access/context?current=1');
+  assert.equal(options.redirect, 'manual');
+  assert.equal(options.headers.get('authorization'), 'Bearer context');
+  assert.equal(options.headers.get('cookie'), null);
+  upstream.mock.mockImplementation(async () => Response.redirect('https://other.example/'));
+  assert.equal((await invoke('/api/runtime-access/context')).status, 502);
 });
 
 test('Web lifecycle validates its real command and delegates build to its declared owner', () => {
