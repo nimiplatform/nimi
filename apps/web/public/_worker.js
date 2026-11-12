@@ -1,5 +1,4 @@
 const PORTAL_ORIGIN = 'https://nimi.ai';
-const ACCOUNT_ORIGIN = 'https://web.nimi.ai';
 
 function isAccountPath(pathname) {
   return /^\/(?:login|register)(?:\/|$)/u.test(pathname)
@@ -13,12 +12,11 @@ export default {
     const accountPath = isAccountPath(url.pathname);
     const productionHost = ['nimi.ai', 'www.nimi.ai', 'web.nimi.ai', 'nimi.xyz', 'www.nimi.xyz'].includes(url.hostname);
     if (productionHost) {
-      const destination = accountPath ? ACCOUNT_ORIGIN : PORTAL_ORIGIN;
-      if (url.origin !== destination) {
+      if (url.origin !== PORTAL_ORIGIN) {
         return new Response(null, {
           status: 308,
           headers: {
-            Location: `${destination}${url.pathname}${url.search}`,
+            Location: `${PORTAL_ORIGIN}${url.pathname}${url.search}`,
             'Cache-Control': 'no-store',
             'Referrer-Policy': 'no-referrer',
           },

@@ -89,12 +89,11 @@ jobs:
           pnpm dlx wrangler@4.127.1 pages deploy apps/web/dist --project-name nimi --branch main --commit-hash "$SOURCE_SHA" --commit-dirty=false
           node apps/web/scripts/cloudflare-release.mjs deployment "$WRANGLER_OUTPUT_FILE_PATH"
           node apps/web/scripts/cloudflare-release.mjs verify https://nimi.ai
-          node apps/web/scripts/cloudflare-release.mjs verify https://web.nimi.ai
       - name: Record deployment result
         if: always()
         run: |
           echo 'Cloudflare Pages project: nimi (nimi-6jb.pages.dev)' >> "$GITHUB_STEP_SUMMARY"
-          echo 'Portal: https://nimi.ai — Account and manager: https://web.nimi.ai' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Official portal, account and manager: https://nimi.ai' >> "$GITHUB_STEP_SUMMARY"
           for result in "$RUNNER_TEMP"/web-*.jsonl; do
             if [[ -f "$result" ]]; then
               echo '```json' >> "$GITHUB_STEP_SUMMARY"

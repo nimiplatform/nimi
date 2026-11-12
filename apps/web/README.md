@@ -18,9 +18,8 @@ The existing Cloudflare Pages project **`nimi`** (`nimi-6jb.pages.dev`) hosts bo
 
 | Origin | Responsibility |
 | --- | --- |
-| `https://nimi.ai` | Public portal, App introductions, download and legal pages |
-| `https://web.nimi.ai` | `/login`, `/register`, `/account/*`, including official Runtime management |
-| `https://www.nimi.ai` | Redirect to the appropriate canonical portal or account path |
+| `https://nimi.ai` | Public portal, account, `/account/runtime` management, App introductions, download and legal pages |
+| `https://www.nimi.ai` / `https://web.nimi.ai` | Redirect to the same path and query on `https://nimi.ai`; no separate login site |
 | Existing `nimi.xyz` / `www.nimi.xyz` aliases | Same canonical redirects; no separate account identity |
 | `https://realm.nimi.ai` | ECS API, Realtime, account sessions and coordination |
 | `https://admin.nimi.ai` | Existing ECS administration site |
@@ -30,7 +29,7 @@ The existing Cloudflare Pages project **`nimi`** (`nimi-6jb.pages.dev`) hosts bo
 
 `.github/workflows/deploy-web.yml` owns release execution. Pages remains connected to `nimiplatform/nimi`, with production branch `main` and automatic Cloudflare Git builds disabled in both environments so a second build cannot overwrite a release. The GitHub workflow runs on relevant `main` pushes or explicit dispatch, installs the pinned workspace, tests/builds Web once, deploys and checks a preview, then publishes the same directory to production and checks the public routes. Deployment URLs, IDs and source SHA are recorded in the GitHub run summary and Cloudflare history. A failed preview prevents production publication; a failed production check leaves the real failure visible and does not silently roll back.
 
-Build inputs are public configuration: `NIMI_REALM_URL=https://realm.nimi.ai`, `VITE_NIMI_REALM_ENVIRONMENT_ID=production`, and `VITE_NIMI_RUNTIME_MANAGER_CLIENT_ID=nimiplatform.runtime-manager.web`. The manager source remains the Registry-approved exact origin `https://web.nimi.ai` and callback `https://web.nimi.ai/account/runtime`. Realm continues to own host-only HttpOnly cookies and exact credentialed CORS. Neither Pages aliases nor previews receive new account or Runtime permissions.
+Build inputs are public configuration: `NIMI_REALM_URL=https://realm.nimi.ai`, `VITE_NIMI_REALM_ENVIRONMENT_ID=production`, and `VITE_NIMI_RUNTIME_MANAGER_CLIENT_ID=nimiplatform.runtime-manager.web`. The manager source requires the Registry-approved exact origin `https://nimi.ai` and callback `https://nimi.ai/account/runtime`. The `.web` client ID identifies the carrier, not a subdomain. Realm continues to own host-only HttpOnly cookies and exact credentialed CORS. Neither Pages aliases nor previews receive new account or Runtime permissions. Realm's official Web URL must also be `https://nimi.ai`; the PC enters Realm's authorize endpoint and keeps its independent loopback callback.
 
 CI reuses the repository's `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` secrets. The token needs Cloudflare Pages Edit for this account. DNS changes are a separate one-time operation, not a CI permission. Wrangler is pinned to `4.127.1` in the workflow.
 
