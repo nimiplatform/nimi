@@ -369,8 +369,12 @@ export function useAIStudioWorkspaceController({
       nimiToast.warning(translate('History.unsupportedCapability'));
       return;
     }
+    if (selectedRecord?.id === record.id && selectedRecord.capabilityId === record.capabilityId) {
+      setHistorySelectionRequest(current => ({ requestId: (current?.requestId ?? 0) + 1, record: selectedRecord }));
+      return;
+    }
     onSelectCapability(record.capabilityId, record.id);
-  }, [onSelectCapability, registrations, translate]);
+  }, [onSelectCapability, registrations, selectedRecord, translate]);
 
   return {
     parameterStore,

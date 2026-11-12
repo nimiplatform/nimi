@@ -155,7 +155,8 @@ test('an explicit saved-result reference waits for its read and never selects an
  const record=createStudioRunHistoryRecord({result:result('saved answer'),prompt:'input',runId:'selected',createdAt:'2026-10-06T10:00:00Z'});
  const repository={load:()=>held.promise,loadPanelPreferences:()=>({collapsed:true,scope:'capability',hideFailures:false})};
  const position={runId:'selected',entryKey:'entry-a',capabilityId:'text.generate'};
- function Probe({historyPosition}){controller=useAIStudioWorkspaceController({historyRepository:repository,registrations:[],historyPosition,onSelectCapability:()=>assert.fail('reading history must not navigate'),translate:key=>key});return null}
+ const registrations=[{descriptor:{id:'chat.stream'},parameters:{initial:()=>({})}}];
+ function Probe({historyPosition}){controller=useAIStudioWorkspaceController({historyRepository:repository,registrations,historyPosition,onSelectCapability:()=>assert.fail('reading or reopening the same history entry must not navigate'),translate:key=>key});return null}
  const renderer=createRoot(document.getElementById('root'));
  try{
   await act(async()=>renderer.render(createElement(Probe,{historyPosition:position})));
@@ -164,6 +165,10 @@ test('an explicit saved-result reference waits for its read and never selects an
   assert.equal(controller.historySelectionUnavailable,true);assert.equal(controller.historySelectionRequest,null);
   await act(async()=>renderer.render(createElement(Probe,{historyPosition:{...position,capabilityId:'chat.stream',entryKey:'entry-b'}})));
   assert.equal(controller.historySelectionUnavailable,false);assert.equal(controller.historySelectionRequest.record.id,'selected');
+  const firstSelection=controller.historySelectionRequest.requestId;
+  await act(async()=>controller.selectHistoryRun(record));
+  assert.equal(controller.historySelectionRequest.requestId,firstSelection+1);
+  assert.equal(controller.historySelectionRequest.record.id,'selected');
   await act(async()=>renderer.render(createElement(Probe,{historyPosition:{...position,runId:'missing',entryKey:'entry-c'}})));
   assert.equal(controller.historySelectionUnavailable,true);assert.equal(controller.historySelectionRequest,null);
   await act(async()=>renderer.render(createElement(Probe,{})));
