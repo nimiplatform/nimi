@@ -8,6 +8,7 @@ on:
       - 'kit/**'
       - 'sdks/typescript/**'
       - 'config/**'
+      - 'runtime/catalog/providers/**'
       - 'scripts/lib/workspace-surfaces.mjs'
       - 'scripts/with-workspace-surfaces.mjs'
       - 'package.json'
