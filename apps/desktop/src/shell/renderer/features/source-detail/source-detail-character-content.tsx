@@ -2,6 +2,7 @@ import { useId, useLayoutEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ChevronDown, Info } from 'lucide-react';
 import type { SourceDetailData } from './source-detail-model.js';
+import { sourceDetailDisplayText } from './source-detail-world-character-copy.js';
 import { uniqueStrings } from './source-detail-world-character-labels.js';
 import { characterKnowledgeTopicText } from './source-detail-world-character-theme.js';
 
@@ -64,13 +65,17 @@ export function characterAppearanceDetails(source: SourceDetailData) {
 }
 
 // @nimi-authority: rule.nimi.desktop.product-surfaces.r033
-export function CharacterProfileSections({ source }: { source: SourceDetailData }) {
-  const { t } = useTranslation();
+export function CharacterProfileSections({ source, lifeEvents }: {
+  source: SourceDetailData;
+  lifeEvents: SourceDetailData['characterProfile']['milestones'];
+}) {
+  const { t, i18n } = useTranslation();
   const profile = source.characterProfile;
   const paragraphs = characterAboutParagraphs(source);
   const drives = uniqueStrings(profile.drives ?? []);
   const topics = uniqueStrings(profile.knowledgeTopics);
   const rules = uniqueStrings([...profile.knowledgeConstraints, ...(profile.boundaries ?? [])]);
+  const display = (text: string) => sourceDetailDisplayText(text, i18n.resolvedLanguage ?? i18n.language);
   return <>
     {paragraphs.length ? <section data-testid="world-character-about-section">
       <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">
@@ -79,6 +84,20 @@ export function CharacterProfileSections({ source }: { source: SourceDetailData 
       <div className="mt-4 grid gap-3">
         {paragraphs.map(item => <CharacterProfileText key={item.id} testId={item.id} text={item.text} />)}
       </div>
+    </section> : null}
+    {lifeEvents.length ? <section data-testid="character-life-events" className="border-t border-[var(--nimi-border-subtle)] pt-5">
+      <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">{t('SourceDetail.worldCharacter.lifeEventsTitle')}</h2>
+      <ol role="list" className="mt-3 grid gap-3">
+        {lifeEvents.map(event => {
+          const title = display(event.title);
+          const summary = event.summary ? display(event.summary) : null;
+          return <li key={event.id} className="min-w-0 border-s-2 border-[var(--nimi-border-subtle)] ps-3">
+            {event.timeLabel ? <p className="break-words text-sm text-[var(--nimi-text-muted)]">{display(event.timeLabel)}</p> : null}
+            <p className="break-words font-medium text-[var(--nimi-text-primary)]">{title}</p>
+            {summary && summary !== title ? <CharacterProfileText text={summary} /> : null}
+          </li>;
+        })}
+      </ol>
     </section> : null}
     {drives.length ? <section data-testid="world-character-drives-section" className="border-t border-[var(--nimi-border-subtle)] pt-5">
       <h2 className="text-xl font-semibold text-[var(--nimi-text-primary)]">{t('SourceDetail.worldCharacter.drivesTitle')}</h2>

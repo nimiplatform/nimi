@@ -78,26 +78,11 @@ function toWorkCollectionFromRelationship(
   };
 }
 
-// Two work records name the same collection only through an explicit id or an
-// identical explicit title.
-function worksReferToSameCollection(
+function haveConflictingTextIds(
   left: SourceDetailWorkCollection,
   right: SourceDetailWorkCollection,
 ): boolean {
-  if (left.textId && right.textId && left.textId === right.textId) {
-    return true;
-  }
-  if (left.rowRef && right.rowRef && left.rowRef === right.rowRef) {
-    return true;
-  }
-  // Text clues all share the same generic relation label, so title equality
-  // would wrongly collapse distinct evidence rows; only explicit ids merge.
-  if (left.textClue || right.textClue) {
-    return false;
-  }
-  const leftTitle = normalizedMergeText(left.title);
-  const rightTitle = normalizedMergeText(right.title);
-  return Boolean(leftTitle && rightTitle && leftTitle === rightTitle);
+  return Boolean(left.textId && right.textId && left.textId !== right.textId);
 }
 
 // A summary that only repeats the title adds nothing to the work card.
@@ -144,9 +129,33 @@ function mergeWorkCollection(
 }
 
 export function dedupeWorks(works: SourceDetailWorkCollection[]): SourceDetailWorkCollection[] {
+  // A title-only milestone can fill a work record when the title is unambiguous.
+  // Count explicit identities across the whole input so the result cannot
+  // assign that milestone to whichever of two same-title works arrives first.
+  const textIdsByTitle = new Map<string, Set<string>>();
+  for (const work of works) {
+    const title = normalizedMergeText(work.title);
+    if (work.textClue || !title || !work.textId) continue;
+    const ids = textIdsByTitle.get(title) ?? new Set<string>();
+    ids.add(work.textId);
+    textIdsByTitle.set(title, ids);
+  }
+
   const result: SourceDetailWorkCollection[] = [];
   for (const work of works) {
-    const existingIndex = result.findIndex((candidate) => worksReferToSameCollection(candidate, work));
+    let existingIndex = work.textId
+      ? result.findIndex(candidate => candidate.textId === work.textId)
+      : -1;
+    if (existingIndex < 0 && work.rowRef) {
+      existingIndex = result.findIndex(candidate => candidate.rowRef === work.rowRef
+        && !haveConflictingTextIds(candidate, work));
+    }
+    const title = normalizedMergeText(work.title);
+    if (existingIndex < 0 && !work.textClue && title && (textIdsByTitle.get(title)?.size ?? 0) <= 1) {
+      existingIndex = result.findIndex(candidate => !candidate.textClue
+        && !haveConflictingTextIds(candidate, work)
+        && normalizedMergeText(candidate.title) === title);
+    }
     if (existingIndex >= 0) {
       const existing = result[existingIndex];
       if (existing) {

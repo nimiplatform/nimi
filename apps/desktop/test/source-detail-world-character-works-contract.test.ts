@@ -656,6 +656,63 @@ test('shared public biography work events feed the works collection', () => {
   assert.deepEqual(detail.characterProfile.milestones.map((milestone) => milestone.title), ['薛能诗集', '繁城集']);
 });
 
+test('same-title works with different text IDs stay separate even with a shared row reference', () => {
+  const title = 'Collected Poems';
+  const detail = toSourceDetailData({
+    ...ouYangDeRaw,
+    characterProfile: {
+      ...ouYangDeRaw.characterProfile,
+      milestones: [{
+        id: 'unidentified-work',
+        title,
+        summary: 'The source does not name an edition.',
+        sequence: 1,
+        timeLabel: null,
+        kind: 'work',
+        derived: false,
+      }],
+    },
+    relationships: [
+      { id: 'first', type: 'text', attributes: { textId: 'edition-a', title, rowRef: 'shared' } },
+      { id: 'second', type: 'text', attributes: { textId: 'edition-b', title, rowRef: 'shared' } },
+      {
+        id: 'second-alias',
+        type: 'text',
+        summary: 'The second edition has a surviving preface.',
+        attributes: { textId: 'edition-b', title: 'Selected Poems', joinStatus: 'resolved' },
+      },
+    ],
+  }, 'source_materialization_available');
+
+  assert.deepEqual(detail.works.map(({ textId, summary, status }) => ({ textId, summary, status })), [
+    { textId: null, summary: 'The source does not name an edition.', status: 'unknown' },
+    { textId: 'edition-a', summary: null, status: 'unknown' },
+    { textId: 'edition-b', summary: 'The second edition has a surviving preface.', status: 'resolved' },
+  ]);
+});
+
+test('an explicit text ID match takes precedence over an earlier title match', () => {
+  const detail = toSourceDetailData({
+    ...ouYangDeRaw,
+    characterProfile: { ...ouYangDeRaw.characterProfile, milestones: [] },
+    relationships: [
+      { id: 'unidentified', type: 'text', attributes: { title: 'Selected Poems' } },
+      { id: 'identified', type: 'text', attributes: { textId: 'edition-a', title: 'Collected Poems' } },
+      {
+        id: 'alias',
+        type: 'text',
+        summary: 'The identified work has a surviving preface.',
+        attributes: { textId: 'edition-a', title: 'Selected Poems' },
+      },
+    ],
+  }, 'source_materialization_available');
+
+  assert.deepEqual(detail.works.map(({ textId, summary }) => ({ textId, summary })), [
+    { textId: null, summary: null },
+    { textId: 'edition-a', summary: 'The identified work has a surviving preface.' },
+  ]);
+});
+
 test('public biography explicitly distinguishes work and office milestones', () => {
   const detail = toSourceDetailData({
     ...ouYangDeRaw,
@@ -691,6 +748,56 @@ test('public biography explicitly distinguishes work and office milestones', () 
     '薛能诗集',
     '咸通年间任同州刺史',
   ]);
+});
+
+test('the shared detail renders dated and undated life events in source order and keeps works separate', () => {
+  const source = toSourceDetailData({
+    ...ouYangDeRaw,
+    bio: null,
+    entity: null,
+    relationships: [],
+    characterProfile: {
+      ...ouYangDeRaw.characterProfile,
+      narrativeSummary: null,
+      knowledgeTopics: [],
+      knowledgeConstraints: [],
+      interaction: null,
+      milestones: [
+        {
+          id: 'undated-journey', title: 'Studied with local scholars', summary: 'Studied with local scholars',
+          sequence: 1, timeLabel: null, kind: 'biography', derived: false,
+        },
+        {
+          id: 'dated-office', title: 'Led the academy', summary: 'Taught a new generation of scholars.',
+          sequence: 2, timeLabel: '1314–1316', kind: 'office', derived: false,
+        },
+        {
+          id: 'work', title: 'Collected Lectures', summary: null,
+          sequence: 3, timeLabel: null, kind: 'work', derived: false,
+        },
+      ],
+    },
+  }, 'source_materialization_available');
+  const markup = renderToStaticMarkup(React.createElement(SourceDetailView, {
+    source, loading: false, error: false, onOpenWorld() {}, onPrimaryAction() {},
+  }));
+
+  const events = markup.match(/<section data-testid="character-life-events"[^>]*>[\s\S]*?<\/section>/)?.[0];
+  assert.ok(events);
+  assert.match(events, /Studied with local scholars[\s\S]*1314–1316[\s\S]*Led the academy[\s\S]*Taught a new generation of scholars\./);
+  assert.equal(events.match(/Studied with local scholars/g)?.length, 1);
+  assert.doesNotMatch(events, /Collected Lectures/);
+  assert.match(markup, /data-testid="world-character-works-section"[\s\S]*Collected Lectures/);
+});
+
+test('a profile with only work milestones has no life events section', () => {
+  const source = toSourceDetailData(liBaiRaw, 'source_materialization_available');
+  const markup = renderToStaticMarkup(React.createElement(SourceDetailView, {
+    source, loading: false, error: false, onOpenWorld() {}, onPrimaryAction() {},
+  }));
+
+  assert.doesNotMatch(markup, /data-testid="character-life-events"/);
+  assert.match(markup, /data-testid="world-character-works-section"/);
 });
 
 test('world character works keep label-only text relationships as text clues instead of works', () => {

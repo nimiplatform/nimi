@@ -277,9 +277,10 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
   const hasDialogue = Boolean(profile.dialogueExemplars?.length || profile.interaction?.greeting?.trim());
   const relationships = buildRelationshipClueItems(source, t);
   const hasPeople = relationships.some(item => item.group === 'people');
+  const lifeEvents = profile.milestones.filter(milestone => milestone.kind !== 'work');
   const hasLeftColumn = Boolean(characterAboutParagraphs(source).length || profile.drives?.length
     || profile.knowledgeTopics.length || profile.knowledgeConstraints.length || profile.boundaries?.length
-    || characterAppearanceDetails(source).length
+    || characterAppearanceDetails(source).length || lifeEvents.length
     || relationships.some(item => item.group === 'life' || item.group === 'objects'));
   const hasMeeting = Boolean(profile.interaction?.meetingScenes?.length || meetingScene || hasDialogue);
   const hasRightColumn = hasMeeting || hasPeople;
@@ -328,7 +329,7 @@ export function CharacterSourceDetailPage(props: CharacterSourceDetailPageProps)
               <div data-testid="world-character-reading-columns"
                 className={`grid items-start gap-6 ${!partner && hasLeftColumn && hasRightColumn ? 'min-[1000px]:grid-cols-[minmax(0,0.92fr)_1px_minmax(0,1.08fr)] min-[1000px]:gap-x-6' : 'max-w-3xl'}`}>
                 {hasLeftColumn ? <div data-testid="world-character-profile-column" className="grid min-w-0 content-start gap-5">
-                  <CharacterProfileSections source={source} />
+                  <CharacterProfileSections source={source} lifeEvents={lifeEvents} />
                   <WorldCharacterBackgroundSections source={source} />
                   <CharacterAppearanceDisclosure source={source} />
                 </div> : null}
