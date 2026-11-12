@@ -2334,7 +2334,6 @@ type GetPrimaryRuntimeStateResponse struct {
 	DisplayName      string                 `protobuf:"bytes,4,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
 	ThisRuntime      bool                   `protobuf:"varint,5,opt,name=this_runtime,json=thisRuntime,proto3" json:"this_runtime,omitempty"`
 	ValidAfter       string                 `protobuf:"bytes,6,opt,name=valid_after,json=validAfter,proto3" json:"valid_after,omitempty"`
-	LeaseExpiresAt   string                 `protobuf:"bytes,7,opt,name=lease_expires_at,json=leaseExpiresAt,proto3" json:"lease_expires_at,omitempty"`
 	unknownFields    protoimpl.UnknownFields
 	sizeCache        protoimpl.SizeCache
 }
@@ -2407,13 +2406,6 @@ func (x *GetPrimaryRuntimeStateResponse) GetThisRuntime() bool {
 func (x *GetPrimaryRuntimeStateResponse) GetValidAfter() string {
 	if x != nil {
 		return x.ValidAfter
-	}
-	return ""
-}
-
-func (x *GetPrimaryRuntimeStateResponse) GetLeaseExpiresAt() string {
-	if x != nil {
-		return x.LeaseExpiresAt
 	}
 	return ""
 }
@@ -2706,7 +2698,7 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"\x13account_reason_code\x18\x05 \x01(\x0e2\".nimi.runtime.v1.AccountReasonCodeR\x11accountReasonCode\x12)\n" +
 	"\x10production_inert\x18\x06 \x01(\bR\x0fproductionInert\x12E\n" +
 	"\x10audit_diagnostic\x18\a \x01(\v2\x1a.nimi.runtime.v1.ErrorInfoR\x0fauditDiagnostic\"\x1f\n" +
-	"\x1dGetPrimaryRuntimeStateRequest\"\x9d\x02\n" +
+	"\x1dGetPrimaryRuntimeStateRequest\"\x8b\x02\n" +
 	"\x1eGetPrimaryRuntimeStateResponse\x12\x1d\n" +
 	"\n" +
 	"runtime_id\x18\x01 \x01(\tR\truntimeId\x12,\n" +
@@ -2716,8 +2708,7 @@ const file_runtime_v1_account_proto_rawDesc = "" +
 	"\fdisplay_name\x18\x04 \x01(\tR\vdisplayName\x12!\n" +
 	"\fthis_runtime\x18\x05 \x01(\bR\vthisRuntime\x12\x1f\n" +
 	"\vvalid_after\x18\x06 \x01(\tR\n" +
-	"validAfter\x12(\n" +
-	"\x10lease_expires_at\x18\a \x01(\tR\x0eleaseExpiresAt\"\x89\x01\n" +
+	"validAfterJ\x04\b\a\x10\bR\x10lease_expires_at\"\x89\x01\n" +
 	"\x1cPreparePrimaryRuntimeRequest\x12\x16\n" +
 	"\x06action\x18\x01 \x01(\tR\x06action\x12.\n" +
 	"\x13expected_binding_id\x18\x02 \x01(\tR\x11expectedBindingId\x12!\n" +

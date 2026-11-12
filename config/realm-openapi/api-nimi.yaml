@@ -4585,13 +4585,6 @@ components:
           type: string
         displayName:
           type: string
-        leaseExpiresAt:
-          format: date-time
-          nullable: true
-          type: string
-        leaseVersion:
-          format: uuid
-          type: string
         publicKey:
           type: string
         runtimeId:
@@ -4606,8 +4599,6 @@ components:
         - displayName
         - publicKey
         - validAfter
-        - leaseVersion
-        - leaseExpiresAt
       type: object
     PrimaryRuntimeConfirmDto:
       properties:
@@ -4619,6 +4610,27 @@ components:
       required:
         - intentId
         - expectedAccountId
+      type: object
+    PrimaryRuntimeHostProofDto:
+      properties:
+        bindingId:
+          format: uuid
+          type: string
+        expectedAccountId:
+          type: string
+        runtimeId:
+          format: uuid
+          type: string
+        signature:
+          type: string
+        signedAt:
+          type: number
+      required:
+        - expectedAccountId
+        - runtimeId
+        - bindingId
+        - signedAt
+        - signature
       type: object
     PrimaryRuntimeIntentDto:
       properties:
@@ -4651,31 +4663,6 @@ components:
         - expectedAccountId
         - expiresAt
         - confirmationUrl
-      type: object
-    PrimaryRuntimeLeaseRequestDto:
-      properties:
-        bindingId:
-          format: uuid
-          type: string
-        expectedAccountId:
-          type: string
-        leaseVersion:
-          format: uuid
-          type: string
-        runtimeId:
-          format: uuid
-          type: string
-        signature:
-          type: string
-        signedAt:
-          type: number
-      required:
-        - expectedAccountId
-        - runtimeId
-        - bindingId
-        - leaseVersion
-        - signedAt
-        - signature
       type: object
     PrimaryRuntimeMutationDto:
       properties:
@@ -5599,9 +5586,11 @@ components:
           type: string
         displayName:
           type: string
-        leaseExpiresAt:
-          format: date-time
-          nullable: true
+        presence:
+          enum:
+            - recently_online
+            - offline
+            - unknown
           type: string
         publicKey:
           type: string
@@ -5616,7 +5605,7 @@ components:
         - displayName
         - publicKey
         - validAfter
-        - leaseExpiresAt
+        - presence
       type: object
     RuntimeClientSourceDto:
       properties:
@@ -5711,10 +5700,10 @@ components:
         connectionId:
           format: uuid
           type: string
-        expectedAccountId:
-          type: string
-        leaseVersion:
+        controlSessionId:
           format: uuid
+          type: string
+        expectedAccountId:
           type: string
         rejectionReason:
           enum:
@@ -5733,9 +5722,9 @@ components:
         - expectedAccountId
         - runtimeId
         - bindingId
-        - leaseVersion
         - signedAt
         - signature
+        - controlSessionId
         - connectionId
         - answerSdp
         - rejectionReason
@@ -5770,64 +5759,6 @@ components:
         - context
         - expiresAt
       type: object
-    RuntimeConnectionPollDto:
-      properties:
-        bindingId:
-          format: uuid
-          type: string
-        contextIds:
-          items:
-            type: string
-          maxItems: 64
-          type: array
-        expectedAccountId:
-          type: string
-        leaseVersion:
-          format: uuid
-          type: string
-        runtimeId:
-          format: uuid
-          type: string
-        signature:
-          type: string
-        signedAt:
-          type: number
-      required:
-        - expectedAccountId
-        - runtimeId
-        - bindingId
-        - leaseVersion
-        - signedAt
-        - signature
-        - contextIds
-      type: object
-    RuntimeConnectionPollResultDto:
-      properties:
-        contexts:
-          items:
-            $ref: '#/components/schemas/RuntimeClientContextDto'
-          type: array
-        controlLeaseExpiresAt:
-          format: date-time
-          type: string
-        offers:
-          items:
-            $ref: '#/components/schemas/RuntimeConnectionOfferDto'
-          type: array
-        serverTime:
-          format: date-time
-          type: string
-        stunUrls:
-          items:
-            type: string
-          type: array
-      required:
-        - stunUrls
-        - serverTime
-        - controlLeaseExpiresAt
-        - offers
-        - contexts
-      type: object
     RuntimeConnectionStateDto:
       properties:
         answerSdp:
@@ -5858,6 +5789,110 @@ components:
         - answerSdp
         - rejectionReason
         - expiresAt
+      type: object
+    RuntimeConnectionSyncDto:
+      properties:
+        bindingId:
+          format: uuid
+          type: string
+        contextIds:
+          items:
+            type: string
+          maxItems: 64
+          type: array
+        controlSessionId:
+          format: uuid
+          type: string
+        expectedAccountId:
+          type: string
+        runtimeId:
+          format: uuid
+          type: string
+        signature:
+          type: string
+        signedAt:
+          type: number
+      required:
+        - expectedAccountId
+        - runtimeId
+        - bindingId
+        - signedAt
+        - signature
+        - controlSessionId
+        - contextIds
+      type: object
+    RuntimeConnectionSyncResultDto:
+      properties:
+        authorizationExpiresAt:
+          format: date-time
+          type: string
+        contexts:
+          items:
+            $ref: '#/components/schemas/RuntimeClientContextDto'
+          type: array
+        offers:
+          items:
+            $ref: '#/components/schemas/RuntimeConnectionOfferDto'
+          type: array
+        serverTime:
+          format: date-time
+          type: string
+        signalRevision:
+          type: string
+        stunUrls:
+          items:
+            type: string
+          type: array
+      required:
+        - stunUrls
+        - serverTime
+        - authorizationExpiresAt
+        - signalRevision
+        - offers
+        - contexts
+      type: object
+    RuntimeControlHeartbeatDto:
+      properties:
+        bindingId:
+          format: uuid
+          type: string
+        controlSessionId:
+          format: uuid
+          type: string
+        sequence:
+          type: number
+        signalRevision:
+          type: string
+        signature:
+          type: string
+        signedAt:
+          type: number
+      required:
+        - bindingId
+        - controlSessionId
+        - sequence
+        - signalRevision
+        - signedAt
+        - signature
+      type: object
+    RuntimeControlHeartbeatResultDto:
+      properties:
+        status:
+          enum:
+            - idle
+            - sync_required
+            - register_required
+          type: string
+      required:
+        - status
+      type: object
+    RuntimeControlRegisterResultDto:
+      properties:
+        controlSessionId:
+          format: uuid
+          type: string
+      required:
+        - controlSessionId
       type: object
     SendMessageInputDto:
       properties:
@@ -11114,26 +11149,68 @@ paths:
       summary: Answer an exact pending direct connection with my primary host proof
       tags:
         - Runtime access
-  /api/auth/primary-runtime/connections/poll:
+  /api/auth/primary-runtime/connections/heartbeat:
     post:
-      operationId: pollPrimaryRuntimeConnections
+      operationId: heartbeatPrimaryRuntimeControl
       parameters: []
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RuntimeConnectionPollDto'
+              $ref: '#/components/schemas/RuntimeControlHeartbeatDto'
         required: true
       responses:
         '201':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RuntimeConnectionPollResultDto'
+                $ref: '#/components/schemas/RuntimeControlHeartbeatResultDto'
+          description: ''
+      summary: Refresh host presence and check for a signaling change
+      tags:
+        - Runtime access
+  /api/auth/primary-runtime/connections/register:
+    post:
+      operationId: registerPrimaryRuntimeControl
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PrimaryRuntimeHostProofDto'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuntimeControlRegisterResultDto'
           description: ''
       security:
         - bearer: []
-      summary: Read my primary host offers and revalidate its active client contexts
+      summary: Register the current primary host for coordination
+      tags:
+        - Runtime access
+  /api/auth/primary-runtime/connections/sync:
+    post:
+      operationId: syncPrimaryRuntimeConnections
+      parameters: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RuntimeConnectionSyncDto'
+        required: true
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RuntimeConnectionSyncResultDto'
+          description: ''
+      security:
+        - bearer: []
+      summary: Read pending offers and validate active remote contexts
       tags:
         - Runtime access
   /api/auth/primary-runtime/intent/{intentId}:
@@ -11155,28 +11232,6 @@ paths:
       security:
         - bearer: []
       summary: Read my pending primary Runtime confirmation
-      tags:
-        - Runtime access
-  /api/auth/primary-runtime/lease:
-    post:
-      operationId: renewMyPrimaryRuntimeLease
-      parameters: []
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PrimaryRuntimeLeaseRequestDto'
-        required: true
-      responses:
-        '201':
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PrimaryRuntimeSnapshotDto'
-          description: ''
-      security:
-        - bearer: []
-      summary: Renew the current primary Runtime control lease
       tags:
         - Runtime access
   /api/auth/primary-runtime/prepare:

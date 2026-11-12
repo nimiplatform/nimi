@@ -524,6 +524,12 @@ REALM_OPERATIONS = [
     "path": "/api/health/ready"
   },
   {
+    "operation_id": "heartbeatPrimaryRuntimeControl",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/auth/primary-runtime/connections/heartbeat"
+  },
+  {
     "operation_id": "introspectSession",
     "service": "Auth",
     "method": "POST",
@@ -650,12 +656,6 @@ REALM_OPERATIONS = [
     "path": "/api/auth/password/register"
   },
   {
-    "operation_id": "pollPrimaryRuntimeConnections",
-    "service": "Runtime access",
-    "method": "POST",
-    "path": "/api/auth/primary-runtime/connections/poll"
-  },
-  {
     "operation_id": "prepare2Fa",
     "service": "Me2fa",
     "method": "POST",
@@ -710,16 +710,16 @@ REALM_OPERATIONS = [
     "path": "/api/auth/refresh"
   },
   {
+    "operation_id": "registerPrimaryRuntimeControl",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/auth/primary-runtime/connections/register"
+  },
+  {
     "operation_id": "reinitializeMyPrimaryRuntime",
     "service": "Runtime access",
     "method": "POST",
     "path": "/api/auth/primary-runtime/reinitialize"
-  },
-  {
-    "operation_id": "renewMyPrimaryRuntimeLease",
-    "service": "Runtime access",
-    "method": "POST",
-    "path": "/api/auth/primary-runtime/lease"
   },
   {
     "operation_id": "ReportController_createReport",
@@ -762,6 +762,12 @@ REALM_OPERATIONS = [
     "service": "Human Chats",
     "method": "GET",
     "path": "/api/human/chats/{chatId}/sync"
+  },
+  {
+    "operation_id": "syncPrimaryRuntimeConnections",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/auth/primary-runtime/connections/sync"
   },
   {
     "operation_id": "terminateCurrentAccount",

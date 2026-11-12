@@ -90,7 +90,6 @@ func (s *Service) GetPrimaryRuntimeState(ctx context.Context, _ *runtimev1.GetPr
 	result.DisplayName = binding.DisplayName
 	result.ThisRuntime = primaryKeyMatches(keys.Active, binding)
 	result.ValidAfter = binding.ValidAfter
-	result.LeaseExpiresAt = binding.LeaseExpiresAt
 	if !s.primaryCallerCurrent(ctx, principal) {
 		return nil, primaryFailure(codes.Unauthenticated)
 	}
@@ -266,7 +265,7 @@ func primaryKeyMatches(key *primaryHostKey, b *realmv1.PrimaryRuntimeBindingDto)
 	return base64.RawURLEncoding.EncodeToString(private.Public().(ed25519.PublicKey)) == b.PublicKey
 }
 func validPrimaryBinding(b *realmv1.PrimaryRuntimeBindingDto) bool {
-	if !validPrimaryID(b.BindingId) || !validPrimaryID(b.RuntimeId) || !validPrimaryID(b.LeaseVersion) || b.DisplayName == "" {
+	if !validPrimaryID(b.BindingId) || !validPrimaryID(b.RuntimeId) || b.DisplayName == "" {
 		return false
 	}
 	key, err := base64.RawURLEncoding.DecodeString(b.PublicKey)
@@ -276,11 +275,7 @@ func validPrimaryBinding(b *realmv1.PrimaryRuntimeBindingDto) bool {
 	if _, err = time.Parse(time.RFC3339Nano, b.ValidAfter); err != nil {
 		return false
 	}
-	if b.LeaseExpiresAt != "" {
-		if _, err = time.Parse(time.RFC3339Nano, b.LeaseExpiresAt); err != nil {
-			return false
-		}
-	}
+
 	return true
 }
 func validPrimaryID(value string) bool {
@@ -318,12 +313,24 @@ func (s *Service) primaryAccountCall(ctx context.Context, accountID, realmID str
 	if err != nil || !ok || generation != expectedGeneration {
 		return primaryFailure(codes.Unauthenticated)
 	}
+	if err := s.primaryRequest(ctx, token, operation, input, output); err != nil {
+		return err
+	}
+	current, currentGeneration, live := s.AuthenticatedRuntimeSecurityContext(ctx)
+	if !live || currentGeneration != expectedGeneration || current.GetAccountId() != accountID || current.GetRealmEnvironmentId() != realmID {
+		return primaryFailure(codes.Unauthenticated)
+	}
+	return nil
+}
+
+func (s *Service) primaryRequest(ctx context.Context, token string, operation realmv1.OperationDescriptor, input, output any) error {
 	target := operation.ResolveBaseURL(s.realmBaseURL)
 	if target == "" {
 		return primaryFailure(codes.Unavailable)
 	}
 	var encoded []byte
 	if input != nil {
+		var err error
 		encoded, err = json.Marshal(input)
 		if err != nil {
 			return primaryFailure(codes.InvalidArgument)
@@ -333,7 +340,9 @@ func (s *Service) primaryAccountCall(ctx context.Context, accountID, realmID str
 	if err != nil {
 		return primaryFailure(codes.Unavailable)
 	}
-	request.Header.Set("Authorization", "Bearer "+token)
+	if token != "" {
+		request.Header.Set("Authorization", "Bearer "+token)
+	}
 	if input != nil {
 		request.Header.Set("Content-Type", operation.RequestContentType())
 	}
@@ -363,7 +372,7 @@ func (s *Service) primaryAccountCall(ctx context.Context, accountID, realmID str
 		}
 	}
 	limit := int64(65536)
-	if operation.OperationID() == "pollPrimaryRuntimeConnections" {
+	if operation.OperationID() == "syncPrimaryRuntimeConnections" {
 		limit = 1 << 20
 	}
 	data, err := io.ReadAll(io.LimitReader(response.Body, limit+1))
@@ -374,10 +383,6 @@ func (s *Service) primaryAccountCall(ctx context.Context, accountID, realmID str
 	decoder.DisallowUnknownFields()
 	if decoder.Decode(output) != nil || decoder.Decode(new(any)) != io.EOF {
 		return primaryFailure(codes.Internal)
-	}
-	current, currentGeneration, live := s.AuthenticatedRuntimeSecurityContext(ctx)
-	if !live || currentGeneration != expectedGeneration || current.GetAccountId() != accountID || current.GetRealmEnvironmentId() != realmID {
-		return primaryFailure(codes.Unauthenticated)
 	}
 	return nil
 }

@@ -1555,8 +1555,6 @@ class PrimaryRuntimeBindDto:
 class PrimaryRuntimeBindingDto:
     bindingId: str
     displayName: str
-    leaseExpiresAt: str | None
-    leaseVersion: str
     publicKey: str
     runtimeId: str
     validAfter: str
@@ -1567,6 +1565,14 @@ class PrimaryRuntimeConfirmDto:
     intentId: str
 
 @dataclass(frozen=True)
+class PrimaryRuntimeHostProofDto:
+    bindingId: str
+    expectedAccountId: str
+    runtimeId: str
+    signature: str
+    signedAt: float
+
+@dataclass(frozen=True)
 class PrimaryRuntimeIntentDto:
     confirmationUrl: str
     displayName: str
@@ -1575,15 +1581,6 @@ class PrimaryRuntimeIntentDto:
     intentId: str
     operation: Literal["bind", "reinitialize"]
     runtimeId: str
-
-@dataclass(frozen=True)
-class PrimaryRuntimeLeaseRequestDto:
-    bindingId: str
-    expectedAccountId: str
-    leaseVersion: str
-    runtimeId: str
-    signature: str
-    signedAt: float
 
 @dataclass(frozen=True)
 class PrimaryRuntimeMutationDto:
@@ -1892,7 +1889,7 @@ class RuntimeClientExchangeDto:
 class RuntimeClientPrimaryDto:
     bindingId: str
     displayName: str
-    leaseExpiresAt: str | None
+    presence: Literal["recently_online", "offline", "unknown"]
     publicKey: str
     runtimeId: str
     validAfter: str
@@ -1928,8 +1925,8 @@ class RuntimeConnectionAnswerDto:
     answerSdp: str
     bindingId: str
     connectionId: str
+    controlSessionId: str
     expectedAccountId: str
-    leaseVersion: str
     rejectionReason: Literal["", "SOURCE_NOT_ALLOWED", "DIRECT_CONNECTION_UNAVAILABLE"]
     runtimeId: str
     signature: str
@@ -1948,24 +1945,6 @@ class RuntimeConnectionOfferDto:
     offerSdp: str
 
 @dataclass(frozen=True)
-class RuntimeConnectionPollDto:
-    bindingId: str
-    contextIds: tuple[str, ...]
-    expectedAccountId: str
-    leaseVersion: str
-    runtimeId: str
-    signature: str
-    signedAt: float
-
-@dataclass(frozen=True)
-class RuntimeConnectionPollResultDto:
-    contexts: tuple[RuntimeClientContextDto, ...]
-    controlLeaseExpiresAt: str
-    offers: tuple[RuntimeConnectionOfferDto, ...]
-    serverTime: str
-    stunUrls: tuple[str, ...]
-
-@dataclass(frozen=True)
 class RuntimeConnectionStateDto:
     answerSdp: str | None
     bindingId: str
@@ -1973,6 +1952,42 @@ class RuntimeConnectionStateDto:
     expiresAt: str
     rejectionReason: str | None
     status: Literal["pending", "answered", "rejected"]
+
+@dataclass(frozen=True)
+class RuntimeConnectionSyncDto:
+    bindingId: str
+    contextIds: tuple[str, ...]
+    controlSessionId: str
+    expectedAccountId: str
+    runtimeId: str
+    signature: str
+    signedAt: float
+
+@dataclass(frozen=True)
+class RuntimeConnectionSyncResultDto:
+    authorizationExpiresAt: str
+    contexts: tuple[RuntimeClientContextDto, ...]
+    offers: tuple[RuntimeConnectionOfferDto, ...]
+    serverTime: str
+    signalRevision: str
+    stunUrls: tuple[str, ...]
+
+@dataclass(frozen=True)
+class RuntimeControlHeartbeatDto:
+    bindingId: str
+    controlSessionId: str
+    sequence: float
+    signalRevision: str
+    signature: str
+    signedAt: float
+
+@dataclass(frozen=True)
+class RuntimeControlHeartbeatResultDto:
+    status: Literal["idle", "sync_required", "register_required"]
+
+@dataclass(frozen=True)
+class RuntimeControlRegisterResultDto:
+    controlSessionId: str
 
 @dataclass(frozen=True)
 class SendMessageInputDto:
@@ -5149,6 +5164,28 @@ class RealmHealthControllerReadyOperationRequest:
     body: None | None = None
 
 @dataclass(frozen=True)
+class RealmHeartbeatPrimaryRuntimeControlOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmHeartbeatPrimaryRuntimeControlOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmHeartbeatPrimaryRuntimeControlOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmHeartbeatPrimaryRuntimeControlOperationRequest:
+    path: RealmHeartbeatPrimaryRuntimeControlOperationPath
+    query: RealmHeartbeatPrimaryRuntimeControlOperationQuery | None = None
+    headers: RealmHeartbeatPrimaryRuntimeControlOperationHeaders | None = None
+    body: RuntimeControlHeartbeatDto | None = None
+
+@dataclass(frozen=True)
 class RealmIntrospectSessionOperationPath:
     pass
 
@@ -5641,28 +5678,6 @@ class RealmPasswordRegisterOperationRequest:
     body: PasswordRegisterDto | None = None
 
 @dataclass(frozen=True)
-class RealmPollPrimaryRuntimeConnectionsOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmPollPrimaryRuntimeConnectionsOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmPollPrimaryRuntimeConnectionsOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmPollPrimaryRuntimeConnectionsOperationRequest:
-    path: RealmPollPrimaryRuntimeConnectionsOperationPath
-    query: RealmPollPrimaryRuntimeConnectionsOperationQuery | None = None
-    headers: RealmPollPrimaryRuntimeConnectionsOperationHeaders | None = None
-    body: RuntimeConnectionPollDto | None = None
-
-@dataclass(frozen=True)
 class RealmPrepare2FaOperationPath:
     pass
 
@@ -5862,6 +5877,28 @@ class RealmRefreshTokenOperationRequest:
     body: RefreshTokenDto | None = None
 
 @dataclass(frozen=True)
+class RealmRegisterPrimaryRuntimeControlOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmRegisterPrimaryRuntimeControlOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmRegisterPrimaryRuntimeControlOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmRegisterPrimaryRuntimeControlOperationRequest:
+    path: RealmRegisterPrimaryRuntimeControlOperationPath
+    query: RealmRegisterPrimaryRuntimeControlOperationQuery | None = None
+    headers: RealmRegisterPrimaryRuntimeControlOperationHeaders | None = None
+    body: PrimaryRuntimeHostProofDto | None = None
+
+@dataclass(frozen=True)
 class RealmReinitializeMyPrimaryRuntimeOperationPath:
     pass
 
@@ -5882,28 +5919,6 @@ class RealmReinitializeMyPrimaryRuntimeOperationRequest:
     query: RealmReinitializeMyPrimaryRuntimeOperationQuery | None = None
     headers: RealmReinitializeMyPrimaryRuntimeOperationHeaders | None = None
     body: PrimaryRuntimeBindDto | None = None
-
-@dataclass(frozen=True)
-class RealmRenewMyPrimaryRuntimeLeaseOperationPath:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmRenewMyPrimaryRuntimeLeaseOperationQuery:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmRenewMyPrimaryRuntimeLeaseOperationHeaders:
-    pass
-
-
-@dataclass(frozen=True)
-class RealmRenewMyPrimaryRuntimeLeaseOperationRequest:
-    path: RealmRenewMyPrimaryRuntimeLeaseOperationPath
-    query: RealmRenewMyPrimaryRuntimeLeaseOperationQuery | None = None
-    headers: RealmRenewMyPrimaryRuntimeLeaseOperationHeaders | None = None
-    body: PrimaryRuntimeLeaseRequestDto | None = None
 
 @dataclass(frozen=True)
 class RealmReportControllerCreateReportOperationPath:
@@ -6060,6 +6075,28 @@ class RealmSyncChatEventsOperationRequest:
     query: RealmSyncChatEventsOperationQuery | None = None
     headers: RealmSyncChatEventsOperationHeaders | None = None
     body: None | None = None
+
+@dataclass(frozen=True)
+class RealmSyncPrimaryRuntimeConnectionsOperationPath:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmSyncPrimaryRuntimeConnectionsOperationQuery:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmSyncPrimaryRuntimeConnectionsOperationHeaders:
+    pass
+
+
+@dataclass(frozen=True)
+class RealmSyncPrimaryRuntimeConnectionsOperationRequest:
+    path: RealmSyncPrimaryRuntimeConnectionsOperationPath
+    query: RealmSyncPrimaryRuntimeConnectionsOperationQuery | None = None
+    headers: RealmSyncPrimaryRuntimeConnectionsOperationHeaders | None = None
+    body: RuntimeConnectionSyncDto | None = None
 
 @dataclass(frozen=True)
 class RealmTerminateCurrentAccountOperationPath:
@@ -8347,6 +8384,16 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="HealthController_ready", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(None, raw)
 
+    async def heartbeat_primary_runtime_control(self, request: RealmHeartbeatPrimaryRuntimeControlOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmHeartbeatPrimaryRuntimeControlOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="heartbeatPrimaryRuntimeControl", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RuntimeControlHeartbeatResultDto, raw)
+
     async def introspect_session(self, request: RealmIntrospectSessionOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmIntrospectSessionOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -8557,16 +8604,6 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="passwordRegister", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(OAuthLoginResultDto, raw)
 
-    async def poll_primary_runtime_connections(self, request: RealmPollPrimaryRuntimeConnectionsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmPollPrimaryRuntimeConnectionsOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
-            "headers": _model_body(request.headers) or {},
-            "body": {} if request.body is None else _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="pollPrimaryRuntimeConnections", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(RuntimeConnectionPollResultDto, raw)
-
     async def prepare2_fa(self, request: RealmPrepare2FaOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmPrepare2FaOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -8657,6 +8694,16 @@ class RealmTypedClient:
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="refreshToken", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(AuthTokensDto, raw)
 
+    async def register_primary_runtime_control(self, request: RealmRegisterPrimaryRuntimeControlOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmRegisterPrimaryRuntimeControlOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="registerPrimaryRuntimeControl", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RuntimeControlRegisterResultDto, raw)
+
     async def reinitialize_my_primary_runtime(self, request: RealmReinitializeMyPrimaryRuntimeOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmReinitializeMyPrimaryRuntimeOperationResponse:
         envelope: dict[str, object] = {
             "path": _model_body(request.path),
@@ -8666,16 +8713,6 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="reinitializeMyPrimaryRuntime", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(PrimaryRuntimeMutationDto, raw)
-
-    async def renew_my_primary_runtime_lease(self, request: RealmRenewMyPrimaryRuntimeLeaseOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmRenewMyPrimaryRuntimeLeaseOperationResponse:
-        envelope: dict[str, object] = {
-            "path": _model_body(request.path),
-            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
-            "headers": _model_body(request.headers) or {},
-            "body": {} if request.body is None else _model_body(request.body),
-        }
-        raw: object = await self._core.unary(CoreUnaryRequest(method_id="renewMyPrimaryRuntimeLease", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
-        return _decode_model(PrimaryRuntimeSnapshotDto, raw)
 
     async def report_controller_create_report(self, request: RealmReportControllerCreateReportOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmReportControllerCreateReportOperationResponse:
         envelope: dict[str, object] = {
@@ -8746,6 +8783,16 @@ class RealmTypedClient:
         }
         raw: object = await self._core.unary(CoreUnaryRequest(method_id="syncChatEvents", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
         return _decode_model(ChatSyncResultDto, raw)
+
+    async def sync_primary_runtime_connections(self, request: RealmSyncPrimaryRuntimeConnectionsOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmSyncPrimaryRuntimeConnectionsOperationResponse:
+        envelope: dict[str, object] = {
+            "path": _model_body(request.path),
+            "query": {key: value for key, value in (_model_body(request.query) or {}).items() if value is not None},
+            "headers": _model_body(request.headers) or {},
+            "body": {} if request.body is None else _model_body(request.body),
+        }
+        raw: object = await self._core.unary(CoreUnaryRequest(method_id="syncPrimaryRuntimeConnections", body=envelope, metadata=metadata, timeout_ms=timeout_ms))
+        return _decode_model(RuntimeConnectionSyncResultDto, raw)
 
     async def terminate_current_account(self, request: RealmTerminateCurrentAccountOperationRequest, *, metadata: Mapping[str, str] | None = None, timeout_ms: int | None = None) -> RealmTerminateCurrentAccountOperationResponse:
         envelope: dict[str, object] = {

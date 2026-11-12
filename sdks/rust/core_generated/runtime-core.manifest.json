@@ -22596,13 +22596,6 @@
             "repeated": false,
             "optional": false,
             "number": 6
-          },
-          {
-            "name": "lease_expires_at",
-            "type": "string",
-            "repeated": false,
-            "optional": false,
-            "number": 7
           }
         ],
         "source_file": "proto/runtime/v1/account.proto"

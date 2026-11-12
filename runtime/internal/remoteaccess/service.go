@@ -3,6 +3,7 @@ package remoteaccess
 import (
 	"context"
 	"log/slog"
+	"math/rand/v2"
 	"sort"
 	"sync"
 	"time"
@@ -22,6 +23,13 @@ import (
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
+const (
+	heartbeatInterval  = 5 * time.Second
+	presenceWindow     = 20 * time.Second
+	activeSyncInterval = 20 * time.Second
+	maxRegisterBackoff = 30 * time.Second
+)
+
 type pendingOffer struct {
 	offer    realmv1.RuntimeConnectionOfferDto
 	deadline time.Time
@@ -32,16 +40,22 @@ type peerWork struct {
 	contextID, clientID string
 }
 type hostRun struct {
-	ctx     context.Context
-	cancel  context.CancelFunc
-	scope   localappkernel.RemoteAccessScope
-	control *accountservice.PrimaryRuntimeControl
-	state   runtimev1.RemoteAccessConnectionState
-	reason  string
-	blocked bool
-	pending map[string]pendingOffer
-	working map[string]peerWork
-	peers   map[string]*Peer
+	ctx             context.Context
+	cancel          context.CancelFunc
+	scope           localappkernel.RemoteAccessScope
+	control         *accountservice.PrimaryRuntimeControl
+	state           runtimev1.RemoteAccessConnectionState
+	reason          string
+	blocked         bool
+	presenceUntil   time.Time
+	signalRevision  string
+	nextSync        time.Time
+	forceSync       bool
+	nextRegister    time.Time
+	registerBackoff time.Duration
+	pending         map[string]pendingOffer
+	working         map[string]peerWork
+	peers           map[string]*Peer
 }
 
 type Service struct {
@@ -77,15 +91,18 @@ func (s *Service) Start() {
 		s.wg.Add(1)
 		go func() {
 			defer s.wg.Done()
-			ticker := time.NewTicker(2 * time.Second)
-			defer ticker.Stop()
+			timer := time.NewTimer(0)
+			defer timer.Stop()
+			<-timer.C
 			for {
 				s.step()
+				timer.Reset(heartbeatInterval + time.Duration(rand.Int64N(int64(time.Second))) - 500*time.Millisecond)
 				select {
 				case <-s.ctx.Done():
 					return
-				case <-ticker.C:
+				case <-timer.C:
 				case <-s.wake:
+					timer.Stop()
 				}
 			}
 		}()
@@ -98,6 +115,11 @@ func (s *Service) Close() {
 	s.close.Do(func() { s.cancel(); s.stopRun(); s.wg.Wait() })
 }
 func (s *Service) changed() {
+	s.mu.Lock()
+	if s.run != nil {
+		s.run.forceSync = true
+	}
+	s.mu.Unlock()
 	select {
 	case s.wake <- struct{}{}:
 	default:
@@ -144,6 +166,9 @@ func (s *Service) step() {
 		return
 	}
 	if control == nil {
+		if time.Now().Before(current.nextRegister) {
+			return
+		}
 		control, err = s.account.BindPrimaryRuntimeControl(current.ctx)
 		if err != nil {
 			// An absent/non-matching host identity needs an explicit owner action.
@@ -155,7 +180,7 @@ func (s *Service) step() {
 				}
 				s.mu.Unlock()
 			}
-			s.controlFailure(current, "PRIMARY_RUNTIME_UNAVAILABLE", err)
+			s.registerFailure(current, err)
 			return
 		}
 		bound := control.State()
@@ -168,12 +193,23 @@ func (s *Service) step() {
 			s.controlFailure(current, "PRIMARY_RUNTIME_CHANGED", denied())
 			return
 		}
+		if err := s.account.RegisterPrimaryRuntimeControl(current.ctx, control); err != nil {
+			s.registerFailure(current, err)
+			return
+		}
 		s.mu.Lock()
 		if s.run != current {
 			s.mu.Unlock()
 			return
 		}
 		current.control = control
+		current.registerBackoff = 0
+		current.signalRevision = ""
+		current.nextSync = time.Time{}
+		current.pending = make(map[string]pendingOffer)
+		for _, work := range current.working {
+			work.cancel()
+		}
 		s.mu.Unlock()
 	}
 	bound := control.State()
@@ -183,20 +219,35 @@ func (s *Service) step() {
 		return
 	default:
 	}
-	if time.Until(bound.Deadline) < 40*time.Second || !accountservice.PrimaryRuntimeDeadlineLive(bound.Deadline) {
-		if err = s.account.RenewPrimaryRuntimeControl(current.ctx, control); err != nil {
-			s.controlFailure(current, "PRIMARY_RUNTIME_UNAVAILABLE", err)
-			// A lost renewal response may have rotated the CAS version. Re-read
-			// current control on the next tick; no business request is repeated.
-			s.mu.Lock()
-			if s.run == current {
-				current.control = nil
-			}
-			s.mu.Unlock()
-			return
-		}
+	sent := time.Now()
+	heartbeat, err := s.account.HeartbeatPrimaryRuntimeControl(current.ctx, control, current.signalRevision)
+	if err != nil {
+		s.controlFailure(current, "REALM_UNAVAILABLE", err)
+		return
 	}
 	s.mu.Lock()
+	if s.run != current || current.ctx.Err() != nil {
+		s.mu.Unlock()
+		return
+	}
+	if heartbeat == "register_required" {
+		current.control = nil
+		current.pending = make(map[string]pendingOffer)
+		for _, work := range current.working {
+			work.cancel()
+		}
+		current.state = runtimev1.RemoteAccessConnectionState_REMOTE_ACCESS_CONNECTION_STATE_CONNECTING
+		s.mu.Unlock()
+		return
+	}
+	current.presenceUntil = sent.Add(presenceWindow)
+	current.state = runtimev1.RemoteAccessConnectionState_REMOTE_ACCESS_CONNECTION_STATE_LISTENING
+	current.reason = ""
+	for id, pending := range current.pending {
+		if !accountservice.PrimaryRuntimeDeadlineLive(pending.deadline) {
+			delete(current.pending, id)
+		}
+	}
 	ids := make(map[string]bool)
 	for id, peer := range current.peers {
 		if info, live := peer.Snapshot(); live {
@@ -209,18 +260,35 @@ func (s *Service) step() {
 	for _, work := range current.working {
 		ids[work.contextID] = true
 	}
+	active := len(ids) > 0 || len(current.pending) > 0
+	forceSync := current.forceSync
+	current.forceSync = false
 	s.mu.Unlock()
+	if heartbeat != "sync_required" && (!active || (!forceSync && time.Now().Before(current.nextSync))) {
+		return
+	}
+	current.nextSync = time.Now().Add(activeSyncInterval)
 	contextIDs := make([]string, 0, len(ids))
 	for id := range ids {
 		contextIDs = append(contextIDs, id)
 	}
 	sort.Strings(contextIDs)
-	poll, err := s.account.PollPrimaryRuntimeConnections(current.ctx, control, contextIDs)
+	sync, err := s.account.SyncPrimaryRuntimeConnections(current.ctx, control, contextIDs)
 	if err != nil {
 		s.controlFailure(current, "REALM_UNAVAILABLE", err)
 		return
 	}
-	s.applyPoll(current, poll)
+	s.applySync(current, sync)
+}
+
+func (s *Service) registerFailure(run *hostRun, err error) {
+	if run.registerBackoff == 0 {
+		run.registerBackoff = heartbeatInterval
+	} else {
+		run.registerBackoff = min(2*run.registerBackoff, maxRegisterBackoff)
+	}
+	run.nextRegister = time.Now().Add(run.registerBackoff)
+	s.controlFailure(run, "PRIMARY_RUNTIME_UNAVAILABLE", err)
 }
 
 func (s *Service) controlFailure(run *hostRun, reason string, cause error) {
@@ -231,6 +299,7 @@ func (s *Service) controlFailure(run *hostRun, reason string, cause error) {
 		run.reason = reason
 		switch status.Code(cause) {
 		case codes.PermissionDenied, codes.Unauthenticated, codes.Aborted:
+			run.pending = make(map[string]pendingOffer)
 			for _, peer := range run.peers {
 				peers = append(peers, peer)
 			}
@@ -247,7 +316,7 @@ func (s *Service) controlFailure(run *hostRun, reason string, cause error) {
 	}
 }
 
-func (s *Service) applyPoll(run *hostRun, poll *accountservice.PrimaryRuntimePoll) {
+func (s *Service) applySync(run *hostRun, poll *accountservice.PrimaryRuntimeSync) {
 	serverTime, _ := time.Parse(time.RFC3339Nano, poll.Projection.ServerTime)
 	live := make(map[string]realmv1.RuntimeClientContextDto)
 	for _, item := range poll.Projection.Contexts {
@@ -260,6 +329,7 @@ func (s *Service) applyPoll(run *hostRun, poll *accountservice.PrimaryRuntimePol
 	}
 	run.state = runtimev1.RemoteAccessConnectionState_REMOTE_ACCESS_CONNECTION_STATE_LISTENING
 	run.reason = ""
+	run.signalRevision = poll.Projection.SignalRevision
 	for id, peer := range run.peers {
 		info, current := peer.Snapshot()
 		item, exists := live[info.ContextID]
@@ -360,7 +430,7 @@ func (s *Service) connect(run *hostRun, ctx context.Context, cancel context.Canc
 	s.mu.Unlock()
 }
 
-func clientDeadline(poll *accountservice.PrimaryRuntimePoll, item *realmv1.RuntimeClientContextDto, serverTime time.Time) time.Time {
+func clientDeadline(poll *accountservice.PrimaryRuntimeSync, item *realmv1.RuntimeClientContextDto, serverTime time.Time) time.Time {
 	expires, _ := time.Parse(time.RFC3339Nano, item.ExpiresAt)
 	return minTime(poll.AuthorityDeadline, poll.ObservedAt.Add(expires.Sub(serverTime)))
 }
@@ -499,7 +569,7 @@ func (s *Service) state(ctx context.Context, p protectedprincipal.Principal) (*r
 	}
 	if run != nil && run.scope == scope {
 		result.ConnectionState, result.ReasonCode = run.state, run.reason
-		if result.ConnectionState == runtimev1.RemoteAccessConnectionState_REMOTE_ACCESS_CONNECTION_STATE_LISTENING && (run.control == nil || !accountservice.PrimaryRuntimeDeadlineLive(run.control.State().Deadline)) {
+		if result.ConnectionState == runtimev1.RemoteAccessConnectionState_REMOTE_ACCESS_CONNECTION_STATE_LISTENING && (run.control == nil || !accountservice.PrimaryRuntimeDeadlineLive(run.presenceUntil)) {
 			result.ConnectionState = runtimev1.RemoteAccessConnectionState_REMOTE_ACCESS_CONNECTION_STATE_UNAVAILABLE
 			result.ReasonCode = "PRIMARY_RUNTIME_UNAVAILABLE"
 		}

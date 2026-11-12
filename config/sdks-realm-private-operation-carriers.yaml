@@ -15,8 +15,9 @@ surfaces:
   - getSourceMaterializationJwks
   - getMyPrimaryRuntime
   - prepareMyPrimaryRuntime
-  - renewMyPrimaryRuntimeLease
-  - pollPrimaryRuntimeConnections
+  - registerPrimaryRuntimeControl
+  - heartbeatPrimaryRuntimeControl
+  - syncPrimaryRuntimeConnections
   - answerPrimaryRuntimeConnection
 owner: .nimi/spec/sdks
 source_rule: S-REALMAPI-002
@@ -82,16 +83,22 @@ operations:
     path: /api/auth/primary-runtime/prepare
     runtime_projection: generated_carrier
     public_sdk_disposition: retained
-  - operation_id: renewMyPrimaryRuntimeLease
+  - operation_id: registerPrimaryRuntimeControl
     family: primary_runtime
     method: POST
-    path: /api/auth/primary-runtime/lease
+    path: /api/auth/primary-runtime/connections/register
     runtime_projection: generated_carrier
     public_sdk_disposition: retained
-  - operation_id: pollPrimaryRuntimeConnections
+  - operation_id: heartbeatPrimaryRuntimeControl
     family: primary_runtime
     method: POST
-    path: /api/auth/primary-runtime/connections/poll
+    path: /api/auth/primary-runtime/connections/heartbeat
+    runtime_projection: generated_carrier
+    public_sdk_disposition: retained
+  - operation_id: syncPrimaryRuntimeConnections
+    family: primary_runtime
+    method: POST
+    path: /api/auth/primary-runtime/connections/sync
     runtime_projection: generated_carrier
     public_sdk_disposition: retained
   - operation_id: answerPrimaryRuntimeConnection

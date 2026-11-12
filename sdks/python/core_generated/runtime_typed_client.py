@@ -3053,7 +3053,6 @@ class GetPrimaryRuntimeStateResponse:
     display_name: str | None = None
     this_runtime: bool | None = None
     valid_after: str | None = None
-    lease_expires_at: str | None = None
 
 @dataclass(frozen=True)
 class GetProductControlCheckSyncRequest:

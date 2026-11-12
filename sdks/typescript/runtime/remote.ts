@@ -33,6 +33,12 @@ export async function connectRemoteRuntime(session: RuntimeClientSession, option
   if (!session.active || options.signal?.aborted) throw unavailable();
   const current = await session.read();
   if (!current.primary) throw createNimiError({ message: 'Bind your primary Runtime in PC Home first.', reasonCode: 'PRIMARY_RUNTIME_NOT_BOUND', source: 'realm' });
+  if (current.primary.presence === 'offline') {
+    throw createNimiError({ message: 'The primary PC has not contacted Realm recently.', reasonCode: 'PRIMARY_RUNTIME_OFFLINE', source: 'realm' });
+  }
+  if (current.primary.presence === 'unknown') {
+    throw createNimiError({ message: 'Realm could not check the primary PC’s presence.', reasonCode: 'RUNTIME_COORDINATION_UNAVAILABLE', source: 'realm' });
+  }
   // Owner management does not need the ordinary App's AI/Agent operation clients.
   const appClients = current.source.role === 'official_manager' ? null : (await import('./remote-app.js')).createRemoteRuntimeAppClients;
   if (!session.active || options.signal?.aborted) throw unavailable();

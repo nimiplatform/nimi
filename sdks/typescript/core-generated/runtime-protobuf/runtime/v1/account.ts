@@ -626,10 +626,6 @@ export interface GetPrimaryRuntimeStateResponse {
      * @generated from protobuf field: string valid_after = 6
      */
     validAfter: string;
-    /**
-     * @generated from protobuf field: string lease_expires_at = 7
-     */
-    leaseExpiresAt: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.PreparePrimaryRuntimeRequest
@@ -2835,8 +2831,7 @@ class GetPrimaryRuntimeStateResponse$Type extends MessageType<GetPrimaryRuntimeS
             { no: 3, name: "binding_id", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 5, name: "this_runtime", kind: "scalar", T: 8 /*ScalarType.BOOL*/ },
-            { no: 6, name: "valid_after", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 7, name: "lease_expires_at", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 6, name: "valid_after", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<GetPrimaryRuntimeStateResponse>): GetPrimaryRuntimeStateResponse {
@@ -2847,7 +2842,6 @@ class GetPrimaryRuntimeStateResponse$Type extends MessageType<GetPrimaryRuntimeS
         message.displayName = "";
         message.thisRuntime = false;
         message.validAfter = "";
-        message.leaseExpiresAt = "";
         if (value !== undefined)
             reflectionMergePartial<GetPrimaryRuntimeStateResponse>(this, message, value);
         return message;
@@ -2874,9 +2868,6 @@ class GetPrimaryRuntimeStateResponse$Type extends MessageType<GetPrimaryRuntimeS
                     break;
                 case /* string valid_after */ 6:
                     message.validAfter = reader.string();
-                    break;
-                case /* string lease_expires_at */ 7:
-                    message.leaseExpiresAt = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2908,9 +2899,6 @@ class GetPrimaryRuntimeStateResponse$Type extends MessageType<GetPrimaryRuntimeS
         /* string valid_after = 6; */
         if (message.validAfter !== "")
             writer.tag(6, WireType.LengthDelimited).string(message.validAfter);
-        /* string lease_expires_at = 7; */
-        if (message.leaseExpiresAt !== "")
-            writer.tag(7, WireType.LengthDelimited).string(message.leaseExpiresAt);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);

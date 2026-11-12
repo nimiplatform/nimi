@@ -10,7 +10,7 @@ import { Button, Card, Section } from './settings-layout-components.js';
 
 const copy = {
   en: { title: 'Remote access', intro: 'Let approved applications connect directly to this PC. Keep Nimi Home running and prevent sleep. Some networks cannot connect directly.',
-    enable: 'Enable remote access', disable: 'Disable remote access', disabled: 'Remote access is off.', connecting: 'Connecting to the account service…', listening: 'Ready for direct connection requests.', unavailable: 'New connections are currently unavailable.',
+    enable: 'Enable remote access', disable: 'Disable remote access', disabled: 'Remote access is off.', connecting: 'Connecting to the account service…', listening: 'Recently online. Waiting for a direct connection.', activationPending: 'Remote access is waiting for this primary binding to activate.', unavailable: 'New connections are currently unavailable.',
     primary: 'Bind this PC as your primary Runtime before enabling access.', loading: 'Reading remote access status…', error: 'Could not read or change remote access. Check your account and connection.',
     empty: 'No sources have requested access yet.', allow: 'Allow this source', reject: 'Reject this request', pause: 'Pause access', resume: 'Resume access', pending: 'Waiting for your confirmation', allowed: 'Allowed', paused: 'Paused', changed: 'Source changed — confirm again',
     manager: 'Official management client', app: 'Ecosystem application', scope: 'Declared access', capability: 'Capability references', count: 'Connected clients',
@@ -20,7 +20,7 @@ const copy = {
     unsupported: 'Operations remain subject to current support and resource permissions.', working: 'Saving…', audit: 'The change took effect, but its audit record could not be completed.',
   },
   zh: { title: '远程接入', intro: '允许获准应用直接连接这台 PC。请保持 Nimi Home 运行并避免休眠；部分网络可能无法直连。',
-    enable: '开启远程接入', disable: '关闭远程接入', disabled: '远程接入已关闭。', connecting: '正在连接账号服务…', listening: '已就绪，可接收直连请求。', unavailable: '当前无法建立新的连接。',
+    enable: '开启远程接入', disable: '关闭远程接入', disabled: '远程接入已关闭。', connecting: '正在连接账号服务…', listening: '最近在线，正在等待直连请求。', activationPending: '远程接入正在等待此主绑定生效。', unavailable: '当前无法建立新的连接。',
     primary: '请先将这台 PC 绑定为主 Runtime，再开启接入。', loading: '正在读取接入状态…', error: '无法读取或更改接入状态，请检查账号与网络。',
     empty: '还没有来源请求接入。', allow: '允许此来源', reject: '拒绝本次请求', pause: '暂停访问', resume: '恢复访问', pending: '等待你确认', allowed: '已允许', paused: '已暂停', changed: '来源已变化，需要重新确认',
     manager: '官方管理端', app: '生态应用', scope: '应用声明', capability: '能力引用', count: '已连接客户端',
@@ -43,8 +43,8 @@ const accessLabels: Record<string, readonly [string, string]> = {
 };
 
 // @nimi-authority: rule.nimi.runtime.remote-access.source-admission
-export function HomeRemoteAccess({ account, realm, primaryBindingId, thisRuntime, primaryStateKnown }: {
-  account: string; realm: string; primaryBindingId: string; thisRuntime: boolean; primaryStateKnown: boolean;
+export function HomeRemoteAccess({ account, realm, primaryBindingId, thisRuntime, primaryStateKnown, validAfter }: {
+  account: string; realm: string; primaryBindingId: string; thisRuntime: boolean; primaryStateKnown: boolean; validAfter: string;
 }) {
   const sdk = useDesktopRendererSdk();
   const { i18n } = useTranslation();
@@ -72,7 +72,7 @@ export function HomeRemoteAccess({ account, realm, primaryBindingId, thisRuntime
       if (mounted.current) setFeedback({ kind: 'error', message: c.error, technicalDetail: extractNimiErrorFields(reason).reasonCode || undefined });
     } finally { submitting.current = false; if (mounted.current) setBusy(false); }
   }
-  const status = !enabled ? c.disabled : query.data?.connectionState === RemoteAccessConnectionState.LISTENING ? c.listening
+  const status = !enabled ? c.disabled : Date.parse(validAfter) > Date.now() ? c.activationPending : query.data?.connectionState === RemoteAccessConnectionState.LISTENING ? c.listening
     : query.data?.connectionState === RemoteAccessConnectionState.CONNECTING ? c.connecting : c.unavailable;
   return <Section title={c.title} description={c.intro}>
     <Card><div className="flex flex-col gap-4">

@@ -16,15 +16,16 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-func TestPrimaryControlProofLeaseClockAndOwnerFence(t *testing.T) {
+func TestPrimaryControlPresenceProofAndAuthorizationFence(t *testing.T) {
 	public, private, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
 	}
 	runtimeID := "86ba1c17-84de-4132-bf83-c201b9ef0521"
 	binding := realmv1.PrimaryRuntimeBindingDto{RuntimeId: runtimeID, BindingId: "14e92c91-d872-4a0e-9d72-4ea05bbea917",
-		LeaseVersion: "2893d76e-607e-446c-bb9d-52a634ea3514", PublicKey: base64.RawURLEncoding.EncodeToString(public),
+		PublicKey:   base64.RawURLEncoding.EncodeToString(public),
 		DisplayName: "PC", ValidAfter: time.Now().UTC().Format(time.RFC3339Nano)}
+	controlID := "2893d76e-607e-446c-bb9d-52a634ea3514"
 	contextID := "43515b26-263b-40f6-875e-04b022c37039"
 	connectionID := "feb29b08-c6b3-46c4-a1fb-afb0a7344184"
 	wrongOwner := false
@@ -39,25 +40,32 @@ func TestPrimaryControlProofLeaseClockAndOwnerFence(t *testing.T) {
 	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		calls++
-		if r.Header.Get("Authorization") != "Bearer access-1" {
+		if r.URL.Path != realmv1.HeartbeatPrimaryRuntimeControlPath && r.Header.Get("Authorization") != "Bearer access-1" {
 			t.Error("owner credential missing")
 		}
 		serverTime := time.Now().Add(30 * time.Second).UTC()
 		switch r.URL.Path {
 		case realmv1.GetMyPrimaryRuntimePath:
 			_ = json.NewEncoder(w).Encode(realmv1.PrimaryRuntimeSnapshotDto{AccountId: "acct-1", Binding: &binding, ServerTime: serverTime.Format(time.RFC3339Nano)})
-		case realmv1.RenewMyPrimaryRuntimeLeasePath:
-			var body realmv1.PrimaryRuntimeLeaseRequestDto
+		case realmv1.RegisterPrimaryRuntimeControlPath:
+			var body realmv1.PrimaryRuntimeHostProofDto
 			_ = json.NewDecoder(r.Body).Decode(&body)
-			checkProof(body.Signature, []any{"lease", "acct-1", runtimeID, binding.BindingId, binding.LeaseVersion, body.SignedAt})
-			binding.LeaseVersion = "3983d76e-607e-446c-bb9d-52a634ea3514"
-			binding.LeaseExpiresAt = serverTime.Add(time.Minute).Format(time.RFC3339Nano)
+			checkProof(body.Signature, []any{"register", "acct-1", runtimeID, binding.BindingId, "", primarySignalHash([]string{}), body.SignedAt})
 			w.WriteHeader(201)
-			_ = json.NewEncoder(w).Encode(realmv1.PrimaryRuntimeSnapshotDto{AccountId: "acct-1", Binding: &binding, ServerTime: serverTime.Format(time.RFC3339Nano)})
-		case realmv1.PollPrimaryRuntimeConnectionsPath:
-			var body realmv1.RuntimeConnectionPollDto
+			_ = json.NewEncoder(w).Encode(realmv1.RuntimeControlRegisterResultDto{ControlSessionId: controlID})
+		case realmv1.HeartbeatPrimaryRuntimeControlPath:
+			if r.Header.Get("Authorization") != "" {
+				t.Error("heartbeat used an Account bearer")
+			}
+			var body realmv1.RuntimeControlHeartbeatDto
 			_ = json.NewDecoder(r.Body).Decode(&body)
-			checkProof(body.Signature, []any{"signal-poll", "acct-1", runtimeID, binding.BindingId, binding.LeaseVersion, primarySignalHash(body.ContextIds), body.SignedAt})
+			checkProof(body.Signature, []any{"heartbeat", "acct-1", runtimeID, binding.BindingId, controlID, body.Sequence, body.SignalRevision, body.SignedAt})
+			w.WriteHeader(201)
+			_ = json.NewEncoder(w).Encode(realmv1.RuntimeControlHeartbeatResultDto{Status: "sync_required"})
+		case realmv1.SyncPrimaryRuntimeConnectionsPath:
+			var body realmv1.RuntimeConnectionSyncDto
+			_ = json.NewDecoder(r.Body).Decode(&body)
+			checkProof(body.Signature, []any{"signal-sync", "acct-1", runtimeID, binding.BindingId, controlID, primarySignalHash(body.ContextIds), body.SignedAt})
 			client := realmv1.RuntimeClientContextDto{AccountId: "acct-1", RealmEnvironmentId: "realm-local", AppId: "nimi.reference", ClientId: "nimi.reference.web", ContextId: contextID,
 				ExpiresAt: serverTime.Add(time.Hour).Format(time.RFC3339Nano),
 				Primary:   &realmv1.RuntimeClientPrimaryDto{BindingId: binding.BindingId, RuntimeId: runtimeID, PublicKey: binding.PublicKey},
@@ -66,12 +74,12 @@ func TestPrimaryControlProofLeaseClockAndOwnerFence(t *testing.T) {
 				client.AccountId = "another-account"
 			}
 			w.WriteHeader(201)
-			_ = json.NewEncoder(w).Encode(realmv1.RuntimeConnectionPollResultDto{ServerTime: serverTime.Format(time.RFC3339Nano), ControlLeaseExpiresAt: binding.LeaseExpiresAt,
+			_ = json.NewEncoder(w).Encode(realmv1.RuntimeConnectionSyncResultDto{ServerTime: serverTime.Format(time.RFC3339Nano), AuthorizationExpiresAt: serverTime.Add(time.Minute).Format(time.RFC3339Nano),
 				Contexts: []realmv1.RuntimeClientContextDto{client}, Offers: []realmv1.RuntimeConnectionOfferDto{{ConnectionId: connectionID, OfferSdp: "v=0\r\ns=signaling-fixture\r\n", ExpiresAt: serverTime.Add(time.Minute).Format(time.RFC3339Nano), Context: &client}}})
 		case realmv1.AnswerPrimaryRuntimeConnectionPath:
 			var body realmv1.RuntimeConnectionAnswerDto
 			_ = json.NewDecoder(r.Body).Decode(&body)
-			checkProof(body.Signature, []any{"signal-answer", "acct-1", runtimeID, binding.BindingId, binding.LeaseVersion, primarySignalHash([]string{body.ConnectionId, body.AnswerSdp, body.RejectionReason}), body.SignedAt})
+			checkProof(body.Signature, []any{"signal-answer", "acct-1", runtimeID, binding.BindingId, controlID, primarySignalHash([]string{body.ConnectionId, body.AnswerSdp, body.RejectionReason}), body.SignedAt})
 			w.WriteHeader(201)
 			_ = json.NewEncoder(w).Encode(realmv1.RuntimeConnectionStateDto{ConnectionId: connectionID, BindingId: binding.BindingId, Status: "answered", AnswerSdp: body.AnswerSdp})
 		default:
@@ -95,34 +103,35 @@ func TestPrimaryControlProofLeaseClockAndOwnerFence(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !control.State().Deadline.IsZero() {
-		t.Fatal("binding read invented a lease")
+	if _, err = svc.SyncPrimaryRuntimeConnections(ctx, control, nil); status.Code(err) != codes.Unavailable {
+		t.Fatal("sync without registration was admitted")
 	}
-	if _, err = svc.PollPrimaryRuntimeConnections(ctx, control, nil); status.Code(err) != codes.Unavailable {
-		t.Fatal("poll without lease was admitted")
-	}
-	if err = svc.RenewPrimaryRuntimeControl(ctx, control); err != nil {
+	if err = svc.RegisterPrimaryRuntimeControl(ctx, control); err != nil {
 		t.Fatal(err)
 	}
-	remaining := time.Until(control.State().Deadline)
+	if heartbeat, err := svc.HeartbeatPrimaryRuntimeControl(ctx, control, ""); err != nil || heartbeat != "sync_required" {
+		t.Fatalf("heartbeat = %q, %v", heartbeat, err)
+	}
+	sync, err := svc.SyncPrimaryRuntimeConnections(ctx, control, []string{contextID})
+	if err != nil {
+		t.Fatal(err)
+	}
+	remaining := time.Until(sync.AuthorityDeadline)
 	if remaining <= 55*time.Second || remaining > time.Minute {
-		t.Fatalf("owner clock extended or lost the lease: %s", remaining)
-	}
-	if _, err = svc.PollPrimaryRuntimeConnections(ctx, control, []string{contextID}); err != nil {
-		t.Fatal(err)
+		t.Fatalf("owner clock extended or lost context authorization: %s", remaining)
 	}
 	if err = svc.AnswerPrimaryRuntimeConnection(ctx, control, connectionID, "v=0\r\ns=<PC>&\r\n", ""); err != nil {
 		t.Fatal(err)
 	}
 	wrongOwner = true
-	if _, err = svc.PollPrimaryRuntimeConnections(ctx, control, []string{contextID}); status.Code(err) != codes.Internal {
+	if _, err = svc.SyncPrimaryRuntimeConnections(ctx, control, []string{contextID}); status.Code(err) != codes.Internal {
 		t.Fatal("foreign context escaped owner validation")
 	}
 	before := calls
 	svc.mu.Lock()
 	svc.invalidateAuthenticatedRuntimeIdentityLocked()
 	svc.mu.Unlock()
-	if err = svc.RenewPrimaryRuntimeControl(ctx, control); status.Code(err) != codes.Unauthenticated || calls != before {
+	if err = svc.RegisterPrimaryRuntimeControl(ctx, control); status.Code(err) != codes.Unauthenticated || calls != before {
 		t.Fatal("old Account control remained usable")
 	}
 }

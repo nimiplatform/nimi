@@ -9021,8 +9021,6 @@ pub struct GetPrimaryRuntimeStateResponse {
     pub this_runtime: Option<bool>,
     #[serde(rename = "valid_after", skip_serializing_if = "Option::is_none")]
     pub valid_after: Option<String>,
-    #[serde(rename = "lease_expires_at", skip_serializing_if = "Option::is_none")]
-    pub lease_expires_at: Option<String>,
 }
 
 impl GetPrimaryRuntimeStateResponse {
@@ -9069,11 +9067,6 @@ impl GetPrimaryRuntimeStateResponse {
         out.valid_after = match object.get("valid_after") {
             Some(value) if value.is_null() => None,
             Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("valid_after"))?),
-            None => None,
-        };
-        out.lease_expires_at = match object.get("lease_expires_at") {
-            Some(value) if value.is_null() => None,
-            Some(value) => Some(value.as_str().map(String::from).ok_or_else(|| Self::decode_error("lease_expires_at"))?),
             None => None,
         };
         Ok(out)
@@ -19232,8 +19225,6 @@ pub struct PrimaryRuntimeBindDto {
 pub struct PrimaryRuntimeBindingDto {
     pub binding_id: String,
     pub display_name: String,
-    pub lease_expires_at: Option<String>,
-    pub lease_version: String,
     pub public_key: String,
     pub runtime_id: String,
     pub valid_after: String,
@@ -19246,6 +19237,15 @@ pub struct PrimaryRuntimeConfirmDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct PrimaryRuntimeHostProofDto {
+    pub binding_id: String,
+    pub expected_account_id: String,
+    pub runtime_id: String,
+    pub signature: String,
+    pub signed_at: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct PrimaryRuntimeIntentDto {
     pub confirmation_url: String,
     pub display_name: String,
@@ -19254,16 +19254,6 @@ pub struct PrimaryRuntimeIntentDto {
     pub intent_id: String,
     pub operation: String,
     pub runtime_id: String,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct PrimaryRuntimeLeaseRequestDto {
-    pub binding_id: String,
-    pub expected_account_id: String,
-    pub lease_version: String,
-    pub runtime_id: String,
-    pub signature: String,
-    pub signed_at: f64,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -19609,7 +19599,7 @@ pub struct RuntimeClientExchangeDto {
 pub struct RuntimeClientPrimaryDto {
     pub binding_id: String,
     pub display_name: String,
-    pub lease_expires_at: Option<String>,
+    pub presence: String,
     pub public_key: String,
     pub runtime_id: String,
     pub valid_after: String,
@@ -19648,8 +19638,8 @@ pub struct RuntimeConnectionAnswerDto {
     pub answer_sdp: String,
     pub binding_id: String,
     pub connection_id: String,
+    pub control_session_id: String,
     pub expected_account_id: String,
-    pub lease_version: String,
     pub rejection_reason: String,
     pub runtime_id: String,
     pub signature: String,
@@ -19671,26 +19661,6 @@ pub struct RuntimeConnectionOfferDto {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
-pub struct RuntimeConnectionPollDto {
-    pub binding_id: String,
-    pub context_ids: Vec<String>,
-    pub expected_account_id: String,
-    pub lease_version: String,
-    pub runtime_id: String,
-    pub signature: String,
-    pub signed_at: f64,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
-pub struct RuntimeConnectionPollResultDto {
-    pub contexts: Vec<RuntimeClientContextDto>,
-    pub control_lease_expires_at: String,
-    pub offers: Vec<RuntimeConnectionOfferDto>,
-    pub server_time: String,
-    pub stun_urls: Vec<String>,
-}
-
-#[derive(Clone, Debug, Default, PartialEq)]
 pub struct RuntimeConnectionStateDto {
     pub answer_sdp: Option<String>,
     pub binding_id: String,
@@ -19698,6 +19668,47 @@ pub struct RuntimeConnectionStateDto {
     pub expires_at: String,
     pub rejection_reason: Option<String>,
     pub status: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RuntimeConnectionSyncDto {
+    pub binding_id: String,
+    pub context_ids: Vec<String>,
+    pub control_session_id: String,
+    pub expected_account_id: String,
+    pub runtime_id: String,
+    pub signature: String,
+    pub signed_at: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RuntimeConnectionSyncResultDto {
+    pub authorization_expires_at: String,
+    pub contexts: Vec<RuntimeClientContextDto>,
+    pub offers: Vec<RuntimeConnectionOfferDto>,
+    pub server_time: String,
+    pub signal_revision: String,
+    pub stun_urls: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RuntimeControlHeartbeatDto {
+    pub binding_id: String,
+    pub control_session_id: String,
+    pub sequence: f64,
+    pub signal_revision: String,
+    pub signature: String,
+    pub signed_at: f64,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RuntimeControlHeartbeatResultDto {
+    pub status: String,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RuntimeControlRegisterResultDto {
+    pub control_session_id: String,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

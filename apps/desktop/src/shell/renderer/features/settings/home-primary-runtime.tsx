@@ -73,5 +73,5 @@ function OwnedPrimaryRuntime({ account, realm }: { account: string; realm: strin
         {feedback && !state.data?.thisRuntime && <InlineFeedback feedback={feedback} onDismiss={() => setFeedback(null)} />}
       </div>
     </Card>
-  </Section><HomeRemoteAccess account={account} realm={realm} primaryStateKnown={primaryStateKnown} primaryBindingId={primaryStateKnown ? state.data?.bindingId || '' : ''} thisRuntime={primaryStateKnown && Boolean(state.data?.thisRuntime)} /></>;
+  </Section><HomeRemoteAccess validAfter={state.data?.validAfter ?? ""} account={account} realm={realm} primaryStateKnown={primaryStateKnown} primaryBindingId={primaryStateKnown ? state.data?.bindingId || '' : ''} thisRuntime={primaryStateKnown && Boolean(state.data?.thisRuntime)} /></>;
 }

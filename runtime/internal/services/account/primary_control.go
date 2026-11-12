@@ -27,27 +27,26 @@ type PrimaryRuntimeControl struct {
 	generation         uint64
 	invalidated        <-chan struct{}
 	binding            realmv1.PrimaryRuntimeBindingDto
-	deadline           time.Time
+	sessionID          string
+	sequence           uint64
 }
 
 type PrimaryRuntimeControlState struct {
 	AccountID, RealmEnvironmentID, RuntimeID, BindingID string
 	AccountGeneration                                   uint64
 	Invalidated                                         <-chan struct{}
-	Deadline                                            time.Time
 }
 
-// The deadline is captured with the validated context projection. A later
-// host-only lease renewal must not extend an old client's authorization.
-type PrimaryRuntimePoll struct {
-	Projection        *realmv1.RuntimeConnectionPollResultDto
+// The deadline belongs to the validated contexts in this sync.
+type PrimaryRuntimeSync struct {
+	Projection        *realmv1.RuntimeConnectionSyncResultDto
 	AuthorityDeadline time.Time
 	ObservedAt        time.Time
 }
 
 // RemoteAccessSettingsOwner selects local configuration only. It conveys no
 // authenticated caller authority; control still binds and refreshes through
-// the Account owner before any lease or peer can be established.
+// the Account owner before any peer can be established.
 func (s *Service) RemoteAccessSettingsOwner() (accountID, realmID string, selected bool) {
 	if s == nil || !s.isActivated() {
 		return "", "", false
@@ -76,7 +75,7 @@ func (c *PrimaryRuntimeControl) State() PrimaryRuntimeControlState {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	return PrimaryRuntimeControlState{AccountID: c.accountID, RealmEnvironmentID: c.realmID, AccountGeneration: c.generation,
-		RuntimeID: c.binding.RuntimeId, BindingID: c.binding.BindingId, Invalidated: c.invalidated, Deadline: c.deadline}
+		RuntimeID: c.binding.RuntimeId, BindingID: c.binding.BindingId, Invalidated: c.invalidated}
 }
 
 // @nimi-authority: rule.nimi.runtime.remote-access.primary-control
@@ -100,8 +99,6 @@ func (s *Service) BindPrimaryRuntimeControl(ctx context.Context) (*PrimaryRuntim
 		return nil, primaryFailure(codes.FailedPrecondition)
 	}
 	c := &PrimaryRuntimeControl{accountID: p.AccountId, realmID: p.RealmEnvironmentId, generation: generation, invalidated: invalidated, binding: *snapshot.Binding}
-	// A successful identity read alone is not a lease. Verify actual host-key
-	// custody now; only RenewPrimaryRuntimeControl may establish the deadline.
 	if _, err := s.signPrimaryControl(ctx, c, nil); err != nil {
 		return nil, err
 	}
@@ -109,51 +106,65 @@ func (s *Service) BindPrimaryRuntimeControl(ctx context.Context) (*PrimaryRuntim
 }
 
 // @nimi-authority: rule.nimi.runtime.remote-access.primary-control
-func (s *Service) RenewPrimaryRuntimeControl(ctx context.Context, c *PrimaryRuntimeControl) error {
-	if c == nil {
-		return primaryFailure(codes.InvalidArgument)
-	}
+func (s *Service) RegisterPrimaryRuntimeControl(ctx context.Context, c *PrimaryRuntimeControl) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	sent := time.Now()
 	signedAt := float64(s.now().UnixMilli())
-	proof, err := s.signPrimaryControl(ctx, c, []any{"lease", c.accountID, c.binding.RuntimeId, c.binding.BindingId, c.binding.LeaseVersion, signedAt})
+	signature, err := s.signPrimaryControl(ctx, c, []any{"register", c.accountID, c.binding.RuntimeId, c.binding.BindingId, "", primarySignalHash([]string{}), signedAt})
 	if err != nil {
 		return err
 	}
-	body := realmv1.PrimaryRuntimeLeaseRequestDto{ExpectedAccountId: c.accountID, RuntimeId: c.binding.RuntimeId, BindingId: c.binding.BindingId,
-		LeaseVersion: c.binding.LeaseVersion, SignedAt: signedAt, Signature: proof}
-	var result realmv1.PrimaryRuntimeSnapshotDto
-	if err = s.primaryAccountCall(ctx, c.accountID, c.realmID, c.generation, realmv1.RenewMyPrimaryRuntimeLeaseOperation, &body, &result); err != nil {
+	body := realmv1.PrimaryRuntimeHostProofDto{ExpectedAccountId: c.accountID, RuntimeId: c.binding.RuntimeId,
+		BindingId: c.binding.BindingId, SignedAt: signedAt, Signature: signature}
+	var result realmv1.RuntimeControlRegisterResultDto
+	if err := s.primaryAccountCall(ctx, c.accountID, c.realmID, c.generation, realmv1.RegisterPrimaryRuntimeControlOperation, &body, &result); err != nil {
 		return err
 	}
-	if result.AccountId != c.accountID || result.Binding == nil || !validPrimaryBinding(result.Binding) ||
-		result.Binding.RuntimeId != c.binding.RuntimeId || result.Binding.BindingId != c.binding.BindingId ||
-		result.Binding.PublicKey != c.binding.PublicKey || result.Binding.LeaseVersion == c.binding.LeaseVersion {
+	if !validPrimaryID(result.ControlSessionId) {
 		return primaryFailure(codes.Internal)
 	}
-	serverTime, err := time.Parse(time.RFC3339Nano, result.ServerTime)
-	if err != nil {
-		return primaryFailure(codes.Internal)
-	}
-	expiry, err := time.Parse(time.RFC3339Nano, result.Binding.LeaseExpiresAt)
-	if err != nil {
-		return primaryFailure(codes.Internal)
-	}
-	validAfter, _ := time.Parse(time.RFC3339Nano, result.Binding.ValidAfter)
-	remaining := expiry.Sub(serverTime)
-	deadline := sent.Add(remaining)
-	if remaining <= 0 || remaining > time.Minute || validAfter.After(serverTime) || !PrimaryRuntimeDeadlineLive(deadline) {
-		return primaryFailure(codes.Internal)
-	}
-	c.binding, c.deadline = *result.Binding, deadline
+	c.sessionID, c.sequence = result.ControlSessionId, 0
 	return nil
 }
 
 // @nimi-authority: rule.nimi.runtime.remote-access.primary-control
-func (s *Service) PollPrimaryRuntimeConnections(ctx context.Context, c *PrimaryRuntimeControl, contextIDs []string) (*PrimaryRuntimePoll, error) {
+func (s *Service) HeartbeatPrimaryRuntimeControl(ctx context.Context, c *PrimaryRuntimeControl, revision string) (string, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+	if c.sessionID == "" {
+		return "", primaryFailure(codes.FailedPrecondition)
+	}
+	c.sequence++
+	sequence, signedAt := float64(c.sequence), float64(s.now().UnixMilli())
+	signature, err := s.signPrimaryControl(ctx, c, []any{"heartbeat", c.accountID, c.binding.RuntimeId, c.binding.BindingId, c.sessionID, sequence, revision, signedAt})
+	if err != nil {
+		return "", err
+	}
+	body := realmv1.RuntimeControlHeartbeatDto{BindingId: c.binding.BindingId, ControlSessionId: c.sessionID,
+		Sequence: sequence, SignalRevision: revision, SignedAt: signedAt, Signature: signature}
+	var result realmv1.RuntimeControlHeartbeatResultDto
+	if err := s.primaryRequest(ctx, "", realmv1.HeartbeatPrimaryRuntimeControlOperation, &body, &result); err != nil {
+		return "", err
+	}
+	select {
+	case <-c.invalidated:
+		return "", primaryFailure(codes.Unauthenticated)
+	default:
+	}
+	switch result.Status {
+	case "idle", "sync_required", "register_required":
+		return result.Status, nil
+	default:
+		return "", primaryFailure(codes.Internal)
+	}
+}
+
+// @nimi-authority: rule.nimi.runtime.remote-access.primary-control
+func (s *Service) SyncPrimaryRuntimeConnections(ctx context.Context, c *PrimaryRuntimeControl, contextIDs []string) (*PrimaryRuntimeSync, error) {
 	if c == nil || len(contextIDs) > 64 {
 		return nil, primaryFailure(codes.InvalidArgument)
 	}
@@ -161,7 +172,7 @@ func (s *Service) PollPrimaryRuntimeConnections(ctx context.Context, c *PrimaryR
 	defer c.mu.Unlock()
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	if !PrimaryRuntimeDeadlineLive(c.deadline) {
+	if c.sessionID == "" {
 		return nil, primaryFailure(codes.Unavailable)
 	}
 	ids := append([]string{}, contextIDs...)
@@ -174,18 +185,22 @@ func (s *Service) PollPrimaryRuntimeConnections(ctx context.Context, c *PrimaryR
 		requested[id] = true
 	}
 	signedAt := float64(s.now().UnixMilli())
-	proof, err := s.signPrimaryControl(ctx, c, []any{"signal-poll", c.accountID, c.binding.RuntimeId, c.binding.BindingId, c.binding.LeaseVersion, primarySignalHash(ids), signedAt})
+	proof, err := s.signPrimaryControl(ctx, c, []any{"signal-sync", c.accountID, c.binding.RuntimeId, c.binding.BindingId, c.sessionID, primarySignalHash(ids), signedAt})
 	if err != nil {
 		return nil, err
 	}
-	body := realmv1.RuntimeConnectionPollDto{ExpectedAccountId: c.accountID, RuntimeId: c.binding.RuntimeId, BindingId: c.binding.BindingId,
-		LeaseVersion: c.binding.LeaseVersion, ContextIds: ids, SignedAt: signedAt, Signature: proof}
-	var result realmv1.RuntimeConnectionPollResultDto
-	if err = s.primaryAccountCall(ctx, c.accountID, c.realmID, c.generation, realmv1.PollPrimaryRuntimeConnectionsOperation, &body, &result); err != nil {
+	body := realmv1.RuntimeConnectionSyncDto{ExpectedAccountId: c.accountID, RuntimeId: c.binding.RuntimeId, BindingId: c.binding.BindingId,
+		ControlSessionId: c.sessionID, ContextIds: ids, SignedAt: signedAt, Signature: proof}
+	var result realmv1.RuntimeConnectionSyncResultDto
+	if err = s.primaryAccountCall(ctx, c.accountID, c.realmID, c.generation, realmv1.SyncPrimaryRuntimeConnectionsOperation, &body, &result); err != nil {
 		return nil, err
 	}
 	serverTime, err := time.Parse(time.RFC3339Nano, result.ServerTime)
-	if err != nil || result.ControlLeaseExpiresAt != c.binding.LeaseExpiresAt || len(result.Offers) > 16 || len(result.Contexts) > len(ids) || !PrimaryRuntimeDeadlineLive(c.deadline) {
+	expiry, expiryErr := time.Parse(time.RFC3339Nano, result.AuthorizationExpiresAt)
+	validity := expiry.Sub(serverTime)
+	deadline := observedAt.Add(validity)
+	if err != nil || expiryErr != nil || validity <= 0 || validity > time.Minute || !PrimaryRuntimeDeadlineLive(deadline) ||
+		(result.SignalRevision != "" && !validPrimaryID(result.SignalRevision)) || len(result.Offers) > 16 || len(result.Contexts) > len(ids) {
 		return nil, primaryFailure(codes.Internal)
 	}
 	for _, item := range result.Contexts {
@@ -203,7 +218,7 @@ func (s *Service) PollPrimaryRuntimeConnections(ctx context.Context, c *PrimaryR
 		}
 		seen[offer.ConnectionId] = true
 	}
-	return &PrimaryRuntimePoll{Projection: &result, AuthorityDeadline: c.deadline, ObservedAt: observedAt}, nil
+	return &PrimaryRuntimeSync{Projection: &result, AuthorityDeadline: deadline, ObservedAt: observedAt}, nil
 }
 
 func (s *Service) AnswerPrimaryRuntimeConnection(ctx context.Context, c *PrimaryRuntimeControl, connectionID, answer, rejection string) error {
@@ -215,16 +230,16 @@ func (s *Service) AnswerPrimaryRuntimeConnection(ctx context.Context, c *Primary
 	defer c.mu.Unlock()
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	if !PrimaryRuntimeDeadlineLive(c.deadline) {
+	if c.sessionID == "" {
 		return primaryFailure(codes.Unavailable)
 	}
 	signedAt := float64(s.now().UnixMilli())
-	proof, err := s.signPrimaryControl(ctx, c, []any{"signal-answer", c.accountID, c.binding.RuntimeId, c.binding.BindingId, c.binding.LeaseVersion, primarySignalHash([]string{connectionID, answer, rejection}), signedAt})
+	proof, err := s.signPrimaryControl(ctx, c, []any{"signal-answer", c.accountID, c.binding.RuntimeId, c.binding.BindingId, c.sessionID, primarySignalHash([]string{connectionID, answer, rejection}), signedAt})
 	if err != nil {
 		return err
 	}
 	body := realmv1.RuntimeConnectionAnswerDto{ExpectedAccountId: c.accountID, RuntimeId: c.binding.RuntimeId, BindingId: c.binding.BindingId,
-		LeaseVersion: c.binding.LeaseVersion, SignedAt: signedAt, Signature: proof, ConnectionId: connectionID, AnswerSdp: answer, RejectionReason: rejection}
+		ControlSessionId: c.sessionID, SignedAt: signedAt, Signature: proof, ConnectionId: connectionID, AnswerSdp: answer, RejectionReason: rejection}
 	var result realmv1.RuntimeConnectionStateDto
 	if err = s.primaryAccountCall(ctx, c.accountID, c.realmID, c.generation, realmv1.AnswerPrimaryRuntimeConnectionOperation, &body, &result); err != nil {
 		return err

@@ -530,6 +530,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/health/ready"),
     },
     RealmOperationDescriptor {
+        operation_id: "heartbeatPrimaryRuntimeControl",
+        service: "Runtime access",
+        method: "POST",
+        path: Some("/api/auth/primary-runtime/connections/heartbeat"),
+    },
+    RealmOperationDescriptor {
         operation_id: "introspectSession",
         service: "Auth",
         method: "POST",
@@ -656,12 +662,6 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/auth/password/register"),
     },
     RealmOperationDescriptor {
-        operation_id: "pollPrimaryRuntimeConnections",
-        service: "Runtime access",
-        method: "POST",
-        path: Some("/api/auth/primary-runtime/connections/poll"),
-    },
-    RealmOperationDescriptor {
         operation_id: "prepare2Fa",
         service: "Me2fa",
         method: "POST",
@@ -716,16 +716,16 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         path: Some("/api/auth/refresh"),
     },
     RealmOperationDescriptor {
+        operation_id: "registerPrimaryRuntimeControl",
+        service: "Runtime access",
+        method: "POST",
+        path: Some("/api/auth/primary-runtime/connections/register"),
+    },
+    RealmOperationDescriptor {
         operation_id: "reinitializeMyPrimaryRuntime",
         service: "Runtime access",
         method: "POST",
         path: Some("/api/auth/primary-runtime/reinitialize"),
-    },
-    RealmOperationDescriptor {
-        operation_id: "renewMyPrimaryRuntimeLease",
-        service: "Runtime access",
-        method: "POST",
-        path: Some("/api/auth/primary-runtime/lease"),
     },
     RealmOperationDescriptor {
         operation_id: "ReportController_createReport",
@@ -768,6 +768,12 @@ pub static REALM_OPERATIONS: &[RealmOperationDescriptor] = &[
         service: "Human Chats",
         method: "GET",
         path: Some("/api/human/chats/{chatId}/sync"),
+    },
+    RealmOperationDescriptor {
+        operation_id: "syncPrimaryRuntimeConnections",
+        service: "Runtime access",
+        method: "POST",
+        path: Some("/api/auth/primary-runtime/connections/sync"),
     },
     RealmOperationDescriptor {
         operation_id: "terminateCurrentAccount",

@@ -8,12 +8,15 @@ const (
 	PrepareMyPrimaryRuntimeOperationID        = "prepareMyPrimaryRuntime"
 	PrepareMyPrimaryRuntimeMethod             = "POST"
 	PrepareMyPrimaryRuntimePath               = "/api/auth/primary-runtime/prepare"
-	RenewMyPrimaryRuntimeLeaseOperationID     = "renewMyPrimaryRuntimeLease"
-	RenewMyPrimaryRuntimeLeaseMethod          = "POST"
-	RenewMyPrimaryRuntimeLeasePath            = "/api/auth/primary-runtime/lease"
-	PollPrimaryRuntimeConnectionsOperationID  = "pollPrimaryRuntimeConnections"
-	PollPrimaryRuntimeConnectionsMethod       = "POST"
-	PollPrimaryRuntimeConnectionsPath         = "/api/auth/primary-runtime/connections/poll"
+	RegisterPrimaryRuntimeControlOperationID  = "registerPrimaryRuntimeControl"
+	RegisterPrimaryRuntimeControlMethod       = "POST"
+	RegisterPrimaryRuntimeControlPath         = "/api/auth/primary-runtime/connections/register"
+	HeartbeatPrimaryRuntimeControlOperationID = "heartbeatPrimaryRuntimeControl"
+	HeartbeatPrimaryRuntimeControlMethod      = "POST"
+	HeartbeatPrimaryRuntimeControlPath        = "/api/auth/primary-runtime/connections/heartbeat"
+	SyncPrimaryRuntimeConnectionsOperationID  = "syncPrimaryRuntimeConnections"
+	SyncPrimaryRuntimeConnectionsMethod       = "POST"
+	SyncPrimaryRuntimeConnectionsPath         = "/api/auth/primary-runtime/connections/sync"
 	AnswerPrimaryRuntimeConnectionOperationID = "answerPrimaryRuntimeConnection"
 	AnswerPrimaryRuntimeConnectionMethod      = "POST"
 	AnswerPrimaryRuntimeConnectionPath        = "/api/auth/primary-runtime/connections/answer"
@@ -35,18 +38,26 @@ var PrepareMyPrimaryRuntimeOperation = OperationDescriptor{
 	successStatus:      201,
 }
 
-var RenewMyPrimaryRuntimeLeaseOperation = OperationDescriptor{
-	operationID:        RenewMyPrimaryRuntimeLeaseOperationID,
-	method:             RenewMyPrimaryRuntimeLeaseMethod,
-	path:               RenewMyPrimaryRuntimeLeasePath,
+var RegisterPrimaryRuntimeControlOperation = OperationDescriptor{
+	operationID:        RegisterPrimaryRuntimeControlOperationID,
+	method:             RegisterPrimaryRuntimeControlMethod,
+	path:               RegisterPrimaryRuntimeControlPath,
 	requestContentType: "application/json",
 	successStatus:      201,
 }
 
-var PollPrimaryRuntimeConnectionsOperation = OperationDescriptor{
-	operationID:        PollPrimaryRuntimeConnectionsOperationID,
-	method:             PollPrimaryRuntimeConnectionsMethod,
-	path:               PollPrimaryRuntimeConnectionsPath,
+var HeartbeatPrimaryRuntimeControlOperation = OperationDescriptor{
+	operationID:        HeartbeatPrimaryRuntimeControlOperationID,
+	method:             HeartbeatPrimaryRuntimeControlMethod,
+	path:               HeartbeatPrimaryRuntimeControlPath,
+	requestContentType: "application/json",
+	successStatus:      201,
+}
+
+var SyncPrimaryRuntimeConnectionsOperation = OperationDescriptor{
+	operationID:        SyncPrimaryRuntimeConnectionsOperationID,
+	method:             SyncPrimaryRuntimeConnectionsMethod,
+	path:               SyncPrimaryRuntimeConnectionsPath,
 	requestContentType: "application/json",
 	successStatus:      201,
 }
@@ -60,13 +71,19 @@ var AnswerPrimaryRuntimeConnectionOperation = OperationDescriptor{
 }
 
 type PrimaryRuntimeBindingDto struct {
-	BindingId      string `json:"bindingId"`
-	DisplayName    string `json:"displayName"`
-	LeaseExpiresAt string `json:"leaseExpiresAt"`
-	LeaseVersion   string `json:"leaseVersion"`
-	PublicKey      string `json:"publicKey"`
-	RuntimeId      string `json:"runtimeId"`
-	ValidAfter     string `json:"validAfter"`
+	BindingId   string `json:"bindingId"`
+	DisplayName string `json:"displayName"`
+	PublicKey   string `json:"publicKey"`
+	RuntimeId   string `json:"runtimeId"`
+	ValidAfter  string `json:"validAfter"`
+}
+
+type PrimaryRuntimeHostProofDto struct {
+	BindingId         string  `json:"bindingId"`
+	ExpectedAccountId string  `json:"expectedAccountId"`
+	RuntimeId         string  `json:"runtimeId"`
+	Signature         string  `json:"signature"`
+	SignedAt          float64 `json:"signedAt"`
 }
 
 type PrimaryRuntimeIntentDto struct {
@@ -77,15 +94,6 @@ type PrimaryRuntimeIntentDto struct {
 	IntentId          string `json:"intentId"`
 	Operation         string `json:"operation"`
 	RuntimeId         string `json:"runtimeId"`
-}
-
-type PrimaryRuntimeLeaseRequestDto struct {
-	BindingId         string  `json:"bindingId"`
-	ExpectedAccountId string  `json:"expectedAccountId"`
-	LeaseVersion      string  `json:"leaseVersion"`
-	RuntimeId         string  `json:"runtimeId"`
-	Signature         string  `json:"signature"`
-	SignedAt          float64 `json:"signedAt"`
 }
 
 type PrimaryRuntimePrepareDto struct {
@@ -119,12 +127,12 @@ type RuntimeClientContextDto struct {
 }
 
 type RuntimeClientPrimaryDto struct {
-	BindingId      string `json:"bindingId"`
-	DisplayName    string `json:"displayName"`
-	LeaseExpiresAt string `json:"leaseExpiresAt"`
-	PublicKey      string `json:"publicKey"`
-	RuntimeId      string `json:"runtimeId"`
-	ValidAfter     string `json:"validAfter"`
+	BindingId   string `json:"bindingId"`
+	DisplayName string `json:"displayName"`
+	Presence    string `json:"presence"`
+	PublicKey   string `json:"publicKey"`
+	RuntimeId   string `json:"runtimeId"`
+	ValidAfter  string `json:"validAfter"`
 }
 
 type RuntimeClientSourceDto struct {
@@ -146,8 +154,8 @@ type RuntimeConnectionAnswerDto struct {
 	AnswerSdp         string  `json:"answerSdp"`
 	BindingId         string  `json:"bindingId"`
 	ConnectionId      string  `json:"connectionId"`
+	ControlSessionId  string  `json:"controlSessionId"`
 	ExpectedAccountId string  `json:"expectedAccountId"`
-	LeaseVersion      string  `json:"leaseVersion"`
 	RejectionReason   string  `json:"rejectionReason"`
 	RuntimeId         string  `json:"runtimeId"`
 	Signature         string  `json:"signature"`
@@ -161,24 +169,6 @@ type RuntimeConnectionOfferDto struct {
 	OfferSdp     string                   `json:"offerSdp"`
 }
 
-type RuntimeConnectionPollDto struct {
-	BindingId         string   `json:"bindingId"`
-	ContextIds        []string `json:"contextIds"`
-	ExpectedAccountId string   `json:"expectedAccountId"`
-	LeaseVersion      string   `json:"leaseVersion"`
-	RuntimeId         string   `json:"runtimeId"`
-	Signature         string   `json:"signature"`
-	SignedAt          float64  `json:"signedAt"`
-}
-
-type RuntimeConnectionPollResultDto struct {
-	Contexts              []RuntimeClientContextDto   `json:"contexts"`
-	ControlLeaseExpiresAt string                      `json:"controlLeaseExpiresAt"`
-	Offers                []RuntimeConnectionOfferDto `json:"offers"`
-	ServerTime            string                      `json:"serverTime"`
-	StunUrls              []string                    `json:"stunUrls"`
-}
-
 type RuntimeConnectionStateDto struct {
 	AnswerSdp       string `json:"answerSdp"`
 	BindingId       string `json:"bindingId"`
@@ -186,4 +176,40 @@ type RuntimeConnectionStateDto struct {
 	ExpiresAt       string `json:"expiresAt"`
 	RejectionReason string `json:"rejectionReason"`
 	Status          string `json:"status"`
+}
+
+type RuntimeConnectionSyncDto struct {
+	BindingId         string   `json:"bindingId"`
+	ContextIds        []string `json:"contextIds"`
+	ControlSessionId  string   `json:"controlSessionId"`
+	ExpectedAccountId string   `json:"expectedAccountId"`
+	RuntimeId         string   `json:"runtimeId"`
+	Signature         string   `json:"signature"`
+	SignedAt          float64  `json:"signedAt"`
+}
+
+type RuntimeConnectionSyncResultDto struct {
+	AuthorizationExpiresAt string                      `json:"authorizationExpiresAt"`
+	Contexts               []RuntimeClientContextDto   `json:"contexts"`
+	Offers                 []RuntimeConnectionOfferDto `json:"offers"`
+	ServerTime             string                      `json:"serverTime"`
+	SignalRevision         string                      `json:"signalRevision"`
+	StunUrls               []string                    `json:"stunUrls"`
+}
+
+type RuntimeControlHeartbeatDto struct {
+	BindingId        string  `json:"bindingId"`
+	ControlSessionId string  `json:"controlSessionId"`
+	Sequence         float64 `json:"sequence"`
+	SignalRevision   string  `json:"signalRevision"`
+	Signature        string  `json:"signature"`
+	SignedAt         float64 `json:"signedAt"`
+}
+
+type RuntimeControlHeartbeatResultDto struct {
+	Status string `json:"status"`
+}
+
+type RuntimeControlRegisterResultDto struct {
+	ControlSessionId string `json:"controlSessionId"`
 }

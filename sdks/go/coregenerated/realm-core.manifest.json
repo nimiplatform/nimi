@@ -4772,6 +4772,43 @@
       "response_schema_refs": []
     },
     {
+      "operation_id": "heartbeatPrimaryRuntimeControl",
+      "method": "POST",
+      "path": "/api/auth/primary-runtime/connections/heartbeat",
+      "service": "Runtime access",
+      "tags": [
+        "Runtime access"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/RuntimeControlHeartbeatDto",
+        "ref_name": "RuntimeControlHeartbeatDto"
+      },
+      "request_schema_ref": "#/components/schemas/RuntimeControlHeartbeatDto",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "201",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/RuntimeControlHeartbeatResultDto",
+            "ref_name": "RuntimeControlHeartbeatResultDto"
+          },
+          "schema_ref": "#/components/schemas/RuntimeControlHeartbeatResultDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/RuntimeControlHeartbeatResultDto"
+        }
+      ]
+    },
+    {
       "operation_id": "introspectSession",
       "method": "POST",
       "path": "/api/auth/sessions/introspect",
@@ -7054,43 +7091,6 @@
       ]
     },
     {
-      "operation_id": "pollPrimaryRuntimeConnections",
-      "method": "POST",
-      "path": "/api/auth/primary-runtime/connections/poll",
-      "service": "Runtime access",
-      "tags": [
-        "Runtime access"
-      ],
-      "parameters": [],
-      "path_parameters": [],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "ref",
-        "ref": "#/components/schemas/RuntimeConnectionPollDto",
-        "ref_name": "RuntimeConnectionPollDto"
-      },
-      "request_schema_ref": "#/components/schemas/RuntimeConnectionPollDto",
-      "request_content_type": "application/json",
-      "response_schemas": [
-        {
-          "status": "201",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/RuntimeConnectionPollResultDto",
-            "ref_name": "RuntimeConnectionPollResultDto"
-          },
-          "schema_ref": "#/components/schemas/RuntimeConnectionPollResultDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "201",
-          "schema_ref": "#/components/schemas/RuntimeConnectionPollResultDto"
-        }
-      ]
-    },
-    {
       "operation_id": "prepare2Fa",
       "method": "POST",
       "path": "/api/auth/me/2fa/prepare",
@@ -7813,6 +7813,43 @@
       ]
     },
     {
+      "operation_id": "registerPrimaryRuntimeControl",
+      "method": "POST",
+      "path": "/api/auth/primary-runtime/connections/register",
+      "service": "Runtime access",
+      "tags": [
+        "Runtime access"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/PrimaryRuntimeHostProofDto",
+        "ref_name": "PrimaryRuntimeHostProofDto"
+      },
+      "request_schema_ref": "#/components/schemas/PrimaryRuntimeHostProofDto",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "201",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/RuntimeControlRegisterResultDto",
+            "ref_name": "RuntimeControlRegisterResultDto"
+          },
+          "schema_ref": "#/components/schemas/RuntimeControlRegisterResultDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/RuntimeControlRegisterResultDto"
+        }
+      ]
+    },
+    {
       "operation_id": "reinitializeMyPrimaryRuntime",
       "method": "POST",
       "path": "/api/auth/primary-runtime/reinitialize",
@@ -7846,43 +7883,6 @@
         {
           "status": "201",
           "schema_ref": "#/components/schemas/PrimaryRuntimeMutationDto"
-        }
-      ]
-    },
-    {
-      "operation_id": "renewMyPrimaryRuntimeLease",
-      "method": "POST",
-      "path": "/api/auth/primary-runtime/lease",
-      "service": "Runtime access",
-      "tags": [
-        "Runtime access"
-      ],
-      "parameters": [],
-      "path_parameters": [],
-      "query_parameters": [],
-      "header_parameters": [],
-      "request_schema": {
-        "kind": "ref",
-        "ref": "#/components/schemas/PrimaryRuntimeLeaseRequestDto",
-        "ref_name": "PrimaryRuntimeLeaseRequestDto"
-      },
-      "request_schema_ref": "#/components/schemas/PrimaryRuntimeLeaseRequestDto",
-      "request_content_type": "application/json",
-      "response_schemas": [
-        {
-          "status": "201",
-          "schema": {
-            "kind": "ref",
-            "ref": "#/components/schemas/PrimaryRuntimeSnapshotDto",
-            "ref_name": "PrimaryRuntimeSnapshotDto"
-          },
-          "schema_ref": "#/components/schemas/PrimaryRuntimeSnapshotDto"
-        }
-      ],
-      "response_schema_refs": [
-        {
-          "status": "201",
-          "schema_ref": "#/components/schemas/PrimaryRuntimeSnapshotDto"
         }
       ]
     },
@@ -8362,6 +8362,43 @@
         {
           "status": "200",
           "schema_ref": "#/components/schemas/ChatSyncResultDto"
+        }
+      ]
+    },
+    {
+      "operation_id": "syncPrimaryRuntimeConnections",
+      "method": "POST",
+      "path": "/api/auth/primary-runtime/connections/sync",
+      "service": "Runtime access",
+      "tags": [
+        "Runtime access"
+      ],
+      "parameters": [],
+      "path_parameters": [],
+      "query_parameters": [],
+      "header_parameters": [],
+      "request_schema": {
+        "kind": "ref",
+        "ref": "#/components/schemas/RuntimeConnectionSyncDto",
+        "ref_name": "RuntimeConnectionSyncDto"
+      },
+      "request_schema_ref": "#/components/schemas/RuntimeConnectionSyncDto",
+      "request_content_type": "application/json",
+      "response_schemas": [
+        {
+          "status": "201",
+          "schema": {
+            "kind": "ref",
+            "ref": "#/components/schemas/RuntimeConnectionSyncResultDto",
+            "ref_name": "RuntimeConnectionSyncResultDto"
+          },
+          "schema_ref": "#/components/schemas/RuntimeConnectionSyncResultDto"
+        }
+      ],
+      "response_schema_refs": [
+        {
+          "status": "201",
+          "schema_ref": "#/components/schemas/RuntimeConnectionSyncResultDto"
         }
       ]
     },
@@ -14118,6 +14155,12 @@
       "path": "/api/health/ready"
     },
     {
+      "operation_id": "heartbeatPrimaryRuntimeControl",
+      "service": "Runtime access",
+      "method": "POST",
+      "path": "/api/auth/primary-runtime/connections/heartbeat"
+    },
+    {
       "operation_id": "introspectSession",
       "service": "Auth",
       "method": "POST",
@@ -14244,12 +14287,6 @@
       "path": "/api/auth/password/register"
     },
     {
-      "operation_id": "pollPrimaryRuntimeConnections",
-      "service": "Runtime access",
-      "method": "POST",
-      "path": "/api/auth/primary-runtime/connections/poll"
-    },
-    {
       "operation_id": "prepare2Fa",
       "service": "Me2fa",
       "method": "POST",
@@ -14304,16 +14341,16 @@
       "path": "/api/auth/refresh"
     },
     {
+      "operation_id": "registerPrimaryRuntimeControl",
+      "service": "Runtime access",
+      "method": "POST",
+      "path": "/api/auth/primary-runtime/connections/register"
+    },
+    {
       "operation_id": "reinitializeMyPrimaryRuntime",
       "service": "Runtime access",
       "method": "POST",
       "path": "/api/auth/primary-runtime/reinitialize"
-    },
-    {
-      "operation_id": "renewMyPrimaryRuntimeLease",
-      "service": "Runtime access",
-      "method": "POST",
-      "path": "/api/auth/primary-runtime/lease"
     },
     {
       "operation_id": "ReportController_createReport",
@@ -14356,6 +14393,12 @@
       "service": "Human Chats",
       "method": "GET",
       "path": "/api/human/chats/{chatId}/sync"
+    },
+    {
+      "operation_id": "syncPrimaryRuntimeConnections",
+      "service": "Runtime access",
+      "method": "POST",
+      "path": "/api/auth/primary-runtime/connections/sync"
     },
     {
       "operation_id": "terminateCurrentAccount",
@@ -14956,10 +14999,11 @@
         "getRuntimeClientContext",
         "getRuntimeClientSource",
         "getRuntimeConnection",
-        "pollPrimaryRuntimeConnections",
+        "heartbeatPrimaryRuntimeControl",
         "prepareMyPrimaryRuntime",
+        "registerPrimaryRuntimeControl",
         "reinitializeMyPrimaryRuntime",
-        "renewMyPrimaryRuntimeLease"
+        "syncPrimaryRuntimeConnections"
       ]
     },
     {
@@ -15629,10 +15673,10 @@
       "name": "PrimaryRuntimeConfirmDto"
     },
     {
-      "name": "PrimaryRuntimeIntentDto"
+      "name": "PrimaryRuntimeHostProofDto"
     },
     {
-      "name": "PrimaryRuntimeLeaseRequestDto"
+      "name": "PrimaryRuntimeIntentDto"
     },
     {
       "name": "PrimaryRuntimeMutationDto"
@@ -15776,13 +15820,22 @@
       "name": "RuntimeConnectionOfferDto"
     },
     {
-      "name": "RuntimeConnectionPollDto"
-    },
-    {
-      "name": "RuntimeConnectionPollResultDto"
-    },
-    {
       "name": "RuntimeConnectionStateDto"
+    },
+    {
+      "name": "RuntimeConnectionSyncDto"
+    },
+    {
+      "name": "RuntimeConnectionSyncResultDto"
+    },
+    {
+      "name": "RuntimeControlHeartbeatDto"
+    },
+    {
+      "name": "RuntimeControlHeartbeatResultDto"
+    },
+    {
+      "name": "RuntimeControlRegisterResultDto"
     },
     {
       "name": "SendMessageInputDto"
@@ -32713,35 +32766,6 @@
             }
           },
           {
-            "name": "leaseExpiresAt",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": "date-time",
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
-            }
-          },
-          {
-            "name": "leaseVersion",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": "uuid",
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
             "name": "publicKey",
             "required": true,
             "schema": {
@@ -32789,9 +32813,7 @@
           "bindingId",
           "displayName",
           "publicKey",
-          "validAfter",
-          "leaseVersion",
-          "leaseExpiresAt"
+          "validAfter"
         ],
         "closed": false,
         "additional_properties": null
@@ -32834,6 +32856,93 @@
         "required_properties": [
           "intentId",
           "expectedAccountId"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "PrimaryRuntimeHostProofDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "bindingId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "expectedAccountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "runtimeId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "signature",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "signedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "expectedAccountId",
+          "runtimeId",
+          "bindingId",
+          "signedAt",
+          "signature"
         ],
         "closed": false,
         "additional_properties": null
@@ -32949,108 +33058,6 @@
           "expectedAccountId",
           "expiresAt",
           "confirmationUrl"
-        ],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "PrimaryRuntimeLeaseRequestDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "bindingId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": "uuid",
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "expectedAccountId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "leaseVersion",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": "uuid",
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "runtimeId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": "uuid",
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "signature",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "signedAt",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          }
-        ],
-        "required_properties": [
-          "expectedAccountId",
-          "runtimeId",
-          "bindingId",
-          "leaseVersion",
-          "signedAt",
-          "signature"
         ],
         "closed": false,
         "additional_properties": null
@@ -36208,18 +36215,16 @@
             }
           },
           {
-            "name": "leaseExpiresAt",
+            "name": "presence",
             "required": true,
             "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": "date-time",
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null,
-              "nullable": true
+              "kind": "enum",
+              "values": [
+                "recently_online",
+                "offline",
+                "unknown"
+              ],
+              "type": "string"
             }
           },
           {
@@ -36271,7 +36276,7 @@
           "displayName",
           "publicKey",
           "validAfter",
-          "leaseExpiresAt"
+          "presence"
         ],
         "closed": false,
         "additional_properties": null
@@ -36654,12 +36659,12 @@
             }
           },
           {
-            "name": "expectedAccountId",
+            "name": "controlSessionId",
             "required": true,
             "schema": {
               "kind": "scalar",
               "type": "string",
-              "format": null,
+              "format": "uuid",
               "minimum": null,
               "maximum": null,
               "min_length": null,
@@ -36668,12 +36673,12 @@
             }
           },
           {
-            "name": "leaseVersion",
+            "name": "expectedAccountId",
             "required": true,
             "schema": {
               "kind": "scalar",
               "type": "string",
-              "format": "uuid",
+              "format": null,
               "minimum": null,
               "maximum": null,
               "min_length": null,
@@ -36741,9 +36746,9 @@
           "expectedAccountId",
           "runtimeId",
           "bindingId",
-          "leaseVersion",
           "signedAt",
           "signature",
+          "controlSessionId",
           "connectionId",
           "answerSdp",
           "rejectionReason"
@@ -36862,220 +36867,6 @@
       }
     },
     {
-      "name": "RuntimeConnectionPollDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "bindingId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": "uuid",
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "contextIds",
-            "required": true,
-            "schema": {
-              "kind": "array",
-              "items": {
-                "kind": "scalar",
-                "type": "string",
-                "format": null,
-                "minimum": null,
-                "maximum": null,
-                "min_length": null,
-                "max_length": null,
-                "pattern": null
-              },
-              "min_items": null,
-              "max_items": 64
-            }
-          },
-          {
-            "name": "expectedAccountId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "leaseVersion",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": "uuid",
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "runtimeId",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": "uuid",
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "signature",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "signedAt",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "number",
-              "format": null,
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          }
-        ],
-        "required_properties": [
-          "expectedAccountId",
-          "runtimeId",
-          "bindingId",
-          "leaseVersion",
-          "signedAt",
-          "signature",
-          "contextIds"
-        ],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
-      "name": "RuntimeConnectionPollResultDto",
-      "schema": {
-        "kind": "object",
-        "properties": [
-          {
-            "name": "contexts",
-            "required": true,
-            "schema": {
-              "kind": "array",
-              "items": {
-                "kind": "ref",
-                "ref": "#/components/schemas/RuntimeClientContextDto",
-                "ref_name": "RuntimeClientContextDto"
-              },
-              "min_items": null,
-              "max_items": null
-            }
-          },
-          {
-            "name": "controlLeaseExpiresAt",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": "date-time",
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "offers",
-            "required": true,
-            "schema": {
-              "kind": "array",
-              "items": {
-                "kind": "ref",
-                "ref": "#/components/schemas/RuntimeConnectionOfferDto",
-                "ref_name": "RuntimeConnectionOfferDto"
-              },
-              "min_items": null,
-              "max_items": null
-            }
-          },
-          {
-            "name": "serverTime",
-            "required": true,
-            "schema": {
-              "kind": "scalar",
-              "type": "string",
-              "format": "date-time",
-              "minimum": null,
-              "maximum": null,
-              "min_length": null,
-              "max_length": null,
-              "pattern": null
-            }
-          },
-          {
-            "name": "stunUrls",
-            "required": true,
-            "schema": {
-              "kind": "array",
-              "items": {
-                "kind": "scalar",
-                "type": "string",
-                "format": null,
-                "minimum": null,
-                "maximum": null,
-                "min_length": null,
-                "max_length": null,
-                "pattern": null
-              },
-              "min_items": null,
-              "max_items": null
-            }
-          }
-        ],
-        "required_properties": [
-          "stunUrls",
-          "serverTime",
-          "controlLeaseExpiresAt",
-          "offers",
-          "contexts"
-        ],
-        "closed": false,
-        "additional_properties": null
-      }
-    },
-    {
       "name": "RuntimeConnectionStateDto",
       "schema": {
         "kind": "object",
@@ -37173,6 +36964,390 @@
           "answerSdp",
           "rejectionReason",
           "expiresAt"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "RuntimeConnectionSyncDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "bindingId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "contextIds",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": null,
+              "max_items": 64
+            }
+          },
+          {
+            "name": "controlSessionId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "expectedAccountId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "runtimeId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "signature",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "signedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "expectedAccountId",
+          "runtimeId",
+          "bindingId",
+          "signedAt",
+          "signature",
+          "controlSessionId",
+          "contextIds"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "RuntimeConnectionSyncResultDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "authorizationExpiresAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "contexts",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/RuntimeClientContextDto",
+                "ref_name": "RuntimeClientContextDto"
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "offers",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "ref",
+                "ref": "#/components/schemas/RuntimeConnectionOfferDto",
+                "ref_name": "RuntimeConnectionOfferDto"
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          },
+          {
+            "name": "serverTime",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "date-time",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "signalRevision",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "stunUrls",
+            "required": true,
+            "schema": {
+              "kind": "array",
+              "items": {
+                "kind": "scalar",
+                "type": "string",
+                "format": null,
+                "minimum": null,
+                "maximum": null,
+                "min_length": null,
+                "max_length": null,
+                "pattern": null
+              },
+              "min_items": null,
+              "max_items": null
+            }
+          }
+        ],
+        "required_properties": [
+          "stunUrls",
+          "serverTime",
+          "authorizationExpiresAt",
+          "signalRevision",
+          "offers",
+          "contexts"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "RuntimeControlHeartbeatDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "bindingId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "controlSessionId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "sequence",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "signalRevision",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "signature",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          },
+          {
+            "name": "signedAt",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "number",
+              "format": null,
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "bindingId",
+          "controlSessionId",
+          "sequence",
+          "signalRevision",
+          "signedAt",
+          "signature"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "RuntimeControlHeartbeatResultDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "status",
+            "required": true,
+            "schema": {
+              "kind": "enum",
+              "values": [
+                "idle",
+                "sync_required",
+                "register_required"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "required_properties": [
+          "status"
+        ],
+        "closed": false,
+        "additional_properties": null
+      }
+    },
+    {
+      "name": "RuntimeControlRegisterResultDto",
+      "schema": {
+        "kind": "object",
+        "properties": [
+          {
+            "name": "controlSessionId",
+            "required": true,
+            "schema": {
+              "kind": "scalar",
+              "type": "string",
+              "format": "uuid",
+              "minimum": null,
+              "maximum": null,
+              "min_length": null,
+              "max_length": null,
+              "pattern": null
+            }
+          }
+        ],
+        "required_properties": [
+          "controlSessionId"
         ],
         "closed": false,
         "additional_properties": null

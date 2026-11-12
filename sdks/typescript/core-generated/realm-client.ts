@@ -529,6 +529,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/health/ready"
   },
   {
+    "operationId": "heartbeatPrimaryRuntimeControl",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/auth/primary-runtime/connections/heartbeat"
+  },
+  {
     "operationId": "introspectSession",
     "service": "Auth",
     "method": "POST",
@@ -655,12 +661,6 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/auth/password/register"
   },
   {
-    "operationId": "pollPrimaryRuntimeConnections",
-    "service": "Runtime access",
-    "method": "POST",
-    "path": "/api/auth/primary-runtime/connections/poll"
-  },
-  {
     "operationId": "prepare2Fa",
     "service": "Me2fa",
     "method": "POST",
@@ -715,16 +715,16 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "path": "/api/auth/refresh"
   },
   {
+    "operationId": "registerPrimaryRuntimeControl",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/auth/primary-runtime/connections/register"
+  },
+  {
     "operationId": "reinitializeMyPrimaryRuntime",
     "service": "Runtime access",
     "method": "POST",
     "path": "/api/auth/primary-runtime/reinitialize"
-  },
-  {
-    "operationId": "renewMyPrimaryRuntimeLease",
-    "service": "Runtime access",
-    "method": "POST",
-    "path": "/api/auth/primary-runtime/lease"
   },
   {
     "operationId": "ReportController_createReport",
@@ -767,6 +767,12 @@ export const REALM_OPERATIONS: readonly RealmOperationDescriptor[] = [
     "service": "Human Chats",
     "method": "GET",
     "path": "/api/human/chats/{chatId}/sync"
+  },
+  {
+    "operationId": "syncPrimaryRuntimeConnections",
+    "service": "Runtime access",
+    "method": "POST",
+    "path": "/api/auth/primary-runtime/connections/sync"
   },
   {
     "operationId": "terminateCurrentAccount",

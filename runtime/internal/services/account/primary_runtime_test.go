@@ -75,7 +75,7 @@ func TestPrimaryRuntimePreparesProofAndPromotesOnlyConfirmedIdentity(t *testing.
 	if state.ThisRuntime || state.PrimaryRuntimeId != "" {
 		t.Fatal("preparation invented binding")
 	}
-	binding = &realmv1.PrimaryRuntimeBindingDto{BindingId: "9b05fd00-4c98-40dd-9c0c-2ca0d9d60ab7", LeaseVersion: "ab05fd00-4c98-40dd-9c0c-2ca0d9d60ab7", RuntimeId: identity, PublicKey: prepared.PublicKey, DisplayName: prepared.DisplayName, ValidAfter: time.Now().UTC().Format(time.RFC3339Nano)}
+	binding = &realmv1.PrimaryRuntimeBindingDto{BindingId: "9b05fd00-4c98-40dd-9c0c-2ca0d9d60ab7", RuntimeId: identity, PublicKey: prepared.PublicKey, DisplayName: prepared.DisplayName, ValidAfter: time.Now().UTC().Format(time.RFC3339Nano)}
 	state, err = svc.GetPrimaryRuntimeState(ctx, &runtimev1.GetPrimaryRuntimeStateRequest{})
 	if err != nil || !state.ThisRuntime {
 		t.Fatalf("confirmed identity not recognized: %v", err)
