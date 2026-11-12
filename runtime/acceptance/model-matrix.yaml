@@ -177,6 +177,36 @@ environments:
     media_codec: Runtime-managed FFmpeg and ffprobe 9.0.2-martin-riedl-1789931890
     reason: Exact source-development samples only. The local archive and installed distribution have
       separate admission boundaries. The final Lab renderer includes the same-entry history preview fix.
+  macos_sdcpp_1088_installed_candidate:
+    os: macOS
+    arch: arm64
+    os_version: 27.2.1
+    os_build: 26B131
+    hardware: Mac16,5 with Apple M4 Max and 128 GiB unified memory
+    distribution: installed
+    observed_on: 2026-11-12
+    default_status: NOT-VERIFIED
+    source_revision: 560bf109ec6193e2bf6f6b8c35f76a5d9d0c61a6 # pragma: allowlist secret -- public commit
+    runtime_revision: 560bf109ec6193e2bf6f6b8c35f76a5d9d0c61a6 # pragma: allowlist secret -- observed public revision
+    runtime_modified: false
+    runtime_version: 0.2.5-rc.6, Go 1.26.10, darwin/arm64, cgo enabled
+    home_version: 0.2.5-rc.6
+    home_asar_sha256: cb2b3a0610e426f7f62a3e9acd23e749716955cbfd8ba9bf50acaaf11c5af17d # pragma: allowlist secret -- CI component digest
+    runtime_sha256: 3b36fa06db7eea1c363c1b0c11f45c8cf31bdd7b8d07bed51f197a3841281caa # pragma: allowlist secret -- CI component digest
+    package_name: Nimi-0.2.5-rc.6-macos-arm64.pkg
+    package_sha256: eb4ea4558090abde4f0eb0627e66979e20e505cf6de06fa1e8ad2dca0aac182d # pragma: allowlist secret -- CI package digest
+    package_source: GitHub Actions macOS production candidate, local-acceptance Realm
+    ci_url: https://github.com/nimiplatform/nimi/actions/runs/43164699236
+    artifact_id: 13920322755
+    artifact_name: nimi-macos-arm64-43164699236-1-local-acceptance
+    archive_sha256: 46d8323da5654fe30700af5dce42188c9797d1cef4ec9feef63e7e84178ea305 # pragma: allowlist secret -- GitHub artifact digest
+    package_checks: Archive digest, ZIP members, build identity, package size and digest, Developer ID
+      Installer chain, Gatekeeper Notarized Developer ID and the stapled ticket all passed.
+    installation: PASS
+    startup: FAIL
+    reason: Native Installer completed a standard upgrade after administrator authorization.
+      Installed Home and Runtime matched the build identity. Runtime exited before opening
+      the protected Desktop transport, so the supervised Lab could not be used for model acceptance.
   macos_installed:
     os: macOS
     arch: arm64
@@ -212,6 +242,12 @@ environments:
       - The selected data root and offline backups are retained. The supervised Lab uses rebuilt workspace
         packages; this does not establish a separately packaged Lab distribution or every signed Home consumer.
 evidence_sources:
+  macos_sdcpp_installed_candidate_20261112:
+    availability: scenario-summary-in-repository
+    description: Exact GitHub Actions candidate installed and launched on physical Apple Silicon.
+      Raw Installer, Home and macOS service diagnostics remain local.
+    period_start: 2026-11-12
+    period_end: 2026-11-12
   macos_sdcpp_20261112:
     availability: scenario-summary-in-repository
     description: Physical Apple Silicon source development with Home preparation of the official and
@@ -270,6 +306,45 @@ evidence_sources:
     title: AI capability expansion historical acceptance details
     record_snapshot_on: 2026-10-02
 engineering_evidence:
+  - id: macos-20261112-sdcpp-ci-candidate-package-checks
+    status: PASS
+    observed_on: 2026-11-12
+    environment: macos_sdcpp_1088_installed_candidate
+    scope: Exact CI archive and signed installer package verification on physical Apple Silicon.
+    result: The GitHub archive digest and ZIP member integrity matched. The package size and SHA-256 matched
+      its build identity at the clean CI source revision. Developer ID Installer, Gatekeeper notarization
+      and stapled ticket checks passed.
+    installation: Native Installer reported success after administrator authorization. Installed Home
+      app.asar and Runtime executable SHA-256 matched the build identity. The installed Runtime reports
+      the CI revision with vcs.modified=false.
+    model_acceptance: NOT-VERIFIED
+    evidence:
+      - { source: macos_sdcpp_installed_candidate_20261112 }
+  - id: macos-20261112-sdcpp-ci-candidate-startup
+    status: FAIL
+    observed_on: 2026-11-12
+    environment: macos_sdcpp_1088_installed_candidate
+    scope: Start installed Home and its signed launchd Runtime before sd.cpp model preparation.
+    result: Home displayed runtime-service-unavailable. Runtime repeatedly exited with code 1 at
+      open verified macOS Desktop transport, with PROTECTED_LOCAL_TRANSPORT_UNSUPPORTED.
+    diagnosis: Both fixed service socket paths were absent. Launchd reported needs_rename=1 for both
+      sockets, and the kernel showed the two listeners bound under temporary launchd directories.
+      Runtime checks the fixed socket vnode before asking launchd to activate its descriptor.
+    recheck: Home Try again and the signed Home service unregister operation followed by a fresh
+      Home launch both reproduced the failure. Normal Quit could not confirm service stop.
+      The acceptance Home was terminated and its service unregistered to stop the respawn loop.
+      The candidate package remains installed.
+    model_acceptance: NOT-VERIFIED
+    blocked_model_paths:
+      - MiniMax-H3 Image text and single-reference generation
+      - SDXL ControlNet Union Canny and Tile
+      - HyperFlow H3 Flash FL2VA and Ref2VA
+      - RelayVSR 2x and 4x image and video upscaling
+      - SeedVR2 3B and 7B Sharp image and video upscaling
+    limitations: The startup failure prevented Home model preparation and supervised Lab execution.
+      No candidate sd.cpp Job was submitted.
+    evidence:
+      - { source: macos_sdcpp_installed_candidate_20261112 }
   - id: macos-20261112-sdcpp-official-metal-int8
     status: FAIL
     observed_on: 2026-11-12
