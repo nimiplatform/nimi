@@ -108,19 +108,31 @@ static void *nimi_sd_generate(nimi_sd_video *api, void *ctx, const void *params,
 import "C"
 
 import (
+	"crypto/sha256"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"runtime/cgo"
 	"strings"
 	"sync"
 	"unsafe"
+
+	"github.com/nimiplatform/nimi/runtime/internal/protectedlocal"
 )
+
+const macOSVideoLibraryName = "libstable-diffusion.dylib"
+
+// The signed macOS release build supplies the exact library and source archive
+// identities before it signs the Runtime executable.
+var macOSProductVideoLibrarySHA256 string
+var macOSProductVideoArchiveSHA256 string
 
 // @nimi-authority: rule.nimi.runtime.local-compute.r067
 type darwinVideoEngine struct {
-	path string
-	api  C.nimi_sd_video
+	developmentLibraryPath string
+	archiveSHA256          string
+	api                    C.nimi_sd_video
 
 	operationMu sync.Mutex
 	stateMu     sync.Mutex
@@ -130,8 +142,58 @@ type darwinVideoEngine struct {
 	canceled    bool
 }
 
-func newStableDiffusionVideoEngine(executablePath string) (videoEngine, error) {
-	return &darwinVideoEngine{path: filepath.Join(filepath.Dir(executablePath), "libstable-diffusion.dylib")}, nil
+func newStableDiffusionVideoEngine(executablePath string, identity videoPackageIdentity) (videoEngine, error) {
+	return &darwinVideoEngine{
+		developmentLibraryPath: filepath.Join(filepath.Dir(executablePath), macOSVideoLibraryName),
+		archiveSHA256:          identity.ArchiveSHA256,
+	}, nil
+}
+
+func (e *darwinVideoEngine) libraryPath() (string, error) {
+	if protectedlocal.MacOSTeamID == "" && macOSProductVideoLibrarySHA256 == "" && macOSProductVideoArchiveSHA256 == "" {
+		return e.developmentLibraryPath, nil
+	}
+	if macOSProductVideoArchiveSHA256 == "" || e.archiveSHA256 != macOSProductVideoArchiveSHA256 {
+		return "", fmt.Errorf("managed video archive does not match the bundled macOS dylib")
+	}
+	executable, err := os.Executable()
+	if err != nil {
+		return "", fmt.Errorf("resolve installed Runtime executable: %w", err)
+	}
+	if executable != protectedlocal.MacOSRuntimeExecutablePath {
+		return "", fmt.Errorf("bundled video dylib requires the installed macOS Runtime")
+	}
+	library := filepath.Join(filepath.Dir(executable), "..", "..", "Frameworks", macOSVideoLibraryName)
+	if err := verifyMacOSProductVideoLibrary(library, macOSProductVideoLibrarySHA256); err != nil {
+		return "", err
+	}
+	return library, nil
+}
+
+func verifyMacOSProductVideoLibrary(path, expectedSHA256 string) error {
+	if len(expectedSHA256) != sha256.Size*2 {
+		return fmt.Errorf("bundled macOS video dylib identity is missing")
+	}
+	info, err := os.Lstat(path)
+	if err != nil {
+		return fmt.Errorf("inspect bundled macOS video dylib: %w", err)
+	}
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("bundled macOS video dylib is not a regular file")
+	}
+	file, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("open bundled macOS video dylib: %w", err)
+	}
+	defer func() { _ = file.Close() }()
+	hash := sha256.New()
+	if _, err := io.Copy(hash, file); err != nil {
+		return fmt.Errorf("hash bundled macOS video dylib: %w", err)
+	}
+	if fmt.Sprintf("%x", hash.Sum(nil)) != expectedSHA256 {
+		return fmt.Errorf("bundled macOS video dylib SHA-256 mismatch")
+	}
+	return nil
 }
 
 func (e *darwinVideoEngine) Load(request VideoModelRequest) (bool, error) {
@@ -161,7 +223,11 @@ func (e *darwinVideoEngine) Load(request VideoModelRequest) (bool, error) {
 		return true, nil
 	}
 	if e.api.handle == nil {
-		path := C.CString(e.path)
+		libraryPath, err := e.libraryPath()
+		if err != nil {
+			return false, videoError(VideoErrorEngineIncompatible, err)
+		}
+		path := C.CString(libraryPath)
 		defer C.free(unsafe.Pointer(path))
 		if message := C.nimi_sd_open(&e.api, path); message != nil {
 			defer C.free(unsafe.Pointer(message))

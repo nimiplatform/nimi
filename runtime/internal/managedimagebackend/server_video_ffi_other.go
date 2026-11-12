@@ -6,7 +6,7 @@ import "fmt"
 
 type unsupportedVideoEngine struct{}
 
-func newStableDiffusionVideoEngine(string) (videoEngine, error) {
+func newStableDiffusionVideoEngine(string, videoPackageIdentity) (videoEngine, error) {
 	return unsupportedVideoEngine{}, nil
 }
 

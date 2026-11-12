@@ -113,7 +113,8 @@ func RunServer(ctx context.Context, cfg ServerConfig) error {
 	if err != nil {
 		return err
 	}
-	video, videoErr := newStableDiffusionVideoEngine(cfg.BackendExecutable)
+	videoPackage := resolveVideoPackageIdentity(cfg.BackendExecutable)
+	video, videoErr := newStableDiffusionVideoEngine(cfg.BackendExecutable, videoPackage)
 	if videoErr != nil {
 		_ = shutdownBackendDriver(driver)
 		return videoErr
@@ -121,7 +122,7 @@ func RunServer(ctx context.Context, cfg ServerConfig) error {
 	server := &Server{
 		driver:       driver,
 		videoEngine:  video,
-		videoPackage: resolveVideoPackageIdentity(cfg.BackendExecutable),
+		videoPackage: videoPackage,
 	}
 	return server.Serve(ctx, strings.TrimSpace(cfg.ListenAddress))
 }

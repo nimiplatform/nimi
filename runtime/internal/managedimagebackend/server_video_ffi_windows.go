@@ -52,7 +52,7 @@ func callVideoVoid(proc *syscall.LazyProc, args ...uintptr) {
 	_, _, _ = proc.Call(args...)
 }
 
-func newStableDiffusionVideoEngine(executablePath string) (videoEngine, error) {
+func newStableDiffusionVideoEngine(executablePath string, _ videoPackageIdentity) (videoEngine, error) {
 	directory := filepath.Dir(strings.TrimSpace(executablePath))
 	dllPath := filepath.Join(directory, "stable-diffusion.dll")
 	cursor := directory

@@ -43,6 +43,12 @@ import { MACOS_LOCAL_DEVELOPMENT_PROFILE } from './generated/macos-local-develop
 import {
   finalizeMacOSLocalDevelopmentCandidate,
 } from './lib/macos-local-development-release.mjs';
+import {
+  MACOS_SDCPP_VIDEO_LIBRARY,
+  MACOS_SDCPP_VIDEO_LICENSES,
+  prepareMacOSSDCPPVideoLibrary,
+  verifyBundledMacOSSDCPPVideoLibrary,
+} from './lib/macos-sdcpp-video-library.mjs';
 
 const requireFromScript = createRequire(import.meta.url);
 const scriptRoot = path.dirname(fileURLToPath(import.meta.url));
@@ -96,15 +102,23 @@ try {
     mkdir(candidateRoot, { recursive: true, mode: 0o700 }),
   ]);
 
+  let videoLibrary;
+  if (release) {
+    requireMacOSSigningIdentity(release.applicationIdentity);
+    requireMacOSSigningIdentity(release.installerIdentity);
+    videoLibrary = await prepareMacOSSDCPPVideoLibrary({
+      registryPath: path.join(repoRoot, 'config', 'runtime-managed-image-backend-packages.yaml'),
+      directory: path.join(sourceRoot, 'sdcpp-video'),
+      release,
+    });
+  }
   await withSdkDistLock('macOS Electron release inputs', () => (
-    buildReleaseInputs({ localDevelopment, release, sourceRoot })
+    buildReleaseInputs({ localDevelopment, release, sourceRoot, videoLibrary })
   ));
   await prepareElectronZip(electronVersion, electronZipRoot);
   const localHostApp = await packageLocalAppHost({ electronVersion, electronZipRoot, localDevelopment, packageRoot, sourceRoot, version });
   await stageNativeCarrier(localHostApp, sourceRoot);
   if (release) {
-    requireMacOSSigningIdentity(release.applicationIdentity);
-    requireMacOSSigningIdentity(release.installerIdentity);
     await signMacOSApplication(localHostApp, release, { ignore: undefined });
   }
 
@@ -131,9 +145,18 @@ try {
     completed = true;
     process.stdout.write(`macOS Electron output: ${outputRoot}\n`);
   } else {
+    const bundledVideoLibrary = path.join(desktopApp, 'Contents', 'Frameworks', MACOS_SDCPP_VIDEO_LIBRARY);
+    await cp(videoLibrary.library, bundledVideoLibrary, { force: false, errorOnExist: true });
+    const videoLicenses = path.join(desktopApp, 'Contents', 'Resources', 'licenses', 'stable-diffusion.cpp');
+    await mkdir(videoLicenses, { recursive: true, mode: 0o755 });
+    for (const name of MACOS_SDCPP_VIDEO_LICENSES) {
+      await cp(path.join(videoLibrary.licenseDirectory, name), path.join(videoLicenses, name), { force: false, errorOnExist: true });
+    }
     await signMacOSApplication(desktopApp, release, {
-      ignore: (candidate) => candidate === embeddedLocalHost || candidate.startsWith(`${embeddedLocalHost}${path.sep}`),
+      ignore: (candidate) => candidate === bundledVideoLibrary
+        || candidate === embeddedLocalHost || candidate.startsWith(`${embeddedLocalHost}${path.sep}`),
     });
+    await verifyBundledMacOSSDCPPVideoLibrary(bundledVideoLibrary, videoLibrary, release.teamId);
     const avatarPackage = JSON.parse(await readFile(path.join(avatarRoot, 'package.json'), 'utf8'));
     const productIdentity = {
       releaseId: `nimi/v${version}`, version, sourceRevision,
@@ -193,6 +216,7 @@ async function buildReleaseInputs({
   localDevelopment: localDevelopmentBuild,
   release: releaseInput,
   sourceRoot,
+  videoLibrary,
 }) {
   runReleaseCommand('corepack', ['pnpm', '--filter', '@nimiplatform/sdk', 'build'], { cwd: repoRoot, inherit: true });
   runReleaseCommand('corepack', ['pnpm', '--filter', '@nimiplatform/kit', 'build'], { cwd: repoRoot, inherit: true });
@@ -229,6 +253,8 @@ async function buildReleaseInputs({
       `-X main.Version=${version}`,
       `-X github.com/nimiplatform/nimi/runtime/internal/protectedlocal.MacOSTeamID=${releaseInput.teamId}`,
       `-X github.com/nimiplatform/nimi/runtime/internal/entrypoint.macOSProtectedRealmBaseURL=${releaseInput.realmBaseURL}`,
+      `-X github.com/nimiplatform/nimi/runtime/internal/managedimagebackend.macOSProductVideoLibrarySHA256=${videoLibrary.librarySHA256}`,
+      `-X github.com/nimiplatform/nimi/runtime/internal/managedimagebackend.macOSProductVideoArchiveSHA256=${videoLibrary.archiveSHA256}`,
     ].join(' '));
   } else {
     goArguments.push('-ldflags', `-X main.Version=${version}`);
