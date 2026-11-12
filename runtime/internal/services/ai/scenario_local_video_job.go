@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"runtime"
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
@@ -18,6 +19,16 @@ import (
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
+
+// @nimi-authority: rule.nimi.runtime.ai-provider.hyperflow-h3-local-video
+func localVideoExecutionBudget(goos, goarch, recipeID string, conditioning capabilitydriver.VideoConditioningMode) time.Duration {
+	if goos == "darwin" && goarch == "arm64" &&
+		recipeID == capabilitydriver.HyperFlowH3VideoRecipeID &&
+		conditioning == capabilitydriver.VideoConditioningModeRef2VAImage {
+		return 15 * time.Minute
+	}
+	return defaultGenerateVideoTimeout
+}
 
 func (s *Service) submitLocalVideoScenarioJob(
 	ctx context.Context,
@@ -168,7 +179,9 @@ func (s *Service) runLocalVideoScenarioJob(ctx context.Context, jobID string, ti
 			return transitionErr
 		} else if ok {
 			schedulerRelease = release
-			return budget.start(defaultGenerateVideoTimeout)
+			return budget.start(localVideoExecutionBudget(
+				runtime.GOOS, runtime.GOARCH, effective.plan.RecipeID(), effective.plan.ConditioningMode(),
+			))
 		}
 		release()
 		if err := ctx.Err(); err != nil {

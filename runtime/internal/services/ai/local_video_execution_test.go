@@ -33,6 +33,26 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+func TestLocalVideoExecutionBudgetScopesAppleSiliconRef2VA(t *testing.T) {
+	for _, tc := range []struct {
+		name, goos, goarch, recipeID string
+		conditioning                 capabilitydriver.VideoConditioningMode
+		want                         time.Duration
+	}{
+		{"Apple Silicon HyperFlow Ref2VA", "darwin", "arm64", capabilitydriver.HyperFlowH3VideoRecipeID, capabilitydriver.VideoConditioningModeRef2VAImage, 15 * time.Minute},
+		{"Apple Silicon HyperFlow FL2VA", "darwin", "arm64", capabilitydriver.HyperFlowH3VideoRecipeID, capabilitydriver.VideoConditioningModeFL2VAT2VA, 5 * time.Minute},
+		{"Windows HyperFlow Ref2VA", "windows", "amd64", capabilitydriver.HyperFlowH3VideoRecipeID, capabilitydriver.VideoConditioningModeRef2VAImage, 5 * time.Minute},
+		{"Intel Mac HyperFlow Ref2VA", "darwin", "amd64", capabilitydriver.HyperFlowH3VideoRecipeID, capabilitydriver.VideoConditioningModeRef2VAImage, 5 * time.Minute},
+		{"other recipe", "darwin", "arm64", capabilitydriver.StableDiffusionVideoRecipeID, capabilitydriver.VideoConditioningModeRef2VAImage, 5 * time.Minute},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := localVideoExecutionBudget(tc.goos, tc.goarch, tc.recipeID, tc.conditioning); got != tc.want {
+				t.Fatalf("execution budget = %v, want %v", got, tc.want)
+			}
+		})
+	}
+}
+
 type localVideoHostStub struct {
 	mu               sync.Mutex
 	plans            []*capabilitydriver.VideoInvocationPlan
