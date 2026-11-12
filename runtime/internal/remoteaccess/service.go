@@ -27,7 +27,7 @@ const (
 	heartbeatInterval  = 5 * time.Second
 	presenceWindow     = 20 * time.Second
 	activeSyncInterval = 20 * time.Second
-	maxRegisterBackoff = 30 * time.Second
+	maxControlBackoff  = 30 * time.Second
 )
 
 type pendingOffer struct {
@@ -40,22 +40,45 @@ type peerWork struct {
 	contextID, clientID string
 }
 type hostRun struct {
-	ctx             context.Context
-	cancel          context.CancelFunc
-	scope           localappkernel.RemoteAccessScope
-	control         *accountservice.PrimaryRuntimeControl
-	state           runtimev1.RemoteAccessConnectionState
-	reason          string
-	blocked         bool
-	presenceUntil   time.Time
-	signalRevision  string
-	nextSync        time.Time
-	forceSync       bool
-	nextRegister    time.Time
-	registerBackoff time.Duration
-	pending         map[string]pendingOffer
-	working         map[string]peerWork
-	peers           map[string]*Peer
+	ctx            context.Context
+	cancel         context.CancelFunc
+	scope          localappkernel.RemoteAccessScope
+	control        *accountservice.PrimaryRuntimeControl
+	state          runtimev1.RemoteAccessConnectionState
+	reason         string
+	blocked        bool
+	presenceUntil  time.Time
+	signalRevision string
+	nextSync       time.Time
+	forceSync      bool
+	registerRetry  controlRetry
+	heartbeatRetry controlRetry
+	syncRetry      controlRetry
+	pending        map[string]pendingOffer
+	working        map[string]peerWork
+	peers          map[string]*Peer
+}
+
+// The three control operations keep independent retry windows. A successful
+// heartbeat does not reset a failed authorization sync.
+type controlRetry struct {
+	next  time.Time
+	delay time.Duration
+}
+
+func (r *controlRetry) failed(now time.Time) {
+	if r.delay == 0 {
+		r.delay = heartbeatInterval
+	} else {
+		r.delay = min(2*r.delay, maxControlBackoff)
+	}
+	r.next = now.Add(r.delay)
+}
+
+func (r *controlRetry) ready(now time.Time) bool { return !now.Before(r.next) }
+
+func (r *hostRun) syncDue(now time.Time, active, changed bool) bool {
+	return r.syncRetry.ready(now) && (changed || active && (r.forceSync || r.syncRetry.delay > 0 || !now.Before(r.nextSync)))
 }
 
 type Service struct {
@@ -166,7 +189,7 @@ func (s *Service) step() {
 		return
 	}
 	if control == nil {
-		if time.Now().Before(current.nextRegister) {
+		if !current.registerRetry.ready(time.Now()) {
 			return
 		}
 		control, err = s.account.BindPrimaryRuntimeControl(current.ctx)
@@ -203,7 +226,9 @@ func (s *Service) step() {
 			return
 		}
 		current.control = control
-		current.registerBackoff = 0
+		current.registerRetry = controlRetry{}
+		current.heartbeatRetry = controlRetry{}
+		current.syncRetry = controlRetry{}
 		current.signalRevision = ""
 		current.nextSync = time.Time{}
 		current.pending = make(map[string]pendingOffer)
@@ -220,11 +245,16 @@ func (s *Service) step() {
 	default:
 	}
 	sent := time.Now()
+	if !current.heartbeatRetry.ready(sent) {
+		return
+	}
 	heartbeat, err := s.account.HeartbeatPrimaryRuntimeControl(current.ctx, control, current.signalRevision)
 	if err != nil {
+		current.heartbeatRetry.failed(time.Now())
 		s.controlFailure(current, "REALM_UNAVAILABLE", err)
 		return
 	}
+	current.heartbeatRetry = controlRetry{}
 	s.mu.Lock()
 	if s.run != current || current.ctx.Err() != nil {
 		s.mu.Unlock()
@@ -261,10 +291,12 @@ func (s *Service) step() {
 		ids[work.contextID] = true
 	}
 	active := len(ids) > 0 || len(current.pending) > 0
-	forceSync := current.forceSync
-	current.forceSync = false
+	due := current.syncDue(time.Now(), active, heartbeat == "sync_required")
+	if due {
+		current.forceSync = false
+	}
 	s.mu.Unlock()
-	if heartbeat != "sync_required" && (!active || (!forceSync && time.Now().Before(current.nextSync))) {
+	if !due {
 		return
 	}
 	current.nextSync = time.Now().Add(activeSyncInterval)
@@ -275,19 +307,16 @@ func (s *Service) step() {
 	sort.Strings(contextIDs)
 	sync, err := s.account.SyncPrimaryRuntimeConnections(current.ctx, control, contextIDs)
 	if err != nil {
+		current.syncRetry.failed(time.Now())
 		s.controlFailure(current, "REALM_UNAVAILABLE", err)
 		return
 	}
+	current.syncRetry = controlRetry{}
 	s.applySync(current, sync)
 }
 
 func (s *Service) registerFailure(run *hostRun, err error) {
-	if run.registerBackoff == 0 {
-		run.registerBackoff = heartbeatInterval
-	} else {
-		run.registerBackoff = min(2*run.registerBackoff, maxRegisterBackoff)
-	}
-	run.nextRegister = time.Now().Add(run.registerBackoff)
+	run.registerRetry.failed(time.Now())
 	s.controlFailure(run, "PRIMARY_RUNTIME_UNAVAILABLE", err)
 }
 
@@ -419,15 +448,22 @@ func (s *Service) connect(run *hostRun, ctx context.Context, cancel context.Canc
 		peer.Close()
 		return
 	}
+	s.publishPeer(run, ctx, pending.offer.ConnectionId, peer)
+}
+
+// A new peer needs its own current authorization even when the offer was
+// approved near expiry. The wake requests validation without extending rights.
+func (s *Service) publishPeer(run *hostRun, ctx context.Context, connectionID string, peer *Peer) {
 	s.mu.Lock()
 	if s.run != run || ctx.Err() != nil {
 		s.mu.Unlock()
 		peer.Close()
 		return
 	}
-	run.peers[pending.offer.ConnectionId] = peer
-	delete(run.pending, pending.offer.ConnectionId)
+	run.peers[connectionID] = peer
+	delete(run.pending, connectionID)
 	s.mu.Unlock()
+	s.changed()
 }
 
 func clientDeadline(poll *accountservice.PrimaryRuntimeSync, item *realmv1.RuntimeClientContextDto, serverTime time.Time) time.Time {

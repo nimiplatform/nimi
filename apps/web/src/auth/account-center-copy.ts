@@ -22,6 +22,8 @@ export const accountCenterCopy = {
   runtimeBindDescription: ['Confirm this PC as your account’s primary Runtime. Configure its AI capabilities in Nimi Home.', '将这台 PC 设为此账号的主 Runtime，随后在 Nimi Home 配置 AI 能力。'],
   runtimeNoMigration: ['The previous binding will end. Old configuration and data are not migrated; you must configure this PC again. An offline old PC cannot be stopped instantly.', '旧绑定将失效。旧配置和数据不会迁移，需要在新主机重新配置；无法保证离线旧主机立即停止。'],
   runtimeConfirmed: ['Binding recorded. Return to Nimi Home to check the current state and configure your PC.', '绑定已记录。请返回 Nimi Home 查看当前状态并配置主机。'],
+  runtimeActivationTime: ['Remote access becomes eligible from', '远程接入最早生效时间'],
+  runtimeActivationWait: ['Remote access on the new PC may take up to one minute to activate after confirmation.', '确认后，新主机的远程接入最多约一分钟后生效。'],
   runtimeVerify: ['Sign in again to verify ownership, then confirm this request.', '请重新登录验证账号所有权，再确认本次请求。'],
   runtimeSignInAgain: ['Verify my account', '重新验证账号'],
   runtimeChanged: ['Your primary binding changed. Start a new request from Nimi Home.', '主绑定已变化，请在 Nimi Home 重新发起请求。'],

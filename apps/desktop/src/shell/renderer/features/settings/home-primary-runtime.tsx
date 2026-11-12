@@ -59,12 +59,19 @@ function OwnedPrimaryRuntime({ account, realm }: { account: string; realm: strin
     <Card>
       <div className="flex flex-col gap-4">
         <NimiText role="body">{state.isPending ? c.loading : state.isError ? c.failed : state.data?.thisRuntime ? c.here : state.data?.bindingId ? `${c.other} ${state.data.displayName}` : c.none}</NimiText>
+        {primaryStateKnown && state.data?.validAfter && <NimiText role="helper">
+          {i18n.language.startsWith('zh') ? '远程接入最早生效时间' : 'Remote access becomes eligible from'}{' '}
+          <time dateTime={state.data.validAfter}>{new Date(state.data.validAfter).toLocaleString(i18n.language)}</time>
+        </NimiText>}
         {primaryStateKnown && state.data && !state.data.thisRuntime && <>
           <label className="flex flex-col gap-2">
             <NimiText role="label">{c.name}</NimiText>
             <input className="rounded-lg border border-[var(--nimi-border)] bg-[var(--nimi-bg-primary)] px-3 py-2 text-[var(--nimi-text-primary)]" value={name} maxLength={80} disabled={busy} onChange={event => setName(event.target.value)} />
           </label>
-          {state.data.bindingId && <NimiText role="helper">{c.warning}</NimiText>}
+          {state.data.bindingId && <>
+            <NimiText role="helper">{c.warning}</NimiText>
+            <NimiText role="helper">{i18n.language.startsWith('zh') ? '确认后，新主机的远程接入最多约一分钟后生效。' : 'Remote access on the new PC may take up to one minute to activate after confirmation.'}</NimiText>
+          </>}
         </>}
         <div className="flex flex-wrap gap-3">
           {primaryStateKnown && state.data && !state.data.thisRuntime && <Button disabled={busy || !name.trim()} onClick={() => void prepare()}>{busy ? c.opening : state.data.bindingId ? c.replace : c.bind}</Button>}

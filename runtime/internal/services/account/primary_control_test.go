@@ -6,8 +6,11 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -15,6 +18,104 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
+
+func TestSlowAnswersAllowHeartbeatAndFenceReplacedControl(t *testing.T) {
+	for _, replace := range []bool{false, true} {
+		t.Run(fmt.Sprintf("replace-%t", replace), func(t *testing.T) {
+			public, private, err := ed25519.GenerateKey(rand.Reader)
+			if err != nil {
+				t.Fatal(err)
+			}
+			binding := realmv1.PrimaryRuntimeBindingDto{RuntimeId: "86ba1c17-84de-4132-bf83-c201b9ef0521", BindingId: "14e92c91-d872-4a0e-9d72-4ea05bbea917",
+				PublicKey: base64.RawURLEncoding.EncodeToString(public), DisplayName: "PC", ValidAfter: time.Now().UTC().Format(time.RFC3339Nano)}
+			entered := make(chan struct{}, 5)
+			release := make(chan struct{})
+			var releaseOnce sync.Once
+			unblock := func() { releaseOnce.Do(func() { close(release) }) }
+			var registrations atomic.Int32
+			server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+				switch r.URL.Path {
+				case realmv1.GetMyPrimaryRuntimePath:
+					_ = json.NewEncoder(w).Encode(realmv1.PrimaryRuntimeSnapshotDto{AccountId: "acct-1", Binding: &binding, ServerTime: time.Now().UTC().Format(time.RFC3339Nano)})
+				case realmv1.RegisterPrimaryRuntimeControlPath:
+					w.WriteHeader(201)
+					_ = json.NewEncoder(w).Encode(realmv1.RuntimeControlRegisterResultDto{ControlSessionId: fmt.Sprintf("%08x-607e-446c-bb9d-52a634ea3514", registrations.Add(1))})
+				case realmv1.HeartbeatPrimaryRuntimeControlPath:
+					w.WriteHeader(201)
+					_ = json.NewEncoder(w).Encode(realmv1.RuntimeControlHeartbeatResultDto{Status: "idle"})
+				case realmv1.AnswerPrimaryRuntimeConnectionPath:
+					var request realmv1.RuntimeConnectionAnswerDto
+					_ = json.NewDecoder(r.Body).Decode(&request)
+					entered <- struct{}{}
+					<-release
+					w.WriteHeader(201)
+					_ = json.NewEncoder(w).Encode(realmv1.RuntimeConnectionStateDto{ConnectionId: request.ConnectionId, BindingId: binding.BindingId, Status: "answered", AnswerSdp: request.AnswerSdp})
+				default:
+					w.WriteHeader(404)
+				}
+			}))
+			defer server.Close()
+			defer unblock()
+			secrets := newAccountBinarySecretStore()
+			svc := newHarnessService(t, &memoryCustody{has: true, material: testMaterial("acct-1", "access-1", "refresh-1")}, WithRealmBaseURL(server.URL), WithRealmHTTPClient(server.Client()), func(s *Service) { s.primarySecrets, s.primaryKeyScope = secrets, "answer-test\x00os-user" })
+			ctx := context.Background()
+			_, key, err := svc.loadPrimaryAccountKeys(ctx, "acct-1", "realm-local")
+			if err != nil {
+				t.Fatal(err)
+			}
+			encoded, _ := json.Marshal(primaryHostKeys{Version: 1, Active: &primaryHostKey{RuntimeID: binding.RuntimeId, Seed: private.Seed()}})
+			if err := secrets.Store(ctx, key, encoded); err != nil {
+				t.Fatal(err)
+			}
+			control, err := svc.BindPrimaryRuntimeControl(ctx)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if err := svc.RegisterPrimaryRuntimeControl(ctx, control); err != nil {
+				t.Fatal(err)
+			}
+			answers := make(chan error, 5)
+			for i := range 5 {
+				go func() {
+					answers <- svc.AnswerPrimaryRuntimeConnection(ctx, control, fmt.Sprintf("%08x-c6b3-46c4-a1fb-afb0a7344184", i+1), "v=0\r\ns=answer\r\n", "")
+				}()
+			}
+			deadline := time.After(3 * time.Second)
+			for range 5 {
+				select {
+				case <-entered:
+				case <-deadline:
+					t.Fatal("answers were serialized across network IO")
+				}
+			}
+			heartbeat := make(chan error, 1)
+			go func() { _, err := svc.HeartbeatPrimaryRuntimeControl(ctx, control, ""); heartbeat <- err }()
+			select {
+			case err := <-heartbeat:
+				if err != nil {
+					t.Fatal(err)
+				}
+			case <-deadline:
+				t.Fatal("heartbeat blocked behind answers")
+			}
+			if replace {
+				if err := svc.RegisterPrimaryRuntimeControl(ctx, control); err != nil {
+					t.Fatal(err)
+				}
+			}
+			unblock()
+			for range 5 {
+				err := <-answers
+				if replace && status.Code(err) != codes.Aborted {
+					t.Fatalf("old control result accepted: %v", err)
+				}
+				if !replace && err != nil {
+					t.Fatal(err)
+				}
+			}
+		})
+	}
+}
 
 func TestPrimaryControlPresenceProofAndAuthorizationFence(t *testing.T) {
 	public, private, err := ed25519.GenerateKey(rand.Reader)

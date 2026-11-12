@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
 import { createWebBrowserRealm } from './browser-realm.js';
 import { AccountFeedback, AccountHeading } from './account-center-layout.js';
@@ -17,6 +18,7 @@ export function AccountRuntime({ accountId, onVerifyAgain }: {
   onVerifyAgain: () => void;
 }) {
   const c = useAccountCopy();
+  const { i18n } = useTranslation();
   const location = useLocation();
   const navigate = useNavigate();
   const intentId = new URLSearchParams(location.search).get('intent');
@@ -77,11 +79,13 @@ export function AccountRuntime({ accountId, onVerifyAgain }: {
       {snapshot && <section className="ac-section">
         <h2>{snapshot.binding?.displayName || c('runtimeNotBound')}</h2>
         <p>{snapshot.binding ? c('runtimeBindingOnly') : c('runtimeStartHome')}</p>
+        {snapshot.binding && <p>{c('runtimeActivationTime')} <time dateTime={snapshot.binding.validAfter}>{new Date(snapshot.binding.validAfter).toLocaleString(i18n.language)}</time></p>}
       </section>}
       {intent && <section className="ac-section">
         <h2>{intent.operation === 'reinitialize' ? c('runtimeReplace') : c('runtimeBind')}</h2>
         <p><strong>{intent.displayName}</strong></p>
         <p>{intent.operation === 'reinitialize' ? c('runtimeNoMigration') : c('runtimeBindDescription')}</p>
+        {intent.operation === 'reinitialize' && <p>{c('runtimeActivationWait')}</p>}
         <div className="ac-actions">
           <button type="button" className="ac-button" disabled={working || verifyAgain} onClick={() => void confirm()}>
             {working ? c('saving') : intent.operation === 'reinitialize' ? c('runtimeReplace') : c('runtimeBind')}

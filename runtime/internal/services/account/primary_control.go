@@ -226,23 +226,32 @@ func (s *Service) AnswerPrimaryRuntimeConnection(ctx context.Context, c *Primary
 		(rejection == "" && !strings.HasPrefix(answer, "v=0\r\n")) || (rejection != "" && answer != "") {
 		return primaryFailure(codes.InvalidArgument)
 	}
-	c.mu.Lock()
-	defer c.mu.Unlock()
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
-	if c.sessionID == "" {
+	// Identity and binding are immutable for this control. Only the technical
+	// session is captured under the lock; answer latency must not block heartbeat.
+	c.mu.Lock()
+	sessionID := c.sessionID
+	c.mu.Unlock()
+	if sessionID == "" {
 		return primaryFailure(codes.Unavailable)
 	}
 	signedAt := float64(s.now().UnixMilli())
-	proof, err := s.signPrimaryControl(ctx, c, []any{"signal-answer", c.accountID, c.binding.RuntimeId, c.binding.BindingId, c.sessionID, primarySignalHash([]string{connectionID, answer, rejection}), signedAt})
+	proof, err := s.signPrimaryControl(ctx, c, []any{"signal-answer", c.accountID, c.binding.RuntimeId, c.binding.BindingId, sessionID, primarySignalHash([]string{connectionID, answer, rejection}), signedAt})
 	if err != nil {
 		return err
 	}
 	body := realmv1.RuntimeConnectionAnswerDto{ExpectedAccountId: c.accountID, RuntimeId: c.binding.RuntimeId, BindingId: c.binding.BindingId,
-		ControlSessionId: c.sessionID, SignedAt: signedAt, Signature: proof, ConnectionId: connectionID, AnswerSdp: answer, RejectionReason: rejection}
+		ControlSessionId: sessionID, SignedAt: signedAt, Signature: proof, ConnectionId: connectionID, AnswerSdp: answer, RejectionReason: rejection}
 	var result realmv1.RuntimeConnectionStateDto
 	if err = s.primaryAccountCall(ctx, c.accountID, c.realmID, c.generation, realmv1.AnswerPrimaryRuntimeConnectionOperation, &body, &result); err != nil {
 		return err
+	}
+	c.mu.Lock()
+	current := c.sessionID == sessionID
+	c.mu.Unlock()
+	if !current {
+		return primaryFailure(codes.Aborted)
 	}
 	expected := "answered"
 	if rejection != "" {
