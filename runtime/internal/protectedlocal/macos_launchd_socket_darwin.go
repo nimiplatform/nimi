@@ -88,12 +88,8 @@ func activateMacOSLaunchdSocket(name, expectedPath string, serviceUID uint32) (*
 		!parentStatOK || parentStat.Uid != 0 || parentInfo.Mode().Perm()&0o022 != 0 {
 		return nil, fail(ReasonProtectedLocalTransportUnsupported, false, "repair_runtime_service", fmt.Errorf("launchd socket parent must be root-owned and non-writable"))
 	}
-	endpointInfo, err := os.Lstat(expectedPath)
-	endpointStat, endpointStatOK := parentInfoSys(endpointInfo)
-	if err != nil || endpointInfo == nil || endpointInfo.Mode()&os.ModeSocket == 0 || endpointInfo.Mode()&os.ModeSymlink != 0 ||
-		!endpointStatOK || endpointStat.Uid != 0 || endpointStat.Gid != uint32(staffGID) || endpointInfo.Mode().Perm() != macOSRuntimeSocketMode {
-		return nil, fail(ReasonProtectedLocalTransportUnsupported, false, "repair_runtime_service", fmt.Errorf("launchd socket vnode owner, group, or mode mismatch"))
-	}
+	// Launchd can publish SockPathName during activation. Check the fixed
+	// directory first and validate the published socket before adopting the fd.
 	nameCString := C.CString(name)
 	defer C.free(unsafe.Pointer(nameCString))
 	var fd C.int
@@ -106,7 +102,13 @@ func activateMacOSLaunchdSocket(name, expectedPath string, serviceUID uint32) (*
 			_ = unix.Close(int(fd))
 		}
 	}()
-	if err := validateActivatedMacOSSocketFD(int(fd), expectedPath, endpointStat); err != nil {
+	endpointInfo, err := os.Lstat(expectedPath)
+	endpointStat, endpointStatOK := parentInfoSys(endpointInfo)
+	if err != nil || endpointInfo.Mode()&os.ModeSocket == 0 ||
+		!endpointStatOK || endpointStat.Uid != 0 || endpointStat.Gid != uint32(staffGID) || endpointInfo.Mode().Perm() != macOSRuntimeSocketMode {
+		return nil, fail(ReasonProtectedLocalTransportUnsupported, false, "repair_runtime_service", fmt.Errorf("launchd socket vnode owner, group, or mode mismatch"))
+	}
+	if err := validateActivatedMacOSSocketFD(int(fd), name, expectedPath, endpointStat); err != nil {
 		return nil, err
 	}
 	file := os.NewFile(uintptr(fd), "launchd:"+name)
@@ -155,7 +157,7 @@ func validateMacOSSocketPathAncestors(parent string) error {
 	return nil
 }
 
-func validateActivatedMacOSSocketFD(fd int, expectedPath string, endpointStat *syscall.Stat_t) error {
+func validateActivatedMacOSSocketFD(fd int, name, expectedPath string, endpointStat *syscall.Stat_t) error {
 	if fd < 0 {
 		return fail(ReasonProtectedLocalTransportUnsupported, false, "repair_runtime_service", fmt.Errorf("launchd socket descriptor is invalid"))
 	}
@@ -168,13 +170,13 @@ func validateActivatedMacOSSocketFD(fd int, expectedPath string, endpointStat *s
 		return fail(ReasonProtectedLocalTransportUnsupported, false, "repair_runtime_service", fmt.Errorf("read launchd socket address: %w", err))
 	}
 	unixAddress, ok := address.(*unix.SockaddrUnix)
-	if !ok || filepath.Clean(strings.TrimSpace(unixAddress.Name)) != expectedPath {
+	if !ok || !matchesMacOSLaunchdSocketAddress(unixAddress.Name, name, expectedPath) {
 		return fail(ReasonProtectedLocalTransportUnsupported, false, "repair_runtime_service", fmt.Errorf("launchd socket address mismatch"))
 	}
 	// A Darwin filesystem UDS has distinct socket-descriptor and filesystem-vnode
 	// identities, so comparing fstat(fd) with lstat(path) is invalid and would
 	// reject every real launchd socket. Bind the objects with the exact kernel
-	// getsockname plus a stable, root-protected pathname vnode across activation.
+	// getsockname plus a stable, root-protected pathname vnode after activation.
 	// The signed launchd job and launch_activate_socket are the descriptor owner;
 	// the non-writable ancestor prevents an ordinary process from replacing the
 	// pathname between these checks.
@@ -183,7 +185,26 @@ func validateActivatedMacOSSocketFD(fd int, expectedPath string, endpointStat *s
 	if err != nil || currentInfo == nil || currentInfo.Mode()&os.ModeSocket == 0 ||
 		currentInfo.Mode()&os.ModeSymlink != 0 || !currentStatOK ||
 		currentStat.Dev != endpointStat.Dev || currentStat.Ino != endpointStat.Ino {
-		return fail(ReasonProtectedLocalTransportUnsupported, false, "repair_runtime_service", fmt.Errorf("launchd socket pathname was replaced during activation"))
+		return fail(ReasonProtectedLocalTransportUnsupported, false, "repair_runtime_service", fmt.Errorf("launchd socket pathname changed after activation"))
 	}
 	return nil
+}
+
+func matchesMacOSLaunchdSocketAddress(address, name, expectedPath string) bool {
+	if address == expectedPath {
+		return true
+	}
+	// The kernel retains the bind address after launchd renames the vnode.
+	const prefix = "/var/run/com.apple.launchd."
+	suffix, ok := strings.CutPrefix(address, prefix)
+	directoryID, socketName, separated := strings.Cut(suffix, "/")
+	if !ok || !separated || len(directoryID) != 10 || socketName != name {
+		return false
+	}
+	for _, c := range directoryID {
+		if !(c >= 'A' && c <= 'Z' || c >= 'a' && c <= 'z' || c >= '0' && c <= '9') {
+			return false
+		}
+	}
+	return true
 }

@@ -596,6 +596,32 @@ static int nimi_validate_runtime_socket_path(const char *expected_path) {
     return 0;
 }
 
+static bool nimi_matches_runtime_socket_address(const struct sockaddr_un *address, const char *expected_path) {
+    if (address->sun_family != AF_UNIX) return false;
+    const char *path = address->sun_path;
+    size_t length = strnlen(path, sizeof(address->sun_path));
+    if (length == sizeof(address->sun_path)) return false;
+    if (strcmp(path, expected_path) == 0) return true;
+
+    // Launchd can rename its socket vnode to the fixed path during activation.
+    // The kernel still reports the original address for a connected peer.
+    const char prefix[] = "/var/run/com.apple.launchd.";
+    size_t prefix_length = sizeof(prefix) - 1;
+    if (length <= prefix_length + 11 || memcmp(path, prefix, prefix_length) != 0) return false;
+    const char *directory_id = path + prefix_length;
+    for (size_t i = 0; i < 10; i++) {
+        char c = directory_id[i];
+        if (!((c >= 'A' && c <= 'Z') || (c >= 'a' && c <= 'z') || (c >= '0' && c <= '9'))) return false;
+    }
+    if (directory_id[10] != '/') return false;
+#ifdef NIMI_MACOS_LOCAL_DEVELOPMENT
+    const char *name = strcmp(expected_path, NIMI_MACOS_RUNTIME_SOCKET) == 0 ? "DesktopControlDev" : "LocalAppHostDev";
+#else
+    const char *name = strcmp(expected_path, NIMI_MACOS_RUNTIME_SOCKET) == 0 ? "DesktopControl" : "LocalAppHost";
+#endif
+    return strcmp(directory_id + 11, name) == 0;
+}
+
 int nimi_macos_verify_runtime_peer(int socket_fd, const char *expected_path,
                                    const char *expected_executable,
                                    const char *expected_requirement,
@@ -615,7 +641,7 @@ int nimi_macos_verify_runtime_peer(int socket_fd, const char *expected_path,
     memset(&peer_address, 0, sizeof(peer_address));
     socklen_t peer_address_length = sizeof(peer_address);
     if (getpeername(socket_fd, (struct sockaddr *)&peer_address, &peer_address_length) != 0) return errno;
-    if (peer_address.sun_family != AF_UNIX || strcmp(peer_address.sun_path, expected_path) != 0) {
+    if (!nimi_matches_runtime_socket_address(&peer_address, expected_path)) {
         return EACCES;
     }
     audit_token_t token;

@@ -34,7 +34,7 @@ func TestValidateActivatedMacOSSocketFDBindsAddressAndStablePathVnode(t *testing
 	}
 	var validationErr error
 	if err := raw.Control(func(fd uintptr) {
-		validationErr = validateActivatedMacOSSocketFD(int(fd), path, endpoint)
+		validationErr = validateActivatedMacOSSocketFD(int(fd), "DesktopControl", path, endpoint)
 	}); err != nil {
 		t.Fatalf("inspect raw listener: %v", err)
 	}
@@ -70,12 +70,34 @@ func TestValidateActivatedMacOSSocketFDRejectsPathReplacement(t *testing.T) {
 	}
 	var validationErr error
 	if err := raw.Control(func(fd uintptr) {
-		validationErr = validateActivatedMacOSSocketFD(int(fd), path, endpoint)
+		validationErr = validateActivatedMacOSSocketFD(int(fd), "DesktopControl", path, endpoint)
 	}); err != nil {
 		t.Fatalf("inspect raw listener: %v", err)
 	}
 	if validationErr == nil {
 		t.Fatal("replaced Unix socket pathname was accepted")
+	}
+}
+
+func TestMacOSLaunchdSocketAddressMatchesOnlyExpectedEndpoint(t *testing.T) {
+	const fixed = "/private/var/run/nimi/runtime-desktop.sock"
+	for _, tt := range []struct {
+		address string
+		want    bool
+	}{
+		{fixed, true},
+		{"/var/run/com.apple.launchd.Zi5SAcilaz/DesktopControl", true},
+		{"/var/run/com.apple.launchd.Zi5SAcilaz/LocalAppHost", false},
+		{"/var/run/com.apple.launchd.Zi5SAcilaz/DesktopControlDev", false},
+		{"/var/run/com.apple.launchd.Zi5SAcilaz/child/DesktopControl", false},
+		{"/var/run/com.apple.launchd.Zi5SAcil-z/DesktopControl", false},
+		{"/tmp/com.apple.launchd.Zi5SAcilaz/DesktopControl", false},
+		{"/var/run/com.apple.launchd.short/DesktopControl", false},
+		{"/private/var/run/nimi/runtime-local-app.sock", false},
+	} {
+		if got := matchesMacOSLaunchdSocketAddress(tt.address, "DesktopControl", fixed); got != tt.want {
+			t.Errorf("address %q matched = %v, want %v", tt.address, got, tt.want)
+		}
 	}
 }
 
