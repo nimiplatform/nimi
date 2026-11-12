@@ -207,6 +207,38 @@ environments:
     reason: Native Installer completed a standard upgrade after administrator authorization.
       Installed Home and Runtime matched the build identity. Runtime exited before opening
       the protected Desktop transport, so the supervised Lab could not be used for model acceptance.
+  macos_sdcpp_1088_socket_fix_candidate:
+    os: macOS
+    arch: arm64
+    os_version: 27.2.1
+    os_build: 26B131
+    hardware: Mac16,5 with Apple M4 Max and 128 GiB unified memory
+    distribution: installed
+    observed_on: 2026-11-12
+    default_status: NOT-VERIFIED
+    source_revision: 6f0f7921f7ca55de47c7f10f33de2dfb929e3279 # pragma: allowlist secret -- public commit
+    package_name: Nimi-0.2.5-rc.6-macos-arm64.pkg
+    package_sha256: dc84fbf2ccbe943360d1dadee8c783be63b5d3c62db55e0f7fdf80d3dfac571b # pragma: allowlist secret -- CI package digest
+    package_source: GitHub Actions macOS production candidate, local-acceptance Realm
+    ci_url: https://github.com/nimiplatform/nimi/actions/runs/43171527431
+    artifact_id: 13923157898
+    artifact_name: nimi-macos-arm64-43171527431-1-local-acceptance
+    archive_sha256: 8569879cd3e05c334bb1ae91b6d32e2c83f6b831ece20a82cfb38e65ae1bd560 # pragma: allowlist secret -- GitHub artifact digest
+    package_checks: Archive digest, package size and SHA-256, build identity, Developer ID Installer
+      chain, Gatekeeper notarization and the stapled ticket passed.
+    runtime_revision: 6f0f7921f7ca55de47c7f10f33de2dfb929e3279 # pragma: allowlist secret -- observed public revision
+    runtime_modified: false
+    runtime_version: 0.2.5-rc.6, Go 1.26.10, darwin/arm64, cgo enabled
+    home_version: 0.2.5-rc.6
+    home_asar_sha256: cb2b3a0610e426f7f62a3e9acd23e749716955cbfd8ba9bf50acaaf11c5af17d # pragma: allowlist secret -- CI component digest
+    runtime_sha256: 10021bf6c161ca264f7f62502e9b6085262415b1ae3adaca257b84f901ddc359 # pragma: allowlist secret -- CI component digest
+    installation: PASS
+    startup: PASS
+    reason: Installer reported a successful upgrade. Installed Home and Runtime matched the build
+      identity. Launchd published both fixed sockets with root ownership, staff group and mode 0660.
+      Runtime verified the Desktop connection and the existing Lab registration resumed through the signed
+      Local App Host using the workspace Lab renderer at the same source revision.
+    engine: stable-diffusion.cpp master-1088-32d516c, official Apple Silicon archive
   macos_installed:
     os: macOS
     arch: arm64
@@ -242,6 +274,12 @@ environments:
       - The selected data root and offline backups are retained. The supervised Lab uses rebuilt workspace
         packages; this does not establish a separately packaged Lab distribution or every signed Home consumer.
 evidence_sources:
+  macos_sdcpp_socket_fix_candidate_20261112:
+    availability: scenario-summary-in-repository
+    description: Signed CI candidate installed on physical Apple Silicon, with model preparation in
+      installed Home and real local Jobs from the supervised Lab registration.
+    period_start: 2026-11-12
+    period_end: 2026-11-12
   macos_sdcpp_installed_candidate_20261112:
     availability: scenario-summary-in-repository
     description: Exact GitHub Actions candidate installed and launched on physical Apple Silicon.
@@ -306,6 +344,17 @@ evidence_sources:
     title: AI capability expansion historical acceptance details
     record_snapshot_on: 2026-10-02
 engineering_evidence:
+  - id: macos-20261112-sdcpp-socket-fix-candidate-startup
+    status: PASS
+    observed_on: 2026-11-12
+    environment: macos_sdcpp_1088_socket_fix_candidate
+    scope: Install the signed CI candidate, open Home and resume the existing protected Lab registration.
+    result: Installer reported success and the installed Home and Runtime matched CI hashes.
+      Launchd reported needs_rename=0 for both sockets, the Runtime verified the Desktop connection,
+      Home reported Runtime running, and supervised Lab showed its Runtime connection.
+    ci_url: https://github.com/nimiplatform/nimi/actions/runs/43171527414
+    evidence:
+      - { source: macos_sdcpp_socket_fix_candidate_20261112 }
   - id: macos-20261112-sdcpp-ci-candidate-package-checks
     status: PASS
     observed_on: 2026-11-12
@@ -6718,6 +6767,45 @@ capabilities:
       macos_development: SCENARIO-SPECIFIC
       macos_installed: SCENARIO-SPECIFIC
     scenarios:
+      - id: macos-20261112-installed-sdxl-controlnet-union
+        route: local
+        models: [ SDXL Base 1.0 F16, SDXL ControlNet Union ProMax F16 ]
+        environment: macos_sdcpp_1088_socket_fix_candidate
+        scenario: Installed Home prepared ControlNet from imported local weights. Supervised Lab
+          submitted a prepared Canny map and a plain Tile image, each at 1024x1024 with seed 42.
+        result: { execution: PASS, quality: NOT-VERIFIED }
+        summary: Both Jobs completed with one image artifact each. Lab decoded both outputs at
+          1024x1024 and listed each Job in its local history.
+        observed_on: 2026-11-12
+        jobs: [ 01M77FWC5EA6VRF439VS2477MJ, 01M77G25XC3NV2A75RV085JXTH ]
+        evidence:
+          - { source: macos_sdcpp_socket_fix_candidate_20261112 }
+      - id: macos-20261112-installed-minimax-h3-image-text
+        route: local
+        models: [ MiniMax-H3-Image pruned INT8 ConvRot, MiniMax-H3 Qwen3-VL Q4_K_M, MiniMax-H3-Image VAE F16 ]
+        environment: macos_sdcpp_1088_socket_fix_candidate
+        scenario: Supervised Lab generated a 512x512 image from text with seed 42 using the
+          installed Runtime and its official sd.cpp package.
+        result: { execution: PASS, quality: NOT-VERIFIED }
+        summary: Lab completed with one image artifact and decoded it at 512x512. The Runtime
+          logged 875217 ms for the backend generation invocation.
+        observed_on: 2026-11-12
+        jobs: [ 01M77K63Z01Y410FFEAQRY3CQ5 ]
+        evidence:
+          - { source: macos_sdcpp_socket_fix_candidate_20261112 }
+      - id: macos-20261112-installed-minimax-h3-image-reference
+        route: local
+        models: [ MiniMax-H3-Image pruned INT8 ConvRot, MiniMax-H3 Qwen3-VL Q4_K_M, MiniMax-H3-Image VAE F16 ]
+        environment: macos_sdcpp_1088_socket_fix_candidate
+        scenario: Supervised Lab submitted one owned 256x256 reference PNG, a text edit instruction,
+          a 256x256 output size and seed 42.
+        result: { execution: FAIL, quality: NOT-VERIFIED }
+        summary: Native generation started on the official backend. Lab reported runtime-timeout
+          at the 20-minute execution budget. No image artifact was observed.
+        observed_on: 2026-11-12
+        jobs: [ 01M77M7SFNZX4H927PGYB6MZHS ]
+        evidence:
+          - { source: macos_sdcpp_socket_fix_candidate_20261112 }
       - id: macos-20261112-minimax-h3-image-metal-text
         route: local
         models: [ MiniMax-H3-Image pruned INT8 ConvRot, MiniMax-H3 Qwen3-VL Q4_K_M, MiniMax-H3-Image VAE F16 ]
@@ -7553,6 +7641,36 @@ capabilities:
       macos_development: SCENARIO-SPECIFIC
       macos_installed: SCENARIO-SPECIFIC
     scenarios:
+      - id: macos-20261112-installed-hyperflow-ref2va-sol
+        route: local
+        models: [ HyperFlow H3 Flash Ref2VA INT8 ConvRot, MiniMax-H3 Qwen3-VL Q4_K_M,
+          Sol-H3-VAE F16, MiniMax-H3 audio VAE F32 ]
+        environment: macos_sdcpp_1088_socket_fix_candidate
+        scenario: Home bound the locally imported Sol VAE. Supervised Lab submitted one owned
+          reference PNG for a 256x256 five-frame video with seed 42.
+        result: { execution: FAIL, quality: NOT-VERIFIED }
+        summary: The signed video host started. macOS Library Validation rejected the official
+          libstable-diffusion.dylib because its Team ID did not match the signed Runtime.
+          The Job returned AI_LOCAL_EXECUTION_LOAD_FAILED before model execution.
+        observed_on: 2026-11-12
+        jobs: [ 01M77NEE6T83V9SQYZJ5QT2E25 ]
+        evidence:
+          - { source: macos_sdcpp_socket_fix_candidate_20261112 }
+      - id: macos-20261112-installed-hyperflow-fl2va-original-vae
+        route: local
+        models: [ HyperFlow H3 Flash FL2VA INT8 ConvRot, MiniMax-H3 Qwen3-VL Q4_K_M,
+          MiniMax-H3 video VAE F16, MiniMax-H3 audio VAE F32 ]
+        environment: macos_sdcpp_1088_socket_fix_candidate
+        scenario: Home applied the locally imported original H3 video VAE. Supervised Lab
+          submitted text-only generation at 256x256 and five frames with seed 42.
+        result: { execution: FAIL, quality: NOT-VERIFIED }
+        summary: macOS Library Validation rejected the same official dylib for a new signed
+          video host process. The Job returned AI_LOCAL_EXECUTION_LOAD_FAILED before model
+          execution, with no video or audio artifact.
+        observed_on: 2026-11-12
+        jobs: [ 01M77NJVTFW8P83R22G5EMTCEV ]
+        evidence:
+          - { source: macos_sdcpp_socket_fix_candidate_20261112 }
       - id: macos-20261112-hyperflow-metal-fl2va-and-ref2va
         route: local
         models: [ HyperFlow H3 Flash FL2VA INT8 ConvRot, HyperFlow H3 Flash Ref2VA INT8 ConvRot,
@@ -9704,8 +9822,56 @@ capabilities:
       windows_development: SCENARIO-SPECIFIC
       windows_installed: NOT-VERIFIED
       macos_development: SCENARIO-SPECIFIC
-      macos_installed: NOT-VERIFIED
+      macos_installed: SCENARIO-SPECIFIC
     scenarios:
+      - id: macos-20261112-installed-relayvsr-2x-image
+        route: local
+        models: [ RelayVSR 2x INT8 ConvRot, RelayVSR 2x VAE F32 ]
+        environment: macos_sdcpp_1088_socket_fix_candidate
+        scenario: Supervised Lab submitted the 256x256 PNG with 2x scale and seed omitted.
+        result: { execution: PASS, quality: NOT-VERIFIED }
+        summary: The installed Runtime reported a 487361-byte 512x512 result on the official backend.
+          Lab completed the Job and retained its image artifact.
+        observed_on: 2026-11-12
+        jobs: [ 01M77G6PCMEP1JECHH50VXWHDC ]
+        evidence:
+          - { source: macos_sdcpp_socket_fix_candidate_20261112 }
+      - id: macos-20261112-installed-relayvsr-4x-image
+        route: local
+        models: [ RelayVSR 4x INT8 ConvRot, RelayVSR 4x VAE F32 ]
+        environment: macos_sdcpp_1088_socket_fix_candidate
+        scenario: Supervised Lab submitted the same 256x256 PNG with 4x scale and seed omitted.
+        result: { execution: PASS, quality: NOT-VERIFIED }
+        summary: The installed Runtime reported a 1332469-byte 1024x1024 result on the official
+          backend. Lab completed the Job and retained its image artifact.
+        observed_on: 2026-11-12
+        jobs: [ 01M77J4KSM3930XKGNQP8H8VRK ]
+        evidence:
+          - { source: macos_sdcpp_socket_fix_candidate_20261112 }
+      - id: macos-20261112-installed-seedvr2-3b-image
+        route: local
+        models: [ SeedVR2 3B INT8 ConvRot, SeedVR2 VAE F16 ]
+        environment: macos_sdcpp_1088_socket_fix_candidate
+        scenario: Supervised Lab submitted the 128x128 PNG with 2x scale and seed omitted.
+        result: { execution: PASS, quality: NOT-VERIFIED }
+        summary: The installed Runtime returned a 115980-byte 256x256 result. Lab completed
+          the Job and retained its image artifact.
+        observed_on: 2026-11-12
+        jobs: [ 01M77JNDNTM36VC4X1WR4GV9N6 ]
+        evidence:
+          - { source: macos_sdcpp_socket_fix_candidate_20261112 }
+      - id: macos-20261112-installed-seedvr2-7b-image
+        route: local
+        models: [ SeedVR2 7B Sharp INT8 ConvRot, SeedVR2 VAE F16 ]
+        environment: macos_sdcpp_1088_socket_fix_candidate
+        scenario: Supervised Lab submitted the same 128x128 PNG with 2x scale and seed omitted.
+        result: { execution: PASS, quality: NOT-VERIFIED }
+        summary: The installed Runtime returned a 123637-byte 256x256 result. Lab completed
+          the Job and retained its image artifact.
+        observed_on: 2026-11-12
+        jobs: [ 01M77JXH23ASVPEJ39Q1VFBCVF ]
+        evidence:
+          - { source: macos_sdcpp_socket_fix_candidate_20261112 }
       - id: macos-20261112-seedvr2-7b-metal-image-2x
         route: local
         models: [ SeedVR2 7B Sharp INT8 ConvRot, SeedVR2 VAE F16 ]
@@ -9807,8 +9973,82 @@ capabilities:
       windows_development: SCENARIO-SPECIFIC
       windows_installed: NOT-VERIFIED
       macos_development: SCENARIO-SPECIFIC
-      macos_installed: NOT-VERIFIED
+      macos_installed: SCENARIO-SPECIFIC
     scenarios:
+      - id: macos-20261112-installed-relayvsr-2x-video
+        route: local
+        models: [ RelayVSR 2x INT8 ConvRot, RelayVSR 2x VAE F32 ]
+        environment: macos_sdcpp_1088_socket_fix_candidate
+        scenario: Supervised Lab retried the same 512x288 H.264 and AAC input with 2x scale
+          after Home and Lab recovered their account sessions.
+        result: { execution: PASS, quality: PASS }
+        summary: Lab completed and displayed the 295435-byte H.264 MP4 at 1024x576 and 24 FPS.
+          Independent inspection of the rendered artifact matched all 22 video frame timestamps
+          and all 29 stereo 32 kHz AAC packet payloads against the input.
+        observed_on: 2026-11-12
+        jobs: [ 01M77J00CXAY3ANYGGQA6W4M0P ]
+        evidence:
+          - { source: macos_sdcpp_socket_fix_candidate_20261112 }
+        limitations:
+          - Quality covers decoded media structure, timing and audio preservation for this clip.
+      - id: macos-20261112-installed-relayvsr-4x-video
+        route: local
+        models: [ RelayVSR 4x INT8 ConvRot, RelayVSR 4x VAE F32 ]
+        environment: macos_sdcpp_1088_socket_fix_candidate
+        scenario: Supervised Lab submitted the same 512x288 H.264 and AAC source at 4x scale,
+          switched capabilities during the run and recovered the original Job.
+        result: { execution: PASS, quality: PASS }
+        summary: Lab recovered the 671937-byte H.264 MP4 at 2048x1152 and 24 FPS.
+          Independent inspection matched all 22 video frame timestamps and all 29 stereo
+          32 kHz AAC packet payloads against the source.
+        observed_on: 2026-11-12
+        jobs: [ 01M77J6HQW9G3KCWGD7MPD0RV0 ]
+        evidence:
+          - { source: macos_sdcpp_socket_fix_candidate_20261112 }
+        limitations:
+          - Quality covers decoded media structure, timing and audio preservation for this clip.
+      - id: macos-20261112-installed-seedvr2-3b-video
+        route: local
+        models: [ SeedVR2 3B INT8 ConvRot, SeedVR2 VAE F16 ]
+        environment: macos_sdcpp_1088_socket_fix_candidate
+        scenario: Supervised Lab submitted a 128x128, five-frame H.264 and AAC source at 2x scale.
+        result: { execution: PASS, quality: PASS }
+        summary: Lab completed with a 24889-byte 256x256 H.264 MP4 at 24 FPS. Independent
+          inspection matched all five video frame timestamps and eight stereo 32 kHz AAC packets.
+        observed_on: 2026-11-12
+        jobs: [ 01M77JS5WWYKABREZ2B6RPSV9B ]
+        evidence:
+          - { source: macos_sdcpp_socket_fix_candidate_20261112 }
+        limitations:
+          - SeedVR2 is experimental. Quality covers decoded structure, timing and audio for this clip.
+      - id: macos-20261112-installed-seedvr2-7b-video
+        route: local
+        models: [ SeedVR2 7B Sharp INT8 ConvRot, SeedVR2 VAE F16 ]
+        environment: macos_sdcpp_1088_socket_fix_candidate
+        scenario: Supervised Lab submitted the same 128x128, five-frame H.264 and AAC source at 2x scale.
+        result: { execution: PASS, quality: PASS }
+        summary: Lab completed with a 25377-byte 256x256 H.264 MP4 at 24 FPS. Independent
+          inspection matched all five video frame timestamps and eight stereo 32 kHz AAC packets.
+        observed_on: 2026-11-12
+        jobs: [ 01M77JZ9Z5KNZ1H0BG3HBDDR6E ]
+        evidence:
+          - { source: macos_sdcpp_socket_fix_candidate_20261112 }
+        limitations:
+          - SeedVR2 is experimental. Quality covers decoded structure, timing and audio for this clip.
+      - id: macos-20261112-installed-relayvsr-2x-video-auth-interruption
+        route: local
+        models: [ RelayVSR 2x INT8 ConvRot, RelayVSR 2x VAE F32 ]
+        environment: macos_sdcpp_1088_socket_fix_candidate
+        scenario: Supervised Lab submitted a 512x288 H.264 and AAC source with 2x scale.
+        result: { execution: FAIL, quality: NOT-VERIFIED }
+        summary: The installed Runtime entered native RelayVSR video execution. The local Realm API
+          was unavailable when the account refresh ran, and Lab entered its sign-in gate.
+          After Realm and Web resumed on the matching localhost origins and Home signed in again,
+          Lab recovered the original Job and reported AI_LOCAL_EXECUTION_INFERENCE_FAILED.
+          No output was observed and the cause of the native failure was not established.
+        observed_on: 2026-11-12
+        evidence:
+          - { source: macos_sdcpp_socket_fix_candidate_20261112 }
       - id: macos-20261112-relayvsr-metal-video
         route: local
         models: [ RelayVSR 2x INT8 ConvRot, RelayVSR 2x VAE F32, RelayVSR 4x INT8 ConvRot, RelayVSR 4x VAE F32 ]
