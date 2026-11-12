@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
+import { setTimeout as delay } from 'node:timers/promises';
 import path from 'node:path';
 
 const project = 'nimi';
@@ -20,6 +21,20 @@ async function cloudflare(endpoint, method = 'GET') {
   return body.result;
 }
 
+async function fetchPublishedAsset(url) {
+  const options = { redirect: 'manual', cache: 'no-store' };
+  let response = await fetch(url, { ...options, signal: AbortSignal.timeout(30_000) });
+  // Pages can report a successful deployment before its assets reach the verifying edge.
+  for (const wait of [1000, 2000, 4000, 8000, 16000]) {
+    if (response.status !== 404) break;
+    console.log(`${url.pathname}: Pages returned 404, retrying in ${wait / 1000}s`);
+    await response.body?.cancel();
+    await delay(wait);
+    response = await fetch(url, { ...options, signal: AbortSignal.timeout(30_000) });
+  }
+  return response;
+}
+
 async function verify(origin, directory) {
   const base = new URL(origin);
   assert.equal(base.protocol, 'https:');
@@ -32,7 +47,7 @@ async function verify(origin, directory) {
   const accountPaths = ['/login', '/register', '/account/recovery', '/account/runtime'];
   const paths = [...publicPaths, ...accountPaths];
   for (const pathname of paths) {
-    const response = await fetch(new URL(pathname, base), { redirect: 'manual', signal: AbortSignal.timeout(30_000) });
+    const response = await fetchPublishedAsset(new URL(pathname, base));
     assert.equal(response.status, 200, `${pathname}: HTTP ${response.status}`);
     assert.match(response.headers.get('content-type') || '', /text\/html/u);
     assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
@@ -47,7 +62,7 @@ async function verify(origin, directory) {
       assert.match(response.headers.get('content-security-policy') || '', /connect-src 'self'/u);
     }
   }
-  const asset = await fetch(new URL(entry, base), { redirect: 'manual', signal: AbortSignal.timeout(30_000) });
+  const asset = await fetchPublishedAsset(new URL(entry, base));
   assert.equal(asset.status, 200);
   assert.match(asset.headers.get('content-type') || '', /javascript/u);
   assert.match(asset.headers.get('cache-control') || '', /immutable/u);
