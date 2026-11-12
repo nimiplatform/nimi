@@ -6,7 +6,7 @@ export function StoryHeading({ t, section, children }: { t: StoryText; section: 
   const title = t(`${section}.title`);
   const hasIntro = section !== 'experience';
   return <header className="story-heading">
-    {hasIntro && <span className="story-eyebrow">{t(`${section}.eyebrow`)}</span>}
+    {hasIntro && section !== 'showcase' && <span className="story-eyebrow">{t(`${section}.eyebrow`)}</span>}
     <h2 id={`${section}-heading`}>{title.split(/(?<=，)/).map((phrase, index) => <span key={index}>{phrase}</span>)}</h2>
     {hasIntro && <p>{t(`${section}.body`)}</p>}
     {children}
