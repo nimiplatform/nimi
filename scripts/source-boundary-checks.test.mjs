@@ -7,10 +7,12 @@ import test from 'node:test';
 
 for (const gate of [
   { name: 'Realm REST', script: 'check-no-app-realm-rest-bypass.mjs',
-    roots: ['apps', 'gateways'], bundles: ['dist-web', 'dist-electron'],
+    sources: ['apps/example/src/bypass.tsx', 'gateways/example/src/bypass.tsx'],
+    bundles: ['dist-web', 'dist-electron'],
     bypass: "fetch('/api/unadmitted-route');" },
   { name: 'UI glass', script: 'check-ui-glass-boundary.mjs',
-    roots: ['apps'], bundles: ['dist-web', 'dist-electron'],
+    sources: ['apps/example/src/bypass.tsx', 'apps/example/android/app/src/main/assets/authored.js'],
+    bundles: ['dist-web', 'dist-electron', 'dist-mobile', 'dist-mobile-release', 'android/app/src/main/assets/public'],
     bypass: '<div className="backdrop-blur-md" />' },
 ]) {
 test(`${gate.name} source gate ignores generated bundles while still rejecting source bypasses`, () => {
@@ -28,8 +30,7 @@ test(`${gate.name} source gate ignores generated bundles while still rejecting s
     write('apps/example/src/client.ts', 'export {};');
     assert.doesNotThrow(() => execFileSync(process.execPath, [script], { cwd: root, encoding: 'utf8' }));
 
-    for (const scope of gate.roots) {
-      const source = `${scope}/example/src/bypass.tsx`;
+    for (const source of gate.sources) {
       write(source, gate.bypass);
       const result = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' });
       assert.equal(result.status, 1);

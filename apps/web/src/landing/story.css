@@ -361,7 +361,7 @@
 }
 .story-app-showcase-card[data-card-width="narrow"] .story-app-showcase-card-screen { object-position: left top; }
 .story-app-showcase-controls { position: absolute; z-index: 4; inset: 50% 16px auto; display: flex; justify-content: space-between; transform: translateY(-50%); pointer-events: none; }
-.story-app-showcase-controls > button { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid #d6e5ee; border-radius: 50%; color: #254e68; background: #fffffff2; box-shadow: 0 8px 24px -10px #315d7866; backdrop-filter: blur(8px); pointer-events: auto; transition: color .2s,border-color .2s; }
+.story-app-showcase-controls > button { display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid #d6e5ee; border-radius: 50%; color: #254e68; background: #fff; box-shadow: 0 8px 24px -10px #315d7866; pointer-events: auto; transition: color .2s,border-color .2s; }
 .story-app-showcase-controls > button:hover { color: var(--showcase-blue); border-color: var(--showcase-blue); }
 @media (max-width: 700px) {
   .story-app-showcase-viewport {

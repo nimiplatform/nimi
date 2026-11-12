@@ -50,7 +50,7 @@ const EXT_CSS = new Set(['.css', '.scss']);
 
 // Directories skipped during walk
 const SKIP_DIRS = new Set([
-  'node_modules', 'dist', 'dist-web', 'dist-electron', 'build', '.next', '.turbo', 'target',
+  'node_modules', 'dist', 'dist-web', 'dist-mobile', 'dist-mobile-release', 'dist-electron', 'build', '.next', '.turbo', 'target',
   '__generated__', 'generated', 'gen', 'e2e-results', 'playwright-report',
   'storybook-static', // generated Storybook build output
   'src-tauri', // Rust layer — not in scope
@@ -150,6 +150,9 @@ function* walk(dir) {
     const full = path.join(dir, e.name);
     if (e.isDirectory()) {
       if (SKIP_DIRS.has(e.name)) continue;
+      // Capacitor copies the built renderer here; authored Android assets
+      // outside this generated public directory remain in scope.
+      if (path.relative(repoRoot, full).split(path.sep).join('/').endsWith('/android/app/src/main/assets/public')) continue;
       yield* walk(full);
     } else if (e.isFile()) {
       if (SKIP_FILE_SUFFIXES.some((s) => e.name.endsWith(s))) continue;
