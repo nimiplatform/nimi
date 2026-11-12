@@ -20,6 +20,9 @@ for (const [filename, token] of [
     assert.equal(downloaded.with['run-id'], undefined);
     assert.equal(downloaded.with.repository, undefined);
     assert.equal(workflow.jobs.build.outputs.artifact_id, `\${{ steps.${uploaded.id}.outputs.artifact-id }}`);
+    const pnpm = workflow.jobs.build.steps.find(step => step.uses?.startsWith('pnpm/action-setup@'));
+    assert.ok(pnpm);
+    assert.equal(pnpm.with?.version, undefined, 'Use the selected source packageManager pin, including historical releases');
   });
 
   test(`${filename}: credentials exist only on upload/verification steps, after CLI preparation`, () => {
