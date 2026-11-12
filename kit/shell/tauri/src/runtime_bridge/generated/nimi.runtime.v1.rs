@@ -2627,8 +2627,6 @@ pub struct GetPrimaryRuntimeStateResponse {
     pub this_runtime: bool,
     #[prost(string, tag = "6")]
     pub valid_after: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub lease_expires_at: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct PreparePrimaryRuntimeRequest {

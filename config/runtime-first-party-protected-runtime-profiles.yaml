@@ -440,3 +440,64 @@ profiles:
         capability: realm.data
       - method_id: /nimi.runtime.v1.RuntimeRealmRealtimeService/CloseRealmRealtimeChannel
         capability: realm.data
+  - profile_id: bundled_zhiyu_v1
+    identity_class: app
+    app_id: nimi.zhiyu
+    native_profile_marker: zhiyu-v1
+    methods:
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetAgentPresentationAsset
+      - method_id: /nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession
+      - method_id: /nimi.runtime.v1.RuntimeAuthService/RenewLocalAppSession
+      - method_id: /nimi.runtime.v1.RuntimeAuthService/RebindLocalAppSession
+      - method_id: /nimi.runtime.v1.RuntimeAppService/ReadLocalAppStorageJson
+      - method_id: /nimi.runtime.v1.RuntimeAppService/WriteLocalAppStorageJson
+      - method_id: /nimi.runtime.v1.RuntimeAppService/RemoveLocalAppStorageJson
+      - method_id: /nimi.runtime.v1.RuntimeAppService/StatLocalAppAsset
+      - method_id: /nimi.runtime.v1.RuntimeAppService/ListLocalAppAssets
+      - method_id: /nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset
+      - method_id: /nimi.runtime.v1.RuntimeAppService/ReadLocalAppAsset
+      - method_id: /nimi.runtime.v1.RuntimeAppService/RemoveLocalAppAsset
+      - method_id: /nimi.runtime.v1.RuntimeAppService/MoveLocalAppAsset
+      - method_id: /nimi.runtime.v1.RuntimeAppService/RevealLocalAppAsset
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppSharedLocalAgentAIConfigOptions
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/CommitLocalAppAgentPresentation
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/InspectLocalAppAgentMemory
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/CorrectLocalAppAgentMemory
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ForgetLocalAppAgentMemory
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/SetLocalAppAgentMemoryEnabled
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/DeleteAllLocalAppAgentMemory
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentIntroduction
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationArtifact
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/TranscribeLocalAppConversationVoice
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/RenderLocalAppConversationVoice
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppConversationTurn
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppConversationEvents
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/ReadLocalAppConversationMessage
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppEmbodimentSnapshot
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenLocalAppAgentRealtime
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/AppendLocalAppAgentRealtimeInput
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppAgentRealtimeEvents
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentRealtimeStatus
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/InterruptLocalAppAgentRealtimeOutput
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/CloseLocalAppAgentRealtime
+      - method_id: /nimi.runtime.v1.RuntimeAppActivityService/PutAppActivity
+      - method_id: /nimi.runtime.v1.RuntimeAppActivityService/ListAppActivities
+      - method_id: /nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityChanges
+      - method_id: /nimi.runtime.v1.RuntimeAppActivityService/MarkAppActivityRead
+      - method_id: /nimi.runtime.v1.RuntimeAppActivityService/OpenAppActivity
+      - method_id: /nimi.runtime.v1.RuntimeAppActivityService/SubscribeAppActivityOpenRequests
+      - method_id: /nimi.runtime.v1.RuntimeAppActivityService/CompleteAppActivityOpenRequest

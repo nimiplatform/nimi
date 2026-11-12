@@ -386,7 +386,8 @@ test('Apps home renders the empty state with the add-app action', async () => {
   await changeLocale('zh');
   const markup = renderView(baseProps({ projection: { status: 'loaded', entries: [], catalogStatus: 'not-implemented', runtimeError: null } }));
   assert.ok(markup.includes('data-testid="apps-empty-local-development"'), 'expected empty state');
-  assert.ok(markup.includes('还没有接入应用'), 'expected zh empty title');
+  assert.ok(markup.includes('还没有添加其他应用'), 'empty state excludes bundled apps');
+  assert.ok(markup.includes('打开织羽'), 'bundled Zhiyu remains available without added Apps');
   assert.ok(markup.includes('data-testid="apps-connect-local"'), 'expected add-app action');
   assert.ok(markup.includes('添加应用'), 'expected add-app copy');
 });

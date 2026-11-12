@@ -11,6 +11,7 @@ import {
 import { useTranslation } from 'react-i18next';
 import type { NimiDesktopOpenAppsSection } from '@nimiplatform/kit/core/desktop-open';
 import { AppsAttentionSection } from './apps-attention-section.js';
+import { BundledZhiyuEntry } from './bundled-zhiyu-entry.js';
 import { AppsActionErrorAlert } from './apps-action-error.js';
 import type { AppsActionError } from './apps-panel-controller.js';
 import type { NimiAIConfigOverwriteResult } from '@nimiplatform/kit/core/sdk-contract';
@@ -761,6 +762,7 @@ function AppsHome({
       {actionError ? (
         <AppsActionErrorAlert error={actionError} />
       ) : null}
+      <BundledZhiyuEntry />
       {sourceChoiceNotice ? (
         <InlineAlert tone="info" data-testid="apps-choose-source">{sourceChoiceNotice}</InlineAlert>
       ) : null}

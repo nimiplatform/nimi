@@ -8,6 +8,7 @@ await build({
   entryPoints: {
     preload: path.join(appRoot, 'src-electron/preload.cts'),
     'system-entry-preload': path.join(appRoot, 'src-electron/system-entry-preload.cts'),
+    'zhiyu-preload': path.join(appRoot, '../zhiyu/src-electron/preload.cts'),
   },
   outdir: path.join(appRoot, 'dist-electron'),
   outExtension: { '.js': '.cjs' },

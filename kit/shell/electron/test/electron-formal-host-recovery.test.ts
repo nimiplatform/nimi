@@ -14,7 +14,7 @@ describe('Home formal owners after an interrupted quit', () => {
       throw new Error(`Unexpected method ${methodId}`);
     });
     const factory = vi.spyOn(desktopControl, 'createNimiElectronDesktopControlHost').mockReturnValue({
-      accountProductUnary: unary, bundledAvatarUnary: unary,
+      accountProductUnary: unary, bundledAppUnary: unary,
     } as unknown as desktopControl.NimiElectronDesktopControlHost);
     const ipcMain = new FakeIpcMain();
     const { event } = createInvokeEvent();

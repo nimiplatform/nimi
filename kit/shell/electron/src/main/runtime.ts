@@ -106,7 +106,8 @@ export async function invokeElectronRuntimeUnary(input: {
       );
     }
     try {
-      const responseBytes = await input.desktopControlHost.bundledAvatarUnary({
+      const responseBytes = await input.desktopControlHost.bundledAppUnary({
+        appId: 'nimi.avatar',
         methodId: request.methodId,
         requestBytes: fromBase64(request.requestBytesBase64),
         timeoutMs: request.timeoutMs,
@@ -367,7 +368,8 @@ export async function openElectronRuntimeStream(input: {
       );
     }
     initialResolution = { trusted: undefined, invalidationConsumed: true };
-    createStream = () => input.desktopControlHost!.bundledAvatarServerStream({
+    createStream = () => input.desktopControlHost!.bundledAppServerStream({
+      appId: 'nimi.avatar',
       methodId: request.methodId,
       requestBytes,
       timeoutMs: request.timeoutMs,

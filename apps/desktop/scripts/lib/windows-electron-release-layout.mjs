@@ -7,6 +7,9 @@ export const WINDOWS_ELECTRON_LAYOUT_NOTICE = 'LOCAL-DEVELOPMENT-NON-PRODUCT-CAN
 
 export const REQUIRED_WINDOWS_ELECTRON_ASAR_ENTRIES = Object.freeze([
   'avatar/dist/index.html',
+  'avatar/NIMI_APP.md',
+  'zhiyu/dist/index.html',
+  'zhiyu/NIMI_APP.md',
   'dist/index.html',
   'dist/system-entry.html',
   'dist-electron/chat-ai-store-worker.js',
@@ -14,6 +17,7 @@ export const REQUIRED_WINDOWS_ELECTRON_ASAR_ENTRIES = Object.freeze([
   'dist-electron/main.js',
   'dist-electron/preload.cjs',
   'dist-electron/system-entry-preload.cjs',
+  'dist-electron/zhiyu-preload.cjs',
   'node_modules/@img/sharp-win32-x64/index.cjs',
   'node_modules/@nimiplatform/kit-protected-local-win32-x64/index.cjs',
   'node_modules/@nimiplatform/kit-protected-local-win32-x64/nimi_shell_protected_local.node',

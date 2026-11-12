@@ -26,9 +26,9 @@ use crate::RuntimeServiceMode;
 #[cfg(not(feature = "macos-source-local-development"))]
 use crate::RuntimeServiceState;
 use crate::{
-    BundledAvatarRuntimeClientStreamRequest, BundledAvatarRuntimeError,
-    BundledAvatarRuntimeRequest, BundledAvatarRuntimeResponse, BundledAvatarRuntimeStreamReceiver,
-    DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
+    BundledAppRuntimeClientStreamRequest, BundledAppRuntimeError, BundledAppRuntimeRequest,
+    BundledAppRuntimeResponse, BundledAppRuntimeStreamReceiver, DesktopAccountActionRequest,
+    DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
     DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse,
     DesktopAccountProductClientStreamRequest, DesktopAccountProductStreamRequest,
     DesktopAccountProductUnaryRequest, DesktopAccountRealmUnaryRequest,
@@ -41,8 +41,7 @@ use crate::{
     LocalDevelopmentLaunchRequest, LocalDevelopmentRegistration,
     LocalDevelopmentRegistrationRequest, NimiDesktopControl, NimiHostError,
     NimiHostErrorReasonCode, NimiProtectedLocalHostCarrier, ProtectedCarrierError,
-    ProtectedCarrierReasonCode, RuntimeServiceActionOutcome,
-    RuntimeServiceStatus,
+    ProtectedCarrierReasonCode, RuntimeServiceActionOutcome, RuntimeServiceStatus,
 };
 
 const SERVICE_NOT_REGISTERED: i32 = 0;
@@ -137,9 +136,9 @@ impl MacOSDesktopControl {
         })
     }
 
-    fn bundled_avatar_channel(&self) -> Result<Channel, BundledAvatarRuntimeError> {
+    fn bundled_avatar_channel(&self) -> Result<Channel, BundledAppRuntimeError> {
         self.host_channel().map_err(|error| {
-            BundledAvatarRuntimeError::new(error.reason_code().as_str(), error.retryable())
+            BundledAppRuntimeError::new(error.reason_code().as_str(), error.retryable())
         })
     }
 }
@@ -197,28 +196,28 @@ impl NimiDesktopControl for MacOSDesktopControl {
             async move { crate::installed_app_control::end(self.host_channel()?, launch_id).await },
         )
     }
-    fn invoke_bundled_avatar(
+    fn invoke_bundled_app(
         &self,
-        request: BundledAvatarRuntimeRequest,
-    ) -> ControlFuture<'_, BundledAvatarRuntimeResponse, BundledAvatarRuntimeError> {
+        request: BundledAppRuntimeRequest,
+    ) -> ControlFuture<'_, BundledAppRuntimeResponse, BundledAppRuntimeError> {
         Box::pin(async move {
             crate::bundled_avatar::invoke(self.bundled_avatar_channel()?, request).await
         })
     }
 
-    fn open_bundled_avatar_stream(
+    fn open_bundled_app_stream(
         &self,
-        request: BundledAvatarRuntimeRequest,
-    ) -> ControlFuture<'_, BundledAvatarRuntimeStreamReceiver, BundledAvatarRuntimeError> {
+        request: BundledAppRuntimeRequest,
+    ) -> ControlFuture<'_, BundledAppRuntimeStreamReceiver, BundledAppRuntimeError> {
         Box::pin(async move {
             crate::bundled_avatar::open_stream(self.bundled_avatar_channel()?, request).await
         })
     }
 
-    fn invoke_bundled_avatar_client_stream(
+    fn invoke_bundled_app_client_stream(
         &self,
-        request: BundledAvatarRuntimeClientStreamRequest,
-    ) -> ControlFuture<'_, BundledAvatarRuntimeResponse, BundledAvatarRuntimeError> {
+        request: BundledAppRuntimeClientStreamRequest,
+    ) -> ControlFuture<'_, BundledAppRuntimeResponse, BundledAppRuntimeError> {
         Box::pin(async move {
             crate::bundled_avatar::invoke_client_stream(self.bundled_avatar_channel()?, request)
                 .await
@@ -816,7 +815,11 @@ impl FixedRuntimeServiceControl for MacOsUnixSocketCarrier {
         #[cfg(not(feature = "macos-source-local-development"))]
         match macos_service_status()? {
             SERVICE_NOT_REGISTERED => Ok(service_status(RuntimeServiceState::Stopped, None, true)),
-            SERVICE_ENABLED => Ok(service_status(read_registered_runtime_state()?, None, false)),
+            SERVICE_ENABLED => Ok(service_status(
+                read_registered_runtime_state()?,
+                None,
+                false,
+            )),
             SERVICE_REQUIRES_APPROVAL => Ok(service_status(
                 RuntimeServiceState::StartPending,
                 Some(ProtectedCarrierReasonCode::RuntimeServiceRepairRequired),
@@ -1268,19 +1271,29 @@ mod product_stop_tests {
 #[cfg(not(feature = "macos-source-local-development"))]
 fn read_registered_runtime_state() -> Result<RuntimeServiceState, ProtectedCarrierError> {
     let output = std::process::Command::new("/bin/launchctl")
-        .args(["print", &format!("system/{}", crate::macos_profile::RUNTIME_SERVICE_LABEL)])
-        .output().map_err(|_| unavailable())?;
-    if !output.status.success() || output.stdout.len() > 65_536 { return Err(unavailable()); }
+        .args([
+            "print",
+            &format!("system/{}", crate::macos_profile::RUNTIME_SERVICE_LABEL),
+        ])
+        .output()
+        .map_err(|_| unavailable())?;
+    if !output.status.success() || output.stdout.len() > 65_536 {
+        return Err(unavailable());
+    }
     parse_launchd_runtime_state(std::str::from_utf8(&output.stdout).map_err(|_| untrusted())?)
 }
 
 #[cfg(not(feature = "macos-source-local-development"))]
 fn parse_launchd_runtime_state(text: &str) -> Result<RuntimeServiceState, ProtectedCarrierError> {
-    let state = text.lines().find_map(|line| line.strip_prefix("\tstate = "));
+    let state = text
+        .lines()
+        .find_map(|line| line.strip_prefix("\tstate = "));
     let pid = text.lines().find_map(|line| line.strip_prefix("\tpid = "));
     match (state, pid) {
         (Some("not running"), None) => Ok(RuntimeServiceState::Stopped),
-        (Some("running"), Some(value)) if value.parse::<u32>().is_ok_and(|pid| pid > 1) => Ok(RuntimeServiceState::Running),
+        (Some("running"), Some(value)) if value.parse::<u32>().is_ok_and(|pid| pid > 1) => {
+            Ok(RuntimeServiceState::Running)
+        }
         _ => Err(unavailable()),
     }
 }
@@ -1290,9 +1303,23 @@ mod launchd_status_tests {
     #[test]
     fn only_an_explicit_stopped_service_is_admitted_as_stopped() {
         use crate::RuntimeServiceState;
-        assert_eq!(super::parse_launchd_runtime_state("system/service = {\n\tstate = not running\n\t\tpid = 99\n}").unwrap(), RuntimeServiceState::Stopped);
-        assert_eq!(super::parse_launchd_runtime_state("\tstate = running\n\tpid = 123\n").unwrap(), RuntimeServiceState::Running);
-        for value in ["", "\tstate = waiting", "\tstate = not running\n\tpid = 123", "\tstate = running\n\tpid = 0"] {
+        assert_eq!(
+            super::parse_launchd_runtime_state(
+                "system/service = {\n\tstate = not running\n\t\tpid = 99\n}"
+            )
+            .unwrap(),
+            RuntimeServiceState::Stopped
+        );
+        assert_eq!(
+            super::parse_launchd_runtime_state("\tstate = running\n\tpid = 123\n").unwrap(),
+            RuntimeServiceState::Running
+        );
+        for value in [
+            "",
+            "\tstate = waiting",
+            "\tstate = not running\n\tpid = 123",
+            "\tstate = running\n\tpid = 0",
+        ] {
             assert!(super::parse_launchd_runtime_state(value).is_err());
         }
     }

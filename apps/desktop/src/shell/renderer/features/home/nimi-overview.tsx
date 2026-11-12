@@ -12,6 +12,7 @@ import { useDesktopI18nResource } from '../../i18n/i18n-context.js';
 import { useDesktopRendererCommands, useDesktopRendererSdk } from '../../renderer/binding-context.js';
 import { hasAvailableCatalogUpdate } from '../apps/apps-card-actions.js';
 import { AppArtworkIcon } from '../apps/apps-card-visuals.js';
+import { BundledZhiyuEntry } from '../apps/bundled-zhiyu-entry.js';
 import { appIconUrlsForEntries } from '../apps/apps-entry-groups.js';
 import { useAppsOverview } from '../apps/use-apps-overview.js';
 import { useGlobalDownloads } from '../runtime-config/global-downloads-context.js';
@@ -329,6 +330,7 @@ export function NimiOverview() {
               action={t('runtimeConfig.overview.allApps')}
               onAction={() => navigation.push({ id: 'apps' })}
             />
+            <BundledZhiyuEntry />
             {apps.isError ||
             apps.data?.status === 'error' ||
             (apps.data?.status === 'loaded' &&
@@ -372,9 +374,6 @@ export function NimiOverview() {
                   );
                 })}
               </div>
-            ) : null}
-            {!apps.isPending && !unique.length ? (
-              <p className="text-sm text-[var(--nimi-text-secondary)]">{t('runtimeConfig.overview.noApps')}</p>
             ) : null}
           </section>
         {messagesAccountKey ? (

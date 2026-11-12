@@ -54,15 +54,15 @@ function binding(overrides: Partial<NimiElectronDesktopControlBinding> = {}): Ni
       retryable: false,
     }),
     desktopFirstPartyProductStreamClose: async () => ({ status: 'ok' as const, value: {} }),
-    desktopBundledAvatarUnary: bytesError,
-    desktopBundledAvatarClientStream: bytesError,
-    desktopBundledAvatarStreamOpen: jsonError,
-    desktopBundledAvatarStreamNext: async () => ({
+    desktopBundledAppUnary: bytesError,
+    desktopBundledAppClientStream: bytesError,
+    desktopBundledAppStreamOpen: jsonError,
+    desktopBundledAppStreamNext: async () => ({
       status: 'error' as const,
       reasonCode: 'runtime-service-untrusted',
       retryable: false,
     }),
-    desktopBundledAvatarStreamClose: async () => ({ status: 'ok' as const, value: {} }),
+    desktopBundledAppStreamClose: async () => ({ status: 'ok' as const, value: {} }),
     ...overrides,
   };
 }
@@ -191,12 +191,12 @@ describe('Electron verified Desktop control host', () => {
     const nativeClose = vi.fn(() => new Promise<{ status: 'ok'; value: { closed: boolean } }>(resolve => { close = resolve; }));
     const nativeNext = vi.fn();
     const host = createNimiElectronDesktopControlHostForBinding(binding({
-      desktopAccountProductStreamOpen: nativeOpen, desktopBundledAvatarStreamOpen: nativeOpen,
-      desktopFirstPartyProductStreamClose: nativeClose, desktopBundledAvatarStreamClose: nativeClose,
-      desktopFirstPartyProductStreamNext: nativeNext, desktopBundledAvatarStreamNext: nativeNext,
+      desktopAccountProductStreamOpen: nativeOpen, desktopBundledAppStreamOpen: nativeOpen,
+      desktopFirstPartyProductStreamClose: nativeClose, desktopBundledAppStreamClose: nativeClose,
+      desktopFirstPartyProductStreamNext: nativeNext, desktopBundledAppStreamNext: nativeNext,
     }));
     const request = { methodId: '/nimi.runtime.v1.RuntimeAiService/StreamLocalAppTextTurn', requestBytes: new Uint8Array() };
-    const stream = profile === 'account' ? host.accountProductServerStream(request) : host.bundledAvatarServerStream(request);
+    const stream = profile === 'account' ? host.accountProductServerStream(request) : host.bundledAppServerStream({ ...request, appId: 'nimi.avatar' });
     const handlers = { onData: vi.fn(), onError: vi.fn(), onEnd: vi.fn() };
     let settled = false; void stream.closed.then(() => { settled = true; });
     stream.start(handlers); stream.cancel();
@@ -404,18 +404,18 @@ describe('Electron verified Desktop control host', () => {
   it('admits Avatar target resolution through the bundled Avatar native profile', async () => {
     const calls: string[] = [];
     const host = createNimiElectronDesktopControlHostForBinding(binding({
-      desktopBundledAvatarUnary: async (input) => {
+      desktopBundledAppUnary: async (input) => {
         calls.push(input.methodId);
         return { status: 'ok', value: Uint8Array.from([7, 8, 9]) };
       },
     }));
 
-    await expect(host.bundledAvatarUnary({
+    await expect(host.bundledAppUnary({ appId: 'nimi.avatar',
       methodId: AVATAR_TARGET_RESOLVE_METHOD,
       requestBytes: Uint8Array.from([1]),
     })).resolves.toEqual(Uint8Array.from([7, 8, 9]));
     expect(calls).toEqual([AVATAR_TARGET_RESOLVE_METHOD]);
-    await expect(host.bundledAvatarUnary({
+    await expect(host.bundledAppUnary({ appId: 'nimi.avatar',
       methodId: AVATAR_TARGET_REVALIDATE_METHOD,
       requestBytes: new Uint8Array(),
     })).rejects.toMatchObject({ reasonCode: 'runtime-service-untrusted' });
@@ -495,7 +495,7 @@ describe('Electron verified Desktop control host', () => {
     const canceledRequestIds: string[] = [];
     let nativeRequestId = '';
     const host = createNimiElectronDesktopControlHostForBinding(binding({
-      desktopBundledAvatarUnary: async (input) => {
+      desktopBundledAppUnary: async (input) => {
         nativeRequestId = input.requestId;
         markNativeStarted?.();
         return new Promise((resolve) => {
@@ -514,7 +514,7 @@ describe('Electron verified Desktop control host', () => {
     }));
     // Formal App methods retain this exact private carrier; the renderer raw
     // bridge no longer provides a second route around the formal scope owner.
-    const operation = host.bundledAvatarUnary({
+    const operation = host.bundledAppUnary({ appId: 'nimi.avatar',
       methodId: AVATAR_METHOD,
       requestBytes: new Uint8Array(),
       requestId: 'runtime-client-avatar-unary-1',
@@ -526,7 +526,7 @@ describe('Electron verified Desktop control host', () => {
       await Promise.resolve();
       await Promise.resolve();
 
-      expect(nativeRequestId).toMatch(/^desktop-protected-avatar-unary-/u);
+      expect(nativeRequestId).toMatch(/^desktop-protected-bundled-app-unary-/u);
       expect(canceledRequestIds).toEqual([nativeRequestId]);
       await expect(operation).rejects.toMatchObject({ reasonCode: 'runtime-request-canceled' });
     } finally {
@@ -655,3 +655,12 @@ describe('Electron verified Desktop control host', () => {
     expect(isElectronDesktopAccountProductMethod(MACHINE_METHOD, 'unary')).toBe(false);
   });
 });
+
+ it('keeps the bundled Zhiyu identity and rejects Home controls', async () => {
+  const native = vi.fn(async () => ({status: 'ok' as const, value: new Uint8Array()}));
+  const host = createNimiElectronDesktopControlHostForBinding(binding({desktopBundledAppUnary:native}));
+  await host.bundledAppUnary({appId:'nimi.zhiyu',methodId:'/nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences',requestBytes:new Uint8Array()});
+  expect(native.mock.calls[0]?.[0]).toMatchObject({appId:'nimi.zhiyu'});
+  await expect(host.bundledAppUnary({appId:'nimi.zhiyu',methodId:'/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeStop',requestBytes:new Uint8Array()})).rejects.toMatchObject({reasonCode:'runtime-service-untrusted'});
+  expect(native).toHaveBeenCalledTimes(1);
+ });

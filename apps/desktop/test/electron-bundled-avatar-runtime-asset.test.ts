@@ -1978,7 +1978,7 @@ test('bundled Avatar asset command carries the reminted formal App handle into H
     avatarOnlyLaunch,
     /avatarHostTargetResolve\(\{\s*agentHandle: selectedAgentHandle,\s*conversationAnchorId,\s*\}\)/u,
   );
-  assert.doesNotMatch(source, /GetAgentPresentationAsset|bundledAvatarUnary/u);
+  assert.doesNotMatch(source, /GetAgentPresentationAsset|bundledAppUnary/u);
   assert.doesNotMatch(source, /privateBinding|localAgentRef|ownerUserId|runtimeSourceRef/u);
   assert.doesNotMatch(source, /resolveSelectedDataRoot/u);
   assert.doesNotMatch(source, /launchInitialAvatar|desktop_avatar_launch_handoff/u);

@@ -55,6 +55,7 @@ const scriptRoot = path.dirname(fileURLToPath(import.meta.url));
 const desktopRoot = path.resolve(scriptRoot, '..');
 const repoRoot = path.resolve(desktopRoot, '../..');
 const avatarRoot = path.join(repoRoot, 'apps', 'avatar');
+const zhiyuRoot = path.join(repoRoot, 'apps', 'zhiyu');
 const localRoot = path.join(repoRoot, '.nimi', 'local');
 const layoutOnly = process.argv.includes('--layout-only');
 const localDevelopment = process.argv.includes('--local-development-candidate');
@@ -222,6 +223,7 @@ async function buildReleaseInputs({
   runReleaseCommand('corepack', ['pnpm', '--filter', '@nimiplatform/kit', 'build'], { cwd: repoRoot, inherit: true });
   runReleaseCommand('corepack', ['pnpm', '--dir', desktopRoot, 'run', 'build:renderer'], { cwd: repoRoot, inherit: true });
   runReleaseCommand('corepack', ['pnpm', '--dir', avatarRoot, 'run', 'build:renderer'], { cwd: repoRoot, inherit: true });
+  runReleaseCommand('corepack', ['pnpm', '--dir', zhiyuRoot, 'run', 'build'], { cwd: repoRoot, inherit: true });
   runReleaseCommand('corepack', ['pnpm', '--dir', desktopRoot, 'exec', 'tsc', '-p', 'tsconfig.electron.json', '--noEmit'], { cwd: repoRoot, inherit: true });
   runReleaseCommand(process.execPath, [
     path.join(scriptRoot, 'bundle-electron-main.mjs'),
@@ -270,6 +272,7 @@ async function buildReleaseInputs({
     sourceRoot,
     desktopRoot,
     avatarRoot,
+    zhiyuRoot,
     debugRoot: path.join(transactionRoot, 'source-maps'),
     nativeRoot: path.join(repoRoot, 'kit', 'shell', 'protected-local-node', 'npm', 'darwin-arm64'),
   });
@@ -447,7 +450,7 @@ async function stageDesktopNativeAssets(desktopApp, sourceRoot, localDevelopment
   // Runtime reads each formal App declaration from this fixed signed resource
   // root before admitting Home or Avatar product operations.
   const bundledAppsRoot = path.join(desktopApp, 'Contents', 'Resources', 'nimi-apps');
-  for (const [name, appRoot] of [['desktop', desktopRoot], ['avatar', avatarRoot]]) {
+  for (const [name, appRoot] of [['desktop', desktopRoot], ['avatar', avatarRoot], ['zhiyu', zhiyuRoot]]) {
     const releaseRoot = path.join(bundledAppsRoot, name);
     await mkdir(releaseRoot, { recursive: true, mode: 0o755 });
     const manifest = path.join(releaseRoot, 'nimi.app.yaml');

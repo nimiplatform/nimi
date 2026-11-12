@@ -1,5 +1,4 @@
 use crate::first_party_profiles_generated::{
-    BUNDLED_AVATAR_APP_ID, BUNDLED_AVATAR_NATIVE_PROFILE_MARKER,
     DESKTOP_ACCOUNT_PRODUCT_NATIVE_PROFILE_MARKER, DESKTOP_MACHINE_PRODUCT_NATIVE_PROFILE_MARKER,
 };
 use std::{collections::BTreeMap, time::Duration};
@@ -67,19 +66,20 @@ pub(crate) async fn invoke_first_party(
         request_bytes,
         timeout,
         Some(profile.marker()),
-        false,
+        None,
     )
     .await
 }
 
 #[cfg(any(target_os = "windows", target_os = "macos"))]
-pub(crate) async fn invoke_bundled_avatar(
+pub(crate) async fn invoke_bundled_app(
     channel: tonic::transport::Channel,
+    app: crate::BundledApp,
     method_id: &'static str,
     request_bytes: Vec<u8>,
     timeout: Option<Duration>,
 ) -> Result<Vec<u8>, DesktopUnaryError> {
-    invoke_inner(channel, method_id, request_bytes, timeout, None, true).await
+    invoke_inner(channel, method_id, request_bytes, timeout, None, Some(app)).await
 }
 
 #[cfg(any(target_os = "windows", target_os = "macos"))]
@@ -89,7 +89,7 @@ async fn invoke_inner(
     request_bytes: Vec<u8>,
     timeout: Option<Duration>,
     first_party_profile_marker: Option<&'static str>,
-    bundled_avatar: bool,
+    bundled_app: Option<crate::BundledApp>,
 ) -> Result<Vec<u8>, DesktopUnaryError> {
     use prost::bytes::{Buf, BufMut};
     use tonic::codec::{Codec, DecodeBuf, Decoder, EncodeBuf, Encoder};
@@ -159,14 +159,14 @@ async fn invoke_inner(
             "x-nimi-app-id",
             tonic::metadata::MetadataValue::from_static("nimi.desktop"),
         );
-    } else if bundled_avatar {
+    } else if let Some(app) = bundled_app {
         tonic_request.metadata_mut().insert(
             "x-nimi-protected-bundled-profile",
-            tonic::metadata::MetadataValue::from_static(BUNDLED_AVATAR_NATIVE_PROFILE_MARKER),
+            tonic::metadata::MetadataValue::from_static(app.marker()),
         );
         tonic_request.metadata_mut().insert(
             "x-nimi-app-id",
-            tonic::metadata::MetadataValue::from_static(BUNDLED_AVATAR_APP_ID),
+            tonic::metadata::MetadataValue::from_static(app.app_id()),
         );
     }
     if let Some(timeout) = timeout {
@@ -189,7 +189,7 @@ async fn invoke_inner(
                     status.code() as i32
                 );
             }
-            runtime_status_error(status, bundled_avatar)
+            runtime_status_error(status, bundled_app.is_some())
         })?;
     Ok(response.into_inner())
 }

@@ -1,7 +1,7 @@
 use napi::bindgen_prelude::Buffer;
 use napi_derive::napi;
 use nimi_shell_protected_local::{
-    BundledAvatarRuntimeRequest, BundledAvatarRuntimeStreamReceiver, NimiDesktopControl,
+    BundledAppRuntimeRequest, BundledAppRuntimeStreamReceiver, NimiDesktopControl,
 };
 use serde_json::json;
 use std::{
@@ -15,12 +15,12 @@ use tokio::sync::{watch, Mutex};
 
 use super::{
     clear_desktop_control_on_transport_reason, current_or_open_desktop_control,
-    NativeBundledAvatarRuntimeInput, NativeBundledAvatarStreamInput,
+    NativeBundledAppRuntimeInput, NativeBundledAvatarStreamInput,
     NativeBundledAvatarStreamNextOutcome, NativeJsonOutcome,
 };
 
 struct BundledAvatarStream {
-    receiver: Mutex<Option<BundledAvatarRuntimeStreamReceiver>>,
+    receiver: Mutex<Option<BundledAppRuntimeStreamReceiver>>,
     close_tx: watch::Sender<bool>,
     control: Weak<dyn NimiDesktopControl>,
 }
@@ -130,10 +130,13 @@ pub(super) async fn close_bundled_avatar_streams_for_control(
     registered
 }
 
-#[napi(js_name = "desktopBundledAvatarStreamOpen")]
-pub async fn desktop_bundled_avatar_stream_open(
-    input: NativeBundledAvatarRuntimeInput,
+#[napi(js_name = "desktopBundledAppStreamOpen")]
+pub async fn desktop_bundled_app_stream_open(
+    input: NativeBundledAppRuntimeInput,
 ) -> NativeJsonOutcome {
+    let Some(app) = nimi_shell_protected_local::BundledApp::from_app_id(&input.app_id) else {
+        return NativeJsonOutcome::host_reason("runtime-service-untrusted", false);
+    };
     let timeout = input
         .timeout_ms
         .map(u64::from)
@@ -163,7 +166,8 @@ pub async fn desktop_bundled_avatar_stream_open(
     drop(registry);
     drop(current);
     let receiver = match control
-        .open_bundled_avatar_stream(BundledAvatarRuntimeRequest {
+        .open_bundled_app_stream(BundledAppRuntimeRequest {
+            app,
             method_id: input.method_id,
             request_bytes: input.request_bytes.to_vec(),
             timeout,
@@ -200,8 +204,8 @@ pub async fn desktop_bundled_avatar_stream_open(
     NativeJsonOutcome::success(json!({ "streamId": stream_id }))
 }
 
-#[napi(js_name = "desktopBundledAvatarStreamNext")]
-pub async fn desktop_bundled_avatar_stream_next(
+#[napi(js_name = "desktopBundledAppStreamNext")]
+pub async fn desktop_bundled_app_stream_next(
     input: NativeBundledAvatarStreamInput,
 ) -> NativeBundledAvatarStreamNextOutcome {
     let stream_id = input.stream_id;
@@ -251,8 +255,8 @@ pub async fn desktop_bundled_avatar_stream_next(
     }
 }
 
-#[napi(js_name = "desktopBundledAvatarStreamClose")]
-pub async fn desktop_bundled_avatar_stream_close(
+#[napi(js_name = "desktopBundledAppStreamClose")]
+pub async fn desktop_bundled_app_stream_close(
     input: NativeBundledAvatarStreamInput,
 ) -> NativeJsonOutcome {
     let stream = streams()

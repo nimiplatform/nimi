@@ -53,9 +53,27 @@ pub struct NativeFirstPartyProductStreamInput {
 }
 
 #[napi(object)]
-pub struct NativeBundledAvatarRuntimeInput {
+pub struct NativeBundledAppRuntimeInput {
+    pub app_id: String,
     pub method_id: String,
     pub request_bytes: Buffer,
+    pub timeout_ms: Option<u32>,
+}
+
+#[napi(object)]
+pub struct NativeBundledAppUnaryInput {
+    pub app_id: String,
+    pub method_id: String,
+    pub request_bytes: Buffer,
+    pub timeout_ms: Option<u32>,
+    pub request_id: String,
+}
+
+#[napi(object)]
+pub struct NativeBundledAppClientStreamInput {
+    pub app_id: String,
+    pub method_id: String,
+    pub request_frames: Vec<Buffer>,
     pub timeout_ms: Option<u32>,
 }
 
@@ -813,8 +831,6 @@ pub struct NativeWorldRelationshipListInput {
 pub struct NativeWorldRelationshipGetInput {
     pub relationship_id: String,
 }
-
-
 
 #[napi(object)]
 pub struct NativeConversationFollowUpInput {

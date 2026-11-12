@@ -1,21 +1,18 @@
 #[cfg(any(target_os = "windows", target_os = "macos"))]
-use crate::{
-    desktop_unary,
-    first_party_profiles_generated::{bundled_avatar_method_profile, BundledAvatarMethodKind},
-};
+use crate::{desktop_unary, first_party_profiles_generated::BundledAvatarMethodKind};
 use std::{collections::BTreeMap, time::Duration};
 use tokio::sync::mpsc;
 #[cfg(any(target_os = "windows", target_os = "macos"))]
 use tonic::transport::Channel;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct BundledAvatarRuntimeError {
+pub struct BundledAppRuntimeError {
     reason_code: String,
     retryable: bool,
     reason_metadata: BTreeMap<String, String>,
 }
 
-impl BundledAvatarRuntimeError {
+impl BundledAppRuntimeError {
     pub(crate) fn new(reason_code: impl Into<String>, retryable: bool) -> Self {
         Self {
             reason_code: reason_code.into(),
@@ -45,77 +42,80 @@ impl BundledAvatarRuntimeError {
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct BundledAvatarRuntimeRequest {
+pub struct BundledAppRuntimeRequest {
+    pub app: crate::BundledApp,
     pub method_id: String,
     pub request_bytes: Vec<u8>,
     pub timeout: Option<Duration>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct BundledAvatarRuntimeClientStreamRequest {
+pub struct BundledAppRuntimeClientStreamRequest {
+    pub app: crate::BundledApp,
     pub method_id: String,
     pub request_frames: Vec<Vec<u8>>,
     pub timeout: Option<Duration>,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
-pub struct BundledAvatarRuntimeResponse {
+pub struct BundledAppRuntimeResponse {
     pub response_bytes: Vec<u8>,
 }
 
-pub type BundledAvatarRuntimeStreamReceiver =
-    mpsc::Receiver<Result<Vec<u8>, BundledAvatarRuntimeError>>;
+pub type BundledAppRuntimeStreamReceiver = mpsc::Receiver<Result<Vec<u8>, BundledAppRuntimeError>>;
 
 #[cfg(any(target_os = "windows", target_os = "macos"))]
 pub(crate) async fn invoke(
     channel: Channel,
-    request: BundledAvatarRuntimeRequest,
-) -> Result<BundledAvatarRuntimeResponse, BundledAvatarRuntimeError> {
-    let Some(profile) = bundled_avatar_method_profile(request.method_id.trim()) else {
-        return Err(BundledAvatarRuntimeError::new(
+    request: BundledAppRuntimeRequest,
+) -> Result<BundledAppRuntimeResponse, BundledAppRuntimeError> {
+    let Some(profile) = request.app.method_profile(request.method_id.trim()) else {
+        return Err(BundledAppRuntimeError::new(
             "runtime-service-untrusted",
             false,
         ));
     };
     if profile.kind != BundledAvatarMethodKind::Unary || !timeout_allowed(request.timeout) {
-        return Err(BundledAvatarRuntimeError::new(
+        return Err(BundledAppRuntimeError::new(
             "runtime-service-untrusted",
             false,
         ));
     }
-    let response_bytes = desktop_unary::invoke_bundled_avatar(
+    let response_bytes = desktop_unary::invoke_bundled_app(
         channel,
+        request.app,
         profile.method_id,
         request.request_bytes,
         request.timeout,
     )
     .await
     .map_err(|error| {
-        BundledAvatarRuntimeError::new(error.reason_code(), error.retryable())
+        BundledAppRuntimeError::new(error.reason_code(), error.retryable())
             .with_reason_metadata(error.reason_metadata().clone())
     })?;
-    Ok(BundledAvatarRuntimeResponse { response_bytes })
+    Ok(BundledAppRuntimeResponse { response_bytes })
 }
 
 #[cfg(any(target_os = "windows", target_os = "macos"))]
 pub(crate) async fn open_stream(
     channel: Channel,
-    request: BundledAvatarRuntimeRequest,
-) -> Result<BundledAvatarRuntimeStreamReceiver, BundledAvatarRuntimeError> {
-    let Some(profile) = bundled_avatar_method_profile(request.method_id.trim()) else {
-        return Err(BundledAvatarRuntimeError::new(
+    request: BundledAppRuntimeRequest,
+) -> Result<BundledAppRuntimeStreamReceiver, BundledAppRuntimeError> {
+    let Some(profile) = request.app.method_profile(request.method_id.trim()) else {
+        return Err(BundledAppRuntimeError::new(
             "runtime-service-untrusted",
             false,
         ));
     };
     if profile.kind != BundledAvatarMethodKind::ServerStream || !timeout_allowed(request.timeout) {
-        return Err(BundledAvatarRuntimeError::new(
+        return Err(BundledAppRuntimeError::new(
             "runtime-service-untrusted",
             false,
         ));
     }
-    crate::desktop_stream::open_bundled_avatar(
+    crate::desktop_stream::open_bundled_app(
         channel,
+        request.app,
         profile.method_id,
         request.request_bytes,
         request.timeout,
@@ -126,10 +126,10 @@ pub(crate) async fn open_stream(
 #[cfg(any(target_os = "windows", target_os = "macos"))]
 pub(crate) async fn invoke_client_stream(
     channel: Channel,
-    request: BundledAvatarRuntimeClientStreamRequest,
-) -> Result<BundledAvatarRuntimeResponse, BundledAvatarRuntimeError> {
-    let Some(profile) = bundled_avatar_method_profile(request.method_id.trim()) else {
-        return Err(BundledAvatarRuntimeError::new(
+    request: BundledAppRuntimeClientStreamRequest,
+) -> Result<BundledAppRuntimeResponse, BundledAppRuntimeError> {
+    let Some(profile) = request.app.method_profile(request.method_id.trim()) else {
+        return Err(BundledAppRuntimeError::new(
             "runtime-service-untrusted",
             false,
         ));
@@ -138,19 +138,20 @@ pub(crate) async fn invoke_client_stream(
         || profile.kind != BundledAvatarMethodKind::ServerStream
         || !timeout_allowed(request.timeout)
     {
-        return Err(BundledAvatarRuntimeError::new(
+        return Err(BundledAppRuntimeError::new(
             "runtime-service-untrusted",
             false,
         ));
     }
-    let response_bytes = crate::desktop_client_stream::invoke_bundled_avatar(
+    let response_bytes = crate::desktop_client_stream::invoke_bundled_app(
         channel,
+        request.app,
         profile.method_id,
         request.request_frames,
         request.timeout,
     )
     .await?;
-    Ok(BundledAvatarRuntimeResponse { response_bytes })
+    Ok(BundledAppRuntimeResponse { response_bytes })
 }
 
 #[cfg(any(target_os = "windows", target_os = "macos"))]

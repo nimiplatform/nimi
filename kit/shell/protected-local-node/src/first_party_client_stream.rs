@@ -1,11 +1,12 @@
 use napi_derive::napi;
 use nimi_shell_protected_local::{
-    BundledAvatarRuntimeClientStreamRequest, DesktopAccountProductClientStreamRequest,
+    BundledAppRuntimeClientStreamRequest, DesktopAccountProductClientStreamRequest,
     DesktopAccountProductStreamMethod,
 };
 
 use super::{
-    clear_desktop_control_on_transport_reason, current_or_open_desktop_control, NativeBytesOutcome,
+    clear_desktop_control_on_transport_reason, current_or_open_desktop_control,
+    NativeBundledAppClientStreamInput, NativeBytesOutcome,
     NativeFirstPartyProductClientStreamInput,
 };
 
@@ -54,14 +55,21 @@ pub async fn desktop_account_product_client_stream(
     }
 }
 
-#[napi(js_name = "desktopBundledAvatarClientStream")]
-pub async fn desktop_bundled_avatar_client_stream(
-    input: NativeFirstPartyProductClientStreamInput,
+#[napi(js_name = "desktopBundledAppClientStream")]
+pub async fn desktop_bundled_app_client_stream(
+    input: NativeBundledAppClientStreamInput,
 ) -> NativeBytesOutcome {
+    let Some(app) = nimi_shell_protected_local::BundledApp::from_app_id(&input.app_id) else {
+        return NativeBytesOutcome::error("runtime-service-untrusted", false);
+    };
     if input.method_id.trim() != WRITE_LOCAL_APP_ASSET_METHOD {
         return NativeBytesOutcome::error("runtime-service-untrusted", false);
     }
-    let Some((frames, timeout)) = validated_input(input) else {
+    let Some((frames, timeout)) = validated_input(NativeFirstPartyProductClientStreamInput {
+        method_id: input.method_id,
+        request_frames: input.request_frames,
+        timeout_ms: input.timeout_ms,
+    }) else {
         return NativeBytesOutcome::error("runtime-service-untrusted", false);
     };
     let control = match current_or_open_desktop_control().await {
@@ -69,7 +77,8 @@ pub async fn desktop_bundled_avatar_client_stream(
         Err(error) => return NativeBytesOutcome::host_error(error),
     };
     match control
-        .invoke_bundled_avatar_client_stream(BundledAvatarRuntimeClientStreamRequest {
+        .invoke_bundled_app_client_stream(BundledAppRuntimeClientStreamRequest {
+            app,
             method_id: WRITE_LOCAL_APP_ASSET_METHOD.to_string(),
             request_frames: frames,
             timeout,

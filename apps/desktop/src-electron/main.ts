@@ -5,6 +5,8 @@ import { MacOSProductUpdateAdapter } from './macos-product-update-adapter.js';
 import { WindowsProductUpdateAdapter } from './windows-product-update-adapter.js';
 import { ProductUpdateFailureStore, readUpdateFailureDiagnostic } from './product-update-failure-store.js';
 import desktopPackage from '../package.json' with { type: 'json' };
+import zhiyuPackage from '../../zhiyu/package.json' with { type: 'json' };
+import { createDesktopBundledZhiyuHost } from './bundled-zhiyu-host.js';
 import { getRuntimeWireCodec, RuntimeHealthStatus } from '@nimiplatform/sdk/runtime/generated';
 import { ProductUpdateError } from '../../../config/product-update-contract.mjs';
 import { verifyProductInstaller } from './product-update-installer-verification.js';
@@ -34,6 +36,7 @@ import {
 } from 'electron';
 import {
   NIMI_ELECTRON_SHELL_FILE_PROTOCOL_REGISTRATION,
+  NIMI_ELECTRON_APP_ASSET_PROTOCOL_REGISTRATION,
   NimiElectronShellHostError,
   createElectronRuntimeBridgeCommandNames,
   createElectronShellFileProtocolHost,
@@ -214,6 +217,7 @@ let localDevelopmentHost: DesktopElectronLocalDevelopmentHost | undefined;
 let installedAppHost: DesktopInstalledAppHost | undefined;
 let desktopOpenIntentHost: DesktopElectronOpenIntentHost | undefined;
 let bundledAvatarHost: DesktopElectronBundledAvatarHost | undefined;
+let bundledZhiyuHost: ReturnType<typeof createDesktopBundledZhiyuHost> | undefined;
 let chatAiStoreHost: DesktopElectronChatAiStoreHost | undefined;
 let systemEntryHost: DesktopSystemEntryHost | undefined;
 let systemEntryAdmission: ReturnType<typeof createSystemEntryAdmission> | undefined;
@@ -324,6 +328,7 @@ if (!ownsDesktopInstanceLock) {
   });
 
   protocol.registerSchemesAsPrivileged([
+    NIMI_ELECTRON_APP_ASSET_PROTOCOL_REGISTRATION,
     {
       scheme: NIMI_ELECTRON_SHELL_FILE_PROTOCOL_REGISTRATION.scheme,
       privileges: { ...NIMI_ELECTRON_SHELL_FILE_PROTOCOL_REGISTRATION.privileges },
@@ -658,6 +663,7 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         systemEntryAdmission?.invalidate();
         await localDevelopmentHost?.quiesceDataRoot();
         await installedAppHost?.shutdown();
+        await bundledZhiyuHost?.close();
         await bundledAvatarHost?.quiesceDataRoot();
         await localAssetProtocolHost.quiesceDataRootReadableGrants();
       },
@@ -770,10 +776,12 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         && !['stopping', 'committed', 'system-ending'].includes(desktopQuitCoordinator.phase())
         && !ownerQuitRequested && !quitCleanup && !systemSessionEnding,
       onInvalidated: () => {
+        void bundledZhiyuHost?.close().catch(error => writeDesktopStderr(`[bundled-zhiyu] ${desktopBootstrapFailureCode(error)}\n`));
         executionNotices.disableNotifications();
         systemEntryHost?.invalidate(); systemEntryActionRelay?.invalidate();
       },
       onScopeChanged: (previous) => {
+        if (previous.state === 'ready') void bundledZhiyuHost?.close().catch(error => writeDesktopStderr(`[bundled-zhiyu] ${desktopBootstrapFailureCode(error)}\n`));
         if (previous.state === 'ready') executionNotices.disableNotifications();
         systemEntryActionRelay?.invalidate();
       },
@@ -870,6 +878,15 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
         ? normalizeText(process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_DEV_ROOT)
         : undefined,
     });
+    bundledZhiyuHost = createDesktopBundledZhiyuHost({
+      rendererIndexPath: ELECTRON_DEVELOPMENT_BUILD
+        ? path.resolve(appRoot, '../zhiyu/dist/index.html')
+        : path.join(appRoot, 'zhiyu/dist/index.html'),
+      preloadPath: path.join(currentDir, 'zhiyu-preload.cjs'),
+      version: zhiyuPackage.version,
+      canOpen: () => normalHomeWorkAllowed() && !desktopQuitCoordinator.isLaunchBlocked(),
+      reportError: error => writeDesktopStderr(`[bundled-zhiyu] ${desktopBootstrapFailureCode(error)}\n`),
+    });
     const appActivitySourceLaunch = createDesktopAppActivitySourceLaunch({
       isAvailable: normalHomeWorkAllowed,
       resolve: () => registeredRuntimeBridge?.resolveAppActivityOpenLaunch,
@@ -885,7 +902,8 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
       zhiyuResourcePackPlacement: (request) => requestRunningZhiyuResourcePackPlacement({
         homeDirectory: app.getPath('home'),
         request,
-        startExactZhiyu: () => localDevelopmentHost?.startExactZhiyu() ?? Promise.resolve(false),
+        expectedPid: process.pid,
+        startExactZhiyu: async () => { await bundledZhiyuHost!.open(); return true; },
       }),
     });
     // @nimi-authority: definition.nimi.desktop.bridge-ipc.command-registration-plane
@@ -1017,6 +1035,13 @@ async function bootstrapDesktopElectronHost(): Promise<void> {
             await assertProductRetentionReady(productUpdateAdapter.retentionIdentity());
             return await productUpdateAdapter.cleanupRetention(payload.versions as string[]);
           } finally { productRetentionBusy = false; }
+        },
+        // @nimi-authority: rule.nimi.platform.product-lifecycle.p-pkgrel-009
+        bundled_zhiyu_open: async ({ payload, event }) => {
+          if (!authorizeDesktopRendererSender(event) || Object.keys(payload).length !== 0) throw new Error('bundled-zhiyu-home-request-required');
+          if (!bundledZhiyuHost) throw new Error('bundled-zhiyu-host-unavailable');
+          await bundledZhiyuHost.open();
+          return { opened: true };
         },
         // @nimi-authority: rule.nimi.runtime.agent-participation.r197
         desktop_agent_reference_resolve: async ({ payload, event }) => {
@@ -1458,6 +1483,7 @@ async function shutdownBeforeQuit(forUpdate = false): Promise<DesktopShutdownRep
     { operation: 'installed-app-host', critical: true, timeoutMs: 30_000, run: () => installedHost?.shutdown(
       forUpdate || homeRelaunchRequested || maintenanceRelaunchRequested ? 'required' : 'quit-after-process-exit',
     ) },
+    { operation: 'bundled-zhiyu-host', critical: true, timeoutMs: 30_000, run: () => bundledZhiyuHost?.shutdown() },
     { operation: 'formal-app-resources', critical: true, abortRemainingOnFailure: false, timeoutMs: DESKTOP_FORMAL_RESOURCE_SHUTDOWN_TIMEOUT_MS, run: () => runtimeBridge?.disposeFormalAppResources?.() },
     { operation: 'avatar-host', critical: true, timeoutMs: 30_000, run: stopAvatar },
     { operation: 'chat-store', critical: true, abortRemainingOnFailure: false, timeoutMs: 30_000, run: () => chatStoreHost?.close() },

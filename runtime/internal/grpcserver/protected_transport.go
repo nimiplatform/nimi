@@ -287,7 +287,7 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 		if info == nil {
 			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
 		}
-		bundledProfile, bundled, bundledErr := resolveProtectedBundledAvatarProfile(ctx, info.FullMethod, bundledavatar.MethodUnary)
+		bundledProfile, bundled, bundledErr := resolveProtectedBundledAppProfile(ctx, info.FullMethod, protectedlocal.FirstPartyMethodUnary)
 		if bundledErr != nil {
 			return nil, bundledErr
 		}
@@ -320,8 +320,8 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 			appID := envelope.ProtectedDesktopAppID
 			bindingSlot := firstPartyProfile.profileID
 			if bundled {
-				appID = bundledavatar.AppID
-				bindingSlot = bundledavatar.ProfileID
+				appID = bundledProfile.AppID
+				bindingSlot = bundledProfile.ProfileID
 			}
 			formalContext, authorized, formalErr := authorizeProtectedFormalAppOperation(
 				protectedContext, info.FullMethod, req, appID, bindingSlot,
@@ -360,8 +360,8 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 			appID := envelope.ProtectedDesktopAppID
 			bindingSlot := firstPartyProfile.profileID
 			if bundled {
-				appID = bundledavatar.AppID
-				bindingSlot = bundledavatar.ProfileID
+				appID = bundledProfile.AppID
+				bindingSlot = bundledProfile.ProfileID
 			}
 			formalContext, release, bindErr := formalAdmission.BindFormalAppSession(
 				protectedContext, appID, bindingSlot, desktopSessions.OperationSessionID(),
@@ -373,6 +373,9 @@ func newUnaryProtectedDesktopTransportInterceptor(desktopSessions *protectedloca
 			return handler(formalContext, req)
 		}
 		var cancel context.CancelFunc
+		if bundled && bundledProfile.AppID != bundledavatar.AppID {
+			return nil, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+		}
 		if bundled {
 			principal, err := bindBundledAvatarPrincipal(protectedContext, bundledProfile.Capability, desktopSessions, accountPrincipalProvider)
 			if err != nil {
@@ -519,7 +522,7 @@ func newStreamProtectedDesktopTransportInterceptor(desktopSessions *protectedloc
 		if info == nil {
 			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
 		}
-		bundledProfile, bundled, bundledErr := resolveProtectedBundledAvatarProfile(stream.Context(), info.FullMethod, bundledavatar.MethodServerStream)
+		bundledProfile, bundled, bundledErr := resolveProtectedBundledAppProfile(stream.Context(), info.FullMethod, protectedlocal.FirstPartyMethodServerStream)
 		if bundledErr != nil {
 			return bundledErr
 		}
@@ -552,8 +555,8 @@ func newStreamProtectedDesktopTransportInterceptor(desktopSessions *protectedloc
 			appID := envelope.ProtectedDesktopAppID
 			bindingSlot := firstPartyProfile.profileID
 			if bundled {
-				appID = bundledavatar.AppID
-				bindingSlot = bundledavatar.ProfileID
+				appID = bundledProfile.AppID
+				bindingSlot = bundledProfile.ProfileID
 			}
 			formalContext, authorized, formalErr := authorizeProtectedFormalAppOperation(
 				protectedContext, info.FullMethod, nil, appID, bindingSlot,
@@ -568,6 +571,9 @@ func newStreamProtectedDesktopTransportInterceptor(desktopSessions *protectedloc
 		}
 		var principal *protectedprincipal.Principal
 		var cancel context.CancelFunc
+		if bundled && bundledProfile.AppID != bundledavatar.AppID {
+			return grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+		}
 		if bundled {
 			bound, err := bindBundledAvatarPrincipal(protectedContext, bundledProfile.Capability, desktopSessions, accountPrincipalProvider)
 			if err != nil {
@@ -772,20 +778,21 @@ func resolveProtectedFirstPartyProfile(ctx context.Context, method string, expec
 	return profile, true, nil
 }
 
-func resolveProtectedBundledAvatarProfile(ctx context.Context, method string, expectedKind bundledavatar.MethodKind) (bundledavatar.MethodProfile, bool, error) {
+// @nimi-authority: rule.nimi.platform.app-ecosystem.p-appacc-001
+// The profile selects transport mechanics; formal registration owns App Access.
+func resolveProtectedBundledAppProfile(ctx context.Context, method string, expectedKind protectedlocal.FirstPartyMethodKind) (protectedlocal.BundledAppMethodProfile, bool, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok || len(md.Get(protectedBundledProfileMetadata)) == 0 {
-		return bundledavatar.MethodProfile{}, false, nil
+		return protectedlocal.BundledAppMethodProfile{}, false, nil
 	}
 	profiles := md.Get(protectedBundledProfileMetadata)
 	appIDs := md.Get("x-nimi-app-id")
-	if len(profiles) != 1 || profiles[0] != bundledavatar.NativeProfileMarker ||
-		len(appIDs) != 1 || appIDs[0] != bundledavatar.AppID {
-		return bundledavatar.MethodProfile{}, false, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
+	if len(profiles) != 1 || len(appIDs) != 1 {
+		return protectedlocal.BundledAppMethodProfile{}, false, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
 	}
-	profile, admitted := bundledavatar.Method(method)
+	profile, admitted := protectedlocal.BundledAppMethod(appIDs[0], profiles[0], method)
 	if !admitted || profile.Kind != expectedKind {
-		return bundledavatar.MethodProfile{}, false, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
+		return protectedlocal.BundledAppMethodProfile{}, false, grpcerr.WithReasonCode(codes.PermissionDenied, runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH)
 	}
 	return profile, true, nil
 }
@@ -802,7 +809,7 @@ func authorizeProtectedDesktopMethodForProfile(
 		if desktopSessions == nil {
 			return grpcerr.WithReasonCode(codes.Unavailable, runtimev1.ReasonCode_PROTECTED_LOCAL_LEDGER_UNAVAILABLE)
 		}
-		if err := desktopSessions.AuthorizeContext(ctx, protectedlocal.RoleBundledAvatarHost); err != nil {
+		if err := desktopSessions.AuthorizeContext(ctx, protectedlocal.RoleBundledAppHost); err != nil {
 			return protectedDesktopSessionAuthorizationError(err)
 		}
 		return nil

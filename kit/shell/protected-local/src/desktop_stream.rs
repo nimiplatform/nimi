@@ -1,7 +1,4 @@
-use crate::{
-    first_party_profiles_generated::{BUNDLED_AVATAR_APP_ID, BUNDLED_AVATAR_NATIVE_PROFILE_MARKER},
-    BundledAvatarRuntimeError,
-};
+use crate::BundledAppRuntimeError;
 use std::time::Duration;
 use tokio::sync::mpsc;
 
@@ -144,12 +141,13 @@ fn map_first_party_status(status: tonic::Status) -> crate::DesktopFirstPartyProd
 }
 
 #[cfg(any(target_os = "windows", target_os = "macos"))]
-pub(crate) async fn open_bundled_avatar(
+pub(crate) async fn open_bundled_app(
     channel: tonic::transport::Channel,
+    app: crate::BundledApp,
     method_id: &'static str,
     request_bytes: Vec<u8>,
     timeout: Option<Duration>,
-) -> Result<mpsc::Receiver<Result<Vec<u8>, BundledAvatarRuntimeError>>, BundledAvatarRuntimeError> {
+) -> Result<mpsc::Receiver<Result<Vec<u8>, BundledAppRuntimeError>>, BundledAppRuntimeError> {
     use prost::bytes::{Buf, BufMut};
     use tonic::codec::{Codec, DecodeBuf, Decoder, EncodeBuf, Encoder};
     use tonic::Status;
@@ -201,15 +199,15 @@ pub(crate) async fn open_bundled_avatar(
     let mut grpc = crate::grpc_limits::runtime_raw_client(channel);
     grpc.ready()
         .await
-        .map_err(|_| BundledAvatarRuntimeError::new("runtime-service-unavailable", true))?;
+        .map_err(|_| BundledAppRuntimeError::new("runtime-service-unavailable", true))?;
     let mut request = tonic::Request::new(request_bytes);
     request.metadata_mut().insert(
         "x-nimi-protected-bundled-profile",
-        tonic::metadata::MetadataValue::from_static(BUNDLED_AVATAR_NATIVE_PROFILE_MARKER),
+        tonic::metadata::MetadataValue::from_static(app.marker()),
     );
     request.metadata_mut().insert(
         "x-nimi-app-id",
-        tonic::metadata::MetadataValue::from_static(BUNDLED_AVATAR_APP_ID),
+        tonic::metadata::MetadataValue::from_static(app.app_id()),
     );
     if let Some(timeout) = timeout {
         request.set_timeout(timeout);
@@ -248,7 +246,7 @@ pub(crate) async fn open_bundled_avatar(
     Ok(receiver)
 }
 
-fn map_status(status: tonic::Status) -> BundledAvatarRuntimeError {
+fn map_status(status: tonic::Status) -> BundledAppRuntimeError {
     let retryable = matches!(
         status.code(),
         tonic::Code::Unavailable
@@ -257,15 +255,15 @@ fn map_status(status: tonic::Status) -> BundledAvatarRuntimeError {
             | tonic::Code::ResourceExhausted
     );
     match crate::grpc_status::runtime_reason(&status) {
-        Some(reason) => BundledAvatarRuntimeError::new(reason, retryable),
+        Some(reason) => BundledAppRuntimeError::new(reason, retryable),
         None => match status.code() {
             tonic::Code::Cancelled => {
-                BundledAvatarRuntimeError::new("runtime-request-canceled", retryable)
+                BundledAppRuntimeError::new("runtime-request-canceled", retryable)
             }
             tonic::Code::Unavailable | tonic::Code::DeadlineExceeded => {
-                BundledAvatarRuntimeError::new("runtime-service-unavailable", retryable)
+                BundledAppRuntimeError::new("runtime-service-unavailable", retryable)
             }
-            _ => BundledAvatarRuntimeError::new(
+            _ => BundledAppRuntimeError::new(
                 crate::grpc_status::RUNTIME_SERVICE_ERROR_UNCLASSIFIED,
                 retryable,
             )
@@ -370,7 +368,7 @@ mod cancellation_tests {
         let method = "/nimi.carrier.test.StreamProbe/Idle";
         if avatar {
             drop(
-                open_bundled_avatar(channel, method, Vec::new(), None)
+                open_bundled_app(channel, crate::BundledApp::Avatar, method, Vec::new(), None)
                     .await
                     .unwrap(),
             );

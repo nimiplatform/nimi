@@ -18,12 +18,12 @@ function fixture(avatar = false) {
   const nativeClose = vi.fn(async () => ({ status: 'ok' as const, value: { closed: true } }));
   const release = vi.fn(async () => ({ status: 'ok' as const, value: { released: true } }));
   const binding = {
-    desktopMachineProductUnary: nativeUnary, desktopAccountProductUnary: nativeUnary, desktopBundledAvatarUnary: nativeUnary,
-    desktopAccountProductClientStream: nativeUnary, desktopBundledAvatarClientStream: nativeUnary,
+    desktopMachineProductUnary: nativeUnary, desktopAccountProductUnary: nativeUnary, desktopBundledAppUnary: nativeUnary,
+    desktopAccountProductClientStream: nativeUnary, desktopBundledAppClientStream: nativeUnary,
     desktopFirstPartyProductUnaryCancel: release, desktopFirstPartyProductUnaryRelease: release,
-    desktopMachineProductStreamOpen: nativeOpen, desktopAccountProductStreamOpen: nativeOpen, desktopBundledAvatarStreamOpen: nativeOpen,
-    desktopFirstPartyProductStreamNext: nativeNext, desktopBundledAvatarStreamNext: nativeNext,
-    desktopFirstPartyProductStreamClose: nativeClose, desktopBundledAvatarStreamClose: nativeClose,
+    desktopMachineProductStreamOpen: nativeOpen, desktopAccountProductStreamOpen: nativeOpen, desktopBundledAppStreamOpen: nativeOpen,
+    desktopFirstPartyProductStreamNext: nativeNext, desktopBundledAppStreamNext: nativeNext,
+    desktopFirstPartyProductStreamClose: nativeClose, desktopBundledAppStreamClose: nativeClose,
   } as NimiElectronDesktopControlBinding;
   const desktopControlHost = createNimiElectronDesktopControlHostForBinding(binding);
   const common = {

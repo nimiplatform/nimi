@@ -132,6 +132,17 @@ const calls = [
 ];
 
 async function main() {
+  for (const name of ['desktopBundledAppUnary', 'desktopBundledAppStreamOpen', 'desktopBundledAppClientStream']) {
+    assert.equal(typeof addon[name], 'function', `${name} export is missing`);
+  }
+  assert.equal(addon.desktopBundledAvatarUnary, undefined, 'removed Avatar-only ABI must not remain as an alias');
+  for (const appId of ['nimi.desktop', 'nimi.other', '']) {
+    const outcome = await addon.desktopBundledAppUnary({ appId,
+      methodId: '/nimi.runtime.v1.RuntimeAuthService/OpenLocalAppSession',
+      requestBytes: Buffer.alloc(0), requestId: 'bundled-app-boundary-check' });
+    assert.equal(outcome.status, 'error');
+    assert.equal(outcome.reasonCode, 'runtime-service-untrusted');
+  }
   assert.throws(
     () => addon.localAppRealmWorldRelationshipList({ worldId: 'world-1', type: 123 }),
     /String|string/u,

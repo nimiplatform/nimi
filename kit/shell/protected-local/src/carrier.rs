@@ -1,7 +1,7 @@
 use crate::{
-    BundledAvatarRuntimeClientStreamRequest, BundledAvatarRuntimeError,
-    BundledAvatarRuntimeRequest, BundledAvatarRuntimeResponse, BundledAvatarRuntimeStreamReceiver,
-    DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
+    BundledAppRuntimeClientStreamRequest, BundledAppRuntimeError, BundledAppRuntimeRequest,
+    BundledAppRuntimeResponse, BundledAppRuntimeStreamReceiver, DesktopAccountActionRequest,
+    DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
     DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse,
     DesktopAccountProductClientStreamRequest, DesktopAccountProductStreamRequest,
     DesktopAccountProductUnaryRequest, DesktopAccountRealmUnaryRequest,
@@ -1405,35 +1405,34 @@ pub trait NimiDesktopControl: Send + Sync {
         Box::pin(async move { self.get_developer_mode_status().await.map(|_| ()) })
     }
 
-    fn invoke_bundled_avatar(
+    fn invoke_bundled_app(
         &self,
-        request: BundledAvatarRuntimeRequest,
+        request: BundledAppRuntimeRequest,
     ) -> Pin<
         Box<
-            dyn Future<Output = Result<BundledAvatarRuntimeResponse, BundledAvatarRuntimeError>>
+            dyn Future<Output = Result<BundledAppRuntimeResponse, BundledAppRuntimeError>>
                 + Send
                 + '_,
         >,
     >;
 
-    fn open_bundled_avatar_stream(
+    fn open_bundled_app_stream(
         &self,
-        request: BundledAvatarRuntimeRequest,
+        request: BundledAppRuntimeRequest,
     ) -> Pin<
         Box<
-            dyn Future<
-                    Output = Result<BundledAvatarRuntimeStreamReceiver, BundledAvatarRuntimeError>,
-                > + Send
+            dyn Future<Output = Result<BundledAppRuntimeStreamReceiver, BundledAppRuntimeError>>
+                + Send
                 + '_,
         >,
     >;
 
-    fn invoke_bundled_avatar_client_stream(
+    fn invoke_bundled_app_client_stream(
         &self,
-        request: BundledAvatarRuntimeClientStreamRequest,
+        request: BundledAppRuntimeClientStreamRequest,
     ) -> Pin<
         Box<
-            dyn Future<Output = Result<BundledAvatarRuntimeResponse, BundledAvatarRuntimeError>>
+            dyn Future<Output = Result<BundledAppRuntimeResponse, BundledAppRuntimeError>>
                 + Send
                 + '_,
         >,

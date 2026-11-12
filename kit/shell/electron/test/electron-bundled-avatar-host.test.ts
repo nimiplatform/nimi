@@ -27,7 +27,7 @@ function embodimentPullBridge() {
   let handlers: RuntimeGrpcBridgeStreamHandlers | undefined;
   const nativeCancel = vi.fn(() => { closed.resolve(); });
   const factory = vi.spyOn(desktopControl, 'createNimiElectronDesktopControlHost').mockReturnValue({
-    bundledAvatarServerStream: (request) => {
+    bundledAppServerStream: (request) => {
       expect(request.methodId).toBe('/nimi.runtime.v1.RuntimeAgentService/SubscribeLocalAppEmbodimentEvents');
       return {
         start: (current: RuntimeGrpcBridgeStreamHandlers) => { handlers = current; started.resolve(); },

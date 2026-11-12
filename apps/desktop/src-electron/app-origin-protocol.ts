@@ -1,11 +1,12 @@
 import path from 'node:path';
 import { readFile, realpath } from 'node:fs/promises';
 import type { Protocol } from 'electron';
-import { AVATAR_APP_CONTENT_SECURITY_POLICY, DESKTOP_APP_CONTENT_SECURITY_POLICY } from './app-origin-csp.js';
+import { AVATAR_APP_CONTENT_SECURITY_POLICY, DESKTOP_APP_CONTENT_SECURITY_POLICY, ZHIYU_APP_CONTENT_SECURITY_POLICY } from './app-origin-csp.js';
 
-const CONTENT_SECURITY_POLICY: Readonly<Record<'desktop' | 'avatar', string>> = {
+const CONTENT_SECURITY_POLICY: Readonly<Record<AppHost, string>> = {
   desktop: DESKTOP_APP_CONTENT_SECURITY_POLICY,
   avatar: AVATAR_APP_CONTENT_SECURITY_POLICY,
+  zhiyu: ZHIYU_APP_CONTENT_SECURITY_POLICY,
 };
 
 export const NIMI_DESKTOP_APP_PROTOCOL_SCHEME = 'nimi-app';
@@ -25,11 +26,11 @@ export function desktopRendererOrigin(rendererUrl: string): string {
     : parsed.origin;
 }
 
-type AppHost = 'desktop' | 'avatar';
+type AppHost = 'desktop' | 'avatar' | 'zhiyu';
 
 export function createDesktopAppOriginProtocol(input: {
   readonly protocol: Pick<Protocol, 'handle'>;
-  readonly roots: Readonly<Record<AppHost, string>>;
+  readonly roots: Readonly<Partial<Record<AppHost, string>>>;
 }) {
   const roots = Object.fromEntries(Object.entries(input.roots).map(([host, root]) => [host, path.resolve(root)])) as Record<AppHost, string>;
   const previews = new Map<string, Uint8Array>();
@@ -40,7 +41,7 @@ export function createDesktopAppOriginProtocol(input: {
       try {
         const url = new URL(request.url);
         const host = url.hostname as AppHost;
-        if (host !== 'desktop' && host !== 'avatar') return new Response('unknown app host', { status: 404 });
+        if (!Object.hasOwn(roots, host)) return new Response('unknown app host', { status: 404 });
         const pathname = decodeURIComponent(url.pathname);
         if (host === 'desktop' && pathname.startsWith('/__nimi/avatar-preview/')) {
           const bytes = previews.get(pathname);

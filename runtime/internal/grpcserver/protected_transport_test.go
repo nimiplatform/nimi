@@ -165,6 +165,7 @@ func TestFormalAppUnaryAdmissionPrecedesAccountProductPrincipal(t *testing.T) {
 	}{
 		{name: "Desktop self", appID: envelope.ProtectedDesktopAppID, ctx: protectedAccountProfileTestContext(connection)},
 		{name: "bundled Avatar", appID: bundledavatar.AppID, ctx: bundledAvatarProfileTestContext(connection)},
+		{name: "bundled Zhiyu", appID: "nimi.zhiyu", ctx: bundledZhiyuProfileTestContext(connection)},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			admission := &recordingFormalAppAdmission{}
@@ -239,6 +240,7 @@ func TestFormalAppStreamAdmissionPrecedesAccountProductPrincipal(t *testing.T) {
 	}{
 		{name: "Desktop self", appID: envelope.ProtectedDesktopAppID, ctx: protectedAccountProfileTestContext(connection)},
 		{name: "bundled Avatar", appID: bundledavatar.AppID, ctx: bundledAvatarProfileTestContext(connection)},
+		{name: "bundled Zhiyu", appID: "nimi.zhiyu", ctx: bundledZhiyuProfileTestContext(connection)},
 	} {
 		t.Run(testCase.name, func(t *testing.T) {
 			admission := &recordingFormalAppAdmission{}
@@ -1181,3 +1183,32 @@ func protectedTestIdentifier(value byte) protectedlocal.Identifier {
 }
 
 var _ net.Listener = (*protectedDesktopTestListener)(nil)
+
+func bundledZhiyuProfileTestContext(connection *protectedlocal.Connection) context.Context {
+	ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(protectedBundledProfileMetadata, "zhiyu-v1", "x-nimi-app-id", "nimi.zhiyu"))
+	return peer.NewContext(ctx, &peer.Peer{AuthInfo: &protectedDesktopAuthInfo{connection: connection}})
+}
+
+func TestBundledZhiyuProfileRejectsWrongIdentityAndHomeMethods(t *testing.T) {
+	const method = "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot"
+	for _, tc := range []struct {
+		appID, marker, method string
+		allowed               bool
+	}{
+		{"nimi.zhiyu", "zhiyu-v1", method, true},
+		{"nimi.zhiyu", "avatar-v1", method, false},
+		{"nimi.desktop", "zhiyu-v1", method, false},
+		{"nimi.other", "zhiyu-v1", method, false},
+		{"nimi.zhiyu", "zhiyu-v1", "/nimi.runtime.v1.RuntimeServiceControlService/RequestRuntimeStop", false},
+	} {
+		ctx := metadata.NewIncomingContext(context.Background(), metadata.Pairs(protectedBundledProfileMetadata, tc.marker, "x-nimi-app-id", tc.appID))
+		profile, matched, err := resolveProtectedBundledAppProfile(ctx, tc.method, protectedlocal.FirstPartyMethodUnary)
+		if tc.allowed {
+			if err != nil || !matched || profile.AppID != "nimi.zhiyu" || profile.ProfileID != "bundled_zhiyu_v1" {
+				t.Fatalf("Zhiyu identity lost: %+v %v", profile, err)
+			}
+		} else if err == nil {
+			t.Fatalf("unadmitted bundled request passed: %+v", tc)
+		}
+	}
+}

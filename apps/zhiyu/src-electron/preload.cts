@@ -7,7 +7,14 @@ const ZHIYU_RESOURCE_PACK_PLACEMENT_ACK_CHANNEL = 'nimi:zhiyu:resource-pack-plac
 installNimiElectronRuntimeBridge({
   contextBridge,
   ipcRenderer,
+  invokeChannel: readPreloadArg('--nimi-electron-runtime-invoke-channel'),
+  listenChannelPrefix: readPreloadArg('--nimi-electron-runtime-event-channel-prefix'),
 });
+
+function readPreloadArg(name: string): string | undefined {
+  const prefix = `${name}=`;
+  return process.argv.find(arg => arg.startsWith(prefix))?.slice(prefix.length);
+}
 
 contextBridge.exposeInMainWorld('__nimiZhiyuRuntimeAgentAccess', {
   localAppCarrier: {

@@ -20,6 +20,7 @@ export type DesktopZhiyuResourcePackPlacementDispatch = Readonly<{
 }>;
 
 type ZhiyuPlacementPresenceDescriptor = Readonly<{
+  pid: number;
   bridgeId: string;
   endpoint: string;
   token: string;
@@ -47,6 +48,7 @@ export async function requestRunningZhiyuResourcePackPlacement(input: {
   readonly homeDirectory: string;
   readonly request: DesktopZhiyuResourcePackPlacementDispatch;
   readonly startExactZhiyu?: () => Promise<boolean>;
+  readonly expectedPid?: number;
   readonly fetch?: PlacementFetch;
   readonly now?: () => number;
   readonly maxHeartbeatAgeMs?: number;
@@ -60,11 +62,14 @@ export async function requestRunningZhiyuResourcePackPlacement(input: {
     return placementFailed('launch-failed');
   }
 
-  const readDescriptor = () => resolvePresenceDescriptor({
+  const readDescriptor = async () => {
+    const descriptor = await resolvePresenceDescriptor({
     homeDirectory: input.homeDirectory,
     now: input.now?.() ?? Date.now(),
     maxHeartbeatAgeMs: input.maxHeartbeatAgeMs ?? DEFAULT_HEARTBEAT_MAX_AGE_MS,
-  });
+    });
+    return descriptor && (input.expectedPid === undefined || descriptor.pid === input.expectedPid) ? descriptor : null;
+  };
   let descriptor = await readDescriptor();
   if (!descriptor && input.startExactZhiyu) {
     const started = await input.startExactZhiyu().catch(() => false);
@@ -158,6 +163,7 @@ function parsePresenceDescriptor(text: string, now: number, maxHeartbeatAgeMs: n
     throw new Error('placement-presence-invalid');
   }
   const descriptor = {
+    pid: Number(record.pid),
     bridgeId: requiredText(record.bridgeId),
     endpoint: loopbackOrigin(record.endpoint),
     token: requiredText(record.token),

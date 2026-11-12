@@ -84,13 +84,13 @@ function control(profile: 'desktop' | 'avatar') {
   });
   const host = {
     accountProductUnary: profile === 'desktop' ? unary : vi.fn(async () => { throw new Error('wrong profile'); }),
-    bundledAvatarUnary: profile === 'avatar' ? unary : vi.fn(async () => { throw new Error('wrong profile'); }),
+    bundledAppUnary: profile === 'avatar' ? unary : vi.fn(async () => { throw new Error('wrong profile'); }),
   } as unknown as NimiElectronDesktopControlHost;
   return { bodies, calls, host };
 }
 
 describe('Electron formal App local host', () => {
-  it.each(['desktop', 'avatar'] as const)('bootstraps a fresh verified %s carrier after failed old recovery without replaying business', async (profile) => {
+  it.each(['desktop', 'avatar', 'zhiyu'] as const)('bootstraps a fresh verified %s carrier after failed old recovery without replaying business', async (profile) => {
     const calls: string[] = [];
     let carrierAvailable = true;
     let bound = false;
@@ -120,7 +120,7 @@ describe('Electron formal App local host', () => {
     });
     const owner = createNimiElectronFormalAppLocalHostOwner({
       profile, appId: `nimi.${profile}`,
-      control: { [profile === 'desktop' ? 'accountProductUnary' : 'bundledAvatarUnary']: unary } as unknown as NimiElectronDesktopControlHost,
+      control: { [profile === 'desktop' ? 'accountProductUnary' : 'bundledAppUnary']: unary } as unknown as NimiElectronDesktopControlHost,
     });
     try {
       await expect(owner.host.sessionStatus()).resolves.toMatchObject({ state: 'ready' });
@@ -180,7 +180,7 @@ describe('Electron formal App local host', () => {
     } finally { await owner.dispose(); warn.mockRestore(); }
   });
 
-  it.each(['desktop', 'avatar'] as const)('does not Open a replacement %s scope until the old native unary settles', async (profile) => {
+  it.each(['desktop', 'avatar', 'zhiyu'] as const)('does not Open a replacement %s scope until the old native unary settles', async (profile) => {
     let finishOld!: (value: Uint8Array) => void;
     let businessCalls = 0, renewCalls = 0, rebindCalls = 0, openCalls = 0;
     const ready = () => OpenLocalAppSessionResponse.toBinary(OpenLocalAppSessionResponse.create({
@@ -205,7 +205,7 @@ describe('Electron formal App local host', () => {
     });
     const owner = createNimiElectronFormalAppLocalHostOwner({
       profile, appId: `nimi.${profile}`,
-      control: { [profile === 'desktop' ? 'accountProductUnary' : 'bundledAvatarUnary']: unary } as unknown as NimiElectronDesktopControlHost,
+      control: { [profile === 'desktop' ? 'accountProductUnary' : 'bundledAppUnary']: unary } as unknown as NimiElectronDesktopControlHost,
     });
     try {
       const oldRead = expect(owner.host.agentReferenceList()).rejects.toMatchObject({ reasonCode: 'session-invalid' });
@@ -282,7 +282,7 @@ describe('Electron formal App local host', () => {
       expect(unary).toHaveBeenCalledOnce();
     } finally { await owner.dispose(); }
   });
-  it.each(['desktop', 'avatar'] as const)('recovers account change on %s without replaying the old business read', async (profile) => {
+  it.each(['desktop', 'avatar', 'zhiyu'] as const)('recovers account change on %s without replaying the old business read', async (profile) => {
     const calls: string[] = [];
     let businessCalls = 0;
     const unary = vi.fn(async (input: { methodId: string }) => {
@@ -316,7 +316,7 @@ describe('Electron formal App local host', () => {
     });
     const owner = createNimiElectronFormalAppLocalHostOwner({
       profile, appId: `nimi.${profile}`,
-      control: { [profile === 'desktop' ? 'accountProductUnary' : 'bundledAvatarUnary']: unary } as unknown as NimiElectronDesktopControlHost,
+      control: { [profile === 'desktop' ? 'accountProductUnary' : 'bundledAppUnary']: unary } as unknown as NimiElectronDesktopControlHost,
     });
     try {
       await owner.host.realmRealtimeOpen();
@@ -459,7 +459,7 @@ describe('Electron formal App local host', () => {
 
   it('rejects non-Desktop and malformed named resolver requests before native dispatch', async () => {
     const unary = vi.fn(async () => new Uint8Array());
-    const avatar = createNimiElectronFormalAppLocalHostOwner({ profile: 'avatar', appId: 'nimi.avatar', control: { bundledAvatarUnary: unary } as unknown as NimiElectronDesktopControlHost });
+    const avatar = createNimiElectronFormalAppLocalHostOwner({ profile: 'avatar', appId: 'nimi.avatar', control: { bundledAppUnary: unary } as unknown as NimiElectronDesktopControlHost });
     const desktop = createNimiElectronFormalAppLocalHostOwner({ profile: 'desktop', appId: 'nimi.desktop', control: { accountProductUnary: unary } as unknown as NimiElectronDesktopControlHost });
     try {
       await expect(avatar.resolveDesktopAgentReference({ localAgentRef: 'selected' })).rejects.toMatchObject({ reasonCode: 'local-app-access-denied' });
@@ -474,7 +474,7 @@ describe('Electron formal App local host', () => {
 
   it.each(['desktop', 'avatar'] as const)('preserves Runtime video generation errors on %s owned resources', async (profile) => {
     const runtime = control(profile);
-    const invoke = profile === 'desktop' ? runtime.host.accountProductUnary : runtime.host.bundledAvatarUnary;
+    const invoke = profile === 'desktop' ? runtime.host.accountProductUnary : runtime.host.bundledAppUnary;
     const unary = async (input: { methodId: string; requestBytes: Uint8Array }) => {
       if (input.methodId.endsWith('/OpenVideoSession')) {
         return OpenVideoSessionResponse.toBinary(OpenVideoSessionResponse.create({
@@ -492,7 +492,7 @@ describe('Electron formal App local host', () => {
     };
     const owner = createNimiElectronFormalAppLocalHostOwner({
       profile, appId: `nimi.${profile}`,
-      control: { ...runtime.host, [profile === 'desktop' ? 'accountProductUnary' : 'bundledAvatarUnary']: unary },
+      control: { ...runtime.host, [profile === 'desktop' ? 'accountProductUnary' : 'bundledAppUnary']: unary },
     });
     const scope = owner.createResourceScope();
     try {
@@ -592,7 +592,7 @@ describe('Electron formal App local host', () => {
     });
     const owner = createNimiElectronFormalAppLocalHostOwner({
       profile, appId: profile === 'desktop' ? 'nimi.desktop' : 'nimi.avatar',
-      control: { accountProductUnary: unary, bundledAvatarUnary: unary } as unknown as NimiElectronDesktopControlHost,
+      control: { accountProductUnary: unary, bundledAppUnary: unary } as unknown as NimiElectronDesktopControlHost,
     });
     try {
       await expect(owner.host.conversationVoiceTranscribe({
@@ -659,7 +659,7 @@ describe('Electron formal App local host', () => {
     });
     const controlHost = {
       accountProductUnary: profile === 'desktop' ? unary : vi.fn(async () => { throw new Error('wrong profile'); }),
-      bundledAvatarUnary: profile === 'avatar' ? unary : vi.fn(async () => { throw new Error('wrong profile'); }),
+      bundledAppUnary: profile === 'avatar' ? unary : vi.fn(async () => { throw new Error('wrong profile'); }),
     } as unknown as NimiElectronDesktopControlHost;
     const host = createNimiElectronFormalAppLocalHost({ profile, appId, control: controlHost });
 
@@ -674,7 +674,7 @@ describe('Electron formal App local host', () => {
 
   it.each([
     ['desktop', 'nimi.desktop', 'accountProductUnary'],
-    ['avatar', 'nimi.avatar', 'bundledAvatarUnary'],
+    ['avatar', 'nimi.avatar', 'bundledAppUnary'],
   ] as const)('resolves Avatar correlation through the %s formal Host profile', async (
     profile,
     appId,
@@ -726,7 +726,7 @@ describe('Electron formal App local host', () => {
       expect(GetLocalAppScenarioJobRequest.fromBinary(input.requestBytes)).toEqual({ jobId: '', clientSubmissionId: 'music-action' });
       return GetLocalAppScenarioJobResponse.toBinary(GetLocalAppScenarioJobResponse.create({ job }));
     });
-    const control = { accountProductUnary: unary, bundledAvatarUnary: unary } as unknown as NimiElectronDesktopControlHost;
+    const control = { accountProductUnary: unary, bundledAppUnary: unary } as unknown as NimiElectronDesktopControlHost;
     const host = createNimiElectronFormalAppLocalHost({ profile, appId, control });
     await host.scenarioJobSubmit({ spec: { type: 'music-generate', prompt: 'warm ballad', lyrics: 'sing this song' }, clientSubmissionId: 'music-action' });
     await expect(host.scenarioJobGet({ clientSubmissionId: 'music-action' })).resolves.toMatchObject({ job: { jobId: 'music-job' } });
@@ -801,7 +801,7 @@ describe('Electron formal App local host', () => {
         traceId: 'trace-decide',
       }));
     });
-    const control = { accountProductUnary: unary, bundledAvatarUnary: unary } as unknown as NimiElectronDesktopControlHost;
+    const control = { accountProductUnary: unary, bundledAppUnary: unary } as unknown as NimiElectronDesktopControlHost;
     const host = createNimiElectronFormalAppLocalHost({ profile, appId, control });
     const caller = new AbortController();
 
@@ -878,7 +878,7 @@ describe('Electron formal App local host', () => {
     });
     const controlHost = {
       accountProductUnary: profile === 'desktop' ? unary : vi.fn(async () => { throw new Error('wrong profile'); }),
-      bundledAvatarUnary: profile === 'avatar' ? unary : vi.fn(async () => { throw new Error('wrong profile'); }),
+      bundledAppUnary: profile === 'avatar' ? unary : vi.fn(async () => { throw new Error('wrong profile'); }),
     } as unknown as NimiElectronDesktopControlHost;
     const host = createNimiElectronFormalAppLocalHost({ profile, appId, control: controlHost });
 
@@ -909,7 +909,7 @@ describe('Electron formal App local host', () => {
     });
     const controlHost = {
       accountProductUnary: profile === 'desktop' ? unary : vi.fn(async () => { throw new Error('wrong profile'); }),
-      bundledAvatarUnary: profile === 'avatar' ? unary : vi.fn(async () => { throw new Error('wrong profile'); }),
+      bundledAppUnary: profile === 'avatar' ? unary : vi.fn(async () => { throw new Error('wrong profile'); }),
     } as unknown as NimiElectronDesktopControlHost;
     const host = createNimiElectronFormalAppLocalHost({ profile, appId, control: controlHost });
 
@@ -995,7 +995,7 @@ describe('Electron formal App local host', () => {
     });
     const host = createNimiElectronFormalAppLocalHost({
       profile: 'avatar', appId: 'nimi.avatar',
-      control: { bundledAvatarUnary: unary } as unknown as NimiElectronDesktopControlHost,
+      control: { bundledAppUnary: unary } as unknown as NimiElectronDesktopControlHost,
     });
 
     await expect(host.agentReferenceList()).rejects.toMatchObject({ reasonCode: 'revoked' });
@@ -1038,7 +1038,7 @@ describe('Electron formal App local host', () => {
     });
     const owner = createNimiElectronFormalAppLocalHostOwner({
       profile, appId: `nimi.${profile}`,
-      control: { accountProductUnary: unary, bundledAvatarUnary: unary } as unknown as NimiElectronDesktopControlHost,
+      control: { accountProductUnary: unary, bundledAppUnary: unary } as unknown as NimiElectronDesktopControlHost,
     });
     const host = owner.host;
     try {
@@ -1091,7 +1091,7 @@ describe('Electron formal App local host', () => {
     });
     const owner = createNimiElectronFormalAppLocalHostOwner({
       profile, appId: `nimi.${profile}`,
-      control: { accountProductUnary: unary, bundledAvatarUnary: unary } as unknown as NimiElectronDesktopControlHost,
+      control: { accountProductUnary: unary, bundledAppUnary: unary } as unknown as NimiElectronDesktopControlHost,
     });
     try {
       const caller = new AbortController();
@@ -1129,7 +1129,7 @@ describe('Electron formal App local host', () => {
     });
     const owner = createNimiElectronFormalAppLocalHostOwner({
       profile, appId: `nimi.${profile}`,
-      control: { accountProductUnary: unary, bundledAvatarUnary: unary } as unknown as NimiElectronDesktopControlHost,
+      control: { accountProductUnary: unary, bundledAppUnary: unary } as unknown as NimiElectronDesktopControlHost,
     });
     try {
       const opening = owner.host.conversationOpen({ agentHandle: `agent_ref_${'a'.repeat(43)}` });
@@ -1160,8 +1160,8 @@ describe('Electron formal App local host', () => {
     const owner = createNimiElectronFormalAppLocalHostOwner({
       profile: 'avatar', appId: 'nimi.avatar',
       control: {
-        bundledAvatarUnary: unary,
-        bundledAvatarServerStream: () => ({ start: startStream, cancel: cancelStream, closed: Promise.resolve() }),
+        bundledAppUnary: unary,
+        bundledAppServerStream: () => ({ start: startStream, cancel: cancelStream, closed: Promise.resolve() }),
       } as unknown as NimiElectronDesktopControlHost,
     });
     try {
@@ -1231,8 +1231,8 @@ describe('Electron formal App local host', () => {
     const owner = createNimiElectronFormalAppLocalHostOwner({
       profile, appId: `nimi.${profile}`,
       control: {
-        accountProductUnary: unary, bundledAvatarUnary: unary,
-        accountProductServerStream: streamFactory, bundledAvatarServerStream: streamFactory,
+        accountProductUnary: unary, bundledAppUnary: unary,
+        accountProductServerStream: streamFactory, bundledAppServerStream: streamFactory,
       } as unknown as NimiElectronDesktopControlHost,
     });
     try {
@@ -1286,7 +1286,7 @@ describe('Electron formal App local host', () => {
       }
       throw new Error(`Unexpected method ${input.methodId}`);
     });
-    const host = createNimiElectronFormalAppLocalHost({ profile: 'avatar', appId: 'nimi.avatar', control: { bundledAvatarUnary: unary } as unknown as NimiElectronDesktopControlHost });
+    const host = createNimiElectronFormalAppLocalHost({ profile: 'avatar', appId: 'nimi.avatar', control: { bundledAppUnary: unary } as unknown as NimiElectronDesktopControlHost });
     const pending = host.agentReferenceList();
     const rejected = expect(pending).rejects.toMatchObject({ reasonCode: 'revoked' });
     await started;
@@ -1316,7 +1316,7 @@ describe('Electron formal App local host', () => {
     });
     const host = createNimiElectronFormalAppLocalHost({
       profile: 'avatar', appId: 'nimi.avatar',
-      control: { bundledAvatarUnary: unary } as unknown as NimiElectronDesktopControlHost,
+      control: { bundledAppUnary: unary } as unknown as NimiElectronDesktopControlHost,
     });
 
     await expect(host.conversationOpen({ agentHandle: `agent_ref_${'a'.repeat(43)}` }))
@@ -1453,7 +1453,7 @@ describe('Electron formal App local host', () => {
     const owner = createNimiElectronFormalAppLocalHostOwner({
       profile: 'avatar',
       appId: 'nimi.avatar',
-      control: { bundledAvatarUnary: unary } as unknown as NimiElectronDesktopControlHost,
+      control: { bundledAppUnary: unary } as unknown as NimiElectronDesktopControlHost,
     });
     const candidate = owner.createResourceScope();
     await candidate.host.realmRealtimeOpen();
@@ -1499,7 +1499,7 @@ describe('Electron formal App local host', () => {
       appId: 'nimi.avatar',
       control: {
         ...runtime.host,
-        bundledAvatarServerStream: vi.fn(() => ({
+        bundledAppServerStream: vi.fn(() => ({
           start() {},
           cancel: cancelStream,
           closed: Promise.resolve(),
@@ -1614,7 +1614,7 @@ describe('Electron formal App local host', () => {
 
   it.each([
     ['desktop', 'nimi.desktop', 'accountProductClientStream'],
-    ['avatar', 'nimi.avatar', 'bundledAvatarClientStream'],
+    ['avatar', 'nimi.avatar', 'bundledAppClientStream'],
   ] as const)('writes App assets through the %s formal client stream', async (profile, appId, methodName) => {
     const methodId = '/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset';
     let decodedFrames: unknown[] = [];
@@ -1638,7 +1638,7 @@ describe('Electron formal App local host', () => {
       accountProductClientStream: methodName === 'accountProductClientStream'
         ? clientStream
         : vi.fn(async () => { throw new Error('wrong profile'); }),
-      bundledAvatarClientStream: methodName === 'bundledAvatarClientStream'
+      bundledAppClientStream: methodName === 'bundledAppClientStream'
         ? clientStream
         : vi.fn(async () => { throw new Error('wrong profile'); }),
     } as unknown as NimiElectronDesktopControlHost;

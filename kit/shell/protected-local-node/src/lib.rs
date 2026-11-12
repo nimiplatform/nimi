@@ -8,7 +8,7 @@ use napi_derive::napi;
 use nimi_shell_protected_local::FixedRuntimeServiceControl;
 use nimi_shell_protected_local::NimiHostErrorReasonCode;
 use nimi_shell_protected_local::{
-    BundledAvatarRuntimeRequest, DesktopAccountActionRequest, DesktopAccountBeginLoginRequest,
+    BundledAppRuntimeRequest, DesktopAccountActionRequest, DesktopAccountBeginLoginRequest,
     DesktopAccountBeginLoginResponse, DesktopAccountCompleteLoginRequest,
     DesktopAccountMutationResponse, DesktopAccountProductUnaryMethod,
     DesktopAccountProductUnaryRequest, DesktopAccountProjection, DesktopAccountRealmUnaryRequest,
@@ -706,10 +706,11 @@ mod first_party_unary_cancellation_tests {
     }
 }
 
-#[napi(js_name = "desktopBundledAvatarUnary")]
-pub async fn desktop_bundled_avatar_unary(
-    input: NativeFirstPartyProductUnaryInput,
-) -> NativeBytesOutcome {
+#[napi(js_name = "desktopBundledAppUnary")]
+pub async fn desktop_bundled_app_unary(input: NativeBundledAppUnaryInput) -> NativeBytesOutcome {
+    let Some(app) = nimi_shell_protected_local::BundledApp::from_app_id(&input.app_id) else {
+        return NativeBytesOutcome::error("runtime-service-untrusted", false);
+    };
     let request_id = match admitted_first_party_unary_request_id(input.request_id) {
         Some(request_id) => request_id,
         None => return NativeBytesOutcome::error("runtime-service-untrusted", false),
@@ -724,7 +725,8 @@ pub async fn desktop_bundled_avatar_unary(
             Err(error) => return NativeBytesOutcome::host_error(error),
         };
         match control
-            .invoke_bundled_avatar(BundledAvatarRuntimeRequest {
+            .invoke_bundled_app(BundledAppRuntimeRequest {
+                app,
                 method_id: input.method_id,
                 request_bytes: input.request_bytes.to_vec(),
                 timeout,
@@ -1005,11 +1007,16 @@ pub async fn fixed_runtime_service_stop() -> NativeJsonOutcome {
                 // A failed bootstrap may never have opened a protected channel.
                 // Observe the fixed service first so quit cannot activate it.
                 match PlatformDesktopCarrier::default().runtime_service_status() {
-                    Ok(status) if status.state == nimi_shell_protected_local::RuntimeServiceState::Stopped => {
+                    Ok(status)
+                        if status.state
+                            == nimi_shell_protected_local::RuntimeServiceState::Stopped =>
+                    {
                         PRODUCT_STOPPING.store(true, std::sync::atomic::Ordering::SeqCst);
-                        return NativeJsonOutcome::success(serde_json::json!({"state":"stopped","running":false}));
-                    },
-                    Ok(_) => {},
+                        return NativeJsonOutcome::success(
+                            serde_json::json!({"state":"stopped","running":false}),
+                        );
+                    }
+                    Ok(_) => {}
                     Err(error) => return NativeJsonOutcome::protected_error(error),
                 }
 

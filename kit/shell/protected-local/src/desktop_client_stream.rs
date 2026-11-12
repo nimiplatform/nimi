@@ -5,10 +5,7 @@ use tonic::codec::{Codec, DecodeBuf, Decoder, EncodeBuf, Encoder};
 use tonic::{transport::Channel, Status};
 
 use crate::desktop_unary::DesktopFirstPartyProfile;
-use crate::first_party_profiles_generated::{
-    BUNDLED_AVATAR_APP_ID, BUNDLED_AVATAR_NATIVE_PROFILE_MARKER,
-};
-use crate::{BundledAvatarRuntimeError, DesktopFirstPartyProductError};
+use crate::{BundledAppRuntimeError, DesktopFirstPartyProductError};
 
 #[derive(Debug, Default, Clone, Copy)]
 struct RawBytesCodec;
@@ -80,20 +77,21 @@ pub(crate) async fn invoke_first_party(
 }
 
 #[cfg(any(target_os = "windows", target_os = "macos"))]
-pub(crate) async fn invoke_bundled_avatar(
+pub(crate) async fn invoke_bundled_app(
     channel: Channel,
+    app: crate::BundledApp,
     method_id: &'static str,
     request_frames: Vec<Vec<u8>>,
     timeout: Option<Duration>,
-) -> Result<Vec<u8>, BundledAvatarRuntimeError> {
+) -> Result<Vec<u8>, BundledAppRuntimeError> {
     invoke(
         channel,
         method_id,
         request_frames,
         timeout,
         "x-nimi-protected-bundled-profile",
-        BUNDLED_AVATAR_NATIVE_PROFILE_MARKER,
-        BUNDLED_AVATAR_APP_ID,
+        app.marker(),
+        app.app_id(),
     )
     .await
     .map_err(map_bundled_avatar_status)
@@ -142,15 +140,15 @@ fn map_first_party_status(status: Status) -> DesktopFirstPartyProductError {
     }
 }
 
-fn map_bundled_avatar_status(status: Status) -> BundledAvatarRuntimeError {
+fn map_bundled_avatar_status(status: Status) -> BundledAppRuntimeError {
     let retryable = retryable(&status);
     match crate::grpc_status::bundled_avatar_runtime_reason(&status) {
-        Some(reason) => BundledAvatarRuntimeError::new(reason, retryable),
+        Some(reason) => BundledAppRuntimeError::new(reason, retryable),
         None => match status.code() {
             tonic::Code::Unavailable | tonic::Code::DeadlineExceeded | tonic::Code::Cancelled => {
-                BundledAvatarRuntimeError::new("runtime-service-unavailable", retryable)
+                BundledAppRuntimeError::new("runtime-service-unavailable", retryable)
             }
-            _ => BundledAvatarRuntimeError::new(
+            _ => BundledAppRuntimeError::new(
                 crate::grpc_status::RUNTIME_SERVICE_ERROR_UNCLASSIFIED,
                 retryable,
             )

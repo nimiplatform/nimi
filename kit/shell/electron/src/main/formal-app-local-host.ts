@@ -35,6 +35,7 @@ import {
 import type { ResolveDesktopAgentReferenceResponse } from '@nimiplatform/sdk/runtime/host';
 import {
   NimiElectronDesktopControlHostError,
+  createNimiElectronDesktopControlHost,
   type NimiElectronDesktopControlHost,
   type NimiElectronDesktopControlStream,
 } from './desktop-control-host.js';
@@ -47,7 +48,22 @@ import {
 import type { NimiElectronAppActivityOpenLaunchTarget, RuntimeGrpcBridgeStream } from './types.js';
 import { takeElectronLocalAppCommandClosers } from './local-app-commands.js';
 
-type FormalAppProfile = 'desktop' | 'avatar';
+type FormalAppProfile = 'desktop' | 'avatar' | 'zhiyu';
+
+// @nimi-authority: rule.nimi.platform.product-lifecycle.p-pkgrel-009
+/** Installed Home main only; the native carrier verifies the actual Home process.
+ * App declarations and sessions remain Runtime-owned. */
+export function createNimiElectronBundledAppLocalHostOwner(input: {
+  readonly appId: 'nimi.avatar' | 'nimi.zhiyu';
+  readonly revealInOs?: (path: string) => Promise<void> | void;
+}): Pick<NimiElectronFormalAppLocalHostOwner, 'host' | 'shutdown'> {
+  const owner = createNimiElectronFormalAppLocalHostOwner({
+    ...input,
+    profile: input.appId === 'nimi.avatar' ? 'avatar' : 'zhiyu',
+    control: createNimiElectronDesktopControlHost(),
+  });
+  return { host: owner.host, shutdown: () => owner.shutdown() };
+}
 type RuntimeCallOptions = Readonly<{ signal?: AbortSignal; timeoutMs?: number }>;
 type FormalOperationTracker = <T>(operation: () => Promise<T>) => Promise<T>;
 type FormalStreamTracker = (stream: NimiElectronDesktopControlStream) => void;
@@ -101,7 +117,7 @@ export type NimiElectronFormalAppLocalHostResourceScope = Readonly<{
 // commands as every ordinary App. The profile transport never becomes a
 // renderer Runtime proxy or a second product client.
 export function createNimiElectronFormalAppLocalHost(input: {
-  readonly appId: 'nimi.desktop' | 'nimi.avatar';
+  readonly appId: 'nimi.desktop' | 'nimi.avatar' | 'nimi.zhiyu';
   readonly profile: FormalAppProfile;
   readonly control: NimiElectronDesktopControlHost;
   readonly revealInOs?: (path: string) => Promise<void> | void;
@@ -110,7 +126,7 @@ export function createNimiElectronFormalAppLocalHost(input: {
 }
 
 export function createNimiElectronFormalAppLocalHostOwner(input: {
-  readonly appId: 'nimi.desktop' | 'nimi.avatar';
+  readonly appId: 'nimi.desktop' | 'nimi.avatar' | 'nimi.zhiyu';
   readonly profile: FormalAppProfile;
   readonly control: NimiElectronDesktopControlHost;
   readonly revealInOs?: (path: string) => Promise<void> | void;
@@ -1375,11 +1391,11 @@ function profileTransport(
   trackOperation: FormalOperationTracker,
   trackStream: FormalStreamTracker,
 ): Parameters<typeof createNimiHostRuntimeTypedClient>[0] {
-  const unary = profile === 'avatar'
-    ? (request: Parameters<NimiElectronDesktopControlHost['bundledAvatarUnary']>[0]) => control.bundledAvatarUnary(request)
+  const unary = profile !== 'desktop'
+    ? (request: Parameters<NimiElectronDesktopControlHost['accountProductUnary']>[0]) => control.bundledAppUnary({ ...request, appId: profile === 'avatar' ? 'nimi.avatar' : 'nimi.zhiyu' })
     : (request: Parameters<NimiElectronDesktopControlHost['accountProductUnary']>[0]) => control.accountProductUnary(request);
-  const serverStream = profile === 'avatar'
-    ? (request: Parameters<NimiElectronDesktopControlHost['bundledAvatarServerStream']>[0]) => control.bundledAvatarServerStream(request)
+  const serverStream = profile !== 'desktop'
+    ? (request: Parameters<NimiElectronDesktopControlHost['accountProductServerStream']>[0]) => control.bundledAppServerStream({ ...request, appId: profile === 'avatar' ? 'nimi.avatar' : 'nimi.zhiyu' })
     : (request: Parameters<NimiElectronDesktopControlHost['accountProductServerStream']>[0]) => control.accountProductServerStream(request);
   return {
     async unary(request) {
@@ -1466,8 +1482,8 @@ async function writeFormalAsset(
   const methodId = '/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset';
   const codec = getRuntimeWireCodec(methodId);
   const requestFrames = frames.map((frame) => codec.encodeRequest(frame));
-  const response = profile === 'avatar'
-    ? await control.bundledAvatarClientStream({ methodId, requestFrames, timeoutMs: 120_000 })
+  const response = profile !== 'desktop'
+    ? await control.bundledAppClientStream({ appId: profile === 'avatar' ? 'nimi.avatar' : 'nimi.zhiyu', methodId, requestFrames, timeoutMs: 120_000 })
     : await control.accountProductClientStream({ methodId, requestFrames, timeoutMs: 120_000 });
   return codec.decodeResponse(response) as WriteLocalAppAssetResponse;
 }

@@ -28,9 +28,9 @@ use crate::windows_peer_trust::{verify_runtime_peer, VerifiedRuntimePeer};
 use crate::windows_source_policy::{source_pipe_name, WindowsSourcePipeRole};
 use crate::RuntimeServiceMode;
 use crate::{
-    BundledAvatarRuntimeClientStreamRequest, BundledAvatarRuntimeError,
-    BundledAvatarRuntimeRequest, BundledAvatarRuntimeResponse, BundledAvatarRuntimeStreamReceiver,
-    DesktopAccountActionRequest, DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
+    BundledAppRuntimeClientStreamRequest, BundledAppRuntimeError, BundledAppRuntimeRequest,
+    BundledAppRuntimeResponse, BundledAppRuntimeStreamReceiver, DesktopAccountActionRequest,
+    DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
     DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse,
     DesktopAccountProductClientStreamRequest, DesktopAccountProductStreamRequest,
     DesktopAccountProductUnaryRequest, DesktopAccountRealmUnaryRequest,
@@ -274,12 +274,12 @@ impl NimiDesktopControl for WindowsDesktopControl {
         })
     }
 
-    fn invoke_bundled_avatar(
+    fn invoke_bundled_app(
         &self,
-        request: BundledAvatarRuntimeRequest,
+        request: BundledAppRuntimeRequest,
     ) -> Pin<
         Box<
-            dyn Future<Output = Result<BundledAvatarRuntimeResponse, BundledAvatarRuntimeError>>
+            dyn Future<Output = Result<BundledAppRuntimeResponse, BundledAppRuntimeError>>
                 + Send
                 + '_,
         >,
@@ -287,26 +287,25 @@ impl NimiDesktopControl for WindowsDesktopControl {
         Box::pin(crate::bundled_avatar::invoke(self.channel(), request))
     }
 
-    fn open_bundled_avatar_stream(
+    fn open_bundled_app_stream(
         &self,
-        request: BundledAvatarRuntimeRequest,
+        request: BundledAppRuntimeRequest,
     ) -> Pin<
         Box<
-            dyn Future<
-                    Output = Result<BundledAvatarRuntimeStreamReceiver, BundledAvatarRuntimeError>,
-                > + Send
+            dyn Future<Output = Result<BundledAppRuntimeStreamReceiver, BundledAppRuntimeError>>
+                + Send
                 + '_,
         >,
     > {
         Box::pin(crate::bundled_avatar::open_stream(self.channel(), request))
     }
 
-    fn invoke_bundled_avatar_client_stream(
+    fn invoke_bundled_app_client_stream(
         &self,
-        request: BundledAvatarRuntimeClientStreamRequest,
+        request: BundledAppRuntimeClientStreamRequest,
     ) -> Pin<
         Box<
-            dyn Future<Output = Result<BundledAvatarRuntimeResponse, BundledAvatarRuntimeError>>
+            dyn Future<Output = Result<BundledAppRuntimeResponse, BundledAppRuntimeError>>
                 + Send
                 + '_,
         >,
@@ -756,7 +755,8 @@ impl NimiDesktopControl for WindowsDesktopControl {
         &self,
         supervisor_run_id: [u8; 32],
     ) -> Result<(), NimiHostError> {
-        let untrusted = || NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false);
+        let untrusted =
+            || NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false);
         let processes = self.development_processes.lock().map_err(|_| untrusted())?;
         processes
             .get(&supervisor_run_id)
@@ -860,7 +860,11 @@ async fn rebind_supervised_development_processes(
             if discard_stale_supervised_development_rebind(&registry, run_id, process_id)? {
                 continue;
             }
-            return Err(if error.retryable() { unavailable() } else { untrusted() });
+            return Err(if error.retryable() {
+                unavailable()
+            } else {
+                untrusted()
+            });
         }
     }
     Ok(())
@@ -1173,10 +1177,14 @@ mod terminal_witness_tests {
 
     #[tokio::test]
     async fn renewal_and_stale_rebind_keep_real_exited_child_status_until_owner_cleanup() {
-        let executable = std::path::PathBuf::from(std::env::var_os("SystemRoot").unwrap()).join("System32/cmd.exe");
-        let root = std::env::temp_dir().join(format!("nimi-terminal-witness-{}", std::process::id()));
+        let executable = std::path::PathBuf::from(std::env::var_os("SystemRoot").unwrap())
+            .join("System32/cmd.exe");
+        let root =
+            std::env::temp_dir().join(format!("nimi-terminal-witness-{}", std::process::id()));
         std::fs::create_dir_all(&root).unwrap();
-        let profile = crate::host_profile::prepare(Some(crate::host_profile::test_profile_projection(&root))).unwrap();
+        let profile =
+            crate::host_profile::prepare(Some(crate::host_profile::test_profile_projection(&root)))
+                .unwrap();
         let args = vec!["/d".to_string(), "/c".to_string(), "exit 75".to_string()];
         let mut process = crate::windows_supervised_process::SupervisedDevelopmentProcess::create_runtime_authorized(&executable, &args, &root, &profile).unwrap();
         let pid = process.id();

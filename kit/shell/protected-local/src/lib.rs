@@ -2,7 +2,9 @@
 
 mod adapters;
 mod asset_reveal;
+mod bundled_app_profiles_generated;
 mod bundled_avatar;
+pub use bundled_app_profiles_generated::BundledApp;
 mod carrier;
 mod desktop_account;
 mod desktop_client_stream;
@@ -102,16 +104,25 @@ mod windows_peer_trust;
 #[cfg(target_os = "windows")]
 #[allow(unsafe_code)]
 mod windows_process_identity;
-#[cfg(any(
-    test,
-    all(target_os = "windows", not(feature = "windows-source-local-development"))
+#[cfg(all(
+    target_os = "windows",
+    not(feature = "windows-source-local-development")
 ))]
-mod windows_product_identity;
-#[cfg(all(target_os = "windows", not(feature = "windows-source-local-development")))]
 #[allow(unsafe_code)]
 mod windows_product_admission;
-#[cfg(all(target_os = "windows", not(feature = "windows-source-local-development")))]
-pub fn windows_product_update_host() -> Result<(String,String), ProtectedCarrierError> {
+#[cfg(any(
+    test,
+    all(
+        target_os = "windows",
+        not(feature = "windows-source-local-development")
+    )
+))]
+mod windows_product_identity;
+#[cfg(all(
+    target_os = "windows",
+    not(feature = "windows-source-local-development")
+))]
+pub fn windows_product_update_host() -> Result<(String, String), ProtectedCarrierError> {
     windows_product_admission::updater_host()
 }
 #[cfg(target_os = "windows")]
@@ -132,8 +143,8 @@ pub use adapters::{
 };
 pub use asset_reveal::reveal_local_app_asset_target;
 pub use bundled_avatar::{
-    BundledAvatarRuntimeClientStreamRequest, BundledAvatarRuntimeError,
-    BundledAvatarRuntimeRequest, BundledAvatarRuntimeResponse, BundledAvatarRuntimeStreamReceiver,
+    BundledAppRuntimeClientStreamRequest, BundledAppRuntimeError, BundledAppRuntimeRequest,
+    BundledAppRuntimeResponse, BundledAppRuntimeStreamReceiver,
 };
 pub use carrier::{
     DesktopControlFuture, LocalAppAIConfigLocalOptionsRequest, LocalAppAIConfigOverwriteRequest,
@@ -148,7 +159,6 @@ pub use carrier::{
     LocalAppAgentRealtimeAppendInputRequest, LocalAppAgentRealtimeOpenRequest,
     LocalAppAgentRealtimeOutputInterruptRequest, LocalAppAgentRealtimeSessionRequest,
     LocalAppAgentReference, LocalAppAgentUpdateAutonomyRequest,
-    LocalAppConversationFollowUpCancelRequest,
     LocalAppAgentUpdateConversationContextRequest, LocalAppAiRealtimeAppendInputRequest,
     LocalAppAiRealtimeOpenRequest, LocalAppAiRealtimeOutputInterruptRequest,
     LocalAppAiRealtimeOwnerControlRequest, LocalAppAiRealtimeSessionRequest,
@@ -161,13 +171,14 @@ pub use carrier::{
     LocalAppAvatarHostTargetResolveResult, LocalAppCanonicalAudioPreparation,
     LocalAppConversationArtifactReadRequest, LocalAppConversationArtifactReadResult,
     LocalAppConversationAttachmentUploadRequest, LocalAppConversationAttachmentUploadResult,
-    LocalAppConversationEvent, LocalAppConversationEventKind, LocalAppConversationInputPart,
+    LocalAppConversationEvent, LocalAppConversationEventKind,
+    LocalAppConversationFollowUpCancelRequest, LocalAppConversationInputPart,
     LocalAppConversationInterruptRequest, LocalAppConversationInterruptResult,
-    LocalAppConversationMessage, LocalAppConversationMessageRole, LocalAppConversationOpenRequest,
-    LocalAppConversationQuoteInput, LocalAppConversationQuote,
-    LocalAppConversationMessageReadRequest, LocalAppConversationMessageReadResult, LocalAppConversationMessageWindow,
-    LocalAppConversationOpenResult, LocalAppConversationSendRequest,
-    LocalAppConversationSendResult, LocalAppConversationSnapshot,
+    LocalAppConversationMessage, LocalAppConversationMessageReadRequest,
+    LocalAppConversationMessageReadResult, LocalAppConversationMessageRole,
+    LocalAppConversationMessageWindow, LocalAppConversationOpenRequest,
+    LocalAppConversationOpenResult, LocalAppConversationQuote, LocalAppConversationQuoteInput,
+    LocalAppConversationSendRequest, LocalAppConversationSendResult, LocalAppConversationSnapshot,
     LocalAppConversationSnapshotRequest, LocalAppConversationSubscribeRequest,
     LocalAppConversationSubscriptionReceiver, LocalAppConversationVoiceRenderRequest,
     LocalAppConversationVoiceRenderResult, LocalAppConversationVoiceTranscriptionRequest,
@@ -201,14 +212,13 @@ pub use carrier::{
     NimiLocalAppSession, NimiProtectedLocalHostCarrier,
 };
 pub use desktop_account::{
-    DeletedAccountOwner,
-    DesktopAccountActionRequest, DesktopAccountAuditDiagnostic, DesktopAccountBeginLoginRequest,
-    DesktopAccountBeginLoginResponse, DesktopAccountCompleteLoginRequest,
-    DesktopAccountMutationResponse, DesktopAccountProjection, DesktopAccountRealmUnaryRequest,
-    DesktopAccountRealmUnaryResponse, DesktopAccountSessionDeliveryKind,
-    DesktopAccountSessionEvent, DesktopAccountSessionEventReceiver,
-    DesktopAccountSessionEventsRequest, DesktopAccountSessionState, DesktopAccountSessionStatus,
-    DesktopAccountSessionStatusRequest,
+    DeletedAccountOwner, DesktopAccountActionRequest, DesktopAccountAuditDiagnostic,
+    DesktopAccountBeginLoginRequest, DesktopAccountBeginLoginResponse,
+    DesktopAccountCompleteLoginRequest, DesktopAccountMutationResponse, DesktopAccountProjection,
+    DesktopAccountRealmUnaryRequest, DesktopAccountRealmUnaryResponse,
+    DesktopAccountSessionDeliveryKind, DesktopAccountSessionEvent,
+    DesktopAccountSessionEventReceiver, DesktopAccountSessionEventsRequest,
+    DesktopAccountSessionState, DesktopAccountSessionStatus, DesktopAccountSessionStatusRequest,
 };
 pub use first_party_product::{
     DesktopAccountProductClientStreamRequest, DesktopAccountProductStreamRequest,

@@ -27,11 +27,11 @@ test('formal Home setup rejection reaches the SDK consumer through actual IPC an
     desktopAccountProductStreamOpen: unused,
     desktopFirstPartyProductStreamNext: unused,
     desktopFirstPartyProductStreamClose: unused,
-    desktopBundledAvatarUnary: unused,
-    desktopBundledAvatarClientStream: unused,
-    desktopBundledAvatarStreamOpen: unused,
-    desktopBundledAvatarStreamNext: unused,
-    desktopBundledAvatarStreamClose: unused,
+    desktopBundledAppUnary: unused,
+    desktopBundledAppClientStream: unused,
+    desktopBundledAppStreamOpen: unused,
+    desktopBundledAppStreamNext: unused,
+    desktopBundledAppStreamClose: unused,
     desktopAccountProductUnary: async ({ methodId, requestBytes }) => {
       if (methodId.endsWith('/OpenLocalAppSession')) return { status: 'ok', value: session };
       assert.equal(methodId, '/nimi.runtime.v1.RuntimeIntegrationService/StartIntegrationConnectionSetup');

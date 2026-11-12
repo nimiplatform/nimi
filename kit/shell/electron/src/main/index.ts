@@ -3,6 +3,7 @@ export * from './data-root-binding.js';
 export * from './local-asset-protocol.js';
 export * from './app-asset-protocol.js';
 export * from './bundled-avatar-asset-host.js';
+export { createNimiElectronBundledAppLocalHostOwner } from './formal-app-local-host.js';
 export * from './app-menu.js';
 export * from './app-chrome.js';
 export * from './app-exit-controller.js';

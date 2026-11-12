@@ -1,5 +1,11 @@
 {
   "title": "Apps",
+  "bundled": {
+    "zhiyu": "Zhiyu",
+    "zhiyuDescription": "Partners and conversations · Included with Nimi",
+    "openZhiyu": "Open Zhiyu",
+    "openFailed": "Could not open Zhiyu. Make sure Nimi is ready, then try again."
+  },
   "description": "Manage your installed apps and local development projects.",
   "collectionEyebrow": "App management",
   "inventoryTitle": "Connected apps",
@@ -97,8 +103,8 @@
     "description": "Connect a new local project or manage existing registrations in Developer Mode.",
     "action": "Open Developer Mode"
   },
-  "emptyConnectedTitle": "No apps connected yet",
-  "emptyConnectedDescription": "Once you register a local development project, it will appear here with its project root and App Access declaration.",
+  "emptyConnectedTitle": "No additional apps yet",
+  "emptyConnectedDescription": "Browse the catalog or import an app package. Developers can also connect a local project.",
   "card": {
     "local": "Local development",
     "projectRoot": "Project folder",

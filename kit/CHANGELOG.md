@@ -2,6 +2,10 @@
 
 # Changelog
 
+## Unreleased — Bundled Zhiyu Host (breaking native carrier, 0.23)
+
+Home can host bundled Zhiyu under its own formal App declaration and session. The main-only `createNimiElectronBundledAppLocalHostOwner` creates a bounded Avatar or Zhiyu client; it grants no Home account or machine controls. Native bundled calls now use `desktopBundledApp*` with the explicit canonical App identity instead of the Avatar-only exports. Update the complete Kit native package, Kit and Runtime together. Ordinary App renderer APIs are unchanged; source-development registrations remain separate from installed bundle identity.
+
 ## Unreleased — Android local private-use callbacks (additive, next minor)
 
 Adds the explicitly admitted `android-dev-scheme` carrier for local non-production Realm development. It shares PKCE, context lifetime, Home source consent and the direct Runtime client with the App Link carrier. SDK callback helpers match the entire registered destination, including private-use scheme; Kit's Android adapter requires the installed debug package/signature and declared callback. Production source admission and verified App Links remain unchanged. Update the complete SDK/Kit packages and official login surface together; this is not package publication or a new permission system.

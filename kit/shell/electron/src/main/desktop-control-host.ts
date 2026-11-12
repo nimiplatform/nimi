@@ -2,10 +2,7 @@ import { isIntegrationOwnerReasonMetadata } from './integration-owner-errors.js'
 import { resolveNimiElectronProtectedLocalBindingPackage } from './local-app-host.js';
 import { loadNimiElectronProtectedLocalPackage } from './protected-local-binding-loader.js';
 import type { RuntimeGrpcBridgeStream, RuntimeGrpcBridgeStreamHandlers } from './types.js';
-import {
-  isNimiElectronBundledAvatarServerStreamMethod,
-  isNimiElectronBundledAvatarUnaryMethod,
-} from './bundled-avatar-profile.generated.js';
+import { isNimiElectronBundledAppMethod, type NimiElectronBundledAppId } from './bundled-app-profiles.generated.js';
 import {
   isNimiElectronDesktopAccountProductMethod,
   isNimiElectronDesktopMachineProductMethod,
@@ -95,24 +92,27 @@ export type NimiElectronDesktopControlBinding = {
   }) => Promise<NativeJsonOutcome>;
   readonly desktopFirstPartyProductStreamNext: (input: { readonly streamId: string }) => Promise<NativeStreamNextOutcome>;
   readonly desktopFirstPartyProductStreamClose: (input: { readonly streamId: string }) => Promise<NativeJsonOutcome>;
-  readonly desktopBundledAvatarUnary: (input: {
+  readonly desktopBundledAppUnary: (input: {
+    readonly appId: NimiElectronBundledAppId;
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
     readonly requestId: string;
   }) => Promise<NativeBytesOutcome>;
-  readonly desktopBundledAvatarClientStream: (input: {
+  readonly desktopBundledAppClientStream: (input: {
+    readonly appId: NimiElectronBundledAppId;
     readonly methodId: string;
     readonly requestFrames: readonly Uint8Array[];
     readonly timeoutMs?: number;
   }) => Promise<NativeBytesOutcome>;
-  readonly desktopBundledAvatarStreamOpen: (input: {
+  readonly desktopBundledAppStreamOpen: (input: {
+    readonly appId: NimiElectronBundledAppId;
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
   }) => Promise<NativeJsonOutcome>;
-  readonly desktopBundledAvatarStreamNext: (input: { readonly streamId: string }) => Promise<NativeStreamNextOutcome>;
-  readonly desktopBundledAvatarStreamClose: (input: { readonly streamId: string }) => Promise<NativeJsonOutcome>;
+  readonly desktopBundledAppStreamNext: (input: { readonly streamId: string }) => Promise<NativeStreamNextOutcome>;
+  readonly desktopBundledAppStreamClose: (input: { readonly streamId: string }) => Promise<NativeJsonOutcome>;
 };
 
 /** Main-process-only lifetime of the actual protected native stream. */
@@ -138,14 +138,15 @@ export type NimiElectronDesktopControlHost = {
   readonly accountProductClientStream: (
     input: NimiElectronDesktopControlClientStreamInput,
   ) => Promise<Uint8Array>;
-  readonly bundledAvatarUnary: (input: NimiElectronDesktopControlUnaryInput) => Promise<Uint8Array>;
-  readonly bundledAvatarServerStream: (input: {
+  readonly bundledAppUnary: (input: NimiElectronDesktopControlUnaryInput & { readonly appId: NimiElectronBundledAppId }) => Promise<Uint8Array>;
+  readonly bundledAppServerStream: (input: {
+    readonly appId: NimiElectronBundledAppId;
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
   }) => NimiElectronDesktopControlStream;
-  readonly bundledAvatarClientStream: (
-    input: NimiElectronDesktopControlClientStreamInput,
+  readonly bundledAppClientStream: (
+    input: NimiElectronDesktopControlClientStreamInput & { readonly appId: NimiElectronBundledAppId },
   ) => Promise<Uint8Array>;
 };
 
@@ -207,27 +208,28 @@ class ElectronDesktopControlHost implements NimiElectronDesktopControlHost {
     return this.invokeNative(() => this.binding.desktopAccountProductClientStream(input));
   }
 
-  async bundledAvatarUnary(input: NimiElectronDesktopControlUnaryInput): Promise<Uint8Array> {
-    if (!isNimiElectronBundledAvatarUnaryMethod(input.methodId)) throw untrusted();
-    return this.invokeFirstPartyUnary('avatar', input, (nativeInput) => this.binding.desktopBundledAvatarUnary(nativeInput));
+  async bundledAppUnary(input: NimiElectronDesktopControlUnaryInput & { readonly appId: NimiElectronBundledAppId }): Promise<Uint8Array> {
+    if (!isNimiElectronBundledAppMethod(input.appId, input.methodId, 'unary')) throw untrusted();
+    return this.invokeFirstPartyUnary('bundled-app', input, (nativeInput) => this.binding.desktopBundledAppUnary({ ...nativeInput, appId: input.appId }));
   }
 
-  bundledAvatarServerStream(input: {
+  bundledAppServerStream(input: {
+    readonly appId: NimiElectronBundledAppId;
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
   }): NimiElectronDesktopControlStream {
-    if (!isNimiElectronBundledAvatarServerStreamMethod(input.methodId)) throw untrusted();
+    if (!isNimiElectronBundledAppMethod(input.appId, input.methodId, 'server_stream')) throw untrusted();
     return new ElectronBundledAvatarStream(this.binding, input);
   }
 
-  async bundledAvatarClientStream(
-    input: NimiElectronDesktopControlClientStreamInput,
+  async bundledAppClientStream(
+    input: NimiElectronDesktopControlClientStreamInput & { readonly appId: NimiElectronBundledAppId },
   ): Promise<Uint8Array> {
     validateClientStreamInput(input);
     if (input.methodId !== '/nimi.runtime.v1.RuntimeAppService/WriteLocalAppAsset'
-      || !isNimiElectronBundledAvatarServerStreamMethod(input.methodId)) throw untrusted();
-    return this.invokeNative(() => this.binding.desktopBundledAvatarClientStream(input));
+      || !isNimiElectronBundledAppMethod(input.appId, input.methodId, 'server_stream')) throw untrusted();
+    return this.invokeNative(() => this.binding.desktopBundledAppClientStream(input));
   }
 
   private async invokeNative(invoke: () => Promise<NativeBytesOutcome>): Promise<Uint8Array> {
@@ -256,7 +258,7 @@ class ElectronDesktopControlHost implements NimiElectronDesktopControlHost {
   }
 
   private async invokeFirstPartyUnary(
-    owner: 'machine' | 'account' | 'avatar',
+    owner: 'machine' | 'account' | 'bundled-app',
     input: NimiElectronDesktopControlUnaryInput,
     invoke: (nativeInput: NativeFirstPartyProductUnaryInput) => Promise<NativeBytesOutcome>,
   ): Promise<Uint8Array> {
@@ -321,23 +323,24 @@ class LazyElectronDesktopControlHost implements NimiElectronDesktopControlHost {
     return this.host.accountProductClientStream(input);
   }
 
-  bundledAvatarUnary(input: NimiElectronDesktopControlUnaryInput): Promise<Uint8Array> {
+  bundledAppUnary(input: NimiElectronDesktopControlUnaryInput & { readonly appId: NimiElectronBundledAppId }): Promise<Uint8Array> {
     this.host ??= new ElectronDesktopControlHost(loadPlatformBinding());
-    return this.host.bundledAvatarUnary(input);
+    return this.host.bundledAppUnary(input);
   }
 
-  bundledAvatarServerStream(input: {
+  bundledAppServerStream(input: {
+    readonly appId: NimiElectronBundledAppId;
     readonly methodId: string;
     readonly requestBytes: Uint8Array;
     readonly timeoutMs?: number;
   }): NimiElectronDesktopControlStream {
     this.host ??= new ElectronDesktopControlHost(loadPlatformBinding());
-    return this.host.bundledAvatarServerStream(input);
+    return this.host.bundledAppServerStream(input);
   }
 
-  bundledAvatarClientStream(input: NimiElectronDesktopControlClientStreamInput): Promise<Uint8Array> {
+  bundledAppClientStream(input: NimiElectronDesktopControlClientStreamInput & { readonly appId: NimiElectronBundledAppId }): Promise<Uint8Array> {
     this.host ??= new ElectronDesktopControlHost(loadPlatformBinding());
-    return this.host.bundledAvatarClientStream(input);
+    return this.host.bundledAppClientStream(input);
   }
 }
 
@@ -441,11 +444,11 @@ class ElectronFirstPartyProductStream extends ElectronProtectedProductStream {
 }
 
 class ElectronBundledAvatarStream extends ElectronProtectedProductStream {
-  constructor(binding: NimiElectronDesktopControlBinding, input: { readonly methodId: string; readonly requestBytes: Uint8Array; readonly timeoutMs?: number }) {
+  constructor(binding: NimiElectronDesktopControlBinding, input: { readonly appId: NimiElectronBundledAppId; readonly methodId: string; readonly requestBytes: Uint8Array; readonly timeoutMs?: number }) {
     super(
-      () => binding.desktopBundledAvatarStreamOpen(input),
-      streamId => binding.desktopBundledAvatarStreamNext({ streamId }),
-      streamId => binding.desktopBundledAvatarStreamClose({ streamId }),
+      () => binding.desktopBundledAppStreamOpen(input),
+      streamId => binding.desktopBundledAppStreamNext({ streamId }),
+      streamId => binding.desktopBundledAppStreamClose({ streamId }),
     );
   }
 }
@@ -490,11 +493,11 @@ function validateBinding(value: unknown): NimiElectronDesktopControlBinding {
     || typeof (value as Record<string, unknown>).desktopAccountProductStreamOpen !== 'function'
     || typeof (value as Record<string, unknown>).desktopFirstPartyProductStreamNext !== 'function'
     || typeof (value as Record<string, unknown>).desktopFirstPartyProductStreamClose !== 'function'
-    || typeof (value as Record<string, unknown>).desktopBundledAvatarUnary !== 'function'
-    || typeof (value as Record<string, unknown>).desktopBundledAvatarClientStream !== 'function'
-    || typeof (value as Record<string, unknown>).desktopBundledAvatarStreamOpen !== 'function'
-    || typeof (value as Record<string, unknown>).desktopBundledAvatarStreamNext !== 'function'
-    || typeof (value as Record<string, unknown>).desktopBundledAvatarStreamClose !== 'function') {
+    || typeof (value as Record<string, unknown>).desktopBundledAppUnary !== 'function'
+    || typeof (value as Record<string, unknown>).desktopBundledAppClientStream !== 'function'
+    || typeof (value as Record<string, unknown>).desktopBundledAppStreamOpen !== 'function'
+    || typeof (value as Record<string, unknown>).desktopBundledAppStreamNext !== 'function'
+    || typeof (value as Record<string, unknown>).desktopBundledAppStreamClose !== 'function') {
     throw untrusted();
   }
   return value as NimiElectronDesktopControlBinding;
@@ -578,7 +581,7 @@ function isBoundedReasonCode(value: string): boolean {
 let firstPartyUnaryRequestCounter = 0;
 
 function createFirstPartyUnaryInternalRequestId(
-  owner: 'machine' | 'account' | 'avatar',
+  owner: 'machine' | 'account' | 'bundled-app',
   callerRequestId: string | undefined,
 ): string {
   const admittedCallerRequestId = typeof callerRequestId === 'string' ? callerRequestId.trim() : '';
