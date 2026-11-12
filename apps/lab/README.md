@@ -142,7 +142,15 @@ Use Home's AI Capabilities workspace to download missing components, reuse compa
 
 For ordinary H3 editing, use Reference image file. For ControlNet, use Control image file, select a type and match the output canvas to the prepared map. There is no implicit control-map preprocessor. Strength defaults to 1 and accepts 0 through 2. Reset parameters when switching input modes; ControlNet rejects ordinary references and masks, while H3 Image rejects control maps, masks and negative prompts. Sol-H3-VAE is selected in the video VAE slot in Home, not as a separate Lab capability.
 
-The [English walkthrough](../../docs/start/use-nimi-lab.md) and [中文操作指南](../../docs/zh/start/use-nimi-lab.md) cover the UI journey. [Multimodal contracts and SDK examples](../../docs/runtime/multimodal.md) document source limits, typed inputs, explicit cancellation and retaining complete results. Native source-built SDK, Kit, Runtime and Lab must match. The new recipes are Windows amd64 NVIDIA only; Windows uses sd.cpp `master-1088-32d516c`, while macOS retains its independent 1050 package.
+The [English walkthrough](../../docs/start/use-nimi-lab.md) and [中文操作指南](../../docs/zh/start/use-nimi-lab.md) cover the UI journey. [Multimodal contracts and SDK examples](../../docs/runtime/multimodal.md) document source limits, typed inputs, explicit cancellation and retaining complete results. Native source-built SDK, Kit, Runtime and Lab must match. Windows and Apple Silicon use separately verified sd.cpp `master-1088-32d516c` archives. The official Mac build uses CPU for INT8 ConvRot operators. See the [Runtime acceptance matrix](../../runtime/acceptance/model-matrix.yaml) for exact model, mode and distribution results.
+
+For Apple Silicon source development, an explicitly supplied, registry-pinned Metal INT8 archive can be prepared through the same Home dependency flow. Stop the existing source Desktop/Runtime first, then run the guarded launcher from the repository root.
+
+```sh
+NIMI_DEV_SDCPP_METAL_ARCHIVE=/absolute/path/to/sd-master-1088-32d516c-metal-darwin-arm64.zip pnpm dev:desktop
+```
+
+Use Home to prepare the engine for a bound configuration, then list Lab registrations and resume the existing one. The source-development Runtime checks the selected archive against the exact SHA-256 in the managed package registry before extraction and promotion. Starting without the option selects the official archive. Installed Runtime builds use the official source.
 
 Real acceptance on 2026-11-11 used Windows RTX 5090, guarded Desktop startup and Desktop-supervised native Lab through its exact CDP target. The Runtime was the modified `270ced7e7` source snapshot, before the subsequent pull; documentation checks do not turn that record into a new run of later revisions. The [model acceptance matrix](../../runtime/acceptance/model-matrix.yaml) retains exact model identities, Job IDs and limitations.
 

@@ -14,7 +14,7 @@
 
 ## 本地图像与视频模型
 
-当前 Windows amd64 NVIDIA 引擎包为 sd.cpp `master-1088-32d516c`，由 `master-1050-58bb3c1` 更新而来。Home 会准备 Runtime 管理的指定引擎与依赖；安装任意系统 `sd-cli` 或手工替换 DLL 不会更新所选 Loadout。macOS arm64 仍使用独立准入的 `master-1050-58bb3c1` Metal 包。下列新增配方目前只在 Windows 实现，不能把 Windows 的实测结果套用到 macOS；Linux 也没有这些配方可用的已准入 NVIDIA 引擎包。
+Home 为 Windows amd64 NVIDIA 和 macOS 26.0 及以上的 Apple Silicon 分别准备由 Runtime 管理的 sd.cpp `master-1088-32d516c` 引擎包。已有权重可从 Home 导入，再逐个绑定模型槽位。官方 Mac 包使用 Metal 执行常规算子。构建时未启用 sd.cpp 的 Metal 扩展，INT8 ConvRot 会在 CPU 上执行。本机使用这个包执行 H3 Image 的 1024×1024 文生图时超时。原生开发环境可以显式选择经登记校验的本地引擎包，由 Home 准备。该包以 `SD_METAL=ON` 和 `SD_USE_UPSTREAM_GGML=OFF` 构建。具体入口见 [Lab 开发说明](https://github.com/nimiplatform/nimi/blob/main/apps/lab/README.md)。
 
 | 模型或组件 | 能力 | 组件与使用方式 |
 | --- | --- | --- |
@@ -30,6 +30,8 @@ H3 Image 可以复用已安装且兼容的 H3 编码器。HyperFlow 可以复用
 2026-11-11 的 Windows RTX 5090 开发环境实测使用 H3 Image INT8 ConvRot、固定版本的 BennyDaBall HyperFlow 合并 INT8 转换权重、RelayVSR/SeedVR2 INT8 ConvRot，以及 SDXL/ProMax F16。原生 Lab 已实际完成 H3 文生图和单参考图编辑、HyperFlow FL2VA 与搭配 Sol 的 Ref2VA、四种超分模型及 ControlNet Canny/Tile。HyperFlow 四步/八步配置、另外六种 ControlNet 类型、其他量化版本和安装版仍为 **NOT-VERIFIED**。这些结果只覆盖相应样例，不代表通用重建质量或音频质量评测。
 
 媒体限制及类型化字段见[多模态指南](/zh/runtime/multimodal)，首次操作可按 [Lab 步骤](/zh/start/use-nimi-lab#实测本地图像与视频模型)进行。使用这些源码新增能力需要配套构建的 SDK、Kit 和 Runtime；不能据此认定此前发布的包已经包含相同实现。
+
+在 Apple M4 Max 原生开发环境中，ControlNet Canny 和 Tile 均生成了 1024×1024 PNG。RelayVSR 2x 和 4x 均完成图像和视频超分，两条视频保留原片全部 22 帧时间戳和 AAC 包内容。显式选用 Metal INT8 开发包后，H3 Image 完成 1024×1024 文生图和单参考图编辑。HyperFlow 六步路径也完成了两条 256×256、5 帧视频，均包含 32 kHz 双声道 AAC。FL2VA 使用原版 H3 视频 VAE，Ref2VA 使用 Sol-H3-VAE。SeedVR2 3B 和 7B Sharp 完成了小图、短视频样例，仍属实验性支持。具体 Job、引擎包和限制见[验收矩阵](https://github.com/nimiplatform/nimi/blob/main/runtime/acceptance/model-matrix.yaml)。
 
 ## 状态指标与诊断排查
 

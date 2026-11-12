@@ -4,8 +4,8 @@
 # Descriptive prose is English; observed_output preserves original evidence text.
 
 format_version: 1
-maintained_on: 2026-11-11
-evidence_cutoff: 2026-11-11
+maintained_on: 2026-11-12
+evidence_cutoff: 2026-11-12
 purpose: Versioned engineering acceptance summary. Not an input to Runtime catalog loading, routing,
   admission, or product authority.
 scope:
@@ -115,6 +115,68 @@ environments:
           No guessed provider mapping was tested.
         - The previously confirmed absent OSS test Bucket and Qwen3.8 Omni workspace remain unavailable;
           no repeated request for those prerequisites was made.
+  macos_sdcpp_1088_development:
+    os: macOS
+    arch: arm64
+    os_version: 27.2.1
+    os_build: 26B131
+    hardware: Mac16,5 with Apple M4 Max and 128 GiB unified memory
+    distribution: development
+    observed_on: 2026-11-12
+    default_status: NOT-VERIFIED
+    source_revision: e45ea91019e5e513e05bd088b27d3d2472c18087 # pragma: allowlist secret -- public commit
+    runtime_revision: e45ea91019e5e513e05bd088b27d3d2472c18087 # pragma: allowlist secret -- public commit
+    runtime_modified: true
+    runtime_version: 0.0.0-dev, Go 1.26.10, darwin/arm64, cgo enabled
+    runtime_sha256_before_environment_repair: e67ada1b94b257857dbfba52759cb891bd4d45c5cd6adfb67067678460e4fa58 # pragma: allowlist secret -- observed executable digest
+    runtime_sha256_after_environment_repair: ce4a4f3a111ff73de258ec79a9782dd9046250872f632e37f4200447f9a40f05 # pragma: allowlist secret -- observed executable digest
+    home_version: 0.2.5-rc.6
+    lab_version: 0.1.0
+    electron_version: 45.0.0
+    consumer_packages: SDK 0.22.2 and Kit 0.22.1 from the same workspace revision
+    entry: Guarded dev:desktop and dev:lab, with the existing Lab registration resumed using the current
+      Desktop selector after each restart. Each renderer used its own reported loopback CDP endpoint.
+    engine: stable-diffusion.cpp master-1088-32d516c
+    engine_source_commit: 32d516c0197ed5ca31305b8575e14eb1451fad33 # pragma: allowlist secret -- public commit
+    engine_archive_sha256: b6588e81e788d9f2f24498831ba398d7523152e7ec280ff282f39c2009465b77 # pragma: allowlist secret -- public archive digest
+    engine_min_macos: "26.0"
+    engine_note: Home materialized the official archive. Its arm64 CLI, server and dylib declare macOS 26.0.
+      Patched GGML loads the INT8 files, and ordinary operators use Metal. The official build lacks the sd.cpp
+      Metal INT8 registration. Native samples captured CPU INT8 multiplication and Metal execution.
+    weights_note: All 17 copied files matched their fixed catalog SHA-256. No corresponding local payload was
+      present in the inspected model roots before import. The 17 originals were imported through Home's
+      local file chooser and selected independently. The H3 encoder was shared across image and video.
+    reason: These source-development results apply to the official archive and observed backend split.
+  macos_sdcpp_1088_metal_development:
+    os: macOS
+    arch: arm64
+    os_version: 27.2.1
+    os_build: 26B131
+    hardware: Mac16,5 with Apple M4 Max and 128 GiB unified memory
+    distribution: development
+    observed_on: 2026-11-12
+    default_status: NOT-VERIFIED
+    source_revision: e45ea91019e5e513e05bd088b27d3d2472c18087 # pragma: allowlist secret -- public commit
+    runtime_revision: e45ea91019e5e513e05bd088b27d3d2472c18087 # pragma: allowlist secret -- public commit
+    runtime_modified: true
+    runtime_version: 0.0.0-dev, Go 1.26.10, darwin/arm64, cgo enabled
+    runtime_sha256: eeda4f53d5efd7390bbbf37809d69409d675edbf784c2a117fd6f9128ac0f5e1 # pragma: allowlist secret -- observed executable digest
+    home_version: 0.2.5-rc.6
+    lab_version: 0.1.0
+    electron_version: 45.0.0
+    consumer_packages: SDK 0.22.2 and Kit 0.22.1 from the same workspace revision
+    engine: stable-diffusion.cpp master-1088-32d516c, Apple Silicon Metal INT8 source build
+    engine_source_commit: 32d516c0197ed5ca31305b8575e14eb1451fad33 # pragma: allowlist secret -- public commit
+    engine_archive_sha256: 3d7a24780f8193d3835849549b088b34a2de65f5ca0981540caf4a06900a42c9 # pragma: allowlist secret -- development archive digest
+    engine_min_macos: "26.0"
+    entry: Guarded dev:desktop with an explicitly selected registry-pinned local archive. Home prepared
+      the dependency through Runtime's hash-verified staging and promotion. Guarded dev:lab resumed
+      the existing registration with the refreshed Desktop selector.
+    weights_note: Reused the 17 Home-imported files from the official-archive campaign. All resolved
+      payload SHA-256 values matched the copied files and fixed catalog digests.
+    media_codec: Runtime-managed FFmpeg and ffprobe 9.0.2-martin-riedl-1789931890
+    reason: Exact source-development samples only. The local archive and installed distribution have
+      separate admission boundaries. The final Lab renderer includes the same-entry history preview fix.
   macos_installed:
     os: macOS
     arch: arm64
@@ -150,6 +212,13 @@ environments:
       - The selected data root and offline backups are retained. The supervised Lab uses rebuilt workspace
         packages; this does not establish a separately packaged Lab distribution or every signed Home consumer.
 evidence_sources:
+  macos_sdcpp_20261112:
+    availability: scenario-summary-in-repository
+    description: Physical Apple Silicon source development with Home preparation of the official and
+      explicitly selected development archives, and the existing Desktop-supervised native Lab.
+      Raw logs, media and diagnostics remain local.
+    period_start: 2026-11-12
+    period_end: 2026-11-12
   windows_sdcpp_20261111:
     availability: scenario-summary-in-repository
     description: Windows RTX 5090 source-development observations using guarded Desktop and supervised Lab,
@@ -201,6 +270,31 @@ evidence_sources:
     title: AI capability expansion historical acceptance details
     record_snapshot_on: 2026-10-02
 engineering_evidence:
+  - id: macos-20261112-sdcpp-official-metal-int8
+    status: FAIL
+    observed_on: 2026-11-12
+    environment: macos_sdcpp_1088_development
+    scope: Whether the official Darwin archive actually executes INT8 ConvRot on Apple Silicon Metal.
+    result: The upstream macOS CI omits SD_METAL, whose default is OFF. The official dylib has patched
+      CPU INT8 and ordinary Metal kernels, and lacks sd_ggml_register_metal_i8. Real H3 and RelayVSR
+      sampling reached sd_cpu::i8_execute. RelayVSR also reached ggml_metal_synchronize.
+    repair_candidate: The same source commit with GGML d803c238f67915fb825a9aa4df27b99356d51597 was built
+      for arm64 with macOS 26.0, SD_METAL=ON and SD_USE_UPSTREAM_GGML=OFF. It exported the Metal INT8
+      registration, reported INT8 TensorOps, and produced a 512x512 RelayVSR 2x PNG in a CLI diagnostic.
+    candidate_archive_sha256: 3d7a24780f8193d3835849549b088b34a2de65f5ca0981540caf4a06900a42c9 # pragma: allowlist secret -- local diagnostic archive digest
+    limitations:
+      - The CLI diagnostic established the replacement archive identity. Separate scenarios cover
+        the explicit source-development installation and supervised Lab execution.
+  - id: macos-20261112-sdcpp-runtime-adaptation
+    status: PASS
+    observed_on: 2026-11-12
+    environment: macos_sdcpp_1088_development
+    scope: Package identity, Mac source catalog projection, Runtime environment preparation and native video ABI.
+    result: The exact Home-managed package and Metal consumer were reused across capabilities. The
+      Darwin bridge loaded the pinned dylib and used the native aggregate result and destructor. Home
+      also materialized the explicit Metal INT8 development archive under its independent digest. C
+      header size and offset assertions passed for Darwin arm64. ControlNet and upscale setup needed
+      a fix in the Runtime environment dispatcher to use the existing Metal consumer.
   - id: windows-20261111-sdcpp-1050-to-1088
     status: PASS
     observed_on: 2026-11-11
@@ -6549,6 +6643,67 @@ capabilities:
       macos_development: SCENARIO-SPECIFIC
       macos_installed: SCENARIO-SPECIFIC
     scenarios:
+      - id: macos-20261112-minimax-h3-image-metal-text
+        route: local
+        models: [ MiniMax-H3-Image pruned INT8 ConvRot, MiniMax-H3 Qwen3-VL Q4_K_M, MiniMax-H3-Image VAE F16 ]
+        environment: macos_sdcpp_1088_metal_development
+        scenario: Native Lab 1024x1024 text generation on the explicitly prepared Metal INT8 archive.
+        result: { execution: PASS, quality: PASS }
+        summary: The six-step Euler discrete CFG 1 request returned a 1813973-byte PNG with a blue
+          ceramic mug beside a window. Native generation took 39.87 seconds. The live process stack
+          included sd_metal::execute inside MiniMax H3 computation.
+        observed_on: 2026-11-12
+        jobs: [ 01M7721A56JX6WK58JBK39EAZF ]
+        traces: [ 01M7721A56JX6WK58JBN9N0487 ]
+        evidence:
+          - { source: macos_sdcpp_20261112 }
+      - id: macos-20261112-minimax-h3-image-metal-reference-and-switch
+        route: local
+        models: [ MiniMax-H3-Image pruned INT8 ConvRot, MiniMax-H3 Qwen3-VL Q4_K_M, MiniMax-H3-Image VAE F16 ]
+        environment: macos_sdcpp_1088_metal_development
+        scenario: Ordinary one-reference edit at 1024x1024, then ControlNet Canny and a return
+          to H3 after resetting parameters for a separate 512x512 one-reference edit.
+        result: { execution: PASS, quality: PASS }
+        summary: Both PNGs changed the blue mug to warm orange and kept the mug shape, right
+          handle, window and framing. The H3 requests supplied no negative prompt, mask or
+          control image. The intervening Canny Job completed with a separate owned control
+          image and explicit strength 1. The reopened 512x512 history preview matched the
+          original PNG SHA-256, including when selecting the same entry after returning to draft.
+        observed_on: 2026-11-12
+        output_bytes: [ 1777783, 2491078, 438537 ]
+        jobs: [ 01M77280F5H688GJ75T1QXBHSH, 01M772NV5WCTCMXZFXEAWSVR4B, 01M7732V1FMR3HWMVPANZKH2QT ]
+        traces: [ 01M77280F5H688GJ75T3XKGYBZ, 01M772NV5WCTCMXZFXEBWRFR1G, 01M7732V1FMR3HWMVPARH5SKMJ ]
+        evidence:
+          - { source: macos_sdcpp_20261112 }
+      - id: macos-20261112-minimax-h3-image-1024
+        route: local
+        models: [ MiniMax-H3-Image pruned INT8 ConvRot, MiniMax-H3 Qwen3-VL Q4_K_M, MiniMax-H3-Image VAE F16 ]
+        environment: macos_sdcpp_1088_development
+        scenario: Desktop import and binding, then 1024x1024 text generation in Lab with Euler, discrete, six steps and CFG 1.
+        result: { execution: FAIL, quality: NOT-VERIFIED }
+        summary: The first Job timed out in step six against the 20-minute budget. A second attempt with
+          CPU parameter offload disabled also timed out. CPU INT8 execution was observed while the host used Metal.
+        observed_on: 2026-11-12
+        jobs: [ 01M76WZF5CYWGEAH97WMATWK0R ]
+        evidence:
+          - { source: macos_sdcpp_20261112 }
+      - id: macos-20261112-sdxl-controlnet-union
+        route: local
+        models: [ SDXL Base 1.0 F16, SDXL ControlNet Union ProMax F16 ]
+        environment: macos_sdcpp_1088_development
+        scenario: Native Lab used a prepared Canny map with strength 1 and a plain Tile control image with strength omitted.
+        result: { execution: PASS, quality: PASS }
+        summary: Two 1024x1024 PNGs used the same resident engine. Canny produced a golden-yellow mug
+          following the supplied silhouette and right handle. Tile retained the source blue mug, window,
+          table and framing. Lab restored both original Jobs and saved the decoded results.
+        observed_on: 2026-11-12
+        output_bytes: [ 2222925, 2108658 ]
+        jobs: [ 01M77086171KMNXG88WE962P6T, 01M770E5C6JZDJPBGG9Z44Z1BP ]
+        traces: [ 01M77086171KMNXG88WH725JFD, 01M770E5C6JZDJPBGG9ZQ33SEV ]
+        evidence:
+          - { source: macos_sdcpp_20261112 }
+        limitations:
+          - OpenPose, depth, scribble, normal, segment and repaint remain NOT-VERIFIED on this host.
       - id: windows-20261111-minimax-h3-image
         route: local
         models: [ MiniMax-H3-Image pruned INT8 ConvRot, MiniMax-H3 Qwen3-VL Q4_K_M, MiniMax-H3-Image VAE F16 ]
@@ -7323,6 +7478,58 @@ capabilities:
       macos_development: SCENARIO-SPECIFIC
       macos_installed: SCENARIO-SPECIFIC
     scenarios:
+      - id: macos-20261112-hyperflow-metal-fl2va-and-ref2va
+        route: local
+        models: [ HyperFlow H3 Flash FL2VA INT8 ConvRot, HyperFlow H3 Flash Ref2VA INT8 ConvRot,
+          MiniMax-H3 Qwen3-VL Q4_K_M, MiniMax-H3 video VAE F16, Sol-H3-VAE F16, MiniMax-H3 audio VAE F32 ]
+        environment: macos_sdcpp_1088_metal_development
+        scenario: FL2VA text with the original H3 video VAE and Ref2VA with one owned reference
+          and Sol-H3-VAE, each at 256x256, five frames, nominal 24 FPS and six-step Euler.
+        result: { execution: PASS, quality: PASS }
+        summary: Native logs identified the two transformers and the two VAE bindings. The engine
+          initialized Metal INT8 TensorOps. Both H.264 MP4s decoded all five frames and stereo
+          32 kHz AAC, and both played to the end in Lab. FL2VA showed a red boat on water.
+          Ref2VA retained the blue mug, handle and window. Native generation took 25.50 and
+          113.82 seconds respectively.
+        observed_on: 2026-11-12
+        output_bytes: [ 11835, 10614 ]
+        jobs: [ 01M7724EY06P612619GP00QCAS, 01M7729E4NH0YCBG0PND1FK4EV ]
+        traces: [ 01M7724EY06P612619GQXCT0VJ, 01M7729E4NH0YCBG0PNDV1YWSP ]
+        evidence:
+          - { source: macos_sdcpp_20261112 }
+        limitations:
+          - Four/eight-step schedules and listening quality remain NOT-VERIFIED.
+      - id: macos-20261112-hyperflow-fl2va-original-vae
+        route: local
+        models: [ HyperFlow H3 Flash FL2VA INT8 ConvRot, MiniMax-H3 video VAE F16, MiniMax-H3 audio VAE F32 ]
+        environment: macos_sdcpp_1088_development
+        scenario: FL2VA 256x256 text-to-video at 24 FPS and five frames with the original H3 video VAE.
+        result: { execution: FAIL, quality: NOT-VERIFIED }
+        summary: The first Lab Job loaded the intended FL2VA and original VAE, then timed out during native
+          six-step Euler sampling. Native cancellation ended the invocation and released the Metal backend.
+        observed_on: 2026-11-12
+        jobs: [ 01M76YY07ZZ2Q1SQ0ZAGR73GAT ]
+        traces: [ 01M76YY07ZZ2Q1SQ0ZAJ25QQEG ]
+        evidence:
+          - { source: macos_sdcpp_20261112 }
+      - id: macos-20261112-hyperflow-ref2va-sol
+        route: local
+        models: [ HyperFlow H3 Flash Ref2VA INT8 ConvRot, Sol-H3-VAE F16, MiniMax-H3 audio VAE F32 ]
+        environment: macos_sdcpp_1088_development
+        scenario: Ref2VA with one blue-mug reference and explicit Sol-H3-VAE binding, 256x256 at 24 FPS and five frames.
+        result: { execution: PASS, quality: PASS }
+        summary: The managed video wrapper loaded the Ref2VA transformer and Sol decoder and completed the
+          six-step path. Lab played the 10512-byte H.264 MP4 with five frames and stereo 32 kHz AAC.
+          The visible cup, handle and window matched the reference and the cup showed steam. Reopening
+          history after Desktop restart returned the same bytes.
+        observed_on: 2026-11-12
+        jobs: [ 01M76ZNXZ2XDWHXEJE1PPBZ0N8 ]
+        traces: [ 01M76ZNXZ2XDWHXEJE1Q02GZNE ]
+        evidence:
+          - { source: macos_sdcpp_20261112 }
+        limitations:
+          - Execution used mixed Metal and CPU with the official archive. Metal INT8, audio quality,
+            four/eight-step schedules, other frame grids and installed distributions remain NOT-VERIFIED.
       - id: windows-20261111-hyperflow-and-sol
         route: local
         models: [ HyperFlow H3 Flash FL2VA INT8 ConvRot, HyperFlow H3 Flash Ref2VA INT8 ConvRot,
@@ -9421,9 +9628,80 @@ capabilities:
     platform_status:
       windows_development: SCENARIO-SPECIFIC
       windows_installed: NOT-VERIFIED
-      macos_development: NOT-VERIFIED
+      macos_development: SCENARIO-SPECIFIC
       macos_installed: NOT-VERIFIED
     scenarios:
+      - id: macos-20261112-seedvr2-7b-metal-image-2x
+        route: local
+        models: [ SeedVR2 7B Sharp INT8 ConvRot, SeedVR2 VAE F16 ]
+        environment: macos_sdcpp_1088_metal_development
+        scenario: Lab image.upscale used a 128x128 version of the copied PNG, 2x and no seed.
+        result: { execution: PASS, quality: PASS }
+        summary: The 123637-byte PNG decoded at 256x256 and retained the blue mug and its framing.
+        observed_on: 2026-11-12
+        jobs: [ 01M772JJPFRFJACP69M26FCGQC ]
+        traces: [ 01M772JJPFRFJACP69M2PWB5XE ]
+        evidence:
+          - { source: macos_sdcpp_20261112 }
+        limitations:
+          - SeedVR2 remains experimental. This run used a small source and does not establish larger inputs.
+      - id: macos-20261112-seedvr2-3b-metal-image-4x
+        route: local
+        models: [ SeedVR2 3B INT8 ConvRot, SeedVR2 VAE F16 ]
+        environment: macos_sdcpp_1088_metal_development
+        scenario: Lab image.upscale used a 128x128 version of the copied PNG, 4x and no seed.
+        result: { execution: PASS, quality: PASS }
+        summary: The 443800-byte result decoded at 512x512. The live process stack captured the
+          SeedVR2 VAE on Metal. CPU parameter placement and the temporal chunk size of one were retained.
+        observed_on: 2026-11-12
+        jobs: [ 01M7729CTKM71N1K2HGKZ0TGC7 ]
+        traces: [ 01M7729CTKM71N1K2HGQADY98C ]
+        evidence:
+          - { source: macos_sdcpp_20261112 }
+        limitations:
+          - SeedVR2 remains experimental. This run used a small source and does not establish larger inputs.
+      - id: macos-20261112-relayvsr-metal-image
+        route: local
+        models: [ RelayVSR 2x INT8 ConvRot, RelayVSR 2x VAE F32, RelayVSR 4x INT8 ConvRot, RelayVSR 4x VAE F32 ]
+        environment: macos_sdcpp_1088_metal_development
+        scenario: Both scale-specific models and VAEs processed the copied 256x256 PNG with seed omitted.
+        result: { execution: PASS, quality: PASS }
+        summary: The 2x and 4x Jobs produced 512x512 and 1024x1024 PNGs that retained the blue
+          mug and window composition. The 4x output matched the earlier official-archive sample size.
+        observed_on: 2026-11-12
+        output_bytes: [ 487148, 1332469 ]
+        jobs: [ 01M7733WK4YTS9XG6GCDDKBX14, 01M7735M5AQYS3NMZVYMSEX9DP ]
+        traces: [ 01M7733WK4YTS9XG6GCFEAJVYA, 01M7735M5AQYS3NMZVYQK3351T ]
+        evidence:
+          - { source: macos_sdcpp_20261112 }
+      - id: macos-20261112-relayvsr-2x-image
+        route: local
+        models: [ RelayVSR 2x INT8 ConvRot, RelayVSR 2x VAE F32 ]
+        environment: macos_sdcpp_1088_development
+        scenario: Lab image.upscale with a 256x256 blue-mug PNG, 2x and seed omitted.
+        result: { execution: PASS, quality: PASS }
+        summary: The 487361-byte PNG decoded at 512x512 and retained the blue mug, window and table.
+        observed_on: 2026-11-12
+        jobs: [ 01M770AJDAQZY244DFX9R4E68R ]
+        traces: [ 01M770AJDAQZY244DFX9X8QG62 ]
+        evidence:
+          - { source: macos_sdcpp_20261112 }
+        limitations:
+          - The official package runs mixed Metal and CPU. Metal INT8 execution remains NOT-VERIFIED.
+      - id: macos-20261112-relayvsr-4x-image
+        route: local
+        models: [ RelayVSR 4x INT8 ConvRot, RelayVSR 4x VAE F32 ]
+        environment: macos_sdcpp_1088_development
+        scenario: Lab image.upscale with the 256x256 blue-mug PNG, 4x and seed omitted.
+        result: { execution: PASS, quality: PASS }
+        summary: The 1332469-byte PNG decoded at 1024x1024 and retained the blue mug, window and table.
+        observed_on: 2026-11-12
+        jobs: [ 01M77123QS7TRAX2AN265QQPAB ]
+        traces: [ 01M77123QS7TRAX2AN267F4FHC ]
+        evidence:
+          - { source: macos_sdcpp_20261112 }
+        limitations:
+          - Official archive with mixed Metal and CPU.
       - id: windows-20261111-sdcpp-image-upscale
         route: local
         models: [ RelayVSR 2x INT8 ConvRot, RelayVSR 4x INT8 ConvRot,
@@ -9453,9 +9731,90 @@ capabilities:
     platform_status:
       windows_development: SCENARIO-SPECIFIC
       windows_installed: NOT-VERIFIED
-      macos_development: NOT-VERIFIED
+      macos_development: SCENARIO-SPECIFIC
       macos_installed: NOT-VERIFIED
     scenarios:
+      - id: macos-20261112-relayvsr-metal-video
+        route: local
+        models: [ RelayVSR 2x INT8 ConvRot, RelayVSR 2x VAE F32, RelayVSR 4x INT8 ConvRot, RelayVSR 4x VAE F32 ]
+        environment: macos_sdcpp_1088_metal_development
+        scenario: Both scale-specific models and VAEs processed the copied 512x288 HyperFlow MP4 with seed omitted.
+        result: { execution: PASS, quality: PASS }
+        summary: Both MP4s played through at 1024x576 and 2048x1152. Each retained all 22
+          source PTS, the 29 exact stereo 32 kHz AAC packet payloads and the red boat and
+          water composition. Duration was 0.948731 seconds. A live 2x process sample captured
+          sd_metal::execute inside the RelayVSR WAN runner.
+        observed_on: 2026-11-12
+        output_bytes: [ 295435, 671937 ]
+        jobs: [ 01M7739K79QV56CFDBGJ6TTY83, 01M77307CM4AC3DMRATBGC24G1 ]
+        traces: [ 01M7739K79QV56CFDBGMPPMCCC, 01M77307CM4AC3DMRATDF8SXR1 ]
+        evidence:
+          - { source: macos_sdcpp_20261112 }
+      - id: macos-20261112-relayvsr-2x-video
+        route: local
+        models: [ RelayVSR 2x INT8 ConvRot, RelayVSR 2x VAE F32 ]
+        environment: macos_sdcpp_1088_development
+        scenario: Lab video.upscale with the copied HyperFlow 512x288 MP4, 2x and seed omitted.
+        result: { execution: PASS, quality: PASS }
+        summary: The 295435-byte MP4 played to the end in Lab. The 1024x576 H.264 stream retained
+          all 22 source PTS at nominal 24 FPS and the exact 29 stereo 32 kHz AAC packet payloads.
+          The duration changed from 0.948730 to 0.948731 seconds. The boat and water remained visible.
+        observed_on: 2026-11-12
+        jobs: [ 01M770FKBQ53TNFA2HXKRX7KDS ]
+        traces: [ 01M770FKBQ53TNFA2HXN6JVHTX ]
+        evidence:
+          - { source: macos_sdcpp_20261112 }
+        limitations:
+          - The live native sample observed Metal synchronization and CPU INT8 multiplication.
+      - id: macos-20261112-relayvsr-4x-video
+        route: local
+        models: [ RelayVSR 4x INT8 ConvRot, RelayVSR 4x VAE F32 ]
+        environment: macos_sdcpp_1088_development
+        scenario: Lab video.upscale with the copied HyperFlow 512x288 MP4, 4x and seed omitted.
+        result: { execution: PASS, quality: PASS }
+        summary: The 671937-byte MP4 played to the end in Lab. The 2048x1152 H.264 stream retained
+          all 22 source PTS at nominal 24 FPS and the exact 29 stereo 32 kHz AAC packet payloads.
+          Duration was 0.948731 seconds. The red boat and water remained visible.
+        observed_on: 2026-11-12
+        jobs: [ 01M770NTEQS1T9HERA7BS4RY7A ]
+        traces: [ 01M770NTEQS1T9HERA7C6WW5Z1 ]
+        evidence:
+          - { source: macos_sdcpp_20261112 }
+        limitations:
+          - The live native sample observed Metal synchronization and CPU INT8 multiplication.
+      - id: macos-20261112-seedvr2-metal-video-2x
+        route: local
+        models: [ SeedVR2 3B INT8 ConvRot, SeedVR2 7B Sharp INT8 ConvRot, SeedVR2 VAE F16 ]
+        environment: macos_sdcpp_1088_metal_development
+        scenario: Both 2x video Jobs used a 128x128 five-frame version of the generated Sol clip,
+          with no seed. The 3B Job followed the earlier cancellation and source-development package change.
+        result: { execution: PASS, quality: PASS }
+        summary: Both 256x256 H.264 MP4s played to completion. All five source PTS and eight AAC
+          packet payloads matched exactly. Live 3B and 7B samples captured the native VAE running
+          with Metal synchronization. The host placed parameters on CPU and used a temporal chunk of one.
+        observed_on: 2026-11-12
+        output_bytes: [ 24889, 25377 ]
+        jobs: [ 01M772H00F191ZZCVQ6WAPS7VR, 01M772KPS5MX6WHQA3ZS52QWA9 ]
+        traces: [ 01M772H00F191ZZCVQ6WQZPMDY, 01M772KPS5MX6WHQA3ZT0VGKD7 ]
+        evidence:
+          - { source: macos_sdcpp_20261112 }
+        limitations:
+          - The experimental results cover this small clip. The earlier 256x256 five-frame
+            official-archive retry was interrupted at the source Runtime restart while native VAE compute was active.
+      - id: macos-20261112-seedvr2-3b-cancel
+        route: local
+        models: [ SeedVR2 3B INT8 ConvRot, SeedVR2 VAE F16 ]
+        environment: macos_sdcpp_1088_development
+        scenario: Lab cancellation of video.upscale after observing native VAE computation.
+        result: { execution: PASS, quality: NOT-VERIFIED }
+        summary: The native stack entered SeedVR2 VAE compute and Metal synchronization. Lab showed
+          CANCELED, the sd-cli process exited, and Runtime removed the invocation directory.
+          The canceled Job published no completed artifact.
+        observed_on: 2026-11-12
+        jobs: [ 01M77179SFHQ67MQWB4CADYPTS ]
+        traces: [ 01M77179SFHQ67MQWB4FRGKC8A ]
+        evidence:
+          - { source: macos_sdcpp_20261112 }
       - id: windows-20261111-sdcpp-video-upscale
         route: local
         models: [ RelayVSR 2x INT8 ConvRot, RelayVSR 4x INT8 ConvRot,

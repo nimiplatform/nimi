@@ -22,7 +22,7 @@ When dispatching multimodal requests, use standard SDK client interfaces:
 
 Video timestamps must increase from a zero origin. Runtime checks the actual media, including timing and decoded output size; changing a filename or MIME label cannot make an unsupported file valid. Upscaling can reconstruct detail and is not a pixel-preserving resize.
 
-The current local implementation requires Windows amd64 with NVIDIA acceleration. RelayVSR 2x and 4x require their matching scale-specific transformer and VAE; SeedVR2 3B and 7B Sharp accept 2× or 4× and retain experimental status. Cloud execution is not implemented for these two capabilities. See [Local models](/runtime/local-models#local-image-and-video-models) for component and platform requirements.
+The verified Windows combinations use amd64 with NVIDIA acceleration. Check the Mac results and INT8 ConvRot limitation in Local models. RelayVSR 2x and 4x require their matching scale-specific transformer and VAE; SeedVR2 3B and 7B Sharp accept 2× or 4× and retain experimental status. Cloud execution is not implemented for these two capabilities. See [Local models](/runtime/local-models#local-image-and-video-models) for component and platform requirements.
 
 Use the matching source-built SDK, Kit and Runtime described in [development setup](/start/install); a matching package version string alone does not establish that these additions are present. The following functions receive the App's existing host-bound client. Save a unique `clientSubmissionId` in App storage before submission and persist the returned Job ID. If submission observation is interrupted, use `client.ai.scenarioJobs.lookupSubmission(clientSubmissionId)` to recover the original request; do not submit another Job automatically.
 
@@ -52,7 +52,7 @@ This example adopts the complete result into App-private storage without bufferi
 
 <<< ../../examples/sdk/09-media-jobs.ts#result
 
-These examples are typechecked against the workspace SDK; they are not standalone CLI programs. The real model observations used native, Desktop-supervised Lab on Windows RTX 5090 with sd.cpp `master-1088-32d516c` on 2026-11-11. This does not establish installed-distribution, macOS, remote Web/Android or arbitrary model/input acceptance.
+These examples are typechecked against the workspace SDK; they are not standalone CLI programs. The real model observations used native, Desktop-supervised Lab on Windows RTX 5090 with sd.cpp `master-1088-32d516c` on 2026-11-11. The linked Local Models guide records the separate Apple Silicon development results. Installed distributions, remote Web/Android and other inputs remain **NOT-VERIFIED**.
 
 ## Asynchronous Outcomes and Structured Data
 

@@ -22,7 +22,7 @@ Nimi 为图像与视频生成、超分辨率、语音、音乐及视觉推理提
 
 视频时间戳须从零开始递增。Runtime 会检查实际媒体、时间信息和解码后的输出大小；修改扩展名或 MIME 类型不能让不合规文件变得可用。超分模型会重建细节，不是逐像素保真的普通缩放。
 
-当前本地实现要求 Windows amd64 和 NVIDIA 加速。RelayVSR 2x、4x 分别需要对应倍率的主模型与 VAE；SeedVR2 3B、7B Sharp 可选 2× 或 4×，仍属实验性支持。这两项能力目前没有 Cloud 实现。组件和平台要求见[本地模型指南](/zh/runtime/local-models#本地图像与视频模型)。
+已通过的 Windows 组合使用 amd64 和 NVIDIA 加速。Apple Silicon 的实测结果与 INT8 ConvRot 限制见本地模型指南。RelayVSR 2x、4x 分别需要对应倍率的主模型与 VAE；SeedVR2 3B、7B Sharp 可选 2× 或 4×，仍属实验性支持。这两项能力目前没有 Cloud 实现。组件和平台要求见[本地模型指南](/zh/runtime/local-models#本地图像与视频模型)。
 
 请按[开发环境安装](/zh/start/install)使用配套的源码构建 SDK、Kit 和 Runtime；包版本号相同不代表一定包含这些新增实现。下面的函数使用 App 已有的宿主客户端。提交前，将唯一的 `clientSubmissionId` 写入 App 存储，收到结果后保存 Job ID。若提交过程中无法获知结果，调用 `client.ai.scenarioJobs.lookupSubmission(clientSubmissionId)` 查询原请求，不要自动再提交一个任务。
 
@@ -52,7 +52,7 @@ ControlNet 请求不能同时携带普通参考图或蒙版。其他图像实现
 
 <<< ../../../examples/sdk/09-media-jobs.ts#result
 
-这些示例会使用工作区 SDK 进行类型检查，不是可独立运行的命令行程序。模型实测来自 2026-11-11 的 Windows RTX 5090 开发环境，通过 Desktop 监管的原生 Lab 使用 sd.cpp `master-1088-32d516c` 执行；结果不自动适用于安装版、macOS、远程 Web/Android 或其他模型与输入组合。
+这些示例会使用工作区 SDK 进行类型检查，不是可独立运行的命令行程序。模型实测来自 2026-11-11 的 Windows RTX 5090 开发环境，通过 Desktop 监管的原生 Lab 使用 sd.cpp `master-1088-32d516c` 执行。Apple Silicon 开发环境的实测单独记录于本地模型指南。安装版、远程 Web/Android 和其他输入组合仍为 **NOT-VERIFIED**。
 
 ## 异步任务结果与结构化数据
 

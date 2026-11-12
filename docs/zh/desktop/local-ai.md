@@ -27,7 +27,7 @@
 
 使用 H3 Image、HyperFlow、ControlNet 或超分模型时，从 **AI 能力** 中的对应能力开始。选择模型配置，下载缺少的组件，并绑定本机已有的兼容文件。图像超分和视频超分分别设置默认模型；RelayVSR 的主模型与 VAE 必须对应 2×/4× 倍率，Sol-H3-VAE 则放在 H3 的视频 VAE 槽位。
 
-这些新增配方目前使用 Runtime 管理的 Windows amd64 NVIDIA sd.cpp 1088 引擎包。macOS 仍为 1050，不能依据 Windows 验收认定它也支持这些模型。SeedVR2 仍属实验性支持。下载前请查看[模型要求](/zh/runtime/local-models#本地图像与视频模型)，准备完成后按 [Lab 步骤](/zh/start/use-nimi-lab#实测本地图像与视频模型)确认实际出图。普通 App 使用已配置的能力，不自行安装推理引擎。
+Windows NVIDIA 和 Apple Silicon 各自使用 Runtime 管理的 sd.cpp 1088 引擎包。Apple Silicon 官方包会在 CPU 上执行 INT8 ConvRot 算子。选模型前请核对对应的 macOS 实测结果。SeedVR2 仍属实验性支持。下载前请查看[模型要求](/zh/runtime/local-models#本地图像与视频模型)，准备完成后按 [Lab 步骤](/zh/start/use-nimi-lab#实测本地图像与视频模型)确认实际出图。普通 App 使用已配置的能力，不自行安装推理引擎。
 
 ## 状态指标说明
 

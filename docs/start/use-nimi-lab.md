@@ -27,7 +27,7 @@ On Windows and macOS, Nimi Lab runs inside Desktop's supervised Electron develop
 
 ## Try Local Image and Video Models
 
-Use matching source-built Desktop/Runtime, SDK, Kit and Lab. The new sd.cpp recipes currently require a Windows amd64 NVIDIA host; the macOS package remains on 1050. Start native Lab through the supervised command above. Remote browser access and installed distributions have not been validated for these new model paths.
+Use matching source-built Desktop/Runtime, SDK, Kit and Lab. Start native Lab through the supervised command above. The official Apple Silicon sd.cpp 1088 package runs INT8 ConvRot operators on CPU. Check the exact development scenarios in [Local Models](/runtime/local-models#local-image-and-video-models). Installed distributions and remote browser execution remain **NOT-VERIFIED** for these model paths.
 
 1. In Home, open **AI Capabilities** and select **Image generation**, **Video generation**, **Image super-resolution** or **Video super-resolution**. Choose the model, download missing components and select compatible files already on disk. Wait for preparation to finish and make that configuration current. Downloaded weights alone do not establish readiness.
 2. In Lab, open the corresponding entry and configure its AI intent to **Local**. Check the model shown for the next run. Image and video upscaling have separate capability configurations; switching one does not select the other.

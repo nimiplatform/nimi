@@ -20,7 +20,7 @@ Nimi Lab 是面向开发者和能力测试者的实验工作台。你可以用�
 - **ControlNet**：在“控制图文件”中上传预处理好的图片，选择控制类型，让画布尺寸与控制图一致。Lab 不会自动生成边缘图或深度图；强度留空时为 1。切换回普通参考图编辑前，请先重置参数。
 - **HyperFlow 视频**：在视频生成中使用文本或受支持的参考图模式。Sol-H3-VAE 是在 Home 中选择的视频组件，没有独立的生成入口。
 
-这些新增本地模型目前要求 Windows NVIDIA 环境和配套的开发版本。超分输入最大 32 MiB；视频须为 H264，标称 24/25/30 FPS，不超过 10 秒和 300 帧，可带一路 AAC 音轨。输出每边最多 4096 像素，视频还受解码后总大小限制；从小图、短片开始更容易检查结果。当前 ControlNet 实测覆盖 Canny 和 Tile，其他类型仍未完成实机验收。macOS、安装版和远程浏览器的这些新模型路径尚未验收。
+请使用配套的原生开发版本。Windows NVIDIA 已验收下列本地模型的指定组合，Apple Silicon 开发环境已验收 ControlNet Canny 和 Tile、RelayVSR 2x 和 4x 图像与视频。显式选择 Metal INT8 开发包后，H3 Image 文生图与单参考图编辑、HyperFlow FL2VA 与 Ref2VA 配 Sol-H3-VAE、SeedVR2 3B 与 7B Sharp 的小图和短视频样例均已通过。SeedVR2 仍属实验性支持。超分输入最大 32 MiB；视频须为 H264，标称 24/25/30 FPS，不超过 10 秒和 300 帧，可带一路 AAC 音轨。输出每边最多 4096 像素，视频还受解码后总大小限制；从小图、短片开始更容易检查结果。当前 ControlNet 实测覆盖 Canny 和 Tile，其他类型仍未完成实机验收。这些模型在安装版和远程浏览器中仍未验收。
 
 只有任务完成并显示实际媒体结果才表示本次成功。可以从历史重新打开保存的结果；取消推理需使用任务的取消操作，停止观察或离开页面并不等于取消。参数、模型准备与限制的详细说明见[中文 Lab 指南](https://github.com/nimiplatform/nimi/blob/main/docs/zh/start/use-nimi-lab.md)。
 

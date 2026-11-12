@@ -27,7 +27,7 @@ Here is the typical workflow from importing a model to running your first local 
 
 For H3 Image, HyperFlow, ControlNet or upscaling, start from the corresponding capability in **AI Capabilities**. Select a model configuration, download its missing components and bind compatible existing files. Keep image and video super-resolution defaults separate. RelayVSR needs the transformer and VAE matching its 2×/4× multiplier; Sol-H3-VAE belongs in the H3 video VAE slot.
 
-These new recipes currently use the Runtime-managed sd.cpp 1088 Windows amd64 NVIDIA package. macOS retains 1050; the Windows acceptance does not establish support on that host. SeedVR2 remains experimental. See [model requirements](/runtime/local-models#local-image-and-video-models) before downloading and the [Lab walkthrough](/start/use-nimi-lab#try-local-image-and-video-models) to confirm an actual output after preparation. Ordinary Apps consume the configured capability; they do not install the engine themselves.
+The Runtime-managed Windows and Apple Silicon engine archives use sd.cpp 1088. The official Apple Silicon archive uses CPU for INT8 ConvRot operators. Check the exact macOS results before choosing a model. SeedVR2 remains experimental. See [model requirements](/runtime/local-models#local-image-and-video-models) before downloading and the [Lab walkthrough](/start/use-nimi-lab#try-local-image-and-video-models) to confirm an actual output after preparation. Ordinary Apps consume the configured capability; they do not install the engine themselves.
 
 ## Understanding Status Indicators
 
