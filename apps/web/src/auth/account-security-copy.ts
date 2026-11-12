@@ -16,6 +16,8 @@ export const accountSecurityCopy = {
     unknown: "We couldn’t confirm whether the deletion went through. If your previous request didn’t reach the server, retrying can permanently delete your account now.", checking: 'Checking…',
     invalidReceipt: 'The account deletion result does not match this request.', storageUnavailable: "This browser could not save the deletion request for a safe retry. No deletion request was submitted.",
     reverifyTitle: 'Verify your account', reverifyBody: 'Sign in with the account you intend to delete. You will review and confirm deletion afterward.',
+    verifyOwnershipBody: 'Sign in again with the same account to verify ownership, then return to the pending action.',
+    ownerChanged: 'You signed in with a different account. Review the current account before continuing.',
   },
   zh: {
     sessions: '登录会话', sessionsBody: "这里显示尚未撤销的登录会话，不代表设备当前在线。暂不提供可靠的设备名称和位置信息。",
@@ -34,5 +36,7 @@ export const accountSecurityCopy = {
     unknown: "暂时无法确认注销是否已完成。如果上次请求未能送达服务器，重试可能立即永久注销此账号。", checking: '正在核对…',
     invalidReceipt: '注销结果与当前请求不一致。', storageUnavailable: "此浏览器无法保存注销请求以供安全重试，因此尚未提交注销。",
     reverifyTitle: '验证账号', reverifyBody: '请登录你准备注销的账号。完成后仍需再次核对并明确确认注销。',
+    verifyOwnershipBody: '请重新登录同一账号以验证所有权，完成后继续当前操作。',
+    ownerChanged: '当前登录账号已变更，请核对账号后再继续。',
   },
 } as const;

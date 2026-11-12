@@ -35,6 +35,7 @@ export function AccountManagementPage() {
   const { t, i18n } = useTranslation();
   const c = useAccountCopy();
   const location = useLocation();
+  const verifyingDeletion = location.pathname === '/account/delete';
   const [user, setUser] = useState<Record<string, unknown> | null>(null);
   const [checking, setChecking] = useState(true);
   const [working, setWorking] = useState(false);
@@ -157,7 +158,7 @@ export function AccountManagementPage() {
       <>
         <div className="web-account-verification-heading">
           <h1>{t('AccountSecurity.reverifyTitle')}</h1>
-          <p>{t('AccountSecurity.reverifyBody')}</p>
+          <p>{t(verifyingDeletion ? 'AccountSecurity.reverifyBody' : 'AccountSecurity.verifyOwnershipBody')}</p>
           <button
             type="button"
             onClick={() => {
@@ -178,7 +179,7 @@ export function AccountManagementPage() {
               setUser(next);
               setVerifyingOwner(null);
               setError(
-                String(next.id) === verifyingOwner ? null : t('AccountSecurity.accountChanged'),
+                String(next.id) === verifyingOwner ? null : t(verifyingDeletion ? 'AccountSecurity.accountChanged' : 'AccountSecurity.ownerChanged'),
               );
             },
           }}
