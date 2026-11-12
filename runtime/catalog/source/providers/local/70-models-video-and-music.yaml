@@ -80,6 +80,17 @@ models:
           accelerator: cuda
           min_ram_bytes: 34359738368
           min_vram_bytes: 25769803776
+      - variant_id: local.video.hyperflow-h3-flash-fl2va.int8-convrot.metal
+        quant: INT8 ConvRot
+        entry: minimax_h3_fl2va_hyperflow_flash_int8_convrot.safetensors
+        files: [minimax_h3_fl2va_hyperflow_flash_int8_convrot.safetensors]
+        hashes:
+          minimax_h3_fl2va_hyperflow_flash_int8_convrot.safetensors: "sha256:6fcd9b13b7c3bf33e03bb49b10b02a7a60f5051ce8837e583be1452ba7289274"
+        total_size_bytes: 15894225896
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 25769803776
     fitness:
       param_count: 13719355040
       context_length: 0
@@ -120,6 +131,17 @@ models:
         total_size_bytes: 16324655176
         host_requirement:
           accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 25769803776
+      - variant_id: local.video.hyperflow-h3-flash-ref2va.int8-convrot.metal
+        quant: INT8 ConvRot
+        entry: minimax_h3_ref2va_hyperflow_flash_int8_convrot.safetensors
+        files: [minimax_h3_ref2va_hyperflow_flash_int8_convrot.safetensors]
+        hashes:
+          minimax_h3_ref2va_hyperflow_flash_int8_convrot.safetensors: "sha256:3a60ba89db6c5b84a792b0a0bd911bf0126e5ff9dce99c6727ff61e961210b7e"
+        total_size_bytes: 16324655176
+        host_requirement:
+          accelerator: metal
           min_ram_bytes: 34359738368
           min_vram_bytes: 25769803776
     fitness:
@@ -242,6 +264,17 @@ models:
         total_size_bytes: 18218065024
         host_requirement:
           accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 17179869184
+      - variant_id: local.video-encoder.minimax-h3-qwen3-vl-32b.q4-k-m.metal
+        quant: Q4_K_M
+        entry: qwen3vl_32b_minimax_h3-Q4_K_M.gguf
+        files: [qwen3vl_32b_minimax_h3-Q4_K_M.gguf]
+        hashes:
+          qwen3vl_32b_minimax_h3-Q4_K_M.gguf: "sha256:11e6efe70a57ce7f4838c47bdbd1a1c4b8ce10e2b7747f1b065990b70f4b05fc"
+        total_size_bytes: 18218065024
+        host_requirement:
+          accelerator: metal
           min_ram_bytes: 34359738368
           min_vram_bytes: 17179869184
     fitness:

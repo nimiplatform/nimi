@@ -417,7 +417,25 @@ func installManagedImageBackendFromDirectArchive(ctx context.Context, backendsPa
 		archiveName = "payload.zip"
 	}
 	archivePath := filepath.Join(tmpDir, archiveName)
-	archiveHash, err := downloadURLToFileWithProgress(ctx, strings.TrimSpace(spec.ArchiveURL), archivePath, progress)
+	var archiveHash string
+	if spec.DevelopmentArchive != "" {
+		archivePath = filepath.Join(tmpDir, "source-development.zip")
+		if info, statErr := os.Stat(spec.DevelopmentArchive); statErr != nil || !info.Mode().IsRegular() {
+			return fmt.Errorf("source-development managed image archive is unavailable: %s", spec.DevelopmentArchive)
+		}
+		if err := ctx.Err(); err != nil {
+			return err
+		}
+		if err := copyFile(spec.DevelopmentArchive, archivePath); err != nil {
+			return fmt.Errorf("stage source-development managed image archive: %w", err)
+		}
+		archiveHash, err = sha256File(archivePath)
+		if err == nil {
+			err = ctx.Err()
+		}
+	} else {
+		archiveHash, err = downloadURLToFileWithProgress(ctx, strings.TrimSpace(spec.ArchiveURL), archivePath, progress)
+	}
 	if err != nil {
 		return fmt.Errorf("install managed image backend %s: %w", backendName, err)
 	}

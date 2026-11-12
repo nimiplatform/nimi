@@ -4896,6 +4896,16 @@ models:
         total_size_bytes: 2513342408
         host_requirement:
           accelerator: cuda
+      - variant_id: local.controlnet.sdxl-union-promax.f16.metal
+        quant: F16
+        entry: diffusion_pytorch_model_promax.safetensors
+        files:
+          - diffusion_pytorch_model_promax.safetensors
+        hashes:
+          diffusion_pytorch_model_promax.safetensors: sha256:9fae2e50cb431bfcbe05822b59ec2228df545ef27f711dea8949e9f4ed9f7cdc
+        total_size_bytes: 2513342408
+        host_requirement:
+          accelerator: metal
   - model_id: asset-video-vae-wan22-ti2v
     provider: local
     model_type: vae
@@ -5506,6 +5516,16 @@ models:
         total_size_bytes: 1168505312
         host_requirement:
           accelerator: cuda
+      - variant_id: local.image-vae.minimax-h3-image.f16.metal
+        quant: F16
+        entry: vae/minimax_h3_image_vae_fp16.safetensors
+        files:
+          - vae/minimax_h3_image_vae_fp16.safetensors
+        hashes:
+          vae/minimax_h3_image_vae_fp16.safetensors: sha256:d80e9c2e5cfc9844869961ff5a58c9a9e52182df6bfb30b26018dd7f348721af
+        total_size_bytes: 1168505312
+        host_requirement:
+          accelerator: metal
   - model_id: asset-video-vae-sol-h3
     provider: local
     model_type: vae
@@ -5541,6 +5561,18 @@ models:
         total_size_bytes: 3596335728
         host_requirement:
           accelerator: cuda
+          min_ram_bytes: 17179869184
+          min_vram_bytes: 8589934592
+      - variant_id: local.video-vae.sol-h3.f16.metal
+        quant: F16
+        entry: vae/minimax_h3_sol_vae_fp16.safetensors
+        files:
+          - vae/minimax_h3_sol_vae_fp16.safetensors
+        hashes:
+          vae/minimax_h3_sol_vae_fp16.safetensors: sha256:61eaab3d7ca1659f20bce4d02bbc5bd5e5af608c73328d30cda96c8dc4d033e0
+        total_size_bytes: 3596335728
+        host_requirement:
+          accelerator: metal
           min_ram_bytes: 17179869184
           min_vram_bytes: 8589934592
   - model_id: asset-video-vae-minimax-h3
@@ -5580,6 +5612,18 @@ models:
           accelerator: cuda
           min_ram_bytes: 17179869184
           min_vram_bytes: 8589934592
+      - variant_id: local.video-vae.minimax-h3.f16.metal
+        quant: F16
+        entry: vae/minimax_h3_video_vae_fp16.safetensors
+        files:
+          - vae/minimax_h3_video_vae_fp16.safetensors
+        hashes:
+          vae/minimax_h3_video_vae_fp16.safetensors: sha256:7c1f131492e7eddacaac9069a61b81bdd39de5cc96561e677c5eab1cdce5e522
+        total_size_bytes: 5207808496
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 17179869184
+          min_vram_bytes: 8589934592
   - model_id: asset-audio-vae-minimax-h3
     provider: local
     model_type: vae
@@ -5615,6 +5659,18 @@ models:
         total_size_bytes: 605254808
         host_requirement:
           accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 4294967296
+      - variant_id: local.audio-vae.minimax-h3.f32.metal
+        quant: F32
+        entry: vae/minimax_h3_audio_vae_fp32.safetensors
+        files:
+          - vae/minimax_h3_audio_vae_fp32.safetensors
+        hashes:
+          vae/minimax_h3_audio_vae_fp32.safetensors: sha256:8e505d95dd1561d47abd43d4238fd40d9bb1ae9e147ed0a4cba778d76ae4db48
+        total_size_bytes: 605254808
+        host_requirement:
+          accelerator: metal
           min_ram_bytes: 8589934592
           min_vram_bytes: 4294967296
   - model_id: gemma-4-e2b-it-mmproj-local
@@ -7064,6 +7120,18 @@ models:
           accelerator: cuda
           min_ram_bytes: 17179869184
           min_vram_bytes: 8589934592
+      - variant_id: local.image.sdxl-base-1.0.f16.metal
+        quant: F16
+        entry: sd_xl_base_1.0.safetensors
+        files:
+          - sd_xl_base_1.0.safetensors
+        hashes:
+          sd_xl_base_1.0.safetensors: sha256:31e35c80fc4829d14f90153f4c74cd59c90b779f6afe05a74cd6120b893f7e5b
+        total_size_bytes: 6938078334
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 17179869184
+          min_vram_bytes: 8589934592
     fitness:
       param_count: 3500000000
       context_length: 0
@@ -7121,6 +7189,18 @@ models:
         total_size_bytes: 20979314802
         host_requirement:
           accelerator: cuda
+          min_ram_bytes: 68719476736
+          min_vram_bytes: 25769803776
+      - variant_id: local.image.minimax-h3-image.pruned-int8-convrot.metal
+        quant: INT8 ConvRot
+        entry: diffusion_models/minimax_h3_image_pruned_int8_convrot.safetensors
+        files:
+          - diffusion_models/minimax_h3_image_pruned_int8_convrot.safetensors
+        hashes:
+          diffusion_models/minimax_h3_image_pruned_int8_convrot.safetensors: sha256:83eb140f1ff95c068f8a6886e6d3f3d0d4ab2e07bb2fe6d2ef992a51146ee622
+        total_size_bytes: 20979314802
+        host_requirement:
+          accelerator: metal
           min_ram_bytes: 68719476736
           min_vram_bytes: 25769803776
     fitness:
@@ -7801,6 +7881,16 @@ models:
         total_size_bytes: 5163295248
         host_requirement:
           accelerator: cuda
+      - variant_id: local.upscale.relayvsr-2x.metal
+        quant: INT8 ConvRot
+        entry: diffusion_models/relayvsr_x2_lightx2v_int8_convrot.safetensors
+        files:
+          - diffusion_models/relayvsr_x2_lightx2v_int8_convrot.safetensors
+        hashes:
+          diffusion_models/relayvsr_x2_lightx2v_int8_convrot.safetensors: sha256:240e75e0c17cf2845d559b25254a230ff7458f81449d7a8c5e7e3fb8275c7b3c
+        total_size_bytes: 5163295248
+        host_requirement:
+          accelerator: metal
     fitness:
       param_count: 5000000000
       context_length: 0
@@ -7842,6 +7932,16 @@ models:
         total_size_bytes: 5164179952
         host_requirement:
           accelerator: cuda
+      - variant_id: local.upscale.relayvsr-4x.metal
+        quant: INT8 ConvRot
+        entry: diffusion_models/relayvsr_x4_int8_convrot.safetensors
+        files:
+          - diffusion_models/relayvsr_x4_int8_convrot.safetensors
+        hashes:
+          diffusion_models/relayvsr_x4_int8_convrot.safetensors: sha256:21303b3c5f9ab4e1fd3fe00df5dd2e0b343f0cf2e3d269e03a9872000a313a2e
+        total_size_bytes: 5164179952
+        host_requirement:
+          accelerator: metal
     fitness:
       param_count: 5000000000
       context_length: 0
@@ -7883,6 +7983,16 @@ models:
         total_size_bytes: 3458259704
         host_requirement:
           accelerator: cuda
+      - variant_id: local.upscale.seedvr2-3b.metal
+        quant: INT8 ConvRot
+        entry: diffusion_models/seedvr2_3b_int8_convrot.safetensors
+        files:
+          - diffusion_models/seedvr2_3b_int8_convrot.safetensors
+        hashes:
+          diffusion_models/seedvr2_3b_int8_convrot.safetensors: sha256:c3dec8bcc5916843a8a858572970597462e1f2dc598d6dfd818f6cd40f53a157
+        total_size_bytes: 3458259704
+        host_requirement:
+          accelerator: metal
     fitness:
       param_count: 3000000000
       context_length: 0
@@ -7924,6 +8034,16 @@ models:
         total_size_bytes: 8334897976
         host_requirement:
           accelerator: cuda
+      - variant_id: local.upscale.seedvr2-7b-sharp.metal
+        quant: INT8 ConvRot
+        entry: diffusion_models/seedvr2_7b_sharp_int8_convrot.safetensors
+        files:
+          - diffusion_models/seedvr2_7b_sharp_int8_convrot.safetensors
+        hashes:
+          diffusion_models/seedvr2_7b_sharp_int8_convrot.safetensors: sha256:db48be2f1cc7e36b01a2aa529810f5d9c6a971edd29be225cf1b0eb18d51c366
+        total_size_bytes: 8334897976
+        host_requirement:
+          accelerator: metal
     fitness:
       param_count: 7000000000
       context_length: 0
@@ -7962,6 +8082,16 @@ models:
         total_size_bytes: 127759464
         host_requirement:
           accelerator: cuda
+      - variant_id: local.upscale.asset-relayvsr-2x-vae.metal
+        quant: F32
+        entry: vae/relayvsr_flash_vae_x2_fp32.safetensors
+        files:
+          - vae/relayvsr_flash_vae_x2_fp32.safetensors
+        hashes:
+          vae/relayvsr_flash_vae_x2_fp32.safetensors: sha256:b5bb0339acb5b52545911ea29a51b4c5b805776a779222b5a14591571f42e21c
+        total_size_bytes: 127759464
+        host_requirement:
+          accelerator: metal
   - model_id: asset-relayvsr-4x-vae-local
     provider: local
     model_type: vae
@@ -7997,6 +8127,16 @@ models:
         total_size_bytes: 127759784
         host_requirement:
           accelerator: cuda
+      - variant_id: local.upscale.asset-relayvsr-4x-vae.metal
+        quant: F32
+        entry: vae/relayvsr_flash_vae_x4_fp32.safetensors
+        files:
+          - vae/relayvsr_flash_vae_x4_fp32.safetensors
+        hashes:
+          vae/relayvsr_flash_vae_x4_fp32.safetensors: sha256:7b8b8c99275fd5c4501b0589cc7b4c4506456a5df83160ef4e207e147b30f714
+        total_size_bytes: 127759784
+        host_requirement:
+          accelerator: metal
   - model_id: asset-seedvr2-vae-local
     provider: local
     model_type: vae
@@ -8032,6 +8172,16 @@ models:
         total_size_bytes: 501324814
         host_requirement:
           accelerator: cuda
+      - variant_id: local.upscale.asset-seedvr2-vae.metal
+        quant: F16
+        entry: vae/seedvr2_ema_vae_fp16.safetensors
+        files:
+          - vae/seedvr2_ema_vae_fp16.safetensors
+        hashes:
+          vae/seedvr2_ema_vae_fp16.safetensors: sha256:20678548f420d98d26f11442d3528f8b8c94e57ee046ef93dbb7633da8612ca1
+        total_size_bytes: 501324814
+        host_requirement:
+          accelerator: metal
   - model_id: wan2.2-ti2v-5b-local
     provider: local
     model_type: video
@@ -8164,6 +8314,18 @@ models:
           accelerator: cuda
           min_ram_bytes: 34359738368
           min_vram_bytes: 25769803776
+      - variant_id: local.video.hyperflow-h3-flash-fl2va.int8-convrot.metal
+        quant: INT8 ConvRot
+        entry: minimax_h3_fl2va_hyperflow_flash_int8_convrot.safetensors
+        files:
+          - minimax_h3_fl2va_hyperflow_flash_int8_convrot.safetensors
+        hashes:
+          minimax_h3_fl2va_hyperflow_flash_int8_convrot.safetensors: sha256:6fcd9b13b7c3bf33e03bb49b10b02a7a60f5051ce8837e583be1452ba7289274
+        total_size_bytes: 15894225896
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 25769803776
     fitness:
       param_count: 13719355040
       context_length: 0
@@ -8226,6 +8388,18 @@ models:
         total_size_bytes: 16324655176
         host_requirement:
           accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 25769803776
+      - variant_id: local.video.hyperflow-h3-flash-ref2va.int8-convrot.metal
+        quant: INT8 ConvRot
+        entry: minimax_h3_ref2va_hyperflow_flash_int8_convrot.safetensors
+        files:
+          - minimax_h3_ref2va_hyperflow_flash_int8_convrot.safetensors
+        hashes:
+          minimax_h3_ref2va_hyperflow_flash_int8_convrot.safetensors: sha256:3a60ba89db6c5b84a792b0a0bd911bf0126e5ff9dce99c6727ff61e961210b7e
+        total_size_bytes: 16324655176
+        host_requirement:
+          accelerator: metal
           min_ram_bytes: 34359738368
           min_vram_bytes: 25769803776
     fitness:
@@ -8428,6 +8602,18 @@ models:
         total_size_bytes: 18218065024
         host_requirement:
           accelerator: cuda
+          min_ram_bytes: 34359738368
+          min_vram_bytes: 17179869184
+      - variant_id: local.video-encoder.minimax-h3-qwen3-vl-32b.q4-k-m.metal
+        quant: Q4_K_M
+        entry: qwen3vl_32b_minimax_h3-Q4_K_M.gguf
+        files:
+          - qwen3vl_32b_minimax_h3-Q4_K_M.gguf
+        hashes:
+          qwen3vl_32b_minimax_h3-Q4_K_M.gguf: sha256:11e6efe70a57ce7f4838c47bdbd1a1c4b8ce10e2b7747f1b065990b70f4b05fc
+        total_size_bytes: 18218065024
+        host_requirement:
+          accelerator: metal
           min_ram_bytes: 34359738368
           min_vram_bytes: 17179869184
     fitness:
@@ -11435,6 +11621,7 @@ loadout_recipes:
         display_label: Super-resolution model
         recommended_variant_ids:
           - local.upscale.relayvsr-2x.cuda
+          - local.upscale.relayvsr-2x.metal
         recommended_content_ids:
           - sha256:240e75e0c17cf2845d559b25254a230ff7458f81449d7a8c5e7e3fb8275c7b3c
         model_contract:
@@ -11444,6 +11631,7 @@ loadout_recipes:
         display_label: Super-resolution VAE
         recommended_variant_ids:
           - local.upscale.asset-relayvsr-2x-vae.cuda
+          - local.upscale.asset-relayvsr-2x-vae.metal
         recommended_content_ids:
           - sha256:b5bb0339acb5b52545911ea29a51b4c5b805776a779222b5a14591571f42e21c
         model_contract:
@@ -11463,6 +11651,7 @@ loadout_recipes:
         display_label: Super-resolution model
         recommended_variant_ids:
           - local.upscale.relayvsr-2x.cuda
+          - local.upscale.relayvsr-2x.metal
         recommended_content_ids:
           - sha256:240e75e0c17cf2845d559b25254a230ff7458f81449d7a8c5e7e3fb8275c7b3c
         model_contract:
@@ -11472,6 +11661,7 @@ loadout_recipes:
         display_label: Super-resolution VAE
         recommended_variant_ids:
           - local.upscale.asset-relayvsr-2x-vae.cuda
+          - local.upscale.asset-relayvsr-2x-vae.metal
         recommended_content_ids:
           - sha256:b5bb0339acb5b52545911ea29a51b4c5b805776a779222b5a14591571f42e21c
         model_contract:
@@ -11491,6 +11681,7 @@ loadout_recipes:
         display_label: Super-resolution model
         recommended_variant_ids:
           - local.upscale.relayvsr-4x.cuda
+          - local.upscale.relayvsr-4x.metal
         recommended_content_ids:
           - sha256:21303b3c5f9ab4e1fd3fe00df5dd2e0b343f0cf2e3d269e03a9872000a313a2e
         model_contract:
@@ -11500,6 +11691,7 @@ loadout_recipes:
         display_label: Super-resolution VAE
         recommended_variant_ids:
           - local.upscale.asset-relayvsr-4x-vae.cuda
+          - local.upscale.asset-relayvsr-4x-vae.metal
         recommended_content_ids:
           - sha256:7b8b8c99275fd5c4501b0589cc7b4c4506456a5df83160ef4e207e147b30f714
         model_contract:
@@ -11519,6 +11711,7 @@ loadout_recipes:
         display_label: Super-resolution model
         recommended_variant_ids:
           - local.upscale.relayvsr-4x.cuda
+          - local.upscale.relayvsr-4x.metal
         recommended_content_ids:
           - sha256:21303b3c5f9ab4e1fd3fe00df5dd2e0b343f0cf2e3d269e03a9872000a313a2e
         model_contract:
@@ -11528,6 +11721,7 @@ loadout_recipes:
         display_label: Super-resolution VAE
         recommended_variant_ids:
           - local.upscale.asset-relayvsr-4x-vae.cuda
+          - local.upscale.asset-relayvsr-4x-vae.metal
         recommended_content_ids:
           - sha256:7b8b8c99275fd5c4501b0589cc7b4c4506456a5df83160ef4e207e147b30f714
         model_contract:
@@ -11547,6 +11741,7 @@ loadout_recipes:
         display_label: Super-resolution model
         recommended_variant_ids:
           - local.upscale.seedvr2-3b.cuda
+          - local.upscale.seedvr2-3b.metal
         recommended_content_ids:
           - sha256:c3dec8bcc5916843a8a858572970597462e1f2dc598d6dfd818f6cd40f53a157
         model_contract:
@@ -11556,6 +11751,7 @@ loadout_recipes:
         display_label: Super-resolution VAE
         recommended_variant_ids:
           - local.upscale.asset-seedvr2-vae.cuda
+          - local.upscale.asset-seedvr2-vae.metal
         recommended_content_ids:
           - sha256:20678548f420d98d26f11442d3528f8b8c94e57ee046ef93dbb7633da8612ca1
         model_contract:
@@ -11575,6 +11771,7 @@ loadout_recipes:
         display_label: Super-resolution model
         recommended_variant_ids:
           - local.upscale.seedvr2-3b.cuda
+          - local.upscale.seedvr2-3b.metal
         recommended_content_ids:
           - sha256:c3dec8bcc5916843a8a858572970597462e1f2dc598d6dfd818f6cd40f53a157
         model_contract:
@@ -11584,6 +11781,7 @@ loadout_recipes:
         display_label: Super-resolution VAE
         recommended_variant_ids:
           - local.upscale.asset-seedvr2-vae.cuda
+          - local.upscale.asset-seedvr2-vae.metal
         recommended_content_ids:
           - sha256:20678548f420d98d26f11442d3528f8b8c94e57ee046ef93dbb7633da8612ca1
         model_contract:
@@ -11603,6 +11801,7 @@ loadout_recipes:
         display_label: Super-resolution model
         recommended_variant_ids:
           - local.upscale.seedvr2-7b-sharp.cuda
+          - local.upscale.seedvr2-7b-sharp.metal
         recommended_content_ids:
           - sha256:db48be2f1cc7e36b01a2aa529810f5d9c6a971edd29be225cf1b0eb18d51c366
         model_contract:
@@ -11612,6 +11811,7 @@ loadout_recipes:
         display_label: Super-resolution VAE
         recommended_variant_ids:
           - local.upscale.asset-seedvr2-vae.cuda
+          - local.upscale.asset-seedvr2-vae.metal
         recommended_content_ids:
           - sha256:20678548f420d98d26f11442d3528f8b8c94e57ee046ef93dbb7633da8612ca1
         model_contract:
@@ -11631,6 +11831,7 @@ loadout_recipes:
         display_label: Super-resolution model
         recommended_variant_ids:
           - local.upscale.seedvr2-7b-sharp.cuda
+          - local.upscale.seedvr2-7b-sharp.metal
         recommended_content_ids:
           - sha256:db48be2f1cc7e36b01a2aa529810f5d9c6a971edd29be225cf1b0eb18d51c366
         model_contract:
@@ -11640,6 +11841,7 @@ loadout_recipes:
         display_label: Super-resolution VAE
         recommended_variant_ids:
           - local.upscale.asset-seedvr2-vae.cuda
+          - local.upscale.asset-seedvr2-vae.metal
         recommended_content_ids:
           - sha256:20678548f420d98d26f11442d3528f8b8c94e57ee046ef93dbb7633da8612ca1
         model_contract:
@@ -11720,6 +11922,7 @@ loadout_recipes:
         display_label: SDXL Base checkpoint
         recommended_variant_ids:
           - local.image.sdxl-base-1.0.f16.cuda
+          - local.image.sdxl-base-1.0.f16.metal
         recommended_content_ids:
           - sha256:31e35c80fc4829d14f90153f4c74cd59c90b779f6afe05a74cd6120b893f7e5b
         model_contract:
@@ -11729,6 +11932,7 @@ loadout_recipes:
         display_label: ControlNet Union ProMax
         recommended_variant_ids:
           - local.controlnet.sdxl-union-promax.f16.cuda
+          - local.controlnet.sdxl-union-promax.f16.metal
         recommended_content_ids:
           - sha256:9fae2e50cb431bfcbe05822b59ec2228df545ef27f711dea8949e9f4ed9f7cdc
         model_contract:
@@ -12950,6 +13154,7 @@ loadout_recipes:
         display_label: HyperFlow H3 Flash FL2VA transformer
         recommended_variant_ids:
           - local.video.hyperflow-h3-flash-fl2va.int8-convrot.cuda
+          - local.video.hyperflow-h3-flash-fl2va.int8-convrot.metal
         recommended_content_ids:
           - sha256:6fcd9b13b7c3bf33e03bb49b10b02a7a60f5051ce8837e583be1452ba7289274
         model_contract:
@@ -12959,6 +13164,7 @@ loadout_recipes:
         display_label: HyperFlow H3 Flash Ref2VA transformer
         recommended_variant_ids:
           - local.video.hyperflow-h3-flash-ref2va.int8-convrot.cuda
+          - local.video.hyperflow-h3-flash-ref2va.int8-convrot.metal
         recommended_content_ids:
           - sha256:3a60ba89db6c5b84a792b0a0bd911bf0126e5ff9dce99c6727ff61e961210b7e
         model_contract:
@@ -12968,6 +13174,7 @@ loadout_recipes:
         display_label: MiniMax-H3 combined Qwen3-VL encoder
         recommended_variant_ids:
           - local.video-encoder.minimax-h3-qwen3-vl-32b.q4-k-m.cuda
+          - local.video-encoder.minimax-h3-qwen3-vl-32b.q4-k-m.metal
         recommended_content_ids:
           - sha256:11e6efe70a57ce7f4838c47bdbd1a1c4b8ce10e2b7747f1b065990b70f4b05fc
         model_contract:
@@ -12977,7 +13184,9 @@ loadout_recipes:
         display_label: MiniMax-H3 video VAE
         recommended_variant_ids:
           - local.video-vae.sol-h3.f16.cuda
+          - local.video-vae.sol-h3.f16.metal
           - local.video-vae.minimax-h3.f16.cuda
+          - local.video-vae.minimax-h3.f16.metal
         recommended_content_ids:
           - sha256:61eaab3d7ca1659f20bce4d02bbc5bd5e5af608c73328d30cda96c8dc4d033e0
           - sha256:7c1f131492e7eddacaac9069a61b81bdd39de5cc96561e677c5eab1cdce5e522
@@ -12988,6 +13197,7 @@ loadout_recipes:
         display_label: MiniMax-H3 audio VAE
         recommended_variant_ids:
           - local.audio-vae.minimax-h3.f32.cuda
+          - local.audio-vae.minimax-h3.f32.metal
         recommended_content_ids:
           - sha256:8e505d95dd1561d47abd43d4238fd40d9bb1ae9e147ed0a4cba778d76ae4db48
         model_contract:
@@ -13221,6 +13431,7 @@ loadout_recipes:
         display_label: Diffusion model
         recommended_variant_ids:
           - local.image.minimax-h3-image.pruned-int8-convrot.cuda
+          - local.image.minimax-h3-image.pruned-int8-convrot.metal
         recommended_content_ids:
           - sha256:83eb140f1ff95c068f8a6886e6d3f3d0d4ab2e07bb2fe6d2ef992a51146ee622
         model_contract:
@@ -13231,6 +13442,7 @@ loadout_recipes:
         display_label: MiniMax-H3 Qwen3-VL text encoder
         recommended_variant_ids:
           - local.video-encoder.minimax-h3-qwen3-vl-32b.q4-k-m.cuda
+          - local.video-encoder.minimax-h3-qwen3-vl-32b.q4-k-m.metal
         recommended_content_ids:
           - sha256:11e6efe70a57ce7f4838c47bdbd1a1c4b8ce10e2b7747f1b065990b70f4b05fc
         model_contract:
@@ -13241,6 +13453,7 @@ loadout_recipes:
         display_label: MiniMax-H3-Image VAE
         recommended_variant_ids:
           - local.image-vae.minimax-h3-image.f16.cuda
+          - local.image-vae.minimax-h3-image.f16.metal
         recommended_content_ids:
           - sha256:d80e9c2e5cfc9844869961ff5a58c9a9e52182df6bfb30b26018dd7f348721af
         model_contract:

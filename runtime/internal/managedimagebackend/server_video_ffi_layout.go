@@ -4,8 +4,8 @@ import "unsafe"
 
 // @nimi-authority: rule.nimi.runtime.local-compute.r067
 // The following types mirror stable-diffusion.h at master-1088-32d516c.
-// C enums/int are int32, C bool is one byte, and pointers/size_t use MSVC x64
-// eight-byte alignment. Update these layouts with the exact package cohort.
+// C enums/int are int32, C bool is one byte, and pointers/size_t use eight-byte
+// alignment on Windows x64 and Darwin arm64. Update these layouts with the exact package cohort.
 type sdCtxParams struct {
 	ModelPath                   uintptr
 	ClipLPath                   uintptr
@@ -218,7 +218,7 @@ type sdVideoGenParams struct {
 	RefImageArgs          uintptr
 }
 
-// Bidirectional compile-time size assertions for the MSVC x64 ABI.
+// Bidirectional compile-time size assertions for the pinned 64-bit ABI.
 var (
 	_ [336 - unsafe.Sizeof(sdCtxParams{})]byte
 	_ [unsafe.Sizeof(sdCtxParams{}) - 336]byte

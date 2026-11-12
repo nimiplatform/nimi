@@ -87,7 +87,7 @@ func (d UpscaleDriver) Interpret(input InterpretInput) ([]*runtimev1.LocalCapabi
 }
 
 func (d UpscaleDriver) ProjectRecipeForHost(recipe string, options *structpb.Struct, features []string, platform string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
-	if platform != "windows/amd64" {
+	if platform != "windows/amd64" && platform != "darwin/arm64" {
 		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
 	}
 	return d.ProjectRecipe(recipe, options, features)

@@ -279,6 +279,47 @@ func TestInstallManagedImageBackendFromDirectArchive(t *testing.T) {
 	}
 }
 
+func TestManagedImageBackendSourceDevelopmentArchiveIsExplicitAndVerified(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, "candidate archive.zip")
+	specs, err := loadManagedImageBackendPackageSpecs(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var candidate managedImageBackendPackageSpec
+	for _, spec := range specs {
+		if spec.OS == "darwin" && spec.Arch == "arm64" && spec.GPUVendor == "apple" {
+			if candidate.Supported || spec.DevelopmentArchive != path || !strings.HasPrefix(spec.ArchiveURL, "file:") {
+				t.Fatalf("expected exactly one explicit Darwin archive, got %+v", spec)
+			}
+			candidate = spec
+		}
+	}
+	if !candidate.Supported || candidate.ArchiveSHA256 == "" {
+		t.Fatal("source development package is not pinned")
+	}
+	payload := makeFakeArchiveAsset(t, "candidate.zip", "sd-cli", []byte("test candidate"))
+	if err := os.WriteFile(path, payload, 0o600); err != nil {
+		t.Fatal(err)
+	}
+	backendsPath := filepath.Join(root, "backends")
+	if err := installManagedImageBackendFromDirectArchive(context.Background(), backendsPath, "stablediffusion-ggml", candidate, nil); !errors.Is(err, ErrEngineBinaryHashMismatch) {
+		t.Fatalf("untrusted candidate should fail before promotion, got %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(backendsPath, candidate.InstallDirName)); !os.IsNotExist(err) {
+		t.Fatalf("untrusted candidate was promoted: %v", err)
+	}
+
+	candidate.ArchiveSHA256 = fmt.Sprintf("%x", sha256.Sum256(payload))
+	if err := installManagedImageBackendFromDirectArchive(context.Background(), backendsPath, "stablediffusion-ggml", candidate, nil); err != nil {
+		t.Fatalf("install verified local archive: %v", err)
+	}
+	metadata, err := readManagedImageBackendMetadata(filepath.Join(backendsPath, candidate.InstallDirName, "metadata.json"))
+	if err != nil || metadata == nil || metadata.ArchiveSHA256 != candidate.ArchiveSHA256 || len(metadata.PayloadHashes) != 1 {
+		t.Fatalf("verified development package metadata = %+v, err = %v", metadata, err)
+	}
+}
+
 func TestDiscoverInstalledManagedImageBackendLaunchConfigRuntimeWrapper(t *testing.T) {
 	backendsPath := t.TempDir()
 	backendDir := filepath.Join(backendsPath, "sd-win-cuda12-x64-stablediffusion-ggml")
@@ -687,9 +728,9 @@ func TestResolveManagedImageBackendPackageSpecForHostDarwinAppleUsesExactCanonic
 	if !ok || !spec.Supported {
 		t.Fatalf("darwin canonical package = %#v, ok=%v", spec, ok)
 	}
-	if spec.PackageSource != managedImageBackendPackageSourceCanonicalRuntimeWrapper || spec.ReleaseTag != "master-1050-58bb3c1" ||
-		spec.SourceCommit != "58bb3c1b1cd4749e94e39f537e9adfce295dcaee" || // pragma: allowlist secret -- public source commit
-		spec.ArchiveSHA256 != "7f295ccdc3a228c95e36b0221b59ba7dd125a023fe00f1ccfd827f1138f8882d" || spec.MinOSVersion != "26.0.0" { // pragma: allowlist secret -- public archive checksum
+	if spec.PackageSource != managedImageBackendPackageSourceCanonicalRuntimeWrapper || spec.ReleaseTag != "master-1088-32d516c" ||
+		spec.SourceCommit != "32d516c0197ed5ca31305b8575e14eb1451fad33" || // pragma: allowlist secret -- public source commit
+		spec.ArchiveSHA256 != "b6588e81e788d9f2f24498831ba398d7523152e7ec280ff282f39c2009465b77" || spec.MinOSVersion != "26.0.0" { // pragma: allowlist secret -- public archive checksum
 		t.Fatalf("darwin exact package identity = %#v", spec)
 	}
 	for version, want := range map[string]bool{"25.9.9": false, "26.0": true, "26.5.2": true, "27": true, "": false} {
@@ -716,7 +757,7 @@ func TestValidateManagedImageBackendPackageSpecRejectsIncompleteSupportedPackage
 }
 
 func TestAdmitManagedImageRecipeForHostClosesPackageFamilyIntersection(t *testing.T) {
-	for _, family := range []string{"z-image", "ideogram4", "qwen-image", "minimax-h3", "flux"} {
+	for _, family := range []string{"z-image", "ideogram4", "qwen-image", "minimax-h3-image", "hyperflow-h3-flash", "sdxl-controlnet-union", "relayvsr", "seedvr2", "flux"} {
 		t.Run("windows_"+family, func(t *testing.T) {
 			if err := admitManagedImageRecipeForHost(family, "", "windows", "amd64", "nvidia", true); err != nil {
 				t.Fatalf("admitManagedImageRecipeForHost(%q): %v", family, err)
@@ -728,6 +769,9 @@ func TestAdmitManagedImageRecipeForHostClosesPackageFamilyIntersection(t *testin
 			}
 		})
 	}
+	if err := admitManagedImageRecipeForHost("minimax-h3", "", "windows", "amd64", "nvidia", true); err != nil {
+		t.Fatalf("Windows package rejected MiniMax-H3 video: %v", err)
+	}
 	for _, test := range []struct {
 		name          string
 		family        string
@@ -737,6 +781,7 @@ func TestAdmitManagedImageRecipeForHostClosesPackageFamilyIntersection(t *testin
 		gpuVendor     string
 	}{
 		{name: "unknown family", family: "unknown-diffusion", goos: "windows", goarch: "amd64", gpuVendor: "nvidia"},
+		{name: "darwin MiniMax-H3 video is unavailable", family: "minimax-h3", goos: "darwin", goarch: "arm64", gpuVendor: "apple"},
 		{name: "darwin wrong package source does not fallback", family: "qwen-image", packageSource: "experimental_official_sdcpp", goos: "darwin", goarch: "arm64", gpuVendor: "apple"},
 		{name: "wrong package source does not fallback", family: "z-image", packageSource: "experimental_official_sdcpp", goos: "windows", goarch: "amd64", gpuVendor: "nvidia"},
 	} {

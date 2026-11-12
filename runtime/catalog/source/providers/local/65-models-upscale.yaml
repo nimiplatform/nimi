@@ -38,6 +38,14 @@ models:
           diffusion_models/relayvsr_x2_lightx2v_int8_convrot.safetensors: sha256:240e75e0c17cf2845d559b25254a230ff7458f81449d7a8c5e7e3fb8275c7b3c
         total_size_bytes: 5163295248
         host_requirement: {accelerator: cuda}
+      - variant_id: local.upscale.relayvsr-2x.metal
+        quant: INT8 ConvRot
+        entry: diffusion_models/relayvsr_x2_lightx2v_int8_convrot.safetensors
+        files: [diffusion_models/relayvsr_x2_lightx2v_int8_convrot.safetensors]
+        hashes:
+          diffusion_models/relayvsr_x2_lightx2v_int8_convrot.safetensors: sha256:240e75e0c17cf2845d559b25254a230ff7458f81449d7a8c5e7e3fb8275c7b3c
+        total_size_bytes: 5163295248
+        host_requirement: {accelerator: metal}
     fitness: {param_count: 5000000000, context_length: 0}
   - model_id: relayvsr-4x-local
     model_type: image
@@ -61,6 +69,14 @@ models:
           diffusion_models/relayvsr_x4_int8_convrot.safetensors: sha256:21303b3c5f9ab4e1fd3fe00df5dd2e0b343f0cf2e3d269e03a9872000a313a2e
         total_size_bytes: 5164179952
         host_requirement: {accelerator: cuda}
+      - variant_id: local.upscale.relayvsr-4x.metal
+        quant: INT8 ConvRot
+        entry: diffusion_models/relayvsr_x4_int8_convrot.safetensors
+        files: [diffusion_models/relayvsr_x4_int8_convrot.safetensors]
+        hashes:
+          diffusion_models/relayvsr_x4_int8_convrot.safetensors: sha256:21303b3c5f9ab4e1fd3fe00df5dd2e0b343f0cf2e3d269e03a9872000a313a2e
+        total_size_bytes: 5164179952
+        host_requirement: {accelerator: metal}
     fitness: {param_count: 5000000000, context_length: 0}
   - model_id: seedvr2-3b-local
     model_type: image
@@ -84,6 +100,14 @@ models:
           diffusion_models/seedvr2_3b_int8_convrot.safetensors: sha256:c3dec8bcc5916843a8a858572970597462e1f2dc598d6dfd818f6cd40f53a157
         total_size_bytes: 3458259704
         host_requirement: {accelerator: cuda}
+      - variant_id: local.upscale.seedvr2-3b.metal
+        quant: INT8 ConvRot
+        entry: diffusion_models/seedvr2_3b_int8_convrot.safetensors
+        files: [diffusion_models/seedvr2_3b_int8_convrot.safetensors]
+        hashes:
+          diffusion_models/seedvr2_3b_int8_convrot.safetensors: sha256:c3dec8bcc5916843a8a858572970597462e1f2dc598d6dfd818f6cd40f53a157
+        total_size_bytes: 3458259704
+        host_requirement: {accelerator: metal}
     fitness: {param_count: 3000000000, context_length: 0}
   - model_id: seedvr2-7b-sharp-local
     model_type: image
@@ -107,6 +131,14 @@ models:
           diffusion_models/seedvr2_7b_sharp_int8_convrot.safetensors: sha256:db48be2f1cc7e36b01a2aa529810f5d9c6a971edd29be225cf1b0eb18d51c366
         total_size_bytes: 8334897976
         host_requirement: {accelerator: cuda}
+      - variant_id: local.upscale.seedvr2-7b-sharp.metal
+        quant: INT8 ConvRot
+        entry: diffusion_models/seedvr2_7b_sharp_int8_convrot.safetensors
+        files: [diffusion_models/seedvr2_7b_sharp_int8_convrot.safetensors]
+        hashes:
+          diffusion_models/seedvr2_7b_sharp_int8_convrot.safetensors: sha256:db48be2f1cc7e36b01a2aa529810f5d9c6a971edd29be225cf1b0eb18d51c366
+        total_size_bytes: 8334897976
+        host_requirement: {accelerator: metal}
     fitness: {param_count: 7000000000, context_length: 0}
   - model_id: asset-relayvsr-2x-vae-local
     model_type: vae
@@ -129,6 +161,14 @@ models:
           vae/relayvsr_flash_vae_x2_fp32.safetensors: sha256:b5bb0339acb5b52545911ea29a51b4c5b805776a779222b5a14591571f42e21c
         total_size_bytes: 127759464
         host_requirement: {accelerator: cuda}
+      - variant_id: local.upscale.asset-relayvsr-2x-vae.metal
+        quant: F32
+        entry: vae/relayvsr_flash_vae_x2_fp32.safetensors
+        files: [vae/relayvsr_flash_vae_x2_fp32.safetensors]
+        hashes:
+          vae/relayvsr_flash_vae_x2_fp32.safetensors: sha256:b5bb0339acb5b52545911ea29a51b4c5b805776a779222b5a14591571f42e21c
+        total_size_bytes: 127759464
+        host_requirement: {accelerator: metal}
   - model_id: asset-relayvsr-4x-vae-local
     model_type: vae
     family: relayvsr-4x-vae
@@ -150,6 +190,14 @@ models:
           vae/relayvsr_flash_vae_x4_fp32.safetensors: sha256:7b8b8c99275fd5c4501b0589cc7b4c4506456a5df83160ef4e207e147b30f714
         total_size_bytes: 127759784
         host_requirement: {accelerator: cuda}
+      - variant_id: local.upscale.asset-relayvsr-4x-vae.metal
+        quant: F32
+        entry: vae/relayvsr_flash_vae_x4_fp32.safetensors
+        files: [vae/relayvsr_flash_vae_x4_fp32.safetensors]
+        hashes:
+          vae/relayvsr_flash_vae_x4_fp32.safetensors: sha256:7b8b8c99275fd5c4501b0589cc7b4c4506456a5df83160ef4e207e147b30f714
+        total_size_bytes: 127759784
+        host_requirement: {accelerator: metal}
   - model_id: asset-seedvr2-vae-local
     model_type: vae
     family: seedvr2-vae
@@ -171,6 +219,14 @@ models:
           vae/seedvr2_ema_vae_fp16.safetensors: sha256:20678548f420d98d26f11442d3528f8b8c94e57ee046ef93dbb7633da8612ca1
         total_size_bytes: 501324814
         host_requirement: {accelerator: cuda}
+      - variant_id: local.upscale.asset-seedvr2-vae.metal
+        quant: F16
+        entry: vae/seedvr2_ema_vae_fp16.safetensors
+        files: [vae/seedvr2_ema_vae_fp16.safetensors]
+        hashes:
+          vae/seedvr2_ema_vae_fp16.safetensors: sha256:20678548f420d98d26f11442d3528f8b8c94e57ee046ef93dbb7633da8612ca1
+        total_size_bytes: 501324814
+        host_requirement: {accelerator: metal}
 loadout_recipes:
   - recipe_id: relayvsr-2x.image.upscale
     revision: '1'
@@ -184,13 +240,13 @@ loadout_recipes:
     slot_metadata:
       - slot_id: upscale.transformer
         display_label: Super-resolution model
-        recommended_variant_ids: [local.upscale.relayvsr-2x.cuda]
+        recommended_variant_ids: [local.upscale.relayvsr-2x.cuda, local.upscale.relayvsr-2x.metal]
         model_contract:
           format: safetensors
           tensor_contract: relayvsr-2x
       - slot_id: upscale.vae
         display_label: Super-resolution VAE
-        recommended_variant_ids: [local.upscale.asset-relayvsr-2x-vae.cuda]
+        recommended_variant_ids: [local.upscale.asset-relayvsr-2x-vae.cuda, local.upscale.asset-relayvsr-2x-vae.metal]
         model_contract:
           format: safetensors
           tensor_contract: relayvsr-2x-vae
@@ -206,13 +262,13 @@ loadout_recipes:
     slot_metadata:
       - slot_id: upscale.transformer
         display_label: Super-resolution model
-        recommended_variant_ids: [local.upscale.relayvsr-2x.cuda]
+        recommended_variant_ids: [local.upscale.relayvsr-2x.cuda, local.upscale.relayvsr-2x.metal]
         model_contract:
           format: safetensors
           tensor_contract: relayvsr-2x
       - slot_id: upscale.vae
         display_label: Super-resolution VAE
-        recommended_variant_ids: [local.upscale.asset-relayvsr-2x-vae.cuda]
+        recommended_variant_ids: [local.upscale.asset-relayvsr-2x-vae.cuda, local.upscale.asset-relayvsr-2x-vae.metal]
         model_contract:
           format: safetensors
           tensor_contract: relayvsr-2x-vae
@@ -228,13 +284,13 @@ loadout_recipes:
     slot_metadata:
       - slot_id: upscale.transformer
         display_label: Super-resolution model
-        recommended_variant_ids: [local.upscale.relayvsr-4x.cuda]
+        recommended_variant_ids: [local.upscale.relayvsr-4x.cuda, local.upscale.relayvsr-4x.metal]
         model_contract:
           format: safetensors
           tensor_contract: relayvsr-4x
       - slot_id: upscale.vae
         display_label: Super-resolution VAE
-        recommended_variant_ids: [local.upscale.asset-relayvsr-4x-vae.cuda]
+        recommended_variant_ids: [local.upscale.asset-relayvsr-4x-vae.cuda, local.upscale.asset-relayvsr-4x-vae.metal]
         model_contract:
           format: safetensors
           tensor_contract: relayvsr-4x-vae
@@ -250,13 +306,13 @@ loadout_recipes:
     slot_metadata:
       - slot_id: upscale.transformer
         display_label: Super-resolution model
-        recommended_variant_ids: [local.upscale.relayvsr-4x.cuda]
+        recommended_variant_ids: [local.upscale.relayvsr-4x.cuda, local.upscale.relayvsr-4x.metal]
         model_contract:
           format: safetensors
           tensor_contract: relayvsr-4x
       - slot_id: upscale.vae
         display_label: Super-resolution VAE
-        recommended_variant_ids: [local.upscale.asset-relayvsr-4x-vae.cuda]
+        recommended_variant_ids: [local.upscale.asset-relayvsr-4x-vae.cuda, local.upscale.asset-relayvsr-4x-vae.metal]
         model_contract:
           format: safetensors
           tensor_contract: relayvsr-4x-vae
@@ -272,13 +328,13 @@ loadout_recipes:
     slot_metadata:
       - slot_id: upscale.transformer
         display_label: Super-resolution model
-        recommended_variant_ids: [local.upscale.seedvr2-3b.cuda]
+        recommended_variant_ids: [local.upscale.seedvr2-3b.cuda, local.upscale.seedvr2-3b.metal]
         model_contract:
           format: safetensors
           tensor_contract: seedvr2-3b
       - slot_id: upscale.vae
         display_label: Super-resolution VAE
-        recommended_variant_ids: [local.upscale.asset-seedvr2-vae.cuda]
+        recommended_variant_ids: [local.upscale.asset-seedvr2-vae.cuda, local.upscale.asset-seedvr2-vae.metal]
         model_contract:
           format: safetensors
           tensor_contract: seedvr2-vae
@@ -294,13 +350,13 @@ loadout_recipes:
     slot_metadata:
       - slot_id: upscale.transformer
         display_label: Super-resolution model
-        recommended_variant_ids: [local.upscale.seedvr2-3b.cuda]
+        recommended_variant_ids: [local.upscale.seedvr2-3b.cuda, local.upscale.seedvr2-3b.metal]
         model_contract:
           format: safetensors
           tensor_contract: seedvr2-3b
       - slot_id: upscale.vae
         display_label: Super-resolution VAE
-        recommended_variant_ids: [local.upscale.asset-seedvr2-vae.cuda]
+        recommended_variant_ids: [local.upscale.asset-seedvr2-vae.cuda, local.upscale.asset-seedvr2-vae.metal]
         model_contract:
           format: safetensors
           tensor_contract: seedvr2-vae
@@ -316,13 +372,13 @@ loadout_recipes:
     slot_metadata:
       - slot_id: upscale.transformer
         display_label: Super-resolution model
-        recommended_variant_ids: [local.upscale.seedvr2-7b-sharp.cuda]
+        recommended_variant_ids: [local.upscale.seedvr2-7b-sharp.cuda, local.upscale.seedvr2-7b-sharp.metal]
         model_contract:
           format: safetensors
           tensor_contract: seedvr2-7b-sharp
       - slot_id: upscale.vae
         display_label: Super-resolution VAE
-        recommended_variant_ids: [local.upscale.asset-seedvr2-vae.cuda]
+        recommended_variant_ids: [local.upscale.asset-seedvr2-vae.cuda, local.upscale.asset-seedvr2-vae.metal]
         model_contract:
           format: safetensors
           tensor_contract: seedvr2-vae
@@ -338,13 +394,13 @@ loadout_recipes:
     slot_metadata:
       - slot_id: upscale.transformer
         display_label: Super-resolution model
-        recommended_variant_ids: [local.upscale.seedvr2-7b-sharp.cuda]
+        recommended_variant_ids: [local.upscale.seedvr2-7b-sharp.cuda, local.upscale.seedvr2-7b-sharp.metal]
         model_contract:
           format: safetensors
           tensor_contract: seedvr2-7b-sharp
       - slot_id: upscale.vae
         display_label: Super-resolution VAE
-        recommended_variant_ids: [local.upscale.asset-seedvr2-vae.cuda]
+        recommended_variant_ids: [local.upscale.asset-seedvr2-vae.cuda, local.upscale.asset-seedvr2-vae.metal]
         model_contract:
           format: safetensors
           tensor_contract: seedvr2-vae

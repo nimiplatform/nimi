@@ -14,11 +14,11 @@ loadout_recipes:
     slot_metadata:
       - slot_id: main.diffusion
         display_label: SDXL Base checkpoint
-        recommended_variant_ids: [local.image.sdxl-base-1.0.f16.cuda]
+        recommended_variant_ids: [local.image.sdxl-base-1.0.f16.cuda, local.image.sdxl-base-1.0.f16.metal]
         model_contract: {format: safetensors, tensor_contract: sdxl-base-checkpoint}
       - slot_id: companion.controlnet
         display_label: ControlNet Union ProMax
-        recommended_variant_ids: [local.controlnet.sdxl-union-promax.f16.cuda]
+        recommended_variant_ids: [local.controlnet.sdxl-union-promax.f16.cuda, local.controlnet.sdxl-union-promax.f16.metal]
         model_contract: {format: safetensors, tensor_contract: sdxl-controlnet-union-promax}
   - recipe_id: faster-whisper-sherpa-diarized
     revision: "1"
@@ -969,31 +969,31 @@ loadout_recipes:
     slot_metadata:
       - slot_id: diffusion.fl2va
         display_label: HyperFlow H3 Flash FL2VA transformer
-        recommended_variant_ids: [local.video.hyperflow-h3-flash-fl2va.int8-convrot.cuda]
+        recommended_variant_ids: [local.video.hyperflow-h3-flash-fl2va.int8-convrot.cuda, local.video.hyperflow-h3-flash-fl2va.int8-convrot.metal]
         model_contract:
           format: safetensors
           artifact_role: diffusion_transformer
       - slot_id: diffusion.ref2va
         display_label: HyperFlow H3 Flash Ref2VA transformer
-        recommended_variant_ids: [local.video.hyperflow-h3-flash-ref2va.int8-convrot.cuda]
+        recommended_variant_ids: [local.video.hyperflow-h3-flash-ref2va.int8-convrot.cuda, local.video.hyperflow-h3-flash-ref2va.int8-convrot.metal]
         model_contract:
           format: safetensors
           artifact_role: diffusion_transformer
       - slot_id: encoder.h3-combined
         display_label: MiniMax-H3 combined Qwen3-VL encoder
-        recommended_variant_ids: [local.video-encoder.minimax-h3-qwen3-vl-32b.q4-k-m.cuda]
+        recommended_variant_ids: [local.video-encoder.minimax-h3-qwen3-vl-32b.q4-k-m.cuda, local.video-encoder.minimax-h3-qwen3-vl-32b.q4-k-m.metal]
         model_contract:
           format: gguf
           artifact_role: llm
       - slot_id: vae.video
         display_label: MiniMax-H3 video VAE
-        recommended_variant_ids: [local.video-vae.sol-h3.f16.cuda, local.video-vae.minimax-h3.f16.cuda]
+        recommended_variant_ids: [local.video-vae.sol-h3.f16.cuda, local.video-vae.sol-h3.f16.metal, local.video-vae.minimax-h3.f16.cuda, local.video-vae.minimax-h3.f16.metal]
         model_contract:
           format: safetensors
           tensor_contract: minimax-h3-video-vae
       - slot_id: vae.audio
         display_label: MiniMax-H3 audio VAE
-        recommended_variant_ids: [local.audio-vae.minimax-h3.f32.cuda]
+        recommended_variant_ids: [local.audio-vae.minimax-h3.f32.cuda, local.audio-vae.minimax-h3.f32.metal]
         model_contract:
           format: safetensors
           tensor_contract: minimax-h3-audio-vae
@@ -1179,21 +1179,21 @@ loadout_recipes:
     slot_metadata:
       - slot_id: main.diffusion
         display_label: Diffusion model
-        recommended_variant_ids: [local.image.minimax-h3-image.pruned-int8-convrot.cuda]
+        recommended_variant_ids: [local.image.minimax-h3-image.pruned-int8-convrot.cuda, local.image.minimax-h3-image.pruned-int8-convrot.metal]
         model_contract:
           format: safetensors
           artifact_role: diffusion_model
           tensor_contract: minimax-h3-image-pdd
       - slot_id: companion.text-encoder
         display_label: MiniMax-H3 Qwen3-VL text encoder
-        recommended_variant_ids: [local.video-encoder.minimax-h3-qwen3-vl-32b.q4-k-m.cuda]
+        recommended_variant_ids: [local.video-encoder.minimax-h3-qwen3-vl-32b.q4-k-m.cuda, local.video-encoder.minimax-h3-qwen3-vl-32b.q4-k-m.metal]
         model_contract:
           format: gguf
           artifact_role: llm
           tensor_contract: minimax-h3-qwen3-vl-encoder
       - slot_id: companion.vae
         display_label: MiniMax-H3-Image VAE
-        recommended_variant_ids: [local.image-vae.minimax-h3-image.f16.cuda]
+        recommended_variant_ids: [local.image-vae.minimax-h3-image.f16.cuda, local.image-vae.minimax-h3-image.f16.metal]
         model_contract:
           format: safetensors
           tensor_contract: minimax-h3-image-vae

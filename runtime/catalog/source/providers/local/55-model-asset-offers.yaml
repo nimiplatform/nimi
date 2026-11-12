@@ -23,6 +23,14 @@ models:
           diffusion_pytorch_model_promax.safetensors: sha256:9fae2e50cb431bfcbe05822b59ec2228df545ef27f711dea8949e9f4ed9f7cdc
         total_size_bytes: 2513342408
         host_requirement: {accelerator: cuda}
+      - variant_id: local.controlnet.sdxl-union-promax.f16.metal
+        quant: F16
+        entry: diffusion_pytorch_model_promax.safetensors
+        files: [diffusion_pytorch_model_promax.safetensors]
+        hashes:
+          diffusion_pytorch_model_promax.safetensors: sha256:9fae2e50cb431bfcbe05822b59ec2228df545ef27f711dea8949e9f4ed9f7cdc
+        total_size_bytes: 2513342408
+        host_requirement: {accelerator: metal}
   - model_id: asset-video-vae-wan22-ti2v
     model_type: vae
     family: wan22-vae
@@ -456,6 +464,14 @@ models:
           vae/minimax_h3_image_vae_fp16.safetensors: sha256:d80e9c2e5cfc9844869961ff5a58c9a9e52182df6bfb30b26018dd7f348721af
         total_size_bytes: 1168505312
         host_requirement: {accelerator: cuda}
+      - variant_id: local.image-vae.minimax-h3-image.f16.metal
+        quant: F16
+        entry: vae/minimax_h3_image_vae_fp16.safetensors
+        files: [vae/minimax_h3_image_vae_fp16.safetensors]
+        hashes:
+          vae/minimax_h3_image_vae_fp16.safetensors: sha256:d80e9c2e5cfc9844869961ff5a58c9a9e52182df6bfb30b26018dd7f348721af
+        total_size_bytes: 1168505312
+        host_requirement: {accelerator: metal}
   - model_id: asset-video-vae-sol-h3
     model_type: vae
     family: minimax-h3-video-vae
@@ -480,6 +496,18 @@ models:
         total_size_bytes: 3596335728
         host_requirement:
           accelerator: cuda
+          min_ram_bytes: 17179869184
+          min_vram_bytes: 8589934592
+      - variant_id: local.video-vae.sol-h3.f16.metal
+        quant: F16
+        entry: vae/minimax_h3_sol_vae_fp16.safetensors
+        files:
+          - vae/minimax_h3_sol_vae_fp16.safetensors
+        hashes:
+          vae/minimax_h3_sol_vae_fp16.safetensors: sha256:61eaab3d7ca1659f20bce4d02bbc5bd5e5af608c73328d30cda96c8dc4d033e0
+        total_size_bytes: 3596335728
+        host_requirement:
+          accelerator: metal
           min_ram_bytes: 17179869184
           min_vram_bytes: 8589934592
   - model_id: asset-video-vae-minimax-h3
@@ -508,6 +536,18 @@ models:
           accelerator: cuda
           min_ram_bytes: 17179869184
           min_vram_bytes: 8589934592
+      - variant_id: local.video-vae.minimax-h3.f16.metal
+        quant: F16
+        entry: vae/minimax_h3_video_vae_fp16.safetensors
+        files:
+          - vae/minimax_h3_video_vae_fp16.safetensors
+        hashes:
+          vae/minimax_h3_video_vae_fp16.safetensors: sha256:7c1f131492e7eddacaac9069a61b81bdd39de5cc96561e677c5eab1cdce5e522
+        total_size_bytes: 5207808496
+        host_requirement:
+          accelerator: metal
+          min_ram_bytes: 17179869184
+          min_vram_bytes: 8589934592
   - model_id: asset-audio-vae-minimax-h3
     model_type: vae
     family: minimax-h3-audio-vae
@@ -532,6 +572,18 @@ models:
         total_size_bytes: 605254808
         host_requirement:
           accelerator: cuda
+          min_ram_bytes: 8589934592
+          min_vram_bytes: 4294967296
+      - variant_id: local.audio-vae.minimax-h3.f32.metal
+        quant: F32
+        entry: vae/minimax_h3_audio_vae_fp32.safetensors
+        files:
+          - vae/minimax_h3_audio_vae_fp32.safetensors
+        hashes:
+          vae/minimax_h3_audio_vae_fp32.safetensors: sha256:8e505d95dd1561d47abd43d4238fd40d9bb1ae9e147ed0a4cba778d76ae4db48
+        total_size_bytes: 605254808
+        host_requirement:
+          accelerator: metal
           min_ram_bytes: 8589934592
           min_vram_bytes: 4294967296
   - model_id: gemma-4-e2b-it-mmproj-local

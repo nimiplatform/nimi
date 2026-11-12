@@ -99,6 +99,14 @@ func (driver StableDiffusionVideoDriver) ProjectRecipe(recipeID string, options 
 	return driver.Interpret(InterpretInput{RecipeID: recipeID, PortableConfig: options, SupportedFeatures: supportedFeatures})
 }
 
+// @nimi-authority: rule.nimi.runtime.ai-provider.hyperflow-h3-local-video
+func (driver StableDiffusionVideoDriver) ProjectRecipeForHost(recipeID string, options *structpb.Struct, supportedFeatures []string, platform string) ([]*runtimev1.LocalCapabilityRequirement, runtimev1.LocalCapabilityReason) {
+	if platform != "windows/amd64" && !(platform == "darwin/arm64" && driver.hyperFlow) {
+		return nil, runtimev1.LocalCapabilityReason_LOCAL_CAPABILITY_REASON_DRIVER_DIALECT_UNSUPPORTED
+	}
+	return driver.ProjectRecipe(recipeID, options, supportedFeatures)
+}
+
 func (driver StableDiffusionVideoDriver) ProjectModelAssetBinding(input ModelAssetBindingInput) (ModelAssetBindingProjection, runtimev1.LocalCapabilityReason) {
 	slot, ok := driver.slot(input.Requirement.GetRequirementId())
 	if !ok || filepath.Ext(strings.ToLower(input.Entry.RelativePath)) != "."+slot.format {

@@ -10,6 +10,11 @@ const (
 	sdSchedulerCount    = 17
 )
 
+// HyperFlow’s fixed six-step schedule already includes the video flow shift.
+func hyperFlowVideoSigmas() [7]float32 {
+	return [7]float32{1, 0.982655942, 0.914642572, 0.674755692, 0.385223746, 0.159055337, 0}
+}
+
 type videoRecipeTokenConverter func(label, value string, count int32) (int32, bool, error)
 
 func videoParamsBackendSpec(offloadToCPU bool) string {

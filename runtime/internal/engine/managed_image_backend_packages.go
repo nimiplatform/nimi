@@ -3,7 +3,9 @@ package engine
 import (
 	_ "embed"
 	"fmt"
+	"net/url"
 	"os/exec"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -57,6 +59,7 @@ type managedImageBackendPackageSpec struct {
 	ImageRef               string
 	OCILayerDigest         string
 	ArchiveURL             string
+	DevelopmentArchive     string
 	ArchiveSHA256          string
 	ExecutableCandidates   []string
 	SupportedModelFamilies []string
@@ -77,22 +80,23 @@ type managedImageBackendPackageEntry struct {
 		GPUVendor    string `yaml:"gpu_vendor"`
 		MinOSVersion string `yaml:"min_os_version"`
 	} `yaml:"host_match"`
-	BackendFamily          string   `yaml:"backend_family"`
-	PackageSource          string   `yaml:"package_source"`
-	PackageFormat          string   `yaml:"package_format"`
-	ReleaseTag             string   `yaml:"release_tag"`
-	SourceCommit           string   `yaml:"source_commit"`
-	InstallDirName         string   `yaml:"install_dir_name"`
-	ImageRef               string   `yaml:"image_ref"`
-	OCILayerDigest         string   `yaml:"oci_layer_digest"`
-	ArchiveURL             string   `yaml:"archive_url"`
-	ArchiveSHA256          string   `yaml:"archive_sha256"`
-	ExecutableCandidates   []string `yaml:"executable_candidates"`
-	SupportedModelFamilies []string `yaml:"supported_model_families"`
-	LaunchMode             string   `yaml:"launch_mode"`
-	WrapperDriver          string   `yaml:"wrapper_driver"`
-	ProductState           string   `yaml:"product_state"`
-	Detail                 string   `yaml:"detail"`
+	BackendFamily            string   `yaml:"backend_family"`
+	PackageSource            string   `yaml:"package_source"`
+	PackageFormat            string   `yaml:"package_format"`
+	ReleaseTag               string   `yaml:"release_tag"`
+	SourceCommit             string   `yaml:"source_commit"`
+	InstallDirName           string   `yaml:"install_dir_name"`
+	ImageRef                 string   `yaml:"image_ref"`
+	OCILayerDigest           string   `yaml:"oci_layer_digest"`
+	ArchiveURL               string   `yaml:"archive_url"`
+	SourceDevelopmentArchive bool     `yaml:"source_development_archive"`
+	ArchiveSHA256            string   `yaml:"archive_sha256"`
+	ExecutableCandidates     []string `yaml:"executable_candidates"`
+	SupportedModelFamilies   []string `yaml:"supported_model_families"`
+	LaunchMode               string   `yaml:"launch_mode"`
+	WrapperDriver            string   `yaml:"wrapper_driver"`
+	ProductState             string   `yaml:"product_state"`
+	Detail                   string   `yaml:"detail"`
 }
 
 func resolveManagedImageBackendPackageSpecForCurrentHost(backendName string) (managedImageBackendPackageSpec, bool) {
@@ -253,7 +257,15 @@ func managedImageBackendPackageSpecsFromAuthority() ([]managedImageBackendPackag
 	return managedImageBackendPackageAuthority()
 }
 
+// @nimi-authority: rule.nimi.runtime.local-compute.r067
 func loadManagedImageBackendPackageSpecsFromAuthority() ([]managedImageBackendPackageSpec, error) {
+	return loadManagedImageBackendPackageSpecs(managedImageBackendSourceDevelopmentArchive())
+}
+
+func loadManagedImageBackendPackageSpecs(developmentArchive string) ([]managedImageBackendPackageSpec, error) {
+	if developmentArchive != "" && (!filepath.IsAbs(developmentArchive) || filepath.Clean(developmentArchive) != developmentArchive || filepath.Ext(developmentArchive) != ".zip") {
+		return nil, fmt.Errorf("NIMI_DEV_SDCPP_METAL_ARCHIVE must be an absolute, canonical .zip path")
+	}
 	if len(managedImageBackendPackagesAuthorityYAML) == 0 {
 		return nil, fmt.Errorf("embedded managed image backend package authority is empty")
 	}
@@ -262,7 +274,20 @@ func loadManagedImageBackendPackageSpecsFromAuthority() ([]managedImageBackendPa
 		return nil, fmt.Errorf("parse managed image backend package authority: %w", err)
 	}
 	specs := make([]managedImageBackendPackageSpec, 0, len(doc.Entries))
+	developmentEntry := false
 	for _, entry := range doc.Entries {
+		appleMetal := entry.BackendFamily == "stablediffusion-ggml" && entry.HostMatch.OS == "darwin" && entry.HostMatch.Arch == "arm64" && entry.HostMatch.GPUVendor == "apple"
+		if entry.SourceDevelopmentArchive {
+			if !appleMetal || entry.ArchiveURL != "" || developmentEntry {
+				return nil, fmt.Errorf("invalid Apple Silicon source-development image package entry")
+			}
+			developmentEntry = true
+			if developmentArchive == "" {
+				continue
+			}
+		} else if appleMetal && developmentArchive != "" {
+			continue
+		}
 		spec := managedImageBackendPackageSpec{
 			BackendName:            strings.TrimSpace(entry.BackendFamily),
 			PackageSource:          normalizeManagedImageBackendPackageSource(entry.PackageSource),
@@ -285,10 +310,17 @@ func loadManagedImageBackendPackageSpecsFromAuthority() ([]managedImageBackendPa
 			Supported:              strings.TrimSpace(entry.ProductState) == "supported",
 			Detail:                 strings.TrimSpace(entry.Detail),
 		}
+		if entry.SourceDevelopmentArchive {
+			spec.DevelopmentArchive = developmentArchive
+			spec.ArchiveURL = (&url.URL{Scheme: "file", Path: developmentArchive}).String()
+		}
 		if err := validateManagedImageBackendPackageSpec(spec); err != nil {
 			return nil, err
 		}
 		specs = append(specs, spec)
+	}
+	if developmentArchive != "" && !developmentEntry {
+		return nil, fmt.Errorf("no registry-pinned Apple Silicon source-development image package")
 	}
 	return specs, nil
 }

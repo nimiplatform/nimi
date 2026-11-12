@@ -16,8 +16,8 @@ func TestSDXLControlNetUsesCompleteCheckpointAndIndependentControlModel(t *testi
 	if reason != success || len(requirements) != 2 || requirements[1].RequirementId != SDXLControlNetSlot {
 		t.Fatal(reason, requirements)
 	}
-	if _, why := driver.ProjectRecipeForHost(SDXLControlNetRecipeID, nil, []string{"input.image"}, "darwin/arm64"); why == success {
-		t.Fatal("pre-1088 Mac package admitted for ControlNet Union")
+	if _, why := driver.ProjectRecipeForHost(SDXLControlNetRecipeID, nil, []string{"input.image"}, "darwin/arm64"); why != success {
+		t.Fatal("Apple Silicon Driver rejected ControlNet Union")
 	}
 	main := map[string][]int64{
 		"model.diffusion_model.input_blocks.0.0.weight":                                    {320, 4, 3, 3},

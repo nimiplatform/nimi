@@ -1121,8 +1121,8 @@ func TestQwenImageLoadoutMissingSlotCommitsUnresolvedWithoutDownloadAndCannotSel
 }
 
 func TestMiniMaxH3LoadoutCommitsFiveIndependentAxesWithoutCombinationPin(t *testing.T) {
-	setLocalRuntimePlatformForTest(t, "darwin", "arm64")
-	setManagedImageHostForTest(t, "Apple M4 Max")
+	setLocalRuntimePlatformForTest(t, "windows", "amd64")
+	setNvidiaGPUProbeForTest(t, true)
 	root := t.TempDir()
 	svc := newLoadoutTestService(t, root)
 	seedStableDiffusionSelectedSourcesForLoadoutTest(t, svc, root)
@@ -1761,10 +1761,20 @@ func TestListLoadoutRecipesProjectsSpeechCatalogAndCustody(t *testing.T) {
 		}
 	}
 	video := list(capabilitydriver.StableDiffusionVideoCapabilityContract)
-	if len(video) != 3 || len(byID[capabilitydriver.HyperFlowH3VideoRecipeID].GetSlots()) != 5 || len(byID[capabilitydriver.StableDiffusionVideoRecipeID].GetSlots()) != 5 || len(byID[capabilitydriver.Wan22VideoRecipeID].GetSlots()) != 3 || byID[capabilitydriver.Wan22VideoRecipeID].GetApplicability() != runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED || byID[capabilitydriver.HyperFlowH3VideoRecipeID].GetApplicability() != runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED {
+	if len(video) != 3 || len(byID[capabilitydriver.HyperFlowH3VideoRecipeID].GetSlots()) != 5 || len(byID[capabilitydriver.StableDiffusionVideoRecipeID].GetSlots()) != 5 || len(byID[capabilitydriver.Wan22VideoRecipeID].GetSlots()) != 3 || byID[capabilitydriver.Wan22VideoRecipeID].GetApplicability() != runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED || byID[capabilitydriver.HyperFlowH3VideoRecipeID].GetApplicability() != runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_SUPPORTED {
 		t.Fatalf("video recipes = %+v", video)
 	}
 	video = []*runtimev1.LoadoutRecipeDescriptor{byID[capabilitydriver.StableDiffusionVideoRecipeID]}
+	if video[0].GetApplicability() != runtimev1.LocalRecommendationApplicability_LOCAL_RECOMMENDATION_APPLICABILITY_UNSUPPORTED {
+		t.Fatalf("Apple Silicon must report MiniMax-H3 video as unsupported: %+v", video[0])
+	}
+	if _, err := svc.PrepareLoadout(context.Background(), &runtimev1.PrepareLoadoutRequest{
+		CapabilityContract: capabilitydriver.StableDiffusionVideoCapabilityContract,
+		RecipeId:           capabilitydriver.StableDiffusionVideoRecipeID,
+		DisplayName:        "MiniMax-H3 video on Apple Silicon",
+	}); grpcReasonForTest(err) != runtimev1.ReasonCode_AI_LOADOUT_DRIVER_UNAVAILABLE {
+		t.Fatalf("Apple Silicon admitted MiniMax-H3 video preparation: %v", err)
+	}
 	for index, slotID := range []string{
 		capabilitydriver.StableDiffusionVideoFL2VARequirementID,
 		capabilitydriver.StableDiffusionVideoRef2VARequirementID,
@@ -2046,14 +2056,14 @@ func seedStableDiffusionSelectedSourcesForLoadoutTest(t *testing.T, svc *Service
 		return
 	}
 	packageRoot := filepath.Join(root, "environments", "stable-diffusion")
-	archiveSHA256 := "2767f24655b7bbd1290f7cb307e05c988cda388108b7d83b502cf95276df3b50" // pragma: allowlist secret
+	archiveSHA256 := "e76d90e0ad0aedb3bcd9e24e7ecb20e7c3e0be9700a7e9e94fbd26226e67f597" // pragma: allowlist secret
 	if profile.OS == "darwin" {
-		archiveSHA256 = "7f295ccdc3a228c95e36b0221b59ba7dd125a023fe00f1ccfd827f1138f8882d" // pragma: allowlist secret
+		archiveSHA256 = "b6588e81e788d9f2f24498831ba398d7523152e7ec280ff282f39c2009465b77" // pragma: allowlist secret
 	}
 	packageRecord := verifiedSelectedSourceRecordForTest(localEnvironmentSelectedSourceRecordState{
 		EnvironmentKey:   localEnvironmentKey(localEnvironmentFamilyNativeSDCPP, "stable-diffusion.cpp.package", profile.HostProfileID, localEnvironmentPlatformTuple(profile), root),
 		DependencyFamily: localEnvironmentFamilyNativeSDCPP, DependencyID: "stable-diffusion.cpp.package", CanonicalRoot: packageRoot,
-		Version: "master-1050-58bb3c1", Hashes: map[string]string{"archive_sha256": archiveSHA256}, SelectedConsumers: []string{consumer}, VerifiedArtifacts: []string{filepath.Join(packageRoot, "sd.exe")},
+		Version: "master-1088-32d516c", Hashes: map[string]string{"archive_sha256": archiveSHA256}, SelectedConsumers: []string{consumer}, VerifiedArtifacts: []string{filepath.Join(packageRoot, "sd.exe")},
 	})
 	writeSelectedSourceLocalArtifactsForTest(t, packageRecord)
 	svc.upsertLocalEnvironmentSelectedSourceRecord(packageRecord)

@@ -14,9 +14,12 @@ import (
 
 // @nimi-authority: rule.nimi.runtime.local-compute.r067
 // The model-family marker alone cannot establish compatibility with the C
-// struct layouts and function signatures compiled into the Windows bridge.
+// struct layouts and function signatures compiled into the native bridges.
 // Reuse the materializer's existing verified archive identity.
 const stableDiffusionVideoArchiveSHA256 = "e76d90e0ad0aedb3bcd9e24e7ecb20e7c3e0be9700a7e9e94fbd26226e67f597" // pragma: allowlist secret -- public archive checksum
+
+const stableDiffusionVideoDarwinArchiveSHA256 = "b6588e81e788d9f2f24498831ba398d7523152e7ec280ff282f39c2009465b77"      // pragma: allowlist secret -- public archive checksum
+const stableDiffusionVideoDarwinMetalArchiveSHA256 = "3d7a24780f8193d3835849549b088b34a2de65f5ca0981540caf4a06900a42c9" // pragma: allowlist secret -- source-development archive checksum
 
 type videoPackageIdentity struct {
 	Name                   string   `json:"name,omitempty"`
@@ -33,6 +36,9 @@ func (identity videoPackageIdentity) String() string {
 }
 
 func (identity videoPackageIdentity) supportsRecipe(recipe string) bool {
+	if identity.ArchiveSHA256 == stableDiffusionVideoDarwinArchiveSHA256 || identity.ArchiveSHA256 == stableDiffusionVideoDarwinMetalArchiveSHA256 {
+		return recipe == "hyperflow-h3-flash"
+	}
 	if identity.ArchiveSHA256 != stableDiffusionVideoArchiveSHA256 {
 		return false
 	}
@@ -105,7 +111,7 @@ func (s *Server) handleGenerateVideo(stream grpc.ServerStream) error {
 	if err != nil {
 		return stream.SendMsg(videoTerminalEvent(VideoCandidate{}, err))
 	}
-	if !s.videoPackage.supportsRecipe("minimax-h3") && !s.videoPackage.supportsRecipe("wan22-ti2v-5b") {
+	if !s.videoPackage.supportsRecipe("hyperflow-h3-flash") {
 		err := videoError(VideoErrorEngineIncompatible, fmt.Errorf("managed backend package %q does not match the pinned video ABI", s.videoPackage.String()))
 		return stream.SendMsg(videoTerminalEvent(VideoCandidate{}, err))
 	}

@@ -117,6 +117,19 @@ func TestManagedVideoLoadsWanFromVerifiedPackageWithOlderFamilySnapshot(t *testi
 	}
 }
 
+func TestDarwinVideoPackageAdmitsHyperFlowWithExactArchive(t *testing.T) {
+	for _, digest := range []string{stableDiffusionVideoDarwinArchiveSHA256, stableDiffusionVideoDarwinMetalArchiveSHA256} {
+		identity := videoPackageIdentity{ArchiveSHA256: digest}
+		if !identity.supportsRecipe("hyperflow-h3-flash") || identity.supportsRecipe("wan22-ti2v-5b") {
+			t.Fatal("Darwin package must admit the implemented HyperFlow video recipe only")
+		}
+	}
+	identity := videoPackageIdentity{SupportedModelFamilies: []string{"hyperflow-h3-flash"}}
+	if identity.supportsRecipe("hyperflow-h3-flash") {
+		t.Fatal("a family marker cannot replace exact native ABI identity")
+	}
+}
+
 func TestManagedVideoRejectsOldABIEvenWithFamilyAndRetiredOverride(t *testing.T) {
 	t.Setenv("NIMI_VIDEO_FFI_ALLOW_UNPINNED", "1")
 	engine := &fakeVideoEngine{}

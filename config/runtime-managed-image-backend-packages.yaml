@@ -29,23 +29,48 @@ entries:
     dependency_family: native-engine-package.stablediffusion-ggml
     package_source: canonical_runtime_wrapper
     package_format: direct_archive
-    release_tag: master-1050-58bb3c1
-    source_commit: 58bb3c1b1cd4749e94e39f537e9adfce295dcaee # pragma: allowlist secret
-    install_dir_name: sd-macos-metal-arm64-stablediffusion-ggml-58bb3c1
+    release_tag: master-1088-32d516c
+    source_commit: 32d516c0197ed5ca31305b8575e14eb1451fad33 # pragma: allowlist secret
+    install_dir_name: sd-macos-metal-arm64-stablediffusion-ggml-32d516c
     image_ref: ""
-    archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-1050-58bb3c1/sd-master-58bb3c1-bin-Darwin-macOS-26.6.2-arm64.zip
-    archive_sha256: 7f295ccdc3a228c95e36b0221b59ba7dd125a023fe00f1ccfd827f1138f8882d # pragma: allowlist secret
+    archive_url: https://github.com/leejet/stable-diffusion.cpp/releases/download/master-1088-32d516c/sd-master-32d516c-bin-Darwin-macOS-26.7.2-arm64.zip
+    archive_sha256: b6588e81e788d9f2f24498831ba398d7523152e7ec280ff282f39c2009465b77 # pragma: allowlist secret
     executable_candidates: [sd-cli, sd-server]
-    supported_model_families: [flux, ideogram4, minimax-h3, qwen-image, sdxl, z-image]
+    supported_model_families: [flux, ideogram4, minimax-h3-image, hyperflow-h3-flash, qwen-image, sdxl, sdxl-controlnet-union, relayvsr, seedvr2, z-image]
     launch_mode: runtime_wrapper
     wrapper_driver: stable-diffusion.cpp
     product_state: supported
     detail: >-
-      Canonical official master-1050-58bb3c1 Apple Silicon archive for the
+      Canonical official master-1088-32d516c Apple Silicon archive for the
       macOS 26.0+ / arm64 / Apple Metal first-class target. This exact source
-      has no experimental, LocalAI-derived, or alternate-backend fallback;
-      every recipe-family and product claim remains independently subject to
-      real macOS Runtime acceptance.
+      uses Metal for supported ordinary operators and CPU for INT8 ConvRot.
+      Native Metal INT8 requires a separately verified SD_METAL build. Exact
+      model and mode acceptance is recorded independently of package admission.
+
+  - entry_id: macos-apple-silicon-stablediffusion-ggml-source-development-metal-int8
+    host_match:
+      os: darwin
+      arch: arm64
+      gpu_vendor: apple
+      min_os_version: 26.0.0
+    backend_family: stablediffusion-ggml
+    dependency_family: native-engine-package.stablediffusion-ggml
+    package_source: canonical_runtime_wrapper
+    package_format: direct_archive
+    source_development_archive: true
+    release_tag: master-1088-32d516c
+    source_commit: 32d516c0197ed5ca31305b8575e14eb1451fad33 # pragma: allowlist secret
+    install_dir_name: sd-macos-metal-int8-arm64-stablediffusion-ggml-32d516c
+    archive_sha256: 3d7a24780f8193d3835849549b088b34a2de65f5ca0981540caf4a06900a42c9 # pragma: allowlist secret
+    executable_candidates: [sd-cli, sd-server]
+    supported_model_families: [flux, ideogram4, minimax-h3-image, hyperflow-h3-flash, qwen-image, sdxl, sdxl-controlnet-union, relayvsr, seedvr2, z-image]
+    launch_mode: runtime_wrapper
+    wrapper_driver: stable-diffusion.cpp
+    product_state: supported
+    detail: >-
+      Explicit Apple Silicon source-development build of the pinned 1088
+      sources with SD_METAL=ON and SD_USE_UPSTREAM_GGML=OFF. Home prepares
+      the supplied local ZIP only after Runtime verifies this exact digest.
 
   - entry_id: windows-x64-nvidia-stablediffusion-ggml
     host_match:

@@ -35,6 +35,14 @@ models:
           sd_xl_base_1.0.safetensors: sha256:31e35c80fc4829d14f90153f4c74cd59c90b779f6afe05a74cd6120b893f7e5b
         total_size_bytes: 6938078334
         host_requirement: {accelerator: cuda, min_ram_bytes: 17179869184, min_vram_bytes: 8589934592}
+      - variant_id: local.image.sdxl-base-1.0.f16.metal
+        quant: F16
+        entry: sd_xl_base_1.0.safetensors
+        files: [sd_xl_base_1.0.safetensors]
+        hashes:
+          sd_xl_base_1.0.safetensors: sha256:31e35c80fc4829d14f90153f4c74cd59c90b779f6afe05a74cd6120b893f7e5b
+        total_size_bytes: 6938078334
+        host_requirement: {accelerator: metal, min_ram_bytes: 17179869184, min_vram_bytes: 8589934592}
     fitness: {param_count: 3500000000, context_length: 0}
   - model_id: minimax-h3-image-local
     model_type: image
@@ -72,6 +80,14 @@ models:
           diffusion_models/minimax_h3_image_pruned_int8_convrot.safetensors: sha256:83eb140f1ff95c068f8a6886e6d3f3d0d4ab2e07bb2fe6d2ef992a51146ee622
         total_size_bytes: 20979314802
         host_requirement: {accelerator: cuda, min_ram_bytes: 68719476736, min_vram_bytes: 25769803776}
+      - variant_id: local.image.minimax-h3-image.pruned-int8-convrot.metal
+        quant: INT8 ConvRot
+        entry: diffusion_models/minimax_h3_image_pruned_int8_convrot.safetensors
+        files: [diffusion_models/minimax_h3_image_pruned_int8_convrot.safetensors]
+        hashes:
+          diffusion_models/minimax_h3_image_pruned_int8_convrot.safetensors: sha256:83eb140f1ff95c068f8a6886e6d3f3d0d4ab2e07bb2fe6d2ef992a51146ee622
+        total_size_bytes: 20979314802
+        host_requirement: {accelerator: metal, min_ram_bytes: 68719476736, min_vram_bytes: 25769803776}
 
     fitness: {param_count: 20000000000, context_length: 0}
 
