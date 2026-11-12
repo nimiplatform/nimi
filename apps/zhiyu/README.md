@@ -31,6 +31,8 @@ pnpm dev:web
 
 `typecheck`、`test` 和两种 renderer 构建只消费已安装的公开包，不调用 Nimi 父仓脚本。输出 `dist-web/` 是网页资源，不是已部署网站。App Tools 提供的开发服务只协调身份和连接；生产托管需要相同的正式协调路由，AI／文件仍直达 PC，不加入 Relay 或网站后端业务转发。
 
+正式 Web 资源通过 `pnpm build:web:release` 构建。按 [App Tools 的 Web 接入说明](../../app-tools/README.md) 提供正式来源、登录和回跳参数；官方登录 origin 使用 `https://nimi.ai`。Cloudflare Pages 部署包含 `dist-web/` 和根目录 `functions/`，Functions 配置 `NIMI_WEB_ORIGIN` 与 `NIMI_REALM_URL`。`public/_routes.json` 仅把 `/api/*` 交给协调函数，AI、Agent 与文件请求继续直连主 Runtime。构建成功不授予来源准入，也不代表正式部署或登录验收通过。
+
 ## 工作区源码联调
 
 在 Nimi 仓库根目录安装依赖并准备当前 SDK／Kit，然后启动 Home：
@@ -47,14 +49,14 @@ pnpm dev:desktop
 
 复制同一份织羽源码到独立目录，排除 `node_modules`、构建目录和本机 `.env*.local`；不要重新生成一个业务不同的样例。
 
-1. 将 `package.json` 中 SDK、Kit 和 App Tools 的 `workspace:*` 改成所选完整包的版本。当前开发组合为 SDK `0.22.2`、Kit `0.22.1`、App Tools `0.14.0`；这些数字本身不保证 npm 上已有本分支新增接口。
+1. 将 `package.json` 中 SDK、Kit 和 App Tools 的 `workspace:*` 改成所选完整包的版本。当前候选组合为 SDK `0.23.0`、Kit `0.23.0`、App Tools `0.15.0`，通过本地归档安装。
 2. 若使用本地源码包，在该目录的 `pnpm-workspace.yaml` 中通过 `overrides` 选定完整 `.tgz`，包括 Kit 需要的同版本 native optional 包。三者必须是兼容的目标组合；不得改成指向父仓源码目录的依赖。
 3. 执行 `pnpm install`，保留实际 lockfile。随后运行上面的类型检查、测试和 Web 构建；复制 TLS 示例并填写本机路径后，通过原已批准来源启动。
 4. 更新时先检查当前 Git 修改，再更换选定包／override，重新安装并按 package migration notes 修改应用调用。查看 diff，确认业务源码、App ID、来源、回调和用户自有修改未被覆盖，再运行受影响检查与真实业务。
 
 同一开发版本号的两个 tarball 可能包含不同源码；请保留所选文件路径与 lock integrity，不要仅凭版本号判断更新是否成功。织羽是手写应用，不含 scaffold-managed glue，请勿通过伪造 scaffold lock 或运行 `sync` 覆盖业务入口。同目录下 Desktop 与 Web 的 `init/sync/check/test/build` 目前不由 App Tools 统一接管。
 
-`build:electron` 是 Nimi 仓库内的受监督 Host 构建脚本，独立 Web 迭代不调用它。本轮不提供独立原生分发／安装流程，也不发布 `zhiyu.nimi.ai`。
+`build:electron` 构建仓库内的受监督开发 Host。原生织羽随 Nimi 安装包交付，Web 按各自来源部署。
 
 ## Desktop 联调
 
@@ -89,3 +91,11 @@ pnpm dev:mobile
 USB reverse 仅用于本机开发登录和 Realm 协调，AI 与文件仍通过手机与 Runtime 之间的既有直接 peer 通道传输，因此 PC 与手机需具备直连条件。请保留 `loggingBehavior: 'none'`，防止原生桥接调试日志记录登录参数。应用切入后台时会结束旧连接，回到前台时重新核对当前身份与技术连接，不会重放业务或续接旧流。
 
 Debug 明文网络例外仅覆盖 localhost/127.0.0.1；其它目标仍要求 TLS。可通过 Gradle `-PnimiDebugKeystore=<path>` 使用自己的开发签名；该指纹须与来源登记一致。当前本机工具为 JDK 21、compileSdk 37、targetSdk 36、minSdk 31。正式分发使用单独接纳的 `android-app-link` 来源、HTTPS 回调与 Android Digital Asset Links；debug Scheme 只编入 debug Manifest。完整 App Link 分发验证不由本地 Scheme 结果代替。
+
+### Android 发行构建
+
+准备正式 `NIMI_ANDROID_PACKAGE_NAME`、`NIMI_ANDROID_CLIENT_ID`、`NIMI_ANDROID_REALM_ENVIRONMENT_ID`、`NIMI_ANDROID_REALM_URL`、`NIMI_ANDROID_OFFICIAL_WEB_URL`、`NIMI_ANDROID_REDIRECT_URI` 与递增的 `NIMI_ANDROID_VERSION_CODE`。Realm、官方登录和回跳使用实际 HTTPS 地址。通过签名环境提供 `NIMI_ANDROID_KEYSTORE`、`NIMI_ANDROID_STORE_PASSWORD`、`NIMI_ANDROID_KEY_ALIAS` 和 `NIMI_ANDROID_KEY_PASSWORD`。
+
+在织羽目录运行 `pnpm build:android:release`。命令用同一组配置构建 renderer、同步 Capacitor、组装签名 APK。按实际安装证书发布回跳域的 `/.well-known/assetlinks.json`，再核对 Registry 接纳、系统 App Link、正式登录及同签名升级。
+
+发行输出为 `android/app/build/outputs/apk/release/app-release.apk`。正式包名、client、证书和回跳须作为同一来源由 Registry owner 接纳；本地工程签名构建只验证打包链，不可作为正式分发或真机 App Link 的通过依据。切回调试构建使用 `pnpm sync:android`，重新同步调试配置，避免沿用发行 assets。

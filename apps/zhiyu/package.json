@@ -15,7 +15,9 @@
     "dev:web": "nimi-app dev --platform web",
     "dev:web-renderer": "vite --mode web",
     "build:web": "tsc --noEmit && vite build --mode web",
+    "build:web:release": "tsc --noEmit && vite build --mode web-release",
     "build:mobile": "tsc --noEmit && vite build --mode mobile",
+    "build:android:release": "pnpm run typecheck && node scripts/build-android-release.mjs",
     "sync:android": "pnpm build:mobile && cap sync android",
     "dev:mobile": "nimi-app dev --platform mobile",
     "dev:android": "pnpm sync:android && cap run android --no-sync"

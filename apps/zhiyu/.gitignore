@@ -6,3 +6,4 @@ node_modules/
 .local/
 .env*.local
 dist-mobile/
+dist-mobile-release/

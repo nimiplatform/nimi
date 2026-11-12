@@ -1,14 +1,30 @@
 apply plugin: 'com.android.application'
 
+def releaseBuild = System.getenv('NIMI_ANDROID_RELEASE') == '1'
+def releaseValue = { name ->
+    def value = System.getenv(name)
+    if (!value) throw new GradleException("Set ${name} for the Android release.")
+    value
+}
+def releaseConfig = releaseBuild ? new groovy.json.JsonSlurper().parse(file('src/main/assets/capacitor.config.json')) : null
+def releaseCallback = releaseBuild ? new URI(releaseConfig.plugins.NimiAppAccess.redirectUri) : null
+if (releaseBuild && (releaseConfig.appId != releaseValue('NIMI_ANDROID_PACKAGE_NAME') ||
+        releaseCallback.toString() != releaseValue('NIMI_ANDROID_REDIRECT_URI'))) {
+    throw new GradleException('Sync the matching Zhiyu Android release configuration before building.')
+}
+
 android {
     namespace = "ai.nimi.apps.zhiyu.dev"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId "ai.nimi.apps.zhiyu.dev"
+        applicationId releaseBuild ? releaseConfig.appId : "ai.nimi.apps.zhiyu.dev"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 1
-        versionName "0.1.0"
+        versionCode releaseBuild ? releaseValue('NIMI_ANDROID_VERSION_CODE').toInteger() : 1
+        versionName new groovy.json.JsonSlurper().parse(file('../../package.json')).version
+        if (releaseBuild) {
+            manifestPlaceholders = [nimiCallbackHost: releaseCallback.host, nimiCallbackPath: releaseCallback.path]
+        }
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -22,12 +38,27 @@ android {
                 storeFile file(project.property('nimiDebugKeystore'))
             }
         }
+        if (releaseBuild) {
+            release {
+                storeFile file(releaseValue('NIMI_ANDROID_KEYSTORE'))
+                storePassword releaseValue('NIMI_ANDROID_STORE_PASSWORD')
+                keyAlias releaseValue('NIMI_ANDROID_KEY_ALIAS')
+                keyPassword releaseValue('NIMI_ANDROID_KEY_PASSWORD')
+            }
+        }
     }
     buildTypes {
         release {
+            if (releaseBuild) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+    }
+}
+
+androidComponents {
+    beforeVariants(selector().all()) { variant ->
+        variant.enable = variant.buildType == (releaseBuild ? 'release' : 'debug')
     }
 }
 
