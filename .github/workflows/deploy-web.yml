@@ -1,6 +1,19 @@
 name: Deploy official Web
 
 on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web/**'
+      - 'kit/**'
+      - 'sdks/typescript/**'
+      - 'config/**'
+      - 'scripts/lib/workspace-surfaces.mjs'
+      - 'scripts/with-workspace-surfaces.mjs'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - '.github/workflows/deploy-web.yml'
   workflow_dispatch:
     inputs:
       commit_sha:
