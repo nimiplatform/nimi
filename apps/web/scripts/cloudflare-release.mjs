@@ -44,7 +44,7 @@ async function verify(origin, directory) {
   const entry = local.match(/<script\b[^>]*src="(\/assets\/main-[^"]+\.js)"/u)?.[1];
   assert.ok(entry, 'Vite main entry is missing');
   const publicPaths = ['/', '/download', '/terms', '/privacy', '/apps/zhiyu'];
-  const accountPaths = ['/login', '/register', '/account/recovery', '/account/runtime'];
+  const accountPaths = ['/login', '/register', '/account/recovery', '/account/runtime', '/account/connect'];
   const paths = [...publicPaths, ...accountPaths];
   for (const pathname of paths) {
     const response = await fetchPublishedAsset(new URL(pathname, base));
@@ -52,6 +52,9 @@ async function verify(origin, directory) {
     assert.match(response.headers.get('content-type') || '', /text\/html/u);
     assert.equal(response.headers.get('x-content-type-options'), 'nosniff');
     assert.equal(response.headers.get('x-frame-options'), 'DENY');
+    assert.equal(response.headers.get('referrer-policy'),
+      base.origin === 'https://nimi.ai' && pathname === '/account/connect' ? 'strict-origin' : 'no-referrer',
+      `${pathname}: authorization form Origin or callback referrer policy changed`);
     assert.equal(response.headers.get('set-cookie'), null, 'Static hosting must not set account cookies');
     const html = await response.text();
     if (!['/download', '/terms', '/privacy'].includes(pathname)) assert.ok(html.includes(entry), `${pathname}: different build`);

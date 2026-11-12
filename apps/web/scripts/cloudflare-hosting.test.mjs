@@ -4,7 +4,7 @@ import worker from '../public/_worker.js';
 
 test('all portal account aliases preserve the complete OAuth query on the official account origin', async () => {
   for (const host of ['www.nimi.ai', 'web.nimi.ai', 'nimi.xyz', 'www.nimi.xyz']) {
-    for (const path of ['/login', '/register', '/account', '/account/runtime', '/account/recovery']) {
+    for (const path of ['/login', '/register', '/account', '/account/runtime', '/account/connect', '/account/recovery']) {
       const suffix = '?oauth_next=https%3A%2F%2Frealm.nimi.ai%2Fapi%2Fauth%2Foauth%2Fauthorize%3Fstate%3Dtest&lang=zh';
       const response = await worker.fetch(new Request(`https://${host}${path}${suffix}`), {});
       assert.equal(response.status, 308);
@@ -34,6 +34,7 @@ test('the canonical host serves account deep links with security headers and no 
   assert.equal(response.status, 200);
   assert.equal(response.headers.get('cache-control'), 'no-store');
   assert.equal(response.headers.get('x-frame-options'), 'DENY');
+  assert.equal(response.headers.get('referrer-policy'), 'no-referrer');
   assert.equal(response.headers.get('set-cookie'), null);
   assert.equal(response.headers.get('access-control-allow-origin'), null);
   assert.equal(fetched, 1);
@@ -42,6 +43,27 @@ test('the canonical host serves account deep links with security headers and no 
   const post = await worker.fetch(new Request('https://nimi.ai/login', { method: 'POST' }), env);
   assert.equal(post.status, 405);
   assert.equal(fetched, 1);
+});
+
+test('only the canonical Runtime connection form retains its Origin without exposing URL details', async () => {
+  const env = { ASSETS: { fetch: async () => new Response('<html>account document</html>', {
+    headers: { 'Content-Type': 'text/html', 'Referrer-Policy': 'no-referrer' },
+  }) } };
+  for (const pathname of ['/account/connect', '/account/connect/']) {
+    const response = await worker.fetch(new Request(`https://nimi.ai${pathname}?state=private-query`), env);
+    assert.equal(response.headers.get('referrer-policy'), 'strict-origin');
+    assert.equal(response.headers.get('cache-control'), 'no-store');
+    assert.equal(response.headers.get('x-frame-options'), 'DENY');
+    assert.equal(response.headers.get('set-cookie'), null);
+    assert.equal(response.headers.get('access-control-allow-origin'), null);
+  }
+  for (const pathname of ['/account/runtime?code=private-code&state=private-state', '/login', '/account/connectivity']) {
+    const response = await worker.fetch(new Request(`https://nimi.ai${pathname}`), env);
+    assert.equal(response.headers.get('referrer-policy'), 'no-referrer');
+  }
+  const preview = await worker.fetch(new Request('https://candidate.nimi-6jb.pages.dev/account/connect'), env);
+  assert.equal(preview.headers.get('referrer-policy'), 'no-referrer');
+  assert.match(preview.headers.get('content-security-policy'), /connect-src 'self'; form-action 'self'/u);
 });
 
 test('preview pages do not redirect into production or gain production connect permission', async () => {
