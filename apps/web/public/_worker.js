@@ -1,0 +1,53 @@
+const PORTAL_ORIGIN = 'https://nimi.ai';
+const ACCOUNT_ORIGIN = 'https://web.nimi.ai';
+
+function isAccountPath(pathname) {
+  return /^\/(?:login|register)(?:\/|$)/u.test(pathname)
+    || pathname === '/account' || pathname.startsWith('/account/');
+}
+
+// Static hosting only. Realm owns sessions; Runtime owns management and AI.
+export default {
+  async fetch(request, env) {
+    const url = new URL(request.url);
+    const accountPath = isAccountPath(url.pathname);
+    const productionHost = ['nimi.ai', 'www.nimi.ai', 'web.nimi.ai', 'nimi.xyz', 'www.nimi.xyz'].includes(url.hostname);
+    if (productionHost) {
+      const destination = accountPath ? ACCOUNT_ORIGIN : PORTAL_ORIGIN;
+      if (url.origin !== destination) {
+        return new Response(null, {
+          status: 308,
+          headers: {
+            Location: `${destination}${url.pathname}${url.search}`,
+            'Cache-Control': 'no-store',
+            'Referrer-Policy': 'no-referrer',
+          },
+        });
+      }
+    }
+    if (request.method !== 'GET' && request.method !== 'HEAD') {
+      return new Response('Method not allowed', {
+        status: 405, headers: { Allow: 'GET, HEAD', 'Cache-Control': 'no-store' },
+      });
+    }
+    if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
+      return new Response('Not found', { status: 404, headers: { 'Cache-Control': 'no-store' } });
+    }
+
+    const asset = await env.ASSETS.fetch(request);
+    const response = new Response(asset.body, asset);
+    response.headers.set('X-Content-Type-Options', 'nosniff');
+    response.headers.set('X-Frame-Options', 'DENY');
+    response.headers.set('Referrer-Policy', 'no-referrer');
+    response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()');
+    response.headers.set('Strict-Transport-Security', 'max-age=31536000');
+    response.headers.set('Content-Security-Policy', "base-uri 'self'; object-src 'none'; frame-ancestors 'none'");
+    if (accountPath) response.headers.set('Cache-Control', 'no-store');
+    if (!productionHost) {
+      response.headers.set('X-Robots-Tag', 'noindex');
+      // Preview HTML can be inspected, but cannot call production Realm or initiate forms there.
+      response.headers.append('Content-Security-Policy', "connect-src 'self'; form-action 'self'");
+    }
+    return response;
+  },
+};

@@ -14,7 +14,8 @@
     "typecheck": "tsc --noEmit",
     "lint": "pnpm run typecheck",
     "test:dev": "node --test scripts/dev-server.test.mjs",
-    "test": "pnpm run test:dev && node ../../scripts/with-workspace-surfaces.mjs -- tsx --tsconfig tsconfig.test.json --test test/**/*.test.ts"
+    "test:hosting": "node --test scripts/cloudflare-hosting.test.mjs",
+    "test": "pnpm run test:dev && pnpm run test:hosting && node ../../scripts/with-workspace-surfaces.mjs -- tsx --tsconfig tsconfig.test.json --test test/**/*.test.ts"
   },
   "dependencies": {
     "@nimiplatform/kit": "workspace:*",

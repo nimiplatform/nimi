@@ -1,0 +1,15 @@
+# Fingerprinted Vite assets bypass Functions; HTML keeps Pages revalidation.
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: no-referrer
+  Strict-Transport-Security: max-age=31536000
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+https://:project.pages.dev/*
+  X-Robots-Tag: noindex
+
+https://:version.:project.pages.dev/*
+  X-Robots-Tag: noindex

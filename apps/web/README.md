@@ -12,6 +12,30 @@ The web application handles public-facing and account-related routes, including:
 
 Nimi Home itself runs within the Desktop client; web pages provide product information, account controls, and secure OAuth/browser authentication handoffs.
 
+## Production hosting and releases
+
+The existing Cloudflare Pages project **`nimi`** (`nimi-6jb.pages.dev`) hosts both the public portal and account UI from this package. The Cloudflare account is `91f8e657f85b6ae12cc333397190709d`. Do not create a second landing application or install Web archives on Realm ECS.
+
+| Origin | Responsibility |
+| --- | --- |
+| `https://nimi.ai` | Public portal, App introductions, download and legal pages |
+| `https://web.nimi.ai` | `/login`, `/register`, `/account/*`, including official Runtime management |
+| `https://www.nimi.ai` | Redirect to the appropriate canonical portal or account path |
+| Existing `nimi.xyz` / `www.nimi.xyz` aliases | Same canonical redirects; no separate account identity |
+| `https://realm.nimi.ai` | ECS API, Realtime, account sessions and coordination |
+| `https://admin.nimi.ai` | Existing ECS administration site |
+| `https://assets.nimi.ai` | Existing media Worker/R2 deployment |
+
+`public/_worker.js` performs host/path redirects and serves Pages assets. It preserves OAuth query parameters, never proxies Realm requests, sets no cookies and exposes no AI execution endpoint. Multi-page HTML files use Pages clean URLs; routes without static HTML use its SPA fallback. `_routes.json` keeps large static directories outside Functions, and `_headers` gives fingerprinted assets immutable caching. Account HTML is `no-store`. Preview documents deny cross-origin connections and form submissions and are not production Registry or CORS origins.
+
+`.github/workflows/deploy-web.yml` owns release execution. Pages remains connected to `nimiplatform/nimi`, with production branch `main` and automatic Cloudflare Git builds disabled in both environments so a second build cannot overwrite a release. The GitHub workflow runs on relevant `main` pushes or explicit dispatch, installs the pinned workspace, tests/builds Web once, deploys and checks a preview, then publishes the same directory to production and checks the public routes. Deployment URLs, IDs and source SHA are recorded in the GitHub run summary and Cloudflare history. A failed preview prevents production publication; a failed production check leaves the real failure visible and does not silently roll back.
+
+Build inputs are public configuration: `NIMI_REALM_URL=https://realm.nimi.ai`, `VITE_NIMI_REALM_ENVIRONMENT_ID=production`, and `VITE_NIMI_RUNTIME_MANAGER_CLIENT_ID=nimiplatform.runtime-manager.web`. The manager source remains the Registry-approved exact origin `https://web.nimi.ai` and callback `https://web.nimi.ai/account/runtime`. Realm continues to own host-only HttpOnly cookies and exact credentialed CORS. Neither Pages aliases nor previews receive new account or Runtime permissions.
+
+CI reuses the repository's `CLOUDFLARE_ACCOUNT_ID` and `CLOUDFLARE_API_TOKEN` secrets. The token needs Cloudflare Pages Edit for this account. DNS changes are a separate one-time operation, not a CI permission. Wrangler is pinned to `4.127.1` in the workflow.
+
+For an exact release, dispatch **Deploy official Web** with `commit_sha` set to a full SHA already on `main`. Set `publish=false` to build and verify only a preview before a domain cutover. For rollback, leave `commit_sha` empty and set `rollback_deployment_id` to a previously verified, compatible **production** deployment from this project. The workflow validates the target through Cloudflare, uses its rollback API and reads back the active deployment. Preview deployments are rejected. Do not roll back to pre-manager builds for production account use; after a rollback, recheck login, account deep links and the affected user journey. Rollback changes Web only, never Realm data, Registry admission or Runtime state.
+
 ### Security and Authentication Architecture
 
 - **Session Security:** Web authentication uses `WebAccountAuthPage` powered by the Realm SDK in `browser-session` mode. Session state is secured via `HttpOnly`, `SameSite` browser cookies managed by Realm.
