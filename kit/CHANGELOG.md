@@ -2,6 +2,10 @@
 
 # Changelog
 
+## Unreleased — Runtime presence protocol (breaking, 0.23)
+
+Use the matching SDK and Runtime register/heartbeat/sync implementation. The former lease/poll contract and generated `leaseExpiresAt` field are removed. Runtime owns presence and authorization maintenance; Kit retains the public App connection lifecycle and never replays business work after reconnecting.
+
 ## Unreleased — Bundled Zhiyu Host (breaking native carrier, 0.23)
 
 Home can host bundled Zhiyu under its own formal App declaration and session. The main-only `createNimiElectronBundledAppLocalHostOwner` creates a bounded Avatar or Zhiyu client; it grants no Home account or machine controls. Native bundled calls now use `desktopBundledApp*` with the explicit canonical App identity instead of the Avatar-only exports. Update the complete Kit native package, Kit and Runtime together. Ordinary App renderer APIs are unchanged; source-development registrations remain separate from installed bundle identity.

@@ -1,11 +1,12 @@
 # Platform upgrade
 
-App Tools 0.14 defaults to SDK 0.22.2, Kit/native 0.22.1, Tauri 0.11.1 and
-protected-local 0.11.2. Upgrade this combination together with a matching Runtime. Existing
-0.21 SDK/Kit combinations remain explicit selections; sync does not upgrade
-business dependencies. Every App must own a root `NIMI_APP.md`; remove the
-retired `metadata.readme` field. Review the SDK and Kit 0.22 migration notes
-for Realm media delivery, Desktop Open v2 and LocalAgent Conversation changes.
+App Tools 0.15 defaults to SDK 0.23.0, Kit/native 0.23.0 and both native crates
+0.12.0. Upgrade this combination together with a Runtime implementing the current
+register/heartbeat/sync protocol. Existing 0.21 and 0.22 SDK/Kit combinations remain
+explicit selections; sync does not upgrade business dependencies. Every App must
+own a root `NIMI_APP.md`; remove the retired `metadata.readme` field. Review the SDK
+and Kit migration notes for remote connection changes and the bundled native Host
+ABI. Source candidates and public registry installation remain separate stages.
 
 Fresh App Tools 0.13 scaffolds require Kit `^0.21.0` or a later admitted pair
 with the standard navigation contract. The combination list also contains

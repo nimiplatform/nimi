@@ -2,6 +2,10 @@
 
 # SDK migration notes
 
+## Unreleased — Runtime presence protocol (breaking, 0.23)
+
+Use SDK, Kit and Runtime builds matching the Realm register/heartbeat/sync contract. Runtime owns lightweight presence heartbeats and on-demand authorization synchronization. The former lease/poll operations and `leaseExpiresAt` projection are removed, including the generated native binding. Update the complete package combination together; applications continue to use the public connection lifecycle rather than maintain a lease themselves.
+
 ## Unreleased — Android local private-use callbacks (additive, next minor)
 
 Adds the explicitly admitted `android-dev-scheme` carrier for local non-production Realm development. It shares PKCE, context lifetime, Home source consent and the direct Runtime client with the App Link carrier. SDK callback helpers match the entire registered destination, including private-use scheme; Kit's Android adapter requires the installed debug package/signature and declared callback. Production source admission and verified App Links remain unchanged. Update the complete SDK/Kit packages and official login surface together; this is not package publication or a new permission system.
