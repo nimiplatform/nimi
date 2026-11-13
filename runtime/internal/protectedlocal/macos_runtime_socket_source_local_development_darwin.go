@@ -16,7 +16,7 @@ const macOSSourceLocalDevelopmentSocketMode = 0o600
 
 func openMacOSRuntimeSocket(_ string, expectedPath string, serviceUID uint32) (*net.UnixListener, error) {
 	cleaned := filepath.Clean(strings.TrimSpace(expectedPath))
-	runRoot := filepath.Join(MacOSRuntimeStateRoot, "run")
+	runRoot := filepath.Join(filepath.Dir(MacOSRuntimeStateRoot), "run")
 	if serviceUID == 0 || serviceUID != uint32(os.Geteuid()) ||
 		(cleaned != MacOSDesktopSocketPath && cleaned != MacOSLocalAppSocketPath) ||
 		filepath.Dir(cleaned) != runRoot {

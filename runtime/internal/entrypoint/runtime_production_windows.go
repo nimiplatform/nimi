@@ -75,6 +75,7 @@ const (
 	windowsRuntimeStartupLocalAppListener
 	windowsRuntimeStartupConfiguration
 	windowsRuntimeStartupDaemon
+	windowsRuntimeStartupInstance
 )
 
 type windowsRuntimeStartupError struct {
@@ -109,7 +110,7 @@ func windowsStartupExitCode(err error) uint32 {
 		return code
 	}
 	var startup *windowsRuntimeStartupError
-	if errors.As(err, &startup) && startup.stage > windowsRuntimeStartupUnknown && startup.stage <= windowsRuntimeStartupDaemon {
+	if errors.As(err, &startup) && startup.stage > windowsRuntimeStartupUnknown && startup.stage <= windowsRuntimeStartupInstance {
 		return uint32(startup.stage)
 	}
 	return uint32(windowsRuntimeStartupUnknown)
@@ -118,6 +119,12 @@ func windowsStartupExitCode(err error) uint32 {
 func (service *windowsRuntimeService) Execute(_ []string, requests <-chan svc.ChangeRequest, statuses chan<- svc.Status) (bool, uint32) {
 	startCheckpoint := uint32(1)
 	statuses <- windowsRuntimeStartPendingStatus(startCheckpoint, windowsRuntimeServiceStartWaitHint)
+	unlock, err := acquireRuntimeInstanceLock()
+	if err != nil {
+		writeWindowsRuntimeFailure(err)
+		return true, uint32(windowsRuntimeStartupInstance)
+	}
+	defer unlock()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	restartRequested := make(chan struct{}, 1)

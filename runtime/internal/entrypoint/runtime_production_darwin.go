@@ -20,6 +20,11 @@ func runProductionDaemon(version string) (resultErr error) {
 	defer func() {
 		protectedlocal.ReportMacOSRuntimeStartupFailure(resultErr)
 	}()
+	unlock, err := acquireRuntimeInstanceLock()
+	if err != nil {
+		return err
+	}
+	defer unlock()
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	signalCh := make(chan os.Signal, 2)

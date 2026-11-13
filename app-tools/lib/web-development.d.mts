@@ -9,7 +9,7 @@ export interface NimiWebClientConfig {
   readonly realmBaseUrl: string;
   readonly redirectUri: string;
 }
-export function readWebDevelopment(manifest: unknown): Readonly<{
+export function readWebDevelopment(manifest: unknown, options?: { realm?: 'official' | 'local'; env?: Record<string, string | undefined> }): Readonly<{
   site: URL; realm: URL; official: URL; command: string; script: string;
   config: Readonly<NimiWebClientConfig>;
 }>;

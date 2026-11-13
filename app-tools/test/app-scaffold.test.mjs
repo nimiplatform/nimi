@@ -445,6 +445,7 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     assert.equal(packageJson.packageManager, versions.packageManager);
     assert.equal(Object.hasOwn(packageJson, 'publishConfig'), false);
     assert.match(generated.read('.gitignore'), /^dist-electron-package\/$/m);
+    assert.match(generated.read('.gitignore'), /^dist-mobile\/$/m);
     assert.match(generated.read('.gitattributes'), /^LICENSE -text$/m);
     assert.equal(packageJson.dependencies['@nimiplatform/sdk'], versions.sdkVersion);
     assert.equal(packageJson.dependencies['@nimiplatform/kit'], versions.kitVersion);
@@ -504,6 +505,8 @@ test('standalone scaffold creates a generic starter with rewritten identity', as
     assert.doesNotMatch(generated.read('vite.config.ts'), /repoRoot|path\.join\(repoRoot|\.\.\/\.\.\/kit|kit\/ui\/src/);
     assert.match(generated.read('vite.config.ts'), /cacheDir: '\.vite'/);
     assert.ok(generated.read('vite.config.ts').includes("'**/.nimi/local/**', '**/dist/**', '**/dist-electron/**', '**/dist-electron-package/**'"));
+    assert.ok(generated.read('vite.config.ts').includes("optimizeDeps: { entries: ['index.html'] }"));
+    assert.ok(generated.read('vite.config.ts').includes("'**/android/app/src/main/assets/public/**'"));
     assert.doesNotMatch(generated.read('src-tauri/src/main.rs'), /lab_storage|world_tour|lab_/);
     assertGeneratedPathMissing(generated, 'src/lab');
     assertGeneratedPathMissing(generated, 'src/capabilities');
@@ -3310,7 +3313,7 @@ test('Desktop sync preserves and validates an App-owned Web entry without changi
     const manifestPath = path.join(generated.target, 'nimi.app.yaml');
     const manifest = parseYaml(generated.read('nimi.app.yaml'));
     const originalElectron = manifest.local_development.electron;
-    manifest.local_development.web = { origin: 'https://127.0.0.1:4475', redirect_uri: 'https://127.0.0.1:4475/', client_id: 'unit.app.web', realm_environment_id: 'dev', realm_url: 'http://127.0.0.1:3002', official_web_url: 'http://localhost:3000', command: 'pnpm run dev:web-renderer' };
+    manifest.local_development.web = { origin: 'https://127.0.0.1:4475', redirect_uri: 'https://127.0.0.1:4475/', client_id: 'unit.app.web', realm_environment_id: 'production', realm_url: 'https://realm.nimi.ai', official_web_url: 'https://nimi.ai', command: 'pnpm run dev:web-renderer' };
     writeFileSync(manifestPath, stringifyYaml(manifest));
     const packagePath = path.join(generated.target, 'package.json');
     const pkg = JSON.parse(generated.read('package.json'));

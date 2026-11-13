@@ -71,7 +71,7 @@ test('doctor does not infer registration or App Access from Desktop presence', a
     queryProcesses: async () => [],
   });
   assert.equal(report.ok, false);
-  assert.equal(report.tier1.find((row) => row.id === 'fixed-runtime-service')?.state, 'error');
+  assert.equal(report.tier1.find((row) => row.id === 'source-runtime')?.state, 'error');
   assert.deepEqual(report.tier2, [
     {
       id: 'registration',

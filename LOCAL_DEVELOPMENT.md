@@ -19,14 +19,15 @@
 
 | 开发路径 | 适用场景 | 依赖条件 |
 |---|---|---|
-| `pnpm dev:desktop` | Windows / macOS 桌面端 UI、Main 与 Preload 核心迭代 | 自动检查并启动缺失的 Runtime、Web 和已配置的 Realm 服务 |
+| `pnpm dev:desktop` | Windows / macOS Home 与 Runtime 源码迭代 | 默认官方 Realm；无需 Realm 私有仓库或本地数据库 |
+| `pnpm dev:desktop -- --realm local` | Realm 与 Nimi 联调 | 显式本地 Realm；复用或按配置启动 API、Realtime、登录页 |
 | `pnpm dev:runtime` | Windows x64 / macOS arm64 本地 Runtime 源码调试 | 独立终端持续前台运行 |
 | `pnpm dev:lab` | 启动 Nimi Lab 能力测试台应用 | 需先启动并登录 Desktop |
 | `pnpm dev:zhiyu` | 启动 织羽 (Zhiyu) AI 伙伴应用 | 需先启动并登录 Desktop |
 | `pnpm dev:nimigo` | 启动 NimiGo 应用 | 需先启动并登录 Desktop |
 | `pnpm dev:nimiday` | 启动 NimiDay 应用 | 需先启动并登录 Desktop |
 | `pnpm dev:avatar` | 启动独立的桌面 Avatar 悬浮载体 | 与普通 `pnpm dev:desktop` 互斥 |
-| `nimi-app dev --shell electron` | 启动第三方生态应用工程 | 由 Desktop supervisor 监督启动 |
+| `nimi-app dev --shell electron` | 启动第三方生态应用工程 | 默认由已安装 Nimi 监督启动 |
 
 ---
 
@@ -56,14 +57,16 @@
 ## 推荐的开发流程
 
 ### 平台通用步骤
-1. **准备 Realm 开发服务**：如果 Realm 工作区提供 `dev:infra`、`dev:api` 和 `dev:realtime`，在 Nimi 根目录 `.env` 中设置 `NIMI_DEV_REALM_DIR` 指向该工作区。如果 Realm 工作区采用 `docker:dev:up`，按其 `ONBOARDING.md` 准备本机数据服务，再在 Realm 根目录分别运行 `pnpm dev:api` 和 `pnpm dev:realtime`。API `3002` 和实时服务 `3003` 已就绪时，Nimi 启动器可以直接复用，此时可将 `NIMI_DEV_REALM_DIR` 留空。
-2. **启动 Nimi Desktop**：运行 `pnpm dev:desktop`。启动器先检查数据服务、Realm API、实时服务、Web 登录代理和源码 Runtime，再启动 Electron。已就绪的服务会复用，无需逐个打开终端。
+1. **选择开发对象**：普通生态开发使用已安装 Nimi；修改 Nimi 本体时准备公开仓库依赖即可。两者默认连接官方真实 Realm。
+2. **启动 Nimi**：本体开发运行 `pnpm dev:desktop`，启动器准备源码 Runtime 和 Electron，不启动本地 Realm 或官网登录页。需要全链联调才加 `--realm local`；此时可用 `NIMI_DEV_REALM_DIR` 指定有 `dev:infra`、`dev:api`、`dev:realtime` 的 Realm 工作区，或复用已运行服务。
 3. **完成登录与授权**：首次启动 Desktop 时，选择数据根目录，并通过浏览器完成 Nimi 账号登录。
-4. **启动目标生态应用**：在 Desktop 保持运行的前提下，在新的终端窗口启动对应应用（如 `pnpm dev:zhiyu`，或在第三方 App 目录下运行 `pnpm dev`）。
+4. **启动目标生态应用**：`pnpm dev` / `nimi-app dev` 使用当前运行的 Home。普通开发先打开已安装 Nimi；源码联调先退出安装版 Runtime，再启动源码 Nimi。App 命令不启动或替换 Runtime。
 
 Realm 启动位置是本机配置。使用自动启动时，Realm 的 `dev:infra` 负责准备其开发配置所需的数据服务。Docker、开发镜像或数据库未就绪时，按对应 Realm 工作区的开发说明处理。
 
-Web 固定使用 `127.0.0.1:3000`，API 使用 `127.0.0.1:3002`，实时服务使用 `127.0.0.1:3003`。端口被其他服务占用、Web 属于其他工作区或服务启动失败时，Electron 不会继续打开。依赖日志位于 `.nimi/local/dev-services/`，终端会打印具体日志路径。源码 Runtime 仍由正式 supervisor 启动，并由 Desktop 的原生受保护连接完成准入检查。
+本地模式的 API/Realtime 默认 `127.0.0.1:3002/3003`，登录 Web 默认 `localhost:3000`。可用 `NIMI_DEV_REALM_URL`、`NIMI_DEV_REALTIME_URL`、`NIMI_DEV_WEB_URL`、`NIMI_DEV_REALM_ENVIRONMENT_ID` 配置该本地部署。官方模式不使用这些本地覆盖值。端口或工作区冲突明确报错；日志位于 `.nimi/local/dev-services/`。源码 Runtime 仍由 supervisor 启动并通过原生准入。
+
+同一机器只运行一个 Runtime；启动第二个时，无论 installed 还是 source，都会明确报错。切换版本或 Realm 前先正常退出当前 Runtime。兼容版本可以顺序复用同一个数据目录（包括模型和引擎），开发不要求复制这些大文件。Realm 凭据和持久身份仍按环境保管，不自动迁移或替换主绑定。同一官方账户共享真实云端数据。`pnpm doctor:dev -- --realm local` 诊断选定环境，`--host installed` 可检查安装版目标。
 
 关闭 Desktop 或终端中断启动时，只停止本次自动创建的开发进程；先前已运行的服务和数据容器保留。需要独立调试 Runtime 时仍可先运行 `pnpm dev:runtime`，Desktop 会复用它。`pnpm dev:electron:desktop` 和 Desktop 包内的 `dev` / `dev:electron` 使用同一依赖检查。
 

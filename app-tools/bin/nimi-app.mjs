@@ -23,7 +23,7 @@ function parseArgs(argv) {
   const values = {
     dir: '', profile: '', platform: '', appId: '', version: '', title: '', packageName: '', author: '',
     features: undefined, shell: '', cdpPort: undefined, noCdp: false, listRegistrations: false, resume: '', newRegistration: false, target: '', aggregate: false, production: false, json: false,
-    adopt: false, dryRun: false, input: '',
+    adopt: false, dryRun: false, input: '', realm: '',
   };
   const seen = new Set();
   const readValue = (index, flag, key, preserve = false) => {
@@ -39,6 +39,11 @@ function parseArgs(argv) {
     return index + 1;
   };
   for (let index = 0; index < rest.length; index += 1) {
+    if (rest[index] === '--realm') {
+      if (command !== 'dev') throw new Error(`${rest[index]} is available only for dev.`);
+      index = readValue(index, rest[index], rest[index].slice(2));
+      continue;
+    }
     if (rest[index] === '--input') {
       index = readValue(index, '--input', 'input');
       continue;
@@ -156,7 +161,7 @@ function assertCommandOptions(command, providedOptions) {
     init: new Set(['dir', 'json', 'adopt', 'input', 'dryRun']),
     sync: new Set(['dir', 'json', 'dryRun']),
     check: new Set(['dir', 'json', 'production']),
-    dev: new Set(['dir', 'platform', 'shell', 'cdpPort', 'noCdp', 'listRegistrations', 'resume', 'newRegistration']),
+    dev: new Set(['dir', 'platform', 'shell', 'realm', 'cdpPort', 'noCdp', 'listRegistrations', 'resume', 'newRegistration']),
     test: new Set(['dir', 'json']),
     build: new Set(['dir', 'target', 'production', 'json']),
     pack: new Set(['dir', 'target', 'aggregate', 'production', 'json']),
@@ -187,7 +192,7 @@ function printUsage() {
       '  nimi-app init [--adopt [--input json-path]] [--dry-run] [--dir path] [--json]',
       '  nimi-app sync [--dry-run] [--dir path] [--json]',
       '  nimi-app check [--dir path] [--production] [--json]',
-      '  nimi-app dev [--dir path] [--platform desktop|web|mobile] [--shell electron] [--list-registrations | --resume <selector> | --new-registration] [--cdp-port 1024..65535 | --no-cdp]',
+      '  nimi-app dev [--dir path] [--platform desktop|web|mobile] [--realm official|local (web/mobile)] [--shell electron] [--list-registrations | --resume <selector> | --new-registration] [--cdp-port 1024..65535 | --no-cdp]',
       '  nimi-app test [--dir path] [--json]',
       '  nimi-app build [--dir path] [--target target-id] [--production] [--json]',
       '  nimi-app pack [--dir path] (--target target-id [--production] | --aggregate) [--json]',
@@ -323,6 +328,7 @@ try {
     packageName,
     author,
     features: parsedFeatures,
+    realm,
     shell,
     cdpPort,
     noCdp,
@@ -427,6 +433,7 @@ try {
       break;
     case 'dev':
       await runAppDevelopment(process.cwd(), {
+        realm,
         dir,
         shell,
         platform,

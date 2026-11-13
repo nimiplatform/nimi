@@ -50,6 +50,8 @@
     "runtime:config:validate": "pnpm runtime:cmd -- config validate --json",
     "runtime:config:get": "pnpm runtime:cmd -- config get --json",
     "generate:realm-sdk": "node sdks/generators/generate.mjs --realm-only",
+    "generate:development-realms": "node scripts/generate-development-realms.mjs",
+    "check:development-realms": "node scripts/generate-development-realms.mjs --check",
     "generate:sdks": "node sdks/generators/generate.mjs",
     "generate:runtime-bridge-methods": "node scripts/generate-runtime-bridge-methods.mjs",
     "generate:first-party-protected-runtime-profiles": "node scripts/generate-first-party-protected-runtime-profiles.mjs",

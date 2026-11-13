@@ -10,17 +10,26 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { spawnCommand } from './command-runner.mjs';
 import { composePnpmSpawn } from './pnpm-command.mjs';
 import { runSourceRuntimeDevelopment } from '../dev-runtime.mjs';
+import { readDevelopmentRealm, developmentRealmEnvironment } from './development-realm.mjs';
 
 const execute = promisify(execFile);
-const realmOrigin = 'http://127.0.0.1:3002';
-const realtimeOrigin = 'http://127.0.0.1:3003';
-const webOrigin = 'http://127.0.0.1:3000';
 const acceptsRealmKeys = (value) => Array.isArray(value?.keys) && value.keys.length > 0
   && value.keys.every((key) => key.kty === 'RSA' && key.kid && key.n && key.e);
 
 export function readDesktopDevEnvironment(root, environment = process.env) {
   const envPath = path.join(root, '.env');
   return { ...(existsSync(envPath) ? parseEnv(readFileSync(envPath, 'utf8')) : {}), ...environment };
+}
+
+// HTTP loopback browser cookies are site-bound. Keep the local login page and
+// its API on the same loopback hostname without changing Runtime's API origin.
+export function desktopWebRealmOrigin(realm) {
+  const api = new URL(realm.apiOrigin);
+  const web = new URL(realm.webOrigin);
+  const loopback = (host) => host === 'localhost' || host === '127.0.0.1';
+  if (realm.name === 'local' && api.protocol === 'http:' && web.protocol === 'http:'
+    && loopback(api.hostname) && loopback(web.hostname)) api.hostname = web.hostname;
+  return api.origin;
 }
 
 async function portOccupied(url) {
@@ -51,7 +60,11 @@ export async function probeDevHttp(url, accepts, { text = false } = {}) {
   }
 }
 
-export function desktopHttpDependencies(root) {
+export function desktopHttpDependencies(root, realm = readDevelopmentRealm(root)) {
+  if (realm.name === 'official') return [];
+  const realmOrigin = realm.apiOrigin;
+  const realtimeOrigin = realm.realtimeOrigin;
+  const webOrigin = realm.webOrigin;
   const webRoot = realpathSync(path.join(root, 'apps', 'web'));
   const workspace = createHash('sha256').update(process.platform === 'win32' ? webRoot.toLowerCase() : webRoot).digest('hex');
   return [
@@ -99,7 +112,7 @@ export async function waitForDevDependency(service, { signal, timeoutMs = 180_00
 
 // Process/endpoint observations decide whether to start the source supervisor.
 // Desktop still performs the protected native admission and readiness handshake.
-export async function probeSourceRuntime(root) {
+export async function probeSourceRuntime(root, realmName) {
   let rows;
   let endpoint;
   if (process.platform === 'win32') {
@@ -109,7 +122,7 @@ export async function probeSourceRuntime(root) {
       '$hash = [System.Security.Cryptography.SHA256]::Create().ComputeHash([Text.Encoding]::UTF8.GetBytes($sid))',
       '$identity = ([BitConverter]::ToString($hash)).Replace("-", "").ToLowerInvariant()',
       '$pipe = "\\\\.\\pipe\\nimi-runtime-source-local-development-$identity-desktop-v1"',
-      '$rows = @(Get-CimInstance Win32_Process -Filter "Name = \'nimi.exe\' OR Name = \'nimi-source-runtime-supervisor.exe\'" | Select-Object ProcessId,ParentProcessId,Name,ExecutablePath)',
+      '$rows = @(Get-CimInstance Win32_Process -Filter "Name = \'nimi.exe\' OR Name = \'nimi-source-runtime-supervisor.exe\'" | Select-Object ProcessId,ParentProcessId,Name,ExecutablePath,CommandLine)',
       '@{ rows = $rows; endpoint = (Test-Path -LiteralPath $pipe) } | ConvertTo-Json -Depth 4 -Compress',
     ].join('\n');
     const { stdout } = await execute('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { windowsHide: true, timeout: 10_000 });
@@ -127,6 +140,9 @@ export async function probeSourceRuntime(root) {
   const normalize = (value) => process.platform === 'win32' ? String(value || '').toLowerCase() : value;
   const runtime = rows.find((row) => normalize(row.ExecutablePath) === normalize(expected)
     && rows.some((owner) => owner.ProcessId === row.ParentProcessId && /^nimi-source-runtime-supervisor(?:\.exe)?$/u.test(owner.Name)));
+  if (rows.some((row) => /^(?:nimi(?:\.exe)?|nimi-runtime)$/u.test(row.Name) && row !== runtime)) {
+    return { state: 'conflict' };
+  }
   if (process.platform === 'darwin' && runtime) {
     const socket = path.join(os.homedir(), 'Library', 'Application Support', 'Nimi', 'RuntimeLocalDevelopment', 'run', 'runtime-desktop.sock');
     try {
@@ -135,6 +151,14 @@ export async function probeSourceRuntime(root) {
     } catch (error) {
       if (error.code !== 1) throw error;
       endpoint = false;
+    }
+  }
+  if (runtime && realmName) {
+    const owner = rows.find((row) => row.ProcessId === runtime.ParentProcessId);
+    const commandLine = process.platform === 'win32' ? owner?.CommandLine
+      : (await execute('/bin/ps', ['-p', String(runtime.ParentProcessId), '-o', 'args='], { timeout: 10_000 })).stdout;
+    if (String(commandLine || '').match(/(?:^|\s)--realm\s+(official|local)(?:\s|$)/u)?.[1] !== realmName) {
+      throw new Error('The active source Runtime uses another Realm environment. Stop that source instance before switching.');
     }
   }
   if (runtime) return { state: endpoint ? 'ready' : 'starting' };
@@ -183,29 +207,27 @@ export function launchDevService(root, service, env, logRoot) {
   };
 }
 
-export async function prepareDesktopDevDependencies(root, { signal } = {}) {
+export async function prepareDesktopDevDependencies(root, { signal, realm = readDevelopmentRealm(root), externalEnvironment = process.env } = {}) {
   const env = readDesktopDevEnvironment(root);
   const logRoot = path.join(root, '.nimi', 'local', 'dev-services');
   mkdirSync(logRoot, { recursive: true });
   const owned = [];
-  const runtimeAbort = new AbortController();
-  let runtimeTask;
-  let runtimeFailure;
-  let closing = false;
+  const runtimeOwner = createSourceRuntimeOwner((runtimeSignal) => runSourceRuntimeDevelopment({
+    argv: ['--realm', realm.name], env: { ...env, ...developmentRealmEnvironment(realm) }, repoRoot: root, signal: runtimeSignal,
+  }));
   let closeTask;
   const log = (message) => process.stdout.write(`[desktop-deps] ${message}\n`);
+  log(`Realm: ${realm.name} (${realm.apiOrigin})`);
   const close = () => {
     closeTask ??= (async () => {
-      closing = true;
-      runtimeAbort.abort();
-      await runtimeTask;
+      await runtimeOwner.close();
       const stopped = await Promise.allSettled(owned.reverse().map((child) => child.stop()));
       for (const result of stopped) if (result.status === 'rejected') process.stderr.write(`[desktop-deps] cleanup failed: ${result.reason}\n`);
     })();
     return closeTask;
   };
   try {
-    const services = desktopHttpDependencies(root);
+    const services = desktopHttpDependencies(root, realm);
     const states = await Promise.all(services.map((service) => service.probe()));
     for (let index = 0; index < services.length; index += 1) {
       if (states[index].state === 'conflict') {
@@ -215,11 +237,11 @@ export async function prepareDesktopDevDependencies(root, { signal } = {}) {
     // Resolve configuration before starting anything, so incomplete setup cannot
     // leave an unexplained half-started Desktop session.
     const needsRealm = services.some((service, index) => service.external && states[index].state === 'missing');
-    const realmRoot = (env.NIMI_DEV_REALM_DIR || needsRealm) ? validateRealmDevDirectory(env.NIMI_DEV_REALM_DIR, root) : undefined;
+    const realmRoot = realm.name === 'local' && (env.NIMI_DEV_REALM_DIR || needsRealm) ? validateRealmDevDirectory(env.NIMI_DEV_REALM_DIR, root) : undefined;
     if (realmRoot) {
       signal?.throwIfAborted();
       log('Checking Realm data services…');
-      const infra = launchDevService(realmRoot, { name: 'Realm data services', script: 'dev:infra' }, process.env, logRoot);
+      const infra = launchDevService(realmRoot, { name: 'Realm data services', script: 'dev:infra' }, externalEnvironment, logRoot);
       owned.push(infra);
       await Promise.race([
         infra.done,
@@ -235,26 +257,56 @@ export async function prepareDesktopDevDependencies(root, { signal } = {}) {
       log(`Starting ${service.name}…`);
       // The probe can use a numeric loopback address. Browser authentication
       // must keep the configured Realm origin so its session cookies stay same-site.
-      const serviceEnv = service.external ? process.env : { ...env, NIMI_REALM_URL: env.NIMI_REALM_URL || realmOrigin };
+      const serviceEnv = service.external ? externalEnvironment : { ...env, ...developmentRealmEnvironment(realm), NIMI_REALM_URL: desktopWebRealmOrigin(realm) };
       const child = launchDevService(service.external ? realmRoot : root, service, serviceEnv, logRoot);
       owned.push(child);
       log(`${service.name} log: ${child.logPath}`);
       await waitForDevDependency(service, { signal, failure: child.failure });
     }
-    const runtime = { name: 'Source Runtime', probe: () => probeSourceRuntime(root) };
+    const runtime = { name: 'Source Runtime', probe: () => probeSourceRuntime(root, realm.name) };
     const state = await runtime.probe();
-    if (state.state === 'conflict') throw new Error('A source Runtime from another workspace is active. Stop it explicitly before starting this Desktop.');
+    if (state.state === 'conflict') throw new Error('A Nimi Runtime is already active. Quit it before starting this source Nimi; installed and source Runtime cannot run together.');
     if (state.state === 'missing') {
       log('Starting source Runtime…');
-      runtimeTask = runSourceRuntimeDevelopment({ argv: [], repoRoot: root, signal: runtimeAbort.signal })
-        .then(() => { if (!closing) runtimeFailure = new Error('Source Runtime exited.'); })
-        .catch((error) => { runtimeFailure = error; });
+      runtimeOwner.start();
     } else log('Reusing source Runtime.');
-    await waitForDevDependency(runtime, { signal, failure: () => runtimeFailure });
+    await waitForDevDependency(runtime, { signal, failure: runtimeOwner.failure });
     log('Dependencies are available; starting Desktop for protected Runtime admission.');
-    return { close };
+    return { close, async restartRuntime() {
+      signal?.throwIfAborted();
+      log('Home selected its data root; restarting the owned source Runtime before Home relaunch.');
+      await runtimeOwner.restart();
+      await waitForDevDependency(runtime, { signal, failure: runtimeOwner.failure });
+    } };
   } catch (error) {
     await close();
     throw error;
   }
+}
+
+// Home's explicit profile-relaunch outcome is the only restart trigger. An
+// independently started supervisor is not adopted, and crashes are not retried.
+export function createSourceRuntimeOwner(launch) {
+  let task, abort, failure;
+  let closed = false;
+  const start = () => {
+    if (closed || task) throw new Error('Source Runtime owner is already active or closed.');
+    abort = new AbortController();
+    const current = abort;
+    task = Promise.resolve().then(() => launch(current.signal))
+      .then(() => { if (!current.signal.aborted) failure = new Error('Source Runtime exited.'); })
+      .catch(error => { failure = error; });
+  };
+  return { start, failure: () => failure,
+    async close() { closed = true; abort?.abort(); await task; },
+    async restart() {
+      if (closed || !task) throw new Error('Restart the independently started source Runtime in its owner terminal, then start Home again.');
+      abort.abort();
+      await task;
+      if (closed) throw new Error('Source Runtime owner is closing.');
+      if (failure) throw failure;
+      task = undefined; failure = undefined;
+      start();
+    },
+  };
 }

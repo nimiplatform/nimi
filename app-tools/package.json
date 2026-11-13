@@ -49,6 +49,11 @@
     "nimi-app": "./bin/nimi-app.mjs"
   },
   "exports": {
+    "./development": {
+      "types": "./lib/development-environment.d.mts",
+      "import": "./lib/development-environment.mjs",
+      "default": "./lib/development-environment.mjs"
+    },
     "./web/coordination": "./lib/web-coordination.mjs",
     "./web": {
       "types": "./lib/web-development.d.mts",

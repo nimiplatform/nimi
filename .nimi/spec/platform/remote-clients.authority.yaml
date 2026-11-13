@@ -2,6 +2,16 @@ format: nimicoding.authority/v2
 owner: team.platform
 scope: platform.app-ecosystem
 units:
+  - id: rule.nimi.platform.remote-clients.development-source
+    kind: rule
+    title: Official Realm development retains reviewed source qualification
+    modality: must
+    statement: A Web development origin or Android debug App Link may use the existing reviewed remote registration without a native package release. Debug build type does not select local Realm or waive package, certificate, verified App Link, exact callback, PKCE or Home confirmation. Untrusted Web Apps use distinct explicitly configured HTTPS origins; a scaffold port hash and client id storage key are not browser isolation. Ordinary content updates do not advance source revision. The local-only android-dev-scheme remains unavailable in official production and the public Registry. Tools report unregistered input honestly and never manufacture approval, an official-manager identity or another source database.
+    condition: When preparing or running an ecosystem Web or Android development source.
+    failure: Refuse unregistered or mismatched sources and preserve existing account, source and operation admission; do not turn a local Registry check into official acceptance.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.remote-clients.registration
   - id: definition.nimi.platform.remote-clients.registration
     kind: definition
     title: Registry admitted remote application source

@@ -34,6 +34,7 @@ func TestWindowsRuntimeStartupExitCodesAreStableAndUnique(t *testing.T) {
 		windowsRuntimeStartupLocalAppListener,
 		windowsRuntimeStartupConfiguration,
 		windowsRuntimeStartupDaemon,
+		windowsRuntimeStartupInstance,
 	}
 	seen := make(map[uint32]struct{}, len(stages))
 	for _, stage := range stages {

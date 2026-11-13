@@ -37,6 +37,11 @@ func RunProductionDaemonFromArgs(_ string, args []string, version ...string) err
 type nonProductionDaemonConstructor func(config.Config, *slog.Logger, string) (*daemon.Daemon, error)
 
 func runNonProductionDaemonFromArgs(program string, args []string, version ...string) error {
+	unlock, err := acquireRuntimeInstanceLock()
+	if err != nil {
+		return err
+	}
+	defer unlock()
 	return runNonProductionDaemonFromArgsWithConstructor(program, args, daemon.New, version...)
 }
 
@@ -77,12 +82,6 @@ func runNonProductionDaemonFromArgsWithConstructor(program string, args []string
 	if err := cfg.Validate(); err != nil {
 		return err
 	}
-	unlock, err := acquireRuntimeInstanceLock()
-	if err != nil {
-		return err
-	}
-	defer unlock()
-
 	slogLevel, err := config.ParseLogLevel(cfg.LogLevel)
 	if err != nil {
 		return err
@@ -123,15 +122,6 @@ func acquireRuntimeInstanceLock() (func(), error) {
 		return nil, err
 	}
 	return func() { _ = release() }, nil
-}
-
-func runtimeInstanceLockPath() (string, error) {
-	return runtimeinstance.LockPath()
-}
-
-// RuntimeInstanceLockPath returns the singleton runtime lock file path.
-func RuntimeInstanceLockPath() (string, error) {
-	return runtimeInstanceLockPath()
 }
 
 // AuditExportResult is a collected view from AuditExportChunk streaming RPC.

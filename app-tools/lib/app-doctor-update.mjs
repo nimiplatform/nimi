@@ -595,8 +595,11 @@ function assertNimicodingProjectionCurrent(targetDir, runners) {
 function assertCarrierDevelopmentInputs(targetDir, manifest, packageJson, managed, plannedSources) {
   if (manifest.local_development && Object.hasOwn(manifest.local_development, 'mobile')) readMobileDevelopment(manifest, packageJson);
   if (manifest.platform === 'web' || (manifest.local_development && Object.hasOwn(manifest.local_development, 'web'))) {
-    const web = readWebDevelopment(manifest);
-    if (!packageJson.scripts?.[web.script] || /\bnimi-app\s+dev\b/u.test(packageJson.scripts[web.script])) throw new Error('Web dev requires a non-recursive App-owned renderer script.');
+    const declaration = manifest.local_development.web;
+    const script = /^pnpm run ([A-Za-z0-9][A-Za-z0-9:_.-]*)$/u.exec(declaration?.command || '')?.[1];
+    if (!script || !packageJson.scripts?.[script] || /\bnimi-app\s+dev\b/u.test(packageJson.scripts[script])) throw new Error('Web dev requires a non-recursive App-owned renderer script.');
+    if (manifest.platform === 'web' || declaration.origin || declaration.redirect_uri || declaration.client_id) readWebDevelopment(manifest);
+    if (declaration.local) readWebDevelopment(manifest, { realm: 'local' });
   }
   if (manifest.platform !== 'web') {
     if (manifest.platform !== undefined && manifest.platform !== 'desktop') throw new Error('Unsupported App platform.');

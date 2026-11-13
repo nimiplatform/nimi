@@ -13,9 +13,12 @@ import (
 	"runtime"
 	"strings"
 	"syscall"
+
+	"github.com/nimiplatform/nimi/runtime/internal/devenv"
+	"github.com/nimiplatform/nimi/runtime/internal/runtimeinstance"
 )
 
-const sourceRuntimeRealmURL = "http://127.0.0.1:3002"
+const sourceRuntimeRealmURL = "https://realm.nimi.ai"
 
 var errSourceRuntimeAlreadyOwned = errors.New("another source Runtime supervisor is active for the current user")
 
@@ -24,6 +27,7 @@ type supervisorConfig struct {
 	runtimePath     string
 	desktopPath     string
 	realmURL        string
+	realmName       string
 	supervisorPath  string
 	runtimeBuildTag string
 	runtimeCGO      string
@@ -75,6 +79,17 @@ func run(args []string) (runErr error) {
 	control := newSupervisorControl(ownerLock)
 	defer func() { control.finish(runErr) }()
 
+	// Reject an active installed Runtime before rebuilding the source binary.
+	// The child acquires the same lease for its full lifetime; this preflight
+	// alone cannot authorize startup across the intervening build.
+	release, err := runtimeinstance.AcquireLock()
+	if err != nil {
+		return err
+	}
+	if err := release(); err != nil {
+		return fmt.Errorf("release Runtime startup preflight: %w", err)
+	}
+
 	if err := buildSourceRuntime(config); err != nil {
 		return err
 	}
@@ -95,6 +110,8 @@ func run(args []string) (runErr error) {
 	starting := map[string]any{
 		"status":            "starting",
 		"topology":          "source-local-development",
+		"realm":             config.realmName,
+		"realmOrigin":       config.realmURL,
 		"supervisorPid":     os.Getpid(),
 		"runtimePid":        command.Process.Pid,
 		"runtimeExecutable": config.runtimePath,
@@ -157,8 +174,9 @@ func parseSupervisorConfig(args []string) (supervisorConfig, error) {
 	repoRoot := flags.String("repo-root", "", "canonical workspace root")
 	desktopPath := flags.String("desktop-executable", "", "canonical Desktop carrier executable")
 	realmURL := flags.String("realm-url", sourceRuntimeRealmURL, "source Realm URL")
+	realmName := flags.String("realm", "official", "official or local Realm")
 	if err := flags.Parse(args); err != nil || flags.NArg() != 0 {
-		return supervisorConfig{}, errors.New("source Runtime supervisor accepts only --repo-root, --desktop-executable, and --realm-url")
+		return supervisorConfig{}, errors.New("source Runtime supervisor accepts only --repo-root, --desktop-executable, --realm, and --realm-url")
 	}
 	root, err := canonicalDirectory(*repoRoot)
 	if err != nil {
@@ -168,8 +186,20 @@ func parseSupervisorConfig(args []string) (supervisorConfig, error) {
 	if err != nil {
 		return supervisorConfig{}, fmt.Errorf("resolve Desktop carrier: %w", err)
 	}
-	if *realmURL != sourceRuntimeRealmURL {
-		return supervisorConfig{}, fmt.Errorf("source Runtime Realm URL must be %s", sourceRuntimeRealmURL)
+	_, selected, realmErr := devenv.Resolve(func(key string) string {
+		if key == "NIMI_DEV_REALM" {
+			return *realmName
+		}
+		if key == "NIMI_DEV_REALM_URL" {
+			return *realmURL
+		}
+		return os.Getenv(key)
+	})
+	if realmErr != nil {
+		return supervisorConfig{}, realmErr
+	}
+	if selected.APIOrigin != *realmURL {
+		return supervisorConfig{}, fmt.Errorf("source Runtime Realm URL does not match selected environment")
 	}
 	supervisor, err := os.Executable()
 	if err != nil {
@@ -184,6 +214,7 @@ func parseSupervisorConfig(args []string) (supervisorConfig, error) {
 		repoRoot:        root,
 		desktopPath:     desktop,
 		realmURL:        *realmURL,
+		realmName:       *realmName,
 		supervisorPath:  supervisor,
 		platformProfile: runtime.GOOS,
 	}
@@ -227,6 +258,8 @@ func buildSourceRuntime(config supervisorConfig) error {
 
 func sourceRuntimeEnvironment(config supervisorConfig) []string {
 	environment := replaceEnvironment(os.Environ(), "NIMI_REALM_URL", config.realmURL)
+	environment = replaceEnvironment(environment, "NIMI_DEV_REALM", config.realmName)
+	environment = replaceEnvironment(environment, "NIMI_DEV_REALM_URL", config.realmURL)
 	environment = replaceEnvironment(environment, "NIMI_SOURCE_RUNTIME_REPO_ROOT", config.repoRoot)
 	switch config.platformProfile {
 	case "windows":

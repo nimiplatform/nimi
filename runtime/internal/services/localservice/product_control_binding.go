@@ -59,7 +59,7 @@ func LoadProductControlDataRootBinding(productControlRoot string, security Produ
 	validRoot := root != "." && filepath.IsAbs(root) &&
 		root != filepath.VolumeName(root)+string(filepath.Separator)
 	if security.PerUserRuntime {
-		validRoot = validRoot && filepath.Base(root) == ".nimi" && filepath.Base(filepath.Dir(root)) == "RuntimeLocalDevelopment"
+		validRoot = validRoot && sourceProductControlRoot(root)
 	} else {
 		validRoot = validRoot && filepath.Base(root) == ".nimi"
 	}
@@ -105,6 +105,12 @@ func validateProductControlDataRootBoundary(dataRoot string, productControlRoot 
 		return fmt.Errorf("Product Control data root must not overlap the interactive-user home or fixed .nimi boundary")
 	}
 	return nil
+}
+
+func sourceProductControlRoot(root string) bool {
+	name := filepath.Base(filepath.Dir(root))
+	return filepath.Base(root) == ".nimi" && (name == "official" || name == "local") &&
+		filepath.Base(filepath.Dir(filepath.Dir(root))) == "RuntimeLocalDevelopment"
 }
 
 func productControlPathsEqual(left string, right string) bool {

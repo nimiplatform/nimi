@@ -31,7 +31,6 @@ func TestPortableDaemonFromArgsDelegatesInvalidLocalStateToRecordIsolation(t *te
 	homeDir := t.TempDir()
 	setEntrypointTestHome(t, homeDir)
 	clearRuntimeConfigEnvForStartupTest(t)
-	t.Setenv("NIMI_RUNTIME_LOCK_PATH", filepath.Join(homeDir, "runtime.lock"))
 	localStatePath := filepath.Join(homeDir, "local-state.json")
 	if err := os.WriteFile(localStatePath, []byte("{invalid-json"), 0o600); err != nil {
 		t.Fatalf("write invalid local state: %v", err)

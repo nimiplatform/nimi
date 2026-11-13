@@ -39,7 +39,8 @@ test('source Runtime launch uses a temporary exact supervisor and workspace Desk
   assert.deepEqual(plan.run.args, [
     '--repo-root', root,
     '--desktop-executable', electron,
-    '--realm-url', 'http://127.0.0.1:3002',
+    '--realm', 'official',
+    '--realm-url', 'https://realm.nimi.ai',
   ]);
 });
 

@@ -3,6 +3,7 @@
 package protectedlocal
 
 import (
+	"github.com/nimiplatform/nimi/runtime/internal/devenv"
 	"os"
 	"path/filepath"
 )
@@ -26,8 +27,8 @@ const (
 
 var (
 	MacOSRuntimeStateRoot      = macOSSourceLocalDevelopmentStateRootCandidate()
-	MacOSDesktopSocketPath     = filepath.Join(MacOSRuntimeStateRoot, "run", macOSSourceLocalDevelopmentDesktopSocketFile)
-	MacOSLocalAppSocketPath    = filepath.Join(MacOSRuntimeStateRoot, "run", macOSSourceLocalDevelopmentLocalAppSocketFile)
+	MacOSDesktopSocketPath     = filepath.Join(filepath.Dir(MacOSRuntimeStateRoot), "run", macOSSourceLocalDevelopmentDesktopSocketFile)
+	MacOSLocalAppSocketPath    = filepath.Join(filepath.Dir(MacOSRuntimeStateRoot), "run", macOSSourceLocalDevelopmentLocalAppSocketFile)
 	MacOSRuntimeExecutablePath = macOSSourceLocalDevelopmentExecutableCandidate()
 )
 
@@ -36,7 +37,11 @@ func macOSSourceLocalDevelopmentStateRootCandidate() string {
 	if err != nil || !filepath.IsAbs(home) {
 		return ""
 	}
-	return filepath.Join(filepath.Clean(home), "Library", "Application Support", "Nimi", macOSSourceLocalDevelopmentStateDirectoryName)
+	root, err := devenv.StateRoot(filepath.Join(filepath.Clean(home), "Library", "Application Support", "Nimi", macOSSourceLocalDevelopmentStateDirectoryName))
+	if err != nil {
+		return ""
+	}
+	return root
 }
 
 func macOSSourceLocalDevelopmentExecutableCandidate() string {

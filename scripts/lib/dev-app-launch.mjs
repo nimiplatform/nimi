@@ -66,6 +66,7 @@ export function devAppUsage(appName) {
   if (definition.supportsRegistrations) {
     lines.push('  --list-registrations  List existing registrations without launching.', '  --resume <selector>   Resume an explicitly selected current-host registration.', '  --new-registration    Create a separate registration and App data.');
   }
+  if (['desktop', 'avatar'].includes(appName)) lines.push('  --realm official|local  Select the source Nimi Realm (default: official).');
   lines.push('', `Electron CDP defaults to 127.0.0.1:${definition.defaultCdpPort}.`, '');
   return lines.join('\n');
 }
@@ -78,6 +79,7 @@ export function parseDevAppArguments(appName, argv = []) {
   let listRegistrations = false;
   let resume;
   let newRegistration = false;
+  let realm;
   const avatarOptions = new Map();
 
   const setCdpPort = (rawValue, option) => {
@@ -91,6 +93,12 @@ export function parseDevAppArguments(appName, argv = []) {
   for (let index = 0; index < argv.length; index += 1) {
     const argument = String(argv[index]);
     if (argument === '--') continue;
+    if (argument === '--realm') {
+      if (!['desktop', 'avatar'].includes(appName) || realm !== undefined) throw launchError('dev-app-option-unsupported', '--realm is selected by the Nimi Host.');
+      realm = requireOptionValue(argv, index++, argument);
+      if (!['official', 'local'].includes(realm)) throw launchError('dev-app-option-value-invalid', '--realm requires official or local.');
+      continue;
+    }
     if (argument === '--help' || argument === '-h') {
       help = true;
       continue;
@@ -140,6 +148,7 @@ export function parseDevAppArguments(appName, argv = []) {
   }
 
   const envOverrides = {};
+  if (realm) envOverrides.NIMI_DEV_REALM = realm;
   if (avatarOptions.has('--agent-handle')) {
     envOverrides.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_AGENT_HANDLE = avatarOptions.get('--agent-handle');
   }

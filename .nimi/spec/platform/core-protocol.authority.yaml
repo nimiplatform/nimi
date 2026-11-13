@@ -2,6 +2,30 @@ format: nimicoding.authority/v2
 owner: team.platform
 scope: platform.core-protocol
 units:
+  - id: rule.nimi.platform.core-protocol.source-first-run-restart
+    kind: rule
+    title: Source setup relaunch reopens the selected Runtime owners
+    modality: must
+    statement: When source Home exits with its explicit data-root profile relaunch outcome, the development launcher gracefully ends its owned source Runtime before starting a replacement with the same selected Realm and relaunching Home. An independently started Runtime is not adopted or stopped; its owner receives an explicit restart instruction. Failed shutdown prevents replacement, and unexpected process exit never triggers an automatic retry. This technical restart reopens persisted owner state, never replays business work, transfers custody or changes the primary binding.
+    condition: When source Home first-run storage selection changes the Runtime startup data-root binding.
+    failure: Keep the source product unavailable with the actual restart failure rather than reporting account services ready against unbound owners.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.development-topology
+  - id: definition.nimi.platform.core-protocol.development-topology
+    kind: definition
+    title: Realm, Nimi and ecosystem development topology
+    meaning: Realm development owns a local Realm deployment; Nimi source development defaults to official Realm and optionally selects local Realm; ecosystem App development normally uses installed Nimi with official Realm and can use source Nimi after switching the active installation. One Runtime runs on a machine at a time. Web and Android retain their registered source and account primary Runtime carrier. Build type, Realm environment and Nimi Host topology are independent choices, not permission or release facts.
+  - id: rule.nimi.platform.core-protocol.development-topology
+    kind: rule
+    title: Development defaults do not require private Realm access
+    modality: must
+    statement: Public Nimi contribution and ordinary ecosystem development use official Realm without a private Realm checkout, server, keys or database. Source Nimi selects official or local explicitly, never silently falls back, and keeps Realm-bound credentials and persistent Runtime identity distinct. Runtime startup atomically acquires one machine-wide instance lock before opening state or serving requests; any second installed or source Runtime fails with an explicit already-running error and does not stop, replace or adopt the active process. App or Home attachment to the active Runtime does not start a second Runtime. Compatible installed and source versions may sequentially reference the same data root, model payloads and engine packages; a configuration reference alone is not a conflict and development does not require duplicate assets. Existing account/App partitions and storage compatibility still govern access. Switching build or Realm ends the current Runtime and its Hosts before starting the replacement, without automatic data migration or primary-binding replacement. Native App tooling discovers the active Home; the ordinary ecosystem journey starts installed Nimi, and source integration starts source Nimi explicitly. Web and Android retain exact registered source, callback and current primary ownership. Official-account cloud data remains real shared data.
+    condition: When configuring, launching, documenting or validating a development journey.
+    failure: Reject environment or Host mismatch without fallback, credential reuse, automatic binding replacement or a claim that local configuration or compilation establishes product acceptance.
+    relations:
+      - type: applies_to
+        target: definition.nimi.platform.core-protocol.development-topology
   - id: definition.nimi.platform.core-protocol.protocol-version
     kind: definition
     title: Protocol version

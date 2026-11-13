@@ -45,11 +45,12 @@ func loadMacOSProtectedRuntimeConfig(stateRoot string) (config.Config, error) {
 		return config.Config{}, err
 	}
 
-	realmBaseURL, err := loadMacOSProtectedRealmBaseURL()
+	realmBaseURL, realmRealtimeURL, err := loadMacOSProtectedRealmEndpoints()
 	if err != nil {
 		return config.Config{}, fmt.Errorf("load protected macOS Realm authority: %w", err)
 	}
 	cfg := newProtectedRuntimeConfig(runtimeRoot, runtimeID, realmBaseURL)
+	cfg.AccountRealmRealtimeURL = realmRealtimeURL
 	serviceConfigPath := filepath.Join(runtimeRoot, config.ServiceOwnedConfigFilename)
 	if err := validateOptionalMacOSServiceFile(serviceConfigPath); err != nil {
 		return config.Config{}, err

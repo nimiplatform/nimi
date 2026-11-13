@@ -13,6 +13,7 @@ import {
 } from './lib/electron-dev-carrier.mjs';
 import { acquireDesktopDevSessionLock } from './lib/electron-dev-session-lock.mjs';
 import { prepareDesktopDevDependencies } from '../../../scripts/lib/desktop-dev-dependencies.mjs';
+import { readDevelopmentRealm, developmentRealmEnvironment, parseRealmArguments } from '../../../scripts/lib/development-realm.mjs';
 
 const require = createRequire(import.meta.url);
 const currentDir = path.dirname(fileURLToPath(import.meta.url));
@@ -39,20 +40,22 @@ const windowsSourceLocalDevelopmentNativeEntry = path.join(
   'win32-x64',
   'index.cjs',
 );
-const sourceLocalDevelopmentRealmUrl = ['darwin', 'win32'].includes(process.platform)
-  ? resolveSourceLocalDevelopmentRealmUrl(workspaceRoot)
-  : '';
+const realmArguments = parseRealmArguments(process.argv.slice(2));
+const externalServiceEnvironment = { ...process.env };
+const developmentRealm = readDevelopmentRealm(workspaceRoot, realmArguments.realm);
+Object.assign(process.env, developmentRealmEnvironment(developmentRealm));
+const sourceLocalDevelopmentRealmUrl = developmentRealm.apiOrigin;
 const rendererUrl = process.env.NIMI_DESKTOP_ELECTRON_RENDERER_URL || 'http://127.0.0.1:1420';
 const bundledAvatarRendererUrl = process.env.NIMI_DESKTOP_ELECTRON_BUNDLED_AVATAR_RENDERER_URL
   || 'http://127.0.0.1:1427';
 const {
   avatarOnly,
   observationArguments: desktopDevObservationArguments,
-} = resolveDesktopDevLaunchOptions(process.argv.slice(2));
+} = resolveDesktopDevLaunchOptions(realmArguments.rest);
 // Fixed development instance: anchors the dev session lock and Electron's
 // single-instance coordination. Home's runtime profile is chosen by its main
 // process preflight under the selected data root, not this directory.
-const profileRoot = resolvePersistentDesktopDevProfile(workspaceRoot);
+const profileRoot = path.join(resolvePersistentDesktopDevProfile(workspaceRoot), developmentRealm.name);
 // Home exits with this code after it prepared a new root profile; the launcher
 // restarts it from its own environment, so redirected temp values never leak.
 const DESKTOP_HOME_PROFILE_RELAUNCH_EXIT_CODE = 75;
@@ -107,7 +110,7 @@ if (process.platform === 'darwin') {
 
 async function runWindowsDesktopDev() {
   try {
-    dependencyTask = prepareDesktopDevDependencies(workspaceRoot, { signal: dependencyAbort.signal });
+    dependencyTask = prepareDesktopDevDependencies(workspaceRoot, { signal: dependencyAbort.signal, realm: developmentRealm, externalEnvironment: externalServiceEnvironment });
     await dependencyTask;
     dependencyAbort.signal.throwIfAborted();
     process.env.NIMI_WINDOWS_SOURCE_LOCAL_DEVELOPMENT = '1';
@@ -177,7 +180,7 @@ async function runWindowsDesktopDev() {
 
 async function runMacOSDesktopDev() {
   try {
-    dependencyTask = prepareDesktopDevDependencies(workspaceRoot, { signal: dependencyAbort.signal });
+    dependencyTask = prepareDesktopDevDependencies(workspaceRoot, { signal: dependencyAbort.signal, realm: developmentRealm, externalEnvironment: externalServiceEnvironment });
     await dependencyTask;
     dependencyAbort.signal.throwIfAborted();
     process.env.NIMI_MACOS_SOURCE_LOCAL_DEVELOPMENT = '1';
@@ -243,46 +246,6 @@ async function runMacOSDesktopDev() {
     })}\n`);
     process.exit(1);
   }
-}
-
-function resolveSourceLocalDevelopmentRealmUrl(root) {
-  const fallback = 'http://127.0.0.1:3002';
-  const sourcePath = path.join(root, '.env');
-  let raw = '';
-  if (existsSync(sourcePath)) {
-    const declarations = readFileSync(sourcePath, 'utf8')
-      .split(/\r?\n/u)
-      .map((line) => line.match(/^NIMI_REALM_URL=(.*)$/u))
-      .filter(Boolean);
-    if (declarations.length > 1) {
-      throw Object.assign(new Error('source local development Realm URL is declared more than once'), {
-        reasonCode: 'source-local-development-realm-url-invalid',
-      });
-    }
-    raw = declarations[0]?.[1] ?? '';
-  }
-  if (!raw) return fallback;
-  let parsed;
-  try {
-    parsed = new URL(raw);
-  } catch {
-    throw Object.assign(new Error('source local development Realm URL is invalid'), {
-      reasonCode: 'source-local-development-realm-url-invalid',
-    });
-  }
-  if (parsed.protocol !== 'http:'
-    || !['127.0.0.1', 'localhost'].includes(parsed.hostname)
-    || parsed.port !== '3002'
-    || parsed.username
-    || parsed.password
-    || parsed.pathname !== '/'
-    || parsed.search
-    || parsed.hash) {
-    throw Object.assign(new Error('source local development Realm URL must be local loopback HTTP on port 3002'), {
-      reasonCode: 'source-local-development-realm-url-invalid',
-    });
-  }
-  return fallback;
 }
 
 function quoteCmdArg(value) {
@@ -485,6 +448,10 @@ async function runDesktopElectronUntilExit(spawnElectron) {
   for (;;) {
     const exitCode = await waitForExit(spawnElectron(relaunch));
     if (exitCode !== DESKTOP_HOME_PROFILE_RELAUNCH_EXIT_CODE || shuttingDown) return exitCode;
+    // Storage selection changes Runtime-owned startup bindings as well as the
+    // browser profile. Reloading only Electron leaves App owners unbound.
+    // @nimi-authority: rule.nimi.platform.core-protocol.source-first-run-restart
+    await (await dependencyTask).restartRuntime();
     relaunch = [DESKTOP_HOME_PROFILE_RELAUNCH_ARGUMENT];
     process.stdout.write(`${JSON.stringify({ status: 'relaunching', reason: 'desktop-home-profile' })}\n`);
   }

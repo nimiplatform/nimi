@@ -7,18 +7,17 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/nimiplatform/nimi/runtime/internal/config"
+	"github.com/nimiplatform/nimi/runtime/internal/devenv"
 	"github.com/oklog/ulid/v2"
 )
 
 const (
-	windowsSourceLocalDevelopmentRealmBaseURL = "http://127.0.0.1:3002"
-	windowsSourceInstallationStateFile        = "installation.json"
+	windowsSourceInstallationStateFile = "installation.json"
 )
 
 type windowsSourceInstallationState struct {
@@ -28,7 +27,11 @@ type windowsSourceInstallationState struct {
 
 func loadWindowsSourceLocalDevelopmentRuntimeConfig(stateRoot string) (config.Config, error) {
 	root := filepath.Clean(strings.TrimSpace(stateRoot))
-	if root == "." || !filepath.IsAbs(root) || filepath.Base(root) != "RuntimeLocalDevelopment" {
+	name, realm, err := devenv.Resolve(os.Getenv)
+	if err != nil {
+		return config.Config{}, err
+	}
+	if root == "." || !filepath.IsAbs(root) || filepath.Base(root) != name || filepath.Base(filepath.Dir(root)) != "RuntimeLocalDevelopment" {
 		return config.Config{}, fmt.Errorf("current-user Windows Runtime state root is required")
 	}
 	runtimeRoot := filepath.Join(root, "runtime")
@@ -44,6 +47,7 @@ func loadWindowsSourceLocalDevelopmentRuntimeConfig(stateRoot string) (config.Co
 		return config.Config{}, err
 	}
 	cfg := newProtectedRuntimeConfig(runtimeRoot, runtimeID, realmBaseURL)
+	cfg.AccountRealmRealtimeURL = realm.RealtimeOrigin
 	serviceConfigPath := filepath.Join(runtimeRoot, config.ServiceOwnedConfigFilename)
 	if err := config.ApplyServiceOwnedDataRoot(&cfg, serviceConfigPath); err != nil {
 		return config.Config{}, fmt.Errorf("apply current-user Runtime mutable config: %w", err)
@@ -55,21 +59,8 @@ func loadWindowsSourceLocalDevelopmentRuntimeConfig(stateRoot string) (config.Co
 }
 
 func loadWindowsSourceRealmBaseURL() (string, error) {
-	raw, present := os.LookupEnv("NIMI_REALM_URL")
-	if !present || strings.TrimSpace(raw) == "" {
-		return windowsSourceLocalDevelopmentRealmBaseURL, nil
-	}
-	if raw != strings.TrimSpace(raw) {
-		return "", fmt.Errorf("source local development Realm URL is not exact")
-	}
-	parsed, err := url.Parse(raw)
-	if err != nil || parsed.Scheme != "http" || parsed.Port() != "3002" ||
-		(parsed.Hostname() != "127.0.0.1" && parsed.Hostname() != "localhost") ||
-		parsed.User != nil || parsed.Opaque != "" || (parsed.Path != "" && parsed.Path != "/") ||
-		parsed.RawPath != "" || parsed.RawQuery != "" || parsed.ForceQuery || parsed.Fragment != "" || parsed.RawFragment != "" {
-		return "", fmt.Errorf("source local development Realm URL must be local loopback HTTP on port 3002")
-	}
-	return windowsSourceLocalDevelopmentRealmBaseURL, nil
+	_, realm, err := devenv.Resolve(os.Getenv)
+	return realm.APIOrigin, err
 }
 
 func loadOrCreateWindowsSourceRuntimeID(path string) (string, error) {

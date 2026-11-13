@@ -12,6 +12,7 @@ import (
 	"strings"
 	"unsafe"
 
+	"github.com/nimiplatform/nimi/runtime/internal/devenv"
 	"golang.org/x/sys/windows"
 )
 
@@ -311,7 +312,10 @@ func prepareWindowsSourceStateRoot(userSID string) (WindowsProtectedStateRoot, e
 		return WindowsProtectedStateRoot{}, fail(ReasonProtectedLocalCustodyBoundaryUnavailable, false, "restart_runtime", fmt.Errorf("resolve current-user local application data: %w", err))
 	}
 	base := filepath.Clean(localAppData)
-	rootPath := filepath.Join(base, "Nimi", "RuntimeLocalDevelopment")
+	rootPath, err := devenv.StateRoot(filepath.Join(base, "Nimi", "RuntimeLocalDevelopment"))
+	if err != nil {
+		return WindowsProtectedStateRoot{}, err
+	}
 	if !filepath.IsAbs(base) || !filepath.IsAbs(rootPath) || !validWindowsSourceUserSID(userSID) {
 		return WindowsProtectedStateRoot{}, fail(ReasonProtectedLocalCustodyBoundaryUnavailable, false, "restart_runtime", fmt.Errorf("current-user state root is invalid"))
 	}

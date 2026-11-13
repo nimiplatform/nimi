@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { parse as parseYaml } from 'yaml';
 import { isWebCoordinationPath as isCoordinationPath } from './web-coordination.mjs';
+import { resolveDevelopmentRealm } from './development-environment.mjs';
 
 function exactOrigin(value, label, requireHttps = false) {
   let url;
@@ -34,9 +35,17 @@ function readWebSource(appId, web, release = false) {
   }) };
 }
 
-export function readWebDevelopment(manifest) {
-  const web = manifest?.local_development?.web;
-  if (!web || typeof web !== 'object' || Array.isArray(web)) throw new Error('Declare local_development.web in nimi.app.yaml.');
+export function readWebDevelopment(manifest, options = {}) {
+  const declaration = manifest?.local_development?.web;
+  if (!declaration || typeof declaration !== 'object' || Array.isArray(declaration)) throw new Error('Declare local_development.web in nimi.app.yaml.');
+  const selected = resolveDevelopmentRealm(options.realm, options.env);
+  const sourceInput = selected.name === 'official' ? declaration : declaration.local;
+  if (!sourceInput || typeof sourceInput !== 'object' || Array.isArray(sourceInput)) throw new Error('Declare local_development.web.local for local Realm development.');
+  const web = { realm_url: selected.apiOrigin, official_web_url: selected.webOrigin, realm_environment_id: selected.environmentId, ...sourceInput, command: declaration.command };
+  if (!web.origin || !web.redirect_uri || !web.client_id) throw new Error(`Configure the exact registered ${selected.name} Web origin, redirect_uri and client_id in nimi.app.yaml; a scaffold is not source admission.`);
+  if (selected.name === 'official' && (web.realm_url !== selected.apiOrigin || web.official_web_url !== selected.webOrigin || web.realm_environment_id !== selected.environmentId)) {
+    throw new Error('Official Web development must use official Realm configuration; select --realm local for local inputs.');
+  }
   const source = readWebSource(manifest.app_id, web);
   const realm = exactOrigin(web.realm_url, 'Realm URL');
   const match = typeof web.command === 'string' && /^pnpm run ([A-Za-z0-9][A-Za-z0-9:_.-]*)$/u.exec(web.command);
@@ -84,7 +93,7 @@ export function nimiWebViteConfig({ root, env = process.env, serve = true, relea
     }, true);
     return { define: { __NIMI_APP_WEB_CONFIG__: JSON.stringify(config) } };
   }
-  const { site, realm, config } = readWebDevelopment(manifest);
+  const { site, realm, config } = readWebDevelopment(manifest, { env });
   const define = { __NIMI_APP_WEB_CONFIG__: JSON.stringify(config) };
   if (!serve) return { define };
   if (!env.NIMI_WEB_TLS_KEY || !env.NIMI_WEB_TLS_CERT) throw new Error('Set NIMI_WEB_TLS_KEY and NIMI_WEB_TLS_CERT to browser-trusted certificate files.');

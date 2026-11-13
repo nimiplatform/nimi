@@ -1,0 +1,14 @@
+{
+  "official": {
+    "apiOrigin": "https://realm.nimi.ai",
+    "realtimeOrigin": "https://realm.nimi.ai",
+    "webOrigin": "https://nimi.ai",
+    "environmentId": "production"
+  },
+  "local": {
+    "apiOrigin": "http://127.0.0.1:3002",
+    "realtimeOrigin": "http://127.0.0.1:3003",
+    "webOrigin": "http://localhost:3000",
+    "environmentId": "dev"
+  }
+}

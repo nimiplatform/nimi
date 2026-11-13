@@ -42,11 +42,13 @@ test('create rejects unavailable platforms or features before writing a project'
 
 test('Web source config binds HTTPS callback and prevents credential-cookie sharing', () => {
   const manifest = yaml(snapshot().filesByPath.get('nimi.app.yaml').content);
+  assert.throws(() => readWebDevelopment(manifest), /Configure the exact registered official/);
+  Object.assign(manifest.local_development.web, { origin: 'https://127.0.0.1:4499', redirect_uri: 'https://127.0.0.1:4499/', client_id: 'unit.web' });
   const web = readWebDevelopment(manifest);
   assert.equal(web.config.appId, 'unit.web');
   assert.equal(web.config.realmBaseUrl, web.site.origin);
   assert.throws(() => readWebDevelopment({ ...manifest, local_development: { web: { ...manifest.local_development.web, redirect_uri: 'https://other.example/' } } }), /callback/u);
-  assert.throws(() => readWebDevelopment({ ...manifest, local_development: { web: { ...manifest.local_development.web, official_web_url: 'https://127.0.0.1:3000' } } }), /different hostnames/u);
+  assert.throws(() => readWebDevelopment({ ...manifest, local_development: { web: { ...manifest.local_development.web, origin: 'https://nimi.ai', redirect_uri: 'https://nimi.ai/callback' } } }), /different hostnames/u);
   assert.equal(isWebCoordinationPath('GET', '/api/runtime-access/context'), true);
   assert.equal(isWebCoordinationPath('POST', '/api/runtime-access/context/end'), true);
   assert.equal(isWebCoordinationPath('GET', '/api/auth/runtime-clients/unit.web'), true);
@@ -110,6 +112,8 @@ test('Web lifecycle validates its real command and delegates build to its declar
     const output = snapshot();
     for (const file of output.files) { const target = path.join(root, file.path); mkdirSync(path.dirname(target), { recursive: true }); writeFileSync(target, file.content); }
     const manifest = yaml(readFileSync(path.join(root, 'nimi.app.yaml'), 'utf8'));
+    Object.assign(manifest.local_development.web, { origin: 'https://app.example', redirect_uri: 'https://app.example/callback', client_id: 'unit.web' });
+    writeFileSync(path.join(root, 'nimi.app.yaml'), stringifyYaml(manifest));
     const pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));
     validateAppProjectInputs(root, manifest, pkg, true);
     let calls = 0;

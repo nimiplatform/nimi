@@ -24,6 +24,7 @@ export { runDevShell };
 import { parse as parseYaml } from 'yaml';
 import { readWebDevelopment } from './web-development.mjs';
 import { readMobileDevelopment } from './mobile-development.mjs';
+import { resolveDevelopmentRealm, developmentRealmEnvironment } from './development-environment.mjs';
 export { APP_SCAFFOLD_FEATURE_IDS } from './app-scaffold-capabilities.mjs';
 
 const APP_TOOLS_PACKAGE_MANIFEST = JSON.parse(
@@ -110,6 +111,8 @@ function runAppCommand(targetDir, command, options = {}) {
     shell: true,
     encoding: 'utf8',
     stdio: options.capture ? 'pipe' : 'inherit',
+    env: options.env ?? process.env,
+    windowsHide: true,
   });
   return {
     status: result.status ?? 1,
@@ -237,16 +240,18 @@ export async function runAppDevelopment(cwd, options = {}) {
     throw new Error('Desktop shell, registration and CDP launch options do not apply to remote Web or Mobile dev.');
   }
   const pkg = JSON.parse(readFileSync(path.join(root, 'package.json'), 'utf8'));
+  const selectedRealm = resolveDevelopmentRealm(options.realm || undefined);
+  const environment = { ...process.env, ...developmentRealmEnvironment(selectedRealm) };
   if (platform === 'mobile') {
     const mobile = readMobileDevelopment(manifest, pkg);
     process.stdout.write('[nimi-app] Running the App-owned mobile command; native source admission and verified OS callback remain required.\n');
-    const result = runAppCommand(root, mobile.command);
+    const result = runAppCommand(root, mobile.command, { env: environment });
     if (result.status !== 0) throw new Error(`Mobile development command exited with ${result.status}: ${result.stderr}`);
     return;
   }
-  const web = readWebDevelopment(manifest);
+  const web = readWebDevelopment(manifest, { realm: selectedRealm.name, env: environment });
   if (!pkg.scripts?.[web.script] || /\bnimi-app\s+dev\b/u.test(pkg.scripts[web.script])) throw new Error('Web dev requires a real, non-recursive App-owned renderer script.');
   process.stdout.write(`[nimi-app] Web source: ${web.site.origin}; official sign-in and first Home source confirmation are required.\n`);
-  const result = runAppCommand(root, web.command);
+  const result = runAppCommand(root, web.command, { env: environment });
   if (result.status !== 0) throw new Error(`Web development command exited with ${result.status}: ${result.stderr}`);
 }

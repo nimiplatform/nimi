@@ -1,4 +1,5 @@
 // @nimi-authority: rule.nimi.platform.app-ecosystem.scaffold-web-carrier
+import { REALM_PROFILES } from './realm-environments.generated.mjs';
 export const WEB_BASE_TEMPLATE_PATHS = new Set([
   '.gitattributes', 'index.html', 'SECURITY.md',
   'src/shell/auth/app-identity.ts', 'src/shell/authenticated-shell.tsx', 'src/styles.css', 'tsconfig.json',
@@ -7,9 +8,10 @@ export const WEB_BASE_TEMPLATE_PATHS = new Set([
 const managed = (path, content) => ({ path, content, mutationClass: 'scaffold-managed glue' });
 
 export function webDevelopmentInput(identity) {
-  const origin = `https://127.0.0.1:${identity.devPort}`;
-  return { origin, redirect_uri: origin + '/', client_id: `${identity.appId}.web.dev`,
-    realm_environment_id: 'dev', realm_url: 'http://127.0.0.1:3002', official_web_url: 'http://localhost:3000',
+  const realm = REALM_PROFILES.official;
+  // A port hash and a guessed client id are not a registered browser source.
+  return { origin: '', redirect_uri: '', client_id: '',
+    realm_environment_id: realm.environmentId, realm_url: realm.apiOrigin, official_web_url: realm.webOrigin,
     command: 'pnpm run dev:web-renderer' };
 }
 

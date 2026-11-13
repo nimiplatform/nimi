@@ -2,6 +2,6 @@
 
 package entrypoint
 
-func loadMacOSProtectedRealmBaseURL() (string, error) {
-	return macOSProtectedRealmBaseURL, nil
+func loadMacOSProtectedRealmEndpoints() (string, string, error) {
+	return macOSProtectedRealmBaseURL, protectedRealmRealtimeURL(macOSProtectedRealmBaseURL), nil
 }

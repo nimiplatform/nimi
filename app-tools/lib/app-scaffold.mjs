@@ -64,6 +64,7 @@ const GENERATED_GITIGNORE = [
   'node_modules/',
   'dist/',
   'dist-web/',
+  'dist-mobile/',
   'dist-electron/',
   'dist-electron-package/',
   'src-tauri/target/',

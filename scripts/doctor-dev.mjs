@@ -16,6 +16,8 @@ import {
   normalizedProcessRows,
 } from './lib/electron-carrier-processes.mjs';
 import { resolveWindowsPowerShell7 } from './lib/windows-powershell.mjs';
+import { readDevelopmentRealm, parseRealmArguments } from './lib/development-realm.mjs';
+import { probeSourceRuntime } from './lib/desktop-dev-dependencies.mjs';
 
 const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PRESENCE_MAX_AGE_MS = 12_000;
@@ -93,6 +95,9 @@ export function findLegacyCarrierRows(rows, repo, activeDesktopPid = 0) {
 }
 
 export async function runDevDoctor(input = {}) {
+  const selectedRealm = readDevelopmentRealm(repoRoot, input.realm, input.env);
+  const host = input.host ?? 'source';
+  if (!['installed', 'source'].includes(host)) throw new Error('Host must be installed or source.');
   const platform = input.platform ?? process.platform;
   const nowUnixMs = input.nowUnixMs ?? Date.now();
   const probeHttp = input.probeHttp ?? probeHttpEndpoint;
@@ -101,17 +106,17 @@ export async function runDevDoctor(input = {}) {
   const processRowsPromise = queryProcesses();
   const serviceResultPromise = input.queryService
     ? input.queryService()
-    : platform === 'darwin'
-      ? Promise.resolve(processRowsPromise).then((rows) => inspectMacSourceRuntime(rows, repoRoot))
+    : host === 'source'
+      ? probeSourceRuntime(repoRoot, selectedRealm.name).then((value) => ({ state: value.state === 'ready' ? 'ok' : 'error', reason: `source-runtime-${value.state}` })).catch((error) => ({ state: 'error', reason: error.message }))
       : queryFixedRuntimeService();
   const [serviceResult, processRows, realm, web, presenceResult] = await Promise.all([
     serviceResultPromise,
     processRowsPromise,
-    probeHttp('http://127.0.0.1:3002'),
-    probeHttp('http://127.0.0.1:3000'),
+    probeHttp(selectedRealm.apiOrigin),
+    probeHttp(selectedRealm.webOrigin),
     readPresence(nowUnixMs),
   ]);
-  const service = platform === 'darwin' ? serviceResult : validateFixedRuntimeService(serviceResult);
+  const service = host === 'source' && serviceResult.state ? serviceResult : validateFixedRuntimeService(serviceResult);
   const activeDesktopPid = presenceResult.state === 'ok' ? presenceResult.desktopPid : 0;
   const legacyCarriers = findLegacyCarrierRows(processRows, repoRoot, activeDesktopPid);
   const stamp = await readWorkspaceSurfaceStamp(repoRoot);
@@ -129,7 +134,7 @@ export async function runDevDoctor(input = {}) {
   const tier1 = [
     { id: 'realm', ...realm },
     { id: 'web', ...web },
-    { id: platform === 'darwin' ? 'source-runtime' : 'fixed-runtime-service', ...service },
+    { id: host === 'source' ? 'source-runtime' : 'fixed-runtime-service', ...service },
     { id: 'desktop-presence', ...presenceResult },
     {
       id: 'legacy-carriers',
@@ -141,6 +146,8 @@ export async function runDevDoctor(input = {}) {
   ];
   return {
     schemaVersion: 'nimi.dev-doctor/v1',
+    host,
+    realm: { name: selectedRealm.name, origin: selectedRealm.apiOrigin },
     checkedAt: new Date(nowUnixMs).toISOString(),
     ok: tier1.every((row) => row.state === 'ok'),
     tier1,
@@ -371,7 +378,11 @@ function isMainModule() {
 }
 
 if (isMainModule()) {
-  const report = await runDevDoctor();
+  const { realm, rest } = parseRealmArguments(process.argv.slice(2));
+  const hostIndex = rest.indexOf('--host');
+  const host = hostIndex === -1 ? 'source' : rest[hostIndex + 1];
+  if (!['source', 'installed'].includes(host)) throw new Error('--host requires installed or source.');
+  const report = await runDevDoctor({ realm, host });
   if (process.argv.includes('--json')) process.stdout.write(`${JSON.stringify(report, null, 2)}\n`);
   else printHumanReport(report);
   if (!report.ok) process.exitCode = 1;

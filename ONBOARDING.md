@@ -73,22 +73,20 @@ pnpm -v
 
 以下配置用于源码联调，不是使用测试安装包的前置条件。体验现有测试版本请从[下载页](https://nimi.ai/download)选择对应平台。
 
-源码联调固定连接 `http://127.0.0.1:3002` 的 Realm，需要具备允许当前开发客户端接入的本地联调环境。公开仓库不包含 Realm 服务端实现；已有 Realm 开发工程时，可在 `.env` 配置 `NIMI_DEV_REALM_DIR`，由 Desktop 启动入口自动检查数据服务并启动缺失的 API 与实时服务。该工程需提供 `dev:infra`、`dev:api`、`dev:realtime` 脚本；未配置时须自行运行这些服务。缺少 Realm 联调环境时，账号全链路联调尚不可用，可先使用测试安装包体验产品。
+源码 Nimi 默认连接官方真实 Realm；贡献者不需要 Realm 私有源码、API server 或数据库。运行 `pnpm dev:desktop` 后通过正式浏览器登录。需要联动本地 Realm 时选择 `pnpm dev:desktop -- --realm local`；该模式可复用本地服务，或通过 `NIMI_DEV_REALM_DIR` 调用 Realm 工作区自己的 guarded scripts。生态 App 通常先打开已安装 Nimi；源码联调先退出当前 Runtime，再启动源码 Nimi，App 命令使用当前 Home。同一机器只允许一个 Runtime，兼容版本可顺序复用数据目录、模型和引擎。
 
 ### 步骤 1：创建 `.env`
-在仓库根目录新建 `.env`（可参考 `.env.example`）。以下本地地址仅适用于相应服务已配置并运行的联调环境；修改环境变量不会改变源码 Runtime 启动器的固定 Realm 地址：
+在仓库根目录按需新建 `.env`（参考 `.env.example`）。普通 Nimi 开发无需配置 Realm 地址；以下选择使用官方默认值：
 
 ```bash
 # nimi/.env
 NIMI_RUNTIME_BRIDGE_MODE=RUNTIME
-NIMI_REALM_URL=http://127.0.0.1:3002
-NIMI_CONTROL_PLANE_URL=http://localhost:46372
-NIMI_WEB_URL=http://localhost:3000
+NIMI_DEV_REALM=official
 ```
 
 > **参数说明**：
 > - `NIMI_RUNTIME_BRIDGE_MODE`：本地源码联调请固定使用 `RUNTIME`（发布测试使用 `RELEASE`）。
-> - `NIMI_REALM_URL`：本地联调 Realm 地址。自动启动 Realm 还需设置 `NIMI_DEV_REALM_DIR`；只设置 URL 不会提供服务端实现。
+> - `NIMI_DEV_REALM`：`official`（默认）或 `local`；命令行 `--realm` 优先。local 地址使用 `.env.example` 的 `NIMI_DEV_*` 输入。
 > - `NIMI_DEV_REALM_DIR`：可选的 Realm 开发工程目录，供 Desktop 启动器调用工程自己的数据服务检查、API 和实时服务脚本。
 > - `NIMI_CONTROL_PLANE_URL`：本地 Runtime 控制面 HTTP 监听地址（默认端口 `46372`）。
 > - `NIMI_WEB_URL`：面向 Web 功能的基础地址（注：Desktop 登录 URL 与一次性回环回调由 Runtime 签发，不从此变量拼接）。

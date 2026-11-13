@@ -26,6 +26,7 @@ const TERMINAL_STATES = new Set([
 
 // @nimi-authority: rule.nimi.platform.app-ecosystem.p-scaf-018a
 export async function runDevShell(cwd, options = {}) {
+  if (options.realm) throw new Error('Native Apps use the active Nimi Home and its Realm. Select the Realm when starting source Nimi.');
   if ([options.listRegistrations, options.resume, options.newRegistration].filter(Boolean).length > 1) {
     throw new DevShellError('local-development-intent-invalid', '--list-registrations, --resume and --new-registration cannot be combined.');
   }

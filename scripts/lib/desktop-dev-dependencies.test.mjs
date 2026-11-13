@@ -5,6 +5,30 @@ import { setTimeout as delay } from 'node:timers/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { createSourceRuntimeOwner } from './desktop-dev-dependencies.mjs';
+
+test('explicit Home relaunch waits for its own Runtime shutdown and never adopts another owner', async () => {
+  let finish;
+  let starts = 0;
+  const owner = createSourceRuntimeOwner(signal => {
+    starts++;
+    return new Promise(resolve => { finish = resolve; signal.addEventListener('abort', () => {}); });
+  });
+  await assert.rejects(owner.restart(), /owner terminal/);
+  owner.start();
+  await Promise.resolve();
+  const restart = owner.restart();
+  assert.equal(starts, 1, 'replacement cannot overlap the old process');
+  finish();
+  await restart;
+  await Promise.resolve();
+  assert.equal(starts, 2);
+  assert.equal(owner.failure(), undefined);
+  const closing = owner.close();
+  finish();
+  await closing;
+  await assert.rejects(owner.restart(), /owner terminal/);
+});
 import { launchDevService, probeDevHttp, readDesktopDevEnvironment, validateRealmDevDirectory, waitForDevDependency } from './desktop-dev-dependencies.mjs';
 
 test('HTTP readiness rejects unrelated services, errors and malformed responses', async (t) => {
