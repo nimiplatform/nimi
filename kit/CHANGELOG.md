@@ -2,6 +2,14 @@
 
 # Changelog
 
+## Unreleased — Windows source Desktop health isolation
+
+A development App whose source changed or whose child witness was rejected
+remains unavailable, but no longer makes the verified Runtime appear untrusted in Home.
+Other App witnesses are still checked, and actual Runtime trust failures remain
+fatal. This checkout fix does not replace the frozen Integration RC.1/RC.2
+package archives.
+
 ## Unreleased — 0.24.0-rc.1 Integration consumer carrier
 
 The common App scope includes bounded remote Integration consumption. Native provider polls preserve Runtime-derived `consumerRef`; display names do not authorize callers. Update the complete SDK/Kit/native combination before adopting per-consumer provider objects. Web and Android gain no credentials, provider lifetime operations or Integration management authority.

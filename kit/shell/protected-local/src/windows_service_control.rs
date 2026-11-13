@@ -849,14 +849,24 @@ async fn rebind_supervised_development_processes(
             registration_handle: request.registration_handle,
             supervisor_run_id: request.supervisor_run_id,
         };
-        if let Err(error) = maintain_development_launch_witness(
+        let maintenance = maintain_development_launch_witness(
             observe_current_scope,
             crate::windows_local_development::get_developer_mode_status(channel.clone()),
             crate::windows_local_development::run_access(channel.clone(), access),
             crate::windows_local_development::rebind_host(channel.clone(), request, process_id),
         )
-        .await
-        {
+        .await;
+        if matches!(
+            maintenance,
+            Ok(DevelopmentWitnessMaintenance::AppUnavailable)
+        ) {
+            // An App source or child witness is no longer admissible. Runtime
+            // still rejects that App; its failure is not a failed Runtime peer.
+            // Keep tracking the live child until its normal owner cleanup.
+            diagnose_desktop_session("development-app-unavailable");
+            continue;
+        }
+        if let Err(error) = maintenance {
             if discard_stale_supervised_development_rebind(&registry, run_id, process_id)? {
                 continue;
             }
@@ -868,6 +878,13 @@ async fn rebind_supervised_development_processes(
         }
     }
     Ok(())
+}
+
+#[cfg(feature = "windows-source-local-development")]
+#[derive(Debug, PartialEq, Eq)]
+enum DevelopmentWitnessMaintenance {
+    Ready,
+    AppUnavailable,
 }
 
 // @nimi-authority: rule.nimi.runtime.app-surface.run-access-scope-projection
@@ -882,38 +899,59 @@ async fn maintain_development_launch_witness<Mode, Access, Rebind>(
     mode: Mode,
     access: Access,
     rebind: Rebind,
-) -> Result<(), NimiHostError>
+) -> Result<DevelopmentWitnessMaintenance, NimiHostError>
 where
     Mode: Future<Output = Result<DeveloperModeStatus, NimiHostError>>,
     Access: Future<Output = Result<crate::LocalDevelopmentRunAccess, NimiHostError>>,
     Rebind: Future<Output = Result<(), NimiHostError>>,
 {
-    if observe_current_scope {
-        // Prepare used to enforce this on every health cycle. Preserve the
-        // same current owner gate before skipping that expensive operation.
-        match mode.await?.state {
-            crate::DeveloperModeState::Enabled => {}
-            crate::DeveloperModeState::Disabled => {
-                return Err(NimiHostError::new(
-                    NimiHostErrorReasonCode::LocalAppDeveloperModeDisabled,
-                    false,
-                ));
+    let result = async {
+        if observe_current_scope {
+            // Prepare used to enforce this on every health cycle. Preserve the
+            // same current owner gate before skipping that expensive operation.
+            match mode.await?.state {
+                crate::DeveloperModeState::Enabled => {}
+                crate::DeveloperModeState::Disabled => {
+                    return Err(NimiHostError::new(
+                        NimiHostErrorReasonCode::LocalAppDeveloperModeDisabled,
+                        false,
+                    ));
+                }
+                crate::DeveloperModeState::Unavailable => {
+                    return Err(NimiHostError::new(
+                        NimiHostErrorReasonCode::LocalAppOperationUnavailable,
+                        true,
+                    ));
+                }
             }
-            crate::DeveloperModeState::Unavailable => {
-                return Err(NimiHostError::new(
-                    NimiHostErrorReasonCode::LocalAppOperationUnavailable,
-                    true,
-                ));
+            let current = access.await?;
+            if current.available || current.reason_code != "LOCAL_APP_SESSION_REVOKED" {
+                // In particular, OWNER_UNAVAILABLE preserves uncertainty. It is
+                // not revocation and cannot authorize a replacement launch.
+                return Ok(());
             }
         }
-        let current = access.await?;
-        if current.available || current.reason_code != "LOCAL_APP_SESSION_REVOKED" {
-            // In particular, OWNER_UNAVAILABLE preserves uncertainty. It is
-            // not revocation and cannot authorize a replacement launch.
-            return Ok(());
-        }
+        rebind.await
     }
-    rebind.await
+    .await;
+    match result {
+        Ok(()) => Ok(DevelopmentWitnessMaintenance::Ready),
+        Err(error)
+            if error.reason_code() == NimiHostErrorReasonCode::LocalDevelopmentProjectChanged
+                || (error.reason_code()
+                    == NimiHostErrorReasonCode::LocalDevelopmentSupervisorRequired
+                    && matches!(
+                        error
+                            .reason_metadata()
+                            .get("diagnostic_stage")
+                            .map(String::as_str),
+                        Some("rebind-direct-peer" | "rebind-launch-unavailable")
+                    )) =>
+        {
+            Ok(DevelopmentWitnessMaintenance::AppUnavailable)
+        }
+        Err(error) => Err(error),
+    }
 }
 
 #[cfg(all(test, feature = "windows-source-local-development"))]
@@ -921,11 +959,94 @@ mod current_scope_witness_tests {
     use super::*;
     use std::cell::Cell;
 
+    #[tokio::test(flavor = "current_thread")]
+    async fn changed_app_source_does_not_hide_another_app_or_the_runtime() {
+        let rebound = Cell::new(0);
+        let changed = maintain_development_launch_witness(
+            false,
+            async { panic!("new transport must not reuse mode or scope observations") },
+            async { panic!("new transport must not reuse an old App scope") },
+            async {
+                Err(NimiHostError::new(
+                    NimiHostErrorReasonCode::LocalDevelopmentProjectChanged,
+                    false,
+                ))
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(changed, DevelopmentWitnessMaintenance::AppUnavailable);
+        let healthy = maintain_development_launch_witness(
+            false,
+            async { panic!("new transport must not reuse mode or scope observations") },
+            async { panic!("new transport must not reuse an old App scope") },
+            async {
+                rebound.set(rebound.get() + 1);
+                Ok(())
+            },
+        )
+        .await
+        .unwrap();
+        assert_eq!(healthy, DevelopmentWitnessMaintenance::Ready);
+        assert_eq!(rebound.get(), 1);
+        let peer_error = maintain_development_launch_witness(
+            false,
+            async { panic!("not observed") },
+            async { panic!("not observed") },
+            async {
+                Err(NimiHostError::new(
+                    NimiHostErrorReasonCode::RuntimeServiceUntrusted,
+                    false,
+                ))
+            },
+        )
+        .await
+        .unwrap_err();
+        assert_eq!(
+            peer_error.reason_code(),
+            NimiHostErrorReasonCode::RuntimeServiceUntrusted
+        );
+    }
+
     async fn enabled_mode() -> Result<DeveloperModeStatus, NimiHostError> {
         Ok(DeveloperModeStatus {
             state: crate::DeveloperModeState::Enabled,
             revision: 1,
         })
+    }
+
+    #[tokio::test(flavor = "current_thread")]
+    async fn rejected_child_witness_does_not_accept_a_rejected_desktop_supervisor() {
+        for stage in [
+            "rebind-direct-peer",
+            "rebind-launch-unavailable",
+            "rebind-supervisor",
+        ] {
+            let result = maintain_development_launch_witness(
+                false,
+                async { panic!("not observed") },
+                async { panic!("not observed") },
+                async {
+                    Err(NimiHostError::new(
+                        NimiHostErrorReasonCode::LocalDevelopmentSupervisorRequired,
+                        false,
+                    )
+                    .with_reason_metadata([("diagnostic_stage".into(), stage.into())].into()))
+                },
+            )
+            .await;
+            if stage == "rebind-supervisor" {
+                assert_eq!(
+                    result.unwrap_err().reason_code(),
+                    NimiHostErrorReasonCode::LocalDevelopmentSupervisorRequired
+                );
+            } else {
+                assert_eq!(
+                    result.unwrap(),
+                    DevelopmentWitnessMaintenance::AppUnavailable
+                );
+            }
+        }
     }
 
     fn observed(
