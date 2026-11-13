@@ -273,6 +273,40 @@ environments:
     reason: Native Installer completed the upgrade and the installed Runtime and dylib matched the
       verified payload digests. Both retained Developer ID signatures with the same Team ID and the
       Runtime had no Library Validation exception. Launchd published both sockets and Home connected.
+  macos_sdcpp_1088_ref2va_budget_candidate:
+    os: macOS
+    arch: arm64
+    os_version: 27.2.1
+    os_build: 26B131
+    hardware: Mac16,5 with Apple M4 Max and 128 GiB unified memory
+    distribution: installed
+    observed_on: 2026-11-12
+    default_status: NOT-VERIFIED
+    source_revision: a9a908dc0adcf81a4a1f0f7bec2f52fb5424db9a # pragma: allowlist secret -- public commit
+    package_name: Nimi-0.2.5-rc.6-macos-arm64.pkg
+    package_sha256: c54c27c4621455fa3532c9432164780dca3d79b9da0128cf243289085fa1838f # pragma: allowlist secret -- CI package digest
+    package_source: GitHub Actions macOS production candidate, local-acceptance Realm
+    ci_url: https://github.com/nimiplatform/nimi/actions/runs/43212656466
+    artifact_id: 13945591641
+    artifact_name: nimi-macos-arm64-43212656466-1-local-acceptance
+    archive_sha256: fd9102331a364bf4f128d4cfa80e6086484e2af3e2f166c6a7aa14c23f1d0153 # pragma: allowlist secret -- GitHub artifact digest
+    runtime_sha256: 494ab304fb5abb58c55ee8648aa5784240ab05d7d45bb92f5ef202c2381f9a6f # pragma: allowlist secret -- CI component digest
+    video_dylib_sha256: 6d5abd9b3e233e7934877301ba392d889abb7770ee554c4c22d3e5b7c7a69b56 # pragma: allowlist secret -- CI component digest
+    package_checks: Archive and package SHA-256, build identity, Developer ID Installer,
+      Gatekeeper notarization and stapled ticket passed. The installed arm64 Runtime and dylib
+      matched the verified payload and passed strict signature verification with Team RMZJPQQR3X.
+      Runtime retained Hardened Runtime, contained the signed dylib digest and had no Library
+      Validation exception.
+    runtime_revision: a9a908dc0adcf81a4a1f0f7bec2f52fb5424db9a # pragma: allowlist secret -- observed public revision
+    runtime_modified: false
+    runtime_version: 0.2.5-rc.6, Go 1.26.10, darwin/arm64, cgo enabled
+    home_version: 0.2.5-rc.6
+    engine: stable-diffusion.cpp master-1088-32d516c, signed arm64 dylib derived from the official Apple Silicon archive
+    engine_archive_sha256: b6588e81e788d9f2f24498831ba398d7523152e7ec280ff282f39c2009465b77 # pragma: allowlist secret -- public archive digest
+    installation: PASS
+    startup: PASS
+    reason: Native Installer completed the upgrade. Launchd published both sockets and installed
+      Home connected to Runtime and retained the prepared HyperFlow H3 Flash and Sol VAE bindings.
   macos_installed:
     os: macOS
     arch: arm64
@@ -308,6 +342,13 @@ environments:
       - The selected data root and offline backups are retained. The supervised Lab uses rebuilt workspace
         packages; this does not establish a separately packaged Lab distribution or every signed Home consumer.
 evidence_sources:
+  macos_sdcpp_ref2va_budget_candidate_20261112:
+    availability: scenario-summary-in-repository
+    description: Exact signed CI candidate installed on Apple Silicon. Supervised Lab resumed the
+      existing registration and repeated the 256x256 Ref2VA sample that timed out on the prior
+      candidate. Lab snapshots, native diagnostics and the independently decoded MP4 remain local.
+    period_start: 2026-11-12
+    period_end: 2026-11-12
   macos_sdcpp_signed_video_candidate_20261112:
     availability: scenario-summary-in-repository
     description: Exact signed CI candidate installed on Apple Silicon. Home retained the locally
@@ -7682,6 +7723,24 @@ capabilities:
       macos_development: SCENARIO-SPECIFIC
       macos_installed: SCENARIO-SPECIFIC
     scenarios:
+      - id: macos-20261112-installed-hyperflow-ref2va-256-budget
+        route: local
+        models: [ HyperFlow H3 Flash Ref2VA INT8 ConvRot, MiniMax-H3 Qwen3-VL Q4_K_M,
+          Sol-H3-VAE F16, MiniMax-H3 audio VAE F32 ]
+        environment: macos_sdcpp_1088_ref2va_budget_candidate
+        scenario: Supervised Lab repeated the same blue-mug prompt and 256x256 reference PNG
+          with 256x256 output, five frames, seed 42 and the locally bound Sol VAE.
+        result: { execution: PASS, quality: PASS }
+        summary: The signed native host loaded the Ref2VA transformer and Sol VAE, processed
+          one 256x256 reference and finished generation in 526.45 seconds within the new
+          15-minute budget. Lab completed the Job and saved one 9944-byte MP4. Independent
+          decoding confirmed five 256x256 H.264 frames at 24 FPS and stereo 32 kHz AAC.
+        observed_on: 2026-11-12
+        jobs: [ 01M77WYW7S87N7ZRXDN90QMTBR ]
+        evidence:
+          - { source: macos_sdcpp_ref2va_budget_candidate_20261112 }
+        limitations:
+          - Quality covers decoded video and audio structure for this sample.
       - id: macos-20261112-installed-signed-hyperflow-fl2va
         route: local
         models: [ HyperFlow H3 Flash FL2VA INT8 ConvRot, MiniMax-H3 Qwen3-VL Q4_K_M,

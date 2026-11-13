@@ -6,7 +6,7 @@ Nimi 致力于构建覆盖移动端、Web、PC、嵌入式设备与智能家居�
 
 [下载与发布状态](https://nimi.ai/download) · [官方网站](https://nimi.ai) · [开发文档](https://docs.nimi.ai) · [版本发布](https://github.com/nimiplatform/nimi/releases) · [Discord 社区](https://discord.gg/BQwHJvPn)
 
-> **当前版本（公开 Beta `nimi/v0.2.4`）**：Nimi 现已提供公开 Beta 安装包（包含 Desktop、Runtime、Avatar 及所需系统服务），支持 **macOS Apple Silicon**（`arm64`，macOS 13.0+）与 **Windows x86_64**（Windows 10 2004 / `10.0.19041`+）。请前往 [下载页面](https://nimi.ai/download) 或 [GitHub Releases](https://github.com/nimiplatform/nimi/releases) 获取安装程序与发行元数据。当前版本通过独立的 `beta` 通道分发（非 `stable` 正式版）；使用 Nimi 需要注册 Nimi 账号并在浏览器中完成登录授权。
+> **当前发布（公开 Beta `nimi/v0.2.4`）**：该版本的安装包随附承载 Nimi Home 的 Desktop、Runtime、Avatar 及所需系统服务，支持 **macOS Apple Silicon**（`arm64`，macOS 13.0+）与 **Windows x86_64**（Windows 10 2004 / `10.0.19041`+）。Zhiyu 在此 Beta 发布后才加入源码的 [完整产品包](.nimi/spec/platform/product-lifecycle.authority.yaml)。请前往 [下载页面](https://nimi.ai/download) 或 [v0.2.4 发布页](https://github.com/nimiplatform/nimi/releases/tag/nimi/v0.2.4) 获取安装程序与发行元数据。该版本通过 `beta` 通道分发。使用 Nimi 需要注册 Nimi 账号并在浏览器中完成登录授权。
 
 ---
 
@@ -14,7 +14,7 @@ Nimi 致力于构建覆盖移动端、Web、PC、嵌入式设备与智能家居�
 
 - **AI 不只是一片空白的聊天框**：通过专注于具体任务的应用来完成工作与创作——从写作、音乐、图像处理，到家庭成长记录、心理反思与节律观察。
 - **本地优先，模型随心选**：模型就绪后即可在本地设备直接运行推理，无需为这部分调用支付云端 API 费用；也可按需接入支持的云端模型服务（账号登录、内容下载与在线功能仍需联网）。模型与算力的选择权始终在你手中。
-- **跨应用的记忆与连续性**：在你授权的应用之间，同一个 LocalAgent 可以跨场景持续陪伴。启用长期记忆后，记忆数据按 Agent 隔离保存在本机；当选用云端模型时，当前请求所需的上下文会发送给所选模型服务商。
+- **跨应用的记忆与连续性**：具备当前访问权限的应用可以使用同一个 LocalAgent。Runtime 按应用声明、当前会话和对应资源的访问规则校验每次请求。启用长期记忆后，记忆数据按 Agent 隔离保存在本机；使用云端模型时，当前请求所需的上下文会发送给所选模型服务商。
 - **有故事的角色与世界**：遇见拥有独特背景与世界观的 AI 角色，走进他们所在的时空，在互动中感受超越单向提问的沉浸体验。
 - **打造你自己的本地应用**：借助现代化的 TypeScript SDK 与组件库，开发者可以将创意构建为本地 AI 应用，在 Desktop 监管下通过受保护会话安全访问 Nimi 能力。
 
@@ -73,10 +73,10 @@ pnpm dlx --package @nimiplatform/app-tools@0.14.0 nimi-app create --dir my-ai-ap
 
 ## 平台分层架构
 
-Nimi 采用清晰解耦的分层设计，保障安全性与扩展性：
+Nimi Home 是 Nimi 的产品入口，目前由 Desktop 承载。Desktop 也负责启动和监管本机原生 App。
 
 ```text
-Desktop App ── 本机受保护 Host ──┐
+原生 App ──── 本机受保护 Host ──┐
 Web / Android App ── 直接连接 ───┼── PC Runtime ── 本地 / 云端 AI
 Nimi Home ── 本机管理入口 ───────┘       │
                                         └── Cognition 长期记忆
@@ -87,7 +87,7 @@ Avatar：消费角色状态并呈现 2D / 3D 形象
 
 Runtime 与 Realm 各自拥有其领域的数据和行为，互不充当对方的下层实现。
 
-详细架构契约、协议原语与领域所有权请参阅 [docs.nimi.ai/platform](https://docs.nimi.ai/platform)。
+仓库内的产品权威位于 [.nimi/spec](.nimi/spec/)，平台分层的入口是 [核心协议](.nimi/spec/platform/core-protocol.authority.yaml) 中的 `P-ARCH-001a`。面向开发者的架构说明见 [docs.nimi.ai/platform](https://docs.nimi.ai/platform)。
 
 ---
 
