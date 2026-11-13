@@ -9,7 +9,8 @@ import (
 )
 
 type integrationRegistrations struct {
-	store *localappkernel.RegistrationStore
+	store             *localappkernel.RegistrationStore
+	remoteSubjectLive func(context.Context, string) bool
 }
 
 func (r integrationRegistrations) Consumers(ctx context.Context) ([]integration.Consumer, error) {
@@ -22,10 +23,21 @@ func (r integrationRegistrations) Consumers(ctx context.Context) ([]integration.
 	}
 	result := make([]integration.Consumer, 0, len(statuses))
 	for _, status := range statuses {
-		if status.State != localappkernel.RegistrationStateActive || !status.CurrentHostBound {
+		if status.State != localappkernel.RegistrationStateActive {
 			continue
 		}
-		registration, err := r.store.GetBySubject(ctx, status.RegisteredAppSubject)
+		var registration localappkernel.Registration
+		if status.SourceClass == localappkernel.SourceClassRemote {
+			if r.remoteSubjectLive == nil || !r.remoteSubjectLive(ctx, status.RegisteredAppSubject) {
+				continue
+			}
+			registration, err = r.store.GetActiveByHandle(ctx, status.RegistrationHandle)
+		} else {
+			if !status.CurrentHostBound {
+				continue
+			}
+			registration, err = r.store.GetBySubject(ctx, status.RegisteredAppSubject)
+		}
 		if err != nil {
 			return nil, err
 		}
@@ -67,6 +79,8 @@ func (r integrationRegistrations) DescribeConsumer(ctx context.Context, subject 
 		kind = "platform"
 	case description.SourceClass == localappkernel.SourceClassLocalDevelopment:
 		kind = "development"
+	case description.SourceClass == localappkernel.SourceClassRemote:
+		kind = "remote"
 	case description.SourceClass == localappkernel.SourceClassVerified || description.SourceClass == localappkernel.SourceClassUserImported:
 		kind = "installed"
 	}

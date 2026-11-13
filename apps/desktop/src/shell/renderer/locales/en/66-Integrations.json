@@ -75,6 +75,7 @@
     "development": "Development app",
     "installed": "Installed app",
     "platform": "Built-in app",
+    "remote": "Remote app",
     "unknown": "Source unconfirmed"
   },
   "unavailablePermissionConsumer": "New permissions are unavailable for this instance. Existing permissions can still be revoked.",

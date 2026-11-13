@@ -49,7 +49,7 @@ message IntegrationConsumer {
   string consumer_ref = 1;
   string app_id = 2;
   string display_name = 3;
-  // Display-only: development, installed, platform, or unknown.
+  // Display-only: development, installed, platform, remote, or unknown.
   string source_kind = 4;
 }
 
@@ -103,6 +103,9 @@ message IntegrationProviderCall {
   string operation = 3;
   string input_json = 4;
   string consumer_display_name = 5;
+  // Runtime-derived account and Registered App Subject reference, never caller input.
+  // Providers use this to scope their own multi-call business object references.
+  string consumer_ref = 6;
 }
 message PollIntegrationProviderResponse {
   repeated IntegrationProviderCall calls = 1;

@@ -1,12 +1,13 @@
 # Platform upgrade
 
-App Tools 0.15 defaults to SDK 0.23.0, Kit/native 0.23.0 and both native crates
-0.12.0. Upgrade this combination together with a Runtime implementing the current
-register/heartbeat/sync protocol. Existing 0.21 and 0.22 SDK/Kit combinations remain
-explicit selections; sync does not upgrade business dependencies. Every App must
-own a root `NIMI_APP.md`; remove the retired `metadata.readme` field. Review the SDK
-and Kit migration notes for remote connection changes and the bundled native Host
-ABI. Source candidates and public registry installation remain separate stages.
+Read the selected package's `nimiScaffoldVersions` for its SDK/Kit combination
+and native crate versions. Upgrade complete matching packages with the Runtime
+contract in their migration notes; a numbered RC is a local candidate, not a
+publication claim. Never replace an archive's content under the same version.
+Explicitly supported existing combinations remain selections; sync does not
+silently upgrade business dependencies. Every App owns `NIMI_APP.md`; the retired
+`metadata.readme` field is unsupported. The 0.24 Integration provider context
+requires Runtime-derived `consumerRef` and matching SDK/Kit/native projections.
 
 Fresh App Tools 0.13 scaffolds require Kit `^0.21.0` or a later admitted pair
 with the standard navigation contract. The combination list also contains

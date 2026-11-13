@@ -3374,6 +3374,7 @@ class IntegrationProviderCall:
     operation: str | None = None
     input_json: str | None = None
     consumer_display_name: str | None = None
+    consumer_ref: str | None = None
 
 @dataclass(frozen=True)
 class IntegrationQQOfficialConfig:

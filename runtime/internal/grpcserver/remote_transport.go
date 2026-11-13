@@ -102,6 +102,10 @@ func remoteAppMethodSupported(method string) bool {
 		"/nimi.runtime.v1.RuntimeAiService/SubscribeLocalAppScenarioJobEvents", "/nimi.runtime.v1.RuntimeAiService/ReadLocalAppArtifact", "/nimi.runtime.v1.RuntimeAiService/UploadLocalAppArtifact",
 		"/nimi.runtime.v1.RuntimeAiService/ListLocalAppVoiceAssets", "/nimi.runtime.v1.RuntimeAiService/DeleteLocalAppVoiceAsset":
 		return true
+	case "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCatalog", "/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationConnections",
+		"/nimi.runtime.v1.RuntimeIntegrationService/InvokeIntegrationCall", "/nimi.runtime.v1.RuntimeIntegrationService/GetIntegrationCall",
+		"/nimi.runtime.v1.RuntimeIntegrationService/ListIntegrationCalls", "/nimi.runtime.v1.RuntimeIntegrationService/CancelIntegrationCall":
+		return true
 	default:
 		return false
 	}
@@ -288,6 +292,7 @@ func (stream *remoteServerStream) Context() context.Context     { return stream.
 func (stream *remoteServerStream) SetHeader(metadata.MD) error  { return nil }
 func (stream *remoteServerStream) SendHeader(metadata.MD) error { return nil }
 func (stream *remoteServerStream) SetTrailer(metadata.MD)       {}
+
 // @nimi-authority: rule.nimi.runtime.remote-access.asset-write-stream
 func (stream *remoteServerStream) RecvMsg(value any) error {
 	if err := stream.ctx.Err(); err != nil {

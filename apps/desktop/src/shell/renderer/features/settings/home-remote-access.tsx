@@ -16,6 +16,7 @@ const copy = {
     manager: 'Official management client', app: 'Ecosystem application', scope: 'Declared access', capability: 'Capability references', count: 'Connected clients',
     managerScope: 'This client can manage your Runtime configuration and service after verifying your ownership on each connection.',
     appScope: 'The application can use admitted capabilities and update its own AI configuration. Cloud calls use this PC’s connections and may incur costs.',
+    scopedAppScope: 'The application can use services within the declared access below. Specific resources and operations still need their own permission.',
     once: 'Approval applies to this account, primary Runtime, and source version. You can switch browsers or devices without confirming again if those stay the same.',
     unsupported: 'Operations remain subject to current support and resource permissions.', working: 'Saving…', audit: 'The change took effect, but its audit record could not be completed.',
   },
@@ -26,6 +27,7 @@ const copy = {
     manager: '官方管理端', app: '生态应用', scope: '应用声明', capability: '能力引用', count: '已连接客户端',
     managerScope: '允许此管理端管理 Runtime 配置和服务；每次连接仍需验证你的所有者身份。',
     appScope: '应用按已开放能力使用服务，并可修改自己的 AI 配置。云调用使用这台 PC 的连接，可能产生费用。',
+    scopedAppScope: '应用只能在下方声明范围内调用服务；具体资源和操作仍需单独授权。',
     once: '此许可与当前账号、主 Runtime 和来源版本绑定。这三项未变时，换浏览器或设备不必重新确认。', unsupported: '具体操作仍受当前支持范围和资源权限约束。', working: '正在保存…', audit: '修改已生效，但审计记录未能完成。',
   },
 };
@@ -37,7 +39,7 @@ const accessLabels: Record<string, readonly [string, string]> = {
   'agent.configure': ['Agent configuration', '智能体配置'],
   'app.activity': ['Application activity', '应用动态'],
   'agent.work': ['Agent tasks', '智能体任务'],
-  'integration.consume': ['Use permitted application functions', '使用获准的应用功能'],
+  'integration.consume': ['Use permitted integration operations', '调用已获准的集成操作'],
   'integration.provide': ['Provide application functions', '提供应用功能'],
   'integration.manage': ['Manage application integrations', '管理应用集成'],
 };
@@ -97,7 +99,7 @@ export function HomeRemoteAccess({ account, realm, primaryBindingId, thisRuntime
         </div>
         <NimiText role="helper">{source.officialManager ? c.manager : c.app}</NimiText>
         {pending && <>
-          <NimiText role="body">{source.officialManager ? c.managerScope : c.appScope}</NimiText>
+          <NimiText role="body">{source.officialManager ? c.managerScope : source.appAccess.includes('runtime.consume') ? c.appScope : c.scopedAppScope}</NimiText>
           <NimiText role="helper">{c.once}</NimiText>
           {!source.officialManager && <div className="flex flex-col gap-2">
             <NimiText role="label">{c.scope}</NimiText>

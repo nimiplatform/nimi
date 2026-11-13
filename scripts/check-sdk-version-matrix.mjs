@@ -350,8 +350,9 @@ async function main() {
 
   const scaffoldVersions = packageVersions.get('@nimiplatform/app-tools')?.pkg?.nimiScaffoldVersions;
   for (const field of ['sdkVersion', 'kitVersion']) {
-    if (!/^\^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/u.test(scaffoldVersions?.[field] ?? '')) {
-      violations.push(`app-tools/package.json nimiScaffoldVersions.${field} must be a stable public package range`);
+    // A selected local RC is a complete versioned package, not a publication claim.
+    if (!/^\^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-rc\.(0|[1-9]\d*))?$/u.test(scaffoldVersions?.[field] ?? '')) {
+      violations.push(`app-tools/package.json nimiScaffoldVersions.${field} must be a stable or numbered RC package range`);
     }
   }
   if (scaffoldVersions?.appToolsVersion !== expectedAppToolsRange) {

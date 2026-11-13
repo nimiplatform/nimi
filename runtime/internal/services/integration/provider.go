@@ -171,7 +171,7 @@ func (s *Service) PollIntegrationProvider(ctx context.Context, req *runtimev1.Po
 				continue
 			}
 			c.delivered = true
-			result.Calls = append(result.Calls, &runtimev1.IntegrationProviderCall{CallId: c.fact.CallId, TargetRef: c.target.Public.TargetRef, Operation: c.op.Name, InputJson: c.input, ConsumerDisplayName: c.fact.ConsumerDisplayName})
+			result.Calls = append(result.Calls, &runtimev1.IntegrationProviderCall{CallId: c.fact.CallId, TargetRef: c.target.Public.TargetRef, Operation: c.op.Name, InputJson: c.input, ConsumerDisplayName: c.fact.ConsumerDisplayName, ConsumerRef: ref("icons_", c.decision.AccountID, c.decision.RegisteredAppSubject)})
 			if len(result.Calls) == 16 {
 				break
 			}

@@ -260,7 +260,7 @@ func (s *Service) consumerList(ctx context.Context, account string) ([]Consumer,
 func consumerProjection(account string, c Consumer) *runtimev1.IntegrationConsumer {
 	kind := c.SourceKind
 	switch kind {
-	case "development", "installed", "platform":
+	case "development", "installed", "platform", "remote":
 	default:
 		kind = "unknown"
 	}

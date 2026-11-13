@@ -2,6 +2,10 @@
 
 # Changelog
 
+## Unreleased — 0.24.0-rc.1 Integration consumer carrier
+
+The common App scope includes bounded remote Integration consumption. Native provider polls preserve Runtime-derived `consumerRef`; display names do not authorize callers. Update the complete SDK/Kit/native combination before adopting per-consumer provider objects. Web and Android gain no credentials, provider lifetime operations or Integration management authority.
+
 ## Unreleased — Runtime presence protocol (breaking, 0.23)
 
 Use the matching SDK and Runtime register/heartbeat/sync implementation. The former lease/poll contract and generated `leaseExpiresAt` field are removed. Runtime owns presence and authorization maintenance; Kit retains the public App connection lifecycle and never replays business work after reconnecting.

@@ -261,6 +261,12 @@ func TestIntegrationAppPermissionAndCancellationAreIndependent(t *testing.T) {
 	if len(polled.Calls) != 2 {
 		t.Fatalf("provider did not receive both consumers: %v", polled)
 	}
+	owners := map[string]string{first: ref("icons_", one.AccountID, one.RegisteredAppSubject), second: ref("icons_", two.AccountID, two.RegisteredAppSubject)}
+	for _, call := range polled.Calls {
+		if call.ConsumerRef == "" || call.ConsumerRef != owners[call.CallId] {
+			t.Fatalf("provider received a missing or foreign consumer reference: %v", call)
+		}
+	}
 	if _, err := s.CancelIntegrationCall(testContext(two, localappop.OperationIntegrationCallCancel), &runtimev1.CancelIntegrationCallRequest{CallId: first}); status.Code(err) != codes.NotFound {
 		t.Fatalf("foreign cancel succeeded: %v", err)
 	}

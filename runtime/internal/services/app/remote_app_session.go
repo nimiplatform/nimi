@@ -22,6 +22,28 @@ type remoteAppRuntimeSession struct {
 
 type remoteAppPeerContextKey struct{}
 
+// @nimi-authority: rule.nimi.runtime.integration.standing-permission
+// Integration management can offer a live remote subject without inventing
+// native Host binding. The original peer, account and source fences still own it.
+func (s *Service) RemoteAppSubjectLive(ctx context.Context, subject string) bool {
+	if s == nil {
+		return false
+	}
+	live := false
+	s.remoteAppSessions.Range(func(key, value any) bool {
+		session := value.(*remoteAppRuntimeSession)
+		if session.binding.RegisteredAppSubject != subject {
+			return true
+		}
+		info, _, _, err := s.currentRemotePeer(ctx, key.(remoteAppPeer))
+		if err == nil && info.Source.Role == "app" && info.Registration.RegisteredAppSubject == subject {
+			live = true
+		}
+		return !live
+	})
+	return live
+}
+
 type remoteAppPeer interface {
 	Snapshot() (remoteaccess.PeerInfo, bool)
 	Done() <-chan struct{}

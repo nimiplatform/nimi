@@ -9648,6 +9648,7 @@ pub struct IntegrationProviderCall {
     pub operation: Option<String>,
     pub input_json: Option<String>,
     pub consumer_display_name: Option<String>,
+    pub consumer_ref: Option<String>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

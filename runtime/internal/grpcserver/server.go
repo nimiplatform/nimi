@@ -1023,6 +1023,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	}
 	if localAppKernel != nil {
 		integrationSources.store = localAppKernel.Registrations()
+		integrationSources.remoteSubjectLive = appSvc.RemoteAppSubjectLive
 	}
 	integrationSvc, err := integration.New(integration.Options{Backend: backend, Audit: auditStore, Logger: logger, Secrets: integrationSecrets, Revalidator: appSvc, Registrations: integrationSources, DesktopTransport: accountservice.VerifiedDesktopTransport, Assets: appSvc})
 	if err != nil {
@@ -1082,6 +1083,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 	remoteDispatcher.register(appSvc, &runtimev1.RuntimeAppService_ServiceDesc)
 	remoteDispatcher.register(agentSvc, &runtimev1.RuntimeAgentService_ServiceDesc)
 	remoteDispatcher.register(activitySvc, &runtimev1.RuntimeAppActivityService_ServiceDesc)
+	remoteDispatcher.register(integrationSvc, &runtimev1.RuntimeIntegrationService_ServiceDesc)
 	remoteDispatcher.register(runtimeControlSvc, &runtimev1.RuntimeServiceControlService_ServiceDesc)
 	remoteDispatcher.register(remoteAccessSvc, &runtimev1.RuntimeRemoteAccessService_ServiceDesc)
 	runtimev1.RegisterRuntimeRemoteAccessServiceServer(g, remoteAccessSvc)

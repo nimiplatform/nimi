@@ -2,6 +2,12 @@
 
 # SDK migration notes
 
+## Unreleased — 0.24.0-rc.2 Integration consumer carrier
+
+Remote App clients expose only Integration catalog/connection discovery and call invoke/get/list/cancel, retaining declaration coverage and standing resource permission. They gain neither provider nor management operations. Provider polls now require Runtime-derived `consumerRef` alongside display copy, so App handlers can bind their own progress/object references to the actual caller. Use the complete matching Runtime, SDK, Kit and native candidates. This is local candidate work, not public publication.
+
+RC.2 projects protobuf-decoded Integration messages, including nested targets and permissions, into the plain DTOs required by the shared operation clients. RC.1 rejected real direct-carrier catalog responses because generated message prototypes are not plain shell objects. The unknown-shell validator remains strict. Existing Kit/native RC.1 bytes can be reused with this SDK repair; update the complete App dependency selection and lockfile without overwriting frozen archives.
+
 ## Unreleased — Runtime presence protocol (breaking, 0.23)
 
 Use SDK, Kit and Runtime builds matching the Realm register/heartbeat/sync contract. Runtime owns lightweight presence heartbeats and on-demand authorization synchronization. The former lease/poll operations and `leaseExpiresAt` projection are removed, including the generated native binding. Update the complete package combination together; applications continue to use the public connection lifecycle rather than maintain a lease themselves.

@@ -5522,6 +5522,7 @@ type IntegrationProviderCall struct {
 	Operation           string `json:"operation,omitempty"`
 	InputJson           string `json:"input_json,omitempty"`
 	ConsumerDisplayName string `json:"consumer_display_name,omitempty"`
+	ConsumerRef         string `json:"consumer_ref,omitempty"`
 }
 
 type IntegrationQQOfficialConfig struct {

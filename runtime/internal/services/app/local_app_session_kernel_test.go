@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"errors"
+	"io"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -555,19 +556,22 @@ func newLocalAppSessionFixture(t testing.TB, domains []string, extraOptions ...O
 }
 
 func newLocalAppSessionFixtureAtProject(t testing.TB, domains []string, projectRoot string, extraOptions ...Option) localAppSessionFixture {
+	return newLocalAppSessionFixtureWithRandom(t, domains, projectRoot, bytes.NewReader(bytes.Repeat([]byte{0x31}, 256)), extraOptions...)
+}
+
+func newLocalAppSessionFixtureWithRandom(t testing.TB, domains []string, projectRoot string, entropy io.Reader, extraOptions ...Option) localAppSessionFixture {
 	t.Helper()
 	ctx := context.Background()
 	identity, err := localappkernel.ValidateVerifiedMacOSInteractiveUser(501, 42)
 	if err != nil {
 		t.Fatal(err)
 	}
-	kernelEntropy := bytes.Repeat([]byte{0x31}, 256)
 	dataRoot := t.TempDir()
 	databasePath, err := localappkernel.CanonicalRegistrationDatabasePath(dataRoot)
 	if err != nil {
 		t.Fatal(err)
 	}
-	kernel, err := localappkernel.OpenSQLite(ctx, databasePath, identity, localappkernel.Options{Random: bytes.NewReader(kernelEntropy), HostInstallID: "local-app-session-host", DataRoot: dataRoot})
+	kernel, err := localappkernel.OpenSQLite(ctx, databasePath, identity, localappkernel.Options{Random: entropy, HostInstallID: "local-app-session-host", DataRoot: dataRoot})
 	if err != nil {
 		t.Fatal(err)
 	}

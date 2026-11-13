@@ -360,7 +360,7 @@ type IntegrationConsumer struct {
 	ConsumerRef string                 `protobuf:"bytes,1,opt,name=consumer_ref,json=consumerRef,proto3" json:"consumer_ref,omitempty"`
 	AppId       string                 `protobuf:"bytes,2,opt,name=app_id,json=appId,proto3" json:"app_id,omitempty"`
 	DisplayName string                 `protobuf:"bytes,3,opt,name=display_name,json=displayName,proto3" json:"display_name,omitempty"`
-	// Display-only: development, installed, platform, or unknown.
+	// Display-only: development, installed, platform, remote, or unknown.
 	SourceKind    string `protobuf:"bytes,4,opt,name=source_kind,json=sourceKind,proto3" json:"source_kind,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -1330,8 +1330,11 @@ type IntegrationProviderCall struct {
 	Operation           string                 `protobuf:"bytes,3,opt,name=operation,proto3" json:"operation,omitempty"`
 	InputJson           string                 `protobuf:"bytes,4,opt,name=input_json,json=inputJson,proto3" json:"input_json,omitempty"`
 	ConsumerDisplayName string                 `protobuf:"bytes,5,opt,name=consumer_display_name,json=consumerDisplayName,proto3" json:"consumer_display_name,omitempty"`
-	unknownFields       protoimpl.UnknownFields
-	sizeCache           protoimpl.SizeCache
+	// Runtime-derived account and Registered App Subject reference, never caller input.
+	// Providers use this to scope their own multi-call business object references.
+	ConsumerRef   string `protobuf:"bytes,6,opt,name=consumer_ref,json=consumerRef,proto3" json:"consumer_ref,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
 }
 
 func (x *IntegrationProviderCall) Reset() {
@@ -1395,6 +1398,13 @@ func (x *IntegrationProviderCall) GetInputJson() string {
 func (x *IntegrationProviderCall) GetConsumerDisplayName() string {
 	if x != nil {
 		return x.ConsumerDisplayName
+	}
+	return ""
+}
+
+func (x *IntegrationProviderCall) GetConsumerRef() string {
+	if x != nil {
+		return x.ConsumerRef
 	}
 	return ""
 }
@@ -2958,7 +2968,7 @@ const file_runtime_v1_integration_proto_rawDesc = "" +
 	"%UnregisterIntegrationProviderResponse\x12\x18\n" +
 	"\aremoved\x18\x01 \x01(\bR\aremoved\"9\n" +
 	"\x1ePollIntegrationProviderRequest\x12\x17\n" +
-	"\await_ms\x18\x01 \x01(\rR\x06waitMs\"\xc2\x01\n" +
+	"\await_ms\x18\x01 \x01(\rR\x06waitMs\"\xe5\x01\n" +
 	"\x17IntegrationProviderCall\x12\x17\n" +
 	"\acall_id\x18\x01 \x01(\tR\x06callId\x12\x1d\n" +
 	"\n" +
@@ -2966,7 +2976,8 @@ const file_runtime_v1_integration_proto_rawDesc = "" +
 	"\toperation\x18\x03 \x01(\tR\toperation\x12\x1d\n" +
 	"\n" +
 	"input_json\x18\x04 \x01(\tR\tinputJson\x122\n" +
-	"\x15consumer_display_name\x18\x05 \x01(\tR\x13consumerDisplayName\"\x8d\x01\n" +
+	"\x15consumer_display_name\x18\x05 \x01(\tR\x13consumerDisplayName\x12!\n" +
+	"\fconsumer_ref\x18\x06 \x01(\tR\vconsumerRef\"\x8d\x01\n" +
 	"\x1fPollIntegrationProviderResponse\x12>\n" +
 	"\x05calls\x18\x01 \x03(\v2(.nimi.runtime.v1.IntegrationProviderCallR\x05calls\x12*\n" +
 	"\x11canceled_call_ids\x18\x02 \x03(\tR\x0fcanceledCallIds\"}\n" +

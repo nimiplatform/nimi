@@ -123,6 +123,9 @@ func TestRemoteAppRevalidationAndStorageNeverNeedNativeProcessProof(t *testing.T
 				t.Fatal(err)
 			}
 			decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(admitted)
+			if !service.RemoteAppSubjectLive(ctx, registration.RegisteredAppSubject) || service.RemoteAppSubjectLive(ctx, "foreign-subject") {
+				t.Fatal("remote consumer eligibility did not follow the verified subject")
+			}
 			if !ok || decision.TrustClass != accountservice.LocalAppTrustClassRemote || decision.Process.PID != 0 {
 				t.Fatal("remote admission fabricated a native process")
 			}
@@ -204,6 +207,9 @@ func TestRemoteAppRevalidationAndStorageNeverNeedNativeProcessProof(t *testing.T
 
 			if _, err = service.AuthorizeLocalAppIngress(admitted, localappop.IngressStorageJSONRead); err == nil {
 				t.Fatal("stale remote context revalidated")
+			}
+			if service.RemoteAppSubjectLive(ctx, registration.RegisteredAppSubject) {
+				t.Fatal("invalidated remote subject remained eligible for new Integration permission")
 			}
 			committed := false
 			if err = service.CommitLocalAppIngress(admitted, localappop.IngressStorageJSONWrite, func(context.Context) error { committed = true; return nil }); err == nil || committed {

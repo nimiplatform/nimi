@@ -44,6 +44,33 @@ func TestRemoteAssetWriteUsesOriginalStreamingOwner(t *testing.T) {
 	}
 }
 
+func TestRemoteIntegrationUsesOnlyExistingConsumerIngress(t *testing.T) {
+	methods := []struct {
+		name    string
+		request proto.Message
+		ingress localappop.Ingress
+	}{
+		{"ListIntegrationCatalog", &runtimev1.ListIntegrationCatalogRequest{}, localappop.IngressIntegrationCatalogList},
+		{"ListIntegrationConnections", &runtimev1.ListIntegrationConnectionsRequest{}, localappop.IngressIntegrationConnectionList},
+		{"InvokeIntegrationCall", &runtimev1.InvokeIntegrationCallRequest{}, localappop.IngressIntegrationCallInvoke},
+		{"GetIntegrationCall", &runtimev1.GetIntegrationCallRequest{}, localappop.IngressIntegrationCallGet},
+		{"ListIntegrationCalls", &runtimev1.ListIntegrationCallsRequest{}, localappop.IngressIntegrationCallList},
+		{"CancelIntegrationCall", &runtimev1.CancelIntegrationCallRequest{}, localappop.IngressIntegrationCallCancel},
+	}
+	for _, method := range methods {
+		name := "/nimi.runtime.v1.RuntimeIntegrationService/" + method.name
+		ingress, enabled := remoteAppIngress(name, method.request, false)
+		if !remoteAppMethodSupported(name) || !enabled || ingress != method.ingress {
+			t.Fatalf("consumer owner missing for %s", name)
+		}
+	}
+	for _, method := range []string{"RegisterIntegrationProvider", "PollIntegrationProvider", "CompleteIntegrationProvider", "GetIntegrationManagement", "SetIntegrationPermission", "PutIntegrationConnection"} {
+		if remoteAppMethodSupported("/nimi.runtime.v1.RuntimeIntegrationService/" + method) {
+			t.Fatalf("consumer gained %s", method)
+		}
+	}
+}
+
 func TestRemoteActivityPublicationUsesExistingAdmissionAndCannotLaunch(t *testing.T) {
 	ingress, ok := remoteAppIngress(protectedPutAppActivityMethod, &runtimev1.PutAppActivityRequest{}, false)
 	if !ok || ingress != localappop.IngressAppActivityPut {

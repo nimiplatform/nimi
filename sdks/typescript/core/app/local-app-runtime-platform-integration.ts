@@ -169,7 +169,7 @@ function permission(value: unknown): NimiIntegrationPermission {
 function consumer(value: unknown): NimiIntegrationConsumer {
   const row = asRecord(value);
   assertExactProjectionKeys(row, ['consumerRef','appId','displayName','sourceKind'], 'Integration consumer');
-  if (!['development','installed','platform','unknown'].includes(String(row.sourceKind))) return localAppProjectionError('Integration consumer source');
+  if (!['development','installed','platform','remote','unknown'].includes(String(row.sourceKind))) return localAppProjectionError('Integration consumer source');
   return Object.freeze({
     consumerRef: text(row.consumerRef,512,false,true),
     appId: text(row.appId,512,false,true),
@@ -188,7 +188,7 @@ function project(method: NimiLocalAppIntegrationMethod, value: unknown): unknown
   if (method === 'setPermission') { assertExactProjectionKeys(row,['permission'],'Integration permission response'); return permission(row.permission); }
   if (method === 'pollProvider') {
     assertExactProjectionKeys(row,['calls','canceledCallIds'],'Integration provider poll');
-    return Object.freeze({ calls: Object.freeze(list(row.calls,64).map(v => { const item = asRecord(v); assertExactProjectionKeys(item,['callId','targetRef','operation','inputJson','consumerDisplayName'],'Integration provider call'); for (const key of Object.keys(item)) text(item[key],key === 'inputJson' ? 256*1024 : 512,key === 'consumerDisplayName',true); try { JSON.parse(String(item.inputJson)); } catch { return localAppProjectionError('Integration provider input'); } return Object.freeze({...item}); })), canceledCallIds: Object.freeze(list(row.canceledCallIds,1024).map(v => text(v,512,false,true))) });
+    return Object.freeze({ calls: Object.freeze(list(row.calls,64).map(v => { const item = asRecord(v); assertExactProjectionKeys(item,['callId','targetRef','operation','inputJson','consumerDisplayName','consumerRef'],'Integration provider call'); for (const key of Object.keys(item)) text(item[key],key === 'inputJson' ? 256*1024 : 512,key === 'consumerDisplayName',true); try { JSON.parse(String(item.inputJson)); } catch { return localAppProjectionError('Integration provider input'); } return Object.freeze({...item}); })), canceledCallIds: Object.freeze(list(row.canceledCallIds,1024).map(v => text(v,512,false,true))) });
   }
   assertExactProjectionKeys(row,['targets','permissions','consumers','calls'],'Integration management');
   return Object.freeze({ targets: Object.freeze(list(row.targets).map(target)), permissions: Object.freeze(list(row.permissions,4096).map(permission)), consumers: Object.freeze(list(row.consumers).map(consumer)), calls: Object.freeze(list(row.calls,100).map(call)) });
@@ -206,24 +206,36 @@ export type NimiLocalAppIntegrationRuntime = Pick<RuntimeTypedClient, 'listInteg
 export function createNimiLocalAppIntegrationRuntimeClient(runtime: NimiLocalAppIntegrationRuntime): NimiLocalAppIntegrationClient {
   return createNimiLocalAppIntegrationClient(createNimiLocalAppIntegrationRuntimeShell(runtime));
 }
+
+// @nimi-authority: rule.nimi.sdks.feature-clients.integrations
+export type NimiIntegrationConsumerClient = Pick<NimiLocalAppIntegrationClient, 'listCatalog' | 'listConnections' | 'invoke' | 'getCall' | 'listCalls' | 'cancelCall'>;
+export function createNimiIntegrationConsumerRuntimeClient(runtime: NimiLocalAppIntegrationRuntime): NimiIntegrationConsumerClient {
+  const { listCatalog, listConnections, invoke, getCall, listCalls, cancelCall } = createNimiLocalAppIntegrationRuntimeClient(runtime);
+  return Object.freeze({ listCatalog, listConnections, invoke, getCall, listCalls, cancelCall });
+}
 export function createNimiLocalAppIntegrationRuntimeShell(runtime: NimiLocalAppIntegrationRuntime): NimiLocalAppIntegrationShell {
-  const wirePermission = (value: IntegrationPermission | undefined) => { if (!value) throw new Error('Runtime Integration permission is missing'); return { ...value, consumer: value.consumer ?? null }; };
+  // Protobuf decoding supplies message prototypes. Project typed owner values
+  // into the same plain DTOs as the native shell, including nested messages.
+  // The unknown-shell validator intentionally remains strict.
+  const wireTarget = (value: IntegrationTarget | undefined) => { if (!value) throw new Error('Runtime Integration target is missing'); return { ...value,
+    operations: value.operations.map(operation => ({ ...operation })), permittedOperations: [...value.permittedOperations] }; };
+  const wirePermission = (value: IntegrationPermission | undefined) => { if (!value) throw new Error('Runtime Integration permission is missing'); return { ...value, consumer: value.consumer ? { ...value.consumer } : null }; };
   const timestamp = (value: { seconds: string; nanos: number } | undefined) => value ? new Date(Number(value.seconds) * 1000 + value.nanos / 1000000).toISOString() : null;
   const wireCall = (value: IntegrationCall | undefined) => { if (!value) throw new Error('Runtime Integration call is missing'); return { ...value, createdAt: timestamp(value.createdAt), updatedAt: timestamp(value.updatedAt) }; };
   return {
-    listCatalog: async () => { return await runtime.listIntegrationCatalog({}); },
-    listConnections: async () => { return await runtime.listIntegrationConnections({}); },
+    listCatalog: async () => { const value = await runtime.listIntegrationCatalog({}); return { targets: value.targets.map(wireTarget) }; },
+    listConnections: async () => { const value = await runtime.listIntegrationConnections({}); return { connections: value.connections.map(wireTarget) }; },
     invoke: async (input) => { const value = await runtime.invokeIntegrationCall(input); return { call: wireCall(value.call) }; },
     getCall: async (input) => { const value = await runtime.getIntegrationCall(input); return { call: wireCall(value.call) }; },
     listCalls: async (input) => { const value = await runtime.listIntegrationCalls(input); return { calls: value.calls.map(wireCall) }; },
     cancelCall: async (input) => { const value = await runtime.cancelIntegrationCall(input); return { call: wireCall(value.call) }; },
-    registerProvider: async (input) => { return await runtime.registerIntegrationProvider(input); },
-    unregisterProvider: async (input) => { return await runtime.unregisterIntegrationProvider(input); },
-    pollProvider: async (input) => { return await runtime.pollIntegrationProvider(input); },
-    completeProvider: async (input) => { return await runtime.completeIntegrationProvider(input); },
-    getManagement: async () => { const value = await runtime.getIntegrationManagement({}); return { ...value, permissions: value.permissions.map(wirePermission), calls: value.calls.map(wireCall) }; },
-    putConnection: async (input) => { return await runtime.putIntegrationConnection({ ...input, displayName: input.displayName ?? '', config: wireConnectionConfig(input.config) }); },
-    removeConnection: async (input) => { return await runtime.removeIntegrationConnection(input); },
+    registerProvider: async (input) => { const value = await runtime.registerIntegrationProvider(input); return { target: wireTarget(value.target) }; },
+    unregisterProvider: async (input) => { const value = await runtime.unregisterIntegrationProvider(input); return { removed: value.removed }; },
+    pollProvider: async (input) => { const value = await runtime.pollIntegrationProvider(input); return { calls: value.calls.map(call => ({ ...call })), canceledCallIds: [...value.canceledCallIds] }; },
+    completeProvider: async (input) => { const value = await runtime.completeIntegrationProvider(input); return { accepted: value.accepted }; },
+    getManagement: async () => { const value = await runtime.getIntegrationManagement({}); return { targets: value.targets.map(wireTarget), consumers: value.consumers.map(consumer => ({ ...consumer })), permissions: value.permissions.map(wirePermission), calls: value.calls.map(wireCall) }; },
+    putConnection: async (input) => { const value = await runtime.putIntegrationConnection({ ...input, displayName: input.displayName ?? '', config: wireConnectionConfig(input.config) }); return { connection: wireTarget(value.connection) }; },
+    removeConnection: async (input) => { const value = await runtime.removeIntegrationConnection(input); return { removed: value.removed }; },
     setPermission: async (input) => { const value = await runtime.setIntegrationPermission(input); return { permission: wirePermission(value.permission) }; },
     startConnectionSetup: async input => { const value = await runtime.startIntegrationConnectionSetup({ ...input, displayName: input.displayName ?? '', config: wireConnectionConfig(input.config) }); if (!value.setup) return localAppProjectionError('Integration setup'); return { setup: { ...value.setup, expiresAt: timestamp(value.setup.expiresAt) } }; },
     getConnectionSetup: async input => { const value = await runtime.getIntegrationConnectionSetup(input); if (!value.setup) return localAppProjectionError('Integration setup'); return { setup: { ...value.setup, expiresAt: timestamp(value.setup.expiresAt) } }; },

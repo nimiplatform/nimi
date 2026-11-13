@@ -109,3 +109,50 @@ func TestIntegrationRegistrationDescriptionsDoNotRequireEligibilityOrHostBinding
 		t.Fatalf("unknown subject produced display metadata: found=%v err=%v", found, err)
 	}
 }
+
+func TestRemoteIntegrationConsumerRequiresCurrentVerifiedPeer(t *testing.T) {
+	ctx := context.Background()
+	root := t.TempDir()
+	dbPath, err := localappkernel.CanonicalRegistrationDatabasePath(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	identity, err := localappkernel.ValidateVerifiedMacOSInteractiveUser(501, 42)
+	if err != nil {
+		t.Fatal(err)
+	}
+	kernel, err := localappkernel.OpenSQLite(ctx, dbPath, identity, localappkernel.Options{HostInstallID: "remote-consumer", DataRoot: root})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer kernel.Close()
+	registered, err := kernel.Registrations().RegisterRemote(ctx, localappkernel.RegisterRemoteInput{
+		AppID: "example.remote", DisplayName: "Remote search", RealmEnvironmentID: "test", ClientID: "remote.search",
+		Origin: "https://search.example", RedirectURI: "https://search.example/", Role: "app", SourceRevision: 1,
+		RawDeclaration: []string{"integration.consume"},
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	live := false
+	registry := integrationRegistrations{store: kernel.Registrations(), remoteSubjectLive: func(_ context.Context, subject string) bool {
+		return live && subject == registered.RegisteredAppSubject
+	}}
+	for _, expected := range []bool{false, true, false} {
+		live = expected
+		consumers, err := registry.Consumers(ctx)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if !expected && len(consumers) != 0 {
+			t.Fatal("unverified remote consumer became eligible")
+		}
+		if expected && (len(consumers) != 1 || consumers[0].SourceKind != "remote" || consumers[0].Subject != registered.RegisteredAppSubject) {
+			t.Fatalf("verified remote subject was lost or presented as native: %v", consumers)
+		}
+	}
+	description, found, err := registry.DescribeConsumer(ctx, registered.RegisteredAppSubject)
+	if err != nil || !found || description.SourceKind != "remote" {
+		t.Fatalf("offline remote display facts lost: %v %v", description, err)
+	}
+}

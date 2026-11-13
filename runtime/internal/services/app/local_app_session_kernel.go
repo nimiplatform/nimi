@@ -575,7 +575,15 @@ type localAppCommitScope struct {
 	authorized context.Context
 	decision   accountservice.LocalAppCallerDecision
 	connection *protectedlocal.LocalAppConnection
+	remotePeer remoteAppPeer
 	domain     localappop.Domain
+}
+
+func (scope localAppCommitScope) commitSession(commit func() error) error {
+	if scope.remotePeer != nil {
+		return scope.remotePeer.Commit(scope.authorized, scope.decision.SessionID, commit)
+	}
+	return scope.connection.CommitSession(scope.decision.SessionID, commit)
 }
 
 func (s *Service) prepareLocalAppCommit(ctx context.Context, ingress localappop.Ingress) (localAppCommitScope, error) {
@@ -585,12 +593,16 @@ func (s *Service) prepareLocalAppCommit(ctx context.Context, ingress localappop.
 	}
 	decision, ok := accountservice.AuthorizedLocalAppDecisionFromContext(authorized)
 	connection, bound := protectedlocal.LocalAppConnectionFromContext(ctx)
+	peer := remoteAppPeerFromContext(authorized)
 	classification, classifyErr := localappop.ClassifyIngress(ingress)
-	if !ok || !bound || connection == nil || s.localAppKernel == nil || classifyErr != nil {
+	if !ok || (peer == nil && (!bound || connection == nil)) || s.localAppKernel == nil || classifyErr != nil {
 		return localAppCommitScope{}, localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)
 	}
+	if peer != nil {
+		connection = nil // A verified remote consumer never acquires native Host proof.
+	}
 	// OperationCapability is not a declaration domain (notably for Base storage).
-	return localAppCommitScope{authorized, decision, connection, classification.Domain}, nil
+	return localAppCommitScope{authorized: authorized, decision: decision, connection: connection, remotePeer: peer, domain: classification.Domain}, nil
 }
 
 func (s *Service) commitLocalAppScopes(consumer localAppCommitScope, provider *localAppCommitScope, commit func() error) error {
@@ -620,10 +632,10 @@ func (s *Service) commitLocalAppScopes(consumer localAppCommitScope, provider *l
 			entered = true
 			// All App publication pins enter under this same canonical mutex,
 			// serializing pairs even when their consumer/provider roles reverse.
-			return consumer.connection.CommitSession(decision.SessionID, func() error {
+			return consumer.commitSession(func() error {
 				if provider != nil {
-					if provider.connection != consumer.connection {
-						return provider.connection.CommitSession(provider.decision.SessionID, publish)
+					if provider.connection != consumer.connection || provider.remotePeer != consumer.remotePeer {
+						return provider.commitSession(publish)
 					}
 					if provider.decision.SessionID != decision.SessionID {
 						return localDevelopmentFailure(codes.Unauthenticated, runtimev1.ReasonCode_LOCAL_APP_SESSION_REVOKED)

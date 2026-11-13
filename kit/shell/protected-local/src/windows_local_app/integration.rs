@@ -305,7 +305,7 @@ pub(super) async fn poll_provider(
         .map_err(local_app_error_from_status)?
         .into_inner();
     Ok(
-        json!({"calls":response.calls.into_iter().map(|v|json!({"callId":v.call_id,"targetRef":v.target_ref,"operation":v.operation,"inputJson":v.input_json,"consumerDisplayName":v.consumer_display_name})).collect::<Vec<_>>(),"canceledCallIds":response.canceled_call_ids}),
+        json!({"calls":response.calls.into_iter().map(|v|json!({"callId":v.call_id,"targetRef":v.target_ref,"operation":v.operation,"inputJson":v.input_json,"consumerDisplayName":v.consumer_display_name,"consumerRef":v.consumer_ref})).collect::<Vec<_>>(),"canceledCallIds":response.canceled_call_ids}),
     )
 }
 pub(super) async fn complete_provider(

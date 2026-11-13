@@ -75,6 +75,7 @@
     "development": "开发版",
     "installed": "安装版",
     "platform": "内置应用",
+    "remote": "远程应用",
     "unknown": "来源未确认"
   },
   "unavailablePermissionConsumer": "当前无法为此实例新增许可；已保存的许可仍可撤销。",

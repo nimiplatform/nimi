@@ -143,7 +143,7 @@ export interface IntegrationConsumer {
      */
     displayName: string;
     /**
-     * Display-only: development, installed, platform, or unknown.
+     * Display-only: development, installed, platform, remote, or unknown.
      *
      * @generated from protobuf field: string source_kind = 4
      */
@@ -393,6 +393,13 @@ export interface IntegrationProviderCall {
      * @generated from protobuf field: string consumer_display_name = 5
      */
     consumerDisplayName: string;
+    /**
+     * Runtime-derived account and Registered App Subject reference, never caller input.
+     * Providers use this to scope their own multi-call business object references.
+     *
+     * @generated from protobuf field: string consumer_ref = 6
+     */
+    consumerRef: string;
 }
 /**
  * @generated from protobuf message nimi.runtime.v1.PollIntegrationProviderResponse
@@ -2107,7 +2114,8 @@ class IntegrationProviderCall$Type extends MessageType<IntegrationProviderCall> 
             { no: 2, name: "target_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 3, name: "operation", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
             { no: 4, name: "input_json", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
-            { no: 5, name: "consumer_display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
+            { no: 5, name: "consumer_display_name", kind: "scalar", T: 9 /*ScalarType.STRING*/ },
+            { no: 6, name: "consumer_ref", kind: "scalar", T: 9 /*ScalarType.STRING*/ }
         ]);
     }
     create(value?: PartialMessage<IntegrationProviderCall>): IntegrationProviderCall {
@@ -2117,6 +2125,7 @@ class IntegrationProviderCall$Type extends MessageType<IntegrationProviderCall> 
         message.operation = "";
         message.inputJson = "";
         message.consumerDisplayName = "";
+        message.consumerRef = "";
         if (value !== undefined)
             reflectionMergePartial<IntegrationProviderCall>(this, message, value);
         return message;
@@ -2140,6 +2149,9 @@ class IntegrationProviderCall$Type extends MessageType<IntegrationProviderCall> 
                     break;
                 case /* string consumer_display_name */ 5:
                     message.consumerDisplayName = reader.string();
+                    break;
+                case /* string consumer_ref */ 6:
+                    message.consumerRef = reader.string();
                     break;
                 default:
                     let u = options.readUnknownField;
@@ -2168,6 +2180,9 @@ class IntegrationProviderCall$Type extends MessageType<IntegrationProviderCall> 
         /* string consumer_display_name = 5; */
         if (message.consumerDisplayName !== "")
             writer.tag(5, WireType.LengthDelimited).string(message.consumerDisplayName);
+        /* string consumer_ref = 6; */
+        if (message.consumerRef !== "")
+            writer.tag(6, WireType.LengthDelimited).string(message.consumerRef);
         let u = options.writeUnknownFields;
         if (u !== false)
             (u == true ? UnknownFieldHandler.onWrite : u)(this.typeName, message, writer);
