@@ -11,12 +11,16 @@ local_development:
   electron:
     renderer_origin: http://127.0.0.1:1472
   web:
-    origin: https://127.0.0.1:4472
-    redirect_uri: https://127.0.0.1:4472/
-    client_id: nimi.zhiyu.web.dev
-    realm_environment_id: dev
-    realm_url: http://127.0.0.1:3002
-    official_web_url: http://localhost:3000
+    origin: ''
+    redirect_uri: ''
+    client_id: ''
     command: pnpm run dev:web-renderer
+    local:
+      origin: https://127.0.0.1:4472
+      redirect_uri: https://127.0.0.1:4472/
+      client_id: nimi.zhiyu.web.dev
+      realm_environment_id: dev
+      realm_url: http://127.0.0.1:3002
+      official_web_url: http://localhost:3000
   mobile:
     command: pnpm run dev:android

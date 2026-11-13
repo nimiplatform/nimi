@@ -6,8 +6,12 @@ def releaseValue = { name ->
     if (!value) throw new GradleException("Set ${name} for the Android release.")
     value
 }
-def releaseConfig = releaseBuild ? new groovy.json.JsonSlurper().parse(file('src/main/assets/capacitor.config.json')) : null
-def releaseCallback = releaseBuild ? new URI(releaseConfig.plugins.NimiAppAccess.redirectUri) : null
+def localRealm = (System.getenv('NIMI_DEV_REALM') ?: 'official') == 'local'
+def releaseConfig = new groovy.json.JsonSlurper().parse(file('src/main/assets/capacitor.config.json'))
+def releaseCallback = new URI(releaseConfig.plugins.NimiAppAccess.redirectUri)
+if ((!localRealm || releaseBuild) && releaseCallback.scheme != 'https') {
+    throw new GradleException('Official Android development requires a registered HTTPS App Link; sync the selected environment first.')
+}
 if (releaseBuild && (releaseConfig.appId != releaseValue('NIMI_ANDROID_PACKAGE_NAME') ||
         releaseCallback.toString() != releaseValue('NIMI_ANDROID_REDIRECT_URI'))) {
     throw new GradleException('Sync the matching Zhiyu Android release configuration before building.')
@@ -17,12 +21,12 @@ android {
     namespace = "ai.nimi.apps.zhiyu.dev"
     compileSdk = rootProject.ext.compileSdkVersion
     defaultConfig {
-        applicationId releaseBuild ? releaseConfig.appId : "ai.nimi.apps.zhiyu.dev"
+        applicationId releaseConfig.appId
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode releaseBuild ? releaseValue('NIMI_ANDROID_VERSION_CODE').toInteger() : 1
         versionName new groovy.json.JsonSlurper().parse(file('../../package.json')).version
-        if (releaseBuild) {
+        if (releaseCallback.scheme == 'https') {
             manifestPlaceholders = [nimiCallbackHost: releaseCallback.host, nimiCallbackPath: releaseCallback.path]
         }
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -52,6 +56,11 @@ android {
             if (releaseBuild) signingConfig signingConfigs.release
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+    sourceSets {
+        debug {
+            manifest.srcFile releaseCallback.scheme == 'https' ? 'src/release/AndroidManifest.xml' : 'src/debug/AndroidManifest.xml'
         }
     }
 }

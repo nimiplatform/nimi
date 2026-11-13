@@ -6,11 +6,11 @@
 
 ## Web 开发
 
-需要 Node/pnpm、已安装且包含本分支共享接入出口的 SDK／Kit／App Tools，以及运行中的 Realm 官方登录服务。服务主机上的 Nimi Home 需登录、启用远程接入并准备好伙伴；网页所在设备不要求再安装 Runtime。当前本机联调使用以下已接纳来源：
+需要 Node/pnpm、匹配的 SDK／Kit／App Tools 和已安装 Nimi。普通开发使用官方 Realm；在 `local_development.web` 填入实际获准的 HTTPS origin、回调和 client_id 后运行 `pnpm dev:web`。初始空值表示尚未配置，不能借用官方 manager 身份。主机 Home 需登录、启用远程接入并准备伙伴，网页设备不需安装 Runtime。显式本地联调使用以下 local 配置：
 
 - App：`nimi.zhiyu`；客户端：`nimi.zhiyu.web.dev`。
 - 来源：`https://127.0.0.1:4472`；回调：同来源 `/`。
-- 环境与官方服务地址位于 `nimi.app.yaml` 的 `local_development.web`。
+- 环境与本地服务地址位于 `nimi.app.yaml` 的 `local_development.web.local`；启动使用 `pnpm dev:web -- --realm local`。
 
 新来源需经 Registry 接纳并在主机 Home 确认一次；原来源在正常重连、开发重启或包更新时会复用既有许可。更改域名或回调地址即视为新来源，不能沿用旧来源的接纳状态。
 
@@ -60,7 +60,7 @@ pnpm dev:desktop
 
 ## Desktop 联调
 
-主机 Home 就绪后，在仓库根目录执行 `pnpm dev:zhiyu -- --list-registrations`，按返回的当前 selector 用 `pnpm dev:zhiyu -- --resume <selector>` 继续原登记。原生 App 经 Desktop supervisor 和正式 Host 接入，账号登录、切换与全局退出仍在 Home 管理。
+主机 Home 就绪后，App 命令使用当前 Home。普通开发先打开已安装 Nimi；源码联调先退出当前 Runtime，再启动源码 Nimi。在仓库根目录执行 `pnpm dev:zhiyu -- --list-registrations`，按返回的当前 selector 用 `pnpm dev:zhiyu -- --resume <selector>` 继续原登记。原生 App 经 Desktop supervisor 和正式 Host 接入，账号登录、切换与全局退出仍在 Home 管理。
 
 `pnpm build` 检查共享 TypeScript 并构建原生 renderer；`dev:renderer` 只供纯布局调试，不能建立受保护 App 会话或证明伙伴调用成功。工作区环境说明见 [LOCAL_DEVELOPMENT.md](../../LOCAL_DEVELOPMENT.md)。
 
@@ -70,7 +70,11 @@ Web 使用 Kit `auth/app/web`，Desktop 使用 `auth/app/desktop`；两者共享
 
 Web 已验证文本聊天、重开已有对话、伙伴配置，以及对话外观的预览、应用和清除。迁移共享接入与公开包后的页面复验单独记录。浏览器不支持启动原生 Avatar 或使用原生资源包投放入口；其它语音和媒体组合、公网连接按实际场景验证。Android 已有本机开发入口，正式 App Link 分发仍需单独验证。
 
-## Android 本机开发
+## Android 普通开发与本地联调
+
+Debug 构建默认连接官方 Realm。先登记 Android App Link，设置 `NIMI_ANDROID_CLIENT_ID`、`NIMI_ANDROID_REDIRECT_URI`（HTTPS），必要时设置自己的 `NIMI_ANDROID_PACKAGE_NAME`；默认 debug 包为 `ai.nimi.apps.zhiyu.dev`。为实际 debug 证书和包名发布 Digital Asset Links，然后运行 `pnpm dev:mobile`。无需 release APK、私有 Realm 仓库或本地 API server。没有正式来源配置时会明确报错，不会自动切到本地服务。
+
+下面的 private-use Scheme 路径仅适用于显式 `NIMI_DEV_REALM=local` 的 Realm 维护者联调。
 
 `src/mobile/main.tsx` 与 Web 共用 `production/remote-entry` 和同一 renderer。当前 Android 12+ 开发包为 `ai.nimi.apps.zhiyu.dev`，Nimi 客户端为 `nimi.zhiyu.android.dev`，配置位于 `capacitor.config.ts`。开发回调使用 `ai.nimi.apps.zhiyu.dev:/oauth/callback`，由 debug Manifest 声明，无需部署公网域名。
 
@@ -81,16 +85,14 @@ Web 已验证文本聊天、重开已有对话、伙伴配置，以及对话外�
 ```sh
 adb -d reverse tcp:3000 tcp:3000
 adb -d reverse tcp:3002 tcp:3002
-pnpm build:mobile
-pnpm sync:android
-pnpm dev:mobile
+pnpm dev:mobile -- --realm local
 ```
 
 `dev:mobile` 经 App Tools 调用应用自己的 `dev:android`，由 Capacitor 构建和运行。它不受 Desktop supervisor 托管。首次使用新来源时，用户在系统浏览器完成 Nimi 登录，并在 PC Home 确认该来源；普通同签名更新与重连不重复批准。
 
 USB reverse 仅用于本机开发登录和 Realm 协调，AI 与文件仍通过手机与 Runtime 之间的既有直接 peer 通道传输，因此 PC 与手机需具备直连条件。请保留 `loggingBehavior: 'none'`，防止原生桥接调试日志记录登录参数。应用切入后台时会结束旧连接，回到前台时重新核对当前身份与技术连接，不会重放业务或续接旧流。
 
-Debug 明文网络例外仅覆盖 localhost/127.0.0.1；其它目标仍要求 TLS。可通过 Gradle `-PnimiDebugKeystore=<path>` 使用自己的开发签名；该指纹须与来源登记一致。当前本机工具为 JDK 21、compileSdk 37、targetSdk 36、minSdk 31。正式分发使用单独接纳的 `android-app-link` 来源、HTTPS 回调与 Android Digital Asset Links；debug Scheme 只编入 debug Manifest。完整 App Link 分发验证不由本地 Scheme 结果代替。
+Debug 明文网络例外仅覆盖 localhost/127.0.0.1；其它目标仍要求 TLS。可通过 Gradle `-PnimiDebugKeystore=<path>` 使用自己的开发签名；指纹须与来源登记一致。当前工程使用 JDK 21、compileSdk 37、targetSdk 36、minSdk 31。Gradle 按已同步 callback 选择 App Link 或 local Scheme Manifest，构建前必须同步匹配的环境。App Link 的真实系统关联与登录验收不能由本地 Scheme 结果代替。
 
 ### Android 发行构建
 

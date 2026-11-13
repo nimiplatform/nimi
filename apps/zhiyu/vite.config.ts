@@ -4,7 +4,7 @@ import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import mobileConfig, { mobileAccess, mobileRelease } from './capacitor.config.js';
+import { readMobileConfiguration } from './mobile-config.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -20,6 +20,7 @@ const nativeConfig = {
 };
 export default defineConfig(({ command, mode }) => {
   if (mode === 'mobile' || mode === 'mobile-release') {
+    const { config: mobileConfig, mobileAccess, mobileRelease } = readMobileConfiguration({ ...loadEnv(mode, __dirname, ''), ...process.env });
     if (mobileRelease !== (mode === 'mobile-release')) throw new Error('Use the matching Zhiyu Android build command.');
     return mergeConfig(nativeConfig, {
       define: { __NIMI_APP_MOBILE_CONFIG__: JSON.stringify(mobileAccess) },

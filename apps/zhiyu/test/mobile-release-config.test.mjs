@@ -16,19 +16,31 @@ const releaseInputs = {
 
 function loadConfig(inputs = {}) {
   const env = Object.fromEntries(Object.entries(process.env)
-    .filter(([name]) => !name.startsWith('NIMI_ANDROID_')));
+    .filter(([name]) => !name.startsWith('NIMI_ANDROID_') && !name.startsWith('NIMI_DEV_')));
   return spawnSync(process.execPath, ['--import', 'tsx', '--input-type=module', '--eval',
     "import config, { mobileAccess } from './capacitor.config.ts'; console.log(JSON.stringify({ config, mobileAccess }));",
   ], { cwd: appRoot, env: { ...env, ...inputs }, encoding: 'utf8' });
 }
 
-test('Android debug keeps its own package, callback and output', () => {
-  const result = loadConfig();
+test('explicit local Android debug keeps its own package, callback and output', () => {
+  const result = loadConfig({ NIMI_DEV_REALM: 'local' });
   assert.equal(result.status, 0, result.stderr);
   const { config, mobileAccess } = JSON.parse(result.stdout);
   assert.equal(config.appId, 'ai.nimi.apps.zhiyu.dev');
   assert.equal(config.webDir, 'dist-mobile');
   assert.equal(mobileAccess.redirectUri, 'ai.nimi.apps.zhiyu.dev:/oauth/callback');
+});
+
+test('ordinary Android debug uses official Realm and a configured App Link', () => {
+  assert.notEqual(loadConfig().status, 0, 'unregistered official source must not look configured');
+  const result = loadConfig({ NIMI_ANDROID_CLIENT_ID: 'zhiyu.android.debug', NIMI_ANDROID_REDIRECT_URI: 'https://zhiyu.example.com/callback' });
+  assert.equal(result.status, 0, result.stderr);
+  const { config, mobileAccess } = JSON.parse(result.stdout);
+  assert.equal(config.appId, 'ai.nimi.apps.zhiyu.dev');
+  assert.equal(config.webDir, 'dist-mobile');
+  assert.equal(mobileAccess.realmBaseUrl, 'https://realm.nimi.ai');
+  assert.equal(mobileAccess.realmEnvironmentId, 'production');
+  assert.equal(mobileAccess.redirectUri, 'https://zhiyu.example.com/callback');
 });
 
 test('Android release uses the supplied identity in both native and renderer inputs', () => {
