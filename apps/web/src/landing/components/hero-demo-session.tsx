@@ -9,6 +9,7 @@ import {
 } from 'react';
 import type { ConversationCanonicalMessage } from '@nimiplatform/kit/features/chat/types';
 import { loadLandingContent, type HeroDemo, type HeroDemoSurface } from '../content/landing-content.js';
+import { createCoreHeroDemo } from '../content/core-hero-demo.js';
 import type { DemoChatSubmission } from '../content/home-chat-content.js';
 import type { ExploreCharacter } from '../content/explore-demo-data.js';
 import { materializeChatMessages, resolveDemoChatTarget } from '../content/demo-chat-model.js';
@@ -77,7 +78,9 @@ function useDemoSession(sourceDemo: HeroDemo, initialDestination: DemoDestinatio
     setMessages((previous) => previous.map((item) => (item.id === id ? { ...item, unread: false } : item)));
   const hideMessage = (id: string) => setMessages((previous) => previous.filter((item) => item.id !== id));
   const changeLocale = async (locale: 'zh' | 'en') => {
-    const next = (await loadLandingContent(locale)).hero.demo;
+    const next = demo.appPreview.shijing
+      ? (await loadLandingContent(locale)).hero.demo
+      : createCoreHeroDemo(locale);
     setDemo(next);
     setMessages(next.home.messagesSeed);
     agentClients.clear();
@@ -135,24 +138,41 @@ function useDemoSession(sourceDemo: HeroDemo, initialDestination: DemoDestinatio
           demoQuote: quote,
         },
       };
-      const reply: ConversationCanonicalMessage = {
-        id: `local-${stamp}-agent`,
-        sessionId,
-        targetId,
-        source: mode,
-        role: 'assistant',
-        text: exampleReply ?? (mode === 'agent' ? (agent.replies?.[0] ?? demo.chat.scriptedReply) : demo.chat.scriptedReply),
-        createdAt: new Date(stamp + 1).toISOString(),
-        status: 'complete',
-        kind: 'text',
-        senderName: mode === 'ai' ? 'Nimi' : agent.name,
-        senderKind: mode,
-        metadata: { canonicalMessageCommitted: true, canonicalTurnStatus: 'completed' },
-      };
-      setLocalMessages((prev) => ({
-        ...prev,
-        [targetId]: [...(prev[targetId] ?? []), echo, ...(mode === 'human' ? [] : [reply])],
-      }));
+      setLocalMessages((prev) => {
+        const existing = prev[targetId] ?? [];
+        const assistantTurns = existing.filter((item) => item.role === 'assistant').length;
+        const zhiyuPartner = demo.appPreview.zhiyu.partners.find((candidate) => candidate.id === targetId);
+        const rawPool = zhiyuPartner?.replies?.length
+          ? zhiyuPartner.replies
+          : agent.replies?.length
+            ? agent.replies
+            : undefined;
+        const lastSeedReply = [...agent.messages].reverse().find((item) => item.role === 'assistant')?.text;
+        const distinctPool = rawPool?.filter((candidate) => candidate !== lastSeedReply);
+        const pool = distinctPool?.length ? distinctPool : rawPool;
+        const resolvedReplyText = exampleReply
+          ?? (mode === 'agent'
+            ? (pool ? pool[assistantTurns % pool.length]! : demo.chat.scriptedReply)
+            : demo.chat.scriptedReply);
+        const reply: ConversationCanonicalMessage = {
+          id: `local-${stamp}-agent`,
+          sessionId,
+          targetId,
+          source: mode,
+          role: 'assistant',
+          text: resolvedReplyText,
+          createdAt: new Date(stamp + 1).toISOString(),
+          status: 'complete',
+          kind: 'text',
+          senderName: mode === 'ai' ? 'Nimi' : agent.name,
+          senderKind: mode,
+          metadata: { canonicalMessageCommitted: true, canonicalTurnStatus: 'completed' },
+        };
+        return {
+          ...prev,
+          [targetId]: [...existing, echo, ...(mode === 'human' ? [] : [reply])],
+        };
+      });
       setComposerDrafts((previous) => ({ ...previous, [targetId]: '' }));
     },
     [demo],

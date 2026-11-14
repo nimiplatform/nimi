@@ -3,37 +3,102 @@ import {
   createBrowserRouter,
   createRoutesFromElements,
   Link,
+  Outlet,
   Route,
   RouterProvider,
+  ScrollRestoration,
 } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { App as LandingApp } from './landing/App.js';
-import { StaticPage } from './pages/static-page.js';
 
-const WebAccountPage = lazy(async () => ({
-  default: (await import('./auth/web-account-page.js')).WebAccountPage,
+const LandingApp = lazy(async () => ({
+  default: (await import('./landing/App.js')).App,
 }));
-const AccountRecoveryPage = lazy(async () => ({
-  default: (await import('./auth/account-recovery-page.js')).AccountRecoveryPage,
+const StaticPage = lazy(async () => ({
+  default: (await import('./pages/static-page.js')).StaticPage,
 }));
-const AccountManagementPage = lazy(async () => ({
-  default: (await import('./auth/account-management-page.js')).AccountManagementPage,
+const PlatformPage = lazy(async () => ({
+  default: (await import('./pages/platform-page.js')).PlatformPage,
 }));
-const ProviderLinkCallbackPage = lazy(async () => ({
-  default: (await import('./auth/provider-link-callback-page.js')).ProviderLinkCallbackPage,
+const DevelopersPage = lazy(async () => ({
+  default: (await import('./pages/developers-page.js')).DevelopersPage,
+}));
+const PublicNotFoundPage = lazy(async () => ({
+  default: (await import('./pages/public-site-shell.js')).PublicNotFoundPage,
+}));
+const PublicRouteErrorBoundary = lazy(async () => ({
+  default: (await import('./pages/public-site-shell.js')).PublicRouteErrorBoundary,
 }));
 
-function AccountRouteUnavailable() {
-  const { t } = useTranslation();
+const WebAccountPage = lazy(async () => {
+  const [{ initializeWebAccountI18n }, module] = await Promise.all([
+    import('./auth/i18n.js'),
+    import('./auth/web-account-page.js'),
+  ]);
+  await initializeWebAccountI18n().catch(() => undefined);
+  return { default: module.WebAccountPage };
+});
+const AccountRecoveryPage = lazy(async () => {
+  const [{ initializeWebAccountI18n }, module] = await Promise.all([
+    import('./auth/i18n.js'),
+    import('./auth/account-recovery-page.js'),
+  ]);
+  await initializeWebAccountI18n().catch(() => undefined);
+  return { default: module.AccountRecoveryPage };
+});
+const AccountManagementPage = lazy(async () => {
+  const [{ initializeWebAccountI18n }, module] = await Promise.all([
+    import('./auth/i18n.js'),
+    import('./auth/account-management-page.js'),
+  ]);
+  await initializeWebAccountI18n().catch(() => undefined);
+  return { default: module.AccountManagementPage };
+});
+const ProviderLinkCallbackPage = lazy(async () => {
+  const [{ initializeWebAccountI18n }, module] = await Promise.all([
+    import('./auth/i18n.js'),
+    import('./auth/provider-link-callback-page.js'),
+  ]);
+  await initializeWebAccountI18n().catch(() => undefined);
+  return { default: module.ProviderLinkCallbackPage };
+});
+
+function detectFallbackLocale(): 'zh' | 'en' {
+  if (typeof window === 'undefined') return 'en';
+  const lang = new URLSearchParams(window.location.search).get('lang');
+  if (lang === 'zh' || lang === 'en') return lang;
+  return navigator.language.toLowerCase().startsWith('zh') ? 'zh' : 'en';
+}
+
+function OfflineErrorFallback() {
+  const locale = detectFallbackLocale();
+  const isZh = locale === 'zh';
   return (
     <main className="web-account-status" role="alert">
-      <img src="/logo.svg" width={40} height={40} alt="Nimi" />
-      <h1>{t('Account.pageUnavailable')}</h1>
-      <button type="button" onClick={() => window.location.reload()}>
-        {t('AccountSecurity.retry')}
-      </button>
-      <Link to="/">{t('Account.backHome')}</Link>
+      <img src="/logo.svg" width={44} height={44} alt="Nimi" />
+      <h1>{isZh ? '页面暂时无法加载' : 'This page is temporarily unavailable'}</h1>
+      <div className="web-account-session-actions">
+        <button type="button" className="story-button" onClick={() => window.location.reload()}>
+          {isZh ? '重新加载' : 'Reload'}
+        </button>
+        <Link to={`/?lang=${locale}`}>{isZh ? '返回官网首页' : 'Back to overview'}</Link>
+      </div>
     </main>
+  );
+}
+
+function SharedRouteErrorElement() {
+  return (
+    <Suspense fallback={<OfflineErrorFallback />}>
+      <PublicRouteErrorBoundary />
+    </Suspense>
+  );
+}
+
+function RootRouteLayout() {
+  return (
+    <>
+      <ScrollRestoration />
+      <Outlet />
+    </>
   );
 }
 
@@ -42,8 +107,9 @@ export function SiteRouter() {
   const [router] = useState(() =>
     createBrowserRouter(
       createRoutesFromElements(
-        <>
+        <Route element={<RootRouteLayout />} errorElement={<SharedRouteErrorElement />}>
           <Route path="/" element={<LandingApp />} />
+          <Route path="/index.html" element={<LandingApp />} />
           <Route path="/login" element={<WebAccountPage />} />
           <Route path="/register" element={<WebAccountPage />} />
           <Route path="/account/recovery" element={<AccountRecoveryPage />} />
@@ -51,22 +117,31 @@ export function SiteRouter() {
           <Route
             path="/account/*"
             element={<AccountManagementPage />}
-            errorElement={<AccountRouteUnavailable />}
+            errorElement={<SharedRouteErrorElement />}
           />
           <Route path="/account/oauth/callback" element={<ProviderLinkCallbackPage />} />
           <Route path="/home" element={<StaticPage kind="home" />} />
+          <Route path="/home.html" element={<StaticPage kind="home" />} />
           <Route path="/apps" element={<StaticPage kind="apps" />} />
+          <Route path="/apps.html" element={<StaticPage kind="apps" />} />
           <Route path="/apps/:slug" element={<StaticPage kind="apps" />} />
+          <Route path="/platform" element={<PlatformPage />} />
+          <Route path="/platform.html" element={<PlatformPage />} />
+          <Route path="/developers" element={<DevelopersPage />} />
+          <Route path="/developers.html" element={<DevelopersPage />} />
           <Route path="/download" element={<StaticPage kind="download" />} />
+          <Route path="/download.html" element={<StaticPage kind="download" />} />
           <Route path="/code-signing" element={<StaticPage kind="code-signing" />} />
+          <Route path="/code-signing.html" element={<StaticPage kind="code-signing" />} />
           <Route path="/privacy" element={<StaticPage kind="privacy" />} />
           <Route path="/terms" element={<StaticPage kind="terms" />} />
-        </>,
+          <Route path="*" element={<PublicNotFoundPage />} />
+        </Route>,
       ),
     ),
   );
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<div className="public-route-loading-shell" aria-busy="true" />}>
       <RouterProvider router={router} />
     </Suspense>
   );

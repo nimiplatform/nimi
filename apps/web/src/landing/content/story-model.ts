@@ -17,9 +17,30 @@ import { createNimiLocalAppStandardShellSurface }
 
 const client = createNimiClient({
   localApp: {
-    standardShell:
-      createNimiLocalAppStandardShellSurface(),
+    standardShell: createNimiLocalAppStandardShellSurface(),
   },
+});
+
+const { text } = await client.ai.text.generateCandidate({
+  messages: [{ role: 'user', text: 'Summarize today’s notes.' }],
+});`;
+
+export const VERCEL_AI_EXAMPLE = `import { convertToModelMessages, isStepCount, streamText } from 'ai';
+import { createNimiClient } from '@nimiplatform/sdk';
+import { createNimiLocalAppStandardShellSurface } from '@nimiplatform/kit/shell/renderer/bridge';
+import { createNimiLocalAppVercelLanguageModel } from '@nimiplatform/sdk-adapter-vercel-ai';
+
+const client = createNimiClient({
+  localApp: { standardShell: createNimiLocalAppStandardShellSurface() },
+});
+const model = createNimiLocalAppVercelLanguageModel({
+  ai: client.ai,
+  executionMode: 'sync',
+});
+const result = streamText({
+  model,
+  messages: await convertToModelMessages(uiMessages),
+  stopWhen: isStepCount(5),
 });`;
 export function kitExample(action: string, result: string) {
   return `import { useState } from 'react';

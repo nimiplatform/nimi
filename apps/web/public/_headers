@@ -8,6 +8,12 @@
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
+/demo/*
+  Cache-Control: public, max-age=86400
+
+/story/*
+  Cache-Control: public, max-age=86400
+
 https://:project.pages.dev/*
   X-Robots-Tag: noindex
 

@@ -1,6 +1,7 @@
 import { ArrowUpRight, ArrowRight } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { StoryText } from '../../content/story-copy.js';
+import { PublicSiteLink } from '../../../pages/public-site-shell.js';
 
 export function StoryHeading({ t, section, children }: { t: StoryText; section: 'experience' | 'worlds' | 'showcase' | 'integrations' | 'builder'; children?: ReactNode }) {
   const title = t(`${section}.title`);
@@ -13,5 +14,11 @@ export function StoryHeading({ t, section, children }: { t: StoryText; section: 
   </header>;
 }
 export function StoryLink({ href, children, primary = false }: { href: string; children: ReactNode; primary?: boolean }) {
-  return <a className={primary ? 'story-button' : 'story-link'} href={href}>{children}{primary ? <ArrowRight size={17} /> : <ArrowUpRight size={16} />}</a>;
+  const isInternal = href.startsWith('/');
+  return (
+    <PublicSiteLink className={primary ? 'story-button' : 'story-link'} to={href}>
+      {children}
+      {primary ? <ArrowRight size={17} /> : isInternal ? <ArrowRight size={16} /> : <ArrowUpRight size={16} />}
+    </PublicSiteLink>
+  );
 }

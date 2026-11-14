@@ -3,13 +3,6 @@
 @import "@nimiplatform/kit/auth/styles.css";
 @import "tailwindcss";
 @import "./landing/styles.css";
-@import "./landing/demo-zhiyu.css";
-@import "./landing/demo-shijing.css";
-@import "./landing/demo-parentos.css";
-@import "./landing/demo-storybook.css";
-@import "./landing/demo-odd-bureau.css";
-@import "./landing/demo-third-party.css";
-@import "./landing/demo-remaining-apps.css";
 @import "./site.css";
 @import "./landing/story.css";
 

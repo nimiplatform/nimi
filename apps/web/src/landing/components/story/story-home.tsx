@@ -1,8 +1,9 @@
-import { lazy, Suspense, useCallback, useLayoutEffect, useRef, useState } from 'react';
+import { lazy, Suspense, useCallback, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Expand } from 'lucide-react';
 import { Dialog, DialogBody, DialogContent, DialogTitle, DialogTrigger } from '@nimiplatform/kit/ui';
 import type { StoryText } from '../../content/story-copy.js';
+import type { HeroContinuitySwitcherConfig } from '../hero-demo.js';
 import { useHeroDemoSession } from '../hero-demo-context.js';
 import { HeroDemoStatic } from '../hero-demo-static.js';
 import { DemoErrorBoundary } from '../demo-error-boundary.js';
@@ -12,11 +13,26 @@ import { StoryMacDesktop } from './story-mac-desktop.js';
 
 const Home = lazy(async () => ({ default: (await import('../hero-demo.js')).HeroDemoView }));
 /** One complete Home renderer moves between its homepage dock and expansion. */
-export function StoryHome({ t, expanded, onExpanded, layout = 'devices' }: {
+export function StoryHome({
+  t,
+  expanded,
+  onExpanded,
+  layout = 'devices',
+  continuitySwitcher,
+  extraWindowActions,
+  previewHeaderActions,
+  disablePreviewModal,
+  staticWhenDocked,
+}: {
   t: StoryText;
   expanded: boolean;
   onExpanded: (open: boolean) => void;
   layout?: 'hero' | 'devices';
+  continuitySwitcher?: HeroContinuitySwitcherConfig;
+  extraWindowActions?: ReactNode;
+  previewHeaderActions?: ReactNode;
+  disablePreviewModal?: boolean;
+  staticWhenDocked?: boolean;
 }) {
   const { demo, surface } = useHeroDemoSession();
   const [host] = useState(() => typeof document === 'undefined' ? null : document.createElement('div'));
@@ -93,8 +109,22 @@ export function StoryHome({ t, expanded, onExpanded, layout = 'devices' }: {
       dockBounds.current = dock?.querySelector('.hero-demo-frame')?.getBoundingClientRect();
     }
   };
-  const windowActions = docked && <DialogTrigger ref={expandButton} className="story-home-expand" aria-label={t('hero.expandHome')}
-    onClick={() => prepareExpansion('window')}><Expand size={14} aria-hidden="true" /></DialogTrigger>;
+  const expandAction = docked ? (
+    <DialogTrigger
+      ref={expandButton}
+      className="story-home-expand"
+      aria-label={t('hero.expandHome')}
+      onClick={() => prepareExpansion('window')}
+    >
+      <Expand size={14} aria-hidden="true" />
+    </DialogTrigger>
+  ) : null;
+  const windowActions = extraWindowActions || expandAction ? (
+    <>
+      {extraWindowActions}
+      {expandAction}
+    </>
+  ) : undefined;
   const fallback = <HeroDemoStatic demo={demo} surface={surface === 'apps' || surface === 'chat' ? surface : 'home'} expanded windowTitle={windowTitle} windowActions={windowActions} windowClose={windowClose} />;
   const errorFallback = <div className="hero-demo-frame flex h-full min-h-0 flex-col"><DemoWindowHeader title={windowTitle} close={windowClose}><span className="demo-preview-badge">{demo.home.badge}</span>{windowActions}</DemoWindowHeader><div className="story-load-error flex-1" role="status"><p>{t('common.loadError')}</p><button type="button" onClick={() => window.location.reload()}>{t('common.retry')}</button></div></div>;
   return <div className="story-home-dock">
@@ -115,7 +145,27 @@ export function StoryHome({ t, expanded, onExpanded, layout = 'devices' }: {
         <DialogTitle className="sr-only">Nimi Home</DialogTitle>
         <DialogBody className="story-home-dialog-body"><div ref={setModal} className="story-home-modal-slot" /></DialogBody>
       </DialogContent>
-      {host && createPortal(<DemoErrorBoundary fallback={errorFallback}><Suspense fallback={fallback}><Home expanded windowTitle={windowTitle} windowActions={windowActions} windowClose={windowClose} openChatRef={cueOpenChat} /></Suspense></DemoErrorBoundary>,host)}
+      {host && createPortal(
+        staticWhenDocked && docked
+          ? fallback
+          : (
+            <DemoErrorBoundary fallback={errorFallback}>
+              <Suspense fallback={fallback}>
+                <Home
+                  expanded
+                  windowTitle={windowTitle}
+                  windowActions={windowActions}
+                  windowClose={windowClose}
+                  openChatRef={cueOpenChat}
+                  continuitySwitcher={continuitySwitcher}
+                  previewHeaderActions={previewHeaderActions}
+                  disablePreviewModal={disablePreviewModal}
+                />
+              </Suspense>
+            </DemoErrorBoundary>
+          ),
+        host,
+      )}
     </Dialog>
   </div>;
 }

@@ -14,6 +14,7 @@ export const WEB_PUBLIC_ENV_KEYS = Object.freeze([
   'VITE_LANDING_GITHUB_URL',
   'VITE_LANDING_PROTOCOL_URL',
   'VITE_LANDING_DESKTOP_DOWNLOAD_URL',
+  'VITE_LANDING_MODELS_URL',
 ] as const);
 
 export type WebPublicEnvKey = (typeof WEB_PUBLIC_ENV_KEYS)[number];

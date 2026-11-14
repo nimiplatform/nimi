@@ -20,12 +20,8 @@
   "dependencies": {
     "@nimiplatform/kit": "workspace:*",
     "@nimiplatform/sdk": "workspace:*",
-    "@react-three/drei": "10.7.9",
-    "@react-three/fiber": "9.8.2",
-    "@react-three/postprocessing": "3.2.2",
     "i18next": "26.5.6",
     "lucide-react": "1.61.0",
-    "postprocessing": "6.39.5",
     "react": "19.3.1",
     "react-dom": "19.3.1",
     "react-i18next": "17.1.3",

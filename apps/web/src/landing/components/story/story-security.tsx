@@ -5,7 +5,7 @@ import type { StoryText } from '../../content/story-copy.js';
 import { StoryLink } from './story-shared.js';
 import type { LandingLinks } from '../../config/landing-links.js';
 
-export function StoryContentCheck({ t, links }: { t: StoryText; links: LandingLinks }) {
+export function StoryContentCheck({ t, links, defaultOpen = false }: { t: StoryText; links: LandingLinks; defaultOpen?: boolean }) {
   const [scenario, setScenario] = useState<'normal' | 'blocked'>('normal');
   const [state, setState] = useState<ContentCheckDemo>({ draft: t('security.request'), phase: 'draft' });
   const input = useRef<HTMLTextAreaElement>(null);
@@ -13,7 +13,7 @@ export function StoryContentCheck({ t, links }: { t: StoryText; links: LandingLi
     setScenario(next); setState({ draft: [t('security.request'), next === 'blocked' ? t('security.sampleMarker') : ''].filter(Boolean).join('\n'), phase: 'draft' });
   };
   useEffect(() => { if (state.phase === 'editing') input.current?.focus({ preventScroll: true }); }, [state.phase]);
-  return <details className="story-content-check">
+  return <details className="story-content-check" open={defaultOpen}>
     <summary><ScanLine size={21} /><span>{t('security.check')}</span><ChevronDown size={18} className="story-content-check-chevron" /></summary>
     <div className="story-content-check-body">
     <div className="story-security-intro">

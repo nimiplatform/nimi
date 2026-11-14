@@ -522,6 +522,7 @@ export function DemoZhiyuPreview({ content, initialPartnerId = null, initialPane
   const [voiceStatus, setVoiceStatus] = useState<VoiceStatus>('idle');
   const [notice, setNotice] = useState<string | null>(null);
   const streamTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const activeStreamRef = useRef<{ partner: HeroDemoZhiyuPartner; reply: string } | null>(null);
   const voiceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const noticeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const replyCursorRef = useRef<Record<string, number>>({});
@@ -602,21 +603,27 @@ export function DemoZhiyuPreview({ content, initialPartnerId = null, initialPane
   useEffect(
     () => () => {
       clearStreamTimer();
+      const pending = activeStreamRef.current;
+      if (pending && pending.reply.trim().length > 0) {
+        activeStreamRef.current = null;
+        appendMessage(pending.partner.id, buildMessage(pending.partner, 'assistant', pending.reply, Date.now(), 'complete', undefined, t));
+      }
       if (voiceTimerRef.current) clearTimeout(voiceTimerRef.current);
       if (noticeTimerRef.current) clearTimeout(noticeTimerRef.current);
     },
-    [clearStreamTimer],
+    [appendMessage, clearStreamTimer, t],
   );
 
   const finishStream = useCallback(
     (partner: HeroDemoZhiyuPartner, text: string, status: ConversationCanonicalMessage['status']) => {
       clearStreamTimer();
+      activeStreamRef.current = null;
       setStream(null);
       if (text.trim().length > 0) {
         appendMessage(partner.id, buildMessage(partner, 'assistant', text, Date.now(), status, undefined, t));
       }
     },
-    [appendMessage, clearStreamTimer],
+    [appendMessage, clearStreamTimer, t],
   );
 
   const startStream = useCallback(
@@ -625,6 +632,7 @@ export function DemoZhiyuPreview({ content, initialPartnerId = null, initialPane
       const reply = partner.replies[cursor % Math.max(partner.replies.length, 1)] ?? '';
       replyCursorRef.current[partner.id] = cursor + 1;
       clearStreamTimer();
+      activeStreamRef.current = { partner, reply };
       setStream({ partnerId: partner.id, partial: '', reasoning: partner.reasoning });
       let offset = 0;
       const tick = () => {

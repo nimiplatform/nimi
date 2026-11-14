@@ -200,25 +200,36 @@ const zh = {
   },
 };
 
-export async function initializeWebAccountI18n(): Promise<void> {
-  if (i18n.isInitialized) return;
+let pendingInit: Promise<void> | null = null;
+
+export function initializeWebAccountI18n(): Promise<void> {
+  if (i18n.isInitialized) return Promise.resolve();
+  if (pendingInit) return pendingInit;
   // Resolve with the same chain as the landing page (URL > persisted landing
   // locale > browser language). The static HTML hardcodes <html lang="en">,
   // so documentElement.lang is not a usable signal on a fresh load.
-  const language = resolveInitialLocale({
-    search: window.location.search,
-    storage: window.localStorage,
-    navigatorLanguage: navigator.language,
+  pendingInit = (async () => {
+    const language = resolveInitialLocale({
+      search: typeof window === 'undefined' ? '' : window.location.search,
+      storage: typeof window === 'undefined' ? null : window.localStorage,
+      navigatorLanguage: typeof navigator === 'undefined' ? '' : navigator.language,
+    });
+    if (typeof document !== 'undefined') {
+      document.documentElement.lang = language;
+      loadWebLocaleFont(language);
+    }
+    await i18n.use(initReactI18next).init({
+      lng: language,
+      fallbackLng: 'en',
+      interpolation: { escapeValue: false },
+      resources: {
+        en: { translation: { ...en, AccountSecurity: accountSecurityCopy.en } },
+        zh: { translation: { ...zh, AccountSecurity: accountSecurityCopy.zh } },
+      },
+    });
+  })().catch((error) => {
+    pendingInit = null;
+    throw error;
   });
-  document.documentElement.lang = language;
-  loadWebLocaleFont(language);
-  await i18n.use(initReactI18next).init({
-    lng: language,
-    fallbackLng: 'en',
-    interpolation: { escapeValue: false },
-    resources: {
-      en: { translation: { ...en, AccountSecurity: accountSecurityCopy.en } },
-      zh: { translation: { ...zh, AccountSecurity: accountSecurityCopy.zh } },
-    },
-  });
+  return pendingInit;
 }

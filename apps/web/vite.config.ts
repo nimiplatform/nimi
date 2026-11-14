@@ -93,8 +93,6 @@ function chunkName(id: string): string | undefined {
   }
   if (
     normalized.includes('/node_modules/three/')
-    || normalized.includes('/node_modules/@react-three/')
-    || normalized.includes('/node_modules/postprocessing/')
     || normalized.includes('/node_modules/three-stdlib/')
     || normalized.includes('/node_modules/maath/')
     || normalized.includes('/node_modules/zustand/')
@@ -170,7 +168,7 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'dist',
       emptyOutDir: true,
-      sourcemap: true,
+      sourcemap: 'hidden',
       rolldownOptions: {
         treeshake: {
           // These barrels emit only re-exports. Web Auth and the static Chat
@@ -184,6 +182,10 @@ export default defineConfig(({ mode }) => {
         },
         input: {
           main: path.resolve(import.meta.dirname, 'index.html'),
+          home: path.resolve(import.meta.dirname, 'home.html'),
+          apps: path.resolve(import.meta.dirname, 'apps.html'),
+          platform: path.resolve(import.meta.dirname, 'platform.html'),
+          developers: path.resolve(import.meta.dirname, 'developers.html'),
           download: path.resolve(import.meta.dirname, 'download.html'),
           codeSigning: path.resolve(import.meta.dirname, 'code-signing.html'),
           terms: path.resolve(import.meta.dirname, 'terms.html'),
@@ -193,7 +195,7 @@ export default defineConfig(({ mode }) => {
           strictExecutionOrder: true,
           codeSplitting: {
             includeDependenciesRecursively: false,
-            groups: [{ name: chunkName }],
+            groups: [{ debugName: 'web-manual-chunks', name: chunkName }],
           },
         },
       },

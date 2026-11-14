@@ -1113,7 +1113,42 @@ export type HeroDemoOddBureauPreview = {
 
 export type HeroDemoSurface = 'home' | 'chat' | 'explore' | 'apps' | 'runtime' | 'cloud' | 'integrations' | 'downloads' | 'messages' | 'settings' | 'diagnostics';
 
-export type HeroDemo = {
+export type FullHeroDemoAppPreview = {
+  /** The outer landing language owns every preview's UI and authored sample content. */
+  locale: LandingLocale;
+  messages: PreviewMessages;
+  zhiyu: HeroDemoZhiyuPreview;
+  shijing: HeroDemoShijingPreview;
+  parentos: HeroDemoParentosPreview;
+  storybook: HeroDemoStorybookPreview;
+  oddBureau: HeroDemoOddBureauPreview;
+  jevSearch: JevSearchPreviewContent;
+  jevUltrafast: JevUltrafastPreviewContent;
+  moneyPrinter: MoneyPrinterPreviewContent;
+  openwhispr: OpenwhisprPreviewContent;
+  videoLingo: VideoLingoPreviewContent;
+  voiceStudio: VoiceStudioPreviewContent;
+  remainingApps: RemainingAppPreviewContent;
+};
+
+export type HeroDemoAppPreview = {
+  locale: LandingLocale;
+  messages: PreviewMessages;
+  zhiyu: HeroDemoZhiyuPreview;
+  shijing?: HeroDemoShijingPreview;
+  parentos?: HeroDemoParentosPreview;
+  storybook?: HeroDemoStorybookPreview;
+  oddBureau?: HeroDemoOddBureauPreview;
+  jevSearch?: JevSearchPreviewContent;
+  jevUltrafast?: JevUltrafastPreviewContent;
+  moneyPrinter?: MoneyPrinterPreviewContent;
+  openwhispr?: OpenwhisprPreviewContent;
+  videoLingo?: VideoLingoPreviewContent;
+  voiceStudio?: VoiceStudioPreviewContent;
+  remainingApps?: RemainingAppPreviewContent;
+};
+
+export type HeroDemo<TPreview extends HeroDemoAppPreview = HeroDemoAppPreview> = {
   windowTitle: string;
   nav: Record<HeroDemoSurface, string>;
   home: HomeDemoContent;
@@ -1151,25 +1186,10 @@ export type HeroDemo = {
     closeLabel: string;
     items: ReadonlyArray<HeroDemoAppItem>;
   };
-  appPreview: {
-    /** The outer landing language owns every preview's UI and authored sample content. */
-    locale: LandingLocale;
-    messages: PreviewMessages;
-    zhiyu: HeroDemoZhiyuPreview;
-    shijing: HeroDemoShijingPreview;
-    parentos: HeroDemoParentosPreview;
-    storybook: HeroDemoStorybookPreview;
-    oddBureau: HeroDemoOddBureauPreview;
-    jevSearch: JevSearchPreviewContent;
-    jevUltrafast: JevUltrafastPreviewContent;
-    moneyPrinter: MoneyPrinterPreviewContent;
-    openwhispr: OpenwhisprPreviewContent;
-    videoLingo: VideoLingoPreviewContent;
-    voiceStudio: VoiceStudioPreviewContent;
-    remainingApps: RemainingAppPreviewContent;
-  };
-
+  appPreview: TPreview;
 };
+
+export type FullHeroDemo = HeroDemo<FullHeroDemoAppPreview>;
 
 export type LandingContent = {
   skipToContent: string;
@@ -1195,7 +1215,7 @@ export type LandingContent = {
     downloadNote: string;
     /** Quiet secondary action that opens the docs folder on GitHub. */
     docsCta: string;
-    demo: HeroDemo;
+    demo: FullHeroDemo;
   };
   apps: {
     title: string;

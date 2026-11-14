@@ -1,5 +1,4 @@
-import { createHomeChatData } from './home-chat-content.js';
-import { createHomeDemoContent } from './home-demo-content.js';
+import { createCoreHeroDemo } from './core-hero-demo.js';
 import { createPreviewTranslate } from '../i18n/preview-messages.js';
 import { createRemainingAppPreviewContent } from './landing-content.remaining-apps.js';
 import { appPreviewMessagesEn } from './app-preview-messages.en.js';
@@ -12,6 +11,7 @@ import { createOddBureauPreviewContent } from './landing-content.odd-bureau.js';
 import { createJevSearchPreviewContent, createJevUltrafastPreviewContent, createMoneyPrinterPreviewContent, createOpenwhisprPreviewContent, createVideoLingoPreviewContent, createVoiceStudioPreviewContent } from './landing-content.third-party.js';
 
 const t = createPreviewTranslate(appPreviewMessagesEn);
+const coreDemoEn = createCoreHeroDemo('en');
 
 export const landingContentEn: LandingContent = {
   skipToContent: 'Skip to main content',
@@ -36,71 +36,7 @@ export const landingContentEn: LandingContent = {
     downloadNote: "Public Beta for Apple Silicon Macs and Windows x86_64. A Nimi account is required.",
     docsCta: 'View docs',
     demo: {
-      windowTitle: 'Nimi Home',
-      nav: { home: 'Home', chat: 'Chat', explore: 'Explore', apps: 'Apps', runtime: 'AI Capabilities', cloud: 'Cloud Services', integrations: 'Integrations', downloads: 'Downloads', messages: 'Message center', settings: 'Settings', diagnostics: 'Advanced & diagnostics' },
-      home: createHomeDemoContent('en'),
-      chat: {
-        greeting: 'Hi, Halliday! Where shall we begin today?',
-        inputPlaceholder: 'Ask your AI companion…',
-        inputNote: 'Interactive preview; real conversations take place inside the Nimi desktop app.',
-        sendLabel: 'Send',
-        backLabel: 'Back',
-        userName: 'Halliday',
-        defaultTargetId: 'ai:assistant',
-        scriptedReply: 'This is a sample reply demonstrating UI flow; real responses are generated live by the Nimi desktop app.',
-        dateLocale: 'en-US',
-        dateLabels: { today: 'Today', yesterday: 'Yesterday' },
-        copy: {
-          bubbleUserLabel: 'You',
-          bubbleAssistantLabel: 'Agent',
-          markdownCopyLabel: 'Copy',
-          markdownCopiedLabel: 'Copied',
-          typingAgentRoleLabel: 'Agent',
-          typingThinkingLabel: 'Thinking',
-          typingStopLabel: 'Stop',
-        },
-        ...createHomeChatData('en'),
-      },
-      apps: {
-        title: 'Apps',
-        countSuffix: ' Apps',
-        searchPlaceholder: 'Search apps or App IDs',
-        backLabel: 'Back to app library',
-        launchLabel: 'Launch',
-        tabs: ['Overview', 'Nimi Access', 'AI Models'],
-        aboutTitle: 'About',
-        updatedLabel: 'Recently updated',
-        moreInfoLabel: 'More info',
-        previewBadge: 'Interactive Preview · Demo Data',
-        previewUnavailableTitle: 'Preview not available',
-        previewUnavailableBody: 'An interactive preview is not available for this app yet. Please pick another app from the catalog.',
-        closeLabel: 'Close',
-        items: [
-          { id: 'nimi.zhiyu', iconSrc: '/demo/zhiyu-icon.png', name: 'Zhiyu', task: 'Spend time with your Nimi companions, pick up past conversations with their existing memories, and use the voices and avatars you’ve set up.', tags: ['Companions', 'Conversations', 'Memory'], updatedAt: 'September 17, 2026', localDev: true },
-          { id: 'nimi.parentos', name: 'ParentOS', task: "Record your child’s milestones and everyday family life in a private journal on your device.", tags: ['Text Generation', 'Voice Transcription'], updatedAt: 'September 15, 2026', localDev: true, iconSrc: '/demo/parentos-icon.png' },
-          { id: "io.github.nimiplatform.jev-search", name: "Jev Search", task: "Search the web in plain language, filter for sources that interest you, and organize the links for reference.", tags: ["Search","Result Ranking"], updatedAt: "October 12, 2026", localDev: true, iconSrc: '/demo/jev-search-icon.png' },
-          { id: "io.github.nimiplatform.jev-ultrafast", name: "Jev Ultrafast", task: "Set a goal and let your browser read the page, make decisions, and run multi-step workflows.", tags: ["Browser Automation","Text"], updatedAt: "October 12, 2026", localDev: true, iconSrc: '/demo/jev-ultrafast-icon.png' },
-          { id: "moneyprinterturbo.studio", name: "MoneyPrinterTurbo", task: "Make short videos in one place, from script ideas and visuals to AI voiceover and subtitle layout.", tags: ["Text","Voice","Video"], updatedAt: "October 12, 2026", localDev: true, iconSrc: '/demo/moneyprinter-icon.png' },
-          { id: "ai.nimi.openwhispr", name: "OpenWhispr", task: "Capture ideas by speaking and turn short recordings into structured notes.", tags: ["Dictation","Notes","Search"], updatedAt: "October 12, 2026", localDev: true, iconSrc: '/demo/openwhispr-icon.png' },
-          { id: "ai.nimi.videolingo", name: "VideoLingo", task: "Bring your videos into new languages with transcription, translation, bilingual subtitle review, and dubbing.", tags: ["Transcription","Translation","Dubbing"], updatedAt: "October 12, 2026", localDev: true, iconSrc: '/demo/videolingo-icon.png' },
-          { id: "nimiplatform.voicestudio", name: "VoiceStudio", task: "Design a distinctive voice for stories, audiobooks, and cinematic narration.", tags: ["Voice Design","Speech","Transcription"], updatedAt: "October 12, 2026", localDev: true, iconSrc: '/demo/voicestudio-icon.png' },
-          {"id":"nimi.overtone","name":"Nimi Overtone","task":"Use imagery as a starting point for different melodies, then shape the lyrics and arrange versions of your tracks.","tags":["Music","Lyrics"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/overtone-icon.png"},
-          { id: 'nimi.storybook', name: 'Storybook', task: "Create interactive stories, talk with their characters, and choose how the plot unfolds.", tags: ['Text Generation'], updatedAt: 'September 10, 2026', localDev: false, iconSrc: '/demo/storybook-icon.png' },
-          {"id":"nimi.realm-persona-studio","name":"Realm Persona Studio","task":"Craft your own Realm Personas—shape portraits, personality traits, and lore drafts.","tags":["Character Creation","Images"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/persona-studio-icon.png"},
-          { id: 'nimi.shijing', name: 'ShiJing 时镜', task: 'Personal rhythm companion grounded in traditional solar-term calendars and cyclical self-observation.', tags: ['Text Generation'], updatedAt: 'September 5, 2026', localDev: true, iconSrc: '/demo/shijing-icon.png' },
-          { id: 'nimi.odd-bureau', name: 'Odd Bureau 奇物局', task: 'Upload a photo of an everyday object and let AI turn it into a small, playful world you can explore.', tags: ['Visual Grounding', 'Text Generation', 'Speech Synthesis'], updatedAt: 'September 18, 2026', localDev: true, iconSrc: '/demo/odd-bureau-icon.png' },
-          {"id":"nimi.inscape","name":"Inscape 心相","task":"Self-discovery for adults, grounded in Jungian cognitive functions—with all reflections stored strictly on your device.","tags":["Self-Discovery","Daily Reflection"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/inscape-icon.png"},
-          {"id":"nimi.polyagent","name":"PolyAgent","task":"Observe prediction markets, establish strategic constraints, and track hypotheses in a simulated ledger.","tags":["Market Analysis","Paper Trading"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/polyagent-icon.png"},
-          {"id":"nimi.realm-world-studio","name":"Realm World Studio","task":"Build worlds from the ground up: shape geographies, social rules, and factions to stage living stories.","tags":["Worldbuilding","Character Creation"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/world-studio-icon.png"},
-          {"id":"org.nimiplatform.deeptutor","name":"DeepTutor","task":"Interrogate technical papers and tough problems: deconstruct concepts, work through derivations, and keep notes.","tags":["Learning","Research","Notes"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/deeptutor-icon.png"},
-          {"id":"openmontage.studio","name":"OpenMontage","task":"Bring footage and script lines together into storyboard sequences with narration, then take them through to a final cut.","tags":["Storyboards","Video","Voice"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/openmontage-icon.png"},
-          {"id":"org.nimiplatform.sillytavern","name":"SillyTavern","task":"Bring fictional casts to life with multi-character lorebooks, persona profiles, and long-context dialogue.","tags":["Character Chat","Lorebooks"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/sillytavern-icon.png"},
-          {"id":"nimiplatform.vane","name":"Vane","task":"Dig into long-form literature and web sources to build research briefs with source references.","tags":["Search","Research"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/vane-icon.png"},
-          {"id":"io.github.nimiplatform.next-ai-draw-io","name":"Next AI Draw.io","task":"Sketch complex system diagrams and process flows with natural language, then fine-tune them on an interactive canvas.","tags":["Diagrams","Text"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/drawio-icon.png"},
-          {"id":"io.github.nimiplatform.open-notebook","name":"Open Notebook","task":"Weave documents, Q&A reflections, and podcast audio into an interconnected web of knowledge.","tags":["Document Research","Notes","Podcasts"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/open-notebook-icon.png"},
-          {"id":"io.github.nimiplatform.presenton","name":"Presenton","task":"Turn rough bullet points into well-structured, beautifully typeset slide decks.","tags":["Presentations","Editor"],"updatedAt":"2026-10-13","localDev":true,"iconSrc":"/demo/presenton-icon.png"},
-        ],
-      },
+      ...coreDemoEn,
       appPreview: {
         locale: 'en',
         messages: appPreviewMessagesEn,
@@ -117,7 +53,6 @@ export const landingContentEn: LandingContent = {
         videoLingo: createVideoLingoPreviewContent(t),
         voiceStudio: createVoiceStudioPreviewContent(t),
       },
-
     },
   },
   apps: {

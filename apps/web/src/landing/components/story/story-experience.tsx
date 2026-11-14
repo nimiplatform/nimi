@@ -10,7 +10,12 @@ import { StoryHeading } from './story-shared.js';
 
 const LocalModels = lazy(async () => ({ default: (await import('../demo-runtime.js')).DemoRuntimeSurface }));
 const CloudModels = lazy(async () => ({ default: (await import('../demo-cloud.js')).DemoCloudSurface }));
-const Zhiyu = lazy(async () => ({ default: (await import('../demo-zhiyu-preview.js')).DemoZhiyuPreview }));
+const Zhiyu = lazy(async () => {
+  if (typeof document !== 'undefined') {
+    await import('../../demo-zhiyu.css');
+  }
+  return { default: (await import('../demo-zhiyu-preview.js')).DemoZhiyuPreview };
+});
 const HomeChat = lazy(async () => ({ default: (await import('../demo-chat.js')).DemoSessionChat }));
 const chapters = ['models', 'memory', 'continuity'] as const;
 const localCapability = 'text.generate';
@@ -36,27 +41,59 @@ export function StoryExperience({ t, partnerId, onHome }: {
   const copies = useRef<HTMLOListElement>(null);
   const panels = useRef<HTMLDivElement>(null);
   const [activeChapter, setActiveChapter] = useState<typeof chapters[number]>('models');
+  const [mountedChapters, setMountedChapters] = useState<ReadonlySet<typeof chapters[number]>>(
+    () => new Set(['models']),
+  );
   const [showCloud, setShowCloud] = useState(false);
   const [continuityApp, setContinuityApp] = useState('zhiyu');
+  const pinnedChapterRef = useRef<{ chapter: typeof chapters[number]; scrollY: number } | null>(null);
+
+  const lockChapter = (chapter: typeof chapters[number]) => {
+    setActiveChapter(chapter);
+    if (typeof window !== 'undefined') {
+      pinnedChapterRef.current = { chapter, scrollY: window.scrollY };
+    }
+  };
+
+  useEffect(() => {
+    setMountedChapters((current) => {
+      if (current.has(activeChapter)) return current;
+      const next = new Set(current);
+      next.add(activeChapter);
+      return next;
+    });
+  }, [activeChapter]);
 
   useEffect(() => {
     const track = copies.current;
     const stage = panels.current;
     if (!track || !stage) return;
     const items = [...track.querySelectorAll<HTMLElement>('[data-ownership-copy]')];
-    const desktop = window.matchMedia('(min-width: 861px) and (min-height: 700px)');
+    const desktop = window.matchMedia('(min-width: 861px) and (min-height: 600px)');
     let frame = 0;
     const update = () => {
       frame = 0;
       if (!desktop.matches) {
         setShowCloud(false);
+        setMountedChapters(new Set(chapters));
         return;
+      }
+      if (document.querySelector('[role="dialog"]')) {
+        return;
+      }
+      const pinned = pinnedChapterRef.current;
+      if (pinned) {
+        if (Math.abs(window.scrollY - pinned.scrollY) < 160) {
+          setActiveChapter(pinned.chapter);
+          return;
+        }
+        pinnedChapterRef.current = null;
       }
       const centers = items.map(item => {
         const rect = item.getBoundingClientRect();
         return rect.top + rect.height / 2;
       });
-      const readingLine = Math.max(160, window.innerHeight * 0.55);
+      const readingLine = Math.max(160, window.innerHeight * 0.65);
       setActiveChapter(chapters[findActiveOwnershipChapter(centers, readingLine)]!);
 
       // Measure the first chapter from the sticky preview's arrival to the memory handoff.
@@ -91,7 +128,11 @@ export function StoryExperience({ t, partnerId, onHome }: {
             const copyId = `${panelId(chapter)}-copy`;
             return <li key={chapter} data-active={activeChapter === chapter}>
               <div className="story-ownership-copy" id={copyId} data-ownership-copy={chapter}>
-                <a href={`#${panelId(chapter)}`} aria-current={activeChapter === chapter ? 'location' : undefined}>
+                <a
+                  href={`#${panelId(chapter)}`}
+                  aria-current={activeChapter === chapter ? 'location' : undefined}
+                  onClick={() => lockChapter(chapter)}
+                >
                   <span className="story-ownership-number">0{index + 1}</span>
                   <span>{t(`experience.${chapter}Title`)}</span>
                 </a>
@@ -107,6 +148,7 @@ export function StoryExperience({ t, partnerId, onHome }: {
             const homeWindow = chapter === 'models' || homeChat;
             const title = t(homeChat ? 'experience.homeChatWindow' : cloudModels ? 'experience.cloudModelsWindow' : `experience.${chapter}Window`);
             const open = () => {
+              lockChapter(chapter);
               if (homeChat) onHome('chat', partnerId);
               else if (cloudModels) onHome('cloud', cloudCatalog);
               else if (chapter === 'models') onHome('runtime', localCapability);
@@ -129,26 +171,46 @@ export function StoryExperience({ t, partnerId, onHome }: {
                   { value: 'home', label: t('hero.homeEyebrow'), icon: <img src="/logo.svg" alt="" /> },
                 ]}
                 value={continuityApp}
-                onValueChange={setContinuityApp}
+                onValueChange={(value) => {
+                  lockChapter('continuity');
+                  setContinuityApp(value);
+                }}
               />}
               <div className={`hero-demo-frame story-ownership-window${homeWindow ? ' demo-home-frame' : ''}`}>
                 <DemoWindowHeader title={title} iconSrc={homeWindow ? '/logo.svg' : '/demo/zhiyu-icon.png'}>
                   <button type="button" className="story-ownership-open" onClick={open}
                     aria-label={`${t('experience.expand')} · ${title}`}>{t('experience.expand')}<ArrowUpRight size={15} aria-hidden="true" /></button>
                 </DemoWindowHeader>
-                <div className="story-ownership-window-body" aria-hidden="true" inert>
-                  <Suspense fallback={<div className="story-ownership-loading">{t('common.loading')}</div>}>
-                    {chapter === 'models'
-                      ? cloudModels
-                        ? <CloudModels demo={demo} target={cloudCatalog} />
-                        : <LocalModels demo={demo} initialCapability={localCapability} onNavigate={onHome} />
-                      : homeChat
-                        ? <HomeChat targetId={partnerId} />
-                        : <AppPreviewLocaleProvider locale={preview.locale} messages={preview.messages}>
-                          <Zhiyu key={partnerId} content={preview.zhiyu} initialPartnerId={partnerId}
-                            initialPanel={chapter === 'memory' ? 'cognition' : undefined} />
-                        </AppPreviewLocaleProvider>}
-                  </Suspense>
+                <div className="story-ownership-window-wrap">
+                  <div className="story-ownership-window-body" aria-hidden="true" inert>
+                    {mountedChapters.has(chapter) ? (
+                      <Suspense fallback={<div className="story-ownership-loading">{t('common.loading')}</div>}>
+                        {chapter === 'models'
+                          ? cloudModels
+                            ? <CloudModels demo={demo} target={cloudCatalog} />
+                            : <LocalModels demo={demo} initialCapability={localCapability} onNavigate={onHome} />
+                          : homeChat
+                            ? <HomeChat targetId={partnerId} />
+                            : <AppPreviewLocaleProvider locale={preview.locale} messages={preview.messages}>
+                              <Zhiyu key={partnerId} content={preview.zhiyu} initialPartnerId={partnerId}
+                                initialPanel={chapter === 'memory' ? 'cognition' : undefined} />
+                            </AppPreviewLocaleProvider>}
+                      </Suspense>
+                    ) : (
+                      <div className="story-ownership-loading">{t('common.loading')}</div>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    className="story-ownership-preview-trigger"
+                    onClick={open}
+                    aria-label={`${t('experience.expand')} · ${title}`}
+                  >
+                    <span className="story-ownership-preview-pill">
+                      {t('experience.clickHint')}
+                      <ArrowUpRight size={14} aria-hidden="true" />
+                    </span>
+                  </button>
                 </div>
               </div>
               {chapter === 'memory' && <p className="story-ownership-note">{t('experience.memoryNote')}</p>}

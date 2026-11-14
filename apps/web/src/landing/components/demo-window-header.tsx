@@ -1,8 +1,9 @@
 import type { ReactNode } from 'react';
+import { X } from 'lucide-react';
 
 export type DemoWindowClose = { label: string; onClose: () => void };
 
-/** Shared window chrome; only an actual closable window gets an active red control. */
+/** Shared window chrome; closable windows expose both the window dot and an explicit accessible close control. */
 export function DemoWindowHeader({ title, navigation, children, close, iconSrc }: {
   title: string;
   navigation?: ReactNode;
@@ -20,5 +21,16 @@ export function DemoWindowHeader({ title, navigation, children, close, iconSrc }
     {iconSrc && <img className="demo-embedded-app-icon" src={iconSrc} alt="" />}
     <span className="demo-window-title">{title}</span>
     {children}
+    {close ? (
+      <button
+        type="button"
+        className="demo-window-explicit-close"
+        aria-label={close.label}
+        onClick={close.onClose}
+      >
+        <X size={15} aria-hidden="true" />
+        <span>{close.label}</span>
+      </button>
+    ) : null}
   </header>;
 }

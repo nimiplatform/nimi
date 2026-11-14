@@ -1,9 +1,30 @@
-import { lazy, Suspense, useEffect, type ReactNode } from 'react';
-import { Link, useParams } from 'react-router-dom';
-import { landingLinkDefaults, resolveLocalizedLinks, withLocaleQuery } from '../landing/config/landing-links.js';
-import { LanguageToggle } from '../landing/components/language-toggle.js';
-import { useHashScroll } from '../landing/hooks/use-hash-scroll.js';
-import { APP_CATALOG, CAPABILITY_LABELS, INFORMATIONAL_CONTENT } from './informational-content.js';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
+import { ArrowLeft, ArrowRight, ArrowUpRight, Blocks, Cpu, ExternalLink, Layers3, Play, ShieldCheck } from 'lucide-react';
+import { useParams } from 'react-router-dom';
+import { withLocaleQuery } from '../landing/config/landing-links.js';
+import { DemoAppPreview } from '../landing/components/demo-app-preview.js';
+import { useHeroDemoSession } from '../landing/components/hero-demo-context.js';
+import { HeroDemoSessionProvider } from '../landing/components/hero-demo-session.js';
+import { StoryIntegrations } from '../landing/components/story/story-capabilities.js';
+import { StoryHome } from '../landing/components/story/story-home.js';
+import { StoryWorlds } from '../landing/components/story/story-worlds.js';
+import { createCoreHeroDemo } from '../landing/content/core-hero-demo.js';
+import type { HeroDemoSurface } from '../landing/content/landing-content.js';
+import { getStoryCopy, type StoryText } from '../landing/content/story-copy.js';
+import { DEFAULT_STORY_AGENT } from '../landing/content/story-model.js';
+import type { LandingLocale } from '../landing/i18n/locale.js';
+import {
+  APP_ECOSYSTEM_COPY,
+  getEcosystemApps,
+  type EcosystemFilterId,
+} from './app-ecosystem-data.js';
+import { CAPABILITY_LABELS, INFORMATIONAL_CONTENT } from './informational-content.js';
+import {
+  PublicSiteLink,
+  PublicSiteShell,
+  usePublicDocumentMetadata,
+  useResolvedPublicLinks,
+} from './public-site-shell.js';
 import { usePublicPageLocale } from './use-page-locale.js';
 
 const DownloadPage = lazy(async () => {
@@ -50,310 +71,596 @@ function LegalDocumentRedirect({ document }: { document: (typeof LEGAL_DOCUMENTS
   );
 }
 
-function useDocumentMetadata(title: string, description: string, path: string) {
-  useEffect(() => {
-    document.title = title;
-    const canonical = `https://nimi.ai${path}`;
-    const targets = [
-      ['meta[name="description"]', description],
-      ['meta[property="og:title"]', title],
-      ['meta[property="og:description"]', description],
-      ['meta[property="og:url"]', canonical],
-      ['meta[name="twitter:title"]', title],
-      ['meta[name="twitter:description"]', description],
-      ['link[rel="canonical"]', canonical],
-    ] as const;
-    targets.forEach(([selector, value]) => {
-      const element = document.head.querySelector<HTMLMetaElement | HTMLLinkElement>(selector);
-      if (element instanceof HTMLMetaElement) element.content = value;
-      else element?.setAttribute('href', value);
-    });
-  }, [title, description, path]);
-}
+const HOME_WORKSPACE_HIGHLIGHTS: Readonly<Record<LandingLocale, ReadonlyArray<{
+  Icon: typeof Layers3;
+  title: string;
+  body: string;
+}>>> = {
+  zh: [
+    {
+      Icon: Layers3,
+      title: '桌面总控与最近对话',
+      body: '在同一工作台启动已安装应用、接着和伙伴对话，并集中查看消息与权限动态。',
+    },
+    {
+      Icon: Cpu,
+      title: '本机模型与云服务统一配置',
+      body: '管理本机已准备好的模型，或按需填入自有云端凭证，供所有受权应用按模态调用。',
+    },
+    {
+      Icon: ShieldCheck,
+      title: '账号身份与本地数据分离',
+      body: '浏览器登录用于验证 Nimi 账号与世界生态身份；本机模型、伙伴记忆与 nimi_data 默认留在你的电脑上。',
+    },
+  ],
+  en: [
+    {
+      Icon: Layers3,
+      title: 'Desktop hub & active conversations',
+      body: 'Launch installed apps, pick up recent companion chats, and review permissions from a single workspace.',
+    },
+    {
+      Icon: Cpu,
+      title: 'One setup for local & cloud AI',
+      body: 'Manage local models on your machine or add your own cloud credentials once for authorized apps to share.',
+    },
+    {
+      Icon: ShieldCheck,
+      title: 'Account identity separated from local data',
+      body: 'Browser sign-in verifies your Nimi identity and world access, while local models, memories, and nimi_data stay on your device.',
+    },
+  ],
+};
 
-function InformationalShell({
+function HomePageInner({
   locale,
   onLocaleChange,
-  children,
 }: {
-  locale: 'en' | 'zh';
-  onLocaleChange: (locale: 'en' | 'zh') => void;
-  children: ReactNode;
+  locale: LandingLocale;
+  onLocaleChange: (locale: LandingLocale) => void;
 }) {
   const copy = INFORMATIONAL_CONTENT[locale];
-  useHashScroll(true);
+  const storyCopy = getStoryCopy(locale);
+  const t: StoryText = (key) => storyCopy[key];
+  const session = useHeroDemoSession();
+  const [expandedHome, setExpandedHome] = useState(false);
+
+  usePublicDocumentMetadata(`${copy.home.metaTitle} | Nimi`, copy.home.intro, '/home', locale);
+
+  const openHomeSurface = (surface: HeroDemoSurface, target?: string) => {
+    session.navigate(surface, target);
+    setExpandedHome(true);
+  };
 
   return (
-    <div
-      className="min-h-screen bg-[#f8fafc] text-slate-900"
-      // See landing App.tsx: suppress native drag of selected text, which
-      // hangs software-rendered environments. Selection and copy are intact.
-      onDragStart={(event) => event.preventDefault()}
-    >
-      <a href="#main-content" className="skip-link">
-        {copy.shared.skipToContent}
-      </a>
-      <header className="sticky top-0 z-40 border-b nimi-material-glass-chrome bg-[var(--nimi-material-glass-chrome-bg)] border-[var(--nimi-material-glass-chrome-border)] backdrop-blur-[var(--nimi-backdrop-blur-chrome)] backdrop-saturate-[var(--nimi-backdrop-saturate)]">
-        <div className="container-nimi flex flex-wrap items-center gap-3 py-3">
-          <Link
-            to={withLocaleQuery('/', locale)}
-            className="font-heading text-lg font-semibold tracking-tight text-slate-900 transition hover:text-[#2ba980]"
-          >
-            Nimi
-          </Link>
-          <nav aria-label="Nimi site" className="ml-auto hidden items-center gap-4 text-sm font-semibold text-slate-600 sm:flex">
-            <Link to={withLocaleQuery('/home', locale)} className="transition hover:text-slate-900">{copy.shared.navHome}</Link>
-            <Link to={withLocaleQuery('/apps', locale)} className="transition hover:text-slate-900">{copy.shared.navApps}</Link>
-            <a href={withLocaleQuery('/download', locale)} className="transition hover:text-slate-900">{copy.shared.navDownload}</a>
-            <a href={withLocaleQuery('/code-signing', locale)} className="transition hover:text-slate-900">{copy.shared.navCodeSigning}</a>
-          </nav>
-          <LanguageToggle
-            locale={locale}
-            label={copy.shared.language}
-            options={{
-              en: 'English',
-              zh: '中文',
-              switchToEn: copy.shared.switchEnglish,
-              switchToZh: copy.shared.switchChinese,
-            }}
-            onChange={onLocaleChange}
-          />
+    <PublicSiteShell locale={locale} onLocaleChange={onLocaleChange} activePath="/home">
+      <section className="public-hero-section">
+        <div className="story-container">
+          <div className="public-hero-header">
+            <span className="public-eyebrow">
+              {locale === 'zh' ? 'Nimi Home · 桌面主入口与伙伴空间' : 'Nimi Home · Desktop Workspace & Companion Hub'}
+            </span>
+            <h1>{copy.home.title}</h1>
+            <p className="public-hero-lead">{copy.home.intro}</p>
+            <div className="public-hero-actions">
+              <PublicSiteLink to={withLocaleQuery('/download', locale)} className="story-button">
+                <span>{copy.home.downloadCta}</span>
+                <ArrowRight size={16} aria-hidden="true" />
+              </PublicSiteLink>
+              <PublicSiteLink to={withLocaleQuery('/apps', locale)} className="story-button story-button-outline">
+                <Blocks size={16} aria-hidden="true" />
+                <span>{copy.home.appsCta}</span>
+              </PublicSiteLink>
+            </div>
+          </div>
+
+          <div className="public-home-stage">
+            <StoryHome
+              t={t}
+              expanded={expandedHome}
+              onExpanded={setExpandedHome}
+              layout="hero"
+            />
+          </div>
+
+          <div className="public-feature-grid">
+            {HOME_WORKSPACE_HIGHLIGHTS[locale].map(({ Icon, title, body }) => (
+              <article key={title} className="public-feature-card">
+                <span className="story-pillar-icon" aria-hidden="true">
+                  <Icon size={20} />
+                </span>
+                <h2>{title}</h2>
+                <p>{body}</p>
+              </article>
+            ))}
+          </div>
         </div>
-      </header>
-      <main id="main-content" className="container-nimi py-12 md:py-16">
-        {children}
-      </main>
-    </div>
+      </section>
+
+      <StoryWorlds
+        t={t}
+        locale={locale}
+        onOpenWorld={(worldId) => openHomeSurface('explore', `world:${worldId}`)}
+      />
+
+      <section className="public-page-section">
+        <div className="story-container public-two-column-cards">
+          <article className="public-info-card">
+            <h2>{copy.home.worldsTitle}</h2>
+            <p>{copy.home.worldsBody}</p>
+            <h3 className="public-step-heading">{copy.home.worldsExampleTitle}</h3>
+            <ol className="public-step-list">
+              {copy.home.worldsExampleSteps.map((step, index) => (
+                <li key={step}>
+                  <span>{String(index + 1).padStart(2, '0')}</span>
+                  <p>{step}</p>
+                </li>
+              ))}
+            </ol>
+          </article>
+
+          <article className="public-info-card">
+            <h2>{copy.home.startTitle}</h2>
+            <p>{copy.home.startBody}</p>
+            <div className="public-hero-actions">
+              <PublicSiteLink to={withLocaleQuery('/download', locale)} className="story-button">
+                <span>{copy.home.downloadCta}</span>
+                <ArrowRight size={16} aria-hidden="true" />
+              </PublicSiteLink>
+              <PublicSiteLink to={withLocaleQuery('/apps', locale)} className="story-button story-button-outline">
+                <span>{copy.home.appsCta}</span>
+              </PublicSiteLink>
+            </div>
+            <p className="public-availability-note">{copy.home.availability}</p>
+          </article>
+        </div>
+      </section>
+    </PublicSiteShell>
   );
 }
 
 function HomePage() {
   const [locale, setLocale] = usePublicPageLocale();
-  const copy = INFORMATIONAL_CONTENT[locale];
-  useDocumentMetadata(`${copy.home.metaTitle} | Nimi`, copy.home.intro, '/home');
+  const demo = useMemo(() => createCoreHeroDemo(locale), [locale]);
 
   return (
-    <InformationalShell locale={locale} onLocaleChange={setLocale}>
-      <div className="max-w-3xl">
-        <h1 className="text-balance font-heading text-4xl font-semibold tracking-tight text-slate-900 md:text-5xl">
-          {copy.home.title}
-        </h1>
-        <p className="mt-5 text-base leading-8 text-slate-600">{copy.home.intro}</p>
-      </div>
-
-      <section id="worlds" className="mt-12 max-w-3xl scroll-mt-24 rounded-[1.5rem] border border-slate-200 bg-white p-7">
-        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">{copy.home.worldsTitle}</h2>
-        <p className="mt-3 text-base leading-7 text-slate-600">{copy.home.worldsBody}</p>
-        <h3 className="mt-6 text-sm font-bold uppercase tracking-[0.18em] text-slate-400">
-          {copy.home.worldsExampleTitle}
-        </h3>
-        <ol className="mt-4 space-y-3">
-          {copy.home.worldsExampleSteps.map((step, index) => (
-            <li key={step} className="flex gap-3 text-sm leading-6 text-slate-600">
-              <span className="font-bold text-[#2ba980]">{String(index + 1).padStart(2, '0')}</span>
-              <span>{step}</span>
-            </li>
-          ))}
-        </ol>
-      </section>
-
-      <section className="mt-6 max-w-3xl rounded-[1.5rem] border border-slate-200 bg-white p-7">
-        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">{copy.home.startTitle}</h2>
-        <p className="mt-3 text-base leading-7 text-slate-600">{copy.home.startBody}</p>
-        <div className="mt-6 flex flex-wrap gap-3">
-          <a
-            href={withLocaleQuery('/download', locale)}
-            className="inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[#0f766e] to-[#0369a1] px-6 py-3 text-sm font-bold text-white"
-          >
-            {copy.home.downloadCta}
-          </a>
-          <Link
-            to={withLocaleQuery('/apps', locale)}
-            className="inline-flex items-center justify-center rounded-full border border-slate-300 bg-white px-6 py-3 text-sm font-bold text-slate-700 transition hover:border-emerald-300"
-          >
-            {copy.home.appsCta}
-          </Link>
-        </div>
-        <p className="mt-4 text-sm leading-6 text-slate-500">{copy.home.availability}</p>
-      </section>
-    </InformationalShell>
+    <HeroDemoSessionProvider key={locale} demo={demo} initialSurface="home">
+      <HomePageInner locale={locale} onLocaleChange={setLocale} />
+    </HeroDemoSessionProvider>
   );
 }
 
-function AppNotFound({ locale }: { locale: 'en' | 'zh' }) {
+function AppNotFound({ locale }: { locale: LandingLocale }) {
   const copy = INFORMATIONAL_CONTENT[locale];
   return (
-    <div className="max-w-2xl">
-      <h1 className="font-heading text-3xl font-semibold tracking-tight text-slate-900">
-        {copy.apps.notFoundTitle}
-      </h1>
-      <p className="mt-4 text-base leading-7 text-slate-600">{copy.apps.notFoundBody}</p>
-      <Link
-        to={withLocaleQuery('/apps', locale)}
-        className="mt-6 inline-flex items-center justify-center rounded-full bg-slate-900 px-6 py-3 text-sm font-bold text-white transition hover:bg-[#2ba980]"
-      >
-        {copy.apps.backToApps}
-      </Link>
-    </div>
+    <section className="story-container public-status-card">
+      <h1>{copy.apps.notFoundTitle}</h1>
+      <p>{copy.apps.notFoundBody}</p>
+      <div className="public-hero-actions">
+        <PublicSiteLink to={withLocaleQuery('/apps', locale)} className="story-button">
+          <ArrowLeft size={16} aria-hidden="true" />
+          <span>{copy.apps.backToApps}</span>
+        </PublicSiteLink>
+      </div>
+    </section>
+  );
+}
+
+function AppsPageInner({
+  slug,
+  locale,
+  onLocaleChange,
+}: {
+  slug?: string;
+  locale: LandingLocale;
+  onLocaleChange: (locale: LandingLocale) => void;
+}) {
+  const copy = INFORMATIONAL_CONTENT[locale];
+  const ecosystemCopy = APP_ECOSYSTEM_COPY[locale];
+  const labels = CAPABILITY_LABELS[locale];
+  const storyCopy = getStoryCopy(locale);
+  const t: StoryText = (key) => storyCopy[key];
+  const links = useResolvedPublicLinks(locale);
+  const session = useHeroDemoSession();
+
+  const ecosystemApps = useMemo(() => getEcosystemApps(locale), [locale]);
+  const [activeFilter, setActiveFilter] = useState<EcosystemFilterId>('all');
+
+  const selectedEcosystemEntry = slug ? ecosystemApps.find((entry) => entry.id === slug) : undefined;
+  const selectedApp = selectedEcosystemEntry?.catalog;
+
+  usePublicDocumentMetadata(
+    slug
+      ? selectedEcosystemEntry
+        ? `${selectedEcosystemEntry.name} | Nimi`
+        : `${copy.apps.notFoundTitle} | Nimi`
+      : `${copy.apps.metaTitle} | Nimi`,
+    slug
+      ? selectedEcosystemEntry
+        ? selectedEcosystemEntry.description
+        : copy.apps.notFoundBody
+      : copy.apps.intro,
+    slug && selectedEcosystemEntry ? `/apps/${selectedEcosystemEntry.id}` : '/apps',
+    locale,
+  );
+
+  const openInteractivePreview = (appId: string) => {
+    session.openPreview(
+      appId,
+      appId === 'nimi.zhiyu' ? 'companion' : 'home',
+      appId === 'nimi.zhiyu' ? DEFAULT_STORY_AGENT : undefined,
+    );
+  };
+
+  if (slug && !selectedEcosystemEntry) {
+    return (
+      <PublicSiteShell locale={locale} onLocaleChange={onLocaleChange} activePath="/apps">
+        <AppNotFound locale={locale} />
+      </PublicSiteShell>
+    );
+  }
+
+  if (selectedEcosystemEntry) {
+    const { id: appId, name: appName, description, origin, posture } = selectedEcosystemEntry;
+    const capabilityItems = selectedApp
+      ? selectedApp.capabilities.map((capability) => labels[capability] ?? capability)
+      : selectedEcosystemEntry.tags;
+    const repositoryHref = selectedApp?.repository
+      ?? (posture === 'first-party-companion'
+        ? 'https://github.com/nimiplatform/nimi'
+        : 'https://github.com/nimiplatform');
+    const repositoryLabel = selectedApp
+      ? selectedApp.repository.replace('https://github.com/', '')
+      : posture === 'first-party-companion'
+        ? 'nimiplatform/nimi'
+        : ecosystemCopy.previewSourceNote;
+    const licenseLabel = selectedApp?.license
+      ?? (posture === 'first-party-companion'
+        ? ecosystemCopy.licenseBundledNote
+        : ecosystemCopy.licensePreviewNote);
+    const platformsValue = posture === 'interactive-preview'
+      ? ecosystemCopy.previewPlatformsValue
+      : (selectedApp?.platforms ?? copy.apps.platforms).join(' · ');
+
+    return (
+      <PublicSiteShell locale={locale} onLocaleChange={onLocaleChange} activePath="/apps">
+        <section className="public-page-section">
+          <article className="story-container public-app-detail">
+            <PublicSiteLink to={withLocaleQuery('/apps', locale)} className="public-back-link">
+              <ArrowLeft size={15} aria-hidden="true" />
+              <span>{copy.apps.backToApps}</span>
+            </PublicSiteLink>
+
+            <div className="public-app-detail-header">
+              <div className="public-app-detail-identity">
+                {selectedEcosystemEntry.iconSrc ? (
+                  <img
+                    src={selectedEcosystemEntry.iconSrc}
+                    alt=""
+                    width={64}
+                    height={64}
+                    className="public-app-detail-icon"
+                  />
+                ) : null}
+                <div>
+                  <div className="public-app-badges">
+                    <span className="public-app-badge" data-origin={origin}>
+                      {ecosystemCopy.originBadge[origin]}
+                    </span>
+                    <span className="public-app-badge is-posture" data-posture={posture}>
+                      {selectedApp
+                        ? `${ecosystemCopy.postureBadge[posture]} · ${selectedApp.license}`
+                        : ecosystemCopy.postureBadge[posture]}
+                    </span>
+                  </div>
+                  <h1>{appName}</h1>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="story-button"
+                onClick={() => openInteractivePreview(appId)}
+              >
+                <Play size={15} aria-hidden="true" />
+                <span>{ecosystemCopy.previewAction}</span>
+              </button>
+            </div>
+
+            <p className="public-app-detail-summary">{description}</p>
+            <p className="public-app-origin-note">{ecosystemCopy.originDetail[origin]}</p>
+
+            <div className="public-app-posture-callout" data-posture={posture}>
+              <strong>{ecosystemCopy.availabilityLabel}</strong>
+              <p>{ecosystemCopy.postureDetail[posture]}</p>
+            </div>
+
+            <div className="public-app-detail-preview">
+              <button
+                type="button"
+                className="public-app-detail-preview-button"
+                onClick={() => openInteractivePreview(appId)}
+                aria-label={`${ecosystemCopy.previewAction} · ${appName}`}
+              >
+                <img
+                  src={selectedEcosystemEntry.previewImageSrc}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                />
+                <span className="story-ownership-preview-pill">
+                  <Play size={14} aria-hidden="true" />
+                  <span>{ecosystemCopy.previewAction}</span>
+                </span>
+              </button>
+            </div>
+
+            <dl className="public-app-meta-grid">
+              <div className="public-app-meta-card">
+                <dt>{copy.apps.capabilitiesLabel}</dt>
+                <dd className="public-capability-pills">
+                  {capabilityItems.length > 0 ? (
+                    capabilityItems.map((item) => (
+                      <span key={item} className="public-capability-pill">
+                        {item}
+                      </span>
+                    ))
+                  ) : (
+                    <span>—</span>
+                  )}
+                </dd>
+              </div>
+              <div className="public-app-meta-card">
+                <dt>{copy.apps.platformsLabel}</dt>
+                <dd>{platformsValue}</dd>
+              </div>
+              <div className="public-app-meta-card">
+                <dt>{copy.apps.licenseLabel}</dt>
+                <dd>{licenseLabel}</dd>
+              </div>
+              <div className="public-app-meta-card">
+                <dt>{copy.apps.sourceLabel}</dt>
+                <dd>
+                  <a
+                    href={repositoryHref}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="public-external-link"
+                  >
+                    <span>{repositoryLabel}</span>
+                    <ExternalLink size={14} aria-hidden="true" />
+                  </a>
+                </dd>
+              </div>
+            </dl>
+
+            <p className="public-availability-note">{copy.apps.statusNote}</p>
+          </article>
+        </section>
+
+        <DemoAppPreview
+          opened={session.preview}
+          guiding={Boolean(session.preview?.guided)}
+          apps={session.demo.apps}
+          preview={session.demo.appPreview}
+          onClose={session.closePreview}
+        />
+      </PublicSiteShell>
+    );
+  }
+
+  const counts: Record<EcosystemFilterId, number> = {
+    all: ecosystemApps.length,
+    'nimi-official': ecosystemApps.filter((app) => app.origin === 'nimi-official').length,
+    'open-source-adapted': ecosystemApps.filter((app) => app.origin === 'open-source-adapted').length,
+    'catalog-admitted': ecosystemApps.filter((app) => app.posture === 'catalog-admitted').length,
+  };
+  const postureCounts = {
+    'first-party-companion': ecosystemApps.filter((app) => app.posture === 'first-party-companion').length,
+    'catalog-admitted': counts['catalog-admitted'],
+    'interactive-preview': ecosystemApps.filter((app) => app.posture === 'interactive-preview').length,
+  };
+
+  const filteredApps = ecosystemApps.filter((app) => {
+    if (activeFilter === 'all') return true;
+    if (activeFilter === 'catalog-admitted') return app.posture === 'catalog-admitted';
+    return app.origin === activeFilter;
+  });
+
+  return (
+    <PublicSiteShell locale={locale} onLocaleChange={onLocaleChange} activePath="/apps">
+      <section className="public-hero-section">
+        <div className="story-container">
+          <div className="public-hero-header">
+            <span className="public-eyebrow">{ecosystemCopy.eyebrow}</span>
+            <h1>{copy.apps.title}</h1>
+            <p className="public-hero-lead">{copy.apps.intro}</p>
+            <p className="public-availability-note">{copy.apps.statusNote}</p>
+          </div>
+
+          <div className="public-provenance-banner" aria-label={ecosystemCopy.provenanceCalloutTitle}>
+            <div className="public-provenance-item" data-origin="nimi-official">
+              <span className="public-app-badge" data-origin="nimi-official">
+                {ecosystemCopy.originBadge['nimi-official']} · {counts['nimi-official']}
+              </span>
+              <p>{ecosystemCopy.provenanceCalloutOfficial}</p>
+            </div>
+            <div className="public-provenance-item" data-origin="open-source-adapted">
+              <span className="public-app-badge" data-origin="open-source-adapted">
+                {ecosystemCopy.originBadge['open-source-adapted']} · {counts['open-source-adapted']}
+              </span>
+              <p>{ecosystemCopy.provenanceCalloutAdapted}</p>
+            </div>
+          </div>
+
+          <div className="public-posture-breakdown" aria-label={ecosystemCopy.availabilityBreakdownLabel}>
+            {ecosystemCopy.availabilityBreakdown.filter((tier) => postureCounts[tier.posture] > 0).map((tier) => (
+              <div key={tier.posture} className="public-posture-tier" data-posture={tier.posture}>
+                <div className="public-posture-tier-head">
+                  <span className="public-app-badge is-posture" data-posture={tier.posture}>
+                    {tier.title}
+                  </span>
+                  <strong>{postureCounts[tier.posture]}</strong>
+                </div>
+                <p>{tier.body}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      <section className="public-page-section" aria-labelledby="apps-catalog-heading">
+        <div className="story-container">
+          <div className="public-apps-toolbar">
+            <div>
+              <h2 id="apps-catalog-heading">{copy.apps.listTitle}</h2>
+              <p className="public-apps-subnote">{ecosystemCopy.platformsSummary} · {ecosystemCopy.previewFootnote}</p>
+            </div>
+            <div className="public-filter-pills" role="group" aria-label={ecosystemCopy.filterLabel}>
+              {(Object.keys(ecosystemCopy.filters) as EcosystemFilterId[]).map((filterId) => (
+                <button
+                  key={filterId}
+                  type="button"
+                  aria-pressed={activeFilter === filterId}
+                  className={activeFilter === filterId ? 'is-active' : undefined}
+                  onClick={() => setActiveFilter(filterId)}
+                >
+                  <span>{ecosystemCopy.filters[filterId]}</span>
+                  <small>{counts[filterId]}</small>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <ul className="public-apps-grid">
+            {filteredApps.map((app) => (
+              <li key={app.id} className="public-app-card" data-origin={app.origin}>
+                <button
+                  type="button"
+                  className="public-app-card-media"
+                  onClick={() => openInteractivePreview(app.id)}
+                  aria-label={`${ecosystemCopy.previewAction} · ${app.name}`}
+                >
+                  <img
+                    src={app.previewImageSrc}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                  />
+                  <span className="public-app-card-play">
+                    <Play size={13} aria-hidden="true" />
+                    <span>{ecosystemCopy.previewAction}</span>
+                  </span>
+                </button>
+
+                <div className="public-app-card-body">
+                  <div className="public-app-badges">
+                    <span className="public-app-badge" data-origin={app.origin}>
+                      {ecosystemCopy.originBadge[app.origin]}
+                    </span>
+                    <span className="public-app-badge is-posture" data-posture={app.posture}>
+                      {app.catalog
+                        ? `${ecosystemCopy.postureBadge[app.posture]} · ${app.catalog.license}`
+                        : ecosystemCopy.postureBadge[app.posture]}
+                    </span>
+                  </div>
+
+                  <div className="public-app-card-heading">
+                    {app.iconSrc ? (
+                      <img src={app.iconSrc} alt="" width={40} height={40} loading="lazy" decoding="async" />
+                    ) : null}
+                    <h3>{app.name}</h3>
+                  </div>
+
+                  <p className="public-app-card-description">{app.description}</p>
+
+                  {app.tags.length > 0 ? (
+                    <div className="public-capability-pills">
+                      {app.tags.map((tag) => (
+                        <span key={tag} className="public-capability-pill">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  ) : null}
+
+                  <div className="public-app-card-actions">
+                    <button
+                      type="button"
+                      className="public-app-preview-btn"
+                      onClick={() => openInteractivePreview(app.id)}
+                    >
+                      <Play size={13} aria-hidden="true" />
+                      <span>{ecosystemCopy.previewAction}</span>
+                    </button>
+                    <PublicSiteLink
+                      to={withLocaleQuery(`/apps/${app.id}`, locale)}
+                      className="public-app-detail-link"
+                    >
+                      <span>{copy.apps.itemCta}</span>
+                      <ArrowRight size={14} aria-hidden="true" />
+                    </PublicSiteLink>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+
+      <StoryIntegrations t={t} links={links} />
+
+      <section id="create-your-own" className="public-page-section">
+        <div className="story-container">
+          <div className="public-info-card public-create-card">
+            <h2>{copy.apps.createTitle}</h2>
+            <p>{copy.apps.createIntro}</p>
+            <ol className="public-step-list">
+              {copy.apps.createSteps.map((step, index) => (
+                <li key={step}>
+                  <span>{String(index + 1).padStart(2, '0')}</span>
+                  <p>{step}</p>
+                </li>
+              ))}
+            </ol>
+            <p className="public-availability-note">{copy.apps.createCaveat}</p>
+            <div className="public-hero-actions">
+              <a
+                href={links.createGuideUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="story-button"
+              >
+                <span>{copy.apps.guideCta}</span>
+                <ArrowUpRight size={16} aria-hidden="true" />
+              </a>
+              <PublicSiteLink to={withLocaleQuery('/developers', locale)} className="story-button story-button-outline">
+                <span>{locale === 'zh' ? '查看 SDK 与开发者工具' : 'Explore SDK & Developer Tools'}</span>
+                <ArrowRight size={16} aria-hidden="true" />
+              </PublicSiteLink>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <DemoAppPreview
+        opened={session.preview}
+        guiding={Boolean(session.preview?.guided)}
+        apps={session.demo.apps}
+        preview={session.demo.appPreview}
+        onClose={session.closePreview}
+      />
+    </PublicSiteShell>
   );
 }
 
 function AppsPage({ slug }: { slug?: string }) {
   const [locale, setLocale] = usePublicPageLocale();
-  const copy = INFORMATIONAL_CONTENT[locale];
-  const labels = CAPABILITY_LABELS[locale];
-  const guideUrl = resolveLocalizedLinks(landingLinkDefaults, locale).createGuideUrl;
-
-  const selectedApp = slug ? APP_CATALOG.find((app) => app.id === slug) : undefined;
-
-  useDocumentMetadata(
-    slug
-      ? selectedApp
-        ? `${selectedApp.name} | Nimi`
-        : `${copy.apps.notFoundTitle} | Nimi`
-      : `${copy.apps.metaTitle} | Nimi`,
-    slug
-      ? selectedApp
-        ? selectedApp.summary?.[locale] ?? copy.apps.summaryFallback
-        : copy.apps.notFoundBody
-      : copy.apps.intro,
-    slug && selectedApp ? `/apps/${selectedApp.id}` : '/apps',
-  );
-
-  if (slug && !selectedApp) {
-    return (
-      <InformationalShell locale={locale} onLocaleChange={setLocale}>
-        <AppNotFound locale={locale} />
-      </InformationalShell>
-    );
-  }
-
-  if (selectedApp) {
-    const summary = selectedApp.summary?.[locale] ?? copy.apps.summaryFallback;
-    return (
-      <InformationalShell locale={locale} onLocaleChange={setLocale}>
-        <article className="max-w-3xl">
-          <Link to={withLocaleQuery('/apps', locale)} className="text-sm font-semibold text-[#2ba980] transition hover:text-[#1f8a68]">
-            ← {copy.apps.backToApps}
-          </Link>
-          <h1 className="mt-4 font-heading text-4xl font-semibold tracking-tight text-slate-900">
-            {selectedApp.name}
-          </h1>
-          <p className="mt-4 text-base leading-8 text-slate-600">{summary}</p>
-
-          <dl className="mt-8 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-[1.25rem] border border-slate-200 bg-white p-5">
-              <dt className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                {copy.apps.capabilitiesLabel}
-              </dt>
-              <dd className="mt-3 flex flex-wrap gap-2">
-                {selectedApp.capabilities.length > 0 ? (
-                  selectedApp.capabilities.map((capability) => (
-                    <span
-                      key={capability}
-                      className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-medium text-slate-600"
-                    >
-                      {labels[capability] ?? capability}
-                    </span>
-                  ))
-                ) : (
-                  <span className="text-sm text-slate-500">—</span>
-                )}
-              </dd>
-            </div>
-            <div className="rounded-[1.25rem] border border-slate-200 bg-white p-5">
-              <dt className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                {copy.apps.platformsLabel}
-              </dt>
-              <dd className="mt-3 text-sm leading-6 text-slate-600">
-                {copy.apps.platforms.join(' · ')}
-              </dd>
-            </div>
-            <div className="rounded-[1.25rem] border border-slate-200 bg-white p-5">
-              <dt className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                {copy.apps.licenseLabel}
-              </dt>
-              <dd className="mt-3 text-sm text-slate-600">{selectedApp.license}</dd>
-            </div>
-            <div className="rounded-[1.25rem] border border-slate-200 bg-white p-5">
-              <dt className="text-xs font-bold uppercase tracking-[0.18em] text-slate-400">
-                {copy.apps.sourceLabel}
-              </dt>
-              <dd className="mt-3 text-sm">
-                <a
-                  className="font-semibold text-[#2ba980] transition hover:text-[#1f8a68]"
-                  href={selectedApp.repository}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {selectedApp.repository.replace('https://github.com/', '')}
-                </a>
-              </dd>
-            </div>
-          </dl>
-
-          <p className="mt-6 text-sm leading-6 text-slate-500">{copy.apps.statusNote}</p>
-        </article>
-      </InformationalShell>
-    );
-  }
+  const demo = useMemo(() => createCoreHeroDemo(locale), [locale]);
 
   return (
-    <InformationalShell locale={locale} onLocaleChange={setLocale}>
-      <div className="max-w-3xl">
-        <h1 className="font-heading text-4xl font-semibold tracking-tight text-slate-900 md:text-5xl">
-          {copy.apps.title}
-        </h1>
-        <p className="mt-5 text-base leading-8 text-slate-600">{copy.apps.intro}</p>
-        <p className="mt-4 text-sm leading-6 text-slate-500">{copy.apps.statusNote}</p>
-      </div>
-
-      <section className="mt-12">
-        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">{copy.apps.listTitle}</h2>
-        <ul className="mt-6 grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {APP_CATALOG.map((app) => (
-            <li key={app.id} className="flex flex-col rounded-[1.35rem] border border-slate-200 bg-white p-6">
-              <h3 className="text-lg font-semibold tracking-tight text-slate-900">{app.name}</h3>
-              <p className="mt-2 flex-1 text-sm leading-6 text-slate-600">
-                {app.summary?.[locale] ?? copy.apps.summaryFallback}
-              </p>
-              <Link
-                to={withLocaleQuery(`/apps/${app.id}`, locale)}
-                className="mt-4 text-sm font-semibold text-[#2ba980] transition hover:text-[#1f8a68]"
-              >
-                {copy.apps.itemCta}
-                <span aria-hidden="true"> →</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <section
-        id="create-your-own"
-        className="mt-12 max-w-3xl scroll-mt-24 rounded-[1.5rem] border border-slate-200 bg-white p-7"
-      >
-        <h2 className="text-2xl font-semibold tracking-tight text-slate-900">{copy.apps.createTitle}</h2>
-        <p className="mt-3 text-base leading-7 text-slate-600">{copy.apps.createIntro}</p>
-        <ol className="mt-6 space-y-3">
-          {copy.apps.createSteps.map((step, index) => (
-            <li key={step} className="flex gap-3 text-sm leading-6 text-slate-600">
-              <span className="font-bold text-[#2ba980]">{String(index + 1).padStart(2, '0')}</span>
-              <span>{step}</span>
-            </li>
-          ))}
-        </ol>
-        <p className="mt-5 text-sm leading-6 text-slate-500">{copy.apps.createCaveat}</p>
-        <a
-          href={guideUrl}
-          target="_blank"
-          rel="noreferrer"
-          className="mt-6 inline-flex items-center justify-center rounded-full bg-gradient-to-r from-[#0f766e] to-[#0369a1] px-6 py-3 text-sm font-bold text-white"
-        >
-          {copy.apps.guideCta}
-        </a>
-      </section>
-    </InformationalShell>
+    <HeroDemoSessionProvider key={locale} demo={demo}>
+      <AppsPageInner slug={slug} locale={locale} onLocaleChange={setLocale} />
+    </HeroDemoSessionProvider>
   );
 }
 

@@ -1,35 +1,39 @@
-import { Surface } from '@nimiplatform/kit/ui';
 import { useEffect, useRef, useState } from 'react';
-import { ArrowDown, ArrowUpRight, Menu, UserRound, X } from 'lucide-react';
-import type { LandingContent, HeroDemoSurface } from '../../content/landing-content.js';
-import type { LandingLinks } from '../../config/landing-links.js';
+import {
+  ArrowDown,
+  ArrowRight,
+  Blocks,
+  BrainCircuit,
+  Code2,
+  Compass,
+  Cpu,
+  Layers3,
+  ShieldCheck,
+} from 'lucide-react';
+import type { HeroDemoSurface } from '../../content/landing-content.js';
+import { withLocaleQuery, type LandingLinks } from '../../config/landing-links.js';
 import { getStoryCopy, type StoryText } from '../../content/story-copy.js';
 import { DEFAULT_STORY_AGENT, storyAgent } from '../../content/story-model.js';
 import { useHeroDemoSession } from '../hero-demo-context.js';
-import { HeroDemoSessionProvider } from '../hero-demo-session.js';
-import { LanguageToggle } from '../language-toggle.js';
 import { StoryHome } from './story-home.js';
 import { StoryExperience } from './story-experience.js';
-import { StoryWorlds } from './story-worlds.js';
-import { StoryIntegrations } from './story-capabilities.js';
-import { StoryApps } from './story-apps.js';
-import { StoryBuilder } from './story-builder.js';
 import { StoryLink } from './story-shared.js';
 import { useStoryHeroMotion, useStoryMotion } from './story-motion.js';
-
-const navigation = [
-  ['hero-demo', 'nav.experience'],
-  ['apps', 'nav.capabilities'],
-  ['app-showcase', 'nav.apps'],
-  ['integrations', 'nav.integrations'],
-  ['developers', 'nav.developers'],
-  ['worlds', 'nav.worlds'],
-] as const;
+import { PublicSiteFooter, PublicSiteHeader, PublicSiteLink } from '../../../pages/public-site-shell.js';
 
 // @nimi-authority: rule.nimi.platform.core-protocol.p-arch-001a
-export function StoryPage({ content, links, locale, onLocale }: { content: LandingContent; links: LandingLinks; locale: 'zh' | 'en'; onLocale: (locale: 'zh' | 'en') => void }) {
+// @nimi-authority: rule.nimi.platform.governance-release.p-gov-026-positioning
+export function StoryPage({
+  links,
+  locale,
+  onLocale,
+}: {
+  links: LandingLinks;
+  locale: 'zh' | 'en';
+  onLocale: (locale: 'zh' | 'en') => void;
+}) {
   const copy = getStoryCopy(locale);
-  const t: StoryText = key => copy[key];
+  const t: StoryText = (key) => copy[key];
   const headline = /^(.*?)([.!?。！？])$/u.exec(t('hero.title'));
   const session = useHeroDemoSession();
   const site = useRef<HTMLDivElement>(null);
@@ -37,82 +41,361 @@ export function StoryPage({ content, links, locale, onLocale }: { content: Landi
   const heroStage = useRef<HTMLDivElement>(null);
   useStoryMotion(site);
   useStoryHeroMotion(hero);
-  const [menu, setMenu] = useState(false);
-  const menuButton = useRef<HTMLButtonElement>(null);
-  const menuPanel = useRef<HTMLElement>(null);
-  useEffect(() => {
-    if (!menu) return;
-    menuPanel.current?.querySelector('a')?.focus({ preventScroll: true });
-    const close = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape' || event.defaultPrevented) return;
-      setMenu(false);
-      menuButton.current?.focus({ preventScroll: true });
-    };
-    window.addEventListener('keydown', close);
-    return () => window.removeEventListener('keydown', close);
-  }, [menu]);
+
   const [selectedId, setSelectedId] = useState(DEFAULT_STORY_AGENT);
   const [expandedHome, setExpandedHome] = useState(false);
   const [expandedHero, setExpandedHero] = useState(false);
   const agent = storyAgent(session.demo, selectedId);
-  const openHome = (surface: HeroDemoSurface, target?: string) => { session.navigate(surface, target); setExpandedHome(true); };
-  const openApp = (id: string) => session.openPreview(id, id === 'nimi.zhiyu' ? 'companion' : 'home', id === 'nimi.zhiyu' ? agent.id : undefined);
+
+  const openHome = (surface: HeroDemoSurface, target?: string) => {
+    session.navigate(surface, target);
+    setExpandedHome(true);
+  };
+
   useEffect(() => {
     const { surface, target } = session.current;
-    const id = surface === 'chat' ? target : surface === 'explore' && target?.startsWith('partner:') ? target.slice(8) : undefined;
-    if (id && session.demo.chat.agents.some(candidate => candidate.id === id)) {
+    const id = surface === 'chat'
+      ? target
+      : surface === 'explore' && target?.startsWith('partner:')
+        ? target.slice(8)
+        : undefined;
+    if (id && session.demo.chat.agents.some((candidate) => candidate.id === id)) {
       setSelectedId(id);
     }
   }, [session.current.surface, session.current.target, session.demo.chat.agents]);
-  return <div ref={site} className="story-site" id="top" lang={locale === 'zh' ? 'zh-CN' : 'en'}>
-    <a className="skip-link" href="#main-content">{t('common.skip')}</a>
-    <Surface as="header" material="glass-chrome" padding="none" className="story-nav"><a className="story-brand" href="#top"><img src="/logo.svg" alt="" /><strong>Nimi</strong></a>
-      <nav id="story-navigation" ref={menuPanel} aria-label="Nimi" className={menu ? 'is-open' : ''}>
-        {navigation.map(([id, label]) => <a key={id} href={`#${id}`} onClick={() => setMenu(false)}>{t(label)}</a>)}
-      </nav>
-      <div className="story-nav-actions"><LanguageToggle locale={locale} label={t('common.language')} options={content.localeOptions} onChange={value => { setMenu(false); onLocale(value); }} /><a className="story-account" href={`/account?lang=${locale}`} aria-label={t('common.account')}><UserRound size={19} /></a><a className="story-download" href={links.downloadUrl}>{t('common.download')}<ArrowUpRight size={15} aria-hidden="true" /></a><button ref={menuButton} className="story-menu-toggle" type="button" aria-controls="story-navigation" aria-expanded={menu} aria-label={t(menu ? 'common.closeMenu' : 'common.openMenu')} onClick={() => setMenu(!menu)}>{menu ? <X size={21} /> : <Menu size={21} />}</button></div>
-    </Surface>
-    <main id="main-content">
-      <section ref={hero} className="story-hero" aria-labelledby="story-title">
-        <div className="story-hero-copy">
-          <h1 id="story-title" aria-label={t('hero.title')}>{headline ? <>{headline[1]}<span className="story-title-accent">{headline[2]}</span></> : t('hero.title')}</h1>
-          <a className="story-hero-continue" href="#hero-demo" onClick={event => {
-            if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
-            const stage = heroStage.current;
-            if (!stage) return;
-            event.preventDefault();
-            if (window.location.hash !== '#hero-demo') window.history.pushState(null, '', '#hero-demo');
-            stage.focus({ preventScroll: true });
-            stage.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth' });
-          }}><span>{t('hero.continue')}</span><ArrowDown size={16} aria-hidden="true" /></a>
+
+  const foundationPillars = [
+    {
+      index: '01',
+      Icon: Cpu,
+      title: t('pillars.computeTitle'),
+      body: t('pillars.computeBody'),
+    },
+    {
+      index: '02',
+      Icon: BrainCircuit,
+      title: t('pillars.contextTitle'),
+      body: t('pillars.contextBody'),
+    },
+    {
+      index: '03',
+      Icon: ShieldCheck,
+      title: t('pillars.governanceTitle'),
+      body: t('pillars.governanceBody'),
+    },
+  ] as const;
+
+  const featuredCompanions = session.demo.chat.agents.slice(0, 4);
+  const featuredApps = [
+    '/demo/zhiyu-icon.png',
+    '/demo/parentos-icon.png',
+    '/demo/vane-icon.png',
+    '/demo/videolingo-icon.png',
+    '/demo/shijing-icon.png',
+  ] as const;
+
+  const productPortals = [
+    {
+      id: 'home',
+      href: withLocaleQuery('/home', locale),
+      Icon: Compass,
+      badge: t('portals.homeBadge'),
+      title: t('portals.homeTitle'),
+      body: t('portals.homeBody'),
+      action: t('portals.homeAction'),
+      visual: (
+        <div className="story-portal-visual story-portal-avatars" aria-hidden="true">
+          {featuredCompanions.map((companion) => (
+            <img
+              key={companion.id}
+              src={companion.avatarUrl}
+              alt=""
+              width={32}
+              height={32}
+              loading="lazy"
+              decoding="async"
+            />
+          ))}
         </div>
-        <div ref={heroStage} id="hero-demo" className="story-hero-stage" tabIndex={-1}>
-          <HeroDemoSessionProvider demo={content.hero.demo}>
-            <StoryHome t={t} expanded={expandedHero} onExpanded={setExpandedHero} layout="hero" />
-          </HeroDemoSessionProvider>
+      ),
+    },
+    {
+      id: 'apps',
+      href: withLocaleQuery('/apps', locale),
+      Icon: Blocks,
+      badge: t('portals.appsBadge'),
+      title: t('portals.appsTitle'),
+      body: t('portals.appsBody'),
+      action: t('portals.appsAction'),
+      visual: (
+        <div className="story-portal-visual story-portal-icons" aria-hidden="true">
+          {featuredApps.map((iconSrc) => (
+            <img
+              key={iconSrc}
+              src={iconSrc}
+              alt=""
+              width={30}
+              height={30}
+              loading="lazy"
+              decoding="async"
+            />
+          ))}
         </div>
-      </section>
-      <StoryExperience t={t} partnerId={agent.id} onHome={openHome} />
-      <section id="home-demo" className="story-section story-runtime" aria-labelledby="runtime-heading" data-story-scene>
-        <header className="story-heading story-container">
-          <h2 id="runtime-heading">{t('runtime.title')}</h2>
-          <p>{t('runtime.description')}</p>
-        </header>
-        <div className="story-home-stage">
-          <StoryHome t={t} expanded={expandedHome} onExpanded={setExpandedHome} />
+      ),
+    },
+    {
+      id: 'platform',
+      href: withLocaleQuery('/platform', locale),
+      Icon: Layers3,
+      badge: t('portals.platformBadge'),
+      title: t('portals.platformTitle'),
+      body: t('portals.platformBody'),
+      action: t('portals.platformAction'),
+      visual: (
+        <div className="story-portal-visual story-portal-tags" aria-hidden="true">
+          <span>Runtime</span>
+          <span>Cognition</span>
+          <span>Realm</span>
+          <span>{locale === 'zh' ? '11 项能力' : '11 Modalities'}</span>
         </div>
-      </section>
-      <StoryApps t={t} onApp={openApp} />
-      <StoryIntegrations t={t} links={links} />
-      <StoryBuilder t={t} links={links} />
-      <StoryWorlds t={t} locale={locale} onOpenWorld={id => openHome('explore', `world:${id}`)} />
-      <section className="story-ending">
-        <div className="story-container">
-          <h2>{t('footer.heading')}</h2>
-          <StoryLink href={links.downloadUrl} primary>{t('common.download')}</StoryLink>
+      ),
+    },
+    {
+      id: 'developers',
+      href: withLocaleQuery('/developers', locale),
+      Icon: Code2,
+      badge: t('portals.developersBadge'),
+      title: t('portals.developersTitle'),
+      body: t('portals.developersBody'),
+      action: t('portals.developersAction'),
+      visual: (
+        <div className="story-portal-visual story-portal-tags is-mono" aria-hidden="true">
+          <span>@nimiplatform/sdk</span>
+          <span>Vercel AI</span>
+          <span>Kit</span>
+          <span>App Tools</span>
         </div>
-      </section>
-    </main>
-    <footer className="story-footer story-container"><a href="#top" className="story-brand"><img src="/logo.svg" alt="" /><strong>Nimi</strong></a><span>Nimi Network Limited</span><div><a href={links.githubUrl}>{t('footer.github')}</a><a href={links.discordUrl}>{t('footer.discord')}</a><a href={links.downloadUrl}>{t('footer.downloadStatus')}</a><a href="/code-signing">{t('footer.signing')}</a><a href="https://github.com/nimiplatform/nimi/security/advisories/new">{t('footer.securityReport')}</a><a href="/terms.html">{t('footer.terms')}</a><a href="/privacy.html">{t('footer.privacy')}</a></div></footer>
-  </div>;
+      ),
+    },
+  ] as const;
+
+  return (
+    <div
+      ref={site}
+      className="story-site"
+      id="top"
+      lang={locale === 'zh' ? 'zh-CN' : 'en'}
+      onDragStart={(event) => event.preventDefault()}
+    >
+      <a className="skip-link" href="#main-content">
+        {t('common.skip')}
+      </a>
+      <PublicSiteHeader
+        locale={locale}
+        onLocaleChange={onLocale}
+        activePath="/"
+        navId="story-navigation"
+      />
+      <main id="main-content">
+        <section ref={hero} className="story-hero" aria-labelledby="story-title">
+          <div className="story-hero-copy">
+            <span className="story-hero-eyebrow">{t('hero.eyebrow')}</span>
+            <h1 id="story-title" aria-label={t('hero.title')}>
+              {headline ? (
+                <>
+                  {headline[1]}
+                  <span className="story-title-accent">{headline[2]}</span>
+                </>
+              ) : (
+                t('hero.title')
+              )}
+            </h1>
+            <p className="story-hero-lead">{t('hero.lead')}</p>
+            <div className="story-hero-actions">
+              <StoryLink href={links.downloadUrl} primary>
+                {t('common.download')}
+              </StoryLink>
+              <a
+                className="story-hero-continue"
+                href="#hero-demo"
+                onClick={(event) => {
+                  if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+                  const stage = heroStage.current;
+                  if (!stage) return;
+                  event.preventDefault();
+                  if (window.location.hash !== '#hero-demo') window.history.pushState(null, '', '#hero-demo');
+                  stage.focus({ preventScroll: true });
+                  stage.scrollIntoView({
+                    behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth',
+                  });
+                }}
+              >
+                <span>{t('hero.continue')}</span>
+                <ArrowDown size={16} aria-hidden="true" />
+              </a>
+            </div>
+            <p className="story-hero-availability">{t('hero.availability')}</p>
+          </div>
+          <div ref={heroStage} id="hero-demo" className="story-hero-stage" tabIndex={-1}>
+            <StoryHome
+              t={t}
+              expanded={expandedHero}
+              onExpanded={setExpandedHero}
+              layout="hero"
+              continuitySwitcher={{
+                partnerId: agent.id,
+                zhiyuWindowTitle: t('experience.continuityWindow'),
+                hint: t('hero.continuityHint'),
+                quickSendLabel: t('hero.continuityQuickSend'),
+                sampleText: t('hero.continuitySampleText'),
+                sampleReply: t('hero.continuitySampleReply'),
+                tabZhiyu: t('hero.continuityTabZhiyu'),
+                tabHomeChat: t('hero.continuityTabHomeChat'),
+                tabHomeOverview: t('hero.continuityTabHomeOverview'),
+                formatSyncedBadge: (count) => t('hero.continuitySyncedBadge').replace('{count}', String(count)),
+              }}
+              previewHeaderActions={
+                session.preview?.appId === 'nimi.zhiyu' && session.preview.screen === 'companion' ? (
+                  <button
+                    type="button"
+                    className="story-modal-handoff-btn"
+                    onClick={() => {
+                      const targetPartner = session.preview?.partnerId ?? agent.id;
+                      session.closePreview();
+                      openHome('chat', targetPartner);
+                    }}
+                  >
+                    <img src="/logo.svg" alt="" width={14} height={14} />
+                    <span>{t('experience.switchToHomeModal')}</span>
+                    <ArrowRight size={13} aria-hidden="true" />
+                  </button>
+                ) : undefined
+              }
+              disablePreviewModal={expandedHome}
+            />
+          </div>
+        </section>
+
+        <section
+          id="foundation-pillars"
+          className="story-section story-pillars"
+          aria-labelledby="pillars-heading"
+          data-story-scene
+        >
+          <div className="story-container">
+            <header className="story-heading story-pillars-heading">
+              <span className="story-eyebrow">{t('pillars.eyebrow')}</span>
+              <h2 id="pillars-heading">{t('pillars.title')}</h2>
+              <p>{t('pillars.body')}</p>
+            </header>
+            <div className="story-pillars-grid">
+              {foundationPillars.map(({ index, Icon, title, body }) => (
+                <article key={index} className="story-pillar-card">
+                  <div className="story-pillar-card-top">
+                    <span className="story-pillar-icon" aria-hidden="true">
+                      <Icon size={20} />
+                    </span>
+                    <span className="story-ownership-number">{index}</span>
+                  </div>
+                  <h3>{title}</h3>
+                  <p>{body}</p>
+                </article>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <StoryExperience t={t} partnerId={agent.id} onHome={openHome} />
+
+        <section
+          id="home-demo"
+          className="story-section story-runtime"
+          aria-labelledby="runtime-heading"
+          data-story-scene
+        >
+          <header className="story-heading story-container">
+            <h2 id="runtime-heading">{t('runtime.title')}</h2>
+            <p>{t('runtime.description')}</p>
+          </header>
+          <div className="story-home-stage">
+            <StoryHome
+              t={t}
+              expanded={expandedHome}
+              onExpanded={setExpandedHome}
+              staticWhenDocked
+              disablePreviewModal={!expandedHome}
+              extraWindowActions={
+                expandedHome && session.surface === 'chat' ? (
+                  <button
+                    type="button"
+                    className="story-modal-handoff-btn"
+                    onClick={() => {
+                      const targetPartner = session.selectedChatTargetId ?? agent.id;
+                      setExpandedHome(false);
+                      session.openPreview('nimi.zhiyu', 'companion', targetPartner);
+                    }}
+                  >
+                    <img src="/demo/zhiyu-icon.png" alt="" width={14} height={14} />
+                    <span>{t('experience.switchToZhiyuModal')}</span>
+                    <ArrowRight size={13} aria-hidden="true" />
+                  </button>
+                ) : undefined
+              }
+            />
+          </div>
+          <p className="story-runtime-caption story-container">{t('runtime.caption')}</p>
+        </section>
+
+        <section
+          id="explore-layers"
+          className="story-section story-portals"
+          aria-labelledby="portals-heading"
+          data-story-scene
+        >
+          <div className="story-container">
+            <header className="story-heading story-portals-heading">
+              <span className="story-eyebrow">{t('portals.eyebrow')}</span>
+              <h2 id="portals-heading">{t('portals.title')}</h2>
+              <p>{t('portals.body')}</p>
+            </header>
+            <div className="story-portals-grid">
+              {productPortals.map(({ id, href, Icon, badge, title, body, action, visual }) => (
+                <PublicSiteLink key={id} to={href} className="story-portal-card" data-portal-id={id}>
+                  <div className="story-portal-card-top">
+                    <span className="story-portal-icon" aria-hidden="true">
+                      <Icon size={20} />
+                    </span>
+                    <span className="story-portal-badge">{badge}</span>
+                  </div>
+                  <h3>{title}</h3>
+                  <p>{body}</p>
+                  {visual}
+                  <span className="story-portal-action">
+                    <span>{action}</span>
+                    <ArrowRight size={16} aria-hidden="true" />
+                  </span>
+                </PublicSiteLink>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="story-ending">
+          <div className="story-container">
+            <h2>{t('footer.heading')}</h2>
+            <div className="story-ending-actions">
+              <StoryLink href={links.downloadUrl} primary>
+                {t('common.download')}
+              </StoryLink>
+              <PublicSiteLink className="story-button story-button-outline" to={withLocaleQuery('/platform', locale)}>
+                <span>{t('portals.platformAction')}</span>
+                <ArrowRight size={16} aria-hidden="true" />
+              </PublicSiteLink>
+            </div>
+          </div>
+        </section>
+      </main>
+      <PublicSiteFooter locale={locale} links={links} />
+    </div>
+  );
 }

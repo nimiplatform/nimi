@@ -39,7 +39,7 @@ export function StoryHomeCompanions({ demo }: { demo: HeroDemo }) {
       <div className="story-home-web-screen">
         <div className="story-home-web-bar">
           <span className="story-home-web-dots"><i /><i /><i /></span>
-          <span className="story-home-web-address"><LockKeyhole size={9} />nimi.ai</span>
+          <span className="story-home-web-address"><LockKeyhole size={9} />zhiyu.app · Nimi Remote</span>
           <span className="story-home-web-more"><i /><i /><i /></span>
         </div>
         <div className="story-home-web-viewport">

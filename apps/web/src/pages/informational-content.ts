@@ -6,12 +6,16 @@ export type CatalogApp = {
   license: string;
   repository: string;
   capabilities: ReadonlyArray<string>;
+  platforms: ReadonlyArray<'macOS arm64' | 'Windows x86_64'>;
   summary?: { en: string; zh: string };
 };
 
+const WINDOWS_ONLY = ['Windows x86_64'] as const;
+const MACOS_AND_WINDOWS = ['macOS arm64', 'Windows x86_64'] as const;
+
 /**
  * Limited static projection of the admitted public catalog
- * (../nimi-app-registry index + descriptors, synced 2026-09-17).
+ * (nimi-app-registry index + descriptors at d5e9d95, reviewed 2026-11-14).
  * Web presents display fields only; it owns no admission, install,
  * availability, or update truth.
  */
@@ -19,6 +23,7 @@ export const APP_CATALOG: ReadonlyArray<CatalogApp> = [
   {
     id: 'nimi.parentos',
     name: 'ParentOS',
+    platforms: MACOS_AND_WINDOWS,
     license: 'MIT',
     repository: 'https://github.com/nimiplatform/nimiapp-parentos',
     capabilities: ['text.generate', 'audio.transcribe'],
@@ -30,9 +35,10 @@ export const APP_CATALOG: ReadonlyArray<CatalogApp> = [
   {
     id: 'nimi.overtone',
     name: 'Nimi Overtone',
+    platforms: MACOS_AND_WINDOWS,
     license: 'MIT',
     repository: 'https://github.com/nimiplatform/nimiapp-overtone',
-    capabilities: ['text.generate', 'music.generate'],
+    capabilities: ['text.generate', 'music.generate', 'music.transcribe', 'audio.voice.convert', 'audio.separate'],
     summary: {
       zh: '整理音乐创作项目、歌词与音频候选，比较和管理创作版本。',
       en: 'Organize music projects, lyrics, and audio takes, and compare creative versions.',
@@ -41,6 +47,7 @@ export const APP_CATALOG: ReadonlyArray<CatalogApp> = [
   {
     id: 'nimi.storybook',
     name: 'Storybook',
+    platforms: MACOS_AND_WINDOWS,
     license: 'Apache-2.0',
     repository: 'https://github.com/nimiplatform/nimiapp-storybook',
     capabilities: ['text.generate'],
@@ -52,6 +59,7 @@ export const APP_CATALOG: ReadonlyArray<CatalogApp> = [
   {
     id: 'nimi.realm-persona-studio',
     name: 'Realm Persona Studio',
+    platforms: MACOS_AND_WINDOWS,
     license: 'MIT',
     repository: 'https://github.com/nimiplatform/nimiapp-realm-persona-studio',
     capabilities: ['text.generate', 'image.generate', 'audio.synthesize'],
@@ -63,6 +71,7 @@ export const APP_CATALOG: ReadonlyArray<CatalogApp> = [
   {
     id: 'nimi.shijing',
     name: '时镜 ShiJing',
+    platforms: MACOS_AND_WINDOWS,
     license: 'MIT',
     repository: 'https://github.com/nimiplatform/nimiapp-shijing',
     capabilities: ['text.generate'],
@@ -74,6 +83,7 @@ export const APP_CATALOG: ReadonlyArray<CatalogApp> = [
   {
     id: 'nimi.inscape',
     name: 'Inscape 心相',
+    platforms: MACOS_AND_WINDOWS,
     license: 'MIT',
     repository: 'https://github.com/nimiplatform/nimiapp-inscape',
     capabilities: ['text.generate'],
@@ -85,9 +95,10 @@ export const APP_CATALOG: ReadonlyArray<CatalogApp> = [
   {
     id: 'nimi.realm-world-studio',
     name: 'Realm World Studio',
+    platforms: MACOS_AND_WINDOWS,
     license: 'MIT',
     repository: 'https://github.com/nimiplatform/nimiapp-realm-world-studio',
-    capabilities: [],
+    capabilities: ['text.generate'],
     summary: {
       zh: '与 AI 共创世界设定与角色构想，审阅草稿，创建并整理自己的 Realm 世界。',
       en: 'Co-create world settings and character ideas with AI, review drafts, and organize your own Realm worlds.',
@@ -96,6 +107,7 @@ export const APP_CATALOG: ReadonlyArray<CatalogApp> = [
   {
     id: 'nimiplatform.vane',
     name: 'Vane',
+    platforms: MACOS_AND_WINDOWS,
     license: 'MIT',
     repository: 'https://github.com/nimiplatform/Vane',
     capabilities: ['text.generate', 'text.embed'],
@@ -107,6 +119,7 @@ export const APP_CATALOG: ReadonlyArray<CatalogApp> = [
   {
     id: 'openmontage.studio',
     name: 'OpenMontage',
+    platforms: MACOS_AND_WINDOWS,
     license: 'AGPL-3.0-only',
     repository: 'https://github.com/nimiplatform/OpenMontage',
     capabilities: [
@@ -125,6 +138,7 @@ export const APP_CATALOG: ReadonlyArray<CatalogApp> = [
   {
     id: 'io.github.nimiplatform.next-ai-draw-io',
     name: 'Next AI Draw.io',
+    platforms: MACOS_AND_WINDOWS,
     license: 'Apache-2.0',
     repository: 'https://github.com/nimiplatform/next-ai-draw-io',
     capabilities: ['text.generate'],
@@ -132,6 +146,102 @@ export const APP_CATALOG: ReadonlyArray<CatalogApp> = [
       zh: '用自然语言、图像和文档创建与编辑 draw.io 图表，并可恢复历史或导出成果。',
       en: 'Create and edit draw.io diagrams with natural language, images, and documents, then restore history or export your work.',
     },
+  },
+  {
+    id: 'org.nimiplatform.sillytavern',
+    name: 'SillyTavern',
+    platforms: MACOS_AND_WINDOWS,
+    license: 'AGPL-3.0',
+    repository: 'https://github.com/nimiplatform/SillyTavern',
+    capabilities: ['text.generate', 'text.embed', 'image.generate', 'audio.synthesize', 'audio.transcribe', 'text.decide'],
+  },
+  {
+    id: 'org.nimiplatform.deeptutor',
+    name: 'DeepTutor',
+    platforms: MACOS_AND_WINDOWS,
+    license: 'Apache-2.0',
+    repository: 'https://github.com/nimiplatform/DeepTutor',
+    capabilities: ['text.generate', 'text.embed', 'audio.synthesize', 'audio.transcribe', 'image.generate', 'video.generate'],
+  },
+  {
+    id: 'io.github.nimiplatform.open-notebook',
+    name: 'Open Notebook',
+    platforms: MACOS_AND_WINDOWS,
+    license: 'MIT',
+    repository: 'https://github.com/nimiplatform/open-notebook',
+    capabilities: ['text.generate', 'text.embed', 'audio.transcribe', 'audio.synthesize'],
+  },
+  {
+    id: 'io.github.nimiplatform.presenton',
+    name: 'Presenton',
+    platforms: MACOS_AND_WINDOWS,
+    license: 'Apache-2.0',
+    repository: 'https://github.com/nimiplatform/presenton',
+    capabilities: ['text.generate', 'image.generate', 'text.embed'],
+  },
+  {
+    id: 'nimi.odd-bureau',
+    name: '奇物局',
+    platforms: MACOS_AND_WINDOWS,
+    license: 'MIT',
+    repository: 'https://github.com/nimiplatform/nimiapp-odd-bureau',
+    capabilities: ['text.generate', 'vision.locate', 'image.generate', 'video.generate', 'music.generate', 'audio.synthesize', 'audio.transcribe', 'voice.create'],
+  },
+  {
+    id: 'nimi.polyagent',
+    name: 'PolyAgent',
+    platforms: MACOS_AND_WINDOWS,
+    license: 'Apache-2.0',
+    repository: 'https://github.com/nimiplatform/nimiapp-polyagent',
+    capabilities: [],
+  },
+  {
+    id: 'moneyprinterturbo.studio',
+    name: 'MoneyPrinterTurbo',
+    license: 'MIT',
+    repository: 'https://github.com/nimiplatform/MoneyPrinterTurbo',
+    capabilities: ['text.generate', 'text.embed', 'audio.synthesize', 'audio.transcribe', 'image.generate', 'video.generate', 'voice.create', 'music.generate'],
+    platforms: WINDOWS_ONLY,
+  },
+  {
+    id: 'ai.nimi.openwhispr',
+    name: 'OpenWhispr',
+    license: 'MIT',
+    repository: 'https://github.com/nimiplatform/openwhispr',
+    capabilities: ['audio.transcribe', 'text.generate', 'text.embed', 'audio.speaker.embed'],
+    platforms: WINDOWS_ONLY,
+  },
+  {
+    id: 'nimiplatform.voicestudio',
+    name: 'VoiceStudio',
+    license: 'AGPL-3.0-only',
+    repository: 'https://github.com/nimiplatform/VoiceStudio',
+    capabilities: ['audio.synthesize', 'audio.transcribe', 'voice.create', 'text.generate', 'audio.separate'],
+    platforms: WINDOWS_ONLY,
+  },
+  {
+    id: 'io.github.nimiplatform.jev-search',
+    name: 'Jev Search',
+    license: 'MIT',
+    repository: 'https://github.com/nimiplatform/jev-search',
+    capabilities: ['text.decide'],
+    platforms: WINDOWS_ONLY,
+  },
+  {
+    id: 'io.github.nimiplatform.jev-ultrafast',
+    name: 'Jev Ultrafast',
+    license: 'MIT',
+    repository: 'https://github.com/nimiplatform/jev-ultrafast',
+    capabilities: ['text.decide', 'text.generate'],
+    platforms: WINDOWS_ONLY,
+  },
+  {
+    id: 'ai.nimi.videolingo',
+    name: 'VideoLingo',
+    license: 'Apache-2.0',
+    repository: 'https://github.com/nimiplatform/VideoLingo',
+    capabilities: ['audio.transcribe', 'audio.separate', 'text.generate', 'text.annotate', 'audio.synthesize', 'voice.create'],
+    platforms: WINDOWS_ONLY,
   },
 ];
 
@@ -148,8 +258,18 @@ export const CAPABILITY_LABELS: Record<InformationalLocale, Readonly<Record<stri
     'vision.locate': '视觉定位',
     'realtime.interact': '实时交互',
     'voice.create': '声音创建',
+    'text.decide': '文本决策',
+    'text.annotate': '文本标注',
+    'audio.speaker.embed': '说话人嵌入',
+    'music.transcribe': '音乐转写',
+    'audio.voice.convert': '声音转换',
   },
   en: {
+    'text.decide': 'Text Decision',
+    'text.annotate': 'Text Annotation',
+    'audio.speaker.embed': 'Speaker Embedding',
+    'music.transcribe': 'Music Transcription',
+    'audio.voice.convert': 'Voice Conversion',
     'text.generate': 'Text',
     'text.embed': 'Embeddings',
     'image.generate': 'Image',
@@ -243,7 +363,7 @@ export const INFORMATIONAL_CONTENT: Record<InformationalLocale, InformationalCon
         'Nimi 应用是可以在 Nimi 中使用的应用。每个上架应用都有公开的源码仓库和明确的开源许可。',
       statusNote:
         '应用的浏览、安装、更新与卸载可在 Nimi 桌面客户端（支持 macOS arm64 与 Windows x86_64）中进行。网页仅作介绍展示，不直接提供安装。',
-      listTitle: '目录中的应用',
+      listTitle: '探索应用',
       platformsLabel: '平台',
       platforms: ['macOS arm64', 'Windows x86_64'],
       capabilitiesLabel: 'AI 能力',
@@ -306,7 +426,7 @@ export const INFORMATIONAL_CONTENT: Record<InformationalLocale, InformationalCon
         'Nimi Apps are the apps you can use inside Nimi. Every admitted app has a public source repository and an explicit open-source license.',
       statusNote:
         'App discovery, installation, updates, and uninstallation are available in the Nimi desktop client (macOS arm64 and Windows x86_64). This page provides informational overviews only.',
-      listTitle: 'Apps in the catalog',
+      listTitle: 'Explore apps',
       platformsLabel: 'Platforms',
       platforms: ['macOS arm64', 'Windows x86_64'],
       capabilitiesLabel: 'AI capabilities',

@@ -1,12 +1,13 @@
 import { useState } from 'react';
-import { Check, Clipboard, Code2, Package, PanelsTopLeft } from 'lucide-react';
+import { Check, Clipboard, Code2, Package, PanelsTopLeft, Sparkles } from 'lucide-react';
 import type { StoryText } from '../../content/story-copy.js';
 import type { LandingLinks } from '../../config/landing-links.js';
-import { CREATE_APP_COMMAND, kitExample, SDK_EXAMPLE } from '../../content/story-model.js';
+import { CREATE_APP_COMMAND, kitExample, SDK_EXAMPLE, VERCEL_AI_EXAMPLE } from '../../content/story-model.js';
 import { StoryHeading, StoryLink } from './story-shared.js';
 
 const examples = [
   { id: 'sdk', Icon: Code2 },
+  { id: 'vercel', Icon: Sparkles },
   { id: 'kit', Icon: PanelsTopLeft },
   { id: 'tools', Icon: Package },
 ] as const;
@@ -26,6 +27,7 @@ export function StoryBuilder({ t, links }: { t: StoryText; links: LandingLinks }
   };
 
   const code = mode === 'sdk' ? SDK_EXAMPLE
+    : mode === 'vercel' ? VERCEL_AI_EXAMPLE
     : mode === 'kit' ? kitExample(t('builder.sampleAction'), t('builder.sampleResult'))
     : CREATE_APP_COMMAND;
 

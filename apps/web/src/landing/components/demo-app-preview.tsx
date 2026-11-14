@@ -1,4 +1,4 @@
-import { Suspense, lazy, type ReactNode } from 'react';
+import { Suspense, lazy, useEffect, useState, type ReactNode } from 'react';
 import {
   Dialog,
   DialogBody,
@@ -6,84 +6,129 @@ import {
   DialogTitle,
   EmptyState,
 } from '@nimiplatform/kit/ui';
-import type { HeroDemo } from '../content/landing-content.js';
+import { loadLandingContent, type FullHeroDemoAppPreview, type HeroDemo } from '../content/landing-content.js';
 import type { PreviewDestination, PreviewScreen } from '../content/demo-navigation.js';
 import { COURTYARD_PARTNER } from '../content/demo-tour.js';
 import { DemoWindowHeader } from './demo-window-header.js';
 import { AppPreviewLocaleProvider } from '../i18n/app-preview-locale.js';
 
-// Per the packet's on-demand constraint, each app's preview loads its own chunk
-// only when its modal is actually opened.
-const DemoZhiyuPreview = lazy(async () => ({
-  default: (await import('./demo-zhiyu-preview.js')).DemoZhiyuPreview,
-}));
-const DemoShijingPreview = lazy(async () => ({
-  default: (await import('./demo-shijing-preview.js')).DemoShijingPreview,
-}));
-const DemoParentosPreview = lazy(async () => ({
-  default: (await import('./demo-parentos-preview.js')).DemoParentosPreview,
-}));
-const DemoStorybookPreview = lazy(async () => ({
-  default: (await import('./demo-storybook-preview.js')).DemoStorybookPreview,
-}));
-const DemoOddBureauPreview = lazy(async () => ({
-  default: (await import('./demo-odd-bureau-preview.js')).DemoOddBureauPreview,
-}));
-const DemoJevSearchPreview = lazy(async () => ({
-  default: (await import('./demo-jev-search-preview.js')).DemoJevSearchPreview,
-}));
-const DemoJevUltrafastPreview = lazy(async () => ({
-  default: (await import('./demo-jev-ultrafast-preview.js')).DemoJevUltrafastPreview,
-}));
-const DemoMoneyPrinterPreview = lazy(async () => ({
-  default: (await import('./demo-moneyprinter-preview.js')).DemoMoneyPrinterPreview,
-}));
-const DemoOpenwhisprPreview = lazy(async () => ({
-  default: (await import('./demo-openwhispr-preview.js')).DemoOpenwhisprPreview,
-}));
-const DemoVideoLingoPreview = lazy(async () => ({
-  default: (await import('./demo-videolingo-preview.js')).DemoVideoLingoPreview,
-}));
-const DemoVoiceStudioPreview = lazy(async () => ({
-  default: (await import('./demo-voicestudio-preview.js')).DemoVoiceStudioPreview,
-}));
+function loadBrowserCss(loader: () => Promise<unknown>): Promise<unknown> {
+  return typeof document === 'undefined' ? Promise.resolve() : loader();
+}
 
-const DemoInscapePreview = lazy(async () => ({
-  default: (await import('./demo-inscape-preview.js')).DemoInscapePreview,
-}));
-const DemoOvertonePreview = lazy(async () => ({
-  default: (await import('./demo-overtone-preview.js')).DemoOvertonePreview,
-}));
-const DemoPolyagentPreview = lazy(async () => ({
-  default: (await import('./demo-polyagent-preview.js')).DemoPolyagentPreview,
-}));
-const DemoRealmPersonaPreview = lazy(async () => ({
-  default: (await import('./demo-realm-persona-preview.js')).DemoRealmPersonaPreview,
-}));
-const DemoRealmWorldPreview = lazy(async () => ({
-  default: (await import('./demo-realm-world-preview.js')).DemoRealmWorldPreview,
-}));
-const DemoDeepTutorPreview = lazy(async () => ({
-  default: (await import('./demo-deeptutor-preview.js')).DemoDeepTutorPreview,
-}));
-const DemoOpenMontagePreview = lazy(async () => ({
-  default: (await import('./demo-openmontage-preview.js')).DemoOpenMontagePreview,
-}));
-const DemoSillyTavernPreview = lazy(async () => ({
-  default: (await import('./demo-sillytavern-preview.js')).DemoSillyTavernPreview,
-}));
-const DemoVanePreview = lazy(async () => ({
-  default: (await import('./demo-vane-preview.js')).DemoVanePreview,
-}));
-const DemoDrawioPreview = lazy(async () => ({
-  default: (await import('./demo-drawio-preview.js')).DemoDrawioPreview,
-}));
-const DemoOpenNotebookPreview = lazy(async () => ({
-  default: (await import('./demo-open-notebook-preview.js')).DemoOpenNotebookPreview,
-}));
-const DemoPresentonPreview = lazy(async () => ({
-  default: (await import('./demo-presenton-preview.js')).DemoPresentonPreview,
-}));
+// Each app's preview loads its own component AND custom stylesheet chunk only
+// when its modal or embedded preview is actually opened in the browser.
+const DemoZhiyuPreview = lazy(async () => {
+  const [, module] = await Promise.all([
+    loadBrowserCss(() => import('../demo-zhiyu.css')),
+    import('./demo-zhiyu-preview.js'),
+  ]);
+  return { default: module.DemoZhiyuPreview };
+});
+const DemoShijingPreview = lazy(async () => {
+  const [, module] = await Promise.all([
+    loadBrowserCss(() => import('../demo-shijing.css')),
+    import('./demo-shijing-preview.js'),
+  ]);
+  return { default: module.DemoShijingPreview };
+});
+const DemoParentosPreview = lazy(async () => {
+  const [, module] = await Promise.all([
+    loadBrowserCss(() => import('../demo-parentos.css')),
+    import('./demo-parentos-preview.js'),
+  ]);
+  return { default: module.DemoParentosPreview };
+});
+const DemoStorybookPreview = lazy(async () => {
+  const [, module] = await Promise.all([
+    loadBrowserCss(() => import('../demo-storybook.css')),
+    import('./demo-storybook-preview.js'),
+  ]);
+  return { default: module.DemoStorybookPreview };
+});
+const DemoOddBureauPreview = lazy(async () => {
+  const [, module] = await Promise.all([
+    loadBrowserCss(() => import('../demo-odd-bureau.css')),
+    import('./demo-odd-bureau-preview.js'),
+  ]);
+  return { default: module.DemoOddBureauPreview };
+});
+
+const loadThirdPartyCss = () => loadBrowserCss(() => import('../demo-third-party.css'));
+const DemoJevSearchPreview = lazy(async () => {
+  const [, module] = await Promise.all([loadThirdPartyCss(), import('./demo-jev-search-preview.js')]);
+  return { default: module.DemoJevSearchPreview };
+});
+const DemoJevUltrafastPreview = lazy(async () => {
+  const [, module] = await Promise.all([loadThirdPartyCss(), import('./demo-jev-ultrafast-preview.js')]);
+  return { default: module.DemoJevUltrafastPreview };
+});
+const DemoMoneyPrinterPreview = lazy(async () => {
+  const [, module] = await Promise.all([loadThirdPartyCss(), import('./demo-moneyprinter-preview.js')]);
+  return { default: module.DemoMoneyPrinterPreview };
+});
+const DemoOpenwhisprPreview = lazy(async () => {
+  const [, module] = await Promise.all([loadThirdPartyCss(), import('./demo-openwhispr-preview.js')]);
+  return { default: module.DemoOpenwhisprPreview };
+});
+const DemoVideoLingoPreview = lazy(async () => {
+  const [, module] = await Promise.all([loadThirdPartyCss(), import('./demo-videolingo-preview.js')]);
+  return { default: module.DemoVideoLingoPreview };
+});
+const DemoVoiceStudioPreview = lazy(async () => {
+  const [, module] = await Promise.all([loadThirdPartyCss(), import('./demo-voicestudio-preview.js')]);
+  return { default: module.DemoVoiceStudioPreview };
+});
+
+const loadRemainingCss = () => loadBrowserCss(() => import('../demo-remaining-apps.css'));
+const DemoInscapePreview = lazy(async () => {
+  const [, module] = await Promise.all([loadRemainingCss(), import('./demo-inscape-preview.js')]);
+  return { default: module.DemoInscapePreview };
+});
+const DemoOvertonePreview = lazy(async () => {
+  const [, module] = await Promise.all([loadRemainingCss(), import('./demo-overtone-preview.js')]);
+  return { default: module.DemoOvertonePreview };
+});
+const DemoPolyagentPreview = lazy(async () => {
+  const [, module] = await Promise.all([loadRemainingCss(), import('./demo-polyagent-preview.js')]);
+  return { default: module.DemoPolyagentPreview };
+});
+const DemoRealmPersonaPreview = lazy(async () => {
+  const [, module] = await Promise.all([loadRemainingCss(), import('./demo-realm-persona-preview.js')]);
+  return { default: module.DemoRealmPersonaPreview };
+});
+const DemoRealmWorldPreview = lazy(async () => {
+  const [, module] = await Promise.all([loadRemainingCss(), import('./demo-realm-world-preview.js')]);
+  return { default: module.DemoRealmWorldPreview };
+});
+const DemoDeepTutorPreview = lazy(async () => {
+  const [, module] = await Promise.all([loadRemainingCss(), import('./demo-deeptutor-preview.js')]);
+  return { default: module.DemoDeepTutorPreview };
+});
+const DemoOpenMontagePreview = lazy(async () => {
+  const [, module] = await Promise.all([loadRemainingCss(), import('./demo-openmontage-preview.js')]);
+  return { default: module.DemoOpenMontagePreview };
+});
+const DemoSillyTavernPreview = lazy(async () => {
+  const [, module] = await Promise.all([loadRemainingCss(), import('./demo-sillytavern-preview.js')]);
+  return { default: module.DemoSillyTavernPreview };
+});
+const DemoVanePreview = lazy(async () => {
+  const [, module] = await Promise.all([loadRemainingCss(), import('./demo-vane-preview.js')]);
+  return { default: module.DemoVanePreview };
+});
+const DemoDrawioPreview = lazy(async () => {
+  const [, module] = await Promise.all([loadRemainingCss(), import('./demo-drawio-preview.js')]);
+  return { default: module.DemoDrawioPreview };
+});
+const DemoOpenNotebookPreview = lazy(async () => {
+  const [, module] = await Promise.all([loadRemainingCss(), import('./demo-open-notebook-preview.js')]);
+  return { default: module.DemoOpenNotebookPreview };
+});
+const DemoPresentonPreview = lazy(async () => {
+  const [, module] = await Promise.all([loadRemainingCss(), import('./demo-presenton-preview.js')]);
+  return { default: module.DemoPresentonPreview };
+});
 
 /** App ids with an interactive preview replica. */
 export const DEMO_PREVIEW_APP_IDS = [
@@ -112,17 +157,43 @@ export const DEMO_PREVIEW_APP_IDS = [
   'io.github.nimiplatform.presenton',
 ] as const;
 
-function previewFor(appId: string, preview: HeroDemo['appPreview'], view: PreviewScreen, guiding: boolean, partnerId = COURTYARD_PARTNER): ReactNode | null {
-  switch (appId) {
-    case 'nimi.zhiyu':
-      return <DemoZhiyuPreview content={preview.zhiyu} guiding={guiding}
+const PREVIEW_ID_SET = new Set<string>(DEMO_PREVIEW_APP_IDS);
+
+function isFullAppPreview(preview: HeroDemo['appPreview']): preview is FullHeroDemoAppPreview {
+  return Boolean(preview.shijing && preview.remainingApps);
+}
+
+function previewFor(
+  appId: string,
+  preview: HeroDemo['appPreview'],
+  view: PreviewScreen,
+  guiding: boolean,
+  partnerId = COURTYARD_PARTNER,
+): ReactNode | null {
+  if (appId === 'nimi.zhiyu') {
+    return (
+      <DemoZhiyuPreview
+        content={preview.zhiyu}
+        guiding={guiding}
         initialPartnerId={view === 'companion' || view === 'memory' ? partnerId : null}
-        initialPanel={view === 'memory' ? 'cognition' : undefined} />;
+        initialPanel={view === 'memory' ? 'cognition' : undefined}
+      />
+    );
+  }
+  if (!isFullAppPreview(preview)) {
+    return null;
+  }
+  switch (appId) {
     case 'nimi.shijing':
       return <DemoShijingPreview content={preview.shijing} />;
     case 'nimi.parentos':
-      return <DemoParentosPreview content={preview.parentos} guiding={guiding}
-        journalView={view === 'journal' || view === 'keepsakes' ? view : undefined} />;
+      return (
+        <DemoParentosPreview
+          content={preview.parentos}
+          guiding={guiding}
+          journalView={view === 'journal' || view === 'keepsakes' ? view : undefined}
+        />
+      );
     case 'nimi.storybook':
       return <DemoStorybookPreview content={preview.storybook} />;
     case 'nimi.odd-bureau':
@@ -168,8 +239,8 @@ function previewFor(appId: string, preview: HeroDemo['appPreview'], view: Previe
   }
 }
 
-/** The same App dialog is opened by a library launch and by the guided tour. */
-export function DemoAppPreview({ opened, guiding, apps, preview, onClose, onBody, caption, inline = false }: {
+/** The same App dialog is opened by a library launch and by the ecosystem directory. */
+export function DemoAppPreview({ opened, guiding, apps, preview, onClose, onBody, caption, headerActions, inline = false }: {
   opened?: PreviewDestination;
   inline?: boolean;
   guiding: boolean;
@@ -178,27 +249,70 @@ export function DemoAppPreview({ opened, guiding, apps, preview, onClose, onBody
   onClose: () => void;
   onBody?: (node: HTMLDivElement | null) => void;
   caption?: ReactNode;
+  headerActions?: ReactNode;
 }) {
   const app = apps.items.find(item => item.id === opened?.appId);
-  const replica = app && opened ? previewFor(app.id, preview, opened.screen, guiding, opened.partnerId) : null;
-  // Replicas open their own in-demo dialogs (e.g. ParentOS 安排日期). Radix
-  // handles Escape in the capture phase, so the replica cannot stop it from
-  // reaching this modal; skip dismissal while such a dialog is on screen and
-  // let the replica close its own layer.
+  const needsHydration = Boolean(
+    app && opened && app.id !== 'nimi.zhiyu' && PREVIEW_ID_SET.has(app.id) && !isFullAppPreview(preview),
+  );
+  const [hydrated, setHydrated] = useState<FullHeroDemoAppPreview | null>(null);
+  const [hydrationError, setHydrationError] = useState(false);
+
+  useEffect(() => {
+    if (!needsHydration) return;
+    if (hydrated?.locale === preview.locale) return;
+    let canceled = false;
+    setHydrationError(false);
+    void loadLandingContent(preview.locale)
+      .then((loaded) => {
+        if (!canceled) {
+          // Preserve live Zhiyu companion/memory state from the active session.
+          setHydrated({ ...loaded.hero.demo.appPreview, zhiyu: preview.zhiyu });
+        }
+      })
+      .catch(() => {
+        if (!canceled) setHydrationError(true);
+      });
+    return () => {
+      canceled = true;
+    };
+  }, [hydrated?.locale, needsHydration, preview.locale, preview.zhiyu]);
+
+  const activePreview: HeroDemo['appPreview'] =
+    hydrated && hydrated.locale === preview.locale
+      ? { ...hydrated, zhiyu: preview.zhiyu }
+      : preview;
+
+  const isSupportedPreview = Boolean(app && PREVIEW_ID_SET.has(app.id));
+  const waitingForData = Boolean(needsHydration && (!hydrated || hydrated.locale !== preview.locale) && !hydrationError);
+  const replica = app && opened && !waitingForData
+    ? previewFor(app.id, activePreview, opened.screen, guiding, opened.partnerId)
+    : null;
+
   const dismiss = () => {
-    if (document.querySelector('[data-demo-nested-dialog]')) return;
+    if (typeof document !== 'undefined' && document.querySelector('[data-demo-nested-dialog]')) return;
     onClose();
   };
-  if (inline && app) return <section className="hero-demo-frame demo-embedded-app" aria-label={app.name} data-testid="demo-embedded-app">
-    <DemoWindowHeader title={app.name} iconSrc={app.iconSrc} close={{ label: apps.closeLabel, onClose: dismiss }} />
-    <div ref={onBody} className="demo-embedded-app-body" data-tour-surface="" data-tour-anchor="app-content" data-demo-app-id={app.id} lang={preview.locale === 'zh' ? 'zh-CN' : 'en'}>
-      <Suspense fallback={<div className="tour-load-state" aria-busy="true">{app.name}</div>}>
-        <AppPreviewLocaleProvider key={preview.locale} locale={preview.locale} messages={preview.messages}>
-          {replica}
-        </AppPreviewLocaleProvider>
-      </Suspense>
-    </div>
-  </section>;
+
+  if (inline && app) {
+    return (
+      <section className="hero-demo-frame demo-embedded-app" aria-label={app.name} data-testid="demo-embedded-app">
+        <DemoWindowHeader title={app.name} iconSrc={app.iconSrc} close={{ label: apps.closeLabel, onClose: dismiss }} />
+        <div ref={onBody} className="demo-embedded-app-body" data-tour-surface="" data-tour-anchor="app-content" data-demo-app-id={app.id} lang={activePreview.locale === 'zh' ? 'zh-CN' : 'en'}>
+          {waitingForData ? (
+            <div className="tour-load-state" aria-busy="true">{app.name}</div>
+          ) : (
+            <Suspense fallback={<div className="tour-load-state" aria-busy="true">{app.name}</div>}>
+              <AppPreviewLocaleProvider key={activePreview.locale} locale={activePreview.locale} messages={activePreview.messages}>
+                {replica}
+              </AppPreviewLocaleProvider>
+            </Suspense>
+          )}
+        </div>
+      </section>
+    );
+  }
+
   return (
     <Dialog
       open={Boolean(app)}
@@ -212,19 +326,30 @@ export function DemoAppPreview({ opened, guiding, apps, preview, onClose, onBody
         data-testid="demo-app-preview"
       >
         <DialogTitle className="sr-only">{app?.name ?? ''}</DialogTitle>
-        <DemoWindowHeader title={app?.name ?? ''} iconSrc={app?.iconSrc} close={{ label: apps.closeLabel, onClose: dismiss }} />
+        <DemoWindowHeader title={app?.name ?? ''} iconSrc={app?.iconSrc} close={{ label: apps.closeLabel, onClose: dismiss }}>
+          {headerActions}
+        </DemoWindowHeader>
         <DialogBody className="min-h-0 flex-1 p-0">
-          {app && <div ref={onBody} className="h-full min-h-0" data-tour-surface="" data-demo-app-id={app.id} lang={preview.locale === 'zh' ? 'zh-CN' : 'en'}>
-            {replica ? (
-              <Suspense fallback={<div className="h-full" aria-busy="true" />}>
-                <AppPreviewLocaleProvider key={preview.locale} locale={preview.locale} messages={preview.messages}>
-                  {replica}
-                </AppPreviewLocaleProvider>
-              </Suspense>
-            ) : <div className="flex h-full items-center justify-center p-6">
-              <EmptyState title={apps.previewUnavailableTitle} description={apps.previewUnavailableBody} />
-            </div>}
-          </div>}
+          {app && (
+            <div ref={onBody} className="h-full min-h-0" data-tour-surface="" data-demo-app-id={app.id} lang={activePreview.locale === 'zh' ? 'zh-CN' : 'en'}>
+              {waitingForData ? (
+                <div className="tour-load-state" aria-busy="true">{app.name}</div>
+              ) : replica ? (
+                <Suspense fallback={<div className="tour-load-state" aria-busy="true">{app.name}</div>}>
+                  <AppPreviewLocaleProvider key={activePreview.locale} locale={activePreview.locale} messages={activePreview.messages}>
+                    {replica}
+                  </AppPreviewLocaleProvider>
+                </Suspense>
+              ) : (
+                <div className="flex h-full items-center justify-center p-6">
+                  <EmptyState
+                    title={hydrationError || !isSupportedPreview ? apps.previewUnavailableTitle : app.name}
+                    description={apps.previewUnavailableBody}
+                  />
+                </div>
+              )}
+            </div>
+          )}
         </DialogBody>
         {caption && <div className="tour-dialog-caption">{caption}</div>}
       </DialogContent>

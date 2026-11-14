@@ -1,11 +1,13 @@
-import { Surface } from '@nimiplatform/kit/ui';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { ArrowDownToLine, ArrowUpRight, Code2, Laptop, Menu, Monitor, ShieldCheck, Terminal, TriangleAlert, X } from 'lucide-react';
-import { Link, NavLink } from 'react-router-dom';
-import { LanguageToggle } from '../landing/components/language-toggle.js';
+import { useEffect, useState, type ReactNode } from 'react';
+import { ArrowDownToLine, ArrowUpRight, Check, Clipboard, Code2, Laptop, Monitor, ShieldCheck, Terminal, TriangleAlert } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { withLocaleQuery } from '../landing/config/landing-links.js';
-import { getStoryCopy } from '../landing/content/story-copy.js';
 import type { LandingLocale } from '../landing/i18n/locale.js';
+import {
+  PublicSiteFooter,
+  PublicSiteHeader,
+  useResolvedPublicLinks,
+} from './public-site-shell.js';
 import { usePublicPageLocale } from './use-page-locale.js';
 
 // @nimi-authority: rule.nimi.platform.core-protocol.p-arch-001a
@@ -57,6 +59,8 @@ type TextSection = {
 type DownloadCopy = {
   meta: PageMeta;
   title: string;
+  windowsAction: string;
+  macosAction: string;
   releaseAction: string;
   scope: string;
   warning: string;
@@ -132,8 +136,10 @@ const EN_COPY: PublicPageCopy = {
     },
     title: 'Download Nimi',
     scope: `Public Beta v${PUBLIC_BETA_VERSION} for Apple Silicon Macs and Windows x86_64.`,
-    releaseAction: "Download from GitHub Releases",
-    warning: 'The Windows Beta installer has no Authenticode signature. Do not install a development root certificate or turn off OS security controls to run it.',
+    windowsAction: 'Download for Windows x86_64 (.exe)',
+    macosAction: 'Download for Apple Silicon Mac (.pkg)',
+    releaseAction: 'View metadata & assets on GitHub Releases',
+    warning: 'Windows install note: if SmartScreen shows “Windows protected your PC”, click “More info → Run anyway” to continue. The Windows Beta installer has no Authenticode signature. Do not install a development root certificate or turn off OS security controls to run it.',
     installationGuide: 'Installation and verification',
     desktop: {
       title: 'Nimi Desktop',
@@ -321,8 +327,10 @@ const ZH_COPY: PublicPageCopy = {
     },
     title: '下载 Nimi',
     scope: `公开 Beta v${PUBLIC_BETA_VERSION}，适用于 Apple Silicon Mac 和 Windows x86_64。`,
-    releaseAction: "前往 GitHub Releases 下载",
-    warning: 'Windows Beta 安装包尚无 Authenticode 签名。请勿为此安装开发根证书或关闭系统安全防护。',
+    windowsAction: '下载 Windows 安装包 (.exe)',
+    macosAction: '下载 macOS 安装包 (.pkg)',
+    releaseAction: '查看 GitHub Releases 校验元数据与资产',
+    warning: 'Windows 安装提示：首次运行安装程序时若弹出“Windows 已保护你的电脑”，点击“更多信息 → 仍要运行”即可正常安装。Windows Beta 安装包尚无 Authenticode 签名。请勿为此安装开发根证书或关闭系统安全防护。',
     installationGuide: '安装说明与校验',
     desktop: {
       title: 'Nimi 桌面版',
@@ -337,30 +345,30 @@ const ZH_COPY: PublicPageCopy = {
   policy: {
     linksTitle: '官方入口',
     meta: {
-      title: 'Code signing policy | Nimi',
+      title: '代码签名政策 | Nimi',
       description: "Nimi 代码签名政策：当前公开 Beta 的签名与元数据校验机制、计划中的 SignPath 归属、签名范围、发布控制与验证方法。",
       canonical: 'https://nimi.ai/code-signing',
     },
     kicker: '信任与发布完整性',
-    title: 'Code signing policy',
+    title: '代码签名政策',
     intro: "本政策定义由 Nimi 开源仓库构建的发布制品的代码签名与校验边界，说明当前公开 Beta（nimi/v0.2.4）的信任建立方式，并将现行机制与计划接入的 SignPath Windows Authenticode 签名明确区分。",
     statusTitle: "公开 Beta 校验与 Windows 签名状态",
     statusBody: "当前 Beta 为 macOS arm64 与 Windows x86_64 提供签名更新清单。Windows 安装包尚无 Authenticode 签名，也没有 SignPath 签名。",
     status: {
-      title: 'Status',
+      title: '当前状态',
       paragraphs: [
-        "2026 年 10 月 14 日，Nimi 在官方 GitHub Releases 发布了不可变公开 Beta 预发布版 nimi/v0.2.4，提供 macOS arm64（Nimi-0.2.4-macos-arm64.pkg）与 Windows x86_64（Nimi-0.2.4-windows-amd64.exe）安装包。双平台均随附build metadata，以及经仓库平台 Ed25519 公钥验签的 update manifest（channel=beta，最低系统版本分别为 macOS 13.0 与 Windows 10 10.0.19041）。目前尚无已确认接入的正式 SignPath Windows 代码签名。",
+        "2026 年 10 月 14 日，Nimi 在官方 GitHub Releases 发布了不可变公开 Beta 预发布版 nimi/v0.2.4，提供 macOS arm64（Nimi-0.2.4-macos-arm64.pkg）与 Windows x86_64（Nimi-0.2.4-windows-amd64.exe）安装包。双平台均随附 build metadata，以及经仓库平台 Ed25519 公钥验签的 update manifest（channel=beta，最低系统版本分别为 macOS 13.0 与 Windows 10 10.0.19041）。目前尚无已确认接入的正式 SignPath Windows 代码签名。",
         "平台签名元数据（Ed25519）严格绑定制品的精确 SHA-256、文件大小与 cohort，但不等同于 Windows Authenticode。nimi/v0.2.4 的 Windows x86_64 Beta 安装程序明确为未签名状态（NotSigned），且不使用或要求任何本地开发自签证书。根据 P-SUPD-012，Windows 未签名 Beta 通过校验平台 Ed25519 签名元数据、完整 Windows installed inventory JSON，以及受保护 Program Files 所有权与锁定字节来建立受保护本地信任。",
         "在 macOS arm64 平台，发行脚本要求准入的 PKG 安装包完成 Apple Developer ID 签名、公证与钉合（staple）。在 Windows 平台，具备 Authenticode 签名的 RC 与 Stable 正式版仍以接入正式生产签名服务为前提。beta 通道与 Stable 稳定通道相互独立，单纯的 NotSigned 状态或任意未签名文件本身绝不会获得受保护本地权限。",
         '在获批并接通 production workflow 前，Nimi 不会暗示任何制品已由 SignPath 或 SignPath Foundation 签名。',
       ],
     },
-    attributionTitle: 'Planned attribution',
+    attributionTitle: '计划中的归属声明',
     attributionIntro: '如果申请获批并正式启用 production signing workflow，Nimi 计划使用以下归属语句：',
     attribution: 'Free code signing provided by SignPath.io, certificate by SignPath Foundation.',
     attributionPending: "上述归属声明仅在正式获批并接通 SignPath 生产签名工作流后适用。当前 nimi/v0.2.4 中的 Windows Beta 制品未进行 Authenticode 签名，不包含 SignPath 签名。",
     scope: {
-      title: 'Scope of signed artifacts',
+      title: '签名制品范围',
       paragraphs: [
         "当前 Beta 使用平台 Ed25519 密钥签署产品更新清单。此前公布的 SignPath 初始申请范围仍是 Nimi 自有的 Windows x86_64 Runtime 可执行文件 nimi.exe；Beta 发布不扩大这项独立的签名申请范围。",
         "在尚未接入 Windows Authenticode 签名期间，Windows Beta 安装包依据 P-SUPD-012 建立受保护本地信任（校验平台 Ed25519 签名元数据、完整 Windows installed inventory 以及受保护 Program Files 所有权与锁定字节）。Nimi 仅对经过审查的自有公开源码制品进行签名，绝不使用自身签名身份为第三方 App 或上游二进制文件签名。",
@@ -376,7 +384,7 @@ const ZH_COPY: PublicPageCopy = {
       paragraphs: ["Nimi 不使用自己的签名身份为第三方 App 或上游二进制文件签名。当前公开 Beta 发布 build/update 元数据与 Windows installed inventory JSON，不单独附带独立 SBOM 文件；未来的生产级签名版本将通过随附的许可证与 SBOM 材料披露所含组件。"],
     },
     build: {
-      title: 'Build origin and release process',
+      title: '构建来源与发布流程',
       paragraphs: [
         '源代码仓库是 https://github.com/nimiplatform/nimi。GitHub Actions 是唯一 production build system，production signing 不接受开发者工作站任意上传的二进制。',
         "每次发布均冻结所声明产品或组件的版本。标签保留归属前缀：完整 Desktop + Runtime + Avatar 产品为 nimi/v<version>（如 nimi/v0.2.4），Desktop 为 desktop/v<version>，Runtime 为 runtime/v<version>，各库使用各自受治理的组件前缀。发布阶段由 prerelease 标记与签名元数据中的 metadata.channel（如 channel=beta）决定，而非仅看标签后缀。未进行 Authenticode 签名的 Windows Beta 二进制文件绝不会直接晋升为已签名的 RC 或 Stable 版本。",
@@ -385,7 +393,7 @@ const ZH_COPY: PublicPageCopy = {
       ],
     },
     team: {
-      title: 'Team roles',
+      title: '团队角色与审批职责',
       paragraphs: ['Nimi 目前是由已注册主体 Nimi Network Limited 支持的单维护者开源项目。'],
       items: [
         'Authors / Committers：@snowzane 负责项目代码的创作与提交。',
@@ -395,7 +403,7 @@ const ZH_COPY: PublicPageCopy = {
       ],
     },
     access: {
-      title: 'MFA and access control',
+      title: '多因素认证与访问控制',
       paragraphs: [
         'GitHub 组织当前强制成员启用 MFA。SignPath access 尚未授予；未来任何 SignPath membership 或 production-signing access 都必须在该成员启用并验证 MFA 之后才能授予。',
         'Signing approver assignment 与普通 contribution permission 分开，每次请求均需 approver 明确操作。SignPath/GitHub token 不进入仓库；正式启用前，任何 signing credential 都必须限制在受保护 workflow 内。',
@@ -403,15 +411,15 @@ const ZH_COPY: PublicPageCopy = {
       ],
     },
     metadata: {
-      title: 'Artifact identity and metadata',
+      title: '制品身份与元数据校验',
       paragraphs: [
         "Beta 的签名更新清单绑定产品版本、通道、平台、组件组合、安装包摘要与大小，以及兼容性要求。构建元数据与 Windows 安装清单是另外的发布资产。后续 Authenticode 签名还需满足声明的 PE 身份、SHA-256 签名与 RFC 3161 时间戳要求。",
         "在当前 Beta 中，发布准入要求 update manifest 通过 schema、freshness 与平台公钥 Ed25519 验签，并与制品哈希和 installed inventory 精确匹配；当前版本不单独发布独立的 checksums 文本文件或 SBOM。在未来准入具备 Authenticode 签名的 Windows 稳定版前，工作流还必须在签名后复核所有 Authenticode 签名并发布 SHA-256 校验清单、SBOM 与配套校验材料；签名身份、版本或哈希任一不匹配均会阻断发布。",
       ],
     },
     metadataBlocker: "正式的 SignPath Windows Authenticode 签名工作流尚未接入。在该签名路径完成实现与验证前，Windows Beta 安装包保持明确的 Authenticode 未签名状态，并依据 P-SUPD-012 通过平台签名元数据与安装清单校验建立信任。",
-    verificationTitle: 'Verification instructions',
-    verificationIntro: "运行下载的 Nimi 安装包前请先完成校验。对于当前公开 Beta（nimi/v0.2.4），Nimi-0.2.4-windows-amd64.exe 的 Authenticode 状态预期为 NotSigned；请对照同一 Release 中经 Ed25519 签名的 Windows update 清单 核验其 SHA-256 摘要与字节大小。未来启用正式 Windows Authenticode 签名后，还需满足下列 Authenticode 校验项。",
+    verificationTitle: '安装包校验说明',
+    verificationIntro: "运行下载的 Nimi 安装包前请先完成校验。对于当前公开 Beta（nimi/v0.2.4），Nimi-0.2.4-windows-amd64.exe 的 Authenticode 状态预期为 NotSigned；请对照同一 Release 中经 Ed25519 签名的 Windows update 清单核验其 SHA-256 摘要与字节大小。未来启用正式 Windows Authenticode 签名后，还需满足下列 Authenticode 校验项。",
     verificationChecks: [
       "当前 Beta：update manifest 的 Ed25519 签名可通过仓库平台公钥验证，且 channel=beta。",
       "未来 Authenticode 签名版本：Authenticode Status 为 Valid，且仅在正式启用 SignPath 后 Publisher 为 SignPath Foundation（当前 Windows Beta 为 NotSigned）。",
@@ -420,14 +428,14 @@ const ZH_COPY: PublicPageCopy = {
       "文件的 SHA-256 摘要与字节大小同该 Release 随附的 build 与 update 元数据 JSON 完全一致。",
     ],
     privacy: {
-      title: 'Privacy and network behavior',
+      title: '隐私与网络行为边界',
       paragraphs: [
         'Local-first 不等于永不联网。本地功能与本地 Runtime 会在设备上处理符合条件的任务；用户明确选择 cloud provider 后，请求内容与必要 metadata 会发送到该 provider，并受其条款约束。',
         'Realm/account 操作会向 Nimi Realm 服务发送完成认证、账号管理、生态身份和所选同步所需的信息。网站 analytics、cookies、日志和 browser storage 以 Privacy Policy 为准。',
       ],
     },
     system: {
-      title: 'System changes',
+      title: '系统变更与目录说明',
       paragraphs: [
         "当前公开 Beta（nimi/v0.2.4）：Windows x86_64 安装程序（Nimi-0.2.4-windows-amd64.exe）与 macOS arm64 安装包（Nimi-0.2.4-macos-arm64.pkg）均为完整产品安装程序，而非便携式 ZIP。它们会将 Desktop、Runtime、Avatar 及所需系统服务/辅助程序安装至受保护的系统位置（包括 Windows 的 Program Files）。",
         "Windows Beta 信任机制（P-SUPD-012）：Windows Beta 安装包通过校验平台 Ed25519 签名元数据、完整 Windows installed inventory JSON 以及受保护 Program Files 所有权与锁定字节来建立受保护本地信任。它绝不会向 LocalMachine Root 或 TrustedPublisher 导入任何本地开发自签证书，也不要求关闭系统安全防护。",
@@ -438,7 +446,7 @@ const ZH_COPY: PublicPageCopy = {
       ],
     },
     uninstall: {
-      title: 'Uninstallation',
+      title: '卸载与清理指引',
       paragraphs: [
         "卸载或恢复公开 Beta 时，请参照对应版本的说明与官方支持。下方开发原型的历史清理命令仅适用于那些旧构建。",
         "用户数据（nimi_data）：用户选定的 nimi_data 根目录与程序文件分离且默认保留。仅在备份所需数据并由用户明确决定后，才可单独删除其中的模型、依赖、环境、应用、账号、范围缓存或 logs/audit 目录；删除操作不可恢复。",
@@ -447,21 +455,21 @@ const ZH_COPY: PublicPageCopy = {
       ],
     },
     historical: {
-      title: 'Historical unsigned releases',
+      title: '历史未签名版本说明',
       paragraphs: [
         "早期混装的仓库整体预览版本均已撤回。当前公开 Beta 使用明确的产品标签（如 nimi/v0.2.4）与平台签名元数据（channel=beta）声明其交付范围与资产。未进行 Authenticode 签名的 Windows Beta 二进制文件绝不会被追溯描述为已签名，也不会直接成为 RC 或 Stable 制品。",
         "Windows 文件的 Authenticode 签名状态须对单文件执行 Authenticode 验证判断，发布清单完整性与所属通道则通过版本随附的 Ed25519 签名元数据核验，均不能仅凭版本号字符串、文件名或发布日期推断。",
       ],
     },
     incident: {
-      title: 'Revocation and incident response',
+      title: '吊销与安全事件响应',
       paragraphs: [
         'SignPath Foundation 或项目可因滥用、违规或 credential compromise 撤销签名授权。发现签名异常时，Nimi 会停止分发、撤下受影响 artifact、调查 release path，并在恢复分发前发布 security advisory。',
         '请通过 GitHub Security Advisories 或 security@nimi.ai 私下报告签名或安全问题。',
       ],
     },
     license: {
-      title: 'License and source boundary',
+      title: '开源许可证与源码边界',
       paragraphs: [
         '进入签名范围的 Nimi 自有 Windows artifacts 由公开仓库中采用 OSI-approved Apache-2.0 或 MIT 许可证的代码构建。Realm 私有实现不在该公开仓库，也不进入已签名 Windows artifacts。',
         "文档与规范（Docs/spec）内容适用独立的内容许可证，不等同于二进制软件许可证。第三方组件及其许可证通过仓库的许可证材料（以及未来生产签名版本随附的 SBOM 材料）独立披露。",
@@ -550,61 +558,6 @@ function OfficialLinks({ copy }: { copy: SharedCopy }) {
   );
 }
 
-function DownloadHeader({ locale, languageToggle }: { locale: LandingLocale; languageToggle: ReactNode }) {
-  const copy = PUBLIC_PAGE_CONTENT[locale].shared;
-  const navigationCopy = getStoryCopy(locale);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const homeLink = useRef<HTMLAnchorElement>(null);
-  const menuButton = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (menuOpen) homeLink.current?.focus({ preventScroll: true });
-  }, [menuOpen]);
-
-  return (
-    <Surface
-      as="header"
-      material="glass-chrome"
-      padding="none"
-      className="story-nav download-header"
-      onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) setMenuOpen(false);
-      }}
-      onKeyDown={(event) => {
-        if (!menuOpen || event.key !== 'Escape') return;
-        setMenuOpen(false);
-        menuButton.current?.focus({ preventScroll: true });
-      }}
-    >
-      <Link to={withLocaleQuery('/', locale)} className="story-brand">
-        <img src="/logo.svg" alt="" width="29" height="29" />
-        <strong>Nimi</strong>
-      </Link>
-      <nav id="download-navigation" aria-label="Nimi" className={menuOpen ? 'is-open' : ''}>
-        <Link ref={homeLink} to={withLocaleQuery('/', locale)} onClick={() => setMenuOpen(false)}>{copy.backHome}</Link>
-        <Link to={withLocaleQuery('/code-signing', locale)} onClick={() => setMenuOpen(false)}>{copy.policy}</Link>
-      </nav>
-      <div className="story-nav-actions">
-        {languageToggle}
-        <NavLink to={withLocaleQuery('/download', locale)} end className="story-download">
-          {navigationCopy['common.download']}
-        </NavLink>
-        <button
-          ref={menuButton}
-          className="story-menu-toggle"
-          type="button"
-          aria-controls="download-navigation"
-          aria-expanded={menuOpen}
-          aria-label={navigationCopy[menuOpen ? 'common.closeMenu' : 'common.openMenu']}
-          onClick={() => setMenuOpen((open) => !open)}
-        >
-          {menuOpen ? <X size={21} /> : <Menu size={21} />}
-        </button>
-      </div>
-    </Surface>
-  );
-}
-
 function PageShell(props: {
   locale: LandingLocale;
   onLocaleChange: (locale: LandingLocale) => void;
@@ -615,45 +568,25 @@ function PageShell(props: {
   children: ReactNode;
 }) {
   const copy = PUBLIC_PAGE_CONTENT[props.locale].shared;
+  const links = useResolvedPublicLinks(props.locale);
   usePageMetadata(props.meta, props.locale);
-  const languageToggle = (
-    <LanguageToggle
-      locale={props.locale}
-      label={copy.language}
-      options={{
-        en: copy.english,
-        zh: copy.chinese,
-        switchToEn: copy.switchEnglish,
-        switchToZh: copy.switchChinese,
-      }}
-      onChange={props.onLocaleChange}
-    />
-  );
 
   return (
     <div
-      className={props.downloadHeader ? 'release-page-shell download-page-shell' : 'release-page-shell'}
+      className={props.downloadHeader ? 'story-site release-page-shell download-page-shell' : 'story-site release-page-shell'}
+      lang={props.locale === 'zh' ? 'zh-CN' : 'en'}
       // See landing App.tsx: suppress native drag of selected text, which
       // hangs software-rendered environments. Selection and copy are intact.
       onDragStart={(event) => event.preventDefault()}
     >
       <a href="#release-main" className="skip-link">{copy.skipToContent}</a>
-      {props.downloadHeader ? <DownloadHeader locale={props.locale} languageToggle={languageToggle} /> : (
-        <header className="release-header nimi-material-glass-chrome bg-[var(--nimi-material-glass-chrome-bg)] border-[var(--nimi-material-glass-chrome-border)] backdrop-blur-[var(--nimi-backdrop-blur-chrome)] backdrop-saturate-[var(--nimi-backdrop-saturate)]">
-          <div className="release-container release-header-inner">
-            <Link to={withLocaleQuery('/', props.locale)} className="release-brand">
-              <img src="/logo.svg" alt="" width="32" height="32" />
-              <span>Nimi</span>
-            </Link>
-            <nav aria-label="Nimi public pages">
-              <Link to={withLocaleQuery('/', props.locale)}>{copy.backHome}</Link>
-              <Link to={withLocaleQuery('/download', props.locale)}>{copy.download}</Link>
-              <Link to={withLocaleQuery('/code-signing', props.locale)}>{copy.policy}</Link>
-            </nav>
-            {languageToggle}
-          </div>
-        </header>
-      )}
+      <PublicSiteHeader
+        locale={props.locale}
+        onLocaleChange={props.onLocaleChange}
+        activePath={props.downloadHeader ? '/download' : '/code-signing'}
+        navId={props.downloadHeader ? 'download-navigation' : 'policy-navigation'}
+        className="download-header"
+      />
 
       <main id="release-main" className={props.mainClassName ?? 'release-container release-main'}>
         {props.hero ? (
@@ -674,18 +607,7 @@ function PageShell(props: {
         ) : props.children}
       </main>
 
-      <footer className="release-footer">
-        <div className="release-container release-footer-inner">
-          <span>Nimi Network Limited</span>
-          <nav aria-label="Nimi policies">
-            <a href={REPOSITORY_URL}>{copy.source}</a>
-            <a href={DOCS_URL}>{copy.docs}</a>
-            <a href={SECURITY_ADVISORY_URL}>{copy.security}</a>
-            <Link to={withLocaleQuery('/privacy', props.locale)}>{copy.privacy}</Link>
-            <Link to={withLocaleQuery('/terms', props.locale)}>{copy.terms}</Link>
-          </nav>
-        </div>
-      </footer>
+      <PublicSiteFooter locale={props.locale} links={links} />
     </div>
   );
 }
@@ -696,17 +618,112 @@ const DESKTOP_PLATFORMS = [
   { id: 'linux', name: 'Linux', icon: Terminal, asset: null },
 ] as const;
 
+type DetectedPlatform = 'windows' | 'macos' | 'mobile' | 'linux' | null;
+
+function detectVisitorPlatform(): DetectedPlatform {
+  if (typeof navigator === 'undefined') return null;
+  const ua = navigator.userAgent.toLowerCase();
+  if (/iphone|ipad|ipod|android/.test(ua)) return 'mobile';
+  if (ua.includes('win')) return 'windows';
+  if (ua.includes('mac')) return 'macos';
+  if (ua.includes('linux')) return 'linux';
+  return null;
+}
+
+const DOWNLOAD_ONBOARDING_STEPS: Readonly<Record<LandingLocale, {
+  recommendedBadge: string;
+  mobileHint: string;
+  copyLinkLabel: string;
+  copiedLinkLabel: string;
+  intelMacNote: string;
+  guideTitle: string;
+  steps: ReadonlyArray<{ title: string; body: string }>;
+}>> = {
+  zh: {
+    recommendedBadge: '当前设备推荐',
+    mobileHint: '你当前正在手机或平板上浏览。Nimi Beta 需安装在桌面电脑上，你可以复制下载页链接发送到电脑打开。',
+    copyLinkLabel: '复制下载页链接到电脑',
+    copiedLinkLabel: '下载页链接已复制',
+    intelMacNote: 'macOS 安装包当前仅支持 Apple Silicon（M1/M2/M3/M4 芯片），暂未提供 Intel Mac 构建。',
+    guideTitle: '三步完成安装与首次启动',
+    steps: [
+      {
+        title: '01 · 下载并运行安装程序',
+        body: 'macOS 双击 .pkg 按向导完成安装；Windows 运行 .exe 时若弹出 SmartScreen 提示，点击“更多信息 → 仍要运行”即可（请勿安装任何自签根证书）。',
+      },
+      {
+        title: '02 · 在浏览器登录 Nimi 账号',
+        body: '首次启动 Nimi Home 会打开系统默认浏览器完成登录授权，建立受保护的本机所有者会话。',
+      },
+      {
+        title: '03 · 配置模型并开启伙伴对话',
+        body: '在 Nimi Home 中选择本机模型或填入自有云服务密钥，即可开始对话或从桌面目录安装应用。',
+      },
+    ],
+  },
+  en: {
+    recommendedBadge: 'Recommended for this device',
+    mobileHint: 'You’re browsing on a mobile device. Nimi Beta installs on a desktop computer—copy this page link to open on your Mac or Windows PC.',
+    copyLinkLabel: 'Copy download link for desktop',
+    copiedLinkLabel: 'Download link copied',
+    intelMacNote: 'The macOS installer currently requires Apple silicon (M1/M2/M3/M4); Intel Macs are not supported in this Beta.',
+    guideTitle: 'Install & get started in 3 steps',
+    steps: [
+      {
+        title: '01 · Run the desktop installer',
+        body: 'On macOS, open the .pkg installer; on Windows, run the .exe installer—if SmartScreen prompts, choose “More info → Run anyway” (never install a self-signed root certificate).',
+      },
+      {
+        title: '02 · Sign in via your browser',
+        body: 'On first launch, Nimi Home opens your browser to sign in to your Nimi account and bind your protected local session.',
+      },
+      {
+        title: '03 · Configure AI & explore apps',
+        body: 'Set up a local model or connect your own cloud service key inside Nimi Home, then start chatting or install catalog apps.',
+      },
+    ],
+  },
+};
+
 export function DownloadPage() {
   const [locale, setLocale] = usePublicPageLocale();
   return <DownloadPageView locale={locale} onLocaleChange={setLocale} />;
 }
 
-export function DownloadPageView({ locale, onLocaleChange }: {
+export function DownloadPageView({
+  locale,
+  onLocaleChange,
+  initialPlatform,
+}: {
   locale: LandingLocale;
   onLocaleChange: (locale: LandingLocale) => void;
+  initialPlatform?: DetectedPlatform;
 }) {
   const page = PUBLIC_PAGE_CONTENT[locale].download;
   const shared = PUBLIC_PAGE_CONTENT[locale].shared;
+  const onboarding = DOWNLOAD_ONBOARDING_STEPS[locale];
+  const [detectedPlatform, setDetectedPlatform] = useState<DetectedPlatform>(initialPlatform ?? null);
+  const [copiedLink, setCopiedLink] = useState(false);
+
+  useEffect(() => {
+    if (initialPlatform === undefined) {
+      setDetectedPlatform(detectVisitorPlatform());
+    }
+  }, [initialPlatform]);
+
+  const copyDownloadUrl = async () => {
+    try {
+      await navigator.clipboard.writeText('https://nimi.ai/download');
+      setCopiedLink(true);
+    } catch {
+      setCopiedLink(false);
+    }
+  };
+
+  const windowsAssetHref = `${PUBLIC_BETA_ASSET_URL}/Nimi-${PUBLIC_BETA_VERSION}-windows-amd64.exe`;
+  const macosAssetHref = `${PUBLIC_BETA_ASSET_URL}/Nimi-${PUBLIC_BETA_VERSION}-macos-arm64.pkg`;
+  const showWindowsHeroCta = detectedPlatform === 'windows' || detectedPlatform === null;
+  const showMacosHeroCta = detectedPlatform === 'macos' || detectedPlatform === null;
 
   return (
     <PageShell
@@ -719,15 +736,52 @@ export function DownloadPageView({ locale, onLocaleChange }: {
       <div className="download-hero">
         <div className="download-hero-copy">
           <h1>{page.title}</h1>
-          <p id="preview-scope" className="download-scope">{page.scope}</p>
+          <p id="preview-scope" className="download-scope">
+            {page.scope} {page.desktop.signInRequirement}
+          </p>
           <p id="preview-warning" className="download-warning">
             <TriangleAlert size={18} aria-hidden="true" />
             <span>{page.warning}</span>
           </p>
-          <a className="release-primary-action" href={RELEASES_URL} aria-describedby="preview-scope preview-warning">
-            {page.releaseAction}
-            <ArrowUpRight size={17} aria-hidden="true" />
-          </a>
+          <div className="download-hero-actions">
+            {showWindowsHeroCta ? (
+              <a
+                className="release-primary-action"
+                href={windowsAssetHref}
+                aria-describedby="preview-scope preview-warning"
+              >
+                <ArrowDownToLine size={17} aria-hidden="true" />
+                <span>{page.windowsAction}</span>
+              </a>
+            ) : null}
+            {showMacosHeroCta ? (
+              <a
+                className="release-primary-action"
+                href={macosAssetHref}
+                aria-describedby="preview-scope"
+              >
+                <ArrowDownToLine size={17} aria-hidden="true" />
+                <span>{page.macosAction}</span>
+              </a>
+            ) : null}
+            <a
+              className="release-secondary-action"
+              href={RELEASES_URL}
+              aria-describedby="preview-scope preview-warning"
+            >
+              <span>{page.releaseAction}</span>
+              <ArrowUpRight size={16} aria-hidden="true" />
+            </a>
+          </div>
+          {detectedPlatform === 'mobile' ? (
+            <div className="download-mobile-callout" role="status">
+              <p>{onboarding.mobileHint}</p>
+              <button type="button" className="story-button story-button-outline" onClick={copyDownloadUrl}>
+                {copiedLink ? <Check size={15} aria-hidden="true" /> : <Clipboard size={15} aria-hidden="true" />}
+                <span>{copiedLink ? onboarding.copiedLinkLabel : onboarding.copyLinkLabel}</span>
+              </button>
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -737,32 +791,44 @@ export function DownloadPageView({ locale, onLocaleChange }: {
             <h2 id="download-desktop">{page.desktop.title}</h2>
             <p className="download-sign-in">{page.desktop.signInRequirement}</p>
             <dl className="download-platform-list">
-              {DESKTOP_PLATFORMS.map(({ id, name, icon: Icon, asset }) => (
-                <div className={`download-platform-row${asset ? '' : ' is-unavailable'}`} key={id}>
-                  <dt id={`download-${id}`}>
-                    <span className="download-platform-icon"><Icon size={22} aria-hidden="true" /></span>
-                    <span className="download-platform-name">
-                      {name}
-                      {asset ? <small id={`requirements-${id}`}>{page.requirements[id]}</small> : null}
-                    </span>
-                  </dt>
-                  <dd id={asset ? undefined : `requirements-${id}`} className="download-platform-action">
-                    {asset ? (
-                      <a
-                        id={`installer-${id}`}
-                        className="download-installer"
-                        href={`${PUBLIC_BETA_ASSET_URL}/${asset}`}
-                        aria-labelledby={`installer-${id} download-${id}`}
-                        aria-describedby={id === 'windows' ? 'requirements-windows preview-warning' : 'requirements-macos'}
-                      >
-                        {shared.download}
-                        <ArrowDownToLine size={15} aria-hidden="true" />
-                      </a>
-                    ) : <span className="download-unavailable">{page.requirements[id]}</span>}
-                  </dd>
-                </div>
-              ))}
+              {DESKTOP_PLATFORMS.map(({ id, name, icon: Icon, asset }) => {
+                const recommended = Boolean(asset && detectedPlatform === id);
+                return (
+                  <div
+                    className={`download-platform-row${asset ? '' : ' is-unavailable'}${recommended ? ' is-recommended' : ''}`}
+                    key={id}
+                  >
+                    <dt id={`download-${id}`}>
+                      <span className="download-platform-icon"><Icon size={22} aria-hidden="true" /></span>
+                      <span className="download-platform-name">
+                        <span className="download-platform-title-row">
+                          {name}
+                          {recommended ? (
+                            <span className="download-recommended-pill">{onboarding.recommendedBadge}</span>
+                          ) : null}
+                        </span>
+                        {asset ? <small id={`requirements-${id}`}>{page.requirements[id]}</small> : null}
+                      </span>
+                    </dt>
+                    <dd id={asset ? undefined : `requirements-${id}`} className="download-platform-action">
+                      {asset ? (
+                        <a
+                          id={`installer-${id}`}
+                          className="download-installer"
+                          href={`${PUBLIC_BETA_ASSET_URL}/${asset}`}
+                          aria-labelledby={`installer-${id} download-${id}`}
+                          aria-describedby={id === 'windows' ? 'requirements-windows preview-warning' : 'requirements-macos'}
+                        >
+                          {shared.download}
+                          <ArrowDownToLine size={15} aria-hidden="true" />
+                        </a>
+                      ) : <span className="download-unavailable">{page.requirements[id]}</span>}
+                    </dd>
+                  </div>
+                );
+              })}
             </dl>
+            <p className="download-intel-note">{onboarding.intelMacNote}</p>
           </section>
 
           <section className="download-panel" aria-labelledby="download-resources">
@@ -795,6 +861,18 @@ export function DownloadPageView({ locale, onLocaleChange }: {
             </div>
           </section>
         </div>
+
+        <section className="download-onboarding-card" aria-labelledby="download-onboarding-heading">
+          <h2 id="download-onboarding-heading">{onboarding.guideTitle}</h2>
+          <div className="download-onboarding-grid">
+            {onboarding.steps.map((step) => (
+              <article key={step.title} className="download-onboarding-step">
+                <h3>{step.title}</h3>
+                <p>{step.body}</p>
+              </article>
+            ))}
+          </div>
+        </section>
       </section>
     </PageShell>
   );

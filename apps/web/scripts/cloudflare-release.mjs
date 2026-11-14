@@ -43,7 +43,35 @@ async function verify(origin, directory) {
   const local = await readFile(path.join(directory, 'index.html'), 'utf8');
   const entry = local.match(/<script\b[^>]*src="(\/assets\/main-[^"]+\.js)"/u)?.[1];
   assert.ok(entry, 'Vite main entry is missing');
-  const publicPaths = ['/', '/download', '/terms', '/privacy', '/apps/zhiyu'];
+  const standaloneHtmlByPath = new Map([
+    ['/home', 'home.html'],
+    ['/apps', 'apps.html'],
+    ['/platform', 'platform.html'],
+    ['/developers', 'developers.html'],
+    ['/download', 'download.html'],
+    ['/code-signing', 'code-signing.html'],
+    ['/terms', 'terms.html'],
+    ['/privacy', 'privacy.html'],
+  ]);
+  const expectedScriptByPath = new Map();
+  for (const [pathname, filename] of standaloneHtmlByPath) {
+    const pageHtml = await readFile(path.join(directory, filename), 'utf8');
+    const scriptSrc = pageHtml.match(/<script\b[^>]*src="(\/assets\/[^"]+\.js)"/u)?.[1];
+    if (scriptSrc) expectedScriptByPath.set(pathname, scriptSrc);
+  }
+  const publicPaths = [
+    '/',
+    '/home',
+    '/apps',
+    '/apps/nimi.zhiyu',
+    '/apps/nimi.parentos',
+    '/platform',
+    '/developers',
+    '/download',
+    '/code-signing',
+    '/terms',
+    '/privacy',
+  ];
   const accountPaths = ['/login', '/register', '/account/recovery', '/account/runtime', '/account/connect'];
   const paths = [...publicPaths, ...accountPaths];
   for (const pathname of paths) {
@@ -57,7 +85,8 @@ async function verify(origin, directory) {
       `${pathname}: authorization form Origin or callback referrer policy changed`);
     assert.equal(response.headers.get('set-cookie'), null, 'Static hosting must not set account cookies');
     const html = await response.text();
-    if (!['/download', '/terms', '/privacy'].includes(pathname)) assert.ok(html.includes(entry), `${pathname}: different build`);
+    const expectedScript = expectedScriptByPath.get(pathname) ?? (standaloneHtmlByPath.has(pathname) ? null : entry);
+    if (expectedScript) assert.ok(html.includes(expectedScript), `${pathname}: different build`);
     if (pathname.startsWith('/account') || ['/login', '/register'].includes(pathname)) {
       assert.equal(response.headers.get('cache-control'), 'no-store');
     }
