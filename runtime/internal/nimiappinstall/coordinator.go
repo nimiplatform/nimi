@@ -143,7 +143,7 @@ func openPackageOwner(kernel *localappkernel.Kernel) (*Coordinator, error) {
 		kernel.Registrations() == nil || root == "." || !filepath.IsAbs(root) || root == filepath.VolumeName(root)+string(filepath.Separator) {
 		return nil, ErrInvalidCoordinator
 	}
-	packagesPath := filepath.Join(root, "apps", "packages")
+	packagesPath := kernel.PackageRoot()
 	if err := os.MkdirAll(filepath.Join(packagesPath, packageWorkDirectory), 0o700); err != nil {
 		return nil, fmt.Errorf("create public App package work root: %w", err)
 	}

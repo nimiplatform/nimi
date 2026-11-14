@@ -23,6 +23,8 @@ type Config struct {
 	ShutdownTimeout time.Duration
 	LocalStatePath  string
 	LocalModelsPath string
+	// EngineRegistryPath is derived at protected startup for source Runtime.
+	EngineRegistryPath string
 
 	// RuntimeID is the stable local Runtime daemon identity, generated once at
 	// config init and immutable thereafter. (K-CFG-018)

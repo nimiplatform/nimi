@@ -29,7 +29,7 @@ func TestCognitionCheckSyncRootMatchesPortableRuntimeOwnerState(t *testing.T) {
 			t.Errorf("close Cognition owner: %v", err)
 		}
 	})
-	resources, err := service.CheckSyncDataRoot(context.Background(), dataRoot)
+	resources, err := service.CheckSyncStateDirectory(context.Background(), filepath.Join(dataRoot, "accounts", "runtime"))
 	if err != nil || len(resources) != 2 {
 		t.Fatalf("Cognition owner inspection=%+v err=%v", resources, err)
 	}
@@ -38,7 +38,7 @@ func TestCognitionCheckSyncRootMatchesPortableRuntimeOwnerState(t *testing.T) {
 			t.Fatalf("fresh Cognition owner resource=%+v", resource)
 		}
 	}
-	if err := service.CheckSyncRoot(t.TempDir()); err == nil {
+	if _, err := service.CheckSyncStateDirectory(context.Background(), t.TempDir()); err == nil {
 		t.Fatal("Cognition owner accepted a non-current data root")
 	}
 }

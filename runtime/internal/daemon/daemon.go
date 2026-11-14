@@ -74,7 +74,9 @@ func New(cfg config.Config, logger *slog.Logger, version string) (*Daemon, error
 			return nil, fmt.Errorf("set NIMI_RUNTIME_LOCAL_STATE_PATH: %w", err)
 		}
 	}
-	return newDaemon(cfg, logger, version, grpcserver.NewNonProduction)
+	return newDaemon(cfg, logger, version, func(cfg *config.Config, state *health.State, logger *slog.Logger, version string) (*grpcserver.Server, error) {
+		return grpcserver.NewNonProduction(*cfg, state, logger, version)
+	})
 }
 
 // NewNonProductionAtProductControlRoot preserves the ordinary non-production
@@ -86,8 +88,8 @@ func NewNonProductionAtProductControlRoot(cfg config.Config, logger *slog.Logger
 			return nil, fmt.Errorf("set NIMI_RUNTIME_LOCAL_STATE_PATH: %w", err)
 		}
 	}
-	return newDaemon(cfg, logger, version, func(cfg config.Config, state *health.State, logger *slog.Logger, version string) (*grpcserver.Server, error) {
-		return grpcserver.NewNonProductionAtProductControlRoot(cfg, state, logger, version, productControlRoot)
+	return newDaemon(cfg, logger, version, func(cfg *config.Config, state *health.State, logger *slog.Logger, version string) (*grpcserver.Server, error) {
+		return grpcserver.NewNonProductionAtProductControlRoot(*cfg, state, logger, version, productControlRoot)
 	})
 }
 
@@ -96,7 +98,7 @@ func NewNonProductionAtProductControlRoot(cfg config.Config, logger *slog.Logger
 // process environment state.
 func NewProtected(cfg config.Config, logger *slog.Logger, version string, bindings grpcserver.ProtectedServiceBindings) (*Daemon, error) {
 	cfg.LocalStatePath = filepath.Join(filepath.Clean(strings.TrimSpace(bindings.ServiceStateRoot)), "runtime", "local-state.json")
-	d, err := newDaemon(cfg, logger, version, func(cfg config.Config, state *health.State, logger *slog.Logger, version string) (*grpcserver.Server, error) {
+	d, err := newDaemon(cfg, logger, version, func(cfg *config.Config, state *health.State, logger *slog.Logger, version string) (*grpcserver.Server, error) {
 		return grpcserver.NewProtectedService(cfg, state, logger, version, bindings)
 	})
 	if err != nil {
@@ -338,11 +340,11 @@ func resolveProtectedServiceDataRoot(securityStateRoot, localStatePath string) (
 	return dataRoot, nil
 }
 
-type grpcServerConstructor func(config.Config, *health.State, *slog.Logger, string) (*grpcserver.Server, error)
+type grpcServerConstructor func(*config.Config, *health.State, *slog.Logger, string) (*grpcserver.Server, error)
 
 func newDaemon(cfg config.Config, logger *slog.Logger, version string, newGRPCServer grpcServerConstructor) (*Daemon, error) {
 	state := health.NewState()
-	grpcServer, err := newGRPCServer(cfg, state, logger, version)
+	grpcServer, err := newGRPCServer(&cfg, state, logger, version)
 	if err != nil {
 		return nil, err
 	}
@@ -774,6 +776,7 @@ func (d *Daemon) startSupervisedEngines(_ context.Context) {
 	engineRoots := engine.ManagedRoots{
 		Environments: strings.TrimSpace(d.cfg.ManagedRoots.Environments),
 		Dependencies: strings.TrimSpace(d.cfg.ManagedRoots.Dependencies),
+		RegistryPath: d.cfg.EngineRegistryPath,
 	}
 	// The llama flag requests only private manager setup used later by
 	// ExecutionHost; it never materializes a package, bootstraps a model, or

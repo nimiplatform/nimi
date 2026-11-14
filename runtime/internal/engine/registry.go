@@ -45,7 +45,10 @@ type RegistryConflict struct {
 // NewRegistry creates or loads a registry from the given directory.
 // The registry file is stored at dir/registry.json.
 func NewRegistry(dir string) (*Registry, error) {
-	path := filepath.Join(dir, "registry.json")
+	return openRegistry(dir, filepath.Join(dir, "registry.json"))
+}
+
+func openRegistry(dir, path string) (*Registry, error) {
 	r := &Registry{
 		path:            path,
 		root:            filepath.Clean(dir),

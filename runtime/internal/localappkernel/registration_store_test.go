@@ -10,6 +10,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/nimiplatform/nimi/runtime/internal/config"
 )
 
 func TestCanonicalRegistrationDatabasePathAndHostInstallIDAreRequired(t *testing.T) {
@@ -24,6 +26,58 @@ func TestCanonicalRegistrationDatabasePathAndHostInstallIDAreRequired(t *testing
 	identity := mustWindowsIdentity(t, "S-1-5-21-100-200-300-1001")
 	if _, err := OpenSQLite(context.Background(), path, identity, Options{}); !errors.Is(err, ErrInvalidArgument) {
 		t.Fatalf("missing host install ID = %v", err)
+	}
+}
+
+func TestSourceRegistrationSharesDataRootWithoutOpeningInstalledStore(t *testing.T) {
+	ctx := context.Background()
+	root := t.TempDir()
+	identity := mustWindowsIdentity(t, "S-1-5-21-100-200-300-1001")
+	installedPath, err := CanonicalRegistrationDatabasePath(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.MkdirAll(filepath.Dir(installedPath), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	installedContents := []byte("installed Runtime owner store")
+	if err := os.WriteFile(installedPath, installedContents, 0o400); err != nil {
+		t.Fatal(err)
+	}
+	options := Options{HostInstallID: "source-home", DataRoot: root}
+	firstID := config.GenerateRuntimeID()
+	first, err := OpenSourceDevelopmentSQLite(ctx, identity, options, firstID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	registration, err := first.Registrations().RegisterDevelopment(ctx, developmentInput())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if first.DataRoot() != root || first.PackageRoot() == filepath.Join(root, "apps", "packages") {
+		t.Fatalf("source root = %q, package root = %q", first.DataRoot(), first.PackageRoot())
+	}
+	if err := first.Close(); err != nil {
+		t.Fatal(err)
+	}
+	second, err := OpenSourceDevelopmentSQLite(ctx, identity, options, config.GenerateRuntimeID())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = second.Close() })
+	if rows, err := second.Registrations().ListStatuses(ctx); err != nil || len(rows) != 0 {
+		t.Fatalf("another source Runtime saw a registration: %+v, err = %v", rows, err)
+	}
+	resumed, err := OpenSourceDevelopmentSQLite(ctx, identity, options, firstID)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = resumed.Close() })
+	if rows, err := resumed.Registrations().ListStatuses(ctx); err != nil || len(rows) != 1 || rows[0].RegisteredAppSubject != registration.RegisteredAppSubject {
+		t.Fatalf("source Runtime lost its registration: %+v, err = %v", rows, err)
+	}
+	if contents, err := os.ReadFile(installedPath); err != nil || string(contents) != string(installedContents) {
+		t.Fatalf("installed registration store changed: %q, err = %v", contents, err)
 	}
 }
 

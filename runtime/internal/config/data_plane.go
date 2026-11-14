@@ -1,8 +1,11 @@
 package config
 
 import (
+	"fmt"
 	"path/filepath"
 	"strings"
+
+	"github.com/oklog/ulid/v2"
 )
 
 // DataPlaneRootID identifies a Runtime-managed root inside the user-selected
@@ -19,6 +22,17 @@ const (
 	DataPlaneRootLogs         DataPlaneRootID = "logs"
 	DataPlaneRootAudit        DataPlaneRootID = "audit"
 )
+
+// SourceRuntimeDataDirectory isolates mutable owner data for each verified
+// source installation while keeping shared assets under the same data root.
+// @nimi-authority: rule.nimi.platform.core-protocol.development-topology
+func SourceRuntimeDataDirectory(dataRoot string, owner DataPlaneRootID, runtimeID string) (string, error) {
+	id, err := ulid.ParseStrict(runtimeID)
+	if err != nil || id.String() != runtimeID {
+		return "", fmt.Errorf("source development requires a canonical Runtime installation identity")
+	}
+	return filepath.Join(dataRoot, string(owner), "source-"+runtimeID), nil
+}
 
 // DataPlaneRoot is one Runtime-managed nimi_data directory entry. Owner and
 // cleanup semantics mirror the nimi_data Directory Ownership table in the

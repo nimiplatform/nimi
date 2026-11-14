@@ -18,6 +18,7 @@ import (
 	_ "modernc.org/sqlite"
 
 	"github.com/nimiplatform/nimi/runtime/internal/apphostprofile"
+	"github.com/nimiplatform/nimi/runtime/internal/config"
 )
 
 const identifierAllocationAttempts = 8
@@ -69,6 +70,7 @@ type Kernel struct {
 	anchor           string
 	hostInstallID    string
 	dataRoot         string
+	packageRoot      string
 	random           io.Reader
 	now              func() time.Time
 	mu               sync.Mutex
@@ -85,9 +87,8 @@ type Kernel struct {
 
 // @nimi-authority: rule.nimi.runtime.app-surface.r051
 // @nimi-authority: rule.nimi.runtime.app-surface.r058
-// CanonicalRegistrationDatabasePath is the one K-APP-owned database in an
-// active data root. Canonical registrations and host binding partitions share
-// it; there is no portable sidecar or per-host database.
+// CanonicalRegistrationDatabasePath locates the installed Runtime's
+// registration and host binding store under the active data root.
 func CanonicalRegistrationDatabasePath(dataRoot string) (string, error) {
 	root := filepath.Clean(strings.TrimSpace(dataRoot))
 	if root == "." || !filepath.IsAbs(root) {
@@ -96,7 +97,37 @@ func CanonicalRegistrationDatabasePath(dataRoot string) (string, error) {
 	return filepath.Join(root, "apps", "local-app-kernel.db"), nil
 }
 
+// OpenSourceDevelopmentSQLite binds registration and package state to this
+// source Runtime's verified installation while retaining the selected data root.
+// @nimi-authority: rule.nimi.platform.core-protocol.development-topology
+func OpenSourceDevelopmentSQLite(ctx context.Context, identity VerifiedLocalOSUserIdentity, options Options, runtimeID string) (*Kernel, error) {
+	directory, err := config.SourceRuntimeDataDirectory(options.DataRoot, config.DataPlaneRootApps, runtimeID)
+	if err != nil {
+		return nil, err
+	}
+	return openSQLite(ctx, filepath.Join(directory, "local-app-kernel.db"), identity, options)
+}
+
+func OpenSelectedRootSQLite(ctx context.Context, identity VerifiedLocalOSUserIdentity, options Options) (*Kernel, error) {
+	databasePath, err := CanonicalRegistrationDatabasePath(options.DataRoot)
+	if err != nil {
+		return nil, err
+	}
+	return openSQLite(ctx, databasePath, identity, options)
+}
+
 func OpenSQLite(ctx context.Context, databasePath string, identity VerifiedLocalOSUserIdentity, options Options) (*Kernel, error) {
+	canonicalPath, err := CanonicalRegistrationDatabasePath(options.DataRoot)
+	if err != nil {
+		return nil, err
+	}
+	if !sameKAPPPath(filepath.Clean(databasePath), canonicalPath) {
+		return nil, fmt.Errorf("%w: sqlite path must be the canonical data-root owner store", ErrInvalidArgument)
+	}
+	return openSQLite(ctx, databasePath, identity, options)
+}
+
+func openSQLite(ctx context.Context, databasePath string, identity VerifiedLocalOSUserIdentity, options Options) (*Kernel, error) {
 	if ctx == nil {
 		ctx = context.Background()
 	}
@@ -111,16 +142,9 @@ func OpenSQLite(ctx context.Context, databasePath string, identity VerifiedLocal
 	if dataRoot == "." || !filepath.IsAbs(dataRoot) || dataRoot == filepath.VolumeName(dataRoot)+string(filepath.Separator) {
 		return nil, fmt.Errorf("%w: data root", ErrInvalidArgument)
 	}
-	canonicalPath, err := CanonicalRegistrationDatabasePath(dataRoot)
-	if err != nil {
-		return nil, err
-	}
 	absolutePath, err := filepath.Abs(filepath.Clean(trimmedPath))
 	if err != nil {
 		return nil, fmt.Errorf("resolve registered App sqlite path: %w", err)
-	}
-	if !sameKAPPPath(absolutePath, canonicalPath) {
-		return nil, fmt.Errorf("%w: sqlite path must be the canonical data-root owner store", ErrInvalidArgument)
 	}
 	if err := os.MkdirAll(filepath.Dir(absolutePath), 0o700); err != nil {
 		return nil, fmt.Errorf("create registered App sqlite directory: %w", err)
@@ -138,7 +162,8 @@ func OpenSQLite(ctx context.Context, databasePath string, identity VerifiedLocal
 	db.SetMaxIdleConns(1)
 	kernel := &Kernel{
 		db: db, anchor: anchor, hostInstallID: options.HostInstallID, dataRoot: dataRoot,
-		random: options.Random, now: options.Now,
+		packageRoot: filepath.Join(filepath.Dir(absolutePath), "packages"),
+		random:      options.Random, now: options.Now,
 	}
 	if kernel.random == nil {
 		kernel.random = rand.Reader
@@ -429,6 +454,11 @@ func (kernel *Kernel) DataRoot() string {
 		return ""
 	}
 	return kernel.dataRoot
+}
+
+// PackageRoot is the managed software directory for this registration store.
+func (kernel *Kernel) PackageRoot() string {
+	return kernel.packageRoot
 }
 
 // AppHostProfileRoot derives the Host technical profile of one Registered App

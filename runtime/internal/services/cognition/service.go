@@ -291,20 +291,15 @@ func NewV1Owner(logger *slog.Logger, cfg config.Config) (*Service, error) {
 }
 
 // @nimi-authority: rule.nimi.cognition.runtime-bridge.r025
-func (s *Service) CheckSyncRoot(dataRoot string) error {
-	_, err := s.CheckSyncDataRoot(context.Background(), dataRoot)
-	return err
-}
-
-// CheckSyncDataRoot delegates structural verification to the Cognition V1
+// CheckSyncStateDirectory delegates structural verification to the Cognition V1
 // owner. Runtime receives only typed aggregate outcomes and never opens or
 // interprets Cognition SQLite state.
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-mig-007e
-func (s *Service) CheckSyncDataRoot(ctx context.Context, dataRoot string) ([]DataRootCheckResource, error) {
+func (s *Service) CheckSyncStateDirectory(ctx context.Context, stateDirectory string) ([]DataRootCheckResource, error) {
 	if s == nil || s.owner == nil || s.MemoryCore() == nil || s.sourceBridge == nil {
 		return nil, errors.New("Cognition owner is unavailable")
 	}
-	expected := filepath.Join(filepath.Clean(strings.TrimSpace(dataRoot)), "accounts", "runtime", "runtime-cognition")
+	expected := filepath.Join(stateDirectory, "runtime-cognition")
 	if !sameCognitionPath(s.root, expected) {
 		return nil, errors.New("Cognition owner is not bound to the current data-root activation")
 	}

@@ -49,6 +49,9 @@ type ManagedRoots struct {
 	// downloaded dependency payloads — the `uv` tool and the shared
 	// accelerator/CUDA runtime.
 	Dependencies string
+	// RegistryPath optionally locates a source installation's engine inventory
+	// while its engine packages remain under Environments.
+	RegistryPath string
 }
 
 // Manager is the facade for engine lifecycle management.
@@ -122,7 +125,13 @@ func NewManager(logger *slog.Logger, roots ManagedRoots, onState StateChangeFunc
 		return nil, fmt.Errorf("create dependencies root directory: %w", err)
 	}
 
-	registry, err := NewRegistry(baseDir)
+	registryPath := roots.RegistryPath
+	if registryPath == "" {
+		registryPath = filepath.Join(baseDir, "registry.json")
+	} else if !filepath.IsAbs(registryPath) {
+		return nil, fmt.Errorf("engine registry path must be absolute: %w", ErrManagedRootUnresolved)
+	}
+	registry, err := openRegistry(baseDir, registryPath)
 	if err != nil {
 		return nil, fmt.Errorf("load engine registry: %w", err)
 	}

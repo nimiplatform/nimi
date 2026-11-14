@@ -277,12 +277,28 @@ func TestAssetCancellationOverwriteAndStartupCandidateCleanup(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(candidates, ".asset-candidate-abandoned"), []byte("partial"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if _, err := NewAssetStore(dataRoot, assetTestPolicy()); err != nil {
+	foreignRoot, _, err := managedOwnerRoot(dataRoot, assetTestOwner("account-2", "subject-2"))
+	if err != nil {
 		t.Fatal(err)
 	}
+	foreignLeaf := filepath.Join(foreignRoot, "internal", "asset-candidates", "unexpected-directory")
+	if err := os.MkdirAll(foreignLeaf, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	reopened, err := NewAssetStore(dataRoot, assetTestPolicy())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := reopened.Stat(context.Background(), owner, "media/current.bin"); err != nil {
+		t.Fatalf("other owner obstructed read: %v", err)
+	}
+	writeAssetBytes(t, reopened, owner, "media/next.bin", []byte("next"), false)
 	entries, err := os.ReadDir(candidates)
 	if err != nil || len(entries) != 0 {
 		t.Fatalf("abandoned candidates=%v err=%v", entries, err)
+	}
+	if leaf, err := os.Lstat(foreignLeaf); err != nil || !leaf.IsDir() {
+		t.Fatalf("cleanup touched the foreign partition: %v", err)
 	}
 }
 

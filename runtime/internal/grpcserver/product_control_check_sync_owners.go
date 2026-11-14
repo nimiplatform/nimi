@@ -7,8 +7,8 @@ import (
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/appstorage"
+	"github.com/nimiplatform/nimi/runtime/internal/config"
 	"github.com/nimiplatform/nimi/runtime/internal/localappkernel"
-	"github.com/nimiplatform/nimi/runtime/internal/runtimepersistence"
 	appservice "github.com/nimiplatform/nimi/runtime/internal/services/app"
 	cognitionservice "github.com/nimiplatform/nimi/runtime/internal/services/cognition"
 	"github.com/nimiplatform/nimi/runtime/internal/services/localservice"
@@ -16,7 +16,7 @@ import (
 )
 
 func productControlCheckSyncOwners(
-	backend *runtimepersistence.Backend,
+	cfg config.Config,
 	kernel *localappkernel.Kernel,
 	cognition *cognitionservice.Service,
 	apps *appservice.Service,
@@ -40,12 +40,12 @@ func productControlCheckSyncOwners(
 				result.Resources = append(result.Resources, checkSyncResource("runtime_owner_account", "unavailable", "RUNTIME_OWNER_ACCOUNT_CONTEXT_CHANGED"))
 				return result
 			}
-			if backend == nil || backend.DB() == nil || agent == nil || !pathWithinCheckSyncRoot(backend.Path(), filepath.Join(input.DataRoot, "accounts", "runtime")) {
+			if agent == nil || !sameProductControlPath(input.DataRoot, cfg.DataRootRef) {
 				result.Resources = append(result.Resources, checkSyncResource("runtime_owner_store", "failed", "RUNTIME_OWNER_STORE_ROOT_MISMATCH"))
 				result.State = "failed"
 				return result
 			}
-			resources, err := agent.CheckSyncDataRoot(ctx, input.DataRoot)
+			resources, err := agent.CheckSyncStateDirectory(ctx, filepath.Dir(cfg.LocalStatePath))
 			if err != nil {
 				result.Resources = append(result.Resources, checkSyncResource("runtime_owner_store", "failed", "RUNTIME_OWNER_STORE_UNAVAILABLE"))
 				result.State = "failed"
@@ -92,11 +92,11 @@ func productControlCheckSyncOwners(
 		},
 		Cognition: func(ctx context.Context, input localservice.ProductControlCheckSyncInput) localservice.ProductControlCheckSyncOwnerResult {
 			result := completedCheckSyncOwner("cognition")
-			if cognition == nil {
+			if cognition == nil || !sameProductControlPath(input.DataRoot, cfg.DataRootRef) {
 				result.Resources = append(result.Resources, checkSyncResource("cognition_owner", "unavailable", "COGNITION_OWNER_UNAVAILABLE"))
 				return result
 			}
-			resources, err := cognition.CheckSyncDataRoot(ctx, input.DataRoot)
+			resources, err := cognition.CheckSyncStateDirectory(ctx, filepath.Dir(cfg.LocalStatePath))
 			if err != nil {
 				result.State = "failed"
 				result.Resources = append(result.Resources, checkSyncResource("cognition_owner", "failed", "COGNITION_OWNER_INSPECTION_FAILED"))
@@ -197,17 +197,4 @@ func checkSyncAccountGenerationMatches(ctx context.Context, account localservice
 	}
 	_, generation, authenticated := provider.AuthenticatedRuntimeSecurityContext(ctx)
 	return authenticated && generation == expected
-}
-
-func pathWithinCheckSyncRoot(candidate string, root string) bool {
-	candidate = filepath.Clean(strings.TrimSpace(candidate))
-	root = filepath.Clean(strings.TrimSpace(root))
-	if candidate == "." || root == "." || !filepath.IsAbs(candidate) || !filepath.IsAbs(root) {
-		return false
-	}
-	relative, err := filepath.Rel(root, candidate)
-	if err != nil || filepath.IsAbs(relative) || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
-		return false
-	}
-	return true
 }

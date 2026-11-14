@@ -17,11 +17,11 @@ type DataRootCheckResource struct {
 }
 
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-mig-007e
-func (s *Service) CheckSyncDataRoot(ctx context.Context, dataRoot string) ([]DataRootCheckResource, error) {
+func (s *Service) CheckSyncStateDirectory(ctx context.Context, stateDirectory string) ([]DataRootCheckResource, error) {
 	if s == nil || s.backend == nil || s.backend.DB() == nil {
 		return nil, errors.New("Runtime Agent owner store is unavailable")
 	}
-	expected := filepath.Join(filepath.Clean(strings.TrimSpace(dataRoot)), "accounts", "runtime")
+	expected := filepath.Clean(strings.TrimSpace(stateDirectory))
 	relative, err := filepath.Rel(expected, s.backend.Path())
 	if err != nil || filepath.IsAbs(relative) || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
 		return nil, errors.New("Runtime Agent owner store is not bound to current data root")

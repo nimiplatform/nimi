@@ -2,10 +2,34 @@ package engine
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 )
+
+func TestSourceManagerSharesEnginePathsWithSeparateInventory(t *testing.T) {
+	root := t.TempDir()
+	roots := ManagedRoots{
+		Environments: filepath.Join(root, "environments"),
+		Dependencies: filepath.Join(root, "dependencies"),
+		RegistryPath: filepath.Join(root, "accounts", "source-runtime", "engine-registry.json"),
+	}
+	if err := os.MkdirAll(roots.Environments, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	installedRegistry := filepath.Join(roots.Environments, "registry.json")
+	if err := os.Mkdir(installedRegistry, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	manager, err := NewManager(nil, roots, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if manager.registry.path != roots.RegistryPath || manager.baseDir != roots.Environments || manager.depsDir != roots.Dependencies {
+		t.Fatalf("unexpected source inventory or package directories: %q, %q, %q", manager.registry.path, manager.baseDir, manager.depsDir)
+	}
+}
 
 // TestNewManagerResolvesInstallRootsFromDataPlaneRoots is the regression guard
 // for the engine install-root vs K-CFG-018 data-plane contract alignment. The

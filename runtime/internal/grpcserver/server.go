@@ -222,7 +222,9 @@ func NewNonProductionAtProductControlRoot(cfg config.Config, state *health.State
 	return newServer(cfg, state, logger, version, nil, productControlRoot, security)
 }
 
-func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Logger, version string, bindings ProtectedServiceBindings) (*Server, error) {
+// NewProtectedService resolves the active Product Control data paths in cfg so
+// the daemon and its services start with the same selected root.
+func NewProtectedService(cfg *config.Config, state *health.State, logger *slog.Logger, version string, bindings ProtectedServiceBindings) (*Server, error) {
 	stateRoot := filepath.Clean(strings.TrimSpace(bindings.ServiceStateRoot))
 	if !filepath.IsAbs(stateRoot) || stateRoot == filepath.VolumeName(stateRoot)+string(filepath.Separator) {
 		return nil, fmt.Errorf("protected service state root must be an absolute non-root path")
@@ -278,24 +280,33 @@ func NewProtectedService(cfg config.Config, state *health.State, logger *slog.Lo
 	if err != nil {
 		return nil, fmt.Errorf("resolve protected Runtime derived config path: %w", err)
 	}
-	productControlBinding, err := reconcileProtectedProductControlDataRootConfig(productControlRoot, serviceConfigPath, &cfg, productControlSecurity)
+	productControlBinding, err := reconcileProtectedProductControlDataRootConfig(productControlRoot, serviceConfigPath, cfg, productControlSecurity)
 	if err != nil {
 		return nil, err
 	}
 	bindings.serviceConfigPath = serviceConfigPath
 	bindings.productControlInstallID = productControlBinding.InstallID
-	bindRuntimeOwnerStateToProductControlRoot(&cfg)
+	if bindings.SourceLocalDevelopment && cfg.DataRootRef != "" {
+		stateDirectory, err := config.SourceRuntimeDataDirectory(cfg.DataRootRef, config.DataPlaneRootAccounts, cfg.RuntimeID)
+		if err != nil {
+			return nil, err
+		}
+		cfg.LocalStatePath = filepath.Join(stateDirectory, "local-state.json")
+		cfg.EngineRegistryPath = filepath.Join(stateDirectory, "engine-registry.json")
+	} else {
+		bindRuntimeOwnerStateToProductControlRoot(cfg)
+	}
 	// @nimi-authority: rule.nimi.runtime.service-operations.r092
 	// Owners classify their stored data read-only before any of them opens,
 	// reconciles, converts, or repairs the selected root.
-	if refusal := preflightProtectedStoredData(cfg); refusal != nil {
-		maintenance, err := newProtectedMaintenanceServer(logger, cfg, bindings, productControlRoot, productControlSecurity, serviceConfigPath, refusal)
+	if refusal := preflightProtectedStoredData(*cfg); refusal != nil {
+		maintenance, err := newProtectedMaintenanceServer(logger, *cfg, bindings, productControlRoot, productControlSecurity, serviceConfigPath, refusal)
 		if err != nil {
 			return nil, fmt.Errorf("serve maintenance for refused stored data: %w (refusal: %v)", err, refusal)
 		}
 		return nil, &MaintenanceRequiredError{Maintenance: maintenance}
 	}
-	return newServer(cfg, state, logger, version, &bindings, productControlRoot, productControlSecurity)
+	return newServer(*cfg, state, logger, version, &bindings, productControlRoot, productControlSecurity)
 }
 
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-mig-007e
@@ -568,16 +579,14 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		}
 		localDevelopmentStore = developmentStore
 		if strings.TrimSpace(cfg.DataRootRef) != "" {
-			canonicalPath, canonicalPathErr := localappkernel.CanonicalRegistrationDatabasePath(cfg.DataRootRef)
-			if canonicalPathErr != nil {
-				return nil, fmt.Errorf("resolve canonical registered App store: %w", canonicalPathErr)
+			options := localappkernel.Options{HostInstallID: protected.productControlInstallID, DataRoot: cfg.DataRootRef}
+			var kernel *localappkernel.Kernel
+			var kernelErr error
+			if protected.SourceLocalDevelopment {
+				kernel, kernelErr = localappkernel.OpenSourceDevelopmentSQLite(context.Background(), protected.LocalOSUserIdentity, options, cfg.RuntimeID)
+			} else {
+				kernel, kernelErr = localappkernel.OpenSelectedRootSQLite(context.Background(), protected.LocalOSUserIdentity, options)
 			}
-			kernel, kernelErr := localappkernel.OpenSQLite(
-				context.Background(),
-				canonicalPath,
-				protected.LocalOSUserIdentity,
-				localappkernel.Options{HostInstallID: protected.productControlInstallID, DataRoot: cfg.DataRootRef},
-			)
 			if kernelErr != nil {
 				return nil, fmt.Errorf("open local-app kernel: %w", kernelErr)
 			}
@@ -1097,7 +1106,7 @@ func newServer(cfg config.Config, state *health.State, logger *slog.Logger, vers
 		rootHandoff.appPackages = appInstallCoordinator
 	}
 	localSvc.SetProductControlRootHandoff(rootHandoff)
-	if err := localSvc.SetProductControlCheckSyncRuntimeOwners(productControlCheckSyncOwners(backend, localAppKernel, cognitionSvc, appSvc, accountSvc, agentSvc)); err != nil {
+	if err := localSvc.SetProductControlCheckSyncRuntimeOwners(productControlCheckSyncOwners(cfg, localAppKernel, cognitionSvc, appSvc, accountSvc, agentSvc)); err != nil {
 		return nil, fmt.Errorf("compose fixed Runtime Check & Sync owners: %w", err)
 	}
 	// Recovery belongs to Product Control startup, not optional engine-manager

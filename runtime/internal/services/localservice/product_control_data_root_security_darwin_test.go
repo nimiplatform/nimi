@@ -3,6 +3,7 @@
 package localservice
 
 import (
+	"context"
 	"os"
 	"os/exec"
 	"os/user"
@@ -10,7 +11,49 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
+
+func TestMacOSSourceFirstRunCanSelectInstalledDataRoot(t *testing.T) {
+	uid := uint32(os.Geteuid())
+	if uid == 0 {
+		t.Skip("source Runtime requires a non-root current user")
+	}
+	security := ProductControlDataRootSecurityBinding{InteractiveUserUID: uid, RuntimeServiceUID: uid, PerUserRuntime: true}
+	_, dataRoot := createProductControlBindingLayoutForTest(t)
+	stateDir := filepath.Join(dataRoot, "accounts", "runtime")
+	if err := os.Mkdir(stateDir, 0o000); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = os.Chmod(stateDir, 0o700) })
+	controlRoot := filepath.Join(t.TempDir(), "RuntimeLocalDevelopment", "official", ".nimi")
+	if err := os.MkdirAll(controlRoot, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	service := newTestService(t)
+	if err := service.SetProductControlRoot(controlRoot); err != nil {
+		t.Fatal(err)
+	}
+	if err := service.SetProductControlDataRootSecurityBinding(security); err != nil {
+		t.Fatal(err)
+	}
+	var writtenRoot string
+	service.SetProductControlDataRootConfigWriter(func(root string) (bool, error) {
+		writtenRoot = root
+		return true, nil
+	})
+	ctx := context.Background()
+	response, err := service.SelectProductControlDataRoot(ctx, &runtimev1.SelectProductControlDataRootRequest{DataRoot: dataRoot})
+	projection := decodeProductControlProjectionForTest(t, mustProductControlForTest(t, response, err))
+	if projection.State != productControlStateDataRootSelected || writtenRoot != dataRoot {
+		t.Fatalf("selection state = %q, committed root = %q", projection.State, writtenRoot)
+	}
+	binding, err := LoadProductControlDataRootBinding(controlRoot, security)
+	if err != nil || !binding.RecordExists || binding.DataRoot != dataRoot {
+		t.Fatalf("source startup binding = %+v, err = %v", binding, err)
+	}
+}
 
 func TestMacOSProductControlDataRootSecurityValidatesExactRuntimeACL(t *testing.T) {
 	root := filepath.Join(t.TempDir(), "nimi-data")

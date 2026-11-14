@@ -30,7 +30,7 @@ func TestCheckSyncDataRootProjectsOnlyAuthenticatedAccountWithoutPrivateReferenc
 	}
 	svc.chatSurfaceMu.Unlock()
 
-	resources, err := svc.CheckSyncDataRoot(context.Background(), dataRoot)
+	resources, err := svc.CheckSyncStateDirectory(context.Background(), filepath.Join(dataRoot, "accounts", "runtime"))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -56,7 +56,7 @@ func TestCheckSyncDataRootWithoutAuthenticatedAccountIsUnavailable(t *testing.T)
 	svc, closeFn := openRuntimeAgentTestComposition(t, filepath.Join(dataRoot, "accounts", "runtime", "local-state.json"))
 	t.Cleanup(closeFn)
 	svc.SetRuntimeAccountProjectionProvider(nil)
-	resources, err := svc.CheckSyncDataRoot(context.Background(), dataRoot)
+	resources, err := svc.CheckSyncStateDirectory(context.Background(), filepath.Join(dataRoot, "accounts", "runtime"))
 	if err != nil || len(resources) != 1 || resources[0].Status != "unavailable" || resources[0].Reason != "RUNTIME_OWNER_ACCOUNT_REAUTH_REQUIRED" {
 		t.Fatalf("unauthenticated Check & Sync=%+v err=%v", resources, err)
 	}

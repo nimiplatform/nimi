@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/rpcctx"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
@@ -68,7 +70,7 @@ func newUnaryActivityInterceptor(registry *activeRPCRegistry) grpc.UnaryServerIn
 		trackedCtx, finish, admitted := registry.TrackUnary(ctx, info.FullMethod)
 		defer finish()
 		if !admitted {
-			return nil, status.Error(codes.Unavailable, "Runtime root handoff requires restart")
+			return nil, rootHandoffUnavailable()
 		}
 		return handler(trackedCtx, req)
 	}
@@ -82,7 +84,7 @@ func newStreamActivityInterceptor(registry *activeRPCRegistry) grpc.StreamServer
 		trackedCtx, signal, finish, touch, admitted := registry.TrackStream(ss.Context(), info.FullMethod, info)
 		defer finish()
 		if !admitted {
-			return status.Error(codes.Unavailable, "Runtime root handoff requires restart")
+			return rootHandoffUnavailable()
 		}
 		wrapped := &trackedServerStream{
 			ServerStream: ss,
@@ -94,6 +96,14 @@ func newStreamActivityInterceptor(registry *activeRPCRegistry) grpc.StreamServer
 		}
 		return handler(srv, wrapped)
 	}
+}
+
+// Admission can close while the verified channel is still carrying Product
+// Control. Report an operation refusal so peers do not retire that channel.
+func rootHandoffUnavailable() error {
+	return grpcerr.WithReasonCodeOptions(codes.Unavailable, runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE, grpcerr.ReasonOptions{
+		Message: "Runtime root handoff requires restart",
+	})
 }
 
 func classifyRPCMethod(fullMethod string, isStream bool) (string, rpcShutdownDisposition) {

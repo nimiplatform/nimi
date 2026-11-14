@@ -134,7 +134,7 @@ func TestServerCompositionOpensCanonicalOwnersUnderActiveDataRoot(t *testing.T) 
 	if got, want := server.persistenceBackend.Path(), filepath.Join(dataRoot, "accounts", "runtime", "memory.db"); got != want {
 		t.Fatalf("Runtime canonical owner store = %q, want %q", got, want)
 	}
-	if err := server.cognitionV1Owner.CheckSyncRoot(dataRoot); err != nil {
+	if _, err := server.cognitionV1Owner.CheckSyncStateDirectory(context.Background(), filepath.Join(dataRoot, "accounts", "runtime")); err != nil {
 		t.Fatal(err)
 	}
 	if err := server.appService.CheckSyncDataRoot(dataRoot); err != nil {
@@ -245,7 +245,7 @@ func TestProtectedServiceUsesOnlyVerifiedSecurityBindings(t *testing.T) {
 
 	serviceStateRoot := t.TempDir()
 	consentStorePath := filepath.Join(t.TempDir(), "local-development.db")
-	if _, err := NewProtectedService(config.Config{}, health.NewState(), slog.New(slog.NewTextHandler(io.Discard, nil)), "test", ProtectedServiceBindings{
+	if _, err := NewProtectedService(&config.Config{}, health.NewState(), slog.New(slog.NewTextHandler(io.Discard, nil)), "test", ProtectedServiceBindings{
 		ServiceStateRoot: serviceStateRoot,
 	}); err == nil {
 		t.Fatal("protected service must reject missing custody bindings")
@@ -273,7 +273,7 @@ func TestProtectedServiceUsesOnlyVerifiedSecurityBindings(t *testing.T) {
 	}
 	authorities := newProtectedAuthoritiesForServerTest(t)
 	server, err := NewProtectedService(
-		cfg,
+		&cfg,
 		health.NewState(),
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
 		"test",
@@ -325,7 +325,7 @@ func TestProtectedServiceUsesOnlyVerifiedSecurityBindings(t *testing.T) {
 func TestProtectedServiceRejectsRelativeBundledAppsRoot(t *testing.T) {
 	authorities := newProtectedAuthoritiesForServerTest(t)
 	_, err := NewProtectedService(
-		config.Config{},
+		&config.Config{},
 		health.NewState(),
 		slog.New(slog.NewTextHandler(io.Discard, nil)),
 		"test",
@@ -354,7 +354,7 @@ func TestProtectedServiceRejectsRelativeBundledAppsRoot(t *testing.T) {
 func TestSourceDevelopmentAppInputsRequireCurrentUserDirectComposition(t *testing.T) {
 	for _, perUser := range []bool{false, true} {
 		root := t.TempDir()
-		_, err := NewProtectedService(config.Config{}, health.NewState(), slog.New(slog.NewTextHandler(io.Discard, nil)), "test", ProtectedServiceBindings{
+		_, err := NewProtectedService(&config.Config{}, health.NewState(), slog.New(slog.NewTextHandler(io.Discard, nil)), "test", ProtectedServiceBindings{
 			ServiceStateRoot: root, ProductControlRoot: filepath.Join(root, ".nimi"),
 			SourceLocalDevelopment: true, PerUserRuntime: perUser,
 		})
@@ -372,7 +372,7 @@ func TestProtectedServiceRejectsMissingDesktopSessionAuthority(t *testing.T) {
 	} {
 		t.Run(name, func(t *testing.T) {
 			server, err := NewProtectedService(
-				config.Config{
+				&config.Config{
 					GRPCAddr:                "127.0.0.1:0",
 					HTTPAddr:                "127.0.0.1:0",
 					ShutdownTimeout:         2 * time.Second,

@@ -120,14 +120,15 @@ type assetDiskMetadata struct {
 }
 
 type assetOwnerState struct {
-	quotaMu sync.Mutex
-	streams chan struct{}
+	quotaMu         sync.Mutex
+	streams         chan struct{}
+	candidatesMu    sync.Mutex
+	candidatesReady bool
 }
 
 // @nimi-authority: definition.nimi.runtime.app-surface.app-projection-plane
 type AssetStore struct {
 	dataRoot  string
-	baseRoot  string
 	policy    AssetPolicy
 	cursorKey [32]byte
 
@@ -146,14 +147,11 @@ func NewAssetStore(dataRootRef string, policy AssetPolicy) (*AssetStore, error) 
 		return nil, ErrAssetUnavailable
 	}
 	store := &AssetStore{
-		dataRoot: dataRootRef, baseRoot: baseRoot, policy: policy.normalized(),
+		dataRoot: dataRootRef, policy: policy.normalized(),
 		owners: make(map[string]*assetOwnerState), pathLocks: make(map[string]*sync.Mutex),
 	}
 	if _, err := rand.Read(store.cursorKey[:]); err != nil {
 		return nil, ErrAssetUnavailable
-	}
-	if err := store.cleanupAbandonedCandidates(); err != nil {
-		return nil, err
 	}
 	return store, nil
 }
@@ -257,6 +255,9 @@ func (store *AssetStore) write(
 
 	objectsRoot, candidatesRoot, err := store.materializeAssetRoots(ownerRoot)
 	if err != nil {
+		return AssetRecord{}, err
+	}
+	if err := state.prepareCandidates(candidatesRoot); err != nil {
 		return AssetRecord{}, err
 	}
 	target, err := assetObjectPath(objectsRoot, normalizedPath)
@@ -631,32 +632,28 @@ func (store *AssetStore) materializeAssetRoots(ownerRoot string) (string, string
 	return objectsRoot, candidatesRoot, nil
 }
 
-func (store *AssetStore) cleanupAbandonedCandidates() error {
-	return filepath.WalkDir(store.baseRoot, func(current string, entry fs.DirEntry, walkErr error) error {
-		if walkErr != nil {
+// Only the admitted owner's first write can clean its abandoned candidates.
+// The per-owner lock keeps that cleanup ahead of every live candidate.
+func (state *assetOwnerState) prepareCandidates(root string) error {
+	state.candidatesMu.Lock()
+	defer state.candidatesMu.Unlock()
+	if state.candidatesReady {
+		return nil
+	}
+	children, err := os.ReadDir(root)
+	if err != nil {
+		return ErrAssetUnavailable
+	}
+	for _, child := range children {
+		if !child.Type().IsRegular() {
 			return ErrAssetUnavailable
 		}
-		if entry.Type()&os.ModeSymlink != 0 {
+		if err := os.Remove(filepath.Join(root, child.Name())); err != nil {
 			return ErrAssetUnavailable
 		}
-		if !entry.IsDir() || entry.Name() != "asset-candidates" || filepath.Base(filepath.Dir(current)) != "internal" {
-			return nil
-		}
-		children, err := os.ReadDir(current)
-		if err != nil {
-			return ErrAssetUnavailable
-		}
-		for _, child := range children {
-			target := filepath.Join(current, child.Name())
-			if child.IsDir() || child.Type()&os.ModeSymlink != 0 {
-				return ErrAssetUnavailable
-			}
-			if err := os.Remove(target); err != nil {
-				return ErrAssetUnavailable
-			}
-		}
-		return filepath.SkipDir
-	})
+	}
+	state.candidatesReady = true
+	return nil
 }
 
 func assetObjectPath(objectsRoot string, relativePath string) (string, error) {

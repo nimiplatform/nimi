@@ -573,6 +573,9 @@ func TestProtectedDesktopRPCTransportBindsVerifiedConnectionAndGatesAdmittedServ
 	if _, err = localClient.ListModelAssets(machineContext, &runtimev1.ListModelAssetsRequest{}); status.Code(err) != codes.Unavailable || localService.modelAssetsCalled {
 		t.Fatalf("root-bound protected Desktop RPC crossed prepared handoff: called=%v err=%v", localService.modelAssetsCalled, err)
 	}
+	if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE {
+		t.Fatalf("root admission refusal must preserve the protected channel: %v", err)
+	}
 	runtimeControlClient := runtimev1.NewRuntimeServiceControlServiceClient(clientConn)
 	if _, err = runtimeControlClient.RequestRuntimeRestart(context.Background(), &runtimev1.RequestRuntimeRestartRequest{}); status.Code(err) != codes.Unavailable || runtimeControlService.restartCalls != 0 {
 		t.Fatalf("Runtime restart crossed protected admission before commit: calls=%d err=%v", runtimeControlService.restartCalls, err)

@@ -32,7 +32,7 @@ func newProtectedAuditServerForTest(t *testing.T, serviceStateRoot string, produ
 		AuditRingBufferSize: 64, UsageStatsBufferSize: 64, IdempotencyCapacity: 32,
 	}
 	authorities := newProtectedAuthoritiesForServerTest(t)
-	server, err := NewProtectedService(cfg, health.NewState(), slog.New(slog.NewTextHandler(io.Discard, nil)), "test", ProtectedServiceBindings{
+	server, err := NewProtectedService(&cfg, health.NewState(), slog.New(slog.NewTextHandler(io.Discard, nil)), "test", ProtectedServiceBindings{
 		ServiceStateRoot:                 serviceStateRoot,
 		ProductControlRoot:               productControlRoot,
 		RuntimeServiceSID:                protectedlocal.WindowsProductionServiceSID,
