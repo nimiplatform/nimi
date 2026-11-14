@@ -31,6 +31,10 @@ export default {
     if (url.pathname === '/api' || url.pathname.startsWith('/api/')) {
       return new Response('Not found', { status: 404, headers: { 'Cache-Control': 'no-store' } });
     }
+    // Retired page URLs must return Gone before Pages falls back to index.html.
+    if (/^\/blueyard(?:\.html)?\/?$/u.test(url.pathname)) {
+      return new Response(request.method === 'HEAD' ? null : 'Gone', { status: 410 });
+    }
 
     const asset = await env.ASSETS.fetch(request);
     const response = new Response(asset.body, asset);

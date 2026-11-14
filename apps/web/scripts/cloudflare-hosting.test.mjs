@@ -74,3 +74,14 @@ test('preview pages do not redirect into production or gain production connect p
   assert.equal(response.headers.get('x-robots-tag'), 'noindex');
   assert.match(response.headers.get('content-security-policy'), /connect-src 'self'; form-action 'self'/u);
 });
+
+test('the retired BlueYard page returns Gone before the static asset fallback', async () => {
+  for (const path of ['/blueyard', '/blueyard.html', '/blueyard/']) {
+    const url = `https://nimi.ai${path}?lang=en`;
+    const response = await worker.fetch(new Request(url), {});
+    assert.equal(response.status, 410);
+    const head = await worker.fetch(new Request(url, { method: 'HEAD' }), {});
+    assert.equal(head.status, 410);
+    assert.equal(head.body, null);
+  }
+});

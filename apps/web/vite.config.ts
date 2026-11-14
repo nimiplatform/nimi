@@ -186,7 +186,6 @@ export default defineConfig(({ mode }) => {
           main: path.resolve(import.meta.dirname, 'index.html'),
           download: path.resolve(import.meta.dirname, 'download.html'),
           codeSigning: path.resolve(import.meta.dirname, 'code-signing.html'),
-          blueyard: path.resolve(import.meta.dirname, 'blueyard.html'),
           terms: path.resolve(import.meta.dirname, 'terms.html'),
           privacy: path.resolve(import.meta.dirname, 'privacy.html'),
         },
