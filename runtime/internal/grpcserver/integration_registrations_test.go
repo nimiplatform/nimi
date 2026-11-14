@@ -125,7 +125,11 @@ func TestRemoteIntegrationConsumerRequiresCurrentVerifiedPeer(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer kernel.Close()
+	t.Cleanup(func() {
+		if err := kernel.Close(); err != nil {
+			t.Error(err)
+		}
+	})
 	registered, err := kernel.Registrations().RegisterRemote(ctx, localappkernel.RegisterRemoteInput{
 		AppID: "example.remote", DisplayName: "Remote search", RealmEnvironmentID: "test", ClientID: "remote.search",
 		Origin: "https://search.example", RedirectURI: "https://search.example/", Role: "app", SourceRevision: 1,
