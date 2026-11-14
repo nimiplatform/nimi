@@ -28,6 +28,7 @@ export type UseAuthFlowConfig = {
   adapter: WebAccountAuthAdapter;
   mode: 'embedded';
   initialView?: AuthView;
+  initialStage?: 'logo' | 'email';
   /** Auth status from app store */
   authStatus?: string;
   /** Auth user from app store */
@@ -107,7 +108,7 @@ export function useAuthFlow(config: UseAuthFlowConfig): UseAuthFlowReturn {
     adapter.supportsPasswordLogin !== false && typeof adapter.passwordLogin === 'function';
 
   const [view, setView] = useState<AuthView>(config.initialView ?? 'main');
-  const [embeddedStage, setEmbeddedStage] = useState<EmbeddedAuthStage>('logo');
+  const [embeddedStage, setEmbeddedStage] = useState<EmbeddedAuthStage>(config.initialStage ?? 'logo');
   const [showAlternatives, setShowAlternatives] = useState(false);
   const [showRegisterConfirm, setShowRegisterConfirm] = useState(false);
   const [pending, setPending] = useState(false);

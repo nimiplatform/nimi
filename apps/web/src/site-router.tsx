@@ -1,4 +1,4 @@
-import { Suspense, lazy, useState } from 'react';
+import { Suspense, lazy, useRef, useState, type RefObject } from 'react';
 import {
   createBrowserRouter,
   createRoutesFromElements,
@@ -61,6 +61,15 @@ const ProviderLinkCallbackPage = lazy(async () => {
   return { default: module.ProviderLinkCallbackPage };
 });
 
+type AccountConfirmation = { loginLocationKey: string; account: Record<string, unknown> };
+export type AccountRouteContext = RefObject<AccountConfirmation | null>;
+
+function AccountRoutes() {
+  // The just-confirmed account crosses an SPA navigation in memory only.
+  const confirmation = useRef<AccountConfirmation | null>(null);
+  return <Outlet context={confirmation} />;
+}
+
 function detectFallbackLocale(): 'zh' | 'en' {
   if (typeof window === 'undefined') return 'en';
   const lang = new URLSearchParams(window.location.search).get('lang');
@@ -110,16 +119,18 @@ export function SiteRouter() {
         <Route element={<RootRouteLayout />} errorElement={<SharedRouteErrorElement />}>
           <Route path="/" element={<LandingApp />} />
           <Route path="/index.html" element={<LandingApp />} />
-          <Route path="/login" element={<WebAccountPage />} />
-          <Route path="/register" element={<WebAccountPage />} />
-          <Route path="/account/recovery" element={<AccountRecoveryPage />} />
-          <Route path="/account/2fa" element={<WebAccountPage />} />
-          <Route
-            path="/account/*"
-            element={<AccountManagementPage />}
-            errorElement={<SharedRouteErrorElement />}
-          />
-          <Route path="/account/oauth/callback" element={<ProviderLinkCallbackPage />} />
+          <Route element={<AccountRoutes />}>
+            <Route path="/login" element={<WebAccountPage />} />
+            <Route path="/register" element={<WebAccountPage />} />
+            <Route path="/account/recovery" element={<AccountRecoveryPage />} />
+            <Route path="/account/2fa" element={<WebAccountPage />} />
+            <Route
+              path="/account/*"
+              element={<AccountManagementPage />}
+              errorElement={<SharedRouteErrorElement />}
+            />
+            <Route path="/account/oauth/callback" element={<ProviderLinkCallbackPage />} />
+          </Route>
           <Route path="/home" element={<StaticPage kind="home" />} />
           <Route path="/home.html" element={<StaticPage kind="home" />} />
           <Route path="/apps" element={<StaticPage kind="apps" />} />

@@ -29,6 +29,27 @@ function authAdapter() {
 }
 
 describe('WebAccountAuthPage entry action semantics', () => {
+  it('allows entering email immediately when the owner starts at the email form', () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+    act(() => root.render(
+      <WebAccountAuthPage
+        initialStage="email"
+        adapter={authAdapter()}
+        session={{ mode: 'embedded' }}
+        branding={{ networkLabel: 'Nimi', logo: '/logo.png' }}
+        appearance={{ theme: 'default' }}
+        background={null}
+      />,
+    ));
+    const email = container.querySelector<HTMLInputElement>('input[type="email"]');
+    expect(email?.disabled).toBe(false);
+    expect(document.activeElement).toBe(email);
+    act(() => root.unmount());
+    container.remove();
+  });
+
   it('reports readiness once per canonical instance under StrictMode replay', () => {
     const container = document.createElement('div');
     document.body.appendChild(container);

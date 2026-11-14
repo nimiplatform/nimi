@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Link, Route, Routes, useBeforeUnload, useBlocker, useLocation } from 'react-router-dom';
+import { Link, Route, Routes, useBeforeUnload, useBlocker, useLocation, useOutletContext } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { WebAccountAuthPage } from '@nimiplatform/kit/auth';
 import { isNimiRealmExpectedAnonymousSessionError } from '@nimiplatform/sdk/realm';
@@ -28,6 +28,7 @@ import { AccountRuntime } from './account-runtime.js';
 import { AccountConnect } from './account-connect.js';
 import { accountLoginUrl } from './account-center-model.js';
 import { accountReadProblem, useAccountCopy, type AccountCopyKey } from './account-center-copy.js';
+import type { AccountRouteContext } from '../site-router.js';
 import './account-center.css';
 
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-web-005a
@@ -35,6 +36,9 @@ export function AccountManagementPage() {
   const { t, i18n } = useTranslation();
   const c = useAccountCopy();
   const location = useLocation();
+  const confirmation = useOutletContext<AccountRouteContext>();
+  const loginLocationKey = useRef<unknown>(location.state);
+  const confirmedOnEntry = useRef(false);
   const verifyingDeletion = location.pathname === '/account/delete';
   const [user, setUser] = useState<Record<string, unknown> | null>(null);
   const [checking, setChecking] = useState(true);
@@ -82,6 +86,7 @@ export function AccountManagementPage() {
     [observeTerminalError],
   );
   const refresh = useCallback(async () => {
+    confirmedOnEntry.current = false;
     const current = ++request.current;
     try {
       const next = await loadWebCurrentAccount();
@@ -98,7 +103,17 @@ export function AccountManagementPage() {
   }, [observeTerminalError, c]);
   useEffect(() => {
     mounted.current = true;
-    if (!verifyingOwner) void refresh();
+    if (!verifyingOwner && !confirmedOnEntry.current) {
+      const entry = confirmation.current;
+      confirmation.current = null;
+      if (entry && entry.loginLocationKey === loginLocationKey.current) {
+        confirmedOnEntry.current = true;
+        setUser(entry.account);
+        setChecking(false);
+      } else {
+        void refresh();
+      }
+    }
     const visible = () => {
       if (!verifyingOwner && document.visibilityState === 'visible') void refresh();
     };
@@ -108,7 +123,7 @@ export function AccountManagementPage() {
       request.current += 1;
       document.removeEventListener('visibilitychange', visible);
     };
-  }, [refresh, verifyingOwner]);
+  }, [confirmation, refresh, verifyingOwner]);
   useEffect(() => {
     const route = location.pathname.split('/')[2] || '';
     const key = (
@@ -130,12 +145,16 @@ export function AccountManagementPage() {
     try {
       await createWebBrowserRealm('').auth.logout({ path: {}, body: {} });
       if (!mounted.current) return;
+      confirmedOnEntry.current = false;
+      request.current += 1;
       setDirty(false);
       setUser(null);
       if (verify) setVerifyingOwner(owner);
     } catch (reason) {
       if (!mounted.current || observeTerminalError(reason)) return;
       if (isNimiRealmExpectedAnonymousSessionError(reason)) {
+        confirmedOnEntry.current = false;
+        request.current += 1;
         setUser(null);
         if (verify) setVerifyingOwner(owner);
       } else setError(reason instanceof Error ? reason.message : t('Account.logoutFailed'));

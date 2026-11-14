@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Link, Navigate, useLocation } from 'react-router-dom';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { Link, useLocation, useNavigate, useOutletContext } from 'react-router-dom';
 import { extractNimiErrorFields } from '@nimiplatform/sdk/types';
 import { accountReturnTo } from './account-center-model.js';
 import { useTranslation } from 'react-i18next';
@@ -20,6 +20,7 @@ import {
   readValidatedOauthNext,
 } from './oauth-continuation.js';
 import { webHomeAuthPalette } from './web-auth-appearance.js';
+import type { AccountRouteContext } from '../site-router.js';
 
 // Keep the landing homepage neutral surfaces; focus and action accents come
 // from the shared Nimi auth theme.
@@ -65,7 +66,15 @@ function formatSessionError(error: unknown, fallback: string, isZh: boolean): st
 
 export function WebAccountPage() {
   const location = useLocation();
+  const navigate = useNavigate();
+  const confirmation = useOutletContext<AccountRouteContext>();
   const activeSearch = location.search || (typeof window === 'undefined' ? '' : window.location.search);
+  const params = new URLSearchParams(activeSearch);
+  const ordinaryLogin = location.pathname === '/login'
+    && !params.has('oauth_next') && !params.has('runtime_confirmation');
+  const returnTo = params.has('returnTo') && !params.has('oauth_next')
+    ? accountReturnTo(activeSearch)
+    : null;
   const homeHref = resolveHomeHref(activeSearch);
   const accountHref = resolveAccountHref(activeSearch);
   const { t, i18n } = useTranslation();
@@ -77,49 +86,74 @@ export function WebAccountPage() {
   }, [explicitLang, i18n]);
   const isZh = (explicitLang ?? i18n.resolvedLanguage ?? i18n.language ?? '').toLowerCase().startsWith('zh');
   useEffect(() => { document.title = `${t('Auth.signIn')} · Nimi`; }, [t]);
-  const adapter = useMemo(() => createWebAccountAuthAdapter(), []);
+  const sessionCheck = useRef<Promise<boolean> | null>(null);
+  const adapter = useMemo(() => createWebAccountAuthAdapter(undefined, async () => {
+    // A refresh in progress can set the same cookies as a credential submission.
+    const check = sessionCheck.current;
+    if (!check || !(await check) || check !== sessionCheck.current) {
+      throw new DOMException('The sign-in form is no longer active.', 'AbortError');
+    }
+  }), []);
   const [currentUser, setCurrentUser] = useState<Record<string, unknown> | null>(null);
   const [checking, setChecking] = useState(true);
-  const [sessionError, setSessionError] = useState<string | null>(null);
+  const [sessionFailure, setSessionFailure] = useState<{ error: unknown } | null>(null);
+  const sessionError = sessionFailure
+    ? formatSessionError(sessionFailure.error, t('Account.sessionUnknown'), isZh)
+    : null;
 
   useEffect(() => {
     let active = true;
-    void (async () => {
-      const search = window.location.search;
+    const check = (async () => {
+      const search = activeSearch;
+      setSessionFailure(null);
       if (new URLSearchParams(search).get('runtime_confirmation') === '1' && accountReturnTo(search).startsWith('/account/connect?')) {
         setCurrentUser(null);
         setChecking(false);
-        return;
+        return true;
       }
       const user = await adapter.loadCurrentUser();
-      if (!active) return;
-      const oauthNext = readValidatedOauthNext(window.location.search);
-      const freshOauthContinuation = isFreshOauthContinuation(window.location.search);
-      const freshAccountSelection = isFreshAccountSelection(window.location.search);
+      if (!active) return false;
+      const oauthNext = readValidatedOauthNext(search);
+      const freshOauthContinuation = isFreshOauthContinuation(search);
+      const freshAccountSelection = isFreshAccountSelection(search);
       if (user && oauthNext && !freshOauthContinuation) {
-        await adapter.completeBrowserSessionLogin();
-        return;
+        continueOauthNext(search);
+        return false;
       }
       if (user && freshAccountSelection) {
         await clearWebBrowserSessionForFreshAccountSelection();
-        if (!active) return;
-        if (!continueOauthNext(window.location.search)) {
-          throw new Error(t('Account.switchContinuationExpired'));
+        if (!active) return false;
+        if (!continueOauthNext(search)) {
+          setSessionFailure({ error: new Error(i18n.t('Account.switchContinuationExpired')) });
+          setChecking(false);
         }
-        return;
+        return false;
       }
       setCurrentUser(freshOauthContinuation ? null : user);
       setChecking(false);
+      return !user || freshOauthContinuation;
     })().catch((error) => {
-      if (!active) return;
-      if (extractNimiErrorFields(error).reasonCode === 'ACCOUNT_DELETED') setCurrentUser(null);
-      else setSessionError(formatSessionError(error, t('Account.sessionUnknown'), isZh));
+      if (!active) return false;
+      const deleted = extractNimiErrorFields(error).reasonCode === 'ACCOUNT_DELETED';
+      if (deleted) setCurrentUser(null);
+      else setSessionFailure({ error });
       setChecking(false);
+      return deleted || ordinaryLogin;
     });
-    return () => { active = false; };
-  }, [adapter, isZh, t]);
+    sessionCheck.current = check;
+    return () => {
+      active = false;
+      sessionCheck.current = null;
+    };
+  }, [activeSearch, adapter, i18n, ordinaryLogin]);
 
-  if (checking) {
+  useEffect(() => {
+    if (!currentUser || !returnTo) return;
+    confirmation.current = { loginLocationKey: location.key, account: currentUser };
+    void navigate(returnTo, { replace: true, state: location.key });
+  }, [confirmation, currentUser, location.key, navigate, returnTo]);
+
+  if (checking && !ordinaryLogin) {
     return (
       <WebAccountStatusShell>
         <p className="web-account-session-message" role="status">{t('Account.sessionCheck')}</p>
@@ -127,7 +161,7 @@ export function WebAccountPage() {
     );
   }
 
-  if (sessionError) {
+  if (sessionError && !ordinaryLogin) {
     return (
       <WebAccountStatusShell>
         <div className="web-account-session">
@@ -154,10 +188,7 @@ export function WebAccountPage() {
   }
 
   if (currentUser) {
-    const params = new URLSearchParams(window.location.search);
-    if (params.has('returnTo') && !params.has('oauth_next')) {
-      return <Navigate to={accountReturnTo(window.location.search)} replace />;
-    }
+    if (returnTo) return null;
     return (
       <WebAccountStatusShell>
         <div className="web-account-session">
@@ -181,10 +212,12 @@ export function WebAccountPage() {
 
   return (
     <WebAccountAuthPage
+      initialStage={ordinaryLogin ? 'email' : 'logo'}
       passwordRecoveryLink={<Link className="underline" to={{ pathname: '/account/recovery', search: activeSearch }}>{t('Auth.forgotPassword')}</Link>}
       adapter={adapter}
       session={{
         mode: 'embedded',
+        authError: sessionError,
         setAuthSession: (user) => setCurrentUser(user),
       }}
       branding={{ networkLabel: 'Nimi', logo: '/logo.svg', logoAltText: 'Nimi' }}

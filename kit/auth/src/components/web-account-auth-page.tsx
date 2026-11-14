@@ -61,6 +61,7 @@ export function WebAccountAuthPage(props: WebAccountAuthPageProps) {
   const flow = useAuthFlow({
     adapter,
     mode: session.mode,
+    initialStage: props.initialStage,
     authStatus: session.authStatus,
     authUser: session.authUser,
     setAuthSession: session.setAuthSession,

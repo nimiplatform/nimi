@@ -2,8 +2,8 @@ import { Realm, createRealmFetchTransport } from '@nimiplatform/sdk/realm';
 import { isSecureBrowserSessionOrigin, readValidatedOauthNext } from './oauth-continuation.js';
 import { createBrowserSessionReader } from './browser-session-reader.js';
 
-const BROWSER_SESSION_HEADERS = Object.freeze({
-  'x-nimi-auth-response': 'browser-session',
+export const BROWSER_SESSION_RESPONSE = Object.freeze({
+  metadata: Object.freeze({ 'x-nimi-auth-response': 'browser-session' }),
 });
 
 function realmOrigin(search: string): string {
@@ -30,7 +30,6 @@ export function createWebBrowserRealm(search = window.location.search): Realm {
     transport: createRealmFetchTransport({
       baseUrl: realmOrigin(search),
       credentials: 'include',
-      headers: BROWSER_SESSION_HEADERS,
     }),
   });
 }
@@ -44,12 +43,23 @@ export function readWebBrowserAccount() {
   let read = accountReaders.get(origin);
   if (!read) {
     const realm = createWebBrowserRealm();
-    read = createBrowserSessionReader({
-      read: () => realm.me(),
+    read = createBrowserSessionReader<BrowserAccount>({
+      read: async () => {
+        let hint: string | undefined;
+        try {
+          return {
+            account: await realm.account.getMe({ path: {} }, {
+              responseMetadataObserver: (metadata) => { hint = metadata['x-nimi-browser-session']; },
+            }),
+          };
+        } catch (error) {
+          return { error, noRefreshCookie: hint === 'no-refresh' };
+        }
+      },
       renew: async () => {
         await realm.generated.refreshBrowserSession({
           path: {},
-          headers: { 'x-nimi-auth-response': 'browser-session' },
+          headers: BROWSER_SESSION_RESPONSE.metadata,
         });
       },
       exclusive: (work, originalError) => {

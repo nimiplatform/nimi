@@ -6,7 +6,7 @@ import {
   type NimiRealmOAuthLoginResult,
 } from '@nimiplatform/sdk/realm';
 import { ReasonCode, createNimiError } from '@nimiplatform/sdk/types';
-import { createWebBrowserRealm } from './browser-realm.js';
+import { BROWSER_SESSION_RESPONSE, createWebBrowserRealm } from './browser-realm.js';
 import { readValidatedOauthNext } from './oauth-continuation.js';
 
 const TIKTOK_AUTHORIZE_URL = 'https://www.tiktok.com/v2/auth/authorize/';
@@ -148,7 +148,7 @@ export async function completeTikTokAccountOAuth(search: string, invalidAccountM
     await linkNimiRealmOAuth(createWebBrowserRealm(''), { ...input, expectedAccountId: pending.expectedAccountId });
     return { mode: pending.mode };
   }
-  const loginResult = await loginNimiRealmOAuth(createWebBrowserRealm(''), input);
+  const loginResult = await loginNimiRealmOAuth(createWebBrowserRealm(''), input, BROWSER_SESSION_RESPONSE);
   if (loginResult.tokens != null) {
     throw browserSessionContractError('Realm 向 Web browser session 返回了禁止的 bearer。');
   }

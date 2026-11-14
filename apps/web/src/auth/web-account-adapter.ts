@@ -15,7 +15,7 @@ import { ReasonCode, createNimiError } from '@nimiplatform/sdk/types';
 import type { WebAccountAuthAdapter } from '@nimiplatform/kit/auth';
 import { continueOauthNext } from './oauth-continuation.js';
 import { beginTikTokAccountLogin } from './web-provider-link.js';
-import { createWebBrowserRealm, readWebBrowserAccount } from './browser-realm.js';
+import { BROWSER_SESSION_RESPONSE, createWebBrowserRealm, readWebBrowserAccount } from './browser-realm.js';
 
 function rejectBearerResponse(result: NimiRealmOAuthLoginResult): NimiRealmOAuthLoginResult {
   if (result.tokens != null) {
@@ -58,33 +58,46 @@ export async function clearWebBrowserSessionForFreshAccountSelection(): Promise<
 
 // @nimi-authority: rule.nimi.sdks.realm-consumer.r046
 // @nimi-authority: rule.nimi.sdks.realm-consumer.r047
-export function createWebAccountAuthAdapter(onAuthenticationError?: (error: unknown) => void): WebAccountAuthAdapter {
+export function createWebAccountAuthAdapter(
+  onAuthenticationError?: (error: unknown) => void,
+  beforeAuthentication?: () => void | Promise<void>,
+): WebAccountAuthAdapter {
   const observe = async <T>(work: () => Promise<T>): Promise<T> => {
-    try { return await work(); } catch (error) { onAuthenticationError?.(error); throw error; }
+    try {
+      await beforeAuthentication?.();
+      return await work();
+    } catch (error) {
+      onAuthenticationError?.(error);
+      throw error;
+    }
   };
   return {
     supportsPasswordLogin: true,
     checkEmail: (email) => checkNimiRealmAuthEmail(createWebBrowserRealm(), email),
     passwordLogin: async (identifier, password) => observe(async () => rejectBearerResponse(
-      await loginNimiRealmAuthPassword(createWebBrowserRealm(), identifier, password),
+      await loginNimiRealmAuthPassword(createWebBrowserRealm(), identifier, password, BROWSER_SESSION_RESPONSE),
     )),
-    requestEmailOtp: (email) => requestNimiRealmEmailOtp(createWebBrowserRealm(), email),
+    requestEmailOtp: (email) => observe(() => requestNimiRealmEmailOtp(createWebBrowserRealm(), email)),
     verifyEmailOtp: async (email, code) => observe(async () => rejectBearerResponse(
-      await verifyNimiRealmEmailOtp(createWebBrowserRealm(), email, code),
+      await verifyNimiRealmEmailOtp(createWebBrowserRealm(), email, code, BROWSER_SESSION_RESPONSE),
     )),
     verifyTwoFactor: async (tempToken, code) => observe(async () => {
-      const response = await createWebBrowserRealm().auth.verify2Fa({ path: {}, body: { tempToken, code } });
+      const response = await createWebBrowserRealm().auth.verify2Fa({ path: {}, body: { tempToken, code } }, BROWSER_SESSION_RESPONSE);
       if (response && typeof response === 'object' && ('accessToken' in response || 'refreshToken' in response)) {
         throw new Error('Realm returned bearer material to the browser-session surface.');
       }
     }),
     walletChallenge: (input) => createNimiRealmWalletChallenge(createWebBrowserRealm(), input),
-    walletLogin: async (input) => observe(async () => rejectBearerResponse(await loginNimiRealmWallet(createWebBrowserRealm(), input))),
-    oauthLogin: async (input) => observe(async () => rejectBearerResponse(await loginNimiRealmOAuth(createWebBrowserRealm(), input))),
-    beginSocialOAuth: async () => {
+    walletLogin: async (input) => observe(async () => rejectBearerResponse(
+      await loginNimiRealmWallet(createWebBrowserRealm(), input, BROWSER_SESSION_RESPONSE),
+    )),
+    oauthLogin: async (input) => observe(async () => rejectBearerResponse(
+      await loginNimiRealmOAuth(createWebBrowserRealm(), input, BROWSER_SESSION_RESPONSE),
+    )),
+    beginSocialOAuth: () => observe(async () => {
       await beginTikTokAccountLogin(window.location.search);
       return null;
-    },
+    }),
     updatePassword: async (newPassword) => {
       await updateNimiRealmPassword(createWebBrowserRealm(), { newPassword });
     },

@@ -2,7 +2,7 @@ import { useEffect, useState, type FormEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { ReasonCode, createNimiError } from '@nimiplatform/sdk/types';
-import { createWebBrowserRealm } from './browser-realm.js';
+import { BROWSER_SESSION_RESPONSE, createWebBrowserRealm } from './browser-realm.js';
 import {
   completeTikTokAccountOAuth,
   confirmCurrentWebBrowserSession,
@@ -57,7 +57,7 @@ export function ProviderLinkCallbackPage() {
     void createWebBrowserRealm('').auth.verify2Fa({
       path: {},
       body: { tempToken: twoFactor.tempToken, code },
-    }).then((response) => {
+    }, BROWSER_SESSION_RESPONSE).then((response) => {
       if (response && typeof response === 'object' && ('accessToken' in response || 'refreshToken' in response)) {
         throw createNimiError({
           message: t('Account.bearerForbidden'),

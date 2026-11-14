@@ -10,11 +10,8 @@ const direct = <T>(work: () => Promise<T>) => work();
 test('missing access cookie renews once and then confirms the actual account', async () => {
   let ready = false;
   let renewals = 0;
-  const read = createBrowserSessionReader({
-    read: async () => {
-      if (!ready) throw error('AUTH_REQUIRED');
-      return { id: 'account-a' };
-    },
+  const read = createBrowserSessionReader<{ id: string }>({
+    read: async () => ready ? { account: { id: 'account-a' } } : { error: error('AUTH_REQUIRED') },
     renew: async () => {
       renewals += 1;
       ready = true;
@@ -29,11 +26,10 @@ test('concurrent reads in one page share renewal without storing an authenticate
   let ready = false;
   let renewals = 0;
   let reads = 0;
-  const read = createBrowserSessionReader({
+  const read = createBrowserSessionReader<string>({
     read: async () => {
       reads += 1;
-      if (!ready) throw error('AUTH_TOKEN_EXPIRED');
-      return 'account-a';
+      return ready ? { account: 'account-a' } : { error: error('AUTH_TOKEN_EXPIRED') };
     },
     renew: async () => {
       renewals += 1;
@@ -54,11 +50,8 @@ test('concurrent reads in one page share renewal without storing an authenticate
 
 test('a tab rechecks after acquiring the lock and uses renewal completed by another tab', async () => {
   let renewedElsewhere = false;
-  const read = createBrowserSessionReader({
-    read: async () => {
-      if (!renewedElsewhere) throw error('AUTH_REQUIRED');
-      return 'current-account';
-    },
+  const read = createBrowserSessionReader<string>({
+    read: async () => renewedElsewhere ? { account: 'current-account' } : { error: error('AUTH_REQUIRED') },
     renew: async () => assert.fail('Do not rotate the already-renewed cookie again'),
     exclusive: async (work) => {
       renewedElsewhere = true;
@@ -72,9 +65,7 @@ test('revocation, deletion and outages never trigger renewal or become false aut
   for (const code of ['AUTH_SESSION_REVOKED', 'ACCOUNT_DELETED', 'REALM_UNAVAILABLE']) {
     const failure = error(code);
     const read = createBrowserSessionReader({
-      read: async () => {
-        throw failure;
-      },
+      read: async () => ({ error: failure }),
       renew: async () => assert.fail('Renewal not allowed'),
       exclusive: direct,
     });
@@ -87,9 +78,7 @@ test('missing refresh credentials stay anonymous; a renewal outage remains an er
     const initial = error('AUTH_REQUIRED');
     const failure = error(code);
     const read = createBrowserSessionReader({
-      read: async () => {
-        throw initial;
-      },
+      read: async () => ({ error: initial }),
       renew: async () => {
         throw failure;
       },
@@ -100,4 +89,19 @@ test('missing refresh credentials stay anonymous; a renewal outage remains an er
       (value) => value === (code === 'AUTH_INVALID_REFRESH_TOKEN' ? initial : failure),
     );
   }
+});
+
+test('Realm confirms an anonymous browser with one read and no refresh', async () => {
+  const failure = error('AUTH_REQUIRED');
+  let reads = 0;
+  const read = createBrowserSessionReader({
+    read: async () => {
+      reads += 1;
+      return { error: failure, noRefreshCookie: true };
+    },
+    renew: async () => assert.fail('An anonymous browser cannot refresh'),
+    exclusive: async () => assert.fail('An anonymous browser does not need the lock'),
+  });
+  await assert.rejects(read(), (value) => value === failure);
+  assert.equal(reads, 1);
 });

@@ -176,6 +176,7 @@ export type WebAccountAuthBackgroundState = {
 
 export type WebAccountAuthPageProps = {
   passwordRecoveryLink?: ReactNode;
+  initialStage?: 'logo' | 'email';
   adapter: WebAccountAuthAdapter;
   session: WebAccountAuthSession;
   branding: WebAccountAuthBranding;
