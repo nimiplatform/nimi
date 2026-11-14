@@ -512,16 +512,31 @@ func (s *Service) AuthorizeLocalAppIngress(ctx context.Context, ingress localapp
 	return accountservice.ContextWithAuthorizedLocalAppDecision(bindLocalAppSessionInvalidation(ctx, sessionInvalidated), decision), nil
 }
 
+type localAppSessionInvalidationKey struct{}
+
+type localAppSessionInvalidationBinding struct {
+	session <-chan struct{}
+	done    <-chan struct{}
+}
+
 func bindLocalAppSessionInvalidation(ctx context.Context, invalidated <-chan struct{}) context.Context {
+	// Stream owners reauthorize on each poll. Reuse the exact cancellation
+	// binding without reusing the authorization decision. A detached context
+	// inherits values but not Done, and still needs its own binding.
+	if bound, ok := ctx.Value(localAppSessionInvalidationKey{}).(localAppSessionInvalidationBinding); ok &&
+		bound.session == invalidated && bound.done == ctx.Done() {
+		return ctx
+	}
 	bound, cancel := context.WithCancel(ctx)
+	done := bound.Done()
 	go func() {
 		select {
 		case <-invalidated:
 			cancel()
-		case <-bound.Done():
+		case <-done:
 		}
 	}()
-	return bound
+	return context.WithValue(bound, localAppSessionInvalidationKey{}, localAppSessionInvalidationBinding{session: invalidated, done: done})
 }
 
 // @nimi-authority: rule.nimi.runtime.integration.final-publication

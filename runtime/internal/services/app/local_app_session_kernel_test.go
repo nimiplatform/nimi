@@ -144,6 +144,52 @@ func TestLocalAppSessionRenewalPreservesPreviouslyAuthorizedStreamContext(t *tes
 	}
 }
 
+func TestLocalAppSessionReauthorizationReusesLiveStreamCancellation(t *testing.T) {
+	fixture := newLocalAppSessionFixture(t, nil)
+	if _, err := fixture.service.OpenLocalAppSessionProjection(fixture.context); err != nil {
+		t.Fatal(err)
+	}
+	const ingress = localappop.IngressStorageJSONRead
+	stream, err := fixture.service.AuthorizeLocalAppIngress(fixture.context, ingress)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := fixture.service.RenewLocalAppSessionProjection(fixture.context); err != nil {
+		t.Fatal(err)
+	}
+	for range 32 {
+		current, err := fixture.service.AuthorizeLocalAppIngress(stream, ingress)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if current.Done() != stream.Done() {
+			t.Fatal("checking the same live stream installed another session listener")
+		}
+	}
+	work, err := fixture.service.AuthorizeLocalAppIngress(context.WithoutCancel(stream), ingress)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if work.Done() == nil || work.Done() == stream.Done() {
+		t.Fatal("detached work did not get its own session cancellation")
+	}
+	handle, _ := fixture.connection.Session()
+	fixture.connection.InvalidateSession(handle)
+	select {
+	case <-stream.Done():
+	case <-time.After(time.Second):
+		t.Fatal("stream was not cancelled on session invalidation")
+	}
+	select {
+	case <-work.Done():
+	case <-time.After(time.Second):
+		t.Fatal("detached work was not cancelled on session invalidation")
+	}
+	if _, err := fixture.service.AuthorizeLocalAppIngress(stream, ingress); err == nil {
+		t.Fatal("stream reauthorized after invalidation")
+	}
+}
+
 func TestLocalAppSessionRenewalUsesCurrentExpiryAndStillExpires(t *testing.T) {
 	fixture := newLocalAppSessionFixture(t, nil)
 	fixture.service.now = time.Now
