@@ -13,11 +13,8 @@ test('official routes and planned signing attribution remain clear in both local
     const copy = PUBLIC_PAGE_CONTENT[locale];
     assert.equal(copy.download.meta.canonical, 'https://nimi.ai/download');
     assert.equal(copy.policy.meta.canonical, 'https://nimi.ai/code-signing');
-    assert.equal(copy.download.attribution, REQUIRED_ATTRIBUTION);
     assert.equal(copy.policy.attribution, REQUIRED_ATTRIBUTION);
-    assert.match(copy.download.providerLabel, /Planned|计划/u);
     assert.match(copy.policy.attributionPending, /only after|仅在/u);
-    assert.match(copy.download.disclaimer, /Authenticode/);
     assert.match(copy.policy.team.items?.join('\n') ?? '', /@snowzane/);
     assert.ok(copy.policy.verificationChecks.every((check) => check.length > 0));
   }
@@ -25,24 +22,20 @@ test('official routes and planned signing attribution remain clear in both local
 
 test('the Beta identifies its actual platform assets and independent channel', () => {
   for (const locale of ['en', 'zh'] as const) {
-    const page = PUBLIC_PAGE_CONTENT[locale].download;
-    assert.match(page.statusTitle, /v0\.2\.4.*Beta/);
+    const { download, policy } = PUBLIC_PAGE_CONTENT[locale];
+    assert.match(download.scope, /Beta v0\.2\.4/);
+    const release = policy.build.paragraphs.join('\n');
     for (const owner of ['nimi', 'desktop', 'runtime']) {
-      assert.ok(page.versions.paragraphs.join('\n').includes(`${owner}/v<version>`));
+      assert.ok(release.includes(`${owner}/v<version>`));
     }
-    assert.match(page.prerelease.paragraphs.join('\n'), /channel/);
-    assert.match(page.release.paragraphs.join('\n'), /stable/i);
-    const windows = page.platforms.find((item) => item.name === 'Windows');
-    const macos = page.platforms.find((item) => item.name === 'macOS');
-    const linux = page.platforms.find((item) => item.name === 'Linux');
-    assert.match(windows?.detail ?? '', /Nimi-0\.2\.4-windows-amd64\.exe/);
-    assert.match(windows?.detail ?? '', /10\.0\.19041/);
-    assert.match(windows?.detail ?? '', /NotSigned/);
-    assert.match(macos?.detail ?? '', /Nimi-0\.2\.4-macos-arm64\.pkg/);
-    assert.match(macos?.detail ?? '', /13\.0/);
-    assert.match(linux?.status ?? '', /No product release|无完整产品发布/u);
-    assert.match(page.release.paragraphs.join('\n'), /Zhiyu/);
-    assert.match(page.release.paragraphs.join('\n'), /Nimi Lab/);
+    assert.match(release, /stable/i);
+    const status = policy.status.paragraphs.join('\n');
+    assert.match(status, /channel=beta/);
+    assert.match(status, /Nimi-0\.2\.4-windows-amd64\.exe/);
+    assert.match(status, /10\.0\.19041/);
+    assert.match(status, /Nimi-0\.2\.4-macos-arm64\.pkg/);
+    assert.match(status, /13\.0/);
+    assert.match(download.requirements.linux, /No installer|暂无安装包/u);
   }
 });
 
@@ -64,27 +57,13 @@ test('metadata verification does not imply Authenticode or broaden planned SignP
 
 test('historical cleanup is scoped to old builds and current Beta recovery uses its own guide', () => {
   for (const locale of ['en', 'zh'] as const) {
-    const page = PUBLIC_PAGE_CONTENT[locale].download;
+    const page = PUBLIC_PAGE_CONTENT[locale].policy;
     const cleanup = page.uninstall.paragraphs.join('\n');
     assert.match(cleanup, /Historical|历史/u);
     assert.match(cleanup, /Root/);
     assert.match(cleanup, /TrustedPublisher/);
-    assert.match(cleanup, /accept-runtime-fixed-service\.mjs --uninstall/);
     assert.match(page.uninstall.paragraphs[0] ?? '', /exact release|对应版本/u);
-    assert.match(page.systemChanges.paragraphs.join('\n'), /_nimiruntimedev/);
-    assert.match(page.systemChanges.paragraphs.join('\n'), /nimi-macos-dev-security\.lock/);
     assert.doesNotMatch(JSON.stringify(page), /v0\.2\.2-preview\.1/);
-  }
-});
-
-test('App lifecycle scope preserves platform support and session admission', () => {
-  for (const locale of ['en', 'zh'] as const) {
-    const text = PUBLIC_PAGE_CONTENT[locale].download.release.paragraphs.join('\n');
-    assert.match(text, /macOS arm64/);
-    assert.match(text, /Windows x86_64/);
-    assert.match(text, /updates|更新/u);
-    assert.match(text, /ordinary App repair remain unavailable|普通 App 修复仍不可用/u);
-    assert.match(text, /current session|当前会话/u);
   }
 });
 
@@ -103,7 +82,7 @@ test('public routes retain crawlable metadata and sitemap entries', () => {
   assert.match(policyHtml, /property="og:title" content="Code signing policy/);
 });
 
-test('rendered download action follows Beta scope and unsigned-Windows disclosure', () => {
+test('rendered download page presents Beta scope, signing and sign-in requirements', () => {
   for (const locale of ['en', 'zh'] as const) {
     const html = renderToStaticMarkup(createElement(MemoryRouter, {}, createElement(DownloadPageView, {
       locale, onLocaleChange: () => {},
@@ -117,18 +96,30 @@ test('rendered download action follows Beta scope and unsigned-Windows disclosur
     assert.match(html.slice(scope, action), /0\.2\.4/);
     assert.match(html.slice(warning, action), /no Authenticode signature|尚无 Authenticode 签名/u);
     assert.match(html.slice(warning, action), /Do not install a development root certificate|请勿为此安装开发根证书/u);
-    assert.doesNotMatch(html, /href="[^"]*releases\/download\//);
-    assert.match(html, /href="#developer-details"/);
-    assert.match(html, /id="developer-details"/);
-    assert.match(html, /href="\/code-signing"/);
+    const installers = [...html.matchAll(/<a\b[^>]*href="([^"]*\/releases\/download\/[^"]+)"[^>]*>/g)];
+    assert.deepEqual(installers.map((match) => match[1]), [
+      'https://github.com/nimiplatform/nimi/releases/download/nimi%2Fv0.2.4/Nimi-0.2.4-windows-amd64.exe',
+      'https://github.com/nimiplatform/nimi/releases/download/nimi%2Fv0.2.4/Nimi-0.2.4-macos-arm64.pkg',
+    ]);
+    assert.ok(warning < installers[0]!.index);
+    assert.match(installers[0]![0], /aria-describedby="requirements-windows preview-warning"/);
+    const desktopHeading = html.indexOf('id="download-desktop"');
+    assert.ok(desktopHeading > 0 && desktopHeading < installers[0]!.index);
+    const desktopIntro = html.slice(desktopHeading, installers[0]!.index);
+    assert.match(desktopIntro, /Nimi account|Nimi 账号/u);
+    assert.match(desktopIntro, /in your browser|在浏览器登录/u);
+    const guideLabel = locale === 'zh' ? '安装说明与校验' : 'Installation and verification';
+    const resources = html.slice(installers[1]!.index);
+    assert.ok(resources.includes(`href="/code-signing?lang=${locale}"`));
+    assert.ok(resources.includes(guideLabel));
   }
 });
 
-test('both locales explain Nimi account and browser sign-in requirements', () => {
-  for (const locale of ['en', 'zh'] as const) {
-    const page = PUBLIC_PAGE_CONTENT[locale].download;
-    assert.match(page.statusBody, /Nimi account|Nimi 账号/u);
-    assert.match(page.statusBody, /browser sign-in|浏览器中登录/u);
-    assert.match(page.statusBody, /Beta/);
-  }
+test('download and landing hero share the same background source', () => {
+  const foundation = readFileSync(new URL('../src/foundation.css', import.meta.url), 'utf8');
+  const story = readFileSync(new URL('../src/landing/story.css', import.meta.url), 'utf8');
+  const site = readFileSync(new URL('../src/site.css', import.meta.url), 'utf8');
+  assert.match(foundation, /--nimi-landing-hero-background:\s*radial-gradient/);
+  assert.match(story, /\.story-hero::before\s*\{[^}]*background:\s*var\(--nimi-landing-hero-background\)/);
+  assert.match(site, /\.download-page-shell\s*\{[^}]*background:\s*var\(--nimi-landing-hero-background\)/);
 });

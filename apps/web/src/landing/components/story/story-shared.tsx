@@ -2,11 +2,11 @@ import { ArrowUpRight, ArrowRight } from 'lucide-react';
 import type { ReactNode } from 'react';
 import type { StoryText } from '../../content/story-copy.js';
 
-export function StoryHeading({ t, section, children }: { t: StoryText; section: 'experience' | 'worlds' | 'showcase' | 'integrations' | 'devices' | 'builder'; children?: ReactNode }) {
+export function StoryHeading({ t, section, children }: { t: StoryText; section: 'experience' | 'worlds' | 'showcase' | 'integrations' | 'builder'; children?: ReactNode }) {
   const title = t(`${section}.title`);
   const hasIntro = section !== 'experience';
   return <header className="story-heading">
-    {hasIntro && section !== 'showcase' && <span className="story-eyebrow">{t(`${section}.eyebrow`)}</span>}
+    {section === 'builder' && <span className="story-eyebrow">{t('builder.eyebrow')}</span>}
     <h2 id={`${section}-heading`}>{title.split(/(?<=，)/).map((phrase, index) => <span key={index}>{phrase}</span>)}</h2>
     {hasIntro && <p>{t(`${section}.body`)}</p>}
     {children}

@@ -4,7 +4,7 @@ import test from 'node:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { getStoryCopy } from '../src/landing/content/story-copy.js';
-import { galleryDragSelection, wrapGalleryIndex, STORY_APPS } from '../src/landing/content/story-model.js';
+import { DEFAULT_STORY_AGENT, galleryDragSelection, wrapGalleryIndex, STORY_APPS } from '../src/landing/content/story-model.js';
 import { loadLandingContent } from '../src/landing/content/landing-content.js';
 import { StoryPage } from '../src/landing/components/story/story-page.js';
 import { HeroDemoSessionProvider } from '../src/landing/components/hero-demo-session.js';
@@ -12,7 +12,7 @@ import { resolveLandingLinks } from '../src/landing/config/landing-links.js';
 import { createDemoZhiyuAgentClient, createDemoZhiyuAgentCenterSession } from '../src/landing/components/demo-zhiyu-agent-center.js';
 import { DEMO_PREVIEW_APP_IDS } from '../src/landing/components/demo-app-preview.js';
 
-test('the approved bilingual narrative has complete key and interpolation parity', () => {
+test('the bilingual landing copy has complete key and interpolation parity', () => {
   const zh = getStoryCopy('zh'), en = getStoryCopy('en');
   assert.deepEqual(Object.keys(zh).sort(), Object.keys(en).sort());
   for (const key of Object.keys(zh) as (keyof typeof zh)[]) {
@@ -35,23 +35,59 @@ test('gallery selection wraps in either direction and drag direction follows the
   assert.equal(galleryDragSelection(3, 4, 1200, 8), 3);
 });
 
-test('the hero contains the full Home entry and leaves the download action to navigation', async () => {
+test('the landing opens with the Home demo before ownership and keeps the Runtime device demo below it', async () => {
   for (const locale of ['zh', 'en'] as const) {
     const content = await loadLandingContent(locale);
     const html = renderToStaticMarkup(createElement(HeroDemoSessionProvider, { demo: content.hero.demo,
       children: createElement(StoryPage, { content, locale, links: resolveLandingLinks({}), onLocale() {} }),
     }));
-    for (const id of ['home-demo', 'apps', 'worlds', 'app-showcase', 'integrations', 'devices', 'developers']) assert.ok(html.includes(`id="${id}"`), id);
+    for (const id of ['hero-demo', 'home-demo', 'apps', 'worlds', 'app-showcase', 'integrations', 'developers']) assert.ok(html.includes(`id="${id}"`), id);
     assert.ok(!html.includes('story-power'));
     assert.ok(!html.includes('href="#models"'));
-    assert.ok(html.indexOf('id="app-showcase"') < html.indexOf('id="integrations"'));
+    const sections = [...html.matchAll(/<section [^>]*class="(?:story-section )?(story-[\w-]+)"/g)].map(match => match[1]);
+    assert.deepEqual(sections, ['story-hero', 'story-experience', 'story-runtime', 'story-app-showcase', 'story-integrations', 'story-builder', 'story-worlds', 'story-ending']);
     const hero = html.match(/<section class="story-hero"[\s\S]*?<\/section>/)?.[0];
     assert.ok(hero);
-    assert.ok(hero.includes('id="home-demo"'));
-    assert.match(hero, /<a class="story-hero-continue" href="#home-demo">/);
+    const runtime = html.match(/<section id="home-demo"[\s\S]*?<\/section>/)?.[0];
+    assert.ok(runtime);
+    assert.ok(runtime.includes(`<h2 id="runtime-heading">${getStoryCopy(locale)['runtime.title']}</h2>`));
+    assert.match(hero, /<div id="hero-demo"[^>]*><div class="story-home-dock"><div class="story-home-slot"><\/div>/);
+    assert.doesNotMatch(hero, /story-home-laptop|runtime-heading/);
+    assert.match(runtime, /<div class="story-home-window"><\/div>/);
+    assert.match(runtime, /<div class="story-home-slot"><div class="story-home-companions" aria-hidden="true">/);
+    assert.ok(runtime.includes('class="story-home-phone"'));
+    assert.ok(runtime.includes('class="story-home-web"'));
+    for (const frame of ['story-home-laptop', 'story-home-laptop-base', 'story-home-phone-speaker', 'story-home-web-screen', 'story-home-mac-menu', 'story-home-mac-dock', 'story-home-mac-app']) {
+      assert.ok(runtime.includes(`class="${frame}"`), frame);
+    }
+    await access(new URL('../public/story/mac-desktop.svg', import.meta.url));
+    const [phone, web] = runtime.split('<div class="story-home-web">');
+    assert.ok(phone && web);
+    const zhiyu = content.hero.demo.appPreview.zhiyu;
+    const partner = zhiyu.partners.find(candidate => candidate.id === DEFAULT_STORY_AGENT)!;
+    assert.ok(phone.includes(`<strong>${partner.name}</strong>`));
+    assert.ok(web.includes(`<strong>${partner.name}</strong><span>${zhiyu.appName}</span>`));
+    assert.ok(phone.includes(`src="${partner.avatarUrl}"`));
+    assert.ok(web.includes(`src="${partner.avatarUrl}"`));
+    const expectedMessages = partner.messages.map(message => [message.role, message.text]);
+    assert.ok(expectedMessages.length > 0);
+    assert.deepEqual([...phone.matchAll(/class="story-home-phone-message is-(\w+)">([^<]+)<\/p>/g)].map(match => match.slice(1)), expectedMessages);
+    assert.deepEqual([...web.matchAll(/class="story-home-web-message is-(\w+)">([^<]+)<\/p>/g)].map(match => match.slice(1)), expectedMessages);
+    assert.match(hero, /<a class="story-hero-continue" href="#hero-demo">/);
     assert.ok(hero.includes(getStoryCopy(locale)['hero.title']));
     assert.ok(!/href="[^"]*\/download/.test(hero));
-    const ownership = html.match(/<section class="story-section story-experience"[\s\S]*?(?=<section class="story-section story-worlds")/)?.[0];
+    const navigation = html.match(/<nav id="story-navigation"[^>]*>([\s\S]*?)<\/nav>/)?.[1];
+    assert.ok(navigation);
+    const links = (markup: string) => [...markup.matchAll(/<a href="([^"]+)">([^<]+)<\/a>/g)].map(match => match.slice(1));
+    assert.deepEqual(links(navigation), [
+      ['#hero-demo', getStoryCopy(locale)['nav.experience']],
+      ['#apps', getStoryCopy(locale)['nav.capabilities']],
+      ['#app-showcase', getStoryCopy(locale)['nav.apps']],
+      ['#integrations', getStoryCopy(locale)['nav.integrations'].replace('&', '&amp;')],
+      ['#developers', getStoryCopy(locale)['nav.developers']],
+      ['#worlds', getStoryCopy(locale)['nav.worlds'].replace('&', '&amp;')],
+    ]);
+    const ownership = html.match(/<section class="story-section story-experience"[\s\S]*?(?=<section id="home-demo")/)?.[0];
     assert.ok(ownership);
     const ownershipIntro = ownership.match(/<div class="story-experience-intro">[\s\S]*?<\/div>/)?.[0];
     assert.ok(ownershipIntro);
@@ -70,14 +106,20 @@ test('the hero contains the full Home entry and leaves the download action to na
     assert.match(ownership, /href="#ownership-models" aria-current="location"/);
 
     assert.ok(!/交互示例|演示记忆|Interactive example|example memor/i.test(html));
-    const worlds = html.match(/<section class="story-section story-worlds"[\s\S]*?(?=<section id="app-showcase")/)?.[0];
+    const worlds = html.match(/<section class="story-section story-worlds"[\s\S]*?<\/section>/)?.[0];
     assert.ok(worlds);
+    assert.ok(worlds.includes(locale === 'zh' ? '瓷炭院' : 'Emberware Court'));
+    if (locale === 'en') {
+      assert.doesNotMatch(worlds, /\p{Script=Han}/u);
+      assert.doesNotMatch(phone, /\p{Script=Han}/u);
+      assert.doesNotMatch(web, /\p{Script=Han}/u);
+    }
     assert.ok(worlds.includes('story-world-print'));
     assert.equal(worlds.match(/story-app-showcase-arrow story-app-showcase-arrow--(?:previous|next)/g)?.length, 2);
     assert.ok(!worlds.includes('story-gallery-controls'));
     assert.ok(!html.includes('screen-section'));
     for (const id of STORY_APPS) assert.ok((DEMO_PREVIEW_APP_IDS as readonly string[]).includes(id));
-    const showcase = html.match(/<section id="app-showcase"[\s\S]*?(?=<section id="integrations")/)?.[0];
+    const showcase = html.match(/<section id="app-showcase"[\s\S]*?<\/section>/)?.[0];
     assert.ok(showcase);
     assert.equal(content.hero.demo.apps.items.length, 23);
     for (const item of content.hero.demo.apps.items) {
@@ -98,19 +140,27 @@ test('the hero contains the full Home entry and leaves the download action to na
     assert.ok(showcase.includes('data-card-width="wide"'));
     assert.ok(showcase.includes('data-card-width="narrow"'));
     assert.ok(!showcase.includes('story-app-showcase-card-details'));
-    const integrations = html.match(/<section id="integrations"[\s\S]*?(?=<section id="devices")/)?.[0];
+    const integrations = html.match(/<section id="integrations"[\s\S]*?<\/section>/)?.[0];
     assert.ok(integrations);
-    assert.equal(integrations.match(/class="story-use-case"/g)?.length, 3);
-    assert.ok(integrations.includes(getStoryCopy(locale)['integrations.title']));
-    assert.ok(!integrations.includes('story-content-check'));
-    const devices = html.match(/<section id="devices"[\s\S]*?(?=<section id="developers")/)?.[0];
-    assert.ok(devices);
-    assert.match(html, /href="#devices"/);
-    const devicesText = devices.replace(/<[^>]*>/g, '');
-    for (const key of ['devices.title', 'devices.androidNote', 'devices.requirements', 'devices.vision', 'devices.futureNote'] as const) {
-      assert.ok(devicesText.includes(getStoryCopy(locale)[key]), key);
+    const copy = getStoryCopy(locale);
+    const integrationHeading = integrations.match(/<h2 id="integrations-heading">(.*?)<\/h2>/)?.[1];
+    assert.equal(integrationHeading?.replaceAll(/<\/?span>/g, ''), copy['integrations.title']);
+    const cards = integrations.match(/<article\b[^>]*>[\s\S]*?<\/article>/g) ?? [];
+    assert.equal(cards.length, 3);
+    const [handoff, sources, messaging] = cards;
+    assert.ok(handoff && sources && messaging);
+    assert.ok(handoff.includes(copy['integrations.app']));
+    for (const key of ['integrations.checklistFood', 'integrations.checklistMeetup'] as const) {
+      assert.equal(handoff.split(copy[key]).length - 1, 2);
     }
-    assert.doesNotMatch(devices, /<details\b/);
+    assert.ok(handoff.includes(copy['integrations.save']));
+    assert.ok(sources.includes(copy['integrations.mcp']) && sources.includes('Microsoft Learn'));
+    assert.ok(sources.includes('story-integration-source-picker'));
+    assert.ok(messaging.includes(copy['integrations.wechat']) && messaging.includes(copy['integrations.feishu']));
+    assert.ok(messaging.includes(copy['integrations.connected']) && messaging.includes(copy['integrations.connect']));
+    assert.doesNotMatch(integrations, /<(?:button|input|select)\b/);
+    assert.ok(integrations.includes(`href="${resolveLandingLinks({}).integrationsUrl}"`));
+    assert.doesNotMatch(html, /(?:id="devices"|href="#devices")/);
   }
 });
 
@@ -140,17 +190,4 @@ test('the ownership preview follows the copy across the reading line in both dir
   assert.equal(findActiveOwnershipChapter(centers, 900), 1);
   assert.equal(findActiveOwnershipChapter(centers, 1200), 2);
   assert.equal(findActiveOwnershipChapter(centers, 500), 0);
-});
-
-test('the Home to ownership transition follows scroll in both directions and hands off near the destination', async () => {
-  const { storyHomeTransitionState } = await import('../src/landing/components/story/story-motion.js');
-  const start = 1200, end = 2400;
-  assert.deepEqual(storyHomeTransitionState(start, start, end), { progress: 0, travel: 0, targetOpacity: 0 });
-  assert.deepEqual(storyHomeTransitionState((start + end) / 2, start, end), { progress: 0.5, travel: 0.5, targetOpacity: 0 });
-  assert.deepEqual(storyHomeTransitionState(end, start, end), { progress: 1, travel: 1, targetOpacity: 1 });
-  assert.equal(storyHomeTransitionState(start - 300, start, end).progress, 0);
-  assert.equal(storyHomeTransitionState(end + 300, start, end).progress, 1);
-  assert.equal(storyHomeTransitionState(start + 300, start, end).travel, storyHomeTransitionState(end - 900, start, end).travel);
-  const handoff = storyHomeTransitionState(start + (end - start) * 0.86, start, end);
-  assert.ok(Math.abs(handoff.targetOpacity - 0.5) < 1e-10);
 });

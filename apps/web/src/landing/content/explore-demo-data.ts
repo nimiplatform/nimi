@@ -1,7 +1,9 @@
+import { characterCopyEn, worldCopyEn } from './explore-demo-copy.en.js';
+
 /** Curated from the published World / Character views in Nimi Home on 2026-11-02.
- * Original authored names and copy are retained in both interface languages.
+ * The English landing demo translates the published copy.
  * Account state and conversations are not exported. Asset provenance: public/demo/explore/SOURCES.json. */
-export const exploreWorlds = [
+const sourceWorlds = [
   {
     id: 'cbdb-ming-lettered-networks-world',
     name: '明代士人交游网络',
@@ -267,7 +269,58 @@ export const exploreWorlds = [
     featured: false,
     topics: ['future'],
   },
-];
-export type ExploreWorld = (typeof exploreWorlds)[number];
-export type ExploreCharacter = ExploreWorld['people'][number];
+] as const;
+
+type SourceWorld = (typeof sourceWorlds)[number];
+export type ExploreWorldId = SourceWorld['id'];
+export type ExploreCharacterId = SourceWorld['people'][number]['id'];
+
+export type ExploreCharacter = {
+  id: ExploreCharacterId;
+  name: string;
+  meta: string;
+  bio: string;
+  image: string;
+  worldId: ExploreWorldId;
+  worldName: string;
+};
+
+export type ExploreWorld = {
+  id: ExploreWorldId;
+  name: string;
+  description?: string;
+  summary: string;
+  story: string;
+  image: string;
+  illustration?: string;
+  category: string;
+  featured: boolean;
+  topics: readonly string[];
+  people: readonly ExploreCharacter[];
+};
+
+export const exploreWorlds: readonly ExploreWorld[] = sourceWorlds;
 export const exploreCharacters = exploreWorlds.flatMap((world) => world.people);
+
+const englishWorlds: readonly ExploreWorld[] = exploreWorlds.map((world) => {
+  const copy = worldCopyEn[world.id];
+  return {
+    ...world,
+    ...copy,
+    description: 'description' in copy ? copy.description : undefined,
+    people: world.people.map((person) => ({
+      ...person,
+      ...characterCopyEn[person.id],
+      worldName: copy.name,
+    })),
+  };
+});
+const englishCharacters = englishWorlds.flatMap((world) => world.people);
+
+export function getExploreWorlds(locale: 'zh' | 'en') {
+  return locale === 'zh' ? exploreWorlds : englishWorlds;
+}
+
+export function getExploreCharacters(locale: 'zh' | 'en') {
+  return locale === 'zh' ? exploreCharacters : englishCharacters;
+}

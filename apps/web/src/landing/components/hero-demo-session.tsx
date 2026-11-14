@@ -12,7 +12,7 @@ import { loadLandingContent, type HeroDemo, type HeroDemoSurface } from '../cont
 import type { DemoChatSubmission } from '../content/home-chat-content.js';
 import type { ExploreCharacter } from '../content/explore-demo-data.js';
 import { materializeChatMessages, resolveDemoChatTarget } from '../content/demo-chat-model.js';
-import type { PreviewScreen } from '../content/demo-navigation.js';
+import type { DemoDestination, PreviewScreen } from '../content/demo-navigation.js';
 import { reduceDemoNavigation } from '../content/demo-navigation.js';
 import type { DemoPreferences } from './demo-settings.js';
 import { DemoSessionContext } from './hero-demo-context.js';
@@ -22,12 +22,12 @@ import type { HeroDemoAgent } from '../content/landing-content.js';
 import { createDemoAgentClients } from '../content/demo-agent-clients.js';
 import type { CloudExample } from '../content/demo-cloud-data.js';
 
-function useDemoSession(sourceDemo: HeroDemo, initialSurface: HeroDemoSurface, section?: number) {
+function useDemoSession(sourceDemo: HeroDemo, initialDestination: DemoDestination, section?: number) {
   const [demo, setDemo] = useState(sourceDemo);
   const [agentClients] = useState(createDemoAgentClients);
   const [cloud, setCloud] = useState<CloudExample | null>(null);
   const [navigation, dispatch] = useReducer(reduceDemoNavigation, {
-    entries: [{ surface: initialSurface }],
+    entries: [initialDestination],
     position: 0,
   });
   useLayoutEffect(() => {
@@ -158,8 +158,6 @@ function useDemoSession(sourceDemo: HeroDemo, initialSurface: HeroDemoSurface, s
     [demo],
   );
 
-  const handleSubmit = useCallback((submission: DemoChatSubmission) => submitTo(selectedChatTargetId, submission), [selectedChatTargetId, submitTo]);
-
   const createThread = () => {
     const id = `ai:${crypto.randomUUID()}`;
     setDemo((previous) => ({
@@ -217,7 +215,6 @@ function useDemoSession(sourceDemo: HeroDemo, initialSurface: HeroDemoSurface, s
     hideMessage,
     changeLocale,
     addExplorePartner,
-    handleSubmit,
     submitTo,
     createThread,
   };
@@ -229,14 +226,16 @@ export type HeroDemoSession = ReturnType<typeof useDemoSession>;
 export function HeroDemoSessionProvider({
   demo,
   initialSurface = 'home',
+  initialTarget,
   children,
   section,
 }: {
   demo: HeroDemo;
   initialSurface?: HeroDemoSurface;
+  initialTarget?: string;
   children: ReactNode;
   section?: number;
 }) {
-  const session = useDemoSession(demo, initialSurface, section);
+  const session = useDemoSession(demo, { surface: initialSurface, target: initialTarget }, section);
   return <DemoSessionContext.Provider value={session}>{children}</DemoSessionContext.Provider>;
 }

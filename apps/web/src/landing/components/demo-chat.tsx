@@ -34,6 +34,33 @@ import { DemoPartnerAvatar, demoText } from './demo-home-ui.js';
 import type { DemoNavigate } from './demo-home.js';
 
 type Panel = 'history' | 'settings' | 'identity' | 'agent-center' | null;
+
+export function DemoSessionChat({ targetId, logExample }: {
+  targetId: string | null;
+  logExample?: LandingContent['riskControl'];
+}) {
+  const { demo, composerDrafts, setComposerDrafts, baseMessages, localMessages,
+    navigate, switchChatSide, createThread, submitTo } = useHeroDemoSession();
+  const chatId = targetId ?? demo.chat.defaultTargetId;
+  return <DemoChatSurface
+    demo={demo}
+    selectedTargetId={targetId}
+    logExample={logExample}
+    draft={composerDrafts[chatId] ?? ''}
+    onDraftChange={text => setComposerDrafts(previous => ({ ...previous, [chatId]: text }))}
+    baseMessages={baseMessages}
+    localMessages={localMessages}
+    onSelectTarget={id => navigate('chat', id ?? undefined)}
+    onSwitchSide={switchChatSide}
+    onNavigate={navigate}
+    onCreateThread={createThread}
+    onSubmit={submission => {
+      submitTo(chatId, submission);
+      if (!targetId) navigate('chat', chatId);
+    }}
+  />;
+}
+
 function Tool({
   label,
   children,

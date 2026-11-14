@@ -5,7 +5,7 @@ import test from 'node:test';
 import { createElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { DemoExploreSurface, filterExploreWorlds } from '../src/landing/components/demo-explore.js';
-import { exploreWorlds, exploreCharacters } from '../src/landing/content/explore-demo-data.js';
+import { getExploreWorlds, getExploreCharacters } from '../src/landing/content/explore-demo-data.js';
 import { loadLandingContent } from '../src/landing/content/landing-content.js';
 import { COURTYARD_PARTNER, demoChapters } from '../src/landing/content/demo-tour.js';
 import { initialDemoSection, reduceDemoNavigation } from '../src/landing/content/demo-navigation.js';
@@ -28,6 +28,8 @@ test('Explore tour introduces worlds and varied characters before following one 
 });
 
 test('Explore uses published world artwork and keeps every character attached to its source world', () => {
+  const exploreWorlds = getExploreWorlds('zh');
+  const exploreCharacters = getExploreCharacters('zh');
   const provenance = JSON.parse(readFileSync(new URL('../public/demo/explore/SOURCES.json', import.meta.url), 'utf8'));
   const files = new Set(provenance.assets.map((asset: { file: string }) => asset.file));
   assert.equal(exploreWorlds.length, 8);
@@ -47,11 +49,13 @@ test('Explore uses published world artwork and keeps every character attached to
 });
 
 test('world search, topic filtering and saved worlds compose without leaking unrelated results', () => {
-  assert.deepEqual(filterExploreWorlds(' 薄墨 ', '', []).map(world => world.id), ['thinink-plains']);
-  assert.deepEqual(filterExploreWorlds('', 'everyday', []).map(world => world.id), ['summerwell-village']);
-  assert.deepEqual(filterExploreWorlds('薄墨', 'future', []), []);
-  assert.deepEqual(filterExploreWorlds('', 'favorites', []), []);
-  assert.deepEqual(filterExploreWorlds('', 'favorites', ['prism-city-network']).map(world => world.id), ['prism-city-network']);
+  const worlds = getExploreWorlds('zh');
+  assert.deepEqual(filterExploreWorlds(worlds, ' 薄墨 ', '', []).map(world => world.id), ['thinink-plains']);
+  assert.deepEqual(filterExploreWorlds(getExploreWorlds('en'), ' THININK ', '', []).map(world => world.id), ['thinink-plains']);
+  assert.deepEqual(filterExploreWorlds(worlds, '', 'everyday', []).map(world => world.id), ['summerwell-village']);
+  assert.deepEqual(filterExploreWorlds(worlds, '薄墨', 'future', []), []);
+  assert.deepEqual(filterExploreWorlds(worlds, '', 'favorites', []), []);
+  assert.deepEqual(filterExploreWorlds(worlds, '', 'favorites', ['prism-city-network']).map(world => world.id), ['prism-city-network']);
 });
 
 test('world gallery, character discovery and companion directory remain distinct in both interface languages', async () => {
@@ -59,19 +63,20 @@ test('world gallery, character discovery and companion directory remain distinct
     const { hero: { demo } } = await loadLandingContent(locale);
     const props = { demo, onNavigate() {}, onAddPartner() {}, onChat() {} };
     const gallery = renderToStaticMarkup(createElement(DemoExploreSurface, props));
-    assert.ok(gallery.includes('明代士人交游网络'));
-    assert.ok(gallery.includes('薄墨平原'));
+    assert.ok(gallery.includes(locale === 'zh' ? '明代士人交游网络' : 'Ming Scholars and Their Networks'));
+    assert.ok(gallery.includes(locale === 'zh' ? '薄墨平原' : 'Thinink Plains'));
     assert.ok(gallery.includes(locale === 'zh' ? '发现伙伴' : 'Discover companions'));
     assert.ok(!gallery.includes('/demo/storybook/'));
     const discovery = renderToStaticMarkup(createElement(DemoExploreSurface, { ...props, target: 'characters' }));
-    assert.ok(discovery.includes('柯芬'));
+    const [first, second, other] = locale === 'zh' ? ['柯芬', '雅图', '唐龙'] : ['Ke Fen', 'Yatu', 'Tang Long'];
+    assert.ok(discovery.includes(first));
     assert.ok(discovery.includes(locale === 'zh' ? '寻找角色' : 'Find characters'));
     const partners = renderToStaticMarkup(createElement(DemoExploreSurface, { ...props, target: 'partners' }));
-    assert.ok(partners.includes('唐龙'));
+    assert.ok(partners.includes(other));
     assert.ok(partners.includes(locale === 'zh' ? '我创建的' : 'Created by me'));
     const world = renderToStaticMarkup(createElement(DemoExploreSurface, { ...props, target: 'world:thinink-plains' }));
-    assert.ok(world.includes('柯芬'));
-    assert.ok(world.includes('雅图'));
-    assert.ok(!world.includes('唐龙'));
+    assert.ok(world.includes(first));
+    assert.ok(world.includes(second));
+    assert.ok(!world.includes(other));
   }
 });

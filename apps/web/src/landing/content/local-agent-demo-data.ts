@@ -1,12 +1,12 @@
 import { getStoryCopy } from './story-copy.js';
-import { exploreCharacters } from './explore-demo-data.js';
+import { getExploreCharacters } from './explore-demo-data.js';
 import type { HeroDemoAgent, HeroDemoZhiyuPartner } from './landing-content.js';
 
 /**
  * Shared Home / Zhiyu presentation data. Identities and portraits come from the
  * published Explore catalog. The four opening exchanges are verbatim excerpts
  * from Character → 初次相遇 · 设定参考, reviewed in Home on 2026-11-03.
- * Authored names and dialogue stay in their original language, as in Explore.
+ * The English demo translates the displayed text. Voice samples use the original recordings.
  * No account conversations, personal memories or runtime configuration are exported.
  */
 const excerpts = [
@@ -53,10 +53,44 @@ const excerpts = [
   },
 ] as const;
 
-export function createLocalAgentDemoData(): HeroDemoAgent[] {
+const excerptsEn = {
+  'demo:cbdb-ming-lettered-networks-world:character-1': {
+    role: 'Senior civil official and mentor in the Confucian classics',
+    greeting: 'I am Tang Long of Lanxi, courtesy name Yuzuo. I passed the imperial examination in the third year of Zhengde, served under two emperors, and now hold the post of Minister of War.',
+    opening: null,
+  },
+  'demo:meridian-archipelago:character-0': {
+    role: 'Retired member of the Stone Canal Order and keeper of the public draw register',
+    greeting: 'A hair’s breadth out of line is enough to bring disaster. You want me to look the other way? The earth’s currents aren’t water in a well. Draw a little extra here and three locks downstream will surge backward and run dry. Check the seals by the book. Haste will only get someone killed.',
+    opening: 'Elder Liu, the downstream fort needs to open its gates to draw on the earth’s currents for irrigation. Could you make an exception for a few minutes?',
+  },
+  'demo:emberware-court:character-1': {
+    role: 'Longtime resident and former contributor to a local publication',
+    greeting: 'Quiet? You haven’t looked over on the east side. Heguan’s been studying a brick in the light under the eaves since morning, with water warming on the little stove. That’s how life goes here, over a low flame. All the bustle happens out of sight.',
+    opening: 'Auntie Peiyu, why is the courtyard so quiet today?',
+  },
+  'demo:emberware-court:character-0': {
+    role: 'Brick artist · Grown clay figure',
+    greeting: 'Can’t rush it. I’m waiting for the slanting sunlight to reach the third pane of the lattice window. When the shadows are deepest, I can dab in the soot under the eaves with mineral pigments. A steady clay body keeps the blade from wandering.',
+    opening: 'Heguan, how much longer will you be carving that brick?',
+  },
+  'demo:meridian-archipelago:character-1': {
+    role: 'Current-line repairer in Clearfork and founder of the cooperative workshop',
+    greeting: 'The neighbors will be going hungry by the time the Order gets to them. Grab the copper awl and the fuse. We’ll get down into the culvert now and have the line working again within four hours!',
+    opening: 'Master Luo, the earth current at the neighborhood mill has cut out again. The Order’s repair crew says it’ll be two months before they can get to us.',
+  },
+} satisfies Record<(typeof excerpts)[number]['characterId'], {
+  role: string;
+  greeting: string;
+  opening: string | null;
+}>;
+
+export function createLocalAgentDemoData(locale: 'zh' | 'en'): HeroDemoAgent[] {
+  const characters = getExploreCharacters(locale);
   return excerpts.map((excerpt, index) => {
-    const character = exploreCharacters.find((entry) => entry.id === excerpt.characterId)!;
+    const character = characters.find((entry) => entry.id === excerpt.characterId)!;
     const referenceImageUrl = 'referenceImageUrl' in excerpt ? excerpt.referenceImageUrl : character.image;
+    const { role, greeting, opening } = locale === 'zh' ? excerpt : excerptsEn[excerpt.characterId];
     return {
       id: character.id,
       name: character.name,
@@ -64,29 +98,29 @@ export function createLocalAgentDemoData(): HeroDemoAgent[] {
       avatarUrl: character.image,
       bio: character.bio,
       worldName: character.worldName,
-      role: excerpt.role,
-      greeting: excerpt.greeting,
+      role,
+      greeting,
       referenceImageUrl,
       voiceUrl: excerpt.voiceUrl,
       voiceDuration: excerpt.voiceDuration,
       introduction: {
         worldName: character.worldName,
         era: null,
-        role: excerpt.role,
-        greeting: excerpt.greeting,
+        role,
+        greeting,
         referenceImageUrl,
         voiceSampleUrl: excerpt.voiceUrl,
         voicePreviewUrl: excerpt.voiceUrl,
         voiceSampleContentHash: null,
         voiceSampleMimeType: 'audio/mpeg',
         voiceSampleDurationSec: excerpt.voiceDuration,
-        questionTopics: [{ kind: 'role', text: excerpt.role }],
+        questionTopics: [{ kind: 'role', text: role }],
       },
-      messages: excerpt.opening === null ? [] : [
-        { id: `${character.id}:opening:user`, role: 'user', text: excerpt.opening, minutesAgo: 8 + index * 10 },
-        { id: `${character.id}:opening:agent`, role: 'assistant', text: excerpt.greeting, minutesAgo: 7 + index * 10 },
+      messages: opening === null ? [] : [
+        { id: `${character.id}:opening:user`, role: 'user', text: opening, minutesAgo: 8 + index * 10 },
+        { id: `${character.id}:opening:agent`, role: 'assistant', text: greeting, minutesAgo: 7 + index * 10 },
       ],
-      replies: [excerpt.greeting],
+      replies: [greeting],
     };
   });
 }
@@ -130,5 +164,5 @@ export function toLocalAgentDemoPartner(agent: HeroDemoAgent, locale: 'zh' | 'en
 }
 
 export function createLocalAgentDemoPartners(locale: 'zh' | 'en'): HeroDemoZhiyuPartner[] {
-  return createLocalAgentDemoData().map(agent => toLocalAgentDemoPartner(agent, locale));
+  return createLocalAgentDemoData(locale).map(agent => toLocalAgentDemoPartner(agent, locale));
 }

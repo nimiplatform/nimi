@@ -13,6 +13,13 @@
 @import "./site.css";
 @import "./landing/story.css";
 
+:root {
+  --nimi-landing-hero-background:
+    radial-gradient(ellipse at 9% 65%, #bceeed 0%, #bceeed00 62%),
+    radial-gradient(ellipse at 88% 22%, #b9e0fe 0%, #b9e0fe00 72%),
+    linear-gradient(155deg, #bbe8f0 12%, #bfe6f7 55%, #cbe9ff 100%);
+}
+
 /*
  * Keep kit styles and Tailwind in one compilation root: kit ships @source
  * directives (pointing at kit/dist JS) inside its published stylesheets, and

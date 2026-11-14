@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { Button, SearchField } from '@nimiplatform/kit/ui';
 import type { HeroDemo } from '../content/landing-content.js';
-import { exploreWorlds, exploreCharacters, type ExploreCharacter } from '../content/explore-demo-data.js';
+import { getExploreWorlds, getExploreCharacters, type ExploreCharacter, type ExploreWorld } from '../content/explore-demo-data.js';
 import type { DemoNavigate } from './demo-home.js';
 import { demoText } from './demo-home-ui.js';
 import { DemoExplorePartners } from './demo-explore-partners.js';
@@ -31,11 +31,11 @@ export const exploreTopics = [
   { id: 'journey', zh: '远行与生存', en: 'Journeys & survival', icon: Compass },
 ];
 
-export function filterExploreWorlds(query: string, topic: string, favorites: readonly string[]) {
+export function filterExploreWorlds(worlds: readonly ExploreWorld[], query: string, topic: string, favorites: readonly string[]) {
   const text = query.trim().toLocaleLowerCase();
-  return exploreWorlds.filter(
+  return worlds.filter(
     (world) =>
-      (!text || `${world.name} ${world.description} ${world.summary}`.toLocaleLowerCase().includes(text)) &&
+      (!text || `${world.name} ${world.description ?? ''} ${world.summary}`.toLocaleLowerCase().includes(text)) &&
       (!topic || (topic === 'favorites' ? favorites.includes(world.id) : world.topics.includes(topic))),
   );
 }
@@ -56,6 +56,8 @@ export function DemoExploreSurface({
   onChat: (character: ExploreCharacter) => void;
 }) {
   const t = demoText(demo);
+  const exploreWorlds = getExploreWorlds(demo.appPreview.locale);
+  const exploreCharacters = getExploreCharacters(demo.appPreview.locale);
   const [query, setQuery] = useState('');
   const [characterQuery, setCharacterQuery] = useState('');
   const [topic, setTopic] = useState('');
@@ -78,7 +80,7 @@ export function DemoExploreSurface({
   const partners = target === 'partners' || target?.startsWith('partner:');
   const discovering = target === 'characters';
   const browse = !query.trim() && !topic;
-  const results = filterExploreWorlds(query, topic, favorites).filter((world) => !browse || !world.featured);
+  const results = filterExploreWorlds(exploreWorlds, query, topic, favorites).filter((world) => !browse || !world.featured);
   const openWorld = (id: string) => {
     onNavigate('explore', `world:${id}`);
   };
@@ -218,7 +220,7 @@ export function DemoExploreSurface({
           </header>
           <div className="demo-explore-people-grid">
             {world.people
-              .filter((person) => `${person.name} ${person.bio}`.includes(peopleQuery.trim()))
+              .filter((person) => `${person.name} ${person.bio}`.toLocaleLowerCase().includes(peopleQuery.trim().toLocaleLowerCase()))
               .map((person) => (
                 <button key={person.id} type="button" onClick={() => openCharacter(person.id)}>
                   <img src={person.image} alt={person.name} />
@@ -364,7 +366,7 @@ export function DemoExploreSurface({
                   onClick={() => openWorld(spotlight.id)}
                 >
                   <h2>{spotlight.name}</h2>
-                  <p className="demo-world-atlas-description">{spotlight.description}</p>
+                  <p className="demo-world-atlas-description">{spotlight.description ?? spotlight.summary}</p>
                 </button>
                 <div className="demo-world-atlas-hero-actions">
                   <div className="demo-world-atlas-arrows">

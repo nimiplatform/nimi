@@ -1,6 +1,6 @@
 import { useRef, useState, type CSSProperties } from 'react';
 import { ArrowRight, ChevronLeft, ChevronRight } from 'lucide-react';
-import { exploreWorlds } from '../../content/explore-demo-data.js';
+import { getExploreWorlds } from '../../content/explore-demo-data.js';
 import { galleryDragSelection, wrapGalleryIndex } from '../../content/story-model.js';
 import type { StoryText } from '../../content/story-copy.js';
 import { exploreTopics } from '../demo-explore.js';
@@ -12,6 +12,7 @@ export function StoryWorlds({ t, onOpenWorld, locale }: { locale: 'zh' | 'en'; t
   const reel = useRef<HTMLDivElement>(null);
   const drag = useRef<{ x: number; y: number; active: boolean } | null>(null);
   const suppressClick = useRef(false);
+  const exploreWorlds = getExploreWorlds(locale);
   const world = exploreWorlds[index]!;
   const selectIndex = (next: number) => { setIndex(wrapGalleryIndex(next, exploreWorlds.length)); setOffset(0); };
   const openWorld = () => onOpenWorld(world.id);

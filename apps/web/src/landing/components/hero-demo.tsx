@@ -4,7 +4,7 @@ import { DemoIntegrationsSurface } from './demo-connections.js';
 import { DemoDownloadsSurface, DemoDiagnosticsSurface } from './demo-system.js';
 import { cn } from '@nimiplatform/kit/ui';
 import { DemoAppsSurface } from './demo-apps.js';
-import { DemoChatSurface } from './demo-chat.js';
+import { DemoSessionChat } from './demo-chat.js';
 import { DemoExploreSurface } from './demo-explore.js';
 import { DemoRail, DemoSurfaceSwitcher } from './demo-rail.js';
 import { DemoRuntimeSurface } from './demo-runtime.js';
@@ -49,20 +49,14 @@ export function HeroDemoView({ expanded, windowTitle, windowActions, windowClose
     setSidebar,
     preferences,
     setPreferences,
-    composerDrafts,
     setComposerDrafts,
-    localMessages,
     messages,
-    baseMessages,
     navigate,
     goHistory,
-    switchChatSide,
     readMessage,
     hideMessage,
     changeLocale,
     addExplorePartner,
-    handleSubmit,
-    createThread,
   } = useHeroDemoSession();
   const focusChatComposer = useRef(false);
   const chatSurfaceRef = useCallback((node: HTMLDivElement | null) => {
@@ -158,28 +152,10 @@ export function HeroDemoView({ expanded, windowTitle, windowActions, windowClose
               />
             )}
             {surface === 'chat' && (
-              <DemoChatSurface
+              <DemoSessionChat
                 key={selectedChatTargetId === EXAMPLE_LOG ? current.view ?? 'log' : 'chat'}
-                demo={demo}
+                targetId={selectedChatTargetId}
                 logExample={selectedChatTargetId === EXAMPLE_LOG ? riskCopy : undefined}
-                draft={composerDrafts[selectedChatTargetId ?? demo.chat.defaultTargetId] ?? ''}
-                onDraftChange={(text) =>
-                  setComposerDrafts((previous) => ({
-                    ...previous,
-                    [selectedChatTargetId ?? demo.chat.defaultTargetId]: text,
-                  }))
-                }
-                selectedTargetId={selectedChatTargetId}
-                baseMessages={baseMessages}
-                localMessages={localMessages}
-                onSelectTarget={(id) => navigate('chat', id ?? undefined)}
-                onSwitchSide={switchChatSide}
-                onNavigate={navigate}
-                onCreateThread={createThread}
-                onSubmit={(submission) => {
-                  handleSubmit(submission);
-                  if (!selectedChatTargetId) navigate('chat', demo.chat.defaultTargetId);
-                }}
               />
             )}
             {surface === 'explore' && (

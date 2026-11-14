@@ -1,60 +1,122 @@
-import { Surface } from '@nimiplatform/kit/ui';
-import { useState } from 'react';
-import { ArrowUpRight, Check, ChevronRight, KeyRound, Layers3, Search, Send, ShieldCheck } from 'lucide-react';
-import type { StoryText, StoryKey } from '../../content/story-copy.js';
-import { integrationScenarios } from '../../content/story-model.js';
-import { StoryHeading, StoryLink } from './story-shared.js';
+import { ArrowRight, BookOpen, Check, ChevronDown, Layers3, MessageCircle, MoreHorizontal } from 'lucide-react';
 import type { LandingLinks } from '../../config/landing-links.js';
+import type { StoryText } from '../../content/story-copy.js';
+import { StoryHeading, StoryLink } from './story-shared.js';
 
-const integrationIcons = { mcp: Search, telegram: Send, app: Layers3 } as const;
+function IntegrationChecklist({ t }: { t: StoryText }) {
+  return (
+    <ul className="story-integration-checklist">
+      <li>
+        <span className="story-integration-check is-checked" aria-hidden="true"><Check size={12} strokeWidth={3} /></span>
+        <span>{t('integrations.checklistFood')}</span>
+      </li>
+      <li>
+        <span className="story-integration-check" aria-hidden="true" />
+        <span>{t('integrations.checklistMeetup')}</span>
+      </li>
+    </ul>
+  );
+}
 
-export function StoryIntegrations({ t, links, onHome }: { t: StoryText; links: LandingLinks; onHome: () => void }) {
-  const [scenario, setScenario] = useState<keyof typeof integrationScenarios>('mcp');
-  const row = integrationScenarios[scenario];
-  return <section id="integrations" className="story-section story-integrations" aria-labelledby="integrations-heading" data-story-scene>
-    <div className="story-container">
-      <div className="story-integration-layout">
-        <div className="story-integration-intro">
-          <StoryHeading t={t} section="integrations" />
-          <div className="story-use-cases" role="group" aria-label={t('integrations.title')}>
-            {(Object.keys(integrationScenarios) as (keyof typeof integrationScenarios)[]).map(key => {
-              const Icon = integrationIcons[key];
-              return <button className="story-use-case" key={key} type="button" aria-pressed={scenario === key} onClick={() => setScenario(key)}>
-                <span className="story-use-case-icon"><Icon size={21} strokeWidth={1.8} /></span>
-                <span><strong>{t(`integrations.${key}`)}</strong><small>{t(`integrations.${key}Detail`)}</small></span>
-                <ChevronRight size={18} />
-              </button>;
-            })}
-          </div>
-        </div>
-        <div className="story-integration-preview" data-scenario={scenario}>
-          <Surface material="glass-thin" padding="none" className="story-integration-card">
-            <header className="story-integration-card-header">
-              <div className="story-integration-pair" aria-hidden="true"><img src={row.consumer === 'NimiGo' ? '/story/nimigo-icon.png' : '/story/nimiday-icon.png'} alt="" /><img src={row.icon} alt="" /></div>
-              <span>{t('integrations.previewLabel')}</span>
-              <small><i />{t('integrations.previewStatus')}</small>
+export function StoryIntegrations({ t, links }: { t: StoryText; links: LandingLinks }) {
+  return (
+    <section id="integrations" className="story-section story-integrations" aria-labelledby="integrations-heading" data-story-scene>
+      <div className="story-container">
+        <StoryHeading t={t} section="integrations" />
+        <div className="story-integration-grid">
+          <article className="story-integration-card story-integration-card--wide">
+            <header className="story-integration-copy">
+              <Layers3 size={22} aria-hidden="true" />
+              <h3>{t('integrations.app')}</h3>
+              <p>{t('integrations.appScope')}</p>
             </header>
-            <div className="story-integration-example" key={scenario}>
-              <span>{t(`integrations.${scenario}`)}</span>
-              <h3>{t(`integrations.${scenario}Action`)}</h3>
-              <p>{t(`integrations.${scenario}Scope`)}</p>
+            <div className="story-integration-flow">
+              <div className="story-integration-sample story-integration-sample--nimigo">
+                <div className="story-integration-sample-heading">
+                  <img src="/story/nimigo-icon.png" width={28} height={28} alt="" />
+                  <strong>NimiGo</strong>
+                  <MoreHorizontal size={18} aria-hidden="true" />
+                </div>
+                <div className="story-integration-sample-body">
+                  <span className="story-integration-skeleton story-integration-skeleton--label" aria-hidden="true" />
+                  <strong className="story-integration-checklist-title">{t('integrations.checklist')}</strong>
+                  <IntegrationChecklist t={t} />
+                  <div className="story-integration-skeleton-group" aria-hidden="true">
+                    <span className="story-integration-skeleton" />
+                    <span className="story-integration-skeleton story-integration-skeleton--short" />
+                  </div>
+                </div>
+              </div>
+              <span className="story-integration-arrow" aria-hidden="true"><ArrowRight size={22} /></span>
+              <div className="story-integration-sample story-integration-sample--nimiday">
+                <div className="story-integration-sample-heading">
+                  <img src="/story/nimiday-icon.png" width={28} height={28} alt="" />
+                  <strong>NimiDay</strong>
+                  <MoreHorizontal size={18} aria-hidden="true" />
+                </div>
+                <div className="story-integration-sample-body">
+                  <strong className="story-integration-handoff-title">{t('integrations.checklist')}</strong>
+                  <div className="story-integration-handoff-list"><IntegrationChecklist t={t} /></div>
+                  <span className="story-integration-save">{t('integrations.save')}</span>
+                </div>
+              </div>
             </div>
-            <div className="story-integration-result">
-              <span><Check size={19} /></span>
-              <div><small>{t('integrations.result')}</small><p aria-live="polite">{t(`integrations.${scenario}Result` as StoryKey)}</p></div>
+          </article>
+          <article className="story-integration-card">
+            <header className="story-integration-copy">
+              <BookOpen size={22} aria-hidden="true" />
+              <h3>{t('integrations.mcp')}</h3>
+              <p>{t('integrations.mcpScope')}</p>
+            </header>
+            <div className="story-integration-sample story-integration-source">
+              <div className="story-integration-sample-heading story-integration-source-picker">
+                <span className="story-integration-microsoft" aria-hidden="true"><i /><i /><i /><i /></span>
+                <strong>Microsoft Learn</strong>
+                <ChevronDown size={16} aria-hidden="true" />
+              </div>
+              <div className="story-integration-source-body" aria-hidden="true">
+                <span className="story-integration-skeleton story-integration-skeleton--source-title" />
+                <span className="story-integration-skeleton" />
+                <span className="story-integration-skeleton story-integration-skeleton--short" />
+              </div>
             </div>
-            <footer><ShieldCheck size={14} />{t('integrations.demoNote')}</footer>
-          </Surface>
+          </article>
+          <article className="story-integration-card">
+            <header className="story-integration-copy">
+              <MessageCircle size={22} aria-hidden="true" />
+              <h3>{t('integrations.messaging')}</h3>
+              <p>{t('integrations.messagingScope')}</p>
+            </header>
+            <ul className="story-integration-sample story-integration-services">
+              <li>
+                <span className="story-integration-service-name">
+                  <img src="/demo/integration-logos/weixin.png" width={30} height={30} alt="" />
+                  <strong>{t('integrations.wechat')}</strong>
+                </span>
+                <span className="story-integration-connection is-connected"><Check size={14} aria-hidden="true" />{t('integrations.connected')}</span>
+              </li>
+              <li>
+                <span className="story-integration-service-name">
+                  <img src="/demo/integration-logos/feishu.svg" width={30} height={30} alt="" />
+                  <strong>{t('integrations.feishu')}</strong>
+                </span>
+                <span className="story-integration-connection">{t('integrations.connect')}</span>
+              </li>
+              <li>
+                <span className="story-integration-service-name">
+                  <img src="/demo/integration-logos/telegram.svg" width={30} height={30} alt="" />
+                  <strong>{t('integrations.telegram')}</strong>
+                </span>
+                <span className="story-integration-connection">{t('integrations.connect')}</span>
+              </li>
+            </ul>
+          </article>
+        </div>
+        <div className="story-integration-management">
+          <p>{t('integrations.footnote')}</p>
+          <StoryLink href={links.integrationsUrl}>{t('integrations.details')}</StoryLink>
         </div>
       </div>
-      <div className="story-integration-controls">
-        <article><ShieldCheck size={23} /><div><h3>{t('integrations.permissions')}</h3><p>{t('integrations.permissionDetail')}</p></div></article>
-        <article><KeyRound size={23} /><div><h3>{t('security.credentials')}</h3><p>{t('security.credentialDetail')}</p></div></article>
-      </div>
-      <div className="story-integration-management">
-        <p>{t('integrations.footnote')}</p>
-        <div className="story-integration-actions"><button type="button" className="story-link" onClick={onHome}>{t('integrations.openHome')}<ArrowUpRight size={16} /></button><StoryLink href={links.integrationsUrl}>{t('integrations.details')}</StoryLink></div>
-      </div>
-    </div>
-  </section>;
+    </section>
+  );
 }

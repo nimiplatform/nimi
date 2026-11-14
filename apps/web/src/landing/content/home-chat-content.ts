@@ -6,7 +6,7 @@ import type { HeroDemoAgent } from './landing-content.js';
 /** Local agents share published character excerpts with Zhiyu; human contacts are fictional. */
 export function createHomeChatData(locale: 'zh' | 'en') {
   const t = (zh: string, en: string) => (locale === 'zh' ? zh : en);
-  const agents = createLocalAgentDemoData();
+  const agents = createLocalAgentDemoData(locale);
   const people = createDemoUsers(locale);
   const self = createDemoSelf(locale);
   const assistantThreads: HeroDemoAgent[] = [

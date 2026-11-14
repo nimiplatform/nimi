@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 1000" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="base" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#dedbcf"/>
+      <stop offset=".24" stop-color="#c6e2ec"/>
+      <stop offset=".48" stop-color="#55b9e9"/>
+      <stop offset=".74" stop-color="#0750bc"/>
+      <stop offset="1" stop-color="#071d73"/>
+    </linearGradient>
+    <linearGradient id="blue" x1="0" y1="0" x2=".8" y2="1">
+      <stop stop-color="#27c8ff"/>
+      <stop offset=".42" stop-color="#087ef5"/>
+      <stop offset="1" stop-color="#06258f"/>
+    </linearGradient>
+    <linearGradient id="deep" x1="0" y1="0" x2="1" y2="1">
+      <stop stop-color="#08a2fb"/>
+      <stop offset=".55" stop-color="#0750d8"/>
+      <stop offset="1" stop-color="#061b76"/>
+    </linearGradient>
+    <filter id="soft" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="22"/></filter>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%"><feGaussianBlur stdDeviation="10"/></filter>
+  </defs>
+  <rect width="1600" height="1000" fill="url(#base)"/>
+  <g filter="url(#soft)">
+    <path d="M780-120C1040 80 1220 245 1720 330V-120Z" fill="#0753b8" opacity=".48"/>
+    <path d="M-180 1120C90 745 350 555 690 790c300 208 510 255 1060-290v620Z" fill="url(#blue)"/>
+    <path d="M-150 1130C190 755 420 690 725 865c315 181 590 70 955-305v560Z" fill="url(#deep)" opacity=".92"/>
+    <path d="M-100 1080C270 720 480 730 770 890c320 177 570 65 910-275" fill="none" stroke="#46d7ff" stroke-width="105" opacity=".64"/>
+    <path d="M-100 1040C260 690 470 690 770 855c330 181 590 55 900-260" fill="none" stroke="#b2f4ff" stroke-width="26" opacity=".52"/>
+    <path d="M350-100C630 105 790 215 970 510c125 205 320 175 670-45" fill="none" stroke="#79d8f4" stroke-width="72" opacity=".28"/>
+  </g>
+  <g filter="url(#glow)" fill="none">
+    <path d="M-80 1000C250 670 460 675 760 840c330 181 590 55 900-260" stroke="#d5fbff" stroke-width="13" opacity=".48"/>
+    <path d="M1030-40C1250 120 1390 195 1650 245" stroke="#8ee6ff" stroke-width="20" opacity=".32"/>
+  </g>
+</svg>

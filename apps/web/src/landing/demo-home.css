@@ -1,5 +1,9 @@
 /* Web replica of the current Home composition. Scoped to the interactive demo;
    no Desktop renderer, native bridge, or machine state is imported. */
+:root {
+  --demo-home-light-background: linear-gradient(135deg, #dfecfe 0%, #eff4fb 45%, #f4eff9 100%);
+}
+
 .hero-demo-frame.demo-home-frame {
   container-type: inline-size;
   color: var(--nimi-text-primary);
@@ -18,7 +22,7 @@
   --demo-card: #fff;
   --demo-border: #e1e7f0;
   --demo-muted: #697383;
-  background: linear-gradient(135deg, #dfecfe 0%, #eff4fb 45%, #f4eff9 100%);
+  background: var(--demo-home-light-background);
 }
 .demo-home-frame[data-demo-theme='dark'] {
   --nimi-text-primary: #e7ecf4;

@@ -1,7 +1,10 @@
-import { useEffect, type ReactNode } from 'react';
-import { Link } from 'react-router-dom';
+import { Surface } from '@nimiplatform/kit/ui';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { ArrowDownToLine, ArrowUpRight, Code2, Laptop, Menu, Monitor, ShieldCheck, Terminal, TriangleAlert, X } from 'lucide-react';
+import { Link, NavLink } from 'react-router-dom';
 import { LanguageToggle } from '../landing/components/language-toggle.js';
 import { withLocaleQuery } from '../landing/config/landing-links.js';
+import { getStoryCopy } from '../landing/content/story-copy.js';
 import type { LandingLocale } from '../landing/i18n/locale.js';
 import { usePublicPageLocale } from './use-page-locale.js';
 
@@ -13,6 +16,8 @@ import { usePublicPageLocale } from './use-page-locale.js';
 // @nimi-authority: rule.nimi.platform.product-lifecycle.p-pkgrel-009
 const REPOSITORY_URL = 'https://github.com/nimiplatform/nimi';
 const RELEASES_URL = `${REPOSITORY_URL}/releases`;
+const PUBLIC_BETA_VERSION = '0.2.4';
+const PUBLIC_BETA_ASSET_URL = `${RELEASES_URL}/download/${encodeURIComponent(`nimi/v${PUBLIC_BETA_VERSION}`)}`;
 const SECURITY_ADVISORY_URL = `${REPOSITORY_URL}/security/advisories/new`;
 const DOCS_URL = 'https://docs.nimi.ai';
 
@@ -51,38 +56,13 @@ type TextSection = {
 
 type DownloadCopy = {
   meta: PageMeta;
-  kicker: string;
   title: string;
-  intro: string;
-  statusTitle: string;
-  statusBody: string;
   releaseAction: string;
-  versions: TextSection & { cta: string };
-  preview: {
-    title: string;
-    scope: string;
-    warning: string;
-    usage: string;
-    releaseLink: string;
-    detailsLink: string;
-  };
-  release: TextSection;
-  platformTitle: string;
-  platforms: ReadonlyArray<{
-    name: string;
-    status: string;
-    detail: string;
-  }>;
-  prerelease: TextSection;
-  sourceBuild: TextSection;
-  verification: TextSection;
-  providerTitle: string;
-  providerLabel: string;
-  attribution: string;
-  disclaimer: string;
-  systemChanges: TextSection;
-  uninstall: TextSection;
-  linksTitle: string;
+  scope: string;
+  warning: string;
+  installationGuide: string;
+  desktop: { title: string; signInRequirement: string };
+  requirements: Record<'windows' | 'macos' | 'linux', string>;
 };
 
 type PolicyCopy = {
@@ -113,6 +93,7 @@ type PolicyCopy = {
   historical: TextSection;
   incident: TextSection;
   license: TextSection;
+  linksTitle: string;
 };
 
 type PublicPageCopy = {
@@ -146,129 +127,26 @@ const EN_COPY: PublicPageCopy = {
     meta: {
       title: 'Download Nimi | Release status',
       description:
-        'Download availability, product composition, and developer guidance for Nimi.',
+        'Find Nimi installers, platform requirements, and release verification guidance.',
       canonical: 'https://nimi.ai/download',
     },
-    kicker: 'Release status',
     title: 'Download Nimi',
-    intro:
-      "Download the Nimi Public Beta for macOS arm64 and Windows x86_64, check system requirements, and learn how release verification works.",
-    statusTitle: "Nimi v0.2.4 Public Beta is available",
-    statusBody:
-      "The Public Beta includes Nimi Home, Runtime, and Avatar. Choose the installer for your platform below. You’ll need a Nimi account and browser sign-in; this is a Beta release, so check its notes before installing.",
+    scope: `Public Beta v${PUBLIC_BETA_VERSION} for Apple Silicon Macs and Windows x86_64.`,
     releaseAction: "Download from GitHub Releases",
-    versions: {
-      title: 'How releases are identified',
-      paragraphs: [
-        "Release tags name their owner: nimi/v<version> for the complete Desktop + Runtime + Avatar product (such as the current public Beta nimi/v0.2.4), desktop/v<version> for a Desktop-only delivery, and runtime/v<version> for a Runtime-only delivery. Release stage is determined by the GitHub prerelease marker and signed metadata.channel (for example, channel=beta), not by a tag suffix alone.",
-      ],
-      items: [
-        'Owner and version: match the release tag to the product or component you want.',
-        'Platform: choose only an asset the release page lists for your platform.',
-        "Verify before running: check the release-owned build and update metadata (SHA-256, size, channel, and Ed25519 signature) and the platform signing posture described on the release page and in the code signing policy.",
-      ],
-      cta: 'Check GitHub Releases',
+    warning: 'The Windows Beta installer has no Authenticode signature. Do not install a development root certificate or turn off OS security controls to run it.',
+    installationGuide: 'Installation and verification',
+    desktop: {
+      title: 'Nimi Desktop',
+      signInRequirement: 'On first launch, sign in to your Nimi account in your browser.',
     },
-    preview: {
-      title: "Try the Public Beta",
-      scope: "Version 0.2.4 is available for Apple Silicon Macs and Windows x86_64. Each release includes its own installer files and verification metadata.",
-      warning: "The Windows Beta installer has no Authenticode signature. Nimi uses signed release metadata and protected installation checks for this Beta. Do not install a development root certificate or turn off OS security controls to run it.",
-      usage: "Open the official release page to choose your installer and read its notes. Earlier withdrawn previews have separate cleanup guidance below.",
-      releaseLink: 'View GitHub Releases',
-      detailsLink: "Installation and historical cleanup",
+    requirements: {
+      windows: 'Windows 10 (2004) or later · x86_64',
+      macos: 'macOS 13 or later · Apple Silicon',
+      linux: 'No installer',
     },
-    release: {
-      title: 'Product and release details',
-      paragraphs: [
-        'Nimi is an open-source, local-first personal AI product comprising Desktop, Runtime, and Avatar. Nimi Home is its Desktop-hosted entry for conversations, characters, creations, stories, worlds, settings, and Nimi Apps. Runtime executes local or cloud AI capabilities; Avatar provides the desktop embodiment. Realm owns account and ecosystem identity.',
-        "The beta channel and the stable (latest) channel are independent. Public Beta releases such as nimi/v0.2.4 are published as prereleases with channel=beta and are never promoted or represented as Stable or latest.",
-        'The complete product uses nimi/v<version> releases. Desktop-only and Runtime-only deliveries use desktop/v<version> and runtime/v<version>; libraries retain their own package versions. Zhiyu and Nimi Lab are independently published Third-party Apps, not components of the Nimi installation.',
-        "Nimi Apps use Registry packages, local package imports, or Developer Mode. App discovery, installation, updates, and access controls are supported on Windows x86_64 and macOS arm64; local-import end-to-end acceptance is tracked separately. Other platforms and ordinary App repair remain unavailable. Runtime checks the current session and admitted operations, with user choices governing the relevant install and resource access.",
-      ],
-    },
-    platformTitle: 'Platform availability',
-    platforms: [
-      {
-        name: 'Windows',
-        status: "Public Beta (v0.2.4)",
-        detail: "Nimi-0.2.4-windows-amd64.exe is available for Windows 10 version 2004 (10.0.19041) and later (x86_64). The Beta installer is unsigned (Authenticode NotSigned) and is accompanied by build metadata and Ed25519-signed update manifests and the Windows installed inventory JSON.",
-      },
-      {
-        name: 'macOS',
-        status: "Public Beta (v0.2.4)",
-        detail: "Nimi-0.2.4-macos-arm64.pkg is available for Apple Silicon Macs running macOS 13.0 and later, with build metadata and Ed25519-signed update manifests. The release workflow requires Developer ID signing, notarization, and stapling for admitted macOS PKG assets; Intel Macs are not supported as a complete product platform.",
-      },
-      {
-        name: 'Linux',
-        status: "No product release",
-        detail: "There is no official Nimi product installer for Linux (or Intel macOS). Ability to compile Runtime from source does not make those platforms supported product targets.",
-      },
-      {
-        name: 'Source',
-        status: 'Available for development',
-        detail:
-          'The public repository can be reviewed and built locally. Local output is not a Nimi production release and carries no production-signing claim.',
-      },
-    ],
-    prerelease: {
-      title: 'Pre-releases and explicit versions',
-      paragraphs: [
-        "Every release tag identifies its owner: nimi/v<version> for the complete Desktop + Runtime + Avatar product (such as nimi/v0.2.4), desktop/v<version> for Desktop, or runtime/v<version> for Runtime. Libraries use their own component prefix and version. A public Beta does not necessarily carry a -preview.N tag suffix; check the GitHub prerelease flag and the signed update manifest's channel field (for example, channel=beta).",
-        "Beta prereleases remain separate from Stable and never appear as latest. The Windows x86_64 Beta installer in nimi/v0.2.4 is explicitly unsigned for Authenticode, and unsigned bytes are never renamed, retroactively signed, or promoted into RC or Stable releases.",
-      ],
-    },
-    sourceBuild: {
-      title: 'Source builds are different from releases',
-      paragraphs: [
-        "Local development builds may use a self-signed certificate for same-machine testing. That certificate is never a production identity, is never included in GitHub Release assets, and is not required or used by the public Beta installer.",
-        "The former mixed-component preview workflow is retired. Official releases are built in GitHub Actions and bind the declared product or component tag to exact artifact SHA-256 digests, sizes, cohorts, and Ed25519-signed platform metadata.",
-      ],
-    },
-    verification: {
-      title: 'Release assets and verification',
-      paragraphs: [
-        "Public Beta nimi/v0.2.4 publishes 7 release assets: Nimi-0.2.4-macos-arm64.pkg, Nimi-0.2.4-windows-amd64.exe, macOS and Windows build metadata and update manifest JSON files, and the Windows installed inventory JSON. Both update manifests are signed with the repository's Ed25519 platform key and specify channel=beta, minimumOsVersion 13.0 for macOS, and 10.0.19041 (Windows 10 2004) for Windows, binding exact artifact SHA-256 hashes, file sizes, and cohorts.",
-        "Platform-signed metadata (Ed25519) verifies release manifest integrity and artifact SHA-256 digests, but it is not Windows Authenticode. In nimi/v0.2.4, the Windows installer is unsigned for Authenticode; under P-SUPD-012, Windows unsigned Beta installations establish protected-local trust by verifying the Ed25519-signed platform metadata, the complete Windows installed inventory, and protected Program Files ownership and locked bytes. Arbitrary unsigned files or a bare NotSigned status never grant trust.",
-        "For macOS arm64, the release workflow requires Developer ID signing, notarization, and stapling for the admitted PKG; verify the downloaded installer on your Mac alongside the release's build and update JSON files. The current Beta does not publish a separate standalone checksums text file or SBOM—use the release-owned metadata JSON assets for verification.",
-      ],
-      items: [
-        "Source: download only from https://nimi.ai/download or https://github.com/nimiplatform/nimi/releases.",
-        "Identity and channel: confirm the tag (such as nimi/v0.2.4), platform asset, minimum OS version, and metadata.channel (beta vs. stable).",
-        "Metadata and signatures: verify the SHA-256 digest and file size against the Ed25519-signed update manifests (and Windows installed inventory), and check OS code-signing posture per the Code signing policy.",
-      ],
-    },
-    providerTitle: 'Windows code signing',
-    providerLabel: "Planned Windows code-signing provider (production signing not yet integrated)",
-    attribution: 'Free code signing provided by SignPath.io, certificate by SignPath Foundation.',
-    disclaimer:
-      "The Windows Beta installer in nimi/v0.2.4 is unsigned for Authenticode. No Nimi artifact is SignPath-signed unless formal SignPath integration is confirmed and its Authenticode signature verifies successfully.",
-    systemChanges: {
-      title: "Installation, system changes, and historical builds",
-      paragraphs: [
-        "Current Public Beta (nimi/v0.2.4): The macOS arm64 PKG (Nimi-0.2.4-macos-arm64.pkg) and Windows x86_64 installer (Nimi-0.2.4-windows-amd64.exe) are full product installers—not portable ZIPs. They install Desktop, Runtime, Avatar, and the required system services and helper components into protected system locations (including Program Files on Windows).",
-        "Windows Beta trust model (P-SUPD-012): Although the Windows Beta installer is unsigned for Authenticode, it establishes protected-local trust through Ed25519-signed platform metadata, the complete Windows installed inventory JSON, and protected Program Files ownership and locked-byte verification. It never installs a development self-signed certificate into Windows Root or TrustedPublisher stores and does not require disabling OS security features.",
-        "User data separation: Runtime-managed models, dependencies, environments, app and account data, app/account-scoped caches, and configured logs/audit roots live under the user-selected nimi_data root, separate from installed program and service files. No independent shared cache root is defined.",
-        "Runtime logging: Protected Runtime logs ordinary output to standard output and writes failure events to the OS log (such as Windows Event Log) on a best-effort basis. The configured nimi_data logs root should not be assumed to be a persistent system-service log file destination unless documented by your installed version.",
-        "Historical withdrawn Windows previews: The retired source-local npm Kit package and the withdrawn portable Runtime bootstrap (.\\nimi.exe version --json) did not install Nimi Home, a Windows service, or certificates, and did not enable protected-local operation.",
-        "Historical Windows development prototype: An earlier local-development service prototype wrote Runtime files under %ProgramFiles%\\Nimi\\Runtime\\versions, protected state under %ProgramData%\\Nimi\\Runtime\\Protected (including memory.db and repair-local-agent-chat.exe backups/sidecars), and created the LocalSystem service NimiRuntime.",
-        "Historical development certificates (local-dev prototypes only): That earlier local-development Windows prototype imported a self-signed certificate into LocalMachine Root and TrustedPublisher for same-machine testing. This applies only to users who ran the historical local-development prototype—never to the public Beta nimi/v0.2.4 installer.",
-        "Historical macOS development candidate: If you ran the earlier repo-assisted macOS development script, it used the development namespace _nimiruntimedev, ai.nimi.runtime.dev, /Applications/Nimi Dev.app, /Library/Application Support/Nimi/RuntimeDev, /usr/local/libexec/nimi-macos-dev-security, local Runtime sockets, and /private/var/run/nimi-macos-dev-security.lock.",
-      ],
-    },
-    uninstall: {
-      title: 'Uninstallation and cleanup',
-      paragraphs: [
-        "For uninstalling or recovering a Public Beta installation, use the guidance and official support for that exact release. Historical development-prototype cleanup commands below apply only to those older builds.",
-        "User data (nimi_data): Program files and user data are separate. The user-selected nimi_data root is preserved by default; delete models, dependencies, environments, apps, accounts, scoped caches, or configured logs/audit roots only with explicit intent after backing up anything you want to keep. Deletion is irreversible.",
-        "Historical Windows development prototype only: If you ran the earlier local-development service prototype, stop and delete the NimiRuntime service in an elevated shell, remove %ProgramFiles%\\Nimi\\Runtime, and choose whether to keep or remove %ProgramData%\\Nimi\\Runtime\\Protected (including memory.db and repair backups/sidecars).",
-        "Historical local-development certificates only: If that earlier Windows development prototype installed a local self-signed certificate on your machine, remove it from LocalMachine Root and TrustedPublisher by its exact thumbprint. The Public Beta installer does not install a development certificate; its cleanup steps do not require removing one.",
-        "Historical macOS development candidate only: For the earlier repo-assisted macOS development build, run node scripts/accept-runtime-fixed-service.mjs --uninstall from that exact source checkout to remove the development service, /Applications/Nimi Dev.app, helper, sockets, and _nimiruntimedev principal (the empty /private/var/run/nimi-macos-dev-security.lock file may remain until reboot).",
-        "Historical withdrawn npm Kit and portable bootstrap: Remove the retired source-local Kit package with npm uninstall in that project. For the withdrawn portable Windows Runtime ZIP, close any running nimi.exe process and delete the extracted folder.",
-      ],
-    },
-    linksTitle: 'Official links',
   },
   policy: {
+    linksTitle: 'Official links',
     meta: {
       title: 'Code signing policy | Nimi',
       description:
@@ -438,127 +316,26 @@ const ZH_COPY: PublicPageCopy = {
   download: {
     meta: {
       title: '下载 Nimi | 发布状态',
-      description: 'Nimi 下载可用状态、产品组成与开发者说明。',
+      description: '查找 Nimi 安装包、系统要求与版本校验说明。',
       canonical: 'https://nimi.ai/download',
     },
-    kicker: '发布状态',
     title: '下载 Nimi',
-    intro:
-      "获取面向 macOS arm64 与 Windows x86_64 的 Nimi 公开 Beta 安装包，查看系统要求与版本校验方式。",
-    statusTitle: "Nimi v0.2.4 公开 Beta 已开放下载",
-    statusBody:
-      "公开 Beta 包含 Nimi Home、Runtime 与 Avatar。请选择适合你设备的安装包，并在安装前阅读版本说明。使用 Nimi 需要 Nimi 账号并在浏览器中登录，当前发布仍处于 Beta 阶段。",
+    scope: `公开 Beta v${PUBLIC_BETA_VERSION}，适用于 Apple Silicon Mac 和 Windows x86_64。`,
     releaseAction: "前往 GitHub Releases 下载",
-    versions: {
-      title: '如何识别版本',
-      paragraphs: [
-        "Release 标签标明归属：完整 Desktop + Runtime + Avatar 产品使用 nimi/v<version>（如当前公开 Beta nimi/v0.2.4），仅 Desktop 使用 desktop/v<version>，仅 Runtime 使用 runtime/v<version>。发布阶段由 GitHub prerelease 标记与签名元数据中的 metadata.channel（例如 channel=beta）决定，不能仅凭标签后缀判断。",
-      ],
-      items: [
-        '归属与版本：确认 Release 标签对应你需要的产品或组件。',
-        '平台：只选择版本页为你的平台列出的制品。',
-        "运行前先验证：核对版本自带的构建与更新元数据（SHA-256、文件大小、通道与 Ed25519 签名）以及版本页和代码签名政策说明的平台签名状态。",
-      ],
-      cta: '查看 GitHub Releases',
+    warning: 'Windows Beta 安装包尚无 Authenticode 签名。请勿为此安装开发根证书或关闭系统安全防护。',
+    installationGuide: '安装说明与校验',
+    desktop: {
+      title: 'Nimi 桌面版',
+      signInRequirement: '首次使用需在浏览器登录 Nimi 账号。',
     },
-    preview: {
-      title: "体验公开 Beta",
-      scope: "0.2.4 现已支持 Apple Silicon Mac 与 Windows x86_64。每个版本都附有对应的安装包和校验元数据。",
-      warning: "Windows Beta 安装包尚无 Authenticode 签名；本次 Beta 通过签名发布元数据与受保护安装校验建立信任。请勿为此安装开发根证书或关闭系统安全防护。",
-      usage: "前往官方版本页选择安装包并查看说明。若曾安装已撤回的旧预览，请参阅下方单独的历史清理指引。",
-      releaseLink: '查看 GitHub Releases',
-      detailsLink: "安装与历史版本清理",
+    requirements: {
+      windows: 'Windows 10（2004）或更高版本 · x86_64',
+      macos: 'macOS 13 或更高版本 · Apple Silicon',
+      linux: '暂无安装包',
     },
-    release: {
-      title: '产品与发布详情',
-      paragraphs: [
-        'Nimi 是由 Desktop、Runtime 和 Avatar 组成的开源、本地优先个人 AI 产品。Nimi Home 是由 Desktop 承载的入口，将对话、角色、创作、故事、世界、设置与 Nimi Apps 连接在一起。Runtime 执行本地或云端 AI 能力，Avatar 提供桌面形象，Realm 负责账号与生态身份。',
-        "beta 通道与 stable（latest）稳定通道相互独立。nimi/v0.2.4 等公开 Beta 作为 prerelease 发布（channel=beta），不会等同于或直接晋升为稳定版（Stable / latest）。",
-        '完整产品使用 nimi/v<版本> 发布；单独的 Desktop 和 Runtime 分别使用 desktop/v<版本>、runtime/v<版本>，各库保持自己的包版本。Zhiyu 和 Nimi Lab 是独立发布的第三方 App，不属于 Nimi 安装包。',
-        "Nimi App 有 Registry 包、本地包导入与开发者模式三种接入路径。目前应用发现、安装、更新与访问控制支持 Windows x86_64 与 macOS arm64，本地导入的整体验收另行确认；其他平台与普通 App 修复仍不可用。Runtime 按当前会话与已接纳操作检查访问，相关安装与资源使用遵循用户选择。",
-      ],
-    },
-    platformTitle: '平台可用性',
-    platforms: [
-      {
-        name: 'Windows',
-        status: "公开 Beta（v0.2.4）",
-        detail: "已提供面向 Windows 10 2004（10.0.19041）及更高版本（x86_64）的 Nimi-0.2.4-windows-amd64.exe。当前 Beta 安装程序为未签名状态（Authenticode NotSigned），随附build 元数据与经 Ed25519 签名的 update 清单与 Windows installed inventory JSON。",
-      },
-      {
-        name: 'macOS',
-        status: "公开 Beta（v0.2.4）",
-        detail: "已提供面向 Apple Silicon（macOS 13.0 及更高版本）的 Nimi-0.2.4-macos-arm64.pkg，随附build 元数据与经 Ed25519 签名的 update 清单。平台发行流程要求准入的 macOS PKG 完成 Developer ID 签名、公证与票据钉合（staple）；Intel Mac 不在完整产品支持范围内。",
-      },
-      {
-        name: 'Linux',
-        status: "无完整产品发布",
-        detail: "Linux（及 Intel macOS）目前没有官方 Nimi 完整产品安装包。Runtime 源码可编译不代表完整产品支持对应平台。",
-      },
-      {
-        name: '源代码',
-        status: '可用于开发',
-        detail: '公开仓库可以审查和本地构建；本地产物不是 Nimi production release，也不具备 production-signing 身份。',
-      },
-    ],
-    prerelease: {
-      title: '预发布与指定版本',
-      paragraphs: [
-        "所有发布标签均须标明归属：完整 Desktop + Runtime + Avatar 产品使用 nimi/v<version>（例如 nimi/v0.2.4），Desktop 使用 desktop/v<version>，Runtime 使用 runtime/v<version>，各库使用独立的组件前缀与版本。公开 Beta 标签不一定带有 -preview.N 后缀，请以 GitHub prerelease 标记及签名 update manifest 中的 channel 字段（如 channel=beta）为准。",
-        "Beta 预发布版本与稳定版严格分离，不会进入 latest。nimi/v0.2.4 中的 Windows x86_64 Beta 安装包明确为 Authenticode 未签名状态；未签名二进制绝不会通过改名、事后补签或直接晋升成为 RC 或 Stable 版本。",
-      ],
-    },
-    sourceBuild: {
-      title: '源码构建不同于正式发布',
-      paragraphs: [
-        "本地开发构建在单机测试时可能使用开发自签证书。该证书不代表生产身份，不会包含在 GitHub Release 制品中，当前公开 Beta 安装包也不使用或要求安装此类证书。",
-        "早期混合组件的预览发布流程已停用。官方版本由 GitHub Actions 构建，将声明的产品或组件标签与精确的制品 SHA-256、文件大小、cohort 及平台 Ed25519 签名元数据绑定。",
-      ],
-    },
-    verification: {
-      title: 'Release 制品与验证',
-      paragraphs: [
-        "公开 Beta nimi/v0.2.4 共包含 7 个发布资产：Nimi-0.2.4-macos-arm64.pkg、Nimi-0.2.4-windows-amd64.exe、macOS 与 Windows 双平台的 build metadata 和 update manifest JSON，以及 Windows installed inventory JSON。两个平台的 update manifest 均在 2026 年 10 月 14 日核对时通过仓库平台公钥验签及格式、有效期校验，标明 channel=beta、最低系统版本 macOS 13.0 与 Windows 10.0.19041（Windows 10 2004），并绑定精确的制品 SHA-256、大小与 cohort。",
-        "平台签名元数据（Ed25519）用于校验发布清单完整性与制品 SHA-256，但不等同于 Windows Authenticode 代码签名。nimi/v0.2.4 的 Windows 安装程序无 Authenticode 签名；根据 P-SUPD-012，Windows 未签名 Beta 通过校验平台 Ed25519 签名元数据、完整 Windows installed inventory 以及受保护 Program Files 所有权与锁定字节来建立受保护本地信任。单纯的 NotSigned 状态或任意未签名文件本身不会获得任何权限。",
-        "在 macOS arm64 上，平台发行脚本要求准入的 PKG 完成 Developer ID 签名、公证与钉合（staple）；请在系统上结合版本自带的 build 与 update JSON 元数据核验下载的安装包。当前 Beta 未单独发布独立的 checksums 文本文件或 SBOM，请以 Release 自带的元数据 JSON 与资产为准。",
-      ],
-      items: [
-        "来源：仅从官方下载页 https://nimi.ai/download 或 https://github.com/nimiplatform/nimi/releases 获取安装包。",
-        "身份与通道：核对版本标签（如 nimi/v0.2.4）、适用平台资产、最低系统版本要求及 metadata.channel（beta 或 stable）。",
-        "元数据与签名：对照经 Ed25519 签名的 update 清单核验 SHA-256 与文件大小，并按代码签名政策检查系统签名状态。",
-      ],
-    },
-    providerTitle: 'Windows 代码签名',
-    providerLabel: "计划中的 Windows 代码签名服务商（尚未确认接入正式签名）",
-    attribution: 'Free code signing provided by SignPath.io, certificate by SignPath Foundation.',
-    disclaimer: "nimi/v0.2.4 的 Windows Beta 安装包无 Authenticode 签名。在确认接入正式 SignPath 签名且文件的 Authenticode 签名验证通过前，任何 Nimi 制品均不属于 SignPath 签名制品。",
-    systemChanges: {
-      title: "安装变更、数据目录与历史构建说明",
-      paragraphs: [
-        "当前公开 Beta（nimi/v0.2.4）：macOS arm64 安装包（Nimi-0.2.4-macos-arm64.pkg）与 Windows x86_64 安装程序（Nimi-0.2.4-windows-amd64.exe）均为完整产品安装程序，而非便携式 ZIP。它们会安装 Desktop、Runtime、Avatar 以及运行所需的系统服务与辅助程序，并写入受保护的系统目录（包括 Windows 上的 Program Files）。",
-        "Windows Beta 信任机制（P-SUPD-012）：尽管当前 Windows Beta 安装程序未进行 Authenticode 签名，系统会通过平台 Ed25519 签名元数据、完整的 Windows installed inventory JSON，以及受保护 Program Files 目录所有权与锁定字节校验来建立受保护本地信任。安装过程绝不会向系统 Root 或 TrustedPublisher 证书库导入开发自签证书，也不要求关闭操作系统安全功能。",
-        "用户数据与程序分离：由 Runtime 管理的模型、依赖、运行环境、应用与账号数据、应用/账号范围内的缓存，以及配置的 logs/audit 根目录均存放在用户选定的 nimi_data 根目录下，与程序和系统服务文件分离。当前目录配置不设独立的共享缓存（shared cache）根目录。",
-        "Runtime 日志行为：受保护的 Runtime 默认将常规日志输出至标准输出，并尽力将故障事件写入系统日志（如 Windows Event Log）。除非所安装版本的说明另有注明，不应将配置中的 nimi_data logs 根目录视为已验证的系统服务持久化日志文件目标。",
-        "历史已撤回的 Windows 预览：早期已停用的源码本地 npm Kit 包与已撤回的便携式 Runtime 启动包（.\\nimi.exe version --json）不会安装 Nimi Home、Windows 服务或证书，也不支持受保护本地运行。",
-        "历史 Windows 本地开发原型：早期的本地开发服务原型会将 Runtime 版本写入 %ProgramFiles%\\Nimi\\Runtime\\versions，将受保护状态写入 %ProgramData%\\Nimi\\Runtime\\Protected（含 memory.db 及 repair-local-agent-chat.exe 生成的备份与 sidecar 文件），并创建 LocalSystem 服务 NimiRuntime。",
-        "历史开发自签证书说明（仅限本地开发原型）：上述早期本地开发原型曾为单机测试将开发自签证书导入 LocalMachine Root 与 TrustedPublisher。此情况仅涉及运行过历史本地开发原型的开发者，与公开 Beta（nimi/v0.2.4）安装包完全无关。",
-        "历史 macOS 开发候选：若此前运行过仓库辅助的早期 macOS 开发脚本，其开发命名空间包含 _nimiruntimedev、ai.nimi.runtime.dev、/Applications/Nimi Dev.app、/Library/Application Support/Nimi/RuntimeDev、/usr/local/libexec/nimi-macos-dev-security、本地 Runtime sockets 及 /private/var/run/nimi-macos-dev-security.lock。",
-      ],
-    },
-    uninstall: {
-      title: '卸载与清理',
-      paragraphs: [
-        "卸载或恢复公开 Beta 时，请参照对应版本的说明与官方支持。下方开发原型的历史清理命令仅适用于那些旧构建。",
-        "用户数据（nimi_data）：程序文件与用户数据相互独立。用户选定的 nimi_data 根目录默认保留；仅在确认并备份所需内容后，才应根据明确意愿删除其中的模型、依赖、环境、应用、账号、范围缓存或 logs/audit 目录。数据删除不可恢复。",
-        "仅限历史 Windows 本地开发原型：若此前运行过早期本地开发服务原型，需在管理员终端中停止并删除 NimiRuntime 服务，移除 %ProgramFiles%\\Nimi\\Runtime，再自行决定保留或删除 %ProgramData%\\Nimi\\Runtime\\Protected（含 memory.db 与修复备份/sidecar 文件）。",
-        "仅限历史本地开发自签证书：若早期 Windows 本地开发原型曾在测试机上导入开发自签证书，请按精确指纹（thumbprint）从 LocalMachine Root 与 TrustedPublisher 中移除。公开 Beta（nimi/v0.2.4）用户不会安装该证书，无需执行此操作。",
-        "仅限历史 macOS 开发候选：针对早期仓库辅助的 macOS 开发构建，请从对应源码检出目录执行 node scripts/accept-runtime-fixed-service.mjs --uninstall，以移除开发服务、/Applications/Nimi Dev.app、辅助程序、sockets 与 _nimiruntimedev 账户（空的 /private/var/run/nimi-macos-dev-security.lock 锁文件可能保留至重启，不含用户数据）。",
-        "历史已撤回的 npm Kit 与便携启动包：早期源码本地 Kit 包可在对应项目中通过 npm uninstall 移除；早期便携式 Windows Runtime 解压包只需关闭运行中的 nimi.exe 进程并删除解压目录即可。",
-      ],
-    },
-    linksTitle: '官方入口',
   },
   policy: {
+    linksTitle: '官方入口',
     meta: {
       title: 'Code signing policy | Nimi',
       description: "Nimi 代码签名政策：当前公开 Beta 的签名与元数据校验机制、计划中的 SignPath 归属、签名范围、发布控制与验证方法。",
@@ -773,68 +550,128 @@ function OfficialLinks({ copy }: { copy: SharedCopy }) {
   );
 }
 
+function DownloadHeader({ locale, languageToggle }: { locale: LandingLocale; languageToggle: ReactNode }) {
+  const copy = PUBLIC_PAGE_CONTENT[locale].shared;
+  const navigationCopy = getStoryCopy(locale);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const homeLink = useRef<HTMLAnchorElement>(null);
+  const menuButton = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (menuOpen) homeLink.current?.focus({ preventScroll: true });
+  }, [menuOpen]);
+
+  return (
+    <Surface
+      as="header"
+      material="glass-chrome"
+      padding="none"
+      className="story-nav download-header"
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setMenuOpen(false);
+      }}
+      onKeyDown={(event) => {
+        if (!menuOpen || event.key !== 'Escape') return;
+        setMenuOpen(false);
+        menuButton.current?.focus({ preventScroll: true });
+      }}
+    >
+      <Link to={withLocaleQuery('/', locale)} className="story-brand">
+        <img src="/logo.svg" alt="" width="29" height="29" />
+        <strong>Nimi</strong>
+      </Link>
+      <nav id="download-navigation" aria-label="Nimi" className={menuOpen ? 'is-open' : ''}>
+        <Link ref={homeLink} to={withLocaleQuery('/', locale)} onClick={() => setMenuOpen(false)}>{copy.backHome}</Link>
+        <Link to={withLocaleQuery('/code-signing', locale)} onClick={() => setMenuOpen(false)}>{copy.policy}</Link>
+      </nav>
+      <div className="story-nav-actions">
+        {languageToggle}
+        <NavLink to={withLocaleQuery('/download', locale)} end className="story-download">
+          {navigationCopy['common.download']}
+        </NavLink>
+        <button
+          ref={menuButton}
+          className="story-menu-toggle"
+          type="button"
+          aria-controls="download-navigation"
+          aria-expanded={menuOpen}
+          aria-label={navigationCopy[menuOpen ? 'common.closeMenu' : 'common.openMenu']}
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          {menuOpen ? <X size={21} /> : <Menu size={21} />}
+        </button>
+      </div>
+    </Surface>
+  );
+}
+
 function PageShell(props: {
   locale: LandingLocale;
   onLocaleChange: (locale: LandingLocale) => void;
   meta: PageMeta;
-  kicker: string;
-  title: string;
-  intro: string;
-  statusTitle: string;
-  statusBody: string;
-  action?: ReactNode;
+  hero?: Pick<PolicyCopy, 'kicker' | 'title' | 'intro' | 'statusTitle' | 'statusBody'>;
+  downloadHeader?: boolean;
+  mainClassName?: string;
   children: ReactNode;
 }) {
   const copy = PUBLIC_PAGE_CONTENT[props.locale].shared;
   usePageMetadata(props.meta, props.locale);
+  const languageToggle = (
+    <LanguageToggle
+      locale={props.locale}
+      label={copy.language}
+      options={{
+        en: copy.english,
+        zh: copy.chinese,
+        switchToEn: copy.switchEnglish,
+        switchToZh: copy.switchChinese,
+      }}
+      onChange={props.onLocaleChange}
+    />
+  );
 
   return (
     <div
-      className="release-page-shell"
+      className={props.downloadHeader ? 'release-page-shell download-page-shell' : 'release-page-shell'}
       // See landing App.tsx: suppress native drag of selected text, which
       // hangs software-rendered environments. Selection and copy are intact.
       onDragStart={(event) => event.preventDefault()}
     >
       <a href="#release-main" className="skip-link">{copy.skipToContent}</a>
-      <header className="release-header nimi-material-glass-chrome bg-[var(--nimi-material-glass-chrome-bg)] border-[var(--nimi-material-glass-chrome-border)] backdrop-blur-[var(--nimi-backdrop-blur-chrome)] backdrop-saturate-[var(--nimi-backdrop-saturate)]">
-        <div className="release-container release-header-inner">
-          <Link to={withLocaleQuery('/', props.locale)} className="release-brand">
-            <img src="/logo.svg" alt="" width="32" height="32" />
-            <span>Nimi</span>
-          </Link>
-          <nav aria-label="Nimi public pages">
-            <Link to={withLocaleQuery('/', props.locale)}>{copy.backHome}</Link>
-            <Link to={withLocaleQuery('/download', props.locale)}>{copy.download}</Link>
-            <Link to={withLocaleQuery('/code-signing', props.locale)}>{copy.policy}</Link>
-          </nav>
-          <LanguageToggle
-            locale={props.locale}
-            label={copy.language}
-            options={{
-              en: copy.english,
-              zh: copy.chinese,
-              switchToEn: copy.switchEnglish,
-              switchToZh: copy.switchChinese,
-            }}
-            onChange={props.onLocaleChange}
-          />
-        </div>
-      </header>
+      {props.downloadHeader ? <DownloadHeader locale={props.locale} languageToggle={languageToggle} /> : (
+        <header className="release-header nimi-material-glass-chrome bg-[var(--nimi-material-glass-chrome-bg)] border-[var(--nimi-material-glass-chrome-border)] backdrop-blur-[var(--nimi-backdrop-blur-chrome)] backdrop-saturate-[var(--nimi-backdrop-saturate)]">
+          <div className="release-container release-header-inner">
+            <Link to={withLocaleQuery('/', props.locale)} className="release-brand">
+              <img src="/logo.svg" alt="" width="32" height="32" />
+              <span>Nimi</span>
+            </Link>
+            <nav aria-label="Nimi public pages">
+              <Link to={withLocaleQuery('/', props.locale)}>{copy.backHome}</Link>
+              <Link to={withLocaleQuery('/download', props.locale)}>{copy.download}</Link>
+              <Link to={withLocaleQuery('/code-signing', props.locale)}>{copy.policy}</Link>
+            </nav>
+            {languageToggle}
+          </div>
+        </header>
+      )}
 
-      <main id="release-main" className="release-container release-main">
-        <div className="release-hero">
-          <p className="release-kicker">{props.kicker}</p>
-          <h1>{props.title}</h1>
-          <p className="release-intro">{props.intro}</p>
-          <aside className="release-status" aria-label={copy.currentStatus}>
-            <span>{copy.currentStatus}</span>
-            <strong>{props.statusTitle}</strong>
-            <p>{props.statusBody}</p>
-          </aside>
-          {props.action}
-          <p className="release-reviewed">{copy.reviewed}</p>
-        </div>
-        <article className="release-card">{props.children}</article>
+      <main id="release-main" className={props.mainClassName ?? 'release-container release-main'}>
+        {props.hero ? (
+          <>
+            <div className="release-hero">
+              <p className="release-kicker">{props.hero.kicker}</p>
+              <h1>{props.hero.title}</h1>
+              <p className="release-intro">{props.hero.intro}</p>
+              <aside className="release-status" aria-label={copy.currentStatus}>
+                <span>{copy.currentStatus}</span>
+                <strong>{props.hero.statusTitle}</strong>
+                <p>{props.hero.statusBody}</p>
+              </aside>
+              <p className="release-reviewed">{copy.reviewed}</p>
+            </div>
+            <article className="release-card">{props.children}</article>
+          </>
+        ) : props.children}
       </main>
 
       <footer className="release-footer">
@@ -853,6 +690,12 @@ function PageShell(props: {
   );
 }
 
+const DESKTOP_PLATFORMS = [
+  { id: 'windows', name: 'Windows', icon: Monitor, asset: `Nimi-${PUBLIC_BETA_VERSION}-windows-amd64.exe` },
+  { id: 'macos', name: 'macOS', icon: Laptop, asset: `Nimi-${PUBLIC_BETA_VERSION}-macos-arm64.pkg` },
+  { id: 'linux', name: 'Linux', icon: Terminal, asset: null },
+] as const;
+
 export function DownloadPage() {
   const [locale, setLocale] = usePublicPageLocale();
   return <DownloadPageView locale={locale} onLocaleChange={setLocale} />;
@@ -870,68 +713,89 @@ export function DownloadPageView({ locale, onLocaleChange }: {
       locale={locale}
       onLocaleChange={onLocaleChange}
       meta={page.meta}
-      kicker={page.kicker}
-      title={page.title}
-      intro={page.intro}
-      statusTitle={page.statusTitle}
-      statusBody={page.statusBody}
-      action={(
-        <section className="release-preview" aria-labelledby="preview-title">
-          <h2 id="preview-title">{page.preview.title}</h2>
-          <p id="preview-scope">{page.preview.scope}</p>
-          <p id="preview-warning" className="release-warning">{page.preview.warning}</p>
-          <p>{page.preview.usage}</p>
+      downloadHeader
+      mainClassName="release-container download-main"
+    >
+      <div className="download-hero">
+        <div className="download-hero-copy">
+          <h1>{page.title}</h1>
+          <p id="preview-scope" className="download-scope">{page.scope}</p>
+          <p id="preview-warning" className="download-warning">
+            <TriangleAlert size={18} aria-hidden="true" />
+            <span>{page.warning}</span>
+          </p>
           <a className="release-primary-action" href={RELEASES_URL} aria-describedby="preview-scope preview-warning">
             {page.releaseAction}
+            <ArrowUpRight size={17} aria-hidden="true" />
           </a>
-          <div className="release-preview-links">
-            <a href={RELEASES_URL}>{page.preview.releaseLink}</a>
-            <a href="#developer-details">{page.preview.detailsLink}</a>
-          </div>
-        </section>
-      )}
-    >
-      <PageSection title={page.platformTitle}>
-        <div className="release-platform-grid">
-          {page.platforms.map((platform) => (
-            <article key={platform.name}>
-              <h3>{platform.name}</h3>
-              <strong>{platform.status}</strong>
-              <p>{platform.detail}</p>
-            </article>
-          ))}
         </div>
-      </PageSection>
+      </div>
 
-      <PageSection title={page.versions.title}>
-        <TextSectionContent section={page.versions} />
-        <a className="release-primary-action" href={RELEASES_URL}>{page.versions.cta}</a>
-      </PageSection>
+      <section className="download-group" aria-label={page.title}>
+        <div className="download-card-grid">
+          <section className="download-panel" aria-labelledby="download-desktop">
+            <h2 id="download-desktop">{page.desktop.title}</h2>
+            <p className="download-sign-in">{page.desktop.signInRequirement}</p>
+            <dl className="download-platform-list">
+              {DESKTOP_PLATFORMS.map(({ id, name, icon: Icon, asset }) => (
+                <div className={`download-platform-row${asset ? '' : ' is-unavailable'}`} key={id}>
+                  <dt id={`download-${id}`}>
+                    <span className="download-platform-icon"><Icon size={22} aria-hidden="true" /></span>
+                    <span className="download-platform-name">
+                      {name}
+                      {asset ? <small id={`requirements-${id}`}>{page.requirements[id]}</small> : null}
+                    </span>
+                  </dt>
+                  <dd id={asset ? undefined : `requirements-${id}`} className="download-platform-action">
+                    {asset ? (
+                      <a
+                        id={`installer-${id}`}
+                        className="download-installer"
+                        href={`${PUBLIC_BETA_ASSET_URL}/${asset}`}
+                        aria-labelledby={`installer-${id} download-${id}`}
+                        aria-describedby={id === 'windows' ? 'requirements-windows preview-warning' : 'requirements-macos'}
+                      >
+                        {shared.download}
+                        <ArrowDownToLine size={15} aria-hidden="true" />
+                      </a>
+                    ) : <span className="download-unavailable">{page.requirements[id]}</span>}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </section>
 
-      <PageSection title={page.providerTitle}>
-        <p className="release-label">{page.providerLabel}</p>
-        <p><strong>{page.attribution}</strong></p>
-        <p className="release-warning">{page.disclaimer}</p>
-        <p><Link to={withLocaleQuery('/code-signing', locale)}>{shared.policy}</Link></p>
-      </PageSection>
-
-      <details className="release-details">
-        <summary>{page.preview.detailsLink}</summary>
-        {[page.verification, page.systemChanges, page.uninstall, page.prerelease, page.sourceBuild].map((section) => (
-          <PageSection key={section.title} id={section === page.verification ? 'developer-details' : undefined} title={section.title}>
-            <TextSectionContent section={section} />
-          </PageSection>
-        ))}
-      </details>
-
-      <details className="release-details">
-        <summary>{page.release.title}</summary>
-        <TextSectionContent section={page.release} />
-      </details>
-
-      <PageSection title={page.linksTitle}>
-        <OfficialLinks copy={shared} />
-      </PageSection>
+          <section className="download-panel" aria-labelledby="download-resources">
+            <h2 id="download-resources">{shared.docs}</h2>
+            <div className="download-resource-list">
+              <Link className="download-resource-row" to={withLocaleQuery('/code-signing', locale)}>
+                <span className="download-resource-icon"><ShieldCheck size={21} aria-hidden="true" /></span>
+                <span className="download-resource-copy">
+                  <strong>{page.installationGuide}</strong>
+                  <small>SHA-256 · Ed25519</small>
+                </span>
+                <ArrowUpRight size={16} aria-hidden="true" />
+              </Link>
+              <a className="download-resource-row" href={SECURITY_ADVISORY_URL}>
+                <span className="download-resource-icon"><TriangleAlert size={21} aria-hidden="true" /></span>
+                <span className="download-resource-copy">
+                  <strong>{shared.security}</strong>
+                  <small>{shared.securityAdvisoryDetail}</small>
+                </span>
+                <ArrowUpRight size={16} aria-hidden="true" />
+              </a>
+              <a className="download-resource-row" href={REPOSITORY_URL}>
+                <span className="download-resource-icon"><Code2 size={21} aria-hidden="true" /></span>
+                <span className="download-resource-copy">
+                  <strong>{shared.source}</strong>
+                  <small>nimiplatform/nimi</small>
+                </span>
+                <ArrowUpRight size={16} aria-hidden="true" />
+              </a>
+            </div>
+          </section>
+        </div>
+      </section>
     </PageShell>
   );
 }
@@ -946,11 +810,7 @@ export function CodeSigningPolicyPage() {
       locale={locale}
       onLocaleChange={setLocale}
       meta={page.meta}
-      kicker={page.kicker}
-      title={page.title}
-      intro={page.intro}
-      statusTitle={page.statusTitle}
-      statusBody={page.statusBody}
+      hero={page}
     >
       <PageSection id="status" title={page.status.title}>
         <TextSectionContent section={page.status} />
@@ -1024,7 +884,7 @@ export function CodeSigningPolicyPage() {
         </PageSection>
       ))}
 
-      <PageSection title={PUBLIC_PAGE_CONTENT[locale].download.linksTitle}>
+      <PageSection title={page.linksTitle}>
         <OfficialLinks copy={shared} />
       </PageSection>
     </PageShell>

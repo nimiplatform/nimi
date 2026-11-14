@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { HeroDemoSessionProvider } from './components/hero-demo-session.js';
 import { StoryPage } from './components/story/story-page.js';
 import { getStoryCopy } from './content/story-copy.js';
+import { DEFAULT_STORY_AGENT } from './content/story-model.js';
 import { loadLandingContent, type LandingContent } from './content/landing-content.js';
 import { resolveLandingLinks, resolveLocalizedLinks } from './config/landing-links.js';
 import { applyLocaleToLocation, persistLocale, resolveInitialLocale, type LandingLocale } from './i18n/locale.js';
@@ -56,6 +57,10 @@ export function App() {
     window.history.replaceState(null, '', applyLocaleToLocation(window.location, next));
     persistLocale(next, window.localStorage); setLocale(next);
   };
-  if (!content || content.hero.demo.appPreview.locale !== locale) return <div className="story-site story-initial-loading" role="status"><img src="/logo.svg" alt="Nimi" /><p>{copy[failed ? 'common.loadError' : 'common.loading']}</p>{failed && <button type="button" onClick={() => window.location.reload()}>{copy['common.retry']}</button>}</div>;
-  return <HeroDemoSessionProvider key={locale} demo={content.hero.demo}><StoryPage content={content} links={links} locale={locale} onLocale={changeLocale} /></HeroDemoSessionProvider>;
+  if (!content || content.hero.demo.appPreview.locale !== locale) return <div className="story-site story-initial-loading">
+    <div className="story-initial-loading-brand"><img src="/logo.svg" alt="" width={104} height={104} /><strong>Nimi</strong></div>
+    {failed ? <div className="story-initial-loading-error" role="alert"><p>{copy['common.loadError']}</p><button className="story-button" type="button" onClick={() => window.location.reload()}>{copy['common.retry']}</button></div>
+      : <div className="story-initial-loading-indicator" role="status" aria-label={copy['common.loading']}><span /><span /><span /></div>}
+  </div>;
+  return <HeroDemoSessionProvider key={locale} demo={content.hero.demo} initialSurface="chat" initialTarget={DEFAULT_STORY_AGENT}><StoryPage content={content} links={links} locale={locale} onLocale={changeLocale} /></HeroDemoSessionProvider>;
 }

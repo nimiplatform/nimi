@@ -1,4 +1,4 @@
-import { exploreCharacters } from '../src/landing/content/explore-demo-data.js';
+import { getExploreCharacters } from '../src/landing/content/explore-demo-data.js';
 import { createPreviewTranslate } from '../src/landing/i18n/preview-messages.js';
 import { appPreviewMessagesZh } from '../src/landing/content/app-preview-messages.zh.js';
 import assert from 'node:assert/strict';
@@ -55,7 +55,7 @@ test('Home and Zhiyu share published character identities, introductions and ope
     const { hero: { demo } } = await loadLandingContent(locale);
     assert.deepEqual(demo.chat.agents.map((agent) => agent.id), demo.appPreview.zhiyu.partners.map((partner) => partner.id));
     for (const partner of demo.appPreview.zhiyu.partners) {
-      const character = exploreCharacters.find((entry) => entry.id === partner.id)!;
+      const character = getExploreCharacters(locale).find((entry) => entry.id === partner.id)!;
       const home = demo.chat.agents.find((entry) => entry.id === partner.id)!;
       assert.ok(character, `${partner.name} belongs to the published catalog`);
       assert.equal(partner.name, character.name);
