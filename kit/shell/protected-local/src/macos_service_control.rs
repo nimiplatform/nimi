@@ -657,17 +657,39 @@ async fn rebind_supervised_development_processes(
             crate::windows_local_development::rebind_host(channel.clone(), request, process_id)
                 .await
         {
-            if discard_stale_supervised_development_rebind(&registry, run_id, process_id)? {
-                continue;
-            }
-            return Err(if error.retryable() {
-                unavailable()
-            } else {
-                untrusted()
-            });
+            handle_development_rebind_failure(error, || {
+                discard_stale_supervised_development_rebind(&registry, run_id, process_id)
+            })?;
         }
     }
     Ok(())
+}
+
+#[cfg(feature = "macos-source-local-development")]
+fn handle_development_rebind_failure(
+    error: NimiHostError,
+    is_stale: impl FnOnce() -> Result<bool, ProtectedCarrierError>,
+) -> Result<(), ProtectedCarrierError> {
+    if let Some(rejection) =
+        crate::windows_local_development::development_app_rebind_rejection(&error)
+    {
+        // Keep the child registered for owner cleanup. The Runtime refused
+        // this App's rebind, so continue checking the other supervised Apps.
+        if std::env::var_os("NIMI_PROTECTED_LOCAL_DIAGNOSTICS").as_deref()
+            == Some(std::ffi::OsStr::new("1"))
+        {
+            eprintln!("[protected-local desktop-session] stage=development-app-unavailable rejection={rejection}");
+        }
+        return Ok(());
+    }
+    if is_stale()? {
+        return Ok(());
+    }
+    Err(if error.retryable() {
+        unavailable()
+    } else {
+        untrusted()
+    })
 }
 
 #[cfg(feature = "macos-source-local-development")]
@@ -1032,6 +1054,47 @@ fn untrusted_host() -> NimiHostError {
 #[cfg(all(test, feature = "macos-source-local-development"))]
 mod source_local_development_readiness_tests {
     use super::*;
+
+    #[test]
+    fn rejected_development_app_witness_allows_desktop_checks_to_continue() {
+        let project_changed = NimiHostError::new(
+            NimiHostErrorReasonCode::LocalDevelopmentProjectChanged,
+            false,
+        );
+        handle_development_rebind_failure(project_changed, || Ok(false)).unwrap();
+
+        for stage in ["rebind-direct-peer", "rebind-launch-unavailable"] {
+            let child_rejected = NimiHostError::new(
+                NimiHostErrorReasonCode::LocalDevelopmentSupervisorRequired,
+                false,
+            )
+            .with_reason_metadata([("diagnostic_stage".into(), stage.into())].into());
+            handle_development_rebind_failure(child_rejected, || Ok(false)).unwrap();
+        }
+    }
+
+    #[test]
+    fn live_supervisor_rejection_and_runtime_trust_failure_still_fail_closed() {
+        let supervisor_rejected = NimiHostError::new(
+            NimiHostErrorReasonCode::LocalDevelopmentSupervisorRequired,
+            false,
+        )
+        .with_reason_metadata([("diagnostic_stage".into(), "rebind-supervisor".into())].into());
+        let unstaged_rejection = NimiHostError::new(
+            NimiHostErrorReasonCode::LocalDevelopmentSupervisorRequired,
+            false,
+        );
+        let runtime_untrusted =
+            NimiHostError::new(NimiHostErrorReasonCode::RuntimeServiceUntrusted, false);
+        for error in [supervisor_rejected, unstaged_rejection, runtime_untrusted] {
+            let error = handle_development_rebind_failure(error, || Ok(false)).unwrap_err();
+            assert_eq!(
+                error.reason_code(),
+                ProtectedCarrierReasonCode::RuntimeServiceUntrusted
+            );
+            assert!(!error.retryable());
+        }
+    }
 
     #[tokio::test]
     async fn focus_after_local_run_removal_does_not_report_runtime_untrusted() {

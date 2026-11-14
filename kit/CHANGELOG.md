@@ -2,7 +2,7 @@
 
 # Changelog
 
-## Unreleased — Windows source Desktop health isolation
+## Unreleased — Windows and macOS source Desktop health isolation
 
 A development App whose source changed or whose child witness was rejected
 remains unavailable, but no longer makes the verified Runtime appear untrusted in Home.

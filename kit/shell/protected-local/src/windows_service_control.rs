@@ -937,16 +937,8 @@ where
     match result {
         Ok(()) => Ok(DevelopmentWitnessMaintenance::Ready),
         Err(error)
-            if error.reason_code() == NimiHostErrorReasonCode::LocalDevelopmentProjectChanged
-                || (error.reason_code()
-                    == NimiHostErrorReasonCode::LocalDevelopmentSupervisorRequired
-                    && matches!(
-                        error
-                            .reason_metadata()
-                            .get("diagnostic_stage")
-                            .map(String::as_str),
-                        Some("rebind-direct-peer" | "rebind-launch-unavailable")
-                    )) =>
+            if crate::windows_local_development::development_app_rebind_rejection(&error)
+                .is_some() =>
         {
             Ok(DevelopmentWitnessMaintenance::AppUnavailable)
         }

@@ -287,6 +287,30 @@ pub(crate) async fn rebind_host(
         .await
 }
 
+// @nimi-authority: rule.nimi.runtime.protected-session.r016
+#[cfg(any(
+    all(target_os = "macos", feature = "macos-source-local-development"),
+    all(target_os = "windows", feature = "windows-source-local-development")
+))]
+pub(crate) fn development_app_rebind_rejection(error: &NimiHostError) -> Option<&str> {
+    match error.reason_code() {
+        NimiHostErrorReasonCode::LocalDevelopmentProjectChanged => {
+            Some(error.reason_code().as_str())
+        }
+        NimiHostErrorReasonCode::LocalDevelopmentSupervisorRequired => {
+            match error
+                .reason_metadata()
+                .get("diagnostic_stage")
+                .map(String::as_str)
+            {
+                Some(stage @ ("rebind-direct-peer" | "rebind-launch-unavailable")) => Some(stage),
+                _ => None,
+            }
+        }
+        _ => None,
+    }
+}
+
 #[cfg(any(
     all(target_os = "macos", feature = "macos-source-local-development"),
     all(target_os = "windows", feature = "windows-source-local-development")
