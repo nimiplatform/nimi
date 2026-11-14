@@ -270,8 +270,6 @@
 .download-page-shell .release-footer {
   border-top-color: rgba(69, 111, 137, .12);
   background: rgba(255, 255, 255, .36);
-  -webkit-backdrop-filter: blur(18px);
-  backdrop-filter: blur(18px);
 }
 
 .download-header {
@@ -341,8 +339,6 @@
   font-size: .8rem;
   line-height: 1.65;
   text-align: left;
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
 }
 
 .download-warning svg {
@@ -402,8 +398,6 @@
   font-weight: 600;
   text-decoration: none;
   box-shadow: 0 10px 24px -18px rgba(29, 78, 112, .45);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
   transition: background-color .18s ease, color .18s ease, transform .18s ease;
 }
 
@@ -435,8 +429,6 @@
   background: rgba(255, 255, 255, .88);
   padding: 1.65rem 1.75rem 1rem;
   box-shadow: 0 24px 55px -34px rgba(31, 78, 110, .42), inset 0 1px 0 rgba(255, 255, 255, .7);
-  -webkit-backdrop-filter: blur(20px) saturate(125%);
-  backdrop-filter: blur(20px) saturate(125%);
 }
 
 .download-panel h2 {
@@ -876,7 +868,6 @@
   font-size: .76rem;
   font-weight: 650;
   letter-spacing: .04em;
-  backdrop-filter: blur(10px);
 }
 
 .public-hero-header h1 {
@@ -934,7 +925,6 @@
   background: rgba(255, 255, 255, .88);
   padding: 1.5rem 1.6rem;
   box-shadow: 0 18px 40px -32px rgba(20, 52, 84, .3);
-  backdrop-filter: blur(14px);
 }
 
 .public-feature-card h2 {
@@ -1085,7 +1075,6 @@
   border-radius: 1.25rem;
   background: rgba(255, 255, 255, .86);
   padding: 1.25rem 1.4rem;
-  backdrop-filter: blur(12px);
 }
 
 .public-provenance-item p {
@@ -1226,7 +1215,6 @@
   color: #fff;
   font-size: .74rem;
   font-weight: 600;
-  backdrop-filter: blur(8px);
 }
 
 .public-app-card-body {
@@ -1939,7 +1927,6 @@
   background: rgba(255, 255, 255, .86);
   padding: 1.55rem 1.75rem;
   box-shadow: 0 24px 55px -34px rgba(31, 78, 110, .34);
-  backdrop-filter: blur(18px);
 }
 
 .download-onboarding-card h2 {
@@ -1994,7 +1981,6 @@
   border-radius: 1.15rem;
   background: rgba(255, 255, 255, .82);
   padding: .95rem 1.15rem;
-  backdrop-filter: blur(10px);
 }
 
 .public-posture-tier-head {
