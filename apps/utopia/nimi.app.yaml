@@ -1,0 +1,11 @@
+app_id: nimi.utopia
+display_name: NimiUtopia
+profile: standalone
+manifest_role: submitted-input
+app_access:
+  - agent.utopia.read
+  - agent.utopia.manage
+  - agent.local
+local_development:
+  electron:
+    renderer_origin: http://127.0.0.1:1455

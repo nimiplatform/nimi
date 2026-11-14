@@ -1,0 +1,31 @@
+:root { font-family: 'Inter', system-ui, sans-serif; color-scheme: light; color: #1c2c29; background: #eff4ef; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { max-width: 1060px; margin: auto; padding: 34px clamp(16px, 5vw, 56px); display: grid; gap: 22px; }
+h1, h2, h3, p { margin: 0; }
+h1 { font-size: clamp(1.85rem, 4vw, 2.6rem); letter-spacing: -.035em; }
+h2 { font-size: 1.13rem; margin-bottom: 8px; }
+h3 { font-size: 1rem; }
+.heading p, small, dt, .places span { color: #526661; }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.panel { border: 1px solid #cbdad1; border-radius: 14px; background: #fcfdfb; padding: 18px; }
+.settings { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; margin: 8px 0 16px; }
+.settings label { display: flex; align-items: center; gap: 7px; }
+button, select, textarea { font: inherit; color: inherit; background: white; border: 1px solid #94aea2; border-radius: 7px; padding: 6px 10px; }
+button { cursor: pointer; }
+button:disabled { cursor: default; opacity: .55; }
+button:focus-visible, select:focus-visible, textarea:focus-visible, input:focus-visible { outline: 2px solid #397866; outline-offset: 2px; }
+.places, .shared, .messages { list-style: none; padding: 0; margin: 0; }
+.places { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
+.places li { background: #edf5ef; border-radius: 9px; padding: 11px; display: grid; gap: 3px; }
+.places span, small { font-size: .81rem; }
+.residents { display: grid; grid-template-columns: repeat(auto-fit, minmax(234px, 1fr)); gap: 10px; }
+dl div { display: grid; grid-template-columns: 84px 1fr; margin: 6px 0; }
+dd { margin: 0; overflow-wrap: anywhere; }
+.alert { color: #8a251a; }
+.shared li, .messages li { border-top: 1px solid #dbe7de; padding: 8px 0; }
+.messages { max-height: 260px; overflow: auto; }
+.messages p { white-space: pre-wrap; overflow-wrap: anywhere; }
+form { display: grid; gap: 7px; margin-top: 12px; }
+form button { justify-self: end; }
+textarea { min-height: 76px; resize: vertical; }
