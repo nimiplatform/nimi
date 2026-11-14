@@ -276,27 +276,32 @@ func (listener *windowsSourceLocalAppListener) Accept() (net.Conn, error) {
 		}
 		clientPID, err := verifyWindowsSourcePipePeer(raw, listener.state.principal.tokenUserSID)
 		if err != nil {
+			listener.state.peerRejections.report(PeerRejectionTransportLocalApp, "source-app-peer", err)
 			_ = raw.Close()
 			continue
 		}
 		launch, bound := listener.state.directLocalAppLaunches.Bound(clientPID, listener.state.desktopIdentity.sessionID)
 		if !bound {
+			listener.state.peerRejections.report(PeerRejectionTransportLocalApp, "source-app-launch-bound", nil)
 			_ = raw.Close()
 			continue
 		}
 		process, liveness, err := inspectWindowsSourceProcess(listener.ctx, clientPID, listener.state.desktopIdentity, launch.HostExecutablePath)
 		if err != nil {
+			listener.state.peerRejections.report(PeerRejectionTransportLocalApp, "source-app-process", err)
 			_ = raw.Close()
 			continue
 		}
 		_ = liveness.Close()
 		peer, err := verifyWindowsSourceDirectLocalAppPeer(launch, process)
 		if err != nil {
+			listener.state.peerRejections.report(PeerRejectionTransportLocalApp, "source-app-witness", err)
 			_ = raw.Close()
 			continue
 		}
 		consumed, err := listener.state.directLocalAppLaunches.Consume(clientPID, process.sessionID)
 		if err != nil || consumed != launch {
+			listener.state.peerRejections.report(PeerRejectionTransportLocalApp, "source-app-launch-consume", err)
 			_ = raw.Close()
 			continue
 		}
@@ -306,6 +311,7 @@ func (listener *windowsSourceLocalAppListener) Accept() (net.Conn, error) {
 			listener.state.desktopSessions.OperationSessionID(),
 		)
 		if err != nil {
+			listener.state.peerRejections.report(PeerRejectionTransportLocalApp, "source-app-connection", err)
 			_ = raw.Close()
 			continue
 		}
