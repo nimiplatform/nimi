@@ -14,9 +14,20 @@ func TestMacOSSourceLocalDevelopmentContractHasNoPrivilegedTopology(t *testing.T
 	if err != nil {
 		t.Fatal(err)
 	}
-	expectedRoot := filepath.Join(home, "Library", "Application Support", "Nimi", "RuntimeLocalDevelopment")
+	realm := os.Getenv("NIMI_DEV_REALM")
+	if realm == "" {
+		realm = "official"
+	}
+	base := filepath.Join(home, "Library", "Application Support", "Nimi", "RuntimeLocalDevelopment")
+	expectedRoot := filepath.Join(base, realm)
 	if MacOSRuntimeStateRoot != expectedRoot {
 		t.Fatalf("state root = %q, want %q", MacOSRuntimeStateRoot, expectedRoot)
+	}
+	if want := filepath.Join(base, "run", "runtime-desktop.sock"); MacOSDesktopSocketPath != want {
+		t.Fatalf("desktop socket = %q, want %q", MacOSDesktopSocketPath, want)
+	}
+	if want := filepath.Join(base, "run", "runtime-local-app.sock"); MacOSLocalAppSocketPath != want {
+		t.Fatalf("local-app socket = %q, want %q", MacOSLocalAppSocketPath, want)
 	}
 	for label, value := range map[string]string{
 		"state":              MacOSRuntimeStateRoot,

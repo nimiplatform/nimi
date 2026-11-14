@@ -108,7 +108,9 @@ export async function runDevDoctor(input = {}) {
     ? input.queryService()
     : host === 'source'
       ? probeSourceRuntime(repoRoot, selectedRealm.name).then((value) => ({ state: value.state === 'ready' ? 'ok' : 'error', reason: `source-runtime-${value.state}` })).catch((error) => ({ state: 'error', reason: error.message }))
-      : queryFixedRuntimeService();
+      : platform === 'darwin'
+        ? queryMacFixedRuntimeService(selectedRealm.name)
+        : queryWindowsFixedRuntimeService(platform);
   const [serviceResult, processRows, realm, web, presenceResult] = await Promise.all([
     serviceResultPromise,
     processRowsPromise,
@@ -116,7 +118,9 @@ export async function runDevDoctor(input = {}) {
     probeHttp(selectedRealm.webOrigin),
     readPresence(nowUnixMs),
   ]);
-  const service = host === 'source' && serviceResult.state ? serviceResult : validateFixedRuntimeService(serviceResult);
+  const service = host === 'installed' && platform !== 'darwin'
+    ? validateFixedRuntimeService(serviceResult)
+    : serviceResult;
   const activeDesktopPid = presenceResult.state === 'ok' ? presenceResult.desktopPid : 0;
   const legacyCarriers = findLegacyCarrierRows(processRows, repoRoot, activeDesktopPid);
   const stamp = await readWorkspaceSurfaceStamp(repoRoot);
@@ -225,8 +229,8 @@ async function readPresenceDescriptor(nowUnixMs) {
   }
 }
 
-async function queryFixedRuntimeService() {
-  if (process.platform !== 'win32') return { status: 'unsupported' };
+async function queryWindowsFixedRuntimeService(platform) {
+  if (platform !== 'win32') return { status: 'unsupported' };
   const installerPath = path.join(
     repoRoot,
     'dist',
@@ -251,6 +255,45 @@ async function queryFixedRuntimeService() {
   });
   if (result.error || result.status !== 0) return { status: 'error' };
   return parseEmbeddedJson(result.stdout);
+}
+
+async function queryMacFixedRuntimeService(realm) {
+  const daemon = realm === 'local'
+    ? 'apps/desktop/macos/generated/ai.nimi.runtime.dev.plist'
+    : 'apps/desktop/macos/LaunchDaemons/ai.nimi.runtime.plist';
+  const options = { cwd: repoRoot, stdio: ['ignore', 'pipe', 'pipe'] };
+  const profile = await collectCommandResult('/usr/bin/plutil', ['-convert', 'json', '-o', '-', '--', daemon], options);
+  if (profile.error || profile.status !== 0) {
+    return { state: 'not-observed', reason: 'fixed-runtime-service-profile-unavailable' };
+  }
+  const plist = JSON.parse(profile.stdout);
+  const job = await collectCommandResult('/bin/launchctl', ['print', `system/${plist.Label}`], options);
+  return inspectMacFixedRuntimeService(job, plist);
+}
+
+// The on-demand daemon can be ready for launch without a Runtime process.
+// Protected peer trust and Runtime readiness are established by Home.
+export async function inspectMacFixedRuntimeService(job, plist, readSocket = lstat) {
+  if (job.status === 113) return { state: 'error', reason: 'fixed-runtime-service-not-registered' };
+  if (job.error || job.status !== 0) return { state: 'not-observed', reason: 'fixed-runtime-service-query-unavailable' };
+
+  const { stdout } = job;
+  const program = /^\t(?:program|program identifier) = (.*?)(?: \(mode: \d+\))?$/mu.exec(stdout)?.[1];
+  const user = /^\tusername = (.+)$/mu.exec(stdout)?.[1];
+  const group = /^\tgroup = (.+)$/mu.exec(stdout)?.[1];
+  if (program !== (plist.BundleProgram ?? plist.ProgramArguments[0]) || user !== plist.UserName || group !== plist.GroupName) {
+    return { state: 'error', reason: 'fixed-runtime-service-profile-mismatch' };
+  }
+
+  const registeredPaths = new Set(Array.from(stdout.matchAll(/^\t{3}path = (.+)$/gmu), (match) => match[1]));
+  const sockets = await Promise.all(Object.values(plist.Sockets).map(async ({ SockPathName }) =>
+    registeredPaths.has(SockPathName) && (await readSocket(SockPathName).catch(() => null))?.isSocket()));
+  if (!sockets.every(Boolean)) return { state: 'error', reason: 'fixed-runtime-service-sockets-missing' };
+
+  const launchdState = /^\tstate = (.+)$/mu.exec(stdout)?.[1];
+  if (launchdState === 'running') return { state: 'ok', reason: 'fixed-runtime-service-running' };
+  if (launchdState === 'not running') return { state: 'ok', reason: 'fixed-runtime-service-on-demand' };
+  return { state: 'error', reason: 'fixed-runtime-service-not-ready' };
 }
 
 export function parseMacProcessRows(output) {

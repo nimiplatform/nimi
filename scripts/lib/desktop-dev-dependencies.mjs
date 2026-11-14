@@ -139,8 +139,16 @@ export async function probeSourceRuntime(root, realmName, { platform = process.p
       const { stdout } = await executeCommand('/bin/ps', ['-axo', 'pid=,ppid=,comm='], { timeout: 10_000 });
       rows = stdout.split('\n').flatMap((line) => {
         const match = line.match(/^\s*(\d+)\s+(\d+)\s+(.+)$/u);
-        return match ? [{ ProcessId: Number(match[1]), ParentProcessId: Number(match[2]), ExecutablePath: match[3], Name: path.basename(match[3]) }] : [];
-      }).filter(row => runtimeName.test(row.Name) || supervisorName.test(row.Name));
+        if (!match) return [];
+        const [, pid, parentPid, executable] = match;
+        return [{
+          ProcessId: Number(pid),
+          ParentProcessId: Number(parentPid),
+          // During exec, ps can report the process name before the absolute path is available.
+          ExecutablePath: path.posix.isAbsolute(executable) ? executable : null,
+          Name: path.posix.basename(executable),
+        }];
+      }).filter(row => row.Name === 'nimi-runtime' || supervisorName.test(row.Name));
       for (const row of rows) {
         try { row.CommandLine = (await executeCommand('/bin/ps', ['-ww', '-p', String(row.ProcessId), '-o', 'args='], { timeout: 10_000 })).stdout; }
         catch (error) { if (error.code !== 1) throw error; row.CommandLine = null; }

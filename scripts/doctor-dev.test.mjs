@@ -5,6 +5,7 @@ import test from 'node:test';
 
 import {
   findLegacyCarrierRows,
+  inspectMacFixedRuntimeService,
   inspectMacSourceRuntime,
   parseMacProcessRows,
   runDevDoctor,
@@ -49,6 +50,49 @@ test('fixed service validation fails closed on any missing protected-service inv
   assert.equal(validateFixedRuntimeService({ ...status, localAppPipePresent: false }).state, 'error');
 });
 
+test('Mac fixed service reports launchd socket activation without inferring native readiness', async () => {
+  const desktopSocket = '/private/var/run/nimi/runtime-desktop.sock';
+  const appSocket = '/private/var/run/nimi/runtime-local-app.sock';
+  const plist = {
+    BundleProgram: 'Contents/Library/LaunchServices/nimi-runtime',
+    UserName: '_nimiruntime',
+    GroupName: '_nimiruntime',
+    Sockets: {
+      DesktopControl: { SockPathName: desktopSocket },
+      LocalAppHost: { SockPathName: appSocket },
+    },
+  };
+  const stdout = [
+    'system/ai.nimi.runtime = {',
+    '\tstate = not running',
+    `\tprogram identifier = ${plist.BundleProgram} (mode: 2)`,
+    '\tusername = _nimiruntime',
+    '\tgroup = _nimiruntime',
+    '\tsockets = {',
+    '\t\t"DesktopControl" = {',
+    `\t\t\tpath = ${desktopSocket}`,
+    '\t\t}',
+    '\t\t"LocalAppHost" = {',
+    `\t\t\tpath = ${appSocket}`,
+    '\t\t}',
+    '\t}',
+    '}',
+  ].join('\n');
+  const readSocket = async (socket) => ({ isSocket: () => [desktopSocket, appSocket].includes(socket) });
+  const inspect = (output, status = 0) => inspectMacFixedRuntimeService({ status, stdout: output }, plist, readSocket);
+  assert.deepEqual(await inspect(stdout), { state: 'ok', reason: 'fixed-runtime-service-on-demand' });
+  assert.deepEqual(await inspect(stdout.replace('not running', 'running')), {
+    state: 'ok', reason: 'fixed-runtime-service-running',
+  });
+  assert.equal((await inspect(stdout.replace(appSocket, '/tmp/other.sock'))).reason, 'fixed-runtime-service-sockets-missing');
+  assert.equal((await inspectMacFixedRuntimeService({ status: 0, stdout }, plist, async () => ({
+    isSocket: () => false,
+  }))).reason, 'fixed-runtime-service-sockets-missing');
+  assert.equal((await inspect(stdout.replace('username = _nimiruntime', 'username = root'))).reason, 'fixed-runtime-service-profile-mismatch');
+  assert.equal((await inspect('', 113)).reason, 'fixed-runtime-service-not-registered');
+  assert.equal((await inspect('', 1)).state, 'not-observed');
+});
+
 test('carrier detection excludes only the active Desktop process tree', () => {
   const repo = path.resolve('D:/workspace/nimi');
   const carrier = path.join(repo, '.nimi/local/electron-desktop-runtime/42/Nimi Desktop Runtime.exe');
@@ -66,7 +110,7 @@ test('doctor does not infer registration or App Access from Desktop presence', a
     platform: 'win32',
     nowUnixMs,
     probeHttp: async () => ({ state: 'ok', reason: 'http-reachable', statusCode: 200 }),
-    queryService: async () => ({ status: 'absent' }),
+    queryService: async () => ({ state: 'error', reason: 'source-runtime-missing' }),
     readPresence: async () => validateLocalDevelopmentPresence(validPresence, nowUnixMs),
     queryProcesses: async () => [],
   });
@@ -121,7 +165,7 @@ test('doctor http probes survive a blocking service query', async (context) => {
     },
     queryService: () => {
       Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 3_100);
-      return { status: 'absent' };
+      return { state: 'error', reason: 'source-runtime-missing' };
     },
     readPresence: async () => validateLocalDevelopmentPresence(validPresence, nowUnixMs),
     queryProcesses: async () => [],

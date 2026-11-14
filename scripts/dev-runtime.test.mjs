@@ -30,6 +30,7 @@ test('source Runtime launch uses a temporary exact supervisor and workspace Desk
     tempRoot,
     platform: 'win32',
     architecture: 'x64',
+    realm: 'official',
   });
   assert.equal(plan.runtimeRoot, path.join(root, 'runtime'));
   assert.equal(plan.electronExecutable, electron);

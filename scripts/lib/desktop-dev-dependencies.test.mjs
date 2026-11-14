@@ -7,7 +7,17 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { promisify } from 'node:util';
-import { createSourceRuntimeOwner, probeSourceRuntime, reportDesktopStartupFailure, prepareSourceRuntimeDependency } from './desktop-dev-dependencies.mjs';
+import {
+  createSourceRuntimeOwner,
+  launchDevService,
+  prepareSourceRuntimeDependency,
+  probeDevHttp,
+  probeSourceRuntime,
+  readDesktopDevEnvironment,
+  reportDesktopStartupFailure,
+  validateRealmDevDirectory,
+  waitForDevDependency,
+} from './desktop-dev-dependencies.mjs';
 
 function sourceObservation({ endpoint = true, extra = [], runtime = {}, supervisor = {}, omitRuntime = false, omitSupervisor = false } = {}) {
   const root = 'C:\\work space\\nimi';
@@ -97,6 +107,32 @@ test('source Runtime preflight verifies the macOS worker ancestry and the exact 
   } });
   assert.equal(result.state, 'ready');
 });
+test('macOS startup waits for the executable path and distinguishes installed Runtime from Home', async () => {
+  const root = '/workspace/nimi';
+  const homeDirectory = '/Users/test';
+  const source = `${root}/.nimi/local/imp3/runtime-local-development/nimi-runtime`;
+  const supervisor = '/tmp/nimi-source-runtime-supervisor';
+  const installed = '/Applications/Nimi.app/Contents/Library/LaunchServices/nimi-runtime';
+  const installedHome = '/Applications/Nimi.app/Contents/MacOS/Nimi';
+  const probe = (runtimePath, extraExecutable) => probeSourceRuntime(root, 'local', {
+    platform: 'darwin', homeDirectory,
+    executeCommand: async (command, args) => {
+      if (command === '/usr/sbin/lsof') return { stdout: `p20\nn${homeDirectory}/Library/Application Support/Nimi/RuntimeLocalDevelopment/run/runtime-desktop.sock\n` };
+      assert.equal(command, '/bin/ps');
+      if (args[0] === '-axo') {
+        const extraRow = extraExecutable ? `30 1 ${extraExecutable}\n` : '';
+        return { stdout: `10 9 ${supervisor}\n20 10 ${runtimePath}\n${extraRow}` };
+      }
+      if (args[2] === '10') return { stdout: `${supervisor} --realm local` };
+      if (args[2] === '20') return { stdout: `${runtimePath} serve` };
+      assert.equal(args[2], '30');
+      return { stdout: extraExecutable };
+    },
+  });
+  assert.equal((await probe('nimi-runtime')).state, 'unavailable');
+  assert.equal((await probe(source, installed)).state, 'conflict');
+  assert.equal((await probe(source, installedHome)).state, 'ready');
+});
 test('startup failure is visible before blocked cleanup and remains the original failure after cleanup rejects', async () => {
   const messages = [], original = new Error('empty process JSON');
   let finish;
@@ -148,7 +184,6 @@ test('explicit Home relaunch waits for its own Runtime shutdown and never adopts
   await closing;
   await assert.rejects(owner.restart(), /owner terminal/);
 });
-import { launchDevService, probeDevHttp, readDesktopDevEnvironment, validateRealmDevDirectory, waitForDevDependency } from './desktop-dev-dependencies.mjs';
 
 test('HTTP readiness rejects unrelated services, errors and malformed responses', async (t) => {
   let body = '{"application":"expected"}';
