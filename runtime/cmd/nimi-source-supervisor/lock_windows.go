@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/exec"
 	"syscall"
+	"unsafe"
 
 	"github.com/Microsoft/go-winio"
 	"golang.org/x/sys/windows"
@@ -104,7 +105,18 @@ func requestRuntimeStop(process *os.Process) (stopErr error) {
 }
 
 func configureRuntimeCommand(command *exec.Cmd) {
+	flags := uint32(windows.CREATE_NEW_PROCESS_GROUP)
+	var attached [1]uint32
+	count, _, _ := windows.NewLazySystemDLL("kernel32.dll").NewProc("GetConsoleProcessList").Call(
+		uintptr(unsafe.Pointer(&attached[0])), uintptr(len(attached)))
+	if count == 0 {
+		// A detached launcher supplies pipes, not a console. Give the owned
+		// Runtime an explicit hidden console so shutdown can attach to it and
+		// deliver CTRL_BREAK; CREATE_NO_WINDOW cannot supply that contract.
+		flags |= windows.CREATE_NEW_CONSOLE
+	}
 	command.SysProcAttr = &syscall.SysProcAttr{
-		CreationFlags: windows.CREATE_NEW_PROCESS_GROUP,
+		CreationFlags: flags,
+		HideWindow:    true,
 	}
 }

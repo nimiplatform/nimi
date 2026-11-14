@@ -105,6 +105,8 @@ Kit provides shared UI surfaces for core Nimi capabilities:
 
 ## Verification & Contributing
 
+The local **0.24.0-rc.4** Android coordination candidate passed real Presenton idle/reconnect acceptance after a reused HTTP socket produced EOF in the earlier diagnostic candidate. The fix disables idle reuse only for the narrow Realm client and retains no retries, cookies or redirects. Four real HTTP regressions, Android Java/APK compilation and the official device journey passed; the original four App drafts were retained. See [Kit Auth's exact scope and checks](auth/README.md#android-coordination-reconnect--local-0240-rc4). This does not publish or overwrite the frozen package archives.
+
 Run the verification suite locally:
 
 ```bash

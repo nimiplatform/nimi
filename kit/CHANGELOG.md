@@ -2,6 +2,31 @@
 
 # Changelog
 
+## Unreleased — 0.24.0-rc.4 Android coordination reconnect
+
+The narrow Realm HTTP client retains no idle pooled connections. A real Android
+disconnect/connect after idle had reused a socket and failed with EOF before
+response headers. A subsequent request cannot inherit an idle connection;
+there is still no automatic retry, cookie jar or redirect following. The direct
+Runtime peer and App business requests are unchanged. Real OkHttp loopback tests
+reproduce the old reused-socket EOF and verify fresh-request success, single POST
+delivery on failure, cancellation and cookie/redirect isolation. The bounded
+debug diagnostics remain available; real device revalidation is separate.
+
+## Unreleased — 0.24.0-rc.3 Android coordination diagnostics
+
+Debug Android hosts record only finite endpoint/method, transport phase,
+exception class, connection creation/reuse, cancellation and elapsed time when
+native Realm coordination fails. URLs, headers, bodies, exception messages and
+stack traces are excluded. Release hosts do not create these traces. Transport
+retry, authorization, cookie, redirect and public error semantics are unchanged.
+Compared with the frozen Kit rc.1 archive, only this history, package version and
+Android Java transport differ. Compiled JavaScript is unchanged and the optional
+native package is reused without rebuilding. The source Desktop health work
+below does not become a new native binary through this Kit-only rebuild. The
+initial rc.2 diagnostic archive is retained; neither candidate is published or
+replaces the frozen Integration archives.
+
 ## Unreleased — Windows and macOS source Desktop health isolation
 
 A development App whose source changed or whose child witness was rejected

@@ -104,7 +104,7 @@ export async function waitForDevDependency(service, { signal, timeoutMs = 180_00
     if (error) throw error;
     result = await service.probe();
     if (result.state === 'ready') return;
-    if (result.state === 'conflict') throw new Error(`${service.name}: another service or workspace occupies the required endpoint. Stop that process explicitly.`);
+    if (result.state === 'conflict') throw new Error(`${service.name}: another service or workspace occupies the required endpoint${result.detail ? ` (${result.detail})` : ''}. Stop that process explicitly.`);
     await delay(500, undefined, { signal });
   } while (Date.now() < deadline);
   throw new Error(`${service.name} did not become ready within ${timeoutMs / 1000}s (${result?.detail || result?.state}).`);
@@ -112,57 +112,139 @@ export async function waitForDevDependency(service, { signal, timeoutMs = 180_00
 
 // Process/endpoint observations decide whether to start the source supervisor.
 // Desktop still performs the protected native admission and readiness handshake.
-export async function probeSourceRuntime(root, realmName) {
+export async function probeSourceRuntime(root, realmName, { platform = process.platform, executeCommand = execute, homeDirectory = os.homedir() } = {}) {
   let rows;
   let endpoint;
-  if (process.platform === 'win32') {
-    const command = [
-      '$ErrorActionPreference = "Stop"',
-      '$sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value.ToLowerInvariant()',
-      '$hash = [System.Security.Cryptography.SHA256]::Create().ComputeHash([Text.Encoding]::UTF8.GetBytes($sid))',
-      '$identity = ([BitConverter]::ToString($hash)).Replace("-", "").ToLowerInvariant()',
-      '$pipe = "\\\\.\\pipe\\nimi-runtime-source-local-development-$identity-desktop-v1"',
-      '$rows = @(Get-CimInstance Win32_Process -Filter "Name = \'nimi.exe\' OR Name = \'nimi-source-runtime-supervisor.exe\'" | Select-Object ProcessId,ParentProcessId,Name,ExecutablePath,CommandLine)',
-      '@{ rows = $rows; endpoint = (Test-Path -LiteralPath $pipe) } | ConvertTo-Json -Depth 4 -Compress',
-    ].join('\n');
-    const { stdout } = await execute('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { windowsHide: true, timeout: 10_000 });
-    ({ rows, endpoint } = JSON.parse(stdout));
-  } else if (process.platform === 'darwin') {
-    const { stdout } = await execute('/bin/ps', ['-axo', 'pid=,ppid=,comm='], { timeout: 10_000 });
-    rows = stdout.split('\n').flatMap((line) => {
-      const match = line.match(/^\s*(\d+)\s+(\d+)\s+(.+)$/u);
-      return match ? [{ ProcessId: Number(match[1]), ParentProcessId: Number(match[2]), ExecutablePath: match[3], Name: path.basename(match[3]) }] : [];
-    });
-  } else {
-    throw new Error('Desktop source development requires Windows x64 or macOS arm64.');
-  }
-  const expected = path.join(root, '.nimi', 'local', process.platform === 'win32' ? 'imp6' : 'imp3', 'runtime-local-development', process.platform === 'win32' ? 'nimi.exe' : 'nimi-runtime');
-  const normalize = (value) => process.platform === 'win32' ? String(value || '').toLowerCase() : value;
-  const runtime = rows.find((row) => normalize(row.ExecutablePath) === normalize(expected)
-    && rows.some((owner) => owner.ProcessId === row.ParentProcessId && /^nimi-source-runtime-supervisor(?:\.exe)?$/u.test(owner.Name)));
-  if (rows.some((row) => /^(?:nimi(?:\.exe)?|nimi-runtime)$/u.test(row.Name) && row !== runtime)) {
-    return { state: 'conflict' };
-  }
-  if (process.platform === 'darwin' && runtime) {
-    const socket = path.join(os.homedir(), 'Library', 'Application Support', 'Nimi', 'RuntimeLocalDevelopment', 'run', 'runtime-desktop.sock');
-    try {
-      const { stdout } = await execute('/usr/sbin/lsof', ['-nP', '-a', '-p', String(runtime.ProcessId), '-U', '-Fn'], { timeout: 10_000 });
-      endpoint = stdout.split('\n').includes(`n${socket}`);
-    } catch (error) {
-      if (error.code !== 1) throw error;
-      endpoint = false;
+  const runtimeName = /^(?:nimi(?:\.exe)?|nimi-runtime)$/iu;
+  const supervisorName = /^nimi-source-runtime-supervisor(?:\.exe)?$/iu;
+  const unavailable = (detail) => ({ state: 'unavailable', detail });
+  try {
+    if (platform === 'win32') {
+      const command = [
+        '$ErrorActionPreference = "Stop"',
+        '$sid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value.ToLowerInvariant()',
+        '$hash = [System.Security.Cryptography.SHA256]::Create().ComputeHash([Text.Encoding]::UTF8.GetBytes($sid))',
+        '$identity = ([BitConverter]::ToString($hash)).Replace("-", "").ToLowerInvariant()',
+        '$pipe = "\\\\.\\pipe\\nimi-runtime-source-local-development-$identity-desktop-v1"',
+        '$rows = @(Get-CimInstance Win32_Process -Filter "Name = \'nimi.exe\' OR Name = \'nimi-source-runtime-supervisor.exe\'" | Select-Object ProcessId,ParentProcessId,Name,ExecutablePath,CommandLine)',
+        '@{ rows = $rows; endpoint = (Test-Path -LiteralPath $pipe) } | ConvertTo-Json -Depth 4 -Compress',
+      ].join('\n');
+      const { stdout } = await executeCommand('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', command], { windowsHide: true, timeout: 10_000 });
+      if (typeof stdout !== 'string' || !stdout.trim()) return unavailable('PowerShell source Runtime observation returned empty JSON output.');
+      let observation;
+      try { observation = JSON.parse(stdout); }
+      catch { return unavailable(`PowerShell source Runtime observation returned incomplete or invalid JSON (${Buffer.byteLength(stdout)} bytes).`); }
+      ({ rows, endpoint } = observation || {});
+    } else if (platform === 'darwin') {
+      const { stdout } = await executeCommand('/bin/ps', ['-axo', 'pid=,ppid=,comm='], { timeout: 10_000 });
+      rows = stdout.split('\n').flatMap((line) => {
+        const match = line.match(/^\s*(\d+)\s+(\d+)\s+(.+)$/u);
+        return match ? [{ ProcessId: Number(match[1]), ParentProcessId: Number(match[2]), ExecutablePath: match[3], Name: path.basename(match[3]) }] : [];
+      }).filter(row => runtimeName.test(row.Name) || supervisorName.test(row.Name));
+      for (const row of rows) {
+        try { row.CommandLine = (await executeCommand('/bin/ps', ['-ww', '-p', String(row.ProcessId), '-o', 'args='], { timeout: 10_000 })).stdout; }
+        catch (error) { if (error.code !== 1) throw error; row.CommandLine = null; }
+      }
+    } else {
+      throw new Error('Desktop source development requires Windows x64 or macOS arm64.');
     }
+  } catch (error) {
+    if (!['win32', 'darwin'].includes(platform)) throw error;
+    // Never turn failed/partial process discovery into permission to spawn.
+    // Do not print the captured command lines or raw CIM response.
+    return unavailable('Source Runtime process/endpoint observation is unavailable.');
   }
-  if (runtime && realmName) {
-    const owner = rows.find((row) => row.ProcessId === runtime.ParentProcessId);
-    const commandLine = process.platform === 'win32' ? owner?.CommandLine
-      : (await execute('/bin/ps', ['-p', String(runtime.ParentProcessId), '-o', 'args='], { timeout: 10_000 })).stdout;
-    if (String(commandLine || '').match(/(?:^|\s)--realm\s+(official|local)(?:\s|$)/u)?.[1] !== realmName) {
+  if (!Array.isArray(rows) || (platform === 'win32' && typeof endpoint !== 'boolean')
+    || rows.some(row => !row || typeof row.Name !== 'string' || !Number.isSafeInteger(row.ProcessId) || row.ProcessId < 1
+      || !Number.isSafeInteger(row.ParentProcessId) || row.ParentProcessId < 1
+      || (!runtimeName.test(row.Name) && !supervisorName.test(row.Name)))) {
+    return unavailable('Source Runtime process observation is incomplete.');
+  }
+  const pathApi = platform === 'win32' ? path.win32 : path.posix;
+  const expected = pathApi.join(root, '.nimi', 'local', platform === 'win32' ? 'imp6' : 'imp3', 'runtime-local-development', platform === 'win32' ? 'nimi.exe' : 'nimi-runtime');
+  const normalize = value => typeof value === 'string' && value ? (platform === 'win32' ? pathApi.normalize(value).toLowerCase() : value) : '';
+  const commandTail = row => {
+    if (!normalize(row.ExecutablePath) || typeof row.CommandLine !== 'string' || !row.CommandLine.trim()) return null;
+    if (normalize(pathApi.basename(row.ExecutablePath)) !== normalize(row.Name)) return null;
+    const command = row.CommandLine.trim();
+    // ps joins argv without quoting; its exact comm prefix can contain spaces.
+    if (platform === 'darwin' && command.startsWith(row.ExecutablePath + ' ')) return command.slice(row.ExecutablePath.length + 1).trim();
+    const match = command.match(/^(?:"([^"]+)"|([^\s"]+))(?:\s+(.*))?$/su);
+    return match && normalize(match[1] || match[2]) === normalize(row.ExecutablePath) ? (match[3] || '') : null;
+  };
+  const runtimes = rows.filter(row => runtimeName.test(row.Name));
+  const supervisors = rows.filter(row => supervisorName.test(row.Name));
+  if (runtimes.some(row => normalize(row.ExecutablePath) && normalize(row.ExecutablePath) !== normalize(expected))) {
+    return { state: 'conflict', detail: 'A Nimi process uses a different Runtime executable.' };
+  }
+  if (runtimes.some(row => commandTail(row) === null)) return unavailable('A Nimi process has incomplete executable or command information.');
+  const candidates = runtimes.filter(row => /^serve(?:\s|$)/u.test(commandTail(row))
+    && supervisors.some(owner => owner.ProcessId === row.ParentProcessId));
+  if (candidates.length > 1) return { state: 'conflict', detail: 'More than one supervised Runtime serve process was observed.' };
+  const runtime = candidates[0];
+  for (const row of runtimes) {
+    if (row === runtime) continue;
+    // This helper is launched by the Runtime itself. A second serve, another
+    // executable, or a process with unverified ancestry is never exempted.
+    if (runtime && row.ParentProcessId === runtime.ProcessId && /^managed-image-backend\s+serve(?:\s|$)/u.test(commandTail(row))) continue;
+    if (!runtime && !rows.some(parent => parent.ProcessId === row.ParentProcessId)) return unavailable('The source Runtime process owner has not been observed.');
+    return { state: 'conflict', detail: 'An additional Nimi process is not the owned managed image backend.' };
+  }
+  if (supervisors.length > 1) return unavailable('Multiple source supervisors are still being observed.');
+  const owner = runtime ? supervisors.find(row => row.ProcessId === runtime.ParentProcessId) : supervisors[0];
+  if (owner) {
+    const command = commandTail(owner);
+    if (command === null) return unavailable('Source supervisor command information is incomplete.');
+    const realms = [...command.matchAll(/(?:^|\s)--realm(?:\s+|=)(?:"(official|local)"|(official|local))(?=\s|$)/gu)];
+    if (realms.length !== 1) return unavailable('Source supervisor Realm information is incomplete or ambiguous.');
+    if (realmName && (realms[0][1] || realms[0][2]) !== realmName) {
       throw new Error('The active source Runtime uses another Realm environment. Stop that source instance before switching.');
     }
   }
+  if (platform === 'darwin' && runtime) {
+    const socket = path.posix.join(homeDirectory, 'Library', 'Application Support', 'Nimi', 'RuntimeLocalDevelopment', 'run', 'runtime-desktop.sock');
+    try {
+      const { stdout } = await executeCommand('/usr/sbin/lsof', ['-nP', '-a', '-p', String(runtime.ProcessId), '-U', '-Fn'], { timeout: 10_000 });
+      endpoint = stdout.split('\n').includes(`n${socket}`);
+    } catch (error) {
+      if (error.code !== 1) return unavailable('Source Runtime socket observation is unavailable.');
+      endpoint = false;
+    }
+  }
   if (runtime) return { state: endpoint ? 'ready' : 'starting' };
-  return { state: endpoint ? 'conflict' : 'missing' };
+  if (owner) return { state: 'starting', detail: 'Source supervisor is present; waiting for its Runtime serve process.' };
+  return endpoint ? unavailable('Source endpoint appeared before its process owner could be identified.') : { state: 'missing' };
+}
+
+// Preserve the first failure even if graceful cleanup blocks or itself fails.
+export async function reportDesktopStartupFailure(error, phase, close, report = message => process.stderr.write(message)) {
+  const message = error instanceof Error ? error.message : String(error);
+  report(`[desktop-deps] Startup ${error?.name === 'AbortError' ? 'canceled' : 'failed'} during ${phase}: ${message}\n`);
+  report('[desktop-deps] Waiting for owned dependency cleanup.\n');
+  try { await close(); }
+  catch (cleanupError) { report(`[desktop-deps] Cleanup failed: ${cleanupError instanceof Error ? cleanupError.message : String(cleanupError)}\n`); }
+  throw error;
+}
+
+export async function prepareSourceRuntimeDependency(runtime, owner, { signal, log = () => undefined, timeoutMs } = {}) {
+  let started = false;
+  let observedOtherOwner = false;
+  let waitingReported = false;
+  await waitForDevDependency({ ...runtime, probe: async () => {
+    const result = await runtime.probe();
+    if (result.state === 'missing' && !started) {
+      if (observedOtherOwner) throw new Error('The independently started source Runtime stopped before becoming ready. Restart it in its owner terminal.');
+      log('Starting source Runtime…');
+      owner.start(); started = true;
+      return { state: 'starting' };
+    }
+    if (result.state === 'starting' && !started) observedOtherOwner = true;
+    if (result.state === 'ready' && !started) log('Reusing source Runtime.');
+    else if (result.state !== 'ready' && !waitingReported) {
+      log('Waiting for source Runtime observations to become complete.'); waitingReported = true;
+    }
+    return result;
+  } }, { signal, timeoutMs, failure: owner.failure });
 }
 
 export function launchDevService(root, service, env, logRoot) {
@@ -216,6 +298,7 @@ export async function prepareDesktopDevDependencies(root, { signal, realm = read
     argv: ['--realm', realm.name], env: { ...env, ...developmentRealmEnvironment(realm) }, repoRoot: root, signal: runtimeSignal,
   }));
   let closeTask;
+  let phase = 'dependency preflight';
   const log = (message) => process.stdout.write(`[desktop-deps] ${message}\n`);
   log(`Realm: ${realm.name} (${realm.apiOrigin})`);
   const close = () => {
@@ -239,6 +322,7 @@ export async function prepareDesktopDevDependencies(root, { signal, realm = read
     const needsRealm = services.some((service, index) => service.external && states[index].state === 'missing');
     const realmRoot = realm.name === 'local' && (env.NIMI_DEV_REALM_DIR || needsRealm) ? validateRealmDevDirectory(env.NIMI_DEV_REALM_DIR, root) : undefined;
     if (realmRoot) {
+      phase = 'Realm data services';
       signal?.throwIfAborted();
       log('Checking Realm data services…');
       const infra = launchDevService(realmRoot, { name: 'Realm data services', script: 'dev:infra' }, externalEnvironment, logRoot);
@@ -250,6 +334,7 @@ export async function prepareDesktopDevDependencies(root, { signal, realm = read
       if (infra.failure()) throw infra.failure();
     }
     for (const service of services) {
+      phase = service.name;
       signal?.throwIfAborted();
       const state = await service.probe();
       if (state.state === 'ready') { log(`Reusing ${service.name}.`); continue; }
@@ -264,13 +349,8 @@ export async function prepareDesktopDevDependencies(root, { signal, realm = read
       await waitForDevDependency(service, { signal, failure: child.failure });
     }
     const runtime = { name: 'Source Runtime', probe: () => probeSourceRuntime(root, realm.name) };
-    const state = await runtime.probe();
-    if (state.state === 'conflict') throw new Error('A Nimi Runtime is already active. Quit it before starting this source Nimi; installed and source Runtime cannot run together.');
-    if (state.state === 'missing') {
-      log('Starting source Runtime…');
-      runtimeOwner.start();
-    } else log('Reusing source Runtime.');
-    await waitForDevDependency(runtime, { signal, failure: runtimeOwner.failure });
+    phase = 'Source Runtime startup';
+    await prepareSourceRuntimeDependency(runtime, runtimeOwner, { signal, log });
     log('Dependencies are available; starting Desktop for protected Runtime admission.');
     return { close, async restartRuntime() {
       signal?.throwIfAborted();
@@ -279,8 +359,7 @@ export async function prepareDesktopDevDependencies(root, { signal, realm = read
       await waitForDevDependency(runtime, { signal, failure: runtimeOwner.failure });
     } };
   } catch (error) {
-    await close();
-    throw error;
+    await reportDesktopStartupFailure(error, phase, close);
   }
 }
 

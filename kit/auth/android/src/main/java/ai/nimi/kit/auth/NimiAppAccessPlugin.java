@@ -4,6 +4,7 @@ import android.content.pm.PackageManager;
 import android.content.pm.ApplicationInfo;
 import android.content.Intent;
 import android.net.Uri;
+import android.util.Log;
 import android.content.pm.Signature;
 import android.content.pm.verify.domain.DomainVerificationManager;
 import android.content.pm.verify.domain.DomainVerificationUserState;
@@ -14,13 +15,18 @@ import com.getcapacitor.PluginMethod;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import java.io.IOException;
 import java.net.URI;
+import java.net.InetSocketAddress;
+import java.net.Proxy;
 import java.security.MessageDigest;
 import java.util.Iterator;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import okhttp3.Callback;
-import okhttp3.CookieJar;
+import okhttp3.Call;
+import okhttp3.Connection;
+import okhttp3.EventListener;
+import okhttp3.Handshake;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -31,9 +37,10 @@ import okhttp3.Response;
  * credential storage, Runtime execution, device grants or browser cookie jar. */
 @CapacitorPlugin(name = "NimiAppAccess")
 public class NimiAppAccessPlugin extends Plugin {
-    private final OkHttpClient http = new OkHttpClient.Builder()
-        .cookieJar(CookieJar.NO_COOKIES).followRedirects(false).followSslRedirects(false)
-        .retryOnConnectionFailure(false).callTimeout(20, TimeUnit.SECONDS).build();
+    private final OkHttpClient http = CoordinationHttpClient.create(call -> {
+            RequestTrace trace = call.request().tag(RequestTrace.class);
+            return trace == null ? new EventListener() {} : trace;
+        });
     private final ConcurrentHashMap<String, okhttp3.Call> requests = new ConcurrentHashMap<>();
 
     @PluginMethod
@@ -111,6 +118,13 @@ public class NimiAppAccessPlugin extends Plugin {
                 call.reject("Only the configured Realm coordination endpoints are available.", "NIMI_MOBILE_REQUEST_INVALID"); return;
             }
             Request.Builder builder = new Request.Builder().url(url.toString());
+            if ((getContext().getApplicationInfo().flags & ApplicationInfo.FLAG_DEBUGGABLE) != 0) {
+                String endpoint = sourceRead ? "source" : url.getPath().endsWith("/token") ? "token"
+                    : url.getPath().endsWith("/context/end") ? "context-end"
+                    : url.getPath().endsWith("/context") ? "context"
+                    : contextWrite ? "connection-create" : "connection-read";
+                builder.tag(RequestTrace.class, new RequestTrace(method, endpoint));
+            }
             JSObject headers = call.getObject("headers", new JSObject());
             for (Iterator<String> keys = headers.keys(); keys.hasNext();) {
                 String key = keys.next(), normalized = key.toLowerCase(Locale.ROOT);
@@ -125,6 +139,8 @@ public class NimiAppAccessPlugin extends Plugin {
             request.enqueue(new Callback() {
                 public void onFailure(okhttp3.Call failed, IOException error) {
                     requests.remove(id, failed);
+                    RequestTrace trace = failed.request().tag(RequestTrace.class);
+                    if (trace != null) trace.failed(error, failed.isCanceled());
                     call.reject(failed.isCanceled() ? "Request canceled." : "Realm connection failed.", failed.isCanceled() ? "NIMI_MOBILE_REQUEST_CANCELLED" : "NIMI_MOBILE_NETWORK_UNAVAILABLE");
                 }
                 public void onResponse(okhttp3.Call completed, Response response) {
@@ -134,7 +150,11 @@ public class NimiAppAccessPlugin extends Plugin {
                         result.put("status", response.code()); result.put("headers", responseHeaders);
                         result.put("body", response.body() == null ? "" : response.body().string());
                         call.resolve(result);
-                    } catch (IOException error) { call.reject("Realm response could not be read.", "NIMI_MOBILE_NETWORK_UNAVAILABLE"); }
+                    } catch (IOException error) {
+                        RequestTrace trace = completed.request().tag(RequestTrace.class);
+                        if (trace != null) trace.failed(error, completed.isCanceled());
+                        call.reject("Realm response could not be read.", "NIMI_MOBILE_NETWORK_UNAVAILABLE");
+                    }
                     finally { requests.remove(id, completed); }
                 }
             });
@@ -150,6 +170,39 @@ public class NimiAppAccessPlugin extends Plugin {
 
     @Override
     protected void handleOnDestroy() { for (okhttp3.Call pending : requests.values()) pending.cancel(); requests.clear(); }
+
+    /** Debug-only finite transport facts. Never log URLs, headers, payloads,
+     * exception messages or stack traces: coordination carries credentials. */
+    private static final class RequestTrace extends EventListener {
+        private final String method, endpoint;
+        private final long started = System.nanoTime();
+        private volatile String phase = "queued";
+        private volatile boolean dialing, acquired;
+
+        RequestTrace(String method, String endpoint) { this.method = method; this.endpoint = endpoint; }
+        @Override public void dnsStart(Call call, String domainName) { phase = "dns"; }
+        @Override public void connectStart(Call call, InetSocketAddress address, Proxy proxy) { dialing = true; phase = "connect"; }
+        @Override public void secureConnectStart(Call call) { phase = "tls"; }
+        @Override public void secureConnectEnd(Call call, Handshake handshake) { phase = "tls-complete"; }
+        @Override public void connectionAcquired(Call call, Connection connection) { acquired = true; phase = "connection-acquired"; }
+        @Override public void requestHeadersStart(Call call) { phase = "request-headers"; }
+        @Override public void requestHeadersEnd(Call call, Request request) { phase = "request-headers-sent"; }
+        @Override public void requestBodyStart(Call call) { phase = "request-body"; }
+        @Override public void requestBodyEnd(Call call, long count) { phase = "request-body-sent"; }
+        @Override public void responseHeadersStart(Call call) { phase = "response-headers"; }
+        @Override public void responseHeadersEnd(Call call, Response response) { phase = "response-headers-received"; }
+        @Override public void responseBodyStart(Call call) { phase = "response-body"; }
+        @Override public void responseBodyEnd(Call call, long count) { phase = "response-body-complete"; }
+
+        void failed(IOException error, boolean canceled) {
+            Throwable cause = error;
+            for (int depth = 0; depth < 8 && cause.getCause() != null && cause.getCause() != cause; depth++) cause = cause.getCause();
+            Log.w("NimiAppAccess", "coordination failure endpoint=" + endpoint + " method=" + method
+                + " phase=" + phase + " exception=" + error.getClass().getSimpleName()
+                + " cause=" + cause.getClass().getSimpleName() + " newConnectionAttempted=" + dialing + " connectionAcquired=" + acquired
+                + " canceled=" + canceled + " elapsedMs=" + TimeUnit.NANOSECONDS.toMillis(System.nanoTime() - started));
+        }
+    }
 
     private static boolean sameOrigin(URI a, URI b) {
         return a.getScheme() != null && a.getScheme().equals(b.getScheme()) && a.getHost() != null
