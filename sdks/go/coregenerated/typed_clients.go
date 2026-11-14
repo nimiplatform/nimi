@@ -1992,6 +1992,7 @@ const (
 	AIPROVIDERTASKEXPIRED                           ReasonCode = "AI_PROVIDER_TASK_EXPIRED"
 	AGENTCONVERSATIONCONTEXTREVISIONCONFLICT        ReasonCode = "AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT"
 	APPSTORAGECONTENTCONFLICT                       ReasonCode = "APP_STORAGE_CONTENT_CONFLICT"
+	AGENTUTOPIAREVISIONCONFLICT                     ReasonCode = "AGENT_UTOPIA_REVISION_CONFLICT"
 )
 
 type ReasoningActivation string
@@ -5128,6 +5129,18 @@ type GetLocalAppAgentRealtimeStatusResponse struct {
 	Control *RealtimeControlStatus `json:"control,omitempty"`
 }
 
+type GetLocalAppAgentUtopiaSnapshotRequest struct {
+}
+
+type GetLocalAppAgentUtopiaSnapshotResponse struct {
+	Settings         *LocalAppAgentUtopiaSettings        `json:"settings,omitempty"`
+	ObservedAt       string                              `json:"observed_at,omitempty"`
+	Places           []LocalAppAgentUtopiaPlace          `json:"places,omitempty"`
+	Residents        []LocalAppAgentUtopiaResident       `json:"residents,omitempty"`
+	Occupancy        []LocalAppAgentUtopiaOccupancy      `json:"occupancy,omitempty"`
+	SharedActivities []LocalAppAgentUtopiaSharedActivity `json:"shared_activities,omitempty"`
+}
+
 type GetLocalAppAgentWorkRequest struct {
 	AgentHandle string `json:"agent_handle,omitempty"`
 	ExecutionId string `json:"execution_id,omitempty"`
@@ -6537,6 +6550,58 @@ type LocalAppAgentReference struct {
 
 type LocalAppAgentUpdateAutonomyResponse struct {
 	Projection *LocalAppAgentAutonomyProjection `json:"projection,omitempty"`
+}
+
+type LocalAppAgentUtopiaFrame struct {
+	Title       string `json:"title,omitempty"`
+	Place       string `json:"place,omitempty"`
+	StartsAt    string `json:"starts_at,omitempty"`
+	EndsAt      string `json:"ends_at,omitempty"`
+	Interaction bool   `json:"interaction,omitempty"`
+}
+
+type LocalAppAgentUtopiaOccupancy struct {
+	Place        string   `json:"place,omitempty"`
+	AgentHandles []string `json:"agent_handles,omitempty"`
+}
+
+type LocalAppAgentUtopiaPlace struct {
+	Id         string   `json:"id,omitempty"`
+	Activities []string `json:"activities,omitempty"`
+}
+
+type LocalAppAgentUtopiaResident struct {
+	AgentHandle string                    `json:"agent_handle,omitempty"`
+	DisplayName string                    `json:"display_name,omitempty"`
+	Solitary    bool                      `json:"solitary,omitempty"`
+	Current     *LocalAppAgentUtopiaFrame `json:"current,omitempty"`
+	Recent      *LocalAppAgentUtopiaFrame `json:"recent,omitempty"`
+	Next        *LocalAppAgentUtopiaFrame `json:"next,omitempty"`
+}
+
+type LocalAppAgentUtopiaSettings struct {
+	Revision            uint64 `json:"revision,omitempty"`
+	Preset              string `json:"preset,omitempty"`
+	PresetVersion       uint64 `json:"preset_version,omitempty"`
+	OutdoorOpen         bool   `json:"outdoor_open,omitempty"`
+	PublicParticipation bool   `json:"public_participation,omitempty"`
+}
+
+type LocalAppAgentUtopiaSharedActivity struct {
+	ActivityRef     string `json:"activity_ref,omitempty"`
+	InitiatorHandle string `json:"initiator_handle,omitempty"`
+	RecipientHandle string `json:"recipient_handle,omitempty"`
+	Place           string `json:"place,omitempty"`
+	Activity        string `json:"activity,omitempty"`
+	State           string `json:"state,omitempty"`
+	StartsAt        string `json:"starts_at,omitempty"`
+	EndsAt          string `json:"ends_at,omitempty"`
+	AcceptedAt      string `json:"accepted_at,omitempty"`
+}
+
+type LocalAppAgentUtopiaSolitude struct {
+	AgentHandle string `json:"agent_handle,omitempty"`
+	Solitary    bool   `json:"solitary,omitempty"`
 }
 
 type LocalAppAgentWorkEvent struct {
@@ -10002,6 +10067,19 @@ type UpdateLocalAppAgentConversationContextResponse struct {
 	Projection *LocalAppAgentConversationContextProjection `json:"projection,omitempty"`
 }
 
+type UpdateLocalAppAgentUtopiaSettingsRequest struct {
+	ExpectedRevision    uint64                       `json:"expected_revision,omitempty"`
+	SelectPreset        string                       `json:"select_preset,omitempty"`
+	RestoreDefault      bool                         `json:"restore_default,omitempty"`
+	OutdoorOpen         bool                         `json:"outdoor_open,omitempty"`
+	PublicParticipation bool                         `json:"public_participation,omitempty"`
+	Solitude            *LocalAppAgentUtopiaSolitude `json:"solitude,omitempty"`
+}
+
+type UpdateLocalAppAgentUtopiaSettingsResponse struct {
+	Settings *LocalAppAgentUtopiaSettings `json:"settings,omitempty"`
+}
+
 type UploadArtifactChunk struct {
 	Sequence uint64 `json:"sequence,omitempty"`
 	Bytes    []byte `json:"bytes,omitempty"`
@@ -10750,6 +10828,14 @@ func (c RuntimeTypedClient) GetLocalAppAgentRealtimeStatus(ctx context.Context, 
 	return decodeRuntimeTypedResponse[GetLocalAppAgentRealtimeStatusResponse](raw, "GetLocalAppAgentRealtimeStatusResponse")
 }
 
+func (c RuntimeTypedClient) GetLocalAppAgentUtopiaSnapshot(ctx context.Context, request GetLocalAppAgentUtopiaSnapshotRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLocalAppAgentUtopiaSnapshotResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentUtopiaSnapshot", request, metadata, timeoutMS)
+	if err != nil {
+		return GetLocalAppAgentUtopiaSnapshotResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[GetLocalAppAgentUtopiaSnapshotResponse](raw, "GetLocalAppAgentUtopiaSnapshotResponse")
+}
+
 func (c RuntimeTypedClient) GetLocalAppAgentWork(ctx context.Context, request GetLocalAppAgentWorkRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (GetLocalAppAgentWorkResponse, error) {
 	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentWork", request, metadata, timeoutMS)
 	if err != nil {
@@ -11156,6 +11242,14 @@ func (c RuntimeTypedClient) UpdateLocalAppAgentConversationContext(ctx context.C
 		return UpdateLocalAppAgentConversationContextResponse{}, err
 	}
 	return decodeRuntimeTypedResponse[UpdateLocalAppAgentConversationContextResponse](raw, "UpdateLocalAppAgentConversationContextResponse")
+}
+
+func (c RuntimeTypedClient) UpdateLocalAppAgentUtopiaSettings(ctx context.Context, request UpdateLocalAppAgentUtopiaSettingsRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UpdateLocalAppAgentUtopiaSettingsResponse, error) {
+	raw, err := c.callTyped(ctx, "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentUtopiaSettings", request, metadata, timeoutMS)
+	if err != nil {
+		return UpdateLocalAppAgentUtopiaSettingsResponse{}, err
+	}
+	return decodeRuntimeTypedResponse[UpdateLocalAppAgentUtopiaSettingsResponse](raw, "UpdateLocalAppAgentUtopiaSettingsResponse")
 }
 
 func (c RuntimeTypedClient) UploadLocalAppConversationAttachment(ctx context.Context, request UploadLocalAppConversationAttachmentRequest, metadata sdkstypes.CoreMetadata, timeoutMS int64) (UploadLocalAppConversationAttachmentResponse, error) {

@@ -9,6 +9,7 @@ export type WorkbenchView =
   | { kind: 'agent-center' }
   | { kind: 'agent-conversation' }
   | { kind: 'agent-realtime' }
+  | { kind: 'agent-utopia' }
   | { kind: 'settings' };
 
 export type WorkbenchNavGroup = {

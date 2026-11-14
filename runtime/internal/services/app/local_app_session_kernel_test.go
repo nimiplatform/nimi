@@ -477,6 +477,30 @@ func TestLocalAppSessionAgentConfigureRequiresIndependentDeclarationDomain(t *te
 	)
 }
 
+func TestLocalAppUtopiaDeclarationsSeparateReadWriteAndConversation(t *testing.T) {
+	for _, test := range []struct {
+		domain  string
+		allowed localappop.Ingress
+		denied  localappop.Ingress
+	}{
+		{"agent.utopia.read", localappop.IngressAgentUtopiaSnapshotGet, localappop.IngressAgentUtopiaSettingsUpdate},
+		{"agent.utopia.manage", localappop.IngressAgentUtopiaSettingsUpdate, localappop.IngressAgentUtopiaSnapshotGet},
+	} {
+		t.Run(test.domain, func(t *testing.T) {
+			fixture := newLocalAppSessionFixture(t, []string{test.domain})
+			if _, err := fixture.service.OpenLocalAppSessionProjection(fixture.context); err != nil {
+				t.Fatal(err)
+			}
+			if _, err := fixture.service.AuthorizeLocalAppIngress(fixture.context, test.allowed); err != nil {
+				t.Fatal(err)
+			}
+			for _, forbidden := range []localappop.Ingress{test.denied, localappop.IngressConversationOpen, localappop.IngressAgentManagerSnapshotGet} {
+				assertLocalAppReason(t, fixture.service.AdmitLocalAppIngress(fixture.context, forbidden), runtimev1.ReasonCode_LOCAL_APP_OPERATION_UNAVAILABLE)
+			}
+		})
+	}
+}
+
 func TestLocalAppSessionScenarioConsumptionFamilyAuthorization(t *testing.T) {
 	fixture := newLocalAppSessionFixture(t, []string{"runtime.consume"})
 	if _, err := fixture.service.OpenLocalAppSessionProjection(fixture.context); err != nil {

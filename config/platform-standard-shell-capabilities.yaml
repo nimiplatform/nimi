@@ -346,6 +346,8 @@ capability_sets:
       - local-app.sharedAgentAIConfigOverwrite
       - local-app.sharedAgentAIConfigLocalOptions
       - local-app.agentManagerSnapshot
+      - local-app.agentUtopiaSnapshot
+      - local-app.agentUtopiaUpdate
       - local-app.agentAutonomySnapshot
       - local-app.agentUpdateAutonomy
       - local-app.conversationFollowUpCancel
@@ -1418,6 +1420,24 @@ local_app_operation_contract:
       effect_boundary: read
       typed_failures: [ protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, not-found, host-internal-error ]
       owner: runtime_agent_service
+    agentUtopiaSnapshot:
+      command: local-app.agentUtopiaSnapshot
+      operation_id: runtime.agent.utopia.snapshot.get
+      request_fields: []
+      response_fields: [ settings, observedAt, places, residents, occupancy, sharedActivities ]
+      transport_boundary: unary
+      effect_boundary: read
+      typed_failures: [ protected-carrier-required, runtime-permission-denied, runtime-service-unavailable, runtime-service-untrusted, session-invalid, account-changed, invalid-payload, host-internal-error ]
+      owner: runtime_agent_service
+    agentUtopiaUpdate:
+      command: local-app.agentUtopiaUpdate
+      operation_id: runtime.agent.utopia.settings.update
+      request_fields: [ expectedRevision, intent ]
+      response_fields: [ revision, preset, presetVersion, outdoorOpen, publicParticipation ]
+      transport_boundary: unary
+      effect_boundary: write
+      typed_failures: [ protected-carrier-required, runtime-permission-denied, runtime-service-unavailable, runtime-service-untrusted, session-invalid, account-changed, invalid-payload, content-conflict, host-internal-error ]
+      owner: runtime_agent_service
     agentAutonomySnapshot:
       command: local-app.agentAutonomySnapshot
       operation_id: runtime.agent.autonomy.snapshot.get
@@ -2078,6 +2098,12 @@ capabilities:
       - id: agentManagerSnapshot
         command: nimi.shell.localApp.agentManagerSnapshot
         negative_states: [ protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, not-found, host-internal-error ]
+      - id: agentUtopiaSnapshot
+        command: nimi.shell.localApp.agentUtopiaSnapshot
+        negative_states: [ protected-carrier-required, runtime-permission-denied, runtime-service-unavailable, runtime-service-untrusted, session-invalid, account-changed, invalid-payload, host-internal-error ]
+      - id: agentUtopiaUpdate
+        command: nimi.shell.localApp.agentUtopiaUpdate
+        negative_states: [ protected-carrier-required, runtime-permission-denied, runtime-service-unavailable, runtime-service-untrusted, session-invalid, account-changed, invalid-payload, content-conflict, host-internal-error ]
       - id: agentAutonomySnapshot
         command: nimi.shell.localApp.agentAutonomySnapshot
         negative_states: [ protected-carrier-required, runtime-service-unavailable, runtime-service-untrusted, runtime-service-error-unclassified, runtime-unauthenticated, runtime-permission-denied, process-replaced, account-changed, runtime-restarted, invalid-payload, host-internal-error ]

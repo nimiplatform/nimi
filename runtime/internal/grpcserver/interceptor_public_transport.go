@@ -93,6 +93,8 @@ var publicTransportBlockedMethods = map[string]runtimev1.ReasonCode{
 	"/nimi.runtime.v1.RuntimeAgentService/GetLocalAppSharedLocalAgentAIConfig":       runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAgentService/OverwriteLocalAppSharedLocalAgentAIConfig": runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot":           runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentUtopiaSnapshot":           runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
+	"/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentUtopiaSettings":        runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentAutonomySnapshot":          runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy":               runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,
 	"/nimi.runtime.v1.RuntimeAgentService/CancelLocalAppConversationFollowUp":        runtimev1.ReasonCode_PROTECTED_ORIGIN_ROLE_MISMATCH,

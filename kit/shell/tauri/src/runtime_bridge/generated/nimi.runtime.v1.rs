@@ -578,6 +578,7 @@ pub enum ReasonCode {
     AiProviderTaskExpired = 774,
     AgentConversationContextRevisionConflict = 775,
     AppStorageContentConflict = 776,
+    AgentUtopiaRevisionConflict = 777,
 }
 impl ReasonCode {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -994,6 +995,7 @@ impl ReasonCode {
                 "AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT"
             }
             Self::AppStorageContentConflict => "APP_STORAGE_CONTENT_CONFLICT",
+            Self::AgentUtopiaRevisionConflict => "AGENT_UTOPIA_REVISION_CONFLICT",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -1479,6 +1481,7 @@ impl ReasonCode {
                 Some(Self::AgentConversationContextRevisionConflict)
             }
             "APP_STORAGE_CONTENT_CONFLICT" => Some(Self::AppStorageContentConflict),
+            "AGENT_UTOPIA_REVISION_CONFLICT" => Some(Self::AgentUtopiaRevisionConflict),
             _ => None,
         }
     }
@@ -20230,6 +20233,139 @@ impl LocalAppEmbodimentVoicePhase {
         }
     }
 }
+#[derive(Clone, Copy, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct GetLocalAppAgentUtopiaSnapshotRequest {}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentUtopiaSettings {
+    #[prost(uint64, tag = "1")]
+    pub revision: u64,
+    #[prost(string, tag = "2")]
+    pub preset: ::prost::alloc::string::String,
+    #[prost(uint64, tag = "3")]
+    pub preset_version: u64,
+    #[prost(bool, tag = "4")]
+    pub outdoor_open: bool,
+    #[prost(bool, tag = "5")]
+    pub public_participation: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentUtopiaPlace {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "2")]
+    pub activities: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentUtopiaFrame {
+    #[prost(string, tag = "1")]
+    pub title: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub place: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "3")]
+    pub starts_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "4")]
+    pub ends_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(bool, tag = "5")]
+    pub interaction: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentUtopiaResident {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub display_name: ::prost::alloc::string::String,
+    #[prost(bool, tag = "3")]
+    pub solitary: bool,
+    #[prost(message, optional, tag = "4")]
+    pub current: ::core::option::Option<LocalAppAgentUtopiaFrame>,
+    #[prost(message, optional, tag = "5")]
+    pub recent: ::core::option::Option<LocalAppAgentUtopiaFrame>,
+    #[prost(message, optional, tag = "6")]
+    pub next: ::core::option::Option<LocalAppAgentUtopiaFrame>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentUtopiaOccupancy {
+    #[prost(string, tag = "1")]
+    pub place: ::prost::alloc::string::String,
+    #[prost(string, repeated, tag = "2")]
+    pub agent_handles: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentUtopiaSharedActivity {
+    #[prost(string, tag = "1")]
+    pub activity_ref: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub initiator_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub recipient_handle: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub place: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub activity: ::prost::alloc::string::String,
+    #[prost(string, tag = "6")]
+    pub state: ::prost::alloc::string::String,
+    #[prost(message, optional, tag = "7")]
+    pub starts_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "8")]
+    pub ends_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, optional, tag = "9")]
+    pub accepted_at: ::core::option::Option<::prost_types::Timestamp>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GetLocalAppAgentUtopiaSnapshotResponse {
+    #[prost(message, optional, tag = "1")]
+    pub settings: ::core::option::Option<LocalAppAgentUtopiaSettings>,
+    #[prost(message, optional, tag = "2")]
+    pub observed_at: ::core::option::Option<::prost_types::Timestamp>,
+    #[prost(message, repeated, tag = "3")]
+    pub places: ::prost::alloc::vec::Vec<LocalAppAgentUtopiaPlace>,
+    #[prost(message, repeated, tag = "4")]
+    pub residents: ::prost::alloc::vec::Vec<LocalAppAgentUtopiaResident>,
+    #[prost(message, repeated, tag = "5")]
+    pub occupancy: ::prost::alloc::vec::Vec<LocalAppAgentUtopiaOccupancy>,
+    #[prost(message, repeated, tag = "6")]
+    pub shared_activities: ::prost::alloc::vec::Vec<LocalAppAgentUtopiaSharedActivity>,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct LocalAppAgentUtopiaSolitude {
+    #[prost(string, tag = "1")]
+    pub agent_handle: ::prost::alloc::string::String,
+    #[prost(bool, tag = "2")]
+    pub solitary: bool,
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UpdateLocalAppAgentUtopiaSettingsRequest {
+    #[prost(uint64, tag = "1")]
+    pub expected_revision: u64,
+    #[prost(
+        oneof = "update_local_app_agent_utopia_settings_request::Intent",
+        tags = "2, 3, 4, 5, 6"
+    )]
+    pub intent: ::core::option::Option<
+        update_local_app_agent_utopia_settings_request::Intent,
+    >,
+}
+/// Nested message and enum types in `UpdateLocalAppAgentUtopiaSettingsRequest`.
+pub mod update_local_app_agent_utopia_settings_request {
+    #[derive(Clone, PartialEq, Eq, Hash, ::prost::Oneof)]
+    pub enum Intent {
+        #[prost(string, tag = "2")]
+        SelectPreset(::prost::alloc::string::String),
+        #[prost(bool, tag = "3")]
+        RestoreDefault(bool),
+        #[prost(bool, tag = "4")]
+        OutdoorOpen(bool),
+        #[prost(bool, tag = "5")]
+        PublicParticipation(bool),
+        #[prost(message, tag = "6")]
+        Solitude(super::LocalAppAgentUtopiaSolitude),
+    }
+}
+#[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
+pub struct UpdateLocalAppAgentUtopiaSettingsResponse {
+    #[prost(message, optional, tag = "1")]
+    pub settings: ::core::option::Option<LocalAppAgentUtopiaSettings>,
+}
 #[derive(Clone, PartialEq, Eq, Hash, ::prost::Message)]
 pub struct LocalAppAgentWorkReference {
     #[prost(string, tag = "1")]
@@ -26132,6 +26268,68 @@ pub mod runtime_agent_service_client {
                     GrpcMethod::new(
                         "nimi.runtime.v1.RuntimeAgentService",
                         "ListLocalAppAgentReferences",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn get_local_app_agent_utopia_snapshot(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::GetLocalAppAgentUtopiaSnapshotRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::GetLocalAppAgentUtopiaSnapshotResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentUtopiaSnapshot",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "GetLocalAppAgentUtopiaSnapshot",
+                    ),
+                );
+            self.inner.unary(req, path, codec).await
+        }
+        pub async fn update_local_app_agent_utopia_settings(
+            &mut self,
+            request: impl tonic::IntoRequest<
+                super::UpdateLocalAppAgentUtopiaSettingsRequest,
+            >,
+        ) -> std::result::Result<
+            tonic::Response<super::UpdateLocalAppAgentUtopiaSettingsResponse>,
+            tonic::Status,
+        > {
+            self.inner
+                .ready()
+                .await
+                .map_err(|e| {
+                    tonic::Status::unknown(
+                        format!("Service was not ready: {}", e.into()),
+                    )
+                })?;
+            let codec = tonic_prost::ProstCodec::default();
+            let path = http::uri::PathAndQuery::from_static(
+                "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentUtopiaSettings",
+            );
+            let mut req = request.into_request();
+            req.extensions_mut()
+                .insert(
+                    GrpcMethod::new(
+                        "nimi.runtime.v1.RuntimeAgentService",
+                        "UpdateLocalAppAgentUtopiaSettings",
                     ),
                 );
             self.inner.unary(req, path, codec).await

@@ -79,7 +79,6 @@ export const agentCenterEnCatalog = {
   "AgentCenter.life.phase.interrupted": "Interrupted",
   "AgentCenter.life.phase.canceled": "Canceled",
   "AgentCenter.life.wait.disabled": "Autonomous life is currently paused.",
-  "AgentCenter.life.wait.world_paused": "This world’s time is paused.",
   "AgentCenter.life.wait.budget_exhausted": "Waiting for background allowance.",
   "AgentCenter.life.wait.suspended": "Life planning is temporarily suspended.",
   "AgentCenter.life.wait.planning_unavailable": "Life planning could not continue. Check AI settings or try again later.",

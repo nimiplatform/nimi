@@ -268,6 +268,32 @@ func TestProtectedLocalAppManagerSnapshotDispatchesAfterAdmission(t *testing.T) 
 	}
 }
 
+func TestProtectedUtopiaUsesExactNativeIngress(t *testing.T) {
+	connection := newGRPCLocalAppConnection(t, 0x5a)
+	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x5b), SessionProof: grpcLocalAppIdentifier(0x5c)}); err != nil {
+		t.Fatal(err)
+	}
+	ctx := peer.NewContext(context.Background(), &peer.Peer{AuthInfo: &protectedLocalAppAuthInfo{connection: connection}})
+	for _, test := range []struct {
+		method  string
+		request any
+		ingress localappop.Ingress
+	}{
+		{protectedAgentUtopiaSnapshotMethod, &runtimev1.GetLocalAppAgentUtopiaSnapshotRequest{}, localappop.IngressAgentUtopiaSnapshotGet},
+		{protectedAgentUtopiaUpdateMethod, &runtimev1.UpdateLocalAppAgentUtopiaSettingsRequest{}, localappop.IngressAgentUtopiaSettingsUpdate},
+	} {
+		admission := &localAppAdmissionStub{}
+		called := false
+		_, err := newUnaryProtectedLocalAppTransportInterceptor(admission)(ctx, test.request, &grpc.UnaryServerInfo{FullMethod: test.method}, func(context.Context, any) (any, error) {
+			called = true
+			return nil, nil
+		})
+		if err != nil || !called || admission.ingress != test.ingress {
+			t.Fatalf("%s dispatch = %v, %v", test.method, admission.ingress, err)
+		}
+	}
+}
+
 func TestProtectedLocalAppIntroductionDispatchesAfterExactAdmission(t *testing.T) {
 	connection := newGRPCLocalAppConnection(t, 0x5a)
 	if err := connection.BindSession(protectedlocal.LocalAppSessionHandle{SessionID: grpcLocalAppIdentifier(0x5b), SessionProof: grpcLocalAppIdentifier(0x5c)}); err != nil {

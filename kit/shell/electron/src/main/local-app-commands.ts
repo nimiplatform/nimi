@@ -191,6 +191,8 @@ const COMMAND_METHODS = new Map<string, RendererLocalAppHostMethod>([
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigOverwrite'], 'sharedAgentAIConfigOverwrite'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.sharedAgentAIConfigLocalOptions'], 'sharedAgentAIConfigLocalOptions'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentManagerSnapshot'], 'agentManagerSnapshot'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUtopiaSnapshot'], 'agentUtopiaSnapshot'],
+  [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUtopiaUpdate'], 'agentUtopiaUpdate'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentAutonomySnapshot'], 'agentAutonomySnapshot'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUpdateAutonomy'], 'agentUpdateAutonomy'],
   [NIMI_STANDARD_SHELL_COMMANDS['local-app.conversationFollowUpCancel'], 'conversationFollowUpCancel'],
@@ -941,6 +943,14 @@ function validatePayload(
       const scope = realtimeScope(payload, command, true, ['outputTrackId', 'interruptAgentTurn']);
       if (typeof payload.interruptAgentTurn !== 'boolean') throw invalidPayload(command, 'interruptAgentTurn is invalid');
       return { ...scope, outputTrackId: requiredText(payload.outputTrackId, 'outputTrackId', command, MAX_IDENTIFIER_LENGTH), interruptAgentTurn: payload.interruptAgentTurn };
+    }
+    case 'agentUtopiaSnapshot':
+      assertAllowedKeys(payload, [], [], command);
+      return {};
+    case 'agentUtopiaUpdate': {
+      assertAllowedKeys(payload, ['expectedRevision', 'intent'], ['expectedRevision', 'intent'], command);
+      if (!isPlainRecord(payload.intent)) throw invalidPayload(command, 'Utopia intent is invalid');
+      return { expectedRevision: decimalUint64(payload.expectedRevision, 'expectedRevision', command, false), intent: payload.intent as NimiElectronLocalAppRecord };
     }
     case 'agentManagerSnapshot': {
       assertAllowedKeys(payload, ['agentHandle', 'conversationAnchorId'], ['agentHandle'], command);
@@ -2450,6 +2460,7 @@ function standardCode(reasonCode: string) {
     case 'owner-authority-missing': return 'owner-authority-missing' as const;
     case 'content-conflict': return 'content-conflict' as const;
     case 'agent-presentation-revision-conflict':
+    case 'agent-utopia-revision-conflict':
     case 'agent-conversation-context-revision-conflict': return 'content-conflict' as const;
     case 'realm-unavailable': return 'realm-unavailable' as const;
     case 'rate-limited': return 'rate-limited' as const;
@@ -2570,6 +2581,7 @@ function actionHint(reasonCode: string): string {
     case 'rate-limited': return 'retry_later';
     case 'agent-presentation-revision-conflict': return 'refresh_presentation_snapshot';
     case 'agent-conversation-context-revision-conflict': return 'refresh_conversation_context_snapshot';
+    case 'agent-utopia-revision-conflict': return 'refresh_utopia_snapshot';
     case 'agent-presentation-asset-type-invalid':
     case 'agent-presentation-asset-too-large':
     case 'agent-presentation-asset-structure-invalid':

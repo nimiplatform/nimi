@@ -56,14 +56,14 @@ func TestInteractionRetainsIndependentFutureAndBlocksMissingProgress(t *testing.
 	l := newAgentLifeState()
 	l.Activities["drawing"] = &lifeActivity{Ref: "drawing", Title: "Drawing", Kind: "project", Phase: lifePlanned}
 	l.Activities["reading"] = &lifeActivity{Ref: "reading", Title: "Reading", Kind: "routine", Phase: lifePlanned}
-	if err := l.acceptFuture([]lifeFrameProposal{{ActivityRef: "drawing", Title: "Outline", Kind: "project", DurationMinutes: 1, EndProgress: 50}, {ActivityRef: "drawing", Title: "Finish", Description: &lifeSelfDescription{Action: "create", Object: "Line study", Result: "completed"}, Kind: "project", DurationMinutes: 2, EndProgress: 100, CompletesActivity: true}, {ActivityRef: "reading", Title: "Reading", Kind: "routine", DurationMinutes: 5, EndProgress: 100, CompletesActivity: true}}, now, 1, nil, false); err != nil {
+	if err := l.acceptFuture([]lifeFrameProposal{{ActivityRef: "drawing", Title: "Outline", Kind: "project", DurationMinutes: 1, EndProgress: 50}, {ActivityRef: "drawing", Title: "Finish", Description: &lifeSelfDescription{Action: "create", Object: "Line study", Result: "completed"}, Kind: "project", DurationMinutes: 2, EndProgress: 100, CompletesActivity: true}, {ActivityRef: "reading", Title: "Reading", Kind: "routine", DurationMinutes: 5, EndProgress: 100, CompletesActivity: true}}, now, nil, false); err != nil {
 		t.Fatal(err)
 	}
 	reading := l.Future[2]
-	if _, err := l.beginInteraction("turn", now.Add(30*time.Second), true, false); err != nil {
+	if _, err := l.beginInteraction("turn", now.Add(30*time.Second), true); err != nil {
 		t.Fatal(err)
 	}
-	if completed, err := l.advance(now.Add(2*time.Minute), false); err != nil || len(completed) != 0 || l.Activities["drawing"].Progress != 0 {
+	if completed, err := l.advance(now.Add(2 * time.Minute)); err != nil || len(completed) != 0 || l.Activities["drawing"].Progress != 0 {
 		t.Fatal("conversation fabricated simulated progress")
 	}
 	if err := l.finishInteraction(now.Add(2 * time.Minute)); err != nil {
@@ -72,10 +72,10 @@ func TestInteractionRetainsIndependentFutureAndBlocksMissingProgress(t *testing.
 	if len(l.Future) != 1 || l.Future[0].ID != reading.ID || l.Future[0].Title != reading.Title || !l.Future[0].StartsAt.Equal(reading.StartsAt) {
 		t.Fatalf("unrelated future lost: %+v", l.Future)
 	}
-	if l.canPlanAt(now.Add(2*time.Minute), 1) {
+	if l.canPlanAt(now.Add(2 * time.Minute)) {
 		t.Fatal("valid retained future forced a planning call")
 	}
-	if _, err := l.advance(reading.StartsAt, false); err != nil || l.Current == nil || l.Current.ID != reading.ID {
+	if _, err := l.advance(reading.StartsAt); err != nil || l.Current == nil || l.Current.ID != reading.ID {
 		t.Fatal("retained future did not resume")
 	}
 }
@@ -83,7 +83,7 @@ func TestInteractionRetainsIndependentFutureAndBlocksMissingProgress(t *testing.
 func TestSelfIntentionAbandonRemovesOnlyRelatedFuture(t *testing.T) {
 	l := newAgentLifeState()
 	now := time.Now().UTC()
-	if err := l.acceptFuture([]lifeFrameProposal{{Title: "Painting", Kind: "project", DurationMinutes: 20}, {Title: "Reading", Kind: "routine", DurationMinutes: 10}}, now.Add(time.Hour), 1, nil, false); err != nil {
+	if err := l.acceptFuture([]lifeFrameProposal{{Title: "Painting", Kind: "project", DurationMinutes: 20}, {Title: "Reading", Kind: "routine", DurationMinutes: 10}}, now.Add(time.Hour), nil, false); err != nil {
 		t.Fatal(err)
 	}
 	ref, unrelated := l.Future[0].ActivityRef, l.Future[1]
@@ -151,18 +151,18 @@ func TestInteractionOnlyRealConflictReopensPlanning(t *testing.T) {
 	for _, conflict := range []bool{false, true} {
 		l := newAgentLifeState()
 		if conflict {
-			if err := l.acceptFuture([]lifeFrameProposal{{Title: "Outline", Kind: "project", DurationMinutes: 10, EndProgress: 50}}, now, 1, nil, false); err != nil {
+			if err := l.acceptFuture([]lifeFrameProposal{{Title: "Outline", Kind: "project", DurationMinutes: 10, EndProgress: 50}}, now, nil, false); err != nil {
 				t.Fatal(err)
 			}
 		}
 		l.NextCheckAt = now.Add(time.Hour)
-		if _, err := l.beginInteraction("turn", now.Add(time.Minute), true, false); err != nil {
+		if _, err := l.beginInteraction("turn", now.Add(time.Minute), true); err != nil {
 			t.Fatal(err)
 		}
 		if err := l.finishInteraction(now.Add(2 * time.Minute)); err != nil {
 			t.Fatal(err)
 		}
-		if l.canPlanAt(now.Add(2*time.Minute), 1) != conflict {
+		if l.canPlanAt(now.Add(2*time.Minute)) != conflict {
 			t.Fatalf("new chat is not a planning reason; real interruption is: conflict=%v", conflict)
 		}
 	}

@@ -24,6 +24,10 @@ methods:
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot
     posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentUtopiaSnapshot
+    posture: protected_origin_required
+  - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentUtopiaSettings
+    posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/OpenLocalAppConversation
     posture: protected_origin_required
   - method_id: /nimi.runtime.v1.RuntimeAgentService/SendLocalAppConversationTurn

@@ -122,5 +122,5 @@ func (s *Service) chatLifeContext(ctx context.Context, session publicChatAnchorS
 		}
 	}
 	selection := &lifeConversationRead{AnchorID: session.ConversationAnchorID, Revision: conversationContextRevision(session.ConversationContext), FirstSequence: session.ConversationContext.FirstTurnSequence}
-	return projectLifeContext(entry.Life, false, session.ConversationContext.OmitSupplementalContext, selection, time.Now().UTC(), 1)
+	return projectLifeContext(entry.Life, false, session.ConversationContext.OmitSupplementalContext, selection, time.Now().UTC())
 }

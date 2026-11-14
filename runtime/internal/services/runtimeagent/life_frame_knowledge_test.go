@@ -11,7 +11,7 @@ func TestRecoveryNeverSettlesMissedScheduleOrSkipsItsProgress(t *testing.T) {
 	l := newAgentLifeState()
 	ref := "painting"
 	l.Activities[ref] = &lifeActivity{Ref: ref, Title: "Painting", Kind: "project", Phase: lifePlanned}
-	if err := l.acceptFuture([]lifeFrameProposal{{ActivityRef: ref, Title: "Outline", Kind: "project", DurationMinutes: 10, EndProgress: 50}, {ActivityRef: ref, Title: "Finish", Description: &lifeSelfDescription{Action: "create", Object: "Line study", Result: "completed"}, Kind: "project", DurationMinutes: 10, EndProgress: 100, CompletesActivity: true}}, now.Add(-time.Hour), 1, nil, false); err != nil {
+	if err := l.acceptFuture([]lifeFrameProposal{{ActivityRef: ref, Title: "Outline", Kind: "project", DurationMinutes: 10, EndProgress: 50}, {ActivityRef: ref, Title: "Finish", Description: &lifeSelfDescription{Action: "create", Object: "Line study", Result: "completed"}, Kind: "project", DurationMinutes: 10, EndProgress: 100, CompletesActivity: true}}, now.Add(-time.Hour), nil, false); err != nil {
 		t.Fatal(err)
 	}
 	l.Future[1].StartsAt = now.Add(time.Hour)
@@ -25,7 +25,7 @@ func TestRecoveryNeverSettlesMissedScheduleOrSkipsItsProgress(t *testing.T) {
 	if l.SettledAt.Before(now) {
 		t.Fatal("missed arrangement could be relabeled as retrospective completion")
 	}
-	if changes, err := l.advance(now.Add(2*time.Hour), false); err != nil || len(changes) != 0 {
+	if changes, err := l.advance(now.Add(2 * time.Hour)); err != nil || len(changes) != 0 {
 		t.Fatal("recovered missed work completed")
 	}
 }
@@ -35,11 +35,11 @@ func TestAdvanceDoesNotPromoteAfterInvalidatedPredecessor(t *testing.T) {
 	l := newAgentLifeState()
 	ref := "painting"
 	l.Activities[ref] = &lifeActivity{Ref: ref, Title: "Painting", Kind: "project", Phase: lifePlanned}
-	if err := l.acceptFuture([]lifeFrameProposal{{ActivityRef: ref, Title: "Outline", Kind: "project", DurationMinutes: 1, EndProgress: 50}, {ActivityRef: ref, Title: "Finish", Description: &lifeSelfDescription{Action: "create", Object: "Line study", Result: "completed"}, Kind: "project", DurationMinutes: 1, EndProgress: 100, CompletesActivity: true}}, now, 1, nil, false); err != nil {
+	if err := l.acceptFuture([]lifeFrameProposal{{ActivityRef: ref, Title: "Outline", Kind: "project", DurationMinutes: 1, EndProgress: 50}, {ActivityRef: ref, Title: "Finish", Description: &lifeSelfDescription{Action: "create", Object: "Line study", Result: "completed"}, Kind: "project", DurationMinutes: 1, EndProgress: 100, CompletesActivity: true}}, now, nil, false); err != nil {
 		t.Fatal(err)
 	}
 	l.Future[0].Invalidated = true
-	if changes, err := l.advance(now.Add(3*time.Minute), false); err != nil || len(changes) != 0 || l.Activities[ref].Progress != 0 {
+	if changes, err := l.advance(now.Add(3 * time.Minute)); err != nil || len(changes) != 0 || l.Activities[ref].Progress != 0 {
 		t.Fatal("missing progress was skipped")
 	}
 }
@@ -47,10 +47,9 @@ func TestAdvanceDoesNotPromoteAfterInvalidatedPredecessor(t *testing.T) {
 func TestLifePastWindowUsesKnownTimeRatherThanOccurrenceTime(t *testing.T) {
 	input := lifeExecutorTestInput(t, 1024)
 	input.Entry.Life.SettledAt = input.Now.Add(-24 * time.Hour)
-	input.Source.LifeFlowRatio = 1
 	input.Source.KnownAt = input.Now.Add(-12 * time.Hour)
 	input.Memory = []agentTurnMemoryInput{{MemoryID: "old-occurrence-new-knowledge", KnownAt: input.Now.Add(-time.Hour)}}
-	input.Context = projectLifeContext(input.Entry.Life, true, false, nil, input.Now, 1)
+	input.Context = projectLifeContext(input.Entry.Life, true, false, nil, input.Now)
 	if err := constrainLifePastKnowledge(&input); err != nil {
 		t.Fatal(err)
 	}

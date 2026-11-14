@@ -3670,6 +3670,14 @@ pub async fn local_app_realm_world_creation_eligibility_get() -> NativeJsonOutco
 pub async fn local_app_agent_work_reference_list(input: JsonValue) -> NativeJsonOutcome {
     invoke_agent(|session| async move { session.agent_work_reference_list(input).await }).await
 }
+#[napi(js_name = "localAppAgentUtopiaSnapshot")]
+pub async fn local_app_agent_utopia_snapshot() -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.agent_utopia_snapshot().await }).await
+}
+#[napi(js_name = "localAppAgentUtopiaUpdate")]
+pub async fn local_app_agent_utopia_update(input: JsonValue) -> NativeJsonOutcome {
+    invoke_agent(|session| async move { session.agent_utopia_update(input).await }).await
+}
 #[napi(js_name = "localAppAgentWorkStart")]
 pub async fn local_app_agent_work_start(input: JsonValue) -> NativeJsonOutcome {
     invoke_agent(|session| async move { session.agent_work_start(input).await }).await

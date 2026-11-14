@@ -9,7 +9,8 @@ import (
 )
 
 // Encode the already admitted planning window in generation constraints. The
-// owner still validates identities, pauses, chronology and progress on commit.
+// owner validates identities, text limits, chronology and progress on commit.
+// Keep the wire schema within the shared strict subset supported by Responses.
 func lifeFrameResponseFormat(view *agentTurnLifeContextInput) (*runtimev1.ResponseFormat, uint64, error) {
 	var core struct {
 		PastWindow  *struct{} `json:"past_window"`
@@ -32,9 +33,9 @@ func lifeFrameResponseFormat(view *agentTurnLifeContextInput) (*runtimev1.Respon
 	}
 	segment := func(past bool) map[string]any {
 		props := map[string]any{
-			"description":        map[string]any{"anyOf": []any{map[string]any{"type": "null"}, object(map[string]any{"action": map[string]any{"type": "string", "enum": []any{"create", "practice", "explore", "reflect"}}, "object": map[string]any{"type": "string", "maxLength": 80}, "result": map[string]any{"type": "string", "enum": []any{"completed", "key_result"}}, "outcome": map[string]any{"type": "string", "minLength": 1, "maxLength": 160}})}},
-			"activity_ref":       map[string]any{"type": []any{"string", "null"}, "maxLength": 160},
-			"title":              map[string]any{"type": "string", "minLength": 1, "maxLength": 160},
+			"description":        map[string]any{"anyOf": []any{map[string]any{"type": "null"}, object(map[string]any{"action": map[string]any{"type": "string", "enum": []any{"create", "practice", "explore", "reflect"}}, "object": map[string]any{"type": "string"}, "result": map[string]any{"type": "string", "enum": []any{"completed", "key_result"}}, "outcome": map[string]any{"type": "string"}})}},
+			"activity_ref":       map[string]any{"type": []any{"string", "null"}},
+			"title":              map[string]any{"type": "string"},
 			"kind":               map[string]any{"type": "string", "enum": []any{"routine", "project"}},
 			"end_progress":       map[string]any{"type": "integer", "minimum": 0, "maximum": 100},
 			"completes_activity": map[string]any{"type": "boolean"},
@@ -44,6 +45,21 @@ func lifeFrameResponseFormat(view *agentTurnLifeContextInput) (*runtimev1.Respon
 			props["end_fraction"] = map[string]any{"type": "number", "minimum": 0, "maximum": 1}
 		} else {
 			props["duration_minutes"] = map[string]any{"type": "number", "minimum": 1, "maximum": 1440}
+			if view.Utopia != nil {
+				places, activities := []any{""}, []any{""}
+				seen := map[string]bool{}
+				for _, place := range view.Utopia.Places {
+					places = append(places, place.ID)
+					for _, activity := range place.Activities {
+						if !seen[activity] {
+							activities = append(activities, activity)
+							seen[activity] = true
+						}
+					}
+				}
+				props["place"] = map[string]any{"type": "string", "enum": places}
+				props["utopia_activity"] = map[string]any{"type": "string", "enum": activities}
+			}
 		}
 		return object(props)
 	}
@@ -57,19 +73,19 @@ func lifeFrameResponseFormat(view *agentTurnLifeContextInput) (*runtimev1.Respon
 	schema := object(map[string]any{
 		"self_intention": map[string]any{"anyOf": []any{map[string]any{"type": "null"}, object(map[string]any{
 			"action":       map[string]any{"type": "string", "enum": []any{"change", "abandon"}},
-			"activity_ref": map[string]any{"type": "string", "minLength": 1, "maxLength": 160},
-			"title":        map[string]any{"type": "string", "maxLength": 160},
+			"activity_ref": map[string]any{"type": "string"},
+			"title":        map[string]any{"type": "string"},
 			"experience": object(map[string]any{
 				"action":  map[string]any{"type": "string", "enum": []any{"create", "practice", "explore", "reflect"}},
-				"object":  map[string]any{"type": "string", "minLength": 1, "maxLength": 80},
+				"object":  map[string]any{"type": "string"},
 				"result":  map[string]any{"type": "string", "enum": []any{"direction_changed", "abandoned"}},
-				"outcome": map[string]any{"type": "string", "minLength": 1, "maxLength": 160},
+				"outcome": map[string]any{"type": "string"},
 			}),
 		})}},
 		"past":               map[string]any{"type": "array", "maxItems": pastSlots, "items": segment(true)},
 		"future":             map[string]any{"type": "array", "maxItems": futureSlots, "items": segment(false)},
-		"explanation":        map[string]any{"type": "string", "maxLength": 600},
-		"contact":            map[string]any{"type": []any{"string", "null"}, "maxLength": 160},
+		"explanation":        map[string]any{"type": "string"},
+		"contact":            map[string]any{"type": []any{"string", "null"}},
 		"next_check_minutes": map[string]any{"type": "integer", "minimum": 15, "maximum": 1440},
 	})
 	doc, err := structpb.NewStruct(schema)

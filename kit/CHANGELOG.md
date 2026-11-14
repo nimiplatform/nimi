@@ -2,6 +2,10 @@
 
 # Changelog
 
+## Unreleased — Native Agent Utopia (next 0.x minor)
+
+Native App sessions can observe Utopia with `agent.utopia.read` and change settings with `agent.utopia.manage`. Update Kit, SDK, Runtime and the native binding together. Custom native bindings must implement the two Utopia methods. Conversation keeps its own `agent.local` access.
+
 ## Unreleased — 0.24.0-rc.4 Android coordination reconnect
 
 The narrow Realm HTTP client retains no idle pooled connections. A real Android

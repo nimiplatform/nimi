@@ -88,6 +88,8 @@ const FINAL_LOCAL_APP_OPERATIONS = [
   'local-app.sharedAgentAIConfigOverwrite',
   'local-app.sharedAgentAIConfigLocalOptions',
   'local-app.agentManagerSnapshot',
+  'local-app.agentUtopiaSnapshot',
+  'local-app.agentUtopiaUpdate',
   'local-app.agentAutonomySnapshot',
   'local-app.agentUpdateAutonomy',
       'local-app.conversationFollowUpCancel',

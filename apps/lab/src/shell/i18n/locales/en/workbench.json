@@ -19,7 +19,8 @@
     "uiRecipes": "UI Recipes",
     "agentCenter": "Agent Center",
     "agentConversation": "Agent Conversation",
-    "agentRealtime": "Agent Realtime"
+    "agentRealtime": "Agent Realtime",
+    "utopia": {"title": "Utopia", "read": "Read snapshot", "checkWrite": "Check read-only access", "denied": "The session denied the settings change.", "writeUnexpected": "The read-only request unexpectedly changed settings.", "readFailed": "Could not read the current Utopia.", "writeFailed": "The settings request failed without an access denial."}
   },
   "Capabilities": {
     "worldGenerate": {

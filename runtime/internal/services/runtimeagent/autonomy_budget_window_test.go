@@ -54,6 +54,60 @@ func TestAutonomyBudgetFixedWindows(t *testing.T) {
 	}
 }
 
+func TestAutonomyBudgetRolloverResumesDueLifePlanning(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	ref := testRuntimeAgentLocalRef("agent-alpha")
+	ctx := context.Background()
+	rollover := time.Now().UTC().Add(-time.Second)
+	ai := &fakeLifeTurnAI{response: &runtimev1.ExecuteScenarioResponse{
+		FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
+		Usage:        &runtimev1.UsageStats{InputTokens: 30, OutputTokens: 4},
+		Output: &runtimev1.ScenarioOutput{Output: &runtimev1.ScenarioOutput_TextGenerate{
+			TextGenerate: &runtimev1.TextGenerateOutput{Text: `{"past":[],"future":[{"title":"Window renewed","kind":"routine","duration_minutes":15,"end_progress":100,"completes_activity":true}],"next_check_minutes":60}`},
+		}},
+	}}
+	svc.aiBridge.lifeFrameAI = ai
+	if err := svc.mutateAgent(ref, func(e *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
+		a := e.Agent.Autonomy
+		a.Enabled = true
+		a.Config.Mode = runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW
+		a.Config.DailyTokenBudget = 24_000
+		a.UsedTokensInWindow, a.BudgetExhausted = 24_000, true
+		a.WindowStartedAt = timestamppb.New(rollover.Add(-24 * time.Hour))
+		e.Life.StartedAt, e.Life.SettledAt = rollover, rollover
+		e.Life.NextCheckAt, e.Life.LifeBudgetWaiting = rollover, true
+		e.Life.WaitReason = "budget_exhausted"
+		return nil, nil, nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	sweep := func(at time.Time) {
+		t.Helper()
+		if err := svc.runLifeFrameSweep(ctx, at); err != nil {
+			t.Fatal(err)
+		}
+		svc.lifeFrameWG.Wait()
+	}
+	sweep(rollover.Add(-time.Nanosecond))
+	if len(ai.requests) != 0 {
+		t.Fatal("planner ran before the budget renewed")
+	}
+	sweep(rollover)
+	restored, err := svc.agentByID(ref)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ai.requests) != 1 || restored.Life.LifeBudgetWaiting ||
+		restored.Agent.Autonomy.GetUsedTokensInWindow() != 34 || restored.Agent.Autonomy.GetBudgetExhausted() ||
+		!restored.Agent.Autonomy.GetWindowStartedAt().AsTime().Equal(rollover) {
+		t.Fatalf("due life did not resume with usage in the renewed window: calls=%d life waiting=%v budget=%v",
+			len(ai.requests), restored.Life.LifeBudgetWaiting, restored.Agent.Autonomy)
+	}
+	if restored.Life.Current == nil && len(restored.Life.Future) == 0 {
+		t.Fatal("renewed budget produced no accepted life frame")
+	}
+}
+
 func TestAutonomyBudgetWindowRollbackAndRestart(t *testing.T) {
 	path := t.TempDir() + "/runtime-state.json"
 	svc, closeSvc := newRuntimeAgentServiceForPublicChatStatePathWithClose(t, path)

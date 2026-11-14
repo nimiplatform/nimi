@@ -302,7 +302,7 @@ func (r publicChatRuntime) reserveTurn(
 				turn.AvailableActions.FollowUpEnabled = lifeContactAllowed(nextEntry, timelineStartedAt)
 			}
 			var completed []string
-			completed, commitErr = nextEntry.Life.beginInteraction(turnID, timelineStartedAt, lifeEnabled(nextEntry), source.LifeWorldPaused)
+			completed, commitErr = nextEntry.Life.beginInteraction(turnID, timelineStartedAt, lifeEnabled(nextEntry) && source.WorldTimeDecodeFailure == "")
 			if commitErr == nil {
 				interactionHook, commitErr = r.svc.lifeActivityMemoryTxHook(nextEntry, completed, timelineStartedAt)
 			}

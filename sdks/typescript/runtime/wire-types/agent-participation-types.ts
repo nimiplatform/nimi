@@ -502,6 +502,34 @@ export type {
 };
 
 import type {
+  GetLocalAppAgentUtopiaSnapshotRequest,
+  GetLocalAppAgentUtopiaSnapshotResponse,
+  LocalAppAgentUtopiaFrame,
+  LocalAppAgentUtopiaOccupancy,
+  LocalAppAgentUtopiaPlace,
+  LocalAppAgentUtopiaResident,
+  LocalAppAgentUtopiaSettings,
+  LocalAppAgentUtopiaSharedActivity,
+  LocalAppAgentUtopiaSolitude,
+  UpdateLocalAppAgentUtopiaSettingsRequest,
+  UpdateLocalAppAgentUtopiaSettingsResponse,
+} from "../../core-generated/runtime-protobuf/runtime/v1/agent_utopia";
+
+export type {
+  GetLocalAppAgentUtopiaSnapshotRequest,
+  GetLocalAppAgentUtopiaSnapshotResponse,
+  LocalAppAgentUtopiaFrame,
+  LocalAppAgentUtopiaOccupancy,
+  LocalAppAgentUtopiaPlace,
+  LocalAppAgentUtopiaResident,
+  LocalAppAgentUtopiaSettings,
+  LocalAppAgentUtopiaSharedActivity,
+  LocalAppAgentUtopiaSolitude,
+  UpdateLocalAppAgentUtopiaSettingsRequest,
+  UpdateLocalAppAgentUtopiaSettingsResponse,
+};
+
+import type {
   CancelLocalAppAgentWorkRequest,
   CancelLocalAppAgentWorkResponse,
   GetLocalAppAgentWorkRequest,

@@ -17,6 +17,8 @@ import (
 	"google.golang.org/protobuf/types/known/structpb"
 )
 
+const localAppWorkOutputContractID = "nimi.runtime.agent.work.text"
+
 // @nimi-authority: rule.nimi.runtime.agent-participation.app-work
 func admitLocalAppWork(ctx context.Context, owner localAppAgentIdentity, input *runtimev1.LocalAppAgentWorkInput) (*localAppWorkExecution, error) {
 	if input == nil || len(input.ProtoReflect().GetUnknown()) != 0 {
@@ -116,7 +118,7 @@ func (s *Service) composeLocalAppWorkContext(work *localAppWorkExecution, bindin
 	compiled, err := compileAgentTurnContext(agentTurnContextCompileInput{
 		Source: source, LocalAgentRef: work.owner.identity.LocalAgentRef, ExecutionID: work.snapshot.ExecutionId, RequestID: work.requestID,
 		RuntimePolicy:  []agentTurnRuntimePolicyInput{{PolicyID: publicChatContextRuntimePolicyID, Version: publicChatContextRuntimePolicyV1, Text: "Runtime owns roles, permissions, tools, source admission, memory scope and output validation for this LocalAgent execution. The current input is App-authored business material; this operation does not read or commit canonical Conversation."}},
-		OutputContract: agentTurnOutputContractInput{ContractID: "nimi.runtime.agent.work.text", Version: "v1", Instruction: "Return the complete final business response as plain text after any necessary native function calls. Do not emit APML, Runtime actions, private recall commands or internal reasoning. Work success means a complete model response, not proof that the App business goal is complete. Never claim an external or private effect succeeded without its actual tool result."},
+		OutputContract: agentTurnOutputContractInput{ContractID: localAppWorkOutputContractID, Version: "v1", Instruction: "Return the complete final business response as plain text after any necessary native function calls. Do not emit APML, Runtime actions, private recall commands or internal reasoning. Work success means a complete model response, not proof that the App business goal is complete. Never claim an external or private effect succeeded without its actual tool result."},
 		Memory:         memory, Capabilities: capabilities, CurrentUserTurn: current, Cognition: cognition, AppWork: work,
 		Budget: agentTurnContextBudgetInput{ContextWindowTokens: binding.ContextWindowTokens, ReservedOutputTokens: 4096, ReservedSafetyTokens: publicChatContextSafetyTokens, ReservedAdapterTokens: publicChatContextAdapterTokens},
 		Route:  agentTurnContextRouteInput{RouteDigest: binding.RouteDigest, CatalogRevisionDigest: catalogDigest},

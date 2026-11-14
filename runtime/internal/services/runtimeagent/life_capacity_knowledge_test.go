@@ -45,7 +45,7 @@ func TestCapacityPrunedCorrectionDoesNotCloseUnknownPast(t *testing.T) {
 	if entry.Life.Interaction != nil || !entry.Life.SettledAt.Equal(from) {
 		t.Fatalf("correction changed the past/interaction prerequisite: %+v", entry.Life)
 	}
-	view := projectLifeContext(entry.Life, true, false, nil, time.Now().UTC(), 1)
+	view := projectLifeContext(entry.Life, true, false, nil, time.Now().UTC())
 	query := entry.Agent.GetDisplayName() + " ongoing activities interests " + view.RecallQuery
 	recalled, err := svc.cognitionMemoryFacade.Recall(ctx, cognitionmemory.RecallIntent{LocalAgentRef: ref, Query: query, IncludeRecentLife: true, Limit: 8})
 	if err != nil || len(recalled.Hits) != 1 || !strings.Contains(recalled.Hits[0].Content, canary) {
@@ -57,9 +57,8 @@ func TestCapacityPrunedCorrectionDoesNotCloseUnknownPast(t *testing.T) {
 	// Existing source and empty open life interval are historical state fixtures.
 	// The correction's UpdatedAt/KnownAt is obtained from the real Memory owner.
 	input.Source.KnownAt = from.Add(-time.Hour)
-	input.Source.LifeFlowRatio = 1
 	input.Binding.ContextWindowTokens = 16384
-	input.Context = projectLifeContext(entry.Life, true, false, nil, input.Now, 1)
+	input.Context = projectLifeContext(entry.Life, true, false, nil, input.Now)
 	control, err := compileLifeFrameContext(input)
 	if err != nil || !strings.Contains(input.Context.Core, "past_window") {
 		t.Fatalf("same-capacity source-only positive control: %v", err)
@@ -125,5 +124,39 @@ func TestLifeConversationKnowledgeDoesNotMoveWithLateUsage(t *testing.T) {
 	projection := svc.chatAnchors[session.conversationAnchorID].CompletedTurnSnapshots[turnID]
 	if projection == nil || projection.Usage.GetInputTokens() != 23 || !projection.UpdatedAt.After(before[len(before)-1].KnownAt) {
 		t.Fatal("late usage was not actually applied to the terminal projection")
+	}
+}
+
+func TestLifeConversationReadsLastEligiblePairsWithinUserSelection(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	anchorID := openPublicChatTestAnchor(t, svc, "agent-alpha", "desktop.app", "user-1")
+	now := time.Now().UTC()
+	committed := testPublicChatCommittedTranscript(
+		[2]string{"excluded", "excluded answer"},
+		[2]string{"first selected", "first answer"},
+		[2]string{"next selected", "next answer"},
+		[2]string{"third selected", "third answer"},
+		[2]string{"fourth selected", "fourth answer"},
+		[2]string{"fifth selected", "fifth answer"},
+		[2]string{"last paired", "last answer"},
+		[2]string{"rejected attachment", ""},
+	)
+	for i := range committed {
+		committed[i].CommittedAt = now.Add(time.Duration(i) * time.Second)
+	}
+	committed[7].InputAttachment = &publicChatCommittedTranscriptAttachment{ArtifactID: "fixture-image", MimeType: "image/png"}
+	if err := validatePublicChatCommittedTranscript(committed); err != nil {
+		t.Fatalf("invalid fixture: %v", err)
+	}
+	svc.chatSurfaceMu.Lock()
+	anchor := svc.chatAnchors[anchorID]
+	anchor.CommittedTranscript, anchor.ConversationContext = committed, publicChatConversationContextSelection{FirstTurnSequence: 1, Revision: 3, OmitSupplementalContext: true}
+	svc.chatSurfaceMu.Unlock()
+	turns, read, omit, err := svc.lifeConversationInput(testRuntimeAgentLocalRef("agent-alpha"))
+	if err != nil || read == nil || read.Revision != 3 || read.FirstSequence != 1 || !omit || len(turns) != 6 {
+		t.Fatalf("life transcript selection = %v, %v, %t, %v", turns, read, omit, err)
+	}
+	if turns[0].UserText != "first selected" || turns[5].AssistantText != "last answer" || !turns[5].KnownAt.Equal(committed[6].CommittedAt) {
+		t.Fatalf("wrong complete pairs or knowledge time: %+v", turns)
 	}
 }

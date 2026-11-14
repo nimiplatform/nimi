@@ -233,6 +233,8 @@ const (
 	IngressAppActivityOpen
 	IngressAppActivityOpenRequestSubscribe
 	IngressAppActivityOpenRequestComplete
+	IngressAgentUtopiaSnapshotGet
+	IngressAgentUtopiaSettingsUpdate
 )
 
 const (
@@ -366,6 +368,8 @@ const (
 	OperationAppActivityOpen
 	OperationAppActivityOpenRequestSubscribe
 	OperationAppActivityOpenRequestComplete
+	OperationAgentUtopiaSnapshotGet
+	OperationAgentUtopiaSettingsUpdate
 )
 
 const (
@@ -534,6 +538,8 @@ var canonicalAppOperationContract = [...]contractRow{
 	{IngressAgentMemoryForget, OperationAgentMemoryForget, "runtime.agent.memory.forget", AuthorityClassAppAccess, "agent.configure"},
 	{IngressAgentMemorySwitch, OperationAgentMemorySwitch, "runtime.agent.memory.switch", AuthorityClassAppAccess, "agent.configure"},
 	{IngressAgentMemoryDelete, OperationAgentMemoryDelete, "runtime.agent.memory.delete", AuthorityClassAppAccess, "agent.configure"},
+	{IngressAgentUtopiaSnapshotGet, OperationAgentUtopiaSnapshotGet, "runtime.agent.utopia.snapshot.get", AuthorityClassAppAccess, "agent.utopia.read"},
+	{IngressAgentUtopiaSettingsUpdate, OperationAgentUtopiaSettingsUpdate, "runtime.agent.utopia.settings.update", AuthorityClassAppAccess, "agent.utopia.manage"},
 	{IngressAppActivityPut, OperationAppActivityPut, AppOperationIDAppActivityPut, AuthorityClassAppAccess, "app.activity"},
 	{IngressAppActivityList, OperationAppActivityList, AppOperationIDAppActivityList, AuthorityClassAppAccess, "app.activity"},
 	{IngressAppActivitySubscribe, OperationAppActivitySubscribe, AppOperationIDAppActivitySubscribe, AuthorityClassAppAccess, "app.activity"},

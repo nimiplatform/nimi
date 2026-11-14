@@ -1542,6 +1542,8 @@ function binding(calls: Array<{ method: string; input?: unknown }>) {
       lifecycleStatus: 'active', executionState: 'idle', statusText: '', currentEmotion: '',
       source: null, context: null, actionAvailability: managerActionAvailability(),
     }),
+    localAppAgentUtopiaSnapshot: record('localAppAgentUtopiaSnapshot', {}),
+    localAppAgentUtopiaUpdate: record('localAppAgentUtopiaUpdate', {}),
     localAppAgentAutonomySnapshot: record('localAppAgentAutonomySnapshot', {
       enabled: false, config: null, usedTokensInWindow: 0, budgetExhausted: false,
       autonomyRevision: '1',

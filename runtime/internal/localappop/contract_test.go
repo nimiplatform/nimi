@@ -142,6 +142,8 @@ func TestCanonicalAppOperationContractIsExactUniqueAndExplicit(t *testing.T) {
 		{id: "runtime.agent.memory.forget", class: AuthorityClassAppAccess, domain: "agent.configure"},
 		{id: "runtime.agent.memory.switch", class: AuthorityClassAppAccess, domain: "agent.configure"},
 		{id: "runtime.agent.memory.delete", class: AuthorityClassAppAccess, domain: "agent.configure"},
+		{id: "runtime.agent.utopia.snapshot.get", class: AuthorityClassAppAccess, domain: "agent.utopia.read"},
+		{id: "runtime.agent.utopia.settings.update", class: AuthorityClassAppAccess, domain: "agent.utopia.manage"},
 		{id: AppOperationIDAppActivityPut, class: AuthorityClassAppAccess, domain: "app.activity"},
 		{id: AppOperationIDAppActivityList, class: AuthorityClassAppAccess, domain: "app.activity"},
 		{id: AppOperationIDAppActivitySubscribe, class: AuthorityClassAppAccess, domain: "app.activity"},

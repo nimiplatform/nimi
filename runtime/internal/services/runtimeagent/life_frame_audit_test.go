@@ -23,7 +23,7 @@ func TestLifePlanningFillsGapBeforeReservedFuture(t *testing.T) {
 		e.Agent.Autonomy.Enabled = true
 		e.Agent.Autonomy.Config.Mode = runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_MEDIUM
 		e.Life.StartedAt, e.Life.SettledAt = now.Add(-time.Hour), now.Add(-time.Hour)
-		err := e.Life.acceptFuture([]lifeFrameProposal{{Title: "Tomorrow's painting", Description: &lifeSelfDescription{Action: "create", Object: "Tomorrow's painting", Result: "completed"}, Kind: "project", DurationMinutes: 60, EndProgress: 100, CompletesActivity: true}}, reservedAt, 1, nil, false)
+		err := e.Life.acceptFuture([]lifeFrameProposal{{Title: "Tomorrow's painting", Description: &lifeSelfDescription{Action: "create", Object: "Tomorrow's painting", Result: "completed"}, Kind: "project", DurationMinutes: 60, EndProgress: 100, CompletesActivity: true}}, reservedAt, nil, false)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -40,7 +40,7 @@ func TestLifePlanningFillsGapBeforeReservedFuture(t *testing.T) {
 	if len(ai.requests) != 1 || e.Life.Current == nil || e.Life.Current.Title != "Walk by the lake" || len(e.Life.Future) != 1 || e.Life.Future[0].ID != reserved.ID || !e.Life.Future[0].StartsAt.Equal(reservedAt) {
 		t.Fatalf("gap planning moved or blocked the arrangement: %+v", e.Life)
 	}
-	if e.Life.canPlanAt(now, 1) {
+	if e.Life.canPlanAt(now) {
 		t.Fatal("accepted coverage caused another inference")
 	}
 	if err := svc.stateRepo.loadAgentLifeState(svc); err != nil {
@@ -56,7 +56,7 @@ func TestLifeGapProposalCannotMoveOrCompleteReservedActivity(t *testing.T) {
 	now := time.Now().UTC()
 	l := newAgentLifeState()
 	l.SettledAt = now
-	if err := l.acceptFuture([]lifeFrameProposal{{Title: "Later painting", Description: &lifeSelfDescription{Action: "create", Object: "Later painting", Result: "completed"}, Kind: "project", DurationMinutes: 60, EndProgress: 100, CompletesActivity: true}}, now.Add(time.Hour), 1, nil, false); err != nil {
+	if err := l.acceptFuture([]lifeFrameProposal{{Title: "Later painting", Description: &lifeSelfDescription{Action: "create", Object: "Later painting", Result: "completed"}, Kind: "project", DurationMinutes: 60, EndProgress: 100, CompletesActivity: true}}, now.Add(time.Hour), nil, false); err != nil {
 		t.Fatal(err)
 	}
 	before := cloneAgentLifeState(l)
@@ -65,7 +65,7 @@ func TestLifeGapProposalCannotMoveOrCompleteReservedActivity(t *testing.T) {
 		{ActivityRef: l.Future[0].ActivityRef, Title: "Finish early", Description: &lifeSelfDescription{Action: "create", Object: "Line study", Result: "completed"}, Kind: "project", DurationMinutes: 10, EndProgress: 100, CompletesActivity: true},
 		{ActivityRef: l.Future[0].ActivityRef, Title: "Start early", Kind: "project", DurationMinutes: 10, EndProgress: 0},
 	} {
-		if err := l.acceptFuture([]lifeFrameProposal{p}, now, 1, nil, false); err == nil || !lifeStateEqual(l, before) {
+		if err := l.acceptFuture([]lifeFrameProposal{p}, now, nil, false); err == nil || !lifeStateEqual(l, before) {
 			t.Fatal("reserved future was invalidated by a gap proposal")
 		}
 	}
@@ -76,7 +76,7 @@ func TestLifeCapacityAdmitsBoundedBatchBesideReservations(t *testing.T) {
 	l := newAgentLifeState()
 	l.SettledAt = now
 	reserved := []lifeFrameProposal{{Title: "Tomorrow's painting", Description: &lifeSelfDescription{Action: "create", Object: "Tomorrow's painting", Result: "completed"}, Kind: "project", DurationMinutes: 60, EndProgress: 100, CompletesActivity: true}, {Title: "Tomorrow's poem", Description: &lifeSelfDescription{Action: "create", Object: "Tomorrow's poem", Result: "completed"}, Kind: "project", DurationMinutes: 60, EndProgress: 100, CompletesActivity: true}}
-	if err := l.acceptFuture(reserved, now.Add(24*time.Hour), 1, nil, false); err != nil {
+	if err := l.acceptFuture(reserved, now.Add(24*time.Hour), nil, false); err != nil {
 		t.Fatal(err)
 	}
 	firstReserved := l.Future[0]
@@ -84,7 +84,7 @@ func TestLifeCapacityAdmitsBoundedBatchBesideReservations(t *testing.T) {
 	for i := 0; i < 3; i++ {
 		ordinary = append(ordinary, lifeFrameProposal{Title: fmt.Sprintf("Routine %d", i), Kind: "routine", DurationMinutes: 10, EndProgress: 100, CompletesActivity: true})
 	}
-	if err := l.acceptFuture(ordinary, now, 1, nil, false); err != nil {
+	if err := l.acceptFuture(ordinary, now, nil, false); err != nil {
 		t.Fatal(err)
 	}
 	if len(l.Future) != 5 || l.Future[3].ID != firstReserved.ID || !l.Future[3].StartsAt.Equal(firstReserved.StartsAt) {
@@ -101,25 +101,26 @@ func TestLifePlanningOnlyOffersResumableActivityReferences(t *testing.T) {
 	l.Activities["reserved-ref"] = &lifeActivity{Ref: "reserved-ref", Title: "Tomorrow", Kind: "project", Phase: lifePlanned}
 	l.Future = []lifeFrame{{ID: "reserved", ActivityRef: "reserved-ref", Title: "Tomorrow", StartsAt: now.Add(time.Hour), EndsAt: now.Add(2 * time.Hour), Phase: lifePlanned}}
 	l.Recent = []lifeFrame{{ID: "past", ActivityRef: "retired-ref", Title: "Finished painting", Phase: lifeCompleted, StartsAt: now.Add(-time.Hour), EndsAt: now.Add(-time.Minute)}}
-	view := projectLifeContext(l, true, false, nil, now, 1)
+	view := projectLifeContext(l, true, false, nil, now)
 	if strings.Contains(view.Core, "retired-ref") || !strings.Contains(view.Core, "paused-ref") || !strings.Contains(view.Core, "reserved-ref") || !strings.Contains(view.Core, "continue-ref") || !strings.Contains(view.Core, "Finished painting") || !strings.Contains(view.Core, "Paused poem") {
 		t.Fatalf("planning confused history with resumable handles: %s", view.Core)
 	}
 }
 
-func TestLifePlanningWindowsExposeUsableWorldDuration(t *testing.T) {
+func TestLifePlanningWindowsExposeElapsedRealDuration(t *testing.T) {
 	now := time.Now().UTC()
 	l := newAgentLifeState()
 	l.SettledAt = now.Add(-20 * time.Second)
 	l.Activities["later"] = &lifeActivity{Ref: "later", Title: "Later walk", Kind: "routine", Phase: lifePlanned}
 	l.Future = []lifeFrame{{ID: "later-frame", ActivityRef: "later", Title: "Later walk", StartsAt: now.Add(10 * time.Minute), EndsAt: now.Add(20 * time.Minute), Phase: lifePlanned}}
-	view := projectLifeContext(l, true, false, nil, now, 1)
-	if strings.Contains(view.Core, "past_window") || !strings.Contains(view.Core, `"world_minutes":10`) {
+	view := projectLifeContext(l, true, false, nil, now)
+	if strings.Contains(view.Core, "past_window") || !strings.Contains(view.Core, `"real_minutes":10`) {
 		t.Fatalf("unusable planning window: %s", view.Core)
 	}
-	view = projectLifeContext(l, true, false, nil, now, 4)
-	if !strings.Contains(view.Core, "past_window") || !strings.Contains(view.Core, `"world_minutes":40`) {
-		t.Fatalf("World flow missing from planning windows: %s", view.Core)
+	l.SettledAt = now.Add(-4 * time.Minute)
+	view = projectLifeContext(l, true, false, nil, now)
+	if !strings.Contains(view.Core, "past_window") || !strings.Contains(view.Core, `"real_minutes":4`) {
+		t.Fatalf("elapsed time missing from the retrospective window: %s", view.Core)
 	}
 }
 
@@ -132,7 +133,7 @@ func TestLifeSparseCatchUpSpansWholeGapAndSettlesOmittedTime(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	done, err := l.acceptPast(result.Past, now, 1, nil, false)
+	done, err := l.acceptPast(result.Past, now, nil, false)
 	if err != nil || len(done) != 2 || len(l.Recent) != 2 || !l.Recent[1].StartsAt.After(from.Add(6*24*time.Hour)) || !l.SettledAt.Equal(now) {
 		t.Fatalf("sparse catch-up: %v %+v", err, l)
 	}
@@ -146,10 +147,10 @@ func TestLifeSparseCatchUpSpansWholeGapAndSettlesOmittedTime(t *testing.T) {
 		t.Fatal("catch-up lost Memory occurrence time")
 	}
 	before := cloneAgentLifeState(l)
-	if _, err := l.acceptPast(result.Past, now, 1, nil, false); err == nil || !lifeStateEqual(l, before) {
+	if _, err := l.acceptPast(result.Past, now, nil, false); err == nil || !lifeStateEqual(l, before) {
 		t.Fatal("settled gap replayed")
 	}
-	view := projectLifeContext(l, true, false, nil, now, 1)
+	view := projectLifeContext(l, true, false, nil, now)
 	if strings.Contains(view.Core, "past_window") {
 		t.Fatal("omitted ordinary time remained a backlog")
 	}
@@ -165,7 +166,7 @@ func TestLifeSparseCatchUpRejectsOverlapAndOutOfWindow(t *testing.T) {
 		for _, position := range positions {
 			past = append(past, lifePastProposal{StartFraction: position, EndFraction: position + 0.2, Title: "Walk", Kind: "routine", EndProgress: 100, CompletesActivity: true})
 		}
-		if _, err := l.acceptPast(past, now, 1, nil, false); err == nil || !lifeStateEqual(l, before) {
+		if _, err := l.acceptPast(past, now, nil, false); err == nil || !lifeStateEqual(l, before) {
 			t.Fatal("invalid catch-up partially committed")
 		}
 	}
@@ -184,13 +185,13 @@ func TestLifeDisableSettlesDueFramesCommitmentsAndMemory(t *testing.T) {
 		e.Agent.Autonomy.Enabled = true
 		e.Agent.Autonomy.Config.Mode = runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_MEDIUM
 		e.Life.StartedAt, e.Life.SettledAt = start, start
-		if err := e.Life.acceptFuture([]lifeFrameProposal{{Title: "Finish sketch", Description: &lifeSelfDescription{Action: "create", Object: "Cloud sketch", Result: "completed", Outcome: "Completed the charcoal cloud outline"}, Kind: "project", DurationMinutes: 1, EndProgress: 100, CompletesActivity: true}, {Title: "Finish poem", Description: &lifeSelfDescription{Action: "create", Object: "Cloud poem", Result: "completed", Outcome: "Finished the final stanza about the river wind"}, Kind: "project", DurationMinutes: 1, EndProgress: 100, CompletesActivity: true}}, start, 1, nil, false); err != nil {
+		if err := e.Life.acceptFuture([]lifeFrameProposal{{Title: "Finish sketch", Description: &lifeSelfDescription{Action: "create", Object: "Cloud sketch", Result: "completed", Outcome: "Completed the charcoal cloud outline"}, Kind: "project", DurationMinutes: 1, EndProgress: 100, CompletesActivity: true}, {Title: "Finish poem", Description: &lifeSelfDescription{Action: "create", Object: "Cloud poem", Result: "completed", Outcome: "Finished the final stanza about the river wind"}, Kind: "project", DurationMinutes: 1, EndProgress: 100, CompletesActivity: true}}, start, nil, false); err != nil {
 			return nil, nil, err
 		}
 		for _, f := range e.Life.Future {
 			activities = append(activities, f.ActivityRef)
 		}
-		_, err := e.Life.advance(start, false)
+		_, err := e.Life.advance(start)
 		return nil, nil, err
 	}); err != nil {
 		t.Fatal(err)

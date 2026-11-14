@@ -131,7 +131,7 @@ func TestInvalidExperienceDoesNotDiscardAnOtherwiseValidLifeFrame(t *testing.T) 
 	for _, description := range []*lifeSelfDescription{nil, {Action: "unrecognized", Object: "Line study", Result: "completed"}} {
 		l := newAgentLifeState()
 		p := lifeFrameProposal{Title: "Line study", Kind: "project", DurationMinutes: 1, EndProgress: 100, CompletesActivity: true, Description: description}
-		if err := l.acceptFuture([]lifeFrameProposal{p}, time.Now().UTC(), 1, nil, false); err != nil {
+		if err := l.acceptFuture([]lifeFrameProposal{p}, time.Now().UTC(), nil, false); err != nil {
 			t.Fatal(err)
 		}
 		if len(l.Future) != 1 || l.Future[0].Description != nil {
@@ -157,7 +157,7 @@ func TestLifeExperienceWhitespaceDoesNotPoisonSettlement(t *testing.T) {
 			now := time.Now().UTC()
 			if err := svc.mutateAgent(ref, func(e *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
 				description := &lifeSelfDescription{Action: "create", Object: "Cloud postcard", Result: "completed", Outcome: "Finished the cloud postcard\n"}
-				if err := e.Life.acceptFuture([]lifeFrameProposal{{Title: "Cloud postcard", Kind: "project", DurationMinutes: 1, EndProgress: 100, CompletesActivity: true, Description: description}}, now.Add(-2*time.Minute), 1, nil, false); err != nil {
+				if err := e.Life.acceptFuture([]lifeFrameProposal{{Title: "Cloud postcard", Kind: "project", DurationMinutes: 1, EndProgress: 100, CompletesActivity: true, Description: description}}, now.Add(-2*time.Minute), nil, false); err != nil {
 					return nil, nil, err
 				}
 				if persisted {
@@ -170,7 +170,7 @@ func TestLifeExperienceWhitespaceDoesNotPoisonSettlement(t *testing.T) {
 				t.Fatal(err)
 			}
 			if err := svc.mutateAgent(ref, func(e *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
-				changes, err := e.Life.advance(now, false)
+				changes, err := e.Life.advance(now)
 				if err != nil {
 					return nil, nil, err
 				}
@@ -208,7 +208,7 @@ func TestLifeSweepIsolatesOutboxFailureWithoutLosingAtomicity(t *testing.T) {
 			e.Agent.Autonomy.Config.Mode = runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW
 			e.Life.StartedAt, e.Life.SettledAt = now.Add(-2*time.Minute), now.Add(-2*time.Minute)
 			e.Life.NextCheckAt = now.Add(time.Hour)
-			if err := e.Life.acceptFuture([]lifeFrameProposal{{Title: "Cloud postcard", Kind: "project", DurationMinutes: 1, EndProgress: 100, CompletesActivity: true, Description: &lifeSelfDescription{Action: "create", Object: "Cloud postcard", Result: "completed", Outcome: "Finished the postcard with a pale cloud border"}}}, e.Life.StartedAt, 1, nil, false); err != nil {
+			if err := e.Life.acceptFuture([]lifeFrameProposal{{Title: "Cloud postcard", Kind: "project", DurationMinutes: 1, EndProgress: 100, CompletesActivity: true, Description: &lifeSelfDescription{Action: "create", Object: "Cloud postcard", Result: "completed", Outcome: "Finished the postcard with a pale cloud border"}}}, e.Life.StartedAt, nil, false); err != nil {
 				return nil, nil, err
 			}
 			frames = append(frames, e.Life.Future[0].ID)

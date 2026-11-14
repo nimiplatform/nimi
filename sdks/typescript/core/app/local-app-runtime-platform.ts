@@ -495,6 +495,7 @@ export type NimiLocalAppStandardShell = {
   readonly embodiment: NimiLocalAppEmbodimentShell;
   readonly agentRealtime: NimiAgentRealtimeShell;
   readonly agentConfigure: NimiLocalAppAgentConfigureShell;
+  readonly utopia: NimiLocalAppUtopiaShell;
   readonly activity: NimiLocalAppActivityShell;
 };
 
@@ -548,6 +549,7 @@ export type NimiLocalAppClient = {
   };
   readonly agents: NimiLocalAppAgentReferencesClient & NimiLocalAppAgentIntroductionClient;
   readonly agentConfigure: NimiLocalAppAgentConfigureClient;
+  readonly utopia: NimiLocalAppUtopiaClient;
   readonly integration: NimiLocalAppIntegrationClient;
   readonly agentWork: NimiLocalAppAgentWorkClient;
   readonly conversation: NimiLocalAppConversationClient;
@@ -565,7 +567,7 @@ export function createNimiLocalAppClient(
 ): NimiLocalAppClient {
   assertExactKeys(input, ['standardShell'], 'SDK local-app client input');
   const standardShell = input.standardShell;
-  const expectedNamespaces = ['session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'conversation', 'embodiment', 'agentRealtime', 'agentConfigure', 'activity', 'agentWork', 'integration'] as const;
+  const expectedNamespaces = ['session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'conversation', 'embodiment', 'agentRealtime', 'agentConfigure', 'activity', 'agentWork', 'integration', 'utopia'] as const;
   if (!asRecord(standardShell)
     || Object.keys(standardShell).sort().join('|') !== [...expectedNamespaces].sort().join('|')) {
     return localAppError(
@@ -575,6 +577,7 @@ export function createNimiLocalAppClient(
     );
   }
   assertExactMethodNamespace(standardShell.session, ['status'], 'session');
+  assertExactMethodNamespace(standardShell.utopia, ['snapshot', 'update'], 'utopia');
   const ai = asRecord(standardShell.ai);
   const aiNamespaces = ['text', 'scenario', 'scenarioJobs', 'artifacts', 'voiceAssets', 'realtime', 'videoSessions'] as const;
   if (!ai || Object.keys(ai).sort().join('|') !== [...aiNamespaces].sort().join('|')) {
@@ -667,6 +670,7 @@ export function createNimiLocalAppClient(
     embodiment: createNimiLocalAppEmbodimentClient(standardShell.embodiment),
     agentRealtime: createNimiAgentRealtimeClient(standardShell.agentRealtime),
     agentConfigure: createNimiLocalAppAgentConfigureClient(standardShell.agentConfigure),
+    utopia: createNimiLocalAppUtopiaClient(standardShell.utopia),
     activity: createNimiLocalAppActivityClient(standardShell.activity),
   });
 }
@@ -994,3 +998,4 @@ function localAppSessionActionHint(state: NimiAppLocalSessionState | 'unavailabl
 
 export { validateNimiLocalAppMusicGenerateSpec, validateNimiLocalAppMusicGeneration } from './local-app-music.js';
 export type { NimiLocalAppMusicGenerateSpec, NimiLocalAppMusicGeneration } from './local-app-music.js';
+import { createNimiLocalAppUtopiaClient, type NimiLocalAppUtopiaClient, type NimiLocalAppUtopiaShell } from './local-app-runtime-platform-utopia.js';

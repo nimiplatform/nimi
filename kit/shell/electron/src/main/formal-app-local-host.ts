@@ -33,6 +33,7 @@ import {
   getHostRuntimeWireCodec,
 } from '@nimiplatform/sdk/runtime/host';
 import type { ResolveDesktopAgentReferenceResponse } from '@nimiplatform/sdk/runtime/host';
+import type { NimiUtopiaSettingsUpdate } from '@nimiplatform/kit/core/sdk-contract';
 import {
   NimiElectronDesktopControlHostError,
   createNimiElectronDesktopControlHost,
@@ -804,6 +805,34 @@ export function createNimiElectronFormalAppLocalHostOwner(input: {
     sharedAgentAIConfigOverwrite: (record) => configure.sharedAIConfig.overwrite(record as never) as Promise<NimiElectronLocalAppRecord>,
     sharedAgentAIConfigLocalOptions: (record) => configure.sharedAIConfig.listOptions(record as never) as Promise<NimiElectronLocalAppRecord>,
     agentManagerSnapshot: (record) => configure.manager.snapshot(record as never) as Promise<NimiElectronLocalAppRecord>,
+    async agentUtopiaSnapshot() {
+      const { settings, observedAt, places, residents, occupancy, sharedActivities } = await runtime.getLocalAppAgentUtopiaSnapshot({});
+      if (!settings || !observedAt) throw new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
+      const project = (frame: typeof residents[number]['current']) => frame
+        ? { ...frame, startsAt: frame.startsAt ?? null, endsAt: frame.endsAt ?? null } : null;
+      return {
+        settings: { ...settings }, observedAt: { ...observedAt }, places: places.map(place => ({ ...place })),
+        residents: residents.map(resident => ({ ...resident, current: project(resident.current), recent: project(resident.recent), next: project(resident.next) })),
+        occupancy: occupancy.map(value => ({ ...value })),
+        sharedActivities: sharedActivities.map(value => ({ ...value, startsAt: value.startsAt ?? null, endsAt: value.endsAt ?? null, acceptedAt: value.acceptedAt ?? null })),
+      } as unknown as NimiElectronLocalAppRecord;
+    },
+    async agentUtopiaUpdate(record) {
+      const { expectedRevision, intent } = record as unknown as NimiUtopiaSettingsUpdate;
+      const wireIntent = (() => {
+        switch (intent.kind) {
+          case 'select-preset': return { oneofKind: 'selectPreset', selectPreset: intent.preset } as const;
+          case 'restore-default': return { oneofKind: 'restoreDefault', restoreDefault: true } as const;
+          case 'outdoor': return { oneofKind: 'outdoorOpen', outdoorOpen: intent.open } as const;
+          case 'public': return { oneofKind: 'publicParticipation', publicParticipation: intent.enabled } as const;
+          case 'solitude': return { oneofKind: 'solitude', solitude: { agentHandle: intent.agentHandle, solitary: intent.solitary } } as const;
+          default: throw new NimiElectronLocalAppHostError('invalid-payload', false);
+        }
+      })();
+      const { settings } = await runtime.updateLocalAppAgentUtopiaSettings({ expectedRevision, intent: wireIntent });
+      if (!settings) throw new NimiElectronLocalAppHostError('runtime-service-untrusted', false);
+      return { ...settings };
+    },
     agentAutonomySnapshot: (record) => configure.autonomy.snapshot(record as never) as Promise<NimiElectronLocalAppRecord>,
     agentUpdateAutonomy: (record) => configure.autonomy.update(record as never) as Promise<NimiElectronLocalAppRecord>,
     agentUpdateConversationContext: (record) => configure.conversationContext.update(record as never) as Promise<NimiElectronLocalAppRecord>,

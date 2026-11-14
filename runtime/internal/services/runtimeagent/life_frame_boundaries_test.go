@@ -11,7 +11,7 @@ func TestLifeProposalCannotRegressWithinSameBatch(t *testing.T) {
 	l := newAgentLifeState()
 	l.Activities["a"] = &lifeActivity{Ref: "a", Title: "Painting", Kind: "project", Phase: lifePaused, Progress: 10}
 	before := cloneAgentLifeState(l)
-	err := l.acceptFuture([]lifeFrameProposal{{ActivityRef: "a", Title: "Outline", Kind: "project", DurationMinutes: 30, EndProgress: 70}, {ActivityRef: "a", Title: "Paint", Kind: "project", DurationMinutes: 30, EndProgress: 40}}, time.Now(), 1, nil, false)
+	err := l.acceptFuture([]lifeFrameProposal{{ActivityRef: "a", Title: "Outline", Kind: "project", DurationMinutes: 30, EndProgress: 70}, {ActivityRef: "a", Title: "Paint", Kind: "project", DurationMinutes: 30, EndProgress: 40}}, time.Now(), nil, false)
 	if err == nil || !lifeStateEqual(l, before) {
 		t.Fatal("invalid batch partially committed or regressed")
 	}
@@ -26,11 +26,11 @@ func TestLifeContextSelectionIsAViewAndMemoryLineageSurvivesCompression(t *testi
 	l.MemoryReadSet = cognitionmemory.MemoryReadSet{BindingRef: "binding", BankRef: "bank", LifecycleRef: "life", Refs: []string{"blue"}}
 	l.Explanation = &lifeExplanation{Text: "Compressed preference for blue", ConversationRead: read, MemoryRefs: []string{"blue"}}
 	before := cloneAgentLifeState(l)
-	excluded := projectLifeContext(l, false, false, &lifeConversationRead{AnchorID: "anchor", Revision: 2, FirstSequence: 3}, now, 1)
+	excluded := projectLifeContext(l, false, false, &lifeConversationRead{AnchorID: "anchor", Revision: 2, FirstSequence: 3}, now)
 	if !strings.Contains(excluded.Core, "Blue painting") || strings.Contains(excluded.Core, `"step":"Blue painting"`) || excluded.Explanation != "" || !lifeStateEqual(l, before) {
 		t.Fatal("selection erased life or leaked excluded source")
 	}
-	restored := projectLifeContext(l, false, false, &lifeConversationRead{AnchorID: "anchor", Revision: 3, FirstSequence: 0}, now, 1)
+	restored := projectLifeContext(l, false, false, &lifeConversationRead{AnchorID: "anchor", Revision: 3, FirstSequence: 0}, now)
 	if !strings.Contains(restored.Core, "Blue") || len(restored.CoreMemoryReadSet.Refs) != 1 || restored.CoreConversationRead.Revision != 3 {
 		t.Fatal("restoration lost provenance")
 	}
@@ -48,7 +48,7 @@ func TestChatBetweenFramesKeepsRecentFactAndTentativeNextStep(t *testing.T) {
 	l.Activities["next"] = &lifeActivity{Ref: "next", Title: "Later walk", Kind: "routine", Phase: lifePlanned}
 	l.Recent = []lifeFrame{{ID: "past", ActivityRef: "done", Title: "Finished sketch", Phase: lifeCompleted, StartsAt: now.Add(-time.Hour), EndsAt: now.Add(-time.Minute)}}
 	l.Future = []lifeFrame{{ID: "future", ActivityRef: "next", Title: "Later walk", Phase: lifePlanned, StartsAt: now.Add(time.Hour), EndsAt: now.Add(2 * time.Hour)}}
-	view := projectLifeContext(l, false, false, nil, now, 1)
+	view := projectLifeContext(l, false, false, nil, now)
 	if view == nil || !strings.Contains(view.Core, `"current":null`) || !strings.Contains(view.Core, "Finished sketch") || !strings.Contains(view.Core, "tentative_future") {
 		t.Fatal("chat lost life continuity between frames")
 	}

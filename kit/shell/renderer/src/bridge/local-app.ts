@@ -3,7 +3,7 @@ import { validateNimiLocalAppConversationQuoteInput, projectNimiLocalAppConversa
 import { createNimiContentRefusalObserver, createNimiScenarioJobRefusalObserver, getNimiContentRefusalPresentationEpoch, observeNimiSubmittedJob, rememberNimiScenarioJobSubmission, reportNimiContentRefusal } from './content-refusal.js';
 import { RuntimeReasonCode } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppSpeechAlignment } from '@nimiplatform/kit/core/sdk-contract';
-import type { NimiLocalAppAgentWorkShell, NimiLocalAppIntegrationShell } from '@nimiplatform/kit/core/sdk-contract';
+import type { NimiLocalAppAgentWorkShell, NimiLocalAppIntegrationShell, NimiLocalAppUtopiaShell } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppMusicTranscribeSpec, validateNimiLocalAppMusicTranscription, type NimiLocalAppMusicTranscribeSpec, type NimiLocalAppMusicTranscription } from '@nimiplatform/kit/core/sdk-contract';
 import { validateNimiLocalAppVoiceConvertSpec, validateNimiLocalAppVoiceConversion, type NimiLocalAppVoiceConvertSpec, type NimiLocalAppVoiceConversion } from '@nimiplatform/kit/core/sdk-contract';
 import { projectMusicInputCapabilities, projectSpeechInputCapabilities, projectReasoningInputCapabilities } from '@nimiplatform/kit/core/sdk-contract';
@@ -603,6 +603,7 @@ export type NimiLocalAppStandardShellSurface = {
   readonly agentWork: NimiLocalAppAgentWorkShell;
   readonly integration: NimiLocalAppIntegrationShell;
   readonly agentConfigure: NimiLocalAppAgentConfigureShellSurface;
+  readonly utopia: NimiLocalAppUtopiaShell;
   readonly conversation: {
     readonly readMessage: (input: NimiLocalAppConversationScopeInput & { readonly messageId: string }) => Promise<JsonObject>;
     readonly cancelFollowUp:(input:NimiLocalAppConversationFollowUpCancelInput)=>Promise<JsonObject>;
@@ -646,6 +647,10 @@ export type NimiLocalAppStandardShellSurface = {
 export function createNimiLocalAppStandardShellSurface(): NimiLocalAppStandardShellSurface {
   return {
     session: { status: getNimiLocalAppSessionStatus },
+    utopia: {
+      snapshot: () => invokeLocalAppRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUtopiaSnapshot'], {}),
+      update: input => invokeLocalAppRecord(NIMI_STANDARD_SHELL_COMMANDS['local-app.agentUtopiaUpdate'], input),
+    },
     ai: {
       text: {
         generateCandidate: generateNimiLocalAppTextCandidate,

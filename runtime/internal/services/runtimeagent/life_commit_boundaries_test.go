@@ -3,10 +3,85 @@ package runtimeagent
 import (
 	"context"
 	"database/sql"
-	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"sync"
 	"testing"
 	"time"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
+
+type lifeAccountTestOwner struct {
+	mu         sync.Mutex
+	generation uint64
+	invalid    chan struct{}
+}
+
+func (o *lifeAccountTestOwner) AuthenticatedRuntimeProjection(ctx context.Context) (*runtimev1.AccountProjection, bool) {
+	projection, _, _, ok := o.BindAuthenticatedRuntimeGeneration(ctx)
+	return projection, ok
+}
+
+func (o *lifeAccountTestOwner) BindAuthenticatedRuntimeGeneration(context.Context) (*runtimev1.AccountProjection, uint64, <-chan struct{}, bool) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	return &runtimev1.AccountProjection{AccountId: "user-1", RealmEnvironmentId: "test-realm"}, o.generation, o.invalid, true
+}
+
+func (o *lifeAccountTestOwner) CommitAuthenticatedRuntimeGeneration(ctx context.Context, accountID, realmID string, generation uint64, commit func() error) (bool, error) {
+	o.mu.Lock()
+	defer o.mu.Unlock()
+	if ctx.Err() != nil || accountID != "user-1" || realmID != "test-realm" || o.generation != generation {
+		return false, ctx.Err()
+	}
+	return true, commit()
+}
+
+func TestLifeAccountReplacementRejectsOldPlanningResultEvenAfterRelogin(t *testing.T) {
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	owner := &lifeAccountTestOwner{generation: 1, invalid: make(chan struct{})}
+	svc.SetRuntimeAccountProjectionProvider(owner)
+	ai := &fakeLifeTurnAI{response: &runtimev1.ExecuteScenarioResponse{
+		FinishReason: runtimev1.FinishReason_FINISH_REASON_STOP,
+		Usage:        &runtimev1.UsageStats{InputTokens: 30, OutputTokens: 4},
+		Output: &runtimev1.ScenarioOutput{Output: &runtimev1.ScenarioOutput_TextGenerate{
+			TextGenerate: &runtimev1.TextGenerateOutput{Text: `{"past":[],"future":[{"title":"Old account result","kind":"routine","duration_minutes":15,"end_progress":100,"completes_activity":true}],"next_check_minutes":60}`},
+		}},
+	}}
+	svc.aiBridge.lifeFrameAI = lifeAIAccountReplacementExecutor{next: ai, owner: owner}
+	ref := testRuntimeAgentLocalRef("agent-alpha")
+	now := time.Now().UTC()
+	if err := svc.mutateAgent(ref, func(e *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
+		e.Agent.Autonomy.Enabled = true
+		e.Agent.Autonomy.Config.Mode = runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW
+		e.Agent.Autonomy.Config.DailyTokenBudget = 0
+		e.Life.StartedAt, e.Life.SettledAt = now, now
+		return nil, nil, nil
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.runLifeFrameSweep(context.Background(), now); err != nil {
+		t.Fatal(err)
+	}
+	svc.lifeFrameWG.Wait()
+	entry, _ := svc.agentByID(ref)
+	if len(ai.requests) != 1 || entry.Life.Current != nil || len(entry.Life.Future) != 0 || entry.Agent.Autonomy.UsedTokensInWindow != 34 {
+		t.Fatalf("old account result was accepted or usage was lost: calls=%d active=%t future=%d tokens=%d", len(ai.requests), entry.Life.Current != nil, len(entry.Life.Future), entry.Agent.Autonomy.UsedTokensInWindow)
+	}
+}
+
+type lifeAIAccountReplacementExecutor struct {
+	next  lifeFrameScenarioExecutor
+	owner *lifeAccountTestOwner
+}
+
+func (e lifeAIAccountReplacementExecutor) ExecuteScenario(ctx context.Context, request *runtimev1.ExecuteScenarioRequest) (*runtimev1.ExecuteScenarioResponse, error) {
+	e.owner.mu.Lock()
+	close(e.owner.invalid)
+	e.owner.generation++
+	e.owner.invalid = make(chan struct{})
+	e.owner.mu.Unlock()
+	return e.next.ExecuteScenario(ctx, request)
+}
 
 func TestJointLifeJudgmentConsumesDueContactWithoutSending(t *testing.T) {
 	svc := newRuntimeAgentServiceForPublicChatTest(t)

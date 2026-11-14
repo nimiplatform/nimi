@@ -2,10 +2,11 @@ package runtimeagent
 
 import (
 	"fmt"
-	"github.com/oklog/ulid/v2"
 	"math"
 	"strings"
 	"time"
+
+	"github.com/oklog/ulid/v2"
 )
 
 // @nimi-authority: rule.nimi.runtime.agent-life.replacement
@@ -14,10 +15,10 @@ import (
 // persistence, task execution or caller authority lives in this module.
 type futureFrameUpdater struct{ snapshot *agentLifeState }
 
-func (u futureFrameUpdater) propose(proposals []lifeFrameProposal, from time.Time, flow float64, memoryRefs []string, chatRead bool, retrospectiveEnd *time.Time) (*agentLifeState, error) {
+func (u futureFrameUpdater) propose(proposals []lifeFrameProposal, from time.Time, memoryRefs []string, chatRead bool, retrospectiveEnd *time.Time) (*agentLifeState, error) {
 	l := u.snapshot
 	retrospective := retrospectiveEnd != nil
-	if len(proposals) == 0 || len(proposals) > lifeFutureLimit || flow <= 0 || math.IsNaN(flow) || math.IsInf(flow, 0) {
+	if len(proposals) == 0 || len(proposals) > lifeFutureLimit {
 		return nil, fmt.Errorf("invalid life proposal bounds")
 	}
 	next := cloneAgentLifeState(l)
@@ -78,13 +79,9 @@ func (u futureFrameUpdater) propose(proposals []lifeFrameProposal, from time.Tim
 				return nil, fmt.Errorf("retrospective frame is too short")
 			}
 		} else {
-			duration := float64(time.Minute) * p.DurationMinutes / flow
-			if duration < float64(time.Second) || duration > float64(30*24*time.Hour) {
-				return nil, fmt.Errorf("life frame real duration outside supported bounds")
-			}
-			end = start.Add(time.Duration(duration))
+			end = start.Add(time.Duration(float64(time.Minute) * p.DurationMinutes))
 		}
-		next.Future = append(next.Future, lifeFrame{Description: p.Description, ID: "frame_" + ulid.Make().String(), ActivityRef: a.Ref, Title: strings.TrimSpace(p.Title), MemoryRefs: append([]string(nil), memoryRefs...), StartsAt: start, EndsAt: end, Phase: lifePlanned, StartProgress: plannedProgress[a.Ref], EndProgress: p.EndProgress, CompletesActivity: p.CompletesActivity, Retrospective: retrospective})
+		next.Future = append(next.Future, lifeFrame{Description: p.Description, ID: "frame_" + ulid.Make().String(), ActivityRef: a.Ref, Title: strings.TrimSpace(p.Title), MemoryRefs: append([]string(nil), memoryRefs...), StartsAt: start, EndsAt: end, Phase: lifePlanned, StartProgress: plannedProgress[a.Ref], EndProgress: p.EndProgress, CompletesActivity: p.CompletesActivity, Retrospective: retrospective, Place: p.Place, UtopiaActivity: p.UtopiaActivity})
 		plannedProgress[a.Ref] = p.EndProgress
 		plannedComplete[a.Ref] = p.CompletesActivity
 		start = end

@@ -32,9 +32,6 @@ type localAgentTurnSourceViewV1 struct {
 	CognitionUnitBindings       []localAgentSourceUnitBindingV1
 	CognitionMetadataStatus     string
 	CognitionMetadataFailure    string
-	LifeWorldMode               string
-	LifeFlowRatio               float64
-	LifeWorldPaused             bool
 	WorldTimeDecodeFailure      string
 }
 
@@ -82,17 +79,11 @@ func localAgentTurnSourceViewFromValidatedSnapshotV1(snapshot localAgentSourceSn
 	}
 	view.KnownAt, _ = time.Parse(time.RFC3339Nano, snapshot.CapturedAt)
 	view.SnapshotCandidateSourceRefs = localAgentTurnCandidateSourceRefsV1(snapshot)
-	world, err := decodeRealmSourceCompilerWorldCoreV3(snapshot.Semantic.OwningWorld.Core)
+	_, err = decodeRealmSourceCompilerWorldCoreV3(snapshot.Semantic.OwningWorld.Core)
 	if err != nil {
 		// Recovery retains the immutable record, but no inference or life
 		// progression may use a world that the current decoder rejects.
 		view.WorldTimeDecodeFailure = err.Error()
-	} else {
-		view.LifeWorldMode, view.LifeFlowRatio = world.TimeModel.Mode, 1
-		if world.TimeModel.FlowRatio != nil {
-			view.LifeFlowRatio = *world.TimeModel.FlowRatio
-		}
-		view.LifeWorldPaused = world.TimeModel.IsPaused != nil && *world.TimeModel.IsPaused
 	}
 	if err := validateLocalAgentTurnSourceViewV1(view); err != nil {
 		return localAgentTurnSourceViewV1{}, err

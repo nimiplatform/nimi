@@ -5,11 +5,23 @@ units:
   - id: definition.nimi.runtime.agent-life.frame-timeline
     kind: definition
     title: Bounded LocalAgent life timeline
-    meaning: "Runtime owns one revisioned bounded life state per LocalAgent: immutable established history, at most one current simulated or actual interaction frame, tentative future frames and stable self-intentions across segments. Interaction is life, independent of one model turn. Accepted identity, timing and progress are distinct from qualified explanations. Simulated life never establishes external effects."
+    meaning: "Runtime owns one revisioned bounded life state per LocalAgent: immutable established history, at most one current simulated or actual interaction frame, tentative future frames and stable self-intentions across segments. Life timestamps and durations use elapsed real time on the Runtime clock. Interaction is life, independent of one model turn. Accepted identity, timing and progress are distinct from qualified explanations. Simulated life never establishes external effects."
   - id: definition.nimi.runtime.agent-life.life-context
     kind: definition
     title: Purpose-specific compressed life context
-    meaning: Runtime compiles minimum accepted activity state and bounded optional explanations for later life and Conversation inference, retaining the latest settled frame and next tentative frame between active intervals. Private life planning uses one leading system envelope preserving typed source/trust boundaries and a final Runtime planning instruction, without a fabricated user input lane or Conversation record. It requests a JSON-object response through the shared text binding; an unsupported response contract is an unavailable planning result, never a silent target switch or parser repair. Explanations retain the actual source read set through compression; Conversation input selection and Cognition Memory lifecycle are different controls and neither grants a second Memory owner.
+    meaning: Runtime compiles minimum accepted activity state and bounded optional explanations for later life and Conversation inference, retaining the latest settled frame and next tentative frame between active intervals. Private life planning uses one leading system envelope preserving typed source and trust boundaries and a final Runtime planning instruction, without a fabricated user input lane or Conversation record. Its synchronous text.generate wire request uses strict JSON Schema for a JSON object with the current planning bounds. A separate contact-only judgment uses JSON Object mode. The exact configured behavior must be admitted; an unsupported contract is unavailable without a target switch or parser repair. Explanations retain the actual source read set through compression; Conversation input selection and Cognition Memory lifecycle are different controls and neither grants a second Memory owner.
+  - id: definition.nimi.runtime.agent-life.utopia
+    kind: definition
+    title: Effective LocalAgent Utopia
+    meaning: Utopia is the simulation setting owned by Runtime for the current account and active data root. It contributes versioned preset conditions, available places and eligible simulated activities to life decisions. It can express fictional weather or facilities independently of the original Realm World and the real clock. Every authenticated account resolves one effective Utopia, including a versioned built-in island preset when no account override exists. A polar station uses the same condition, place and activity contract. A frame can have no established location.
+  - id: definition.nimi.runtime.agent-life.public-activity
+    kind: definition
+    title: Account-scoped public life
+    meaning: Public life is simulated occupancy and bounded decisions visible within the same account's Utopia to eligible opted-in LocalAgents and to the current account through an authorized observation surface. Runtime assigns public occupancy from accepted activity, location and time. Current co-presence is derived from eligible participants actually occupying the same open place in a single snapshot. It creates no separate history or model call.
+  - id: definition.nimi.runtime.agent-life.shared-arrangement
+    kind: definition
+    title: Shared life arrangement and established facts
+    meaning: One Runtime-owned record connects two eligible LocalAgents to a single supported shared activity, its location, offered time window, response deadline, accepted agreement and any actual simulated participation. The individual timelines may refer to the shared record. Invitation, independent response and established participation are distinct facts; none establishes an external meeting, delivery or Conversation.
   - id: definition.nimi.runtime.agent-life.user-commitment
     kind: definition
     lifecycle: removed
@@ -23,12 +35,60 @@ units:
     kind: rule
     title: Accepted frames advance without repeated inference
     modality: must
-    statement: Runtime advances accepted simulated frames without inference only when their time, source, intention and prior progress remain valid. Actual admitted conversation, supported voice participation and bounded App work occupy the present; first admission settles only the established part of the old current frame and interrupts its remaining interval. During interaction no autonomous frame promotes or settles. Preserve unrelated future identities, content, ordering and valid intentions; overlapping or missed frames did not occur and cannot supply progress to later segments of the same intention. A turn terminal does not close interaction. After a bounded 120-second real-time silence opportunity, recheck current activity, generation and participation under the same owner; in-flight output and known media execution prevent false silence. Deterministic review resumes or waits for valid future coverage with zero new planning calls. New chat text alone does not force replanning. First enable starts now; disabled and known-interaction intervals never become simulated backlog. Disabling simulation does not disable ordinary replies, same-turn self-intentions or independently permitted contact. Static worlds use relative durations; paused worlds freeze simulation; validated anchored clocks never rewind facts.
+    statement: Runtime advances accepted simulated frames without inference only when their time, source, intention and prior progress remain valid. Actual admitted conversation, supported voice participation and bounded App work occupy the present; first admission settles only the established part of the old current frame and interrupts its remaining interval. During interaction no autonomous frame promotes or settles. Preserve unrelated future identities, content, ordering and valid intentions; overlapping or missed frames did not occur and cannot supply progress to later segments of the same intention. A turn terminal does not close interaction. After a bounded 120-second real-time silence opportunity, recheck current activity, generation and participation under the same owner; in-flight output and known media execution prevent false silence. Deterministic review resumes or waits for valid future coverage with zero new planning calls. New chat text alone does not force replanning. First enable starts now; disabled and known-interaction intervals never become simulated backlog. Disabling simulation does not disable ordinary replies, same-turn self-intentions or independently permitted contact. Personal life planning, catch-up, advancement and actual participation use Runtime real time and preserve established time boundaries across clock rollback. Valid source World time is provenance and setting only, including a static mode or an authored ratio or pause.
     condition: Whenever Runtime starts, advances, pauses or recovers LocalAgent life.
     failure: Reject overlapping current frames, backward settlement, fabricated pre-enable history or external effects, and consumer-authored timeline progression.
     relations:
       - type: applies_to
         target: definition.nimi.runtime.agent-life.frame-timeline
+  - id: rule.nimi.runtime.agent-life.utopia-settings
+    kind: rule
+    title: Resolve one default and revalidate applicable environment changes
+    modality: must
+    statement: Runtime resolves the versioned built-in default on lawful absence without writing on read. Editing the preset, a supported availability condition, public participation or an Agent's solitude is a compare-and-swap against one effective account settings revision. Real changes, including restoration to the default, take effect at the Runtime commit time and advance the same revision. Verify identified conditions and participation used by in-flight decisions, future arrangements and the unelapsed portion of affected current activity before accepting further effects. Preserve already established time, unrelated eligible arrangements and private life. Subsequent qualified planning reads relevant current conditions and changes. Appearance and view filters have no effect on life. Resolution failure is distinct from lawful absence.
+    condition: Whenever the current Utopia is resolved, changed or used to admit a dependent result.
+    failure: Reject missing scope, corrupt or unknown configuration, stale writes and ineligible effects without substituting a location or creating a fallback configuration.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-life.frame-timeline
+      - type: applies_to
+        target: definition.nimi.runtime.agent-life.utopia
+  - id: rule.nimi.runtime.agent-life.public-decision
+    kind: rule
+    title: Make bounded public decisions reachable in the existing Runtime scan
+    modality: must
+    statement: Public participation is off until explicitly enabled for the account and excludes individual LocalAgents marked solitary, ineligible or with autonomous life disabled. Ending eligibility removes public occupancy and invalidates affected pending and future effects. Within the normal life scan Runtime separately considers authorized public options and valid pending invitations. Use the existing per-Agent minimum attempt interval, background budget, configured text.generate route and single execution occupancy with normal cancellation, actual release and foreground precedence. Give an eligible pending response one opportunity ahead of personal replenishment even with an active personal frame, sufficient future coverage or a later personal check time. The accepted personal timeline continues to advance. Only already committed eligible public facts, typed options and expressly allowed source display facts enter public inference. Runtime may use private availability internally to omit unusable options without disclosing the underlying plan. Do not use private plans, text, Recall, raw lorebook, summaries, explanations or App work output as public material. App reads and public record delivery do not request immediate inference.
+    condition: Whenever Runtime considers, executes or commits a public life choice or projects public occupancy.
+    failure: Reject unauthorized or stale inputs and results, preserve existing personal life, and represent lack of admission or an expired invitation truthfully.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-life.public-activity
+      - type: applies_to
+        target: definition.nimi.runtime.agent-life.utopia
+  - id: rule.nimi.runtime.agent-life.shared-activity
+    kind: rule
+    title: Commit an invitation, independent acceptance and actual participation separately
+    modality: must
+    statement: Runtime gives the initiating Agent a choice among authorized partners, a supported activity and available future windows. Issuing an invitation commits its fact without holding the proposed window. The recipient alone can commit one independent response to that valid invitation. A response that was dispatched with unknown outcome is not replayed. The answer deadline precedes the activity's start, with at least one ordinary eligible opportunity possible under current minimum interval and scan cadence when offered. The scheduled end is at most 24 real hours after issue. Acceptance atomically checks the current identity, account, root, execution generation, Utopia, authorization, time and each Agent's available window, then stores the shared arrangement and both timeline references. At most one pending invitation or accepted ongoing arrangement can involve each Agent at a time. At a scan inside the window, Runtime verifies both partners and starts both at one actual confirmation time. Only established overlap is settled. Missed or unconfirmed offline time does not establish joint participation. Revalidate future agreements on recovery and preserve confirmed facts. Start, interruption and settlement advance through owner commits without another model call or a synthetic user turn.
+    condition: Whenever a directed shared-life invitation or arrangement is accepted, advanced, interrupted or recovered.
+    failure: Decline, expiry, ineligibility and a missed or interrupted accepted arrangement remain distinct from completed activity; reject partial or duplicated writes and late results.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-life.frame-timeline
+      - type: applies_to
+        target: definition.nimi.runtime.agent-life.public-activity
+      - type: applies_to
+        target: definition.nimi.runtime.agent-life.shared-arrangement
+  - id: rule.nimi.runtime.agent-life.shared-fact-retention
+    kind: rule
+    title: Bound direct shared records and preserve committed Conversation
+    modality: must
+    statement: Runtime gives participants only the directed facts they may know and the current authorized account observation surface only bounded shared records. Retain at most the twelve most recent closed shared records for the account and at most 24 real hours after closure. Expiry or removal ends direct reads and dependent pending operations. Conversation drafts from currently readable facts are editable and enter the ordinary Conversation only after explicit user submission. Committed Conversation follows existing history, summary, life input, Memory and Forget rules. Shared activity adds no direct long-term Memory delivery and no automatic import or removal of Conversation turns.
+    condition: Whenever a shared record is read, retained, removed or transcribed into a conversation draft.
+    failure: Withhold expired or unauthorized direct facts, reject pending effects using invalid references, and preserve the existing lifecycle of committed turns.
+    relations:
+      - type: applies_to
+        target: definition.nimi.runtime.agent-life.shared-arrangement
   - id: rule.nimi.runtime.agent-life.catch-up
     kind: rule
     title: Missing time is filled once within known bounds

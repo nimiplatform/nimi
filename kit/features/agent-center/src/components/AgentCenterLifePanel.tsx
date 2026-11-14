@@ -33,7 +33,7 @@ export function AgentCenterLifePanel({ session, snapshot, i18n }: { session: Age
     : snapshot.state.autonomy.enabled === false ? text('wait.disabled') : life?.waitReason ? text(`wait.${life.waitReason}`) : text('empty');
   const currentStatus = life?.current
     ? text(`phase.${life.current.phase}`)
-    : snapshot.state.autonomy.enabled === false || ['world_paused', 'suspended'].includes(life?.waitReason ?? '')
+    : snapshot.state.autonomy.enabled === false || life?.waitReason === 'suspended'
       ? text('status.paused')
       : life?.waitReason ? text('status.waiting') : text('status.idle');
   return <Card className="p-4">

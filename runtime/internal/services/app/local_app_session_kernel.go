@@ -940,6 +940,8 @@ func appOperationCapability(admission localappop.Admission) (string, bool) {
 		localappop.OperationAgentEmbodimentSnapshotGet,
 		localappop.OperationAgentEmbodimentEventsSubscribe,
 		localappop.OperationAgentManagerSnapshotGet,
+		localappop.OperationAgentUtopiaSnapshotGet,
+		localappop.OperationAgentUtopiaSettingsUpdate,
 		localappop.OperationAgentAIConfigGet,
 		localappop.OperationAgentAIConfigOverwrite,
 		localappop.OperationAgentAIConfigOptionsList,

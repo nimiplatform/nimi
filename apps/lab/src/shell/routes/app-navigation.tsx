@@ -3,7 +3,7 @@ import { createNimiNavigation } from '@nimiplatform/kit/core/navigation';
 import { NimiNavigationProvider } from '@nimiplatform/kit/ui/app-chrome';
 import { labCapabilities, type LabCapabilityId } from '../../lab/lab-capabilities.js';
 
-const workspaceIds = ['agent-center', 'agent-conversation', 'agent-realtime', 'app-access', 'activity', 'integrations', 'ui-recipes', 'settings'] as const;
+const workspaceIds = ['agent-center', 'agent-conversation', 'agent-realtime', 'agent-utopia', 'app-access', 'activity', 'integrations', 'ui-recipes', 'settings'] as const;
 export type LabDestination = { id: LabCapabilityId | typeof workspaceIds[number]; runId?: string };
 // @nimi-authority: rule.nimi.platform.ui-design-system.p-kit-navigation
 export function createLabNavigation() {

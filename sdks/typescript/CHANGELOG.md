@@ -2,6 +2,10 @@
 
 # SDK migration notes
 
+## Unreleased — Native Agent Utopia (next 0.x minor)
+
+The native App client exposes `utopia.snapshot` and `utopia.update`. Custom `NimiLocalAppStandardShell` implementations must provide both methods in the `utopia` namespace. Use matching Kit, native binding and Runtime builds for protected Utopia operations.
+
 ## Unreleased — 0.24.0-rc.2 Integration consumer carrier
 
 Remote App clients expose only Integration catalog/connection discovery and call invoke/get/list/cancel, retaining declaration coverage and standing resource permission. They gain neither provider nor management operations. Provider polls now require Runtime-derived `consumerRef` alongside display copy, so App handlers can bind their own progress/object references to the actual caller. Use the complete matching Runtime, SDK, Kit and native candidates. This is local candidate work, not public publication.

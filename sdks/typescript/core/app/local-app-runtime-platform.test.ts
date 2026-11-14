@@ -344,6 +344,21 @@ test('image face replacement uses owned artifact Job input and rejects extra sel
   assert.equal(captured.length, 2);
 });
 
+test('Utopia uses separate Host operations and rejects an extra owner field', async () => {
+  const base = standardShell([]);
+  const current = { revision: '4', preset: 'island', presetVersion: '1', outdoorOpen: true, publicParticipation: false };
+  const seen: unknown[] = [];
+  const client = createNimiLocalAppClient({ standardShell: { ...base, utopia: {
+    async snapshot() { return { settings: current, observedAt: { seconds: '10', nanos: 0 }, places: [], residents: [], occupancy: [], sharedActivities: [] }; },
+    async update(input) { seen.push(input); return { ...current, revision: '5', outdoorOpen: false }; },
+  } } });
+  assert.equal((await client.utopia.snapshot()).settings.revision, '4');
+  assert.equal((await client.utopia.update({ expectedRevision: '4', intent: { kind: 'outdoor', open: false } })).outdoorOpen, false);
+  assert.deepEqual(seen, [{ expectedRevision: '4', intent: { kind: 'outdoor', open: false } }]);
+  const invalid = createNimiLocalAppClient({ standardShell: { ...base, utopia: { ...base.utopia, async snapshot() { return { accountId: 'private' }; } } } });
+  await assert.rejects(() => invalid.utopia.snapshot());
+});
+
 function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
   const touched = (name: string) => async (): Promise<never> => {
     operationCalls.push(name);
@@ -353,6 +368,7 @@ function standardShell(operationCalls: string[]): NimiLocalAppStandardShell {
     });
   };
   return {
+    utopia: { snapshot: touched('utopia.snapshot'), update: touched('utopia.update') },
     session: {
       async status() {
         return {
@@ -621,7 +637,7 @@ test('generated local-app session wire projection is posture-only', () => {
 test('local-app client hard-cuts the access workflow namespace', () => {
   const client = createNimiLocalAppClient({ standardShell: standardShell([]) });
   assert.deepEqual(Object.keys(client).sort(), [
-    'activity', 'agentConfigure', 'agentRealtime', 'agentWork', 'agents', 'ai', 'aiConfig', 'auth', 'conversation', 'currentUser', 'embodiment', 'integration', 'realm', 'storage',
+    'activity', 'agentConfigure', 'agentRealtime', 'agentWork', 'agents', 'ai', 'aiConfig', 'auth', 'conversation', 'currentUser', 'embodiment', 'integration', 'realm', 'storage', 'utopia',
   ]);
   assert.deepEqual(Object.keys(client.activity).sort(), ['list', 'markRead', 'onOpenRequest', 'open', 'put', 'subscribe']);
   assert.equal('permissions' in client, false);

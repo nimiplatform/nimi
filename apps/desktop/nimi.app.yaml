@@ -6,6 +6,8 @@ app_access:
   - runtime.consume
   - agent.local
   - agent.configure
+  - agent.utopia.read
+  - agent.utopia.manage
   - app.activity
   - integration.consume
   - integration.manage

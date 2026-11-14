@@ -9,6 +9,7 @@ app_access:
   - runtime.consume
   - agent.local
   - agent.configure
+  - agent.utopia.read
   - app.activity
   - integration.consume
 local_development:

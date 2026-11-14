@@ -68,7 +68,7 @@ func (s *Service) commitAutonomyAndConversationControls(current, next *agentEntr
 		}
 	}
 	if !lifeEnabled(next) {
-		if work := s.backgroundByAgent[ref]; work != nil && work.source == "life_planning" {
+		if work := s.backgroundByAgent[ref]; work != nil && (work.source == "life_planning" || work.source == lifePublicPurpose || work.source == lifeSharedResponsePurpose) {
 			work.invalidated = true
 			after = append(after, work.cancel)
 		}

@@ -3412,6 +3412,8 @@ pub enum ReasonCode {
     AGENTCONVERSATIONCONTEXTREVISIONCONFLICT,
     #[serde(rename = "APP_STORAGE_CONTENT_CONFLICT")]
     APPSTORAGECONTENTCONFLICT,
+    #[serde(rename = "AGENT_UTOPIA_REVISION_CONFLICT")]
+    AGENTUTOPIAREVISIONCONFLICT,
 }
 
 impl Default for ReasonCode {
@@ -4063,6 +4065,8 @@ impl ReasonCode {
             "AGENTCONVERSATIONCONTEXTREVISIONCONFLICT" => Some(Self::AGENTCONVERSATIONCONTEXTREVISIONCONFLICT),
             "APP_STORAGE_CONTENT_CONFLICT" => Some(Self::APPSTORAGECONTENTCONFLICT),
             "APPSTORAGECONTENTCONFLICT" => Some(Self::APPSTORAGECONTENTCONFLICT),
+            "AGENT_UTOPIA_REVISION_CONFLICT" => Some(Self::AGENTUTOPIAREVISIONCONFLICT),
+            "AGENTUTOPIAREVISIONCONFLICT" => Some(Self::AGENTUTOPIAREVISIONCONFLICT),
             _ => None,
         }
     }
@@ -8841,6 +8845,21 @@ pub struct GetLocalAppAgentRealtimeStatusResponse {
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetLocalAppAgentUtopiaSnapshotRequest {
+
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct GetLocalAppAgentUtopiaSnapshotResponse {
+    pub settings: Option<Box<LocalAppAgentUtopiaSettings>>,
+    pub observed_at: Option<String>,
+    pub places: Vec<Box<LocalAppAgentUtopiaPlace>>,
+    pub residents: Vec<Box<LocalAppAgentUtopiaResident>>,
+    pub occupancy: Vec<Box<LocalAppAgentUtopiaOccupancy>>,
+    pub shared_activities: Vec<Box<LocalAppAgentUtopiaSharedActivity>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
 pub struct GetLocalAppAgentWorkRequest {
     pub agent_handle: Option<String>,
     pub execution_id: Option<String>,
@@ -11021,6 +11040,65 @@ pub struct LocalAppAgentReference {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct LocalAppAgentUpdateAutonomyResponse {
     pub projection: Option<Box<LocalAppAgentAutonomyProjection>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentUtopiaFrame {
+    pub title: Option<String>,
+    pub place: Option<String>,
+    pub starts_at: Option<String>,
+    pub ends_at: Option<String>,
+    pub interaction: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentUtopiaOccupancy {
+    pub place: Option<String>,
+    pub agent_handles: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentUtopiaPlace {
+    pub id: Option<String>,
+    pub activities: Vec<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentUtopiaResident {
+    pub agent_handle: Option<String>,
+    pub display_name: Option<String>,
+    pub solitary: Option<bool>,
+    pub current: Option<Box<LocalAppAgentUtopiaFrame>>,
+    pub recent: Option<Box<LocalAppAgentUtopiaFrame>>,
+    pub next: Option<Box<LocalAppAgentUtopiaFrame>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentUtopiaSettings {
+    pub revision: Option<u64>,
+    pub preset: Option<String>,
+    pub preset_version: Option<u64>,
+    pub outdoor_open: Option<bool>,
+    pub public_participation: Option<bool>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentUtopiaSharedActivity {
+    pub activity_ref: Option<String>,
+    pub initiator_handle: Option<String>,
+    pub recipient_handle: Option<String>,
+    pub place: Option<String>,
+    pub activity: Option<String>,
+    pub state: Option<String>,
+    pub starts_at: Option<String>,
+    pub ends_at: Option<String>,
+    pub accepted_at: Option<String>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct LocalAppAgentUtopiaSolitude {
+    pub agent_handle: Option<String>,
+    pub solitary: Option<bool>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]
@@ -16143,6 +16221,21 @@ pub struct UpdateLocalAppAgentConversationContextRequest {
 #[derive(Clone, Debug, Default, PartialEq)]
 pub struct UpdateLocalAppAgentConversationContextResponse {
     pub projection: Option<Box<LocalAppAgentConversationContextProjection>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct UpdateLocalAppAgentUtopiaSettingsRequest {
+    pub expected_revision: Option<u64>,
+    pub select_preset: Option<String>,
+    pub restore_default: Option<bool>,
+    pub outdoor_open: Option<bool>,
+    pub public_participation: Option<bool>,
+    pub solitude: Option<Box<LocalAppAgentUtopiaSolitude>>,
+}
+
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct UpdateLocalAppAgentUtopiaSettingsResponse {
+    pub settings: Option<Box<LocalAppAgentUtopiaSettings>>,
 }
 
 #[derive(Clone, Debug, Default, PartialEq)]

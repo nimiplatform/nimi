@@ -26,7 +26,7 @@ func TestSolitaryIntentionChangeCommitsFutureAndMemoryTogether(t *testing.T) {
 				if err := e.Life.acceptFuture([]lifeFrameProposal{
 					{Title: "Cloud study", Kind: "project", DurationMinutes: 30, EndProgress: 50},
 					{Title: "River walk", Kind: "routine", DurationMinutes: 10, EndProgress: 100, CompletesActivity: true},
-				}, now.Add(time.Hour), 1, nil, false); err != nil {
+				}, now.Add(time.Hour), nil, false); err != nil {
 					return nil, nil, err
 				}
 				target, retained = e.Life.Future[0].ActivityRef, e.Life.Future[1].ID
@@ -79,18 +79,18 @@ func TestSolitaryIntentionChangeCommitsFutureAndMemoryTogether(t *testing.T) {
 func TestLifeExhaustionRechecksOnceAndChatBoundsPast(t *testing.T) {
 	now := time.Now().UTC()
 	life := newAgentLifeState()
-	if err := life.acceptFuture([]lifeFrameProposal{{Title: "Walk", Kind: "routine", DurationMinutes: 1, EndProgress: 100, CompletesActivity: true}}, now, 1, nil, false); err != nil {
+	if err := life.acceptFuture([]lifeFrameProposal{{Title: "Walk", Kind: "routine", DurationMinutes: 1, EndProgress: 100, CompletesActivity: true}}, now, nil, false); err != nil {
 		t.Fatal(err)
 	}
 	life.NextCheckAt = now.Add(2 * time.Hour)
-	if _, err := life.advance(now.Add(time.Minute), false); err != nil {
+	if _, err := life.advance(now.Add(time.Minute)); err != nil {
 		t.Fatal(err)
 	}
-	if !life.canPlanAt(now.Add(time.Minute), 1) {
+	if !life.canPlanAt(now.Add(time.Minute)) {
 		t.Fatal("exhaustion did not allow a coverage check")
 	}
 	life.NextCheckAt = now.Add(time.Hour) // an ensuing budget/failure wait
-	if _, err := life.advance(now.Add(2*time.Minute), false); err != nil || !life.NextCheckAt.Equal(now.Add(time.Hour)) {
+	if _, err := life.advance(now.Add(2 * time.Minute)); err != nil || !life.NextCheckAt.Equal(now.Add(time.Hour)) {
 		t.Fatal("empty sweep overwrote the ensuing wait")
 	}
 	input := lifeExecutorTestInput(t, 128)
@@ -107,11 +107,11 @@ func TestLifeExhaustionRechecksOnceAndChatBoundsPast(t *testing.T) {
 func TestNewDirectionAfterInteractionCanUseAnIndependentFutureGap(t *testing.T) {
 	now := time.Now().UTC()
 	life := newAgentLifeState()
-	if err := life.acceptFuture([]lifeFrameProposal{{Title: "Later walk", Kind: "routine", DurationMinutes: 10, EndProgress: 100, CompletesActivity: true}}, now.Add(time.Hour), 1, nil, false); err != nil {
+	if err := life.acceptFuture([]lifeFrameProposal{{Title: "Later walk", Kind: "routine", DurationMinutes: 10, EndProgress: 100, CompletesActivity: true}}, now.Add(time.Hour), nil, false); err != nil {
 		t.Fatal(err)
 	}
 	retained := life.Future[0]
-	if _, err := life.beginInteraction("turn", now, true, false); err != nil {
+	if _, err := life.beginInteraction("turn", now, true); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := acceptSelfIntention(life, &selfIntentionProposal{Action: "adopt", Title: "Cloud study", Kind: "project"}, now); err != nil {
@@ -120,7 +120,7 @@ func TestNewDirectionAfterInteractionCanUseAnIndependentFutureGap(t *testing.T) 
 	if err := life.finishInteraction(now.Add(lifeInteractionSilence)); err != nil {
 		t.Fatal(err)
 	}
-	if len(life.Future) != 1 || life.Future[0].ID != retained.ID || !life.canPlanAt(now.Add(lifeInteractionSilence), 1) {
+	if len(life.Future) != 1 || life.Future[0].ID != retained.ID || !life.canPlanAt(now.Add(lifeInteractionSilence)) {
 		t.Fatal("retained future hid a newly accepted direction or was discarded")
 	}
 }

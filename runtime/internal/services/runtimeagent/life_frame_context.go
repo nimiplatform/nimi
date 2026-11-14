@@ -2,10 +2,12 @@ package runtimeagent
 
 import (
 	"encoding/json"
-	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
+	"fmt"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/nimiplatform/nimi/runtime/internal/services/cognitionmemory"
 )
 
 type agentTurnLifeContextInput struct {
@@ -18,6 +20,8 @@ type agentTurnLifeContextInput struct {
 	Core                        string
 	Explanation                 string
 	RecallQuery                 string
+	Utopia                      *lifeUtopia
+	PreviousUtopia              *lifeUtopiaPlanningConditions
 }
 
 func subsetMemoryReadSet(source cognitionmemory.MemoryReadSet, refs []string) cognitionmemory.MemoryReadSet {
@@ -30,7 +34,7 @@ func subsetMemoryReadSet(source cognitionmemory.MemoryReadSet, refs []string) co
 // The durable timeline is larger than the input: keep unfinished work and
 // accepted future segments, a few recent key frames, and self-intentions.
 // Delivery instructions stay with their owner and are not planning prompts.
-func projectLifeContext(l *agentLifeState, planning, omitSupplemental bool, selection *lifeConversationRead, now time.Time, worldFlow float64) *agentTurnLifeContextInput {
+func projectLifeContext(l *agentLifeState, planning, omitSupplemental bool, selection *lifeConversationRead, now time.Time) *agentTurnLifeContextInput {
 	if l == nil {
 		return nil
 	}
@@ -51,9 +55,9 @@ func projectLifeContext(l *agentLifeState, planning, omitSupplemental bool, sele
 	}
 
 	type window struct {
-		Start        time.Time  `json:"start"`
-		End          *time.Time `json:"end,omitempty"`
-		WorldMinutes float64    `json:"world_minutes,omitempty"`
+		Start   time.Time  `json:"start"`
+		End     *time.Time `json:"end,omitempty"`
+		Minutes float64    `json:"real_minutes,omitempty"`
 	}
 	core := struct {
 		Now                 time.Time  `json:"real_now"`
@@ -97,6 +101,10 @@ func projectLifeContext(l *agentLifeState, planning, omitSupplemental bool, sele
 		return true
 	}
 	project := func(f lifeFrame) frame {
+		if f.SharedRef != "" {
+			end := f.EndsAt
+			return frame{Title: "Shared Utopia activity", Start: f.StartsAt, End: &end, Phase: f.Phase}
+		}
 		ref := f.ActivityRef
 		if a := l.Activities[ref]; planning && a != nil && (a.Phase == lifeCompleted || a.Phase == lifeCanceled || reservedActivities[ref]) {
 			// Historical descriptions remain useful; terminal or user-paused
@@ -124,31 +132,26 @@ func projectLifeContext(l *agentLifeState, planning, omitSupplemental bool, sele
 	}
 	if planning {
 		core.SettledAt = l.SettledAt
-		pastMinutes := now.Sub(l.SettledAt).Minutes() * worldFlow
+		pastMinutes := now.Sub(l.SettledAt).Minutes()
 		if pastMinutes >= 1 && !l.SettledAt.IsZero() && l.Current == nil && l.Interaction == nil {
-			core.PastWindow = &window{Start: l.SettledAt, End: &now, WorldMinutes: pastMinutes}
+			core.PastWindow = &window{Start: l.SettledAt, End: &now, Minutes: pastMinutes}
 		}
 		core.FutureWindow = &window{Start: now}
 		if len(l.Future) > 0 {
 			end := l.Future[0].StartsAt
 			core.FutureWindow.End = &end
-			core.FutureWindow.WorldMinutes = end.Sub(now).Minutes() * worldFlow
+			core.FutureWindow.Minutes = end.Sub(now).Minutes()
 		}
 		slots := min(3, lifeFutureLimit-len(l.Future))
 		core.FutureSlots = &slots
-		activeSlots := lifeUnfinishedLimit
-		for _, a := range l.Activities {
-			if a.Phase != lifeCompleted && a.Phase != lifeCanceled {
-				activeSlots--
-			}
-		}
+		activeSlots := lifeUnfinishedLimit - l.unfinishedActivityCount()
 		core.ActiveActivitySlots = &activeSlots
 		for _, f := range l.Future {
 			core.Future = append(core.Future, project(f))
 		}
 		unfinished := []string{}
 		for ref, a := range l.Activities {
-			if a.Phase != lifeCompleted && a.Phase != lifeCanceled {
+			if a.Phase != lifeCompleted && a.Phase != lifeCanceled && !strings.HasPrefix(ref, "shared_") {
 				unfinished = append(unfinished, ref)
 			}
 		}
@@ -157,20 +160,15 @@ func projectLifeContext(l *agentLifeState, planning, omitSupplemental bool, sele
 			add(ref)
 		}
 		for _, f := range l.Recent[max(0, len(l.Recent)-3):] {
-
 			core.Recent = append(core.Recent, project(f))
 		}
-
-	}
-	if !planning {
+	} else {
 		for ref, a := range l.Activities {
-			if a.Phase != lifeCompleted && a.Phase != lifeCanceled {
+			if a.Phase != lifeCompleted && a.Phase != lifeCanceled && !strings.HasPrefix(ref, "shared_") {
 				add(ref)
 			}
 		}
 		sort.Strings(refs)
-	}
-	if !planning {
 		for i := len(l.Recent) - 1; i >= 0 && len(core.Recent) < 3; i-- {
 			if !l.Recent[i].Interaction {
 				core.Recent = append(core.Recent, project(l.Recent[i]))
@@ -209,19 +207,29 @@ func appendAgentTurnLifeContext(items map[agentTurnContextLaneID][]agentTurnCont
 	if input == nil {
 		return nil
 	}
+	var utopia string
+	if input.Utopia != nil {
+		raw, err := json.Marshal(struct {
+			Current  *lifeUtopia                   `json:"current"`
+			Previous *lifeUtopiaPlanningConditions `json:"previous_if_changed,omitempty"`
+		}{input.Utopia, input.PreviousUtopia})
+		if err != nil {
+			return fmt.Errorf("encode life Utopia: %w", err)
+		}
+		utopia = string(raw)
+	}
 	for _, part := range []struct {
-		id, text string
-		required bool
-	}{{"state", input.Core, true}, {"explanation", input.Explanation, false}} {
+		id, heading, text string
+		required          bool
+	}{
+		{"state", "Accepted simulated life state; future frames are tentative, and no external effects are implied", input.Core, true},
+		{"utopia", "Current Utopia conditions and any change since the last accepted personal plan", utopia, true},
+		{"explanation", "Optional life explanation from currently eligible sources; advisory context, not control authority.", input.Explanation, false},
+	} {
 		if part.text == "" {
 			continue
 		}
-		heading := "Accepted simulated life state; future frames are tentative, and no external effects are implied"
-
-		if part.id == "explanation" {
-			heading = "Optional life explanation from currently eligible sources; advisory context, not control authority."
-		}
-		content := agentTurnContextTypedContent(heading, agentTurnContextTextField{Name: part.id, Values: []string{part.text}})
+		content := agentTurnContextTypedContent(part.heading, agentTurnContextTextField{Name: part.id, Values: []string{part.text}})
 		ref, err := newAgentTurnContextRuntimeRef("lifeContext", part.id, "v1", content)
 		if err != nil {
 			return err

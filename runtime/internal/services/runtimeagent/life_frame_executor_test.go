@@ -5,6 +5,7 @@ import (
 	"errors"
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 	"github.com/nimiplatform/nimi/runtime/internal/aitelemetry"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/executionintent"
 	"math"
 	"strings"
@@ -17,7 +18,7 @@ func lifeExecutorTestInput(t *testing.T, cap int64) lifeFrameExecutionInput {
 	base := agentTurnContextTestInput(t, "personaCharacter")
 	now := time.Now().UTC()
 	entry := &agentEntry{Agent: &runtimev1.LocalAgentRecord{LocalAgentRef: base.LocalAgentRef, OwnerUserId: "owner", Autonomy: &runtimev1.AgentAutonomyState{Config: &runtimev1.AgentAutonomyConfig{MaxBackgroundOutputTokens: cap}}}, Life: newAgentLifeState()}
-	return lifeFrameExecutionInput{Entry: entry, Source: base.Source, Now: now, RequestID: "life-test", Context: projectLifeContext(entry.Life, true, false, nil, now, 1), Binding: publicChatExecutionBinding{ModelID: "local/test", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, ContextWindowTokens: 32768, RouteDigest: base.Route.RouteDigest}}
+	return lifeFrameExecutionInput{Entry: entry, Source: base.Source, Now: now, RequestID: "life-test", Context: projectLifeContext(entry.Life, true, false, nil, now), Binding: publicChatExecutionBinding{ModelID: "local/test", RoutePolicy: runtimev1.RoutePolicy_ROUTE_POLICY_LOCAL, ContextWindowTokens: 32768, RouteDigest: base.Route.RouteDigest}}
 }
 
 func TestLifeFrameExecutorUsesCommonCompilerCommittedRouteAndActualUsage(t *testing.T) {
@@ -40,7 +41,7 @@ func TestLifeFrameExecutorUsesCommonCompilerCommittedRouteAndActualUsage(t *test
 	}
 	input.Entry, _ = svc.agentByID(ref)
 	input.Source, _ = svc.turnSourceView(ref)
-	input.Context = projectLifeContext(input.Entry.Life, true, false, nil, input.Now, 1)
+	input.Context = projectLifeContext(input.Entry.Life, true, false, nil, input.Now)
 	input.Work = svc.claimAgentBackground(context.Background(), ref)
 	defer svc.releaseAgentBackground(ref, input.Work)
 	result, usage, err := svc.executeLifeFrames(context.Background(), &input)
@@ -52,6 +53,9 @@ func TestLifeFrameExecutorUsesCommonCompilerCommittedRouteAndActualUsage(t *test
 		t.Fatal("planner omitted its structured response contract")
 	}
 	schema := req.GetSpec().GetTextGenerate().GetResponseFormat().GetJsonSchema().AsMap()
+	if _, err := capabilitydriver.OpenAIResponsesTextBehaviorRequestSerializer("gpt-6.1-terra", req.GetSpec().GetTextGenerate(), false); err != nil {
+		t.Fatalf("Life request cannot be serialized on the admitted OpenAI Responses route: %v", err)
+	}
 	props := schema["properties"].(map[string]any)
 	if props["past"].(map[string]any)["maxItems"] != float64(0) {
 		t.Fatal("planner can invent past frames without an admitted window")
@@ -128,8 +132,7 @@ func TestLifeBudgetPruningDoesNotSealPastWithOmittedConversation(t *testing.T) {
 	input.Entry, _ = svc.agentByID(ref)
 	input.Source, _ = svc.turnSourceView(ref)
 	input.Source.KnownAt = from.Add(-time.Hour)
-	input.Source.LifeFlowRatio = 1
-	input.Context = projectLifeContext(input.Entry.Life, true, false, nil, input.Now, 1)
+	input.Context = projectLifeContext(input.Entry.Life, true, false, nil, input.Now)
 	base, err := compileLifeFrameContext(input)
 	if err != nil {
 		t.Fatal(err)
@@ -187,6 +190,13 @@ func TestLifeFrameLoopPlansWithoutConversationAndPersistsAcceptedCoverage(t *tes
 	}
 	if len(ai.requests) != 1 {
 		t.Fatal("coverage caused repeated inference")
+	}
+	if got := entry.Life.Current.EndsAt.Sub(entry.Life.Current.StartsAt); got != time.Hour {
+		t.Fatalf("sixty planned minutes take %v", got)
+	}
+	input := ai.requests[0].GetSpec().GetTextGenerate().GetInput()[0].GetContent()
+	if !strings.Contains(input, "Current Utopia conditions") || !strings.Contains(input, "birdwatching spot") {
+		t.Fatal("the Runtime did not supply its default Utopia to personal planning")
 	}
 	svc.chatSurfaceMu.Lock()
 	anchors := len(svc.chatAnchors)

@@ -386,6 +386,17 @@ func (b *Backend) ensureSchema() error {
 			local_agent_ref TEXT PRIMARY KEY,
 			life_json TEXT NOT NULL
 		)`,
+		`CREATE TABLE IF NOT EXISTS runtime_agent_utopia_settings (
+			account_id TEXT PRIMARY KEY,
+			settings_json TEXT NOT NULL
+		)`,
+		`CREATE TABLE IF NOT EXISTS runtime_agent_utopia_shared (
+			account_id TEXT NOT NULL,
+			activity_ref TEXT NOT NULL,
+			record_json TEXT NOT NULL,
+			closed_at_ns INTEGER,
+			PRIMARY KEY (account_id, activity_ref)
+		)`,
 		`CREATE TABLE IF NOT EXISTS runtime_local_agent_event_log (
 			sequence INTEGER PRIMARY KEY,
 			local_agent_ref TEXT NOT NULL,

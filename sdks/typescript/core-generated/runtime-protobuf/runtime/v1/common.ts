@@ -1620,7 +1620,11 @@ export enum ReasonCode {
     /**
      * @generated from protobuf enum value: APP_STORAGE_CONTENT_CONFLICT = 776;
      */
-    APP_STORAGE_CONTENT_CONFLICT = 776
+    APP_STORAGE_CONTENT_CONFLICT = 776,
+    /**
+     * @generated from protobuf enum value: AGENT_UTOPIA_REVISION_CONFLICT = 777;
+     */
+    AGENT_UTOPIA_REVISION_CONFLICT = 777
 }
 /**
  * @generated from protobuf enum nimi.runtime.v1.ExternalPrincipalType

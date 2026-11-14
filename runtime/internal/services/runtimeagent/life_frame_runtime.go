@@ -34,6 +34,11 @@ func lifePlanningInterval(entry *agentEntry) time.Duration {
 	return base
 }
 
+func lifeMinimumAttemptInterval(entry *agentEntry) time.Duration {
+	minimum := entry.Agent.GetAutonomy().GetConfig().GetMinPlanningInterval()
+	return max(30*time.Second, minimum.AsDuration())
+}
+
 func pacedLifePlanningInterval(entry *agentEntry, now time.Time) time.Duration {
 	base := lifePlanningInterval(entry)
 	autonomy := entry.Agent.GetAutonomy()
@@ -55,6 +60,7 @@ func pacedLifePlanningInterval(entry *agentEntry, now time.Time) time.Duration {
 // @nimi-authority: rule.nimi.runtime.agent-life.timeline
 // Sweeps do bounded owner work; inference never blocks other Agents.
 func (s *Service) runLifeFrameSweep(ctx context.Context, now time.Time) error {
+	publicAccount, settings, utopia, shared, utopiaErr := s.maintainCurrentUtopia(ctx, now)
 	s.mu.RLock()
 	refs := make([]string, 0, len(s.agents))
 	for ref := range s.agents {
@@ -63,6 +69,9 @@ func (s *Service) runLifeFrameSweep(ctx context.Context, now time.Time) error {
 	s.mu.RUnlock()
 	sort.Strings(refs)
 	var sweepErrors []error
+	if utopiaErr != nil {
+		sweepErrors = append(sweepErrors, utopiaErr)
+	}
 	for _, ref := range refs {
 		if err := ctx.Err(); err != nil {
 			return errors.Join(append(sweepErrors, err)...)
@@ -71,12 +80,13 @@ func (s *Service) runLifeFrameSweep(ctx context.Context, now time.Time) error {
 		if !found {
 			continue
 		}
-		var shouldPlan, shouldContact, delivered bool
+		var shouldPlan, shouldContact, shouldChoosePublic, shouldRespond, delivered bool
 		var proactive *lifeProactiveIntent
 		s.cognitionMemoryOwnerLifecycleMu.Lock()
 		err := s.mutateAgent(ref, func(entry *agentEntry) (outEvents []*runtimev1.AgentEvent, outHook runtimeAgentStateTxHook, outErr error) {
 			beforeBudget := snapshotAutonomy(entry.Agent.GetAutonomy())
 			hadCurrent := entry.Life.Current != nil
+			hadInteraction := entry.Life.Interaction != nil
 			defer func() {
 				if outErr == nil {
 					outEvents = append(outEvents, optionalEvents(budgetEventForTransition(ref, beforeBudget, entry.Agent.GetAutonomy(), now), s.syncLifePresentation(entry, hadCurrent, now))...)
@@ -91,16 +101,11 @@ func (s *Service) runLifeFrameSweep(ctx context.Context, now time.Time) error {
 			}
 			proactive = selectLifeProactive(entry, now)
 			if i := l.Interaction; i != nil {
-				if s.lifeInteractionBusy(ref) || now.Before(i.LastActivityAt.Add(lifeInteractionSilence)) {
+				if lifeInteractionBlocks(i, now) || s.lifeInteractionBusy(ref) {
 					l.WaitReason = "interaction"
 					return nil, nil, nil
 				}
 				if err := l.finishInteraction(now); err != nil {
-					return nil, nil, err
-				}
-				// Valid retained coverage wins over a model call, even after new chat.
-				if l.Current != nil || len(l.Future) > 0 {
-					_, err := l.advance(now, source.LifeWorldPaused)
 					return nil, nil, err
 				}
 			}
@@ -114,7 +119,7 @@ func (s *Service) runLifeFrameSweep(ctx context.Context, now time.Time) error {
 					return nil, nil, err
 				}
 			}
-			completed, err := l.advance(now, source.LifeWorldPaused)
+			completed, err := l.advance(now)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -125,8 +130,8 @@ func (s *Service) runLifeFrameSweep(ctx context.Context, now time.Time) error {
 				return nil, nil, err
 			}
 			delivered = hook != nil
-			if source.LifeWorldPaused {
-				l.WaitReason = "world_paused"
+			if hadInteraction && (l.Current != nil || len(l.Future) > 0) {
+				// Keep advancing retained coverage before taking another model opportunity.
 				return nil, hook, nil
 			}
 			if entry.Agent.GetAutonomy().GetBudgetExhausted() {
@@ -137,11 +142,13 @@ func (s *Service) runLifeFrameSweep(ctx context.Context, now time.Time) error {
 				l.WaitReason = "suspended"
 				return nil, hook, nil
 			}
-			minimum := 30 * time.Second
-			if configured := entry.Agent.GetAutonomy().GetConfig().GetMinPlanningInterval(); configured != nil {
-				minimum = max(minimum, configured.AsDuration())
+			if !l.LifeBudgetWaiting && !l.ContactBudgetWaiting && l.WaitReason != "planning_unavailable" {
+				l.WaitReason = ""
 			}
-			shouldPlan = l.canPlanAt(now, source.LifeFlowRatio) && !now.Before(l.LastLifeAttempt.Add(minimum))
+			if !now.Before(l.LastLifeAttempt.Add(lifeMinimumAttemptInterval(entry))) {
+				shouldPlan = l.canPlanAt(now)
+				shouldChoosePublic, shouldRespond = s.publicLifeOpportunityLocked(entry, publicAccount, settings, utopia, shared, now, shouldPlan)
+			}
 			return nil, hook, nil
 		})
 		s.cognitionMemoryOwnerLifecycleMu.Unlock()
@@ -152,7 +159,7 @@ func (s *Service) runLifeFrameSweep(ctx context.Context, now time.Time) error {
 		if delivered {
 			s.triggerCognitionMemory(ref)
 		}
-		if proactive != nil {
+		if proactive != nil && !shouldRespond {
 			s.chatSurfaceMu.Lock()
 			busy := s.localAgentExecutionBusyLocked(ref) || s.foregroundWaitingByAgent[ref] > 0
 			s.chatSurfaceMu.Unlock()
@@ -162,11 +169,15 @@ func (s *Service) runLifeFrameSweep(ctx context.Context, now time.Time) error {
 			}
 			continue
 		}
-		if !shouldPlan && !shouldContact {
+		if !shouldPlan && !shouldContact && !shouldChoosePublic && !shouldRespond {
 			continue
 		}
 		purpose := "life_planning"
-		if !shouldPlan {
+		if shouldRespond {
+			purpose = lifeSharedResponsePurpose
+		} else if shouldChoosePublic {
+			purpose = lifePublicPurpose
+		} else if !shouldPlan {
 			purpose = "contact_judgment"
 		}
 		work := s.claimAgentBackgroundFor(ctx, ref, purpose)
@@ -177,6 +188,10 @@ func (s *Service) runLifeFrameSweep(ctx context.Context, now time.Time) error {
 		go func() {
 			defer s.lifeFrameWG.Done()
 			defer s.releaseAgentBackground(ref, work)
+			if work.source == lifePublicPurpose || work.source == lifeSharedResponsePurpose {
+				s.runPublicLifeChoice(work, ref, now)
+				return
+			}
 			s.runLifeFramePlanning(work, ref, source, now)
 		}()
 	}
@@ -188,12 +203,14 @@ func (s *Service) runLifeFramePlanning(work *agentBackgroundExecution, ref strin
 	if err != nil || s.runtimeAccountProjection == nil {
 		return
 	}
-	projection, ready := s.runtimeAccountProjection.AuthenticatedRuntimeProjection(work.ctx)
+	projection, scope, ready := s.currentLifeAccount(work.ctx)
 	if !ready || projection.GetAccountId() != entry.Agent.GetOwnerUserId() {
 		// Account restoration is an eligibility condition, not a failed model
 		// attempt. Leave the opportunity due so the existing sweep can resume.
 		return
 	}
+	stop := scope.cancelOnReplacement(work)
+	defer stop()
 	s.cognitionMemoryOwnerLifecycleMu.Lock()
 	entry, err = s.qualifyLifeState(work.ctx, ref)
 	s.cognitionMemoryOwnerLifecycleMu.Unlock()
@@ -241,7 +258,7 @@ func (s *Service) runLifeFramePlanning(work *agentBackgroundExecution, ref strin
 	if release != nil {
 		defer release()
 	}
-	input := lifeFrameExecutionInput{Entry: entry, Source: source, Binding: binding, Now: now, RequestID: "life_" + ulid.Make().String(), Work: work, ContactOnly: work.source == "contact_judgment", Context: projectLifeContext(entry.Life, true, false, s.lifeConversationSelection(ref), now, source.LifeFlowRatio)}
+	input := lifeFrameExecutionInput{Entry: entry, Source: source, Binding: binding, Now: now, RequestID: "life_" + ulid.Make().String(), Work: work, Account: scope, ContactOnly: work.source == "contact_judgment"}
 	var omitSupplemental bool
 	input.Transcript, input.TranscriptRead, omitSupplemental, err = s.lifeConversationInput(ref)
 	if err != nil {
@@ -251,8 +268,24 @@ func (s *Service) runLifeFramePlanning(work *agentBackgroundExecution, ref strin
 	// Conversation selection bounds the chat we actually consume. Its
 	// supplemental-omission switch does not disable solitary life's own Memory.
 	omitSupplemental = input.ContactOnly && omitSupplemental
-	input.Context = projectLifeContext(entry.Life, !input.ContactOnly, omitSupplemental, input.TranscriptRead, now, source.LifeFlowRatio)
+	input.Context = projectLifeContext(entry.Life, !input.ContactOnly, omitSupplemental, input.TranscriptRead, now)
 	input.Context.Planning = true
+	if !input.ContactOnly {
+		settings, err := s.readLifeUtopiaSettings(ctx, projection.GetAccountId())
+		if err != nil {
+			s.recordLifePlanningFailure(work, entry, err, 0)
+			return
+		}
+		utopia, err := settings.effective()
+		if err != nil {
+			s.recordLifePlanningFailure(work, entry, err, 0)
+			return
+		}
+		input.Context.Utopia = &utopia
+		if previous := entry.Life.LastPlannedUtopia; previous != nil && *previous != utopia.planningConditions() {
+			input.Context.PreviousUtopia = previous
+		}
+	}
 	if s.cognitionMemoryFacade != nil && !omitSupplemental {
 		query := entry.Agent.GetDisplayName() + " ongoing activities interests"
 		query += " " + input.Context.RecallQuery
@@ -282,7 +315,6 @@ func (s *Service) runLifeFramePlanning(work *agentBackgroundExecution, ref strin
 	}
 	result, usage, err := s.executeLifeFrames(ctx, &input)
 	if err != nil {
-
 		s.recordLifePlanningFailure(work, entry, err, usage)
 		return
 	}
@@ -311,8 +343,8 @@ func (s *Service) commitLifeFramePlanning(work *agentBackgroundExecution, input 
 			return nil, nil, nil
 		}
 		beforeBudget := snapshotAutonomy(current.Agent.GetAutonomy())
-		applyTokenUsage(current, usage, time.Now().UTC())
-		budgetEvents := optionalEvents(budgetEventForTransition(ref, beforeBudget, current.Agent.GetAutonomy(), time.Now().UTC()))
+		applyTokenUsage(current, usage, now)
+		budgetEvents := optionalEvents(budgetEventForTransition(ref, beforeBudget, current.Agent.GetAutonomy(), now))
 		if usage > 0 {
 			current.Life.LastPlanningTokens = usage
 		}
@@ -320,6 +352,24 @@ func (s *Service) commitLifeFramePlanning(work *agentBackgroundExecution, input 
 			return budgetEvents, nil, nil
 		}
 		l := current.Life
+		if input.Context != nil && input.Context.Utopia != nil {
+			settings, err := s.readLifeUtopiaSettings(work.ctx, current.Agent.GetOwnerUserId())
+			if err != nil {
+				return nil, nil, err
+			}
+			utopia, err := settings.effective()
+			if err != nil {
+				return nil, nil, err
+			}
+			if !input.Context.Utopia.sameConditions(utopia) {
+				return budgetEvents, nil, nil
+			}
+			for _, frame := range result.Future {
+				if (frame.Place != "" || frame.UtopiaActivity != "") && !utopia.allows(frame.Place, frame.UtopiaActivity) {
+					return nil, nil, fmt.Errorf("life proposal used an unavailable Utopia activity")
+				}
+			}
+		}
 		if input.ContactOnly {
 			// Generation was admitted before spending this usage. Exhausting
 			// its allowance must not discard the paid message or no-send.
@@ -352,7 +402,7 @@ func (s *Service) commitLifeFramePlanning(work *agentBackgroundExecution, input 
 		if input.PastFrom.After(l.SettledAt) {
 			l.SettledAt = input.PastFrom
 		}
-		completed, err := l.acceptPast(result.Past, input.Now, input.Source.LifeFlowRatio, input.ReadSet.Refs, input.ConversationRead != nil)
+		completed, err := l.acceptPast(result.Past, input.Now, input.ReadSet.Refs, input.ConversationRead != nil)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -381,12 +431,16 @@ func (s *Service) commitLifeFramePlanning(work *agentBackgroundExecution, input 
 			}
 		}
 		if len(result.Future) > 0 {
-			if err := l.acceptFuture(result.Future, now, input.Source.LifeFlowRatio, input.ReadSet.Refs, input.ConversationRead != nil); err != nil {
+			if err := l.acceptFuture(result.Future, now, input.ReadSet.Refs, input.ConversationRead != nil); err != nil {
 				return nil, nil, err
 			}
 		}
-		if _, err := l.advance(now, false); err != nil {
+		if _, err := l.advance(now); err != nil {
 			return nil, nil, err
+		}
+		if input.Context != nil && input.Context.Utopia != nil {
+			conditions := input.Context.Utopia.planningConditions()
+			l.LastPlannedUtopia = &conditions
 		}
 		oldFrames := map[string]bool{}
 		for _, f := range input.Entry.Life.frames() {
@@ -465,7 +519,9 @@ func (s *Service) commitLifeFramePlanning(work *agentBackgroundExecution, input 
 			// carries no new life or contact effects.
 			return s.stateRepo.persistAgentDelta(entry, events, sequence, nil)
 		}
-		return s.stateRepo.persistAgentDeltaContext(work.ctx, entry, events, sequence, hook)
+		return s.commitLifeAccount(work.ctx, entry.Agent.GetOwnerUserId(), input.Account, func(ctx context.Context) error {
+			return s.stateRepo.persistAgentDeltaContext(ctx, entry, events, sequence, hook)
+		})
 	})
 }
 
@@ -483,7 +539,7 @@ func (s *Service) recordLifePlanningFailure(work *agentBackgroundExecution, atte
 		}
 		budgetEvents := optionalEvents(budgetEventForTransition(ref, before, entry.Agent.GetAutonomy(), now))
 		contact := work.source == "contact_judgment"
-		if work.ctx.Err() == context.Canceled ||
+		if work.ctx.Err() == context.Canceled || errors.Is(cause, errLifeAccountChanged) ||
 			contact && (!entry.Agent.GetAutonomy().GetConfig().GetFreeContactEnabled() || entry.Life.ContactEpoch != attempt.Life.ContactEpoch) ||
 			!contact && (!lifeEnabled(entry) || entry.Life.Revision != revision) {
 			return budgetEvents, nil, nil

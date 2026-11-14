@@ -11,6 +11,7 @@
     "proto/runtime/v1/agent_presentation.proto",
     "proto/runtime/v1/agent_service.proto",
     "proto/runtime/v1/agent_source_materialization.proto",
+    "proto/runtime/v1/agent_utopia.proto",
     "proto/runtime/v1/agent_work.proto",
     "proto/runtime/v1/ai.proto",
     "proto/runtime/v1/ai_realtime.proto",
@@ -197,6 +198,24 @@
           "kind": "unary",
           "request_type": "ListLocalAppAgentReferencesRequest",
           "response_type": "ListLocalAppAgentReferencesResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "GetLocalAppAgentUtopiaSnapshot",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentUtopiaSnapshot",
+          "kind": "unary",
+          "request_type": "GetLocalAppAgentUtopiaSnapshotRequest",
+          "response_type": "GetLocalAppAgentUtopiaSnapshotResponse",
+          "request_stream": false,
+          "response_stream": false
+        },
+        {
+          "name": "UpdateLocalAppAgentUtopiaSettings",
+          "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentUtopiaSettings",
+          "kind": "unary",
+          "request_type": "UpdateLocalAppAgentUtopiaSettingsRequest",
+          "response_type": "UpdateLocalAppAgentUtopiaSettingsResponse",
           "request_stream": false,
           "response_stream": false
         },
@@ -2886,6 +2905,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentManagerSnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentPresentationSnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentRealtimeStatus",
+    "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentUtopiaSnapshot",
     "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentWork",
     "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentWorkStatus",
     "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppConversationSnapshot",
@@ -2939,6 +2959,7 @@
     "/nimi.runtime.v1.RuntimeAgentService/UpdateAgentState",
     "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentAutonomy",
     "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentConversationContext",
+    "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentUtopiaSettings",
     "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/AppendRealtimeInput",
     "/nimi.runtime.v1.RuntimeAiRealtimeService/CloseRealtimeSession",
@@ -3419,6 +3440,14 @@
       "response_type": "GetLocalAppAgentRealtimeStatusResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentUtopiaSnapshot",
+      "service": "RuntimeAgentService",
+      "method": "GetLocalAppAgentUtopiaSnapshot",
+      "kind": "unary",
+      "request_type": "GetLocalAppAgentUtopiaSnapshotRequest",
+      "response_type": "GetLocalAppAgentUtopiaSnapshotResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentWork",
       "service": "RuntimeAgentService",
       "method": "GetLocalAppAgentWork",
@@ -3841,6 +3870,14 @@
       "kind": "unary",
       "request_type": "UpdateLocalAppAgentConversationContextRequest",
       "response_type": "UpdateLocalAppAgentConversationContextResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentUtopiaSettings",
+      "service": "RuntimeAgentService",
+      "method": "UpdateLocalAppAgentUtopiaSettings",
+      "kind": "unary",
+      "request_type": "UpdateLocalAppAgentUtopiaSettingsRequest",
+      "response_type": "UpdateLocalAppAgentUtopiaSettingsResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",
@@ -5813,6 +5850,14 @@
       "response_type": "GetLocalAppAgentRealtimeStatusResponse"
     },
     {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentUtopiaSnapshot",
+      "service": "RuntimeAgentService",
+      "method": "GetLocalAppAgentUtopiaSnapshot",
+      "kind": "unary",
+      "request_type": "GetLocalAppAgentUtopiaSnapshotRequest",
+      "response_type": "GetLocalAppAgentUtopiaSnapshotResponse"
+    },
+    {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentWork",
       "service": "RuntimeAgentService",
       "method": "GetLocalAppAgentWork",
@@ -6235,6 +6280,14 @@
       "kind": "unary",
       "request_type": "UpdateLocalAppAgentConversationContextRequest",
       "response_type": "UpdateLocalAppAgentConversationContextResponse"
+    },
+    {
+      "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentUtopiaSettings",
+      "service": "RuntimeAgentService",
+      "method": "UpdateLocalAppAgentUtopiaSettings",
+      "kind": "unary",
+      "request_type": "UpdateLocalAppAgentUtopiaSettingsRequest",
+      "response_type": "UpdateLocalAppAgentUtopiaSettingsResponse"
     },
     {
       "method_id": "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",
@@ -8326,6 +8379,8 @@
       "GetLocalAppAgentPresentationSnapshotRequest",
       "GetLocalAppAgentRealtimeStatusRequest",
       "GetLocalAppAgentRealtimeStatusResponse",
+      "GetLocalAppAgentUtopiaSnapshotRequest",
+      "GetLocalAppAgentUtopiaSnapshotResponse",
       "GetLocalAppAgentWorkRequest",
       "GetLocalAppAgentWorkResponse",
       "GetLocalAppAgentWorkStatusRequest",
@@ -8551,6 +8606,13 @@
       "LocalAppAgentRealtimeTranscript",
       "LocalAppAgentReference",
       "LocalAppAgentUpdateAutonomyResponse",
+      "LocalAppAgentUtopiaFrame",
+      "LocalAppAgentUtopiaOccupancy",
+      "LocalAppAgentUtopiaPlace",
+      "LocalAppAgentUtopiaResident",
+      "LocalAppAgentUtopiaSettings",
+      "LocalAppAgentUtopiaSharedActivity",
+      "LocalAppAgentUtopiaSolitude",
       "LocalAppAgentWorkEvent",
       "LocalAppAgentWorkExecution",
       "LocalAppAgentWorkInput",
@@ -9025,6 +9087,8 @@
       "UpdateLocalAppAgentAutonomyRequest",
       "UpdateLocalAppAgentConversationContextRequest",
       "UpdateLocalAppAgentConversationContextResponse",
+      "UpdateLocalAppAgentUtopiaSettingsRequest",
+      "UpdateLocalAppAgentUtopiaSettingsResponse",
       "UploadArtifactChunk",
       "UploadArtifactMetadata",
       "UploadArtifactRequest",
@@ -22499,6 +22563,59 @@
         "source_file": "proto/runtime/v1/agent_service.proto"
       },
       {
+        "name": "GetLocalAppAgentUtopiaSnapshotRequest",
+        "fields": [],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "GetLocalAppAgentUtopiaSnapshotResponse",
+        "fields": [
+          {
+            "name": "settings",
+            "type": "LocalAppAgentUtopiaSettings",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "observed_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "places",
+            "type": "LocalAppAgentUtopiaPlace",
+            "repeated": true,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "residents",
+            "type": "LocalAppAgentUtopiaResident",
+            "repeated": true,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "occupancy",
+            "type": "LocalAppAgentUtopiaOccupancy",
+            "repeated": true,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "shared_activities",
+            "type": "LocalAppAgentUtopiaSharedActivity",
+            "repeated": true,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
         "name": "GetLocalAppAgentWorkRequest",
         "fields": [
           {
@@ -29052,6 +29169,265 @@
           }
         ],
         "source_file": "proto/runtime/v1/agent_configure.proto"
+      },
+      {
+        "name": "LocalAppAgentUtopiaFrame",
+        "fields": [
+          {
+            "name": "title",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "place",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "starts_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "ends_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "interaction",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppAgentUtopiaOccupancy",
+        "fields": [
+          {
+            "name": "place",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "agent_handles",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppAgentUtopiaPlace",
+        "fields": [
+          {
+            "name": "id",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "activities",
+            "type": "string",
+            "repeated": true,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppAgentUtopiaResident",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "display_name",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "solitary",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "current",
+            "type": "LocalAppAgentUtopiaFrame",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "recent",
+            "type": "LocalAppAgentUtopiaFrame",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "next",
+            "type": "LocalAppAgentUtopiaFrame",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppAgentUtopiaSettings",
+        "fields": [
+          {
+            "name": "revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "preset",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "preset_version",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "outdoor_open",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "public_participation",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppAgentUtopiaSharedActivity",
+        "fields": [
+          {
+            "name": "activity_ref",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "initiator_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "recipient_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "place",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "activity",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "state",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          },
+          {
+            "name": "starts_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 7
+          },
+          {
+            "name": "ends_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 8
+          },
+          {
+            "name": "accepted_at",
+            "type": "google.protobuf.Timestamp",
+            "repeated": false,
+            "optional": false,
+            "number": 9
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "LocalAppAgentUtopiaSolitude",
+        "fields": [
+          {
+            "name": "agent_handle",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "solitary",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
       },
       {
         "name": "LocalAppAgentWorkEvent",
@@ -46375,6 +46751,67 @@
         "source_file": "proto/runtime/v1/agent_configure.proto"
       },
       {
+        "name": "UpdateLocalAppAgentUtopiaSettingsRequest",
+        "fields": [
+          {
+            "name": "expected_revision",
+            "type": "uint64",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          },
+          {
+            "name": "select_preset",
+            "type": "string",
+            "repeated": false,
+            "optional": false,
+            "number": 2
+          },
+          {
+            "name": "restore_default",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 3
+          },
+          {
+            "name": "outdoor_open",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 4
+          },
+          {
+            "name": "public_participation",
+            "type": "bool",
+            "repeated": false,
+            "optional": false,
+            "number": 5
+          },
+          {
+            "name": "solitude",
+            "type": "LocalAppAgentUtopiaSolitude",
+            "repeated": false,
+            "optional": false,
+            "number": 6
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
+        "name": "UpdateLocalAppAgentUtopiaSettingsResponse",
+        "fields": [
+          {
+            "name": "settings",
+            "type": "LocalAppAgentUtopiaSettings",
+            "repeated": false,
+            "optional": false,
+            "number": 1
+          }
+        ],
+        "source_file": "proto/runtime/v1/agent_utopia.proto"
+      },
+      {
         "name": "UploadArtifactChunk",
         "fields": [
           {
@@ -50545,7 +50982,8 @@
           "AI_PROVIDER_TASK_CANCELED",
           "AI_PROVIDER_TASK_EXPIRED",
           "AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT",
-          "APP_STORAGE_CONTENT_CONFLICT"
+          "APP_STORAGE_CONTENT_CONFLICT",
+          "AGENT_UTOPIA_REVISION_CONFLICT"
         ],
         "source_file": "proto/runtime/v1/common.proto"
       },

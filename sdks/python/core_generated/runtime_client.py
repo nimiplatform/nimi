@@ -272,6 +272,14 @@ RUNTIME_METHODS = [
     "response_type": "GetLocalAppAgentRealtimeStatusResponse"
   },
   {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentUtopiaSnapshot",
+    "service": "RuntimeAgentService",
+    "method": "GetLocalAppAgentUtopiaSnapshot",
+    "kind": "unary",
+    "request_type": "GetLocalAppAgentUtopiaSnapshotRequest",
+    "response_type": "GetLocalAppAgentUtopiaSnapshotResponse"
+  },
+  {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentWork",
     "service": "RuntimeAgentService",
     "method": "GetLocalAppAgentWork",
@@ -678,6 +686,14 @@ RUNTIME_METHODS = [
     "kind": "unary",
     "request_type": "UpdateLocalAppAgentConversationContextRequest",
     "response_type": "UpdateLocalAppAgentConversationContextResponse"
+  },
+  {
+    "method_id": "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentUtopiaSettings",
+    "service": "RuntimeAgentService",
+    "method": "UpdateLocalAppAgentUtopiaSettings",
+    "kind": "unary",
+    "request_type": "UpdateLocalAppAgentUtopiaSettingsRequest",
+    "response_type": "UpdateLocalAppAgentUtopiaSettingsResponse"
   },
   {
     "method_id": "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",

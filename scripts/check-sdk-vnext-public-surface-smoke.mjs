@@ -177,6 +177,7 @@ const unavailableCarrier = async (): Promise<never> => {
 };
 const localAppStandardShell: NimiLocalAppStandardShell = {
   session: { async status() { return { state: 'ready', reasonCode: 'ACTION_EXECUTED', retryable: false }; } },
+  utopia: { snapshot: unavailableCarrier, update: unavailableCarrier },
   ai: {
     text: {
       async generateCandidate() { return {}; },

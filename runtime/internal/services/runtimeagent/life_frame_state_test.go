@@ -54,28 +54,28 @@ func TestLifeFramesAdvanceWithoutInferenceAndNeverRewind(t *testing.T) {
 	l := newAgentLifeState()
 	l.StartedAt = start
 	l.SettledAt = start
-	if err := l.acceptFuture([]lifeFrameProposal{{Title: "Paint the landscape", Description: &lifeSelfDescription{Action: "create", Object: "Paint the landscape", Result: "completed"}, Kind: "project", DurationMinutes: 60, EndProgress: 100, CompletesActivity: true}}, start, 2, nil, false); err != nil {
+	if err := l.acceptFuture([]lifeFrameProposal{{Title: "Paint the landscape", Description: &lifeSelfDescription{Action: "create", Object: "Paint the landscape", Result: "completed"}, Kind: "project", DurationMinutes: 60, EndProgress: 100, CompletesActivity: true}}, start, nil, false); err != nil {
 		t.Fatal(err)
 	}
 	ref := l.Future[0].ActivityRef
-	if _, err := l.advance(start, false); err != nil {
+	if _, err := l.advance(start); err != nil {
 		t.Fatal(err)
 	}
 	if l.Current == nil || l.Current.ActivityRef != ref || l.Activities[ref].Phase != lifeActive {
 		t.Fatal("activity did not start")
 	}
-	if done, err := l.advance(start.Add(time.Hour), true); err != nil || len(done) != 0 || l.Current == nil {
-		t.Fatal("paused world progressed")
+	if done, err := l.advance(start.Add(30 * time.Minute)); err != nil || len(done) != 0 || l.Current == nil {
+		t.Fatal("activity reached its end before sixty elapsed minutes")
 	}
-	done, err := l.advance(start.Add(30*time.Minute), false)
+	done, err := l.advance(start.Add(time.Hour))
 	if err != nil || len(done) != 1 || done[0] != l.Recent[0].ID || l.Current != nil || l.Activities[ref].Phase != lifeCompleted {
 		t.Fatalf("completion: %v %v %+v", done, err, l)
 	}
 	rev := l.Revision
-	if done, err := l.advance(start.Add(10*time.Minute), false); err != nil || len(done) != 0 || l.Revision != rev {
+	if done, err := l.advance(start.Add(10 * time.Minute)); err != nil || len(done) != 0 || l.Revision != rev {
 		t.Fatal("clock rollback replayed or mutated settled activity")
 	}
-	if err := l.acceptFuture([]lifeFrameProposal{{Title: "Rewrite", Kind: "routine", DurationMinutes: 10}}, start, 1, nil, false); err == nil {
+	if err := l.acceptFuture([]lifeFrameProposal{{Title: "Rewrite", Kind: "routine", DurationMinutes: 10}}, start, nil, false); err == nil {
 		t.Fatal("settled past was replaced")
 	}
 }
@@ -83,12 +83,12 @@ func TestLifeFramesAdvanceWithoutInferenceAndNeverRewind(t *testing.T) {
 func TestLifePausePreservesIntentionsAndIndependentContact(t *testing.T) {
 	start := time.Now().UTC()
 	l := newAgentLifeState()
-	if err := l.acceptFuture([]lifeFrameProposal{{Title: "Painting", Kind: "project", DurationMinutes: 60, EndProgress: 80}}, start, 1, []string{"memory-blue"}, false); err != nil {
+	if err := l.acceptFuture([]lifeFrameProposal{{Title: "Painting", Kind: "project", DurationMinutes: 60, EndProgress: 80}}, start, []string{"memory-blue"}, false); err != nil {
 		t.Fatal(err)
 	}
 	ref := l.Future[0].ActivityRef
 	l.Intents = []lifeProactiveIntent{{ID: "life", Source: "life"}, {ID: "contact", Source: "contact"}}
-	if _, err := l.advance(start, false); err != nil {
+	if _, err := l.advance(start); err != nil {
 		t.Fatal(err)
 	}
 	if err := l.pause(start.Add(10 * time.Minute)); err != nil {
@@ -113,7 +113,7 @@ func TestLifeStateSharesOwnerPersistenceRollbackAndRecovery(t *testing.T) {
 	id := testRuntimeAgentLocalRef(sourceRef)
 	start := time.Now().UTC().Add(time.Hour)
 	if err := svc.mutateAgent(id, func(e *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
-		return nil, nil, e.Life.acceptFuture([]lifeFrameProposal{{Title: "Sketch", Description: &lifeSelfDescription{Action: "create", Object: "Sketch", Result: "completed"}, Kind: "project", DurationMinutes: 30, EndProgress: 100, CompletesActivity: true}}, start, 1, nil, false)
+		return nil, nil, e.Life.acceptFuture([]lifeFrameProposal{{Title: "Sketch", Description: &lifeSelfDescription{Action: "create", Object: "Sketch", Result: "completed"}, Kind: "project", DurationMinutes: 30, EndProgress: 100, CompletesActivity: true}}, start, nil, false)
 	}); err != nil {
 		t.Fatal(err)
 	}

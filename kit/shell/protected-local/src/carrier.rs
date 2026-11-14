@@ -115,6 +115,7 @@ pub enum LocalAppReasonCode {
     AiConfigPersistenceUnavailable,
     AgentPresentationRevisionConflict,
     AgentConversationContextRevisionConflict,
+    AgentUtopiaRevisionConflict,
     AgentPresentationAssetTypeInvalid,
     AgentPresentationAssetTooLarge,
     AgentPresentationAssetStructureInvalid,
@@ -252,6 +253,7 @@ impl LocalAppReasonCode {
             Self::AgentConversationContextRevisionConflict => {
                 "agent-conversation-context-revision-conflict"
             }
+            Self::AgentUtopiaRevisionConflict => "agent-utopia-revision-conflict",
             Self::AgentPresentationAssetTypeInvalid => "agent-presentation-asset-type-invalid",
             Self::AgentPresentationAssetTooLarge => "agent-presentation-asset-too-large",
             Self::AgentPresentationAssetStructureInvalid => {
@@ -2079,6 +2081,13 @@ pub trait NimiLocalAppSession: Send + Sync {
         >,
     >;
 
+    fn agent_utopia_snapshot(
+        &self,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
+    fn agent_utopia_update(
+        &self,
+        request: JsonValue,
+    ) -> Pin<Box<dyn Future<Output = Result<JsonValue, LocalAppOperationError>> + Send + '_>>;
     fn agent_work_reference_list(
         &self,
         request: JsonValue,

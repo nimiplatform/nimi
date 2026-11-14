@@ -5,6 +5,8 @@ export const APP_ACCESS_DOMAINS = Object.freeze([
   'runtime.consume',
   'agent.local',
   'agent.configure',
+  'agent.utopia.read',
+  'agent.utopia.manage',
   'app.activity',
 ]);
 

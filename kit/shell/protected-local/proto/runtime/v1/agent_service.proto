@@ -7,6 +7,7 @@ import "google/protobuf/timestamp.proto";
 import "runtime/v1/agent_common.proto";
 import "runtime/v1/agent_configure.proto";
 import "runtime/v1/agent_embodiment.proto";
+import "runtime/v1/agent_utopia.proto";
 import "runtime/v1/agent_presentation.proto";
 import "runtime/v1/agent_source_materialization.proto";
 import "runtime/v1/agent_work.proto";
@@ -1254,6 +1255,8 @@ service RuntimeAgentService {
   rpc ListAgents(ListAgentsRequest) returns (ListAgentsResponse);
   rpc GetLocalAppAgentIntroduction(GetLocalAppAgentIntroductionRequest) returns (GetLocalAppAgentIntroductionResponse);
   rpc ListLocalAppAgentReferences(ListLocalAppAgentReferencesRequest) returns (ListLocalAppAgentReferencesResponse);
+  rpc GetLocalAppAgentUtopiaSnapshot(GetLocalAppAgentUtopiaSnapshotRequest) returns (GetLocalAppAgentUtopiaSnapshotResponse);
+  rpc UpdateLocalAppAgentUtopiaSettings(UpdateLocalAppAgentUtopiaSettingsRequest) returns (UpdateLocalAppAgentUtopiaSettingsResponse);
   rpc ResolveDesktopAgentReference(ResolveDesktopAgentReferenceRequest) returns (ResolveDesktopAgentReferenceResponse);
   rpc ResolveLocalAppAvatarHostTarget(ResolveLocalAppAvatarHostTargetRequest) returns (ResolveLocalAppAvatarHostTargetResponse);
   rpc RevalidateLocalAppAvatarHostTarget(RevalidateLocalAppAvatarHostTargetRequest) returns (RevalidateLocalAppAvatarHostTargetResponse);

@@ -358,6 +358,7 @@ fn local_app_reason_from_runtime_reason(value: &str) -> Option<LocalAppReasonCod
         "AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT" => {
             LocalAppReasonCode::AgentConversationContextRevisionConflict
         }
+        "AGENT_UTOPIA_REVISION_CONFLICT" => LocalAppReasonCode::AgentUtopiaRevisionConflict,
         "APP_ACTIVITY_NOT_FOUND"
         | "APP_ACTIVITY_AGENT_UNAVAILABLE"
         | "APP_ACTIVITY_OPEN_REQUEST_UNAVAILABLE" => LocalAppReasonCode::NotFound,
@@ -427,6 +428,7 @@ fn host_reason_from_runtime_reason(value: &str) -> Option<NimiHostErrorReasonCod
         "AGENT_CONVERSATION_CONTEXT_REVISION_CONFLICT" => {
             NimiHostErrorReasonCode::AgentConversationContextRevisionConflict
         }
+        "AGENT_UTOPIA_REVISION_CONFLICT" => NimiHostErrorReasonCode::AgentUtopiaRevisionConflict,
         "AGENT_AUTONOMY_REVISION_CONFLICT" => {
             NimiHostErrorReasonCode::AgentAutonomyRevisionConflict
         }

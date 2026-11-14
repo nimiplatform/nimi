@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package nimi.runtime.v1;
+
+option go_package = "github.com/nimiplatform/nimi/runtime/gen/runtime/v1;runtimev1";
+
+import "google/protobuf/timestamp.proto";
+
+message GetLocalAppAgentUtopiaSnapshotRequest {}
+
+message LocalAppAgentUtopiaSettings {
+  uint64 revision = 1;
+  string preset = 2;
+  uint64 preset_version = 3;
+  bool outdoor_open = 4;
+  bool public_participation = 5;
+}
+
+message LocalAppAgentUtopiaPlace {
+  string id = 1;
+  repeated string activities = 2;
+}
+
+message LocalAppAgentUtopiaFrame {
+  string title = 1;
+  string place = 2;
+  google.protobuf.Timestamp starts_at = 3;
+  google.protobuf.Timestamp ends_at = 4;
+  bool interaction = 5;
+}
+
+message LocalAppAgentUtopiaResident {
+  string agent_handle = 1;
+  string display_name = 2;
+  bool solitary = 3;
+  LocalAppAgentUtopiaFrame current = 4;
+  LocalAppAgentUtopiaFrame recent = 5;
+  LocalAppAgentUtopiaFrame next = 6;
+}
+
+message LocalAppAgentUtopiaOccupancy {
+  string place = 1;
+  repeated string agent_handles = 2;
+}
+
+message LocalAppAgentUtopiaSharedActivity {
+  string activity_ref = 1;
+  string initiator_handle = 2;
+  string recipient_handle = 3;
+  string place = 4;
+  string activity = 5;
+  string state = 6;
+  google.protobuf.Timestamp starts_at = 7;
+  google.protobuf.Timestamp ends_at = 8;
+  google.protobuf.Timestamp accepted_at = 9;
+}
+
+message GetLocalAppAgentUtopiaSnapshotResponse {
+  LocalAppAgentUtopiaSettings settings = 1;
+  google.protobuf.Timestamp observed_at = 2;
+  repeated LocalAppAgentUtopiaPlace places = 3;
+  repeated LocalAppAgentUtopiaResident residents = 4;
+  repeated LocalAppAgentUtopiaOccupancy occupancy = 5;
+  repeated LocalAppAgentUtopiaSharedActivity shared_activities = 6;
+}
+
+message LocalAppAgentUtopiaSolitude {
+  string agent_handle = 1;
+  bool solitary = 2;
+}
+
+message UpdateLocalAppAgentUtopiaSettingsRequest {
+  uint64 expected_revision = 1;
+  oneof intent {
+    string select_preset = 2;
+    bool restore_default = 3;
+    bool outdoor_open = 4;
+    bool public_participation = 5;
+    LocalAppAgentUtopiaSolitude solitude = 6;
+  }
+}
+
+message UpdateLocalAppAgentUtopiaSettingsResponse {
+  LocalAppAgentUtopiaSettings settings = 1;
+}

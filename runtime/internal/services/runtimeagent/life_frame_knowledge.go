@@ -36,14 +36,14 @@ func constrainLifePastKnowledge(input *lifeFrameExecutionInput) error {
 	if _, exists := core["past_window"]; !exists {
 		return nil
 	}
-	minutes := input.Now.Sub(from).Minutes() * input.Source.LifeFlowRatio
+	minutes := input.Now.Sub(from).Minutes()
 	if minutes < 1 {
 		delete(core, "past_window")
 	} else {
 		raw, err := json.Marshal(struct {
-			Start        time.Time `json:"start"`
-			End          time.Time `json:"end"`
-			WorldMinutes float64   `json:"world_minutes"`
+			Start   time.Time `json:"start"`
+			End     time.Time `json:"end"`
+			Minutes float64   `json:"real_minutes"`
 		}{from, input.Now, minutes})
 		if err != nil {
 			return err
@@ -81,6 +81,9 @@ func (l *agentLifeState) recoverAt(now time.Time) error {
 		// Only the start is known after an unobserved shutdown. Preserve the
 		// established activity/progress and seal this uncertain interval.
 		l.interruptCurrent(f.StartsAt)
+		if f.SharedRef != "" {
+			delete(l.Activities, f.ActivityRef)
+		}
 		l.SettledAt = maxTime(l.SettledAt, now)
 		l.NextCheckAt = now
 	}

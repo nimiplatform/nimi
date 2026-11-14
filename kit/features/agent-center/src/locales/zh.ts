@@ -81,7 +81,6 @@ export const agentCenterZhCatalog = {
   "AgentCenter.life.phase.interrupted": "已中断",
   "AgentCenter.life.phase.canceled": "已取消",
   "AgentCenter.life.wait.disabled": "自主生活当前已暂停。",
-  "AgentCenter.life.wait.world_paused": "所在世界的时间已暂停。",
   "AgentCenter.life.wait.budget_exhausted": "等待后台额度恢复。",
   "AgentCenter.life.wait.suspended": "生活规划暂时挂起。",
   "AgentCenter.life.wait.planning_unavailable": "暂时无法继续规划生活，请检查 AI 设置或稍后重试。",

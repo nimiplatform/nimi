@@ -27,14 +27,18 @@ type lifeInteraction struct {
 	LastActivityAt   time.Time `json:"lastActivityAt"`
 }
 
+func lifeInteractionBlocks(interaction *lifeInteraction, now time.Time) bool {
+	return interaction != nil && now.Before(interaction.LastActivityAt.Add(lifeInteractionSilence))
+}
+
 // @nimi-authority: rule.nimi.runtime.agent-life.timeline
-func (l *agentLifeState) beginInteraction(sourceID string, now time.Time, simulation, worldPaused bool) ([]string, error) {
+func (l *agentLifeState) beginInteraction(sourceID string, now time.Time, advanceSimulation bool) ([]string, error) {
 	now = maxTime(now, l.SettledAt)
 	var completed []string
 	if l.Interaction == nil {
-		if simulation {
+		if advanceSimulation {
 			var err error
-			completed, err = l.advance(now, worldPaused)
+			completed, err = l.advance(now)
 			if err != nil {
 				return nil, err
 			}
@@ -199,7 +203,7 @@ func (s *Service) recordVoiceLife(session *localAppAgentRealtimeSession, utteran
 	s.cognitionMemoryOwnerLifecycleMu.Lock()
 	defer s.cognitionMemoryOwnerLifecycleMu.Unlock()
 	err := s.mutateAgent(session.agentID, func(e *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
-		completed, err := e.Life.beginInteraction(sourceID, now, lifeEnabled(e), source.LifeWorldPaused)
+		completed, err := e.Life.beginInteraction(sourceID, now, lifeEnabled(e) && source.WorldTimeDecodeFailure == "")
 		if err != nil {
 			return nil, nil, err
 		}

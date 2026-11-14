@@ -116,14 +116,15 @@ func (s *Service) updateAgentAutonomyCAS(
 	var completionHook runtimeAgentStateTxHook
 	if lifeEnabled(current) && !lifeEnabled(next) {
 		source, found := s.turnSourceViews[identity.LocalAgentRef]
-		completed, err := next.Life.advance(now, !found || source.WorldTimeDecodeFailure != "" || source.LifeWorldPaused)
-		if err != nil {
-			return nil, err
-		}
-
-		completionHook, err = s.lifeActivityMemoryTxHook(next, completed, now)
-		if err != nil {
-			return nil, err
+		if found && source.WorldTimeDecodeFailure == "" {
+			completed, err := next.Life.advance(now)
+			if err != nil {
+				return nil, err
+			}
+			completionHook, err = s.lifeActivityMemoryTxHook(next, completed, now)
+			if err != nil {
+				return nil, err
+			}
 		}
 		if err := next.Life.pause(now); err != nil {
 			return nil, err
@@ -131,8 +132,8 @@ func (s *Service) updateAgentAutonomyCAS(
 	}
 	if !lifeEnabled(current) && lifeEnabled(next) {
 		next.Life.Explanation = nil
-		next.Life.SettledAt = now
-		next.Life.NextCheckAt = now
+		next.Life.SettledAt = maxTime(next.Life.SettledAt, now)
+		next.Life.NextCheckAt = next.Life.SettledAt
 		next.Life.WaitReason = ""
 		if next.Life.StartedAt.IsZero() {
 			next.Life.StartedAt = now

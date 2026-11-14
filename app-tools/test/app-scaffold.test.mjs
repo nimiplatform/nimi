@@ -2586,6 +2586,8 @@ test('App access declaration activates the closed canonical domains and keeps un
     'runtime.consume',
     'agent.local',
     'agent.configure',
+    'agent.utopia.read',
+    'agent.utopia.manage',
     'app.activity',
   ]);
   assert.deepEqual(resolveAppAccessDeclaration([]), { rawItems: [], activatedDomains: [] });

@@ -215,6 +215,8 @@ profiles:
       - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentIntroduction
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ListLocalAppAgentReferences
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveDesktopAgentReference
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentUtopiaSnapshot
+      - method_id: /nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentUtopiaSettings
       # Host-private Avatar target correlation; never projected to the Desktop renderer.
       - method_id: /nimi.runtime.v1.RuntimeAgentService/ResolveLocalAppAvatarHostTarget
       # Desktop-Host-private current companion revalidation; never part of the

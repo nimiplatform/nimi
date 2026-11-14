@@ -162,6 +162,8 @@ const LOCAL_APP_BINDING_METHODS = [
   'localAppSharedAgentAIConfigOverwrite',
   'localAppSharedAgentAIConfigLocalOptions',
   'localAppAgentManagerSnapshot',
+  'localAppAgentUtopiaSnapshot',
+  'localAppAgentUtopiaUpdate',
   'localAppAgentAutonomySnapshot',
   'localAppAgentUpdateAutonomy',
   'localAppConversationFollowUpCancel',
@@ -284,6 +286,7 @@ const ADMITTED_REASON_CODES: ReadonlySet<string> = new Set([
   'ai-config-persistence-unavailable',
   'agent-presentation-revision-conflict',
   'agent-conversation-context-revision-conflict',
+  'agent-utopia-revision-conflict',
   'agent-busy',
   'agent-turn-not-active',
   'agent-presentation-asset-type-invalid',
@@ -566,6 +569,8 @@ export type NimiElectronProtectedLocalBinding = {
   readonly localAppSharedAgentAIConfigOverwrite: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppSharedAgentAIConfigLocalOptions: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentManagerSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentUtopiaSnapshot: () => Promise<NativeLocalAppOutcome>;
+  readonly localAppAgentUtopiaUpdate: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentAutonomySnapshot: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppAgentUpdateAutonomy: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
   readonly localAppConversationFollowUpCancel: (input: NimiElectronLocalAppRecord) => Promise<NativeLocalAppOutcome>;
@@ -720,6 +725,8 @@ export type NimiElectronLocalAppHost = {
   readonly sharedAgentAIConfigOverwrite: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly sharedAgentAIConfigLocalOptions: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentManagerSnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
+  readonly agentUtopiaSnapshot: () => Promise<NimiElectronLocalAppRecord>;
+  readonly agentUtopiaUpdate: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentAutonomySnapshot: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly agentUpdateAutonomy: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
   readonly conversationFollowUpCancel: (input: NimiElectronLocalAppRecord) => Promise<NimiElectronLocalAppRecord>;
@@ -1649,6 +1656,12 @@ class ElectronLocalAppHost implements NimiElectronLocalAppHost {
   agentManagerSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return invokeRecord(() => this.binding.localAppAgentManagerSnapshot(input));
   }
+  agentUtopiaSnapshot(): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppAgentUtopiaSnapshot());
+  }
+  agentUtopiaUpdate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return invokeRecord(() => this.binding.localAppAgentUtopiaUpdate(input));
+  }
 
   agentAutonomySnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return invokeRecord(() => this.binding.localAppAgentAutonomySnapshot(input));
@@ -2050,6 +2063,12 @@ class LazyElectronLocalAppHost implements NimiElectronLocalAppHost {
 
   agentManagerSnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
     return this.resolve().agentManagerSnapshot(input);
+  }
+  agentUtopiaSnapshot(): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().agentUtopiaSnapshot();
+  }
+  agentUtopiaUpdate(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {
+    return this.resolve().agentUtopiaUpdate(input);
   }
 
   agentAutonomySnapshot(input: NimiElectronLocalAppRecord): Promise<NimiElectronLocalAppRecord> {

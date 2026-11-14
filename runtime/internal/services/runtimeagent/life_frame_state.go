@@ -44,6 +44,10 @@ type lifeActivity struct {
 }
 
 type lifeFrame struct {
+	Place             string                `json:"place,omitempty"`
+	UtopiaActivity    string                `json:"utopiaActivity,omitempty"`
+	Public            bool                  `json:"public,omitempty"`
+	SharedRef         string                `json:"sharedRef,omitempty"`
 	Description       *lifeSelfDescription  `json:"description,omitempty"`
 	ActivityState     lifePhase             `json:"activityState,omitempty"`
 	RecordedAt        time.Time             `json:"recordedAt,omitempty"`
@@ -110,11 +114,13 @@ type agentLifeState struct {
 	Activities           map[string]*lifeActivity      `json:"activities,omitempty"`
 	Explanation          *lifeExplanation              `json:"explanation,omitempty"`
 	NextCheckAt          time.Time                     `json:"nextCheckAt,omitempty"`
+	NextPublicAt         time.Time                     `json:"nextPublicAt,omitempty"`
 	WaitReason           string                        `json:"waitReason,omitempty"`
 	Intents              []lifeProactiveIntent         `json:"intents,omitempty"`
 	ContactTimes         []time.Time                   `json:"contactTimes,omitempty"`
 	MemoryReadSet        cognitionmemory.MemoryReadSet `json:"memoryReadSet,omitempty"`
 	LastPlanningTokens   int64                         `json:"lastPlanningTokens,omitempty"`
+	LastPlannedUtopia    *lifeUtopiaPlanningConditions `json:"lastPlannedUtopia,omitempty"`
 }
 
 func newAgentLifeState() *agentLifeState {
@@ -126,6 +132,10 @@ func cloneAgentLifeState(input *agentLifeState) *agentLifeState {
 		return newAgentLifeState()
 	}
 	out := *input
+	if input.LastPlannedUtopia != nil {
+		conditions := *input.LastPlannedUtopia
+		out.LastPlannedUtopia = &conditions
+	}
 	if input.Interaction != nil {
 		value := *input.Interaction
 		out.Interaction = &value
@@ -203,8 +213,8 @@ func (l *agentLifeState) appendRecent(f lifeFrame) {
 
 // @nimi-authority: rule.nimi.runtime.agent-life.timeline
 // Returns newly completed activities for same-transaction Memory work.
-func (l *agentLifeState) advance(now time.Time, paused bool) ([]string, error) {
-	if now.Before(l.SettledAt) || paused || l.Interaction != nil {
+func (l *agentLifeState) advance(now time.Time) ([]string, error) {
+	if now.Before(l.SettledAt) || l.Interaction != nil {
 		return nil, nil
 	}
 	var completed []string
@@ -215,6 +225,9 @@ func (l *agentLifeState) advance(now time.Time, paused bool) ([]string, error) {
 				break
 			}
 			f := l.Future[0]
+			if f.SharedRef != "" {
+				break
+			}
 			a := l.Activities[f.ActivityRef]
 			if a == nil {
 				return nil, fmt.Errorf("life frame has no activity")
@@ -234,6 +247,9 @@ func (l *agentLifeState) advance(now time.Time, paused bool) ([]string, error) {
 			changed = true
 		}
 		f := l.Current
+		if f.SharedRef != "" {
+			break
+		}
 		if f.Invalidated {
 			l.interruptCurrent(now)
 			changed = true
@@ -376,6 +392,8 @@ func (l *agentLifeState) cancelFreeIntents(source string) {
 }
 
 type lifeFrameProposal struct {
+	Place             string               `json:"place,omitempty"`
+	UtopiaActivity    string               `json:"utopia_activity,omitempty"`
 	Description       *lifeSelfDescription `json:"description,omitempty"`
 	ActivityRef       string               `json:"activity_ref,omitempty"`
 	Title             string               `json:"title"`
@@ -387,12 +405,12 @@ type lifeFrameProposal struct {
 
 // @nimi-authority: rule.nimi.runtime.agent-life.replacement
 // No model-controlled timestamps or provenance assertions enter accepted state.
-func (l *agentLifeState) acceptFuture(proposals []lifeFrameProposal, from time.Time, flow float64, memoryRefs []string, chatRead bool) error {
-	return l.acceptFrames(proposals, from, flow, memoryRefs, chatRead, nil)
+func (l *agentLifeState) acceptFuture(proposals []lifeFrameProposal, from time.Time, memoryRefs []string, chatRead bool) error {
+	return l.acceptFrames(proposals, from, memoryRefs, chatRead, nil)
 }
 
-func (l *agentLifeState) acceptFrames(proposals []lifeFrameProposal, from time.Time, flow float64, memoryRefs []string, chatRead bool, retrospectiveEnd *time.Time) error {
-	next, err := (futureFrameUpdater{snapshot: l}).propose(proposals, from, flow, memoryRefs, chatRead, retrospectiveEnd)
+func (l *agentLifeState) acceptFrames(proposals []lifeFrameProposal, from time.Time, memoryRefs []string, chatRead bool, retrospectiveEnd *time.Time) error {
+	next, err := (futureFrameUpdater{snapshot: l}).propose(proposals, from, memoryRefs, chatRead, retrospectiveEnd)
 	if err != nil {
 		return err
 	}

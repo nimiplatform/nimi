@@ -1,8 +1,12 @@
 package runtimeagent
 
 import (
+	"context"
 	"strings"
 	"testing"
+	"time"
+
+	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
 )
 
 func sourceWorldTimeModelTestSnapshotWith(t *testing.T, timeModel map[string]any) localAgentSourceSnapshotV2 {
@@ -106,5 +110,43 @@ func TestRecoveredInvalidWorldTimeCannotReachInference(t *testing.T) {
 	}
 	if _, err := localAgentTurnSourceViewFromSnapshotV1(snapshot); err == nil {
 		t.Fatal("new materialization accepted invalid time")
+	}
+}
+
+func TestLifeSweepAdvancesWithPausedOriginalWorld(t *testing.T) {
+	snapshot := sourceWorldTimeModelTestSnapshotWith(t, map[string]any{
+		"mode": "wallClockAnchored", "flowRatio": 4, "isPaused": true,
+		"anchor":          map[string]any{"realStartedAt": "2026-09-30T00:00:00.000Z", "worldStartedAt": "2193-04-17T22:00:00.000Z", "worldStartedAtDisplay": "站历 2193-04-17"},
+		"pausedWorldTime": "2193-04-18T02:00:00.000Z", "calendar": nil, "displayFormat": nil,
+	})
+	view, err := localAgentTurnSourceViewFromValidatedSnapshotV1(snapshot)
+	if err != nil || view.WorldTimeDecodeFailure != "" {
+		t.Fatalf("valid paused original World was rejected: %v, %s", err, view.WorldTimeDecodeFailure)
+	}
+	svc := newRuntimeAgentServiceForPublicChatTest(t)
+	ref := testRuntimeAgentLocalRef("agent-alpha")
+	svc.mu.Lock()
+	svc.turnSourceViews[ref] = view
+	svc.mu.Unlock()
+	start := time.Now().UTC()
+	if err := svc.mutateAgent(ref, func(entry *agentEntry) ([]*runtimev1.AgentEvent, runtimeAgentStateTxHook, error) {
+		entry.Agent.Autonomy.Enabled = true
+		entry.Agent.Autonomy.Config.Mode = runtimev1.AgentAutonomyMode_AGENT_AUTONOMY_MODE_LOW
+		entry.Life.StartedAt, entry.Life.SettledAt = start, start
+		return nil, nil, entry.Life.acceptFuture([]lifeFrameProposal{
+			{Title: "Watch the water", Kind: "routine", DurationMinutes: 8, EndProgress: 100, CompletesActivity: true},
+		}, start, nil, false)
+	}); err != nil {
+		t.Fatal(err)
+	}
+	if err := svc.runLifeFrameSweep(context.Background(), start.Add(2*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	entry, err := svc.agentByID(ref)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if entry.Life.Current == nil || !entry.Life.Current.EndsAt.Equal(start.Add(8*time.Minute)) || entry.Life.WaitReason != "" {
+		t.Fatalf("original World clock affected real-time activity: %+v", entry.Life)
 	}
 }

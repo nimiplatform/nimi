@@ -377,20 +377,25 @@ func publicChatEligibleCommittedTranscript(committed []publicChatCommittedTransc
 	}
 	out := make([]agentTurnTranscriptPairInput, 0, len(committed))
 	for _, turn := range committed {
-		// A feature-mismatch turn may durably commit only the user attachment
-		// for product continuity. It never became provider-consumed dialogue,
-		// so it must not be fabricated into the paired private model transcript.
-		if strings.TrimSpace(turn.AssistantText) == "" {
-			continue
+		if pair, eligible := publicChatCommittedTranscriptPair(turn); eligible {
+			out = append(out, pair)
 		}
-		out = append(out, agentTurnTranscriptPairInput{
-			TurnID:        turn.TurnID,
-			Sequence:      turn.Sequence,
-			UserText:      publicChatCommittedTranscriptInputText(turn),
-			AssistantText: turn.AssistantText,
-		})
 	}
 	return out, nil
+}
+
+func publicChatCommittedTranscriptPair(turn publicChatCommittedTranscriptTurn) (agentTurnTranscriptPairInput, bool) {
+	// A feature-mismatch turn may commit only a user attachment. It cannot
+	// become a paired model input without an actual committed answer.
+	if strings.TrimSpace(turn.AssistantText) == "" {
+		return agentTurnTranscriptPairInput{}, false
+	}
+	return agentTurnTranscriptPairInput{
+		TurnID:        turn.TurnID,
+		Sequence:      turn.Sequence,
+		UserText:      publicChatCommittedTranscriptInputText(turn),
+		AssistantText: turn.AssistantText,
+	}, true
 }
 
 func publicChatCommittedTranscriptInputText(turn publicChatCommittedTranscriptTurn) string {

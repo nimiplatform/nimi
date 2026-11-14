@@ -276,6 +276,9 @@ func newWithBackend(logger *slog.Logger, localStatePath string, backend *runtime
 	if err := svc.validateLoadedSourceSnapshotBindings(context.Background()); err != nil {
 		return nil, fmt.Errorf("validate loaded source snapshot bindings: %w", err)
 	}
+	if err := svc.recoverSharedLife(context.Background(), time.Now().UTC()); err != nil {
+		return nil, fmt.Errorf("recover shared LocalAgent life: %w", err)
+	}
 	if err := svc.loadDelegatedControlStateFromDB(); err != nil {
 		return nil, err
 	}

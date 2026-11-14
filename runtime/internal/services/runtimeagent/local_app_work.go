@@ -115,7 +115,7 @@ func (s *Service) StartLocalAppAgentWork(ctx context.Context, req *runtimev1.Sta
 	}
 	work.agentHandle, work.requestID, work.prompt = req.GetAgentHandle(), req.GetRequestId(), req.GetPrompt()
 	s.chatSurfaceMu.Lock()
-	busy := s.localAgentExecutionBusyLocked(owner.identity.LocalAgentRef)
+	busy := s.localAgentExecutionBusyLocked(owner.identity.LocalAgentRef) || s.foregroundWaitingByAgent[owner.identity.LocalAgentRef] > 0
 	s.chatSurfaceMu.Unlock()
 	if busy {
 		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AGENT_BUSY)
@@ -134,7 +134,7 @@ func (s *Service) StartLocalAppAgentWork(ctx context.Context, req *runtimev1.Sta
 	}()
 	executionCtx, cancel := context.WithTimeout(context.WithoutCancel(ownerCtx), localAppWorkExecutionTimeout)
 	work.ctx, work.cancel, work.ingress = executionCtx, cancel, executionCtx
-	source, _ := s.turnSourceView(owner.identity.LocalAgentRef)
+	source, sourceFound := s.turnSourceView(owner.identity.LocalAgentRef)
 	s.cognitionMemoryOwnerLifecycleMu.Lock()
 	s.mu.Lock()
 	defer s.cognitionMemoryOwnerLifecycleMu.Unlock()
@@ -146,7 +146,7 @@ func (s *Service) StartLocalAppAgentWork(ctx context.Context, req *runtimev1.Sta
 		cancel()
 		return nil, localAppConversationOwnerUnavailable()
 	}
-	if s.localAgentExecutionBusyLocked(owner.identity.LocalAgentRef) {
+	if s.localAgentExecutionBusyLocked(owner.identity.LocalAgentRef) || s.foregroundWaitingByAgent[owner.identity.LocalAgentRef] > 0 {
 		s.chatSurfaceMu.Unlock()
 		cancel()
 		return nil, grpcerr.WithReasonCode(codes.ResourceExhausted, runtimev1.ReasonCode_AGENT_BUSY)
@@ -166,10 +166,11 @@ func (s *Service) StartLocalAppAgentWork(ctx context.Context, req *runtimev1.Sta
 	work.snapshot = &runtimev1.LocalAppAgentWorkExecution{ExecutionId: id, WorkId: work.input.GetWorkId(), State: runtimev1.LocalAppAgentWorkState_LOCAL_APP_AGENT_WORK_STATE_RUNNING}
 	work.changed = make(chan struct{})
 	next := cloneAgentEntry(s.agents[owner.identity.LocalAgentRef])
-	completed, admissionErr := next.Life.beginInteraction(id, time.Now().UTC(), lifeEnabled(next), source.LifeWorldPaused)
+	now := time.Now().UTC()
+	completed, admissionErr := next.Life.beginInteraction(id, now, lifeEnabled(next) && sourceFound && source.WorldTimeDecodeFailure == "")
 	var memoryHook runtimeAgentStateTxHook
 	if admissionErr == nil {
-		memoryHook, admissionErr = s.lifeActivityMemoryTxHook(next, completed, time.Now().UTC())
+		memoryHook, admissionErr = s.lifeActivityMemoryTxHook(next, completed, now)
 	}
 	if admissionErr == nil {
 		admissionErr = s.commitLocalAppOwnerMutation(ctx, localappop.IngressAgentWorkStart, owner.decision, func(current context.Context) error {
@@ -222,8 +223,9 @@ func (s *Service) GetLocalAppAgentWorkStatus(ctx context.Context, req *runtimev1
 	if s.agentTerminationFencedLocked(owner.identity.LocalAgentRef) {
 		return nil, localAppConversationOwnerUnavailable()
 	}
-	out := &runtimev1.GetLocalAppAgentWorkStatusResponse{Busy: s.localAgentExecutionBusyLocked(owner.identity.LocalAgentRef)}
-	if id := s.localAppWorkActiveByAgent[owner.identity.LocalAgentRef]; id != "" {
+	ref := owner.identity.LocalAgentRef
+	out := &runtimev1.GetLocalAppAgentWorkStatusResponse{Busy: s.localAgentExecutionBusyLocked(ref) || s.foregroundWaitingByAgent[ref] > 0}
+	if id := s.localAppWorkActiveByAgent[ref]; id != "" {
 		if work := s.localAppWorkExecutions[id]; work != nil && sameLocalAppWorkOwner(work.owner, owner) {
 			out.OwnExecutionId = &id
 		}
@@ -401,7 +403,11 @@ func (s *Service) revalidateLocalAppWork(work *localAppWorkExecution) error {
 		return localAppAgentAccessDenied()
 	default:
 	}
-	current, err := s.localAppIngressRevalidator.AuthorizeLocalAppIngress(work.ingress, localappop.IngressAgentWorkStart)
+	// Work outlives the admitting RPC. Each check owns only a short-lived
+	// binding; the execution already watches the exact admitted session.
+	checkCtx, cancel := context.WithCancel(work.ingress)
+	defer cancel()
+	current, err := s.localAppIngressRevalidator.AuthorizeLocalAppIngress(checkCtx, localappop.IngressAgentWorkStart)
 	if err != nil {
 		return err
 	}

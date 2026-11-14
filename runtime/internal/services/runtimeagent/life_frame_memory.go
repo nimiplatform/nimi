@@ -12,7 +12,7 @@ import (
 // @nimi-authority: rule.nimi.runtime.memory-world.r021
 func independentLifeFrameFact(l *agentLifeState, f lifeFrame, now time.Time) *runtimev1.CognitionMemoryActivityTerminal {
 	d := normalizeLifeSelfDescription(f.Description)
-	if f.Phase != lifeCompleted || f.Invalidated || d == nil || validateLifeSelfDescription(d) != nil || f.StartsAt.IsZero() || f.EndsAt.Before(f.StartsAt) || f.EndsAt.After(now) {
+	if f.Phase != lifeCompleted || f.Invalidated || f.SharedRef != "" || d == nil || validateLifeSelfDescription(d) != nil || f.StartsAt.IsZero() || f.EndsAt.Before(f.StartsAt) || f.EndsAt.After(now) {
 		return nil
 	}
 	a := l.Activities[f.ActivityRef]

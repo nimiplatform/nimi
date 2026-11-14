@@ -1,8 +1,6 @@
 package runtimeagent
 
-import (
-	"fmt"
-)
+import "fmt"
 
 func combineConversationReads(a, b *lifeConversationRead) (*lifeConversationRead, error) {
 	if a == nil {
@@ -37,23 +35,23 @@ func (s *Service) lifeConversationInput(ref string) ([]agentTurnTranscriptPairIn
 		if anchor.LocalAgentRef != ref || !conversationAnchorIsResumable(anchor.Status) {
 			continue
 		}
-		transcript, err := selectedCommittedTranscript(anchor)
-		if err != nil {
+		if err := validateConversationContextSelection(anchor.ConversationContext, len(anchor.CommittedTranscript)); err != nil {
 			return nil, nil, false, err
 		}
-		transcript = transcript[max(0, len(transcript)-publicChatRecentVerbatimTurnLimit):]
 		read := &lifeConversationRead{AnchorID: anchor.ConversationAnchorID, Revision: conversationContextRevision(anchor.ConversationContext), FirstSequence: anchor.ConversationContext.FirstTurnSequence}
-		known := make(map[string]publicChatCommittedTranscriptTurn, len(anchor.CommittedTranscript))
-		for _, turn := range anchor.CommittedTranscript {
-			known[turn.TurnID] = turn
+		var recent [publicChatRecentVerbatimTurnLimit]agentTurnTranscriptPairInput
+		start := len(recent)
+		// The Conversation owner already validated the immutable transcript at
+		// admission/persistence. Read only enough complete pairs for Life.
+		for i := len(anchor.CommittedTranscript) - 1; i >= int(read.FirstSequence) && start > 0; i-- {
+			turn := anchor.CommittedTranscript[i]
+			if pair, eligible := publicChatCommittedTranscriptPair(turn); eligible {
+				pair.KnownAt = turn.CommittedAt
+				start--
+				recent[start] = pair
+			}
 		}
-		for i := range transcript {
-			// This content time is immutable; late usage and UI projection
-			// updates cannot turn old dialogue into newly learned content.
-			// Missing historical times stay unknown, never inferred.
-			transcript[i].KnownAt = known[transcript[i].TurnID].CommittedAt
-		}
-		return transcript, read, anchor.ConversationContext.OmitSupplementalContext, nil
+		return recent[start:], read, anchor.ConversationContext.OmitSupplementalContext, nil
 	}
 	return nil, nil, false, nil
 }

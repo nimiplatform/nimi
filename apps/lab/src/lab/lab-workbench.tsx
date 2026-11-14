@@ -52,6 +52,7 @@ const AgentConversationCapability = lazy(async () => ({
 const AgentRealtimeCapability = lazy(async () => ({
   default: (await import('../product-modules/agent-realtime/index.js')).AgentRealtimeCapability,
 }));
+const LabUtopiaPage = lazy(async () => ({ default: (await import('./lab-only/utopia-page.js')).LabUtopiaPage }));
 const LabAppFilesPage = lazy(async () => ({ default: (await import('./lab-only/app-files-page.js')).LabAppFilesPage }));
 const LabAiRealtimePage = lazy(async () => ({
   default: (await import('./lab-only/ai-realtime-page.js')).LabAiRealtimePage,
@@ -71,12 +72,13 @@ type LabWorkbenchNavigationId = LabCapabilityId
   | 'agent-center'
   | 'agent-conversation'
   | 'agent-realtime'
+  | 'agent-utopia'
   | 'app-access'
   | 'activity'
   | 'integrations'
   | 'ui-recipes';
 
-const nativeOnlyNavigation = Object.freeze(['app-access', 'integrations', 'activity', 'agent-realtime', 'realtime.interact', 'world.generate']);
+const nativeOnlyNavigation = Object.freeze(['app-access', 'integrations', 'activity', 'agent-realtime', 'agent-utopia', 'realtime.interact', 'world.generate']);
 
 export function LabWorkbench(_props: LabWorkbenchProps) {
   const rendererHost = useLabRendererHost();
@@ -167,6 +169,7 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
         { id: 'agent-center', label: t('Workbench.agentCenter'), icon: Bot },
         { id: 'agent-conversation', label: t('Workbench.agentConversation'), icon: MessagesSquare },
         { id: 'agent-realtime', label: t('Workbench.agentRealtime'), icon: AudioLines },
+        { id: 'agent-utopia', label: t('Workbench.utopia.title'), icon: Boxes },
       ],
     },
   ], [t]);
@@ -190,6 +193,7 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
       || view.kind === 'agent-center'
       || view.kind === 'agent-conversation'
       || view.kind === 'agent-realtime'
+      || view.kind === 'agent-utopia'
       ? view.kind
       : null;
   useEffect(() => {
@@ -204,7 +208,7 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
       || id === 'ui-recipes'
       || id === 'agent-center'
       || id === 'agent-conversation'
-      || id === 'agent-realtime') {
+      || id === 'agent-realtime' || id === 'agent-utopia') {
       void owner.navigation.push({ id });
       return;
     }
@@ -297,6 +301,8 @@ export function LabWorkbench(_props: LabWorkbenchProps) {
         <Suspense fallback={<LoadingFallback />}>
           <div className="lab-agent-route"><AgentRealtimeCapability client={requireLabNativeClient(rendererHost.sdk.localAppClient)} /></div>
         </Suspense>
+      ) : view.kind === 'agent-utopia' ? (
+        <Suspense fallback={<LoadingFallback />}><LabUtopiaPage client={requireLabNativeClient(rendererHost.sdk.localAppClient).utopia} /></Suspense>
       ) : view.kind === 'integrations' ? (
         <Suspense fallback={<LoadingFallback />}><LabIntegrationsPanel recordAI={studioController.appendHistoryRecord} /></Suspense>
       ) : view.kind === 'activity' ? (

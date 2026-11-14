@@ -324,6 +324,12 @@ func (s *Service) resumeRealmAccountTerminationItems(ctx context.Context, termin
 		if err := appactivity.RemoveAccountActivityTx(ctx, tx, termination.AccountID); err != nil {
 			return err
 		}
+		if _, err := tx.ExecContext(ctx, `DELETE FROM runtime_agent_utopia_settings WHERE account_id=?`, termination.AccountID); err != nil {
+			return fmt.Errorf("remove account Utopia settings: %w", err)
+		}
+		if _, err := tx.ExecContext(ctx, `DELETE FROM runtime_agent_utopia_shared WHERE account_id=?`, termination.AccountID); err != nil {
+			return fmt.Errorf("remove account Utopia activities: %w", err)
+		}
 		updated, err := tx.Exec(`UPDATE runtime_realm_account_termination SET phase = 'completed', updated_at = ? WHERE account_id = ? AND operation_id = ? AND phase = 'fenced'`, time.Now().UTC().Format(time.RFC3339Nano), termination.AccountID, termination.OperationID)
 		if err != nil {
 			return err

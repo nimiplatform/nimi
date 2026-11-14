@@ -1240,7 +1240,7 @@ describe('renderer local-app standard-shell surface', () => {
     const surface = createNimiLocalAppStandardShellSurface() as unknown as Record<string, unknown>;
     expect(Object.keys(surface).sort()).toEqual([
       'session', 'ai', 'aiConfig', 'storage', 'realm', 'agents', 'agentConfigure', 'conversation', 'embodiment', 'agentRealtime',
-      'activity', 'agentWork', 'integration',
+      'activity', 'agentWork', 'integration', 'utopia',
     ].sort());
     expect(Object.keys(surface.agentConfigure as Record<string, unknown>).sort()).toEqual([
       'sharedAIConfig', 'manager', 'autonomy', 'presentation', 'memory', 'conversationContext',

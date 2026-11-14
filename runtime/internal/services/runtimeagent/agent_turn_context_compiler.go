@@ -426,6 +426,7 @@ func buildAgentTurnProviderPrompt(lanes []agentTurnContextLane, contractID strin
 	// App work. This is target composition, not a provider fallback or toggle.
 	conversationText := contractID == publicChatContextOutputContractID
 	lifePlanning := contractID == "nimi.runtime.life-frame"
+	appWork := contractID == localAppWorkOutputContractID
 	prompt := agentTurnProviderPrompt{Messages: make([]agentTurnProviderMessage, 0)}
 	var outputContractMessages []agentTurnProviderMessage
 	for _, lane := range lanes {
@@ -438,7 +439,7 @@ func buildAgentTurnProviderPrompt(lanes []agentTurnContextLane, contractID strin
 					return agentTurnProviderPrompt{}, fmt.Errorf("output contract lane must project exactly one Runtime instruction")
 				}
 				role := "user"
-				if conversationText || contractID == agentRealtimeOutputContractID {
+				if conversationText || appWork || contractID == agentRealtimeOutputContractID {
 					role = "system"
 				}
 				outputContractMessages = append(outputContractMessages, agentTurnProviderMessage{
@@ -464,25 +465,23 @@ func buildAgentTurnProviderPrompt(lanes []agentTurnContextLane, contractID strin
 		return agentTurnProviderPrompt{}, fmt.Errorf("output contract Runtime instruction is required")
 	}
 	// @nimi-authority: rule.nimi.runtime.agent-service.r013
-	if conversationText || lifePlanning {
+	if conversationText || lifePlanning || appWork {
 		var sections []string
 		var conversation []agentTurnProviderMessage
 		for _, message := range prompt.Messages {
 			if message.Role == "system" {
 				if len(message.Media) != 0 {
-					return agentTurnProviderPrompt{}, fmt.Errorf("Conversation system context cannot carry user media")
+					return agentTurnProviderPrompt{}, fmt.Errorf("system context cannot carry user media")
 				}
 				sections = append(sections, message.Content)
 			} else {
 				conversation = append(conversation, message)
 			}
 		}
-		// Conversation routing/output instructions stay Runtime system policy;
-		// the actual current user remains the last input. Life planning still
-		// has no fabricated user input lane or Conversation record.
-		// Each system section retains its existing source/trust envelope. Joining only
-		// saves role/message overhead: two separator bytes are bounded by the
-		// existing per-item 32-byte message overhead, so no budget is weakened.
+		// Canonical chat and independent App work keep Runtime instructions in
+		// the prefix and the submitted prompt last. Life planning has its own
+		// model instruction. Each section retains its source and trust envelope,
+		// and the per-item message overhead covers the joining separators.
 		prompt.Messages = append([]agentTurnProviderMessage{{Role: "system", Content: strings.Join(sections, "\n\n")}}, conversation...)
 	}
 	return prompt, nil

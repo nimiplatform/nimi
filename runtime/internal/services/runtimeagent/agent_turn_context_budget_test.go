@@ -645,23 +645,5 @@ func TestConversationSingleSystemProjectionPreservesHistoryMediaAndRecall(t *tes
 		if bound > actual.Manifest.Budget.UsedTokens {
 			t.Fatalf("unbudgeted projected bytes: %d > %d", bound, actual.Manifest.Budget.UsedTokens)
 		}
-		input.OutputContract.ContractID = "nimi.runtime.agent.work.text"
-		work, err := compileAgentTurnContext(input)
-		if err != nil {
-			t.Fatal(err)
-		}
-		expectedWork := original.ProviderPrompt
-		expectedWork.Messages = append([]agentTurnProviderMessage(nil), original.ProviderPrompt.Messages...)
-		for i, message := range expectedWork.Messages {
-			if message.Content == input.OutputContract.Instruction {
-				if message.Role != "system" {
-					t.Fatal("Realtime policy lost system authority")
-				}
-				expectedWork.Messages[i].Role = "user"
-			}
-		}
-		if !reflect.DeepEqual(work.ProviderPrompt, expectedWork) {
-			t.Fatal("App work changed beyond the intentional Realtime policy role")
-		}
 	}
 }

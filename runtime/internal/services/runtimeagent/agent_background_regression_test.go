@@ -84,7 +84,7 @@ func TestBudgetIncreaseResumesOnlyBlockedPurposeEvenDuringInteraction(t *testing
 				e.Agent.Autonomy.Config.FreeContactEnabled = true
 				e.Life.LifeBudgetWaiting, e.Life.ContactBudgetWaiting = !contact, contact
 				e.Life.NextCheckAt, e.Life.ContactNextAt = now.Add(time.Hour), now.Add(2*time.Hour)
-				_, err := e.Life.beginInteraction("user-turn", now, false, false)
+				_, err := e.Life.beginInteraction("user-turn", now, false)
 				return nil, nil, err
 			})
 			before, _ := svc.agentByID(ref)
@@ -126,7 +126,7 @@ func TestInvalidLifeOutputWaitsForNormalPlanningOpportunity(t *testing.T) {
 	defer svc.releaseAgentBackground(ref, work)
 	svc.recordLifePlanningFailure(work, entry, errors.New("invalid model output"), 17)
 	after, _ := svc.agentByID(ref)
-	if after.Life.canPlanAt(time.Now().Add(time.Minute), 1) ||
+	if after.Life.canPlanAt(time.Now().Add(time.Minute)) ||
 		after.Agent.Autonomy.UsedTokensInWindow != entry.Agent.Autonomy.UsedTokensInWindow+17 {
 		t.Fatal("invalid output caused a rapid retry or lost incurred usage")
 	}

@@ -280,6 +280,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         response_type: "GetLocalAppAgentRealtimeStatusResponse",
     },
     RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentUtopiaSnapshot",
+        service: "RuntimeAgentService",
+        method: "GetLocalAppAgentUtopiaSnapshot",
+        kind: "unary",
+        request_type: "GetLocalAppAgentUtopiaSnapshotRequest",
+        response_type: "GetLocalAppAgentUtopiaSnapshotResponse",
+    },
+    RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/GetLocalAppAgentWork",
         service: "RuntimeAgentService",
         method: "GetLocalAppAgentWork",
@@ -686,6 +694,14 @@ pub static RUNTIME_METHODS: &[RuntimeMethodDescriptor] = &[
         kind: "unary",
         request_type: "UpdateLocalAppAgentConversationContextRequest",
         response_type: "UpdateLocalAppAgentConversationContextResponse",
+    },
+    RuntimeMethodDescriptor {
+        method_id: "/nimi.runtime.v1.RuntimeAgentService/UpdateLocalAppAgentUtopiaSettings",
+        service: "RuntimeAgentService",
+        method: "UpdateLocalAppAgentUtopiaSettings",
+        kind: "unary",
+        request_type: "UpdateLocalAppAgentUtopiaSettingsRequest",
+        response_type: "UpdateLocalAppAgentUtopiaSettingsResponse",
     },
     RuntimeMethodDescriptor {
         method_id: "/nimi.runtime.v1.RuntimeAgentService/UploadLocalAppConversationAttachment",

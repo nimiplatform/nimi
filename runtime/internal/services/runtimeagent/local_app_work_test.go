@@ -9,9 +9,11 @@ import (
 	"time"
 
 	runtimev1 "github.com/nimiplatform/nimi/runtime/gen/runtime/v1"
+	"github.com/nimiplatform/nimi/runtime/internal/capabilitydriver"
 	"github.com/nimiplatform/nimi/runtime/internal/grpcerr"
 	"github.com/nimiplatform/nimi/runtime/internal/localappop"
 	accountservice "github.com/nimiplatform/nimi/runtime/internal/services/account"
+	"github.com/nimiplatform/nimi/runtime/internal/textbehavior"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
@@ -156,7 +158,17 @@ func TestLocalAppWorkIsolatedSameAgentToolContinuationAndMemory(t *testing.T) {
 		if !strings.Contains(messages, "App-authored work context") || len(req.Tools) != 1 {
 			t.Error("App context/tool missing")
 		}
+		spec := &runtimev1.TextGenerateScenarioSpec{Input: req.Messages, Tools: req.Tools}
+		if textbehavior.RequiresOrderedSystemMessages(spec) || spec.GetInput()[0].GetRole() != "system" {
+			t.Error("App work must keep its attributed instructions in one leading system message")
+		}
+		if _, err := capabilitydriver.OpenAIResponsesTextBehaviorRequestSerializer("gpt-6.1-terra", spec, true); err != nil {
+			t.Errorf("App work request cannot reach the OpenAI adapter: %v", err)
+		}
 		if n == 1 {
+			if last := req.Messages[len(req.Messages)-1]; last.GetRole() != "user" || !strings.HasPrefix(last.GetContent(), "请从获准的长期记忆") {
+				t.Error("last App work message is not the submitted prompt")
+			}
 			if !strings.Contains(messages, "银桥青叶") || !strings.Contains(messages, "Cognition-owned advisory Memory") {
 				t.Error("allowed personal Memory missing from work context")
 			}
@@ -362,6 +374,83 @@ func TestLocalAppWorkAndChatShareBusyWithoutContentOrCancellation(t *testing.T) 
 	defer svc.publicChatRuntime().releaseTurn(session.ConversationAnchorID, turn.TurnID)
 	if _, err := svc.StartLocalAppAgentWork(f.ctx(localappop.OperationAgentWorkStart), f.request()); !strings.Contains(fmt.Sprint(err), "AGENT_BUSY") {
 		t.Fatalf("chat did not block work: %v", err)
+	}
+}
+
+func TestLocalAppWorkCannotOvertakeChatAfterBackgroundRelease(t *testing.T) {
+	f := newAppWorkFixture(t)
+	svc := f.svc
+	ref := testRuntimeAgentLocalRef("agent-alpha")
+	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{})
+	background := svc.claimAgentBackground(context.Background(), ref)
+	if background == nil {
+		t.Fatal("background claim failed")
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	defer cancel()
+	reserved := make(chan func(), 1)
+	go func() {
+		release, _ := svc.yieldAgentBackground(ctx, ref)
+		reserved <- release
+	}()
+	select {
+	case <-background.ctx.Done():
+	case <-ctx.Done():
+		svc.releaseAgentBackground(ref, background)
+		t.Fatal("chat did not cancel background execution")
+	}
+	svc.releaseAgentBackground(ref, background)
+	release := <-reserved
+	if release == nil {
+		t.Fatal("chat did not receive foreground priority")
+	}
+	defer release()
+	status, err := svc.GetLocalAppAgentWorkStatus(f.ctx(localappop.OperationAgentWorkStatusGet), &runtimev1.GetLocalAppAgentWorkStatusRequest{AgentHandle: f.handle})
+	if err != nil || !status.GetBusy() || status.OwnExecutionId != nil {
+		t.Errorf("foreground priority status = %v, %v", status, err)
+	}
+	work, err := svc.StartLocalAppAgentWork(f.ctx(localappop.OperationAgentWorkStart), f.request())
+	if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AGENT_BUSY {
+		t.Fatalf("work overtook pending chat: %v, %v", work, err)
+	}
+	release()
+	if id := f.start(t); id == "" {
+		t.Fatal("work could not obtain released priority")
+	}
+}
+
+func TestLocalAppWorkRechecksForegroundPriorityAfterResolvingItsModel(t *testing.T) {
+	f := newAppWorkFixture(t)
+	svc := f.svc
+	ref := testRuntimeAgentLocalRef("agent-alpha")
+	svc.SetPublicChatTurnExecutor(stubPublicChatTurnExecutor{})
+	resolver := svc.currentPublicChatBindingResolver()
+	entered, resolved := make(chan struct{}), make(chan struct{})
+	svc.SetPublicChatBindingResolver(stubPublicChatBindingResolver{resolve: func(ctx context.Context, input PublicChatBindingResolutionRequest) (PublicChatBindingResolution, error) {
+		close(entered)
+		<-resolved
+		return resolver.ResolvePublicChatBinding(ctx, input)
+	}})
+	started := make(chan error, 1)
+	go func() {
+		_, err := svc.StartLocalAppAgentWork(f.ctx(localappop.OperationAgentWorkStart), f.request())
+		started <- err
+	}()
+	select {
+	case <-entered:
+	case <-time.After(2 * time.Second):
+		close(resolved)
+		t.Fatal("work did not reach its model resolver")
+	}
+	release, err := svc.yieldAgentBackground(context.Background(), ref)
+	close(resolved)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer release()
+	err = <-started
+	if reason, _ := grpcerr.ExtractReasonCode(err); reason != runtimev1.ReasonCode_AGENT_BUSY {
+		t.Fatalf("work crossed the new foreground reservation: %v", err)
 	}
 }
 

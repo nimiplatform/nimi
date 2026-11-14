@@ -19,7 +19,8 @@
     "uiRecipes": "UI Recipes",
     "agentCenter": "伙伴中心",
     "agentConversation": "伙伴对话",
-    "agentRealtime": "实时语音"
+    "agentRealtime": "实时语音",
+    "utopia": {"title": "住地", "read": "读取快照", "checkWrite": "核对只读权限", "denied": "当前会话拒绝更改住地设置。", "writeUnexpected": "只读会话意外更改了设置。", "readFailed": "暂时无法读取当前住地。", "writeFailed": "设置请求失败，未收到权限拒绝结果。"}
   },
   "Capabilities": {
     "worldGenerate": {
