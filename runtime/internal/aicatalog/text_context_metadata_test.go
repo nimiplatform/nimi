@@ -123,6 +123,7 @@ func TestResolveTextContextMetadataPreservesSourceModelOverrides(t *testing.T) {
 		{provider: "mimo", model: "mimo-v2.6-pro", want: 1000000},
 		{provider: "mimo", model: "mimo-v2.6-flash", want: 1000000},
 		{provider: "dashscope", model: "qwen3-vl-plus", want: 262144},
+		{provider: "gemini", model: "gemini-2.5-flash", want: 1048576},
 	}
 	for _, tt := range tests {
 		t.Run(tt.provider+"/"+tt.model, func(t *testing.T) {

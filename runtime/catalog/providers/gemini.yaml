@@ -302,7 +302,7 @@ models:
   - model_id: gemini-2.5-flash
     provider: gemini
     model_type: chat
-    updated_at: 2026-04-18
+    updated_at: 2026-11-15
     capabilities:
       - text.generate
       - audio.transcribe
@@ -315,11 +315,11 @@ models:
       notes: Standard paid-tier pricing. Output price includes thinking tokens. Audio input and alternate inference tiers have separate pricing. Per 1M tokens.
     source_ref:
       url: https://ai.google.dev/gemini-api/docs/models/gemini-2.5-flash
-      retrieved_at: 2026-04-18
-      note: Gemini 2.5 Flash model card.
+      retrieved_at: 2026-11-15
+      note: Gemini 2.5 Flash model card; documents image input and a 1,048,576-token input limit. The request-capacity floor uses that input bound, with Runtime reserving output inside it. API access remains available to existing users until 2026-12-01.
     features:
       - input.image
-    context_window_tokens: 8192
+    context_window_tokens: 1048576
     transcription:
       tiers:
         - core_transcript
