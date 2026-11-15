@@ -557,10 +557,16 @@ export function registerNimiElectronRuntimeBridge(
       // data-root change ends it through resource invalidation.
       // A synchronous Scenario call registers its cancel handle before it
       // enters the gate, so its cancel never waits behind the call itself.
+      // @nimi-authority: rule.nimi.platform.core-protocol.p-actv-005
+      // Activity Open waits for a source launched under its own data-root
+      // admission. Holding this gate while waiting would deadlock that launch
+      // behind a queued exclusive operation. Runtime/session invalidation
+      // already ends the pending Open when the data root changes.
       // Cancels and closes end admitted work and never wait on the gate.
       const scenarioExecute = isElectronLocalAppScenarioExecute(command);
       const gate = isElectronLocalAppPullWait(command, standardPayload)
         || isElectronLocalAppCancel(command, standardPayload) || scenarioExecute
+        || command === NIMI_STANDARD_SHELL_COMMANDS['local-app.activityOpen']
         ? <T>(operation: () => Promise<T>) => operation()
         : runDataRootOperation;
       return gate(() => inDocumentOrder(async () => {

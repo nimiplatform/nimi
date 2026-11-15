@@ -116,7 +116,7 @@ Pass the current reference name/avatar, locale, and controlled-draft prefill cal
 
 ## Current Consumers
 
-- **`desktop` and `zhiyu` LocalAgent Chat**: Use the shared `observeLocalAppConversation`, canonical reducer, scoped draft/pending-request persistence, explicit same-request reconciliation, voice playback/retry, and follow-up controls. Runtime remains the only durable Conversation owner; App view mapping, navigation, partner selection, and host mechanics remain local.
+- **`zhiyu` LocalAgent Chat**: Uses the shared `observeLocalAppConversation`, canonical reducer, scoped draft/pending-request persistence, explicit same-request reconciliation, voice playback/retry, and follow-up controls. Runtime remains the only durable Conversation owner; App view mapping, navigation, partner selection, and host mechanics remain local. Home opens the exact conversation in Zhiyu and retains partner management, bounded summaries and shortcut drafts.
 - **`desktop`**: Uses `chat/headless`, `chat/realm`, and `chat/ui` for human chat composer wiring, confirmed-message cache projection, timeline rendering, stream status, and thread shell.
 - **`lab`**: Uses `AppConversationEntry` in its registered `agent-conversation` workspace, along with `chat/headless` composer and attachment helpers and `chat/realm`. Its `chat.stream` capability page runs through Lab's own SDK capability host rather than `chat/runtime`.
 

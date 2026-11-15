@@ -1701,6 +1701,45 @@ describe('Desktop Electron local-development registration host', () => {
     }
   });
 
+  it('starts an activity source while the requesting Home operation still holds the shared gate', async (t) => {
+    t.mock.property(process, 'platform', 'darwin');
+    const root = await mkdtemp(path.join(os.tmpdir(), 'nimi-dev-activity-launch-'));
+    let finishOpen!: () => void;
+    let openPending = true;
+    const gate = createDesktopDataRootOperationGate();
+    const open = gate.runShared(() => new Promise<void>(resolve => {
+      finishOpen = () => { openPending = false; resolve(); };
+    }));
+    let launch: Promise<void> | undefined;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      const projectRoot = path.join(root, 'project');
+      const mainEntry = path.join(projectRoot, 'dist-electron', 'main.js');
+      await mkdir(path.dirname(mainEntry), { recursive: true });
+      await writeFile(mainEntry, 'export {};\n');
+      let launchedWhileOpen = false;
+      const host = new ElectronLocalDevelopmentHost(control({
+        launch: async () => {
+          launchedWhileOpen = openPending;
+          return { processId: 42, bindDeadlineUnixMs: Date.now() + 10_000, hostProfileRoot: root };
+        },
+      }), root, gate);
+      const run = { ...activeRun(), plan: { ...plan(), projectRoot, mainEntry } };
+      launch = (host as unknown as { launchHost(context: typeof run): Promise<void> }).launchHost(run);
+      await Promise.race([
+        launch,
+        new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error('source launch waited for its own opening request')), 1_000); }),
+      ]);
+      assert.equal(launchedWhileOpen, true);
+    } finally {
+      if (timer) clearTimeout(timer);
+      finishOpen();
+      await open;
+      await launch;
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it('never starts a host for a run stopped while its launch waited on the data-root gate', async (t) => {
     t.mock.property(process, 'platform', 'darwin');
     const root = await mkdtemp(path.join(os.tmpdir(), 'nimi-dev-launch-gate-'));

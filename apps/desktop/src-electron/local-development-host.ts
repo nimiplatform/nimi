@@ -976,10 +976,11 @@ export class ElectronLocalDevelopmentHost {
     setRunState(run, 'starting', 'Starting the supervised Electron host', undefined, false);
     // @nimi-authority: rule.nimi.platform.product-lifecycle.p-mig-007h
     // HTTP, IPC, Zhiyu and watcher restarts all reach this bounded Prepare ->
-    // profile preparation -> spawn/bind step, which alone holds the data-root
-    // gate; a run stopped while queued (for example by a root handoff) never
-    // starts a host.
-    const outcome = await this.operationGate.runExclusive(async () => {
+    // profile preparation -> spawn/bind step holds the shared data-root gate.
+    // Activity Open waits outside this gate; only the source launch owns this
+    // admission. Root handoff remains exclusive, and a run stopped while queued
+    // never starts.
+    const outcome = await this.operationGate.runShared(async () => {
       const registrationHandle = run.registrationHandle;
       if (run.stopped || !registrationHandle) throw new Error('local-development-run-stopped');
       return this.control.launch({

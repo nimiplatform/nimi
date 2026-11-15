@@ -8,6 +8,11 @@ export type AgentActivityReferencesProps = {
   readonly loading: boolean;
   readonly unavailable: boolean;
   readonly incomplete: boolean;
+  readonly hasMore?: boolean;
+  readonly loadingMore?: boolean;
+  readonly pageFailed?: boolean;
+  readonly loadMore?: () => void;
+  readonly presentation?: 'disclosure' | 'panel';
   readonly openingId: string | null;
   readonly openFailed: boolean;
   readonly open: (record: NimiAppActivityRecord) => void;
@@ -18,6 +23,9 @@ export type AgentActivityReferencesProps = {
     readonly title: string; readonly loading: string; readonly unavailable: string;
     readonly incomplete: string; readonly open: string; readonly opening: string;
     readonly openFailed: string; readonly retry: string; readonly more: string;
+    readonly empty?: string; readonly loadMore?: string; readonly moreFailed?: string;
+    readonly sourceUnavailable?: string;
+    readonly todoStates?: Readonly<Record<'open' | 'completed' | 'cancelled', string>>;
   };
 };
 
@@ -33,28 +41,36 @@ export function AgentActivityReferences(props: AgentActivityReferencesProps) {
     details.open = false;
     if (restoreSummaryFocus) summary?.focus({ preventScroll: true });
   }, [props.navigationKey]);
-  if (!props.loading && !props.unavailable && props.records.length === 0) return null;
+  const panel = props.presentation === 'panel';
+  if (!panel && !props.loading && !props.unavailable && !props.hasMore && props.records.length === 0) return null;
+  const body = <div className="space-y-2 pt-1">
+      {props.loading ? <p role="status" className="text-xs text-[var(--nimi-text-muted)]">{props.copy.loading}</p> : null}
+      {props.unavailable ? <div role="status" className="flex items-center gap-2 text-xs"><span>{props.copy.unavailable}</span><Button size="sm" tone="ghost" onClick={props.retry}>{props.copy.retry}</Button></div> : null}
+      {props.records.slice(0, panel ? undefined : 3).map(record => <Reference key={record.activityId} record={record} {...props} />)}
+      {!panel && props.records.length > 3 ? <details className="space-y-2"><summary className="cursor-pointer py-2 text-xs text-[var(--nimi-text-muted)]">{props.copy.more}</summary>{props.records.slice(3).map(record => <Reference key={record.activityId} record={record} {...props} />)}</details> : null}
+      {!props.loading && !props.unavailable && !props.records.length && !props.incomplete && props.copy.empty ? <p className="py-6 text-sm text-[var(--nimi-text-secondary)]">{props.copy.empty}</p> : null}
+      {props.incomplete && !props.loading && !props.unavailable ? <p className="text-xs text-[var(--nimi-text-muted)]">{props.copy.incomplete}</p> : null}
+      {props.pageFailed ? <p role="status" className="text-xs text-[var(--nimi-status-warning)]">{props.copy.moreFailed ?? props.copy.unavailable}</p> : null}
+      {props.hasMore && props.loadMore ? <Button size="sm" tone="secondary" loading={props.loadingMore} onClick={props.loadMore}>{props.copy.loadMore ?? props.copy.more}</Button> : null}
+      {props.openFailed ? <p role="status" className="text-xs text-[var(--nimi-status-danger)]">{props.copy.openFailed}</p> : null}
+    </div>;
+  if (panel) return <section data-nimi-app-activity-references aria-label={props.copy.title} className="text-sm text-[var(--nimi-text-primary)]"><h2 className="mb-2 text-base font-semibold">{props.copy.title}</h2>{body}</section>;
   return (
     <details ref={detailsRef} data-nimi-app-activity-references className="my-4 text-sm text-[var(--nimi-text-primary)]">
       <summary className={`min-h-8 cursor-pointer rounded-[var(--nimi-radius-sm)] py-2 text-xs font-medium text-[var(--nimi-text-secondary)] ${FOCUS_RING_CLASS_NAME}`}>{props.copy.title}</summary>
-      <div className="space-y-2 pt-1">
-      {props.loading ? <p role="status" className="text-xs text-[var(--nimi-text-muted)]">{props.copy.loading}</p> : null}
-      {props.unavailable ? <div role="status" className="flex items-center gap-2 text-xs"><span>{props.copy.unavailable}</span><Button size="sm" tone="ghost" onClick={props.retry}>{props.copy.retry}</Button></div> : null}
-      {props.records.slice(0, 3).map(record => <Reference key={record.activityId} record={record} {...props} />)}
-      {props.records.length > 3 ? <details className="space-y-2"><summary className="cursor-pointer py-2 text-xs text-[var(--nimi-text-muted)]">{props.copy.more}</summary>{props.records.slice(3).map(record => <Reference key={record.activityId} record={record} {...props} />)}</details> : null}
-      {props.incomplete && !props.loading && props.records.length > 0 ? <p className="text-xs text-[var(--nimi-text-muted)]">{props.copy.incomplete}</p> : null}
-      {props.openFailed ? <p role="status" className="text-xs text-[var(--nimi-status-danger)]">{props.copy.openFailed}</p> : null}
-      </div>
+      {body}
     </details>
   );
 }
 
 function Reference({ record, ...props }: AgentActivityReferencesProps & { readonly record: NimiAppActivityRecord }) {
+  const sourceLabel = record.source.displayName || record.source.appId;
   return <article data-activity-id={record.activityId} className="rounded-xl border border-[var(--nimi-border-subtle)] bg-[var(--nimi-surface-card)] p-3">
-    <div className="flex items-center justify-between gap-3 text-xs text-[var(--nimi-text-muted)]"><span>{record.source.displayName ?? record.source.appId}</span><time dateTime={record.occurredAt}>{new Date(record.occurredAt).toLocaleString()}</time></div>
+    <div className="flex items-center justify-between gap-3 text-xs text-[var(--nimi-text-muted)]"><span>{sourceLabel || props.copy.sourceUnavailable || props.copy.unavailable}</span><time dateTime={record.occurredAt}>{new Date(record.occurredAt).toLocaleString()}</time></div>
     {record.agent ? <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">{record.agent.displayName}</p> : null}
     <p className="mt-1 font-medium">{record.title}</p>
+    {record.kind === 'todo' && record.todoState && props.copy.todoStates ? <p className="mt-1 text-xs text-[var(--nimi-text-muted)]">{props.copy.todoStates[record.todoState]}</p> : null}
     {record.summary ? <p className="mt-1 whitespace-pre-wrap break-words text-[var(--nimi-text-secondary)]">{record.summary}</p> : null}
-    {record.objectRef ? <Button className="mt-2" size="sm" tone="secondary" disabled={props.openingId !== null} onClick={() => props.open(record)}>{props.openingId === record.activityId ? props.copy.opening : props.copy.open}</Button> : null}
+    {record.objectRef ? <Button className="mt-2" size="sm" tone="secondary" disabled={props.openingId !== null || record.source.available === false} onClick={() => props.open(record)}>{record.source.available === false && sourceLabel && props.copy.sourceUnavailable ? props.copy.sourceUnavailable : props.openingId === record.activityId ? props.copy.opening : props.copy.open}</Button> : null}
   </article>;
 }
